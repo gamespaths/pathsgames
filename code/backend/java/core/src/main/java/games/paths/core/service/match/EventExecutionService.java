@@ -72,6 +72,15 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
     private static final String DEFAULT_LANG = "en";
     private static final String ADD = "ADD";
     private static final String REMOVE = "REMOVE";
+    /**
+     * v0.35.1 — the third `action` an {@link ItemChange} can carry: the story wanted to
+     * hand this item over and the character already holds max_per_character of it.
+     *
+     * <p>Reported, not thrown: the event runs, everything else it does still applies, and
+     * the board is free to say "you already have as many as you can carry" — or, as
+     * react-game does today, to say nothing and show the ordinary card.</p>
+     */
+    private static final String NOT_ADDED = "NOT_ADDED";
     private static final String TARGET_ONLY_ONE = "ONLY_ONE";
 
     /**
@@ -860,7 +869,15 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                 before, after, after - before));
     }
 
-    /** ADD or REMOVE one unit of {@code idItem}. Shared with the Step 32 choice effects. */
+    /**
+     * ADD one unit of {@code idItem}, or REMOVE every unit of it. Shared with the Step 32
+     * choice effects.
+     *
+     * <p>v0.35.1 — an ADD past {@code max_per_character} is refused and reported as a
+     * {@link #NOT_ADDED} change. The owned-items set is left alone in that case: the
+     * character does hold the item, just not one more of it, so a later condition in this
+     * same execution must keep reading "owned".</p>
+     */
     private void applyItem(Exec x, EventActorView recipient, Integer idItem, String action) {
         if (idItem == null || idItem <= 0 || action == null) {
             return;
@@ -868,9 +885,14 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         long itemId = idItem.longValue();
         String itemUuid = x.itemUuids().get(itemId);
         if (ADD.equalsIgnoreCase(action.trim())) {
-            store.addItem(x.match.id(), recipient.id(), itemId);
+            boolean added = store.addItem(x.match.id(), recipient.id(), itemId,
+                    x.itemMaxPerCharacter().get(itemId));
+            x.itemChanges.add(new ItemChange(recipient.uuid(), itemUuid, added ? ADD : NOT_ADDED));
+            if (!added) {
+                // Nothing changed in the bag, so nothing needs refreshing on its account.
+                return;
+            }
             x.itemAdded = true;
-            x.itemChanges.add(new ItemChange(recipient.uuid(), itemUuid, ADD));
             if (x.isActor(recipient.id())) {
                 x.ctx.ownedItemIds().add(itemId);
             }
@@ -879,6 +901,9 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             x.itemRemoved = true;
             x.itemChanges.add(new ItemChange(recipient.uuid(), itemUuid, REMOVE));
             if (x.isActor(recipient.id())) {
+                // Correct now that a REMOVE takes every unit: before v0.35.1 it took one
+                // and cleared the flag anyway, so a later condition read "not owned" while
+                // the bag still held two.
                 x.ctx.ownedItemIds().remove(itemId);
             }
         }
@@ -1582,6 +1607,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
 
         private List<EventActorView> allCharacters;
         private Map<Long, String> itemUuids;
+        private Map<Long, Integer> itemMaxPerCharacter;
         private Map<Long, String> traitUuids;
         private Map<Long, String> locationUuids;
         private Map<Long, EventEntity> eventsById;
@@ -1639,6 +1665,14 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                 itemUuids = store.findItemUuidsById(match.idStory());
             }
             return itemUuids;
+        }
+
+        /** v0.35.1 — the caps, read once per execution however many ADDs it carries. */
+        Map<Long, Integer> itemMaxPerCharacter() {
+            if (itemMaxPerCharacter == null) {
+                itemMaxPerCharacter = store.findItemMaxPerCharacterById(match.idStory());
+            }
+            return itemMaxPerCharacter;
         }
 
         Map<Long, String> traitUuids() {

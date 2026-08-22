@@ -89,6 +89,9 @@ class EventExecutionServiceSelectChoiceTest {
         when(store.findMatchByUuid(MATCH_UUID)).thenReturn(Optional.of(match()));
         when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID)).thenReturn(Optional.of(actor()));
         when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(actor()));
+        // v0.35.1 — no cap unless a case says otherwise, and the add goes through: a bare
+        // mock would answer false and every item effect would read as refused.
+        when(store.addItem(anyLong(), anyLong(), anyLong(), any())).thenReturn(true);
         when(store.findBackpack(anyLong(), anyLong())).thenReturn(Optional.of(new BackpackStats(5, 5, 10)));
         when(store.findEventsById(STORY_ID)).thenReturn(Map.of(EVENT_ID, event()));
         when(store.findEffectsByEventId(STORY_ID)).thenReturn(Map.of());
@@ -473,7 +476,7 @@ class EventExecutionServiceSelectChoiceTest {
 
             ChoiceResolutionResult r = resolve();
 
-            verify(store).addItem(MATCH_ID, CHAR_ID, 7L);
+            verify(store).addItem(MATCH_ID, CHAR_ID, 7L, null);
             assertTrue(r.execution().itemAdded());
             assertEquals("item-uuid", r.execution().itemChanges().get(0).itemUuid());
         }
@@ -749,7 +752,7 @@ class EventExecutionServiceSelectChoiceTest {
         resolve();
 
         // Same rule as an event: all of one event's effects land, then the Step 30 pass.
-        verify(store).addItem(MATCH_ID, CHAR_ID, 7L);
+        verify(store).addItem(MATCH_ID, CHAR_ID, 7L, null);
     }
 
     @Test

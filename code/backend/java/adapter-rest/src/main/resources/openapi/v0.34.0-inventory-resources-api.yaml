@@ -50,8 +50,20 @@ info:
       but `use-item` refuses it with `ITEM_NOT_CONSUMABLE`.
     - **Class restrictions are honoured**: `id_class_permitted` and `id_class_prohibited` are
       checked against the character's class. A value of `0` or `null` means "no restriction".
-    - **Using consumes the whole row.** `amount` is not decremented — the row is deleted. Seed
-      items therefore carry `amount: 1`.
+    - **Quantities are authored** (v0.35.1). `list_items.amount_use` units are consumed by one
+      `use-item` and `list_items.amount_drop` by one `drop-item`; an empty column reads as
+      **one** unit, and the row survives with what is left. Carrying fewer units than a usage
+      spends refuses with `ITEM_NOT_ENOUGH`; a drop instead takes what is there, because a
+      player putting something down can always put down everything they hold. A row whose
+      story item is gone is dropped whole: there is no author left to say otherwise.
+    - **A character may be capped** (v0.35.1). `list_items.max_per_character` (0 or null = no
+      limit) is the number of units one character may hold. An event or choice effect whose
+      ADD would cross it is **refused, not failed**: the effect answers an `itemChanges` entry
+      with `action: NOT_ADDED`, the event keeps running and everything else it does still
+      applies. An event `REMOVE` takes **every** unit the character holds, not one.
+    - **One row per character and item** (v0.35.1). The engine has always stacked an ADD onto
+      the existing row; since this version the schema enforces it with a unique index, and the
+      amounts of any duplicate an older database carried are folded into one row.
     - **Dropping discards only.** `drop-item` applies **neither** the consumable gate **nor**
       the class gate: a non-consumable item must be droppable, that is the point of carrying
       one. Handing an item to another character is multiplayer (steps 71-76) and out of scope
@@ -185,9 +197,11 @@ paths:
       tags: [Inventory]
       summary: Discard one item
       description: |
-        Deletes the inventory row without applying anything and without writing a usage log.
-        `amountDropped` is the whole row: dropping discards, it does not decrement.
-        Neither the consumable gate nor the class gate applies here.
+        Removes `list_items.amount_drop` units (v0.35.1; an empty column reads as one) without
+        applying anything and without writing a usage log. The row survives with what is left
+        and is deleted when nothing is. Carrying fewer units is NOT a refusal — the drop takes
+        what is there — and `amountDropped` reports what was actually put down. A row whose
+        story item is gone goes whole. Neither the consumable gate nor the class gate applies.
       parameters:
         - $ref: '#/components/parameters/UuidMatch'
       requestBody:
@@ -303,6 +317,24 @@ components:
         isConsumabile:
           type: boolean
           description: False means the item is carried only; use-item refuses it.
+        maxPerCharacter:
+          type: integer
+          nullable: true
+          description: >
+            v0.35.1 - units of this item one character may hold; null or 0 mean no limit.
+            Reported so the board can write "2/3" beside the amount; the cap itself is
+            enforced server-side, on the ADD.
+        amountDrop:
+          type: integer
+          nullable: true
+          description: v0.35.1 - units one drop-item puts down; null reads as 1.
+        amountUse:
+          type: integer
+          nullable: true
+          description: >
+            v0.35.1 - units one use-item spends; null reads as 1. A board that finds fewer
+            units than this in the row may grey the action out; the refusal itself
+            (ITEM_NOT_ENOUGH) stays server-side.
         effects:
           type: array
           description: >
@@ -379,7 +411,9 @@ components:
           nullable: true
         amountDropped:
           type: integer
-          description: The whole row. Dropping discards, it does not decrement.
+          description: >
+            v0.35.1 - the units actually put down: amount_drop, or everything the row held
+            when it held less. Never a refusal.
         weight:
           type: integer
           description: The carried weight AFTER the drop.
@@ -554,6 +588,7 @@ components:
         | `COMA` | the character is in a coma |
         | `SLEEPING` | the character is asleep |
         | `ITEM_NOT_CONSUMABLE` | `is_consumabile != 1` — use-item only |
+        | `ITEM_NOT_ENOUGH` | fewer units carried than `amount_use` spends — use-item only (v0.35.1) |
         | `ITEM_CLASS_NOT_PERMITTED` | `id_class_permitted` names another class |
         | `ITEM_CLASS_PROHIBITED` | `id_class_prohibited` names the character's class |
       content:

@@ -214,7 +214,7 @@ class InventoryStoreAdapterTest {
     void logItemUsage_allocatesAGloballyUniqueId() {
         when(logItemUsageRepository.findMaxId()).thenReturn(41L);
 
-        adapter.logItemUsage(MATCH_ID, CHAR_ID, 900L, "{}");
+        adapter.logItemUsage(MATCH_ID, CHAR_ID, 900L, 2, "{}");
 
         ArgumentCaptor<LogItemUsageEntity> saved = ArgumentCaptor.forClass(LogItemUsageEntity.class);
         verify(logItemUsageRepository).save(saved.capture());
@@ -223,7 +223,8 @@ class InventoryStoreAdapterTest {
         assertEquals(MATCH_ID, row.getIdMatch());
         assertEquals(CHAR_ID, row.getIdCharacterMatch());
         assertEquals(900L, row.getIdItem());
-        assertEquals(1, row.getCounter());
+        // v0.35.1 — the units the usage actually spent, not the hardcoded 1 it used to be.
+        assertEquals(2, row.getCounter());
         assertEquals("{}", row.getEffectsJson());
     }
 
@@ -232,10 +233,34 @@ class InventoryStoreAdapterTest {
     void logItemUsage_firstRow() {
         when(logItemUsageRepository.findMaxId()).thenReturn(0L);
 
-        adapter.logItemUsage(MATCH_ID, CHAR_ID, 900L, "{}");
+        adapter.logItemUsage(MATCH_ID, CHAR_ID, 900L, 1, "{}");
 
         ArgumentCaptor<LogItemUsageEntity> saved = ArgumentCaptor.forClass(LogItemUsageEntity.class);
         verify(logItemUsageRepository).save(saved.capture());
         assertEquals(1L, saved.getValue().getId());
+    }
+
+    @Test
+    @DisplayName("v0.35.1 — a partly spent row keeps what survived the usage")
+    void updateInventoryAmount_writesTheSurvivingUnits() {
+        GamingInventoryItemsEntity row = new GamingInventoryItemsEntity();
+        row.setId(7L);
+        row.setAmount(5);
+        when(inventoryRepository.findById(any())).thenReturn(Optional.of(row));
+
+        adapter.updateInventoryAmount(MATCH_ID, 7L, 3);
+
+        assertEquals(3, row.getAmount());
+        verify(inventoryRepository).save(row);
+    }
+
+    @Test
+    @DisplayName("a row that is no longer there is not written back into existence")
+    void updateInventoryAmount_missingRowIsANoOp() {
+        when(inventoryRepository.findById(any())).thenReturn(Optional.empty());
+
+        adapter.updateInventoryAmount(MATCH_ID, 7L, 3);
+
+        verify(inventoryRepository, never()).save(any());
     }
 }

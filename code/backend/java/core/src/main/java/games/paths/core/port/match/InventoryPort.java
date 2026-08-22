@@ -62,7 +62,12 @@ public interface InventoryPort {
             ITEM_NOT_FOUND,
             ITEM_NOT_CONSUMABLE,
             ITEM_CLASS_NOT_PERMITTED,
-            ITEM_CLASS_PROHIBITED
+            ITEM_CLASS_PROHIBITED,
+            /**
+             * v0.35.1 — the character carries fewer units than {@code amount_use} spends.
+             * Only use-item can answer this: a drop takes what is there instead.
+             */
+            ITEM_NOT_ENOUGH
         }
 
         private final transient Code code;

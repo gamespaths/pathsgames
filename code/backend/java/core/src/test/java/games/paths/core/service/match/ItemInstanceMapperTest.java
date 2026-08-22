@@ -351,6 +351,40 @@ class ItemInstanceMapperTest {
     }
 
     @Nested
+    @DisplayName("authored quantities (v0.35.1)")
+    class Quantities {
+
+        @Test
+        @DisplayName("the cap and the two action amounts travel to the board as authored")
+        void reportsTheQuantities() {
+            ItemEntity apples = storyItem(900L, 1, 1, null);
+            apples.setMaxPerCharacter(3);
+            apples.setAmountDrop(2);
+            apples.setAmountUse(2);
+
+            ItemInstanceInfo info = build(List.of(row("a", 900L, 2)), Map.of(900L, apples), "en")
+                    .get(0);
+
+            assertEquals(3, info.getMaxPerCharacter());
+            assertEquals(2, info.getAmountDrop());
+            assertEquals(2, info.getAmountUse());
+        }
+
+        @Test
+        @DisplayName("an item that authored none reports null, not a made-up default")
+        void unsetStaysNull() {
+            // The board reads null as "no cap" and "one unit" itself — inventing the 1 here
+            // would hide from it whether the story ever said anything.
+            ItemInstanceInfo info = build(List.of(row("a", 900L, 1)),
+                    Map.of(900L, storyItem(900L, 1, 1, null)), "en").get(0);
+
+            assertNull(info.getMaxPerCharacter());
+            assertNull(info.getAmountDrop());
+            assertNull(info.getAmountUse());
+        }
+    }
+
+    @Nested
     @DisplayName("carried weight")
     class CarriedWeight {
 

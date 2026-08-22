@@ -74,6 +74,9 @@ class EventExecutionServiceEffectsTest {
         when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID)).thenReturn(Optional.of(actor()));
         when(store.findCharactersByMatchId(MATCH_ID))
                 .thenReturn(List.of(actor(), mate(), far()));
+        // v0.35.1 — no cap unless a case says otherwise, and the add goes through: a bare
+        // mock would answer false and every item effect would read as refused.
+        when(store.addItem(anyLong(), anyLong(), anyLong(), any())).thenReturn(true);
         when(store.findBackpack(anyLong(), anyLong()))
                 .thenReturn(Optional.of(new BackpackStats(5, 5, 10)));
         when(store.findEventByStoryAndUuid(STORY_ID, EVENT_UUID)).thenReturn(Optional.of(event()));
@@ -378,6 +381,25 @@ class EventExecutionServiceEffectsTest {
     class Items {
 
         @Test
+        @DisplayName("v0.35.1 — an ADD the cap refuses is REPORTED, and the event still ran")
+        void addRefusedAtTheCap() {
+            EventEffectEntity e = effect();
+            e.setIdItemTarget(42);
+            e.setItemAction("ADD");
+            withEffects(e);
+            when(store.findItemMaxPerCharacterById(anyLong())).thenReturn(Map.of(42L, 1));
+            when(store.addItem(MATCH_ID, CHAR_ID, 42L, 1)).thenReturn(false);
+
+            EventExecutionResult r = execute();
+
+            // No error, no exception: the bag simply did not change, and the payload says so.
+            assertFalse(r.itemAdded());
+            assertEquals(1, r.itemChanges().size());
+            assertEquals("NOT_ADDED", r.itemChanges().get(0).action());
+            assertEquals("item-uuid", r.itemChanges().get(0).itemUuid());
+        }
+
+        @Test
         @DisplayName("ADD grants the item and flags itemAdded")
         void add() {
             EventEffectEntity e = effect();
@@ -387,7 +409,7 @@ class EventExecutionServiceEffectsTest {
 
             EventExecutionResult r = execute();
 
-            verify(store).addItem(MATCH_ID, CHAR_ID, 42L);
+            verify(store).addItem(MATCH_ID, CHAR_ID, 42L, null);
             assertTrue(r.itemAdded());
             assertFalse(r.itemRemoved());
             assertEquals(1, r.itemChanges().size());
@@ -435,7 +457,7 @@ class EventExecutionServiceEffectsTest {
 
             EventExecutionResult r = execute();
 
-            verify(store, never()).addItem(anyLong(), anyLong(), anyLong());
+            verify(store, never()).addItem(anyLong(), anyLong(), anyLong(), any());
             verify(store, never()).removeItem(anyLong(), anyLong(), anyLong());
             assertFalse(r.itemAdded());
         }

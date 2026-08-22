@@ -71,6 +71,24 @@ describe('items entity config (Step 35)', () => {
   })
 })
 
+describe('items quantity config (v0.35.1)', () => {
+  const byKey = () => Object.fromEntries(STORIES_ENTITIES_FIELDS.items.map(f => [f.key, f]))
+
+  it('offers the cap and the two action amounts as numbers', () => {
+    for (const key of ['maxPerCharacter', 'amountDrop', 'amountUse']) {
+      expect(byKey()[key]).toMatchObject({ key, type: 'number' })
+    }
+  })
+
+  it('says in the label what an empty value means, since empty is not zero', () => {
+    // 0/empty is "no limit" for the cap and "one unit" for the two amounts: an author
+    // reading the form must not have to guess which.
+    expect(byKey().maxPerCharacter.label).toMatch(/no limit/i)
+    expect(byKey().amountDrop.label).toMatch(/1/)
+    expect(byKey().amountUse.label).toMatch(/1/)
+  })
+})
+
 describe('item-effects entity config (Step 35)', () => {
   const fields = () => STORIES_ENTITIES_FIELDS['item-effects']
   const byKey = () => Object.fromEntries(fields().map(f => [f.key, f]))

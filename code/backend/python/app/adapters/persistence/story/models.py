@@ -229,6 +229,11 @@ class ItemEntity(Base):
     # secret. Nullable: a story authored before the column existed already shipped the
     # promise, so an absence must read as "shown", never as a refusal.
     flag_show_effects = Column(Integer, default=1)
+    # v0.35.1 — how many units one character may hold (0/None = no limit), and how many
+    # units one drop / one use moves (None = 1).
+    max_per_character = Column(Integer)
+    amount_drop = Column(Integer)
+    amount_use = Column(Integer)
     id_class_permitted = Column(Integer)
     id_class_prohibited = Column(Integer)
 

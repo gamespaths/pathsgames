@@ -269,15 +269,64 @@ class InventoryServiceTest {
 
         @Test
         @DisplayName("the row is REMOVED, not decremented — and before the effects run")
-        void removesTheWholeRow() {
+        void spendsTheUnitsBeforeTheEffectsRun() {
+            // v0.35.1 — one unit by default, so a row of 5 survives with 4. The charge still
+            // happens BEFORE the effects: an item whose effects grant it back must not pay
+            // for itself, and what was spent stays spent even if the chain ends in a coma.
             when(store.findInventory(MATCH_ID, CHAR_ID)).thenReturn(List.of(row(1L, "row-1", 900L, 5)));
             when(store.findItemsById(STORY_ID)).thenReturn(Map.of(900L, item(900L, 3, 1)));
 
             service.useItem(MATCH, USER, "row-1", "en");
 
             InOrder order = inOrder(store, effectEngine);
-            order.verify(store).deleteInventoryRow(MATCH_ID, 1L);
+            order.verify(store).updateInventoryAmount(MATCH_ID, 1L, 4);
             order.verify(effectEngine).applyStandaloneEffects(eq(MATCH_ID), eq(CHAR_ID), any(), any(), eq("en"), eq(true));
+            verify(store, never()).deleteInventoryRow(anyLong(), anyLong());
+        }
+
+        @Test
+        @DisplayName("v0.35.1 — the row goes when the usage consumes the last unit")
+        void deletesTheRowWhenNothingSurvives() {
+            ItemEntity potion = item(900L, 3, 1);
+            potion.setAmountUse(2);
+            when(store.findInventory(MATCH_ID, CHAR_ID)).thenReturn(List.of(row(1L, "row-1", 900L, 2)));
+            when(store.findItemsById(STORY_ID)).thenReturn(Map.of(900L, potion));
+
+            service.useItem(MATCH, USER, "row-1", "en");
+
+            verify(store).deleteInventoryRow(MATCH_ID, 1L);
+            verify(store, never()).updateInventoryAmount(anyLong(), anyLong(), anyInt());
+        }
+
+        @Test
+        @DisplayName("v0.35.1 — too few units refuses: half a recipe heals nobody")
+        void refusesWhenThereAreNotEnoughUnits() {
+            ItemEntity potion = item(900L, 3, 1);
+            potion.setAmountUse(3);
+            when(store.findInventory(MATCH_ID, CHAR_ID)).thenReturn(List.of(row(1L, "row-1", 900L, 2)));
+            when(store.findItemsById(STORY_ID)).thenReturn(Map.of(900L, potion));
+
+            InventoryException ex = assertThrows(InventoryException.class,
+                    () -> service.useItem(MATCH, USER, "row-1", "en"));
+
+            assertEquals(InventoryException.Code.ITEM_NOT_ENOUGH, ex.getCode());
+            // Nothing was spent and nothing ran.
+            verify(store, never()).deleteInventoryRow(anyLong(), anyLong());
+            verify(store, never()).updateInventoryAmount(anyLong(), anyLong(), anyInt());
+            verifyNoInteractions(effectEngine);
+        }
+
+        @Test
+        @DisplayName("an amount_use of 0 or less reads as one unit, not as a free action")
+        void anEmptyAmountReadsAsOne() {
+            ItemEntity potion = item(900L, 3, 1);
+            potion.setAmountUse(0);
+            when(store.findInventory(MATCH_ID, CHAR_ID)).thenReturn(List.of(row(1L, "row-1", 900L, 2)));
+            when(store.findItemsById(STORY_ID)).thenReturn(Map.of(900L, potion));
+
+            service.useItem(MATCH, USER, "row-1", "en");
+
+            verify(store).updateInventoryAmount(MATCH_ID, 1L, 1);
         }
 
         @Test
@@ -381,7 +430,7 @@ class InventoryServiceTest {
             service.useItem(MATCH, USER, "row-1", "en");
 
             ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
-            verify(store).logItemUsage(eq(MATCH_ID), eq(CHAR_ID), eq(900L), json.capture());
+            verify(store).logItemUsage(eq(MATCH_ID), eq(CHAR_ID), eq(900L), eq(1), json.capture());
             assertEquals("{\"statChanges\":[{\"characterUuid\":\"char-uuid\",\"statistic\":\"life\","
                             + "\"before\":4,\"after\":7,\"delta\":3}],"
                             + "\"traitChanges\":[{\"characterUuid\":\"char-uuid\",\"traitUuid\":\"trait-1\","
@@ -407,8 +456,38 @@ class InventoryServiceTest {
 
             assertEquals("row-1", r.itemInstanceUuid());
             assertEquals("item-900", r.itemUuid());
-            assertEquals(3, r.amountDropped(), "the whole row goes, it is not decremented");
+            // v0.35.1 — one unit by default: 3 held, 1 put down, 2 left.
+            assertEquals(1, r.amountDropped());
+            verify(store).updateInventoryAmount(MATCH_ID, 1L, 2);
+        }
+
+        @Test
+        @DisplayName("v0.35.1 — an amount_drop bigger than the bag drops what is there")
+        void dropsWhatIsThereWhenItIsNotEnough() {
+            ItemEntity heavy = item(900L, 2, 1);
+            heavy.setAmountDrop(10);
+            when(store.findInventory(MATCH_ID, CHAR_ID)).thenReturn(List.of(row(1L, "row-1", 900L, 3)));
+            when(store.findItemsById(STORY_ID)).thenReturn(Map.of(900L, heavy));
+
+            DropItemResult r = service.dropItem(MATCH, USER, "row-1");
+
+            // Not a refusal, unlike a usage: putting something down can always mean all of it.
+            assertEquals(3, r.amountDropped());
             verify(store).deleteInventoryRow(MATCH_ID, 1L);
+        }
+
+        @Test
+        @DisplayName("an amount_drop of two takes two and leaves the rest")
+        void dropsTheAuthoredAmount() {
+            ItemEntity apples = item(900L, 1, 1);
+            apples.setAmountDrop(2);
+            when(store.findInventory(MATCH_ID, CHAR_ID)).thenReturn(List.of(row(1L, "row-1", 900L, 5)));
+            when(store.findItemsById(STORY_ID)).thenReturn(Map.of(900L, apples));
+
+            DropItemResult r = service.dropItem(MATCH, USER, "row-1");
+
+            assertEquals(2, r.amountDropped());
+            verify(store).updateInventoryAmount(MATCH_ID, 1L, 3);
         }
 
         @Test
@@ -470,7 +549,7 @@ class InventoryServiceTest {
 
             service.dropItem(MATCH, USER, "row-1");
 
-            verify(store, never()).logItemUsage(anyLong(), anyLong(), anyLong(), anyString());
+            verify(store, never()).logItemUsage(anyLong(), anyLong(), anyLong(), anyInt(), anyString());
             verifyNoInteractions(effectEngine);
         }
     }

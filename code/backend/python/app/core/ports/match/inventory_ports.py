@@ -26,6 +26,9 @@ class InventoryError(Exception):
     ITEM_NOT_CONSUMABLE = "ITEM_NOT_CONSUMABLE"
     ITEM_CLASS_NOT_PERMITTED = "ITEM_CLASS_NOT_PERMITTED"
     ITEM_CLASS_PROHIBITED = "ITEM_CLASS_PROHIBITED"
+    # v0.35.1 — fewer units carried than amount_use spends. Only use-item answers this:
+    # a drop takes what is there instead.
+    ITEM_NOT_ENOUGH = "ITEM_NOT_ENOUGH"
 
     def __init__(self, code: str, message: str) -> None:
         super().__init__(message)
@@ -84,7 +87,11 @@ class InventoryStorePort(ABC):
 
     @abstractmethod
     def delete_inventory_row(self, id_match: int, id_row: int) -> None:
-        """Remove one row entirely: amount is never decremented (frozen step-34 decision)."""
+        """Remove one row entirely — what a use or a drop that consumed every unit does."""
+
+    @abstractmethod
+    def update_inventory_amount(self, id_match: int, id_row: int, amount: int) -> None:
+        """v0.35.1 — write the units a partial use or drop left on the row."""
 
     @abstractmethod
     def find_backpack(self, id_match: int, id_character: int) -> Optional[Dict[str, Any]]:
@@ -92,6 +99,6 @@ class InventoryStorePort(ABC):
 
     @abstractmethod
     def log_item_usage(self, id_match: int, id_character: int, id_item: int,
-                       effects_json: str) -> None:
+                       counter: int, effects_json: str) -> None:
         """Append one log_item_usage row. The table carries UNIQUE (id), so the id comes
         from the table-wide maximum, not from a per-match one."""

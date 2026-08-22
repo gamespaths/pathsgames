@@ -1,22 +1,26 @@
 # Step 35 — Items resolution: closing the UX gaps of the inventory engine
 
-This step ships **no new engine**. [Step 34](./Step34_InventoryAndResources.md) already built
-`use-item`, `drop-item`, `applyStandaloneEffects` and the `list_items_effects` vocabulary; §7 of
-that same document already covers the roadmap's Step 35 ("carried weight and movement"). What
-v0.35.0 closes are gaps found only by actually playing with the engine and actually authoring
-content against it: the board's own handling of a used item, the admin form an author fills in
-to write a `list_items_effects` row, the fact that an item's effects reached the client only in
-the *answer* of `use-item` (§5), and — the third part of this step, §6-§7 below — an author's
-way to keep one item's promise secret, plus a card bug that surfaced only once items actually
-started carrying that promise around. The first two problems are frontend-only, exactly as their
-framing below describes; the effects preview (§5) reaches into all three backends as one
-additive field, `effects[]`, on a payload each of them already returns; the opt-out flag (§6)
-is the one place this step **does** touch a migration — one nullable `INTEGER` column, on all
-three backends, on the very table the preview already reads. The version bump on all three
-(`pom.xml`, `application.yml`, `config.py`, `pyproject.toml`, and the two footer components) is
-otherwise a plain number roll with no behavior attached to it.
+[Step 34](./Step34_InventoryAndResources.md) already built `use-item`, `drop-item`,
+`applyStandaloneEffects` and the `list_items_effects` vocabulary; §7 of that same document
+already covers the roadmap's Step 35 ("carried weight and movement"). What this step closes are
+gaps found only by actually playing with the engine and actually authoring content against it:
+the board's own handling of a used item, the admin form an author fills in to write a
+`list_items_effects` row, the fact that an item's effects reached the client only in the
+*answer* of `use-item` (§5), an author's way to keep one item's promise secret plus a card bug
+that surfaced only once items actually started carrying that promise around (§6-§7), and —
+v0.35.1, §8 below — the quantities every one of those actions actually moves, and the cap on
+what a character may carry. The first two problems are frontend-only, exactly as their framing
+below describes; the effects preview (§5) reaches into all three backends as one additive
+field, `effects[]`, on a payload each of them already returns; the opt-out flag (§6) touches a
+migration — one nullable `INTEGER` column, on all three backends, on the very table the preview
+already reads; §8 (v0.35.1) touches a migration too, and — unlike every part before it — changes
+engine behavior, not just presentation: an ADD can now be refused, a REMOVE now takes everything,
+and a use/drop can now be a partial spend. The version bumps on all three (`pom.xml`,
+`application.yml`, `config.py`, `pyproject.toml`, and the two footer components) that came with
+parts one through three were plain number rolls with no behavior attached; v0.35.1 is not one of
+those.
 
-Four things follow from that framing:
+Five things follow from that framing:
 
 - Two of the first three fixes are entirely in the frontends: react-game's own reaction to its
   own `use-item` call, and react-admin's own form for a table column the engine already reads.
@@ -39,6 +43,11 @@ Four things follow from that framing:
   riding on inventory rows, the board's own "item just received" card turned out to have never
   been reading that row in the first place — it was reading the *event's* stat changes instead,
   a mismatch nobody could see until an item had its own promise to show.
+- The quantities (§8, v0.35.1) are the one part of this step that is not UX polish. Every
+  quantity an item action moved was hardcoded before it — one unit added, one removed, the whole
+  row spent or dropped — and an author had no way to say "at most one map" or "half this potion
+  heals nobody". §8 gives three columns back to `list_items` and, as a direct consequence,
+  changes what a REMOVE and a partial use/drop actually do to a character's bag.
 
 ---
 
@@ -252,9 +261,12 @@ All four changes are exercised in
 
 ## 4. Reference for story authors — how a `list_items_effects` row actually behaves
 
-This section documents the engine's existing behavior; nothing here changed in this step. It
-exists because the react-admin gaps just closed (§3) were themselves evidence that this
-information was not otherwise easy to find while authoring.
+This section documents the engine's existing behavior; nothing here changed in v0.35.0 (parts
+one through three). It exists because the react-admin gaps closed in that version (§3) were
+themselves evidence that this information was not otherwise easy to find while authoring. The
+"real order of operations" subsection below is the one exception: v0.35.1 (§8) changed *how much*
+a use-item call spends, so its code excerpt reflects the current, post-v0.35.1 behavior rather
+than a frozen v0.35.0 snapshot.
 
 **One row, one effect.** Each row of `list_items_effects` is a single effect. An item with
 several rows sharing the same `idItem` applies all of them, **in row order**, when that item is
@@ -301,25 +313,43 @@ that part of the effect — the item is still consumed, the other rows on it sti
 error surfaces anywhere. This is why §3b turned the field into a closed `select`: there was
 previously no way for the admin UI itself to catch this class of mistake.
 
-**Real order of operations, `use-item`:** the inventory row is deleted **before** the effects
-run, not after (`InventoryService.useItem`, java — mirrored in python and AWS):
+**Real order of operations, `use-item`:** the units are spent — the row updated or, if nothing
+is left, deleted — **before** the effects run, not after (`InventoryService.useItem`, java —
+mirrored in python and AWS). Current as of v0.35.1, which changed this from an unconditional
+delete to a charge of `amount_use` units (§8a):
 
 ```java
-// The row goes first: an item whose effects grant the same item back cannot be
-// spent twice, and the row is gone even if the effect chain ends in a coma.
-store.deleteInventoryRow(c.match.id(), row.getId());
+int spend = unitAmountOfAction(item.getAmountUse());          // NULL/≤0 reads as 1
+int held = ItemInstanceMapper.unitAmount(row.getAmount());
+if (held < spend) {
+    throw fail(InventoryException.Code.ITEM_NOT_ENOUGH, ...);  // refused before anything spends
+}
+List<StandaloneEffect> effects = standaloneEffects(c, item);
+
+// The units go first: an item whose effects grant the same item back cannot pay for
+// itself, and what was spent stays spent even if the effect chain ends in a coma.
+int left = held - spend;
+if (left > 0) {
+    store.updateInventoryAmount(c.match.id(), row.getId(), left);
+} else {
+    store.deleteInventoryRow(c.match.id(), row.getId());
+}
 
 EventExecutionResult result =
         effectEngine.applyStandaloneEffects(c.match.id(), c.actor.id(), effects, card,
                 lang, true);
-store.logItemUsage(c.match.id(), c.actor.id(), item.getId(), toEffectsJson(result));
+store.logItemUsage(c.match.id(), c.actor.id(), item.getId(), spend, toEffectsJson(result));
 ```
 
-Two consequences an author should keep in mind: an item that (indirectly, through an event or
-choice chain) grants the same item back cannot be spent twice by the same call, because the row
-that would have been "reused" is already gone before any effect runs; and the row disappears
-from the inventory even when the effect chain ends the character's turn in a coma — a used item
-is consumed regardless of how its own effects turn out.
+Two consequences an author should keep in mind, unchanged in spirit since v0.34.0 even though
+the mechanics changed: an item that (indirectly, through an event or choice chain) grants the
+same item back cannot be spent twice by the same call, because the units that would have been
+"reused" are already charged before any effect runs; and the spend is not undone even when the
+effect chain ends the character's turn in a coma — a used item stays used regardless of how its
+own effects turn out. What changed in v0.35.1 is only the *granularity*: before it, "spent" and
+"row gone" were the same event; now a row with more than one unit can survive a use with fewer
+units left in it, and the response's `itemRemoved` flag stays `true` either way (§8a) — it
+reports that the action happened, not that the row is now empty.
 
 ## 5. Effects preview before use
 
@@ -582,7 +612,217 @@ Both new cases are exercised in `GameBookCoverage.test.jsx`:
 pre-existing `'fetches the inventory when the granted item is brand new'` case, now also
 asserting the fetched row's badges.
 
-## 8. Test coverage
+## 8. Quantities and the per-character cap (v0.35.1)
+
+Until this version every quantity an item action moved was hardcoded: an event ADD granted
+exactly one unit, an event REMOVE took exactly one, and `use-item`/`drop-item` discarded the
+**whole row** whatever it held (§2 above, and [Step 34 §2](./Step34_InventoryAndResources.md#2-use-item-answers-execute-event),
+now both superseded — see the note at the end of this section). This part gives those numbers
+back to the story author, on three new nullable columns on `list_items`, and closes a related
+gap the first three parts never touched: nothing enforced that a character held at most one
+`gaming_inventory_items` row per item.
+
+### a. Three new columns on `list_items`
+
+Migration `V0.35.1__item_amounts_and_unique_inventory_row.sql`, both java dialects
+(`code/backend/java/adapter-sqlite/src/main/resources/db/migration/v0/` and the postgres
+sibling under `adapter-postgres/`; postgres also adds a `COMMENT ON COLUMN` per column).
+
+| Column | Governs | `NULL`/absent | `0` or negative |
+|---|---|---|---|
+| `max_per_character` | How many units of this item one character may hold | No limit (same reading `id_class_permitted`/`id_class_prohibited` already give `0`/`NULL`) | No limit |
+| `amount_drop` | Units removed by **one** `drop-item` | Reads as `1` | Reads as `1` |
+| `amount_use` | Units consumed by **one** `use-item` | Reads as `1` | Reads as `1` |
+
+- **`max_per_character`.** An event ADD that would cross it is **refused without an error**:
+  the event keeps running, every one of its other effects still applies, and the response
+  carries an `itemChanges` entry with `action: "NOT_ADDED"` for that one item. Written for
+  "one map, ever" and "at most two apples".
+- **`amount_drop`.** Owning fewer units than the column asks is **not** a refusal: the drop
+  takes what is there and `amountDropped` on the response reports that number — a player
+  putting something down can always put down everything they hold.
+- **`amount_use`.** Owning fewer units than the column asks **is** a refusal, new code
+  `ITEM_NOT_ENOUGH` (409, `use-item` only): half a potion heals nobody, and letting the effect
+  fire on a partial dose would be a lie about what the player actually did.
+- **There is no `amount_add`.** An event ADD is always exactly one unit, on purpose: an event
+  that must hand over three of something writes three effect rows, and `max_per_character`
+  then applies to each of them in turn rather than to a lump the engine would have to split.
+- **A negative or zero `amount_drop`/`amount_use` still reads as `1`**, not as "nothing moves":
+  an action that moves zero units would be a free action repeatable forever, and the schema
+  accepting the value is not the engine agreeing to honor it literally.
+
+**The event REMOVE now takes every unit the character holds, not one.** This is a behavior
+change, not just a new column: "the story takes it away from you" always meant the whole thing,
+and the old one-unit REMOVE also carried a latent bug — the engine dropped the item from its
+`ownedItemIds`/`owned_item_ids` set on any REMOVE, even one that left units behind, so a later
+condition in the same execution could read "not owned" while the bag still held two.
+v0.35.1 fixes both at once: REMOVE now empties the row, and the owned-items set is only ever
+cleared when the row is actually gone.
+
+### b. One row per (character, item)
+
+The engine has always stacked an ADD onto the row a character already has, but nothing in the
+schema enforced it, and a quantity spread across two rows would make `max_per_character` and
+`amount_drop`/`amount_use` lie about what is actually held. The migration:
+
+1. sums every duplicate group of `gaming_inventory_items` rows (same `id_match`,
+   `id_character_match`, `id_item`) onto the row with the **lowest `id`** — the oldest one,
+   the one another table is most likely to reference;
+2. deletes the rest of each group;
+3. creates `CREATE UNIQUE INDEX uq_inventory_char_item ON gaming_inventory_items (id_match,
+   id_character_match, id_item)`, so no code path can write a second one again.
+
+The same merge is replicated **in code**, in all three backends' `addItem`/`add_item` (java
+`EventExecutionStoreAdapter.addItem`, python `event_store_adapter.add_item`, AWS
+`events.apply_item`), for a database written by a build older than this migration. A comment in
+the AWS adapter that used to read *"a character can hold two rows of the same item"* has been
+corrected — it is no longer true on any backend.
+
+### c. Implementation, by backend
+
+- **Java**: three fields on `ItemEntity` (`maxPerCharacter`, `amountDrop`, `amountUse`), read
+  and written by the story import/CRUD paths like every other item column.
+  `EventExecutionStorePort.addItem` gains a fourth parameter,
+  `boolean addItem(long idMatch, long idCharacter, long idItem, Integer maxPerCharacter)`, and
+  folds pre-existing duplicate rows before applying the cap; `removeItem` now deletes the row
+  outright. New `findItemMaxPerCharacterById(idStory)`, cached per request inside
+  `EventExecutionService.Exec`. `EventExecutionService.applyItem` reports `NOT_ADDED` and leaves
+  `ownedItemIds` untouched when an ADD is refused (§a). `InventoryService.useItem`/`dropItem`
+  spend units rather than deleting unconditionally: a new `updateInventoryAmount` on
+  `InventoryStorePort` writes the row that survives, and `deleteInventoryRow` fires only when
+  nothing is left. `logItemUsage` now takes the spent `counter` — the column already existed on
+  `log_item_usage` and always wrote `1`, silently wrong since the table existed. New
+  `InventoryException.Code.ITEM_NOT_ENOUGH`, mapped to 409 in `InventoryController`.
+- **Python**: the same three columns on `ItemEntity`
+  (`app/adapters/persistence/story/models.py`); `event_store_adapter.add_item`/`remove_item`
+  mirror the java merge-then-cap and full-removal logic, plus new
+  `find_item_max_per_character_by_id(story_id)`; `event_service._apply_item` reports the
+  `NOT_ADDED` constant the same way. `inventory_service.py` gains the shared helper
+  `action_amount(authored)` (an authored `None`/`≤0` reads as `1`), `update_inventory_amount` on
+  the store port and adapter, and passes the spent `counter` into `log_item_usage`. New
+  `InventoryError.ITEM_NOT_ENOUGH`, mapped to 409 in `inventory_controller.py`.
+- **AWS**: `lambda/match/inventory.py` gains `action_amount` (same reading as python) and
+  `spend_units` — removes N units from a row, deleting it only when nothing is left — plus a
+  `counter` parameter on `log_item_usage`. `lambda/match/events.py`'s `apply_item` takes a
+  `max_per_character` argument, reports `NOT_ADDED`, empties the row on REMOVE, and folds
+  duplicate rows before applying the cap. `lambda/match/handler.py` adds the `_item_cap(story,
+  effect)` helper (passed at all three call sites that apply an item effect), spends units on
+  use/drop instead of always clearing the row, and adds `ITEM_NOT_ENOUGH` to
+  `_ITEM_REFUSAL_MESSAGES`.
+- **Special case, the same on all three backends**: a `gaming_inventory_items` row whose story
+  item no longer exists in `list_items` (possible after a re-import) is still dropped **in one
+  gesture**, taking every unit regardless of `amount_drop` — there is no author left to say how
+  many units such a drop takes, and [Step 34](./Step34_InventoryAndResources.md) already kept
+  such a row droppable specifically so it cannot weigh the character down forever. That
+  behavior is unchanged by this step; it now simply also applies when the row holds more than
+  one unit.
+- **react-admin**: three new numeric fields on the `items` entity form
+  (`src/constants/story/storiesEntities.jsx`) — `Max Per Character (0/empty = no limit)`,
+  `Units Removed By Drop (empty = 1)`, `Units Consumed By Use (empty = 1)` — labelled with
+  their empty-value reading so an author does not have to guess it.
+- **react-game**: no change *at the time these columns landed*. `handleItemUsed` already
+  returns to the board after any `use-item` call, partial spend included — that behavior shipped
+  in this same version (§1) — and the `NOT_ADDED` refusal already travels on the response payload
+  but is not surfaced in the UI: the item card an event grants renders the same whether the grant
+  landed or was refused at the cap. That held only until the three columns themselves reached the
+  `items[]` payload; see §f below for what changed once they did.
+
+### d. Seed data, all four backends
+
+- **Scholar's Tonic** (java `id 90005`, python/AWS `id: 3`) is capped at **`max_per_character =
+  1`**: the event that hands it over is `NORMAL` and free, so running it twice is exactly how
+  the suite (§e) makes the refusal observable.
+- **Guide Scroll** (java `id 90003`, python/AWS `id: 2`) gets `amount_drop = 2`.
+- Every other seed item leaves all three columns unset — the same `NULL` = "no limit / one
+  unit" reading every pre-0.35.1 story already had.
+
+Files: the two dev seed SQL scripts
+(`code/backend/java/adapter-sqlite/src/main/resources/db/migration/dev/R__insert_story_seed_data.sql`,
+`code/backend/java/adapter-postgres/src/main/resources/db/migration/dev/R__insert_dev_test_data.sql`),
+`code/backend/python/scripts/seed_stories.py`, `code/backend/aws/lambda/seed/handler.py`.
+
+### e. Robot — new suite
+
+`code/tests/robot/tests/34_inventory/item_quantities.robot` (5 tests, backend-agnostic): fills
+the bag **twice** — every granting event at the start location is repeatable — and reads what
+the second round answered. Covers: a second grant stacking onto the row a character already has
+rather than opening a second one; a capped item coming back as `NOT_ADDED` while the same event
+run still hands over everything else it grants (the refusal must not fail the event); the held
+amount not growing past the cap; `use-item` spending exactly one unit by default and leaving the
+rest; and `amountDropped` reporting exactly what a `drop-item` call actually put down. The capped
+item and the multi-unit drop are found by **behavior**, not by a seeded id, so the suite runs
+unchanged against java-sqlite, java-postgres, python and AWS. Cataloged in
+`.claude/docs/robot-suites.md` under the `34_inventory` breakdown, alongside `effects_preview.robot`.
+
+**Superseded by this section**: [Step 34 §2](./Step34_InventoryAndResources.md#2-use-item-answers-execute-event)'s
+"using consumes the whole row" and "a character may hold two rows of the same item" — both were
+accurate through v0.35.0 and are corrected in that document as of this version; the reference
+here is the current behavior.
+
+### f. The quantities travel to the payload, and react-game reads them (v0.35.1, continued)
+
+§a shipped the three columns as gates the engine enforces; they never reached `items[]` itself,
+so the board could neither write how many units are left before a cap nor know in advance that
+a use would be refused — it pressed the button and caught `ITEM_NOT_ENOUGH` after the fact. This
+increment closes that gap. No new migration, no new endpoint, no breaking change: it is a
+projection of columns the story already has onto a payload that already exists.
+
+**Contract.** Every row of `items[]` now also carries `maxPerCharacter`, `amountDrop`,
+`amountUse` — on both `GET /api/gameplay/{uuid}/inventory` and the `items[]` of each player on
+`GET /api/game/{uuid}/info`, the same shared mapper in every backend so the two cannot diverge.
+The values travel **as authored, `null` included**: the backend does not invent a default. It is
+the client that reads `null`/`0` as "no cap" and `null` as "one unit", exactly the reading the
+engine itself uses. Substituting a `1` for a `null` server-side would hide from the board whether
+the story ever said anything about a limit. And they are **reported, not applied** — the gates
+stay server-side, the cap is enforced on the ADD (§a) and `ITEM_NOT_ENOUGH` is still decided by
+`use-item`; what the client does with the numbers only spares the player a click the engine would
+have refused anyway.
+
+- **Java**: `ItemInstanceInfo` (`core/model/match/`) gains `maxPerCharacter`/`amountDrop`/
+  `amountUse`; `ItemInstanceMapper.build(...)` copies them straight off the `ItemEntity` it
+  already has in hand; `ItemInstanceResponse` (`adapter-rest/.../dto/`) projects the three fields
+  alongside `fromModel`.
+- **Python**: the `ItemInstanceInfo` dataclass (`app/core/models/match/match_models.py`) gains the
+  three optional fields; `inventory_service._map_items` and `character_query_service
+  .build_character_infos` both set them off the story item (the same two call sites that already
+  set `effects`); `inventory_controller.item_to_camel` projects `maxPerCharacter`/`amountDrop`/
+  `amountUse` into the JSON row.
+- **AWS**: `lambda/match/handler.py`'s `_item_rows` sets the three keys off the resolved story
+  item, and explicitly to `None` on the branch where the row's story item no longer exists — the
+  same branch that already answers `effects: []` and a null `card` for a re-import-orphaned row.
+- **OpenAPI**: `v0.34.0-inventory-resources-api.yaml`'s `ItemInstance` schema documents the three
+  new nullable properties.
+
+**react-game.** Two new helpers in `src/utils/statBadges.js`:
+
+- `itemCap(item)` — `0` and `null` both read as "no cap" (`null` return); a positive
+  `maxPerCharacter` returns as-is.
+- `unitsPerUse(item)` — `null`, `0` or a negative `amountUse` all read as `1`, the same reading
+  the engine's `action_amount` uses: the board must never promise a cheaper action than the
+  server will honor.
+
+`itemCarryBadges` now writes the amount badge as **`2/3`** when the item has a cap — shown even
+at `1/1`, because "one, and that is all you will ever get" is news worth a badge, unlike an
+uncapped single unit which still earns none. Without a cap the badge stays `x2`, prefixed;
+the `x` is the quantity symbol and belongs only to the uncapped reading — `x2/3` does not parse.
+`itemDescriptionBadges` appends a new **`perUse`** badge with the units one usage spends, but
+only when that is more than one and only in the card DESCRIPTION, never on the card face (which
+carries no labels — a bare "2" beside the weight would say nothing). One unit per use is what
+every item did before v0.35.1, so showing it there would be noise.
+
+`ItemCard.jsx`: `usable` is now `isConsumabile && enough`, where `enough = item.amount >=
+unitsPerUse(item)` — the use button locks when the bag holds fewer units than one usage would
+spend. Two distinct lock reasons: `ITEM_NOT_CONSUMABLE` (unchanged, for an item that can only be
+carried) and the new `ITEM_NOT_ENOUGH` (carried but short of units). The short card-face reason
+comes from the `game.item.reason.*` i18n keys; the long preview sentence (`game.item.reasonFull
+.*`) has the current/needed figures — e.g. `(1/2)` — appended by the component itself, since the
+i18n helper takes a key and cannot interpolate. New i18n keys, both `en.json` and `it.json`:
+`game.item.perUse`, `game.item.reason.ITEM_NOT_ENOUGH`, `game.item.reasonFull.ITEM_NOT_ENOUGH`.
+
+The `effects[]` promise (§5) stays keyed on `isConsumabile` alone, unaffected by this increment:
+an item you cannot currently afford to use still says what using it would do.
+
+## 9. Test coverage
 
 - react-game: six new cases in `GameBookCoverage.test.jsx` — the four part-one cases (closing
   the bag and returning to the board on use, narrating with the item's own card when no effect
@@ -632,13 +872,70 @@ asserting the fetched row's badges.
   with an empty promise (the heavy ingot, §6d), which is what that case looks for.
   `robot --dryrun`: 6/6 green; a real run against a started backend has not been made yet — say
   so plainly rather than implying it has.
+- Java, part four (v0.35.1): `EventExecutionStoreAdapterReadWriteTest`'s
+  `addItem_refusedAtTheCapAndTheRowIsLeftAlone()`, `addItem_underTheCapStillGoesIn()`,
+  `addItem_capOfZeroIsNoCapAtAll()`; `InventoryServiceTest` covers the `ITEM_NOT_ENOUGH` refusal
+  on `useItem` and the partial-spend path on `useItem`/`dropItem`;
+  `InventoryStoreAdapterTest`/`InventoryControllerTest` cover `updateInventoryAmount` and the new
+  409 mapping; `EventExecutionServiceEffectsTest`/`EventExecutionServiceSelectChoiceTest` cover
+  `NOT_ADDED` reporting and the REMOVE-takes-everything change on both the event and choice
+  paths. Full suite: `mvn test` BUILD SUCCESS.
+- Python, part four (v0.35.1): `test_event_store_adapter.py`'s
+  `test_add_item_refuses_at_the_cap`, `test_add_item_cap_of_zero_is_no_cap`;
+  `test_inventory_service.py`'s `test_use_refuses_when_there_are_not_enough_units`,
+  `test_drop_takes_what_is_there_when_it_is_not_enough`; `test_event_service.py`/
+  `test_event_service_select_choice.py` cover `NOT_ADDED` and full-amount REMOVE on both the
+  event and choice paths; `test_inventory_controller.py` covers the `ITEM_NOT_ENOUGH` → 409
+  mapping. Full suite: 1280 tests passing.
+- AWS, part four (v0.35.1): `test_events_edge_cases.py`'s `test_apply_item_add_creates_then_stacks`,
+  `test_apply_item_add_is_refused_at_the_cap`, `test_apply_item_add_under_the_cap_and_a_cap_of_zero`;
+  `test_match_handler_inventory.py`'s `test_use_item_refuses_when_there_are_not_enough_units` and
+  the partial-drop/partial-use cases alongside it. Full suite: 768 tests passing.
+- Robot, part four: new suite `code/tests/robot/tests/34_inventory/item_quantities.robot`, 5
+  backend-agnostic test cases (§8e) — cataloged in `.claude/docs/robot-suites.md` under the
+  `34_inventory` breakdown. `robot --dryrun`: 36/36 green across the whole `34_inventory` folder;
+  a real run against a started backend has not been made yet — say so plainly rather than
+  implying it has.
+- react-game, react-admin: unaffected by part four itself — the change was entirely server-side
+  (§8c); react-game catches up in the payload increment below (§8f).
+- Java, part four continued — quantities on the payload (§8f): `ItemInstanceMapperTest`'s nested
+  `Quantities` (`@DisplayName("authored quantities (v0.35.1)")`, 2 cases — the values travel as
+  authored, and an unset item stays unset rather than defaulting); `InventoryDtosTest
+  .itemInstanceResponse_projectsTheQuantities()` (projects set values, and confirms unset stays
+  null) plus the pre-existing setter round-trip. Full suite: `mvn test` BUILD SUCCESS.
+- Python, part four continued (§8f): `test_inventory_service.py`'s
+  `test_the_authored_quantities_travel_to_the_board` and
+  `test_an_item_that_authored_no_quantity_reports_none`; `test_inventory_controller.py`'s
+  `test_inventory_projects_the_authored_quantities`; `test_character_query_service.py`'s
+  `test_the_info_items_carry_the_authored_quantities` (same fields, read through `/info`). Full
+  suite: 1284 tests passing.
+- AWS, part four continued (§8f): `test_match_handler_inventory.py`'s
+  `test_inventory_reports_the_authored_quantities`, plus the pre-existing listing test now also
+  asserting `maxPerCharacter`/`amountDrop`/`amountUse` come back `None` for a seed that authors
+  none of the three. Full suite: 769 tests passing.
+- react-game, part four continued (§8f): five new cases in `statBadges.test.js` (`'the cap and
+  the cost of a usage (v0.35.1)'`) — `itemCap` reading `0`/`null` as no cap, `unitsPerUse` reading
+  a missing/zero/negative `amountUse` as one, the `2/3` amount badge, `1/1` when the cap is one,
+  and the `perUse` badge appearing only above one unit per use. Four new cases in
+  `ItemCard.test.jsx` — the use button locked with the `(1/2)` figures in the long reason, the
+  same button re-offered once the bag holds enough, a non-consumable item still reading
+  `ITEM_NOT_CONSUMABLE` rather than the new reason, and the cap/per-use badges both appearing
+  together on a capped, multi-unit item. Full suite: 847 tests passing.
+- react-admin: unaffected by §8f — the increment is read-only on the payload the board already
+  fetches. Full suite: 644 tests passing.
 - Parts one and two carry no migration and no new endpoint — the effects preview is confined to
   a projection of already-loaded rows onto an existing field. Part three adds exactly one
   migration, `V0.35.0__add_item_flag_show_effects.sql` on both java dialects (§6a), and no new
   endpoint either: the flag is read by the same `GET .../inventory` and `GET .../info` payloads
-  the preview already rides on.
+  the preview already rides on. Part four (v0.35.1, §8) adds a second migration,
+  `V0.35.1__item_amounts_and_unique_inventory_row.sql` on both java dialects, and still no new
+  endpoint — but, unlike parts one through three, it is not purely additive: an ADD can now be
+  refused, a REMOVE now empties the row instead of decrementing it by one, and a use/drop can
+  now be a partial spend instead of an all-or-nothing row deletion. The same version's later
+  increment (§8f) is purely additive again — no migration, no new endpoint — projecting the
+  three columns part four already added onto the `items[]` payload part two already shipped.
 
-## 9. Scope of change
+## 10. Scope of change
 
 | Layer | Path |
 |---|---|
@@ -666,27 +963,54 @@ asserting the fetched row's badges.
 | Seed data, `flagShowEffects` (§6d) | `code/backend/java/adapter-sqlite/src/main/resources/db/migration/*/R__insert_story_seed_data.sql`, `code/backend/java/adapter-postgres/src/main/resources/db/migration/*/R__insert_dev_test_data.sql`, `code/backend/python/scripts/seed_stories.py`, `code/backend/aws/lambda/seed/handler.py` — the Lead Ingot ships `flagShowEffects = 0`, the Guide Scroll leaves it unset |
 | Tests, `flagShowEffects` engine | Java: `ItemInstanceMapperTest`, `StoryEntitiesTest`, `StoryCrudServiceFieldMappingTest` (new/extended cases). Python: `test_inventory_service.py`, `test_character_query_service.py` (new cases). AWS: `test_inventory.py` (new cases) |
 | Game board, received item's card (§7, react-game) | `src/features/gameplay/GameBook.jsx` — `itemRowForUuid` (new, returns the whole row); `itemCardForUuid` now delegates to it; `handleEventExecuted`'s `stats` derivation and the `getInventory` fallback branch both switch to `effectStatItems(row.effects, ...)` for a granted item |
-| Tests, received item's card (react-game) | `src/test/GameBookCoverage.test.jsx` — two new cases plus one extended (listed in §8) |
-| Robot | `code/tests/robot/tests/34_inventory/effects_preview.robot` (new, 6 tests); `.claude/docs/robot-suites.md` — `34_inventory` breakdown updated |
-| Documentation | `documentation_v0/Step35_ItemsResolution.md` (this file, §6-§7-§9 added); `documentation_v0/Step09_DesignCoreDataModel.md` — `list_items` row gains `flag_show_effects`; `documentation_v0/INDEX.md` — `Step35_ItemsResolution.md` row updated |
+| Tests, received item's card (react-game) | `src/test/GameBookCoverage.test.jsx` — two new cases plus one extended (listed in §9) |
+| Robot, effects preview | `code/tests/robot/tests/34_inventory/effects_preview.robot` (6 tests); `.claude/docs/robot-suites.md` — `34_inventory` breakdown updated |
+| Migration, quantities (§8a-b, v0.35.1) | `code/backend/java/adapter-sqlite/src/main/resources/db/migration/v0/V0.35.1__item_amounts_and_unique_inventory_row.sql` (new); `code/backend/java/adapter-postgres/src/main/resources/db/migration/v0/V0.35.1__item_amounts_and_unique_inventory_row.sql` (new, also adds `COMMENT ON COLUMN`) — `list_items.max_per_character`/`amount_drop`/`amount_use` (all `INTEGER`, nullable); merges pre-existing duplicate `gaming_inventory_items` rows and adds `CREATE UNIQUE INDEX uq_inventory_char_item ON gaming_inventory_items (id_match, id_character_match, id_item)` |
+| Engine, quantities (Java, §8c) | `core/entity/story/ItemEntity.java` — `maxPerCharacter`/`amountDrop`/`amountUse` fields; `core/persistence/match/EventExecutionStoreAdapter.java` — `addItem(...,Integer maxPerCharacter)` merges duplicates and enforces the cap, `removeItem` empties the row, new `findItemMaxPerCharacterById`; `core/port/match/EventExecutionStorePort.java` — signatures updated; `core/service/match/EventExecutionService.java` — `applyItem` reports `NOT_ADDED`, REMOVE clears `ownedItemIds` only when the row is actually gone; `core/service/match/InventoryService.java` — `useItem`/`dropItem` spend units via new `updateInventoryAmount`, delete the row only when empty, `logItemUsage` takes the spent `counter`; `core/port/match/InventoryStorePort.java` — `updateInventoryAmount` (new); `core/port/match/InventoryPort.java` — `ITEM_NOT_ENOUGH` code |
+| REST, quantities (Java) | `adapter-rest/.../InventoryController.java` — `ITEM_NOT_ENOUGH` mapped to 409 |
+| Engine, quantities (Python, §8c) | `app/adapters/persistence/story/models.py` — `max_per_character`/`amount_drop`/`amount_use` columns; `app/adapters/persistence/match/event_store_adapter.py` — `add_item`/`remove_item` mirror the java merge/cap/full-removal logic, new `find_item_max_per_character_by_id`; `app/core/services/match/event_service.py` — `_apply_item` reports `NOT_ADDED`; `app/core/services/match/inventory_service.py` — `action_amount(authored)` (new), `update_inventory_amount` on the port/adapter, `log_item_usage` takes `counter`; `app/core/ports/match/inventory_ports.py` — `ITEM_NOT_ENOUGH` |
+| REST, quantities (Python) | `app/adapters/rest/match/inventory_controller.py` — `ITEM_NOT_ENOUGH` mapped to 409 |
+| Engine, quantities (AWS, §8c) | `lambda/match/inventory.py` — `action_amount`, `spend_units` (new), `log_item_usage(..., counter)`; `lambda/match/events.py` — `apply_item` takes `max_per_character`, reports `NOT_ADDED`, empties the row on REMOVE, folds duplicates; `lambda/match/handler.py` — `_item_cap(story, effect)` (new), use/drop spend units, `ITEM_NOT_ENOUGH` added to `_ITEM_REFUSAL_MESSAGES` |
+| Admin story editor, quantities (react-admin, §8c) | `src/constants/story/storiesEntities.jsx` — `items` gains `maxPerCharacter`/`amountDrop`/`amountUse` numeric fields |
+| OpenAPI, quantities | `v0.34.0-inventory-resources-api.yaml` — `list_items.amount_use`/`amount_drop`/`max_per_character` documented, `NOT_ADDED` and the refusal semantics for `use-item`/`drop-item`, `ITEM_NOT_ENOUGH` added to the error table |
+| Seed data, quantities (§8d) | Same four files as the `flagShowEffects` seed row above — the Scholar's Tonic ships `maxPerCharacter = 1`, the Guide Scroll ships `amountDrop = 2` |
+| Tests, quantities (§9) | Java: `EventExecutionStoreAdapterReadWriteTest`, `InventoryServiceTest`, `InventoryStoreAdapterTest`, `InventoryControllerTest`, `EventExecutionServiceEffectsTest`, `EventExecutionServiceSelectChoiceTest` (new/extended cases). Python: `test_event_store_adapter.py`, `test_inventory_service.py`, `test_event_service.py`, `test_event_service_select_choice.py`, `test_inventory_controller.py` (new cases). AWS: `test_events_edge_cases.py`, `test_match_handler_inventory.py` (new cases) |
+| Robot, quantities | `code/tests/robot/tests/34_inventory/item_quantities.robot` (new, 5 tests); `.claude/docs/robot-suites.md` — `34_inventory` breakdown updated |
+| Engine, quantities on the payload (Java, §8f) | `core/model/match/ItemInstanceInfo.java` — `maxPerCharacter`/`amountDrop`/`amountUse` fields (new); `core/service/match/ItemInstanceMapper.java` — `build(...)` copies them off the `ItemEntity` |
+| REST, quantities on the payload (Java) | `adapter-rest/.../dto/ItemInstanceResponse.java` — three fields projected in `fromModel` |
+| Engine, quantities on the payload (Python, §8f) | `app/core/models/match/match_models.py` — `ItemInstanceInfo` gains the three optional fields; `app/core/services/match/inventory_service.py` — `_map_items` sets them; `app/core/services/match/character_query_service.py` — `build_character_infos` sets them |
+| REST, quantities on the payload (Python) | `app/adapters/rest/match/inventory_controller.py` — `item_to_camel` projects `maxPerCharacter`/`amountDrop`/`amountUse` |
+| Engine, quantities on the payload (AWS, §8f) | `lambda/match/handler.py` — `_item_rows` sets the three keys off the resolved item, `None` on the story-item-gone branch |
+| OpenAPI, quantities on the payload | `v0.34.0-inventory-resources-api.yaml` — `ItemInstance.maxPerCharacter`/`.amountDrop`/`.amountUse` (new nullable properties) |
+| Game board, quantities on the payload (react-game, §8f) | `src/utils/statBadges.js` — `itemCap(item)`, `unitsPerUse(item)` (new helpers); `itemCarryBadges` writes `carried/cap`; `itemDescriptionBadges` appends a `perUse` badge above one unit; `src/features/gameplay/cards/ItemCard.jsx` — `usable = isConsumabile && enough`, new `ITEM_NOT_ENOUGH` lock reason with `(carried/needed)` appended to the long sentence; `src/i18n/en.json`, `src/i18n/it.json` — `game.item.perUse`, `game.item.reason.ITEM_NOT_ENOUGH`, `game.item.reasonFull.ITEM_NOT_ENOUGH` |
+| Tests, quantities on the payload (§9) | Java: `ItemInstanceMapperTest` (`Quantities` nested class), `InventoryDtosTest.itemInstanceResponse_projectsTheQuantities` (new cases). Python: `test_inventory_service.py`, `test_inventory_controller.py`, `test_character_query_service.py` (new cases). AWS: `test_match_handler_inventory.py` (new case, plus null assertions on the existing listing test). react-game: `statBadges.test.js` (5 new), `ItemCard.test.jsx` (4 new) |
+| Documentation | `documentation_v0/Step35_ItemsResolution.md` (this file, §6-§7-§8-§10 added, intro reframed; §8f added for the payload/react-game increment); `documentation_v0/Step34_InventoryAndResources.md` — corrected the now-superseded "whole row"/"two rows" passages (§8e note); `documentation_v0/Step09_DesignCoreDataModel.md` — `list_items` row gains `max_per_character`/`amount_drop`/`amount_use`, `gaming_inventory_items` row notes the new unique index (unchanged by §8f — additive to an existing payload, no new column); `documentation_v0/INDEX.md` — `Step35_ItemsResolution.md` row updated |
 
 Parts one and two carry no migration and no new endpoint: `effects[]` is an additive field on
 payloads `GET /api/gameplay/{uuid}/inventory` and `GET /api/game/{uuid}/info` already return.
 Part three adds exactly one migration — `list_items.flag_show_effects`, on both java dialects
-(§6a) — and still no new endpoint: the flag is read by the same two payloads. [Step
-34](./Step34_InventoryAndResources.md) remains the reference for the inventory and resources
-contract itself, and for `use-item`'s own `effects[]` — the applied *result*, distinct from the
-preview this step adds.
+(§6a) — and still no new endpoint: the flag is read by the same two payloads. Part four (v0.35.1,
+§8) adds a second migration — `list_items.max_per_character`/`amount_drop`/`amount_use` plus the
+`uq_inventory_char_item` unique index, on both java dialects — again no new endpoint, but this
+time behavior changes underneath the existing ones: an ADD can be refused, a REMOVE now empties
+the row, and `use-item`/`drop-item` can now be a partial spend instead of an all-or-nothing row
+deletion. A later increment within the same version (§8f) adds neither a migration nor an
+endpoint: it projects those three columns onto `items[]` itself, so the board can read a cap and
+a per-use cost it previously only found out about by being refused. [Step 34](./Step34_InventoryAndResources.md) remains the reference for the inventory
+and resources contract itself, and for `use-item`'s own `effects[]` — the applied *result*,
+distinct from the preview this step adds — though its §2 quantity language is now superseded by
+§8 above, as noted there.
 
 ---
 
 # Version Control
 
-- **Document Version**: 0.35.0
+- **Document Version**: 0.35.1
 
   | Version | Description | Date |
   |---------|-------------|------|
+  | 0.35.1 | Items resolution, part four — the quantities. Three new nullable columns on `list_items` (`V0.35.1__item_amounts_and_unique_inventory_row.sql`, both java dialects): `max_per_character` caps what a character may hold (an ADD past it is refused, reported as `itemChanges` action `NOT_ADDED`, the event still runs); `amount_drop` is the units one `drop-item` removes (owning fewer is not a refusal, the drop takes what is there); `amount_use` is the units one `use-item` spends (owning fewer **is** a refusal, new code `ITEM_NOT_ENOUGH`, 409). All three read an empty column as `1` (`amount_drop`/`amount_use`) or "no limit" (`max_per_character`); there is no `amount_add` — an ADD is always one unit. Behavior change alongside the new columns: an event/choice REMOVE now takes every unit a character holds instead of one, and — as a side effect — no longer clears the owned-items flag only when the row actually empties, fixing a latent bug where a partial REMOVE could make a later condition in the same execution read "not owned" while units remained. The migration also merges any pre-existing duplicate `gaming_inventory_items` row for the same (character, item) onto the oldest one and adds `CREATE UNIQUE INDEX uq_inventory_char_item`, enforcing the one-row-per-item rule the engine had always assumed but never guaranteed; the same merge is replicated in code (`addItem`/`add_item`/`apply_item`, all three backends) for databases written by older builds. Implemented across all three backends: Java (`InventoryService.useItem`/`dropItem` now spend units via new `updateInventoryAmount` and delete the row only when empty; `EventExecutionStorePort.addItem` gains a `maxPerCharacter` parameter; `logItemUsage` now records the actual spent `counter` instead of always `1`), Python (`inventory_service.action_amount`, `event_store_adapter.add_item`/`remove_item`), AWS (`inventory.action_amount`/`spend_units`, `events.apply_item`, `handler._item_cap`). react-admin gets three numeric fields on the item form (`Max Per Character`, `Units Removed By Drop`, `Units Consumed By Use`, each labelled with its empty-value reading); react-game is unchanged at this point in the version — a partial use/drop already returns to the board (part one, v0.35.0). Seed: the Scholar's Tonic is capped at 1, the Guide Scroll drops 2 at a time. New Robot suite `item_quantities.robot` (5 tests, backend-agnostic, `34_inventory`). Corrects the now-superseded "using consumes the whole row" and "a character may hold two rows of the same item" language in [Step 34](./Step34_InventoryAndResources.md). Version strings rolled to 0.35.1 across all components. **Same version, continued (§8f)**: the three columns reach `items[]` itself — `maxPerCharacter`/`amountDrop`/`amountUse` on every row of both `GET .../inventory` and `/info`'s `players[].items[]`, reported as authored (`null` included), never applied — and react-game reads them: `statBadges.js` gains `itemCap`/`unitsPerUse`, the amount badge becomes `carried/cap` (shown even at `1/1`), a `perUse` badge appears in the description above one unit per use, and `ItemCard.jsx`'s use button now locks on a new `ITEM_NOT_ENOUGH` reason (distinct from `ITEM_NOT_CONSUMABLE`) with the current/needed figures in the long sentence. Java: `ItemInstanceInfo`/`ItemInstanceMapper`/`ItemInstanceResponse`. Python: the `ItemInstanceInfo` dataclass, `inventory_service._map_items`, `character_query_service.build_character_infos`, `inventory_controller.item_to_camel`. AWS: `handler._item_rows` (`None` on the story-item-gone branch). OpenAPI: three new nullable properties on `ItemInstance`. Test counts: Java `mvn test` BUILD SUCCESS, python 1284, AWS 769, react-game 847, react-admin 644, robot `--dryrun` 36/36 on the whole `34_inventory` folder — a real run against a started backend has not been made yet. | August 22, 2026 |
   | 0.35.0 | Items resolution — UX refinement of the Step 34 inventory engine. **Part one**, react-game: using an item now closes the backpack before narrating (`handleItemUsed`), so the effect card and any Step 30 edge state land on a clean page instead of fighting the open bag; `handleEventExecuted` falls back to the item's own card when no `list_items_effects` row carries one, item path only, events unaffected. React-admin: the `item-effects` form gains an `idCard` field (narrative card, picker `cardsOptions`), `effectCode` becomes a closed `select` over the ten known tokens (`EffectStatCodec.KNOWN`) plus the two documented aliases `SADNESS`/`COINS`, and `traitsToAdd`/`traitsToRemove` gain the `traitsOptions` picker already used on event-effects. **Part two**, effects preview before use, no migration, no new endpoint: every row of `items[]` on both `GET .../inventory` and `/info`'s `players[].items[]` now carries an additive `effects: [{statistic, value}]` — the authored delta, before the engine's clamp, read off the same rows `use-item` already applies, so a player can see what a potion promises before drinking it. New `ItemEffectPreview` model/DTO/schema in java, a shared `preview_effects`/`_KNOWN_EFFECT_CODES` in python, `preview_effects` built on `standalone_effects` in AWS — all three backends touched, but only as a projection of already-loaded rows onto an existing payload; react-game's `ItemCard` shows the preview as badges via the existing `effectStatItems` helper, usable items only. **Part three**, the author's opt-out: new nullable `list_items.flag_show_effects` column (`V0.35.0__add_item_flag_show_effects.sql`, both java dialects; `1`/`NULL` = shown, `0` = the item's promise is hidden while its effect is applied unchanged) — `showsEffects`/`shows_effects` gates the §5 preview in all three backends, react-admin gets a `flagShowEffects` checkbox on the item form (defaulted to `1` for new items), and a `StoryCrudService.intVal` bug that silently dropped every boolean checkbox (`isSafe`, `isConsumabile`, `flagShowEffects` alike) was found and fixed along the way. Same part: react-game's card for a just-received item now shows the item's own `effects[]` promise instead of the granting event's stat changes (`itemRowForUuid`, new), so a secret item arrives with no badge at all. New Robot suite `effects_preview.robot` (6 tests). Version strings rolled to 0.35.0 across all components. | August 21, 2026 |
 
-- **Last Updated**: August 21, 2026
+- **Last Updated**: August 22, 2026
 - **Status**: Complete

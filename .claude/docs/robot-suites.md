@@ -30,7 +30,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `31_choices` | Step 31 choice engine (see breakdown below) |
 | `32_choice_resolution` | Step 32 choice resolution (see breakdown below) |
 | `33_location_events` | Step 33 automatic location events (see breakdown below) |
-| `34_inventory` | Steps 34/35 inventory, resources, use/drop, effects preview (see breakdown below) |
+| `34_inventory` | Steps 34/35 inventory, resources, use/drop, effects preview, quantities (see breakdown below) |
 
 ### `19_match` breakdown
 
@@ -150,6 +150,16 @@ flag hides the promise, never the effect. Rows are found by BEHAVIOUR (fill the 
 whatever the start location grants, then read the payload); all four seeds ship exactly
 one consumable with an empty promise — the heavy ingot — which is what the secret case
 looks for.
+
+`item_quantities.robot` (v0.35.1, 5 tests) — the QUANTITIES. Every granting event of the
+start location is repeatable, so the suite fills the bag TWICE and reads what the second
+round answered: a capped item comes back as an `itemChanges` entry with `action:
+NOT_ADDED` while the same run still hands over the others (the refusal must not fail the
+event), the amount held does not grow, an uncapped item stacks onto the row it already has
+rather than opening a second one, `use-item` spends one unit by default and leaves the rest
+in the bag, and `drop-item` reports in `amountDropped` exactly what left it. Which item is
+capped is discovered by behaviour — all four seeds cap the class-restricted tonic at one
+and make a drop of the scroll put down two.
 
 ## Seed data and reports per backend
 

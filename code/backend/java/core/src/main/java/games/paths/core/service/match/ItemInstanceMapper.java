@@ -95,6 +95,11 @@ final class ItemInstanceMapper {
                     storyReadPort.findTextByStoryIdTextAndLang(storyId, item.getIdTextName(), resolvedLang)
                             .ifPresent(t -> info.setName(t.getShortText()));
                 }
+                // v0.35.1 — the authored quantities travel as they are: null means "no cap"
+                // and "one unit", and the board reads that the same way the engine does.
+                info.setMaxPerCharacter(item.getMaxPerCharacter());
+                info.setAmountDrop(item.getAmountDrop());
+                info.setAmountUse(item.getAmountUse());
                 info.setEffects(showsEffects(item)
                         ? previewEffects(effectsByItem, item.getId())
                         : new ArrayList<>());

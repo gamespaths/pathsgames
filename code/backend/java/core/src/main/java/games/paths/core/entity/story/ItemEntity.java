@@ -27,6 +27,29 @@ public class ItemEntity extends BaseStoryScopedEntity {
     @Column(name = "flag_show_effects")
     private Integer flagShowEffects;
 
+    /**
+     * v0.35.1 - how many units of this item ONE character may hold. An ADD that would
+     * cross it is refused, without an error: the event still runs and everything else it
+     * does still applies. 0 or null mean no limit, the same reading the class gates have.
+     */
+    @Column(name = "max_per_character")
+    private Integer maxPerCharacter;
+
+    /**
+     * v0.35.1 - units removed by one drop-item; null reads as 1. Holding fewer is not a
+     * refusal: a player putting something down can always put down everything they hold.
+     */
+    @Column(name = "amount_drop")
+    private Integer amountDrop;
+
+    /**
+     * v0.35.1 - units consumed by one use-item; null reads as 1. Holding fewer IS a refusal
+     * ({@code ITEM_NOT_ENOUGH}): drinking less than the recipe asks for would make the
+     * effect a lie about what happened.
+     */
+    @Column(name = "amount_use")
+    private Integer amountUse;
+
     @Column(name = "id_class_permitted")
     private Integer idClassPermitted;
 
@@ -49,6 +72,15 @@ public class ItemEntity extends BaseStoryScopedEntity {
 
     public Integer getFlagShowEffects() { return flagShowEffects; }
     public void setFlagShowEffects(Integer flagShowEffects) { this.flagShowEffects = flagShowEffects; }
+
+    public Integer getMaxPerCharacter() { return maxPerCharacter; }
+    public void setMaxPerCharacter(Integer maxPerCharacter) { this.maxPerCharacter = maxPerCharacter; }
+
+    public Integer getAmountDrop() { return amountDrop; }
+    public void setAmountDrop(Integer amountDrop) { this.amountDrop = amountDrop; }
+
+    public Integer getAmountUse() { return amountUse; }
+    public void setAmountUse(Integer amountUse) { this.amountUse = amountUse; }
 
     public Integer getIdClassPermitted() { return idClassPermitted; }
     public void setIdClassPermitted(Integer idClassPermitted) { this.idClassPermitted = idClassPermitted; }

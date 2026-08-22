@@ -265,6 +265,22 @@ def test_the_info_items_promise_the_effects_of_using_them():
     story.find_item_effects_by_item_id.assert_called_once_with(5)
 
 
+def test_the_info_items_carry_the_authored_quantities():
+    """v0.35.1 — the same three numbers the inventory endpoint reports: one mapper."""
+    from app.core.services.match.character_query_service import build_character_infos
+    story, chars = _party_ports()
+    story.find_items_by_story_id.return_value = [{
+        "id": 8, "uuid": "item-uuid", "weight": 2, "id_card": 77, "id_text_name": 99,
+        "is_consumabile": 1, "max_per_character": 3, "amount_drop": 2, "amount_use": 2,
+        "id_class_permitted": None, "id_class_prohibited": None}]
+
+    item = build_character_infos([_party_character(10, 7)], _party_match(), story, chars,
+                                 "user-uuid", 7, lang="en",
+                                 mask_other_inventories=True)[0].items[0]
+
+    assert (item.max_per_character, item.amount_drop, item.amount_use) == (3, 2, 2)
+
+
 def test_a_secret_item_promises_nothing_on_info():
     """v0.35.0 — flag_show_effects = 0 hides the promise on /info too, not only on
     the inventory endpoint: one gate, read by the one shared helper."""

@@ -567,11 +567,18 @@ def _item_rows(char, story, raw_cards=None, raw_texts=None, lang="en"):
             # Step 35 — what using it promises. Always an array: an item with no effect,
             # and a row whose story item is gone, both answer [].
             "effects": [],
+            "maxPerCharacter": None,
+            "amountDrop": None,
+            "amountUse": None,
         }
         if item:
             entry["card"] = _resolve_card_from_raw(cards, texts, item.get("idCard"), lang)
             entry["name"] = _resolve_raw_text(texts, item.get("idTextName"), lang)
             entry["effects"] = _inventory.preview_effects(story, item)
+            # v0.35.1 — the authored quantities, as the board needs them before acting.
+            entry["maxPerCharacter"] = item.get("maxPerCharacter")
+            entry["amountDrop"] = item.get("amountDrop")
+            entry["amountUse"] = item.get("amountUse")
         out.append(entry)
     return out
 
@@ -2503,7 +2510,7 @@ def _execute_event(user, match_uuid, body, lang='en'):
                 touched[target_char.get('uuid')] = target_char
                 _events.apply_stat(target_char, effect, stat_changes)
                 added, removed = _events.apply_item(target_char, effect, item_uuids,
-                                                    item_changes)
+                                                    item_changes, _item_cap(story, effect))
                 flags['itemAdded'] = flags['itemAdded'] or added
                 flags['itemRemoved'] = flags['itemRemoved'] or removed
                 _events.apply_traits(target_char, effect, trait_uuids, trait_changes)
@@ -2695,6 +2702,7 @@ _ITEM_REFUSAL_MESSAGES = {
     'SLEEPING': 'The character is sleeping',
     'ITEM_NOT_FOUND': 'Item not found in the inventory',
     'ITEM_NOT_CONSUMABLE': 'This item cannot be used, only carried',
+    'ITEM_NOT_ENOUGH': 'The character does not carry enough units of this item',
     'ITEM_CLASS_NOT_PERMITTED': "The character's class cannot use this item",
     'ITEM_CLASS_PROHIBITED': "The character's class is forbidden from using this item",
 }
@@ -2721,6 +2729,14 @@ def _resolve_inventory_caller(user, match_uuid):
     if caller is None:
         return None, None, None, _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
     return match, _story_of(match), caller, None
+
+
+def _item_cap(story, effect):
+    """v0.35.1 — max_per_character of the item an effect hands over, None when it sets no
+    cap. Read per effect rather than cached: an execution carries a handful of them, and a
+    cache keyed by story would have to be threaded through every chain entry point."""
+    item = _inventory.items_by_id(story).get(_nz(effect.get('idItemTarget')))
+    return (item or {}).get('maxPerCharacter')
 
 
 def _item_refusal(code):
@@ -2787,8 +2803,14 @@ def _drop_item(user, match_uuid, body):
     if code:
         return _item_refusal(code)
 
-    amount = _inventory.unit_amount(row.get('amount'))
-    _inventory.remove_row(caller, row)
+    # v0.35.1 — amountDrop units, null reading as 1. Holding fewer is NOT a refusal, unlike
+    # a usage: a player putting something down can always put down everything they hold.
+    # A row whose story item is gone goes in ONE gesture: there is no author left to say how
+    # many units a drop takes, and step 34 keeps such a row droppable precisely so it cannot
+    # weigh the character down forever.
+    units = (_inventory.unit_amount(row.get('amount')) if item is None
+             else _inventory.action_amount(item.get('amountDrop')))
+    dropped = _inventory.spend_units(caller, row, units)
     db_utils.put_item(caller)
 
     return _ok({
@@ -2796,7 +2818,7 @@ def _drop_item(user, match_uuid, body):
         "characterUuid": caller.get('uuid'),
         "itemInstanceUuid": row.get('uuid'),
         "itemUuid": item.get('uuid') if item else None,
-        "amountDropped": amount,
+        "amountDropped": dropped,
         "weight": _inventory.carried_weight(caller, story),
         "weightMax": _nz(caller.get('weightMax')),
         # Always true — the inventory and the carried weight both changed.
@@ -2830,6 +2852,13 @@ def _use_item(user, match_uuid, body, lang='en'):
     if code:
         return _item_refusal(code)
 
+    # v0.35.1 — how many units one usage spends. Holding fewer is a refusal rather than a
+    # smaller sip: an effect that fired on half the recipe would be a lie about what the
+    # player did.
+    spend = _inventory.action_amount(item.get('amountUse'))
+    if _inventory.unit_amount(row.get('amount')) < spend:
+        return _item_refusal('ITEM_NOT_ENOUGH')
+
     raw_cards, raw_texts = _story_cards_texts(story)
     trait_uuids = {_events._nz(t.get('id')): t.get('uuid') for t in (story.get('traits') or [])}
 
@@ -2840,9 +2869,10 @@ def _use_item(user, match_uuid, body, lang='en'):
     }
     applied_effects = []
 
-    # The row goes first: an item whose effects grant the same item back cannot be spent
-    # twice, and the row is gone even if the effect chain ends in a coma.
-    _inventory.remove_row(caller, row)
+    # The units go first: an item whose effects grant the same item back must not pay for
+    # itself, and what was spent stays spent even if the effect chain ends in a coma.
+    # Before v0.35.1 that meant dropping the row; now the row survives a partial usage.
+    _inventory.spend_units(caller, row, spend)
 
     for effect in _inventory.standalone_effects(story, item):
         _events.apply_stat(caller, effect, acc['statChanges'])
@@ -2860,7 +2890,7 @@ def _use_item(user, match_uuid, body, lang='en'):
 
     _apply_edge_states(match, caller, acc, None)
     _inventory.log_item_usage(match, caller, item.get('id'),
-                              _nz(match.get('currentClock')), acc['statChanges'])
+                              _nz(match.get('currentClock')), acc['statChanges'], spend)
     db_utils.put_item(caller)
     db_utils.put_item(match)
 
@@ -3122,7 +3152,7 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
             acc['touched'][target_char.get('uuid')] = target_char
             _events.apply_stat(target_char, effect, acc['statChanges'])
             added, removed = _events.apply_item(target_char, effect, item_uuids,
-                                                acc['itemChanges'])
+                                                acc['itemChanges'], _item_cap(story, effect))
             acc['flags']['itemAdded'] = acc['flags']['itemAdded'] or added
             acc['flags']['itemRemoved'] = acc['flags']['itemRemoved'] or removed
             moved = _events.apply_location(match, target_char, effect, location_uuids,
@@ -3437,7 +3467,7 @@ def _run_event_chain(match, story, first, caller, characters, ctx, events_by_id,
                 acc['touched'][target_char.get('uuid')] = target_char
                 _events.apply_stat(target_char, effect, acc['statChanges'])
                 added, removed = _events.apply_item(target_char, effect, item_uuids,
-                                                    acc['itemChanges'])
+                                                    acc['itemChanges'], _item_cap(story, effect))
                 acc['flags']['itemAdded'] = acc['flags']['itemAdded'] or added
                 acc['flags']['itemRemoved'] = acc['flags']['itemRemoved'] or removed
                 _events.apply_traits(target_char, effect, {}, acc['traitChanges'])

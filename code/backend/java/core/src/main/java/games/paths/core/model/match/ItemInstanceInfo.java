@@ -41,6 +41,19 @@ public class ItemInstanceInfo {
      */
     private List<ItemEffectPreview> effects = new ArrayList<>();
 
+    /**
+     * v0.35.1 — the three authored quantities of the story item, as the board needs to read
+     * them BEFORE acting: how many units may be held at once (null or 0 = no limit), how
+     * many one drop puts down and how many one usage spends (null = one).
+     *
+     * <p>They are reported, not enforced, here: the gates stay server-side. The board uses
+     * them to write "2/3" beside a capped item and to grey out a use the engine would only
+     * refuse with {@code ITEM_NOT_ENOUGH} a moment later.</p>
+     */
+    private Integer maxPerCharacter;
+    private Integer amountDrop;
+    private Integer amountUse;
+
     public ItemInstanceInfo() {
     }
 
@@ -70,6 +83,15 @@ public class ItemInstanceInfo {
 
     public Boolean getIsConsumabile() { return isConsumabile; }
     public void setIsConsumabile(Boolean isConsumabile) { this.isConsumabile = isConsumabile; }
+
+    public Integer getMaxPerCharacter() { return maxPerCharacter; }
+    public void setMaxPerCharacter(Integer maxPerCharacter) { this.maxPerCharacter = maxPerCharacter; }
+
+    public Integer getAmountDrop() { return amountDrop; }
+    public void setAmountDrop(Integer amountDrop) { this.amountDrop = amountDrop; }
+
+    public Integer getAmountUse() { return amountUse; }
+    public void setAmountUse(Integer amountUse) { this.amountUse = amountUse; }
 
     public List<ItemEffectPreview> getEffects() { return effects; }
     public void setEffects(List<ItemEffectPreview> effects) {

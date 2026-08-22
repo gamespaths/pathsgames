@@ -38,6 +38,11 @@ from app.core.services.match import choice_availability, edge_state_evaluator, e
 
 ADD = "ADD"
 REMOVE = "REMOVE"
+#: v0.35.1 — the third action an item change can carry: the story wanted to hand the item
+#: over and the character already holds max_per_character of it. Reported, never thrown:
+#: the event runs, everything else it does still applies, and the board is free to say
+#: "you already carry as many as you can" — or, as react-game does today, to say nothing.
+NOT_ADDED = "NOT_ADDED"
 TARGET_ONLY_ONE = "ONLY_ONE"
 
 # A chain longer than this is treated as broken and simply stops. The Step 22 validator
@@ -727,15 +732,25 @@ class EventService(EventPort):
             return
         item_uuid = x.item_uuids().get(id_item)
         if action == ADD:
-            self.store.add_item(x.match["id"], recipient["id"], id_item)
+            added = self.store.add_item(x.match["id"], recipient["id"], id_item,
+                                        x.item_max_per_character().get(id_item))
+            x.item_changes.append(
+                EntityChange(recipient.get("uuid"), item_uuid, ADD if added else NOT_ADDED))
+            if not added:
+                # v0.35.1 — max_per_character. Nothing changed in the bag, so nothing needs
+                # refreshing on its account, and owned_item_ids is left alone: the character
+                # DOES hold the item, just not one more of it.
+                return
             x.item_added = True
-            x.item_changes.append(EntityChange(recipient.get("uuid"), item_uuid, ADD))
             if x.is_actor(recipient["id"]):
                 x.ctx.owned_item_ids.add(id_item)
         elif action == REMOVE and self.store.remove_item(x.match["id"], recipient["id"], id_item):
             x.item_removed = True
             x.item_changes.append(EntityChange(recipient.get("uuid"), item_uuid, REMOVE))
             if x.is_actor(recipient["id"]):
+                # Correct now that a REMOVE takes every unit: before v0.35.1 it took one and
+                # cleared the flag anyway, so a later condition read "not owned" while the
+                # bag still held two.
                 x.ctx.owned_item_ids.discard(id_item)
 
     def _apply_traits(self, x: "_Exec", recipient: Dict[str, Any], effect: Dict[str, Any],
@@ -1294,6 +1309,7 @@ class _Exec:
         self._card_cache: Dict[int, Any] = {}
         self._all_characters: Optional[List[Dict[str, Any]]] = None
         self._item_uuids: Optional[Dict[int, str]] = None
+        self._item_max_per_character: Optional[Dict[int, Optional[int]]] = None
         self._trait_uuids: Optional[Dict[int, str]] = None
         self._location_uuids: Optional[Dict[int, str]] = None
         # Current location per character: seeded from the views, rewritten by forced movement.
@@ -1393,6 +1409,13 @@ class _Exec:
         if self._item_uuids is None:
             self._item_uuids = self._service.store.find_item_uuids_by_id(self.match["id_story"])
         return self._item_uuids
+
+    def item_max_per_character(self) -> Dict[int, Optional[int]]:
+        """v0.35.1 — the caps, read once per execution however many ADDs it carries."""
+        if self._item_max_per_character is None:
+            self._item_max_per_character = \
+                self._service.store.find_item_max_per_character_by_id(self.match["id_story"])
+        return self._item_max_per_character
 
     def trait_uuids(self) -> Dict[int, str]:
         if self._trait_uuids is None:

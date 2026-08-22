@@ -166,14 +166,16 @@ def test_delete_inventory_row_removes_only_that_row(adapter, seeded, session_fac
 
 def test_log_ids_are_globally_unique_not_per_match(adapter, seeded, session_factory):
     """log_item_usage carries UNIQUE (id), unlike the per-match gaming_* tables."""
-    adapter.log_item_usage(MATCH_ID, CHAR_ID, 900, '{"a":1}')
-    adapter.log_item_usage(MATCH_ID, CHAR_ID, 901, "{}")
+    adapter.log_item_usage(MATCH_ID, CHAR_ID, 900, 2, '{"a":1}')
+    adapter.log_item_usage(MATCH_ID, CHAR_ID, 901, 1, "{}")
 
     with session_factory() as s:
         rows = s.query(LogItemUsageEntity).order_by(LogItemUsageEntity.id).all()
     assert [r.id for r in rows] == [1, 2]
     assert rows[0].id_item == 900
-    assert rows[0].counter == 1
+    # v0.35.1 — the units the usage actually spent, not the hardcoded 1 it used to be.
+    assert rows[0].counter == 2
+    assert rows[1].counter == 1
     assert rows[0].effects_json == '{"a":1}'
     assert rows[0].uuid != rows[1].uuid
     assert rows[0].timestamp is not None

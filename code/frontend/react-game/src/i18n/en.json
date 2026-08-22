@@ -360,6 +360,7 @@
       "use": "Use",
       "drop": "Drop",
       "amount": "Amount",
+      "perUse": "Per use",
       "weight": "Weight",
       "carriedOnly": "Carried",
       "blocked": "Locked",
@@ -370,15 +371,17 @@
         "ITEM_CLASS_PROHIBITED": "Class",
         "SLEEPING": "Sleeping",
         "COMA": "Coma",
-        "MATCH_NOT_RUNNING": "Paused"
+        "MATCH_NOT_RUNNING": "Paused",
+        "ITEM_NOT_ENOUGH": "Too few"
       },
       "reasonFull": {
-        "ITEM_NOT_CONSUMABLE": "This item cannot be used.",
+        "ITEM_NOT_CONSUMABLE": "This item cannot be consumed.",
         "ITEM_CLASS_NOT_PERMITTED": "Your class cannot use this item.",
         "ITEM_CLASS_PROHIBITED": "Your class is forbidden this item.",
         "SLEEPING": "You are asleep and cannot use anything.",
         "COMA": "You are in a coma: you cannot use anything.",
-        "MATCH_NOT_RUNNING": "The match is not running."
+        "MATCH_NOT_RUNNING": "The match is not running.",
+        "ITEM_NOT_ENOUGH": "Using this takes more units than you carry."
       }
     },
     "items": {

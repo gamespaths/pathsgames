@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
-  effectStatItems, itemCarryBadges, itemDescriptionBadges, itemPromiseBadges,
+  effectStatItems, itemCap, itemCarryBadges, itemDescriptionBadges, itemPromiseBadges,
+  unitsPerUse,
 } from '../utils/statBadges'
 
 const t = (k) => k
@@ -116,5 +117,46 @@ describe('the badges of an item just received (Step 35)', () => {
     // The two readings are deliberately different, and each is right where it is shown.
     expect(itemDescriptionBadges(ROW, k => k).map(b => [b.key, b.value]))
       .toEqual([['amount', '3'], ['weight', '6'], ['life', '+3']])
+  })
+})
+
+describe('the cap and the cost of a usage (v0.35.1)', () => {
+  it('reads 0 and null as no cap, exactly as the engine does', () => {
+    expect(itemCap({ maxPerCharacter: 3 })).toBe(3)
+    expect(itemCap({ maxPerCharacter: 0 })).toBeNull()
+    expect(itemCap({})).toBeNull()
+    expect(itemCap(null)).toBeNull()
+  })
+
+  it('reads a missing or empty amountUse as one unit', () => {
+    // The board must never promise a cheaper action than the server will honour.
+    expect(unitsPerUse({ amountUse: 2 })).toBe(2)
+    expect(unitsPerUse({ amountUse: 0 })).toBe(1)
+    expect(unitsPerUse({ amountUse: -3 })).toBe(1)
+    expect(unitsPerUse({})).toBe(1)
+  })
+
+  it('writes the amount as carried/cap when there is one', () => {
+    const badges = itemCarryBadges({ amount: 2, weight: 1, maxPerCharacter: 3 }, k => k)
+    const amount = badges.find(b => b.key === 'amount')
+    expect(amount.value).toBe('2/3')
+    // The x belongs to the uncapped reading only: "x2/3" reads as nonsense.
+    expect(amount.prefix).toBeUndefined()
+  })
+
+  it('says 1/1 rather than nothing: one unit IS the news when the cap is one', () => {
+    const badges = itemCarryBadges({ amount: 1, weight: 1, maxPerCharacter: 1 }, k => k)
+    expect(badges.find(b => b.key === 'amount').value).toBe('1/1')
+    // Without a cap a single unit earns no badge at all.
+    expect(itemCarryBadges({ amount: 1, weight: 1 }, k => k).map(b => b.key)).toEqual(['weight'])
+  })
+
+  it('adds the cost of a usage only when it is more than one unit', () => {
+    const badges = itemDescriptionBadges(
+      { amount: 4, weight: 1, isConsumabile: true, amountUse: 2 }, k => k)
+    expect(badges.find(b => b.key === 'perUse')).toMatchObject({ value: '2' })
+    // One unit per usage is what every pre-v0.35.1 item did: saying so would be noise.
+    expect(itemDescriptionBadges({ amount: 4, weight: 1, isConsumabile: true }, k => k)
+      .find(b => b.key === 'perUse')).toBeUndefined()
   })
 })

@@ -287,6 +287,9 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "id_text_name": r.id_text_name,
                     "is_consumabile": r.is_consumabile,
                     "flag_show_effects": r.flag_show_effects,
+                    "max_per_character": r.max_per_character,
+                    "amount_drop": r.amount_drop,
+                    "amount_use": r.amount_use,
                     "id_class_permitted": r.id_class_permitted,
                     "id_class_prohibited": r.id_class_prohibited,
                 }

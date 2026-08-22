@@ -248,38 +248,58 @@ class EventStoreAdapter(EventStorePort):
             c.ts_update = _now_iso()
             session.commit()
 
-    def add_item(self, id_match: int, id_character: int, id_item: int) -> None:
+    def add_item(self, id_match: int, id_character: int, id_item: int,
+                 max_per_character: Optional[int] = None) -> bool:
+        cap = max_per_character or 0
         with self.session_factory() as session:
-            row = session.query(GamingInventoryItemsEntity).filter(
+            rows = session.query(GamingInventoryItemsEntity).filter(
                 GamingInventoryItemsEntity.id_match == id_match,
                 GamingInventoryItemsEntity.id_character_match == id_character,
-                GamingInventoryItemsEntity.id_item == id_item).first()
+                GamingInventoryItemsEntity.id_item == id_item).order_by(
+                GamingInventoryItemsEntity.id.asc()).all()
             now = _now_iso()
-            if row:
+            if rows:
+                # v0.35.1 — the schema holds one row per (character, item); a database
+                # written before it did may still carry a pair, and the two amounts have to
+                # become one before the cap can mean anything.
+                row = rows[0]
+                for extra in rows[1:]:
+                    row.amount = (row.amount or 0) + (extra.amount or 0)
+                    session.delete(extra)
+                if 0 < cap < (row.amount or 0) + 1:
+                    # Already at the cap: refused, and the caller says so in the payload
+                    # rather than failing the event that asked.
+                    session.commit()
+                    return False
                 row.amount = (row.amount or 0) + 1
                 row.ts_update = now
-            else:
-                session.add(GamingInventoryItemsEntity(
-                    id=_next_id(session, GamingInventoryItemsEntity, id_match),
-                    id_match=id_match, uuid=str(uuid_lib.uuid4()),
-                    id_character_match=id_character, id_item=id_item, amount=1,
-                    ts_insert=now, ts_update=now))
+                session.commit()
+                return True
+            session.add(GamingInventoryItemsEntity(
+                id=_next_id(session, GamingInventoryItemsEntity, id_match),
+                id_match=id_match, uuid=str(uuid_lib.uuid4()),
+                id_character_match=id_character, id_item=id_item, amount=1,
+                ts_insert=now, ts_update=now))
             session.commit()
+            return True
+
+    def find_item_max_per_character_by_id(self, id_story: int) -> Dict[int, Optional[int]]:
+        with self.session_factory() as session:
+            rows = session.query(ItemEntity).filter(ItemEntity.id_story == id_story).all()
+            return {r.id: r.max_per_character for r in rows}
 
     def remove_item(self, id_match: int, id_character: int, id_item: int) -> bool:
         with self.session_factory() as session:
-            row = session.query(GamingInventoryItemsEntity).filter(
+            # v0.35.1 — every unit goes, however many rows a pre-0.35.1 database spread
+            # them over. "The story takes it away from you" never meant "takes one".
+            rows = session.query(GamingInventoryItemsEntity).filter(
                 GamingInventoryItemsEntity.id_match == id_match,
                 GamingInventoryItemsEntity.id_character_match == id_character,
-                GamingInventoryItemsEntity.id_item == id_item).first()
-            if not row or (row.amount or 0) <= 0:
+                GamingInventoryItemsEntity.id_item == id_item).all()
+            if not rows:
                 return False
-            left = (row.amount or 0) - 1
-            if left <= 0:
+            for row in rows:
                 session.delete(row)
-            else:
-                row.amount = left
-                row.ts_update = _now_iso()
             session.commit()
             return True
 

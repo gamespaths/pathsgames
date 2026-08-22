@@ -99,6 +99,9 @@ def build_character_infos(
                                               item.get("id_card"), card_cache)
                     info.name = _resolve_name(story_read_port, story_id,
                                               item.get("id_text_name"), lang)
+                    info.max_per_character = item.get("max_per_character")
+                    info.amount_drop = item.get("amount_drop")
+                    info.amount_use = item.get("amount_use")
                     if shows_effects(item):
                         info.effects = preview_effects(effects_by_item.get(item.get("id")))
                 items.append(info)

@@ -179,15 +179,39 @@ def preview_effects(story, item):
     ]
 
 
+def action_amount(authored):
+    """v0.35.1 — amountUse / amountDrop: missing, zero or negative all read as one unit.
+
+    An action that moved nothing would be an action the player can trigger for free, over
+    and over: the story may write the value, the engine refuses to honour it as written.
+    """
+    value = _nz(authored)
+    return value if value >= 1 else 1
+
+
+def spend_units(char, row, units):
+    """v0.35.1 — takes ``units`` off the row, dropping the row when nothing survives.
+
+    Returns what was actually taken, which is never more than the row holds.
+    """
+    held = unit_amount(row.get("amount"))
+    taken = min(held, units)
+    if held - taken > 0:
+        row["amount"] = held - taken
+    else:
+        remove_row(char, row)
+    return taken
+
+
 def remove_row(char, row):
-    """Both use-item and drop-item discard the WHOLE row: amount is never decremented."""
+    """Drops the row entirely — what a use or a drop that consumed every unit does."""
     items = char.get("items") or []
     if row in items:
         items.remove(row)
     char["items"] = items
 
 
-def log_item_usage(match, char, id_item, clock, effects):
+def log_item_usage(match, char, id_item, clock, effects, counter=1):
     """Appends to the match item's ``itemUsageLog``.
 
     There is no log table on DynamoDB: the existing logs (``eventLog``) are embedded lists
@@ -196,7 +220,8 @@ def log_item_usage(match, char, id_item, clock, effects):
     match.setdefault("itemUsageLog", []).append({
         "characterUuid": char.get("uuid"),
         "idItem": _nz(id_item),
-        "counter": 1,
+        # v0.35.1 — the units this usage actually spent; hardcoded to 1 until now.
+        "counter": _nz(counter) or 1,
         "clock": _nz(clock),
         "effects": effects,
     })

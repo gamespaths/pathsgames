@@ -68,6 +68,15 @@ def preview_effects(rows: Optional[List[Dict[str, Any]]]) -> List[ItemEffectPrev
     return out
 
 
+def action_amount(authored) -> int:
+    """v0.35.1 — amount_use / amount_drop: null, zero or a negative all read as one unit.
+
+    An action that moved nothing would be an action the player can trigger for free, over
+    and over: the schema allows the value, the engine refuses to honour it as written.
+    """
+    return authored if isinstance(authored, int) and authored >= 1 else 1
+
+
 def _unit_weight(weight) -> int:
     return weight if isinstance(weight, int) else 0
 
@@ -131,17 +140,33 @@ class InventoryService(InventoryPort):
                                  "This item cannot be used, only carried")
         self._check_class_gate(item, ctx["actor"].get("id_class"))
 
+        # v0.35.1 — how many units one usage spends. A null amount_use reads as 1, and
+        # holding fewer is a refusal rather than a smaller sip: an effect that fired on half
+        # the recipe would be a lie about what the player did.
+        spend = action_amount(item.get("amount_use"))
+        held = _unit_amount(row.get("amount"))
+        if held < spend:
+            raise InventoryError(
+                InventoryError.ITEM_NOT_ENOUGH,
+                f"The character carries {held} of this item and using it takes {spend}")
+
         effects = self._standalone_effects(ctx, item)
         card = self._resolve_card(ctx, item.get("id_card"))
 
-        # The row goes first: an item whose effects grant the same item back cannot be
-        # spent twice, and the row is gone even if the effect chain ends in a coma.
-        self.store.delete_inventory_row(ctx["match"]["id"], row["id"])
+        # The units go first: an item whose effects grant the same item back must not pay
+        # for itself, and what was spent stays spent even if the effect chain ends in a
+        # coma. Before v0.35.1 that meant deleting the row; now it means charging the units
+        # and deleting the row only when nothing survives them.
+        left = held - spend
+        if left > 0:
+            self.store.update_inventory_amount(ctx["match"]["id"], row["id"], left)
+        else:
+            self.store.delete_inventory_row(ctx["match"]["id"], row["id"])
 
         result = self.effect_engine.apply_standalone_effects(
             ctx["match"]["id"], ctx["actor"]["id"], effects, card, lang, source_consumed=True)
         self.store.log_item_usage(ctx["match"]["id"], ctx["actor"]["id"], item["id"],
-                                  to_effects_json(result))
+                                  spend, to_effects_json(result))
         return result
 
     def drop_item(self, match_uuid: str, user_uuid: str,
@@ -151,9 +176,19 @@ class InventoryService(InventoryPort):
         # No consumable gate and no class gate here: a non-consumable item must be
         # droppable, that is the whole point of carrying one.
         item = self._items_by_id(ctx).get(row.get("id_item"))
-        amount = _unit_amount(row.get("amount"))
+        held = _unit_amount(row.get("amount"))
+        # v0.35.1 — a null amount_drop reads as 1. Holding fewer is NOT a refusal, unlike a
+        # usage: a player putting something down can always put down everything they hold.
+        # A row whose story item is gone goes in ONE gesture: there is no author left to say
+        # how many units a drop takes, and step 34 keeps such a row droppable precisely so
+        # it cannot weigh the character down forever.
+        dropped = held if item is None else min(held, action_amount(item.get("amount_drop")))
 
-        self.store.delete_inventory_row(ctx["match"]["id"], row["id"])
+        left = held - dropped
+        if left > 0:
+            self.store.update_inventory_amount(ctx["match"]["id"], row["id"], left)
+        else:
+            self.store.delete_inventory_row(ctx["match"]["id"], row["id"])
         ctx["inventory"] = None  # force a re-read for the remaining weight
 
         return {
@@ -161,7 +196,7 @@ class InventoryService(InventoryPort):
             "character_uuid": ctx["actor"]["uuid"],
             "item_instance_uuid": row.get("uuid"),
             "item_uuid": item.get("uuid") if item else None,
-            "amount_dropped": amount,
+            "amount_dropped": dropped,
             "weight": total_weight(self._map_items(ctx, None)),
             "weight_max": ctx["actor"]["weight_max"],
         }
@@ -262,6 +297,9 @@ class InventoryService(InventoryPort):
                 info.is_consumabile = item.get("is_consumabile") == 1
                 info.card = self._resolve_card(ctx, item.get("id_card"), card_cache)
                 info.name = self._resolve_name(story_id, item.get("id_text_name"), lang)
+                info.max_per_character = item.get("max_per_character")
+                info.amount_drop = item.get("amount_drop")
+                info.amount_use = item.get("amount_use")
                 if shows_effects(item):
                     info.effects = preview_effects(effects_by_item.get(item.get("id")))
             out.append(info)

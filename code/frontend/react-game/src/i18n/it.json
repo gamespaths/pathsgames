@@ -346,6 +346,7 @@
       "use": "Usa",
       "drop": "Getta",
       "amount": "Quantità",
+      "perUse": "Per uso",
       "weight": "Peso",
       "carriedOnly": "Trasportato",
       "blocked": "Bloccato",
@@ -356,7 +357,8 @@
         "ITEM_CLASS_PROHIBITED": "Classe",
         "SLEEPING": "Dormi",
         "COMA": "Coma",
-        "MATCH_NOT_RUNNING": "In pausa"
+        "MATCH_NOT_RUNNING": "In pausa",
+        "ITEM_NOT_ENOUGH": "Pochi"
       },
       "reasonFull": {
         "ITEM_NOT_CONSUMABLE": "Questo oggetto non si può usare: puoi solo portarlo con te.",
@@ -364,7 +366,8 @@
         "ITEM_CLASS_PROHIBITED": "Alla tua classe è vietato usare questo oggetto.",
         "SLEEPING": "Stai dormendo, non puoi usare nulla.",
         "COMA": "Sei in coma: non puoi usare nulla.",
-        "MATCH_NOT_RUNNING": "La partita non è in corso."
+        "MATCH_NOT_RUNNING": "La partita non è in corso.",
+        "ITEM_NOT_ENOUGH": "Usarlo consuma più unità di quante ne hai."
       }
     },
     "items": {

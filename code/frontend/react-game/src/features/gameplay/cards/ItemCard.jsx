@@ -3,7 +3,7 @@ import { useTranslation } from '@/i18n/context'
 import Card from '@/components/layout/Card'
 import { dropItem, useItem } from '@/api/matches'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
-import { itemCarryBadges, itemDescriptionBadges } from '@/utils/statBadges'
+import { itemCarryBadges, itemDescriptionBadges, unitsPerUse } from '@/utils/statBadges'
 
 /**
  * ItemCard — Step 34. One card per row of the calling character's inventory.
@@ -32,12 +32,24 @@ export default function ItemCard({
 
   // The backend has already decided: `isConsumabile` is false for an item that can only
   // be carried. The class gates are enforced server-side and surface as an error code.
-  const usable = item?.isConsumabile === true
+  const consumable = item?.isConsumabile === true
+  // v0.35.1 — a usage spends `amountUse` units, so carrying fewer makes the action a
+  // certain ITEM_NOT_ENOUGH. The engine still owns the refusal; greying the button out
+  // only spares the player a click that was going to be answered with an error.
+  const perUse = unitsPerUse(item)
+  const carried = item?.amount ?? 1
+  const enough = carried >= perUse
+  const usable = consumable && enough
   const locked = !usable
   // Two registers for the same refusal: the card has room for one word, the preview has
-  // room for the sentence that explains it.
-  const lockInfo = locked ? t('game.item.reason.ITEM_NOT_CONSUMABLE') : undefined
-  const lockInfoFull = locked ? t('game.item.reasonFull.ITEM_NOT_CONSUMABLE') : undefined
+  // room for the sentence that explains it. The figures ride on the long one, since the
+  // sentence cannot interpolate them (the i18n helper takes a key and nothing else).
+  const reasonKey = consumable ? 'ITEM_NOT_ENOUGH' : 'ITEM_NOT_CONSUMABLE'
+  const lockInfo = locked ? t(`game.item.reason.${reasonKey}`) : undefined
+  const lockInfoFull = !locked ? undefined
+    : consumable
+      ? `${t('game.item.reasonFull.ITEM_NOT_ENOUGH')} (${carried}/${perUse})`
+      : t('game.item.reasonFull.ITEM_NOT_CONSUMABLE')
 
   const cardData = item?.card ?? {
     title: item?.name ?? item?.itemUuid,

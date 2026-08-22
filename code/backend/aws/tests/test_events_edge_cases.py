@@ -95,15 +95,54 @@ def test_apply_item_add_creates_then_stacks():
     assert char['items'][0]['uuid'] == first_uuid, "stacking must not re-issue the uuid"
 
 
-def test_apply_item_remove_decrements_then_drops_the_row():
+def test_apply_item_remove_takes_every_unit():
+    """v0.35.1 — a story that takes an item away takes all of it, not one unit."""
     char = {'uuid': 'c1', 'items': [{'idItem': 5, 'amount': 2}]}
     changes = []
     effect = {'idItemTarget': 5, 'itemAction': events.REMOVE}
+
     added, removed = events.apply_item(char, effect, {5: 'item-5'}, changes)
+
     assert (added, removed) == (False, True)
-    assert char['items'][0]['amount'] == 1
-    events.apply_item(char, effect, {5: 'item-5'}, changes)
     assert char['items'] == []
+
+
+def test_apply_item_add_is_refused_at_the_cap():
+    """max_per_character: the unit does not go in, and it is not an error — the change is
+    reported as NOT_ADDED so the board can say so if it wants to."""
+    char = {'uuid': 'c1', 'items': [{'idItem': 5, 'amount': 2}]}
+    changes = []
+    effect = {'idItemTarget': 5, 'itemAction': events.ADD}
+
+    assert events.apply_item(char, effect, {5: 'item-5'}, changes, 2) == (False, False)
+
+    assert char['items'][0]['amount'] == 2
+    assert changes == [{'characterUuid': 'c1', 'itemUuid': 'item-5', 'action': 'NOT_ADDED'}]
+
+
+def test_apply_item_add_under_the_cap_and_a_cap_of_zero():
+    char, changes = {'uuid': 'c1', 'items': [{'idItem': 5, 'amount': 1}]}, []
+    assert events.apply_item(char, {'idItemTarget': 5, 'itemAction': events.ADD},
+                             {5: 'item-5'}, changes, 2) == (True, False)
+    assert char['items'][0]['amount'] == 2
+    # 0 is no cap at all, the same reading the class gates have.
+    assert events.apply_item(char, {'idItemTarget': 5, 'itemAction': events.ADD},
+                             {5: 'item-5'}, changes, 0) == (True, False)
+    assert char['items'][0]['amount'] == 3
+
+
+def test_apply_item_folds_duplicate_rows_an_older_build_may_have_left():
+    """One row per (character, item) since v0.35.1: two halves of a quantity would let the
+    cap through twice."""
+    char = {'uuid': 'c1', 'items': [{'idItem': 5, 'amount': 2}, {'idItem': 5, 'amount': 3}]}
+    changes = []
+
+    # 2 + 3 = 5, and the cap is 5: read row by row the add would have slipped through.
+    assert events.apply_item(char, {'idItemTarget': 5, 'itemAction': events.ADD},
+                             {5: 'item-5'}, changes, 5) == (False, False)
+
+    assert len(char['items']) == 1
+    assert char['items'][0]['amount'] == 5
 
 
 def test_apply_item_remove_absent_item_is_a_noop():

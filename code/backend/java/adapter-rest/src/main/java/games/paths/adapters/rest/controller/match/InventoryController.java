@@ -136,7 +136,7 @@ public class InventoryController {
     private static HttpStatus mapStatus(InventoryException.Code code) {
         return switch (code) {
             case MATCH_NOT_FOUND, ITEM_NOT_FOUND -> HttpStatus.NOT_FOUND;
-            case MATCH_NOT_RUNNING, SLEEPING, COMA, ITEM_NOT_CONSUMABLE,
+            case MATCH_NOT_RUNNING, SLEEPING, COMA, ITEM_NOT_CONSUMABLE, ITEM_NOT_ENOUGH,
                  ITEM_CLASS_NOT_PERMITTED, ITEM_CLASS_PROHIBITED -> HttpStatus.CONFLICT;
         };
     }

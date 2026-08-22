@@ -38,16 +38,21 @@ describe('ItemsCards', () => {
     expect(screen.getAllByTestId('item-card')).toHaveLength(2)
   })
 
-  it('shows the empty message instead of a list when the bag is empty', () => {
+  it('says nothing at all when the bag is empty', () => {
+    // An empty bag is not news: the LEFT page already reads "0 items", so a sentence here
+    // would be the same fact twice. The list is simply not rendered.
     render(<ItemsCards playerStats={{ items: [] }} onPreview={vi.fn()} />)
 
     expect(screen.queryByTestId('item-card')).toBeNull()
-    expect(screen.getByText('game.items.empty')).toBeTruthy()
+    expect(screen.queryByText('game.items.empty')).toBeNull()
   })
 
   it('survives player stats with no items key at all', () => {
     render(<ItemsCards playerStats={{}} onPreview={vi.fn()} />)
-    expect(screen.getByText('game.items.empty')).toBeTruthy()
+
+    // No rows, no message, and no crash on the missing key — which is what this guards.
+    expect(screen.queryByTestId('item-card')).toBeNull()
+    expect(screen.queryByText('game.items.empty')).toBeNull()
   })
 
   it('carries no header of its own — only the rows', () => {

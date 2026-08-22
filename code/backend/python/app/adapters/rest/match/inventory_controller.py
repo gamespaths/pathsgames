@@ -31,6 +31,7 @@ _STATUS_BY_CODE = {
     InventoryError.SLEEPING: 409,
     InventoryError.COMA: 409,
     InventoryError.ITEM_NOT_CONSUMABLE: 409,
+    InventoryError.ITEM_NOT_ENOUGH: 409,
     InventoryError.ITEM_CLASS_NOT_PERMITTED: 409,
     InventoryError.ITEM_CLASS_PROHIBITED: 409,
 }
@@ -58,6 +59,10 @@ def item_to_camel(i: ItemInstanceInfo) -> Dict[str, Any]:
         # Step 35 — what using it promises, one entry per list_items_effects row. Always an
         # array: an item with no effect answers [], never null.
         "effects": [{"statistic": e.statistic, "value": e.value} for e in (i.effects or [])],
+        # v0.35.1 — the authored quantities, null where the story authored none.
+        "maxPerCharacter": i.max_per_character,
+        "amountDrop": i.amount_drop,
+        "amountUse": i.amount_use,
     }
 
 

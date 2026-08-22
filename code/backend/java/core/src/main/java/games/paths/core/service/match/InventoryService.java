@@ -89,17 +89,34 @@ public class InventoryService implements InventoryPort {
         }
         checkClassGate(item, c.actor.idClass());
 
+        // v0.35.1 — how many units one usage spends. A null amount_use reads as 1, and
+        // holding fewer is a refusal rather than a smaller sip: an effect that fired on
+        // half the recipe would be a lie about what the player did.
+        int spend = unitAmountOfAction(item.getAmountUse());
+        int held = ItemInstanceMapper.unitAmount(row.getAmount());
+        if (held < spend) {
+            throw fail(InventoryException.Code.ITEM_NOT_ENOUGH,
+                    "The character carries " + held + " of this item and using it takes " + spend);
+        }
+
         List<StandaloneEffect> effects = standaloneEffects(c, item);
         CardInfo card = resolveCard(c, item.getIdCard(), lang);
 
-        // The row goes first: an item whose effects grant the same item back cannot be
-        // spent twice, and the row is gone even if the effect chain ends in a coma.
-        store.deleteInventoryRow(c.match.id(), row.getId());
+        // The units go first: an item whose effects grant the same item back must not pay
+        // for itself, and what was spent stays spent even if the effect chain ends in a
+        // coma. Before v0.35.1 that meant deleting the row; now it means charging the
+        // units and deleting the row only when nothing survives them.
+        int left = held - spend;
+        if (left > 0) {
+            store.updateInventoryAmount(c.match.id(), row.getId(), left);
+        } else {
+            store.deleteInventoryRow(c.match.id(), row.getId());
+        }
 
         EventExecutionResult result =
                 effectEngine.applyStandaloneEffects(c.match.id(), c.actor.id(), effects, card,
                         lang, true);
-        store.logItemUsage(c.match.id(), c.actor.id(), item.getId(), toEffectsJson(result));
+        store.logItemUsage(c.match.id(), c.actor.id(), item.getId(), spend, toEffectsJson(result));
         return result;
     }
 
@@ -110,16 +127,30 @@ public class InventoryService implements InventoryPort {
         // No consumable gate and no class gate here: a non-consumable item must be
         // droppable, that is the whole point of carrying one.
         ItemEntity item = c.itemsById().get(row.getIdItem());
-        int amount = ItemInstanceMapper.unitAmount(row.getAmount());
+        int held = ItemInstanceMapper.unitAmount(row.getAmount());
+        // v0.35.1 — a null amount_drop reads as 1. Holding fewer is NOT a refusal, unlike a
+        // usage: a player putting something down can always put down everything they hold,
+        // so the drop takes what is there and reports that number.
+        // A row whose story item is gone goes in ONE gesture: there is no author left to say
+        // how many units a drop takes, and Step 34 keeps such a row droppable precisely so
+        // it cannot weigh the character down forever.
+        int dropped = item == null
+                ? held
+                : Math.min(held, unitAmountOfAction(item.getAmountDrop()));
 
-        store.deleteInventoryRow(c.match.id(), row.getId());
-        // The row is gone, so the cached list is stale: the weight reported below has to be
+        int left = held - dropped;
+        if (left > 0) {
+            store.updateInventoryAmount(c.match.id(), row.getId(), left);
+        } else {
+            store.deleteInventoryRow(c.match.id(), row.getId());
+        }
+        // The row changed, so the cached list is stale: the weight reported below has to be
         // the one AFTER the drop, which is exactly what the caller will read back.
         c.invalidateInventory();
 
         List<ItemInstanceInfo> remaining = mapItems(c, null);
         return new DropItemResult(c.match.uuid(), c.actor.uuid(), row.getUuid(),
-                item != null ? item.getUuid() : null, amount,
+                item != null ? item.getUuid() : null, dropped,
                 ItemInstanceMapper.totalWeight(remaining), c.actor.weightMax());
     }
 
@@ -182,6 +213,16 @@ public class InventoryService implements InventoryPort {
             throw fail(InventoryException.Code.ITEM_NOT_FOUND, "Item not found in the story");
         }
         return item;
+    }
+
+    /**
+     * v0.35.1 — {@code amount_use} / {@code amount_drop}: null, zero or a negative all read
+     * as one unit. An action that moved nothing would be an action the player can trigger
+     * for free, over and over — the schema allows the value, the engine refuses to honour
+     * it as written.
+     */
+    private static int unitAmountOfAction(Integer authored) {
+        return authored == null || authored < 1 ? 1 : authored;
     }
 
     private static boolean isConsumable(ItemEntity item) {

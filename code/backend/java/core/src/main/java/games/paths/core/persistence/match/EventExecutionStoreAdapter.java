@@ -343,14 +343,38 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     }
 
     @Override
-    public void addItem(long idMatch, long idCharacter, long idItem) {
+    public boolean addItem(long idMatch, long idCharacter, long idItem, Integer maxPerCharacter) {
+        int cap = maxPerCharacter == null ? 0 : maxPerCharacter;
+        // v0.35.1 — the schema now holds one row per (character, item), so folding the
+        // duplicates a pre-0.35.1 database may carry is a merge, not a loop over stacks:
+        // the units are summed onto the first row and the rest are dropped, exactly as the
+        // migration did. Belt and braces — the unique index refuses them anyway.
+        GamingInventoryItemsEntity row = null;
         for (GamingInventoryItemsEntity i : inventoryRepository
                 .findByIdMatchAndIdCharacterMatch(idMatch, idCharacter)) {
-            if (i.getIdItem() != null && i.getIdItem() == idItem) {
-                i.setAmount(nz(i.getAmount()) + 1);
-                inventoryRepository.save(i);
-                return;
+            if (i.getIdItem() == null || i.getIdItem() != idItem) {
+                continue;
             }
+            if (row == null) {
+                row = i;
+            } else {
+                row.setAmount(nz(row.getAmount()) + nz(i.getAmount()));
+                inventoryRepository.delete(i);
+            }
+        }
+        if (row != null) {
+            if (cap > 0 && nz(row.getAmount()) + 1 > cap) {
+                // Already at the cap: refused, and the caller says so in the payload rather
+                // than failing the event that asked.
+                inventoryRepository.save(row);
+                return false;
+            }
+            row.setAmount(nz(row.getAmount()) + 1);
+            inventoryRepository.save(row);
+            return true;
+        }
+        if (cap > 0 && cap < 1) {
+            return false;
         }
         GamingInventoryItemsEntity e = new GamingInventoryItemsEntity();
         e.setId(nextInventoryId(idMatch));
@@ -359,24 +383,32 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
         e.setIdItem(idItem);
         e.setAmount(1);
         inventoryRepository.save(e);
+        return true;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, Integer> findItemMaxPerCharacterById(long idStory) {
+        Map<Long, Integer> byId = new HashMap<>();
+        for (ItemEntity i : storyReadPort.findItemsByStoryId(idStory)) {
+            byId.put(i.getId(), i.getMaxPerCharacter());
+        }
+        return byId;
     }
 
     @Override
     public boolean removeItem(long idMatch, long idCharacter, long idItem) {
+        boolean removed = false;
+        // v0.35.1 — every unit goes, however many rows a pre-0.35.1 database spread them
+        // over. The loop no longer stops at the first row for that reason alone.
         for (GamingInventoryItemsEntity i : inventoryRepository
                 .findByIdMatchAndIdCharacterMatch(idMatch, idCharacter)) {
-            if (i.getIdItem() != null && i.getIdItem() == idItem && nz(i.getAmount()) > 0) {
-                int left = nz(i.getAmount()) - 1;
-                if (left <= 0) {
-                    inventoryRepository.delete(i);
-                } else {
-                    i.setAmount(left);
-                    inventoryRepository.save(i);
-                }
-                return true;
+            if (i.getIdItem() != null && i.getIdItem() == idItem) {
+                inventoryRepository.delete(i);
+                removed = true;
             }
         }
-        return false;
+        return removed;
     }
 
     @Override

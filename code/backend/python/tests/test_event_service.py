@@ -48,6 +48,9 @@ def _effect(**over):
 def store():
     s = MagicMock()
     s.find_user_id_by_uuid.return_value = USER_ID
+    # v0.35.1 — no cap unless a case says otherwise, and the add goes through.
+    s.add_item.return_value = True
+    s.find_item_max_per_character_by_id.return_value = {}
     s.find_match_for_event.return_value = {
         "id": MATCH_ID, "uuid": MATCH_UUID, "status": "RUNNING", "current_clock": 7,
         "id_story": STORY_ID, "id_user_creator": USER_ID, "id_current_weather": None,
@@ -240,7 +243,7 @@ def test_items(service, store):
     store.find_effects_by_event_id.return_value = {
         1: [_effect(id_item_target=42, item_action="ADD")]}
     r = run(service)
-    store.add_item.assert_called_once_with(MATCH_ID, CHAR_ID, 42)
+    store.add_item.assert_called_once_with(MATCH_ID, CHAR_ID, 42, None)
     assert r.item_added is True and r.item_changes[0].value == "item-uuid"
 
 

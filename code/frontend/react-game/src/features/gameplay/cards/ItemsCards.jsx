@@ -27,7 +27,7 @@ export default function ItemsCards({
     <div className="config-view-wrap config-view--config">
       <div className="config-cards-area selection-list">
         {items.length === 0
-          ? <p className="game-empty">{t('game.items.empty')}</p>
+          ? <p className="game-empty">{/*t('game.items.empty') it items empty don't show messages */}</p>
           : items.map(item => (
             <ItemCard key={item.uuid} item={item} story={story}
               onPreview={onPreview} previewSide={previewSide}

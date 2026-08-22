@@ -107,6 +107,11 @@ def test_inventory_lists_the_rows_with_their_cards(_get, _query, _put, _jwt):
     # Step 35 — the listing promises what using it would apply, read off the very rows
     # use-item runs. The non-consumable one carries no effect row, hence [].
     assert first['effects'] == [{'statistic': 'life', 'value': 3}]
+    # v0.35.1 — the authored quantities travel too; this seed authors none, so they are
+    # null rather than a made-up default, and the board reads that as "no cap, one unit".
+    assert first['maxPerCharacter'] is None
+    assert first['amountDrop'] is None
+    assert first['amountUse'] is None
     # The non-consumable one is listed too — it is carried, just not usable.
     assert body['items'][1]['isConsumabile'] is False
     assert body['items'][1]['card'] is None
@@ -196,16 +201,68 @@ def test_use_item_answers_the_execute_event_shape(_get, _query, _put, _jwt):
 
 
 @_patched
-def test_use_item_removes_the_whole_row_and_logs_the_usage(_get, _query, _put, _jwt):
+def test_use_item_spends_one_unit_and_logs_the_usage(_get, _query, _put, _jwt):
     _call('POST', '/api/gameplay/m1/inventory/use-item', body={'itemInstanceUuid': 'row-1'})
 
     written = [c.args[0] for c in _put.call_args_list]
     char = next(w for w in written if str(w.get('SK', '')).startswith('CHARACTER#'))
     match = next(w for w in written if w.get('SK') == 'METADATA')
-    # The row is gone — amount was 2 and is NOT decremented.
-    assert [r['uuid'] for r in char['items']] == ['row-2']
+    # v0.35.1 — one unit by default, so the row of 2 survives with 1.
+    row = next(r for r in char['items'] if r['uuid'] == 'row-1')
+    assert row['amount'] == 1
     assert match['itemUsageLog'][0]['idItem'] == 900
     assert match['itemUsageLog'][0]['counter'] == 1
+
+
+def test_inventory_reports_the_authored_quantities(_put=None):
+    """v0.35.1 — reported, not enforced: the board writes "1/2" and greys out a doomed use,
+    while the cap and the ITEM_NOT_ENOUGH refusal stay server-side."""
+    story = dict(STORY, items=[{'id': 900, 'uuid': 'item-900', 'weight': 1,
+                                'isConsumabile': 1, 'maxPerCharacter': 2,
+                                'amountDrop': 2, 'amountUse': 2}])
+    character = dict(json.loads(json.dumps(CHARACTER)), items=[
+        {'uuid': 'row-1', 'idItem': 900, 'amount': 1, 'state': 'ACTIVE'}])
+
+    def _side(pk, sk='METADATA'):
+        return story if pk.startswith('STORY#') else _get_side(pk, sk)
+
+    with patch('match.handler.db_utils.get_item', side_effect=_side), \
+         patch('match.handler.db_utils.query_by_pk', return_value=[character]), \
+         patch('match.handler.db_utils.put_item'), \
+         patch('match.handler.jwt_utils.verify_access_token',
+               return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'}):
+        row = json.loads(_call('GET', '/api/gameplay/m1/inventory')['body'])['items'][0]
+
+    assert row['maxPerCharacter'] == 2
+    assert row['amountDrop'] == 2
+    assert row['amountUse'] == 2
+
+
+def test_use_item_refuses_when_there_are_not_enough_units(_put=None):
+    """v0.35.1 — amountUse 3 against 2 carried: half a recipe heals nobody, so the usage is
+    refused rather than applied on a smaller sip. Its own story, so the shared one keeps
+    describing the ordinary case."""
+    story = dict(STORY, items=[{'id': 900, 'uuid': 'item-900', 'weight': 1,
+                                'isConsumabile': 1, 'amountUse': 3}])
+    character = dict(json.loads(json.dumps(CHARACTER)), items=[
+        {'uuid': 'row-1', 'idItem': 900, 'amount': 2, 'state': 'ACTIVE'}])
+
+    def _side(pk, sk='METADATA'):
+        return story if pk.startswith('STORY#') else _get_side(pk, sk)
+
+    with patch('match.handler.db_utils.get_item', side_effect=_side), \
+         patch('match.handler.db_utils.query_by_pk', return_value=[character]), \
+         patch('match.handler.db_utils.put_item') as put, \
+         patch('match.handler.jwt_utils.verify_access_token',
+               return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'}):
+        result = _call('POST', '/api/gameplay/m1/inventory/use-item',
+                       body={'itemInstanceUuid': 'row-1'})
+
+        assert result['statusCode'] == 409
+        assert json.loads(result['body'])['error'] == 'ITEM_NOT_ENOUGH'
+        # Nothing was spent and nothing ran.
+        put.assert_not_called()
+    assert character['items'][0]['amount'] == 2
 
 
 @_patched
@@ -317,6 +374,8 @@ def test_a_row_whose_story_item_is_gone_is_still_droppable(_get, _query, _put, _
     assert dropped['statusCode'] == 200
     body = json.loads(dropped['body'])
     assert body['itemUuid'] is None, 'there is no story item to name'
+    # v0.35.1 — and it goes in ONE gesture: with no story item there is no amountDrop to
+    # read, and the whole point of keeping it droppable is that it cannot stay forever.
     assert body['amountDropped'] == 2
     assert body['weight'] == 0
 

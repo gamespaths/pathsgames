@@ -132,11 +132,30 @@ public interface EventExecutionStorePort {
     /** Overwrites the CSV of characteristics (null clears it). */
     void setCharacterCharacteristics(long idMatch, long idCharacter, String csv);
 
-    /** +1 amount when the character already carries the item, else a new row. */
-    void addItem(long idMatch, long idCharacter, long idItem);
+    /**
+     * +1 amount on the character's ONE row for this item, or a new row when there is none.
+     *
+     * <p>v0.35.1 — {@code maxPerCharacter} (0 or null = no limit) is the cap the unit would
+     * cross: the add is then refused and this answers false. A refusal is not an error —
+     * the event that asked for it keeps running — so the caller reports it rather than
+     * throwing.</p>
+     *
+     * @return true when a unit was actually added
+     */
+    boolean addItem(long idMatch, long idCharacter, long idItem, Integer maxPerCharacter);
 
-    /** -1 amount, deleting the row at zero. False when the character did not carry it. */
+    /**
+     * Removes the character's whole row for this item — v0.35.1: EVERY unit, not one.
+     * "The story takes it away from you" has never meant "takes one of them", and a
+     * partial removal also left the engine's owned-items set claiming the item was gone
+     * while the bag still held two.
+     *
+     * @return false when the character did not carry it
+     */
     boolean removeItem(long idMatch, long idCharacter, long idItem);
+
+    /** Story item id → max_per_character (null when the item sets no cap). */
+    Map<Long, Integer> findItemMaxPerCharacterById(long idStory);
 
     /** False when the trait was already held (no duplicate row is written). */
     boolean addTrait(long idMatch, long idCharacter, long idTrait, Long idEvent);

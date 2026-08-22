@@ -344,14 +344,11 @@ def test_add_item_inserts_then_increments(session_factory, adapter):
         assert sorted(r.id for r in rows.values()) == [1, 2]
 
 
-def test_remove_item_decrements_then_deletes(session_factory, adapter):
+def test_remove_item_takes_every_unit(session_factory, adapter):
+    """v0.35.1 — a story that takes an item away takes all of it, not one unit."""
     _seed_match(session_factory)
     adapter.add_item(1, 3, 60)
     adapter.add_item(1, 3, 60)
-
-    assert adapter.remove_item(1, 3, 60) is True
-    with session_factory() as s:
-        assert s.query(GamingInventoryItemsEntity).one().amount == 1
 
     assert adapter.remove_item(1, 3, 60) is True
     with session_factory() as s:
@@ -360,10 +357,49 @@ def test_remove_item_decrements_then_deletes(session_factory, adapter):
     assert adapter.remove_item(1, 3, 60) is False
 
 
-def test_remove_item_with_zero_amount_returns_false(session_factory, adapter):
+def test_add_item_refuses_at_the_cap(session_factory, adapter):
+    """max_per_character: the unit does not go in, and it is not an error."""
+    _seed_match(session_factory)
+    assert adapter.add_item(1, 3, 60, 2) is True
+    assert adapter.add_item(1, 3, 60, 2) is True
+    assert adapter.add_item(1, 3, 60, 2) is False
+
+    with session_factory() as s:
+        assert s.query(GamingInventoryItemsEntity).one().amount == 2
+
+
+def test_add_item_cap_of_zero_is_no_cap(session_factory, adapter):
+    _seed_match(session_factory)
+    for _ in range(3):
+        assert adapter.add_item(1, 3, 60, 0) is True
+
+    with session_factory() as s:
+        assert s.query(GamingInventoryItemsEntity).one().amount == 3
+
+
+def test_add_item_folds_duplicate_rows_a_pre_v0351_database_may_carry(session_factory, adapter):
+    """The schema forbids them now; an older database may still hold a pair, and the two
+    amounts have to become one before the cap can mean anything."""
+    _seed_match(session_factory)
+    with session_factory() as s:
+        s.add(GamingInventoryItemsEntity(id=1, id_match=1, uuid="inv-a", id_character_match=3,
+                                         id_item=60, amount=2, ts_insert=_NOW, ts_update=_NOW))
+        s.add(GamingInventoryItemsEntity(id=2, id_match=1, uuid="inv-b", id_character_match=3,
+                                         id_item=60, amount=3, ts_insert=_NOW, ts_update=_NOW))
+        s.commit()
+
+    assert adapter.add_item(1, 3, 60) is True
+
+    with session_factory() as s:
+        row = s.query(GamingInventoryItemsEntity).one()
+        assert row.id == 1
+        assert row.amount == 6
+
+
+def test_remove_item_of_an_item_never_carried_returns_false(session_factory, adapter):
     with session_factory() as s:
         s.add(GamingInventoryItemsEntity(id=1, id_match=1, uuid="inv-a",
-                                         id_character_match=3, id_item=60, amount=0,
+                                         id_character_match=3, id_item=61, amount=1,
                                          ts_insert=_NOW, ts_update=_NOW))
         s.commit()
 

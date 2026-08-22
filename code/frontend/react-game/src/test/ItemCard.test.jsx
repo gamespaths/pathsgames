@@ -190,6 +190,55 @@ describe('ItemCard', () => {
     expect(stats.map(b => b.key).sort()).toEqual(['amount', 'weight'])
   })
 
+  it('refuses the use when the bag holds fewer units than one usage spends (v0.35.1)', () => {
+    const onPreview = vi.fn()
+    // amountUse 2 against 1 carried: the engine would answer ITEM_NOT_ENOUGH, so the board
+    // does not offer the button at all.
+    const scarce = { ...ITEM, amount: 1, amountUse: 2 }
+    render(<ItemCard item={scarce} story={STORY} onPreview={onPreview} />)
+
+    expect(screen.getByTestId('locked').textContent).toBe('true')
+    expect(screen.getByTestId('lock-info').textContent).toBe('game.item.reason.ITEM_NOT_ENOUGH')
+
+    const preview = previewProps(onPreview)
+    expect(preview.onAction).toBeUndefined()
+    // The figures ride on the sentence: the i18n helper cannot interpolate them.
+    expect(preview.extraContent).toContain('(1/2)')
+  })
+
+  it('offers the use again as soon as the bag holds enough', () => {
+    const onPreview = vi.fn()
+    const enough = { ...ITEM, amount: 2, amountUse: 2 }
+    render(<ItemCard item={enough} story={STORY} onPreview={onPreview} />)
+
+    expect(screen.getByTestId('locked').textContent).toBe('false')
+    fireEvent.click(screen.getByTestId('preview-btn'))
+    expect(onPreview.mock.calls[0][5].onAction).toBeTypeOf('function')
+  })
+
+  it('a non-consumable still says CARRIED, not "too few"', () => {
+    // Two refusals, two reasons: the units one is only reachable for an item you may use.
+    const onPreview = vi.fn()
+    render(<ItemCard item={{ ...CARRIED_ONLY, amount: 1, amountUse: 5 }} story={STORY}
+      onPreview={onPreview} />)
+
+    expect(screen.getByTestId('lock-info').textContent)
+      .toBe('game.item.reason.ITEM_NOT_CONSUMABLE')
+  })
+
+  it('shows the cap beside the amount, and the cost of a usage in the description', () => {
+    const onPreview = vi.fn()
+    const capped = { ...ITEM, amount: 2, maxPerCharacter: 3, amountUse: 2 }
+    render(<ItemCard item={capped} story={STORY} onPreview={onPreview} />)
+
+    const face = capturedProps.childrenIntoImage.props.items
+    expect(face.find(b => b.key === 'amount').value).toBe('2/3')
+    fireEvent.click(screen.getByTestId('preview-btn'))
+    const stats = onPreview.mock.calls[0][3]
+    expect(stats.find(b => b.key === 'amount').value).toBe('2/3')
+    expect(stats.find(b => b.key === 'perUse').value).toBe('2')
+  })
+
   it('a locked item explains itself without repeating the badges', () => {
     const onPreview = vi.fn()
     render(<ItemCard item={CARRIED_ONLY} story={STORY} onPreview={onPreview} />)

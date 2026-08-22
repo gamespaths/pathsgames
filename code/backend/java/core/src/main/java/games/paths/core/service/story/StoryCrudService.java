@@ -915,6 +915,9 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("weight", i.getWeight());
             m.put("isConsumabile", i.getIsConsumabile());
             m.put("flagShowEffects", i.getFlagShowEffects());
+            m.put("maxPerCharacter", i.getMaxPerCharacter());
+            m.put("amountDrop", i.getAmountDrop());
+            m.put("amountUse", i.getAmountUse());
             m.put("idClassPermitted", i.getIdClassPermitted());
             m.put("idClassProhibited", i.getIdClassProhibited());
         } else if (e instanceof WeatherRuleEntity) {
@@ -1220,6 +1223,12 @@ public class StoryCrudService implements StoryCrudPort {
             e.setIsConsumabile(intVal(d, "isConsumabile"));
         if (d.containsKey("flagShowEffects"))
             e.setFlagShowEffects(intVal(d, "flagShowEffects"));
+        if (d.containsKey("maxPerCharacter"))
+            e.setMaxPerCharacter(intVal(d, "maxPerCharacter"));
+        if (d.containsKey("amountDrop"))
+            e.setAmountDrop(intVal(d, "amountDrop"));
+        if (d.containsKey("amountUse"))
+            e.setAmountUse(intVal(d, "amountUse"));
         if (d.containsKey("idClassPermitted"))
             e.setIdClassPermitted(intVal(d, "idClassPermitted"));
         if (d.containsKey("idClassProhibited"))

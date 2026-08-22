@@ -86,20 +86,50 @@ export function effectStatItems(effects, characterUuid, t = (k) => k) {
  * whose story hides them (flagShowEffects = 0) arrives with an empty `effects` and simply
  * adds nothing.
  */
+/**
+ * v0.35.1 — the cap the story put on this item, or null when it put none. 0 reads as "no
+ * limit", the same way the engine and the class gates read it.
+ */
+export function itemCap(item) {
+  const cap = Number(item?.maxPerCharacter)
+  return Number.isFinite(cap) && cap > 0 ? cap : null
+}
+
+/** v0.35.1 — units one usage spends. Null, zero or a negative all read as one, exactly as
+ *  the engine reads them: the board must not promise a cheaper action than the server. */
+export function unitsPerUse(item) {
+  const units = Number(item?.amountUse)
+  return Number.isFinite(units) && units >= 1 ? units : 1
+}
+
 export function itemCarryBadges(item, t = (k) => k) {
   const amount = item?.amount ?? 1
   const weight = item?.weight ?? 0
+  const cap = itemCap(item)
   const badges = [{ key: 'weight', value: `${weight * amount}`, label: t('game.item.weight') }]
-  // A plain letter, not the × sign: that glyph is drawn smaller than the digits it sits
-  // next to, so the badge read as a number with a speck in front of it.
-  if (amount > 1) {
+  // A capped item shows "2/3": how many are carried out of how many may be. A single unit
+  // is worth saying when there is a cap — "1/1" means "and that is all you will ever get".
+  // The x is the quantity symbol and only fits the uncapped reading; a plain letter, not
+  // the × sign, which is drawn smaller than the digits and read as a speck.
+  if (cap) {
+    badges.unshift({ key: 'amount', value: `${amount}/${cap}`, label: t('game.item.amount') })
+  } else if (amount > 1) {
     badges.unshift({ key: 'amount', value: `${amount}`, prefix: 'x', label: t('game.item.amount') })
   }
   return badges
 }
 
 export function itemDescriptionBadges(item, t = (k) => k) {
-  return [...itemCarryBadges(item, t).map(({ prefix, ...b }) => b), ...itemPromise(item, t)]
+  const perUse = unitsPerUse(item)
+  // What one usage costs, and only when it costs more than one: an item that spends a
+  // single unit is every item that ever existed before v0.35.1, and saying so would be
+  // noise. It lives here and not on the card face, which has no room for a label — a bare
+  // "2" beside the weight would say nothing at all.
+  const cost = perUse > 1
+    ? [{ key: 'perUse', value: `${perUse}`, label: t('game.item.perUse') }]
+    : []
+  return [...itemCarryBadges(item, t).map(({ prefix, ...b }) => b), ...cost,
+          ...itemPromise(item, t)]
 }
 
 /**

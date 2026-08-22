@@ -464,15 +464,19 @@ SEED_STORIES = [
         # restricted to class 1, item 4 is heavy enough to reach OVERWEIGHT.
         # v0.35.0 — flagShowEffects: item 4 keeps its secret (0) while still applying
         # LIFE +1, and item 2 leaves the field unset, which must read as "shown".
+        # v0.35.1 — item 3 is capped at ONE (event 51 hands it over every time it runs, so a
+        # second run has to be refused without failing the event) and a drop of item 2 puts
+        # down TWO. The rest leave the columns unset: no cap, one unit per drop and use.
         "items": [
             {"id": 1, "uuid": "item-tut-sword",  "idCard": 1, "idTextName": 400,
              "idTextDescription": 400, "weight": 1, "isConsumabile": 0,
              "flagShowEffects": 1},
             {"id": 2, "uuid": "item-tut-scroll", "idCard": 1, "idTextName": 400,
-             "idTextDescription": 400, "weight": 1, "isConsumabile": 1},
+             "idTextDescription": 400, "weight": 1, "isConsumabile": 1,
+             "amountDrop": 2},
             {"id": 3, "uuid": "item-tut-tonic",  "idCard": 1, "idTextName": 400,
              "idTextDescription": 400, "weight": 1, "isConsumabile": 1,
-             "idClassPermitted": 1, "flagShowEffects": 1},
+             "idClassPermitted": 1, "flagShowEffects": 1, "maxPerCharacter": 1},
             {"id": 4, "uuid": "item-tut-ingot",  "idCard": 1, "idTextName": 400,
              "idTextDescription": 400, "weight": 9, "isConsumabile": 1,
              "flagShowEffects": 0},

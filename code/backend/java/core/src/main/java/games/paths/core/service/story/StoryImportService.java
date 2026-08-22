@@ -348,6 +348,10 @@ public class StoryImportService implements StoryImportPort {
             // v0.35.0: absent stays null, which reads as "show the effects" - an old story
             // file must keep behaving exactly as it did before the column existed.
             e.setFlagShowEffects(getInteger(item, "flagShowEffects"));
+            // v0.35.1: absent stays null everywhere - no cap, and one unit per drop/use.
+            e.setMaxPerCharacter(getInteger(item, "maxPerCharacter"));
+            e.setAmountDrop(getInteger(item, "amountDrop"));
+            e.setAmountUse(getInteger(item, "amountUse"));
             // v0.34.0: step 34 gates use-item on the character's class, so the two
             // restriction columns finally have to survive an import.
             e.setIdClassPermitted(normalizeOptionalFk(getInteger(item, "idClassPermitted")));

@@ -77,7 +77,23 @@ def test_inventory_returns_items_weight_and_capacity(env):
     assert body["items"][0]["isConsumabile"] is True
     # Step 35 — an item with no effect answers an empty array, never null.
     assert body["items"][0]["effects"] == []
+    # v0.35.1 — and an item that authored no quantity answers null, not a made-up default.
+    assert body["items"][0]["maxPerCharacter"] is None
+    assert body["items"][0]["amountUse"] is None
     port.list_inventory.assert_called_once_with("m1", "user-uuid", "it")
+
+
+def test_inventory_projects_the_authored_quantities(env):
+    client, port = env
+    item = _item()
+    item.max_per_character, item.amount_drop, item.amount_use = 3, 2, 2
+    port.list_inventory.return_value = {
+        "match_uuid": "m1", "character_uuid": "char-1", "items": [item],
+        "weight": 6, "weight_max": 30}
+
+    row = client.get(INVENTORY, headers=AUTH).json()["items"][0]
+
+    assert (row["maxPerCharacter"], row["amountDrop"], row["amountUse"]) == (3, 2, 2)
 
 
 def test_inventory_projects_the_effect_promise(env):

@@ -23,6 +23,10 @@ public class ItemInstanceResponse {
     private Boolean isConsumabile;
     /** Step 35 — what using it promises: statistic/value, before the engine clamps them. */
     private List<ItemEffectPreviewResponse> effects;
+    /** v0.35.1 — the authored quantities: cap (null/0 = none), units per drop, per use. */
+    private Integer maxPerCharacter;
+    private Integer amountDrop;
+    private Integer amountUse;
 
     public static ItemInstanceResponse fromModel(ItemInstanceInfo m) {
         ItemInstanceResponse r = new ItemInstanceResponse();
@@ -36,6 +40,9 @@ public class ItemInstanceResponse {
         r.card = CardInfoResponse.fromModel(m.getCard());
         r.isConsumabile = m.getIsConsumabile();
         r.effects = ItemEffectPreviewResponse.fromModels(m.getEffects());
+        r.maxPerCharacter = m.getMaxPerCharacter();
+        r.amountDrop = m.getAmountDrop();
+        r.amountUse = m.getAmountUse();
         return r;
     }
 
@@ -57,6 +64,12 @@ public class ItemInstanceResponse {
     public void setCard(CardInfoResponse card) { this.card = card; }
     public Boolean getIsConsumabile() { return isConsumabile; }
     public void setIsConsumabile(Boolean isConsumabile) { this.isConsumabile = isConsumabile; }
+    public Integer getMaxPerCharacter() { return maxPerCharacter; }
+    public void setMaxPerCharacter(Integer maxPerCharacter) { this.maxPerCharacter = maxPerCharacter; }
+    public Integer getAmountDrop() { return amountDrop; }
+    public void setAmountDrop(Integer amountDrop) { this.amountDrop = amountDrop; }
+    public Integer getAmountUse() { return amountUse; }
+    public void setAmountUse(Integer amountUse) { this.amountUse = amountUse; }
     public List<ItemEffectPreviewResponse> getEffects() { return effects; }
     public void setEffects(List<ItemEffectPreviewResponse> effects) { this.effects = effects; }
 }

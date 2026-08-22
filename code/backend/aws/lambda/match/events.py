@@ -59,6 +59,9 @@ VISIBILITY_ANONYMOUS = "ANONYMOUS"
 
 ADD = "ADD"
 REMOVE = "REMOVE"
+#: v0.35.1 — the third action an item change can carry: the story wanted to hand the item
+#: over and the character already holds max_per_character of it. Reported, never raised.
+NOT_ADDED = "NOT_ADDED"
 
 _CLAMPED = {"life": "lifeMax", "energy": "energyMax", "sad": "sadMax"}
 _CHARACTER_STATS = {"life", "energy", "sad", "exp", "dex", "int", "cos"}
@@ -266,8 +269,21 @@ def apply_stat(char, effect, changes):
     return True
 
 
-def apply_item(char, effect, item_uuids, changes):
-    """Returns (added, removed)."""
+def unit_amount(amount):
+    """A null amount counts as one — the same reading inventory.unit_amount gives."""
+    return _nz(amount) if amount is not None else 1
+
+
+def apply_item(char, effect, item_uuids, changes, max_per_character=None):
+    """Returns (added, removed).
+
+    v0.35.1 — ``max_per_character`` (0 or None = no limit) is the cap the unit would cross:
+    the add is then refused, reported as a ``NOT_ADDED`` change and NOT an error. The event
+    that asked for it keeps running and everything else it does still applies.
+
+    A REMOVE takes EVERY unit, not one: "the story takes it away from you" has never meant
+    "takes one of them".
+    """
     id_item = effect.get("idItemTarget")
     action = str(effect.get("itemAction") or "").strip().upper()
     if not id_item or _nz(id_item) <= 0 or not action:
@@ -275,26 +291,36 @@ def apply_item(char, effect, item_uuids, changes):
 
     item_id = _nz(id_item)
     items = char.setdefault("items", [])
-    row = next((i for i in items if _nz(i.get("idItem")) == item_id), None)
+    # v0.35.1 — one row per (character, item). A character item written by an older build
+    # may still carry a pair, so the amounts are folded before the cap is read: two halves
+    # of a quantity would let the cap through twice.
+    owned = [i for i in items if _nz(i.get("idItem")) == item_id]
+    row = owned[0] if owned else None
+    for extra in owned[1:]:
+        row["amount"] = unit_amount(row.get("amount")) + unit_amount(extra.get("amount"))
+        items.remove(extra)
 
     if action == ADD:
+        cap = _nz(max_per_character)
         if row:
-            row["amount"] = _nz(row.get("amount")) + 1
+            if 0 < cap < unit_amount(row.get("amount")) + 1:
+                changes.append({"characterUuid": char.get("uuid"),
+                                "itemUuid": item_uuids.get(item_id), "action": NOT_ADDED})
+                return False, False
+            row["amount"] = unit_amount(row.get("amount")) + 1
         else:
             # Step 34 — the row needs its own uuid: use-item and drop-item name the ROW,
-            # not the story item, and a character can hold two rows of the same item.
+            # not the story item.
             items.append({"uuid": str(_uuid.uuid4()), "idItem": item_id, "amount": 1,
                           "state": "ACTIVE"})
         changes.append({"characterUuid": char.get("uuid"),
                         "itemUuid": item_uuids.get(item_id), "action": ADD})
         return True, False
 
-    if action == REMOVE and row and _nz(row.get("amount")) > 0:
-        left = _nz(row.get("amount")) - 1
-        if left <= 0:
-            items.remove(row)
-        else:
-            row["amount"] = left
+    if action == REMOVE and row:
+        for i in owned:
+            if i in items:
+                items.remove(i)
         changes.append({"characterUuid": char.get("uuid"),
                         "itemUuid": item_uuids.get(item_id), "action": REMOVE})
         return False, True

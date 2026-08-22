@@ -45,7 +45,14 @@ public interface InventoryStorePort {
      * Appends one {@code log_item_usage} row. The table carries {@code UNIQUE (id)},
      * so the id is allocated from the table-wide maximum, not per match.
      */
-    void logItemUsage(long idMatch, long idCharacter, long idItem, String effectsJson);
+    void logItemUsage(long idMatch, long idCharacter, long idItem, int counter, String effectsJson);
+
+    /**
+     * v0.35.1 — writes the surviving amount of a row a use or a drop only partly consumed.
+     * The row is deleted instead when nothing is left, which is what
+     * {@link #deleteInventoryRow} is for.
+     */
+    void updateInventoryAmount(long idMatch, long idRow, int amount);
 
     /** What the inventory service needs to know about the match. */
     record MatchInventoryView(long id, String uuid, String status, Long idStory) {

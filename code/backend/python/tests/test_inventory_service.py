@@ -186,6 +186,28 @@ def test_the_effect_rows_are_read_once_per_request(service, store):
     assert store.find_item_effects_by_item_id.call_count == 1
 
 
+def test_the_authored_quantities_travel_to_the_board(service, store):
+    """v0.35.1 — reported, not enforced: the board writes "2/3" and greys out a doomed use,
+    the gates stay server-side."""
+    _given_potion(store)
+    store.find_items_by_id.return_value = {900: _item(max_per_character=3, amount_drop=2,
+                                                      amount_use=2)}
+
+    info = service.list_inventory(MATCH_UUID, USER_UUID, "en")["items"][0]
+
+    assert (info.max_per_character, info.amount_drop, info.amount_use) == (3, 2, 2)
+
+
+def test_an_item_that_authored_no_quantity_reports_none(service, store):
+    # The board reads None as "no cap" and "one unit" itself; inventing a 1 here would hide
+    # whether the story ever said anything.
+    _given_potion(store)
+
+    info = service.list_inventory(MATCH_UUID, USER_UUID, "en")["items"][0]
+
+    assert (info.max_per_character, info.amount_drop, info.amount_use) == (None, None, None)
+
+
 def test_an_item_with_no_effect_promises_an_empty_list(service, store):
     _given_potion(store)
 
@@ -269,18 +291,56 @@ def test_resources_missing_backpack_row_reads_as_zeros(service, store):
 
 # ── use-item ────────────────────────────────────────────────────────────────
 
-def test_use_removes_the_whole_row_before_the_effects_run(service, store, engine):
+def test_use_spends_the_units_before_the_effects_run(service, store, engine):
+    """v0.35.1 — one unit by default, so a row of 5 survives with 4. The charge still
+    happens BEFORE the effects: an item whose effects grant it back must not pay for
+    itself, and what was spent stays spent even if the chain ends in a coma."""
     store.find_inventory.return_value = [_row(1, "row-1", 900, 5)]
     store.find_items_by_id.return_value = {900: _item()}
     calls = []
-    store.delete_inventory_row.side_effect = lambda *a: calls.append("delete")
+    store.update_inventory_amount.side_effect = lambda *a: calls.append("charge")
     engine.apply_standalone_effects.side_effect = lambda *a, **kw: (calls.append("effects")
                                                                     or _result())
 
     service.use_item(MATCH_UUID, USER_UUID, "row-1", "en")
 
-    assert calls == ["delete", "effects"]
+    assert calls == ["charge", "effects"]
+    store.update_inventory_amount.assert_called_once_with(MATCH_ID, 1, 4)
+    store.delete_inventory_row.assert_not_called()
+
+
+def test_use_deletes_the_row_when_nothing_survives(service, store):
+    store.find_inventory.return_value = [_row(1, "row-1", 900, 2)]
+    store.find_items_by_id.return_value = {900: _item(amount_use=2)}
+
+    service.use_item(MATCH_UUID, USER_UUID, "row-1", "en")
+
     store.delete_inventory_row.assert_called_once_with(MATCH_ID, 1)
+    store.update_inventory_amount.assert_not_called()
+
+
+def test_use_refuses_when_there_are_not_enough_units(service, store, engine):
+    """Half a recipe heals nobody: too few units is a refusal, not a smaller sip."""
+    store.find_inventory.return_value = [_row(1, "row-1", 900, 2)]
+    store.find_items_by_id.return_value = {900: _item(amount_use=3)}
+
+    with pytest.raises(InventoryError) as ex:
+        service.use_item(MATCH_UUID, USER_UUID, "row-1", "en")
+
+    assert ex.value.code == InventoryError.ITEM_NOT_ENOUGH
+    store.delete_inventory_row.assert_not_called()
+    store.update_inventory_amount.assert_not_called()
+    engine.apply_standalone_effects.assert_not_called()
+
+
+def test_an_amount_of_zero_reads_as_one_unit(service, store):
+    """Not as a free action the player can trigger over and over."""
+    store.find_inventory.return_value = [_row(1, "row-1", 900, 2)]
+    store.find_items_by_id.return_value = {900: _item(amount_use=0)}
+
+    service.use_item(MATCH_UUID, USER_UUID, "row-1", "en")
+
+    store.update_inventory_amount.assert_called_once_with(MATCH_ID, 1, 1)
 
 
 def test_use_normalises_the_effect_codes_and_passes_the_trait_csvs(service, store, engine):
@@ -343,8 +403,9 @@ def test_every_usage_writes_one_log_row(service, store, engine):
     service.use_item(MATCH_UUID, USER_UUID, "row-1", "en")
 
     args = store.log_item_usage.call_args[0]
-    assert args[:3] == (MATCH_ID, CHAR_ID, 900)
-    payload = json.loads(args[3])
+    # v0.35.1 — the 4th argument is the units the usage spent; it was hardcoded to 1.
+    assert args[:4] == (MATCH_ID, CHAR_ID, 900, 1)
+    payload = json.loads(args[4])
     assert payload["statChanges"][0] == {
         "characterUuid": "char-uuid", "statistic": "life",
         "before": 4, "after": 7, "delta": 3}
@@ -363,8 +424,30 @@ def test_a_non_consumable_item_is_droppable(service, store):
 
     assert view["item_instance_uuid"] == "row-1"
     assert view["item_uuid"] == "item-900"
+    # v0.35.1 — one unit by default: 3 held, 1 put down, 2 left.
+    assert view["amount_dropped"] == 1
+    store.update_inventory_amount.assert_called_once_with(MATCH_ID, 1, 2)
+
+
+def test_drop_takes_what_is_there_when_it_is_not_enough(service, store):
+    """Not a refusal, unlike a usage: putting something down can always mean all of it."""
+    store.find_inventory.return_value = [_row(1, "row-1", 900, 3)]
+    store.find_items_by_id.return_value = {900: _item(amount_drop=10)}
+
+    view = service.drop_item(MATCH_UUID, USER_UUID, "row-1")
+
     assert view["amount_dropped"] == 3
     store.delete_inventory_row.assert_called_once_with(MATCH_ID, 1)
+
+
+def test_drop_takes_the_authored_amount_and_leaves_the_rest(service, store):
+    store.find_inventory.return_value = [_row(1, "row-1", 900, 5)]
+    store.find_items_by_id.return_value = {900: _item(amount_drop=2)}
+
+    view = service.drop_item(MATCH_UUID, USER_UUID, "row-1")
+
+    assert view["amount_dropped"] == 2
+    store.update_inventory_amount.assert_called_once_with(MATCH_ID, 1, 3)
 
 
 def test_a_class_restricted_item_is_droppable_too(service, store):

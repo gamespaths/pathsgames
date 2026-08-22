@@ -68,6 +68,7 @@ export default function Card({
   /* page variant (variant="page" — the book reading page) */
   loading, onClose, onForward, entity, entityType,
   extraContent=null, extraContentClassName=null, statItemsToPageContent=null, descriptionTag=false,
+  positionBonusBadge = 'overlay', /* 'desc' | 'overlay' | 'extra' */
   additionalCardClasses,
 }) {
   //if (lockInfo) { console.log(card.title,"lockInfo",lockInfo);} 
@@ -105,6 +106,9 @@ export default function Card({
       : t(`book.stats.${s.key}`) ,
     value: s.value,
   }))
+  const bonusBadgeNode = isPage && statItemsReal != null && statItemsReal.length > 0
+    ? <BonusBadgeList items={statItemsReal} className="book-page-stats" lockedReason={lockedReason} littleVersion={bonusBadgeListLittleDesc} />
+    : null
 
   /* ── copyright view link (CreditsModal) ── */
   const viewLink = linkCopyright && showLinkCopyright && !isDisabled && (
@@ -171,28 +175,42 @@ export default function Card({
       )}
 
       {/* ── image or icon placeholder ── */}
-      <CardImage
-        src={urlImage} placeholderIcon={icon} renderPlaceholder={!isPage}
-        alt={imageAlt || name}
-        imgClassName={
-          !isPage ? ['gc-img', imageClassName].filter(Boolean).join(' ')
-            : 'book-page-img ' + (card?.styleImageLarge ?? '')
-        }
-      />
+      {isPage && positionBonusBadge === 'overlay' ? (
+        <div className="book-page-img-wrapper">
+          <CardImage
+            src={urlImage} placeholderIcon={icon} renderPlaceholder={false}
+            alt={imageAlt || name}
+            imgClassName={'book-page-img ' + (card?.styleImageLarge ?? '')}
+          />
+          {bonusBadgeNode && <div className="book-page-img-badge-overlay">{bonusBadgeNode}</div>}
+        </div>
+      ) : (
+        <CardImage
+          src={urlImage} placeholderIcon={icon} renderPlaceholder={!isPage}
+          alt={imageAlt || name}
+          imgClassName={
+            !isPage ? ['gc-img', imageClassName].filter(Boolean).join(' ')
+              : 'book-page-img ' + (card?.styleImageLarge ?? '')
+          }
+        />
+      )}
 
       {children}
       
       {/* pageDesc */ }
-      {isPage && (pageDesc || (statItemsReal!=null && statItemsReal.length > 0)) && (
+      {isPage && (pageDesc || (positionBonusBadge === 'desc' && statItemsReal!=null && statItemsReal.length > 0)) && (
         <div className="book-page-desc">
-          <BonusBadgeList items={statItemsReal} className="book-page-stats" lockedReason={lockedReason} littleVersion={bonusBadgeListLittleDesc} />
+          {positionBonusBadge === 'desc' && bonusBadgeNode}
           <SafeHtml key={card?.uuid ?? card?.title ?? String(pageDesc ?? '')} value={pageDesc} />
         </div>
       )}
       
       {/* ── footer: info (i) + action button ── */}
-      { extraContent && 
-        <div className={`book-page-extra ${extraContentClassName ?? ''}`}>{extraContent}</div>
+      {(extraContent || (positionBonusBadge === 'extra' && bonusBadgeNode)) &&
+        <div className={`book-page-extra ${extraContentClassName ?? ''}`}>
+          {extraContent}
+          {positionBonusBadge === 'extra' && bonusBadgeNode}
+        </div>
       }
 
       <CardButtons isPage={isPage} name={name ?? label} onPreviewClick={onPreviewClick}

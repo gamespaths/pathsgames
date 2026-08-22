@@ -127,14 +127,28 @@ public class InventoryStoreAdapter implements InventoryStorePort {
     }
 
     @Override
-    public void logItemUsage(long idMatch, long idCharacter, long idItem, String effectsJson) {
+    public void logItemUsage(long idMatch, long idCharacter, long idItem, int counter,
+                             String effectsJson) {
         LogItemUsageEntity row = new LogItemUsageEntity();
         row.setId(logItemUsageRepository.findMaxId() + 1L);
         row.setIdMatch(idMatch);
         row.setIdCharacterMatch(idCharacter);
         row.setIdItem(idItem);
-        row.setCounter(1);
+        // v0.35.1 — the units this usage actually consumed. It was hardcoded to 1 while
+        // a usage spent the whole row, so the column has been reporting a number nobody
+        // computed since the log was created.
+        row.setCounter(counter);
         row.setEffectsJson(effectsJson);
         logItemUsageRepository.save(row);
+    }
+
+    @Override
+    @Transactional
+    public void updateInventoryAmount(long idMatch, long idRow, int amount) {
+        inventoryRepository.findById(new GamingInventoryItemsEntityId(idRow, idMatch))
+                .ifPresent(row -> {
+                    row.setAmount(amount);
+                    inventoryRepository.save(row);
+                });
     }
 }

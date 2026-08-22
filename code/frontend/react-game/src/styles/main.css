@@ -872,6 +872,30 @@ html, body {
   margin: 0 0 14px;
 }*/
 
+.book-page-img-wrapper {
+  position: relative;
+  width: 100%;
+  max-height: 45%;
+  flex-shrink: 0;
+}
+
+.book-page-img-wrapper .book-page-img {
+  max-height: 100%;
+  flex-shrink: unset;
+}
+
+.book-page-img-badge-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  padding-bottom: 8px;
+  width: max-content;
+  max-width: 90%;
+  display: flex;
+  justify-content: center;
+}
+
 .book-page-img {
   width: 100%;
   max-height: 45%;

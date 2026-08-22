@@ -399,6 +399,10 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     # v0.35.0 — absent stays None, which reads as "show the effects": an
                     # old story file keeps behaving exactly as before the column existed.
                     flag_show_effects=item.get("flagShowEffects"),
+                    # v0.35.1 — absent stays None: no cap, one unit per drop and per use.
+                    max_per_character=item.get("maxPerCharacter"),
+                    amount_drop=item.get("amountDrop"),
+                    amount_use=item.get("amountUse"),
                     id_class_permitted=_normalize_optional_fk(item.get("idClassPermitted")),
                     id_class_prohibited=_normalize_optional_fk(item.get("idClassProhibited")),
                 )

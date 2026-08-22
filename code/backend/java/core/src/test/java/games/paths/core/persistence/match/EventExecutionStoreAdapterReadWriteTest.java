@@ -526,7 +526,7 @@ class EventExecutionStoreAdapterReadWriteTest {
         GamingInventoryItemsEntity owned = inventoryRow(1L, 500L, 2);
         when(inventoryRepository.findByIdMatchAndIdCharacterMatch(1L, 3L)).thenReturn(List.of(owned));
 
-        adapter.addItem(1L, 3L, 500L);
+        assertTrue(adapter.addItem(1L, 3L, 500L, null));
 
         assertEquals(3, owned.getAmount());
         verify(inventoryRepository).save(owned);
@@ -538,7 +538,7 @@ class EventExecutionStoreAdapterReadWriteTest {
         GamingInventoryItemsEntity owned = inventoryRow(1L, 500L, null);
         when(inventoryRepository.findByIdMatchAndIdCharacterMatch(1L, 3L)).thenReturn(List.of(owned));
 
-        adapter.addItem(1L, 3L, 500L);
+        assertTrue(adapter.addItem(1L, 3L, 500L, null));
 
         assertEquals(1, owned.getAmount());
     }
@@ -550,7 +550,7 @@ class EventExecutionStoreAdapterReadWriteTest {
         when(inventoryRepository.findByIdMatch(1L)).thenReturn(List.of(
                 inventoryRow(4L, 501L, 1), inventoryRow(9L, 502L, 1)));
 
-        adapter.addItem(1L, 3L, 500L);
+        assertTrue(adapter.addItem(1L, 3L, 500L, null));
 
         ArgumentCaptor<GamingInventoryItemsEntity> cap =
                 ArgumentCaptor.forClass(GamingInventoryItemsEntity.class);
@@ -568,7 +568,7 @@ class EventExecutionStoreAdapterReadWriteTest {
         when(inventoryRepository.findByIdMatchAndIdCharacterMatch(1L, 3L)).thenReturn(List.of());
         when(inventoryRepository.findByIdMatch(1L)).thenReturn(List.of());
 
-        adapter.addItem(1L, 3L, 500L);
+        assertTrue(adapter.addItem(1L, 3L, 500L, null));
 
         ArgumentCaptor<GamingInventoryItemsEntity> cap =
                 ArgumentCaptor.forClass(GamingInventoryItemsEntity.class);
@@ -577,15 +577,61 @@ class EventExecutionStoreAdapterReadWriteTest {
     }
 
     @Test
-    void removeItem_decrementsWhenMoreThanOne() {
+    void addItem_refusedAtTheCapAndTheRowIsLeftAlone() {
+        // v0.35.1 — max_per_character: the unit does not go in, and it is not an error.
+        GamingInventoryItemsEntity owned = inventoryRow(1L, 500L, 2);
+        when(inventoryRepository.findByIdMatchAndIdCharacterMatch(1L, 3L)).thenReturn(List.of(owned));
+
+        assertFalse(adapter.addItem(1L, 3L, 500L, 2));
+
+        assertEquals(2, owned.getAmount());
+    }
+
+    @Test
+    void addItem_underTheCapStillGoesIn() {
+        GamingInventoryItemsEntity owned = inventoryRow(1L, 500L, 1);
+        when(inventoryRepository.findByIdMatchAndIdCharacterMatch(1L, 3L)).thenReturn(List.of(owned));
+
+        assertTrue(adapter.addItem(1L, 3L, 500L, 2));
+
+        assertEquals(2, owned.getAmount());
+    }
+
+    @Test
+    void addItem_capOfZeroIsNoCapAtAll() {
+        GamingInventoryItemsEntity owned = inventoryRow(1L, 500L, 9);
+        when(inventoryRepository.findByIdMatchAndIdCharacterMatch(1L, 3L)).thenReturn(List.of(owned));
+
+        assertTrue(adapter.addItem(1L, 3L, 500L, 0));
+
+        assertEquals(10, owned.getAmount());
+    }
+
+    @Test
+    void addItem_foldsTheDuplicateRowsAPreV0351DatabaseMayCarry() {
+        // The schema forbids them now; a database written before it did may still hold a
+        // pair, and the two amounts have to become one before the cap can mean anything.
+        GamingInventoryItemsEntity first = inventoryRow(1L, 500L, 2);
+        GamingInventoryItemsEntity second = inventoryRow(2L, 500L, 3);
+        when(inventoryRepository.findByIdMatchAndIdCharacterMatch(1L, 3L))
+                .thenReturn(List.of(first, second));
+
+        assertTrue(adapter.addItem(1L, 3L, 500L, null));
+
+        assertEquals(6, first.getAmount());
+        verify(inventoryRepository).delete(second);
+    }
+
+    @Test
+    void removeItem_takesEveryUnit() {
+        // v0.35.1 — a story that takes an item away takes all of it, not one.
         GamingInventoryItemsEntity owned = inventoryRow(1L, 500L, 3);
         when(inventoryRepository.findByIdMatchAndIdCharacterMatch(1L, 3L)).thenReturn(List.of(owned));
 
         assertTrue(adapter.removeItem(1L, 3L, 500L));
 
-        assertEquals(2, owned.getAmount());
-        verify(inventoryRepository).save(owned);
-        verify(inventoryRepository, never()).delete(any());
+        verify(inventoryRepository).delete(owned);
+        verify(inventoryRepository, never()).save(any());
     }
 
     @Test
@@ -603,7 +649,6 @@ class EventExecutionStoreAdapterReadWriteTest {
     void removeItem_falseWhenNotCarried() {
         when(inventoryRepository.findByIdMatchAndIdCharacterMatch(1L, 3L)).thenReturn(List.of(
                 inventoryRow(1L, 501L, 1),
-                inventoryRow(2L, 500L, 0),
                 inventoryRow(3L, null, 1)));
 
         assertFalse(adapter.removeItem(1L, 3L, 500L));

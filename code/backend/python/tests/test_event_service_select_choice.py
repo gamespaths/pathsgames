@@ -89,6 +89,9 @@ def _ctx(**over):
 def store():
     s = MagicMock()
     s.find_user_id_by_uuid.return_value = USER_ID
+    # v0.35.1 — no cap unless a case says otherwise, and the add goes through.
+    s.add_item.return_value = True
+    s.find_item_max_per_character_by_id.return_value = {}
     s.find_match_for_event.return_value = {
         "id": MATCH_ID, "uuid": MATCH_UUID, "status": "RUNNING", "current_clock": CLOCK,
         "id_story": STORY_ID, "id_user_creator": USER_ID, "id_current_weather": None,
@@ -334,7 +337,7 @@ def test_item_effect_grants_the_item(service, store):
 
     r = _resolve(service)
 
-    store.add_item.assert_called_once_with(MATCH_ID, CHAR_ID, 7)
+    store.add_item.assert_called_once_with(MATCH_ID, CHAR_ID, 7, None)
     assert r.execution.item_added is True
     assert r.execution.item_changes[0].value == "item-uuid"
 
@@ -468,7 +471,7 @@ def test_a_lethal_row_does_not_silence_its_siblings(service, store):
 
     _resolve(service)
 
-    store.add_item.assert_called_once_with(MATCH_ID, CHAR_ID, 7)
+    store.add_item.assert_called_once_with(MATCH_ID, CHAR_ID, 7, None)
 
 
 def test_a_coma_stops_the_consequences(service, store):

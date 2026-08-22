@@ -133,6 +133,13 @@ class ItemInstanceInfo:
     # Step 35 — what using it promises. Empty (never None) for an item with no effect and
     # on the masked inventories of the other players.
     effects: List[ItemEffectPreview] = field(default_factory=list)
+    # v0.35.1 — the three authored quantities, as the board needs to read them BEFORE
+    # acting: how many units may be held (None/0 = no limit), how many one drop puts down
+    # and how many one usage spends (None = one). Reported, not enforced: the gates stay
+    # server-side, and the board uses these to write "2/3" and to grey out a doomed use.
+    max_per_character: Optional[int] = None
+    amount_drop: Optional[int] = None
+    amount_use: Optional[int] = None
 
 
 @dataclass

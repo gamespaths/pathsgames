@@ -78,6 +78,9 @@ class InventoryStoreAdapter(InventoryStorePort):
                     "id_text_name": r.id_text_name,
                     "is_consumabile": r.is_consumabile,
                     "flag_show_effects": r.flag_show_effects,
+                    "max_per_character": r.max_per_character,
+                    "amount_drop": r.amount_drop,
+                    "amount_use": r.amount_use,
                     "id_class_permitted": r.id_class_permitted,
                     "id_class_prohibited": r.id_class_prohibited,
                 }
@@ -127,8 +130,17 @@ class InventoryStoreAdapter(InventoryStorePort):
              .delete())
             session.commit()
 
+    def update_inventory_amount(self, id_match: int, id_row: int, amount: int) -> None:
+        # v0.35.1 — the units a partial use or drop left behind.
+        with self.session_factory() as session:
+            (session.query(GamingInventoryItemsEntity)
+             .filter(GamingInventoryItemsEntity.id_match == id_match)
+             .filter(GamingInventoryItemsEntity.id == id_row)
+             .update({"amount": amount, "ts_update": _now_iso()}))
+            session.commit()
+
     def log_item_usage(self, id_match: int, id_character: int, id_item: int,
-                       effects_json: str) -> None:
+                       counter: int, effects_json: str) -> None:
         with self.session_factory() as session:
             # Table-wide max: log_item_usage carries UNIQUE (id), unlike the per-match
             # gaming_* tables. Same rule as log_events.
@@ -138,6 +150,7 @@ class InventoryStoreAdapter(InventoryStorePort):
             session.add(LogItemUsageEntity(
                 id=((max_id[0] if max_id else 0) or 0) + 1,
                 id_match=id_match, uuid=str(uuid_lib.uuid4()),
-                id_character_match=id_character, id_item=id_item, counter=1,
+                # v0.35.1 — the units this usage actually spent; hardcoded to 1 until now.
+                id_character_match=id_character, id_item=id_item, counter=counter,
                 effects_json=effects_json, timestamp=now, ts_insert=now, ts_update=now))
             session.commit()

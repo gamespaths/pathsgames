@@ -325,7 +325,13 @@ components:
           type: string
         action:
           type: string
-          enum: [ADD, REMOVE]
+          description: >
+            ADD hands one unit over, REMOVE takes every unit the character holds (v0.35.1;
+            it took one before). NOT_ADDED (v0.35.1) is the story offering an item to a
+            character who already holds list_items.max_per_character of it: the unit does
+            not go in, and it is NOT an error - the event ran, its other effects landed and
+            the answer is still 200. A client that ignores the value simply shows nothing.
+          enum: [ADD, REMOVE, NOT_ADDED]
 
     CharacteristicChange:
       type: object

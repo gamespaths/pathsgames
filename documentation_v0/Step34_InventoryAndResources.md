@@ -36,9 +36,13 @@ than repeating it verbatim.
 
 Both request bodies name a single field, **`itemInstanceUuid`** — the uuid of the
 `gaming_inventory_items` row (`items[].uuid`), **never** `items[].itemUuid`, which identifies
-the story definition in `list_items`. `use-item` deletes the row it names, and a character may
-hold two rows of the same item in different states, so the row is the only thing a request can
-correctly name. This is the single most likely integration mistake in this step.
+the story definition in `list_items`. `use-item`/`drop-item` act on the row it names, spending
+or removing units from it (v0.35.1, [Step35 §8](./Step35_ItemsResolution.md#8-quantities-and-the-per-character-cap-v0351)),
+so the row is the only thing a request can correctly name — even though, since v0.35.1, the
+schema now guarantees at most one row per (character, item) (`uq_inventory_char_item`; before
+that migration a character could in principle hold duplicate rows for the same item, which is
+what originally motivated naming the row rather than the item). This is the single most likely
+integration mistake in this step.
 
 ### Error codes
 
@@ -51,6 +55,7 @@ correctly name. This is the single most likely integration mistake in this step.
 | 409 | `MATCH_NOT_RUNNING` / `COMA` / `SLEEPING` | the usual action gates |
 | 409 | `ITEM_NOT_CONSUMABLE` | `is_consumabile != 1` — use-item only |
 | 409 | `ITEM_CLASS_NOT_PERMITTED` / `ITEM_CLASS_PROHIBITED` | class gate — use-item only |
+| 409 | `ITEM_NOT_ENOUGH` | fewer units carried than `list_items.amount_use` spends — use-item only (v0.35.1, [Step35 §8](./Step35_ItemsResolution.md#8-quantities-and-the-per-character-cap-v0351)) |
 
 "The row belongs to the caller" is enforced by **masking**, not by a separate ownership check:
 `findOwnRow` only ever searches the caller's own rows, so another player's row is
@@ -81,15 +86,25 @@ Step-30 sadness overflow or coma, and the response has to be able to say so. On 
 - **Class restrictions are honoured**: `id_class_permitted` and `id_class_prohibited` are
   checked against the character's class, exactly as they already are for traits and character
   templates. `0` or `null` means "no restriction".
-- **Using consumes the whole row.** `amount` is not decremented; the row is deleted. Seed items
-  therefore carry `amount: 1`.
-- **Dropping discards only.** `drop-item` applies **neither** the consumable gate **nor** the
-  class gate: a non-consumable item must be droppable, that is the point of carrying one.
-  Handing an item to another character is multiplayer (steps 71-76) and out of scope — there is
-  no recipient field and no transfer endpoint.
+- **Using spends `list_items.amount_use` units, not the whole row** (v0.35.1,
+  [Step35 §8](./Step35_ItemsResolution.md#8-quantities-and-the-per-character-cap-v0351)). An
+  empty column reads as `1`. `amount` is decremented by that many; the row is deleted only when
+  nothing is left. Owning fewer units than the column asks is a refusal, `ITEM_NOT_ENOUGH` (409)
+  — this was previously an all-or-nothing deletion with no notion of quantity.
+- **Dropping removes `list_items.amount_drop` units, not the whole row** (same v0.35.1 section).
+  An empty column also reads as `1`. Owning fewer than that is **not** a refusal: the drop takes
+  what is there, and the response's `amountDropped` reports exactly that number.
+  `drop-item` applies **neither** the consumable gate **nor** the class gate: a non-consumable
+  item must be droppable, that is the point of carrying one. Handing an item to another
+  character is multiplayer (steps 71-76) and out of scope — there is no recipient field and no
+  transfer endpoint.
+- **A character may be capped per item.** `list_items.max_per_character` (0 or `NULL` = no
+  limit, v0.35.1) refuses an event/choice ADD that would cross it — no error, the effect chain
+  keeps running and reports the refusal as an `itemChanges` entry with `action: NOT_ADDED`.
 - **Using costs nothing.** `number_max_free_action` stays unenforced across the whole project:
   using an item costs neither the turn nor a free-action slot.
-- Every successful usage appends a row to `log_item_usage`: character, item, `effects_json`,
+- Every successful usage appends a row to `log_item_usage`: character, item, the units spent
+  (`counter`, v0.35.1 — this column existed before but always wrote `1`), `effects_json`,
   timestamp.
 
 ## 3. One effect engine, not two

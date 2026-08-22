@@ -138,12 +138,25 @@ class EventStorePort(ABC):
         ...
 
     @abstractmethod
-    def add_item(self, id_match: int, id_character: int, id_item: int) -> None:
-        ...
+    def add_item(self, id_match: int, id_character: int, id_item: int,
+                 max_per_character: Optional[int] = None) -> bool:
+        """+1 unit on the character's ONE row for this item, or a new row.
+
+        v0.35.1 — ``max_per_character`` (0 or None = no limit) is the cap the unit would
+        cross: the add is then refused and this answers False. A refusal is not an error —
+        the event that asked for it keeps running — so the caller reports it.
+        """
 
     @abstractmethod
     def remove_item(self, id_match: int, id_character: int, id_item: int) -> bool:
-        """False when the character did not carry it."""
+        """Removes EVERY unit of the item — v0.35.1, not one.
+
+        False when the character did not carry it.
+        """
+
+    @abstractmethod
+    def find_item_max_per_character_by_id(self, id_story: int) -> Dict[int, Optional[int]]:
+        """Story item id -> max_per_character (None when the item sets no cap)."""
 
     @abstractmethod
     def add_trait(self, id_match: int, id_character: int, id_trait: int,

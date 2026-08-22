@@ -30,7 +30,7 @@ Documents includes all steps and the roadmap for create paths.games components, 
 | 🎯 **Crowfouning campaign** | Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... ) <br />Anti-Spam Logic (Fatigue) |
 | 🕸️ **Campains** | Tutorial & Hints & Multiple-stories connection and global registry |
 | 🤖 **NPC** | NPCs & Entities & Group Rituals & Combact system & open world system  |
-| 🤖 Game engine | Permadeath & Game Over & Silent Events | 
+| 🤖 Game engine | Permadeath & Game Over & Silent Events & Warehouse | 
 | 🤖 Game engine | Timed Missions & Voting System & Noise & Stealth & Multi-Value Registry |
 | 📱 Distributions | Mobile/Android App & Desktop application integrated with Steam & Debian package |
 | 📡 | *Life, the Universe and Everything*| 

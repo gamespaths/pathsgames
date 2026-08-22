@@ -107,6 +107,26 @@ class InventoryDtosTest {
     }
 
     @Test
+    @DisplayName("v0.35.1 — the authored quantities are projected as they are")
+    void itemInstanceResponse_projectsTheQuantities() {
+        ItemInstanceInfo info = itemInfo(card());
+        info.setMaxPerCharacter(3);
+        info.setAmountDrop(2);
+        info.setAmountUse(2);
+
+        ItemInstanceResponse r = ItemInstanceResponse.fromModel(info);
+
+        assertEquals(3, r.getMaxPerCharacter());
+        assertEquals(2, r.getAmountDrop());
+        assertEquals(2, r.getAmountUse());
+        // Unset stays unset: the board reads null as "no cap" / "one unit" itself.
+        ItemInstanceResponse bare = ItemInstanceResponse.fromModel(itemInfo(null));
+        assertNull(bare.getMaxPerCharacter());
+        assertNull(bare.getAmountDrop());
+        assertNull(bare.getAmountUse());
+    }
+
+    @Test
     void itemInstanceResponse_setters() {
         ItemInstanceResponse r = new ItemInstanceResponse();
         r.setUuid("u");
@@ -119,6 +139,9 @@ class InventoryDtosTest {
         r.setCard(CardInfoResponse.fromModel(card()));
         r.setIsConsumabile(Boolean.FALSE);
         r.setEffects(List.of(ItemEffectPreviewResponse.fromModel(new ItemEffectPreview("exp", 5))));
+        r.setMaxPerCharacter(9);
+        r.setAmountDrop(8);
+        r.setAmountUse(7);
 
         assertEquals("u", r.getUuid());
         assertEquals("iu", r.getItemUuid());
@@ -130,6 +153,9 @@ class InventoryDtosTest {
         assertNotNull(r.getCard());
         assertEquals(Boolean.FALSE, r.getIsConsumabile());
         assertEquals("exp", r.getEffects().get(0).getStatistic());
+        assertEquals(9, r.getMaxPerCharacter());
+        assertEquals(8, r.getAmountDrop());
+        assertEquals(7, r.getAmountUse());
     }
 
     @Test

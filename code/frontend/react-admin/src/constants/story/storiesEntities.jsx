@@ -152,6 +152,11 @@ export const STORIES_ENTITIES_FIELDS = {
       // the player only finds out by using it — the unlabelled bottle found in the dark.
       // It hides the PROMISE, never the effect: using it applies exactly the same rows.
       { key: 'flagShowEffects', label: 'Show Effects In Preview', type: 'checkbox' },
+      // v0.35.1 — the three quantities. Empty means what every pre-0.35.1 story meant:
+      // no cap, and one unit per drop and per use.
+      { key: 'maxPerCharacter', label: 'Max Per Character (0/empty = no limit)', type: 'number' },
+      { key: 'amountDrop', label: 'Units Removed By Drop (empty = 1)', type: 'number' },
+      { key: 'amountUse', label: 'Units Consumed By Use (empty = 1)', type: 'number' },
       { key: 'idClassPermitted', label: 'Class Permitted ID', type: 'number' },
       { key: 'idClassProhibited', label: 'Class Prohibited ID', type: 'number' },
     ],

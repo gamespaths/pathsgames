@@ -38,6 +38,7 @@ Usage
 
     # also sweep partitions an earlier cleanup left half-deleted
     ./purge_robot_test_data.py --env test --orphans --apply
+    ./code/scripts/dev/aws/purge_robot_test_data.py --env test --orphans --apply
 """
 import argparse
 import os
