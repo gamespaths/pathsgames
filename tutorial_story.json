@@ -1396,6 +1396,100 @@
       "linkCopyright": "https://unsplash.com/photos/a-narrow-river-running-through-a-rocky-canyon-B-EfUEg8yrA",
       "urlImage": "https://plus.unsplash.com/premium_photo-1692455906215-dff2237582d7?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "0582c6d8-4061-4da5-b461-93dd20b62f1a"
+    },
+    {
+      "id": 117,
+      "idCard": 117,
+      "idCreator": 1,
+      "idTextCopyright": 347,
+      "idTextDescription": 348,
+      "idTextName": 339,
+      "idTextTitle": 339,
+      "linkCopyright": "https://unsplash.com/photos/neon-skulls-floating-in-a-dark-blurry-background-7FtDdg_JXio",
+      "urlImage": "https://images.unsplash.com/photo-1761160678406-029a66f16231?q=80&w=688&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "21426854-0651-4a49-80ea-2c27e8b3a083"
+    },
+    {
+      "id": 118,
+      "idCard": 118,
+      "idCreator": 1,
+      "idTextCopyright": 345,
+      "idTextDescription": 346,
+      "idTextName": 340,
+      "idTextTitle": 340,
+      "linkCopyright": "https://unsplash.com/photos/yellow-wildflowers-bloom-in-a-dry-hilly-desert-landscape-EbThVRgQKGw",
+      "urlImage": "https://images.unsplash.com/photo-1772519598431-38c591949291?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "22b7988c-b4ad-4d9b-8360-0ebd1a00c32a"
+    },
+    {
+      "id": 119,
+      "idCard": 119,
+      "idCreator": 1,
+      "idTextCopyright": 344,
+      "idTextDescription": 343,
+      "idTextName": 342,
+      "idTextTitle": 342,
+      "linkCopyright": "https://unsplash.com/photos/a-group-of-garlic-plants-growing-in-a-garden-2qDJd3wPFcM",
+      "urlImage": "https://images.unsplash.com/photo-1687365301009-af603af2a8a9?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "34a9fd22-d2d7-4997-a3eb-b2bed9238058"
+    },
+    {
+      "cardType": "itemEffect",
+      "id": 120,
+      "idCard": 120,
+      "idCreator": 1,
+      "idTextCopyright": 350,
+      "idTextDescription": 351,
+      "idTextTitle": 349,
+      "linkCopyright": "https://unsplash.com/photos/person-holding-bottle-pouring-water-on-drinking-glass-4bFKX8G419Q",
+      "urlImage": "https://images.unsplash.com/photo-1553564552-02656d6a2390?q=80&w=715&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "c8c1cf5c-0b28-4dfe-bbcf-1f1a09d8993e"
+    },
+    {
+      "id": 121,
+      "idCard": 121,
+      "idCreator": 1,
+      "idTextCopyright": 355,
+      "idTextDescription": 354,
+      "idTextName": 352,
+      "idTextTitle": 352,
+      "linkCopyright": "https://unsplash.com/photos/a-river-running-through-a-lush-green-forest-6jZN_Mb2hLo",
+      "urlImage": "https://images.unsplash.com/photo-1682965741441-b5f7776377ff?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "dfee9f00-336a-422d-94bd-78a5c4380e40"
+    },
+    {
+      "id": 122,
+      "idCard": 122,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 353,
+      "idTextName": 353,
+      "idTextTitle": 353,
+      "uuid": "4e18efcd-01f7-424c-a87a-2996e6d044e2"
+    },
+    {
+      "id": 123,
+      "idCard": 123,
+      "idCreator": 1,
+      "idTextCopyright": 360,
+      "idTextDescription": 358,
+      "idTextName": 356,
+      "idTextTitle": 356,
+      "linkCopyright": "https://unsplash.com/photos/a-wooden-bench-sitting-on-top-of-a-lush-green-hillside-_UAXc9nVbow",
+      "urlImage": "https://images.unsplash.com/photo-1724170855717-e2bb8bea37fd?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "60aa063f-9dad-46e9-9483-7fa85cf0fef4"
+    },
+    {
+      "id": 124,
+      "idCard": 124,
+      "idCreator": 1,
+      "idTextCopyright": 361,
+      "idTextDescription": 359,
+      "idTextName": 357,
+      "idTextTitle": 357,
+      "linkCopyright": "https://unsplash.com/photos/a-wooden-bench-sitting-on-top-of-a-lush-green-hillside-_UAXc9nVbow",
+      "urlImage": "https://images.unsplash.com/photo-1724170855717-e2bb8bea37fd?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "f19e1a2f-c657-47d5-ac4a-1e91de3ed837"
     }
   ],
   "category": "adventure",
@@ -1709,6 +1803,16 @@
       "idLocation": 7,
       "id_card": 64,
       "uuid": "c7cf55e4-b67d-4419-962b-88fa40f742dd"
+    },
+    {
+      "id": 10,
+      "idCard": 115,
+      "idChoices": 10,
+      "idItemTarget": 2,
+      "idTextName": 353,
+      "id_card": 115,
+      "itemAction": "ADD",
+      "uuid": "ef251466-0873-4a30-b8b4-0775bf804c85"
     }
   ],
   "choices": [
@@ -1791,6 +1895,15 @@
       "id_card": 113,
       "priority": 4,
       "uuid": "bbac9d4c-eb6f-4f4b-b047-688e7b4aa3f8"
+    },
+    {
+      "id": 10,
+      "idCard": 121,
+      "idEvent": 9,
+      "idTextName": 352,
+      "id_card": 121,
+      "priority": 6,
+      "uuid": "3216d778-d28d-406f-952f-adc869f1200d"
     }
   ],
   "classBonuses": [
@@ -2230,6 +2343,30 @@
       "id_card": 115,
       "itemAction": "ADD",
       "uuid": "bca8ea8d-9ccc-4ad9-bed1-81b69bbf7e8d"
+    },
+    {
+      "id": 15,
+      "idCard": 119,
+      "idEvent": 19,
+      "idItemTarget": 3,
+      "idTextDescription": 341,
+      "idTextName": 341,
+      "id_card": 119,
+      "itemAction": "ADD",
+      "uuid": "15332657-5adc-43f9-92e7-da86523af22b"
+    },
+    {
+      "id": 16,
+      "idCard": 124,
+      "idEvent": 20,
+      "idTextDescription": 357,
+      "idTextName": 357,
+      "id_card": 124,
+      "statistics": "LIFE",
+      "target": "ALL",
+      "traitsToRemove": 7,
+      "uuid": "9535f982-13d9-4fa6-9051-e6427599feda",
+      "value": 1
     }
   ],
   "events": [
@@ -2449,6 +2586,28 @@
       "id_card": 116,
       "type": "NORMAL",
       "uuid": "1f09c0af-4ebb-4483-adf3-803923148f0d"
+    },
+    {
+      "costEnery": 1,
+      "id": 19,
+      "idCard": 118,
+      "idSpecificLocation": 10,
+      "idTextDescription": 340,
+      "idTextName": 340,
+      "id_card": 118,
+      "type": "NORMAL",
+      "uuid": "3286d740-9ffc-4fdd-9beb-bb749eb726ff"
+    },
+    {
+      "costEnery": 1,
+      "id": 20,
+      "idCard": 123,
+      "idSpecificLocation": 14,
+      "idTextDescription": 356,
+      "idTextName": 356,
+      "id_card": 123,
+      "type": "NORMAL",
+      "uuid": "8901dcdc-623e-4e67-a556-4d199cfa271d"
     }
   ],
   "globalRandomEvents": [],
@@ -2472,15 +2631,10 @@
       "effectCode": "LIFE",
       "effectValue": 1,
       "id": 1,
+      "idCard": 120,
       "idItem": 2,
+      "id_card": 120,
       "uuid": "239acc77-640d-4747-8888-a8e26580458d"
-    },
-    {
-      "effectCode": "ENERGY",
-      "effectValue": 2,
-      "id": 2,
-      "idItem": 2,
-      "uuid": "7879dcde-d6c2-4976-87cc-51f3318ce55a"
     },
     {
       "effectCode": "SAD",
@@ -2488,6 +2642,22 @@
       "id": 3,
       "idItem": 2,
       "uuid": "79fcc6b6-0885-43e8-9d34-d86ceec44a1d"
+    },
+    {
+      "id": 4,
+      "idCard": 117,
+      "idItem": 3,
+      "id_card": 117,
+      "traitsToAdd": 7,
+      "uuid": "516fb9c8-244b-4007-9cb7-5e3d65c428af"
+    },
+    {
+      "effectCode": "",
+      "effectValue": "",
+      "id": 5,
+      "idItem": 2,
+      "traitsToRemove": 7,
+      "uuid": "19df39ac-690b-4c95-b6ab-56b058966bae"
     }
   ],
   "items": [
@@ -2497,17 +2667,36 @@
       "idTextDescription": 324,
       "idTextName": 320,
       "id_card": 112,
+      "maxPerCharacter": 1,
       "uuid": "36813571-a540-47e6-94fa-25d18a1c0fd7",
       "weight": 0
     },
     {
+      "amountDrop": 3,
+      "amountUse": 2,
+      "flagShowEffects": true,
       "id": 2,
       "idCard": 115,
       "idTextDescription": 333,
       "idTextName": 333,
       "id_card": 115,
       "isConsumabile": true,
+      "maxPerCharacter": 5,
       "uuid": "bc1bdd66-ac82-479a-9749-2558eafc0f76",
+      "weight": 1
+    },
+    {
+      "amountDrop": "",
+      "amountUse": "",
+      "flagShowEffects": false,
+      "id": 3,
+      "idCard": 119,
+      "idTextDescription": 342,
+      "idTextName": 342,
+      "id_card": 119,
+      "isConsumabile": true,
+      "maxPerCharacter": "",
+      "uuid": "1d3b8f07-6f21-4e47-a78e-4bd8be637d0a",
       "weight": 1
     }
   ],
@@ -8827,6 +9016,406 @@
       "longText": "",
       "shortText": "",
       "uuid": "5d2b2cd2-8d42-479a-868f-acc86fda5ddd"
+    },
+    {
+      "id": 339,
+      "idCreator": 1,
+      "idText": 339,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Poisoned",
+      "shortText": "Poisoned",
+      "uuid": "f3831b9b-9791-44b3-a7e5-8f6b7e4c9b18"
+    },
+    {
+      "id": 340,
+      "idCreator": 1,
+      "idText": 340,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Search for Food",
+      "shortText": "Search for Food",
+      "uuid": "ad425d43-1024-4218-b8f2-752e48876c45"
+    },
+    {
+      "id": 341,
+      "idCreator": 1,
+      "idText": 341,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Wild Onion",
+      "shortText": "Wild Onion",
+      "uuid": "2df76415-006d-4a71-9407-83dbdc01bc37"
+    },
+    {
+      "id": 342,
+      "idCreator": 1,
+      "idText": 342,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Wild Onion",
+      "shortText": "Wild Onion",
+      "uuid": "eaa7d72a-bc26-4129-81e3-6d0a0ac51216"
+    },
+    {
+      "id": 343,
+      "idCreator": 1,
+      "idText": 343,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Green tufts with a sharp, unmistakable scent sprout from the damp soil. Carefully digging these bulbs out of the earth could provide valuable nourishment during your journey. <br />\n<br />\nYou find some strange onions that might be edible.",
+      "shortText": "Green tufts with a sharp, unmistakable scent sprout from the damp soil. Carefully digging these bulbs out of the earth could provide valuable nourishment during your journey. <br />\n<br />\nYou find some strange onions that might be edible.",
+      "uuid": "f096468d-eabe-47ab-b98d-0c1a17ac8c98"
+    },
+    {
+      "id": 343,
+      "idCreator": 1,
+      "idText": 343,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Dai solchi del terreno umido spuntano ciuffi verdi dall'odore pungente e inconfondibile. Estrarre con cura questi bulbi dalla terra potrebbe offrirti un prezioso sostentamento durante il viaggio. <br />\n<br />\nTrovi delle strane cipolle che potrebbero essere commestibili.",
+      "shortText": "Dai solchi del terreno umido spuntano ciuffi verdi dall'odore pungente e inconfondibile. Estrarre con cura questi bulbi dalla terra potrebbe offrirti un prezioso sostentamento durante il viaggio. <br />\n<br />\nTrovi delle strane cipolle che potrebbero essere commestibili.",
+      "uuid": "fb68e057-127c-4944-b715-d5cc11d7ceea"
+    },
+    {
+      "id": 344,
+      "idCreator": 1,
+      "idText": 344,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Natalia Gasiorowska",
+      "shortText": "Natalia Gasiorowska",
+      "uuid": "dcb0e434-b3b4-4c50-b21a-4375585ab058"
+    },
+    {
+      "id": 344,
+      "idCreator": 1,
+      "idText": 344,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "7217079d-4454-4ef6-b718-b52600cecd03"
+    },
+    {
+      "id": 342,
+      "idCreator": 1,
+      "idText": 342,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Cipolle selvatiche",
+      "shortText": "Cipolle selvatiche",
+      "uuid": "5bc75ee0-dc2f-488e-ba9d-932a25b40067"
+    },
+    {
+      "id": 345,
+      "idCreator": 1,
+      "idText": 345,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "E R",
+      "shortText": "E R",
+      "uuid": "6cf71699-4f84-41a5-85b7-f791e8e17ced"
+    },
+    {
+      "id": 345,
+      "idCreator": 1,
+      "idText": 345,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "d81f98ae-39d9-4761-a932-cef16636b759"
+    },
+    {
+      "id": 346,
+      "idCreator": 1,
+      "idText": 346,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The dense foliage conceals wild berries, edible roots, and small game among the crevices. Spending time scouting the area could secure the supplies needed to sustain your march. <br />\n<br />\nYou could search for food in these lands.",
+      "shortText": "The dense foliage conceals wild berries, edible roots, and small game among the crevices. Spending time scouting the area could secure the supplies needed to sustain your march. <br />\n<br />\nYou could search for food in these lands.",
+      "uuid": "96da58ce-dddc-43d3-b2ef-ee52727fd7ca"
+    },
+    {
+      "id": 346,
+      "idCreator": 1,
+      "idText": 346,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "La fitta vegetazione nasconde bacche selvatiche, radici commestibili e piccoli animali tra gli anfratti. Dedicare del tempo alla perlustrazione potrebbe garantirti le scorte necessarie a sostenere la marcia. <br />\n<br />\nPotresti cercare cibo in queste terre.",
+      "shortText": "La fitta vegetazione nasconde bacche selvatiche, radici commestibili e piccoli animali tra gli anfratti. Dedicare del tempo alla perlustrazione potrebbe garantirti le scorte necessarie a sostenere la marcia. <br />\n<br />\nPotresti cercare cibo in queste terre.",
+      "uuid": "28ad2d35-1f6e-4487-9f5d-74d2a5a8b7f8"
+    },
+    {
+      "id": 347,
+      "idCreator": 1,
+      "idText": 347,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Andrey Soldatov",
+      "shortText": "Andrey Soldatov",
+      "uuid": "60f10200-cd8c-4529-bf90-0e697406486a"
+    },
+    {
+      "id": 347,
+      "idCreator": 1,
+      "idText": 347,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "19b67671-9298-4864-bd56-5f830020e466"
+    },
+    {
+      "id": 348,
+      "idCreator": 1,
+      "idText": 348,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "A creeping numbness spreads swiftly through your veins, clouding your vision and weakening every step. The toxic heat slowly consumes your remaining strength, leaving a constant burn. <br />\n<br />\nThis trait is added during the game and remains until you remove it somehow (find a way); this trait also gives you some debuffs.",
+      "shortText": "A creeping numbness spreads swiftly through your veins, clouding your vision and weakening every step. The toxic heat slowly consumes your remaining strength, leaving a constant burn. <br />\n<br />\nThis trait is added during the game and remains until you remove it somehow (find a way); this trait also gives you some debuffs.",
+      "uuid": "2cd2005a-0259-47e7-a3c8-ad64c5be514a"
+    },
+    {
+      "id": 348,
+      "idCreator": 1,
+      "idText": 348,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Un senso di torpore si diffonde rapido nelle tue vene, annebbiando la vista e indebolendo ogni passo. Il calore viscerale del tossico consuma lentamente le tue energie residuando un bruciore costante. <br />\n<br />\nQuesto tratto viene aggiunto durante la partita e rimane finché non lo rimuovi in qualche modo (trova il modo); questo tratto ti dà anche alcuni malus.",
+      "shortText": "Un senso di torpore si diffonde rapido nelle tue vene, annebbiando la vista e indebolendo ogni passo. Il calore viscerale del tossico consuma lentamente le tue energie residuando un bruciore costante. <br />\n<br />\nQuesto tratto viene aggiunto durante la partita e rimane finché non lo rimuovi in qualche modo (trova il modo); questo tratto ti dà anche alcuni malus.",
+      "uuid": "e4e259bf-d1c2-49e0-b357-5a35aa031302"
+    },
+    {
+      "id": 349,
+      "idCreator": 1,
+      "idText": 349,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Drink Water",
+      "shortText": "Drink Water",
+      "uuid": "6647bdb9-46ea-4e34-b69e-8efef8a4cabd"
+    },
+    {
+      "id": 349,
+      "idCreator": 1,
+      "idText": 349,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Bere Acqua",
+      "shortText": "Bere Acqua",
+      "uuid": "9e337435-a450-4dc0-93f5-193f4b0d5861"
+    },
+    {
+      "id": 350,
+      "idCreator": 1,
+      "idText": 350,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Brendan Church",
+      "shortText": "Brendan Church",
+      "uuid": "589e9254-2280-4dbd-ae73-5beaf32a7460"
+    },
+    {
+      "id": 350,
+      "idCreator": 1,
+      "idText": 350,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Brendan Church",
+      "shortText": "Brendan Church",
+      "uuid": "108d7c91-f890-445d-bcc2-50931ca279e7"
+    },
+    {
+      "id": 351,
+      "idCreator": 1,
+      "idText": 351,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The cool liquid flows down your throat, bringing immediate relief to your weary muscles and mind. Every pure gulp restores your spirit and washes away the fatigue built up over the long journey. <br />\n<br />\nIt has some positive effects. If you are poisoned, the trait will be removed.",
+      "shortText": "The cool liquid flows down your throat, bringing immediate relief to your weary muscles and mind. Every pure gulp restores your spirit and washes away the fatigue built up over the long journey. <br />\n<br />\nIt has some positive effects. If you are poisoned, the trait will be removed.",
+      "uuid": "0f1200fe-b5f8-477e-bc02-aa4ab7043183"
+    },
+    {
+      "id": 351,
+      "idCreator": 1,
+      "idText": 351,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Il liquido fresco scorre nella gola, portando un immediato sollievo ai tuoi muscoli affaticati e alla mente. Ogni sorso puro rigenera lo spirito e scaccia la stanchezza accumulata durante il lungo viaggio. <br />\n<br />\nHa alcuni effetti positivi. Se sei avvelenato, il tratto verrà rimosso.",
+      "shortText": "Il liquido fresco scorre nella gola, portando un immediato sollievo ai tuoi muscoli affaticati e alla mente. Ogni sorso puro rigenera lo spirito e scaccia la stanchezza accumulata durante il lungo viaggio. <br />\n<br />\nHa alcuni effetti positivi. Se sei avvelenato, il tratto verrà rimosso.",
+      "uuid": "2fcbf03f-a542-43af-a3cd-19796d0d571c"
+    },
+    {
+      "id": 352,
+      "idCreator": 1,
+      "idText": 352,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Search for Water",
+      "shortText": "Search for Water",
+      "uuid": "3000fc41-76ff-43d2-81b7-594e50081218"
+    },
+    {
+      "id": 353,
+      "idCreator": 1,
+      "idText": 353,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Free",
+      "shortText": "Free",
+      "uuid": "335f22dc-8622-4e61-a752-546a340fa812"
+    },
+    {
+      "id": 354,
+      "idCreator": 1,
+      "idText": 354,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The sound of a stream echoes nearby among the steep rocks and dense foliage. Carefully inspecting the area might reveal clear springs or pools of drinkable water. <br />\n<br />\nSome events may allow you to find very useful consumable items.",
+      "shortText": "The sound of a stream echoes nearby among the steep rocks and dense foliage. Carefully inspecting the area might reveal clear springs or pools of drinkable water. <br />\n<br />\nSome events may allow you to find very useful consumable items.",
+      "uuid": "5ffffed6-67ad-4408-b425-ddf13b1c2443"
+    },
+    {
+      "id": 354,
+      "idCreator": 1,
+      "idText": 354,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Il rumore di un ruscello risuona poco distante tra le rocce scoscese e la vegetazione. Ispezionare attentamente l'area potrebbe rivelare sorgenti limpide o pozze d'acqua potabile. <br />\n<br />\nAlcuni eventi possono permetterti di trovare oggetti consumabili molto utili.",
+      "shortText": "Il rumore di un ruscello risuona poco distante tra le rocce scoscese e la vegetazione. Ispezionare attentamente l'area potrebbe rivelare sorgenti limpide o pozze d'acqua potabile. <br />\n<br />\nAlcuni eventi possono permetterti di trovare oggetti consumabili molto utili.",
+      "uuid": "2529c0a5-f3e7-4499-9a7e-199b7c54839f"
+    },
+    {
+      "id": 355,
+      "idCreator": 1,
+      "idText": 355,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Cesar Badilla Miranda",
+      "shortText": "Cesar Badilla Miranda",
+      "uuid": "453ad13d-7da1-466d-93cd-bd2ed4817649"
+    },
+    {
+      "id": 355,
+      "idCreator": 1,
+      "idText": 355,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "8dfd32ec-20ae-4e21-94ad-86072640036b"
+    },
+    {
+      "id": 353,
+      "idCreator": 1,
+      "idText": 353,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "9be269ef-ee4c-4100-bf26-a089aa76afd3"
+    },
+    {
+      "id": 356,
+      "idCreator": 1,
+      "idText": 356,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Nap at Lake",
+      "shortText": "Nap at Lake",
+      "uuid": "6b7183c7-93c2-437a-830e-6074201e717f"
+    },
+    {
+      "id": 357,
+      "idCreator": 1,
+      "idText": 357,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Heal",
+      "shortText": "Heal",
+      "uuid": "18d379a0-7620-41a6-80e1-cc12a1c3424b"
+    },
+    {
+      "id": 358,
+      "idCreator": 1,
+      "idText": 358,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The calm waters of the basin reflect the clouds, offering a peaceful oasis far from the dangers of the trail. Lying on the grassy bank allows your body to recover its strength and your mind to regain clarity. <br />\n<br />\nIf you are poisoned, the trait will be removed.",
+      "shortText": "The calm waters of the basin reflect the clouds, offering a peaceful oasis far from the dangers of the trail. Lying on the grassy bank allows your body to recover its strength and your mind to regain clarity. <br />\n<br />\nIf you are poisoned, the trait will be removed.",
+      "uuid": "fbebd720-ce09-4037-bef1-1374f7f64f2f"
+    },
+    {
+      "id": 358,
+      "idCreator": 1,
+      "idText": 358,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Le acque calme del bacino riflettono le nuvole, offrendo un'oasi di pace lontana dai pericoli del sentiero. Stendersi sulla sponda erbosa permette al corpo di recuperare le forze e alla mente di ritrovare la lucidità. <br />\n<br />\nSe sei avvelenato, il tratto verrà rimosso.",
+      "shortText": "Le acque calme del bacino riflettono le nuvole, offrendo un'oasi di pace lontana dai pericoli del sentiero. Stendersi sulla sponda erbosa permette al corpo di recuperare le forze e alla mente di ritrovare la lucidità. <br />\n<br />\nSe sei avvelenato, il tratto verrà rimosso.",
+      "uuid": "8cce65c9-da6a-4923-8cf3-302d9307446b"
+    },
+    {
+      "id": 359,
+      "idCreator": 1,
+      "idText": 359,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "A comforting warmth spreads through your body, slowly mending your wounds and driving away exhaustion. Your breathing cools back to a steady rhythm as you regain the strength needed to press on. <br />\n<br />\nIf you are poisoned, the trait will be removed.",
+      "shortText": "A comforting warmth spreads through your body, slowly mending your wounds and driving away exhaustion. Your breathing cools back to a steady rhythm as you regain the strength needed to press on. <br />\n<br />\nIf you are poisoned, the trait will be removed.",
+      "uuid": "5984dc88-05f4-47e9-8854-70f0923b5455"
+    },
+    {
+      "id": 359,
+      "idCreator": 1,
+      "idText": 359,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Un calore avvolgente si diffonde nel tuo corpo, rimarginando lentamente i tagli e scacciando la stanchezza. Il tuo respiro torna ad essere regolare mentre ritrovi le energie necessarie per proseguire. <br />\n<br />\nSe sei avvelenato, il tratto verrà rimosso.",
+      "shortText": "Un calore avvolgente si diffonde nel tuo corpo, rimarginando lentamente i tagli e scacciando la stanchezza. Il tuo respiro torna ad essere regolare mentre ritrovi le energie necessarie per proseguire. <br />\n<br />\nSe sei avvelenato, il tratto verrà rimosso.",
+      "uuid": "8147685d-dd6d-4aec-b931-9e7655ecc2db"
+    },
+    {
+      "id": 360,
+      "idCreator": 1,
+      "idText": 360,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Daniel Diemer",
+      "shortText": "Daniel Diemer",
+      "uuid": "ff18bea7-c2b2-4288-a49c-8285c397ba97"
+    },
+    {
+      "id": 360,
+      "idCreator": 1,
+      "idText": 360,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "d10b99a7-845d-4714-9916-f554c9ac95ad"
+    },
+    {
+      "id": 361,
+      "idCreator": 1,
+      "idText": 361,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Daniel Diemer",
+      "shortText": "Daniel Diemer",
+      "uuid": "4d7a14f2-f9d5-4823-bd94-57414e95cfcf"
+    },
+    {
+      "id": 361,
+      "idCreator": 1,
+      "idText": 361,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "bfdabe0a-c8dc-42e7-a5b9-feb37190a0e5"
     }
   ],
   "title": "Paths Tutorial",
@@ -8999,6 +9588,18 @@
       },
       "uuid": "89a8c863-4f1e-44bc-ab43-d14a6a66fafe",
       "weight": 0
+    },
+    {
+      "energy": -1,
+      "hideOnStartMatch": true,
+      "id": 7,
+      "idCard": 117,
+      "idTextDescription": 339,
+      "idTextName": 339,
+      "id_card": 117,
+      "life": -1,
+      "sad": -1,
+      "uuid": "7b1b7bf4-7e84-4dd1-99b1-3b127c01b347"
     }
   ],
   "uuid": "story-001",
