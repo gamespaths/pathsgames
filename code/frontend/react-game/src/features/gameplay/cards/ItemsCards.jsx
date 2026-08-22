@@ -1,5 +1,6 @@
 import { useTranslation } from '@/i18n/context'
 import ItemCard from './ItemCard'
+import { isItemUsable } from '@/utils/statBadges'
 
 /**
  * ItemsCards — Step 34. The backpack page: one ItemCard per inventory row, on the RIGHT
@@ -22,13 +23,20 @@ export default function ItemsCards({
 }) {
   const { t } = useTranslation()
   const items = Array.isArray(playerStats?.items) ? playerStats.items : []
+  // v0.35.2 — what the player can act on comes first; everything else keeps the order the
+  // backend sent, because Array.sort is stable and the comparator only reads the one flag.
+  // `isItemUsable` is the very predicate ItemCard locks itself with, so the two halves of
+  // the list are exactly the unlocked cards and the padlocked ones — never interleaved.
+  // The order WITHIN each half is the backend's, which for the /info payload that feeds
+  // this page is not sorted at all: acquisition order in practice, and not guaranteed.
+  const rows = [...items].sort((a, b) => Number(isItemUsable(b)) - Number(isItemUsable(a)))
 
   return (
     <div className="config-view-wrap config-view--config">
       <div className="config-cards-area selection-list">
-        {items.length === 0
+        {rows.length === 0
           ? <p className="game-empty">{/*t('game.items.empty') it items empty don't show messages */}</p>
-          : items.map(item => (
+          : rows.map(item => (
             <ItemCard key={item.uuid} item={item} story={story}
               onPreview={onPreview} previewSide={previewSide}
               playerStats={playerStats} matchUuid={matchUuid} accessToken={accessToken}

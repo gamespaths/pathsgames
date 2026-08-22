@@ -30,7 +30,14 @@ public final class TraitSelectionValidator {
         TRAIT_NOT_FOUND,
         TRAIT_DUPLICATED,
         TRAIT_NOT_COMPATIBLE,
-        TRAIT_COST_EXCEEDED
+        TRAIT_COST_EXCEEDED,
+        /**
+         * v0.35.2 — {@code hide_on_start_match = 1}: the trait is never offered at
+         * character creation, and asking for it anyway is refused here. The API still
+         * returns it (the same list resolves the traits a character already owns), so a
+         * client that only hid the row would be a rule anyone could walk around with curl.
+         */
+        TRAIT_NOT_SELECTABLE
     }
 
     /**
@@ -76,6 +83,10 @@ public final class TraitSelectionValidator {
             TraitEntity trait = storyReadPort.findTraitByStoryIdAndUuid(storyId, key)
                     .orElseThrow(() -> new TraitSelectionException(Violation.TRAIT_NOT_FOUND,
                             "Trait not found: " + key));
+            if (trait.isHiddenOnStartMatch()) {
+                throw new TraitSelectionException(Violation.TRAIT_NOT_SELECTABLE,
+                        "Trait " + key + " cannot be chosen at character creation");
+            }
             validateClassCompatibility(trait, clazz, key);
             resolved.add(trait);
         }

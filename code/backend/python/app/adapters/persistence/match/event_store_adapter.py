@@ -132,6 +132,16 @@ class EventStoreAdapter(EventStorePort):
             rows = session.query(ItemEntity).filter(ItemEntity.id_story == id_story).all()
             return {i.id: i.uuid for i in rows if i.id is not None}
 
+    def find_trait_stats_by_id(self, id_story: int) -> Dict[int, Dict[str, int]]:
+        # v0.35.2 — one query for the story, like the uuid map beside it: an execution
+        # carries a handful of trait changes and must not pay a query for each.
+        with self.session_factory() as session:
+            rows = session.query(TraitEntity).filter(TraitEntity.id_story == id_story).all()
+            return {t.id: {"life": t.life or 0, "energy": t.energy or 0, "sad": t.sad or 0,
+                           "dexterity": t.dexterity or 0, "intelligence": t.intelligence or 0,
+                           "constitution": t.constitution or 0, "weight": t.weight or 0}
+                    for t in rows if t.id is not None}
+
     def find_trait_uuids_by_id(self, id_story: int) -> Dict[int, str]:
         with self.session_factory() as session:
             rows = session.query(TraitEntity).filter(TraitEntity.id_story == id_story).all()
@@ -533,7 +543,8 @@ def _character_dict(c: GamingCharacterInstanceEntity) -> Dict[str, Any]:
         "constitution": c.constitution or 0, "energy": c.energy or 0,
         "life": c.life or 0, "sad": c.sad or 0, "exp": c.exp or 0,
         "energy_max": c.energy_max or 0, "life_max": c.life_max or 0,
-        "sad_max": c.sad_max or 0,
+        # v0.35.2 — weight_max joins the three: a trait's weight delta moves it too.
+        "sad_max": c.sad_max or 0, "weight_max": c.weight_max or 0,
         "is_sleeping": bool(c.is_sleeping), "is_coma": bool(c.is_coma),
         "characteristics": c.characteristics,
     }

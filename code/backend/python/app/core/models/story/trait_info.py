@@ -12,6 +12,9 @@ class TraitInfo:
     idClassProhibited: int | None = None
     idCard: int | None = None
     card: CardInfo | None = None
+    # v0.35.2 — true when the trait is not offered at character creation. Reported, never
+    # filtered: the same list resolves the traits a character already has.
+    hideOnStartMatch: bool = False
     life: int = 0
     energy: int = 0
     sad: int = 0

@@ -178,7 +178,11 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 (90104, 9001, 703, 'en', 'Frail Body', 'A fragile constitution lowers your maximum life, but frees up budget for other traits.'),
 (90105, 9001, 703, 'it', 'Corpo Fragile', 'Una costituzione fragile riduce la vita massima, ma libera budget per altri tratti.'),
 (90106, 9001, 704, 'en', 'Weary Soul', 'Chronic tiredness lowers your maximum energy, but frees up budget for other traits.'),
-(90107, 9001, 704, 'it', 'Anima Stanca', 'Una stanchezza cronica riduce la energia massima, ma libera budget per altri tratti.');
+(90107, 9001, 704, 'it', 'Anima Stanca', 'Una stanchezza cronica riduce la energia massima, ma libera budget per altri tratti.'),
+-- v0.35.2: the hidden trait. Nobody can pick it at character creation; the Guide Scroll
+-- hands it over when it is used, and only then does it show among the character's traits.
+(90108, 9001, 705, 'en', 'Scroll-Touched', 'The scroll left something behind. You did not choose this, and you could not have.'),
+(90109, 9001, 705, 'it', 'Segnato dalla Pergamena', 'La pergamena ha lasciato qualcosa. Non lo hai scelto, e non avresti potuto.');
 
 -- ── Difficulties ────────────────────────────────────────────────
 -- Step 23: difficulty 90001 caps trait costs (positive 2 / negative 3); 90002 has no limits (NULL)
@@ -207,12 +211,16 @@ INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES
 -- ── Traits ──────────────────────────────────────────────────────
 -- Step 23: 90002 permitted only for class 90002, 90003 prohibited for class 90001,
 -- 90004/90005 are negative-cost traits; 90001 stays unrestricted (robot loadout default)
-INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight, id_class_permitted, id_class_prohibited) VALUES
-(90001, 9001, 700, 700, 1, 0,  2, 0, 0, 0, 0, 1, 0, NULL,  NULL),
-(90002, 9001, 701, 701, 1, 0,  0, 2, 0, 1, 0, 0, 0, 90002, NULL),
-(90003, 9001, 702, 702, 1, 0,  0, 0, 0, 0, 2, 0, 1, NULL,  90001),
-(90004, 9001, 703, 703, 0, 2, -2, 0, 0, 0, 0, 0, 0, NULL,  NULL),
-(90005, 9001, 704, 704, 0, 2,  0,-2, 0, 0, 0, 0, 0, NULL,  NULL);
+-- v0.35.2: hide_on_start_match. 90006 is the one trait nobody may choose — the Guide
+-- Scroll grants it when used (list_items_effects 90002), and it then shows in the player's
+-- trait list like any other. Everything else stays pickable, which is what NULL/0 means.
+INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight, hide_on_start_match, id_class_permitted, id_class_prohibited) VALUES
+(90001, 9001, 700, 700, 1, 0,  2, 0, 0, 0, 0, 1, 0, 0, NULL,  NULL),
+(90002, 9001, 701, 701, 1, 0,  0, 2, 0, 1, 0, 0, 0, 0, 90002, NULL),
+(90003, 9001, 702, 702, 1, 0,  0, 0, 0, 0, 2, 0, 1, 0, NULL,  90001),
+(90004, 9001, 703, 703, 0, 2, -2, 0, 0, 0, 0, 0, 0, 0, NULL,  NULL),
+(90005, 9001, 704, 704, 0, 2,  0,-2, 0, 0, 0, 0, 0, NULL, NULL,  NULL),
+(90006, 9001, 705, 705, 0, 0,  0, 0, 0, 0, 1, 0, 0, 1, NULL,  NULL);
 
 -- ── Character Templates ─────────────────────────────────────────
 INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES
@@ -281,7 +289,7 @@ INSERT INTO list_items (id, id_story, id_card, id_text_name, id_text_description
 -- effects. SADNESS is the documented alias of the `sad` statistic.
 INSERT INTO list_items_effects (id, id_story, id_card, id_item, effect_code, effect_value, traits_to_add, traits_to_remove) VALUES
 (90001, 9001, 90001, 90001, 'LIFE',    3, NULL,    NULL),
-(90002, 9001, 90001, 90003, 'EXP',     5, '90001', NULL),   -- also grants trait 90001
+(90002, 9001, 90001, 90003, 'EXP',     5, '90006', NULL),   -- v0.35.2: grants the HIDDEN trait 90006
 (90003, 9001, 90001, 90004, 'ENERGY',  3, NULL,    NULL),
 (90004, 9001, 90001, 90005, 'SADNESS', 1, NULL,    NULL),   -- the SADNESS -> sad alias
 (90005, 9001, 90001, 90006, 'LIFE',    1, NULL,    NULL);

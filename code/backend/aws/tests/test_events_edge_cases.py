@@ -153,6 +153,49 @@ def test_apply_item_remove_absent_item_is_a_noop():
 
 # ── apply_traits ─────────────────────────────────────────────────────────────
 
+def test_apply_traits_moves_the_maxima_and_the_stats():
+    """v0.35.2 — until this version a granted trait wrote its row and changed nothing, while
+    its card went on promising "+2 life" to a player whose life bar never moved."""
+    char = {'uuid': 'c1', 'life': 30, 'lifeMax': 100, 'energy': 20, 'energyMax': 100,
+            'sad': 0, 'sadMax': 50, 'dexterity': 10, 'weightMax': 30}
+    traits = {7: {'life': 2, 'energy': 3, 'sad': 5, 'dexterity': 1, 'weight': 4}}
+    changes, stats = [], []
+
+    events.apply_traits(char, {'traitsToAdd': '7'}, {7: 'tr-7'}, changes, traits, stats)
+
+    assert (char['lifeMax'], char['energyMax'], char['sadMax'], char['weightMax']) == \
+        (102, 103, 55, 34)
+    # Life and energy follow their ceiling — a character is created full.
+    assert (char['life'], char['energy'], char['dexterity']) == (32, 23, 11)
+    # Sadness does not: it is created at zero, so the trait only makes room.
+    assert char['sad'] == 0
+    assert len(stats) == 3
+
+
+def test_apply_traits_remove_takes_back_exactly_what_it_gave():
+    char = {'uuid': 'c1', 'life': 30, 'lifeMax': 100, 'energy': 20, 'energyMax': 100,
+            'sad': 0, 'sadMax': 50, 'dexterity': 10, 'weightMax': 30, 'traitUuids': ['tr-7']}
+    traits = {7: {'life': 2, 'energy': 3, 'sad': 5, 'dexterity': 1, 'weight': 4}}
+
+    events.apply_traits(char, {'traitsToRemove': '7'}, {7: 'tr-7'}, [], traits, [])
+
+    assert (char['lifeMax'], char['energyMax'], char['sadMax'], char['weightMax']) == \
+        (98, 97, 45, 26)
+    assert (char['life'], char['energy'], char['dexterity']) == (28, 17, 9)
+
+
+def test_apply_traits_without_the_story_rows_only_moves_the_list():
+    # Every caller before v0.35.2 passed no trait map, and that must keep working.
+    char = {'uuid': 'c1', 'life': 30, 'lifeMax': 100}
+    changes = []
+
+    events.apply_traits(char, {'traitsToAdd': '7'}, {7: 'tr-7'}, changes)
+
+    assert char['traitUuids'] == ['tr-7']
+    assert char['life'] == 30
+    assert len(changes) == 1
+
+
 def test_apply_traits_add_is_idempotent_and_remove_works():
     char, changes = {'uuid': 'c1'}, []
     uuids = {1: 't-1', 2: 't-2'}

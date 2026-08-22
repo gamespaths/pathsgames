@@ -280,6 +280,8 @@ public class StoryQueryService implements StoryQueryPort {
                 .idClassProhibited(tr.getIdClassProhibited())
                 .idCard(tr.getIdCard())
                 .card(resolveCardInfo(storyId, tr.getIdCard(), lang))
+                // v0.35.2 — reported on BOTH projections; nothing is filtered out here.
+                .hideOnStartMatch(tr.isHiddenOnStartMatch())
                 .life(tr.getLife() != null ? tr.getLife() : 0)
                 .energy(tr.getEnergy() != null ? tr.getEnergy() : 0)
                 .sad(tr.getSad() != null ? tr.getSad() : 0)

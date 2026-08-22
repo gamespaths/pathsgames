@@ -117,13 +117,13 @@ class EventExecutionServiceSelectChoiceTest {
 
     private static EventActorView actor() {
         return new EventActorView(CHAR_ID, "char-uuid", USER_ID, 50L, LOC,
-                10, 10, 10, 20, 30, 0, 0, 100, 100, 50, false, false, null);
+                10, 10, 10, 20, 30, 0, 0, 100, 100, 50, 30, false, false, null);
     }
 
     /** A second character standing in the same location — the flag_group target set. */
     private static EventActorView companion() {
         return new EventActorView(OTHER_CHAR_ID, "other-uuid", 99L, 50L, LOC,
-                10, 10, 10, 20, 30, 0, 0, 100, 100, 50, false, false, null);
+                10, 10, 10, 20, 30, 0, 0, 100, 100, 50, 30, false, false, null);
     }
 
     private static EventEntity event() {
@@ -397,7 +397,7 @@ class EventExecutionServiceSelectChoiceTest {
         @DisplayName("flag_group = 1 touches everyone standing in the actor's location — INV-46")
         void groupIsLocationScoped() {
             EventActorView elsewhere = new EventActorView(77L, "away-uuid", 98L, 50L, FAR_LOC,
-                    10, 10, 10, 20, 30, 0, 0, 100, 100, 50, false, false, null);
+                    10, 10, 10, 20, 30, 0, 0, 100, 100, 50, 30, false, false, null);
             when(store.findCharactersByMatchId(MATCH_ID))
                     .thenReturn(List.of(actor(), companion(), elsewhere));
             ChoiceEffectEntity e = effect(1);

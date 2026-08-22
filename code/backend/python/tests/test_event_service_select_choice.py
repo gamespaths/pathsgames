@@ -106,6 +106,8 @@ def store():
     s.find_id_event_all_player_coma.return_value = None
     s.find_item_uuids_by_id.return_value = {7: "item-uuid"}
     s.find_trait_uuids_by_id.return_value = {}
+    # v0.35.2 — real dict, not a MagicMock: the trait deltas are arithmetic.
+    s.find_trait_stats_by_id.return_value = {}
     s.find_location_uuids_by_id.return_value = {LOC: "loc-here", FAR_LOC: "loc-far"}
     s.load_check_context.return_value = _ctx()
     s.find_choices_by_event_id.return_value = []

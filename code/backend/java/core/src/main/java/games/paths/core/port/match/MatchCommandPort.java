@@ -113,7 +113,9 @@ public interface MatchCommandPort {
             TRAIT_NOT_FOUND,
             TRAIT_DUPLICATED,
             TRAIT_NOT_COMPATIBLE,
-            TRAIT_COST_EXCEEDED
+            TRAIT_COST_EXCEEDED,
+            /** v0.35.2 — the trait is flagged hide_on_start_match and cannot be picked. */
+            TRAIT_NOT_SELECTABLE
         }
 
         private final Code code;

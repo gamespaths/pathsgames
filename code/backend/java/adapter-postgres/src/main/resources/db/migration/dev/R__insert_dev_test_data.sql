@@ -157,6 +157,8 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90105, 9001, 703, 'it', 'Corpo Fragile', 'Una costituzione fragile riduce la vita massima.');
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90106, 9001, 704, 'en', 'Weary Soul', 'Chronic tiredness lowers your maximum energy.');
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90107, 9001, 704, 'it', 'Anima Stanca', 'Una stanchezza cronica riduce la energia massima.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90108, 9001, 705, 'en', 'Scroll-Touched', 'The scroll left something behind. You did not choose this, and you could not have.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90109, 9001, 705, 'it', 'Segnato dalla Pergamena', 'La pergamena ha lasciato qualcosa. Non lo hai scelto, e non avresti potuto.');
 
 -- ── Story 1 Difficulties ────────────────────────────────────────
 -- Step 23: difficulty 90001 caps trait costs (positive 2 / negative 3)
@@ -181,11 +183,14 @@ INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES
 -- ── Story 1 Traits ──────────────────────────────────────────────
 -- Step 23: 90002 permitted only for class 90002, 90003 prohibited for class 90001,
 -- 90004/90005 are negative-cost traits; 90001 stays unrestricted (robot loadout default)
-INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight, id_class_permitted, id_class_prohibited) VALUES (90001, 9001, 700, 700, 1, 0,  2, 0, 0, 0, 0, 1, 0, NULL, NULL);
-INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight, id_class_permitted, id_class_prohibited) VALUES (90002, 9001, 701, 701, 1, 0,  0, 2, 0, 1, 0, 0, 0, 90002, NULL);
-INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight, id_class_permitted, id_class_prohibited) VALUES (90003, 9001, 702, 702, 1, 0,  0, 0, 0, 0, 2, 0, 1, NULL, 90001);
-INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight, id_class_permitted, id_class_prohibited) VALUES (90004, 9001, 703, 703, 0, 2, -2, 0, 0, 0, 0, 0, 0, NULL, NULL);
-INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight, id_class_permitted, id_class_prohibited) VALUES (90005, 9001, 704, 704, 0, 2,  0,-2, 0, 0, 0, 0, 0, NULL, NULL);
+INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight, hide_on_start_match, id_class_permitted, id_class_prohibited) VALUES (90001, 9001, 700, 700, 1, 0,  2, 0, 0, 0, 0, 1, 0, 0, NULL, NULL);
+INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight, hide_on_start_match, id_class_permitted, id_class_prohibited) VALUES (90002, 9001, 701, 701, 1, 0,  0, 2, 0, 1, 0, 0, 0, 0, 90002, NULL);
+INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight, hide_on_start_match, id_class_permitted, id_class_prohibited) VALUES (90003, 9001, 702, 702, 1, 0,  0, 0, 0, 0, 2, 0, 1, 0, NULL, 90001);
+INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight, hide_on_start_match, id_class_permitted, id_class_prohibited) VALUES (90004, 9001, 703, 703, 0, 2, -2, 0, 0, 0, 0, 0, 0, 0, NULL, NULL);
+INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight, hide_on_start_match, id_class_permitted, id_class_prohibited) VALUES (90005, 9001, 704, 704, 0, 2,  0,-2, 0, 0, 0, 0, 0, NULL, NULL, NULL);
+-- v0.35.2: the one trait nobody may choose. The Guide Scroll grants it when used
+-- (list_items_effects 90002), and only then does it show in the player's trait list.
+INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight, hide_on_start_match, id_class_permitted, id_class_prohibited) VALUES (90006, 9001, 705, 705, 0, 0,  0, 0, 0, 0, 1, 0, 0, 1, NULL, NULL);
 
 -- ── Story 1 Character Templates ─────────────────────────────────
 INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES (90001, 9001, 210, 210, 12, 12, 8, 3, 3, 3, NULL,  NULL);
@@ -252,7 +257,7 @@ INSERT INTO list_items (id, id_story, id_card, id_text_name, id_text_description
 -- v0.34.0 adds traits_to_add / traits_to_remove: same CSV-of-ids format as the event
 -- effects. SADNESS is the documented alias of the `sad` statistic.
 INSERT INTO list_items_effects (id, id_story, id_card, id_item, effect_code, effect_value, traits_to_add, traits_to_remove) VALUES (90001, 9001, 90001, 90001, 'LIFE', 3, NULL, NULL);
-INSERT INTO list_items_effects (id, id_story, id_card, id_item, effect_code, effect_value, traits_to_add, traits_to_remove) VALUES (90002, 9001, 90001, 90003, 'EXP', 5, '90001', NULL);
+INSERT INTO list_items_effects (id, id_story, id_card, id_item, effect_code, effect_value, traits_to_add, traits_to_remove) VALUES (90002, 9001, 90001, 90003, 'EXP', 5, '90006', NULL);   -- v0.35.2: grants the HIDDEN trait
 INSERT INTO list_items_effects (id, id_story, id_card, id_item, effect_code, effect_value, traits_to_add, traits_to_remove) VALUES (90003, 9001, 90001, 90004, 'ENERGY', 3, NULL, NULL);
 INSERT INTO list_items_effects (id, id_story, id_card, id_item, effect_code, effect_value, traits_to_add, traits_to_remove) VALUES (90004, 9001, 90001, 90005, 'SADNESS', 1, NULL, NULL);
 INSERT INTO list_items_effects (id, id_story, id_card, id_item, effect_code, effect_value, traits_to_add, traits_to_remove) VALUES (90005, 9001, 90001, 90006, 'LIFE', 1, NULL, NULL);

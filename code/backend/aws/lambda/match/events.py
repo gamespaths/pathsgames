@@ -328,19 +328,60 @@ def apply_item(char, effect, item_uuids, changes, max_per_character=None):
     return False, False
 
 
-def apply_traits(char, effect, trait_uuids, changes):
+def apply_traits(char, effect, trait_uuids, changes, traits_by_id=None, stat_changes=None):
+    """v0.35.2 — a granted trait also moves the character's maxima and stats.
+
+    ``traits_by_id`` maps a story trait id to its row; without it only the trait list
+    changes, which is what every caller did before this version.
+    """
     held = char.setdefault("traitUuids", [])
     for id_trait in _csv_ids(effect.get("traitsToAdd")):
         uuid = trait_uuids.get(id_trait)
         if uuid and uuid not in held:
             held.append(uuid)
             changes.append({"characterUuid": char.get("uuid"), "traitUuid": uuid, "action": ADD})
+            apply_trait_stats(char, (traits_by_id or {}).get(id_trait), 1, stat_changes)
     for id_trait in _csv_ids(effect.get("traitsToRemove")):
         uuid = trait_uuids.get(id_trait)
         if uuid and uuid in held:
             held.remove(uuid)
             changes.append({"characterUuid": char.get("uuid"), "traitUuid": uuid,
                             "action": REMOVE})
+            apply_trait_stats(char, (traits_by_id or {}).get(id_trait), -1, stat_changes)
+
+
+def apply_trait_stats(char, trait, sign, changes=None):
+    """v0.35.2 — the stat deltas a trait carries, applied the moment it lands.
+
+    Until this version they were applied only at character creation: a trait handed over by
+    an event or an item wrote its row and changed nothing, while its card went on promising
+    "+2 life" to a player whose life bar never moved.
+
+    The maxima are a plain sum (template + class + difficulty + traits + class bonuses), so
+    adding the trait's own deltas gives exactly what recomputing the whole formula would.
+    ``sign`` is +1 on a grant and -1 on a removal, which makes the two directions the same
+    code and exact inverses.
+
+    Current life and energy follow their ceiling, because a character is CREATED full: a +2
+    life trait heals two, and losing it takes two back. Sadness does not follow its ceiling,
+    because a character is created at zero sadness — a trait raises the room available, it
+    does not make anyone sadder. Dexterity, intelligence and constitution have no ceiling at
+    all, so their delta lands directly.
+    """
+    if not trait:
+        return  # a trait id no story row matches is authored noise, not an error
+    for field, key in (("lifeMax", "life"), ("energyMax", "energy"),
+                       ("sadMax", "sad"), ("weightMax", "weight")):
+        char[field] = max(0, _nz(char.get(field)) + sign * _nz(trait.get(key)))
+    sink = changes if changes is not None else []
+    for stat, key in (("life", "life"), ("energy", "energy"), ("dex", "dexterity"),
+                      ("int", "intelligence"), ("cos", "constitution")):
+        delta = sign * _nz(trait.get(key))
+        if delta:
+            apply_stat(char, {"statistics": stat, "value": delta}, sink)
+    # The sadness ceiling moved above; the current value stays where it was, and this keeps
+    # it inside a ceiling that may have come down.
+    char["sad"] = _clamp(_nz(char.get("sad")), 0, _nz(char.get("sadMax")))
 
 
 def apply_characteristics(char, effect, changes):

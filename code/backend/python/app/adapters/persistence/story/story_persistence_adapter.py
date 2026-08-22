@@ -588,6 +588,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
         self._insert_batch(TraitEntity, story_id, items, {
             "uuid": "uuid", "id_card": "idCard", "id_text_name": "idTextName", "id_text_description": "idTextDescription",
             "cost_positive": "costPositive", "cost_negative": "costNegative",
+            # v0.35.2 — absent stays None, which reads as "pickable".
+            "hide_on_start_match": "hideOnStartMatch",
             "id_class_permitted": "idClassPermitted", "id_class_prohibited": "idClassProhibited",
             "life": "life", "energy": "energy", "sad": "sad",
             "dexterity": "dexterity", "intelligence": "intelligence",

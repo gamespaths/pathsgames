@@ -39,6 +39,8 @@ def store():
         energy=20, coin=10, id_class=50)
     s.find_backpack.return_value = {"food": 5, "magic": 5, "coin": 10}
     s.find_trait_uuids_by_id.return_value = {7: "trait-7", 8: "trait-8"}
+    # v0.35.2 — real dict, not a MagicMock: the trait deltas are arithmetic.
+    s.find_trait_stats_by_id.return_value = {}
     s.add_trait.return_value = True
     s.remove_trait.return_value = True
     s.find_id_event_all_player_coma.return_value = None

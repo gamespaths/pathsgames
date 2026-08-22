@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from '../../context/AuthContext'
 import CardsFastEditPage from '../../pages/story/CardsFastEditPage'
@@ -38,6 +38,13 @@ function renderPage() {
     </MemoryRouter>
   )
 }
+
+/**
+ * v0.35.2 — the table is sorted by id DESCENDING (newest card first), so a row's position
+ * is not its identity. This reads the row of a NAMED card through the `card-row-<id>`
+ * testid, and survives any future change of ordering.
+ */
+const rowOf = (idCard) => within(screen.getByTestId(`card-row-${idCard}`))
 
 describe('CardsFastEditPage', () => {
   beforeEach(() => {
@@ -97,13 +104,40 @@ describe('CardsFastEditPage', () => {
   it('calls updateEntity when per-row save button clicked', async () => {
     renderPage()
     await waitFor(() => screen.getByText(/Cards Fast Edit/i))
-    const inputs = screen.getAllByLabelText('Copyright Link')
-    fireEvent.change(inputs[0], { target: { value: 'https://changed.com' } })
-    const saveBtns = screen.getAllByTitle('Save this card')
-    fireEvent.click(saveBtns[0])
+    fireEvent.change(rowOf(1).getByLabelText('Copyright Link'),
+      { target: { value: 'https://changed.com' } })
+    fireEvent.click(rowOf(1).getByTitle('Save this card'))
     await waitFor(() => expect(storyApi.updateEntity).toHaveBeenCalledWith(
       STORY_UUID, 'cards', 'card-uuid-1', expect.objectContaining({ linkCopyright: 'https://changed.com' })
     ))
+  })
+
+  it('lists the cards newest first, by descending id (v0.35.2)', async () => {
+    // A card is created at the top of the id range, and the row an author has just added is
+    // the one they came here to edit.
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+
+    const ids = screen.getAllByTestId(/^card-row-/).map(r => r.getAttribute('data-testid'))
+    expect(ids).toEqual(['card-row-2', 'card-row-1'])
+  })
+
+  it('counts an item-effect as a reference, so its card is not an orphan (v0.35.2)', async () => {
+    // list_items_effects.id_card has existed since V0.14.1 and the engine has always
+    // resolved it; the admin only started offering the field in v0.35.0, and this page had
+    // never been told about the type — the card read as unused and offered a delete button.
+    storyApi.listEntities.mockImplementation((uuid, type) => {
+      if (type === 'cards')        return Promise.resolve(mockCards)
+      if (type === 'texts')        return Promise.resolve(mockTexts)
+      if (type === 'creators')     return Promise.resolve(mockCreators)
+      if (type === 'item-effects') return Promise.resolve([{ uuid: 'ie1', idCard: 1 }])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+
+    expect(rowOf(1).queryByTitle('Delete unused card')).toBeNull()
+    expect(rowOf(2).getByTitle('Delete unused card')).toBeInTheDocument()
   })
 
   it('renders Back button linking to story editor', async () => {
@@ -201,10 +235,9 @@ describe('CardsFastEditPage', () => {
     storyApi.updateEntity.mockRejectedValue(new Error('Save failed'))
     renderPage()
     await waitFor(() => screen.getByText(/Cards Fast Edit/i))
-    const inputs = screen.getAllByLabelText('Copyright Link')
-    fireEvent.change(inputs[0], { target: { value: 'https://changed.com' } })
-    const saveBtns = screen.getAllByTitle('Save this card')
-    fireEvent.click(saveBtns[0])
+    fireEvent.change(rowOf(1).getByLabelText('Copyright Link'),
+      { target: { value: 'https://changed.com' } })
+    fireEvent.click(rowOf(1).getByTitle('Save this card'))
     await waitFor(() => expect(screen.getByText('Save failed')).toBeInTheDocument())
   })
 
@@ -263,7 +296,7 @@ describe('CardsFastEditPage', () => {
     })
     renderPage()
     await waitFor(() => screen.getByText(/Cards Fast Edit/i))
-    const creatorCells = screen.getAllByRole('button').filter(b =>
+    const creatorCells = rowOf(1).getAllByRole('button').filter(b =>
       b.className.includes('pg-btn-ghost') && (b.textContent === '1' || b.textContent === '—') && b.getAttribute('style')?.includes('0.7rem')
     )
     fireEvent.click(creatorCells[0])
@@ -282,7 +315,7 @@ describe('CardsFastEditPage', () => {
     // The creator cells show buttons with getCreatorLabel title — find any creator cell button
     // The first card has idCreator=1, second has null (shown as "—")
     // Find the button that shows creator value in the table (look for visible creator text)
-    const creatorCells = screen.getAllByRole('button').filter(b =>
+    const creatorCells = rowOf(1).getAllByRole('button').filter(b =>
       b.className.includes('pg-btn-ghost') && (b.textContent === '1' || b.textContent === '—') && b.getAttribute('style')?.includes('0.7rem')
     )
     expect(creatorCells.length).toBeGreaterThan(0)
@@ -338,7 +371,7 @@ describe('CardsFastEditPage', () => {
   it('PathsOptionsSelectorModal onSelect callback updates creator field and closes', async () => {
     renderPage()
     await waitFor(() => screen.getByText(/Cards Fast Edit/i))
-    const creatorCells = screen.getAllByRole('button').filter(b =>
+    const creatorCells = rowOf(1).getAllByRole('button').filter(b =>
       b.className.includes('pg-btn-ghost') && (b.textContent === '1' || b.textContent === '—') && b.getAttribute('style')?.includes('0.7rem')
     )
     if (creatorCells.length === 0) return
@@ -412,11 +445,11 @@ describe('CardsFastEditPage', () => {
   it('renders open-link buttons enabled only when a URL is present', async () => {
     renderPage()
     await waitFor(() => screen.getByText(/Cards Fast Edit/i))
-    // Card 1 has linkCopyright set, card 2 is empty
-    const links = screen.getAllByLabelText('Open Copyright Link')
-    expect(links[0]).toHaveAttribute('href', 'http://example.com')
-    expect(links[0]).toHaveAttribute('target', '_blank')
-    expect(links[1]).not.toHaveAttribute('href')
+    // Card 1 has linkCopyright set, card 2 is empty.
+    const link1 = rowOf(1).getByLabelText('Open Copyright Link')
+    expect(link1).toHaveAttribute('href', 'http://example.com')
+    expect(link1).toHaveAttribute('target', '_blank')
+    expect(rowOf(2).getByLabelText('Open Copyright Link')).not.toHaveAttribute('href')
   })
 
   it('filters cards by entity type via the Entity dropdown', async () => {
@@ -547,7 +580,7 @@ describe('CardsFastEditPage', () => {
   it('saves the full-card modal and reloads the rows', async () => {
     renderPage()
     await waitFor(() => screen.getByText(/Cards Fast Edit/i))
-    fireEvent.click(screen.getAllByTitle('Edit full card')[0])
+    fireEvent.click(rowOf(1).getByTitle('Edit full card'))
     const saveBtn = await screen.findByRole('button', { name: /^Save$/ })
     fireEvent.click(saveBtn)
     await waitFor(() => expect(storyApi.updateEntity).toHaveBeenCalledWith(

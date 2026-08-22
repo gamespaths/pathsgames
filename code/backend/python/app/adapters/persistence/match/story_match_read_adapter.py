@@ -349,6 +349,8 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
             "cost_negative": entity.cost_negative,
             "id_class_permitted": entity.id_class_permitted,
             "id_class_prohibited": entity.id_class_prohibited,
+            # v0.35.2 — read by the selection validator and reported on both projections.
+            "hide_on_start_match": entity.hide_on_start_match,
         }
 
     @staticmethod

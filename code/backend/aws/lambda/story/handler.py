@@ -430,6 +430,9 @@ def _trait_detail(item, tr, lang):
         'description':       _resolve_text(tr.get('texts', {}), lang, 'description'),
         'costPositive':      _safe_int(tr.get('costPositive')),
         'costNegative':      _safe_int(tr.get('costNegative')),
+        # v0.35.2 — reported, never filtered: the same list resolves the traits a
+        # character already has, where a hidden one must still appear.
+        'hideOnStartMatch':  _safe_int(tr.get('hideOnStartMatch')) == 1,
         'idClassPermitted':  tr.get('idClassPermitted'),
         'idClassProhibited': tr.get('idClassProhibited'),
         'idCard':            _safe_int(tr_id_card) if tr_id_card is not None else None,
@@ -686,6 +689,8 @@ def import_story(event):
             'idTextDescription': _safe_int(id_tr_desc) if id_tr_desc is not None else None,
             'costPositive':      tr.get('costPositive', 0),
             'costNegative':      tr.get('costNegative', 0),
+            # v0.35.2 — kept on the stored story item so the selection validator can read it.
+            'hideOnStartMatch':  tr.get('hideOnStartMatch'),
             'idClassPermitted':  tr.get('idClassPermitted'),
             'idClassProhibited': tr.get('idClassProhibited'),
             'idCard':            tr.get('idCard'),

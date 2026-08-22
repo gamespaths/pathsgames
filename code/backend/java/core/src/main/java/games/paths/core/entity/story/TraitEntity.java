@@ -24,6 +24,15 @@ public class TraitEntity extends StatStoryEntity {
     @Column(name = "cost_negative")
     private Integer costNegative;
 
+    /**
+     * v0.35.2 - 1 hides the trait from the start-match picker and refuses it if selected
+     * anyway; 0 or null leave it pickable, which is what every trait authored before this
+     * column was. It never blocks OWNING the trait: an event or item effect may still grant
+     * it through {@code traits_to_add}, and that is the whole point of the flag.
+     */
+    @Column(name = "hide_on_start_match")
+    private Integer hideOnStartMatch;
+
     @PrePersist
     protected void onCreate() {
         if (costPositive == null) costPositive = 0;
@@ -42,4 +51,12 @@ public class TraitEntity extends StatStoryEntity {
 
     public Integer getCostNegative() { return costNegative; }
     public void setCostNegative(Integer costNegative) { this.costNegative = costNegative; }
+
+    public Integer getHideOnStartMatch() { return hideOnStartMatch; }
+    public void setHideOnStartMatch(Integer hideOnStartMatch) { this.hideOnStartMatch = hideOnStartMatch; }
+
+    /** v0.35.2 - only an explicit 1 hides it; null is the reading of a pre-0.35.2 story. */
+    public boolean isHiddenOnStartMatch() {
+        return hideOnStartMatch != null && hideOnStartMatch == 1;
+    }
 }

@@ -102,6 +102,19 @@ export function unitsPerUse(item) {
   return Number.isFinite(units) && units >= 1 ? units : 1
 }
 
+/**
+ * v0.35.2 — can the player use this item RIGHT NOW?
+ *
+ * Two conditions, and both are the server's: only a consumable can be used at all, and a
+ * usage spends `amountUse` units, so carrying fewer is a certain ITEM_NOT_ENOUGH. Kept in
+ * one place because two readings would drift — the bag sorts by this and the card locks by
+ * it, and a card sitting among the usable ones while showing a padlock is worse than
+ * either order.
+ */
+export function isItemUsable(item) {
+  return item?.isConsumabile === true && (item?.amount ?? 1) >= unitsPerUse(item)
+}
+
 export function itemCarryBadges(item, t = (k) => k) {
   const amount = item?.amount ?? 1
   const weight = item?.weight ?? 0

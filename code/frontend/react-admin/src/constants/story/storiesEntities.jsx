@@ -212,6 +212,12 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
       { key: 'costPositive', label: 'Positive Cost', type: 'number' },
       { key: 'costNegative', label: 'Negative Cost', type: 'number' },
+      // v0.35.2 — ticked, the trait is never offered when a player starts a match, and the
+      // backend refuses it if a client asks for it anyway. It stays perfectly grantable by
+      // an event or an item effect, which is what the flag is for: the curse you catch,
+      // not the one you choose. The story editor keeps listing it — this is the tool where
+      // an author must see everything.
+      { key: 'hideOnStartMatch', label: 'Hide On Start Match', type: 'checkbox' },
       { key: 'idClassPermitted', label: 'Class Permitted ID', type: 'number' },
       { key: 'idClassProhibited', label: 'Class Prohibited ID', type: 'number' },
       { key: 'life', label: 'Life Δ', type: 'number' },

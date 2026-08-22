@@ -304,6 +304,8 @@ class StoryQueryService(StoryQueryPort):
             idClassProhibited=tr.get("id_class_prohibited"),
             idCard=tr.get("id_card"),
             card=self._resolve_card(story_id, texts, tr.get("id_card"), lang),
+            # v0.35.2 — reported on BOTH projections; nothing is filtered out here.
+            hideOnStartMatch=tr.get("hide_on_start_match") == 1,
             life=tr.get("life", 0) or 0,
             energy=tr.get("energy", 0) or 0,
             sad=tr.get("sad", 0) or 0,

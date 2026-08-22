@@ -485,7 +485,8 @@ SEED_STORIES = [
         # CSV-of-ids format the event effects use.
         "itemEffects": [
             {"id": 1, "idCard": 1, "idItem": 2, "effectCode": "EXP", "effectValue": 5,
-             "traitsToAdd": "1"},
+             # v0.35.2 — grants the HIDDEN trait: unpickable, but perfectly grantable.
+             "traitsToAdd": "6"},
             {"id": 2, "idCard": 1, "idItem": 3, "effectCode": "SADNESS", "effectValue": 1},
             {"id": 3, "idCard": 1, "idItem": 4, "effectCode": "LIFE", "effectValue": 1},
         ],
@@ -563,6 +564,13 @@ SEED_STORIES = [
              "life": 0, "energy": -2, "sad": 0, "dexterity": 0,
              "intelligence": 0, "constitution": 0, "weight": 0,
              "idCard": None, "texts": {}},
+            # v0.35.2 — the one trait nobody may choose: the scroll (item effect 1) hands it
+            # over when used, and only then does it show in the player's trait list.
+            {"uuid": "tr-tut-scroll-touched", "id": 6, "costPositive": 0, "costNegative": 0,
+             "idClassPermitted": None, "idClassProhibited": None,
+             "life": 0, "energy": 0, "sad": 0, "dexterity": 0,
+             "intelligence": 1, "constitution": 0, "weight": 0,
+             "hideOnStartMatch": 1, "idCard": None, "texts": {}},
         ],
         "card":               None,
         "class_count":        3,

@@ -102,6 +102,12 @@ public interface EventExecutionStorePort {
     /** Story item id → uuid, for the response payload. */
     Map<Long, String> findItemUuidsById(long idStory);
 
+    /**
+     * v0.35.2 — story trait id → its stat deltas, so a trait granted mid-game can move the
+     * character's maxima the moment it lands rather than only at character creation.
+     */
+    Map<Long, TraitStats> findTraitStatsById(long idStory);
+
     /** Story trait id → uuid, for the response payload. */
     Map<Long, String> findTraitUuidsById(long idStory);
 
@@ -264,18 +270,41 @@ public interface EventExecutionStorePort {
                           int energyMax,
                           int lifeMax,
                           int sadMax,
+                          /** v0.35.2 — carry capacity, moved by a trait's weight delta. */
+                          int weightMax,
                           boolean isSleeping,
                           boolean isComa,
                           String characteristics) {
     }
 
+    /**
+     * v0.35.2 — the four maxima ride along with the current values.
+     *
+     * <p>A trait granted mid-game moves them: they are a plain sum of template, class,
+     * difficulty, traits and class bonuses, so adding the trait's own deltas gives exactly
+     * what a full recomputation would, without loading that whole graph again.</p>
+     */
     record CharacterStats(int dexterity,
                           int intelligence,
                           int constitution,
                           int energy,
                           int life,
                           int sad,
-                          int exp) {
+                          int exp,
+                          int lifeMax,
+                          int energyMax,
+                          int sadMax,
+                          int weightMax) {
+    }
+
+    /** v0.35.2 — the stat deltas a trait carries, as the engine applies them. */
+    record TraitStats(int life,
+                      int energy,
+                      int sad,
+                      int dexterity,
+                      int intelligence,
+                      int constitution,
+                      int weight) {
     }
 
     record BackpackStats(int food, int magic, int coin) {

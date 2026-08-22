@@ -18,6 +18,12 @@ public class TraitInfoResponse extends AbstractStatBlockUuidDescriptionDto {
     private Integer idClassProhibited;
     private Integer idCard;
     private CardInfoResponse card;
+    /**
+     * v0.35.2 - true when the trait is not offered at character creation. Reported, never
+     * filtered: the same list resolves the traits a character already has, where a hidden
+     * one must still appear. Only the start-match picker hides them.
+     */
+    private boolean hideOnStartMatch;
 
     public TraitInfoResponse() {}
 
@@ -52,4 +58,7 @@ public class TraitInfoResponse extends AbstractStatBlockUuidDescriptionDto {
 
     public CardInfoResponse getCard() { return card; }
     public void setCard(CardInfoResponse card) { this.card = card; }
+
+    public boolean isHideOnStartMatch() { return hideOnStartMatch; }
+    public void setHideOnStartMatch(boolean hideOnStartMatch) { this.hideOnStartMatch = hideOnStartMatch; }
 }

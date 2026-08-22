@@ -69,6 +69,8 @@ def store():
     s.find_id_event_end_game.return_value = None
     s.find_item_uuids_by_id.return_value = {42: "item-uuid"}
     s.find_trait_uuids_by_id.return_value = {7: "trait-uuid"}
+    # v0.35.2 — real dict, not a MagicMock: the trait deltas are arithmetic.
+    s.find_trait_stats_by_id.return_value = {}
     s.load_check_context.return_value = EventCheckContext(
         id_character=CHAR_ID, id_location=LOC, energy=20, coin=10, id_class=50)
     s.remove_item.return_value = True
@@ -245,6 +247,54 @@ def test_items(service, store):
     r = run(service)
     store.add_item.assert_called_once_with(MATCH_ID, CHAR_ID, 42, None)
     assert r.item_added is True and r.item_changes[0].value == "item-uuid"
+
+
+def test_a_granted_trait_moves_the_maxima_and_the_stats(service, store):
+    """v0.35.2 — until this version a trait handed over by an event wrote its row and
+    changed nothing, while its card went on promising "+2 life" to a player whose life bar
+    never moved."""
+    store.find_trait_stats_by_id.return_value = {
+        7: {"life": 2, "energy": 3, "sad": 5, "dexterity": 1,
+            "intelligence": 0, "constitution": 0, "weight": 4}}
+    store.find_effects_by_event_id.return_value = {1: [_effect(traits_to_add="7")]}
+
+    r = run(service)
+
+    written = store.update_character_stats.call_args[0][2]
+    # The actor starts at life 30 / life_max 100, energy 20 / energy_max 100,
+    # sad 0 / sad_max 50, dexterity 10.
+    assert (written["life_max"], written["energy_max"], written["sad_max"]) == (102, 103, 55)
+    assert written["weight_max"] == 4
+    # Life and energy follow their ceiling — a character is created full.
+    assert (written["life"], written["energy"], written["dexterity"]) == (32, 23, 11)
+    # Sadness does not: it is created at zero, so the trait only makes room.
+    assert written["sad"] == 0
+    assert len(r.stat_changes) == 3
+
+
+def test_a_removed_trait_takes_back_exactly_what_it_gave(service, store):
+    store.find_trait_stats_by_id.return_value = {
+        7: {"life": 2, "energy": 3, "sad": 5, "dexterity": 1,
+            "intelligence": 0, "constitution": 0, "weight": 4}}
+    store.find_effects_by_event_id.return_value = {
+        1: [_effect(traits_to_add="7", traits_to_remove="7")]}
+
+    run(service)
+
+    written = store.update_character_stats.call_args[0][2]
+    assert (written["life_max"], written["energy_max"], written["sad_max"]) == (100, 100, 50)
+    assert (written["life"], written["energy"], written["dexterity"]) == (30, 20, 10)
+
+
+def test_a_trait_no_story_row_matches_is_authored_noise(service, store):
+    store.find_trait_stats_by_id.return_value = {}
+    store.find_effects_by_event_id.return_value = {1: [_effect(traits_to_add="7")]}
+
+    r = run(service)
+
+    # The row is still written and reported; nothing else moves, and nothing raises.
+    assert len(r.trait_changes) == 1
+    assert r.stat_changes == []
 
 
 def test_traits_and_characteristics(service, store):

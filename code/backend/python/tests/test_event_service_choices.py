@@ -73,6 +73,8 @@ def store():
     s.find_id_event_end_game.return_value = None
     s.find_item_uuids_by_id.return_value = {}
     s.find_trait_uuids_by_id.return_value = {}
+    # v0.35.2 — real dict, not a MagicMock: the trait deltas are arithmetic.
+    s.find_trait_stats_by_id.return_value = {}
     s.load_check_context.return_value = EventCheckContext(
         id_character=CHAR_ID, id_location=LOC, energy=20, coin=10, id_class=50)
     s.find_choices_by_event_id.return_value = []
@@ -136,6 +138,8 @@ def test_first_open_pays_and_writes_one_marker(service, store):
     store.update_character_stats.assert_called_once_with(MATCH_ID, CHAR_ID, {
         "dexterity": 10, "intelligence": 10, "constitution": 10,
         "energy": 19, "life": 30, "sad": 0, "exp": 0,
+        # v0.35.2 — the four maxima ride along with the current values.
+        "life_max": 100, "energy_max": 100, "sad_max": 50, "weight_max": 0,
     })
 
 
@@ -157,6 +161,8 @@ def test_effects_and_chain_are_withheld(service, store):
     store.update_character_stats.assert_called_once_with(MATCH_ID, CHAR_ID, {
         "dexterity": 10, "intelligence": 10, "constitution": 10,
         "energy": 19, "life": 30, "sad": 0, "exp": 0,
+        # v0.35.2 — the four maxima ride along with the current values.
+        "life_max": 100, "energy_max": 100, "sad_max": 50, "weight_max": 0,
     })
 
 

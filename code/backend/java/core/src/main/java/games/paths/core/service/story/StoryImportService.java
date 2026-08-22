@@ -472,6 +472,9 @@ public class StoryImportService implements StoryImportPort {
             e.setIdTextDescription(getInteger(item, "idTextDescription"));
             e.setCostPositive(getInteger(item, "costPositive"));
             e.setCostNegative(getInteger(item, "costNegative"));
+            // v0.35.2: absent stays null, which reads as "pickable" — every trait authored
+            // before the column existed was.
+            e.setHideOnStartMatch(getInteger(item, "hideOnStartMatch"));
             e.setIdClassPermitted(normalizeOptionalFk(getInteger(item, "idClassPermitted")));
             e.setIdClassProhibited(normalizeOptionalFk(getInteger(item, "idClassProhibited")));
             e.setLife(getInteger(item, "life"));

@@ -34,31 +34,38 @@ describe('ItemsCard', () => {
     expect(captured.card.urlImage).toBe(backpack.urlImage)
   })
 
-  it('says how much is in the bag, then explains what the page is for', () => {
+  it('says how heavy the bag is as a BADGE, not as a sentence (v0.35.2)', () => {
     render(<ItemsCard onOpen={vi.fn()} count={3} weight={7} weightMax={30} />)
 
-    const text = screen.getByTestId('description').textContent
-    expect(text).toContain('3')
-    expect(text).toContain('7/30')
-    // A blank line, then the prose. <br> survives DOMPurify's html profile, and the
-    // description is only ever rendered by the page variant.
-    expect(text).toContain('<br><br>')
-    expect(text).toContain('game.items.description')
-    expect(text.indexOf('7/30')).toBeLessThan(text.indexOf('game.items.description'))
+    // The same BonusBadgeList an ItemCard carries: the bag and the things in it are
+    // measured in the same alphabet. The count badge is deliberately not here — the facing
+    // page already shows one card per row, so the number would be the same fact twice.
+    expect(captured.statistics).toEqual([
+      { key: 'weight', value: '7/30', label: 'game.items.capacity' },
+    ])
+    // The description is now the prose alone — the figures left it.
+    expect(screen.getByTestId('description').textContent).toBe('game.items.description')
   })
 
   it('reads a missing weight as zero rather than showing "undefined"', () => {
     render(<ItemsCard onOpen={vi.fn()} count={1} weightMax={30} />)
 
-    expect(screen.getByTestId('description').textContent).toContain('0/30')
+    expect(captured.statistics[0].value).toBe('0/30')
   })
 
-  it('omits the capacity when no maximum is known', () => {
+  it('keeps an empty bag visible: zero is the news, not noise', () => {
+    // BonusBadgeList drops a zero value by default, and "0 items, 0/30" is exactly what an
+    // empty bag has to report — hence the explicit opt-out.
+    render(<ItemsCard onOpen={vi.fn()} count={0} weight={0} weightMax={30} />)
+
+    expect(captured.bonusBadgeShowZeros).toBe(true)
+    expect(captured.statistics[0].value).toBe('0/30')
+  })
+
+  it('carries no badge at all when no maximum is known', () => {
     render(<ItemsCard onOpen={vi.fn()} count={2} />)
 
-    const text = screen.getByTestId('description').textContent
-    expect(text).toContain('2')
-    expect(text).not.toContain('/')
+    expect(captured.statistics).toEqual([])
   })
 
   it('opens the backpack through onOpen', () => {
@@ -83,6 +90,18 @@ describe('ItemsCard', () => {
       expect(captured.hidePreview).toBe(true)
       // Nothing to "open": the footer action belongs to the little shape only.
       expect(captured.onAction).toBeUndefined()
+    })
+
+    it('carries the figures as page badges, the same list the little card gets', () => {
+      const props = { count: 2, weight: 5, weightMax: 30 }
+      render(<ItemsCard variant="page" onClose={vi.fn()} {...props} />)
+      const asPage = captured.statItemsToPageContent
+
+      render(<ItemsCard onOpen={vi.fn()} {...props} />)
+      expect(asPage).toEqual(captured.statistics)
+      expect(asPage).toEqual([
+        { key: 'weight', value: '5/30', label: 'game.items.capacity' },
+      ])
     })
 
     it('keeps the very same description the little card showed', () => {

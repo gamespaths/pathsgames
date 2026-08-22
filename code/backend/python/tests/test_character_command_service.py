@@ -363,6 +363,31 @@ def test_duplicate_trait(env):
     assert exc.value.code == CharacterJoinError.TRAIT_DUPLICATED
 
 
+def test_hidden_trait_is_not_selectable(env):
+    """v0.35.2 — the API still returns the trait (the same list resolves what a character
+    already owns), so the refusal has to live server-side and not only in the client."""
+    service, story, match_p, user_a, char_p = env
+    _wire_full(story, match_p, user_a, char_p)
+    story.find_trait_by_uuid.side_effect = None
+    story.find_trait_by_uuid.return_value = {**_cost_trait(90001), "hide_on_start_match": 1}
+
+    with pytest.raises(CharacterJoinError) as exc:
+        service.join(_cmd(trait_uuids=["trait-1"]))
+    assert exc.value.code == CharacterJoinError.TRAIT_NOT_SELECTABLE
+
+
+def test_an_unset_or_zero_flag_leaves_the_trait_selectable(env):
+    # Every trait authored before v0.35.2 is pickable, and 0 says the same thing.
+    service, story, match_p, user_a, char_p = env
+    _wire_full(story, match_p, user_a, char_p)
+    story.find_trait_by_uuid.side_effect = None
+    story.find_trait_by_uuid.return_value = _cost_trait(90001)
+    assert service.join(_cmd(trait_uuids=["trait-1"])) is not None
+
+    story.find_trait_by_uuid.return_value = {**_cost_trait(90001), "hide_on_start_match": 0}
+    assert service.join(_cmd(trait_uuids=["trait-1"])) is not None
+
+
 def test_trait_permitted_other_class(env):
     service, story, match_p, user_a, char_p = env
     _wire_full(story, match_p, user_a, char_p)

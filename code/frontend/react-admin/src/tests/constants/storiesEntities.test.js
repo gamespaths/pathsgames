@@ -118,3 +118,15 @@ describe('item-effects entity config (Step 35)', () => {
     expect(byKey().traitsToRemove.type).toBe('text')
   })
 })
+
+describe('traits entity config (v0.35.2)', () => {
+  it('offers hideOnStartMatch as a checkbox', () => {
+    const byKey = Object.fromEntries(STORIES_ENTITIES_FIELDS.traits.map(f => [f.key, f]))
+    expect(byKey.hideOnStartMatch).toMatchObject({ key: 'hideOnStartMatch', type: 'checkbox' })
+  })
+
+  it('keeps it next to the costs, which are the other rules of picking a trait', () => {
+    const keys = STORIES_ENTITIES_FIELDS.traits.map(f => f.key)
+    expect(keys.indexOf('hideOnStartMatch')).toBe(keys.indexOf('costNegative') + 1)
+  })
+})

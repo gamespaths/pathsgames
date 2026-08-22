@@ -896,6 +896,19 @@ html, body {
   justify-content: center;
 }
 
+/* The badge list is shared with the in-match stats bar, where `flex-shrink: 0` is what
+   keeps the row from being squeezed. Over an image the box is deliberately NARROWER than
+   the row it holds, so there it has to give: without these two the list keeps its
+   max-content width, ignores the 90% cap above and spills past the picture.
+   `min-width: 0` is the other half — a flex item will not shrink below its content's
+   minimum unless it is told it may. */
+.book-page-img-badge-overlay > .bonus-badge-list {
+  flex-shrink: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 .book-page-img {
   width: 100%;
   max-height: 45%;

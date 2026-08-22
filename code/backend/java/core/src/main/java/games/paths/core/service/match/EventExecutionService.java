@@ -19,6 +19,7 @@ import games.paths.core.port.match.EventExecutionStorePort.CharacterStats;
 import games.paths.core.port.match.EventExecutionStorePort.EventActorView;
 import games.paths.core.port.match.EventExecutionStorePort.EventCheckContext;
 import games.paths.core.port.match.EventExecutionStorePort.MatchEventView;
+import games.paths.core.port.match.EventExecutionStorePort.TraitStats;
 import games.paths.core.port.match.UserAccessPort;
 import games.paths.core.port.story.ContentQueryPort;
 
@@ -925,12 +926,61 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         for (long idTrait : csvIds(traitsToAdd)) {
             if (store.addTrait(x.match.id(), recipient.id(), idTrait, idEvent)) {
                 x.traitChanges.add(new TraitChange(recipient.uuid(), x.traitUuids().get(idTrait), ADD));
+                applyTraitStats(x, recipient, idTrait, 1);
             }
         }
         for (long idTrait : csvIds(traitsToRemove)) {
             if (store.removeTrait(x.match.id(), recipient.id(), idTrait)) {
                 x.traitChanges.add(new TraitChange(recipient.uuid(), x.traitUuids().get(idTrait), REMOVE));
+                applyTraitStats(x, recipient, idTrait, -1);
             }
+        }
+    }
+
+    /**
+     * v0.35.2 — a trait carries stat deltas, and until this version they were applied only
+     * at character creation: a trait handed over by an event or an item wrote its row and
+     * changed nothing, while its card went on promising "+2 life" to a player whose life
+     * bar never moved.
+     *
+     * <p>The maxima are a plain sum (template + class + difficulty + traits + class
+     * bonuses), so adding the trait's own deltas gives exactly what recomputing the whole
+     * formula would, without loading that graph again. {@code sign} is +1 on a grant and -1
+     * on a removal, which makes the two directions the same code and keeps them exact
+     * inverses.</p>
+     *
+     * <p>Current life and energy follow their ceiling, because a character is CREATED full:
+     * a +2 life trait heals two, and losing it takes two back. Sadness does not follow its
+     * ceiling, because a character is created at zero sadness — a trait raises the room
+     * available, it does not make anyone sadder. Dexterity, intelligence and constitution
+     * have no ceiling at all, so their delta lands directly. Every value is clamped, and
+     * the clamp reads the ceiling AFTER it moved.</p>
+     */
+    private void applyTraitStats(Exec x, EventActorView recipient, long idTrait, int sign) {
+        TraitStats t = x.traitStats().get(idTrait);
+        if (t == null) {
+            return; // a trait id no story row matches is authored noise, not an error
+        }
+        Live c = x.live(recipient);
+        c.lifeMax = Math.max(0, c.lifeMax + sign * t.life());
+        c.energyMax = Math.max(0, c.energyMax + sign * t.energy());
+        c.sadMax = Math.max(0, c.sadMax + sign * t.sad());
+        c.weightMax = Math.max(0, c.weightMax + sign * t.weight());
+
+        moveStat(x, recipient, "life", sign * t.life());
+        moveStat(x, recipient, "energy", sign * t.energy());
+        moveStat(x, recipient, "dex", sign * t.dexterity());
+        moveStat(x, recipient, "int", sign * t.intelligence());
+        moveStat(x, recipient, "cos", sign * t.constitution());
+        // The sadness ceiling moved above; the current value stays where it was, and the
+        // clamp below is what keeps it inside a ceiling that may have come down.
+        c.setSad(c.sad);
+    }
+
+    /** Moves one statistic through {@link #applyStat}, skipping the no-op deltas. */
+    private void moveStat(Exec x, EventActorView recipient, String stat, int delta) {
+        if (delta != 0) {
+            applyStat(x, recipient, stat, delta);
         }
     }
 
@@ -1354,7 +1404,8 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         x.flushed = true;
         for (Live c : x.living.values()) {
             store.updateCharacterStats(x.match.id(), c.id, new CharacterStats(
-                    c.dexterity, c.intelligence, c.constitution, c.energy, c.life, c.sad, c.exp));
+                    c.dexterity, c.intelligence, c.constitution, c.energy, c.life, c.sad, c.exp,
+                    c.lifeMax, c.energyMax, c.sadMax, c.weightMax));
             if (c.backpackDirty) {
                 store.updateBackpack(x.match.id(), c.id, new BackpackStats(c.food, c.magic, c.coin));
             }
@@ -1609,6 +1660,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         private Map<Long, String> itemUuids;
         private Map<Long, Integer> itemMaxPerCharacter;
         private Map<Long, String> traitUuids;
+        private Map<Long, TraitStats> traitStats;
         private Map<Long, String> locationUuids;
         private Map<Long, EventEntity> eventsById;
         private Map<Long, List<EventEffectEntity>> effectsByEvent;
@@ -1673,6 +1725,14 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                 itemMaxPerCharacter = store.findItemMaxPerCharacterById(match.idStory());
             }
             return itemMaxPerCharacter;
+        }
+
+        /** v0.35.2 — the trait deltas, read once per execution however many traits change. */
+        Map<Long, TraitStats> traitStats() {
+            if (traitStats == null) {
+                traitStats = store.findTraitStatsById(match.idStory());
+            }
+            return traitStats;
         }
 
         Map<Long, String> traitUuids() {
@@ -1750,9 +1810,12 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
          *  effect really added rather than what the column can hold. */
         int sadUnclamped;
         int exp;
-        final int energyMax;
-        final int lifeMax;
-        final int sadMax;
+        // v0.35.2 — no longer final: a trait granted mid-game moves them, and the clamps
+        // below have to read the new ceiling in the same execution.
+        int energyMax;
+        int lifeMax;
+        int sadMax;
+        int weightMax;
         int food;
         int magic;
         int coin;
@@ -1773,6 +1836,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             this.energyMax = v.energyMax();
             this.lifeMax = v.lifeMax();
             this.sadMax = v.sadMax();
+            this.weightMax = v.weightMax();
             this.food = backpack.food();
             this.magic = backpack.magic();
             this.coin = backpack.coin();

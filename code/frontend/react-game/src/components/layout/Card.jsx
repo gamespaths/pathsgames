@@ -61,7 +61,10 @@ export default function Card({
   childrenIntoImage,
   children,
 
-  statistics, flagShowFullStatistics=false, 
+  statistics, flagShowFullStatistics=false,
+  /* v0.35.2 — keep the badges whose value is zero. Off by default, because a zero stat is
+     usually noise; a bag is the exception, where "0 items, 0/30" is the whole news. */
+  bonusBadgeShowZeros=false,
   bonusBadgeListLittleTitle=true, bonusBadgeListLittleIntoImage=false, bonusBadgeListLittleDesc=false,
   flagInformationCard=false,
 
@@ -107,7 +110,8 @@ export default function Card({
     value: s.value,
   }))
   const bonusBadgeNode = isPage && statItemsReal != null && statItemsReal.length > 0
-    ? <BonusBadgeList items={statItemsReal} className="book-page-stats" lockedReason={lockedReason} littleVersion={bonusBadgeListLittleDesc} />
+    ? <BonusBadgeList items={statItemsReal} className="book-page-stats" lockedReason={lockedReason}
+        littleVersion={bonusBadgeListLittleDesc} showZeros={bonusBadgeShowZeros} />
     : null
 
   /* ── copyright view link (CreditsModal) ── */
@@ -146,7 +150,8 @@ export default function Card({
       {!isPage && <div className="gc-title">
         <div className="gc-title__text">{name}</div>
         {!flagShowFullStatistics && statistics && statistics.length > 0 &&
-          <BonusBadgeList className="mt-0 mb-0 config-total-bonus float-right" items={statistics} littleVersion={bonusBadgeListLittleTitle} />
+          <BonusBadgeList className="mt-0 mb-0 config-total-bonus float-right" items={statistics}
+            littleVersion={bonusBadgeListLittleTitle} showZeros={bonusBadgeShowZeros} />
         }
         {typeBadgeLabel && <span className="gc-type-badge">{typeBadgeLabel}</span>}
       </div>}
@@ -169,7 +174,8 @@ export default function Card({
           </div>}
           {flagShowFullStatistics && statistics && statistics.length > 0 &&
             <BonusBadgeList className={"gc-img__overlay config-total-bonus" + (bonusBadgeListLittleIntoImage ? " config-total-bonus-little" : "")}
-              items={statistics} littleVersion={bonusBadgeListLittleIntoImage} />
+              items={statistics} littleVersion={bonusBadgeListLittleIntoImage}
+              showZeros={bonusBadgeShowZeros} />
           }
         </div>
       )}

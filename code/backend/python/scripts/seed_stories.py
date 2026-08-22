@@ -354,7 +354,8 @@ def seed():
         # same CSV-of-ids format the event effects use.
         "itemEffects": [
             {"id": 1, "idCard": 1, "idItem": 2, "effectCode": "EXP", "effectValue": 5,
-             "traitsToAdd": "1"},
+             # v0.35.2 — grants the HIDDEN trait: unpickable, but perfectly grantable.
+             "traitsToAdd": "3"},
             {"id": 2, "idCard": 1, "idItem": 3, "effectCode": "SADNESS", "effectValue": 1},
             {"id": 3, "idCard": 1, "idItem": 4, "effectCode": "LIFE", "effectValue": 1},
         ],
@@ -374,7 +375,13 @@ def seed():
             # Step 23 — negative-cost trait
             {"idTextName": 700, "idTextDescription": 700, "costPositive": 0, "costNegative": 2,
              "life": -2, "energy": 0, "sad": 0, "dexterity": 0,
-             "intelligence": 0, "constitution": 0, "weight": 0}
+             "intelligence": 0, "constitution": 0, "weight": 0},
+            # v0.35.2 — the one trait nobody may choose: the scroll (item effect 1) hands it
+            # over when used, and only then does it show in the player's trait list.
+            {"idTextName": 700, "idTextDescription": 700, "costPositive": 0, "costNegative": 0,
+             "life": 0, "energy": 0, "sad": 0, "dexterity": 0,
+             "intelligence": 1, "constitution": 0, "weight": 0,
+             "hideOnStartMatch": 1}
         ],
         "characterTemplates": [
             {"idTipo": 90001, "idTextName": 210, "idTextDescription": 210,

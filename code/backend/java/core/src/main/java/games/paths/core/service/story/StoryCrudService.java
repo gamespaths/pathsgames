@@ -986,6 +986,7 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("idClassProhibited", tr.getIdClassProhibited());
             m.put("costPositive", tr.getCostPositive());
             m.put("costNegative", tr.getCostNegative());
+            m.put("hideOnStartMatch", tr.getHideOnStartMatch());
             m.put("life", tr.getLife());
             m.put("energy", tr.getEnergy());
             m.put("sad", tr.getSad());
@@ -1309,6 +1310,8 @@ public class StoryCrudService implements StoryCrudPort {
             e.setCostPositive(intVal(d, "costPositive"));
         if (d.containsKey("costNegative"))
             e.setCostNegative(intVal(d, "costNegative"));
+        if (d.containsKey("hideOnStartMatch"))
+            e.setHideOnStartMatch(intVal(d, "hideOnStartMatch"));
         if (d.containsKey("life"))
             e.setLife(intVal(d, "life"));
         if (d.containsKey("energy"))

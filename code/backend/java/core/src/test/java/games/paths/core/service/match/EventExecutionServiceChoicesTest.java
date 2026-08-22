@@ -101,7 +101,7 @@ class EventExecutionServiceChoicesTest {
 
     private static EventActorView actor() {
         return new EventActorView(CHAR_ID, "char-uuid", USER_ID, 50L, LOC,
-                10, 10, 10, 20, 30, 0, 0, 100, 100, 50, false, false, null);
+                10, 10, 10, 20, 30, 0, 0, 100, 100, 50, 30, false, false, null);
     }
 
     /** A NORMAL event costing 1 energy — the cost proves what each path charges. */
@@ -207,7 +207,7 @@ class EventExecutionServiceChoicesTest {
                     eq(7), eq(EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + EVENT_ID));
             // The deduction is flushed: energy 19, everything else untouched.
             verify(store).updateCharacterStats(MATCH_ID, CHAR_ID,
-                    new CharacterStats(10, 10, 10, 19, 30, 0, 0));
+                    new CharacterStats(10, 10, 10, 19, 30, 0, 0, 100, 100, 50, 30));
         }
 
         @Test
@@ -226,7 +226,7 @@ class EventExecutionServiceChoicesTest {
             assertTrue(r.statChanges().isEmpty());
             // Life stayed 30 in the flushed stats: the -5 never ran.
             verify(store).updateCharacterStats(MATCH_ID, CHAR_ID,
-                    new CharacterStats(10, 10, 10, 19, 30, 0, 0));
+                    new CharacterStats(10, 10, 10, 19, 30, 0, 0, 100, 100, 50, 30));
         }
 
         @Test
@@ -446,7 +446,7 @@ class EventExecutionServiceChoicesTest {
         @DisplayName("statistics_SUM pools every character of the match")
         void partySums() {
             EventActorView mate = new EventActorView(4L, "mate-uuid", 9L, 50L, LOC,
-                    10, 7, 10, 20, 30, 0, 0, 100, 100, 50, false, false, null);
+                    10, 7, 10, 20, 30, 0, 0, 100, 100, 50, 30, false, false, null);
             when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(actor(), mate));
             givenChoices(choice(11, 1));
             // Actor int 10 + mate int 7 = 17.
@@ -460,7 +460,7 @@ class EventExecutionServiceChoicesTest {
         @DisplayName("ALL_IN_SAME_LOC fails when the party is scattered")
         void scatteredParty() {
             EventActorView far = new EventActorView(4L, "far-uuid", 9L, 50L, 999L,
-                    10, 10, 10, 20, 30, 0, 0, 100, 100, 50, false, false, null);
+                    10, 10, 10, 20, 30, 0, 0, 100, 100, 50, 30, false, false, null);
             when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(actor(), far));
             givenChoices(choice(11, 1));
             when(store.findChoiceConditionsByChoiceId(STORY_ID)).thenReturn(Map.of(

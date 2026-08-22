@@ -554,7 +554,7 @@ class EventExecutionServiceAutomaticTest {
 
     private static EventActorView actorAt(long idLocation) {
         return new EventActorView(CHAR_ID, "char-1", 3L, null, idLocation,
-                5, 5, 5, 10, 10, 0, 0, 20, 20, 50, false, false, null);
+                5, 5, 5, 10, 10, 0, 0, 20, 20, 50, 30, false, false, null);
     }
 
     private static EventCheckContext context(Long idCharacter) {

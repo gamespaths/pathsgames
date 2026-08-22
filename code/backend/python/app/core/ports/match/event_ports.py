@@ -159,6 +159,12 @@ class EventStorePort(ABC):
         """Story item id -> max_per_character (None when the item sets no cap)."""
 
     @abstractmethod
+    def find_trait_stats_by_id(self, id_story: int) -> Dict[int, Dict[str, int]]:
+        """v0.35.2 — story trait id -> its stat deltas (life, energy, sad, dexterity,
+        intelligence, constitution, weight), so a trait granted mid-game can move the
+        character's maxima the moment it lands rather than only at character creation."""
+
+    @abstractmethod
     def add_trait(self, id_match: int, id_character: int, id_trait: int,
                   id_event: Optional[int]) -> bool:
         """False when the trait was already held."""

@@ -132,6 +132,10 @@ class TraitEntity(Base):
     id_text_description = Column(Integer)
     cost_positive = Column(Integer, default=0)
     cost_negative = Column(Integer, default=0)
+    # v0.35.2 — 1 hides the trait from the start-match picker and refuses it if selected
+    # anyway; 0/None leave it pickable. It never blocks OWNING the trait: an event or an
+    # item may still grant it through traits_to_add, which is the point of the flag.
+    hide_on_start_match = Column(Integer, default=0)
     id_class_permitted = Column(Integer)
     id_class_prohibited = Column(Integer)
     life = Column(Integer, default=0)

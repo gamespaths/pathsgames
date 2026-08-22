@@ -6,6 +6,9 @@ Rules:
 * ``id_class_permitted``/``id_class_prohibited`` must match the selected
   class (``TRAIT_NOT_COMPATIBLE``); a permitted-restricted trait is rejected
   when no class is selected;
+* a trait flagged ``hide_on_start_match`` cannot be picked at all
+  (``TRAIT_NOT_SELECTABLE``); an event or an item may still grant it, which is
+  the whole point of the flag (v0.35.2);
 * the sum of ``cost_positive`` and the sum of ``cost_negative`` must each
   stay within the difficulty budgets (``TRAIT_COST_EXCEEDED``); a ``None``
   budget means "no limit".
@@ -16,6 +19,11 @@ TRAIT_NOT_FOUND = "TRAIT_NOT_FOUND"
 TRAIT_DUPLICATED = "TRAIT_DUPLICATED"
 TRAIT_NOT_COMPATIBLE = "TRAIT_NOT_COMPATIBLE"
 TRAIT_COST_EXCEEDED = "TRAIT_COST_EXCEEDED"
+#: v0.35.2 — hide_on_start_match = 1: never offered at character creation, and refused
+#: here if asked for anyway. The API still returns the trait (the same list resolves the
+#: traits a character already owns), so hiding it client-side alone would be a rule
+#: anyone could walk around with curl.
+TRAIT_NOT_SELECTABLE = "TRAIT_NOT_SELECTABLE"
 
 
 class TraitSelectionError(Exception):
@@ -50,6 +58,10 @@ def resolve_and_validate(
         trait = story_read_port.find_trait_by_uuid(story_id, key)
         if trait is None:
             raise TraitSelectionError(TRAIT_NOT_FOUND, f"Trait not found: {key}")
+        if trait.get("hide_on_start_match") == 1:
+            raise TraitSelectionError(
+                TRAIT_NOT_SELECTABLE,
+                f"Trait {key} cannot be chosen at character creation")
         _validate_class_compatibility(trait, clazz, key)
         resolved.append(trait)
     _validate_cost_budget(resolved, difficulty)

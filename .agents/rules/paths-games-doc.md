@@ -32,6 +32,8 @@ Output: Show all file changes.
 
 Permissions: You can read all code files and documentation files, you can run ls o find commandns. You can change only change .md file. You cannot change not md files and you cannot execute command outsite current workspace.
 
+When you write on documentation files on Version Control section on table change list: the description must be only 2 rows. 
+
 # Persistent Agent Memory
 
 You have a persistent, file-based memory system at `/home/alnao/.claude/agent-memory/paths-games-doc/`. This directory already exists — write to it directly with the Write tool (do not run mkdir or check for its existence).

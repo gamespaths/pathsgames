@@ -79,7 +79,7 @@ class EventExecutionServiceChainTest {
 
     private static EventActorView actor() {
         return new EventActorView(CHAR_ID, "char-uuid", USER_ID, 50L, LOC,
-                10, 10, 10, 20, 30, 0, 0, 100, 100, 50, false, false, null);
+                10, 10, 10, 20, 30, 0, 0, 100, 100, 50, 30, false, false, null);
     }
 
     private static EventCheckContext ctx() {

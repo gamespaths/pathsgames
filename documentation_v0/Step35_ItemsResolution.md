@@ -275,6 +275,25 @@ target-class column on this table, unlike `list_events_effects`/`list_choices_ef
 an item, or its effect, to another character is a multiplayer feature (steps 71-76) and
 deliberately out of scope for this table.
 
+**`traits_to_add` / `traits_to_remove`** are two more columns on this same row (added
+v0.34.0, CSV-of-`list_traits`-ids, same format `list_events_effects` uses; picker in
+react-admin since v0.35.0, §3c). They work regardless of `hide_on_start_match`
+(v0.35.2, see [Step23 §5.3](./Step23_CharacterStatsInitialization.md#53-schema-change--list_traitshide_on_start_match-v0352)):
+a trait an author has locked out of the start-match picker can still be handed over
+by `traits_to_add` on an item's use, and it then joins the character's active traits
+like any other. The dev seed exercises exactly this: the **Guide Scroll**'s item
+effect (java `list_items_effects` id `90002`, AWS effect id `1`) grants the hidden
+"Scroll-Touched" trait instead of the plain one it granted before v0.35.2.
+
+**A granted trait now also moves stats (v0.35.2, bugfix).** Before this version,
+`traits_to_add`/`traits_to_remove` here only wrote the trait row — the trait's own
+`life`/`energy`/`sad`/`dexterity`/`intelligence`/`constitution`/`weight` deltas were
+applied only once, at character creation, so an item that handed over a "+2 life"
+trait left the life bar untouched. It now moves them the moment the trait lands (and
+reverses them if the effect removes one). The formula and the reasoning are
+Step 23's, not this table's — see
+[Step23 §6.4](./Step23_CharacterStatsInitialization.md#64-trait-stat-deltas-apply-on-grant-not-only-at-creation-v0352).
+
 **Preconditions live one table over, on `list_items`, not here.**
 
 - `isConsumabile` (`is_consumabile` in the database) gates whether `use-item` will run these
@@ -923,6 +942,11 @@ an item you cannot currently afford to use still says what using it would do.
   together on a capped, multi-unit item. Full suite: 847 tests passing.
 - react-admin: unaffected by §8f — the increment is read-only on the payload the board already
   fetches. Full suite: 644 tests passing.
+- react-game, backpack UX (§11, v0.35.2): `ItemsCard.test.jsx` and `ItemsCards.test.jsx` gain the
+  three cases listed at the end of §11. Full suite: 857 tests passing.
+- Trait grant now moves stats (§4, v0.35.2 bugfix): the engine change itself, its 9 new unit
+  tests and its full-suite counts belong to [Step23 §6.4](./Step23_CharacterStatsInitialization.md#64-trait-stat-deltas-apply-on-grant-not-only-at-creation-v0352)
+  — nothing on this table changed shape, so nothing item-specific is added here.
 - Parts one and two carry no migration and no new endpoint — the effects preview is confined to
   a projection of already-loaded rows onto an existing field. Part three adds exactly one
   migration, `V0.35.0__add_item_flag_show_effects.sql` on both java dialects (§6a), and no new
@@ -984,7 +1008,9 @@ an item you cannot currently afford to use still says what using it would do.
 | OpenAPI, quantities on the payload | `v0.34.0-inventory-resources-api.yaml` — `ItemInstance.maxPerCharacter`/`.amountDrop`/`.amountUse` (new nullable properties) |
 | Game board, quantities on the payload (react-game, §8f) | `src/utils/statBadges.js` — `itemCap(item)`, `unitsPerUse(item)` (new helpers); `itemCarryBadges` writes `carried/cap`; `itemDescriptionBadges` appends a `perUse` badge above one unit; `src/features/gameplay/cards/ItemCard.jsx` — `usable = isConsumabile && enough`, new `ITEM_NOT_ENOUGH` lock reason with `(carried/needed)` appended to the long sentence; `src/i18n/en.json`, `src/i18n/it.json` — `game.item.perUse`, `game.item.reason.ITEM_NOT_ENOUGH`, `game.item.reasonFull.ITEM_NOT_ENOUGH` |
 | Tests, quantities on the payload (§9) | Java: `ItemInstanceMapperTest` (`Quantities` nested class), `InventoryDtosTest.itemInstanceResponse_projectsTheQuantities` (new cases). Python: `test_inventory_service.py`, `test_inventory_controller.py`, `test_character_query_service.py` (new cases). AWS: `test_match_handler_inventory.py` (new case, plus null assertions on the existing listing test). react-game: `statBadges.test.js` (5 new), `ItemCard.test.jsx` (4 new) |
-| Documentation | `documentation_v0/Step35_ItemsResolution.md` (this file, §6-§7-§8-§10 added, intro reframed; §8f added for the payload/react-game increment); `documentation_v0/Step34_InventoryAndResources.md` — corrected the now-superseded "whole row"/"two rows" passages (§8e note); `documentation_v0/Step09_DesignCoreDataModel.md` — `list_items` row gains `max_per_character`/`amount_drop`/`amount_use`, `gaming_inventory_items` row notes the new unique index (unchanged by §8f — additive to an existing payload, no new column); `documentation_v0/INDEX.md` — `Step35_ItemsResolution.md` row updated |
+| Documentation | `documentation_v0/Step35_ItemsResolution.md` (this file, §6-§7-§8-§10 added, intro reframed; §8f added for the payload/react-game increment; §11 added for the v0.35.2 backpack UX fixes); `documentation_v0/Step34_InventoryAndResources.md` — corrected the now-superseded "whole row"/"two rows" passages (§8e note); `documentation_v0/Step09_DesignCoreDataModel.md` — `list_items` row gains `max_per_character`/`amount_drop`/`amount_use`, `gaming_inventory_items` row notes the new unique index (unchanged by §8f — additive to an existing payload, no new column); `documentation_v0/Step23_CharacterStatsInitialization.md` — new §6.4 (trait stat deltas apply on grant, v0.35.2 bugfix); `documentation_v0/Step29_NormalEvents.md` — pointer to §6.4 added to the Effects section; `documentation_v0/INDEX.md` — `Step35_ItemsResolution.md`, `Step23_CharacterStatsInitialization.md` rows updated |
+| Game board, backpack UX (react-game, §11, v0.35.2) | `src/features/gameplay/cards/ItemsCard.jsx` — figures now built as a `statItemsToPageContent`/`statistics` badge list instead of description prose; `src/features/gameplay/cards/ItemsCards.jsx` — rows sorted usable-first via `isItemUsable`; `src/components/layout/Card.jsx` — new `bonusBadgeShowZeros` prop (default `false`) |
+| Tests, backpack UX (react-game, §11) | `src/test/ItemsCard.test.jsx`, `src/test/ItemsCards.test.jsx` (new cases, listed in §11/§9) |
 
 Parts one and two carry no migration and no new endpoint: `effects[]` is an additive field on
 payloads `GET /api/gameplay/{uuid}/inventory` and `GET /api/game/{uuid}/info` already return.
@@ -1001,16 +1027,79 @@ and resources contract itself, and for `use-item`'s own `effects[]` — the appl
 distinct from the preview this step adds — though its §2 quantity language is now superseded by
 §8 above, as noted there.
 
+## 11. Backpack: figures as badges, usable-first ordering (v0.35.2)
+
+Two small UX fixes to the bag itself (`ItemsCard`, the header card, and `ItemsCards`,
+the list of rows), no migration, no endpoint change, no new prop most other cards use.
+
+**The count and capacity are badges, not a sentence.** `ItemsCard` used to write "how
+much is in the bag and how much still fits" into the card's own description text; it
+now builds the same `figures` array an `ItemCard` reports its own weight/effects
+through, and passes it as `statItemsToPageContent`/`statistics` like any other card. A
+new `Card` prop, `bonusBadgeShowZeros` (default `false` — no other card's behavior
+changes), is set on `ItemsCard` because an empty bag ("0 items, 0/30") is exactly the
+figure worth showing, and `BonusBadgeList` otherwise drops a zero/missing value by
+design. `card.description` is left holding only the prose — what the bag page is for —
+so the same number the player reads on the little card before opening the bag is the
+one they keep seeing once it is open; no copy can drift out of sync with the other.
+
+**Usable items sort first.** `ItemsCards` now sorts its rows with
+`[...items].sort((a, b) => Number(isItemUsable(b)) - Number(isItemUsable(a)))` —
+`Array.sort` is stable, so within each half nothing is reshuffled, only the two halves
+are separated. `isItemUsable` (`src/utils/statBadges.js`) is the exact predicate
+`ItemCard` locks itself with, so a padlocked card can never end up sitting among the
+unlocked ones. **Known limitation, not fixed here**: the order *within* each half is
+whatever the backend sent — for the `/info` payload this page reads, that is
+acquisition order in practice and not a guaranteed ordering; the separate
+`.../inventory` endpoint does sort by id, so the two adapters diverge on this point.
+
+Vitest: `ItemsCard.test.jsx` — `'says how heavy the bag is as a BADGE, not as a
+sentence (v0.35.2)'`; `ItemsCards.test.jsx` — `'shows what can be used first, and
+keeps the rest in the order it arrived (v0.35.2)'` and `'sorts by the same rule the
+card locks itself with'`. Full react-game suite: 857 passed.
+
 ---
 
 # Version Control
 
-- **Document Version**: 0.35.1
+- **Document Version**: 0.35.2
 
   | Version | Description | Date |
   |---------|-------------|------|
-  | 0.35.1 | Items resolution, part four — the quantities. Three new nullable columns on `list_items` (`V0.35.1__item_amounts_and_unique_inventory_row.sql`, both java dialects): `max_per_character` caps what a character may hold (an ADD past it is refused, reported as `itemChanges` action `NOT_ADDED`, the event still runs); `amount_drop` is the units one `drop-item` removes (owning fewer is not a refusal, the drop takes what is there); `amount_use` is the units one `use-item` spends (owning fewer **is** a refusal, new code `ITEM_NOT_ENOUGH`, 409). All three read an empty column as `1` (`amount_drop`/`amount_use`) or "no limit" (`max_per_character`); there is no `amount_add` — an ADD is always one unit. Behavior change alongside the new columns: an event/choice REMOVE now takes every unit a character holds instead of one, and — as a side effect — no longer clears the owned-items flag only when the row actually empties, fixing a latent bug where a partial REMOVE could make a later condition in the same execution read "not owned" while units remained. The migration also merges any pre-existing duplicate `gaming_inventory_items` row for the same (character, item) onto the oldest one and adds `CREATE UNIQUE INDEX uq_inventory_char_item`, enforcing the one-row-per-item rule the engine had always assumed but never guaranteed; the same merge is replicated in code (`addItem`/`add_item`/`apply_item`, all three backends) for databases written by older builds. Implemented across all three backends: Java (`InventoryService.useItem`/`dropItem` now spend units via new `updateInventoryAmount` and delete the row only when empty; `EventExecutionStorePort.addItem` gains a `maxPerCharacter` parameter; `logItemUsage` now records the actual spent `counter` instead of always `1`), Python (`inventory_service.action_amount`, `event_store_adapter.add_item`/`remove_item`), AWS (`inventory.action_amount`/`spend_units`, `events.apply_item`, `handler._item_cap`). react-admin gets three numeric fields on the item form (`Max Per Character`, `Units Removed By Drop`, `Units Consumed By Use`, each labelled with its empty-value reading); react-game is unchanged at this point in the version — a partial use/drop already returns to the board (part one, v0.35.0). Seed: the Scholar's Tonic is capped at 1, the Guide Scroll drops 2 at a time. New Robot suite `item_quantities.robot` (5 tests, backend-agnostic, `34_inventory`). Corrects the now-superseded "using consumes the whole row" and "a character may hold two rows of the same item" language in [Step 34](./Step34_InventoryAndResources.md). Version strings rolled to 0.35.1 across all components. **Same version, continued (§8f)**: the three columns reach `items[]` itself — `maxPerCharacter`/`amountDrop`/`amountUse` on every row of both `GET .../inventory` and `/info`'s `players[].items[]`, reported as authored (`null` included), never applied — and react-game reads them: `statBadges.js` gains `itemCap`/`unitsPerUse`, the amount badge becomes `carried/cap` (shown even at `1/1`), a `perUse` badge appears in the description above one unit per use, and `ItemCard.jsx`'s use button now locks on a new `ITEM_NOT_ENOUGH` reason (distinct from `ITEM_NOT_CONSUMABLE`) with the current/needed figures in the long sentence. Java: `ItemInstanceInfo`/`ItemInstanceMapper`/`ItemInstanceResponse`. Python: the `ItemInstanceInfo` dataclass, `inventory_service._map_items`, `character_query_service.build_character_infos`, `inventory_controller.item_to_camel`. AWS: `handler._item_rows` (`None` on the story-item-gone branch). OpenAPI: three new nullable properties on `ItemInstance`. Test counts: Java `mvn test` BUILD SUCCESS, python 1284, AWS 769, react-game 847, react-admin 644, robot `--dryrun` 36/36 on the whole `34_inventory` folder — a real run against a started backend has not been made yet. | August 22, 2026 |
-  | 0.35.0 | Items resolution — UX refinement of the Step 34 inventory engine. **Part one**, react-game: using an item now closes the backpack before narrating (`handleItemUsed`), so the effect card and any Step 30 edge state land on a clean page instead of fighting the open bag; `handleEventExecuted` falls back to the item's own card when no `list_items_effects` row carries one, item path only, events unaffected. React-admin: the `item-effects` form gains an `idCard` field (narrative card, picker `cardsOptions`), `effectCode` becomes a closed `select` over the ten known tokens (`EffectStatCodec.KNOWN`) plus the two documented aliases `SADNESS`/`COINS`, and `traitsToAdd`/`traitsToRemove` gain the `traitsOptions` picker already used on event-effects. **Part two**, effects preview before use, no migration, no new endpoint: every row of `items[]` on both `GET .../inventory` and `/info`'s `players[].items[]` now carries an additive `effects: [{statistic, value}]` — the authored delta, before the engine's clamp, read off the same rows `use-item` already applies, so a player can see what a potion promises before drinking it. New `ItemEffectPreview` model/DTO/schema in java, a shared `preview_effects`/`_KNOWN_EFFECT_CODES` in python, `preview_effects` built on `standalone_effects` in AWS — all three backends touched, but only as a projection of already-loaded rows onto an existing payload; react-game's `ItemCard` shows the preview as badges via the existing `effectStatItems` helper, usable items only. **Part three**, the author's opt-out: new nullable `list_items.flag_show_effects` column (`V0.35.0__add_item_flag_show_effects.sql`, both java dialects; `1`/`NULL` = shown, `0` = the item's promise is hidden while its effect is applied unchanged) — `showsEffects`/`shows_effects` gates the §5 preview in all three backends, react-admin gets a `flagShowEffects` checkbox on the item form (defaulted to `1` for new items), and a `StoryCrudService.intVal` bug that silently dropped every boolean checkbox (`isSafe`, `isConsumabile`, `flagShowEffects` alike) was found and fixed along the way. Same part: react-game's card for a just-received item now shows the item's own `effects[]` promise instead of the granting event's stat changes (`itemRowForUuid`, new), so a secret item arrives with no badge at all. New Robot suite `effects_preview.robot` (6 tests). Version strings rolled to 0.35.0 across all components. | August 21, 2026 |
+  | 0.35.2 | Noted that `traits_to_add`/`traits_to_remove` on a `list_items_effects` row work regardless of a trait's new `hide_on_start_match` flag (§4); flag itself is documented in [Step23 §5.3](./Step23_CharacterStatsInitialization.md#53-schema-change--list_traitshide_on_start_match-v0352). | August 22, 2026 |
+  | 0.35.2 | Bugfix note (§4): a trait granted through `traits_to_add` here now also moves the recipient's stats, not just the trait list — formula documented in [Step23 §6.4](./Step23_CharacterStatsInitialization.md#64-trait-stat-deltas-apply-on-grant-not-only-at-creation-v0352). | August 22, 2026 |
+  | 0.35.2 | Backpack UX (§11): the bag's count/capacity moved from prose into badges (`bonusBadgeShowZeros`), and `ItemsCards` now lists usable items before locked ones. | August 22, 2026 |
+  | 0.35.1 | Items resolution, part four — the quantities. Three nullable columns on `list_items` (`V0.35.1__item_amounts_and_unique_inventory_row.sql`): `max_per_character` caps what a character may hold and refuses a further ADD without failing the event that offered it, while `amount_drop` and `amount_use` say how many units one drop or one usage moves — and the same migration folds duplicate inventory rows and forbids new ones (§8a-§8e). The three numbers then travel in `items[]`, so the bag can write "2/3" and grey out a usage the engine would refuse (§8f). | August 22, 2026 |
+  | 0.35.0 | Items resolution — UX refinement of the Step 34 inventory engine: using an item now closes the backpack and narrates on a clean page, an item card falls back on its own card when no effect row carries one, and the react-admin Item Effects form finally offers the narrative card, a closed vocabulary for `effect_code` and the trait pickers (§1-§4). `flagShowEffects` lets a story keep an item's effects secret while still applying them, and `effects[]` on every inventory row lets the board show what using it promises (§5-§7). | August 21, 2026 |
 
 - **Last Updated**: August 22, 2026
 - **Status**: Complete
+
+
+
+
+
+# < Paths Games />
+All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
+
+Some content and portions of code in this repository were also produced with the support of artificial intelligence tools, whose contribution helped enrich and accelerate the creation of the material. Every piece of information and code fragment has nevertheless been carefully checked and validated with the goal of ensuring the highest quality and reliability of the provided content.
+
+For all details, in-depth information, or requests for clarification, please visit [Paths.Games](https://paths.games/) website
+
+
+
+## License
+Made with ❤️ by <a href="https://github.com/gamespaths/pathsgames">paths.games dev team</a>
+&bull; 
+Public projects 
+<a href="https://www.gnu.org/licenses/gpl-3.0"  valign="middle"> <img src="https://img.shields.io/badge/License-GPL%20v3-blue?style=plastic" alt="GPL v3" valign="middle" /></a>
+*Free Software!*
+
+
+The software is distributed under the terms of the GNU General Public License v3.0. Use, modification, and redistribution are permitted, provided that any copy or derivative work is released under the same license. The content is provided "as is", without any warranty, express or implied.
+
+
+Narrative Content & Assets: The story, dialogues, characters, sounds, musics, paint, all artist contents and world-building (located on /data folder) are NOT open source. They are licensed under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 (CC BY-NC-ND 4.0).
+
+
+(ITA) Il software è distribuito secondo i termini della GNU General Public License v3.0. L'uso, la modifica e la ridistribuzione sono consentiti, a condizione che ogni copia o lavoro derivato sia rilasciato con la stessa licenza. Il contenuto è fornito "così com'è", senza alcuna garanzia, esplicita o implicita.

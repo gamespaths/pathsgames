@@ -465,7 +465,7 @@ class EventExecutionStoreAdapterReadWriteTest {
         GamingCharacterInstanceEntity c = character();
         when(characterRepository.findById(any())).thenReturn(Optional.of(c));
 
-        adapter.updateCharacterStats(1L, 3L, new CharacterStats(9, 8, 7, 6, 5, 4, 3));
+        adapter.updateCharacterStats(1L, 3L, new CharacterStats(9, 8, 7, 6, 5, 4, 3, 22, 21, 20, 19));
 
         assertEquals(9, c.getDexterity());
         assertEquals(8, c.getIntelligence());
@@ -474,13 +474,18 @@ class EventExecutionStoreAdapterReadWriteTest {
         assertEquals(5, c.getLife());
         assertEquals(4, c.getSad());
         assertEquals(3, c.getExp());
+        // v0.35.2 — the four maxima are written too: a trait granted mid-game moves them.
+        assertEquals(22, c.getLifeMax());
+        assertEquals(21, c.getEnergyMax());
+        assertEquals(20, c.getSadMax());
+        assertEquals(19, c.getWeightMax());
         verify(characterRepository).save(c);
     }
 
     @Test
     void updateCharacterStats_missingCharacterIsANoOp() {
         when(characterRepository.findById(any())).thenReturn(Optional.empty());
-        adapter.updateCharacterStats(1L, 3L, new CharacterStats(1, 1, 1, 1, 1, 1, 1));
+        adapter.updateCharacterStats(1L, 3L, new CharacterStats(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1));
         verify(characterRepository, never()).save(any());
     }
 

@@ -83,7 +83,10 @@ class _Live:
         self.exp = view.get("exp") or 0
         self.energy_max = view.get("energy_max") or 0
         self.life_max = view.get("life_max") or 0
+        # v0.35.2 — the maxima are no longer read-only: a trait granted mid-game moves
+        # them, and the clamps have to read the new ceiling in the same execution.
         self.sad_max = view.get("sad_max") or 0
+        self.weight_max = view.get("weight_max") or 0
         self.food = backpack.get("food", 0)
         self.magic = backpack.get("magic", 0)
         self.coin = backpack.get("coin", 0)
@@ -759,10 +762,48 @@ class EventService(EventPort):
             if self.store.add_trait(x.match["id"], recipient["id"], id_trait, event.get("id")):
                 x.trait_changes.append(EntityChange(
                     recipient.get("uuid"), x.trait_uuids().get(id_trait), ADD))
+                self._apply_trait_stats(x, recipient, id_trait, 1)
         for id_trait in _csv_ids(effect.get("traits_to_remove")):
             if self.store.remove_trait(x.match["id"], recipient["id"], id_trait):
                 x.trait_changes.append(EntityChange(
                     recipient.get("uuid"), x.trait_uuids().get(id_trait), REMOVE))
+                self._apply_trait_stats(x, recipient, id_trait, -1)
+
+    def _apply_trait_stats(self, x: "_Exec", recipient: Dict[str, Any],
+                           id_trait: int, sign: int) -> None:
+        """v0.35.2 — a trait carries stat deltas, and until this version they were applied
+        only at character creation: a trait handed over by an event or an item wrote its row
+        and changed nothing, while its card went on promising "+2 life" to a player whose
+        life bar never moved.
+
+        The maxima are a plain sum (template + class + difficulty + traits + class bonuses),
+        so adding the trait's own deltas gives exactly what recomputing the whole formula
+        would, without loading that graph again. ``sign`` is +1 on a grant and -1 on a
+        removal, which makes the two directions the same code and exact inverses.
+
+        Current life and energy follow their ceiling, because a character is CREATED full: a
+        +2 life trait heals two, and losing it takes two back. Sadness does not follow its
+        ceiling, because a character is created at zero sadness — a trait raises the room
+        available, it does not make anyone sadder. Dexterity, intelligence and constitution
+        have no ceiling at all, so their delta lands directly.
+        """
+        stats = x.trait_stats().get(id_trait)
+        if not stats:
+            return  # a trait id no story row matches is authored noise, not an error
+        live = x.live(recipient)
+        live.life_max = max(0, live.life_max + sign * stats.get("life", 0))
+        live.energy_max = max(0, live.energy_max + sign * stats.get("energy", 0))
+        live.sad_max = max(0, live.sad_max + sign * stats.get("sad", 0))
+        live.weight_max = max(0, live.weight_max + sign * stats.get("weight", 0))
+
+        for stat, key in (("life", "life"), ("energy", "energy"), ("dex", "dexterity"),
+                          ("int", "intelligence"), ("cos", "constitution")):
+            delta = sign * stats.get(key, 0)
+            if delta:
+                self._apply_stat(x, recipient, {"statistics": stat, "value": delta})
+        # The sadness ceiling moved above; the current value stays where it was, and this is
+        # what keeps it inside a ceiling that may have come down.
+        live.set_sad(live.sad)
 
     def _apply_characteristics(self, x: "_Exec", recipient: Dict[str, Any],
                                effect: Dict[str, Any]) -> None:
@@ -1144,6 +1185,9 @@ class EventService(EventPort):
                 "dexterity": live.dexterity, "intelligence": live.intelligence,
                 "constitution": live.constitution, "energy": live.energy,
                 "life": live.life, "sad": live.sad, "exp": live.exp,
+                # v0.35.2 — the four maxima ride along: a trait moves them.
+                "life_max": live.life_max, "energy_max": live.energy_max,
+                "sad_max": live.sad_max, "weight_max": live.weight_max,
             })
             if live.backpack_dirty:
                 self.store.update_backpack(x.match["id"], live.id, {
@@ -1310,6 +1354,7 @@ class _Exec:
         self._all_characters: Optional[List[Dict[str, Any]]] = None
         self._item_uuids: Optional[Dict[int, str]] = None
         self._item_max_per_character: Optional[Dict[int, Optional[int]]] = None
+        self._trait_stats: Optional[Dict[int, Dict[str, int]]] = None
         self._trait_uuids: Optional[Dict[int, str]] = None
         self._location_uuids: Optional[Dict[int, str]] = None
         # Current location per character: seeded from the views, rewritten by forced movement.
@@ -1416,6 +1461,12 @@ class _Exec:
             self._item_max_per_character = \
                 self._service.store.find_item_max_per_character_by_id(self.match["id_story"])
         return self._item_max_per_character
+
+    def trait_stats(self) -> Dict[int, Dict[str, int]]:
+        """v0.35.2 — the trait deltas, read once per execution however many traits change."""
+        if self._trait_stats is None:
+            self._trait_stats = self._service.store.find_trait_stats_by_id(self.match["id_story"])
+        return self._trait_stats
 
     def trait_uuids(self) -> Dict[int, str]:
         if self._trait_uuids is None:

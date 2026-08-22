@@ -381,12 +381,12 @@
         "SLEEPING": "You are asleep and cannot use anything.",
         "COMA": "You are in a coma: you cannot use anything.",
         "MATCH_NOT_RUNNING": "The match is not running.",
-        "ITEM_NOT_ENOUGH": "Using this takes more units than you carry."
+        "ITEM_NOT_ENOUGH": "Using takes more units than you carry."
       }
     },
     "items": {
       "title": "Backpack",
-      "description": "Organizing your gear will allow you to travel with readiness and order. On this book page you can see all your items and use them.",
+      "description": "Organizing your gear will allow you to travel with readiness and order. On this book page you can see all your items and use them. <br /><br />Some items are consumable and removable, while other items you cannot use or remove.",
       "open": "Backpack",
       "empty": "You are carrying nothing.",
       "back": "Back",

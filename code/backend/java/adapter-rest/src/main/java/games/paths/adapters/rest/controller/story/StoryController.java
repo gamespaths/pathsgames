@@ -285,6 +285,9 @@ public class StoryController {
         r.setIntelligence(ti.getIntelligence());
         r.setConstitution(ti.getConstitution());
         r.setWeight(ti.getWeight());
+        // v0.35.2 — the same mapper serves the story detail and the per-class list, so both
+        // carry the flag and neither drops a hidden trait: the client hides it, on one page.
+        r.setHideOnStartMatch(ti.isHideOnStartMatch());
         return r;
     }
 

@@ -21,14 +21,19 @@ export default function ItemsCard({
 }) {
   const { t } = useTranslation()
   const card = buildItemsCard(t)
-  const carried = `${count} ${t('game.items.count')}`
-  const figures = (weightMax
-    ? `${carried} — ${t('game.items.capacity')} ${weight ?? 0}/${weightMax}`
-    : carried)
-  // The blank line separates the figures from the prose. The description is rendered
-  // through SafeHtml (DOMPurify, html profile), which keeps <br> — and it is only ever
-  // shown by the page variant: a little card renders its title and image, never this.
-  card.description = `${figures}<br><br>${t('game.items.description')}`
+  // v0.35.2 — the figures are badges, not a sentence. They used to be written into the
+  // description, where they read as prose and could not line up with the item rows on the
+  // facing page; now they are the same BonusBadgeList an ItemCard carries, so the bag and
+  // the things in it are measured in the same alphabet.
+  const figures = [/*{ key: 'amount', value: `${count}`, label: t('game.items.count') }*/]
+  if (weightMax) {
+    figures.push({ key: 'weight', value: `${weight ?? 0}/${weightMax}`,
+                   label: t('game.items.capacity') })
+  }
+  // What is left is the prose: what this page is for. The description is rendered through
+  // SafeHtml and is only ever shown by the page variant — a little card shows its title
+  // and image, never this.
+  card.description = t('game.items.description')
 
   if (variant === 'page') {
     return (
@@ -39,6 +44,10 @@ export default function ItemsCard({
         story={story}
         loading={false}
         onClose={onClose}
+        statItemsToPageContent={figures}
+        // An empty bag is exactly the state worth reporting: "0 items, 0/30" must not be
+        // filtered away as a zero.
+        bonusBadgeShowZeros
         hidePreview
       />
     )
@@ -51,6 +60,10 @@ export default function ItemsCard({
       onAction={onOpen}
       actionLabel={t('game.items.open')}
       actionIcon="fa-suitcase"
+      statistics={figures}
+      flagShowFullStatistics
+      bonusBadgeListLittleIntoImage
+      bonusBadgeShowZeros
     />
   )
 }

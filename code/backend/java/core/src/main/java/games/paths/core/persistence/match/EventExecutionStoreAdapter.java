@@ -219,6 +219,23 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
 
     @Override
     @Transactional(readOnly = true)
+    public Map<Long, TraitStats> findTraitStatsById(long idStory) {
+        // v0.35.2 — one query for the story, like the uuid map beside it: an execution
+        // carries a handful of trait changes and must not pay a query for each.
+        Map<Long, TraitStats> out = new HashMap<>();
+        for (TraitEntity t : storyReadPort.findTraitsByStoryId(idStory)) {
+            if (t.getId() != null) {
+                out.put(t.getId(), new TraitStats(
+                        nz(t.getLife()), nz(t.getEnergy()), nz(t.getSad()),
+                        nz(t.getDexterity()), nz(t.getIntelligence()), nz(t.getConstitution()),
+                        nz(t.getWeight())));
+            }
+        }
+        return out;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Map<Long, String> findTraitUuidsById(long idStory) {
         Map<Long, String> out = new HashMap<>();
         for (TraitEntity t : storyReadPort.findTraitsByStoryId(idStory)) {
@@ -318,6 +335,11 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
                     c.setLife(stats.life());
                     c.setSad(stats.sad());
                     c.setExp(stats.exp());
+                    // v0.35.2 — the maxima move with a trait, so they are written here too.
+                    c.setLifeMax(stats.lifeMax());
+                    c.setEnergyMax(stats.energyMax());
+                    c.setSadMax(stats.sadMax());
+                    c.setWeightMax(stats.weightMax());
                     characterRepository.save(c);
                 });
     }
@@ -681,7 +703,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
                 c.getId(), c.getUuid(), c.getIdUser(), c.getIdClass(), c.getIdLocation(),
                 nz(c.getDexterity()), nz(c.getIntelligence()), nz(c.getConstitution()),
                 nz(c.getEnergy()), nz(c.getLife()), nz(c.getSad()), nz(c.getExp()),
-                nz(c.getEnergyMax()), nz(c.getLifeMax()), nz(c.getSadMax()),
+                nz(c.getEnergyMax()), nz(c.getLifeMax()), nz(c.getSadMax()), nz(c.getWeightMax()),
                 Boolean.TRUE.equals(c.getIsSleeping()), Boolean.TRUE.equals(c.getIsComa()),
                 c.getCharacteristics());
     }

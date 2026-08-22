@@ -170,7 +170,8 @@ public class MatchController {
             case ACTIVE_MATCH_ALREADY_EXISTS -> HttpStatus.CONFLICT;
             case STORY_HAS_NO_LOCATIONS, INVALID_INPUT, TURNSTILE_VALIDATION_FAILED,
                  TRAIT_NOT_FOUND, TRAIT_DUPLICATED,
-                 TRAIT_NOT_COMPATIBLE, TRAIT_COST_EXCEEDED -> HttpStatus.BAD_REQUEST;
+                 TRAIT_NOT_COMPATIBLE, TRAIT_COST_EXCEEDED,
+                 TRAIT_NOT_SELECTABLE -> HttpStatus.BAD_REQUEST;
         };
     }
 }

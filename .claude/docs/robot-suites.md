@@ -19,7 +19,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `20_website` | Website/Turnstile captcha flow |
 | `21_character_selection` | Character join, stat formula, backpack/traits |
 | `22_story_validation` | Story import validation rules |
-| `23_trait_selection` | Trait selection with class/cost/compatibility checks |
+| `23_trait_selection` | Trait selection with class/cost/compatibility checks, and the v0.35.2 hidden traits |
 | `24_turn_cycle` | Full turn cycle gameplay |
 | `25_time_clock` | Active location seeding and time clock |
 | `26_time_recovery` | Time-start stat recovery, counter re-seed, i18n lang on match info, i18n regression on `/api/stories?lang=` |
@@ -47,6 +47,16 @@ Because of that guard, any suite creating two matches for one guest on the same 
 now mints a guest per match via `Use A Fresh Guest Token` (`resources/auth.resource`;
 rebinds `${TOKEN}`, test-scoped in a test and suite-scoped in a Suite Setup). Already
 applied to 19_match, 20_website, 21, 23, 24, 25, 26, 27 and 28.
+
+### `23_trait_selection` breakdown
+
+`trait_selection.robot` — the four Step 23 refusals, plus five cases for `hideOnStartMatch`
+(v0.35.2): the API keeps RETURNING a hidden trait on both projections that carry traits and
+every trait carries the key, while selecting one is refused with `TRAIT_NOT_SELECTABLE` at
+join and in the creator loadout alike (one validator, two doors), and a trait without the
+flag stays pickable. The hidden trait is found by behaviour, and the shared `Pick Story
+Loadout` keyword now skips flagged traits — every suite that mints a character comes
+through it, so the guard lives there rather than in each of them.
 
 ### `28_movement` breakdown
 

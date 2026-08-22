@@ -180,6 +180,13 @@ One `list_events_effects` row at a time, in authored order.
   many characters that row targets. The in-memory context is updated too, so a later effect in the
   same chain reads what the previous one wrote.
 - An unknown `statistics` value is authored noise: ignored, not an error.
+- **`traits_to_add`/`traits_to_remove` also move stats now (v0.35.2)**: granting or
+  removing a trait through this effect no longer just writes the
+  `gaming_character_traits` row — the trait's own `life`/`energy`/`sad`/`dexterity`/
+  `intelligence`/`constitution`/`weight` deltas are applied (or reversed) the same
+  moment, through the same clamp and `statChanges` reporting as any other effect. The
+  formula and the reasoning live in
+  [Step23_CharacterStatsInitialization.md §6.4](./Step23_CharacterStatsInitialization.md#64-trait-stat-deltas-apply-on-grant-not-only-at-creation-v0352).
 
 ### Forced movement (v0.29.3)
 
@@ -296,16 +303,17 @@ effect 14 with `idLocation: 3` — see the [v0.29.3 Roadmap entry](./Roadmap.md)
 
 # Version Control
 
-- **Document Version**: 0.31.0 (here only due changes)
+- **Document Version**: 0.35.2 (here only due changes)
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.29.0 | Normal events (player-triggered actions) | July 13, 2026 |
   | 0.29.3 | Forced movement via event effects: `list_events_effects.id_location` (nullable), engine bypasses the whole Step 28 check procedure and writes a cost-0 `log_movements` row per move; `movementApplied`/`locationChanges` on the execute-event response; admin form field; Robot suite 17 → 18 tests | July 17, 2026 |
   | 0.31.0 | `execute-event` gained `status` (`APPLIED`/`CHOICES_PENDING`): an event owning `list_choices` rows now branches to the Step 31 choice engine instead of applying effects; a plain event keeps this step's flow unchanged and answers `status: APPLIED` with empty `pendingChoices`. See [Step31_ChoiceEngine.md](./Step31_ChoiceEngine.md). | July 22, 2026 |
+  | 0.35.2 | Noted that `traits_to_add`/`traits_to_remove` on this effect row now also move the recipient's stats, not just the trait list. The formula itself is documented in [Step23 §6.4](./Step23_CharacterStatsInitialization.md#64-trait-stat-deltas-apply-on-grant-not-only-at-creation-v0352). | August 22, 2026 |
 
 
-- **Last Updated**: July 22, 2026
+- **Last Updated**: August 22, 2026
 - **Status**: Complete
 
 # < Paths Games />

@@ -554,13 +554,16 @@ class MatchCommandServiceTest {
         @Test
         @DisplayName("Code enum has expected entries")
         void codes() {
-            assertEquals(13, MatchCommandPort.MatchCreationException.Code.values().length);
+            // v0.35.2 added TRAIT_NOT_SELECTABLE.
+            assertEquals(14, MatchCommandPort.MatchCreationException.Code.values().length);
             assertEquals(MatchCommandPort.MatchCreationException.Code.USER_BANNED,
                     MatchCommandPort.MatchCreationException.Code.valueOf("USER_BANNED"));
             assertEquals(MatchCommandPort.MatchCreationException.Code.ACTIVE_MATCH_ALREADY_EXISTS,
                     MatchCommandPort.MatchCreationException.Code.valueOf("ACTIVE_MATCH_ALREADY_EXISTS"));
             assertEquals(MatchCommandPort.MatchCreationException.Code.TRAIT_COST_EXCEEDED,
                     MatchCommandPort.MatchCreationException.Code.valueOf("TRAIT_COST_EXCEEDED"));
+            assertEquals(MatchCommandPort.MatchCreationException.Code.TRAIT_NOT_SELECTABLE,
+                    MatchCommandPort.MatchCreationException.Code.valueOf("TRAIT_NOT_SELECTABLE"));
         }
 
         @Test

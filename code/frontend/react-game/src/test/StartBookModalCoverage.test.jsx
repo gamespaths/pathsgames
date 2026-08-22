@@ -170,3 +170,53 @@ describe('StartBookModal — class re-validation', () => {
     expect(screen.getByTestId('opt-unknown')).toHaveTextContent('0')
   })
 })
+
+describe('StartBookModal — traits hidden from the start-match page (v0.35.2)', () => {
+  // The hidden one comes FIRST on purpose: that is the case that used to arm the loadout
+  // with a trait the picker never shows, leaving nobody able to remove it.
+  const HIDDEN_FIRST = {
+    ...STORY,
+    traits: [
+      { uuid: 't0', id: 20, name: 'Cursed', hideOnStartMatch: true, card: { title: 'Cursed' } },
+      { uuid: 't1', id: 21, name: 'Brave', card: { title: 'Brave' } },
+    ],
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getStoryDetail.mockResolvedValue(HIDDEN_FIRST)
+  })
+
+  it('never offers a hidden trait in the picker', async () => {
+    wrap(HIDDEN_FIRST)
+    await screen.findByTestId('config-view')
+
+    fireEvent.click(screen.getByText('change-trait'))
+    expect(screen.getByText('pick:Brave')).toBeInTheDocument()
+    expect(screen.queryByText('pick:Cursed')).toBeNull()
+    // The mobile column asks the same question and must get the same answer.
+    expect(screen.getByTestId('opt-trait').textContent).toBe('1')
+  })
+
+  it('preselects the first PICKABLE trait, not the first one', async () => {
+    wrap(HIDDEN_FIRST)
+    await screen.findByTestId('config-view')
+
+    // Arming the loadout with 'Cursed' would fail the join with TRAIT_NOT_SELECTABLE, and
+    // the player would have no way to take it off: the picker does not list it.
+    expect(screen.getByTestId('sel-traits').textContent).toBe('Brave')
+  })
+
+  it('selects nothing when every trait of the story is hidden', async () => {
+    const ALL_HIDDEN = {
+      ...STORY,
+      traits: [{ uuid: 't0', id: 20, name: 'Cursed', hideOnStartMatch: true, card: {} }],
+    }
+    getStoryDetail.mockResolvedValue(ALL_HIDDEN)
+    wrap(ALL_HIDDEN)
+    await screen.findByTestId('config-view')
+
+    expect(screen.getByTestId('sel-traits').textContent).toBe('none')
+    expect(screen.getByTestId('opt-trait').textContent).toBe('0')
+  })
+})

@@ -70,7 +70,7 @@ These tables are populated by a story importer and are **read-only** during game
 | **StoryKey** | `list_keys` | Registry key definitions for a story: `id_card`, `id_story`, `name`, `value`, `id_text_description`, `group`, `priority`, `visibility`. |
 | **CharacterClass** | `list_classes` | Classes available in a story: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `weight_max`, `dexterity_base`, `intelligence_base`, `constitution_base`. |
 | **ClassBonus** | `list_classes_bonus` | Per-class recurring bonus applied at each time start: `id_card`, `id_story`, `id_class`, `statistic`, `value`, `id_text_name`, `id_text_description`. |
-| **Trait** | `list_traits` | Selectable character traits: `id_card`, `id_story`, `id_class_permitted`, `id_class_prohibited`, `id_text_name`, `id_text_description`, `cost_positive`, `cost_negative`, `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` (all `INTEGER NOT NULL DEFAULT 0`, added v0.19.6 — signed deltas applied to the matching character statistic when the trait is selected; negative values are maluses). |
+| **Trait** | `list_traits` | Selectable character traits: `id_card`, `id_story`, `id_class_permitted`, `id_class_prohibited`, `id_text_name`, `id_text_description`, `cost_positive`, `cost_negative`, `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` (all `INTEGER NOT NULL DEFAULT 0`, added v0.19.6 — signed deltas applied to the matching character statistic when the trait is selected; negative values are maluses). **New in v0.35.2**: `hide_on_start_match` (`INTEGER`, nullable, `DEFAULT 0`) — `0`/`NULL` = pickable at character creation, same reading as `id_class_permitted`; `1` = never offered and refused if selected (`TRAIT_NOT_SELECTABLE`), yet still grantable at any time via an item's or event's `traits_to_add` and still returned by the trait-listing/story-detail APIs — see [Step23_CharacterStatsInitialization.md §5.3](./Step23_CharacterStatsInitialization.md#53-schema-change--list_traitshide_on_start_match-v0352). |
 | **CharacterTemplate** | `list_character_templates` | Pre-built character archetypes: PK is `id_tipo`, plus `id_card`, `id_story`, `id_text_name`, `id_text_description`, `life_max`, `energy_max`, `sad_max`, `dexterity_start`, `intelligence_start`, `constitution_start`, `id_class_permitted` (nullable FK → `list_classes`), `id_class_prohibited` (nullable FK → `list_classes`). |
 | **Location** | `list_locations` | A place on the game board: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `id_text_narrative`, `id_image`, `is_safe`, `cost_energy_enter`, `counter_time`, `id_event_if_counter_zero`, `secure_param`, `id_event_if_character_start_time`, `id_event_if_character_enter_empty_location`, `id_event_if_first_time`, `id_event_not_first_time`, `priority_automatic_event`, `id_audio`, `max_characters`. |
 | **LocationNeighbor** | `list_locations_neighbors` | Directed edge between two locations: `id_story`, `id_location_from`, `id_location_to`, `direction` (NORTH/SOUTH/EAST/WEST/ABOVE/BELOW/SKY), `flag_back`, `condition_registry_key`, `condition_registry_value`, `energy_cost`, `id_text_go`, `id_text_back`. |
@@ -870,7 +870,7 @@ Total tables: **52** (2 system + 2 user + 23 reference + 25 runtime/log)
     > Read all documentation_v0 content and create Step09 — Design the core data model: Identify main entities, Define relationships between entities, Identify persistent vs transient data, List valid game states, Define rules that must never be broken, Validate models with real cases  
     
     > Reload Step01 file and update the document with new tables
-- **Document Version**: 0.34.0
+- **Document Version**: 0.35.2
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.9.0 | first version of document | March 9, 2026 |
@@ -883,7 +883,8 @@ Total tables: **52** (2 system + 2 user + 23 reference + 25 runtime/log)
     | 0.19.7 | Added seven stat columns (`life`, `energy`,...) to `list_stories_difficulty` | May 19, 2026 |
     | 0.29.0 | Normal events (player-triggered actions) | July 13, 2026 |
     | 0.34.0 | Inventory and resources, implemented. | August 20, 2026 |
-- **Last Updated**: August 20, 2026
+    | 0.35.2 | Added `hide_on_start_match` to `list_traits` — locks a trait out of character-creation selection while it stays grantable via `traits_to_add`; see Step 23 §5.3. | August 22, 2026 |
+- **Last Updated**: August 22, 2026
 - **Status**: Complete ✅
 
 

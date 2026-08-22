@@ -59,3 +59,24 @@ export function toggleTrait(trait, selectedTraits) {
   }
   return [...list, trait]
 }
+
+/**
+ * v0.35.2 — the traits a player may actually pick when starting a match.
+ *
+ * `hideOnStartMatch` is reported by the API and filtered HERE, on the one page where it
+ * means something. It is deliberately not filtered anywhere else: the very same
+ * `story.traits` array resolves the traits a character already OWNS (PlayerCards, through
+ * `resolveSelectionEntity`), and a hidden trait granted by an event or an item has to show
+ * up there — that is what the flag exists for.
+ *
+ * The server refuses a hidden trait anyway (`TRAIT_NOT_SELECTABLE`); this only spares the
+ * player a choice that was going to be rejected.
+ */
+export function selectableTraits(traits) {
+  return (traits ?? []).filter(t => t?.hideOnStartMatch !== true)
+}
+
+/** True when the trait is one the story keeps out of the start-match picker. */
+export function isTraitHiddenOnStartMatch(trait) {
+  return trait?.hideOnStartMatch === true
+}

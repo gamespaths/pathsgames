@@ -38,6 +38,33 @@ describe('ItemsCards', () => {
     expect(screen.getAllByTestId('item-card')).toHaveLength(2)
   })
 
+  it('shows what can be used first, and keeps the rest in the order it arrived (v0.35.2)', () => {
+    const stats = { items: [
+      ROW('carried', { isConsumabile: false }),
+      ROW('usable-a'),
+      ROW('scarce', { amount: 1, amountUse: 2 }),   // consumable, but not enough units
+      ROW('usable-b'),
+    ] }
+
+    render(<ItemsCards playerStats={stats} onPreview={vi.fn()} />)
+
+    // The two halves are exactly the unlocked cards and the padlocked ones, and inside
+    // each half nothing was reshuffled — Array.sort is stable.
+    expect(screen.getAllByTestId('item-card').map(n => n.textContent))
+      .toEqual(['usable-a', 'usable-b', 'carried', 'scarce'])
+  })
+
+  it('sorts by the same rule the card locks itself with', () => {
+    // A padlocked card sitting among the usable ones would be worse than any order: the
+    // list and the card would be telling the player two different things.
+    const stats = { items: [ROW('scarce', { amount: 1, amountUse: 2 }), ROW('usable')] }
+
+    render(<ItemsCards playerStats={stats} onPreview={vi.fn()} />)
+
+    expect(screen.getAllByTestId('item-card').map(n => n.textContent))
+      .toEqual(['usable', 'scarce'])
+  })
+
   it('says nothing at all when the bag is empty', () => {
     // An empty bag is not news: the LEFT page already reads "0 items", so a sentence here
     // would be the same fact twice. The list is simply not rendered.

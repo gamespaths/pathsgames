@@ -3,7 +3,7 @@ import { useTranslation } from '@/i18n/context'
 import Card from '@/components/layout/Card'
 import { dropItem, useItem } from '@/api/matches'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
-import { itemCarryBadges, itemDescriptionBadges, unitsPerUse } from '@/utils/statBadges'
+import { isItemUsable, itemCarryBadges, itemDescriptionBadges, unitsPerUse } from '@/utils/statBadges'
 
 /**
  * ItemCard — Step 34. One card per row of the calling character's inventory.
@@ -38,8 +38,9 @@ export default function ItemCard({
   // only spares the player a click that was going to be answered with an error.
   const perUse = unitsPerUse(item)
   const carried = item?.amount ?? 1
-  const enough = carried >= perUse
-  const usable = consumable && enough
+  // The same predicate the bag sorts by (isItemUsable), so a locked card can never end up
+  // among the usable ones.
+  const usable = isItemUsable(item)
   const locked = !usable
   // Two registers for the same refusal: the card has room for one word, the preview has
   // room for the sentence that explains it. The figures ride on the long one, since the

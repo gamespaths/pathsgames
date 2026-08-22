@@ -74,7 +74,7 @@ class EventExecutionServiceStandaloneTest {
     /** life/sad configurable; dex/int/cos 10, energy 20/100, sadMax 50. */
     private static EventActorView actor(int life, int sad) {
         return new EventActorView(CHAR_ID, "char-uuid", USER_ID, 50L, LOC,
-                10, 10, 10, 20, life, sad, 0, 100, 100, 50, false, false, null);
+                10, 10, 10, 20, life, sad, 0, 100, 100, 50, 30, false, false, null);
     }
 
     private static EventCheckContext ctx() {

@@ -31,6 +31,7 @@ _STATUS_BY_CODE = {
     MatchCreationError.TRAIT_DUPLICATED: status.HTTP_400_BAD_REQUEST,
     MatchCreationError.TRAIT_NOT_COMPATIBLE: status.HTTP_400_BAD_REQUEST,
     MatchCreationError.TRAIT_COST_EXCEEDED: status.HTTP_400_BAD_REQUEST,
+    MatchCreationError.TRAIT_NOT_SELECTABLE: status.HTTP_400_BAD_REQUEST,
 }
 
 

@@ -100,7 +100,7 @@ class EventExecutionServiceEdgeStatesTest {
     /** cos 10, energy 20/100, life 30/100, sad 0/50. */
     private static EventActorView actor() {
         return new EventActorView(CHAR_ID, "char-uuid", USER_ID, 50L, LOC,
-                10, 10, 10, 20, 30, 0, 0, 100, 100, 50, false, false, null);
+                10, 10, 10, 20, 30, 0, 0, 100, 100, 50, 30, false, false, null);
     }
 
     private static EventEntity event() {
@@ -197,7 +197,7 @@ class EventExecutionServiceEdgeStatesTest {
     @DisplayName("A survivor means no epilogue at all")
     void survivorSkipsTheEpilogue() {
         EventActorView survivor = new EventActorView(30L, "mate-uuid", 20L, 51L, LOC,
-                10, 10, 10, 20, 30, 0, 0, 100, 100, 50, false, false, null);
+                10, 10, 10, 20, 30, 0, 0, 100, 100, 50, 30, false, false, null);
         when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(actor(), survivor));
         when(store.findIdEventAllPlayerComa(STORY_ID)).thenReturn(Optional.of(COMA_EVENT_ID));
 
@@ -215,7 +215,7 @@ class EventExecutionServiceEdgeStatesTest {
     @DisplayName("An untouched character already in coma still counts as down")
     void untouchedComatoseCounts() {
         EventActorView alreadyDown = new EventActorView(30L, "mate-uuid", 20L, 51L, 999L,
-                10, 10, 10, 20, 0, 0, 0, 100, 100, 50, true, true, null);
+                10, 10, 10, 20, 0, 0, 0, 100, 100, 50, 30, true, true, null);
         when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(actor(), alreadyDown));
         when(store.findIdEventAllPlayerComa(STORY_ID)).thenReturn(Optional.of(COMA_EVENT_ID));
 
@@ -306,7 +306,7 @@ class EventExecutionServiceEdgeStatesTest {
     void overflowCascadeReachesTheEpilogue() {
         // sad to the cap costs COS=10 life; start life at 8 so the hit empties the bar.
         EventActorView frail = new EventActorView(CHAR_ID, "char-uuid", USER_ID, 50L, LOC,
-                10, 10, 10, 20, 8, 0, 0, 100, 100, 50, false, false, null);
+                10, 10, 10, 20, 8, 0, 0, 100, 100, 50, 30, false, false, null);
         when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID)).thenReturn(Optional.of(frail));
         when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(frail));
         when(store.findIdEventAllPlayerComa(STORY_ID)).thenReturn(Optional.of(COMA_EVENT_ID));

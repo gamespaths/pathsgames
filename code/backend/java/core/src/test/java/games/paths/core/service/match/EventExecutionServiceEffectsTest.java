@@ -99,17 +99,17 @@ class EventExecutionServiceEffectsTest {
     /** dex/int/cos 10, energy 20/100, life 30/100, sad 0/50, exp 0. */
     private static EventActorView actor() {
         return new EventActorView(CHAR_ID, "char-uuid", USER_ID, 50L, LOC,
-                10, 10, 10, 20, 30, 0, 0, 100, 100, 50, false, false, null);
+                10, 10, 10, 20, 30, 0, 0, 100, 100, 50, 30, false, false, null);
     }
 
     private static EventActorView mate() {
         return new EventActorView(MATE_ID, "mate-uuid", 20L, 51L, LOC,
-                10, 10, 10, 20, 30, 0, 0, 100, 100, 50, false, false, null);
+                10, 10, 10, 20, 30, 0, 0, 100, 100, 50, 30, false, false, null);
     }
 
     private static EventActorView far() {
         return new EventActorView(FAR_ID, "far-uuid", 21L, 50L, 999L,
-                10, 10, 10, 20, 30, 0, 0, 100, 100, 50, false, false, null);
+                10, 10, 10, 20, 30, 0, 0, 100, 100, 50, 30, false, false, null);
     }
 
     private static EventEntity event() {
@@ -482,6 +482,77 @@ class EventExecutionServiceEffectsTest {
             verify(store).removeTrait(MATCH_ID, CHAR_ID, 7L);
             assertEquals(3, r.traitChanges().size());
             assertEquals("trait-uuid", r.traitChanges().get(0).traitUuid());
+        }
+
+        // v0.35.2 — a granted trait moves the maxima and the stats the moment it lands.
+        // Before it, the row was written and nothing else changed: the trait card went on
+        // promising "+2 life" to a player whose life bar never moved.
+        @Test
+        void grantedTraitMovesTheMaximaAndTheStats() {
+            when(store.findTraitStatsById(anyLong())).thenReturn(Map.of(
+                    7L, new EventExecutionStorePort.TraitStats(2, 3, 5, 1, 0, 0, 4)));
+            EventEffectEntity e = effect();
+            e.setTraitsToAdd("7");
+            withEffects(e);
+
+            EventExecutionResult r = execute();
+
+            ArgumentCaptor<CharacterStats> saved = ArgumentCaptor.forClass(CharacterStats.class);
+            verify(store).updateCharacterStats(eq(MATCH_ID), eq(CHAR_ID), saved.capture());
+            CharacterStats st = saved.getValue();
+            // The actor starts at life 30 / lifeMax 100, energy 20 / energyMax 100,
+            // sad 0 / sadMax 50, dex 10, weightMax 30.
+            assertEquals(102, st.lifeMax());
+            assertEquals(103, st.energyMax());
+            assertEquals(55, st.sadMax());
+            assertEquals(34, st.weightMax());
+            // Life and energy follow their ceiling — a character is created full.
+            assertEquals(32, st.life());
+            assertEquals(23, st.energy());
+            assertEquals(11, st.dexterity());
+            // Sadness does not: it is created at zero, so the trait only makes room.
+            assertEquals(0, st.sad());
+            // Reported like any other statistic change — life, energy and dexterity. The
+            // two zero deltas move nothing and say nothing, and neither does sadness.
+            assertEquals(3, r.statChanges().size());
+        }
+
+        @Test
+        void removedTraitTakesBackExactlyWhatItGave() {
+            when(store.findTraitStatsById(anyLong())).thenReturn(Map.of(
+                    7L, new EventExecutionStorePort.TraitStats(2, 3, 5, 1, 0, 0, 4)));
+            EventEffectEntity e = effect();
+            e.setTraitsToAdd("7");
+            e.setTraitsToRemove("7");
+            withEffects(e);
+
+            execute();
+
+            ArgumentCaptor<CharacterStats> saved = ArgumentCaptor.forClass(CharacterStats.class);
+            verify(store).updateCharacterStats(eq(MATCH_ID), eq(CHAR_ID), saved.capture());
+            CharacterStats st = saved.getValue();
+            // Grant then remove in the same execution: every figure is back where it was.
+            assertEquals(100, st.lifeMax());
+            assertEquals(100, st.energyMax());
+            assertEquals(50, st.sadMax());
+            assertEquals(30, st.weightMax());
+            assertEquals(30, st.life());
+            assertEquals(20, st.energy());
+            assertEquals(10, st.dexterity());
+        }
+
+        @Test
+        void aTraitNoStoryRowMatchesIsAuthoredNoise() {
+            when(store.findTraitStatsById(anyLong())).thenReturn(Map.of());
+            EventEffectEntity e = effect();
+            e.setTraitsToAdd("7");
+            withEffects(e);
+
+            EventExecutionResult r = execute();
+
+            // The row is still written and reported; nothing else moves, and nothing throws.
+            assertEquals(1, r.traitChanges().size());
+            assertTrue(r.statChanges().isEmpty());
         }
 
         @Test

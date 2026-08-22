@@ -18,6 +18,12 @@ public class TraitInfo extends AbstractStatInfo {
     private final Integer idClassProhibited;
     private final Integer idCard;
     private final CardInfo card;
+    /**
+     * v0.35.2 - reported, never filtered: the API answers hidden traits too, because the
+     * same list resolves the traits a character already HAS. Only the start-match picker
+     * hides them, and only there.
+     */
+    private final boolean hideOnStartMatch;
 
     private TraitInfo(Builder builder) {
         super(builder);
@@ -30,6 +36,7 @@ public class TraitInfo extends AbstractStatInfo {
         this.idClassProhibited = builder.idClassProhibited;
         this.idCard = builder.idCard;
         this.card = builder.card;
+        this.hideOnStartMatch = builder.hideOnStartMatch;
     }
 
     public String getUuid() { return uuid; }
@@ -41,6 +48,7 @@ public class TraitInfo extends AbstractStatInfo {
     public Integer getIdClassProhibited() { return idClassProhibited; }
     public Integer getIdCard() { return idCard; }
     public CardInfo getCard() { return card; }
+    public boolean isHideOnStartMatch() { return hideOnStartMatch; }
 
     public static Builder builder() { return new Builder(); }
 
@@ -54,6 +62,7 @@ public class TraitInfo extends AbstractStatInfo {
         private Integer idClassProhibited;
         private Integer idCard;
         private CardInfo card;
+        private boolean hideOnStartMatch;
 
         @Override
         protected Builder self() { return this; }
@@ -67,6 +76,7 @@ public class TraitInfo extends AbstractStatInfo {
         public Builder idClassProhibited(Integer idClassProhibited) { this.idClassProhibited = idClassProhibited; return this; }
         public Builder idCard(Integer idCard) { this.idCard = idCard; return this; }
         public Builder card(CardInfo card) { this.card = card; return this; }
+        public Builder hideOnStartMatch(boolean hideOnStartMatch) { this.hideOnStartMatch = hideOnStartMatch; return this; }
 
         public TraitInfo build() {
             return new TraitInfo(this);

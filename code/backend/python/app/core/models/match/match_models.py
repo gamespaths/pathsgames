@@ -278,6 +278,8 @@ class CharacterJoinError(Exception):
     TRAIT_DUPLICATED = "TRAIT_DUPLICATED"
     TRAIT_NOT_COMPATIBLE = "TRAIT_NOT_COMPATIBLE"
     TRAIT_COST_EXCEEDED = "TRAIT_COST_EXCEEDED"
+    # v0.35.2 — the trait is flagged hide_on_start_match and cannot be picked.
+    TRAIT_NOT_SELECTABLE = "TRAIT_NOT_SELECTABLE"
 
     def __init__(self, code: str, message: str):
         super().__init__(message)
@@ -305,6 +307,8 @@ class MatchCreationError(Exception):
     TRAIT_DUPLICATED = "TRAIT_DUPLICATED"
     TRAIT_NOT_COMPATIBLE = "TRAIT_NOT_COMPATIBLE"
     TRAIT_COST_EXCEEDED = "TRAIT_COST_EXCEEDED"
+    # v0.35.2 — the trait is flagged hide_on_start_match and cannot be picked.
+    TRAIT_NOT_SELECTABLE = "TRAIT_NOT_SELECTABLE"
 
     def __init__(self, code: str, message: str):
         super().__init__(message)

@@ -645,8 +645,9 @@ def _sum_bonus(bonuses, stat):
 def _resolve_and_validate_traits(story, clazz, difficulty, trait_uuids):
     """Step 23 — strict trait selection validation shared by create and join.
 
-    Returns (traits, error_response): unknown uuids, duplicates, class
-    incompatibilities and difficulty cost-budget overruns are rejected.
+    Returns (traits, error_response): unknown uuids, duplicates, traits hidden from the
+    start-match picker (v0.35.2), class incompatibilities and difficulty cost-budget
+    overruns are rejected.
     A None/missing budget means "no limit"; blank uuids are ignored.
     """
     all_traits = story.get('traits') or []
@@ -663,6 +664,11 @@ def _resolve_and_validate_traits(story, clazz, difficulty, trait_uuids):
         trait = next((t for t in all_traits if t.get('uuid') == key), None)
         if trait is None:
             return None, _err(400, 'TRAIT_NOT_FOUND', f'Trait not found: {key}')
+        if _nz(trait.get('hideOnStartMatch')) == 1:
+            # v0.35.2 — hide_on_start_match: never offered, and refused if asked for anyway.
+            # An event or an item may still grant it; that is the point of the flag.
+            return None, _err(400, 'TRAIT_NOT_SELECTABLE',
+                              f'Trait {key} cannot be chosen at character creation')
         permitted = trait.get('idClassPermitted')
         prohibited = trait.get('idClassProhibited')
         if permitted is not None and (class_id is None or int(permitted) != int(class_id)):
@@ -2513,7 +2519,8 @@ def _execute_event(user, match_uuid, body, lang='en'):
                                                     item_changes, _item_cap(story, effect))
                 flags['itemAdded'] = flags['itemAdded'] or added
                 flags['itemRemoved'] = flags['itemRemoved'] or removed
-                _events.apply_traits(target_char, effect, trait_uuids, trait_changes)
+                _events.apply_traits(target_char, effect, trait_uuids, trait_changes,
+                                     _traits_by_id(story), stat_changes)
                 _events.apply_characteristics(target_char, effect, characteristic_changes)
                 moved = _events.apply_location(match, target_char, effect, location_uuids,
                                                location_changes, _ts_ms())
@@ -2731,6 +2738,12 @@ def _resolve_inventory_caller(user, match_uuid):
     return match, _story_of(match), caller, None
 
 
+def _traits_by_id(story):
+    """v0.35.2 — the story traits keyed by id, so a granted trait can move the character's
+    maxima the moment it lands. Story sub-entities are embedded lists here."""
+    return {_nz(t.get('id')): t for t in (story.get('traits') or []) if t.get('id') is not None}
+
+
 def _item_cap(story, effect):
     """v0.35.1 — max_per_character of the item an effect hands over, None when it sets no
     cap. Read per effect rather than cached: an execution carries a handful of them, and a
@@ -2876,7 +2889,8 @@ def _use_item(user, match_uuid, body, lang='en'):
 
     for effect in _inventory.standalone_effects(story, item):
         _events.apply_stat(caller, effect, acc['statChanges'])
-        _events.apply_traits(caller, effect, trait_uuids, acc['traitChanges'])
+        _events.apply_traits(caller, effect, trait_uuids, acc['traitChanges'],
+                             _traits_by_id(story), acc['statChanges'])
         applied_effects.append({
             "eventUuid": None,
             "effectUuid": effect.get('uuid'),
@@ -3470,7 +3484,8 @@ def _run_event_chain(match, story, first, caller, characters, ctx, events_by_id,
                                                     acc['itemChanges'], _item_cap(story, effect))
                 acc['flags']['itemAdded'] = acc['flags']['itemAdded'] or added
                 acc['flags']['itemRemoved'] = acc['flags']['itemRemoved'] or removed
-                _events.apply_traits(target_char, effect, {}, acc['traitChanges'])
+                _events.apply_traits(target_char, effect, {}, acc['traitChanges'],
+                                     _traits_by_id(story), acc['statChanges'])
                 _events.apply_characteristics(target_char, effect,
                                               acc['characteristicChanges'])
                 moved = _events.apply_location(match, target_char, effect, location_uuids,

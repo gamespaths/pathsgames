@@ -252,7 +252,7 @@ Pick Story Loadout
     ...                Uses the first story that exposes at least one difficulty, character
     ...                template and class. The first character template in the seeds carries
     ...                no class restriction, so [0]+[0] is a compatible pair. traitUuid is the
-    ...                empty string when the story has no traits.
+    ...                empty string when the story has no SELECTABLE trait (v0.35.2).
     Create Public Session
     ${response}=    GET On Session    public_session    /api/stories
     Status Should Be    ${response}    200
@@ -270,8 +270,13 @@ Pick Story Loadout
         ${tpl_uuid}=    Get From Dictionary    ${templates}[0]    uuid    ${EMPTY}
         ${cls_uuid}=    Get From Dictionary    ${classes}[0]      uuid    ${EMPTY}
         IF    '${tpl_uuid}' == '' or '${cls_uuid}' == ''    CONTINUE
+        # v0.35.2 — a trait flagged `hideOnStartMatch` is returned by the API but refused at
+        # join (TRAIT_NOT_SELECTABLE), so a loadout must never be built out of one. Every
+        # suite that mints a character comes through here, which is why the guard lives here
+        # and not in each of them.
         ${traits}=    Get From Dictionary    ${detail}    traits    ${EMPTY}
-        ${trait_uuid}=    Set Variable If    ${traits}    ${traits}[0][uuid]    ${EMPTY}
+        ${pickable}=    Evaluate    [t for t in $traits if not t.get('hideOnStartMatch')]
+        ${trait_uuid}=    Set Variable If    ${pickable}    ${pickable}[0][uuid]    ${EMPTY}
         RETURN    ${story}[uuid]    ${difficulties}[0][uuid]
         ...    ${tpl_uuid}    ${cls_uuid}    ${trait_uuid}
     END
