@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from sqlalchemy import func
 
 from app.adapters.persistence.match.models import (
+    GamingBackpackResourcesEntity,
     GamingCharacterInstanceEntity,
     GamingInventoryItemsEntity,
     GamingMatchEntity,
@@ -58,7 +59,9 @@ class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
                  .first())
             if c is None:
                 return None
-            return self._character_dict(c, self._carried_weight_by_character(id_match).get(c.id, 0))
+            return self._character_dict(c,
+                                        self._carried_weight_by_character(id_match).get(c.id, 0),
+                                        self._backpack(session, id_match, c.id))
 
     def find_characters_for_movement(self, id_match: int) -> List[Dict[str, Any]]:
         with self.session_factory() as session:
@@ -97,6 +100,10 @@ class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
                         "condition_key": n.condition_key,
                         "condition_value": n.condition_value,
                         "flag_back": n.flag_back or 0,
+                        # v0.35.3 — the edge's resource price; edge-only, no entry/weather term.
+                        "cost_food": n.cost_food or 0,
+                        "cost_magic": n.cost_magic or 0,
+                        "cost_coin": n.cost_coin or 0,
                     })
             return out
 
@@ -146,9 +153,27 @@ class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
             c.ts_update = _now_iso()
             session.commit()
 
+    def update_backpack_resources(self, id_match: int, id_character: int,
+                                  food: int, magic: int, coin: int) -> None:
+        """v0.35.3 — the mover's backpack after an edge cost. Same transaction boundary as
+        the position write: a character who paid the food must be the one who moved."""
+        with self.session_factory() as session:
+            b = (session.query(GamingBackpackResourcesEntity)
+                 .filter(GamingBackpackResourcesEntity.id_match == id_match,
+                         GamingBackpackResourcesEntity.id_character_match == id_character)
+                 .first())
+            if b is None:
+                return
+            b.food = food
+            b.magic = magic
+            b.coin = coin
+            b.ts_update = _now_iso()
+            session.commit()
+
     def insert_movement_log(self, id_match: int, id_character: int,
                             from_location: Optional[int], to_location: int,
-                            energy_cost: int) -> None:
+                            energy_cost: int, food_cost: int = 0,
+                            magic_cost: int = 0, coin_cost: int = 0) -> None:
         with self.session_factory() as session:
             max_id = session.query(func.max(LogMovementEntity.id)).scalar() or 0
             now = _now_iso()
@@ -160,6 +185,9 @@ class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
                 id_location_from=from_location,
                 id_location_to=to_location,
                 energy_cost=energy_cost,
+                food_cost=food_cost,
+                magic_cost=magic_cost,
+                coin_cost=coin_cost,
                 timestamp_start=now,
                 ts_insert=now,
                 ts_update=now,
@@ -213,8 +241,22 @@ class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
             return out
 
     @staticmethod
+    def _backpack(session, id_match: int, id_character: int) -> Dict[str, int]:
+        """v0.35.3 — {food, magic, coin} of one character. A character with no backpack row
+        yet reads as all-zero, which is what the gate should say about somebody owning
+        nothing."""
+        b = (session.query(GamingBackpackResourcesEntity)
+             .filter(GamingBackpackResourcesEntity.id_match == id_match,
+                     GamingBackpackResourcesEntity.id_character_match == id_character)
+             .first())
+        if b is None:
+            return {"food": 0, "magic": 0, "coin": 0}
+        return {"food": b.food or 0, "magic": b.magic or 0, "coin": b.coin or 0}
+
+    @staticmethod
     def _character_dict(c: GamingCharacterInstanceEntity,
-                        carried_weight: int = 0) -> Dict[str, Any]:
+                        carried_weight: int = 0,
+                        backpack: Optional[Dict[str, int]] = None) -> Dict[str, Any]:
         return {
             "id": c.id,
             "uuid": c.uuid,
@@ -226,6 +268,10 @@ class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
             "weight_max": c.weight_max or 0,
             "is_sleeping": bool(c.is_sleeping),
             "is_coma": bool(c.is_coma),
+            # v0.35.3 — the backpack the edge costs are paid from.
+            "food": (backpack or {}).get("food", 0),
+            "magic": (backpack or {}).get("magic", 0),
+            "coin": (backpack or {}).get("coin", 0),
         }
 
     @staticmethod

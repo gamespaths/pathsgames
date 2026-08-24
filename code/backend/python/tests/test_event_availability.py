@@ -12,7 +12,7 @@ LOC = 100
 
 def event(**overrides):
     """An event with no condition at all: executable by anyone, anywhere, for free."""
-    base = {"id": 1, "type": "NORMAL", "cost_enery": 0, "coin_cost": 0}
+    base = {"id": 1, "type": "NORMAL", "cost_enery": 0, "cost_coin": 0}
     base.update(overrides)
     return base
 
@@ -20,7 +20,7 @@ def event(**overrides):
 def ctx(**overrides):
     """A healthy actor standing at LOC with 10 energy and 10 coins."""
     base = dict(id_character=CHAR_ID, id_location=LOC, sleeping=False, coma=False,
-                energy=10, coin=10, id_class=50, owned_item_ids=set(),
+                energy=10, coin=10, food=10, magic=10, id_class=50, owned_item_ids=set(),
                 current_weather_id=None, consumed_event_ids=set(), registry={})
     base.update(overrides)
     return EventCheckContext(**base)
@@ -52,7 +52,7 @@ def test_type_is_case_insensitive():
 
 
 def test_cost_exactly_equal_is_enough():
-    assert check(event(cost_enery=10, coin_cost=10), ctx()).available is True
+    assert check(event(cost_enery=10, cost_coin=10), ctx()).available is True
 
 
 def test_every_condition_satisfied():
@@ -121,7 +121,41 @@ def test_not_enough_energy():
 
 
 def test_not_enough_coins():
-    assert_blocked(check(event(coin_cost=11), ctx()), EventError.NOT_ENOUGH_COINS)
+    assert_blocked(check(event(cost_coin=11), ctx()), EventError.NOT_ENOUGH_COINS)
+
+
+def test_not_enough_food():
+    """v0.35.3 — cost_food is a real cost, refused like the coins before it."""
+    assert_blocked(check(event(cost_food=11), ctx()), EventError.NOT_ENOUGH_FOOD)
+
+
+def test_not_enough_magic():
+    assert_blocked(check(event(cost_magic=11), ctx()), EventError.NOT_ENOUGH_MAGIC)
+
+
+def test_exactly_affordable_is_affordable():
+    e = event(cost_coin=10, cost_food=10, cost_magic=10)
+    assert check(e, ctx()).available is True
+
+
+def test_null_costs_are_free_not_a_refusal():
+    e = event(cost_coin=None, cost_food=None, cost_magic=None)
+    assert check(e, ctx(coin=0, food=0, magic=0)).available is True
+
+
+def test_resource_refusal_order_is_the_contract():
+    """Coin outranks food, food outranks magic — and energy outranks all three."""
+    e = event(cost_enery=11, cost_coin=11, cost_food=11, cost_magic=11)
+    assert_blocked(check(e, ctx()), EventError.NOT_ENOUGH_ENERGY)
+
+    e["cost_enery"] = 0
+    assert_blocked(check(e, ctx()), EventError.NOT_ENOUGH_COINS)
+
+    e["cost_coin"] = 0
+    assert_blocked(check(e, ctx()), EventError.NOT_ENOUGH_FOOD)
+
+    e["cost_food"] = 0
+    assert_blocked(check(e, ctx()), EventError.NOT_ENOUGH_MAGIC)
 
 
 def test_registry_key_absent():
@@ -172,7 +206,7 @@ def test_class_unset():
 # ── precedence: the first failing check names the reason ────────────────────
 
 def test_actor_state_wins_over_everything():
-    e = event(id_specific_location=999, cost_enery=999, coin_cost=999)
+    e = event(id_specific_location=999, cost_enery=999, cost_coin=999)
     assert_blocked(check(e, ctx(sleeping=True)), EventError.SLEEPING)
 
 
@@ -187,7 +221,7 @@ def test_location_wins_over_cost():
 
 
 def test_energy_wins_over_coins():
-    assert_blocked(check(event(cost_enery=999, coin_cost=999), ctx()),
+    assert_blocked(check(event(cost_enery=999, cost_coin=999), ctx()),
                    EventError.NOT_ENOUGH_ENERGY)
 
 

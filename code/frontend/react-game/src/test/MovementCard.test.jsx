@@ -64,6 +64,72 @@ describe('MovementCard', () => {
     expect(screen.getByTestId('badge-energy').textContent).toBe('4')
   })
 
+  /* ── v0.35.3 — a path can charge resources, not only energy ──────────────── */
+
+  it('badges the resources the path costs beside the energy', () => {
+    const tolled = { ...LOCATION, costCoin: 2, costFood: 1, costMagic: 3 }
+
+    render(<MovementCard location={tolled} totalEnergyCost={4}
+      playerStats={{ energy: 30 }} story={STORY} onPreview={vi.fn()}
+      matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
+
+    // Energy is the weather-resolved TOTAL (edge + destination entry + weather); the three
+    // resources come from the edge alone, so they are shown exactly as authored.
+    expect(screen.getByTestId('badge-energy').textContent).toBe('4')
+    expect(screen.getByTestId('badge-coins').textContent).toBe('2')
+    expect(screen.getByTestId('badge-food').textContent).toBe('1')
+    expect(screen.getByTestId('badge-magic').textContent).toBe('3')
+  })
+
+  it('reads a path with no resource price as costing nothing', () => {
+    render(<MovementCard location={LOCATION} totalEnergyCost={1}
+      playerStats={{ energy: 30 }} story={STORY} onPreview={vi.fn()}
+      matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
+
+    // The real BonusBadgeList drops a zero; what matters here is that the card asks for 0
+    // rather than for `undefined`, which would render as an empty badge.
+    expect(screen.getByTestId('badge-coins').textContent).toBe('0')
+    expect(screen.getByTestId('badge-food').textContent).toBe('0')
+    expect(screen.getByTestId('badge-magic').textContent).toBe('0')
+  })
+
+  it('hands the same price to the little card, the page preview and the map view', () => {
+    const tolled = { ...LOCATION, costCoin: 2, costFood: 1, costMagic: 3 }
+    const onPreview = vi.fn()
+
+    render(<MovementCard location={tolled} totalEnergyCost={4}
+      playerStats={{ energy: 30 }} story={STORY} onPreview={onPreview}
+      matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
+
+    // little: the badge rides over the image
+    expect(screen.getByTestId('children-into-image')).toBeTruthy()
+    // page: the same element travels with the preview
+    fireEvent.click(screen.getByTestId('preview-btn'))
+    expect(onPreview.mock.calls[0][5].actionLabelChildren)
+      .toEqual(capturedProps.childrenIntoImage)
+
+    // map: no overlay on the image, the badge sits next to the action label instead
+    render(<MovementCard location={tolled} totalEnergyCost={4} viewFromMap
+      playerStats={{ energy: 30 }} story={STORY} onPreview={vi.fn()}
+      matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
+    expect(capturedProps.childrenIntoImage).toBeNull()
+    expect(capturedProps.actionLabelChildren).toBeTruthy()
+  })
+
+  it('still shows the price when the move is refused', () => {
+    // Knowing what it would have cost is half the point of a refusal.
+    const tolled = { ...LOCATION, costCoin: 2, available: false, reason: 'NOT_ENOUGH_COINS' }
+    const onPreview = vi.fn()
+
+    render(<MovementCard location={tolled} totalEnergyCost={1}
+      playerStats={{ energy: 30 }} story={STORY} onPreview={onPreview}
+      matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
+    fireEvent.click(screen.getByTestId('preview-btn'))
+
+    expect(screen.getByTestId('badge-coins').textContent).toBe('2')
+    expect(onPreview.mock.calls[0][5].extraContent).toBeTruthy()
+  })
+
   it('calls startMovement with the location uuid and reloads', async () => {
     const onMoved = vi.fn()
     render(<MovementCard location={LOCATION} totalEnergyCost={4}

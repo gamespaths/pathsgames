@@ -68,6 +68,9 @@ class _MoveJudge:
             total_energy_cost=total,
             max_characters=max_chars,
             characters_at_target=self.characters_by_location.get(target.get("id"), 0),
+            cost_food=n.get("cost_food") or 0,
+            cost_magic=n.get("cost_magic") or 0,
+            cost_coin=n.get("cost_coin") or 0,
         ))
 
 
@@ -405,6 +408,9 @@ class MatchQueryService(MatchQueryPort):
                         story_id, to_id, loc_by_id, lang, visited_loc_ids),
                     available=verdict.available,
                     reason=verdict.reason,
+                    cost_food=n.get("cost_food") or 0,
+                    cost_magic=n.get("cost_magic") or 0,
+                    cost_coin=n.get("cost_coin") or 0,
                 ))
 
             event_infos: List[EventInfo] = []
@@ -420,6 +426,9 @@ class MatchQueryService(MatchQueryPort):
                         available=verdict.available,
                         reason=verdict.reason,
                         energy=e.get("cost_enery") or 0,
+                        coin=e.get("cost_coin") or 0,
+                        food=e.get("cost_food") or 0,
+                        magic=e.get("cost_magic") or 0,
                     ))
 
             result.append(LocationInfo(

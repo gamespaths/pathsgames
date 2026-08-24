@@ -55,9 +55,16 @@ export default function ActionCard({
       setRunning(false)
     }
   }
-  //console.log("action", action);
-  const cost = action?.energy ?? 0
-  const costItems = [{ key: 'energy', value: '' + cost, label: t('game.movement.cost') }]
+  // v0.35.3 — an action can also cost coins, food and magic. The four are listed in the order
+  // the check procedure reads them (energy, coin, food, magic), so the badges appear in the
+  // same order the refusal would name them. BonusBadgeList drops whatever sits at zero, so a
+  // free action still shows no badge at all.
+  const costItems = [
+    { key: 'energy', value: '' + (action?.energy ?? 0), label: t('game.movement.cost') },
+    { key: 'coins',  value: '' + (action?.coin  ?? 0),  label: t('game.stats.coins') },
+    { key: 'food',   value: '' + (action?.food  ?? 0),  label: t('game.stats.food') },
+    { key: 'magic',  value: '' + (action?.magic ?? 0),  label: t('game.stats.magic') },
+  ]
   const costBadge = (
     <BonusBadgeList items={costItems.map(item => ({ ...item, label: null }))} 
       className="player-stats-bar bonus-badge-list m-1 display-flex flex-direction-column" />

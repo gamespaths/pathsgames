@@ -40,16 +40,28 @@ def move_check_context(match, caller, story=None):
         # Step 35 — the real Sigma (item.weight x amount), the same formula /info reports.
         "carriedWeight": _inventory.carried_weight(caller, story or {}),
         "weightMax": _nz(caller.get("weightMax")),
+        # v0.35.3 — the backpack, for the edge resource costs.
+        "food": _nz(caller.get("food")),
+        "magic": _nz(caller.get("magic")),
+        "coin": _nz(caller.get("coin")),
     }
 
 
-def edge_check(condition_met, total_energy_cost, max_characters, characters_at_target):
-    """The per-edge facts. ``max_characters <= 0`` means no capacity limit."""
+def edge_check(condition_met, total_energy_cost, max_characters, characters_at_target,
+               cost_food=0, cost_magic=0, cost_coin=0):
+    """The per-edge facts. ``max_characters <= 0`` means no capacity limit.
+
+    v0.35.3 — the three resource costs come from the EDGE alone: unlike energy, which sums
+    the edge, the destination entry cost and the weather modifier, they have one source.
+    """
     return {
         "conditionMet": bool(condition_met),
         "totalEnergyCost": _nz(total_energy_cost),
         "maxCharacters": _nz(max_characters),
         "charactersAtTarget": _nz(characters_at_target),
+        "costFood": _nz(cost_food),
+        "costMagic": _nz(cost_magic),
+        "costCoin": _nz(cost_coin),
     }
 
 
@@ -74,6 +86,14 @@ def check(ctx, edge):
         return False, "OVERWEIGHT"
     if _nz(ctx.get("energy")) < _nz(edge.get("totalEnergyCost")):
         return False, "INSUFFICIENT_ENERGY"
+    # v0.35.3 — after energy and before capacity: a mover who cannot afford the road is told
+    # about the road, not about how crowded the place they cannot reach is.
+    if _nz(ctx.get("coin")) < _nz(edge.get("costCoin")):
+        return False, "NOT_ENOUGH_COINS"
+    if _nz(ctx.get("food")) < _nz(edge.get("costFood")):
+        return False, "NOT_ENOUGH_FOOD"
+    if _nz(ctx.get("magic")) < _nz(edge.get("costMagic")):
+        return False, "NOT_ENOUGH_MAGIC"
     max_chars = _nz(edge.get("maxCharacters"))
     if max_chars > 0 and _nz(edge.get("charactersAtTarget")) >= max_chars:
         return False, "LOCATION_FULL"

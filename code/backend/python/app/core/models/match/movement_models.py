@@ -22,6 +22,10 @@ class NeighborCost:
     weather_energy_cost: int
     total_energy_cost: int
     condition_met: bool
+    # v0.35.3 — the edge's resource price. Edge-only, so there is no breakdown to report.
+    cost_food: int = 0
+    cost_magic: int = 0
+    cost_coin: int = 0
     id_card: Optional[int] = None
     card: Optional[dict] = None
     id_location_from: Optional[int] = None
@@ -52,6 +56,13 @@ class MovementResult:
     energy_spent: int
     new_energy: int
     current_clock: int
+    # v0.35.3 — the edge's resource price, and the backpack after it.
+    food_spent: int = 0
+    magic_spent: int = 0
+    coin_spent: int = 0
+    new_food: int = 0
+    new_magic: int = 0
+    new_coin: int = 0
     #: Step 33 — what the destination did about the arrival: its id_event_if_first_time /
     #: id_event_not_first_time / id_event_if_character_enter_empty_location, already executed.
     automatic_events: List[Any] = field(default_factory=list)
@@ -86,6 +97,10 @@ class MovementError(Exception):
     MOVEMENT_CONDITION_NOT_MET = "MOVEMENT_CONDITION_NOT_MET"
     OVERWEIGHT = "OVERWEIGHT"
     INSUFFICIENT_ENERGY = "INSUFFICIENT_ENERGY"
+    # v0.35.3 — the mover cannot pay the edge's resource cost.
+    NOT_ENOUGH_COINS = "NOT_ENOUGH_COINS"
+    NOT_ENOUGH_FOOD = "NOT_ENOUGH_FOOD"
+    NOT_ENOUGH_MAGIC = "NOT_ENOUGH_MAGIC"
     LOCATION_FULL = "LOCATION_FULL"
 
     def __init__(self, code: str, message: str) -> None:

@@ -14,7 +14,7 @@ LOC = 100
 
 def event(**over):
     """An event with no condition at all: executable by anyone, anywhere, for free."""
-    base = {"id": 1, "uuid": "evt-1", "type": "NORMAL", "costEnery": 0, "coinCost": 0}
+    base = {"id": 1, "uuid": "evt-1", "type": "NORMAL", "costEnery": 0, "costCoin": 0}
     base.update(over)
     return base
 
@@ -23,7 +23,8 @@ def ctx(**over):
     """A healthy actor standing at LOC with 10 energy and 10 coins."""
     base = {
         "idCharacter": 7, "idLocation": LOC, "sleeping": False, "coma": False,
-        "energy": 10, "coin": 10, "idClass": 50, "ownedItemIds": set(),
+        "energy": 10, "coin": 10, "food": 10, "magic": 10,
+        "idClass": 50, "ownedItemIds": set(),
         "currentWeatherId": None, "consumedEventIds": set(), "registry": {},
     }
     base.update(over)
@@ -53,7 +54,42 @@ def test_null_location_means_no_constraint():
 
 
 def test_cost_exactly_equal_is_enough():
-    assert events.check(event(costEnery=10, coinCost=10), ctx()) == (True, None)
+    assert events.check(event(costEnery=10, costCoin=10), ctx()) == (True, None)
+
+
+def test_v0353_resource_costs_exactly_affordable():
+    e = event(costCoin=10, costFood=10, costMagic=10)
+    assert events.check(e, ctx()) == (True, None)
+
+
+def test_v0353_not_enough_food():
+    blocked(events.check(event(costFood=11), ctx()), "NOT_ENOUGH_FOOD")
+
+
+def test_v0353_not_enough_magic():
+    blocked(events.check(event(costMagic=11), ctx()), "NOT_ENOUGH_MAGIC")
+
+
+def test_v0353_resource_refusal_order_is_the_contract():
+    """Energy outranks coin, coin outranks food, food outranks magic."""
+    e = event(costEnery=11, costCoin=11, costFood=11, costMagic=11)
+    blocked(events.check(e, ctx()), "NOT_ENOUGH_ENERGY")
+    e["costEnery"] = 0
+    blocked(events.check(e, ctx()), "NOT_ENOUGH_COINS")
+    e["costCoin"] = 0
+    blocked(events.check(e, ctx()), "NOT_ENOUGH_FOOD")
+    e["costFood"] = 0
+    blocked(events.check(e, ctx()), "NOT_ENOUGH_MAGIC")
+
+
+def test_v0353_a_story_stored_before_the_rename_keeps_its_coin_price():
+    """DynamoDB has no migration: a match created before v0.35.3 carries coinCost inside
+    its stored story, and that price must still be charged."""
+    legacy = {"id": 1, "uuid": "evt-1", "type": "NORMAL", "costEnery": 0, "coinCost": 11}
+    blocked(events.check(legacy, ctx()), "NOT_ENOUGH_COINS")
+    assert events.event_cost_coin(legacy) == 11
+    # The new key wins when a story carries both.
+    assert events.event_cost_coin({"coinCost": 7, "costCoin": 9}) == 9
 
 
 def test_all_conditions_satisfied():
@@ -119,7 +155,7 @@ def test_idspecificlocation_wins_over_the_stale_alias():
 
 def test_not_enough_energy_and_coins():
     blocked(events.check(event(costEnery=11), ctx()), "NOT_ENOUGH_ENERGY")
-    blocked(events.check(event(coinCost=11), ctx()), "NOT_ENOUGH_COINS")
+    blocked(events.check(event(costCoin=11), ctx()), "NOT_ENOUGH_COINS")
 
 
 def test_registry_key_absent_or_different():

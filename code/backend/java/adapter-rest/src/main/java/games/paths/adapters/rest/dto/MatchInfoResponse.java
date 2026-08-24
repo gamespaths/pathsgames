@@ -212,6 +212,10 @@ public class MatchInfoResponse {
         private String direction;
         private Integer flagBack;
         private Integer energyCost;
+        /** v0.35.3 — the edge's resource price; one source, so no breakdown. */
+        private Integer costFood;
+        private Integer costMagic;
+        private Integer costCoin;
         private CardInfoResponse card;
         private Integer secureParam;
         private Long idLocationFrom;
@@ -229,6 +233,9 @@ public class MatchInfoResponse {
             d.direction = m.getDirection();
             d.flagBack = m.getFlagBack();
             d.energyCost = m.getEnergyCost();
+            d.costFood = m.getCostFood();
+            d.costMagic = m.getCostMagic();
+            d.costCoin = m.getCostCoin();
             d.card = CardInfoResponse.fromModel(m.getCard());
             d.secureParam = m.getSecureParam();
             d.idLocationFrom = m.getIdLocationFrom();
@@ -251,6 +258,12 @@ public class MatchInfoResponse {
         public void setFlagBack(Integer flagBack) { this.flagBack = flagBack; }
         public Integer getEnergyCost() { return energyCost; }
         public void setEnergyCost(Integer energyCost) { this.energyCost = energyCost; }
+        public Integer getCostFood() { return costFood; }
+        public void setCostFood(Integer costFood) { this.costFood = costFood; }
+        public Integer getCostMagic() { return costMagic; }
+        public void setCostMagic(Integer costMagic) { this.costMagic = costMagic; }
+        public Integer getCostCoin() { return costCoin; }
+        public void setCostCoin(Integer costCoin) { this.costCoin = costCoin; }
         public CardInfoResponse getCard() { return card; }
         public void setCard(CardInfoResponse card) { this.card = card; }
         public Integer getSecureParam() { return secureParam; }
@@ -287,6 +300,10 @@ public class MatchInfoResponse {
         private boolean available;
         private String reason;
         private int energy;
+        /** v0.35.3 — what the event costs beyond energy. */
+        private int coin;
+        private int food;
+        private int magic;
 
         public static EventInfoDto fromModel(EventInfo m) {
             EventInfoDto d = new EventInfoDto();
@@ -297,6 +314,9 @@ public class MatchInfoResponse {
             d.available = m.isAvailable();
             d.reason = m.getReason();
             d.energy = m.getEnergy();
+            d.coin = m.getCoin();
+            d.food = m.getFood();
+            d.magic = m.getMagic();
             return d;
         }
 
@@ -315,5 +335,11 @@ public class MatchInfoResponse {
         /** The energy the event costs to trigger; 0 when it is free. */
         public int getEnergy() { return energy; }
         public void setEnergy(int energy) { this.energy = energy; }
+        public int getCoin() { return coin; }
+        public void setCoin(int coin) { this.coin = coin; }
+        public int getFood() { return food; }
+        public void setFood(int food) { this.food = food; }
+        public int getMagic() { return magic; }
+        public void setMagic(int magic) { this.magic = magic; }
     }
 }

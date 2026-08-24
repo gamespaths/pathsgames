@@ -96,13 +96,13 @@ class EventExecutionServiceTest {
         e.setUuid(EVENT_UUID);
         e.setType("NORMAL");
         e.setCostEnery(0);
-        e.setCoinCost(0);
+        e.setCostCoin(0);
         e.setFlagEndTime(0);
         return e;
     }
 
     private static EventCheckContext ctx() {
-        return new EventCheckContext(CHAR_ID, LOC, false, false, 20, 10, 50L,
+        return new EventCheckContext(CHAR_ID, LOC, false, false, 20, 10, 5, 5, 50L,
                 new HashSet<>(), null, new HashSet<>(), new HashMap<>());
     }
 
@@ -197,7 +197,7 @@ class EventExecutionServiceTest {
 
             assertEquals(Code.NOT_ENOUGH_ENERGY, codeOf(EventExecutionServiceTest.this::execute));
             verify(store, never()).updateCharacterStats(anyLong(), anyLong(), any());
-            verify(store, never()).logEventExecuted(anyLong(), any(), anyLong(), anyInt(), anyString());
+            verify(store, never()).logEventExecuted(anyLong(), any(), anyLong(), anyInt(), anyString(), any());
         }
 
         @Test
@@ -221,7 +221,7 @@ class EventExecutionServiceTest {
         void deducted() {
             EventEntity e = event();
             e.setCostEnery(5);
-            e.setCoinCost(3);
+            e.setCostCoin(3);
             when(store.findEventByStoryAndUuid(STORY_ID, EVENT_UUID)).thenReturn(Optional.of(e));
 
             EventExecutionResult r = execute();
@@ -237,6 +237,54 @@ class EventExecutionServiceTest {
         }
 
         @Test
+        @DisplayName("v0.35.3: food and magic are deducted, reported and flushed")
+        void foodAndMagicDeducted() {
+            EventEntity e = event();
+            e.setCostFood(2);
+            e.setCostMagic(1);
+            when(store.findEventByStoryAndUuid(STORY_ID, EVENT_UUID)).thenReturn(Optional.of(e));
+
+            EventExecutionResult r = execute();
+
+            assertEquals(2, r.foodSpent());
+            assertEquals(1, r.magicSpent());
+            assertEquals(3, r.newFood());    // 5 - 2
+            assertEquals(4, r.newMagic());   // 5 - 1
+
+            ArgumentCaptorHolder h = capture();
+            assertEquals(3, h.backpack.food());
+            assertEquals(4, h.backpack.magic());
+            assertEquals(10, h.backpack.coin());
+        }
+
+        @Test
+        @DisplayName("v0.35.3: an actor who cannot pay the food is refused before anything moves")
+        void refusedWhenFoodIsShort() {
+            EventEntity e = event();
+            e.setCostFood(6);
+            when(store.findEventByStoryAndUuid(STORY_ID, EVENT_UUID)).thenReturn(Optional.of(e));
+
+            assertEquals(Code.NOT_ENOUGH_FOOD, codeOf(EventExecutionServiceTest.this::execute));
+            verify(store, never()).updateBackpack(anyLong(), anyLong(), any());
+        }
+
+        @Test
+        @DisplayName("v0.35.3: the price is stamped on the log row of the event that was paid for")
+        void thePriceIsLogged() {
+            EventEntity e = event();
+            e.setCostEnery(5);
+            e.setCostCoin(3);
+            e.setCostFood(2);
+            e.setCostMagic(1);
+            when(store.findEventByStoryAndUuid(STORY_ID, EVENT_UUID)).thenReturn(Optional.of(e));
+
+            execute();
+
+            verify(store).logEventExecuted(eq(MATCH_ID), any(), eq(1L), anyInt(), anyString(),
+                    eq(new EventExecutionStorePort.SpentResources(5, 2, 1, 3)));
+        }
+
+        @Test
         @DisplayName("A free event writes no backpack row")
         void freeEventLeavesBackpackAlone() {
             execute();
@@ -247,7 +295,7 @@ class EventExecutionServiceTest {
         @DisplayName("The backpack starts from the real food/magic, never from zero")
         void backpackNotZeroed() {
             EventEntity e = event();
-            e.setCoinCost(1);
+            e.setCostCoin(1);
             when(store.findEventByStoryAndUuid(STORY_ID, EVENT_UUID)).thenReturn(Optional.of(e));
 
             execute();
@@ -320,7 +368,7 @@ class EventExecutionServiceTest {
         void logged() {
             execute();
             verify(store).logEventExecuted(eq(MATCH_ID), eq(CHAR_ID), eq(1L), eq(7),
-                    startsWith(EventExecutionStorePort.MSG_EVENT_EXECUTED));
+                    startsWith(EventExecutionStorePort.MSG_EVENT_EXECUTED), any());
         }
     }
 

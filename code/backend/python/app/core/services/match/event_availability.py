@@ -60,8 +60,14 @@ def check(event: Optional[Dict[str, Any]], ctx: Optional[EventCheckContext]) -> 
 
     if ctx.energy < (event.get("cost_enery") or 0):
         return EventAvailability.no(EventError.NOT_ENOUGH_ENERGY)
-    if ctx.coin < (event.get("coin_cost") or 0):
+    if ctx.coin < (event.get("cost_coin") or 0):
         return EventAvailability.no(EventError.NOT_ENOUGH_COINS)
+    # v0.35.3 — the three costs are read in the order they were added to the contract; an
+    # event asking for two resources at once names the first one it cannot pay.
+    if ctx.food < (event.get("cost_food") or 0):
+        return EventAvailability.no(EventError.NOT_ENOUGH_FOOD)
+    if ctx.magic < (event.get("cost_magic") or 0):
+        return EventAvailability.no(EventError.NOT_ENOUGH_MAGIC)
 
     if not _registry_met(event, ctx):
         return EventAvailability.no(EventError.REGISTRY_CONDITION_NOT_MET)

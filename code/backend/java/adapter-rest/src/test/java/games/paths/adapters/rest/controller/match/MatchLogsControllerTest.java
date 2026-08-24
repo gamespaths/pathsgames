@@ -45,10 +45,11 @@ class MatchLogsControllerTest {
         when(matchLogsPort.getMatchLogs("m1", "user-uuid", null, null, null, null)).thenReturn(
                 new MatchLogsResult("m1", 3, List.of(
                         new LogEntry("WEATHER", 1, "2024-01-01T10:00:00Z", 7L,
-                                null, null, null, null, null, null, null, 300, card("Storm"), null),
+                                null, null, null, null, null, null, null, 300, card("Storm"), null,
+                                0, 0, 0),
                         new LogEntry("MOVEMENT", null, "2024-01-01T11:00:00Z", null,
                                 10L, "char-uuid", "Ranger", 100L, 200L, 4, null,
-                                400, card("Dark Forest"), null)),
+                                400, card("Dark Forest"), null, 1, 0, 2)),
                         null, 50, 2, "asc"));
 
         mockMvc.perform(authed(get("/api/matches/m1/logs")))
@@ -76,8 +77,9 @@ class MatchLogsControllerTest {
         when(matchLogsPort.getMatchLogs("m1", "user-uuid", null, null, null, null)).thenReturn(
                 new MatchLogsResult("m1", 3, List.of(
                         new LogEntry("EVENT", 3, "2024-01-01T12:00:00Z", null,
-                                10L, "char-uuid", "Ranger", null, null, null,
-                                "EVENT_EXECUTED 42", 600, card("A Fork In The Road"), 42L)),
+                                10L, "char-uuid", "Ranger", null, null, 3,
+                                "EVENT_EXECUTED 42", 600, card("A Fork In The Road"), 42L,
+                                2, 1, 5)),
                         null, 50, 1, "asc"));
 
         mockMvc.perform(authed(get("/api/matches/m1/logs")))

@@ -137,6 +137,7 @@ def test_find_neighbors_of_location_is_undirected(session_factory, adapter):
     out = adapter.find_neighbors_of_location(9001, 100)
     assert len(out) == 2
     assert out[0] == {"id_from": 100, "id_to": 200, "direction": "N", "energy_cost": 2,
+                      "cost_food": 0, "cost_magic": 0, "cost_coin": 0,
                       "condition_key": "k", "condition_value": "v", "flag_back": 1}
     assert out[1]["id_from"] == 300
     assert out[1]["energy_cost"] == 0

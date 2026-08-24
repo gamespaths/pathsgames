@@ -294,6 +294,9 @@
         "MOVEMENT_CONDITION_NOT_MET": "Sbarrata",
         "OVERWEIGHT": "Sovraccarico",
         "INSUFFICIENT_ENERGY": "Energia",
+        "NOT_ENOUGH_COINS": "Monete",
+        "NOT_ENOUGH_FOOD": "Cibo",
+        "NOT_ENOUGH_MAGIC": "Magia",
         "LOCATION_FULL": "Pieno"
       },
       "reasonFull": {
@@ -305,6 +308,9 @@
         "MOVEMENT_CONDITION_NOT_MET": "La via è sbarrata: manca ancora qualcosa per aprirla.",
         "OVERWEIGHT": "Sei troppo carico per metterti in cammino.",
         "INSUFFICIENT_ENERGY": "Non hai abbastanza energia per questo spostamento.",
+        "NOT_ENOUGH_COINS": "Non hai abbastanza monete per questo spostamento.",
+        "NOT_ENOUGH_FOOD": "Non hai abbastanza cibo per questo spostamento.",
+        "NOT_ENOUGH_MAGIC": "Non hai abbastanza magia per questo spostamento.",
         "LOCATION_FULL": "In quel luogo non c'è più posto."
       }
     },
@@ -322,6 +328,8 @@
         "WRONG_LOCATION": "Altrove",
         "NOT_ENOUGH_ENERGY": "Energia",
         "NOT_ENOUGH_COINS": "Monete",
+        "NOT_ENOUGH_FOOD": "Cibo",
+        "NOT_ENOUGH_MAGIC": "Magia",
         "REGISTRY_CONDITION_NOT_MET": "Non ancora",
         "WEATHER_CONDITION_NOT_MET": "Tempo",
         "ITEM_CONDITION_NOT_MET": "Oggetto",
@@ -336,6 +344,8 @@
         "WRONG_LOCATION": "Questa azione appartiene a un altro luogo.",
         "NOT_ENOUGH_ENERGY": "Non hai abbastanza energia per questa azione.",
         "NOT_ENOUGH_COINS": "Non hai abbastanza monete per questa azione.",
+        "NOT_ENOUGH_FOOD": "Non hai abbastanza cibo per questa azione.",
+        "NOT_ENOUGH_MAGIC": "Non hai abbastanza magia per questa azione.",
         "REGISTRY_CONDITION_NOT_MET": "Non sei ancora pronto per questa azione.",
         "WEATHER_CONDITION_NOT_MET": "Il tempo non è adatto a questa azione.",
         "ITEM_CONDITION_NOT_MET": "Ti manca l'oggetto che questa azione richiede.",

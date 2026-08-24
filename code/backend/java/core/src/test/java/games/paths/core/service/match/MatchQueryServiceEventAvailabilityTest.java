@@ -89,7 +89,7 @@ class MatchQueryServiceEventAvailabilityTest {
         e.setUuid(uuid);
         e.setType("NORMAL");
         e.setCostEnery(0);
-        e.setCoinCost(0);
+        e.setCostCoin(0);
         e.setIdSpecificLocation((int) LOC);
         return e;
     }

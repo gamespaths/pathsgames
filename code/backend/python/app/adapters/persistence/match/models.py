@@ -220,6 +220,12 @@ class LogEventsEntity(Base):
     # Step 33 (V0.33.0) — the location a row is about (counter-zero, automatic events),
     # structured instead of buried in log_message.
     id_location = Column(Integer)
+    # v0.35.3 — what the actor actually paid to open this event. Zero on every row the
+    # engine writes for itself: chained, automatic and resolution rows.
+    energy_cost = Column(Integer, default=0)
+    food_cost = Column(Integer, default=0)
+    magic_cost = Column(Integer, default=0)
+    coin_cost = Column(Integer, default=0)
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
 
@@ -280,6 +286,10 @@ class LogMovementEntity(Base):
     id_location_from = Column(Integer)
     id_location_to = Column(Integer, nullable=False)
     energy_cost = Column(Integer, default=0, nullable=False)
+    # v0.35.3 — resources paid for the move (edge only). Zero on a forced move.
+    food_cost = Column(Integer, default=0)
+    magic_cost = Column(Integer, default=0)
+    coin_cost = Column(Integer, default=0)
     timestamp_start = Column(String(50))
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)

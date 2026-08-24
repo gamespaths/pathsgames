@@ -308,6 +308,9 @@
         "MOVEMENT_CONDITION_NOT_MET": "Barred",
         "OVERWEIGHT": "Overweight",
         "INSUFFICIENT_ENERGY": "Energy",
+        "NOT_ENOUGH_COINS": "Coins",
+        "NOT_ENOUGH_FOOD": "Food",
+        "NOT_ENOUGH_MAGIC": "Magic",
         "LOCATION_FULL": "Full"
       },
       "reasonFull": {
@@ -319,6 +322,9 @@
         "MOVEMENT_CONDITION_NOT_MET": "The way is barred: something is still missing to open it.",
         "OVERWEIGHT": "You are carrying too much to set off.",
         "INSUFFICIENT_ENERGY": "You do not have enough energy for this move.",
+        "NOT_ENOUGH_COINS": "You do not have enough coins for this move.",
+        "NOT_ENOUGH_FOOD": "You do not have enough food for this move.",
+        "NOT_ENOUGH_MAGIC": "You do not have enough magic for this move.",
         "LOCATION_FULL": "There is no room left in that location."
       }
     },
@@ -336,6 +342,8 @@
         "WRONG_LOCATION": "Elsewhere",
         "NOT_ENOUGH_ENERGY": "Energy",
         "NOT_ENOUGH_COINS": "Coins",
+        "NOT_ENOUGH_FOOD": "Food",
+        "NOT_ENOUGH_MAGIC": "Magic",
         "REGISTRY_CONDITION_NOT_MET": "Not yet",
         "WEATHER_CONDITION_NOT_MET": "Weather",
         "ITEM_CONDITION_NOT_MET": "Item",
@@ -350,6 +358,8 @@
         "WRONG_LOCATION": "This action belongs to another location.",
         "NOT_ENOUGH_ENERGY": "You do not have enough energy for this action.",
         "NOT_ENOUGH_COINS": "You do not have enough coins for this action.",
+        "NOT_ENOUGH_FOOD": "You do not have enough food for this action.",
+        "NOT_ENOUGH_MAGIC": "You do not have enough magic for this action.",
         "REGISTRY_CONDITION_NOT_MET": "You are not ready for this yet.",
         "WEATHER_CONDITION_NOT_MET": "The weather is wrong for this action.",
         "ITEM_CONDITION_NOT_MET": "You lack the item this action needs.",
@@ -386,7 +396,7 @@
     },
     "items": {
       "title": "Backpack",
-      "description": "Organizing your gear will allow you to travel with readiness and order. On this book page you can see all your items and use them. <br /><br />Some items are consumable and removable, while other items you cannot use or remove.",
+      "description": "Organizing your gear will allow you to travel with readiness and order. On this book page you can see all your items and use them. <br /><br />On this page you can see the amount of basic resources (food, magic, and coins) and the amount of items found. Some items are consumable, while other items you cannot be consumed.",
       "open": "Backpack",
       "empty": "You are carrying nothing.",
       "back": "Back",

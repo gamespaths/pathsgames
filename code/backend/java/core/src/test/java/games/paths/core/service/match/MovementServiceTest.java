@@ -106,7 +106,68 @@ class MovementServiceTest {
             assertEquals(4, r.newEnergy());
             assertEquals(1L, r.fromLocationId());
             verify(store).updateCharacterLocationAndEnergy(MATCH_ID, 50L, 2L, 4);
-            verify(store).insertMovementLog(MATCH_ID, 50L, 1L, 2L, 6);
+            verify(store).insertMovementLog(MATCH_ID, 50L, 1L, 2L, 6, 0, 0, 0);
+        }
+
+        @Test
+        @DisplayName("v0.35.3: the edge's food/magic/coin are checked, paid, logged and reported")
+        void paysTheEdgeResources() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID)).thenReturn(Optional.of(
+                    new MoveCharacterView(50L, "char-uuid", USER_ID, 1L, 10, 100, 0, 30,
+                            false, false, 5, 4, 9)));
+            when(store.findLocationByStoryAndUuid(STORY_ID, "loc-2"))
+                    .thenReturn(Optional.of(location(2L, "loc-2", 1, 0, 100)));
+            when(store.findNeighborsOfLocation(STORY_ID, 1L)).thenReturn(List.of(
+                    new NeighborEdge(1L, 2L, "NORTH", 2, null, null, 1, 2, 1, 3)));
+            when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
+
+            MovementResult r = service.startMovement(MATCH, USER, "loc-2");
+
+            assertEquals(2, r.foodSpent());
+            assertEquals(1, r.magicSpent());
+            assertEquals(3, r.coinSpent());
+            assertEquals(3, r.newFood());
+            assertEquals(3, r.newMagic());
+            assertEquals(6, r.newCoin());
+            verify(store).updateBackpackResources(MATCH_ID, 50L, 3, 3, 6);
+            verify(store).insertMovementLog(MATCH_ID, 50L, 1L, 2L, 2, 2, 1, 3);
+        }
+
+        @Test
+        @DisplayName("v0.35.3: a free edge writes no backpack row at all")
+        void aFreeEdgeTouchesNoBackpack() {
+            wireHappyPath(10, 2, 1, 1, 3, 99, 100, 0);
+
+            service.startMovement(MATCH, USER, "loc-2");
+
+            verify(store, never()).updateBackpackResources(anyLong(), anyLong(),
+                    anyInt(), anyInt(), anyInt());
+        }
+
+        @Test
+        @DisplayName("v0.35.3: a mover one coin short is refused and nothing is written")
+        void refusedWhenTheEdgeIsUnaffordable() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID)).thenReturn(Optional.of(
+                    new MoveCharacterView(50L, "char-uuid", USER_ID, 1L, 10, 100, 0, 30,
+                            false, false, 5, 5, 1)));
+            when(store.findLocationByStoryAndUuid(STORY_ID, "loc-2"))
+                    .thenReturn(Optional.of(location(2L, "loc-2", 1, 0, 100)));
+            when(store.findNeighborsOfLocation(STORY_ID, 1L)).thenReturn(List.of(
+                    new NeighborEdge(1L, 2L, "NORTH", 0, null, null, 1, 0, 0, 2)));
+            when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
+
+            MovementException ex = assertThrows(MovementException.class,
+                    () -> service.startMovement(MATCH, USER, "loc-2"));
+
+            assertEquals(MovementException.Code.NOT_ENOUGH_COINS, ex.getCode());
+            verify(store, never()).updateCharacterLocationAndEnergy(anyLong(), anyLong(),
+                    anyLong(), anyInt());
+            verify(store, never()).updateBackpackResources(anyLong(), anyLong(),
+                    anyInt(), anyInt(), anyInt());
+            verify(store, never()).insertMovementLog(anyLong(), anyLong(), any(), anyLong(),
+                    anyInt(), anyInt(), anyInt(), anyInt());
         }
 
         @Test
@@ -130,7 +191,7 @@ class MovementServiceTest {
             // so it must run after both writes, never between them.
             InOrder order = inOrder(store, entry);
             order.verify(store).updateCharacterLocationAndEnergy(MATCH_ID, 50L, 2L, 4);
-            order.verify(store).insertMovementLog(MATCH_ID, 50L, 1L, 2L, 6);
+            order.verify(store).insertMovementLog(MATCH_ID, 50L, 1L, 2L, 6, 0, 0, 0);
             order.verify(entry).onArrival(argThat(a ->
                     a.idMatch() == MATCH_ID && a.idStory() == STORY_ID
                             && a.idCharacter() == 50L && a.idLocation() == 2L));

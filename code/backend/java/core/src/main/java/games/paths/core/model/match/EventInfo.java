@@ -26,9 +26,20 @@ public class EventInfo {
     private final boolean available;
     private final String reason;
     private final int energy;
+    private final int coin;
+    private final int food;
+    private final int magic;
 
+    /** Pre-v0.35.3 shape: an event whose only price is energy. */
     public EventInfo(String uuid, String type, boolean endGame, CardInfo card,
                      boolean available, String reason, int energy) {
+        this(uuid, type, endGame, card, available, reason, energy, 0, 0, 0);
+    }
+
+    @SuppressWarnings("java:S107")
+    public EventInfo(String uuid, String type, boolean endGame, CardInfo card,
+                     boolean available, String reason, int energy,
+                     int coin, int food, int magic) {
         this.uuid = uuid;
         this.type = type;
         this.endGame = endGame;
@@ -36,6 +47,9 @@ public class EventInfo {
         this.available = available;
         this.reason = reason;
         this.energy = energy;
+        this.coin = coin;
+        this.food = food;
+        this.magic = magic;
     }
 
     public String getUuid() { return uuid; }
@@ -49,4 +63,10 @@ public class EventInfo {
     public String getReason() { return reason; }
     /** The energy the event costs to trigger ({@code costEnery}); 0 when it is free. */
     public int getEnergy() { return energy; }
+    /** v0.35.3 — the coins it costs ({@code cost_coin}); the board shows the price up front. */
+    public int getCoin() { return coin; }
+    /** v0.35.3 — the food it costs ({@code cost_food}). */
+    public int getFood() { return food; }
+    /** v0.35.3 — the magic it costs ({@code cost_magic}). */
+    public int getMagic() { return magic; }
 }

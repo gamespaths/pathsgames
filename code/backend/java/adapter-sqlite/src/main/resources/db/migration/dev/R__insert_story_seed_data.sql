@@ -317,7 +317,7 @@ INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, 
 -- procedure, plus the "unlocker" that makes each blocked one available.
 -- Location 90005 (Choice Arena) is used for the WRONG_LOCATION case.
 INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location,
-                         type, cost_enery, coin_cost, flag_end_time, id_event_next,
+                         type, cost_enery, cost_coin, flag_end_time, id_event_next,
                          id_weather, registry_key_condition, registry_value_condition,
                          id_item_condition, id_class_condition) VALUES
 (90010, 9001, 90001, 503, 503, 90001, 'NORMAL', 1,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- plain: always available
@@ -344,6 +344,15 @@ INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_descriptio
 (90050, 9001, 90001, 503, 503, 90001, 'NORMAL',    0, 0, 0, NULL,  NULL, NULL,           NULL,  90003,  NULL),   -- ITEM_CONDITION_NOT_MET until 90051 grants item 90003
 (90051, 9001, 90001, 503, 503, 90001, 'NORMAL',    0, 0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- grants the consumables 90003 and 90005
 (90052, 9001, 90001, 503, 503, 90001, 'NORMAL',    0, 0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL);   -- grants the heavy 90006, to reach OVERWEIGHT
+
+-- v0.35.3 resource costs: the twins of 90013 (cost_coin 999) for the two new refusals.
+-- 90055 is the affordable one: the tutorial character starts with 0 food and 0 magic, so
+-- it is only executable after 90026 has topped the backpack up.
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location,
+                         type, cost_enery, cost_coin, cost_food, cost_magic, flag_end_time) VALUES
+(90053, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 999, 0, 0),   -- NOT_ENOUGH_FOOD
+(90054, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 0, 999, 0),   -- NOT_ENOUGH_MAGIC
+(90055, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 1,   2,   1, 0);   -- affordable after 90026
 
 -- ── Event Effects ───────────────────────────────────────────────
 INSERT INTO list_events_effects (id, id_story, id_event, statistics, value, target) VALUES
@@ -405,7 +414,7 @@ INSERT INTO list_events_effects (id, id_story, id_event, id_card, value, target,
 -- players, so no new type value was needed. None of them owns a choice — an automatic event
 -- has nobody to ask and no response to ask in.
 INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location,
-                         type, cost_enery, coin_cost, flag_end_time, id_event_next) VALUES
+                         type, cost_enery, cost_coin, flag_end_time, id_event_next) VALUES
 (90040, 9001, 90001, 503, 503, NULL, 'AUTOMATIC', 0, 0, 0, NULL),   -- Movement Room: first entry
 (90041, 9001, 90001, 503, 503, NULL, 'AUTOMATIC', 0, 0, 0, NULL),   -- Movement Room: any later entry
 (90042, 9001, 90001, 503, 503, NULL, 'AUTOMATIC', 0, 0, 0, NULL),   -- Energy Classroom: found it empty
@@ -477,7 +486,7 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 (90191, 9001, 615, 'it', 'Alza le spalle e improvvisa', 'Il ripiego che non si nega a nessuno.');
 
 INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location,
-                         type, cost_enery, coin_cost, flag_end_time, id_event_next,
+                         type, cost_enery, cost_coin, flag_end_time, id_event_next,
                          id_weather, registry_key_condition, registry_value_condition,
                          id_item_condition, id_class_condition) VALUES
 (90030, 9001, 90001, 610, 610, 90001, 'NORMAL', 2, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL),  -- choice-event, 4 options, cost 2 (keeps 'cost 1' unambiguous)
@@ -528,7 +537,7 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 (90203, 9001, 621, 'it', 'La lanterna ti conduce nel bosco.', NULL);
 
 INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location,
-                         type, cost_enery, coin_cost, flag_end_time, id_event_next,
+                         type, cost_enery, cost_coin, flag_end_time, id_event_next,
                          id_weather, registry_key_condition, registry_value_condition,
                          id_item_condition, id_class_condition) VALUES
 (90032, 9001, 90001, 616, 616, 90001, 'NORMAL', 3, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL),  -- the resolution test-bed

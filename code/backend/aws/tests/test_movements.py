@@ -13,6 +13,7 @@ def ctx(**over):
     base = {
         "hasCharacter": True, "matchRunning": True, "coma": False, "sleeping": False,
         "energy": 100, "carriedWeight": 0, "weightMax": 50,
+        "food": 10, "magic": 10, "coin": 10,
     }
     base.update(over)
     return base
@@ -24,6 +25,37 @@ def edge(**over):
             "maxCharacters": 0, "charactersAtTarget": 0}
     base.update(over)
     return base
+
+
+def test_v0353_not_enough_coins_for_the_edge():
+    assert movements.check(ctx(coin=1), edge(costCoin=2))[1] == "NOT_ENOUGH_COINS"
+
+
+def test_v0353_not_enough_food_for_the_edge():
+    assert movements.check(ctx(food=1), edge(costFood=2))[1] == "NOT_ENOUGH_FOOD"
+
+
+def test_v0353_not_enough_magic_for_the_edge():
+    assert movements.check(ctx(magic=1), edge(costMagic=2))[1] == "NOT_ENOUGH_MAGIC"
+
+
+def test_v0353_an_edge_costing_exactly_what_is_held_is_traversable():
+    assert movements.check(ctx(food=2, magic=3, coin=4),
+                           edge(costFood=2, costMagic=3, costCoin=4)) == (True, None)
+
+
+def test_v0353_energy_is_judged_first_capacity_last():
+    full = edge(maxCharacters=1, charactersAtTarget=5,
+                costFood=1, costMagic=1, costCoin=1)
+    assert movements.check(ctx(energy=1, food=0, magic=0, coin=0), full)[1] == \
+        "INSUFFICIENT_ENERGY"
+    # The destination is full too, but a mover who cannot pay the road hears about the road.
+    assert movements.check(ctx(food=0, magic=0, coin=0), full)[1] == "NOT_ENOUGH_COINS"
+
+
+def test_v0353_edge_check_defaults_the_resource_costs_to_zero():
+    built = movements.edge_check(True, 3, 0, 0)
+    assert (built["costFood"], built["costMagic"], built["costCoin"]) == (0, 0, 0)
 
 
 def test_available_has_no_reason():

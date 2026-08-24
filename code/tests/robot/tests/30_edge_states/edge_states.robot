@@ -245,7 +245,7 @@ Plain Event Uuid
     ${events}=    Admin Events
     FOR    ${e}    IN    @{events}
         ${hit}=    Evaluate
-        ...    e.get('type') == 'NORMAL' and e.get('costEnery') == 1 and e.get('coinCost') == 0 and e.get('idSpecificLocation') and not e.get('idEventNext') and not e.get('idWeather') and not e.get('registryKeyCondition') and not e.get('idItemCondition') and not e.get('idClassCondition') and e.get('flagEndTime') == 0
+        ...    e.get('type') == 'NORMAL' and e.get('costEnery') == 1 and e.get('costCoin') == 0 and not e.get('costFood') and not e.get('costMagic') and e.get('idSpecificLocation') and not e.get('idEventNext') and not e.get('idWeather') and not e.get('registryKeyCondition') and not e.get('idItemCondition') and not e.get('idClassCondition') and e.get('flagEndTime') == 0
         ...    namespace=${{ {'e': $e} }}
         # `$hit`, not `${hit}`: the latter interpolates the VALUE into the condition.
         IF    $hit

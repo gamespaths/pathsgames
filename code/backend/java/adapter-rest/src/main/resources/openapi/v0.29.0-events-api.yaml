@@ -24,7 +24,9 @@ info:
         a ONCE event not yet spent           → ONCE_ALREADY_CONSUMED
         id_specific_location                 → WRONG_LOCATION
         cost_enery                           → NOT_ENOUGH_ENERGY
-        coin_cost                            → NOT_ENOUGH_COINS
+        cost_coin                            → NOT_ENOUGH_COINS
+        cost_food                            → NOT_ENOUGH_FOOD
+        cost_magic                           → NOT_ENOUGH_MAGIC
         registry_key/value_condition         → REGISTRY_CONDITION_NOT_MET
         id_weather                           → WEATHER_CONDITION_NOT_MET
         id_item_condition                    → ITEM_CONDITION_NOT_MET
@@ -150,7 +152,8 @@ paths:
             `MATCH_NOT_RUNNING`, `CHARACTER_CANNOT_ACT`, `SLEEPING`, `COMA`,
             `EVENT_NOT_EXECUTABLE_TYPE`,
             `ONCE_ALREADY_CONSUMED`, `WRONG_LOCATION`, `NOT_ENOUGH_ENERGY`,
-            `NOT_ENOUGH_COINS`, `REGISTRY_CONDITION_NOT_MET`, `WEATHER_CONDITION_NOT_MET`,
+            `NOT_ENOUGH_COINS`, `NOT_ENOUGH_FOOD`, `NOT_ENOUGH_MAGIC`,
+            `REGISTRY_CONDITION_NOT_MET`, `WEATHER_CONDITION_NOT_MET`,
             `ITEM_CONDITION_NOT_MET` or `CLASS_CONDITION_NOT_MET`.
           content:
             application/json:
@@ -197,11 +200,25 @@ components:
           description: Paid once, for the head of the chain. Chained events cost nothing.
         coinSpent:
           type: integer
+        foodSpent:
+          type: integer
+          description: |
+            v0.35.3 — `cost_food` of the event, paid by the actor. Like the other costs it is
+            charged once, for the head of the chain: an automatic or chained event never bills.
+        magicSpent:
+          type: integer
+          description: v0.35.3 — `cost_magic` of the event, paid by the actor.
         newEnergy:
           type: integer
           description: The actor's energy after the event (and after any time-end recovery).
         newCoin:
           type: integer
+        newFood:
+          type: integer
+          description: v0.35.3 — the actor's food after the event.
+        newMagic:
+          type: integer
+          description: v0.35.3 — the actor's magic after the event.
         currentClock:
           type: integer
           description: The clock AFTER the event; it moves when `timeEnded` is true.

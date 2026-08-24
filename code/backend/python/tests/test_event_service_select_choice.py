@@ -40,7 +40,7 @@ def _character(cid, uuid, id_user, id_class, id_location, **over):
 
 def _event(**over):
     base = dict(id=EVENT_ID, uuid="event-uuid", type="NORMAL", id_card=None, cost_enery=1,
-                coin_cost=2, flag_end_time=0, id_event_next=None,
+                cost_coin=2, flag_end_time=0, id_event_next=None,
                 id_specific_location=None, id_weather=None,
                 registry_key_condition=None, registry_value_condition=None,
                 id_item_condition=None, id_class_condition=None)
@@ -220,7 +220,7 @@ def test_choice_selected_marker_carries_the_owning_event_id(service, store):
     _resolve(service)
 
     store.log_event_executed.assert_called_once_with(
-        MATCH_ID, CHAR_ID, EVENT_ID, CLOCK, f"{MSG_CHOICE_SELECTED} {EVENT_ID}")
+        MATCH_ID, CHAR_ID, EVENT_ID, CLOCK, f"{MSG_CHOICE_SELECTED} {EVENT_ID}", 0, 0, 0, 0)
 
 
 def test_choice_history_records_both_the_event_and_the_option(service, store):
@@ -350,7 +350,7 @@ def test_id_location_moves_the_recipients_at_no_cost(service, store):
     r = _resolve(service)
 
     store.update_character_location.assert_called_once_with(MATCH_ID, CHAR_ID, FAR_LOC)
-    store.insert_movement_log.assert_called_once_with(MATCH_ID, CHAR_ID, LOC, FAR_LOC, 0)
+    store.insert_movement_log.assert_called_once_with(MATCH_ID, CHAR_ID, LOC, FAR_LOC, 0, 0, 0, 0)
     assert r.execution.movement_applied is True
     assert r.execution.location_changes[0].to_location_uuid == "loc-far"
 
@@ -383,7 +383,7 @@ def test_rows_apply_in_authored_order(service, store):
 # ── the linked events ───────────────────────────────────────────────────────
 
 def test_id_event_torun_runs_with_its_chain_and_is_not_charged(service, store):
-    outcome = _event(id=2, uuid="outcome-uuid", cost_enery=9, coin_cost=9)
+    outcome = _event(id=2, uuid="outcome-uuid", cost_enery=9, cost_coin=9)
     store.find_events_by_id.return_value = {EVENT_ID: _event(), 2: outcome}
     store.find_effects_by_event_id.return_value = {2: [_event_effect(2, "exp", 5)]}
     store.find_choice_by_story_and_uuid.return_value = _choice(id_event_torun=2)
@@ -450,7 +450,7 @@ def test_a_linked_choice_event_presents_its_options_for_free(service, store):
     # Opened for free — a consequence is not a choice — but marked, so its cycle opens.
     assert r.execution.energy_spent == 0
     store.log_event_executed.assert_any_call(
-        MATCH_ID, CHAR_ID, 6, CLOCK, f"{MSG_EVENT_EXECUTED} 6")
+        MATCH_ID, CHAR_ID, 6, CLOCK, f"{MSG_EVENT_EXECUTED} 6", 0, 0, 0, 0)
 
 
 # ── the Step 30 tail still runs ─────────────────────────────────────────────

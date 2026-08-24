@@ -43,7 +43,7 @@ class SelectChoiceResponseTest {
         return new EventExecutionResult(
                 "match-uuid", "evt-owner", "NORMAL", status, card("The gate"),
                 List.of("evt-owner", "evt-linked"),
-                0, 0, 17, 8, 5,
+                0, 0, 0, 0, 17, 8, 4, 6, 5,
                 false, true, true, false, true, true, true, false, true, true,
                 List.of(new StatChange("char-1", "life", 30, 25, -5)),
                 List.of(new RegistryChange("GATE", null, "OPEN")),

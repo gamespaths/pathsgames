@@ -77,8 +77,16 @@ public final class EventAvailabilityChecker {
         if (ctx.energy() < nz(event.getCostEnery())) {
             return EventAvailability.no(Code.NOT_ENOUGH_ENERGY);
         }
-        if (ctx.coin() < nz(event.getCoinCost())) {
+        if (ctx.coin() < nz(event.getCostCoin())) {
             return EventAvailability.no(Code.NOT_ENOUGH_COINS);
+        }
+        // v0.35.3 — the three costs are read in the order they were added to the contract;
+        // an event asking for two resources at once names the first one it cannot pay.
+        if (ctx.food() < nz(event.getCostFood())) {
+            return EventAvailability.no(Code.NOT_ENOUGH_FOOD);
+        }
+        if (ctx.magic() < nz(event.getCostMagic())) {
+            return EventAvailability.no(Code.NOT_ENOUGH_MAGIC);
         }
         if (!registryMet(event, ctx)) {
             return EventAvailability.no(Code.REGISTRY_CONDITION_NOT_MET);

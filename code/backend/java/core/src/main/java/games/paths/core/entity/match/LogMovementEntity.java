@@ -43,6 +43,16 @@ public class LogMovementEntity {
     @Column(name = "energy")
     private Integer energy;
 
+    /** v0.35.3 - resources paid for the move (edge only). Zero on a forced move. */
+    @Column(name = "food")
+    private Integer food;
+
+    @Column(name = "magic")
+    private Integer magic;
+
+    @Column(name = "coin")
+    private Integer coin;
+
     @Column(name = "ts_insert", nullable = false, updatable = false)
     private String tsInsert;
 
@@ -54,6 +64,9 @@ public class LogMovementEntity {
         String now = java.time.Instant.now().toString();
         if (uuid == null) uuid = java.util.UUID.randomUUID().toString();
         if (energy == null) energy = 0;
+        if (food == null) food = 0;
+        if (magic == null) magic = 0;
+        if (coin == null) coin = 0;
         if (tsInsert == null) tsInsert = now;
         if (tsUpdate == null) tsUpdate = now;
     }
@@ -78,6 +91,15 @@ public class LogMovementEntity {
 
     public Integer getEnergy() { return energy; }
     public void setEnergy(Integer energy) { this.energy = energy; }
+
+    public Integer getFood() { return food; }
+    public void setFood(Integer food) { this.food = food; }
+
+    public Integer getMagic() { return magic; }
+    public void setMagic(Integer magic) { this.magic = magic; }
+
+    public Integer getCoin() { return coin; }
+    public void setCoin(Integer coin) { this.coin = coin; }
 
     public String getTsInsert() { return tsInsert; }
     public void setTsInsert(String tsInsert) { this.tsInsert = tsInsert; }

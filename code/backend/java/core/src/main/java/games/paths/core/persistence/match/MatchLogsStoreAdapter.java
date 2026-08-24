@@ -98,7 +98,7 @@ public class MatchLogsStoreAdapter implements MatchLogsStorePort {
         for (LogMovementEntity l : logMovementRepository.findByIdMatch(idMatch)) {
             out.add(new MovementLogEntry(l.getId(), l.getIdCharacterMatch(),
                     l.getIdLocationFrom(), l.getIdLocationTo(), l.getEnergy(),
-                    l.getTsInsert()));
+                    l.getTsInsert(), l.getFood(), l.getMagic(), l.getCoin()));
         }
         return out;
     }
@@ -118,7 +118,7 @@ public class MatchLogsStoreAdapter implements MatchLogsStorePort {
         for (LogEventsEntity l : logEventsRepository.findByIdMatchOrderByIdAsc(idMatch)) {
             out.add(new EventLogEntry(l.getId(), l.getIdCharacterMatch(),
                     l.getClock(), l.getTimestamp(), l.getLogMessage(), l.getIdEvent(),
-                    l.getIdLocation()));
+                    l.getIdLocation(), l.getEnergy(), l.getFood(), l.getMagic(), l.getCoin()));
         }
         return out;
     }

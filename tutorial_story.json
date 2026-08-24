@@ -788,7 +788,7 @@
       "idCard": 65,
       "idCreator": 1,
       "idTextCopyright": 182,
-      "idTextDescription": 180,
+      "idTextDescription": 386,
       "idTextName": 180,
       "idTextTitle": 180,
       "linkCopyright": "https://unsplash.com/photos/snow-capped-mountain-range-under-a-clear-blue-sky-Megbu9PGW18",
@@ -800,7 +800,7 @@
       "idCard": 66,
       "idCreator": 1,
       "idTextCopyright": 185,
-      "idTextDescription": 183,
+      "idTextDescription": 387,
       "idTextName": 183,
       "idTextTitle": 183,
       "linkCopyright": "https://unsplash.com/photos/a-scenic-view-of-a-canyon-with-mountains-in-the-background-uzZC9B_UToI",
@@ -1458,16 +1458,6 @@
       "uuid": "dfee9f00-336a-422d-94bd-78a5c4380e40"
     },
     {
-      "id": 122,
-      "idCard": 122,
-      "idCreator": 1,
-      "idTextCopyright": 3,
-      "idTextDescription": 353,
-      "idTextName": 353,
-      "idTextTitle": 353,
-      "uuid": "4e18efcd-01f7-424c-a87a-2996e6d044e2"
-    },
-    {
       "id": 123,
       "idCard": 123,
       "idCreator": 1,
@@ -1490,6 +1480,114 @@
       "linkCopyright": "https://unsplash.com/photos/a-wooden-bench-sitting-on-top-of-a-lush-green-hillside-_UAXc9nVbow",
       "urlImage": "https://images.unsplash.com/photo-1724170855717-e2bb8bea37fd?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "f19e1a2f-c657-47d5-ac4a-1e91de3ed837"
+    },
+    {
+      "id": 125,
+      "idCard": 125,
+      "idCreator": 1,
+      "idTextCopyright": 365,
+      "idTextDescription": 366,
+      "idTextName": 362,
+      "idTextTitle": 362,
+      "linkCopyright": "https://unsplash.com/photos/a-stone-building-on-a-grassy-hill-pH8prTnhQrw",
+      "urlImage": "https://images.unsplash.com/photo-1666996613635-60fd572707cb?q=80&w=1201&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "6dab1b29-3aee-411a-8cca-e3fbf245beb8"
+    },
+    {
+      "id": 126,
+      "idCard": 126,
+      "idCreator": 1,
+      "idTextCopyright": 368,
+      "idTextDescription": 367,
+      "idTextName": 363,
+      "idTextTitle": 363,
+      "linkCopyright": "https://unsplash.com/photos/gold-round-coin-on-brown-wooden-table-tTHcfeHoznY",
+      "urlImage": "https://images.unsplash.com/photo-1616958396245-1bd867b6dbe4?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "3a1bf701-2a74-48e6-a32f-a8ba1c0ba937"
+    },
+    {
+      "id": 127,
+      "idCard": 127,
+      "idCreator": 1,
+      "idTextCopyright": 371,
+      "idTextDescription": 372,
+      "idTextName": 369,
+      "idTextTitle": 369,
+      "linkCopyright": "https://unsplash.com/photos/a-loaf-of-bread-sitting-on-top-of-a-wooden-cutting-board-XOMzssv87ns",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1664547606681-72a6cdb5d0cb?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "0d16d1e0-92a4-4b6f-a80f-53277d384896"
+    },
+    {
+      "id": 128,
+      "idCard": 128,
+      "idCreator": 1,
+      "idTextCopyright": 375,
+      "idTextDescription": 376,
+      "idTextName": 373,
+      "idTextTitle": 373,
+      "linkCopyright": "https://unsplash.com/photos/text-KNZGAIBfYnI",
+      "urlImage": "https://images.unsplash.com/photo-1609375457088-84cb07bc8021?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "3f2d11fb-8590-498a-8df9-b9ec5a79e077"
+    },
+    {
+      "id": 129,
+      "idCard": 129,
+      "idCreator": 1,
+      "idTextCopyright": 378,
+      "idTextDescription": 379,
+      "idTextName": 377,
+      "idTextTitle": 377,
+      "linkCopyright": "https://unsplash.com/photos/silhouette-of-a-man-fishing-at-sunset-72GtjKr3VmI",
+      "urlImage": "https://images.unsplash.com/photo-1566125384512-e57be00201c9?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "a2dbd5a5-3386-409e-b11a-d87679a64365"
+    },
+    {
+      "id": 130,
+      "idCard": 130,
+      "idCreator": 1,
+      "idTextCopyright": 381,
+      "idTextDescription": 382,
+      "idTextName": 380,
+      "idTextTitle": 380,
+      "linkCopyright": "https://unsplash.com/photos/a-person-lighting-a-candle-on-a-table-mqRx8HTb5c8",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1693007962213-a6bda5da3976?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "65a9e5e1-d574-4e44-b802-77c2453ae739"
+    },
+    {
+      "id": 131,
+      "idCard": 131,
+      "idCreator": 1,
+      "idTextCopyright": 384,
+      "idTextDescription": 385,
+      "idTextName": 383,
+      "idTextTitle": 383,
+      "linkCopyright": "https://unsplash.com/photos/a-person-standing-in-a-circle-of-fire-ni0JLDg1qtE",
+      "urlImage": "https://images.unsplash.com/photo-1668588542561-1f1b3a97b862?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "bd35d477-314d-41d7-a7af-12b3872c28c4"
+    },
+    {
+      "id": 132,
+      "idCard": 132,
+      "idCreator": 1,
+      "idTextCopyright": 389,
+      "idTextDescription": 390,
+      "idTextName": 388,
+      "idTextTitle": 388,
+      "linkCopyright": "https://unsplash.com/photos/time-lapse-photography-of-a-person-in-a-tunnel-2Ykzp_dFbb4",
+      "urlImage": "https://images.unsplash.com/photo-1584342864307-03dae979b7db?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "7579bdf3-14df-434d-a7b7-986ced73cbe6"
+    },
+    {
+      "id": 133,
+      "idCard": 133,
+      "idCreator": 1,
+      "idTextCopyright": 392,
+      "idTextDescription": 393,
+      "idTextName": 391,
+      "idTextTitle": 391,
+      "linkCopyright": "https://unsplash.com/photos/orange-and-yellow-light-digital-wallpaper-4BoVGAHGr7w",
+      "urlImage": "https://images.unsplash.com/photo-1604845417426-76f5e80950b7?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "35077af3-3660-4ef0-adc1-a37d1307bf18"
     }
   ],
   "category": "adventure",
@@ -2367,6 +2465,82 @@
       "traitsToRemove": 7,
       "uuid": "9535f982-13d9-4fa6-9051-e6427599feda",
       "value": 1
+    },
+    {
+      "id": 17,
+      "idCard": 126,
+      "idEvent": 21,
+      "idTextDescription": 363,
+      "idTextName": 363,
+      "id_card": 126,
+      "statistics": "COIN",
+      "target": "ALL",
+      "uuid": "e9d62c2f-81d9-4632-944a-64669f51a19a",
+      "value": 1
+    },
+    {
+      "id": 18,
+      "idCard": 127,
+      "idTextDescription": 370,
+      "idTextName": 370,
+      "id_card": 127,
+      "statistics": "LIFE",
+      "target": "ALL",
+      "uuid": "b3d23946-b530-46b4-82fc-33bd08cdfe79",
+      "value": 1
+    },
+    {
+      "id": 19,
+      "idEvent": 23,
+      "idLocation": 2,
+      "idTextDescription": 374,
+      "idTextName": 374,
+      "uuid": "93d167ad-9c8b-4d7a-b37e-f1c7682063b7"
+    },
+    {
+      "id": 20,
+      "idEvent": 23,
+      "idLocation": 2,
+      "idTextDescription": 374,
+      "idTextName": 374,
+      "uuid": "c7c48bdb-1afc-4f3a-ac98-324183ba0596"
+    },
+    {
+      "id": 21,
+      "idCard": 129,
+      "idEvent": 24,
+      "idTextDescription": 377,
+      "idTextName": 377,
+      "id_card": 129,
+      "statistics": "FOOD",
+      "target": "ALL",
+      "uuid": "be7f36e9-f07d-4b6b-9b29-10e1b66b4b61",
+      "value": 1
+    },
+    {
+      "id": 22,
+      "idCard": 130,
+      "idEvent": 25,
+      "idTextDescription": 380,
+      "idTextName": 380,
+      "id_card": 130,
+      "statistics": "MAGIC",
+      "target": "ALL",
+      "uuid": "1002b5ef-2d2e-458a-90bc-ae9573d3400a",
+      "value": 1
+    },
+    {
+      "id": 23,
+      "idCard": 131,
+      "idEvent": 26,
+      "idLocation": 14,
+      "idTextDescription": 383,
+      "idTextName": 383,
+      "id_card": 131,
+      "statistics": "ENERGY",
+      "target": "ALL",
+      "uuid": "4b4acb1d-2bc2-4dc2-aa47-5fba53d3758e",
+      "value": 1
     }
   ],
   "events": [
@@ -2561,11 +2735,11 @@
       "idTextDescription": 319,
       "idTextName": 319,
       "id_card": 111,
-      "type": "NORMAL",
+      "type": "ONCE",
       "uuid": "b5acc9a0-3c5e-48bf-8aba-57389e5a91cd"
     },
     {
-      "costEnery": 0,
+      "costEnery": 1,
       "id": 17,
       "idCard": 114,
       "idItemCondition": 1,
@@ -2608,6 +2782,75 @@
       "id_card": 123,
       "type": "NORMAL",
       "uuid": "8901dcdc-623e-4e67-a556-4d199cfa271d"
+    },
+    {
+      "costEnery": 1,
+      "id": 21,
+      "idCard": 125,
+      "idSpecificLocation": 7,
+      "idTextDescription": 362,
+      "idTextName": 362,
+      "id_card": 125,
+      "type": "NORMAL",
+      "uuid": "999a9599-648c-4172-bec1-91d8612af54f"
+    },
+    {
+      "costCoin": "",
+      "costFood": 1,
+      "id": 22,
+      "idCard": 127,
+      "idSpecificLocation": 9,
+      "idTextDescription": 369,
+      "idTextName": 369,
+      "id_card": 127,
+      "type": "NORMAL",
+      "uuid": "97270f71-8cb1-45c7-9149-f9133b82dd95"
+    },
+    {
+      "costCoin": 1,
+      "costEnery": 1,
+      "id": 23,
+      "idCard": 128,
+      "idSpecificLocation": 10,
+      "idTextDescription": 373,
+      "idTextName": 373,
+      "id_card": 128,
+      "type": "NORMAL",
+      "uuid": "a52ea650-d501-494d-bbb9-0d158ff25080"
+    },
+    {
+      "costEnery": 1,
+      "id": 24,
+      "idCard": 129,
+      "idSpecificLocation": 15,
+      "idTextDescription": 377,
+      "idTextName": 377,
+      "id_card": 129,
+      "type": "NORMAL",
+      "uuid": "9fd0ffe1-4c9d-4b06-b0ca-cd1de03881ca"
+    },
+    {
+      "costEnery": 1,
+      "id": 25,
+      "idCard": 130,
+      "idSpecificLocation": 14,
+      "idTextDescription": 380,
+      "idTextName": 380,
+      "id_card": 130,
+      "type": "NORMAL",
+      "uuid": "6c0a25e3-b420-47f1-8ae0-39267ba5a60d"
+    },
+    {
+      "costEnery": 1,
+      "costMagic": 1,
+      "id": 26,
+      "idCard": 131,
+      "idSpecificLocation": 16,
+      "idTextDescription": 383,
+      "idTextName": 383,
+      "id_card": 131,
+      "type": "NORMAL",
+      "uuid": "42a8bc57-c56b-4c43-8831-00ae9783a3aa"
     }
   ],
   "globalRandomEvents": [],
@@ -2672,8 +2915,8 @@
       "weight": 0
     },
     {
-      "amountDrop": 3,
-      "amountUse": 2,
+      "amountDrop": 2,
+      "amountUse": 1,
       "flagShowEffects": true,
       "id": 2,
       "idCard": 115,
@@ -2681,13 +2924,13 @@
       "idTextName": 333,
       "id_card": 115,
       "isConsumabile": true,
-      "maxPerCharacter": 5,
+      "maxPerCharacter": 3,
       "uuid": "bc1bdd66-ac82-479a-9749-2558eafc0f76",
       "weight": 1
     },
     {
       "amountDrop": "",
-      "amountUse": "",
+      "amountUse": 2,
       "flagShowEffects": false,
       "id": 3,
       "idCard": 119,
@@ -2887,6 +3130,52 @@
       "idTextName": 248,
       "id_card": 52,
       "uuid": "639dd26e-469c-4020-8697-1d761344920b"
+    },
+    {
+      "costMagic": 1,
+      "direction": "SOUTH",
+      "flagBack": 0,
+      "id": 19,
+      "idCard": 132,
+      "idCardBack": "",
+      "idLocationFrom": 14,
+      "idLocationTo": 17,
+      "idTextName": 388,
+      "id_card": 132,
+      "uuid": "751b844e-7413-43c4-9f83-3eb7091c7309"
+    },
+    {
+      "costCoin": 1,
+      "direction": "WEST",
+      "energyCost": 1,
+      "flagBack": 0,
+      "id": 20,
+      "idCardBack": "",
+      "idLocationFrom": 17,
+      "idLocationTo": 13,
+      "uuid": "8f85773a-729d-429c-a145-d0391997650d"
+    },
+    {
+      "costFood": 1,
+      "direction": "EAST",
+      "flagBack": 0,
+      "id": 21,
+      "idCardBack": "",
+      "idLocationFrom": 17,
+      "idLocationTo": 7,
+      "uuid": "05f033cb-1aa0-4eeb-8abf-52ca2768a9db"
+    },
+    {
+      "direction": "SOUTH",
+      "energyCost": 2,
+      "flagBack": 0,
+      "id": 22,
+      "idCard": 0,
+      "idCardBack": "",
+      "idLocationFrom": 17,
+      "idLocationTo": 2,
+      "id_card": 0,
+      "uuid": "cbbf350c-25f7-4a71-bd8f-c2017a6e3c96"
     }
   ],
   "locations": [
@@ -3136,6 +3425,14 @@
       "idTextName": 232,
       "id_card": 82,
       "uuid": "d3f20146-68b8-40d5-a967-1ae50f78d518"
+    },
+    {
+      "id": 17,
+      "idCard": 133,
+      "idTextDescription": 391,
+      "idTextName": 391,
+      "id_card": 133,
+      "uuid": "e4be741f-06b4-41b3-a553-bd5551f9d4d1"
     }
   ],
   "missionSteps": [],
@@ -8673,8 +8970,8 @@
       "idText": 321,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Atop the watchtower sits an oak table with a pristine scroll resting upon it. Charting the borders of these unknown lands will help you navigate your journey. <br />\n<br />\nSome events may add items to your inventory.",
-      "shortText": "Atop the watchtower sits an oak table with a pristine scroll resting upon it. Charting the borders of these unknown lands will help you navigate your journey. <br />\n<br />\nSome events may add items to your inventory.",
+      "longText": "Atop the watchtower sits an oak table with a pristine scroll resting upon it. Charting the borders of these unknown lands will help you navigate your journey. <br />\n<br />\nSome events may add items to your inventory.<br />\nSome events can only be performed once per game.",
+      "shortText": "Atop the watchtower sits an oak table with a pristine scroll resting upon it. Charting the borders of these unknown lands will help you navigate your journey. <br />\n<br />\nSome events may add items to your inventory.<br />\nSome events can only be performed once per game.",
       "uuid": "03300eac-5aa7-4bd5-ac95-e721aa4682b7"
     },
     {
@@ -8683,8 +8980,8 @@
       "idText": 321,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "In cima alla torre d'avvistamento si trova un tavolo di quercia con una pergamena ancora intonsa. Tracciare i confini di queste terre sconosciute ti permetterà di orientarti meglio durante il viaggio. <br />\n<br />\nAlcuni eventi possono aggiungere oggetti al tuo inventario.",
-      "shortText": "In cima alla torre d'avvistamento si trova un tavolo di quercia con una pergamena ancora intonsa. Tracciare i confini di queste terre sconosciute ti permetterà di orientarti meglio durante il viaggio. <br />\n<br />\nAlcuni eventi possono aggiungere oggetti al tuo inventario.",
+      "longText": "In cima alla torre d'avvistamento si trova un tavolo di quercia con una pergamena ancora intonsa. Tracciare i confini di queste terre sconosciute ti permetterà di orientarti meglio durante il viaggio. <br />\n<br />\nAlcuni eventi possono aggiungere oggetti al tuo inventario.<br />\nAlcuni eventi possono essere eseguiti solo una volta per partita.",
+      "shortText": "In cima alla torre d'avvistamento si trova un tavolo di quercia con una pergamena ancora intonsa. Tracciare i confini di queste terre sconosciute ti permetterà di orientarti meglio durante il viaggio. <br />\n<br />\nAlcuni eventi possono aggiungere oggetti al tuo inventario.<br />\nAlcuni eventi possono essere eseguiti solo una volta per partita.",
       "uuid": "d2a008b7-6183-4706-b92e-c8f8dd9cd56b"
     },
     {
@@ -9033,8 +9330,8 @@
       "idText": 340,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Search for Food",
-      "shortText": "Search for Food",
+      "longText": "Search Onion",
+      "shortText": "Search Onion",
       "uuid": "ad425d43-1024-4218-b8f2-752e48876c45"
     },
     {
@@ -9416,6 +9713,566 @@
       "longText": "",
       "shortText": "",
       "uuid": "bfdabe0a-c8dc-42e7-a5b9-feb37190a0e5"
+    },
+    {
+      "id": 362,
+      "idCreator": 1,
+      "idText": 362,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Mountain Caves",
+      "shortText": "Mountain Caves",
+      "uuid": "6fbd8fe1-38e7-4b7b-9449-dcc2da2da4e9"
+    },
+    {
+      "id": 363,
+      "idCreator": 1,
+      "idText": 363,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Found a coin",
+      "shortText": "Found a coin",
+      "uuid": "bca8817e-3aa1-4e3d-8116-39df679136ec"
+    },
+    {
+      "id": 364,
+      "idCreator": 1,
+      "idText": 364,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Eduardo Madrid",
+      "shortText": "Eduardo Madrid",
+      "uuid": "6c72cea7-ea4d-4e34-85d6-1bd842a60848"
+    },
+    {
+      "id": 364,
+      "idCreator": 1,
+      "idText": 364,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "1ba80763-4d40-41b7-ba3b-4bc78d07652f"
+    },
+    {
+      "id": 365,
+      "idCreator": 1,
+      "idText": 365,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Eduardo Madrid",
+      "shortText": "Eduardo Madrid",
+      "uuid": "56e14163-a315-4d08-a303-b543a46960bf"
+    },
+    {
+      "id": 365,
+      "idCreator": 1,
+      "idText": 365,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "62f7140d-dcc9-4940-8ada-b54f27601a94"
+    },
+    {
+      "id": 366,
+      "idCreator": 1,
+      "idText": 366,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "A deep, damp darkness yawns within the heart of the rock, echoic with the steady dripping of water. Venturing into the mountain's depths demands courage, but often yields unexpected discoveries. <br />\n<br />\nIn these caves you can find strange things such as money, food, and magic.",
+      "shortText": "A deep, damp darkness yawns within the heart of the rock, echoic with the steady dripping of water. Venturing into the mountain's depths demands courage, but often yields unexpected discoveries. <br />\n<br />\nIn these caves you can find strange things such as money, food, and magic.",
+      "uuid": "59563ac2-d15d-4fc1-bb3b-47bbee222c54"
+    },
+    {
+      "id": 366,
+      "idCreator": 1,
+      "idText": 366,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Un'oscurità profonda e umida si spalanca nel cuore della roccia, scossa solo dal costante gocciolare dell'acqua. Avventurarsi nelle sviscere della montagna richiede coraggio, ma riserva spesso scoperte inaspettate. <br />\n<br />\nIn queste grotte puoi trovare strane cose come soldi, cibo e magia.",
+      "shortText": "Un'oscurità profonda e umida si spalanca nel cuore della roccia, scossa solo dal costante gocciolare dell'acqua. Avventurarsi nelle sviscere della montagna richiede coraggio, ma riserva spesso scoperte inaspettate. <br />\n<br />\nIn queste grotte puoi trovare strane cose come soldi, cibo e magia.",
+      "uuid": "f36e9847-c885-4952-a79c-fcd9e7ecdc54"
+    },
+    {
+      "id": 367,
+      "idCreator": 1,
+      "idText": 367,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "A metallic glint catches your eye among the cracks and dust of the rocky floor. <br />\n<br />\nSome events can earn you resources like coins, food, and magic points.<br />\n<br />\nBeing a tutorial, you can earn as much money as you want: if only real life were like this!",
+      "shortText": "A metallic glint catches your eye among the cracks and dust of the rocky floor. <br />\n<br />\nSome events can earn you resources like coins, food, and magic points.<br />\n<br />\nBeing a tutorial, you can earn as much money as you want: if only real life were like this!",
+      "uuid": "4dc7915e-f6cf-400e-9c2f-a3ea730ea830"
+    },
+    {
+      "id": 367,
+      "idCreator": 1,
+      "idText": 367,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Raccogliere queste monete dimenticate potenziale arricchirà la tua scarsella per i futuri scambi. <br />\n<br />\nAlcuni eventi ti possono far guadagnare risorse come coin, cibo e punti magia.<br />\n<br />\nTrattandosi di un tutorial puoi guadagnare soldi quanto vuoi: magari la vita reale fosse così!",
+      "shortText": "Raccogliere queste monete dimenticate potenziale arricchirà la tua scarsella per i futuri scambi. <br />\n<br />\nAlcuni eventi ti possono far guadagnare risorse come coin, cibo e punti magia.<br />\n<br />\nTrattandosi di un tutorial puoi guadagnare soldi quanto vuoi: magari la vita reale fosse così!",
+      "uuid": "470a2d08-7607-4bd1-baaa-de7f52c2d3d8"
+    },
+    {
+      "id": 368,
+      "idCreator": 1,
+      "idText": 368,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Jakob Rosen",
+      "shortText": "Jakob Rosen",
+      "uuid": "7fef5f1b-e90c-4ab3-8d31-c74d3041e5c6"
+    },
+    {
+      "id": 368,
+      "idCreator": 1,
+      "idText": 368,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "55959229-ef7a-4eb7-a3f8-6a5739fa4032"
+    },
+    {
+      "id": 363,
+      "idCreator": 1,
+      "idText": 363,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "f41c4686-238f-4b22-9b38-a05f8ef92026"
+    },
+    {
+      "id": 369,
+      "idCreator": 1,
+      "idText": 369,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Eat Food",
+      "shortText": "Eat Food",
+      "uuid": "1d5ad9e4-a73d-4caa-8217-fa629cb416dd"
+    },
+    {
+      "id": 370,
+      "idCreator": 1,
+      "idText": 370,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Eat Food",
+      "shortText": "Eat Food",
+      "uuid": "be3b16ec-1cf8-43f5-8e75-16bf94f17b52"
+    },
+    {
+      "id": 371,
+      "idCreator": 1,
+      "idText": 371,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Spencer Backman",
+      "shortText": "Spencer Backman",
+      "uuid": "7112e33a-8911-4f4d-87e8-e6e350fe665b"
+    },
+    {
+      "id": 371,
+      "idCreator": 1,
+      "idText": 371,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "085d4c2e-85b3-433a-aec7-fda057c998d6"
+    },
+    {
+      "id": 372,
+      "idCreator": 1,
+      "idText": 372,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The taste of the meal rekindles a spark of vigor in your exhausted body, giving you the strength to press on. Swallowing a few bites allows you to recover the energy lost during the long journey. <br />\n<br />\nThis event consumes an amount of food but can have positive effects.",
+      "shortText": "The taste of the meal rekindles a spark of vigor in your exhausted body, giving you the strength to press on. Swallowing a few bites allows you to recover the energy lost during the long journey. <br />\n<br />\nThis event consumes an amount of food but can have positive effects.",
+      "uuid": "73f8569e-599b-4a7e-be51-1f4e37d6edd1"
+    },
+    {
+      "id": 372,
+      "idCreator": 1,
+      "idText": 372,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Il sapore del pasto riaccende una scintilla di vigore nel tuo corpo stremato, dandoti la forza di proseguire. Mandare giù qualche boccone ti permette di recuperare le energie perdute durante il lungo cammino. <br />\n<br />\nQuesto evento consuma una quantità di cibo ma può avere effetti positivi.",
+      "shortText": "Il sapore del pasto riaccende una scintilla di vigore nel tuo corpo stremato, dandoti la forza di proseguire. Mandare giù qualche boccone ti permette di recuperare le energie perdute durante il lungo cammino. <br />\n<br />\nQuesto evento consuma una quantità di cibo ma può avere effetti positivi.",
+      "uuid": "fc245f4d-928c-42f4-bd30-1c6b8c6632fb"
+    },
+    {
+      "id": 373,
+      "idCreator": 1,
+      "idText": 373,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Destination Ride",
+      "shortText": "Destination Ride",
+      "uuid": "5ac02d0b-3509-41ad-a624-d42b78af2051"
+    },
+    {
+      "id": 374,
+      "idCreator": 1,
+      "idText": 374,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Destination Ride",
+      "shortText": "Destination Ride",
+      "uuid": "ed120e0c-d908-4385-a2b1-255e07427287"
+    },
+    {
+      "id": 375,
+      "idCreator": 1,
+      "idText": 375,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Shelter",
+      "shortText": "Shelter",
+      "uuid": "3cbf2b45-d6d0-4b5e-b792-41ea741e2e7d"
+    },
+    {
+      "id": 375,
+      "idCreator": 1,
+      "idText": 375,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "be78310c-e944-4f44-ab29-94b83b263751"
+    },
+    {
+      "id": 376,
+      "idCreator": 1,
+      "idText": 376,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Entrusting your fate to his hands will spare you the dangers of the overland trail. <br />\n<br />\nSome events may ask you for coins to be executed; this will take you to the final location.",
+      "shortText": "Entrusting your fate to his hands will spare you the dangers of the overland trail. <br />\n<br />\nSome events may ask you for coins to be executed; this will take you to the final location.",
+      "uuid": "36e6f226-cf76-426f-bf71-f59065b6b229"
+    },
+    {
+      "id": 376,
+      "idCreator": 1,
+      "idText": 376,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Un nostromo attende sulla banchina ready per salpare verso la meta conclusiva del viaggio. Rimettere la tua sorte nelle sue mani ti risparmierà le insidie del cammino via terra. <br />\n<br />\nAlcuni eventi possono chiederti dei coin per essere eseguiti; questo ti porterà alla location finale.",
+      "shortText": "Un nostromo attende sulla banchina ready per salpare verso la meta conclusiva del viaggio. Rimettere la tua sorte nelle sue mani ti risparmierà le insidie del cammino via terra. <br />\n<br />\nAlcuni eventi possono chiederti dei coin per essere eseguiti; questo ti porterà alla location finale.",
+      "uuid": "2b9db364-100e-4f32-a481-dbf9ff60102c"
+    },
+    {
+      "id": 377,
+      "idCreator": 1,
+      "idText": 377,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Catch Fish",
+      "shortText": "Catch Fish",
+      "uuid": "621ceaa4-c30e-42d8-92a8-bc45e0e18a95"
+    },
+    {
+      "id": 378,
+      "idCreator": 1,
+      "idText": 378,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Daniel Radford",
+      "shortText": "Daniel Radford",
+      "uuid": "b46997d4-0897-47d1-8753-0c9f7eb02345"
+    },
+    {
+      "id": 378,
+      "idCreator": 1,
+      "idText": 378,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "7e256cfd-e525-44ed-b2a4-eb5e9fa9c6ef"
+    },
+    {
+      "id": 379,
+      "idCreator": 1,
+      "idText": 379,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Quietly on the riverbank, you watch dark shapes glide softly beneath the water's surface. A sudden splash breaks the stream's silence, rewarding your steady patience with a solid catch. <br />\n<br />\nThis event earns you one food point.",
+      "shortText": "Quietly on the riverbank, you watch dark shapes glide softly beneath the water's surface. A sudden splash breaks the stream's silence, rewarding your steady patience with a solid catch. <br />\n<br />\nThis event earns you one food point.",
+      "uuid": "71ab501b-c241-4c99-a7bd-8f109f2bc39e"
+    },
+    {
+      "id": 379,
+      "idCreator": 1,
+      "idText": 379,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Silenzioso sulla riva, osservi le ombre scure muoversi flutuando al di sotto della superficie dello specchio d'acqua. Un guizzo improvviso rompe la quiete del torrente, premiando la tua costante attesa con una buona preda. <br />\n<br />\nQuesto evento ti fa guadagnare un punto cibo.",
+      "shortText": "Silenzioso sulla riva, osservi le ombre scure muoversi flutuando al di sotto della superficie dello specchio d'acqua. Un guizzo improvviso rompe la quiete del torrente, premiando la tua costante attesa con una buona preda. <br />\n<br />\nQuesto evento ti fa guadagnare un punto cibo.",
+      "uuid": "4f1a3aae-3dd2-4582-b01d-d50e3f9eafc6"
+    },
+    {
+      "id": 380,
+      "idCreator": 1,
+      "idText": 380,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Find magic",
+      "shortText": "Find magic",
+      "uuid": "aa77a0d1-37dd-44e8-80aa-be04df058886"
+    },
+    {
+      "id": 381,
+      "idCreator": 1,
+      "idText": 381,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Natalia Blauth",
+      "shortText": "Natalia Blauth",
+      "uuid": "6d3b75a7-4a8c-48ad-8885-6ea7dae3539f"
+    },
+    {
+      "id": 381,
+      "idCreator": 1,
+      "idText": 381,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "4d0881ae-1cc7-4d40-880b-d364b30f755a"
+    },
+    {
+      "id": 382,
+      "idCreator": 1,
+      "idText": 382,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "An unusual, vibrant energy permeates the air around you, tingling your skin and illuminating the shadows. As you draw closer to the arcane source, you feel your mind expand to new tastes of power. <br />\n<br />\nThis special event earns you one magic point.",
+      "shortText": "An unusual, vibrant energy permeates the air around you, tingling your skin and illuminating the shadows. As you draw closer to the arcane source, you feel your mind expand to new tastes of power. <br />\n<br />\nThis special event earns you one magic point.",
+      "uuid": "7fd94668-6a2b-4470-9b60-07fb9f76ccdd"
+    },
+    {
+      "id": 382,
+      "idCreator": 1,
+      "idText": 382,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Un'insolita e vibrante energia permea l'aria attorno a te, facendo formicolare la pelle e illuminando le ombre. Avvicinandoti alla fonte arcanica, senti la tua mente aprirsi a nuovi arcani sapori di potere. <br />\n<br />\nQuesto evento speciale ti fa guadagnare un punto magia.",
+      "shortText": "Un'insolita e vibrante energia permea l'aria attorno a te, facendo formicolare la pelle e illuminando le ombre. Avvicinandoti alla fonte arcanica, senti la tua mente aprirsi a nuovi arcani sapori di potere. <br />\n<br />\nQuesto evento speciale ti fa guadagnare un punto magia.",
+      "uuid": "69fc5518-1cac-4915-a8ac-5f446216ebd9"
+    },
+    {
+      "id": 380,
+      "idCreator": 1,
+      "idText": 380,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Trovare magia",
+      "shortText": "Trovare magia",
+      "uuid": "960ff546-fa7b-4d2d-92d5-e7e489284cf8"
+    },
+    {
+      "id": 383,
+      "idCreator": 1,
+      "idText": 383,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Teleportation",
+      "shortText": "Teleportation",
+      "uuid": "f88c7800-0355-499d-81be-77c1421cd166"
+    },
+    {
+      "id": 384,
+      "idCreator": 1,
+      "idText": 384,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Luka Fernandes",
+      "shortText": "Luka Fernandes",
+      "uuid": "f4f3fded-6123-449e-9767-03847042702e"
+    },
+    {
+      "id": 384,
+      "idCreator": 1,
+      "idText": 384,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "8f1334a2-192d-498e-bf61-d4919a8dbca2"
+    },
+    {
+      "id": 385,
+      "idCreator": 1,
+      "idText": 385,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The runes etched in the air begin to glow with a pale blue light as the space around you seems to bend. A second later, reality dissolves into a vortex of pure mystical energy. <br />\n<br />\nYou can spend one magic point to teleport to the lake cottage.",
+      "shortText": "The runes etched in the air begin to glow with a pale blue light as the space around you seems to bend. A second later, reality dissolves into a vortex of pure mystical energy. <br />\n<br />\nYou can spend one magic point to teleport to the lake cottage.",
+      "uuid": "51365cc9-4092-4d42-9dd3-0429ea1bd3d0"
+    },
+    {
+      "id": 385,
+      "idCreator": 1,
+      "idText": 385,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Le rune incise nell'aria iniziano a brillare di una luce azzurrina, mentre lo spazio attorno a te sembra piegarsi. Un secondo dopo, la realtà si dissolve in un vortice di pura energia mistica. <br />\n<br />\nPuoi spendere un punto magia per teletrasportarti alla casetta sul lago.",
+      "shortText": "Le rune incise nell'aria iniziano a brillare di una luce azzurrina, mentre lo spazio attorno a te sembra piegarsi. Un secondo dopo, la realtà si dissolve in un vortice di pura energia mistica. <br />\n<br />\nPuoi spendere un punto magia per teletrasportarti alla casetta sul lago.",
+      "uuid": "6575977f-c7ca-4aeb-a94a-bb4a4e7c6173"
+    },
+    {
+      "id": 340,
+      "idCreator": 1,
+      "idText": 340,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Trovare cipolle",
+      "shortText": "Trovare cipolle",
+      "uuid": "e68d14f6-92bb-40e0-917b-f34499fd652b"
+    },
+    {
+      "id": 386,
+      "idCreator": 1,
+      "idText": 386,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The freezing wind blows hard at the highest point of the range, opening up the view to endless horizons. From this natural lookout you can watch the entire realm stretch out beneath your feet. <br />\n<br />\nYour exploration continues.",
+      "shortText": "The freezing wind blows hard at the highest point of the range, opening up the view to endless horizons. From this natural lookout you can watch the entire realm stretch out beneath your feet. <br />\n<br />\nYour exploration continues.",
+      "uuid": "1bdc9b8e-d446-4180-8f25-8a8d6b86664c"
+    },
+    {
+      "id": 386,
+      "idCreator": 1,
+      "idText": 386,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Il vento gelido soffia forte sul punto più alto della catena, aprendo il panorama verso orizzonti sconfinati. Da questo belvedere naturale puoi osservare l'intero reame distendersi sotto ai tuoi piedi. <br />\n<br />\nLa tua esplorazione continua.",
+      "shortText": "Il vento gelido soffia forte sul punto più alto della catena, aprendo il panorama verso orizzonti sconfinati. Da questo belvedere naturale puoi osservare l'intero reame distendersi sotto ai tuoi piedi. <br />\n<br />\nLa tua esplorazione continua.",
+      "uuid": "2463fc08-0724-46b5-9c9c-c8097dd4fdd3"
+    },
+    {
+      "id": 387,
+      "idCreator": 1,
+      "idText": 387,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Towering rock walls rise toward the sky, narrowing the path into a deep, echoing gorge. The whistle of the wind through the crevices heralds turns and vistas to discover with every step. <br />\n<br />\nYour exploration continues with many possible actions.",
+      "shortText": "Towering rock walls rise toward the sky, narrowing the path into a deep, echoing gorge. The whistle of the wind through the crevices heralds turns and vistas to discover with every step. <br />\n<br />\nYour exploration continues with many possible actions.",
+      "uuid": "c7dab700-6cdd-4047-86a1-ab0a332ec278"
+    },
+    {
+      "id": 387,
+      "idCreator": 1,
+      "idText": 387,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Pareti rocciose imponenti si ergono verso il cielo, restringendo il sentiero in una gola profonda ed echeggiante. Il fischio del vento tra le crepacci preannuncia deviazioni e scorci da scoprire a ogni passo. <br />\n<br />\nLa tua esplorazione continua con molte azioni possibili.",
+      "shortText": "Pareti rocciose imponenti si ergono verso il cielo, restringendo il sentiero in una gola profonda ed echeggiante. Il fischio del vento tra le crepacci preannuncia deviazioni e scorci da scoprire a ogni passo. <br />\n<br />\nLa tua esplorazione continua con molte azioni possibili.",
+      "uuid": "d42e58e3-1ebd-4f28-8f5c-8a4c2c4ebb17"
+    },
+    {
+      "id": 388,
+      "idCreator": 1,
+      "idText": 388,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Use Magic",
+      "shortText": "Use Magic",
+      "uuid": "f3894fca-344c-4cd2-8e7e-5d69d86823dd"
+    },
+    {
+      "id": 389,
+      "idCreator": 1,
+      "idText": 389,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Fotis Fotopoulos",
+      "shortText": "Fotis Fotopoulos",
+      "uuid": "b7c1a686-335b-45f0-ba66-84a857a5bfec"
+    },
+    {
+      "id": 389,
+      "idCreator": 1,
+      "idText": 389,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "8dd5a9c3-8b9f-485f-8dc0-39595bbf85bf"
+    },
+    {
+      "id": 390,
+      "idCreator": 1,
+      "idText": 390,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "A whispered spell breaks the silence as mystical energy takes shape within the palms of your hands. Channeling arcane power allows you to transcend physical limits and alter reality around you. <br />\n<br />\nYou can spend one magic point to perform this movement.",
+      "shortText": "A whispered spell breaks the silence as mystical energy takes shape within the palms of your hands. Channeling arcane power allows you to transcend physical limits and alter reality around you. <br />\n<br />\nYou can spend one magic point to perform this movement.",
+      "uuid": "ac262049-451a-483b-ab4a-6dcd138b612b"
+    },
+    {
+      "id": 390,
+      "idCreator": 1,
+      "idText": 390,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Un bisbiglio d'incantesimo rompe il silenzio mentre l'energia mistica prende forma nei palmi delle tue mani. Canalizzare il potere arcano ti consente di superare i limiti fisici e alterare la realtà attorno a te. <br />\n<br />\nPuoi spendere un punto magia per eseguire questo movimento.",
+      "shortText": "Un bisbiglio d'incantesimo rompe il silenzio mentre l'energia mistica prende forma nei palmi delle tue mani. Canalizzare il potere arcano ti consente di superare i limiti fisici e alterare la realtà attorno a te. <br />\n<br />\nPuoi spendere un punto magia per eseguire questo movimento.",
+      "uuid": "7c97b242-2414-4f0f-86e8-769ae1892fe3"
+    },
+    {
+      "id": 391,
+      "idCreator": 1,
+      "idText": 391,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Light Location",
+      "shortText": "Light Location",
+      "uuid": "3f3142cd-0b43-4b75-b254-1fe0a2cec9e3"
+    },
+    {
+      "id": 392,
+      "idCreator": 1,
+      "idText": 392,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "andreas s",
+      "shortText": "andreas s",
+      "uuid": "5487caaa-598b-4a81-91e0-a3462eb0ccbf"
+    },
+    {
+      "id": 392,
+      "idCreator": 1,
+      "idText": 392,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "23877e17-7c39-49b5-beaf-b4cfcbede348"
+    },
+    {
+      "id": 393,
+      "idCreator": 1,
+      "idText": 393,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "A brilliant aura wraps around the surroundings, softening the landscape's edges into an ethereal glow. This radiant site radiates arcane energy capable of awakening dormant potential in travelers' hearts. <br />\n<br />\nIn this magical location you can perform special actions and movements.",
+      "shortText": "A brilliant aura wraps around the surroundings, softening the landscape's edges into an ethereal glow. This radiant site radiates arcane energy capable of awakening dormant potential in travelers' hearts. <br />\n<br />\nIn this magical location you can perform special actions and movements.",
+      "uuid": "35a910b0-df9e-474c-b24b-0004f24cf899"
+    },
+    {
+      "id": 393,
+      "idCreator": 1,
+      "idText": 393,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Un'aura brillante avvolge l'ambiente circostante, sfumando i contorni del paesaggio in un bagliore etereo. Questo sito radioso emana un'energia arcana capace di risvegliare potenziali sopiti nel cuore dei viaggiatori. <br />\n<br />\nIn questa location magica puoi eseguire movimenti e azioni speciali.",
+      "shortText": "Un'aura brillante avvolge l'ambiente circostante, sfumando i contorni del paesaggio in un bagliore etereo. Questo sito radioso emana un'energia arcana capace di risvegliare potenziali sopiti nel cuore dei viaggiatori. <br />\n<br />\nIn questa location magica puoi eseguire movimenti e azioni speciali.",
+      "uuid": "50e2b52c-f60a-423a-ab2e-92d47d82cf6d"
     }
   ],
   "title": "Paths Tutorial",

@@ -61,6 +61,10 @@ public class MatchLogsResponse {
         private Long idLocationFrom;
         private Long idLocationTo;
         private Integer energyCost;
+        /** v0.35.3 — what the action took besides energy; 0 when it took nothing. */
+        private Integer foodCost;
+        private Integer magicCost;
+        private Integer coinCost;
         private String message;
         private Integer idCard;
         private CardInfoResponse card;
@@ -78,6 +82,9 @@ public class MatchLogsResponse {
             d.idLocationFrom = e.idLocationFrom();
             d.idLocationTo = e.idLocationTo();
             d.energyCost = e.energyCost();
+            d.foodCost = e.foodCost();
+            d.magicCost = e.magicCost();
+            d.coinCost = e.coinCost();
             d.message = e.message();
             d.idCard = e.idCard();
             d.card = e.card() == null ? null : CardInfoResponse.fromModel(e.card());
@@ -95,6 +102,9 @@ public class MatchLogsResponse {
         public Long getIdLocationFrom() { return idLocationFrom; }
         public Long getIdLocationTo() { return idLocationTo; }
         public Integer getEnergyCost() { return energyCost; }
+        public Integer getFoodCost() { return foodCost; }
+        public Integer getMagicCost() { return magicCost; }
+        public Integer getCoinCost() { return coinCost; }
         public String getMessage() { return message; }
         public Integer getIdCard() { return idCard; }
         public CardInfoResponse getCard() { return card; }

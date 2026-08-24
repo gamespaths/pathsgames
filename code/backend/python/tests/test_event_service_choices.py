@@ -34,7 +34,7 @@ def _character(cid, uuid, id_user, id_class, id_location, **over):
 def _event(**over):
     """A NORMAL event costing 1 energy — the cost proves what each path charges."""
     base = dict(id=EVENT_ID, uuid="event-1", type="NORMAL", id_card=None, cost_enery=1,
-                coin_cost=0, flag_end_time=0, id_event_next=None,
+                cost_coin=0, flag_end_time=0, id_event_next=None,
                 id_specific_location=None, id_weather=None,
                 registry_key_condition=None, registry_value_condition=None,
                 id_item_condition=None, id_class_condition=None)
@@ -133,7 +133,7 @@ def test_first_open_pays_and_writes_one_marker(service, store):
     r = execute(service)
     assert r.energy_spent == 1 and r.new_energy == 19
     store.log_event_executed.assert_called_once_with(
-        MATCH_ID, CHAR_ID, EVENT_ID, 7, f"{MSG_EVENT_EXECUTED} {EVENT_ID}")
+        MATCH_ID, CHAR_ID, EVENT_ID, 7, f"{MSG_EVENT_EXECUTED} {EVENT_ID}", 1, 0, 0, 0)
     # The deduction is flushed: energy 19, everything else untouched.
     store.update_character_stats.assert_called_once_with(MATCH_ID, CHAR_ID, {
         "dexterity": 10, "intelligence": 10, "constitution": 10,

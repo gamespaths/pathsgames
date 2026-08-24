@@ -85,7 +85,7 @@ class EventExecutionStoreAdapterTest {
     void insertMovementLog_writesTheRowWithTheNextId() {
         when(logMovementRepository.findMaxId()).thenReturn(41L);
 
-        adapter.insertMovementLog(1L, 3L, 100L, 200L, 0);
+        adapter.insertMovementLog(1L, 3L, 100L, 200L, 0, 0, 0, 0);
 
         ArgumentCaptor<LogMovementEntity> cap = ArgumentCaptor.forClass(LogMovementEntity.class);
         verify(logMovementRepository).save(cap.capture());

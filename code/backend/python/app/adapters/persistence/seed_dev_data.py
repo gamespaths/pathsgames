@@ -270,7 +270,7 @@ INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, statistics, v
 -- procedure, plus the "unlocker" that makes each blocked one available.
 -- Location 90005 (Choice Arena) is used for the WRONG_LOCATION case.
 INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location,
-                                   type, cost_enery, coin_cost, flag_end_time, id_event_next,
+                                   type, cost_enery, cost_coin, flag_end_time, id_event_next,
                                    id_weather, registry_key_condition, registry_value_condition,
                                    id_item_condition, id_class_condition) VALUES
 (90010, 9001, 90001, 503, 503, 90001, 'NORMAL', 1,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- plain: always available
@@ -291,7 +291,15 @@ INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_
 (90025, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- traits + characteristics
 (90026, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- resources: food/magic/coin
 (90027, 9001, 90001, 503, 503, 90001, 'AUTOMATIC', 0, 0, 0, NULL, NULL, NULL,           NULL,   NULL,  NULL),   -- EVENT_NOT_EXECUTABLE_TYPE
-(90028, 9001, 90001, 503, 503, 90001, 'NORMAL',    2, 0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL);   -- v0.29.3 teleporter: its effect moves the actor to 90006
+(90028, 9001, 90001, 503, 503, 90001, 'NORMAL',    2, 0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL);
+
+-- v0.35.3 resource costs: the twins of 90013 (cost_coin 999) for the two new refusals.
+INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_description,
+                                   id_specific_location, type, cost_enery, cost_coin,
+                                   cost_food, cost_magic, flag_end_time) VALUES
+(90053, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 999, 0, 0),
+(90054, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 0, 999, 0),
+(90055, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 1,   2,   1, 0);   -- v0.29.3 teleporter: its effect moves the actor to 90006
 
 -- ── Step 29 Event Effects — one per effect kind ─────────────────
 -- id_card = 90001 makes each row carry a narrative card, which is what the board renders
@@ -382,9 +390,9 @@ INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_
 INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
 (90191, 9001, 615, 'it', 'Alza le spalle e improvvisa', 'Il ripiego che non si nega a nessuno.');
 
-INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time) VALUES
+INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time) VALUES
 (90030, 9001, 90001, 610, 610, 90001, 'NORMAL', 2, 0, 0);
-INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time) VALUES
+INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time) VALUES
 (90031, 9001, 90001, 611, 611, 90001, 'ONCE', 1, 0, 0);
 
 INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES
@@ -452,10 +460,10 @@ INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_
 (90203, 9001, 621, 'it', 'La lanterna ti conduce nel bosco.', NULL);
 
 INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_description,
-                                   id_specific_location, type, cost_enery, coin_cost, flag_end_time) VALUES
+                                   id_specific_location, type, cost_enery, cost_coin, flag_end_time) VALUES
 (90032, 9001, 90001, 616, 616, 90001, 'NORMAL', 3, 0, 0);
 INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_description,
-                                   id_specific_location, type, cost_enery, coin_cost, flag_end_time) VALUES
+                                   id_specific_location, type, cost_enery, cost_coin, flag_end_time) VALUES
 (90033, 9001, 90001, 617, 617, NULL, 'NORMAL', 9, 0, 0);
 
 INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES

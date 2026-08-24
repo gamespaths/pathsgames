@@ -320,7 +320,12 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     # dropped both on every Java-authored story.
                     type=item.get("type", item.get("eventType")),
                     cost_enery=item.get("costEnery", item.get("energyCost", 0)),
-                    coin_cost=item.get("coinCost", 0),
+                    # v0.35.3 — costCoin is the name; coinCost is what every story exported
+                    # before today carries. Reading both is the difference between an old
+                    # export keeping its prices and losing them without a word.
+                    cost_coin=item.get("costCoin", item.get("coinCost", 0)),
+                    cost_food=item.get("costFood", 0),
+                    cost_magic=item.get("costMagic", 0),
                     flag_end_time=item.get("flagEndTime", 0),
                     id_event_next=item.get("idEventNext"),
                     id_specific_location=item.get("idSpecificLocation")

@@ -122,6 +122,26 @@ def test_save_events_persists_idspecificlocation(adapter):
         assert legacy.id_specific_location == 3   # legacy idLocation key still honored
 
 
+def test_save_events_reads_both_costcoin_and_the_legacy_coincost(adapter):
+    # v0.35.3 renamed the JSON key coinCost to costCoin. Every story exported before that
+    # carries the old name, so the import reads both: dropping it would turn a priced event
+    # into a free one without a word.
+    from app.adapters.persistence.story.models import EventEntity
+    story_id = adapter.save_story({"uuid": "s-costs"})
+    adapter.save_events(story_id, [
+        {"uuid": "ev-new", "type": "NORMAL", "costCoin": 5, "costFood": 2, "costMagic": 1},
+        {"uuid": "ev-old", "type": "NORMAL", "coinCost": 7},
+        {"uuid": "ev-both", "type": "NORMAL", "coinCost": 7, "costCoin": 9},
+    ])
+    with adapter.session_factory() as session:
+        new = session.query(EventEntity).filter_by(id_story=story_id, uuid="ev-new").first()
+        old = session.query(EventEntity).filter_by(id_story=story_id, uuid="ev-old").first()
+        both = session.query(EventEntity).filter_by(id_story=story_id, uuid="ev-both").first()
+        assert (new.cost_coin, new.cost_food, new.cost_magic) == (5, 2, 1)
+        assert old.cost_coin == 7
+        assert both.cost_coin == 9   # the new name wins when a story carries both
+
+
 def test_event_effect_persists_idlocation_v0293(adapter):
     # v0.29.3 forced movement: an effect's idLocation must survive import, both when nested
     # under its event (Python's inline format) and as a top-level eventEffects row (the shared

@@ -115,7 +115,26 @@ class StoryCrudServiceFieldMappingTest {
                 "idTextName", 47, "idTextDescription", 48, "idCard", 49, "idLocationFrom", 50, "idLocationTo", 51,
                 "direction", "direction-v", "flagBack", 52, "conditionRegistryKey", "conditionRegistryKey-v",
                 "conditionRegistryValue", "conditionRegistryValue-v", "energyCost", 53, "idTextGo", 54,
-                "idTextBack", 55, "idCardBack", 56));
+                "idTextBack", 55, "idCardBack", 56,
+                "costFood", 101, "costMagic", 102, "costCoin", 103));
+    }
+
+    @Test
+    void anEventStillAcceptsTheOldCoinCostKey() {
+        // v0.35.3 renamed the column and the JSON key. A client written against the old
+        // name must keep working, or it starts saving free events without noticing.
+        Map<String, Object> result = service.createEntity("story-uuid", "events",
+                data("type", "NORMAL", "coinCost", 7));
+
+        assertEquals(7, result.get("costCoin"));
+    }
+
+    @Test
+    void costCoinWinsWhenBothKeysAreSent() {
+        Map<String, Object> result = service.createEntity("story-uuid", "events",
+                data("type", "NORMAL", "coinCost", 7, "costCoin", 9));
+
+        assertEquals(9, result.get("costCoin"));
     }
 
     @Test
@@ -130,7 +149,8 @@ class StoryCrudServiceFieldMappingTest {
         assertEveryFieldRoundTrips("events", data(
                 "idTextName", 61, "idTextDescription", 62, "idCard", 63, "idSpecificLocation", 64,
                 "type", "type-v", "costEnery", 65, "flagEndTime", 66, "idWeather", 67, "idEventNext", 68,
-                "coinCost", 69, "registryKeyCondition", "registryKeyCondition-v",
+                "costCoin", 69, "costFood", 104, "costMagic", 105,
+                "registryKeyCondition", "registryKeyCondition-v",
                 "registryValueCondition", "registryValueCondition-v", "idClassCondition", 70,
                 "idItemCondition", 71));
     }

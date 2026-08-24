@@ -178,6 +178,10 @@ class MatchLogsService:
                 "idLocationFrom": m.id_location_from,
                 "idLocationTo": m.id_location_to,
                 "energyCost": m.energy_cost,
+                # v0.35.3 — what the move took besides energy; 0 when it took nothing.
+                "foodCost": m.food_cost or 0,
+                "magicCost": m.magic_cost or 0,
+                "coinCost": m.coin_cost or 0,
             })
 
         for c in (session.query(LogClockHistoryEntity)
@@ -210,6 +214,12 @@ class MatchLogsService:
                     "idCharacterMatch": e.id_character_match,
                     "message": msg,
                     "idEvent": e.id_event,
+                    # v0.35.3 — the price the actor paid to open this event. Zero on the rows
+                    # the engine writes for itself: chained, automatic and resolution rows.
+                    "energyCost": e.energy_cost or 0,
+                    "foodCost": e.food_cost or 0,
+                    "magicCost": e.magic_cost or 0,
+                    "coinCost": e.coin_cost or 0,
                 })
             elif msg.startswith(_MSG_COUNTER):
                 # Step 33 split this out of RECOVERY: a counter running out and a character

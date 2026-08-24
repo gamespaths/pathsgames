@@ -19,6 +19,7 @@ import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.StoryEntity;
 import games.paths.core.entity.story.TextEntity;
 import games.paths.core.entity.story.TraitEntity;
+import games.paths.core.port.match.EventExecutionStorePort;
 import games.paths.core.port.match.EventExecutionStorePort.BackpackStats;
 import games.paths.core.port.match.EventExecutionStorePort.CharacterStats;
 import games.paths.core.port.match.EventExecutionStorePort.EventActorView;
@@ -776,7 +777,8 @@ class EventExecutionStoreAdapterReadWriteTest {
     void logEventExecuted_writesTheAuditRowWithTheNextId() {
         when(logEventsRepository.findMaxId()).thenReturn(6L);
 
-        adapter.logEventExecuted(1L, 3L, 12L, 5, MSG_EVENT_EXECUTED + "#12");
+        adapter.logEventExecuted(1L, 3L, 12L, 5, MSG_EVENT_EXECUTED + "#12",
+                new EventExecutionStorePort.SpentResources(2, 1, 0, 3));
 
         ArgumentCaptor<LogEventsEntity> cap = ArgumentCaptor.forClass(LogEventsEntity.class);
         verify(logEventsRepository).save(cap.capture());

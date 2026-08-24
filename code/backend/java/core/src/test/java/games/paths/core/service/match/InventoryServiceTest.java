@@ -125,7 +125,7 @@ class InventoryServiceTest {
     private static EventExecutionResult result(List<StatChange> stats, List<TraitChange> traits,
                                                EdgeStateOutcome edge, boolean comaTriggered) {
         return new EventExecutionResult(MATCH, null, null, "APPLIED", null, List.of(),
-                0, 0, 5, 0, 3, false, false, false, false, false, false, false,
+                0, 0, 0, 0, 5, 0, 0, 0, 3, false, false, false, false, false, false, false,
                 comaTriggered, false, true,
                 stats, List.of(), traits, List.of(), List.of(), List.of(), List.of(), List.of(),
                 edge, List.of());

@@ -25,6 +25,9 @@ export const LOCK_REASON_ICONS = {
   INSUFFICIENT_ENERGY: 'fas fa-bed',
   NOT_ENOUGH_ENERGY: 'fas fa-bed',
   NOT_ENOUGH_COINS: 'fas fa-coins',
+  // v0.35.3 — food and magic became real costs: the icon says which supply ran out.
+  NOT_ENOUGH_FOOD: 'fas fa-drumstick-bite',
+  NOT_ENOUGH_MAGIC: 'fas fa-magic',
   OVERWEIGHT: 'fas fa-weight-hanging',
 
   // movement

@@ -1,5 +1,6 @@
 package games.paths.core.persistence.match;
 
+import games.paths.core.entity.match.GamingBackpackResourcesEntity;
 import games.paths.core.entity.match.GamingCharacterInstanceEntity;
 import games.paths.core.entity.match.GamingCharacterInstanceEntityId;
 import games.paths.core.entity.match.GamingCharacterTraitsEntity;
@@ -273,9 +274,13 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
             return EventCheckContext.noCharacter();
         }
 
-        int coin = backpackRepository.findByIdMatchAndIdCharacterMatch(idMatch, idCharacter)
-                .map(b -> nz(b.getCoin()))
-                .orElse(0);
+        // One read, three resources: the backpack row was already fetched for the coin cost.
+        GamingBackpackResourcesEntity backpack = backpackRepository
+                .findByIdMatchAndIdCharacterMatch(idMatch, idCharacter)
+                .orElse(null);
+        int coin = backpack == null ? 0 : nz(backpack.getCoin());
+        int food = backpack == null ? 0 : nz(backpack.getFood());
+        int magic = backpack == null ? 0 : nz(backpack.getMagic());
 
         Set<Long> ownedItems = new HashSet<>();
         for (GamingInventoryItemsEntity i : inventoryRepository
@@ -298,7 +303,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
 
         return new EventCheckContext(idCharacter, c.getIdLocation(),
                 Boolean.TRUE.equals(c.getIsSleeping()), Boolean.TRUE.equals(c.getIsComa()),
-                nz(c.getEnergy()), coin, c.getIdClass(), ownedItems, currentWeather,
+                nz(c.getEnergy()), coin, food, magic, c.getIdClass(), ownedItems, currentWeather,
                 consumedEventIds(idMatch), registry);
     }
 
@@ -506,7 +511,8 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     }
 
     @Override
-    public void insertMovementLog(long idMatch, long idCharacter, Long fromLocation, long toLocation, int energyCost) {
+    public void insertMovementLog(long idMatch, long idCharacter, Long fromLocation, long toLocation,
+                                  int energyCost, int foodCost, int magicCost, int coinCost) {
         LogMovementEntity e = new LogMovementEntity();
         e.setId(logMovementRepository.findMaxId() + 1);
         e.setIdMatch(idMatch);
@@ -514,11 +520,15 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
         e.setIdLocationFrom(fromLocation);
         e.setIdLocationTo(toLocation);
         e.setEnergy(energyCost);
+        e.setFood(foodCost);
+        e.setMagic(magicCost);
+        e.setCoin(coinCost);
         logMovementRepository.save(e);
     }
 
     @Override
-    public void logEventExecuted(long idMatch, Long idCharacter, long idEvent, int clock, String message) {
+    public void logEventExecuted(long idMatch, Long idCharacter, long idEvent, int clock, String message,
+                                 SpentResources spent) {
         LogEventsEntity e = new LogEventsEntity();
         e.setId(logEventsRepository.findMaxId() + 1);
         e.setIdMatch(idMatch);
@@ -526,6 +536,11 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
         e.setIdEvent(idEvent);
         e.setClock(clock);
         e.setLogMessage(message);
+        SpentResources s = spent == null ? SpentResources.none() : spent;
+        e.setEnergy(s.energy());
+        e.setFood(s.food());
+        e.setMagic(s.magic());
+        e.setCoin(s.coin());
         logEventsRepository.save(e);
     }
 

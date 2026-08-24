@@ -41,11 +41,22 @@ public final class MovementAvailabilityChecker {
                                    boolean sleeping,
                                    int energy,
                                    int carriedWeight,
-                                   int weightMax) {
+                                   int weightMax,
+                                   /** v0.35.3 — the backpack, for the edge resource costs. */
+                                   int food,
+                                   int magic,
+                                   int coin) {
+
+        /** Pre-v0.35.3 shape: a mover carrying no resources to spend. */
+        public MoveCheckContext(boolean matchRunning, boolean hasCharacter, boolean coma,
+                                boolean sleeping, int energy, int carriedWeight, int weightMax) {
+            this(matchRunning, hasCharacter, coma, sleeping, energy, carriedWeight, weightMax,
+                    0, 0, 0);
+        }
 
         /** The context of a caller with no character: nothing is ever traversable. */
         public static MoveCheckContext noCharacter() {
-            return new MoveCheckContext(false, false, false, false, 0, 0, 0);
+            return new MoveCheckContext(false, false, false, false, 0, 0, 0, 0, 0, 0);
         }
     }
 
@@ -57,7 +68,17 @@ public final class MovementAvailabilityChecker {
     public record MoveEdgeCheck(boolean conditionMet,
                                 int totalEnergyCost,
                                 int maxCharacters,
-                                int charactersAtTarget) {
+                                int charactersAtTarget,
+                                /** v0.35.3 — edge-only resource costs. */
+                                int costFood,
+                                int costMagic,
+                                int costCoin) {
+
+        /** The pre-v0.35.3 shape: an edge that costs no resources. */
+        public MoveEdgeCheck(boolean conditionMet, int totalEnergyCost,
+                             int maxCharacters, int charactersAtTarget) {
+            this(conditionMet, totalEnergyCost, maxCharacters, charactersAtTarget, 0, 0, 0);
+        }
     }
 
     /** The single verdict. */
@@ -87,6 +108,17 @@ public final class MovementAvailabilityChecker {
         }
         if (ctx.energy() < edge.totalEnergyCost()) {
             return MovementAvailability.no(Code.INSUFFICIENT_ENERGY);
+        }
+        // v0.35.3 — after energy and before capacity: a mover who cannot afford the road is
+        // told about the road, not about how crowded the place they cannot reach is.
+        if (ctx.coin() < edge.costCoin()) {
+            return MovementAvailability.no(Code.NOT_ENOUGH_COINS);
+        }
+        if (ctx.food() < edge.costFood()) {
+            return MovementAvailability.no(Code.NOT_ENOUGH_FOOD);
+        }
+        if (ctx.magic() < edge.costMagic()) {
+            return MovementAvailability.no(Code.NOT_ENOUGH_MAGIC);
         }
         if (edge.maxCharacters() > 0 && edge.charactersAtTarget() >= edge.maxCharacters()) {
             return MovementAvailability.no(Code.LOCATION_FULL);

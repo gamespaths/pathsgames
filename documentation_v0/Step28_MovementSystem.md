@@ -174,9 +174,15 @@ checks are not reached.
 | 3 | Character is awake (not sleeping, not in coma) | `CHARACTER_CANNOT_ACT` | 409 |
 | 4 | Character has a current location AND target UUID is a listed neighbor | `NOT_A_NEIGHBOR` | 409 |
 | 5 | Neighbor `conditionRegistryKey` is null OR match registry satisfies it | `MOVEMENT_CONDITION_NOT_MET` | 409 |
-| 6 | Character carried weight ≤ capacity (always passes — weight is 0 in Step 28) | `OVERWEIGHT` | 409 |
+| 6 | Character carried weight ≤ capacity (always passes — weight is 0 in Step 28; wired up in [Step34 §7](./Step34_InventoryAndResources.md#7-carried-weight-and-movement-step-35)) | `OVERWEIGHT` | 409 |
 | 7 | Character energy ≥ total energy cost | `INSUFFICIENT_ENERGY` | 409 |
+| 7a | Character coin ≥ edge `cost_coin` (**v0.35.3**) | `NOT_ENOUGH_COINS` | 409 |
+| 7b | Character food ≥ edge `cost_food` (**v0.35.3**) | `NOT_ENOUGH_FOOD` | 409 |
+| 7c | Character magic ≥ edge `cost_magic` (**v0.35.3**) | `NOT_ENOUGH_MAGIC` | 409 |
 | 8 | Target location at capacity? (`maxCharacters > 0` and count == max) | `LOCATION_FULL` | 409 |
+
+*(v0.35.3 checks 7a-7c come from the edge alone, no entry/weather term — see §4 and
+[Step35 §12](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353).)*
 
 Missing `targetLocationUuid` → `400 MISSING_TARGET` (before all other checks).
 Missing auth header → `401 UNAUTHENTICATED` (before all other checks).
@@ -212,6 +218,12 @@ totalEnergyCost   = neighborEdge.energyCost
 - The resulting `totalEnergyCost` is the value returned in the neighbor sub-list of the
   `GET /api/match/{uuid}/locations` response so the frontend can display the cost before
   the player commits to the move.
+- **v0.35.3**: food, magic and coin gained their own edge cost (`cost_food`, `cost_magic`,
+  `cost_coin` on `list_locations_neighbors`), but **not** the same formula — there is no entry
+  or weather term for them, only the edge value itself. The two formulas are deliberately
+  asymmetric: energy's is a sum precisely so an entry/weather term could exist, and precisely
+  so one can be added to the resource costs later without invalidating a single already-priced
+  story. See [Step35 §12](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353).
 
 ---
 
@@ -234,7 +246,13 @@ totalEnergyCost   = neighborEdge.energyCost
 | `toLocationId` | integer | ID of the target location |
 | `toLocationUuid` | string | UUID of the target location |
 | `energySpent` | integer | Total energy cost deducted |
+| `foodSpent` | integer | **v0.35.3** — edge `cost_food` deducted |
+| `magicSpent` | integer | **v0.35.3** — edge `cost_magic` deducted |
+| `coinSpent` | integer | **v0.35.3** — edge `cost_coin` deducted |
 | `newEnergy` | integer | Character's energy after deduction |
+| `newFood` | integer | **v0.35.3** — character's food after deduction |
+| `newMagic` | integer | **v0.35.3** — character's magic after deduction |
+| `newCoin` | integer | **v0.35.3** — character's coin after deduction |
 | `currentClock` | integer | Match clock at the time of the move |
 
 ### 5.3 `MatchLocationsResponse`
@@ -266,6 +284,9 @@ totalEnergyCost   = neighborEdge.energyCost
 | `entryEnergyCost` | integer | Target location entry cost — `list_locations.cost_energy_enter` (0 in Python/AWS) |
 | `weatherEnergyCost` | integer | Weather modifier for the target (safe/unsafe) |
 | `totalEnergyCost` | integer | `baseEnergyCost + entryEnergyCost + weatherEnergyCost` (formula in §4) |
+| `costFood` | integer | **v0.35.3** — edge `cost_food`, no entry/weather term (edge-only, no breakdown) |
+| `costMagic` | integer | **v0.35.3** — edge `cost_magic`, edge-only |
+| `costCoin` | integer | **v0.35.3** — edge `cost_coin`, edge-only |
 | `conditionMet` | boolean | Whether the registry condition (if any) is currently satisfied |
 
 ### 5.4 Java core domain models
@@ -2068,10 +2089,11 @@ calling `POST /api/gameplay/{uuidMatch}/movements/start` speculatively:
 { "idLocationTo": 2, "available": false, "reason": "INSUFFICIENT_ENERGY", "...": "..." }
 ```
 
-`reason` is `null` when `available` is `true`. Possible values are the same 8 codes already
-used by `movements/start` (§2.1/§3): `CHARACTER_CANNOT_ACT`, `MATCH_NOT_RUNNING`, `COMA`,
+`reason` is `null` when `available` is `true`. Possible values are the same codes already used by
+`movements/start` (§2.1/§3): `CHARACTER_CANNOT_ACT`, `MATCH_NOT_RUNNING`, `COMA`,
 `SLEEPING`, `NOT_A_NEIGHBOR`, `MOVEMENT_CONDITION_NOT_MET`, `OVERWEIGHT`,
-`INSUFFICIENT_ENERGY`, `LOCATION_FULL`.
+`INSUFFICIENT_ENERGY`, `NOT_ENOUGH_COINS`, `NOT_ENOUGH_FOOD`, `NOT_ENOUGH_MAGIC` (the last
+three, **v0.35.3**), `LOCATION_FULL` — 11 codes as of v0.35.3, up from the original 8.
 
 ## A shared, pure checker (mirrors `EventAvailabilityChecker`)
 
@@ -2098,7 +2120,9 @@ explanatory first — coma beats sleep, character state beats edge cost:
 
 `CHARACTER_CANNOT_ACT` → `MATCH_NOT_RUNNING` → `COMA` → `SLEEPING` → (edge not found →
 `NOT_A_NEIGHBOR`) → `MOVEMENT_CONDITION_NOT_MET` → `OVERWEIGHT` → `INSUFFICIENT_ENERGY` →
-`LOCATION_FULL`.
+`NOT_ENOUGH_COINS` → `NOT_ENOUGH_FOOD` → `NOT_ENOUGH_MAGIC` (the last three, **v0.35.3** — after
+energy, before capacity: a mover who cannot afford the road is told about the road, not about
+how crowded the unreachable place is) → `LOCATION_FULL`.
 
 The energy cost used for the verdict is the same formula as execution (§4): edge cost +
 destination entry cost + weather modifier (safe/unsafe).
@@ -2136,10 +2160,59 @@ Full rules, engine files and Robot coverage: [Step29_NormalEvents.md — "Forced
 
 ---
 
+# Paths Games V0 - Step 0.35.3: Resource Costs on the Movement Edge
+
+## Overview
+
+Until this version `list_locations_neighbors` could only cost energy. v0.35.3 gives the edge
+three more prices — `cost_food`, `cost_magic`, `cost_coin` — checked and paid by
+`MovementAvailabilityChecker`/`MovementService` right alongside the existing energy cost. Full
+schema, engine and API writeup (shared with the events side of the same feature) lives in
+[Step35_ItemsResolution.md §12](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353);
+this addendum records only what changed **in this document's own scope** — §3, §4 and §5, edited
+in place above, plus the summary below.
+
+## What changed
+
+- **§3 Validation Order**: three new checks, `NOT_ENOUGH_COINS` / `NOT_ENOUGH_FOOD` /
+  `NOT_ENOUGH_MAGIC`, inserted after `INSUFFICIENT_ENERGY` and before `LOCATION_FULL` — coin,
+  then food, then magic.
+- **§4 Energy Cost Formula**: the new costs are **not** folded into `totalEnergyCost` and do not
+  share its formula. They come from the edge alone — no `list_locations` entry term, no weather
+  term — while energy keeps summing all three. Deliberately asymmetric: a sum can grow a term
+  later without invalidating an already-priced story; an edge-only value cannot shrink one.
+- **§5.2 `MovementStartResponse`**: gains `foodSpent`, `magicSpent`, `coinSpent`, `newFood`,
+  `newMagic`, `newCoin`.
+- **§5.3 `NeighborCostDto`**: gains `costFood`, `costMagic`, `costCoin` — edge-only, so unlike
+  `totalEnergyCost` there is no breakdown to publish alongside them.
+- **The 0.29.1 addendum above** ("Movement Availability Verdict on `/info`"): the shared checker
+  means the `/info` neighbor verdict grows the same three codes, in the same position, for free.
+
+## Per-backend implementation
+
+- **Java**: `MovementAvailabilityChecker.MoveCheckContext` gains `food`/`magic`/`coin`;
+  `MoveEdgeCheck` gains `costFood`/`costMagic`/`costCoin`; `MovementService.startMovement` reads
+  and deducts them via `MovementStorePort.updateBackpackResources` (new method, mirrors the
+  Step 29 pattern) only when at least one is non-zero.
+- **Python**: `movement_availability.py` (`MoveEdgeCheck`), `movement_service.py`
+  (`_start_movement`, `_locations`), `match_query_service.py` (verdict loop).
+- **AWS**: `lambda/match/movements.py`, `lambda/match/handler.py`.
+- **No new `28_movement` suite, but a Robot suite now exists** — see
+  [Step35 §12.f](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353):
+  `code/tests/robot/tests/29_events/resource_costs.robot` covers the movement half of this
+  contract without ever executing a tolled move (`Every Neighbor Advertises Its Resource Price`
+  reads both `/info` and `/locations`), because a priced edge in the shared seed graph would
+  still perturb the existing `28_movement` suites, which pick "the first neighbor" without
+  checking its cost. That same E2E run also found the `/locations` payload was missing
+  `costFood`/`costMagic`/`costCoin` in Java and Python (§5.3 already documented them — the code
+  had not filled them in yet); both are fixed, see [Step35 §12.g](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353).
+
+---
+
 
 # Version Control
 
-- **Document Version**: 0.33.0
+- **Document Version**: 0.35.3
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -2156,8 +2229,10 @@ Full rules, engine files and Robot coverage: [Step29_NormalEvents.md — "Forced
   | 0.29.3 | Cross-reference only: forced movement via `list_events_effects.id_location` bypasses this document's whole check procedure and writes a cost-0 `log_movements` row per move, keeping the §6.2 timeline and the §14/§15 visited set consistent. Documented in [Step29_NormalEvents.md](./Step29_NormalEvents.md). | July 17, 2026 |
   | 0.30.3 | Match Logs API gains an `order` query param (`asc`/`desc`, default `asc`, retro-compatible) on both endpoints, reversing the timeline **before** pagination cuts it so that same-timestamp entries genuinely invert and a `desc` cursor keeps walking towards older events. Both frontends now ask for `desc`; the server default for callers that omit it stays `asc`. | July 21, 2026 |
   | 0.33.0 | Documentation-only clarification to §6.3, no code change: the location-entry state machine belongs to Step 33, not Step 32, and it uses the new `gaming_state_locations.flag_visited` rather than `flag_already_actived`. Added the table separating the two notions of "visited" and the starting-location rule that keeps a walk back home from firing `FIRST_ENTRY`. See [Step33_LocationEntryEvents.md](./Step33_LocationEntryEvents.md). | August 12, 2026 |
+  | 0.35.3 | `list_locations_neighbors` gains `cost_food`/`cost_magic`/`cost_coin`, edge-only (no entry/weather term, unlike energy). Three new refusal codes in §3 and the 0.29.1 `/info` verdict; `MovementStartResponse` and `NeighborCostDto` gain the spent/cost fields (§5.2, §5.3). Full writeup in [Step35 §12](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353). | August 23, 2026 |
+  | 0.35.3 | Same version, continued: a Robot suite now covers this contract (`resource_costs.robot`, `29_events`, without ever executing a tolled move), and the E2E run found `/locations`' Java and Python neighbor mapping was still missing the three cost fields §5.3 already documented — both now fixed. Full detail in [Step35 §12.f-g](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353). | August 24, 2026 |
 
-- **Last Updated**: August 12, 2026
+- **Last Updated**: August 24, 2026
 - **Status**: Complete (Step 28 implementation). Step 33 has since shipped and is Complete; §6.3's forward reference to it is no longer a reference to a design-only document.
 
 # < Paths Games />

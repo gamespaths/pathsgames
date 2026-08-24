@@ -95,6 +95,11 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idTextGo', label: 'Text Go ID', type: 'number' },
       { key: 'idTextBack', label: 'Text Back ID', type: 'number' },
       { key: 'energyCost', label: 'Energy Cost', type: 'number' },
+      // v0.35.3 — the EDGE's resource price. Energy sums edge + destination entry + weather;
+      // these have one source, so what is typed here is exactly what the move takes.
+      { key: 'costFood', label: 'Food Cost', type: 'number' },
+      { key: 'costMagic', label: 'Magic Cost', type: 'number' },
+      { key: 'costCoin', label: 'Coin Cost', type: 'number' },
       { key: 'flagBack', label: 'Flag Back', type: 'select', valueType: 'number', options: LOCATION_NEIGHBOR_FLAG_BACK_OPTIONS },
       // Card Back is only meaningful when the neighbor allows going back (flagBack = YES).
       { key: 'idCardBack', label: 'Card Back ID', type: 'number', showIf: (d) => Number(d.flagBack) === 1 },
@@ -109,7 +114,10 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idSpecificLocation', label: 'Specific Location ID', type: 'number' },
       { key: 'type', label: 'Event Type', type: 'select', options: EVENT_TYPE_OPTIONS },
       { key: 'costEnery', label: 'Energy Cost', type: 'number' },
-      { key: 'coinCost', label: 'Coin Cost', type: 'number' },
+      { key: 'costCoin', label: 'Coin Cost', type: 'number' },
+      // v0.35.3 — food and magic joined coins as real costs. Automatic events never pay.
+      { key: 'costFood', label: 'Food Cost', type: 'number' },
+      { key: 'costMagic', label: 'Magic Cost', type: 'number' },
       { key: 'flagEndTime', label: 'Flag End Time', type: 'number' },
       { key: 'idEventNext', label: 'Next Event ID', type: 'number' },
       // Conditions (AND). idWeather here GATES the event; on an effect it SETS the weather.
@@ -400,7 +408,7 @@ export const STORIES_ENTITIES_COLUMNS = {
       { key: 'type', label: 'Type' },
       { key: 'idSpecificLocation', label: 'Location' },
       { key: 'costEnery', label: 'Energy Cost' },
-      { key: 'coinCost', label: 'Coin Cost' },
+      { key: 'costCoin', label: 'Coin Cost' },
       { key: 'flagEndTime', label: 'End Time' },
     ],
     'event-effects': [

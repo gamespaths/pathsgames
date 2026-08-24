@@ -26,7 +26,7 @@ def _character(cid, uuid, id_user, id_class, id_location, **over):
 
 def _event(**over):
     base = dict(id=1, uuid="event-1", type="NORMAL", id_card=None, cost_enery=0,
-                coin_cost=0, flag_end_time=0, id_event_next=None,
+                cost_coin=0, flag_end_time=0, id_event_next=None,
                 id_specific_location=None, id_weather=None,
                 registry_key_condition=None, registry_value_condition=None,
                 id_item_condition=None, id_class_condition=None)
@@ -72,7 +72,8 @@ def store():
     # v0.35.2 — real dict, not a MagicMock: the trait deltas are arithmetic.
     s.find_trait_stats_by_id.return_value = {}
     s.load_check_context.return_value = EventCheckContext(
-        id_character=CHAR_ID, id_location=LOC, energy=20, coin=10, id_class=50)
+        id_character=CHAR_ID, id_location=LOC, energy=20, coin=10,
+        food=5, magic=5, id_class=50)
     s.remove_item.return_value = True
     s.add_trait.return_value = True
     s.remove_trait.return_value = True
@@ -157,7 +158,7 @@ def test_the_checker_verdict_surfaces_verbatim(service, store):
 # ── costs & result contract ─────────────────────────────────────────────────
 
 def test_costs_are_deducted_and_reported(service, store):
-    store.find_event_by_story_and_uuid.return_value = _event(cost_enery=5, coin_cost=3)
+    store.find_event_by_story_and_uuid.return_value = _event(cost_enery=5, cost_coin=3)
 
     r = run(service)
 
@@ -167,6 +168,37 @@ def test_costs_are_deducted_and_reported(service, store):
     # A coin-only change must not wipe the food/magic it never mentioned.
     written = store.update_backpack.call_args[0][2]
     assert written["food"] == 5 and written["magic"] == 5 and written["coin"] == 7
+
+
+def test_v0353_food_and_magic_are_deducted_reported_and_flushed(service, store):
+    store.find_event_by_story_and_uuid.return_value = _event(cost_food=2, cost_magic=1)
+
+    r = run(service)
+
+    assert (r.food_spent, r.magic_spent) == (2, 1)
+    assert (r.new_food, r.new_magic) == (3, 4)
+    written = store.update_backpack.call_args[0][2]
+    assert written["food"] == 3 and written["magic"] == 4 and written["coin"] == 10
+
+
+def test_v0353_an_actor_who_cannot_pay_the_food_is_refused(service, store):
+    store.find_event_by_story_and_uuid.return_value = _event(cost_food=6)
+
+    with pytest.raises(EventError) as exc:
+        run(service)
+
+    assert exc.value.code == EventError.NOT_ENOUGH_FOOD
+    store.update_backpack.assert_not_called()
+
+
+def test_v0353_the_price_is_stamped_on_the_log_row_of_the_paid_event(service, store):
+    store.find_event_by_story_and_uuid.return_value = _event(
+        cost_enery=5, cost_coin=3, cost_food=2, cost_magic=1)
+
+    run(service)
+
+    store.log_event_executed.assert_called_once_with(
+        MATCH_ID, CHAR_ID, 1, 7, "EVENT_EXECUTED 1", 5, 2, 1, 3)
 
 
 def test_turn_is_never_consumed(service):
@@ -335,7 +367,7 @@ def test_movement_effect_moves_the_actor(service, store):
     store.find_effects_by_event_id.return_value = {1: [_effect(id_location=200)]}
     r = run(service)
     store.update_character_location.assert_called_once_with(MATCH_ID, CHAR_ID, 200)
-    store.insert_movement_log.assert_called_once_with(MATCH_ID, CHAR_ID, LOC, 200, 0)
+    store.insert_movement_log.assert_called_once_with(MATCH_ID, CHAR_ID, LOC, 200, 0, 0, 0, 0)
     assert r.movement_applied is True
     assert r.refresh_recommended is True
     assert r.energy_spent == 0  # forced movement must not charge energy

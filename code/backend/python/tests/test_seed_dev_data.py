@@ -45,7 +45,7 @@ def test_seed_step29_events_and_effects():
     from sqlalchemy import text
     with _seeded_engine().connect() as conn:
         rows = conn.execute(text(
-            "SELECT id, type, cost_enery, coin_cost, id_specific_location, id_event_next,"
+            "SELECT id, type, cost_enery, cost_coin, id_specific_location, id_event_next,"
             " id_item_condition, id_class_condition, id_weather, registry_key_condition"
             " FROM list_events WHERE id BETWEEN 90010 AND 90027")).fetchall()
         events = {r[0]: r for r in rows}

@@ -212,8 +212,7 @@ class EventService(EventPort):
             # so the ONCE accounting and the log timeline cannot tell the flows apart.
             x.visited.add(event_id)
             x.ctx.consumed_event_ids.add(event_id)
-            self.store.log_event_executed(match["id"], actor["id"], event_id,
-                                          x.current_clock, f"{MSG_EVENT_EXECUTED} {event_id}")
+            self._log_executed(x, event_id, f"{MSG_EVENT_EXECUTED} {event_id}")
         # Both paths: "index 0 is always the event" holds on a re-fetch too, so the
         # frontend cannot tell a page refresh from the first open (beside energy_spent=0).
         if event.get("uuid"):
@@ -445,8 +444,7 @@ class EventService(EventPort):
             x.ctx.consumed_event_ids.add(id_event)
             if linked.get("uuid") and linked["uuid"] not in x.executed_event_uuids:
                 x.executed_event_uuids.append(linked["uuid"])
-            self.store.log_event_executed(x.match["id"], x.actor["id"], id_event,
-                                          x.current_clock, f"{MSG_EVENT_EXECUTED} {id_event}")
+            self._log_executed(x, id_event, f"{MSG_EVENT_EXECUTED} {id_event}")
             x.status = STATUS_CHOICES_PENDING
             x.pending_choices = self._build_pending_choices(x, nested)
             return
@@ -466,8 +464,10 @@ class EventService(EventPort):
         count_log_markers pairs it against EVENT_EXECUTED by event, and a row stamped with
         the choice id would leave the cycle open for ever.
         """
+        # A resolution is not something the player pays for: the open already did.
         self.store.log_event_executed(x.match["id"], x.actor["id"], event_id,
-                                      x.current_clock, f"{MSG_CHOICE_SELECTED} {event_id}")
+                                      x.current_clock, f"{MSG_CHOICE_SELECTED} {event_id}",
+                                      0, 0, 0, 0)
         self.store.log_choice_executed(x.match["id"], event_id, choice_id, x.current_clock,
                                        f"{MSG_CHOICE_SELECTED} {choice_id}")
         if (choice.get("is_progress") or 0) == 1:
@@ -586,14 +586,36 @@ class EventService(EventPort):
         """Paid once, by the actor, for the event they asked for. The check procedure already
         proved they can afford it, so neither can go negative."""
         x.energy_spent = event.get("cost_enery") or 0
-        x.coin_spent = event.get("coin_cost") or 0
+        x.coin_spent = event.get("cost_coin") or 0
+        x.food_spent = event.get("cost_food") or 0
+        x.magic_spent = event.get("cost_magic") or 0
+        x.costs_pending = True
         if x.energy_spent:
             live = x.live(x.actor)
             live.energy = _clamp(live.energy - x.energy_spent, 0, live.energy_max)
-        if x.coin_spent:
+        if x.coin_spent or x.food_spent or x.magic_spent:
             live = x.live(x.actor)
             live.coin = max(0, live.coin - x.coin_spent)
+            live.food = max(0, live.food - x.food_spent)
+            live.magic = max(0, live.magic - x.magic_spent)
             live.backpack_dirty = True
+
+    def _log_executed(self, x: "_Exec", event_id: int, message: str) -> None:
+        """The EVENT_EXECUTED row, with the price on it exactly once.
+
+        _apply_event runs for every event of a chain and the whole chain shares one _Exec,
+        so the costs are stamped on the row of the event the player actually asked for and
+        every other row logs zeros — the sum over a match is then what was really spent, not
+        the top-level price repeated per chained event.
+        """
+        paid = bool(x.costs_pending and x.event
+                    and x.event.get("id") is not None and x.event.get("id") == event_id)
+        if paid:
+            x.costs_pending = False
+        self.store.log_event_executed(
+            x.match["id"], x.actor_id(), event_id, x.current_clock, message,
+            x.energy_spent if paid else 0, x.food_spent if paid else 0,
+            x.magic_spent if paid else 0, x.coin_spent if paid else 0)
 
     # ── the chain ───────────────────────────────────────────────────────────
 
@@ -639,8 +661,7 @@ class EventService(EventPort):
         x.game_over = x.game_over or (end_game_id is not None and end_game_id == event_id)
 
         self._check_edge_states(x, event_id)
-        self.store.log_event_executed(x.match["id"], x.actor_id(), event_id,
-                                      x.current_clock, f"{MSG_EVENT_EXECUTED} {event_id}")
+        self._log_executed(x, event_id, f"{MSG_EVENT_EXECUTED} {event_id}")
 
     # ── effects ─────────────────────────────────────────────────────────────
 
@@ -857,7 +878,10 @@ class EventService(EventPort):
         if origin == id_location:
             return  # already there: nothing to move, nothing to log
         self.store.update_character_location(x.match["id"], recipient["id"], id_location)
-        self.store.insert_movement_log(x.match["id"], recipient["id"], origin, id_location, 0)
+        # A forced move is not something the player asked for: it costs nothing, and the
+        # log row says so explicitly rather than by omission.
+        self.store.insert_movement_log(x.match["id"], recipient["id"], origin, id_location,
+                                       0, 0, 0, 0)
         x.set_location(recipient["id"], id_location)
         x.movement_applied = True
         # Step 33 — a forced move is an arrival like any other, so it can fire the
@@ -1218,8 +1242,12 @@ class EventService(EventPort):
             executed_event_uuids=self._chain_event_uuids(x),
             energy_spent=x.energy_spent,
             coin_spent=x.coin_spent,
+            food_spent=x.food_spent,
+            magic_spent=x.magic_spent,
             new_energy=actor.energy,
             new_coin=actor.coin,
+            new_food=actor.food,
+            new_magic=actor.magic,
             current_clock=x.current_clock,
             turn_consumed=False,  # v0.29.0 never touches the turn queue
             time_ended=x.time_ended,
@@ -1381,6 +1409,10 @@ class _Exec:
         self.current_clock = match.get("current_clock") or 0
         self.energy_spent = 0
         self.coin_spent = 0
+        self.food_spent = 0
+        self.magic_spent = 0
+        #: True between _deduct_costs and the log row that carries the price (v0.35.3).
+        self.costs_pending = False
         # ── Step 31 choices ──
         self.status = STATUS_APPLIED
         self.pending_choices: List[Dict[str, Any]] = []

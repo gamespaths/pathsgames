@@ -84,6 +84,70 @@ describe('ActionCard', () => {
     expect(onPreview.mock.calls[0][0]).toBeNull()
   })
 
+  /* ── v0.35.3 — the price of an action, shown before it is paid ───────────── */
+
+  // The badge is a real BonusBadgeList (not mocked), handed to Card as an element. Rendering
+  // it on its own is what lets these tests read the numbers the player would see.
+  function costBadgeOf(action, onPreview = vi.fn()) {
+    render(<ActionCard action={action} story={STORY} onPreview={onPreview} />)
+    return capturedProps.childrenIntoImage
+  }
+
+  it('badges every resource the action costs, not only energy', () => {
+    const action = { ...ACTION, energy: 2, coin: 3, food: 1, magic: 4 }
+
+    const { container } = render(costBadgeOf(action))
+
+    const values = [...container.querySelectorAll('strong')].map(n => n.textContent)
+    expect(values).toEqual(['2', '3', '1', '4'])
+    // The order is the one the check procedure reads them in, so the badges line up with the
+    // refusal the backend would answer with.
+    const icons = [...container.querySelectorAll('i')].map(n => n.className)
+    expect(icons[1]).toContain('fa-coins')
+    expect(icons[2]).toContain('fa-drumstick-bite')
+    expect(icons[3]).toContain('fa-magic')
+  })
+
+  it('shows only the resources that actually cost something', () => {
+    const action = { ...ACTION, energy: 0, coin: 0, food: 2, magic: 0 }
+
+    const { container } = render(costBadgeOf(action))
+
+    const values = [...container.querySelectorAll('strong')].map(n => n.textContent)
+    expect(values).toEqual(['2'])
+  })
+
+  it('shows no badge at all for a free action', () => {
+    const action = { ...ACTION, energy: 0, coin: 0, food: 0, magic: 0 }
+
+    const { container } = render(costBadgeOf(action))
+
+    expect(container.querySelectorAll('strong')).toHaveLength(0)
+  })
+
+  it('reads a backend that sends no resource prices as "costs nothing"', () => {
+    const { container } = render(costBadgeOf({ ...ACTION, energy: 1 }))
+
+    expect([...container.querySelectorAll('strong')].map(n => n.textContent)).toEqual(['1'])
+  })
+
+  it('hands the very same badge to the page preview, available or locked', () => {
+    const onPreview = vi.fn()
+    const action = { ...ACTION, energy: 2, food: 1 }
+    render(<ActionCard action={action} story={STORY} onPreview={onPreview} />)
+    fireEvent.click(screen.getByTestId('preview-btn'))
+    const [[, , , , , additionalProps]] = onPreview.mock.calls
+    // Available: the badge rides next to the action label.
+    expect(additionalProps.actionLabelChildren).toEqual(capturedProps.childrenIntoImage)
+
+    const blocked = vi.fn()
+    render(<ActionCard action={{ ...action, available: false, reason: 'NOT_ENOUGH_FOOD' }}
+      story={STORY} onPreview={blocked} />)
+    fireEvent.click(screen.getAllByTestId('preview-btn').at(-1))
+    // Locked: the price is still shown — knowing what it would have cost is the point.
+    expect(blocked.mock.calls[0][5].extraContent).toBeTruthy()
+  })
+
   /* ── Step 29 — execution and the backend's availability verdict ─────────── */
 
   // The card itself no longer carries the action button: an available event hands its

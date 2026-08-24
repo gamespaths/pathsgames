@@ -107,6 +107,7 @@ public class EventController {
             case MATCH_NOT_FOUND, EVENT_NOT_FOUND, CHOICE_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case MATCH_NOT_RUNNING, CHARACTER_CANNOT_ACT, SLEEPING, COMA, EVENT_NOT_EXECUTABLE_TYPE,
                  ONCE_ALREADY_CONSUMED, WRONG_LOCATION, NOT_ENOUGH_ENERGY, NOT_ENOUGH_COINS,
+                 NOT_ENOUGH_FOOD, NOT_ENOUGH_MAGIC,
                  REGISTRY_CONDITION_NOT_MET, WEATHER_CONDITION_NOT_MET, ITEM_CONDITION_NOT_MET,
                  CLASS_CONDITION_NOT_MET,
                  // Step 32 — both are states, not missing entities: the player can open the

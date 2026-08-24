@@ -90,6 +90,13 @@ public interface MatchLogsPort {
             String message,
             Integer idCard,
             CardInfo card,
-            Long idEvent
+            Long idEvent,
+            /**
+             * v0.35.3 — the resources the action actually took. Zero (never null) on the
+             * rows that cost nothing, so a client can sum a column without null checks.
+             */
+            Integer foodCost,
+            Integer magicCost,
+            Integer coinCost
     ) {}
 }

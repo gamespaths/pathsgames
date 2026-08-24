@@ -47,6 +47,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- Weight & Capacity: Every consumable item has a weight.
 		- Max Capacity Calculation: $Constitution + Difficulty Parameter + Default Inventory Capacity.
 		- Current Load: The sum of Food + Magic + Coins + Total Item Weight. This must not exceed the Max Capacity.
+			- *Note (v0.35.3, not a rewrite of the original idea): the implemented formula differs — only item weight counts (`Σ item.weight × amount`); food, magic and coins never weigh anything. Source of truth: [Step34_InventoryAndResources.md §7](./Step34_InventoryAndResources.md#7-carried-weight-and-movement-step-35).*
 		- Quest Items / Static Objects: These are non-consumable and managed via the State Registry; they do not count towards inventory weight.
 		- Encumbrance: If a character's weight exceeds their capacity, they are immobilized and cannot move.
 		- Every character has characteristics dexterity, intelligence, constitution. Starting value is from character class. Value is always >=0.

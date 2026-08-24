@@ -238,7 +238,7 @@ class EventExecutionServiceAutomaticTest {
             assertTrue(service.onArrival(arrival()).isEmpty());
             // No EVENT_EXECUTED marker: writing one would open a cycle that no select-choice
             // call could ever close, and the match would carry it for ever.
-            verify(store, never()).logEventExecuted(anyLong(), any(), anyLong(), anyInt(), anyString());
+            verify(store, never()).logEventExecuted(anyLong(), any(), anyLong(), anyInt(), anyString(), any());
             verify(locationStore).logAutomaticEvent(eq(MATCH_ID), any(), eq(LOCATION), eq(40L),
                     anyInt(), anyString());
         }
@@ -248,7 +248,7 @@ class EventExecutionServiceAutomaticTest {
         void costsAreNotDeducted() {
             EventEntity costly = event(40L, "evt-costly");
             costly.setCostEnery(99);
-            costly.setCoinCost(99);
+            costly.setCostCoin(99);
             when(store.findEventsById(STORY_ID)).thenReturn(Map.of(40L, costly));
             when(locationStore.findLocationTriggers(STORY_ID, LOCATION))
                     .thenReturn(Optional.of(triggers(40, null, null)));

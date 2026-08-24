@@ -109,7 +109,7 @@ class EventExecutionServiceEdgeStatesTest {
         e.setUuid(EVENT_UUID);
         e.setType("NORMAL");
         e.setCostEnery(0);
-        e.setCoinCost(0);
+        e.setCostCoin(0);
         e.setFlagEndTime(0);
         return e;
     }
@@ -121,7 +121,7 @@ class EventExecutionServiceEdgeStatesTest {
         e.setType("NORMAL");
         e.setIdCard(77);
         e.setCostEnery(0);
-        e.setCoinCost(0);
+        e.setCostCoin(0);
         e.setFlagEndTime(0);
         return e;
     }

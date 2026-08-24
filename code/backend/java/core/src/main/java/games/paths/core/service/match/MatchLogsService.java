@@ -135,18 +135,19 @@ public class MatchLogsService implements MatchLogsPort {
 
         for (WeatherLogEntry w : store.findWeatherLog(match.id())) {
             entries.add(new LogEntry(TYPE_WEATHER, w.clock(), w.timestamp(), w.idWeather(),
-                    null, null, null, null, null, null, null, null, null, null));
+                    null, null, null, null, null, null, null, null, null, null, 0, 0, 0));
         }
 
         for (MovementLogEntry m : store.findMovementLog(match.id())) {
             entries.add(new LogEntry(TYPE_MOVEMENT, null, m.timestamp(), null,
                     m.idCharacterMatch(), null, null, m.idLocationFrom(), m.idLocationTo(),
-                    m.energyCost(), null, null, null, null));
+                    m.energyCost(), null, null, null, null,
+                    nz0(m.foodCost()), nz0(m.magicCost()), nz0(m.coinCost())));
         }
 
         for (ClockLogEntry c : store.findClockLog(match.id())) {
             entries.add(new LogEntry(TYPE_CLOCK_ADVANCE, c.clock(), c.timestamp(), null,
-                    null, null, null, null, null, null, null, null, null, null));
+                    null, null, null, null, null, null, null, null, null, null, 0, 0, 0));
         }
 
         // log_events is a shared table and the type is derived from the message prefix, so an
@@ -159,25 +160,30 @@ public class MatchLogsService implements MatchLogsPort {
             }
             if (MSG_SLEEP.equals(msg)) {
                 entries.add(new LogEntry(TYPE_SLEEP, e.clock(), e.timestamp(), null,
-                        e.idCharacterMatch(), null, null, null, null, null, null, null, null, null));
+                        e.idCharacterMatch(), null, null, null, null, null, null, null, null, null,
+                        0, 0, 0));
             } else if (msg.startsWith(EventExecutionStorePort.MSG_EVENT_EXECUTED)) {
+                // v0.35.3 — the price the actor paid rides on the EVENT row: energy in the
+                // slot movement already uses, the three resources in the new ones.
                 entries.add(new LogEntry(TYPE_EVENT, e.clock(), e.timestamp(), null,
-                        e.idCharacterMatch(), null, null, null, null, null, msg, null, null,
-                        e.idEvent()));
+                        e.idCharacterMatch(), null, null, null, null, nz0(e.energyCost()), msg, null, null,
+                        e.idEvent(),
+                        nz0(e.foodCost()), nz0(e.magicCost()), nz0(e.coinCost())));
             } else if (msg.startsWith(MSG_COUNTER)) {
                 // Step 33 split this out of RECOVERY: a counter running out and a character
                 // healing are unrelated events, and the frontend has to tell them apart.
                 // The location rides in idLocationTo so it enriches like a MOVEMENT does.
                 entries.add(new LogEntry(TYPE_COUNTER_ZERO, e.clock(), e.timestamp(), null,
                         e.idCharacterMatch(), null, null, null, e.idLocation(), null, msg, null,
-                        null, e.idEvent()));
+                        null, e.idEvent(), 0, 0, 0));
             } else if (msg.startsWith(LocationEntryStorePort.MSG_AUTOMATIC_EVENT)) {
                 entries.add(new LogEntry(TYPE_AUTOMATIC_EVENT, e.clock(), e.timestamp(), null,
                         e.idCharacterMatch(), null, null, null, e.idLocation(), null, msg, null,
-                        null, e.idEvent()));
+                        null, e.idEvent(), 0, 0, 0));
             } else if (msg.startsWith("recovery")) {
                 entries.add(new LogEntry(TYPE_RECOVERY, e.clock(), e.timestamp(), null,
-                        e.idCharacterMatch(), null, null, null, null, null, msg, null, null, null));
+                        e.idCharacterMatch(), null, null, null, null, null, msg, null, null, null,
+                        0, 0, 0));
             }
         }
 
@@ -235,7 +241,8 @@ public class MatchLogsService implements MatchLogsPort {
             out.add(new LogEntry(e.type(), e.clock(), e.timestamp(), e.idWeather(),
                     e.idCharacterMatch(), characterUuid, characterName,
                     e.idLocationFrom(), e.idLocationTo(), e.energyCost(), e.message(),
-                    idCard, card, e.idEvent()));
+                    idCard, card, e.idEvent(),
+                    e.foodCost(), e.magicCost(), e.coinCost()));
         }
         return out;
     }
@@ -292,6 +299,11 @@ public class MatchLogsService implements MatchLogsPort {
 
     private static String resolveLang(String lang) {
         return (lang == null || lang.isBlank()) ? DEFAULT_LANG : lang;
+    }
+
+    /** A null cost column (a row written before v0.35.3) reads as "nothing was spent". */
+    private static int nz0(Integer v) {
+        return v == null ? 0 : v;
     }
 
     private static String nz(String s) {

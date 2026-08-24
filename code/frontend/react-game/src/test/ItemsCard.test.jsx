@@ -35,12 +35,16 @@ describe('ItemsCard', () => {
   })
 
   it('says how heavy the bag is as a BADGE, not as a sentence (v0.35.2)', () => {
-    render(<ItemsCard onOpen={vi.fn()} count={3} weight={7} weightMax={30} />)
+    render(<ItemsCard onOpen={vi.fn()} count={3} weight={7} weightMax={30}
+      food={4} magic={2} coins={9} />)
 
     // The same BonusBadgeList an ItemCard carries: the bag and the things in it are
     // measured in the same alphabet. The count badge is deliberately not here — the facing
     // page already shows one card per row, so the number would be the same fact twice.
     expect(captured.statistics).toEqual([
+      { key: 'food', value: '4', label: 'game.stats.food' },
+      { key: 'magic', value: '2', label: 'game.stats.magic' },
+      { key: 'coins', value: '9', label: 'game.stats.coins' },
       { key: 'weight', value: '7/30', label: 'game.items.capacity' },
     ])
     // The description is now the prose alone — the figures left it.
@@ -50,7 +54,31 @@ describe('ItemsCard', () => {
   it('reads a missing weight as zero rather than showing "undefined"', () => {
     render(<ItemsCard onOpen={vi.fn()} count={1} weightMax={30} />)
 
-    expect(captured.statistics[0].value).toBe('0/30')
+    expect(captured.statistics.at(-1).value).toBe('0/30')
+  })
+
+  // v0.35.3 — food, magic and coins are spent from the backpack now (an event or a road
+  // can ask for them), so the bag has to show how much of each is in it.
+  it('carries food, magic and coins beside the capacity', () => {
+    render(<ItemsCard onOpen={vi.fn()} count={0} weight={0} weightMax={30}
+      food={4} magic={2} coins={9} />)
+
+    const byKey = Object.fromEntries(captured.statistics.map(s => [s.key, s.value]))
+    expect(byKey.food).toBe('4')
+    expect(byKey.magic).toBe('2')
+    expect(byKey.coins).toBe('9')
+  })
+
+  it('shows an empty supply as 0, never as a missing badge', () => {
+    // Weightless resources at zero are exactly the news a player about to be refused for
+    // want of two rations needs, so they must not be filtered away with the other zeros.
+    render(<ItemsCard onOpen={vi.fn()} count={0} weight={0} weightMax={30} />)
+
+    const byKey = Object.fromEntries(captured.statistics.map(s => [s.key, s.value]))
+    expect(byKey.food).toBe('0')
+    expect(byKey.magic).toBe('0')
+    expect(byKey.coins).toBe('0')
+    expect(captured.bonusBadgeShowZeros).toBe(true)
   })
 
   it('keeps an empty bag visible: zero is the news, not noise', () => {
@@ -59,13 +87,15 @@ describe('ItemsCard', () => {
     render(<ItemsCard onOpen={vi.fn()} count={0} weight={0} weightMax={30} />)
 
     expect(captured.bonusBadgeShowZeros).toBe(true)
-    expect(captured.statistics[0].value).toBe('0/30')
+    expect(captured.statistics.at(-1).value).toBe('0/30')
   })
 
-  it('carries no badge at all when no maximum is known', () => {
+  it('drops only the capacity badge when no maximum is known', () => {
+    // The resources are still there: they weigh nothing, so they do not depend on a
+    // capacity being known.
     render(<ItemsCard onOpen={vi.fn()} count={2} />)
 
-    expect(captured.statistics).toEqual([])
+    expect(captured.statistics.map(s => s.key)).toEqual(['food', 'magic', 'coins'])
   })
 
   it('opens the backpack through onOpen', () => {
@@ -93,13 +123,16 @@ describe('ItemsCard', () => {
     })
 
     it('carries the figures as page badges, the same list the little card gets', () => {
-      const props = { count: 2, weight: 5, weightMax: 30 }
+      const props = { count: 2, weight: 5, weightMax: 30, food: 1, magic: 0, coins: 3 }
       render(<ItemsCard variant="page" onClose={vi.fn()} {...props} />)
       const asPage = captured.statItemsToPageContent
 
       render(<ItemsCard onOpen={vi.fn()} {...props} />)
       expect(asPage).toEqual(captured.statistics)
       expect(asPage).toEqual([
+        { key: 'food', value: '1', label: 'game.stats.food' },
+        { key: 'magic', value: '0', label: 'game.stats.magic' },
+        { key: 'coins', value: '3', label: 'game.stats.coins' },
         { key: 'weight', value: '5/30', label: 'game.items.capacity' },
       ])
     })

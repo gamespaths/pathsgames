@@ -42,8 +42,16 @@ public interface MovementStorePort {
     /** Persist the new character position and clamped energy. */
     void updateCharacterLocationAndEnergy(long idMatch, long idCharacter, long idLocation, int energy);
 
+    /**
+     * v0.35.3 — persist the mover's backpack after an edge cost. Separate from the
+     * position/energy write because the row lives in another table, but called inside the
+     * same transaction: a character who paid the food must be the one who moved.
+     */
+    void updateBackpackResources(long idMatch, long idCharacter, int food, int magic, int coin);
+
     /** Append a {@code log_movements} row for a successful move. */
-    void insertMovementLog(long idMatch, long idCharacter, Long fromLocation, long toLocation, int energyCost);
+    void insertMovementLog(long idMatch, long idCharacter, Long fromLocation, long toLocation,
+                           int energyCost, int foodCost, int magicCost, int coinCost);
 
     /**
      * The set of visited location ids: current character positions plus every
@@ -68,7 +76,20 @@ public interface MovementStorePort {
                              int carriedWeight,
                              int weightMax,
                              boolean isSleeping,
-                             boolean isComa) {
+                             boolean isComa,
+                             /** v0.35.3 — the backpack, for the edge resource costs. */
+                             int food,
+                             int magic,
+                             int coin) {
+
+        /** Pre-v0.35.3 shape: a character read without its backpack. */
+        @SuppressWarnings("java:S107")
+        public MoveCharacterView(long id, String uuid, long idUser, Long idLocation,
+                                 int energy, int energyMax, int carriedWeight, int weightMax,
+                                 boolean isSleeping, boolean isComa) {
+            this(id, uuid, idUser, idLocation, energy, energyMax, carriedWeight, weightMax,
+                    isSleeping, isComa, 0, 0, 0);
+        }
     }
 
     record MoveLocationView(long id,
@@ -85,7 +106,24 @@ public interface MovementStorePort {
                         int energyCost,
                         String conditionKey,
                         String conditionValue,
-                        int flagBack) {
+                        int flagBack,
+                        /**
+                         * v0.35.3 — resources this edge costs. Unlike energy, which sums the
+                         * edge, the destination's entry cost and the weather modifier, these
+                         * have one source: the edge itself.
+                         */
+                        int costFood,
+                        int costMagic,
+                        int costCoin) {
+
+        /** Pre-v0.35.3 shape: an edge that costs energy and nothing else. */
+        @SuppressWarnings("java:S107")
+        public NeighborEdge(long idLocationFrom, long idLocationTo, String direction,
+                            int energyCost, String conditionKey, String conditionValue,
+                            int flagBack) {
+            this(idLocationFrom, idLocationTo, direction, energyCost, conditionKey,
+                    conditionValue, flagBack, 0, 0, 0);
+        }
 
         /**
          * Whether this edge can be traversed when standing on {@code locId}.

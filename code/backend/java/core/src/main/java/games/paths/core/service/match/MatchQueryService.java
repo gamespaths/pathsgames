@@ -558,7 +558,8 @@ public class MatchQueryService implements MatchQueryPort {
                 caller.isSleeping(),
                 caller.energy(),
                 caller.carriedWeight(),
-                caller.weightMax());
+                caller.weightMax(),
+                caller.food(), caller.magic(), caller.coin());
         return new MoveJudge(match.getId(), ctx,
                 weather == null ? new WeatherMoveCost(0, 0) : weather, counts, registry);
     }
@@ -583,7 +584,8 @@ public class MatchQueryService implements MatchQueryPort {
                 judge.conditionMet(n),
                 totalCost,
                 maxCharacters,
-                judge.charactersByLocation().getOrDefault(target.getId(), 0)));
+                judge.charactersByLocation().getOrDefault(target.getId(), 0),
+                nz(n.getCostFood()), nz(n.getCostMagic()), nz(n.getCostCoin())));
     }
 
     private static int nz(Integer v) {
@@ -666,7 +668,8 @@ public class MatchQueryService implements MatchQueryPort {
                         resolveCard(storyId, neighborCardBackId, lang, cardCache),
                         resolveLocationCard(storyId, fromId, locationsById, lang, visitedLocIds, cardCache),
                         resolveLocationCard(storyId, toId, locationsById, lang, visitedLocIds, cardCache),
-                        move.available(), move.reasonName()));
+                        move.available(), move.reasonName(),
+                        n.getCostFood(), n.getCostMagic(), n.getCostCoin()));
             }
 
             List<EventInfo> eventInfos = new ArrayList<>();
@@ -683,7 +686,8 @@ public class MatchQueryService implements MatchQueryPort {
                             e.getUuid(), e.getType(), endGame,
                             resolveCard(storyId, e.getIdCard(), lang, cardCache),
                             av.available(), av.reasonName(),
-                            e.getCostEnery() == null ? 0 : e.getCostEnery()));
+                            nz(e.getCostEnery()), nz(e.getCostCoin()),
+                            nz(e.getCostFood()), nz(e.getCostMagic())));
                 }
             }
 

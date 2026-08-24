@@ -54,7 +54,7 @@ def test_seed_step29_events_cover_every_check_branch():
     assert events[10]['costEnery'] == 1 and events[10]['type'] == 'NORMAL'
     assert events[11]['type'] == 'ONCE'
     assert events[12]['costEnery'] == 999                       # NOT_ENOUGH_ENERGY
-    assert events[13]['coinCost'] == 999                        # NOT_ENOUGH_COINS
+    assert events[13]['costCoin'] == 999                        # NOT_ENOUGH_COINS
     assert events[14]['registryKeyCondition'] == 'STEP29_GATE'  # REGISTRY_CONDITION_NOT_MET
     assert events[15]['idClassCondition'] == 1                  # CLASS_CONDITION_NOT_MET
     assert events[16]['idWeather'] == 3                         # WEATHER_CONDITION_NOT_MET

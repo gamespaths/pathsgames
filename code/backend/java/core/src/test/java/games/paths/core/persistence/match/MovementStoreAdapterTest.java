@@ -15,6 +15,7 @@ import games.paths.core.port.match.WeatherStorePort.CurrentWeatherView;
 import games.paths.core.port.story.StoryReadPort;
 import games.paths.core.entity.match.GamingInventoryItemsEntity;
 import games.paths.core.entity.story.ItemEntity;
+import games.paths.core.repository.match.GamingBackpackResourcesRepository;
 import games.paths.core.repository.match.GamingCharacterInstanceRepository;
 import games.paths.core.repository.match.GamingInventoryItemsRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
@@ -38,6 +39,7 @@ class MovementStoreAdapterTest {
     private GamingInventoryItemsRepository inventoryRepository;
     private StoryReadPort storyReadPort;
     private WeatherStorePort weatherStorePort;
+    private GamingBackpackResourcesRepository backpackRepository;
     private MovementStoreAdapter adapter;
 
     @BeforeEach
@@ -48,8 +50,10 @@ class MovementStoreAdapterTest {
         inventoryRepository = mock(GamingInventoryItemsRepository.class);
         storyReadPort = mock(StoryReadPort.class);
         weatherStorePort = mock(WeatherStorePort.class);
+        backpackRepository = mock(GamingBackpackResourcesRepository.class);
         adapter = new MovementStoreAdapter(matchRepository, characterRepository,
-                logMovementRepository, inventoryRepository, storyReadPort, weatherStorePort);
+                logMovementRepository, inventoryRepository, backpackRepository,
+                storyReadPort, weatherStorePort);
     }
 
     private static GamingMatchEntity match() {
@@ -258,7 +262,7 @@ class MovementStoreAdapterTest {
     void insertMovementLog_assignsNextId() {
         when(logMovementRepository.findMaxId()).thenReturn(4L);
         ArgumentCaptor<LogMovementEntity> cap = ArgumentCaptor.forClass(LogMovementEntity.class);
-        adapter.insertMovementLog(1L, 50L, 1L, 2L, 6);
+        adapter.insertMovementLog(1L, 50L, 1L, 2L, 6, 0, 0, 0);
         verify(logMovementRepository).save(cap.capture());
         LogMovementEntity e = cap.getValue();
         assertEquals(5L, e.getId());

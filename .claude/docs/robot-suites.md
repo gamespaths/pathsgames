@@ -25,7 +25,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `26_time_recovery` | Time-start stat recovery, counter re-seed, i18n lang on match info, i18n regression on `/api/stories?lang=` |
 | `27_weather` | Weather system: random selection, effects, clock-linked roll, log |
 | `28_movement` | Movement system (see breakdown below) |
-| `29_events` | Step 29 normal events (see breakdown below) |
+| `29_events` | Step 29 normal events + v0.35.3 resource costs (see breakdown below) |
 | `30_edge_states` | Step 30 sadness overflow / coma edge states |
 | `31_choices` | Step 31 choice engine (see breakdown below) |
 | `32_choice_resolution` | Step 32 choice resolution (see breakdown below) |
@@ -83,6 +83,21 @@ Plus (v0.29.3) "A Location Effect Teleports The Character Without Any Movement C
 effect's `id_location` moves the actor with none of the Step 28 movement checks; runs on its
 **own match** (`New Teleport Match` keyword — the teleport would otherwise strand the suite's
 shared character away from the seeded events).
+
+`resource_costs.robot` (v0.35.3, 9 tests) — food, magic and coin as a COST of acting.
+Every event of the location advertises all four prices (`energy`/`coin`/`food`/`magic`) so
+the board can render them BEFORE the player commits; an action nobody can afford is blocked
+with `NOT_ENOUGH_FOOD` / `NOT_ENOUGH_MAGIC` and `execute-event` refuses it with the very same
+code; a refusal takes nothing at all; the same event flips to available once the backpack can
+pay; executing it charges exactly what it advertised and `GET /resources` agrees; a free event
+spends none of the three; the spend reaches the `EVENT` row of the logs timeline (before this
+version an event's price lived only in the HTTP response and was never persisted); and every
+neighbor on `/info` and `/locations` carries `costFood`/`costMagic`/`costCoin` — edge-only,
+unlike energy, which is reported pre-summed. Events are found by BEHAVIOUR (the price they
+advertise, the reason they report), never by seeded uuid, and the backpack is filled through
+the admin `changeStatistics` override rather than by playing towards the state — every case
+runs on its own guest and its own match. The four seeds ship the test-bed: one event priced
+beyond any backpack for food, one for magic, and one small enough to be affordable.
 
 ### `31_choices` breakdown
 

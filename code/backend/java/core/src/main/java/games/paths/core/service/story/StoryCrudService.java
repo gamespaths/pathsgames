@@ -810,6 +810,9 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("conditionRegistryKey", ln.getConditionRegistryKey());
             m.put("conditionRegistryValue", ln.getConditionRegistryValue());
             m.put("energyCost", ln.getEnergyCost());
+            m.put("costFood", ln.getCostFood());
+            m.put("costMagic", ln.getCostMagic());
+            m.put("costCoin", ln.getCostCoin());
             m.put("idTextGo", ln.getIdTextGo());
             m.put("idTextBack", ln.getIdTextBack());
             m.put("idCardBack", ln.getIdCardBack());
@@ -861,7 +864,9 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("flagEndTime", ev.getFlagEndTime());
             m.put("idWeather", ev.getIdWeather());
             m.put("idEventNext", ev.getIdEventNext());
-            m.put("coinCost", ev.getCoinCost());
+            m.put("costCoin", ev.getCostCoin());
+            m.put("costFood", ev.getCostFood());
+            m.put("costMagic", ev.getCostMagic());
             m.put("registryKeyCondition", ev.getRegistryKeyCondition());
             m.put("registryValueCondition", ev.getRegistryValueCondition());
             m.put("idClassCondition", ev.getIdClassCondition());
@@ -1205,8 +1210,16 @@ public class StoryCrudService implements StoryCrudPort {
             e.setIdWeather(intVal(d, "idWeather"));
         if (d.containsKey("idEventNext"))
             e.setIdEventNext(intVal(d, "idEventNext"));
-        if (d.containsKey("coinCost"))
-            e.setCoinCost(intVal(d, "coinCost"));
+        // v0.35.3 renamed coinCost to costCoin. The old key is still read — an admin
+        // client or a script written against the previous name must not silently save 0.
+        if (d.containsKey("costCoin"))
+            e.setCostCoin(intVal(d, "costCoin"));
+        else if (d.containsKey("coinCost"))
+            e.setCostCoin(intVal(d, "coinCost"));
+        if (d.containsKey("costFood"))
+            e.setCostFood(intVal(d, "costFood"));
+        if (d.containsKey("costMagic"))
+            e.setCostMagic(intVal(d, "costMagic"));
         if (d.containsKey("registryKeyCondition"))
             e.setRegistryKeyCondition(str(d, "registryKeyCondition"));
         if (d.containsKey("registryValueCondition"))
@@ -1406,6 +1419,12 @@ public class StoryCrudService implements StoryCrudPort {
             e.setConditionRegistryValue(str(d, "conditionRegistryValue"));
         if (d.containsKey("energyCost"))
             e.setEnergyCost(intVal(d, "energyCost"));
+        if (d.containsKey("costFood"))
+            e.setCostFood(intVal(d, "costFood"));
+        if (d.containsKey("costMagic"))
+            e.setCostMagic(intVal(d, "costMagic"));
+        if (d.containsKey("costCoin"))
+            e.setCostCoin(intVal(d, "costCoin"));
         if (d.containsKey("idTextGo"))
             e.setIdTextGo(intVal(d, "idTextGo"));
         if (d.containsKey("idTextBack"))

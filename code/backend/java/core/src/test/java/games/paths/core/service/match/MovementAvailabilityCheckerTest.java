@@ -130,6 +130,59 @@ class MovementAvailabilityCheckerTest {
         }
 
         @Test
+        @DisplayName("v0.35.3 — coins below the edge cost → NOT_ENOUGH_COINS")
+        void notEnoughCoins() {
+            MoveCheckContext ctx = new MoveCheckContext(true, true, false, false, 100, 0, 50,
+                    5, 5, 1);
+            MoveEdgeCheck e = new MoveEdgeCheck(true, 10, 0, 0, 0, 0, 2);
+            assertEquals(Code.NOT_ENOUGH_COINS, MovementAvailabilityChecker.check(ctx, e).reason());
+        }
+
+        @Test
+        @DisplayName("v0.35.3 — food below the edge cost → NOT_ENOUGH_FOOD")
+        void notEnoughFood() {
+            MoveCheckContext ctx = new MoveCheckContext(true, true, false, false, 100, 0, 50,
+                    1, 5, 5);
+            MoveEdgeCheck e = new MoveEdgeCheck(true, 10, 0, 0, 2, 0, 0);
+            assertEquals(Code.NOT_ENOUGH_FOOD, MovementAvailabilityChecker.check(ctx, e).reason());
+        }
+
+        @Test
+        @DisplayName("v0.35.3 — magic below the edge cost → NOT_ENOUGH_MAGIC")
+        void notEnoughMagic() {
+            MoveCheckContext ctx = new MoveCheckContext(true, true, false, false, 100, 0, 50,
+                    5, 1, 5);
+            MoveEdgeCheck e = new MoveEdgeCheck(true, 10, 0, 0, 0, 2, 0);
+            assertEquals(Code.NOT_ENOUGH_MAGIC, MovementAvailabilityChecker.check(ctx, e).reason());
+        }
+
+        @Test
+        @DisplayName("v0.35.3 — energy is judged before the resources, capacity after them")
+        void resourceOrderIsTheContract() {
+            MoveCheckContext broke = new MoveCheckContext(true, true, false, false, 1, 0, 50,
+                    0, 0, 0);
+            MoveEdgeCheck e = new MoveEdgeCheck(true, 10, 1, 5, 1, 1, 1);
+            assertEquals(Code.INSUFFICIENT_ENERGY,
+                    MovementAvailabilityChecker.check(broke, e).reason());
+
+            MoveCheckContext rested = new MoveCheckContext(true, true, false, false, 100, 0, 50,
+                    0, 0, 0);
+            // The destination is full too, but a mover who cannot pay the road hears about
+            // the road first.
+            assertEquals(Code.NOT_ENOUGH_COINS,
+                    MovementAvailabilityChecker.check(rested, e).reason());
+        }
+
+        @Test
+        @DisplayName("v0.35.3 — an edge that costs exactly what the mover holds is traversable")
+        void exactlyAffordableEdge() {
+            MoveCheckContext ctx = new MoveCheckContext(true, true, false, false, 100, 0, 50,
+                    2, 3, 4);
+            MoveEdgeCheck e = new MoveEdgeCheck(true, 10, 0, 0, 2, 3, 4);
+            assertTrue(MovementAvailabilityChecker.check(ctx, e).available());
+        }
+
+        @Test
         @DisplayName("energy exactly the total cost → allowed (the cost is affordable, not forbidden)")
         void energyExactlyEnough() {
             MoveCheckContext ctx = new MoveCheckContext(true, true, false, false, 10, 0, 50);

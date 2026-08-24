@@ -76,8 +76,13 @@ class FakeMovementStore:
     def update_character_location_and_energy(self, id_match, id_character, id_location, energy):
         self.updated = (id_character, id_location, energy)
 
-    def insert_movement_log(self, id_match, id_character, from_location, to_location, energy_cost):
+    def insert_movement_log(self, id_match, id_character, from_location, to_location,
+                            energy_cost, food_cost=0, magic_cost=0, coin_cost=0):
         self.logged = (id_character, from_location, to_location, energy_cost)
+        self.logged_resources = (food_cost, magic_cost, coin_cost)
+
+    def update_backpack_resources(self, id_match, id_character, food, magic, coin):
+        self.backpack_written = (id_character, food, magic, coin)
 
     def find_visited_location_ids(self, id_match):
         return list(self.visited)
@@ -103,6 +108,42 @@ def test_move_happy_path_safe(service, store):
     assert r.new_energy == 4
     assert store.updated == (50, 2, 4)
     assert store.logged == (50, 1, 2, 6)
+
+
+def test_v0353_the_edge_resources_are_checked_paid_logged_and_reported(store):
+    """v0.35.3 — a toll road: the edge's food/magic/coin leave the backpack with the move."""
+    store.character.update({"food": 5, "magic": 4, "coin": 9})
+    store.neighbors[1][0].update({"cost_food": 2, "cost_magic": 1, "cost_coin": 3})
+    service = MovementService(store)
+
+    r = service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
+
+    assert (r.food_spent, r.magic_spent, r.coin_spent) == (2, 1, 3)
+    assert (r.new_food, r.new_magic, r.new_coin) == (3, 3, 6)
+    assert store.backpack_written == (50, 3, 3, 6)
+    assert store.logged_resources == (2, 1, 3)
+
+
+def test_v0353_a_free_edge_writes_no_backpack_row(store):
+    service = MovementService(store)
+
+    service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
+
+    assert getattr(store, "backpack_written", None) is None
+
+
+def test_v0353_a_mover_one_coin_short_is_refused_and_nothing_is_written(store):
+    store.character.update({"food": 5, "magic": 5, "coin": 1})
+    store.neighbors[1][0].update({"cost_coin": 2})
+    service = MovementService(store)
+
+    with pytest.raises(MovementError) as exc:
+        service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
+
+    assert exc.value.code == MovementError.NOT_ENOUGH_COINS
+    assert store.updated is None
+    assert store.logged is None
+    assert getattr(store, "backpack_written", None) is None
 
 
 def test_step33_arrival_triggers_run_after_the_move_is_committed(store):

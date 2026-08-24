@@ -944,6 +944,18 @@ an item you cannot currently afford to use still says what using it would do.
   fetches. Full suite: 644 tests passing.
 - react-game, backpack UX (§11, v0.35.2): `ItemsCard.test.jsx` and `ItemsCards.test.jsx` gain the
   three cases listed at the end of §11. Full suite: 857 tests passing.
+- Robot, resource costs (§12f, v0.35.3): new suite
+  `code/tests/robot/tests/29_events/resource_costs.robot`, 9 backend-agnostic test cases —
+  cataloged in `.claude/docs/robot-suites.md` under the `29_events` breakdown. Discovers events
+  and neighbors by behavior, not by seeded id; fills the backpack via the new `Admin Change
+  Statistics` keyword instead of playing towards the state. Full run: 576/576 on Java/SQLite and
+  on Python; AWS and Java/Postgres not run.
+- Python, resource costs bugfix (§12g): `test_event_store_adapter_movement.py` gains
+  `test_insert_movement_log_accepts_and_persists_the_resource_costs` and
+  `test_insert_movement_log_defaults_the_resource_costs_to_zero`, pinning the
+  two-adapters-write-`log_movements` bug the E2E run found in the forced-move path.
+- react-game, resource costs (§12h): `ItemsCard.test.jsx` — four existing cases updated, two
+  added (listed in §12h). Full suite: 860 tests passing, 3 skipped.
 - Trait grant now moves stats (§4, v0.35.2 bugfix): the engine change itself, its 9 new unit
   tests and its full-suite counts belong to [Step23 §6.4](./Step23_CharacterStatsInitialization.md#64-trait-stat-deltas-apply-on-grant-not-only-at-creation-v0352)
   — nothing on this table changed shape, so nothing item-specific is added here.
@@ -1011,6 +1023,12 @@ an item you cannot currently afford to use still says what using it would do.
 | Documentation | `documentation_v0/Step35_ItemsResolution.md` (this file, §6-§7-§8-§10 added, intro reframed; §8f added for the payload/react-game increment; §11 added for the v0.35.2 backpack UX fixes); `documentation_v0/Step34_InventoryAndResources.md` — corrected the now-superseded "whole row"/"two rows" passages (§8e note); `documentation_v0/Step09_DesignCoreDataModel.md` — `list_items` row gains `max_per_character`/`amount_drop`/`amount_use`, `gaming_inventory_items` row notes the new unique index (unchanged by §8f — additive to an existing payload, no new column); `documentation_v0/Step23_CharacterStatsInitialization.md` — new §6.4 (trait stat deltas apply on grant, v0.35.2 bugfix); `documentation_v0/Step29_NormalEvents.md` — pointer to §6.4 added to the Effects section; `documentation_v0/INDEX.md` — `Step35_ItemsResolution.md`, `Step23_CharacterStatsInitialization.md` rows updated |
 | Game board, backpack UX (react-game, §11, v0.35.2) | `src/features/gameplay/cards/ItemsCard.jsx` — figures now built as a `statItemsToPageContent`/`statistics` badge list instead of description prose; `src/features/gameplay/cards/ItemsCards.jsx` — rows sorted usable-first via `isItemUsable`; `src/components/layout/Card.jsx` — new `bonusBadgeShowZeros` prop (default `false`) |
 | Tests, backpack UX (react-game, §11) | `src/test/ItemsCard.test.jsx`, `src/test/ItemsCards.test.jsx` (new cases, listed in §11/§9) |
+| Robot, resource costs (§12f, v0.35.3) | `code/tests/robot/tests/29_events/resource_costs.robot` (new, 9 tests); `code/tests/robot/resources/matches.resource` — `Admin Change Statistics` keyword (new); `.claude/docs/robot-suites.md` — `29_events` breakdown updated |
+| Bugfix, resource costs (§12g, Python forced-move logging) | `app/adapters/persistence/match/event_store_adapter.py` — `insert_movement_log` gains `food_cost`/`magic_cost`/`coin_cost` to match `MovementStoreAdapter`'s signature; `tests/test_event_store_adapter_movement.py` (2 new cases) |
+| Bugfix, resource costs (§12g, `/locations` neighbor fields) | `code/backend/java/adapter-rest/.../dto/MatchLocationsResponse.java` — `NeighborView` gains `costFood`/`costMagic`/`costCoin`; `code/backend/python/app/adapters/rest/match/movement_controller.py` — `_location_to_camel` projects the same three |
+| Bugfix, resource costs (§12g, Robot predicates) | `code/tests/robot/tests/29_events/events.robot` — `Event Uuid By Type`, `Event Uuid By Cost`; `code/tests/robot/tests/30_edge_states/edge_states.robot` — one predicate; all three now read `costCoin` and exclude events with a food/magic price |
+| Game board, resource costs (§12h, react-game) | `src/features/gameplay/cards/ItemsCard.jsx` — `food`/`magic`/`coins` badges, both variants |
+| Tests, resource costs (react-game, §12h) | `src/test/ItemsCard.test.jsx` — four cases updated, two new (listed in §12h/§9) |
 
 Parts one and two carry no migration and no new endpoint: `effects[]` is an additive field on
 payloads `GET /api/gameplay/{uuid}/inventory` and `GET /api/game/{uuid}/info` already return.
@@ -1060,19 +1078,214 @@ card locks itself with'`. Full react-game suite: 857 passed.
 
 ---
 
+## 12. Resource costs: food, magic and coin become a cost of acting (v0.35.3)
+
+Until this version only energy and coins could be charged, and only by an event; food and magic
+were numbers that only ever went up — nothing in the engine consumed them. This part gives them
+their first sink: an event or a movement edge can now cost food and magic exactly the way it
+could already cost energy and coins.
+
+### a. Schema
+
+Migration `V0.35.3__resource_costs.sql`, both java dialects (`adapter-sqlite` +
+`adapter-postgres`):
+
+- `list_events.coin_cost` is **RENAMED** to `cost_coin` — three costs on one table spelled three
+  different ways is a trap for the next author; new `cost_food`, `cost_magic` (`INTEGER DEFAULT
+  0`) join it.
+- `list_locations_neighbors` gains `cost_food`, `cost_magic`, `cost_coin`. `energy_cost` is
+  deliberately untouched — see §c below.
+- `list_choices` gains the same three columns, **RESERVED**: no engine, no admin form, no
+  import/export reads them yet. They exist so the option-level cost, when it lands, is not a
+  second migration.
+- `log_events` gains `energy`, `food`, `magic`, `coin` — the table had **no cost column at all**
+  before this: an event's price lived only in the HTTP response and was never persisted.
+- `log_movements` gains `food`, `magic`, `coin` (it already had `energy`). Log column names stay
+  bare — in a log the column IS what was spent; the `cost_` prefix belongs to the story tables
+  that define the price.
+
+### b. Engine — events
+
+`EventAvailabilityChecker` gained two checks after the existing coin one, in this exact contract
+order: energy → coin → food → magic → registry → weather → item → class. New refusal codes
+`NOT_ENOUGH_FOOD`, `NOT_ENOUGH_MAGIC`; coins keep the existing (plural) `NOT_ENOUGH_COINS`.
+Payment happens once, in `deductCosts`, by the actor alone.
+
+**Automatic events never pay.** AUTOMATIC/FIRST events, an `id_event_next` chain, the Step 33
+location-entry events and a choice resolution all run without ever reaching `deductCosts`.
+Valorising `cost_food` on an automatic event is therefore not an error — it is silently ignored,
+and a story author needs to know that before pricing one.
+
+An already-open choice cycle re-serves its options without re-charging: the pre-existing `if
+(!openCycle)` guard ([Step31](./Step31_ChoiceEngine.md)) now covers the two new costs the same
+way it already covered coins.
+
+### c. Engine — movement
+
+The resource cost comes from the **edge alone** (`list_locations_neighbors`), with no
+destination-entry term and no weather term — unlike energy, which keeps summing edge +
+`list_locations.cost_energy_enter` + the weather modifier
+([Step28 §4](./Step28_MovementSystem.md#4-energy-cost-formula)). The asymmetry is deliberate: the
+energy formula is a sum, so an entry or weather term for food/magic/coin can be added later
+without invalidating a single story that has already priced an edge.
+`MovementAvailabilityChecker` checks the three new costs after `INSUFFICIENT_ENERGY` and before
+`LOCATION_FULL` — coin → food → magic, the same order and reasoning as the event checker.
+
+A forced move ([Step29 — Forced movement, v0.29.3](./Step29_NormalEvents.md#forced-movement-v0293))
+pays nothing; its `log_movements` row records zeros for food/magic/coin, exactly as it already did
+for energy.
+
+Both checkers prove affordability before the deduction runs, so none of the four resources can go
+negative — the same guarantee energy and coins already had.
+
+### d. JSON / API contract
+
+- Event JSON key `coinCost` → `costCoin`, plus new `costFood`, `costMagic`. **Import and admin
+  CRUD accept BOTH names** (`costCoin` wins when both are present), so a story exported before
+  v0.35.3 keeps its price instead of silently becoming free. AWS has no migration — the Lambda
+  engine reads both keys straight off the stored story for the same reason.
+- `execute-event`/`select-choice` responses gain `foodSpent`, `magicSpent`, `newFood`, `newMagic`.
+  On `select-choice` all four `*Spent` fields are still `0` — the open already paid ([Step31](./Step31_ChoiceEngine.md)).
+- `movements/start` response gains `foodSpent`, `magicSpent`, `coinSpent`, `newFood`, `newMagic`,
+  `newCoin`.
+- `GET /api/match/{uuid}/info`: each event now carries `coin`/`food`/`magic` beside `energy`; each
+  neighbor carries `costFood`/`costMagic`/`costCoin` beside `energyCost` — edge-only, so no
+  breakdown (contrast with `totalEnergyCost`'s three-term breakdown,
+  [Step28 §5.3](./Step28_MovementSystem.md#53-matchlocationsresponse)).
+- `GET /api/matches/{uuid}/logs`: MOVEMENT and EVENT entries gain `foodCost`, `magicCost`,
+  `coinCost` (EVENT also fills `energyCost`, previously always `null` — `log_events` had nowhere
+  to keep it). The price is stamped on the row of the event the player actually asked for; every
+  other row of a chain logs zeros, so summing a match's log gives the real spend.
+- `list_locations_neighbors` CRUD/import gains `costFood`/`costMagic`/`costCoin`.
+
+### e. Components touched
+
+java (core entities/ports/checkers/services/adapters, `adapter-rest` DTOs + 4 OpenAPI specs, both
+migration dialects, both dev seed files), python (models, `event_availability`,
+`movement_availability`, `event_service`, `movement_service`, store adapters, controllers,
+`match_logs_service`, `seed_dev_data`), AWS (`lambda/match/events.py` + `movements.py` +
+`handler.py`, `lambda/seed/handler.py`), react-admin (`storiesEntities.jsx`: event form
+`costCoin`/`costFood`/`costMagic`, neighbor form the three costs), react-game
+(`lockReasons.js` icons for the two new codes, `i18n/it.json` + `en.json` movement and event
+reason blocks).
+
+Seed events 90053 (`cost_food` 999 → `NOT_ENOUGH_FOOD`), 90054 (`cost_magic` 999 →
+`NOT_ENOUGH_MAGIC`), 90055 (affordable: coin 1, food 2, magic 1); AWS seeds the same three under
+uuids `evt-v0353-nofood`, `evt-v0353-nomagic`, `evt-v0353-affordable`.
+
+### f. Robot suite
+
+**Correction**: the very first version of this section said "no Robot suite", by deliberate
+choice, since a tolled edge in the shared seed graph would perturb the `28_movement` suites,
+which pick "the first neighbor" of the start location. That reasoning was sound for movement but
+never actually ruled out an events suite — a follow-up doc-sync pass added one:
+`code/tests/robot/tests/29_events/resource_costs.robot`, 9 tests, backend-agnostic. It walks the
+whole round trip:
+
+- every event of the location advertises all four prices (`energy`/`coin`/`food`/`magic`) on
+  `/info`, always present and never negative — a cost discovered only by being refused would
+  read as a bug;
+- an event nobody can afford is blocked with `NOT_ENOUGH_FOOD` / `NOT_ENOUGH_MAGIC`, and
+  `execute-event` refuses it with the very same code — one check procedure, two doors;
+- a refusal takes nothing at all — the check runs before the deduction;
+- the same event flips from blocked to available once the backpack can pay, with nothing about
+  the event itself having changed;
+- executing it charges exactly what it advertised, and `GET /resources` agrees with the response;
+- a free event spends none of the three;
+- the spend reaches the `EVENT` row of `GET /api/matches/{uuid}/logs` — before this version an
+  event's price lived only in the HTTP response and was never persisted;
+- every neighbor on both `/info` **and** `/locations` carries `costFood`/`costMagic`/`costCoin`
+  — the one case in this suite that touches movement, and it does so without ever executing a
+  move.
+
+**Method**, worth recording because it is the reason the suite is portable: events and neighbors
+are found by BEHAVIOUR (the price they advertise, the reason they report), never by a seeded
+uuid or id; the backpack is filled through the admin `changeStatistics` override (new shared
+keyword `Admin Change Statistics` in `code/tests/robot/resources/matches.resource`) rather than
+by playing towards the state; every test case mints its own guest and its own match, since a
+priced event spends a per-match backpack. The seed test-bed events named in §e above (90053 /
+90054 / 90055, `evt-v0353-nofood` / `evt-v0353-nomagic` / `evt-v0353-affordable` on AWS) are what
+this suite actually exercises.
+
+**Why there is still no case that executes a tolled MOVE**: the original reasoning holds —
+adding a priced edge to the shared seed graph would perturb the `28_movement` suites. The
+movement half of the contract is covered by the unit tests on all three engines (§b, §c) plus
+the payload-contract case above, which reads both `/info` and `/locations` without ever moving
+along a priced edge.
+
+**Results**: 576 tests, 576 passed on Java/SQLite and on Python
+(`run_robot_with_local_java.sh`, `run_robot_with_local_python.sh`). AWS and Java/Postgres were
+not run.
+
+### g. Three bugs the Robot run found and fixed
+
+Running the suite against a real backend (rather than stopping at `--dryrun`, as parts three and
+four above were left) surfaced three defects invisible to unit tests:
+
+- **Python: two adapters wrote `log_movements`, and only one learned the new signature.**
+  `MovementStoreAdapter.insert_movement_log` (an ordinary move) gained
+  `food_cost`/`magic_cost`/`coin_cost`; `EventStoreAdapter.insert_movement_log` — the writer used
+  by a [forced move](./Step29_NormalEvents.md#forced-movement-v0293) — did not, so every forced
+  move started answering 500 and cascaded failures into the inventory and choice suites too.
+  Unit tests could not see it because they mock the store away. Fixed by mirroring the
+  signature; two regression tests were added to `tests/test_event_store_adapter_movement.py`:
+  `test_insert_movement_log_accepts_and_persists_the_resource_costs` and
+  `test_insert_movement_log_defaults_the_resource_costs_to_zero`.
+- **`GET /locations` mapped its neighbor payload separately from `/info`'s, and the three cost
+  fields were missing from it** in Java (`MatchLocationsResponse.NeighborView`) and Python
+  (`movement_controller._location_to_camel`); AWS already carried them. Both fixed, so
+  `costFood`/`costMagic`/`costCoin` now ride identically on `/info` neighbors, `/locations`
+  neighbors and the admin locations view. This is the same `NeighborCostDto` §5.3 already
+  documents in [Step28](./Step28_MovementSystem.md#53-matchlocationsresponse) — the DTO shape
+  was right from the first doc pass, the Java and Python code just did not fill it in yet.
+- **Three Robot predicates selected seeded events by the old `coinCost` key** (`events.robot`'s
+  `Event Uuid By Type` and `Event Uuid By Cost`; `edge_states.robot`, one predicate) and found
+  nothing once §d renamed the JSON key to `costCoin`. Fixed to read `costCoin`, and each
+  predicate now additionally excludes events carrying a food or magic price, so the new v0.35.3
+  test-bed events (§e) cannot be mistaken for the historical fixtures those suites were written
+  against.
+
+### h. react-game: the backpack shows food, magic and coin
+
+`ItemsCard.jsx` (the backpack card) now carries `food`, `magic` and `coins` badges beside the
+capacity gauge, in both of its shapes — `little` in the statistics list and `page` while the bag
+is open — so the figure read before opening the bag is the same one still shown after. Values
+come from `playerStats.food` / `playerStats.magic` / `playerStats.coins` (mind the naming: the
+backend field is `coin`, the `playerStats` key is `coins`); the icons and colours already
+existed in `BonusBadgeList`'s `STAT_VISUAL`. `bonusBadgeShowZeros` (already used for the capacity
+gauge since §11) keeps a zero supply visible on purpose: a player about to be refused for want of
+two rations must be able to see the two rations they do not have. The capacity badge still
+disappears when no maximum is known; the three resources do not, because they weigh nothing.
+
+Tests: `src/test/ItemsCard.test.jsx` — four existing assertions updated for the new badges (the
+heavy-bag case, the missing-weight default, the empty-bag zero case, and the
+no-maximum-known case, which now drops only the capacity badge instead of every badge) plus two
+new cases, `'carries food, magic and coins beside the capacity'` and `'shows an empty supply as
+0, never as a missing badge'`. Full react-game suite: 860 tests passing, 3 skipped.
+
+**Still not done**: the per-action and per-neighbor price is not yet rendered on the action or
+neighbor cards themselves — the data is already on the payload (`/info` events carry
+`coin`/`food`/`magic`, neighbors carry `costFood`/`costMagic`/`costCoin`, §d), only the badge on
+those specific cards is missing. A player still discovers an action's exact price from the
+refusal reason or from the backpack total, not from the action card before committing to it.
+
+---
+
 # Version Control
 
-- **Document Version**: 0.35.2
+- **Document Version**: 0.35.3
 
   | Version | Description | Date |
   |---------|-------------|------|
+  | 0.35.3 | Food, magic and coin become a cost of acting (§12): `list_events.coin_cost` is renamed `cost_coin`, and both events and movement edges can now charge food/magic/coin, while `list_choices` gets the same three columns reserved for a future option-level cost. Import/admin accept both `coinCost` and `costCoin`; automatic events, forced moves and open choice cycles never pay. | August 23, 2026 |
+  | 0.35.3 | Same version, continued (§12f-h): new Robot suite `resource_costs.robot` (9 tests, 576/576 on Java/SQLite and Python) replaces the earlier "no suite" note; three bugs the run found are fixed (Python's second `log_movements` writer, `/locations`' missing neighbor cost fields on Java/Python, three Robot predicates still keyed on `coinCost`); react-game's `ItemsCard` now badges food/magic/coin (per-action/per-neighbor price still not rendered). | August 24, 2026 |
   | 0.35.2 | Noted that `traits_to_add`/`traits_to_remove` on a `list_items_effects` row work regardless of a trait's new `hide_on_start_match` flag (§4); flag itself is documented in [Step23 §5.3](./Step23_CharacterStatsInitialization.md#53-schema-change--list_traitshide_on_start_match-v0352). | August 22, 2026 |
   | 0.35.2 | Bugfix note (§4): a trait granted through `traits_to_add` here now also moves the recipient's stats, not just the trait list — formula documented in [Step23 §6.4](./Step23_CharacterStatsInitialization.md#64-trait-stat-deltas-apply-on-grant-not-only-at-creation-v0352). | August 22, 2026 |
   | 0.35.2 | Backpack UX (§11): the bag's count/capacity moved from prose into badges (`bonusBadgeShowZeros`), and `ItemsCards` now lists usable items before locked ones. | August 22, 2026 |
   | 0.35.1 | Items resolution, part four — the quantities. Three nullable columns on `list_items` (`V0.35.1__item_amounts_and_unique_inventory_row.sql`): `max_per_character` caps what a character may hold and refuses a further ADD without failing the event that offered it, while `amount_drop` and `amount_use` say how many units one drop or one usage moves — and the same migration folds duplicate inventory rows and forbids new ones (§8a-§8e). The three numbers then travel in `items[]`, so the bag can write "2/3" and grey out a usage the engine would refuse (§8f). | August 22, 2026 |
   | 0.35.0 | Items resolution — UX refinement of the Step 34 inventory engine: using an item now closes the backpack and narrates on a clean page, an item card falls back on its own card when no effect row carries one, and the react-admin Item Effects form finally offers the narrative card, a closed vocabulary for `effect_code` and the trait pickers (§1-§4). `flagShowEffects` lets a story keep an item's effects secret while still applying them, and `effects[]` on every inventory row lets the board show what using it promises (§5-§7). | August 21, 2026 |
 
-- **Last Updated**: August 22, 2026
+- **Last Updated**: August 24, 2026
 - **Status**: Complete
 
 

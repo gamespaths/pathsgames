@@ -38,8 +38,13 @@ public class ExecuteEventResponse {
     private List<String> executedEventUuids;
     private int energySpent;
     private int coinSpent;
+    /** v0.35.3 — the food and magic the event took, and the backpack after it. */
+    private int foodSpent;
+    private int magicSpent;
     private int newEnergy;
     private int newCoin;
+    private int newFood;
+    private int newMagic;
     private int currentClock;
     private boolean turnConsumed;
     private boolean timeEnded;
@@ -76,8 +81,12 @@ public class ExecuteEventResponse {
         d.executedEventUuids = new ArrayList<>(m.executedEventUuids());
         d.energySpent = m.energySpent();
         d.coinSpent = m.coinSpent();
+        d.foodSpent = m.foodSpent();
+        d.magicSpent = m.magicSpent();
         d.newEnergy = m.newEnergy();
         d.newCoin = m.newCoin();
+        d.newFood = m.newFood();
+        d.newMagic = m.newMagic();
         d.currentClock = m.currentClock();
         d.turnConsumed = m.turnConsumed();
         d.timeEnded = m.timeEnded();
@@ -143,6 +152,14 @@ public class ExecuteEventResponse {
     public void setEnergySpent(int energySpent) { this.energySpent = energySpent; }
     public int getCoinSpent() { return coinSpent; }
     public void setCoinSpent(int coinSpent) { this.coinSpent = coinSpent; }
+    public int getFoodSpent() { return foodSpent; }
+    public void setFoodSpent(int foodSpent) { this.foodSpent = foodSpent; }
+    public int getMagicSpent() { return magicSpent; }
+    public void setMagicSpent(int magicSpent) { this.magicSpent = magicSpent; }
+    public int getNewFood() { return newFood; }
+    public void setNewFood(int newFood) { this.newFood = newFood; }
+    public int getNewMagic() { return newMagic; }
+    public void setNewMagic(int newMagic) { this.newMagic = newMagic; }
     public int getNewEnergy() { return newEnergy; }
     public void setNewEnergy(int newEnergy) { this.newEnergy = newEnergy; }
     public int getNewCoin() { return newCoin; }

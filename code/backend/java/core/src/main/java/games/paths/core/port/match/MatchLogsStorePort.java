@@ -47,7 +47,16 @@ public interface MatchLogsStorePort {
     record WeatherLogEntry(long id, Integer clock, Long idWeather, String timestamp) {}
 
     record MovementLogEntry(long id, Long idCharacterMatch, Long idLocationFrom,
-                            Long idLocationTo, Integer energyCost, String timestamp) {}
+                            Long idLocationTo, Integer energyCost, String timestamp,
+                            Integer foodCost, Integer magicCost, Integer coinCost) {
+
+        /** Pre-v0.35.3 shape: a move whose only price was energy. */
+        public MovementLogEntry(long id, Long idCharacterMatch, Long idLocationFrom,
+                                Long idLocationTo, Integer energyCost, String timestamp) {
+            this(id, idCharacterMatch, idLocationFrom, idLocationTo, energyCost, timestamp,
+                    0, 0, 0);
+        }
+    }
 
     record ClockLogEntry(long id, Integer clock, String timestamp) {}
 
@@ -55,7 +64,17 @@ public interface MatchLogsStorePort {
      * service does not classify as EVENT (SLEEP, RECOVERY, ...). */
     /** {@code idLocation} is the Step 33 column: set on counter-zero and automatic-event rows. */
     record EventLogEntry(long id, Long idCharacterMatch, Integer clock,
-                         String timestamp, String logMessage, Long idEvent, Long idLocation) {}
+                         String timestamp, String logMessage, Long idEvent, Long idLocation,
+                         Integer energyCost, Integer foodCost, Integer magicCost,
+                         Integer coinCost) {
+
+        /** Pre-v0.35.3 shape: a row written before the price was persisted. */
+        public EventLogEntry(long id, Long idCharacterMatch, Integer clock, String timestamp,
+                             String logMessage, Long idEvent, Long idLocation) {
+            this(id, idCharacterMatch, clock, timestamp, logMessage, idEvent, idLocation,
+                    0, 0, 0, 0);
+        }
+    }
 
     /** The character that performed a logged action. */
     record CharacterLogView(long id, String uuid, Long idCharacterTemplate) {}

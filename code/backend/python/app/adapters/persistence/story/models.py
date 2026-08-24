@@ -205,6 +205,11 @@ class LocationNeighborEntity(Base):
     direction = Column(String(20))
     flag_back = Column(Integer, nullable=False, default=0)
     energy_cost = Column(Integer, default=1)
+    # v0.35.3 — resources the mover pays for this EDGE. Energy sums edge + destination entry
+    # + weather; these have one source, the edge itself.
+    cost_food = Column(Integer, default=0)
+    cost_magic = Column(Integer, default=0)
+    cost_coin = Column(Integer, default=0)
     condition_key = Column(String(255))
     condition_value = Column(String(255))
 
@@ -310,7 +315,10 @@ class EventEntity(Base):
     # Only NORMAL and ONCE are player-executable; ONCE is spent once per MATCH.
     type = Column(String(50))
     cost_enery = Column(Integer, default=0)
-    coin_cost = Column(Integer, default=0)
+    # v0.35.3 — coin_cost renamed to cost_coin; food and magic joined it as real costs.
+    cost_coin = Column(Integer, default=0)
+    cost_food = Column(Integer, default=0)
+    cost_magic = Column(Integer, default=0)
     flag_end_time = Column(Integer, default=0)
     id_event_next = Column(Integer)
     # ── conditions (AND) ────────────────────────────────────────────────────
@@ -390,6 +398,11 @@ class ChoiceEntity(Base):
     limit_cos = Column(Integer)
     # AND (default) or OR — how the list_choices_conditions rows combine (INV-31).
     logic_operator = Column(String(10), default="AND")
+    # v0.35.3 RESERVED: no engine, no form and no import/export reads these yet. They exist
+    # so the option-level cost, when it lands, is not a second migration.
+    cost_food = Column(Integer, default=0)
+    cost_magic = Column(Integer, default=0)
+    cost_coin = Column(Integer, default=0)
 
 
 class ChoiceConditionEntity(Base):

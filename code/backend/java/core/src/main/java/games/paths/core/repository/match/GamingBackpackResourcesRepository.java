@@ -22,6 +22,9 @@ public interface GamingBackpackResourcesRepository
 
     Optional<GamingBackpackResourcesEntity> findByIdMatchAndIdCharacterMatch(Long idMatch, Long idCharacterMatch);
 
+    /** Every backpack of the match, for the per-match maps the movement gate builds. */
+    List<GamingBackpackResourcesEntity> findByIdMatch(Long idMatch);
+
     /** Deletes every backpack row belonging to the given match ids (cleanup / cascade). */
     @Modifying
     @Query("DELETE FROM GamingBackpackResourcesEntity b WHERE b.idMatch IN :matchIds")

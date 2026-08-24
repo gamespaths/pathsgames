@@ -23,6 +23,9 @@ _STATUS_BY_CODE = {
     MovementError.MOVEMENT_CONDITION_NOT_MET: 409,
     MovementError.OVERWEIGHT: 409,
     MovementError.INSUFFICIENT_ENERGY: 409,
+    MovementError.NOT_ENOUGH_COINS: 409,
+    MovementError.NOT_ENOUGH_FOOD: 409,
+    MovementError.NOT_ENOUGH_MAGIC: 409,
     MovementError.LOCATION_FULL: 409,
 }
 
@@ -43,7 +46,14 @@ def _movement_to_camel(r: MovementResult) -> dict:
         "toLocationId": r.to_location_id,
         "toLocationUuid": r.to_location_uuid,
         "energySpent": r.energy_spent,
+        # v0.35.3 — the edge's resource price, and the backpack after it.
+        "foodSpent": r.food_spent,
+        "magicSpent": r.magic_spent,
+        "coinSpent": r.coin_spent,
         "newEnergy": r.new_energy,
+        "newFood": r.new_food,
+        "newMagic": r.new_magic,
+        "newCoin": r.new_coin,
         "currentClock": r.current_clock,
         # Step 33 — what the destination did about the arrival. The board already has the
         # new location for its left page; these belong on the right.
@@ -73,6 +83,10 @@ def _location_to_camel(loc: VisitedLocation) -> dict:
                 "entryEnergyCost": n.entry_energy_cost,
                 "weatherEnergyCost": n.weather_energy_cost,
                 "totalEnergyCost": n.total_energy_cost,
+                # v0.35.3 — the edge's resource price; edge-only, so no breakdown.
+                "costFood": n.cost_food,
+                "costMagic": n.cost_magic,
+                "costCoin": n.cost_coin,
                 "conditionMet": n.condition_met,
             }
             for n in loc.neighbors

@@ -30,7 +30,8 @@ told "no" by the endpoint, and a blocked action already knows its cause.
 | `id_specific_location` | CONDITION — the character must stand here. **NULL = no location constraint.** |
 | `type` | `AUTOMATIC`, `FIRST`, `NORMAL` or **`ONCE`** (new). Only NORMAL and ONCE are player-executable. |
 | `cost_enery` *(sic)* | Energy the player pays. The typo is baked into DDL, JSON, entity and admin form. |
-| `coin_cost` | Coins the player pays. |
+| `cost_coin` | Coins the player pays. **Renamed from `coin_cost` in v0.35.3** — JSON key follows (`coinCost` → `costCoin`), but import/admin CRUD keep accepting the old `coinCost` key so a pre-v0.35.3 story export does not silently become free. |
+| `cost_food` / `cost_magic` | **New in v0.35.3** — food/magic the player pays, same reading as `cost_coin`. See §2 for the check order and §3 for payment. |
 | `flag_end_time` | Executing it forces a time end. |
 | `id_event_next` | The chained event. |
 | `id_weather` | **CONDITION** — available only under that weather. |
@@ -96,7 +97,9 @@ type ∈ {NORMAL, ONCE}           → EVENT_NOT_EXECUTABLE_TYPE
 a ONCE event not yet spent      → ONCE_ALREADY_CONSUMED
 id_specific_location            → WRONG_LOCATION
 cost_enery                      → NOT_ENOUGH_ENERGY
-coin_cost                       → NOT_ENOUGH_COINS
+cost_coin                       → NOT_ENOUGH_COINS
+cost_food                       → NOT_ENOUGH_FOOD      (v0.35.3)
+cost_magic                      → NOT_ENOUGH_MAGIC     (v0.35.3)
 registry_key/value_condition    → REGISTRY_CONDITION_NOT_MET
 id_weather                      → WEATHER_CONDITION_NOT_MET
 id_item_condition               → ITEM_CONDITION_NOT_MET
@@ -160,6 +163,13 @@ The player pays **once**, for the event they asked for. Chained events are **con
 choices**: they are neither re-checked nor charged — the player already paid to start the chain. The
 one exception is the ONCE invariant, which is a *data* rule rather than an eligibility one: a spent
 ONCE event stops the chain before it.
+
+**v0.35.3**: the same "pay once, for the head of the chain" rule now covers `cost_food` and
+`cost_magic`, not just energy and coins. The response gains `foodSpent`, `magicSpent`, `newFood`,
+`newMagic` beside the existing `energySpent`/`coinSpent`/`newEnergy`/`newCoin`. An AUTOMATIC/FIRST
+event never reaches this step at all — see [Step35_ItemsResolution.md §12](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353)
+for the full schema/engine/contract writeup, kept there rather than duplicated here because it
+touches movement (Step 28) as much as it touches events.
 
 A cycle is **bounded, not followed**: the executor keeps a visited set plus a depth bound
 (`MAX_CHAIN = 32`). The Step 22 validator rejects cycles at import, but the admin CRUD path is
@@ -287,7 +297,7 @@ effect's narrative. Both are fixed.
 | OpenAPI | `adapter-rest/src/main/resources/openapi/v0.29.0-events-api.yaml` + patches to `v0.19.0-match-creation-api.yaml` and `v0.19.12-admin-match-control-api.yaml` (v0.29.3: `LocationChange` schema) |
 | Admin form | `react-admin/src/constants/story/storiesEntities.jsx`, `storyFieldOptions.js` (v0.29.3: `idLocation` — "Move To Location ID (effect)" — next to `idWeather` on the event-effects form) |
 | Game board | `react-game/src/features/gameplay/cards/ActionCard.jsx`, `src/api/matches.js`, `src/api/matchInfoAdapter.js` — **unchanged by v0.29.3**: `GameBook` already reloads clock/weather/locations and the whole board after every executed event, so a forced move arrives with the normal match-info reload |
-| Robot | `code/tests/robot/tests/29_events/events.robot` (18 tests — v0.29.3 added "A Location Effect Teleports The Character Without Any Movement Check", run on its own match via `New Teleport Match`) |
+| Robot | `code/tests/robot/tests/29_events/events.robot` (18 tests — v0.29.3 added "A Location Effect Teleports The Character Without Any Movement Check", run on its own match via `New Teleport Match`; v0.35.3: two id-selector predicates, `Event Uuid By Type`/`Event Uuid By Cost`, updated from `coinCost` to `costCoin` and to exclude the new resource-cost test-bed events). Sibling suite `resource_costs.robot` (9 tests, v0.35.3) covers the `cost_food`/`cost_magic`/`cost_coin` round trip — see [Step35 §12.f](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353). |
 
 Python and AWS mirror the engine (`app/core/services/match/event_availability.py`/`event_service.py`,
 `lambda/match/events.py`); see the [v0.29.0 Roadmap entry](./Roadmap.md) for the full per-backend
@@ -303,7 +313,7 @@ effect 14 with `idLocation: 3` — see the [v0.29.3 Roadmap entry](./Roadmap.md)
 
 # Version Control
 
-- **Document Version**: 0.35.2 (here only due changes)
+- **Document Version**: 0.35.3 (here only due changes)
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -311,9 +321,11 @@ effect 14 with `idLocation: 3` — see the [v0.29.3 Roadmap entry](./Roadmap.md)
   | 0.29.3 | Forced movement via event effects: `list_events_effects.id_location` (nullable), engine bypasses the whole Step 28 check procedure and writes a cost-0 `log_movements` row per move; `movementApplied`/`locationChanges` on the execute-event response; admin form field; Robot suite 17 → 18 tests | July 17, 2026 |
   | 0.31.0 | `execute-event` gained `status` (`APPLIED`/`CHOICES_PENDING`): an event owning `list_choices` rows now branches to the Step 31 choice engine instead of applying effects; a plain event keeps this step's flow unchanged and answers `status: APPLIED` with empty `pendingChoices`. See [Step31_ChoiceEngine.md](./Step31_ChoiceEngine.md). | July 22, 2026 |
   | 0.35.2 | Noted that `traits_to_add`/`traits_to_remove` on this effect row now also move the recipient's stats, not just the trait list. The formula itself is documented in [Step23 §6.4](./Step23_CharacterStatsInitialization.md#64-trait-stat-deltas-apply-on-grant-not-only-at-creation-v0352). | August 22, 2026 |
+  | 0.35.3 | `list_events.coin_cost` renamed `cost_coin`, plus new `cost_food`/`cost_magic`: the check procedure gains `NOT_ENOUGH_FOOD`/`NOT_ENOUGH_MAGIC` after `NOT_ENOUGH_COINS` (§1, §2), and payment (§3) now covers all four resources for the head of a chain only. Full writeup in [Step35 §12](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353). | August 23, 2026 |
+  | 0.35.3 | Same version, continued: new Robot suite `resource_costs.robot` (9 tests, §7) covers this event cost round trip end to end; two `events.robot` id-selector predicates fixed after the `coinCost` → `costCoin` rename. Full detail in [Step35 §12.f-g](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353). | August 24, 2026 |
 
 
-- **Last Updated**: August 22, 2026
+- **Last Updated**: August 24, 2026
 - **Status**: Complete
 
 # < Paths Games />

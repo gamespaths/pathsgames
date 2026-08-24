@@ -76,7 +76,7 @@ class InventoryControllerTest {
     /** The use-item payload: an execute-event result with no owning event. */
     private static EventExecutionResult usageResult() {
         return new EventExecutionResult("m1", null, null, "APPLIED", card(), List.of(),
-                0, 0, 17, 8, 5, false, false, false, false, false, false, false, false, false, true,
+                0, 0, 0, 0, 17, 8, 4, 6, 5, false, false, false, false, false, false, false, false, false, true,
                 List.of(new StatChange("char-1", "life", 30, 33, 3)),
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
                 EdgeStateOutcome.none(), List.of());

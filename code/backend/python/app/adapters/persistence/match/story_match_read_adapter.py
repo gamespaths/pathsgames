@@ -141,7 +141,9 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "type": r.type,
                     "id_card": r.id_card,
                     "cost_enery": r.cost_enery or 0,
-                    "coin_cost": r.coin_cost or 0,
+                    "cost_coin": r.cost_coin or 0,
+                    "cost_food": r.cost_food or 0,
+                    "cost_magic": r.cost_magic or 0,
                     "flag_end_time": r.flag_end_time or 0,
                     "id_event_next": r.id_event_next,
                     # conditions (AND)

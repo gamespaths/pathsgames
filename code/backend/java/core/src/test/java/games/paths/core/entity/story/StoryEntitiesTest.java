@@ -533,7 +533,7 @@ class StoryEntitiesTest {
                 () -> assertEquals("NORMAL", e.getType()),
                 () -> assertEquals(0, e.getCostEnery()),
                 () -> assertEquals(0, e.getFlagEndTime()),
-                () -> assertEquals(0, e.getCoinCost())
+                () -> assertEquals(0, e.getCostCoin())
             );
         }
 
@@ -544,13 +544,13 @@ class StoryEntitiesTest {
             e.setType("BATTLE");
             e.setCostEnery(5);
             e.setFlagEndTime(1);
-            e.setCoinCost(10);
+            e.setCostCoin(10);
             e.onCreate();
             assertAll(
                 () -> assertEquals("BATTLE", e.getType()),
                 () -> assertEquals(5, e.getCostEnery()),
                 () -> assertEquals(1, e.getFlagEndTime()),
-                () -> assertEquals(10, e.getCoinCost())
+                () -> assertEquals(10, e.getCostCoin())
             );
         }
 
@@ -566,7 +566,7 @@ class StoryEntitiesTest {
             e.setType("ONCE");
             e.setCostEnery(5);
             e.setFlagEndTime(1);
-            e.setCoinCost(10);
+            e.setCostCoin(10);
             e.setIdItemToAdd(6);
             e.setIdWeather(7);
             e.setIdEventNext(8);
@@ -582,7 +582,7 @@ class StoryEntitiesTest {
                 () -> assertEquals("ONCE", e.getType()),
                 () -> assertEquals(5, e.getCostEnery()),
                 () -> assertEquals(1, e.getFlagEndTime()),
-                () -> assertEquals(10, e.getCoinCost()),
+                () -> assertEquals(10, e.getCostCoin()),
                 () -> assertEquals(6, e.getIdItemToAdd()),
                 () -> assertEquals(7, e.getIdWeather()),
                 () -> assertEquals(8, e.getIdEventNext()),

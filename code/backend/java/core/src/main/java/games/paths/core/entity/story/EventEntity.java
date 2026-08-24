@@ -52,8 +52,17 @@ public class EventEntity extends BaseStoryScopedEntity {
     @Column(name = "id_event_next")
     private Integer idEventNext;
 
-    @Column(name = "coin_cost")
-    private Integer coinCost;
+    /** Coins the player pays to execute (v0.35.3: was {@code coin_cost}). */
+    @Column(name = "cost_coin")
+    private Integer costCoin;
+
+    /** Food the player pays to execute. Automatic events never pay. */
+    @Column(name = "cost_food")
+    private Integer costFood;
+
+    /** Magic the player pays to execute. Automatic events never pay. */
+    @Column(name = "cost_magic")
+    private Integer costMagic;
 
     /** CONDITION: registry key that must currently hold {@link #registryValueCondition}. */
     @Column(name = "registry_key_condition")
@@ -76,7 +85,9 @@ public class EventEntity extends BaseStoryScopedEntity {
         if (type == null) type = "NORMAL";
         if (costEnery == null) costEnery = 0;
         if (flagEndTime == null) flagEndTime = 0;
-        if (coinCost == null) coinCost = 0;
+        if (costCoin == null) costCoin = 0;
+        if (costFood == null) costFood = 0;
+        if (costMagic == null) costMagic = 0;
     }
 
     // === Getters & Setters ===
@@ -106,8 +117,14 @@ public class EventEntity extends BaseStoryScopedEntity {
     public Integer getIdEventNext() { return idEventNext; }
     public void setIdEventNext(Integer idEventNext) { this.idEventNext = idEventNext; }
 
-    public Integer getCoinCost() { return coinCost; }
-    public void setCoinCost(Integer coinCost) { this.coinCost = coinCost; }
+    public Integer getCostCoin() { return costCoin; }
+    public void setCostCoin(Integer costCoin) { this.costCoin = costCoin; }
+
+    public Integer getCostFood() { return costFood; }
+    public void setCostFood(Integer costFood) { this.costFood = costFood; }
+
+    public Integer getCostMagic() { return costMagic; }
+    public void setCostMagic(Integer costMagic) { this.costMagic = costMagic; }
 
     public String getRegistryKeyCondition() { return registryKeyCondition; }
     public void setRegistryKeyCondition(String registryKeyCondition) { this.registryKeyCondition = registryKeyCondition; }

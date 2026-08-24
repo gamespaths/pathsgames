@@ -98,8 +98,13 @@ public interface EventExecutionPort {
                                 List<String> executedEventUuids,
                                 int energySpent,
                                 int coinSpent,
+                                /** v0.35.3 — food and magic paid to open this event. */
+                                int foodSpent,
+                                int magicSpent,
                                 int newEnergy,
                                 int newCoin,
+                                int newFood,
+                                int newMagic,
                                 int currentClock,
                                 /** Always false in v0.29.0 — see the type javadoc. */
                                 boolean turnConsumed,
@@ -287,6 +292,10 @@ public interface EventExecutionPort {
             WRONG_LOCATION,
             NOT_ENOUGH_ENERGY,
             NOT_ENOUGH_COINS,
+            /** v0.35.3 — the actor cannot pay {@code list_events.cost_food}. */
+            NOT_ENOUGH_FOOD,
+            /** v0.35.3 — the actor cannot pay {@code list_events.cost_magic}. */
+            NOT_ENOUGH_MAGIC,
             REGISTRY_CONDITION_NOT_MET,
             WEATHER_CONDITION_NOT_MET,
             ITEM_CONDITION_NOT_MET,

@@ -725,7 +725,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     : itemsView ? (
       <ItemsCard variant="page" story={story} onClose={closeItemsView}
         count={playerStats?.items?.length ?? 0}
-        weight={playerStats?.weight} weightMax={playerStats?.weightMax} />
+        weight={playerStats?.weight} weightMax={playerStats?.weightMax}
+        food={playerStats?.food} magic={playerStats?.magic} coins={playerStats?.coins} />
     )
     : mapView ? (
       // Step 0.28.5 — the world map takes over the left page; its back arrow
@@ -832,7 +833,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
           <MapCard onOpen={() => {setMapView(true);scrollMobileIntoView('.book-mobile-left')}} />
           <ItemsCard onOpen={openItemsView}
             count={playerStats?.items?.length ?? 0}
-            weight={playerStats?.weight} weightMax={playerStats?.weightMax} />
+            weight={playerStats?.weight} weightMax={playerStats?.weightMax}
+            food={playerStats?.food} magic={playerStats?.magic} coins={playerStats?.coins} />
           <PlayerCards storyFull={storyFull} story={story} playerStats={playerStats}
             gameData={gameData} onPreview={handleSelectionPreviewFull} previewSide="right"
             onPreviewMatchLog={() => setPreviewRight({ kind: 'matchlog' })} />
@@ -846,9 +848,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
             infoLabelClassName="font-size-medium display-none"
             actionLabel={''}    actionIcon= 'fa-bed m-1'   onAction={() => {setSleepCardFromInfoCard();}} 
             actionsList={[{ label: '', icon: 'fa-map m-1', onAction: () => { setMapView(true);scrollMobileIntoView('.book-mobile-left')} },              
-              { label: '', icon: 'fa-clipboard-list m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
-              { label: '', icon: 'fa-list m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
-              { label: '', icon: 'fa-flask m-1', onAction: () => { openItemsView() } },
+              { label: '', icon: 'fa-clipboard-list m-1', onAction: () => { alert('Missions and registry coming soon!') } },
+              { label: '', icon: 'fa-list m-1', onAction: () => { alert('Missions and registry coming soon!') } },
+              { label: '', icon: 'fa-suitcase m-1', onAction: () => { openItemsView() } },
               //NEVER REMOVE THIS COMMENTS!
               //{ label: '', icon: 'fa-people-arrows m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
             ]}

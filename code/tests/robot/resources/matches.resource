@@ -347,6 +347,26 @@ Admin Get Match Info
     ...    expected_status=${expected_status}
     RETURN    ${response}
 
+Admin Change Statistics
+    [Documentation]    POST /api/admin/matches/{uuidMatch}/player/{uuidPlayer}/changeStatistics —
+    ...                overrides a character's current statistics. Every field left at -1 (the
+    ...                default) is untouched, which is how a scenario is set up without having
+    ...                to reach the state by playing towards it.
+    ...
+    ...                The -1 defaults are INTEGERS on purpose (`${-1}`, not `-1`): Robot would
+    ...                otherwise put the string "-1" in the JSON body, and while Java and Python
+    ...                coerce it back to a number, the AWS handler compares it to the integer -1,
+    ...                fails, and SETS the statistic to -1 instead of leaving it alone.
+    [Arguments]    ${token}    ${match_uuid}    ${player_uuid}    ${expected_status}=any
+    ...    ${food}=${-1}    ${magic}=${-1}    ${coin}=${-1}    ${energy}=${-1}
+    ${headers}=    Get Auth Headers    ${token}
+    &{body}=    Create Dictionary    food=${food}    magic=${magic}    coin=${coin}    energy=${energy}
+    ${response}=    POST On Session    admin_session
+    ...    /api/admin/matches/${match_uuid}/player/${player_uuid}/changeStatistics
+    ...    headers=${headers}    json=${body}
+    ...    expected_status=${expected_status}
+    RETURN    ${response}
+
 Admin Stop Match
     [Documentation]    POST /api/admin/matches/{uuidMatch}/stop — sets status to ENDED.
     [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any

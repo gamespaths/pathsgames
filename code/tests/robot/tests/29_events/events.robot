@@ -452,14 +452,14 @@ Find Event
 Event Uuid By Type
     [Arguments]    ${type}
     ${uuid}=    Find Event
-    ...    e.get('type') == '${type}' and e.get('idSpecificLocation') and e.get('costEnery') == 0 and e.get('coinCost') == 0 and not e.get('idEventNext') and not e.get('idWeather') and not e.get('registryKeyCondition') and not e.get('idItemCondition') and not e.get('idClassCondition') and e.get('flagEndTime') == 0
+    ...    e.get('type') == '${type}' and e.get('idSpecificLocation') and e.get('costEnery') == 0 and e.get('costCoin') == 0 and not e.get('costFood') and not e.get('costMagic') and not e.get('idEventNext') and not e.get('idWeather') and not e.get('registryKeyCondition') and not e.get('idItemCondition') and not e.get('idClassCondition') and e.get('flagEndTime') == 0
     RETURN    ${uuid}
 
 Event Uuid By Cost
     [Documentation]    A plain NORMAL event with the given energy cost and no condition.
     [Arguments]    ${energy}
     ${uuid}=    Find Event
-    ...    e.get('type') == 'NORMAL' and e.get('costEnery') == ${energy} and e.get('coinCost') == 0 and e.get('idSpecificLocation') and not e.get('idEventNext') and not e.get('idWeather') and not e.get('registryKeyCondition') and not e.get('idItemCondition') and not e.get('idClassCondition') and e.get('flagEndTime') == 0
+    ...    e.get('type') == 'NORMAL' and e.get('costEnery') == ${energy} and e.get('costCoin') == 0 and not e.get('costFood') and not e.get('costMagic') and e.get('idSpecificLocation') and not e.get('idEventNext') and not e.get('idWeather') and not e.get('registryKeyCondition') and not e.get('idItemCondition') and not e.get('idClassCondition') and e.get('flagEndTime') == 0
     RETURN    ${uuid}
 
 Event Uuid By Reason

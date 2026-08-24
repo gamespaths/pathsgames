@@ -144,6 +144,30 @@ def test_change_statistics_updates_character(mock_get, mock_put, _jwt):
        return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
 @patch('match.handler.db_utils.put_item', return_value=True)
 @patch('match.handler.db_utils.get_item')
+def test_change_statistics_skips_minus_one_whatever_type_it_arrives_as(mock_get, mock_put, _jwt):
+    """-1 means "leave this alone". This handler reads raw JSON, so a client sending the
+    string "-1" — which Java and Python coerce back to a number through their typed models
+    — used to SET the statistic to -1 here, and a character with energy -1 can afford
+    nothing at all."""
+    mock_get.side_effect = _admin_side_with_char()
+    result = _call(_admin_event(
+        'POST',
+        '/api/admin/matches/m1/player/char-uuid-1/changeStatistics',
+        path_params={'uuidMatch': 'm1', 'uuidPlayer': 'char-uuid-1'},
+        body={'energy': '-1', 'life': -1, 'food': 7}
+    ))
+
+    assert result['statusCode'] == 200
+    updated = mock_put.call_args[0][0]
+    assert updated['energy'] != -1
+    assert updated['life'] != -1
+    assert updated['food'] == 7
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
+@patch('match.handler.db_utils.put_item', return_value=True)
+@patch('match.handler.db_utils.get_item')
 def test_change_statistics_caps_energy_at_max(mock_get, mock_put, _jwt):
     mock_get.side_effect = _admin_side_with_char()
     result = _call(_admin_event(

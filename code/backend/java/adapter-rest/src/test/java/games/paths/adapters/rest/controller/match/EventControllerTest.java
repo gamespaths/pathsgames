@@ -52,7 +52,7 @@ class EventControllerTest {
         return new EventExecutionResult(
                 "m1", "evt-1", "ONCE", "APPLIED", card("The Stranger"),
                 List.of("evt-1", "evt-2"),
-                3, 2, 17, 8, 5,
+                3, 2, 1, 0, 17, 8, 4, 6, 5,
                 false, true, true, false, true, true, true, false, true, true,
                 List.of(new StatChange("char-1", "life", 30, 25, -5)),
                 List.of(new RegistryChange("GATE", null, "OPEN")),
@@ -112,7 +112,7 @@ class EventControllerTest {
         EventExecutionResult pending = new EventExecutionResult(
                 "m1", "evt-1", "NORMAL", "CHOICES_PENDING", card("The Crossroads"),
                 List.of("evt-1"),
-                1, 0, 19, 8, 5,
+                1, 0, 0, 0, 19, 8, 4, 6, 5,
                 false, false, false, false, false, false, false, false, false, false,
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
                 List.of(),

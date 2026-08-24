@@ -10,13 +10,49 @@ from app.core.services.match.movement_availability import MoveCheckContext, Move
 
 
 def ctx(match_running=True, has_character=True, coma=False, sleeping=False,
-        energy=100, carried_weight=0, weight_max=50) -> MoveCheckContext:
+        energy=100, carried_weight=0, weight_max=50,
+        food=10, magic=10, coin=10) -> MoveCheckContext:
     return MoveCheckContext(match_running, has_character, coma, sleeping,
-                            energy, carried_weight, weight_max)
+                            energy, carried_weight, weight_max, food, magic, coin)
 
 
-def edge(condition_met=True, total=10, max_characters=0, at_target=0) -> MoveEdgeCheck:
-    return MoveEdgeCheck(condition_met, total, max_characters, at_target)
+def edge(condition_met=True, total=10, max_characters=0, at_target=0,
+         cost_food=0, cost_magic=0, cost_coin=0) -> MoveEdgeCheck:
+    return MoveEdgeCheck(condition_met, total, max_characters, at_target,
+                         cost_food, cost_magic, cost_coin)
+
+
+def test_not_enough_coins_for_the_edge():
+    """v0.35.3 — the edge has a toll and the mover cannot pay it."""
+    verdict = movement_availability.check(ctx(coin=1), edge(cost_coin=2))
+    assert verdict.reason == MovementError.NOT_ENOUGH_COINS
+
+
+def test_not_enough_food_for_the_edge():
+    verdict = movement_availability.check(ctx(food=1), edge(cost_food=2))
+    assert verdict.reason == MovementError.NOT_ENOUGH_FOOD
+
+
+def test_not_enough_magic_for_the_edge():
+    verdict = movement_availability.check(ctx(magic=1), edge(cost_magic=2))
+    assert verdict.reason == MovementError.NOT_ENOUGH_MAGIC
+
+
+def test_an_edge_costing_exactly_what_is_held_is_traversable():
+    verdict = movement_availability.check(ctx(food=2, magic=3, coin=4),
+                                          edge(cost_food=2, cost_magic=3, cost_coin=4))
+    assert verdict.available
+
+
+def test_energy_is_judged_before_the_resources_capacity_after_them():
+    broke = ctx(energy=1, food=0, magic=0, coin=0)
+    full = edge(total=10, max_characters=1, at_target=5,
+                cost_food=1, cost_magic=1, cost_coin=1)
+    assert movement_availability.check(broke, full).reason == MovementError.INSUFFICIENT_ENERGY
+
+    # The destination is full too, but a mover who cannot pay the road hears about the road.
+    rested = ctx(energy=100, food=0, magic=0, coin=0)
+    assert movement_availability.check(rested, full).reason == MovementError.NOT_ENOUGH_COINS
 
 
 def test_available_has_no_reason():

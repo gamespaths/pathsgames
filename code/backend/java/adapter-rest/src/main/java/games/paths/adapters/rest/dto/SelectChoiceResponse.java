@@ -11,8 +11,9 @@ import games.paths.core.port.match.EventExecutionPort.ChoiceResolutionResult;
  * with one code path and the two can never drift. Only the trigger differs, and that is what
  * the fields below describe.</p>
  *
- * <p>{@code energySpent} and {@code coinSpent} are always {@code 0} here: the cost was paid
- * when the event was opened (Step 31), and resolving is what that payment bought.</p>
+ * <p>The four {@code *Spent} fields are always {@code 0} here: the cost was paid when the
+ * event was opened (Step 31), and resolving is what that payment bought. v0.35.3 added food
+ * and magic to that list — an option of its own still costs nothing.</p>
  *
  * <p>{@code narrative} is the option's narrative text, withheld by Step 31 — returning it with
  * the options would have leaked the consequence of a choice not yet made — and revealed now
@@ -60,8 +61,12 @@ public class SelectChoiceResponse extends ExecuteEventResponse {
         setExecutedEventUuids(s.getExecutedEventUuids());
         setEnergySpent(s.getEnergySpent());
         setCoinSpent(s.getCoinSpent());
+        setFoodSpent(s.getFoodSpent());
+        setMagicSpent(s.getMagicSpent());
         setNewEnergy(s.getNewEnergy());
         setNewCoin(s.getNewCoin());
+        setNewFood(s.getNewFood());
+        setNewMagic(s.getNewMagic());
         setCurrentClock(s.getCurrentClock());
         setTurnConsumed(s.isTurnConsumed());
         setTimeEnded(s.isTimeEnded());

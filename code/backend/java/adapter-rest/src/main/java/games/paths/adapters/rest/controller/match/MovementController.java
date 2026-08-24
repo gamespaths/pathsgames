@@ -87,7 +87,8 @@ public class MovementController {
         return switch (code) {
             case MATCH_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case MATCH_NOT_RUNNING, CHARACTER_CANNOT_ACT, SLEEPING, COMA, NOT_A_NEIGHBOR,
-                 MOVEMENT_CONDITION_NOT_MET, OVERWEIGHT, INSUFFICIENT_ENERGY, LOCATION_FULL ->
+                 MOVEMENT_CONDITION_NOT_MET, OVERWEIGHT, INSUFFICIENT_ENERGY,
+                 NOT_ENOUGH_COINS, NOT_ENOUGH_FOOD, NOT_ENOUGH_MAGIC, LOCATION_FULL ->
                     HttpStatus.CONFLICT;
         };
     }

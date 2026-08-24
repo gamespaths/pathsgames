@@ -128,6 +128,9 @@ def build_context(match, story, caller):
         "coma": bool(caller) and _nz(caller.get("isComa")) == 1,
         "energy": _nz(caller.get("energy")) if caller else 0,
         "coin": _nz(caller.get("coin")) if caller else 0,
+        # v0.35.3 — read for the costFood / costMagic checks.
+        "food": _nz(caller.get("food")) if caller else 0,
+        "magic": _nz(caller.get("magic")) if caller else 0,
         "idClass": class_id,
         "ownedItemIds": {_nz(i.get("idItem")) for i in ((caller or {}).get("items") or [])
                          if _nz(i.get("amount")) > 0},
@@ -148,6 +151,19 @@ def consumed_event_ids(match):
         if e.get("idEvent") is not None
         and str(e.get("message") or "").startswith(MSG_EVENT_EXECUTED)
     }
+
+
+def event_cost_coin(event):
+    """v0.35.3 — costCoin is the name; coinCost is what a story stored before the rename.
+
+    DynamoDB has no migration, so a match created before today carries the old key inside
+    its stored story. Reading both is the difference between an event keeping its price and
+    silently becoming free.
+    """
+    if not event:
+        return 0
+    value = event.get("costCoin")
+    return value if value is not None else event.get("coinCost")
 
 
 def check(event, ctx):
@@ -183,8 +199,14 @@ def check(event, ctx):
 
     if ctx.get("energy", 0) < _nz(event.get("costEnery")):
         return False, "NOT_ENOUGH_ENERGY"
-    if ctx.get("coin", 0) < _nz(event.get("coinCost")):
+    if ctx.get("coin", 0) < _nz(event_cost_coin(event)):
         return False, "NOT_ENOUGH_COINS"
+    # v0.35.3 — the three costs are read in the order they were added to the contract; an
+    # event asking for two resources at once names the first one it cannot pay.
+    if ctx.get("food", 0) < _nz(event.get("costFood")):
+        return False, "NOT_ENOUGH_FOOD"
+    if ctx.get("magic", 0) < _nz(event.get("costMagic")):
+        return False, "NOT_ENOUGH_MAGIC"
 
     key = event.get("registryKeyCondition")
     if key and str(key).strip():

@@ -141,7 +141,7 @@ def test_find_backpack_reads_the_row(session_factory, adapter):
 
 def _seed_event(session_factory, **overrides):
     fields = dict(id=50, id_story=9001, uuid="ev-uuid", type="NORMAL", id_card=1,
-                  cost_enery=2, coin_cost=3, flag_end_time=1, id_event_next=51,
+                  cost_enery=2, cost_coin=3, flag_end_time=1, id_event_next=51,
                   id_specific_location=100, id_weather=42,
                   registry_key_condition="k", registry_value_condition="v",
                   id_item_condition=60, id_class_condition=5)
@@ -158,7 +158,7 @@ def test_find_event_by_story_and_uuid(session_factory, adapter):
     assert e["id"] == 50
     assert e["type"] == "NORMAL"
     assert e["cost_enery"] == 2
-    assert e["coin_cost"] == 3
+    assert e["cost_coin"] == 3
     assert e["flag_end_time"] == 1
     assert e["id_event_next"] == 51
     assert e["id_class_condition"] == 5

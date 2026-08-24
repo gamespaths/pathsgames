@@ -55,7 +55,10 @@ This is a functional specification document. Technical implementation details (d
   - Resources: Food quantity, Magic quantity, Coins quantity (minimum 0)
   - List of consumable items with weight
   - Maximum carrying capacity = Constitution + difficulty parameter + default_backpack_capacity
-  - Total weight = Food + Magic + Sum(item weights). Note: coins have no weight
+  - Total weight = Sum(item weight × amount). Food, Magic and Coins never weigh — only items do.
+    (Corrected v0.35.3; the implemented formula is documented in
+    [Step34_InventoryAndResources.md §7](./Step34_InventoryAndResources.md#7-carried-weight-and-movement-step-35),
+    the source of truth.)
   - Cannot move if weight exceeds maximum capacity
 - Characteristic changes only through events, not player choice
 

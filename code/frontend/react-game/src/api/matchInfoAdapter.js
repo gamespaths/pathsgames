@@ -186,6 +186,12 @@ export function matchInfoToGameData(info, story = null,t) {
       awesomeIcon: displayCard?.awesomeIcon ?? 'fas fa-location-arrow',
       direction: travelDirection,
       energyCost: n.energyCost ?? null,
+      // v0.35.3 — the EDGE's resource price. Unlike energy, which sums edge + destination
+      // entry + weather and is served pre-summed by /locations, these have a single source:
+      // what is written here is exactly what the move will take.
+      costFood: n.costFood ?? 0,
+      costMagic: n.costMagic ?? 0,
+      costCoin: n.costCoin ?? 0,
       card: displayCard ?? null,
       // The backend's own move verdict: `available` is what action/move would answer, and
       // `reason` the code it would refuse with (COMA, SLEEPING, INSUFFICIENT_ENERGY, …).
@@ -225,6 +231,11 @@ export function matchInfoToGameData(info, story = null,t) {
     available: e.available === true,
     reason: e.reason ?? null,
     energy: e?.energy ?? 0,
+    // v0.35.3 — an event can cost coins, food and magic on top of energy. Absent on an
+    // older backend, where 0 reads as "this action asks for nothing".
+    coin: e?.coin ?? 0,
+    food: e?.food ?? 0,
+    magic: e?.magic ?? 0,
   }))
   const actions = [...leanActions, ...eventActions]
 

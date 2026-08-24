@@ -315,7 +315,13 @@ public class StoryImportService implements StoryImportPort {
             e.setType(getString(item, "type"));
             e.setCostEnery(getInteger(item, "costEnery"));
             e.setFlagEndTime(getInteger(item, "flagEndTime"));
-            e.setCoinCost(getInteger(item, "coinCost"));
+            // v0.35.3 — costCoin is the name; coinCost is what every story exported before
+            // today carries. Reading both is the difference between an old export keeping
+            // its prices and losing them without a word.
+            Integer costCoin = getInteger(item, "costCoin");
+            e.setCostCoin(costCoin != null ? costCoin : getInteger(item, "coinCost"));
+            e.setCostFood(getInteger(item, "costFood"));
+            e.setCostMagic(getInteger(item, "costMagic"));
             // v0.29.0: these four were authored in the JSON but never persisted, so every
             // imported story had location-less events and no chains.
             e.setIdSpecificLocation(getInteger(item, "idSpecificLocation"));
@@ -597,6 +603,9 @@ public class StoryImportService implements StoryImportPort {
             e.setConditionRegistryKey(getString(item, "conditionRegistryKey"));
             e.setConditionRegistryValue(getString(item, "conditionRegistryValue"));
             e.setEnergyCost(getInteger(item, "energyCost"));
+            e.setCostFood(getInteger(item, "costFood"));
+            e.setCostMagic(getInteger(item, "costMagic"));
+            e.setCostCoin(getInteger(item, "costCoin"));
             e.setIdTextGo(getInteger(item, "idTextGo"));
             e.setIdTextBack(getInteger(item, "idTextBack"));
             e.setIdCard(getInteger(item, "idCard"));

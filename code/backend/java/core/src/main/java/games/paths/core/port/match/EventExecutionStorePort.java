@@ -185,13 +185,29 @@ public interface EventExecutionStorePort {
      * Append a {@code log_movements} row. Forced movement writes it with cost 0, so the
      * Step 28.7 timeline and the Step 28.6 visited set stay truthful.
      */
-    void insertMovementLog(long idMatch, long idCharacter, Long fromLocation, long toLocation, int energyCost);
+    void insertMovementLog(long idMatch, long idCharacter, Long fromLocation, long toLocation,
+                           int energyCost, int foodCost, int magicCost, int coinCost);
 
     /**
      * Append the {@code log_events} row of an executed event. The message MUST start with
      * {@link #MSG_EVENT_EXECUTED} — see that constant.
      */
-    void logEventExecuted(long idMatch, Long idCharacter, long idEvent, int clock, String message);
+    void logEventExecuted(long idMatch, Long idCharacter, long idEvent, int clock, String message,
+                          SpentResources spent);
+
+    /**
+     * v0.35.3 — what the actor actually paid, persisted on the {@code log_events} row.
+     * {@link #none()} on every row the engine writes for itself: a chained event, an
+     * automatic one and a resolution marker are not things the player asked and paid for.
+     */
+    record SpentResources(int energy, int food, int magic, int coin) {
+
+        private static final SpentResources NONE = new SpentResources(0, 0, 0, 0);
+
+        public static SpentResources none() {
+            return NONE;
+        }
+    }
 
     // ── choices (Step 31) ───────────────────────────────────────────────────
 
@@ -321,15 +337,28 @@ public interface EventExecutionStorePort {
                              boolean coma,
                              int energy,
                              int coin,
+                             /** v0.35.3 — read for the cost_food / cost_magic checks. */
+                             int food,
+                             int magic,
                              Long idClass,
                              Set<Long> ownedItemIds,
                              Long currentWeatherId,
                              Set<Long> consumedEventIds,
                              Map<String, String> registry) {
 
+        /** Pre-v0.35.3 shape: a character whose backpack holds no food and no magic. */
+        @SuppressWarnings("java:S107")
+        public EventCheckContext(Long idCharacter, Long idLocation, boolean sleeping, boolean coma,
+                                 int energy, int coin, Long idClass, Set<Long> ownedItemIds,
+                                 Long currentWeatherId, Set<Long> consumedEventIds,
+                                 Map<String, String> registry) {
+            this(idCharacter, idLocation, sleeping, coma, energy, coin, 0, 0, idClass,
+                    ownedItemIds, currentWeatherId, consumedEventIds, registry);
+        }
+
         /** The context of a caller with no character: nothing is ever executable. */
         public static EventCheckContext noCharacter() {
-            return new EventCheckContext(null, null, false, false, 0, 0, null,
+            return new EventCheckContext(null, null, false, false, 0, 0, 0, 0, null,
                     Set.of(), null, new java.util.HashSet<>(), new java.util.HashMap<>());
         }
     }

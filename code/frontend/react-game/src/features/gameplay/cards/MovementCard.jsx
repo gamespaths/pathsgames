@@ -81,7 +81,16 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
     } 
   }
 
-  const costItems = [{ key: 'energy', value: '' + cost, label: t('game.movement.cost') }]
+  // v0.35.3 — a path can also charge coins, food and magic. The energy above is the
+  // weather-resolved TOTAL (edge + destination entry + weather); these three come from the
+  // edge alone, so they are reported as authored. Listed in the order the check procedure
+  // reads them, and BonusBadgeList drops whatever sits at zero: a free path shows nothing.
+  const costItems = [
+    { key: 'energy', value: '' + cost, label: t('game.movement.cost') },
+    { key: 'coins',  value: '' + (location?.costCoin  ?? 0), label: t('game.stats.coins') },
+    { key: 'food',   value: '' + (location?.costFood  ?? 0), label: t('game.stats.food') },
+    { key: 'magic',  value: '' + (location?.costMagic ?? 0), label: t('game.stats.magic') },
+  ]
   const costBadge = (
     <BonusBadgeList items={costItems.map(item => ({ ...item, label: null }))} 
       className="player-stats-bar bonus-badge-list m-1 display-flex flex-direction-column" />

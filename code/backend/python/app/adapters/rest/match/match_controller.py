@@ -161,6 +161,10 @@ def _location_info_to_camel(l):
                 "direction": n.direction,
                 "flagBack": n.flag_back,
                 "energyCost": n.energy_cost,
+                # v0.35.3 — the edge's resource price; edge-only, so no breakdown.
+                "costFood": n.cost_food,
+                "costMagic": n.cost_magic,
+                "costCoin": n.cost_coin,
                 "card": n.card,
                 "secureParam": n.secure_param,
                 "idLocationFrom": n.id_location_from,
@@ -176,7 +180,9 @@ def _location_info_to_camel(l):
         ],
         "events": [
             {"uuid": e.uuid, "type": e.type, "endGame": e.end_game, "card": e.card,
-             "available": e.available, "reason": e.reason, "energy": e.energy}
+             "available": e.available, "reason": e.reason, "energy": e.energy,
+             # v0.35.3 — the price beyond energy, so the board can render it up front.
+             "coin": e.coin, "food": e.food, "magic": e.magic}
             for e in l.events
         ],
     }

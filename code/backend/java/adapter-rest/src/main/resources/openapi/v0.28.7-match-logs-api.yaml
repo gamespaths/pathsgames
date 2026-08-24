@@ -234,7 +234,19 @@ components:
         energyCost:
           type: integer
           nullable: true
-          description: "(MOVEMENT only) Total energy cost paid for the move"
+          description: "(MOVEMENT, EVENT) Energy paid: the move total, or v0.35.3 the price of opening the event"
+        foodCost:
+          type: integer
+          nullable: true
+          description: "v0.35.3 — (MOVEMENT, EVENT) food paid; 0 when the action was free"
+        magicCost:
+          type: integer
+          nullable: true
+          description: "v0.35.3 — (MOVEMENT, EVENT) magic paid; 0 when the action was free"
+        coinCost:
+          type: integer
+          nullable: true
+          description: "v0.35.3 — (MOVEMENT, EVENT) coins paid; 0 when the action was free"
         message:
           type: string
           nullable: true

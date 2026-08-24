@@ -18,6 +18,7 @@ import { buildItemsCard } from '@/utils/loadoutCards'
  */
 export default function ItemsCard({
   onOpen, onClose, variant = 'little', count = 0, weight, weightMax, story = null,
+  food = 0, magic = 0, coins = 0,
 }) {
   const { t } = useTranslation()
   const card = buildItemsCard(t)
@@ -25,7 +26,16 @@ export default function ItemsCard({
   // description, where they read as prose and could not line up with the item rows on the
   // facing page; now they are the same BonusBadgeList an ItemCard carries, so the bag and
   // the things in it are measured in the same alphabet.
+  //
+  // v0.35.3 — food, magic and coins ride here too. They live in the backpack and, since
+  // this version, they are spent from it: an event or a road can now ask for them, and a
+  // player about to be refused for want of two rations should be able to see the two
+  // rations they do not have. They weigh nothing, which is why they sit beside the
+  // capacity gauge rather than inside it.
   const figures = [/*{ key: 'amount', value: `${count}`, label: t('game.items.count') }*/]
+  figures.push({ key: 'food',  value: `${food ?? 0}`,  label: t('game.stats.food') })
+  figures.push({ key: 'magic', value: `${magic ?? 0}`, label: t('game.stats.magic') })
+  figures.push({ key: 'coins', value: `${coins ?? 0}`, label: t('game.stats.coins') })
   if (weightMax) {
     figures.push({ key: 'weight', value: `${weight ?? 0}/${weightMax}`,
                    label: t('game.items.capacity') })

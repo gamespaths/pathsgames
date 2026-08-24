@@ -326,7 +326,8 @@ def _judge_neighbor(judge, edge, target):
         condition_met,
         total_cost,
         target.get('maxCharacters'),
-        (judge.get('countsByLocation') or {}).get(target.get('id'), 0)))
+        (judge.get('countsByLocation') or {}).get(target.get('id'), 0),
+        edge.get('costFood'), edge.get('costMagic'), edge.get('costCoin')))
 
 
 from common.data_utils import resolve_card_from_raw as _resolve_card_from_raw
@@ -444,6 +445,10 @@ def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=No
                 "direction": n.get("direction"),
                 "flagBack": n.get("flagBack"),
                 "energyCost": n.get("energyCost"),
+                # v0.35.3 — the edge's resource price; edge-only, so no breakdown.
+                "costFood": _nz(n.get("costFood")),
+                "costMagic": _nz(n.get("costMagic")),
+                "costCoin": _nz(n.get("costCoin")),
                 "card": _resolve_card_from_raw(raw_cards, raw_texts, neighbor_card_id, lang),
                 "secureParam": other.get("secureParam") if other else None,
                 "idLocationFrom": n.get("idLocationFrom"),
@@ -470,6 +475,10 @@ def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=No
                 "reason": reason,
                 # The energy the event costs to trigger; 0 when it is free.
                 "energy": _nz(e.get("costEnery")),
+                # v0.35.3 — the price beyond energy, so the board renders it up front.
+                "coin": _nz(_events.event_cost_coin(e)),
+                "food": _nz(e.get("costFood")),
+                "magic": _nz(e.get("costMagic")),
             })
 
         result.append({
@@ -1143,7 +1152,20 @@ def _change_statistics(match_uuid, player_uuid, body):
         return _err(404, 'PLAYER_NOT_FOUND', f'Character not found: {player_uuid}')
 
     def _skip(v):
-        return None if (v is None or v == -1) else int(v)
+        """-1 means "leave this statistic alone", whatever type it arrives as.
+
+        Java and Python parse the body through a typed model, so a client sending the
+        string "-1" is coerced back to the number and skipped there. This handler reads
+        raw JSON: comparing "-1" to -1 fails, and the field would be SET to -1 — the same
+        request producing a different character on one backend than on the other two.
+        """
+        if v is None:
+            return None
+        try:
+            value = int(v)
+        except (TypeError, ValueError):
+            return None
+        return None if value == -1 else value
 
     dex    = _skip(body.get('dex'))
     intel  = _skip(body.get('intel'))
@@ -1808,6 +1830,11 @@ def _assemble_match_logs(match, match_uuid):
             "idLocationFrom": m.get('idLocationFrom'),
             "idLocationTo": m.get('idLocationTo'),
             "energyCost": m.get('energyCost'),
+            # v0.35.3 — a row written before today has no cost keys: default to 0 rather
+            # than letting a pre-existing match break the timeline.
+            "foodCost": _nz(m.get('foodCost')),
+            "magicCost": _nz(m.get('magicCost')),
+            "coinCost": _nz(m.get('coinCost')),
         })
 
     # Step 29 — EVENT from eventLog (an event the player triggered).
@@ -1840,6 +1867,12 @@ def _assemble_match_logs(match, match_uuid):
             "idLocationTo": e.get('idLocation'),
             "message": message,
             "idEvent": e.get('idEvent'),
+            # v0.35.3 — the price paid to open this event; a row written before today has
+            # no cost keys, and 0 is the honest reading of "nothing was recorded".
+            "energyCost": _nz(e.get('energyCost')),
+            "foodCost": _nz(e.get('foodCost')),
+            "magicCost": _nz(e.get('magicCost')),
+            "coinCost": _nz(e.get('coinCost')),
         })
 
     # SLEEP from sleepLog
@@ -2287,8 +2320,12 @@ def _start_movement(user, match_uuid, body):
         cond_value = edge.get('conditionValue') or edge.get('conditionRegistryValue')
         condition_met = _registry_value(match.get('registry'), cond_key) == cond_value
 
+    cost_food = _nz(edge.get('costFood'))
+    cost_magic = _nz(edge.get('costMagic'))
+    cost_coin = _nz(edge.get('costCoin'))
     available, reason = _movements.check(ctx, _movements.edge_check(
-        condition_met, total_cost, max_chars, characters_at_target))
+        condition_met, total_cost, max_chars, characters_at_target,
+        cost_food, cost_magic, cost_coin))
     if not available:
         # Energy is the one refusal worth explaining in prose: the player wants to know what
         # the trip would have cost, and why.
@@ -2304,9 +2341,17 @@ def _start_movement(user, match_uuid, body):
         return _err(409, reason, _MOVE_REASON_MESSAGES.get(reason, 'Movement refused'))
 
     new_energy = energy - total_cost
+    # v0.35.3 — the checker proved the mover can afford all four, so none goes below 0.
+    new_food = _nz(caller.get('food')) - cost_food
+    new_magic = _nz(caller.get('magic')) - cost_magic
+    new_coin = _nz(caller.get('coin')) - cost_coin
     caller['idLocation'] = target.get('id')
     caller['locationUuid'] = target.get('uuid')
     caller['energy'] = new_energy
+    if cost_food or cost_magic or cost_coin:
+        caller['food'] = new_food
+        caller['magic'] = new_magic
+        caller['coin'] = new_coin
     db_utils.put_item(caller)
 
     # Append a movement log entry on the match item (used to derive visited locations).
@@ -2316,6 +2361,10 @@ def _start_movement(user, match_uuid, body):
         "idLocationFrom": from_id,
         "idLocationTo": target.get('id'),
         "energyCost": total_cost,
+        # v0.35.3 — what the move took besides energy; 0 when it took nothing.
+        "foodCost": cost_food,
+        "magicCost": cost_magic,
+        "coinCost": cost_coin,
         "timestampStart": _ts_ms(),
     })
     match['movementLog'] = movement_log
@@ -2337,7 +2386,13 @@ def _start_movement(user, match_uuid, body):
         "toLocationId": target.get('id'),
         "toLocationUuid": target.get('uuid'),
         "energySpent": total_cost,
+        "foodSpent": cost_food,
+        "magicSpent": cost_magic,
+        "coinSpent": cost_coin,
         "newEnergy": new_energy,
+        "newFood": new_food,
+        "newMagic": new_magic,
+        "newCoin": new_coin,
         "currentClock": _nz(match.get('currentClock')),
         # What the destination did about the arrival. The board already has the new
         # location for its left page; these belong on the right.
@@ -2465,11 +2520,23 @@ def _execute_event(user, match_uuid, body, lang='en'):
 
     # ── pay, once, for the event the player asked for ──
     energy_spent = _events._nz(event.get('costEnery'))
-    coin_spent = _events._nz(event.get('coinCost'))
+    coin_spent = _events._nz(_events.event_cost_coin(event))
+    # v0.35.3 — food and magic are costs too. The check procedure already proved the actor
+    # can afford them, so none of the four can go below zero.
+    food_spent = _events._nz(event.get('costFood'))
+    magic_spent = _events._nz(event.get('costMagic'))
     if energy_spent:
         caller['energy'] = max(0, _nz(caller.get('energy')) - energy_spent)
     if coin_spent:
         caller['coin'] = max(0, _nz(caller.get('coin')) - coin_spent)
+    if food_spent:
+        caller['food'] = max(0, _nz(caller.get('food')) - food_spent)
+    if magic_spent:
+        caller['magic'] = max(0, _nz(caller.get('magic')) - magic_spent)
+    # v0.35.3 — the id of the event the player actually paid for, and a one-shot latch, so
+    # the price lands on exactly one row of the chain.
+    head_event_id = _events._nz(event.get('id'))
+    costs_logged = [False]
 
     stat_changes, registry_changes = [], []
     trait_changes, item_changes, characteristic_changes = [], [], []
@@ -2586,13 +2653,20 @@ def _execute_event(user, match_uuid, body, lang='en'):
                     flags['comaTriggered'] = True
 
         event_log = match.setdefault('eventLog', [])
-        event_log.append({
+        row = {
             "characterUuid": caller.get('uuid'),
             "idEvent": event_id,
             "clock": _nz(match.get('currentClock')),
             "timestamp": _ts_ms(),
             "message": f'{_events.MSG_EVENT_EXECUTED} {event_id}',
-        })
+        }
+        # v0.35.3 — the price rides on the row of the event the player asked for; every
+        # other row of the chain logs nothing, so summing a match gives the real spend.
+        if event_id == head_event_id and not costs_logged[0]:
+            costs_logged[0] = True
+            row.update({"energyCost": energy_spent, "foodCost": food_spent,
+                        "magicCost": magic_spent, "coinCost": coin_spent})
+        event_log.append(row)
 
         if flags['comaTriggered'] and not epilogue_phase:
             # Coma stops the chain, and flag_end_time with it — but if the WHOLE party is
@@ -2666,8 +2740,12 @@ def _execute_event(user, match_uuid, body, lang='en'):
         "executedEventUuids": chain_event_uuids,
         "energySpent": energy_spent,
         "coinSpent": coin_spent,
+        "foodSpent": food_spent,
+        "magicSpent": magic_spent,
         "newEnergy": _nz(caller.get('energy')),
         "newCoin": _nz(caller.get('coin')),
+        "newFood": _nz(caller.get('food')),
+        "newMagic": _nz(caller.get('magic')),
         "currentClock": current_clock,
         # v0.29.0 — execute-event never touches the turn queue (Step 61 revisits this).
         "turnConsumed": False,
@@ -2922,8 +3000,12 @@ def _use_item(user, match_uuid, body, lang='en'):
         "executedEventUuids": [],
         "energySpent": 0,
         "coinSpent": 0,
+        "foodSpent": 0,
+        "magicSpent": 0,
         "newEnergy": _nz(caller.get('energy')),
         "newCoin": _nz(caller.get('coin')),
+        "newFood": _nz(caller.get('food')),
+        "newMagic": _nz(caller.get('magic')),
         "currentClock": _nz(match.get('currentClock')),
         "turnConsumed": False,
         "timeEnded": False,
@@ -2976,6 +3058,8 @@ def _execute_choice_event(match, match_uuid, story, event, event_choices,
 
     energy_spent = 0
     coin_spent = 0
+    food_spent = 0
+    magic_spent = 0
     if not open_cycle:
         available, reason = _events.check(event, ctx)
         if not available:
@@ -2983,11 +3067,17 @@ def _execute_choice_event(match, match_uuid, story, event, event_choices,
         # Pay, once, and write the same marker row the Step 29 flow writes — the ONCE
         # accounting and the log timeline cannot tell the two flows apart.
         energy_spent = _events._nz(event.get('costEnery'))
-        coin_spent = _events._nz(event.get('coinCost'))
+        coin_spent = _events._nz(_events.event_cost_coin(event))
+        food_spent = _events._nz(event.get('costFood'))
+        magic_spent = _events._nz(event.get('costMagic'))
         if energy_spent:
             caller['energy'] = max(0, _nz(caller.get('energy')) - energy_spent)
         if coin_spent:
             caller['coin'] = max(0, _nz(caller.get('coin')) - coin_spent)
+        if food_spent:
+            caller['food'] = max(0, _nz(caller.get('food')) - food_spent)
+        if magic_spent:
+            caller['magic'] = max(0, _nz(caller.get('magic')) - magic_spent)
         ctx['consumedEventIds'].add(event_id)
         match.setdefault('eventLog', []).append({
             "characterUuid": caller.get('uuid'),
@@ -2995,6 +3085,9 @@ def _execute_choice_event(match, match_uuid, story, event, event_choices,
             "clock": _nz(match.get('currentClock')),
             "timestamp": _ts_ms(),
             "message": f'{_events.MSG_EVENT_EXECUTED} {event_id}',
+            # v0.35.3 — the open is what the player paid for; the resolution pays nothing.
+            "energyCost": energy_spent, "foodCost": food_spent,
+            "magicCost": magic_spent, "coinCost": coin_spent,
         })
         db_utils.put_item(caller)
         db_utils.put_item(match)
@@ -3031,8 +3124,12 @@ def _execute_choice_event(match, match_uuid, story, event, event_choices,
         "executedEventUuids": [event.get('uuid')],
         "energySpent": energy_spent,
         "coinSpent": coin_spent,
+        "foodSpent": food_spent,
+        "magicSpent": magic_spent,
         "newEnergy": _nz(caller.get('energy')),
         "newCoin": _nz(caller.get('coin')),
+        "newFood": _nz(caller.get('food')),
+        "newMagic": _nz(caller.get('magic')),
         "currentClock": _nz(match.get('currentClock')),
         "turnConsumed": False,
         "timeEnded": False,
@@ -3265,8 +3362,12 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
         # Always 0: the open already paid, and resolving is what that payment bought.
         "energySpent": 0,
         "coinSpent": 0,
+        "foodSpent": 0,
+        "magicSpent": 0,
         "newEnergy": _nz(caller.get('energy')),
         "newCoin": _nz(caller.get('coin')),
+        "newFood": _nz(caller.get('food')),
+        "newMagic": _nz(caller.get('magic')),
         "currentClock": current_clock,
         "turnConsumed": False,
         "timeEnded": time_ended,
@@ -3884,6 +3985,9 @@ def _visited_locations_payload(match, match_uuid, lang='en'):
                 "entryEnergyCost": entry,
                 "weatherEnergyCost": weather_mod,
                 "totalEnergyCost": base + entry + weather_mod,
+                "costFood": _nz(n.get('costFood')),
+                "costMagic": _nz(n.get('costMagic')),
+                "costCoin": _nz(n.get('costCoin')),
                 "conditionMet": cond_met,
             })
         result.append({

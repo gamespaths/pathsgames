@@ -35,13 +35,13 @@ class EventAvailabilityCheckerTest {
         e.setId(1L);
         e.setType("NORMAL");
         e.setCostEnery(0);
-        e.setCoinCost(0);
+        e.setCostCoin(0);
         return e;
     }
 
-    /** A healthy actor standing at {@link #LOC} with 10 energy and 10 coins. */
+    /** A healthy actor at {@link #LOC} with 10 of energy, coins, food and magic. */
     private static EventCheckContext ctx() {
-        return new EventCheckContext(CHAR_ID, LOC, false, false, 10, 10, 50L,
+        return new EventCheckContext(CHAR_ID, LOC, false, false, 10, 10, 10, 10, 50L,
                 new HashSet<>(), null, new HashSet<>(), new HashMap<>());
     }
 
@@ -59,6 +59,8 @@ class EventAvailabilityCheckerTest {
         boolean coma = false;
         int energy = 10;
         int coin = 10;
+        int food = 10;
+        int magic = 10;
         Long idClass = 50L;
         Set<Long> items = new HashSet<>();
         Long weather = null;
@@ -67,7 +69,7 @@ class EventAvailabilityCheckerTest {
 
         EventCheckContext build() {
             return new EventCheckContext(idCharacter, idLocation, sleeping, coma, energy, coin,
-                    idClass, items, weather, consumed, registry);
+                    food, magic, idClass, items, weather, consumed, registry);
         }
     }
 
@@ -121,7 +123,7 @@ class EventAvailabilityCheckerTest {
         void costBoundary() {
             EventEntity e = event();
             e.setCostEnery(10);
-            e.setCoinCost(10);
+            e.setCostCoin(10);
             assertTrue(EventAvailabilityChecker.check(e, ctx()).available());
         }
 
@@ -130,7 +132,7 @@ class EventAvailabilityCheckerTest {
         void nullCost() {
             EventEntity e = event();
             e.setCostEnery(null);
-            e.setCoinCost(null);
+            e.setCostCoin(null);
             assertTrue(EventAvailabilityChecker.check(e, ctx(b -> {
                 b.energy = 0;
                 b.coin = 0;
@@ -272,8 +274,73 @@ class EventAvailabilityCheckerTest {
         @DisplayName("NOT_ENOUGH_COINS one coin short")
         void notEnoughCoins() {
             EventEntity e = event();
-            e.setCoinCost(11);
+            e.setCostCoin(11);
             assertUnavailable(EventAvailabilityChecker.check(e, ctx()), Code.NOT_ENOUGH_COINS);
+        }
+
+        @Test
+        @DisplayName("NOT_ENOUGH_FOOD one ration short (v0.35.3)")
+        void notEnoughFood() {
+            EventEntity e = event();
+            e.setCostFood(11);
+            assertUnavailable(EventAvailabilityChecker.check(e, ctx()), Code.NOT_ENOUGH_FOOD);
+        }
+
+        @Test
+        @DisplayName("NOT_ENOUGH_MAGIC one point short (v0.35.3)")
+        void notEnoughMagic() {
+            EventEntity e = event();
+            e.setCostMagic(11);
+            assertUnavailable(EventAvailabilityChecker.check(e, ctx()), Code.NOT_ENOUGH_MAGIC);
+        }
+
+        @Test
+        @DisplayName("Exactly affordable is affordable: cost == what the actor holds")
+        void exactlyAffordable() {
+            EventEntity e = event();
+            e.setCostFood(10);
+            e.setCostMagic(10);
+            e.setCostCoin(10);
+            assertTrue(EventAvailabilityChecker.check(e, ctx()).available());
+        }
+
+        @Test
+        @DisplayName("A null cost column is free, not a refusal")
+        void nullCostsAreFree() {
+            EventEntity e = event();
+            e.setCostFood(null);
+            e.setCostMagic(null);
+            e.setCostCoin(null);
+            assertTrue(EventAvailabilityChecker.check(e, ctx(b -> {
+                b.food = 0;
+                b.magic = 0;
+                b.coin = 0;
+            })).available());
+        }
+
+        @Test
+        @DisplayName("Coin outranks food, food outranks magic: the order is the contract")
+        void refusalOrderIsTheContract() {
+            EventEntity e = event();
+            e.setCostCoin(11);
+            e.setCostFood(11);
+            e.setCostMagic(11);
+            assertUnavailable(EventAvailabilityChecker.check(e, ctx()), Code.NOT_ENOUGH_COINS);
+
+            e.setCostCoin(0);
+            assertUnavailable(EventAvailabilityChecker.check(e, ctx()), Code.NOT_ENOUGH_FOOD);
+
+            e.setCostFood(0);
+            assertUnavailable(EventAvailabilityChecker.check(e, ctx()), Code.NOT_ENOUGH_MAGIC);
+        }
+
+        @Test
+        @DisplayName("Energy still outranks every resource")
+        void energyOutranksResources() {
+            EventEntity e = event();
+            e.setCostEnery(11);
+            e.setCostFood(11);
+            assertUnavailable(EventAvailabilityChecker.check(e, ctx()), Code.NOT_ENOUGH_ENERGY);
         }
 
         @Test
@@ -370,7 +437,7 @@ class EventAvailabilityCheckerTest {
             EventEntity e = event();
             e.setIdSpecificLocation(999);
             e.setCostEnery(999);
-            e.setCoinCost(999);
+            e.setCostCoin(999);
             assertUnavailable(EventAvailabilityChecker.check(e, ctx(b -> b.sleeping = true)),
                     Code.SLEEPING);
         }
@@ -400,7 +467,7 @@ class EventAvailabilityCheckerTest {
         void energyBeforeCoins() {
             EventEntity e = event();
             e.setCostEnery(999);
-            e.setCoinCost(999);
+            e.setCostCoin(999);
             assertUnavailable(EventAvailabilityChecker.check(e, ctx()), Code.NOT_ENOUGH_ENERGY);
         }
 

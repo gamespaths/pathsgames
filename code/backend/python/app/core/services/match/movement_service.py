@@ -47,6 +47,10 @@ def move_check_context(match: Dict[str, Any],
         # Step 35 — the real Sigma (item.weight x amount), computed by the store adapter.
         carried_weight=caller.get("carried_weight") or 0,
         weight_max=caller.get("weight_max") or 0,
+        # v0.35.3 — the backpack, for the edge resource costs.
+        food=caller.get("food") or 0,
+        magic=caller.get("magic") or 0,
+        coin=caller.get("coin") or 0,
     )
 
 
@@ -121,15 +125,30 @@ class MovementService(MovementPort):
             characters_at_target=(
                 self.store.count_characters_at_location(match["id"], target["id"])
                 if max_chars > 0 else 0),
+            cost_food=edge.get("cost_food") or 0,
+            cost_magic=edge.get("cost_magic") or 0,
+            cost_coin=edge.get("cost_coin") or 0,
         ))
         if not verdict.available:
             raise MovementError(verdict.reason, _reason_message(verdict.reason))
 
+        cost_food = edge.get("cost_food") or 0
+        cost_magic = edge.get("cost_magic") or 0
+        cost_coin = edge.get("cost_coin") or 0
+
         new_energy = (caller.get("energy", 0) or 0) - total_cost
+        # v0.35.3 — the checker proved the mover can afford all four, so none goes below 0.
+        new_food = (caller.get("food") or 0) - cost_food
+        new_magic = (caller.get("magic") or 0) - cost_magic
+        new_coin = (caller.get("coin") or 0) - cost_coin
         self.store.update_character_location_and_energy(
             match["id"], caller["id"], target["id"], new_energy)
+        if cost_food or cost_magic or cost_coin:
+            self.store.update_backpack_resources(
+                match["id"], caller["id"], new_food, new_magic, new_coin)
         self.store.insert_movement_log(
-            match["id"], caller["id"], caller["id_location"], target["id"], total_cost)
+            match["id"], caller["id"], caller["id_location"], target["id"], total_cost,
+            cost_food, cost_magic, cost_coin)
 
         # Step 33 — the move is committed, so the arrival is real: ask the destination what
         # it does about somebody walking in. Deliberately after both writes, because the
@@ -147,7 +166,11 @@ class MovementService(MovementPort):
 
         return MovementResult(match_uuid, caller["uuid"], caller["id_location"], None,
                               target["id"], target.get("uuid"), total_cost, new_energy,
-                              match["current_clock"], automatic_events)
+                              match["current_clock"],
+                              automatic_events=automatic_events,
+                              food_spent=cost_food, magic_spent=cost_magic,
+                              coin_spent=cost_coin, new_food=new_food,
+                              new_magic=new_magic, new_coin=new_coin)
 
     def list_locations(self, match_uuid: str, user_uuid: str,
                        lang: str = "en") -> List[VisitedLocation]:
@@ -200,6 +223,9 @@ class MovementService(MovementPort):
                                               edge.get("direction"), base, entry, weather_mod,
                                               base + entry + weather_mod,
                                               self._condition_met(match["id"], edge),
+                                              cost_food=edge.get("cost_food") or 0,
+                                              cost_magic=edge.get("cost_magic") or 0,
+                                              cost_coin=edge.get("cost_coin") or 0,
                                               id_card=neighbor_id_card,
                                               card=self._resolve_card(match["id_story"],
                                                                       neighbor_id_card, lang),

@@ -76,6 +76,25 @@ def test_insert_movement_log_writes_the_row_with_the_next_id(session_factory, ad
         assert first.uuid
 
 
+def test_insert_movement_log_accepts_and_persists_the_resource_costs(session_factory, adapter):
+    """v0.35.3 — the event store writes movement rows too (a forced move), so it must speak
+    the same signature the movement store does. It did not, and only the end-to-end suite
+    noticed: every unit test here had mocked the store away."""
+    adapter.insert_movement_log(1, 3, 100, 200, 4, 2, 1, 3)
+
+    with session_factory() as s:
+        row = s.query(LogMovementEntity).one()
+        assert (row.energy_cost, row.food_cost, row.magic_cost, row.coin_cost) == (4, 2, 1, 3)
+
+
+def test_insert_movement_log_defaults_the_resource_costs_to_zero(session_factory, adapter):
+    adapter.insert_movement_log(1, 3, 100, 200, 4)
+
+    with session_factory() as s:
+        row = s.query(LogMovementEntity).one()
+        assert (row.food_cost, row.magic_cost, row.coin_cost) == (0, 0, 0)
+
+
 def test_find_location_uuids_by_id_maps_only_the_story(session_factory, adapter):
     with session_factory() as s:
         s.add(LocationEntity(id=100, id_story=9001, uuid="loc-a"))

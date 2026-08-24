@@ -46,7 +46,14 @@ public interface MovementPort {
                           long toLocationId,
                           String toLocationUuid,
                           int energySpent,
+                          /** v0.35.3 — the edge's resource price, and the backpack after it. */
+                          int foodSpent,
+                          int magicSpent,
+                          int coinSpent,
                           int newEnergy,
+                          int newFood,
+                          int newMagic,
+                          int newCoin,
                           int currentClock,
                           List<LocationEntryPort.AutomaticEventFired> automaticEvents) {
     }
@@ -84,6 +91,10 @@ public interface MovementPort {
                         int entryEnergyCost,
                         int weatherEnergyCost,
                         int totalEnergyCost,
+                        /** v0.35.3 — edge-only, so no breakdown to report. */
+                        int costFood,
+                        int costMagic,
+                        int costCoin,
                         boolean conditionMet) {
     }
 
@@ -118,6 +129,10 @@ public interface MovementPort {
             MOVEMENT_CONDITION_NOT_MET,
             OVERWEIGHT,
             INSUFFICIENT_ENERGY,
+            /** v0.35.3 — the mover cannot pay the edge's resource cost. */
+            NOT_ENOUGH_COINS,
+            NOT_ENOUGH_FOOD,
+            NOT_ENOUGH_MAGIC,
             LOCATION_FULL
         }
 

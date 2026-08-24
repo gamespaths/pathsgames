@@ -204,6 +204,10 @@ class EventInfo:
     card: Optional[Dict[str, Any]] = None
     # The energy the event costs to trigger (`cost_enery`); 0 when it is free.
     energy: int = 0
+    # v0.35.3 — what the event costs beyond energy; the board shows the price up front.
+    coin: int = 0
+    food: int = 0
+    magic: int = 0
 
 
 @dataclass
@@ -231,6 +235,11 @@ class LocationNeighborInfo:
     # ...). Same verdict, same code, one source: movement_availability.check.
     available: bool = True
     reason: Optional[str] = None
+    # v0.35.3 — what the EDGE costs in resources. Energy sums three sources and is reported
+    # pre-summed; these have one source, so this is exactly what the move will take.
+    cost_food: Optional[int] = 0
+    cost_magic: Optional[int] = 0
+    cost_coin: Optional[int] = 0
 
 
 @dataclass

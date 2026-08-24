@@ -118,7 +118,7 @@ class EventExecutionServiceEffectsTest {
         e.setUuid(EVENT_UUID);
         e.setType("NORMAL");
         e.setCostEnery(0);
-        e.setCoinCost(0);
+        e.setCostCoin(0);
         e.setFlagEndTime(0);
         return e;
     }
@@ -692,7 +692,7 @@ class EventExecutionServiceEffectsTest {
             EventExecutionResult r = execute();
 
             verify(store).updateCharacterLocation(MATCH_ID, CHAR_ID, 200L);
-            verify(store).insertMovementLog(MATCH_ID, CHAR_ID, LOC, 200L, 0);
+            verify(store).insertMovementLog(MATCH_ID, CHAR_ID, LOC, 200L, 0, 0, 0, 0);
             assertTrue(r.movementApplied());
             assertTrue(r.refreshRecommended());
             assertEquals(0, r.energySpent(), "forced movement must not charge energy");
@@ -724,7 +724,7 @@ class EventExecutionServiceEffectsTest {
             EventExecutionResult r = execute();
 
             verify(store, never()).updateCharacterLocation(anyLong(), anyLong(), anyLong());
-            verify(store, never()).insertMovementLog(anyLong(), anyLong(), any(), anyLong(), anyInt());
+            verify(store, never()).insertMovementLog(anyLong(), anyLong(), any(), anyLong(), anyInt(), anyInt(), anyInt(), anyInt());
             assertFalse(r.movementApplied());
             assertTrue(r.locationChanges().isEmpty());
             assertFalse(r.refreshRecommended());
@@ -738,7 +738,7 @@ class EventExecutionServiceEffectsTest {
             EventExecutionResult r = execute();
 
             verify(store, never()).updateCharacterLocation(anyLong(), anyLong(), anyLong());
-            verify(store, never()).insertMovementLog(anyLong(), anyLong(), any(), anyLong(), anyInt());
+            verify(store, never()).insertMovementLog(anyLong(), anyLong(), any(), anyLong(), anyInt(), anyInt(), anyInt(), anyInt());
             assertFalse(r.movementApplied());
         }
 

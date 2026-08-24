@@ -132,7 +132,7 @@ class EventExecutionServiceSelectChoiceTest {
         e.setUuid(EVENT_UUID);
         e.setType("NORMAL");
         e.setCostEnery(1);
-        e.setCoinCost(2);
+        e.setCostCoin(2);
         e.setFlagEndTime(0);
         return e;
     }
@@ -279,7 +279,7 @@ class EventExecutionServiceSelectChoiceTest {
             when(store.countLogMarkers(MATCH_ID, EVENT_ID, EventExecutionStorePort.MSG_EVENT_EXECUTED))
                     .thenReturn(0);
             assertThrows(EventExecutionException.class, EventExecutionServiceSelectChoiceTest.this::resolve);
-            verify(store, never()).logEventExecuted(anyLong(), any(), anyLong(), anyInt(), anyString());
+            verify(store, never()).logEventExecuted(anyLong(), any(), anyLong(), anyInt(), anyString(), any());
             verify(store, never()).logChoiceExecuted(anyLong(), anyLong(), anyLong(), anyInt(), anyString());
             verify(store, never()).updateCharacterStats(anyLong(), anyLong(), any());
         }
@@ -307,7 +307,8 @@ class EventExecutionServiceSelectChoiceTest {
         resolve();
 
         verify(store).logEventExecuted(MATCH_ID, CHAR_ID, EVENT_ID, CLOCK,
-                EventExecutionStorePort.MSG_CHOICE_SELECTED + " " + EVENT_ID);
+                EventExecutionStorePort.MSG_CHOICE_SELECTED + " " + EVENT_ID,
+                EventExecutionStorePort.SpentResources.none());
     }
 
     @Test
@@ -491,7 +492,7 @@ class EventExecutionServiceSelectChoiceTest {
             ChoiceResolutionResult r = resolve();
 
             verify(store).updateCharacterLocation(MATCH_ID, CHAR_ID, FAR_LOC);
-            verify(store).insertMovementLog(MATCH_ID, CHAR_ID, LOC, FAR_LOC, 0);
+            verify(store).insertMovementLog(MATCH_ID, CHAR_ID, LOC, FAR_LOC, 0, 0, 0, 0);
             assertTrue(r.execution().movementApplied());
             assertEquals("loc-far", r.execution().locationChanges().get(0).toLocationUuid());
         }
@@ -557,7 +558,7 @@ class EventExecutionServiceSelectChoiceTest {
             e.setUuid(uuid);
             e.setType("NORMAL");
             e.setCostEnery(9); // never charged: a consequence is not a choice
-            e.setCoinCost(9);
+            e.setCostCoin(9);
             e.setFlagEndTime(0);
             return e;
         }
@@ -718,7 +719,8 @@ class EventExecutionServiceSelectChoiceTest {
             // Opened for free — a consequence is not a choice — but marked, so its own cycle opens.
             assertEquals(0, r.execution().energySpent());
             verify(store).logEventExecuted(MATCH_ID, CHAR_ID, 6L, CLOCK,
-                    EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + 6L);
+                    EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + 6L,
+                    EventExecutionStorePort.SpentResources.none());
         }
     }
 

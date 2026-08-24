@@ -48,7 +48,7 @@ class ExecuteEventResponseTest {
         return new EventExecutionResult(
                 "match-uuid", "evt-1", "ACTION", "CHOICES_PENDING", card("The gate opens"),
                 List.of("evt-1", "evt-2"),
-                3, 4, 7, 8, 12,
+                3, 4, 5, 6, 7, 8, 9, 10, 12,
                 false, true, true, true, true, true, true, true, true, true,
                 List.of(new StatChange("char-1", "life", 10, 5, -5)),
                 List.of(new RegistryChange("gate", "closed", "open")),
@@ -127,7 +127,7 @@ class ExecuteEventResponseTest {
     void quietResultMapsToEmptyLists() {
         EventExecutionResult quiet = new EventExecutionResult(
                 "m", "e", "INFO", "APPLIED", null, List.of("e"),
-                0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0,
                 false, false, false, false, false, false, false, false, false, false,
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
                 List.of(), List.of(), null, List.of());

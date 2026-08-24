@@ -28,7 +28,7 @@ def _character(cid=CHAR_ID, id_location=LOCATION):
 
 def _event(eid, uuid, **over):
     base = dict(id=eid, uuid=uuid, type="AUTOMATIC", id_card=None, cost_enery=0,
-                coin_cost=0, flag_end_time=0, id_event_next=None,
+                cost_coin=0, flag_end_time=0, id_event_next=None,
                 id_specific_location=None, id_weather=None,
                 registry_key_condition=None, registry_value_condition=None,
                 id_item_condition=None, id_class_condition=None)
@@ -212,7 +212,7 @@ def test_a_choice_owning_event_is_refused_and_logged(service, store, location_st
 
 def test_nobody_pays_for_an_automatic_event(service, store, location_store):
     store.find_events_by_id.return_value = {40: _event(40, "evt-costly", cost_enery=99,
-                                                       coin_cost=99)}
+                                                       cost_coin=99)}
     location_store.find_location_triggers.return_value = _triggers(first=40)
 
     fired = service.on_arrival(_arrival())

@@ -158,7 +158,16 @@ def seed():
             {"id": 12, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
              "idSpecificLocation": 1, "costEnery": 999, "idCard": 1},
             {"id": 13, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
-             "idSpecificLocation": 1, "coinCost": 999, "idCard": 1},
+             "idSpecificLocation": 1, "costCoin": 999, "idCard": 1},
+            # v0.35.3 NOT_ENOUGH_FOOD / NOT_ENOUGH_MAGIC, plus one an actual backpack
+            # can afford once something has filled it.
+            {"id": 53, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "costFood": 999, "idCard": 1},
+            {"id": 54, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "costMagic": 999, "idCard": 1},
+            {"id": 55, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "costCoin": 1, "costFood": 2, "costMagic": 1,
+             "idCard": 1},
             # REGISTRY_CONDITION_NOT_MET, until event 20 writes the key
             {"id": 14, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
              "idSpecificLocation": 1, "idCard": 1,

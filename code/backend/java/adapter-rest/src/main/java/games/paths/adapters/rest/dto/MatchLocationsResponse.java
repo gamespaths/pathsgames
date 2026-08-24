@@ -85,6 +85,10 @@ public class MatchLocationsResponse {
         private int entryEnergyCost;
         private int weatherEnergyCost;
         private int totalEnergyCost;
+        /** v0.35.3 — the EDGE's resource price; one source, so there is no breakdown. */
+        private int costFood;
+        private int costMagic;
+        private int costCoin;
         private boolean conditionMet;
 
         static NeighborView fromModel(MovementPort.NeighborCost n) {
@@ -100,6 +104,9 @@ public class MatchLocationsResponse {
             v.entryEnergyCost = n.entryEnergyCost();
             v.weatherEnergyCost = n.weatherEnergyCost();
             v.totalEnergyCost = n.totalEnergyCost();
+            v.costFood = n.costFood();
+            v.costMagic = n.costMagic();
+            v.costCoin = n.costCoin();
             v.conditionMet = n.conditionMet();
             return v;
         }
@@ -115,6 +122,9 @@ public class MatchLocationsResponse {
         public int getEntryEnergyCost() { return entryEnergyCost; }
         public int getWeatherEnergyCost() { return weatherEnergyCost; }
         public int getTotalEnergyCost() { return totalEnergyCost; }
+        public int getCostFood() { return costFood; }
+        public int getCostMagic() { return costMagic; }
+        public int getCostCoin() { return costCoin; }
         public boolean isConditionMet() { return conditionMet; }
     }
 }

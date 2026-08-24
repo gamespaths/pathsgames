@@ -288,6 +288,65 @@ describe('matchInfoToGameData', () => {
     expect(eventCard).toMatchObject({ name: 'A Hooded Stranger', awesomeIcon: 'fas fa-user-secret' })
   })
 
+  it('carries the resource price of a neighbor edge (v0.35.3)', () => {
+    const info = {
+      ...mockMatchInfo,
+      locationsActive: [{
+        idLocation: 1, uuid: 'loc-1', events: [],
+        neighbors: [
+          { uuid: 'edge-toll', idLocation: 2, direction: 'NORTH', energyCost: 1,
+            costFood: 1, costMagic: 0, costCoin: 2, available: true, reason: null },
+          { uuid: 'edge-free', idLocation: 3, direction: 'EAST', energyCost: 1 },
+        ],
+      }],
+      currentLocationId: 1,
+    }
+
+    const neighbors = matchInfoToGameData(info).locations
+    const toll = neighbors.find(n => n.uuid === 'edge-toll')
+    const free = neighbors.find(n => n.uuid === 'edge-free')
+
+    expect(toll).toMatchObject({ costFood: 1, costMagic: 0, costCoin: 2 })
+    // An edge that names no price costs nothing — 0, never undefined, or the badge would
+    // render empty instead of disappearing.
+    expect(free).toMatchObject({ costFood: 0, costMagic: 0, costCoin: 0 })
+  })
+
+  it('carries the full price of an action, not only its energy (v0.35.3)', () => {
+    // An event can cost coins, food and magic since v0.35.3; the board shows them as badges,
+    // so the adapter has to carry all four through.
+    const info = {
+      ...mockMatchInfo,
+      locationsActive: [{
+        idLocation: 1, uuid: 'loc-1',
+        events: [{ uuid: 'evt-priced', available: true, reason: null,
+                   energy: 2, coin: 3, food: 1, magic: 4, card: { title: 'Pay the fee' } }],
+      }],
+      currentLocationId: 1,
+    }
+
+    const action = matchInfoToGameData(info).actions.find(a => a.uuid === 'evt-priced')
+
+    expect(action).toMatchObject({ energy: 2, coin: 3, food: 1, magic: 4 })
+  })
+
+  it('reads an action with no resource prices as costing nothing', () => {
+    // An older backend sends none of the three keys: 0 is the honest reading, and the badge
+    // list then renders nothing at all.
+    const info = {
+      ...mockMatchInfo,
+      locationsActive: [{
+        idLocation: 1, uuid: 'loc-1',
+        events: [{ uuid: 'evt-plain', available: true, card: { title: 'Look around' } }],
+      }],
+      currentLocationId: 1,
+    }
+
+    const action = matchInfoToGameData(info).actions.find(a => a.uuid === 'evt-plain')
+
+    expect(action).toMatchObject({ energy: 0, coin: 0, food: 0, magic: 0 })
+  })
+
   it('builds the end-game card via the i18n translator', () => {
     const story = { card: { urlImage: 'http://img/x.png', awesomeIcon: 'fas fa-book' } }
     const t = (k) => `tr:${k}`

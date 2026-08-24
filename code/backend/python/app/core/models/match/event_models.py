@@ -32,6 +32,9 @@ class EventError(Exception):
     WRONG_LOCATION = "WRONG_LOCATION"
     NOT_ENOUGH_ENERGY = "NOT_ENOUGH_ENERGY"
     NOT_ENOUGH_COINS = "NOT_ENOUGH_COINS"
+    # v0.35.3 — the actor cannot pay list_events.cost_food / cost_magic.
+    NOT_ENOUGH_FOOD = "NOT_ENOUGH_FOOD"
+    NOT_ENOUGH_MAGIC = "NOT_ENOUGH_MAGIC"
     REGISTRY_CONDITION_NOT_MET = "REGISTRY_CONDITION_NOT_MET"
     WEATHER_CONDITION_NOT_MET = "WEATHER_CONDITION_NOT_MET"
     ITEM_CONDITION_NOT_MET = "ITEM_CONDITION_NOT_MET"
@@ -66,6 +69,9 @@ class EventCheckContext:
     coma: bool = False
     energy: int = 0
     coin: int = 0
+    # v0.35.3 — read for the cost_food / cost_magic checks.
+    food: int = 0
+    magic: int = 0
     id_class: Optional[int] = None
     owned_item_ids: Set[int] = field(default_factory=set)
     current_weather_id: Optional[int] = None
@@ -189,6 +195,11 @@ class EventExecutionResult:
     new_energy: int
     new_coin: int
     current_clock: int
+    # v0.35.3 — food and magic paid to open this event, and the backpack after it.
+    food_spent: int = 0
+    magic_spent: int = 0
+    new_food: int = 0
+    new_magic: int = 0
     # Always False in v0.29.0: an event neither requires nor consumes a turn, exactly like
     # Step 28 movement. Turn semantics are revisited in Step 61.
     turn_consumed: bool = False

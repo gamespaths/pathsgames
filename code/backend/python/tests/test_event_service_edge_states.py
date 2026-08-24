@@ -29,7 +29,7 @@ def _character(cid, uuid, id_user, id_class, id_location, **over):
 
 def _event(**over):
     base = dict(id=1, uuid="event-1", type="NORMAL", id_card=None, cost_enery=0,
-                coin_cost=0, flag_end_time=0, id_event_next=None,
+                cost_coin=0, flag_end_time=0, id_event_next=None,
                 id_specific_location=None, id_weather=None,
                 registry_key_condition=None, registry_value_condition=None,
                 id_item_condition=None, id_class_condition=None)

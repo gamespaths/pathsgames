@@ -38,6 +38,10 @@ class MoveCheckContext:
     energy: int
     carried_weight: int
     weight_max: int
+    # v0.35.3 — the backpack, for the edge resource costs.
+    food: int = 0
+    magic: int = 0
+    coin: int = 0
 
     @staticmethod
     def no_character() -> "MoveCheckContext":
@@ -55,6 +59,10 @@ class MoveEdgeCheck:
     total_energy_cost: int
     max_characters: int
     characters_at_target: int
+    # v0.35.3 — edge-only resource costs.
+    cost_food: int = 0
+    cost_magic: int = 0
+    cost_coin: int = 0
 
 
 def check(ctx: Optional[MoveCheckContext],
@@ -79,6 +87,14 @@ def check(ctx: Optional[MoveCheckContext],
         return MovementAvailability.no(MovementError.OVERWEIGHT)
     if ctx.energy < edge.total_energy_cost:
         return MovementAvailability.no(MovementError.INSUFFICIENT_ENERGY)
+    # v0.35.3 — after energy and before capacity: a mover who cannot afford the road is told
+    # about the road, not about how crowded the place they cannot reach is.
+    if ctx.coin < edge.cost_coin:
+        return MovementAvailability.no(MovementError.NOT_ENOUGH_COINS)
+    if ctx.food < edge.cost_food:
+        return MovementAvailability.no(MovementError.NOT_ENOUGH_FOOD)
+    if ctx.magic < edge.cost_magic:
+        return MovementAvailability.no(MovementError.NOT_ENOUGH_MAGIC)
     if edge.max_characters > 0 and edge.characters_at_target >= edge.max_characters:
         return MovementAvailability.no(MovementError.LOCATION_FULL)
 

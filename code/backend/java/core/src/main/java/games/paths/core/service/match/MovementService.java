@@ -35,6 +35,12 @@ import java.util.Set;
  * totalEnergyCost = edge.energyCost + target.costEnergyEnter + weatherModifier
  * </pre>
  *
+ * <p>v0.35.3 — food, magic and coins are charged too, and they come from the EDGE alone
+ * ({@code cost_food} / {@code cost_magic} / {@code cost_coin} on
+ * {@code list_locations_neighbors}): no entry term, no weather term. The asymmetry with
+ * energy is deliberate and the formula is a sum, so either term can be added later without
+ * invalidating a story.</p>
+ *
  * <p>Validation order: auth → match RUNNING → caller awake → target is a neighbor
  * → registry condition → weight ≤ capacity → energy ≥ cost → location not full.
  * On success the character position and energy are persisted and a
@@ -120,14 +126,23 @@ public class MovementService implements MovementPort {
                 target.maxCharacters(),
                 target.maxCharacters() > 0
                         ? store.countCharactersAtLocation(match.id(), target.id())
-                        : 0));
+                        : 0,
+                edge.costFood(), edge.costMagic(), edge.costCoin()));
         if (!verdict.available()) {
             throw new MovementException(verdict.reason(), reasonMessage(verdict.reason()));
         }
 
         int newEnergy = caller.energy() - totalCost;
+        // v0.35.3 — the checker proved the mover can afford all four, so none can go below 0.
+        int newFood = caller.food() - edge.costFood();
+        int newMagic = caller.magic() - edge.costMagic();
+        int newCoin = caller.coin() - edge.costCoin();
         store.updateCharacterLocationAndEnergy(match.id(), caller.id(), target.id(), newEnergy);
-        store.insertMovementLog(match.id(), caller.id(), caller.idLocation(), target.id(), totalCost);
+        if (edge.costFood() > 0 || edge.costMagic() > 0 || edge.costCoin() > 0) {
+            store.updateBackpackResources(match.id(), caller.id(), newFood, newMagic, newCoin);
+        }
+        store.insertMovementLog(match.id(), caller.id(), caller.idLocation(), target.id(), totalCost,
+                edge.costFood(), edge.costMagic(), edge.costCoin());
 
         // Step 33 — the move is committed, so the arrival is real: ask the destination what
         // it does about somebody walking in. Deliberately after both writes, because the
@@ -141,7 +156,9 @@ public class MovementService implements MovementPort {
         return new MovementResult(matchUuid, caller.uuid(),
                 caller.idLocation(), null,
                 target.id(), target.uuid(),
-                totalCost, newEnergy, match.currentClock(), automaticEvents);
+                totalCost, edge.costFood(), edge.costMagic(), edge.costCoin(),
+                newEnergy, newFood, newMagic, newCoin,
+                match.currentClock(), automaticEvents);
     }
 
     @Override
@@ -204,6 +221,7 @@ public class MovementService implements MovementPort {
                         edge.idLocationFrom(), edge.idLocationTo(),
                         neighborIdCard, resolveCard(match.idStory(), neighborIdCard, lang),
                         base, entry, weatherMod, base + entry + weatherMod,
+                        edge.costFood(), edge.costMagic(), edge.costCoin(),
                         conditionMet(match.id(), edge)));
             }
             result.add(new VisitedLocation(loc.id(), loc.uuid(), loc.idCard(),
@@ -237,7 +255,8 @@ public class MovementService implements MovementPort {
                 caller.energy(),
                 // Step 35 — the real Sigma (item.weight x amount), computed by the store adapter.
                 caller.carriedWeight(),
-                caller.weightMax());
+                caller.weightMax(),
+                caller.food(), caller.magic(), caller.coin());
     }
 
     /** The player-facing message for a refused move; the CODE is what clients switch on. */
@@ -249,6 +268,9 @@ public class MovementService implements MovementPort {
             case MOVEMENT_CONDITION_NOT_MET -> "Movement condition not met";
             case OVERWEIGHT -> "Carried weight exceeds capacity";
             case INSUFFICIENT_ENERGY -> "Not enough energy for this move";
+            case NOT_ENOUGH_COINS -> "Not enough coins for this move";
+            case NOT_ENOUGH_FOOD -> "Not enough food for this move";
+            case NOT_ENOUGH_MAGIC -> "Not enough magic for this move";
             case LOCATION_FULL -> "Target location is at capacity";
             case CHARACTER_CANNOT_ACT -> "Character cannot act";
             default -> "Movement refused";

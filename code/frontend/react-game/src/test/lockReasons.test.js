@@ -14,6 +14,14 @@ describe('lockedIconFor', () => {
     expect(lockedIconFor('NOT_ENOUGH_ENERGY')).toBe(lockedIconFor('INSUFFICIENT_ENERGY'))
   })
 
+  it('v0.35.3: food and magic refusals get their own icon, not the generic ban', () => {
+    // They became real costs, so a player must be able to tell which supply ran out.
+    expect(lockedIconFor('NOT_ENOUGH_FOOD')).not.toBe(LOCK_ICON_DEFAULT)
+    expect(lockedIconFor('NOT_ENOUGH_MAGIC')).not.toBe(LOCK_ICON_DEFAULT)
+    expect(lockedIconFor('NOT_ENOUGH_FOOD')).not.toBe(lockedIconFor('NOT_ENOUGH_COINS'))
+    expect(lockedIconFor('NOT_ENOUGH_MAGIC')).not.toBe(lockedIconFor('NOT_ENOUGH_FOOD'))
+  })
+
   it('falls back to "you cannot" for an unknown or absent code', () => {
     expect(lockedIconFor('SOMETHING_THE_BACKEND_INVENTED')).toBe(LOCK_ICON_DEFAULT)
     expect(lockedIconFor(null)).toBe(LOCK_ICON_DEFAULT)

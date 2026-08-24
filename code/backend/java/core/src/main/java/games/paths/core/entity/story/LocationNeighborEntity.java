@@ -31,6 +31,16 @@ public class LocationNeighborEntity extends BaseStoryScopedEntity {
     @Column(name = "energy_cost")
     private Integer energyCost;
 
+    /** v0.35.3 - resources the mover pays for this edge; energy stays above. */
+    @Column(name = "cost_food")
+    private Integer costFood;
+
+    @Column(name = "cost_magic")
+    private Integer costMagic;
+
+    @Column(name = "cost_coin")
+    private Integer costCoin;
+
     @Column(name = "id_text_go")
     private Integer idTextGo;
 
@@ -44,6 +54,9 @@ public class LocationNeighborEntity extends BaseStoryScopedEntity {
     protected void onCreate() {
         if (flagBack == null) flagBack = 0;
         if (energyCost == null) energyCost = 0;
+        if (costFood == null) costFood = 0;
+        if (costMagic == null) costMagic = 0;
+        if (costCoin == null) costCoin = 0;
     }
 
     // === Getters & Setters ===
@@ -68,6 +81,15 @@ public class LocationNeighborEntity extends BaseStoryScopedEntity {
 
     public Integer getEnergyCost() { return energyCost; }
     public void setEnergyCost(Integer energyCost) { this.energyCost = energyCost; }
+
+    public Integer getCostFood() { return costFood; }
+    public void setCostFood(Integer costFood) { this.costFood = costFood; }
+
+    public Integer getCostMagic() { return costMagic; }
+    public void setCostMagic(Integer costMagic) { this.costMagic = costMagic; }
+
+    public Integer getCostCoin() { return costCoin; }
+    public void setCostCoin(Integer costCoin) { this.costCoin = costCoin; }
 
     public Integer getIdTextGo() { return idTextGo; }
     public void setIdTextGo(Integer idTextGo) { this.idTextGo = idTextGo; }

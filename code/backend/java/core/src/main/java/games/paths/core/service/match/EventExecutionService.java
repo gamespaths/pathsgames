@@ -193,21 +193,51 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
     // ── costs ───────────────────────────────────────────────────────────────
 
     /**
-     * Energy and coins are paid once, by the actor, for the event they asked for. The check
-     * procedure already proved they can afford it, so neither can go negative.
+     * Energy, coins, food and magic are paid once, by the actor, for the event they asked
+     * for. The check procedure already proved they can afford it, so none can go negative.
+     *
+     * <p>v0.35.3 added the food and magic side. Only this method charges: an automatic
+     * event, a chained one and a choice resolution all run through {@code applyEvent}
+     * without ever reaching here, which is what makes "the engine never bills the player
+     * for what the player did not ask" a property of the code rather than a convention.</p>
      */
     private void deductCosts(Exec x, EventEntity event) {
         x.energySpent = nz(event.getCostEnery());
-        x.coinSpent = nz(event.getCoinCost());
+        x.coinSpent = nz(event.getCostCoin());
+        x.foodSpent = nz(event.getCostFood());
+        x.magicSpent = nz(event.getCostMagic());
+        x.costsPending = true;
         if (x.energySpent > 0) {
             Live actor = x.live(x.actor);
             actor.energy = TimeStartRecoveryService.clamp(actor.energy - x.energySpent, 0, actor.energyMax);
         }
-        if (x.coinSpent > 0) {
+        if (x.coinSpent > 0 || x.foodSpent > 0 || x.magicSpent > 0) {
             Live actor = x.live(x.actor);
             actor.coin = Math.max(0, actor.coin - x.coinSpent);
+            actor.food = Math.max(0, actor.food - x.foodSpent);
+            actor.magic = Math.max(0, actor.magic - x.magicSpent);
             actor.backpackDirty = true;
         }
+    }
+
+    /**
+     * The {@code EVENT_EXECUTED} row, with the price on it exactly once.
+     *
+     * <p>{@code applyEvent} runs for every event of a chain and the whole chain shares one
+     * {@link Exec}, so the costs are stamped on the row of the event the player actually
+     * asked for and every other row of the chain logs zeros — the sum over a match is then
+     * what was really spent, not the top-level price repeated per chained event.</p>
+     */
+    private void logExecuted(Exec x, long eventId, String message) {
+        boolean paid = x.costsPending && x.event != null && x.event.getId() != null
+                && x.event.getId().longValue() == eventId;
+        if (paid) {
+            x.costsPending = false;
+        }
+        store.logEventExecuted(x.match.id(), x.actorId(), eventId, x.currentClock, message,
+                paid ? new EventExecutionStorePort.SpentResources(
+                        x.energySpent, x.foodSpent, x.magicSpent, x.coinSpent)
+                     : EventExecutionStorePort.SpentResources.none());
     }
 
     // ── choices (Step 31) ───────────────────────────────────────────────────
@@ -246,8 +276,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             // so the ONCE accounting and the log timeline cannot tell the flows apart.
             x.visited.add(eventId);
             x.ctx.consumedEventIds().add(eventId);
-            store.logEventExecuted(match.id(), actor.id(), eventId, x.currentClock,
-                    EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + eventId);
+            logExecuted(x, eventId, EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + eventId);
         }
         // Both paths: "index 0 is always the event" holds on a re-fetch too, so the
         // frontend cannot tell a page refresh from the first open (beside energySpent=0).
@@ -639,8 +668,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             x.visited.add(linkedId);
             x.ctx.consumedEventIds().add(linkedId);
             x.executedEventUuids.add(linked.getUuid());
-            store.logEventExecuted(x.match.id(), x.actor.id(), linkedId, x.currentClock,
-                    EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + linkedId);
+            logExecuted(x, linkedId, EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + linkedId);
             x.status = STATUS_CHOICES_PENDING;
             x.pendingChoices = buildPendingChoices(x, nested);
             return;
@@ -664,7 +692,8 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
      */
     private void writeResolutionMarkers(Exec x, ChoiceEntity choice, long eventId, long choiceId) {
         store.logEventExecuted(x.match.id(), x.actor.id(), eventId, x.currentClock,
-                EventExecutionStorePort.MSG_CHOICE_SELECTED + " " + eventId);
+                EventExecutionStorePort.MSG_CHOICE_SELECTED + " " + eventId,
+                EventExecutionStorePort.SpentResources.none());
         store.logChoiceExecuted(x.match.id(), eventId, choiceId, x.currentClock,
                 EventExecutionStorePort.MSG_CHOICE_SELECTED + " " + choiceId);
         if (nz(choice.getIsProgress()) == 1) {
@@ -720,8 +749,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         x.gameOver = x.gameOver || (endGameId != null && endGameId == eventId);
 
         checkEdgeStates(x, eventId);
-        store.logEventExecuted(x.match.id(), x.actorId(), eventId, x.currentClock,
-                EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + eventId);
+        logExecuted(x, eventId, EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + eventId);
     }
 
     // ── effects ─────────────────────────────────────────────────────────────
@@ -1052,7 +1080,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             return; // already there: nothing to move, nothing to log
         }
         store.updateCharacterLocation(x.match.id(), recipient.id(), target);
-        store.insertMovementLog(x.match.id(), recipient.id(), from, target, 0);
+        store.insertMovementLog(x.match.id(), recipient.id(), from, target, 0, 0, 0, 0);
         x.setLocation(recipient.id(), target);
         x.movementApplied = true;
         x.locationChanges.add(new LocationChange(recipient.uuid(),
@@ -1437,7 +1465,8 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                 x.match.uuid(), eventUuid, eventType, x.status,
                 card,
                 chainEventUuids(x),
-                x.energySpent, x.coinSpent, actor.energy, actor.coin, x.currentClock,
+                x.energySpent, x.coinSpent, x.foodSpent, x.magicSpent,
+                actor.energy, actor.coin, actor.food, actor.magic, x.currentClock,
                 false, // turnConsumed — v0.29.0 never touches the turn queue
                 x.timeEnded, x.itemAdded, x.itemRemoved, x.weatherApplied, x.movementApplied,
                 x.forcedSleep, x.comaTriggered, x.gameOver, changed,
@@ -1623,6 +1652,10 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         int currentClock;
         int energySpent;
         int coinSpent;
+        int foodSpent;
+        int magicSpent;
+        /** True between deductCosts and the log row that carries the price (v0.35.3). */
+        boolean costsPending;
         // ── Step 31 choices ──
         String status = STATUS_APPLIED;
         List<PendingChoice> pendingChoices = List.of();

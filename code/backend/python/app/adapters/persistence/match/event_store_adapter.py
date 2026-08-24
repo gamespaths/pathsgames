@@ -193,7 +193,10 @@ class EventStoreAdapter(EventStorePort):
                 sleeping=bool(c.is_sleeping),
                 coma=bool(c.is_coma),
                 energy=c.energy or 0,
+                # One read, three resources: the row was already fetched for the coin cost.
                 coin=(b.coin or 0) if b else 0,
+                food=(b.food or 0) if b else 0,
+                magic=(b.magic or 0) if b else 0,
                 id_class=c.id_class,
                 owned_item_ids=owned,
                 current_weather_id=m.id_current_weather if m else None,
@@ -388,7 +391,8 @@ class EventStoreAdapter(EventStorePort):
 
     def insert_movement_log(self, id_match: int, id_character: int,
                             from_location: Optional[int], to_location: int,
-                            energy_cost: int) -> None:
+                            energy_cost: int, food_cost: int = 0,
+                            magic_cost: int = 0, coin_cost: int = 0) -> None:
         with self.session_factory() as session:
             max_id = session.query(LogMovementEntity.id).order_by(
                 LogMovementEntity.id.desc()).first()
@@ -398,12 +402,15 @@ class EventStoreAdapter(EventStorePort):
                 id_match=id_match, uuid=str(uuid_lib.uuid4()),
                 id_character_match=id_character,
                 id_location_from=from_location, id_location_to=to_location,
-                energy_cost=energy_cost,
+                energy_cost=energy_cost, food_cost=food_cost,
+                magic_cost=magic_cost, coin_cost=coin_cost,
                 timestamp_start=now, ts_insert=now, ts_update=now))
             session.commit()
 
     def log_event_executed(self, id_match: int, id_character: Optional[int], id_event: int,
-                           clock: int, message: str) -> None:
+                           clock: int, message: str, energy_cost: int = 0,
+                           food_cost: int = 0, magic_cost: int = 0,
+                           coin_cost: int = 0) -> None:
         with self.session_factory() as session:
             max_id = session.query(LogEventsEntity.id).order_by(
                 LogEventsEntity.id.desc()).first()
@@ -412,7 +419,9 @@ class EventStoreAdapter(EventStorePort):
                 id=((max_id[0] if max_id else 0) or 0) + 1,
                 id_match=id_match, uuid=str(uuid_lib.uuid4()),
                 id_character_match=id_character, id_event=id_event, clock=clock,
-                log_message=message, timestamp=now, ts_insert=now, ts_update=now))
+                log_message=message, timestamp=now, ts_insert=now, ts_update=now,
+                energy_cost=energy_cost, food_cost=food_cost,
+                magic_cost=magic_cost, coin_cost=coin_cost))
             session.commit()
 
     # ── choices (Step 31) ───────────────────────────────────────────────────
@@ -580,7 +589,8 @@ def _choice_effect_dict(e: ChoiceEffectEntity) -> Dict[str, Any]:
 def _event_dict(e: EventEntity) -> Dict[str, Any]:
     return {
         "id": e.id, "uuid": e.uuid, "type": e.type, "id_card": e.id_card,
-        "cost_enery": e.cost_enery or 0, "coin_cost": e.coin_cost or 0,
+        "cost_enery": e.cost_enery or 0, "cost_coin": e.cost_coin or 0,
+        "cost_food": e.cost_food or 0, "cost_magic": e.cost_magic or 0,
         "flag_end_time": e.flag_end_time or 0, "id_event_next": e.id_event_next,
         "id_specific_location": e.id_specific_location, "id_weather": e.id_weather,
         "registry_key_condition": e.registry_key_condition,
