@@ -310,11 +310,17 @@ def test_drop_item_discards_a_non_consumable_too(_get, _query, _put, _jwt):
 
 
 @_patched
-def test_drop_item_never_writes_a_usage_log(_get, _query, _put, _jwt):
+def test_v0354_drop_item_writes_a_drop_row_on_the_match(_get, _query, _put, _jwt):
     _call('POST', '/api/gameplay/m1/inventory/drop-item', body={'itemInstanceUuid': 'row-1'})
 
     written = [c.args[0] for c in _put.call_args_list]
-    assert not any('itemUsageLog' in w for w in written)
+    logs = [w['itemUsageLog'] for w in written if 'itemUsageLog' in w]
+    assert len(logs) == 1
+    assert logs[0][0]['action'] == 'DROP'
+    assert logs[0][0]['counter'] == 1
+    # A drop moves no resource, and it is the player's own doing: no source event.
+    assert logs[0][0]['idEvent'] is None
+    assert logs[0][0]['energy'] == 0
 
 
 @_patched

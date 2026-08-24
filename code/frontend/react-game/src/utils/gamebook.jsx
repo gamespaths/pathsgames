@@ -48,7 +48,7 @@ export function buildCardCharacteristicsRight(story, playerStats, clock, weather
 
   card.description = (
     <>
-      <PlayerStats stats={stats} plainFlag={true} />
+      <PlayerStats stats={stats} plainFlag={true} showItems={false} />
     </>
   )
   card.descriptionTag = true

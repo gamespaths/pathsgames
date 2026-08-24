@@ -113,7 +113,8 @@ Logs Contains Clock Advance After Time End
 
 Log Entries Have Required Fields
     [Documentation]    Every entry in the logs list carries at minimum a 'type'
-    ...                and a 'timestamp' key.
+    ...                and a 'timestamp' key. v0.35.4 — and the eight resource fields,
+    ...                whatever the type: a client sums a column without null checks.
     [Tags]    match-logs    step28-7
     ${match}=    New Logs Match
     Start Match    ${TOKEN}    ${match}    200
@@ -121,6 +122,12 @@ Log Entries Have Required Fields
     FOR    ${entry}    IN    @{response.json()}[logs]
         Dictionary Should Contain Key    ${entry}    type
         Dictionary Should Contain Key    ${entry}    timestamp
+        FOR    ${name}    IN    energy    food    magic    coin
+            Should Be True    $entry.get('${name}Cost') is not None
+            ...    msg=${name}Cost is missing from a ${entry}[type] entry
+            Should Be True    $entry.get('${name}Gain') is not None
+            ...    msg=${name}Gain is missing from a ${entry}[type] entry
+        END
     END
 
 Weather Entry Carries Its Card And Title

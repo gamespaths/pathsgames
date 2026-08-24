@@ -1,7 +1,8 @@
 """Step 28.7 — match logs service (Python backend).
 
 Returns a consolidated timeline of all logged events for a match:
-WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY. Sorted by timestamp ascending
+WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY and, since v0.35.4, the three
+ITEM_* actions read off log_item_usage. Sorted by timestamp ascending
 by default; `order=desc` flips the whole timeline (newest entry first) before the
 page is cut, so the cursor still walks away from the first returned entry. Entries
 with no timestamp sit at the end in `asc`, hence at the front in `desc`.
@@ -25,16 +26,50 @@ from app.adapters.persistence.match.models import (
     GamingMatchEntity,
     LogClockHistoryEntity,
     LogEventsEntity,
+    LogItemUsageEntity,
     LogMovementEntity,
     LogWeatherEntity,
 )
 from app.adapters.persistence.story.models import (
     CharacterTemplateEntity,
     EventEntity,
+    ItemEntity,
     LocationEntity,
     WeatherRuleEntity,
 )
-from app.core.ports.match.event_ports import MSG_EVENT_EXECUTED
+from app.core.ports.match.event_ports import (
+    ITEM_ACTION_ADD, ITEM_ACTION_DROP, ITEM_ACTION_REMOVE, ITEM_ACTION_USE,
+    MSG_EVENT_EXECUTED,
+)
+
+
+def _item_type(action: Optional[str]) -> Optional[str]:
+    """log_item_usage.action to timeline type.
+
+    REMOVE is an effect taking the item away and DROP is the player putting it down: the
+    bag ends up the same, so they share one type. An unknown action is dropped, like an
+    unknown log message; a row without one predates v0.35.4, when only usages were logged.
+    """
+    if action is None:
+        return _TYPE_ITEM_USE
+    normalized = str(action).strip().upper()
+    if normalized == ITEM_ACTION_ADD:
+        return _TYPE_ITEM_ADD
+    if normalized == ITEM_ACTION_USE:
+        return _TYPE_ITEM_USE
+    if normalized in (ITEM_ACTION_DROP, ITEM_ACTION_REMOVE):
+        return _TYPE_ITEM_DROP
+    return None
+
+
+def _split_delta(entry: Dict[str, Any], row) -> None:
+    """A signed delta lands on both families: the negative half is a cost, the positive
+    half a gain. What an item usage produces, in other words — and it keeps the four
+    resources readable by exactly the code that reads an event's price."""
+    for name in ("energy", "food", "magic", "coin"):
+        value = getattr(row, name, 0) or 0
+        entry[f"{name}Cost"] = max(0, -value)
+        entry[f"{name}Gain"] = max(0, value)
 
 
 _TYPE_WEATHER = "WEATHER"
@@ -47,6 +82,10 @@ _TYPE_EVENT = "EVENT"
 _TYPE_COUNTER_ZERO = "COUNTER_ZERO"
 # Step 33 — an event the engine fired: an arrival, a counter, a time-start.
 _TYPE_AUTOMATIC_EVENT = "AUTOMATIC_EVENT"
+# v0.35.4 — the three item actions, read off log_item_usage.action rather than a message.
+_TYPE_ITEM_ADD = "ITEM_ADD"
+_TYPE_ITEM_USE = "ITEM_USE"
+_TYPE_ITEM_DROP = "ITEM_DROP"
 _MSG_SLEEP = "ACTION_SLEEP"
 _MSG_COUNTER = "counter"
 _MSG_AUTOMATIC_EVENT = "automatic event"
@@ -220,6 +259,11 @@ class MatchLogsService:
                     "foodCost": e.food_cost or 0,
                     "magicCost": e.magic_cost or 0,
                     "coinCost": e.coin_cost or 0,
+                    # v0.35.4 — and what the event gave back, on the gain half of the row.
+                    "energyGain": e.energy_gain or 0,
+                    "foodGain": e.food_gain or 0,
+                    "magicGain": e.magic_gain or 0,
+                    "coinGain": e.coin_gain or 0,
                 })
             elif msg.startswith(_MSG_COUNTER):
                 # Step 33 split this out of RECOVERY: a counter running out and a character
@@ -253,6 +297,36 @@ class MatchLogsService:
                     "message": msg,
                 })
 
+        # v0.35.4 — the item log. Unlike log_events this table needs no message parsing:
+        # the action column says what happened, and an unknown one is dropped the same way.
+        for i in (session.query(LogItemUsageEntity)
+                  .filter(LogItemUsageEntity.id_match == match.id)
+                  .order_by(LogItemUsageEntity.id.asc()).all()):
+            entry_type = _item_type(i.action)
+            if entry_type is None:
+                continue
+            entry = {
+                "type": entry_type,
+                "clock": None,
+                "timestamp": i.timestamp,
+                "idCharacterMatch": i.id_character_match,
+                "idItem": i.id_item,
+                "itemAction": i.action,
+                "counter": i.counter,
+                "idEvent": i.id_event,
+            }
+            _split_delta(entry, i)
+            entries.append(entry)
+
+        # v0.35.4 — every entry carries the eight resource fields, whatever its type, so a
+        # client can sum a column without null checks. The Java reference has always
+        # answered this shape; the two backends built per-type dicts and left the keys out
+        # of the types that move nothing, which made the contract type-dependent.
+        for entry in entries:
+            for name in ("energy", "food", "magic", "coin"):
+                entry.setdefault(f"{name}Cost", 0)
+                entry.setdefault(f"{name}Gain", 0)
+
         # Sort by timestamp ascending; None timestamps sort last
         entries.sort(key=lambda x: x.get("timestamp") or "9999")
         return entries
@@ -273,6 +347,8 @@ class MatchLogsService:
                           .filter(CharacterTemplateEntity.id_story == match.id_story).all()}
         event_cards = {ev.id: ev.id_card for ev in session.query(EventEntity)
                        .filter(EventEntity.id_story == match.id_story).all()}
+        item_cards = {it.id: it.id_card for it in session.query(ItemEntity)
+                      .filter(ItemEntity.id_story == match.id_story).all()}
         characters = {c.id: c for c in session.query(GamingCharacterInstanceEntity)
                       .filter(GamingCharacterInstanceEntity.id_match == match.id).all()}
 
@@ -293,6 +369,10 @@ class MatchLogsService:
             elif entry["type"] == _TYPE_COUNTER_ZERO and entry.get("idLocationTo") is not None:
                 # Step 33 — a counter belongs to a place, so the place's card names it.
                 id_card = location_cards.get(entry["idLocationTo"])
+            elif entry.get("idItem") is not None:
+                # v0.35.4 — an item entry is narrated by the item's own card, whichever of
+                # the three actions it is.
+                id_card = item_cards.get(entry["idItem"])
             entry["idCard"] = id_card
             entry["card"] = self._resolve_card(match.id_story, id_card, lang)
 

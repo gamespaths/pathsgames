@@ -8,6 +8,7 @@ import games.paths.core.port.match.MatchLogsStorePort;
 import games.paths.core.port.match.MatchLogsStorePort.CharacterLogView;
 import games.paths.core.port.match.MatchLogsStorePort.ClockLogEntry;
 import games.paths.core.port.match.MatchLogsStorePort.EventLogEntry;
+import games.paths.core.port.match.MatchLogsStorePort.ItemLogEntry;
 import games.paths.core.port.match.MatchLogsStorePort.MatchSummary;
 import games.paths.core.port.match.MatchLogsStorePort.MovementLogEntry;
 import games.paths.core.port.match.MatchLogsStorePort.WeatherLogEntry;
@@ -23,8 +24,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * MatchLogsService - assembles the consolidated match log from the four append-only
- * log tables (Step 28.7). Returns a timeline sorted by timestamp ascending, or newest
+ * MatchLogsService - assembles the consolidated match log from the five append-only
+ * log tables (Step 28.7; log_item_usage joined them in v0.35.4). Returns a timeline sorted by timestamp ascending, or newest
  * first when the caller asks for {@code order=desc}.
  *
  * <p>Log types assembled:
@@ -38,6 +39,7 @@ import java.util.Map;
  *   <li>COUNTER_ZERO — from log_events WHERE log_message LIKE 'counter%' (Step 33; until
  *       then these rows were folded into RECOVERY, which they never were)</li>
  *   <li>AUTOMATIC_EVENT — from log_events WHERE log_message LIKE 'automatic event%' (Step 33)</li>
+ *   <li>ITEM_ADD / ITEM_USE / ITEM_DROP — from log_item_usage, one per action (v0.35.4)</li>
  * </ul>
  * </p>
  *
@@ -64,6 +66,10 @@ public class MatchLogsService implements MatchLogsPort {
     private static final String TYPE_COUNTER_ZERO = "COUNTER_ZERO";
     /** Step 33 — an event the engine fired: an arrival, a counter, a time-start. */
     private static final String TYPE_AUTOMATIC_EVENT = "AUTOMATIC_EVENT";
+    /** v0.35.4 — the three item actions, read off {@code log_item_usage.action}. */
+    private static final String TYPE_ITEM_ADD = "ITEM_ADD";
+    private static final String TYPE_ITEM_USE = "ITEM_USE";
+    private static final String TYPE_ITEM_DROP = "ITEM_DROP";
     private static final String MSG_SLEEP = "ACTION_SLEEP";
     private static final String MSG_COUNTER = "counter";
     private static final String DEFAULT_LANG = "en";
@@ -129,25 +135,60 @@ public class MatchLogsService implements MatchLogsPort {
                 nextCursor, effectiveLimit, all.size(), effectiveOrder);
     }
 
+    /**
+     * v0.35.4 — {@code log_item_usage.action} to timeline type. REMOVE is an effect taking
+     * the item away and DROP is the player putting it down: the bag ends up the same, so
+     * they share one type. An unknown action is dropped, like an unknown log message.
+     */
+    private static String itemType(String action) {
+        if (action == null) {
+            // Pre-v0.35.4 rows predate the column: back then the table only logged usages.
+            return TYPE_ITEM_USE;
+        }
+        return switch (action.trim().toUpperCase()) {
+            case EventExecutionStorePort.ITEM_ACTION_ADD -> TYPE_ITEM_ADD;
+            case EventExecutionStorePort.ITEM_ACTION_USE -> TYPE_ITEM_USE;
+            case EventExecutionStorePort.ITEM_ACTION_DROP,
+                 EventExecutionStorePort.ITEM_ACTION_REMOVE -> TYPE_ITEM_DROP;
+            default -> null;
+        };
+    }
+
     /** The whole timeline, sorted by timestamp ascending, with no enrichment yet. */
     private List<LogEntry> assembleTimeline(MatchSummary match) {
         List<LogEntry> entries = new ArrayList<>();
 
         for (WeatherLogEntry w : store.findWeatherLog(match.id())) {
-            entries.add(new LogEntry(TYPE_WEATHER, w.clock(), w.timestamp(), w.idWeather(),
-                    null, null, null, null, null, null, null, null, null, null, 0, 0, 0));
+            entries.add(LogEntry.builder(TYPE_WEATHER, w.timestamp())
+                    .clock(w.clock()).idWeather(w.idWeather()).build());
         }
 
         for (MovementLogEntry m : store.findMovementLog(match.id())) {
-            entries.add(new LogEntry(TYPE_MOVEMENT, null, m.timestamp(), null,
-                    m.idCharacterMatch(), null, null, m.idLocationFrom(), m.idLocationTo(),
-                    m.energyCost(), null, null, null, null,
-                    nz0(m.foodCost()), nz0(m.magicCost()), nz0(m.coinCost())));
+            entries.add(LogEntry.builder(TYPE_MOVEMENT, m.timestamp())
+                    .character(m.idCharacterMatch())
+                    .locationFrom(m.idLocationFrom()).locationTo(m.idLocationTo())
+                    .cost(m.energyCost(), m.foodCost(), m.magicCost(), m.coinCost())
+                    .build());
         }
 
         for (ClockLogEntry c : store.findClockLog(match.id())) {
-            entries.add(new LogEntry(TYPE_CLOCK_ADVANCE, c.clock(), c.timestamp(), null,
-                    null, null, null, null, null, null, null, null, null, null, 0, 0, 0));
+            entries.add(LogEntry.builder(TYPE_CLOCK_ADVANCE, c.timestamp())
+                    .clock(c.clock()).build());
+        }
+
+        // v0.35.4 — the item log. Unlike log_events this table needs no message parsing:
+        // the action column says what happened, and an unknown one is dropped the same way.
+        for (ItemLogEntry i : store.findItemLog(match.id())) {
+            String type = itemType(i.action());
+            if (type == null) {
+                continue;
+            }
+            entries.add(LogEntry.builder(type, i.timestamp())
+                    .character(i.idCharacterMatch())
+                    .idEvent(i.idEvent())
+                    .item(i.idItem(), i.action(), i.counter())
+                    .delta(i.energy(), i.food(), i.magic(), i.coin())
+                    .build());
         }
 
         // log_events is a shared table and the type is derived from the message prefix, so an
@@ -159,31 +200,32 @@ public class MatchLogsService implements MatchLogsPort {
                 continue;
             }
             if (MSG_SLEEP.equals(msg)) {
-                entries.add(new LogEntry(TYPE_SLEEP, e.clock(), e.timestamp(), null,
-                        e.idCharacterMatch(), null, null, null, null, null, null, null, null, null,
-                        0, 0, 0));
+                entries.add(LogEntry.builder(TYPE_SLEEP, e.timestamp())
+                        .clock(e.clock()).character(e.idCharacterMatch()).build());
             } else if (msg.startsWith(EventExecutionStorePort.MSG_EVENT_EXECUTED)) {
                 // v0.35.3 — the price the actor paid rides on the EVENT row: energy in the
                 // slot movement already uses, the three resources in the new ones.
-                entries.add(new LogEntry(TYPE_EVENT, e.clock(), e.timestamp(), null,
-                        e.idCharacterMatch(), null, null, null, null, nz0(e.energyCost()), msg, null, null,
-                        e.idEvent(),
-                        nz0(e.foodCost()), nz0(e.magicCost()), nz0(e.coinCost())));
+                // v0.35.4 — and what the event gave back, on the gain half of the same row.
+                entries.add(LogEntry.builder(TYPE_EVENT, e.timestamp())
+                        .clock(e.clock()).character(e.idCharacterMatch())
+                        .message(msg).idEvent(e.idEvent())
+                        .cost(e.energyCost(), e.foodCost(), e.magicCost(), e.coinCost())
+                        .gain(e.energyGain(), e.foodGain(), e.magicGain(), e.coinGain())
+                        .build());
             } else if (msg.startsWith(MSG_COUNTER)) {
                 // Step 33 split this out of RECOVERY: a counter running out and a character
                 // healing are unrelated events, and the frontend has to tell them apart.
                 // The location rides in idLocationTo so it enriches like a MOVEMENT does.
-                entries.add(new LogEntry(TYPE_COUNTER_ZERO, e.clock(), e.timestamp(), null,
-                        e.idCharacterMatch(), null, null, null, e.idLocation(), null, msg, null,
-                        null, e.idEvent(), 0, 0, 0));
+                entries.add(LogEntry.builder(TYPE_COUNTER_ZERO, e.timestamp())
+                        .clock(e.clock()).character(e.idCharacterMatch())
+                        .locationTo(e.idLocation()).message(msg).idEvent(e.idEvent()).build());
             } else if (msg.startsWith(LocationEntryStorePort.MSG_AUTOMATIC_EVENT)) {
-                entries.add(new LogEntry(TYPE_AUTOMATIC_EVENT, e.clock(), e.timestamp(), null,
-                        e.idCharacterMatch(), null, null, null, e.idLocation(), null, msg, null,
-                        null, e.idEvent(), 0, 0, 0));
+                entries.add(LogEntry.builder(TYPE_AUTOMATIC_EVENT, e.timestamp())
+                        .clock(e.clock()).character(e.idCharacterMatch())
+                        .locationTo(e.idLocation()).message(msg).idEvent(e.idEvent()).build());
             } else if (msg.startsWith("recovery")) {
-                entries.add(new LogEntry(TYPE_RECOVERY, e.clock(), e.timestamp(), null,
-                        e.idCharacterMatch(), null, null, null, null, null, msg, null, null, null,
-                        0, 0, 0));
+                entries.add(LogEntry.builder(TYPE_RECOVERY, e.timestamp())
+                        .clock(e.clock()).character(e.idCharacterMatch()).message(msg).build());
             }
         }
 
@@ -206,6 +248,7 @@ public class MatchLogsService implements MatchLogsPort {
         Map<Long, Integer> locationCards = store.findLocationIdCards(match.idStory());
         Map<Long, Integer> templateCards = store.findCharacterTemplateIdCards(match.idStory());
         Map<Long, Integer> eventCards = store.findEventIdCards(match.idStory());
+        Map<Long, Integer> itemCards = store.findItemIdCards(match.idStory());
         Map<Long, CharacterLogView> characters = store.findCharactersByMatch(match.id());
 
         List<LogEntry> out = new ArrayList<>(page.size());
@@ -223,6 +266,10 @@ public class MatchLogsService implements MatchLogsPort {
             } else if (TYPE_COUNTER_ZERO.equals(e.type()) && e.idLocationTo() != null) {
                 // Step 33 — a counter belongs to a place, so the place's card names it.
                 idCard = locationCards.get(e.idLocationTo());
+            } else if (e.idItem() != null) {
+                // v0.35.4 — an item entry is narrated by the item's own card, whichever of
+                // the three actions it is.
+                idCard = itemCards.get(e.idItem());
             }
             CardInfo card = resolveCard(match.idStory(), idCard, lang);
 
@@ -238,11 +285,7 @@ public class MatchLogsService implements MatchLogsPort {
                 characterName = templateCard == null ? null : templateCard.title();
             }
 
-            out.add(new LogEntry(e.type(), e.clock(), e.timestamp(), e.idWeather(),
-                    e.idCharacterMatch(), characterUuid, characterName,
-                    e.idLocationFrom(), e.idLocationTo(), e.energyCost(), e.message(),
-                    idCard, card, e.idEvent(),
-                    e.foodCost(), e.magicCost(), e.coinCost()));
+            out.add(e.enrichedWith(characterUuid, characterName, idCard, card));
         }
         return out;
     }

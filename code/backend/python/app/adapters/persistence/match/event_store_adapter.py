@@ -15,7 +15,8 @@ from typing import Any, Dict, List, Optional
 from app.adapters.persistence.match.models import (
     GamingBackpackResourcesEntity, GamingCharacterInstanceEntity, GamingCharacterTraitsEntity,
     GamingInventoryItemsEntity, GamingMatchEntity, GamingStateRegistryEntity,
-    GamingStoryProgressEntity, LogChoicesExecutedEntity, LogEventsEntity, LogMovementEntity,
+    GamingStoryProgressEntity, LogChoicesExecutedEntity, LogEventsEntity,
+    LogItemUsageEntity, LogMovementEntity,
 )
 from app.adapters.persistence.story.models import (
     ChoiceConditionEntity, ChoiceEffectEntity, ChoiceEntity, EventEffectEntity, EventEntity,
@@ -410,7 +411,8 @@ class EventStoreAdapter(EventStorePort):
     def log_event_executed(self, id_match: int, id_character: Optional[int], id_event: int,
                            clock: int, message: str, energy_cost: int = 0,
                            food_cost: int = 0, magic_cost: int = 0,
-                           coin_cost: int = 0) -> None:
+                           coin_cost: int = 0, gained=None) -> None:
+        g = gained or {}
         with self.session_factory() as session:
             max_id = session.query(LogEventsEntity.id).order_by(
                 LogEventsEntity.id.desc()).first()
@@ -421,7 +423,28 @@ class EventStoreAdapter(EventStorePort):
                 id_character_match=id_character, id_event=id_event, clock=clock,
                 log_message=message, timestamp=now, ts_insert=now, ts_update=now,
                 energy_cost=energy_cost, food_cost=food_cost,
-                magic_cost=magic_cost, coin_cost=coin_cost))
+                magic_cost=magic_cost, coin_cost=coin_cost,
+                energy_gain=g.get("energy", 0), food_gain=g.get("food", 0),
+                magic_gain=g.get("magic", 0), coin_gain=g.get("coin", 0)))
+            session.commit()
+
+    def log_item_action(self, id_match: int, id_character: int, id_item: int,
+                        action: str, counter: int, effects_json=None,
+                        delta=None, id_event=None) -> None:
+        d = delta or {}
+        with self.session_factory() as session:
+            # Table-wide max: log_item_usage carries UNIQUE (id), like log_events.
+            max_id = session.query(LogItemUsageEntity.id).order_by(
+                LogItemUsageEntity.id.desc()).first()
+            now = _now_iso()
+            session.add(LogItemUsageEntity(
+                id=((max_id[0] if max_id else 0) or 0) + 1,
+                id_match=id_match, uuid=str(uuid_lib.uuid4()),
+                id_character_match=id_character, id_item=id_item, counter=counter,
+                action=action, id_event=id_event,
+                energy=d.get("energy", 0), food=d.get("food", 0),
+                magic=d.get("magic", 0), coin=d.get("coin", 0),
+                effects_json=effects_json, timestamp=now, ts_insert=now, ts_update=now))
             session.commit()
 
     # ── choices (Step 31) ───────────────────────────────────────────────────

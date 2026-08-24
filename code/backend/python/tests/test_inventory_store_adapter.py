@@ -166,8 +166,9 @@ def test_delete_inventory_row_removes_only_that_row(adapter, seeded, session_fac
 
 def test_log_ids_are_globally_unique_not_per_match(adapter, seeded, session_factory):
     """log_item_usage carries UNIQUE (id), unlike the per-match gaming_* tables."""
-    adapter.log_item_usage(MATCH_ID, CHAR_ID, 900, 2, '{"a":1}')
-    adapter.log_item_usage(MATCH_ID, CHAR_ID, 901, 1, "{}")
+    adapter.log_item_action(MATCH_ID, CHAR_ID, 900, "USE", 2, '{"a":1}',
+                            {"energy": 3, "magic": -1})
+    adapter.log_item_action(MATCH_ID, CHAR_ID, 901, "DROP", 1, "{}")
 
     with session_factory() as s:
         rows = s.query(LogItemUsageEntity).order_by(LogItemUsageEntity.id).all()
@@ -179,3 +180,10 @@ def test_log_ids_are_globally_unique_not_per_match(adapter, seeded, session_fact
     assert rows[0].effects_json == '{"a":1}'
     assert rows[0].uuid != rows[1].uuid
     assert rows[0].timestamp is not None
+    # v0.35.4 — the action and the signed deltas the usage produced.
+    assert rows[0].action == "USE"
+    assert rows[1].action == "DROP"
+    assert rows[0].id_event is None
+    assert rows[0].energy == 3
+    assert rows[0].magic == -1
+    assert rows[1].energy == 0

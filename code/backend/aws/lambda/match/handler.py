@@ -1807,6 +1807,26 @@ def _decode_logs_cursor(cursor):
         return 0
 
 
+_ITEM_LOG_TYPES = {
+    _inventory.ITEM_ACTION_ADD: "ITEM_ADD",
+    _inventory.ITEM_ACTION_USE: "ITEM_USE",
+    _inventory.ITEM_ACTION_DROP: "ITEM_DROP",
+    _inventory.ITEM_ACTION_REMOVE: "ITEM_DROP",
+}
+
+
+def _item_log_type(action):
+    """v0.35.4 — itemUsageLog action to timeline type.
+
+    REMOVE is an effect taking the item away and DROP is the player putting it down: the
+    bag ends up the same, so they share one type. An unknown action is dropped, like an
+    unknown log message.
+    """
+    if action is None:
+        return _ITEM_LOG_TYPES[_inventory.ITEM_ACTION_USE]
+    return _ITEM_LOG_TYPES.get(str(action).strip().upper())
+
+
 def _assemble_match_logs(match, match_uuid):
     """The whole timeline, sorted by timestamp ascending, with no enrichment yet."""
     entries = []
@@ -1873,7 +1893,38 @@ def _assemble_match_logs(match, match_uuid):
             "foodCost": _nz(e.get('foodCost')),
             "magicCost": _nz(e.get('magicCost')),
             "coinCost": _nz(e.get('coinCost')),
+            # v0.35.4 — and what the event gave back, read the same defensive way.
+            "energyGain": _nz(e.get('energyGain')),
+            "foodGain": _nz(e.get('foodGain')),
+            "magicGain": _nz(e.get('magicGain')),
+            "coinGain": _nz(e.get('coinGain')),
         })
+
+    # v0.35.4 — ITEM_ADD / ITEM_USE / ITEM_DROP from itemUsageLog. Unlike eventLog this
+    # list needs no message parsing: the action key says what happened, and an unknown one
+    # is dropped the same way. A row written before v0.35.4 has no action at all — back
+    # then the list only held usages, so that is how it reads.
+    for i in (match.get('itemUsageLog') or []):
+        entry_type = _item_log_type(i.get('action'))
+        if entry_type is None:
+            continue
+        entry = {
+            "type": entry_type,
+            "clock": i.get('clock'),
+            "timestamp": _ms_to_iso(i.get('timestamp')),
+            "characterUuid": i.get('characterUuid'),
+            "idItem": i.get('idItem'),
+            "itemAction": i.get('action'),
+            "counter": i.get('counter'),
+            "idEvent": i.get('idEvent'),
+        }
+        # A signed delta splits: the negative half is a cost, the positive half a gain,
+        # so one reader covers a move, an event and a potion.
+        for name in ('energy', 'food', 'magic', 'coin'):
+            value = _nz(i.get(name))
+            entry[f'{name}Cost'] = max(0, -value)
+            entry[f'{name}Gain'] = max(0, value)
+        entries.append(entry)
 
     # SLEEP from sleepLog
     for s in (match.get('sleepLog') or []):
@@ -1895,6 +1946,15 @@ def _assemble_match_logs(match, match_uuid):
             "timestamp": _ms_to_iso(c.get('timestampStart')),
         })
 
+    # v0.35.4 — every entry carries the eight resource fields, whatever its type, so a
+    # client can sum a column without null checks. The Java reference has always answered
+    # this shape; this backend built per-type dicts and left the keys out of the types that
+    # move nothing, which made the contract type-dependent.
+    for entry in entries:
+        for name in ('energy', 'food', 'magic', 'coin'):
+            entry.setdefault(f'{name}Cost', 0)
+            entry.setdefault(f'{name}Gain', 0)
+
     # Sort by timestamp ascending; None timestamps sort last
     entries.sort(key=lambda x: x.get('timestamp') or '9999')
     return entries
@@ -1905,7 +1965,8 @@ def _enrich_match_logs(page, match, match_uuid, lang):
     destination location's), plus the name of the character behind character-scoped
     entries. The story and character lookups run once per page, not per entry.
 
-    v0.30.3 — EVENT entries carry the triggered event's own card, resolved the same way."""
+    v0.30.3 — EVENT entries carry the triggered event's own card, resolved the same way.
+    v0.35.4 — and ITEM_* entries the item's own."""
     if not page:
         return []
 
@@ -1920,6 +1981,8 @@ def _enrich_match_logs(page, match, match_uuid, lang):
                       for t in (story.get('characterTemplates') or [])}
     event_cards = {_nz(ev.get('id')): ev.get('idCard')
                    for ev in (story.get('events') or [])}
+    item_cards = {_nz(it.get('id')): it.get('idCard')
+                  for it in (story.get('items') or [])}
     characters = {c.get('uuid'): c for c in _match_characters(match_uuid)}
 
     out = []
@@ -1939,6 +2002,10 @@ def _enrich_match_logs(page, match, match_uuid, lang):
         elif entry['type'] == 'COUNTER_ZERO' and entry.get('idLocationTo') is not None:
             # Step 33 — a counter belongs to a place, so the place's card names it.
             id_card = location_cards.get(_nz(entry['idLocationTo']))
+        elif entry.get('idItem') is not None:
+            # v0.35.4 — an item entry is narrated by the item's own card, whichever of the
+            # three actions it is.
+            id_card = item_cards.get(_nz(entry['idItem']))
         entry['idCard'] = id_card
         entry['card'] = _resolve_card_from_raw(raw_cards, raw_texts, id_card, lang)
 
@@ -2568,6 +2635,10 @@ def _execute_event(user, match_uuid, body, lang='en'):
         if current.get('uuid'):
             executed_uuids.append(current.get('uuid'))
 
+        # v0.35.4 — the mark is taken before the effects run, so a chained event logs what
+        # it gave and not what the events before it in the same chain already did.
+        gains_mark = len(stat_changes)
+
         for effect in effects_by_event.get(event_id, []):
             recipients = _events.resolve_recipients(effect, caller, characters)
 
@@ -2584,6 +2655,7 @@ def _execute_event(user, match_uuid, body, lang='en'):
                 _events.apply_stat(target_char, effect, stat_changes)
                 added, removed = _events.apply_item(target_char, effect, item_uuids,
                                                     item_changes, _item_cap(story, effect))
+                _log_item_effect(match, target_char, effect, added, removed, current)
                 flags['itemAdded'] = flags['itemAdded'] or added
                 flags['itemRemoved'] = flags['itemRemoved'] or removed
                 _events.apply_traits(target_char, effect, trait_uuids, trait_changes,
@@ -2666,6 +2738,8 @@ def _execute_event(user, match_uuid, body, lang='en'):
             costs_logged[0] = True
             row.update({"energyCost": energy_spent, "foodCost": food_spent,
                         "magicCost": magic_spent, "coinCost": coin_spent})
+        # v0.35.4 — and what THIS event gave the actor, on the gain half of the same row.
+        row.update(_gains_since(stat_changes, gains_mark, caller.get('uuid')))
         event_log.append(row)
 
         if flags['comaTriggered'] and not epilogue_phase:
@@ -2822,6 +2896,38 @@ def _traits_by_id(story):
     return {_nz(t.get('id')): t for t in (story.get('traits') or []) if t.get('id') is not None}
 
 
+def _gains_since(stat_changes, mark, actor_uuid):
+    """v0.35.4 — what the ACTOR gained from the stat changes recorded since ``mark``.
+
+    Only the positive half: a drain is the effect's own business, not a gain. The row is
+    character-scoped, so a change on anybody else stays out of it.
+    """
+    gains = {"energyGain": 0, "foodGain": 0, "magicGain": 0, "coinGain": 0}
+    for change in (stat_changes or [])[mark:]:
+        if actor_uuid is not None and change.get('characterUuid') != actor_uuid:
+            continue
+        stat = change.get('statistic')
+        delta = _nz(change.get('delta'))
+        if delta > 0 and f"{stat}Gain" in gains:
+            gains[f"{stat}Gain"] += delta
+    return gains
+
+
+def _log_item_effect(match, char, effect, added, removed, event):
+    """v0.35.4 — the itemUsageLog row of an item an effect moved.
+
+    Nothing is written when the bag did not change: a refused ADD and a REMOVE that found
+    nothing to take are not things that happened. The counter is 1 because an effect grants
+    or takes one unit; the amount lives on the character item, not here.
+    """
+    if not added and not removed:
+        return
+    _inventory.log_item_action(
+        match, char, effect.get('idItemTarget'),
+        _inventory.ITEM_ACTION_ADD if added else _inventory.ITEM_ACTION_REMOVE,
+        _nz(match.get('currentClock')), None, 1, (event or {}).get('id'))
+
+
 def _item_cap(story, effect):
     """v0.35.1 — max_per_character of the item an effect hands over, None when it sets no
     cap. Read per effect rather than cached: an execution carries a handful of them, and a
@@ -2902,6 +3008,14 @@ def _drop_item(user, match_uuid, body):
     units = (_inventory.unit_amount(row.get('amount')) if item is None
              else _inventory.action_amount(item.get('amountDrop')))
     dropped = _inventory.spend_units(caller, row, units)
+    # v0.35.4 — a drop moves no resource, but it IS an item event: without this row the
+    # timeline would show the item arriving and being used and never leaving. The match
+    # item is written too, because that is where itemUsageLog lives.
+    if item is not None:
+        _inventory.log_item_action(match, caller, item.get('id'),
+                                   _inventory.ITEM_ACTION_DROP,
+                                   _nz(match.get('currentClock')), None, dropped)
+        db_utils.put_item(match)
     db_utils.put_item(caller)
 
     return _ok({
@@ -2981,8 +3095,11 @@ def _use_item(user, match_uuid, body, lang='en'):
         })
 
     _apply_edge_states(match, caller, acc, None)
-    _inventory.log_item_usage(match, caller, item.get('id'),
-                              _nz(match.get('currentClock')), acc['statChanges'], spend)
+    _inventory.log_item_action(
+        match, caller, item.get('id'), _inventory.ITEM_ACTION_USE,
+        _nz(match.get('currentClock')),
+        acc['statChanges'], spend, None,
+        _inventory.resource_delta(acc['statChanges'], caller.get('uuid')))
     db_utils.put_item(caller)
     db_utils.put_item(match)
 
@@ -3088,6 +3205,8 @@ def _execute_choice_event(match, match_uuid, story, event, event_choices,
             # v0.35.3 — the open is what the player paid for; the resolution pays nothing.
             "energyCost": energy_spent, "foodCost": food_spent,
             "magicCost": magic_spent, "coinCost": coin_spent,
+            # v0.35.4 — opening a choice-event applies no effect, so it gives nothing.
+            "energyGain": 0, "foodGain": 0, "magicGain": 0, "coinGain": 0,
         })
         db_utils.put_item(caller)
         db_utils.put_item(match)
@@ -3264,6 +3383,7 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
             _events.apply_stat(target_char, effect, acc['statChanges'])
             added, removed = _events.apply_item(target_char, effect, item_uuids,
                                                 acc['itemChanges'], _item_cap(story, effect))
+            _log_item_effect(match, target_char, effect, added, removed, event)
             acc['flags']['itemAdded'] = acc['flags']['itemAdded'] or added
             acc['flags']['itemRemoved'] = acc['flags']['itemRemoved'] or removed
             moved = _events.apply_location(match, target_char, effect, location_uuids,
@@ -3583,6 +3703,7 @@ def _run_event_chain(match, story, first, caller, characters, ctx, events_by_id,
                 _events.apply_stat(target_char, effect, acc['statChanges'])
                 added, removed = _events.apply_item(target_char, effect, item_uuids,
                                                     acc['itemChanges'], _item_cap(story, effect))
+                _log_item_effect(match, target_char, effect, added, removed, current)
                 acc['flags']['itemAdded'] = acc['flags']['itemAdded'] or added
                 acc['flags']['itemRemoved'] = acc['flags']['itemRemoved'] or removed
                 _events.apply_traits(target_char, effect, {}, acc['traitChanges'],

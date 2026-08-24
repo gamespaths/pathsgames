@@ -19,6 +19,7 @@ import games.paths.core.port.match.EventExecutionStorePort.CharacterStats;
 import games.paths.core.port.match.EventExecutionStorePort.EventActorView;
 import games.paths.core.port.match.EventExecutionStorePort.EventCheckContext;
 import games.paths.core.port.match.EventExecutionStorePort.MatchEventView;
+import games.paths.core.port.match.EventExecutionStorePort.ResourceDelta;
 import games.paths.core.port.match.EventExecutionStorePort.TraitStats;
 import games.paths.core.port.match.UserAccessPort;
 import games.paths.core.port.story.ContentQueryPort;
@@ -221,14 +222,15 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
     }
 
     /**
-     * The {@code EVENT_EXECUTED} row, with the price on it exactly once.
+     * The {@code EVENT_EXECUTED} row, with the price on it exactly once and, since
+     * v0.35.4, what this event alone gave back.
      *
      * <p>{@code applyEvent} runs for every event of a chain and the whole chain shares one
      * {@link Exec}, so the costs are stamped on the row of the event the player actually
      * asked for and every other row of the chain logs zeros — the sum over a match is then
      * what was really spent, not the top-level price repeated per chained event.</p>
      */
-    private void logExecuted(Exec x, long eventId, String message) {
+    private void logExecuted(Exec x, long eventId, String message, ResourceDelta gained) {
         boolean paid = x.costsPending && x.event != null && x.event.getId() != null
                 && x.event.getId().longValue() == eventId;
         if (paid) {
@@ -237,7 +239,8 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         store.logEventExecuted(x.match.id(), x.actorId(), eventId, x.currentClock, message,
                 paid ? new EventExecutionStorePort.SpentResources(
                         x.energySpent, x.foodSpent, x.magicSpent, x.coinSpent)
-                     : EventExecutionStorePort.SpentResources.none());
+                     : EventExecutionStorePort.SpentResources.none(),
+                gained);
     }
 
     // ── choices (Step 31) ───────────────────────────────────────────────────
@@ -276,7 +279,8 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             // so the ONCE accounting and the log timeline cannot tell the flows apart.
             x.visited.add(eventId);
             x.ctx.consumedEventIds().add(eventId);
-            logExecuted(x, eventId, EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + eventId);
+            logExecuted(x, eventId, EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + eventId,
+                    ResourceDelta.none());
         }
         // Both paths: "index 0 is always the event" holds on a re-fetch too, so the
         // frontend cannot tell a page refresh from the first open (beside energySpent=0).
@@ -582,7 +586,8 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         for (EventActorView recipient : recipients) {
             touched.add(recipient.uuid());
             applyStat(x, recipient, effect.getStatistics(), nz(effect.getValue()));
-            applyItem(x, recipient, effect.getIdItemTarget(), effect.getItemAction());
+            applyItem(x, recipient, effect.getIdItemTarget(), effect.getItemAction(),
+                    event.getId());
             applyMove(x, recipient, effect.getIdLocation());
         }
         applyChoiceRegistryEffect(x, effect, event);
@@ -668,7 +673,8 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             x.visited.add(linkedId);
             x.ctx.consumedEventIds().add(linkedId);
             x.executedEventUuids.add(linked.getUuid());
-            logExecuted(x, linkedId, EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + linkedId);
+            logExecuted(x, linkedId, EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + linkedId,
+                    ResourceDelta.none());
             x.status = STATUS_CHOICES_PENDING;
             x.pendingChoices = buildPendingChoices(x, nested);
             return;
@@ -693,7 +699,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
     private void writeResolutionMarkers(Exec x, ChoiceEntity choice, long eventId, long choiceId) {
         store.logEventExecuted(x.match.id(), x.actor.id(), eventId, x.currentClock,
                 EventExecutionStorePort.MSG_CHOICE_SELECTED + " " + eventId,
-                EventExecutionStorePort.SpentResources.none());
+                EventExecutionStorePort.SpentResources.none(), ResourceDelta.none());
         store.logChoiceExecuted(x.match.id(), eventId, choiceId, x.currentClock,
                 EventExecutionStorePort.MSG_CHOICE_SELECTED + " " + choiceId);
         if (nz(choice.getIsProgress()) == 1) {
@@ -741,6 +747,9 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         x.ctx.consumedEventIds().add(eventId);
         x.executedEventUuids.add(event.getUuid());
 
+        // v0.35.4 — the mark is taken before the effects run, so a chained event logs what
+        // it gave and not what the events before it in the same chain already did.
+        int[] gainsMark = x.gainsMark();
         for (EventEffectEntity effect : effectsByEvent.getOrDefault(eventId, List.of())) {
             applyEffect(x, event, effect);
         }
@@ -749,7 +758,8 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         x.gameOver = x.gameOver || (endGameId != null && endGameId == eventId);
 
         checkEdgeStates(x, eventId);
-        logExecuted(x, eventId, EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + eventId);
+        logExecuted(x, eventId, EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + eventId,
+                x.gainsSince(gainsMark));
     }
 
     // ── effects ─────────────────────────────────────────────────────────────
@@ -771,7 +781,8 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         for (EventActorView recipient : recipients) {
             touched.add(recipient.uuid());
             applyStat(x, recipient, effect.getStatistics(), nz(effect.getValue()));
-            applyItem(x, recipient, effect.getIdItemTarget(), effect.getItemAction());
+            applyItem(x, recipient, effect.getIdItemTarget(), effect.getItemAction(),
+                    event.getId());
             applyTraitEffects(x, recipient, effect, event);
             applyCharacteristicEffects(x, recipient, effect);
             applyMove(x, recipient, effect.getIdLocation());
@@ -894,7 +905,12 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                 return; // an unknown statistic is authored noise, not an error
             }
         }
-        x.statChanges.add(new StatChange(recipient.uuid(), stat.trim().toLowerCase(),
+        String normalized = stat.trim().toLowerCase();
+        if (x.isActor(recipient.id())) {
+            // The log row is character-scoped: only the actor's own resources ride on it.
+            x.recordGain(normalized, after - before);
+        }
+        x.statChanges.add(new StatChange(recipient.uuid(), normalized,
                 before, after, after - before));
     }
 
@@ -907,7 +923,8 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
      * character does hold the item, just not one more of it, so a later condition in this
      * same execution must keep reading "owned".</p>
      */
-    private void applyItem(Exec x, EventActorView recipient, Integer idItem, String action) {
+    private void applyItem(Exec x, EventActorView recipient, Integer idItem, String action,
+                           Long idEvent) {
         if (idItem == null || idItem <= 0 || action == null) {
             return;
         }
@@ -919,14 +936,19 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             x.itemChanges.add(new ItemChange(recipient.uuid(), itemUuid, added ? ADD : NOT_ADDED));
             if (!added) {
                 // Nothing changed in the bag, so nothing needs refreshing on its account.
+                // Nothing is logged either: a refused ADD is not a thing that happened.
                 return;
             }
+            logItemAction(x, recipient, itemId,
+                    EventExecutionStorePort.ITEM_ACTION_ADD, idEvent);
             x.itemAdded = true;
             if (x.isActor(recipient.id())) {
                 x.ctx.ownedItemIds().add(itemId);
             }
         } else if (REMOVE.equalsIgnoreCase(action.trim())
                 && store.removeItem(x.match.id(), recipient.id(), itemId)) {
+            logItemAction(x, recipient, itemId,
+                    EventExecutionStorePort.ITEM_ACTION_REMOVE, idEvent);
             x.itemRemoved = true;
             x.itemChanges.add(new ItemChange(recipient.uuid(), itemUuid, REMOVE));
             if (x.isActor(recipient.id())) {
@@ -936,6 +958,17 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                 x.ctx.ownedItemIds().remove(itemId);
             }
         }
+    }
+
+    /**
+     * v0.35.4 — the {@code log_item_usage} row of an item an effect moved. The counter is 1
+     * because an effect grants or takes one unit; a REMOVE that empties a stack of three
+     * still describes one authored action, and the amount lives in the inventory, not here.
+     */
+    private void logItemAction(Exec x, EventActorView recipient, long itemId, String action,
+                               Long idEvent) {
+        store.logItemAction(x.match.id(), recipient.id(), itemId, action, 1, idEvent, null,
+                ResourceDelta.none());
     }
 
     private void applyTraitEffects(Exec x, EventActorView recipient, EventEffectEntity effect,
@@ -1656,6 +1689,37 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         int magicSpent;
         /** True between deductCosts and the log row that carries the price (v0.35.3). */
         boolean costsPending;
+        /**
+         * v0.35.4 — running totals of what the ACTOR gained, never reset. Each event row
+         * logs the difference across its own effects, so a chain does not repeat them.
+         */
+        int energyGained;
+        int foodGained;
+        int magicGained;
+        int coinGained;
+
+        int[] gainsMark() {
+            return new int[] {energyGained, foodGained, magicGained, coinGained};
+        }
+
+        ResourceDelta gainsSince(int[] mark) {
+            return new ResourceDelta(energyGained - mark[0], foodGained - mark[1],
+                    magicGained - mark[2], coinGained - mark[3]);
+        }
+
+        /** Only what a statistic ADDED counts as a gain; a drain is the effect's own business. */
+        void recordGain(String stat, int delta) {
+            if (delta <= 0) {
+                return;
+            }
+            switch (stat) {
+                case "energy" -> energyGained += delta;
+                case "food" -> foodGained += delta;
+                case "magic" -> magicGained += delta;
+                case "coin" -> coinGained += delta;
+                default -> { /* only the four resources ride on a log row */ }
+            }
+        }
         // ── Step 31 choices ──
         String status = STATUS_APPLIED;
         List<PendingChoice> pendingChoices = List.of();

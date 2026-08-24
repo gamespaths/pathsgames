@@ -1155,7 +1155,10 @@ negative — the same guarantee energy and coins already had.
 - `GET /api/matches/{uuid}/logs`: MOVEMENT and EVENT entries gain `foodCost`, `magicCost`,
   `coinCost` (EVENT also fills `energyCost`, previously always `null` — `log_events` had nowhere
   to keep it). The price is stamped on the row of the event the player actually asked for; every
-  other row of a chain logs zeros, so summing a match's log gives the real spend.
+  other row of a chain logs zeros, so summing a match's log gives the real spend. **v0.35.4**
+  adds the counterpart — `energyGain`/`foodGain`/`magicGain`/`coinGain`, present as numbers on
+  every entry type — plus three new entry types for items; see §i below and the full write-up in
+  [Step28 "New: Item Actions and Resource Gains (v0.35.4)"](./Step28_MovementSystem.md).
 - `list_locations_neighbors` CRUD/import gains `costFood`/`costMagic`/`costCoin`.
 
 ### e. Components touched
@@ -1269,14 +1272,50 @@ neighbor cards themselves — the data is already on the payload (`/info` events
 those specific cards is missing. A player still discovers an action's exact price from the
 refusal reason or from the backpack total, not from the action card before committing to it.
 
+### i. v0.35.4 — the other half: what an action *gives*, and every item action in the log
+
+§12 gave the log what an action **took**. Two things were still missing: nothing recorded what
+an action **gave** — a match where the player earned 50 coins had them appear from nowhere — and
+`log_item_usage` was written on a use and read by no endpoint, so taking an item or dropping one
+left no trace anywhere.
+
+- **Schema** (`V0.35.4__log_item_actions_and_resource_gains.sql`, SQLite + PostgreSQL): `log_events`
+  gains `energy_gain`/`food_gain`/`magic_gain`/`coin_gain` — spend and gain stay separate columns
+  rather than one signed number, because an event can pay 5 coins and hand back 2 in the same
+  effect chain, and a single column would report `-3` for a transaction never worth `-3`.
+  `log_item_usage` gains `action` (`ADD`/`USE`/`DROP`/`REMOVE`, default `USE`), `id_event` (the
+  event whose effect moved the item; `NULL` on a direct use/drop, deliberately **not** a foreign
+  key — `list_events` is keyed on `(id, id_story)`, so `id` alone is not a valid reference target)
+  and signed `energy`/`food`/`magic`/`coin`.
+- **Engine**: an `ADD` refused by `max_per_character` (§2) and a `REMOVE` that found nothing to
+  take both write no row — neither is a thing that happened. A gain is stamped per event, reset
+  before that event's own effects run, so a chained event logs what it gave and not what an
+  earlier link already gave. Only the acting character's own resources ride on a row: an effect
+  that also touches another character in the match stays in the HTTP response only.
+- **API**: three new log-entry types, `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` (a `REMOVE` an effect
+  produced surfaces as `ITEM_DROP`, with the raw action kept in the new `itemAction` field), plus
+  `idItem`/`itemAction`/`counter` and the item's own `idCard`/`card`. The eight resource fields —
+  four `*Cost`, four `*Gain` — are now numbers on **every** entry type, never `null`: Java already
+  answered this shape, Python and AWS used to omit the keys on types that move nothing, which is
+  the v0.35.4 contract fix.
+- Full write-up, per-backend file list and the response-shape example: [Step28
+  "New: Item Actions and Resource Gains (v0.35.4)"](./Step28_MovementSystem.md). Frontends:
+  react-admin's `MatchLogsCard` gains a Resources column and badges/filters for the three new
+  types; react-game's `MatchLogCard` renders `ITEM_*` tiles with the item's own card, and
+  `BonusBadgeList` gains a per-badge `icon`/`color` override and an `actor` visual so one
+  component can badge type, actor and resources without new keys in `STAT_VISUAL`. New Robot
+  suite `item_logs.robot` (7 tests, `34_inventory`, backend-agnostic).
+
 ---
 
 # Version Control
 
-- **Document Version**: 0.35.3
+- **Document Version**: 0.35.4
 
   | Version | Description | Date |
   |---------|-------------|------|
+  | 0.35.4 | The log's other half (§i): `log_events` gains `energy_gain`/`food_gain`/`magic_gain`/`coin_gain`, the counterpart of §12's cost columns; `log_item_usage` becomes the register of every item action (`action`, `id_event`, signed deltas) instead of usages alone. Three new match-log types `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP`; the eight resource fields are now numbers on every log entry, never null. Full writeup in [Step28](./Step28_MovementSystem.md). | August 24, 2026 |
+  | 0.35.4 | Same version, continued (§i): react-admin's `MatchLogsCard` gains a Resources column and badges for the three new types; react-game's `MatchLogCard` shows the item's own card via `BonusBadgeList`, which gains a per-badge icon/color override and an `actor` visual; new Robot suite `item_logs.robot` (7 tests). | August 24, 2026 |
   | 0.35.3 | Food, magic and coin become a cost of acting (§12): `list_events.coin_cost` is renamed `cost_coin`, and both events and movement edges can now charge food/magic/coin, while `list_choices` gets the same three columns reserved for a future option-level cost. Import/admin accept both `coinCost` and `costCoin`; automatic events, forced moves and open choice cycles never pay. | August 23, 2026 |
   | 0.35.3 | Same version, continued (§12f-h): new Robot suite `resource_costs.robot` (9 tests, 576/576 on Java/SQLite and Python) replaces the earlier "no suite" note; three bugs the run found are fixed (Python's second `log_movements` writer, `/locations`' missing neighbor cost fields on Java/Python, three Robot predicates still keyed on `coinCost`); react-game's `ItemsCard` now badges food/magic/coin (per-action/per-neighbor price still not rendered). | August 24, 2026 |
   | 0.35.2 | Noted that `traits_to_add`/`traits_to_remove` on a `list_items_effects` row work regardless of a trait's new `hide_on_start_match` flag (§4); flag itself is documented in [Step23 §5.3](./Step23_CharacterStatsInitialization.md#53-schema-change--list_traitshide_on_start_match-v0352). | August 22, 2026 |

@@ -198,6 +198,11 @@ class MatchEntitiesTest {
         assertNotNull(e.getTimestamp());
         assertNotNull(e.getTsInsert());
         assertNotNull(e.getTsUpdate());
+        // v0.35.4 — a row that recorded no gain reports zero, never null.
+        assertEquals(0, e.getEnergyGain());
+        assertEquals(0, e.getFoodGain());
+        assertEquals(0, e.getMagicGain());
+        assertEquals(0, e.getCoinGain());
 
         // Second call must not overwrite already-set uuid/timestamp
         String uuid = e.getUuid();
@@ -223,7 +228,15 @@ class MatchEntitiesTest {
         e.setLogMessage("msg");
         e.setTsInsert("ins");
         e.setTsUpdate("upd");
+        e.setEnergyGain(1);
+        e.setFoodGain(2);
+        e.setMagicGain(3);
+        e.setCoinGain(4);
 
+        assertEquals(1, e.getEnergyGain());
+        assertEquals(2, e.getFoodGain());
+        assertEquals(3, e.getMagicGain());
+        assertEquals(4, e.getCoinGain());
         assertEquals(1L, e.getId());
         assertEquals(2L, e.getIdMatch());
         assertEquals("ev-uuid", e.getUuid());

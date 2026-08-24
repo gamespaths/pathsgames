@@ -10,7 +10,7 @@ vi.mock('../api/matches', () => ({
 }))
 
 import { getMatchLogs } from '../api/matches'
-import MatchLogCard, { formatLogDate } from '../features/matches/MatchLogCard'
+import MatchLogCard, { formatLogDate, entryBadges, resourceBadges } from '../features/matches/MatchLogCard'
 
 const PAGE = {
   matchUuid: 'm1',
@@ -257,5 +257,129 @@ describe('formatLogDate', () => {
   it('is null-safe and tolerates a garbage timestamp', () => {
     expect(formatLogDate(null, 'en')).toBe('—')
     expect(formatLogDate('not-a-date', 'en')).toBe('not-a-date')
+  })
+})
+
+describe('v0.35.4 — items and resources in the timeline', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('entryBadges leads with the type, names the actor, then splits the two families', () => {
+    const t = (k) => k
+    const items = entryBadges(
+      { type: 'EVENT', energyCost: 5, coinCost: 7, foodGain: 2, coinGain: 30 }, 'Ranger', t)
+
+    // The type first, then the actor, then one badge per half that actually moved — coins
+    // twice, because an event that charged and refunded them did two different things.
+    expect(items.map(i => [i.key, i.prefix ?? '', i.value])).toEqual([
+      ['type-EVENT', '', 'matchLog.types.EVENT'],
+      ['actor', '', 'Ranger'],
+      ['energy', '−', 5],
+      ['food', '+', 2],
+      ['coins', '−', 7],
+      ['coins', '+', 30],
+    ])
+    // The type carries its own glyph — the stat vocabulary has no word for it — and no
+    // label, so the page variant does not print it twice.
+    expect(items[0].icon).toBe('fas fa-scroll')
+    expect(items[0].color).toBe('#f87171')
+    expect(items[0].label).toBeNull()
+  })
+
+  it('entryBadges leaves out what did not move, and the actor when there is none', () => {
+    const t = (k) => k
+    expect(entryBadges({ energyCost: 0, foodGain: 0 }, null, t)).toEqual([])
+    expect(entryBadges(undefined, null, t)).toEqual([])
+    // An entry with no resources still names whoever acted.
+    expect(entryBadges({}, 'Ranger', t).map(i => i.key)).toEqual(['actor'])
+    // An unknown type still gets a badge, on the fallback glyph.
+    const unknown = entryBadges({ type: 'WHATEVER' }, null, t)
+    expect(unknown.map(i => i.key)).toEqual(['type-WHATEVER'])
+    expect(unknown[0].icon).toBe('fas fa-circle')
+    // and no colour key at all, so BonusBadgeList falls back to its own default
+    expect('color' in unknown[0]).toBe(false)
+  })
+
+  it('renders the three item types with their own card and label', async () => {
+    getMatchLogs.mockResolvedValue({
+      matchUuid: 'm1', currentClock: 2, total: 3, limit: 50, nextCursor: null,
+      logs: [
+        { type: 'ITEM_ADD', timestamp: '2026-07-12T10:01:00Z', idItem: 900, itemAction: 'ADD',
+          counter: 1, idEvent: 42, characterName: 'Ranger',
+          idCard: 700, card: { title: 'Healing Potion', urlImage: 'http://img/potion.png' } },
+        { type: 'ITEM_USE', timestamp: '2026-07-12T10:02:00Z', idItem: 900, itemAction: 'USE',
+          counter: 2, characterName: 'Ranger', magicCost: 3, energyGain: 9,
+          idCard: 700, card: { title: 'Healing Potion' } },
+        { type: 'ITEM_DROP', timestamp: '2026-07-12T10:03:00Z', idItem: 901, itemAction: 'DROP',
+          counter: 1, characterName: 'Ranger',
+          idCard: 701, card: { title: 'Rusty Sword' } },
+      ],
+    })
+    render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
+    await screen.findByTestId('match-log-card')
+
+    expect(screen.getAllByText('matchLog.types.ITEM_ADD').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('matchLog.types.ITEM_USE').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('matchLog.types.ITEM_DROP').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Healing Potion').length).toBe(2)
+    expect(screen.getByText('Rusty Sword')).toBeInTheDocument()
+  })
+
+  it('shows the actor and the resources an entry moved as badges on the tile', async () => {
+    getMatchLogs.mockResolvedValue({
+      matchUuid: 'm1', currentClock: 2, total: 1, limit: 50, nextCursor: null,
+      logs: [
+        { type: 'ITEM_USE', timestamp: '2026-07-12T10:02:00Z', idItem: 900, itemAction: 'USE',
+          counter: 1, characterName: 'Ranger', magicCost: 3, energyGain: 9,
+          idCard: 700, card: { title: 'Healing Potion' } },
+      ],
+    })
+    render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
+    await screen.findByTestId('match-log-card')
+
+    // The badges: what it was, who acted, then what the usage gave and what it took.
+    expect(screen.getByText('matchLog.types.ITEM_USE')).toBeInTheDocument()
+    expect(screen.getByTitle('matchLog.character')).toHaveTextContent('Ranger')
+    expect(screen.getByTitle('game.stats.energy')).toHaveTextContent('+9')
+    expect(screen.getByTitle('game.stats.magic')).toHaveTextContent('−3')
+    // And the date is on its own under the tile, with no separator left dangling.
+    expect(screen.getByText(formatLogDate('2026-07-12T10:02:00Z', 'it'))).toBeInTheDocument()
+  })
+
+  it('carries the same badges onto the page a tile opens', async () => {
+    getMatchLogs.mockResolvedValue({
+      matchUuid: 'm1', currentClock: 2, total: 1, limit: 50, nextCursor: null,
+      logs: [
+        { type: 'ITEM_USE', timestamp: '2026-07-12T10:02:00Z', idItem: 900, itemAction: 'USE',
+          counter: 1, characterName: 'Ranger', magicCost: 3, energyGain: 9,
+          idCard: 700, card: { title: 'Healing Potion' } },
+      ],
+    })
+    render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
+    await screen.findByTestId('match-log-card')
+
+    const tile = screen.getByText('Healing Potion').closest('.pg-card')
+    fireEvent.click(tile.querySelector('button'))
+
+    // The timeline is gone and the page carries both halves of the usage as badges.
+    expect(screen.queryByTestId('match-log-card')).not.toBeInTheDocument()
+    expect(screen.getByTitle('game.stats.energy')).toHaveTextContent('+9')
+    expect(screen.getByTitle('game.stats.magic')).toHaveTextContent('−3')
+    // The type and the actor are NOT badges here — the page has room to say them in
+    // words, so they lead the line under the card instead.
+    expect(screen.queryByTitle('matchLog.character')).not.toBeInTheDocument()
+    expect(screen.getByText('matchLog.types.ITEM_USE')).toBeInTheDocument()
+    expect(screen.getByText(/Ranger/)).toBeInTheDocument()
+  })
+
+  it('resourceBadges carries the resources alone, with neither type nor actor', () => {
+    const t = (k) => k
+    const items = resourceBadges({ type: 'EVENT', coinCost: 7, coinGain: 30 }, t)
+    expect(items.map(i => [i.key, i.prefix, i.value])).toEqual([
+      ['coins', '−', 7],
+      ['coins', '+', 30],
+    ])
+    expect(resourceBadges({ type: 'WEATHER' }, t)).toEqual([])
   })
 })

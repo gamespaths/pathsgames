@@ -402,10 +402,11 @@ def test_every_usage_writes_one_log_row(service, store, engine):
 
     service.use_item(MATCH_UUID, USER_UUID, "row-1", "en")
 
-    args = store.log_item_usage.call_args[0]
-    # v0.35.1 — the 4th argument is the units the usage spent; it was hardcoded to 1.
-    assert args[:4] == (MATCH_ID, CHAR_ID, 900, 1)
-    payload = json.loads(args[4])
+    args = store.log_item_action.call_args[0]
+    # v0.35.1 — the units the usage spent; it was hardcoded to 1 until then.
+    # v0.35.4 — the action sits between the item and the units.
+    assert args[:5] == (MATCH_ID, CHAR_ID, 900, "USE", 1)
+    payload = json.loads(args[5])
     assert payload["statChanges"][0] == {
         "characterUuid": "char-uuid", "statistic": "life",
         "before": 4, "after": 7, "delta": 3}
@@ -474,13 +475,28 @@ def test_a_null_amount_counts_as_one(service, store):
     assert service.drop_item(MATCH_UUID, USER_UUID, "row-1")["amount_dropped"] == 1
 
 
-def test_dropping_never_writes_a_usage_log(service, store, engine):
+def test_v0354_dropping_writes_a_drop_row_and_still_applies_no_effect(service, store, engine):
     _given_potion(store)
 
     service.drop_item(MATCH_UUID, USER_UUID, "row-1")
 
-    store.log_item_usage.assert_not_called()
+    assert store.log_item_action.call_args[0][:5] == (MATCH_ID, CHAR_ID, 900, "DROP", 1)
     engine.apply_standalone_effects.assert_not_called()
+
+
+def test_v0354_the_row_carries_the_actors_resource_deltas_nobody_elses(service, store, engine):
+    _given_potion(store)
+    engine.apply_standalone_effects.return_value = _result(
+        stat_changes=[StatChange("char-uuid", "energy", 1, 10, 9),
+                      StatChange("char-uuid", "magic", 5, 2, -3),
+                      StatChange("char-uuid", "life", 4, 7, 3),
+                      StatChange("other-uuid", "coin", 0, 50, 50)])
+
+    service.use_item(MATCH_UUID, USER_UUID, "row-1", "en")
+
+    # life is not a resource and the coin went to somebody else: neither reaches the row.
+    assert store.log_item_action.call_args[0][6] == {
+        "energy": 9, "food": 0, "magic": -3, "coin": 0}
 
 
 # ── validation ──────────────────────────────────────────────────────────────

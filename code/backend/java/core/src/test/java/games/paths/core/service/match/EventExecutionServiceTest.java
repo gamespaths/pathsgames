@@ -197,7 +197,7 @@ class EventExecutionServiceTest {
 
             assertEquals(Code.NOT_ENOUGH_ENERGY, codeOf(EventExecutionServiceTest.this::execute));
             verify(store, never()).updateCharacterStats(anyLong(), anyLong(), any());
-            verify(store, never()).logEventExecuted(anyLong(), any(), anyLong(), anyInt(), anyString(), any());
+            verify(store, never()).logEventExecuted(anyLong(), any(), anyLong(), anyInt(), anyString(), any(), any());
         }
 
         @Test
@@ -281,7 +281,7 @@ class EventExecutionServiceTest {
             execute();
 
             verify(store).logEventExecuted(eq(MATCH_ID), any(), eq(1L), anyInt(), anyString(),
-                    eq(new EventExecutionStorePort.SpentResources(5, 2, 1, 3)));
+                    eq(new EventExecutionStorePort.SpentResources(5, 2, 1, 3)), any());
         }
 
         @Test
@@ -368,7 +368,7 @@ class EventExecutionServiceTest {
         void logged() {
             execute();
             verify(store).logEventExecuted(eq(MATCH_ID), eq(CHAR_ID), eq(1L), eq(7),
-                    startsWith(EventExecutionStorePort.MSG_EVENT_EXECUTED), any());
+                    startsWith(EventExecutionStorePort.MSG_EVENT_EXECUTED), any(), any());
         }
     }
 

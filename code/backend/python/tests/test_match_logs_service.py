@@ -14,12 +14,14 @@ from app.adapters.persistence.match.models import (
     GamingMatchEntity,
     LogClockHistoryEntity,
     LogEventsEntity,
+    LogItemUsageEntity,
     LogMovementEntity,
     LogWeatherEntity,
 )
 from app.adapters.persistence.story.models import (
     CharacterTemplateEntity,
     EventEntity,
+    ItemEntity,
     LocationEntity,
     WeatherRuleEntity,
 )
@@ -491,3 +493,117 @@ def test_without_a_content_service_entries_keep_ids_but_carry_no_cards(session_f
     weather = next(e for e in logs if e["type"] == "WEATHER")
     assert weather["idCard"] == 300
     assert weather["card"] is None
+
+
+# ── v0.35.4: items and resource gains ───────────────────────────────────────
+
+def _seed_item_row(session_factory, *, row_id=21, action="USE", counter=1, id_event=None,
+                   energy=0, food=0, magic=0, coin=0, id_item=900):
+    with session_factory() as s:
+        s.add(LogItemUsageEntity(
+            id=row_id, id_match=MATCH_ID, uuid=f"iu-{row_id}", id_character_match=10,
+            id_item=id_item, action=action, counter=counter, id_event=id_event,
+            energy=energy, food=food, magic=magic, coin=coin,
+            timestamp=_NOW, ts_insert=_NOW, ts_update=_NOW))
+        s.commit()
+
+
+def test_v0354_an_add_row_becomes_an_item_add_entry_naming_its_event(session_factory):
+    _seed_match(session_factory)
+    _seed_item_row(session_factory, action="ADD", id_event=90010)
+
+    entry = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"][0]
+    assert entry["type"] == "ITEM_ADD"
+    assert entry["idItem"] == 900
+    assert entry["itemAction"] == "ADD"
+    assert entry["counter"] == 1
+    assert entry["idEvent"] == 90010
+    assert entry["idCharacterMatch"] == 10
+
+
+def test_v0354_a_use_row_splits_its_signed_deltas_into_costs_and_gains(session_factory):
+    _seed_match(session_factory)
+    _seed_item_row(session_factory, action="USE", counter=2, energy=9, magic=-3)
+
+    entry = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"][0]
+    assert entry["type"] == "ITEM_USE"
+    assert entry["counter"] == 2
+    assert entry["idEvent"] is None
+    assert entry["energyGain"] == 9
+    assert entry["energyCost"] == 0
+    assert entry["magicCost"] == 3
+    assert entry["magicGain"] == 0
+
+
+def test_v0354_drop_and_remove_share_a_type_and_keep_their_raw_action(session_factory):
+    _seed_match(session_factory)
+    _seed_item_row(session_factory, row_id=21, action="DROP")
+    _seed_item_row(session_factory, row_id=22, action="remove", id_item=901, id_event=90010)
+
+    logs = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"]
+    assert [e["type"] for e in logs] == ["ITEM_DROP", "ITEM_DROP"]
+    assert [e["itemAction"] for e in logs] == ["DROP", "remove"]
+
+
+def test_v0354_a_row_written_before_the_action_column_reads_as_a_usage(session_factory):
+    _seed_match(session_factory)
+    _seed_item_row(session_factory, action=None)
+
+    logs = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"]
+    assert logs[0]["type"] == "ITEM_USE"
+
+
+def test_v0354_an_unknown_action_is_dropped_like_an_unknown_message(session_factory):
+    _seed_match(session_factory)
+    _seed_item_row(session_factory, action="TELEPORTED")
+
+    assert MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"] == []
+
+
+def test_v0354_an_item_entry_is_narrated_by_the_items_own_card(session_factory):
+    _seed_match(session_factory)
+    _seed_story_content(session_factory)
+    with session_factory() as s:
+        s.add(ItemEntity(id=900, id_story=STORY_ID, uuid="item-900", id_card=700))
+        s.commit()
+    _seed_item_row(session_factory, action="USE")
+    content = _FakeContentQueryService({500: "Ranger", 700: "Healing Potion"})
+
+    entry = MatchLogsService(session_factory, content).get_match_logs_for_admin(MATCH_UUID)["logs"][0]
+    assert entry["idCard"] == 700
+    assert entry["card"]["title"] == "Healing Potion"
+    assert entry["characterName"] == "Ranger"
+
+
+def test_v0354_what_an_event_gave_rides_on_the_same_row_as_what_it_took(session_factory):
+    _seed_match(session_factory)
+    with session_factory() as s:
+        s.add(LogEventsEntity(id=11, id_match=MATCH_ID, uuid="e11", id_character_match=10,
+                              clock=4, timestamp=_NOW, id_event=90010,
+                              log_message="EVENT_EXECUTED 90010",
+                              energy_cost=5, coin_cost=7, food_gain=2, coin_gain=30,
+                              ts_insert=_NOW, ts_update=_NOW))
+        s.commit()
+
+    entry = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"][0]
+    assert entry["energyCost"] == 5
+    assert entry["coinCost"] == 7
+    assert entry["foodGain"] == 2
+    assert entry["coinGain"] == 30
+
+
+def test_v0354_every_entry_carries_the_eight_resource_fields_whatever_its_type(session_factory):
+    """The Java reference has always answered this shape; this backend used to leave the
+    keys out of the types that move nothing, which made the contract type-dependent."""
+    _seed_match(session_factory)
+    _seed_logs(session_factory)
+    _seed_item_row(session_factory, action="USE")
+
+    logs = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"]
+    assert len(logs) > 1
+    for entry in logs:
+        for name in ("energy", "food", "magic", "coin"):
+            assert entry[f"{name}Cost"] is not None, f"{name}Cost missing on {entry['type']}"
+            assert entry[f"{name}Gain"] is not None, f"{name}Gain missing on {entry['type']}"
+    weather = next(e for e in logs if e["type"] == "WEATHER")
+    assert (weather["energyCost"], weather["coinGain"]) == (0, 0)

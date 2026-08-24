@@ -133,7 +133,7 @@ def test_first_open_pays_and_writes_one_marker(service, store):
     r = execute(service)
     assert r.energy_spent == 1 and r.new_energy == 19
     store.log_event_executed.assert_called_once_with(
-        MATCH_ID, CHAR_ID, EVENT_ID, 7, f"{MSG_EVENT_EXECUTED} {EVENT_ID}", 1, 0, 0, 0)
+        MATCH_ID, CHAR_ID, EVENT_ID, 7, f"{MSG_EVENT_EXECUTED} {EVENT_ID}", 1, 0, 0, 0, {})
     # The deduction is flushed: energy 19, everything else untouched.
     store.update_character_stats.assert_called_once_with(MATCH_ID, CHAR_ID, {
         "dexterity": 10, "intelligence": 10, "constitution": 10,

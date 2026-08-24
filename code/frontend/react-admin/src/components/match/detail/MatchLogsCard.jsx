@@ -8,7 +8,11 @@ import ErrorAlert from '../../common/ErrorAlert'
  * Shows the entries returned by GET /api/admin/matches/:uuid/logs, rendered as a
  * single table, newest entry first (the API is called with order=desc since
  * v0.30.3). Each entry is colour-coded by type
- * (WEATHER / MOVEMENT / SLEEP / CLOCK_ADVANCE / RECOVERY / EVENT).
+ * (WEATHER / MOVEMENT / SLEEP / CLOCK_ADVANCE / RECOVERY / EVENT / COUNTER_ZERO /
+ * AUTOMATIC_EVENT / ITEM_ADD / ITEM_USE / ITEM_DROP).
+ *
+ * v0.35.4 — a Resources column shows what each entry took and gave, and the three ITEM_*
+ * types carry the item's own card.
  *
  * v0.28.7 — the endpoint is cursor-paginated: `entries` accumulates the pages
  * loaded so far and "Load more" fetches the next one via `onLoadMore`. WEATHER,
@@ -20,13 +24,32 @@ import ErrorAlert from '../../common/ErrorAlert'
  */
 
 const TYPE_META = {
-  WEATHER:       { icon: 'fa-cloud-sun-rain', style: { background: '#3a2e10', color: '#eab308', border: '1px solid #eab308' } },
-  MOVEMENT:      { icon: 'fa-person-walking',  style: { background: '#1a3a2a', color: '#22c55e', border: '1px solid #22c55e' } },
-  SLEEP:         { icon: 'fa-bed',             style: { background: '#1e3a5f', color: '#60a5fa', border: '1px solid #3b82f6' } },
-  CLOCK_ADVANCE: { icon: 'fa-clock',           style: { background: '#2a1a3a', color: '#c084fc', border: '1px solid #a855f7' } },
-  RECOVERY:      { icon: 'fa-heart',           style: { background: '#0f2e2e', color: '#2dd4bf', border: '1px solid #14b8a6' } },
-  EVENT:         { icon: 'fa-scroll',          style: { background: '#3a1a1a', color: '#f87171', border: '1px solid #ef4444' } },
+  WEATHER:         { icon: 'fa-cloud-sun-rain',  style: { background: '#3a2e10', color: '#eab308', border: '1px solid #eab308' } },
+  MOVEMENT:        { icon: 'fa-person-walking',  style: { background: '#1a3a2a', color: '#22c55e', border: '1px solid #22c55e' } },
+  SLEEP:           { icon: 'fa-bed',             style: { background: '#1e3a5f', color: '#60a5fa', border: '1px solid #3b82f6' } },
+  CLOCK_ADVANCE:   { icon: 'fa-clock',           style: { background: '#2a1a3a', color: '#c084fc', border: '1px solid #a855f7' } },
+  RECOVERY:        { icon: 'fa-heart',           style: { background: '#0f2e2e', color: '#2dd4bf', border: '1px solid #14b8a6' } },
+  EVENT:           { icon: 'fa-scroll',          style: { background: '#3a1a1a', color: '#f87171', border: '1px solid #ef4444' } },
+  // Both were already produced by the API and fell through to DEFAULT_META, so they had
+  // no badge colour and no filter chip of their own.
+  COUNTER_ZERO:    { icon: 'fa-hourglass-end',   style: { background: '#3a2a10', color: '#fb923c', border: '1px solid #f97316' } },
+  AUTOMATIC_EVENT: { icon: 'fa-wand-magic-sparkles', style: { background: '#2a1a2a', color: '#e879f9', border: '1px solid #d946ef' } },
+  ITEM_ADD:        { icon: 'fa-hand-holding',    style: { background: '#12331f', color: '#4ade80', border: '1px solid #16a34a' } },
+  ITEM_USE:        { icon: 'fa-flask',           style: { background: '#241a3a', color: '#a78bfa', border: '1px solid #7c3aed' } },
+  ITEM_DROP:       { icon: 'fa-trash',           style: { background: '#2a2a2a', color: '#9ca3af', border: '1px solid #6b7280' } },
 }
+
+/**
+ * v0.35.4 — the four resources, in the order they are shown. `cost` and `gain` are the two
+ * families the API sends: an ITEM_* entry splits its signed deltas across them, so one
+ * renderer covers every entry type.
+ */
+const RESOURCES = [
+  { key: 'energy', icon: '⚡', label: 'energy' },
+  { key: 'food',   icon: '🍞', label: 'food' },
+  { key: 'magic',  icon: '✨', label: 'magic' },
+  { key: 'coin',   icon: '🪙', label: 'coin' },
+]
 
 const DEFAULT_META = { icon: 'fa-circle', style: { background: '#2a2a2a', color: '#9ca3af', border: '1px solid #4b5563' } }
 
@@ -121,6 +144,33 @@ function CharacterCell({ entry }) {
   )
 }
 
+/**
+ * What the action took and gave, as signed chips. Nothing to show is an em dash: a row of
+ * four zeros would drown the column that actually carries a number.
+ */
+function ResourceCell({ entry }) {
+  const chips = []
+  for (const r of RESOURCES) {
+    const spent  = Number(entry[`${r.key}Cost`]) || 0
+    const gained = Number(entry[`${r.key}Gain`]) || 0
+    if (spent) chips.push({ key: `${r.key}-c`, text: `−${spent} ${r.icon}`, color: '#f87171', title: `${r.label} spent` })
+    if (gained) chips.push({ key: `${r.key}-g`, text: `+${gained} ${r.icon}`, color: '#4ade80', title: `${r.label} gained` })
+  }
+  if (chips.length === 0) {
+    return <span className="pg-muted">—</span>
+  }
+  return (
+    <span style={{ display: 'inline-flex', gap: '0.35rem', flexWrap: 'wrap' }} data-testid="log-resources">
+      {chips.map(c => (
+        <span key={c.key} title={c.title} style={{
+          color: c.color, fontSize: '0.74rem', fontWeight: 600,
+          fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+        }}>{c.text}</span>
+      ))}
+    </span>
+  )
+}
+
 function entryDetail(entry) {
   switch (entry.type) {
     case 'WEATHER':
@@ -141,7 +191,21 @@ function entryDetail(entry) {
       return entry.message ? String(entry.message).slice(0, 60) : '—'
 
     case 'EVENT':
+    case 'AUTOMATIC_EVENT':
       return entry.idEvent != null ? `event #${entry.idEvent}` : '—'
+
+    case 'COUNTER_ZERO':
+      return entry.idLocationTo != null ? `location #${entry.idLocationTo}` : '—'
+
+    case 'ITEM_ADD':
+    case 'ITEM_USE':
+    case 'ITEM_DROP': {
+      const item = entry.idItem != null ? `item #${entry.idItem}` : 'item ?'
+      const units = entry.counter != null && entry.counter !== 1 ? ` ×${entry.counter}` : ''
+      // The event is named only when there is one: a use and a drop have no event behind them.
+      const from = entry.idEvent != null ? ` (event #${entry.idEvent})` : ''
+      return `${item}${units}${from}`
+    }
 
     default:
       return '—'
@@ -231,6 +295,7 @@ export default function MatchLogsCard({
                   <th>Timestamp</th>
                   <th>Card</th>
                   <th>Character</th>
+                  <th>Resources</th>
                   <th>Detail</th>
                 </tr>
               </thead>
@@ -249,6 +314,7 @@ export default function MatchLogsCard({
                     </td>
                     <td><CardCell entry={entry} /></td>
                     <td><CharacterCell entry={entry} /></td>
+                    <td><ResourceCell entry={entry} /></td>
                     <td
                       title={entry.message || undefined}
                       style={{ color: 'var(--color-parchment)', maxWidth: '20rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}

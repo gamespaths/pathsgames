@@ -14,7 +14,21 @@ Everything here is a pure function over already-loaded dicts, so the handler sta
 router and the whole surface is unit-testable without DynamoDB.
 """
 
+import time
+
 _RUNNING = "RUNNING"
+
+#: v0.35.4 — itemUsageLog.action: what happened to the item on that row. The list held
+#: usages only until then, so a row without an action reads as ITEM_ACTION_USE.
+ITEM_ACTION_ADD = "ADD"
+ITEM_ACTION_USE = "USE"
+ITEM_ACTION_DROP = "DROP"
+ITEM_ACTION_REMOVE = "REMOVE"
+
+
+def _ts_ms():
+    """Epoch millis, the shape every other embedded log on the match item uses."""
+    return int(time.time() * 1000)
 
 #: The ONE genuine divergence between the item vocabulary the schema documents
 #: (LIFE, ENERGY, EXP, SADNESS, DEX, INT, COS, FOOD, MAGIC, COIN) and the token the engine
@@ -211,17 +225,49 @@ def remove_row(char, row):
     char["items"] = items
 
 
-def log_item_usage(match, char, id_item, clock, effects, counter=1):
+def resource_delta(stat_changes, actor_uuid):
+    """v0.35.4 — what the usage did to the ACTOR's four resources, summed over its effects.
+
+    An item that heals the whole party still writes one row, and that row belongs to
+    whoever used it — so a stat change on anybody else is left out of it.
+    """
+    delta = {"energy": 0, "food": 0, "magic": 0, "coin": 0}
+    for change in stat_changes or []:
+        if actor_uuid is not None and change.get("characterUuid") != actor_uuid:
+            continue
+        stat = change.get("statistic")
+        if stat in delta:
+            delta[stat] += _nz(change.get("delta"))
+    return delta
+
+
+def log_item_action(match, char, id_item, action, clock, effects=None, counter=1,
+                    id_event=None, delta=None):
     """Appends to the match item's ``itemUsageLog``.
 
     There is no log table on DynamoDB: the existing logs (``eventLog``) are embedded lists
     on the match METADATA item, persisted by the same put_item the caller already does.
+
+    v0.35.4 — the list stopped being "the usages" and became every item action: ``action``
+    is ADD, USE, DROP or REMOVE, ``idEvent`` names the event whose effect moved the item
+    (absent when the player acted directly) and ``delta`` carries the signed
+    {energy, food, magic, coin} the action produced.
     """
+    d = delta or {}
     match.setdefault("itemUsageLog", []).append({
         "characterUuid": char.get("uuid"),
         "idItem": _nz(id_item),
-        # v0.35.1 — the units this usage actually spent; hardcoded to 1 until now.
+        "action": action,
+        "idEvent": _nz(id_event) if id_event is not None else None,
+        # v0.35.1 — the units this action actually moved; hardcoded to 1 until then.
         "counter": _nz(counter) or 1,
         "clock": _nz(clock),
+        "energy": _nz(d.get("energy")),
+        "food": _nz(d.get("food")),
+        "magic": _nz(d.get("magic")),
+        "coin": _nz(d.get("coin")),
         "effects": effects,
+        # A row written before v0.35.4 has none of the keys above: the timeline reads them
+        # defensively, exactly as it does the v0.35.3 costs.
+        "timestamp": _ts_ms(),
     })

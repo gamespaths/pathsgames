@@ -44,8 +44,12 @@ public interface InventoryStorePort {
     /**
      * Appends one {@code log_item_usage} row. The table carries {@code UNIQUE (id)},
      * so the id is allocated from the table-wide maximum, not per match.
+     *
+     * <p>v0.35.4 — {@code action} is USE or DROP here: the player acted directly, so
+     * there is no event to name. {@code delta} is what the usage did to the resources.</p>
      */
-    void logItemUsage(long idMatch, long idCharacter, long idItem, int counter, String effectsJson);
+    void logItemAction(long idMatch, long idCharacter, long idItem, String action, int counter,
+                       String effectsJson, EventExecutionStorePort.ResourceDelta delta);
 
     /**
      * v0.35.1 — writes the surviving amount of a row a use or a drop only partly consumed.

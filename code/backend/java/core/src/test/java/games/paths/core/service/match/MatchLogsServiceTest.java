@@ -7,6 +7,7 @@ import games.paths.core.port.match.MatchLogsStorePort;
 import games.paths.core.port.match.MatchLogsStorePort.CharacterLogView;
 import games.paths.core.port.match.MatchLogsStorePort.ClockLogEntry;
 import games.paths.core.port.match.MatchLogsStorePort.EventLogEntry;
+import games.paths.core.port.match.MatchLogsStorePort.ItemLogEntry;
 import games.paths.core.port.match.MatchLogsStorePort.MatchSummary;
 import games.paths.core.port.match.MatchLogsStorePort.MovementLogEntry;
 import games.paths.core.port.match.MatchLogsStorePort.WeatherLogEntry;
@@ -54,10 +55,12 @@ class MatchLogsServiceTest {
         when(store.findMovementLog(MATCH_ID)).thenReturn(List.of());
         when(store.findClockLog(MATCH_ID)).thenReturn(List.of());
         when(store.findEventLog(MATCH_ID)).thenReturn(List.of());
+        when(store.findItemLog(MATCH_ID)).thenReturn(List.of());
         when(store.findWeatherIdCards(STORY_ID)).thenReturn(Map.of());
         when(store.findLocationIdCards(STORY_ID)).thenReturn(Map.of());
         when(store.findCharacterTemplateIdCards(STORY_ID)).thenReturn(Map.of());
         when(store.findEventIdCards(STORY_ID)).thenReturn(Map.of());
+        when(store.findItemIdCards(STORY_ID)).thenReturn(Map.of());
         when(store.findCharactersByMatch(MATCH_ID)).thenReturn(Map.of());
         when(userAccessPort.findByUuid(USER_UUID))
                 .thenReturn(Optional.of(new UserAccessPort.UserView(USER_ID, USER_UUID, "u", "PLAYER", 2)));
@@ -289,6 +292,19 @@ class MatchLogsServiceTest {
             assertEquals(2, r.logs().size());
             assertEquals("MOVEMENT", r.logs().get(0).type());
             assertEquals("WEATHER", r.logs().get(1).type());
+        }
+
+        @Test
+        @DisplayName("v0.35.4 — what an event gave rides on the same row as what it took")
+        void executedEventCarriesTheGain() {
+            when(store.findEventLog(MATCH_ID)).thenReturn(
+                    List.of(new EventLogEntry(1L, 2L, 3, "2026-01-01T00:05:00Z",
+                            "EVENT_EXECUTED 42", 42L, null, 5, 0, 0, 7, 0, 2, 0, 30)));
+            LogEntry e = admin().logs().get(0);
+            assertEquals(5, e.energyCost());
+            assertEquals(7, e.coinCost());
+            assertEquals(2, e.foodGain());
+            assertEquals(30, e.coinGain());
         }
 
         @Test
@@ -619,6 +635,99 @@ class MatchLogsServiceTest {
             seedClockEntries(3);
             MatchLogsResult r = service.getMatchLogs(MATCH_UUID, USER_UUID, null, null, null, "desc");
             assertEquals(2, r.logs().get(0).clock());
+        }
+    }
+
+    @Nested
+    @DisplayName("v0.35.4 — the item log")
+    class ItemLog {
+
+        private void givenItemRow(String action, int counter, Long idEvent,
+                                  Integer energy, Integer food, Integer magic, Integer coin) {
+            when(store.findItemLog(MATCH_ID)).thenReturn(List.of(
+                    new ItemLogEntry(1L, 2L, 900L, action, counter, idEvent,
+                            "2026-01-01T00:05:00Z", energy, food, magic, coin)));
+        }
+
+        @Test
+        @DisplayName("an ADD row becomes an ITEM_ADD entry naming the effect's event")
+        void addEntry() {
+            givenItemRow("ADD", 1, 42L, 0, 0, 0, 0);
+            LogEntry e = admin().logs().get(0);
+            assertEquals("ITEM_ADD", e.type());
+            assertEquals(900L, e.idItem());
+            assertEquals("ADD", e.itemAction());
+            assertEquals(1, e.counter());
+            assertEquals(42L, e.idEvent());
+            assertEquals(2L, e.idCharacterMatch());
+        }
+
+        @Test
+        @DisplayName("a USE row splits its signed deltas: drained is a cost, restored is a gain")
+        void useEntrySplitsTheDeltas() {
+            givenItemRow("USE", 2, null, 9, 0, -3, 0);
+            LogEntry e = admin().logs().get(0);
+            assertEquals("ITEM_USE", e.type());
+            assertEquals(2, e.counter());
+            assertNull(e.idEvent());
+            assertEquals(9, e.energyGain());
+            assertEquals(3, e.magicCost());
+            assertEquals(0, e.energyCost());
+            assertEquals(0, e.magicGain());
+        }
+
+        @Test
+        @DisplayName("DROP and REMOVE both surface as ITEM_DROP, and the raw action survives")
+        void dropAndRemoveShareAType() {
+            when(store.findItemLog(MATCH_ID)).thenReturn(List.of(
+                    new ItemLogEntry(1L, 2L, 900L, "DROP", 1, null,
+                            "2026-01-01T00:05:00Z", 0, 0, 0, 0),
+                    new ItemLogEntry(2L, 2L, 901L, "remove", 1, 42L,
+                            "2026-01-01T00:06:00Z", 0, 0, 0, 0)));
+            MatchLogsResult r = admin();
+            assertEquals("ITEM_DROP", r.logs().get(0).type());
+            assertEquals("DROP", r.logs().get(0).itemAction());
+            assertEquals("ITEM_DROP", r.logs().get(1).type());
+            assertEquals("remove", r.logs().get(1).itemAction());
+        }
+
+        @Test
+        @DisplayName("a row written before v0.35.4 has no action and reads as a usage")
+        void nullActionIsAUsage() {
+            givenItemRow(null, 1, null, 0, 0, 0, 0);
+            assertEquals("ITEM_USE", admin().logs().get(0).type());
+        }
+
+        @Test
+        @DisplayName("an unknown action is dropped, like an unknown log message")
+        void unknownActionSkipped() {
+            givenItemRow("TELEPORTED", 1, null, 0, 0, 0, 0);
+            assertEquals(0, admin().logs().size());
+        }
+
+        @Test
+        @DisplayName("an item entry is narrated by the item's own card")
+        void itemCardIsResolved() {
+            givenItemRow("USE", 1, null, 0, 0, 0, 0);
+            when(store.findItemIdCards(STORY_ID)).thenReturn(Map.of(900L, 700));
+            when(contentQueryPort.getCardByStoryIdAndCardId(STORY_ID, 700, "en"))
+                    .thenReturn(card("Healing Potion"));
+            LogEntry e = admin().logs().get(0);
+            assertEquals(700, e.idCard());
+            assertEquals("Healing Potion", e.card().title());
+        }
+
+        @Test
+        @DisplayName("item entries take their place in the timeline by timestamp")
+        void sortedWithTheRest() {
+            when(store.findItemLog(MATCH_ID)).thenReturn(List.of(
+                    new ItemLogEntry(1L, 2L, 900L, "USE", 1, null,
+                            "2026-01-01T00:01:00Z", 0, 0, 0, 0)));
+            when(store.findWeatherLog(MATCH_ID)).thenReturn(
+                    List.of(new WeatherLogEntry(1L, 1, 5L, "2026-01-01T00:02:00Z")));
+            MatchLogsResult r = admin();
+            assertEquals("ITEM_USE", r.logs().get(0).type());
+            assertEquals("WEATHER", r.logs().get(1).type());
         }
     }
 }

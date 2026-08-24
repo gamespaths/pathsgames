@@ -204,7 +204,7 @@ class EventExecutionServiceChoicesTest {
             assertEquals(1, r.energySpent());
             assertEquals(19, r.newEnergy());
             verify(store, times(1)).logEventExecuted(eq(MATCH_ID), eq(CHAR_ID), eq(EVENT_ID),
-                    eq(7), eq(EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + EVENT_ID), any());
+                    eq(7), eq(EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + EVENT_ID), any(), any());
             // The deduction is flushed: energy 19, everything else untouched.
             verify(store).updateCharacterStats(MATCH_ID, CHAR_ID,
                     new CharacterStats(10, 10, 10, 19, 30, 0, 0, 100, 100, 50, 30));
@@ -239,7 +239,7 @@ class EventExecutionServiceChoicesTest {
 
             EventExecutionResult r = execute();
             assertEquals(List.of(EVENT_UUID), r.executedEventUuids());
-            verify(store, times(1)).logEventExecuted(anyLong(), anyLong(), anyLong(), anyInt(), anyString(), any());
+            verify(store, times(1)).logEventExecuted(anyLong(), anyLong(), anyLong(), anyInt(), anyString(), any(), any());
         }
 
         @Test
@@ -270,7 +270,7 @@ class EventExecutionServiceChoicesTest {
             EventExecutionException ex = assertThrows(EventExecutionException.class,
                     EventExecutionServiceChoicesTest.this::execute);
             assertEquals(Code.NOT_ENOUGH_ENERGY, ex.getCode());
-            verify(store, never()).logEventExecuted(anyLong(), anyLong(), anyLong(), anyInt(), anyString(), any());
+            verify(store, never()).logEventExecuted(anyLong(), anyLong(), anyLong(), anyInt(), anyString(), any(), any());
         }
     }
 
@@ -291,7 +291,7 @@ class EventExecutionServiceChoicesTest {
             assertEquals(0, r.energySpent());
             assertEquals(20, r.newEnergy());
             assertEquals(List.of(EVENT_UUID), r.executedEventUuids());
-            verify(store, never()).logEventExecuted(anyLong(), anyLong(), anyLong(), anyInt(), anyString(), any());
+            verify(store, never()).logEventExecuted(anyLong(), anyLong(), anyLong(), anyInt(), anyString(), any(), any());
             verify(store, never()).updateCharacterStats(anyLong(), anyLong(), any());
         }
 
@@ -330,7 +330,7 @@ class EventExecutionServiceChoicesTest {
             EventExecutionResult r = execute();
             assertEquals(EventExecutionPort.STATUS_CHOICES_PENDING, r.status());
             assertEquals(1, r.energySpent());
-            verify(store, times(1)).logEventExecuted(anyLong(), anyLong(), anyLong(), anyInt(), anyString(), any());
+            verify(store, times(1)).logEventExecuted(anyLong(), anyLong(), anyLong(), anyInt(), anyString(), any(), any());
         }
 
         @Test

@@ -25,6 +25,9 @@ public interface MatchLogsStorePort {
     /** All log_events rows for the match, ordered by id ASC. */
     List<EventLogEntry> findEventLog(long idMatch);
 
+    /** v0.35.4 — every item action of the match, ordered by id ASC (insertion order). */
+    List<ItemLogEntry> findItemLog(long idMatch);
+
     // ── v0.28.7 enrichment lookups: one query each, reused across the whole page ──
 
     /** Weather rule id → {@code id_card}, for every weather of the story. */
@@ -38,6 +41,9 @@ public interface MatchLogsStorePort {
 
     /** Event (list_events) id → its own {@code id_card}, for every event of the story. */
     Map<Long, Integer> findEventIdCards(long idStory);
+
+    /** Item (list_items) id → its own {@code id_card}, for every item of the story (v0.35.4). */
+    Map<Long, Integer> findItemIdCards(long idStory);
 
     /** Character instance id → its uuid and template, for every character of the match. */
     Map<Long, CharacterLogView> findCharactersByMatch(long idMatch);
@@ -66,15 +72,34 @@ public interface MatchLogsStorePort {
     record EventLogEntry(long id, Long idCharacterMatch, Integer clock,
                          String timestamp, String logMessage, Long idEvent, Long idLocation,
                          Integer energyCost, Integer foodCost, Integer magicCost,
-                         Integer coinCost) {
+                         Integer coinCost, Integer energyGain, Integer foodGain,
+                         Integer magicGain, Integer coinGain) {
 
         /** Pre-v0.35.3 shape: a row written before the price was persisted. */
         public EventLogEntry(long id, Long idCharacterMatch, Integer clock, String timestamp,
                              String logMessage, Long idEvent, Long idLocation) {
             this(id, idCharacterMatch, clock, timestamp, logMessage, idEvent, idLocation,
-                    0, 0, 0, 0);
+                    0, 0, 0, 0, 0, 0, 0, 0);
+        }
+
+        /** Pre-v0.35.4 shape: the price was recorded, what the event gave was not. */
+        public EventLogEntry(long id, Long idCharacterMatch, Integer clock, String timestamp,
+                             String logMessage, Long idEvent, Long idLocation,
+                             Integer energyCost, Integer foodCost, Integer magicCost,
+                             Integer coinCost) {
+            this(id, idCharacterMatch, clock, timestamp, logMessage, idEvent, idLocation,
+                    energyCost, foodCost, magicCost, coinCost, 0, 0, 0, 0);
         }
     }
+
+    /**
+     * v0.35.4 — one item action: taken, used or dropped. {@code action} is the raw
+     * {@code log_item_usage.action}; the resource fields are signed deltas, zero on the
+     * actions that only move the item.
+     */
+    record ItemLogEntry(long id, Long idCharacterMatch, Long idItem, String action,
+                        Integer counter, Long idEvent, String timestamp,
+                        Integer energy, Integer food, Integer magic, Integer coin) {}
 
     /** The character that performed a logged action. */
     record CharacterLogView(long id, String uuid, Long idCharacterTemplate) {}

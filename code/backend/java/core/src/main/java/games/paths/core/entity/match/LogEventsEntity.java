@@ -70,6 +70,19 @@ public class LogEventsEntity {
     @Column(name = "coin")
     private Integer coin;
 
+    /** v0.35.4 - what the event GAVE the actor, the counterpart of the spend above. */
+    @Column(name = "energy_gain")
+    private Integer energyGain;
+
+    @Column(name = "food_gain")
+    private Integer foodGain;
+
+    @Column(name = "magic_gain")
+    private Integer magicGain;
+
+    @Column(name = "coin_gain")
+    private Integer coinGain;
+
     @Column(name = "ts_insert", nullable = false, updatable = false)
     private String tsInsert;
 
@@ -85,6 +98,10 @@ public class LogEventsEntity {
         if (food == null) food = 0;
         if (magic == null) magic = 0;
         if (coin == null) coin = 0;
+        if (energyGain == null) energyGain = 0;
+        if (foodGain == null) foodGain = 0;
+        if (magicGain == null) magicGain = 0;
+        if (coinGain == null) coinGain = 0;
         if (tsInsert == null) tsInsert = now;
         if (tsUpdate == null) tsUpdate = now;
     }
@@ -135,6 +152,18 @@ public class LogEventsEntity {
 
     public Integer getCoin() { return coin; }
     public void setCoin(Integer coin) { this.coin = coin; }
+
+    public Integer getEnergyGain() { return energyGain; }
+    public void setEnergyGain(Integer energyGain) { this.energyGain = energyGain; }
+
+    public Integer getFoodGain() { return foodGain; }
+    public void setFoodGain(Integer foodGain) { this.foodGain = foodGain; }
+
+    public Integer getMagicGain() { return magicGain; }
+    public void setMagicGain(Integer magicGain) { this.magicGain = magicGain; }
+
+    public Integer getCoinGain() { return coinGain; }
+    public void setCoinGain(Integer coinGain) { this.coinGain = coinGain; }
 
     public String getTsInsert() { return tsInsert; }
     public void setTsInsert(String tsInsert) { this.tsInsert = tsInsert; }

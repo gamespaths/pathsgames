@@ -332,10 +332,10 @@ class MatchAdminControllerTest {
     void getAdminMatchLogs_returns200WithTheTimeline() throws Exception {
         when(matchLogsPort.getMatchLogsForAdmin("m1", null, null, null, null)).thenReturn(
                 new games.paths.core.port.match.MatchLogsPort.MatchLogsResult("m1", 2, List.of(
-                        new games.paths.core.port.match.MatchLogsPort.LogEntry(
-                                "SLEEP", 1, "2024-01-01T10:00:00Z", null, 10L,
-                                "char-uuid", "Ranger", null, null, null, null, null, null, null,
-                                0, 0, 0)),
+                        games.paths.core.port.match.MatchLogsPort.LogEntry
+                                .builder("SLEEP", "2024-01-01T10:00:00Z")
+                                .clock(1).character(10L)
+                                .characterUuid("char-uuid").characterName("Ranger").build()),
                         null, 50, 1, "asc"));
 
         mockMvc.perform(get("/api/admin/matches/m1/logs"))

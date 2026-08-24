@@ -148,7 +148,10 @@
       "RECOVERY": "Recupero",
       "EVENT": "Evento",
       "COUNTER_ZERO": "Tempo scaduto",
-      "AUTOMATIC_EVENT": "È successo qualcosa"
+      "AUTOMATIC_EVENT": "Evento",
+      "ITEM_ADD": "Oggetto trovato",
+      "ITEM_USE": "Oggetto usato",
+      "ITEM_DROP": "Oggetto lasciato"
     }
   },
   "card": {

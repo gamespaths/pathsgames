@@ -279,7 +279,7 @@ class EventExecutionServiceSelectChoiceTest {
             when(store.countLogMarkers(MATCH_ID, EVENT_ID, EventExecutionStorePort.MSG_EVENT_EXECUTED))
                     .thenReturn(0);
             assertThrows(EventExecutionException.class, EventExecutionServiceSelectChoiceTest.this::resolve);
-            verify(store, never()).logEventExecuted(anyLong(), any(), anyLong(), anyInt(), anyString(), any());
+            verify(store, never()).logEventExecuted(anyLong(), any(), anyLong(), anyInt(), anyString(), any(), any());
             verify(store, never()).logChoiceExecuted(anyLong(), anyLong(), anyLong(), anyInt(), anyString());
             verify(store, never()).updateCharacterStats(anyLong(), anyLong(), any());
         }
@@ -308,7 +308,8 @@ class EventExecutionServiceSelectChoiceTest {
 
         verify(store).logEventExecuted(MATCH_ID, CHAR_ID, EVENT_ID, CLOCK,
                 EventExecutionStorePort.MSG_CHOICE_SELECTED + " " + EVENT_ID,
-                EventExecutionStorePort.SpentResources.none());
+                EventExecutionStorePort.SpentResources.none(),
+                EventExecutionStorePort.ResourceDelta.none());
     }
 
     @Test
@@ -720,7 +721,8 @@ class EventExecutionServiceSelectChoiceTest {
             assertEquals(0, r.execution().energySpent());
             verify(store).logEventExecuted(MATCH_ID, CHAR_ID, 6L, CLOCK,
                     EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + 6L,
-                    EventExecutionStorePort.SpentResources.none());
+                    EventExecutionStorePort.SpentResources.none(),
+                EventExecutionStorePort.ResourceDelta.none());
         }
     }
 

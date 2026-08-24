@@ -2,10 +2,10 @@ package games.paths.core.persistence.match;
 
 import games.paths.core.entity.match.GamingInventoryItemsEntity;
 import games.paths.core.entity.match.GamingInventoryItemsEntityId;
-import games.paths.core.entity.match.LogItemUsageEntity;
 import games.paths.core.entity.story.ItemEffectEntity;
 import games.paths.core.entity.story.ItemEntity;
 import games.paths.core.port.match.EventExecutionStorePort;
+import games.paths.core.port.match.EventExecutionStorePort.ResourceDelta;
 import games.paths.core.port.match.InventoryStorePort;
 import games.paths.core.port.story.StoryReadPort;
 import games.paths.core.repository.match.GamingBackpackResourcesRepository;
@@ -127,19 +127,14 @@ public class InventoryStoreAdapter implements InventoryStorePort {
     }
 
     @Override
-    public void logItemUsage(long idMatch, long idCharacter, long idItem, int counter,
-                             String effectsJson) {
-        LogItemUsageEntity row = new LogItemUsageEntity();
-        row.setId(logItemUsageRepository.findMaxId() + 1L);
-        row.setIdMatch(idMatch);
-        row.setIdCharacterMatch(idCharacter);
-        row.setIdItem(idItem);
-        // v0.35.1 — the units this usage actually consumed. It was hardcoded to 1 while
-        // a usage spent the whole row, so the column has been reporting a number nobody
-        // computed since the log was created.
-        row.setCounter(counter);
-        row.setEffectsJson(effectsJson);
-        logItemUsageRepository.save(row);
+    public void logItemAction(long idMatch, long idCharacter, long idItem, String action,
+                              int counter, String effectsJson, ResourceDelta delta) {
+        // v0.35.1 — counter is the units this action actually moved. It was hardcoded to 1
+        // while a usage spent the whole row, so the column has been reporting a number
+        // nobody computed since the log was created.
+        // idEvent stays null: a use and a drop are the player's own doing, not an event's.
+        ItemLogRows.append(logItemUsageRepository, idMatch, idCharacter, idItem, action,
+                counter, null, effectsJson, delta);
     }
 
     @Override

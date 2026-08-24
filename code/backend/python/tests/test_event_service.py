@@ -198,7 +198,9 @@ def test_v0353_the_price_is_stamped_on_the_log_row_of_the_paid_event(service, st
     run(service)
 
     store.log_event_executed.assert_called_once_with(
-        MATCH_ID, CHAR_ID, 1, 7, "EVENT_EXECUTED 1", 5, 2, 1, 3)
+        MATCH_ID, CHAR_ID, 1, 7, "EVENT_EXECUTED 1", 5, 2, 1, 3,
+        # v0.35.4 — the gains ride on the same row; this event gave nothing back.
+        {"energy": 0, "food": 0, "magic": 0, "coin": 0})
 
 
 def test_turn_is_never_consumed(service):
@@ -279,6 +281,59 @@ def test_items(service, store):
     r = run(service)
     store.add_item.assert_called_once_with(MATCH_ID, CHAR_ID, 42, None)
     assert r.item_added is True and r.item_changes[0].value == "item-uuid"
+    # v0.35.4 — the log row names the event whose effect handed the item over.
+    store.log_item_action.assert_called_once_with(MATCH_ID, CHAR_ID, 42, "ADD", 1,
+                                                  None, None, 1)
+
+
+def test_v0354_an_add_the_cap_refuses_is_not_logged(service, store):
+    store.find_item_max_per_character_by_id.return_value = {42: 1}
+    store.add_item.return_value = False
+    store.find_effects_by_event_id.return_value = {
+        1: [_effect(id_item_target=42, item_action="ADD")]}
+
+    r = run(service)
+
+    # No error and no row: a refused ADD is not a thing that happened.
+    assert r.item_added is False
+    store.log_item_action.assert_not_called()
+
+
+def test_v0354_a_remove_is_logged_and_a_remove_that_found_nothing_is_not(service, store):
+    store.remove_item.return_value = True
+    store.find_effects_by_event_id.return_value = {
+        1: [_effect(id_item_target=42, item_action="REMOVE")]}
+    run(service)
+    store.log_item_action.assert_called_once_with(MATCH_ID, CHAR_ID, 42, "REMOVE", 1,
+                                                  None, None, 1)
+
+    store.log_item_action.reset_mock()
+    store.remove_item.return_value = False
+    run(service)
+    store.log_item_action.assert_not_called()
+
+
+def test_v0354_what_the_effects_gave_the_actor_is_stamped_on_the_event_row(service, store):
+    store.find_effects_by_event_id.return_value = {1: [
+        _effect(id=1, uuid="e-1", statistics="coin", value=5),
+        _effect(id=2, uuid="e-2", statistics="energy", value=4),
+        _effect(id=3, uuid="e-3", statistics="magic", value=-2),
+    ]}
+
+    run(service)
+
+    # Only the positive half: a drain is the effect's own business, not a gain.
+    assert store.log_event_executed.call_args[0][-1] == {
+        "energy": 4, "food": 0, "magic": 0, "coin": 5}
+
+
+def test_v0354_an_event_that_gives_nothing_logs_a_gain_of_zero(service, store):
+    store.find_effects_by_event_id.return_value = {1: [_effect(statistics="life", value=3)]}
+
+    run(service)
+
+    assert store.log_event_executed.call_args[0][-1] == {
+        "energy": 0, "food": 0, "magic": 0, "coin": 0}
 
 
 def test_a_granted_trait_moves_the_maxima_and_the_stats(service, store):

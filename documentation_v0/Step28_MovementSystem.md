@@ -1903,7 +1903,25 @@ Query params (all optional, both endpoints):
     { "type": "CLOCK_ADVANCE", "clock": 1, "timestamp": "..." },
     { "type": "RECOVERY",      "clock": null, "timestamp": "...",
       "idCharacterMatch": 1, "characterUuid": "...", "characterName": "Scout",
-      "message": "recovery safe=true p=3 dEnergy=5 dLife=2 dSad=-1" }
+      "message": "recovery safe=true p=3 dEnergy=5 dLife=2 dSad=-1" },
+    { "type": "ITEM_ADD",      "clock": 1, "timestamp": "...",
+      "characterUuid": "...", "characterName": "Scout",
+      "idItem": 40001, "itemAction": "ADD", "counter": 1, "idEvent": 28,
+      "idCard": 90020, "card": { "title": "Rusty Knife", "...": "..." },
+      "energyCost": 0, "foodCost": 0, "magicCost": 0, "coinCost": 0,
+      "energyGain": 0, "foodGain": 0, "magicGain": 0, "coinGain": 0 },
+    { "type": "ITEM_USE",      "clock": 1, "timestamp": "...",
+      "characterUuid": "...", "characterName": "Scout",
+      "idItem": 40002, "itemAction": "USE", "counter": 1, "idEvent": null,
+      "idCard": 90021, "card": { "title": "Healing Potion", "...": "..." },
+      "energyCost": 0, "foodCost": 0, "magicCost": 1, "coinCost": 0,
+      "energyGain": 10, "foodGain": 0, "magicGain": 0, "coinGain": 0 },
+    { "type": "ITEM_DROP",     "clock": 1, "timestamp": "...",
+      "characterUuid": "...", "characterName": "Scout",
+      "idItem": 40001, "itemAction": "DROP", "counter": 1, "idEvent": null,
+      "idCard": 90020, "card": { "title": "Rusty Knife", "...": "..." },
+      "energyCost": 0, "foodCost": 0, "magicCost": 0, "coinCost": 0,
+      "energyGain": 0, "foodGain": 0, "magicGain": 0, "coinGain": 0 }
   ],
   "nextCursor": "b2Zmc2V0OjUw",
   "limit": 50,
@@ -1926,9 +1944,16 @@ Enrichment lookups run **once per page** (never once per entry):
   (`idLocationTo`), plus `characterUuid` / `characterName` of the character that moved.
 - `SLEEP` and `RECOVERY` entries carry `characterUuid` / `characterName`.
 - `CLOCK_ADVANCE` entries carry neither (no single character or card applies).
+- `ITEM_ADD` / `ITEM_USE` / `ITEM_DROP` entries (v0.35.4) carry `idCard` / `card` of the
+  **item itself**, plus `characterUuid` / `characterName` of the character that acted.
 - `characterName` is the `title` of the character template's card, resolved in `lang`.
-- Any field an entry type doesn't apply to stays `null`/absent (unchanged from the first
-  cut of this feature).
+- Any field an entry type doesn't apply to stays `null`/absent, **except the eight resource
+  fields** (`energyCost`/`foodCost`/`magicCost`/`coinCost`/`energyGain`/`foodGain`/
+  `magicGain`/`coinGain`): as of v0.35.4 these are present as numbers on **every** entry,
+  never `null` and never omitted, so one renderer can sum them without a type check. Java
+  already answered this shape from the first cut of the resource-cost fields; Python and
+  AWS used to build a per-type dict and omit the keys on types that move nothing — that
+  divergence is the v0.35.4 contract fix.
 
 ### Chronological order (v0.30.3)
 
@@ -1951,6 +1976,7 @@ parameter.
 | `SLEEP` | `log_events` (`log_message='ACTION_SLEEP'`) | Every `POST /gameplay/{uuid}/action/sleep` call |
 | `CLOCK_ADVANCE` | `log_clock_history` | When all characters sleep and time-end triggers |
 | `RECOVERY` | `log_events` (`log_message LIKE 'recovery%'` or `'counter%'`) | At every time-start per character (Step 26) |
+| `ITEM_ADD` / `ITEM_USE` / `ITEM_DROP` | `log_item_usage` | **v0.35.4** — every ADD/USE/DROP/REMOVE the engine writes to `log_item_usage`; a REMOVE surfaces as `ITEM_DROP` (§ below). Before v0.35.4 the table was written only on USE and read by no endpoint |
 
 > **AWS gap (known, narrowed but not closed):** the AWS Lambda `_assemble_match_logs` still
 > only builds `WEATHER` / `MOVEMENT` / `SLEEP` / `CLOCK_ADVANCE` from the match item's
@@ -1982,6 +2008,43 @@ Sleep actions were not previously logged. This version adds:
    - `clock = currentClock`
 4. **`TimeAdvancementService.sleep()`** — calls `store.logSleep()` immediately after
    `store.setCharacterSleeping()`.
+
+## New: Item Actions and Resource Gains (v0.35.4)
+
+Before v0.35.4 the timeline could show what a move or an event **cost**, but nothing an
+item did left a trace, and nothing showed what an action **gave** — a match where the
+player earned 50 coins had them appear from nowhere in the log.
+
+1. **`log_item_usage` becomes the register of every item action, not just usages.** New
+   columns (`V0.35.4__log_item_actions_and_resource_gains.sql`, SQLite + PostgreSQL,
+   identical): `action` (`ADD`/`USE`/`DROP`/`REMOVE`, default `USE` so pre-v0.35.4 rows
+   read correctly), `id_event` (the event whose effect moved the item; `NULL` when the
+   player acted directly — **no FOREIGN KEY**, because `list_events` is keyed on
+   `(id, id_story)` so `id` alone carries no unique constraint), and `energy`/`food`/
+   `magic`/`coin` — **signed** deltas the action produced (a potion that gives 10 energy
+   and takes 1 magic writes `+10` and `-1`).
+2. **`log_events` gains `energy_gain`/`food_gain`/`magic_gain`/`coin_gain`** — the
+   counterpart of the `energy`/`food`/`magic`/`coin` cost columns v0.35.3 added. Spend and
+   gain are kept as separate columns rather than folded into one signed number, because an
+   event can pay 5 coins and hand back 2, and a single column would report `-3` for a
+   transaction that was never worth `-3`.
+3. **Three new `type` values**: `ITEM_ADD`, `ITEM_USE`, `ITEM_DROP`. A `REMOVE` written by
+   an event effect surfaces as `ITEM_DROP` on the timeline — the raw action survives in the
+   new `itemAction` field for whoever needs the distinction. New entry fields: `idItem`,
+   `itemAction`, `counter`, `idEvent` (on `ITEM_ADD`/`ITEM_DROP` only), plus the item's own
+   `idCard`/`card`.
+4. **Engine rules, identical across Java, Python and AWS**:
+   - An `ADD` refused by `max_per_character` (§2 of
+     [Step34](./Step34_InventoryAndResources.md)) writes **no** log row, and a `REMOVE`
+     that found nothing to take writes none either — neither is a thing that happened.
+   - Resource gains are stamped **per event**: the accumulator is reset before an event's
+     own effects run, so a chained event logs what *it* gave, not what earlier links of the
+     same chain already gave.
+   - Only the **actor's own** resources ride on a log row — the row is character-scoped, so
+     an effect that also touches another character in the same match stays in the HTTP
+     response only, never in that other character's log.
+   - Out of scope, deliberately: a character's starting loadout is a starting state, not an
+     action, so it writes nothing to `log_item_usage`.
 
 ## Implementation Files
 
@@ -2034,6 +2097,22 @@ Sleep actions were not previously logged. This version adds:
 | react-admin | `src/api/matchApi.js` — v0.30.3 `getMatchLogs(uuid, params)` merges `{ order: 'desc', ...params }` |
 | Unit Test | v0.30.3: `MatchLogsServiceTest` nested `order=asc|desc` group (7 tests), `MatchLogsControllerTest`, `MatchAdminControllerTest` (Java); +6 tests in `test_match_logs_service.py` + controller tests (Python, 978 pass total); +6 tests in `tests/test_match_handler_logs.py` (AWS, 603 pass total); new tests in `src/test/matches.test.js` (react-game); updated/new tests in `src/tests/api/matchApi.test.js` (react-admin) |
 | Java DB (seed) | `adapter-postgres/.../dev/R__insert_dev_test_data.sql` — collateral fix, see below |
+| Java DB | `adapter-{sqlite,postgres}/.../V0.35.4__log_item_actions_and_resource_gains.sql` — `action`/`id_event`/`energy`/`food`/`magic`/`coin` on `log_item_usage`; `energy_gain`/`food_gain`/`magic_gain`/`coin_gain` on `log_events` |
+| Java Core | `LogItemUsageEntity`, `LogEventsEntity` — v0.35.4 gain the new columns; new `ItemLogRows` helper |
+| Java Core | `InventoryStorePort`/`InventoryStoreAdapter`, `EventExecutionStorePort`/`EventExecutionStoreAdapter` — v0.35.4 write `action`/`idEvent`/signed deltas on ADD/USE/DROP/REMOVE and the `*_gain` columns on `log_events` |
+| Java Core | `InventoryService`, `EventExecutionService` — v0.35.4 compute the per-actor signed deltas and call the new store methods |
+| Java Core | `MatchLogsStoreAdapter`, `MatchLogsPort` — v0.35.4 assemble `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` entries from `log_item_usage` and fill the `*Gain` fields on every entry type |
+| Java REST | `MatchLogsResponse` — v0.35.4 gains `idItem`/`itemAction`/`counter`/`energyGain`/`foodGain`/`magicGain`/`coinGain` |
+| Python | `models.py`, `event_ports.py`/`event_store_adapter.py`, `inventory_ports.py`/`inventory_store_adapter.py`, `event_service.py`, `inventory_service.py`, `match_logs_service.py` — v0.35.4 mirror the Java changes above |
+| AWS | `lambda/match/inventory.py` — v0.35.4 renames `log_item_usage` to `log_item_action`, adds `ITEM_ACTION_ADD/USE/DROP/REMOVE` constants and `resource_delta()` (sums an effect's stat changes for the acting character only); `lambda/match/handler.py` — assembles `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` entries and the `*Gain` fields from the match item's `itemUsageLog` |
+| OpenAPI | `v0.28.7-match-logs-api.yaml` — v0.35.4 adds `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` to the `type` enum, `idItem`/`itemAction`/`counter`/`energyGain`/`foodGain`/`magicGain`/`coinGain` to `LogEntry` |
+| react-admin | `src/components/match/detail/MatchLogsCard.jsx` — v0.35.4 adds badges + filter chips for `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` (plus the previously uncoloured `COUNTER_ZERO`/`AUTOMATIC_EVENT`), and a **Resources** column showing what each entry took and gave |
+| react-game | `src/features/matches/MatchLogCard.jsx` — v0.35.4 renders `ITEM_*` tiles with the item's own card and every entry's resources as `BonusBadgeList` badges (type/actor/resources on the little tile, resources only on the page variant) |
+| react-game | `src/components/ui/BonusBadgeList.jsx` — v0.35.4 lets a caller override `icon`/`color` per badge, adds an `actor` visual, and keys badges by list position (one list may carry the same stat twice — an event that charged and refunded coins) |
+| react-game | `src/i18n/en.json`, `src/i18n/it.json` — new `matchLog.types.ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` keys |
+| Robot | `code/tests/robot/tests/34_inventory/item_logs.robot` — new suite, 7 tests, backend-agnostic (java-sqlite, python, aws) |
+| Robot | `code/tests/robot/tests/28_movement/match_logs.robot` — extended: every entry must carry the eight resource fields |
+| Unit Test | New/updated tests across all three backends' entity, store-adapter, service and controller layers (see git diff for the full file list) plus `MatchDetailPage.test.jsx` (react-admin) and `MatchLogCard.test.jsx` (react-game) |
 
 ## Collateral fix: PostgreSQL seed weather/location cards had no title
 
@@ -2066,7 +2145,9 @@ being deleted before their `log_movements` rows, so the delete violated the FK.
 ## Future Additions (out of scope v0.28.7)
 
 - `CHOICE_EXECUTED` — from `log_choices_executed` (Step 30)
-- `ITEM_USED` — from `log_item_usage` (Step 37)
+- ~~`ITEM_USED` — from `log_item_usage` (Step 37)~~ — **done, v0.35.4**, and widened to
+  `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` rather than usages alone; see "New: Item Actions and
+  Resource Gains (v0.35.4)" above.
 - `EVENT_TRIGGERED` — from `log_events` (Step 29+, when event logging is added)
 - AWS `RECOVERY` entries and a numeric-id-free (`characterUuid`) field alignment with
   Java/Python — see the AWS gap note in §"Log Data Sources"
@@ -2212,7 +2293,7 @@ in place above, plus the summary below.
 
 # Version Control
 
-- **Document Version**: 0.35.3
+- **Document Version**: 0.35.4
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -2231,6 +2312,8 @@ in place above, plus the summary below.
   | 0.33.0 | Documentation-only clarification to §6.3, no code change: the location-entry state machine belongs to Step 33, not Step 32, and it uses the new `gaming_state_locations.flag_visited` rather than `flag_already_actived`. Added the table separating the two notions of "visited" and the starting-location rule that keeps a walk back home from firing `FIRST_ENTRY`. See [Step33_LocationEntryEvents.md](./Step33_LocationEntryEvents.md). | August 12, 2026 |
   | 0.35.3 | `list_locations_neighbors` gains `cost_food`/`cost_magic`/`cost_coin`, edge-only (no entry/weather term, unlike energy). Three new refusal codes in §3 and the 0.29.1 `/info` verdict; `MovementStartResponse` and `NeighborCostDto` gain the spent/cost fields (§5.2, §5.3). Full writeup in [Step35 §12](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353). | August 23, 2026 |
   | 0.35.3 | Same version, continued: a Robot suite now covers this contract (`resource_costs.robot`, `29_events`, without ever executing a tolled move), and the E2E run found `/locations`' Java and Python neighbor mapping was still missing the three cost fields §5.3 already documented — both now fixed. Full detail in [Step35 §12.f-g](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353). | August 24, 2026 |
+  | 0.35.4 | Match Logs API gains `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` entries from `log_item_usage`, now the register of every item action rather than usages alone (`action`, `id_event`, signed `energy`/`food`/`magic`/`coin` columns), plus `energy_gain`/`food_gain`/`magic_gain`/`coin_gain` on `log_events` — the counterpart of v0.35.3's cost columns. The eight resource fields are now numbers on every entry, never null (a Python/AWS contract fix). See "New: Item Actions and Resource Gains (v0.35.4)" above. | August 24, 2026 |
+  | 0.35.4 | Same version, continued: react-admin's `MatchLogsCard` gains a Resources column and badges/filters for the three new types (plus the previously uncoloured `COUNTER_ZERO`/`AUTOMATIC_EVENT`); react-game's `MatchLogCard` renders `ITEM_*` entries with the item's own card via `BonusBadgeList`; new Robot suite `item_logs.robot` (7 tests, `34_inventory`, backend-agnostic). | August 24, 2026 |
 
 - **Last Updated**: August 24, 2026
 - **Status**: Complete (Step 28 implementation). Step 33 has since shipped and is Complete; §6.3's forward reference to it is no longer a reference to a design-only document.

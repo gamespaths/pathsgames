@@ -255,22 +255,49 @@ def test_preview_effects_of_an_item_with_none():
 
 # ── the usage log ───────────────────────────────────────────────────────────
 
-def test_log_item_usage_appends_to_the_match_item():
+def test_log_item_action_appends_to_the_match_item():
     """There is no log table here: logs are embedded lists on the match, like eventLog."""
     match = {}
 
-    inventory.log_item_usage(match, _char(), 900, 4, [{'statistic': 'life'}])
+    inventory.log_item_action(match, _char(), 900, 'USE', 4, [{'statistic': 'life'}],
+                              2, None, {'energy': 9, 'magic': -3})
 
-    assert match['itemUsageLog'] == [{
-        'characterUuid': 'c1', 'idItem': 900, 'counter': 1, 'clock': 4,
-        'effects': [{'statistic': 'life'}],
-    }]
+    row = match['itemUsageLog'][0]
+    assert row['characterUuid'] == 'c1'
+    assert (row['idItem'], row['action'], row['counter'], row['clock']) == (900, 'USE', 2, 4)
+    assert row['effects'] == [{'statistic': 'life'}]
+    # v0.35.4 — the signed deltas the action produced, and the event that caused it.
+    assert (row['energy'], row['magic'], row['food'], row['coin']) == (9, -3, 0, 0)
+    assert row['idEvent'] is None
+    assert row['timestamp'] > 0
 
 
-def test_log_item_usage_appends_rather_than_replaces():
+def test_log_item_action_defaults_the_deltas_and_names_the_source_event():
+    match = {}
+    inventory.log_item_action(match, _char(), 900, 'ADD', 4, None, 1, 42)
+    row = match['itemUsageLog'][0]
+    assert row['idEvent'] == 42
+    assert (row['energy'], row['food'], row['magic'], row['coin']) == (0, 0, 0, 0)
+
+
+def test_log_item_action_appends_rather_than_replaces():
     match = {'itemUsageLog': [{'idItem': 1}]}
-    inventory.log_item_usage(match, _char(), 900, 4, [])
+    inventory.log_item_action(match, _char(), 900, 'USE', 4, [])
     assert len(match['itemUsageLog']) == 2
+
+
+def test_resource_delta_sums_the_actors_resources_and_nobody_elses():
+    changes = [
+        {'characterUuid': 'c1', 'statistic': 'energy', 'delta': 9},
+        {'characterUuid': 'c1', 'statistic': 'magic', 'delta': -3},
+        {'characterUuid': 'c1', 'statistic': 'life', 'delta': 3},
+        {'characterUuid': 'other', 'statistic': 'coin', 'delta': 50},
+    ]
+    # life is not a resource and the coin went to somebody else: neither reaches the row.
+    assert inventory.resource_delta(changes, 'c1') == {
+        'energy': 9, 'food': 0, 'magic': -3, 'coin': 0}
+    assert inventory.resource_delta(None, 'c1') == {
+        'energy': 0, 'food': 0, 'magic': 0, 'coin': 0}
 
 
 def test_items_by_id_skips_rows_without_an_id():

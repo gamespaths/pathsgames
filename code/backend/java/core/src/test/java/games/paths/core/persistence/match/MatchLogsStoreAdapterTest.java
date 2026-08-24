@@ -4,12 +4,15 @@ import games.paths.core.entity.match.GamingCharacterInstanceEntity;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.LogClockHistoryEntity;
 import games.paths.core.entity.match.LogEventsEntity;
+import games.paths.core.entity.match.LogItemUsageEntity;
 import games.paths.core.entity.match.LogMovementEntity;
 import games.paths.core.entity.match.LogWeatherEntity;
 import games.paths.core.entity.story.CharacterTemplateEntity;
 import games.paths.core.entity.story.EventEntity;
+import games.paths.core.entity.story.ItemEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.WeatherRuleEntity;
+import games.paths.core.port.match.MatchLogsStorePort;
 import games.paths.core.port.match.MatchLogsStorePort.CharacterLogView;
 import games.paths.core.port.match.MatchLogsStorePort.ClockLogEntry;
 import games.paths.core.port.match.MatchLogsStorePort.EventLogEntry;
@@ -20,13 +23,16 @@ import games.paths.core.repository.match.GamingCharacterInstanceRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.LogClockHistoryRepository;
 import games.paths.core.repository.match.LogEventsRepository;
+import games.paths.core.repository.match.LogItemUsageRepository;
 import games.paths.core.repository.match.LogMovementRepository;
 import games.paths.core.repository.match.LogWeatherRepository;
 import games.paths.core.repository.story.CharacterTemplateRepository;
 import games.paths.core.repository.story.EventRepository;
+import games.paths.core.repository.story.ItemRepository;
 import games.paths.core.repository.story.LocationRepository;
 import games.paths.core.repository.story.WeatherRuleRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -53,6 +59,8 @@ class MatchLogsStoreAdapterTest {
     private CharacterTemplateRepository characterTemplateRepository;
     private GamingCharacterInstanceRepository characterInstanceRepository;
     private EventRepository eventRepository;
+    private LogItemUsageRepository logItemUsageRepository;
+    private ItemRepository itemRepository;
     private MatchLogsStoreAdapter adapter;
 
     @BeforeEach
@@ -67,10 +75,13 @@ class MatchLogsStoreAdapterTest {
         characterTemplateRepository = mock(CharacterTemplateRepository.class);
         characterInstanceRepository = mock(GamingCharacterInstanceRepository.class);
         eventRepository = mock(EventRepository.class);
+        logItemUsageRepository = mock(LogItemUsageRepository.class);
+        itemRepository = mock(ItemRepository.class);
         adapter = new MatchLogsStoreAdapter(matchRepository, logWeatherRepository,
                 logMovementRepository, logClockHistoryRepository, logEventsRepository,
-                weatherRuleRepository, locationRepository, characterTemplateRepository,
-                characterInstanceRepository, eventRepository);
+                logItemUsageRepository, weatherRuleRepository, locationRepository,
+                characterTemplateRepository, characterInstanceRepository, eventRepository,
+                itemRepository);
     }
 
     @Test
@@ -202,6 +213,46 @@ class MatchLogsStoreAdapterTest {
         when(eventRepository.findByIdStory(9L)).thenReturn(List.of(ev));
 
         assertEquals(Map.of(60L, 404), adapter.findEventIdCards(9L));
+    }
+
+    @Test
+    @DisplayName("v0.35.4 — the item log maps action, counter, source event and deltas")
+    void findItemLog_mapsRows() {
+        LogItemUsageEntity row = new LogItemUsageEntity();
+        row.setId(4L);
+        row.setIdMatch(1L);
+        row.setIdCharacterMatch(10L);
+        row.setIdItem(900L);
+        row.setAction("ADD");
+        row.setCounter(2);
+        row.setIdEvent(42L);
+        row.setTimestamp("2026-01-01T00:05:00Z");
+        row.setEnergy(9);
+        row.setFood(0);
+        row.setMagic(-3);
+        row.setCoin(0);
+        when(logItemUsageRepository.findByIdMatchOrderByIdAsc(1L)).thenReturn(List.of(row));
+
+        List<MatchLogsStorePort.ItemLogEntry> out = adapter.findItemLog(1L);
+
+        assertEquals(1, out.size());
+        assertEquals(900L, out.get(0).idItem());
+        assertEquals("ADD", out.get(0).action());
+        assertEquals(2, out.get(0).counter());
+        assertEquals(42L, out.get(0).idEvent());
+        assertEquals(9, out.get(0).energy());
+        assertEquals(-3, out.get(0).magic());
+    }
+
+    @Test
+    @DisplayName("v0.35.4 — every item of the story maps to its own card")
+    void findItemIdCards_mapsIdToCard() {
+        ItemEntity i = new ItemEntity();
+        i.setId(900L);
+        i.setIdCard(700);
+        when(itemRepository.findByIdStory(9001L)).thenReturn(List.of(i));
+
+        assertEquals(Map.of(900L, 700), adapter.findItemIdCards(9001L));
     }
 
     @Test

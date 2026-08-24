@@ -98,7 +98,13 @@ class InventoryStorePort(ABC):
         """{food, magic, coin} or None when the row was never written."""
 
     @abstractmethod
-    def log_item_usage(self, id_match: int, id_character: int, id_item: int,
-                       counter: int, effects_json: str) -> None:
+    def log_item_action(self, id_match: int, id_character: int, id_item: int,
+                        action: str, counter: int, effects_json: Optional[str],
+                        delta: Optional[Dict[str, int]] = None,
+                        id_event: Optional[int] = None) -> None:
         """Append one log_item_usage row. The table carries UNIQUE (id), so the id comes
-        from the table-wide maximum, not from a per-match one."""
+        from the table-wide maximum, not from a per-match one.
+
+        v0.35.4 — ``action`` is ADD, USE, DROP or REMOVE; ``delta`` holds the signed
+        {energy, food, magic, coin} the action produced and ``id_event`` the effect that
+        moved the item, None when the player used or dropped it directly."""

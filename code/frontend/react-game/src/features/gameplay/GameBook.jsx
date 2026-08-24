@@ -856,8 +856,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
             ]}
 
             onPreview={() => { handleSelectionPreviewFull(cardCharacteristicsRight, 'information', null, [], false); setStatisticsCards(true) } }
-            childrenIntoImage={<PlayerStats stats={playerStats} plainFlag={false} showLabel={false} showGrid2={true}
-                                  showItems={false}
+            childrenIntoImage={<PlayerStats stats={playerStats} plainFlag={false} showLabel={false} 
+                                  showGrid2={true} showItems={false}
                                   className="m-1 display-inline-grid flex-direction-column display-grid2" />}
           />
           {playerStats?.isComa && <ComaCard story={story} onPreview={handleSelectionPreviewFull} previewSide="right"/>}

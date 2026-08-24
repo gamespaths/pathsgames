@@ -292,6 +292,77 @@ describe('MatchDetailPage', () => {
     expect(screen.getByText('event #42')).toBeInTheDocument()
   })
 
+  it('v0.35.4 — shows the three ITEM_* entries with the item card, units and source event', async () => {
+    matchApi.getMatchLogs.mockResolvedValue({
+      matchUuid: 'm1', currentClock: 4, nextCursor: null, limit: 50, total: 3,
+      logs: [
+        { type: 'ITEM_ADD', timestamp: '2026-07-12T10:01:00Z', idItem: 900, itemAction: 'ADD',
+          counter: 1, idEvent: 42, idCharacterMatch: 1, characterName: 'Ranger',
+          energyCost: 0, foodCost: 0, magicCost: 0, coinCost: 0,
+          energyGain: 0, foodGain: 0, magicGain: 0, coinGain: 0,
+          idCard: 700, card: { title: 'Healing Potion', urlImage: 'http://img/potion.png' } },
+        { type: 'ITEM_USE', timestamp: '2026-07-12T10:02:00Z', idItem: 900, itemAction: 'USE',
+          counter: 2, idCharacterMatch: 1, characterName: 'Ranger',
+          energyCost: 0, foodCost: 0, magicCost: 3, coinCost: 0,
+          energyGain: 9, foodGain: 0, magicGain: 0, coinGain: 0,
+          idCard: 700, card: { title: 'Healing Potion' } },
+        { type: 'ITEM_DROP', timestamp: '2026-07-12T10:03:00Z', idItem: 901, itemAction: 'DROP',
+          counter: 1, idCharacterMatch: 1, characterName: 'Ranger',
+          idCard: 701, card: { title: 'Rusty Sword' } },
+      ],
+    })
+    renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Logs')
+    await screen.findByTestId('match-logs-panel')
+
+    expect(screen.getAllByText('ITEM_ADD').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('ITEM_USE').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('ITEM_DROP').length).toBeGreaterThan(0)
+    // the item's own card, the units, and the event that handed it over
+    expect(screen.getAllByText('Healing Potion').length).toBe(2)
+    expect(screen.getByText('item #900 (event #42)')).toBeInTheDocument()
+    expect(screen.getByText('item #900 ×2')).toBeInTheDocument()
+    expect(screen.getByText('item #901')).toBeInTheDocument()
+    // a usage that restored energy and drained magic shows both halves
+    expect(screen.getByText('+9 ⚡')).toBeInTheDocument()
+    expect(screen.getByText('−3 ✨')).toBeInTheDocument()
+  })
+
+  it('v0.35.4 — an EVENT row shows what it took and what it gave back', async () => {
+    matchApi.getMatchLogs.mockResolvedValue({
+      matchUuid: 'm1', currentClock: 4, nextCursor: null, limit: 50, total: 1,
+      logs: [
+        { type: 'EVENT', clock: 3, timestamp: '2026-07-12T10:04:00Z', idEvent: 42,
+          message: 'EVENT_EXECUTED 42',
+          energyCost: 5, foodCost: 0, magicCost: 0, coinCost: 7,
+          energyGain: 0, foodGain: 2, magicGain: 0, coinGain: 30 },
+      ],
+    })
+    renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Logs')
+    await screen.findByTestId('match-logs-panel')
+
+    expect(screen.getByText('−5 ⚡')).toBeInTheDocument()
+    expect(screen.getByText('−7 🪙')).toBeInTheDocument()
+    expect(screen.getByText('+2 🍞')).toBeInTheDocument()
+    expect(screen.getByText('+30 🪙')).toBeInTheDocument()
+  })
+
+  it('v0.35.4 — an entry that moved no resource shows nothing in the column', async () => {
+    matchApi.getMatchLogs.mockResolvedValue({
+      matchUuid: 'm1', currentClock: 4, nextCursor: null, limit: 50, total: 1,
+      logs: [{ type: 'CLOCK_ADVANCE', clock: 3, timestamp: '2026-07-12T10:04:00Z' }],
+    })
+    renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Logs')
+    await screen.findByTestId('match-logs-panel')
+
+    expect(screen.queryByTestId('log-resources')).not.toBeInTheDocument()
+  })
+
   it('names the character that performed each character-scoped action', async () => {
     renderPage()
     await screen.findByText('Saturday run')

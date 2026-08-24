@@ -238,7 +238,7 @@ class EventExecutionServiceAutomaticTest {
             assertTrue(service.onArrival(arrival()).isEmpty());
             // No EVENT_EXECUTED marker: writing one would open a cycle that no select-choice
             // call could ever close, and the match would carry it for ever.
-            verify(store, never()).logEventExecuted(anyLong(), any(), anyLong(), anyInt(), anyString(), any());
+            verify(store, never()).logEventExecuted(anyLong(), any(), anyLong(), anyInt(), anyString(), any(), any());
             verify(locationStore).logAutomaticEvent(eq(MATCH_ID), any(), eq(LOCATION), eq(40L),
                     anyInt(), anyString());
         }

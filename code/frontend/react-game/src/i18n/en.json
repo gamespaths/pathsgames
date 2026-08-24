@@ -152,7 +152,10 @@
       "RECOVERY": "Recovery",
       "EVENT": "Event",
       "COUNTER_ZERO": "Time ran out",
-      "AUTOMATIC_EVENT": "Something happened"
+      "AUTOMATIC_EVENT": "Event",
+      "ITEM_ADD": "Item found",
+      "ITEM_USE": "Item used",
+      "ITEM_DROP": "Item left behind"
     }
   },
   "card": {

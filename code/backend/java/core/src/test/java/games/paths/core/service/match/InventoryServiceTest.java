@@ -9,6 +9,7 @@ import games.paths.core.port.match.EventExecutionPort.EventExecutionResult;
 import games.paths.core.port.match.EventExecutionPort.StandaloneEffect;
 import games.paths.core.port.match.EventExecutionPort.StatChange;
 import games.paths.core.port.match.EventExecutionPort.TraitChange;
+import games.paths.core.port.match.EventExecutionStorePort;
 import games.paths.core.port.match.EventExecutionStorePort.BackpackStats;
 import games.paths.core.port.match.InventoryPort.DropItemResult;
 import games.paths.core.port.match.InventoryPort.InventoryException;
@@ -430,13 +431,36 @@ class InventoryServiceTest {
             service.useItem(MATCH, USER, "row-1", "en");
 
             ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
-            verify(store).logItemUsage(eq(MATCH_ID), eq(CHAR_ID), eq(900L), eq(1), json.capture());
+            verify(store).logItemAction(eq(MATCH_ID), eq(CHAR_ID), eq(900L),
+                    eq(EventExecutionStorePort.ITEM_ACTION_USE), eq(1), json.capture(), any());
             assertEquals("{\"statChanges\":[{\"characterUuid\":\"char-uuid\",\"statistic\":\"life\","
                             + "\"before\":4,\"after\":7,\"delta\":3}],"
                             + "\"traitChanges\":[{\"characterUuid\":\"char-uuid\",\"traitUuid\":\"trait-1\","
                             + "\"action\":\"ADD\"}],"
                             + "\"sadnessOverflow\":false,\"comaTriggered\":false}",
                     json.getValue());
+        }
+
+        @Test
+        @DisplayName("v0.35.4 — the row carries the actor's resource deltas, nobody else's")
+        void logsTheResourceDelta() {
+            givenPotion();
+            when(effectEngine.applyStandaloneEffects(anyLong(), anyLong(), any(), any(), any(), anyBoolean()))
+                    .thenReturn(result(
+                            List.of(new StatChange("char-uuid", "energy", 1, 10, 9),
+                                    new StatChange("char-uuid", "magic", 5, 2, -3),
+                                    new StatChange("char-uuid", "life", 4, 7, 3),
+                                    new StatChange("other-uuid", "coin", 0, 50, 50)),
+                            List.of(), EdgeStateOutcome.none(), false));
+
+            service.useItem(MATCH, USER, "row-1", "en");
+
+            ArgumentCaptor<EventExecutionStorePort.ResourceDelta> delta =
+                    ArgumentCaptor.forClass(EventExecutionStorePort.ResourceDelta.class);
+            verify(store).logItemAction(eq(MATCH_ID), eq(CHAR_ID), eq(900L),
+                    eq(EventExecutionStorePort.ITEM_ACTION_USE), eq(1), anyString(), delta.capture());
+            // life is not a resource and the coin went to somebody else: neither reaches the row.
+            assertEquals(new EventExecutionStorePort.ResourceDelta(9, 0, -3, 0), delta.getValue());
         }
     }
 
@@ -543,13 +567,15 @@ class InventoryServiceTest {
         }
 
         @Test
-        @DisplayName("dropping never writes a usage log")
-        void noUsageLog() {
+        @DisplayName("v0.35.4 — dropping writes a DROP row and still applies no effect")
+        void dropIsLogged() {
             givenPotion();
 
             service.dropItem(MATCH, USER, "row-1");
 
-            verify(store, never()).logItemUsage(anyLong(), anyLong(), anyLong(), anyInt(), anyString());
+            verify(store).logItemAction(eq(MATCH_ID), eq(CHAR_ID), eq(900L),
+                    eq(EventExecutionStorePort.ITEM_ACTION_DROP), eq(1), isNull(),
+                    eq(EventExecutionStorePort.ResourceDelta.none()));
             verifyNoInteractions(effectEngine);
         }
     }

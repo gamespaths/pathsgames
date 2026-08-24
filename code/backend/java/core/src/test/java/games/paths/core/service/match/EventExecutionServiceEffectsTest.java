@@ -232,6 +232,30 @@ class EventExecutionServiceEffectsTest {
         }
 
         @Test
+        @DisplayName("v0.35.4 — what the effects gave the actor is stamped on the event row")
+        void gainsRideOnTheEventRow() {
+            withEffects(stat("coin", 5, "ONLY_ONE"), stat("energy", 4, "ONLY_ONE"),
+                    stat("magic", -2, "ONLY_ONE"));
+
+            execute();
+
+            // Only the positive half: a drain is the effect's own business, not a gain.
+            verify(store).logEventExecuted(eq(MATCH_ID), any(), eq(1L), anyInt(), anyString(),
+                    any(), eq(new EventExecutionStorePort.ResourceDelta(4, 0, 0, 5)));
+        }
+
+        @Test
+        @DisplayName("v0.35.4 — an event that gives nothing logs a gain of zero")
+        void noGainIsZero() {
+            withEffects(stat("life", 3, "ONLY_ONE"));
+
+            execute();
+
+            verify(store).logEventExecuted(eq(MATCH_ID), any(), eq(1L), anyInt(), anyString(),
+                    any(), eq(EventExecutionStorePort.ResourceDelta.none()));
+        }
+
+        @Test
         @DisplayName("Life, energy and sadness clamp at their max")
         void clampAtMax() {
             withEffects(stat("life", 9999, "ONLY_ONE"));
@@ -397,6 +421,9 @@ class EventExecutionServiceEffectsTest {
             assertEquals(1, r.itemChanges().size());
             assertEquals("NOT_ADDED", r.itemChanges().get(0).action());
             assertEquals("item-uuid", r.itemChanges().get(0).itemUuid());
+            // v0.35.4 — and nothing is logged: a refused ADD is not a thing that happened.
+            verify(store, never()).logItemAction(anyLong(), anyLong(), anyLong(), anyString(),
+                    anyInt(), any(), any(), any());
         }
 
         @Test
@@ -410,6 +437,10 @@ class EventExecutionServiceEffectsTest {
             EventExecutionResult r = execute();
 
             verify(store).addItem(MATCH_ID, CHAR_ID, 42L, null);
+            // v0.35.4 — the log row names the event whose effect handed the item over.
+            verify(store).logItemAction(MATCH_ID, CHAR_ID, 42L,
+                    EventExecutionStorePort.ITEM_ACTION_ADD, 1, 1L, null,
+                    EventExecutionStorePort.ResourceDelta.none());
             assertTrue(r.itemAdded());
             assertFalse(r.itemRemoved());
             assertEquals(1, r.itemChanges().size());
@@ -428,8 +459,26 @@ class EventExecutionServiceEffectsTest {
             EventExecutionResult r = execute();
 
             verify(store).removeItem(MATCH_ID, CHAR_ID, 42L);
+            verify(store).logItemAction(MATCH_ID, CHAR_ID, 42L,
+                    EventExecutionStorePort.ITEM_ACTION_REMOVE, 1, 1L, null,
+                    EventExecutionStorePort.ResourceDelta.none());
             assertTrue(r.itemRemoved());
             assertEquals("REMOVE", r.itemChanges().get(0).action());
+        }
+
+        @Test
+        @DisplayName("v0.35.4 — a REMOVE that found nothing to take logs nothing either")
+        void removeMissingIsNotLogged() {
+            when(store.removeItem(anyLong(), anyLong(), anyLong())).thenReturn(false);
+            EventEffectEntity e = effect();
+            e.setIdItemTarget(42);
+            e.setItemAction("REMOVE");
+            withEffects(e);
+
+            execute();
+
+            verify(store, never()).logItemAction(anyLong(), anyLong(), anyLong(), anyString(),
+                    anyInt(), any(), any(), any());
         }
 
         @Test

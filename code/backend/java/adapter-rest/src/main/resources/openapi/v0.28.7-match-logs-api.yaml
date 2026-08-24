@@ -31,7 +31,15 @@ info:
       the Step 30 edge-state audit messages `SADNESS_OVERFLOW`/`COMA`) are dropped, not
       shown as garbage.
 
-    Future additions: CHOICE_EXECUTED, ITEM_USED, REGISTRY_CHANGE.
+    - **ITEM_ADD / ITEM_USE / ITEM_DROP** (v0.35.4): what happened to an item, from
+      `log_item_usage` — a row per action, read off its `action` column rather than a
+      message prefix. ADD is an effect handing the item over (`idEvent` names it), USE is
+      the player consuming it, DROP covers both the player putting it down and an effect
+      taking it away. Every one of them carries `idItem`, `counter` and the item's own
+      `idCard`/`card`. Before v0.35.4 the table was written on a use and read by nobody,
+      and taking or dropping an item was not logged at all.
+
+    Future additions: CHOICE_EXECUTED, REGISTRY_CHANGE.
 
     **Public endpoint** (owner-only): `GET /api/matches/{uuidMatch}/logs`
     **Admin endpoint** (no ownership check, admin port 8044):
@@ -193,7 +201,7 @@ components:
       properties:
         type:
           type: string
-          enum: [WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY, EVENT, COUNTER_ZERO, AUTOMATIC_EVENT]
+          enum: [WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY, EVENT, COUNTER_ZERO, AUTOMATIC_EVENT, ITEM_ADD, ITEM_USE, ITEM_DROP]
           description: Log entry type
         clock:
           type: integer
@@ -247,6 +255,38 @@ components:
           type: integer
           nullable: true
           description: "v0.35.3 — (MOVEMENT, EVENT) coins paid; 0 when the action was free"
+        energyGain:
+          type: integer
+          nullable: true
+          description: "v0.35.4 — (EVENT, ITEM_*) energy the action gave back; 0 when it gave nothing"
+        foodGain:
+          type: integer
+          nullable: true
+          description: "v0.35.4 — (EVENT, ITEM_*) food the action gave; 0 when it gave nothing"
+        magicGain:
+          type: integer
+          nullable: true
+          description: "v0.35.4 — (EVENT, ITEM_*) magic the action gave; 0 when it gave nothing"
+        coinGain:
+          type: integer
+          nullable: true
+          description: "v0.35.4 — (EVENT, ITEM_*) coins the action gave; 0 when it gave nothing"
+        idItem:
+          type: integer
+          format: int64
+          nullable: true
+          description: "v0.35.4 — (ITEM_* only) ID of the list_items row the action moved"
+        itemAction:
+          type: string
+          nullable: true
+          enum: [ADD, USE, DROP, REMOVE]
+          description: >-
+            v0.35.4 — (ITEM_* only) the raw log_item_usage.action. REMOVE and DROP both
+            surface as type ITEM_DROP; this field keeps the two apart for whoever needs it.
+        counter:
+          type: integer
+          nullable: true
+          description: "v0.35.4 — (ITEM_* only) how many units the action moved"
         message:
           type: string
           nullable: true
@@ -255,14 +295,16 @@ components:
           type: integer
           format: int64
           nullable: true
-          description: "(v0.30.3; EVENT only) ID of the list_events row that was triggered"
+          description: >-
+            (v0.30.3; EVENT) ID of the list_events row that was triggered. v0.35.4 — also
+            set on ITEM_ADD / ITEM_DROP rows an event effect produced.
         idCard:
           type: integer
           nullable: true
           description: >-
-            (WEATHER, MOVEMENT, EVENT) Story-scoped card id — the weather's own card for
-            WEATHER, the destination location's card for MOVEMENT, the triggered event's
-            own card for EVENT (v0.30.3).
+            (WEATHER, MOVEMENT, EVENT, ITEM_*) Story-scoped card id — the weather's own
+            card for WEATHER, the destination location's card for MOVEMENT, the triggered
+            event's own card for EVENT (v0.30.3), the item's own card for ITEM_* (v0.35.4).
         card:
           nullable: true
           description: "(v0.28.7) The resolved card for idCard, localized via ?lang="

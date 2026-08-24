@@ -32,6 +32,7 @@ from app.core.models.match.event_models import (
 )
 from app.core.ports.match.edge_state_ports import MSG_ALL_PLAYER_COMA, EdgeStateStorePort
 from app.core.ports.match.event_ports import (
+    ITEM_ACTION_ADD, ITEM_ACTION_REMOVE,
     MSG_CHOICE_SELECTED, MSG_EVENT_EXECUTED, EventPort, EventStorePort,
 )
 from app.core.services.match import choice_availability, edge_state_evaluator, event_availability
@@ -370,7 +371,7 @@ class EventService(EventPort):
         for recipient in recipients:
             touched.append(recipient.get("uuid"))
             self._apply_stat(x, recipient, effect)
-            self._apply_item(x, recipient, effect)
+            self._apply_item(x, recipient, effect, event.get("id"))
             self._apply_movement(x, recipient, effect)
         self._apply_choice_registry(x, effect, event)
 
@@ -600,7 +601,8 @@ class EventService(EventPort):
             live.magic = max(0, live.magic - x.magic_spent)
             live.backpack_dirty = True
 
-    def _log_executed(self, x: "_Exec", event_id: int, message: str) -> None:
+    def _log_executed(self, x: "_Exec", event_id: int, message: str,
+                      gained: Optional[Dict[str, int]] = None) -> None:
         """The EVENT_EXECUTED row, with the price on it exactly once.
 
         _apply_event runs for every event of a chain and the whole chain shares one _Exec,
@@ -615,7 +617,8 @@ class EventService(EventPort):
         self.store.log_event_executed(
             x.match["id"], x.actor_id(), event_id, x.current_clock, message,
             x.energy_spent if paid else 0, x.food_spent if paid else 0,
-            x.magic_spent if paid else 0, x.coin_spent if paid else 0)
+            x.magic_spent if paid else 0, x.coin_spent if paid else 0,
+            gained or {})
 
     # ── the chain ───────────────────────────────────────────────────────────
 
@@ -654,6 +657,9 @@ class EventService(EventPort):
         if event.get("uuid") and event["uuid"] not in x.executed_event_uuids:
             x.executed_event_uuids.append(event["uuid"])
 
+        # v0.35.4 — the mark is taken before the effects run, so a chained event logs what
+        # it gave and not what the events before it in the same chain already did.
+        mark = x.gains_mark()
         for effect in effects_by_event.get(event_id, []):
             self._apply_effect(x, event, effect)
 
@@ -661,7 +667,8 @@ class EventService(EventPort):
         x.game_over = x.game_over or (end_game_id is not None and end_game_id == event_id)
 
         self._check_edge_states(x, event_id)
-        self._log_executed(x, event_id, f"{MSG_EVENT_EXECUTED} {event_id}")
+        self._log_executed(x, event_id, f"{MSG_EVENT_EXECUTED} {event_id}",
+                           x.gains_since(mark))
 
     # ── effects ─────────────────────────────────────────────────────────────
 
@@ -685,7 +692,7 @@ class EventService(EventPort):
         for recipient in recipients:
             touched.append(recipient.get("uuid"))
             self._apply_stat(x, recipient, effect)
-            self._apply_item(x, recipient, effect)
+            self._apply_item(x, recipient, effect, event.get("id"))
             self._apply_traits(x, recipient, effect, event)
             self._apply_characteristics(x, recipient, effect)
             self._apply_movement(x, recipient, effect)
@@ -746,10 +753,13 @@ class EventService(EventPort):
         else:
             return  # an unknown statistic is authored noise, not an error
 
+        if x.is_actor(recipient["id"]):
+            # The log row is character-scoped: only the actor's own resources ride on it.
+            x.record_gain(stat, after - before)
         x.stat_changes.append(StatChange(recipient.get("uuid"), stat, before, after, after - before))
 
     def _apply_item(self, x: "_Exec", recipient: Dict[str, Any],
-                    effect: Dict[str, Any]) -> None:
+                    effect: Dict[str, Any], id_event: Optional[int] = None) -> None:
         id_item = effect.get("id_item_target")
         action = (effect.get("item_action") or "").strip().upper()
         if not id_item or id_item <= 0 or not action:
@@ -763,12 +773,15 @@ class EventService(EventPort):
             if not added:
                 # v0.35.1 — max_per_character. Nothing changed in the bag, so nothing needs
                 # refreshing on its account, and owned_item_ids is left alone: the character
-                # DOES hold the item, just not one more of it.
+                # DOES hold the item, just not one more of it. v0.35.4 — and nothing is
+                # logged: a refused ADD is not a thing that happened.
                 return
+            self._log_item_action(x, recipient, id_item, ITEM_ACTION_ADD, id_event)
             x.item_added = True
             if x.is_actor(recipient["id"]):
                 x.ctx.owned_item_ids.add(id_item)
         elif action == REMOVE and self.store.remove_item(x.match["id"], recipient["id"], id_item):
+            self._log_item_action(x, recipient, id_item, ITEM_ACTION_REMOVE, id_event)
             x.item_removed = True
             x.item_changes.append(EntityChange(recipient.get("uuid"), item_uuid, REMOVE))
             if x.is_actor(recipient["id"]):
@@ -776,6 +789,17 @@ class EventService(EventPort):
                 # cleared the flag anyway, so a later condition read "not owned" while the
                 # bag still held two.
                 x.ctx.owned_item_ids.discard(id_item)
+
+    def _log_item_action(self, x: "_Exec", recipient: Dict[str, Any], id_item: int,
+                         action: str, id_event: Optional[int]) -> None:
+        """v0.35.4 — the log_item_usage row of an item an effect moved.
+
+        The counter is 1 because an effect grants or takes one unit; a REMOVE that empties
+        a stack of three still describes one authored action, and the amount lives in the
+        inventory, not here.
+        """
+        self.store.log_item_action(x.match["id"], recipient["id"], id_item, action, 1,
+                                   None, None, id_event)
 
     def _apply_traits(self, x: "_Exec", recipient: Dict[str, Any], effect: Dict[str, Any],
                       event: Dict[str, Any]) -> None:
@@ -1413,6 +1437,9 @@ class _Exec:
         self.magic_spent = 0
         #: True between _deduct_costs and the log row that carries the price (v0.35.3).
         self.costs_pending = False
+        #: v0.35.4 — running totals of what the ACTOR gained, never reset. Each event row
+        #: logs the difference across its own effects, so a chain does not repeat them.
+        self.gained: Dict[str, int] = {"energy": 0, "food": 0, "magic": 0, "coin": 0}
         # ── Step 31 choices ──
         self.status = STATUS_APPLIED
         self.pending_choices: List[Dict[str, Any]] = []
@@ -1521,6 +1548,17 @@ class _Exec:
     def is_actor(self, id_character) -> bool:
         """False for every character when there is no actor."""
         return self.actor is not None and self.actor["id"] == id_character
+
+    def gains_mark(self) -> Dict[str, int]:
+        return dict(self.gained)
+
+    def gains_since(self, mark: Dict[str, int]) -> Dict[str, int]:
+        return {k: self.gained[k] - mark.get(k, 0) for k in self.gained}
+
+    def record_gain(self, stat: str, delta: int) -> None:
+        """Only what a statistic ADDED counts as a gain; a drain is the effect's own business."""
+        if delta > 0 and stat in self.gained:
+            self.gained[stat] += delta
 
     def location_of(self, view: Dict[str, Any]) -> Optional[int]:
         """The tracked position wins over the (possibly stale) view."""

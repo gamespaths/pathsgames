@@ -226,12 +226,17 @@ class LogEventsEntity(Base):
     food_cost = Column(Integer, default=0)
     magic_cost = Column(Integer, default=0)
     coin_cost = Column(Integer, default=0)
+    # v0.35.4 — what the event GAVE the actor, the counterpart of the four costs above.
+    energy_gain = Column(Integer, default=0)
+    food_gain = Column(Integer, default=0)
+    magic_gain = Column(Integer, default=0)
+    coin_gain = Column(Integer, default=0)
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
 
 
 class LogItemUsageEntity(Base):
-    """Step 34 — append-only log of every successful use-item.
+    """Step 34 — append-only log of every item action (v0.35.4; usages only before it).
 
     ``id`` is part of the composite PK ``(id, id_match)`` but the table also carries a
     ``UNIQUE (id)`` constraint, so ids are GLOBALLY unique and are allocated from the
@@ -244,7 +249,16 @@ class LogItemUsageEntity(Base):
     uuid = Column(String(36), unique=True, nullable=False)
     id_character_match = Column(Integer, nullable=False)
     id_item = Column(Integer, nullable=False)
+    # v0.35.4 — ADD, USE, DROP or REMOVE; rows written before it are all usages.
+    action = Column(String(20), default="USE")
+    # v0.35.4 — the event whose effect moved the item; None when the player acted directly.
+    id_event = Column(Integer)
     counter = Column(Integer, default=1)
+    # v0.35.4 — signed resource deltas the action produced; zero on ADD and DROP.
+    energy = Column(Integer, default=0)
+    food = Column(Integer, default=0)
+    magic = Column(Integer, default=0)
+    coin = Column(Integer, default=0)
     # Plain text in both dialects since V0.34.0 — see the migration header.
     effects_json = Column(String(4000))
     timestamp = Column(String(50))

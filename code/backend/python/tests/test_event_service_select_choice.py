@@ -450,7 +450,7 @@ def test_a_linked_choice_event_presents_its_options_for_free(service, store):
     # Opened for free — a consequence is not a choice — but marked, so its cycle opens.
     assert r.execution.energy_spent == 0
     store.log_event_executed.assert_any_call(
-        MATCH_ID, CHAR_ID, 6, CLOCK, f"{MSG_EVENT_EXECUTED} 6", 0, 0, 0, 0)
+        MATCH_ID, CHAR_ID, 6, CLOCK, f"{MSG_EVENT_EXECUTED} 6", 0, 0, 0, 0, {})
 
 
 # ── the Step 30 tail still runs ─────────────────────────────────────────────

@@ -19,6 +19,10 @@ import { buildCardToSleep } from '@/utils/loadoutCards'
  * CLOCK_ADVANCE entries are filtered out: they carry no card and no actor, so
  * they would only add empty tiles to the timeline.
  *
+ * v0.35.4 — ITEM_ADD / ITEM_USE / ITEM_DROP entries arrive with the item's own card, and
+ * every entry names its actor and what it moved as stat badges, on the tile and on the
+ * page the tile opens alike.
+ *
  * The endpoint is cursor-paginated; "load more" appends the next page. Since
  * v0.30.3 the timeline arrives newest-first (order=desc), so the most recent entry
  * opens the page and "load more" walks back into the past.
@@ -35,12 +39,102 @@ const HIDDEN_TYPES = new Set(['CLOCK_ADVANCE'])
 
 // Icon per entry type; mirrors the admin console's TYPE_META.
 const TYPE_ICON = {
-  WEATHER:       'fa-cloud-sun-rain',
-  MOVEMENT:      'fa-person-walking',
-  SLEEP:         'fa-bed',
-  CLOCK_ADVANCE: 'fa-clock',
-  RECOVERY:      'fa-heart',
-  EVENT:         'fa-scroll',
+  WEATHER:         'fa-cloud-sun-rain',
+  MOVEMENT:        'fa-person-walking',
+  SLEEP:           'fa-bed',
+  CLOCK_ADVANCE:   'fa-clock',
+  RECOVERY:        'fa-heart',
+  EVENT:           'fa-scroll',
+  COUNTER_ZERO:    'fa-hourglass-end',
+  AUTOMATIC_EVENT: 'fa-wand-magic-sparkles',
+  ITEM_ADD:        'fa-hand-holding',
+  ITEM_USE:        'fa-flask',
+  ITEM_DROP:       'fa-trash',
+}
+
+/**
+ * v0.35.4 — the colour each type's glyph carries as a badge, so the timeline keeps the
+ * coding `.match-log-type--*` gave the overlaid label it replaced. Same palette as the
+ * admin console's TYPE_META, and it covers the types main.css never got round to
+ * (COUNTER_ZERO, AUTOMATIC_EVENT and the three ITEM_*), which fell back to one colour.
+ */
+const TYPE_COLOR = {
+  WEATHER:         '#eab308',
+  MOVEMENT:        '#22c55e',
+  SLEEP:           '#60a5fa',
+  CLOCK_ADVANCE:   '#c084fc',
+  RECOVERY:        '#2dd4bf',
+  EVENT:           '#f87171',
+  COUNTER_ZERO:    '#fb923c',
+  AUTOMATIC_EVENT: '#e879f9',
+  ITEM_ADD:        '#4ade80',
+  ITEM_USE:        '#a78bfa',
+  ITEM_DROP:       '#9ca3af',
+}
+
+/**
+ * v0.35.4 — the four resources an entry can move. The API sends two families, `*Cost` and
+ * `*Gain`; an ITEM_* entry splits its signed deltas across them, so the same reader covers
+ * a move, an event and a potion. `badge` is the BonusBadgeList vocabulary, where coin is
+ * plural — the same keys MovementCard already prices a path with.
+ */
+const RESOURCES = [
+  { key: 'energy', badge: 'energy' },
+  { key: 'food',   badge: 'food' },
+  { key: 'magic',  badge: 'magic' },
+  { key: 'coin',   badge: 'coins' },
+]
+
+/**
+ * The entry as stat badges: what it was, who acted, then what the action took and what it
+ * gave. A spend is written with a minus and a gain with a plus, and an event that charged a
+ * resource and handed some of it back shows both halves rather than their difference — the
+ * two are not the same news.
+ *
+ * The zeros are dropped HERE rather than left to BonusBadgeList: its own filter parses the
+ * value as a number, and the actor badge carries a name, which would never survive it.
+ */
+export function resourceBadges(entry, t) {
+  const items = []
+  for (const r of RESOURCES) {
+    const spent  = Number(entry?.[`${r.key}Cost`]) || 0
+    const gained = Number(entry?.[`${r.key}Gain`]) || 0
+    const label  = t(`game.stats.${r.badge}`)
+    if (spent)  items.push({ key: r.badge, label, value: spent,  prefix: '−' })
+    if (gained) items.push({ key: r.badge, label, value: gained, prefix: '+' })
+  }
+  return items
+}
+
+/**
+ * The same, with what the entry WAS and who did it in front — the little tile has no room
+ * to spell either of them out, so there they are badges too. The page does have the room
+ * and says both in words instead, so it asks for the resources alone.
+ */
+export function entryBadges(entry, actor, t) {
+  const items = []
+  if (entry?.type) {
+    // The type leads: it is what the entry IS, and it carries its own glyph rather than a
+    // stat one — BonusBadgeList takes the icon off the item when the shared vocabulary has
+    // no word for it. `label: null` keeps the page variant from printing it twice, once as
+    // the label and once as the value.
+    const badge = {
+      key: `type-${entry.type}`,
+      label: null,
+      value: t(`matchLog.types.${entry.type}`),
+      icon: `fas ${TYPE_ICON[entry.type] || 'fa-circle'}`,
+    }
+    // Left off entirely rather than set to null when the type is unknown: BonusBadgeList
+    // reads the key's PRESENCE, so a null would mean "no colour" instead of "use yours".
+    if (TYPE_COLOR[entry.type]) {
+      badge.color = TYPE_COLOR[entry.type]
+    }
+    items.push(badge)
+  }
+  if (actor) {
+    items.push({ key: 'actor', label: t('matchLog.character'), value: actor })
+  }
+  return [...items, ...resourceBadges(entry, t)]
 }
 
 /**
@@ -68,16 +162,15 @@ export function formatLogDate(timestamp, lang) {
  * sleep entry looks exactly like it did when it happened.
  */
 function resolveEntryCard(entry, t) {
-  console.log('resolveEntryCard', entry)
   if (entry.type === 'SLEEP') return buildCardToSleep(null, null, t)
   return entry.card ?? null
 }
 
 /**
- * One timeline entry as a little Card: the entry's card gives title + image, the
- * event type is overlaid on the image, and the date (with the actor, when the
- * entry has one) goes underneath. Entries with no card of their own (RECOVERY)
- * fall back to the type label and its icon.
+ * One timeline entry as a little Card: the entry's card gives title + image, the type,
+ * the actor and the resources it moved are stat badges overlaid on that image (v0.35.4)
+ * and the date goes underneath. Entries with no card of their own (RECOVERY) fall back
+ * to the type label and its icon.
  */
 function LogEntryCard({ entry, lang, t, onPreview }) {
   const typeLabel = t(`matchLog.types.${entry.type}`)
@@ -92,16 +185,12 @@ function LogEntryCard({ entry, lang, t, onPreview }) {
       icon={`fas ${TYPE_ICON[entry.type] || 'fa-circle'}`}
       entityType={undefined}
       onPreview={() => onPreview(entry)}
-      childrenIntoImage={
-        <span className={`match-log-type match-log-type--${entry.type}`}>
-          <i className={`fas ${TYPE_ICON[entry.type] || 'fa-circle'} me-1`} />
-          {typeLabel}
-        </span>
-      }
+      statistics={entryBadges(entry, /*actor*/ null, t)}
+      flagShowFullStatistics
+      bonusBadgeListLittleIntoImage
+      bonusBadgeShowZeros
       locked={true} lockedIcon=""
-      lockInfo={actor
-        ? `${formatLogDate(entry.timestamp, lang)} · ${actor}`
-        : formatLogDate(entry.timestamp, lang)}
+      lockInfo={formatLogDate(entry.timestamp, lang)}
     />
   )
 }
@@ -234,12 +323,21 @@ export default function MatchLogCard({ matchUuid, accessToken, story = null, onB
               {typeLabel}
             </span>
         }
-        no_extraContent={
-          <span className="match-log-when">
-            {formatLogDate(preview.timestamp, lang)}
-            {actor && <span className="match-log-character"> · {actor}</span>}
+        // Resources only: the page has room to spell the type and the actor out in words,
+        // so badging them here would say each of them twice.
+        statItemsToPageContent={resourceBadges(preview, t)}
+        bonusBadgeShowZeros
+        extraContent={<>
+          <span className={`match-log-type match-log-type--${preview.type} float-left`}
+            style={TYPE_COLOR[preview.type] ? { color: TYPE_COLOR[preview.type] } : undefined}
+          >
+            <i className={`fas ${TYPE_ICON[preview.type] || 'fa-circle'} me-1`}
+               />
+            {typeLabel}
           </span>
-        }
+          {formatLogDate(preview.timestamp, lang)}
+          {actor && <span className="no-match-log-character"> · {actor}</span>}
+        </>}
         extraContentClassName="match-log-entry-extra"
       />
     )

@@ -36,6 +36,7 @@ import games.paths.core.repository.match.GamingStateRegistryRepository;
 import games.paths.core.repository.match.GamingStoryProgressRepository;
 import games.paths.core.repository.match.LogChoicesExecutedRepository;
 import games.paths.core.repository.match.LogEventsRepository;
+import games.paths.core.repository.match.LogItemUsageRepository;
 import games.paths.core.repository.match.LogMovementRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,6 +67,7 @@ class EventExecutionStoreAdapterReadWriteTest {
     private GamingStateRegistryRepository registryRepository;
     private LogEventsRepository logEventsRepository;
     private LogMovementRepository logMovementRepository;
+    private LogItemUsageRepository logItemUsageRepository;
     private LogChoicesExecutedRepository logChoicesRepository;
     private GamingStoryProgressRepository storyProgressRepository;
     private StoryReadPort storyReadPort;
@@ -82,14 +84,15 @@ class EventExecutionStoreAdapterReadWriteTest {
         registryRepository = mock(GamingStateRegistryRepository.class);
         logEventsRepository = mock(LogEventsRepository.class);
         logMovementRepository = mock(LogMovementRepository.class);
+        logItemUsageRepository = mock(LogItemUsageRepository.class);
         logChoicesRepository = mock(LogChoicesExecutedRepository.class);
         storyProgressRepository = mock(GamingStoryProgressRepository.class);
         storyReadPort = mock(StoryReadPort.class);
         weatherStorePort = mock(WeatherStorePort.class);
         adapter = new EventExecutionStoreAdapter(matchRepository, characterRepository,
                 backpackRepository, inventoryRepository, traitsRepository, registryRepository,
-                logEventsRepository, logMovementRepository, logChoicesRepository,
-                storyProgressRepository, storyReadPort, weatherStorePort);
+                logEventsRepository, logItemUsageRepository, logMovementRepository,
+                logChoicesRepository, storyProgressRepository, storyReadPort, weatherStorePort);
     }
 
     // ── fixtures ────────────────────────────────────────────────────────────
@@ -778,7 +781,8 @@ class EventExecutionStoreAdapterReadWriteTest {
         when(logEventsRepository.findMaxId()).thenReturn(6L);
 
         adapter.logEventExecuted(1L, 3L, 12L, 5, MSG_EVENT_EXECUTED + "#12",
-                new EventExecutionStorePort.SpentResources(2, 1, 0, 3));
+                new EventExecutionStorePort.SpentResources(2, 1, 0, 3),
+                new EventExecutionStorePort.ResourceDelta(0, 4, 0, 5));
 
         ArgumentCaptor<LogEventsEntity> cap = ArgumentCaptor.forClass(LogEventsEntity.class);
         verify(logEventsRepository).save(cap.capture());

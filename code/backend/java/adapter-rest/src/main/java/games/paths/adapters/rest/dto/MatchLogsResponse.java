@@ -65,6 +65,15 @@ public class MatchLogsResponse {
         private Integer foodCost;
         private Integer magicCost;
         private Integer coinCost;
+        /** v0.35.4 — what the action gave; an ITEM_* entry splits its deltas over the two. */
+        private Integer energyGain;
+        private Integer foodGain;
+        private Integer magicGain;
+        private Integer coinGain;
+        /** v0.35.4 — ITEM_* entries only: the story item, the raw action and the units. */
+        private Long idItem;
+        private String itemAction;
+        private Integer counter;
         private String message;
         private Integer idCard;
         private CardInfoResponse card;
@@ -85,6 +94,13 @@ public class MatchLogsResponse {
             d.foodCost = e.foodCost();
             d.magicCost = e.magicCost();
             d.coinCost = e.coinCost();
+            d.energyGain = e.energyGain();
+            d.foodGain = e.foodGain();
+            d.magicGain = e.magicGain();
+            d.coinGain = e.coinGain();
+            d.idItem = e.idItem();
+            d.itemAction = e.itemAction();
+            d.counter = e.counter();
             d.message = e.message();
             d.idCard = e.idCard();
             d.card = e.card() == null ? null : CardInfoResponse.fromModel(e.card());
@@ -105,6 +121,13 @@ public class MatchLogsResponse {
         public Integer getFoodCost() { return foodCost; }
         public Integer getMagicCost() { return magicCost; }
         public Integer getCoinCost() { return coinCost; }
+        public Integer getEnergyGain() { return energyGain; }
+        public Integer getFoodGain() { return foodGain; }
+        public Integer getMagicGain() { return magicGain; }
+        public Integer getCoinGain() { return coinGain; }
+        public Long getIdItem() { return idItem; }
+        public String getItemAction() { return itemAction; }
+        public Integer getCounter() { return counter; }
         public String getMessage() { return message; }
         public Integer getIdCard() { return idCard; }
         public CardInfoResponse getCard() { return card; }

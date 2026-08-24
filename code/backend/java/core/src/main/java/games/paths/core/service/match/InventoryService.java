@@ -12,6 +12,8 @@ import games.paths.core.port.match.EventExecutionPort.StandaloneEffect;
 import games.paths.core.port.match.EventExecutionPort.StatChange;
 import games.paths.core.port.match.EventExecutionPort.TraitChange;
 import games.paths.core.port.match.EventExecutionStorePort.BackpackStats;
+import games.paths.core.port.match.EventExecutionStorePort.ResourceDelta;
+import games.paths.core.port.match.EventExecutionStorePort;
 import games.paths.core.port.match.InventoryPort;
 import games.paths.core.port.match.InventoryStorePort;
 import games.paths.core.port.match.InventoryStorePort.InventoryCharacterView;
@@ -116,7 +118,9 @@ public class InventoryService implements InventoryPort {
         EventExecutionResult result =
                 effectEngine.applyStandaloneEffects(c.match.id(), c.actor.id(), effects, card,
                         lang, true);
-        store.logItemUsage(c.match.id(), c.actor.id(), item.getId(), spend, toEffectsJson(result));
+        store.logItemAction(c.match.id(), c.actor.id(), item.getId(),
+                EventExecutionStorePort.ITEM_ACTION_USE, spend, toEffectsJson(result),
+                resourceDelta(result, c.actor.uuid()));
         return result;
     }
 
@@ -147,6 +151,12 @@ public class InventoryService implements InventoryPort {
         // The row changed, so the cached list is stale: the weight reported below has to be
         // the one AFTER the drop, which is exactly what the caller will read back.
         c.invalidateInventory();
+        // A drop moves no resource, but it IS an item event: without this row the timeline
+        // would show the item arriving and being used and never leaving.
+        if (item != null) {
+            store.logItemAction(c.match.id(), c.actor.id(), item.getId(),
+                    EventExecutionStorePort.ITEM_ACTION_DROP, dropped, null, ResourceDelta.none());
+        }
 
         List<ItemInstanceInfo> remaining = mapItems(c, null);
         return new DropItemResult(c.match.uuid(), c.actor.uuid(), row.getUuid(),
@@ -291,6 +301,31 @@ public class InventoryService implements InventoryPort {
      * payload only ever holds uuids, lowercase statistic tokens and integers. Key order
      * is fixed so the column stays diffable.</p>
      */
+    /**
+     * v0.35.4 — what the usage did to the actor's four resources, summed over the effects
+     * it applied. Only the actor's own changes: an item that heals the whole party still
+     * writes one row, and that row belongs to whoever used it.
+     */
+    static ResourceDelta resourceDelta(EventExecutionResult r, String actorUuid) {
+        int energy = 0;
+        int food = 0;
+        int magic = 0;
+        int coin = 0;
+        for (StatChange s : r.statChanges()) {
+            if (actorUuid != null && !actorUuid.equals(s.characterUuid())) {
+                continue;
+            }
+            switch (s.statistic() == null ? "" : s.statistic()) {
+                case "energy" -> energy += s.delta();
+                case "food" -> food += s.delta();
+                case "magic" -> magic += s.delta();
+                case "coin" -> coin += s.delta();
+                default -> { /* life, sad, exp and the rest stay in effects_json */ }
+            }
+        }
+        return new ResourceDelta(energy, food, magic, coin);
+    }
+
     static String toEffectsJson(EventExecutionResult r) {
         StringBuilder sb = new StringBuilder("{\"statChanges\":[");
         boolean first = true;

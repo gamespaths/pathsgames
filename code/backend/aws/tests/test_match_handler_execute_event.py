@@ -102,3 +102,50 @@ def test_execute_event_cards_follow_the_lang_parameter(_g, _q, _p, _jwt):
     body = json.loads(_call(_event(lang='it'))['body'])
     assert body['card']['title'] == 'Cerca nella Sala'
     assert body['effects'][0]['card']['title'] == 'Cerca nella Sala'
+
+
+# ── v0.35.4: what the event gave, on its own log row ────────────────────────
+
+_GIVING_STORY = {
+    **STORY,
+    'events': [
+        {'id': 10, 'uuid': 'evt-plain', 'idSpecificLocation': 1, 'type': 'NORMAL',
+         'idCard': 1, 'costEnery': 1, 'costCoin': 0, 'flagEndTime': 0},
+    ],
+    'eventEffects': [
+        {'id': 1, 'idEvent': 10, 'idCard': 1, 'statistics': 'coin', 'value': 30,
+         'target': 'ONLY_ONE'},
+        {'id': 2, 'idEvent': 10, 'idCard': 1, 'statistics': 'food', 'value': 4,
+         'target': 'ONLY_ONE'},
+        {'id': 3, 'idEvent': 10, 'idCard': 1, 'statistics': 'magic', 'value': -2,
+         'target': 'ONLY_ONE'},
+    ],
+}
+
+
+def _giving_side(match_state):
+    def inner(pk, sk='METADATA'):
+        if pk.startswith('USER#'):
+            return USER
+        if pk.startswith('MATCH#'):
+            return match_state
+        if pk.startswith('STORY#'):
+            return _GIVING_STORY
+        return None
+    return inner
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
+@patch('match.handler.db_utils.put_item')
+@patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)])
+def test_v0354_the_event_row_carries_the_gains_beside_the_price(_q, _p, _jwt):
+    match = {**MATCH, 'coin': 0}
+    with patch('match.handler.db_utils.get_item', side_effect=_giving_side(match)):
+        assert _call(_event())['statusCode'] == 200
+
+    row = match['eventLog'][-1]
+    assert (row['energyCost'], row['coinCost']) == (1, 0)
+    # Only the positive half: the drained magic is the effect's own business, not a gain.
+    assert (row['coinGain'], row['foodGain']) == (30, 4)
+    assert (row['energyGain'], row['magicGain']) == (0, 0)

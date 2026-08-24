@@ -139,8 +139,10 @@ class InventoryStoreAdapter(InventoryStorePort):
              .update({"amount": amount, "ts_update": _now_iso()}))
             session.commit()
 
-    def log_item_usage(self, id_match: int, id_character: int, id_item: int,
-                       counter: int, effects_json: str) -> None:
+    def log_item_action(self, id_match: int, id_character: int, id_item: int,
+                        action: str, counter: int, effects_json=None,
+                        delta=None, id_event=None) -> None:
+        d = delta or {}
         with self.session_factory() as session:
             # Table-wide max: log_item_usage carries UNIQUE (id), unlike the per-match
             # gaming_* tables. Same rule as log_events.
@@ -150,7 +152,10 @@ class InventoryStoreAdapter(InventoryStorePort):
             session.add(LogItemUsageEntity(
                 id=((max_id[0] if max_id else 0) or 0) + 1,
                 id_match=id_match, uuid=str(uuid_lib.uuid4()),
-                # v0.35.1 — the units this usage actually spent; hardcoded to 1 until now.
+                # v0.35.1 — the units this action actually moved; hardcoded to 1 until then.
                 id_character_match=id_character, id_item=id_item, counter=counter,
+                action=action, id_event=id_event,
+                energy=d.get("energy", 0), food=d.get("food", 0),
+                magic=d.get("magic", 0), coin=d.get("coin", 0),
                 effects_json=effects_json, timestamp=now, ts_insert=now, ts_update=now))
             session.commit()

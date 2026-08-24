@@ -8,7 +8,7 @@ import java.lang.reflect.Method;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Lifecycle and accessors of {@link LogItemUsageEntity} (Step 34). */
-@DisplayName("LogItemUsageEntity (Step 34)")
+@DisplayName("LogItemUsageEntity (Step 34, widened in v0.35.4)")
 class LogItemUsageEntityTest {
 
     private static void invoke(Object target, String name) throws Exception {
@@ -29,6 +29,12 @@ class LogItemUsageEntityTest {
         assertNotNull(row.getTimestamp());
         assertNotNull(row.getTsInsert());
         assertNotNull(row.getTsUpdate());
+        // v0.35.4 — USE is the default because that is all the table logged before it.
+        assertEquals("USE", row.getAction());
+        assertEquals(0, row.getEnergy());
+        assertEquals(0, row.getFood());
+        assertEquals(0, row.getMagic());
+        assertEquals(0, row.getCoin());
     }
 
     @Test
@@ -40,6 +46,8 @@ class LogItemUsageEntityTest {
         row.setTimestamp("2026-01-01T00:00:00Z");
         row.setTsInsert("ins");
         row.setTsUpdate("upd");
+        row.setAction("ADD");
+        row.setEnergy(9);
 
         invoke(row, "onCreate");
 
@@ -48,6 +56,8 @@ class LogItemUsageEntityTest {
         assertEquals("2026-01-01T00:00:00Z", row.getTimestamp());
         assertEquals("ins", row.getTsInsert());
         assertEquals("upd", row.getTsUpdate());
+        assertEquals("ADD", row.getAction());
+        assertEquals(9, row.getEnergy());
     }
 
     @Test
@@ -70,7 +80,15 @@ class LogItemUsageEntityTest {
         row.setIdCharacterMatch(50L);
         row.setIdItem(900L);
         row.setEffectsJson("{\"a\":1}");
+        row.setIdEvent(42L);
+        row.setFood(-2);
+        row.setMagic(3);
+        row.setCoin(-4);
 
+        assertEquals(42L, row.getIdEvent());
+        assertEquals(-2, row.getFood());
+        assertEquals(3, row.getMagic());
+        assertEquals(-4, row.getCoin());
         assertEquals(42L, row.getId());
         assertEquals(1L, row.getIdMatch());
         assertEquals(50L, row.getIdCharacterMatch());

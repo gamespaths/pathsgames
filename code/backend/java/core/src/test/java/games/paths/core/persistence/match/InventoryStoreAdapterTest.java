@@ -8,6 +8,7 @@ import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.LogItemUsageEntity;
 import games.paths.core.entity.story.ItemEffectEntity;
 import games.paths.core.entity.story.ItemEntity;
+import games.paths.core.port.match.EventExecutionStorePort;
 import games.paths.core.port.match.EventExecutionStorePort.BackpackStats;
 import games.paths.core.port.match.InventoryStorePort.InventoryCharacterView;
 import games.paths.core.port.match.InventoryStorePort.MatchInventoryView;
@@ -211,10 +212,11 @@ class InventoryStoreAdapterTest {
 
     @Test
     @DisplayName("the log id is the TABLE-WIDE max plus one: log_item_usage carries UNIQUE (id)")
-    void logItemUsage_allocatesAGloballyUniqueId() {
+    void logItemAction_allocatesAGloballyUniqueId() {
         when(logItemUsageRepository.findMaxId()).thenReturn(41L);
 
-        adapter.logItemUsage(MATCH_ID, CHAR_ID, 900L, 2, "{}");
+        adapter.logItemAction(MATCH_ID, CHAR_ID, 900L, "USE", 2, "{}",
+                new EventExecutionStorePort.ResourceDelta(3, 0, -1, 0));
 
         ArgumentCaptor<LogItemUsageEntity> saved = ArgumentCaptor.forClass(LogItemUsageEntity.class);
         verify(logItemUsageRepository).save(saved.capture());
@@ -226,14 +228,20 @@ class InventoryStoreAdapterTest {
         // v0.35.1 — the units the usage actually spent, not the hardcoded 1 it used to be.
         assertEquals(2, row.getCounter());
         assertEquals("{}", row.getEffectsJson());
+        // v0.35.4 — the action and the signed deltas the usage produced.
+        assertEquals("USE", row.getAction());
+        assertNull(row.getIdEvent());
+        assertEquals(3, row.getEnergy());
+        assertEquals(-1, row.getMagic());
     }
 
     @Test
     @DisplayName("the first row of an empty table gets id 1")
-    void logItemUsage_firstRow() {
+    void logItemAction_firstRow() {
         when(logItemUsageRepository.findMaxId()).thenReturn(0L);
 
-        adapter.logItemUsage(MATCH_ID, CHAR_ID, 900L, 1, "{}");
+        adapter.logItemAction(MATCH_ID, CHAR_ID, 900L, "USE", 1, "{}",
+                EventExecutionStorePort.ResourceDelta.none());
 
         ArgumentCaptor<LogItemUsageEntity> saved = ArgumentCaptor.forClass(LogItemUsageEntity.class);
         verify(logItemUsageRepository).save(saved.capture());

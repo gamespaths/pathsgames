@@ -193,7 +193,22 @@ public interface EventExecutionStorePort {
      * {@link #MSG_EVENT_EXECUTED} — see that constant.
      */
     void logEventExecuted(long idMatch, Long idCharacter, long idEvent, int clock, String message,
-                          SpentResources spent);
+                          SpentResources spent, ResourceDelta gained);
+
+    /**
+     * v0.35.4 — appends one {@code log_item_usage} row: an item taken, used or dropped.
+     * {@code idEvent} names the event whose effect moved it, null when the player acted
+     * directly; {@code delta} carries what the action did to the resources, {@code none()}
+     * on the actions that only move the item.
+     */
+    void logItemAction(long idMatch, long idCharacter, long idItem, String action,
+                       int counter, Long idEvent, String effectsJson, ResourceDelta delta);
+
+    /** {@code log_item_usage.action} — what happened to the item on that row. */
+    String ITEM_ACTION_ADD = "ADD";
+    String ITEM_ACTION_USE = "USE";
+    String ITEM_ACTION_DROP = "DROP";
+    String ITEM_ACTION_REMOVE = "REMOVE";
 
     /**
      * v0.35.3 — what the actor actually paid, persisted on the {@code log_events} row.
@@ -206,6 +221,24 @@ public interface EventExecutionStorePort {
 
         public static SpentResources none() {
             return NONE;
+        }
+    }
+
+    /**
+     * v0.35.4 — a resource movement that is not a price: what an event GAVE the actor,
+     * or what an item usage changed. Signed, so an item that drains magic to restore
+     * energy reports both halves on one row.
+     */
+    record ResourceDelta(int energy, int food, int magic, int coin) {
+
+        private static final ResourceDelta NONE = new ResourceDelta(0, 0, 0, 0);
+
+        public static ResourceDelta none() {
+            return NONE;
+        }
+
+        public boolean anything() {
+            return energy != 0 || food != 0 || magic != 0 || coin != 0;
         }
     }
 

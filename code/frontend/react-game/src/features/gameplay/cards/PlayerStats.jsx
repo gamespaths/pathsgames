@@ -13,7 +13,7 @@ const GAUGE_KEYS = [
 const PLAIN_KEYS = ['experience', 'food', 'magic', 'coins' , 'dexterity', 'intelligence', 'constitution']
 
 export default function PlayerStats({ stats , className 
-    , plainFlag=false , showZeros=true , specificKeys=null , showLabel=true , showItems=true}) {
+    , plainFlag=false , showZeros=true , specificKeys=null , showLabel=true , showItems=true }) {
 
   const { t } = useTranslation()
 

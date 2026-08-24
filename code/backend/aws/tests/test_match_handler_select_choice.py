@@ -376,6 +376,11 @@ def test_the_whole_effect_vocabulary_lands_at_once():
     assert body['choiceEventUuid'] == 'evt-linked'
     assert body['choiceEventCard']['title'] == 'A Card'
     assert 'evt-linked' in body['executedEventUuids']
+    # v0.35.4 — the ADD leaves a row on the match's item log, naming the owning event.
+    item_log = match['itemUsageLog']
+    assert [r['action'] for r in item_log] == ['ADD']
+    assert item_log[0]['idItem'] == 1
+    assert item_log[0]['counter'] == 1
 
 
 def test_value_to_remove_clears_the_key_only_on_a_match():

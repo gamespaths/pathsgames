@@ -32,6 +32,7 @@ import games.paths.core.repository.match.GamingStateRegistryRepository;
 import games.paths.core.repository.match.GamingStoryProgressRepository;
 import games.paths.core.repository.match.LogChoicesExecutedRepository;
 import games.paths.core.repository.match.LogEventsRepository;
+import games.paths.core.repository.match.LogItemUsageRepository;
 import games.paths.core.repository.match.LogMovementRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,6 +69,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     private final GamingCharacterTraitsRepository traitsRepository;
     private final GamingStateRegistryRepository registryRepository;
     private final LogEventsRepository logEventsRepository;
+    private final LogItemUsageRepository logItemUsageRepository;
     private final LogMovementRepository logMovementRepository;
     private final LogChoicesExecutedRepository logChoicesRepository;
     private final GamingStoryProgressRepository storyProgressRepository;
@@ -82,6 +84,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
                                       GamingCharacterTraitsRepository traitsRepository,
                                       GamingStateRegistryRepository registryRepository,
                                       LogEventsRepository logEventsRepository,
+                                      LogItemUsageRepository logItemUsageRepository,
                                       LogMovementRepository logMovementRepository,
                                       LogChoicesExecutedRepository logChoicesRepository,
                                       GamingStoryProgressRepository storyProgressRepository,
@@ -94,6 +97,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
         this.traitsRepository = traitsRepository;
         this.registryRepository = registryRepository;
         this.logEventsRepository = logEventsRepository;
+        this.logItemUsageRepository = logItemUsageRepository;
         this.logMovementRepository = logMovementRepository;
         this.logChoicesRepository = logChoicesRepository;
         this.storyProgressRepository = storyProgressRepository;
@@ -528,7 +532,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
 
     @Override
     public void logEventExecuted(long idMatch, Long idCharacter, long idEvent, int clock, String message,
-                                 SpentResources spent) {
+                                 SpentResources spent, ResourceDelta gained) {
         LogEventsEntity e = new LogEventsEntity();
         e.setId(logEventsRepository.findMaxId() + 1);
         e.setIdMatch(idMatch);
@@ -541,7 +545,19 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
         e.setFood(s.food());
         e.setMagic(s.magic());
         e.setCoin(s.coin());
+        ResourceDelta g = gained == null ? ResourceDelta.none() : gained;
+        e.setEnergyGain(g.energy());
+        e.setFoodGain(g.food());
+        e.setMagicGain(g.magic());
+        e.setCoinGain(g.coin());
         logEventsRepository.save(e);
+    }
+
+    @Override
+    public void logItemAction(long idMatch, long idCharacter, long idItem, String action,
+                              int counter, Long idEvent, String effectsJson, ResourceDelta delta) {
+        ItemLogRows.append(logItemUsageRepository, idMatch, idCharacter, idItem, action,
+                counter, idEvent, effectsJson, delta);
     }
 
     // ── choices (Step 31) ───────────────────────────────────────────────────

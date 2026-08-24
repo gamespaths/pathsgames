@@ -25,6 +25,13 @@ MSG_EVENT_EXECUTED = "EVENT_EXECUTED"
 # so count_log_markers can pair the two markers by event.
 MSG_CHOICE_SELECTED = "CHOICE_SELECTED"
 
+# v0.35.4 — log_item_usage.action: what happened to the item on that row. The table logged
+# usages only until then, so a row without an action reads as ITEM_ACTION_USE.
+ITEM_ACTION_ADD = "ADD"
+ITEM_ACTION_USE = "USE"
+ITEM_ACTION_DROP = "DROP"
+ITEM_ACTION_REMOVE = "REMOVE"
+
 
 class EventPort(ABC):
     @abstractmethod
@@ -197,8 +204,22 @@ class EventStorePort(ABC):
 
     @abstractmethod
     def log_event_executed(self, id_match: int, id_character: Optional[int], id_event: int,
-                           clock: int, message: str) -> None:
-        """Message MUST start with MSG_EVENT_EXECUTED — see that constant."""
+                           clock: int, message: str, energy_cost: int = 0,
+                           food_cost: int = 0, magic_cost: int = 0, coin_cost: int = 0,
+                           gained: Optional[Dict[str, int]] = None) -> None:
+        """Message MUST start with MSG_EVENT_EXECUTED — see that constant.
+
+        v0.35.4 — ``gained`` is what the event GAVE the actor, the counterpart of the four
+        costs: {energy, food, magic, coin}, empty on a row that gave nothing."""
+
+    @abstractmethod
+    def log_item_action(self, id_match: int, id_character: int, id_item: int,
+                        action: str, counter: int, effects_json: Optional[str] = None,
+                        delta: Optional[Dict[str, int]] = None,
+                        id_event: Optional[int] = None) -> None:
+        """v0.35.4 — append one log_item_usage row for an item an effect moved.
+
+        ``action`` is ADD or REMOVE here; ``id_event`` names the event whose effect did it."""
 
     # ── choices (Step 31) ───────────────────────────────────────────────────
 

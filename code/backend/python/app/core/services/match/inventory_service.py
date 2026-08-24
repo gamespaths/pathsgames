@@ -10,6 +10,7 @@ import json
 from typing import Any, Dict, List, Optional
 
 from app.core.models.match.match_models import ItemEffectPreview, ItemInstanceInfo
+from app.core.ports.match.event_ports import ITEM_ACTION_DROP, ITEM_ACTION_USE
 from app.core.ports.match.inventory_ports import InventoryError, InventoryPort, InventoryStorePort
 
 _RUNNING = "RUNNING"
@@ -165,8 +166,9 @@ class InventoryService(InventoryPort):
 
         result = self.effect_engine.apply_standalone_effects(
             ctx["match"]["id"], ctx["actor"]["id"], effects, card, lang, source_consumed=True)
-        self.store.log_item_usage(ctx["match"]["id"], ctx["actor"]["id"], item["id"],
-                                  spend, to_effects_json(result))
+        self.store.log_item_action(ctx["match"]["id"], ctx["actor"]["id"], item["id"],
+                                   ITEM_ACTION_USE, spend, to_effects_json(result),
+                                   resource_delta(result, ctx["actor"]["uuid"]))
         return result
 
     def drop_item(self, match_uuid: str, user_uuid: str,
@@ -190,6 +192,11 @@ class InventoryService(InventoryPort):
         else:
             self.store.delete_inventory_row(ctx["match"]["id"], row["id"])
         ctx["inventory"] = None  # force a re-read for the remaining weight
+        # v0.35.4 — a drop moves no resource, but it IS an item event: without this row the
+        # timeline would show the item arriving and being used and never leaving.
+        if item is not None:
+            self.store.log_item_action(ctx["match"]["id"], ctx["actor"]["id"], item["id"],
+                                       ITEM_ACTION_DROP, dropped, None, None)
 
         return {
             "match_uuid": ctx["match"]["uuid"],
@@ -350,6 +357,21 @@ class InventoryService(InventoryPort):
     @staticmethod
     def _not_found() -> InventoryError:
         return InventoryError(InventoryError.MATCH_NOT_FOUND, "Match not found")
+
+
+def resource_delta(result, actor_uuid: str) -> Dict[str, int]:
+    """v0.35.4 — what the usage did to the ACTOR's four resources, summed over its effects.
+
+    An item that heals the whole party still writes one row, and that row belongs to
+    whoever used it — so a stat change on anybody else is left out of it.
+    """
+    delta = {"energy": 0, "food": 0, "magic": 0, "coin": 0}
+    for change in result.stat_changes:
+        if actor_uuid is not None and change.character_uuid != actor_uuid:
+            continue
+        if change.statistic in delta:
+            delta[change.statistic] += change.delta
+    return delta
 
 
 def to_effects_json(result) -> str:

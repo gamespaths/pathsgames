@@ -24,13 +24,13 @@ Loaded on demand. Read only when working on E2E tests.
 | `25_time_clock` | Active location seeding and time clock |
 | `26_time_recovery` | Time-start stat recovery, counter re-seed, i18n lang on match info, i18n regression on `/api/stories?lang=` |
 | `27_weather` | Weather system: random selection, effects, clock-linked roll, log |
-| `28_movement` | Movement system (see breakdown below) |
+| `28_movement` | Movement system, incl. the consolidated match log (see breakdown below) |
 | `29_events` | Step 29 normal events + v0.35.3 resource costs (see breakdown below) |
 | `30_edge_states` | Step 30 sadness overflow / coma edge states |
 | `31_choices` | Step 31 choice engine (see breakdown below) |
 | `32_choice_resolution` | Step 32 choice resolution (see breakdown below) |
 | `33_location_events` | Step 33 automatic location events (see breakdown below) |
-| `34_inventory` | Steps 34/35 inventory, resources, use/drop, effects preview, quantities (see breakdown below) |
+| `34_inventory` | Steps 34/35 inventory, resources, use/drop, effects preview, quantities, v0.35.4 item logs (see breakdown below) |
 
 ### `19_match` breakdown
 
@@ -185,6 +185,14 @@ rather than opening a second one, `use-item` spends one unit by default and leav
 in the bag, and `drop-item` reports in `amountDropped` exactly what left it. Which item is
 capped is discovered by behaviour — all four seeds cap the class-restricted tonic at one
 and make a drop of the scroll put down two.
+
+`item_logs.robot` (v0.35.4, 7 tests) — items and resources in the TIMELINE. The bag is
+filled by behaviour, then `GET /api/matches/{uuid}/logs` must carry an `ITEM_ADD` naming
+the event whose effect handed the item over, an `ITEM_USE` with the units spent and a null
+`idEvent` (the player's own doing), an `ITEM_DROP`, a card slot on every item entry, and the
+eight resource fields — `{energy,food,magic,coin}Cost` and `…Gain` — present, non-negative
+and never both moving at once on one usage. The item entries are asserted to sort in among
+the others rather than trail them.
 
 ## Seed data and reports per backend
 

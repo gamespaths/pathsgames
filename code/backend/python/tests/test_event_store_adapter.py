@@ -17,6 +17,7 @@ from app.adapters.persistence.match.models import (
     GamingMatchEntity,
     GamingStateRegistryEntity,
     LogEventsEntity,
+    LogItemUsageEntity,
 )
 from app.adapters.persistence.story.models import (
     EventEffectEntity,
@@ -479,6 +480,31 @@ def test_log_event_executed_appends_with_the_next_id(session_factory, adapter):
         assert rows[0].clock == 4
         assert rows[1].id_character_match is None
         assert rows[1].log_message.endswith("second")
+
+
+def test_v0354_the_event_row_carries_what_the_event_gave(session_factory, adapter):
+    adapter.log_event_executed(1, 3, 50, 4, MSG_EVENT_EXECUTED + " first", 5, 0, 0, 7,
+                               {"food": 2, "coin": 30})
+
+    with session_factory() as s:
+        row = s.query(LogEventsEntity).one()
+    assert (row.energy_cost, row.coin_cost) == (5, 7)
+    assert (row.food_gain, row.coin_gain) == (2, 30)
+    # A resource the event did not give reports zero, never None.
+    assert (row.energy_gain, row.magic_gain) == (0, 0)
+
+
+def test_v0354_log_item_action_appends_the_row_an_effect_produced(session_factory, adapter):
+    adapter.log_item_action(1, 3, 900, "ADD", 1, None, None, 42)
+    adapter.log_item_action(1, 3, 901, "REMOVE", 2, None, {"coin": -4}, 42)
+
+    with session_factory() as s:
+        rows = s.query(LogItemUsageEntity).order_by(LogItemUsageEntity.id).all()
+    assert [r.id for r in rows] == [1, 2]
+    assert (rows[0].action, rows[0].id_item, rows[0].id_event) == ("ADD", 900, 42)
+    assert rows[0].coin == 0
+    assert (rows[1].action, rows[1].counter, rows[1].coin) == ("REMOVE", 2, -4)
+    assert rows[0].uuid != rows[1].uuid
 
 
 # ── choices (Step 31) ───────────────────────────────────────────────────────

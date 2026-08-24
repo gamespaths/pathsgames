@@ -141,9 +141,9 @@ class EventExecutionServiceChainTest {
             EventExecutionResult r = execute(a);
 
             assertEquals(List.of("event-1", "event-2", "event-3"), r.executedEventUuids());
-            verify(store).logEventExecuted(eq(MATCH_ID), eq(CHAR_ID), eq(1L), anyInt(), anyString(), any());
-            verify(store).logEventExecuted(eq(MATCH_ID), eq(CHAR_ID), eq(2L), anyInt(), anyString(), any());
-            verify(store).logEventExecuted(eq(MATCH_ID), eq(CHAR_ID), eq(3L), anyInt(), anyString(), any());
+            verify(store).logEventExecuted(eq(MATCH_ID), eq(CHAR_ID), eq(1L), anyInt(), anyString(), any(), any());
+            verify(store).logEventExecuted(eq(MATCH_ID), eq(CHAR_ID), eq(2L), anyInt(), anyString(), any(), any());
+            verify(store).logEventExecuted(eq(MATCH_ID), eq(CHAR_ID), eq(3L), anyInt(), anyString(), any(), any());
         }
 
         @Test
@@ -160,11 +160,11 @@ class EventExecutionServiceChainTest {
             execute(a);
 
             verify(store).logEventExecuted(eq(MATCH_ID), any(), eq(1L), anyInt(), anyString(),
-                    eq(new EventExecutionStorePort.SpentResources(4, 2, 3, 1)));
+                    eq(new EventExecutionStorePort.SpentResources(4, 2, 3, 1)), any());
             // The chained event is not something the player asked for: its row logs nothing,
             // so summing a match's rows gives what was really spent, not the price repeated.
             verify(store).logEventExecuted(eq(MATCH_ID), any(), eq(2L), anyInt(), anyString(),
-                    eq(EventExecutionStorePort.SpentResources.none()));
+                    eq(EventExecutionStorePort.SpentResources.none()), any());
         }
 
         @Test
@@ -204,8 +204,8 @@ class EventExecutionServiceChainTest {
             EventExecutionResult r = execute(a);
 
             assertEquals(List.of("event-1", "event-2"), r.executedEventUuids());
-            verify(store, times(1)).logEventExecuted(eq(MATCH_ID), any(), eq(1L), anyInt(), anyString(), any());
-            verify(store, times(1)).logEventExecuted(eq(MATCH_ID), any(), eq(2L), anyInt(), anyString(), any());
+            verify(store, times(1)).logEventExecuted(eq(MATCH_ID), any(), eq(1L), anyInt(), anyString(), any(), any());
+            verify(store, times(1)).logEventExecuted(eq(MATCH_ID), any(), eq(2L), anyInt(), anyString(), any(), any());
         }
 
         @Test
@@ -276,7 +276,7 @@ class EventExecutionServiceChainTest {
             EventExecutionResult r = execute(a);
 
             assertEquals(List.of("event-1"), r.executedEventUuids());
-            verify(store, never()).logEventExecuted(anyLong(), any(), eq(2L), anyInt(), anyString(), any());
+            verify(store, never()).logEventExecuted(anyLong(), any(), eq(2L), anyInt(), anyString(), any(), any());
         }
 
         @Test
@@ -363,7 +363,7 @@ class EventExecutionServiceChainTest {
             execute(a);
 
             verify(store).logEventExecuted(eq(MATCH_ID), eq(CHAR_ID), eq(1L), eq(7),
-                    startsWith(EventExecutionStorePort.MSG_EVENT_EXECUTED), any());
+                    startsWith(EventExecutionStorePort.MSG_EVENT_EXECUTED), any(), any());
         }
 
         @Test

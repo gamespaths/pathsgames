@@ -105,7 +105,12 @@ Step-30 sadness overflow or coma, and the response has to be able to say so. On 
   using an item costs neither the turn nor a free-action slot.
 - Every successful usage appends a row to `log_item_usage`: character, item, the units spent
   (`counter`, v0.35.1 — this column existed before but always wrote `1`), `effects_json`,
-  timestamp.
+  timestamp. **v0.35.4**: the table stopped being "the usage log" and became the register of
+  every item action — `use-item` writes `action=USE`, and `add`/`drop`/an effect's `REMOVE`
+  now write their own row too, each carrying the signed `energy`/`food`/`magic`/`coin` it
+  produced and (for an effect-driven ADD/REMOVE) the `id_event` that moved it. These rows
+  surface on `GET /api/matches/{uuid}/logs` as `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` entries — see
+  [Step28 "New: Item Actions and Resource Gains (v0.35.4)"](./Step28_MovementSystem.md).
 
 ## 3. One effect engine, not two
 

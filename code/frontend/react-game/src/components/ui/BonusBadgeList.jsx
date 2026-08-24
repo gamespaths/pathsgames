@@ -9,10 +9,14 @@
  * to render every item regardless of value (used by live PlayerStats so that
  * a player can see when a stat drops to 0).
  *
- * @param {Array}   items      - [{ key, label, value, prefix }]; `prefix` is written
- *                               straight before the value (e.g. 'x' for a carried
+ * @param {Array}   items      - [{ key, label, value, prefix, icon, color }]; `prefix` is
+ *                               written straight before the value (e.g. 'x' for a carried
  *                               amount) and, unlike the value itself, is never parsed —
  *                               so the zero-filter below keeps working on a number.
+ *                               `icon` / `color` override STAT_VISUAL for that one badge,
+ *                               which is how a caller badges something the shared stat
+ *                               vocabulary has no word for (a match-log entry type, say)
+ *                               without adding a key to it. Pass `icon: null` for no glyph.
  * @param {string}  className  - optional extra class on the wrapper
  * @param {boolean} showZeros  - keep items with value 0/missing (default false)
  */
@@ -36,6 +40,10 @@ const STAT_VISUAL = {
   // Step 26 — location time counter (clock_counter) shown as a statistic
   clockCounter: { icon: 'fas fa-hourglass-half', color: '#d4af37' },
   clock:        { icon: 'fas fa-hourglass-half', color: '#d4af37' },
+
+  // v0.35.4 — who performed a logged action. Not a statistic: the value is a name, so the
+  // caller has to keep it out of the numeric filter below (see MatchLogCard.entryBadges).
+  actor:        { icon: 'fas fa-user',           color: '#d4c4a8' },
 
   // Live player stats (in-match) — see PlayerStats.jsx
   sadness:      { icon: 'fas fa-frown',    color: '#dee694' },
@@ -102,10 +110,19 @@ export default function BonusBadgeList({ items, className = '', showZeros = fals
           <i className="fas fa-lock" /> {lockedReason}
         </span>
       )}
-      {visibleItems.map(item => {
-        const visual = STAT_VISUAL[item.key] ?? DEFAULT_VISUAL
+      {visibleItems.map((item, index) => {
+        const fallback = STAT_VISUAL[item.key] ?? DEFAULT_VISUAL
+        // `in` rather than ?? so an explicit `icon: null` opts out of the glyph, the way
+        // the `amount` entry of STAT_VISUAL does.
+        const visual = {
+          icon:  'icon'  in item ? item.icon  : fallback.icon,
+          color: 'color' in item ? item.color : fallback.color,
+        }
+        // Keyed by position, not by item.key: one list may legitimately carry the same
+        // stat twice — a match-log entry that both charged and refunded coins reports
+        // both halves — and two spans sharing a key is a React bug waiting to happen.
         return (
-          <span key={item.key} className={ "stat-badge bonus-badge" + (littleVersion ? " bonus-badge-little-version" : "") } title={item.label} aria-label={item.label}>
+          <span key={`${item.key}-${index}`} className={ "stat-badge bonus-badge" + (littleVersion ? " bonus-badge-little-version" : "") } title={item.label} aria-label={item.label}>
             {visual.icon && <i className={visual.icon} style={{ color: visual.color }} />}
             {!littleVersion && <span>{item.label}{item.label ? ':' : ''}</span>} 
             <strong>{item.prefix ?? ''}{item.value}</strong>
