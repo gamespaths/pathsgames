@@ -969,6 +969,26 @@ html, body {
   border-top: 2px solid var(--color-gold-dark);
 }
 
+/* v0.35.5 — InformationCard body: one badge per row, its gloss beside it. */
+.information-card-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.information-card-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.information-card-row .information-card-row-badge {
+  flex: 0 0 auto;
+}
+.information-card-row-desc {
+  flex: 1 1 auto;
+  font-size: 1.25rem;
+  line-height: 1; /*QUIQUIUQI*/
+}
+
 /* ── Bonus badge list — shared between BookPageContent and ConfigView ── */
 .bonus-badge-list {
   display: flex;

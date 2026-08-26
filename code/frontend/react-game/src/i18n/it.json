@@ -182,7 +182,24 @@
       "magic": "Magia",
       "coins": "Monete",
       "weight": "Peso",
-      "items": "Oggetti"
+      "items": "Oggetti",
+      "dexterity": "Destrezza",
+      "intelligence": "Intelligenza",
+      "constitution": "Costituzione",
+      "descriptions": {
+        "clock": "Il tempo trascorso nel mondo di gioco: ogni azione lo fa avanzare.",
+        "life": "I punti vita: a zero il personaggio cade in coma e serve aiuto per rialzarsi.",
+        "energy": "L'energia disponibile: si consuma muovendosi e agendo, si recupera dormendo.",
+        "sadness": "La tristezza accumulata: più sale, più le scelte diventano difficili.",
+        "weight": "Il peso trasportato rispetto al massimo che il personaggio può portare.",
+        "experience": "L'esperienza guadagnata durante l'avventura.",
+        "food": "Le provviste in zaino: servono per mangiare e per alcune azioni.",
+        "magic": "I punti magia: servono per gli incantesimi e per alcune azioni.",
+        "coins": "Le monete possedute: servono per comprare e per alcune azioni.",
+        "dexterity": "La destrezza del personaggio: conta nelle prove di agilità.",
+        "intelligence": "L'intelligenza del personaggio: conta nelle prove di ingegno.",
+        "constitution": "La costituzione del personaggio: conta nelle prove di resistenza."
+      }
     },
     "move": "Vai Qui",
     "execute": "Esegui",

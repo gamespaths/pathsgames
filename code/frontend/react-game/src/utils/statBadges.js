@@ -1,3 +1,47 @@
+// Stats shown as a current/max gauge (Step 27) paired with their max key.
+const GAUGE_KEYS = [
+  ['life', 'lifeMax'],
+  ['energy', 'energyMax'],
+  ['sadness', 'sadnessMax'],
+  ['weight', 'weightMax'],
+]
+
+// Plain single-value stats (no max projected by /info yet).
+const PLAIN_KEYS = ['experience', 'food', 'magic', 'coins' , 'dexterity', 'intelligence', 'constitution']
+
+/**
+ * The badge list behind the stats bar: the clock (plain mode only), the gauges and,
+ * with `plainFlag`, the single-value stats. Shared with InformationCard, which lays the
+ * same badges out one per row instead of in a bar.
+ */
+export function buildStatBadges(stats, t, { plainFlag = false, showLabel = true, specificKeys = null } = {}) {
+  const keysList = specificKeys ?? GAUGE_KEYS
+  const gauge = keysList.map(([key, maxKey]) => {
+    const value = stats?.[key] ?? 0
+    const max = stats?.[maxKey] ?? 0
+    return {
+      key,
+      label: showLabel ? t(`game.stats.${key}`) : null,
+      // current/max when a max is known, otherwise the bare current value
+      value: max ? `${value}/${max}` : value,
+    }
+  })
+
+  const plain = PLAIN_KEYS.map(key => ({
+    key,
+    label: t(`game.stats.${key}`),
+    value: stats?.[key] ?? 0,
+  }))
+
+  // The clock closes the list: it measures the match, not the character, so it reads as a
+  // footer to the stats rather than as the first of them.
+  const clockStat = plainFlag && stats?.clock != null
+    ? [{ key: 'clock', label: stats.clockLabelSingular ?? 'Time', value: stats.clock }]
+    : []
+
+  return [...gauge, ...(plainFlag ? plain : []), ...clockStat]
+}
+
 // The engine names the statistics as the story authors them; the badges (and their
 // translations) use the longer in-game names. Anything not listed has no badge.
 export const STAT_CHANGE_KEYS = {

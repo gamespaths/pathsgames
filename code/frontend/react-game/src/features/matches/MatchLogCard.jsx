@@ -167,12 +167,13 @@ function resolveEntryCard(entry, t) {
 }
 
 /**
- * One timeline entry as a little Card: the entry's card gives title + image, the type,
- * the actor and the resources it moved are stat badges overlaid on that image (v0.35.4)
- * and the date goes underneath. Entries with no card of their own (RECOVERY) fall back
- * to the type label and its icon.
+ * One timeline entry as a little Card: the entry's card gives title + image, the type
+ * and the resources it moved are stat badges overlaid on that image (v0.35.4) and the
+ * date goes underneath. Entries with no card of their own (RECOVERY) fall back to the
+ * type label and its icon.
  */
-function LogEntryCard({ entry, lang, t, onPreview }) {
+// showActor: add the character that acted as one more badge (off by default)
+export function LogEntryCard({ entry, lang, t, onPreview, showActor = false }) {
   const typeLabel = t(`matchLog.types.${entry.type}`)
   const actor = entry.characterName || entry.characterUuid
   const card = resolveEntryCard(entry, t)
@@ -185,7 +186,7 @@ function LogEntryCard({ entry, lang, t, onPreview }) {
       icon={`fas ${TYPE_ICON[entry.type] || 'fa-circle'}`}
       entityType={undefined}
       onPreview={() => onPreview(entry)}
-      statistics={entryBadges(entry, /*actor*/ null, t)}
+      statistics={entryBadges(entry, showActor ? actor : null, t)}
       flagShowFullStatistics
       bonusBadgeListLittleIntoImage
       bonusBadgeShowZeros
@@ -266,6 +267,7 @@ export default function MatchLogCard({ matchUuid, accessToken, story = null, onB
                 key={`${entry.type}-${entry.timestamp}-${idx}`}
                 entry={entry} lang={lang} t={t}
                 onPreview={setPreview}
+                showActor
               />
             ))}
           </div>

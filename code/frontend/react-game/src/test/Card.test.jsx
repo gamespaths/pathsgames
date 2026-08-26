@@ -57,6 +57,11 @@ describe('Card', () => {
     expect(screen.getByText('LVL5')).toBeInTheDocument()
   })
 
+  it('leaves the credits bar to decide: a page with no image link still credits the story', () => {
+    render(<Card variant="page" card={{ title: 'T' }} story={{ author: 'Alice' }} />)
+    expect(screen.getByTestId('credits-bar')).toBeInTheDocument()
+  })
+
   it('renders the copyright view link when enabled and not disabled', () => {
     render(
       <Card

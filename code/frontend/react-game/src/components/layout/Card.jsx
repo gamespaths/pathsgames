@@ -231,9 +231,9 @@ export default function Card({
 
       {viewLink}
 
-      {isPage && card?.linkCopyright && (
-        <CardCreditsBar card={card} story={story} typeBadgeLabel={typeBadgeLabel} />
-      )}
+      {/* The bar decides for itself: it needs an author or an image credit, and a page that
+          hides its artwork still credits the story. */}
+      {isPage && <CardCreditsBar card={card} story={story} typeBadgeLabel={typeBadgeLabel} />}
     </div>
   )
 }

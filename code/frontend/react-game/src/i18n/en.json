@@ -189,7 +189,21 @@
       "items": "Items",
       "dexterity": "Speed",
       "intelligence": "Smart",
-      "constitution": "Physique"
+      "constitution": "Physique",
+      "descriptions": {
+        "clock": "The time gone by in the game world.",
+        "life": "At zero you fall into a coma and need help.",
+        "energy": "Spent moving and acting. Recovered by sleeping.",
+        "sadness": "The higher it goes, the harder the choices get.",
+        "weight": "How much is carried against can carry.",
+        "experience": "Experience earned along the adventure.",
+        "food": "Supplies in the bag: spent by some actions.",
+        "magic": "Spent on spells and by some actions.",
+        "coins": "Spent buying and by some actions.",
+        "dexterity": "The character's dexterity: in agility checks.",
+        "intelligence": "The character's intelligence: in wit checks.",
+        "constitution": "The character's constitution: in endurance checks."
+      }
     },
     "move": "Move Here",
     "execute": "Execute",

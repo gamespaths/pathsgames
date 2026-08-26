@@ -10,7 +10,7 @@ vi.mock('../api/matches', () => ({
 }))
 
 import { getMatchLogs } from '../api/matches'
-import MatchLogCard, { formatLogDate, entryBadges, resourceBadges } from '../features/matches/MatchLogCard'
+import MatchLogCard, { formatLogDate, entryBadges, resourceBadges, LogEntryCard } from '../features/matches/MatchLogCard'
 
 const PAGE = {
   matchUuid: 'm1',
@@ -345,6 +345,25 @@ describe('v0.35.4 — items and resources in the timeline', () => {
     expect(screen.getByTitle('game.stats.magic')).toHaveTextContent('−3')
     // And the date is on its own under the tile, with no separator left dangling.
     expect(screen.getByText(formatLogDate('2026-07-12T10:02:00Z', 'it'))).toBeInTheDocument()
+  })
+
+  it('leaves the actor off a tile unless it is asked for (showActor default)', () => {
+    const entry = {
+      type: 'ITEM_USE', timestamp: '2026-07-12T10:02:00Z', idItem: 900, itemAction: 'USE',
+      counter: 1, characterName: 'Ranger', magicCost: 3, energyGain: 9,
+      idCard: 700, card: { title: 'Healing Potion' },
+    }
+    const t = (k) => k
+    const { rerender } = render(
+      <LogEntryCard entry={entry} lang="it" t={t} onPreview={vi.fn()} />
+    )
+    // default: the resources are there, the character is not
+    expect(screen.getByTitle('game.stats.energy')).toHaveTextContent('+9')
+    expect(screen.queryByTitle('matchLog.character')).not.toBeInTheDocument()
+    expect(screen.queryByText('Ranger')).not.toBeInTheDocument()
+
+    rerender(<LogEntryCard entry={entry} lang="it" t={t} onPreview={vi.fn()} showActor />)
+    expect(screen.getByTitle('matchLog.character')).toHaveTextContent('Ranger')
   })
 
   it('carries the same badges onto the page a tile opens', async () => {

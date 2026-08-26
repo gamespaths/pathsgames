@@ -26,6 +26,7 @@ import ItemsCard from './cards/ItemsCard'
 import ItemsCards from './cards/ItemsCards'
 import WeatherCard from './cards/WeatherCard'
 import ComaCard from './cards/ComaCard'
+import InformationCard from './cards/InformationCard'
 import SadnessCard from './cards/SadnessCard'
 import PendingChoicesList from './cards/PendingChoicesList'
 import AutomaticEvents from './cards/AutomaticEvents'
@@ -736,12 +737,16 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
         onSelectNode={(val) => {setMapSelected(val); scrollMobileIntoView('.book-mobile-right'); } }
         onClose={() => { setMapView(false); setMapSelected(null) }} />
     ) : previewLeft ? (
-      <Card variant="page"
+      // v0.35.5 — InformationCard only redresses the 'information' page (story title, no
+      // image, one row per badge); every other preview type passes straight to Card.
+      <InformationCard variant="page"
         card={previewLeft.card}
         entity={previewLeft.entity}
         entityType={previewLeft.type}
         loading={false}
         story={story}
+        playerStats={playerStats}
+        clock={clock}
         onClose={handleBackOrClose}
         lockedReason={previewLeft.lockedReason}
         statItemsToPageContent={previewLeft.statItemsToPageContent}
