@@ -12,6 +12,8 @@ import Card from '../../components/layout/Card'
 import {
   buildCardCharacteristics,
   buildCardCharacteristicsRight,
+  isStatsCritical,
+  isBagOverloaded,
   storySelectionCount,
   selectedTraitCount,
   checkShowToSleepCard,
@@ -37,8 +39,9 @@ import MatchLogCard from '@/features/matches/MatchLogCard'
 import MapPage from '@/components/layout/Map'
 import LoadingCard from '@/components/layout/LoadingCard'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
+import { SHOW_CARD_CHARACTERISTICS, SHOW_MOBILE_CARD_CHARACTERISTICS, hideWhereClass } from '@/constants/features'
 import { buildCardToSleep } from '@/utils/loadoutCards'
-import { itemPromiseBadges, statChangeItems } from '@/utils/statBadges'
+import { itemPromiseBadges, statChangeItems, buildStatBadges } from '@/utils/statBadges'
 
 // Mobile is a single stacked column (left on top, right below) that scrolls as a
 // whole inside `.book-overlay`. These helpers move a card into view there; on
@@ -508,6 +511,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // run of several, so the list the player is working through must not vanish under them.
   function handleItemDropped() {
     handleReloadClockWeatherAndMatchData()
+    // The reload puts every open page away; the bag is the exception, because dropping is
+    // something the player does one row at a time and the list is where they are working.
+    setItemsView(true)
   }
 
   // Step 35 — using an item closes the bag. The row is consumed, so the list the player
@@ -523,20 +529,33 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
 
   // The backpack takes over the right page, so whatever was showing there has to go —
   // otherwise a stale preview would sit on top of the list it replaced.
-  function openItemsView() {
-    setPreviewRight(null)
+
+  // v0.35.5 — the tabbed views are exclusive: one page is open at a time, so opening any of
+  // them first puts every other one away. Without this the pages stack (the map hides an
+  // open preview and hands it back on the way out) and a back arrow lands on whatever was
+  // left underneath instead of on the board.
+  function closeAllViews() {
+    setMapView(false)
+    setMapSelected(null)
+    setItemsView(false)
     setStatisticsCards(false)
+    setPreviewLeft(null)
+    setPreviewRight(null)
+    setShowGoToSleepCard(false)
+  }
+
+  function openItemsView() {
+    closeAllViews()
     setItemsView(true)
     scrollMobileIntoView('.book-mobile-right')
   }
 
   // Back to the board itself: the location on the left, the main screen on the right —
-  // where the map's back arrow lands too. Deliberately NOT the statistics list, even when
+  // where every other back arrow lands too. Deliberately NOT the statistics list, even when
   // the bag was opened from there: closing a page returns to the game, not to the menu
   // that happened to lead to it.
   function closeItemsView() {
-    setItemsView(false)
-    setStatisticsCards(false)
+    closeAllViews()
     scrollMobileIntoView('.book-mobile-left')
   }
 
@@ -546,10 +565,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     handleSelectionPreviewFull(card, 'end game', lockReason, statistics , showModal , additionalProps, 'right');
     //setPreviewRight({ kind: 'endgame' });
   }
+  // Every back arrow means the same thing: whichever tab is open, leave it and show the
+  // board again.
   function handleBackOrClose() {
-    setPreviewLeft(null);
-    setStatisticsCards(false);
-    setShowGoToSleepCard(false);
+    closeAllViews();
   }
   // Step 0.28.5 — from the map's right-page location card (when it is the
   // character's own location), enter the play view: left = current location,
@@ -735,7 +754,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
       <MapPage gameData={gameData} matchLocations={matchLocations}
         selectedId={mapSelected?.id ?? null}
         onSelectNode={(val) => {setMapSelected(val); scrollMobileIntoView('.book-mobile-right'); } }
-        onClose={() => { setMapView(false); setMapSelected(null) }} />
+        onClose={handleBackOrClose} />
     ) : previewLeft ? (
       // v0.35.5 — InformationCard only redresses the 'information' page (story title, no
       // image, one row per badge); every other preview type passes straight to Card.
@@ -764,6 +783,51 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     // counter that ran out while sleeping from the info card was never shown.
     onSlept: handleSlept,
   })
+  // The (i) view: the information page on the left, the statistics list on the right.
+  // Shared by the info card's lens and by the (i) bookmark — one door, two handles.
+  function openInformationView() {
+    closeAllViews()
+    handleSelectionPreviewFull(cardCharacteristicsRight, 'information', null, [], false)
+    setStatisticsCards(true)
+  }
+
+  function openMapView() {
+    closeAllViews()
+    setMapView(true)
+    scrollMobileIntoView('.book-mobile-left')
+  }
+
+  // v0.35.5 — the tabs over the two pages. Life/energy/sadness ride the (i) tab and the
+  // carried weight rides the bag one, so the board's news is readable without opening
+  // anything. Missions has no backend yet: the tab is there, greyed, saying so.
+  // The way back to the board: it is a tab of its own, so leaving any open page never needs
+  // a back arrow to be found first. Inert while the board is what is already showing — the
+  // pin alone, since the page it returns to names the location in full.
+  const boardShowing = !statisticsCards && !mapView && !itemsView && !previewLeft
+  const bookmarksLeft = [
+    { key: 'position', icon: 'fas fa-map-marker-alt', label: t('game.bookmarks.position'),
+      active: boardShowing, onClick: handleBackOrClose },
+    { key: 'information', icon: 'fas fa-info-circle', label: t('game.bookmarks.information'),
+      badges: buildStatBadges(playerStats, t, {
+        specificKeys: [['life', 'lifeMax'], ['energy', 'energyMax'], ['sadness', 'sadnessMax']],
+      }),
+      active: statisticsCards || previewLeft?.type === 'information',
+      danger: isStatsCritical(playerStats),
+      onClick: openInformationView },
+    { key: 'items', icon: 'fas fa-suitcase', label: t('game.bookmarks.backpack'),
+      badges: [{ key: 'weight', label: t('game.stats.weight'),
+                 value: `${playerStats?.weight ?? 0}/${playerStats?.weightMax ?? 0}` }],
+      active: itemsView, danger: isBagOverloaded(playerStats), onClick: openItemsView },
+    { key: 'map', icon: 'fas fa-map', label: t('game.bookmarks.map'),
+      active: mapView, onClick: openMapView },
+    { key: 'missions', icon: 'fas fa-clipboard-list', label: t('game.bookmarks.missions'),
+      disabled: true, title: t('game.bookmarks.comingSoon') },
+  ]
+  const bookmarksRight = [/*
+    { key: 'multiplayer', icon: 'fas fa-users', label: t('game.bookmarks.multiplayer'),
+      disabled: true, title: t('game.bookmarks.comingSoon') },*/
+  ]
+
   // The loaded detail (with content lists) when available, otherwise the summary prop.
   const storyFull = storyDetail ?? story
   //const statistics = buildConfigStatistics(gameData?.playerStats ?? {}, t);
@@ -835,7 +899,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
           <WeatherCard weather={weather} story={storyFull} onPreview={handleSelectionPreviewFull} previewSide="right" />
           <GoToSleepCard story={story} storyFull={storyFull} gameData={gameData} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
             previewSide="right" matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleSlept}/>
-          <MapCard onOpen={() => {setMapView(true);scrollMobileIntoView('.book-mobile-left')}} />
+          <MapCard onOpen={openMapView} />
           <ItemsCard onOpen={openItemsView}
             count={playerStats?.items?.length ?? 0}
             weight={playerStats?.weight} weightMax={playerStats?.weightMax}
@@ -848,11 +912,13 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     : <>
       <div className="config-view-wrap config-view--config">
         <div className="config-cards-area selection-list">
-          <Card card={cardCharacteristics} entityType="information"  story={story} flagInformationCard={true} previewSide="right"
+          {(SHOW_CARD_CHARACTERISTICS || SHOW_MOBILE_CARD_CHARACTERISTICS) &&
+            <Card card={cardCharacteristics} entityType="information"  story={story} flagInformationCard={true} previewSide="right"
+            additionalCardClasses={hideWhereClass(SHOW_CARD_CHARACTERISTICS, SHOW_MOBILE_CARD_CHARACTERISTICS)}
             infoLabel={''/*t('card.gameStatus')*/} infoIconClassName="fas fa-info-circle font-size-medium m-1" 
             infoLabelClassName="font-size-medium display-none"
             actionLabel={''}    actionIcon= 'fa-bed m-1'   onAction={() => {setSleepCardFromInfoCard();}} 
-            actionsList={[{ label: '', icon: 'fa-map m-1', onAction: () => { setMapView(true);scrollMobileIntoView('.book-mobile-left')} },              
+            actionsList={[{ label: '', icon: 'fa-map m-1', onAction: openMapView },              
               { label: '', icon: 'fa-clipboard-list m-1', onAction: () => { alert('Missions and registry coming soon!') } },
               { label: '', icon: 'fa-list m-1', onAction: () => { alert('Missions and registry coming soon!') } },
               { label: '', icon: 'fa-suitcase m-1', onAction: () => { openItemsView() } },
@@ -860,11 +926,11 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
               //{ label: '', icon: 'fa-people-arrows m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
             ]}
 
-            onPreview={() => { handleSelectionPreviewFull(cardCharacteristicsRight, 'information', null, [], false); setStatisticsCards(true) } }
+            onPreview={openInformationView}
             childrenIntoImage={<PlayerStats stats={playerStats} plainFlag={false} showLabel={false} 
                                   showGrid2={true} showItems={false}
                                   className="m-1 display-inline-grid flex-direction-column display-grid2" />}
-          />
+          />}
           {playerStats?.isComa && <ComaCard story={story} onPreview={handleSelectionPreviewFull} previewSide="right"/>}
 
           {/* Show the sleep card only when the player is energy-stuck: every
@@ -922,6 +988,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
         closeLabel={`${t('game.closeBook')}${story?.title ?? story?.card?.title ? ' ' + (story?.title ?? story?.card?.title) : ''}`}
         left={leftContent}
         right={loading ? <LoadingCard story={story} /> : rightContent}
+        bookmarksLeft={bookmarksLeft}
+        bookmarksRight={bookmarksRight}
         mobile={
           <GameBookMobile
             left={leftContent}

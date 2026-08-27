@@ -36,6 +36,30 @@ describe('Book', () => {
     expect(screen.getByText('mobile-ui')).toBeInTheDocument()
   })
 
+  it('slots the bookmarks into the wrapper, one row per page', () => {
+    const { container } = render(<Book left={null} right={null}
+      bookmarksLeft={[{ key: 'information', label: 'Info' }]}
+      bookmarksRight={[{ key: 'items', label: 'Bag' }]} />)
+
+    // Inside .book-wrapper on purpose: the mobile rule hides the wrapper and the tabs with it.
+    expect(container.querySelector('.book-wrapper .book-bookmarks--left')).toBeInTheDocument()
+    expect(container.querySelector('.book-wrapper .book-bookmarks--right')).toBeInTheDocument()
+    expect(screen.getByLabelText('Info')).toBeInTheDocument()
+  })
+
+  it('showBookmarks=false takes the tabs away without touching the pages', () => {
+    const { container } = render(<Book left={<span>Left content</span>} right={null} showBookmarks={false}
+      bookmarksLeft={[{ key: 'information', label: 'Info' }]} />)
+
+    expect(container.querySelector('.book-bookmarks')).toBeNull()
+    expect(screen.getByText('Left content')).toBeInTheDocument()
+  })
+
+  it('renders no tab row when a book passes no bookmarks at all', () => {
+    const { container } = render(<Book left={null} right={null} />)
+    expect(container.querySelector('.book-bookmarks')).toBeNull()
+  })
+
   it('renders book-spine inside the wrapper', () => {
     const { container } = render(<Book left={null} right={null} />)
     expect(container.querySelector('.book-spine')).toBeInTheDocument()

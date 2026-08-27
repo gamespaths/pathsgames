@@ -35,6 +35,10 @@
   --book-page-background: linear-gradient(90deg, var(--color-brown-extra-tan) 0%, var(--color-brown-super-tan) 80%, var(--color-brown-tan) 100%);
   --book-page-background-right: linear-gradient(270deg, var(--color-brown-extra-tan) 0%, var(--color-brown-super-tan) 80%, var(--color-brown-tan) 100%);
 
+  --book-bookmark-background: linear-gradient(0deg, var(--color-brown-extra-tan) 0%, var(--color-brown-super-tan) 20%, var(--color-brown-tan) 100%);
+  --book-bookmark-background-hover: linear-gradient(0deg, var(--color-brown-extra-tan) 0%, var(--color-brown-super-tan) 75%, var(--color-brown-tan) 100%);
+
+
   --book-border: 0.5rem solid var(--color-brown-warm);
   
   --navbar-bg: linear-gradient(120deg, var(--color-brown-deep) 0%, var(--color-brown-mid) 100%);

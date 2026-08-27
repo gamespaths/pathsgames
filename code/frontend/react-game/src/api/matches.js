@@ -355,8 +355,9 @@ export async function useItem(uuidMatch, itemInstanceUuid, accessToken, lang) {
  * Discard one item (POST /api/gameplay/{uuid}/inventory/drop-item).
  *
  * Applies neither the consumable gate nor the class gate: a non-consumable item must be
- * droppable, that is the point of carrying one. Discards the WHOLE row, so
- * `amountDropped` is the row's amount. Handing an item to another character is
+ * droppable, that is the point of carrying one. v0.35.1 — `amountDropped` is the authored
+ * `amountDrop` capped by what is held (a row whose story item is gone goes in one gesture);
+ * the row survives with what is left. Handing an item to another character is
  * multiplayer and has no endpoint here.
  */
 export async function dropItem(uuidMatch, itemInstanceUuid, accessToken) {

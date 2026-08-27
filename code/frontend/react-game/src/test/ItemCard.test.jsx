@@ -279,6 +279,7 @@ describe('ItemCard', () => {
 
       expect(screen.getByTestId('locked').textContent).toBe('false')
       const props = previewProps(onPreview)
+      // A single-unit usage says nothing extra: that is every item before v0.35.1.
       expect(props.actionLabel).toBe('game.item.use')
       expect(typeof props.onAction).toBe('function')
     })
@@ -405,5 +406,112 @@ describe('ItemCard', () => {
 
     expect(useItem).not.toHaveBeenCalled()
     expect(dropItem).not.toHaveBeenCalled()
+  })
+
+  describe('a bag over its capacity', () => {
+    const OVER = { weight: 31, weightMax: 30 }
+
+    it('puts the bin on the row itself, beside the (i)', () => {
+      render(<ItemCard item={ITEM} story={STORY} onPreview={vi.fn()} playerStats={OVER} />)
+
+      expect(capturedProps.actionsList).toHaveLength(1)
+      expect(capturedProps.actionsList[0].icon).toContain('fa-trash')
+      expect(capturedProps.actionsList[0].ariaLabel).toBe('game.item.drop')
+      expect(capturedProps.actionListClass).toBe('display-grid2')
+    })
+
+    it('takes the word "use" off the (i) to make room for the bin', () => {
+      render(<ItemCard item={ITEM} story={STORY} onPreview={vi.fn()} playerStats={OVER} />)
+      // The label is hidden, not removed: it stays the preview button's aria-label.
+      expect(capturedProps.infoLabelClassName).toBe('display-none')
+      expect(capturedProps.infoLabel).toBe('game.item.use')
+    })
+
+    it('the row bin opens the big card instead of dropping on the spot', async () => {
+      const onPreview = vi.fn()
+      render(<ItemCard item={ITEM} story={STORY} onPreview={onPreview} playerStats={OVER}
+        matchUuid="m1" accessToken="tok" onDropped={vi.fn()} />)
+
+      await act(async () => { await capturedProps.actionsList[0].onAction() })
+
+      // Dropping is irreversible: the row bin is a way to the page, never the drop itself.
+      expect(dropItem).not.toHaveBeenCalled()
+      expect(onPreview).toHaveBeenCalledTimes(1)
+      expect(onPreview.mock.calls[0][1]).toBe('item')
+      // And the page it opens is the one the (i) opens, bin and all.
+      expect(onPreview.mock.calls[0][5].actionsList[0].icon).toContain('fa-trash')
+    })
+
+    it('gives a carried-only row no bin: that one is dropped from its own page', () => {
+      render(<ItemCard item={CARRIED_ONLY} story={STORY} onPreview={vi.fn()} playerStats={OVER} />)
+
+      expect(screen.getByTestId('locked').textContent).toBe('true')
+      expect(capturedProps.actionsList).toEqual([])
+      expect(capturedProps.infoLabelClassName).toBeUndefined()
+    })
+
+    it('leaves the row alone at or under the limit — the bin stays in the preview', () => {
+      for (const stats of [{ weight: 30, weightMax: 30 }, { weight: 3, weightMax: 30 }, {}, undefined]) {
+        render(<ItemCard item={ITEM} story={STORY} onPreview={vi.fn()} playerStats={stats} />)
+        expect(capturedProps.actionsList).toEqual([])
+        expect(capturedProps.actionListClass).toBeNull()
+      }
+    })
+  })
+
+  it('the bin on the BIG card says what it does, and drops the row for real', async () => {
+    const onPreview = vi.fn()
+    const onDropped = vi.fn()
+    render(<ItemCard item={ITEM} story={STORY} onPreview={onPreview}
+      matchUuid="m1" accessToken="tok" onDropped={onDropped} />)
+
+    const bin = previewProps(onPreview).actionsList[0]
+    expect(bin.label).toBe('game.item.drop')
+    expect(bin.icon).toContain('fa-trash')
+
+    await act(async () => { await bin.onAction() })
+    expect(dropItem).toHaveBeenCalledWith('m1', 'row-1', 'tok')
+    await waitFor(() => expect(onDropped).toHaveBeenCalled())
+  })
+
+  describe('how many units the big card promises to move', () => {
+    it('spells the usage cost out on the use button', () => {
+      const onPreview = vi.fn()
+      render(<ItemCard item={{ ...ITEM, amount: 5, amountUse: 2 }} story={STORY} onPreview={onPreview} />)
+      expect(previewProps(onPreview).actionLabel).toBe('game.item.use x2')
+    })
+
+    it('spells the drop size out on the bin button', () => {
+      const onPreview = vi.fn()
+      render(<ItemCard item={{ ...ITEM, amount: 5, amountDrop: 3 }} story={STORY} onPreview={onPreview} />)
+      expect(previewProps(onPreview).actionsList[0].label).toBe('game.item.drop x3')
+    })
+
+    it('never promises to drop more than is held', () => {
+      const onPreview = vi.fn()
+      render(<ItemCard item={{ ...ITEM, amount: 2, amountDrop: 10 }} story={STORY} onPreview={onPreview} />)
+      expect(previewProps(onPreview).actionsList[0].label).toBe('game.item.drop x2')
+    })
+
+    it('says nothing when a single unit moves — on either button', () => {
+      const onPreview = vi.fn()
+      render(<ItemCard item={{ ...ITEM, amount: 1, amountUse: 1, amountDrop: 1 }} story={STORY} onPreview={onPreview} />)
+
+      const props = previewProps(onPreview)
+      expect(props.actionLabel).toBe('game.item.use')
+      expect(props.actionsList[0].label).toBe('game.item.drop')
+    })
+
+    it('says nothing on a drop capped down to one by what is held', () => {
+      const onPreview = vi.fn()
+      render(<ItemCard item={{ ...ITEM, amount: 1, amountDrop: 5 }} story={STORY} onPreview={onPreview} />)
+      expect(previewProps(onPreview).actionsList[0].label).toBe('game.item.drop')
+    })
+
+    it('keeps the bare word on the row bin: no room, and the page says it anyway', () => {
+      render(<ItemCard item={{ ...ITEM, amountDrop: 3 }} story={STORY} onPreview={vi.fn()}
+        playerStats={{ weight: 31, weightMax: 30 }} />)
+      expect(capturedProps.actionsList[0].label).toBe('')
+    })
   })
 })

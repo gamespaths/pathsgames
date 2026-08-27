@@ -147,6 +147,18 @@ export function unitsPerUse(item) {
 }
 
 /**
+ * v0.35.5 — units one drop removes: what the author asked for (`amountDrop`, with the same
+ * null/zero/negative-reads-as-one rule), capped by what is actually held. The cap is the
+ * engine's: holding fewer than a drop takes is not a refusal — a player putting something
+ * down can always put down everything they hold.
+ */
+export function unitsPerDrop(item) {
+  const authored = Number(item?.amountDrop)
+  const perDrop = Number.isFinite(authored) && authored >= 1 ? authored : 1
+  return Math.min(perDrop, item?.amount ?? 1)
+}
+
+/**
  * v0.35.2 — can the player use this item RIGHT NOW?
  *
  * Two conditions, and both are the server's: only a consumable can be used at all, and a
@@ -164,14 +176,20 @@ export function itemCarryBadges(item, t = (k) => k) {
   const weight = item?.weight ?? 0
   const cap = itemCap(item)
   const badges = [{ key: 'weight', value: `${weight * amount}`, label: t('game.item.weight') }]
+  // v0.35.5 — a carried-only thing that weighs nothing is a token: a key, a letter, a mark
+  // in the story. Nothing is spent from it and nothing is carried by it, so how many there
+  // are answers a question nobody asked. Both readings drop it — the row and its page.
+  const countless = item?.isConsumabile !== true && weight === 0
   // A capped item shows "2/3": how many are carried out of how many may be. A single unit
   // is worth saying when there is a cap — "1/1" means "and that is all you will ever get".
   // The x is the quantity symbol and only fits the uncapped reading; a plain letter, not
   // the × sign, which is drawn smaller than the digits and read as a speck.
-  if (cap) {
-    badges.unshift({ key: 'amount', value: `${amount}/${cap}`, label: t('game.item.amount') })
-  } else if (amount > 1) {
-    badges.unshift({ key: 'amount', value: `${amount}`, prefix: 'x', label: t('game.item.amount') })
+  if (!countless) {
+    if (cap) {
+      badges.unshift({ key: 'amount', value: `${amount}/${cap}`, label: t('game.item.amount') })
+    } else if (amount > 1) {
+      badges.unshift({ key: 'amount', value: `${amount}`, prefix: 'x', label: t('game.item.amount') })
+    }
   }
   return badges
 }

@@ -15,6 +15,8 @@ import {
   movementCostKey,
   buildLocationCosts,
   checkShowToSleepCard,
+  isStatsCritical,
+  isBagOverloaded,
 } from '../utils/gamebook'
 
 const STORY = {
@@ -222,5 +224,48 @@ describe('utils/gamebook — checkShowToSleepCard', () => {
   it('shows the sleep card when there is nothing to do at all', () => {
     expect(checkShowToSleepCard({ playerStats: { energy: 10 } })).toBe(true)
     expect(checkShowToSleepCard()).toBe(true)
+  })
+})
+
+describe('utils/gamebook — the bookmark alarms', () => {
+  const FINE = { life: 5, energy: 5, sadness: 1, sadnessMax: 5, weight: 7, weightMax: 30 }
+
+  it('says nothing is wrong while every statistic has room left', () => {
+    expect(isStatsCritical(FINE)).toBe(false)
+    expect(isBagOverloaded(FINE)).toBe(false)
+  })
+
+  it('fires on a life or an energy about to run out', () => {
+    expect(isStatsCritical({ ...FINE, life: 1 })).toBe(true)
+    expect(isStatsCritical({ ...FINE, life: 0 })).toBe(true)
+    expect(isStatsCritical({ ...FINE, life: 2 })).toBe(false)
+    expect(isStatsCritical({ ...FINE, energy: 1 })).toBe(true)
+    expect(isStatsCritical({ ...FINE, energy: 2 })).toBe(false)
+  })
+
+  it('fires on a sadness at its ceiling, and on the last step before it', () => {
+    expect(isStatsCritical({ ...FINE, sadness: 5, sadnessMax: 5 })).toBe(true)
+    expect(isStatsCritical({ ...FINE, sadness: 6, sadnessMax: 5 })).toBe(true)
+    expect(isStatsCritical({ ...FINE, sadness: 4, sadnessMax: 5 })).toBe(false)
+  })
+
+  it('treats a statistic the backend has not projected as unknown, never as an alarm', () => {
+    expect(isStatsCritical({})).toBe(false)
+    expect(isStatsCritical(null)).toBe(false)
+    expect(isStatsCritical({ sadness: 9 })).toBe(false)          // no ceiling to compare with
+    expect(isStatsCritical({ life: null, energy: undefined })).toBe(false)
+  })
+
+  it('fires only PAST the limit: a bag exactly at capacity is full, not overloaded', () => {
+    expect(isBagOverloaded({ weight: 31, weightMax: 30 })).toBe(true)
+    expect(isBagOverloaded({ weight: 30, weightMax: 30 })).toBe(false)
+    expect(isBagOverloaded({ weight: 29, weightMax: 30 })).toBe(false)
+  })
+
+  it('never fires without both figures — an unknown weight is not a bad one', () => {
+    expect(isBagOverloaded({ weight: 5 })).toBe(false)
+    expect(isBagOverloaded({ weight: 5, weightMax: 0 })).toBe(false)
+    expect(isBagOverloaded({ weightMax: 30 })).toBe(false)
+    expect(isBagOverloaded(null)).toBe(false)
   })
 })

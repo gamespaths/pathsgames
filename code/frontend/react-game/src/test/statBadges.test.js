@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   effectStatItems, itemCap, itemCarryBadges, itemDescriptionBadges, itemPromiseBadges,
-  unitsPerUse,
+  unitsPerUse, unitsPerDrop,
 } from '../utils/statBadges'
 
 const t = (k) => k
@@ -134,6 +134,33 @@ describe('the cap and the cost of a usage (v0.35.1)', () => {
     expect(unitsPerUse({ amountUse: 0 })).toBe(1)
     expect(unitsPerUse({ amountUse: -3 })).toBe(1)
     expect(unitsPerUse({})).toBe(1)
+  })
+
+  it('reads a missing or empty amountDrop as one unit, exactly as the engine does', () => {
+    expect(unitsPerDrop({ amount: 9, amountDrop: 3 })).toBe(3)
+    expect(unitsPerDrop({ amount: 9, amountDrop: 0 })).toBe(1)
+    expect(unitsPerDrop({ amount: 9, amountDrop: -3 })).toBe(1)
+    expect(unitsPerDrop({ amount: 9 })).toBe(1)
+    expect(unitsPerDrop({})).toBe(1)
+  })
+
+  it('caps the drop at what is held: putting down what you have is never a refusal', () => {
+    expect(unitsPerDrop({ amount: 2, amountDrop: 10 })).toBe(2)
+    expect(unitsPerDrop({ amountDrop: 10 })).toBe(1)   // a null amount is one unit held
+  })
+
+  it('drops the count of a weightless carried-only token: a key is a key', () => {
+    const token = { amount: 3, weight: 0, isConsumabile: false, maxPerCharacter: 5 }
+    expect(itemCarryBadges(token, t).find(b => b.key === 'amount')).toBeUndefined()
+    // The page reading loses it too, not only the row.
+    expect(itemDescriptionBadges(token, t).find(b => b.key === 'amount')).toBeUndefined()
+  })
+
+  it('keeps the count when the thing weighs something, or can be used', () => {
+    const heavy = { amount: 3, weight: 1, isConsumabile: false }
+    const usable = { amount: 3, weight: 0, isConsumabile: true }
+    expect(itemCarryBadges(heavy, t).find(b => b.key === 'amount')?.value).toBe('3')
+    expect(itemCarryBadges(usable, t).find(b => b.key === 'amount')?.value).toBe('3')
   })
 
   it('writes the amount as carried/cap when there is one', () => {

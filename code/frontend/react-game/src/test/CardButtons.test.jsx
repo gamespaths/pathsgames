@@ -129,3 +129,43 @@ describe('CardButtons preview (i) button overrides', () => {
     expect(onPreviewClick).toHaveBeenCalled()
   })
 })
+
+describe('CardButtons — secondary actions beside the (i)', () => {
+  const BIN = { label: '', icon: 'fa-trash', onAction: vi.fn(), ariaLabel: 'drop-it' }
+
+  it('shows them on an information face, next to the preview button', () => {
+    render(<CardButtons flagInformationCard onPreview={vi.fn()} onPreviewClick={vi.fn()}
+      name="Potion" actionsList={[BIN]} />)
+
+    expect(screen.getByLabelText('drop-it')).toBeInTheDocument()
+    expect(screen.getByLabelText('card.info')).toBeInTheDocument()
+  })
+
+  it('shows them on a LOCKED face too — a row that cannot be used can still be thrown away', () => {
+    render(<CardButtons locked lockInfo="carry-only" name="Rock" lockedIcon="fas fa-box"
+      onPreview={vi.fn()} onPreviewClick={vi.fn()} actionsList={[BIN]} />)
+
+    expect(screen.getByText('carry-only')).toBeInTheDocument()
+    expect(screen.getByLabelText('drop-it')).toBeInTheDocument()
+  })
+
+  it('runs the handler and clears the spinner once it settles', async () => {
+    let resolve
+    const onAction = vi.fn(() => new Promise(r => { resolve = r }))
+    render(<CardButtons flagInformationCard onPreview={vi.fn()} onPreviewClick={vi.fn()}
+      actionsList={[{ ...BIN, onAction }]} />)
+
+    fireEvent.click(screen.getByLabelText('drop-it'))
+    expect(onAction).toHaveBeenCalled()
+    // While the drop is in flight the button steps aside, so it cannot be clicked twice.
+    expect(screen.queryByLabelText('drop-it')).toBeNull()
+
+    resolve()
+    await waitFor(() => expect(screen.getByLabelText('drop-it')).toBeInTheDocument())
+  })
+
+  it('renders nothing extra when the card hands over no secondary action', () => {
+    render(<CardButtons flagInformationCard onPreview={vi.fn()} onPreviewClick={vi.fn()} actionsList={[]} />)
+    expect(screen.queryByLabelText('drop-it')).toBeNull()
+  })
+})

@@ -118,6 +118,34 @@ export function movementCostKey(originLocationId, destinationUuid) {
 }
 
 /**
+ * v0.35.5 — when the (i) bookmark should shout: the character is one hit from a coma, out
+ * of energy, or as sad as they can get. A statistic the backend has not projected yet is
+ * never an alarm — an unknown value is not a bad one.
+ */
+export function isStatsCritical(playerStats) {
+  const num = key => (Number.isFinite(playerStats?.[key]) ? playerStats[key] : null)
+  const life = num('life')
+  const energy = num('energy')
+  const sadness = num('sadness')
+  const sadnessMax = num('sadnessMax')
+  return (life !== null && life < 2)
+    || (energy !== null && energy < 2)
+    || (sadness !== null && sadnessMax !== null && sadness > sadnessMax - 1)
+}
+
+/**
+ * The bag is OVER its capacity — strictly heavier than it can carry. That is the state the
+ * player has to fix, so it both reddens the bag bookmark and grows a bin on the item rows.
+ * A weight the backend has not projected is never an alarm.
+ */
+export function isBagOverloaded(playerStats) {
+  const weight = playerStats?.weight
+  const weightMax = playerStats?.weightMax
+  if (!Number.isFinite(weight) || !Number.isFinite(weightMax) || weightMax <= 0) return false
+  return weight > weightMax
+}
+
+/**
  * The move-cost map consumed by `movementEnergyCost`, built from a /locations
  * payload: one entry per (origin location, destination) pair.
  */

@@ -43,6 +43,21 @@ export default function CardButtons({
         {!flagShowLabel && !alone && <span className="gc-footer__btn-label">&nbsp;</span>}
     </button>
   }
+  // The secondary buttons, in one place: the branch with a main action shows them under it,
+  // and the locked / information faces show them beside the (i) — which is how an item row
+  // gets its bin while the bag is over its capacity.
+  function secondaryButtons() {
+    return secondaryActions.map((a, i) =>
+      <button key={i} className="gc-footer__btn" aria-label={a.ariaLabel ?? a.label ?? undefined}
+        onClick={async () => {
+          setActionStarted(true)
+          try { await a.onAction() } catch { /* handled by the action */ } finally { setActionStarted(false) }
+        }}>
+        <i className={`fas ${a.icon} me-1`} />
+        <span className={`gc-footer__btn-label font-size-medium ${infoLabelClassName}`}>{a.label}</span>
+      </button>)
+  }
+
   const gcActionClass= "gc-actions " + (actionListClass ?? (actionsList.length===0 ? null:
     (actionsList.length+2) % 3 ==0 ? "display-grid3" : "display-grid2"))
 
@@ -58,6 +73,7 @@ export default function CardButtons({
         <i className={`${lockedIcon} me-1`} />{lockInfo?.className ?? lockInfo ?? name}
         {actionLabelChildren} 
       </span>
+      {!actionStarted && secondaryButtons()}
     </div></div>)
   }
   if (onSelect) {
@@ -100,20 +116,14 @@ export default function CardButtons({
           <span className={`gc-footer__btn-label font-size-medium ${infoLabelClassName}`}>{actionLabel}</span>
           {actionLabelChildren}
         </button>}
-      {!actionStarted && secondaryActions.map((a, i) =>
-        <button key={i} className="gc-footer__btn" onClick={async () => {
-          setActionStarted(true)
-          try { await a.onAction() } catch { /* handled by the action */ } finally { setActionStarted(false) }
-        }}>
-          <i className={`fas ${a.icon} me-1`} />
-          <span className={`gc-footer__btn-label font-size-medium ${infoLabelClassName}`}>{a.label}</span>
-        </button>)}
+      {!actionStarted && secondaryButtons()}
     </div></div>)
   }
   //console.log("flagInformationCard",flagInformationCard);
   if (flagInformationCard) {
     return (<div className={divStyle}><div className={gcActionClass}>
         {getPreviewButton(true, "my-1", false) }
+        {!actionStarted && secondaryButtons()}
     </div></div>)
   }
   //console.log("onPreview",onPreview);

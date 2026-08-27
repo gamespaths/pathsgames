@@ -312,7 +312,7 @@
         "SLEEPING": "Sonno",
         "NOT_A_NEIGHBOR": "Lontano",
         "MOVEMENT_CONDITION_NOT_MET": "Sbarrata",
-        "OVERWEIGHT": "Sovraccarico",
+        "OVERWEIGHT": "Peso",
         "INSUFFICIENT_ENERGY": "Energia",
         "NOT_ENOUGH_COINS": "Monete",
         "NOT_ENOUGH_FOOD": "Cibo",
@@ -429,6 +429,15 @@
       "title": "Tempo scaduto",
       "anonymous": "Da qualche parte, lontano, è scaduto un tempo.",
       "dismiss": "Prosegui"
+    },
+    "bookmarks": {
+      "position": "Posizione",
+      "information": "Informazioni",
+      "map": "Mappa",
+      "backpack": "Zaino",
+      "missions": "Missioni",
+      "multiplayer": "Multigiocatore",
+      "comingSoon": "Missioni e registro in arrivo"
     }
   },
   "footer": {

@@ -323,7 +323,7 @@
         "SLEEPING": "Sleeping",
         "NOT_A_NEIGHBOR": "Far",
         "MOVEMENT_CONDITION_NOT_MET": "Barred",
-        "OVERWEIGHT": "Overweight",
+        "OVERWEIGHT": "Weight",
         "INSUFFICIENT_ENERGY": "Energy",
         "NOT_ENOUGH_COINS": "Coins",
         "NOT_ENOUGH_FOOD": "Food",
@@ -440,6 +440,15 @@
       "title": "Time ran out",
       "anonymous": "Somewhere far away, a time ran out.",
       "dismiss": "Go on"
+    },
+    "bookmarks": {
+      "position": "Position",
+      "information": "Information",
+      "map": "Map",
+      "backpack": "Backpack",
+      "missions": "Missions",
+      "multiplayer": "Multiplayer",
+      "comingSoon": "Missions and registry coming soon"
     }
   },
   "footer": {

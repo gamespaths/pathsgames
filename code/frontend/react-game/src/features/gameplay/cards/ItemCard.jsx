@@ -3,7 +3,8 @@ import { useTranslation } from '@/i18n/context'
 import Card from '@/components/layout/Card'
 import { dropItem, useItem } from '@/api/matches'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
-import { isItemUsable, itemCarryBadges, itemDescriptionBadges, unitsPerUse } from '@/utils/statBadges'
+import { isItemUsable, itemCarryBadges, itemDescriptionBadges, unitsPerUse, unitsPerDrop } from '@/utils/statBadges'
+import { isBagOverloaded } from '@/utils/gamebook'
 
 /**
  * ItemCard — Step 34. One card per row of the calling character's inventory.
@@ -109,7 +110,43 @@ export default function ItemCard({
     }
   }
 
-  const dropAction = { label: '', icon: 'fa-trash m-1', onAction: handleDrop }
+  // v0.35.5 — the big card's buttons say how many units they move: a usage spends
+  // `amountUse`, a drop removes `amountDrop` capped by what is held. Both are decided by the
+  // engine, so the button promises exactly what the call will do. One unit is every item
+  // that ever existed before v0.35.1, so it goes unsaid — the same silence the "per use"
+  // badge keeps. The plain letter x, not the × sign, which is drawn smaller than the digits
+  // and reads as a speck.
+  const perDrop = unitsPerDrop(item)
+  const withUnits = (label, units) => (units > 1 ? `${label} x${units}` : label)
+  const useLabel = withUnits(t('game.item.use'), perUse)
+  const dropLabel = withUnits(t('game.item.drop'), perDrop)
+
+  // On the big card the bin is a real button, so it says what it does; on the row there is
+  // room for the glyph alone (the aria-label carries the word).
+  const dropAction = { label: dropLabel, icon: 'fa-trash m-1', onAction: handleDrop,
+    ariaLabel: t('game.item.drop') }
+
+  // v0.35.5 — over capacity the bin appears on the row itself, beside the (i). It does NOT
+  // drop from there: dropping is irreversible, so the click opens the big card — the same
+  // place the (i) opens — where the item can be read and the real bin carries its label.
+  // Only a consumable row shows it: a carried-only one is dropped from its page, where the
+  // player is looking at what they are about to lose.
+  const overloaded = isBagOverloaded(playerStats)
+  const showRowBin = overloaded && consumable
+  const rowBin = { label: '', icon: 'fa-trash m-1', ariaLabel: t('game.item.drop'),
+    onAction: openPreview }
+
+  // The big card: the two actions of an item, or — when it cannot be used — the reason plus
+  // the bin. Shared by the (i) and by the row bin, which lands on the very same page.
+  function openPreview() {
+    onPreview(item?.card ?? cardData, 'item', lockInfoFull ?? null,
+      descriptionBadges, true,
+      usable
+        ? { onAction: handleUse, actionLabel: useLabel, actionIcon,
+            actionsList: [dropAction], actionListClass: 'display-grid2' }
+        : { extraContent: lockInfoFull, actionsList: [dropAction] },
+      previewSide)
+  }
 
   return (
     <Card
@@ -120,18 +157,17 @@ export default function ItemCard({
       lockInfo={lockInfo}
       lockedIcon="fas fa-box"
       // handleSelectionPreviewFull(card, type, lockReason, statistics, showModal, additionalProps, side)
-      onPreview={() => onPreview(item?.card ?? cardData, 'item', lockInfoFull ?? null,
-        descriptionBadges, true,
-        usable
-          ? { onAction: handleUse, actionLabel: t('game.item.use'), actionIcon,
-              actionsList: [dropAction], actionListClass: 'display-grid2' }
-          : { extraContent: lockInfoFull, actionsList: [dropAction] },
-        previewSide)}
+      onPreview={openPreview}
       story={story}
       flagInformationCard={true}
+      actionsList={showRowBin ? [rowBin] : []}
+      actionListClass={showRowBin ? 'display-grid2' : null}
       childrenIntoImage={infoBadge}
       actionWithInfo={true}
       infoLabel={t('game.item.use')}
+      // With the bin beside it there is no room for the word "use": the glyph says it, and
+      // the label lives on as the button's aria-label.
+      infoLabelClassName={showRowBin ? 'display-none' : undefined}
       infoIconClassName={!locked ? 'fas ' + actionIcon : undefined}
     />
   )

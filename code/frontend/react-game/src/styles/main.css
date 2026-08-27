@@ -641,6 +641,91 @@ html, body {
   box-shadow: 0 0 8px rgba(0,0,0,0.6);
 }
 
+/* v0.35.5 — the same board renders inside the book and in the mobile stack; these two say
+   which of the two copies a card sits out. See hideWhereClass in constants/features.js. */
+.book-wrapper .hide-in-book { display: none !important; }
+.book-mobile-layout .hide-in-mobile { display: none !important; }
+
+/* ═══════════════════════════════════════════
+   BOOK BOOKMARKS (v0.35.5)
+   Tabs slotted into the book's top edge: inside .book-wrapper, so the mobile rule that
+   hides the wrapper hides them too.
+   ═══════════════════════════════════════════ */
+.book-bookmarks {
+  position: absolute;
+  top: -4px; /*QUI EX 0 */
+  z-index: 5;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  transform: translateY(-100%);
+  /* the gaps between tabs sit over the page: they must not eat its clicks */
+  pointer-events: none;
+}
+.book-bookmarks--left  { left: 24px; }
+/* The close bar is fixed at the viewport's top-right: leave the (x) its room. */
+.book-bookmarks--right { right: 24px; padding-right: 56px; justify-content: flex-end; }
+
+.book-bookmark {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* the extra bottom padding is what slides under the page edge */
+  padding: 6px 12px 10px;
+  margin-bottom: -4px;
+  border: 3px solid var(--color-brown-warm);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  background: var(--book-bookmark-background); /*linear-gradient(180deg, var(--color-brown-mid) 0%, var(--color-brown-dark) 100%);*/
+  color: var(--color-brown-light);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 -3px 8px rgba(0,0,0,0.5);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.book-bookmark:hover { 
+  /* transform: translateY(2px);  */
+  background: var(--book-bookmark-background-hover); 
+  color: var(--color-gold-dark);
+}
+.book-bookmark.is-active {
+  /*background: linear-gradient(180deg, var(--color-gold) 0%, var(--color-gold-dark) 100%);*/
+  background: var(--book-bookmark-background-hover); 
+  color: var(--color-gold-super-deep);
+  cursor: default;
+  /*color: var(--color-brown-deep);*/
+  /*
+  margin-bottom: -12px;
+  padding-bottom: 18px;*/
+}
+.book-bookmark.is-active:hover { transform: none; }
+/* The tab shouts: the page behind it holds something the player must act on (a life or an
+   energy about to run out, a sadness at its ceiling, a bag that cannot take another thing). */
+.book-bookmark.is-danger {
+  border-color: #c0392b;
+  background: linear-gradient(180deg, #c0392b 0%, #7b1f14 100%);
+  color: #ffe9e4;
+  box-shadow: 0 -3px 10px rgba(192, 57, 43, 0.65);
+}
+.book-bookmark.is-danger.is-active {
+  background: linear-gradient(180deg, #e74c3c 0%, #a12b1d 100%);
+  color: #fff;
+}
+.book-bookmark.is-danger .bonus-badge { border-color: #7b1f14; }
+
+.book-bookmark.is-disabled { opacity: 0.45; cursor: not-allowed; }
+.book-bookmark.is-disabled:hover { transform: none; }
+.book-bookmark__badges { gap: 4px; flex-wrap: nowrap; }
+
+.book-bookmark .player-stats-bar{
+  margin-bottom: 0px;
+}
+
 /* ═══════════════════════════════════════════
    BOOK PAGES
    ═══════════════════════════════════════════ */
