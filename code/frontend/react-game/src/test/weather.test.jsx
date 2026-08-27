@@ -82,9 +82,8 @@ describe('WeatherCard', () => {
     const onPreview = vi.fn()
     render(<WeatherCard weather={{ idWeather: 2, deltaEnergy: -2 }} onPreview={onPreview} />)
     fireEvent.click(screen.getByTestId('preview'))
-    // onPreview signature: (card, type, lockReason, statItems, showModal, additionalProps, previewSide)
-    expect(onPreview).toHaveBeenCalledWith(
-      expect.any(Object), 'weather', null, expect.any(Array), true, null, 'left')
+    expect(onPreview).toHaveBeenCalledWith({
+      card: expect.any(Object), type: 'weather', stats: expect.any(Array), side: 'left' })
   })
 
   // Page (overlay) mode — rendered on the book's right page with a back arrow.

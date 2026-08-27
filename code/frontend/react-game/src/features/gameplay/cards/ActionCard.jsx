@@ -80,14 +80,17 @@ export default function ActionCard({
       locked={locked}
       lockInfo={lockInfo}
       lockedIcon={lockedIconFor(action?.reason)}
-      // handleSelectionPreviewFull(card, type, lockReason, statistics, showModal, additionalProps, side)
-      onPreview={() => onPreview(action?.card ?? null, 'action', lockInfoFull ?? null, [], true,
-        available
-          ? { onAction: handleExecute, actionLabel: t('game.event.action'), actionIcon ,
-            actionLabelChildren: costBadge }
-          : {extraContent: (<>{lockInfoFull}<div className='display-inline-flex'>{costBadge}</div></>), 
-            
-        }, previewSide)}
+      onPreview={() => onPreview({
+        card: action?.card ?? null,
+        type: 'action',
+        lockedReason: lockInfoFull ?? null,
+        stats: [],
+        side: previewSide,
+        props: available
+          ? { onAction: handleExecute, actionLabel: t('game.event.action'), actionIcon,
+              actionLabelChildren: costBadge }
+          : { extraContent: (<>{lockInfoFull}<div className='display-inline-flex'>{costBadge}</div></>) },
+      })}
       story={story}
       flagInformationCard={true}
       childrenIntoImage={costBadge}

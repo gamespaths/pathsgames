@@ -32,7 +32,7 @@ Every Step file follows the same skeleton, so grep for these headings:
 | `Step15_StoryContentHowAddFiledIntoCard.md` | **How-to: add a field to the Card object** end-to-end (schema → DTO → read → write → all backends) | card, add field, howto |
 | `Step16_ContentDetailAPIs.md` | Cards, texts, creators detail APIs | cards, texts, creators |
 | `Step17_StoryAdminCRUD.md` | Admin CRUD for all story entities | admin, CRUD |
-| `Step18_GameMainFrontend.md` | react-game frontend: structure, design system, API client + mock fallback, guest identity | react-game, frontend, design system |
+| `Step18_GameMainFrontend.md` | react-game frontend: structure, design system, API client + mock fallback, guest identity; **v0.35.5 (§2, §8)**: `GameBook.jsx` decomposed into `PageLeft`/`PageRight`/`PageRightMain`/`PageRightInfo` + hooks, gameplay `onPreview` now a single object arg | react-game, frontend, design system, GameBook, gameplay, PageLeft, PageRight, useBookView, useMatchChrome, useGameplayResults, onPreview |
 | `Step19_SinglePlayerMatchCreation.md` | Single-player match creation. **§6.1 (v0.32.1)**: one active match per user and story — 409 `ACTIVE_MATCH_ALREADY_EXISTS` (CREATED/RUNNING/**PAUSED**), checked last after every 404/400; react-game click gate + fail-closed match list | match, create, duplicate match, ACTIVE_MATCH_ALREADY_EXISTS, 409, active statuses |
 | `Step19_SinglePlayerMatchUtils.md` | Admin match control, match lifecycle | match lifecycle, stop, pause, resume |
 | `Step20_GameWebSiteFirstRun.md` | First run + match end flow, cookie consent, Turnstile antibot, **react-game color palette / design system** | turnstile, cookie, end match, palette, styles |

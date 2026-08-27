@@ -75,7 +75,7 @@ describe('SadnessCard (Step 30)', () => {
     render(<SadnessCard story={STORY} onPreview={onPreview} previewSide="right" />)
 
     fireEvent.click(screen.getByTestId('preview-btn'))
-    const [, type, , , , , side] = onPreview.mock.calls[0]
+    const { type, side } = onPreview.mock.calls[0][0]
     expect(type).toBe('sad')
     expect(side).toBe('right')
   })
@@ -124,7 +124,7 @@ describe('ComaCard (Step 30)', () => {
 
     expect(screen.getByTestId('card-variant')).toHaveTextContent('board')
     fireEvent.click(screen.getByTestId('preview-btn'))
-    expect(onPreview.mock.calls[0][1]).toBe('coma')
+    expect(onPreview.mock.calls[0][0].type).toBe('coma')
   })
 })
 

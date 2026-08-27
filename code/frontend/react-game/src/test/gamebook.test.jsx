@@ -155,11 +155,11 @@ describe('utils/gamebook — movementEnergyCost', () => {
 })
 
 describe('utils/gamebook — checkShowToSleepCard', () => {
-  it('hides the sleep card when a movement is still affordable', () => {
+  it('hides the sleep card while everything on the board is affordable', () => {
     const show = checkShowToSleepCard({
       playerStats: { energy: 4 },
       locations: [{ uuid: 'l1' }], // resolved cost 4 → affordable
-      actions: [],
+      actions: [{ uuid: 'a1', energyCost: 4 }],
       locationCosts: { [movementCostKey(7, 'l1')]: 4 },
       hereLocationId: 7,
     })
@@ -177,6 +177,30 @@ describe('utils/gamebook — checkShowToSleepCard', () => {
     expect(show).toBe(true)
   })
 
+  // The rule the card follows: ONE thing out of reach is already a reason to rest, even
+  // while the player still has plenty else they could do.
+  it('shows the sleep card when a single movement is out of reach among affordable ones', () => {
+    const show = checkShowToSleepCard({
+      playerStats: { energy: 4 },
+      locations: [{ uuid: 'l1' }, { uuid: 'l2', energyCost: 9 }], // l1 costs 2, l2 costs 9
+      actions: [],
+      locationCosts: { [movementCostKey(7, 'l1')]: 2 },
+      hereLocationId: 7,
+    })
+    expect(show).toBe(true)
+  })
+
+  it('shows the sleep card when a single costed action is out of reach', () => {
+    const show = checkShowToSleepCard({
+      playerStats: { energy: 4 },
+      locations: [{ uuid: 'l1', energyCost: 1 }],           // affordable
+      actions: [{ uuid: 'a1', energyCost: 2 },              // affordable
+                { uuid: 'a2', energyCost: 6 }],             // out of reach → rest
+      locationCosts: {},
+    })
+    expect(show).toBe(true)
+  })
+
   it('ignores actions with no positive energy cost (0 or absent); they never suppress the sleep card', () => {
     // Move l1 costs 5 (unaffordable at energy 0); the two actions have no
     // positive cost → ignored → still stuck.
@@ -190,14 +214,16 @@ describe('utils/gamebook — checkShowToSleepCard', () => {
     expect(show).toBe(true)
   })
 
-  it('hides the sleep card when a costed action is affordable', () => {
+  // An affordable action no longer hides the card while a move is priced out: the move the
+  // player cannot make is the reason to rest, whatever else is still within reach.
+  it('shows the sleep card for an unaffordable move even when a costed action is affordable', () => {
     const show = checkShowToSleepCard({
       playerStats: { energy: 5 },
       locations: [{ uuid: 'l1', energyCost: 9 }], // move unaffordable (9 > 5)
       actions: [{ uuid: 'a1', energyCost: 3 }],   // action affordable (5 >= 3)
       locationCosts: {},
     })
-    expect(show).toBe(false)
+    expect(show).toBe(true)
   })
 
   it('shows the sleep card when a costed action is present but unaffordable', () => {
@@ -221,9 +247,14 @@ describe('utils/gamebook — checkShowToSleepCard', () => {
     expect(show).toBe(true)
   })
 
+  // Unchanged and independent of energy: a board with no open location left.
   it('shows the sleep card when there is nothing to do at all', () => {
     expect(checkShowToSleepCard({ playerStats: { energy: 10 } })).toBe(true)
     expect(checkShowToSleepCard()).toBe(true)
+    expect(checkShowToSleepCard({
+      playerStats: { energy: 10 },
+      locations: [{ uuid: 'l1', energyCost: 1, available: false }],
+    })).toBe(true)
   })
 })
 

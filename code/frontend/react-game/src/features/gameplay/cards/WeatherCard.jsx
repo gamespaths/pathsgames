@@ -62,7 +62,7 @@ export default function WeatherCard({ weather, story, onPreview, onBack = null ,
       story={story}
       flagInformationCard={true}
       childrenIntoImage={costBadge}
-      onPreview={() => onPreview?.(card, 'weather', null, costItems, true, null, previewSide)}
+      onPreview={() => onPreview?.({ card, type: 'weather', stats: costItems, side: previewSide })}
     />
   )
 }

@@ -50,7 +50,7 @@ export default function SadnessCard({
       entityType="sad"
       story={story}
       flagInformationCard={true}
-      onPreview={() => onPreview?.(card, 'sad', null, statItems, true, null, previewSide)}
+      onPreview={() => onPreview?.({ card, type: 'sad', stats: statItems, side: previewSide })}
     />
   )
 }

@@ -42,9 +42,11 @@ vi.mock('../features/matches/MatchLogCard', () => ({
   ),
 }))
 vi.mock('../features/gameplay/cards/GoToSleepCard', () => ({
-  default: ({ onSlept }) => (
-    <div data-testid="go-to-sleep-card">
+  default: ({ onSlept, onPreview, autoPreview }) => (
+    <div data-testid="go-to-sleep-card" data-auto-preview={autoPreview ? '1' : '0'}>
       <button aria-label="Sleep" data-testid="action-sleep" onClick={() => onSlept?.()}>sleep</button>
+      <button data-testid="preview-sleep" onClick={() => onPreview?.(
+        { card: { title: 'Sleep page' }, type: 'sleep', side: 'right' })}>i</button>
     </div>
   ),
 }))
@@ -181,6 +183,15 @@ describe('GameBook — edge states after an executed event', () => {
     executeEvent.mockResolvedValue({ effects: [], edgeState: { comaUuids: ['me'] } })
     await executeAction()
     expect(await screen.findByText('game.coma.title')).toBeInTheDocument()
+  })
+
+  // The coma page is a reading page like any other: its back arrow hands the board back.
+  it('closes the personal coma page with its back arrow', async () => {
+    executeEvent.mockResolvedValue({ effects: [], edgeState: { comaUuids: ['me'] } })
+    await executeAction()
+    expect(await screen.findByText('game.coma.title')).toBeInTheDocument()
+    fireEvent.click(screen.getAllByTestId('page-back')[0])
+    await waitFor(() => expect(screen.queryByText('game.coma.title')).not.toBeInTheDocument())
   })
 
   // Another character's coma is not this client's news: no coma page.
@@ -455,16 +466,33 @@ describe('GameBook — map and statistics view', () => {
     expect(await screen.findByTestId('match-log-card')).toBeInTheDocument()
   })
 
-  // The (i) characteristics card carries a fa-bed shortcut: it reveals the sleep
-  // card on the board and auto-clicks its Sleep button. It is the card's MAIN action —
-  // fa-map, which used to be, now sits first in actionsList.
-  it('reveals and fires the sleep card from the characteristics fa-bed shortcut', async () => {
-    const onReload = vi.fn()
-    renderBook({}, { onReload })
+  // The (i) characteristics card carries a fa-bed shortcut: it reveals the sleep card on
+  // the board and asks it to open its own reading page (autoPreview). It is the card's MAIN
+  // action — fa-map, which used to be, now sits first in actionsList.
+  it('reveals and auto-opens the sleep card from the characteristics fa-bed shortcut', () => {
+    renderBook()
     expect(screen.queryByTestId('go-to-sleep-card')).not.toBeInTheDocument()
     fireEvent.click(screen.getByTestId('action-information'))
-    expect(screen.getByTestId('go-to-sleep-card')).toBeInTheDocument()
-    await waitFor(() => expect(onReload).toHaveBeenCalled(), { timeout: 2000 })
+    const card = screen.getByTestId('go-to-sleep-card')
+    expect(card).toBeInTheDocument()
+    expect(card).toHaveAttribute('data-auto-preview', '1')
+  })
+
+  // A card asking for a reading page reaches it through openPreview, side and all.
+  it('routes a card preview to the right reading page', async () => {
+    renderBook()
+    fireEvent.click(screen.getAllByTestId('preview-information')[0])
+    fireEvent.click(await screen.findByTestId('preview-sleep'))
+    expect(await screen.findByText('Sleep page')).toBeInTheDocument()
+  })
+
+  // The two registry shortcuts on the characteristics card have no backend yet.
+  it('says the missions and registry shortcuts are still coming', () => {
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
+    renderBook()
+    fireEvent.click(screen.getByTestId('extra-action-1'))
+    expect(alertSpy).toHaveBeenCalled()
+    alertSpy.mockRestore()
   })
 
   // A comatose character gets the coma card among the board cards.

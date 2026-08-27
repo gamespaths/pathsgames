@@ -101,13 +101,15 @@ code/frontend/react-game/
     │   │   ├── ConfigView.jsx      # Right page: 2-col big-card grid (card-big-list)
     │   │   ├── SelectionView.jsx   # Right page: options list for a single config type
     │   │   └── ConfigCard.jsx      # Single config card; passes variant="big" + onPreview to GameCard
-    │   └── game/
-    │       ├── GameBook.jsx        # Book wrapper for game page
-    │       ├── LocationCard.jsx    # Big card for current location (left page)
-    │       ├── PlayerStats.jsx     # Life/Energy/Sadness/Experience + backpack
-    │       ├── NeighborRow.jsx     # Horizontal scroll neighbor location cards
-    │       ├── ActionsRow.jsx      # Horizontal scroll action cards
-    │       └── CardDetailModal.jsx # Bootstrap modal: big card + move/execute button
+    │   └── gameplay/                # (v0.35.5) GameBook decomposed into composition + hooks
+    │       ├── GameBook.jsx         # Composition only (~170 lines): wires match payloads into PageLeft/PageRight
+    │       ├── PageLeft.jsx         # Left page, priority: choice-event > edge state (coma/sadness) > backpack > map > left preview > current location > story card
+    │       ├── PageRight.jsx        # Right page, priority: preview > choice-event > wake-up list > selected map node > backpack > stats list > PageRightMain; RightPreview switches on `kind`
+    │       ├── PageRightMain.jsx    # The board: stat cards, ComaCard, GoToSleepCard, one MovementCard per neighbor, one ActionCard/EndGameCard per action
+    │       ├── PageRightInfo.jsx    # The (i) view: weather, sleep, map, backpack, PlayerCards
+    │       ├── EndGameBook.jsx, GameBookMobile.jsx, ClockWidget.jsx
+    │       ├── cards/                # ActionCard, ChoiceCard, ComaCard, SadnessCard, WeatherCard, ItemCard(s), MovementCard, PlayerCards, GoToSleepCard, LocationCard, PlayerStats, MapCard, EndGameCard, ...
+    │       └── js/                   # useMatchChrome (clock/weather/locations/costs), useBookView (view-state reducer), useGameplayResults (reload + API narration), bookmarks.js, boardProps.js, mobileView.js
     └── pages/
         ├── HomePage.jsx            # Hero + StoryCatalog + StartBookModal
         └── GamePage.jsx            # /play/:storyId — Navbar + GameBook + Footer
@@ -381,34 +383,46 @@ Credit cards are 170px wide, image fills absolutely, gold text overlay at bottom
 
 Full React Router route. Navbar and Footer always present.
 
+`GameBook.jsx` (v0.35.5, `features/gameplay/`) is pure composition — it reads the match
+payloads and mounts `Book` with a `PageLeft` and a `PageRight`. Three hooks own the rest:
+`useMatchChrome` (clock + weather + locations/movement costs, single `refresh()`),
+`useBookView` (a reducer for `{ view: 'board'|'info'|'items'|'map', previewLeft, previewRight,
+previewModal, pendingChoices, counterZero, mapSelected, sleepCardForced }`), and
+`useGameplayResults` (reloads the board and narrates each API answer: execute-event,
+select-choice, sleep, move, use/drop item).
+
 ### Desktop layout
 
 ```
 ┌────────────────────┬────────────────────┐
 │   LEFT PAGE        │   RIGHT PAGE       │
-│                    │                    │
-│  LocationCard      │  PlayerStats       │
-│  (current          │  (life/energy/     │
-│   location big     │   sadness/xp/      │
-│   card with (i))   │   food/magic/gold) │
-│                    ├────────────────────┤
-│                    │  NeighborRow       │
-│                    │  (h-scroll cards)  │
-│                    ├────────────────────┤
-│                    │  ActionsRow        │
-│                    │  (h-scroll cards)  │
+│  PageLeft           │  PageRight         │
+│  (priority order:  │  (priority order:  │
+│   choice-event >    │   preview >        │
+│   edge state >      │   choice-event >   │
+│   backpack > map >  │   wake-up list >   │
+│   left preview >    │   map node >       │
+│   current location  │   backpack >       │
+│   > story card)     │   stats list >     │
+│                    │   PageRightMain)   │
 └────────────────────┴────────────────────┘
 ```
 
+`PageRightMain` is the board proper: stat cards, `ComaCard`, `GoToSleepCard`, one
+`MovementCard` per neighbor, one `ActionCard`/`EndGameCard` per action.
+
 ### Mobile layout
 
-Vertical stack:
-1. LocationCard (full width)
-2. PlayerStats badges row
-3. NeighborRow (horizontal scroll)
-4. ActionsRow (horizontal scroll)
+`GameBookMobile` stacks the same `PageLeft`/`PageRight` content vertically instead of showing
+two book pages side by side.
 
-Clicking a neighbor or action card opens `CardDetailModal` — a Bootstrap modal with the big card image, title, description, and a Move / Execute button.
+Card previews (neighbor, action, item, ...) go through a single call,
+`onPreview({ card, type, lockedReason, stats, modal, props, side })` — defaults
+`lockedReason: null`, `stats: null`, `modal: true`, `props: {}`, `side: 'left'`; a `null` card
+closes whichever preview is open. This replaced the previous 6-argument positional call
+(`onPreview(card, type, lockReason, statistics, showModal, additionalProps, side)`) for every
+gameplay card. It is unrelated to the same-named, differently-shaped `onPreview` still used by
+`start-book`/`start-match`/`MatchCard`/`MatchLogCard`/`GuestUserModal`.
 
 ---
 
@@ -478,9 +492,10 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     > - **Button alignment**: `config-change-btn` and `config-coming-soon-btn` are `width: auto`, font-size reduced to `0.65rem`, footer aligned right (`align-items: flex-end`) so buttons sit in the bottom-right corner of cover cards.
     > - **Mobile top clipping fix**: `book-overlay` padding-top raised to `56px` on mobile so the first card in the vertical list is not hidden under the navbar.
 
-- **Document Version**: 0.28.2
+- **Document Version**: 0.35.5
     | Version | Description | Date |
     | --- | --- | --- |
+    | 0.35.5 | `GameBook.jsx` decomposed 1005 → ~170 lines: `features/game/` renamed `features/gameplay/`, split into `PageLeft`/`PageRight`/`PageRightMain`/`PageRightInfo` + `useMatchChrome`/`useBookView`/`useGameplayResults` hooks. Gameplay card `onPreview` moved from 6 positional args to one object; `GoToSleepCard` gains `autoPreview`, fixing a broken Italian shortcut | Aug 27, 2026 |
     | 0.18.0 | First web main frontend project | May 05, 2026 |
     | 0.19.2 | StartBookMobile extracted; card-big-list config grid; CardPreviewOverlay + magnifier; aspect-ratio 2/3 | May 12, 2026 |
     | 0.19.3 | BookPageContent: entity+entityType props & bonus-stats panel | May 18, 2026 |
@@ -491,7 +506,7 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     | 0.20.3 | GTM section updated: Consent Mode v2 defaults inline + GTM loaded via `src/consent/gtm.js`; inline GTM snippet removed | May 28, 2026 |
     | 0.28.2 | i18n: `LanguageProvider` persists lang to `localStorage['pathsgames.lang']`; initial lang resolves from saved choice → browser lang → `'en'`; `pathsgames.lang` added to strictly-necessary consent table in `cookieConsent.js`; 14 tests in `i18nContext.test.jsx` | Jun 26, 2026 |
 
-- **Last Updated**: Jun 26, 2026
+- **Last Updated**: Aug 27, 2026
 - **Status**: Active development
 
 

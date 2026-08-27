@@ -184,19 +184,16 @@ export function movementEnergyCost(location, locationCosts = {}, originLocationI
 /**
  * Whether to surface the "go to sleep" card on the board.
  *
- * Rule: show it only when the player is energy-stuck — they have some energy X
- * but every available movement AND every available action costs more than X, so
- * there is nothing left to do but rest. If any move or action is still
- * affordable the card stays hidden.
+ * Rule: show it as soon as the player CANNOT afford at least one thing on the board — one
+ * movement or one costed action out of energy reach is enough. Resting is what buys that
+ * option back, so the card belongs on screen while anything is priced out of it, not only
+ * once everything is. The card hides when every move and every costed action is affordable.
  *
- * This is intentionally a small, dedicated pure function so the rule can evolve
- * (e.g. once actions carry their own energy cost, or extra "must sleep"
- * conditions appear) without touching GameBook's render. Only actions with a
- * positive `energyCost` count: an action with `energyCost` 0 or absent (the
- * current API contract, which does not expose it yet) is ignored — otherwise
- * `energy >= 0` would always hold and the card could never show. End-game
- * actions are escape hatches (no energy cost, they end the match), so they too
- * never count as "something the player can still do" and are excluded.
+ * This is intentionally a small, dedicated pure function so the rule can evolve without
+ * touching the board's render. Only actions with a positive `energyCost` count: an action
+ * with `energyCost` 0 or absent (the current API contract, which does not expose it yet) can
+ * never be out of reach. End-game actions are escape hatches (no energy cost, they end the
+ * match), so they are excluded too.
  */
 export function checkShowToSleepCard({ playerStats, locations = [], actions = [], locationCosts = {},
   hereLocationId = null } = {}) {
@@ -207,11 +204,12 @@ export function checkShowToSleepCard({ playerStats, locations = [], actions = []
     .filter(action => !action?.endGame && (action?.energyCost ?? 0) > 0)
   // The moves on the board all leave the location the player stands on, so that is
   // the origin every cost is looked up against.
-  const affordableMovement = moves.some(loc =>
-    energy >= movementEnergyCost(loc, locationCosts, hereLocationId))
-  const affordableAction = acts.some(action => energy >= action.energyCost)
+  const unaffordableMovement = moves.some(loc =>
+    energy < movementEnergyCost(loc, locationCosts, hereLocationId))
+  const unaffordableAction = acts.some(action => energy < action.energyCost)
 
+  // Unchanged, and independent of energy: a board whose every location is closed leaves
+  // resting as the only thing left to do. An empty board satisfies it too.
   const allLocationNotAvailable = moves.every(loc => loc?.available === false)
-  // Stuck ⇔ no affordable movement and no affordable costed action.
-  return (!affordableMovement && !affordableAction) || allLocationNotAvailable
+  return unaffordableMovement || unaffordableAction || allLocationNotAvailable
 }

@@ -67,11 +67,16 @@ export default function ChoiceCard({
       actionIcon={DO_ICON}
       selectLabel={t('game.choices.do')}
       // The enlarged (i) preview offers only "Do" (available) or the reason (locked).
-      onPreview={() => onPreview(choice?.card ?? cardData, 'choice', lockInfo ?? null, [], true,
-        available
+      onPreview={() => onPreview({
+        card: choice?.card ?? cardData,
+        type: 'choice',
+        lockedReason: lockInfo ?? null,
+        stats: [],
+        side: previewSide,
+        props: available
           ? { onAction: handleDo, actionLabel: t('game.choices.do'), actionIcon: DO_ICON }
           : { extraContent: lockInfo },
-        previewSide)}
+      })}
       
       flagInformationCard={true}
       //actionWithInfo={true}

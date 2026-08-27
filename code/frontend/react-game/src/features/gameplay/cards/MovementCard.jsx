@@ -118,17 +118,20 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
       lockInfo={lockInfo   }
       lockedIcon={lockedIcon}
       
-      onPreview={() => {
-        //handleSelectionPreviewFull(card, type, lockReason, statistics , showModal=true , additionalProps={})
-        onPreview(location?.card ?? null, 'movement', lockInfoFull ?? null, null, true,
-          canMove
-            ? { onAction: handleMove, actionLabel: t('game.movement.action'),
-                actionIcon: location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fa-walking"
-                , actionLabelChildren: costBadge
-                , /* extraContent: moveInfo, extraContentClassName: '' */ }
-            : { extraContent: (<>{lockInfoFull}<div className='display-inline-flex'>{costBadge}</div></>) 
-                , actionLabelChildren: costBadge }, previewSide)
-      }} hidePreview={!isNeighbor || (viewFromMap && locked)   }
+      onPreview={() => onPreview({
+        card: location?.card ?? null,
+        type: 'movement',
+        lockedReason: lockInfoFull ?? null,
+        stats: null,
+        side: previewSide,
+        props: canMove
+          ? { onAction: handleMove, actionLabel: t('game.movement.action'),
+              actionIcon: location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fa-walking"
+              , actionLabelChildren: costBadge
+              , /* extraContent: moveInfo, extraContentClassName: '' */ }
+          : { extraContent: (<>{lockInfoFull}<div className='display-inline-flex'>{costBadge}</div></>)
+              , actionLabelChildren: costBadge },
+      })} hidePreview={!isNeighbor || (viewFromMap && locked)   }
       story={story}
       flagInformationCard={!viewFromMap  }
       actionOnlyIfPreview={!viewFromMap}

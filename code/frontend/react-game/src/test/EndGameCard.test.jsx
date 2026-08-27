@@ -50,12 +50,13 @@ describe('EndGameCard', () => {
     render(<EndGameCard story={{}} action={ACTION}
       handleEndGamePreviewFull={handleEndGamePreviewFull} handleEndGame={handleEndGame} />)
     fireEvent.click(screen.getByTestId('preview'))
-    expect(handleEndGamePreviewFull).toHaveBeenCalledWith(
-      ACTION.card, ACTION, null, [], true,
-      expect.objectContaining({ actionLabel: 'game.endGame', actionIcon: 'fa-flag-checkered' })
-    )
+    expect(handleEndGamePreviewFull).toHaveBeenCalledWith(expect.objectContaining({
+      card: ACTION.card,
+      stats: [],
+      props: expect.objectContaining({ actionLabel: 'game.endGame', actionIcon: 'fa-flag-checkered' }),
+    }))
     // The additional props carry a working end-game handler.
-    handleEndGamePreviewFull.mock.calls[0][5].onAction()
+    handleEndGamePreviewFull.mock.calls[0][0].props.onAction()
     expect(handleEndGame).toHaveBeenCalledWith(ACTION)
   })
 

@@ -40,11 +40,11 @@ export default function PlayerCards({ storyFull, story, playerStats, gameData, o
     <>
       <Card card={classEntity?.card} entityType="class" story={storyFull} flagInformationCard={true}
         statistics={classItems} flagShowFullStatistics={true} bonusBadgeListLittleIntoImage={true}
-        onPreview={() => onPreview(classEntity?.card, 'class', null, classItems, true,null,previewSide)}
+        onPreview={() => onPreview({ card: classEntity?.card, type: 'class', stats: classItems, side: previewSide })}
       />
       <Card card={characterEntity?.card} entityType="character" story={storyFull} flagInformationCard={true}
         statistics={characterItems} flagShowFullStatistics={true} bonusBadgeListLittleIntoImage={true}
-        onPreview={() => onPreview(characterEntity?.card, 'character', null, characterItems, true,null,previewSide)}
+        onPreview={() => onPreview({ card: characterEntity?.card, type: 'character', stats: characterItems, side: previewSide })}
       />
       {playerStats?.traitUuids?.map((trait, index) => {
         const traitEntity = resolveSelectionEntity(storyFull, playerStats, gameData, 'trait', index)
@@ -52,13 +52,13 @@ export default function PlayerCards({ storyFull, story, playerStats, gameData, o
         return (
           <Card key={traitEntity?.uuid ?? trait?.uuid ?? index} card={traitEntity?.card} entityType="trait" story={storyFull} flagInformationCard={true}
             statistics={traitItems} flagShowFullStatistics={true} bonusBadgeListLittleIntoImage={true}
-            onPreview={() => onPreview(traitEntity?.card, 'trait', null, traitItems, true,null,previewSide)}
+            onPreview={() => onPreview({ card: traitEntity?.card, type: 'trait', stats: traitItems, side: previewSide })}
           />
         )
       })}
       <Card card={difficultyEntity?.card} entityType="difficulty" story={storyFull} flagInformationCard={true}
         statistics={difficultyItems} flagShowFullStatistics={true} bonusBadgeListLittleIntoImage={true}
-        onPreview={() => onPreview(difficultyEntity?.card, 'difficulty', null, difficultyItemsLong, true,null,previewSide)}
+        onPreview={() => onPreview({ card: difficultyEntity?.card, type: 'difficulty', stats: difficultyItemsLong, side: previewSide })}
       />
       {/* The story card always opens on the LEFT page, with the match history
           (Step 28.7 logs API) alongside it on the RIGHT — unlike the other cards
@@ -67,10 +67,10 @@ export default function PlayerCards({ storyFull, story, playerStats, gameData, o
       <Card card={story.card} entityType="story" story={story} flagInformationCard={true}
         onPreview={() => {
           if (onPreviewMatchLog) {
-            onPreview(story.card, 'story', null, null, false, null, 'left')
+            onPreview({ card: story.card, type: 'story', modal: false, side: 'left' })
             onPreviewMatchLog()
           } else {
-            onPreview(story.card, 'story', null, null, true, null, previewSide)
+            onPreview({ card: story.card, type: 'story', side: previewSide })
           }
         }}
       />

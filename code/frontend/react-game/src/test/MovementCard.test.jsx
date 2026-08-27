@@ -105,7 +105,7 @@ describe('MovementCard', () => {
     expect(screen.getByTestId('children-into-image')).toBeTruthy()
     // page: the same element travels with the preview
     fireEvent.click(screen.getByTestId('preview-btn'))
-    expect(onPreview.mock.calls[0][5].actionLabelChildren)
+    expect(onPreview.mock.calls[0][0].props.actionLabelChildren)
       .toEqual(capturedProps.childrenIntoImage)
 
     // map: no overlay on the image, the badge sits next to the action label instead
@@ -127,7 +127,7 @@ describe('MovementCard', () => {
     fireEvent.click(screen.getByTestId('preview-btn'))
 
     expect(screen.getByTestId('badge-coins').textContent).toBe('2')
-    expect(onPreview.mock.calls[0][5].extraContent).toBeTruthy()
+    expect(onPreview.mock.calls[0][0].props.extraContent).toBeTruthy()
   })
 
   it('calls startMovement with the location uuid and reloads', async () => {
@@ -195,13 +195,13 @@ describe('MovementCard', () => {
       playerStats={{ energy: 30 }} story={STORY} onPreview={onPreview}
       matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
     fireEvent.click(screen.getByTestId('preview-btn'))
-    expect(onPreview.mock.calls[0][6]).toBe('left')
+    expect(onPreview.mock.calls[0][0].side).toBe('left')
     onPreview.mockClear()
     rerender(<MovementCard location={LOCATION} totalEnergyCost={4} previewSide="right"
       playerStats={{ energy: 30 }} story={STORY} onPreview={onPreview}
       matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
     fireEvent.click(screen.getByTestId('preview-btn'))
-    expect(onPreview.mock.calls[0][6]).toBe('right')
+    expect(onPreview.mock.calls[0][0].side).toBe('right')
   })
 
   it('handles a movement error gracefully', async () => {
@@ -261,7 +261,7 @@ describe('MovementCard', () => {
       expect(screen.getByTestId('locked').textContent).toBe('false')
       expect(screen.getByTestId('action-btn')).toBeInTheDocument()
       fireEvent.click(screen.getByTestId('preview-btn'))
-      expect(onPreview.mock.calls[0][2]).toBeNull()   // 3rd arg = lockReason
+      expect(onPreview.mock.calls[0][0].lockedReason).toBeNull()
     })
 
     // Two registers for one refusal: a word on the card (it lives in a badge), the whole
@@ -273,7 +273,7 @@ describe('MovementCard', () => {
         matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
       expect(screen.getByTestId('lock-info').textContent).toBe('game.movement.reason.LOCATION_FULL')
       fireEvent.click(screen.getByTestId('preview-btn'))
-      expect(onPreview.mock.calls[0][2])   // 3rd arg = lockReason
+      expect(onPreview.mock.calls[0][0].lockedReason)
         .toBe('game.movement.reasonFull.LOCATION_FULL')
     })
 
@@ -284,7 +284,7 @@ describe('MovementCard', () => {
         matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
       expect(screen.getByTestId('lock-info').textContent).toBe('game.movement.noEnergy')
       fireEvent.click(screen.getByTestId('preview-btn'))
-      expect(onPreview.mock.calls[0][2]).toBe('game.movement.reasonFull.INSUFFICIENT_ENERGY')
+      expect(onPreview.mock.calls[0][0].lockedReason).toBe('game.movement.reasonFull.INSUFFICIENT_ENERGY')
     })
 
     it('an older payload with no verdict still gates on the local energy check', () => {

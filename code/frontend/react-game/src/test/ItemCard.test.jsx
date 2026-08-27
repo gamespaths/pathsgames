@@ -47,13 +47,13 @@ const CARRIED_ONLY = { ...ITEM, uuid: 'row-2', isConsumabile: false }
 /** The preview's additionalProps: onPreview(card, type, lockReason, stats, modal, props, side) */
 function previewProps(onPreview) {
   fireEvent.click(screen.getByTestId('preview-btn'))
-  return onPreview.mock.calls[0][5]
+  return onPreview.mock.calls[0][0].props
 }
 
 /** The props of the MOST RECENT preview — i.e. after the card has re-rendered. */
 function latestPreviewProps(onPreview) {
   fireEvent.click(screen.getByTestId('preview-btn'))
-  return onPreview.mock.calls[onPreview.mock.calls.length - 1][5]
+  return onPreview.mock.calls[onPreview.mock.calls.length - 1][0].props
 }
 
 describe('ItemCard', () => {
@@ -83,7 +83,7 @@ describe('ItemCard', () => {
     expect(capturedProps.card.awesomeIcon).toBe('fas fa-box')
     // The preview gets the same fallback rather than a null card.
     fireEvent.click(screen.getByTestId('preview-btn'))
-    expect(onPreview.mock.calls[0][0]).toMatchObject({ title: 'Potion' })
+    expect(onPreview.mock.calls[0][0].card).toMatchObject({ title: 'Potion' })
   })
 
   it('falls back to the item uuid when there is neither a card nor a name', () => {
@@ -139,8 +139,8 @@ describe('ItemCard', () => {
 
     fireEvent.click(screen.getByTestId('preview-btn'))
 
-    // 4th argument is `statistics`, which Card renders inside book-page-desc.
-    const [, , , stats, , props] = onPreview.mock.calls[0]
+    // `stats` is what Card renders inside book-page-desc.
+    const { stats, props } = onPreview.mock.calls[0][0]
     expect(stats.map(b => b.key).sort()).toEqual(['amount', 'weight'])
     expect(props.actionLabelChildren).toBeUndefined()
   })
@@ -151,7 +151,7 @@ describe('ItemCard', () => {
 
     fireEvent.click(screen.getByTestId('preview-btn'))
 
-    const stats = onPreview.mock.calls[0][3]
+    const stats = onPreview.mock.calls[0][0].stats
     const quantity = stats.find(b => b.key === 'amount')
     // "Amount: 2", not "Amount: x2" — the x belongs on the card face, where there is no
     // room for a label. The badges on the face still carry it.
@@ -171,7 +171,7 @@ describe('ItemCard', () => {
 
     fireEvent.click(screen.getByTestId('preview-btn'))
 
-    const stats = onPreview.mock.calls[0][3]
+    const stats = onPreview.mock.calls[0][0].stats
     // Weight and amount first — what the row IS — then what using it would do.
     expect(stats.map(b => b.key)).toEqual(['amount', 'weight', 'life', 'sadness'])
     expect(stats.find(b => b.key === 'life').value).toBe('+3')
@@ -186,7 +186,7 @@ describe('ItemCard', () => {
 
     fireEvent.click(screen.getByTestId('preview-btn'))
 
-    const stats = onPreview.mock.calls[0][3]
+    const stats = onPreview.mock.calls[0][0].stats
     expect(stats.map(b => b.key).sort()).toEqual(['amount', 'weight'])
   })
 
@@ -213,7 +213,7 @@ describe('ItemCard', () => {
 
     expect(screen.getByTestId('locked').textContent).toBe('false')
     fireEvent.click(screen.getByTestId('preview-btn'))
-    expect(onPreview.mock.calls[0][5].onAction).toBeTypeOf('function')
+    expect(onPreview.mock.calls[0][0].props.onAction).toBeTypeOf('function')
   })
 
   it('a non-consumable still says CARRIED, not "too few"', () => {
@@ -234,7 +234,7 @@ describe('ItemCard', () => {
     const face = capturedProps.childrenIntoImage.props.items
     expect(face.find(b => b.key === 'amount').value).toBe('2/3')
     fireEvent.click(screen.getByTestId('preview-btn'))
-    const stats = onPreview.mock.calls[0][3]
+    const stats = onPreview.mock.calls[0][0].stats
     expect(stats.find(b => b.key === 'amount').value).toBe('2/3')
     expect(stats.find(b => b.key === 'perUse').value).toBe('2')
   })
@@ -245,7 +245,7 @@ describe('ItemCard', () => {
 
     fireEvent.click(screen.getByTestId('preview-btn'))
 
-    const [, , , stats, , props] = onPreview.mock.calls[0]
+    const { stats, props } = onPreview.mock.calls[0][0]
     // The badges ride on `statistics` here too, so extraContent is only the reason.
     expect(stats.length).toBeGreaterThan(0)
     expect(props.extraContent).toBe('game.item.reasonFull.ITEM_NOT_CONSUMABLE')
@@ -257,10 +257,10 @@ describe('ItemCard', () => {
 
     fireEvent.click(screen.getByTestId('preview-btn'))
 
-    const call = onPreview.mock.calls[0]
-    expect(call[0]).toBe(ITEM.card)
-    expect(call[1]).toBe('item')
-    expect(call[6]).toBe('right')
+    const call = onPreview.mock.calls[0][0]
+    expect(call.card).toBe(ITEM.card)
+    expect(call.type).toBe('item')
+    expect(call.side).toBe('right')
   })
 
   it('honours an explicit previewSide', () => {
@@ -269,7 +269,7 @@ describe('ItemCard', () => {
 
     fireEvent.click(screen.getByTestId('preview-btn'))
 
-    expect(onPreview.mock.calls[0][6]).toBe('left')
+    expect(onPreview.mock.calls[0][0].side).toBe('left')
   })
 
   describe('a consumable item', () => {
@@ -332,8 +332,8 @@ describe('ItemCard', () => {
       render(<ItemCard item={CARRIED_ONLY} story={STORY} onPreview={onPreview} />)
 
       fireEvent.click(screen.getByTestId('preview-btn'))
-      expect(onPreview.mock.calls[0][2]).toBe('game.item.reasonFull.ITEM_NOT_CONSUMABLE')
-      expect(onPreview.mock.calls[0][5].onAction).toBeUndefined()
+      expect(onPreview.mock.calls[0][0].lockedReason).toBe('game.item.reasonFull.ITEM_NOT_CONSUMABLE')
+      expect(onPreview.mock.calls[0][0].props.onAction).toBeUndefined()
     })
 
     it('is still droppable — that is the whole point of carrying one', async () => {
@@ -437,9 +437,9 @@ describe('ItemCard', () => {
       // Dropping is irreversible: the row bin is a way to the page, never the drop itself.
       expect(dropItem).not.toHaveBeenCalled()
       expect(onPreview).toHaveBeenCalledTimes(1)
-      expect(onPreview.mock.calls[0][1]).toBe('item')
+      expect(onPreview.mock.calls[0][0].type).toBe('item')
       // And the page it opens is the one the (i) opens, bin and all.
-      expect(onPreview.mock.calls[0][5].actionsList[0].icon).toContain('fa-trash')
+      expect(onPreview.mock.calls[0][0].props.actionsList[0].icon).toContain('fa-trash')
     })
 
     it('gives a carried-only row no bin: that one is dropped from its own page', () => {

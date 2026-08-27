@@ -60,20 +60,20 @@ describe('ActionCard', () => {
     expect(screen.getByTestId('card-title').textContent).toBe('Rest')
   })
 
-  it('opens the preview routed to the given side with type "action" (7th arg = previewSide)', () => {
+  it('opens the preview routed to the given side with type "action"', () => {
     const onPreview = vi.fn()
     render(<ActionCard action={ACTION} story={STORY} onPreview={onPreview} previewSide="right" />)
     fireEvent.click(screen.getByTestId('preview-btn'))
-    expect(onPreview.mock.calls[0][0]).toEqual(ACTION.card)
-    expect(onPreview.mock.calls[0][1]).toBe('action')
-    expect(onPreview.mock.calls[0][6]).toBe('right')
+    expect(onPreview.mock.calls[0][0].card).toEqual(ACTION.card)
+    expect(onPreview.mock.calls[0][0].type).toBe('action')
+    expect(onPreview.mock.calls[0][0].side).toBe('right')
   })
 
   it('defaults previewSide to left when not provided', () => {
     const onPreview = vi.fn()
     render(<ActionCard action={ACTION} story={STORY} onPreview={onPreview} />)
     fireEvent.click(screen.getByTestId('preview-btn'))
-    expect(onPreview.mock.calls[0][6]).toBe('left')
+    expect(onPreview.mock.calls[0][0].side).toBe('left')
   })
 
   it('passes a null card to onPreview when the action has no card', () => {
@@ -81,7 +81,7 @@ describe('ActionCard', () => {
     const action = { uuid: 'a3', name: 'Wait', available: true }
     render(<ActionCard action={action} story={STORY} onPreview={onPreview} />)
     fireEvent.click(screen.getByTestId('preview-btn'))
-    expect(onPreview.mock.calls[0][0]).toBeNull()
+    expect(onPreview.mock.calls[0][0].card).toBeNull()
   })
 
   /* ── v0.35.3 — the price of an action, shown before it is paid ───────────── */
@@ -136,7 +136,7 @@ describe('ActionCard', () => {
     const action = { ...ACTION, energy: 2, food: 1 }
     render(<ActionCard action={action} story={STORY} onPreview={onPreview} />)
     fireEvent.click(screen.getByTestId('preview-btn'))
-    const [[, , , , , additionalProps]] = onPreview.mock.calls
+    const [[{ props: additionalProps }]] = onPreview.mock.calls
     // Available: the badge rides next to the action label.
     expect(additionalProps.actionLabelChildren).toEqual(capturedProps.childrenIntoImage)
 
@@ -145,7 +145,7 @@ describe('ActionCard', () => {
       story={STORY} onPreview={blocked} />)
     fireEvent.click(screen.getAllByTestId('preview-btn').at(-1))
     // Locked: the price is still shown — knowing what it would have cost is the point.
-    expect(blocked.mock.calls[0][5].extraContent).toBeTruthy()
+    expect(blocked.mock.calls[0][0].props.extraContent).toBeTruthy()
   })
 
   /* ── Step 29 — execution and the backend's availability verdict ─────────── */
@@ -154,7 +154,7 @@ describe('ActionCard', () => {
   // `onAction` to the preview (through additionalProps), and the player triggers it there.
   function triggerFromPreview(onPreview) {
     fireEvent.click(screen.getByTestId('preview-btn'))
-    const [[, , , , , additionalProps]] = onPreview.mock.calls
+    const [[{ props: additionalProps }]] = onPreview.mock.calls
     return additionalProps.onAction()
   }
 
@@ -216,7 +216,7 @@ describe('ActionCard', () => {
     expect(screen.getByTestId('lock-info').textContent)
       .toBe('game.event.reason.WEATHER_CONDITION_NOT_MET')
     fireEvent.click(screen.getByTestId('preview-btn'))
-    expect(onPreview.mock.calls[0][2])   // 3rd arg = lockReason
+    expect(onPreview.mock.calls[0][0].lockedReason)
       .toBe('game.event.reasonFull.WEATHER_CONDITION_NOT_MET')
   })
 
@@ -245,6 +245,6 @@ describe('ActionCard', () => {
     render(<ActionCard action={action} story={STORY} onPreview={onPreview} matchUuid="m1" />)
 
     fireEvent.click(screen.getByTestId('preview-btn'))
-    expect(onPreview.mock.calls[0][2]).toBe('game.event.blockedFull')
+    expect(onPreview.mock.calls[0][0].lockedReason).toBe('game.event.blockedFull')
   })
 })

@@ -77,7 +77,7 @@ describe('ChoiceCard (Step 31)', () => {
     render(<ChoiceCard choice={AVAILABLE} story={STORY} onPreview={onPreview}
       onSelect={onSelect} previewSide="right" />)
     fireEvent.click(screen.getByTestId('preview-btn'))
-    const [card, type, , , , additionalProps, side] = onPreview.mock.calls[0]
+    const { card, type, props: additionalProps, side } = onPreview.mock.calls[0][0]
     expect(card).toEqual(AVAILABLE.card)
     expect(type).toBe('choice')
     expect(side).toBe('right')
@@ -103,7 +103,7 @@ describe('ChoiceCard (Step 31)', () => {
     const onPreview = vi.fn()
     render(<ChoiceCard choice={LOCKED} story={STORY} onPreview={onPreview} onSelect={vi.fn()} />)
     fireEvent.click(screen.getByTestId('preview-btn'))
-    const additionalProps = onPreview.mock.calls[0][5]
+    const additionalProps = onPreview.mock.calls[0][0].props
     expect(additionalProps.onAction).toBeUndefined()
     expect(additionalProps.extraContent).toBe('Stats')
   })

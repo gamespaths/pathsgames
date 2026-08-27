@@ -139,13 +139,17 @@ export default function ItemCard({
   // The big card: the two actions of an item, or — when it cannot be used — the reason plus
   // the bin. Shared by the (i) and by the row bin, which lands on the very same page.
   function openPreview() {
-    onPreview(item?.card ?? cardData, 'item', lockInfoFull ?? null,
-      descriptionBadges, true,
-      usable
+    onPreview({
+      card: item?.card ?? cardData,
+      type: 'item',
+      lockedReason: lockInfoFull ?? null,
+      stats: descriptionBadges,
+      side: previewSide,
+      props: usable
         ? { onAction: handleUse, actionLabel: useLabel, actionIcon,
             actionsList: [dropAction], actionListClass: 'display-grid2' }
         : { extraContent: lockInfoFull, actionsList: [dropAction] },
-      previewSide)
+    })
   }
 
   return (
@@ -156,7 +160,6 @@ export default function ItemCard({
       locked={locked}
       lockInfo={lockInfo}
       lockedIcon="fas fa-box"
-      // handleSelectionPreviewFull(card, type, lockReason, statistics, showModal, additionalProps, side)
       onPreview={openPreview}
       story={story}
       flagInformationCard={true}

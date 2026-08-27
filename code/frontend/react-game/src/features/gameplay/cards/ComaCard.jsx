@@ -61,7 +61,7 @@ export default function ComaCard({
       entityType="coma"
       story={story}
       flagInformationCard={true}
-      onPreview={() => onPreview?.(card, 'coma', null, [], true, null, previewSide)}
+      onPreview={() => onPreview?.({ card, type: 'coma', stats: [], side: previewSide })}
       locked={locked} lockInfo={lockInfo} lockedIcon={lockedIcon}
     />
   )
