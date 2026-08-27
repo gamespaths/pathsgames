@@ -34,8 +34,8 @@ public class LocationEntity extends BaseStoryScopedEntity {
     @Column(name = "id_event_if_character_start_time")
     private Integer idEventIfCharacterStartTime;
 
-    @Column(name = "id_event_if_character_enter_first_time")
-    private Integer idEventIfCharacterEnterFirstTime;
+    @Column(name = "id_event_if_character_enter_empty_location")
+    private Integer idEventIfCharacterEnterEmptyLocation;
 
     @Column(name = "id_event_if_first_time")
     private Integer idEventIfFirstTime;
@@ -87,8 +87,8 @@ public class LocationEntity extends BaseStoryScopedEntity {
     public Integer getIdEventIfCharacterStartTime() { return idEventIfCharacterStartTime; }
     public void setIdEventIfCharacterStartTime(Integer idEventIfCharacterStartTime) { this.idEventIfCharacterStartTime = idEventIfCharacterStartTime; }
 
-    public Integer getIdEventIfCharacterEnterFirstTime() { return idEventIfCharacterEnterFirstTime; }
-    public void setIdEventIfCharacterEnterFirstTime(Integer idEventIfCharacterEnterFirstTime) { this.idEventIfCharacterEnterFirstTime = idEventIfCharacterEnterFirstTime; }
+    public Integer getIdEventIfCharacterEnterEmptyLocation() { return idEventIfCharacterEnterEmptyLocation; }
+    public void setIdEventIfCharacterEnterEmptyLocation(Integer idEventIfCharacterEnterEmptyLocation) { this.idEventIfCharacterEnterEmptyLocation = idEventIfCharacterEnterEmptyLocation; }
 
     public Integer getIdEventIfFirstTime() { return idEventIfFirstTime; }
     public void setIdEventIfFirstTime(Integer idEventIfFirstTime) { this.idEventIfFirstTime = idEventIfFirstTime; }

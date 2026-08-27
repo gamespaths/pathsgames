@@ -19,21 +19,22 @@ Documents includes all steps and the roadmap for create paths.games components, 
 
 
 
-| Version | Steps | Focus | 
-| --- | --- | --- |
-| 0 | 📝 **Foundation** <br /> Steps 1-11| - ✅ [Start the project](./documentation_v0/Step01_StartProject.md) & [Create the repository](./documentation_v0/Step02_CreateTheRepository.md) & [Define the V1 scope](./documentation_v0/Step03_DefineScope.md) <br />- ✅ [Technology stack](./documentation_v0/Step04_TechnologyStack.md) & [Backend structure](./documentation_v0/Step05_BackendStructure.md) & [Naming conventions](./documentation_v0/Step06_NamingConventions.md) <br />- ✅ [Configure website](./documentation_v0/Step07_ConfigureWebsite.md) & [Configure Environments & CI](./documentation_v0/Step08_ConfigureMinimalCI.md) <br />- ✅ [Design data model](./documentation_v0/Step09_DesignCoreDataModel.md) & [Create initial DB](./documentation_v0/Step10_CreateDBschema.md) & [Define API versioning](./documentation_v0/Step11_DefineAPIVersioning.md) |
-| 0.28.7 | 🛠️ **Current version** | - ✅ [Guest login](./documentation_v0/Step12_GuestLoginMethod.md) & [Session management](Step13_SessionTokenManagement.md) & [Stories magement](./documentation_v0/Step14_StoriesImportSystem.md) <br />- ✅ [Stories contents](./documentation_v0/Step15_StoryContentAPIs.md) & [Content details](./Step16_ContentDetailAPIs.md) & [Stories admin operations](./documentation_v0/Step17_StoryAdminCRUD.md) <br />- ✅ [Frontend: Stories catalog](./Step18_GameMainFrontend.md) & [Match creation](./documentation_v0/Step19_SinglePlayerMatchCreation.md) & [Game first run](./documentation_v0/Step20_GameWebSiteFirstRun.md) <br />- ✅ [Character selection](./documentation_v0/Step21_CharacterSelection.md)  & [Story validation](./documentation_v0/Step22_StoryValidation.md) & [Character stats](./documentation_v0/Step23_CharacterStatsInitialization.md) <br /> - ✅ [Turn cycle engine](./documentation_v0/Step24_TurnCycleEngine.md) & [Time clock cycle](./documentation_v0/Step25_TimeAdvancementClockCycle.md) & [Time-start recovery](./documentation_v0/Step26_TimeStartRecovery.md) <br />- ✅ [Weather System](./documentation_v0/Step27_WeatherSystem.md) & [Movement System](./documentation_v0/Step28_MovementSystem.md) <br />- 🚧 [**Version 0 Roadmap**](./documentation_v0/Roadmap.md) & [Developer branch](https://github.com/gamespaths/pathsgames/) 🏗️  |
-| 0.42 | 🧑‍🔬 **Single player** <br /> Steps 12-42 |  Single player game engine and website prototype |
-| 0.84 | 🧑‍🤝‍🧑 **Multiplayer** <br /> Steps 43-84 | Multiplayer + credentials, WebSocket, trade, chat, lobby, admin tools, SSO |
-| 1 | 🏁 **Launch & Hardening** <br /> Steps 85-101 | Security, E2E testing, load testing, monitoring, production infra, docs, V1 launch |
-| 2 | 🎯 **Crowfouning campaign** | Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... ) <br />Anti-Spam Logic (Fatigue) |
-| 3 | 🕸️ **Campains** | Tutorial & Hints & Multiple-stories connection and global registry |
-| 4 | 🤖 **NPC** | NPCs & Entities & Group Rituals & Combact system & open world system  |
-| 5 | 🤖 Game engine | Permadeath & Game Over & Silent Events | 
-| 6 | 🤖 Game engine | Timed Missions & Voting System & Noise & Stealth & Multi-Value Registry |
-| 7 | 📱 Distributions | Mobile/Android App & Desktop application integrated with Steam & Debian package |
-| 42 | 📡 | *Life, the Universe and Everything*| 
-| 84 | 🛰️ | *To Boldly Go Where No Man Has Gone Before* |
+| Steps | Focus | 
+| --- | --- |
+| 📝 **Project Foundation** <br /> Steps 1-11| - ✅ [Start the project](./documentation_v0/Step01_StartProject.md) & [Create the repository](./documentation_v0/Step02_CreateTheRepository.md) & [Define the V1 scope](./documentation_v0/Step03_DefineScope.md) <br />- ✅ [Technology stack](./documentation_v0/Step04_TechnologyStack.md) & [Backend structure](./documentation_v0/Step05_BackendStructure.md) & [Naming conventions](./documentation_v0/Step06_NamingConventions.md) <br />- ✅ [Configure website](./documentation_v0/Step07_ConfigureWebsite.md) & [Configure Environments & CI](./documentation_v0/Step08_ConfigureMinimalCI.md) <br />- ✅ [Design data model](./documentation_v0/Step09_DesignCoreDataModel.md) & [Create initial DB](./documentation_v0/Step10_CreateDBschema.md) & [Define API versioning](./documentation_v0/Step11_DefineAPIVersioning.md) |
+| 📖 **Stories & match** <br />Steps 12-26 | - ✅ [Guest login](./documentation_v0/Step12_GuestLoginMethod.md) & [Session management](Step13_SessionTokenManagement.md) & [Stories magement](./documentation_v0/Step14_StoriesImportSystem.md) <br />- ✅ [Stories contents](./documentation_v0/Step15_StoryContentAPIs.md) & [Content details](./Step16_ContentDetailAPIs.md) & [Stories admin operations](./documentation_v0/Step17_StoryAdminCRUD.md) <br />- ✅ [Frontend: Stories catalog](./Step18_GameMainFrontend.md) & [Match creation](./documentation_v0/Step19_SinglePlayerMatchCreation.md) & [Game first run](./documentation_v0/Step20_GameWebSiteFirstRun.md) <br />- ✅ [Character selection](./documentation_v0/Step21_CharacterSelection.md)  & [Story validation](./documentation_v0/Step22_StoryValidation.md) & [Character stats](./documentation_v0/Step23_CharacterStatsInitialization.md) |
+| ⚙️ **Turns, movements & events** <br />Steps 27-35 |- ✅ [Turn cycle engine](./documentation_v0/Step24_TurnCycleEngine.md) & [Time clock cycle](./documentation_v0/Step25_TimeAdvancementClockCycle.md) & [Time-start recovery](./documentation_v0/Step26_TimeStartRecovery.md) <br/>- ✅ [Weather System](./documentation_v0/Step27_WeatherSystem.md) & [Movement System](./documentation_v0/Step28_MovementSystem.md) & [Normal Events](./documentation_v0/Step29_NormalEvents.md) <br />- ✅ [Coma and status](./documentation_v0/Step30_EdgeStates.md) & [Choice engine](./documentation_v0/Step31_ChoiceEngine.md) & [Choice resolution](./documentation_v0/Step32_ChoiceResolution.md)<br />- ✅ [Location events](./documentation_v0/Step33_LocationEntryEvents.md) & [Inventory](./documentation_v0/Step34_InventoryAndResources.md) & [Items resolution](./documentation_v0/Step35_ItemsResolution.md) |
+| 🧑‍🔬 **Single player** <br /> Steps 36-42 | 🚧 [**Versions Roadmap**](./documentation_v0/Roadmap.md) & [Developer branch](https://github.com/gamespaths/pathsgames/) 🏗️ <br /> Single player game engine and website prototype |
+| 🧑‍🤝‍🧑 **Multiplayer** <br /> Steps 43-84 | Multiplayer + credentials, WebSocket, trade, chat, lobby, admin tools, SSO |
+| 🏁 **Launch & Hardening** <br /> Steps 85-101 | Security, E2E testing, load testing, monitoring, production infra, docs, V1 launch |
+| 🎯 **Crowfouning campaign** | Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... ) <br />Anti-Spam Logic (Fatigue) |
+| 🕸️ **Campains** | Tutorial & Hints & Multiple-stories connection and global registry |
+| 🤖 **NPC** | NPCs & Entities & Group Rituals & Combact system & open world system  |
+| 🤖 Game engine | Permadeath & Game Over & Silent Events & Warehouse | 
+| 🤖 Game engine | Timed Missions & Voting System & Noise & Stealth & Multi-Value Registry |
+| 📱 Distributions | Mobile/Android App & Desktop application integrated with Steam & Debian package |
+| 📡 | *Life, the Universe and Everything*| 
+| 🛰️ | *To Boldly Go Where No Man Has Gone Before* |
 
 
 ## 📂 Repository structure and tecnologies

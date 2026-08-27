@@ -24,6 +24,14 @@ declare -A DURATION
 declare -A LOGFILE
 declare -A REPORTPATH
 
+_run_indented() {
+    local script="$1" logfile="$2"
+    bash "$script" 2>&1 | while IFS= read -r line; do
+        printf "  %s\n" "$line" | tee -a "$logfile"
+    done
+    return ${PIPESTATUS[0]}
+}
+
 run_one() {
     local name="$1"
     local script="$2"
@@ -44,8 +52,7 @@ run_one() {
 
     pushd "$WORKDIR" > /dev/null || return
     start=$(date +%s)
-    # run the script and capture stdout/stderr into logfile
-    bash "$script" >> "$logfile" 2>&1
+    _run_indented "$script" "$logfile"
     rc=$?
     end=$(date +%s)
     popd > /dev/null || return
@@ -77,6 +84,7 @@ run_one() {
 }
 
 # Run all envs sequentially
+total_start=$(date +%s)
 for e in "${ENVS[@]}"; do
     IFS='|' read -r name script reportdir <<< "$e"
     run_one "$name" "$script" "$reportdir"
@@ -102,6 +110,10 @@ for e in "${ENVS[@]}"; do
     #printf "%-25s %-8s %-8s %-10s %s\n" "$name" "$st" "$rc" "$dur" "$display_rpt"
     printf "%-25s %-8s %-8s %-10s \n" "$name" "$st" "$rc" "$dur"
 done
+
+total_end=$(date +%s)
+total_s=$((total_end - total_start))
+printf "\nTotal time: %dm %ds\n" $((total_s / 60)) $((total_s % 60))
 
 if [ "$failures" -gt 0 ]; then
     echo -e "\nOne or more runs failed ($failures). See logs in $RESULTS_DIR"

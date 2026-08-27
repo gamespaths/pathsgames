@@ -170,14 +170,17 @@ public class CoreConfig {
     }
 
     @Bean
-    public MatchQueryPort matchQueryPort(MatchReadPort matchReadPort,
-                                         StoryReadPort storyReadPort,
-                                         UserAccessPort userAccessPort,
-                                         CharacterReadPort characterReadPort,
-                                         ContentQueryPort contentQueryPort,
-                                         games.paths.core.port.match.MovementStorePort movementStorePort) {
+    @SuppressWarnings("java:S107")
+    public MatchQueryPort matchQueryPort(
+            MatchReadPort matchReadPort,
+            StoryReadPort storyReadPort,
+            UserAccessPort userAccessPort,
+            CharacterReadPort characterReadPort,
+            ContentQueryPort contentQueryPort,
+            games.paths.core.port.match.MovementStorePort movementStorePort,
+            games.paths.core.port.match.EventExecutionStorePort eventExecutionStorePort) {
         return new MatchQueryService(matchReadPort, storyReadPort, userAccessPort,
-                characterReadPort, contentQueryPort, movementStorePort);
+                characterReadPort, contentQueryPort, movementStorePort, eventExecutionStorePort);
     }
 
     // ───── Step 24: Turn cycle engine (single-player) ─────
@@ -206,12 +209,19 @@ public class CoreConfig {
 
     @Bean
     public games.paths.core.service.match.TimeStartRecoveryService timeStartRecoveryService(
-            games.paths.core.port.match.RecoveryStorePort recoveryStorePort) {
-        return new games.paths.core.service.match.TimeStartRecoveryService(recoveryStorePort);
+            games.paths.core.port.match.RecoveryStorePort recoveryStorePort,
+            games.paths.core.port.match.EdgeStateStorePort edgeStateStorePort) {
+        return new games.paths.core.service.match.TimeStartRecoveryService(
+                recoveryStorePort, edgeStateStorePort);
     }
 
+    /**
+     * Exposed as the concrete class, not only as the port: Step 29 needs
+     * {@code forceTimeEnd}, which is deliberately absent from
+     * {@code TimeAdvancementPort} so that nothing over REST can skip a time unit.
+     */
     @Bean
-    public games.paths.core.port.match.TimeAdvancementPort timeAdvancementPort(
+    public games.paths.core.service.match.TimeAdvancementService timeAdvancementService(
             games.paths.core.port.match.TurnCycleStorePort turnCycleStorePort,
             UserAccessPort userAccessPort,
             games.paths.core.port.event.DomainEventPublisher domainEventPublisher,
@@ -222,15 +232,83 @@ public class CoreConfig {
                 timeStartRecoveryService, weatherSelectionService);
     }
 
+    @Bean
+    public games.paths.core.port.match.TimeAdvancementPort timeAdvancementPort(
+            games.paths.core.service.match.TimeAdvancementService timeAdvancementService) {
+        return timeAdvancementService;
+    }
+
     // ───── Step 28: Movement system (single-player) ─────
 
     @Bean
     public games.paths.core.port.match.MovementPort movementPort(
             games.paths.core.port.match.MovementStorePort movementStorePort,
             UserAccessPort userAccessPort,
-            ContentQueryPort contentQueryPort) {
+            ContentQueryPort contentQueryPort,
+            games.paths.core.port.match.LocationEntryPort locationEntryPort) {
         return new games.paths.core.service.match.MovementService(
-                movementStorePort, userAccessPort, contentQueryPort);
+                movementStorePort, userAccessPort, contentQueryPort, locationEntryPort);
+    }
+
+    // ───── Step 29: Normal events (player-triggered actions) ─────
+    // ───── Step 30: Edge states (sadness overflow, coma) ─────
+    // ───── Step 33: Automatic location events ─────
+    // EdgeStateStoreAdapter itself is @Repository and component-scanned, like every other
+    // store adapter; only the port→service beans are declared here.
+
+    /**
+     * Step 33 — one service, two inbound ports. {@code EventExecutionService} implements the
+     * location engine as well, because a forced-movement effect is an arrival and splitting
+     * the two apart would only produce a dependency cycle.
+     */
+    @Bean
+    public games.paths.core.service.match.EventExecutionService eventExecutionService(
+            games.paths.core.port.match.EventExecutionStorePort eventExecutionStorePort,
+            games.paths.core.port.match.EdgeStateStorePort edgeStateStorePort,
+            UserAccessPort userAccessPort,
+            ContentQueryPort contentQueryPort,
+            games.paths.core.service.match.TimeAdvancementService timeAdvancementService,
+            games.paths.core.port.match.LocationEntryStorePort locationEntryStorePort) {
+        games.paths.core.service.match.EventExecutionService service =
+                new games.paths.core.service.match.EventExecutionService(
+                        eventExecutionStorePort, edgeStateStorePort, userAccessPort,
+                        contentQueryPort, timeAdvancementService, locationEntryStorePort);
+        // Closes the one cycle in the graph: the event engine needs the time engine for
+        // flag_end_time, and the time engine needs the event engine to run what a time-start
+        // set off. Constructor injection either way is impossible; this setter is called once,
+        // here, and never again.
+        timeAdvancementService.setAutomaticEventRunner(service);
+        return service;
+    }
+
+    @Bean
+    public games.paths.core.port.match.EventExecutionPort eventExecutionPort(
+            games.paths.core.service.match.EventExecutionService eventExecutionService) {
+        return eventExecutionService;
+    }
+
+    @Bean
+    public games.paths.core.port.match.LocationEntryPort locationEntryPort(
+            games.paths.core.service.match.EventExecutionService eventExecutionService) {
+        return eventExecutionService;
+    }
+
+    // ───── Steps 34 & 35: Inventory and resources ─────
+
+    /**
+     * Depends on the concrete {@code EventExecutionService}, not on its port: item usage
+     * reuses the engine's package-private {@code applyStandaloneEffects} so that an item
+     * effect and an event effect cannot drift apart.
+     */
+    @Bean
+    public games.paths.core.port.match.InventoryPort inventoryPort(
+            games.paths.core.port.match.InventoryStorePort inventoryStorePort,
+            UserAccessPort userAccessPort,
+            ContentQueryPort contentQueryPort,
+            StoryReadPort storyReadPort,
+            games.paths.core.service.match.EventExecutionService eventExecutionService) {
+        return new games.paths.core.service.match.InventoryService(
+                inventoryStorePort, userAccessPort, contentQueryPort, storyReadPort, eventExecutionService);
     }
 
     // ───── Step 21: Character template & class selection ─────
@@ -249,9 +327,10 @@ public class CoreConfig {
     public CharacterQueryPort characterQueryPort(MatchReadPort matchReadPort,
                                                  CharacterReadPort characterReadPort,
                                                  StoryReadPort storyReadPort,
-                                                 UserAccessPort userAccessPort) {
+                                                 UserAccessPort userAccessPort,
+                                                 ContentQueryPort contentQueryPort) {
         return new CharacterQueryService(matchReadPort, characterReadPort,
-                storyReadPort, userAccessPort);
+                storyReadPort, userAccessPort, contentQueryPort);
     }
 
     // ───── Step 28.7: Match logs API ─────

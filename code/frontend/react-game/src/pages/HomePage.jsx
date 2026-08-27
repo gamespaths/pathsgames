@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from '../i18n/context'
 import { getStories } from '../api/stories'
 import { listMatches } from '../api/matches'
@@ -8,7 +8,8 @@ import StartBookModal from '../features/start-book/StartBookModal'
 import TurnstileWidget from '../components/ui/TurnstileWidget'
 import { TURNSTILE_APPEARANCE } from '../utils/turnstile'
 import useAntibot from '../hooks/useAntibot'
-import { storyHasActiveMatch } from '../utils/matchStatus'
+import { storyHasBlockingMatch } from '../utils/matchStatus'
+import LoadingCard from '@/components/layout/LoadingCard'
 
 const HERO_IMG = {
   url: 'https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?auto=format&fit=crop&w=1400&q=80',
@@ -21,8 +22,16 @@ export default function HomePage() {
   const { user, openGuestModal } = useGuestUser()
   const [stories, setStories] = useState([])
   const [matches, setMatches] = useState(null) // guest matches, loaded once when human
+  // v0.32.1 — 'loading' | 'ready' | 'error': an unreadable list must NOT look like
+  // "no matches", or a network hiccup would let the player start a second match.
+  const [matchesStatus, setMatchesStatus] = useState('loading')
+  const [pendingStoryUuid, setPendingStoryUuid] = useState(null)
   const [loading, setLoading] = useState(true)
   const [selectedStory, setSelectedStory] = useState(null)
+  // The single in-flight `GET /api/matches`. A click during the load awaits THIS
+  // promise instead of firing its own request.
+  const matchesPromise = useRef(null)
+  const [matchesAttempt, setMatchesAttempt] = useState(0)
   // Antibot gate (session-cached): the catalog stays hidden until Turnstile
   // passes. No site key — or a still-valid recent pass cookie — skips the widget
   // entirely so we don't re-verify on every visit. Shared with start-match via
@@ -44,22 +53,49 @@ export default function HomePage() {
 
   // Load the guest's matches once cleared, so the catalog can badge stories and
   // a story click can reuse the list (no extra fetch, and it is handed to the
-  // guest modal instead of being re-fetched there).
+  // guest modal instead of being re-fetched there). The promise is kept in a ref:
+  // a click that lands before it resolves waits for it rather than starting a
+  // second request — the window in which a duplicate match could be created.
   useEffect(() => {
     if (gate.phase !== 'ready') return undefined
     let cancelled = false
-    listMatches(user?.accessToken)
-      .then(list => { if (!cancelled) setMatches(Array.isArray(list) ? list : []) })
-      .catch(() => { if (!cancelled) setMatches([]) })
+    setMatchesStatus('loading')
+    const promise = listMatches(user?.accessToken).then(list => (Array.isArray(list) ? list : []))
+    matchesPromise.current = promise
+    promise
+      .then(list => {
+        if (cancelled) return
+        setMatches(list)
+        setMatchesStatus('ready')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setMatches(null)
+        setMatchesStatus('error')
+      })
     return () => { cancelled = true }
-  }, [gate.phase, user?.accessToken])
+  }, [gate.phase, user?.accessToken, matchesAttempt])
+
+  const retryMatches = useCallback(() => setMatchesAttempt(n => n + 1), [])
 
   async function handleStoryClick(story) {
+    if (pendingStoryUuid) return
     let list = matches
     if (!Array.isArray(list)) {
-      try { list = await listMatches(user?.accessToken) } catch { list = null }
+      setPendingStoryUuid(story.uuid)
+      try {
+        list = await matchesPromise.current
+      } catch {
+        // Fail closed: without the list we cannot tell whether a match already
+        // exists, and starting one anyway is exactly the duplicate we are
+        // preventing. The banner offers a retry.
+        setMatchesStatus('error')
+        setPendingStoryUuid(null)
+        return
+      }
+      setPendingStoryUuid(null)
     }
-    if (storyHasActiveMatch(list, story.uuid)) {
+    if (storyHasBlockingMatch(list, story.uuid)) {
       openGuestModal(list)
     } else {
       setSelectedStory(story)
@@ -102,11 +138,29 @@ export default function HomePage() {
           </div>
         </div>
       ) : loading ? (
-        <div className="stories-section-center stories-loading">
-          <i className="fas fa-spinner fa-spin me-2" />{t('home.loading')}
-        </div>
+        <LoadingCard story={null} maxWidth="500px" />
       ) : (
-        <StoryCatalog stories={stories} matches={matches} onStoryClick={handleStoryClick} />
+        <>
+          {/* v0.32.1 — the match list could not be read: say so and offer a retry
+              instead of letting a click start a match that may already exist. */}
+          {matchesStatus === 'error' && (
+            <div className="stories-section-center stories-loading">
+              <i className="fas fa-exclamation-triangle me-2" />{t('home.matchesError')}
+              <br />
+              <div className="mt-3">
+                <button className="btn-start-game" onClick={retryMatches}>
+                  <i className="fas fa-sync-alt me-2" />{t('startMatch.retry')}
+                </button>
+              </div>
+            </div>
+          )}
+          <StoryCatalog
+            stories={stories}
+            matches={matches}
+            pendingStoryUuid={pendingStoryUuid}
+            onStoryClick={handleStoryClick}
+          />
+        </>
       )}
 
       {/* Book modal */}

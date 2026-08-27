@@ -199,14 +199,20 @@ export async function startMovement(uuidMatch, targetLocationUuid, accessToken) 
  * response's `nextCursor`) to fetch the following page. WEATHER and MOVEMENT
  * entries carry their resolved `card`; character-scoped entries carry
  * `characterUuid` / `characterName`. Returns
- * `{ matchUuid, currentClock, logs, nextCursor, limit, total }`.
+ * `{ matchUuid, currentClock, logs, nextCursor, limit, total, order }`.
+ *
+ * v0.30.3 — the timeline is requested newest-first (`order=desc`): the player sees
+ * what just happened at the top and "load more" walks back into the past. Pass
+ * `order: 'asc'` to get the API's own default (oldest first) instead.
  */
-export async function getMatchLogs(uuidMatch, accessToken, { limit, cursor, lang } = {}) {
+export async function getMatchLogs(uuidMatch, accessToken,
+                                   { limit, cursor, lang, order = 'desc' } = {}) {
   const config = authConfig(accessToken)
   const params = {}
   if (limit != null) params.limit = limit
   if (cursor) params.cursor = cursor
   if (lang) params.lang = lang
+  if (order) params.order = order
   if (Object.keys(params).length) config.params = params
   const res = await apiClient().get(`/api/matches/${uuidMatch}/logs`, config)
   return res.data
@@ -225,5 +231,151 @@ export async function getMatchLocations(uuidMatch, accessToken, lang) {
     `/api/match/${uuidMatch}/locations`,
     config,
   )
+  return res.data
+}
+
+/* ── Step 29 — normal events (player-triggered actions) ───────────────────── */
+
+/**
+ * Trigger a NORMAL or ONCE event at the character's location
+ * (POST /api/gameplay/{uuid}/action/execute-event).
+ *
+ * Whether an event can be triggered is already known before calling: every event in
+ * `locationsActive[].events` of match-info carries `available` and, when false, the
+ * `reason` — the very code this endpoint would return as its error. So the board can
+ * render a locked action without guessing, and this call is only made for an available one.
+ *
+ * Resolves to the execution result: the event's card, one entry per applied effect (each
+ * with its OWN card — that is the narrative to show), the itemised stat/registry/item/trait
+ * changes, and the flags (`timeEnded`, `comaTriggered`, `gameOver`, …). When
+ * `refreshRecommended` is true the caller should reload match-info.
+ *
+ * Step 30 adds `edgeState`: `sadnessOverflowUuids` and `comaUuids` say who was pushed over
+ * an edge, and `allPlayersInComa` that the whole party is down — in which case
+ * `comaEventCard` carries the story's own epilogue card. The epilogue's events and effects
+ * are kept in `comaExecutedEventUuids` / `comaEffects`, deliberately NOT merged into the
+ * top-level `executedEventUuids` / `effects`, so the board can tell the narrative the
+ * player triggered from the engine's answer to their collapse.
+ *
+ * Throws on a backend error: 409 with `ONCE_ALREADY_CONSUMED` / `NOT_ENOUGH_ENERGY` /
+ * `WRONG_LOCATION` / …, or 404 `MATCH_NOT_FOUND` / `EVENT_NOT_FOUND`.
+ */
+export async function executeEvent(uuidMatch, eventUuid, accessToken, lang) {
+  const config = authConfig(accessToken)
+  if (lang) config.params = { lang }
+  const res = await apiClient().post(
+    `/api/gameplay/${uuidMatch}/action/execute-event`,
+    { eventUuid },
+    config,
+  )
+  return res.data
+}
+
+/* ── Step 32 — choice resolution ──────────────────────────────────────────── */
+
+/**
+ * Resolve one option of an open choice-event
+ * (POST /api/gameplay/{uuid}/action/select-choice).
+ *
+ * The option alone identifies the resolution: a choice knows the event that owns it, so
+ * naming the event too would only create a second version of the truth.
+ *
+ * Resolves to the execute-event payload — the effects, the itemised stat/registry/item/
+ * location changes, the flags, the edge states — plus what only a resolution knows:
+ * `narrative` (the post-selection text Step 31 deliberately withheld, so the options
+ * could not leak the consequence of a choice not yet made), `choiceCard`, and
+ * `choiceEventUuid`/`choiceEventCard` when an effect ran a linked event inline: that card
+ * is what the board narrates with. `progressRecorded` says a narrative milestone was
+ * logged. `energySpent`/`coinSpent` are always 0 — the cost was paid when the event was
+ * opened, and resolving is what that payment bought.
+ *
+ * `status` is `APPLIED` as usual, or `CHOICES_PENDING` when a linked event turned out to
+ * be another choice-event: then `pendingChoices` carries the next set of options.
+ *
+ * Throws on a backend error: 409 with `CHOICE_NOT_OPEN` (the event was never opened, or
+ * has already been resolved) / `CHOICE_NOT_AVAILABLE` (the world moved since the options
+ * were served) / `SLEEPING` / `COMA`, or 404 `CHOICE_NOT_FOUND` / `MATCH_NOT_FOUND`.
+ */
+export async function selectChoice(uuidMatch, choiceUuid, accessToken, lang) {
+  const config = authConfig(accessToken)
+  if (lang) config.params = { lang }
+  const res = await apiClient().post(
+    `/api/gameplay/${uuidMatch}/action/select-choice`,
+    { choiceUuid },
+    config,
+  )
+  return res.data
+}
+
+/* ── Steps 34 & 35 — inventory and resources ──────────────────────────────── */
+
+/**
+ * The calling character's inventory (GET /api/gameplay/{uuid}/inventory).
+ *
+ * Readable in any match status — only use-item and drop-item need a RUNNING match.
+ * Each row carries `uuid` (the INVENTORY ROW), `itemUuid` (the story item), `name`,
+ * `weight`, `amount`, `state`, `idCard`, the resolved `card` object and `isConsumabile`.
+ * The same objects ride on `players[].items` of match-info: the backend builds both with
+ * one mapper, so the two cannot drift.
+ */
+export async function getInventory(uuidMatch, accessToken, lang) {
+  const config = authConfig(accessToken)
+  if (lang) config.params = { lang }
+  const res = await apiClient().get(`/api/gameplay/${uuidMatch}/inventory`, config)
+  return res.data
+}
+
+/**
+ * Consume one item (POST /api/gameplay/{uuid}/inventory/use-item).
+ *
+ * `itemInstanceUuid` is the INVENTORY ROW's uuid — `items[].uuid`, never
+ * `items[].itemUuid`. Using removes the row; `amount` is not decremented.
+ *
+ * Resolves to the execute-event payload, so `handleEventExecuted` handles it almost
+ * unchanged: an item carrying a SADNESS effect can trip the Step 30 overflow or coma and
+ * the response has to be able to say so. On an item usage `eventUuid` and `eventType` are
+ * null, `card` is the item's own card, and `pendingChoices` is always empty.
+ *
+ * Throws on a backend error: 409 `ITEM_NOT_CONSUMABLE` / `ITEM_CLASS_NOT_PERMITTED` /
+ * `ITEM_CLASS_PROHIBITED` / `SLEEPING` / `COMA` / `MATCH_NOT_RUNNING`, or 404
+ * `ITEM_NOT_FOUND` / `MATCH_NOT_FOUND`.
+ */
+export async function useItem(uuidMatch, itemInstanceUuid, accessToken, lang) {
+  const config = authConfig(accessToken)
+  if (lang) config.params = { lang }
+  const res = await apiClient().post(
+    `/api/gameplay/${uuidMatch}/inventory/use-item`,
+    { itemInstanceUuid },
+    config,
+  )
+  return res.data
+}
+
+/**
+ * Discard one item (POST /api/gameplay/{uuid}/inventory/drop-item).
+ *
+ * Applies neither the consumable gate nor the class gate: a non-consumable item must be
+ * droppable, that is the point of carrying one. v0.35.1 — `amountDropped` is the authored
+ * `amountDrop` capped by what is held (a row whose story item is gone goes in one gesture);
+ * the row survives with what is left. Handing an item to another character is
+ * multiplayer and has no endpoint here.
+ */
+export async function dropItem(uuidMatch, itemInstanceUuid, accessToken) {
+  const res = await apiClient().post(
+    `/api/gameplay/${uuidMatch}/inventory/drop-item`,
+    { itemInstanceUuid },
+    authConfig(accessToken),
+  )
+  return res.data
+}
+
+/**
+ * Food, magic, coin and the carried weight (GET /api/gameplay/{uuid}/resources).
+ *
+ * Plain numbers with no card: resources are not story entities. Mind the naming — the
+ * backend field is `coin` (singular) while the frontend stat key is `coins` (plural).
+ */
+export async function getResources(uuidMatch, accessToken) {
+  const res = await apiClient().get(`/api/gameplay/${uuidMatch}/resources`, authConfig(accessToken))
   return res.data
 }

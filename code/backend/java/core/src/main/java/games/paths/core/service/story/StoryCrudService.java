@@ -810,6 +810,9 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("conditionRegistryKey", ln.getConditionRegistryKey());
             m.put("conditionRegistryValue", ln.getConditionRegistryValue());
             m.put("energyCost", ln.getEnergyCost());
+            m.put("costFood", ln.getCostFood());
+            m.put("costMagic", ln.getCostMagic());
+            m.put("costCoin", ln.getCostCoin());
             m.put("idTextGo", ln.getIdTextGo());
             m.put("idTextBack", ln.getIdTextBack());
             m.put("idCardBack", ln.getIdCardBack());
@@ -823,7 +826,7 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("idEventIfCounterZero", l.getIdEventIfCounterZero());
             m.put("secureParam", l.getSecureParam());
             m.put("idEventIfCharacterStartTime", l.getIdEventIfCharacterStartTime());
-            m.put("idEventIfCharacterEnterFirstTime", l.getIdEventIfCharacterEnterFirstTime());
+            m.put("idEventIfCharacterEnterEmptyLocation", l.getIdEventIfCharacterEnterEmptyLocation());
             m.put("idEventIfFirstTime", l.getIdEventIfFirstTime());
             m.put("idEventNotFirstTime", l.getIdEventNotFirstTime());
             m.put("priorityAutomaticEvent", l.getPriorityAutomaticEvent());
@@ -847,20 +850,27 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("targetClass", ee.getTargetClass());
             m.put("idItemTarget", ee.getIdItemTarget());
             m.put("itemAction", ee.getItemAction());
+            m.put("idWeather", ee.getIdWeather());
+            m.put("keyToAdd", ee.getKeyToAdd());
+            m.put("keyValueToAdd", ee.getKeyValueToAdd());
+            m.put("characteristicToAdd", ee.getCharacteristicToAdd());
+            m.put("characteristicToRemove", ee.getCharacteristicToRemove());
+            m.put("idLocation", ee.getIdLocation());
         } else if (e instanceof EventEntity) {
             EventEntity ev = (EventEntity) e;
             m.put("idSpecificLocation", ev.getIdSpecificLocation());
             m.put("type", ev.getType());
             m.put("costEnery", ev.getCostEnery());
             m.put("flagEndTime", ev.getFlagEndTime());
-            m.put("characteristicToAdd", ev.getCharacteristicToAdd());
-            m.put("characteristicToRemove", ev.getCharacteristicToRemove());
-            m.put("keyToAdd", ev.getKeyToAdd());
-            m.put("keyValueToAdd", ev.getKeyValueToAdd());
-            m.put("idItemToAdd", ev.getIdItemToAdd());
             m.put("idWeather", ev.getIdWeather());
             m.put("idEventNext", ev.getIdEventNext());
-            m.put("coinCost", ev.getCoinCost());
+            m.put("costCoin", ev.getCostCoin());
+            m.put("costFood", ev.getCostFood());
+            m.put("costMagic", ev.getCostMagic());
+            m.put("registryKeyCondition", ev.getRegistryKeyCondition());
+            m.put("registryValueCondition", ev.getRegistryValueCondition());
+            m.put("idClassCondition", ev.getIdClassCondition());
+            m.put("idItemCondition", ev.getIdItemCondition());
         } else if (e instanceof ChoiceConditionEntity) {
             ChoiceConditionEntity cc = (ChoiceConditionEntity) e;
             m.put("idChoices", cc.getIdChoices());
@@ -879,6 +889,11 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("key", ce.getKey());
             m.put("valueToAdd", ce.getValueToAdd());
             m.put("valueToRemove", ce.getValueToRemove());
+            m.put("idEvent", ce.getIdEvent());
+            m.put("idLocation", ce.getIdLocation());
+            m.put("idWeather", ce.getIdWeather());
+            m.put("idItemTarget", ce.getIdItemTarget());
+            m.put("itemAction", ce.getItemAction());
         } else if (e instanceof ChoiceEntity) {
             ChoiceEntity ch = (ChoiceEntity) e;
             m.put("idEvent", ch.getIdEvent());
@@ -898,10 +913,16 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("idItem", ie.getIdItem());
             m.put("effectCode", ie.getEffectCode());
             m.put("effectValue", ie.getEffectValue());
+            m.put("traitsToAdd", ie.getTraitsToAdd());
+            m.put("traitsToRemove", ie.getTraitsToRemove());
         } else if (e instanceof ItemEntity) {
             ItemEntity i = (ItemEntity) e;
             m.put("weight", i.getWeight());
             m.put("isConsumabile", i.getIsConsumabile());
+            m.put("flagShowEffects", i.getFlagShowEffects());
+            m.put("maxPerCharacter", i.getMaxPerCharacter());
+            m.put("amountDrop", i.getAmountDrop());
+            m.put("amountUse", i.getAmountUse());
             m.put("idClassPermitted", i.getIdClassPermitted());
             m.put("idClassProhibited", i.getIdClassProhibited());
         } else if (e instanceof WeatherRuleEntity) {
@@ -970,6 +991,7 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("idClassProhibited", tr.getIdClassProhibited());
             m.put("costPositive", tr.getCostPositive());
             m.put("costNegative", tr.getCostNegative());
+            m.put("hideOnStartMatch", tr.getHideOnStartMatch());
             m.put("life", tr.getLife());
             m.put("energy", tr.getEnergy());
             m.put("sad", tr.getSad());
@@ -1129,6 +1151,11 @@ public class StoryCrudService implements StoryCrudPort {
         Object v = d.get(k);
         if (v instanceof Number)
             return ((Number) v).intValue();
+        // v0.35.0 — the admin form sends a checkbox as a JSON boolean, and every flag column
+        // of the schema is an INTEGER. Without this a ticked box read as null: the field was
+        // silently dropped instead of written (is_consumabile, flag_show_effects).
+        if (v instanceof Boolean)
+            return Boolean.TRUE.equals(v) ? 1 : 0;
         if (v instanceof String) {
             try {
                 return Integer.parseInt((String) v);
@@ -1156,8 +1183,8 @@ public class StoryCrudService implements StoryCrudPort {
             e.setSecureParam(intVal(d, "secureParam"));
         if (d.containsKey("idEventIfCharacterStartTime"))
             e.setIdEventIfCharacterStartTime(intVal(d, "idEventIfCharacterStartTime"));
-        if (d.containsKey("idEventIfCharacterEnterFirstTime"))
-            e.setIdEventIfCharacterEnterFirstTime(intVal(d, "idEventIfCharacterEnterFirstTime"));
+        if (d.containsKey("idEventIfCharacterEnterEmptyLocation"))
+            e.setIdEventIfCharacterEnterEmptyLocation(intVal(d, "idEventIfCharacterEnterEmptyLocation"));
         if (d.containsKey("idEventIfFirstTime"))
             e.setIdEventIfFirstTime(intVal(d, "idEventIfFirstTime"));
         if (d.containsKey("idEventNotFirstTime"))
@@ -1179,22 +1206,28 @@ public class StoryCrudService implements StoryCrudPort {
             e.setCostEnery(intVal(d, "costEnery"));
         if (d.containsKey("flagEndTime"))
             e.setFlagEndTime(intVal(d, "flagEndTime"));
-        if (d.containsKey("characteristicToAdd"))
-            e.setCharacteristicToAdd(str(d, "characteristicToAdd"));
-        if (d.containsKey("characteristicToRemove"))
-            e.setCharacteristicToRemove(str(d, "characteristicToRemove"));
-        if (d.containsKey("keyToAdd"))
-            e.setKeyToAdd(str(d, "keyToAdd"));
-        if (d.containsKey("keyValueToAdd"))
-            e.setKeyValueToAdd(str(d, "keyValueToAdd"));
-        if (d.containsKey("idItemToAdd"))
-            e.setIdItemToAdd(intVal(d, "idItemToAdd"));
         if (d.containsKey("idWeather"))
             e.setIdWeather(intVal(d, "idWeather"));
         if (d.containsKey("idEventNext"))
             e.setIdEventNext(intVal(d, "idEventNext"));
-        if (d.containsKey("coinCost"))
-            e.setCoinCost(intVal(d, "coinCost"));
+        // v0.35.3 renamed coinCost to costCoin. The old key is still read — an admin
+        // client or a script written against the previous name must not silently save 0.
+        if (d.containsKey("costCoin"))
+            e.setCostCoin(intVal(d, "costCoin"));
+        else if (d.containsKey("coinCost"))
+            e.setCostCoin(intVal(d, "coinCost"));
+        if (d.containsKey("costFood"))
+            e.setCostFood(intVal(d, "costFood"));
+        if (d.containsKey("costMagic"))
+            e.setCostMagic(intVal(d, "costMagic"));
+        if (d.containsKey("registryKeyCondition"))
+            e.setRegistryKeyCondition(str(d, "registryKeyCondition"));
+        if (d.containsKey("registryValueCondition"))
+            e.setRegistryValueCondition(str(d, "registryValueCondition"));
+        if (d.containsKey("idClassCondition"))
+            e.setIdClassCondition(intVal(d, "idClassCondition"));
+        if (d.containsKey("idItemCondition"))
+            e.setIdItemCondition(intVal(d, "idItemCondition"));
     }
 
     private void applyItemFields(ItemEntity e, Map<String, Object> d) {
@@ -1202,6 +1235,14 @@ public class StoryCrudService implements StoryCrudPort {
             e.setWeight(intVal(d, "weight"));
         if (d.containsKey("isConsumabile"))
             e.setIsConsumabile(intVal(d, "isConsumabile"));
+        if (d.containsKey("flagShowEffects"))
+            e.setFlagShowEffects(intVal(d, "flagShowEffects"));
+        if (d.containsKey("maxPerCharacter"))
+            e.setMaxPerCharacter(intVal(d, "maxPerCharacter"));
+        if (d.containsKey("amountDrop"))
+            e.setAmountDrop(intVal(d, "amountDrop"));
+        if (d.containsKey("amountUse"))
+            e.setAmountUse(intVal(d, "amountUse"));
         if (d.containsKey("idClassPermitted"))
             e.setIdClassPermitted(intVal(d, "idClassPermitted"));
         if (d.containsKey("idClassProhibited"))
@@ -1282,6 +1323,8 @@ public class StoryCrudService implements StoryCrudPort {
             e.setCostPositive(intVal(d, "costPositive"));
         if (d.containsKey("costNegative"))
             e.setCostNegative(intVal(d, "costNegative"));
+        if (d.containsKey("hideOnStartMatch"))
+            e.setHideOnStartMatch(intVal(d, "hideOnStartMatch"));
         if (d.containsKey("life"))
             e.setLife(intVal(d, "life"));
         if (d.containsKey("energy"))
@@ -1376,6 +1419,12 @@ public class StoryCrudService implements StoryCrudPort {
             e.setConditionRegistryValue(str(d, "conditionRegistryValue"));
         if (d.containsKey("energyCost"))
             e.setEnergyCost(intVal(d, "energyCost"));
+        if (d.containsKey("costFood"))
+            e.setCostFood(intVal(d, "costFood"));
+        if (d.containsKey("costMagic"))
+            e.setCostMagic(intVal(d, "costMagic"));
+        if (d.containsKey("costCoin"))
+            e.setCostCoin(intVal(d, "costCoin"));
         if (d.containsKey("idTextGo"))
             e.setIdTextGo(intVal(d, "idTextGo"));
         if (d.containsKey("idTextBack"))
@@ -1416,6 +1465,18 @@ public class StoryCrudService implements StoryCrudPort {
             e.setIdItemTarget(intVal(d, "idItemTarget"));
         if (d.containsKey("itemAction"))
             e.setItemAction(str(d, "itemAction"));
+        if (d.containsKey("idWeather"))
+            e.setIdWeather(intVal(d, "idWeather"));
+        if (d.containsKey("keyToAdd"))
+            e.setKeyToAdd(str(d, "keyToAdd"));
+        if (d.containsKey("keyValueToAdd"))
+            e.setKeyValueToAdd(str(d, "keyValueToAdd"));
+        if (d.containsKey("characteristicToAdd"))
+            e.setCharacteristicToAdd(str(d, "characteristicToAdd"));
+        if (d.containsKey("characteristicToRemove"))
+            e.setCharacteristicToRemove(str(d, "characteristicToRemove"));
+        if (d.containsKey("idLocation"))
+            e.setIdLocation(intVal(d, "idLocation"));
     }
 
     private void applyChoiceFields(ChoiceEntity e, Map<String, Object> d) {
@@ -1477,6 +1538,17 @@ public class StoryCrudService implements StoryCrudPort {
             e.setValueToAdd(str(d, "valueToAdd"));
         if (d.containsKey("valueToRemove"))
             e.setValueToRemove(str(d, "valueToRemove"));
+        // v0.32.0 — the effect targets a resolved choice can reach (Step 32).
+        if (d.containsKey("idEvent"))
+            e.setIdEvent(intVal(d, "idEvent"));
+        if (d.containsKey("idLocation"))
+            e.setIdLocation(intVal(d, "idLocation"));
+        if (d.containsKey("idWeather"))
+            e.setIdWeather(intVal(d, "idWeather"));
+        if (d.containsKey("idItemTarget"))
+            e.setIdItemTarget(intVal(d, "idItemTarget"));
+        if (d.containsKey("itemAction"))
+            e.setItemAction(str(d, "itemAction"));
     }
 
     private void applyItemEffectFields(ItemEffectEntity e, Map<String, Object> d) {
@@ -1486,6 +1558,10 @@ public class StoryCrudService implements StoryCrudPort {
             e.setEffectCode(str(d, "effectCode"));
         if (d.containsKey("effectValue"))
             e.setEffectValue(intVal(d, "effectValue"));
+        if (d.containsKey("traitsToAdd"))
+            e.setTraitsToAdd(str(d, "traitsToAdd"));
+        if (d.containsKey("traitsToRemove"))
+            e.setTraitsToRemove(str(d, "traitsToRemove"));
     }
 
     private void applyWeatherRuleFields(WeatherRuleEntity e, Map<String, Object> d) {

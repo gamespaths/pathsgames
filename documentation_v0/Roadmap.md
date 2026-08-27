@@ -36,18 +36,24 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 21 | [Character selection](./Step21_CharacterSelection.md) | ✅ | Character template & class selection (join, players, character detail) |
 | 22 | [Story validation](./Step22_StoryValidation.md) | ✅ | Story integrity validator — import hard-fail, lenient CRUD, validate endpoint |
 | 23 | [Character stats initialization](./Step23_CharacterStatsInitialization.md) | ✅ | Trait listing by class, trait cost budgets, strict trait validation on match create/join |
-| 24 | [Turn cycle engine](./Step24_TurnCycleEngine.md) | ✅ | Priority formula, queue init on match start, WAITING/ACTIVE/COMPLETED state machine, pass action, turn-sequence query |
+| 24 | [Turn cycle engine](./Step24_TurnCycleEngine.md) | ✅ | Priority formula, queue init on match start, pass action, turn-sequence query |
 | 25 | [Time clock cycle](./Step25_TimeAdvancementClockCycle.md) | ✅ | Time Advancement & Clock Cycle: sleep action, time-end trigger, clock increment |
 | 26 | [Time-start recovery](./Step26_TimeStartRecovery.md) | ✅ | Per-character stat recovery at time-start, class bonuses, location counter decrements; counter re-seed bugfix |
 | 27 | [Weather System](./Step27_WeatherSystem.md) | ✅ | Weather System with random selection & effects | 
 | 28 | [Movement System](./Step28_MovementSystem.md) | ✅ | Movement System with Adjacency, Energy Cost & Validation |
+| 29 | [Normal events](./Step29_NormalEvents.md) | ✅ | Normal events, `available` flag on match-info, `execute-event` endpoint |
+| 30 | [Edge states](./Step30_EdgeStates.md) | ✅ | Sadness overflow & coma rules, `clock_in_coma` stamp, all-players-in-coma story event |
+| 31 | [Choice engine](./Step31_ChoiceEngine.md) | ✅ | Choice-owning events branch `execute-event` to `CHOICES_PENDING` & `ChoiceAvailabilityChecker`
+| 32 | [Choice resolution](./Step32_ChoiceResolution.md) | ✅ | Select choice engine applies choices effects |
+| 33 | [Location entry events](./Step33_LocationEntryEvents.md) | ✅ | Automatic triggers bind on columns; counter-zero finally executed; `flag_visited`  |
+| 34 | [Inventory management](./Step34_InventoryAndResources.md) | ✅ | `use-item` / `drop-item` endpoints, item cards |
+| 35 | [Resource management](./Step34_InventoryAndResources.md) | ✅ | Food/magic/coin on `/info`; carried weight (`Σ item.weight × amount`); resource costs on events & movement edges (v0.35.3, [details](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353)); item actions and resource gains now appear in the match log (v0.35.4, [details](./Step28_MovementSystem.md)) |
 
 | Steps | Phase |
 | -- | -- |
-| 28-32 | Game mechanics — movement, events, choices |
-| 33-37 | Game mechanics — inventory, resources, registry, missions, experience |
-| 38-40 | Edge states, logging, snapshots |
-| 41 | Frontend: single-player game board and gameplay UI |
+| 34-38 | Game mechanics — inventory, resources, registry, missions, experience |
+| 40 | Logging & snapshots |
+| 41 | Frontend & security: single-player game board and gameplay UI |
 | 42 | **Launch beta version with guest and single-player game** |
 | 43-48 | User registration, Google SSO, profile management, guest linking |
 | 49-54 | WebSocket server, authentication, message types, real-time sync, reconnect |
@@ -65,96 +71,15 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 100-101 | Documentation and V1 Launch |
 
 
+
+
 # Next steps
+1. OpenPoint & todo
+    - su AWS ItemUsageLog massimo 400Kb dynamo per partite lunghizzime
+    - 
 
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
-
-29. Normal events — player-triggered actions
-    - change tables
-        - move "key_to_add, key_value_to_add" "traits_to_add", "traits_to_remove" e characteristic_to_add, characteristic_to_remove, key_to_add, key_value_to_add to table "list_events_effects"
-        - add "registry_key_condition", "registry_value_condition" "id_class_condition" e "id_item_condition" to table "list_events"
-        - add "id_weather" to table list_events_effects (to set weather)
-        - add TYPE=ONCE into list_events values
-        - change all backend projects (aws, lambda, python) and all frontends (on editor)
-            - "update import/validator/CRUD/seed in all backend e frontends".
-        - nota: doen't matter "list_events_conditions" logic because all conditions are always in AND! Add it to final documentation.
-        - upgrade openAPI documents after changes 
-    - Create an unique "check procedure" tecnical point on backend to check if an event is possibile:
-        type=NORMAL or ONCE . ONCE if event is not on log_events table!
-        id_specific_location: if_specific_location=location of character 
-        cost_enery: character has enough energy 
-        registry: registry_key_condition, registry_value_condition
-        coin_cost : character has enough coin
-        id_weather: actual weather
-        id_item_condition: character has specific item
-        id_class_condition: character has specific class
-    - List available Normal events at current location via GET /match/{uuid_match}/info response (backend)
-        on info response add field "available" (flag to write into response if an event is possibile)
-        example ONCE just done -> available=false (ONCE is for match , write it on documentation)
-        example: if characher is_sleeping/coma -> available=false always!
-        nota: normal event with list_choices: after effects and after get choises!
-    - Implement POST /gameplay/{uuid_match}/action/execute-event endpoint to activate normal event (backend)
-        - Validate event activation: use check procedure 
-        - execute-event 
-            - with "has turn" -> new turn 
-            - execute-event if OK return event, card, flags fields for every fiedlds (turnConsumed, timeEndend, itemRemoved, itemAdded, registryChanges, weatherApplied , forcedSleep, comaTriggered, gameOver, statChanges ...), list_events_effects with cards (narrative component is card of list_events_effects), pendingChoices & refreshRecommended to return to frontend if reload "match-info API" (true if one or more flag are changes)! 
-            - if KO return reason (ONCE_ALREADY_CONSUMED, WRONG_LOCATION, NOT_ENOUGH_ENERGY,... )
-    - Deduct energy and coins cost, apply event effects to character and match state (backend)
-        - run id_event_next if present (don't mind about loop event: validator into Step22 )
-        - execute-event should have lang for cards
-    - Apply stat modifications 
-        - respecting limits: energy ≤ energy_max, life ≤ life_max, sadness ≤ sad_max, life ≥ 0 (backend)
-        - add/remove item (item_action), add/remove trait, scrittura registry (key_to_add), exp, target ALL/ONLY_ONE/target_class (INV-27: all location)
-        - if after event life ≤ 0 -> coma! Step 29 only set flag is_coma=true, is_sleeping=true and only return (clamp + flag)
-    - Handle flag_end_time: if event causes time end, force all characters to sleep and advance time (backend)
-    - Write backend unit tests for optional event activation, cost validation, effect application, and time-end trigger (backend tests)
-    - Write log into log_events table!
-    - update step09 md file! 
-    - write new robot test for ever fields and conditions (for every branches code and conditions!)
-30. Choice engine — conditions, validation, presentation
-    - Return currently available choices within GET /match/{uuid_match}/info response for active character (backend)
-    - Load choice options from list_choices for current event or location, ordered by priority (backend)
-    - Evaluate choice conditions: sad limit, stat requirements (DES/INT/COS minimums), prohibited/required traits (backend)
-    - Evaluate complex conditions: registry key checks, item possession, class checks, location checks, stat sum thresholds (backend)
-    - Apply logic operator (AND/OR) across conditions to determine option availability (backend)
-    - Filter and return only valid options to the player, include otherwise option if defined (backend)
-    - Write backend unit tests for condition evaluation covering all condition types, AND/OR logic, and edge cases (backend tests)
-31. Choice resolution — apply effects and outcomes
-    - Implement POST /gameplay/{uuid_match}/action/select-choice endpoint to submit selected option (backend)
-    - Validate selected option is still available and character can act (not sleeping, not comatose, has turn) (backend)
-    - Apply choice effects: stat modifications (single or group based on flag_group), key updates, item changes (backend)
-    - Execute linked event (id_event_torun) with its full effect chain based on choice result (backend)
-    - Handle is_progress flag: insert into gaming_story_progress for narrative milestone tracking (backend)
-    - Log choice execution in log_choices_executed with event, choice, and timestamp (backend)
-    - Write backend unit tests for choice submission, effect application, event chaining, progress tracking, and error cases (backend tests)
-
-32. Location entry events — automatic triggers
-    - Implement event trigger evaluation on location entry: AUTOMATIC_FIRST_ENTRY for first visit (backend)
-    - Implement AUTOMATIC_SUBSEQUENT_ENTRY trigger for repeat visits using gaming_state_locations.flag_already_actived (backend)
-    - Implement AUTOMATIC_FIRST_IN_LOCATION trigger when character enters empty location (no other characters present) (backend)
-    - Execute event effects: modify stats, add/remove items, update registry, change character location (backend)
-    - Handle event chaining via id_event_next with interrupt flag to stop subsequent events (backend)
-    - Implements/execute events runned from zero-counter developed on 26 step and execute event. 
-    - Update gaming_state_locations to mark location as visited and log event execution in log_events (backend)
-    - Write backend unit tests for all automatic trigger types, event effects, chaining, interrupts, and state updates (backend tests)
-
-33. Inventory and item management
-    - Implement GET /gameplay/{uuid_match}/inventory endpoint listing active character items with weight and effects (backend)
-    - Implement POST /gameplay/{uuid_match}/inventory/use-item endpoint to use a consumable item (backend)
-    - Implement POST /gameplay/{uuid_match}/inventory/drop-item endpoint to discard or send an item (backend)
-    - Validate item usage: character not sleeping/comatose, item exists in inventory, class restrictions met (backend)
-    - Apply item effects from list_items_effects: modify life, energy, sadness, stats, add/remove traits (backend)
-    - Create log_item_usage record with character, item, effects, and timestamp (backend)
-    - Write backend unit tests for inventory listing, item usage, discard, class restrictions, effect application, and weight calculation (backend tests)
-34. Resource management — food, magic, coins, weight
-    - Implement GET /matches/{uuid}/characters/{uuid}/resources endpoint returning food, magic, coins, total weight (backend)
-    - Implement resource modification through events and choices: add/subtract food, magic, coins respecting minimums (backend)
-    - Calculate total weight: food + magic + sum(item_weights); validate coins have zero weight (backend)
-    - Calculate maximum capacity: constitution + difficulty_parameter(max_weight) + default_backpack_capacity (backend)
-    - Block movement when total weight exceeds maximum capacity (integrate with movement validation) (backend)
-    - Build frontend resource display component showing food, magic, coins, weight bar, and capacity limit (frontend)
-    - Write backend unit tests for resource modification, weight calculation, capacity formula, and movement blocking (backend tests)
-35. Registry system — key-value game state tracking
+36. Registry system — key-value game state tracking (check if componets already exists)
     - Implement GET /matches/{uuid}/registry endpoint returning all visible registry entries grouped by category (backend)
     - Implement registry update service used by events, choices, and game engine to set/modify key-value pairs (backend)
     - Support registry value types: boolean (YES/NO) and numeric (integer values) (backend)
@@ -162,7 +87,8 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Implement registry query service for condition evaluation: check key existence, value comparison (=, >, <, !=) (backend)
     - Build frontend registry display component showing visible keys as card collection organized by group (frontend)
     - Write backend unit tests for registry CRUD, value types, condition queries, and phase tracking (backend tests)
-36. Mission tracking and progression
+    - manage effect (event and coices) add/remove keys!
+37. Mission tracking and progression
     - Implement GET /match/{uuid_match}/missions/active endpoint listing active and completed missions (backend)
     - Implement GET /match/{uuid_match}/missions/{uuid_mission}/progress endpoint returning mission details with all steps (backend)
     - Implement mission activation service triggered by registry value changes (condition_key from → to) (backend)
@@ -170,7 +96,8 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Track mission status through registry: AVAILABLE → ACTIVE → step progression → COMPLETED/FAILED (backend)
     - Build frontend mission panel component showing active missions as cards with step progress indicators (frontend)
     - Write backend unit tests for mission activation, step progression, completion events, and status transitions (backend tests)
-37. Experience and character advancement
+38. Experience and character advancement
+    - exp on event (on 29 step event exp is silence)
     - Implement experience gain through events: add experience points to gaming_character_instance on eligible events (backend)
     - Implement POST /gameplay/{uuid_match}/action/use-exp endpoint to spend experience on stat increase (backend)
     - Validate advancement: character must be sleeping in safe location, have sufficient experience (backend)
@@ -178,14 +105,6 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Apply stat increase (+1 DES, INT, or COS), deduct experience, update character instance (backend)
     - Build frontend advancement UI showing available stat upgrades, costs, and current experience (frontend)
     - Write backend unit tests for experience gain, advancement validation, cost calculation, and stat update (backend tests)
-38. Edge states — coma, sadness overflow, game over
-    - Implement sadness overflow: when sadness equals life, character loses COS life points, sadness resets to zero, forced sleep (backend)
-    - Implement coma trigger: when life reaches zero or below, character enters coma state (is_coma=true, is_sleeping=true) (backend)
-    - Implement POST /gameplay/{uuid_match}/action/ask-help endpoint to send help request to all characters (backend)
-    - Implement POST /gameplay/{uuid_match}/action/help-player endpoint for coma rescue in same location (backend)
-    - Implement group coma detection: when all characters are comatose, trigger story-defined group_coma event (backend)
-    - Implement game over condition: match status transitions to GAMEOVER with timestamp when unrecoverable (backend)
-    - Write backend unit tests for sadness overflow, coma trigger, ask-help, rescue mechanics, group coma, and game over transitions (backend tests)
 39. Action logging and match history
     - Implement centralized logging service recording all player actions with match UUID, character, timestamp, and details (backend)
     - Log all events triggered (automatic and optional) in log_events with full context (backend)
@@ -355,14 +274,19 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Transition match status from CREATED to RUNNING, set timestamp_start (backend)
     - Broadcast MATCH_STARTED event to all connected players via WebSocket (backend)
     - Write backend unit tests for start validation, multi-character initialization, turn queue, and status transition (backend tests)
-60. Frontend: Multiplayer lobby UI
-    - Build full multiplayer lobby page with real-time player list updated via WebSocket (frontend)
-    - Build character selection carousel for each player with live status badges (SELECTING, READY) (frontend)
-    - Implement lobby chat/quick-message area for pre-game communication (frontend)
-    - Build countdown overlay displayed when all players are ready (frontend)
-    - Build match creator controls: start button, kick player, cancel match (frontend)
-    - Implement responsive layout handling 2-10 player lobbies with scrollable player cards (frontend)
-    - Write frontend unit tests for lobby components, real-time updates, creator controls, and responsive layouts (frontend tests)
+60. Added from ex step38: Edge states — coma, sadness overflow, game over
+    - Implement POST /gameplay/{uuid_match}/action/ask-help endpoint to send help request to all characters (backend)
+    - Implement POST /gameplay/{uuid_match}/action/help-player endpoint for coma rescue in same location (backend)
+    - Implement game over condition: match status transitions to GAMEOVER with timestamp when unrecoverable (backend)
+    - Write backend unit tests for sadness overflow, coma trigger, ask-help, rescue mechanics, group coma, and game over transitions (backend tests)
+    - Frontend: Multiplayer lobby UI (ex Step60)
+        - Build full multiplayer lobby page with real-time player list updated via WebSocket (frontend)
+        - Build character selection carousel for each player with live status badges (SELECTING, READY) (frontend)
+        - Implement lobby chat/quick-message area for pre-game communication (frontend)
+        - Build countdown overlay displayed when all players are ready (frontend)
+        - Build match creator controls: start button, kick player, cancel match (frontend)
+        - Implement responsive layout handling 2-10 player lobbies with scrollable player cards (frontend)
+        - Write frontend unit tests for lobby components, real-time updates, creator controls, and responsive layouts (frontend tests)
 61. Multiplayer turn cycle — turn order and active player
     - Turn cycle engine for multi-player (see step 24)
     - Extend turn engine to manage multiple characters with priority-based ordering in gaming_turn_queue (backend)
@@ -718,47 +642,15 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     > ciao, read all "documentation_v0" for context, i wanna change my roadmap file, now I've 42 step, 13 already done and i started to work to step 14,  I wanna change my roadmap to be 101 step, 14 step should be stories management, from 14 to 42 should be single-player game system with only guess login, I would 42 step be "launch beta version with guess and single player game". since 43 to 84 "multiplayer game with credential login" with all multiplayer systems and game engine. since 85 to 101 test and launch system. all step with 7 subpoint , subpoint for backend and frontend too, add unit test into frontend and backend. 
 
 
-- **Document Version**: 0.28.7 (here only due changes)
+- **Document Version**: 0.31.0 (here only due changes)
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.1.0 | first version of this document | February 3, 2026 |
 	| 0.1.1 | added licence and version control sections, file renamed from "todolist" to "roadmap" | February 5, 2026 |
     | 0.1.2 | update "2. Define the V1 scope" and "3. Define the technology stack" sections | February 10, 2026 |
-    | 0.6 | step 04, step 05, step 06 | February 26, 2026 |
-    | 0.7 | step 07: configure website | February 27, 2026 |
-    | 0.8 | step 08: configure CI | March 5, 2026 |
-    | 0.9 | step 09: design core data model | March 9, 2026 |
-    | 0.10.12 | step 10: create initial DB schema | March 19, 2026 |
-    | 0.11.1 | expanded roadmap from 30 to 42 steps, Version 1 launch at step number 42 | March 24, 2026 |
-    | 0.14.1 | expanded roadmap from 42 to 101 steps with 3 phases: single-player beta (42), multiplayer (43-84), testing and V1 launch (85-101). All steps now have 7 subpoints covering backend, frontend, and unit tests | April 9, 2026 |
-    | 0.19.2 | added step 19.1 (dev test-data cleanup) and step 19.2 (admin match control) to completed steps table | May 21, 2026 |
-    | 0.20.5 | added Step 20a (admin endpoint split / port 8044 / AWS admin API + IP authorizer) to completed steps table | June 4, 2026 |
-    | 0.20.9 | added Step 20 (EC2 Docker deploy via DockerHub, DNS/CloudFront, CORS fix, echo env, multi-lang import fix) | June 5, 2026 |
-    | 0.21.0 | added Step 21 character template & class selection (join/players/character endpoints across all backends + admin MatchDetailPage + react-game auto-join) | June 9, 2026 |
-    | 0.23.1 | added new frontend `python-flask-game` (Flask + Jinja2 SSR alternative to react-game, port 5099, mock + live backend mode, 35 pytest tests) | June 11, 2026 |
-    | 0.23.1 | Node.js backend reaches full API parity (stages 0–5): Prisma schema reworked with StoryText/StoryClass/Trait/CharacterTemplate/CharacterInstance; StoryImportService full graph persistence; content detail APIs (suite 16); story validation engine (suite 22); character join + stats initialization (suite 21/23); trait cost-budget enforcement; tsc 0 errors, 20/20 jest tests | June 11, 2026 |
-    | 0.23.1 | Fix run_robot_with_local_node.sh: added `docker-compose build --no-cache app` before `docker-compose up -d` to prevent stale image reuse after schema/seed changes (silent seed failure was causing 186/288 Robot failures) | June 12, 2026 |
-    | 0.23.1 | Node.js backend migrated from cuid-based schema to the documented relational `list_*` model (same as Java/Python): 32 Prisma models with `@@map` snake_case table names, composite PK `@@id([id, idStory])`, integer IDs, auth on `users`/`users_tokens`, gaming on `gaming_match`/`gaming_character_instance`; `prisma db push --accept-data-loss` + seed on container startup; 288/288 Robot tests pass | June 12, 2026 |
-    | 0.23.1 | Removed php and node backend projects and removed flask frontend projects | June 12, 2026 |
-    | 0.24.0 | Added Step 24 planning document (Turn Cycle Engine): priority formula, match start endpoint, pass action, turn-sequence query; full implementation plan for Java/Python/AWS/React-Game/React-Admin/Robot | June 12, 2026 |
-    | 0.24.0 | Implemented Step 24 Turn Cycle Engine across all backends: `POST /api/matches/{uuid}/start`, `POST /api/gameplay/{uuid}/action/pass`, `GET /api/match/{uuid}/turn-sequence`. Adopted an explicit `status` column on `gaming_turn_queue` (WAITING/ACTIVE/COMPLETED, migration V0.24.0 postgres+sqlite) as lifecycle source of truth; turn timestamps left null. Java (13 unit tests) + Python (17) + AWS Lambda single-table queue (12) green; React-Game TurnPanel + turn-cycle API; React-Admin projected turn-order panel. New Robot suite `24_turn_cycle` (12 tests): Java 300/300 and Python 300/300, no regressions | June 12, 2026 |
-    | 0.24.2 | Python backend dockerized for EC2 deploy (server3): Dockerfile now exposes both ports 8042+8044 and runs `python -m app.launcher`; `app/config.py` gains `host` setting with `HOST` env-var override; new `build_docker_python_test_and_push.sh` (tag `:test-python`); new `aws_ec2_with_python_docker/{start,redeploy,stop}.sh` lifecycle scripts; optional auto-seed via `scripts/seed_stories.py`; server naming convention (server2=Java, server3=Python). 524 pytest pass | June 14, 2026 |
-    | 0.25.0 | Step 25 Time Advancement & Clock Cycle (backends): sleep action, time-end trigger, clock increment + log_clock_history, turn queue rebuild, GET /clock, TimeAdvanced domain event; Java + Python + AWS + Robot suite 25_time_clock | June 15, 2026 |
-    | 0.26.0 | Step 26 Time Advancement Frontend: ClockWidget + SleepButton in react-game; Clock status panel in react-admin; new admin endpoint GET /api/admin/matches/{uuid}/clock (port 8044) | June 15, 2026 |
-    | 0.26.0 | Step 27 Character Max Stats, Weight & Items: lifeMax/energyMax/sadMax/weightMax persisted at join via Flyway V0.26.0; weight = Σ(item.weight × amount); items[] list on all match-info endpoints (GET info, players, character detail, join response, admin info); GamingInvenyItemsEntity + repository; CharacterMapper extended; ItemInstanceResponse DTO; OpenAPI v0.26.0; matchInfoAdapter in react-game with current/max gauges and items panel; react-admin MatchDetailPage Weight+Items columntors; Robot suite 21 assertions added, 357 pass | June 15, 2026 |
-    | 0.27.0 | Step 27 Weather System — random selection & effects: new `gaming_match.rng_seed` (Flyway V0.27.0 sqlite+postgres), random seed at create or explicit `rngSeed` body field (Robot=42). Deterministic weighted roll (weight=`probability`, seed=`rng_seed+clock`) at every time-start, filtered by clock time-range + registry condition; applies `delta_energy` (clamped), stores `id_current_weather`, appends `log_weather`, logs weather-linked `id_event` as pending. New `GET /api/matches/{uuid}/weather` + admin `GET /api/admin/matches/{uuid}/weather` (rng_seed + current + log). Java (WeatherSelectionService/Port/Adapter, LogWeather entity, hooked into time-start+match-start, OpenAPI v0.27.0) BUILD SUCCESS; Python mirror 645 pass; AWS single-table mirror + seed weatherRules 374 pass; react-game WeatherCard after GoToSleepCard (397 pass); react-admin MatchDetailPage weather panel + rng_seed (398 pass); new Robot suite `27_weather` (6 tests, dry-run pass). Deferred: weather-event execution (Step 29), movement-cost use (Step 28) | June 24, 2026 |
-    | 0.28.1 | Admin match listing pagination & filtering: `GET /api/admin/matches` response changed from plain array to `{items, nextCursor, limit}` envelope; query params `limit` (default 50, clamped [1,200]), `cursor` (keyset-based opaque token), `status`, `userUuid`, `storyUuid`, `sinceDays`. Java: keyset pagination on `(ts_insert DESC, id DESC)`; new core types `MatchListFilter`/`MatchSummaryPage`/`MatchPageCriteria`; `PagedMatchesResponse` DTO. Python: SQLAlchemy keyset; helpers `_clamp_limit`/`_since_days_to_ts`/`_encode_cursor`/`_decode_cursor`. AWS: GSI2 `PathsGamesGSI2` (`GSI2_PK="MATCH"`, `GSI2_SK=ts#uuid`) replaces full-table Scan with newest-first Query; `db_utils.query_index_page`/`encode_cursor`/`decode_cursor`; pre-v0.28.1 match items lack GSI2 keys. react-admin MatchesPage: "Load more" server pagination via nextCursor; server-side status filter and period filter (sinceDays); text filter remains client-side. OpenAPI `v0.19.0-match-creation-api.yaml` extended with `PagedMatches` schema + query params. Robot `List All Matches` keyword extended to accept `params`; new tests for envelope shape, limit/cursor, status filter. Test counts: Java 1079+ pass, Python 699 pass, AWS 402 pass, vitest 408 pass | June 26, 2026 |
-    | 0.28.2 | Story Editor — "Card Back" column in Loc Neighbors tab (react-admin only, no backend change): `EntityTable.jsx` shows a dedicated "Card Back" column (always visible, outside the 3-column limit) only for neighbor entities (detected via presence of `idCardBack` key). If `idCardBack` is set → button `#id` opens that card. If `idCardBack` is empty but `idCard` is present → fa-clone icon triggers `handleDuplicateCardBack` in `StoryEditorPage.jsx`: duplicates the source card by creating two new text entries (copying all languages with " BIS" suffix on short/long text), creating a new card with the same fields but pointing to the new texts, then patching the neighbor with the new `idCardBack`. If both are absent → dash. `storiesEntities.jsx` no longer renders `idCardBack` as a plain column for neighbors (superseded by the dedicated column). No backend change — `idCardBack` was already supported end-to-end. Test counts: vitest 418 pass (+10: EntityTable.test.jsx +4, StoryEditorPage.test.jsx +6). | June 26, 2026 |
-    | 0.28.2 | AWS bugfix — neighbor `cardBack` desync: `GET /api/match/{uuid}/info` was returning `cardBack == card` even when `idCardBack` had been set via admin CRUD. Root cause: the AWS DynamoDB STORY item holds two separate neighbor arrays — `neighbors` (written by seed/import, read by gameplay) and `locationNeighbors` (written by admin CRUD, not read by gameplay). Added `_story_neighbors(story)` helper in `lambda/match/handler.py` that reads `locationNeighbors` first (admin-authoritative) and falls back to `neighbors` (seed). Applied at the 3 gameplay read-points: `_build_locations_active` (match-info), `_find_edge` (movement), `_build_locations_visited` (locations query). Java and Python were not affected (single `list_locations_neighbors` table). New regression test `test_match_info_neighbor_cardback_reads_admin_edited_location_neighbors` in `aws/tests/test_match_handler.py`. AWS suite: 407 pass. New Robot suite `29_neighbor_card_back` (backend-agnostic): admin sets `idCard`+`idCardBack` on a start-location neighbor, player reads match-info, asserts distinct `card`/`cardBack` UUIDs; teardown restores originals. See [Step29_NeighborCardBack.md](./Step29_NeighborCardBack.md). Note: Lambda redeployment required on `api-test.paths.games` to apply the AWS fix. | June 26, 2026 |
-    | 0.28.2 | Cross-backend bugfix — event-to-location binding (`idSpecificLocation`): `GET /api/match/{uuid}/info` placed events under the wrong location (or omitted them) after an admin change. AWS root cause: `_build_locations_active` filtered events by a stale `idLocation` alias set only at import, never refreshed on admin edits; new `_event_location()` helper reads `idSpecificLocation` first (admin-canonical) with `idLocation` fallback. Python root cause: `EventEntity.id_location` column mismatched the contract field `idSpecificLocation`; column renamed to `id_specific_location` and `save_events` now reads `idSpecificLocation` (fallback `idLocation`). Java unaffected. New unit tests: AWS `test_match_handler.py` (408 pass), Python `test_story_persistence_adapter_extra.py` (702 pass). New Robot E2E suite `30_event_location/event_location.robot` (backend-agnostic: admin sets `idSpecificLocation`, player starts match, asserts event under correct location in `locationsActive`; teardown restores). Lambda redeployment required on `api-test.paths.games`. See [Step30_EventLocationBugfix.md](./Step30_EventLocationBugfix.md). | June 26, 2026 |
-    | 0.28.3 | Cross-backend fix — one-way neighbor links (`flag_back`): all backends were returning A as a neighbor of B regardless of `flag_back`, making every edge bidirectional. Fix enforces: `flag_back=1` (YES) → standing on B, A is listed as a neighbor; `flag_back=0` (NO) → A is absent from B's neighbor lists. Forward travel A→B always allowed. Java: `MovementStorePort.NeighborEdge` gained `flagBack` + `traversableFrom(locId)` helper; `MovementStoreAdapter` maps column; `MovementService` and `MatchQueryService` filter all three neighbor read-points. Python: `flag_back` column added to `LocationNeighborEntity` ORM (was missing); mapped in read adapters; `match_query_service` + `movement_service` filter. AWS: `_neighbor_traversable_from` helper; applied in `_build_active_locations`, `neighbor_costs`, `_find_edge`. Seed data: all backends set `flag_back=1` on existing edges to preserve bidirectional behaviour for existing Robot suites. React-admin: Flag Back form select now saves `0` correctly; Card Back ID field hidden when Flag Back = NO; entity table renders YES/NO badge. New Robot regression suite `28_movement/neighbor_flag_back.robot` (2 tests, tags: match-info/movement-back/flag-back/step28/regression): sets `flagBack=YES` → asserts backward neighbor present in `/info` + `/locations`; sets `flagBack=NO` → asserts backward neighbor absent; teardown restores original value. | June 28, 2026 |
-    | 0.28.5 | `GET /api/match/{uuid}/locations` and `GET /api/admin/matches/{uuid}/locations` now resolve a full `card` object (`CardInfoResponse` shape) for every visited location and every neighbor — previously only `idCard` was returned — plus an optional `?lang=` query param (default `en`, fallback `en`), across all three backends, without changing the location/neighbor lookup logic. Java: `MovementPort`/`MovementService` gained a `ContentQueryPort` dependency and a `resolveCard` helper (legacy 2-arg constructor preserved for callers); `MatchLocationsResponse` builds `card` via `CardInfoResponse.fromModel`; `MovementController` and `MatchAdminController` accept `@RequestParam lang`; OpenAPI `v0.28.0-movement-api.yaml` gained the `CardInfo` schema plus `card`/`lang`. Python: `movement_service` gained an optional `story_read_port` with `_resolve_card`/`_resolve_card_text`; `scripts/seed_stories.py` adds `idCard` to the tutorial locations for parity. AWS: `_visited_locations_payload(match, match_uuid, lang)` resolves cards from `raw_cards`/`raw_texts` reusing the existing `resolve_card_from_raw` helper; `_get_locations`/`_get_admin_locations` read the `lang` query param. New Robot test file `28_movement/location_cards.robot` (5 backend-agnostic tests: card per location, card per neighbor, full CardInfo fields, `lang` param, admin view == player view). Test counts: Java `mvn clean test` BUILD SUCCESS; Python 711 pass; AWS 414 pass; react-game 477 pass (1 pre-existing unrelated turnstile-TTL failure); Robot green on all 4 environments (AWS, Java+SQLite, Java+PostgreSQL, Python). See [Step28_MovementSystem.md §12](./Step28_MovementSystem.md). | July 11, 2026 |
-    | 0.28.5 | Interactive world map (react-game): new `MapPage` component (`src/components/layout/Map.jsx`) rendered as the book's LEFT page, built from a pan/zoom SVG graph (`src/utils/mapGraph.js` — `buildMapGraph`/`edgeVisibility`) laid out via BFS on the authored directions (NORTH/SOUTH/EAST/WEST) from `GET /api/match/{uuid}/locations` + match-info. Nodes show the location photo; unvisited nodes render as a fog-of-war "?" circle; a "you are here" marker (`fa-street-view`) tags the character's current location; gold arrows distinguish two-way, one-way (dashed), and the big exits from the current location. Opened from the new `MapCard` (statistics card list) or from a "forward" arrow (new `onForward` prop on `Card.jsx`) added to `LocationCard.jsx` when the selected map node is the character's current location, re-entering normal gameplay view. Visible on both desktop and mobile. New i18n keys `game.map.*` and `card.back`/`card.forward` (en/it). react-game suite 477 pass (1 pre-existing unrelated turnstile-TTL failure). See [Step28_MovementSystem.md §13](./Step28_MovementSystem.md). | July 11, 2026 |
-    | 0.28.6 | Bugfix — fog-of-war leak on neighbor location cards: the v0.28.5 card enrichment (§ above) exposed the photo/title/description of locations that had **never been visited**, via the neighbor sub-list of `GET /api/match/{uuid}/locations` and the neighbor fallback in `GET /api/match/{uuid}/info`. Fix: a neighbor whose destination location is not in the visited set (character positions ∪ `log_movements`/`movementLog` from/to endpoints) no longer exposes that location's card. `/locations`: neighbor `idCard`+`card` set to null for unvisited destinations. `/info`: the authored LINK card (`n.idCard`) is always kept; only the fallback to the destination LOCATION's card (and therefore `cardBack`, which itself falls back to the neighbor card) is hidden. Java: `MovementService.buildLocations` and `MatchQueryService.buildLocationsActive` (new `MovementStorePort` 6th constructor arg, null-safe) gate on `findVisitedLocationIds`; `CoreConfig` updated. Python: `movement_service._build_locations` and `match_query_service._build_locations_active` (new optional `movement_store` param) gate on `find_visited_location_ids`; `launcher.py` now builds `movement_store_adapter` once and shares it with both services. AWS: `_visited_locations_payload` gates on `seen`; `_detail_from_item` computes `visited_loc_ids` (positions ∪ `movementLog` from/to) and passes it into `_build_locations_active`. OpenAPI `v0.28.0-movement-api.yaml` and `v0.19.0-match-creation-api.yaml` document the fog-of-war nullability. New Robot suite `28_movement/location_fog_of_war.robot` (4 backend-agnostic tests, tags: movement/locations/fog-of-war/step28): hides neighbor card+idCard when destination unvisited; moving into the neighbor reveals its card and it resolves via `/content`; `/info` never leaks the location card of an unvisited neighbor; admin locations view applies the same gating. Test counts: Java `mvn clean test` BUILD SUCCESS (+1 `MovementServiceTest`, +3 `MatchQueryServiceLocationsActiveTest`); Python 715 pass (+2 fog tests); AWS 416 pass (+2 fog tests); Robot dry-run 4/4. See [Step28_MovementSystem.md §14](./Step28_MovementSystem.md). | July 11, 2026 |
-    | 0.28.7 | Match Logs API: new `GET /api/matches/{uuid}/logs` (owner-only) and `GET /api/admin/matches/{uuid}/logs` (admin, no ownership check) return a consolidated, timestamp-sorted timeline of WEATHER/MOVEMENT/SLEEP/CLOCK_ADVANCE log entries (+ RECOVERY on Java/Python; AWS does not yet build RECOVERY entries — no `recoveryLog` on the match item). Sleep actions are now logged for the first time: `log_events.clock` column added (Flyway `V0.28.7__add_log_events_clock.sql`), `TurnCycleStorePort.logSleep()` called from `TimeAdvancementService.sleep()`. New Java `MatchLogs{StorePort,StoreAdapter,Port,Service,Controller}` + admin endpoint; Python mirrors in `match_logs_service.py` + both controllers; AWS adds the previously-missing API Gateway routes (`GetMatchLogsRoute`/`AdminMatchLogsRoute` in `template/match.yaml`) and `sleepLog`/log-assembly helpers in `lambda/match/handler.py`. react-admin gains a "Logs" detail tab (`MatchLogsCard.jsx`). Collateral PostgreSQL fix: `POST /api/dev/cleanup` was violating the `log_movements → gaming_character_instance` FK; fixed with `LogMovementRepository.deleteByMatchIdIn()` (Java) and an equivalent Python delete (latent under SQLite, which doesn't enforce the FK). New Robot suite `29_match_logs/match_logs.robot` (11 tests). Test counts: Java BUILD SUCCESS, Python 736 pass, AWS (unit) 428 pass, react-admin (vitest) 432 pass, Robot 432/432 on Java/SQLite, Java/PostgreSQL, Python; AWS end-to-end not yet verified (requires deploy). See [Step28_MovementSystem.md — "Step 0.28.7: Match Logs API"](./Step28_MovementSystem.md). | July 12, 2026 |
-    | 0.28.7 | Match Logs API **extended** (still v0.28.7): both endpoints are now **cursor-paginated** (`?limit=&cursor=&lang=`, default limit 50, max 200 — same opaque-token envelope as `GET /api/admin/matches`: `nextCursor`/`limit`/`total`), and the entries on each page are **enriched** — WEATHER carries its own card, MOVEMENT carries the destination location's card plus the mover's `characterUuid`/`characterName`, SLEEP/RECOVERY carry `characterUuid`/`characterName`. Java `MatchLogsService` now depends on `ContentQueryPort` and adds a base64 `offset:<n>` cursor codec; `MatchLogsStorePort` gains the weather/location/template-card and match-character lookups (run once per page, not per entry). Python `match_logs_service.py` mirrors the pagination helpers and takes a `content_query_service`. AWS `_build_match_logs` split into `_assemble_match_logs` + `_enrich_match_logs`; the AWS gap narrows (still no RECOVERY, still no numeric `idCharacterMatch`, but now has card/character enrichment). react-admin `MatchLogsCard.jsx` gains **Card** and **Character** columns and a "Load more" button (`getMatchLogs(uuid, { limit, cursor, lang })`). Collateral PostgreSQL seed fix: weather cards (`90010`-`90012`/`91010`-`91012`) and tutorial location cards (`90002`/`90003`) resolved with a null title (missing `list_texts` rows and missing `id_text_title`) — fixed in `R__insert_dev_test_data.sql`, also correcting pre-existing null titles on the weather/locations APIs on PostgreSQL. Robot suite `29_match_logs/match_logs.robot` 11 → 16 tests. Test counts: Java `mvn clean test` BUILD SUCCESS, Python 749 pass, AWS (unit) 436 pass, react-admin (vitest) 437 pass, Robot LOCAL_JAVA / LOCAL_JAVA_POSTGRES / LOCAL_PYTHON 437/437. See [Step28_MovementSystem.md — "Step 0.28.7: Match Logs API"](./Step28_MovementSystem.md). | July 12, 2026 |
+    | X.Y.Z | every step and every new vesion update this file | October 42, 2100 |
 
-- **Last Updated**: July 12, 2026 (v0.28.7)
+- **Last Updated**: July 22, 2026 (v0.31.0)
 - **Status**: In progress
 
 

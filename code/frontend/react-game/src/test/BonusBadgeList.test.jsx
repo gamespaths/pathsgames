@@ -88,3 +88,42 @@ describe('BonusBadgeList', () => {
     expect(container.querySelector('.bonus-badge-little-version')).toBeTruthy()
   })
 })
+
+// Step 34 — a carried amount is written "x2" with no glyph: the letter is already the
+// symbol, so an icon beside it would only say the same thing twice.
+describe('BonusBadgeList — icon-less badges and value prefixes', () => {
+  it('omits the icon for a key mapped to icon: null', () => {
+    const { container } = render(
+      <BonusBadgeList items={[{ key: 'amount', value: '2', prefix: 'x', label: 'x' }]} />)
+
+    expect(container.querySelector('i')).toBeNull()
+    expect(container.textContent).toContain('x2')
+  })
+
+  it('still gives every other key its icon, unknown ones included', () => {
+    const { container } = render(
+      <BonusBadgeList items={[
+        { key: 'life', value: '5', label: 'Life' },
+        { key: 'no-such-key', value: '1', label: 'Mystery' },
+      ]} />)
+
+    // one for the known key, one for the DEFAULT_VISUAL fallback
+    expect(container.querySelectorAll('i')).toHaveLength(2)
+  })
+
+  it('writes the prefix before the value without parsing it', () => {
+    // The zero-filter reads Number(value); a prefixed value would be NaN and vanish, so
+    // the prefix has to stay out of the value itself.
+    const { container } = render(
+      <BonusBadgeList items={[{ key: 'amount', value: '3', prefix: 'x', label: 'x' }]} />)
+
+    expect(container.querySelector('strong').textContent).toBe('x3')
+  })
+
+  it('leaves a badge without a prefix exactly as it was', () => {
+    const { container } = render(
+      <BonusBadgeList items={[{ key: 'life', value: '7', label: 'Life' }]} />)
+
+    expect(container.querySelector('strong').textContent).toBe('7')
+  })
+})

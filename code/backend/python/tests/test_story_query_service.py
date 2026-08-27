@@ -308,6 +308,29 @@ def test_get_story_detail_with_traits(mock_read_port):
     assert tr.costNegative == 0
     assert tr.idClassPermitted is None
     assert tr.idClassProhibited == 5
+    # v0.35.2 — a trait that authored nothing is pickable, and says so.
+    assert tr.hideOnStartMatch is False
+
+
+def test_get_story_detail_reports_a_hidden_trait_without_dropping_it(mock_read_port):
+    """v0.35.2 — hideOnStartMatch is REPORTED, never filtered: the same list resolves the
+    traits a character already owns, and an event or an item may grant a hidden one."""
+    mock_read_port.find_story_by_uuid.return_value = {"id": 1, "uuid": "u1", "id_text_title": 10}
+    mock_read_port.find_texts_for_story.return_value = [
+        {"id_text": 10, "lang": "en", "short_text": "Title"},
+    ]
+    mock_read_port.find_traits_for_story.return_value = [
+        {"id": 1, "uuid": "tr-open", "cost_positive": 0, "cost_negative": 0,
+         "hide_on_start_match": 0},
+        {"id": 2, "uuid": "tr-hidden", "cost_positive": 0, "cost_negative": 0,
+         "hide_on_start_match": 1},
+    ]
+
+    detail = StoryQueryService(mock_read_port).get_story_detail("u1", "en")
+
+    assert [t.uuid for t in detail.traits] == ["tr-open", "tr-hidden"]
+    assert [t.hideOnStartMatch for t in detail.traits] == [False, True]
+
 
 def test_get_story_detail_with_card(mock_read_port):
     mock_read_port.find_story_by_uuid.return_value = {

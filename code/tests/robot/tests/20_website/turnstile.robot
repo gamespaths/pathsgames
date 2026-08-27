@@ -25,6 +25,7 @@ Resource   ../../resources/auth.resource
 Resource   ../../resources/matches.resource
 
 Suite Setup    Suite Setup Turnstile
+Test Setup     Fresh Guest For This Test
 
 
 *** Variables ***
@@ -152,6 +153,13 @@ Get Match Info For Turnstile Created Match Returns 200
 
 
 *** Keywords ***
+
+Fresh Guest For This Test
+    [Documentation]    v0.32.1 — nearly every test here creates a match on the same
+    ...                story, and one user may own only one active match per story
+    ...                (409 ACTIVE_MATCH_ALREADY_EXISTS). Each test therefore starts
+    ...                from its own guest.
+    ${token}=    Use A Fresh Guest Token
 
 Suite Setup Turnstile
     [Documentation]    Creates a guest session and picks the first available story

@@ -410,4 +410,84 @@ class StoryControllerTest {
             verify(storyQueryPort).listStoriesByGroup("fantasy", "en");
         }
     }
+
+    // === GET /api/stories/{uuidStory}/classes/{uuidClass}/traits (Step 23) ===
+
+    @Nested
+    @DisplayName("GET /api/stories/{uuidStory}/classes/{uuidClass}/traits")
+    class TraitsForClass {
+
+        private static final String URL = "/api/stories/story-1/classes/class-1/traits";
+
+        @Test
+        @DisplayName("Should return 200 with the traits selectable for the class")
+        void traits_ok() throws Exception {
+            CardInfo card = new CardInfo("card-1", null, "https://example.com/card.png",
+                    "alt", "fa-star", "bg-primary", "text-light", null, null, null,
+                    "Card Title", null, null, null, null);
+            TraitInfo ti = TraitInfo.builder()
+                    .uuid("trait-1").name("Brave").description("Fearless")
+                    .costPositive(2).costNegative(0)
+                    .idClassPermitted(7).idClassProhibited(null)
+                    .idCard(1).card(card)
+                    .life(1).energy(2).sad(3).dexterity(4).intelligence(5).constitution(6).weight(7)
+                    .build();
+            when(storyQueryPort.listTraitsForClass("story-1", "class-1", "en"))
+                    .thenReturn(StoryQueryPort.TraitsForClassResult.ok(List.of(ti)));
+
+            mockMvc.perform(get(URL))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(1)))
+                    .andExpect(jsonPath("$[0].uuid", is("trait-1")))
+                    .andExpect(jsonPath("$[0].name", is("Brave")))
+                    .andExpect(jsonPath("$[0].card.title", is("Card Title")));
+        }
+
+        @Test
+        @DisplayName("Should return 200 with an empty list when nothing is selectable")
+        void traits_empty() throws Exception {
+            when(storyQueryPort.listTraitsForClass("story-1", "class-1", "en"))
+                    .thenReturn(StoryQueryPort.TraitsForClassResult.ok(List.of()));
+
+            mockMvc.perform(get(URL))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(0)));
+        }
+
+        @Test
+        @DisplayName("Should return 404 STORY_NOT_FOUND when the story is unknown")
+        void traits_storyNotFound() throws Exception {
+            when(storyQueryPort.listTraitsForClass("story-1", "class-1", "en"))
+                    .thenReturn(StoryQueryPort.TraitsForClassResult.storyNotFound());
+
+            mockMvc.perform(get(URL))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error", is("STORY_NOT_FOUND")))
+                    .andExpect(jsonPath("$.message", containsString("story-1")));
+        }
+
+        @Test
+        @DisplayName("Should return 404 CLASS_NOT_FOUND when the class is unknown")
+        void traits_classNotFound() throws Exception {
+            when(storyQueryPort.listTraitsForClass("story-1", "class-1", "en"))
+                    .thenReturn(StoryQueryPort.TraitsForClassResult.classNotFound());
+
+            mockMvc.perform(get(URL))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error", is("CLASS_NOT_FOUND")))
+                    .andExpect(jsonPath("$.message", containsString("class-1")));
+        }
+
+        @Test
+        @DisplayName("Should pass the requested language through")
+        void traits_lang() throws Exception {
+            when(storyQueryPort.listTraitsForClass("story-1", "class-1", "it"))
+                    .thenReturn(StoryQueryPort.TraitsForClassResult.ok(List.of()));
+
+            mockMvc.perform(get(URL).param("lang", "it"))
+                    .andExpect(status().isOk());
+
+            verify(storyQueryPort).listTraitsForClass("story-1", "class-1", "it");
+        }
+    }
 }

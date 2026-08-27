@@ -80,6 +80,14 @@ public class GamingCharacterInstanceEntity extends AbstractMatchScopedEntity {
     @Column(name = "counter_consecutive_pass", nullable = false)
     private Integer counterConsecutivePass;
 
+    /** Experience points: written by Step 29 event effects, spent in Step 37. */
+    @Column(nullable = false)
+    private Integer exp;
+
+    /** CSV of characteristics granted/removed by event effects (Step 29). See MatchTraitCodec. */
+    @Column(name = "characteristics")
+    private String characteristics;
+
     @PrePersist
     protected void onCreate() {
         applyUuidAndTimestamps();
@@ -97,6 +105,7 @@ public class GamingCharacterInstanceEntity extends AbstractMatchScopedEntity {
         if (isComa == null) isComa = false;
         if (clockInComa == null) clockInComa = 0;
         if (counterConsecutivePass == null) counterConsecutivePass = 0;
+        if (exp == null) exp = 0;
     }
 
     @PreUpdate
@@ -112,6 +121,12 @@ public class GamingCharacterInstanceEntity extends AbstractMatchScopedEntity {
 
     public Long getIdClass() { return idClass; }
     public void setIdClass(Long idClass) { this.idClass = idClass; }
+
+    public Integer getExp() { return exp; }
+    public void setExp(Integer exp) { this.exp = exp; }
+
+    public String getCharacteristics() { return characteristics; }
+    public void setCharacteristics(String characteristics) { this.characteristics = characteristics; }
 
     public Integer getDexterity() { return dexterity; }
     public void setDexterity(Integer dexterity) { this.dexterity = dexterity; }

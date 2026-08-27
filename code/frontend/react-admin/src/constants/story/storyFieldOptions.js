@@ -26,10 +26,13 @@ export const CARD_TYPE_OPTIONS = mapOptions([
   'missionStep',
 ])
 
+// NORMAL and ONCE are the player-executable ones; AUTOMATIC and FIRST are engine-driven.
+// ONCE is per-MATCH: once triggered, it stays spent for the rest of that match (Step 29).
 export const EVENT_TYPE_OPTIONS = mapOptions([
   'AUTOMATIC',
   'FIRST',
   'NORMAL',
+  'ONCE',
 ])
 
 export const EVENT_EFFECT_TARGET_OPTIONS = mapOptions([
@@ -47,6 +50,52 @@ export const POSSIBLE_STATISTICS_OPTIONS = mapOptions([
   'COINS',
   'TIME',
 ])
+
+// The statistics the Step 29 event engine actually understands — the vocabulary of the
+// list_events_effects.statistics column. Anything else is silently dropped at execution,
+// which is why event-effects do NOT reuse POSSIBLE_STATISTICS_OPTIONS above: that list
+// offers DEXTERITY/INTELLIGENCE/CONSTITUTION/COINS/TIME, none of which the engine matches.
+// LIFE, ENERGY and SAD are clamped to their max; the rest never go below zero.
+export const EVENT_EFFECT_STATISTICS_OPTIONS = mapOptions([
+  'LIFE',
+  'ENERGY',
+  'SAD',
+  'EXP',
+  'DEX',
+  'INT',
+  'COS',
+  'FOOD',
+  'MAGIC',
+  'COIN',
+])
+
+// v0.35.0 — the vocabulary of list_items_effects.effect_code. Same ten tokens the event
+// engine acts on (EffectStatCodec.KNOWN), because item usage runs through the SAME
+// applyStat: an unknown code is dropped in silence, so a free-text field could only
+// produce effects that never fire. LIFE/ENERGY are clamped to their max, SAD goes through
+// the Step 30 overflow check, FOOD/MAGIC/COIN live on the backpack, the rest never go
+// below zero.
+//
+// The two aliases are listed LAST and labelled as such: EffectStatCodec still translates
+// SADNESS -> sad and COINS -> coin, and stories authored before v0.34.0 (the seeds among
+// them) hold those spellings — without the option the select would render blank on a row
+// that works perfectly well.
+export const ITEM_EFFECT_CODE_OPTIONS = [
+  ...mapOptions([
+    'LIFE',
+    'ENERGY',
+    'SAD',
+    'EXP',
+    'DEX',
+    'INT',
+    'COS',
+    'FOOD',
+    'MAGIC',
+    'COIN',
+  ]),
+  { value: 'SADNESS', label: 'SADNESS (alias of SAD)' },
+  { value: 'COINS', label: 'COINS (alias of COIN)' },
+]
 
 export const ITEM_ACTION_OPTIONS = mapOptions([
   'REMOVE',

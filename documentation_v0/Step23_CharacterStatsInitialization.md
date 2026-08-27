@@ -75,6 +75,11 @@ Filter rule: a trait is included when **both** conditions hold:
 - `idClassPermitted` is `NULL` **or** equals the resolved class id.
 - `idClassProhibited` is `NULL` **or** differs from the resolved class id.
 
+**v0.35.2:** `hideOnStartMatch` plays **no part** in this filter and is not filtered
+anywhere on the server. A trait flagged `hideOnStartMatch = true` is still returned,
+same as every other trait — see §5.3 for why (the same array is what resolves the
+traits a character already owns).
+
 | HTTP status | Condition |
 |-------------|-----------|
 | `200`       | Array of `TraitInfo` (see §3) |
@@ -119,6 +124,7 @@ Validation order:
 | `TRAIT_DUPLICATED` | The same trait uuid appears more than once in the selected list. |
 | `TRAIT_NOT_COMPATIBLE` | The trait has `idClassPermitted` set and it differs from the selected class (or no class is selected), **or** `idClassProhibited` equals the selected class. |
 | `TRAIT_COST_EXCEEDED` | The sum of `costPositive` across selected traits exceeds `difficulty.traitCostPositiveBudget`, **or** the sum of `costNegative` exceeds `difficulty.traitCostNegativeBudget`.  The two budgets are checked independently.  A `NULL` budget means no limit. |
+| `TRAIT_NOT_SELECTABLE` | **v0.35.2.** The resolved trait has `hideOnStartMatch = true`. It cannot be chosen at match creation or on join, even though the listing endpoint and the story detail both return it (see §5.3). An event or an item effect can still grant it via `traitsToAdd` at any time — this code only blocks *picking* it. |
 
 ---
 
@@ -137,6 +143,7 @@ Validation order:
   "idClassProhibited": null,
   "idCard": 42,
   "card": { /* CardInfoResponse */ },
+  "hideOnStartMatch": false,
   "life": 0,
   "energy": 0,
   "sad": 0,
@@ -146,6 +153,9 @@ Validation order:
   "weight": 0
 }
 ```
+
+`hideOnStartMatch` (boolean, **v0.35.2**) is `true` when `list_traits.hide_on_start_match = 1`
+— the trait is reported but cannot be selected at character creation; see §5.3.
 
 ### 3.2 `DifficultyInfo` / `DifficultyResponse` (extended)
 
@@ -165,7 +175,7 @@ Step 22 validator's `R6_STAT_RANGE` rule enforces non-negative values when prese
 
 | DTO | File (adapter-rest) | Purpose |
 |-----|---------------------|---------|
-| `TraitInfoResponse` | `dto/TraitInfoResponse.java` | Single element in the trait listing array |
+| `TraitInfoResponse` | `dto/TraitInfoResponse.java` | Single element in the trait listing array; gains `hideOnStartMatch` (v0.35.2) |
 | `DifficultyResponse` | `dto/DifficultyResponse.java` | Extended with `traitCostPositiveBudget` / `traitCostNegativeBudget` |
 
 ### 3.4 Java Core Domain Models
@@ -177,7 +187,15 @@ Step 22 validator's `R6_STAT_RANGE` rule enforces non-negative values when prese
 
 New exception codes added to `CharacterJoinException.Code` and
 `MatchCreationException.Code`: `TRAIT_NOT_FOUND`, `TRAIT_DUPLICATED`,
-`TRAIT_NOT_COMPATIBLE`, `TRAIT_COST_EXCEEDED`.
+`TRAIT_NOT_COMPATIBLE`, `TRAIT_COST_EXCEEDED`. **v0.35.2** adds a fifth code,
+`TRAIT_NOT_SELECTABLE` (see §2.4, §5.3, §6.2), to both enums plus their Python and
+AWS twins.
+
+`TraitEntity` also gains, in v0.35.2, an `Integer hideOnStartMatch` field and a
+`isHiddenOnStartMatch()` helper (`core/.../entity/story/TraitEntity.java`) — only an
+explicit `1` reads as hidden, so a `NULL` row authored before the column existed still
+reads as pickable, the same convention `id_class_permitted` already uses. `TraitInfo`
+(model) mirrors it as a plain `boolean hideOnStartMatch`.
 
 ---
 
@@ -225,6 +243,40 @@ default, making the migration fully backward-compatible.
 
 All other tables involved in character creation remain as documented in Step 21.
 
+### 5.3 Schema change — `list_traits.hide_on_start_match` (v0.35.2)
+
+One new nullable `INTEGER` column, default `0`. `NULL` and `0` mean the same thing —
+pickable — the reading `id_class_permitted` already established; only an explicit `1`
+hides the trait.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `hide_on_start_match` | INTEGER (nullable, default `0`) | `1` = never offered and never selectable at character creation; `0`/`NULL` = pickable, i.e. every trait as it behaved before this column existed |
+
+The flag blocks **choosing** the trait, not **owning** it: an event or an item
+effect's `traits_to_add` (Step 34 §4c) can grant a hidden trait at any moment, and
+once granted it appears in the character's active-trait list exactly like any other
+— that is the feature's whole point (the curse you catch, not the one you pick).
+
+Because of that, **neither API projection filters it out**: `GET
+/api/stories/{uuidStory}/classes/{uuidClass}/traits` (§2.1) and the story detail's
+`traits[]` array both keep returning a hidden trait, flag included. The story detail
+array is also what react-game resolves an *owned* trait against
+(`resolveSelectionEntity`, `trait → storyList: 'traits'` in
+`code/frontend/react-game/src/utils/gamebook.jsx`, read by
+`code/frontend/react-game/src/features/gameplay/cards/PlayerCards.jsx`); filtering it
+server-side would have hidden a trait a character had actually been granted. The lock
+is enforced instead by the shared validator (§6.2, `TRAIT_NOT_SELECTABLE`) and, for
+UX only, by a single react-game picker (§9.1).
+
+**Java (SQLite):** `adapter-sqlite/src/main/resources/db/migration/v0/V0.35.2__add_trait_hide_on_start_match.sql`
+
+**Java (PostgreSQL):** `adapter-postgres/src/main/resources/db/migration/v0/V0.35.2__add_trait_hide_on_start_match.sql` (adds a `COMMENT ON COLUMN` as well)
+
+**Python:** `TraitEntity.hide_on_start_match` in `app/adapters/persistence/story/models.py`; read by `_trait_to_dict` in `story_match_read_adapter.py` (the validator's source) and by the generic story read adapter; mapped on import in `story_persistence_adapter.save_traits`.
+
+**AWS:** `hideOnStartMatch` embedded on both the public trait projection and the stored `STORY#` item's trait list in `lambda/story/handler.py`.
+
 ---
 
 ## 6. Business Logic
@@ -256,11 +308,15 @@ Validation steps (applied in order):
 2. **`TRAIT_NOT_FOUND`** — each remaining uuid must resolve to a `list_traits` row
    within the story.  Unknown uuids cause immediate `400`.
 3. **`TRAIT_DUPLICATED`** — after resolution the uuid list must be distinct.
-4. **`TRAIT_NOT_COMPATIBLE`** — for every resolved trait:
+4. **`TRAIT_NOT_SELECTABLE`** (v0.35.2) — the resolved trait's `hideOnStartMatch`
+   must be `false`. Checked immediately after the trait is resolved, before the
+   class-compatibility rule below, so a hidden trait never gets as far as a
+   compatibility check.
+5. **`TRAIT_NOT_COMPATIBLE`** — for every resolved trait:
    - If `idClassPermitted` is set and does not equal the resolved class id (or no
      class is selected) → `TRAIT_NOT_COMPATIBLE`.
    - If `idClassProhibited` equals the resolved class id → `TRAIT_NOT_COMPATIBLE`.
-5. **`TRAIT_COST_EXCEEDED`** — compute Σ `costPositive` and Σ `costNegative` over
+6. **`TRAIT_COST_EXCEEDED`** — compute Σ `costPositive` and Σ `costNegative` over
    resolved traits.  If `difficulty.traitCostPositiveBudget` is non-null and the sum
    exceeds it → `TRAIT_COST_EXCEEDED`.  Same for the negative budget.  The two
    budgets are independent.
@@ -281,6 +337,78 @@ budget values are available.
    - Include when `idClassPermitted IS NULL OR idClassPermitted = resolvedClassId`.
    - **AND** `idClassProhibited IS NULL OR idClassProhibited != resolvedClassId`.
 5. Return the filtered list as `TraitInfo` / `TraitsForClassResult`.
+
+### 6.4 Trait stat deltas apply on grant, not only at creation (v0.35.2)
+
+Until this version a trait's stat deltas (`life`, `energy`, `sad`, `dexterity`,
+`intelligence`, `constitution`, `weight` — §6.1) were read exactly once, by
+`CharacterCommandService.buildInstance` at character creation, where they are summed
+into `lifeMax`/`energyMax`/`sadMax`/`weightMax` and into the three uncapped
+characteristics. A trait granted mid-match by an event's `traits_to_add`
+([Step29_NormalEvents.md](./Step29_NormalEvents.md#effects)) or an item effect's
+`traits_to_add`/`traits_to_remove`
+([Step35_ItemsResolution.md §4](./Step35_ItemsResolution.md#4-reference-for-story-authors--how-a-list_items_effects-row-actually-behaves))
+wrote only its `gaming_character_traits` row: nothing recomputed the maxima or the
+current values, so a trait card promising "+2 life" — react-game renders that promise
+straight from the story data — left the life bar exactly where it was.
+
+**Fix** — the same code path that grants/removes a trait now calls a sibling that
+applies the trait's own stat deltas the moment it lands, and reverses them the moment
+it is removed:
+
+| Backend | Grant/remove | Stat-delta step |
+|---------|--------------|------------------|
+| Java | `EventExecutionService.applyTraits` | `EventExecutionService.applyTraitStats` |
+| Python | `EventService._apply_traits` | `EventService._apply_trait_stats` |
+| AWS | `events.apply_traits` | `events.apply_trait_stats` |
+
+**Why summing the delta is exact, not an approximation**: every maximum is a plain sum
+— template + class + difficulty + Σ traits + class bonuses (§6.1) — so adding one
+trait's own delta to the already-persisted maximum gives precisely what a full
+recomputation would, without reloading that graph. The step takes a `sign` (`+1` on
+grant, `-1` on removal), so concession and removal are the same code and exact
+inverses.
+
+**Three different rules, by design, not by oversight**:
+
+- `life` and `energy` **follow their ceiling**: a character is created full, so a `+2
+  life` trait heals 2 on arrival and losing the trait takes 2 back — the current value
+  moves by the same signed delta as the maximum.
+- `sad` does **not** follow its ceiling: a character is created at `0` sadness, so a
+  trait that widens `sadMax` is opening room, not making anyone sadder. Only the
+  ceiling moves; the current value is re-clamped afterwards (Java `c.setSad(c.sad)`,
+  Python `live.set_sad(live.sad)`, AWS's own clamp) in case a removal just brought the
+  ceiling below where the value already sat.
+- `dexterity`, `intelligence` and `constitution` have no ceiling at all, so their
+  delta lands directly on the current value.
+
+Every one of the five moved stats (`life`, `energy`, `dex`, `int`, `cos`) goes through
+the same `applyStat`/`apply_stat` any other effect uses, so clamping, `statChanges`
+reporting and the Step 30 edge-state gates apply exactly as for a normal event effect.
+A trait id with no matching `list_traits` row in the story is treated as authored
+noise and skipped — not an error.
+
+**Internal contract, no public API and no migration** (the four maxima columns already
+exist on `gaming_character_instance` — §5.1):
+
+- Java's `EventExecutionStorePort.CharacterStats` gains `lifeMax`/`energyMax`/
+  `sadMax`/`weightMax`; `EventExecutionStoreAdapter.updateCharacterStats` now writes
+  all four on every flush.
+- Java's `EventExecutionStorePort.EventActorView` gains `weightMax`.
+- New read `findTraitStatsById(idStory)` (Java) / `find_trait_stats_by_id` (Python)
+  returns every trait's stat row for the story, cached once per execution alongside
+  the trait-uuid map (Java `Exec.traitStats()`, Python `_Exec.trait_stats()`) — one
+  query per execution, not one per trait. AWS has no such query to cache: the whole
+  story is already one in-memory dict, and `handler.py`'s new `_traits_by_id(story)`
+  just re-keys it by id at each call site.
+- Java's in-memory `Live` class: `energyMax`/`lifeMax`/`sadMax`/`weightMax` are no
+  longer `final` — a trait granted mid-execution has to move them within the same
+  `Exec`.
+
+**Test coverage** (unit, all three backends, 9 new tests): a grant that moves both the
+maximum and the current value; a grant followed by a removal in the same execution
+that returns every figure to where it started; a trait id with no matching story row.
+Java `mvn test`: BUILD SUCCESS. Python: 1290 passed. AWS: 774 passed.
 
 ---
 
@@ -366,7 +494,28 @@ traits.
 
 **`StartMatchFlow`** — sends all selected trait uuids in the join request payload.
 
-Vitest result: **267 passed** (new `src/test/traitBudget.test.js`).
+**v0.35.2 — hidden traits kept out of the picker (`features/start-book/StartBookModal.jsx`):**
+two new pure helpers in `traitBudget.js`, `selectableTraits(traits)` (filters out
+`hideOnStartMatch === true`) and `isTraitHiddenOnStartMatch(trait)`, are used in three
+places:
+
+1. `getOptionsForType('trait', story)` calls `selectableTraits` so `OptionPicker` never
+   lists a hidden trait.
+2. `buildInitialConfig(story)` preselects the **first selectable** trait, not
+   `traits[0]`. This was the actual trap: if a hidden trait happened to sort first, the
+   initial loadout would have armed itself with a trait the picker never shows and the
+   player can't remove, and `join` would then be rejected by `TRAIT_NOT_SELECTABLE`.
+3. Class-change revalidation drops hidden traits from the selection alongside
+   traits that became class-incompatible.
+
+The filter lives only in these three call sites — never on the shared `story.traits`
+array itself, because that same array is what resolves a character's already-owned
+traits (§5.3).
+
+Vitest result: **267 passed** (v0.23.0, new `src/test/traitBudget.test.js`); the
+v0.35.2 helpers and picker scenarios are covered in the same file and in
+`src/test/StartBookModalCoverage.test.jsx`, part of the full react-game suite
+(853 passed as of v0.35.2).
 
 ### 9.2 react-admin: difficulty budget fields (v0.23.0)
 
@@ -381,7 +530,22 @@ gains two new fields:
 Both fields are rendered as optional numeric inputs in the difficulty create/edit
 forms and as columns in the difficulty list.
 
-Vitest result: **269 passed**.
+Vitest result: **269 passed** (v0.23.0).
+
+### 9.3 react-admin: `hideOnStartMatch` checkbox on the trait form (v0.35.2)
+
+`src/constants/story/storiesEntities.jsx` — the `traits` entity definition gains a
+checkbox field, placed right after `costNegative`:
+
+| Field key | Label | Type |
+|-----------|-------|------|
+| `hideOnStartMatch` | `Hide On Start Match` | `checkbox` |
+
+Hidden traits stay **visible in the editor** — this is the authoring tool, so an
+author must be able to see and edit every trait regardless of the flag; only the
+react-game start-match picker (§9.1) hides them from a player. Covered in
+`src/tests/constants/storiesEntities.test.js`, part of the full react-admin suite
+(646 passed as of v0.35.2).
 
 ---
 
@@ -407,6 +571,17 @@ Updated: `tests/19_match/match_creation.robot` — the "Create Match With Loadou
 Persists…" test now passes a real seed trait uuid.  Bogus trait uuids that Step 21
 silently ignored now return `400` and the test is updated accordingly.
 
+**v0.35.2 — hidden traits, 5 new cases in the same suite:** the API keeps returning
+a hidden trait, flag included, on both the class-filtered listing and the story
+detail; selecting one is refused with `TRAIT_NOT_SELECTABLE` on both the creator
+loadout and join (same shared validator, both doors); a trait without the flag stays
+pickable. The hidden trait is located by behaviour (`hideOnStartMatch: true` in the
+response), not by a hardcoded uuid. The shared `Pick Story Loadout` keyword in
+`code/tests/robot/resources/matches.resource` now skips any flagged trait when
+picking a default `traitUuid` — every suite that mints a character through that
+keyword inherits the guard rather than each one adding it. See
+`.claude/docs/robot-suites.md` for the full breakdown.
+
 ### 10.1 Test cases
 
 | Test case | Assertions |
@@ -421,6 +596,11 @@ silently ignored now return `400` and the test is updated accordingly.
 | Positive budget exceeded | 400 with code `TRAIT_COST_EXCEEDED` |
 | Negative budget exceeded | 400 with code `TRAIT_COST_EXCEEDED` |
 | Create match loadout `TRAIT_NOT_FOUND` | 400 with code `TRAIT_NOT_FOUND` |
+| Listing reports `hideOnStartMatch` (v0.35.2) | Every trait in the class-filtered listing carries the key; the hidden one is `true` |
+| Story detail reports `hideOnStartMatch` (v0.35.2) | Same key present on `traits[]` in `GET /api/stories/{uuid}` |
+| Join with a hidden trait (v0.35.2) | 400 with code `TRAIT_NOT_SELECTABLE` |
+| Create match loadout with a hidden trait (v0.35.2) | 400 with code `TRAIT_NOT_SELECTABLE` |
+| Non-hidden trait stays selectable (v0.35.2) | Join succeeds with a trait whose `hideOnStartMatch` is `false` |
 
 Scenarios the seed cannot express are skipped via `Pass Execution` (backend-agnostic
 design).
@@ -445,6 +625,14 @@ Seed data highlights:
 - Traits 90004 / 90005 — `cost_negative = 2`; stat deltas: `life −2` / `energy −2`.
 - AWS seed names: `tr-tut-quick` (permitted class 2), `tr-tut-resilient` (prohibited
   class 1), `tr-tut-frail` / `tr-tut-weary` (negative cost).
+- **Trait "Scroll-Touched" (v0.35.2)** — `hide_on_start_match = 1`; java id `90006`,
+  AWS `tr-tut-scroll-touched` (id `6`), python the third trait in the list. The Guide
+  Scroll item effect that used to grant trait 1 now grants this hidden one instead
+  (`traits_to_add` / `traitsToAdd`), so the seed demonstrates the whole use case
+  end-to-end: not selectable at start, obtained by using an item, then visible among
+  the character's active traits. See
+  [Step35_ItemsResolution.md](./Step35_ItemsResolution.md#4-reference-for-story-authors--how-a-list_items_effects-row-actually-behaves)
+  for the item-effects side of this seed row.
 
 ### 10.3 Full suite results
 
@@ -454,6 +642,12 @@ Seed data highlights:
 | Java + PostgreSQL | 288 | 288 |
 | Python | 288 | 288 |
 | AWS | not run (deploy requires confirmation) | — |
+
+**v0.35.2:** `--dryrun` across all suites reports 567/567. The last live run against a
+started backend **failed**, tracked to the `Step23Helper.py` predicate split (§10.4);
+the fix is in, but the suite has not been re-run since, so treat it as pending
+re-verification, not as green. This table still reflects the last full run recorded
+for Step 23 (v0.23.x).
 
 ```bash
 # Java + SQLite (from repo root)
@@ -469,15 +663,33 @@ code/script/dev/run_robots/run_robot_with_local_python.sh
 
 Reports are written to the respective `reports-local-*/report.html` folder.
 
+### 10.4 Helper predicate split (v0.35.2)
+
+`Step23Helper.py` used a single predicate, `_is_selectable`, to answer two different
+questions, and v0.35.2 splits them apart: `_is_selectable(trait, classId)` now means
+**only** the class gates (`idClassPermitted`/`idClassProhibited`) — exactly what `GET
+/classes/{uuid}/traits` answers, which deliberately keeps returning a hidden trait
+(§5.3) because the same list resolves a character's already-owned traits. The new
+`_is_pickable(trait, classId)` adds the "not hidden" check and is what any scenario
+that goes on to `join` must build its selection from — `pickable_trait_uuids` sits
+next to the existing `filtered_trait_uuids`. `Pick Story Loadout` in
+`code/tests/robot/resources/matches.resource` — the shared keyword every suite uses to
+mint a joinable character — now builds its default `traitUuid` from the pickable set
+too, so a hidden trait can never be handed out as part of a default loadout.
+
 ---
 
 ## 11. Per-backend Implementation Table
 
 | Backend | Trait listing | Trait validator | Wiring (create + join) | REST route |
 |---------|---------------|-----------------|------------------------|------------|
-| Java | `StoryQueryService.listTraitsForClass` + `StoryQueryPort.TraitsForClassResult` | `core/.../service/match/TraitSelectionValidator` | `CharacterCommandService.resolveAndValidateTraits`; `MatchCommandService.validateCreatorTraitSelection` | `StoryController` new GET; `CharacterController` + `MatchController` map 4 codes → 400 |
-| Python | `story_query_service.list_traits_for_class` | `app/core/services/match/trait_selection_validator.py` | `character_command_service.py` + `match_command_service.py` | `story_controller` new route; controller status maps → 400 |
-| AWS | `lambda/story/handler.py` `list_traits_for_class` + `_trait_detail` | `lambda/match/handler.py` `_resolve_and_validate_traits` (shared) | `_create_match` + `_join_match` | `template/story.yaml` `ListTraitsForClassRoute`; `lambda/seed/handler.py` enriched seeds |
+| Java | `StoryQueryService.listTraitsForClass` + `StoryQueryPort.TraitsForClassResult` | `core/.../service/match/TraitSelectionValidator` | `CharacterCommandService.resolveAndValidateTraits`; `MatchCommandService.validateCreatorTraitSelection` | `StoryController` new GET; `CharacterController` + `MatchController` map 5 codes → 400 (v0.35.2 adds `TRAIT_NOT_SELECTABLE`) |
+| Python | `story_query_service.list_traits_for_class` | `app/core/services/match/trait_selection_validator.py` | `character_command_service.py` + `match_command_service.py` | `story_controller` new route; controller status maps → 400 (5 codes, v0.35.2) |
+| AWS | `lambda/story/handler.py` `list_traits_for_class` + `_trait_detail` | `lambda/match/handler.py` `_resolve_and_validate_traits` (shared) | `_create_match` + `_join_match` | `template/story.yaml` `ListTraitsForClassRoute`; `lambda/seed/handler.py` enriched seeds (5 codes, v0.35.2) |
+
+Every column above is unchanged in shape by v0.35.2 — the same validator, the same
+wiring, the same routes — because `TRAIT_NOT_SELECTABLE` is one more rule inside the
+existing shared validator (§6.2), not a new code path.
 
 ---
 
@@ -500,14 +712,17 @@ Reports are written to the respective `reports-local-*/report.html` folder.
   a page to import a new story. a page to admin/list/change match with full detail page. and search if there are others page there are in react-admin and add it to new project.
 
   ```
-- **Document Version**: 0.23.1
+- **Document Version**: 0.35.2
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.23.0 | Character stats initialization — class-filtered trait listing, strict trait validation (TRAIT_NOT_FOUND/DUPLICATED/NOT_COMPATIBLE/COST_EXCEEDED) on match create/join, difficulty cost budgets, dev seeds, robot suite 23_trait_selection | June 11, 2026 |
     | 0.23.1 | added sections documenting Python and AWS alternative backends | June 11, 2026 |
+    | 0.35.2 | New `list_traits.hide_on_start_match` flag: a trait can be made unpickable at character creation (`TRAIT_NOT_SELECTABLE`) while remaining grantable via `traits_to_add` — see §5.3, §6.2, §9.1-§9.3, §10. | August 22, 2026 |
+    | 0.35.2 | Bugfix: a trait's stat deltas now apply the moment it is granted or removed mid-match, not only at character creation — a trait handed out by an event or item used to leave the life/energy/sad/dex/int/con/weight bars untouched. See §6.4. | August 22, 2026 |
+    | 0.35.2 | Robot `Step23Helper.py` splits `_is_selectable` (class gates only) from new `_is_pickable` (class gates + not hidden); `Pick Story Loadout` now builds its default trait from the pickable set — see §10.4. | August 22, 2026 |
 
 
-- **Last Updated**: June 12, 2026
+- **Last Updated**: August 22, 2026
 - **Status**: Complete
 
 

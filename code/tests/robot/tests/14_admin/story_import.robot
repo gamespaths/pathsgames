@@ -419,12 +419,15 @@ Import Explicit ID For list_items Returns 201
     ...    {"id":971011,"weight":1,"isConsumabile":1}
 
 Import Explicit ID For list_choices Returns 201
-    [Documentation]    Import accepts explicit id for list_choices rows.
+    [Documentation]    Import accepts explicit id for list_choices rows. Step 31: a choice must
+    ...                belong to an event (R8), so the payload carries the owning event too.
     [Tags]    admin    step14
-    Import With Explicit List Entity Id
-    ...    6ccccccc-cccc-4ccc-8ccc-cccccccccccc
-    ...    choices
-    ...    {"id":971012,"priority":0,"otherwiseFlag":1,"isProgress":0}
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"6ccccccc-cccc-4ccc-8ccc-cccccccccccc","author":"robot-explicit-id",
+    ...    "events":[{"id":1,"type":"NORMAL"}],
+    ...    "choices":[{"id":971012,"idEvent":1,"priority":0,"otherwiseFlag":1,"isProgress":0}]}
+    Import Payload Should Return 201 And Cleanup
+    ...    ${payload}    6ccccccc-cccc-4ccc-8ccc-cccccccccccc
 
 Import Explicit ID For list_weather_rules Returns 201
     [Documentation]    Import accepts explicit id for list_weather_rules rows.

@@ -87,6 +87,22 @@ class MatchPersistenceAdapter(MatchPersistencePort):
             )
             return [self._match_to_dict(r) for r in rows]
 
+    def has_active_match_for_story(self, user_id: int, story_id: int,
+                                   statuses) -> bool:
+        # v0.32.1 — duplicate-match guard. Only the existence matters, so the
+        # query stops at the first row instead of materialising the whole list.
+        if user_id is None or story_id is None or not statuses:
+            return False
+        with self.session_factory() as session:
+            row = (
+                session.query(GamingMatchEntity.id)
+                .filter(GamingMatchEntity.id_user_creator == user_id)
+                .filter(GamingMatchEntity.id_story == story_id)
+                .filter(GamingMatchEntity.status.in_(list(statuses)))
+                .first()
+            )
+            return row is not None
+
     def find_all_matches(self) -> List[Dict[str, Any]]:
         with self.session_factory() as session:
             rows = (
@@ -142,6 +158,7 @@ class MatchPersistenceAdapter(MatchPersistencePort):
                     id_location=r["id_location"],
                     uuid=_new_uuid(),
                     flag_already_actived=r.get("flag_already_actived", 0),
+                    flag_visited=r.get("flag_visited", 0),
                     clock_counter=r.get("clock_counter", 0),
                     ts_insert=now,
                     ts_update=now,
@@ -181,6 +198,7 @@ class MatchPersistenceAdapter(MatchPersistencePort):
                     "id_location": r.id_location,
                     "uuid": r.uuid,
                     "flag_already_actived": r.flag_already_actived,
+                    "flag_visited": r.flag_visited or 0,
                     "clock_counter": r.clock_counter or 0,
                 }
                 for r in rows

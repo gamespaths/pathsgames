@@ -11,7 +11,9 @@
     "loading": "Loading stories…",
     "noStories": "No stories available.",
     "badgeResume": "Resume",
-    "badgeCompleted": "Completed"
+    "badgeCompleted": "Completed",
+    "badgePaused": "Paused",
+    "matchesError": "Your matches could not be loaded, so a new adventure cannot be started right now."
   },
   "antibot": {
     "blocked": "Antibot activated — these adventures are only for humans!",
@@ -100,15 +102,18 @@
         "exp": "XP"
       }
     },
-    "map": "Map"
+    "map": "Map",
+    "automatic-event": "Event",
+    "automatic-event-done": "Continue"
   },
   "startMatch": {
     "starting": "Starting match…",
     "creating": "Creating the match…",
     "joining": "Joining your character…",
     "running": "Bringing the match to life…",
-    "created": "Match created, the story book is loading…",
+    "created": "Match created, book is loading…",
     "error": "The match could not be created.",
+    "errorActiveMatch": "You already have a match in progress for this story. Resume it from your matches.",
     "retry": "Try again",
     "home": "Back to home"
   },
@@ -117,7 +122,7 @@
     "loading": "Loading matches…",
     "noMatches": "No matches yet. Start an adventure!",
     "unknownStory": "Unknown story",
-    "resume": "Resume",
+    "resume": "Play",
     "statusLabel": "Status",
     "created": "Started",
     "clock": "Clock",
@@ -144,7 +149,13 @@
       "MOVEMENT": "Movement",
       "SLEEP": "Sleep",
       "CLOCK_ADVANCE": "Time passes",
-      "RECOVERY": "Recovery"
+      "RECOVERY": "Recovery",
+      "EVENT": "Event",
+      "COUNTER_ZERO": "Time ran out",
+      "AUTOMATIC_EVENT": "Event",
+      "ITEM_ADD": "Item found",
+      "ITEM_USE": "Item used",
+      "ITEM_DROP": "Item left behind"
     }
   },
   "card": {
@@ -162,6 +173,10 @@
     "actions": "Actions",
     "exitToHome": "Exit to Home",
     "story": "Story",
+    "loadingCard": {
+      "title": "Loading…",
+      "description": "Please wait while we prepare your adventure."
+    },
     "stats": {
       "life": "Life",
       "energy": "Energy",
@@ -174,7 +189,21 @@
       "items": "Items",
       "dexterity": "Speed",
       "intelligence": "Smart",
-      "constitution": "Physique"
+      "constitution": "Physique",
+      "descriptions": {
+        "clock": "The time gone by in the game world.",
+        "life": "At zero you fall into a coma and need help.",
+        "energy": "Spent moving and acting. Recovered by sleeping.",
+        "sadness": "The higher it goes, the harder the choices get.",
+        "weight": "How much is carried against can carry.",
+        "experience": "Experience earned along the adventure.",
+        "food": "Supplies in the bag: spent by some actions.",
+        "magic": "Spent on spells and by some actions.",
+        "coins": "Spent buying and by some actions.",
+        "dexterity": "The character's dexterity: in agility checks.",
+        "intelligence": "The character's intelligence: in wit checks.",
+        "constitution": "The character's constitution: in endurance checks."
+      }
     },
     "move": "Move Here",
     "execute": "Execute",
@@ -217,6 +246,65 @@
       "unsafeLocation": "You are not in a safe location. You recover ",
       "safeLocation": "You are in a safe location. You recover "
     },
+    "sad": {
+      "title": "Sadness over limit",
+      "description": "Your sadness reached its limit. You lose life points equal to your constitution, your sadness resets to zero and you are forced to sleep.",
+      "close": "Close"
+    },
+    "coma": {
+      "title": "You're in a coma",
+      "description": "Your life reached zero. <br /><br />You cannot act and you cannot move until another character rescues you or you get sleeping in a safe location. <br /><br />When all players in a game are in a coma, a special event occurs: could be Game over.",
+      "close": "Close"
+    },
+    "allComa": {
+      "title": "Everyone has fallen",
+      "description": "Every character is in a coma. Nobody can act any more. When all players have zero health, they fall into a coma. When all players in a game are in a coma, a special event occurs: could be Game over."
+    },
+    "choices": {
+      "title": "Choose your path",
+      "hint": "You have already paid to open this. Choose an option, or walk away — the toll stays paid.",
+      "do": "Do",
+      "doNothing": "Do nothing",
+      "unavailable": "Unavailable",
+      "resolving": "Loading",
+      "error": {
+        "CHOICE_NOT_OPEN": "This event is no longer open — reopen it to choose again.",
+        "CHOICE_NOT_AVAILABLE": "That option is no longer possible.",
+        "CHOICE_NOT_FOUND": "That option does not exist in this story.",
+        "SLEEPING": "You are asleep and cannot choose.",
+        "COMA": "You are in a coma and cannot choose."
+      },
+      "reason": {
+        "LIMIT_SAD_EXCEEDED": "Too sad",
+        "LIMIT_DEX_NOT_MET": "Dexterity",
+        "LIMIT_INT_NOT_MET": "Intelligence",
+        "LIMIT_COS_NOT_MET": "Constitution",
+        "CONDITION_KEYS_NOT_MET": "Not yet",
+        "CONDITION_ITEM_NOT_MET": "Item",
+        "CONDITION_CLASS_NOT_MET": "Class",
+        "CONDITION_LOCATION_NOT_MET": "Elsewhere",
+        "CONDITION_ALL_IN_SAME_LOC_NOT_MET": "Party",
+        "CONDITION_TRAITS_NOT_MET": "Trait",
+        "CONDITION_STATISTICS_NOT_MET": "Stats",
+        "CONDITION_STATISTICS_SUM_NOT_MET": "Party stats",
+        "CONDITIONS_NOT_MET": "Locked"
+      },
+      "longReason": {
+        "LIMIT_SAD_EXCEEDED": "Your character is too sad",
+        "LIMIT_DEX_NOT_MET": "Your character's dexterity is too low",
+        "LIMIT_INT_NOT_MET": "Your character's intelligence is too low",
+        "LIMIT_COS_NOT_MET": "Your character's constitution is too low",
+        "CONDITION_KEYS_NOT_MET": "You are missing some keys",
+        "CONDITION_ITEM_NOT_MET": "You are missing an item",
+        "CONDITION_CLASS_NOT_MET": "Your class does not meet the requirement",
+        "CONDITION_LOCATION_NOT_MET": "You are in the wrong location",
+        "CONDITION_ALL_IN_SAME_LOC_NOT_MET": "Not all party members are in this location",
+        "CONDITION_TRAITS_NOT_MET": "Your character does not have the required trait",
+        "CONDITION_STATISTICS_NOT_MET": "Your character's stats do not meet the requirement",
+        "CONDITION_STATISTICS_SUM_NOT_MET": "Your party's stats do not meet the requirement",
+        "CONDITIONS_NOT_MET": "You do not meet the requirements"
+      }
+    },
     "location": {
       "clockCounter": "Location time counter"
     },
@@ -225,7 +313,112 @@
       "cost": "Cost",
       "noEnergy": "Energy",
       "notNeighbor": "Not a neighbor",
-      "moveCost": "Moving"
+      "moveCost": "Moving",
+      "blocked": "Locked",
+      "blockedFull": "You cannot go there right now.",
+      "reason": {
+        "CHARACTER_CANNOT_ACT": "Blocked",
+        "MATCH_NOT_RUNNING": "Paused",
+        "COMA": "Coma",
+        "SLEEPING": "Sleeping",
+        "NOT_A_NEIGHBOR": "Far",
+        "MOVEMENT_CONDITION_NOT_MET": "Barred",
+        "OVERWEIGHT": "Weight",
+        "INSUFFICIENT_ENERGY": "Energy",
+        "NOT_ENOUGH_COINS": "Coins",
+        "NOT_ENOUGH_FOOD": "Food",
+        "NOT_ENOUGH_MAGIC": "Magic",
+        "LOCATION_FULL": "Full"
+      },
+      "reasonFull": {
+        "CHARACTER_CANNOT_ACT": "You cannot move right now.",
+        "MATCH_NOT_RUNNING": "The match is not running, so you cannot move.",
+        "COMA": "You are in a coma: you cannot move.",
+        "SLEEPING": "You are asleep and cannot move.",
+        "NOT_A_NEIGHBOR": "This location is not next to the one you are standing on.",
+        "MOVEMENT_CONDITION_NOT_MET": "The way is barred: something is still missing to open it.",
+        "OVERWEIGHT": "You are carrying too much to set off.",
+        "INSUFFICIENT_ENERGY": "You do not have enough energy for this move.",
+        "NOT_ENOUGH_COINS": "You do not have enough coins for this move.",
+        "NOT_ENOUGH_FOOD": "You do not have enough food for this move.",
+        "NOT_ENOUGH_MAGIC": "You do not have enough magic for this move.",
+        "LOCATION_FULL": "There is no room left in that location."
+      }
+    },
+    "event": {
+      "action": "Do",
+      "cost": "Cost",
+      "blocked": "Locked",
+      "blockedFull": "This action is not available right now.",
+      "reason": {
+        "CHARACTER_CANNOT_ACT": "Blocked",
+        "SLEEPING": "Sleeping",
+        "COMA": "Coma",
+        "EVENT_NOT_EXECUTABLE_TYPE": "Type",
+        "ONCE_ALREADY_CONSUMED": "Done",
+        "WRONG_LOCATION": "Elsewhere",
+        "NOT_ENOUGH_ENERGY": "Energy",
+        "NOT_ENOUGH_COINS": "Coins",
+        "NOT_ENOUGH_FOOD": "Food",
+        "NOT_ENOUGH_MAGIC": "Magic",
+        "REGISTRY_CONDITION_NOT_MET": "Not yet",
+        "WEATHER_CONDITION_NOT_MET": "Weather",
+        "ITEM_CONDITION_NOT_MET": "Item",
+        "CLASS_CONDITION_NOT_MET": "Class"
+      },
+      "reasonFull": {
+        "CHARACTER_CANNOT_ACT": "You cannot act right now.",
+        "SLEEPING": "You are asleep and cannot act.",
+        "COMA": "You are in a coma: you cannot act.",
+        "EVENT_NOT_EXECUTABLE_TYPE": "You cannot execute this action type for now.",
+        "ONCE_ALREADY_CONSUMED": "You have already done this, it cannot be repeated.",
+        "WRONG_LOCATION": "This action belongs to another location.",
+        "NOT_ENOUGH_ENERGY": "You do not have enough energy for this action.",
+        "NOT_ENOUGH_COINS": "You do not have enough coins for this action.",
+        "NOT_ENOUGH_FOOD": "You do not have enough food for this action.",
+        "NOT_ENOUGH_MAGIC": "You do not have enough magic for this action.",
+        "REGISTRY_CONDITION_NOT_MET": "You are not ready for this yet.",
+        "WEATHER_CONDITION_NOT_MET": "The weather is wrong for this action.",
+        "ITEM_CONDITION_NOT_MET": "You lack the item this action needs.",
+        "CLASS_CONDITION_NOT_MET": "Your class cannot take this action."
+      }
+    },
+    "item": {
+      "use": "Use",
+      "drop": "Drop",
+      "amount": "Amount",
+      "perUse": "Per use",
+      "weight": "Weight",
+      "carriedOnly": "Carried",
+      "blocked": "Locked",
+      "blockedFull": "This item cannot be used right now.",
+      "reason": {
+        "ITEM_NOT_CONSUMABLE": "Carried",
+        "ITEM_CLASS_NOT_PERMITTED": "Class",
+        "ITEM_CLASS_PROHIBITED": "Class",
+        "SLEEPING": "Sleeping",
+        "COMA": "Coma",
+        "MATCH_NOT_RUNNING": "Paused",
+        "ITEM_NOT_ENOUGH": "Too few"
+      },
+      "reasonFull": {
+        "ITEM_NOT_CONSUMABLE": "This item cannot be consumed.",
+        "ITEM_CLASS_NOT_PERMITTED": "Your class cannot use this item.",
+        "ITEM_CLASS_PROHIBITED": "Your class is forbidden this item.",
+        "SLEEPING": "You are asleep and cannot use anything.",
+        "COMA": "You are in a coma: you cannot use anything.",
+        "MATCH_NOT_RUNNING": "The match is not running.",
+        "ITEM_NOT_ENOUGH": "Using takes more units than you carry."
+      }
+    },
+    "items": {
+      "title": "Backpack",
+      "description": "Organizing your gear will allow you to travel with readiness and order. On this book page you can see all your items and use them. <br /><br />On this page you can see the amount of basic resources (food, magic, and coins) and the amount of items found. Some items are consumable, while other items you cannot be consumed.",
+      "open": "Backpack",
+      "empty": "You are carrying nothing.",
+      "back": "Back",
+      "count": "carried",
+      "capacity": "Capacity"
     },
     "map": {
       "title": "Map",
@@ -236,13 +429,27 @@
       "zoomOut": "Zoom out",
       "center": "Center on current location",
       "youAreHere": "You are here",
-      "open": "Open map",
+      "open": "Map",
       "unexploredLocation": "Unexplored location"
     },
     "moveToDirection": "Move to",
     "from": "From",
     "to": "To",
-    "backTo": "Back to"
+    "backTo": "Back to",
+    "automaticEvents": {
+      "title": "Time ran out",
+      "anonymous": "Somewhere far away, a time ran out.",
+      "dismiss": "Go on"
+    },
+    "bookmarks": {
+      "position": "Position",
+      "information": "Information",
+      "map": "Map",
+      "backpack": "Backpack",
+      "missions": "Missions",
+      "multiplayer": "Multiplayer",
+      "comingSoon": "Missions and registry coming soon"
+    }
   },
   "footer": {
     "alpha": "This is only an Alpha version. Servers may be unavailable or reset at any time. ",

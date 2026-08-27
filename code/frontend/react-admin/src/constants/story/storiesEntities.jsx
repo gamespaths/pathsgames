@@ -9,7 +9,9 @@ import {
   CHOICE_CONDITION_TYPE_OPTIONS,
   EVENT_EFFECT_TARGET_OPTIONS,
   EVENT_TYPE_OPTIONS,
+  EVENT_EFFECT_STATISTICS_OPTIONS,
   ITEM_ACTION_OPTIONS,
+  ITEM_EFFECT_CODE_OPTIONS,
   LOGIC_OPERATOR_OPTIONS,
   POSSIBLE_STATISTICS_OPTIONS,
 } from './storyFieldOptions'
@@ -74,10 +76,10 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'counterTime', label: 'Counter Time', type: 'number' },
       { key: 'idEventIfCounterZero', label: 'Event if Counter = 0', type: 'number' },
       { key: 'secureParam', label: 'Secure Param', type: 'number' },
-      { key: 'idEventIfCharacterStartTime', label: 'Event if Start Time', type: 'number' },
-      { key: 'idEventIfCharacterEnterFirstTime', label: 'Event if Enter First', type: 'number' },
-      { key: 'idEventIfFirstTime', label: 'Event if First Time', type: 'number' },
+      { key: 'idEventIfCharacterStartTime', label: 'Event if Start Time, sleeping', type: 'number' },
       { key: 'idEventNotFirstTime', label: 'Event if Not First Time', type: 'number' },
+      { key: 'idEventIfCharacterEnterEmptyLocation', label: 'Event if enters an empty location', type: 'number' },
+      { key: 'idEventIfFirstTime', label: 'Event if First Time, no trigger back', type: 'number' },
       { key: 'priorityAutomaticEvent', label: 'Auto Event Priority', type: 'number' },
       { key: 'idAudio', label: 'Audio ID', type: 'number' },
       { key: 'maxCharacters', label: 'Max Characters', type: 'number' },
@@ -93,10 +95,18 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idTextGo', label: 'Text Go ID', type: 'number' },
       { key: 'idTextBack', label: 'Text Back ID', type: 'number' },
       { key: 'energyCost', label: 'Energy Cost', type: 'number' },
+      // v0.35.3 — the EDGE's resource price. Energy sums edge + destination entry + weather;
+      // these have one source, so what is typed here is exactly what the move takes.
+      { key: 'costFood', label: 'Food Cost', type: 'number' },
+      { key: 'costMagic', label: 'Magic Cost', type: 'number' },
+      { key: 'costCoin', label: 'Coin Cost', type: 'number' },
       { key: 'flagBack', label: 'Flag Back', type: 'select', valueType: 'number', options: LOCATION_NEIGHBOR_FLAG_BACK_OPTIONS },
       // Card Back is only meaningful when the neighbor allows going back (flagBack = YES).
       { key: 'idCardBack', label: 'Card Back ID', type: 'number', showIf: (d) => Number(d.flagBack) === 1 },
     ],
+    // Step 29 — list_events is the CONDITION side of an event: cost, chain, and the
+    // conditions the check procedure evaluates (all of them in AND). Everything the event
+    // DOES lives on event-effects below.
     events: [
       { key: 'idCard', label: 'Card ID', type: 'number' },
       { key: 'idTextName', label: 'Name Text ID', type: 'number' },
@@ -104,26 +114,40 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idSpecificLocation', label: 'Specific Location ID', type: 'number' },
       { key: 'type', label: 'Event Type', type: 'select', options: EVENT_TYPE_OPTIONS },
       { key: 'costEnery', label: 'Energy Cost', type: 'number' },
+      { key: 'costCoin', label: 'Coin Cost', type: 'number' },
+      // v0.35.3 — food and magic joined coins as real costs. Automatic events never pay.
+      { key: 'costFood', label: 'Food Cost', type: 'number' },
+      { key: 'costMagic', label: 'Magic Cost', type: 'number' },
       { key: 'flagEndTime', label: 'Flag End Time', type: 'number' },
-      { key: 'characteristicToAdd', label: 'Characteristic to Add', type: 'text' },
-      { key: 'characteristicToRemove', label: 'Characteristic to Remove', type: 'text' },
-      { key: 'keyToAdd', label: 'Key to Add', type: 'text' },
-      { key: 'keyValueToAdd', label: 'Key Value to Add', type: 'text' },
-      { key: 'idItemToAdd', label: 'Item to Add ID', type: 'number' },
-      { key: 'idWeather', label: 'Weather ID', type: 'number' },
       { key: 'idEventNext', label: 'Next Event ID', type: 'number' },
-      { key: 'coinCost', label: 'Coin Cost', type: 'number' },
+      // Conditions (AND). idWeather here GATES the event; on an effect it SETS the weather.
+      { key: 'idWeather', label: 'Weather (condition)', type: 'number' },
+      { key: 'registryKeyCondition', label: 'Registry Key (condition)', type: 'text' },
+      { key: 'registryValueCondition', label: 'Registry Value (condition)', type: 'text' },
+      { key: 'idItemCondition', label: 'Item Owned (condition)', type: 'number' },
+      { key: 'idClassCondition', label: 'Class (condition)', type: 'number' },
     ],
+    // Step 29 — the EFFECT side. The card of each row is the narrative the board renders.
     'event-effects': [
+      { key: 'idCard', label: 'Card ID (narrative)', type: 'number' },
+      { key: 'idTextName', label: 'Name Text ID', type: 'number' },
+      { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
       { key: 'idEvent', label: 'Event ID', type: 'number' },
-      { key: 'statistics', label: 'Statistic', type: 'select', options: POSSIBLE_STATISTICS_OPTIONS },
+      { key: 'statistics', label: 'Statistic', type: 'select', options: EVENT_EFFECT_STATISTICS_OPTIONS },
       { key: 'value', label: 'Value', type: 'number' },
       { key: 'target', label: 'Target', type: 'select', options: EVENT_EFFECT_TARGET_OPTIONS },
-      { key: 'traitsToAdd', label: 'Traits to Add', type: 'number' },
-      { key: 'traitsToRemove', label: 'Traits to Remove', type: 'number' },
       { key: 'targetClass', label: 'Target Class', type: 'number' },
+      { key: 'traitsToAdd', label: 'Traits to Add (csv of ids)', type: 'text' },
+      { key: 'traitsToRemove', label: 'Traits to Remove (csv of ids)', type: 'text' },
       { key: 'idItemTarget', label: 'Item Target ID', type: 'number' },
       { key: 'itemAction', label: 'Item Action', type: 'select', options: ITEM_ACTION_OPTIONS },
+      { key: 'keyToAdd', label: 'Registry Key to Write', type: 'text' },
+      { key: 'keyValueToAdd', label: 'Registry Value to Write', type: 'text' },
+      { key: 'characteristicToAdd', label: 'Characteristic to Add', type: 'text' },
+      { key: 'characteristicToRemove', label: 'Characteristic to Remove', type: 'text' },
+      { key: 'idWeather', label: 'Weather to Set (effect)', type: 'number' },
+      // v0.29.3 — forced movement: recipients are moved there, no Step 28 checks, no energy.
+      { key: 'idLocation', label: 'Move To Location ID (effect)', type: 'number' },
     ],
     items: [
       { key: 'idCard', label: 'Card ID', type: 'number' },
@@ -131,13 +155,37 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
       { key: 'weight', label: 'Weight', type: 'number' },
       { key: 'isConsumabile', label: 'Consumable', type: 'checkbox' },
+      // v0.35.0 — ticked (the default for a new item), the bag shows what using this item
+      // would do: one badge per Item Effect row. Unticked, the item keeps its secret and
+      // the player only finds out by using it — the unlabelled bottle found in the dark.
+      // It hides the PROMISE, never the effect: using it applies exactly the same rows.
+      { key: 'flagShowEffects', label: 'Show Effects In Preview', type: 'checkbox' },
+      // v0.35.1 — the three quantities. Empty means what every pre-0.35.1 story meant:
+      // no cap, and one unit per drop and per use.
+      { key: 'maxPerCharacter', label: 'Max Per Character (0/empty = no limit)', type: 'number' },
+      { key: 'amountDrop', label: 'Units Removed By Drop (empty = 1)', type: 'number' },
+      { key: 'amountUse', label: 'Units Consumed By Use (empty = 1)', type: 'number' },
       { key: 'idClassPermitted', label: 'Class Permitted ID', type: 'number' },
       { key: 'idClassProhibited', label: 'Class Prohibited ID', type: 'number' },
     ],
+    // Step 34 — what an item DOES when it is used. One row per effect, all of them applied
+    // to the character who used it and to nobody else (there is no target column here on
+    // purpose: handing an item over is multiplayer, out of scope).
     'item-effects': [
+      // v0.35.0 — the narrative card of THIS effect, exactly like event-effects.idCard: the
+      // engine resolves it per row (InventoryService.standaloneEffects) and the board shows
+      // the last effect that carries one. The column has existed since V0.14.1; until now
+      // the form did not offer it, so it could only be authored by importing a JSON story.
+      { key: 'idCard', label: 'Card ID (narrative)', type: 'number' },
       { key: 'idItem', label: 'Item ID', type: 'number' },
-      { key: 'effectCode', label: 'Effect Code', type: 'text' },
-      { key: 'effectValue', label: 'Effect Value', type: 'number' },
+      // v0.35.0 — a select, not free text: an effect code outside this vocabulary is
+      // dropped in silence by the engine, so a typo used to author an effect that could
+      // never fire and said nothing about it.
+      { key: 'effectCode', label: 'Effect Code', type: 'select', options: ITEM_EFFECT_CODE_OPTIONS },
+      { key: 'effectValue', label: 'Effect Value (signed delta)', type: 'number' },
+      // v0.34.0 — same CSV-of-ids format as the event effects above.
+      { key: 'traitsToAdd', label: 'Traits to Add (csv of ids)', type: 'text' },
+      { key: 'traitsToRemove', label: 'Traits to Remove (csv of ids)', type: 'text' },
     ],
     'character-templates': [
       { key: 'idCard', label: 'Card ID', type: 'number' },
@@ -172,6 +220,12 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
       { key: 'costPositive', label: 'Positive Cost', type: 'number' },
       { key: 'costNegative', label: 'Negative Cost', type: 'number' },
+      // v0.35.2 — ticked, the trait is never offered when a player starts a match, and the
+      // backend refuses it if a client asks for it anyway. It stays perfectly grantable by
+      // an event or an item effect, which is what the flag is for: the curse you catch,
+      // not the one you choose. The story editor keeps listing it — this is the tool where
+      // an author must see everything.
+      { key: 'hideOnStartMatch', label: 'Hide On Start Match', type: 'checkbox' },
       { key: 'idClassPermitted', label: 'Class Permitted ID', type: 'number' },
       { key: 'idClassProhibited', label: 'Class Prohibited ID', type: 'number' },
       { key: 'life', label: 'Life Δ', type: 'number' },
@@ -228,8 +282,10 @@ export const STORIES_ENTITIES_FIELDS = {
     ],
     choices: [
       { key: 'idCard', label: 'Card ID', type: 'number' },
+      { key: 'idTextName', label: 'Name Text ID', type: 'number' },
+//      { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' }, //quiquiqui
       { key: 'idEvent', label: 'Event ID', type: 'number' },
-      { key: 'idLocation', label: 'Location ID', type: 'number' },
+      //{ key: 'idLocation', label: 'Location ID', type: 'number' }, deprecated
       { key: 'priority', label: 'Priority', type: 'number' },
       { key: 'idTextNarrative', label: 'Narrative Text ID', type: 'number' },
       { key: 'idEventTorun', label: 'Event to Run ID', type: 'number' },
@@ -249,16 +305,26 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'operator', label: 'Operator', type: 'select', options: CHOICE_CONDITION_OPERATOR_OPTIONS },
     ],
     'choice-effects': [
-      { key: 'idCard', label: 'Card ID', type: 'number' },
+      { key: 'idCard', label: 'Card ID (narrative)', type: 'number' },
+      { key: 'idTextName', label: 'Name Text ID', type: 'number' },
       { key: 'idChoices', label: 'Choice ID', type: 'number' },
       { key: 'idScelta', label: 'Scelta ID', type: 'number' },
-      { key: 'flagGroup', label: 'Flag Group', type: 'number' },
-      { key: 'statistics', label: 'Statistic', type: 'text' },
+      // v0.32.0 — INV-46: 1 = every character in the actor's location, anything else = the actor alone.
+      { key: 'flagGroup', label: 'Flag Group (1 = whole location)', type: 'number' },
+      { key: 'statistics', label: 'Statistic', type: 'select', options: EVENT_EFFECT_STATISTICS_OPTIONS },
       { key: 'value', label: 'Value', type: 'number' },
       { key: 'idText', label: 'Text ID', type: 'number' },
-      { key: 'key', label: 'Key', type: 'text' },
-      { key: 'valueToAdd', label: 'Value to Add', type: 'text' },
-      { key: 'valueToRemove', label: 'Value to Remove', type: 'text' },
+      { key: 'key', label: 'Registry Key', type: 'text' },
+      { key: 'valueToAdd', label: 'Registry Value to Write', type: 'text' },
+      // Clears the key only when the stored value still matches.
+      { key: 'valueToRemove', label: 'Registry Value to Clear (must match)', type: 'text' },
+      // v0.32.0 (Step 32) — the effect targets a resolved choice can reach. Twins of the
+      // list_events_effects columns above, so the engine applies both the same way.
+      { key: 'idItemTarget', label: 'Item Target ID', type: 'number' },
+      { key: 'itemAction', label: 'Item Action', type: 'select', options: ITEM_ACTION_OPTIONS },
+      { key: 'idLocation', label: 'Move To Location ID (effect)', type: 'number' }, //quiquiqui
+      { key: 'idWeather', label: 'Weather to Set (effect)', type: 'number' },
+      { key: 'idEvent', label: 'Event to Run (effect)', type: 'number' },
     ],
     'weather-rules': [
       { key: 'idCard', label: 'Card ID', type: 'number' },
@@ -340,11 +406,13 @@ export const STORIES_ENTITIES_COLUMNS = {
     events: [
       { key: 'idTextName', label: 'Name', type: 'idTextName' },
       { key: 'type', label: 'Type' },
+      { key: 'idSpecificLocation', label: 'Location' },
       { key: 'costEnery', label: 'Energy Cost' },
+      { key: 'costCoin', label: 'Coin Cost' },
       { key: 'flagEndTime', label: 'End Time' },
-      { key: 'coinCost', label: 'Coin Cost' },
     ],
     'event-effects': [
+      { key: 'idTextName', label: 'Name', type: 'idTextName' },
       { key: 'idEvent', label: 'Event ID' },
       { key: 'statistics', label: 'Statistic' },
       { key: 'value', label: 'Value' },
@@ -361,6 +429,8 @@ export const STORIES_ENTITIES_COLUMNS = {
       { key: 'idItem', label: 'Item ID' },
       { key: 'effectCode', label: 'Effect Code' },
       { key: 'effectValue', label: 'Value' },
+      { key: 'traitsToAdd', label: 'Traits +' },
+      { key: 'traitsToRemove', label: 'Traits -' },
     ],
     'character-templates': [
       { key: 'idTextName', label: 'Name', type: 'idTextName' },
@@ -426,8 +496,9 @@ export const STORIES_ENTITIES_COLUMNS = {
       { key: 'visibility', label: 'Visibility' },
     ],
     choices: [
-      { key: 'idEvent', label: 'Event ID' },
-      { key: 'idLocation', label: 'Location ID' },
+      { key: 'idTextName', label: 'Name', type: 'idTextName' },
+      { key: 'idEvent', label: 'Event ID' },      
+      //quiquiqui { key: 'idLocation', label: 'Location ID' }, //deprecated, use choice-conditions instead
       { key: 'priority', label: 'Priority' },
       { key: 'idTextNarrative', label: 'Narrative Text ID' },
       { key: 'logicOperator', label: 'Logic Op.' },

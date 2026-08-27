@@ -4,6 +4,7 @@ import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.TurnStatuses;
 import games.paths.core.model.match.event.TimeAdvanced;
 import games.paths.core.port.event.DomainEventPublisher;
+import games.paths.core.port.match.LocationEntryPort;
 import games.paths.core.port.match.TimeAdvancementPort;
 import games.paths.core.port.match.TurnCyclePort.TurnCycleException;
 import games.paths.core.port.match.TurnCycleStorePort;
@@ -37,6 +38,16 @@ public class TimeAdvancementService implements TimeAdvancementPort {
     private final DomainEventPublisher eventPublisher;
     private final TimeStartRecoveryService recoveryService;
     private final WeatherSelectionService weatherService;
+    /**
+     * Step 33 — the engine that runs the automatic events a time-start collected.
+     *
+     * <p>Injected through a setter rather than the constructor, and deliberately so: the
+     * runner is {@code EventExecutionService}, which already depends on this service for
+     * {@code forceTimeEnd}. Constructor injection either way would be a cycle; the setter
+     * closes the loop once, at wiring time. Null is a legal state — every test that builds
+     * this service directly then behaves exactly as before Step 33.</p>
+     */
+    private LocationEntryPort automaticEventRunner;
 
     public TimeAdvancementService(TurnCycleStorePort store,
                                   UserAccessPort userAccessPort,
@@ -56,6 +67,11 @@ public class TimeAdvancementService implements TimeAdvancementPort {
         this.eventPublisher = eventPublisher;
         this.recoveryService = recoveryService;
         this.weatherService = weatherService;
+    }
+
+    /** Step 33 — see {@link #automaticEventRunner}. Called once, from the bean wiring. */
+    public void setAutomaticEventRunner(LocationEntryPort automaticEventRunner) {
+        this.automaticEventRunner = automaticEventRunner;
     }
 
     @Override
@@ -83,15 +99,22 @@ public class TimeAdvancementService implements TimeAdvancementPort {
 
         int currentClock = match.currentClock();
         List<RecoveryItem> recovery = List.of();
+        List<CounterZeroItem> counterZero = List.of();
         if (triggered) {
             AdvanceResult advanced = advanceTime(match);
             currentClock = advanced.newClock();
             recovery = advanced.recovery();
+            // Step 33 — the same events, told to THIS player. The caller is the only
+            // recipient with an open request; the rest learn about it over the WebSocket
+            // once Steps 49-54 land, through this very method called once per player.
+            counterZero = describeCounterZero(match.id(), caller.id(),
+                    advanced.automaticEvents(), currentClock);
         }
 
         // After a time-end every character is awake again; otherwise the caller stays asleep.
         boolean finalSleeping = !triggered;
-        return new SleepResult(matchUuid, caller.uuid(), finalSleeping, triggered, currentClock, recovery);
+        return new SleepResult(matchUuid, caller.uuid(), finalSleeping, triggered, currentClock,
+                recovery, counterZero);
     }
 
     @Override
@@ -127,6 +150,58 @@ public class TimeAdvancementService implements TimeAdvancementPort {
     // ── time-end ────────────────────────────────────────────────────────────
 
     /**
+     * Step 29 — force a time-end: put every character to sleep, then advance.
+     *
+     * <p>Called by {@code EventExecutionService} when an executed event carries
+     * {@code flag_end_time}. It is exposed on the class and deliberately NOT on
+     * {@link TimeAdvancementPort}: nothing over REST should be able to skip a time unit,
+     * only the engine.</p>
+     *
+     * <p>Note that {@link #advanceTime} wakes everybody right after, so the net observable
+     * state is "awake at clock+1". The {@code forcedSleep} flag the event returns records
+     * the transition, exactly like {@code SleepResult.isSleeping = !triggered} does.</p>
+     */
+    public TimeEndOutcome forceTimeEnd(String matchUuid) {
+        return forceTimeEnd(matchUuid, null);
+    }
+
+    /**
+     * Step 33 — the same, told to a specific recipient. The event that carried
+     * {@code flag_end_time} was executed by somebody, and that somebody is the one player
+     * with an open request when the clock moves, so they are the one who gets to hear what
+     * the time-start set off.
+     */
+    public TimeEndOutcome forceTimeEnd(String matchUuid, Long idRecipientCharacter) {
+        MatchView match = requireMatch(matchUuid);
+        store.setAllCharactersSleeping(match.id());
+        AdvanceResult advanced = advanceTime(match);
+        return new TimeEndOutcome(advanced.newClock(), advanced.recovery(),
+                describeCounterZero(match.id(), idRecipientCharacter,
+                        advanced.automaticEvents(), advanced.newClock()));
+    }
+
+    /**
+     * Apply the per-recipient fog-of-war rule to an already-run list of automatic events.
+     * Null runner (a unit test that built this service directly) means no automatic events
+     * ran in the first place, so the list is empty either way.
+     */
+    private List<CounterZeroItem> describeCounterZero(long idMatch, Long idRecipientCharacter,
+                                                      List<LocationEntryPort.AutomaticEventFired> fired,
+                                                      int clock) {
+        if (automaticEventRunner == null || fired == null || fired.isEmpty()) {
+            return List.of();
+        }
+        return automaticEventRunner.describeForRecipient(idMatch, idRecipientCharacter, clock,
+                fired, DEFAULT_LANG);
+    }
+
+    /** Outcome of {@link #forceTimeEnd(String)}. */
+    public record TimeEndOutcome(int newClock,
+                                 List<RecoveryItem> recovery,
+                                 List<CounterZeroItem> counterZero) {
+    }
+
+    /**
      * Time-end trigger: fires when every character is sleeping OR out of energy.
      * In single-player the list is size 1. An empty list never triggers.
      */
@@ -148,8 +223,16 @@ public class TimeAdvancementService implements TimeAdvancementPort {
         store.insertClockHistory(match.id(), newClock);
         store.wakeAllCharacters(match.id());
         // Step 26: per-character recovery, class bonuses and location counters.
-        List<TimeStartRecoveryService.RecoveryRecap> recaps =
+        TimeStartRecoveryService.TimeStartOutcome outcome =
                 recoveryService.applyAtTimeStart(match.id());
+        // Step 33: the events that pass collected — counters that reached zero, and the
+        // locations whose id_event_if_character_start_time fires because a time unit began
+        // with somebody standing there. Run here rather than inside the recovery service:
+        // the event engine sits above it in the wiring, and an event can force a time end.
+        List<LocationEntryPort.AutomaticEventFired> fired = automaticEventRunner == null
+                ? List.of()
+                : automaticEventRunner.runPendingAutomaticEvents(
+                        match.id(), newClock, outcome.pending(), DEFAULT_LANG);
         // Step 27: select the weather for the new time unit and apply its energy delta.
         if (weatherService != null) {
             weatherService.applyAtTimeStart(match.id());
@@ -157,13 +240,15 @@ public class TimeAdvancementService implements TimeAdvancementPort {
         rebuildQueue(match.id(), newClock);
         eventPublisher.publish(new TimeAdvanced(match.uuid(), newClock));
         List<RecoveryItem> recovery = new ArrayList<>();
-        for (TimeStartRecoveryService.RecoveryRecap r : recaps) {
+        for (TimeStartRecoveryService.RecoveryRecap r : outcome.recovery()) {
             recovery.add(new RecoveryItem(r.characterUuid(), r.energyDelta(), r.lifeDelta(), r.sadDelta()));
         }
-        return new AdvanceResult(newClock, recovery);
+        return new AdvanceResult(newClock, recovery, fired);
     }
 
-    private record AdvanceResult(int newClock, List<RecoveryItem> recovery) {
+    private record AdvanceResult(int newClock,
+                                 List<RecoveryItem> recovery,
+                                 List<LocationEntryPort.AutomaticEventFired> automaticEvents) {
     }
 
     /** Rebuild the turn queue for a new clock: all WAITING, highest priority ACTIVE. */

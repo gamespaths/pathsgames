@@ -130,7 +130,8 @@ public class CharacterController {
             case USER_BANNED -> HttpStatus.FORBIDDEN;
             case ALREADY_JOINED, CLASS_NOT_COMPATIBLE, MATCH_NOT_JOINABLE -> HttpStatus.CONFLICT;
             case INVALID_INPUT, TRAIT_NOT_FOUND, TRAIT_DUPLICATED,
-                 TRAIT_NOT_COMPATIBLE, TRAIT_COST_EXCEEDED -> HttpStatus.BAD_REQUEST;
+                 TRAIT_NOT_COMPATIBLE, TRAIT_COST_EXCEEDED,
+                 TRAIT_NOT_SELECTABLE -> HttpStatus.BAD_REQUEST;
         };
     }
 }

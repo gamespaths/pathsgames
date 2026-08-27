@@ -74,6 +74,11 @@ paths:
         runtime table. The fog-of-war gating on the `locationsActive[].neighbors[]`
         cards (`card`, `cardLocationFrom`, `cardLocationTo`) is unchanged and
         identical to the player endpoint.
+
+        v0.29.0 — every entry of `locationsActive[].events[]` carries `available` and,
+        when false, `reason` (see the Step 29 events API). The console evaluates them
+        against the same reference character the player endpoint uses, so it sees exactly
+        the flags the player would.
       operationId: getAdminMatchInfo
       parameters:
         - $ref: '#/components/parameters/UuidMatch'

@@ -37,6 +37,7 @@
  */
 
 import { buildEndGameCard, buildNeighborCard } from "@/utils/loadoutCards"
+import { traversalDirection } from "@/utils/mapGraph"
 
 const EMPTY_STATS = {
   life: 0, energy: 0, sadness: 0, experience: 0, food: 0, magic: 0, coins: 0, weight: 0,
@@ -56,6 +57,11 @@ function toPlayerStats(player) {
     sadnessMax: player.sadMax ?? 0,
     weightMax: player.weightMax ?? 0,
     weight: player.weight ?? 0,
+    // Step 30 — constitution is what a sadness overflow costs in life; isComa/isSleeping
+    // say whether the character can act at all.
+    constitution: player.constitution ?? 0,
+    isComa: !!player.isComa,
+    isSleeping: !!player.isSleeping,
     items: Array.isArray(player.items) ? player.items : [],
     // Selection uuids — used by utils/gamebook to resolve the matching story
     // entity (class/character/trait/difficulty) and its card. /info currently
@@ -65,15 +71,16 @@ function toPlayerStats(player) {
     classUuid: player.classUuid ?? null,
     traitUuids: Array.isArray(player.traitUuids) ? player.traitUuids : [],
     difficultyUuid: player.difficultyUuid ?? null,
-    // Not yet projected by /info — defaulted until a richer endpoint exists.
+    // Step 35 — the backpack resources, now projected by /info on every player.
+    // Mind the naming: the backend field is `coin` (singular), the stat key is `coins`.
+    food: player.food ?? 0,
+    magic: player.magic ?? 0,
+    coins: player.coin ?? 0,
+    // Not yet projected by /info — defaulted until step 38 wires experience.
     experience: 0,
-    food: 0,
-    magic: 0,
-    coins: 0,
 
     intelligence: player.intelligence ?? 0,
     dexterity: player.dexterity ?? 0,
-    constitution: player.constitution ?? 0,
   }
 }
 
@@ -118,6 +125,13 @@ export function matchInfoToGameData(info, story = null,t) {
   // Step 26 — the residual location time counter (gaming_state_locations.clock_counter)
   // for the location the player currently stands on, surfaced on the location card so
   // LocationCard can render it as a statistic when > 0.
+  // v0.28.6 — /info locations[] is the VISITED set of the match, the same one the
+  // backend gates the fog of war on, so a destination is "already explored" here
+  // exactly when its location card resolves.
+  const visitedIds = new Set((info.locations ?? [])
+    .map(l => l.idLocation)
+    .filter(id => id != null))
+
   const stateLoc = (info.locations ?? []).find(l => l.idLocation === playerLoc) ?? null
   const actualLocationCounter = stateLoc?.clockCounter ?? null
   const actualLocationCardWithCounter = actualLocationCard
@@ -129,7 +143,8 @@ export function matchInfoToGameData(info, story = null,t) {
   // optional return card (cardBack); otherwise show the forward card.
   const locations = (active?.neighbors ?? []).map(n => {
     // When the character stands on the edge's `to` endpoint, the neighbor is a
-    // RETURN move: the destination is the `from` endpoint, and From/To swap.
+    // RETURN move: the destination is the `from` endpoint and the travel
+    // direction is the opposite of the authored one.
     const playerAtTo = active?.idLocation != null && active.idLocation === n.idLocationTo
     // Step 0.28.6 — the LOCATION cards of the two endpoints, each null while that
     // endpoint is unvisited. The active location is always visited, so the origin
@@ -141,11 +156,20 @@ export function matchInfoToGameData(info, story = null,t) {
     // "neighbor" card from data/images.json, titled by the move direction and
     // described with the current + destination location names. The destination
     // name stays null (→ "Unexplored location") until it has been visited.
-    const currentTitle = actualLocationCard?.title ?? originLocationCard?.title ?? null
-    const destName = destLocationCard?.title ?? null
-    const fromName = playerAtTo ? destName : currentTitle
-    const toName = playerAtTo ? currentTitle : destName
-    const genericNeighborCard = buildNeighborCard(tr, n.direction, fromName, toName, playerAtTo)
+    // From = where the character stands now, To = where the move lands: the
+    // origin/destination swap already happened above, so these two must NOT be
+    // swapped again.
+    const fromName = actualLocationCard?.title ?? originLocationCard?.title ?? null
+    const toName = destLocationCard?.title ?? null
+    // `n.direction` is the AUTHORED edge direction (from→to). On a return move the
+    // character travels the other way, so the card must show the opposite.
+    const travelDirection = traversalDirection(n.direction, playerAtTo)
+    // "Back to" is only honest when the party has ALREADY been to the destination:
+    // walking an edge against its authored direction into a never-visited location
+    // is still a plain "Move to".
+    const destinationExplored = n.idLocation != null && visitedIds.has(n.idLocation)
+    const isBackMove = playerAtTo && destinationExplored
+    const genericNeighborCard = buildNeighborCard(tr, travelDirection, fromName, toName, isBackMove)
 
     // Precedence: the return LINK card when moving back, then the forward LINK
     // card, then the destination's own LOCATION card, then the generic fallback.
@@ -160,9 +184,21 @@ export function matchInfoToGameData(info, story = null,t) {
       description: displayCard?.description ?? '',
       urlImage: displayCard?.urlImage ?? null,
       awesomeIcon: displayCard?.awesomeIcon ?? 'fas fa-location-arrow',
-      direction: n.direction ?? null,
+      direction: travelDirection,
       energyCost: n.energyCost ?? null,
+      // v0.35.3 — the EDGE's resource price. Unlike energy, which sums edge + destination
+      // entry + weather and is served pre-summed by /locations, these have a single source:
+      // what is written here is exactly what the move will take.
+      costFood: n.costFood ?? 0,
+      costMagic: n.costMagic ?? 0,
+      costCoin: n.costCoin ?? 0,
       card: displayCard ?? null,
+      // The backend's own move verdict: `available` is what action/move would answer, and
+      // `reason` the code it would refuse with (COMA, SLEEPING, INSUFFICIENT_ENERGY, …).
+      // An older backend sends neither: treat the move as allowed, as before, and let the
+      // card fall back to its local energy check.
+      available: n.available ?? null,
+      reason: n.reason ?? null,
     }
   })
 
@@ -188,6 +224,18 @@ export function matchInfoToGameData(info, story = null,t) {
     // Step 0.25.4 — the backend now flags the story's end-game event explicitly.
     endGame: e.endGame === true,
     card: e.card ?? null,
+    // Step 29 — the backend's own check-procedure verdict, the same one execute-event
+    // enforces. `reason` is the error code it would return (NOT_ENOUGH_ENERGY,
+    // ONCE_ALREADY_CONSUMED, WRONG_LOCATION, …). Absent on an older backend, in which
+    // case the action is treated as not executable rather than assumed to work.
+    available: e.available === true,
+    reason: e.reason ?? null,
+    energy: e?.energy ?? 0,
+    // v0.35.3 — an event can cost coins, food and magic on top of energy. Absent on an
+    // older backend, where 0 reads as "this action asks for nothing".
+    coin: e?.coin ?? 0,
+    food: e?.food ?? 0,
+    magic: e?.magic ?? 0,
   }))
   const actions = [...leanActions, ...eventActions]
 

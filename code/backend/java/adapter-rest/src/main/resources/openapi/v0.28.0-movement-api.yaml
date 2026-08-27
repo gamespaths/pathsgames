@@ -12,6 +12,10 @@ info:
         weatherModifier = safe ? weather.costMoveSafeLocation : weather.costMoveNotSafeLocation
         totalEnergyCost = edge.energyCost + target.costEnergyEnter + weatherModifier
 
+    v0.35.3 — food, magic and coins are charged too, and they come from the EDGE alone
+    (cost_food / cost_magic / cost_coin on list_locations_neighbors): no entry term, no
+    weather term. The asymmetry with energy is deliberate.
+
     Validation order (each a distinct error code): match RUNNING → character awake →
     target is a neighbor → registry condition (`condition_registry_key`/value) →
     weight ≤ capacity → energy ≥ cost → target not at `max_characters` capacity.
@@ -71,8 +75,9 @@ paths:
         '404': { description: MATCH_NOT_FOUND }
         '409':
           description: >
-            MATCH_NOT_RUNNING | CHARACTER_CANNOT_ACT | NOT_A_NEIGHBOR |
-            MOVEMENT_CONDITION_NOT_MET | OVERWEIGHT | INSUFFICIENT_ENERGY | LOCATION_FULL
+            MATCH_NOT_RUNNING | CHARACTER_CANNOT_ACT | SLEEPING | COMA | NOT_A_NEIGHBOR |
+            MOVEMENT_CONDITION_NOT_MET | OVERWEIGHT | INSUFFICIENT_ENERGY |
+            NOT_ENOUGH_COINS | NOT_ENOUGH_FOOD | NOT_ENOUGH_MAGIC | LOCATION_FULL
   /api/match/{uuidMatch}/locations:
     get:
       tags: [movement]
@@ -133,8 +138,35 @@ components:
         toLocationId: { type: integer }
         toLocationUuid: { type: string }
         energySpent: { type: integer }
+        foodSpent: { type: integer }
+        magicSpent: { type: integer }
+        coinSpent: { type: integer }
         newEnergy: { type: integer }
+        newFood: { type: integer }
+        newMagic: { type: integer }
+        newCoin: { type: integer }
         currentClock: { type: integer }
+        automaticEvents:
+          type: array
+          description: |
+            v0.33.0 (Step 33) — what the destination did about the arrival: its
+            `id_event_if_first_time` / `id_event_not_first_time` /
+            `id_event_if_character_enter_empty_location`, already executed. The book shows the
+            new location on its left page and these on its right. Empty in the ordinary
+            case. Full shape in `v0.33.0-location-entry-events-api.yaml`.
+          items:
+            type: object
+            properties:
+              trigger:
+                type: string
+                enum: [FIRST_ENTRY, SUBSEQUENT_ENTRY, MOVE_INTO_EMPTY_LOCATION]
+              idLocation: { type: integer }
+              eventUuid: { type: string }
+              card: { type: object, nullable: true }
+              effects: { type: array, items: { type: object } }
+              statChanges: { type: array, items: { type: object } }
+              locationChanges: { type: array, items: { type: object } }
+              gameOver: { type: boolean }
     MatchLocationsResponse:
       type: object
       properties:
@@ -165,10 +197,23 @@ components:
         location entry) + weatherEnergyCost (weather modifier) = totalEnergyCost.
         Fog of war (v0.28.6): idCard and card are null when the neighbor's
         destination location has never been visited by the match.
+        Orientation: `direction` is the AUTHORED story-edge direction, from
+        `idLocationFrom` to `idLocationTo` — a two-way edge is listed from both
+        endpoints carrying the SAME direction. Clients that need the direction the
+        character actually walks in must flip it when the listing location is
+        `idLocationTo`.
       properties:
         idLocation: { type: integer }
         uuid: { type: string }
         direction: { type: string }
+        idLocationFrom:
+          type: integer
+          format: int64
+          description: The `from` endpoint of the authored edge (raw orientation).
+        idLocationTo:
+          type: integer
+          format: int64
+          description: The `to` endpoint of the authored edge (raw orientation).
         idCard: { type: integer, nullable: true }
         card:
           allOf:
@@ -181,6 +226,9 @@ components:
         entryEnergyCost: { type: integer }
         weatherEnergyCost: { type: integer }
         totalEnergyCost: { type: integer }
+        costFood: { type: integer }
+        costMagic: { type: integer }
+        costCoin: { type: integer }
         conditionMet: { type: boolean }
     CardInfo:
       type: object

@@ -3,15 +3,17 @@ package games.paths.core.service.match;
 import games.paths.core.entity.match.GamingBackpackResourcesEntity;
 import games.paths.core.entity.match.GamingCharacterInstanceEntity;
 import games.paths.core.entity.match.GamingCharacterTraitsEntity;
-import games.paths.core.entity.match.GamingInventoryItemsEntity;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.story.CharacterTemplateEntity;
+import games.paths.core.entity.story.ItemEffectEntity;
 import games.paths.core.entity.story.ItemEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.TraitEntity;
 import games.paths.core.model.match.CharacterInstanceInfo;
 import games.paths.core.model.match.ItemInstanceInfo;
+import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.match.CharacterReadPort;
+import games.paths.core.port.story.ContentQueryPort;
 import games.paths.core.port.story.StoryReadPort;
 
 import java.util.ArrayList;
@@ -31,10 +33,29 @@ final class CharacterMapper {
     }
 
     /**
-     * Builds the full list of character infos for a match. The {@code requesterUserUuid}
-     * / {@code requesterUserId} pair is echoed onto the character owned by the
-     * requesting user (the per-instance class/user uuid is not otherwise
-     * persisted in V0).
+     * Collaborators and per-request options of {@link #buildAll}. A parameter
+     * object rather than a nine-argument signature.
+     *
+     * @param contentQueryPort      may be null — item cards are then left unresolved
+     * @param lang                  null or blank falls back to English
+     * @param maskOtherInventories  Step 34 — when true, {@code items[]} stays present on
+     *                              every player but is populated only for the requester.
+     *                              Admin views pass false: {@code getMatchInfoForAdmin}
+     *                              has no requester at all, and masking there would blank
+     *                              the whole console.
+     */
+    record MapperContext(StoryReadPort storyReadPort,
+                         CharacterReadPort characterReadPort,
+                         ContentQueryPort contentQueryPort,
+                         String requesterUserUuid,
+                         Long requesterUserId,
+                         String lang,
+                         boolean maskOtherInventories) {
+    }
+
+    /**
+     * Legacy entry point: English texts, no item cards, no inventory masking.
+     * Kept so pre-Step-34 callers keep compiling unchanged.
      */
     static List<CharacterInstanceInfo> buildAll(List<GamingCharacterInstanceEntity> characters,
                                                 GamingMatchEntity match,
@@ -42,14 +63,36 @@ final class CharacterMapper {
                                                 CharacterReadPort characterReadPort,
                                                 String requesterUserUuid,
                                                 Long requesterUserId) {
+        return buildAll(characters, match, new MapperContext(
+                storyReadPort, characterReadPort, null,
+                requesterUserUuid, requesterUserId, ItemInstanceMapper.DEFAULT_LANG, false));
+    }
+
+    /**
+     * Builds the full list of character infos for a match. The {@code requesterUserUuid}
+     * / {@code requesterUserId} pair is echoed onto the character owned by the
+     * requesting user (the per-instance class/user uuid is not otherwise
+     * persisted in V0).
+     */
+    static List<CharacterInstanceInfo> buildAll(List<GamingCharacterInstanceEntity> characters,
+                                                GamingMatchEntity match,
+                                                MapperContext ctx) {
         if (characters == null || characters.isEmpty()) {
             return new ArrayList<>();
         }
+        StoryReadPort storyReadPort = ctx.storyReadPort();
+        CharacterReadPort characterReadPort = ctx.characterReadPort();
+        String requesterUserUuid = ctx.requesterUserUuid();
+        Long requesterUserId = ctx.requesterUserId();
+        Map<Integer, CardInfo> cardCache = new HashMap<>();
         Long storyId = match.getIdStory();
         Map<Long, String> templateUuidById = new HashMap<>();
         Map<Long, String> traitUuidById = new HashMap<>();
         Map<Long, LocationEntity> locationById = new HashMap<>();
         Map<Long, ItemEntity> itemById = new HashMap<>();
+        // Step 35 — one query for the whole story, grouped once for every character: the
+        // items[] of /info promise the same effects the inventory endpoint does.
+        Map<Long, List<ItemEffectEntity>> effectsByItem = new HashMap<>();
         if (storyId != null) {
             for (CharacterTemplateEntity t : storyReadPort.findCharacterTemplatesByStoryId(storyId)) {
                 templateUuidById.put(t.getIdTipo(), t.getUuid());
@@ -63,6 +106,8 @@ final class CharacterMapper {
             for (ItemEntity i : storyReadPort.findItemsByStoryId(storyId)) {
                 itemById.put(i.getId(), i);
             }
+            effectsByItem.putAll(
+                    ItemInstanceMapper.groupEffectsByItem(storyReadPort.findItemEffectsByStoryId(storyId)));
         }
 
         List<CharacterInstanceInfo> result = new ArrayList<>();
@@ -76,55 +121,25 @@ final class CharacterMapper {
                     traitUuids.add(uuid);
                 }
             }
-            List<ItemInstanceInfo> items = buildItems(
-                    characterReadPort.findInventory(match.getId(), c.getId()), itemById, storyReadPort, storyId);
+            boolean isRequester = requesterUserId != null && requesterUserId.equals(c.getIdUser());
+            // Step 34 — the key stays on every player, the array is only filled for the
+            // caller. The masked branch also skips the findInventory query entirely.
+            List<ItemInstanceInfo> items = (ctx.maskOtherInventories() && !isRequester)
+                    ? new ArrayList<>()
+                    : ItemInstanceMapper.build(
+                            characterReadPort.findInventory(match.getId(), c.getId()),
+                            itemById, storyReadPort, ctx.contentQueryPort(), storyId, ctx.lang(),
+                            cardCache, effectsByItem);
             LocationEntity location = c.getIdLocation() != null ? locationById.get(c.getIdLocation()) : null;
-            String userUuid = (requesterUserId != null && requesterUserId.equals(c.getIdUser()))
-                    ? requesterUserUuid : null;
+            String userUuid = isRequester ? requesterUserUuid : null;
             result.add(build(c, match.getUuid(), userUuid, templateUuidById, backpack, traitUuids, items, location));
         }
         return result;
     }
 
-    /** Maps inventory rows to {@link ItemInstanceInfo}, resolving weight and localised name from the story item. */
-    private static List<ItemInstanceInfo> buildItems(List<GamingInventoryItemsEntity> inventory,
-                                                     Map<Long, ItemEntity> itemById,
-                                                     StoryReadPort storyReadPort,
-                                                     Long storyId) {
-        List<ItemInstanceInfo> items = new ArrayList<>();
-        if (inventory == null) {
-            return items;
-        }
-        for (GamingInventoryItemsEntity row : inventory) {
-            ItemEntity item = row.getIdItem() != null ? itemById.get(row.getIdItem()) : null;
-            ItemInstanceInfo info = new ItemInstanceInfo();
-            info.setUuid(row.getUuid());
-            info.setAmount(row.getAmount());
-            info.setState(row.getState());
-            if (item != null) {
-                info.setItemUuid(item.getUuid());
-                info.setWeight(item.getWeight());
-                if (storyId != null && item.getIdTextName() != null) {
-                    storyReadPort.findTextByStoryIdTextAndLang(storyId, item.getIdTextName(), "en")
-                            .ifPresent(t -> info.setName(t.getShortText()));
-                }
-            } else {
-                info.setWeight(0);
-            }
-            items.add(info);
-        }
-        return items;
-    }
-
     /** Total carried weight = Σ (item.weight × amount) over the resolved items. */
     private static int totalWeight(List<ItemInstanceInfo> items) {
-        int total = 0;
-        for (ItemInstanceInfo i : items) {
-            int w = i.getWeight() != null ? i.getWeight() : 0;
-            int a = i.getAmount() != null ? i.getAmount() : 1;
-            total += w * a;
-        }
-        return total;
+        return ItemInstanceMapper.totalWeight(items);
     }
 
     static CharacterInstanceInfo build(GamingCharacterInstanceEntity c,
@@ -153,10 +168,12 @@ final class CharacterMapper {
         info.setWeightMax(c.getWeightMax());
         List<ItemInstanceInfo> resolvedItems = items != null ? items : new ArrayList<>();
         info.setItems(resolvedItems);
-        info.setWeight(totalWeight(resolvedItems));
+        // pass the raw list: totalWeight owns the null case (a null list weighs 0)
+        info.setWeight(totalWeight(items));
         info.setIdLocation(c.getIdLocation());
         info.setIsSleeping(c.getIsSleeping());
         info.setIsComa(c.getIsComa());
+        info.setClockInComa(c.getClockInComa());
         info.setTraitUuids(traitUuids != null ? new ArrayList<>(traitUuids) : new ArrayList<>());
         if (backpack != null) {
             info.setFood(backpack.getFood());

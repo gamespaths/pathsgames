@@ -88,6 +88,21 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
                     c.ts_update = now
             session.commit()
 
+    def set_all_characters_sleeping(self, id_match: int) -> None:
+        """Step 29 — the bulk counterpart of wake_all_characters, for an event with
+        flag_end_time: everyone is put to sleep, then time advances."""
+        with self.session_factory() as session:
+            rows = (
+                session.query(GamingCharacterInstanceEntity)
+                .filter(GamingCharacterInstanceEntity.id_match == id_match)
+                .all()
+            )
+            now = _now_iso()
+            for c in rows:
+                c.is_sleeping = 1
+                c.ts_update = now
+            session.commit()
+
     def increment_match_clock(self, id_match: int) -> int:
         with self.session_factory() as session:
             m = session.query(GamingMatchEntity).filter(GamingMatchEntity.id == id_match).first()
@@ -173,7 +188,8 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
                 )
                 if d is not None and d.energy is not None:
                     difficulty_energy = d.energy
-            return {"id_story": m.id_story, "difficulty_energy": difficulty_energy}
+            return {"id_story": m.id_story, "difficulty_energy": difficulty_energy,
+                    "current_clock": m.current_clock or 0}
 
     def find_recovery_characters(self, id_match: int) -> List[dict]:
         with self.session_factory() as session:
@@ -187,6 +203,8 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
                 "dexterity": c.dexterity, "intelligence": c.intelligence,
                 "constitution": c.constitution, "energy": c.energy, "life": c.life, "sad": c.sad,
                 "energy_max": c.energy_max, "life_max": c.life_max, "sad_max": c.sad_max,
+                # Step 30: without this every time-start would re-stamp clock_in_coma.
+                "is_coma": bool(c.is_coma),
             } for c in rows]
 
     def find_location_safety(self, id_story: int) -> List[dict]:
@@ -203,6 +221,9 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
                 "secure_param": l.is_safe or 0,
                 "counter_time": l.counter_time,
                 "id_event_if_counter_zero": l.id_event_if_counter_zero,
+                # Step 33 — the other time-start trigger, and the ordering column.
+                "id_event_if_character_start_time": l.id_event_if_character_start_time,
+                "priority_automatic_event": l.priority_automatic_event,
             } for l in rows]
 
     def find_class_bonuses(self, id_story: int) -> List[dict]:
@@ -299,9 +320,12 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
                                id_event=None, message=message)
 
     def log_counter_zero(self, id_match: int, id_location: int,
-                         id_event_if_counter_zero, message: str) -> None:
+                         id_event_if_counter_zero, clock, message: str) -> None:
+        # Step 33 — without the clock this row sorted outside the timeline, and the
+        # location existed only inside the message string.
         self._insert_log_event(id_match, id_character_match=None,
-                               id_event=id_event_if_counter_zero, message=message)
+                               id_event=id_event_if_counter_zero, message=message,
+                               clock=clock, id_location=id_location)
 
     def log_sleep(self, id_match: int, id_character: int, clock: int) -> None:
         """Write ACTION_SLEEP to log_events with the current clock (Step 28.7)."""
@@ -309,7 +333,7 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
                                id_event=None, message="ACTION_SLEEP", clock=clock)
 
     def _insert_log_event(self, id_match: int, id_character_match, id_event,
-                          message: str, clock: int = None) -> None:
+                          message: str, clock: int = None, id_location=None) -> None:
         with self.session_factory() as session:
             max_id = session.query(func.max(LogEventsEntity.id)).scalar() or 0
             now = _now_iso()
@@ -321,6 +345,7 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
                 timestamp=now,
                 id_event=id_event,
                 clock=clock,
+                id_location=id_location,
                 log_message=message,
                 ts_insert=now,
                 ts_update=now,

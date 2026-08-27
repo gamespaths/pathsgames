@@ -30,6 +30,7 @@ from app.core.services.story.story_crud_service import StoryCrudService
 from app.adapters.rest.story.story_crud_admin_controller import StoryCrudAdminController
 
 # Step 19 — single-player match creation
+from app.adapters.persistence.match.location_entry_store_adapter import LocationEntryStoreAdapter
 from app.adapters.persistence.match.match_persistence_adapter import MatchPersistenceAdapter
 from app.adapters.persistence.match.story_match_read_adapter import StoryMatchReadAdapter
 from app.adapters.persistence.match.user_access_adapter import UserAccessAdapter
@@ -52,6 +53,13 @@ from app.adapters.rest.match.time_clock_controller import TimeClockController
 from app.adapters.persistence.match.movement_store_adapter import MovementStoreAdapter
 from app.core.services.match.movement_service import MovementService
 from app.adapters.rest.match.movement_controller import MovementController
+from app.adapters.persistence.match.edge_state_store_adapter import EdgeStateStoreAdapter
+from app.adapters.persistence.match.event_store_adapter import EventStoreAdapter
+from app.adapters.persistence.match.inventory_store_adapter import InventoryStoreAdapter
+from app.core.services.match.event_service import EventService
+from app.core.services.match.inventory_service import InventoryService
+from app.adapters.rest.match.event_controller import EventController
+from app.adapters.rest.match.inventory_controller import InventoryController
 from app.adapters.persistence.match.weather_store_adapter import WeatherStoreAdapter
 from app.core.services.match.match_logs_service import MatchLogsService
 from app.core.services.match.weather_selection_service import WeatherSelectionService
@@ -131,12 +139,16 @@ character_query_service = CharacterQueryService(
 # Step 28 — movement store (also gives MatchQueryService the visited-location set
 # for fog of war on GET /info neighbor cards, v0.28.6).
 movement_store_adapter = MovementStoreAdapter(SessionLocal)
+# Step 29 — the event store also feeds MatchQueryService the check context behind the
+# `available` flag each event of /info carries.
+event_store_adapter = EventStoreAdapter(SessionLocal)
 match_query_service = MatchQueryService(
     match_persistence_adapter,
     story_match_read_adapter,
     user_access_adapter,
     character_persistence_adapter,
     movement_store_adapter,
+    event_store_adapter,
 )
 
 # Dev-only test-data cleanup service
@@ -166,6 +178,10 @@ weather_controller = WeatherController(weather_selection_service, content_query_
 # Step 28 — movement system service (shared by player and admin controllers).
 # story_match_read_adapter resolves the location cards on GET /locations;
 # movement_store_adapter was created above (reused here).
+# Step 33 — the location engine's store, shared by the movement hook and the event engine.
+location_entry_store_adapter = LocationEntryStoreAdapter(SessionLocal)
+# The MovementService is built AFTER the event service below, because the arrival hook is
+# the event service itself; a placeholder here keeps the admin controller wiring readable.
 movement_service = MovementService(movement_store_adapter, story_match_read_adapter)
 
 match_admin_controller = MatchAdminController(match_command_service, match_query_service,
@@ -180,14 +196,45 @@ turn_cycle_controller = TurnCycleController(turn_cycle_service)
 # Step 25 — time advancement & clock cycle.
 time_store_adapter = TimeStoreAdapter(SessionLocal)
 domain_event_publisher = InProcessDomainEventPublisher()
+# Step 30 — the edge-state store is shared by the recovery and the event engine.
+edge_state_store_adapter = EdgeStateStoreAdapter(SessionLocal)
 time_advancement_service = TimeAdvancementService(time_store_adapter, domain_event_publisher,
-                                                  weather_service=weather_selection_service)
+                                                  weather_service=weather_selection_service,
+                                                  edge_store=edge_state_store_adapter)
 time_clock_controller = TimeClockController(time_advancement_service)
 
 # Step 28 — movement system (single-player). The controller is mounted on the
 # public app; the service is also passed to the admin controller for the admin
 # locations view.
 movement_controller = MovementController(movement_service)
+
+# Step 29 — normal events (player-triggered actions). The time service is held as the
+# concrete class: force_time_end is deliberately absent from the port so REST cannot skip
+# a time unit.
+event_service = EventService(event_store_adapter,
+                             edge_store=edge_state_store_adapter,
+                             content_read_port=story_match_read_adapter,
+                             time_service=time_advancement_service,
+                             location_store=location_entry_store_adapter)
+event_controller = EventController(event_service)
+
+# Steps 34 & 35 — inventory and resources. Depends on the CONCRETE EventService, not on
+# its port: item usage reuses the engine's apply_standalone_effects so that an item effect
+# and an event effect cannot drift apart.
+inventory_store_adapter = InventoryStoreAdapter(SessionLocal)
+inventory_service = InventoryService(inventory_store_adapter,
+                                     user_access_port=user_access_adapter,
+                                     story_read_port=story_match_read_adapter,
+                                     effect_engine=event_service)
+inventory_controller = InventoryController(inventory_service)
+
+# Step 33 — one service, two roles. EventService implements the location engine as well,
+# because a forced-movement effect is an arrival and splitting the two apart would only
+# produce a dependency cycle. These two lines close the one cycle in the graph: the event
+# engine needs the time engine for flag_end_time, and the time engine needs the event
+# engine to run what a time-start set off.
+movement_service.location_entry = event_service
+time_advancement_service.set_automatic_event_runner(event_service)
 
 dev_controller = DevController(test_data_cleanup_service, settings.dev_test_endpoints_enabled)
 
@@ -277,6 +324,8 @@ app = _build_app([
     turn_cycle_controller.router,
     time_clock_controller.router,
     movement_controller.router,
+    event_controller.router,
+    inventory_controller.router,
     weather_controller.router,
 ])
 

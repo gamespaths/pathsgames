@@ -86,10 +86,12 @@ Locations Active Is Empty Without A Joined Character
     [Documentation]    A match with no joined character has no player, so locationsActive is
     ...                empty and currentLocation* falls back to the story start location.
     [Tags]    locations-active    match-info    step27
-    ${match}=    Create Match    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}    robottest_la_empty
+    # v0.32.1 — its own guest: the suite token already owns an active match
+    ${token}=    New Guest Token
+    ${match}=    Create Match    ${token}    ${STORY_UUID}    ${DIFFICULTY_UUID}    robottest_la_empty
     Status Should Be    ${match}    201
     ${match_uuid}=    Set Variable    ${match.json()}[uuid]
-    ${response}=    Get Match Info    ${TOKEN}    ${match_uuid}    200
+    ${response}=    Get Match Info    ${token}    ${match_uuid}    200
     ${body}=    Set Variable    ${response.json()}
     Should Be Empty    ${body}[locationsActive]
     Should Not Be Equal    ${body}[currentLocationId]    ${None}
@@ -173,6 +175,9 @@ Suite Setup Locations Active
 
 New Match With Character
     [Documentation]    Creates a CREATED match and joins one character; returns the match uuid.
+    # v0.32.1 — its own guest: one user may own only one active match per story
+    # (409 ACTIVE_MATCH_ALREADY_EXISTS). ${TOKEN} is rebound for the rest of the test.
+    ${token}=    Use A Fresh Guest Token
     ${match}=    Create Match    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}    robottest_la
     Status Should Be    ${match}    201
     ${match_uuid}=    Set Variable    ${match.json()}[uuid]

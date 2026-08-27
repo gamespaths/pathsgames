@@ -11,6 +11,44 @@ from app.adapters.persistence.story.models import (
     MissionEntity, MissionStepEntity, CreatorEntity, CardEntity, KeyEntity
 )
 
+# Distinguishes "the caller sent this column as null" from "the caller did not send it".
+_MISSING = object()
+
+# Admin/import keys that differ from a column's own camelCase, per table. Mirrors the
+# aliases the dedicated save_choice_* methods already accept, so the generic CRUD path
+# stores the same rows the import path does. Order is the fallback order tried.
+_ADMIN_KEY_ALIASES = {
+    "list_choices_conditions": {
+        "id_choice": ("idChoices",),
+        "condition_type": ("type",),
+        "condition_key": ("key",),
+        "condition_value": ("value",),
+        "condition_operator": ("operator",),
+    },
+    "list_choices_effects": {
+        # The effect fields (statistics/value/key/idEvent/…) already match the columns'
+        # own camelCase; only the choice link uses the story-relative plural.
+        "id_choice": ("idChoices",),
+    },
+}
+
+
+def _normalize_optional_fk(value):
+    """0 means "no restriction" on an optional story reference; so does None.
+
+    The CRUD writes a raw 0 where an import writes None, and both have to read as unset.
+    """
+    number = value if isinstance(value, int) else None
+    if number is None and isinstance(value, str):
+        try:
+            number = int(value)
+        except (ValueError, TypeError):
+            return None
+    if number is None or number <= 0:
+        return None
+    return number
+
+
 def _get_long(data, *keys):
     """Try multiple keys to extract an integer value from data dict."""
     if data is None:
@@ -225,7 +263,15 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     id_event_on_enter=item.get("idEventOnEnter"),
                     id_event_if_counter_zero=item.get("idEventIfCounterZero"),
                     counter_time=item.get("counterTime"),
-                    id_card=item.get("idCard")
+                    id_card=item.get("idCard"),
+                    # Step 33 — the location-side trigger columns. A null column is not a
+                    # trigger, so an authored story that names none behaves exactly as before.
+                    id_event_if_first_time=item.get("idEventIfFirstTime"),
+                    id_event_not_first_time=item.get("idEventNotFirstTime"),
+                    id_event_if_character_enter_empty_location=item.get(
+                        "idEventIfCharacterEnterEmptyLocation"),
+                    id_event_if_character_start_time=item.get("idEventIfCharacterStartTime"),
+                    priority_automatic_event=item.get("priorityAutomaticEvent"),
                 )
                 explicit_id = _get_long(item, "id")
                 kwargs["id"] = explicit_id if explicit_id is not None else next_loc_id()
@@ -247,7 +293,13 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                         condition_key=n.get("conditionKey"),
                         condition_value=n.get("conditionValue"),
                         id_card=n.get("idCard"),
-                        id_card_back=n.get("idCardBack")
+                        id_card_back=n.get("idCardBack"),
+                        # `flag_back` decides whether the edge can be walked BACKWARDS.
+                        # The column and the movement engine have always honoured it
+                        # (movement_service._traversable_from), but the import never mapped
+                        # it, so every imported story silently became one-way: the column
+                        # defaults to 0 and no authored value could ever reach it.
+                        flag_back=n.get("flagBack", 0),
                     )
                     session.add(ne)
             session.commit()
@@ -263,15 +315,27 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     id_card=item.get("idCard"),
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
-                    event_type=item.get("eventType", item.get("type")),
-                    trigger_type=item.get("triggerType"),
-                    energy_cost=item.get("energyCost", 0),
-                    coin_cost=item.get("coinCost", 0),
-                    id_event_next=item.get("idEventNext"),
-                    flag_interrupt=item.get("flagInterrupt", 0),
+                    # v0.29.0 — the JSON contract spells these `type` and `costEnery` (the
+                    # historical typo). Reading only `eventType`/`energyCost`, as this did,
+                    # dropped both on every Java-authored story.
+                    type=item.get("type", item.get("eventType")),
+                    cost_enery=item.get("costEnery", item.get("energyCost", 0)),
+                    # v0.35.3 — costCoin is the name; coinCost is what every story exported
+                    # before today carries. Reading both is the difference between an old
+                    # export keeping its prices and losing them without a word.
+                    cost_coin=item.get("costCoin", item.get("coinCost", 0)),
+                    cost_food=item.get("costFood", 0),
+                    cost_magic=item.get("costMagic", 0),
                     flag_end_time=item.get("flagEndTime", 0),
+                    id_event_next=item.get("idEventNext"),
                     id_specific_location=item.get("idSpecificLocation")
-                    if item.get("idSpecificLocation") is not None else item.get("idLocation")
+                    if item.get("idSpecificLocation") is not None else item.get("idLocation"),
+                    id_weather=item.get("idWeather"),
+                    registry_key_condition=item.get("registryKeyCondition"),
+                    registry_value_condition=item.get("registryValueCondition"),
+                    id_item_condition=item.get("idItemCondition"),
+                    id_class_condition=item.get("idClassCondition"),
+                    id_item_to_add=item.get("idItemToAdd"),
                 )
                 explicit_id = _get_long(item, "id")
                 kwargs["id"] = explicit_id if explicit_id is not None else next_ev_id()
@@ -279,17 +343,49 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 session.add(ev)
                 session.flush()
 
+                # Effects may be nested under the event (Python's own format) or authored as a
+                # top-level `eventEffects` array (the Java/JSON contract) — see save_event_effects.
                 for ef in item.get("effects", []):
-                    efe = EventEffectEntity(
-                        id=next_ef_id(),
-                        id_story=story_id,
-                        id_event=ev.id,
-                        effect_type=ef.get("effectType", ef.get("type")),
-                        effect_value=ef.get("effectValue", ef.get("value")),
-                        flag_group=ef.get("flagGroup", 0)
-                    )
-                    session.add(efe)
+                    session.add(self._event_effect(story_id, next_ef_id(), ef, ev.id))
             session.commit()
+
+    def save_event_effects(self, story_id: int, items: List[Dict[str, Any]]) -> None:
+        """v0.29.0 — the top-level `eventEffects` array of the shared JSON contract."""
+        with self.session_factory() as session:
+            next_ef_id = self._make_id_counter(session, "list_events_effects", "id", story_id)
+            for ef in items:
+                explicit_id = _get_long(ef, "id")
+                new_id = explicit_id if explicit_id is not None else next_ef_id()
+                session.add(self._event_effect(story_id, new_id, ef, ef.get("idEvent")))
+            session.commit()
+
+    def _event_effect(self, story_id: int, new_id: int, ef: Dict[str, Any],
+                      id_event: Any) -> EventEffectEntity:
+        return EventEffectEntity(
+            id=new_id,
+            id_story=story_id,
+            uuid=ef.get("uuid") or str(__import__('uuid').uuid4()),
+            # The effect's own card is the narrative the board renders — never imported before.
+            id_card=ef.get("idCard"),
+            id_text_name=ef.get("idTextName"),
+            id_text_description=ef.get("idTextDescription"),
+            id_event=id_event,
+            statistics=ef.get("statistics", ef.get("effectType")),
+            value=ef.get("value", ef.get("effectValue", 0)),
+            target=ef.get("target", "ALL"),
+            target_class=ef.get("targetClass"),
+            traits_to_add=ef.get("traitsToAdd"),
+            traits_to_remove=ef.get("traitsToRemove"),
+            id_item_target=ef.get("idItemTarget"),
+            item_action=ef.get("itemAction"),
+            key_to_add=ef.get("keyToAdd"),
+            key_value_to_add=ef.get("keyValueToAdd"),
+            characteristic_to_add=ef.get("characteristicToAdd"),
+            characteristic_to_remove=ef.get("characteristicToRemove"),
+            id_weather=ef.get("idWeather"),
+            # v0.29.3 — forced movement: moves the recipients here, no Step 28 checks.
+            id_location=ef.get("idLocation"),
+        )
 
     def save_items(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         with self.session_factory() as session:
@@ -303,24 +399,54 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
                     weight=item.get("weight", 0),
-                    id_class=item.get("idClass")
+                    # v0.34.0 — step 34 gates use-item on these three.
+                    is_consumabile=item.get("isConsumabile", 1),
+                    # v0.35.0 — absent stays None, which reads as "show the effects": an
+                    # old story file keeps behaving exactly as before the column existed.
+                    flag_show_effects=item.get("flagShowEffects"),
+                    # v0.35.1 — absent stays None: no cap, one unit per drop and per use.
+                    max_per_character=item.get("maxPerCharacter"),
+                    amount_drop=item.get("amountDrop"),
+                    amount_use=item.get("amountUse"),
+                    id_class_permitted=_normalize_optional_fk(item.get("idClassPermitted")),
+                    id_class_prohibited=_normalize_optional_fk(item.get("idClassProhibited")),
                 )
                 explicit_id = _get_long(item, "id")
                 kwargs["id"] = explicit_id if explicit_id is not None else next_it_id()
                 it = ItemEntity(**self._coerce_kwargs(ItemEntity, kwargs))
                 session.add(it)
                 session.flush()
-                
+
+                # Legacy shape: effects nested under the item. The canonical TOP-LEVEL
+                # `itemEffects` array (same as Java and AWS) is imported by save_item_effects.
                 for ef in item.get("effects", []):
-                    ie = ItemEffectEntity(
-                        id=next_ie_id(),
-                        id_story=story_id,
-                        id_item=it.id,
-                        effect_type=ef.get("effectType", ef.get("type")),
-                        effect_value=ef.get("effectValue", ef.get("value"))
-                    )
-                    session.add(ie)
+                    session.add(self._item_effect(story_id, next_ie_id(), ef, it.id))
             session.commit()
+
+    def save_item_effects(self, story_id: int, items: List[Dict[str, Any]]) -> None:
+        """v0.34.0 — the canonical top-level `itemEffects` array, keyed by idItem."""
+        with self.session_factory() as session:
+            next_id = self._make_id_counter(session, "list_items_effects", "id", story_id)
+            for ef in items:
+                explicit_id = _get_long(ef, "id")
+                new_id = explicit_id if explicit_id is not None else next_id()
+                session.add(self._item_effect(story_id, new_id, ef, ef.get("idItem")))
+            session.commit()
+
+    def _item_effect(self, story_id: int, new_id: int, ef: Dict[str, Any],
+                     id_item: Any) -> ItemEffectEntity:
+        return ItemEffectEntity(
+            id=new_id,
+            id_story=story_id,
+            uuid=ef.get("uuid") or str(__import__('uuid').uuid4()),
+            id_card=ef.get("idCard"),
+            id_item=id_item,
+            # effectType/type stay readable so older story files still import.
+            effect_code=ef.get("effectCode", ef.get("effectType", ef.get("type"))),
+            effect_value=ef.get("effectValue", ef.get("value", 0)),
+            traits_to_add=ef.get("traitsToAdd"),
+            traits_to_remove=ef.get("traitsToRemove"),
+        )
 
     def save_classes(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         with self.session_factory() as session:
@@ -356,50 +482,90 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             session.commit()
 
     def save_choices(self, story_id: int, items: List[Dict[str, Any]]) -> None:
+        """Step 31: only the list_choices rows. Conditions and effects arrive as the
+        canonical TOP-LEVEL choiceConditions / choiceEffects arrays (keyed by idChoices)
+        via save_choice_conditions / save_choice_effects — the nested
+        choices[].conditions/effects shape was a Python-only drift and is gone."""
         with self.session_factory() as session:
             next_ch_id = self._make_id_counter(session, "list_choices", "id", story_id)
-            next_cc_id = self._make_id_counter(session, "list_choices_conditions", "id", story_id)
-            next_ce_id = self._make_id_counter(session, "list_choices_effects", "id", story_id)
             for item in items:
                 kwargs = dict(
                     id_story=story_id,
+                    # Step 32: a choice MUST carry a uuid — select-choice addresses an
+                    # option by it, so a null one makes every option unresolvable. Every
+                    # other save_* has always generated it; list_choices was the gap.
+                    uuid=item.get("uuid") or str(__import__('uuid').uuid4()),
                     id_card=item.get("idCard"),
                     id_event=item.get("idEvent"),
+                    id_location=item.get("idLocation"),
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
+                    id_text_narrative=item.get("idTextNarrative"),
                     priority=item.get("priority", 0),
-                    is_otherwise=item.get("isOtherwise", 0),
+                    # otherwiseFlag is the canonical key (Java/AWS/demo JSONs);
+                    # isOtherwise stays accepted for older Python-authored payloads.
+                    is_otherwise=item.get("otherwiseFlag", item.get("isOtherwise", 0)),
                     is_progress=item.get("isProgress", 0),
-                    id_event_torun=item.get("idEventToRun")
+                    id_event_torun=item.get("idEventTorun", item.get("idEventToRun")),
+                    limit_sad=item.get("limitSad"),
+                    limit_dex=item.get("limitDex"),
+                    limit_int=item.get("limitInt"),
+                    limit_cos=item.get("limitCos"),
+                    logic_operator=item.get("logicOperator") or "AND",
                 )
                 explicit_id = _get_long(item, "id")
                 kwargs["id"] = explicit_id if explicit_id is not None else next_ch_id()
                 ch = ChoiceEntity(**self._coerce_kwargs(ChoiceEntity, kwargs))
                 session.add(ch)
-                session.flush()
+            session.commit()
 
-                for c in item.get("conditions", []):
-                    cc = ChoiceConditionEntity(
-                        id=next_cc_id(),
-                        id_story=story_id,
-                        id_choice=ch.id,
-                        condition_type=c.get("conditionType", c.get("type")),
-                        condition_key=c.get("conditionKey"),
-                        condition_value=c.get("conditionValue"),
-                        condition_operator=c.get("conditionOperator", "AND")
-                    )
-                    session.add(cc)
+    def save_choice_conditions(self, story_id: int, items: List[Dict[str, Any]]) -> None:
+        with self.session_factory() as session:
+            next_cc_id = self._make_id_counter(
+                session, "list_choices_conditions", "id", story_id)
+            for c in items:
+                explicit_id = _get_long(c, "id")
+                cc = ChoiceConditionEntity(
+                    id=explicit_id if explicit_id is not None else next_cc_id(),
+                    id_story=story_id,
+                    uuid=c.get("uuid") or str(__import__('uuid').uuid4()),
+                    id_choice=c.get("idChoices", c.get("idChoice")),
+                    condition_type=c.get("type", c.get("conditionType")),
+                    condition_key=c.get("key", c.get("conditionKey")),
+                    condition_value=c.get("value", c.get("conditionValue")),
+                    # The per-row comparator; "=" is the schema default.
+                    condition_operator=c.get("operator", c.get("conditionOperator")) or "=",
+                )
+                session.add(cc)
+            session.commit()
 
-                for ef in item.get("effects", []):
-                    ce = ChoiceEffectEntity(
-                        id=next_ce_id(),
-                        id_story=story_id,
-                        id_choice=ch.id,
-                        effect_type=ef.get("effectType", ef.get("type")),
-                        effect_value=ef.get("effectValue", ef.get("value")),
-                        flag_group=ef.get("flagGroup", 0)
-                    )
-                    session.add(ce)
+    def save_choice_effects(self, story_id: int, items: List[Dict[str, Any]]) -> None:
+        with self.session_factory() as session:
+            next_ce_id = self._make_id_counter(
+                session, "list_choices_effects", "id", story_id)
+            for ef in items:
+                explicit_id = _get_long(ef, "id")
+                ce = ChoiceEffectEntity(
+                    id=explicit_id if explicit_id is not None else next_ce_id(),
+                    id_story=story_id,
+                    uuid=ef.get("uuid") or str(__import__('uuid').uuid4()),
+                    id_card=ef.get("idCard"),
+                    id_choice=ef.get("idChoices", ef.get("idChoice")),
+                    # Step 32 realigned the model onto the canonical column names; the old
+                    # effectType/effectValue spellings stay readable for older story files.
+                    statistics=ef.get("statistics", ef.get("effectType", ef.get("type"))),
+                    value=ef.get("value", ef.get("effectValue")),
+                    flag_group=ef.get("flagGroup", 0),
+                    key=ef.get("key"),
+                    value_to_add=ef.get("valueToAdd"),
+                    value_to_remove=ef.get("valueToRemove"),
+                    id_event=ef.get("idEvent"),
+                    id_location=ef.get("idLocation"),
+                    id_weather=ef.get("idWeather"),
+                    id_item_target=ef.get("idItemTarget"),
+                    item_action=ef.get("itemAction"),
+                )
+                session.add(ce)
             session.commit()
 
     def save_cards(self, story_id: int, items: List[Dict[str, Any]]) -> None:
@@ -427,6 +593,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
         self._insert_batch(TraitEntity, story_id, items, {
             "uuid": "uuid", "id_card": "idCard", "id_text_name": "idTextName", "id_text_description": "idTextDescription",
             "cost_positive": "costPositive", "cost_negative": "costNegative",
+            # v0.35.2 — absent stays None, which reads as "pickable".
+            "hide_on_start_match": "hideOnStartMatch",
             "id_class_permitted": "idClassPermitted", "id_class_prohibited": "idClassProhibited",
             "life": "life", "energy": "energy", "sad": "sad",
             "dexterity": "dexterity", "intelligence": "intelligence",
@@ -573,30 +741,45 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             }
         return self._TABLE_MODEL_MAP
 
+    def _value_for_column(self, table_name: str, col_name: str, data: Dict[str, Any]):
+        """The incoming value for a column, or the ``_MISSING`` sentinel when absent.
+
+        The generic path pulls each column from the camelCase spelling OF THAT COLUMN.
+        For the choice sub-tables the admin form (and the canonical import shape) use
+        DIFFERENT keys — the story-relative ``idChoices`` for the ``id_choice`` link, and
+        the short ``type``/``key``/``value``/``operator`` for the ``condition_*`` columns.
+        Without these aliases an admin-created choice-condition landed with every one of
+        those columns NULL: an orphaned, empty row that (under OR, with no effective
+        conditions) would have opened the option to everyone. The import path already
+        accepted both spellings; this brings the admin CRUD into line.
+        """
+        for key in (self._to_camel(col_name), col_name,
+                    *_ADMIN_KEY_ALIASES.get(table_name, {}).get(col_name, ())):
+            if key in data:
+                return data[key]
+        return _MISSING
+
     def save_entity(self, story_id: int, table_name: str, data: Dict[str, Any]) -> None:
         model = self._get_model_map().get(table_name)
         if not model:
             return
         with self.session_factory() as session:
             kwargs = {"id_story": story_id}
-            
+
             # Handle ID (Step 17: generate next ID if not provided)
             id_col = "id_tipo" if table_name == "list_character_templates" else "id"
             explicit_id = _get_long(data, "id", "id_tipo", "idTipo")
             if explicit_id is None:
                 explicit_id = self.next_scoped_id(table_name, id_col, story_id)
             kwargs[id_col] = explicit_id
-            
+
             for col in model.__table__.columns:
                 col_name = col.name
                 if col_name in ("id", "id_story", "id_tipo"):
                     continue
-                # Try camelCase key from data
-                camel_key = self._to_camel(col_name)
-                if camel_key in data:
-                    kwargs[col_name] = data[camel_key]
-                elif col_name in data:
-                    kwargs[col_name] = data[col_name]
+                value = self._value_for_column(table_name, col_name, data)
+                if value is not _MISSING:
+                    kwargs[col_name] = value
             session.add(model(**kwargs))
             session.commit()
 
@@ -615,11 +798,9 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 col_name = col.name
                 if col_name in ("id", "id_story", "uuid"):
                     continue
-                camel_key = self._to_camel(col_name)
-                if camel_key in data:
-                    setattr(entity, col_name, data[camel_key])
-                elif col_name in data:
-                    setattr(entity, col_name, data[col_name])
+                value = self._value_for_column(table_name, col_name, data)
+                if value is not _MISSING:
+                    setattr(entity, col_name, value)
             session.commit()
 
     def delete_entity_by_uuid(self, table_name: str, uuid: str) -> None:

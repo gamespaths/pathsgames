@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from "@/i18n/context"
 import Card from '@/components/layout/Card'
 import PlayerStats from './PlayerStats'
@@ -8,7 +8,7 @@ import { resolveSelectionEntity } from '@/utils/gamebook'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
 
 
-export default function GoToSleepCard({ story, storyFull,gameData,playerStats, onPreview, previewSide='left', matchUuid, accessToken, onSlept}) {
+export default function GoToSleepCard({ story, storyFull,gameData,playerStats, onPreview, previewSide='left', matchUuid, accessToken, onSlept, autoPreview=false}) {
   const { t } = useTranslation()
   const [sleeping, setSleeping] = useState(false)
   //console.log("GoToSleepCard gameData",gameData);
@@ -65,6 +65,20 @@ export default function GoToSleepCard({ story, storyFull,gameData,playerStats, o
     </div>
   );
 
+  // The sleep reading page, asked for by the (i) lens or — when the board's bed button
+  // opened this card on purpose (autoPreview) — as soon as the card is on screen.
+  function openSleepPreview() {
+    onPreview({
+      card: cardRight,
+      type: 'sleep',
+      stats: [],
+      side: previewSide,
+      props: { onAction: handleSleep, actionLabel: t('game.sleep.action'), actionIcon: 'fa-bed',
+        extraContent: sleepSecureContent, extraContentClassName: '' },
+    })
+  }
+  useEffect(() => { if (autoPreview) openSleepPreview() }, [autoPreview]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return <Card
     card={cardLeft}
     entityType="sleep"
@@ -72,14 +86,7 @@ export default function GoToSleepCard({ story, storyFull,gameData,playerStats, o
     onAction={handleSleep}
     actionLabel={t('game.sleep.action')}
     actionIcon= 'fa-bed'
-    onPreview={() => {
-      onPreview(cardRight, 'sleep', null,
-      [/*{ key: 'energy', value: "" + energyObject.energy + "/" + energyObject.energyMax, label: t(`book.stats.totals.energy`) }*/],
-      true,
-      {onAction: handleSleep, actionLabel: t('game.sleep.action'), actionIcon: 'fa-bed' ,
-          extraContent:sleepSecureContent, extraContentClassName:''
-      }, previewSide );
-    }}
+    onPreview={openSleepPreview}
     story={story}
     flagInformationCard={true}
     actionOnlyIfPreview={true}

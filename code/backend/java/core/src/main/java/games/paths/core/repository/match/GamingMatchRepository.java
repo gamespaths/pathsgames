@@ -27,6 +27,14 @@ public interface GamingMatchRepository extends JpaRepository<GamingMatchEntity, 
     long countByIdUserCreatorAndStatusIn(Long idUserCreator, List<String> statuses);
 
     /**
+     * v0.32.1 — true when the user already owns a match on that story in one of
+     * the given statuses. Backs the duplicate-match guard of match creation.
+     */
+    boolean existsByIdUserCreatorAndIdStoryAndStatusIn(Long idUserCreator,
+                                                      Long idStory,
+                                                      List<String> statuses);
+
+    /**
      * v0.28.1 — keyset page of the admin match list, newest first.
      *
      * <p>Every filter is optional ({@code NULL} ⇒ ignored). {@code tsFrom} scopes

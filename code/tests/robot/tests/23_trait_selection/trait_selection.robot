@@ -10,7 +10,9 @@
 # must exist (TRAIT_NOT_FOUND), no duplicates (TRAIT_DUPLICATED), traits must
 # be compatible with the selected class (TRAIT_NOT_COMPATIBLE) and the summed
 # positive/negative costs must respect the difficulty budgets
-# (TRAIT_COST_EXCEEDED). A null budget means "no limit".
+# (TRAIT_COST_EXCEEDED). A null budget means "no limit". v0.35.2 adds a fifth:
+# a trait flagged `hideOnStartMatch` is refused outright (TRAIT_NOT_SELECTABLE),
+# while the API keeps returning it — an event or an item may grant it at any time.
 #
 # All data is resolved at runtime from the public story detail (seeded uuids
 # are auto-generated). Scenarios that the running backend's seed cannot
@@ -168,8 +170,10 @@ Join With Null Budget Ignores Cost Limit
     IF    '${diff_uuid}' == ''
         Pass Execution    Seed has no NULL-budget difficulty — scenario skipped
     END
-    ${compatible}=    Filtered Trait Uuids    ${DETAIL}    ${CLASS_UUID}
-    IF    not ${compatible}    Pass Execution    Seed has no class-compatible trait — scenario skipped
+    # v0.35.2 — PICKABLE, not merely class-compatible: the endpoint keeps returning the
+    # traits the story hides from the start-match page, and joining with one is refused.
+    ${compatible}=    Pickable Trait Uuids    ${DETAIL}    ${CLASS_UUID}
+    IF    not ${compatible}    Pass Execution    Seed has no selectable trait — scenario skipped
     ${character}=    Join Fresh Match With Difficulty And Traits    ${diff_uuid}    ${CLASS_UUID}    ${compatible}
     Should Be True    ${character}[life] > 0
 
@@ -252,8 +256,86 @@ Create Match With Incompatible Loadout Trait Returns 400
     ...    ${CHARACTER_UUID}    ${CLASS_UUID}    ${trait_list}    ${1}    expected_status=400
     Should Be Equal As Strings    ${response.json()}[error]    TRAIT_NOT_COMPATIBLE
 
+# ── v0.35.2 — traits the story keeps out of the start-match page ──────────────
+
+A Hidden Trait Is Still Returned By The API, With Its Flag
+    [Documentation]    v0.35.2 — `hideOnStartMatch` is REPORTED, never filtered out: the
+    ...                same list resolves the traits a character already owns, and an event
+    ...                or an item may grant a hidden one at any time. Hiding it is the
+    ...                client's job, on the start-match page alone.
+    [Tags]    traits    step23    hide-on-start-match
+    ${hidden}=    Find Hidden Trait    ${DETAIL}
+    IF    '${hidden}' == ''
+        Pass Execution    Seed has no hidden trait — scenario skipped
+    END
+    # Every trait carries the key, so a client can tell "not hidden" from "old backend".
+    FOR    ${trait}    IN    @{DETAIL}[traits]
+        Dictionary Should Contain Key    ${trait}    hideOnStartMatch
+    END
+
+The Per-Class Trait List Carries The Flag Too
+    [Documentation]    Both projections that return traits report it, or the picker would
+    ...                have to guess on one of the two.
+    [Tags]    traits    step23    hide-on-start-match
+    ${hidden}=    Find Hidden Trait    ${DETAIL}
+    IF    '${hidden}' == ''
+        Pass Execution    Seed has no hidden trait — scenario skipped
+    END
+    ${response}=    Get Traits For Class    ${STORY_UUID}    ${CLASS_UUID}    200
+
+    FOR    ${trait}    IN    @{response.json()}
+        Dictionary Should Contain Key    ${trait}    hideOnStartMatch
+    END
+
+Join With A Hidden Trait Returns 400 TRAIT_NOT_SELECTABLE
+    [Documentation]    The refusal is server-side on purpose: the API keeps returning the
+    ...                trait, so a client that merely hid the row would be a rule anyone
+    ...                could walk around with curl.
+    [Tags]    traits    step23    hide-on-start-match
+    ${hidden}=    Find Hidden Trait    ${DETAIL}
+    IF    '${hidden}' == ''
+        Pass Execution    Seed has no hidden trait — scenario skipped
+    END
+    ${match_uuid}=    Create Fresh Match
+    ${trait_list}=    Create List    ${hidden}
+    ${response}=    Join Match    ${TOKEN}    ${match_uuid}
+    ...    ${CHARACTER_UUID}    ${CLASS_UUID}    ${trait_list}    expected_status=400
+    Should Be Equal As Strings    ${response.json()}[error]    TRAIT_NOT_SELECTABLE
+
+Create Match With A Hidden Loadout Trait Returns 400
+    [Documentation]    Both doors are the same door: creator loadout and join share one
+    ...                validator, so the refusal cannot exist on one side only.
+    [Tags]    traits    step23    hide-on-start-match
+    ${hidden}=    Find Hidden Trait    ${DETAIL}
+    IF    '${hidden}' == ''
+        Pass Execution    Seed has no hidden trait — scenario skipped
+    END
+    ${trait_list}=    Create List    ${hidden}
+    ${response}=    Create Match With Loadout    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}
+    ...    ${CHARACTER_UUID}    ${CLASS_UUID}    ${trait_list}    ${1}    expected_status=400
+    Should Be Equal As Strings    ${response.json()}[error]    TRAIT_NOT_SELECTABLE
+
+A Pickable Trait Is Still Pickable
+    [Documentation]    The guard must refuse the flagged trait and nothing else — the
+    ...                loadout keyword every suite uses picks a selectable one.
+    [Tags]    traits    step23    hide-on-start-match
+    IF    '${TRAIT_UUID}' == ''    Pass Execution    Seed has no selectable trait — scenario skipped
+    ${match_uuid}=    Create Fresh Match
+    ${trait_list}=    Create List    ${TRAIT_UUID}
+    Join Match    ${TOKEN}    ${match_uuid}
+    ...    ${CHARACTER_UUID}    ${CLASS_UUID}    ${trait_list}    expected_status=201
+
 
 *** Keywords ***
+
+Find Hidden Trait
+    [Documentation]    The uuid of the first trait the story keeps out of the start-match
+    ...                page, or the empty string when the seed authors none.
+    [Arguments]    ${detail}
+    ${traits}=    Get From Dictionary    ${detail}    traits    ${EMPTY}
+    ${hidden}=    Evaluate    [t['uuid'] for t in $traits if t.get('hideOnStartMatch')]
+    ${uuid}=    Set Variable If    ${hidden}    ${hidden}[0]    ${EMPTY}
+    RETURN    ${uuid}
 
 Suite Setup Trait Selection
     [Documentation]    Guest login + resolve loadout and the full story detail.
@@ -276,6 +358,11 @@ Suite Setup Trait Selection
 Create Fresh Match
     [Documentation]    Creates a new single-player match (no loadout traits) and
     ...                returns its uuid.
+    ...                v0.32.1 — each match belongs to its own guest: one user may own
+    ...                only one active match per story (409 ACTIVE_MATCH_ALREADY_EXISTS).
+    ...                ${TOKEN} is rebound for the rest of the test, so the caller keeps
+    ...                using it to act on the match it just got.
+    ${token}=    Use A Fresh Guest Token
     ${match}=    Create Match    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}    robottest_step23
     Status Should Be    ${match}    201
     RETURN    ${match.json()}[uuid]

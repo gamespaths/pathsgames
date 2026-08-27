@@ -48,7 +48,7 @@ export function buildCardCharacteristicsRight(story, playerStats, clock, weather
 
   card.description = (
     <>
-      <PlayerStats stats={stats} plainFlag={true} />
+      <PlayerStats stats={stats} plainFlag={true} showItems={false} />
     </>
   )
   card.descriptionTag = true
@@ -84,7 +84,7 @@ export function resolveSelectionEntity(story, playerStats, gameData, type, index
   const cfg = SELECTION_CONFIG?.[type]
   if (!cfg) {console.log("type not found", type , story);return null;}
   const list = story?.[cfg.storyList]
-  if (!Array.isArray(list)) {console.log("list not found for type", type, story);return null;}
+  if (!Array.isArray(list)) { /*console.log("list not found for type", type, story);*/return null;}
   const raw = playerStats?.[cfg.uuidField]
   let uuid = Array.isArray(raw) ? raw[index] : raw
   if (!uuid) { 
@@ -103,41 +103,113 @@ export function selectedTraitCount(playerStats) {
 }
 
 /**
- * The weather-resolved energy cost the player must pay to reach one neighbor:
- * the /locations `totalEnergyCost` (keyed by neighbor uuid) when known, else the
- * base edge cost carried on the location. Kept as a named helper so the sleep
- * gate and MovementCard stay in agreement on how a move's cost is computed.
+ * Key of one entry in the move-cost map: a move is identified by BOTH endpoints.
+ *
+ * The /locations payload names a neighbor by the uuid of the LOCATION at the other
+ * end, not by the edge — so every path leading into the same place shares that uuid
+ * while costing something different (`base edge + entry cost + weather` depends on
+ * which edge you walk). Keyed on the destination alone the entries overwrite each
+ * other, and the survivor is decided by the payload order: the location the player
+ * stands on is listed first, so its — correct — cost is the one every later entry
+ * overwrites. Hence the origin belongs in the key.
  */
-export function movementEnergyCost(location, locationCosts = {}) {
-  const resolved = location?.uuid != null ? locationCosts[location.uuid] : undefined
+export function movementCostKey(originLocationId, destinationUuid) {
+  return `${originLocationId}->${destinationUuid}`
+}
+
+/**
+ * v0.35.5 — when the (i) bookmark should shout: the character is one hit from a coma, out
+ * of energy, or as sad as they can get. A statistic the backend has not projected yet is
+ * never an alarm — an unknown value is not a bad one.
+ */
+export function isStatsCritical(playerStats) {
+  const num = key => (Number.isFinite(playerStats?.[key]) ? playerStats[key] : null)
+  const life = num('life')
+  const energy = num('energy')
+  const sadness = num('sadness')
+  const sadnessMax = num('sadnessMax')
+  return (life !== null && life < 2)
+    || (energy !== null && energy < 2)
+    || (sadness !== null && sadnessMax !== null && sadness > sadnessMax - 1)
+}
+
+/**
+ * The bag is OVER its capacity — strictly heavier than it can carry. That is the state the
+ * player has to fix, so it both reddens the bag bookmark and grows a bin on the item rows.
+ * A weight the backend has not projected is never an alarm.
+ */
+export function isBagOverloaded(playerStats) {
+  const weight = playerStats?.weight
+  const weightMax = playerStats?.weightMax
+  if (!Number.isFinite(weight) || !Number.isFinite(weightMax) || weightMax <= 0) return false
+  return weight > weightMax
+}
+
+/**
+ * The move-cost map consumed by `movementEnergyCost`, built from a /locations
+ * payload: one entry per (origin location, destination) pair.
+ */
+export function buildLocationCosts(payload) {
+  const map = {}
+  for (const loc of payload?.locations ?? []) {
+    for (const n of loc.neighbors ?? []) {
+      if (n.uuid != null && loc.idLocation != null) {
+        map[movementCostKey(loc.idLocation, n.uuid)] = n.totalEnergyCost
+      }
+    }
+  }
+  return map
+}
+
+/**
+ * The weather-resolved energy cost the player must pay to reach one neighbor from
+ * `originLocationId`: the /locations `totalEnergyCost` of that exact pair when
+ * known, else the base edge cost carried on the location. Kept as a named helper
+ * so the sleep gate and MovementCard stay in agreement on how a move's cost is
+ * computed.
+ *
+ * A destination the payload knows no path to FROM HERE — a far node picked on the
+ * map — resolves to the base edge cost rather than to some other origin's total.
+ */
+export function movementEnergyCost(location, locationCosts = {}, originLocationId = null) {
+  if (locationCosts==null){
+    return 0
+  }
+  const resolved = location?.uuid != null && originLocationId != null
+    ? locationCosts[movementCostKey(originLocationId, location.uuid)]
+    : undefined
   return resolved ?? location?.energyCost ?? 0
 }
 
 /**
  * Whether to surface the "go to sleep" card on the board.
  *
- * Rule: show it only when the player is energy-stuck — they have some energy X
- * but every available movement AND every available action costs more than X, so
- * there is nothing left to do but rest. If any move or action is still
- * affordable the card stays hidden.
+ * Rule: show it as soon as the player CANNOT afford at least one thing on the board — one
+ * movement or one costed action out of energy reach is enough. Resting is what buys that
+ * option back, so the card belongs on screen while anything is priced out of it, not only
+ * once everything is. The card hides when every move and every costed action is affordable.
  *
- * This is intentionally a small, dedicated pure function so the rule can evolve
- * (e.g. once actions carry their own energy cost, or extra "must sleep"
- * conditions appear) without touching GameBook's render. Only actions with a
- * positive `energyCost` count: an action with `energyCost` 0 or absent (the
- * current API contract, which does not expose it yet) is ignored — otherwise
- * `energy >= 0` would always hold and the card could never show. End-game
- * actions are escape hatches (no energy cost, they end the match), so they too
- * never count as "something the player can still do" and are excluded.
+ * This is intentionally a small, dedicated pure function so the rule can evolve without
+ * touching the board's render. Only actions with a positive `energyCost` count: an action
+ * with `energyCost` 0 or absent (the current API contract, which does not expose it yet) can
+ * never be out of reach. End-game actions are escape hatches (no energy cost, they end the
+ * match), so they are excluded too.
  */
-export function checkShowToSleepCard({ playerStats, locations = [], actions = [], locationCosts = {} } = {}) {
+export function checkShowToSleepCard({ playerStats, locations = [], actions = [], locationCosts = {},
+  hereLocationId = null } = {}) {
   const energy = playerStats?.energy ?? 0
   const moves = Array.isArray(locations) ? locations : []
   // Only energy-costing, non-end-game actions gate the sleep card.
   const acts = (Array.isArray(actions) ? actions : [])
     .filter(action => !action?.endGame && (action?.energyCost ?? 0) > 0)
-  const affordableMovement = moves.some(loc => energy >= movementEnergyCost(loc, locationCosts))
-  const affordableAction = acts.some(action => energy >= action.energyCost)
-  // Stuck ⇔ no affordable movement and no affordable costed action.
-  return !affordableMovement && !affordableAction
+  // The moves on the board all leave the location the player stands on, so that is
+  // the origin every cost is looked up against.
+  const unaffordableMovement = moves.some(loc =>
+    energy < movementEnergyCost(loc, locationCosts, hereLocationId))
+  const unaffordableAction = acts.some(action => energy < action.energyCost)
+
+  // Unchanged, and independent of energy: a board whose every location is closed leaves
+  // resting as the only thing left to do. An empty board satisfies it too.
+  const allLocationNotAvailable = moves.every(loc => loc?.available === false)
+  return unaffordableMovement || unaffordableAction || allLocationNotAvailable
 }

@@ -144,6 +144,7 @@ def test_create_match_passes_loadout_to_command(env):
         (MatchCreationError.USER_NOT_FOUND, 404),
         (MatchCreationError.USER_BANNED, 403),
         (MatchCreationError.MAINTENANCE_MODE, 503),
+        (MatchCreationError.ACTIVE_MATCH_ALREADY_EXISTS, 409),
         (MatchCreationError.STORY_HAS_NO_LOCATIONS, 400),
         (MatchCreationError.INVALID_INPUT, 400),
     ],
@@ -231,7 +232,8 @@ def test_get_match_info_serializes_locations_active(env):
                 card_back={"title": "Cave Return"},
                 card_location_from={"title": "Tavern"},
                 card_location_to=None)],
-            events=[EventInfo(uuid="evt-1", type="NORMAL", end_game=True, card={"title": "Stranger"})],
+            events=[EventInfo(uuid="evt-1", type="NORMAL", end_game=True, card={"title": "Stranger"},
+                              energy=2)],
         )
     ]
     query_port.get_match_info.return_value = detail
@@ -257,6 +259,8 @@ def test_get_match_info_serializes_locations_active(env):
     assert "locationName" not in body["players"][0] if body.get("players") else True
     assert la[0]["events"][0]["uuid"] == "evt-1"
     assert la[0]["events"][0]["endGame"] is True
+    # The energy the action costs, so the board renders the cost without a second call.
+    assert la[0]["events"][0]["energy"] == 2
     assert la[0]["events"][0]["card"]["title"] == "Stranger"
 
 
@@ -354,16 +358,16 @@ def test_get_match_logs_returns_200(logs_env):
     resp = client.get("/api/matches/m1/logs", headers={"x-user": "u"})
     assert resp.status_code == 200
     assert resp.json()["logs"][0]["type"] == "SLEEP"
-    logs_service.get_match_logs.assert_called_once_with("m1", "u", "en", None, None)
+    logs_service.get_match_logs.assert_called_once_with("m1", "u", "en", None, None, None)
 
 
-def test_get_match_logs_passes_lang_limit_and_cursor(logs_env):
+def test_get_match_logs_passes_lang_limit_cursor_and_order(logs_env):
     client, logs_service = logs_env
     logs_service.get_match_logs.return_value = _logs_payload()
-    resp = client.get("/api/matches/m1/logs?lang=it&limit=10&cursor=cur",
+    resp = client.get("/api/matches/m1/logs?lang=it&limit=10&cursor=cur&order=desc",
                       headers={"x-user": "u"})
     assert resp.status_code == 200
-    logs_service.get_match_logs.assert_called_once_with("m1", "u", "it", 10, "cur")
+    logs_service.get_match_logs.assert_called_once_with("m1", "u", "it", 10, "cur", "desc")
 
 
 def test_get_match_logs_unknown_match_returns_404(logs_env):

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paths Games v0.32 — Choices · 60s Story (recordable)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@500;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --color-parchment:#e8d5b0; --color-parchment-light:#f2e6c8; --color-parchment-dark:#c9b48a;
+  --color-brown-deep:#1a0a02; --color-brown-dark:#2e1508; --color-brown-mid:#5c3317;
+  --color-brown-warm:#7a4520;
+  --color-gold:#c8960a; --color-gold-light:#e8b830; --color-gold-shine:#ffd700; --color-gold-dark:#9a6f08;
+  --font-display:'Cinzel Decorative',serif; --font-heading:'Cinzel',serif; --font-body:'Crimson Text',Georgia,serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:var(--font-body)}
+
+/* ── the recording surface: exactly 1080×1920, scaled to fit the window ── */
+#stage{position:absolute;top:50%;left:50%;width:1080px;height:1920px;transform-origin:center center;
+  background:var(--color-brown-deep);overflow:hidden}
+.scene{position:absolute;inset:0;opacity:0;visibility:hidden;
+  display:flex;flex-direction:column;justify-content:space-between;padding:120px 80px 140px;
+  transition:opacity .6s ease,visibility .6s}
+.scene.is-on{opacity:1;visibility:visible}
+.scene__bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.34;
+  transform:scale(1.06);transition:transform 11s linear}
+.scene.is-on .scene__bg{transform:scale(1.16)}
+.scene__veil{position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(26,10,2,.62),rgba(26,10,2,.30) 38%,rgba(26,10,2,.95)),
+             radial-gradient(ellipse at 50% 40%,rgba(200,150,10,.10),transparent 65%)}
+.scene>*:not(.scene__bg):not(.scene__veil){position:relative;z-index:2}
+.mid{display:flex;flex-direction:column;align-items:center;text-align:center;gap:34px}
+
+/* staged entrances — each element fades up when its scene turns on */
+.up{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.8,.25,1)}
+.scene.is-on .up{opacity:1;transform:none}
+.scene.is-on .d1{transition-delay:.15s}.scene.is-on .d2{transition-delay:.45s}
+.scene.is-on .d3{transition-delay:.85s}.scene.is-on .d4{transition-delay:1.25s}
+.scene.is-on .d5{transition-delay:1.7s}.scene.is-on .d6{transition-delay:2.2s}
+.scene.is-on .d7{transition-delay:2.7s}
+
+.kicker{font-family:var(--font-heading);font-size:38px;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--color-gold);text-shadow:0 0 24px rgba(200,150,10,.5)}
+.hook{font-family:var(--font-display);font-size:92px;line-height:1.14;color:var(--color-parchment-light);
+  text-shadow:0 4px 26px rgba(0,0,0,.95);margin:0}
+.hook--sm{font-size:74px}
+.line{font-size:50px;line-height:1.42;color:var(--color-parchment);margin:0;max-width:900px;font-style:italic}
+.pill{display:inline-block;padding:10px 30px;border-radius:999px;background:rgba(0,0,0,.5);
+  border:2px solid var(--color-gold-dark);color:var(--color-gold-light);font-family:var(--font-heading);
+  font-size:34px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
+
+/* ── card system, mirrored from react-game main.css (×3 scale) ── */
+.cards{display:flex;gap:26px;justify-content:center;align-items:flex-end;flex-wrap:wrap}
+.pg-card{position:relative;border-radius:30px;border:6px solid var(--color-gold-dark);
+  background:linear-gradient(145deg,var(--color-brown-warm) 0%,var(--color-brown-dark) 100%);
+  overflow:hidden;display:flex;flex-direction:column;box-shadow:0 18px 50px rgba(0,0,0,.6);
+  transition:transform .6s ease,box-shadow .6s ease,border-color .6s ease,filter .6s ease,opacity .6s ease}
+.pg-card--small{width:300px;flex:0 0 300px;aspect-ratio:2/3}
+.pg-card--medium{width:450px;flex:0 0 450px;aspect-ratio:2/3}
+.pg-card__img--fill{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.pg-card__overlay-body{position:absolute;bottom:0;left:0;right:0;padding:84px 24px 24px;
+  background:linear-gradient(transparent,rgba(26,10,2,.92) 40%)}
+/* titles wrap onto as many lines as they need and auto-shrink to fit (see fitTitles()) —
+   never truncated with an ellipsis, and the card itself never grows */
+.pg-card__title{font-family:var(--font-heading);color:var(--color-gold-light);font-size:38px;margin:0;
+  text-shadow:0 2px 12px rgba(0,0,0,.9);white-space:normal;overflow-wrap:break-word;
+  line-height:1.16;max-height:3.5em}
+.pg-card--medium .pg-card__title{font-size:48px}
+.pg-card__badge{position:absolute;top:18px;right:18px;background:var(--color-gold);color:var(--color-brown-deep);
+  font-family:var(--font-heading);font-weight:700;font-size:26px;letter-spacing:.1em;text-transform:uppercase;
+  padding:6px 18px;border-radius:10px;z-index:2}
+.pg-card--locked .pg-card__img--fill{filter:grayscale(.9) brightness(.4)}
+.pg-card--locked::after{content:"LOCKED";position:absolute;left:0;right:0;top:44%;text-align:center;
+  font-family:var(--font-heading);font-size:32px;letter-spacing:.3em;color:var(--color-parchment-dark)}
+/* the chosen card lights up mid-scene */
+.scene.is-on .pg-card--dim{opacity:.32;filter:saturate(.5) brightness(.7);transition-delay:1.6s}
+.scene.is-on .pg-card--picked{border-color:var(--color-gold-shine);transform:scale(1.05);
+  box-shadow:0 0 70px rgba(255,215,0,.55),0 18px 50px rgba(0,0,0,.6);transition-delay:1.6s}
+
+.hud{display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
+.hud span{font-family:var(--font-heading);font-size:36px;color:var(--color-gold-light);
+  border:2px solid var(--color-gold-dark);border-radius:999px;padding:10px 26px;background:rgba(0,0,0,.55)}
+.hud--fx span{color:var(--color-parchment-light);border-color:var(--color-gold)}
+
+.cta{font-family:var(--font-heading);font-size:56px;font-weight:700;letter-spacing:.08em;text-align:center;
+  color:var(--color-brown-deep);background:linear-gradient(120deg,var(--color-gold-light),var(--color-gold));
+  border-radius:22px;padding:30px 24px;box-shadow:0 14px 44px rgba(0,0,0,.6)}
+.scene.is-on .cta{animation:pulse 1.6s ease-in-out 1.2s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+.foot{font-size:38px;color:var(--color-parchment-dark);text-align:center;font-style:italic;margin:24px 0 0}
+.brand{font-family:var(--font-display);font-size:44px;color:var(--color-gold-light);text-align:center;letter-spacing:.1em}
+
+/* progress bar (part of the recording — remove with the P key if unwanted) */
+#bar{position:absolute;left:0;top:0;height:8px;width:0;z-index:50;
+  background:linear-gradient(90deg,var(--color-gold),var(--color-gold-shine));box-shadow:0 0 18px rgba(255,215,0,.6)}
+#stage.no-bar #bar{display:none}
+
+/* start / help overlay — never visible while the timeline runs */
+#panel{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:18px;background:rgba(0,0,0,.88);color:var(--color-parchment);text-align:center;padding:2rem}
+#panel.hide{display:none}
+#panel h1{font-family:var(--font-display);color:var(--color-gold-light);font-size:2rem;margin:0}
+#panel p{margin:.2rem 0;max-width:56ch;font-size:1rem;line-height:1.55}
+#panel kbd{font-family:var(--font-heading);background:#2e1508;border:1px solid var(--color-gold-dark);
+  border-radius:6px;padding:1px 8px;color:var(--color-gold-light)}
+#go{margin-top:.8rem;font-family:var(--font-heading);font-size:1.1rem;font-weight:700;letter-spacing:.08em;
+  color:var(--color-brown-deep);background:linear-gradient(120deg,var(--color-gold-light),var(--color-gold));
+  border:0;border-radius:12px;padding:14px 34px;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div id="bar"></div>
+
+  <!-- 1 · WORLD / TUTORIAL 0–10s -->
+  <section class="scene" data-dur="10000">
+    <img class="scene__bg" src="https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?auto=format&fit=crop&w=1600&q=80" alt="">
+    <div class="scene__veil"></div>
+    <div></div>
+    <div class="mid">
+      <span class="kicker up d1">Paths Tutorial</span>
+      <div class="pg-card pg-card--medium up d2">
+        <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?auto=format&fit=crop&w=1200&q=80" alt="Paths Tutorial">
+        <span class="pg-card__badge">Story</span>
+        <div class="pg-card__overlay-body"><p class="pg-card__title">Paths Tutorial</p></div>
+      </div>
+      <p class="line up d3">A cursed fortress rises from the mist. Brave souls are needed to uncover its dark
+      secrets before the ancient evil consumes the realm.</p>
+    </div>
+    <div class="hud up d4"><span>⚡ Energy</span><span>🕐 Turn 3</span><span>🌧 Weather</span></div>
+  </section>
+
+  <!-- 2 · HOOK 10–20s -->
+  <section class="scene" data-dur="10000">
+    <img class="scene__bg" src="https://images.unsplash.com/photo-1429743305873-d4065c15f93e?q=80&w=1600&auto=format&fit=crop" alt="">
+    <div class="scene__veil"></div>
+    <div></div>
+    <div class="mid">
+      <span class="kicker up d1">Every corridor hides a choice</span>
+      <p class="hook up d2">You have three paths.<br>Only one is still open tomorrow.</p>
+      <div class="cards">
+        <div class="pg-card pg-card--small up d3">
+          <img class="pg-card__img--fill" src="https://plus.unsplash.com/premium_photo-1665311551953-5ee597cb9d47?q=80&w=900&auto=format&fit=crop" alt="East">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">East</p></div>
+        </div>
+        <div class="pg-card pg-card--small up d4">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1527172641749-7bb8ee8ad7ca?q=80&w=900&auto=format&fit=crop" alt="West">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">West</p></div>
+        </div>
+        <div class="pg-card pg-card--small up d5">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1603012400802-f067a71529c7?q=80&w=900&auto=format&fit=crop" alt="North">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">North</p></div>
+        </div>
+      </div>
+    </div>
+    <p class="foot up d6">Paths Games · a gamebook where the map answers back</p>
+  </section>
+
+  <!-- 3 · TENSION 20–30s -->
+  <section class="scene" data-dur="10000">
+    <img class="scene__bg" src="https://plus.unsplash.com/premium_photo-1758367456256-540461c76c98?q=80&w=1200&auto=format&fit=crop" alt="">
+    <div class="scene__veil"></div>
+    <div></div>
+    <div class="mid">
+      <span class="kicker up d1">Event with choices</span>
+      <p class="hook hook--sm up d2">The forest opens.<br>The clock does not wait.</p>
+      <div class="cards">
+        <div class="pg-card pg-card--small up d3">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1722427690490-fb4013044ef4?q=80&w=900&auto=format&fit=crop" alt="Follow the river">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Follow the river</p></div>
+        </div>
+        <div class="pg-card pg-card--small up d4">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1633065174650-d474cc0e5d04?q=80&w=900&auto=format&fit=crop" alt="Search food">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Search food</p></div>
+        </div>
+        <div class="pg-card pg-card--small pg-card--locked up d5">
+          <img class="pg-card__img--fill" src="https://plus.unsplash.com/premium_photo-1664304417409-ce873a180476?q=80&w=900&auto=format&fit=crop" alt="Forest spirit">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Forest spirit</p></div>
+        </div>
+      </div>
+      <p class="line up d6">One door is already closed to you — a trait you never took.</p>
+    </div>
+    <div></div>
+  </section>
+
+  <!-- 4 · EMOTION 30–45s -->
+  <section class="scene" data-dur="15000">
+    <img class="scene__bg" src="https://images.unsplash.com/photo-1688839951649-d63a8554407e?q=80&w=1200&auto=format&fit=crop" alt="">
+    <div class="scene__veil"></div>
+    <div></div>
+    <div class="mid">
+      <span class="kicker up d1">You chose</span>
+      <div class="cards">
+        <div class="pg-card pg-card--small pg-card--dim up d2">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1722427690490-fb4013044ef4?q=80&w=900&auto=format&fit=crop" alt="Follow the river">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Follow the river</p></div>
+        </div>
+        <div class="pg-card pg-card--medium pg-card--picked up d2">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1688839951649-d63a8554407e?q=80&w=1200&auto=format&fit=crop" alt="Abandoned house">
+          <span class="pg-card__badge">Chosen</span>
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Abandoned house</p></div>
+        </div>
+        <div class="pg-card pg-card--small pg-card--dim up d2">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1633065174650-d474cc0e5d04?q=80&w=900&auto=format&fit=crop" alt="Search food">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Search food</p></div>
+        </div>
+      </div>
+      <p class="hook hook--sm up d5">The door closes behind you.</p>
+      <div class="hud hud--fx"><span class="up d6">−2 ⚡ Energy</span><span class="up d7">+1 🗝 Key</span><span class="up d7" style="transition-delay:3.1s">Fear ↑</span></div>
+    </div>
+    <p class="foot up d7" style="transition-delay:3.6s">Effects applied · milestone written · no way back</p>
+  </section>
+
+  <!-- 5 · PROOF 45–52s -->
+  <section class="scene" data-dur="7000">
+    <img class="scene__bg" src="https://images.unsplash.com/photo-1742710511506-a0b63b2d6b64?q=80&w=1200&auto=format&fit=crop" alt="">
+    <div class="scene__veil"></div>
+    <div></div>
+    <div class="mid">
+      <span class="kicker up d1">Same story · different endings</span>
+      <p class="line up d2">Your fortress is not your friend's fortress.</p>
+      <div class="cards">
+        <div class="pg-card pg-card--small up d3">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1597495283218-7a81f1744c5c?q=80&w=900&auto=format&fit=crop" alt="Explore hills">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Explore hills</p></div>
+        </div>
+        <div class="pg-card pg-card--small up d4">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1682695795255-b236b1f1267d?q=80&w=900&auto=format&fit=crop" alt="Explore canyon">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Explore canyon</p></div>
+        </div>
+        <div class="pg-card pg-card--small up d5">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1742710511506-a0b63b2d6b64?q=80&w=900&auto=format&fit=crop" alt="Complete story">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Complete story</p></div>
+        </div>
+      </div>
+    </div>
+    <p class="foot up d6">River or ruins? Tell me in the comments.</p>
+  </section>
+
+  <!-- 6 · CTA 52–60s -->
+  <section class="scene" data-dur="8000">
+    <img class="scene__bg" src="https://images.unsplash.com/photo-1531322804667-8d2907f41406?q=80&w=1200&auto=format&fit=crop" alt="">
+    <div class="scene__veil"></div>
+    <div></div>
+    <div class="mid">
+      <span class="pill up d1">Paths Games · v0.32</span>
+      <p class="hook up d2">Play the tutorial.<br>Make the first choice<br>that costs you something.</p>
+    </div>
+    <div>
+      <div class="cta up d3">▶ PLAY FREE — LINK IN BIO</div>
+      <p class="foot up d4">No download · plays in your browser</p>
+      <p class="brand up d5">paths.games</p>
+    </div>
+  </section>
+</div>
+
+<div id="panel">
+  <h1>Paths Games — 60 s Choices reel</h1>
+  <p>1080 × 1920 canvas, six scenes, exactly 60 seconds. Press start, then record the browser window
+  (or the tab) — the overlay disappears and nothing else moves on screen.</p>
+  <p><kbd>Space</kbd> start / restart · <kbd>P</kbd> hide the progress bar · <kbd>F</kbd> fullscreen</p>
+  <p>Tip: let the page sit a few seconds first so every Unsplash image is cached, then start.</p>
+  <button id="go">▶ Start the 60 s timeline</button>
+</div>
+
+<script>
+const stage  = document.getElementById('stage');
+const scenes = [...document.querySelectorAll('.scene')];
+const bar    = document.getElementById('bar');
+const panel  = document.getElementById('panel');
+const TOTAL  = scenes.reduce((s, el) => s + (+el.dataset.dur), 0);
+let timers = [], raf = 0;
+
+function fit(){
+  const s = Math.min(innerWidth / 1080, innerHeight / 1920);
+  stage.style.transform = `translate(-50%,-50%) scale(${s})`;
+}
+addEventListener('resize', fit); fit();
+
+/* Card titles are never truncated: they wrap freely and, if they still overflow their
+   reserved box, the font shrinks until the whole title fits. The card keeps its size. */
+function fitTitles(){
+  document.querySelectorAll('.pg-card__title').forEach(t => {
+    t.style.fontSize = ''; t.style.maxHeight = '';
+    const base = parseFloat(getComputedStyle(t).fontSize);
+    const cap  = base * 3.5;                    // room for ~3 lines at the base size
+    t.style.maxHeight = cap + 'px';
+    let size = base;
+    while (t.scrollHeight > cap + 1 && size > 18){
+      size -= 1;
+      t.style.fontSize = size + 'px';
+    }
+  });
+}
+document.fonts?.ready.then(fitTitles);
+addEventListener('load', fitTitles);
+fitTitles();
+
+function play(){
+  timers.forEach(clearTimeout); timers = []; cancelAnimationFrame(raf);
+  scenes.forEach(s => s.classList.remove('is-on'));
+  panel.classList.add('hide');
+
+  // force a reflow so restarting replays every entrance transition
+  void stage.offsetWidth;
+
+  let t = 0;
+  scenes.forEach(sc => {
+    const dur = +sc.dataset.dur;
+    timers.push(setTimeout(() => sc.classList.add('is-on'), t));
+    timers.push(setTimeout(() => sc.classList.remove('is-on'), t + dur - 600));
+    t += dur;
+  });
+
+  const t0 = performance.now();
+  (function tick(now){
+    const p = Math.min((now - t0) / TOTAL, 1);
+    bar.style.width = (p * 100) + '%';
+    if (p < 1) raf = requestAnimationFrame(tick);
+    else timers.push(setTimeout(() => panel.classList.remove('hide'), 800));
+  })(t0);
+}
+
+document.getElementById('go').addEventListener('click', play);
+addEventListener('keydown', e => {
+  if (e.code === 'Space'){ e.preventDefault(); play(); }
+  if (e.key.toLowerCase() === 'p') stage.classList.toggle('no-bar');
+  if (e.key.toLowerCase() === 'f') document.documentElement.requestFullscreen?.();
+});
+</script>
+</body>
+</html>

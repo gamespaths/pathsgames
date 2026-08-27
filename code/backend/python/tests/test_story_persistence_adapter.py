@@ -142,6 +142,56 @@ def test_save_entity_and_update_entity(adapter, session_factory):
         text_ent = session.query(TextEntity).filter_by(uuid=text_uuid).first()
         assert text_ent is None
 
+def test_admin_create_of_a_choice_condition_stores_every_field(adapter, session_factory):
+    """The admin sends short/plural keys (idChoices, type, key, value, operator) that do
+    NOT match the DB columns' own camelCase (idChoice, conditionType, ...). Without the
+    alias map the generic save_entity stored an orphaned, empty row — under OR, with no
+    effective conditions, that would open the option to everyone. This pins the fix.
+    """
+    from app.adapters.persistence.story.models import ChoiceConditionEntity
+    story_id = adapter.save_story({"uuid": "test-choice-cond"})
+
+    adapter.save_entity(story_id, "list_choices_conditions", {
+        "uuid": "cc-uuid-1", "idChoices": 42, "type": "CLASS",
+        "value": "1", "operator": "=",
+    })
+
+    with session_factory() as session:
+        row = session.query(ChoiceConditionEntity).filter_by(
+            id_story=story_id, uuid="cc-uuid-1").first()
+        assert row is not None, "the row must exist (no uuid crash)"
+        assert row.id_choice == 42, "the choice link must be stored, not orphaned"
+        assert row.condition_type == "CLASS"
+        assert row.condition_value == "1"
+        assert row.condition_operator == "="
+
+    # Update by uuid maps the short keys too.
+    adapter.update_entity(story_id, "list_choices_conditions", "cc-uuid-1",
+                          {"value": "2", "operator": "!="})
+    with session_factory() as session:
+        row = session.query(ChoiceConditionEntity).filter_by(uuid="cc-uuid-1").first()
+        assert row.condition_value == "2" and row.condition_operator == "!="
+
+
+def test_admin_create_of_a_choice_effect_links_the_choice(adapter, session_factory):
+    """The effect fields already match, but id_choice used the plural idChoices too."""
+    from app.adapters.persistence.story.models import ChoiceEffectEntity
+    story_id = adapter.save_story({"uuid": "test-choice-eff"})
+
+    adapter.save_entity(story_id, "list_choices_effects", {
+        "uuid": "ce-uuid-1", "idChoices": 7, "statistics": "life", "value": -3,
+        "idEvent": 99,
+    })
+
+    with session_factory() as session:
+        row = session.query(ChoiceEffectEntity).filter_by(
+            id_story=story_id, uuid="ce-uuid-1").first()
+        assert row is not None
+        assert row.id_choice == 7, "the effect must attach to its choice"
+        assert row.statistics == "life" and row.value == -3
+        assert row.id_event == 99
+
+
 def test_various_saves(adapter):
     story_id = adapter.save_story({"uuid": "test-uuid-6"})
     
@@ -155,9 +205,42 @@ def test_various_saves(adapter):
         assert nb.id_card == 7
         assert nb.id_card_back == 9
     adapter.save_events(story_id, [{"idTextName": 1, "effects": [{"effectType": "HP", "effectValue": 10}]}])
+    # v0.34.0 — the legacy nested shape still imports, mapped onto effect_code.
     adapter.save_items(story_id, [{"idTextName": 1, "effects": [{"effectType": "HP", "effectValue": 10}]}])
     adapter.save_classes(story_id, [{"idTextName": 1, "bonuses": [{"bonusType": "STR", "bonusValue": 10}]}])
-    adapter.save_choices(story_id, [{"idTextName": 1, "conditions": [{"conditionType": "STR", "conditionKey": "val"}], "effects": [{"effectType": "HP", "effectValue": 10}]}])
+    # Step 31 — the canonical TOP-LEVEL choice shape (keyed by idChoices), Java field names.
+    adapter.save_choices(story_id, [{
+        "id": 1, "idEvent": 1, "idTextName": 1, "otherwiseFlag": 1,
+        "logicOperator": "OR", "limitDex": 3, "idTextNarrative": 9,
+    }])
+    adapter.save_choice_conditions(story_id, [
+        {"id": 1, "idChoices": 1, "type": "statistics", "key": "int", "value": "3", "operator": ">"},
+        {"id": 2, "idChoices": 1, "type": "KEYS", "key": "gate", "value": "OPEN"},
+    ])
+    adapter.save_choice_effects(story_id, [
+        {"id": 1, "idChoices": 1, "statistics": "energy", "value": 2, "idCard": 4,
+         "flagGroup": 1, "key": "gate", "valueToAdd": "OPEN",
+         "idEvent": 7, "idLocation": 8, "idWeather": 9,
+         "idItemTarget": 10, "itemAction": "ADD"}])
+    from app.adapters.persistence.story.models import (
+        ChoiceConditionEntity, ChoiceEffectEntity, ChoiceEntity)
+    with adapter.session_factory() as session:
+        ch = session.query(ChoiceEntity).filter_by(id_story=story_id, id=1).first()
+        assert ch.is_otherwise == 1 and ch.logic_operator == "OR"
+        assert ch.limit_dex == 3 and ch.id_text_narrative == 9
+        conds = session.query(ChoiceConditionEntity).filter_by(
+            id_story=story_id).order_by(ChoiceConditionEntity.id).all()
+        assert [c.condition_type for c in conds] == ["statistics", "KEYS"]
+        assert conds[0].condition_operator == ">"
+        assert conds[1].condition_operator == "="  # the comparator default, not AND
+        eff = session.query(ChoiceEffectEntity).filter_by(id_story=story_id).first()
+        # Step 32 realigned the model onto the canonical column names, so an effect the
+        # Java side authored now survives the import intact — including the new targets.
+        assert eff.id_choice == 1 and eff.statistics == "energy" and eff.value == 2
+        assert eff.uuid and eff.id_card == 4 and eff.flag_group == 1
+        assert eff.key == "gate" and eff.value_to_add == "OPEN"
+        assert eff.id_event == 7 and eff.id_location == 8 and eff.id_weather == 9
+        assert eff.id_item_target == 10 and eff.item_action == "ADD"
     adapter.save_cards(story_id, [{"cardType": "test"}])
     adapter.save_keys(story_id, [{"keyName": "key", "keyValue": "val"}])
     adapter.save_traits(story_id, [{"idTextName": 1}])
@@ -166,3 +249,43 @@ def test_various_saves(adapter):
     adapter.save_global_random_events(story_id, [{"idEvent": 1}])
     adapter.save_missions(story_id, [{"idTextName": 1, "steps": [{"conditionKey": "key"}]}])
     adapter.save_creators(story_id, [{"creatorName": "test"}])
+
+
+def test_save_items_imports_the_step34_gates(adapter):
+    """v0.34.0 — is_consumabile and the two class gates finally survive an import."""
+    from app.adapters.persistence.story.models import ItemEntity
+
+    story_id = adapter.save_story({"uuid": "test-item-gates"})
+    adapter.save_items(story_id, [{
+        "id": 900, "idTextName": 400, "weight": 3, "isConsumabile": 0,
+        "idClassPermitted": 8, "idClassProhibited": 0,
+    }])
+
+    with adapter.session_factory() as session:
+        it = session.query(ItemEntity).filter_by(id_story=story_id, id=900).one()
+    assert it.is_consumabile == 0
+    assert it.id_class_permitted == 8
+    # 0 means "no restriction" and is normalised to None, as the importer does elsewhere.
+    assert it.id_class_prohibited is None
+
+
+def test_save_item_effects_imports_the_canonical_top_level_array(adapter):
+    """v0.34.0 — same shape as Java and AWS: top-level itemEffects keyed by idItem."""
+    from app.adapters.persistence.story.models import ItemEffectEntity
+
+    story_id = adapter.save_story({"uuid": "test-item-effects"})
+    adapter.save_items(story_id, [{"id": 900, "idTextName": 400, "weight": 1}])
+    adapter.save_item_effects(story_id, [{
+        "id": 1, "idItem": 900, "effectCode": "SADNESS", "effectValue": -2,
+        "traitsToAdd": "90001,90002", "traitsToRemove": "90004", "idCard": 77,
+    }])
+
+    with adapter.session_factory() as session:
+        ef = session.query(ItemEffectEntity).filter_by(id_story=story_id, id=1).one()
+    assert ef.id_item == 900
+    assert ef.effect_code == "SADNESS"
+    assert ef.effect_value == -2
+    assert ef.traits_to_add == "90001,90002"
+    assert ef.traits_to_remove == "90004"
+    assert ef.id_card == 77
+    assert ef.uuid is not None

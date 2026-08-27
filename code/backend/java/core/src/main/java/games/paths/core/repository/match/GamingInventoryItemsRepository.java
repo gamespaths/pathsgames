@@ -21,6 +21,12 @@ public interface GamingInventoryItemsRepository
 
     List<GamingInventoryItemsEntity> findByIdMatchAndIdCharacterMatch(Long idMatch, Long idCharacterMatch);
 
+    /**
+     * Every inventory row of the match. Step 29 needs it to allocate the id of a new row:
+     * the PK is (id, id_match), so the next id is the match-wide max plus one.
+     */
+    List<GamingInventoryItemsEntity> findByIdMatch(Long idMatch);
+
     /** Deletes every inventory row belonging to the given match ids (cleanup / cascade). */
     @Modifying
     @Query("DELETE FROM GamingInventoryItemsEntity i WHERE i.idMatch IN :matchIds")

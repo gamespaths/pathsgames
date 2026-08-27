@@ -88,7 +88,7 @@ class LogMovementWeatherEntitiesTest {
         LogMovementEntityId otherId = new LogMovementEntityId(9L, 2L);
         LogMovementEntityId otherMatch = new LogMovementEntityId(1L, 9L);
 
-        assertEquals(a, a);
+        //assertEquals(a, a); --> assertThat(obj).isEqualTo(obj); // Compliant
         assertEquals(a, same);
         assertEquals(a.hashCode(), same.hashCode());
         assertNotEquals(a, otherId);
@@ -169,7 +169,7 @@ class LogMovementWeatherEntitiesTest {
         LogWeatherEntityId otherId = new LogWeatherEntityId(9L, 2L);
         LogWeatherEntityId otherMatch = new LogWeatherEntityId(1L, 9L);
 
-        assertEquals(a, a);
+        //assertEquals(a, a); --> assertThat(obj).isEqualTo(obj); // Compliant
         assertEquals(a, same);
         assertEquals(a.hashCode(), same.hashCode());
         assertNotEquals(a, otherId);

@@ -524,7 +524,7 @@
       "idEventIfCounterZero": null,
       "secureParam": 0,
       "idEventIfCharacterStartTime": null,
-      "idEventIfCharacterEnterFirstTime": null,
+      "idEventIfCharacterEnterEmptyLocation": null,
       "idEventIfFirstTime": null,
       "idEventNotFirstTime": null,
       "priorityAutomaticEvent": 0,
@@ -544,7 +544,7 @@
       "idEventIfCounterZero": null,
       "secureParam": 0,
       "idEventIfCharacterStartTime": null,
-      "idEventIfCharacterEnterFirstTime": null,
+      "idEventIfCharacterEnterEmptyLocation": null,
       "idEventIfFirstTime": null,
       "idEventNotFirstTime": null,
       "priorityAutomaticEvent": 0,
@@ -564,7 +564,7 @@
       "idEventIfCounterZero": null,
       "secureParam": 0,
       "idEventIfCharacterStartTime": null,
-      "idEventIfCharacterEnterFirstTime": null,
+      "idEventIfCharacterEnterEmptyLocation": null,
       "idEventIfFirstTime": null,
       "idEventNotFirstTime": null,
       "priorityAutomaticEvent": 0,
@@ -584,7 +584,7 @@
       "idEventIfCounterZero": null,
       "secureParam": 0,
       "idEventIfCharacterStartTime": null,
-      "idEventIfCharacterEnterFirstTime": null,
+      "idEventIfCharacterEnterEmptyLocation": null,
       "idEventIfFirstTime": null,
       "idEventNotFirstTime": null,
       "priorityAutomaticEvent": 0,
@@ -609,7 +609,7 @@
       "idItemToAdd": null,
       "idWeather": null,
       "idEventNext": null,
-      "coinCost": 0
+      "costCoin": 0
     },
     {
       "id": 2,
@@ -627,7 +627,7 @@
       "idItemToAdd": null,
       "idWeather": null,
       "idEventNext": null,
-      "coinCost": 0
+      "costCoin": 0
     },
     {
       "id": 3,
@@ -645,7 +645,7 @@
       "idItemToAdd": null,
       "idWeather": null,
       "idEventNext": null,
-      "coinCost": 0
+      "costCoin": 0
     },
     {
       "id": 4,
@@ -663,7 +663,7 @@
       "idItemToAdd": null,
       "idWeather": null,
       "idEventNext": null,
-      "coinCost": 0
+      "costCoin": 0
     },
     {
       "id": 5,
@@ -681,7 +681,7 @@
       "idItemToAdd": null,
       "idWeather": null,
       "idEventNext": null,
-      "coinCost": 0
+      "costCoin": 0
     },
     {
       "id": 6,
@@ -699,7 +699,7 @@
       "idItemToAdd": null,
       "idWeather": null,
       "idEventNext": null,
-      "coinCost": 0
+      "costCoin": 0
     },
     {
       "id": 7,
@@ -717,7 +717,7 @@
       "idItemToAdd": null,
       "idWeather": null,
       "idEventNext": null,
-      "coinCost": 0
+      "costCoin": 0
     },
     {
       "id": 8,
@@ -735,7 +735,7 @@
       "idItemToAdd": null,
       "idWeather": null,
       "idEventNext": null,
-      "coinCost": 0
+      "costCoin": 0
     },
     {
       "id": 9,
@@ -753,7 +753,7 @@
       "idItemToAdd": null,
       "idWeather": null,
       "idEventNext": null,
-      "coinCost": 0
+      "costCoin": 0
     },
     {
       "id": 10,
@@ -771,7 +771,7 @@
       "idItemToAdd": null,
       "idWeather": null,
       "idEventNext": null,
-      "coinCost": 0
+      "costCoin": 0
     }
   ],
   "items": [],

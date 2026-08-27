@@ -17,15 +17,33 @@ from app.core.ports.story.story_validator_port import (
 
 # target universe codes
 _LOCATION, _EVENT, _ITEM, _CHOICE, _CLASS, _MISSION = "location", "event", "item", "choice", "class", "mission"
+# v0.34.0 — the effect tables reference traits as a CSV of ids.
+_TRAIT = "trait"
 
 _REF_RULES = {
     _LOCATION: "R_LOCATION_REF",
     _EVENT: "R_EVENT_REF",
     _ITEM: "R_ITEM_REF",
+    _TRAIT: "R_TRAIT_REF",
     _CHOICE: "R_CHOICE_REF",
     _CLASS: "R_CLASS_REF",
     _MISSION: "R_MISSION_REF",
 }
+
+#: Step 33 — the list_locations columns that name an engine-fired event. Kept in one place
+#: because both graph builders and the R9 rules walk exactly this set.
+_LOCATION_TRIGGER_FIELDS = (
+    "idEventIfFirstTime",
+    "idEventNotFirstTime",
+    "idEventIfCharacterEnterEmptyLocation",
+    "idEventIfCharacterStartTime",
+    "idEventIfCounterZero",
+)
+
+#: The two types a player can execute. Mirrors ``event_availability.EXECUTABLE_TYPES``,
+#: duplicated rather than imported because the validator lives in the story package and
+#: must not depend on the match engine.
+_EXECUTABLE_EVENT_TYPES = {"NORMAL", "ONCE"}
 
 
 def _camel_to_snake(name: str) -> str:
@@ -76,15 +94,24 @@ class _Graph:
         self.choices: Set[int] = set()
         self.classes: Set[int] = set()
         self.missions: Set[int] = set()
+        # v0.34.0 — the trait universe the effect CSVs are checked against.
+        self.traits: Set[int] = set()
         self.key_names: Set[str] = set()
         self.refs: List[tuple] = []          # (rule, entity_type, entity_id, field, target, value)
         self.neighbors: List[tuple] = []     # (entity_id, frm, to, direction)
         self.key_refs: List[tuple] = []      # (entity_id, type, key)
+        # Step 31 — choice id to its raw (idEvent, idLocation), for the R8 binding rule.
+        self.choice_data: Dict[str, tuple] = {}
         self.restrictions: List[tuple] = []  # (entity_type, entity_id, permitted, prohibited)
         self.templates: List[tuple] = []     # (entity_id, lifeMax, energyMax, dex, int, con, sadMax)
         self.event_next: Dict[int, int] = {}
         self.choice_otherwise: Dict[int, bool] = {}
         self.choices_with_option: Set[int] = set()
+        # Step 33 — every event id a list_locations.id_event_* column names, mapped to the
+        # column that names it (for the message), plus each event's raw type.
+        self.location_trigger_events: Dict[int, str] = {}
+        self.event_types: Dict[int, str] = {}
+        self.events_owning_choices: Set[int] = set()
 
 
 class StoryValidatorService(StoryValidatorPort):
@@ -128,7 +155,24 @@ class StoryValidatorService(StoryValidatorPort):
             self._class_conflict_local(entity_type, eid, data, report)
         elif entity_type == "difficulties":
             self._difficulty_local(entity_type, eid, data, report)
+        elif entity_type == "choices":
+            self._choice_local(entity_type, eid, data, report)
         return report
+
+    def _choice_local(self, entity_type: str, eid, data: Dict[str, Any],
+                      report: StoryValidationReport) -> None:
+        """Step 31 — entity-local choice rule, reachable from the lenient admin CRUD path.
+
+        Only an actively-typed idLocation is rejected here: the binding is deprecated, so
+        writing one is always a mistake. A missing idEvent is deliberately tolerated — a
+        draft choice may exist before its event while authoring; the whole-graph rule
+        closes the gap at import and validate-story.
+        """
+        id_location = _as_int(_get(data, "idLocation"))
+        if id_location is not None and id_location > 0:
+            report.add("R8_CHOICE_EVENT", entity_type, eid, "idLocation",
+                       f"idLocation={id_location} is deprecated — a choice binds to an"
+                       " event (idEvent), never to a location (step 31)")
 
     # ----- rule engine -----
 
@@ -140,11 +184,57 @@ class StoryValidatorService(StoryValidatorPort):
         self._validate_keys(g, report)
         self._validate_templates(g, report)
         self._validate_restrictions(g, report)
+        self._validate_choices(g, report)  # R8 choice-event binding (Step 31)
+        self._validate_location_triggers(g, report)  # R9 automatic events (Step 33)
+
+    def _validate_choices(self, g: _Graph, report: StoryValidationReport) -> None:
+        """Step 31 — story-wide: every choice belongs to an event, and only to an event."""
+        for cid, (id_event, id_location) in g.choice_data.items():
+            if id_event is None or id_event <= 0:
+                report.add("R8_CHOICE_EVENT", "choices", cid, "idEvent",
+                           f"choice {cid} has no idEvent — every choice must belong"
+                           " to an event (step 31)")
+            if id_location is not None and id_location > 0:
+                report.add("R8_CHOICE_EVENT", "choices", cid, "idLocation",
+                           f"idLocation={id_location} is deprecated — a choice binds to"
+                           " an event (idEvent), never to a location (step 31)")
+
+    def _validate_location_triggers(self, g: _Graph, report: StoryValidationReport) -> None:
+        """Step 33 — the two rules that keep an engine-fired location event runnable.
+
+        Both are about events a ``list_locations.id_event_*`` column names. The engine fires
+        those without a player: nobody pays for them, nobody is asked anything, and the
+        response they would answer does not exist.
+
+        * **R9_AUTOMATIC_EVENT_CHOICES** — such an event may not own choices. There is no
+          response to carry the options and no select-choice call could ever close the
+          cycle, so the match would carry a decision nobody can answer for ever.
+        * **R9_AUTOMATIC_EVENT_TYPE** — such an event may not be NORMAL or ONCE. Those are
+          exactly the two types a player can execute, so the event would be offered as an
+          action *and* fire by itself. AUTOMATIC is the type to use.
+        """
+        if not g.location_trigger_events:
+            return
+        owning = {id_event for (id_event, _loc) in g.choice_data.values()
+                  if id_event is not None and id_event > 0}
+        for id_event, field in g.location_trigger_events.items():
+            if id_event in owning:
+                report.add("R9_AUTOMATIC_EVENT_CHOICES", "locations", None, field,
+                           f"event {id_event} is fired automatically by {field} but owns"
+                           " choices — an automatic event has no one to ask and no"
+                           " response to ask in (step 33)")
+            etype = (g.event_types.get(id_event) or "").strip().upper()
+            if etype in _EXECUTABLE_EVENT_TYPES:
+                report.add("R9_AUTOMATIC_EVENT_TYPE", "locations", None, field,
+                           f"event {id_event} is fired automatically by {field} but its"
+                           f" type is {etype}, which is player-executable — use AUTOMATIC"
+                           " (step 33)")
 
     def _validate_refs(self, g: _Graph, report: StoryValidationReport) -> None:
         universe = {
             _LOCATION: g.locations, _EVENT: g.events, _ITEM: g.items,
             _CHOICE: g.choices, _CLASS: g.classes, _MISSION: g.missions,
+            _TRAIT: g.traits,
         }
         for rule, etype, eid, fld, target, value in g.refs:
             if value is not None and value > 0 and value not in universe[target]:
@@ -208,7 +298,12 @@ class StoryValidatorService(StoryValidatorPort):
                            f"choice {cid} has no option (choice-effects) and no otherwise fallback")
 
     def _validate_keys(self, g: _Graph, report: StoryValidationReport) -> None:
-        for eid, _ctype, key in g.key_refs:
+        for eid, ctype, key in g.key_refs:
+            # Only KEYS conditions read the registry. On every other type `key` means
+            # something else entirely (a stat name for statistics, unused for ITEM), so
+            # matching it against the registry would false-fail legal stories (step 31).
+            if not ctype or str(ctype).strip().upper() != "KEYS":
+                continue
             if key and str(key).strip() and str(key).strip().lower() not in g.key_names:
                 report.add("R4_CONDITION_KEY", "choice-conditions", eid, "key",
                            f"choice-condition references unknown registry key '{key}'")
@@ -284,22 +379,29 @@ class StoryValidatorService(StoryValidatorPort):
         self._ref(g, "story", None, "idEventAllPlayerComa", _EVENT, _as_int(data.get("idEventAllPlayerComa")))
         self._ref(g, "story", None, "idEventEndGame", _EVENT, _as_int(data.get("idEventEndGame")))
 
+        for l in data.get("locations") or []:
+            self._collect_location(g, l)
         for e in data.get("events") or []:
             self._collect_event(g, e)
         for c in data.get("choices") or []:
             self._collect_choice(g, c)
         for ce in data.get("choiceEffects") or []:
-            cid = _as_int(_get(ce, "idChoices"))
-            if cid is not None:
-                g.choices_with_option.add(cid)
-            self._ref(g, "choice-effects", self._str(_get(ce, "id")), "idChoices", _CHOICE, cid)
+            self._collect_choice_effect(g, ce)
         for cc in data.get("choiceConditions") or []:
             self._ref(g, "choice-conditions", self._str(_get(cc, "id")), "idChoices", _CHOICE, _as_int(_get(cc, "idChoices")))
-            g.key_refs.append((self._str(_get(cc, "id")), _get(cc, "type"), _get(cc, "key")))
+            ctype = _get(cc, "type")
+            ckey = _get(cc, "key")
+            g.key_refs.append((self._str(_get(cc, "id")),
+                               ctype if ctype is not None else _get(cc, "conditionType"),
+                               ckey if ckey is not None else _get(cc, "conditionKey")))
         for ee in data.get("eventEffects") or []:
             self._collect_event_effect(g, ee)
         for ie in data.get("itemEffects") or []:
-            self._ref(g, "item-effects", self._str(_get(ie, "id")), "idItem", _ITEM, _as_int(_get(ie, "idItem")))
+            ieid = self._str(_get(ie, "id"))
+            self._ref(g, "item-effects", ieid, "idItem", _ITEM, _as_int(_get(ie, "idItem")))
+            # v0.34.0 — CSV of trait ids, same format as the event effects.
+            self._ref_csv(g, "item-effects", ieid, "traitsToAdd", _get(ie, "traitsToAdd"))
+            self._ref_csv(g, "item-effects", ieid, "traitsToRemove", _get(ie, "traitsToRemove"))
         for cb in data.get("classBonuses") or []:
             self._ref(g, "class-bonuses", self._str(_get(cb, "id")), "idClass", _CLASS, _as_int(_get(cb, "idClass")))
         for ms in data.get("missionSteps") or []:
@@ -313,6 +415,8 @@ class StoryValidatorService(StoryValidatorPort):
         for it in data.get("items") or []:
             self._restriction(g, "items", self._str(_get(it, "id")), _get(it, "idClassPermitted"), _get(it, "idClassProhibited"))
         for tr in data.get("traits") or []:
+            # v0.34.0 — also the trait universe the effect CSVs are checked against.
+            self._add_id(g.traits, _get(tr, "id"))
             self._restriction(g, "traits", self._str(_get(tr, "id")), _get(tr, "idClassPermitted"), _get(tr, "idClassProhibited"))
         for ct in data.get("characterTemplates") or []:
             self._collect_template(g, ct)
@@ -344,22 +448,29 @@ class StoryValidatorService(StoryValidatorPort):
             if name:
                 g.key_names.add(str(name).strip().lower())
 
+        for l in locations:
+            self._collect_location(g, l)
         for e in events:
             self._collect_event(g, e)
         for c in choices:
             self._collect_choice(g, c)
         for ce in rp.find_entities_for_story(story_id, "list_choices_effects"):
-            cid = _as_int(_get(ce, "idChoices"))
-            if cid is not None:
-                g.choices_with_option.add(cid)
-            self._ref(g, "choice-effects", self._str(_get(ce, "id")), "idChoices", _CHOICE, cid)
+            self._collect_choice_effect(g, ce)
         for cc in rp.find_entities_for_story(story_id, "list_choices_conditions"):
             self._ref(g, "choice-conditions", self._str(_get(cc, "id")), "idChoices", _CHOICE, _as_int(_get(cc, "idChoices")))
-            g.key_refs.append((self._str(_get(cc, "id")), _get(cc, "type"), _get(cc, "key")))
+            ctype = _get(cc, "type")
+            ckey = _get(cc, "key")
+            g.key_refs.append((self._str(_get(cc, "id")),
+                               ctype if ctype is not None else _get(cc, "conditionType"),
+                               ckey if ckey is not None else _get(cc, "conditionKey")))
         for ee in rp.find_entities_for_story(story_id, "list_events_effects"):
             self._collect_event_effect(g, ee)
         for ie in rp.find_entities_for_story(story_id, "list_items_effects"):
-            self._ref(g, "item-effects", self._str(_get(ie, "id")), "idItem", _ITEM, _as_int(_get(ie, "idItem")))
+            ieid = self._str(_get(ie, "id"))
+            self._ref(g, "item-effects", ieid, "idItem", _ITEM, _as_int(_get(ie, "idItem")))
+            # v0.34.0 — CSV of trait ids, same format as the event effects.
+            self._ref_csv(g, "item-effects", ieid, "traitsToAdd", _get(ie, "traitsToAdd"))
+            self._ref_csv(g, "item-effects", ieid, "traitsToRemove", _get(ie, "traitsToRemove"))
         for cb in rp.find_class_bonuses_for_story(story_id):
             self._ref(g, "class-bonuses", self._str(_get(cb, "id")), "idClass", _CLASS, _as_int(_get(cb, "idClass")))
         for ms in rp.find_entities_for_story(story_id, "list_missions_steps"):
@@ -373,6 +484,8 @@ class StoryValidatorService(StoryValidatorPort):
         for it in items:
             self._restriction(g, "items", self._str(_get(it, "id")), _get(it, "idClassPermitted"), _get(it, "idClassProhibited"))
         for tr in rp.find_traits_for_story(story_id):
+            # v0.34.0 — also the trait universe the effect CSVs are checked against.
+            self._add_id(g.traits, _get(tr, "id"))
             self._restriction(g, "traits", self._str(_get(tr, "id")), _get(tr, "idClassPermitted"), _get(tr, "idClassProhibited"))
         for ct in rp.find_character_templates_for_story(story_id):
             self._collect_template(g, ct, id_key="idTipo")
@@ -389,21 +502,52 @@ class StoryValidatorService(StoryValidatorPort):
         nxt = _as_int(_get(e, "idEventNext"))
         if my is not None and nxt is not None:
             g.event_next[my] = nxt
+        etype = _get(e, "type")
+        if my is not None and etype:
+            g.event_types[my] = str(etype)
+
+    def _collect_location(self, g, l):
+        """Step 33 — the five location-side trigger columns. They have existed since the
+        first schema and were never referenced here, so a location could point at an event
+        that does not exist and nothing would say so."""
+        lid = self._str(_get(l, "id"))
+        for field in _LOCATION_TRIGGER_FIELDS:
+            id_event = _as_int(_get(l, field))
+            self._ref(g, "locations", lid, field, _EVENT, id_event)
+            if id_event is not None and id_event > 0:
+                g.location_trigger_events[id_event] = field
 
     def _collect_choice(self, g, c):
         cid = self._str(_get(c, "id"))
         self._ref(g, "choices", cid, "idEvent", _EVENT, _as_int(_get(c, "idEvent")))
         self._ref(g, "choices", cid, "idLocation", _LOCATION, _as_int(_get(c, "idLocation")))
         self._ref(g, "choices", cid, "idEventTorun", _EVENT, _as_int(_get(c, "idEventTorun")))
+        # Step 31 (R8): the raw binding values, kept for the choice-event rule.
+        g.choice_data[cid] = (_as_int(_get(c, "idEvent")), _as_int(_get(c, "idLocation")))
         my = _as_int(_get(c, "id"))
         if my is not None:
             g.choice_otherwise[my] = _truthy(_get(c, "otherwiseFlag"))
+
+    def _collect_choice_effect(self, g, ce):
+        """v0.32.0 — a choice effect names the option it belongs to and, since Step 32, the
+        things a resolution can reach. idWeather is deliberately unchecked: this validator
+        has no weather target, exactly as for the event effects."""
+        cid = _as_int(_get(ce, "idChoices"))
+        if cid is not None:
+            g.choices_with_option.add(cid)
+        eid = self._str(_get(ce, "id"))
+        self._ref(g, "choice-effects", eid, "idChoices", _CHOICE, cid)
+        self._ref(g, "choice-effects", eid, "idEvent", _EVENT, _as_int(_get(ce, "idEvent")))
+        self._ref(g, "choice-effects", eid, "idLocation", _LOCATION, _as_int(_get(ce, "idLocation")))
+        self._ref(g, "choice-effects", eid, "idItemTarget", _ITEM, _as_int(_get(ce, "idItemTarget")))
 
     def _collect_event_effect(self, g, ee):
         eid = self._str(_get(ee, "id"))
         self._ref(g, "event-effects", eid, "idEvent", _EVENT, _as_int(_get(ee, "idEvent")))
         self._ref(g, "event-effects", eid, "idItemTarget", _ITEM, _as_int(_get(ee, "idItemTarget")))
         self._ref(g, "event-effects", eid, "targetClass", _CLASS, _as_int(_get(ee, "targetClass")))
+        # v0.29.3 — forced movement: the location the effect moves its recipients to.
+        self._ref(g, "event-effects", eid, "idLocation", _LOCATION, _as_int(_get(ee, "idLocation")))
 
     def _collect_neighbor(self, g, n):
         frm = _as_int(_get(n, "idLocationFrom"))
@@ -426,6 +570,24 @@ class StoryValidatorService(StoryValidatorPort):
         v = _as_int(value)
         if v is not None and v > 0:
             g.refs.append((_REF_RULES[target], etype, eid, fld, target, v))
+
+    def _ref_csv(self, g, etype, eid, fld, csv):
+        """One reference per id of a comma-separated list.
+
+        Non-numeric parts are skipped in silence, exactly as the execution engine's
+        `_csv_ids` skips them: the validator must not report what the engine will
+        never try to apply.
+        """
+        if csv is None or not str(csv).strip():
+            return
+        for part in str(csv).split(","):
+            part = part.strip()
+            if not part:
+                continue
+            try:
+                self._ref(g, etype, eid, fld, _TRAIT, int(part))
+            except (ValueError, TypeError):
+                continue
 
     def _restriction(self, g, etype, eid, permitted, prohibited):
         p = _as_int(permitted)

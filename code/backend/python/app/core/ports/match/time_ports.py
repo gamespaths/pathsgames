@@ -31,6 +31,10 @@ class TimeStorePort(TurnCycleStorePort):
         """Set/clear ``is_sleeping`` on a single character of the match."""
 
     @abstractmethod
+    def set_all_characters_sleeping(self, id_match: int) -> None:
+        """Step 29 — the bulk counterpart of wake_all_characters (event with flag_end_time)."""
+
+    @abstractmethod
     def wake_all_characters(self, id_match: int) -> None:
         """Clear ``is_sleeping`` on every character of the match (wake at time start)."""
 
@@ -51,16 +55,17 @@ class TimeStorePort(TurnCycleStorePort):
 
     @abstractmethod
     def load_recovery_context(self, id_match: int) -> Optional[Dict[str, Any]]:
-        """Return {"id_story", "difficulty_energy"} for the match, or None."""
+        """Return {"id_story", "difficulty_energy", "current_clock"} for the match, or None."""
 
     @abstractmethod
     def find_recovery_characters(self, id_match: int) -> List[Dict[str, Any]]:
-        """Per-character recovery inputs (stats, caps, id_class, id_location)."""
+        """Per-character recovery inputs (stats, caps, id_class, id_location, is_coma)."""
 
     @abstractmethod
     def find_location_safety(self, id_story: int) -> List[Dict[str, Any]]:
         """Per-location {"id_location", "secure_param", "counter_time",
-        "id_event_if_counter_zero"} for the story."""
+        "id_event_if_counter_zero", "id_event_if_character_start_time",
+        "priority_automatic_event"} for the story (the last two are Step 33)."""
 
     @abstractmethod
     def find_class_bonuses(self, id_story: int) -> List[Dict[str, Any]]:
@@ -90,8 +95,13 @@ class TimeStorePort(TurnCycleStorePort):
 
     @abstractmethod
     def log_counter_zero(self, id_match: int, id_location: int,
-                         id_event_if_counter_zero: Optional[int], message: str) -> None:
-        """Audit a counter-zero event (pending execution; wired in Step 29)."""
+                         id_event_if_counter_zero: Optional[int], clock: Optional[int],
+                         message: str) -> None:
+        """Audit a counter-zero event.
+
+        Step 33 fixed two omissions: the row left ``clock`` NULL — unlike ``log_sleep`` —
+        so it landed outside the clock-ordered timeline, and the location id existed only
+        inside the message string. Both are columns now."""
 
     @abstractmethod
     def mark_state_location_activated(self, id_match: int, id_location: int) -> None:

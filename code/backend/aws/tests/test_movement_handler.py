@@ -168,7 +168,7 @@ def test_move_sleeping_blocked():
         result = h.lambda_handler(
             _event('POST', '/api/gameplay/m1/movements/start',
                    body={'targetLocationUuid': 'loc-2'}), None)
-    assert _body(result)['error'] == 'CHARACTER_CANNOT_ACT'
+    assert _body(result)['error'] == 'SLEEPING'
 
 
 def test_move_not_a_neighbor():
@@ -259,6 +259,10 @@ def test_locations_lists_visited_with_total_cost():
     assert nb['weatherEnergyCost'] == 5
     assert nb['totalEnergyCost'] == 7
     assert nb['uuid'] == 'loc-2'
+    # the authored orientation travels with the entry: location 1 is the edge's
+    # `from`, so this is a forward traversal and `direction` needs no flip
+    assert nb['idLocationFrom'] == 1
+    assert nb['idLocationTo'] == 2
 
 
 def _match_visited_2():

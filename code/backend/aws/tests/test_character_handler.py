@@ -334,6 +334,42 @@ def test_join_duplicated_trait(mock_jwt, mock_get, mock_query):
 @patch('match.handler.db_utils.query_by_pk')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
+def test_join_hidden_trait_is_not_selectable(mock_jwt, mock_get, mock_query):
+    """v0.35.2 — hideOnStartMatch: the story still returns the trait (the same list
+    resolves what a character already owns), so the refusal has to live here too."""
+    story = _story_with(traits=[
+        {'uuid': 'trait-1', 'id': 1, 'costPositive': 0, 'costNegative': 0,
+         'idClassPermitted': None, 'idClassProhibited': None, 'hideOnStartMatch': 1}])
+    mock_jwt.return_value = _claims()
+    mock_get.side_effect = _store(match=_match(), story=story)
+    mock_query.return_value = []
+    from match.handler import lambda_handler
+    result = lambda_handler(_event('POST', '/api/matches/m1/join',
+                                   body={'traitUuids': ['trait-1']}), {})
+    assert result['statusCode'] == 400
+    assert _body(result)['error'] == 'TRAIT_NOT_SELECTABLE'
+
+
+@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_join_trait_without_the_flag_stays_selectable(mock_jwt, mock_get, mock_query):
+    # Every trait authored before v0.35.2 is pickable, and 0 says the same thing.
+    story = _story_with(traits=[
+        {'uuid': 'trait-1', 'id': 1, 'costPositive': 0, 'costNegative': 0,
+         'idClassPermitted': None, 'idClassProhibited': None, 'hideOnStartMatch': 0}])
+    mock_jwt.return_value = _claims()
+    mock_get.side_effect = _store(match=_match(), story=story)
+    mock_query.return_value = []
+    from match.handler import lambda_handler
+    result = lambda_handler(_event('POST', '/api/matches/m1/join',
+                                   body={'traitUuids': ['trait-1']}), {})
+    assert result['statusCode'] == 201
+
+
+@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
 def test_join_trait_not_compatible_permitted(mock_jwt, mock_get, mock_query):
     story = _story_with(traits=[
         {'uuid': 'trait-1', 'id': 1, 'costPositive': 1, 'costNegative': 0,

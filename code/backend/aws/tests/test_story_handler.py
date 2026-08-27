@@ -386,10 +386,11 @@ def test_import_story_success_full_payload():
         ],
         'difficulties': [{'idTextName': 1}],
         'locations': [{'idTextName': 1}],
-        'events': [{'idTextName': 1}],
+        'events': [{'id': 1, 'idTextName': 1}],
         'items': [{'idTextName': 1}],
         'classes': [{'idTextName': 1}],
-        'choices': [{'idText': 1}],
+        # Step 31 (R8): a choice must belong to an event; otherwise dodges R4_CHOICE_EMPTY.
+        'choices': [{'id': 1, 'idEvent': 1, 'otherwiseFlag': 1, 'idText': 1}],
         'traits': [{'idTextName': 1}],
         'characterTemplates': [{'idTextName': 1}],
         'creators': [{'name': 'c'}],

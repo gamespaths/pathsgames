@@ -19,6 +19,20 @@ _REF_RULES = {
     _CHOICE: "R_CHOICE_REF", _CLASS: "R_CLASS_REF", _MISSION: "R_MISSION_REF",
 }
 
+# Step 33 — the list_locations columns that name an engine-fired event. Kept in one place
+# because both the graph collection and the R9 rules walk exactly this set.
+_LOCATION_TRIGGER_FIELDS = (
+    "idEventIfFirstTime",
+    "idEventNotFirstTime",
+    "idEventIfCharacterEnterEmptyLocation",
+    "idEventIfCharacterStartTime",
+    "idEventIfCounterZero",
+)
+
+# The two types a player can execute. Mirrors events.EXECUTABLE_TYPES, duplicated rather
+# than imported because the validator lives in the story lambda.
+_EXECUTABLE_EVENT_TYPES = {"NORMAL", "ONCE"}
+
 
 def _camel_to_snake(name):
     out = []
@@ -100,12 +114,18 @@ def validate_story_dict(data):
                 _CHOICE: choices, _CLASS: classes, _MISSION: missions}
     refs = []          # (rule, etype, eid, field, target, value)
     neighbors = []     # (eid, frm, to, direction)
-    key_refs = []      # (eid, key)
+    key_refs = []      # (eid, type, key)
     restrictions = []  # (etype, eid, permitted, prohibited)
     templates = []     # (eid, lifeMax, energyMax, dex, int, con, sadMax)
     event_next = {}
     choice_otherwise = {}
     choices_with_option = set()
+    # Step 31 — (cid, idEvent, idLocation) per choice, for the R8 binding rule.
+    choice_data = []
+    # Step 33 — every event id a list_locations.id_event_* column names, mapped to the
+    # column that names it (for the message), plus each event's raw type.
+    location_trigger_events = {}
+    event_types = {}
 
     def ref(etype, eid, field, target, value):
         v = _as_int(value)
@@ -126,6 +146,17 @@ def validate_story_dict(data):
     ref("story", None, "idEventAllPlayerComa", _EVENT, data.get("idEventAllPlayerComa"))
     ref("story", None, "idEventEndGame", _EVENT, data.get("idEventEndGame"))
 
+    # Step 33 — the five location-side trigger columns. They have existed since the first
+    # schema and were never referenced here, so a location could point at an event that
+    # does not exist and nothing would say so.
+    for l in _arr(data, "locations"):
+        lid = _field(l, "id")
+        for field in _LOCATION_TRIGGER_FIELDS:
+            id_event = _as_int(_field(l, field))
+            ref("locations", str(lid), field, _EVENT, _field(l, field))
+            if id_event is not None and id_event > 0:
+                location_trigger_events[id_event] = field
+
     for e in _arr(data, "events"):
         eid = _field(e, "id")
         ref("events", str(eid), "idSpecificLocation", _LOCATION, _field(e, "idSpecificLocation"))
@@ -134,11 +165,17 @@ def validate_story_dict(data):
         my, nxt = _as_int(_field(e, "id")), _as_int(_field(e, "idEventNext"))
         if my is not None and nxt is not None:
             event_next[my] = nxt
+        etype = _field(e, "type")
+        if my is not None and etype:
+            event_types[my] = str(etype)
     for c in _arr(data, "choices"):
         cid = _field(c, "id")
         ref("choices", str(cid), "idEvent", _EVENT, _field(c, "idEvent"))
         ref("choices", str(cid), "idLocation", _LOCATION, _field(c, "idLocation"))
         ref("choices", str(cid), "idEventTorun", _EVENT, _field(c, "idEventTorun"))
+        # Step 31 (R8): the raw binding values, kept for the choice-event rule.
+        choice_data.append((str(cid), _as_int(_field(c, "idEvent")),
+                            _as_int(_field(c, "idLocation"))))
         my = _as_int(_field(c, "id"))
         if my is not None:
             choice_otherwise[my] = _truthy(_field(c, "otherwiseFlag"))
@@ -146,15 +183,24 @@ def validate_story_dict(data):
         cid = _as_int(_field(ce, "idChoices"))
         if cid is not None:
             choices_with_option.add(cid)
-        ref("choice-effects", str(_field(ce, "id")), "idChoices", _CHOICE, cid)
+        eid = str(_field(ce, "id"))
+        ref("choice-effects", eid, "idChoices", _CHOICE, cid)
+        # v0.32.0 — the effect targets a resolved choice can reach (Step 32). idWeather is
+        # deliberately unchecked: this validator has no weather target, as for the event
+        # effects right below.
+        ref("choice-effects", eid, "idEvent", _EVENT, _field(ce, "idEvent"))
+        ref("choice-effects", eid, "idLocation", _LOCATION, _field(ce, "idLocation"))
+        ref("choice-effects", eid, "idItemTarget", _ITEM, _field(ce, "idItemTarget"))
     for cc in _arr(data, "choiceConditions"):
         ref("choice-conditions", str(_field(cc, "id")), "idChoices", _CHOICE, _field(cc, "idChoices"))
-        key_refs.append((str(_field(cc, "id")), _field(cc, "key")))
+        key_refs.append((str(_field(cc, "id")), _field(cc, "type"), _field(cc, "key")))
     for ee in _arr(data, "eventEffects"):
         eid = str(_field(ee, "id"))
         ref("event-effects", eid, "idEvent", _EVENT, _field(ee, "idEvent"))
         ref("event-effects", eid, "idItemTarget", _ITEM, _field(ee, "idItemTarget"))
         ref("event-effects", eid, "targetClass", _CLASS, _field(ee, "targetClass"))
+        # v0.29.3 — forced movement: the location the effect moves its recipients to.
+        ref("event-effects", eid, "idLocation", _LOCATION, _field(ee, "idLocation"))
     for ie in _arr(data, "itemEffects"):
         ref("item-effects", str(_field(ie, "id")), "idItem", _ITEM, _field(ie, "idItem"))
     for cb in _arr(data, "classBonuses"):
@@ -210,7 +256,42 @@ def validate_story_dict(data):
             errors.append(_err("R4_CHOICE_EMPTY", "choices", str(cid), None,
                                "choice {} has no option (choice-effects) and no otherwise fallback".format(cid)))
 
-    for eid, key in key_refs:
+    # Step 31 (R8): every choice belongs to an event, and only to an event.
+    for cid, id_event, id_location in choice_data:
+        if id_event is None or id_event <= 0:
+            errors.append(_err("R8_CHOICE_EVENT", "choices", cid, "idEvent",
+                               "choice {} has no idEvent — every choice must belong to an event (step 31)".format(cid)))
+        if id_location is not None and id_location > 0:
+            errors.append(_err("R8_CHOICE_EVENT", "choices", cid, "idLocation",
+                               "idLocation={} is deprecated — a choice binds to an event (idEvent), never to a location (step 31)".format(id_location)))
+
+    # Step 33 (R9): the two rules that keep an engine-fired location event runnable. Both
+    # are about events a list_locations.id_event_* column names. The engine fires those
+    # without a player: nobody pays, nobody is asked anything, and the response they would
+    # answer does not exist.
+    if location_trigger_events:
+        owning = {ev for (_cid, ev, _loc) in choice_data if ev is not None and ev > 0}
+        for id_event, field in location_trigger_events.items():
+            if id_event in owning:
+                errors.append(_err(
+                    "R9_AUTOMATIC_EVENT_CHOICES", "locations", None, field,
+                    "event {} is fired automatically by {} but owns choices — an automatic"
+                    " event has no one to ask and no response to ask in (step 33)".format(
+                        id_event, field)))
+            etype = str(event_types.get(id_event) or "").strip().upper()
+            if etype in _EXECUTABLE_EVENT_TYPES:
+                errors.append(_err(
+                    "R9_AUTOMATIC_EVENT_TYPE", "locations", None, field,
+                    "event {} is fired automatically by {} but its type is {}, which is"
+                    " player-executable — use AUTOMATIC (step 33)".format(
+                        id_event, field, etype)))
+
+    for eid, ctype, key in key_refs:
+        # Only KEYS conditions read the registry. On every other type `key` means
+        # something else entirely (a stat name for statistics, unused for ITEM), so
+        # matching it against the registry would false-fail legal stories (step 31).
+        if not ctype or str(ctype).strip().upper() != "KEYS":
+            continue
         if key and str(key).strip() and str(key).strip().lower() not in key_names:
             errors.append(_err("R4_CONDITION_KEY", "choice-conditions", eid, "key",
                                "choice-condition references unknown registry key '{}'".format(key)))
@@ -298,6 +379,15 @@ def validate_entity(entity_type, data):
         if mn is not None and mx is not None and mx > 0 and mn > mx:
             errors.append(_err("R6_DIFFICULTY_RANGE", entity_type, eid, "minCharacter",
                                "minCharacter ({}) exceeds maxCharacter ({})".format(mn, mx)))
+    elif entity_type == "choices":
+        # Step 31 — only an actively-typed idLocation is rejected here: the binding is
+        # deprecated, so writing one is always a mistake. A missing idEvent is tolerated
+        # (a draft choice may exist before its event while authoring); the whole-graph
+        # R8 rule closes the gap at import and validate-story.
+        id_location = _as_int(_field(data, "idLocation"))
+        if id_location is not None and id_location > 0:
+            errors.append(_err("R8_CHOICE_EVENT", entity_type, eid, "idLocation",
+                               "idLocation={} is deprecated — a choice binds to an event (idEvent), never to a location (step 31)".format(id_location)))
     return errors
 
 

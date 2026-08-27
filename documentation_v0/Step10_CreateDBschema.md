@@ -224,7 +224,7 @@ Circular references between tables created in different migration files cannot b
 | `list_stories` | `id_creator` | → `list_creator(id)` |
 | `list_locations` | `id_event_if_counter_zero` | → `list_events(id)` |
 | `list_locations` | `id_event_if_character_start_time` | → `list_events(id)` |
-| `list_locations` | `id_event_if_character_enter_first_time` | → `list_events(id)` |
+| `list_locations` | `id_event_if_character_enter_empty_location` | → `list_events(id)` |
 | `list_locations` | `id_event_if_first_time` | → `list_events(id)` |
 | `list_locations` | `id_event_not_first_time` | → `list_events(id)` |
 | `list_weather_rules` | `id_event` | → `list_events(id)` |

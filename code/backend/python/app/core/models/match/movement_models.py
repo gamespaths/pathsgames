@@ -1,13 +1,19 @@
 """Step 28 — movement system domain models (mirrors the Java reference)."""
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Any, List, Optional
 
 
 @dataclass
 class NeighborCost:
     """A neighbor edge with the resolved energy-cost breakdown for the current weather:
     base_energy_cost (edge) + entry_energy_cost (target entry) + weather_energy_cost = total.
-    ``id_card``/``card`` are the neighbor LOCATION's card (camelCase dict, may be None)."""
+    ``id_card``/``card`` are the neighbor LOCATION's card (camelCase dict, may be None).
+
+    ``direction`` is the AUTHORED story-edge direction, from ``id_location_from`` to
+    ``id_location_to`` — NOT the way the character walks: a two-way edge is listed from
+    both endpoints with the same direction. The two endpoint ids let a client tell the
+    two traversals apart and flip the direction when the listing location is
+    ``id_location_to``."""
     id_location: int
     uuid: Optional[str]
     direction: Optional[str]
@@ -16,8 +22,14 @@ class NeighborCost:
     weather_energy_cost: int
     total_energy_cost: int
     condition_met: bool
+    # v0.35.3 — the edge's resource price. Edge-only, so there is no breakdown to report.
+    cost_food: int = 0
+    cost_magic: int = 0
+    cost_coin: int = 0
     id_card: Optional[int] = None
     card: Optional[dict] = None
+    id_location_from: Optional[int] = None
+    id_location_to: Optional[int] = None
 
 
 @dataclass
@@ -44,6 +56,33 @@ class MovementResult:
     energy_spent: int
     new_energy: int
     current_clock: int
+    # v0.35.3 — the edge's resource price, and the backpack after it.
+    food_spent: int = 0
+    magic_spent: int = 0
+    coin_spent: int = 0
+    new_food: int = 0
+    new_magic: int = 0
+    new_coin: int = 0
+    #: Step 33 — what the destination did about the arrival: its id_event_if_first_time /
+    #: id_event_not_first_time / id_event_if_character_enter_empty_location, already executed.
+    automatic_events: List[Any] = field(default_factory=list)
+
+
+@dataclass
+class MovementAvailability:
+    """The verdict on a single move, shared by match-info (which reports it on every neighbor)
+    and action/move (which enforces it). ``reason`` is a ``MovementError`` code, None when the
+    move is allowed. Mirrors ``EventAvailability`` — see ``movement_availability.check``."""
+    available: bool
+    reason: Optional[str] = None
+
+    @staticmethod
+    def ok() -> "MovementAvailability":
+        return MovementAvailability(True, None)
+
+    @staticmethod
+    def no(reason: str) -> "MovementAvailability":
+        return MovementAvailability(False, reason)
 
 
 class MovementError(Exception):
@@ -52,10 +91,16 @@ class MovementError(Exception):
     MATCH_NOT_FOUND = "MATCH_NOT_FOUND"
     MATCH_NOT_RUNNING = "MATCH_NOT_RUNNING"
     CHARACTER_CANNOT_ACT = "CHARACTER_CANNOT_ACT"
+    SLEEPING = "SLEEPING"
+    COMA = "COMA"
     NOT_A_NEIGHBOR = "NOT_A_NEIGHBOR"
     MOVEMENT_CONDITION_NOT_MET = "MOVEMENT_CONDITION_NOT_MET"
     OVERWEIGHT = "OVERWEIGHT"
     INSUFFICIENT_ENERGY = "INSUFFICIENT_ENERGY"
+    # v0.35.3 — the mover cannot pay the edge's resource cost.
+    NOT_ENOUGH_COINS = "NOT_ENOUGH_COINS"
+    NOT_ENOUGH_FOOD = "NOT_ENOUGH_FOOD"
+    NOT_ENOUGH_MAGIC = "NOT_ENOUGH_MAGIC"
     LOCATION_FULL = "LOCATION_FULL"
 
     def __init__(self, code: str, message: str) -> None:

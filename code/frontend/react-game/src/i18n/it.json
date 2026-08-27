@@ -11,7 +11,9 @@
     "loading": "Caricamento storie…",
     "noStories": "Nessuna storia disponibile.",
     "badgeResume": "Riprendi",
-    "badgeCompleted": "Completata"
+    "badgeCompleted": "Completata",
+    "badgePaused": "In pausa",
+    "matchesError": "Non è stato possibile caricare le tue partite, quindi non puoi iniziarne una nuova ora."
   },
   "antibot": {
     "blocked": "Antibot attivato — queste avventure sono solo per umani!",
@@ -69,7 +71,7 @@
       "title": "Bonus",
       "lifeMax": "Vita",
       "energyMax": "Energia",
-      "sadMax": "Felicità",
+      "sadMax": "Tristezza",
       "dexterityStart": "Destrezza",
       "intelligenceStart": "Intelligenza",
       "constitutionStart": "Fisico",
@@ -88,7 +90,7 @@
       "totals": {
         "life": "Vita",
         "energy": "Energia",
-        "sad": "Felicità",
+        "sad": "Tristezza",
         "dexterity": "Destrezza",
         "intelligence": "Intelligenza",
         "constitution": "Fisico",
@@ -96,7 +98,9 @@
         "exp": "EXP"
       }
     },
-    "map": "Mappa"
+    "map": "Mappa",
+    "automatic-event": "Evento",
+    "automatic-event-done": "Continua"
   },
   "startMatch": {
     "starting": "Avvio della partita…",
@@ -105,6 +109,7 @@
     "running": "Avvio della partita in corso…",
     "created": "Partita creata, il libro della storia si sta caricando…",
     "error": "Impossibile creare la partita.",
+    "errorActiveMatch": "Hai già una partita in corso per questa storia. Riprendila dalle tue partite.",
     "retry": "Riprova",
     "home": "Torna alla home"
   },
@@ -140,7 +145,13 @@
       "MOVEMENT": "Movimento",
       "SLEEP": "Riposo",
       "CLOCK_ADVANCE": "Scorre il tempo",
-      "RECOVERY": "Recupero"
+      "RECOVERY": "Recupero",
+      "EVENT": "Evento",
+      "COUNTER_ZERO": "Tempo scaduto",
+      "AUTOMATIC_EVENT": "Evento",
+      "ITEM_ADD": "Oggetto trovato",
+      "ITEM_USE": "Oggetto usato",
+      "ITEM_DROP": "Oggetto lasciato"
     }
   },
   "card": {
@@ -158,16 +169,37 @@
     "actions": "Azioni",
     "exitToHome": "Torna alla Home",
     "story": "Storia",
+    "loadingCard": {
+      "title": "Caricamento…",
+      "description": "Il sentiero prende forma — il libro sta girando le pagine."
+    },
     "stats": {
       "life": "Vita",
       "energy": "Energia",
-      "sadness": "Felicità",
+      "sadness": "Tristezza",
       "experience": "EXP",
       "food": "Cibo",
       "magic": "Magia",
       "coins": "Monete",
       "weight": "Peso",
-      "items": "Oggetti"
+      "items": "Oggetti",
+      "dexterity": "Destrezza",
+      "intelligence": "Intelligenza",
+      "constitution": "Costituzione",
+      "descriptions": {
+        "clock": "Il tempo trascorso nel mondo di gioco: ogni azione lo fa avanzare.",
+        "life": "I punti vita: a zero il personaggio cade in coma e serve aiuto per rialzarsi.",
+        "energy": "L'energia disponibile: si consuma muovendosi e agendo, si recupera dormendo.",
+        "sadness": "La tristezza accumulata: più sale, più le scelte diventano difficili.",
+        "weight": "Il peso trasportato rispetto al massimo che il personaggio può portare.",
+        "experience": "L'esperienza guadagnata durante l'avventura.",
+        "food": "Le provviste in zaino: servono per mangiare e per alcune azioni.",
+        "magic": "I punti magia: servono per gli incantesimi e per alcune azioni.",
+        "coins": "Le monete possedute: servono per comprare e per alcune azioni.",
+        "dexterity": "La destrezza del personaggio: conta nelle prove di agilità.",
+        "intelligence": "L'intelligenza del personaggio: conta nelle prove di ingegno.",
+        "constitution": "La costituzione del personaggio: conta nelle prove di resistenza."
+      }
     },
     "move": "Vai Qui",
     "execute": "Esegui",
@@ -200,8 +232,67 @@
       "confirm": "Dormi",
       "cancel": "Annulla",
       "sleeping": "Sta dormendo",
-      "unsafeLocation": "Non ti trovi in un luogo sicuro, quindi recupererai solo l'energia scelta nella difficoltà:",
+      "unsafeLocation": "Non ti trovi in un luogo sicuro, recupererai",
       "safeLocation": "Ti trovi in un luogo sicuro. Recupererai:"
+    },
+    "sad": {
+      "title": "La tristezza ti travolge",
+      "description": "La tua tristezza ha raggiunto il limite. Perdi punti vita pari alla tua costituzione, la tristezza torna a zero e sei costretto a dormire.",
+      "close": "Chiudi"
+    },
+    "coma": {
+      "title": "Sei in coma",
+      "description": "La tua vita è scesa a zero. Non puoi agire finché un altro personaggio non ti soccorre.",
+      "close": "Chiudi"
+    },
+    "allComa": {
+      "title": "Sono caduti tutti",
+      "description": "Tutti i personaggi sono in coma. Nessuno può più agire."
+    },
+    "choices": {
+      "title": "Scegli la tua strada",
+      "hint": "Hai già pagato per aprire questo. Scegli un'opzione, o vattene — il pedaggio resta pagato.",
+      "do": "Scegli",
+      "doNothing": "Non fare nulla",
+      "unavailable": "Non disponibile",
+      "resolving": "Loading",
+      "error": {
+        "CHOICE_NOT_OPEN": "Questo evento non è più aperto: riaprilo per scegliere di nuovo.",
+        "CHOICE_NOT_AVAILABLE": "Questa opzione non è più possibile.",
+        "CHOICE_NOT_FOUND": "Questa opzione non esiste in questa storia.",
+        "SLEEPING": "Stai dormendo e non puoi scegliere.",
+        "COMA": "Sei in coma e non puoi scegliere."
+      },
+      "reason": {
+        "LIMIT_SAD_EXCEEDED": "Troppa tristezza",
+        "LIMIT_DEX_NOT_MET": "Destrezza",
+        "LIMIT_INT_NOT_MET": "Intelligenza",
+        "LIMIT_COS_NOT_MET": "Costituzione",
+        "CONDITION_KEYS_NOT_MET": "Non ancora",
+        "CONDITION_ITEM_NOT_MET": "Oggetto",
+        "CONDITION_CLASS_NOT_MET": "Classe",
+        "CONDITION_LOCATION_NOT_MET": "Altrove",
+        "CONDITION_ALL_IN_SAME_LOC_NOT_MET": "Gruppo",
+        "CONDITION_TRAITS_NOT_MET": "Tratto",
+        "CONDITION_STATISTICS_NOT_MET": "Statistiche",
+        "CONDITION_STATISTICS_SUM_NOT_MET": "Statistiche gruppo",
+        "CONDITIONS_NOT_MET": "Bloccato"
+      },
+      "longReason": {
+        "LIMIT_SAD_EXCEEDED": "Il personaggio ha troppa tristezza",
+        "LIMIT_DEX_NOT_MET": "Il personaggio ha poca destrezza",
+        "LIMIT_INT_NOT_MET": "Il personaggio ha poca intelligenza",
+        "LIMIT_COS_NOT_MET": "Il personaggio ha poca costituzione",
+        "CONDITION_KEYS_NOT_MET": "Manca un registro per eseguire questa scelta",
+        "CONDITION_ITEM_NOT_MET": "Manca un oggetto per eseguire questa scelta",
+        "CONDITION_CLASS_NOT_MET": "La classe del personaggio non può eseguire questa scelta",
+        "CONDITION_LOCATION_NOT_MET": "Il personaggio non si trova nel luogo corretto",
+        "CONDITION_ALL_IN_SAME_LOC_NOT_MET": "Tutti i personaggi devono trovarsi in questo luogo",
+        "CONDITION_TRAITS_NOT_MET": "Il personaggio non ha il tratto richiesto",
+        "CONDITION_STATISTICS_NOT_MET": "Le statistiche del personaggio non soddisfano il requisito",
+        "CONDITION_STATISTICS_SUM_NOT_MET": "Le statistiche del gruppo non soddisfano il requisito",
+        "CONDITIONS_NOT_MET": "Bloccato"
+      }
     },
     "energyEverySleep": "Energia recuperata ogni ciclo di sonno",
     "location": {
@@ -211,7 +302,112 @@
       "action": "Muovi",
       "cost": "Costo",
       "noEnergy": "Energia",
-      "moveCost": "Movimento"
+      "moveCost": "Movimento",
+      "blocked": "Bloccato",
+      "blockedFull": "Ora non puoi andare lì.",
+      "reason": {
+        "CHARACTER_CANNOT_ACT": "Bloccato",
+        "MATCH_NOT_RUNNING": "Sospesa",
+        "COMA": "Coma",
+        "SLEEPING": "Sonno",
+        "NOT_A_NEIGHBOR": "Lontano",
+        "MOVEMENT_CONDITION_NOT_MET": "Sbarrata",
+        "OVERWEIGHT": "Peso",
+        "INSUFFICIENT_ENERGY": "Energia",
+        "NOT_ENOUGH_COINS": "Monete",
+        "NOT_ENOUGH_FOOD": "Cibo",
+        "NOT_ENOUGH_MAGIC": "Magia",
+        "LOCATION_FULL": "Pieno"
+      },
+      "reasonFull": {
+        "CHARACTER_CANNOT_ACT": "Ora non puoi muoverti.",
+        "MATCH_NOT_RUNNING": "La partita non è in corso, quindi non puoi muoverti.",
+        "COMA": "Sei in coma: non puoi muoverti finché qualcuno non ti aiuta.",
+        "SLEEPING": "Stai dormendo e non puoi muoverti.",
+        "NOT_A_NEIGHBOR": "Questo luogo non è adiacente a quello in cui ti trovi.",
+        "MOVEMENT_CONDITION_NOT_MET": "La via è sbarrata: manca ancora qualcosa per aprirla.",
+        "OVERWEIGHT": "Sei troppo carico per metterti in cammino.",
+        "INSUFFICIENT_ENERGY": "Non hai abbastanza energia per questo spostamento.",
+        "NOT_ENOUGH_COINS": "Non hai abbastanza monete per questo spostamento.",
+        "NOT_ENOUGH_FOOD": "Non hai abbastanza cibo per questo spostamento.",
+        "NOT_ENOUGH_MAGIC": "Non hai abbastanza magia per questo spostamento.",
+        "LOCATION_FULL": "In quel luogo non c'è più posto."
+      }
+    },
+    "event": {
+      "action": "Agisci",
+      "cost": "Costo",
+      "blocked": "Bloccata",
+      "blockedFull": "Questa azione ora non è disponibile.",
+      "reason": {
+        "CHARACTER_CANNOT_ACT": "Bloccata",
+        "SLEEPING": "Sonno",
+        "COMA": "Coma",
+        "EVENT_NOT_EXECUTABLE_TYPE": "Bloccata",
+        "ONCE_ALREADY_CONSUMED": "Fatta",
+        "WRONG_LOCATION": "Altrove",
+        "NOT_ENOUGH_ENERGY": "Energia",
+        "NOT_ENOUGH_COINS": "Monete",
+        "NOT_ENOUGH_FOOD": "Cibo",
+        "NOT_ENOUGH_MAGIC": "Magia",
+        "REGISTRY_CONDITION_NOT_MET": "Non ancora",
+        "WEATHER_CONDITION_NOT_MET": "Tempo",
+        "ITEM_CONDITION_NOT_MET": "Oggetto",
+        "CLASS_CONDITION_NOT_MET": "Classe"
+      },
+      "reasonFull": {
+        "CHARACTER_CANNOT_ACT": "Ora non puoi agire.",
+        "SLEEPING": "Stai dormendo e non puoi agire.",
+        "COMA": "Sei in coma: non puoi agire finché qualcuno non ti aiuta.",
+        "EVENT_NOT_EXECUTABLE_TYPE": "Questa azione non sta a te.",
+        "ONCE_ALREADY_CONSUMED": "L'hai già fatta e non si può ripetere.",
+        "WRONG_LOCATION": "Questa azione appartiene a un altro luogo.",
+        "NOT_ENOUGH_ENERGY": "Non hai abbastanza energia per questa azione.",
+        "NOT_ENOUGH_COINS": "Non hai abbastanza monete per questa azione.",
+        "NOT_ENOUGH_FOOD": "Non hai abbastanza cibo per questa azione.",
+        "NOT_ENOUGH_MAGIC": "Non hai abbastanza magia per questa azione.",
+        "REGISTRY_CONDITION_NOT_MET": "Non sei ancora pronto per questa azione.",
+        "WEATHER_CONDITION_NOT_MET": "Il tempo non è adatto a questa azione.",
+        "ITEM_CONDITION_NOT_MET": "Ti manca l'oggetto che questa azione richiede.",
+        "CLASS_CONDITION_NOT_MET": "La tua classe non può compiere questa azione."
+      }
+    },
+    "item": {
+      "use": "Usa",
+      "drop": "Getta",
+      "amount": "Quantità",
+      "perUse": "Per uso",
+      "weight": "Peso",
+      "carriedOnly": "Trasportato",
+      "blocked": "Bloccato",
+      "blockedFull": "Questo oggetto non si può usare adesso.",
+      "reason": {
+        "ITEM_NOT_CONSUMABLE": "Trasporto",
+        "ITEM_CLASS_NOT_PERMITTED": "Classe",
+        "ITEM_CLASS_PROHIBITED": "Classe",
+        "SLEEPING": "Dormi",
+        "COMA": "Coma",
+        "MATCH_NOT_RUNNING": "In pausa",
+        "ITEM_NOT_ENOUGH": "Pochi"
+      },
+      "reasonFull": {
+        "ITEM_NOT_CONSUMABLE": "Questo oggetto non si può usare: puoi solo portarlo con te.",
+        "ITEM_CLASS_NOT_PERMITTED": "La tua classe non può usare questo oggetto.",
+        "ITEM_CLASS_PROHIBITED": "Alla tua classe è vietato usare questo oggetto.",
+        "SLEEPING": "Stai dormendo, non puoi usare nulla.",
+        "COMA": "Sei in coma: non puoi usare nulla.",
+        "MATCH_NOT_RUNNING": "La partita non è in corso.",
+        "ITEM_NOT_ENOUGH": "Usarlo consuma più unità di quante ne hai."
+      }
+    },
+    "items": {
+      "title": "Zaino",
+      "description": "Tenere in ordine l'equipaggiamento ti permetterà di viaggiare pronto e preparato. In questa pagina del libro puoi vedere tutti i tuoi oggetti e usarli.",
+      "open": "Zaino",
+      "empty": "Non stai portando nulla.",
+      "back": "Indietro",
+      "count": "trasportati",
+      "capacity": "Capacità"
     },
     "map": {
       "title": "Mappa",
@@ -228,7 +424,21 @@
     "moveToDirection": "Vai verso",
     "from": "Da",
     "to": "A",
-    "backTo": "Torna a"
+    "backTo": "Torna a",
+    "automaticEvents": {
+      "title": "Tempo scaduto",
+      "anonymous": "Da qualche parte, lontano, è scaduto un tempo.",
+      "dismiss": "Prosegui"
+    },
+    "bookmarks": {
+      "position": "Posizione",
+      "information": "Informazioni",
+      "map": "Mappa",
+      "backpack": "Zaino",
+      "missions": "Missioni",
+      "multiplayer": "Multigiocatore",
+      "comingSoon": "Missioni e registro in arrivo"
+    }
   },
   "footer": {
     "alpha": "⚠ Versione alpha — i server potrebbero non essere disponibili o essere reimpostati in qualsiasi momento.",

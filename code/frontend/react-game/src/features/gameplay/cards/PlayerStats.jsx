@@ -1,47 +1,21 @@
 import { useTranslation } from '../../../i18n/context'
 import BonusBadgeList from '../../../components/ui/BonusBadgeList'
+import { buildStatBadges } from '../../../utils/statBadges'
 
-// Stats shown as a current/max gauge (Step 27) paired with their max key.
-const GAUGE_KEYS = [
-  ['life', 'lifeMax'],
-  ['energy', 'energyMax'],
-  ['sadness', 'sadnessMax'],
-  ['weight', 'weightMax'],
-]
-
-// Plain single-value stats (no max projected by /info yet).
-const PLAIN_KEYS = ['experience', 'food', 'magic', 'coins' , 'dexterity', 'intelligence', 'constitution']
-
-export default function PlayerStats({ stats , className , plainFlag=false , showZeros=true , specificKeys=null }) {
+export default function PlayerStats({ stats , className 
+    , plainFlag=false , showZeros=true , specificKeys=null , showLabel=true , showItems=true }) {
 
   const { t } = useTranslation()
 
-  const keysList = specificKeys ?? GAUGE_KEYS; 
-  const gauge = keysList.map(([key, maxKey]) => {
-    const value = stats?.[key] ?? 0
-    const max = stats?.[maxKey] ?? 0
-    return {
-      key,
-      label: t(`game.stats.${key}`),
-      // current/max when a max is known, otherwise the bare current value
-      value: max ? `${value}/${max}` : value,
-    }
-  })
+  const badges = buildStatBadges(stats, t, { plainFlag, showLabel, specificKeys })
 
-  const plain = PLAIN_KEYS.map(key => ({
-    key,
-    label: t(`game.stats.${key}`),
-    value: stats?.[key] ?? 0,
-  }))
-
-  const items = Array.isArray(stats?.items) ? stats.items : []
-
-  let clockStat=[]
-  if (plainFlag && stats.clock!=null){ clockStat.push({ key: 'clock', label: stats.clockLabelSingular ?? "Time", value: stats.clock }) }
+  // Step 34 — the backpack has a page of its own now, so the compact card that only has
+  // room for the gauges opts out with showItems={false} instead of listing them twice.
+  const items = showItems && Array.isArray(stats?.items) ? stats.items : []
 
   return (
     <>
-      <BonusBadgeList className={className} items={[...clockStat,  ...gauge  , ...(plainFlag ? plain : []) ] } showZeros={showZeros} />
+      <BonusBadgeList className={className} items={badges} showZeros={showZeros} />
       {items.length > 0 && (
         <div className={`player-items-list `} aria-label={t('game.stats.items')}>
           {items.map(it => (

@@ -38,7 +38,30 @@ const DIR_VECTORS = {
   EAST: [1, 0],
   WEST: [-1, 0],
 }
-const OPPOSITE = { NORTH: 'SOUTH', SOUTH: 'NORTH', EAST: 'WEST', WEST: 'EAST' }
+/**
+ * Opposite of each authored direction. The story authors an edge as from→to with
+ * ONE direction, so a traversal from the `to` side must be labelled with the
+ * opposite. Covers every value of LOCATION_NEIGHBOR_DIRECTIONS except SKY, which
+ * has no opposite by design.
+ */
+export const OPPOSITE_DIRECTION = {
+  NORTH: 'SOUTH', SOUTH: 'NORTH', EAST: 'WEST', WEST: 'EAST',
+  ABOVE: 'BELOW', BELOW: 'ABOVE',
+}
+
+/**
+ * The direction the character actually travels in.
+ * @param {string|null} dir - the AUTHORED edge direction (from→to)
+ * @param {boolean} isBack - true when the edge is traversed from its `to` side
+ * @returns {string|null} the traversal direction, or null when the authored one
+ *   has no opposite (SKY, or an unknown value) — callers then drop the direction
+ *   rather than show a wrong one.
+ */
+export function traversalDirection(dir, isBack = false) {
+  if (!dir || typeof dir !== 'string') return null
+  if (!isBack) return dir
+  return OPPOSITE_DIRECTION[dir.toUpperCase()] ?? null
+}
 
 /** Direction initial shown on movement badges (kept for future use). */
 export const DIR_LETTER = { NORTH: 'N', SOUTH: 'S', EAST: 'E', WEST: 'W' }
@@ -111,8 +134,11 @@ export function buildMapGraph(info, matchLocations = null) {
   // when the reverse entry exists (or flagBack says so, below). NOTE: the
   // payload's `direction` is the AUTHORED story-edge direction, not the
   // traversal one — a back-traversal entry carries the forward direction
-  // (loc 3 → 1 reports NORTH because the story edge is 1→3 NORTH). The
-  // authored orientation from /info (idLocationFrom/To) is the authority.
+  // (loc 3 → 1 reports NORTH because the story edge is 1→3 NORTH). Both payloads
+  // ship the authored endpoints (idLocationFrom/To) alongside it, and THAT is what
+  // orients an edge: without them a two-way link between two locations the player
+  // is not standing on would be laid out mirrored, its geometry decided by the
+  // order the payload happens to list them in.
   const directed = new Map() // "from->to" → { from, to, dir, energyCost }
   function addDirected(from, to, dir, energyCost) {
     if (from == null || to == null) return
@@ -121,9 +147,30 @@ export function buildMapGraph(info, matchLocations = null) {
   }
   const pairKey = (a, b) => `${Math.min(a, b)}|${Math.max(a, b)}`
   const authoredByPair = new Map() // pairKey → { from, to, dir } (story orientation)
+  /** Record the story orientation of a pair; the first entry seen wins. */
+  function rememberAuthored(from, to, dir) {
+    if (from == null || to == null || !dir) return
+    if (!authoredByPair.has(pairKey(from, to))) {
+      authoredByPair.set(pairKey(from, to), { from, to, dir })
+    }
+  }
   mlList.forEach(l => {
     (l.neighbors ?? []).forEach(n => {
-      addDirected(l.idLocation, n.idLocation, n.direction, n.totalEnergyCost)
+      // Prefer the authored endpoints when the payload carries them: the entry is a
+      // return traversal whenever the listing location is the edge's `to`, and its
+      // direction then belongs to the OPPOSITE way.
+      const authoredFrom = n.idLocationFrom ?? null
+      const authoredTo = n.idLocationTo ?? null
+      if (authoredFrom != null && authoredTo != null) {
+        rememberAuthored(authoredFrom, authoredTo, n.direction)
+        const isReturn = l.idLocation === authoredTo
+        addDirected(l.idLocation, n.idLocation,
+          traversalDirection(n.direction, isReturn), n.totalEnergyCost)
+      } else {
+        // Older backend: no endpoints, so the direction can only be taken at face
+        // value (correct on forward entries, mirrored on return ones).
+        addDirected(l.idLocation, n.idLocation, n.direction, n.totalEnergyCost)
+      }
       // Step 0.28.5 — the neighbor entry now carries the neighbor LOCATION's card,
       // so a not-yet-active neighbor node still gets its real photo.
       upsertNode(n.idLocation, {
@@ -149,11 +196,9 @@ export function buildMapGraph(info, matchLocations = null) {
       const to = n.idLocationTo ?? n.idLocation
       if (from == null || to == null) return
       addDirected(from, to, n.direction, n.energyCost)
-      if (n.direction && !authoredByPair.has(pairKey(from, to))) {
-        authoredByPair.set(pairKey(from, to), { from, to, dir: n.direction })
-      }
+      rememberAuthored(from, to, n.direction)
       if (n.flagBack ?? n.flag_back) {
-        addDirected(to, from, OPPOSITE[n.direction] ?? null, n.energyCost)
+        addDirected(to, from, traversalDirection(n.direction, true), n.energyCost)
       }
       const farId = from === l.idLocation ? to : from
       const farCard = (farId === to ? n.cardLocationTo : n.cardLocationFrom) ?? null
@@ -176,9 +221,10 @@ export function buildMapGraph(info, matchLocations = null) {
     }
   })
 
-  // collapse directed pairs into ONE edge (single geometric constraint) with
-  // the back flag; on two-way pairs both payload entries carry the same
-  // authored direction, so prefer the /info authored orientation when known.
+  // collapse directed pairs into ONE edge (single geometric constraint) with the
+  // back flag. Every directed entry carries the direction of ITS OWN traversal, so
+  // the pair is folded back onto the story orientation whenever it is known —
+  // otherwise the surviving half would be whichever the payload listed first.
   const edges = []
   const consumed = new Set()
   directed.forEach((e, key) => {
@@ -219,7 +265,7 @@ export function buildMapGraph(info, matchLocations = null) {
     adj.get(e.from).push({ id: e.to, dir: e.dir })
     // the reverse geometric hint keeps the BFS symmetric even on one-way links
     if (!adj.has(e.to)) adj.set(e.to, [])
-    adj.get(e.to).push({ id: e.from, dir: OPPOSITE[e.dir] })
+    adj.get(e.to).push({ id: e.from, dir: OPPOSITE_DIRECTION[e.dir] })
   })
 
   // Free-cell lookup for a placement in direction `dir` from `at`: try the

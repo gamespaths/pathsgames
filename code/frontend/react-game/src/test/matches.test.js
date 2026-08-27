@@ -5,7 +5,9 @@ import {
   joinMatch, getMatchPlayers, getCharacter,
   startMatch, passTurn, getTurnSequence,
   getMatchClock, sleepCharacter,
-  startMovement, getMatchLocations,
+  startMovement, getMatchLocations, getMatchLogs,
+  executeEvent, selectChoice,
+  getInventory, useItem, dropItem, getResources,
 } from '../api/matches'
 
 vi.mock('../api/client', () => ({ apiClient: vi.fn() }))
@@ -189,6 +191,164 @@ describe('matches api', () => {
       const res = await getMatchLocations('m1', 'tok')
       expect(get).toHaveBeenCalledWith('/api/match/m1/locations', expect.any(Object))
       expect(res.locations).toEqual([{ idLocation: 1 }])
+    })
+
+    it('getMatchLogs asks for the newest entries first by default', async () => {
+      get.mockResolvedValue({ data: { logs: [], nextCursor: null } })
+      await getMatchLogs('m1', 'tok')
+      expect(get).toHaveBeenCalledWith('/api/matches/m1/logs',
+        expect.objectContaining({ params: { order: 'desc' } }))
+    })
+
+    it('getMatchLogs forwards limit, cursor and lang alongside the order', async () => {
+      get.mockResolvedValue({ data: { logs: [], nextCursor: 'n1' } })
+      const res = await getMatchLogs('m1', 'tok', { limit: 10, cursor: 'c9', lang: 'it' })
+      expect(get).toHaveBeenCalledWith('/api/matches/m1/logs',
+        expect.objectContaining({ params: { limit: 10, cursor: 'c9', lang: 'it', order: 'desc' } }))
+      expect(res.nextCursor).toBe('n1')
+    })
+
+    it('getMatchLogs lets the caller ask for the oldest entries first', async () => {
+      get.mockResolvedValue({ data: { logs: [] } })
+      await getMatchLogs('m1', 'tok', { order: 'asc' })
+      expect(get).toHaveBeenCalledWith('/api/matches/m1/logs',
+        expect.objectContaining({ params: { order: 'asc' } }))
+    })
+
+    it('getMatchLogs sends no params at all when every option is left out', async () => {
+      get.mockResolvedValue({ data: { logs: [] } })
+      await getMatchLogs('m1', 'tok', { order: null })
+      expect(get).toHaveBeenCalledWith('/api/matches/m1/logs',
+        expect.not.objectContaining({ params: expect.anything() }))
+    })
+
+    it('getMatchLocations asks in the requested language, and without one by default', async () => {
+      get.mockResolvedValue({ data: { locations: [] } })
+      await getMatchLocations('m1', 'tok', 'it')
+      expect(get).toHaveBeenCalledWith('/api/match/m1/locations',
+        expect.objectContaining({ params: { lang: 'it' } }))
+
+      get.mockClear()
+      await getMatchLocations('m1', 'tok')
+      expect(get).toHaveBeenCalledWith('/api/match/m1/locations',
+        expect.not.objectContaining({ params: expect.anything() }))
+    })
+
+    it('executeEvent posts the event uuid, carrying the language when asked', async () => {
+      post.mockResolvedValue({ data: { status: 'APPLIED' } })
+      const res = await executeEvent('m1', 'ev-1', 'tok', 'it')
+
+      expect(post).toHaveBeenCalledWith(
+        '/api/gameplay/m1/action/execute-event',
+        { eventUuid: 'ev-1' },
+        expect.objectContaining({ params: { lang: 'it' } }),
+      )
+      expect(res).toEqual({ status: 'APPLIED' })
+    })
+
+    it('executeEvent omits the language parameter when none is given', async () => {
+      post.mockResolvedValue({ data: {} })
+      await executeEvent('m1', 'ev-1', 'tok')
+      expect(post.mock.calls[0][2].params).toBeUndefined()
+    })
+
+    it('executeEvent propagates a 409 ONCE_ALREADY_CONSUMED error', async () => {
+      post.mockRejectedValue({ response: { status: 409, data: { error: 'ONCE_ALREADY_CONSUMED' } } })
+      await expect(executeEvent('m1', 'ev-1', 'tok')).rejects.toMatchObject({
+        response: { status: 409 },
+      })
+    })
+
+    it('selectChoice posts the choice uuid, carrying the language when asked', async () => {
+      post.mockResolvedValue({ data: { status: 'APPLIED', narrative: 'You chose well' } })
+      const res = await selectChoice('m1', 'ch-1', 'tok', 'en')
+
+      expect(post).toHaveBeenCalledWith(
+        '/api/gameplay/m1/action/select-choice',
+        { choiceUuid: 'ch-1' },
+        expect.objectContaining({ params: { lang: 'en' } }),
+      )
+      expect(res.narrative).toBe('You chose well')
+    })
+
+    it('selectChoice omits the language parameter when none is given', async () => {
+      post.mockResolvedValue({ data: {} })
+      await selectChoice('m1', 'ch-1', 'tok')
+      expect(post.mock.calls[0][2].params).toBeUndefined()
+    })
+
+    /* ── Steps 34 & 35 — inventory and resources ────────────────────────── */
+
+    it('getInventory reads the caller inventory, carrying the language when asked', async () => {
+      get.mockResolvedValue({ data: { items: [{ uuid: 'row-1' }], weight: 6, weightMax: 30 } })
+      const res = await getInventory('m1', 'tok', 'it')
+
+      expect(get).toHaveBeenCalledWith(
+        '/api/gameplay/m1/inventory',
+        expect.objectContaining({
+          headers: { Authorization: 'Bearer tok' },
+          params: { lang: 'it' },
+        }),
+      )
+      expect(res.items[0].uuid).toBe('row-1')
+    })
+
+    it('getInventory omits the language parameter when none is given', async () => {
+      get.mockResolvedValue({ data: {} })
+      await getInventory('m1', 'tok')
+      expect(get.mock.calls[0][1].params).toBeUndefined()
+    })
+
+    it('useItem posts the INVENTORY ROW uuid, not the story item uuid', async () => {
+      post.mockResolvedValue({ data: { status: 'APPLIED', eventUuid: null } })
+      const res = await useItem('m1', 'row-1', 'tok', 'en')
+
+      expect(post).toHaveBeenCalledWith(
+        '/api/gameplay/m1/inventory/use-item',
+        { itemInstanceUuid: 'row-1' },
+        expect.objectContaining({ params: { lang: 'en' } }),
+      )
+      // An item usage owns no event: the payload is execute-event's with a null eventUuid.
+      expect(res.eventUuid).toBeNull()
+    })
+
+    it('useItem omits the language parameter when none is given', async () => {
+      post.mockResolvedValue({ data: {} })
+      await useItem('m1', 'row-1', 'tok')
+      expect(post.mock.calls[0][2].params).toBeUndefined()
+    })
+
+    it('useItem propagates a refusal from the backend', async () => {
+      post.mockRejectedValue({ response: { status: 409, data: { error: 'ITEM_NOT_CONSUMABLE' } } })
+      await expect(useItem('m1', 'row-1', 'tok')).rejects.toMatchObject({
+        response: { status: 409 },
+      })
+    })
+
+    it('dropItem posts the row uuid and takes no language', async () => {
+      post.mockResolvedValue({ data: { amountDropped: 3 } })
+      const res = await dropItem('m1', 'row-2', 'tok')
+
+      expect(post).toHaveBeenCalledWith(
+        '/api/gameplay/m1/inventory/drop-item',
+        { itemInstanceUuid: 'row-2' },
+        expect.objectContaining({ headers: { Authorization: 'Bearer tok' } }),
+      )
+      expect(post.mock.calls[0][2].params).toBeUndefined()
+      expect(res.amountDropped).toBe(3)
+    })
+
+    it('getResources reads the plain numbers and takes no language', async () => {
+      get.mockResolvedValue({ data: { food: 4, magic: 2, coin: 9, weight: 6, weightMax: 30 } })
+      const res = await getResources('m1', 'tok')
+
+      expect(get).toHaveBeenCalledWith(
+        '/api/gameplay/m1/resources',
+        expect.objectContaining({ headers: { Authorization: 'Bearer tok' } }),
+      )
+      expect(get.mock.calls[0][1].params).toBeUndefined()
+      // The backend field is `coin` (singular); the adapter is what renames it to `coins`.
+      expect(res.coin).toBe(9)
     })
   })
 })

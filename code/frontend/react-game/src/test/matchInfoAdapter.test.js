@@ -20,8 +20,19 @@ describe('matchInfoToGameData', () => {
     expect(gd.playerStats.life).toBe(100)
     expect(gd.playerStats.energy).toBe(80)
     expect(gd.playerStats.sadness).toBe(20)
-    // fields not projected by /info default to 0
+    // Step 35 — the backpack resources are projected by /info now. Mind the naming:
+    // the backend field is `coin` (singular), the stat key is `coins` (plural).
+    expect(gd.playerStats.food).toBe(4)
+    expect(gd.playerStats.magic).toBe(2)
+    expect(gd.playerStats.coins).toBe(9)
+    // Still not projected: experience lands with step 38.
+    expect(gd.playerStats.experience).toBe(0)
+  })
+
+  it('defaults the resources to 0 when /info does not project them', () => {
+    const gd = matchInfoToGameData({ players: [{ life: 1 }], locations: [] })
     expect(gd.playerStats.food).toBe(0)
+    expect(gd.playerStats.magic).toBe(0)
     expect(gd.playerStats.coins).toBe(0)
   })
 
@@ -34,6 +45,10 @@ describe('matchInfoToGameData', () => {
     expect(gd.playerStats.weight).toBe(4)
     expect(gd.playerStats.items).toHaveLength(1)
     expect(gd.playerStats.items[0]).toMatchObject({ itemUuid: 'item-1', amount: 2 })
+    // Step 34 — the item card rides on the row: ItemCard consumes the object, never the id.
+    expect(gd.playerStats.items[0].idCard).toBe(77)
+    expect(gd.playerStats.items[0].card).toMatchObject({ uuid: 'card-77' })
+    expect(gd.playerStats.items[0].isConsumabile).toBe(true)
   })
 
   it('defaults max stats and items to empty when no player', () => {
@@ -59,10 +74,32 @@ describe('matchInfoToGameData', () => {
     // Step 0.28.2 — player stands on the edge's `to` location (1001) for the cave
     // neighbor, so its return card (cardBack) is shown instead of the forward card.
     const cave = gd.locations.find(l => l.idLocation === 1002)
-    expect(cave).toMatchObject({ uuid: 'loc-002', name: 'Back to the Dark Cave', energyCost: 2, direction: 'N' })
+    // The edge is authored 1002→1001 NORTH; the player walks it the other way,
+    // so the board reports the TRAVERSAL direction (SOUTH), not the authored one.
+    expect(cave).toMatchObject({ uuid: 'loc-002', name: 'Back to the Dark Cave', energyCost: 2, direction: 'SOUTH' })
     // For the forest neighbor the player is on the `from` side → forward card.
     const forest = gd.locations.find(l => l.idLocation === 1003)
     expect(forest).toMatchObject({ name: 'Ancient Forest' })
+  })
+
+  // The backend's move verdict must reach MovementCard: it knows causes the board cannot
+  // compute on its own (coma, sleep, a barred way, a full destination).
+  it('carries the neighbor move verdict (available + reason) through to the board', () => {
+    const info = JSON.parse(JSON.stringify(mockMatchInfo))
+    const nb = info.locationsActive[0].neighbors.find(n => n.idLocation === 1003)
+    nb.available = false
+    nb.reason = 'MOVEMENT_CONDITION_NOT_MET'
+
+    const gd = matchInfoToGameData(info)
+    expect(gd.locations.find(l => l.idLocation === 1003))
+      .toMatchObject({ available: false, reason: 'MOVEMENT_CONDITION_NOT_MET' })
+  })
+
+  it('leaves the verdict null when the backend sends none (older payload)', () => {
+    const gd = matchInfoToGameData(mockMatchInfo)
+    // null, not false: an absent verdict must not read as "refused"
+    expect(gd.locations[0].available).toBeNull()
+    expect(gd.locations[0].reason).toBeNull()
   })
 
   it('shows the forward card (not cardBack) when no cardBack is present', () => {
@@ -112,23 +149,95 @@ describe('matchInfoToGameData', () => {
     expect(forest.card.description).toContain('game.to: game.map.unexploredLocation')
   })
 
-  it('uses "Back to" and swaps From/To for a return neighbor (player at destination)', () => {
+  it('uses "Back to" with the OPPOSITE direction for a return to an explored destination', () => {
     const info = JSON.parse(JSON.stringify(mockMatchInfo))
-    // Cave neighbor 1002: from=1002, to=1001; player stands on 1001 (=to) → return.
-    // Strip every card so the generic card is used and the swap is observable.
+    // Cave neighbor 1002: from=1002, to=1001, authored NORTH; player stands on
+    // 1001 (=to) → return move, actually walked SOUTHwards. 1002 is in the visited
+    // set (info.locations), so the party knows the place and "Back to" is honest.
+    // Strip every card so the generic fallback card is the one under test — which
+    // leaves the destination explored but unnamed, the only shape in which the
+    // generic card and "Back to" ever meet.
     const nb = info.locationsActive[0].neighbors.find(n => n.idLocation === 1002)
     nb.card = null
     nb.cardBack = null
     nb.cardLocationFrom = null   // the move DESTINATION when playerAtTo
     const gd = matchInfoToGameData(info, null, (k) => k)
     const cave = gd.locations.find(l => l.idLocation === 1002)
-    // title = "Back to N" (fixture direction is 'N')
-    expect(cave.card.title).toBe('game.backTo N')
-    // From/To swapped: To is the CURRENT location, which only happens on a return.
-    expect(cave.card.description).toContain('game.to: The Old Tavern')
-    // The move destination is unvisited, so it has no name — buildNeighborCard
-    // omits the From line entirely (only the To line gets an "unexplored" label).
-    expect(cave.card.description).not.toContain('game.from:')
+    // the authored NORTH is flipped: the character walks South
+    expect(cave.card.title).toBe('game.backTo South')
+    expect(cave.direction).toBe('SOUTH')
+    // From is always where the character stands, To always the destination —
+    // a return move does NOT swap them.
+    expect(cave.card.description).toContain('game.from: The Old Tavern')
+    expect(cave.card.description).toContain('game.to: game.map.unexploredLocation')
+  })
+
+  it('says "Move to", not "Back to", when the return leads somewhere never explored', () => {
+    // Same return move, but 1002 is NOT in the visited set: the edge is authored
+    // 1002→1001 and walked against that, yet the party has never been there. "Back
+    // to" would promise a homecoming to a place the card itself calls unexplored.
+    const info = JSON.parse(JSON.stringify(mockMatchInfo))
+    info.locations = info.locations.filter(l => l.idLocation !== 1002)
+    const nb = info.locationsActive[0].neighbors.find(n => n.idLocation === 1002)
+    nb.card = null
+    nb.cardBack = null
+    nb.cardLocationFrom = null
+    const gd = matchInfoToGameData(info, null, (k) => k)
+    const cave = gd.locations.find(l => l.idLocation === 1002)
+    expect(cave.card.title).toBe('game.moveToDirection South')
+    // the direction is still the flipped one — only the promise changed
+    expect(cave.direction).toBe('SOUTH')
+    expect(cave.card.description).toContain('game.from: The Old Tavern')
+    expect(cave.card.description).toContain('game.to: game.map.unexploredLocation')
+  })
+
+  it('says "Move to" on a forward move even when the destination is already explored', () => {
+    // Option B only: an explored destination alone is not a return. The edge is
+    // authored 1001→1003 and walked that way, so it stays a "Move to".
+    const info = JSON.parse(JSON.stringify(mockMatchInfo))
+    info.locations.push({ idLocation: 1003, uuid: 'loc-003', clockCounter: 0 })
+    const nb = info.locationsActive[0].neighbors.find(n => n.idLocation === 1003)
+    nb.card = null
+    nb.cardBack = null
+    nb.cardLocationTo = null
+    const gd = matchInfoToGameData(info, null, (k) => k)
+    const forest = gd.locations.find(l => l.idLocation === 1003)
+    expect(forest.card.title).toBe('game.moveToDirection East')
+  })
+
+  it('keeps From = current location and To = destination on a forward move', () => {
+    const info = JSON.parse(JSON.stringify(mockMatchInfo))
+    // Forest neighbor 1003: from=1001 (where the player stands), to=1003, EAST.
+    const nb = info.locationsActive[0].neighbors.find(n => n.idLocation === 1003)
+    nb.card = null
+    nb.cardBack = null
+    nb.cardLocationTo = { title: 'Ancient Forest' }
+    const gd = matchInfoToGameData(info, null, (k) => k)
+    const forest = gd.locations.find(l => l.idLocation === 1003)
+    expect(forest.direction).toBe('EAST')
+    // the LOCATION card outranks the generic one, so rebuild the check on the
+    // generic card by stripping the destination card as well
+    const info2 = JSON.parse(JSON.stringify(info))
+    info2.locationsActive[0].neighbors.find(n => n.idLocation === 1003).cardLocationTo = null
+    const gd2 = matchInfoToGameData(info2, null, (k) => k)
+    const forest2 = gd2.locations.find(l => l.idLocation === 1003)
+    expect(forest2.card.title).toBe('game.moveToDirection East')
+    expect(forest2.card.description).toContain('game.from: The Old Tavern')
+    expect(forest2.card.description).toContain('game.to: game.map.unexploredLocation')
+  })
+
+  it('drops the direction on a return move whose direction has no opposite (SKY)', () => {
+    const info = JSON.parse(JSON.stringify(mockMatchInfo))
+    const nb = info.locationsActive[0].neighbors.find(n => n.idLocation === 1002)
+    nb.card = null
+    nb.cardBack = null
+    nb.cardLocationFrom = null
+    nb.direction = 'SKY'
+    const gd = matchInfoToGameData(info, null, (k) => k)
+    const cave = gd.locations.find(l => l.idLocation === 1002)
+    // no opposite for SKY → no direction rather than a wrong one
+    expect(cave.direction).toBeNull()
+    expect(cave.card.title).toBe('game.backTo')
   })
 
   it('takes the return-move destination name from cardLocationFrom when playerAtTo', () => {
@@ -177,6 +286,65 @@ describe('matchInfoToGameData', () => {
     expect(choice.endGame).toBe(false)
     const eventCard = gd.actions.find(a => a.uuid === 'evt-tavern-1')
     expect(eventCard).toMatchObject({ name: 'A Hooded Stranger', awesomeIcon: 'fas fa-user-secret' })
+  })
+
+  it('carries the resource price of a neighbor edge (v0.35.3)', () => {
+    const info = {
+      ...mockMatchInfo,
+      locationsActive: [{
+        idLocation: 1, uuid: 'loc-1', events: [],
+        neighbors: [
+          { uuid: 'edge-toll', idLocation: 2, direction: 'NORTH', energyCost: 1,
+            costFood: 1, costMagic: 0, costCoin: 2, available: true, reason: null },
+          { uuid: 'edge-free', idLocation: 3, direction: 'EAST', energyCost: 1 },
+        ],
+      }],
+      currentLocationId: 1,
+    }
+
+    const neighbors = matchInfoToGameData(info).locations
+    const toll = neighbors.find(n => n.uuid === 'edge-toll')
+    const free = neighbors.find(n => n.uuid === 'edge-free')
+
+    expect(toll).toMatchObject({ costFood: 1, costMagic: 0, costCoin: 2 })
+    // An edge that names no price costs nothing — 0, never undefined, or the badge would
+    // render empty instead of disappearing.
+    expect(free).toMatchObject({ costFood: 0, costMagic: 0, costCoin: 0 })
+  })
+
+  it('carries the full price of an action, not only its energy (v0.35.3)', () => {
+    // An event can cost coins, food and magic since v0.35.3; the board shows them as badges,
+    // so the adapter has to carry all four through.
+    const info = {
+      ...mockMatchInfo,
+      locationsActive: [{
+        idLocation: 1, uuid: 'loc-1',
+        events: [{ uuid: 'evt-priced', available: true, reason: null,
+                   energy: 2, coin: 3, food: 1, magic: 4, card: { title: 'Pay the fee' } }],
+      }],
+      currentLocationId: 1,
+    }
+
+    const action = matchInfoToGameData(info).actions.find(a => a.uuid === 'evt-priced')
+
+    expect(action).toMatchObject({ energy: 2, coin: 3, food: 1, magic: 4 })
+  })
+
+  it('reads an action with no resource prices as costing nothing', () => {
+    // An older backend sends none of the three keys: 0 is the honest reading, and the badge
+    // list then renders nothing at all.
+    const info = {
+      ...mockMatchInfo,
+      locationsActive: [{
+        idLocation: 1, uuid: 'loc-1',
+        events: [{ uuid: 'evt-plain', available: true, card: { title: 'Look around' } }],
+      }],
+      currentLocationId: 1,
+    }
+
+    const action = matchInfoToGameData(info).actions.find(a => a.uuid === 'evt-plain')
+
+    expect(action).toMatchObject({ energy: 0, coin: 0, food: 0, magic: 0 })
   })
 
   it('builds the end-game card via the i18n translator', () => {

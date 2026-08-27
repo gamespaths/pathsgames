@@ -12,9 +12,15 @@ import ErrorAlert from '../../components/common/ErrorAlert'
 import { STORIES_ENTITIES_FIELDS as FIELDS } from '../../constants/story/storiesEntities'
 
 // ─── Entity types loaded to detect unused cards ──────────────────────────────
+// Every entity type that points at a card through `idCard`. A type missing from this list
+// makes its cards look unreferenced here — the "used by" column stays empty and the card
+// reads as an orphan while a row of the story is pointing straight at it.
+// v0.35.2: `item-effects` was missing. The column has existed since V0.14.1 and the engine
+// has always resolved it (it is the narrative card of one item effect), but the admin only
+// started offering it in v0.35.0, so nothing here had ever been told about it.
 const CARD_REF_TYPES = [
-  'difficulties', 'locations', 'location-neighbors', 'events', 'items',
-  'character-templates', 'classes', 'traits', 'creators', 'keys',
+  'difficulties', 'locations', 'location-neighbors', 'events', 'event-effects', 'items',
+  'item-effects', 'character-templates', 'classes', 'traits', 'creators', 'keys',
   'choices', 'choice-effects', 'weather-rules', 'global-random-events', 'missions',
 ]
 
@@ -27,7 +33,7 @@ const CARD_REF_TYPES = [
 // Entity types NOT in this list but with a potential idCard+idTextDescription
 // mismatch are reported as warnings rather than silently updated.
 const DESC_ALIGN_TYPES = [
-  'difficulties', 'locations', 'events', 'items',
+  'difficulties', 'locations', 'events', 'event-effects', 'items',
   'character-templates', 'classes', 'traits', 'keys', 'missions',
 ]
 // ─────────────────────────────────────────────────────────────────────────────
@@ -222,7 +228,9 @@ export default function CardsFastEditPage() {
 
   const toRows = (cards) =>
     [...cards]
-      .sort((a, b) => (Number(a.idCard ?? a.id) || 0) - (Number(b.idCard ?? b.id) || 0))
+      // v0.35.2 — newest first: a card is added at the bottom of the id range, and the row
+      // an author has just created is the one they came here to edit.
+      .sort((a, b) => (Number(b.idCard ?? b.id) || 0) - (Number(a.idCard ?? a.id) || 0))
       .map(c => ({
         uuid: c.uuid,
         idCard: c.idCard ?? c.id,
@@ -605,6 +613,10 @@ export default function CardsFastEditPage() {
                   return (
                     <tr
                       key={row.uuid}
+                      // v0.35.2 — the row is addressable by the card it carries, so a test
+                      // (and a person reading one) names the card instead of counting rows.
+                      // The list is sorted by id and the order is free to change.
+                      data-testid={`card-row-${row.idCard}`}
                       style={dirty ? { background: 'rgba(200,150,10,0.06)' } : {}}
                     >
                       <td style={{ ...CELL, textAlign: 'center', whiteSpace: 'nowrap' }}>

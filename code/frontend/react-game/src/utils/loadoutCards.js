@@ -42,6 +42,19 @@ export function buildEndGameCard(t) {
 }
 
 /**
+ * Step 30 — "you are sad": sadness reached its cap, so the character lost COS life
+ * points, sadness reset to zero and they were forced to sleep.
+ */
+export function buildCardSad(t) {
+  return metaCard('sad', t('game.sad.title'), t('game.sad.description'));
+}
+
+/** Step 30 — "you are in coma": life reached zero. Only a rescue brings them back. */
+export function buildCardComa(t) {
+  return metaCard('coma', t('game.coma.title'), t('game.coma.description'));
+}
+
+/**
  * Step 27 — weather card shown after the sleep card. `weather` is the
  * GET /api/matches/{uuid}/weather payload (or null when none is set). The
  * description appends the energy delta applied to every character at time-start.
@@ -61,20 +74,40 @@ export function buildMapCard(t) {
   return metaCard('map', t('game.map.title'), null)
 }
 
+/** Step 34 — backpack card (ItemsCard), the map card's twin in the statistics list. */
+export function buildItemsCard(t) {
+  return metaCard('backpack', t('game.items.title'), null)
+}
+
+/** "Loading…" card shown on the book page while the board reloads (LoadingCard). */
+export function buildLoadingCard(t) {
+  return metaCard('loading', t('game.loadingCard.title'), t('game.loadingCard.description'))
+}
+
+/** Fixed match-error card (ErrorCard); the caller sets the description. */
+export function buildErrorCard(t) {
+  return metaCard('error', t('errors.title'), null)
+}
+
 /**
  * Fallback movement card for a neighbor that carries NO card (neither the
  * forward `card` nor the return `cardBack`). Uses the fixed "neighbor" image
  * from data/images.json.
  *
  * @param {Function} t - i18n translate function
- * @param {string|null} direction - the neighbor direction (e.g. "NORTH"); the
- *   title reads "Move to North" (forward) or "Back to North" (return).
- * @param {string|null} fromName - the "From" location name.
- * @param {string|null} toName - the "To" location name; falls back to
- *   "Unexplored location" when null (destination not yet visited).
- * @param {boolean} isBack - true when the character stands on the destination
- *   and the move is a return: the title uses "Back to" and the caller has
- *   already swapped From/To.
+ * @param {string|null} direction - the TRAVERSAL direction (e.g. "NORTH"), i.e.
+ *   the way the character actually moves — the caller flips the authored edge
+ *   direction on a return move. The title reads "Move to North" (forward) or
+ *   "Back to North" (return); null drops the direction entirely.
+ * @param {string|null} fromName - the "From" location name: where the character
+ *   stands right now.
+ * @param {string|null} toName - the "To" location name: the move destination;
+ *   falls back to "Unexplored location" when null (not yet visited).
+ * @param {boolean} isBack - true when the move is a RETURN the player can recognise
+ *   as one: the edge is walked against its authored way AND the destination has
+ *   already been explored. Only then does the title read "Back to" — walking an
+ *   edge backwards into an unexplored place is still a "Move to". From/To keep
+ *   their meaning either way — they are never swapped.
  */
 export function buildNeighborCard(t, direction = null, fromName = null, toName = null, isBack = false) {
   const dir = direction && typeof direction === 'string'

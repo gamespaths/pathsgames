@@ -69,19 +69,19 @@ These tables are populated by a story importer and are **read-only** during game
 | **StoryDifficulty** | `list_stories_difficulty` | Per-story difficulty preset: `id_card`, `id_story`, `id_text_description`, `exp_cost`, `max_weight`, `min_character`, `max_character`, `cost_help_coma`, `cost_max_characteristics`, `number_max_free_action`, `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` (all `INTEGER NOT NULL DEFAULT` with defaults life=100, energy=100, sad=0, dexterity=10, intelligence=10, constitution=10, weight=10 — added v0.19.7 via `V0.19.7__add_difficulty_stat_columns.sql`; represent the base stat values that apply when a player selects this difficulty). |
 | **StoryKey** | `list_keys` | Registry key definitions for a story: `id_card`, `id_story`, `name`, `value`, `id_text_description`, `group`, `priority`, `visibility`. |
 | **CharacterClass** | `list_classes` | Classes available in a story: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `weight_max`, `dexterity_base`, `intelligence_base`, `constitution_base`. |
-| **ClassBonus** | `list_classes_bonus` | Per-class recurring bonus applied at each time start: `id_card`, `id_story`, `id_class`, `statistic`, `value`, `id_text_name`, `id_text_description`. |
-| **Trait** | `list_traits` | Selectable character traits: `id_card`, `id_story`, `id_class_permitted`, `id_class_prohibited`, `id_text_name`, `id_text_description`, `cost_positive`, `cost_negative`, `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` (all `INTEGER NOT NULL DEFAULT 0`, added v0.19.6 — signed deltas applied to the matching character statistic when the trait is selected; negative values are maluses). |
+| **ClassBonus** | `list_classes_bonus` | Per-class recurring bonus applied at each time start: `id_card`, `id_story`, `id_class`, `statistic`, `value`, `id_text_name`, `id_text_description`. `statistic` is free text and accepts `food`/`magic`/`coin` on write, but [Step26](./Step26_TimeStartRecovery.md) time-start recovery only applies `energy`/`life`/`sad` — a row authored with any other value is saved and then silently ignored (known gap, not fixed). |
+| **Trait** | `list_traits` | Selectable character traits: `id_card`, `id_story`, `id_class_permitted`, `id_class_prohibited`, `id_text_name`, `id_text_description`, `cost_positive`, `cost_negative`, `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` (all `INTEGER NOT NULL DEFAULT 0`, added v0.19.6 — signed deltas applied to the matching character statistic when the trait is selected; negative values are maluses). **New in v0.35.2**: `hide_on_start_match` (`INTEGER`, nullable, `DEFAULT 0`) — `0`/`NULL` = pickable at character creation, same reading as `id_class_permitted`; `1` = never offered and refused if selected (`TRAIT_NOT_SELECTABLE`), yet still grantable at any time via an item's or event's `traits_to_add` and still returned by the trait-listing/story-detail APIs — see [Step23_CharacterStatsInitialization.md §5.3](./Step23_CharacterStatsInitialization.md#53-schema-change--list_traitshide_on_start_match-v0352). |
 | **CharacterTemplate** | `list_character_templates` | Pre-built character archetypes: PK is `id_tipo`, plus `id_card`, `id_story`, `id_text_name`, `id_text_description`, `life_max`, `energy_max`, `sad_max`, `dexterity_start`, `intelligence_start`, `constitution_start`, `id_class_permitted` (nullable FK → `list_classes`), `id_class_prohibited` (nullable FK → `list_classes`). |
-| **Location** | `list_locations` | A place on the game board: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `id_text_narrative`, `id_image`, `is_safe`, `cost_energy_enter`, `counter_time`, `id_event_if_counter_zero`, `secure_param`, `id_event_if_character_start_time`, `id_event_if_character_enter_first_time`, `id_event_if_first_time`, `id_event_not_first_time`, `priority_automatic_event`, `id_audio`, `max_characters`. |
-| **LocationNeighbor** | `list_locations_neighbors` | Directed edge between two locations: `id_story`, `id_location_from`, `id_location_to`, `direction` (NORTH/SOUTH/EAST/WEST/ABOVE/BELOW/SKY), `flag_back`, `condition_registry_key`, `condition_registry_value`, `energy_cost`, `id_text_go`, `id_text_back`. |
-| **Item** | `list_items` | Item catalog: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `weight`, `is_consumabile`, `id_class_permitted`, `id_class_prohibited`. |
-| **ItemEffect** | `list_items_effects` | Effects applied when an item is used: `id_story`, `id_item`, `id_text_name`, `id_text_description`, `effect_code` (e.g., LIFE), `effect_value` (e.g., 2). |
+| **Location** | `list_locations` | A place on the game board: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `id_text_narrative`, `id_image`, `is_safe`, `cost_energy_enter`, `counter_time`, `id_event_if_counter_zero`, `secure_param`, `id_event_if_character_start_time`, `id_event_if_character_enter_empty_location`, `id_event_if_first_time`, `id_event_not_first_time`, `priority_automatic_event`, `id_audio`, `max_characters`. |
+| **LocationNeighbor** | `list_locations_neighbors` | Directed edge between two locations: `id_story`, `id_location_from`, `id_location_to`, `direction` (NORTH/SOUTH/EAST/WEST/ABOVE/BELOW/SKY), `flag_back`, `condition_registry_key`, `condition_registry_value`, `energy_cost`, `id_text_go`, `id_text_back`. **New in v0.35.3**: `cost_food`, `cost_magic`, `cost_coin` (`INTEGER DEFAULT 0`) — the edge's resource price, checked and paid on top of `energy_cost`; unlike energy (edge + `list_locations.cost_energy_enter` + weather modifier) these three are edge-only, no entry or weather term. See [Step35_ItemsResolution.md §12](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353). |
+| **Item** | `list_items` | Item catalog: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `weight`, `is_consumabile`, `id_class_permitted`, `id_class_prohibited`. **New in v0.35.0**: `flag_show_effects` (`INTEGER`, nullable, `DEFAULT 1`) — `1`/`NULL` = the inventory/`/info` promise (`effects[]`, see [Step35_ItemsResolution.md §6](./Step35_ItemsResolution.md#6-author-opt-out-flagshoweffects)) is reported; `0` = the item keeps its secret, `effects[]` comes back empty. Gates the promise only — `use-item` applies the row's effects identically either way. **New in v0.35.1** (see [Step35_ItemsResolution.md §8](./Step35_ItemsResolution.md#8-quantities-and-the-per-character-cap-v0351)), all three `INTEGER`, nullable: `max_per_character` — units of this item one character may hold; `0`/`NULL` = no limit, same reading as `id_class_permitted`/`id_class_prohibited`; an ADD past it is refused (reported, not an error). `amount_drop` — units removed by one `drop-item`; `NULL`/`≤0` reads as `1`; owning fewer is not a refusal, the drop takes what is there. `amount_use` — units consumed by one `use-item`; `NULL`/`≤0` reads as `1`; owning fewer **is** a refusal (`ITEM_NOT_ENOUGH`, 409). There is no `amount_add` — an event/choice ADD is always exactly one unit. |
+| **ItemEffect** | `list_items_effects` | Effects applied when an item is used: `id_story`, `id_item`, `id_text_name`, `id_text_description`, `effect_code` (life/energy/exp/sad/dex/int/cos/food/magic/coin, case-insensitive; `SADNESS` is an alias for `sad`), `effect_value` (e.g., 2). **New in v0.34.0**: `traits_to_add`, `traits_to_remove` (CSV of `list_traits` ids, same format as `list_events_effects`) — see [Step34_InventoryAndResources.md](./Step34_InventoryAndResources.md). |
 | **WeatherRule** | `list_weather_rules` | Weather types with `id_card`, `id_story`, `id_text_name`, `id_text_description`, `probability`, `cost_move_safe_location`, `cost_move_not_safe_location`, `condition_key`, `condition_key_value`, `time_from`, `time_to`, `id_text`, `active`, `priority`, `delta_energy`, `id_event`. |
-| **Event** | `list_events` | Event definitions: `id_card`, `id_story`, `id_specific_location`, `id_text_name`, `id_text_description`, `type` (AUTOMATIC/FIRST/NORMAL), `cost_enery`, `flag_end_time`, `characteristic_to_add`, `characteristic_to_remove`, `key_to_add`, `key_value_to_add`, `id_item_to_add`, `id_weather`, `id_event_next`, `coin_cost`. |
-| **EventEffect** | `list_events_effects` | Granular effects: `id_card`, `id_story`, `id_event`, `statistics` (life/energy/exp/…), `value`, `target` (ALL/ONLY_ONE), `traits_to_add`, `traits_to_remove`, `target_class`, `id_item_target`, `item_action` (REMOVE/ADD). |
-| **Choice** | `list_choices` | Options after an event or at a location: `id_card`, `id_story`, `id_event`, `id_location`, `priority`, `id_text_name`, `id_text_description`, `id_text_narrative`, `id_event_torun`, `limit_sad`, `limit_dex`, `limit_int`, `limit_cos`, `otherwise_flag`, `is_progress`, `logic_operator` (AND/OR). |
+| **Event** | `list_events` | *(v0.29.0 — the CONDITION side of an event; everything it DOES lives on `list_events_effects`.)* `id_card`, `id_story`, `id_text_name`, `id_text_description`, `type` (AUTOMATIC/FIRST/NORMAL/**ONCE**), `cost_enery`, `cost_coin` (**renamed from `coin_cost` in v0.35.3** — the JSON key follows, `coinCost` → `costCoin`, but import/admin CRUD keep accepting the old `coinCost` key so a pre-v0.35.3 export does not silently become free), `flag_end_time`, `id_event_next`, plus the conditions — all combined in **AND** — `id_specific_location`, `id_weather` (**condition**: the current weather must match), `registry_key_condition`, `registry_value_condition`, `id_item_condition`, `id_class_condition`. **New in v0.35.3**: `cost_food`, `cost_magic` (`INTEGER DEFAULT 0`) — checked energy → coin → food → magic, paid once by the actor; an AUTOMATIC/FIRST event never reaches payment, so valorising these on one is authored noise, not an error. See [Step35_ItemsResolution.md §12](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353). `id_item_to_add` is **deprecated** (kept only for a FK clause; grant items via effects). The four columns `characteristic_to_add`, `characteristic_to_remove`, `key_to_add`, `key_value_to_add` were **dropped** and moved to `list_events_effects`. |
+| **EventEffect** | `list_events_effects` | *(v0.29.0 — the EFFECT side; each row's `id_card` is the **narrative** the board renders.)* `id_card`, `id_story`, `id_event`, `statistics` (life/energy/sad/exp/dex/int/cos/food/magic/coin), `value`, `target` (ALL/ONLY_ONE), `target_class`, `traits_to_add`, `traits_to_remove`, `id_item_target`, `item_action` (REMOVE/ADD), and new in v0.29.0: `id_weather` (**effect**: *sets* the match weather — the opposite meaning of the identically-named column on `list_events`), `key_to_add`, `key_value_to_add`, `characteristic_to_add`, `characteristic_to_remove`. **New in v0.29.3**: `id_location` (nullable) — when valued, every recipient of that row (per `target`/`target_class`, INV-27) is MOVED to that location, bypassing the entire Step 28 movement procedure (no adjacency, no energy cost, no availability check); each actual move writes a cost-0 `log_movements` row. See [Step29_NormalEvents.md §1](./Step29_NormalEvents.md) and [Step28_MovementSystem.md](./Step28_MovementSystem.md). |
+| **Choice** | `list_choices` | Options presented by a choice-event (v0.31.0 — see [Step31_ChoiceEngine.md](./Step31_ChoiceEngine.md)): `id_card`, `id_story`, `id_event` (**mandatory** since v0.31.0 — a choice always belongs to an event), `id_location` (**deprecated/unused** since v0.31.0 — kept only as a legacy column, never read by the engine), `priority`, `id_text_name`, `id_text_description`, `id_text_narrative`, `id_event_torun`, `limit_sad`, `limit_dex`, `limit_int`, `limit_cos`, `otherwise_flag`, `is_progress`, `logic_operator` (AND/OR — combines the row's own `list_choices_conditions`; the per-condition `operator` is the comparator, see below). **New in v0.35.3**: `cost_food`, `cost_magic`, `cost_coin` (`INTEGER DEFAULT 0`) — **RESERVED**, added so an option-level cost is not a second migration when it lands; no engine, admin form or import/export reads them yet. |
 | **ChoiceCondition** | `list_choices_conditions` | Condition rules for a choice: `id_story`, `id_choices`, `type` (KEYS/ITEM/CLASS/LOCATION/ALL_IN_SAME_LOC/traits/statistics/statistics_SUM), `key`, `value`, `operator` (= > < !=), `id_text_name`, `id_text_description`. |
-| **ChoiceEffect** | `list_choices_effects` | Stat deltas when selected: `id_story`, `id_choices`, `id_scelta`, `flag_group`, `statistics` (life/energy/sad/DEX/COS/INT), `value`, `id_text`, `key`, `value_to_add`, `value_to_remove`. |
+| **ChoiceEffect** | `list_choices_effects` | What a selected option does: `id_story`, `id_choices`, `id_scelta`, `flag_group` (**INV-46**: `1` = every character in the actor's location — the same set `EventEffect.target=ALL` resolves, INV-27; anything else = the acting character alone), `statistics` (life/energy/sad/DEX/COS/INT), `value`, `id_text`, `key`, `value_to_add`, `value_to_remove`. **New in v0.32.0** (see [Step32_ChoiceResolution.md](./Step32_ChoiceResolution.md)) — five columns named and typed exactly like their `EventEffect` twins, no FKs (same story-scoped reasoning as the v0.29.3 `EventEffect.id_location` addition; Step 22 `R1` owns the existence check): `id_event` (runs that event inline, whole `id_event_next` chain), `id_location` (forced movement of the recipients, no adjacency/energy check, cost-0 `log_movements` row), `id_weather` (SETS the match weather, once per row), `id_item_target` + `item_action` (ADD/REMOVE). |
 | **GlobalRandomEvent** | `list_global_random_events` | Random events triggered at time start: `id_card`, `id_story`, `condition_key`, `condition_value`, `probability`, `id_text`, `id_event`. |
 | **Mission** | `list_missions` | Mission definition: `id_card`, `id_story`, `condition_key`, `condition_value_from`, `condition_value_to`, `id_text_name`, `id_text_description`, `id_event_completed`. |
 | **MissionStep** | `list_missions_steps` | Ordered mission steps: `id_card`, `id_story`, `id_mission`, `step`, `condition_key`, `condition_value_from`, `condition_value_to`, `id_text_name`, `id_text_description`, `id_event_completed`. |
@@ -95,20 +95,20 @@ These tables are populated by a story importer and are **read-only** during game
 | Entity | Table | Description |
 |--------|-------|-------------|
 | **Match** | `gaming_match` | Active match instance: `id_story`, `name`, `id_difficulty`, `exp_cost`, `status` (CREATED/RUNNING/PAUSED/ENDED/GAMEOVER), `current_clock`, `id_current_weather`, `id_user_creator`, `timestamp_start`, `timestamp_lock_expiration`, `timestamp_gameover`, `timestamp_end`, `id_character_current_turn`, `secure_location_param`, `counter_consecutive_pass`, `single_player` (INTEGER, 1=single-player / 0=multiplayer, default 1 — added v0.19.9), `character_template_uuid` (TEXT/UUID nullable — creator's chosen template, added v0.19.9), `class_uuid` (TEXT/UUID nullable — creator's chosen class, added v0.19.9), `trait_uuids` (TEXT nullable — comma-separated list of chosen trait UUIDs, added v0.19.9). |
-| **CharacterInstance** | `gaming_character_instance` | A player's character within a match: `id_match`, `id_user`, `id_character_template`, `dexterity`, `intelligence`, `constitution`, `energy`, `life`, `sad`, `id_location`, `is_sleeping`, `is_coma`, `clock_in_coma`, `timestamp_last_pass`, `counter_consecutive_pass`. |
+| **CharacterInstance** | `gaming_character_instance` | A player's character within a match: `id_match`, `id_user`, `id_character_template`, `dexterity`, `intelligence`, `constitution`, `energy`, `life`, `sad`, `id_location`, `is_sleeping`, `is_coma`, `clock_in_coma`, `timestamp_last_pass`, `counter_consecutive_pass`, `exp` (INTEGER NOT NULL DEFAULT 0 — written by event effects since v0.29.0, spent in Step 37), `characteristics` (TEXT, CSV via `MatchTraitCodec`, mirrors `gaming_match.trait_uuids` — written by `characteristic_to_add`/`characteristic_to_remove` event effects, added v0.29.0). |
 | **CharacterTraits** | `gaming_character_traits` | Traits assigned to a character instance: `id_match`, `id_character_match`, `id_traits`, `id_event`. |
 | **BackpackResources** | `gaming_backpack_resources` | Per-character resources: `id_character_match`, `food`, `magic`, `coin`. |
-| **InventoryItem** | `gaming_inventory_items` | Items held by a character: `id_character_match`, `id_item`, `amount`, `state`. |
+| **InventoryItem** | `gaming_inventory_items` | Items held by a character: `id_character_match`, `id_item`, `amount`, `state`. **v0.35.1**: `UNIQUE INDEX uq_inventory_char_item (id_match, id_character_match, id_item)` — at most one row per (character, item); `amount` is the whole quantity held. `V0.35.1__item_amounts_and_unique_inventory_row.sql` merges any pre-existing duplicate onto the row with the lowest `id` before creating the index (see [Step35_ItemsResolution.md §8b](./Step35_ItemsResolution.md#b-one-row-per-character-item)). |
 | **StateRegistry** | `gaming_state_registry` | Key-value game registry for a match: `id_match`, `key`, `string_value`, `int_value`, `id_character`, `id_event`, `id_choice`, `clock`, `id_mission`, `id_mission_steps`. |
 | **StateLocation** | `gaming_state_locations` | Per-match location state: `id_match`, `id_location`, `flag_already_actived`, `clock_counter`. |
 | **TurnQueue** | `gaming_turn_queue` | Turn order for current time: `id_match`, `id_character_match`, `clock`, `timestamp_start`, `timestamp_end`, `pass_counter`, `priority`. |
 | **ActiveEffect** | `gaming_active_effects` | Temporary effects on characters: `id_match`, `id_character_match`, `clock`, `id_choise`, `timestamp_start`, `timestamp_timeout`. |
 | **ActiveChoice** | `gaming_active_choices` | Currently pending choice prompt: `id_match`, `clock`, `id_event`, `id_choise`. |
-| **ChoiceExecuted** | `log_choices_executed` | History log of choices made: `id_match`, `clock`, `id_event`, `id_choise`, `log_message`. |
-| **StoryProgress** | `gaming_story_progress` | Milestone tracker for narrative progression: `id_match`, `clock`, `id_event`, `id_choise`. |
-| **LogEvent** | `log_events` | Audit log: `id_match`, `id_character_match`, `timestamp`, `id_event`, `id_choise`, `log_message`. |
-| **LogMovement** | `log_movements` | Movement audit: `id_match`, `id_location_from`, `id_location_to`, `id_event`, `id_choise`, `log_message`, `energy`. |
-| **LogItemUsage** | `log_item_usage` | Item usage audit: `id_match`, `id_character_match`, `id_item`, `counter`, `effects_json`, `timestamp`. |
+| **ChoiceExecuted** | `log_choices_executed` | History log of choices made: `id_match`, `clock`, `id_event`, `id_choise`, `log_message`. Table existed since V0.10.9; [Step32_ChoiceResolution.md](./Step32_ChoiceResolution.md) (`select-choice`) is its **first writer** — the narrative record the match-log APIs read, as opposed to the `log_events` `CHOICE_SELECTED` marker, which is engine bookkeeping. |
+| **StoryProgress** | `gaming_story_progress` | Milestone tracker for narrative progression: `id_match`, `clock`, `id_event`, `id_choise`. Table existed since V0.10.7; [Step32_ChoiceResolution.md](./Step32_ChoiceResolution.md) (`select-choice`) is its **first writer**, and only when the resolved option carries `is_progress = 1` — ordinary options never touch this table, keeping it a story outline rather than a second copy of the choice history. |
+| **LogEvent** | `log_events` | Audit log: `id_match`, `id_character_match`, `timestamp`, `id_event`, `id_choise`, `log_message`. **New in v0.35.3**: `energy`, `food`, `magic`, `coin` (`INTEGER DEFAULT 0`) — the table had no cost column at all before; an event's price used to live only in the HTTP response and was never persisted. Stamped on the row of the event actually executed, zero on every other row of a chain. **New in v0.35.4**: `energy_gain`, `food_gain`, `magic_gain`, `coin_gain` (`INTEGER DEFAULT 0`) — the counterpart of the cost columns, what the event *gave* rather than took; kept as separate columns so a chain that both charges and refunds does not collapse into one misleading signed total. |
+| **LogMovement** | `log_movements` | Movement audit: `id_match`, `id_location_from`, `id_location_to`, `id_event`, `id_choise`, `log_message`, `energy`. **New in v0.35.3**: `food`, `magic`, `coin` (`INTEGER DEFAULT 0`) — the edge-only resource price actually paid; column names stay bare because in a log the column IS what was spent. |
+| **LogItemUsage** | `log_item_usage` | Item action audit: `id_match`, `id_character_match`, `id_item`, `counter`, `effects_json`, `timestamp`. **New in v0.35.4**: `action` (TEXT, `ADD`/`USE`/`DROP`/`REMOVE`, default `USE` — the table logged usages only until this version), `id_event` (INTEGER, no FK — `list_events` is keyed on `(id, id_story)` so `id` alone is not a valid reference target; NULL when the player acted directly), `energy`/`food`/`magic`/`coin` (`INTEGER DEFAULT 0`, signed deltas the action produced). |
 | **LogWeather** | `log_weather` | Weather history per match time: `id_match`, `clock`, `id_weatcher`, `timestamp_start`, `timestamp_end`. |
 | **ChatMessage** | `chat_messages` | In-match chat messages: `id_match`, `id_user`, `id_character_match`, `message`, `timestamp`, `counter`. |
 | **UserSession** | `gaming_user_sessions` | Player online/offline tracking: `id_user`, `id_match`, `last_seen`, `is_online`, `client_id`, `ip`, `device`, `channel`. |
@@ -310,7 +310,7 @@ All `list_` tables also carry `id_card` (FK to `list_cards.id`) for visual card 
 | Data | Computed From | When Recalculated |
 |------|--------------|-------------------|
 | Turn order value | `(DES×3 + INT×2 + COS×1) × 1000 + LIFE×10 + CHARACTER_ID` | Every `timeStart()` via `timeCalculateCharactersSort()` |
-| Current carrying weight | `food + magic + Σ(item.weight × amount)` | Every inventory mutation |
+| Current carrying weight | `Σ(item.weight × amount)` — food, magic and coins weigh nothing; source of truth is [Step34 §7](./Step34_InventoryAndResources.md#7-carried-weight-and-movement-step-35) | Every inventory mutation |
 | Max carrying capacity | `constitution + difficulty.max_weight + DefaultInventoryCapacity` | On stat/difficulty change |
 | Available choices | `list_choices` filtered by conditions vs character state + registry | On event/location request |
 | Mission progress | `gaming_state_registry` values vs `list_missions_steps` conditions | On registry change via `checkMissionProgress()` |
@@ -366,7 +366,7 @@ Stored as explicit boolean columns in `gaming_character_instance`: `is_sleeping`
 |-------|---------|-------------|---------------------|
 | **ACTIVE** | `is_sleeping=false, is_coma=false` | Character is awake, can perform actions | → `SLEEPING`, → `COMA` |
 | **SLEEPING** | `is_sleeping=true, is_coma=false` | Character is asleep (zero energy or voluntary) | → `ACTIVE` (at time start) |
-| **COMA** | `is_sleeping=true, is_coma=true` | Character is in coma (life ≤ 0). Also counts as sleeping. `clock_in_coma` tracks duration. | → `ACTIVE` (rescued by another character or item) |
+| **COMA** | `is_sleeping=true, is_coma=true` | Character is in coma (life ≤ 0). Also counts as sleeping. `clock_in_coma` tracks duration. | → `ACTIVE` (safe-location rest at time start, rescue, or item) |
 
 ```
                   ┌──────────┐
@@ -382,7 +382,7 @@ Stored as explicit boolean columns in `gaming_character_instance`: `is_sleeping`
          │    └──────────┘   └──┬───┘
          │                      │
          └──────────────────────┘
-              characterHelpCOMA() or item restores life > 0
+              safe-location rest (v0.30.1), characterHelpCOMA(), or item restores life > 0
 ```
 
 
@@ -427,11 +427,32 @@ As defined in `list_events.type`:
 
 | Type | Value | When triggered | Energy cost |
 |------|-------|----------------|-------------|
-| **AUTOMATIC** | `AUTOMATIC` | System-triggered events (first entry, subsequent entry, first in location, time start). The specific trigger is determined by the location columns (`id_event_if_character_enter_first_time`, `id_event_if_first_time`, `id_event_not_first_time`, `id_event_if_character_start_time`). | Zero |
+| **AUTOMATIC** | `AUTOMATIC` | System-triggered events (first entry, subsequent entry, first in location, time start). The specific trigger is determined by the location columns (`id_event_if_character_enter_empty_location`, `id_event_if_first_time`, `id_event_not_first_time`, `id_event_if_character_start_time`). | Zero |
 | **FIRST** | `FIRST` | First player entering triggers this | Zero |
 | **NORMAL** | `NORMAL` | Character voluntarily triggers the event (optional interaction) | Defined per event (`cost_enery`) |
+| **ONCE** | `ONCE` | *(v0.29.0)* Same as NORMAL, but executable **at most once per MATCH** — not per clock, not per location. Once triggered it stays spent for the rest of that match. | Defined per event (`cost_enery`) |
+
+Only **NORMAL** and **ONCE** are player-executable (`POST /api/gameplay/{uuid}/action/execute-event`); AUTOMATIC and FIRST are engine-driven.
 
 Note: The distinction between automatic sub-types (first entry, subsequent entry, first-in-location, time-start) is handled by the **location columns** that reference specific events, not by the event type enum itself.
+
+#### Event conditions are always in AND (v0.29.0)
+
+Whether a NORMAL/ONCE event can be triggered is decided by a **single check procedure**
+(`EventAvailabilityChecker`), shared by the `available` flag on `GET /api/match/{uuid}/info` and by
+`execute-event` itself — so the board and the endpoint can never disagree.
+
+Every condition lives as a **column on `list_events`** and they all combine in **AND**. There is no
+`list_events_conditions` table and none is planned. (`list_choices_conditions` belongs to the choice
+engine and is not used for events.)
+
+The conditions, in evaluation order — the first failure names the reason returned to the client:
+`type` ∈ {NORMAL, ONCE} → ONCE not already spent → `id_specific_location` (NULL = no location
+constraint) → `cost_enery` → `cost_coin` → `cost_food` → `cost_magic` (the last two, **v0.35.3**)
+→ `registry_key_condition`/`registry_value_condition` → `id_weather` → `id_item_condition` →
+`id_class_condition`. A sleeping or comatose character can trigger nothing.
+
+See [Step29_NormalEvents.md](./Step29_NormalEvents.md).
 
 
 ### 4.7 Time Lifecycle
@@ -505,7 +526,7 @@ These are **system invariants** — conditions that must hold true at all times 
 | **INV-17** | Turn order is recalculated at **every** time start using the formula: `(DES×3 + INT×2 + COS×1) × 1000 + LIFE×10 + ID` | `timeCalculateCharactersSort()` wipes and repopulates `gaming_turn_queue` |
 | **INV-18** | Weather is determined **once** at time start and remains fixed for the entire time | `timeCalculateNewWeather()` runs only in `execStartNewTime()` |
 | **INV-19** | A sleeping character **cannot** perform any actions (except being rescued) | All action endpoints check `is_sleeping=false` and `is_coma=false` |
-| **INV-20** | A comatose character **cannot** wake up alone — requires external rescue (another character spends energy based on `cost_help_coma` from difficulty, or an item restores life) | `characterHelpCOMA()` validates rescuer is in same location, awake, has energy |
+| **INV-20** | A comatose character leaves COMA in one of two ways: **(a) passively** — resting in a **safe location** (`secure_param > 0`) restores life above zero at time start and clears the coma (v0.30.1); **(b) actively** — external rescue (another character spends energy based on `cost_help_coma`, or an item restores life). In an **unsafe** location no life is recovered, so the passive path never fires there and rescue remains the only way out. | Passive path: the time-start recovery clears `is_coma` when a comatose character recovered life > 0 in a safe location, logging `COMA_RECOVERED`. Active path (step 59): `characterHelpCOMA()` validates the rescuer is in the same location, awake, has energy |
 
 
 ### 5.4 Movement Invariants
@@ -525,11 +546,14 @@ These are **system invariants** — conditions that must hold true at all times 
 | # | Invariant | Enforcement |
 |---|-----------|-------------|
 | **INV-27** | An event affects **all characters** in the location (unless `target` in `list_events_effects` restricts to `ONLY_ONE` or `target_class`) | `execEvent()` iterates over characters in location; `EventEffect.target` controls scope |
-| **INV-28** | An event with `flag_end_time = true` **forces all characters to sleep** and ends the current time | `execEvent()` checks `flag_end_time` after applying effects |
+| **INV-28** | An event with `flag_end_time = true` **forces all characters to sleep** and ends the current time — **unless** the effect chain put the character in coma (`life ≤ 0`), in which case the chain stops immediately and `flag_end_time` does **not** fire (v0.29.0) | `execEvent()` checks `flag_end_time` after applying effects; the coma short-circuit runs first |
 | **INV-29** | A choice with `otherwise_flag = true` has **no activation conditions** — it is always selectable | `execChoice()` skips condition validation for otherwise option |
 | **INV-30** | Each choice resolves to at most **one** result event via `id_event_torun` | Choice → `id_event_torun` is N:1 |
 | **INV-31** | Choice conditions use **all AND** or **all OR** logic — no mixed operators within a single choice | `logic_operator` field enforced on `list_choices` |
 | **INV-32** | An event cannot execute if character lacks required energy or coins | `execEvent()` step 91b validates energy and coins before proceeding |
+| **INV-33** | A `ONCE` event executes **at most once per MATCH** — not per clock, not per location; once triggered it stays spent for the rest of that match (v0.29.0) | `EventAvailabilityChecker` builds the consumed set only from `log_events` rows whose message starts with `EVENT_EXECUTED`; rows written by recovery (Step 26) or weather (Step 27) logging that merely *reference* an `id_event` without running it do not count |
+| **INV-45** | A choice always belongs to an **event**, never to a location: `id_event` is **mandatory** and `id_location` is **deprecated/unused** (v0.31.0) | `R8_CHOICE_EVENT` (Step 22) hard-fails import/`validate-story` on a null `id_event` or a non-null `id_location`; the engine never reads `list_choices.id_location` |
+| **INV-46** | A `ChoiceEffect` row's recipients are decided by `flag_group`: `1` = **every character in the actor's location** — the same set an `EventEffect.target=ALL` resolves (INV-27), never every character of the match; any other value = the acting character alone (v0.32.0) | `select-choice` (Step 32) resolves `flag_group` before applying `list_choices_effects`; reuses the same recipient-set helper as `EventEffect.target=ALL` |
 
 
 ### 5.6 Registry Invariants
@@ -643,7 +667,7 @@ To validate the data model, we walk through complete gameplay scenarios and veri
 | 2 | Alice interacts with event "Pick the lock" (type=NORMAL) → sets key_to_add="DoorOpen", key_value_to_add="YES" in registry (cost_enery=1) | energy=4. Registry updated. WebSocket REGISTRY_UPDATED |
 | 3 | Alice moves Corridor → Bedroom (cost_energy_enter + weather cost = 2) | energy=2. Movement succeeds (INV-22 now satisfied). INSERT `gaming_movement_invites` (state=PENDING) for Bob |
 | 4 | Bob receives MovementInvite via WebSocket TURN_UPDATE. Clicks "Follow" within `TimeoutMovementFollow` | Bob moves to Bedroom for FREE via `spaceMoveFollow()` (INV-25). No energy cost. UPDATE `gaming_movement_invites` state=ACCEPTED |
-| 5 | Bedroom has automatic first entry event for Alice (via `id_event_if_character_enter_first_time`) | Event fires for Alice (first visit). Bob entered via follow, separate event handling |
+| 5 | Bedroom has automatic first entry event for Alice (via `id_event_if_character_enter_empty_location`) | Event fires for Alice (first visit). Bob entered via follow, separate event handling |
 
 **Validation**: Registry-gated movement works. Group follow is free. Events fire correctly for first entry.
 
@@ -846,7 +870,7 @@ Total tables: **52** (2 system + 2 user + 23 reference + 25 runtime/log)
     > Read all documentation_v0 content and create Step09 — Design the core data model: Identify main entities, Define relationships between entities, Identify persistent vs transient data, List valid game states, Define rules that must never be broken, Validate models with real cases  
     
     > Reload Step01 file and update the document with new tables
-- **Document Version**: 0.19.3
+- **Document Version**: 0.35.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.9.0 | first version of document | March 9, 2026 |
@@ -857,7 +881,12 @@ Total tables: **52** (2 system + 2 user + 23 reference + 25 runtime/log)
     | 0.19.3 | Add style fileds columns into card tables and use into frontend | May 14, 2026 |
     | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits`| May 19, 2026 |
     | 0.19.7 | Added seven stat columns (`life`, `energy`,...) to `list_stories_difficulty` | May 19, 2026 |
-- **Last Updated**: May 19, 2026
+    | 0.29.0 | Normal events (player-triggered actions) | July 13, 2026 |
+    | 0.34.0 | Inventory and resources, implemented. | August 20, 2026 |
+    | 0.35.2 | Added `hide_on_start_match` to `list_traits` — locks a trait out of character-creation selection while it stays grantable via `traits_to_add`; see Step 23 §5.3. | August 22, 2026 |
+    | 0.35.3 | Food/magic/coin become a cost of acting: `list_events.coin_cost` renamed `cost_coin` plus new `cost_food`/`cost_magic`; `list_locations_neighbors` and (reserved) `list_choices` gain the same three; `log_events`/`log_movements` gain the spend columns. Fixed the stale carried-weight formula and noted the `list_classes_bonus.statistic` gap; see Step35 §12. | August 23, 2026 |
+    | 0.35.4 | `log_events` gains `energy_gain`/`food_gain`/`magic_gain`/`coin_gain`, the counterpart of v0.35.3's spend columns. `log_item_usage` becomes the register of every item action (`action`, `id_event`, signed `energy`/`food`/`magic`/`coin`) instead of usages alone, surfacing as `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` on the match log; see Step28 "New: Item Actions and Resource Gains (v0.35.4)". | August 24, 2026 |
+- **Last Updated**: August 24, 2026
 - **Status**: Complete ✅
 
 

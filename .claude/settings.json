@@ -1,7 +1,30 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mvn -pl core,adapter-rest,adapter-admin -am test jacoco:report -DskipITs)"
+      "Bash(mvn -pl core,adapter-rest,adapter-admin -am test jacoco:report -DskipITs)",
+      "Bash(mvn -pl core test)",
+      "Bash(mvn -pl core test -Dtest=EventAvailabilityCheckerTest)",
+      "Bash(mvn -pl core clean compile)",
+      "Bash(grep -v \"^\\\\[ERROR\\\\] *$\")",
+      "Bash(mvn -pl core test -Dtest=EventExecutionServiceTest)",
+      "Bash(mvn -pl core test -Dtest=EventExecutionServiceEffectsTest)",
+      "Bash(mvn -pl core test -Dtest=EventExecutionServiceChainTest)",
+      "Bash(grep -E \"\\\\.java:\\\\[|Tests run:.*\\(Fail|Err\\)|Tests run: [0-9]+, Fail.*$|BUILD|ERROR.*symbol\")",
+      "Bash(grep -E \"^\\\\[ERROR\\\\]|BUILD|Tests run: [0-9]+, Failures: [0-9]+, Errors: [0-9]+, Skipped: [0-9]+$\")",
+      "Bash(grep -E \"ERROR.*\\\\.java:\\\\[|Tests run:.*Failures: [1-9]|Tests run:.*Errors: [1-9]|BUILD|Tests run: [0-9]+, Failures: 0, Errors: 0, Skipped: 0$\")",
+      "Bash(grep -E \"Tests run: [0-9]+, Failures: [0-9]+, Errors: [0-9]+, Skipped: [0-9]+$|Building Paths|BUILD\")",
+      "Bash(mvn -pl core test -Dtest=MatchQueryServiceEventAvailabilityTest)",
+      "Bash(grep -E \"Tests run: [0-9]+, Failures: 0, Errors: 0, Skipped: 0$\")",
+      "Bash(sqlite3 --version)",
+      "Bash(python3 -c ' *)",
+      "Bash(grep -n \"^[A-Z][A-Za-z ].*$\" resources/matches.resource)",
+      "Bash(break)",
+      "Bash(mvn -q -pl core clean test)",
+      "Bash(python3 -m pytest tests -q)",
+      "Bash(python3 -m pytest tests/test_events.py -q)",
+      "Bash(python3 -m pytest tests -q --cov=lambda/match/events --cov-report=term-missing)",
+      "Bash(python3 -m pytest tests -q --cov=match.events --cov-report=term-missing)",
+      "Bash(grep -n \"characteristics\\\\|exp INTEGER\\\\|exp\\\\`\\\\|gaming_character_instance\" /mnt/Dati4/Workspace/pathsgames/documentation_v0/Step09_DesignCoreDataModel.md)"
     ]
   }
 }

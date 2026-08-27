@@ -96,4 +96,64 @@ describe('FastTextCreatorModal', () => {
     await userEvent.type(itLongField, 'Descrizione Lunga')
     expect(itLongField).toHaveValue('Descrizione Lunga')
   })
+
+  // ── HTML line breaks on save ────────────────────────────────────────────────
+  // The boards render these texts as HTML, where a bare newline collapses into a space.
+  // Saving stamps a <br /> in front of every newline and keeps the newline itself.
+
+  it('stamps <br /> before every newline in all four boxes on save', async () => {
+    onSave.mockResolvedValue({ idText: 500 })
+    render(<FastTextCreatorModal open={true} onClose={onClose} onSave={onSave}
+                                 storyOptions={MOCK_STORY_OPTIONS} />)
+
+    await userEvent.type(screen.getByLabelText('Text ID'), '500')
+    // en-short mirrors into en-long, and it-short into it-long, so set the long boxes last.
+    fireEvent.change(screen.getByLabelText('en-short'), { target: { value: 'a\nb' } })
+    fireEvent.change(screen.getByLabelText('it-short'), { target: { value: 'e\nf' } })
+    fireEvent.change(screen.getByLabelText('en-long'), { target: { value: 'c\nd' } })
+    fireEvent.change(screen.getByLabelText('it-long'), { target: { value: 'g\nh' } })
+
+    await userEvent.click(screen.getByText('Save Text'))
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      translations: {
+        en: { shortText: 'a<br />\nb', longText: 'c<br />\nd' },
+        it: { shortText: 'e<br />\nf', longText: 'g<br />\nh' },
+      },
+    }))
+  })
+
+  it('does not stack breaks when an already-saved text is edited and saved again', async () => {
+    onSave.mockResolvedValue({ idText: 500 })
+    // initialValues carries the STORED text, which already went through the conversion.
+    render(<FastTextCreatorModal open={true} onClose={onClose} onSave={onSave}
+                                 mode="edit" initialTextId={500}
+                                 storyOptions={MOCK_STORY_OPTIONS}
+                                 initialValues={{
+                                   en: { shortText: 'a<br />\nb', longText: 'c<br />\nd' },
+                                   it: { shortText: 'e<br />\nf', longText: 'g<br />\nh' },
+                                 }} />)
+
+    await userEvent.click(screen.getByText('Save Text'))
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      translations: {
+        en: { shortText: 'a<br />\nb', longText: 'c<br />\nd' },
+        it: { shortText: 'e<br />\nf', longText: 'g<br />\nh' },
+      },
+    }))
+  })
+
+  it('leaves a single-line text alone', async () => {
+    onSave.mockResolvedValue({ idText: 500 })
+    render(<FastTextCreatorModal open={true} onClose={onClose} onSave={onSave}
+                                 storyOptions={MOCK_STORY_OPTIONS} />)
+
+    await userEvent.type(screen.getByLabelText('Text ID'), '500')
+    fireEvent.change(screen.getByLabelText('en-short'), { target: { value: 'one line' } })
+    await userEvent.click(screen.getByText('Save Text'))
+
+    expect(onSave.mock.calls[0][0].translations.en.shortText).toBe('one line')
+  })
 })
+

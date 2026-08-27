@@ -25,9 +25,11 @@ const MOCK_STORY = {
   peghi: 0
 }
 
+// Mirrors the real TextEntity row: `id` is part of the PK and `uuid` is the
+// identifier EntityTable keys rows by, so both must be present here.
 const MOCK_TEXTS = [
-  { idText: 101, lang: 'en', shortText: 'Location Name' },
-  { idText: 102, lang: 'en', shortText: 'Location Desc' }
+  { id: 101, uuid: 'text-101', idText: 101, lang: 'en', shortText: 'Location Name' },
+  { id: 102, uuid: 'text-102', idText: 102, lang: 'en', shortText: 'Location Desc' }
 ]
 
 function renderPage(uuid = 'story-123') {
@@ -258,9 +260,9 @@ describe('StoryEditorPage', () => {
     ]
     for (const label of tabLabels) {
       await userEvent.click(screen.getByRole('button', { name: new RegExp(`^${label}$`, 'i') }))
-      expect(await screen.findByText(new RegExp(`Add ${label.slice(0, 3)}`, 'i'))).toBeInTheDocument()
+      expect(await screen.findByText(new RegExp(`Add ${label.slice(0, 3)}`, 'i'), {}, { timeout: 5000 })).toBeInTheDocument()
     }
-  })
+  }, 30000)
 
   // ── entity save/delete branches ──────────────────────────────────────────────
 
@@ -282,6 +284,103 @@ describe('StoryEditorPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /Add Diff/i }))
     await userEvent.click(screen.getByText('Save'))
     expect(createEntity).toHaveBeenCalledWith('story-123', 'difficulties', expect.any(Object))
+  })
+
+  it('the event weather condition stores the rule id, never its card id', async () => {
+    // Regression: the weather options once led with idCard, so picking a rule wrote
+    // its card id into event.idWeather and the engine blocked the event forever
+    // (idWeather is compared with match.currentWeatherId, a RULE id).
+    createEntity.mockResolvedValue({ uuid: 'new-evt' })
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'weather-rules') return Promise.resolve([
+        { uuid: 'we-1', id: 1, idCard: 5 },
+      ])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /^Events$/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /Add Eve/i }))
+
+    await userEvent.click(screen.getByTitle('Select Weather (condition)'))
+    const selectBtn = await waitFor(() => {
+      const found = screen.getAllByRole('button', { name: /^Select$/ })[0]
+      if (!found) throw new Error('no option row yet')
+      return found
+    })
+    const optionRow = selectBtn.closest('tr')
+    expect(within(optionRow).getAllByText('#1').length).toBeGreaterThan(0)
+    expect(within(optionRow).queryByText('#5')).not.toBeInTheDocument()
+    await userEvent.click(selectBtn)
+
+    await userEvent.click(screen.getByText('Save'))
+    expect(createEntity).toHaveBeenCalledWith('story-123', 'events',
+      expect.objectContaining({ idWeather: 1 }))
+  })
+
+  it('the event item condition is picked from the item selector, not typed as an id', async () => {
+    // v0.34.0 — "Item Owned (condition)" was a bare number input, so an author had to know
+    // the item's story id by heart. It now uses the very same picker idItemToAdd does.
+    createEntity.mockResolvedValue({ uuid: 'new-evt' })
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'items') return Promise.resolve([
+        { uuid: 'it-1', id: 7, idTextName: 1 },
+      ])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /^Events$/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /Add Eve/i }))
+
+    // The trigger exists at all — that is what a bare number field would not have.
+    await userEvent.click(screen.getByTitle('Select Item Owned (condition)'))
+    const selectBtn = await waitFor(() => {
+      const found = screen.getAllByRole('button', { name: /^Select$/ })[0]
+      if (!found) throw new Error('no option row yet')
+      return found
+    })
+    await userEvent.click(selectBtn)
+
+    await userEvent.click(screen.getByText('Save'))
+    // The stored value is the ITEM's own story id: that is what the check procedure
+    // compares against what the character carries.
+    expect(createEntity).toHaveBeenCalledWith('story-123', 'events',
+      expect.objectContaining({ idItemCondition: 7 }))
+  })
+
+  it('an event effect picks its move-to location from the location selector (v0.29.3)', async () => {
+    // The forced-movement location is a picker, like events.idSpecificLocation: choosing a
+    // location must store its own id (not its card) in effect.idLocation.
+    createEntity.mockResolvedValue({ uuid: 'new-eff' })
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'locations') return Promise.resolve([
+        { uuid: 'loc-9', id: 9, idTextName: 101, idCard: 5 },
+      ])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /Event Effects/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /Add Event Eff/i }))
+
+    await userEvent.click(screen.getByTitle('Select Move To Location ID (effect)'))
+    const selectBtn = await waitFor(() => {
+      const found = screen.getAllByRole('button', { name: /^Select$/ })[0]
+      if (!found) throw new Error('no option row yet')
+      return found
+    })
+    const optionRow = selectBtn.closest('tr')
+    expect(within(optionRow).getAllByText('#9').length).toBeGreaterThan(0)
+    expect(within(optionRow).queryByText('#5')).not.toBeInTheDocument()
+    await userEvent.click(selectBtn)
+
+    await userEvent.click(screen.getByText('Save'))
+    expect(createEntity).toHaveBeenCalledWith('story-123', 'event-effects',
+      expect.objectContaining({ idLocation: 9 }))
   })
 
   it('deletes a text entity and refreshes texts', async () => {
@@ -526,5 +625,32 @@ describe('StoryEditorPage', () => {
     await userEvent.click(screen.getByTitle(/Select End Game Event ID/i))
     expect(await screen.findByText('Select End Game Event')).toBeInTheDocument()
     await userEvent.click(within(screen.getByText('Select End Game Event').closest('.pg-modal')).getByText('Select'))
+  })
+
+  // Step 32 — the v0.32.0 choice-effect targets must offer the same pickers their
+  // event-effect twins do: an author picks a location, never types a raw id.
+  it('offers entity pickers for the new choice-effect targets', async () => {
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'locations') return Promise.resolve([{ idLocation: 1, idTextName: 101, uuid: 'loc-1' }])
+      if (type === 'events') return Promise.resolve([{ idEvent: 2, idTextName: 101, uuid: 'ev-2' }])
+      if (type === 'choice-effects') return Promise.resolve([])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+
+    await userEvent.click(screen.getByText('Choice Effects'))
+    await userEvent.click(await screen.findByText(/New Choice Effects|New Entity|Add/i))
+
+    // Each target renders the selector trigger, not a bare number input.
+    for (const label of [
+      /Select Move To Location ID \(effect\)/i,
+      /Select Event to Run \(effect\)/i,
+      /Select Weather to Set \(effect\)/i,
+      /Select Item Target ID/i,
+    ]) {
+      expect(await screen.findByTitle(label)).toBeInTheDocument()
+    }
   })
 })

@@ -80,6 +80,7 @@ the **v0.19.9** loadout (`characterTemplateUuid`, `classUuid`, `traitUuids`,
 | `401`       | Missing / invalid bearer token (filter response)     |
 | `403`       | `USER_BANNED` (states `3` blocked, `4` banned)       |
 | `404`       | `STORY_NOT_FOUND`, `DIFFICULTY_NOT_FOUND`, `USER_NOT_FOUND` |
+| `409`       | `ACTIVE_MATCH_ALREADY_EXISTS` *(v0.32.1 — see §6.1)*  |
 | `503`       | `MAINTENANCE_MODE` (server status set to MAINTENANCE) |
 
 ### 2.2 `GET /api/matches`
@@ -251,6 +252,8 @@ stored comma-separated). The involved tables are:
    miss returns 404.
 5. Load the story locations. An empty list returns 400
    `STORY_HAS_NO_LOCATIONS` because the runtime cannot place the player.
+5b. **v0.32.1** — refuse a duplicate active match: HTTP 409
+   `ACTIVE_MATCH_ALREADY_EXISTS` (see §6.1).
 6. Persist a new `GamingMatchEntity` with `status = CREATED`, `currentClock = 0`,
    `expCost` copied from the difficulty, and the creator loadout
    (`single_player` defaulting to `1`, plus `character_template_uuid`,
@@ -268,6 +271,65 @@ stored comma-separated). The involved tables are:
 `MatchQueryService.getMatchInfo` enforces ownership: a match cannot be
 retrieved by another user — the service returns `null`, which the controller
 surfaces as 404.
+
+### 6.1 One active match per user and story *(v0.32.1)*
+
+A player may own **one active match per story at a time**. A second creation on
+a story they are already playing answers **409 `ACTIVE_MATCH_ALREADY_EXISTS`**
+with the usual flat error body (`error`, `message`, `timestamp` — no extra
+field: the client re-reads `GET /api/matches` to find the match it must resume).
+
+**Active means every non-terminal status — `CREATED`, `RUNNING` *and*
+`PAUSED`.** A paused match is not over, it is suspended: it keeps occupying the
+slot, so pausing a match cannot become a way of farming duplicates. Only
+`ENDED` and `GAMEOVER` free the story again. The set is published as
+`MatchStatuses.ACTIVE` (Java), `match_statuses.ACTIVE` (Python) and
+`ACTIVE_STATUSES` (AWS), each the exact complement of the pre-existing
+`TERMINAL` set.
+
+**Where the check sits: last.** It runs after every 404 (story, difficulty,
+user) and every 400 (invalid input, traits, no locations), immediately before
+the first write. A malformed request therefore keeps reporting its own error
+whatever the caller's state is, and the state conflict is the only thing left to
+refuse. A rejected creation persists nothing.
+
+**Why it exists.** Until v0.32.0 nothing stopped a second match: the react-game
+home was the only barrier, and it loads the story catalog and the player's match
+list in two separate calls — during the gap the cards are clickable with no
+badge, and a network error made the list look empty. Double clicks, two tabs, a
+retried request or an F5 during the start countdown all produced a duplicate.
+
+**One query per backend, no new table and no migration:**
+
+| Backend | Implementation |
+|---|---|
+| Java | `MatchPersistencePort.hasActiveMatchForStory(userId, storyId, statuses)` → the Spring Data derived query `existsByIdUserCreatorAndIdStoryAndStatusIn` on `GamingMatchRepository`. The port was already injected into `MatchCommandService`, so no wiring changed. |
+| Python | `MatchPersistencePort.has_active_match_for_story(...)` → a SQLAlchemy `query(id).filter(...).first()` in `MatchPersistenceAdapter`: existence only, it does not materialise the list. |
+| AWS | `_has_active_match_for_story(user, story_uuid)` queries **GSI1** on `USER_MATCHES#{userUuid}` — the same paginated access path as `GET /api/matches` — and filters `storyUuid` + `status` in memory. `storyUuid` is not part of `GSI1_SK`, so it cannot narrow the key condition, but the read stays inside the caller's own partition: **never a Scan**, and no template/GSI change. |
+
+**react-game side (v0.32.1).** The home mirrors the rule instead of discovering
+it through a 409:
+
+* `matchStatus.js` now exposes two sets. `ACTIVE_MATCH_STATUSES`
+  (`CREATED`, `RUNNING`) still drives the "Resume" badge; the new
+  `BLOCKING_MATCH_STATUSES` adds `PAUSED` and drives the click gate. They differ
+  on purpose: `MatchCard` offers no resume for a paused match, so a paused story
+  gets its own badge (`home.badgePaused`) — it blocks a new run without pretending
+  to be resumable.
+* The `GET /api/matches` promise is kept in a ref: a click landing before it
+  resolves **awaits that same request** (with a spinner on the clicked card)
+  instead of firing a second one — the window the duplicate came from.
+* The match list is tri-state (`loading` / `ready` / `error`). An unreadable list
+  no longer collapses into "no matches": the page **fails closed**, shows
+  `home.matchesError` with a retry, and never opens the start-match flow.
+* If a 409 still reaches `StartMatchFlow` (another tab, a stale page), it is
+  rendered as `startMatch.errorActiveMatch`, not as a raw error code.
+
+**Consequence for the Robot suites.** Any suite that created two matches for the
+same guest on the same story now hits the guard. The shared keyword
+`Use A Fresh Guest Token` (`resources/auth.resource`) mints a guest and rebinds
+`${TOKEN}` — test-scoped inside a test, suite-scoped from a Suite Setup — so each
+match belongs to its own player. See §10.
 
 ---
 
@@ -413,6 +475,32 @@ Tests live under `code/tests/robot/tests/19_match/`. They exercise:
 - Admin match listing (`GET /api/admin/matches`): asserts 200 for an ADMIN token and 403 for a non-admin token. **v0.28.1**: additional tests verify the paged envelope shape (`items` array, `nextCursor`, `limit`), the `limit` query param, cursor-based next-page retrieval, and the `status` filter.
 - Match info retrieval (own match, foreign match returning 404).
 
+**v0.32.1 — `19_match/duplicate_match_guard.robot`** (6 tests) covers the guard of
+§6.1, each case on its own guest (a guest that owns a match is exactly what the
+guard refuses, so a shared token would make the cases order-dependent):
+
+- a second creation on the same story → 409 `ACTIVE_MATCH_ALREADY_EXISTS`;
+- an admin-**paused** match still blocks it;
+- after `Admin Stop Match` (→ `ENDED`) the story is free again → 201;
+- another guest is not blocked by someone else's match (the rule is per user
+  **and** story);
+- the same guest on a *different* story is not blocked — asserted as "not 409",
+  and skipped when the seed's second story cannot host a match at all
+  (the Python seed ships a demo story with no locations);
+- an unknown story still answers 404 `STORY_NOT_FOUND` even when the caller owns
+  an active match — proof that the guard runs last.
+
+Cleanup: the suite teardown stops and deletes every match it created, on top of
+the usual `robottest%` cleanup.
+
+Suites that used to create two matches for the same guest on the same story were
+updated to mint a guest per match with `Use A Fresh Guest Token`
+(`resources/auth.resource`): `19_match/match_creation`, `20_website/turnstile`
+(a `Test Setup`), `21_character_selection`, `23_trait_selection`, `24_turn_cycle`,
+`25_time_clock`, `26_time_recovery`, `27_weather` and `28_movement`. Full run
+after the change: **499 tests, 499 passed** on Java/SQLite; **498 passed, 1
+skipped** on Python (the different-story case above).
+
 Run them against the Java backend with:
 
 ```bash
@@ -456,7 +544,7 @@ The same suite passes against the Python backends — see `code/scripts/dev/run_
   
   > Ciao, i've a problem; when rotob test runned , in tables there are so many rows from tests execution, for example guest users and matches. I wanna remove these elements from tables (sql/dynamo) after robot test runned, i wanna remove only robot test rows preserve others informations. 
 
-- **Document Version**: 0.28.1
+- **Document Version**: 0.32.1
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.19.0 | Single player match creation | May 08, 2026 |
@@ -473,9 +561,10 @@ The same suite passes against the Python backends — see `code/scripts/dev/run_
     | 0.19.11 | Dev-only test-data cleanup | May 21, 2026 |
     | 0.19.12 | Admin match control (update/stop/pause/resume/delete) | May 21, 2026 |
     | 0.19.13 | `?lang` param on GET /api/match/{uuid}/info (all 3 backends); react-game forwards lang to /api/stories and match info | Jun 23, 2026 |
-    | 0.28.1 | GET /api/admin/matches pagination & filtering: response changed from plain array to `{items, nextCursor, limit}` envelope; query params `limit`, `cursor`, `status`, `userUuid`, `storyUuid`, `sinceDays`; Java keyset pagination + new port/criteria/service types; Python keyset + helpers; AWS migrated from Scan to GSI2 Query (`GSI2_PK="MATCH"`, `GSI2_SK=ts#uuid`); react-admin MatchesPage server-side pagination + status/period filters; OpenAPI `v0.19.0-match-creation-api.yaml` extended with `PagedMatches` schema and query params; Robot `List All Matches` keyword accepts `params`; new tests on limit/cursor/status filter | Jun 26, 2026 |
+    | 0.28.1 | GET /api/admin/matches pagination & filtering | Jun 26, 2026 |
+    | 0.32.1 | One active match per user and story | Aug 10, 2026 |
 
-- **Last Updated**: Jun 26, 2026
+- **Last Updated**: Aug 10, 2026
 - **Status**: Complete
 
 

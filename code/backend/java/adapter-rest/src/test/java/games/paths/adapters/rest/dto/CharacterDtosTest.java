@@ -113,6 +113,11 @@ class CharacterDtosTest {
         assertFalse(r.getIsComa());
         assertEquals("cls", r.getClassUuid());
         assertEquals(List.of("t1", "t2"), r.getTraitUuids());
+        // Step 35 — the backpack resources moved up into the shared base, so the
+        // summary embedded in /info players[] finally reports them too.
+        assertEquals(1, r.getFood());
+        assertEquals(2, r.getMagic());
+        assertEquals(3, r.getCoin());
     }
 
     @Test

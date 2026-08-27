@@ -15,7 +15,23 @@ def _nz(value):
         return 0
 
 
+def _is_hidden(trait):
+    """v0.35.2 — the story keeps this trait out of the start-match page.
+
+    The API still RETURNS it (the same list resolves the traits a character already owns),
+    so every helper that answers "what could a player pick" has to filter it out itself —
+    the server refuses it with TRAIT_NOT_SELECTABLE.
+    """
+    return bool(trait.get("hideOnStartMatch"))
+
+
 def _is_selectable(trait, class_id):
+    """Whether the CLASS gates allow the trait — nothing else.
+
+    This is what `GET /classes/{uuid}/traits` answers, and that endpoint deliberately keeps
+    returning a hidden trait (the same list resolves the traits a character already owns).
+    "Could a player pick it" is a different question: see :func:`_is_pickable`.
+    """
     permitted = trait.get("idClassPermitted")
     prohibited = trait.get("idClassProhibited")
     permitted_ok = permitted is None or (class_id is not None and int(permitted) == int(class_id))
@@ -23,18 +39,42 @@ def _is_selectable(trait, class_id):
     return permitted_ok and prohibited_ok
 
 
+def _is_pickable(trait, class_id):
+    """v0.35.2 — what a player may actually CHOOSE: the class gates and not hidden.
+
+    The server refuses a hidden trait at join with TRAIT_NOT_SELECTABLE, so any scenario
+    that goes on to join has to build its selection out of these.
+    """
+    return _is_selectable(trait, class_id) and not _is_hidden(trait)
+
+
 def filtered_trait_uuids(detail, class_uuid):
-    """The trait uuids selectable with the given class (client-side filter)."""
+    """The trait uuids the per-class ENDPOINT returns: the class filter alone, hidden ones
+    included. Use :func:`pickable_trait_uuids` to build something to join with."""
     clazz = next((c for c in (detail.get("classes") or []) if c.get("uuid") == class_uuid), None)
     class_id = clazz.get("id") if clazz else None
     return [t.get("uuid") for t in (detail.get("traits") or []) if _is_selectable(t, class_id)]
 
 
+def pickable_trait_uuids(detail, class_uuid):
+    """v0.35.2 — the trait uuids a player could select with the given class."""
+    clazz = next((c for c in (detail.get("classes") or []) if c.get("uuid") == class_uuid), None)
+    class_id = clazz.get("id") if clazz else None
+    return [t.get("uuid") for t in (detail.get("traits") or []) if _is_pickable(t, class_id)]
+
+
 def find_incompatible_trait(detail, class_uuid):
-    """A trait uuid NOT selectable with the given class, or '' when none exists."""
+    """A trait uuid refused for the CLASS, or '' when none exists.
+
+    A hidden trait is skipped on purpose: it is refused too, but with
+    TRAIT_NOT_SELECTABLE, and the scenario that calls this asserts
+    TRAIT_NOT_COMPATIBLE. Two refusals, two searches.
+    """
     clazz = next((c for c in (detail.get("classes") or []) if c.get("uuid") == class_uuid), None)
     class_id = clazz.get("id") if clazz else None
     for t in detail.get("traits") or []:
+        if _is_hidden(t):
+            continue
         if not _is_selectable(t, class_id):
             return t.get("uuid") or ""
     return ""
@@ -50,7 +90,7 @@ def find_positive_budget_overflow(detail):
         return "", []
     for clazz in detail.get("classes") or []:
         class_id = clazz.get("id")
-        compatible = [t for t in (detail.get("traits") or []) if _is_selectable(t, class_id)]
+        compatible = [t for t in (detail.get("traits") or []) if _is_pickable(t, class_id)]
         positives = [t for t in compatible if _nz(t.get("costPositive")) > 0]
         selection = []
         total = 0
@@ -71,7 +111,7 @@ def find_negative_budget_overflow(detail):
         return "", []
     for clazz in detail.get("classes") or []:
         class_id = clazz.get("id")
-        compatible = [t for t in (detail.get("traits") or []) if _is_selectable(t, class_id)]
+        compatible = [t for t in (detail.get("traits") or []) if _is_pickable(t, class_id)]
         negatives = [t for t in compatible if _nz(t.get("costNegative")) > 0]
         selection = []
         total = 0
@@ -101,6 +141,8 @@ def find_permitted_match_trait(detail, class_uuid):
         return ""
     for t in detail.get("traits") or []:
         permitted = t.get("idClassPermitted")
+        if _is_hidden(t):
+            continue
         if permitted is not None and int(permitted) == int(class_id):
             return t.get("uuid") or ""
     return ""
@@ -114,17 +156,17 @@ def find_prohibited_other_trait(detail, class_uuid):
     for t in detail.get("traits") or []:
         prohibited = t.get("idClassProhibited")
         if prohibited is not None and (class_id is None or int(prohibited) != int(class_id)) \
-                and _is_selectable(t, class_id):
+                and _is_pickable(t, class_id):
             return t.get("uuid") or ""
     return ""
 
 
 def find_two_compatible_traits(detail, class_uuid):
-    """Up to two distinct trait uuids selectable with the given class. Returns fewer
+    """Up to two distinct trait uuids a player could pick with the given class. Returns fewer
     than two when the seed does not expose enough compatible traits."""
     clazz = next((c for c in (detail.get("classes") or []) if c.get("uuid") == class_uuid), None)
     class_id = clazz.get("id") if clazz else None
-    uuids = [t.get("uuid") for t in (detail.get("traits") or []) if _is_selectable(t, class_id)]
+    uuids = [t.get("uuid") for t in (detail.get("traits") or []) if _is_pickable(t, class_id)]
     return uuids[:2]
 
 

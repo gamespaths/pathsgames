@@ -1,44 +1,42 @@
-import { useEffect } from 'react'
-import { useTranslation } from '../../i18n/context'
-import CardDetailModal from './CardDetailModal'
+import Card from '@/components/layout/Card'
+import { useTranslation } from '@/i18n/context'
+import { buildErrorCard } from '@/utils/loadoutCards'
 
-const MODAL_ID = 'error-card-match-modal'
-
-export default function ErrorCard({ status, message, onClose }) {
+/**
+ * ErrorCard — the match-error page, LoadingCard's sibling: the fixed "error"
+ * card from data/images.json (via buildErrorCard) rendered as a book page
+ * Card. It floats on its own overlay ABOVE the book (.book-overlay is
+ * z-index 1050), so transient gameplay errors stay visible over the open
+ * board; the back arrow and the close action both call `onClose`.
+ *
+ * A specific API error `message` (e.g. the INSUFFICIENT_ENERGY detail) takes
+ * precedence over the generic match-not-running text; status 'ENDED' appends
+ * the match-ended note.
+ *
+ * `maxWidth` (a CSS size, e.g. "400px") caps the card's width inside the
+ * overlay; unset, the card fills all the available space (see LoadingCard).
+ */
+export default function ErrorCard({ status, message, onClose, maxWidth = null }) {
   const { t } = useTranslation()
-
-  useEffect(() => {
-    const el = document.getElementById(MODAL_ID)
-    if (!el) return
-    const BootstrapModal = window.bootstrap?.Modal
-    if (!BootstrapModal) return
-    const instance = BootstrapModal.getOrCreateInstance(el)
-    instance.show()
-    el.addEventListener('hidden.bs.modal', onClose)
-    return () => {
-      el.removeEventListener('hidden.bs.modal', onClose)
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // A specific API error message (e.g. INSUFFICIENT_ENERGY detail) takes precedence
-  // over the generic match-not-running text.
-  const description = message
+  
+  const card = buildErrorCard(t)
+  card.description = message
     ? message
     : status === 'ENDED'
       ? `${t('errors.matchNotRunning')} ${t('errors.matchEnded')}`
       : t('errors.matchNotRunning')
-
-  const card = {
-    awesomeIcon: 'fas fa-exclamation-triangle',
-    name: t('errors.title'),
-    description,
-  }
-
   return (
-    <CardDetailModal
-      card={card}
-      modalId={MODAL_ID}
-      actionLabel={t('modals.close')}
-    />
+    <div className="error-card-overlay" data-testid="error-card-overlay">
+      <div style={maxWidth ? { width: '100%', maxWidth } : { width: '100%' }}>
+        <Card variant="page"
+          card={card}
+          entityType="error"
+          onClose={onClose}
+          onAction={onClose}
+          actionLabel={t('modals.close')} 
+          actionIcon="fa-xmark"
+        />
+      </div>
+    </div>
   )
 }

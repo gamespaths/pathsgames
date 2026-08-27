@@ -1,0 +1,467 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Normal Events API
+  description: |
+    Step 29 — normal (player-triggered) events.
+
+    An event is an action the player can take at their location. `POST
+    /api/gameplay/{uuidMatch}/action/execute-event` runs one; which ones can be run is
+    already visible on `GET /api/match/{uuidMatch}/info`, where every entry of
+    `locationsActive[].events[]` carries an `available` flag and, when false, the
+    `reason` — the very error code this endpoint would return. Board and endpoint
+    therefore cannot disagree: both ask the same check procedure.
+
+    ## The check procedure
+
+    All conditions combine in **AND**; there is no `list_events_conditions` table and
+    none is planned. They are evaluated in this order, and the first failure names the
+    reason:
+
+        caller owns a character in the match → CHARACTER_CANNOT_ACT
+        character not in coma                → COMA
+        character awake                      → SLEEPING
+        type is NORMAL or ONCE               → EVENT_NOT_EXECUTABLE_TYPE
+        a ONCE event not yet spent           → ONCE_ALREADY_CONSUMED
+        id_specific_location                 → WRONG_LOCATION
+        cost_enery                           → NOT_ENOUGH_ENERGY
+        cost_coin                            → NOT_ENOUGH_COINS
+        cost_food                            → NOT_ENOUGH_FOOD
+        cost_magic                           → NOT_ENOUGH_MAGIC
+        registry_key/value_condition         → REGISTRY_CONDITION_NOT_MET
+        id_weather                           → WEATHER_CONDITION_NOT_MET
+        id_item_condition                    → ITEM_CONDITION_NOT_MET
+        id_class_condition                   → CLASS_CONDITION_NOT_MET
+
+    `ONCE` is scoped to the **match**: once triggered, the event stays spent for the rest
+    of that match. A null `id_specific_location` means the event has no location
+    constraint (it can be executed anywhere, though it is not listed under any location).
+
+    ## Execution
+
+    The energy and coin cost is paid once, by the actor, for the event they asked for.
+    Then the whole `id_event_next` chain runs. Chained events are **consequences, not
+    choices**: they are neither re-checked nor charged (the player already paid to start
+    the chain); only the ONCE invariant still holds, and a cycle is bounded rather than
+    followed.
+
+    Effects come from `list_events_effects`, one row at a time, in authored order. Each
+    row's own **card is the narrative** to render — not the event's card. `target=ALL`
+    means every character in the actor's location (INV-27), `ONLY_ONE` means the actor;
+    `target_class` narrows either set.
+
+    Stats are clamped: `energy ≤ energy_max`, `life ≤ life_max`, `sad ≤ sad_max`, and
+    nothing falls below zero. If life reaches zero the character enters coma
+    (`is_coma=true`, `is_sleeping=true`) and everything stops — the chain does not
+    continue and `flag_end_time` does not fire.
+
+    Step 30 added what happens around that coma — the sadness-overflow rule, the
+    `clock_in_coma` stamp and the all-players-in-coma epilogue — reported in the
+    `edgeState` object; see `v0.30.0-edge-states-api.yaml`. Rescue and the move to
+    `GAMEOVER` are step 59, so `gameOver` here is still a flag and never moves the match
+    status.
+
+    ## Notes
+
+    - `id_weather` means the OPPOSITE thing on the two tables: on `list_events` it is a
+      CONDITION (the event is available only under that weather); on
+      `list_events_effects` it is an EFFECT (it *sets* the match weather).
+    - `turnConsumed` is part of the contract but is **always false** in v0.29.0: an event
+      neither requires nor consumes a turn, exactly like Step 28 movement. Turn semantics
+      are revisited in Step 61 (multiplayer turn engine).
+    - `pendingChoices` and `status` belong to the choice engine: since v0.31.0 an event
+      owning `list_choices` rows answers `status: CHOICES_PENDING` with its options
+      instead of applying effects — see `v0.31.0-choices-api.yaml`. With no choices,
+      `status: APPLIED` and everything above is unchanged.
+    - Each executed event appends a `log_events` row, which surfaces as an `EVENT` entry
+      on `GET /api/matches/{uuid}/logs`.
+
+    See `documentation_v0/Step29_NormalEvents.md`.
+  version: 0.29.0
+
+servers:
+  - url: http://localhost:8042
+    description: Local development (public port)
+
+tags:
+  - name: Gameplay
+    description: Player actions inside a running match
+
+paths:
+  /api/gameplay/{uuidMatch}/action/execute-event:
+    post:
+      tags: [Gameplay]
+      summary: Execute a normal (player-triggered) event
+      description: |
+        Runs a NORMAL or ONCE event for the caller's character. Fails with the same code the
+        event's `reason` already reported on match-info, so a client that only offers
+        `available` events never sees a 409.
+      operationId: executeEvent
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          description: The match uuid.
+          schema:
+            type: string
+        - name: lang
+          in: query
+          required: false
+          description: Language for the resolved cards. Defaults to `en`.
+          schema:
+            type: string
+            example: it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteEventRequest'
+      responses:
+        '200':
+          description: The event ran. Inspect the flags and the applied effects.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecuteEventResponse'
+        '400':
+          description: '`MISSING_EVENT` — the body carries no `eventUuid`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: '`UNAUTHENTICATED` — no valid bearer token.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: |
+            `MATCH_NOT_FOUND` — the match does not exist, or the caller owns no character in
+            it (the two are deliberately indistinguishable).
+            `EVENT_NOT_FOUND` — the story has no event with that uuid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: |
+            The check procedure said no. The `error` field carries the reason:
+            `MATCH_NOT_RUNNING`, `CHARACTER_CANNOT_ACT`, `SLEEPING`, `COMA`,
+            `EVENT_NOT_EXECUTABLE_TYPE`,
+            `ONCE_ALREADY_CONSUMED`, `WRONG_LOCATION`, `NOT_ENOUGH_ENERGY`,
+            `NOT_ENOUGH_COINS`, `NOT_ENOUGH_FOOD`, `NOT_ENOUGH_MAGIC`,
+            `REGISTRY_CONDITION_NOT_MET`, `WEATHER_CONDITION_NOT_MET`,
+            `ITEM_CONDITION_NOT_MET` or `CLASS_CONDITION_NOT_MET`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ExecuteEventRequest:
+      type: object
+      required: [eventUuid]
+      properties:
+        eventUuid:
+          type: string
+          description: The uuid of the event to trigger.
+          example: 1f3c2b8a-9d4e-4a7b-8c1d-2e3f4a5b6c7d
+
+    ExecuteEventResponse:
+      type: object
+      properties:
+        matchUuid:
+          type: string
+        eventUuid:
+          type: string
+          description: The event the player asked for (the head of the chain).
+        eventType:
+          type: string
+          enum: [NORMAL, ONCE]
+        card:
+          $ref: '#/components/schemas/CardInfo'
+        executedEventUuids:
+          type: array
+          description: The chain in execution order; index 0 is always `eventUuid`.
+          items:
+            type: string
+        energySpent:
+          type: integer
+          description: Paid once, for the head of the chain. Chained events cost nothing.
+        coinSpent:
+          type: integer
+        foodSpent:
+          type: integer
+          description: |
+            v0.35.3 — `cost_food` of the event, paid by the actor. Like the other costs it is
+            charged once, for the head of the chain: an automatic or chained event never bills.
+        magicSpent:
+          type: integer
+          description: v0.35.3 — `cost_magic` of the event, paid by the actor.
+        newEnergy:
+          type: integer
+          description: The actor's energy after the event (and after any time-end recovery).
+        newCoin:
+          type: integer
+        newFood:
+          type: integer
+          description: v0.35.3 — the actor's food after the event.
+        newMagic:
+          type: integer
+          description: v0.35.3 — the actor's magic after the event.
+        currentClock:
+          type: integer
+          description: The clock AFTER the event; it moves when `timeEnded` is true.
+        turnConsumed:
+          type: boolean
+          description: Always false in v0.29.0 — execute-event never touches the turn queue.
+          example: false
+        timeEnded:
+          type: boolean
+          description: An event carried `flag_end_time`; every character slept and the clock advanced.
+        itemAdded:
+          type: boolean
+        itemRemoved:
+          type: boolean
+        weatherApplied:
+          type: boolean
+          description: An effect set the match weather (`list_events_effects.id_weather`).
+        movementApplied:
+          type: boolean
+          description: |
+            v0.29.3 — a forced-movement effect (`list_events_effects.id_location`) moved at
+            least one character. No Step 28 check applies and no energy is spent; see
+            `locationChanges` for who went where.
+        forcedSleep:
+          type: boolean
+        comaTriggered:
+          type: boolean
+          description: The actor's life reached zero; the chain stopped there.
+        gameOver:
+          type: boolean
+          description: An executed event is the story's `idEventEndGame`. A flag only — step 59 owns the transition.
+        refreshRecommended:
+          type: boolean
+          description: Something changed; reload `GET /api/match/{uuid}/info`.
+        statChanges:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatChange'
+        registryChanges:
+          type: array
+          items:
+            $ref: '#/components/schemas/RegistryChange'
+        traitChanges:
+          type: array
+          items:
+            $ref: '#/components/schemas/TraitChange'
+        itemChanges:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemChange'
+        characteristicChanges:
+          type: array
+          items:
+            $ref: '#/components/schemas/CharacteristicChange'
+        locationChanges:
+          type: array
+          description: v0.29.3 — one entry per character a forced-movement effect moved.
+          items:
+            $ref: '#/components/schemas/LocationChange'
+        effects:
+          type: array
+          description: One entry per `list_events_effects` row that ran.
+          items:
+            $ref: '#/components/schemas/AppliedEffect'
+        status:
+          type: string
+          enum: [APPLIED, CHOICES_PENDING]
+          description: Added in v0.31.0 — see `v0.31.0-choices-api.yaml`.
+        pendingChoices:
+          type: array
+          description: The options of a choice-event (v0.31.0); empty when `status` is APPLIED.
+          items:
+            $ref: '#/components/schemas/PendingChoice'
+
+    StatChange:
+      type: object
+      properties:
+        characterUuid:
+          type: string
+        statistic:
+          type: string
+          enum: [life, energy, sad, exp, dex, int, cos, food, magic, coin]
+        before:
+          type: integer
+        after:
+          type: integer
+          description: After clamping.
+        delta:
+          type: integer
+          description: '`after - before`: may differ from the authored value when clamped.'
+
+    RegistryChange:
+      type: object
+      properties:
+        key:
+          type: string
+        oldValue:
+          type: string
+          nullable: true
+        newValue:
+          type: string
+          nullable: true
+
+    TraitChange:
+      type: object
+      properties:
+        characterUuid:
+          type: string
+        traitUuid:
+          type: string
+        action:
+          type: string
+          enum: [ADD, REMOVE]
+
+    ItemChange:
+      type: object
+      properties:
+        characterUuid:
+          type: string
+        itemUuid:
+          type: string
+        action:
+          type: string
+          description: >
+            ADD hands one unit over, REMOVE takes every unit the character holds (v0.35.1;
+            it took one before). NOT_ADDED (v0.35.1) is the story offering an item to a
+            character who already holds list_items.max_per_character of it: the unit does
+            not go in, and it is NOT an error - the event ran, its other effects landed and
+            the answer is still 200. A client that ignores the value simply shows nothing.
+          enum: [ADD, REMOVE, NOT_ADDED]
+
+    CharacteristicChange:
+      type: object
+      properties:
+        characterUuid:
+          type: string
+        characteristic:
+          type: string
+        action:
+          type: string
+          enum: [ADD, REMOVE]
+
+    LocationChange:
+      type: object
+      description: |
+        v0.29.3 — one forced movement (`list_events_effects.id_location`). The move skips
+        the whole Step 28 procedure and costs no energy; a cost-0 MOVEMENT entry appears
+        on the match-logs timeline instead.
+      properties:
+        characterUuid:
+          type: string
+        fromLocationUuid:
+          type: string
+          nullable: true
+          description: Null when the character had no position yet.
+        toLocationUuid:
+          type: string
+
+    AppliedEffect:
+      type: object
+      description: |
+        One `list_events_effects` row that ran. Its `card` — not the event's — is the
+        narrative component to render.
+      properties:
+        eventUuid:
+          type: string
+          description: Which event of the chain this effect belongs to.
+        effectUuid:
+          type: string
+        statistic:
+          type: string
+          nullable: true
+        value:
+          type: integer
+          nullable: true
+        target:
+          type: string
+          enum: [ALL, ONLY_ONE]
+        targetClass:
+          type: integer
+          nullable: true
+        characterUuids:
+          type: array
+          description: Who it hit. Empty is legal — a class-targeted effect can match nobody.
+          items:
+            type: string
+        card:
+          $ref: '#/components/schemas/CardInfo'
+
+    PendingChoice:
+      type: object
+      description: Extended in v0.31.0 — the authoritative shape is in `v0.31.0-choices-api.yaml`.
+      properties:
+        uuid:
+          type: string
+        priority:
+          type: integer
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        card:
+          $ref: '#/components/schemas/CardInfo'
+        available:
+          type: boolean
+        reason:
+          type: string
+          nullable: true
+
+    CardInfo:
+      type: object
+      nullable: true
+      description: A localized card, as elsewhere in the API.
+      properties:
+        uuid:
+          type: string
+        cardType:
+          type: string
+        urlImage:
+          type: string
+          nullable: true
+        awesomeIcon:
+          type: string
+          nullable: true
+        title:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: The machine-readable code (see the response descriptions).
+          example: ONCE_ALREADY_CONSUMED
+        message:
+          type: string
+        timestamp:
+          type: integer
+          format: int64

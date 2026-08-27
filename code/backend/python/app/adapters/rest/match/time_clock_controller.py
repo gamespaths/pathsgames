@@ -9,6 +9,7 @@ import time
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from app.core.models.match import location_entry_models as lem
 from app.core.models.match.time_models import ClockResult, SleepResult
 from app.core.models.match.turn_models import TurnCycleError
 from app.core.ports.match.time_ports import TimeAdvancementPort
@@ -46,6 +47,10 @@ def _sleep_to_camel(r: SleepResult) -> dict:
             }
             for item in (r.recovery or [])
         ],
+        # Step 33 — what happened in the world while the party slept. A LIST: several
+        # counters can run out on one time-start. Already filtered for this caller: `card`
+        # is absent entirely when visibility is ANONYMOUS.
+        "counterZero": [lem.to_camel_counter_zero(i) for i in (r.counter_zero or [])],
     }
 
 

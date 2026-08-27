@@ -30,10 +30,25 @@ class StoryPersistencePort(ABC):
     @abstractmethod
     def save_events(self, story_id: int, events: List[Dict[str, Any]]) -> None:
         pass
-        
+
+    @abstractmethod
+    def save_event_effects(self, story_id: int, effects: List[Dict[str, Any]]) -> None:
+        """v0.29.0 — the top-level `eventEffects` array of the shared JSON contract.
+
+        It used to be dropped entirely on this backend: effects were only read when nested
+        under an event, which the Java-authored format never does.
+        """
+        pass
+
     @abstractmethod
     def save_items(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         pass
+
+    @abstractmethod
+    def save_item_effects(self, story_id: int, items: List[Dict[str, Any]]) -> None:
+        """v0.34.0 — the canonical top-level `itemEffects` array, keyed by idItem."""
+        pass
+
         
     @abstractmethod
     def save_classes(self, story_id: int, classes: List[Dict[str, Any]]) -> None:
@@ -42,7 +57,19 @@ class StoryPersistencePort(ABC):
     @abstractmethod
     def save_choices(self, story_id: int, choices: List[Dict[str, Any]]) -> None:
         pass
-        
+
+    @abstractmethod
+    def save_choice_conditions(self, story_id: int,
+                               conditions: List[Dict[str, Any]]) -> None:
+        """Step 31 — the canonical TOP-LEVEL choiceConditions array, keyed by idChoices
+        (the shape Java, AWS and the validator read; the old nested choices[].conditions
+        was a Python-only drift)."""
+
+    @abstractmethod
+    def save_choice_effects(self, story_id: int, effects: List[Dict[str, Any]]) -> None:
+        """Step 31 — the canonical TOP-LEVEL choiceEffects array, keyed by idChoices."""
+
+
     @abstractmethod
     def save_cards(self, story_id: int, cards: List[Dict[str, Any]]) -> None:
         pass

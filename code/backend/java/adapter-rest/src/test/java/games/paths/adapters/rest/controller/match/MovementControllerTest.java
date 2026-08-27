@@ -40,7 +40,8 @@ class MovementControllerTest {
     @Test
     void startMovement_returns200() throws Exception {
         when(movementPort.startMovement("m1", "user-uuid", "loc-2")).thenReturn(
-                new MovementResult("m1", "char-1", 1L, null, 2L, "loc-2", 6, 4, 3));
+                new MovementResult("m1", "char-1", 1L, null, 2L, "loc-2", 6, 1, 0, 2,
+                        4, 3, 5, 7, 3, List.of()));
         mockMvc.perform(authed(post("/api/gameplay/m1/movements/start"))
                         .contentType(APPLICATION_JSON)
                         .content("{\"targetLocationUuid\":\"loc-2\"}"))
@@ -91,7 +92,7 @@ class MovementControllerTest {
                 null, null, null, null, null, null, "Start", "desc", null, null, null);
         CardInfo nbCard = new CardInfo("card-nb", "location", "http://img/nb.jpg", null,
                 null, null, null, null, null, null, "Center", "desc", null, null, null);
-        NeighborCost n = new NeighborCost(2L, "loc-2", "NORTH", 9, nbCard, 1, 1, 2, 4, true);
+        NeighborCost n = new NeighborCost(2L, "loc-2", "NORTH", 2L, 1L, 9, nbCard, 1, 1, 2, 4, 1, 0, 3, true);
         VisitedLocation loc = new VisitedLocation(1L, "loc-1", 7, locCard, true, 1, List.of(n));
         when(movementPort.listLocations("m1", "user-uuid", null)).thenReturn(List.of(loc));
         mockMvc.perform(authed(get("/api/match/m1/locations")))
@@ -101,6 +102,10 @@ class MovementControllerTest {
                 .andExpect(jsonPath("$.locations[0].card.urlImage").value("http://img/loc.jpg"))
                 .andExpect(jsonPath("$.locations[0].neighbors[0].idCard").value(9))
                 .andExpect(jsonPath("$.locations[0].neighbors[0].card.title").value("Center"))
+                // the authored orientation travels with every neighbor: location 1 is the
+                // edge's `to` endpoint, so a client knows this entry is a RETURN traversal
+                .andExpect(jsonPath("$.locations[0].neighbors[0].idLocationFrom").value(2))
+                .andExpect(jsonPath("$.locations[0].neighbors[0].idLocationTo").value(1))
                 .andExpect(jsonPath("$.locations[0].neighbors[0].totalEnergyCost").value(4));
     }
 

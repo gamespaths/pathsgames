@@ -28,12 +28,23 @@ DEFAULT_LANG = "en"
 class TimeAdvancementService(TimeAdvancementPort):
     def __init__(self, store: TimeStorePort, event_publisher: DomainEventPublisher,
                  recovery_service: "TimeStartRecoveryService | None" = None,
-                 weather_service=None) -> None:
+                 weather_service=None, edge_store=None) -> None:
         self.store = store
         self.event_publisher = event_publisher
-        self.recovery_service = recovery_service or TimeStartRecoveryService(store)
+        self.recovery_service = recovery_service or TimeStartRecoveryService(store, edge_store)
         # Step 27 — optional weather selection engine (may be None in tests).
         self.weather_service = weather_service
+        # Step 33 — the engine that runs the automatic events a time-start collected.
+        # Injected through a setter rather than the constructor, and deliberately so: the
+        # runner is EventService, which already depends on this service for
+        # force_time_end. Constructor injection either way would be a cycle; the setter
+        # closes the loop once, at wiring time. None is a legal state — every test that
+        # builds this service directly then behaves exactly as before Step 33.
+        self.automatic_event_runner = None
+
+    def set_automatic_event_runner(self, runner) -> None:
+        """Step 33 — see ``automatic_event_runner``. Called once, from the wiring."""
+        self.automatic_event_runner = runner
 
     # ── public API ──────────────────────────────────────────────────────────
 
@@ -60,12 +71,18 @@ class TimeAdvancementService(TimeAdvancementPort):
 
         current_clock = match["current_clock"]
         recovery: List[RecoveryItem] = []
+        counter_zero: List[Any] = []
         if triggered:
-            current_clock, recovery = self._advance_time(match)
+            current_clock, recovery, fired = self._advance_time(match)
+            # Step 33 — the same events, told to THIS player. The caller is the only
+            # recipient with an open request; the rest learn about it over the WebSocket
+            # once Steps 49-54 land, through this very method called once per player.
+            counter_zero = self._describe_counter_zero(match["id"], caller["id"], fired,
+                                                       current_clock)
 
         # After a time-end every character is awake again; otherwise the caller stays asleep.
         return SleepResult(match_uuid, caller["uuid"], not triggered, triggered,
-                           current_clock, recovery)
+                           current_clock, recovery, counter_zero)
 
     def clock(self, match_uuid: str, user_uuid: str) -> ClockResult:
         user_id = self._require_user(user_uuid)
@@ -97,18 +114,51 @@ class TimeAdvancementService(TimeAdvancementPort):
                 return False
         return True
 
+    def force_time_end(self, match_uuid: str) -> int:
+        """Step 29 — force a time end: put every character to sleep, then advance.
+
+        Exposed on the class and deliberately NOT on TimeAdvancementPort: nothing over REST
+        should be able to skip a time unit, only the engine. Note that _advance_time wakes
+        everybody right after, so the net observable state is "awake at clock+1"; the
+        forced_sleep flag the event returns records the transition.
+        """
+        match = self._require_match(match_uuid)
+        self.store.set_all_characters_sleeping(match["id"])
+        new_clock, _recovery, _fired = self._advance_time(match)
+        return new_clock
+
     def _advance_time(self, match: Dict[str, Any]):
         new_clock = self.store.increment_match_clock(match["id"])
         self.store.insert_clock_history(match["id"], new_clock)
         self.store.wake_all_characters(match["id"])
         # Step 26: per-character recovery, class bonuses and location counters.
-        recovery = self.recovery_service.apply_at_time_start(match["id"])
+        outcome = self.recovery_service.apply_at_time_start(match["id"])
+        # Step 33: the events that pass collected — counters that reached zero, and the
+        # locations whose id_event_if_character_start_time fires because a time unit began
+        # with somebody standing there. Run here rather than inside the recovery service:
+        # the event engine sits above it in the wiring, and an event can force a time end.
+        fired: List[Any] = []
+        if self.automatic_event_runner is not None and outcome.pending:
+            fired = self.automatic_event_runner.run_pending_automatic_events(
+                match["id"], new_clock, outcome.pending, DEFAULT_LANG)
         # Step 27: select the weather for the new time unit and apply its delta.
         if self.weather_service is not None:
             self.weather_service.apply_at_time_start(match["id"])
         self._rebuild_queue(match["id"], new_clock)
         self.event_publisher.publish(TimeAdvanced(match["uuid"], new_clock))
-        return new_clock, recovery
+        return new_clock, outcome.recovery, fired
+
+    def _describe_counter_zero(self, id_match: int, id_recipient_character,
+                               fired: List[Any], clock: int) -> List[Any]:
+        """Apply the per-recipient fog-of-war rule to an already-run list.
+
+        No runner (a unit test that built this service directly) means no automatic events
+        ran in the first place, so the list is empty either way.
+        """
+        if self.automatic_event_runner is None or not fired:
+            return []
+        return self.automatic_event_runner.describe_for_recipient(
+            id_match, id_recipient_character, clock, fired, DEFAULT_LANG)
 
     def _rebuild_queue(self, id_match: int, clock: int) -> None:
         characters = self.store.find_characters_by_match_id(id_match) or []

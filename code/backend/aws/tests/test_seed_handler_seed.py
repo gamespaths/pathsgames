@@ -37,8 +37,160 @@ def test_seed_route_inserts_users_and_stories():
         assert s.get('locationNeighbors') == s['neighbors']
 
 
+def test_seed_step29_events_cover_every_check_branch():
+    """Step 29: the tutorial story seeds one event per branch of the check procedure, plus
+    the unlocker for each blocked one — this is what the robot suite drives."""
+    from seed.handler import SEED_STORIES
+    tutorial = SEED_STORIES[0]
+    events = {e['id']: e for e in tutorial['events']}
+    effects = tutorial['eventEffects']
+
+    # Every event offered on /info must resolve a card: the suite executes an arbitrary
+    # available one and expects a localized card back, so a null idCard breaks it.
+    offered = [e for e in tutorial['events']
+               if e['type'] in ('NORMAL', 'ONCE') and e.get('idSpecificLocation')]
+    assert offered and all(e.get('idCard') for e in offered)
+
+    assert events[10]['costEnery'] == 1 and events[10]['type'] == 'NORMAL'
+    assert events[11]['type'] == 'ONCE'
+    assert events[12]['costEnery'] == 999                       # NOT_ENOUGH_ENERGY
+    assert events[13]['costCoin'] == 999                        # NOT_ENOUGH_COINS
+    assert events[14]['registryKeyCondition'] == 'STEP29_GATE'  # REGISTRY_CONDITION_NOT_MET
+    assert events[15]['idClassCondition'] == 1                  # CLASS_CONDITION_NOT_MET
+    assert events[16]['idWeather'] == 3                         # WEATHER_CONDITION_NOT_MET
+    assert events[17]['idSpecificLocation'] == 2                # WRONG_LOCATION
+    assert events[18]['idEventNext'] == 19                      # chain head -> tail
+    assert events[19]['idSpecificLocation'] is None             # tail is not listed on /info
+    assert events[24]['idItemCondition'] == 1                   # ITEM_CONDITION_NOT_MET
+    assert events[27]['type'] == 'AUTOMATIC'                    # EVENT_NOT_EXECUTABLE_TYPE
+
+    # Each gate has the effect that opens it.
+    assert any(e.get('keyToAdd') == 'STEP29_GATE' for e in effects)
+    assert any(e.get('itemAction') == 'ADD' and e['idEvent'] == 25 for e in effects)
+    assert any(e.get('idWeather') == 3 for e in effects)
+
+    # The backpack resources land on one single event, so the suite finds them together.
+    resources = {e['statistics']: e['value'] for e in effects
+                 if e['idEvent'] == 26 and e.get('statistics')}
+    assert resources == {'food': 3, 'magic': 2, 'coin': 9}
+
+
+def test_seed_gives_every_effect_row_a_uuid():
+    """v0.33.2: an AppliedEffect names its row through `effectUuid`, read straight off the
+    effect. No seeded row ever declared a uuid, so every AppliedEffect AWS returned — from
+    execute-event, from a resolved choice, from an automatic event — named a null effect."""
+    put_items = []
+    from seed.handler import lambda_handler
+    with patch('seed.handler.db_utils.put_item', side_effect=lambda item: put_items.append(item)), \
+         patch('seed.handler.db_utils.delete_all_by_pk', return_value=0), \
+         patch.dict(os.environ, {'ENV': 'dev'}):
+        lambda_handler(make_event('POST', '/api/dev/seed'), {})
+
+    stories = [i for i in put_items if i['PK'].startswith('STORY#')]
+    assert stories
+    seen = set()
+    total = 0
+    for story in stories:
+        # Not every seeded story authors effects — the second one seeds no event at all.
+        rows = (story.get('eventEffects') or []) + (story.get('choiceEffects') or [])
+        total += len(rows)
+        for row in rows:
+            assert row.get('uuid'), f"effect {row.get('id')} has no uuid"
+            # Unique across stories: the prefix carries the story uuid precisely so two
+            # stories numbering their effects from 1 cannot collide.
+            assert row['uuid'] not in seen, f"duplicate effect uuid {row['uuid']}"
+            seen.add(row['uuid'])
+    assert total, 'no seeded story authors an effect row at all'
+
+
+def test_seed_effect_uuids_are_stable_and_respect_authored_ones():
+    """Derived from the id, not random: a reseed must not rename a row that already
+    travelled to a client. An authored uuid wins over the derived one."""
+    from seed.handler import _ensure_effect_uuids
+
+    rows = [{"id": 1, "statistics": "exp"}, {"id": 2, "uuid": "eff-authored"}]
+    first = _ensure_effect_uuids(rows, "eff-story")
+    second = _ensure_effect_uuids(rows, "eff-story")
+
+    assert first[0]['uuid'] == 'eff-story-1'
+    assert first == second
+    assert first[1]['uuid'] == 'eff-authored'
+    # The caller's rows are left alone: the seed literal is module-level and reused.
+    assert 'uuid' not in rows[0]
+
+
 def test_seed_route_blocked_outside_dev():
     from seed.handler import lambda_handler
     with patch.dict(os.environ, {'ENV': 'prod'}):
         result = lambda_handler(make_event('POST', '/api/dev/seed'), {})
     assert result['statusCode'] == 403
+
+
+def _seeded_stories():
+    """Run the seed route and return the STORY items it wrote to DynamoDB."""
+    put_items = []
+    from seed.handler import lambda_handler
+    with patch('seed.handler.db_utils.put_item', side_effect=lambda item: put_items.append(item)), \
+         patch('seed.handler.db_utils.delete_all_by_pk', return_value=0), \
+         patch.dict(os.environ, {'ENV': 'dev'}):
+        lambda_handler(make_event('POST', '/api/dev/seed'), {})
+    return [i for i in put_items if i['PK'].startswith('STORY#')]
+
+
+def test_seed_projects_items_and_item_effects_onto_the_story():
+    """v0.34.0 — `_seed_stories` builds the story item from an EXPLICIT field list, so a
+    section declared in SEED_STORIES but missing from that list is dropped in silence.
+
+    That is exactly what happened to `items`/`itemEffects`: the inventory engine reads them
+    off the story item, and without them every carried row resolves to no story item —
+    weight 0, a null isConsumabile, and use-item refusing everything as ITEM_NOT_FOUND.
+    """
+    from seed.handler import SEED_STORIES
+
+    declared = {s['uuid']: s for s in SEED_STORIES}
+    tutorial = next(st for st in _seeded_stories()
+                    if declared.get(st['uuid'], {}).get('items'))
+
+    assert tutorial['items'], 'the declared items never reached the story item'
+    assert len(tutorial['items']) == len(declared[tutorial['uuid']]['items'])
+    # The two gates step 34 acts on must survive the projection.
+    by_id = {i['id']: i for i in tutorial['items']}
+    assert any(i.get('isConsumabile') == 1 for i in by_id.values())
+    assert any(i.get('isConsumabile') == 0 for i in by_id.values()), \
+        'the carried-only rule needs a non-consumable item to bite on'
+    assert any(i.get('idClassPermitted') for i in by_id.values())
+    assert all(i.get('weight') is not None for i in by_id.values())
+
+
+def test_seed_gives_every_item_effect_row_a_uuid():
+    """The use-item response addresses each applied effect by uuid, exactly as the event
+    effects do — so the item rows go through the same _ensure_effect_uuids helper."""
+    from seed.handler import SEED_STORIES
+
+    declared = {s['uuid']: s for s in SEED_STORIES}
+    for story in _seeded_stories():
+        for effect in story.get('itemEffects', []):
+            assert effect.get('uuid'), f"item effect without a uuid in {story['uuid']}"
+            assert effect.get('idItem'), 'an item effect must name its owning item'
+        # every declared row survived
+        assert len(story.get('itemEffects', [])) == \
+            len(declared.get(story['uuid'], {}).get('itemEffects', []))
+
+
+def test_seeded_items_are_reachable_by_the_inventory_engine():
+    """End to end over the seed: the engine must find a weight and a consumable flag for
+    every item an event effect hands out — that is what the robot suite depends on."""
+    from match import inventory
+    from seed.handler import SEED_STORIES
+
+    for story in _seeded_stories():
+        granted = {e['idItemTarget'] for e in story.get('eventEffects', [])
+                   if e.get('itemAction') == 'ADD' and e.get('idItemTarget')}
+        if not granted:
+            continue
+        by_id = inventory.items_by_id(story)
+        missing = granted - set(by_id)
+        assert not missing, f"story {story['uuid']} grants undeclared items {missing}"
+        # A bag holding one of each granted item must weigh something.
+        char = {'items': [{'uuid': f'r{i}', 'idItem': i, 'amount': 1} for i in granted]}
+        assert inventory.carried_weight(char, story) > 0

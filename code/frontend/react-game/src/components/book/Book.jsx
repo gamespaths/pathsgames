@@ -1,5 +1,7 @@
 import BookPageLeft from './BookPageLeft'
 import BookPageRight from './BookPageRight'
+import BookBookmarks from './BookBookmarks'
+import { SHOW_BOOK_BOOKMARKS } from '@/constants/features'
 
 /**
  * Book — full book UI: overlay + wrapper + spine + left/right pages.
@@ -12,6 +14,9 @@ import BookPageRight from './BookPageRight'
  *   overlayClass    string     class on the outer overlay div
  *   wrapperClass    string     class on the book-wrapper div
  *   mobile          ReactNode  optional extra element rendered below the book (mobile UI)
+ *   bookmarksLeft   Array      tabs over the left page (see BookBookmarks); [] for none
+ *   bookmarksRight  Array      tabs over the right page
+ *   showBookmarks   boolean    per-book override of the SHOW_BOOK_BOOKMARKS flag
  */
 export default function Book({
   left,
@@ -21,6 +26,9 @@ export default function Book({
   overlayClass  = 'book-overlay',
   wrapperClass  = 'book-wrapper',
   mobile        = null,
+  bookmarksLeft  = null,
+  bookmarksRight = null,
+  showBookmarks  = SHOW_BOOK_BOOKMARKS,
 }) {
   return (
     <div className={overlayClass}>
@@ -37,6 +45,9 @@ export default function Book({
         </div>
       )}
       <div className={wrapperClass}>
+        {/* Inside the wrapper on purpose: mobile hides it, and the tabs go with it. */}
+        {showBookmarks && <BookBookmarks items={bookmarksLeft} side="left" />}
+        {showBookmarks && <BookBookmarks items={bookmarksRight} side="right" />}
         <div className="book-spine" />
         <BookPageLeft>{left}</BookPageLeft>
         <BookPageRight>{right}</BookPageRight>

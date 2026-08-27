@@ -76,8 +76,13 @@ class FakeMovementStore:
     def update_character_location_and_energy(self, id_match, id_character, id_location, energy):
         self.updated = (id_character, id_location, energy)
 
-    def insert_movement_log(self, id_match, id_character, from_location, to_location, energy_cost):
+    def insert_movement_log(self, id_match, id_character, from_location, to_location,
+                            energy_cost, food_cost=0, magic_cost=0, coin_cost=0):
         self.logged = (id_character, from_location, to_location, energy_cost)
+        self.logged_resources = (food_cost, magic_cost, coin_cost)
+
+    def update_backpack_resources(self, id_match, id_character, food, magic, coin):
+        self.backpack_written = (id_character, food, magic, coin)
 
     def find_visited_location_ids(self, id_match):
         return list(self.visited)
@@ -103,6 +108,82 @@ def test_move_happy_path_safe(service, store):
     assert r.new_energy == 4
     assert store.updated == (50, 2, 4)
     assert store.logged == (50, 1, 2, 6)
+
+
+def test_v0353_the_edge_resources_are_checked_paid_logged_and_reported(store):
+    """v0.35.3 — a toll road: the edge's food/magic/coin leave the backpack with the move."""
+    store.character.update({"food": 5, "magic": 4, "coin": 9})
+    store.neighbors[1][0].update({"cost_food": 2, "cost_magic": 1, "cost_coin": 3})
+    service = MovementService(store)
+
+    r = service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
+
+    assert (r.food_spent, r.magic_spent, r.coin_spent) == (2, 1, 3)
+    assert (r.new_food, r.new_magic, r.new_coin) == (3, 3, 6)
+    assert store.backpack_written == (50, 3, 3, 6)
+    assert store.logged_resources == (2, 1, 3)
+
+
+def test_v0353_a_free_edge_writes_no_backpack_row(store):
+    service = MovementService(store)
+
+    service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
+
+    assert getattr(store, "backpack_written", None) is None
+
+
+def test_v0353_a_mover_one_coin_short_is_refused_and_nothing_is_written(store):
+    store.character.update({"food": 5, "magic": 5, "coin": 1})
+    store.neighbors[1][0].update({"cost_coin": 2})
+    service = MovementService(store)
+
+    with pytest.raises(MovementError) as exc:
+        service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
+
+    assert exc.value.code == MovementError.NOT_ENOUGH_COINS
+    assert store.updated is None
+    assert store.logged is None
+    assert getattr(store, "backpack_written", None) is None
+
+
+def test_step33_arrival_triggers_run_after_the_move_is_committed(store):
+    """Step 33 — the destination's entry triggers run once the move is committed, and what
+    they did comes back on the movement response."""
+    from unittest.mock import MagicMock
+    from app.core.models.match import location_entry_models as lem
+
+    entry = MagicMock()
+    fired = lem.AutomaticEventFired(lem.TRIGGER_FIRST_ENTRY, 2, "evt-welcome")
+    entry.on_arrival.return_value = [fired]
+    service = MovementService(store, location_entry=entry)
+
+    r = service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
+
+    assert [f.event_uuid for f in r.automatic_events] == ["evt-welcome"]
+    # The trigger resolution reads the character's NEW position, so it must run after both
+    # writes, never between them.
+    assert store.updated == (50, 2, 4)
+    assert store.logged == (50, 1, 2, 6)
+    arrival = entry.on_arrival.call_args[0][0]
+    assert (arrival.id_character, arrival.id_location) == (50, 2)
+
+
+def test_step33_without_the_location_engine_a_move_behaves_as_before(service):
+    r = service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
+    assert r.automatic_events == []
+
+
+def test_step33_a_refused_move_fires_no_arrival_trigger(store):
+    """Nobody arrived, so nothing may fire."""
+    from unittest.mock import MagicMock
+
+    entry = MagicMock()
+    service = MovementService(store, location_entry=entry)
+    store.character["energy"] = 1  # against a cost of 6
+
+    with pytest.raises(MovementError):
+        service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
+    entry.on_arrival.assert_not_called()
 
 
 def test_move_unsafe_weather(service, store):
@@ -144,7 +225,16 @@ def test_sleeping_blocked(service, store):
     store.character["is_sleeping"] = True
     with pytest.raises(MovementError) as e:
         service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
-    assert e.value.code == MovementError.CHARACTER_CANNOT_ACT
+    assert e.value.code == MovementError.SLEEPING
+
+
+def test_coma_blocked(service, store):
+    """Coma outranks sleep: a comatose character is also asleep, and only a rescue helps."""
+    store.character["is_sleeping"] = True
+    store.character["is_coma"] = True
+    with pytest.raises(MovementError) as e:
+        service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
+    assert e.value.code == MovementError.COMA
 
 
 def test_no_location(service, store):
@@ -250,6 +340,18 @@ def test_list_locations(service, store):
     assert loc.neighbors[0].weather_energy_cost == 3
     assert loc.neighbors[0].total_energy_cost == 6
     assert loc.neighbors[0].uuid == "loc-2"
+
+
+def test_list_locations_carries_authored_endpoints(service, store):
+    """`direction` is the authored from→to one, so the endpoints must travel with it:
+    without them a client cannot tell a forward traversal from a return one."""
+    store.visited = [2]
+    store.neighbors = {2: [{"id_from": 1, "id_to": 2, "direction": "NORTH",
+                            "energy_cost": 2, "flag_back": 1}]}
+    nb = service.list_locations(MATCH_UUID, "user-uuid")[0].neighbors[0]
+    assert nb.direction == "NORTH"
+    assert nb.id_location_from == 1
+    assert nb.id_location_to == 2
 
 
 def test_list_locations_skips_missing(service, store):

@@ -132,6 +132,10 @@ class TraitEntity(Base):
     id_text_description = Column(Integer)
     cost_positive = Column(Integer, default=0)
     cost_negative = Column(Integer, default=0)
+    # v0.35.2 — 1 hides the trait from the start-match picker and refuses it if selected
+    # anyway; 0/None leave it pickable. It never blocks OWNING the trait: an event or an
+    # item may still grant it through traits_to_add, which is the point of the flag.
+    hide_on_start_match = Column(Integer, default=0)
     id_class_permitted = Column(Integer)
     id_class_prohibited = Column(Integer)
     life = Column(Integer, default=0)
@@ -176,6 +180,14 @@ class LocationEntity(Base):
     id_event_if_counter_zero = Column(Integer)
     counter_time = Column(Integer)
     id_card = Column(Integer)
+    # Step 33 — the location-side trigger columns. They have existed in the Java schema
+    # since V0.10.3; Python never carried them because nothing read them. The engine does
+    # now. A null column is not a trigger.
+    id_event_if_first_time = Column(Integer)
+    id_event_not_first_time = Column(Integer)
+    id_event_if_character_enter_empty_location = Column(Integer)
+    id_event_if_character_start_time = Column(Integer)
+    priority_automatic_event = Column(Integer, default=0)
 
 
 class LocationNeighborEntity(Base):
@@ -193,11 +205,24 @@ class LocationNeighborEntity(Base):
     direction = Column(String(20))
     flag_back = Column(Integer, nullable=False, default=0)
     energy_cost = Column(Integer, default=1)
+    # v0.35.3 — resources the mover pays for this EDGE. Energy sums edge + destination entry
+    # + weather; these have one source, the edge itself.
+    cost_food = Column(Integer, default=0)
+    cost_magic = Column(Integer, default=0)
+    cost_coin = Column(Integer, default=0)
     condition_key = Column(String(255))
     condition_value = Column(String(255))
 
 
 class ItemEntity(Base):
+    """v0.34.0 — realigned onto the Java column set.
+
+    `is_consumabile` and the two class-restriction columns were missing, so the step 34
+    rules (only a consumable can be used; the character's class must be allowed) were not
+    expressible here at all. The old lone `id_class` was disjoint from the Java schema and
+    nothing read it. Same realignment `EventEffectEntity` already went through.
+    """
+
     __tablename__ = "list_items"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
@@ -207,18 +232,41 @@ class ItemEntity(Base):
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     weight = Column(Integer, default=0)
-    id_class = Column(Integer)
+    # 1 = can be consumed with use-item; 0 = carried only (weight + item conditions).
+    is_consumabile = Column(Integer, default=1)
+    # v0.35.0 — 1/None report the effects[] promise before the item is used, 0 keeps the
+    # secret. Nullable: a story authored before the column existed already shipped the
+    # promise, so an absence must read as "shown", never as a refusal.
+    flag_show_effects = Column(Integer, default=1)
+    # v0.35.1 — how many units one character may hold (0/None = no limit), and how many
+    # units one drop / one use moves (None = 1).
+    max_per_character = Column(Integer)
+    amount_drop = Column(Integer)
+    amount_use = Column(Integer)
+    id_class_permitted = Column(Integer)
+    id_class_prohibited = Column(Integer)
 
 
 class ItemEffectEntity(Base):
+    """v0.34.0 — the EFFECT side of an item, one row per effect.
+
+    `effect_type` was renamed to `effect_code` to match the Java column, and the trait CSVs
+    were added: same names, same comma-separated-ids format as `list_events_effects`.
+    The code is case-insensitive and speaks the engine vocabulary, with the single alias
+    SADNESS -> sad.
+    """
+
     __tablename__ = "list_items_effects"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
     id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
+    uuid = Column(String(36))
     id_card = Column(Integer)
     id_item = Column(Integer)
-    effect_type = Column(String(50))
+    effect_code = Column(String(50))
     effect_value = Column(Integer)
+    traits_to_add = Column(String(200))
+    traits_to_remove = Column(String(200))
 
 
 class WeatherRuleEntity(Base):
@@ -243,6 +291,18 @@ class WeatherRuleEntity(Base):
 
 
 class EventEntity(Base):
+    """v0.29.0 — the CONDITION side of an event.
+
+    Realigned onto the Java column names (the reference implementation): the table used to
+    call these `event_type` and `energy_cost`, which meant a Java-authored story imported
+    into Python silently lost its costs. Everything an event DOES now lives on
+    EventEffectEntity; what is left here is the cost, the chain, and the conditions — all
+    of which combine in AND.
+
+    `cost_enery` keeps the historical typo of the shared DDL on purpose: the JSON contract,
+    the admin form and the Java entity all spell it that way.
+    """
+
     __tablename__ = "list_events"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
@@ -251,30 +311,66 @@ class EventEntity(Base):
     id_card = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
-    event_type = Column(String(50))
-    trigger_type = Column(String(50))
-    energy_cost = Column(Integer, default=0)
-    coin_cost = Column(Integer, default=0)
-    id_event_next = Column(Integer)
-    flag_interrupt = Column(Integer, default=0)
+    # AUTOMATIC / FIRST / NORMAL / ONCE (free text: authored stories also use END, END_GAME).
+    # Only NORMAL and ONCE are player-executable; ONCE is spent once per MATCH.
+    type = Column(String(50))
+    cost_enery = Column(Integer, default=0)
+    # v0.35.3 — coin_cost renamed to cost_coin; food and magic joined it as real costs.
+    cost_coin = Column(Integer, default=0)
+    cost_food = Column(Integer, default=0)
+    cost_magic = Column(Integer, default=0)
     flag_end_time = Column(Integer, default=0)
-    # The owning location of a location-specific event. Named to match the shared
-    # contract / Java column `id_specific_location` (camelCase idSpecificLocation),
-    # so the admin CRUD and match-info agree on a single field.
+    id_event_next = Column(Integer)
+    # ── conditions (AND) ────────────────────────────────────────────────────
+    # The owning location of a location-specific event; NULL = no location constraint.
     id_specific_location = Column(Integer)
+    # CONDITION: the match's current weather must equal this. Beware the mirror —
+    # EventEffectEntity.id_weather carries the same name but SETS the weather.
+    id_weather = Column(Integer)
+    registry_key_condition = Column(String(200))
+    registry_value_condition = Column(String(500))
+    id_item_condition = Column(Integer)
+    id_class_condition = Column(Integer)
+    # DEPRECATED v0.29.0: ignored by the engine. Items are granted through effects.
+    id_item_to_add = Column(Integer)
 
 
 class EventEffectEntity(Base):
+    """v0.29.0 — the EFFECT side of an event, one row per effect.
+
+    Realigned onto the Java column set; the old `effect_type`/`effect_value`/`flag_group`
+    trio was disjoint from it, so no Java-authored effect survived an import.
+    The inherited `id_card` is the row's NARRATIVE card — that, not the event's card, is
+    what the board renders.
+    """
+
     __tablename__ = "list_events_effects"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
     id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
+    uuid = Column(String(36))
+    id_card = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     id_event = Column(Integer)
-    effect_type = Column(String(50))
-    effect_value = Column(Integer)
-    flag_group = Column(Integer, default=0)
+    # life, energy, sad, exp, dex, int, cos, food, magic, coin
+    statistics = Column(String(50))
+    value = Column(Integer, default=0)
+    # ALL = every character in the actor's location (INV-27); ONLY_ONE = the actor.
+    target = Column(String(20), default="ALL")
+    target_class = Column(Integer)
+    traits_to_add = Column(String(200))
+    traits_to_remove = Column(String(200))
+    id_item_target = Column(Integer)
+    item_action = Column(String(20))
+    key_to_add = Column(String(200))
+    key_value_to_add = Column(String(500))
+    characteristic_to_add = Column(String(200))
+    characteristic_to_remove = Column(String(200))
+    # EFFECT: sets gaming_match.id_current_weather (the opposite of EventEntity.id_weather).
+    id_weather = Column(Integer)
+    # EFFECT (v0.29.3): moves the recipients to this location — no Step 28 checks, no energy.
+    id_location = Column(Integer)
 
 
 class ChoiceEntity(Base):
@@ -285,12 +381,28 @@ class ChoiceEntity(Base):
     uuid = Column(String(36))
     id_card = Column(Integer)
     id_event = Column(Integer)
+    # Deprecated since Step 31 (R8): a choice binds to an event, never to a location.
+    id_location = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
+    # The post-selection narrative — revealed by Step 32, never on the pending options.
+    id_text_narrative = Column(Integer)
     priority = Column(Integer, default=0)
     is_otherwise = Column(Integer, default=0)
     is_progress = Column(Integer, default=0)
     id_event_torun = Column(Integer)
+    # Step 31 inline limits: dex/int/cos are minimums, sad is a maximum. NULL = no limit.
+    limit_sad = Column(Integer)
+    limit_dex = Column(Integer)
+    limit_int = Column(Integer)
+    limit_cos = Column(Integer)
+    # AND (default) or OR — how the list_choices_conditions rows combine (INV-31).
+    logic_operator = Column(String(10), default="AND")
+    # v0.35.3 RESERVED: no engine, no form and no import/export reads these yet. They exist
+    # so the option-level cost, when it lands, is not a second migration.
+    cost_food = Column(Integer, default=0)
+    cost_magic = Column(Integer, default=0)
+    cost_coin = Column(Integer, default=0)
 
 
 class ChoiceConditionEntity(Base):
@@ -298,26 +410,62 @@ class ChoiceConditionEntity(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=False)
     id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
+    # The admin CRUD addresses every entity by uuid (create re-reads by it, update and
+    # delete filter on it). The schema has carried this column since V0.10.4; the model
+    # dropped it, so create/get/update/delete of a choice-condition raised
+    # AttributeError on this backend — the same drift Step 32 fixed on ChoiceEffectEntity.
+    uuid = Column(String(36))
     id_card = Column(Integer)
     id_choice = Column(Integer)
     condition_type = Column(String(50))
     condition_key = Column(String(255))
     condition_value = Column(String(255))
-    condition_operator = Column(String(10), default="AND")
+    # The per-row COMPARATOR (=, !=, >, <) — the AND/OR combiner lives on the choice
+    # (logic_operator). The old "AND" default conflated the two (fixed in Step 31).
+    condition_operator = Column(String(10), default="=")
 
 
 class ChoiceEffectEntity(Base):
+    """Step 32 — what a selected option does, one row per effect.
+
+    Realigned onto the Java column set, the way `EventEffectEntity` was in Step 29 and for
+    the same reason: the old `effect_type`/`effect_value` pair was disjoint from the
+    canonical `statistics`/`value`, so nothing a Java-authored story wrote in those columns
+    survived an import here. The row also gained `uuid` (the response identifies each
+    applied effect by it) and the whole effect vocabulary the resolution engine speaks.
+
+    The inherited `id_card` is the row's NARRATIVE card — that, not the choice's card, is
+    what the board renders for this effect.
+    """
+
     __tablename__ = "list_choices_effects"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
     id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
+    uuid = Column(String(36))
     id_card = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     id_choice = Column(Integer)
-    effect_type = Column(String(50))
-    effect_value = Column(Integer)
+    # life, energy, sad, exp, dex, int, cos, food, magic, coin
+    statistics = Column(String(50))
+    value = Column(Integer, default=0)
+    # 1 = every character in the actor's location (INV-46); 0 = the actor alone.
     flag_group = Column(Integer, default=0)
+    # The registry pair: value_to_add SETS the key, value_to_remove clears it — but only
+    # when the stored value still matches, so an option cannot wipe a key the story moved on.
+    key = Column(String(200))
+    value_to_add = Column(String(500))
+    value_to_remove = Column(String(500))
+    # ── v0.32.0 effect targets, twins of the list_events_effects columns ──
+    # EFFECT: runs that event inline, with its whole id_event_next chain.
+    id_event = Column(Integer)
+    # EFFECT: moves the recipients there — no adjacency check, no energy cost.
+    id_location = Column(Integer)
+    # EFFECT: SETS gaming_match.id_current_weather, once per row.
+    id_weather = Column(Integer)
+    id_item_target = Column(Integer)
+    item_action = Column(String(20))
 
 
 class GlobalRandomEventEntity(Base):

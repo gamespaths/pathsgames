@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { translationsWithHtmlLineBreaks } from '../../../utils/htmlLineBreaks'
 
 export default function FastTextCreatorModal({
   open,
@@ -52,10 +53,14 @@ export default function FastTextCreatorModal({
         uuidStory: storyUuid,
         id: Number(idText),
         idText: Number(idText),
-        translations: {
+        // Every newline the author typed is stamped with a <br /> on the way out: the
+        // boards render these texts as HTML, where a bare newline would collapse. The
+        // newline itself is kept, and the conversion is idempotent, so reopening and
+        // re-saving a text does not stack breaks (see utils/htmlLineBreaks).
+        translations: translationsWithHtmlLineBreaks({
           en: { shortText: enShortText, longText: enLongText },
           it: { shortText: itShortText, longText: itLongText },
-        },
+        }),
       })
       setSaving(false)
       onClose(result)

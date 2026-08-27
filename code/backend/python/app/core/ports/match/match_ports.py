@@ -84,6 +84,13 @@ class MatchPersistencePort(ABC):
         ...
 
     @abstractmethod
+    def has_active_match_for_story(self, user_id: int, story_id: int,
+                                   statuses) -> bool:
+        """v0.32.1 — True when ``user_id`` already owns a match on ``story_id``
+        whose status is one of ``statuses``. Backs the duplicate-match guard of
+        match creation. Returns False when any argument is missing."""
+
+    @abstractmethod
     def find_all_matches(self) -> List[Dict[str, Any]]:
         """Return every ``gaming_match`` row, newest first."""
 
@@ -232,6 +239,13 @@ class StoryMatchReadPort(ABC):
         resolve a character's inventory items and carried weight."""
         ...
 
+    @abstractmethod
+    def find_item_effects_by_item_id(self, story_id: int) -> Dict[int, List[Dict[str, Any]]]:
+        """Step 35 — every list_items_effects row of the story, grouped by id_item, in id
+        order. Same shape and same name as InventoryStorePort's: the match /info items[]
+        promise exactly what the inventory endpoint promises, and what use-item applies."""
+        ...
+
 
 class CharacterCommandPort(ABC):
     @abstractmethod
@@ -289,6 +303,13 @@ class CharacterPersistencePort(ABC):
                                energy: Optional[int], life: Optional[int],
                                sad: Optional[int]) -> None:
         """Admin: persist updated base stats on the character instance. None = skip."""
+
+    @abstractmethod
+    def update_character_flags(self, match_id: int, character_id: int,
+                               sleeping: Optional[bool], coma: Optional[bool]) -> None:
+        """Admin: persist the character's state flags. None = leave the flag as it is. Waking a
+        character out of a coma is what a rescue will do on its own in step 59; until then this
+        is the only way back."""
 
     @abstractmethod
     def update_backpack_stats(self, match_id: int, character_id: int,

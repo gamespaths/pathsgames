@@ -164,3 +164,150 @@ def test_get_character_found(env):
     assert info.life == 137
     assert info.trait_uuids == ["trait-1"]
     assert info.magic == 2
+
+
+# ── Step 34: inventory masking, item cards and the language ──────────────────
+
+def _party_match():
+    return {"id": 1, "uuid": "match-uuid", "id_story": 5}
+
+
+def _party_character(cid, id_user):
+    return {"id": cid, "uuid": f"char-{cid}", "id_user": id_user,
+            "id_character_template": None, "id_class": None, "id_location": None,
+            "dexterity": 1, "intelligence": 1, "constitution": 1, "energy": 1,
+            "life": 1, "sad": 0, "life_max": 1, "energy_max": 1, "sad_max": 1,
+            "weight_max": 30, "is_sleeping": False, "is_coma": False, "clock_in_coma": None,
+            "exp": 0}
+
+
+def _party_ports():
+    from unittest.mock import MagicMock
+    story = MagicMock()
+    story.find_character_templates_by_story_id.return_value = []
+    story.find_traits_by_story_id.return_value = []
+    story.find_locations_by_story_id.return_value = []
+    story.find_items_by_story_id.return_value = [{
+        "id": 8, "uuid": "item-uuid", "weight": 2, "id_card": 77,
+        "id_text_name": 99, "is_consumabile": 1,
+        "id_class_permitted": None, "id_class_prohibited": None}]
+    story.find_card_by_story_id_and_card_id.return_value = {"uuid": "card-77"}
+    story.find_text_by_story_id_text_and_lang.return_value = {"short_text": "Corda"}
+    story.find_item_effects_by_item_id.return_value = {}
+
+    chars = MagicMock()
+    chars.find_backpack.return_value = {}
+    chars.find_traits.return_value = []
+    chars.find_inventory.return_value = [
+        {"uuid": "inv-1", "id_item": 8, "amount": 2, "state": "ACTIVE"}]
+    return story, chars
+
+
+def test_items_are_masked_for_the_other_players():
+    """The key stays on every player; only the requester's array is populated."""
+    from app.core.services.match.character_query_service import build_character_infos
+    story, chars = _party_ports()
+
+    players = build_character_infos(
+        [_party_character(10, 7), _party_character(11, 8)], _party_match(),
+        story, chars, "user-uuid", 7, lang="en", mask_other_inventories=True)
+
+    assert len(players[0].items) == 1
+    assert players[1].items == []
+    # The masked branch does not even query the other player's inventory.
+    chars.find_inventory.assert_called_once_with(1, 10)
+
+
+def test_the_admin_view_is_not_masked():
+    """It has no requester at all — masking would blank every player in the console."""
+    from app.core.services.match.character_query_service import build_character_infos
+    story, chars = _party_ports()
+
+    players = build_character_infos(
+        [_party_character(10, 7), _party_character(11, 8)], _party_match(),
+        story, chars, None, None, lang="en", mask_other_inventories=False)
+
+    assert len(players[0].items) == 1
+    assert len(players[1].items) == 1
+
+
+def test_item_cards_and_names_are_resolved_in_the_requested_language():
+    from app.core.services.match.character_query_service import build_character_infos
+    story, chars = _party_ports()
+
+    item = build_character_infos([_party_character(10, 7)], _party_match(), story, chars,
+                                 "user-uuid", 7, lang="it",
+                                 mask_other_inventories=True)[0].items[0]
+
+    assert item.id_card == 77
+    assert item.card == {"uuid": "card-77"}
+    assert item.name == "Corda"
+    assert item.is_consumabile is True
+    story.find_text_by_story_id_text_and_lang.assert_called_once_with(5, 99, "it")
+
+
+def test_the_info_items_promise_the_effects_of_using_them():
+    """Step 35 — the same promise the inventory endpoint reports, one query for the story."""
+    from app.core.services.match.character_query_service import build_character_infos
+    story, chars = _party_ports()
+    story.find_item_effects_by_item_id.return_value = {8: [
+        {"id": 1, "effect_code": "LIFE", "effect_value": 3},
+        {"id": 2, "effect_code": "WISDOM", "effect_value": 9},
+    ]}
+
+    players = build_character_infos(
+        [_party_character(10, 7), _party_character(11, 8)], _party_match(),
+        story, chars, "user-uuid", 7, lang="en", mask_other_inventories=True)
+
+    effects = players[0].items[0].effects
+    # The unknown code is not promised: apply_stat would drop it in silence.
+    assert [(e.statistic, e.value) for e in effects] == [("life", 3)]
+    story.find_item_effects_by_item_id.assert_called_once_with(5)
+
+
+def test_the_info_items_carry_the_authored_quantities():
+    """v0.35.1 — the same three numbers the inventory endpoint reports: one mapper."""
+    from app.core.services.match.character_query_service import build_character_infos
+    story, chars = _party_ports()
+    story.find_items_by_story_id.return_value = [{
+        "id": 8, "uuid": "item-uuid", "weight": 2, "id_card": 77, "id_text_name": 99,
+        "is_consumabile": 1, "max_per_character": 3, "amount_drop": 2, "amount_use": 2,
+        "id_class_permitted": None, "id_class_prohibited": None}]
+
+    item = build_character_infos([_party_character(10, 7)], _party_match(), story, chars,
+                                 "user-uuid", 7, lang="en",
+                                 mask_other_inventories=True)[0].items[0]
+
+    assert (item.max_per_character, item.amount_drop, item.amount_use) == (3, 2, 2)
+
+
+def test_a_secret_item_promises_nothing_on_info():
+    """v0.35.0 — flag_show_effects = 0 hides the promise on /info too, not only on
+    the inventory endpoint: one gate, read by the one shared helper."""
+    from app.core.services.match.character_query_service import build_character_infos
+    story, chars = _party_ports()
+    story.find_items_by_story_id.return_value = [{
+        "id": 8, "uuid": "item-uuid", "weight": 2, "id_card": 77,
+        "id_text_name": 99, "is_consumabile": 1, "flag_show_effects": 0,
+        "id_class_permitted": None, "id_class_prohibited": None}]
+    story.find_item_effects_by_item_id.return_value = {8: [
+        {"id": 1, "effect_code": "LIFE", "effect_value": 3}]}
+
+    players = build_character_infos(
+        [_party_character(10, 7)], _party_match(), story, chars,
+        "user-uuid", 7, lang="en", mask_other_inventories=True)
+
+    assert players[0].items[0].effects == []
+
+
+def test_the_default_call_keeps_the_pre_step34_behaviour():
+    """No lang and no masking: English, every player's items visible."""
+    from app.core.services.match.character_query_service import build_character_infos
+    story, chars = _party_ports()
+
+    players = build_character_infos(
+        [_party_character(10, 7), _party_character(11, 8)], _party_match(),
+        story, chars, "user-uuid", 7)
+
+    assert len(players[1].items) == 1
+    story.find_text_by_story_id_text_and_lang.assert_called_with(5, 99, "en")

@@ -58,11 +58,12 @@ class StoryCrudServiceTypesTest {
         Map<String, Object> m = new java.util.HashMap<>();
         m.put("idTextNarrative", 1); m.put("idImage", 1); m.put("isSafe", 1); m.put("costEnergyEnter", 1); m.put("counterTime", 1);
         m.put("idEventIfCounterZero", 1); m.put("secureParam", 1); m.put("idEventIfCharacterStartTime", 1);
-        m.put("idEventIfCharacterEnterFirstTime", 1); m.put("idEventIfFirstTime", 1); m.put("idEventNotFirstTime", 1);
+        m.put("idEventIfCharacterEnterEmptyLocation", 1); m.put("idEventIfFirstTime", 1); m.put("idEventNotFirstTime", 1);
         m.put("priorityAutomaticEvent", 1); m.put("idAudio", 1); m.put("maxCharacters", 1);
         m.put("idSpecificLocation", 1); m.put("type", "t"); m.put("costEnery", 1); m.put("flagEndTime", 1);
         m.put("characteristicToAdd", "c"); m.put("characteristicToRemove", "c"); m.put("keyToAdd", "k");
         m.put("keyValueToAdd", "v"); m.put("idItemToAdd", 1); m.put("idWeather", 1); m.put("idEventNext", 1);
+        m.put("idLocation", 1);
         m.put("coinCost", 1); m.put("weight", 1); m.put("isConsumabile", 1); m.put("idClassPermitted", 1);
         m.put("idClassProhibited", 1); m.put("expCost", 1); m.put("maxWeight", 1); m.put("minCharacter", 1);
         m.put("maxCharacter", 1); m.put("costHelpComa", 1); m.put("costMaxCharacteristics", 1);

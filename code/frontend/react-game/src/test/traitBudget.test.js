@@ -5,6 +5,8 @@ import {
   canAddTrait,
   isTraitSelected,
   toggleTrait,
+  selectableTraits,
+  isTraitHiddenOnStartMatch,
 } from '../utils/traitBudget'
 
 const TR_POS = { uuid: 'tr-pos', costPositive: 1, costNegative: 0 }
@@ -65,5 +67,28 @@ describe('isTraitSelected / toggleTrait', () => {
     expect(added).toEqual([TR_POS, TR_NEG])
     expect(selection).toEqual([TR_POS])
     expect(toggleTrait(TR_NEG, added)).toEqual([TR_POS])
+  })
+})
+
+describe('traits hidden from the start-match picker (v0.35.2)', () => {
+  const PICKABLE = { uuid: 't1' }
+  const EXPLICIT = { uuid: 't2', hideOnStartMatch: false }
+  const HIDDEN = { uuid: 't3', hideOnStartMatch: true }
+
+  it('drops only the traits the story flagged', () => {
+    expect(selectableTraits([PICKABLE, HIDDEN, EXPLICIT]).map(t => t.uuid))
+      .toEqual(['t1', 't2'])
+  })
+
+  it('reads a missing flag as pickable — every pre-v0.35.2 trait was', () => {
+    expect(isTraitHiddenOnStartMatch(PICKABLE)).toBe(false)
+    expect(isTraitHiddenOnStartMatch(EXPLICIT)).toBe(false)
+    expect(isTraitHiddenOnStartMatch(HIDDEN)).toBe(true)
+    expect(isTraitHiddenOnStartMatch(null)).toBe(false)
+  })
+
+  it('survives a story with no traits at all', () => {
+    expect(selectableTraits(undefined)).toEqual([])
+    expect(selectableTraits(null)).toEqual([])
   })
 })

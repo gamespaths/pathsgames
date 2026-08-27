@@ -84,9 +84,19 @@
           "name": "Training Potion",
           "weight": 2,
           "amount": 2,
-          "state": "ACTIVE"
+          "state": "ACTIVE",
+          "idCard": 77,
+          "card": {
+            "uuid": "card-77",
+            "title": "Healing Potion",
+            "awesomeIcon": "fas fa-flask"
+          },
+          "isConsumabile": true
         }
-      ]
+      ],
+      "food": 4,
+      "magic": 2,
+      "coin": 9
     }
   ],
   "locationsActive": [
@@ -103,7 +113,7 @@
         {
           "idLocation": 1002,
           "uuid": "loc-002",
-          "direction": "N",
+          "direction": "NORTH",
           "flagBack": 1,
           "energyCost": 2,
           "idLocationFrom": 1002,
@@ -136,7 +146,7 @@
         {
           "idLocation": 1003,
           "uuid": "loc-003",
-          "direction": "E",
+          "direction": "EAST",
           "flagBack": 1,
           "energyCost": 1,
           "idLocationFrom": 1001,

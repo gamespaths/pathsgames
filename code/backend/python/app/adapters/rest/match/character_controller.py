@@ -32,6 +32,7 @@ _STATUS_BY_CODE = {
     CharacterJoinError.TRAIT_DUPLICATED: status.HTTP_400_BAD_REQUEST,
     CharacterJoinError.TRAIT_NOT_COMPATIBLE: status.HTTP_400_BAD_REQUEST,
     CharacterJoinError.TRAIT_COST_EXCEEDED: status.HTTP_400_BAD_REQUEST,
+    CharacterJoinError.TRAIT_NOT_SELECTABLE: status.HTTP_400_BAD_REQUEST,
 }
 
 

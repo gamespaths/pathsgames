@@ -47,6 +47,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- Weight & Capacity: Every consumable item has a weight.
 		- Max Capacity Calculation: $Constitution + Difficulty Parameter + Default Inventory Capacity.
 		- Current Load: The sum of Food + Magic + Coins + Total Item Weight. This must not exceed the Max Capacity.
+			- *Note (v0.35.3, not a rewrite of the original idea): the implemented formula differs — only item weight counts (`Σ item.weight × amount`); food, magic and coins never weigh anything. Source of truth: [Step34_InventoryAndResources.md §7](./Step34_InventoryAndResources.md#7-carried-weight-and-movement-step-35).*
 		- Quest Items / Static Objects: These are non-consumable and managed via the State Registry; they do not count towards inventory weight.
 		- Encumbrance: If a character's weight exceeds their capacity, they are immobilized and cannot move.
 		- Every character has characteristics dexterity, intelligence, constitution. Starting value is from character class. Value is always >=0.
@@ -67,6 +68,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- Recovery at Time Start: At the beginning of each Time, characters recover stats based on their current location's Safety Parameter:	
 			- In a Safe Location: Gain DES + P energy, COS + secure_param life, and lose INT + secure_param sadness (P = secure_param + difficulty.energy).
 			- In an Unsafe Location: Gain only difficulty.energy (no DES, no life recovery or sadness reduction).
+		- Coma: if a player is on safe location and in coma, execute "to sleep" action recover life/sadness and wake up (coma status is removed).
 	- Turn Management & Concurrency (The Turn Loop): The game uses a dynamic turn system managed via WebSockets to ensure real-time updates:
 		- Turn sequence: Calculated at the start of every Time Unit using a specific formula. The character with the highest value acts first. In case of a tie, the id_character_match acts as a tie-breaker.
 		- Action Flow: Active characters act in sequence. A player can perform multiple actions during their turn as long as they have energy.
@@ -87,7 +89,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- Automatic Event Triggers (Zero Energy):
 			- AUTOMATIC_FIRST_ENTRY: Triggers when a character enters the location for the very first time.
 			- AUTOMATIC_SUBSEQUENT_ENTRY: Triggers on every entry from the second time onward.
-			- AUTOMATIC_FIRST_IN_LOCATION: Triggers only if the character enters and find the location empty (no other characters present).
+			- AUTOMATIC_MOVE_INTO_EMPTY_LOCATION: Triggers only if the character enters and find the location empty (no other characters present).
 			- TIME_START_IN_LOCATION: Triggers automatically at the beginning of a new Time Unit if the character is already there.
 			- Optional Interactions: A list of events or encounters that the player can choose to trigger, potentially requiring a specific energy or resource cost.
 		- Time-Limited Locations: Some locations feature a initial_time_counter. The counter decrements each Time Unit.
@@ -200,13 +202,13 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 	8. `list_classes_bonus` (id, id_card, id_story, id_class, statistic, value, id_text_name, id_text_description)
 	9. `list_traits` (id, id_card, id_story, id_class_permitted, id_class_prohibited, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight)
 	10. `list_character_templates` (id_tipo, id_card, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited), 
-	11. `list_locations` (id, id_card, id_story, id_text_name, id_text_description, id_text_narrative, id_image, is_safe,  (boolean), cost_energy_enter, counter_time, id_event_if_counter_zero, secure_param, id_event_if_character_start_time, id_event_if_character_enter_first_time, id_event_if_first_time, id_event_not_first_time, priority_automatic_event, id_audio, max_characters)
+	11. `list_locations` (id, id_card, id_story, id_text_name, id_text_description, id_text_narrative, id_image, is_safe,  (boolean), cost_energy_enter, counter_time, id_event_if_counter_zero, secure_param, id_event_if_character_start_time, id_event_if_character_enter_empty_location, id_event_if_first_time, id_event_not_first_time, priority_automatic_event, id_audio, max_characters)
 	12. `list_locations_neighbors` (id, id_story, id_location_from, id_location_to, direction=NORTH/SOUTH/EAST/WEST/ABOVE/BELOW/SKY , flag_back (boolean), condition_registry_key, condition_registry_value, energy_cost, id_text_go, id_text_back
 	13. `list_items` (id, id_card, id_story, id_text_name, id_text_description, weight, is_consumabile, id_class_permitted, id_class_prohibited)
 	14. `list_items_effects` (id, id_story, id_item, id_text_name, id_text_description, effect_code=LIFE, effect_value=2)
 	15. `list_weather_rules` (id, id_card, id_story, id_text_name, id_text_description, probability, cost_move_safe_location, cost_move_not_safe_location, condition_key, condition_key_value, time_from, time_to, id_text, active, priority, delta_energy, id_event)
 	16. `list_events` (id, id_card, id_story, id_specific_location, id_text_name, id_text_description, type=AUTOMATIC/FIRST/NORMAL/ONCE, cost_enery, flag_end_time, id_item, id_weather, id_event_next, coin_cost , registry_name, registry_value, id_class 
-	17. `list_events_effects` (id, id_card, id_story, id_event, statistics (live, energy, exp,...), value, target (ALL,ONLY_ONE), target_class, id_item_target, item_action (REMOVE, ADD), "traits_to_add", "traits_to_remove" e characteristic_to_add, characteristic_to_remove, key_to_add, key_value_to_add) [example: enter in a room with a trap -> -1 life, meet gandalf -> add  10 enerty, magic trap -> only wizards, arrested -> itemX removed]
+	17. `list_events_effects` (id, id_card, id_story, id_event, statistics (live, energy, exp,...), value, target (ALL,ONLY_ONE), target_class, id_item_target, item_action (REMOVE, ADD), "traits_to_add", "traits_to_remove" e characteristic_to_add, characteristic_to_remove, key_to_add, key_value_to_add, id_location) [example: enter in a room with a trap -> -1 life, meet gandalf -> add  10 enerty, magic trap -> only wizards, arrested -> itemX removed]
 	18. `list_choices` (id, id_card, id_story, id_event, id_location, priority, id_text_name, id_text_description, id_text_narrative, id_event_torun, limit_sad, limit_dex, limit_int, limit_cos, otherwise_flag (boolean), is_progress (true -> insert progress ) logic_operator (AND/OR))
 	19. `list_choices_conditions` (id, id_story, id_choices, type (KEYS, ITEM, CLASS, LOCATION, ALL_IN_SAME_LOC, traits, statistics, statistics_SUM, ), key, value, operator (= > < !=), id_text_name, id_text_description
 	20. `list_choices_effects` (id, id_story, id_choices, id_scelta, flag_group, statistics (life, energy, sad, DEX, COS, INT), value, id_text, key, value_to_add, value_to_remove)
@@ -305,7 +307,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 	- Gameplay actions
 		- POST `/gameplay/{uuid_match}/action/ask-help`: To send a message to all characters to ask help
 		- POST `/gameplay/{uuid_match}/action/help-player`: To help a player in same location
-		- POST `/gameplay/{uuid_match}/action/execute-event`: Execute an event 
+		✅ POST `/gameplay/{uuid_match}/action/execute-event`: Execute an event 
 		- POST `/gameplay/{uuid_match}/action/select-choice`: Send an choice option selected 
 		✅ POST `/gameplay/{uuid_match}/action/sleep`: Send a sleep *action*
 		- POST `/gameplay/{uuid_match}/action/pass`: Send a pass *action* (could run gameover)
@@ -517,6 +519,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- se registro_chiave, registro_valore allora chiaveRegistroAggiungi
 		- se elenco_eventi_effetti="MOVIMENTO" allora spaceMoveInto e space (capire come)
 		- se meteo_causato allora timeSet e flag interrompi eventi successivi
+		- se id_location allora spostare il characters nella location indicata senza alcun controllo (energia)
 	- 91e eventAddObject
 		- se id_oggetto_da_aggiungere allora inventoryCheckSufficientCapacity e inventoryAdd
 	- 91f eventTriggerChoice		

@@ -10,7 +10,10 @@ import games.paths.core.repository.match.GamingInventoryItemsRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingStateLocationsRepository;
 import games.paths.core.repository.match.GamingStateRegistryRepository;
+import games.paths.core.repository.match.GamingStoryProgressRepository;
+import games.paths.core.repository.match.LogChoicesExecutedRepository;
 import games.paths.core.repository.match.LogEventsRepository;
+import games.paths.core.repository.match.LogItemUsageRepository;
 import games.paths.core.repository.match.LogMovementRepository;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +37,9 @@ class MatchPersistenceAdapterTest {
     private GamingInventoryItemsRepository inventoryRepository;
     private LogEventsRepository logEventsRepository;
     private LogMovementRepository logMovementRepository;
+    private LogChoicesExecutedRepository logChoicesRepository;
+    private LogItemUsageRepository logItemUsageRepository;
+    private GamingStoryProgressRepository storyProgressRepository;
     private MatchPersistenceAdapter adapter;
     private MatchReadAdapter readAdapter;
 
@@ -48,9 +54,13 @@ class MatchPersistenceAdapterTest {
         inventoryRepository = mock(GamingInventoryItemsRepository.class);
         logEventsRepository = mock(LogEventsRepository.class);
         logMovementRepository = mock(LogMovementRepository.class);
+        logChoicesRepository = mock(LogChoicesExecutedRepository.class);
+        logItemUsageRepository = mock(LogItemUsageRepository.class);
+        storyProgressRepository = mock(GamingStoryProgressRepository.class);
         adapter = new MatchPersistenceAdapter(matchRepository, locationsRepository, registryRepository,
                 characterRepository, backpackRepository, characterTraitsRepository, inventoryRepository,
-                logEventsRepository, logMovementRepository);
+                logEventsRepository, logMovementRepository, logChoicesRepository, logItemUsageRepository,
+                storyProgressRepository);
         readAdapter = new MatchReadAdapter(matchRepository, locationsRepository, registryRepository);
     }
 
@@ -67,6 +77,23 @@ class MatchPersistenceAdapterTest {
         when(matchRepository.findByUuid("u")).thenReturn(Optional.of(new GamingMatchEntity()));
         assertTrue(adapter.findMatchByUuid("u").isPresent());
         verify(matchRepository).findByUuid("u");
+    }
+
+    @Test
+    void hasActiveMatchForStory_delegatesToRepository() {
+        when(matchRepository.existsByIdUserCreatorAndIdStoryAndStatusIn(7L, 2L, List.of("CREATED")))
+                .thenReturn(true);
+        assertTrue(adapter.hasActiveMatchForStory(7L, 2L, List.of("CREATED")));
+        verify(matchRepository).existsByIdUserCreatorAndIdStoryAndStatusIn(7L, 2L, List.of("CREATED"));
+    }
+
+    @Test
+    void hasActiveMatchForStory_falseOnMissingArguments() {
+        assertFalse(adapter.hasActiveMatchForStory(null, 2L, List.of("CREATED")));
+        assertFalse(adapter.hasActiveMatchForStory(7L, null, List.of("CREATED")));
+        assertFalse(adapter.hasActiveMatchForStory(7L, 2L, null));
+        assertFalse(adapter.hasActiveMatchForStory(7L, 2L, List.of()));
+        verify(matchRepository, never()).existsByIdUserCreatorAndIdStoryAndStatusIn(any(), any(), any());
     }
 
     @Test
@@ -125,8 +152,12 @@ class MatchPersistenceAdapterTest {
         verify(inventoryRepository).deleteByMatchIdIn(ids);
         verify(backpackRepository).deleteByMatchIdIn(ids);
         verify(logEventsRepository).deleteByMatchIdIn(ids);
+        verify(logItemUsageRepository).deleteByMatchIdIn(ids);
         // log_movements references gaming_character_instance (FK enforced on PostgreSQL)
         verify(logMovementRepository).deleteByMatchIdIn(ids);
+        // Step 32 — SQLite ignores the schema's ON DELETE CASCADE, so these go explicitly
+        verify(logChoicesRepository).deleteByMatchIdIn(ids);
+        verify(storyProgressRepository).deleteByMatchIdIn(ids);
         verify(characterRepository).deleteByMatchIdIn(ids);
         verify(locationsRepository).deleteByMatchIdIn(ids);
         verify(registryRepository).deleteByMatchIdIn(ids);
@@ -177,9 +208,12 @@ class MatchPersistenceAdapterTest {
 
         verify(matchRepository).clearCurrentTurnByMatchIdIn(List.of(5L));
         verify(logEventsRepository).deleteByMatchIdIn(List.of(5L));
+        verify(logItemUsageRepository).deleteByMatchIdIn(List.of(5L));
         verify(characterTraitsRepository).deleteByMatchIdIn(List.of(5L));
         verify(inventoryRepository).deleteByMatchIdIn(List.of(5L));
         verify(backpackRepository).deleteByMatchIdIn(List.of(5L));
+        verify(logChoicesRepository).deleteByMatchIdIn(List.of(5L));
+        verify(storyProgressRepository).deleteByMatchIdIn(List.of(5L));
         verify(characterRepository).deleteByMatchIdIn(List.of(5L));
         verify(locationsRepository).deleteByMatchIdIn(List.of(5L));
         verify(registryRepository).deleteByMatchIdIn(List.of(5L));

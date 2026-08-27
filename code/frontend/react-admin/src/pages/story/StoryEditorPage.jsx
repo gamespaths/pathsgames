@@ -639,7 +639,9 @@ export default function StoryEditorPage() {
 
   const weatherRulesOptions = makeReferenceOptions({
     entities: weatherRulesRef,
-    idKeys: ['idCard', 'idWeather', 'id', 'id_weather'],
+    // The option value is what the engine compares with match.currentWeatherId, so it
+    // must be the rule's own id — never idCard, which every rule also carries.
+    idKeys: ['idWeather', 'id', 'id_weather'],
     textIdKeys: ['idText', 'idTextDescription'],
   })
 
@@ -661,7 +663,7 @@ export default function StoryEditorPage() {
       idEventIfCharacterStartTime: {
         options: eventOptions,
       },
-      idEventIfCharacterEnterFirstTime: {
+      idEventIfCharacterEnterEmptyLocation: {
         options: eventOptions,
       },
       idEventIfFirstTime: {
@@ -711,6 +713,12 @@ export default function StoryEditorPage() {
       idItemToAdd: {
         options: itemsOptions,
       },
+      // The item the character must be CARRYING for the event to be available. Same picker
+      // as idItemToAdd — an author naming a condition has exactly the same items to choose
+      // from as one naming a reward, and typing a bare id was the only way until v0.34.0.
+      idItemCondition: {
+        options: itemsOptions,
+      },
       idWeather: {
         options: weatherRulesOptions,
       },
@@ -721,6 +729,11 @@ export default function StoryEditorPage() {
     'event-effects': {
       idEvent: {
         options: eventOptions,
+      },
+      // The effect's own card is the narrative the board renders when the event runs, so it
+      // gets the same picker (and the same "new card" shortcut) as every other idCard.
+      idCard: {
+        options: cardsOptions,
       },
       traitsToAdd: {
         options: traitsOptions,
@@ -733,6 +746,16 @@ export default function StoryEditorPage() {
       },
       targetClass: {
         options: classesOptions,
+      },
+      // v0.29.3 — forced movement: the location the effect moves its recipients to. Same
+      // picker as events.idSpecificLocation (the value is a story-local location id).
+      idLocation: {
+        options: locationOptions,
+      },
+      // On an effect idWeather SETS the match weather; same picker as events.idWeather (where
+      // it is a CONDITION instead). The value is the rule's own id, not its idCard.
+      idWeather: {
+        options: weatherRulesOptions,
       },
     },
     items: {
@@ -749,6 +772,19 @@ export default function StoryEditorPage() {
     'item-effects': {
       idItem: {
         options: itemsOptions,
+      },
+      // v0.35.0 — the same three pickers event-effects has. An item effect speaks exactly
+      // the event-effect vocabulary (one narrative card, two CSVs of trait ids), so an
+      // author naming one has the same lists to choose from — typing bare ids was the only
+      // way until now.
+      idCard: {
+        options: cardsOptions,
+      },
+      traitsToAdd: {
+        options: traitsOptions,
+      },
+      traitsToRemove: {
+        options: traitsOptions,
       },
     },
     'character-templates': {
@@ -839,6 +875,23 @@ export default function StoryEditorPage() {
       key: {
         options: keysOptions,
         valueType: 'string',
+      },
+      // v0.32.0 (Step 32) — the effect targets a resolved choice can reach. Each one gets
+      // the very same picker its event-effects twin uses: the two tables speak one QUIQUIQUI
+      // vocabulary, so an author must not have to type a raw id here and pick there.
+      idItemTarget: {
+        options: itemsOptions,
+      },
+      idLocation: {
+        options: locationOptions,
+      },
+      // On an effect idWeather SETS the match weather. The value is the rule's own id.
+      idWeather: {
+        options: weatherRulesOptions,
+      },
+      // The event this effect runs inline, with its whole idEventNext chain.
+      idEvent: {
+        options: eventOptions,
       },
     },
     'weather-rules': {
@@ -1162,8 +1215,8 @@ export default function StoryEditorPage() {
             onOpenIdCardForm={handleOpenCardFromEntityTable}
             onDuplicateCardBack={handleDuplicateCardBack}
             showCardBackColumn={activeTab === 'location-neighbors'}
-            // Loc Neighbors shows a 4th column (Direction); other tabs keep 3.
-            maxColumns={activeTab === 'location-neighbors' ? 4 : 3}
+            // Loc Neighbors shows a 4th column (Direction); other tabs keep 7.
+            maxColumns={activeTab === 'location-neighbors' ? 4 : 7} //quiquiqui
             onEdit={(ent) => setModal({ type: 'form', entity: normalizeEntityForForm(ent, activeTab), entityTab: activeTab })}
             onDelete={(ent) => setModal({ type: 'delete', entity: ent, entityTab: activeTab })}
           />

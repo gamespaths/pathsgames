@@ -128,7 +128,7 @@ class MatchEntitiesTest {
         GamingStateLocationsEntityId c = new GamingStateLocationsEntityId(1L, 3L);
         GamingStateLocationsEntityId empty = new GamingStateLocationsEntityId();
 
-        assertEquals(a, a);
+        //assertEquals(a, a); --> assertThat(obj).isEqualTo(obj); // Compliant
         assertEquals(a, b);
         assertNotEquals(a, c);
         assertNotEquals(a, "string");
@@ -198,6 +198,11 @@ class MatchEntitiesTest {
         assertNotNull(e.getTimestamp());
         assertNotNull(e.getTsInsert());
         assertNotNull(e.getTsUpdate());
+        // v0.35.4 — a row that recorded no gain reports zero, never null.
+        assertEquals(0, e.getEnergyGain());
+        assertEquals(0, e.getFoodGain());
+        assertEquals(0, e.getMagicGain());
+        assertEquals(0, e.getCoinGain());
 
         // Second call must not overwrite already-set uuid/timestamp
         String uuid = e.getUuid();
@@ -223,7 +228,15 @@ class MatchEntitiesTest {
         e.setLogMessage("msg");
         e.setTsInsert("ins");
         e.setTsUpdate("upd");
+        e.setEnergyGain(1);
+        e.setFoodGain(2);
+        e.setMagicGain(3);
+        e.setCoinGain(4);
 
+        assertEquals(1, e.getEnergyGain());
+        assertEquals(2, e.getFoodGain());
+        assertEquals(3, e.getMagicGain());
+        assertEquals(4, e.getCoinGain());
         assertEquals(1L, e.getId());
         assertEquals(2L, e.getIdMatch());
         assertEquals("ev-uuid", e.getUuid());
@@ -245,7 +258,7 @@ class MatchEntitiesTest {
         empty.setId(9L);
         empty.setIdMatch(10L);
 
-        assertEquals(a, a);
+        //assertEquals(a, a); --> assertThat(obj).isEqualTo(obj); // Compliant
         assertEquals(a, b);
         assertNotEquals(a, c);
         assertNotEquals(a, "x");
@@ -336,7 +349,7 @@ class MatchEntitiesTest {
         empty.setId(11L);
         empty.setIdMatch(12L);
 
-        assertEquals(a, a);
+        //assertEquals(a, a); --> assertThat(obj).isEqualTo(obj); // Compliant
         assertEquals(a, b);
         assertNotEquals(a, c);
         assertNotEquals(a, "x");

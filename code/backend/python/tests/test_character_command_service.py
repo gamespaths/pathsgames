@@ -363,6 +363,31 @@ def test_duplicate_trait(env):
     assert exc.value.code == CharacterJoinError.TRAIT_DUPLICATED
 
 
+def test_hidden_trait_is_not_selectable(env):
+    """v0.35.2 — the API still returns the trait (the same list resolves what a character
+    already owns), so the refusal has to live server-side and not only in the client."""
+    service, story, match_p, user_a, char_p = env
+    _wire_full(story, match_p, user_a, char_p)
+    story.find_trait_by_uuid.side_effect = None
+    story.find_trait_by_uuid.return_value = {**_cost_trait(90001), "hide_on_start_match": 1}
+
+    with pytest.raises(CharacterJoinError) as exc:
+        service.join(_cmd(trait_uuids=["trait-1"]))
+    assert exc.value.code == CharacterJoinError.TRAIT_NOT_SELECTABLE
+
+
+def test_an_unset_or_zero_flag_leaves_the_trait_selectable(env):
+    # Every trait authored before v0.35.2 is pickable, and 0 says the same thing.
+    service, story, match_p, user_a, char_p = env
+    _wire_full(story, match_p, user_a, char_p)
+    story.find_trait_by_uuid.side_effect = None
+    story.find_trait_by_uuid.return_value = _cost_trait(90001)
+    assert service.join(_cmd(trait_uuids=["trait-1"])) is not None
+
+    story.find_trait_by_uuid.return_value = {**_cost_trait(90001), "hide_on_start_match": 0}
+    assert service.join(_cmd(trait_uuids=["trait-1"])) is not None
+
+
 def test_trait_permitted_other_class(env):
     service, story, match_p, user_a, char_p = env
     _wire_full(story, match_p, user_a, char_p)
@@ -546,3 +571,46 @@ def test_change_statistics_no_max_values_no_cap():
     assert call_args[5] == 999
     assert call_args[6] == 888
     assert call_args[7] == 777
+
+
+# ── Step 29 / admin — the state flags (the only way out of a coma until step 59) ─────────
+
+def _flags_env(**char_over):
+    service, match_p, char_p = _change_stats_env()
+    match_p.find_match_by_uuid.return_value = {"id": 1}
+    char_p.find_character_by_match_and_uuid.return_value = _char_record(**char_over)
+    return service, char_p
+
+
+def test_clearing_coma_wakes_the_character_and_gives_it_a_life_to_act_with():
+    """A comatose character is also asleep and sits at life 0: leaving those as they are would
+    drop it straight back into the coma."""
+    service, char_p = _flags_env(life=0, is_sleeping=True, is_coma=True)
+    result = service.change_statistics("m-uuid", "char-uuid", None, None, None, None, None, None,
+                                       None, None, None, coma=False)
+    assert result == "UPDATED"
+    # (match_id, char_id, dex, intel, con, energy, life, sad) — life is the 7th
+    assert char_p.update_character_stats.call_args[0][6] == 1
+    char_p.update_character_flags.assert_called_once_with(1, 1, False, False)
+
+
+def test_clearing_coma_keeps_the_life_the_admin_asked():
+    service, char_p = _flags_env(life=0, is_coma=True)
+    service.change_statistics("m-uuid", "char-uuid", None, None, None, None, 9, None,
+                              None, None, None, coma=False)
+    assert char_p.update_character_stats.call_args[0][6] == 9
+    char_p.update_character_flags.assert_called_once_with(1, 1, False, False)
+
+
+def test_sleeping_flag_is_set_on_its_own_and_coma_is_left_alone():
+    service, char_p = _flags_env()
+    service.change_statistics("m-uuid", "char-uuid", None, None, None, None, None, None,
+                              None, None, None, sleeping=True)
+    char_p.update_character_flags.assert_called_once_with(1, 1, True, None)
+
+
+def test_flags_untouched_when_the_call_carries_none():
+    service, char_p = _flags_env()
+    service.change_statistics("m-uuid", "char-uuid", None, None, None, None, 5, None,
+                              None, None, None)
+    char_p.update_character_flags.assert_not_called()

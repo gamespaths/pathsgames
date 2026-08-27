@@ -220,6 +220,53 @@ Resources:
       RouteKey: "POST /api/gameplay/{uuidMatch}/movements/start"
       Target: !Sub "integrations/${MatchIntegration}"
 
+  # Step 29 — normal events (player API)
+  ExecuteEventRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/gameplay/{uuidMatch}/action/execute-event"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  # Step 32 — choice resolution (player API). Without this route API Gateway answers 404
+  # before the lambda is ever reached, whatever the handler does.
+  SelectChoiceRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/gameplay/{uuidMatch}/action/select-choice"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  # Steps 34 & 35 — inventory and resources (player API). Without these routes API
+  # Gateway answers 404 before the lambda is ever reached, whatever the handler does.
+  GetInventoryRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/gameplay/{uuidMatch}/inventory"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  UseItemRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/gameplay/{uuidMatch}/inventory/use-item"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  DropItemRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/gameplay/{uuidMatch}/inventory/drop-item"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  GetResourcesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/gameplay/{uuidMatch}/resources"
+      Target: !Sub "integrations/${MatchIntegration}"
+
   GetLocationsRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:

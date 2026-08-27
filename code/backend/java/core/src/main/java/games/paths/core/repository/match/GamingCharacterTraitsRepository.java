@@ -21,6 +21,12 @@ public interface GamingCharacterTraitsRepository
 
     List<GamingCharacterTraitsEntity> findByIdMatchAndIdCharacterMatch(Long idMatch, Long idCharacterMatch);
 
+    /**
+     * Every character-trait row of the match. Step 29 needs it to allocate the id of a new
+     * row: the PK is (id, id_match), so the next id is the match-wide max plus one.
+     */
+    List<GamingCharacterTraitsEntity> findByIdMatch(Long idMatch);
+
     /** Deletes every character-trait row belonging to the given match ids (cleanup / cascade). */
     @Modifying
     @Query("DELETE FROM GamingCharacterTraitsEntity t WHERE t.idMatch IN :matchIds")

@@ -42,14 +42,15 @@ class MatchLogsControllerTest {
 
     @Test
     void logs_returns200WithTheConsolidatedTimeline() throws Exception {
-        when(matchLogsPort.getMatchLogs("m1", "user-uuid", null, null, null)).thenReturn(
+        when(matchLogsPort.getMatchLogs("m1", "user-uuid", null, null, null, null)).thenReturn(
                 new MatchLogsResult("m1", 3, List.of(
-                        new LogEntry("WEATHER", 1, "2024-01-01T10:00:00Z", 7L,
-                                null, null, null, null, null, null, null, 300, card("Storm")),
-                        new LogEntry("MOVEMENT", null, "2024-01-01T11:00:00Z", null,
-                                10L, "char-uuid", "Ranger", 100L, 200L, 4, null,
-                                400, card("Dark Forest"))),
-                        null, 50, 2));
+                        LogEntry.builder("WEATHER", "2024-01-01T10:00:00Z")
+                                .clock(1).idWeather(7L).card(300, card("Storm")).build(),
+                        LogEntry.builder("MOVEMENT", "2024-01-01T11:00:00Z")
+                                .character(10L).characterUuid("char-uuid").characterName("Ranger")
+                                .locationFrom(100L).locationTo(200L)
+                                .cost(4, 1, 0, 2).card(400, card("Dark Forest")).build()),
+                        null, 50, 2, "asc"));
 
         mockMvc.perform(authed(get("/api/matches/m1/logs")))
                 .andExpect(status().isOk())
@@ -72,21 +73,68 @@ class MatchLogsControllerTest {
     }
 
     @Test
-    void logs_passesLangLimitAndCursorThroughToThePort() throws Exception {
-        when(matchLogsPort.getMatchLogs("m1", "user-uuid", "it", 10, "cur"))
-                .thenReturn(new MatchLogsResult("m1", 0, List.of(), "next", 10, 30));
+    void logs_eventEntryExposesIdEventAndItsOwnCard() throws Exception {
+        when(matchLogsPort.getMatchLogs("m1", "user-uuid", null, null, null, null)).thenReturn(
+                new MatchLogsResult("m1", 3, List.of(
+                        LogEntry.builder("EVENT", "2024-01-01T12:00:00Z")
+                                .clock(3).character(10L).characterUuid("char-uuid")
+                                .characterName("Ranger").message("EVENT_EXECUTED 42")
+                                .idEvent(42L).cost(3, 2, 1, 5).gain(0, 0, 0, 12)
+                                .card(600, card("A Fork In The Road")).build()),
+                        null, 50, 1, "asc"));
 
-        mockMvc.perform(authed(get("/api/matches/m1/logs?lang=it&limit=10&cursor=cur")))
+        mockMvc.perform(authed(get("/api/matches/m1/logs")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.logs[0].type").value("EVENT"))
+                .andExpect(jsonPath("$.logs[0].idEvent").value(42))
+                .andExpect(jsonPath("$.logs[0].idCard").value(600))
+                .andExpect(jsonPath("$.logs[0].card.title").value("A Fork In The Road"))
+                .andExpect(jsonPath("$.logs[0].characterUuid").value("char-uuid"))
+                .andExpect(jsonPath("$.logs[0].characterName").value("Ranger"))
+                // v0.35.4 — the price and what the event handed back travel on the same row.
+                .andExpect(jsonPath("$.logs[0].coinCost").value(5))
+                .andExpect(jsonPath("$.logs[0].coinGain").value(12));
+    }
+
+    @Test
+    void logs_itemEntryExposesTheItemAndItsSignedDeltas() throws Exception {
+        when(matchLogsPort.getMatchLogs("m1", "user-uuid", null, null, null, null)).thenReturn(
+                new MatchLogsResult("m1", 4, List.of(
+                        LogEntry.builder("ITEM_USE", "2024-01-01T13:00:00Z")
+                                .character(10L).characterUuid("char-uuid")
+                                .item(900L, "USE", 2).delta(9, 0, -3, 0)
+                                .card(700, card("Healing Potion")).build()),
+                        null, 50, 1, "asc"));
+
+        mockMvc.perform(authed(get("/api/matches/m1/logs")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.logs[0].type").value("ITEM_USE"))
+                .andExpect(jsonPath("$.logs[0].idItem").value(900))
+                .andExpect(jsonPath("$.logs[0].itemAction").value("USE"))
+                .andExpect(jsonPath("$.logs[0].counter").value(2))
+                // A signed delta splits: the restored energy is a gain, the drained magic a cost.
+                .andExpect(jsonPath("$.logs[0].energyGain").value(9))
+                .andExpect(jsonPath("$.logs[0].magicCost").value(3))
+                .andExpect(jsonPath("$.logs[0].card.title").value("Healing Potion"));
+    }
+
+    @Test
+    void logs_passesLangLimitCursorAndOrderThroughToThePort() throws Exception {
+        when(matchLogsPort.getMatchLogs("m1", "user-uuid", "it", 10, "cur", "desc"))
+                .thenReturn(new MatchLogsResult("m1", 0, List.of(), "next", 10, 30, "desc"));
+
+        mockMvc.perform(authed(get("/api/matches/m1/logs?lang=it&limit=10&cursor=cur&order=desc")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nextCursor").value("next"))
                 .andExpect(jsonPath("$.limit").value(10))
-                .andExpect(jsonPath("$.total").value(30));
+                .andExpect(jsonPath("$.total").value(30))
+                .andExpect(jsonPath("$.order").value("desc"));
     }
 
     @Test
     void logs_returns200WithEmptyListWhenNothingLoggedYet() throws Exception {
-        when(matchLogsPort.getMatchLogs("m1", "user-uuid", null, null, null))
-                .thenReturn(new MatchLogsResult("m1", 0, List.of(), null, 50, 0));
+        when(matchLogsPort.getMatchLogs("m1", "user-uuid", null, null, null, null))
+                .thenReturn(new MatchLogsResult("m1", 0, List.of(), null, 50, 0, "asc"));
 
         mockMvc.perform(authed(get("/api/matches/m1/logs")))
                 .andExpect(status().isOk())
@@ -103,7 +151,7 @@ class MatchLogsControllerTest {
 
     @Test
     void logs_returns404WhenTheMatchIsUnknownOrNotOwned() throws Exception {
-        when(matchLogsPort.getMatchLogs("m1", "user-uuid", null, null, null)).thenThrow(
+        when(matchLogsPort.getMatchLogs("m1", "user-uuid", null, null, null, null)).thenThrow(
                 new TurnCycleException(TurnCycleException.Code.MATCH_NOT_FOUND,
                         "Match not found or not accessible"));
 

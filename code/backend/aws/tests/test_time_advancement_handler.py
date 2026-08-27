@@ -302,3 +302,36 @@ def test_clock_without_token_returns_401():
         ev = make_event('GET', '/api/match/m1/clock', path_params={'uuidMatch': 'm1'})
         result = h.lambda_handler(ev, None)
     assert result['statusCode'] == 401
+
+
+# ── v0.30.1 — wake from coma by resting in a safe location ────────────────────
+
+def test_sleep_in_a_safe_location_wakes_from_coma():
+    # A comatose character (life 0) at the safe start location. Recovery lifts life to
+    # 0 + cos(4) + secure(1) = 5, then the coma clears.
+    char = _char_recovery('m1', 1, 'c1', life=0, isComa=1, isSleeping=1)
+    items = [PLAYER, _story_recovery(), _match_recovery(clock=0), char]
+    with _env(items) as (table, _):
+        result = h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None)
+    assert result['statusCode'] == 200
+
+    saved = table.get_item('MATCH#m1', 'CHARACTER#c1')
+    assert saved['isComa'] == 0
+    assert saved['life'] == 5
+    # The wake is audited on the match event log.
+    match = table.get_item('MATCH#m1')
+    messages = [r.get('message', '') for r in (match.get('eventLog') or [])]
+    assert any(m.startswith(h._events.MSG_COMA_RECOVERED) for m in messages)
+
+
+def test_sleep_in_an_unsafe_location_does_not_wake_from_coma():
+    # Location 2 is unsafe (secureParam 0): no life recovery, the coma stays.
+    char = _char_recovery('m1', 1, 'c1', life=0, isComa=1, isSleeping=1, idLocation=2)
+    items = [PLAYER, _story_recovery(), _match_recovery(clock=0), char]
+    with _env(items) as (table, _):
+        result = h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None)
+    assert result['statusCode'] == 200
+
+    saved = table.get_item('MATCH#m1', 'CHARACTER#c1')
+    assert saved['isComa'] == 1
+    assert saved['life'] == 0

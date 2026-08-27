@@ -38,10 +38,37 @@ export default function EntityTable({ entities, columns, texts = [], relationOpt
     return match.label || `#${value}`
   }
 
-  const filtered = entities.filter(e =>
-    !search ||
-    Object.values(e).some(val => String(val).toLowerCase().includes(search.toLowerCase()))
-  )
+  /**
+   * Everything a row shows, as one searchable string.
+   *
+   * The raw values alone are not what the user is looking at: a relation column renders
+   * the resolved label ("12 - The Welcome Hall") and a text column renders the resolved
+   * short text, while the entity itself only carries `12` and an `idText`. Searching the
+   * raw values therefore matched the number and never the title — which is the one thing
+   * a person actually remembers.
+   *
+   * So the haystack is the raw values PLUS every label the row resolves: relation labels
+   * for any field with options, and the short text of every `idText*` field.
+   */
+  const searchHaystack = (entity) => {
+    const parts = []
+    for (const [key, value] of Object.entries(entity || {})) {
+      if (value === null || value === undefined) continue
+      parts.push(String(value))
+      const label = resolveRelationLabel(key, value)
+      if (label) parts.push(String(label))
+      // idText / idTextName / idTextDescription / idTextNarrative …
+      if (/^idText/.test(key)) {
+        const short = resolveText(value)
+        // resolveText falls back to "[Text #12]", which adds nothing the raw id does not.
+        if (short && !short.startsWith('[Text #')) parts.push(String(short))
+      }
+    }
+    return parts.join(' \u0000 ').toLowerCase()
+  }
+
+  const needle = search.trim().toLowerCase()
+  const filtered = entities.filter(e => !needle || searchHaystack(e).includes(needle))
   const displayed = [...filtered].reverse()
 
   const hasIdCardColumn = entities.some(entity => entity?.idCard !== null && entity?.idCard !== undefined && entity?.idCard !== '')
@@ -82,8 +109,11 @@ export default function EntityTable({ entities, columns, texts = [], relationOpt
             {displayed.length === 0 && (
               <tr><td colSpan={visibleColumns.length + 2 + (hasIdCardColumn ? 1 : 0) + (hasIdCardBackColumn ? 1 : 0)} className="text-center py-8 text-white/20">No items found.</td></tr>
             )}
-            {displayed.map(ent => (
-              <tr key={ent.uuid || ent.id}>
+            {displayed.map((ent, idx) => (
+              // Index fallback: entities are rendered reversed, so a row without both
+              // uuid and id would otherwise get an undefined key and React could not
+              // track it across re-renders (edit/delete would hit the wrong row).
+              <tr key={ent.uuid || ent.id || idx}>
                 <td>
                   <span
                     className="font-mono text-white/60"

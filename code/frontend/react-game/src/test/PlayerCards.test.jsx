@@ -86,25 +86,20 @@ describe('PlayerCards', () => {
   it('forwards each entity card and its stat items to onPreview', () => {
     const onPreview = vi.fn()
     renderCards(onPreview)
-    // onPreview signature: (card, type, lockReason, statItems, showModal, additionalProps, previewSide)
     fireEvent.click(screen.getByTestId('preview-class'))
-    expect(onPreview).toHaveBeenCalledWith(
-      STORY_FULL.classes[0].card, 'class', null, expect.any(Array), true, null, 'left',
-    )
+    expect(onPreview).toHaveBeenCalledWith({
+      card: STORY_FULL.classes[0].card, type: 'class', stats: expect.any(Array), side: 'left' })
     fireEvent.click(screen.getByTestId('preview-character'))
-    expect(onPreview).toHaveBeenCalledWith(
-      STORY_FULL.characterTemplates[0].card, 'character', null, expect.any(Array), true, null, 'left',
-    )
+    expect(onPreview).toHaveBeenCalledWith({
+      card: STORY_FULL.characterTemplates[0].card, type: 'character', stats: expect.any(Array), side: 'left' })
     fireEvent.click(screen.getAllByTestId('preview-trait')[1])
-    expect(onPreview).toHaveBeenCalledWith(
-      STORY_FULL.traits[1].card, 'trait', null, expect.any(Array), true, null, 'left',
-    )
+    expect(onPreview).toHaveBeenCalledWith({
+      card: STORY_FULL.traits[1].card, type: 'trait', stats: expect.any(Array), side: 'left' })
     fireEvent.click(screen.getByTestId('preview-difficulty'))
-    expect(onPreview).toHaveBeenCalledWith(
-      STORY_FULL.difficulties[0].card, 'difficulty', null, expect.any(Array), true, null, 'left',
-    )
+    expect(onPreview).toHaveBeenCalledWith({
+      card: STORY_FULL.difficulties[0].card, type: 'difficulty', stats: expect.any(Array), side: 'left' })
     fireEvent.click(screen.getByTestId('preview-story'))
-    expect(onPreview).toHaveBeenCalledWith(STORY.card, 'story', null, null, true, null, 'left')
+    expect(onPreview).toHaveBeenCalledWith({ card: STORY.card, type: 'story', side: 'left' })
   })
 
   it('omits the overlay when the entity has no non-zero stats', () => {
@@ -147,7 +142,7 @@ describe('PlayerCards — story card and match log', () => {
     fireEvent.click(screen.getByTestId('preview-story'))
 
     // the story card is forced to the left page (not `previewSide`), no modal
-    expect(onPreview).toHaveBeenCalledWith(STORY.card, 'story', null, null, false, null, 'left')
+    expect(onPreview).toHaveBeenCalledWith({ card: STORY.card, type: 'story', modal: false, side: 'left' })
     expect(onPreviewMatchLog).toHaveBeenCalled()
   })
 
@@ -158,6 +153,6 @@ describe('PlayerCards — story card and match log', () => {
       onPreview={onPreview} previewSide="right" />)
 
     fireEvent.click(screen.getByTestId('preview-story'))
-    expect(onPreview).toHaveBeenCalledWith(STORY.card, 'story', null, null, true, null, 'right')
+    expect(onPreview).toHaveBeenCalledWith({ card: STORY.card, type: 'story', side: 'right' })
   })
 })

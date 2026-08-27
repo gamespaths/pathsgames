@@ -1,0 +1,273 @@
+"""Steps 34 & 35 — inventory and resources for the AWS backend.
+
+Mirrors ``InventoryService.java`` / ``inventory_service.py``, but the storage is not the
+same shape: there is no inventory table on DynamoDB. A character's items are an embedded
+list on its own item, ``[{"uuid", "idItem", "amount", "state"}]``, written by
+:func:`events.apply_item`. So use-item and drop-item mutate a list — they do not delete a
+row — and the usage log is an embedded list on the match item, exactly like ``eventLog``.
+
+Naming trap, on purpose: at the lambda layer the effect dicts are camelCase
+(``idItemTarget``, ``itemAction``, ``effectCode``), never the snake_case of the SQL-facing
+python backend. Copying that code verbatim raises KeyError.
+
+Everything here is a pure function over already-loaded dicts, so the handler stays a thin
+router and the whole surface is unit-testable without DynamoDB.
+"""
+
+import time
+
+_RUNNING = "RUNNING"
+
+#: v0.35.4 — itemUsageLog.action: what happened to the item on that row. The list held
+#: usages only until then, so a row without an action reads as ITEM_ACTION_USE.
+ITEM_ACTION_ADD = "ADD"
+ITEM_ACTION_USE = "USE"
+ITEM_ACTION_DROP = "DROP"
+ITEM_ACTION_REMOVE = "REMOVE"
+
+
+def _ts_ms():
+    """Epoch millis, the shape every other embedded log on the match item uses."""
+    return int(time.time() * 1000)
+
+#: The ONE genuine divergence between the item vocabulary the schema documents
+#: (LIFE, ENERGY, EXP, SADNESS, DEX, INT, COS, FOOD, MAGIC, COIN) and the token the engine
+#: acts on. Every other code differs only by case, and apply_stat already lowercases.
+#: Applied on the ITEM path only: normalising inside the engine would silently widen the
+#: event and choice vocabularies too, and diverge from the Java and python twins.
+_EFFECT_CODE_ALIASES = {"sadness": "sad", "coins": "coin"}
+
+
+def _nz(value):
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def normalize_effect_code(effect_code):
+    """Case-insensitive. An unknown code is lowercased rather than rejected, so the engine
+    keeps treating it as authored noise instead of failing the whole usage."""
+    if effect_code is None or not str(effect_code).strip():
+        return None
+    key = str(effect_code).strip().lower()
+    return _EFFECT_CODE_ALIASES.get(key, key)
+
+
+def unit_amount(amount):
+    """A null amount counts as one — the movement gate must agree with this."""
+    return _nz(amount) if amount is not None else 1
+
+
+def items_by_id(story):
+    """The story items keyed by id. Story sub-entities are embedded lists here."""
+    return {_nz(i.get("id")): i for i in (story.get("items") or []) if i.get("id") is not None}
+
+
+def carried_weight(char, story):
+    """Sigma (item.weight x amount), the formula the match /info endpoint reports.
+
+    An unknown item weighs 0, a null weight 0 and a null amount 1. The movement gate and
+    /info MUST agree, or the board would show a weight nothing acts on.
+    """
+    by_id = items_by_id(story)
+    total = 0
+    for row in (char.get("items") or []):
+        item = by_id.get(_nz(row.get("idItem")))
+        weight = _nz(item.get("weight")) if item else 0
+        total += weight * unit_amount(row.get("amount"))
+    return total
+
+
+def find_own_row(char, item_instance_uuid):
+    """The caller's own rows are the only ones ever searched, so another player's item is
+    indistinguishable from one that does not exist. That masking IS the ownership rule."""
+    if not item_instance_uuid or not str(item_instance_uuid).strip():
+        return None
+    for row in (char.get("items") or []):
+        if row.get("uuid") == item_instance_uuid:
+            return row
+    return None
+
+
+def check(match, char, item, *, require_consumable):
+    """The refusal, in the order the other gameplay engines use.
+
+    Returns an error code or None. ``item`` may be None — a row whose story item is gone,
+    because the story was re-imported under the character's feet.
+
+    A dangling row is fatal only to USING: the effects, the consumable flag and the class
+    gates all live on the story item, so without it there is nothing to apply. DROPPING it
+    must still work — otherwise a re-import could strand a row in the bag forever, weighing
+    the character down with no way to put it back. Java and Python drop it the same way, and
+    report a null itemUuid.
+    """
+    if (match or {}).get("status") != _RUNNING:
+        return "MATCH_NOT_RUNNING"
+    if _nz(char.get("isComa")):
+        return "COMA"
+    if _nz(char.get("isSleeping")):
+        return "SLEEPING"
+    if not require_consumable:
+        return None
+    if item is None:
+        return "ITEM_NOT_FOUND"
+    if _nz(item.get("isConsumabile")) != 1:
+        return "ITEM_NOT_CONSUMABLE"
+    return check_class_gate(char, item)
+
+
+def check_class_gate(char, item):
+    """0 or None means "no restriction": the CRUD writes a raw 0 where the importer
+    writes None, and both have to read as unset."""
+    permitted = _nz(item.get("idClassPermitted"))
+    prohibited = _nz(item.get("idClassProhibited"))
+    id_class = item_class_of(char)
+    if permitted > 0 and permitted != id_class:
+        return "ITEM_CLASS_NOT_PERMITTED"
+    if prohibited > 0 and id_class is not None and prohibited == id_class:
+        return "ITEM_CLASS_PROHIBITED"
+    return None
+
+
+def item_class_of(char):
+    """The character's story class id; None when it joined without one."""
+    value = char.get("idClass")
+    return _nz(value) if value is not None else None
+
+
+def standalone_effects(story, item):
+    """The item's list_items_effects rows, reduced to what apply_stat/apply_traits read.
+
+    The statistic is normalised here and only here, so an item effect and an event effect
+    reach the very same engine code and trip the very same step-30 edge states.
+    """
+    item_id = _nz(item.get("id"))
+    out = []
+    for effect in (story.get("itemEffects") or []):
+        if _nz(effect.get("idItem")) != item_id:
+            continue
+        out.append({
+            "uuid": effect.get("uuid"),
+            "idCard": effect.get("idCard"),
+            "statistics": normalize_effect_code(effect.get("effectCode")),
+            "value": _nz(effect.get("effectValue")),
+            "traitsToAdd": effect.get("traitsToAdd"),
+            "traitsToRemove": effect.get("traitsToRemove"),
+        })
+    return out
+
+
+#: Step 35 — the statistic tokens the engine actually acts on. Anything else is authored
+#: noise: apply_stat drops it in silence, so the promise must not show it either.
+_KNOWN_EFFECT_CODES = {"life", "energy", "sad", "exp", "dex", "int", "cos",
+                       "food", "magic", "coin"}
+
+
+def shows_effects(item):
+    """v0.35.0 — flagShowEffects: may the promise be read? Only an explicit 0 hides it.
+
+    A missing key is the reading of every story authored before the field existed, and
+    those already shipped the promise: an absence must not read as a refusal. It gates what
+    is REPORTED, never what is applied — a secret item still does what its rows say.
+    """
+    return (item or {}).get("flagShowEffects") != 0
+
+
+def preview_effects(story, item):
+    """Step 35 — what using this item promises, as the board may read it BEFORE the row is
+    spent: one {statistic, value} per list_items_effects row.
+
+    Read off :func:`standalone_effects`, the very rows the usage applies, so the promise
+    and the result can never describe different effects. An item whose ``flagShowEffects``
+    is 0 promises nothing at all — see :func:`shows_effects`. The value is the AUTHORED one,
+    before the engine clamps it. Rows whose code lands outside the vocabulary are dropped
+    rather than shown: promising an effect apply_stat would discard keeps nothing.
+    """
+    if not shows_effects(item):
+        return []
+    return [
+        {"statistic": e["statistics"], "value": e["value"]}
+        for e in standalone_effects(story, item)
+        if e["statistics"] in _KNOWN_EFFECT_CODES
+    ]
+
+
+def action_amount(authored):
+    """v0.35.1 — amountUse / amountDrop: missing, zero or negative all read as one unit.
+
+    An action that moved nothing would be an action the player can trigger for free, over
+    and over: the story may write the value, the engine refuses to honour it as written.
+    """
+    value = _nz(authored)
+    return value if value >= 1 else 1
+
+
+def spend_units(char, row, units):
+    """v0.35.1 — takes ``units`` off the row, dropping the row when nothing survives.
+
+    Returns what was actually taken, which is never more than the row holds.
+    """
+    held = unit_amount(row.get("amount"))
+    taken = min(held, units)
+    if held - taken > 0:
+        row["amount"] = held - taken
+    else:
+        remove_row(char, row)
+    return taken
+
+
+def remove_row(char, row):
+    """Drops the row entirely — what a use or a drop that consumed every unit does."""
+    items = char.get("items") or []
+    if row in items:
+        items.remove(row)
+    char["items"] = items
+
+
+def resource_delta(stat_changes, actor_uuid):
+    """v0.35.4 — what the usage did to the ACTOR's four resources, summed over its effects.
+
+    An item that heals the whole party still writes one row, and that row belongs to
+    whoever used it — so a stat change on anybody else is left out of it.
+    """
+    delta = {"energy": 0, "food": 0, "magic": 0, "coin": 0}
+    for change in stat_changes or []:
+        if actor_uuid is not None and change.get("characterUuid") != actor_uuid:
+            continue
+        stat = change.get("statistic")
+        if stat in delta:
+            delta[stat] += _nz(change.get("delta"))
+    return delta
+
+
+def log_item_action(match, char, id_item, action, clock, effects=None, counter=1,
+                    id_event=None, delta=None):
+    """Appends to the match item's ``itemUsageLog``.
+
+    There is no log table on DynamoDB: the existing logs (``eventLog``) are embedded lists
+    on the match METADATA item, persisted by the same put_item the caller already does.
+
+    v0.35.4 — the list stopped being "the usages" and became every item action: ``action``
+    is ADD, USE, DROP or REMOVE, ``idEvent`` names the event whose effect moved the item
+    (absent when the player acted directly) and ``delta`` carries the signed
+    {energy, food, magic, coin} the action produced.
+    """
+    d = delta or {}
+    match.setdefault("itemUsageLog", []).append({
+        "characterUuid": char.get("uuid"),
+        "idItem": _nz(id_item),
+        "action": action,
+        "idEvent": _nz(id_event) if id_event is not None else None,
+        # v0.35.1 — the units this action actually moved; hardcoded to 1 until then.
+        "counter": _nz(counter) or 1,
+        "clock": _nz(clock),
+        "energy": _nz(d.get("energy")),
+        "food": _nz(d.get("food")),
+        "magic": _nz(d.get("magic")),
+        "coin": _nz(d.get("coin")),
+        "effects": effects,
+        # A row written before v0.35.4 has none of the keys above: the timeline reads them
+        # defensively, exactly as it does the v0.35.3 costs.
+        "timestamp": _ts_ms(),
+    })

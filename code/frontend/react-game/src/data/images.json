@@ -64,7 +64,7 @@
     "description": "lorc on game-icons.net",
     "styleImageLarge": "of-c"
   },
-{
+  {
     "id": "sleep",
     "urlImage": "https://plus.unsplash.com/premium_photo-1706517229024-95e78e936730?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     "copyrightText": "Joshua Earle",
@@ -81,6 +81,26 @@
     "description": "David Clode on Unsplash",
     "styleImageLarge": "ob-c-25",
     "styleImage": "ob-c-25"
+  },
+  {
+    "id": "sad",
+    "urlImage": "https://images.unsplash.com/photo-1724395261682-c8b152dc5b9b?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "copyrightText": "Joachim Schnürle",
+    "linkCopyright": "https://unsplash.com/photos/a-close-up-of-a-medical-paper-with-a-graph-on-it-eqTmD-baDkU",
+    "awesomeIcon": "fas fa-sad-tear",
+    "description": "Character sad",
+    "styleImageLarge": "",
+    "styleImageLittle": "ob-c-25"
+  },
+  {
+    "id": "coma",
+    "urlImage": "https://images.unsplash.com/photo-1724395261682-c8b152dc5b9b?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "copyrightText": "Joachim Schnürle",
+    "linkCopyright": "https://unsplash.com/photos/a-close-up-of-a-medical-paper-with-a-graph-on-it-eqTmD-baDkU",
+    "awesomeIcon": "fas fa-procedures",
+    "description": "Character in coma",
+    "styleImageLarge": "",
+    "styleImageLittle": "ob-c-25"
   },
   {
     "id": "weather",
@@ -123,7 +143,7 @@
     "awesomeIcon": "fa-map"
   },
   {
-    "id": "neighbor",
+    "id": "neighbor-old",
     "urlImage": "https://images.unsplash.com/photo-1594883624354-ed95dcd4d844?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     "copyrightText": "damien dufour",
     "linkCopyright": "https://unsplash.com/photos/brown-and-black-street-sign-l4b9wMyn7iU",
@@ -131,8 +151,50 @@
     "styleImageLarge": "",
     "styleImageLittle": "of-b ob-c-90"
   },
-
-
+  {
+    "id": "neighbor",
+    "urlImage": "https://images.unsplash.com/photo-1572275971283-6943a7cf3437?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "copyrightText": "Monty Allen",
+    "linkCopyright": "https://unsplash.com/photos/south-east-west-north-pedestal-signage-nsUniyv2cD8",
+    "description": "Monty Allen on Unsplash",
+    "styleImageLarge": "",
+    "styleImageLittle": ""
+  },
+  {
+    "id": "loading",
+    "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM",
+    "urlImage": "https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?q=80&w=1333&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "copyrightText": "Lili Popper",
+    "description": "Photo by Lili Popper on Unsplash",
+    "styleImageLarge": ""
+  },
+  {
+    "id": "error",
+    "linkCopyright": "https://unsplash.com/illustrations/pixel-art-computer-screen-on-fire-displaying-error-message-NwNJAI-CZlw",
+    "urlImage": "https://plus.unsplash.com/premium_vector-1757350902981-14debbd9e548?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "copyrightText": "Dadi Prayoga",
+    "description": "by Dadi Prayoga on Unsplash",
+    "awesomeIcon": "fas fa-exclamation-triangle",
+    "styleImageLarge": ""
+  },
+  {
+    "id": "backpack",
+    "linkCopyright": "https://unsplash.com/photos/brown-leather-satchel-bag-on-gray-concrete-surface-near-green-plant-at-daytime-pFLNV4gkXsc",
+    "urlImage": "https://images.unsplash.com/photo-1473188588951-666fce8e7c68?q=80&w=1274&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "copyrightText": "Alvaro Serrano",
+    "description": "Alvaro Serrano",
+    "awesomeIcon": "fas fa-exclamation-triangle",
+    "styleImageLarge": ""
+  },
+  {
+    "id": "backpack-old",
+    "linkCopyright": "https://game-icons.net/1x1/delapouite/backpack.html",
+    "urlImage": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLjAwLDAuMDApIHNjYWxlKDEuMDAwMCkiPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik0xODYuNDM4IDIwLjU2bC0xMy4xODQgMjYuMzY1YzYuOC0uMjYgMTMuNjI2LS40ODggMjAuNDctLjY4NmwzLjg0LTcuNjhoMTE2Ljg3NGwzLjc3IDcuNTRjNi44MzguMTg3IDEzLjY1OC40MDggMjAuNDU2LjY2bC0xMy4xMDItMjYuMkgxODYuNDM3em02OS41NiA0Mi43NDJjLTQ1Ljc1Ny4wNTYtOTEuNDUyIDEuNTY2LTEzNS4zOCA0LjM2My0zLjI0IDUwLjU4LTguNCAxMDAuOTg3LS43ODYgMTQ1LjgyNCA4OS4yOTcgMTIuMzk1IDE4MC4xMDIgMTIuOTg1IDI3Mi43NjQtLjA1NCA3LjA1NS0zMC45ODggNS4xMTctODQuNjgtMS4wNC0xNDUuODktNDMuOTc0LTIuODkzLTg5LjczLTQuMy0xMzUuNTU4LTQuMjQ0em0xNTMuNzgzIDUuNTRjNi40MiA2NC4xMiA5LjExMyAxMTkuODI1LTEuMTM1IDE1NS4yMmwtMS42MSA1LjU2LTUuNzI2Ljg0MmMtOTguOCAxNC41MjgtMTk1LjYxMyAxMy44MS0yOTAuNjA1LjAwMmwtNi4yODUtLjkxNC0xLjI0Ni02LjIzYy05Ljg5LTQ5LjQ5LTQuMDg1LTEwMi43ODUtLjY2NC0xNTQuNDItNC44OS4zNTQtOS43NjUuNzItMTQuNjAyIDEuMTA3LTguNTk2IDU4LjU2OC05LjM5IDExNi45NTctLjA1IDE3NS4yOTIgMTEwLjI0IDEyLjA4OCAyMjIuMjc1IDEyLjIwNSAzMzYuMjAzLS4wMSA4LjUwMi01Ny44MyA4LjI5LTExNi4yNS0uMDE3LTE3NS4zMTMtNC43MjUtLjQtOS40ODUtLjc3Ni0xNC4yNjItMS4xNHpNMjU1Ljk2NiA5Mi4zYzMyLjUyNi0uMDI1IDY1LjA2NyAyLjc0NiA5Ny41NzQgOC4zOWw3LjQ2IDEuMjk1djcuNTcyYzAgMTUuNTU0IDEuNjgzIDM1LjEwNS0xMi42OSA1MC4yNS05LjkxMiAxMC40NDQtMjUuNjU1IDE3LjMzNy01MS4zMSAyMC41ODV2MTguMTY0aC04MnYtMTguNDUyYy0yMy45OTItMy4zNy0zOS4zNTItMTAuMTc1LTQ5LjM2My0yMC4xODVDMTUwLjgwNyAxNDUuMDkzIDE1MSAxMjUuNTYgMTUxIDEwOS41NnYtNy41OTRsNy40ODQtMS4yNzhjMzIuNDQ0LTUuNTQgNjQuOTU1LTguMzYyIDk3LjQ4LTguMzg2em0uMDEyIDE3Ljk5NGMtMjguOTYuMDIyLTU3LjkxMyAyLjQ0NC04Ni44NTggNi45OTYuMjY1IDEyLjI4IDEuNjM1IDIyLjI5NiA5LjI0MyAyOS45MDQgNS45MTQgNS45MTQgMTYuOTUyIDExLjQxNiAzNi42MzcgMTQuNTgydi0yOS4yMmg4MnYyOS41MWMyMS4zNjctMy4xMTUgMzIuNjYtOC43NTUgMzguMjU0LTE0LjY1IDcuMDMzLTcuNDEgNy42OTYtMTcuNTAyIDcuNzMtMzAuMTI0LTI5LTQuNjMtNTguMDA2LTcuMDItODcuMDA3LTYuOTk4ek0yMzMgMTUwLjU2djMwaDQ2di0zMGgtNDZ6bTIwOS42NzQgOTIuNDJjLS41MDMgMy42MjUtMS4wNDIgNy4yNS0xLjYxIDEwLjg3LjIxNCAyLjM1Mi40MiA0LjcwNi42MyA3LjA2TDQ3MSAyOTAuMjEzdi0yMi4yNGwtMjguMzI2LTI0Ljk5NXptLTM3My40ODUuMTJMNDEgMjY3Ljk3M3YyMi4yNGwyOS4zMTgtMjkuMzE4Yy4yMDUtMi4zMjcuNDA2LTQuNjU1LjYxNi02Ljk4Mi0uNjE4LTMuNjA1LTEuMjAyLTcuMjEtMS43NDUtMTAuODEzem0zNTQuNjM0IDIwLjM5N2MtMTAuMjkgMS4wOS0yMC41NjQgMi4wNzYtMzAuODI0IDIuOTY3djc0LjA5NWgxNnY2NmgtMTZ2ODAuNjE1YzEwLjMxOC0uNjMzIDIwLjYzLTEuMzEzIDMwLjkyOC0yLjA4MiA5LjQ0NS03NC4wMSA2LjQ3OC0xNDcuNjk4LS4xMDQtMjIxLjU5NnptLTMzNS41NzYuMDNDODEuNzI1IDMzOC4wOSA3OC41OCA0MTIuMSA4OC4wNiA0ODUuMWMxMC4zMjQuNzkgMjAuNjM4IDEuNTA0IDMwLjk0IDIuMTQ1VjQwNi41NmgtMTZ2LTY2aDE2di03NC4wMjRjLTEwLjI2Ni0uOTAyLTIwLjUxNy0xLjkwMy0zMC43NTItMy4wMXptMjg2Ljc1MiA0LjRjLTEwLjAxNC43Ni0yMC4wMTQgMS40MjQtMzAgMS45OTJ2NzAuNjRoMzB2LTcyLjYzMnptLTIzOCAuMDg1djcyLjU0N2gzMHYtNzAuNTVjLTEwLjAxNS0uNTY4LTIwLjAxNC0xLjIzNy0zMC0xLjk5N3ptMTkwIDIuODI1Yy00Ny42NSAyLjE3My05NC45ODQgMi4xOS0xNDIgLjA3OHYxOS4zMTRjMjMuOTUtNS4xNjUgNDcuOC03LjY1MiA3MS41MTYtNy41OSAyMy42MzguMDYgNDcuMTQ1IDIuNjU0IDcwLjQ4NCA3LjYyNnYtMTkuNDN6TTY4LjA1IDI4OC42Mkw0MSAzMTUuNjd2NTYuODloMjMuMDZjLjM3Ni0yNy45ODcgMS44OC01NS45NzUgMy45OS04My45NHptMzc1Ljk0OC4wNDdjMi4xMiAyNy44NzIgMy42MSA1NS44MyAzLjk1NyA4My44OTJINDcxdi01Ni44OWwtMjcuMDAyLTI3LjAwM3ptLTE4Ny41MiAxMS45NWMtMjMuNjgtLjA2My00Ny40ODcgMi41NzctNzEuNDc4IDguMDUydjMxLjg5aDE2djE4LjQ0M2MxNy4wMzMgNS4zNDYgMzEuNzMgOC40OTMgNDYgOS40MjZ2LTIuODdoMTh2Mi44NjhjMTQuMjctLjkzMiAyOC45NjctNC4wOCA0Ni05LjQyNVYzNDAuNTZoMTZ2LTMxLjg2NmMtMjMuNDItNS4yNjctNDYuOTA3LTguMDE2LTcwLjUyMy04LjA3OHpNMTIxIDM1OC41NTh2MzBoMjJ2LTIzaDE4djIzaDIydi0zMGgtNjJ6bTIwOCAwdjMwaDIydi0yM2gxOHYyM2gyMnYtMzBoLTYyek0yMDEgMzc3Ljh2MjguNzZoLTE2djE1Ljg1N2M0OC41MjggMTAuODY1IDk1LjcxMyAxMC42NjQgMTQyIC4wNDVWNDA2LjU2aC0xNlYzNzcuOGMtMTYuMzMyIDQuNzQ3LTMxLjI4MyA3LjUyLTQ2IDguMzI2djExLjQzM2gtMTh2LTExLjQzNGMtMTQuNzE3LS44MDYtMjkuNjY4LTMuNTgtNDYtOC4zMjZ6TTQxIDM5MC41NnYxNGgyMy4xNGMtLjA5LTQuNjY3LS4xNDMtOS4zMzQtLjE2My0xNEg0MXptNDA3LjAxMiAwYy0uMDI3IDQuNjYzLS4wODMgOS4zMy0uMTggMTRINDcxdi0xNGgtMjIuOTg4ek0xMzcgNDA2LjU2djE5Ljc5OGM2LjEzNyA3LjIxNCAxMS4yMjIgOS43NyAxNC45MzQgOS44NDQgMy43MzQuMDc1IDguNjk3LTIuMTIyIDE1LjA2Ni05Ljc5VjQwNi41NmgtNnY3aC0xOHYtN2gtNnptMjA4IDB2MTkuNzk4YzYuMTM3IDcuMjE0IDExLjIyMiA5Ljc3IDE0LjkzNCA5Ljg0NCAzLjczNC4wNzUgOC42OTctMi4xMjIgMTUuMDY2LTkuNzlWNDA2LjU2aC02djdoLTE4di03aC02em0tMzA0IDE2djM1LjE1NGM1LjU5NiA1LjUxIDguNjc3IDguMjUgMTEuODQ2IDkuMzA2IDIuNDU0LjgxOCA3LjcxMyAxLjE1IDE1LjA0NSAxLjMxNy0xLjU0NC0xNS4yNS0yLjU4Ni0zMC41MS0zLjIwNC00NS43NzhINDF6bTQwNi4yNyAwYy0uNjI4IDE1LjIyNC0xLjY3NCAzMC40ODMtMy4yMSA0NS43OCA3LjM1OC0uMTY4IDEyLjYzNS0uNSAxNS4wOTQtMS4zMiAzLjE3LTEuMDU2IDYuMjUtMy43OTUgMTEuODQ2LTkuMzA2VjQyMi41NmgtMjMuNzN6TTE4NSA0NDAuODQydjQ5LjQ5OGM0Ny41NSAxLjUxIDk0Ljg3NyAxLjQ0NiAxNDItLjA3NFY0NDAuOWMtNDYuMzE2IDEwLjAzLTkzLjc0IDEwLjE4NS0xNDItLjA1N3ptLTQ4IDkuMTIzdjM4LjMxOGMxMC4wMS41NCAyMC4wMSAxLjAwOCAzMCAxLjQwOHYtMzkuNjc4Yy00Ljg2IDIuNzg2LTEwLjAxIDQuMjkzLTE1LjQzIDQuMTg0LTUuMTkyLS4xMDQtMTAuMDM2LTEuNjI0LTE0LjU3LTQuMjMyem0yMDggMHYzOS42NTRjMTAuMDEtLjQwMyAyMC4wMS0uODc4IDMwLTEuNDEydi0zOC4xOTRjLTQuODYgMi43ODYtMTAuMDEgNC4yOTMtMTUuNDMgNC4xODQtNS4xOTItLjEwNC0xMC4wMzYtMS42MjQtMTQuNTctNC4yMzJ6IiAvPjwvZz48L3N2Zz4=",
+    "copyrightText": "Delapouite on game-icons.net",
+    "description": "Delapouite on game-icons.net",
+    "awesomeIcon": "fas fa-exclamation-triangle",
+    "styleImageLarge": ""
+  },
 
 
 

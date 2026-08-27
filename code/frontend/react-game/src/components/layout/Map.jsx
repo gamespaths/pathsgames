@@ -103,6 +103,28 @@ export default function MapPage({ gameData, matchLocations, selectedId = null, o
       x2: b.x - (dx / len) * r, y2: b.y - (dy / len) * r,
     }
   }
+  // Arrowheads are plain polygons in graph coordinates, not <marker> defs:
+  // markers are unreliable on mobile browsers when the SVG lives inside a
+  // CSS-transformed layer (they render at the wrong size or not at all), while a
+  // polygon is just geometry and pans/zooms with everything else.
+  const ARROW_LEN = 8, ARROW_HALF_W = 6 /*quiquiqui*/
+  const ARROW_LEN_BIG = 12, ARROW_HALF_W_BIG = 12
+  // The head is pushed this far PAST the line's end, outward toward the node it
+  // points at: sitting exactly on the end point it read as sunk into the path.
+  // Along the edge direction, so a vertical edge moves its top head up and its
+  // bottom head down, a horizontal one moves left and right, and so on.
+  const ARROW_TIP_OUT = 3
+  function arrowHead(endX, endY, fromX, fromY, big) {
+    const dx = endX - fromX, dy = endY - fromY, len = Math.hypot(dx, dy) || 1
+    const ux = dx / len, uy = dy / len            // unit vector, pointing outward
+    const L = big ? ARROW_LEN_BIG : ARROW_LEN
+    const W = big ? ARROW_HALF_W_BIG : ARROW_HALF_W
+    const tipX = endX + ux * ARROW_TIP_OUT, tipY = endY + uy * ARROW_TIP_OUT
+    const bx = tipX - ux * L, by = tipY - uy * L  // base of the head
+    const px = -uy * W, py = ux * W               // perpendicular half-width
+    return `${tipX},${tipY} ${bx + px},${by + py} ${bx - px},${by - py}`
+  }
+
   const edgeEls = edges.map((e, i) => {
     const { fwd, bwd } = edgeVisibility(e, isVisited)
     if (!fwd && !bwd) return null // arrows never leave an unexplored location
@@ -111,26 +133,37 @@ export default function MapPage({ gameData, matchLocations, selectedId = null, o
     const isExit = e.from === currentId || (e.to === currentId && e.back)
     const hot = e.from === currentId || e.to === currentId
     const cls = 'game-map-edge' + (e.back ? '' : ' game-map-edge--oneway') + (hot ? ' game-map-edge--hot' : '')
-    let s, markers
+    let s
+    let heads // [{ big }] positions resolved below
     if (fwd && bwd && isExit) {
       // draw FROM the current location: one big arrow shows the move direction
       const from = e.from === currentId ? a : b
       const to = e.from === currentId ? b : a
       s = shorten(from, to, MAP_NODE_R)
-      markers = { markerEnd: 'url(#gameMapArrBig)' }
+      heads = [{ at: 'end', big: true }]
     } else if (fwd && bwd) {
-      // two-way path (both directions): smaller double arrowheads
+      // two-way path (both directions): a head at each end
       s = shorten(a, b, MAP_NODE_R)
-      markers = { markerStart: 'url(#gameMapArrSmall)', markerEnd: 'url(#gameMapArrSmall)' }
+      heads = [{ at: 'end', big: false }, { at: 'start', big: false }]
     } else {
       // single visible direction (one-way link, or the far end is unexplored)
       const from = fwd ? a : b, to = fwd ? b : a
       s = shorten(from, to, MAP_NODE_R)
-      const big = (fwd ? e.from : e.to) === currentId
-      markers = { markerEnd: big ? 'url(#gameMapArrBig)' : 'url(#gameMapArr)' }
+      heads = [{ at: 'end', big: (fwd ? e.from : e.to) === currentId }]
     }
-    return <line key={`${e.from}-${e.to}-${i}`} className={cls}
-      x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} {...markers} />
+    const headCls = 'game-map-arrow' + (hot ? ' game-map-arrow--hot' : '')
+    return (
+      <g key={`${e.from}-${e.to}-${i}`}>
+        <line className={cls} x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} />
+        {heads.map(h => (
+          <polygon key={h.at}
+            className={headCls + (h.big ? ' game-map-arrow--big' : '')}
+            points={h.at === 'end'
+              ? arrowHead(s.x2, s.y2, s.x1, s.y1, h.big)
+              : arrowHead(s.x1, s.y1, s.x2, s.y2, h.big)} />
+        ))}
+      </g>
+    )
   })
 
   /* ---------- nodes ---------- */
@@ -139,11 +172,16 @@ export default function MapPage({ gameData, matchLocations, selectedId = null, o
       + (n.id === ringId ? ' game-map-node--current' : '')
       + (n.safe ? ' game-map-node--safe' : '')
       + (n.visited ? '' : ' game-map-node--unknown')
+      // far "?" — not bordering the character's location: no dashed ring
+      + (!n.visited && !n.isNeighbor ? ' game-map-node--far' : '')
     const style = { left: `${n.x}px`, top: `${n.y}px` }
     if (n.visited && n.urlImage) style.backgroundImage = `url("${n.urlImage}")`
-    // clicking an explored location selects it (its card opens on the right
-    // page); a drag never counts as a click (movedRef)
-    const clickable = n.visited && typeof onSelectNode === 'function'
+    // clicking a location selects it (its card opens on the right page):
+    // explored nodes always; "?" nodes only when they border the character's
+    // location — their own card is still fog-gated, so the right page shows
+    // the NEIGHBOR (movement) card instead. A drag never counts as a click
+    // (movedRef).
+    const clickable = (n.visited || n.isNeighbor) && typeof onSelectNode === 'function'
     return (
       <div key={n.id} className={cls} style={style}
         title={n.visited ? (n.name || '') : t('game.map.unexplored')}
@@ -177,22 +215,14 @@ export default function MapPage({ gameData, matchLocations, selectedId = null, o
         onPointerDown={onPointerDown} onPointerMove={onPointerMove}
         onPointerUp={onPointerUp} onPointerLeave={onPointerUp}>
         <div className={'game-map-world' + (view.anim ? ' game-map-world--anim' : '')}
-          style={{ width, height, transform: `translate(${view.tx}px, ${view.ty}px) scale(${view.scale})` }}>
-          <svg className="game-map-svg" width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-            <defs>
-              <marker id="gameMapArr" viewBox="0 0 10 10" refX="8" refY="5"
-                markerWidth="3" markerHeight="3" orient="auto-start-reverse">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#9a6f08" />
-              </marker>
-              <marker id="gameMapArrSmall" viewBox="0 0 10 10" refX="8" refY="5"
-                markerWidth="3" markerHeight="3" orient="auto-start-reverse">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#9a6f08" />
-              </marker>
-              <marker id="gameMapArrBig" viewBox="0 0 10 10" refX="8" refY="5"
-                markerWidth="4" markerHeight="4" orient="auto-start-reverse">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#7a4e00" />
-              </marker>
-            </defs>
+          style={{ width, height, maxWidth: 'none',
+            transform: `translate(${view.tx}px, ${view.ty}px) scale(${view.scale})` }}>
+          {/* The SVG spans the whole graph plane in graph coordinates, so its size is
+              pinned inline: if any stylesheet shrinks it, the viewBox rescales the paths
+              while the nodes (absolute, in px) stay put and the two drift apart. */}
+          <svg className="game-map-svg" width={width} height={height}
+            viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMinYMin meet"
+            style={{ width: `${width}px`, height: `${height}px`, maxWidth: 'none' }}>
             <g>{edgeEls}</g>
           </svg>
           {nodeEls}

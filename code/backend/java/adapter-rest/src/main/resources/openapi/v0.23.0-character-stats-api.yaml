@@ -17,9 +17,16 @@ info:
       permitted-restricted trait is rejected when no class is selected;
     * the sum of `costPositive` and the sum of `costNegative` over the selected
       traits must each stay within the difficulty budgets
-      (`TRAIT_COST_EXCEEDED`); a null budget means "no limit".
+      (`TRAIT_COST_EXCEEDED`); a null budget means "no limit";
+    * v0.35.2 — a trait flagged `hideOnStartMatch` cannot be selected at all
+      (`TRAIT_NOT_SELECTABLE`). The trait is still RETURNED by both endpoints,
+      flag included: the same list resolves the traits a character already owns,
+      and an event or an item effect may grant a hidden trait at any time — that
+      is what the flag is for. Hiding it is the client's job, on the start-match
+      page alone; the refusal here is what makes it a rule rather than a
+      drawing.
 
-    All four violations are returned as **HTTP 400** with the error code in the
+    All five violations are returned as **HTTP 400** with the error code in the
     `error` field, on both endpoints.
 
     The difficulty payload (story detail `difficulties[]`) is additively
@@ -218,6 +225,13 @@ components:
         costNegative:
           type: integer
           description: Counts toward the difficulty `traitCostNegativeBudget`
+        hideOnStartMatch:
+          type: boolean
+          description: >
+            v0.35.2 - true when the story keeps this trait out of the start-match picker.
+            Selecting it is refused with TRAIT_NOT_SELECTABLE, while an event or an item
+            effect may still grant it. Reported on every projection that carries traits and
+            never filtered out, because the same list resolves the traits a character has.
         idClassPermitted:
           type: integer
           nullable: true

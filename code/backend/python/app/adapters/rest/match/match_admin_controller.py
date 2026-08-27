@@ -41,6 +41,9 @@ class ChangeStatisticsRequestBody(BaseModel):
     coin:   Optional[int] = None
     food:   Optional[int] = None
     magic:  Optional[int] = None
+    # State flags: omitted (null) means "leave as it is" — the -1 of the numeric fields.
+    sleeping: Optional[bool] = None
+    coma:     Optional[bool] = None
 
 
 class MatchAdminController:
@@ -168,15 +171,18 @@ class MatchAdminController:
         return JSONResponse(status_code=200, content=_locations_to_camel(uuid_match, locations))
 
     def get_admin_match_logs(self, uuid_match: str, lang: str = "en",
-                             limit: Optional[int] = None, cursor: Optional[str] = None):
+                             limit: Optional[int] = None, cursor: Optional[str] = None,
+                             order: Optional[str] = None):
         """GET /api/admin/matches/{uuid}/logs — consolidated log timeline (Step 28.7).
         No ownership check; served on admin port 8044.
-        v0.28.7 — cursor-paginated (?limit=&cursor=) with cards resolved in ?lang=."""
+        v0.28.7 — cursor-paginated (?limit=&cursor=) with cards resolved in ?lang=.
+        ?order=asc (default) starts from the oldest entry, ?order=desc from the newest."""
         if not uuid_match or not uuid_match.strip():
             return _error("INVALID_INPUT", "Match uuid is required", 400)
         if self.match_logs_service is None:
             return _error("NOT_IMPLEMENTED", "Match logs service not wired", 501)
-        result = self.match_logs_service.get_match_logs_for_admin(uuid_match, lang, limit, cursor)
+        result = self.match_logs_service.get_match_logs_for_admin(uuid_match, lang, limit,
+                                                                  cursor, order)
         if result is None:
             return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
         return JSONResponse(status_code=200, content=result)
@@ -252,6 +258,8 @@ class MatchAdminController:
             coin=_skip(body.coin if body else None),
             food=_skip(body.food if body else None),
             magic=_skip(body.magic if body else None),
+            sleeping=(body.sleeping if body else None),
+            coma=(body.coma if body else None),
         )
         if outcome == "UPDATED":
             return JSONResponse(status_code=200, content={

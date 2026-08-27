@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.entity.match.GamingCharacterInstanceEntity;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
 import games.paths.core.entity.match.GamingStateRegistryEntity;
@@ -22,9 +23,20 @@ import games.paths.core.model.match.MatchSummaryPage;
 import games.paths.core.model.match.MatchTraitCodec;
 import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.match.CharacterReadPort;
+import games.paths.core.port.match.EventExecutionPort.EventAvailability;
+import games.paths.core.port.match.EventExecutionPort.EventExecutionException.Code;
+import games.paths.core.port.match.EventExecutionStorePort;
+import games.paths.core.port.match.EventExecutionStorePort.EventCheckContext;
+import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.port.match.MatchQueryPort;
 import games.paths.core.port.match.MatchReadPort;
+import games.paths.core.port.match.MovementPort.MovementAvailability;
+import games.paths.core.port.match.MovementPort.MovementException;
 import games.paths.core.port.match.MovementStorePort;
+import games.paths.core.port.match.MovementStorePort.MoveCharacterView;
+import games.paths.core.port.match.MovementStorePort.WeatherMoveCost;
+import games.paths.core.service.match.MovementAvailabilityChecker.MoveCheckContext;
+import games.paths.core.service.match.MovementAvailabilityChecker.MoveEdgeCheck;
 import games.paths.core.port.match.UserAccessPort;
 import games.paths.core.port.story.ContentQueryPort;
 import games.paths.core.port.story.StoryReadPort;
@@ -54,6 +66,7 @@ public class MatchQueryService implements MatchQueryPort {
     private final CharacterReadPort characterReadPort;
     private final ContentQueryPort contentQueryPort;
     private final MovementStorePort movementStorePort;
+    private final EventExecutionStorePort eventExecutionStorePort;
 
     public MatchQueryService(MatchReadPort matchReadPort,
                              StoryReadPort storyReadPort,
@@ -100,12 +113,35 @@ public class MatchQueryService implements MatchQueryPort {
                              CharacterReadPort characterReadPort,
                              ContentQueryPort contentQueryPort,
                              MovementStorePort movementStorePort) {
+        this(matchReadPort, storyReadPort, userAccessPort, characterReadPort, contentQueryPort,
+                movementStorePort, null);
+    }
+
+    /**
+     * Step 29 — the {@code eventExecutionStorePort} loads the check context once per request so
+     * every event of {@code locationsActive} can report its {@code available} flag and, when
+     * blocked, the {@code reason}. The verdict comes from {@link EventAvailabilityChecker}, the
+     * same one {@code execute-event} enforces, so the board and the endpoint cannot disagree.
+     *
+     * <p>When {@code null} (legacy constructors) every event reports
+     * {@code available=false, reason=CHARACTER_CANNOT_ACT} rather than silently claiming to be
+     * executable.</p>
+     */
+    @SuppressWarnings("java:S107")
+    public MatchQueryService(MatchReadPort matchReadPort,
+                             StoryReadPort storyReadPort,
+                             UserAccessPort userAccessPort,
+                             CharacterReadPort characterReadPort,
+                             ContentQueryPort contentQueryPort,
+                             MovementStorePort movementStorePort,
+                             EventExecutionStorePort eventExecutionStorePort) {
         this.matchReadPort = matchReadPort;
         this.storyReadPort = storyReadPort;
         this.userAccessPort = userAccessPort;
         this.characterReadPort = characterReadPort;
         this.contentQueryPort = contentQueryPort;
         this.movementStorePort = movementStorePort;
+        this.eventExecutionStorePort = eventExecutionStorePort;
     }
 
     @Override
@@ -356,6 +392,7 @@ public class MatchQueryService implements MatchQueryPort {
             m.setIdLocation(sl.getIdLocation());
             m.setUuid(sl.getUuid());
             m.setFlagAlreadyActived(sl.getFlagAlreadyActived());
+            m.setFlagVisited(sl.getFlagVisited());
             m.setClockCounter(sl.getClockCounter());
             stateModels.add(m);
         }
@@ -378,9 +415,13 @@ public class MatchQueryService implements MatchQueryPort {
         List<CharacterInstanceInfo> players = new ArrayList<>();
         if (characterReadPort != null) {
             Long requesterId = userCreatorUuid != null ? match.getIdUserCreator() : null;
+            // Step 34 — the player view masks the other players' inventories; the admin
+            // view (allLocations) must NOT, because it has no requester at all and masking
+            // there would blank every player's items in the console.
             players = CharacterMapper.buildAll(
-                    characterReadPort.findCharactersByMatchId(match.getId()),
-                    match, storyReadPort, characterReadPort, userCreatorUuid, requesterId);
+                    characterReadPort.findCharactersByMatchId(match.getId()), match,
+                    new CharacterMapper.MapperContext(storyReadPort, characterReadPort, contentQueryPort,
+                            userCreatorUuid, requesterId, lang, !allLocations));
         }
         detail.setPlayers(players);
 
@@ -412,13 +453,143 @@ public class MatchQueryService implements MatchQueryPort {
         detail.setEvents(new ArrayList<>());
         detail.setChoices(new ArrayList<>());
 
+        // Step 29 — ONE context for every event of the payload. The checker is a pure function
+        // over it, so a story with fifty events costs exactly the same as a story with one.
+        EventCheckContext checkCtx = loadCheckContext(match);
+        // ...and one for every neighbor, same idea: the move verdict is a pure function of the
+        // mover's state plus the edge, so no query happens inside the neighbor loop.
+        MoveJudge moveJudge = loadMoveJudge(match);
+
         // Step 27.x — enriched, player-occupied locations with card/neighbors/events.
         Long storyId = storyOpt.map(StoryEntity::getId).orElse(null);
         Integer endEventId = storyOpt.map(StoryEntity::getIdEventEndGame).orElse(null);
-        detail.setLocationsActive(
-                buildLocationsActive(storyId, endEventId, activeLocIds, locationsById, lang, visitedLocIds));
+        detail.setLocationsActive(buildLocationsActive(
+                storyId, endEventId, activeLocIds, locationsById, lang, visitedLocIds,
+                checkCtx, moveJudge));
 
         return detail;
+    }
+
+    /**
+     * The check context of the match's reference character — in single-player the only one, and
+     * the creator's. Loaded once per request; null when no event store is wired.
+     *
+     * <p>The admin view uses the same reference character, so the console sees exactly the flags
+     * the player would. Per-character availability arrives with multiplayer (Step 60+).</p>
+     */
+    private EventCheckContext loadCheckContext(GamingMatchEntity match) {
+        if (eventExecutionStorePort == null || characterReadPort == null) {
+            return null;
+        }
+        Long refCharacterId = null;
+        for (GamingCharacterInstanceEntity c : characterReadPort.findCharactersByMatchId(match.getId())) {
+            if (c.getIdUser() != null && c.getIdUser().equals(match.getIdUserCreator())) {
+                refCharacterId = c.getId();
+                break;
+            }
+        }
+        return eventExecutionStorePort.loadCheckContext(match.getId(), refCharacterId);
+    }
+
+    /**
+     * Everything the move verdict needs, loaded once per request: the mover's state, the
+     * weather energy modifier in force and how many characters stand on each location (for
+     * LOCATION_FULL). The registry is the match's, so an edge condition is judged without a
+     * query per edge.
+     */
+    private record MoveJudge(long idMatch,
+                             MoveCheckContext ctx,
+                             WeatherMoveCost weather,
+                             Map<Long, Integer> charactersByLocation,
+                             Map<String, String> registry) {
+
+        /** No movement store wired (legacy constructor): every neighbor reads as blocked. */
+        static MoveJudge noCharacter(long idMatch) {
+            return new MoveJudge(idMatch, MoveCheckContext.noCharacter(),
+                    new WeatherMoveCost(0, 0), Map.of(), Map.of());
+        }
+
+        boolean conditionMet(LocationNeighborEntity n) {
+            String key = n.getConditionRegistryKey();
+            if (key == null || key.isBlank()) {
+                return true;
+            }
+            String expected = n.getConditionRegistryValue();
+            return expected != null && expected.equals(registry.get(key));
+        }
+    }
+
+    /**
+     * The move context of the match's reference character — in single-player the only one, and
+     * the creator's, i.e. the very same character {@link #loadCheckContext} judges events for.
+     */
+    private MoveJudge loadMoveJudge(GamingMatchEntity match) {
+        if (movementStorePort == null || match.getIdUserCreator() == null) {
+            return MoveJudge.noCharacter(match.getId());
+        }
+        MoveCharacterView caller = movementStorePort
+                .findCharacterByMatchAndUser(match.getId(), match.getIdUserCreator())
+                .orElse(null);
+        if (caller == null) {
+            return MoveJudge.noCharacter(match.getId());
+        }
+
+        Map<Long, Integer> counts = new HashMap<>();
+        for (MoveCharacterView c : movementStorePort.findCharactersByMatchId(match.getId())) {
+            if (c.idLocation() != null) {
+                counts.merge(c.idLocation(), 1, Integer::sum);
+            }
+        }
+        WeatherMoveCost weather = movementStorePort.findCurrentWeatherMoveCost(match.getId());
+
+        Map<String, String> registry = new HashMap<>();
+        for (GamingStateRegistryEntity r : matchReadPort.findRegistryByMatchId(match.getId())) {
+            if (r.getKey() != null) {
+                registry.put(r.getKey(), r.getStringValue() != null
+                        ? r.getStringValue()
+                        : (r.getIntValue() == null ? null : String.valueOf(r.getIntValue())));
+            }
+        }
+
+        MoveCheckContext ctx = new MoveCheckContext(
+                MatchStatuses.RUNNING.equals(match.getStatus()),
+                true,
+                caller.isComa(),
+                caller.isSleeping(),
+                caller.energy(),
+                caller.carriedWeight(),
+                caller.weightMax(),
+                caller.food(), caller.magic(), caller.coin());
+        return new MoveJudge(match.getId(), ctx,
+                weather == null ? new WeatherMoveCost(0, 0) : weather, counts, registry);
+    }
+
+    /**
+     * The verdict on one neighbor edge, from the pre-loaded {@link MoveJudge}: the cost is the
+     * movement system's own formula (edge + target entry + weather modifier, safe or not), so
+     * {@code /info} greys out exactly the paths {@code action/move} would refuse.
+     */
+    private static MovementAvailability judgeNeighbor(MoveJudge judge,
+                                                      LocationNeighborEntity n,
+                                                      LocationEntity target) {
+        if (target == null) {
+            return MovementAvailability.no(MovementException.Code.NOT_A_NEIGHBOR);
+        }
+        int weatherMod = nz(target.getSecureParam()) > 0
+                ? judge.weather().costSafe()
+                : judge.weather().costNotSafe();
+        int totalCost = nz(n.getEnergyCost()) + nz(target.getCostEnergyEnter()) + weatherMod;
+        int maxCharacters = nz(target.getMaxCharacters());
+        return MovementAvailabilityChecker.check(judge.ctx(), new MoveEdgeCheck(
+                judge.conditionMet(n),
+                totalCost,
+                maxCharacters,
+                judge.charactersByLocation().getOrDefault(target.getId(), 0),
+                nz(n.getCostFood()), nz(n.getCostMagic()), nz(n.getCostCoin())));
+    }
+
+    private static int nz(Integer v) {
+        return v == null ? 0 : v;
     }
 
     /**
@@ -431,12 +602,15 @@ public class MatchQueryService implements MatchQueryPort {
      * without the cache the same card would be re-read from the content port
      * once per edge.</p>
      */
+    @SuppressWarnings("java:S107")
     private List<LocationInfo> buildLocationsActive(Long storyId,
                                                     Integer endEventId,
                                                     Set<Long> activeLocIds,
                                                     Map<Long, LocationEntity> locationsById,
                                                     String lang,
-                                                    Set<Long> visitedLocIds) {
+                                                    Set<Long> visitedLocIds,
+                                                    EventCheckContext checkCtx,
+                                                    MoveJudge moveJudge) {
         List<LocationInfo> result = new ArrayList<>();
         if (storyId == null || activeLocIds.isEmpty()) {
             return result;
@@ -479,6 +653,8 @@ public class MatchQueryService implements MatchQueryPort {
                         : neighborCardId;
                 Long fromId = n.getIdLocationFrom() != null ? n.getIdLocationFrom().longValue() : null;
                 Long toId = n.getIdLocationTo() != null ? n.getIdLocationTo().longValue() : null;
+                // No port call in this loop either: the move context was loaded once.
+                MovementAvailability move = judgeNeighbor(moveJudge, n, other);
                 neighborInfos.add(new LocationNeighborInfo(
                         otherId,
                         other != null ? other.getUuid() : null,
@@ -491,7 +667,9 @@ public class MatchQueryService implements MatchQueryPort {
                         toId,
                         resolveCard(storyId, neighborCardBackId, lang, cardCache),
                         resolveLocationCard(storyId, fromId, locationsById, lang, visitedLocIds, cardCache),
-                        resolveLocationCard(storyId, toId, locationsById, lang, visitedLocIds, cardCache)));
+                        resolveLocationCard(storyId, toId, locationsById, lang, visitedLocIds, cardCache),
+                        move.available(), move.reasonName(),
+                        n.getCostFood(), n.getCostMagic(), n.getCostCoin()));
             }
 
             List<EventInfo> eventInfos = new ArrayList<>();
@@ -500,9 +678,16 @@ public class MatchQueryService implements MatchQueryPort {
                         && locId.equals(e.getIdSpecificLocation().longValue())) {
                     boolean endGame = endEventId != null && e.getId() != null
                             && endEventId.longValue() == e.getId();
+                    // Step 29 — no port call in this loop: the context was loaded once.
+                    EventAvailability av = checkCtx == null
+                            ? EventAvailability.no(Code.CHARACTER_CANNOT_ACT)
+                            : EventAvailabilityChecker.check(e, checkCtx);
                     eventInfos.add(new EventInfo(
                             e.getUuid(), e.getType(), endGame,
-                            resolveCard(storyId, e.getIdCard(), lang, cardCache)));
+                            resolveCard(storyId, e.getIdCard(), lang, cardCache),
+                            av.available(), av.reasonName(),
+                            nz(e.getCostEnery()), nz(e.getCostCoin()),
+                            nz(e.getCostFood()), nz(e.getCostMagic())));
                 }
             }
 

@@ -88,6 +88,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '409':
+          description: >-
+            v0.32.1 — ACTIVE_MATCH_ALREADY_EXISTS: the caller already owns a
+            non-terminal match (CREATED, RUNNING or PAUSED) on this story. Only
+            one active match per user and story is allowed; the client can find
+            the existing match with GET /api/matches.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '503':
           description: Server is in maintenance mode
           content:
@@ -549,6 +559,24 @@ components:
           type: integer
           format: int32
           nullable: true
+        costFood:
+          type: integer
+          format: int32
+          nullable: true
+          description: >
+            v0.35.3 — food the EDGE costs. Unlike energy, which sums edge + destination entry
+            + weather and is reported pre-summed, the resources have one source, so this is
+            exactly what the move will take.
+        costMagic:
+          type: integer
+          format: int32
+          nullable: true
+          description: v0.35.3 — magic the edge costs.
+        costCoin:
+          type: integer
+          format: int32
+          nullable: true
+          description: v0.35.3 — coins the edge costs.
         card:
           allOf:
             - $ref: '#/components/schemas/CardInfo'
@@ -595,6 +623,29 @@ components:
           allOf:
             - $ref: '#/components/schemas/CardInfo'
           nullable: true
+        available:
+          description: >
+            Whether the reference character can take this path right now. Same verdict
+            POST /api/gameplay/{id_game}/action/move enforces, from the same check
+            procedure — the board can grey out the path instead of letting the player
+            discover it by being rejected.
+          type: boolean
+        reason:
+          description: >
+            When `available` is false, the error code the move endpoint would answer with;
+            null otherwise. Mirrors EventInfo.reason for actions.
+          type: string
+          nullable: true
+          enum:
+            - CHARACTER_CANNOT_ACT
+            - MATCH_NOT_RUNNING
+            - COMA
+            - SLEEPING
+            - NOT_A_NEIGHBOR
+            - MOVEMENT_CONDITION_NOT_MET
+            - OVERWEIGHT
+            - INSUFFICIENT_ENERGY
+            - LOCATION_FULL
 
     EventInfo:
       type: object
@@ -605,11 +656,45 @@ components:
         type:
           type: string
           nullable: true
+          enum: [AUTOMATIC, FIRST, NORMAL, ONCE]
         endGame:
           description: True when this event is the story's end-game event.
           type: boolean
         card:
           $ref: '#/components/schemas/CardInfo'
+        available:
+          description: |
+            Step 29 — whether the player can trigger this event right now. It is the verdict of
+            the same check procedure that `POST /api/gameplay/{uuid}/action/execute-event`
+            enforces, so an event shown as available cannot then be refused by that endpoint.
+          type: boolean
+        reason:
+          description: |
+            Step 29 — why not, as the error code `execute-event` would return: one of
+            `CHARACTER_CANNOT_ACT`, `SLEEPING`, `COMA`, `EVENT_NOT_EXECUTABLE_TYPE`,
+            `ONCE_ALREADY_CONSUMED`,
+            `WRONG_LOCATION`, `NOT_ENOUGH_ENERGY`, `NOT_ENOUGH_COINS`,
+            `REGISTRY_CONDITION_NOT_MET`, `WEATHER_CONDITION_NOT_MET`,
+            `ITEM_CONDITION_NOT_MET`, `CLASS_CONDITION_NOT_MET`, and since v0.35.3
+            `NOT_ENOUGH_FOOD` / `NOT_ENOUGH_MAGIC`. Null when `available` is true.
+          type: string
+          nullable: true
+          example: NOT_ENOUGH_ENERGY
+        energy:
+          description: |
+            The energy the event costs to trigger (`costEnery`); 0 when it is free. The board
+            renders the cost on the action without a second call.
+          type: integer
+        coin:
+          description: v0.35.3 — the coins the event costs (`cost_coin`); 0 when it is free.
+          type: integer
+        food:
+          description: v0.35.3 — the food the event costs (`cost_food`); 0 when it is free.
+          type: integer
+        magic:
+          description: v0.35.3 — the magic the event costs (`cost_magic`); 0 when it is free.
+          type: integer
+          example: 1
 
     LocationInfo:
       type: object

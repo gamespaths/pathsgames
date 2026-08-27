@@ -4,6 +4,7 @@ import { useTranslation } from '@/i18n/context'
 import { listMatches } from '@/api/matches'
 import { getStory } from '@/api/stories'
 import MatchCard from '@/features/matches/MatchCard'
+import LoadingCard from '@/components/layout/LoadingCard'
 
 /**
  * UserMatchesList — fetches the current user's matches and story cards,
@@ -48,9 +49,7 @@ export default function UserMatchesList({ accessToken, preloadedMatches, onPrevi
   }, [accessToken, preloadedMatches, lang])
 
   if (loading) return (
-    <div className="matches-list-state matches-list-state-loading">
-      <i className="fas fa-spinner fa-spin me-2" />{t('matches.loading')}
-    </div>
+    <LoadingCard story={null} />
   )
 
   if (error) return (

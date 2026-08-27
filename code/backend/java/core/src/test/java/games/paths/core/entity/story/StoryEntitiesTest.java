@@ -533,7 +533,7 @@ class StoryEntitiesTest {
                 () -> assertEquals("NORMAL", e.getType()),
                 () -> assertEquals(0, e.getCostEnery()),
                 () -> assertEquals(0, e.getFlagEndTime()),
-                () -> assertEquals(0, e.getCoinCost())
+                () -> assertEquals(0, e.getCostCoin())
             );
         }
 
@@ -544,13 +544,13 @@ class StoryEntitiesTest {
             e.setType("BATTLE");
             e.setCostEnery(5);
             e.setFlagEndTime(1);
-            e.setCoinCost(10);
+            e.setCostCoin(10);
             e.onCreate();
             assertAll(
                 () -> assertEquals("BATTLE", e.getType()),
                 () -> assertEquals(5, e.getCostEnery()),
                 () -> assertEquals(1, e.getFlagEndTime()),
-                () -> assertEquals(10, e.getCoinCost())
+                () -> assertEquals(10, e.getCostCoin())
             );
         }
 
@@ -563,33 +563,57 @@ class StoryEntitiesTest {
             e.setIdStory(3L);
             e.setIdTextName(4);
             e.setIdTextDescription(5);
-            e.setType("BATTLE");
+            e.setType("ONCE");
             e.setCostEnery(5);
             e.setFlagEndTime(1);
-            e.setCoinCost(10);
-            e.setCharacteristicToAdd("BRAVE");
-            e.setCharacteristicToRemove("WEAK");
-            e.setKeyToAdd("QUEST");
-            e.setKeyValueToAdd("1");
+            e.setCostCoin(10);
             e.setIdItemToAdd(6);
             e.setIdWeather(7);
             e.setIdEventNext(8);
             e.setIdSpecificLocation(9);
+            // v0.29.0 conditions (the four effect columns moved to EventEffectEntity).
+            e.setRegistryKeyCondition("QUEST");
+            e.setRegistryValueCondition("OPEN");
+            e.setIdClassCondition(11);
+            e.setIdItemCondition(12);
 
             assertAll(
                 () -> assertEquals(1L, e.getId()),
-                () -> assertEquals("BATTLE", e.getType()),
+                () -> assertEquals("ONCE", e.getType()),
                 () -> assertEquals(5, e.getCostEnery()),
                 () -> assertEquals(1, e.getFlagEndTime()),
-                () -> assertEquals(10, e.getCoinCost()),
-                () -> assertEquals("BRAVE", e.getCharacteristicToAdd()),
-                () -> assertEquals("WEAK", e.getCharacteristicToRemove()),
-                () -> assertEquals("QUEST", e.getKeyToAdd()),
-                () -> assertEquals("1", e.getKeyValueToAdd()),
+                () -> assertEquals(10, e.getCostCoin()),
                 () -> assertEquals(6, e.getIdItemToAdd()),
                 () -> assertEquals(7, e.getIdWeather()),
                 () -> assertEquals(8, e.getIdEventNext()),
-                () -> assertEquals(9, e.getIdSpecificLocation())
+                () -> assertEquals(9, e.getIdSpecificLocation()),
+                () -> assertEquals("QUEST", e.getRegistryKeyCondition()),
+                () -> assertEquals("OPEN", e.getRegistryValueCondition()),
+                () -> assertEquals(11, e.getIdClassCondition()),
+                () -> assertEquals(12, e.getIdItemCondition())
+            );
+        }
+
+        @Test
+        @DisplayName("EventEffectEntity carries the v0.29.0 effect columns")
+        void eventEffectV29Columns() {
+            EventEffectEntity ee = new EventEffectEntity();
+            ee.setIdEvent(1);
+            ee.setIdWeather(3);
+            ee.setKeyToAdd("QUEST");
+            ee.setKeyValueToAdd("DONE");
+            ee.setCharacteristicToAdd("BRAVE");
+            ee.setCharacteristicToRemove("WEAK");
+            ee.setIdLocation(9);
+
+            assertAll(
+                () -> assertEquals(1, ee.getIdEvent()),
+                () -> assertEquals(3, ee.getIdWeather()),
+                () -> assertEquals("QUEST", ee.getKeyToAdd()),
+                () -> assertEquals("DONE", ee.getKeyValueToAdd()),
+                () -> assertEquals("BRAVE", ee.getCharacteristicToAdd()),
+                () -> assertEquals("WEAK", ee.getCharacteristicToRemove()),
+                () -> assertEquals(9, ee.getIdLocation())
             );
         }
     }
@@ -702,6 +726,18 @@ class StoryEntitiesTest {
                 () -> assertEquals(1, e.getWeight()),
                 () -> assertEquals(1, e.getIsConsumabile())
             );
+        }
+
+        @Test
+        @DisplayName("v0.35.0 — flagShowEffects stays null when nobody sets it")
+        void flagShowEffects_defaultsToUnset() {
+            ItemEntity e = new ItemEntity();
+            e.onCreate();
+            // Unset is the reading of every story authored before the column existed, and
+            // the mapper reads it as "shown" — @PrePersist must not turn it into a 0.
+            assertNull(e.getFlagShowEffects());
+            e.setFlagShowEffects(0);
+            assertEquals(0, e.getFlagShowEffects());
         }
 
         @Test
@@ -840,13 +876,13 @@ class StoryEntitiesTest {
         void eventFieldGetters() {
             LocationEntity e = new LocationEntity();
             e.setIdEventIfCharacterStartTime(10);
-            e.setIdEventIfCharacterEnterFirstTime(11);
+            e.setIdEventIfCharacterEnterEmptyLocation(11);
             e.setIdEventIfFirstTime(12);
             e.setIdEventNotFirstTime(13);
 
             assertAll(
                 () -> assertEquals(10, e.getIdEventIfCharacterStartTime()),
-                () -> assertEquals(11, e.getIdEventIfCharacterEnterFirstTime()),
+                () -> assertEquals(11, e.getIdEventIfCharacterEnterEmptyLocation()),
                 () -> assertEquals(12, e.getIdEventIfFirstTime()),
                 () -> assertEquals(13, e.getIdEventNotFirstTime())
             );

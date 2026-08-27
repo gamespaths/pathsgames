@@ -54,11 +54,11 @@ describe('GamePage', () => {
     getStoryDetail.mockResolvedValue({ uuid: 'abc' })
   })
 
-  it('shows loading spinner while data loads', () => {
+  it('shows the LoadingCard page while data loads', () => {
     getMatchInfo.mockReturnValue(new Promise(() => {}))
     getStory.mockReturnValue(new Promise(() => {}))
     wrap('abc', { matchUuid: 'match-1' })
-    expect(screen.getByText(/Loading/)).toBeInTheDocument()
+    expect(screen.getByText('game.loadingCard.title')).toBeInTheDocument()
   })
 
   it('renders GameBook after data loads', async () => {

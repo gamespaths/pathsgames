@@ -1,7 +1,8 @@
 *** Settings ***
 # ---------------------------------------------------------------------------
 # matches.resource — keywords for the Step 19 match endpoints.
-#   GET /api/matches/{uuidMatch}/logs   — Step 28.7 (Get Match Logs keyword)
+#   GET /api/matches/{uuidMatch}/logs   — Step 28.7 (Get Match Logs keyword),
+#                                         ?order=asc|desc since v0.30.3
 #
 # Authenticated (Bearer access token issued by /api/auth/guest):
 #   POST /api/matches                  → 201, MatchSummary
@@ -87,10 +88,11 @@ Get Match Logs
     [Documentation]    GET /api/matches/{uuidMatch}/logs (Step 28.7) — consolidated log timeline.
     ...                Owner-only; returns WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY entries.
     ...                v0.28.7 — cursor-paginated: optional ${limit} / ${cursor} / ${lang} params.
+    ...                v0.30.3 — optional ${order}: asc (server default, oldest first) or desc.
     [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
-    ...            ${limit}=${EMPTY}    ${cursor}=${EMPTY}    ${lang}=${EMPTY}
+    ...            ${limit}=${EMPTY}    ${cursor}=${EMPTY}    ${lang}=${EMPTY}    ${order}=${EMPTY}
     ${headers}=    Get Auth Headers    ${token}
-    ${params}=    Build Logs Params    ${limit}    ${cursor}    ${lang}
+    ${params}=    Build Logs Params    ${limit}    ${cursor}    ${lang}    ${order}
     ${response}=    GET On Session    public_session    /api/matches/${match_uuid}/logs
     ...    headers=${headers}
     ...    params=${params}
@@ -101,10 +103,11 @@ Get Admin Match Logs
     [Documentation]    GET /api/admin/matches/{uuidMatch}/logs (Step 28.7) — admin log timeline.
     ...                No ownership check; served on admin port 8044.
     ...                v0.28.7 — cursor-paginated: optional ${limit} / ${cursor} / ${lang} params.
+    ...                v0.30.3 — optional ${order}: asc (server default, oldest first) or desc.
     [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
-    ...            ${limit}=${EMPTY}    ${cursor}=${EMPTY}    ${lang}=${EMPTY}
+    ...            ${limit}=${EMPTY}    ${cursor}=${EMPTY}    ${lang}=${EMPTY}    ${order}=${EMPTY}
     ${headers}=    Get Auth Headers    ${token}
-    ${params}=    Build Logs Params    ${limit}    ${cursor}    ${lang}
+    ${params}=    Build Logs Params    ${limit}    ${cursor}    ${lang}    ${order}
     ${response}=    GET On Session    admin_session    /api/admin/matches/${match_uuid}/logs
     ...    headers=${headers}
     ...    params=${params}
@@ -113,11 +116,12 @@ Get Admin Match Logs
 
 Build Logs Params
     [Documentation]    Query params dict for the logs endpoints, omitting empty values.
-    [Arguments]    ${limit}    ${cursor}    ${lang}
+    [Arguments]    ${limit}    ${cursor}    ${lang}    ${order}=${EMPTY}
     ${params}=    Create Dictionary
     IF    '${limit}' != ''     Set To Dictionary    ${params}    limit=${limit}
     IF    '${cursor}' != ''    Set To Dictionary    ${params}    cursor=${cursor}
     IF    '${lang}' != ''      Set To Dictionary    ${params}    lang=${lang}
+    IF    '${order}' != ''     Set To Dictionary    ${params}    order=${order}
     RETURN    ${params}
 
 Create Match With Loadout
@@ -248,7 +252,7 @@ Pick Story Loadout
     ...                Uses the first story that exposes at least one difficulty, character
     ...                template and class. The first character template in the seeds carries
     ...                no class restriction, so [0]+[0] is a compatible pair. traitUuid is the
-    ...                empty string when the story has no traits.
+    ...                empty string when the story has no SELECTABLE trait (v0.35.2).
     Create Public Session
     ${response}=    GET On Session    public_session    /api/stories
     Status Should Be    ${response}    200
@@ -266,8 +270,13 @@ Pick Story Loadout
         ${tpl_uuid}=    Get From Dictionary    ${templates}[0]    uuid    ${EMPTY}
         ${cls_uuid}=    Get From Dictionary    ${classes}[0]      uuid    ${EMPTY}
         IF    '${tpl_uuid}' == '' or '${cls_uuid}' == ''    CONTINUE
+        # v0.35.2 — a trait flagged `hideOnStartMatch` is returned by the API but refused at
+        # join (TRAIT_NOT_SELECTABLE), so a loadout must never be built out of one. Every
+        # suite that mints a character comes through here, which is why the guard lives here
+        # and not in each of them.
         ${traits}=    Get From Dictionary    ${detail}    traits    ${EMPTY}
-        ${trait_uuid}=    Set Variable If    ${traits}    ${traits}[0][uuid]    ${EMPTY}
+        ${pickable}=    Evaluate    [t for t in $traits if not t.get('hideOnStartMatch')]
+        ${trait_uuid}=    Set Variable If    ${pickable}    ${pickable}[0][uuid]    ${EMPTY}
         RETURN    ${story}[uuid]    ${difficulties}[0][uuid]
         ...    ${tpl_uuid}    ${cls_uuid}    ${trait_uuid}
     END
@@ -335,6 +344,26 @@ Admin Get Match Info
     ${headers}=    Get Auth Headers    ${token}
     ${response}=    GET On Session    admin_session    /api/admin/matches/${match_uuid}/info
     ...    headers=${headers}
+    ...    expected_status=${expected_status}
+    RETURN    ${response}
+
+Admin Change Statistics
+    [Documentation]    POST /api/admin/matches/{uuidMatch}/player/{uuidPlayer}/changeStatistics —
+    ...                overrides a character's current statistics. Every field left at -1 (the
+    ...                default) is untouched, which is how a scenario is set up without having
+    ...                to reach the state by playing towards it.
+    ...
+    ...                The -1 defaults are INTEGERS on purpose (`${-1}`, not `-1`): Robot would
+    ...                otherwise put the string "-1" in the JSON body, and while Java and Python
+    ...                coerce it back to a number, the AWS handler compares it to the integer -1,
+    ...                fails, and SETS the statistic to -1 instead of leaving it alone.
+    [Arguments]    ${token}    ${match_uuid}    ${player_uuid}    ${expected_status}=any
+    ...    ${food}=${-1}    ${magic}=${-1}    ${coin}=${-1}    ${energy}=${-1}
+    ${headers}=    Get Auth Headers    ${token}
+    &{body}=    Create Dictionary    food=${food}    magic=${magic}    coin=${coin}    energy=${energy}
+    ${response}=    POST On Session    admin_session
+    ...    /api/admin/matches/${match_uuid}/player/${player_uuid}/changeStatistics
+    ...    headers=${headers}    json=${body}
     ...    expected_status=${expected_status}
     RETURN    ${response}
 
@@ -440,5 +469,89 @@ Admin Get Locations
     [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
     ${headers}=    Get Auth Headers    ${token}
     ${response}=    GET On Session    admin_session    /api/admin/matches/${match_uuid}/locations
+    ...    headers=${headers}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Select Choice
+    [Documentation]    POST /api/gameplay/{uuidMatch}/action/select-choice — resolve one option of
+    ...                an open choice-event (Step 32). Charges nothing: the energy, the coins and
+    ...                the ONCE were all spent when the event was opened, which is why the only
+    ...                gate is that a cycle really is open for that event.
+    [Arguments]    ${token}    ${match_uuid}    ${choice_uuid}    ${expected_status}=any    ${lang}=${EMPTY}
+    ${headers}=    Get Auth Headers    ${token}
+    &{body}=    Create Dictionary    choiceUuid=${choice_uuid}
+    ${params}=    Create Dictionary
+    IF    '${lang}' != '${EMPTY}'
+        Set To Dictionary    ${params}    lang=${lang}
+    END
+    ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/action/select-choice
+    ...    headers=${headers}    json=${body}    params=${params}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Execute Event
+    [Documentation]    POST /api/gameplay/{uuidMatch}/action/execute-event — trigger a NORMAL/ONCE
+    ...                event (Step 29). Whether it can be triggered is already on match-info:
+    ...                every event of locationsActive[].events carries `available` and, when
+    ...                false, the `reason` — the very code this endpoint returns as its error.
+    [Arguments]    ${token}    ${match_uuid}    ${event_uuid}    ${expected_status}=any    ${lang}=${EMPTY}
+    ${headers}=    Get Auth Headers    ${token}
+    &{body}=    Create Dictionary    eventUuid=${event_uuid}
+    ${params}=    Create Dictionary
+    IF    '${lang}' != '${EMPTY}'
+        Set To Dictionary    ${params}    lang=${lang}
+    END
+    ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/action/execute-event
+    ...    headers=${headers}    json=${body}    params=${params}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Get Inventory
+    [Documentation]    GET /api/gameplay/{uuidMatch}/inventory — the calling character's items
+    ...                (Step 34). Readable in any match status; only use-item and drop-item
+    ...                need a RUNNING match. Every row carries `uuid` (the INVENTORY ROW),
+    ...                `itemUuid` (the story item), the resolved `card` and `isConsumabile`.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any    ${lang}=${EMPTY}
+    ${headers}=    Get Auth Headers    ${token}
+    ${params}=    Create Dictionary
+    IF    '${lang}' != '${EMPTY}'
+        Set To Dictionary    ${params}    lang=${lang}
+    END
+    ${response}=    GET On Session    public_session    /api/gameplay/${match_uuid}/inventory
+    ...    headers=${headers}    params=${params}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Use Item
+    [Documentation]    POST /api/gameplay/{uuidMatch}/inventory/use-item — consume one item
+    ...                (Step 34). ${item_instance_uuid} is the INVENTORY ROW's uuid
+    ...                (items[].uuid), NEVER the story item's items[].itemUuid.
+    ...                Answers the execute-event payload, with a null eventUuid.
+    [Arguments]    ${token}    ${match_uuid}    ${item_instance_uuid}    ${expected_status}=any    ${lang}=${EMPTY}
+    ${headers}=    Get Auth Headers    ${token}
+    &{body}=    Create Dictionary    itemInstanceUuid=${item_instance_uuid}
+    ${params}=    Create Dictionary
+    IF    '${lang}' != '${EMPTY}'
+        Set To Dictionary    ${params}    lang=${lang}
+    END
+    ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/inventory/use-item
+    ...    headers=${headers}    json=${body}    params=${params}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Drop Item
+    [Documentation]    POST /api/gameplay/{uuidMatch}/inventory/drop-item — discard one item
+    ...                (Step 34). Applies neither the consumable gate nor the class gate, and
+    ...                discards the WHOLE row.
+    [Arguments]    ${token}    ${match_uuid}    ${item_instance_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    &{body}=    Create Dictionary    itemInstanceUuid=${item_instance_uuid}
+    ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/inventory/drop-item
+    ...    headers=${headers}    json=${body}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Get Resources
+    [Documentation]    GET /api/gameplay/{uuidMatch}/resources — food, magic, coin and the
+    ...                carried weight (Step 35). Plain numbers, no card: resources are not
+    ...                story entities. The field is `coin`, singular.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${response}=    GET On Session    public_session    /api/gameplay/${match_uuid}/resources
     ...    headers=${headers}    expected_status=${expected_status}
     RETURN    ${response}

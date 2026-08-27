@@ -16,6 +16,10 @@ DynamoDB layout:
   PK = MATCH#{uuid}, SK = METADATA
     Match metadata + embedded ``locations`` / ``registry`` lists.
     GSI1_PK = USER_MATCHES#{userUuid}, GSI1_SK = MATCH#{tsInsertMs}#{uuid}
+      v0.32.1 — also backs the duplicate-match guard of POST /api/matches: the
+      creator's own partition is queried and filtered on storyUuid + status, so
+      a second active match on the same story answers 409
+      ACTIVE_MATCH_ALREADY_EXISTS.
     GSI2_PK = MATCH,                   GSI2_SK = {tsInsertMs:020d}#{uuid}
       v0.28.1 "by type" index — backs the paginated admin list
       (GET /api/admin/matches) as a single Query instead of a full Scan.
@@ -52,6 +56,18 @@ _SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
 _BANNED_STATES = {3, 4}
 _MAINTENANCE_VALUE = "MAINTENANCE"
 _MATCH_NOT_RUNNING_MSG = "Match is not RUNNING"
+
+# The player-facing message for a refused move; the CODE is what clients switch on.
+# INSUFFICIENT_ENERGY is spelled out at the refusal site, with the cost breakdown.
+_MOVE_REASON_MESSAGES = {
+    'MATCH_NOT_RUNNING': _MATCH_NOT_RUNNING_MSG,
+    'COMA': 'Character cannot move while in coma',
+    'SLEEPING': 'Character cannot move while sleeping',
+    'MOVEMENT_CONDITION_NOT_MET': 'Movement condition not met',
+    'OVERWEIGHT': 'Carried weight exceeds capacity',
+    'LOCATION_FULL': 'Target location is at capacity',
+    'CHARACTER_CANNOT_ACT': 'Character cannot act',
+}
 _API_MATCHES_PATH = "/api/matches/"
 _API_GAMEPLAY_PATH = "/api/gameplay/"
 
@@ -59,6 +75,10 @@ _API_GAMEPLAY_PATH = "/api/gameplay/"
 # ENDED or GAMEOVER; only stopped matches may be deleted by an admin.
 MATCH_STATUSES = ["CREATED", "RUNNING", "PAUSED", "ENDED", "GAMEOVER"]
 TERMINAL_STATUSES = {"ENDED", "GAMEOVER"}
+# v0.32.1 — active (non-terminal) statuses. A match in one of these still occupies
+# its creator's slot on the story, so a second one cannot be created. PAUSED counts:
+# an admin-paused match is not over, it is suspended.
+ACTIVE_STATUSES = {"CREATED", "RUNNING", "PAUSED"}
 
 
 def _err(status, code, message):
@@ -188,7 +208,8 @@ def _summary_from_item(item):
     }
 
 
-def _detail_from_item(item, players=None, lang='en', all_locations=False):
+def _detail_from_item(item, players=None, lang='en', all_locations=False,
+                      requester_uuid=None):
     """Build the match-info payload.
 
     ``all_locations`` keeps EVERY story location in ``locations`` instead of only
@@ -244,13 +265,76 @@ def _detail_from_item(item, players=None, lang='en', all_locations=False):
         "events": [],
         "choices": [],
         # Step 21 — the players/characters of the match (summary rows).
-        "players": [_character_summary(c) for c in players],
+        # Step 34 — the player view masks the other players' inventories; the admin view
+        # must NOT, because it has no requester at all.
+        "players": [
+            _character_summary(
+                c, story, *_story_cards_texts(story), lang=lang,
+                mask_inventory=(not all_locations
+                                and requester_uuid is not None
+                                and c.get("userUuid") != requester_uuid))
+            for c in players
+        ],
         # Step 27.x — enriched, player-occupied locations with card/neighbors/events.
-        "locationsActive": _build_locations_active(story, active_loc_ids, lang, visited_loc_ids),
+        # Step 29 — ONE context for every event of the payload: the checker is a pure
+        # function over it, so a story with many events costs no more than one with few.
+        # The move verdict on every neighbor works the same way, from its own context.
+        "locationsActive": _build_locations_active(
+            story, active_loc_ids, lang, visited_loc_ids,
+            _events.build_context(item, story, _reference_character(players, item)),
+            _move_judge(item, story, players)),
     }
 
 
+def _move_judge(match, story, players):
+    """Everything the move verdict needs, loaded once per request: the mover's state, the
+    weather rule in force and how many characters stand on each location (for LOCATION_FULL).
+
+    The mover is the same reference character the event verdict speaks about, so the two
+    cannot describe different players.
+    """
+    caller = _reference_character(players, match)
+    counts = {}
+    for c in (players or []):
+        if c.get('idLocation') is not None:
+            counts[c['idLocation']] = counts.get(c['idLocation'], 0) + 1
+    return {
+        'ctx': _movements.move_check_context(match, caller, story),
+        'weatherRule': _current_weather_rule(match, story),
+        'countsByLocation': counts,
+        'registry': (match or {}).get('registry'),
+    }
+
+
+def _judge_neighbor(judge, edge, target):
+    """The verdict on one neighbor edge, from the pre-loaded ``_move_judge``.
+
+    The cost is the movement system's own formula (edge + target entry + weather modifier,
+    safe or not), so match-info greys out exactly the paths ``action/move`` would refuse.
+    """
+    if not judge:
+        return False, 'CHARACTER_CANNOT_ACT'
+    if target is None:
+        return False, 'NOT_A_NEIGHBOR'
+    total_cost, _ = _movement_total_cost(edge, target, judge.get('weatherRule'))
+    cond_key = edge.get('conditionKey') or edge.get('conditionRegistryKey')
+    condition_met = True
+    if cond_key:
+        cond_value = edge.get('conditionValue') or edge.get('conditionRegistryValue')
+        condition_met = _registry_value(judge.get('registry'), cond_key) == cond_value
+    return _movements.check(judge.get('ctx'), _movements.edge_check(
+        condition_met,
+        total_cost,
+        target.get('maxCharacters'),
+        (judge.get('countsByLocation') or {}).get(target.get('id'), 0),
+        edge.get('costFood'), edge.get('costMagic'), edge.get('costCoin')))
+
+
 from common.data_utils import resolve_card_from_raw as _resolve_card_from_raw
+from match import inventory as _inventory
+from match import choices as _choices
+from match import events as _events
+from match import movements as _movements
 
 
 def _story_neighbors(story):
@@ -274,7 +358,21 @@ def _event_location(event):
     return e.get('idSpecificLocation') if e.get('idSpecificLocation') is not None else e.get('idLocation')
 
 
-def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=None):
+def _reference_character(players, match):
+    """The match's reference character — in single-player the only one, and the creator's.
+
+    The admin view uses the same one, so the console sees exactly the flags the player
+    would. Per-character availability arrives with multiplayer.
+    """
+    creator = match.get('userCreatorUuid') or match.get('idUserCreator')
+    for c in (players or []):
+        if c.get('userUuid') == creator:
+            return c
+    return (players or [None])[0]
+
+
+def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=None,
+                            check_ctx=None, move_judge=None):
     """Build the enriched ``locationsActive`` list from the STORY item: each
     player-occupied location with its card, the neighbor links touching it (both
     directions) and the events specific to it.
@@ -339,12 +437,18 @@ def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=No
                 return _resolve_card_from_raw(
                     raw_cards, raw_texts, endpoint.get("idCard"), lang)
 
+            # No lookup in this loop either: the move context was loaded once.
+            available, reason = _judge_neighbor(move_judge, n, other)
             neighbor_infos.append({
                 "idLocation": other_id,
                 "uuid": other.get("uuid") if other else None,
                 "direction": n.get("direction"),
                 "flagBack": n.get("flagBack"),
                 "energyCost": n.get("energyCost"),
+                # v0.35.3 — the edge's resource price; edge-only, so no breakdown.
+                "costFood": _nz(n.get("costFood")),
+                "costMagic": _nz(n.get("costMagic")),
+                "costCoin": _nz(n.get("costCoin")),
                 "card": _resolve_card_from_raw(raw_cards, raw_texts, neighbor_card_id, lang),
                 "secureParam": other.get("secureParam") if other else None,
                 "idLocationFrom": n.get("idLocationFrom"),
@@ -352,14 +456,30 @@ def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=No
                 "cardBack": _resolve_card_from_raw(raw_cards, raw_texts, neighbor_card_back_id, lang),
                 "cardLocationFrom": _loc_card(n.get("idLocationFrom")),
                 "cardLocationTo": _loc_card(n.get("idLocationTo")),
+                # The verdict action/move would give this path, and its code when refused.
+                "available": available,
+                "reason": reason,
             })
 
-        event_infos = [
-            {"uuid": e.get("uuid"), "type": e.get("type"),
-             "endGame": end_event_id is not None and e.get("id") == end_event_id,
-             "card": _resolve_card_from_raw(raw_cards, raw_texts, e.get("idCard"), lang)}
-            for e in events if _event_location(e) == loc_id
-        ]
+        event_infos = []
+        for e in events:
+            if _event_location(e) != loc_id:
+                continue
+            # Step 29 — the verdict of the same check procedure execute-event enforces.
+            available, reason = _events.check(e, check_ctx)
+            event_infos.append({
+                "uuid": e.get("uuid"), "type": e.get("type"),
+                "endGame": end_event_id is not None and e.get("id") == end_event_id,
+                "card": _resolve_card_from_raw(raw_cards, raw_texts, e.get("idCard"), lang),
+                "available": available,
+                "reason": reason,
+                # The energy the event costs to trigger; 0 when it is free.
+                "energy": _nz(e.get("costEnery")),
+                # v0.35.3 — the price beyond energy, so the board renders it up front.
+                "coin": _nz(_events.event_cost_coin(e)),
+                "food": _nz(e.get("costFood")),
+                "magic": _nz(e.get("costMagic")),
+            })
 
         result.append({
             "idLocation": loc_id,
@@ -375,8 +495,15 @@ def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=No
 
 # ─── Step 21 — character presenters & helpers ────────────────────────────────
 
-def _character_summary(item):
-    """Lightweight character row (players list / MatchInfo.players)."""
+def _character_summary(item, story=None, raw_cards=None, raw_texts=None, lang="en",
+                       mask_inventory=False):
+    """Lightweight character row (players list / MatchInfo.players).
+
+    Step 34 — `items` is present on EVERY player but populated only for the caller when
+    `mask_inventory` is set. The admin view passes False: it has no requester at all, and
+    masking there would blank every player's items in the console. `weight` is deliberately
+    NOT masked — a scalar total says a rival is heavy, the array says what they carry.
+    """
     return {
         "uuid": item.get("uuid"),
         "userUuid": item.get("userUuid"),
@@ -387,23 +514,85 @@ def _character_summary(item):
         "energy": int(item.get("energy", 0)),
         "life": int(item.get("life", 0)),
         "sad": int(item.get("sad", 0)),
-        # Step 27 — max statistics, carried weight and items list. The DynamoDB
-        # schema has no inventory table yet, so weight=0 / items=[] for parity.
+        # Step 27 — max statistics; Step 34/35 — the REAL carried weight and items.
         "lifeMax": int(item.get("lifeMax", 0)),
         "energyMax": int(item.get("energyMax", 0)),
         "sadMax": int(item.get("sadMax", 0)),
         "weightMax": int(item.get("weightMax", 0)),
-        "weight": 0,
-        "items": [],
+        "weight": _inventory.carried_weight(item, story or {}),
+        "items": [] if mask_inventory
+                 else _item_rows(item, story or {}, raw_cards, raw_texts, lang),
+        # Step 35 — the backpack resources, so /info players[] finally reports them.
+        "food": int(item.get("food", 0)),
+        "magic": int(item.get("magic", 0)),
+        "coin": int(item.get("coin", 0)),
         "idLocation": item.get("idLocation"),
         "isSleeping": int(item.get("isSleeping", 0)),
         "isComa": int(item.get("isComa", 0)),
+        # Step 30 — the clock at which the coma opened; 0 while not comatose.
+        "clockInComa": int(item.get("clockInComa", 0)),
         "classUuid": item.get("classUuid"),
         "traitUuids": item.get("traitUuids", []),
     }
 
 
-def _character_full(item):
+def _story_cards_texts(story):
+    """The story's card and text ROWS, always as lists.
+
+    They live under `raw_cards` / `raw_texts`, and only there. `story["texts"]` is a
+    different shape entirely — a per-language dict of the story's own title and
+    description — so falling back to it hands `resolve_raw_text` a dict, which it walks as
+    a list of rows and dies on the first key with
+    `AttributeError: 'str' object has no attribute 'get'`. Anything that is not a list is
+    therefore discarded rather than passed on.
+    """
+    story = story or {}
+    cards = story.get("raw_cards")
+    texts = story.get("raw_texts")
+    return (cards if isinstance(cards, list) else [],
+            texts if isinstance(texts, list) else [])
+
+
+def _item_rows(char, story, raw_cards=None, raw_texts=None, lang="en"):
+    """One inventory row, joined with its story item. The shape is shared with the
+    inventory endpoint, so /info items[] and GET /inventory items[] cannot drift."""
+    by_id = _inventory.items_by_id(story)
+    fallback_cards, fallback_texts = _story_cards_texts(story)
+    cards = raw_cards if raw_cards else fallback_cards
+    texts = raw_texts if raw_texts else fallback_texts
+    out = []
+    for row in (char.get("items") or []):
+        item = by_id.get(_nz(row.get("idItem")))
+        entry = {
+            "uuid": row.get("uuid"),
+            "itemUuid": item.get("uuid") if item else None,
+            "name": None,
+            "weight": _nz(item.get("weight")) if item else 0,
+            "amount": _inventory.unit_amount(row.get("amount")),
+            "state": row.get("state") or "ACTIVE",
+            "idCard": item.get("idCard") if item else None,
+            "card": None,
+            "isConsumabile": (_nz(item.get("isConsumabile")) == 1) if item else None,
+            # Step 35 — what using it promises. Always an array: an item with no effect,
+            # and a row whose story item is gone, both answer [].
+            "effects": [],
+            "maxPerCharacter": None,
+            "amountDrop": None,
+            "amountUse": None,
+        }
+        if item:
+            entry["card"] = _resolve_card_from_raw(cards, texts, item.get("idCard"), lang)
+            entry["name"] = _resolve_raw_text(texts, item.get("idTextName"), lang)
+            entry["effects"] = _inventory.preview_effects(story, item)
+            # v0.35.1 — the authored quantities, as the board needs them before acting.
+            entry["maxPerCharacter"] = item.get("maxPerCharacter")
+            entry["amountDrop"] = item.get("amountDrop")
+            entry["amountUse"] = item.get("amountUse")
+        out.append(entry)
+    return out
+
+
+def _character_full(item, story=None, raw_cards=None, raw_texts=None, lang="en"):
     """Full character detail (join / character endpoint)."""
     return {
         "uuid": item.get("uuid"),
@@ -417,18 +606,19 @@ def _character_full(item):
         "energy": int(item.get("energy", 0)),
         "life": int(item.get("life", 0)),
         "sad": int(item.get("sad", 0)),
-        # Step 27 — max statistics, carried weight and items list. The DynamoDB
-        # schema has no inventory table yet, so weight=0 / items=[] for parity.
+        # Step 27 — max statistics; Step 34/35 — the REAL carried weight and items.
         "lifeMax": int(item.get("lifeMax", 0)),
         "energyMax": int(item.get("energyMax", 0)),
         "sadMax": int(item.get("sadMax", 0)),
         "weightMax": int(item.get("weightMax", 0)),
-        "weight": 0,
-        "items": [],
+        "weight": _inventory.carried_weight(item, story or {}),
+        "items": _item_rows(item, story or {}, raw_cards, raw_texts, lang),
         "idLocation": item.get("idLocation"),
         "locationUuid": item.get("locationUuid"),
         "isSleeping": int(item.get("isSleeping", 0)),
         "isComa": int(item.get("isComa", 0)),
+        # Step 30 — the clock at which the coma opened; 0 while not comatose.
+        "clockInComa": int(item.get("clockInComa", 0)),
         "traitUuids": item.get("traitUuids") or [],
         "food": int(item.get("food", 0)),
         "magic": int(item.get("magic", 0)),
@@ -464,8 +654,9 @@ def _sum_bonus(bonuses, stat):
 def _resolve_and_validate_traits(story, clazz, difficulty, trait_uuids):
     """Step 23 — strict trait selection validation shared by create and join.
 
-    Returns (traits, error_response): unknown uuids, duplicates, class
-    incompatibilities and difficulty cost-budget overruns are rejected.
+    Returns (traits, error_response): unknown uuids, duplicates, traits hidden from the
+    start-match picker (v0.35.2), class incompatibilities and difficulty cost-budget
+    overruns are rejected.
     A None/missing budget means "no limit"; blank uuids are ignored.
     """
     all_traits = story.get('traits') or []
@@ -482,6 +673,11 @@ def _resolve_and_validate_traits(story, clazz, difficulty, trait_uuids):
         trait = next((t for t in all_traits if t.get('uuid') == key), None)
         if trait is None:
             return None, _err(400, 'TRAIT_NOT_FOUND', f'Trait not found: {key}')
+        if _nz(trait.get('hideOnStartMatch')) == 1:
+            # v0.35.2 — hide_on_start_match: never offered, and refused if asked for anyway.
+            # An event or an item may still grant it; that is the point of the flag.
+            return None, _err(400, 'TRAIT_NOT_SELECTABLE',
+                              f'Trait {key} cannot be chosen at character creation')
         permitted = trait.get('idClassPermitted')
         prohibited = trait.get('idClassProhibited')
         if permitted is not None and (class_id is None or int(permitted) != int(class_id)):
@@ -506,6 +702,16 @@ def _resolve_and_validate_traits(story, clazz, difficulty, trait_uuids):
 
 
 # ─── domain operations ───────────────────────────────────────────────────────
+
+def _has_active_match_for_story(user, story_uuid):
+    """v0.32.1 — True when the caller already owns a non-terminal match on that
+    story. Reads the user's own GSI1 partition (the same access path as
+    `_list_user_matches`, which is fully paginated) and filters in memory:
+    `storyUuid` is not part of GSI1_SK, so it cannot narrow the key condition."""
+    items = db_utils.query_gsi('GSI1', f'USER_MATCHES#{user["uuid"]}') or []
+    return any(i.get('storyUuid') == story_uuid and i.get('status') in ACTIVE_STATUSES
+               for i in items)
+
 
 def _create_match(user, body):
     story_uuid = (body or {}).get('storyUuid')
@@ -548,6 +754,16 @@ def _create_match(user, body):
 
     keys = story.get('keys') or []
 
+    # v0.32.1 — one active match per user and story. It runs last, after every 404
+    # and 400: a malformed request keeps reporting its own error whatever the state
+    # is, and the state conflict is the only thing left to refuse. Still before
+    # anything is written — a rejected creation persists nothing. GSI1 already holds
+    # the caller's matches with `status` and `storyUuid` projected, so this is a
+    # Query on the user's own partition — never a Scan.
+    if _has_active_match_for_story(user, story_uuid):
+        return _err(409, 'ACTIVE_MATCH_ALREADY_EXISTS',
+                    'An active match already exists for this user and story')
+
     now_ms = _ts_ms()
     match_uuid = _new_match_uuid()
 
@@ -558,12 +774,22 @@ def _create_match(user, body):
     raw_seed = (body or {}).get('rngSeed')
     rng_seed = int(raw_seed) if raw_seed is not None else secrets.randbits(63)
 
+    # Step 33 — the party starts IN the starting location, it never "enters" it. Seeding it
+    # as already visited is what makes walking BACK there fire idEventNotFirstTime instead
+    # of announcing as a discovery the place the story opened in. idLocationStart is
+    # story-level, so this is deterministic however many players join, in whatever order.
+    id_location_start = story.get('idLocationStart')
     location_states = []
     for loc in locations:
+        loc_id = int(loc.get('id', 0))
         location_states.append({
-            "idLocation": int(loc.get('id', 0)),
+            "idLocation": loc_id,
             "uuid": str(uuid_lib.uuid4()),
             "flagAlreadyActived": 0,
+            # Not flagAlreadyActived, which means "this location's counter has been
+            # consumed" and latches the counter re-seed: overloading it would break both.
+            "flagVisited": 1 if (id_location_start is not None
+                                 and loc_id == _nz(id_location_start)) else 0,
             "clockCounter": int(loc.get('counterTime') or loc.get('counter_time') or 0),
         })
 
@@ -704,7 +930,8 @@ def _get_match_info(user, match_uuid, lang='en'):
     item = db_utils.get_item(f'MATCH#{match_uuid}')
     if item is None or item.get('userCreatorUuid') != user['uuid']:
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
-    return _ok(_detail_from_item(item, _match_characters(match_uuid), lang))
+    return _ok(_detail_from_item(item, _match_characters(match_uuid), lang,
+                                requester_uuid=(user or {}).get('uuid')))
 
 
 def _end_match(user, match_uuid, event_uuid):
@@ -863,16 +1090,29 @@ def _join_match(user, match_uuid, body):
         "coin": 0,
     }
     db_utils.put_item(char)
-    return _ok(_character_full(char), status=201)
+    return _ok(_character_full(char, story, *_story_cards_texts(story), lang='en'),
+               status=201)
 
 
 def _list_players(user, match_uuid):
     if not match_uuid:
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
-    _match, err = _resolve_match_access(user, match_uuid)
+    match, err = _resolve_match_access(user, match_uuid)
     if err:
         return err
-    return _ok([_character_summary(c) for c in _match_characters(match_uuid)])
+    story = _story_of(match)
+    # No ?lang= on this endpoint: English preserves the pre-step-34 behaviour exactly.
+    cards, texts = _story_cards_texts(story)
+    return _ok([
+        _character_summary(c, story, cards, texts, 'en',
+                           mask_inventory=c.get('userUuid') != user.get('uuid'))
+        for c in _match_characters(match_uuid)
+    ])
+
+
+def _story_of(match):
+    """The STORY item behind a match; an empty dict when it cannot be resolved."""
+    return db_utils.get_item(f'STORY#{(match or {}).get("storyUuid")}') or {}
 
 
 def _get_character(user, match_uuid, char_uuid):
@@ -884,7 +1124,8 @@ def _get_character(user, match_uuid, char_uuid):
     item = db_utils.get_item(f'MATCH#{match_uuid}', f'CHARACTER#{char_uuid}')
     if item is None:
         return _err(404, 'CHARACTER_NOT_FOUND', 'Character not found or not accessible')
-    return _ok(_character_full(item))
+    story = _story_of(_match)
+    return _ok(_character_full(item, story, *_story_cards_texts(story), lang='en'))
 
 
 # ─── admin character statistics change ───────────────────────────────────────
@@ -911,7 +1152,20 @@ def _change_statistics(match_uuid, player_uuid, body):
         return _err(404, 'PLAYER_NOT_FOUND', f'Character not found: {player_uuid}')
 
     def _skip(v):
-        return None if (v is None or v == -1) else int(v)
+        """-1 means "leave this statistic alone", whatever type it arrives as.
+
+        Java and Python parse the body through a typed model, so a client sending the
+        string "-1" is coerced back to the number and skipped there. This handler reads
+        raw JSON: comparing "-1" to -1 fails, and the field would be SET to -1 — the same
+        request producing a different character on one backend than on the other two.
+        """
+        if v is None:
+            return None
+        try:
+            value = int(v)
+        except (TypeError, ValueError):
+            return None
+        return None if value == -1 else value
 
     dex    = _skip(body.get('dex'))
     intel  = _skip(body.get('intel'))
@@ -922,6 +1176,9 @@ def _change_statistics(match_uuid, player_uuid, body):
     coin   = _skip(body.get('coin'))
     food   = _skip(body.get('food'))
     magic  = _skip(body.get('magic'))
+    # State flags: absent (null) means "leave as it is" — the -1 of the numeric fields.
+    sleeping = body.get('sleeping')
+    coma = body.get('coma')
 
     # Cap bounded stats at their max values
     if energy is not None:
@@ -937,6 +1194,15 @@ def _change_statistics(match_uuid, player_uuid, body):
         if sad_max > 0:
             sad = min(sad, sad_max)
 
+    # Pulling a character OUT of a coma must leave a state it can act from: a comatose
+    # character is also asleep, and with life <= 0 the engine would drop it right back in. So
+    # clearing coma also clears sleep and lifts life to 1 when the admin left it at 0.
+    if coma is False:
+        sleeping = False
+        new_life = life if life is not None else _nz(item.get('life'))
+        if new_life <= 0:
+            life = 1
+
     updates = {}
     if dex    is not None: updates['dexterity']    = dex
     if intel  is not None: updates['intelligence'] = intel
@@ -947,6 +1213,8 @@ def _change_statistics(match_uuid, player_uuid, body):
     if coin   is not None: updates['coin']         = coin
     if food   is not None: updates['food']         = food
     if magic  is not None: updates['magic']        = magic
+    if sleeping is not None: updates['isSleeping'] = 1 if sleeping else 0
+    if coma     is not None: updates['isComa']     = 1 if coma else 0
 
     if updates:
         updated = dict(item)
@@ -1247,6 +1515,15 @@ def _apply_time_start_recovery(match, match_uuid, story):
             "sadDelta": sad - _nz(c.get('sad')),
         })
         c['energy'], c['life'], c['sad'] = energy, life, sad
+        # v0.30.1 — a comatose character who rested in a safe location wakes. Safe recovery has
+        # already lifted its life above zero (life += COS + secure_param, both >= 1), so it
+        # cannot wake awake-but-dead to re-coma next clock. Independent of the others in the
+        # location. NOTE: this backend's recovery does not run the full edge evaluator (Java and
+        # Python do); the wake is the one edge rule the recovery path needs.
+        if _nz(c.get('isComa')) == 1 and safe and life > 0:
+            c['isComa'] = 0
+            _log_edge_state(match, c, None,
+                            f"{_events.MSG_COMA_RECOVERED} {c.get('uuid')}")
         db_utils.put_item(c)
 
     # Re-seed location counters that were pre-created with 0 (match created before
@@ -1264,7 +1541,11 @@ def _apply_time_start_recovery(match, match_uuid, story):
         if counter_time > 0:
             ls['clockCounter'] = counter_time
 
-    # Decrement location counters on the embedded match state; flag zeros.
+    # Decrement location counters on the embedded match state; flag zeros and collect the
+    # events they owe. A counter is a ONE-SHOT FUSE: `current <= 0` skips an exhausted one
+    # and flagAlreadyActived latches it, so the event fires exactly once per match.
+    pending = []
+    clock = _nz(match.get('currentClock'))
     for ls in (match.get('locations') or []):
         current = _nz(ls.get('clockCounter'))
         if current <= 0:
@@ -1272,10 +1553,68 @@ def _apply_time_start_recovery(match, match_uuid, story):
         nxt = current - 1
         ls['clockCounter'] = nxt
         if nxt == 0:
-            loc = story_locations.get(_nz(ls.get('idLocation')))
-            ls['pendingEvent'] = (loc or {}).get('idEventIfCounterZero')
+            id_location = _nz(ls.get('idLocation'))
+            loc = story_locations.get(id_location) or {}
+            id_event = loc.get('idEventIfCounterZero')
+            ls['pendingEvent'] = id_event
             ls['flagAlreadyActived'] = 1
-    return recaps
+            # Step 33 — the row the other two backends have always written. Without it the
+            # AWS timeline said nothing at all when a counter ran out.
+            message = f'counter reached zero at location {id_location}'
+            if id_event is not None:
+                message += f'; pending event {_nz(id_event)}'
+            match.setdefault('eventLog', []).append({
+                "characterUuid": None,
+                "idEvent": _nz(id_event) if id_event is not None else None,
+                "idLocation": id_location,
+                "clock": clock,
+                "timestamp": _ts_ms(),
+                "message": message,
+            })
+            _add_pending_automatic(pending, _events.TRIGGER_COUNTER_ZERO, id_location,
+                                   id_event, _nominal_actor(characters, id_location), loc)
+
+    # Step 33 — a time unit BEGINNING where a character stands is its own trigger,
+    # independent of any counter. One entry per occupied location, not per character: the
+    # event describes the place, and the nominal actor is who it happens to.
+    for id_location in occupied_ids:
+        loc = story_locations.get(id_location) or {}
+        _add_pending_automatic(pending, _events.TRIGGER_CHARACTER_START_TIME, id_location,
+                               loc.get('idEventIfCharacterStartTime'),
+                               _nominal_actor(characters, id_location), loc)
+
+    # Deterministic across locations: priorityAutomaticEvent first, then location id.
+    pending.sort(key=lambda p: (p['priority'], p['idLocation']))
+    return recaps, pending
+
+
+def _add_pending_automatic(out, trigger, id_location, id_event, id_actor_uuid, loc):
+    """Skips a null or non-positive event id — an unauthored trigger is not a trigger."""
+    if id_event is None or _nz(id_event) <= 0:
+        return
+    out.append({
+        "trigger": trigger,
+        "idLocation": id_location,
+        "idEvent": _nz(id_event),
+        "actorUuid": id_actor_uuid,
+        "priority": _nz(loc.get('priorityAutomaticEvent')),
+    })
+
+
+def _nominal_actor(characters, id_location):
+    """The lowest-id character standing in a location, or None when nobody is.
+
+    An automatic location event belongs to the place, not to a player, but its effects
+    still have to resolve ``target = ONLY_ONE`` against somebody and ``target = ALL``
+    against everyone *there*. Picking the lowest id makes that choice deterministic;
+    picking nobody, when the place is empty, is equally correct — the world still changes,
+    it just changes around no one.
+    """
+    here = [c for c in (characters or []) if _nz(c.get('idLocation')) == id_location]
+    if not here:
+        return None
+    here.sort(key=lambda c: str(c.get('uuid') or ''))
+    return here[0].get('uuid')
 
 
 # ─── Step 27 — weather selection & effects ───────────────────────────────────
@@ -1425,6 +1764,15 @@ def _ms_to_iso(ts_ms):
 LOGS_DEFAULT_LIMIT = 50
 LOGS_MAX_LIMIT = 200
 _CURSOR_PREFIX = 'offset:'
+LOGS_ORDER_ASC = 'asc'
+LOGS_ORDER_DESC = 'desc'
+
+
+def _normalize_logs_order(order):
+    """Only `desc` flips the timeline; anything else (None, junk) keeps `asc`."""
+    if order and str(order).strip().lower() == LOGS_ORDER_DESC:
+        return LOGS_ORDER_DESC
+    return LOGS_ORDER_ASC
 
 
 def _clamp_logs_limit(limit):
@@ -1459,6 +1807,26 @@ def _decode_logs_cursor(cursor):
         return 0
 
 
+_ITEM_LOG_TYPES = {
+    _inventory.ITEM_ACTION_ADD: "ITEM_ADD",
+    _inventory.ITEM_ACTION_USE: "ITEM_USE",
+    _inventory.ITEM_ACTION_DROP: "ITEM_DROP",
+    _inventory.ITEM_ACTION_REMOVE: "ITEM_DROP",
+}
+
+
+def _item_log_type(action):
+    """v0.35.4 — itemUsageLog action to timeline type.
+
+    REMOVE is an effect taking the item away and DROP is the player putting it down: the
+    bag ends up the same, so they share one type. An unknown action is dropped, like an
+    unknown log message.
+    """
+    if action is None:
+        return _ITEM_LOG_TYPES[_inventory.ITEM_ACTION_USE]
+    return _ITEM_LOG_TYPES.get(str(action).strip().upper())
+
+
 def _assemble_match_logs(match, match_uuid):
     """The whole timeline, sorted by timestamp ascending, with no enrichment yet."""
     entries = []
@@ -1482,7 +1850,81 @@ def _assemble_match_logs(match, match_uuid):
             "idLocationFrom": m.get('idLocationFrom'),
             "idLocationTo": m.get('idLocationTo'),
             "energyCost": m.get('energyCost'),
+            # v0.35.3 — a row written before today has no cost keys: default to 0 rather
+            # than letting a pre-existing match break the timeline.
+            "foodCost": _nz(m.get('foodCost')),
+            "magicCost": _nz(m.get('magicCost')),
+            "coinCost": _nz(m.get('coinCost')),
         })
+
+    # Step 29 — EVENT from eventLog (an event the player triggered).
+    #
+    # v0.30.3 — eventLog is a shared list: Step 30 also appends SADNESS_OVERFLOW/COMA
+    # audit rows to it. Only messages the Java/Python backends recognise as an executed
+    # event reach the timeline here too, so all three backends agree on what an EVENT
+    # entry is — anything else is dropped, not shown as garbage.
+    for e in (match.get('eventLog') or []):
+        message = e.get('message')
+        if not message:
+            continue
+        if message.startswith(_events.MSG_EVENT_EXECUTED):
+            entry_type = "EVENT"
+        elif message.startswith('counter'):
+            # Step 33 — a counter running out and a character healing are unrelated
+            # events, so COUNTER_ZERO is its own type. The location rides in
+            # idLocationTo so it enriches like a MOVEMENT does. Until v0.33.0 this
+            # backend wrote no row at all when a counter ran out.
+            entry_type = "COUNTER_ZERO"
+        elif message.startswith(_events.MSG_AUTOMATIC_EVENT):
+            entry_type = "AUTOMATIC_EVENT"
+        else:
+            continue
+        entries.append({
+            "type": entry_type,
+            "clock": e.get('clock'),
+            "timestamp": _ms_to_iso(e.get('timestamp')),
+            "characterUuid": e.get('characterUuid'),
+            "idLocationTo": e.get('idLocation'),
+            "message": message,
+            "idEvent": e.get('idEvent'),
+            # v0.35.3 — the price paid to open this event; a row written before today has
+            # no cost keys, and 0 is the honest reading of "nothing was recorded".
+            "energyCost": _nz(e.get('energyCost')),
+            "foodCost": _nz(e.get('foodCost')),
+            "magicCost": _nz(e.get('magicCost')),
+            "coinCost": _nz(e.get('coinCost')),
+            # v0.35.4 — and what the event gave back, read the same defensive way.
+            "energyGain": _nz(e.get('energyGain')),
+            "foodGain": _nz(e.get('foodGain')),
+            "magicGain": _nz(e.get('magicGain')),
+            "coinGain": _nz(e.get('coinGain')),
+        })
+
+    # v0.35.4 — ITEM_ADD / ITEM_USE / ITEM_DROP from itemUsageLog. Unlike eventLog this
+    # list needs no message parsing: the action key says what happened, and an unknown one
+    # is dropped the same way. A row written before v0.35.4 has no action at all — back
+    # then the list only held usages, so that is how it reads.
+    for i in (match.get('itemUsageLog') or []):
+        entry_type = _item_log_type(i.get('action'))
+        if entry_type is None:
+            continue
+        entry = {
+            "type": entry_type,
+            "clock": i.get('clock'),
+            "timestamp": _ms_to_iso(i.get('timestamp')),
+            "characterUuid": i.get('characterUuid'),
+            "idItem": i.get('idItem'),
+            "itemAction": i.get('action'),
+            "counter": i.get('counter'),
+            "idEvent": i.get('idEvent'),
+        }
+        # A signed delta splits: the negative half is a cost, the positive half a gain,
+        # so one reader covers a move, an event and a potion.
+        for name in ('energy', 'food', 'magic', 'coin'):
+            value = _nz(i.get(name))
+            entry[f'{name}Cost'] = max(0, -value)
+            entry[f'{name}Gain'] = max(0, value)
+        entries.append(entry)
 
     # SLEEP from sleepLog
     for s in (match.get('sleepLog') or []):
@@ -1504,6 +1946,15 @@ def _assemble_match_logs(match, match_uuid):
             "timestamp": _ms_to_iso(c.get('timestampStart')),
         })
 
+    # v0.35.4 — every entry carries the eight resource fields, whatever its type, so a
+    # client can sum a column without null checks. The Java reference has always answered
+    # this shape; this backend built per-type dicts and left the keys out of the types that
+    # move nothing, which made the contract type-dependent.
+    for entry in entries:
+        for name in ('energy', 'food', 'magic', 'coin'):
+            entry.setdefault(f'{name}Cost', 0)
+            entry.setdefault(f'{name}Gain', 0)
+
     # Sort by timestamp ascending; None timestamps sort last
     entries.sort(key=lambda x: x.get('timestamp') or '9999')
     return entries
@@ -1512,7 +1963,10 @@ def _assemble_match_logs(match, match_uuid):
 def _enrich_match_logs(page, match, match_uuid, lang):
     """v0.28.7 — adds the card of every WEATHER (its own) and MOVEMENT entry (the
     destination location's), plus the name of the character behind character-scoped
-    entries. The story and character lookups run once per page, not per entry."""
+    entries. The story and character lookups run once per page, not per entry.
+
+    v0.30.3 — EVENT entries carry the triggered event's own card, resolved the same way.
+    v0.35.4 — and ITEM_* entries the item's own."""
     if not page:
         return []
 
@@ -1525,6 +1979,10 @@ def _enrich_match_logs(page, match, match_uuid, lang):
                       for loc in (story.get('locations') or [])}
     template_cards = {t.get('uuid'): t.get('idCard')
                       for t in (story.get('characterTemplates') or [])}
+    event_cards = {_nz(ev.get('id')): ev.get('idCard')
+                   for ev in (story.get('events') or [])}
+    item_cards = {_nz(it.get('id')): it.get('idCard')
+                  for it in (story.get('items') or [])}
     characters = {c.get('uuid'): c for c in _match_characters(match_uuid)}
 
     out = []
@@ -1536,6 +1994,18 @@ def _enrich_match_logs(page, match, match_uuid, lang):
             id_card = weather_cards.get(_nz(entry['idWeather']))
         elif entry['type'] == 'MOVEMENT' and entry.get('idLocationTo') is not None:
             id_card = location_cards.get(_nz(entry['idLocationTo']))
+        elif entry['type'] == 'EVENT' and entry.get('idEvent') is not None:
+            id_card = event_cards.get(_nz(entry['idEvent']))
+        elif entry['type'] == 'AUTOMATIC_EVENT' and entry.get('idEvent') is not None:
+            # Step 33 — the event's own card, like a player-triggered one.
+            id_card = event_cards.get(_nz(entry['idEvent']))
+        elif entry['type'] == 'COUNTER_ZERO' and entry.get('idLocationTo') is not None:
+            # Step 33 — a counter belongs to a place, so the place's card names it.
+            id_card = location_cards.get(_nz(entry['idLocationTo']))
+        elif entry.get('idItem') is not None:
+            # v0.35.4 — an item entry is narrated by the item's own card, whichever of the
+            # three actions it is.
+            id_card = item_cards.get(_nz(entry['idItem']))
         entry['idCard'] = id_card
         entry['card'] = _resolve_card_from_raw(raw_cards, raw_texts, id_card, lang)
 
@@ -1550,9 +2020,16 @@ def _enrich_match_logs(page, match, match_uuid, lang):
     return out
 
 
-def _build_match_logs(match, match_uuid, lang='en', limit=None, cursor=None):
-    """One page of the consolidated log (Step 28.7, paginated + enriched in v0.28.7)."""
+def _build_match_logs(match, match_uuid, lang='en', limit=None, cursor=None, order=None):
+    """One page of the consolidated log (Step 28.7, paginated + enriched in v0.28.7).
+
+    `order=desc` flips the whole timeline (newest first) before the page is cut, so the
+    cursor keeps walking away from the first returned entry — with `desc` "load more"
+    moves towards the older entries."""
     entries = _assemble_match_logs(match, match_uuid)
+    effective_order = _normalize_logs_order(order)
+    if effective_order == LOGS_ORDER_DESC:
+        entries.reverse()
 
     effective_limit = _clamp_logs_limit(limit)
     offset = min(_decode_logs_cursor(cursor), len(entries))
@@ -1566,10 +2043,11 @@ def _build_match_logs(match, match_uuid, lang='en', limit=None, cursor=None):
         "nextCursor": _encode_logs_cursor(end) if end < len(entries) else None,
         "limit": effective_limit,
         "total": len(entries),
+        "order": effective_order,
     }
 
 
-def _get_match_logs(user, match_uuid, lang='en', limit=None, cursor=None):
+def _get_match_logs(user, match_uuid, lang='en', limit=None, cursor=None, order=None):
     """GET /api/matches/{uuid}/logs — consolidated log timeline, owner-only (Step 28.7)."""
     if not match_uuid or not match_uuid.strip():
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
@@ -1579,17 +2057,17 @@ def _get_match_logs(user, match_uuid, lang='en', limit=None, cursor=None):
     # Owner check
     if user is None or match.get('userCreatorUuid') != user.get('uuid'):
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
-    return _ok(_build_match_logs(match, match_uuid, lang, limit, cursor))
+    return _ok(_build_match_logs(match, match_uuid, lang, limit, cursor, order))
 
 
-def _get_admin_match_logs(match_uuid, lang='en', limit=None, cursor=None):
+def _get_admin_match_logs(match_uuid, lang='en', limit=None, cursor=None, order=None):
     """GET /api/admin/matches/{uuid}/logs — admin log timeline, no ownership check (Step 28.7)."""
     if not match_uuid or not match_uuid.strip():
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
     match = db_utils.get_item(f'MATCH#{match_uuid}')
     if match is None:
         return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
-    return _ok(_build_match_logs(match, match_uuid, lang, limit, cursor))
+    return _ok(_build_match_logs(match, match_uuid, lang, limit, cursor, order))
 
 
 def _get_admin_match_weather(match_uuid):
@@ -1658,7 +2136,11 @@ def _advance_time(match, match_uuid):
 
     # Step 26: per-character recovery, class bonuses and location counters.
     story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
-    recovery = _apply_time_start_recovery(match, match_uuid, story)
+    recovery, pending = _apply_time_start_recovery(match, match_uuid, story)
+    # Step 33: the events that pass collected — counters that reached zero, and the
+    # locations whose idEventIfCharacterStartTime fires because a time unit began with
+    # somebody standing there.
+    fired = _run_pending_automatic_events(match, match_uuid, story, pending)
     # Step 27: select the weather for the new time unit and apply its energy delta.
     _apply_weather_at_time_start(match, match_uuid, story)
 
@@ -1689,7 +2171,7 @@ def _advance_time(match, match_uuid):
 
     db_utils.put_item(match)
     # A TimeAdvanced domain event would be published here (WebSocket broadcast: Step 64).
-    return new_clock, recovery
+    return new_clock, recovery, fired
 
 
 def _sleep(user, match_uuid):
@@ -1728,8 +2210,15 @@ def _sleep(user, match_uuid):
 
     current_clock = _nz(match.get('currentClock'))
     recovery = []
+    counter_zero = []
     if triggered:
-        current_clock, recovery = _advance_time(match, match_uuid)
+        current_clock, recovery, fired = _advance_time(match, match_uuid)
+        # Step 33 — the same events, told to THIS player. The caller is the only recipient
+        # with an open request; the rest learn about it over the broadcast once Steps 49-54
+        # land, through this very path called once per player.
+        story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+        counter_zero = _describe_for_recipient(match, match_uuid, story,
+                                               caller.get('uuid'), fired, current_clock)
 
     return _ok({
         "matchUuid": match.get('uuid'),
@@ -1738,6 +2227,10 @@ def _sleep(user, match_uuid):
         "timeEndTriggered": triggered,
         "currentClock": current_clock,
         "recovery": recovery,
+        # Step 33 — what happened in the world while the party slept. A LIST: several
+        # counters can run out on one time-start. Already filtered for this caller: `card`
+        # is absent entirely when visibility is ANONYMOUS.
+        "counterZero": counter_zero,
     })
 
 
@@ -1853,14 +2346,21 @@ def _start_movement(user, match_uuid, body):
     if caller is None:
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
 
-    if match.get('status') != 'RUNNING':
-        return _err(409, 'MATCH_NOT_RUNNING', _MATCH_NOT_RUNNING_MSG)
-    if _nz(caller.get('isSleeping')) == 1 or _nz(caller.get('isComa')) == 1:
-        return _err(409, 'CHARACTER_CANNOT_ACT', 'Character cannot move while sleeping or in coma')
+    # Step 35 — the story is read before the check now: the carried weight the OVERWEIGHT
+    # gate acts on is computed from its item weights.
+    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+
+    # The mover's own state (match RUNNING, coma, sleep) is judged before the target is even
+    # resolved, so an asleep player is told they are asleep rather than that their destination
+    # is not a neighbor. Passing no edge asks the checker for exactly that prefix of the
+    # verdict; NOT_A_NEIGHBOR is its way of saying "so far so good, now give me an edge".
+    ctx = _movements.move_check_context(match, caller, story)
+    available, reason = _movements.check(ctx, None)
+    if not available and reason != 'NOT_A_NEIGHBOR':
+        return _err(409, reason, _MOVE_REASON_MESSAGES.get(reason, 'Movement refused'))
     if caller.get('idLocation') is None:
         return _err(409, 'NOT_A_NEIGHBOR', 'Character has no current location')
 
-    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
     locations = story.get('locations') or []
     target = next((l for l in locations if l.get('uuid') == target_uuid), None)
     if target is None:
@@ -1871,39 +2371,54 @@ def _start_movement(user, match_uuid, body):
     if edge is None:
         return _err(409, 'NOT_A_NEIGHBOR', 'Target location is not a neighbor')
 
-    cond_key = edge.get('conditionKey') or edge.get('conditionRegistryKey')
-    if cond_key:
-        cond_value = edge.get('conditionValue') or edge.get('conditionRegistryValue')
-        if _registry_value(match.get('registry'), cond_key) != cond_value:
-            return _err(409, 'MOVEMENT_CONDITION_NOT_MET', 'Movement condition not met')
-
     total_cost, cost_breakdown = _movement_total_cost(
         edge, target, _current_weather_rule(match, story))
     energy = _nz(caller.get('energy'))
 
-    # Step 34 owns the weight formula; carried weight is 0 until inventory exists.
-    if 0 > _nz(caller.get('weightMax')):
-        return _err(409, 'OVERWEIGHT', 'Carried weight exceeds capacity')
-    if energy < total_cost:
-        return _err(
-            409, 'INSUFFICIENT_ENERGY',
-            "Not enough energy: have {have}, need {need} "
-            "(edge {edge} + entry {entry} + weather {weather}; target {safety})".format(
-                have=energy, need=total_cost,
-                edge=cost_breakdown['edge'], entry=cost_breakdown['entry'],
-                weather=cost_breakdown['weather'],
-                safety='safe' if cost_breakdown['safe'] else 'unsafe'))
-
     max_chars = _nz(target.get('maxCharacters'))
+    characters_at_target = 0
     if max_chars > 0:
-        count = sum(1 for c in _match_characters(match_uuid) if c.get('idLocation') == target.get('id'))
-        if count >= max_chars:
-            return _err(409, 'LOCATION_FULL', 'Target location is at capacity')
+        characters_at_target = sum(
+            1 for c in _match_characters(match_uuid) if c.get('idLocation') == target.get('id'))
+
+    cond_key = edge.get('conditionKey') or edge.get('conditionRegistryKey')
+    condition_met = True
+    if cond_key:
+        cond_value = edge.get('conditionValue') or edge.get('conditionRegistryValue')
+        condition_met = _registry_value(match.get('registry'), cond_key) == cond_value
+
+    cost_food = _nz(edge.get('costFood'))
+    cost_magic = _nz(edge.get('costMagic'))
+    cost_coin = _nz(edge.get('costCoin'))
+    available, reason = _movements.check(ctx, _movements.edge_check(
+        condition_met, total_cost, max_chars, characters_at_target,
+        cost_food, cost_magic, cost_coin))
+    if not available:
+        # Energy is the one refusal worth explaining in prose: the player wants to know what
+        # the trip would have cost, and why.
+        if reason == 'INSUFFICIENT_ENERGY':
+            return _err(
+                409, reason,
+                "Not enough energy: have {have}, need {need} "
+                "(edge {edge} + entry {entry} + weather {weather}; target {safety})".format(
+                    have=energy, need=total_cost,
+                    edge=cost_breakdown['edge'], entry=cost_breakdown['entry'],
+                    weather=cost_breakdown['weather'],
+                    safety='safe' if cost_breakdown['safe'] else 'unsafe'))
+        return _err(409, reason, _MOVE_REASON_MESSAGES.get(reason, 'Movement refused'))
 
     new_energy = energy - total_cost
+    # v0.35.3 — the checker proved the mover can afford all four, so none goes below 0.
+    new_food = _nz(caller.get('food')) - cost_food
+    new_magic = _nz(caller.get('magic')) - cost_magic
+    new_coin = _nz(caller.get('coin')) - cost_coin
     caller['idLocation'] = target.get('id')
     caller['locationUuid'] = target.get('uuid')
     caller['energy'] = new_energy
+    if cost_food or cost_magic or cost_coin:
+        caller['food'] = new_food
+        caller['magic'] = new_magic
+        caller['coin'] = new_coin
     db_utils.put_item(caller)
 
     # Append a movement log entry on the match item (used to derive visited locations).
@@ -1913,9 +2428,21 @@ def _start_movement(user, match_uuid, body):
         "idLocationFrom": from_id,
         "idLocationTo": target.get('id'),
         "energyCost": total_cost,
+        # v0.35.3 — what the move took besides energy; 0 when it took nothing.
+        "foodCost": cost_food,
+        "magicCost": cost_magic,
+        "coinCost": cost_coin,
         "timestampStart": _ts_ms(),
     })
     match['movementLog'] = movement_log
+    db_utils.put_item(match)
+
+    # Step 33 — the move is committed, so the arrival is real: ask the destination what it
+    # does about somebody walking in. Deliberately after both writes, because the trigger
+    # resolution reads the character's new position back.
+    automatic_events = []
+    _resolve_arrival(match, match_uuid, story, caller.get('uuid'), _nz(target.get('id')),
+                     'en', 0, automatic_events)
     db_utils.put_item(match)
 
     return _ok({
@@ -1926,9 +2453,1576 @@ def _start_movement(user, match_uuid, body):
         "toLocationId": target.get('id'),
         "toLocationUuid": target.get('uuid'),
         "energySpent": total_cost,
+        "foodSpent": cost_food,
+        "magicSpent": cost_magic,
+        "coinSpent": cost_coin,
         "newEnergy": new_energy,
+        "newFood": new_food,
+        "newMagic": new_magic,
+        "newCoin": new_coin,
         "currentClock": _nz(match.get('currentClock')),
+        # What the destination did about the arrival. The board already has the new
+        # location for its left page; these belong on the right.
+        "automaticEvents": automatic_events,
     })
+
+
+# ── Step 29 — normal (player-triggered) events ─────────────────────────────
+
+def _log_edge_state(match, character, id_event, message):
+    """A Step 30 audit row on the match event log.
+
+    ``character`` may be None for the party-wide row, which belongs to the match rather
+    than to any one character.
+    """
+    match.setdefault('eventLog', []).append({
+        "characterUuid": character.get('uuid') if character else None,
+        "idEvent": id_event,
+        "clock": _nz(match.get('currentClock')),
+        "timestamp": _ts_ms(),
+        "message": message,
+    })
+
+
+def _resolve_all_player_coma(match, match_uuid, caller, touched, edge_state, events_by_id,
+                             ctx, story, raw_cards, raw_texts, lang, already_resolved):
+    """Decide whether the all-players-in-coma epilogue runs, and return its event.
+
+    Returns None — and the chain simply stops — when the party is not fully down, when the
+    epilogue was already resolved this request, when the story authors none, when the id is
+    dangling, or when a ONCE epilogue was already spent earlier in the match.
+
+    Moving the match to GAMEOVER is deliberately NOT done here: that, and the rescue
+    endpoints, belong to step 59.
+    """
+    if already_resolved:
+        return None
+
+    # The touched copies carry the flags this execution just raised; everyone else is read
+    # as stored. Both are needed — a character nothing touched may already be comatose.
+    roster = []
+    for c in _match_characters(match_uuid):
+        roster.append(touched.get(c.get('uuid'), c))
+    if not _events.all_in_coma(roster):
+        return None
+
+    edge_state['allPlayersInComa'] = True
+    _log_edge_state(match, caller, None, f"{_events.MSG_ALL_PLAYER_COMA} {match_uuid}")
+
+    coma_event_id = story.get('idEventAllPlayerComa')
+    if not coma_event_id:
+        return None  # a story need not author an epilogue
+    coma_event = events_by_id.get(_events._nz(coma_event_id))
+    if coma_event is None:
+        return None  # dangling idEventAllPlayerComa
+    if str(coma_event.get('type') or '').strip().upper() == _events.TYPE_ONCE \
+            and _events._nz(coma_event.get('id')) in ctx['consumedEventIds']:
+        return None  # a ONCE epilogue fires once per match, not once per collapse
+
+    edge_state['comaEventUuid'] = coma_event.get('uuid')
+    edge_state['comaEventCard'] = _resolve_card_from_raw(
+        raw_cards, raw_texts, coma_event.get('idCard'), lang)
+    return coma_event
+
+
+def _execute_event(user, match_uuid, body, lang='en'):
+    """POST /api/gameplay/{uuidMatch}/action/execute-event.
+
+    Refuses exactly the events match-info already marked unavailable, with exactly that
+    reason: both go through ``events.check``. The energy/coin cost is paid ONCE, for the
+    event the player asked for; the id_event_next chain that follows is a consequence, not
+    a choice — its links are neither re-checked nor charged.
+    """
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    event_uuid = (body or {}).get('eventUuid')
+    if not event_uuid or not str(event_uuid).strip():
+        return _err(400, 'MISSING_EVENT', 'eventUuid is required')
+
+    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    if match is None:
+        return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+
+    characters = _match_characters(match_uuid)
+    caller = next((c for c in characters if c.get('userUuid') == user.get('uuid')), None)
+    if caller is None:
+        # An unknown match and a caller who is not in it are deliberately indistinguishable.
+        return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+
+    if match.get('status') != 'RUNNING':
+        return _err(409, 'MATCH_NOT_RUNNING', _MATCH_NOT_RUNNING_MSG)
+
+    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    all_events = story.get('events') or []
+    event = next((e for e in all_events if e.get('uuid') == event_uuid), None)
+    if event is None:
+        return _err(404, 'EVENT_NOT_FOUND', 'Event not found in this story')
+
+    ctx = _events.build_context(match, story, caller)
+
+    # Step 31: an event owning options presents them instead of applying anything. The
+    # availability verdict moves inside the branch — an already-open cycle must bypass
+    # it, having been paid for when it opened.
+    event_choices = _choices.choices_for_event(story, event.get('id'))
+    if event_choices:
+        return _execute_choice_event(match, match_uuid, story, event, event_choices,
+                                     caller, characters, ctx, lang)
+
+    available, reason = _events.check(event, ctx)
+    if not available:
+        return _err(409, reason, f'Event cannot be executed: {reason}')
+
+    # Resolve the class id of every character once — target_class narrows on it.
+    classes_by_uuid = {c.get('uuid'): c.get('id') for c in (story.get('classes') or [])}
+    for c in characters:
+        c['classId'] = classes_by_uuid.get(c.get('classUuid'))
+
+    item_uuids = {_events._nz(i.get('id')): i.get('uuid') for i in (story.get('items') or [])}
+    trait_uuids = {_events._nz(t.get('id')): t.get('uuid') for t in (story.get('traits') or [])}
+    location_uuids = {_events._nz(l.get('id')): l.get('uuid')
+                      for l in (story.get('locations') or [])}
+    effects_by_event = _events.effects_by_event(story)
+    end_game_id = story.get('idEventEndGame')
+    events_by_id = {_events._nz(e.get('id')): e for e in all_events if e.get('id') is not None}
+
+    # ── pay, once, for the event the player asked for ──
+    energy_spent = _events._nz(event.get('costEnery'))
+    coin_spent = _events._nz(_events.event_cost_coin(event))
+    # v0.35.3 — food and magic are costs too. The check procedure already proved the actor
+    # can afford them, so none of the four can go below zero.
+    food_spent = _events._nz(event.get('costFood'))
+    magic_spent = _events._nz(event.get('costMagic'))
+    if energy_spent:
+        caller['energy'] = max(0, _nz(caller.get('energy')) - energy_spent)
+    if coin_spent:
+        caller['coin'] = max(0, _nz(caller.get('coin')) - coin_spent)
+    if food_spent:
+        caller['food'] = max(0, _nz(caller.get('food')) - food_spent)
+    if magic_spent:
+        caller['magic'] = max(0, _nz(caller.get('magic')) - magic_spent)
+    # v0.35.3 — the id of the event the player actually paid for, and a one-shot latch, so
+    # the price lands on exactly one row of the chain.
+    head_event_id = _events._nz(event.get('id'))
+    costs_logged = [False]
+
+    stat_changes, registry_changes = [], []
+    trait_changes, item_changes, characteristic_changes = [], [], []
+    location_changes = []
+    applied_effects, executed_uuids = [], []
+    touched = {caller.get('uuid'): caller}
+    flags = {'itemAdded': False, 'itemRemoved': False, 'weatherApplied': False,
+             'movementApplied': False,
+             'comaTriggered': False, 'gameOver': False, 'endTime': False,
+             # Step 30 — a sadness overflow forces sleep without a coma, so this cannot be
+             # derived from comaTriggered alone.
+             'forcedSleep': False}
+    # Step 30 — the epilogue is kept apart from executedEventUuids / effects so the board
+    # can tell the narrative the player triggered from the engine's answer to the collapse.
+    edge_state = {'sadnessOverflowUuids': [], 'comaUuids': [], 'allPlayersInComa': False,
+                  'comaEventUuid': None, 'comaEventCard': None,
+                  'comaExecutedEventUuids': [], 'comaEffects': []}
+    visited = set()
+    raw_cards = story.get('raw_cards') or []
+    raw_texts = story.get('raw_texts') or []
+
+    current = event
+    epilogue_phase = False
+    all_coma_resolved = False
+    while current is not None:
+        event_id = _events._nz(current.get('id'))
+        visited.add(event_id)
+        ctx['consumedEventIds'].add(event_id)
+        if current.get('uuid'):
+            executed_uuids.append(current.get('uuid'))
+
+        # v0.35.4 — the mark is taken before the effects run, so a chained event logs what
+        # it gave and not what the events before it in the same chain already did.
+        gains_mark = len(stat_changes)
+
+        for effect in effects_by_event.get(event_id, []):
+            recipients = _events.resolve_recipients(effect, caller, characters)
+
+            # Weather is a property of the MATCH: applied once per effect row, no matter
+            # how many characters that row targets.
+            id_weather = effect.get('idWeather')
+            if id_weather:
+                match['currentWeatherId'] = _events._nz(id_weather)
+                ctx['currentWeatherId'] = _events._nz(id_weather)
+                flags['weatherApplied'] = True
+
+            for target_char in recipients:
+                touched[target_char.get('uuid')] = target_char
+                _events.apply_stat(target_char, effect, stat_changes)
+                added, removed = _events.apply_item(target_char, effect, item_uuids,
+                                                    item_changes, _item_cap(story, effect))
+                _log_item_effect(match, target_char, effect, added, removed, current)
+                flags['itemAdded'] = flags['itemAdded'] or added
+                flags['itemRemoved'] = flags['itemRemoved'] or removed
+                _events.apply_traits(target_char, effect, trait_uuids, trait_changes,
+                                     _traits_by_id(story), stat_changes)
+                _events.apply_characteristics(target_char, effect, characteristic_changes)
+                moved = _events.apply_location(match, target_char, effect, location_uuids,
+                                               location_changes, _ts_ms())
+                flags['movementApplied'] = flags['movementApplied'] or moved
+
+            # The registry is match-scoped too: written once, by the actor.
+            key = effect.get('keyToAdd')
+            if key:
+                value = effect.get('keyValueToAdd')
+                _events.apply_registry(match, key, value, registry_changes)
+                ctx['registry'][key] = value
+
+            applied_effects.append({
+                "eventUuid": current.get('uuid'),
+                "effectUuid": effect.get('uuid'),
+                "statistic": effect.get('statistics'),
+                "value": effect.get('value'),
+                "target": effect.get('target'),
+                "targetClass": effect.get('targetClass'),
+                "characterUuids": [c.get('uuid') for c in recipients],
+                # The EFFECT's own card is the narrative to render — not the event's.
+                "card": _resolve_card_from_raw(raw_cards, raw_texts, effect.get('idCard'), lang),
+            })
+
+        if _events._nz(current.get('flagEndTime')) == 1:
+            flags['endTime'] = True
+        if end_game_id is not None and _events._nz(end_game_id) == event_id:
+            flags['gameOver'] = True
+
+        # Step 30 edge states: sadness overflow, then coma, over every character this
+        # event touched. Only touched characters can have changed.
+        for c in touched.values():
+            v = _events.evaluate_edge_state(c)
+            if not v['anything']:
+                continue
+            if v['sadnessOverflow']:
+                stat_changes.append({
+                    "characterUuid": c.get('uuid'), "statistic": "life",
+                    "before": _nz(c.get('life')), "after": v['lifeAfter'],
+                    "delta": v['lifeAfter'] - _nz(c.get('life')),
+                })
+                stat_changes.append({
+                    "characterUuid": c.get('uuid'), "statistic": "sad",
+                    "before": _nz(c.get('sad')), "after": 0, "delta": -_nz(c.get('sad')),
+                })
+                c['life'] = v['lifeAfter']
+                # Resetting sad is also the idempotency latch: the next event of the chain
+                # re-runs this block and finds nothing left to fire.
+                c['sad'] = 0
+                c['isSleeping'] = 1
+                edge_state['sadnessOverflowUuids'].append(c.get('uuid'))
+                if c.get('uuid') == caller.get('uuid'):
+                    flags['forcedSleep'] = True
+                _log_edge_state(match, c, event_id,
+                                f"{_events.MSG_SADNESS_OVERFLOW} {c.get('uuid')}")
+            if v['comaTriggered']:
+                c['isComa'] = 1
+                c['isSleeping'] = 1
+                c['clockInComa'] = _nz(match.get('currentClock'))
+                edge_state['comaUuids'].append(c.get('uuid'))
+                _log_edge_state(match, c, event_id, f"{_events.MSG_COMA} {c.get('uuid')}")
+                if c.get('uuid') == caller.get('uuid'):
+                    flags['comaTriggered'] = True
+
+        event_log = match.setdefault('eventLog', [])
+        row = {
+            "characterUuid": caller.get('uuid'),
+            "idEvent": event_id,
+            "clock": _nz(match.get('currentClock')),
+            "timestamp": _ts_ms(),
+            "message": f'{_events.MSG_EVENT_EXECUTED} {event_id}',
+        }
+        # v0.35.3 — the price rides on the row of the event the player asked for; every
+        # other row of the chain logs nothing, so summing a match gives the real spend.
+        if event_id == head_event_id and not costs_logged[0]:
+            costs_logged[0] = True
+            row.update({"energyCost": energy_spent, "foodCost": food_spent,
+                        "magicCost": magic_spent, "coinCost": coin_spent})
+        # v0.35.4 — and what THIS event gave the actor, on the gain half of the same row.
+        row.update(_gains_since(stat_changes, gains_mark, caller.get('uuid')))
+        event_log.append(row)
+
+        if flags['comaTriggered'] and not epilogue_phase:
+            # Coma stops the chain, and flag_end_time with it — but if the WHOLE party is
+            # down the story epilogue runs first. The actor is necessarily one of the
+            # comatose (a comatose character is rejected before an execution even starts),
+            # so this break is exactly where the party collapse can be detected.
+            coma_event = _resolve_all_player_coma(
+                match, match_uuid, caller, touched, edge_state, events_by_id, ctx,
+                story, raw_cards, raw_texts, lang, all_coma_resolved)
+            all_coma_resolved = True
+            if coma_event is None:
+                break
+            edge_state['comaEventMark'] = len(executed_uuids)
+            edge_state['comaEffectMark'] = len(applied_effects)
+            epilogue_phase = True
+            current = coma_event
+            continue
+
+        nxt = current.get('idEventNext')
+        if not nxt or _events._nz(nxt) <= 0:
+            break
+        next_id = _events._nz(nxt)
+        if next_id in visited or len(visited) >= _events.MAX_CHAIN:
+            break  # an authored loop, or a chain long enough to be a bug
+        nxt_event = events_by_id.get(next_id)
+        if nxt_event is None:
+            break  # dangling idEventNext
+        if str(nxt_event.get('type') or '').strip().upper() == _events.TYPE_ONCE \
+                and next_id in ctx['consumedEventIds']:
+            break  # a spent ONCE event stays spent, even mid-chain
+        current = nxt_event  # not re-checked, not charged
+
+    for c in touched.values():
+        db_utils.put_item(c)
+
+    current_clock = _nz(match.get('currentClock'))
+    time_ended = False
+    if flags['endTime'] and not flags['comaTriggered']:
+        for c in _match_characters(match_uuid):
+            c['isSleeping'] = 1
+            db_utils.put_item(c)
+        current_clock, _recovery, _fired = _advance_time(match, match_uuid)
+        time_ended = True
+    else:
+        db_utils.put_item(match)
+
+    # The epilogue is sliced off the tail so the board can tell it from the player's chain.
+    if edge_state['comaEventUuid'] is None:
+        chain_event_uuids, chain_effects = executed_uuids, applied_effects
+        coma_event_uuids, coma_effects = [], []
+    else:
+        mark_e = edge_state['comaEventMark']
+        mark_f = edge_state['comaEffectMark']
+        chain_event_uuids, coma_event_uuids = executed_uuids[:mark_e], executed_uuids[mark_e:]
+        chain_effects, coma_effects = applied_effects[:mark_f], applied_effects[mark_f:]
+
+    changed = any([time_ended, flags['itemAdded'], flags['itemRemoved'],
+                   flags['weatherApplied'], flags['movementApplied'],
+                   flags['comaTriggered'], flags['gameOver'],
+                   edge_state['sadnessOverflowUuids'], edge_state['comaUuids'],
+                   edge_state['allPlayersInComa'],
+                   stat_changes, registry_changes, trait_changes, characteristic_changes])
+
+    return _ok({
+        "matchUuid": match_uuid,
+        "eventUuid": event.get('uuid'),
+        "eventType": event.get('type'),
+        # Step 31: the 0-choice flow — effects ran. Choice-events answer CHOICES_PENDING.
+        "status": "APPLIED",
+        "card": _resolve_card_from_raw(raw_cards, raw_texts, event.get('idCard'), lang),
+        "executedEventUuids": chain_event_uuids,
+        "energySpent": energy_spent,
+        "coinSpent": coin_spent,
+        "foodSpent": food_spent,
+        "magicSpent": magic_spent,
+        "newEnergy": _nz(caller.get('energy')),
+        "newCoin": _nz(caller.get('coin')),
+        "newFood": _nz(caller.get('food')),
+        "newMagic": _nz(caller.get('magic')),
+        "currentClock": current_clock,
+        # v0.29.0 — execute-event never touches the turn queue (Step 61 revisits this).
+        "turnConsumed": False,
+        "timeEnded": time_ended,
+        "itemAdded": flags['itemAdded'],
+        "itemRemoved": flags['itemRemoved'],
+        "weatherApplied": flags['weatherApplied'],
+        "movementApplied": flags['movementApplied'],
+        "forcedSleep": time_ended or flags['comaTriggered'] or flags['forcedSleep'],
+        "comaTriggered": flags['comaTriggered'],
+        "gameOver": flags['gameOver'],
+        "refreshRecommended": bool(changed),
+        "statChanges": stat_changes,
+        "registryChanges": registry_changes,
+        "traitChanges": trait_changes,
+        "itemChanges": item_changes,
+        "characteristicChanges": characteristic_changes,
+        "locationChanges": location_changes,
+        "effects": chain_effects,
+        # Empty by definition on APPLIED — the options ride on CHOICES_PENDING only.
+        "pendingChoices": [],
+        "edgeState": {
+            "sadnessOverflowUuids": edge_state['sadnessOverflowUuids'],
+            "comaUuids": edge_state['comaUuids'],
+            "allPlayersInComa": edge_state['allPlayersInComa'],
+            "comaEventUuid": edge_state['comaEventUuid'],
+            "comaEventCard": edge_state['comaEventCard'],
+            "comaExecutedEventUuids": coma_event_uuids,
+            "comaEffects": coma_effects,
+        },
+    })
+
+
+# ─── Steps 34 & 35: inventory and resources ──────────────────────────────────
+
+_ITEM_REFUSAL_MESSAGES = {
+    'MATCH_NOT_RUNNING': 'The match is not running',
+    'COMA': 'The character is in a coma',
+    'SLEEPING': 'The character is sleeping',
+    'ITEM_NOT_FOUND': 'Item not found in the inventory',
+    'ITEM_NOT_CONSUMABLE': 'This item cannot be used, only carried',
+    'ITEM_NOT_ENOUGH': 'The character does not carry enough units of this item',
+    'ITEM_CLASS_NOT_PERMITTED': "The character's class cannot use this item",
+    'ITEM_CLASS_PROHIBITED': "The character's class is forbidden from using this item",
+}
+
+
+def _gameplay_match_uuid(event, path):
+    """/api/gameplay/{uuidMatch}/... — the path parameter, or segment 3 as a fallback."""
+    params = event.get('pathParameters') or {}
+    match_uuid = params.get('uuidMatch') or ''
+    if not match_uuid:
+        segments = path.split('/')
+        match_uuid = segments[3] if len(segments) > 3 else ''
+    return match_uuid
+
+
+def _resolve_inventory_caller(user, match_uuid):
+    """(match, story, caller, error). An unknown match and a caller who is not in it are
+    deliberately indistinguishable."""
+    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    if match is None:
+        return None, None, None, _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+    caller = next((c for c in _match_characters(match_uuid)
+                   if c.get('userUuid') == user.get('uuid')), None)
+    if caller is None:
+        return None, None, None, _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+    return match, _story_of(match), caller, None
+
+
+def _traits_by_id(story):
+    """v0.35.2 — the story traits keyed by id, so a granted trait can move the character's
+    maxima the moment it lands. Story sub-entities are embedded lists here."""
+    return {_nz(t.get('id')): t for t in (story.get('traits') or []) if t.get('id') is not None}
+
+
+def _gains_since(stat_changes, mark, actor_uuid):
+    """v0.35.4 — what the ACTOR gained from the stat changes recorded since ``mark``.
+
+    Only the positive half: a drain is the effect's own business, not a gain. The row is
+    character-scoped, so a change on anybody else stays out of it.
+    """
+    gains = {"energyGain": 0, "foodGain": 0, "magicGain": 0, "coinGain": 0}
+    for change in (stat_changes or [])[mark:]:
+        if actor_uuid is not None and change.get('characterUuid') != actor_uuid:
+            continue
+        stat = change.get('statistic')
+        delta = _nz(change.get('delta'))
+        if delta > 0 and f"{stat}Gain" in gains:
+            gains[f"{stat}Gain"] += delta
+    return gains
+
+
+def _log_item_effect(match, char, effect, added, removed, event):
+    """v0.35.4 — the itemUsageLog row of an item an effect moved.
+
+    Nothing is written when the bag did not change: a refused ADD and a REMOVE that found
+    nothing to take are not things that happened. The counter is 1 because an effect grants
+    or takes one unit; the amount lives on the character item, not here.
+    """
+    if not added and not removed:
+        return
+    _inventory.log_item_action(
+        match, char, effect.get('idItemTarget'),
+        _inventory.ITEM_ACTION_ADD if added else _inventory.ITEM_ACTION_REMOVE,
+        _nz(match.get('currentClock')), None, 1, (event or {}).get('id'))
+
+
+def _item_cap(story, effect):
+    """v0.35.1 — max_per_character of the item an effect hands over, None when it sets no
+    cap. Read per effect rather than cached: an execution carries a handful of them, and a
+    cache keyed by story would have to be threaded through every chain entry point."""
+    item = _inventory.items_by_id(story).get(_nz(effect.get('idItemTarget')))
+    return (item or {}).get('maxPerCharacter')
+
+
+def _item_refusal(code):
+    status = 404 if code in ('MATCH_NOT_FOUND', 'ITEM_NOT_FOUND') else 409
+    return _err(status, code, _ITEM_REFUSAL_MESSAGES.get(code, 'Item action refused'))
+
+
+def _get_inventory(user, match_uuid, lang='en'):
+    """GET /api/gameplay/{uuidMatch}/inventory — readable in any match status."""
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    match, story, caller, err = _resolve_inventory_caller(user, match_uuid)
+    if err:
+        return err
+    return _ok({
+        "matchUuid": match_uuid,
+        "characterUuid": caller.get('uuid'),
+        "items": _item_rows(caller, story, *_story_cards_texts(story), lang=lang),
+        "weight": _inventory.carried_weight(caller, story),
+        "weightMax": _nz(caller.get('weightMax')),
+    })
+
+
+def _get_resources(user, match_uuid):
+    """GET /api/gameplay/{uuidMatch}/resources — plain numbers, no card."""
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    match, story, caller, err = _resolve_inventory_caller(user, match_uuid)
+    if err:
+        return err
+    return _ok({
+        "matchUuid": match_uuid,
+        "characterUuid": caller.get('uuid'),
+        "food": _nz(caller.get('food')),
+        "magic": _nz(caller.get('magic')),
+        "coin": _nz(caller.get('coin')),
+        "weight": _inventory.carried_weight(caller, story),
+        "weightMax": _nz(caller.get('weightMax')),
+    })
+
+
+def _drop_item(user, match_uuid, body):
+    """POST /api/gameplay/{uuidMatch}/inventory/drop-item — discard only.
+
+    Neither the consumable gate nor the class gate applies: a non-consumable item must be
+    droppable, that is the whole point of carrying one.
+    """
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    item_instance_uuid = (body or {}).get('itemInstanceUuid')
+    if not item_instance_uuid or not str(item_instance_uuid).strip():
+        return _err(400, 'MISSING_ITEM', 'itemInstanceUuid is required')
+
+    match, story, caller, err = _resolve_inventory_caller(user, match_uuid)
+    if err:
+        return err
+
+    row = _inventory.find_own_row(caller, item_instance_uuid)
+    if row is None:
+        return _item_refusal('ITEM_NOT_FOUND')
+    # A dangling row (its story item is gone) is still droppable — see inventory.check.
+    item = _inventory.items_by_id(story).get(_nz(row.get('idItem')))
+    code = _inventory.check(match, caller, item, require_consumable=False)
+    if code:
+        return _item_refusal(code)
+
+    # v0.35.1 — amountDrop units, null reading as 1. Holding fewer is NOT a refusal, unlike
+    # a usage: a player putting something down can always put down everything they hold.
+    # A row whose story item is gone goes in ONE gesture: there is no author left to say how
+    # many units a drop takes, and step 34 keeps such a row droppable precisely so it cannot
+    # weigh the character down forever.
+    units = (_inventory.unit_amount(row.get('amount')) if item is None
+             else _inventory.action_amount(item.get('amountDrop')))
+    dropped = _inventory.spend_units(caller, row, units)
+    # v0.35.4 — a drop moves no resource, but it IS an item event: without this row the
+    # timeline would show the item arriving and being used and never leaving. The match
+    # item is written too, because that is where itemUsageLog lives.
+    if item is not None:
+        _inventory.log_item_action(match, caller, item.get('id'),
+                                   _inventory.ITEM_ACTION_DROP,
+                                   _nz(match.get('currentClock')), None, dropped)
+        db_utils.put_item(match)
+    db_utils.put_item(caller)
+
+    return _ok({
+        "matchUuid": match_uuid,
+        "characterUuid": caller.get('uuid'),
+        "itemInstanceUuid": row.get('uuid'),
+        "itemUuid": item.get('uuid') if item else None,
+        "amountDropped": dropped,
+        "weight": _inventory.carried_weight(caller, story),
+        "weightMax": _nz(caller.get('weightMax')),
+        # Always true — the inventory and the carried weight both changed.
+        "refreshRecommended": True,
+    })
+
+
+def _use_item(user, match_uuid, body, lang='en'):
+    """POST /api/gameplay/{uuidMatch}/inventory/use-item.
+
+    Answers the execute-event payload: an item carrying a SADNESS effect can trip the
+    step-30 overflow or coma, so the effects go through the very same apply_stat /
+    apply_traits / _apply_edge_states the event chain uses. On an item usage `eventUuid`
+    and `eventType` are null and `card` is the item's own card.
+    """
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    item_instance_uuid = (body or {}).get('itemInstanceUuid')
+    if not item_instance_uuid or not str(item_instance_uuid).strip():
+        return _err(400, 'MISSING_ITEM', 'itemInstanceUuid is required')
+
+    match, story, caller, err = _resolve_inventory_caller(user, match_uuid)
+    if err:
+        return err
+
+    row = _inventory.find_own_row(caller, item_instance_uuid)
+    if row is None:
+        return _item_refusal('ITEM_NOT_FOUND')
+    item = _inventory.items_by_id(story).get(_nz(row.get('idItem')))
+    code = _inventory.check(match, caller, item, require_consumable=True)
+    if code:
+        return _item_refusal(code)
+
+    # v0.35.1 — how many units one usage spends. Holding fewer is a refusal rather than a
+    # smaller sip: an effect that fired on half the recipe would be a lie about what the
+    # player did.
+    spend = _inventory.action_amount(item.get('amountUse'))
+    if _inventory.unit_amount(row.get('amount')) < spend:
+        return _item_refusal('ITEM_NOT_ENOUGH')
+
+    raw_cards, raw_texts = _story_cards_texts(story)
+    trait_uuids = {_events._nz(t.get('id')): t.get('uuid') for t in (story.get('traits') or [])}
+
+    acc = {
+        'statChanges': [], 'traitChanges': [], 'touched': {caller.get('uuid'): caller},
+        'flags': {'forcedSleep': False, 'comaTriggered': False},
+        'edgeState': {'sadnessOverflowUuids': [], 'comaUuids': []},
+    }
+    applied_effects = []
+
+    # The units go first: an item whose effects grant the same item back must not pay for
+    # itself, and what was spent stays spent even if the effect chain ends in a coma.
+    # Before v0.35.1 that meant dropping the row; now the row survives a partial usage.
+    _inventory.spend_units(caller, row, spend)
+
+    for effect in _inventory.standalone_effects(story, item):
+        _events.apply_stat(caller, effect, acc['statChanges'])
+        _events.apply_traits(caller, effect, trait_uuids, acc['traitChanges'],
+                             _traits_by_id(story), acc['statChanges'])
+        applied_effects.append({
+            "eventUuid": None,
+            "effectUuid": effect.get('uuid'),
+            "statistic": effect.get('statistics'),
+            "value": effect.get('value'),
+            "target": "ONLY_ONE",
+            "targetClass": None,
+            "characterUuids": [caller.get('uuid')],
+            "card": _resolve_card_from_raw(raw_cards, raw_texts, effect.get('idCard'), lang),
+        })
+
+    _apply_edge_states(match, caller, acc, None)
+    _inventory.log_item_action(
+        match, caller, item.get('id'), _inventory.ITEM_ACTION_USE,
+        _nz(match.get('currentClock')),
+        acc['statChanges'], spend, None,
+        _inventory.resource_delta(acc['statChanges'], caller.get('uuid')))
+    db_utils.put_item(caller)
+    db_utils.put_item(match)
+
+    changed = bool(acc['statChanges'] or acc['traitChanges']
+                   or acc['edgeState']['sadnessOverflowUuids']
+                   or acc['edgeState']['comaUuids'])
+
+    return _ok({
+        "matchUuid": match_uuid,
+        # An item owns no event: these two stay null, and the card is the item's own.
+        "eventUuid": None,
+        "eventType": None,
+        "status": "APPLIED",
+        "card": _resolve_card_from_raw(raw_cards, raw_texts, item.get('idCard'), lang),
+        "executedEventUuids": [],
+        "energySpent": 0,
+        "coinSpent": 0,
+        "foodSpent": 0,
+        "magicSpent": 0,
+        "newEnergy": _nz(caller.get('energy')),
+        "newCoin": _nz(caller.get('coin')),
+        "newFood": _nz(caller.get('food')),
+        "newMagic": _nz(caller.get('magic')),
+        "currentClock": _nz(match.get('currentClock')),
+        "turnConsumed": False,
+        "timeEnded": False,
+        "itemAdded": False,
+        "itemRemoved": True,
+        "weatherApplied": False,
+        "movementApplied": False,
+        "forcedSleep": acc['flags']['forcedSleep'] or acc['flags']['comaTriggered'],
+        "comaTriggered": acc['flags']['comaTriggered'],
+        "gameOver": False,
+        "refreshRecommended": changed,
+        "statChanges": acc['statChanges'],
+        "registryChanges": [],
+        "traitChanges": acc['traitChanges'],
+        "itemChanges": [],
+        "characteristicChanges": [],
+        "locationChanges": [],
+        "effects": applied_effects,
+        # An item owns no choices and cannot be the story's end-game event.
+        "pendingChoices": [],
+        "edgeState": {
+            "sadnessOverflowUuids": acc['edgeState']['sadnessOverflowUuids'],
+            "comaUuids": acc['edgeState']['comaUuids'],
+            "allPlayersInComa": False,
+            "comaEventUuid": None,
+            "comaEventCard": None,
+            "comaExecutedEventUuids": [],
+            "comaEffects": [],
+        },
+    })
+
+
+def _execute_choice_event(match, match_uuid, story, event, event_choices,
+                          caller, characters, ctx, lang='en'):
+    """Step 31 — a choice-event stops at its threshold: pay, mark, present — never apply.
+
+    The whole Step 29 tail (effects, chain, flag_end_time, edge states, epilogue,
+    gameOver) belongs to the resolution, which is Step 32's select-choice.
+
+    An OPEN cycle — EVENT_EXECUTED markers outnumbering CHOICE_SELECTED markers —
+    re-serves the options as a pure read: no verdict, no cost, no marker, no writes.
+    Bypassing the verdict is deliberate: the open already deducted energy and consumed
+    the ONCE, so re-checking would reject the very event the player has paid for.
+    Option availability, in contrast, is re-evaluated fresh on every serve.
+    """
+    event_id = _events._nz(event.get('id'))
+    open_cycle = event_id in ctx['consumedEventIds'] and (
+        _choices.count_log_markers(match, event_id, _events.MSG_EVENT_EXECUTED)
+        > _choices.count_log_markers(match, event_id, _choices.MSG_CHOICE_SELECTED))
+
+    energy_spent = 0
+    coin_spent = 0
+    food_spent = 0
+    magic_spent = 0
+    if not open_cycle:
+        available, reason = _events.check(event, ctx)
+        if not available:
+            return _err(409, reason, f'Event cannot be executed: {reason}')
+        # Pay, once, and write the same marker row the Step 29 flow writes — the ONCE
+        # accounting and the log timeline cannot tell the two flows apart.
+        energy_spent = _events._nz(event.get('costEnery'))
+        coin_spent = _events._nz(_events.event_cost_coin(event))
+        food_spent = _events._nz(event.get('costFood'))
+        magic_spent = _events._nz(event.get('costMagic'))
+        if energy_spent:
+            caller['energy'] = max(0, _nz(caller.get('energy')) - energy_spent)
+        if coin_spent:
+            caller['coin'] = max(0, _nz(caller.get('coin')) - coin_spent)
+        if food_spent:
+            caller['food'] = max(0, _nz(caller.get('food')) - food_spent)
+        if magic_spent:
+            caller['magic'] = max(0, _nz(caller.get('magic')) - magic_spent)
+        ctx['consumedEventIds'].add(event_id)
+        match.setdefault('eventLog', []).append({
+            "characterUuid": caller.get('uuid'),
+            "idEvent": event_id,
+            "clock": _nz(match.get('currentClock')),
+            "timestamp": _ts_ms(),
+            "message": f'{_events.MSG_EVENT_EXECUTED} {event_id}',
+            # v0.35.3 — the open is what the player paid for; the resolution pays nothing.
+            "energyCost": energy_spent, "foodCost": food_spent,
+            "magicCost": magic_spent, "coinCost": coin_spent,
+            # v0.35.4 — opening a choice-event applies no effect, so it gives nothing.
+            "energyGain": 0, "foodGain": 0, "magicGain": 0, "coinGain": 0,
+        })
+        db_utils.put_item(caller)
+        db_utils.put_item(match)
+
+    raw_cards = story.get('raw_cards') or []
+    raw_texts = story.get('raw_texts') or []
+    conditions = _choices.conditions_by_choice(story)
+    cctx = _choices.build_choice_context(match, story, caller, characters, ctx,
+                                         event_choices, conditions)
+    pending = []
+    for choice in event_choices:  # already priority-then-id sorted
+        available, reason = _choices.check_choice(
+            choice, conditions.get(_events._nz(choice.get('id')), []), cctx)
+        pending.append({
+            "uuid": choice.get('uuid'),
+            "priority": choice.get('priority'),
+            "name": _resolve_raw_text(raw_texts, choice.get('idTextName'), lang),
+            "description": _resolve_raw_text(raw_texts, choice.get('idTextDescription'), lang),
+            "card": _resolve_card_from_raw(raw_cards, raw_texts, choice.get('idCard'), lang),
+            "available": available,
+            # The choice's narrative (idTextNarrative) is deliberately absent — it would
+            # leak the outcome of a choice not yet made (Step 32 reveals it).
+            "reason": reason,
+        })
+
+    return _ok({
+        "matchUuid": match_uuid,
+        "eventUuid": event.get('uuid'),
+        "eventType": event.get('type'),
+        "status": "CHOICES_PENDING",
+        "card": _resolve_card_from_raw(raw_cards, raw_texts, event.get('idCard'), lang),
+        # "Index 0 is always the event" holds on a re-fetch too, so the frontend cannot
+        # tell a page refresh from the first open (beside energySpent=0).
+        "executedEventUuids": [event.get('uuid')],
+        "energySpent": energy_spent,
+        "coinSpent": coin_spent,
+        "foodSpent": food_spent,
+        "magicSpent": magic_spent,
+        "newEnergy": _nz(caller.get('energy')),
+        "newCoin": _nz(caller.get('coin')),
+        "newFood": _nz(caller.get('food')),
+        "newMagic": _nz(caller.get('magic')),
+        "currentClock": _nz(match.get('currentClock')),
+        "turnConsumed": False,
+        "timeEnded": False,
+        "itemAdded": False,
+        "itemRemoved": False,
+        "weatherApplied": False,
+        "movementApplied": False,
+        "forcedSleep": False,
+        "comaTriggered": False,
+        "gameOver": False,
+        "refreshRecommended": False,
+        "statChanges": [],
+        "registryChanges": [],
+        "traitChanges": [],
+        "itemChanges": [],
+        "characteristicChanges": [],
+        "locationChanges": [],
+        "effects": [],
+        "pendingChoices": pending,
+        "edgeState": {
+            "sadnessOverflowUuids": [], "comaUuids": [], "allPlayersInComa": False,
+            "comaEventUuid": None, "comaEventCard": None,
+            "comaExecutedEventUuids": [], "comaEffects": [],
+        },
+    })
+
+
+def _select_choice(user, match_uuid, body, lang='en'):
+    """POST /api/gameplay/{uuidMatch}/action/select-choice — Step 32.
+
+    Resolve the option the player picked out of an open choice-event: apply its
+    choiceEffects, run the events they and idEventTorun point at, record the milestone,
+    close the cycle.
+
+    **Nothing is charged.** The energy, the coins and the ONCE were all spent when the
+    event was opened (Step 31), which is what makes the open-cycle count — not the Step 29
+    availability procedure — the right gate here: re-running that procedure would reject
+    the very event the player has already paid for. The count comparison doubles as the
+    cost-bypass guard, since it is false both for an event never opened and for one
+    already resolved.
+    """
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    choice_uuid = (body or {}).get('choiceUuid')
+    if not choice_uuid or not str(choice_uuid).strip():
+        return _err(400, 'MISSING_CHOICE', 'choiceUuid is required')
+
+    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    if match is None:
+        return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+
+    characters = _match_characters(match_uuid)
+    caller = next((c for c in characters if c.get('userUuid') == user.get('uuid')), None)
+    if caller is None:
+        # An unknown match and a caller who is not in it are deliberately indistinguishable.
+        return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+
+    if match.get('status') != 'RUNNING':
+        return _err(409, 'MATCH_NOT_RUNNING', _MATCH_NOT_RUNNING_MSG)
+
+    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    choice = _choices.choice_by_uuid(story, choice_uuid)
+    if choice is None:
+        return _err(404, 'CHOICE_NOT_FOUND', 'Choice not found in this story')
+
+    # Coma outranks sleep, as everywhere else: a comatose character is also flagged
+    # asleep, and the two are not the same news — one waits, the other needs a rescue.
+    if _nz(caller.get('isComa')) == 1:
+        return _err(409, 'COMA', 'Character is in a coma')
+    if _nz(caller.get('isSleeping')) == 1:
+        return _err(409, 'SLEEPING', 'Character is sleeping')
+
+    # R8 (Step 31) makes idEvent mandatory on import, but the CRUD path is lenient, so an
+    # orphan option can reach the engine — it resolves to no cycle and is rejected.
+    event_id = _events._nz(choice.get('idEvent'))
+    all_events = story.get('events') or []
+    events_by_id = {_events._nz(e.get('id')): e for e in all_events if e.get('id') is not None}
+    event = events_by_id.get(event_id)
+    if event is None:
+        return _err(404, 'EVENT_NOT_FOUND', 'The event owning this choice does not exist')
+
+    if _choices.count_log_markers(match, event_id, _events.MSG_EVENT_EXECUTED) \
+            <= _choices.count_log_markers(match, event_id, _choices.MSG_CHOICE_SELECTED):
+        return _err(409, 'CHOICE_NOT_OPEN',
+                    'No open choice cycle for this event: open it before resolving it')
+
+    ctx = _events.build_context(match, story, caller)
+    classes_by_uuid = {c.get('uuid'): c.get('id') for c in (story.get('classes') or [])}
+    for c in characters:
+        c['classId'] = classes_by_uuid.get(c.get('classUuid'))
+
+    # The option's verdict, re-evaluated now rather than trusted from the open: the world
+    # may have moved since the options were served, and an option that has become
+    # impossible must not resolve.
+    conditions = _choices.conditions_by_choice(story)
+    cctx = _choices.build_choice_context(match, story, caller, characters, ctx,
+                                         [choice], conditions)
+    available, reason = _choices.check_choice(
+        choice, conditions.get(_events._nz(choice.get('id')), []), cctx)
+    if not available:
+        return _err(409, 'CHOICE_NOT_AVAILABLE', f'Choice cannot be selected: {reason}')
+
+    return _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
+                           characters, ctx, events_by_id, lang)
+
+
+def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
+                    characters, ctx, events_by_id, lang):
+    """The write half of select-choice, once every guard has passed."""
+    raw_cards = story.get('raw_cards') or []
+    raw_texts = story.get('raw_texts') or []
+    item_uuids = {_events._nz(i.get('id')): i.get('uuid') for i in (story.get('items') or [])}
+    location_uuids = {_events._nz(l.get('id')): l.get('uuid')
+                      for l in (story.get('locations') or [])}
+
+    acc = _new_accumulator(caller)
+    linked = []
+
+    # ── the option's own effect rows, in authored order ──
+    for effect in _choices.effects_for_choice(story, _events._nz(choice.get('id'))):
+        recipients = _choices.choice_recipients(effect, caller, characters)
+
+        # Weather belongs to the MATCH: once per row, however many characters it targets.
+        id_weather = effect.get('idWeather')
+        if id_weather:
+            match['currentWeatherId'] = _events._nz(id_weather)
+            ctx['currentWeatherId'] = _events._nz(id_weather)
+            acc['flags']['weatherApplied'] = True
+
+        for target_char in recipients:
+            acc['touched'][target_char.get('uuid')] = target_char
+            _events.apply_stat(target_char, effect, acc['statChanges'])
+            added, removed = _events.apply_item(target_char, effect, item_uuids,
+                                                acc['itemChanges'], _item_cap(story, effect))
+            _log_item_effect(match, target_char, effect, added, removed, event)
+            acc['flags']['itemAdded'] = acc['flags']['itemAdded'] or added
+            acc['flags']['itemRemoved'] = acc['flags']['itemRemoved'] or removed
+            moved = _events.apply_location(match, target_char, effect, location_uuids,
+                                           acc['locationChanges'], _ts_ms())
+            acc['flags']['movementApplied'] = acc['flags']['movementApplied'] or moved
+
+        _apply_choice_registry(match, ctx, effect, acc['registryChanges'])
+
+        acc['effects'].append({
+            "eventUuid": event.get('uuid'),
+            "effectUuid": effect.get('uuid'),
+            "statistic": effect.get('statistics'),
+            "value": effect.get('value'),
+            "target": "ALL" if _events._nz(effect.get('flagGroup')) == 1 else "ONLY_ONE",
+            "targetClass": None,
+            "characterUuids": [c.get('uuid') for c in recipients],
+            # The row's OWN card is the narrative, exactly as for an event effect.
+            "card": _resolve_card_from_raw(raw_cards, raw_texts, effect.get('idCard'), lang),
+        })
+        if effect.get('idEvent'):
+            linked.append(_events._nz(effect.get('idEvent')))
+
+    # No event ran for those rows, so the Step 30 pass has to be given here — once, over
+    # everyone they touched, exactly where the event flow runs it. A lethal row therefore
+    # does NOT silence its siblings; what a coma stops is the consequences below.
+    _apply_edge_states(match, caller, acc, event_id)
+
+    # ── the consequences: the effect links first, then the option's outcome event ──
+    status = 'APPLIED'
+    pending = []
+    for link in linked + [_events._nz(choice.get('idEventTorun'))]:
+        if acc['flags']['comaTriggered'] or status == 'CHOICES_PENDING':
+            break  # down, or waiting on the player again: the rest is not ours to run
+        status, pending = _run_linked_event(match, match_uuid, story, link, caller,
+                                            characters, ctx, events_by_id, acc,
+                                            item_uuids, location_uuids, lang)
+
+    for c in acc['touched'].values():
+        db_utils.put_item(c)
+
+    # ── close the cycle: the marker, the history row, the milestone ──
+    clock = _nz(match.get('currentClock'))
+    # The CHOICE_SELECTED marker carries the OWNING EVENT's id, never the option's:
+    # count_log_markers pairs it against EVENT_EXECUTED by event, and a row stamped with
+    # the choice id would leave the cycle open for ever.
+    match.setdefault('eventLog', []).append({
+        "characterUuid": caller.get('uuid'),
+        "idEvent": event_id,
+        "clock": clock,
+        "timestamp": _ts_ms(),
+        "message": f'{_choices.MSG_CHOICE_SELECTED} {event_id}',
+    })
+    choice_id = _events._nz(choice.get('id'))
+    match.setdefault('choiceLog', []).append({
+        "idEvent": event_id,
+        "idChoise": choice_id,
+        "clock": clock,
+        "timestamp": _ts_ms(),
+        "message": f'{_choices.MSG_CHOICE_SELECTED} {choice_id}',
+    })
+    progress_recorded = _events._nz(choice.get('isProgress')) == 1
+    if progress_recorded:
+        match.setdefault('storyProgress', []).append({
+            "idEvent": event_id,
+            "idChoise": choice_id,
+            "clock": clock,
+            "timestamp": _ts_ms(),
+        })
+
+    current_clock = clock
+    time_ended = False
+    if acc['flags']['endTime'] and not acc['flags']['comaTriggered']:
+        for c in _match_characters(match_uuid):
+            c['isSleeping'] = 1
+            db_utils.put_item(c)
+        current_clock, _recovery, _fired = _advance_time(match, match_uuid)
+        time_ended = True
+    else:
+        db_utils.put_item(match)
+
+    changed = any([time_ended, acc['flags']['itemAdded'], acc['flags']['itemRemoved'],
+                   acc['flags']['weatherApplied'], acc['flags']['movementApplied'],
+                   acc['flags']['comaTriggered'], acc['flags']['gameOver'],
+                   acc['edgeState']['sadnessOverflowUuids'], acc['edgeState']['comaUuids'],
+                   acc['statChanges'], acc['registryChanges'], acc['traitChanges'],
+                   acc['characteristicChanges']])
+
+    return _ok({
+        "matchUuid": match_uuid,
+        # The event that owned the option — the payload is about it, as on execute-event.
+        "eventUuid": event.get('uuid'),
+        "eventType": event.get('type'),
+        "status": status,
+        "card": _resolve_card_from_raw(raw_cards, raw_texts, event.get('idCard'), lang),
+        "executedEventUuids": acc['executedUuids'],
+        # Always 0: the open already paid, and resolving is what that payment bought.
+        "energySpent": 0,
+        "coinSpent": 0,
+        "foodSpent": 0,
+        "magicSpent": 0,
+        "newEnergy": _nz(caller.get('energy')),
+        "newCoin": _nz(caller.get('coin')),
+        "newFood": _nz(caller.get('food')),
+        "newMagic": _nz(caller.get('magic')),
+        "currentClock": current_clock,
+        "turnConsumed": False,
+        "timeEnded": time_ended,
+        "itemAdded": acc['flags']['itemAdded'],
+        "itemRemoved": acc['flags']['itemRemoved'],
+        "weatherApplied": acc['flags']['weatherApplied'],
+        "movementApplied": acc['flags']['movementApplied'],
+        "forcedSleep": time_ended or acc['flags']['comaTriggered'] or acc['flags']['forcedSleep'],
+        "comaTriggered": acc['flags']['comaTriggered'],
+        "gameOver": acc['flags']['gameOver'],
+        "refreshRecommended": bool(changed),
+        "statChanges": acc['statChanges'],
+        "registryChanges": acc['registryChanges'],
+        "traitChanges": acc['traitChanges'],
+        "itemChanges": acc['itemChanges'],
+        "characteristicChanges": acc['characteristicChanges'],
+        "locationChanges": acc['locationChanges'],
+        "effects": acc['effects'],
+        "pendingChoices": pending,
+        "edgeState": {
+            "sadnessOverflowUuids": acc['edgeState']['sadnessOverflowUuids'],
+            "comaUuids": acc['edgeState']['comaUuids'],
+            "allPlayersInComa": acc['edgeState']['allPlayersInComa'],
+            "comaEventUuid": None, "comaEventCard": None,
+            "comaExecutedEventUuids": [], "comaEffects": [],
+        },
+        # ── what only a resolution knows ──
+        "choiceUuid": choice.get('uuid'),
+        # Withheld by Step 31 (it would have leaked the consequence of a choice not yet
+        # made), revealed now that the choice is irreversible.
+        "narrative": _resolve_raw_text(raw_texts, choice.get('idTextNarrative'), lang),
+        "choiceCard": _resolve_card_from_raw(raw_cards, raw_texts, choice.get('idCard'), lang),
+        "choiceEventUuid": acc['choiceEventUuid'],
+        "choiceEventCard": acc['choiceEventCard'],
+        "progressRecorded": progress_recorded,
+    })
+
+
+def _new_accumulator(caller):
+    """The mutable state of one resolution, in one dict so the helpers can share it."""
+    return {
+        'statChanges': [], 'registryChanges': [], 'traitChanges': [], 'itemChanges': [],
+        'characteristicChanges': [], 'locationChanges': [], 'effects': [],
+        'executedUuids': [], 'touched': {caller.get('uuid'): caller},
+        # The events THIS resolution has already run. It is what stops a link from
+        # running twice within one call — deliberately NOT the match-wide
+        # consumedEventIds, which only governs the ONCE rule: a NORMAL event stays
+        # re-runnable however many times it has been executed before.
+        'visited': set(),
+        'choiceEventUuid': None, 'choiceEventCard': None,
+        'edgeState': {'sadnessOverflowUuids': [], 'comaUuids': [], 'allPlayersInComa': False},
+        'flags': {'itemAdded': False, 'itemRemoved': False, 'weatherApplied': False,
+                  'movementApplied': False, 'comaTriggered': False, 'gameOver': False,
+                  'endTime': False, 'forcedSleep': False},
+    }
+
+
+def _apply_choice_registry(match, ctx, effect, changes):
+    """The registry pair of a choice effect. ``valueToAdd`` sets the key;
+    ``valueToRemove`` clears it, but only when the stored value actually matches — an
+    option must not be able to wipe a key some other branch of the story has since moved
+    on. Written once per row: the registry is match-scoped."""
+    key = effect.get('key')
+    if not key:
+        return
+    old = ctx['registry'].get(key)
+    add = effect.get('valueToAdd')
+    remove = effect.get('valueToRemove')
+    if add:
+        value = add
+    elif remove and remove == old:
+        value = None  # the key reads as unset afterwards
+    else:
+        return
+    _events.apply_registry(match, key, value, changes)
+    ctx['registry'][key] = value
+
+
+def _apply_edge_states(match, caller, acc, event_id):
+    """Step 30 — the sadness-overflow and coma rules over everyone the rows touched."""
+    for c in acc['touched'].values():
+        v = _events.evaluate_edge_state(c)
+        if not v['anything']:
+            continue
+        if v['sadnessOverflow']:
+            acc['statChanges'].append({
+                "characterUuid": c.get('uuid'), "statistic": "life",
+                "before": _nz(c.get('life')), "after": v['lifeAfter'],
+                "delta": v['lifeAfter'] - _nz(c.get('life')),
+            })
+            acc['statChanges'].append({
+                "characterUuid": c.get('uuid'), "statistic": "sad",
+                "before": _nz(c.get('sad')), "after": 0, "delta": -_nz(c.get('sad')),
+            })
+            c['life'] = v['lifeAfter']
+            # Resetting sad is also the idempotency latch for the rest of the resolution.
+            c['sad'] = 0
+            c['isSleeping'] = 1
+            acc['edgeState']['sadnessOverflowUuids'].append(c.get('uuid'))
+            if caller is not None and c.get('uuid') == caller.get('uuid'):
+                acc['flags']['forcedSleep'] = True
+            _log_edge_state(match, c, event_id,
+                            f"{_events.MSG_SADNESS_OVERFLOW} {c.get('uuid')}")
+        if v['comaTriggered']:
+            c['isComa'] = 1
+            c['isSleeping'] = 1
+            c['clockInComa'] = _nz(match.get('currentClock'))
+            acc['edgeState']['comaUuids'].append(c.get('uuid'))
+            _log_edge_state(match, c, event_id, f"{_events.MSG_COMA} {c.get('uuid')}")
+            if caller is not None and c.get('uuid') == caller.get('uuid'):
+                acc['flags']['comaTriggered'] = True
+
+
+def _run_linked_event(match, match_uuid, story, id_event, caller, characters, ctx,
+                      events_by_id, acc, item_uuids, location_uuids, lang):
+    """Run an event a choice points at — ``idEventTorun`` on the option, or ``idEvent`` on
+    one of its effect rows — with its whole ``idEventNext`` chain.
+
+    A linked event is a **consequence**, so it is neither re-checked nor charged (the Step
+    29 chain rule). If it is itself a choice-event the resolution does not apply its
+    effects — they are withheld by definition — but presents its options instead, so a
+    story that chains a choice onto a choice keeps working; the options are served free,
+    the open having already been paid for by the choice that led here.
+
+    Returns ``(status, pendingChoices)``.
+    """
+    if not id_event or id_event <= 0:
+        return 'APPLIED', []
+    linked = events_by_id.get(id_event)
+    if linked is None or id_event in acc['visited']:
+        return 'APPLIED', []  # dangling id, or already run in THIS resolution
+    # Only a ONCE event is barred by having been executed before. Testing every type
+    # against consumedEventIds — as this did until v0.32.0 — silently skipped any NORMAL
+    # link the match had ever run, so an option's "event to run" fired at most once per
+    # match and then quietly stopped, effects still applying.
+    if str(linked.get('type') or '').strip().upper() == _events.TYPE_ONCE \
+            and id_event in ctx['consumedEventIds']:
+        return 'APPLIED', []
+
+    nested = _choices.choices_for_event(story, id_event)
+    if nested:
+        acc['visited'].add(id_event)
+        ctx['consumedEventIds'].add(id_event)
+        if linked.get('uuid'):
+            acc['executedUuids'].append(linked.get('uuid'))
+        match.setdefault('eventLog', []).append({
+            "characterUuid": caller.get('uuid'),
+            "idEvent": id_event,
+            "clock": _nz(match.get('currentClock')),
+            "timestamp": _ts_ms(),
+            "message": f'{_events.MSG_EVENT_EXECUTED} {id_event}',
+        })
+        raw_cards = story.get('raw_cards') or []
+        raw_texts = story.get('raw_texts') or []
+        conditions = _choices.conditions_by_choice(story)
+        cctx = _choices.build_choice_context(match, story, caller, characters, ctx,
+                                             nested, conditions)
+        pending = []
+        for opt in nested:  # already priority-then-id sorted
+            ok, why = _choices.check_choice(
+                opt, conditions.get(_events._nz(opt.get('id')), []), cctx)
+            pending.append({
+                "uuid": opt.get('uuid'),
+                "priority": opt.get('priority'),
+                "name": _resolve_raw_text(raw_texts, opt.get('idTextName'), lang),
+                "description": _resolve_raw_text(raw_texts, opt.get('idTextDescription'), lang),
+                "card": _resolve_card_from_raw(raw_cards, raw_texts, opt.get('idCard'), lang),
+                "available": ok,
+                "reason": why,
+            })
+        return 'CHOICES_PENDING', pending
+
+    if acc['choiceEventUuid'] is None:
+        raw_cards = story.get('raw_cards') or []
+        raw_texts = story.get('raw_texts') or []
+        acc['choiceEventUuid'] = linked.get('uuid')
+        acc['choiceEventCard'] = _resolve_card_from_raw(
+            raw_cards, raw_texts, linked.get('idCard'), lang)
+    _run_event_chain(match, story, linked, caller, characters, ctx, events_by_id, acc,
+                     item_uuids, location_uuids, lang)
+    return 'APPLIED', []
+
+
+def _run_event_chain(match, story, first, caller, characters, ctx, events_by_id, acc,
+                     item_uuids, location_uuids, lang):
+    """Apply an event and its ``idEventNext`` chain: effects, edge states, log. Neither is
+    re-checked nor charged — the whole chain is one consequence."""
+    effects_by_event = _events.effects_by_event(story)
+    end_game_id = story.get('idEventEndGame')
+    raw_cards = story.get('raw_cards') or []
+    raw_texts = story.get('raw_texts') or []
+    # Shared with the caller, so an event already run by an earlier link of the SAME
+    # resolution is not run again — and so the MAX_CHAIN belt spans the whole resolution.
+    visited = acc['visited']
+
+    current = first
+    while current is not None:
+        event_id = _events._nz(current.get('id'))
+        visited.add(event_id)
+        ctx['consumedEventIds'].add(event_id)
+        if current.get('uuid'):
+            acc['executedUuids'].append(current.get('uuid'))
+
+        for effect in effects_by_event.get(event_id, []):
+            recipients = _events.resolve_recipients(effect, caller, characters)
+            id_weather = effect.get('idWeather')
+            if id_weather:
+                match['currentWeatherId'] = _events._nz(id_weather)
+                ctx['currentWeatherId'] = _events._nz(id_weather)
+                acc['flags']['weatherApplied'] = True
+            for target_char in recipients:
+                acc['touched'][target_char.get('uuid')] = target_char
+                _events.apply_stat(target_char, effect, acc['statChanges'])
+                added, removed = _events.apply_item(target_char, effect, item_uuids,
+                                                    acc['itemChanges'], _item_cap(story, effect))
+                _log_item_effect(match, target_char, effect, added, removed, current)
+                acc['flags']['itemAdded'] = acc['flags']['itemAdded'] or added
+                acc['flags']['itemRemoved'] = acc['flags']['itemRemoved'] or removed
+                _events.apply_traits(target_char, effect, {}, acc['traitChanges'],
+                                     _traits_by_id(story), acc['statChanges'])
+                _events.apply_characteristics(target_char, effect,
+                                              acc['characteristicChanges'])
+                moved = _events.apply_location(match, target_char, effect, location_uuids,
+                                               acc['locationChanges'], _ts_ms())
+                acc['flags']['movementApplied'] = acc['flags']['movementApplied'] or moved
+            key = effect.get('keyToAdd')
+            if key:
+                value = effect.get('keyValueToAdd')
+                _events.apply_registry(match, key, value, acc['registryChanges'])
+                ctx['registry'][key] = value
+            acc['effects'].append({
+                "eventUuid": current.get('uuid'),
+                "effectUuid": effect.get('uuid'),
+                "statistic": effect.get('statistics'),
+                "value": effect.get('value'),
+                "target": effect.get('target'),
+                "targetClass": effect.get('targetClass'),
+                "characterUuids": [c.get('uuid') for c in recipients],
+                "card": _resolve_card_from_raw(raw_cards, raw_texts, effect.get('idCard'), lang),
+            })
+
+        if _events._nz(current.get('flagEndTime')) == 1:
+            acc['flags']['endTime'] = True
+        if end_game_id is not None and _events._nz(end_game_id) == event_id:
+            acc['flags']['gameOver'] = True
+
+        _apply_edge_states(match, caller, acc, event_id)
+        match.setdefault('eventLog', []).append({
+            # Step 33 — an automatic event in an empty location has no actor at all.
+            "characterUuid": caller.get('uuid') if caller else None,
+            "idEvent": event_id,
+            "clock": _nz(match.get('currentClock')),
+            "timestamp": _ts_ms(),
+            "message": f'{_events.MSG_EVENT_EXECUTED} {event_id}',
+        })
+
+        if acc['flags']['comaTriggered']:
+            return  # coma stops the chain, and flagEndTime with it
+        nxt = current.get('idEventNext')
+        if not nxt or _events._nz(nxt) <= 0:
+            return
+        next_id = _events._nz(nxt)
+        if next_id in visited or len(visited) >= _events.MAX_CHAIN:
+            return  # an authored loop, or a chain long enough to be a bug
+        nxt_event = events_by_id.get(next_id)
+        if nxt_event is None:
+            return  # dangling idEventNext
+        if str(nxt_event.get('type') or '').strip().upper() == _events.TYPE_ONCE \
+                and next_id in ctx['consumedEventIds']:
+            return  # a spent ONCE event stays spent, even mid-chain
+        current = nxt_event
+
+
+def _visited_location_ids(match, match_uuid):
+    """The locations the party has ever been to — current positions plus every endpoint in
+    the match's movementLog. The same set Step 28 derives for fog of war, and what decides
+    whether a counter-zero notice may name the place it happened in."""
+    ids = []
+    for c in _match_characters(match_uuid):
+        loc = c.get('idLocation')
+        if loc is not None and _nz(loc) not in ids:
+            ids.append(_nz(loc))
+    for m in (match.get('movementLog') or []):
+        for loc in (m.get('idLocationFrom'), m.get('idLocationTo')):
+            if loc is not None and _nz(loc) not in ids:
+                ids.append(_nz(loc))
+    return ids
+
+
+# ── Step 33 — automatic location events ──────────────────────────────────────
+
+def _location_triggers(story, id_location):
+    """The trigger columns of one story location, or None when it is unknown."""
+    for l in (story.get('locations') or []):
+        if _nz(l.get('id')) == id_location:
+            return l
+    return None
+
+
+def _flag_visited(match, id_location):
+    """``flagVisited`` on the embedded location state. 0 when there is no row —
+    a location nobody has been to."""
+    for ls in (match.get('locations') or []):
+        if _nz(ls.get('idLocation')) == id_location:
+            return _nz(ls.get('flagVisited'))
+    return 0
+
+
+def _mark_location_visited(match, id_location):
+    """Latch the location as visited by the party. Idempotent."""
+    for ls in (match.get('locations') or []):
+        if _nz(ls.get('idLocation')) == id_location:
+            ls['flagVisited'] = 1
+            return
+
+
+def _log_automatic_event(match, actor_uuid, id_location, id_event, clock, message):
+    match.setdefault('eventLog', []).append({
+        "characterUuid": actor_uuid,
+        "idEvent": id_event,
+        "idLocation": id_location,
+        "clock": clock,
+        "timestamp": _ts_ms(),
+        "message": message,
+    })
+
+
+def _resolve_arrival(match, match_uuid, story, actor_uuid, id_location, lang, depth, out):
+    """The dispatch table of an arrival.
+
+    The order is fixed rather than authored: the history trigger (first or subsequent —
+    never both) comes before the occupancy one, which is orthogonal to it and may fire
+    alongside either.
+
+    ``flagVisited`` is latched AFTER the triggers have been read, so the first arrival
+    still evaluates as a first arrival; and it is latched even when the location authors
+    no trigger at all, because the flag describes the party's history, not what happened
+    to fire.
+    """
+    clock = _nz(match.get('currentClock'))
+    if depth >= _events.MAX_ENTRY_DEPTH:
+        _log_automatic_event(
+            match, actor_uuid, id_location, None, clock,
+            f'{_events.MSG_AUTOMATIC_EVENT} aborted: entry depth '
+            f'{_events.MAX_ENTRY_DEPTH} exceeded at location {id_location} — the story '
+            f'loops a forced movement back on itself')
+        return
+    triggers = _location_triggers(story, id_location)
+    visited = _flag_visited(match, id_location) == 1
+    if triggers is not None:
+        history_event = (triggers.get('idEventNotFirstTime') if visited
+                         else triggers.get('idEventIfFirstTime'))
+        history_trigger = (_events.TRIGGER_SUBSEQUENT_ENTRY if visited
+                           else _events.TRIGGER_FIRST_ENTRY)
+        _run_automatic_event(match, match_uuid, story, actor_uuid, history_event,
+                             id_location, history_trigger, lang, depth, out)
+
+        others = [c for c in _match_characters(match_uuid)
+                  if _nz(c.get('idLocation')) == id_location
+                  and c.get('uuid') != actor_uuid]
+        if not others:
+            _run_automatic_event(match, match_uuid, story, actor_uuid,
+                                 triggers.get('idEventIfCharacterEnterEmptyLocation'),
+                                 id_location, _events.TRIGGER_MOVE_INTO_EMPTY_LOCATION, lang,
+                                 depth, out)
+    _mark_location_visited(match, id_location)
+
+
+def _run_automatic_event(match, match_uuid, story, actor_uuid, id_event, id_location,
+                         trigger, lang, depth, out):
+    """Run one automatic event and its whole ``idEventNext`` chain.
+
+    What makes it different from ``_execute_event``:
+
+    * **Nobody pays.** No energy, no coins — the player did not ask for this.
+    * **No availability verdict.** The type gate would refuse it outright (AUTOMATIC is
+      not in EXECUTABLE_TYPES), and the sleep/coma guards would refuse it on behalf of a
+      character that never volunteered.
+    * **The actor may be absent.** A counter-zero fuse belongs to a location, and the
+      location may be empty. Effects that need a recipient are then skipped while
+      registry, weather and the chain still run.
+    * **It may not own choices.** There is no response to carry the options and no
+      select-choice could ever close the cycle, so the event is refused and logged instead
+      of wedging the match with a decision nobody can answer.
+    """
+    if id_event is None or _nz(id_event) <= 0:
+        return  # a null column is simply not a trigger
+    id_event = _nz(id_event)
+    clock = _nz(match.get('currentClock'))
+    if str(match.get('status') or '') != 'RUNNING':
+        return
+
+    events_by_id = {_nz(e.get('id')): e for e in (story.get('events') or [])}
+    event = events_by_id.get(id_event)
+    if event is None:
+        return  # dangling id: authored noise, not an error
+    if _choices.choices_for_event(story, id_event):
+        _log_automatic_event(
+            match, actor_uuid, id_location, id_event, clock,
+            f'{_events.MSG_AUTOMATIC_EVENT} skipped {id_event} ({trigger}): '
+            f'an automatic event may not own choices')
+        return
+
+    characters = _match_characters(match_uuid)
+    classes_by_uuid = {c.get('uuid'): c.get('id') for c in (story.get('classes') or [])}
+    for c in characters:
+        c['classId'] = classes_by_uuid.get(c.get('classUuid'))
+    actor = next((c for c in characters if c.get('uuid') == actor_uuid), None)
+    ctx = _events.build_context(match, story, actor)
+
+    acc = _new_accumulator(actor) if actor is not None else _new_accumulator_no_actor()
+    item_uuids = {_nz(i.get('id')): i.get('uuid') for i in (story.get('items') or [])}
+    location_uuids = {_nz(l.get('id')): l.get('uuid') for l in (story.get('locations') or [])}
+
+    _run_event_chain(match, story, event, actor, characters, ctx, events_by_id, acc,
+                     item_uuids, location_uuids, lang)
+
+    for touched in acc['touched'].values():
+        if touched is not None:
+            db_utils.put_item(touched)
+    db_utils.put_item(match)
+
+    _log_automatic_event(
+        match, actor_uuid, id_location, id_event, _nz(match.get('currentClock')),
+        f'{_events.MSG_AUTOMATIC_EVENT} {id_event} ({trigger}) at location {id_location}')
+
+    raw_cards = story.get('raw_cards') or []
+    raw_texts = story.get('raw_texts') or []
+    out.append({
+        "trigger": trigger,
+        "idLocation": id_location,
+        "eventUuid": event.get('uuid'),
+        "card": _resolve_card_from_raw(raw_cards, raw_texts, event.get('idCard'), lang),
+        "effects": list(acc['effects']),
+        "statChanges": list(acc['statChanges']),
+        "locationChanges": list(acc['locationChanges']),
+        "gameOver": bool(acc['flags']['gameOver']),
+    })
+
+    # The events this one caused by pushing somebody somewhere: a forced move is an
+    # arrival like any other.
+    for change in list(acc['locationChanges']):
+        moved_uuid = change.get('characterUuid')
+        moved_to = location_uuids_inverse(location_uuids, change.get('toLocationUuid'))
+        if moved_to is not None:
+            _resolve_arrival(match, match_uuid, story, moved_uuid, moved_to, lang,
+                             depth + 1, out)
+
+
+def location_uuids_inverse(location_uuids, uuid):
+    """Location uuid back to its story id; None when unknown."""
+    if not uuid:
+        return None
+    for loc_id, loc_uuid in location_uuids.items():
+        if loc_uuid == uuid:
+            return loc_id
+    return None
+
+
+def _new_accumulator_no_actor():
+    """The accumulator of an automatic event nobody is present for."""
+    acc = _new_accumulator({'uuid': None})
+    acc['touched'] = {}
+    return acc
+
+
+def _run_pending_automatic_events(match, match_uuid, story, pending, lang='en'):
+    """Run the events a time-start collected — counter-zero fuses and
+    idEventIfCharacterStartTime — in the order the recovery pass produced them."""
+    out = []
+    for p in (pending or []):
+        _run_automatic_event(match, match_uuid, story, p.get('actorUuid'),
+                             p.get('idEvent'), p.get('idLocation'), p.get('trigger'),
+                             lang, 0, out)
+    return out
+
+
+def _describe_for_recipient(match, match_uuid, story, recipient_uuid, fired, clock,
+                            lang='en'):
+    """Describe an already-run list of automatic events TO ONE RECIPIENT (fog of war).
+
+    Deliberately separate from running them: the engine produces the list once and
+    unfiltered, and the telling is per person, because every player has their own visited
+    set. Single-player is simply the one-recipient case — filtering while the list is
+    assembled would bake it in and force a rewrite when the broadcast lands.
+
+    Each entry carries three cards (v0.33.1): `card` is the EVENT's — what happened;
+    `cardEffects` are the effect rows it applied, each with its own card, which is the
+    narrative the board renders; `cardLocation` is the place. Until v0.33.1 only the place
+    travelled, so the player woke to a name instead of the news.
+    """
+    if not fired:
+        return []
+    here = None
+    visited = set()
+    if recipient_uuid is not None:
+        recipient = next((c for c in _match_characters(match_uuid)
+                          if c.get('uuid') == recipient_uuid), None)
+        if recipient is not None:
+            here = _nz(recipient.get('idLocation'))
+        visited = set(_visited_location_ids(match, match_uuid))
+
+    raw_cards = story.get('raw_cards') or []
+    raw_texts = story.get('raw_texts') or []
+    out = []
+    for f in fired:
+        id_location = f.get('idLocation')
+        if here is not None and here == id_location:
+            visibility = _events.VISIBILITY_FULL
+        elif id_location in visited:
+            visibility = _events.VISIBILITY_NAMED
+        else:
+            visibility = _events.VISIBILITY_ANONYMOUS
+        # The cards are resolved only when the recipient may see them: a name that never
+        # leaves the server cannot leak. The event's card and its effect rows already ride
+        # on the fired event — only the location card costs a lookup.
+        card = None
+        card_location = None
+        card_effects = []
+        if visibility != _events.VISIBILITY_ANONYMOUS:
+            loc = _location_triggers(story, id_location) or {}
+            card_location = _resolve_card_from_raw(raw_cards, raw_texts, loc.get('idCard'), lang)
+            card = f.get('card')
+            card_effects = list(f.get('effects') or [])
+        out.append({
+            "trigger": f.get('trigger'),
+            "idLocation": id_location,
+            "card": card,
+            "cardLocation": card_location,
+            "cardEffects": card_effects,
+            "eventUuid": f.get('eventUuid'),
+            "clock": clock,
+            "visibility": visibility,
+        })
+    return out
 
 
 def _visited_locations_payload(match, match_uuid, lang='en'):
@@ -2000,13 +4094,21 @@ def _visited_locations_payload(match, match_uuid, lang='en'):
             neighbor_costs.append({
                 "idLocation": other_id,
                 "uuid": other.get('uuid'),
+                # AUTHORED direction (idLocationFrom → idLocationTo): a two-way edge is
+                # listed from both endpoints with the SAME value, so the endpoints travel
+                # with it and let the client tell a return traversal apart.
                 "direction": n.get('direction'),
+                "idLocationFrom": a,
+                "idLocationTo": b,
                 "idCard": neighbor_id_card,
                 "card": _resolve_card_from_raw(raw_cards, raw_texts, neighbor_id_card, lang),
                 "baseEnergyCost": base,
                 "entryEnergyCost": entry,
                 "weatherEnergyCost": weather_mod,
                 "totalEnergyCost": base + entry + weather_mod,
+                "costFood": _nz(n.get('costFood')),
+                "costMagic": _nz(n.get('costMagic')),
+                "costCoin": _nz(n.get('costCoin')),
                 "conditionMet": cond_met,
             })
         result.append({
@@ -2080,7 +4182,7 @@ def lambda_handler(event, context):
         if path.endswith('/logs') and method == 'GET':
             qs = (event.get('queryStringParameters') or {})
             return _get_admin_match_logs(match_uuid, qs.get('lang') or 'en',
-                                         qs.get('limit'), qs.get('cursor'))
+                                         qs.get('limit'), qs.get('cursor'), qs.get('order'))
         if path.endswith('/locations') and method == 'GET':
             lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
             return _get_admin_locations(match_uuid, lang)
@@ -2148,7 +4250,7 @@ def lambda_handler(event, context):
             match_uuid = segments[3] if len(segments) > 4 else ''
         qs = (event.get('queryStringParameters') or {})
         return _get_match_logs(user, match_uuid, qs.get('lang') or 'en',
-                               qs.get('limit'), qs.get('cursor'))
+                               qs.get('limit'), qs.get('cursor'), qs.get('order'))
 
     if path.startswith('/api/match/') and path.endswith('/info') and method == 'GET':
         params = (event.get('pathParameters') or {})
@@ -2215,6 +4317,36 @@ def lambda_handler(event, context):
             match_uuid = segments[3] if len(segments) > 4 else ''
         return _start_match(user, match_uuid)
 
+    # ── Steps 34 & 35 — inventory and resources ──
+    if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/inventory')
+            and method == 'GET'):
+        match_uuid = _gameplay_match_uuid(event, path)
+        lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
+        return _get_inventory(user, match_uuid, lang)
+
+    if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/inventory/use-item')
+            and method == 'POST'):
+        match_uuid = _gameplay_match_uuid(event, path)
+        try:
+            body = json.loads(event.get('body') or '{}')
+        except (TypeError, ValueError):
+            return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
+        lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
+        return _use_item(user, match_uuid, body, lang)
+
+    if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/inventory/drop-item')
+            and method == 'POST'):
+        match_uuid = _gameplay_match_uuid(event, path)
+        try:
+            body = json.loads(event.get('body') or '{}')
+        except (TypeError, ValueError):
+            return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
+        return _drop_item(user, match_uuid, body)
+
+    if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/resources')
+            and method == 'GET'):
+        return _get_resources(user, _gameplay_match_uuid(event, path))
+
     if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/action/pass') and method == 'POST'):
         params = event.get('pathParameters') or {}
         match_uuid = params.get('uuidMatch') or ''
@@ -2260,6 +4392,36 @@ def lambda_handler(event, context):
         except (TypeError, ValueError):
             return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
         return _start_movement(user, match_uuid, body)
+
+    # ── Step 29 — normal events ──
+    if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/action/execute-event')
+            and method == 'POST'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')  # /api/gameplay/{uuidMatch}/action/execute-event
+            match_uuid = segments[3] if len(segments) > 3 else ''
+        try:
+            body = json.loads(event.get('body') or '{}')
+        except (TypeError, ValueError):
+            return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
+        lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
+        return _execute_event(user, match_uuid, body, lang)
+
+    # ── Step 32 — choice resolution ──
+    if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/action/select-choice')
+            and method == 'POST'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')  # /api/gameplay/{uuidMatch}/action/select-choice
+            match_uuid = segments[3] if len(segments) > 3 else ''
+        try:
+            body = json.loads(event.get('body') or '{}')
+        except (TypeError, ValueError):
+            return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
+        lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
+        return _select_choice(user, match_uuid, body, lang)
 
     if (path.startswith('/api/match/') and path.endswith('/locations') and method == 'GET'):
         params = event.get('pathParameters') or {}

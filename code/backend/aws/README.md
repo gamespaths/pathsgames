@@ -168,6 +168,46 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 ## 📝 Changelog
 
+### v0.29.3 — Forced movement via event effects
+
+- **`lambda/match/events.py`**: new `apply_location(...)` helper. An executed
+  `list_events_effects` row that carries `idLocation` now MOVES every recipient of that row
+  (usual `target`/`target_class` scope) straight to that location, **skipping the whole
+  movement check procedure** — no neighbor check, no energy cost, no availability verdict,
+  no capacity check.
+- **`lambda/match/handler.py`**: builds a story location id→uuid map so an authored
+  `idLocation` that matches no location is silently skipped (not an error); a move to the
+  recipient's current location is a no-op. Each real move appends a cost-0 entry to the
+  match item's `movementLog` (so the Match Logs timeline and the fog-of-war visited set stay
+  correct) and sets the new `movementApplied` flag plus a `locationChanges` list
+  (`{characterUuid, fromLocationUuid, toLocationUuid}`) on the execute-event response. Later
+  effects in the same chain resolving `target=ALL` use the recipient's new location.
+- **`lambda/seed/handler.py`**: the tutorial story gains location 3 "Hidden Grove"
+  (`loc-tutorial-3`, deliberately **no** neighbor edge to anything), event 28
+  `evt-step29-teleport` "Secret Passage" (`costEnery` 2) and effect 14
+  (`idLocation: 3`, `target: ONLY_ONE`). The cost is 2 on purpose — the Robot lookup
+  "Event Uuid By Cost 1" must keep meaning the plain (non-teleport) event.
+- No DynamoDB item shape change beyond the new `movementLog`/response fields already
+  supported by the existing schema. See `documentation_v0/Step29_NormalEvents.md` —
+  "Forced movement (v0.29.3)" and `documentation_v0/Step28_MovementSystem.md` —
+  "Step 0.29.3 (cross-reference)".
+
+### v0.29.1 — Movement availability verdict on `/info`
+
+- Every `neighbors[]` entry under `locationsActive[]` on `GET /api/match/{uuid}/info` now
+  carries `available`/`reason`, mirroring the `available`/`reason` flag already published
+  for events (Step 29). New pure checker `lambda/match/movements.py`, sharing the same
+  8-code order used by the movement-start handler: `CHARACTER_CANNOT_ACT` →
+  `MATCH_NOT_RUNNING` → `COMA` → `SLEEPING` → `NOT_A_NEIGHBOR` →
+  `MOVEMENT_CONDITION_NOT_MET` → `OVERWEIGHT` → `INSUFFICIENT_ENERGY` → `LOCATION_FULL`.
+- `handler.py`'s `_start_movement` refactored to call the checker instead of its own
+  if-chain — same logic, same codes, one source of truth with the `/info` verdict loop.
+- The check context (character state, weather, per-location character counts, registry) is
+  loaded once per request; no per-neighbor query.
+- No DynamoDB item shape change. OpenAPI `v0.19.0-match-creation-api.yaml` `LocationNeighborInfo`
+  schema updated. See `documentation_v0/Step28_MovementSystem.md` — "Step 0.29.0 (addendum):
+  Movement Availability Verdict on /info".
+
 ### v0.28.6 — Bugfix: fog-of-war leak on neighbor location cards
 
 - **`lambda/match/handler.py`**: The v0.28.5 card enrichment below leaked the card of

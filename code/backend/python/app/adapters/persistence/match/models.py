@@ -46,6 +46,11 @@ class GamingStateLocationEntity(Base):
     id_location = Column(Integer, primary_key=True)
     uuid = Column(String(36), unique=True, nullable=False)
     flag_already_actived = Column(Integer, default=0, nullable=False)
+    # Step 33 (V0.33.0) — the PARTY has entered this location at least once. Decides
+    # id_event_if_first_time vs id_event_not_first_time. Deliberately NOT
+    # flag_already_actived, which means "this location's counter has been consumed" and
+    # latches the counter re-seed: overloading it would break both at once.
+    flag_visited = Column(Integer, default=0, nullable=False)
     clock_counter = Column(Integer, default=0)
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
@@ -99,6 +104,10 @@ class GamingCharacterInstanceEntity(Base):
     clock_in_coma = Column(Integer, default=0)
     timestamp_last_pass = Column(String(50))
     counter_consecutive_pass = Column(Integer, default=0, nullable=False)
+    # Step 29 — two effect targets that previously had nowhere to be written.
+    # exp is written by event effects here and spent in Step 37; characteristics is a CSV.
+    exp = Column(Integer, default=0, nullable=False)
+    characteristics = Column(String(500))
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
 
@@ -208,6 +217,51 @@ class LogEventsEntity(Base):
     log_message = Column(String(2000))
     # Step 28.7 — clock at time of event; None for pre-28.7 rows.
     clock = Column(Integer)
+    # Step 33 (V0.33.0) — the location a row is about (counter-zero, automatic events),
+    # structured instead of buried in log_message.
+    id_location = Column(Integer)
+    # v0.35.3 — what the actor actually paid to open this event. Zero on every row the
+    # engine writes for itself: chained, automatic and resolution rows.
+    energy_cost = Column(Integer, default=0)
+    food_cost = Column(Integer, default=0)
+    magic_cost = Column(Integer, default=0)
+    coin_cost = Column(Integer, default=0)
+    # v0.35.4 — what the event GAVE the actor, the counterpart of the four costs above.
+    energy_gain = Column(Integer, default=0)
+    food_gain = Column(Integer, default=0)
+    magic_gain = Column(Integer, default=0)
+    coin_gain = Column(Integer, default=0)
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)
+
+
+class LogItemUsageEntity(Base):
+    """Step 34 — append-only log of every item action (v0.35.4; usages only before it).
+
+    ``id`` is part of the composite PK ``(id, id_match)`` but the table also carries a
+    ``UNIQUE (id)`` constraint, so ids are GLOBALLY unique and are allocated from the
+    table-wide maximum — never per match, the way ``gaming_inventory_items`` does it."""
+
+    __tablename__ = "log_item_usage"
+
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    id_character_match = Column(Integer, nullable=False)
+    id_item = Column(Integer, nullable=False)
+    # v0.35.4 — ADD, USE, DROP or REMOVE; rows written before it are all usages.
+    action = Column(String(20), default="USE")
+    # v0.35.4 — the event whose effect moved the item; None when the player acted directly.
+    id_event = Column(Integer)
+    counter = Column(Integer, default=1)
+    # v0.35.4 — signed resource deltas the action produced; zero on ADD and DROP.
+    energy = Column(Integer, default=0)
+    food = Column(Integer, default=0)
+    magic = Column(Integer, default=0)
+    coin = Column(Integer, default=0)
+    # Plain text in both dialects since V0.34.0 — see the migration header.
+    effects_json = Column(String(4000))
+    timestamp = Column(String(50))
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
 
@@ -246,6 +300,55 @@ class LogMovementEntity(Base):
     id_location_from = Column(Integer)
     id_location_to = Column(Integer, nullable=False)
     energy_cost = Column(Integer, default=0, nullable=False)
+    # v0.35.3 — resources paid for the move (edge only). Zero on a forced move.
+    food_cost = Column(Integer, default=0)
+    magic_cost = Column(Integer, default=0)
+    coin_cost = Column(Integer, default=0)
     timestamp_start = Column(String(50))
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)
+
+
+class LogChoicesExecutedEntity(Base):
+    """Step 32 — the dedicated history of the choices a match resolved.
+
+    Not a duplicate of the ``CHOICE_SELECTED`` marker on ``log_events``: that marker is
+    engine bookkeeping — what ``count_log_markers`` pairs against ``EVENT_EXECUTED`` to
+    decide whether a cycle is still open — while this table is the narrative record the
+    match-log APIs read. ``id_event`` carries the OWNING event, never the option.
+
+    ``id`` is part of the composite PK ``(id, id_match)`` and globally unique; it is
+    assigned explicitly by the adapter (SQLite does not auto-increment it)."""
+
+    __tablename__ = "log_choices_executed"
+
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    clock = Column(Integer)
+    id_event = Column(Integer)
+    # Spelled "choise" in the schema since V0.10.9 — kept as-is, it is the column name.
+    id_choise = Column(Integer)
+    log_message = Column(String(2000))
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)
+
+
+class GamingStoryProgressEntity(Base):
+    """Step 32 — the milestone tracker.
+
+    A row lands here only when the resolved option carries ``is_progress = 1``, marking
+    the narrative as having moved forward. Ordinary choices — the ones that change a stat
+    or open a door but tell no new chapter — resolve without touching this table, which is
+    what keeps it a story outline rather than a second copy of ``log_choices_executed``."""
+
+    __tablename__ = "gaming_story_progress"
+
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    clock = Column(Integer)
+    id_event = Column(Integer)
+    id_choise = Column(Integer)
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)

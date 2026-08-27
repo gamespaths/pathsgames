@@ -9,14 +9,18 @@ import StartBookMobile from './StartBookMobile'
 import CardPreviewModal from '../../components/modals/CardPreviewModal'
 import { getStoryDetail } from '../../api/stories'
 import { buildClassesById, getOptionLockInfo } from '../../utils/bonusStats'
-import { canAddTrait, toggleTrait } from '../../utils/traitBudget'
+import { canAddTrait, isTraitHiddenOnStartMatch, selectableTraits, toggleTrait } from '../../utils/traitBudget'
 
 function buildInitialConfig(story) {
+  // v0.35.2 — the preselected trait must be one the player could have chosen: picking
+  // `traits[0]` blindly would arm the loadout with a hidden trait the picker never shows,
+  // leaving nobody able to remove it and the join refused with TRAIT_NOT_SELECTABLE.
+  const pickable = selectableTraits(story?.traits)
   return {
     character: story?.characterTemplates?.[0] ?? null,
     class: story?.classes?.[0] ?? null,
     // Step 23 — multiple traits can be selected (within the difficulty budgets)
-    traits: story?.traits?.[0] ? [story.traits[0]] : [],
+    traits: pickable[0] ? [pickable[0]] : [],
     difficulty: story?.difficulties?.[0] ?? null,
   }
 }
@@ -25,7 +29,9 @@ function getOptionsForType(type, story) {
   if (type === 'difficulty') return story?.difficulties ?? []
   if (type === 'character') return story?.characterTemplates ?? []
   if (type === 'class') return story?.classes ?? []
-  if (type === 'trait') return story?.traits ?? []
+  // v0.35.2 — hidden traits are dropped HERE and nowhere else: the same array feeds the
+  // in-game list of the traits a character owns, where a hidden one must still appear.
+  if (type === 'trait') return selectableTraits(story?.traits)
   return []
 }
 
@@ -84,7 +90,8 @@ export default function StartBookModal({ story, onClose }) {
         }
         next.character = reselect('character', activeStory?.characterTemplates ?? [])
         next.traits = (next.traits ?? []).filter(
-          tr => !getOptionLockInfo({ type: 'trait', option: tr, config: next, classesById })
+          tr => !isTraitHiddenOnStartMatch(tr)
+            && !getOptionLockInfo({ type: 'trait', option: tr, config: next, classesById })
         )
       }
       return next

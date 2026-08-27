@@ -220,20 +220,21 @@ public class MatchAdminController {
     /**
      * GET /api/admin/matches/{uuidMatch}/logs — admin consolidated log timeline
      * (Step 28.7): weather selections, movements, sleep actions, clock advances and
-     * recovery summaries, ordered by timestamp ascending. No ownership check.
-     * Served on admin port 8044.
+     * recovery summaries, ordered by timestamp ascending — {@code ?order=desc} returns
+     * the newest entry first instead. No ownership check. Served on admin port 8044.
      */
     @GetMapping("/{uuidMatch}/logs")
     public ResponseEntity<Object> getAdminMatchLogs(@PathVariable String uuidMatch,
                                                     @RequestParam(required = false) String lang,
                                                     @RequestParam(required = false) Integer limit,
-                                                    @RequestParam(required = false) String cursor) {
+                                                    @RequestParam(required = false) String cursor,
+                                                    @RequestParam(required = false) String order) {
         if (isBlank(uuidMatch)) {
             return error(HttpStatus.BAD_REQUEST, "INVALID_INPUT", "Match uuid is required");
         }
         try {
             return ResponseEntity.ok(MatchLogsResponse.fromModel(
-                    matchLogsPort.getMatchLogsForAdmin(uuidMatch, lang, limit, cursor)));
+                    matchLogsPort.getMatchLogsForAdmin(uuidMatch, lang, limit, cursor, order)));
         } catch (TurnCyclePort.TurnCycleException ex) {
             return error(HttpStatus.NOT_FOUND, ex.getCode().name(), ex.getMessage());
         }
@@ -334,6 +335,9 @@ public class MatchAdminController {
             if (body.getCoin()  != null && body.getCoin()  != -1) command.setCoin(body.getCoin());
             if (body.getFood()  != null && body.getFood()  != -1) command.setFood(body.getFood());
             if (body.getMagic() != null && body.getMagic() != -1) command.setMagic(body.getMagic());
+            // The state flags: omitted (null) means "leave as it is", the -1 of the numbers.
+            command.setSleeping(body.getSleeping());
+            command.setComa(body.getComa());
         }
         CharacterCommandPort.ChangeStatsOutcome outcome =
                 characterCommandPort.changeStatistics(uuidMatch, uuidPlayer, command);
@@ -364,6 +368,8 @@ public class MatchAdminController {
         private Integer coin;
         private Integer food;
         private Integer magic;
+        private Boolean sleeping;
+        private Boolean coma;
 
         public Integer getDex() { return dex; }
         public void setDex(Integer dex) { this.dex = dex; }
@@ -383,6 +389,11 @@ public class MatchAdminController {
         public void setFood(Integer food) { this.food = food; }
         public Integer getMagic() { return magic; }
         public void setMagic(Integer magic) { this.magic = magic; }
+        /** Null = leave the flag untouched. Clearing coma also wakes the character up. */
+        public Boolean getSleeping() { return sleeping; }
+        public void setSleeping(Boolean sleeping) { this.sleeping = sleeping; }
+        public Boolean getComa() { return coma; }
+        public void setComa(Boolean coma) { this.coma = coma; }
     }
 
     private ResponseEntity<Object> applyMatchUpdate(String uuidMatch, String status, String name) {

@@ -28,6 +28,7 @@
 
 .pg-card--small  { width: 100px; flex: 0 0 100px; aspect-ratio: 2 / 3; }
 .pg-card--medium { width: 150px; flex: 0 0 150px; aspect-ratio: 2 / 3; }
+.pg-card--medium2 { width: 175px; flex: 0 0 175px; aspect-ratio: 2 / 3; }
 .pg-card--home   { width: 225px; flex: 0 0 225px; aspect-ratio: 2 / 3; }
 .pg-card--large  { width: 100%;  flex: 1; min-height: 0; aspect-ratio: 2 / 3; }
 .pg-card--grid   { flex: 1; min-width: 0;          aspect-ratio: 2 / 3; }
@@ -543,6 +544,28 @@ html, body {
   color: var(--color-gold-light);
   border: 1px solid var(--color-gold-dark);
 }
+/* v0.32.1 — an admin-paused match: it blocks a new run but cannot be resumed,
+   so it gets its own badge instead of the "resume" one. */
+.story-card-status--paused {
+  background: rgba(20, 12, 4, 0.82);
+  color: var(--color-parchment-dark);
+  border: 1px solid var(--color-stone);
+}
+
+/* v0.32.1 — the card is waiting for the match list before it can open */
+.story-card--pending { cursor: progress; }
+.story-card--pending .story-card-img { filter: grayscale(40%) brightness(0.7); }
+.story-card-pending-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 10, 2, 0.45);
+  color: var(--color-gold-light);
+  font-size: 1.6rem;
+}
 
 /* Play icon on hover, centred */
 .story-card-play-icon {
@@ -618,6 +641,91 @@ html, body {
   box-shadow: 0 0 8px rgba(0,0,0,0.6);
 }
 
+/* v0.35.5 — the same board renders inside the book and in the mobile stack; these two say
+   which of the two copies a card sits out. See hideWhereClass in constants/features.js. */
+.book-wrapper .hide-in-book { display: none !important; }
+.book-mobile-layout .hide-in-mobile { display: none !important; }
+
+/* ═══════════════════════════════════════════
+   BOOK BOOKMARKS (v0.35.5)
+   Tabs slotted into the book's top edge: inside .book-wrapper, so the mobile rule that
+   hides the wrapper hides them too.
+   ═══════════════════════════════════════════ */
+.book-bookmarks {
+  position: absolute;
+  top: -4px; /*QUI EX 0 */
+  z-index: 5;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  transform: translateY(-100%);
+  /* the gaps between tabs sit over the page: they must not eat its clicks */
+  pointer-events: none;
+}
+.book-bookmarks--left  { left: 24px; }
+/* The close bar is fixed at the viewport's top-right: leave the (x) its room. */
+.book-bookmarks--right { right: 24px; padding-right: 56px; justify-content: flex-end; }
+
+.book-bookmark {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* the extra bottom padding is what slides under the page edge */
+  padding: 6px 12px 10px;
+  margin-bottom: -4px;
+  border: 3px solid var(--color-brown-warm);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  background: var(--book-bookmark-background); /*linear-gradient(180deg, var(--color-brown-mid) 0%, var(--color-brown-dark) 100%);*/
+  color: var(--color-brown-light);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 -3px 8px rgba(0,0,0,0.5);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.book-bookmark:hover { 
+  /* transform: translateY(2px);  */
+  background: var(--book-bookmark-background-hover); 
+  color: var(--color-gold-dark);
+}
+.book-bookmark.is-active {
+  /*background: linear-gradient(180deg, var(--color-gold) 0%, var(--color-gold-dark) 100%);*/
+  background: var(--book-bookmark-background-hover); 
+  color: var(--color-gold-super-deep);
+  cursor: default;
+  /*color: var(--color-brown-deep);*/
+  /*
+  margin-bottom: -12px;
+  padding-bottom: 18px;*/
+}
+.book-bookmark.is-active:hover { transform: none; }
+/* The tab shouts: the page behind it holds something the player must act on (a life or an
+   energy about to run out, a sadness at its ceiling, a bag that cannot take another thing). */
+.book-bookmark.is-danger {
+  border-color: #c0392b;
+  background: linear-gradient(180deg, #c0392b 0%, #7b1f14 100%);
+  color: #ffe9e4;
+  box-shadow: 0 -3px 10px rgba(192, 57, 43, 0.65);
+}
+.book-bookmark.is-danger.is-active {
+  background: linear-gradient(180deg, #e74c3c 0%, #a12b1d 100%);
+  color: #fff;
+}
+.book-bookmark.is-danger .bonus-badge { border-color: #7b1f14; }
+
+.book-bookmark.is-disabled { opacity: 0.45; cursor: not-allowed; }
+.book-bookmark.is-disabled:hover { transform: none; }
+.book-bookmark__badges { gap: 4px; flex-wrap: nowrap; }
+
+.book-bookmark .player-stats-bar{
+  margin-bottom: 0px;
+}
+
 /* ═══════════════════════════════════════════
    BOOK PAGES
    ═══════════════════════════════════════════ */
@@ -673,7 +781,7 @@ html, body {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 20px; /*aaa*/
+  padding: 20px; /*quiquiqui ex 20px*/
   overflow: hidden;
 }
 
@@ -800,7 +908,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,0.25);
+  background: rgba(0,0,0,0.5);
 }
 
 .book-page-title {
@@ -848,6 +956,43 @@ html, body {
   flex-shrink: 0;
   margin: 0 0 14px;
 }*/
+
+.book-page-img-wrapper {
+  position: relative;
+  width: 100%;
+  max-height: 45%;
+  flex-shrink: 0;
+}
+
+.book-page-img-wrapper .book-page-img {
+  max-height: 100%;
+  flex-shrink: unset;
+}
+
+.book-page-img-badge-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  padding-bottom: 8px;
+  width: max-content;
+  max-width: 90%;
+  display: flex;
+  justify-content: center;
+}
+
+/* The badge list is shared with the in-match stats bar, where `flex-shrink: 0` is what
+   keeps the row from being squeezed. Over an image the box is deliberately NARROWER than
+   the row it holds, so there it has to give: without these two the list keeps its
+   max-content width, ignores the 90% cap above and spills past the picture.
+   `min-width: 0` is the other half — a flex item will not shrink below its content's
+   minimum unless it is told it may. */
+.book-page-img-badge-overlay > .bonus-badge-list {
+  flex-shrink: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+}
 
 .book-page-img {
   width: 100%;
@@ -907,6 +1052,26 @@ html, body {
   background: var(--color-parchment-light);
   /*border-radius: 0 0 8px 8px;*/
   border-top: 2px solid var(--color-gold-dark);
+}
+
+/* v0.35.5 — InformationCard body: one badge per row, its gloss beside it. */
+.information-card-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.information-card-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.information-card-row .information-card-row-badge {
+  flex: 0 0 auto;
+}
+.information-card-row-desc {
+  flex: 1 1 auto;
+  font-size: 1.25rem;
+  line-height: 1; /*QUIQUIUQI*/
 }
 
 /* ── Bonus badge list — shared between BookPageContent and ConfigView ── */
@@ -1659,6 +1824,7 @@ html, body {
   gap: 5px;
 }
 
+
 .gc-actions__info {
   flex-shrink: 0;
   width: 26px !important;
@@ -1687,7 +1853,7 @@ html, body {
   border: 1px solid var(--color-gold-dark);
   color: var(--color-gold-light);
   border-radius: 4px;
-  font-size: 0.8rem; /* clamp(0.8rem, 1.2vw, 0.8rem); */
+  font-size: 1rem; /* clamp(0.8rem, 1.2vw, 0.8rem); */
   font-family: var(--font-heading);
   padding: 3px 6px;
   cursor: pointer;
@@ -1942,6 +2108,19 @@ html, body {
   font-size: 4rem;
   color: var(--color-gold);
   font-family: var(--font-heading);
+}
+/* ErrorCard: its own overlay ABOVE the book (.book-overlay is z-index 1050),
+   so transient gameplay errors stay visible over the open board. */
+.error-card-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1060;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 4, 0, 0.85);
+  backdrop-filter: blur(4px);
+  padding: 1rem;
 }
 .game-page-wrap {
   min-height: calc(100vh - 112px);
@@ -2311,16 +2490,14 @@ html, body {
 }
 
 /* CreditsModal — grid of credit cards (3 per row desktop, 2 tablet, 1 phone) */
+/* The credits use the small (100 × 150) card, so the row simply wraps around
+   their fixed width instead of stretching them over a column grid. */
 .credits-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
   gap: 14px;
-}
-@media (max-width: 991px) {
-  .credits-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 575px) {
-  .credits-grid { grid-template-columns: 1fr; }
 }
 
 /* ═══════════════════════════════════════════
@@ -2566,11 +2743,14 @@ html, body {
 }
 .game-map-canvas:active { cursor: grabbing; }
 
+/* No `will-change: transform` here: it promotes the plane to a GPU layer that is
+   rasterised once at the current scale, so on mobile the zoomed-in map came out
+   blurry and the thin gold paths smeared. Repainting on pan is cheap (a handful
+   of nodes + one SVG) and the lines stay crisp at every zoom level. */
 .game-map-world {
   position: absolute;
   top: 0; left: 0;
   transform-origin: 0 0;
-  will-change: transform;
 }
 .game-map-world--anim { transition: transform .5s cubic-bezier(.22, 1, .36, 1); }
 /* paths paint ABOVE the node circles so the arrows are never hidden; the layer
@@ -2584,8 +2764,13 @@ html, body {
   stroke: var(--color-gold-deep);
   stroke-width: 4;
   opacity: 1;
-  filter: drop-shadow(0 0 3px var(--color-gold));
 }
+
+/* arrowheads: real polygons (see Map.jsx), so they zoom with the plane and do
+   not depend on <marker> support inside a transformed layer */
+.game-map-arrow { fill: var(--color-gold-dark); stroke: none; }
+.game-map-arrow--big { fill: var(--color-gold-deep); }
+.game-map-arrow--hot { fill: var(--color-gold-deep); }
 
 .game-map-node {
   position: absolute;
@@ -2601,8 +2786,9 @@ html, body {
   box-shadow: 0 4px 10px rgba(0,0,0,.35);
 }
 .game-map-node__icon { font-size: 1.6rem; color: var(--color-brown-mid); }
-/* explored locations are clickable (they open their card on the right page) */
-.game-map-node:not(.game-map-node--unknown) { cursor: pointer; }
+/* clickable locations open their card on the right page: explored nodes and
+   the "?" ones bordering the character (Map.jsx sets role=button on those) */
+.game-map-node[role="button"] { cursor: pointer; }
 .game-map-node--current {
   border-color: var(--color-gold-shine);
   box-shadow: 0 0 0 3px var(--color-gold-deep), 0 0 18px 5px rgba(200,150,10,.65);
@@ -2624,6 +2810,21 @@ html, body {
   color: var(--color-brown-mid);
   text-shadow: 0 3px 8px rgba(0,0,0,.8);
   font-weight:700;
+}
+/* a far "?" — an unexplored location that does not border the character's one —
+   drops the dashed brown ring; only the reachable "?" neighbors keep it. The
+   transparent border (not none) preserves the node's geometry. Two classes so
+   it also beats the green --safe border. */
+.game-map-node--unknown.game-map-node--far {
+  border-color: transparent;
+}
+/* a selected "?" keeps the gold selection ring: the --unknown rule above would
+   otherwise win the border/shadow (same specificity, later in the sheet). The
+   border stays dashed so the node still reads as unexplored. */
+.game-map-node--unknown.game-map-node--current {
+  border-color: var(--color-gold-shine);
+  box-shadow: 0 0 0 3px var(--color-gold-deep), 0 0 18px 5px rgba(200,150,10,.65),
+    inset 0 0 14px rgba(0,0,0,.55);
 }
 
 .game-map-node--safe {
@@ -2705,6 +2906,15 @@ html, body {
     flex: none;
     height: clamp(300px, 55vh, 460px);
   }
+  /* mobile.css caps every descendant at `max-width: 100%`, which squeezed the
+     map's world and its <svg> down to the canvas width: the viewBox then scaled
+     the paths (and shrank the arrow markers to nothing) while the nodes, placed
+     with absolute left/top in px, stayed put — lines drawn off their circles.
+     The world is a pan/zoom plane in graph coordinates: it must keep its own
+     size and let .game-map-canvas do the clipping. */
+  .book-mobile-layout .game-map-world,
+  .book-mobile-layout .game-map-svg,
+  .book-mobile-layout .game-map-node { max-width: none; }
 }
 
 /* ── Match history (Step 28.7 logs API) ──────────────────────────────────────
@@ -2757,6 +2967,7 @@ html, body {
 .match-log-type--SLEEP         { color: #60a5fa; }
 .match-log-type--CLOCK_ADVANCE { color: #c084fc; }
 .match-log-type--RECOVERY      { color: #2dd4bf; }
+.match-log-type--EVENT         { color: #f87171; }
 
 /* Date (and actor) under each entry card. */
 .match-log-entry-extra {

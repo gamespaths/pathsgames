@@ -19,6 +19,14 @@ public class ItemEffectEntity extends BaseStoryScopedEntity {
     @Column(name = "effect_value", nullable = false)
     private Integer effectValue;
 
+    /** v0.34.0 - CSV of story-scoped trait ids, same format as list_events_effects. */
+    @Column(name = "traits_to_add")
+    private String traitsToAdd;
+
+    /** v0.34.0 - CSV of story-scoped trait ids, same format as list_events_effects. */
+    @Column(name = "traits_to_remove")
+    private String traitsToRemove;
+
     @PrePersist
     protected void onCreate() {
         if (effectValue == null) effectValue = 0;
@@ -34,5 +42,11 @@ public class ItemEffectEntity extends BaseStoryScopedEntity {
 
     public Integer getEffectValue() { return effectValue; }
     public void setEffectValue(Integer effectValue) { this.effectValue = effectValue; }
+
+    public String getTraitsToAdd() { return traitsToAdd; }
+    public void setTraitsToAdd(String traitsToAdd) { this.traitsToAdd = traitsToAdd; }
+
+    public String getTraitsToRemove() { return traitsToRemove; }
+    public void setTraitsToRemove(String traitsToRemove) { this.traitsToRemove = traitsToRemove; }
 
 }

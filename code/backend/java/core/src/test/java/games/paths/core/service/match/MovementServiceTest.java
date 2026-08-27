@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.LocationEntryPort;
 import games.paths.core.port.match.MovementPort.MovementException;
 import games.paths.core.port.match.MovementPort.MovementResult;
 import games.paths.core.port.match.MovementPort.NeighborCost;
@@ -18,12 +19,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
@@ -102,7 +106,119 @@ class MovementServiceTest {
             assertEquals(4, r.newEnergy());
             assertEquals(1L, r.fromLocationId());
             verify(store).updateCharacterLocationAndEnergy(MATCH_ID, 50L, 2L, 4);
-            verify(store).insertMovementLog(MATCH_ID, 50L, 1L, 2L, 6);
+            verify(store).insertMovementLog(MATCH_ID, 50L, 1L, 2L, 6, 0, 0, 0);
+        }
+
+        @Test
+        @DisplayName("v0.35.3: the edge's food/magic/coin are checked, paid, logged and reported")
+        void paysTheEdgeResources() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID)).thenReturn(Optional.of(
+                    new MoveCharacterView(50L, "char-uuid", USER_ID, 1L, 10, 100, 0, 30,
+                            false, false, 5, 4, 9)));
+            when(store.findLocationByStoryAndUuid(STORY_ID, "loc-2"))
+                    .thenReturn(Optional.of(location(2L, "loc-2", 1, 0, 100)));
+            when(store.findNeighborsOfLocation(STORY_ID, 1L)).thenReturn(List.of(
+                    new NeighborEdge(1L, 2L, "NORTH", 2, null, null, 1, 2, 1, 3)));
+            when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
+
+            MovementResult r = service.startMovement(MATCH, USER, "loc-2");
+
+            assertEquals(2, r.foodSpent());
+            assertEquals(1, r.magicSpent());
+            assertEquals(3, r.coinSpent());
+            assertEquals(3, r.newFood());
+            assertEquals(3, r.newMagic());
+            assertEquals(6, r.newCoin());
+            verify(store).updateBackpackResources(MATCH_ID, 50L, 3, 3, 6);
+            verify(store).insertMovementLog(MATCH_ID, 50L, 1L, 2L, 2, 2, 1, 3);
+        }
+
+        @Test
+        @DisplayName("v0.35.3: a free edge writes no backpack row at all")
+        void aFreeEdgeTouchesNoBackpack() {
+            wireHappyPath(10, 2, 1, 1, 3, 99, 100, 0);
+
+            service.startMovement(MATCH, USER, "loc-2");
+
+            verify(store, never()).updateBackpackResources(anyLong(), anyLong(),
+                    anyInt(), anyInt(), anyInt());
+        }
+
+        @Test
+        @DisplayName("v0.35.3: a mover one coin short is refused and nothing is written")
+        void refusedWhenTheEdgeIsUnaffordable() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID)).thenReturn(Optional.of(
+                    new MoveCharacterView(50L, "char-uuid", USER_ID, 1L, 10, 100, 0, 30,
+                            false, false, 5, 5, 1)));
+            when(store.findLocationByStoryAndUuid(STORY_ID, "loc-2"))
+                    .thenReturn(Optional.of(location(2L, "loc-2", 1, 0, 100)));
+            when(store.findNeighborsOfLocation(STORY_ID, 1L)).thenReturn(List.of(
+                    new NeighborEdge(1L, 2L, "NORTH", 0, null, null, 1, 0, 0, 2)));
+            when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
+
+            MovementException ex = assertThrows(MovementException.class,
+                    () -> service.startMovement(MATCH, USER, "loc-2"));
+
+            assertEquals(MovementException.Code.NOT_ENOUGH_COINS, ex.getCode());
+            verify(store, never()).updateCharacterLocationAndEnergy(anyLong(), anyLong(),
+                    anyLong(), anyInt());
+            verify(store, never()).updateBackpackResources(anyLong(), anyLong(),
+                    anyInt(), anyInt(), anyInt());
+            verify(store, never()).insertMovementLog(anyLong(), anyLong(), any(), anyLong(),
+                    anyInt(), anyInt(), anyInt(), anyInt());
+        }
+
+        @Test
+        @DisplayName("Step 33: the destination's arrival triggers run once the move is committed")
+        void arrivalTriggersRunAfterTheMoveIsCommitted() {
+            LocationEntryPort entry = mock(LocationEntryPort.class);
+            LocationEntryPort.AutomaticEventFired fired = new LocationEntryPort.AutomaticEventFired(
+                    LocationEntryPort.TRIGGER_FIRST_ENTRY, 2L, "evt-welcome", null,
+                    List.of(), List.of(), List.of(), false);
+            when(entry.onArrival(any())).thenReturn(List.of(fired));
+            MovementService withEntry =
+                    new MovementService(store, userAccessPort, contentQueryPort, entry);
+            wireHappyPath(10, 2, 1, 1, 3, 99, 100, 0);
+
+            MovementResult r = withEntry.startMovement(MATCH, USER, "loc-2");
+
+            assertEquals(1, r.automaticEvents().size());
+            assertEquals("evt-welcome", r.automaticEvents().get(0).eventUuid());
+
+            // The order matters: the trigger resolution reads the character's NEW position,
+            // so it must run after both writes, never between them.
+            InOrder order = inOrder(store, entry);
+            order.verify(store).updateCharacterLocationAndEnergy(MATCH_ID, 50L, 2L, 4);
+            order.verify(store).insertMovementLog(MATCH_ID, 50L, 1L, 2L, 6, 0, 0, 0);
+            order.verify(entry).onArrival(argThat(a ->
+                    a.idMatch() == MATCH_ID && a.idStory() == STORY_ID
+                            && a.idCharacter() == 50L && a.idLocation() == 2L));
+        }
+
+        @Test
+        @DisplayName("Step 33: without the location engine a move behaves exactly as before")
+        void noLocationEngineIsAPreStep33Move() {
+            wireHappyPath(10, 2, 1, 1, 3, 99, 100, 0);
+
+            MovementResult r = service.startMovement(MATCH, USER, "loc-2");
+
+            assertTrue(r.automaticEvents().isEmpty());
+        }
+
+        @Test
+        @DisplayName("a refused move fires no arrival trigger — nobody arrived")
+        void refusedMoveFiresNothing() {
+            LocationEntryPort entry = mock(LocationEntryPort.class);
+            MovementService withEntry =
+                    new MovementService(store, userAccessPort, contentQueryPort, entry);
+            // energy 1 against a cost of 6.
+            wireHappyPath(1, 2, 1, 1, 3, 99, 100, 0);
+
+            assertThrows(MovementException.class,
+                    () -> withEntry.startMovement(MATCH, USER, "loc-2"));
+            verify(entry, never()).onArrival(any());
         }
 
         @Test
@@ -155,7 +271,7 @@ class MovementServiceTest {
         }
 
         @Test
-        @DisplayName("sleeping character → CHARACTER_CANNOT_ACT")
+        @DisplayName("sleeping character → SLEEPING")
         void sleeping() {
             when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
             when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID))
@@ -163,7 +279,22 @@ class MovementServiceTest {
                             50L, "c", USER_ID, 1L, 10, 100, 0, 30, true, false)));
             MovementException ex = assertThrows(MovementException.class,
                     () -> service.startMovement(MATCH, USER, "loc-2"));
-            assertEquals(MovementException.Code.CHARACTER_CANNOT_ACT, ex.getCode());
+            assertEquals(MovementException.Code.SLEEPING, ex.getCode());
+        }
+
+        @Test
+        @DisplayName("comatose character → COMA, with the rescue-worded message")
+        void comatose() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID))
+                    .thenReturn(Optional.of(new MoveCharacterView(
+                            50L, "char-uuid", USER_ID, 1L, 10, 100, 0, 30, true, true)));
+
+            MovementException ex = assertThrows(MovementException.class,
+                    () -> service.startMovement(MATCH, USER, "loc-2"));
+
+            assertEquals(MovementException.Code.COMA, ex.getCode());
+            assertEquals("Character cannot move while in coma", ex.getMessage());
         }
 
         @Test
@@ -364,6 +495,28 @@ class MovementServiceTest {
         }
 
         @Test
+        @DisplayName("carries the authored edge endpoints, so a client can tell a return traversal")
+        void carriesAuthoredEndpoints() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            // Standing on 2, which is the edge's `to` endpoint: the entry describes a
+            // RETURN traversal even though `direction` stays the authored NORTH.
+            when(store.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(2L));
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of());
+            when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
+            when(store.findLocationByStoryAndId(STORY_ID, 2L))
+                    .thenReturn(Optional.of(location(2L, "loc-2", 1, 0, 100)));
+            when(store.findNeighborsOfLocation(STORY_ID, 2L)).thenReturn(List.of(edge(1L, 2L, 0)));
+            when(store.findLocationByStoryAndId(STORY_ID, 1L))
+                    .thenReturn(Optional.of(location(1L, "loc-1", 1, 0, 100)));
+
+            NeighborCost nb = service.listLocations(MATCH, USER, null).get(0).neighbors().get(0);
+
+            assertEquals(1L, nb.idLocationFrom());
+            assertEquals(2L, nb.idLocationTo());
+            assertEquals("NORTH", nb.direction());
+        }
+
+        @Test
         @DisplayName("resolves the location card and the neighbor's LOCATION card (visited)")
         void resolvesCards() {
             when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
@@ -486,6 +639,43 @@ class MovementServiceTest {
 
             assertEquals(1, result.size());
             assertTrue(result.get(0).neighbors().isEmpty());
+        }
+
+        @Test
+        @DisplayName("a neighbor whose far endpoint is gone is skipped")
+        void skipsNeighborWithoutALocationRow() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            when(store.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(1L));
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(character(10, 1L)));
+            when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(1, 9));
+            when(store.findLocationByStoryAndId(STORY_ID, 1L))
+                    .thenReturn(Optional.of(location(1L, "loc-1", 0, 0, 100)));
+            when(store.findNeighborsOfLocation(STORY_ID, 1L)).thenReturn(List.of(edge(1L, 2L, 2)));
+            when(store.findLocationByStoryAndId(STORY_ID, 2L)).thenReturn(Optional.empty());
+
+            VisitedLocation loc = service.listLocations(MATCH, USER, null).get(0);
+
+            assertEquals(1, loc.characterCount());
+            assertTrue(loc.neighbors().isEmpty());
+        }
+
+        @Test
+        @DisplayName("a safe destination is priced with the safe weather modifier")
+        void safeDestinationUsesTheSafeWeatherCost() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            when(store.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(1L));
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of());
+            when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(1, 9));
+            when(store.findLocationByStoryAndId(STORY_ID, 1L))
+                    .thenReturn(Optional.of(location(1L, "loc-1", 0, 0, 100)));
+            when(store.findNeighborsOfLocation(STORY_ID, 1L)).thenReturn(List.of(edge(1L, 2L, 2)));
+            when(store.findLocationByStoryAndId(STORY_ID, 2L))
+                    .thenReturn(Optional.of(location(2L, "loc-2", 1, 1, 100)));
+
+            NeighborCost n = service.listLocations(MATCH, USER, null).get(0).neighbors().get(0);
+
+            assertEquals(1, n.weatherEnergyCost());
+            assertEquals(2 + 1 + 1, n.totalEnergyCost());
         }
 
         @Test

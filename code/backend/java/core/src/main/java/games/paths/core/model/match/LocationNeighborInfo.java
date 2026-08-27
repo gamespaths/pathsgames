@@ -41,12 +41,44 @@ public class LocationNeighborInfo {
     private final CardInfo cardBack;
     private final CardInfo cardLocationFrom;
     private final CardInfo cardLocationTo;
+    private final boolean available;
+    private final String reason;
+    private final Integer costFood;
+    private final Integer costMagic;
+    private final Integer costCoin;
 
+    /** Backwards-compatible: a neighbor with no verdict reads as available. */
     public LocationNeighborInfo(Long idLocation, String uuid, String direction,
                                 Integer flagBack, Integer energyCost, CardInfo card,
                                 Integer secureParam, Long idLocationFrom, Long idLocationTo,
                                 CardInfo cardBack, CardInfo cardLocationFrom,
                                 CardInfo cardLocationTo) {
+        this(idLocation, uuid, direction, flagBack, energyCost, card, secureParam,
+                idLocationFrom, idLocationTo, cardBack, cardLocationFrom, cardLocationTo,
+                true, null);
+    }
+
+    @SuppressWarnings("java:S107")
+    public LocationNeighborInfo(Long idLocation, String uuid, String direction,
+                                Integer flagBack, Integer energyCost, CardInfo card,
+                                Integer secureParam, Long idLocationFrom, Long idLocationTo,
+                                CardInfo cardBack, CardInfo cardLocationFrom,
+                                CardInfo cardLocationTo,
+                                boolean available, String reason) {
+        this(idLocation, uuid, direction, flagBack, energyCost, card, secureParam,
+                idLocationFrom, idLocationTo, cardBack, cardLocationFrom, cardLocationTo,
+                available, reason, 0, 0, 0);
+    }
+
+    /** v0.35.3 — same edge, with the resource price it now carries. */
+    @SuppressWarnings("java:S107")
+    public LocationNeighborInfo(Long idLocation, String uuid, String direction,
+                                Integer flagBack, Integer energyCost, CardInfo card,
+                                Integer secureParam, Long idLocationFrom, Long idLocationTo,
+                                CardInfo cardBack, CardInfo cardLocationFrom,
+                                CardInfo cardLocationTo,
+                                boolean available, String reason,
+                                Integer costFood, Integer costMagic, Integer costCoin) {
         this.idLocation = idLocation;
         this.uuid = uuid;
         this.direction = direction;
@@ -59,6 +91,11 @@ public class LocationNeighborInfo {
         this.cardBack = cardBack;
         this.cardLocationFrom = cardLocationFrom;
         this.cardLocationTo = cardLocationTo;
+        this.available = available;
+        this.reason = reason;
+        this.costFood = costFood;
+        this.costMagic = costMagic;
+        this.costCoin = costCoin;
     }
 
     public Long getIdLocation() { return idLocation; }
@@ -73,4 +110,22 @@ public class LocationNeighborInfo {
     public CardInfo getCardBack() { return cardBack; }
     public CardInfo getCardLocationFrom() { return cardLocationFrom; }
     public CardInfo getCardLocationTo() { return cardLocationTo; }
+
+    /**
+     * Whether the reference character can take this path right now, and — when it cannot —
+     * the {@code MovementPort.MovementException.Code} the move endpoint would answer with
+     * (COMA, SLEEPING, INSUFFICIENT_ENERGY, …). Same verdict, same code, one source:
+     * {@code MovementAvailabilityChecker}. Null reason when the move is allowed.
+     */
+    public boolean isAvailable() { return available; }
+    public String getReason() { return reason; }
+
+    /**
+     * v0.35.3 — what the EDGE costs in resources. Energy sums three sources and is
+     * reported pre-summed in {@link #getEnergyCost()}; these have one source, so what the
+     * client reads here is exactly what the move will take.
+     */
+    public Integer getCostFood() { return costFood; }
+    public Integer getCostMagic() { return costMagic; }
+    public Integer getCostCoin() { return costCoin; }
 }

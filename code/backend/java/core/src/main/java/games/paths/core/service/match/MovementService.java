@@ -2,8 +2,12 @@ package games.paths.core.service.match;
 
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.story.CardInfo;
+import games.paths.core.port.match.LocationEntryPort;
 import games.paths.core.port.match.MovementPort;
+import games.paths.core.port.match.MovementPort.MovementAvailability;
 import games.paths.core.port.match.MovementStorePort;
+import games.paths.core.service.match.MovementAvailabilityChecker.MoveCheckContext;
+import games.paths.core.service.match.MovementAvailabilityChecker.MoveEdgeCheck;
 import games.paths.core.port.match.MovementStorePort.MatchMovementView;
 import games.paths.core.port.match.MovementStorePort.MoveCharacterView;
 import games.paths.core.port.match.MovementStorePort.MoveLocationView;
@@ -31,16 +35,25 @@ import java.util.Set;
  * totalEnergyCost = edge.energyCost + target.costEnergyEnter + weatherModifier
  * </pre>
  *
+ * <p>v0.35.3 — food, magic and coins are charged too, and they come from the EDGE alone
+ * ({@code cost_food} / {@code cost_magic} / {@code cost_coin} on
+ * {@code list_locations_neighbors}): no entry term, no weather term. The asymmetry with
+ * energy is deliberate and the formula is a sum, so either term can be added later without
+ * invalidating a story.</p>
+ *
  * <p>Validation order: auth → match RUNNING → caller awake → target is a neighbor
  * → registry condition → weight ≤ capacity → energy ≥ cost → location not full.
  * On success the character position and energy are persisted and a
  * {@code log_movements} row is appended.</p>
  *
- * <p>Scope (Step 28): only the move + energy. Automatic location-entry events are
- * Step 32; group/follow movement and concurrent locking are Step 67; the full
- * weight/capacity formula is Step 34 (carried weight is 0 until inventory lands).</p>
+ * <p>Scope (Step 28): the move + energy. <b>Step 33</b> hung the automatic location-entry
+ * events off the end of it — the destination's {@code id_event_*} columns, resolved once the
+ * move is committed and returned in {@code automaticEvents}. Group/follow movement and
+ * concurrent locking are Step 67; the full weight/capacity formula is Step 34 (carried weight
+ * is 0 until inventory lands).</p>
  *
- * <p>See {@code documentation_v0/Step28_MovementSystem.md}.</p>
+ * <p>See {@code documentation_v0/Step28_MovementSystem.md} and
+ * {@code documentation_v0/Step33_LocationEntryEvents.md}.</p>
  */
 public class MovementService implements MovementPort {
 
@@ -49,17 +62,27 @@ public class MovementService implements MovementPort {
     private final MovementStorePort store;
     private final UserAccessPort userAccessPort;
     private final ContentQueryPort contentQueryPort;
+    /** Step 33. Null keeps the pre-33 behaviour: a move fires nothing. */
+    private final LocationEntryPort locationEntryPort;
 
     public MovementService(MovementStorePort store, UserAccessPort userAccessPort) {
-        this(store, userAccessPort, null);
+        this(store, userAccessPort, null, null);
     }
 
-    /** Full constructor: {@code contentQueryPort} resolves the location cards (nullable). */
+    /** {@code contentQueryPort} resolves the location cards (nullable). */
     public MovementService(MovementStorePort store, UserAccessPort userAccessPort,
                            ContentQueryPort contentQueryPort) {
+        this(store, userAccessPort, contentQueryPort, null);
+    }
+
+    /** Full constructor: {@code locationEntryPort} runs the Step 33 arrival triggers. */
+    public MovementService(MovementStorePort store, UserAccessPort userAccessPort,
+                           ContentQueryPort contentQueryPort,
+                           LocationEntryPort locationEntryPort) {
         this.store = store;
         this.userAccessPort = userAccessPort;
         this.contentQueryPort = contentQueryPort;
+        this.locationEntryPort = locationEntryPort;
     }
 
     @Override
@@ -71,14 +94,17 @@ public class MovementService implements MovementPort {
         MoveCharacterView caller = store.findCharacterByMatchAndUser(match.id(), userId)
                 .orElseThrow(MovementService::notFound);
 
-        if (!MatchStatuses.RUNNING.equals(match.status())) {
-            throw new MovementException(MovementException.Code.MATCH_NOT_RUNNING,
-                    "Match is not RUNNING");
+        // The mover's own state (match RUNNING, coma, sleep) is judged before the target is
+        // even resolved, so an asleep player is told they are asleep rather than that their
+        // destination is not a neighbor. Passing a null edge asks the checker for exactly
+        // that prefix of the verdict; NOT_A_NEIGHBOR is its way of saying "so far so good,
+        // now give me an edge", and this call is not the one that decides it.
+        MoveCheckContext ctx = moveContext(match, caller);
+        MovementAvailability pre = MovementAvailabilityChecker.check(ctx, null);
+        if (!pre.available() && pre.reason() != MovementException.Code.NOT_A_NEIGHBOR) {
+            throw new MovementException(pre.reason(), reasonMessage(pre.reason()));
         }
-        if (caller.isSleeping() || caller.isComa()) {
-            throw new MovementException(MovementException.Code.CHARACTER_CANNOT_ACT,
-                    "Character cannot move while sleeping or in coma");
-        }
+
         if (caller.idLocation() == null) {
             throw new MovementException(MovementException.Code.NOT_A_NEIGHBOR,
                     "Character has no current location");
@@ -92,36 +118,47 @@ public class MovementService implements MovementPort {
                 .orElseThrow(() -> new MovementException(MovementException.Code.NOT_A_NEIGHBOR,
                         "Target location is not a neighbor"));
 
-        if (!conditionMet(match.id(), edge)) {
-            throw new MovementException(MovementException.Code.MOVEMENT_CONDITION_NOT_MET,
-                    "Movement condition not met: " + edge.conditionKey() + "=" + edge.conditionValue());
-        }
-
         int totalCost = totalEnergyCost(edge.energyCost(), target, weatherCost(match.id()));
 
-        // Step 34 owns the full weight formula; carried weight is 0 until inventory exists.
-        if (caller.carriedWeight() > caller.weightMax()) {
-            throw new MovementException(MovementException.Code.OVERWEIGHT,
-                    "Carried weight exceeds capacity");
-        }
-        if (caller.energy() < totalCost) {
-            throw new MovementException(MovementException.Code.INSUFFICIENT_ENERGY,
-                    "Not enough energy: need " + totalCost + ", have " + caller.energy());
-        }
-        if (target.maxCharacters() > 0
-                && store.countCharactersAtLocation(match.id(), target.id()) >= target.maxCharacters()) {
-            throw new MovementException(MovementException.Code.LOCATION_FULL,
-                    "Target location is at capacity");
+        MovementAvailability verdict = MovementAvailabilityChecker.check(ctx, new MoveEdgeCheck(
+                conditionMet(match.id(), edge),
+                totalCost,
+                target.maxCharacters(),
+                target.maxCharacters() > 0
+                        ? store.countCharactersAtLocation(match.id(), target.id())
+                        : 0,
+                edge.costFood(), edge.costMagic(), edge.costCoin()));
+        if (!verdict.available()) {
+            throw new MovementException(verdict.reason(), reasonMessage(verdict.reason()));
         }
 
         int newEnergy = caller.energy() - totalCost;
+        // v0.35.3 — the checker proved the mover can afford all four, so none can go below 0.
+        int newFood = caller.food() - edge.costFood();
+        int newMagic = caller.magic() - edge.costMagic();
+        int newCoin = caller.coin() - edge.costCoin();
         store.updateCharacterLocationAndEnergy(match.id(), caller.id(), target.id(), newEnergy);
-        store.insertMovementLog(match.id(), caller.id(), caller.idLocation(), target.id(), totalCost);
+        if (edge.costFood() > 0 || edge.costMagic() > 0 || edge.costCoin() > 0) {
+            store.updateBackpackResources(match.id(), caller.id(), newFood, newMagic, newCoin);
+        }
+        store.insertMovementLog(match.id(), caller.id(), caller.idLocation(), target.id(), totalCost,
+                edge.costFood(), edge.costMagic(), edge.costCoin());
+
+        // Step 33 — the move is committed, so the arrival is real: ask the destination what
+        // it does about somebody walking in. Deliberately after both writes, because the
+        // trigger resolution reads the character's new position back.
+        List<LocationEntryPort.AutomaticEventFired> automaticEvents = locationEntryPort == null
+                ? List.of()
+                : locationEntryPort.onArrival(new LocationEntryPort.ArrivalContext(
+                        match.id(), match.idStory(), caller.id(), target.id(),
+                        match.currentClock(), null));
 
         return new MovementResult(matchUuid, caller.uuid(),
                 caller.idLocation(), null,
                 target.id(), target.uuid(),
-                totalCost, newEnergy, match.currentClock());
+                totalCost, edge.costFood(), edge.costMagic(), edge.costCoin(),
+                newEnergy, newFood, newMagic, newCoin,
+                match.currentClock(), automaticEvents);
     }
 
     @Override
@@ -181,8 +218,10 @@ public class MovementService implements MovementPort {
                 boolean otherVisited = visitedSet.contains(other.id());
                 Integer neighborIdCard = otherVisited ? other.idCard() : null;
                 neighborCosts.add(new NeighborCost(other.id(), other.uuid(), edge.direction(),
+                        edge.idLocationFrom(), edge.idLocationTo(),
                         neighborIdCard, resolveCard(match.idStory(), neighborIdCard, lang),
                         base, entry, weatherMod, base + entry + weatherMod,
+                        edge.costFood(), edge.costMagic(), edge.costCoin(),
                         conditionMet(match.id(), edge)));
             }
             result.add(new VisitedLocation(loc.id(), loc.uuid(), loc.idCard(),
@@ -205,6 +244,38 @@ public class MovementService implements MovementPort {
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────
+
+    /** The mover's edge-independent state, as {@link MovementAvailabilityChecker} wants it. */
+    private static MoveCheckContext moveContext(MatchMovementView match, MoveCharacterView caller) {
+        return new MoveCheckContext(
+                MatchStatuses.RUNNING.equals(match.status()),
+                true,
+                caller.isComa(),
+                caller.isSleeping(),
+                caller.energy(),
+                // Step 35 — the real Sigma (item.weight x amount), computed by the store adapter.
+                caller.carriedWeight(),
+                caller.weightMax(),
+                caller.food(), caller.magic(), caller.coin());
+    }
+
+    /** The player-facing message for a refused move; the CODE is what clients switch on. */
+    private static String reasonMessage(MovementException.Code code) {
+        return switch (code) {
+            case MATCH_NOT_RUNNING -> "Match is not RUNNING";
+            case COMA -> "Character cannot move while in coma";
+            case SLEEPING -> "Character cannot move while sleeping";
+            case MOVEMENT_CONDITION_NOT_MET -> "Movement condition not met";
+            case OVERWEIGHT -> "Carried weight exceeds capacity";
+            case INSUFFICIENT_ENERGY -> "Not enough energy for this move";
+            case NOT_ENOUGH_COINS -> "Not enough coins for this move";
+            case NOT_ENOUGH_FOOD -> "Not enough food for this move";
+            case NOT_ENOUGH_MAGIC -> "Not enough magic for this move";
+            case LOCATION_FULL -> "Target location is at capacity";
+            case CHARACTER_CANNOT_ACT -> "Character cannot act";
+            default -> "Movement refused";
+        };
+    }
 
     /** total = edge cost + target entry cost + weather modifier (safe/unsafe). */
     static int totalEnergyCost(int edgeCost, MoveLocationView target, WeatherMoveCost weather) {

@@ -403,6 +403,8 @@ class StoryQueryServiceTest {
                     () -> assertEquals(1, detail.traits().size()),
                     () -> assertEquals("Brave", detail.traits().get(0).getName()),
                     () -> assertEquals(2, detail.traits().get(0).getCostPositive()),
+                    // v0.35.2 — a trait that authored nothing is pickable, and says so.
+                    () -> assertFalse(detail.traits().get(0).isHideOnStartMatch()),
                     () -> assertNotNull(detail.card()),
                     () -> assertEquals("Card Title", detail.card().title()),
                     () -> assertEquals("https://example.com/card.png", detail.card().urlImage()));

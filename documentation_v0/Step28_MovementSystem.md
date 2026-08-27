@@ -174,9 +174,15 @@ checks are not reached.
 | 3 | Character is awake (not sleeping, not in coma) | `CHARACTER_CANNOT_ACT` | 409 |
 | 4 | Character has a current location AND target UUID is a listed neighbor | `NOT_A_NEIGHBOR` | 409 |
 | 5 | Neighbor `conditionRegistryKey` is null OR match registry satisfies it | `MOVEMENT_CONDITION_NOT_MET` | 409 |
-| 6 | Character carried weight ≤ capacity (always passes — weight is 0 in Step 28) | `OVERWEIGHT` | 409 |
+| 6 | Character carried weight ≤ capacity (always passes — weight is 0 in Step 28; wired up in [Step34 §7](./Step34_InventoryAndResources.md#7-carried-weight-and-movement-step-35)) | `OVERWEIGHT` | 409 |
 | 7 | Character energy ≥ total energy cost | `INSUFFICIENT_ENERGY` | 409 |
+| 7a | Character coin ≥ edge `cost_coin` (**v0.35.3**) | `NOT_ENOUGH_COINS` | 409 |
+| 7b | Character food ≥ edge `cost_food` (**v0.35.3**) | `NOT_ENOUGH_FOOD` | 409 |
+| 7c | Character magic ≥ edge `cost_magic` (**v0.35.3**) | `NOT_ENOUGH_MAGIC` | 409 |
 | 8 | Target location at capacity? (`maxCharacters > 0` and count == max) | `LOCATION_FULL` | 409 |
+
+*(v0.35.3 checks 7a-7c come from the edge alone, no entry/weather term — see §4 and
+[Step35 §12](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353).)*
 
 Missing `targetLocationUuid` → `400 MISSING_TARGET` (before all other checks).
 Missing auth header → `401 UNAUTHENTICATED` (before all other checks).
@@ -212,6 +218,12 @@ totalEnergyCost   = neighborEdge.energyCost
 - The resulting `totalEnergyCost` is the value returned in the neighbor sub-list of the
   `GET /api/match/{uuid}/locations` response so the frontend can display the cost before
   the player commits to the move.
+- **v0.35.3**: food, magic and coin gained their own edge cost (`cost_food`, `cost_magic`,
+  `cost_coin` on `list_locations_neighbors`), but **not** the same formula — there is no entry
+  or weather term for them, only the edge value itself. The two formulas are deliberately
+  asymmetric: energy's is a sum precisely so an entry/weather term could exist, and precisely
+  so one can be added to the resource costs later without invalidating a single already-priced
+  story. See [Step35 §12](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353).
 
 ---
 
@@ -234,7 +246,13 @@ totalEnergyCost   = neighborEdge.energyCost
 | `toLocationId` | integer | ID of the target location |
 | `toLocationUuid` | string | UUID of the target location |
 | `energySpent` | integer | Total energy cost deducted |
+| `foodSpent` | integer | **v0.35.3** — edge `cost_food` deducted |
+| `magicSpent` | integer | **v0.35.3** — edge `cost_magic` deducted |
+| `coinSpent` | integer | **v0.35.3** — edge `cost_coin` deducted |
 | `newEnergy` | integer | Character's energy after deduction |
+| `newFood` | integer | **v0.35.3** — character's food after deduction |
+| `newMagic` | integer | **v0.35.3** — character's magic after deduction |
+| `newCoin` | integer | **v0.35.3** — character's coin after deduction |
 | `currentClock` | integer | Match clock at the time of the move |
 
 ### 5.3 `MatchLocationsResponse`
@@ -266,6 +284,9 @@ totalEnergyCost   = neighborEdge.energyCost
 | `entryEnergyCost` | integer | Target location entry cost — `list_locations.cost_energy_enter` (0 in Python/AWS) |
 | `weatherEnergyCost` | integer | Weather modifier for the target (safe/unsafe) |
 | `totalEnergyCost` | integer | `baseEnergyCost + entryEnergyCost + weatherEnergyCost` (formula in §4) |
+| `costFood` | integer | **v0.35.3** — edge `cost_food`, no entry/weather term (edge-only, no breakdown) |
+| `costMagic` | integer | **v0.35.3** — edge `cost_magic`, edge-only |
+| `costCoin` | integer | **v0.35.3** — edge `cost_coin`, edge-only |
 | `conditionMet` | boolean | Whether the registry condition (if any) is currently satisfied |
 
 ### 5.4 Java core domain models
@@ -370,7 +391,39 @@ visitedLocationIds = { character.id_location for all characters in the match }
 ```
 
 No changes are made to `gaming_state_locations` in Step 28. The full location-entry
-state machine (including `flag_already_actived` for entry events) belongs to Step 32.
+state machine belongs to **[Step 33](./Step33_LocationEntryEvents.md)**, not Step 32 as an
+earlier revision of this section stated, and it does **not** use `flag_already_actived`.
+
+#### Two different notions of "visited" (v0.33.0 clarification)
+
+Step 33 introduces a *stored* visited flag alongside the *derived* set defined above. They
+are not the same thing and must not be conflated:
+
+| | Derived set (this section) | `gaming_state_locations.flag_visited` (Step 33) |
+|---|---|---|
+| Computed | at query time, per request | stored, written on arrival |
+| Keyed by | nothing — rebuilt each call | `(id_match, id_location)` |
+| Serves | fog of war: which nodes the map and `/locations` may reveal | the trigger state machine: `FIRST_ENTRY` vs `SUBSEQUENT_ENTRY` |
+| Scope | the match (union over all characters) | the match — first entry is the **party's**, not the character's |
+
+Step 33 deliberately does **not** reuse `flag_already_actived` for this. That column already
+means *"this location's counter has been consumed"* (Step 26): it is the latch that stops an
+exhausted counter from being re-seeded, so overloading it would break the counters and the
+entry triggers at the same time. `flag_visited` is a separate, additive column, added together
+with `log_events.id_location` by `V0.33.0__location_entry_events.sql`.
+
+**The starting location — settled.** The derived set above includes `character.id_location`,
+so a character's starting location counts as visited from match creation, with no movement
+logged. `flag_visited` is written by the entry resolution, which only runs on an *arrival*,
+so left alone the two would disagree from the first turn — and walking **back** to the
+starting location would fire `FIRST_ENTRY`, announcing as a discovery the place the
+story opened in.
+
+Step 33 resolves this by seeding `flag_visited = 1` on the story's `id_location_start` row at
+match creation, inside the loop that already writes every location's state row. The two
+notions of "visited" then agree everywhere, and returning home correctly fires
+`SUBSEQUENT_ENTRY`. See
+[Step33 §5](./Step33_LocationEntryEvents.md).
 
 ### 6.4 `list_locations_neighbors` — columns read by Step 28
 
@@ -1494,6 +1547,25 @@ Static HTML/CSS concept mockups (desktop and mobile) live under
 | `src/i18n/en.json`, `src/i18n/it.json` | New `game.map.*`, `card.back`, `card.forward` keys |
 | `src/styles/main.css` | `.game-map-canvas` mobile fixed-height override |
 
+## 13.10 Mobile arrow-rendering bugfix (v0.29.0 addendum)
+
+The gold neighbor arrows described in §13.4 were broken on mobile: arrowheads vanished
+or were mis-sized, and edge lines blurred on pinch-zoom. Root causes and fix, all in
+`Map.jsx`/`main.css`:
+
+- Arrowheads were SVG `<marker>` elements; inside a layer transformed with CSS (the
+  pan/zoom transform), mobile browsers render `<marker>` inconsistently. They are now
+  plain `<polygon>` triangles computed directly in graph coordinates alongside the edge
+  line, so they scale and position exactly like the line they belong to.
+- `will-change: transform` on the map plane forced the browser to rasterize the layer at
+  the *current* zoom level; zooming further on mobile then stretched that raster, blurring
+  the edge lines. Removed.
+- The SVG element's `width`/`height`/`max-width: none` are now set inline, because a
+  global mobile rule (`.book-mobile-layout * { max-width: 100% }`) was shrinking the SVG
+  box while its `viewBox` kept rescaling the lines — the graph nodes (positioned in px)
+  stayed put while the lines drawn against the viewBox drifted, visibly detaching arrows
+  from their nodes.
+
 ---
 
 # Paths Games V0 - Step 0.28.6: Fog-of-War on Neighbor Location Cards
@@ -1796,8 +1868,8 @@ character names**, using the same envelope convention as the paginated admin mat
 
 | Port | Method | Path | Auth | Description |
 |------|--------|------|------|-------------|
-| 8042 | GET | `/api/matches/{uuidMatch}/logs?limit=&cursor=&lang=` | Bearer (owner-only) | Match log timeline, one page |
-| 8044 | GET | `/api/admin/matches/{uuidMatch}/logs?limit=&cursor=&lang=` | Admin token | Admin log timeline, one page (no ownership check) |
+| 8042 | GET | `/api/matches/{uuidMatch}/logs?limit=&cursor=&lang=&order=` | Bearer (owner-only) | Match log timeline, one page |
+| 8044 | GET | `/api/admin/matches/{uuidMatch}/logs?limit=&cursor=&lang=&order=` | Admin token | Admin log timeline, one page (no ownership check) |
 
 Query params (all optional, both endpoints):
 - `limit` — page size, default `50`, clamped to `[1, 200]`.
@@ -1805,6 +1877,13 @@ Query params (all optional, both endpoints):
   page. An unreadable cursor silently restarts from the first page; a cursor past the end
   of the timeline returns an empty page (never an error).
 - `lang` — language used to resolve entry cards, default `en`.
+- `order` — `asc` | `desc`, default `asc` (v0.30.3). Case-insensitive, trimmed; any unknown
+  or missing value falls back to `asc`. The timeline is reversed **before** the page is cut,
+  so a `desc` cursor keeps walking away from the first entry the caller already saw — "load
+  more" under `desc` moves towards older events. Entries without a timestamp sort last in
+  `asc`, so they appear first in `desc`. The reversal is a list `reverse()`, not a
+  descending sort, so entries sharing an identical timestamp (weather/movement/clock written
+  in the same instant) are still genuinely inverted, not left in place.
 
 ## Response Shape
 
@@ -1824,18 +1903,38 @@ Query params (all optional, both endpoints):
     { "type": "CLOCK_ADVANCE", "clock": 1, "timestamp": "..." },
     { "type": "RECOVERY",      "clock": null, "timestamp": "...",
       "idCharacterMatch": 1, "characterUuid": "...", "characterName": "Scout",
-      "message": "recovery safe=true p=3 dEnergy=5 dLife=2 dSad=-1" }
+      "message": "recovery safe=true p=3 dEnergy=5 dLife=2 dSad=-1" },
+    { "type": "ITEM_ADD",      "clock": 1, "timestamp": "...",
+      "characterUuid": "...", "characterName": "Scout",
+      "idItem": 40001, "itemAction": "ADD", "counter": 1, "idEvent": 28,
+      "idCard": 90020, "card": { "title": "Rusty Knife", "...": "..." },
+      "energyCost": 0, "foodCost": 0, "magicCost": 0, "coinCost": 0,
+      "energyGain": 0, "foodGain": 0, "magicGain": 0, "coinGain": 0 },
+    { "type": "ITEM_USE",      "clock": 1, "timestamp": "...",
+      "characterUuid": "...", "characterName": "Scout",
+      "idItem": 40002, "itemAction": "USE", "counter": 1, "idEvent": null,
+      "idCard": 90021, "card": { "title": "Healing Potion", "...": "..." },
+      "energyCost": 0, "foodCost": 0, "magicCost": 1, "coinCost": 0,
+      "energyGain": 10, "foodGain": 0, "magicGain": 0, "coinGain": 0 },
+    { "type": "ITEM_DROP",     "clock": 1, "timestamp": "...",
+      "characterUuid": "...", "characterName": "Scout",
+      "idItem": 40001, "itemAction": "DROP", "counter": 1, "idEvent": null,
+      "idCard": 90020, "card": { "title": "Rusty Knife", "...": "..." },
+      "energyCost": 0, "foodCost": 0, "magicCost": 0, "coinCost": 0,
+      "energyGain": 0, "foodGain": 0, "magicGain": 0, "coinGain": 0 }
   ],
   "nextCursor": "b2Zmc2V0OjUw",
   "limit": 50,
-  "total": 73
+  "total": 73,
+  "order": "asc"
 }
 ```
 
-All entries are sorted by `timestamp` ascending. `nextCursor` is `null` on the last page.
-`total` is the size of the whole timeline (not just the returned page); `limit` is the
-effective (clamped) page size that produced the page. Together they let the caller show
-progress ("Showing N of `total`").
+Entries are sorted by `timestamp`, direction controlled by `order` (default ascending, see
+below — v0.30.3). `nextCursor` is `null` on the last page. `total` is the size of the whole
+timeline (not just the returned page); `limit` is the effective (clamped) page size that
+produced the page; `order` (v0.30.3) is the effective order the page was cut with. Together
+they let the caller show progress ("Showing N of `total`").
 
 ### Card and character enrichment (v0.28.7)
 
@@ -1845,9 +1944,28 @@ Enrichment lookups run **once per page** (never once per entry):
   (`idLocationTo`), plus `characterUuid` / `characterName` of the character that moved.
 - `SLEEP` and `RECOVERY` entries carry `characterUuid` / `characterName`.
 - `CLOCK_ADVANCE` entries carry neither (no single character or card applies).
+- `ITEM_ADD` / `ITEM_USE` / `ITEM_DROP` entries (v0.35.4) carry `idCard` / `card` of the
+  **item itself**, plus `characterUuid` / `characterName` of the character that acted.
 - `characterName` is the `title` of the character template's card, resolved in `lang`.
-- Any field an entry type doesn't apply to stays `null`/absent (unchanged from the first
-  cut of this feature).
+- Any field an entry type doesn't apply to stays `null`/absent, **except the eight resource
+  fields** (`energyCost`/`foodCost`/`magicCost`/`coinCost`/`energyGain`/`foodGain`/
+  `magicGain`/`coinGain`): as of v0.35.4 these are present as numbers on **every** entry,
+  never `null` and never omitted, so one renderer can sum them without a type check. Java
+  already answered this shape from the first cut of the resource-cost fields; Python and
+  AWS used to build a per-type dict and omit the keys on types that move nothing — that
+  divergence is the v0.35.4 contract fix.
+
+### Chronological order (v0.30.3)
+
+Both endpoints accept `order=asc|desc` (default `asc`, retro-compatible with the original
+behaviour). The reversal happens **before** pagination cuts the page, so `nextCursor` under
+`desc` walks towards older events rather than re-visiting the same tail; the response's
+`order` field always reflects the order actually used to cut the returned page.
+`react-game`'s `src/api/matches.js` `getMatchLogs` and `react-admin`'s `src/api/matchApi.js`
+`getMatchLogs` both default to
+`order: 'desc'` on the client side (most-recent-first timelines in the game log viewer and
+the admin console), while the server-side default stays `asc` for any caller that omits the
+parameter.
 
 ## Log Data Sources
 
@@ -1858,6 +1976,7 @@ Enrichment lookups run **once per page** (never once per entry):
 | `SLEEP` | `log_events` (`log_message='ACTION_SLEEP'`) | Every `POST /gameplay/{uuid}/action/sleep` call |
 | `CLOCK_ADVANCE` | `log_clock_history` | When all characters sleep and time-end triggers |
 | `RECOVERY` | `log_events` (`log_message LIKE 'recovery%'` or `'counter%'`) | At every time-start per character (Step 26) |
+| `ITEM_ADD` / `ITEM_USE` / `ITEM_DROP` | `log_item_usage` | **v0.35.4** — every ADD/USE/DROP/REMOVE the engine writes to `log_item_usage`; a REMOVE surfaces as `ITEM_DROP` (§ below). Before v0.35.4 the table was written only on USE and read by no endpoint |
 
 > **AWS gap (known, narrowed but not closed):** the AWS Lambda `_assemble_match_logs` still
 > only builds `WEATHER` / `MOVEMENT` / `SLEEP` / `CLOCK_ADVANCE` from the match item's
@@ -1889,6 +2008,43 @@ Sleep actions were not previously logged. This version adds:
    - `clock = currentClock`
 4. **`TimeAdvancementService.sleep()`** — calls `store.logSleep()` immediately after
    `store.setCharacterSleeping()`.
+
+## New: Item Actions and Resource Gains (v0.35.4)
+
+Before v0.35.4 the timeline could show what a move or an event **cost**, but nothing an
+item did left a trace, and nothing showed what an action **gave** — a match where the
+player earned 50 coins had them appear from nowhere in the log.
+
+1. **`log_item_usage` becomes the register of every item action, not just usages.** New
+   columns (`V0.35.4__log_item_actions_and_resource_gains.sql`, SQLite + PostgreSQL,
+   identical): `action` (`ADD`/`USE`/`DROP`/`REMOVE`, default `USE` so pre-v0.35.4 rows
+   read correctly), `id_event` (the event whose effect moved the item; `NULL` when the
+   player acted directly — **no FOREIGN KEY**, because `list_events` is keyed on
+   `(id, id_story)` so `id` alone carries no unique constraint), and `energy`/`food`/
+   `magic`/`coin` — **signed** deltas the action produced (a potion that gives 10 energy
+   and takes 1 magic writes `+10` and `-1`).
+2. **`log_events` gains `energy_gain`/`food_gain`/`magic_gain`/`coin_gain`** — the
+   counterpart of the `energy`/`food`/`magic`/`coin` cost columns v0.35.3 added. Spend and
+   gain are kept as separate columns rather than folded into one signed number, because an
+   event can pay 5 coins and hand back 2, and a single column would report `-3` for a
+   transaction that was never worth `-3`.
+3. **Three new `type` values**: `ITEM_ADD`, `ITEM_USE`, `ITEM_DROP`. A `REMOVE` written by
+   an event effect surfaces as `ITEM_DROP` on the timeline — the raw action survives in the
+   new `itemAction` field for whoever needs the distinction. New entry fields: `idItem`,
+   `itemAction`, `counter`, `idEvent` (on `ITEM_ADD`/`ITEM_DROP` only), plus the item's own
+   `idCard`/`card`.
+4. **Engine rules, identical across Java, Python and AWS**:
+   - An `ADD` refused by `max_per_character` (§2 of
+     [Step34](./Step34_InventoryAndResources.md)) writes **no** log row, and a `REMOVE`
+     that found nothing to take writes none either — neither is a thing that happened.
+   - Resource gains are stamped **per event**: the accumulator is reset before an event's
+     own effects run, so a chained event logs what *it* gave, not what earlier links of the
+     same chain already gave.
+   - Only the **actor's own** resources ride on a log row — the row is character-scoped, so
+     an effect that also touches another character in the same match stays in the HTTP
+     response only, never in that other character's log.
+   - Out of scope, deliberately: a character's starting loadout is a starting state, not an
+     action, so it writes nothing to `log_item_usage`.
 
 ## Implementation Files
 
@@ -1929,7 +2085,34 @@ Sleep actions were not previously logged. This version adds:
 | Unit Test | `test_match_logs_service.py` (Python) + matching controller/admin-controller test additions, extended for pagination/enrichment |
 | Unit Test | `test_match_handler_logs.py` (AWS), extended for pagination/enrichment |
 | Unit Test | `MatchDetailPage.test.jsx` (react-admin) — coverage for "Load more", Card/Character columns, error state |
+| Java Core | `MatchLogsPort` — v0.30.3 adds `ORDER_ASC`/`ORDER_DESC` constants, `order` param on `getMatchLogs`/`getMatchLogsForAdmin`, `order` field on `MatchLogsResult` |
+| Java Core | `MatchLogsService` — v0.30.3 adds `normalizeOrder()` (case-insensitive/trim, unknown → `asc`) and reverses the assembled timeline with `Collections.reverse()` before pagination |
+| Java REST | `MatchLogsController` / Java Admin `MatchAdminController` — v0.30.3 forward `@RequestParam order` |
+| Java REST | `MatchLogsResponse` — v0.30.3 gains `order` field/getter |
+| OpenAPI | `v0.28.7-match-logs-api.yaml` — v0.30.3 adds `order` query param (enum `asc`/`desc`, default `asc`) on both endpoints + `order` property on `MatchLogsResponse` |
+| Python | `match_logs_service.py` — v0.30.3 adds `normalize_order()`, `ORDER_ASC`/`ORDER_DESC` constants, reverse step in `_build_result` |
+| Python | `match_controller.py` / `match_admin_controller.py` — v0.30.3 forward `order` query param |
+| AWS | `lambda/match/handler.py` — v0.30.3 adds `_normalize_logs_order()`, `LOGS_ORDER_ASC`/`LOGS_ORDER_DESC`, reverse step in `_build_match_logs`, `order` in the payload; both routes read `qs.get('order')` |
+| react-game | `src/api/matches.js` — v0.30.3 `getMatchLogs(uuid, token, { limit, cursor, lang, order = 'desc' })` |
+| react-admin | `src/api/matchApi.js` — v0.30.3 `getMatchLogs(uuid, params)` merges `{ order: 'desc', ...params }` |
+| Unit Test | v0.30.3: `MatchLogsServiceTest` nested `order=asc|desc` group (7 tests), `MatchLogsControllerTest`, `MatchAdminControllerTest` (Java); +6 tests in `test_match_logs_service.py` + controller tests (Python, 978 pass total); +6 tests in `tests/test_match_handler_logs.py` (AWS, 603 pass total); new tests in `src/test/matches.test.js` (react-game); updated/new tests in `src/tests/api/matchApi.test.js` (react-admin) |
 | Java DB (seed) | `adapter-postgres/.../dev/R__insert_dev_test_data.sql` — collateral fix, see below |
+| Java DB | `adapter-{sqlite,postgres}/.../V0.35.4__log_item_actions_and_resource_gains.sql` — `action`/`id_event`/`energy`/`food`/`magic`/`coin` on `log_item_usage`; `energy_gain`/`food_gain`/`magic_gain`/`coin_gain` on `log_events` |
+| Java Core | `LogItemUsageEntity`, `LogEventsEntity` — v0.35.4 gain the new columns; new `ItemLogRows` helper |
+| Java Core | `InventoryStorePort`/`InventoryStoreAdapter`, `EventExecutionStorePort`/`EventExecutionStoreAdapter` — v0.35.4 write `action`/`idEvent`/signed deltas on ADD/USE/DROP/REMOVE and the `*_gain` columns on `log_events` |
+| Java Core | `InventoryService`, `EventExecutionService` — v0.35.4 compute the per-actor signed deltas and call the new store methods |
+| Java Core | `MatchLogsStoreAdapter`, `MatchLogsPort` — v0.35.4 assemble `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` entries from `log_item_usage` and fill the `*Gain` fields on every entry type |
+| Java REST | `MatchLogsResponse` — v0.35.4 gains `idItem`/`itemAction`/`counter`/`energyGain`/`foodGain`/`magicGain`/`coinGain` |
+| Python | `models.py`, `event_ports.py`/`event_store_adapter.py`, `inventory_ports.py`/`inventory_store_adapter.py`, `event_service.py`, `inventory_service.py`, `match_logs_service.py` — v0.35.4 mirror the Java changes above |
+| AWS | `lambda/match/inventory.py` — v0.35.4 renames `log_item_usage` to `log_item_action`, adds `ITEM_ACTION_ADD/USE/DROP/REMOVE` constants and `resource_delta()` (sums an effect's stat changes for the acting character only); `lambda/match/handler.py` — assembles `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` entries and the `*Gain` fields from the match item's `itemUsageLog` |
+| OpenAPI | `v0.28.7-match-logs-api.yaml` — v0.35.4 adds `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` to the `type` enum, `idItem`/`itemAction`/`counter`/`energyGain`/`foodGain`/`magicGain`/`coinGain` to `LogEntry` |
+| react-admin | `src/components/match/detail/MatchLogsCard.jsx` — v0.35.4 adds badges + filter chips for `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` (plus the previously uncoloured `COUNTER_ZERO`/`AUTOMATIC_EVENT`), and a **Resources** column showing what each entry took and gave |
+| react-game | `src/features/matches/MatchLogCard.jsx` — v0.35.4 renders `ITEM_*` tiles with the item's own card and every entry's resources as `BonusBadgeList` badges (type/actor/resources on the little tile, resources only on the page variant) |
+| react-game | `src/components/ui/BonusBadgeList.jsx` — v0.35.4 lets a caller override `icon`/`color` per badge, adds an `actor` visual, and keys badges by list position (one list may carry the same stat twice — an event that charged and refunded coins) |
+| react-game | `src/i18n/en.json`, `src/i18n/it.json` — new `matchLog.types.ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` keys |
+| Robot | `code/tests/robot/tests/34_inventory/item_logs.robot` — new suite, 7 tests, backend-agnostic (java-sqlite, python, aws) |
+| Robot | `code/tests/robot/tests/28_movement/match_logs.robot` — extended: every entry must carry the eight resource fields |
+| Unit Test | New/updated tests across all three backends' entity, store-adapter, service and controller layers (see git diff for the full file list) plus `MatchDetailPage.test.jsx` (react-admin) and `MatchLogCard.test.jsx` (react-game) |
 
 ## Collateral fix: PostgreSQL seed weather/location cards had no title
 
@@ -1962,7 +2145,9 @@ being deleted before their `log_movements` rows, so the delete violated the FK.
 ## Future Additions (out of scope v0.28.7)
 
 - `CHOICE_EXECUTED` — from `log_choices_executed` (Step 30)
-- `ITEM_USED` — from `log_item_usage` (Step 37)
+- ~~`ITEM_USED` — from `log_item_usage` (Step 37)~~ — **done, v0.35.4**, and widened to
+  `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` rather than usages alone; see "New: Item Actions and
+  Resource Gains (v0.35.4)" above.
 - `EVENT_TRIGGERED` — from `log_events` (Step 29+, when event logging is added)
 - AWS `RECOVERY` entries and a numeric-id-free (`characterUuid`) field alignment with
   Java/Python — see the AWS gap note in §"Log Data Sources"
@@ -1972,26 +2157,166 @@ being deleted before their `log_movements` rows, so the delete violated the FK.
 ---
 
 
+# Paths Games V0 - Step 0.29.1 (addendum): Movement Availability Verdict on `/info`
+
+## Overview
+
+Every `neighbors[]` entry under `locationsActive[]` on `GET /api/match/{uuid}/info` now
+carries the same **`available`/`reason`** verdict pattern already published for events
+(Step 29 §4). The board can therefore render a locked movement arrow *and say why*, without
+calling `POST /api/gameplay/{uuidMatch}/movements/start` speculatively:
+
+```json
+{ "idLocationTo": 2, "available": false, "reason": "INSUFFICIENT_ENERGY", "...": "..." }
+```
+
+`reason` is `null` when `available` is `true`. Possible values are the same codes already used by
+`movements/start` (§2.1/§3): `CHARACTER_CANNOT_ACT`, `MATCH_NOT_RUNNING`, `COMA`,
+`SLEEPING`, `NOT_A_NEIGHBOR`, `MOVEMENT_CONDITION_NOT_MET`, `OVERWEIGHT`,
+`INSUFFICIENT_ENERGY`, `NOT_ENOUGH_COINS`, `NOT_ENOUGH_FOOD`, `NOT_ENOUGH_MAGIC` (the last
+three, **v0.35.3**), `LOCATION_FULL` — 11 codes as of v0.35.3, up from the original 8.
+
+## A shared, pure checker (mirrors `EventAvailabilityChecker`)
+
+The verdict and the endpoint now call **the same function** — a board that offers a move can
+never be told "no" by the endpoint, and a blocked arrow already knows its cause:
+
+- Java: `core/service/match/MovementAvailabilityChecker.java` — pure static function, no
+  ports, no I/O. Same shape as `EventAvailabilityChecker` (Step 29).
+- Python: `app/core/services/match/movement_availability.py`.
+- AWS: `lambda/match/movements.py`.
+
+`MovementService.startMovement` / `movement_service._start_movement` / the AWS movement
+start handler are refactored to call the checker instead of their own if-chains — same
+logic, same codes, one source of truth. `MatchQueryService` (and its Python/AWS
+counterparts) load the check context **once per request** — character state, weather,
+per-location character counts, registry — and loop the pure checker over the neighbors; no
+port call inside the loop. The reference character is the same one used for the event
+verdict (in single-player: the match creator's).
+
+## Order of checks (contract)
+
+The first check that fails wins; the ordering matches §3 (Validation Order) exactly, most
+explanatory first — coma beats sleep, character state beats edge cost:
+
+`CHARACTER_CANNOT_ACT` → `MATCH_NOT_RUNNING` → `COMA` → `SLEEPING` → (edge not found →
+`NOT_A_NEIGHBOR`) → `MOVEMENT_CONDITION_NOT_MET` → `OVERWEIGHT` → `INSUFFICIENT_ENERGY` →
+`NOT_ENOUGH_COINS` → `NOT_ENOUGH_FOOD` → `NOT_ENOUGH_MAGIC` (the last three, **v0.35.3** — after
+energy, before capacity: a mover who cannot afford the road is told about the road, not about
+how crowded the unreachable place is) → `LOCATION_FULL`.
+
+The energy cost used for the verdict is the same formula as execution (§4): edge cost +
+destination entry cost + weather modifier (safe/unsafe).
+
+## Files changed
+
+| Layer | Path |
+|---|---|
+| Check procedure | `core/service/match/MovementAvailabilityChecker.java` (mirrors `EventAvailabilityChecker`) |
+| Java | `MatchQueryService` (verdict loop), `MovementService.startMovement` (refactored to call the checker) |
+| Python | `app/core/services/match/movement_availability.py`, `movement_service.py`, `match_query_service.py` |
+| AWS | `lambda/match/movements.py` (checker), `lambda/match/handler.py` (verdict loop wired into match-info) |
+| OpenAPI | `adapter-rest/src/main/resources/openapi/v0.19.0-match-creation-api.yaml` — `LocationNeighborInfo` gains `available`/`reason` |
+| DTO | `adapter-rest/.../dto/MatchInfoResponse.java` |
+
+No database/schema change.
+
 ---
+
+# Paths Games V0 - Step 0.29.3 (cross-reference): Forced Movement via Event Effects
+
+## Overview
+
+An event effect (`list_events_effects.id_location`, Step 29 §1/§3) can move a character directly,
+**bypassing this entire document**: no adjacency check (§3 `NOT_A_NEIGHBOR`), no energy cost
+formula (§4), no availability verdict (the addendum above), no location-capacity check. The only
+trace it leaves on the movement system is a **cost-0** `log_movements` row per actual move (AWS: a
+cost-0 entry in the match item's `movementLog`) — written so the Match Logs timeline (§6.2's
+`log_movements` reused by `MatchLogsService`) still surfaces a `MOVEMENT` entry, and so the §14/§15
+fog-of-war visited set (`findVisitedLocationIds` / character positions ∪ `log_movements` from/to)
+stays truthful. A move to the location the character already stands in writes nothing.
+
+Full rules, engine files and Robot coverage: [Step29_NormalEvents.md — "Forced movement
+(v0.29.3)"](./Step29_NormalEvents.md).
+
+---
+
+# Paths Games V0 - Step 0.35.3: Resource Costs on the Movement Edge
+
+## Overview
+
+Until this version `list_locations_neighbors` could only cost energy. v0.35.3 gives the edge
+three more prices — `cost_food`, `cost_magic`, `cost_coin` — checked and paid by
+`MovementAvailabilityChecker`/`MovementService` right alongside the existing energy cost. Full
+schema, engine and API writeup (shared with the events side of the same feature) lives in
+[Step35_ItemsResolution.md §12](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353);
+this addendum records only what changed **in this document's own scope** — §3, §4 and §5, edited
+in place above, plus the summary below.
+
+## What changed
+
+- **§3 Validation Order**: three new checks, `NOT_ENOUGH_COINS` / `NOT_ENOUGH_FOOD` /
+  `NOT_ENOUGH_MAGIC`, inserted after `INSUFFICIENT_ENERGY` and before `LOCATION_FULL` — coin,
+  then food, then magic.
+- **§4 Energy Cost Formula**: the new costs are **not** folded into `totalEnergyCost` and do not
+  share its formula. They come from the edge alone — no `list_locations` entry term, no weather
+  term — while energy keeps summing all three. Deliberately asymmetric: a sum can grow a term
+  later without invalidating an already-priced story; an edge-only value cannot shrink one.
+- **§5.2 `MovementStartResponse`**: gains `foodSpent`, `magicSpent`, `coinSpent`, `newFood`,
+  `newMagic`, `newCoin`.
+- **§5.3 `NeighborCostDto`**: gains `costFood`, `costMagic`, `costCoin` — edge-only, so unlike
+  `totalEnergyCost` there is no breakdown to publish alongside them.
+- **The 0.29.1 addendum above** ("Movement Availability Verdict on `/info`"): the shared checker
+  means the `/info` neighbor verdict grows the same three codes, in the same position, for free.
+
+## Per-backend implementation
+
+- **Java**: `MovementAvailabilityChecker.MoveCheckContext` gains `food`/`magic`/`coin`;
+  `MoveEdgeCheck` gains `costFood`/`costMagic`/`costCoin`; `MovementService.startMovement` reads
+  and deducts them via `MovementStorePort.updateBackpackResources` (new method, mirrors the
+  Step 29 pattern) only when at least one is non-zero.
+- **Python**: `movement_availability.py` (`MoveEdgeCheck`), `movement_service.py`
+  (`_start_movement`, `_locations`), `match_query_service.py` (verdict loop).
+- **AWS**: `lambda/match/movements.py`, `lambda/match/handler.py`.
+- **No new `28_movement` suite, but a Robot suite now exists** — see
+  [Step35 §12.f](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353):
+  `code/tests/robot/tests/29_events/resource_costs.robot` covers the movement half of this
+  contract without ever executing a tolled move (`Every Neighbor Advertises Its Resource Price`
+  reads both `/info` and `/locations`), because a priced edge in the shared seed graph would
+  still perturb the existing `28_movement` suites, which pick "the first neighbor" without
+  checking its cost. That same E2E run also found the `/locations` payload was missing
+  `costFood`/`costMagic`/`costCoin` in Java and Python (§5.3 already documented them — the code
+  had not filled them in yet); both are fixed, see [Step35 §12.g](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353).
+
+---
+
 
 # Version Control
 
-- **Document Version**: 0.28.7
+- **Document Version**: 0.35.4
 
   | Version | Description | Date |
   |---------|-------------|------|
-  | 0.28.0 | Initial Step 28 documentation: movement system (adjacency validation, energy cost formula, 8-code ordered validation, existing log_movements table reused from V0.10.9, V0.28.0 Flyway no-ops, visited-locations derivation), new POST movements/start + GET locations + GET admin/locations endpoints, MovementCard in react-game, movement card in react-admin MatchDetailPage, Robot suite 28_movement 10/10 (399/399 total) | June 25, 2026 |
+  | 0.28.0 | Initial Step 28 documentation: the movement system — adjacency validation, the energy cost formula and the eight ordered refusal codes — plus `POST movements/start`, `GET locations` and its admin twin, reusing the `log_movements` table from V0.10.9. MovementCard in react-game, a movement card in the react-admin match detail, and the `28_movement` Robot suite. | June 25, 2026 |
   | 0.28.2 | Initial documentation: AWS neighbor cardBack desync bugfix (`_story_neighbors` helper applied at 3 gameplay read-points); new Robot suite 29 backend-agnostic regression | June 26, 2026 |
   | 0.28.2 | Initial document — cross-backend bugfix for event-to-location binding | June 26, 2026 |
   | 0.28.3 | One-way neighbor links: `flag_back` enforcement across all backends; `flag_back` column added to §6.4 schema table; new Robot regression suite `neighbor_flag_back.robot` (2 tests, tags: match-info/movement-back/flag-back/step28/regression); react-admin Flag Back form fix and YES/NO badge in entity table | June 28, 2026 |
-  | 0.28.5 | `GET /locations` (player + admin) now resolves a full `card` object per location/neighbor plus `?lang=`, across Java/Python/AWS, no lookup-logic change; new Robot test file `28_movement/location_cards.robot` (5 tests). §13: new interactive world map in react-game (`MapPage`/`Map.jsx`, `mapGraph.js`, `MapCard.jsx`), pan/zoom SVG graph with fog-of-war, opened from the stats card list or closed via a new `onForward` arrow on `Card.jsx`/`LocationCard.jsx`. Test counts: Java BUILD SUCCESS, Python 711 pass, AWS 414 pass, react-game 477 pass, Robot green on all 4 environments | July 11, 2026 |
-  | 0.28.6 | §14: bugfix — v0.28.5's neighbor card enrichment leaked the card of never-visited locations. Neighbor `card`/`idCard` on `GET /locations` now null for unvisited destinations; `/info` keeps the authored LINK card but hides only the LOCATION-card fallback. Java: `MatchQueryService` gained an optional `MovementStorePort` 6th constructor arg; `MovementService.buildLocations` gates on `findVisitedLocationIds`. Python: `match_query_service` gained an optional `movement_store` param; `movement_service._build_locations` gates on `find_visited_location_ids`; `launcher.py` shares one `movement_store_adapter` instance between both services. AWS: `_detail_from_item` computes `visited_loc_ids` (positions ∪ `movementLog`) passed into `_build_locations_active`; `_visited_locations_payload` gates on its existing `seen` set. OpenAPI `v0.28.0-movement-api.yaml` + `v0.19.0-match-creation-api.yaml` document the nullability. New Robot suite `28_movement/location_fog_of_war.robot` (4 tests). Test counts: Java BUILD SUCCESS (+4 tests), Python 715 pass, AWS 416 pass, Robot dry-run 4/4 | July 11, 2026 |
-  | 0.28.6 | §15: `/info` `locations[]` is now VISITED-ONLY on the player endpoint (the admin endpoint keeps every location for the console's runtime table); the synthetic `name` / `currentLocationName` / `players[].locationName` are removed from all three backends and titles now come from card titles; `locationsActive[].neighbors[]` gains `cardLocationFrom` / `cardLocationTo` — the LOCATION card of each edge endpoint, gated on that endpoint's own visited flag (so the move destination's card is `cardLocationFrom` when the player stands on `idLocationTo`, `cardLocationTo` otherwise). Java: `buildDetail` gains an `allLocations` flag, new `resolveLocationCard`, and a per-request card memo; `LocationNeighborInfo` ctor 10 → 12 args. **Python bugfix**: `find_locations_by_story_id` did not project `id_card`/`secure_param`, so `/info` `locationsActive[].card` and `.secureParam` were ALWAYS null in production (`secureParam` now returns `0/1`). AWS: the persisted `name`/`locationName` are stripped on READ (old matches already carry them) and no longer written. react-game: the adapter's neighbor card now falls back to the destination's LOCATION card and `mapGraph` feeds node photos from the new fields (real photos before `/locations` lands); its `flagAlreadyActived` visited fallback — which was near-dead — is replaced by `info.locations[]`. react-admin resolves names via the existing story-context resolvers. New Robot suite `28_movement/match_info_visited_locations.robot` (5 tests). Test counts: Java BUILD SUCCESS, Python 719 pass (92% cov), AWS 419 pass, react-game 484 pass, react-admin 429 pass | July 11, 2026 |
-  | 0.28.7 | Match Logs API: new `GET /api/matches/{uuid}/logs` (owner-only, public port 8042) and `GET /api/admin/matches/{uuid}/logs` (no ownership check, admin port 8044) returning a chronologically-ordered timeline of WEATHER / MOVEMENT / SLEEP / CLOCK_ADVANCE log entries (+ RECOVERY on Java/Python; **not yet on AWS**, see gap note). Sleep actions are now logged: new `clock INTEGER` column added to `log_events` via Flyway `V0.28.7__add_log_events_clock.sql` (postgres + sqlite); `TurnCycleStorePort.logSleep()` + adapter write added; `TimeAdvancementService.sleep()` calls `logSleep()` after `setCharacterSleeping()`. New Java classes: `MatchLogsStorePort`, `MatchLogsStoreAdapter`, `MatchLogsPort`, `MatchLogsService`, `MatchLogsController`, `MatchLogsResponse`. `MatchAdminController` gains admin endpoint + `MatchLogsPort` dependency. Unused `spring-boot-starter-actuator` dependency removed from `core/pom.xml`. Python: same changes mirrored in `time_ports.py`, `time_store_adapter.py`, `time_advancement_service.py`, new `match_logs_service.py`, route added to `match_controller.py` + `match_admin_controller.py`. AWS: new `GetMatchLogsRoute` / `AdminMatchLogsRoute` added to `template/match.yaml` (the API Gateway routes did not exist and the endpoints were unreachable without them); `sleepLog` field added to match item, written in `_sleep()`; new `_get_match_logs`, `_get_admin_match_logs`, `_build_match_logs`, `_ms_to_iso` helpers reading `db_utils.query_by_pk` (not `query_by_sk_prefix`, which does not exist); routes in `lambda_handler`. react-admin: new "Logs" detail tab (`MatchLogsCard.jsx`, `getMatchLogs` in `matchApi.js`, `logs`/`logsError` state in `MatchDetailPage.jsx`), `FooterBar.jsx` version bump. Collateral PostgreSQL bugfix (pre-existing, Step 28): `POST /api/dev/cleanup` violated the `log_movements → gaming_character_instance` FK; fixed via `LogMovementRepository.deleteByMatchIdIn()` (Java) and an equivalent delete in `MatchPersistenceAdapter._delete_character_state` (Python, latent because SQLite doesn't enforce the FK). OpenAPI: `v0.28.7-match-logs-api.yaml`. Robot: new suite `29_match_logs/match_logs.robot` (11 tests), `Get Match Logs` + `Get Admin Match Logs` keywords added to `matches.resource`. Unit tests: `MatchLogsServiceTest` (16 cases, Java core), `MatchLogsControllerTest` (4, Java adapter-rest, new), 3 new admin-controller tests, `TurnCycleStoreAdapterTest.logSleep_savesEventWithNextIdAndClock`, `test_match_logs_service.py` (9, Python) + controller tests, `test_match_handler_logs.py` (9, AWS), `MatchDetailPage.test.jsx` error-state additions (react-admin). Test status: `mvn test` BUILD SUCCESS, Python 736 pass, AWS (unit) 428 pass, react-admin (vitest) 432 pass, Robot LOCAL_JAVA / LOCAL_JAVA_POSTGRES / LOCAL_PYTHON 432/432; **AWS end-to-end not yet verified** — requires a deploy. | July 12, 2026 |
-  | 0.28.7 | Match Logs API **extended** (still v0.28.7, no version bump): both endpoints are now **cursor-paginated** (`?limit=&cursor=&lang=`, same opaque `offset:<n>` base64 token and `{nextCursor, limit, total}` envelope as `GET /api/admin/matches`) and their entries are **enriched** — WEATHER carries its own `idCard`/`card`, MOVEMENT carries the destination location's `idCard`/`card` plus `characterUuid`/`characterName`, SLEEP/RECOVERY carry `characterUuid`/`characterName`. Java: `MatchLogsPort`/`MatchLogsStorePort`/`MatchLogsService`/`CoreConfig` gain the pagination + lookup surface (`MatchLogsService` now depends on `ContentQueryPort`; character template PK is `id_tipo`). Python: `match_logs_service.py` gains `clamp_limit`/`encode_cursor`/`decode_cursor` and a `content_query_service` dependency, wired in `launcher.py`. AWS: `_build_match_logs` split into `_assemble_match_logs` + `_enrich_match_logs` + `_clamp_logs_limit`/`_encode_logs_cursor`/`_decode_logs_cursor`; AWS gap narrows (still no RECOVERY, still no numeric `idCharacterMatch`, but now has card/character enrichment). react-admin: `MatchLogsCard.jsx` gains **Card** and **Character** columns plus a "Load more" button (same accumulate-pages pattern as `MatchesPage`); `getMatchLogs(uuid, params)` takes `{ limit, cursor, lang }`. Collateral PostgreSQL seed fix: weather cards `90010`-`90012`/`91010`-`91012` and tutorial location cards `90002`/`90003` resolved with a null title (missing `list_texts` rows `800`-`802` and missing `id_text_title` on the location cards) — fixed in `R__insert_dev_test_data.sql`; this also fixed pre-existing null titles on the weather and locations APIs on PostgreSQL. OpenAPI `v0.28.7-match-logs-api.yaml` updated. Robot suite `29_match_logs/match_logs.robot` 11 → 16 tests (card/character/pagination coverage); `Get Match Logs`/`Get Admin Match Logs` keywords gain `limit`/`cursor`/`lang` via `Build Logs Params`. Test status: `mvn clean test` BUILD SUCCESS, Python 749 pass, AWS (unit) 436 pass, react-admin (vitest) 437 pass, Robot LOCAL_JAVA / LOCAL_JAVA_POSTGRES / LOCAL_PYTHON 437/437. | July 12, 2026 |
+  | 0.28.5 | `GET /locations`, player and admin alike, now resolves a full `card` object per location and neighbor and accepts `?lang=`, with no change to the lookup logic. §13 adds the interactive world map to react-game: a pan/zoom SVG graph with fog of war, opened from the statistics list. | July 11, 2026 |
+  | 0.28.6 | §14 bugfix: v0.28.5's neighbor card enrichment leaked the card of never-visited locations. Neighbor `card`/`idCard` on `GET /locations` is now null for an unvisited destination, while `/info` keeps the authored LINK card and hides only the LOCATION-card fallback. | July 11, 2026 |
+  | 0.28.6 | §15: `/info` `locations[]` is visited-only on the player endpoint (the admin one keeps every location for the console), the synthetic `name`/`locationName` fields are gone in favour of card titles, and each neighbor now carries the LOCATION card of both edge endpoints, each gated on its own visited flag. Includes a Python bugfix that had been leaving `card` and `secureParam` always null on `/info`. | July 11, 2026 |
+  | 0.28.7 | Match Logs API: `GET /api/matches/{uuid}/logs` (owner-only) and `GET /api/admin/matches/{uuid}/logs` return one chronological timeline of the WEATHER / MOVEMENT / SLEEP / CLOCK_ADVANCE entries, with sleep logged for the first time (`log_events.clock`, Flyway `V0.28.7`) and a Logs tab in react-admin. RECOVERY entries are missing on AWS and the AWS end-to-end run is unverified — see the *Step 0.28.7: Match Logs API* section. | July 12, 2026 |
+  | 0.28.7 | Match Logs API extended, same version: both endpoints are cursor-paginated with the `{nextCursor, limit, total}` envelope `GET /api/admin/matches` already used, and their entries carry the weather or destination card plus the character who acted. See the *Step 0.28.7: Match Logs API* section. | July 12, 2026 |
+  | 0.29.1 | Movement availability verdict on `GET /api/match/{uuid}/info`: `locationsActive[].neighbors[]` gains `available`/`reason`, mirroring the event verdict of Step 29 §4. One pure checker is shared with `POST movements/start`, so the promise and the refusal can never diverge — same eight codes, same order as §3, no schema change. | July 13, 2026 |
+  | 0.29.3 | Cross-reference only: forced movement via `list_events_effects.id_location` bypasses this document's whole check procedure and writes a cost-0 `log_movements` row per move, keeping the §6.2 timeline and the §14/§15 visited set consistent. Documented in [Step29_NormalEvents.md](./Step29_NormalEvents.md). | July 17, 2026 |
+  | 0.30.3 | Match Logs API gains an `order` query param (`asc`/`desc`, default `asc`, retro-compatible) on both endpoints, reversing the timeline **before** pagination cuts it so that same-timestamp entries genuinely invert and a `desc` cursor keeps walking towards older events. Both frontends now ask for `desc`; the server default for callers that omit it stays `asc`. | July 21, 2026 |
+  | 0.33.0 | Documentation-only clarification to §6.3, no code change: the location-entry state machine belongs to Step 33, not Step 32, and it uses the new `gaming_state_locations.flag_visited` rather than `flag_already_actived`. Added the table separating the two notions of "visited" and the starting-location rule that keeps a walk back home from firing `FIRST_ENTRY`. See [Step33_LocationEntryEvents.md](./Step33_LocationEntryEvents.md). | August 12, 2026 |
+  | 0.35.3 | `list_locations_neighbors` gains `cost_food`/`cost_magic`/`cost_coin`, edge-only (no entry/weather term, unlike energy). Three new refusal codes in §3 and the 0.29.1 `/info` verdict; `MovementStartResponse` and `NeighborCostDto` gain the spent/cost fields (§5.2, §5.3). Full writeup in [Step35 §12](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353). | August 23, 2026 |
+  | 0.35.3 | Same version, continued: a Robot suite now covers this contract (`resource_costs.robot`, `29_events`, without ever executing a tolled move), and the E2E run found `/locations`' Java and Python neighbor mapping was still missing the three cost fields §5.3 already documented — both now fixed. Full detail in [Step35 §12.f-g](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353). | August 24, 2026 |
+  | 0.35.4 | Match Logs API gains `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` entries from `log_item_usage`, now the register of every item action rather than usages alone (`action`, `id_event`, signed `energy`/`food`/`magic`/`coin` columns), plus `energy_gain`/`food_gain`/`magic_gain`/`coin_gain` on `log_events` — the counterpart of v0.35.3's cost columns. The eight resource fields are now numbers on every entry, never null (a Python/AWS contract fix). See "New: Item Actions and Resource Gains (v0.35.4)" above. | August 24, 2026 |
+  | 0.35.4 | Same version, continued: react-admin's `MatchLogsCard` gains a Resources column and badges/filters for the three new types (plus the previously uncoloured `COUNTER_ZERO`/`AUTOMATIC_EVENT`); react-game's `MatchLogCard` renders `ITEM_*` entries with the item's own card via `BonusBadgeList`; new Robot suite `item_logs.robot` (7 tests, `34_inventory`, backend-agnostic). | August 24, 2026 |
 
-- **Last Updated**: July 12, 2026
-- **Status**: Complete
+- **Last Updated**: August 24, 2026
+- **Status**: Complete (Step 28 implementation). Step 33 has since shipped and is Complete; §6.3's forward reference to it is no longer a reference to a design-only document.
 
 # < Paths Games />
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

@@ -79,6 +79,9 @@ class MatchLocationState:
     uuid: str
     flag_already_actived: int
     clock_counter: int
+    #: Step 33 — the party has entered this location at least once. Not the same as
+    #: flag_already_actived, which means "this location's counter has been consumed".
+    flag_visited: int = 0
 
 
 @dataclass
@@ -97,6 +100,21 @@ class MatchEventOption:
 
 
 @dataclass
+class ItemEffectPreview:
+    """Step 35 — one list_items_effects row, as the board may read it BEFORE the item is
+    used. Until this version an item's effects reached the client only in the answer of
+    use-item, once the row was already spent: a healing potion and a poison looked the same.
+
+    Statistic and value only. The trait CSVs would need a second lookup to become names,
+    and the effect's narrative card is the story of what happened — it belongs to the
+    answer, not to the promise. The statistic arrives already normalised (``sad``, never
+    ``SADNESS``); the value is the AUTHORED one, before the engine clamps it."""
+
+    statistic: Optional[str] = None
+    value: int = 0
+
+
+@dataclass
 class ItemInstanceInfo:
     """Step 27 — a single item carried by a character inside a match."""
 
@@ -106,6 +124,22 @@ class ItemInstanceInfo:
     weight: int = 0
     amount: int = 1
     state: Optional[str] = None
+    # Step 34 — the item's story card and the card object resolved with it. The id alone
+    # is not enough: react-game never resolves a card by id, it consumes the object.
+    id_card: Optional[int] = None
+    card: Optional[Dict[str, Any]] = None
+    # Step 34 — False means the item is carried only; use-item refuses it.
+    is_consumabile: Optional[bool] = None
+    # Step 35 — what using it promises. Empty (never None) for an item with no effect and
+    # on the masked inventories of the other players.
+    effects: List[ItemEffectPreview] = field(default_factory=list)
+    # v0.35.1 — the three authored quantities, as the board needs to read them BEFORE
+    # acting: how many units may be held (None/0 = no limit), how many one drop puts down
+    # and how many one usage spends (None = one). Reported, not enforced: the gates stay
+    # server-side, and the board uses these to write "2/3" and to grey out a doomed use.
+    max_per_character: Optional[int] = None
+    amount_drop: Optional[int] = None
+    amount_use: Optional[int] = None
 
 
 @dataclass
@@ -133,6 +167,8 @@ class CharacterInstanceInfo:
     location_uuid: Optional[str] = None
     is_sleeping: int = 0
     is_coma: int = 0
+    # Step 30 — the match clock at which the coma opened; 0 while not comatose.
+    clock_in_coma: int = 0
     trait_uuids: List[str] = field(default_factory=list)
     items: List[ItemInstanceInfo] = field(default_factory=list)
     food: int = 0
@@ -153,13 +189,25 @@ class JoinMatchCommand:
 
 @dataclass
 class EventInfo:
-    """Step 27.x — an event available at a player-occupied location, with its
-    resolved visual card (a camelCase dict mirroring CardInfoResponse)."""
+    """An event at a player-occupied location, with its resolved visual card (a camelCase
+    dict mirroring CardInfoResponse).
+
+    Step 29 added ``available``/``reason``: the verdict of the same check procedure that
+    execute-event enforces, so a board offering an action can never be refused, and a
+    blocked one already knows why."""
 
     uuid: str
     type: Optional[str] = None
     end_game: bool = False
+    available: bool = False
+    reason: Optional[str] = None
     card: Optional[Dict[str, Any]] = None
+    # The energy the event costs to trigger (`cost_enery`); 0 when it is free.
+    energy: int = 0
+    # v0.35.3 — what the event costs beyond energy; the board shows the price up front.
+    coin: int = 0
+    food: int = 0
+    magic: int = 0
 
 
 @dataclass
@@ -182,6 +230,16 @@ class LocationNeighborInfo:
     # gated on its OWN visited flag: None until that location has been visited.
     card_location_from: Optional[Dict[str, Any]] = None
     card_location_to: Optional[Dict[str, Any]] = None
+    # Whether the reference character can take this path right now, and — when it cannot — the
+    # MovementError code action/move would answer with (COMA, SLEEPING, INSUFFICIENT_ENERGY,
+    # ...). Same verdict, same code, one source: movement_availability.check.
+    available: bool = True
+    reason: Optional[str] = None
+    # v0.35.3 — what the EDGE costs in resources. Energy sums three sources and is reported
+    # pre-summed; these have one source, so this is exactly what the move will take.
+    cost_food: Optional[int] = 0
+    cost_magic: Optional[int] = 0
+    cost_coin: Optional[int] = 0
 
 
 @dataclass
@@ -229,6 +287,8 @@ class CharacterJoinError(Exception):
     TRAIT_DUPLICATED = "TRAIT_DUPLICATED"
     TRAIT_NOT_COMPATIBLE = "TRAIT_NOT_COMPATIBLE"
     TRAIT_COST_EXCEEDED = "TRAIT_COST_EXCEEDED"
+    # v0.35.2 — the trait is flagged hide_on_start_match and cannot be picked.
+    TRAIT_NOT_SELECTABLE = "TRAIT_NOT_SELECTABLE"
 
     def __init__(self, code: str, message: str):
         super().__init__(message)
@@ -249,11 +309,15 @@ class MatchCreationError(Exception):
     MAINTENANCE_MODE = "MAINTENANCE_MODE"
     STORY_HAS_NO_LOCATIONS = "STORY_HAS_NO_LOCATIONS"
     TURNSTILE_VALIDATION_FAILED = "TURNSTILE_VALIDATION_FAILED"
+    # v0.32.1 — the creator already owns a non-terminal match on this story
+    ACTIVE_MATCH_ALREADY_EXISTS = "ACTIVE_MATCH_ALREADY_EXISTS"
     # Step 23 — trait selection validation on the creator loadout
     TRAIT_NOT_FOUND = "TRAIT_NOT_FOUND"
     TRAIT_DUPLICATED = "TRAIT_DUPLICATED"
     TRAIT_NOT_COMPATIBLE = "TRAIT_NOT_COMPATIBLE"
     TRAIT_COST_EXCEEDED = "TRAIT_COST_EXCEEDED"
+    # v0.35.2 — the trait is flagged hide_on_start_match and cannot be picked.
+    TRAIT_NOT_SELECTABLE = "TRAIT_NOT_SELECTABLE"
 
     def __init__(self, code: str, message: str):
         super().__init__(message)

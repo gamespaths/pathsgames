@@ -6,6 +6,7 @@ import { getStory, getStoryDetail } from '../api/stories'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import { useTranslation } from '../i18n/context'
 import GameBook from '../features/gameplay/GameBook'
+import LoadingCard from '@/components/layout/LoadingCard'
 import ErrorCard from '../components/modals/ErrorCard'
 
 export default function GamePage() {
@@ -89,13 +90,11 @@ export default function GamePage() {
   return (
     <div className="game-page-wrap">
       {matchError && (
-        <ErrorCard status={matchError.status} message={matchError.message} onClose={handleErrorClose} />
+        <ErrorCard status={matchError.status} message={matchError.message} onClose={handleErrorClose} maxWidth="400px" />
       )}
       {loading ? (
-        <div className="game-page-loading">
-          <i className="fas fa-spinner fa-spin me-4" />Loading…
-        </div>
-      ) : (!matchError || matchError.transient) && ( 
+        <LoadingCard story={story} maxWidth="400px" />
+      ) : (!matchError || matchError.transient) && (
         <GameBook gameData={gameData} matchUuid={matchUuid} story={story} storyDetail={storyDetail}
           onReload={reloadGameData} onClose={() => gotoHomePage(null)} onError={handleGameError} />
       )}

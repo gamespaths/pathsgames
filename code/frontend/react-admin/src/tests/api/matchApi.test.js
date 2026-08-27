@@ -107,4 +107,43 @@ describe('matchApi', () => {
     expect(mockPost).toHaveBeenCalledWith('/api/admin/matches/m1/player/p1/changeStatistics', { life: 100 })
     expect(res).toEqual({ status: 'UPDATED' })
   })
+
+  it('getMatchClock calls the admin clock endpoint and returns data', async () => {
+    mockGet.mockResolvedValue({ data: { currentClock: 3, characters: [] } })
+    const res = await matchApi.getMatchClock('m1')
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/matches/m1/clock')
+    expect(res.currentClock).toBe(3)
+  })
+
+  it('getMatchLocations calls the admin movement endpoint and returns data', async () => {
+    mockGet.mockResolvedValue({ data: { locations: [{ idLocation: 1 }] } })
+    const res = await matchApi.getMatchLocations('m1')
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/matches/m1/locations')
+    expect(res.locations).toHaveLength(1)
+  })
+
+  it('getMatchLogs asks for the newest entries first by default', async () => {
+    mockGet.mockResolvedValue({ data: { logs: [], nextCursor: null } })
+    await matchApi.getMatchLogs('m1')
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/matches/m1/logs', {
+      params: { order: 'desc' },
+    })
+  })
+
+  it('getMatchLogs forwards cursor pagination params', async () => {
+    mockGet.mockResolvedValue({ data: { logs: [{ type: 'WEATHER' }], nextCursor: 'n1', total: 1 } })
+    const res = await matchApi.getMatchLogs('m1', { limit: 10, cursor: 'c9', lang: 'en' })
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/matches/m1/logs', {
+      params: { order: 'desc', limit: 10, cursor: 'c9', lang: 'en' },
+    })
+    expect(res.nextCursor).toBe('n1')
+  })
+
+  it('getMatchLogs lets the caller override the order', async () => {
+    mockGet.mockResolvedValue({ data: { logs: [], nextCursor: null } })
+    await matchApi.getMatchLogs('m1', { order: 'asc' })
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/matches/m1/logs', {
+      params: { order: 'asc' },
+    })
+  })
 })

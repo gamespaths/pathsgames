@@ -183,11 +183,11 @@ export default function MatchDetailModal({ detail, onClose }) {
             <p className="pg-card-title mb-1"><i className="fas fa-map me-1" />Locations ({info.locations?.length ?? 0})</p>
             <table className="pg-table" style={{ fontSize: '0.78rem', marginBottom: '1rem' }}>
               <thead>
-                <tr><th>Title</th><th>UUID</th><th>Activated</th><th>Clock</th></tr>
+                <tr><th>Title</th><th>UUID</th><th title="Step 26: this location's counter has been consumed">Activated</th><th title="Step 33: the party has entered this location at least once">Visited</th><th>Clock</th></tr>
               </thead>
               <tbody>
                 {(info.locations ?? []).length === 0 && (
-                  <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--color-ash)' }}>No locations.</td></tr>
+                  <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--color-ash)' }}>No locations.</td></tr>
                 )}
                 {(info.locations ?? []).map(l => {
                   const title = locationTitle(l.uuid)
@@ -196,6 +196,7 @@ export default function MatchDetailModal({ detail, onClose }) {
                       <td>{title || <em style={{ color: 'var(--color-ash)' }}>#{l.idLocation}</em>}</td>
                       <td style={{ fontFamily: 'monospace' }}>{shortUuid(l.uuid)}</td>
                       <td>{l.flagAlreadyActived ? 'yes' : 'no'}</td>
+                      <td>{l.flagVisited ? 'yes' : 'no'}</td>
                       <td>{l.clockCounter ?? 0}</td>
                     </tr>
                   )

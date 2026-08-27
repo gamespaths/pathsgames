@@ -17,7 +17,8 @@ class TimeAdvancementPortRecordsTest {
         TimeAdvancementPort.RecoveryItem item =
                 new TimeAdvancementPort.RecoveryItem("char-a", 20, 5, -2);
         TimeAdvancementPort.SleepResult r =
-                new TimeAdvancementPort.SleepResult("m1", "char-a", true, true, 3, List.of(item));
+                new TimeAdvancementPort.SleepResult("m1", "char-a", true, true, 3, List.of(item),
+                        List.of());
 
         assertEquals("m1", r.matchUuid());
         assertEquals("char-a", r.characterUuid());
@@ -35,7 +36,8 @@ class TimeAdvancementPortRecordsTest {
     @Test
     void sleepResult_withoutTimeEndHasNoRecovery() {
         TimeAdvancementPort.SleepResult r =
-                new TimeAdvancementPort.SleepResult("m1", "char-a", true, false, 2, List.of());
+                new TimeAdvancementPort.SleepResult("m1", "char-a", true, false, 2, List.of(),
+                        List.of());
 
         assertFalse(r.timeEndTriggered());
         assertTrue(r.recovery().isEmpty());

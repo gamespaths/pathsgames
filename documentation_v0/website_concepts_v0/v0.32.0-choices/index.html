@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paths Games v0.32 — Choices · Instagram Kit</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@500;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --color-parchment:#e8d5b0; --color-parchment-light:#f2e6c8; --color-parchment-dark:#c9b48a;
+  --color-brown-deep:#1a0a02; --color-brown-dark:#2e1508; --color-brown-mid:#5c3317;
+  --color-brown-warm:#7a4520; --color-brown-tan:#c08040;
+  --color-gold:#c8960a; --color-gold-light:#e8b830; --color-gold-shine:#ffd700; --color-gold-dark:#9a6f08;
+  --color-ember:#d44a0a;
+  --font-display:'Cinzel Decorative',serif; --font-heading:'Cinzel',serif; --font-body:'Crimson Text',Georgia,serif;
+  --card-title-background:linear-gradient(120deg,var(--color-brown-mid) 0%,var(--color-brown-deep) 100%);
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--color-brown-deep);color:var(--color-parchment);font-family:var(--font-body);
+  background-image:radial-gradient(ellipse at 20% -10%,rgba(200,150,10,.10),transparent 60%),
+                   radial-gradient(ellipse at 90% 10%,rgba(212,74,10,.08),transparent 55%);}
+.wrap{max-width:1180px;margin:0 auto;padding:2.5rem 1.25rem 5rem}
+h1,h2,h3{font-family:var(--font-heading);color:var(--color-gold-light);margin:0}
+h1{font-family:var(--font-display);font-size:clamp(1.8rem,4vw,2.8rem);text-shadow:0 2px 12px rgba(0,0,0,.8)}
+.sub{color:var(--color-parchment-dark);font-style:italic;margin:.6rem 0 0;max-width:60ch}
+.rule{height:1px;background:linear-gradient(90deg,transparent,var(--color-gold-dark),transparent);margin:2.5rem 0}
+h2{font-size:1.35rem;letter-spacing:.04em;text-transform:uppercase;margin-bottom:.35rem}
+.hint{color:var(--color-parchment-dark);font-size:.92rem;margin:.2rem 0 1.4rem}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;background:rgba(0,0,0,.45);
+  border:1px solid var(--color-gold-dark);color:var(--color-gold-light);font-family:var(--font-heading);
+  font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+
+/* ── card system, mirrored from react-game main.css ── */
+.pg-card{position:relative;border-radius:10px;border:2px solid var(--color-gold-dark);
+  background:linear-gradient(145deg,var(--color-brown-warm) 0%,var(--color-brown-dark) 100%);
+  overflow:hidden;display:flex;flex-direction:column;
+  transition:transform .3s ease,box-shadow .3s ease,border-color .3s ease}
+.pg-card--small{width:100px;flex:0 0 100px;aspect-ratio:2/3}
+.pg-card--medium{width:150px;flex:0 0 150px;aspect-ratio:2/3}
+.pg-card:hover{transform:translateY(-3px) scale(1.03);border-color:var(--color-gold);
+  box-shadow:0 10px 28px rgba(0,0,0,.65),0 0 14px rgba(200,150,10,.22);z-index:10}
+.pg-card__img--fill{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s ease}
+.pg-card:hover .pg-card__img--fill{transform:scale(1.07)}
+.pg-card__overlay-body{position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(transparent,rgba(26,10,2,.92) 40%);padding:26px 8px 8px}
+.pg-card__title{font-family:var(--font-heading);color:var(--color-gold-light);font-size:.68rem;margin:0;
+  text-shadow:0 1px 4px rgba(0,0,0,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pg-card--medium .pg-card__title{font-size:.82rem}
+.pg-card__badge{position:absolute;top:6px;right:6px;background:var(--color-gold);color:var(--color-brown-deep);
+  font-size:.5rem;padding:2px 6px;border-radius:4px;text-transform:uppercase;font-family:var(--font-heading);font-weight:700;z-index:2}
+.pg-card__icon{position:absolute;top:6px;left:6px;z-index:2;font-family:var(--font-heading);font-size:.6rem;
+  color:var(--color-gold-light);background:rgba(0,0,0,.55);border:1px solid var(--color-gold-dark);
+  border-radius:999px;padding:1px 6px}
+.pg-card--picked{border-color:var(--color-gold-shine);box-shadow:0 0 18px rgba(255,215,0,.45)}
+.pg-card--locked .pg-card__img--fill{filter:grayscale(.85) brightness(.45)}
+.pg-card--locked::after{content:"LOCKED";position:absolute;inset:auto 0 46%;text-align:center;
+  font-family:var(--font-heading);font-size:.55rem;letter-spacing:.12em;color:var(--color-parchment-dark)}
+
+/* ── story frames (9:16) ── */
+.frames{display:flex;gap:1.15rem;overflow-x:auto;padding:.5rem 0 1.2rem;scroll-snap-type:x mandatory}
+.frame{scroll-snap-align:start;flex:0 0 270px;width:270px;aspect-ratio:9/16;position:relative;
+  border-radius:18px;border:2px solid var(--color-gold-dark);overflow:hidden;
+  background:linear-gradient(160deg,#2e1508 0%,#1a0a02 60%,#120701 100%);
+  display:flex;flex-direction:column;justify-content:space-between;padding:14px 12px}
+.frame__bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.34}
+.frame__veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(26,10,2,.55),rgba(26,10,2,.35) 40%,rgba(26,10,2,.94))}
+.frame>*:not(.frame__bg):not(.frame__veil){position:relative;z-index:2}
+.frame__time{align-self:flex-start;font-family:var(--font-heading);font-size:.58rem;letter-spacing:.1em;
+  color:var(--color-brown-deep);background:var(--color-gold);padding:2px 8px;border-radius:999px;font-weight:700}
+.frame__mid{display:flex;flex-direction:column;gap:.5rem;align-items:center;text-align:center}
+.frame__kicker{font-family:var(--font-heading);font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--color-gold)}
+.frame__hook{font-family:var(--font-display);font-size:1.18rem;line-height:1.2;color:var(--color-parchment-light);
+  text-shadow:0 2px 10px rgba(0,0,0,.9);margin:0}
+.frame__line{font-size:.86rem;line-height:1.4;color:var(--color-parchment);margin:0}
+.frame__cards{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.frame__cta{font-family:var(--font-heading);font-size:.72rem;font-weight:700;letter-spacing:.06em;text-align:center;
+  color:var(--color-brown-deep);background:linear-gradient(120deg,var(--color-gold-light),var(--color-gold));
+  border-radius:8px;padding:8px 6px;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.frame__foot{font-size:.62rem;color:var(--color-parchment-dark);text-align:center;font-style:italic}
+.frame__hud{display:flex;gap:6px;justify-content:center;font-family:var(--font-heading);font-size:.56rem;color:var(--color-gold-light)}
+.frame__hud span{border:1px solid var(--color-gold-dark);border-radius:999px;padding:1px 7px;background:rgba(0,0,0,.5)}
+
+/* ── feed posts ── */
+.posts{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:1.3rem}
+.post{border:2px solid var(--color-gold-dark);border-radius:14px;overflow:hidden;background:var(--color-brown-dark)}
+.post__canvas{position:relative;aspect-ratio:4/5;display:flex;flex-direction:column;justify-content:flex-end;
+  gap:.55rem;padding:16px;background:linear-gradient(160deg,#2e1508,#1a0a02)}
+.post__bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.38}
+.post__veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(26,10,2,.35),rgba(26,10,2,.95))}
+.post__canvas>*:not(.post__bg):not(.post__veil){position:relative;z-index:2}
+.post__title{font-family:var(--font-display);font-size:1.15rem;color:var(--color-parchment-light);margin:0;line-height:1.2}
+.post__body{font-size:.85rem;color:var(--color-parchment);margin:0}
+.post__cards{display:flex;gap:8px;flex-wrap:wrap}
+.post__caption{padding:12px 14px 14px;border-top:1px solid var(--color-brown-mid);background:var(--card-title-background)}
+.post__caption p{margin:0 0 .5rem;font-size:.85rem;line-height:1.5;color:var(--color-parchment)}
+.tags{font-size:.72rem;color:var(--color-gold-light);word-break:break-word}
+
+/* ── script table ── */
+.script{width:100%;border-collapse:collapse;font-size:.88rem}
+.script th,.script td{border-bottom:1px solid var(--color-brown-mid);padding:.6rem .7rem;text-align:left;vertical-align:top}
+.script th{font-family:var(--font-heading);color:var(--color-gold-light);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase}
+.script td:first-child{white-space:nowrap;color:var(--color-gold);font-family:var(--font-heading);font-size:.78rem}
+.script .beat{color:var(--color-parchment-dark);font-style:italic}
+.scroll{overflow-x:auto}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1rem}
+.note{border:1px solid var(--color-brown-mid);border-radius:10px;padding:.9rem 1rem;background:rgba(0,0,0,.25)}
+.note h3{font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem}
+.note p,.note li{font-size:.85rem;color:var(--color-parchment);margin:.2rem 0}
+.note ul{padding-left:1.1rem;margin:.3rem 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="pill">Paths Games · v0.32.0</span>
+  <h1>Choices — Instagram Kit</h1>
+  <p class="sub">A 60-second Instagram Story script and a matching feed set for the release that lets a
+  single event fork the world: <strong>choice resolution</strong>. Visuals reuse the game's small cards,
+  images and English texts straight from <code>tutorial_story.json</code>.</p>
+</header>
+
+<div class="rule"></div>
+
+<h2>1 · The 60-second story script</h2>
+<p class="hint">Six frames · 10 s each · vertical 1080×1920. Hook (0–10 s) → emotion (10–45 s) → CTA (45–60 s).</p>
+
+<div class="frames">
+
+  <!-- HOOK -->
+  <div class="frame">
+    <img class="frame__bg" src="https://images.unsplash.com/photo-1429743305873-d4065c15f93e?q=80&w=1467&auto=format&fit=crop" alt="">
+    <div class="frame__veil"></div>
+    <span class="frame__time">0–10 s · HOOK</span>
+    <div class="frame__mid">
+      <span class="frame__kicker">Every corridor hides a choice</span>
+      <p class="frame__hook">You have three paths.<br>Only one is still open tomorrow.</p>
+      <div class="frame__cards">
+        <div class="pg-card pg-card--small">
+          <img class="pg-card__img--fill" src="https://plus.unsplash.com/premium_photo-1665311551953-5ee597cb9d47?q=80&w=800&auto=format&fit=crop" alt="East">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">East</p></div>
+        </div>
+        <div class="pg-card pg-card--small">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1527172641749-7bb8ee8ad7ca?q=80&w=800&auto=format&fit=crop" alt="West">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">West</p></div>
+        </div>
+        <div class="pg-card pg-card--small">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1603012400802-f067a71529c7?q=80&w=800&auto=format&fit=crop" alt="North">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">North</p></div>
+        </div>
+      </div>
+    </div>
+    <p class="frame__foot">Text on screen only — no voice-over needed.</p>
+  </div>
+
+  <!-- SETUP -->
+  <div class="frame">
+    <img class="frame__bg" src="https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?auto=format&fit=crop&w=1400&q=80" alt="">
+    <div class="frame__veil"></div>
+    <span class="frame__time">10–20 s · WORLD</span>
+    <div class="frame__mid">
+      <span class="frame__kicker">Paths Tutorial</span>
+      <p class="frame__line">A cursed fortress rises from the mist. Brave souls are needed to uncover its dark
+      secrets before the ancient evil consumes the realm.</p>
+      <div class="frame__cards">
+        <div class="pg-card pg-card--medium">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?auto=format&fit=crop&w=900&q=80" alt="Paths Tutorial">
+          <span class="pg-card__badge">Story</span>
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Paths Tutorial</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame__hud"><span>⚡ Energy</span><span>🕐 Turn 3</span><span>🌧 Weather</span></div>
+  </div>
+
+  <!-- TENSION -->
+  <div class="frame">
+    <img class="frame__bg" src="https://plus.unsplash.com/premium_photo-1758367456256-540461c76c98?q=80&w=900&auto=format&fit=crop" alt="">
+    <div class="frame__veil"></div>
+    <span class="frame__time">20–30 s · TENSION</span>
+    <div class="frame__mid">
+      <span class="frame__kicker">Event with choices</span>
+      <p class="frame__hook">The forest opens.<br>The clock does not wait.</p>
+      <p class="frame__line">You pay the energy to step in — then the world asks you what kind of traveller you are.</p>
+      <div class="frame__cards">
+        <div class="pg-card pg-card--small">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1722427690490-fb4013044ef4?q=80&w=800&auto=format&fit=crop" alt="Follow the river">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Follow the river</p></div>
+        </div>
+        <div class="pg-card pg-card--small">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1633065174650-d474cc0e5d04?q=80&w=800&auto=format&fit=crop" alt="Search food">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Search food</p></div>
+        </div>
+        <div class="pg-card pg-card--small pg-card--locked">
+          <img class="pg-card__img--fill" src="https://plus.unsplash.com/premium_photo-1664304417409-ce873a180476?q=80&w=800&auto=format&fit=crop" alt="Forest spirit">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Forest spirit</p></div>
+        </div>
+      </div>
+    </div>
+    <p class="frame__foot">Locked option = a trait or item you never picked up.</p>
+  </div>
+
+  <!-- EMOTION -->
+  <div class="frame">
+    <img class="frame__bg" src="https://images.unsplash.com/photo-1688839951649-d63a8554407e?q=80&w=900&auto=format&fit=crop" alt="">
+    <div class="frame__veil"></div>
+    <span class="frame__time">30–45 s · EMOTION</span>
+    <div class="frame__mid">
+      <span class="frame__kicker">You chose</span>
+      <div class="frame__cards">
+        <div class="pg-card pg-card--medium pg-card--picked">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1688839951649-d63a8554407e?q=80&w=900&auto=format&fit=crop" alt="Abandoned house">
+          <span class="pg-card__badge">Chosen</span>
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Abandoned house</p></div>
+        </div>
+      </div>
+      <p class="frame__hook">The door closes behind you.</p>
+      <p class="frame__line">Effects applied. Story milestone written. There is no going back to the other two.</p>
+    </div>
+    <div class="frame__hud"><span>−2 ⚡</span><span>+1 Key</span><span>Fear ↑</span></div>
+  </div>
+
+  <!-- PROOF -->
+  <div class="frame">
+    <img class="frame__bg" src="https://images.unsplash.com/photo-1742710511506-a0b63b2d6b64?q=80&w=900&auto=format&fit=crop" alt="">
+    <div class="frame__veil"></div>
+    <span class="frame__time">45–52 s · PROOF</span>
+    <div class="frame__mid">
+      <span class="frame__kicker">Same story · different endings</span>
+      <p class="frame__line">Your fortress is not your friend's fortress. Compare the run afterwards — that's the whole game.</p>
+      <div class="frame__cards">
+        <div class="pg-card pg-card--small">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1597495283218-7a81f1744c5c?q=80&w=800&auto=format&fit=crop" alt="Explore hills">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Explore hills</p></div>
+        </div>
+        <div class="pg-card pg-card--small">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1682695795255-b236b1f1267d?q=80&w=800&auto=format&fit=crop" alt="Explore canyon">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Explore canyon</p></div>
+        </div>
+        <div class="pg-card pg-card--small">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1742710511506-a0b63b2d6b64?q=80&w=800&auto=format&fit=crop" alt="Complete story">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Complete story</p></div>
+        </div>
+      </div>
+    </div>
+    <p class="frame__foot">Poll sticker: <em>River or ruins?</em></p>
+  </div>
+
+  <!-- CTA -->
+  <div class="frame">
+    <img class="frame__bg" src="https://images.unsplash.com/photo-1531322804667-8d2907f41406?q=80&w=900&auto=format&fit=crop" alt="">
+    <div class="frame__veil"></div>
+    <span class="frame__time">52–60 s · CTA</span>
+    <div class="frame__mid">
+      <span class="frame__kicker">Paths Games · v0.32</span>
+      <p class="frame__hook">Play the tutorial.<br>Make the first choice that costs you something.</p>
+    </div>
+    <div>
+      <div class="frame__cta">▶ SWIPE UP — PLAY FREE</div>
+      <p class="frame__foot">Link sticker → paths.games · no download, plays in the browser</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="scroll">
+<table class="script">
+  <thead><tr><th>Time</th><th>On screen</th><th>Caption / voice line</th><th>Beat</th></tr></thead>
+  <tbody>
+    <tr><td>0:00–0:10</td><td>Three small cards: East · West · North</td>
+      <td>“You have three paths. Only one is still open tomorrow.”</td><td class="beat">Hook — pattern interrupt, no logo yet</td></tr>
+    <tr><td>0:10–0:20</td><td>Story card “Paths Tutorial”, HUD pills</td>
+      <td>“A cursed fortress rises from the mist. Brave souls are needed.”</td><td class="beat">World — one breath of setting</td></tr>
+    <tr><td>0:20–0:30</td><td>Choice fan, one card greyed out</td>
+      <td>“Step in and the world asks what kind of traveller you are. One door is already closed to you.”</td>
+      <td class="beat">Tension — scarcity, curiosity gap</td></tr>
+    <tr><td>0:30–0:45</td><td>Chosen card glows gold, effects tick in</td>
+      <td>“The door closes behind you. Energy spent. A key gained. Fear rising.”</td>
+      <td class="beat">Emotion — consequence made visible</td></tr>
+    <tr><td>0:45–0:52</td><td>Three outcome cards side by side + poll sticker</td>
+      <td>“Your fortress is not your friend's fortress.”</td><td class="beat">Proof + interaction</td></tr>
+    <tr><td>0:52–0:60</td><td>Gold CTA bar, link sticker</td>
+      <td>“Play the tutorial. Make the first choice that costs you something.”</td><td class="beat">CTA — one verb, one link</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="rule"></div>
+
+<h2>2 · Feed photos</h2>
+<p class="hint">4:5 portrait posts (1080×1350). Post 1 as a single image, posts 2–4 as a carousel in this order.</p>
+
+<div class="posts">
+
+  <div class="post">
+    <div class="post__canvas">
+      <img class="post__bg" src="https://images.unsplash.com/photo-1429743305873-d4065c15f93e?q=80&w=1200&auto=format&fit=crop" alt="">
+      <div class="post__veil"></div>
+      <span class="pill">v0.32 · Choices</span>
+      <h3 class="post__title">Some events don't ask you to act. They ask you to decide.</h3>
+      <div class="post__cards">
+        <div class="pg-card pg-card--small">
+          <img class="pg-card__img--fill" src="https://plus.unsplash.com/premium_photo-1665311551953-5ee597cb9d47?q=80&w=800&auto=format&fit=crop" alt="East">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">East</p></div>
+        </div>
+        <div class="pg-card pg-card--small">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1527172641749-7bb8ee8ad7ca?q=80&w=800&auto=format&fit=crop" alt="West">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">West</p></div>
+        </div>
+        <div class="pg-card pg-card--small">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1603012400802-f067a71529c7?q=80&w=800&auto=format&fit=crop" alt="North">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">North</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="post__caption">
+      <p><strong>Three doors. One turn. No undo.</strong><br>
+      In the new release, an event can stop and hand the story back to you. You pay to open it — then you
+      pick, and the effects land: stats, items, keys, a milestone written into your run.</p>
+      <p>Which one do you take? 👇</p>
+      <p class="tags">#pathsgames #gamebook #textadventure #indiegame #choicesmatter #interactivefiction #webgame #rpg</p>
+    </div>
+  </div>
+
+  <div class="post">
+    <div class="post__canvas">
+      <img class="post__bg" src="https://plus.unsplash.com/premium_photo-1758367456256-540461c76c98?q=80&w=1200&auto=format&fit=crop" alt="">
+      <div class="post__veil"></div>
+      <span class="pill">Carousel 1/3 · Hook</span>
+      <h3 class="post__title">The forest lets you choose how to explore it.</h3>
+      <p class="post__body">Follow the river, hunt for food — or listen to something older than the trees.</p>
+      <div class="post__cards">
+        <div class="pg-card pg-card--small">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1722427690490-fb4013044ef4?q=80&w=800&auto=format&fit=crop" alt="Follow the river">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Follow the river</p></div>
+        </div>
+        <div class="pg-card pg-card--small">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1633065174650-d474cc0e5d04?q=80&w=800&auto=format&fit=crop" alt="Search food">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Search food</p></div>
+        </div>
+        <div class="pg-card pg-card--small pg-card--locked">
+          <img class="pg-card__img--fill" src="https://plus.unsplash.com/premium_photo-1664304417409-ce873a180476?q=80&w=800&auto=format&fit=crop" alt="Forest spirit">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Forest spirit</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="post__caption">
+      <p>Options are checked the moment you pick them — not when they were offered. The world moves while
+      you hesitate. 🌲</p>
+      <p class="tags">#pathsgames #interactivefiction #storygame #indiedev</p>
+    </div>
+  </div>
+
+  <div class="post">
+    <div class="post__canvas">
+      <img class="post__bg" src="https://images.unsplash.com/photo-1688839951649-d63a8554407e?q=80&w=1200&auto=format&fit=crop" alt="">
+      <div class="post__veil"></div>
+      <span class="pill">Carousel 2/3 · Emotion</span>
+      <h3 class="post__title">You picked the abandoned house. The door closed behind you.</h3>
+      <div class="post__cards">
+        <div class="pg-card pg-card--medium pg-card--picked">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1688839951649-d63a8554407e?q=80&w=900&auto=format&fit=crop" alt="Abandoned house">
+          <span class="pg-card__badge">Chosen</span>
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Abandoned house</p></div>
+        </div>
+        <div class="pg-card pg-card--small">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1779633553307-5a0a16773c11?q=80&w=800&auto=format&fit=crop" alt="Protective camp">
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Protective camp</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="post__caption">
+      <p>Shelter costs nothing tonight and everything tomorrow. Every resolved choice leaves a mark in your
+      match log — proof of the run only you played.</p>
+      <p class="tags">#choicesmatter #gamebook #darkfantasy #pathsgames</p>
+    </div>
+  </div>
+
+  <div class="post">
+    <div class="post__canvas">
+      <img class="post__bg" src="https://images.unsplash.com/photo-1742710511506-a0b63b2d6b64?q=80&w=1200&auto=format&fit=crop" alt="">
+      <div class="post__veil"></div>
+      <span class="pill">Carousel 3/3 · CTA</span>
+      <h3 class="post__title">Start with the tutorial. Finish with a story that is yours.</h3>
+      <div class="post__cards">
+        <div class="pg-card pg-card--medium">
+          <img class="pg-card__img--fill" src="https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?auto=format&fit=crop&w=900&q=80" alt="Paths Tutorial">
+          <span class="pg-card__badge">Play</span>
+          <div class="pg-card__overlay-body"><p class="pg-card__title">Paths Tutorial</p></div>
+        </div>
+      </div>
+      <p class="post__body">▶ Free in your browser — link in bio.</p>
+    </div>
+    <div class="post__caption">
+      <p><strong>Play the Paths Tutorial free — link in bio.</strong> Learn energy, movement and traits in ten
+      minutes, then make the first choice that costs you something.</p>
+      <p class="tags">#pathsgames #playfree #browsergame #indiegame #textadventure</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="rule"></div>
+
+<h2>3 · Production notes</h2>
+<div class="notes">
+  <div class="note">
+    <h3>Formats</h3>
+    <ul><li>Story: 1080×1920, keep text inside the middle 80% (stickers eat top/bottom)</li>
+      <li>Feed: 1080×1350 (4:5) — the tallest format the grid still crops well</li>
+      <li>Story frames export at 10 s each; total 60 s</li></ul>
+  </div>
+  <div class="note">
+    <h3>Motion</h3>
+    <ul><li>Cards enter with the game's own hover move: <code>translateY(-3px) scale(1.03)</code></li>
+      <li>Chosen card: gold glow ramp over 0.4 s, others fade to 35%</li>
+      <li>Effect pills (−2 ⚡, +1 Key) tick in one by one, 0.2 s apart</li></ul>
+  </div>
+  <div class="note">
+    <h3>Stickers</h3>
+    <ul><li>Frame 5: poll — <em>River or ruins?</em></li>
+      <li>Frame 6: link sticker, plus “Play free” text</li>
+      <li>No music with lyrics under the 30–45 s emotion beat</li></ul>
+  </div>
+  <div class="note">
+    <h3>Assets &amp; credits</h3>
+    <ul><li>All images and copy come from <code>tutorial_story.json</code> (English texts)</li>
+      <li>Photos: Unsplash — credit per card in the story's <code>linkCopyright</code></li>
+      <li>Colours/fonts: react-game <code>variables.css</code> + <code>main.css</code></li></ul>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

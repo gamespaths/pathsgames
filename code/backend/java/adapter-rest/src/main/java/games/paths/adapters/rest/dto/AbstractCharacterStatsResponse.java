@@ -33,9 +33,14 @@ public abstract class AbstractCharacterStatsResponse {
     private Integer sadMax;
     private Integer weightMax;
     private Integer weight;
+    /** Step 35 — the backpack resources, shared with the summary so /info exposes them too. */
+    private Integer food;
+    private Integer magic;
+    private Integer coin;
     private Long idLocation;
     private Boolean isSleeping;
     private Boolean isComa;
+    private Integer clockInComa;
     private List<String> traitUuids = new ArrayList<>();
     private List<ItemInstanceResponse> items = new ArrayList<>();
 
@@ -59,9 +64,13 @@ public abstract class AbstractCharacterStatsResponse {
         this.sadMax = m.getSadMax();
         this.weightMax = m.getWeightMax();
         this.weight = m.getWeight();
+        this.food = m.getFood();
+        this.magic = m.getMagic();
+        this.coin = m.getCoin();
         this.idLocation = m.getIdLocation();
         this.isSleeping = m.getIsSleeping();
         this.isComa = m.getIsComa();
+        this.clockInComa = m.getClockInComa();
         this.traitUuids = m.getTraitUuids() != null ? new ArrayList<>(m.getTraitUuids()) : new ArrayList<>();
         this.items = new ArrayList<>();
         if (m.getItems() != null) {
@@ -70,6 +79,13 @@ public abstract class AbstractCharacterStatsResponse {
             }
         }
     }
+
+    public Integer getFood() { return food; }
+    public void setFood(Integer food) { this.food = food; }
+    public Integer getMagic() { return magic; }
+    public void setMagic(Integer magic) { this.magic = magic; }
+    public Integer getCoin() { return coin; }
+    public void setCoin(Integer coin) { this.coin = coin; }
 
     public String getUuid() { return uuid; }
     public void setUuid(String uuid) { this.uuid = uuid; }
@@ -107,6 +123,8 @@ public abstract class AbstractCharacterStatsResponse {
     public void setIsSleeping(Boolean isSleeping) { this.isSleeping = isSleeping; }
     public Boolean getIsComa() { return isComa; }
     public void setIsComa(Boolean isComa) { this.isComa = isComa; }
+    public Integer getClockInComa() { return clockInComa; }
+    public void setClockInComa(Integer clockInComa) { this.clockInComa = clockInComa; }
     public List<String> getTraitUuids() { return traitUuids; }
     public void setTraitUuids(List<String> traitUuids) { this.traitUuids = traitUuids != null ? traitUuids : new ArrayList<>(); }
     public List<ItemInstanceResponse> getItems() { return items; }

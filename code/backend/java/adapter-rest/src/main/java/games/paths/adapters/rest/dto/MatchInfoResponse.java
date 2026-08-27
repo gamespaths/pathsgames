@@ -89,6 +89,8 @@ public class MatchInfoResponse {
         private Long idLocation;
         private String uuid;
         private Integer flagAlreadyActived;
+        /** Step 33 — the party has entered this location; not the same as the counter flag. */
+        private Integer flagVisited;
         private Integer clockCounter;
 
         public static LocationStateDto fromModel(MatchLocationState m) {
@@ -96,6 +98,7 @@ public class MatchInfoResponse {
             d.idLocation = m.getIdLocation();
             d.uuid = m.getUuid();
             d.flagAlreadyActived = m.getFlagAlreadyActived();
+            d.flagVisited = m.getFlagVisited();
             d.clockCounter = m.getClockCounter();
             return d;
         }
@@ -106,6 +109,8 @@ public class MatchInfoResponse {
         public void setUuid(String uuid) { this.uuid = uuid; }
         public Integer getFlagAlreadyActived() { return flagAlreadyActived; }
         public void setFlagAlreadyActived(Integer flagAlreadyActived) { this.flagAlreadyActived = flagAlreadyActived; }
+        public Integer getFlagVisited() { return flagVisited; }
+        public void setFlagVisited(Integer flagVisited) { this.flagVisited = flagVisited; }
         public Integer getClockCounter() { return clockCounter; }
         public void setClockCounter(Integer clockCounter) { this.clockCounter = clockCounter; }
     }
@@ -191,13 +196,26 @@ public class MatchInfoResponse {
         public void setSecureParam(Integer secureParam) { this.secureParam = secureParam; }
     }
 
-    /** A neighbor location reachable from a player-occupied location. */
+    /**
+     * A neighbor location reachable from a player-occupied location.
+     *
+     * <p>{@code available} is the verdict of the same check procedure that
+     * {@code POST /api/gameplay/{uuid}/action/move} enforces, and {@code reason} is the error
+     * code that endpoint would return (COMA, SLEEPING, INSUFFICIENT_ENERGY, OVERWEIGHT,
+     * MOVEMENT_CONDITION_NOT_MET, LOCATION_FULL, MATCH_NOT_RUNNING, CHARACTER_CANNOT_ACT).
+     * The board can therefore grey out a path, with its cause, instead of letting the player
+     * find out by being rejected — exactly as {@link EventInfoDto} does for actions.</p>
+     */
     public static class LocationNeighborDto {
         private Long idLocation;
         private String uuid;
         private String direction;
         private Integer flagBack;
         private Integer energyCost;
+        /** v0.35.3 — the edge's resource price; one source, so no breakdown. */
+        private Integer costFood;
+        private Integer costMagic;
+        private Integer costCoin;
         private CardInfoResponse card;
         private Integer secureParam;
         private Long idLocationFrom;
@@ -205,6 +223,8 @@ public class MatchInfoResponse {
         private CardInfoResponse cardBack;
         private CardInfoResponse cardLocationFrom;
         private CardInfoResponse cardLocationTo;
+        private boolean available;
+        private String reason;
 
         public static LocationNeighborDto fromModel(LocationNeighborInfo m) {
             LocationNeighborDto d = new LocationNeighborDto();
@@ -213,6 +233,9 @@ public class MatchInfoResponse {
             d.direction = m.getDirection();
             d.flagBack = m.getFlagBack();
             d.energyCost = m.getEnergyCost();
+            d.costFood = m.getCostFood();
+            d.costMagic = m.getCostMagic();
+            d.costCoin = m.getCostCoin();
             d.card = CardInfoResponse.fromModel(m.getCard());
             d.secureParam = m.getSecureParam();
             d.idLocationFrom = m.getIdLocationFrom();
@@ -220,6 +243,8 @@ public class MatchInfoResponse {
             d.cardBack = CardInfoResponse.fromModel(m.getCardBack());
             d.cardLocationFrom = CardInfoResponse.fromModel(m.getCardLocationFrom());
             d.cardLocationTo = CardInfoResponse.fromModel(m.getCardLocationTo());
+            d.available = m.isAvailable();
+            d.reason = m.getReason();
             return d;
         }
 
@@ -233,6 +258,12 @@ public class MatchInfoResponse {
         public void setFlagBack(Integer flagBack) { this.flagBack = flagBack; }
         public Integer getEnergyCost() { return energyCost; }
         public void setEnergyCost(Integer energyCost) { this.energyCost = energyCost; }
+        public Integer getCostFood() { return costFood; }
+        public void setCostFood(Integer costFood) { this.costFood = costFood; }
+        public Integer getCostMagic() { return costMagic; }
+        public void setCostMagic(Integer costMagic) { this.costMagic = costMagic; }
+        public Integer getCostCoin() { return costCoin; }
+        public void setCostCoin(Integer costCoin) { this.costCoin = costCoin; }
         public CardInfoResponse getCard() { return card; }
         public void setCard(CardInfoResponse card) { this.card = card; }
         public Integer getSecureParam() { return secureParam; }
@@ -247,14 +278,32 @@ public class MatchInfoResponse {
         public void setCardLocationFrom(CardInfoResponse cardLocationFrom) { this.cardLocationFrom = cardLocationFrom; }
         public CardInfoResponse getCardLocationTo() { return cardLocationTo; }
         public void setCardLocationTo(CardInfoResponse cardLocationTo) { this.cardLocationTo = cardLocationTo; }
+        public boolean isAvailable() { return available; }
+        public void setAvailable(boolean available) { this.available = available; }
+        public String getReason() { return reason; }
+        public void setReason(String reason) { this.reason = reason; }
     }
 
-    /** An event available at a player-occupied location, with its card. */
+    /**
+     * An event at a player-occupied location, with its card.
+     *
+     * <p>{@code available} (Step 29) is the verdict of the same check procedure that
+     * {@code POST /api/gameplay/{uuid}/action/execute-event} enforces, and {@code reason}
+     * is the error code that endpoint would return. The board can therefore render a locked
+     * action, with its cause, without guessing.</p>
+     */
     public static class EventInfoDto {
         private String uuid;
         private String type;
         private boolean endGame;
         private CardInfoResponse card;
+        private boolean available;
+        private String reason;
+        private int energy;
+        /** v0.35.3 — what the event costs beyond energy. */
+        private int coin;
+        private int food;
+        private int magic;
 
         public static EventInfoDto fromModel(EventInfo m) {
             EventInfoDto d = new EventInfoDto();
@@ -262,6 +311,12 @@ public class MatchInfoResponse {
             d.type = m.getType();
             d.endGame = m.isEndGame();
             d.card = CardInfoResponse.fromModel(m.getCard());
+            d.available = m.isAvailable();
+            d.reason = m.getReason();
+            d.energy = m.getEnergy();
+            d.coin = m.getCoin();
+            d.food = m.getFood();
+            d.magic = m.getMagic();
             return d;
         }
 
@@ -273,5 +328,18 @@ public class MatchInfoResponse {
         public void setEndGame(boolean endGame) { this.endGame = endGame; }
         public CardInfoResponse getCard() { return card; }
         public void setCard(CardInfoResponse card) { this.card = card; }
+        public boolean isAvailable() { return available; }
+        public void setAvailable(boolean available) { this.available = available; }
+        public String getReason() { return reason; }
+        public void setReason(String reason) { this.reason = reason; }
+        /** The energy the event costs to trigger; 0 when it is free. */
+        public int getEnergy() { return energy; }
+        public void setEnergy(int energy) { this.energy = energy; }
+        public int getCoin() { return coin; }
+        public void setCoin(int coin) { this.coin = coin; }
+        public int getFood() { return food; }
+        public void setFood(int food) { this.food = food; }
+        public int getMagic() { return magic; }
+        public void setMagic(int magic) { this.magic = magic; }
     }
 }

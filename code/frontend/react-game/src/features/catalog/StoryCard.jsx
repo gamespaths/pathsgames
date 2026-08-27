@@ -1,15 +1,30 @@
 import { useTranslation } from '../../i18n/context'
 
-export default function StoryCard({ story, onClick, badge }) {
+export default function StoryCard({ story, onClick, badge, pending = false }) {
   const { t } = useTranslation()
   return (
-    <div className="pg-card pg-card--home story-netflix-card" onClick={() => onClick(story)}>
+    <div
+      className={`pg-card pg-card--home story-netflix-card${pending ? ' story-card--pending' : ''}`}
+      onClick={() => onClick(story)}
+    >
       {badge===null &&
          <span className="story-card-badge">{story.category}</span>
       }
+      {/* v0.32.1 — the match list is still loading for this click: show it, so the
+          player waits instead of clicking again. */}
+      {pending && (
+        <span className="story-card-pending-overlay">
+          <i className="fas fa-spinner fa-spin" />
+        </span>
+      )}
       {badge === 'active' && (
         <span className="story-card-status story-card-status--active">
           <i className="fas fa-play me-1" />{t('home.badgeResume')}
+        </span>
+      )}
+      {badge === 'paused' && (
+        <span className="story-card-status story-card-status--paused">
+          <i className="fas fa-pause me-1" />{t('home.badgePaused')}
         </span>
       )}
       {badge === 'completed' && (

@@ -119,10 +119,15 @@ export default function StartMatchFlow({ story, config, storyId }) {
       setPhase('created')
     } catch (e) {
       const apiError = e?.response?.data?.error
-      setErrorMsg(apiError || e?.message || '')
+      // v0.32.1 — the backend refuses a second match on a story the player is
+      // already playing. It is a rule, not a failure: say it in plain words
+      // instead of showing the raw error code.
+      setErrorMsg(apiError === 'ACTIVE_MATCH_ALREADY_EXISTS'
+        ? t('startMatch.errorActiveMatch')
+        : (apiError || e?.message || ''))
       setPhase('error')
     }
-  }, [story, config, user, gate.token, waitWithCountdown])
+  }, [story, config, user, gate.token, waitWithCountdown, t])
 
   // Timed phases: 'starting' counts down then creates the match; 'created'
   // counts down then enters the game. Both reuse the same configured delay.

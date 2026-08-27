@@ -235,30 +235,107 @@ INSERT OR IGNORE INTO list_weather_rules (id, id_story, id_text_name, probabilit
 (90002, 9001, 801, 35, 0, 1);
 INSERT OR IGNORE INTO list_weather_rules (id, id_story, id_text_name, probability, delta_energy, is_active) VALUES
 (90003, 9001, 802, 15, -1, 1);
+-- Step 29: inactive, so the roll at time-start can never land on it. An event conditioned on
+-- this weather is blocked until an effect sets it — in every run, not just the lucky ones.
+INSERT OR IGNORE INTO list_weather_rules (id, id_story, id_text_name, probability, delta_energy, is_active) VALUES
+(90004, 9001, 802, 0, 0, 0);
 
 -- ── Story 1 Events ──────────────────────────────────────────────
-INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, event_type, energy_cost, flag_end_time) VALUES
+INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES
 (90001, 9001, 500, 500, 'FIRST', 0, 0);
-INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, event_type, energy_cost, flag_end_time) VALUES
+INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES
 (90002, 9001, 501, 501, 'FIRST', 0, 0);
-INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, event_type, energy_cost, flag_end_time) VALUES
+INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES
 (90003, 9001, 502, 502, 'FIRST', 0, 0);
-INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, event_type, energy_cost, flag_end_time) VALUES
+INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES
 (90004, 9001, 503, 503, 'NORMAL', 1, 0);
-INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, event_type, energy_cost, flag_end_time) VALUES
+INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES
 (90005, 9001, 504, 504, 'AUTOMATIC', 0, 1);
 
 -- ── Story 1 Event Effects ───────────────────────────────────────
-INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, effect_type, effect_value) VALUES
+INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, statistics, value) VALUES
 (90001, 9001, 90001, 'exp', 2);
-INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, effect_type, effect_value) VALUES
+INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, statistics, value) VALUES
 (90002, 9001, 90002, 'exp', 3);
-INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, effect_type, effect_value) VALUES
+INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, statistics, value) VALUES
 (90003, 9001, 90003, 'exp', 3);
-INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, effect_type, effect_value) VALUES
+INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, statistics, value) VALUES
 (90004, 9001, 90004, 'energy', -1);
-INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, effect_type, effect_value) VALUES
+INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, statistics, value) VALUES
 (90005, 9001, 90005, 'exp', 15);
+
+-- ── Step 29 Events — player-triggered actions ───────────────────
+-- Bound to the START location (90001, Welcome Hall) so a fresh match already has
+-- executable actions on GET /match/{uuid}/info. One event per branch of the check
+-- procedure, plus the "unlocker" that makes each blocked one available.
+-- Location 90005 (Choice Arena) is used for the WRONG_LOCATION case.
+INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location,
+                                   type, cost_enery, cost_coin, flag_end_time, id_event_next,
+                                   id_weather, registry_key_condition, registry_value_condition,
+                                   id_item_condition, id_class_condition) VALUES
+(90010, 9001, 90001, 503, 503, 90001, 'NORMAL', 1,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- plain: always available
+(90011, 9001, 90001, 503, 503, 90001, 'ONCE',   0,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- ONCE -> ONCE_ALREADY_CONSUMED on the 2nd call
+(90012, 9001, 90001, 503, 503, 90001, 'NORMAL', 999, 0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- NOT_ENOUGH_ENERGY
+(90013, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 999, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- NOT_ENOUGH_COINS
+(90014, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 0, NULL,  NULL, 'STEP29_GATE', 'OPEN',  NULL,  NULL),   -- REGISTRY_CONDITION_NOT_MET, until 90020 runs
+(90015, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 0, NULL,  NULL, NULL,           NULL,  90002,  NULL),   -- ITEM_CONDITION_NOT_MET, until 90021 grants item 90002
+(90016, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 0, NULL,  NULL, NULL,           NULL,   NULL, 90002),   -- CLASS_CONDITION_NOT_MET unless the player picked class 90002
+(90017, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 0, NULL, 90004, NULL,           NULL,   NULL,  NULL),   -- WEATHER_CONDITION_NOT_MET, until 90022 sets weather 90003
+(90018, 9001, 90001, 503, 503, 90005, 'NORMAL', 0,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- WRONG_LOCATION (Choice Arena, not the start)
+(90019, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 0, 90023, NULL, NULL,           NULL,   NULL,  NULL),   -- chain head -> 90023
+(90020, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- unlocks 90014 (writes the registry key)
+(90021, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- unlocks 90015 (grants item 90002)
+(90022, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- unlocks 90017 (sets weather 90004)
+(90023, 9001, 90001, 503, 503, NULL,  'NORMAL', 0,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- chain tail: no location, so it is NOT listed on /info
+(90024, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 1, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- flag_end_time: forces a time end
+(90025, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- traits + characteristics
+(90026, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- resources: food/magic/coin
+(90027, 9001, 90001, 503, 503, 90001, 'AUTOMATIC', 0, 0, 0, NULL, NULL, NULL,           NULL,   NULL,  NULL),   -- EVENT_NOT_EXECUTABLE_TYPE
+(90028, 9001, 90001, 503, 503, 90001, 'NORMAL',    2, 0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL);
+
+-- v0.35.3 resource costs: the twins of 90013 (cost_coin 999) for the two new refusals.
+INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_description,
+                                   id_specific_location, type, cost_enery, cost_coin,
+                                   cost_food, cost_magic, flag_end_time) VALUES
+(90053, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 999, 0, 0),
+(90054, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 0, 999, 0),
+(90055, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 1,   2,   1, 0);   -- v0.29.3 teleporter: its effect moves the actor to 90006
+
+-- ── Step 29 Event Effects — one per effect kind ─────────────────
+-- id_card = 90001 makes each row carry a narrative card, which is what the board renders
+-- (the EFFECT's card, not the event's).
+INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target,
+                                           traits_to_add, traits_to_remove, target_class,
+                                           id_item_target, item_action,
+                                           key_to_add, key_value_to_add,
+                                           characteristic_to_add, characteristic_to_remove, id_weather) VALUES
+-- 90010 plain: stats on the actor only, and one on everybody in the location (INV-27).
+(90010, 9001, 90010, 90001, 'exp',    5, 'ONLY_ONE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(90011, 9001, 90010, 90001, 'life',  -2, 'ALL',      NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+-- 90011 ONCE
+(90012, 9001, 90011, 90001, 'exp',    7, 'ONLY_ONE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+-- 90019 chain head, and 90023 its tail: exp accumulates across the chain.
+(90013, 9001, 90019, 90001, 'exp',    1, 'ONLY_ONE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(90014, 9001, 90023, 90001, 'exp',    2, 'ONLY_ONE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+-- 90020 registry writer: unlocks 90014.
+(90015, 9001, 90020, 90001, NULL,     0, 'ONLY_ONE', NULL, NULL, NULL, NULL, NULL, 'STEP29_GATE', 'OPEN', NULL, NULL, NULL),
+-- 90021 item granter: unlocks 90015.
+(90016, 9001, 90021, 90001, NULL,     0, 'ONLY_ONE', NULL, NULL, NULL, 90002, 'ADD', NULL, NULL, NULL, NULL, NULL),
+-- 90022 weather setter: unlocks 90017. Here id_weather is an EFFECT.
+(90017, 9001, 90022, 90001, NULL,     0, 'ONLY_ONE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 90004),
+-- 90024 time end
+(90018, 9001, 90024, 90001, 'energy', -1, 'ONLY_ONE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+-- 90025 traits (csv of trait ids) + characteristics
+(90019, 9001, 90025, 90001, NULL,     0, 'ONLY_ONE', '90001', '90004', NULL, NULL, NULL, NULL, NULL, 'BRAVE', NULL, NULL),
+-- 90026 backpack resources
+(90020, 9001, 90026, 90001, 'food',   3, 'ONLY_ONE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(90021, 9001, 90026, 90001, 'magic',  2, 'ONLY_ONE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(90022, 9001, 90026, 90001, 'coin',   9, 'ONLY_ONE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
+-- 90028 teleporter (v0.29.3): moves the actor to the Weather Observatory (90006), which is NOT
+-- a neighbor of the start location — no checks, no movement cost, only the event's energy cost.
+INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, id_card, value, target, id_location) VALUES
+(90023, 9001, 90028, 90001, 0, 'ONLY_ONE', 90006);
 
 -- ── Story 1 Choices ─────────────────────────────────────────────
 INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, is_otherwise, is_progress) VALUES
@@ -275,14 +352,143 @@ INSERT OR IGNORE INTO list_choices_conditions (id, id_story, id_choice, conditio
 (90001, 9001, 90003, 'statistics', 'int', '1', '>');
 
 -- ── Story 1 Choice Effects ──────────────────────────────────────
-INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, statistics, value) VALUES
 (90001, 9001, 90001, 'exp', 5);
-INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, statistics, value) VALUES
 (90002, 9001, 90002, 'life', -1);
-INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, statistics, value) VALUES
 (90003, 9001, 90003, 'exp', 3);
-INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, statistics, value) VALUES
 (90004, 9001, 90004, 'exp', 10);
+
+-- ── Step 31 Choice pack — the choice-engine test-bed ────────────
+-- Two choice-events at the START location (90001): executing them answers
+-- CHOICES_PENDING — cost paid, marker written, effects withheld. Event 90030 even
+-- carries an effect row that must NEVER run in Step 31; 90031 is ONCE.
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90180, 9001, 610, 'en', 'Crossroads Trial', 'A hooded figure blocks the path and fans out four cards. "Every road costs something. Choose — or walk away; the toll stays paid."');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90181, 9001, 610, 'it', 'La Prova del Bivio', 'Una figura incappucciata sbarra la strada e apre quattro carte a ventaglio. "Ogni strada ha un prezzo. Scegli — o vattene: il pedaggio resta pagato."');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90182, 9001, 611, 'en', 'Sealed Gate', 'A gate that opens for each traveler exactly once. Beyond it, two paths.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90183, 9001, 611, 'it', 'Il Cancello Sigillato', 'Un cancello che si apre una sola volta per viandante. Oltre, due sentieri.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90184, 9001, 612, 'en', 'Take the plain road', 'No requirement: anyone may walk it.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90185, 9001, 612, 'it', 'Prendi la via semplice', 'Nessun requisito: chiunque può percorrerla.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90186, 9001, 613, 'en', 'Recite the ancient runes', 'Only a prodigious mind (INT above 99) can read them.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90187, 9001, 613, 'it', 'Recita le rune antiche', 'Solo una mente prodigiosa (INT oltre 99) può leggerle.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90188, 9001, 614, 'en', 'Bargain with the figure', 'The gate key OR a beating heart will do.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90189, 9001, 614, 'it', 'Contratta con la figura', 'Basta la chiave del cancello O un cuore che batte.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90190, 9001, 615, 'en', 'Shrug and improvise', 'The fallback nobody can be denied.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90191, 9001, 615, 'it', 'Alza le spalle e improvvisa', 'Il ripiego che non si nega a nessuno.');
+
+INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time) VALUES
+(90030, 9001, 90001, 610, 610, 90001, 'NORMAL', 2, 0, 0);
+INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time) VALUES
+(90031, 9001, 90001, 611, 611, 90001, 'ONCE', 1, 0, 0);
+
+INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES
+(90024, 9001, 90030, 90001, 'exp', 99, 'ONLY_ONE');
+
+INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, is_otherwise, is_progress, logic_operator, limit_dex) VALUES
+(90010, 9001, 90030, 2, 612, 612, 0, 0, 'AND', NULL);
+INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, is_otherwise, is_progress, logic_operator, limit_dex) VALUES
+(90011, 9001, 90030, 1, 613, 613, 0, 0, 'AND', NULL);
+INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, is_otherwise, is_progress, logic_operator, limit_dex) VALUES
+(90012, 9001, 90030, 3, 614, 614, 0, 0, 'OR', NULL);
+INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, is_otherwise, is_progress, logic_operator, limit_dex) VALUES
+(90013, 9001, 90030, 4, 615, 615, 1, 0, 'AND', 99);
+INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, is_otherwise, is_progress, logic_operator, limit_dex) VALUES
+(90014, 9001, 90031, 1, 612, 612, 0, 0, 'AND', NULL);
+INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, is_otherwise, is_progress, logic_operator, limit_dex) VALUES
+(90015, 9001, 90031, 2, 613, 613, 0, 0, 'AND', 99);
+
+INSERT OR IGNORE INTO list_choices_conditions (id, id_story, id_choice, condition_type, condition_key, condition_value, condition_operator) VALUES
+(90002, 9001, 90011, 'statistics', 'int', '99', '>');
+INSERT OR IGNORE INTO list_choices_conditions (id, id_story, id_choice, condition_type, condition_key, condition_value, condition_operator) VALUES
+(90003, 9001, 90012, 'KEYS', 'STEP29_GATE', 'OPEN', '=');
+INSERT OR IGNORE INTO list_choices_conditions (id, id_story, id_choice, condition_type, condition_key, condition_value, condition_operator) VALUES
+(90004, 9001, 90012, 'statistics', 'life', '0', '>');
+
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, statistics, value) VALUES
+(90005, 9001, 90010, 'energy', 1);
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, statistics, value) VALUES
+(90006, 9001, 90011, 'life', 1);
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, statistics, value) VALUES
+(90007, 9001, 90012, 'exp', 2);
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, statistics, value) VALUES
+(90008, 9001, 90014, 'energy', 1);
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, statistics, value) VALUES
+(90009, 9001, 90015, 'life', 1);
+
+-- ── Step 32 Resolution pack — what a selected option does ───────
+-- Event 90032 at the START location is the resolution test-bed: opening it costs 3,
+-- resolving any of its options costs nothing at all. 90033 is the outcome event one
+-- option runs — it lives nowhere and costs 9, proving a consequence is never charged.
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90192, 9001, 616, 'en', 'The Fork', 'The road splits.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90193, 9001, 616, 'it', 'Il Bivio', 'La strada si divide.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90194, 9001, 617, 'en', 'Beyond The Fork', 'The lantern left something behind.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90195, 9001, 617, 'it', 'Oltre Il Bivio', 'La lanterna ha lasciato qualcosa.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90196, 9001, 618, 'en', 'Press on alone', 'Costs nothing to choose.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90197, 9001, 618, 'it', 'Prosegui da solo', 'Scegliere non costa nulla.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90198, 9001, 619, 'en', 'Follow the lantern', 'It grants, it moves, it changes the sky.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90199, 9001, 619, 'it', 'Segui la lanterna', 'Dona, sposta, cambia il cielo.');
+-- The narratives: withheld while the options are pending, revealed by the resolution.
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90200, 9001, 620, 'en', 'You walk on, and the fork closes behind you.', NULL);
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90201, 9001, 620, 'it', 'Prosegui, e il bivio si chiude alle tue spalle.', NULL);
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90202, 9001, 621, 'en', 'The lantern leads you into the grove.', NULL);
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90203, 9001, 621, 'it', 'La lanterna ti conduce nel bosco.', NULL);
+
+INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_description,
+                                   id_specific_location, type, cost_enery, cost_coin, flag_end_time) VALUES
+(90032, 9001, 90001, 616, 616, 90001, 'NORMAL', 3, 0, 0);
+INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_description,
+                                   id_specific_location, type, cost_enery, cost_coin, flag_end_time) VALUES
+(90033, 9001, 90001, 617, 617, NULL, 'NORMAL', 9, 0, 0);
+
+INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES
+(90025, 9001, 90033, 90001, 'exp', 7, 'ONLY_ONE');
+
+INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description,
+                                    id_text_narrative, id_event_torun, is_otherwise, is_progress,
+                                    logic_operator, limit_dex) VALUES
+(90020, 9001, 90032, 1, 618, 618, 620, NULL, 0, 1, 'AND', NULL);
+INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description,
+                                    id_text_narrative, id_event_torun, is_otherwise, is_progress,
+                                    logic_operator, limit_dex) VALUES
+(90021, 9001, 90032, 2, 619, 619, 621, 90033, 0, 0, 'AND', NULL);
+INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description,
+                                    id_text_narrative, id_event_torun, is_otherwise, is_progress,
+                                    logic_operator, limit_dex) VALUES
+(90022, 9001, 90032, 3, 613, 613, NULL, NULL, 0, 0, 'AND', 99);
+
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, id_card, statistics, value) VALUES
+(90020, 9001, 90020, 90001, 'exp', 5);
+-- One row, every kind of effect: a registry key, an item, a forced move to the Hidden
+-- Grove (90003, which no neighbor edge reaches), and the inactive Arcane Storm (90004).
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, id_card, key, value_to_add,
+                                            id_item_target, item_action, id_location, id_weather) VALUES
+(90021, 9001, 90021, 90001, 'STEP32_GATE', 'OPEN', 90001, 'ADD', 90003, 90004);
 
 -- ── Story 1 Global Random Events ────────────────────────────────
 INSERT OR IGNORE INTO list_global_random_events (id, id_story, probability) VALUES
@@ -454,15 +660,15 @@ INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_te
 (91012, 9002, 91003, 111, 111, 1, 8);
 
 -- ── Story 2 Events ──────────────────────────────────────────────
-INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, event_type, energy_cost, flag_end_time) VALUES
+INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES
 (91001, 9002, 500, 500, 'NORMAL', 2, 0);
-INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, event_type, energy_cost, flag_end_time) VALUES
+INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES
 (91002, 9002, 501, 501, 'NORMAL', 1, 0);
-INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, event_type, energy_cost, flag_end_time) VALUES
+INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES
 (91003, 9002, 502, 502, 'FIRST', 0, 0);
-INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, event_type, energy_cost, flag_end_time) VALUES
+INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES
 (91004, 9002, 503, 503, 'NORMAL', 1, 0);
-INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, event_type, energy_cost, flag_end_time) VALUES
+INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES
 (91005, 9002, 504, 504, 'AUTOMATIC', 0, 1);
 
 -- ── Story 2 Items ───────────────────────────────────────────────
@@ -494,15 +700,19 @@ INSERT OR IGNORE INTO list_creator (id, id_story, creator_name, link) VALUES
 def seed_dev_data(engine):
     """Insert seed/demo data for development. Idempotent via INSERT OR IGNORE."""
     from sqlalchemy import text as sql_text
+    # Comment lines go first, then the split: a prose ';' inside a comment would otherwise cut
+    # the following INSERT in half. Statements keep their trailing inline comments, which SQLite
+    # accepts.
+    without_comments = "\n".join(
+        line for line in SEED_SQL.split("\n") if not line.strip().startswith("--")
+    )
     with engine.connect() as conn:
         # Execute each statement separately (SQLite doesn't support multi-statement exec)
-        for statement in SEED_SQL.split(";"):
+        for statement in without_comments.split(";"):
             stmt = statement.strip()
-            if stmt and not stmt.startswith("--"):
-                lines = [l for l in stmt.split("\n") if l.strip() and not l.strip().startswith("--")]
-                if lines:
-                    try:
-                        conn.execute(sql_text(stmt))
-                    except Exception:
-                        pass  # OR IGNORE handles duplicates, unexpected errors are silently skipped
+            if stmt:
+                try:
+                    conn.execute(sql_text(stmt))
+                except Exception:
+                    pass  # OR IGNORE handles duplicates, unexpected errors are silently skipped
         conn.commit()

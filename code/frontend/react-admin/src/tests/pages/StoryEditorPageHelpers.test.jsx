@@ -177,6 +177,11 @@ describe('StoryEditorPageHelpers', () => {
       expect(d).toMatchObject({ flagBack: 1 })
       expect(d.direction).toBeDefined()
     })
+    it('a new item shows its effects unless the author unticks the box (Step 35)', () => {
+      // An unticked checkbox is written as an explicit 0, so without this default every
+      // item created from the form would be born secret.
+      expect(getNewEntityDefaults('items')).toMatchObject({ flagShowEffects: 1 })
+    })
     it('returns null for other tabs', () => {
       expect(getNewEntityDefaults('difficulties')).toBeNull()
     })

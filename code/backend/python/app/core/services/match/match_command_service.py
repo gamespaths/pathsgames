@@ -104,6 +104,18 @@ class MatchCommandService(MatchCommandPort):
             )
         keys = self.story_read_port.find_keys_by_story_id(story["id"]) or []
 
+        # v0.32.1 — one active match per user and story. It runs last, after every
+        # 404 and 400: a malformed request keeps reporting its own error whatever
+        # the state is, and the state conflict is the only thing left to refuse.
+        # Still before anything is written — a rejected creation persists nothing.
+        if self.match_persistence_port.has_active_match_for_story(
+            user["id"], story["id"], match_statuses.ACTIVE
+        ):
+            raise MatchCreationError(
+                MatchCreationError.ACTIVE_MATCH_ALREADY_EXISTS,
+                "An active match already exists for this user and story",
+            )
+
         exp_cost = difficulty.get("exp_cost") if difficulty.get("exp_cost") is not None else 5
 
         saved = self.match_persistence_port.save_match({
@@ -131,6 +143,13 @@ class MatchCommandService(MatchCommandPort):
                 "id_match": saved["id"],
                 "id_location": loc["id"],
                 "flag_already_actived": 0,
+                # Step 33 — the party starts IN the starting location, it never "enters"
+                # it. Seeding it as already visited is what makes walking BACK there fire
+                # id_event_not_first_time instead of announcing as a discovery the place
+                # the story opened in. id_location_start is story-level, so this is
+                # deterministic however many players join, in whatever order.
+                "flag_visited": 1 if (story.get("id_location_start") is not None
+                                      and loc["id"] == story["id_location_start"]) else 0,
                 "clock_counter": loc.get("counter_time") or 0,
             })
         self.match_persistence_port.save_locations(location_rows)

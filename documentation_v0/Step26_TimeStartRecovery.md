@@ -12,8 +12,10 @@ characters and rebuilding the turn queue (the "time-start" moment), the backend 
 3. Seeds a `gaming_state_locations` row for any occupied location that carries a
    `counter_time > 0` but has no row yet, then decrements every existing
    `clock_counter > 0`; when a counter reaches zero it logs the location's
-   `id_event_if_counter_zero` as a PENDING event (actual event execution is wired
-   in Step 29).
+   `id_event_if_counter_zero` as a PENDING event. **Update (v0.33.0):** this stayed
+   a dead end through Step 29 as well — the pending event was executed only starting
+   with [Step 33](./Step33_LocationEntryEvents.md), which also adds the
+   `id_event_if_character_start_time` trigger for the same time-start pass.
 4. Surfaces a per-character recovery recap (`energyDelta`, `lifeDelta`, `sadDelta`)
    on the `POST /api/gameplay/{uuidMatch}/action/sleep` response under a new
    `recovery` array.
@@ -42,7 +44,8 @@ Step 26 covers the following items from the Roadmap:
   (`V0.26.0`) so the recovery engine can look up bonuses at time-start.
 - Seeding and decrementing `gaming_state_locations.clock_counter`. When a counter
   reaches zero, the location's `id_event_if_counter_zero` is logged in `log_events`
-  as a pending entry (stub; event execution deferred to Step 29).
+  as a pending entry (stub; event execution deferred — actually executed starting
+  with [Step 33](./Step33_LocationEntryEvents.md), see §6.5).
 - Per-character recovery recap on the sleep response (`recovery[]` array).
 - Frontend `LocationCard` showing `clockCounter` as a statistic badge when `> 0`.
 - Frontend react-admin `MatchDetailPage` showing the `gaming_state_locations` table
@@ -122,9 +125,9 @@ No other fields or status codes change.
 | Class | Package | Purpose |
 |-------|---------|---------|
 | `TimeStartRecoveryService` | `core/.../service/match/` | Pure recovery logic: `applyAtTimeStart(idMatch)` orchestrator + `computeRecovery(...)` static pure math method |
-| `TimeStartRecoveryService.StatTriple` | same file | Record holding computed `(energy, life, sad)` |
+| `TimeStartRecoveryService.StatTriple` | same file | Record holding computed `(energy, life, sad)`; gained `sadUnclamped` in v0.30.0 so the edge-state rules ([Step30_EdgeStates.md](./Step30_EdgeStates.md)) can read the pre-clamp value recovery actually computed |
 | `TimeStartRecoveryService.RecoveryRecap` | same file | Record `(characterUuid, energyDelta, lifeDelta, sadDelta)` |
-| `RecoveryStorePort` | `core/.../port/match/` | Outbound port with nested records: `RecoveryMatchContext`, `RecoveryCharacter`, `LocationSafety`, `ClassBonusView`, `StateLocationView` |
+| `RecoveryStorePort` | `core/.../port/match/` | Outbound port with nested records: `RecoveryMatchContext`, `RecoveryCharacter`, `LocationSafety`, `ClassBonusView`, `StateLocationView`. v0.30.0: `RecoveryCharacter` gained `isComa`, `RecoveryMatchContext` gained `currentClock` — both feed the edge-state coma stamp ([Step30_EdgeStates.md](./Step30_EdgeStates.md)) |
 | `RecoveryStoreAdapter` | `core/.../persistence/match/` | SQLite/PostgreSQL implementation of `RecoveryStorePort` |
 | `LogEventsEntity` + `LogEventsEntityId` | `core/.../entity/match/` | JPA entity writing to the existing `log_events` table (audit recovery and counter-zero events) |
 
@@ -347,9 +350,16 @@ now expose `flagAlreadyActived` so the service can perform this check.
 ### 6.5 Pending counter-zero events (stub)
 
 When `clock_counter` reaches `0`, `logCounterZero` writes a row to `log_events` with
-type PENDING and the `id_event_if_counter_zero` as a reference. The actual execution of
-the event (trigger evaluation, effect application, chaining) is deferred to Step 29.
-Step 26 guarantees only that the event id is recorded.
+type PENDING and the `id_event_if_counter_zero` as a reference. Step 26 guarantees only
+that the event id is recorded; no trigger evaluation, effect application, or chaining
+happens here.
+
+**Update (v0.33.0):** this dead end is closed. [Step 33](./Step33_LocationEntryEvents.md)
+executes the pending event through the same chain runner used for its (new)
+arrival-triggered events, fixes `logCounterZero` to also stamp `clock` and a structured
+`idLocation` (both were missing, which left the row unsortable in the match-logs
+timeline — see Step33 §7), and types the row `COUNTER_ZERO` instead of the generic
+`RECOVERY` label `MatchLogsService` used to give it.
 
 ---
 
@@ -525,9 +535,11 @@ No new endpoints. No status codes removed or added.
    Subsequent calls to `applyAtTimeStart` skip that location in step 6a, so the counter
    is never re-seeded after it has fired.
 
-4. **Counter-zero event execution is deferred to Step 29.** Step 26 only writes the
+4. **Counter-zero event execution is deferred.** Step 26 only writes the
    pending audit row to `log_events`. No event handler, stat change, or choice
-   presentation is triggered in this step.
+   presentation is triggered in this step. **Update (v0.33.0):** closed by
+   [Step 33](./Step33_LocationEntryEvents.md), which finally executes the pending
+   event — this limitation applied through Step 29 as well, not only to Step 26.
 
 5. **Python column name difference.** Python's `list_locations` model uses `is_safe`
    (treated as numeric `secure_param`). The counter column is now unified as
@@ -705,12 +717,12 @@ can read it during step 6a.
    | Version | Description | Date |
    |---------|-------------|------|
    | 0.26.0 | Time Advancement & Clock Cycle: sleep action, time-end trigger (all-sleeping / all-zero-energy), clock increment + log_clock_history insert, queue recalculation reusing Step 24 TurnPriorityCalculator, GET /clock endpoint, TimeAdvanced domain event (in-process); backends only (Java / Python / AWS) + Robot suite 25_time_clock; no frontend, no new DB migration expected | June 19, 2026 |
-   | 0.26.0 | ciao, i wanna create a new API on all backend project, POST admin/match/{uuid_match}/player/{uuid_player}/changeStatistics with in input dex,int,con, Energy, Life, Sad, coin, food, magic. This API updates actual values if value is not -1 and <= of max (for energy, life, sad). update the react-admin to show a button an "Players & characters" list to insert new values and send to API.  | June 19, 2026 |
+   | 0.26.0 | Admin god-mode statistics: `POST /api/admin/matches/{uuidMatch}/player/{uuidPlayer}/changeStatistics` writes dex/int/con, energy, life, sad, coin, food and magic onto one character, leaving alone any field omitted or sent as `-1` and clamping the three that carry a max. react-admin reaches it from a button on the "Players & characters" list; its deliberate exemption from the Step 30 edge-state sweep is documented in Step 30 §1. | June 19, 2026 |
    | 0.26.1 | locationsActive.idCard + seed consistency fix | June 22, 2026 |
    | 0.26.1 | Bugfix: location counter re-seed when counter_time added after match creation; `flag_already_actived` guard prevents re-seed after counter reaches zero; new Robot suite `location_counter_reseed.robot` (3 test cases); `markStateLocationActivated` added to all 3 backends | June 23, 2026 |
-   | 0.26.1 | Unified `counterTime`/`counter_time` field name across all backends: Python renamed `counterStart`/`counter_start` → `counterTime`/`counter_time`; AWS renamed `counterStart` → `counterTime` (legacy `counter_time` read fallback kept for existing DynamoDB documents); Java was already correct. Robot suite `location_counter_reseed.robot` updated to send `counterTime`. No `counterStart` remains in code or seeds. Python 627 tests pass; AWS 364 tests pass; Robot --dryrun 3/3 PASS | June 23, 2026 |
-   | 0.61.1 | Bugfix i18n propagation: `GET /api/match/{uuid}/info` now accepts `?lang=` (Java/Python/AWS) and propagates it to location/event/neighbour `resolveCard`; react-game `getStories(lang)`, `getStory(uuid,lang)`, `getMatchInfo(uuid,token,lang)` forward `?lang=`; callers updated (HomePage, GamePage, UserMatchesList); lang-propagation + fallback-en tests added; all suites green (react-game 386, Java core 993 + adapter-rest 188, Python 629, AWS 366) | June 23, 2026 |
-   | 0.26.1 | AWS i18n bugfix (`GET /api/stories?lang=it` returning null title for imported stories): `_resolve_text` gains per-field English fallback; new `_resolve_story_text` reads title/description from `raw_texts` first (same approach as cards), then falls back to derived map; 4 new AWS unit tests (370 total); Robot regression test `Story List Lang IT Never Blanks A Title That English Has` added to `26_time_recovery/match_info_lang.robot` (383 robot tests total, all green) | June 23, 2026 |
+   | 0.26.1 | Unified the field name on `counterTime`/`counter_time` across all backends: Python and AWS were still writing `counterStart`, which Java never used. A legacy read fallback is kept for DynamoDB documents written before the rename (§16). | June 23, 2026 |
+   | 0.26.1 | Bugfix i18n propagation: `GET /api/match/{uuid}/info` accepts `?lang=` on all three backends and forwards it to the location, event and neighbour card resolution, with react-game passing the player's language through every call it makes. Covered by the regression suite in §8.2. | June 23, 2026 |
+   | 0.26.1 | AWS bugfix: `GET /api/stories?lang=it` answered a null title for imported stories, so titles and descriptions are now read from `raw_texts` first and fall back per field to English. The import side is documented in Step 14; the regression test is in §8.2. | June 23, 2026 |
 
 - **Last Updated**: June 23, 2026
 - **Status**: Complete

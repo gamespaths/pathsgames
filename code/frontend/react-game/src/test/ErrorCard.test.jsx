@@ -1,76 +1,56 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
 
-vi.mock('../i18n/context', () => ({
+vi.mock('@/i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k }),
-}))
-vi.mock('../components/modals/CardDetailModal', () => ({
-  default: ({ card, modalId, actionLabel }) => (
-    <div data-testid="card-detail-modal" data-modal-id={modalId}>
-      <span data-testid="card-name">{card?.name}</span>
-      <span data-testid="card-desc">{card?.description}</span>
-      <span data-testid="action-label">{actionLabel}</span>
-    </div>
-  ),
 }))
 
 import ErrorCard from '../components/modals/ErrorCard'
+import images from '@/data/images.json'
 
 describe('ErrorCard', () => {
-  beforeEach(() => {
-    document.body.innerHTML = ''
-    delete window.bootstrap
-  })
-
-  it('renders a CardDetailModal with the error title', () => {
-    render(<ErrorCard status="RUNNING" onClose={vi.fn()} />)
-    expect(screen.getByTestId('card-detail-modal')).toBeInTheDocument()
-    expect(screen.getByTestId('card-name').textContent).toBe('errors.title')
-    expect(screen.getByTestId('action-label').textContent).toBe('modals.close')
+  it('renders the fixed "error" card from data/images.json on its own overlay', () => {
+    const { container } = render(<ErrorCard status="RUNNING" onClose={vi.fn()} />)
+    expect(screen.getByTestId('error-card-overlay')).toBeInTheDocument()
+    expect(screen.getByText('errors.title')).toBeInTheDocument()
+    const errorImg = images.find(x => x.id === 'error')
+    expect(container.querySelector('img').src).toBe(errorImg.urlImage)
+    expect(container.querySelector('.book-page-content')).not.toBeNull()
   })
 
   it('shows only matchNotRunning message for non-ENDED status', () => {
     render(<ErrorCard status="PAUSED" onClose={vi.fn()} />)
-    const desc = screen.getByTestId('card-desc').textContent
-    expect(desc).toContain('errors.matchNotRunning')
-    expect(desc).not.toContain('errors.matchEnded')
+    expect(screen.getByText(/errors\.matchNotRunning/)).toBeInTheDocument()
+    expect(screen.queryByText(/errors\.matchEnded/)).toBeNull()
   })
 
   it('adds the matchEnded suffix when status is ENDED', () => {
     render(<ErrorCard status="ENDED" onClose={vi.fn()} />)
-    const desc = screen.getByTestId('card-desc').textContent
-    expect(desc).toContain('errors.matchNotRunning')
-    expect(desc).toContain('errors.matchEnded')
+    expect(screen.getByText(/errors\.matchNotRunning.*errors\.matchEnded/)).toBeInTheDocument()
   })
 
   it('shows the explicit API message when provided, overriding the generic text', () => {
     render(<ErrorCard status="RUNNING" message="Not enough energy: have 2, need 4" onClose={vi.fn()} />)
-    const desc = screen.getByTestId('card-desc').textContent
-    expect(desc).toBe('Not enough energy: have 2, need 4')
-    expect(desc).not.toContain('errors.matchNotRunning')
+    expect(screen.getByText('Not enough energy: have 2, need 4')).toBeInTheDocument()
+    expect(screen.queryByText(/errors\.matchNotRunning/)).toBeNull()
   })
 
-  it('calls onClose when the Bootstrap modal hidden event fires', () => {
-    const el = document.createElement('div')
-    el.id = 'error-card-match-modal'
-    document.body.appendChild(el)
-
-    const mockInstance = { show: vi.fn() }
-    window.bootstrap = { Modal: { getOrCreateInstance: vi.fn().mockReturnValue(mockInstance) } }
-
+  it('calls onClose from the close action and from the back arrow', () => {
     const onClose = vi.fn()
     render(<ErrorCard status="RUNNING" onClose={onClose} />)
-
-    expect(mockInstance.show).toHaveBeenCalled()
-
-    el.dispatchEvent(new Event('hidden.bs.modal'))
-    expect(onClose).toHaveBeenCalled()
-
-    delete window.bootstrap
+    fireEvent.click(screen.getByRole('button', { name: /modals\.close/ }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: 'card.back' }))
+    expect(onClose).toHaveBeenCalledTimes(2)
   })
 
-  it('renders without crashing when Bootstrap is not available', () => {
-    render(<ErrorCard status="RUNNING" onClose={vi.fn()} />)
-    expect(screen.getByTestId('card-detail-modal')).toBeInTheDocument()
+  it('caps the card width when maxWidth is given, fills the overlay otherwise', () => {
+    const { container } = render(<ErrorCard status="RUNNING" onClose={vi.fn()} maxWidth="400px" />)
+    const wrap = container.querySelector('.error-card-overlay').firstChild
+    expect(wrap.style.maxWidth).toBe('400px')
+    const { container: c2 } = render(<ErrorCard status="RUNNING" onClose={vi.fn()} />)
+    const bare = c2.querySelector('.error-card-overlay').firstChild
+    expect(bare.style.maxWidth).toBe('')
+    expect(bare.style.width).toBe('100%')
   })
 })

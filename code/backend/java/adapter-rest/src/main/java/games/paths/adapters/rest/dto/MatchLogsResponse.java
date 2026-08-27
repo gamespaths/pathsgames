@@ -23,6 +23,7 @@ public class MatchLogsResponse {
     private String nextCursor;
     private int limit;
     private int total;
+    private String order;
 
     public static MatchLogsResponse fromModel(MatchLogsPort.MatchLogsResult model) {
         MatchLogsResponse r = new MatchLogsResponse();
@@ -31,6 +32,7 @@ public class MatchLogsResponse {
         r.nextCursor = model.nextCursor();
         r.limit = model.limit();
         r.total = model.total();
+        r.order = model.order();
         if (model.logs() != null) {
             for (LogEntry e : model.logs()) {
                 r.logs.add(LogEntryDto.fromModel(e));
@@ -45,6 +47,7 @@ public class MatchLogsResponse {
     public String getNextCursor() { return nextCursor; }
     public int getLimit() { return limit; }
     public int getTotal() { return total; }
+    public String getOrder() { return order; }
 
     /** Single entry in the log timeline. */
     public static class LogEntryDto {
@@ -58,9 +61,23 @@ public class MatchLogsResponse {
         private Long idLocationFrom;
         private Long idLocationTo;
         private Integer energyCost;
+        /** v0.35.3 — what the action took besides energy; 0 when it took nothing. */
+        private Integer foodCost;
+        private Integer magicCost;
+        private Integer coinCost;
+        /** v0.35.4 — what the action gave; an ITEM_* entry splits its deltas over the two. */
+        private Integer energyGain;
+        private Integer foodGain;
+        private Integer magicGain;
+        private Integer coinGain;
+        /** v0.35.4 — ITEM_* entries only: the story item, the raw action and the units. */
+        private Long idItem;
+        private String itemAction;
+        private Integer counter;
         private String message;
         private Integer idCard;
         private CardInfoResponse card;
+        private Long idEvent;
 
         public static LogEntryDto fromModel(LogEntry e) {
             LogEntryDto d = new LogEntryDto();
@@ -74,9 +91,20 @@ public class MatchLogsResponse {
             d.idLocationFrom = e.idLocationFrom();
             d.idLocationTo = e.idLocationTo();
             d.energyCost = e.energyCost();
+            d.foodCost = e.foodCost();
+            d.magicCost = e.magicCost();
+            d.coinCost = e.coinCost();
+            d.energyGain = e.energyGain();
+            d.foodGain = e.foodGain();
+            d.magicGain = e.magicGain();
+            d.coinGain = e.coinGain();
+            d.idItem = e.idItem();
+            d.itemAction = e.itemAction();
+            d.counter = e.counter();
             d.message = e.message();
             d.idCard = e.idCard();
             d.card = e.card() == null ? null : CardInfoResponse.fromModel(e.card());
+            d.idEvent = e.idEvent();
             return d;
         }
 
@@ -90,8 +118,19 @@ public class MatchLogsResponse {
         public Long getIdLocationFrom() { return idLocationFrom; }
         public Long getIdLocationTo() { return idLocationTo; }
         public Integer getEnergyCost() { return energyCost; }
+        public Integer getFoodCost() { return foodCost; }
+        public Integer getMagicCost() { return magicCost; }
+        public Integer getCoinCost() { return coinCost; }
+        public Integer getEnergyGain() { return energyGain; }
+        public Integer getFoodGain() { return foodGain; }
+        public Integer getMagicGain() { return magicGain; }
+        public Integer getCoinGain() { return coinGain; }
+        public Long getIdItem() { return idItem; }
+        public String getItemAction() { return itemAction; }
+        public Integer getCounter() { return counter; }
         public String getMessage() { return message; }
         public Integer getIdCard() { return idCard; }
         public CardInfoResponse getCard() { return card; }
+        public Long getIdEvent() { return idEvent; }
     }
 }

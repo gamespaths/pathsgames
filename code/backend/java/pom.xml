@@ -6,7 +6,7 @@
 
     <groupId>games.paths</groupId>
     <artifactId>paths-game-backend</artifactId>
-    <version>0.28.7-SNAPSHOT</version>
+    <version>0.35.5-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Paths Games - Backend</name>
     <description>Backend for Paths Games - Hexagonal Architecture</description>
@@ -54,6 +54,14 @@
 
     <build>
         <plugins>
+            <!-- Declared so `mvn sonar:sonar` resolves the `sonar` prefix: the
+                 scanner is not in Maven's default plugin groups, so the CI job
+                 failed with NoPluginFoundForPrefixException before compiling. -->
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>5.1.0.4751</version>
+            </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>

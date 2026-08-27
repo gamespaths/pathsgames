@@ -69,8 +69,11 @@ export const changePlayerStatistics = (matchUuid, playerUuid, body) =>
   apiClient().post(`/api/admin/matches/${matchUuid}/player/${playerUuid}/changeStatistics`, body).then(r => r.data)
 
 // GET /api/admin/matches/:uuid/logs — consolidated log timeline (Step 28.7):
-// WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY entries ordered by timestamp asc.
+// WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY entries.
 // v0.28.7 — cursor-paginated. Returns { matchUuid, currentClock, logs, nextCursor,
-// limit, total }; `params` may carry { limit, cursor, lang }.
+// limit, total, order }; `params` may carry { limit, cursor, lang, order }.
+// v0.30.3 — defaults to order=desc (newest entry first); pass { order: 'asc' } for
+// the API's own default.
 export const getMatchLogs = (uuid, params = {}) =>
-  apiClient().get(`/api/admin/matches/${uuid}/logs`, { params }).then(r => r.data)
+  apiClient().get(`/api/admin/matches/${uuid}/logs`, { params: { order: 'desc', ...params } })
+    .then(r => r.data)

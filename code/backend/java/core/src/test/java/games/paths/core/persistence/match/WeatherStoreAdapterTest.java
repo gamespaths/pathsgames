@@ -262,4 +262,150 @@ class WeatherStoreAdapterTest {
         when(matchRepository.findByUuid("x")).thenReturn(Optional.empty());
         assertTrue(adapter.findWeatherLog("x").isEmpty());
     }
+
+    // === Rows the join cannot resolve, and the null-tolerant edges ===
+
+    @Test
+    void loadContext_matchWithoutStory_empty() {
+        when(matchRepository.findById(1L)).thenReturn(Optional.of(match(1L, null)));
+        assertTrue(adapter.loadContext(1L).isEmpty());
+    }
+
+    @Test
+    void loadContext_nullClockCountsAsZero() {
+        GamingMatchEntity m = match(1L, 7L);
+        m.setCurrentClock(null);
+        when(matchRepository.findById(1L)).thenReturn(Optional.of(m));
+
+        assertEquals(0, adapter.loadContext(1L).orElseThrow().currentClock());
+    }
+
+    @Test
+    void findActiveWeatherRules_skipsRulesWithNoActiveFlagAtAll() {
+        WeatherRuleEntity noFlag = rule(9, 1);
+        noFlag.setActive(null);
+        when(weatherRuleRepository.findByIdStory(7L)).thenReturn(List.of(noFlag));
+
+        assertTrue(adapter.findActiveWeatherRules(7L).isEmpty());
+    }
+
+    @Test
+    void findRegistryValue_readsTheIntColumnWhenTheStringOneIsEmpty() {
+        GamingStateRegistryEntity r = new GamingStateRegistryEntity();
+        r.setKey("day");
+        r.setIntValue(4);
+        when(registryRepository.findByIdMatch(1L)).thenReturn(List.of(r));
+
+        assertEquals("4", adapter.findRegistryValue(1L, "day").orElseThrow());
+    }
+
+    @Test
+    void findRegistryValue_aRowWithNoValueAtAllIsEmpty() {
+        GamingStateRegistryEntity r = new GamingStateRegistryEntity();
+        r.setKey("day");
+        when(registryRepository.findByIdMatch(1L)).thenReturn(List.of(r));
+
+        assertTrue(adapter.findRegistryValue(1L, "day").isEmpty());
+    }
+
+    @Test
+    void updateCharacterEnergy_savesTheNewValue() {
+        GamingCharacterInstanceEntity c = new GamingCharacterInstanceEntity();
+        c.setId(5L);
+        c.setEnergy(3);
+        when(characterRepository.findById(any())).thenReturn(Optional.of(c));
+
+        adapter.updateCharacterEnergy(1L, 5L, 8);
+
+        assertEquals(8, c.getEnergy());
+        verify(characterRepository).save(c);
+    }
+
+    @Test
+    void updateCharacterEnergy_unknownCharacterSavesNothing() {
+        when(characterRepository.findById(any())).thenReturn(Optional.empty());
+
+        adapter.updateCharacterEnergy(1L, 5L, 8);
+
+        verify(characterRepository, never()).save(any());
+    }
+
+    @Test
+    void logWeatherEvent_acceptsAWeatherWithNoEventAttached() {
+        when(logEventsRepository.findMaxId()).thenReturn(3L);
+
+        adapter.logWeatherEvent(1L, null, "weather changed");
+
+        verify(logEventsRepository).save(argThat(e -> e.getIdEvent() == null && e.getId() == 4L));
+    }
+
+    @Test
+    void findCurrentWeather_currentIdWithNoMatchingRule_empty() {
+        GamingMatchEntity m = match(1L, 7L);
+        m.setIdCurrentWeather(99L);
+        when(matchRepository.findById(1L)).thenReturn(Optional.of(m));
+        when(weatherRuleRepository.findByIdStory(7L)).thenReturn(List.of(rule(9, 1)));
+
+        assertTrue(adapter.findCurrentWeather(1L).isEmpty());
+    }
+
+    @Test
+    void findWeatherLog_rowWithoutAWeatherKeepsTheRuleFieldsNull() {
+        GamingMatchEntity m = match(1L, null);
+        when(matchRepository.findByUuid("m-1")).thenReturn(Optional.of(m));
+        LogWeatherEntity l = new LogWeatherEntity();
+        l.setId(1L);
+        l.setIdMatch(1L);
+        l.setUuid("l-1");
+        when(logWeatherRepository.findByIdMatchOrderByClockAsc(1L)).thenReturn(List.of(l));
+
+        WeatherLogView view = adapter.findWeatherLog("m-1").get(0);
+
+        assertEquals(0, view.clock());
+        assertNull(view.weatherUuid());
+        assertNull(view.idTextName());
+    }
+
+    @Test
+    void findWeatherRulesForMatch_namesTheRuleAfterItsCardWhenItHasNoOwnText() {
+        GamingMatchEntity m = match(1L, 7L);
+        m.setIdCurrentWeather(9L);
+        when(matchRepository.findByUuid("m-1")).thenReturn(Optional.of(m));
+        WeatherRuleEntity w = rule(9, 1);
+        when(weatherRuleRepository.findByIdStory(7L)).thenReturn(List.of(w));
+        games.paths.core.entity.story.CardEntity card = new games.paths.core.entity.story.CardEntity();
+        card.setIdTextTitle(456);
+        when(storyReadPort.findTextByStoryIdTextAndLang(7L, 123, "en")).thenReturn(Optional.empty());
+        when(storyReadPort.findCardByStoryIdAndCardId(7L, 55L)).thenReturn(Optional.of(card));
+        games.paths.core.entity.story.TextEntity title = new games.paths.core.entity.story.TextEntity();
+        title.setShortText("Storm");
+        when(storyReadPort.findTextByStoryIdTextAndLang(7L, 456, "en")).thenReturn(Optional.of(title));
+
+        var summary = adapter.findWeatherRulesForMatch("m-1").get(0);
+
+        assertEquals("Storm", summary.name());
+        assertTrue(summary.active());
+        assertTrue(summary.current());
+    }
+
+    @Test
+    void findWeatherRulesForMatch_leavesTheNameNullWhenThereIsNeitherTextNorCard() {
+        when(matchRepository.findByUuid("m-1")).thenReturn(Optional.of(match(1L, 7L)));
+        WeatherRuleEntity w = rule(9, 0);
+        w.setIdCard(null);
+        when(weatherRuleRepository.findByIdStory(7L)).thenReturn(List.of(w));
+        when(storyReadPort.findTextByStoryIdTextAndLang(7L, 123, "en")).thenReturn(Optional.empty());
+
+        var summary = adapter.findWeatherRulesForMatch("m-1").get(0);
+
+        assertNull(summary.name());
+        assertFalse(summary.active());
+        assertFalse(summary.current());
+    }
+
+    @Test
+    void findWeatherRulesForMatch_matchWithoutStory_empty() {
+        when(matchRepository.findByUuid("m-1")).thenReturn(Optional.of(match(1L, null)));
+        assertTrue(adapter.findWeatherRulesForMatch("m-1").isEmpty());
+    }
 }

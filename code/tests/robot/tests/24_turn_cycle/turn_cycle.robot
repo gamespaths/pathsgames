@@ -79,9 +79,11 @@ Start Already Running Match Returns 409
 Start Without Characters Returns 409
     [Documentation]    Starting a match with no joined character → 409 NO_CHARACTERS_JOINED.
     [Tags]    turn-cycle    step24
-    ${match}=    Create Match    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}    robottest_nochars
+    # v0.32.1 — its own guest: the suite token may already own an active match
+    ${token}=    New Guest Token
+    ${match}=    Create Match    ${token}    ${STORY_UUID}    ${DIFFICULTY_UUID}    robottest_nochars
     Status Should Be    ${match}    201
-    ${response}=    Start Match    ${TOKEN}    ${match.json()}[uuid]
+    ${response}=    Start Match    ${token}    ${match.json()}[uuid]
     Status Should Be    ${response}    409
     Should Be Equal As Strings    ${response.json()}[error]    NO_CHARACTERS_JOINED
 
@@ -268,6 +270,11 @@ New Match With Character
 New Match Returning Character
     [Documentation]    Creates a CREATED match, joins one character, and returns both the
     ...                match uuid and the created character JSON (with its stats).
+    ...                v0.32.1 — each match belongs to its own guest: one user may own
+    ...                only one active match per story (409 ACTIVE_MATCH_ALREADY_EXISTS).
+    ...                ${TOKEN} is rebound for the rest of the test, so the caller keeps
+    ...                using it to act on the match it just got.
+    ${token}=    Use A Fresh Guest Token
     ${match}=    Create Match    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}    robottest_turn
     Status Should Be    ${match}    201
     ${match_uuid}=    Set Variable    ${match.json()}[uuid]

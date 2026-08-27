@@ -113,7 +113,8 @@ Logs Contains Clock Advance After Time End
 
 Log Entries Have Required Fields
     [Documentation]    Every entry in the logs list carries at minimum a 'type'
-    ...                and a 'timestamp' key.
+    ...                and a 'timestamp' key. v0.35.4 — and the eight resource fields,
+    ...                whatever the type: a client sums a column without null checks.
     [Tags]    match-logs    step28-7
     ${match}=    New Logs Match
     Start Match    ${TOKEN}    ${match}    200
@@ -121,6 +122,12 @@ Log Entries Have Required Fields
     FOR    ${entry}    IN    @{response.json()}[logs]
         Dictionary Should Contain Key    ${entry}    type
         Dictionary Should Contain Key    ${entry}    timestamp
+        FOR    ${name}    IN    energy    food    magic    coin
+            Should Be True    $entry.get('${name}Cost') is not None
+            ...    msg=${name}Cost is missing from a ${entry}[type] entry
+            Should Be True    $entry.get('${name}Gain') is not None
+            ...    msg=${name}Gain is missing from a ${entry}[type] entry
+        END
     END
 
 Weather Entry Carries Its Card And Title
@@ -250,6 +257,9 @@ Suite Setup Logs
 
 New Logs Match
     [Documentation]    Creates a CREATED match with rngSeed=42 and joins one character.
+    # v0.32.1 — its own guest: one user may own only one active match per story
+    # (409 ACTIVE_MATCH_ALREADY_EXISTS). ${TOKEN} is rebound for the rest of the test.
+    ${token}=    Use A Fresh Guest Token
     ${match}=    Create Match With Rng Seed    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}    42
     Status Should Be    ${match}    201
     ${match_uuid}=    Set Variable    ${match.json()}[uuid]

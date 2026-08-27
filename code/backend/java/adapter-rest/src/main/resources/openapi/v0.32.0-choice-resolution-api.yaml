@@ -1,0 +1,309 @@
+openapi: 3.0.3
+
+info:
+  title: Paths Games - Choice resolution (Step 32)
+  description: |
+    # Choice resolution — apply the option, run its consequences, close the cycle
+
+    [Step 31](./v0.31.0-choices-api.yaml) opened the choice flow and stopped at its
+    threshold: executing a choice-owning event pays energy and coins, writes the
+    `EVENT_EXECUTED` marker, and answers `status: CHOICES_PENDING` with the options —
+    but applies nothing. Step 32 closes what that open left ajar.
+
+    `POST /api/gameplay/{uuidMatch}/action/select-choice` takes the option the player
+    picked, applies its `list_choices_effects`, runs the events they point at, records the
+    narrative milestone, and writes the `CHOICE_SELECTED` marker Step 31 defined but never
+    wrote.
+
+    ## It charges nothing
+
+    `energySpent` and `coinSpent` always come back `0`, and a `ONCE` event is not
+    re-consumed. Everything was paid when the event was **opened**; resolving is what that
+    payment bought. This is also why the gate is not the Step 29 availability procedure —
+    re-running it would reject the very event the player has already paid for
+    (`ONCE_ALREADY_CONSUMED`, or `NOT_ENOUGH_ENERGY` once the deduction left them short).
+
+    ## The gate: an open cycle
+
+    A choice-event cycle is **open** while its `EVENT_EXECUTED` markers outnumber its
+    `CHOICE_SELECTED` markers — the same count comparison Step 31 uses to decide whether
+    to re-serve the options. That single predicate is the **cost-bypass guard**: it is
+    false both for an event that was never opened (so its effects cannot be had for free)
+    and for one already resolved (so they cannot be had twice).
+
+    The option's own availability is re-evaluated too, at resolution time rather than
+    trusted from the open: the world may have moved since the options were served — an
+    item spent, a stat drained, a key flipped by another action.
+
+    ## What a resolved option can do
+
+    `list_choices_effects` gained five columns in v0.32.0, named and typed exactly like
+    their `list_events_effects` twins, so the engine applies both through the same code:
+
+    | Column | Effect |
+    | --- | --- |
+    | `statistics` + `value` | moves a statistic (the full life/energy/sad/exp/dex/int/cos/food/magic/coin vocabulary) |
+    | `key` + `value_to_add` | sets a registry key |
+    | `key` + `value_to_remove` | clears a registry key — **only** when the stored value still matches, so an option cannot wipe a key the story has since moved on |
+    | `id_item_target` + `item_action` | ADD or REMOVE an item |
+    | `id_location` | forced movement: no adjacency check, no energy cost, a cost-0 `log_movements` row |
+    | `id_weather` | SETS the match weather, once per row |
+    | `id_event` | runs that event inline, with its whole `id_event_next` chain |
+
+    Who a row lands on is `flag_group` (**INV-46**): `1` targets every character standing
+    in the **actor's location** — the same set an event effect's `target=ALL` resolves
+    (INV-27), never every character of the match. Anything else is the acting character
+    alone.
+
+    ## Order, and what a coma stops
+
+    All the effect rows land first, in authored (id) order, so a later row builds on what
+    an earlier one wrote. Then the Step 30 edge rules get their single pass over whoever
+    the rows touched — which means a lethal row does **not** silence its siblings, any
+    more than a lethal effect silences the other effects of its event.
+
+    Only then do the consequences run: the events the effect rows link to, then the
+    option's own `id_event_torun`. A coma stops those — a character who can no longer act
+    does not act out what follows — and so does a linked choice-event (see below).
+
+    A linked event is a **consequence**, not a choice: it is neither re-checked nor
+    charged, exactly like a link in an `id_event_next` chain.
+
+    ## A choice that leads to another choice
+
+    When `id_event_torun`, or an effect's `id_event`, turns out to be a choice-owning
+    event, the resolution **presents its options** rather than silently dropping them:
+    `status` comes back `CHOICES_PENDING` with `pendingChoices` and a fresh
+    `EVENT_EXECUTED` marker for that event — served free, the open having already been
+    paid for by the choice that led there. The board renders it exactly as it renders a
+    first open, so a story can chain a choice onto a choice.
+
+    ## What the resolution records
+
+    Three rows, all written after the effects and the consequences, so a failure midway
+    leaves no marker claiming otherwise:
+
+    - a `log_events` row `CHOICE_SELECTED <idEvent>` — its `id_event` carries the
+      **owning event** id, never the choice id, because `countLogMarkers` pairs the two
+      markers by event and a row stamped with the choice id would leave the cycle open for
+      ever;
+    - a `log_choices_executed` row (event, choice, clock) — the narrative record the
+      match-log APIs read, as opposed to the marker above, which is engine bookkeeping;
+    - a `gaming_story_progress` row, **only** when the option carries `is_progress = 1`.
+      Ordinary options resolve without touching that table, which is what keeps it a story
+      outline rather than a second copy of the choice history.
+
+    ## Turns
+
+    `turnConsumed` stays `false`. Steps 24, 28 and 29 deliberately never touch
+    `gaming_turn_queue` in single-player, and select-choice does not either: requiring a
+    turn here — and not on the execute-event that opened the choice — would let a player
+    open a choice-event and then be unable to resolve it. Turn semantics arrive in Step 61
+    for every action at once.
+
+    ## Database
+
+    `V0.32.0__choice_effect_targets.sql` adds `id_event`, `id_location`, `id_weather`,
+    `id_item_target` and `item_action` to `list_choices_effects`. No foreign keys: the
+    references are story-scoped and the Step 22 validator owns the existence check (R1,
+    extended to the four new id columns). A value matching no row of the story is authored
+    noise — the engine skips that part of the effect rather than failing the resolution.
+
+    `log_choices_executed` and `gaming_story_progress` need no migration: they have
+    existed since V0.10.9 / V0.10.7 and Step 32 is simply the first code to write to them.
+
+    See `documentation_v0/Roadmap.md` (step 32).
+  version: 0.32.0
+
+servers:
+  - url: http://localhost:8042
+    description: Local development (public port)
+
+tags:
+  - name: Gameplay
+    description: Player actions inside a running match
+
+paths:
+  /api/gameplay/{uuidMatch}/action/select-choice:
+    post:
+      tags: [Gameplay]
+      summary: Resolve one option of an open choice-event
+      description: |
+        Applies the option's effects, runs its linked events and closes the cycle.
+        Charges nothing — the open already paid.
+      operationId: selectChoice
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The match the character is playing.
+        - name: lang
+          in: query
+          required: false
+          schema:
+            type: string
+            default: en
+          description: Localizes every card and the revealed narrative ("en" fallback).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SelectChoiceRequest'
+      responses:
+        '200':
+          description: The option was resolved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SelectChoiceResponse'
+        '400':
+          description: '`MISSING_CHOICE` — choiceUuid is absent or blank.'
+        '401':
+          description: '`UNAUTHENTICATED` — no user identity on the request.'
+        '404':
+          description: |
+            `MATCH_NOT_FOUND` (unknown match, or a caller who owns no character in it —
+            the two are deliberately indistinguishable), `CHOICE_NOT_FOUND`, or
+            `EVENT_NOT_FOUND` when the option names an event that does not exist.
+        '409':
+          description: |
+            `CHOICE_NOT_OPEN` (never opened, or already resolved — the cost-bypass
+            guard), `CHOICE_NOT_AVAILABLE` (the option's verdict, re-evaluated now; the
+            message names the `ChoiceAvailabilityChecker` reason), `MATCH_NOT_RUNNING`,
+            `SLEEPING` or `COMA`. All are states the player can act on and retry, which
+            is why they are conflicts rather than not-founds.
+
+components:
+  schemas:
+
+    SelectChoiceRequest:
+      type: object
+      description: |
+        The option alone identifies the resolution: a choice knows the event that owns it
+        (`list_choices.id_event`), so naming the event too would only create a second
+        version of the truth that could disagree with the first.
+      properties:
+        choiceUuid:
+          type: string
+          description: The uuid of the picked option, as served in `pendingChoices[]`.
+      required:
+        - choiceUuid
+
+    SelectChoiceResponse:
+      type: object
+      description: |
+        Every field of `ExecuteEventResponse` (see `v0.29.0-events-api.yaml`), plus the
+        block below. The shapes are identical on purpose: a resolved choice does to the
+        world everything an executed event does, so the board handles both with one code
+        path and the two can never drift.
+
+        `energySpent` / `coinSpent` are always `0`. `eventUuid` keeps its meaning — the
+        event the payload is about — which here is the event that owned the option.
+        `status` is `APPLIED`, or `CHOICES_PENDING` when a linked event turned out to be
+        another choice-event.
+      properties:
+        choiceUuid:
+          type: string
+          description: The option that was resolved.
+        narrative:
+          type: string
+          nullable: true
+          description: |
+            The option's `id_text_narrative`, resolved in the requested lang. Withheld by
+            Step 31 — returning it with the pending options would have leaked the
+            consequence of a choice not yet made — and revealed here, now that the choice
+            is irreversible.
+        choiceCard:
+          nullable: true
+          description: The option's own card (`list_choices.id_card`).
+        choiceEventUuid:
+          type: string
+          nullable: true
+          description: |
+            The event an effect row's `id_event` ran inline, if any. Null when no effect
+            row linked one.
+        choiceEventCard:
+          nullable: true
+          description: |
+            That event's card — what the board shows on its right page. The event has
+            already happened, so the card narrates rather than offers.
+        progressRecorded:
+          type: boolean
+          description: |
+            True when the option carried `is_progress = 1` and a `gaming_story_progress`
+            milestone row was written.
+      required:
+        - choiceUuid
+        - progressRecorded
+
+    ChoiceEffect:
+      type: object
+      description: |
+        One `list_choices_effects` row — what a selected option does. The five columns
+        below `flagGroup` arrived in v0.32.0 and are the exact twins of their
+        `list_events_effects` counterparts. All are EFFECTS, never conditions: `idWeather`
+        here *sets* the match weather, `idEvent` *runs* that event with its whole chain.
+
+        Story-authoring shape (admin CRUD and import); the engine never returns this
+        object directly — an applied row comes back as an `AppliedEffect`.
+      properties:
+        idChoices:
+          type: integer
+          description: The option this row belongs to.
+        idCard:
+          type: integer
+          nullable: true
+          description: The row's own NARRATIVE card — that, not the choice's, is rendered.
+        flagGroup:
+          type: integer
+          default: 0
+          description: |
+            INV-46. `1` targets every character standing in the actor's location (the same
+            set `target=ALL` resolves for an event effect, INV-27); anything else targets
+            the acting character alone.
+        statistics:
+          type: string
+          nullable: true
+          description: life, energy, sad, exp, dex, int, cos, food, magic or coin.
+        value:
+          type: integer
+          default: 0
+        key:
+          type: string
+          nullable: true
+          description: A registry key, written with `valueToAdd` or cleared with `valueToRemove`.
+        valueToAdd:
+          type: string
+          nullable: true
+        valueToRemove:
+          type: string
+          nullable: true
+          description: |
+            Clears `key` only when the stored value equals this — an option must not be
+            able to wipe a key some other branch of the story has since moved on.
+        idEvent:
+          type: integer
+          nullable: true
+          description: EFFECT — runs that event inline, with its whole `idEventNext` chain.
+        idLocation:
+          type: integer
+          nullable: true
+          description: |
+            EFFECT — moves the row's recipients there. No neighbor adjacency, no energy
+            cost, no availability check; each actual move writes a cost-0 `log_movements` row.
+        idWeather:
+          type: integer
+          nullable: true
+          description: EFFECT — SETS the match weather, once per row whatever it targets.
+        idItemTarget:
+          type: integer
+          nullable: true
+        itemAction:
+          type: string
+          nullable: true
+          enum: [ADD, REMOVE]
+      required:
+        - idChoices

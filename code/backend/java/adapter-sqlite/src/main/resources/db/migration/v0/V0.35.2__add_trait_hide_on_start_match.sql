@@ -1,0 +1,31 @@
+-- =============================================
+-- Paths Games - Database Schema V0.35.2 (SQLite)
+-- Traits a player cannot pick, but a story can hand out.
+--
+--   hide_on_start_match  0 or NULL -> the trait is offered at character
+--                        creation, as every trait has been until now;
+--                        1         -> it is NOT offered and NOT selectable.
+--
+-- The point is the second half: a hidden trait is still perfectly legal to
+-- OWN. Nothing stops an event or an item effect from granting it through
+-- traits_to_add, and once granted it shows in the player's trait list like
+-- any other. What the flag forbids is choosing it for yourself before the
+-- story has given it to you - the curse you catch, the mark you earn.
+--
+-- NULL reads as visible on purpose: the column lands on stories authored
+-- before it existed, and every trait in them was pickable. 0 and NULL are
+-- therefore the same answer, the reading id_class_permitted already has.
+--
+-- The API keeps returning hidden traits, flag included, on both projections
+-- that carry traits. Hiding is the frontend's job on ONE page - the start-match
+-- picker - because the very same array feeds the in-game list of the traits a
+-- character actually has, where a hidden one must appear.
+--
+-- Selection is refused server-side all the same (TRAIT_NOT_SELECTABLE): a
+-- rule only the client enforces is a rule anyone can walk around with curl.
+-- =============================================
+-- (C) Paths Games 2042 - All rights reserved - See https://github.com/gamespaths/pathsgames
+-- The software is distributed under the terms of the GNU General Public License v3.0
+-- =============================================
+
+ALTER TABLE list_traits ADD COLUMN hide_on_start_match INTEGER DEFAULT 0;

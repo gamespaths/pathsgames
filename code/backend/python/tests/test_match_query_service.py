@@ -511,9 +511,17 @@ def test_neighbor_resolves_dedicated_return_card_when_id_card_back_set():
 
 
 def _with_fog(service, visited):
-    """Wire a movement store on the service so fog-of-war gating is active."""
+    """Wire a movement store on the service so fog-of-war gating is active.
+
+    The store is also what match-info asks for the move verdict on every neighbor, so it must
+    answer those questions too: no character (the fog tests care about cards, not about who
+    may walk where), no weather modifier, nobody standing anywhere.
+    """
     service.movement_store = MagicMock()
     service.movement_store.find_visited_location_ids.return_value = list(visited)
+    service.movement_store.find_character_by_match_and_user.return_value = None
+    service.movement_store.find_characters_for_movement.return_value = []
+    service.movement_store.find_current_weather_move_cost.return_value = (0, 0)
     return service
 
 

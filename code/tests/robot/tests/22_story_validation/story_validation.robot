@@ -166,14 +166,16 @@ Create Difficulty With Inverted Character Range Returns 400
     Should Contain    ${rules}    R6_DIFFICULTY_RANGE
 
 Import Condition With Unknown Key Returns 400
-    [Documentation]    A choice-condition whose key is not declared in keys[] fails.
+    [Documentation]    A KEYS choice-condition whose key is not declared in keys[] fails.
     ...                The choice has an otherwise fallback so only R4_CONDITION_KEY fires.
+    ...                Step 31: only a KEYS condition references the registry — `key` on any
+    ...                other type names a stat/id, so the type is now part of the payload.
     [Tags]    admin    validation    step22
     ${payload}=    Catenate    SEPARATOR=
     ...    {"uuid":"a1111111-0009-4000-8000-000000000009","author":"val-test",
     ...    "events":[{"id":1,"type":"NORMAL"}],
     ...    "choices":[{"id":1,"idEvent":1,"otherwiseFlag":1}],
-    ...    "choiceConditions":[{"id":1,"idChoices":1,"key":"NOPE"}]}
+    ...    "choiceConditions":[{"id":1,"idChoices":1,"type":"KEYS","key":"NOPE"}]}
     ${body}=    Import Payload Should Fail Validation    ${payload}
     ${rules}=    Evaluate    [e['rule'] for e in $body['errors']]
     Should Contain    ${rules}    R4_CONDITION_KEY

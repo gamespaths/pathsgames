@@ -58,6 +58,14 @@ public interface CharacterCommandPort {
         private Integer coin;
         private Integer food;
         private Integer magic;
+        /** State flags: null leaves the flag untouched (the -1 of the numeric fields). */
+        private Boolean sleeping;
+        private Boolean coma;
+
+        public Boolean getSleeping() { return sleeping; }
+        public void setSleeping(Boolean sleeping) { this.sleeping = sleeping; }
+        public Boolean getComa() { return coma; }
+        public void setComa(Boolean coma) { this.coma = coma; }
 
         public Integer getDex() { return dex; }
         public void setDex(Integer dex) { this.dex = dex; }
@@ -100,7 +108,9 @@ public interface CharacterCommandPort {
             TRAIT_NOT_FOUND,
             TRAIT_DUPLICATED,
             TRAIT_NOT_COMPATIBLE,
-            TRAIT_COST_EXCEEDED
+            TRAIT_COST_EXCEEDED,
+            /** v0.35.2 — the trait is flagged hide_on_start_match and cannot be picked. */
+            TRAIT_NOT_SELECTABLE
         }
 
         private final Code code;

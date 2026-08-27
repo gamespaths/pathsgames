@@ -11,6 +11,7 @@ from app.core.models.match.match_models import (
     MatchCreateCommand,
     MatchCreationError,
 )
+from app.adapters.rest.match.inventory_controller import item_to_camel
 from app.core.ports.match.match_ports import MatchCommandPort, MatchQueryPort
 
 
@@ -23,11 +24,14 @@ _STATUS_BY_CODE = {
     MatchCreationError.USER_NOT_FOUND: status.HTTP_404_NOT_FOUND,
     MatchCreationError.USER_BANNED: status.HTTP_403_FORBIDDEN,
     MatchCreationError.MAINTENANCE_MODE: status.HTTP_503_SERVICE_UNAVAILABLE,
+    # v0.32.1 — duplicate active match on the same story
+    MatchCreationError.ACTIVE_MATCH_ALREADY_EXISTS: status.HTTP_409_CONFLICT,
     # Step 23 — trait selection validation on the creator loadout
     MatchCreationError.TRAIT_NOT_FOUND: status.HTTP_400_BAD_REQUEST,
     MatchCreationError.TRAIT_DUPLICATED: status.HTTP_400_BAD_REQUEST,
     MatchCreationError.TRAIT_NOT_COMPATIBLE: status.HTTP_400_BAD_REQUEST,
     MatchCreationError.TRAIT_COST_EXCEEDED: status.HTTP_400_BAD_REQUEST,
+    MatchCreationError.TRAIT_NOT_SELECTABLE: status.HTTP_400_BAD_REQUEST,
 }
 
 
@@ -70,15 +74,12 @@ def _summary_to_camel(summary):
 
 
 def _item_to_camel(it):
-    """Step 27 — a single inventory item carried by a character."""
-    return {
-        "uuid": it.uuid,
-        "itemUuid": it.item_uuid,
-        "name": it.name,
-        "weight": it.weight,
-        "amount": it.amount,
-        "state": it.state,
-    }
+    """Step 27 — a single inventory item carried by a character.
+
+    Delegates to the inventory controller's projection so the match /info items[] and the
+    GET /inventory items[] are guaranteed identical field for field (step 34).
+    """
+    return item_to_camel(it)
 
 
 def _character_summary_to_camel(p):
@@ -100,9 +101,15 @@ def _character_summary_to_camel(p):
         "weightMax": p.weight_max,
         "weight": p.weight,
         "items": [_item_to_camel(it) for it in p.items],
+        # Step 35 — the backpack resources, so /info players[] finally reports them.
+        # The row is already loaded, so this costs no extra query.
+        "food": p.food,
+        "magic": p.magic,
+        "coin": p.coin,
         "idLocation": p.id_location,
         "isSleeping": p.is_sleeping,
         "isComa": p.is_coma,
+        "clockInComa": p.clock_in_coma,
     }
 
 
@@ -131,6 +138,7 @@ def _character_full_to_camel(p):
         "locationUuid": p.location_uuid,
         "isSleeping": p.is_sleeping,
         "isComa": p.is_coma,
+        "clockInComa": p.clock_in_coma,
         "traitUuids": list(p.trait_uuids),
         "food": p.food,
         "magic": p.magic,
@@ -153,6 +161,10 @@ def _location_info_to_camel(l):
                 "direction": n.direction,
                 "flagBack": n.flag_back,
                 "energyCost": n.energy_cost,
+                # v0.35.3 — the edge's resource price; edge-only, so no breakdown.
+                "costFood": n.cost_food,
+                "costMagic": n.cost_magic,
+                "costCoin": n.cost_coin,
                 "card": n.card,
                 "secureParam": n.secure_param,
                 "idLocationFrom": n.id_location_from,
@@ -160,11 +172,17 @@ def _location_info_to_camel(l):
                 "cardBack": n.card_back,
                 "cardLocationFrom": n.card_location_from,
                 "cardLocationTo": n.card_location_to,
+                # The verdict action/move would give this path, and its code when refused.
+                "available": n.available,
+                "reason": n.reason,
             }
             for n in l.neighbors
         ],
         "events": [
-            {"uuid": e.uuid, "type": e.type, "endGame": e.end_game, "card": e.card}
+            {"uuid": e.uuid, "type": e.type, "endGame": e.end_game, "card": e.card,
+             "available": e.available, "reason": e.reason, "energy": e.energy,
+             # v0.35.3 — the price beyond energy, so the board can render it up front.
+             "coin": e.coin, "food": e.food, "magic": e.magic}
             for e in l.events
         ],
     }
@@ -180,6 +198,8 @@ def _detail_to_camel(detail):
                 "idLocation": l.id_location,
                 "uuid": l.uuid,
                 "flagAlreadyActived": l.flag_already_actived,
+                # Step 33 — the party has entered this location; not the counter flag.
+                "flagVisited": l.flag_visited,
                 "clockCounter": l.clock_counter,
             }
             for l in detail.locations
@@ -286,9 +306,11 @@ class MatchController:
         return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
 
     def get_match_logs(self, uuid_match: str, request: Request, lang: str = "en",
-                       limit: Optional[int] = None, cursor: Optional[str] = None):
+                       limit: Optional[int] = None, cursor: Optional[str] = None,
+                       order: Optional[str] = None):
         """GET /api/matches/{uuid_match}/logs — Step 28.7 consolidated log timeline.
-        v0.28.7 — cursor-paginated (?limit=&cursor=) with cards resolved in ?lang=."""
+        v0.28.7 — cursor-paginated (?limit=&cursor=) with cards resolved in ?lang=.
+        ?order=asc (default) starts from the oldest entry, ?order=desc from the newest."""
         user_uuid = getattr(request.state, "user_uuid", None)
         if not user_uuid:
             return _error("UNAUTHENTICATED", "User identity is missing", 401)
@@ -296,7 +318,8 @@ class MatchController:
             return _error("INVALID_INPUT", "Match uuid is required", 400)
         if self.match_logs_service is None:
             return _error("NOT_IMPLEMENTED", "Match logs service not wired", 501)
-        result = self.match_logs_service.get_match_logs(uuid_match, user_uuid, lang, limit, cursor)
+        result = self.match_logs_service.get_match_logs(uuid_match, user_uuid, lang, limit,
+                                                        cursor, order)
         if result is None:
             return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
         return JSONResponse(status_code=200, content=result)

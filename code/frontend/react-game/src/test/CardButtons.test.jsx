@@ -38,6 +38,62 @@ describe('CardButtons action spinner', () => {
   })
 })
 
+describe('CardButtons actionsList', () => {
+  it('renders one button per entry, in order, after the main action', () => {
+    render(
+      <CardButtons name="Stats" onAction={vi.fn()} actionLabel="map" actionIcon="fa-map"
+        actionsList={[
+          { label: 'bag', icon: 'fa-suitcase', onAction: vi.fn() },
+          { label: 'quests', icon: 'fa-scroll', onAction: vi.fn() },
+        ]} />
+    )
+    const labels = [...document.querySelectorAll('.gc-footer__btn-label')].map(e => e.textContent)
+    expect(labels).toEqual(['map', 'bag', 'quests'])
+    expect(screen.getByText('bag').parentElement.querySelector('i')?.className).toContain('fa-suitcase')
+  })
+
+  it('fires the handler of the clicked entry only', () => {
+    const first = vi.fn()
+    const second = vi.fn()
+    render(
+      <CardButtons name="Stats" onAction={vi.fn()} actionLabel="map"
+        actionsList={[
+          { label: 'bag', icon: 'fa-suitcase', onAction: first },
+          { label: 'quests', icon: 'fa-scroll', onAction: second },
+        ]} />
+    )
+    fireEvent.click(screen.getByText('quests'))
+    expect(second).toHaveBeenCalled()
+    expect(first).not.toHaveBeenCalled()
+  })
+
+  it('shares the in-progress spinner: a running secondary action hides every button', async () => {
+    let resolve
+    render(
+      <CardButtons name="Stats" onAction={vi.fn()} actionLabel="map"
+        actionsList={[{ label: 'bag', icon: 'fa-suitcase', onAction: () => new Promise(r => { resolve = r }) }]} />
+    )
+    fireEvent.click(screen.getByText('bag'))
+    expect(screen.getByText('card.actionInProgress')).toBeInTheDocument()
+    expect(screen.queryByText('bag')).not.toBeInTheDocument()
+
+    resolve()
+    await waitFor(() => expect(screen.getByText('bag')).toBeInTheDocument())
+  })
+
+  it('renders nothing extra for an empty list or for entries without a handler', () => {
+    const { rerender } = render(<CardButtons name="Stats" onAction={vi.fn()} actionLabel="map" />)
+    expect(document.querySelectorAll('.gc-footer__btn')).toHaveLength(1)
+
+    rerender(
+      <CardButtons name="Stats" onAction={vi.fn()} actionLabel="map"
+        actionsList={[{ label: 'dead', icon: 'fa-ban' }]} />
+    )
+    expect(document.querySelectorAll('.gc-footer__btn')).toHaveLength(1)
+    expect(screen.queryByText('dead')).not.toBeInTheDocument()
+  })
+})
+
 describe('CardButtons preview (i) button overrides', () => {
   it('defaults to the fa-info icon and card.info label', () => {
     render(<CardButtons name="Stats" flagInformationCard onPreview={vi.fn()} onPreviewClick={vi.fn()} />)
@@ -71,5 +127,45 @@ describe('CardButtons preview (i) button overrides', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: 'Game Status' }))
     expect(onPreviewClick).toHaveBeenCalled()
+  })
+})
+
+describe('CardButtons — secondary actions beside the (i)', () => {
+  const BIN = { label: '', icon: 'fa-trash', onAction: vi.fn(), ariaLabel: 'drop-it' }
+
+  it('shows them on an information face, next to the preview button', () => {
+    render(<CardButtons flagInformationCard onPreview={vi.fn()} onPreviewClick={vi.fn()}
+      name="Potion" actionsList={[BIN]} />)
+
+    expect(screen.getByLabelText('drop-it')).toBeInTheDocument()
+    expect(screen.getByLabelText('card.info')).toBeInTheDocument()
+  })
+
+  it('shows them on a LOCKED face too — a row that cannot be used can still be thrown away', () => {
+    render(<CardButtons locked lockInfo="carry-only" name="Rock" lockedIcon="fas fa-box"
+      onPreview={vi.fn()} onPreviewClick={vi.fn()} actionsList={[BIN]} />)
+
+    expect(screen.getByText('carry-only')).toBeInTheDocument()
+    expect(screen.getByLabelText('drop-it')).toBeInTheDocument()
+  })
+
+  it('runs the handler and clears the spinner once it settles', async () => {
+    let resolve
+    const onAction = vi.fn(() => new Promise(r => { resolve = r }))
+    render(<CardButtons flagInformationCard onPreview={vi.fn()} onPreviewClick={vi.fn()}
+      actionsList={[{ ...BIN, onAction }]} />)
+
+    fireEvent.click(screen.getByLabelText('drop-it'))
+    expect(onAction).toHaveBeenCalled()
+    // While the drop is in flight the button steps aside, so it cannot be clicked twice.
+    expect(screen.queryByLabelText('drop-it')).toBeNull()
+
+    resolve()
+    await waitFor(() => expect(screen.getByLabelText('drop-it')).toBeInTheDocument())
+  })
+
+  it('renders nothing extra when the card hands over no secondary action', () => {
+    render(<CardButtons flagInformationCard onPreview={vi.fn()} onPreviewClick={vi.fn()} actionsList={[]} />)
+    expect(screen.queryByLabelText('drop-it')).toBeNull()
   })
 })

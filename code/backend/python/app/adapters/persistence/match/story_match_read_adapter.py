@@ -7,6 +7,7 @@ from app.adapters.persistence.story.models import (
     ClassBonusEntity,
     ClassEntity,
     EventEntity,
+    ItemEffectEntity,
     ItemEntity,
     KeyEntity,
     LocationEntity,
@@ -122,6 +123,11 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
             ]
 
     def find_events_by_story_id(self, story_id: int) -> List[Dict[str, Any]]:
+        """Every event of the story, with the full Step 29 condition set.
+
+        The check procedure runs over these rows, so they must carry the costs and the
+        conditions — not just the id/type/location this used to return.
+        """
         with self.session_factory() as session:
             rows = (
                 session.query(EventEntity)
@@ -132,9 +138,21 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                 {
                     "id": r.id,
                     "uuid": r.uuid,
-                    "type": r.event_type,
-                    "id_specific_location": r.id_specific_location,
+                    "type": r.type,
                     "id_card": r.id_card,
+                    "cost_enery": r.cost_enery or 0,
+                    "cost_coin": r.cost_coin or 0,
+                    "cost_food": r.cost_food or 0,
+                    "cost_magic": r.cost_magic or 0,
+                    "flag_end_time": r.flag_end_time or 0,
+                    "id_event_next": r.id_event_next,
+                    # conditions (AND)
+                    "id_specific_location": r.id_specific_location,
+                    "id_weather": r.id_weather,
+                    "registry_key_condition": r.registry_key_condition,
+                    "registry_value_condition": r.registry_value_condition,
+                    "id_item_condition": r.id_item_condition,
+                    "id_class_condition": r.id_class_condition,
                 }
                 for r in rows
             ]
@@ -260,7 +278,46 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                 .filter(ItemEntity.id_story == story_id)
                 .all()
             )
-            return [{"id": r.id, "uuid": r.uuid, "weight": r.weight} for r in rows]
+            # v0.34.0 — the card, the name text and the two gates use-item needs. The
+            # match /info items[] and the inventory endpoint both read this one shape.
+            return [
+                {
+                    "id": r.id,
+                    "uuid": r.uuid,
+                    "weight": r.weight,
+                    "id_card": r.id_card,
+                    "id_text_name": r.id_text_name,
+                    "is_consumabile": r.is_consumabile,
+                    "flag_show_effects": r.flag_show_effects,
+                    "max_per_character": r.max_per_character,
+                    "amount_drop": r.amount_drop,
+                    "amount_use": r.amount_use,
+                    "id_class_permitted": r.id_class_permitted,
+                    "id_class_prohibited": r.id_class_prohibited,
+                }
+                for r in rows
+            ]
+
+    def find_item_effects_by_item_id(self, story_id: int) -> Dict[int, List[Dict[str, Any]]]:
+        # v0.35.0 — one query for the whole story, grouped in memory: an item has a handful
+        # of effect rows, and a per-item query would be an N+1 over the players[] of /info.
+        with self.session_factory() as session:
+            rows = (
+                session.query(ItemEffectEntity)
+                .filter(ItemEffectEntity.id_story == story_id)
+                .order_by(ItemEffectEntity.id.asc())
+                .all()
+            )
+            grouped: Dict[int, List[Dict[str, Any]]] = {}
+            for r in rows:
+                if r.id_item is None:
+                    continue
+                grouped.setdefault(r.id_item, []).append({
+                    "id": r.id,
+                    "effect_code": r.effect_code,
+                    "effect_value": r.effect_value,
+                })
+            return grouped
 
     @staticmethod
     def _template_to_dict(entity: CharacterTemplateEntity) -> Dict[str, Any]:
@@ -294,6 +351,8 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
             "cost_negative": entity.cost_negative,
             "id_class_permitted": entity.id_class_permitted,
             "id_class_prohibited": entity.id_class_prohibited,
+            # v0.35.2 — read by the selection validator and reported on both projections.
+            "hide_on_start_match": entity.hide_on_start_match,
         }
 
     @staticmethod

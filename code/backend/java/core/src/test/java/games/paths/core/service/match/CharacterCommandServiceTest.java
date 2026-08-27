@@ -519,6 +519,33 @@ class CharacterCommandServiceTest {
                     assertThrows(CharacterJoinException.class, () -> service.join(c)).getCode());
         }
 
+        // v0.35.2 — a trait hidden from the picker is refused, however it was asked for.
+        @Test
+        void hiddenTrait_notSelectable() {
+            wireFullGraph();
+            TraitEntity t = trait(90001L, "trait-1", 2, 0, 0, 0, 1);
+            t.setHideOnStartMatch(1);
+            when(storyReadPort.findTraitByStoryIdAndUuid(STORY_ID, "trait-1")).thenReturn(Optional.of(t));
+
+            // The API still RETURNS the trait — the same list resolves what a character
+            // already owns — so the refusal has to live here, not only in the client.
+            assertEquals(CharacterJoinException.Code.TRAIT_NOT_SELECTABLE,
+                    assertThrows(CharacterJoinException.class, () -> service.join(cmd())).getCode());
+        }
+
+        // An unset or zero flag leaves the trait pickable, as every pre-0.35.2 story had it.
+        @Test
+        void unsetFlagStaysSelectable() {
+            wireFullGraph();
+            TraitEntity t = trait(90001L, "trait-1", 2, 0, 0, 0, 1);
+            assertNull(t.getHideOnStartMatch());
+            when(storyReadPort.findTraitByStoryIdAndUuid(STORY_ID, "trait-1")).thenReturn(Optional.of(t));
+            assertDoesNotThrow(() -> service.join(cmd()));
+
+            t.setHideOnStartMatch(0);
+            assertDoesNotThrow(() -> service.join(cmd()));
+        }
+
         @Test
         void traitPermittedForOtherClass_notCompatible() {
             wireFullGraph();

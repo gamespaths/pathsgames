@@ -13,6 +13,7 @@ from app.adapters.persistence.story.models import (
     CharacterTemplateEntity,
     ClassBonusEntity,
     ClassEntity,
+    ItemEffectEntity,
     StoryDifficultyEntity,
     TraitEntity,
 )
@@ -117,3 +118,26 @@ def test_story_read_step21(session_factory):
 
     diff = read.find_difficulty_by_id(9001, 90001)
     assert diff["life"] == 120 and diff["dexterity"] == 12
+
+
+def test_story_read_item_effects_grouped_by_item_step35(session_factory):
+    """v0.35.0 — the rows the match /info items[] promise, grouped in one query."""
+    with session_factory() as session:
+        session.add(ItemEffectEntity(id=2, id_story=9001, uuid="e2", id_item=900,
+                                     effect_code="SADNESS", effect_value=-1))
+        session.add(ItemEffectEntity(id=1, id_story=9001, uuid="e1", id_item=900,
+                                     effect_code="LIFE", effect_value=3))
+        session.add(ItemEffectEntity(id=3, id_story=9001, uuid="e3", id_item=901,
+                                     effect_code="ENERGY", effect_value=2))
+        # An orphan row belongs to no item: skipped rather than grouped under None.
+        session.add(ItemEffectEntity(id=4, id_story=9001, uuid="e4", id_item=None,
+                                     effect_code="EXP", effect_value=1))
+        session.commit()
+
+    grouped = StoryMatchReadAdapter(session_factory).find_item_effects_by_item_id(9001)
+
+    assert set(grouped) == {900, 901}
+    # Id order, the order the usage applies them in.
+    assert [r["effect_code"] for r in grouped[900]] == ["LIFE", "SADNESS"]
+    assert grouped[900][0]["effect_value"] == 3
+    assert StoryMatchReadAdapter(session_factory).find_item_effects_by_item_id(9999) == {}

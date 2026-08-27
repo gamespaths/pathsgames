@@ -46,6 +46,43 @@ public class LogEventsEntity {
     @Column(name = "clock")
     private Integer clock;
 
+    /**
+     * Step 33 (V0.33.0) — the location this row is about, for the rows the
+     * location engine writes (counter-zero, automatic events). Structured, so the
+     * frontend never has to parse it back out of {@code log_message}.
+     */
+    @Column(name = "id_location")
+    private Long idLocation;
+
+    /**
+     * v0.35.3 - what the actor actually paid to open this event. Zero on every
+     * row the engine writes for itself: chained, automatic and resolution rows.
+     */
+    @Column(name = "energy")
+    private Integer energy;
+
+    @Column(name = "food")
+    private Integer food;
+
+    @Column(name = "magic")
+    private Integer magic;
+
+    @Column(name = "coin")
+    private Integer coin;
+
+    /** v0.35.4 - what the event GAVE the actor, the counterpart of the spend above. */
+    @Column(name = "energy_gain")
+    private Integer energyGain;
+
+    @Column(name = "food_gain")
+    private Integer foodGain;
+
+    @Column(name = "magic_gain")
+    private Integer magicGain;
+
+    @Column(name = "coin_gain")
+    private Integer coinGain;
+
     @Column(name = "ts_insert", nullable = false, updatable = false)
     private String tsInsert;
 
@@ -57,6 +94,14 @@ public class LogEventsEntity {
         String now = java.time.Instant.now().toString();
         if (uuid == null) uuid = java.util.UUID.randomUUID().toString();
         if (timestamp == null) timestamp = now;
+        if (energy == null) energy = 0;
+        if (food == null) food = 0;
+        if (magic == null) magic = 0;
+        if (coin == null) coin = 0;
+        if (energyGain == null) energyGain = 0;
+        if (foodGain == null) foodGain = 0;
+        if (magicGain == null) magicGain = 0;
+        if (coinGain == null) coinGain = 0;
         if (tsInsert == null) tsInsert = now;
         if (tsUpdate == null) tsUpdate = now;
     }
@@ -92,6 +137,33 @@ public class LogEventsEntity {
 
     public Integer getClock() { return clock; }
     public void setClock(Integer clock) { this.clock = clock; }
+
+    public Long getIdLocation() { return idLocation; }
+    public void setIdLocation(Long idLocation) { this.idLocation = idLocation; }
+
+    public Integer getEnergy() { return energy; }
+    public void setEnergy(Integer energy) { this.energy = energy; }
+
+    public Integer getFood() { return food; }
+    public void setFood(Integer food) { this.food = food; }
+
+    public Integer getMagic() { return magic; }
+    public void setMagic(Integer magic) { this.magic = magic; }
+
+    public Integer getCoin() { return coin; }
+    public void setCoin(Integer coin) { this.coin = coin; }
+
+    public Integer getEnergyGain() { return energyGain; }
+    public void setEnergyGain(Integer energyGain) { this.energyGain = energyGain; }
+
+    public Integer getFoodGain() { return foodGain; }
+    public void setFoodGain(Integer foodGain) { this.foodGain = foodGain; }
+
+    public Integer getMagicGain() { return magicGain; }
+    public void setMagicGain(Integer magicGain) { this.magicGain = magicGain; }
+
+    public Integer getCoinGain() { return coinGain; }
+    public void setCoinGain(Integer coinGain) { this.coinGain = coinGain; }
 
     public String getTsInsert() { return tsInsert; }
     public void setTsInsert(String tsInsert) { this.tsInsert = tsInsert; }

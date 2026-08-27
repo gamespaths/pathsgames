@@ -51,14 +51,16 @@ A rule produces zero or more `StoryValidationError { rule, entityType, entityId,
 | `R2_NEIGHBOR_DUP` | The same `(from, direction)` points at two different locations. |
 | `R3_EVENT_CYCLE` | The `idEventNext` chain forms a cycle (iterative DFS with colouring). |
 | `R4_CHOICE_EMPTY` | A choice has no option (no `choiceEffects` row) **and** no `otherwiseFlag`. |
-| `R4_CONDITION_KEY` | A choice-condition `key` does not match any `keys[].name` in the story. |
+| `R4_CONDITION_KEY` | A choice-condition `key` does not match any `keys[].name` in the story. **v0.31.0**: only checked on `KEYS`-type conditions — on any other `type`, `key` names a stat or an id, not a registry key, and checking it there used to false-fail otherwise-legal stories. |
 | `R6_STAT_RANGE` | `lifeMax`/`energyMax` must be positive; `dexterityStart`/`intelligenceStart`/`constitutionStart`/`sadMax` must be non-negative. |
 | `R6_CLASS_CONFLICT` | An item/trait/template has the same class permitted and prohibited. |
 | `R6_DIFFICULTY_RANGE` | (entity-local) `minCharacter` exceeds `maxCharacter`. |
+| `R8_CHOICE_EVENT` | **(v0.31.0)** Every choice must have a non-null `idEvent` and a null `idLocation` — a choice belongs to an event, never a location (the location binding is deprecated). Hard-fail on import and `validate-story`; entity-local (lenient CRUD) rejects only a non-null `idLocation`, tolerating a still-missing `idEvent` so a draft choice can exist before its event while authoring. See [Step31_ChoiceEngine.md](./Step31_ChoiceEngine.md). |
 
 **Entity-local (lenient CRUD) subset:** `character-templates` → stat ranges + class
-conflict; `items`/`traits` → class conflict; `difficulties` → character range. Forward
-references are intentionally **not** checked on CRUD.
+conflict; `items`/`traits` → class conflict; `difficulties` → character range; `choices` →
+non-null `idLocation` rejected (v0.31.0). Forward references are intentionally **not** checked
+on CRUD.
 
 ### Shared rule engine
 Both entry points normalise their input into one internal `StoryGraph` (id-sets +
@@ -181,12 +183,13 @@ existing `ErrorAlert` + `client.js` interceptor. New API function
   projects are backend/java, robot test, react-game, react-admin, aws lambda and python project.
   at the end write Step22_xxx.md file with specific documentation agent. let's go
   ```
-- **Document Version**: 0.22.0
+- **Document Version**: 0.31.0 (here only due changes)
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.22.0 | Story validation & integrity checking — StoryValidator across all 4 backends (import hard-fail, CRUD lenient), `GET /api/admin/stories/{uuid}/validate` report endpoint, robot suite `22_story_validation`, react-admin Validate button | June 10, 2026 |
+    | 0.31.0 | New rule `R8_CHOICE_EVENT` (choice→event binding mandatory, `idLocation` deprecated, see [Step31_ChoiceEngine.md](./Step31_ChoiceEngine.md)); fixed `R4_CONDITION_KEY` to run only on `KEYS`-type conditions | July 22, 2026 |
 
-- **Last Updated**: June 10, 2026
+- **Last Updated**: July 22, 2026
 - **Status**: Complete
 
 

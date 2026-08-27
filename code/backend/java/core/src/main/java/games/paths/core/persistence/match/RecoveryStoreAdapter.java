@@ -64,7 +64,8 @@ public class RecoveryStoreAdapter implements RecoveryStorePort {
                 }
             }
         }
-        return Optional.of(new RecoveryMatchContext(m.getIdStory(), difficultyEnergy));
+        return Optional.of(new RecoveryMatchContext(m.getIdStory(), difficultyEnergy,
+                nz(m.getCurrentClock())));
     }
 
     @Override
@@ -76,7 +77,8 @@ public class RecoveryStoreAdapter implements RecoveryStorePort {
                     c.getId(), c.getUuid(), c.getIdClass(), c.getIdLocation(),
                     nz(c.getDexterity()), nz(c.getIntelligence()), nz(c.getConstitution()),
                     nz(c.getEnergy()), nz(c.getLife()), nz(c.getSad()),
-                    nz(c.getEnergyMax()), nz(c.getLifeMax()), nz(c.getSadMax())));
+                    nz(c.getEnergyMax()), nz(c.getLifeMax()), nz(c.getSadMax()),
+                    Boolean.TRUE.equals(c.getIsComa())));
         }
         return out;
     }
@@ -87,7 +89,8 @@ public class RecoveryStoreAdapter implements RecoveryStorePort {
         List<LocationSafety> out = new ArrayList<>();
         for (LocationEntity l : storyReadPort.findLocationsByStoryId(idStory)) {
             out.add(new LocationSafety(
-                    l.getId(), nz(l.getSecureParam()), l.getCounterTime(), l.getIdEventIfCounterZero()));
+                    l.getId(), nz(l.getSecureParam()), l.getCounterTime(), l.getIdEventIfCounterZero(),
+                    l.getIdEventIfCharacterStartTime(), l.getPriorityAutomaticEvent()));
         }
         return out;
     }
@@ -163,11 +166,16 @@ public class RecoveryStoreAdapter implements RecoveryStorePort {
     }
 
     @Override
-    public void logCounterZero(long idMatch, long idLocation, Integer idEventIfCounterZero, String message) {
+    public void logCounterZero(long idMatch, long idLocation, Integer idEventIfCounterZero,
+                               Integer clock, String message) {
         LogEventsEntity e = new LogEventsEntity();
         e.setId(logEventsRepository.findMaxId() + 1);
         e.setIdMatch(idMatch);
         e.setIdEvent(idEventIfCounterZero == null ? null : idEventIfCounterZero.longValue());
+        // Step 33 — without the clock this row sorted outside the timeline, and the
+        // location existed only inside the message string.
+        e.setClock(clock);
+        e.setIdLocation(idLocation);
         e.setLogMessage(message);
         logEventsRepository.save(e);
     }

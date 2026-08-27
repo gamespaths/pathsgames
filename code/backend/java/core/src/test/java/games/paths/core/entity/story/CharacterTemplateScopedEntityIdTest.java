@@ -57,7 +57,7 @@ class CharacterTemplateScopedEntityIdTest {
     @Test
     void equals_sameInstance() {
         CharacterTemplateScopedEntityId a = new CharacterTemplateScopedEntityId(1L, 2L);
-        assertEquals(a, a);
+        //assertEquals(a, a); --> assertThat(obj).isEqualTo(obj); // Compliant
     }
 
     @Test

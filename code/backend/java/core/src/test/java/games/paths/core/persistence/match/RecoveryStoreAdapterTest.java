@@ -5,6 +5,7 @@ import games.paths.core.entity.match.GamingCharacterInstanceEntityId;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntityId;
+import games.paths.core.entity.match.LogEventsEntity;
 import games.paths.core.entity.story.ClassBonusEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.StoryDifficultyEntity;
@@ -16,6 +17,7 @@ import games.paths.core.repository.match.GamingStateLocationsRepository;
 import games.paths.core.repository.match.LogEventsRepository;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -317,14 +319,32 @@ class RecoveryStoreAdapterTest {
     @Test
     void logCounterZero_withNullEvent_savesLogEvent() {
         when(logEventsRepository.findMaxId()).thenReturn(50L);
-        adapter.logCounterZero(1L, 7L, null, "counter zero");
+        adapter.logCounterZero(1L, 7L, null, 4, "counter zero");
         verify(logEventsRepository).save(any());
     }
 
     @Test
     void logCounterZero_withEvent_savesLogEvent() {
         when(logEventsRepository.findMaxId()).thenReturn(50L);
-        adapter.logCounterZero(1L, 7L, 99, "counter zero with event");
+        adapter.logCounterZero(1L, 7L, 99, 4, "counter zero with event");
         verify(logEventsRepository).save(any());
+    }
+
+    /**
+     * Step 33 bug fix: the row used to leave {@code clock} NULL — unlike {@code logSleep} —
+     * so it landed outside the clock-ordered timeline, and the location existed only inside
+     * the message string. Both are columns now.
+     */
+    @Test
+    void logCounterZero_stampsTheClockAndTheLocation() {
+        when(logEventsRepository.findMaxId()).thenReturn(50L);
+        ArgumentCaptor<LogEventsEntity> saved = ArgumentCaptor.forClass(LogEventsEntity.class);
+
+        adapter.logCounterZero(1L, 7L, 99, 12, "counter reached zero at location 7");
+
+        verify(logEventsRepository).save(saved.capture());
+        assertEquals(12, saved.getValue().getClock());
+        assertEquals(7L, saved.getValue().getIdLocation());
+        assertEquals(99L, saved.getValue().getIdEvent());
     }
 }

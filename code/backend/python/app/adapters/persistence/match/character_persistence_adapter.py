@@ -141,6 +141,22 @@ class CharacterPersistenceAdapter(CharacterPersistencePort, CharacterReadPort):
             entity.ts_update = now
             session.commit()
 
+    def update_character_flags(self, match_id: int, character_id: int,
+                               sleeping, coma) -> None:
+        with self.session_factory() as session:
+            entity = (
+                session.query(GamingCharacterInstanceEntity)
+                .filter(GamingCharacterInstanceEntity.id_match == match_id)
+                .filter(GamingCharacterInstanceEntity.id == character_id)
+                .first()
+            )
+            if entity is None:
+                return
+            if sleeping is not None: entity.is_sleeping = bool(sleeping)
+            if coma     is not None: entity.is_coma     = bool(coma)
+            entity.ts_update = _now_iso()
+            session.commit()
+
     def update_backpack_stats(self, match_id: int, character_id: int,
                               food, magic, coin) -> None:
         with self.session_factory() as session:
@@ -246,4 +262,5 @@ class CharacterPersistenceAdapter(CharacterPersistencePort, CharacterReadPort):
             "id_location": entity.id_location,
             "is_sleeping": entity.is_sleeping,
             "is_coma": entity.is_coma,
+            "clock_in_coma": entity.clock_in_coma or 0,
         }

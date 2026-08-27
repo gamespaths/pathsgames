@@ -38,6 +38,13 @@ public interface TurnCycleStorePort {
     /** Clear {@code is_sleeping} on every character of the match (wake at time start). */
     void wakeAllCharacters(long idMatch);
 
+    /**
+     * Set {@code is_sleeping} on every character of the match — the bulk counterpart of
+     * {@link #wakeAllCharacters(long)}. Step 29 uses it for an event with
+     * {@code flag_end_time}: everyone is put to sleep, then time advances.
+     */
+    void setAllCharactersSleeping(long idMatch);
+
     /** Advance {@code gaming_match.current_clock} by one and return the new value. */
     int incrementMatchClock(long idMatch);
 

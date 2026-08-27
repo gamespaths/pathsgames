@@ -5,7 +5,8 @@ info:
     Step 28.7 — consolidated match log endpoint.
 
     Returns a unified timeline of all logged events for a match, ordered by
-    timestamp ascending. Log types included in v0.28.7:
+    timestamp ascending by default (`?order=desc` returns the newest entry first).
+    Log types included in v0.28.7:
 
     - **WEATHER**: weather selected at every time-start (from `log_weather`)
     - **MOVEMENT**: character movements (from `log_movements`)
@@ -13,10 +14,32 @@ info:
       written when `POST /api/gameplay/{uuid}/action/sleep` is called)
     - **CLOCK_ADVANCE**: clock increments / time-end triggers (from `log_clock_history`)
     - **RECOVERY**: per-character stat recovery at time-start (from `log_events`
-      where `log_message` starts with `recovery` or `counter`)
+      where `log_message` starts with `recovery`)
+    - **COUNTER_ZERO** (v0.33.0, Step 33): a location's counter ran out (from `log_events`
+      where `log_message` starts with `counter`). Until v0.33.0 these rows were folded into
+      RECOVERY — which they never were — and written **without a clock**, so they were
+      visible but unsortable, landing outside the clock-ordered timeline. They now carry
+      the clock, the location in `idLocationTo` (which is what resolves the location card,
+      exactly as for MOVEMENT), and `idEvent` when the location authored one.
+    - **AUTOMATIC_EVENT** (v0.33.0, Step 33): an event the engine fired by itself — an
+      arrival, a counter reaching zero, a time unit beginning where somebody stood (from
+      `log_events` where `log_message` starts with `automatic event`). Carries `idEvent`,
+      its card, and `idLocationTo`.
+    - **EVENT** (Step 29): a player-triggered event execution (from `log_events` where
+      `log_message` starts with `EVENT_EXECUTED`). v0.30.3 — carries `idEvent` and the
+      triggered event's own `idCard`/`card`. Rows the service does not recognise (e.g.
+      the Step 30 edge-state audit messages `SADNESS_OVERFLOW`/`COMA`) are dropped, not
+      shown as garbage.
 
-    Future additions (out of scope for v0.28.7): CHOICE_EXECUTED, ITEM_USED,
-    EVENT_TRIGGERED, REGISTRY_CHANGE.
+    - **ITEM_ADD / ITEM_USE / ITEM_DROP** (v0.35.4): what happened to an item, from
+      `log_item_usage` — a row per action, read off its `action` column rather than a
+      message prefix. ADD is an effect handing the item over (`idEvent` names it), USE is
+      the player consuming it, DROP covers both the player putting it down and an effect
+      taking it away. Every one of them carries `idItem`, `counter` and the item's own
+      `idCard`/`card`. Before v0.35.4 the table was written on a use and read by nobody,
+      and taking or dropping an item was not logged at all.
+
+    Future additions: CHOICE_EXECUTED, REGISTRY_CHANGE.
 
     **Public endpoint** (owner-only): `GET /api/matches/{uuidMatch}/logs`
     **Admin endpoint** (no ownership check, admin port 8044):
@@ -58,7 +81,7 @@ paths:
       description: |
         Returns the full log timeline for the given match. Only the match
         creator can access this endpoint (returns 404 for other users).
-        Entries are sorted by timestamp ascending.
+        Entries are sorted by timestamp ascending, or newest first with `?order=desc`.
       parameters:
         - name: uuidMatch
           in: path
@@ -79,6 +102,14 @@ paths:
           required: false
           description: Language used to resolve the entry cards.
           schema: { type: string, default: en }
+        - name: order
+          in: query
+          required: false
+          description: |
+            `asc` (default) returns the oldest entry first; `desc` returns the newest
+            first. The whole timeline is reversed before the page is cut, so `nextCursor`
+            always walks away from the first returned entry. Unknown values fall back to `asc`.
+          schema: { type: string, enum: [asc, desc], default: asc }
       responses:
         '200':
           description: One page of the log timeline
@@ -114,6 +145,14 @@ paths:
           required: false
           description: Language used to resolve the entry cards.
           schema: { type: string, default: en }
+        - name: order
+          in: query
+          required: false
+          description: |
+            `asc` (default) returns the oldest entry first; `desc` returns the newest
+            first. The whole timeline is reversed before the page is cut, so `nextCursor`
+            always walks away from the first returned entry. Unknown values fall back to `asc`.
+          schema: { type: string, enum: [asc, desc], default: asc }
       responses:
         '200':
           description: One page of the log timeline
@@ -140,7 +179,7 @@ components:
           description: Current clock value of the match
         logs:
           type: array
-          description: Timeline entries on this page, sorted by timestamp ascending
+          description: Timeline entries on this page, in the requested `order`
           items: { $ref: '#/components/schemas/LogEntry' }
         nextCursor:
           type: string
@@ -152,13 +191,17 @@ components:
         total:
           type: integer
           description: Total number of entries in the whole timeline
+        order:
+          type: string
+          enum: [asc, desc]
+          description: Effective order this page was cut with
     LogEntry:
       type: object
       required: [type, timestamp]
       properties:
         type:
           type: string
-          enum: [WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY]
+          enum: [WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY, EVENT, COUNTER_ZERO, AUTOMATIC_EVENT, ITEM_ADD, ITEM_USE, ITEM_DROP]
           description: Log entry type
         clock:
           type: integer
@@ -177,11 +220,11 @@ components:
           type: integer
           format: int64
           nullable: true
-          description: "(MOVEMENT, SLEEP, RECOVERY only) ID of the character instance. Always null on AWS."
+          description: "(MOVEMENT, SLEEP, RECOVERY, EVENT only) ID of the character instance. Always null on AWS."
         characterUuid:
           type: string
           nullable: true
-          description: "(v0.28.7; MOVEMENT, SLEEP, RECOVERY) UUID of the character that acted"
+          description: "(v0.28.7; MOVEMENT, SLEEP, RECOVERY, EVENT) UUID of the character that acted"
         characterName:
           type: string
           nullable: true
@@ -199,17 +242,69 @@ components:
         energyCost:
           type: integer
           nullable: true
-          description: "(MOVEMENT only) Total energy cost paid for the move"
+          description: "(MOVEMENT, EVENT) Energy paid: the move total, or v0.35.3 the price of opening the event"
+        foodCost:
+          type: integer
+          nullable: true
+          description: "v0.35.3 — (MOVEMENT, EVENT) food paid; 0 when the action was free"
+        magicCost:
+          type: integer
+          nullable: true
+          description: "v0.35.3 — (MOVEMENT, EVENT) magic paid; 0 when the action was free"
+        coinCost:
+          type: integer
+          nullable: true
+          description: "v0.35.3 — (MOVEMENT, EVENT) coins paid; 0 when the action was free"
+        energyGain:
+          type: integer
+          nullable: true
+          description: "v0.35.4 — (EVENT, ITEM_*) energy the action gave back; 0 when it gave nothing"
+        foodGain:
+          type: integer
+          nullable: true
+          description: "v0.35.4 — (EVENT, ITEM_*) food the action gave; 0 when it gave nothing"
+        magicGain:
+          type: integer
+          nullable: true
+          description: "v0.35.4 — (EVENT, ITEM_*) magic the action gave; 0 when it gave nothing"
+        coinGain:
+          type: integer
+          nullable: true
+          description: "v0.35.4 — (EVENT, ITEM_*) coins the action gave; 0 when it gave nothing"
+        idItem:
+          type: integer
+          format: int64
+          nullable: true
+          description: "v0.35.4 — (ITEM_* only) ID of the list_items row the action moved"
+        itemAction:
+          type: string
+          nullable: true
+          enum: [ADD, USE, DROP, REMOVE]
+          description: >-
+            v0.35.4 — (ITEM_* only) the raw log_item_usage.action. REMOVE and DROP both
+            surface as type ITEM_DROP; this field keeps the two apart for whoever needs it.
+        counter:
+          type: integer
+          nullable: true
+          description: "v0.35.4 — (ITEM_* only) how many units the action moved"
         message:
           type: string
           nullable: true
-          description: "(RECOVERY only) Recovery summary message"
+          description: "(RECOVERY, EVENT) Recovery summary message, or the raw EVENT_EXECUTED <id> log line"
+        idEvent:
+          type: integer
+          format: int64
+          nullable: true
+          description: >-
+            (v0.30.3; EVENT) ID of the list_events row that was triggered. v0.35.4 — also
+            set on ITEM_ADD / ITEM_DROP rows an event effect produced.
         idCard:
           type: integer
           nullable: true
           description: >-
-            (v0.28.7; WEATHER, MOVEMENT) Story-scoped card id — the weather's own card
-            for WEATHER, the destination location's card for MOVEMENT.
+            (WEATHER, MOVEMENT, EVENT, ITEM_*) Story-scoped card id — the weather's own
+            card for WEATHER, the destination location's card for MOVEMENT, the triggered
+            event's own card for EVENT (v0.30.3), the item's own card for ITEM_* (v0.35.4).
         card:
           nullable: true
           description: "(v0.28.7) The resolved card for idCard, localized via ?lang="
