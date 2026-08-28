@@ -68,7 +68,9 @@ No new endpoints are introduced. The following existing endpoints are extended.
 ### 2.1 `POST /api/gameplay/{uuidMatch}/action/sleep`
 
 Endpoint is unchanged from Step 25. The response body gains a new `recovery` array
-that is populated only when `timeEndTriggered == true`.
+that is populated only when `timeEndTriggered == true`. **v0.35.6**: it also gains
+`edgeState`, folding the recovery pass's own sadness-overflow/coma verdict — see
+[Step30_EdgeStates.md §3](./Step30_EdgeStates.md#3-dtos-and-domain-models).
 
 HTTP status codes and error codes are identical to Step 25.
 
@@ -88,11 +90,13 @@ HTTP status codes and error codes are identical to Step 25.
       "lifeDelta": 2,
       "sadDelta": -1
     }
-  ]
+  ],
+  "edgeState": { "...": "..." }
 }
 ```
 
-When `timeEndTriggered == false` the `recovery` array is present but empty.
+When `timeEndTriggered == false` the `recovery` array is present but empty; `edgeState` is
+still the never-null shape Step 30 §3 defines.
 
 ### 2.2 `GET /api/match/{uuidMatch}/info`
 
@@ -712,7 +716,7 @@ can read it during step 6a.
    let's go to develop all components
    ```
 
-- **Document Version**: 0.26.1
+- **Document Version**: 0.35.6
 
    | Version | Description | Date |
    |---------|-------------|------|
@@ -723,8 +727,9 @@ can read it during step 6a.
    | 0.26.1 | Unified the field name on `counterTime`/`counter_time` across all backends: Python and AWS were still writing `counterStart`, which Java never used. A legacy read fallback is kept for DynamoDB documents written before the rename (§16). | June 23, 2026 |
    | 0.26.1 | Bugfix i18n propagation: `GET /api/match/{uuid}/info` accepts `?lang=` on all three backends and forwards it to the location, event and neighbour card resolution, with react-game passing the player's language through every call it makes. Covered by the regression suite in §8.2. | June 23, 2026 |
    | 0.26.1 | AWS bugfix: `GET /api/stories?lang=it` answered a null title for imported stories, so titles and descriptions are now read from `raw_texts` first and fall back per field to English. The import side is documented in Step 14; the regression test is in §8.2. | June 23, 2026 |
+   | 0.35.6 | `SleepActionResponse` gains `edgeState` (§2.1), folding the time-start recovery pass's sadness-overflow/coma verdict — already computed since v0.30.0 but never exposed. Full writeup in [Step30_EdgeStates.md](./Step30_EdgeStates.md). | August 28, 2026 |
 
-- **Last Updated**: June 23, 2026
+- **Last Updated**: August 28, 2026
 - **Status**: Complete
 
 

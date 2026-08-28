@@ -168,6 +168,43 @@ def test_step33_arrival_triggers_run_after_the_move_is_committed(store):
     assert (arrival.id_character, arrival.id_location) == (50, 2)
 
 
+def test_v0356_the_arrivals_edge_state_is_folded_into_one_verdict(store):
+    """An arrival kills exactly as an executed event does, and several of its events can:
+    the move answers ONE edge state, whichever of them did it."""
+    from unittest.mock import MagicMock
+    from app.core.models.match import location_entry_models as lem
+    from app.core.models.match.event_models import EdgeStateOutcome
+
+    downed = EdgeStateOutcome([], ["char-uuid"], True, "coma-uuid", None, ["coma-uuid"], [])
+    entry = MagicMock()
+    entry.on_arrival.return_value = [
+        lem.AutomaticEventFired(lem.TRIGGER_FIRST_ENTRY, 2, "evt-welcome"),
+        lem.AutomaticEventFired(lem.TRIGGER_MOVE_INTO_EMPTY_LOCATION, 2, "evt-trap",
+                                edge_state=downed),
+    ]
+    service = MovementService(store, location_entry=entry)
+
+    r = service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
+
+    assert r.edge_state.coma_uuids == ["char-uuid"]
+    assert r.edge_state.all_players_in_coma is True
+    assert r.edge_state.coma_event_uuid == "coma-uuid"
+
+
+def test_v0356_a_quiet_arrival_answers_an_empty_edge_state(store):
+    from unittest.mock import MagicMock
+    from app.core.models.match import location_entry_models as lem
+
+    entry = MagicMock()
+    entry.on_arrival.return_value = [
+        lem.AutomaticEventFired(lem.TRIGGER_FIRST_ENTRY, 2, "evt-welcome")]
+
+    r = MovementService(store, location_entry=entry).start_movement(
+        MATCH_UUID, "user-uuid", "loc-2")
+
+    assert r.edge_state is not None and r.edge_state.anything() is False
+
+
 def test_step33_without_the_location_engine_a_move_behaves_as_before(service):
     r = service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
     assert r.automatic_events == []

@@ -300,8 +300,9 @@ despite its event effects already naming item ids.
 ## 9. Test coverage
 
 - New robot suite `code/tests/robot/tests/34_inventory/`: `inventory.robot` (7 tests),
-  `use_item.robot` (10 tests), `resources.robot` (8 tests) — 25 tests total, passing against a
-  local java server. Four new keywords in `resources/matches.resource`: `Get Inventory`,
+  `use_item.robot` (10 tests; **v0.35.6** adds coma-lock cases — see
+  [Step30_EdgeStates.md](./Step30_EdgeStates.md)), `resources.robot` (8 tests) — passing against
+  a local java server. Four new keywords in `resources/matches.resource`: `Get Inventory`,
   `Use Item`, `Drop Item`, `Get Resources`. Includes the acceptance test the roadmap named: a
   consumed item must stop satisfying an event's item condition.
 - Unit tests on every backend: java (`InventoryServiceTest`, `InventoryStoreAdapterTest`,
@@ -346,13 +347,14 @@ in §8.
 
 # Version Control
 
-- **Document Version**: 0.34.0
+- **Document Version**: 0.35.6
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.34.0 | Inventory and resources, implemented: four endpoints under `/api/gameplay/` (`inventory`, `use-item`, `drop-item`, `resources`), with `use-item` answering the execute-event payload through one shared door on the effect engine — no second engine, so an item trips the same Step 30 edge states an event does (§1-§3). `V0.34.0__add_item_effect_traits.sql` adds the trait CSVs to `list_items_effects`, `/info` masks every inventory but the caller's, and Step 35 switches on the `OVERWEIGHT` refusal the movement gate had always implemented against a hardcoded zero (§4-§7). | August 20, 2026 |
+  | 0.35.6 | react-game: `use_item.robot` gains coma-lock regression cases (§9), covering the `ItemCard` change documented in [Step35 §8f](./Step35_ItemsResolution.md). | August 28, 2026 |
 
-- **Last Updated**: August 20, 2026
+- **Last Updated**: August 28, 2026
 - **Status**: Complete
 
 

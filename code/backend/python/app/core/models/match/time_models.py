@@ -25,6 +25,8 @@ class TimeStartOutcome:
     it owes, already ordered by ``priority_automatic_event`` then location id."""
     recovery: List["RecoveryItem"] = field(default_factory=list)
     pending: List[Any] = field(default_factory=list)
+    #: v0.35.6 — the edges this recovery pushed anyone over.
+    edge_state: Any = None
 
 
 @dataclass
@@ -33,6 +35,8 @@ class TimeEndOutcome:
     new_clock: int
     recovery: List["RecoveryItem"] = field(default_factory=list)
     counter_zero: List[Any] = field(default_factory=list)
+    #: v0.35.6 — the edges the time-start pushed anyone over.
+    edge_state: Any = None
 
 
 @dataclass
@@ -47,6 +51,9 @@ class SleepResult:
     #: that ran out, and the events they set off. A LIST: several counters can expire on
     #: one time-start. Already filtered for the recipient (fog of war).
     counter_zero: List[Any] = field(default_factory=list)
+    #: v0.35.6 — the Step 30 verdict of the time-start the sleep set off: the recovery's own,
+    #: folded with the events it fired. Same shape execute-event answers.
+    edge_state: Any = None
 
 
 @dataclass

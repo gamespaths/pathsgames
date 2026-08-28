@@ -287,3 +287,39 @@ class EdgeStateOutcome:
     def anything(self) -> bool:
         """True when anything at all happened — the frontend shows a card only then."""
         return bool(self.sadness_overflow_uuids or self.coma_uuids or self.all_players_in_coma)
+
+    @staticmethod
+    def merge(parts) -> "EdgeStateOutcome":
+        """v0.35.6 — one verdict out of several passes over the rules.
+
+        A movement or a time-start can run a handful of automatic events, each with its own
+        pass: the caller gets ONE edge state, the same shape execute-event answers. The uuids
+        are unioned (a character caught twice is still one collapse) and the FIRST epilogue
+        wins — it is latched per request and cannot run twice anyway.
+        """
+        sadness: List[str] = []
+        coma: List[str] = []
+        all_down = False
+        epilogue_uuid = None
+        epilogue_card = None
+        epilogue_events: List[str] = []
+        epilogue_effects: List[AppliedEffect] = []
+        for part in parts or []:
+            if part is None:
+                continue
+            for uuid in part.sadness_overflow_uuids:
+                if uuid not in sadness:
+                    sadness.append(uuid)
+            for uuid in part.coma_uuids:
+                if uuid not in coma:
+                    coma.append(uuid)
+            all_down = all_down or part.all_players_in_coma
+            if epilogue_uuid is None and part.coma_event_uuid is not None:
+                epilogue_uuid = part.coma_event_uuid
+                epilogue_card = part.coma_event_card
+            epilogue_events.extend(part.coma_executed_event_uuids)
+            epilogue_effects.extend(part.coma_effects)
+        if not sadness and not coma and not all_down:
+            return EdgeStateOutcome.none()
+        return EdgeStateOutcome(sadness, coma, all_down, epilogue_uuid, epilogue_card,
+                                epilogue_events, epilogue_effects)

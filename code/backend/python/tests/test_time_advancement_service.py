@@ -189,6 +189,49 @@ def test_step33_the_events_a_time_start_collected_are_run_and_told_to_the_sleepe
     runner.run_pending_automatic_events.assert_called_once()
 
 
+def test_v0356_the_time_starts_edge_state_rides_on_the_sleep():
+    """The recovery emptied one bar and an event of the same time-start emptied another:
+    the sleeper is told what the whole pass did, in one verdict."""
+    from unittest.mock import MagicMock
+    from app.core.models.match import location_entry_models as lem
+    from app.core.models.match.event_models import EdgeStateOutcome
+    from app.core.models.match.time_models import TimeStartOutcome
+
+    store = FakeTimeStore(match=_match(current_clock=3),
+                          characters=[_char(10, "char-a", energy=50)])
+    from_recovery = EdgeStateOutcome(["char-a"], [], False, None, None, [], [])
+    from_event = EdgeStateOutcome([], ["char-a"], True, "coma-uuid", None, ["coma-uuid"], [])
+    pending = lem.PendingAutomaticEvent(lem.TRIGGER_COUNTER_ZERO, 12, 340, 10, 0)
+    fired = lem.AutomaticEventFired(lem.TRIGGER_COUNTER_ZERO, 12, "evt-fuse",
+                                    edge_state=from_event)
+    recovery = MagicMock()
+    recovery.apply_at_time_start.return_value = TimeStartOutcome([], [pending], from_recovery)
+    runner = MagicMock()
+    runner.run_pending_automatic_events.return_value = [fired]
+    runner.describe_for_recipient.return_value = []
+
+    service = TimeAdvancementService(store, RecordingPublisher(), recovery_service=recovery)
+    service.set_automatic_event_runner(runner)
+
+    result = service.sleep(MATCH_UUID, "user-uuid")
+
+    assert result.edge_state.sadness_overflow_uuids == ["char-a"]
+    assert result.edge_state.coma_uuids == ["char-a"]
+    assert result.edge_state.all_players_in_coma is True
+    assert result.edge_state.coma_event_uuid == "coma-uuid"
+
+
+def test_v0356_a_sleep_that_triggers_nothing_answers_an_empty_edge_state():
+    store = FakeTimeStore(match=_match(current_clock=3),
+                          characters=[_char(10, "char-a", energy=50),
+                                      _char(11, "char-b", energy=50, sleeping=False)])
+
+    result = _service(store).sleep(MATCH_UUID, "user-uuid")
+
+    assert result.time_end_triggered is False
+    assert result.edge_state is not None and result.edge_state.anything() is False
+
+
 def test_step33_no_runner_means_no_counter_zero():
     store = FakeTimeStore(match=_match(current_clock=3),
                           characters=[_char(10, "char-a", energy=50)])

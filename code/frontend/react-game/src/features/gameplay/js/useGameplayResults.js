@@ -212,11 +212,14 @@ export default function useGameplayResults({
     t, viewActions, matchUuid, accessToken, lang])
 
   // Step 33 — a movement answers with what the destination did about the arrival.
+  // v0.35.6 — an arrival kills as an event does: the edge state comes last, so a collapse
+  // covers the arrival's own card rather than the other way round.
   const handleMovementDone = useCallback(result => {
     reloadBoard()
     showAutomaticEvents(result?.automaticEvents)
+    applyEdgeState(result?.edgeState)
     stopLoading()
-  }, [reloadBoard, showAutomaticEvents, stopLoading])
+  }, [reloadBoard, showAutomaticEvents, applyEdgeState, stopLoading])
 
   // Step 33 — a sleep answers with the location counters that ran out while the party slept,
   // already filtered for this player. Empty is the normal case and renders nothing.
@@ -224,7 +227,10 @@ export default function useGameplayResults({
     reloadBoard()
     const fired = result?.counterZero ?? []
     viewActions.setCounterZero(fired.length ? fired : null)
-  }, [reloadBoard, viewActions])
+    // v0.35.6 — the recovery and the events a time-start fires can empty a life bar; waking
+    // up comatose with nothing on screen to say why was the whole complaint.
+    applyEdgeState(result?.edgeState)
+  }, [reloadBoard, viewActions, applyEdgeState])
 
   // Step 34 — dropping applies nothing and narrates nothing. The bag stays open on purpose:
   // dropping is a tidying gesture and usually comes in a run, so the list the player is

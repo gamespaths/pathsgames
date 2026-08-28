@@ -2,6 +2,7 @@ package games.paths.core.port.match;
 
 import games.paths.core.model.story.CardInfo;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -191,6 +192,52 @@ public interface EventExecutionPort {
         /** True when anything at all happened — the frontend shows a card only then. */
         public boolean anything() {
             return !sadnessOverflowUuids.isEmpty() || !comaUuids.isEmpty() || allPlayersInComa;
+        }
+
+        /**
+         * v0.35.6 — one verdict out of several passes over the rules.
+         *
+         * <p>A movement or a time-start can run a handful of automatic events, each with its
+         * own pass: the caller gets ONE edge state, the same shape execute-event answers, so
+         * the board keeps a single code path. The uuids are unioned (a character caught twice
+         * is still one collapse) and the FIRST epilogue wins — it is latched per request and
+         * cannot run twice anyway.</p>
+         */
+        public static EdgeStateOutcome merge(List<EdgeStateOutcome> parts) {
+            List<String> sadness = new ArrayList<>();
+            List<String> coma = new ArrayList<>();
+            boolean allDown = false;
+            String epilogueUuid = null;
+            CardInfo epilogueCard = null;
+            List<String> epilogueEvents = new ArrayList<>();
+            List<AppliedEffect> epilogueEffects = new ArrayList<>();
+            for (EdgeStateOutcome part : parts == null ? List.<EdgeStateOutcome>of() : parts) {
+                if (part == null) {
+                    continue;
+                }
+                for (String uuid : part.sadnessOverflowUuids()) {
+                    if (!sadness.contains(uuid)) {
+                        sadness.add(uuid);
+                    }
+                }
+                for (String uuid : part.comaUuids()) {
+                    if (!coma.contains(uuid)) {
+                        coma.add(uuid);
+                    }
+                }
+                allDown = allDown || part.allPlayersInComa();
+                if (epilogueUuid == null && part.comaEventUuid() != null) {
+                    epilogueUuid = part.comaEventUuid();
+                    epilogueCard = part.comaEventCard();
+                }
+                epilogueEvents.addAll(part.comaExecutedEventUuids());
+                epilogueEffects.addAll(part.comaEffects());
+            }
+            if (sadness.isEmpty() && coma.isEmpty() && !allDown) {
+                return none();
+            }
+            return new EdgeStateOutcome(sadness, coma, allDown, epilogueUuid, epilogueCard,
+                    epilogueEvents, epilogueEffects);
         }
     }
 

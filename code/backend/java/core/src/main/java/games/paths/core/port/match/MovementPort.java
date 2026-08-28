@@ -55,7 +55,26 @@ public interface MovementPort {
                           int newMagic,
                           int newCoin,
                           int currentClock,
-                          List<LocationEntryPort.AutomaticEventFired> automaticEvents) {
+                          List<LocationEntryPort.AutomaticEventFired> automaticEvents,
+                          /**
+                           * v0.35.6 — the Step 30 verdict of the whole arrival, folded from
+                           * the events above. Same shape execute-event answers, so the board
+                           * reads a collapse the same way whatever caused it.
+                           */
+                          EventExecutionPort.EdgeStateOutcome edgeState) {
+
+        /** An arrival that moved no edge — the ordinary move. */
+        public MovementResult(String matchUuid, String characterUuid, Long fromLocationId,
+                              String fromLocationUuid, long toLocationId, String toLocationUuid,
+                              int energySpent, int foodSpent, int magicSpent, int coinSpent,
+                              int newEnergy, int newFood, int newMagic, int newCoin,
+                              int currentClock,
+                              List<LocationEntryPort.AutomaticEventFired> automaticEvents) {
+            this(matchUuid, characterUuid, fromLocationId, fromLocationUuid, toLocationId,
+                    toLocationUuid, energySpent, foodSpent, magicSpent, coinSpent, newEnergy,
+                    newFood, newMagic, newCoin, currentClock, automaticEvents,
+                    EventExecutionPort.EdgeStateOutcome.none());
+        }
     }
 
     /** A visited location with its current character count and move-cost neighbors. */

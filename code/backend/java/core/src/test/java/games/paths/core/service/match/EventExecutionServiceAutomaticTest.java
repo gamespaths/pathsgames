@@ -32,6 +32,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -257,6 +258,41 @@ class EventExecutionServiceAutomaticTest {
 
             assertEquals(1, fired.size());
             assertTrue(fired.get(0).statChanges().isEmpty());
+        }
+
+        @Test
+        @DisplayName("v0.35.6: a lethal arrival reports its Step 30 verdict, epilogue and all")
+        void aLethalArrivalCarriesItsEdgeState() {
+            when(store.findEventsById(STORY_ID)).thenReturn(Map.of(
+                    40L, event(40L, "evt-trap"), 50L, event(50L, "evt-coma")));
+            when(store.findEffectsByEventId(STORY_ID)).thenReturn(Map.of(
+                    40L, List.of(lethalEffect())));
+            when(store.findIdEventAllPlayerComa(STORY_ID)).thenReturn(Optional.of(50L));
+            when(locationStore.findLocationTriggers(STORY_ID, LOCATION))
+                    .thenReturn(Optional.of(triggers(40, null, null)));
+            when(locationStore.findFlagVisited(MATCH_ID, LOCATION)).thenReturn(0);
+
+            List<AutomaticEventFired> fired = service.onArrival(arrival());
+
+            EventExecutionPort.EdgeStateOutcome edge = fired.get(0).edgeState();
+            assertTrue(edge.comaUuids().contains("char-1"));
+            assertTrue(edge.allPlayersInComa());
+            assertEquals("evt-coma", edge.comaEventUuid());
+            assertEquals(List.of("evt-coma"), edge.comaExecutedEventUuids());
+        }
+
+        @Test
+        @DisplayName("v0.35.6: an ordinary arrival answers an empty edge state, never null")
+        void aQuietArrivalCarriesAnEmptyEdgeState() {
+            when(store.findEventsById(STORY_ID)).thenReturn(Map.of(40L, event(40L, "evt-first")));
+            when(locationStore.findLocationTriggers(STORY_ID, LOCATION))
+                    .thenReturn(Optional.of(triggers(40, null, null)));
+            when(locationStore.findFlagVisited(MATCH_ID, LOCATION)).thenReturn(0);
+
+            List<AutomaticEventFired> fired = service.onArrival(arrival());
+
+            assertNotNull(fired.get(0).edgeState());
+            assertFalse(fired.get(0).edgeState().anything());
         }
 
         @Test
@@ -538,6 +574,14 @@ class EventExecutionServiceAutomaticTest {
         e.setId(id);
         e.setUuid(uuid);
         e.setType("AUTOMATIC");
+        return e;
+    }
+
+    private static EventEffectEntity lethalEffect() {
+        EventEffectEntity e = new EventEffectEntity();
+        e.setStatistics("life");
+        e.setValue(-99);
+        e.setTarget("ONLY_ONE");
         return e;
     }
 

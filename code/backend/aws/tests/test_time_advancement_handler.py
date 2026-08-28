@@ -335,3 +335,108 @@ def test_sleep_in_an_unsafe_location_does_not_wake_from_coma():
     saved = table.get_item('MATCH#m1', 'CHARACTER#c1')
     assert saved['isComa'] == 1
     assert saved['life'] == 0
+
+
+# ── v0.35.6 — the recovery runs the full Step 30 evaluator ───────────────────
+#
+# Until v0.35.6 this backend's recovery applied no edge rule but the coma wake: sadness sat
+# at its cap until some event happened to touch the character, and a class bonus that drove
+# life to zero left them standing. Java and Python had always evaluated both rules here.
+
+def _party_rows(table):
+    match = table.get_item('MATCH#m1')
+    return [r for r in (match.get('eventLog') or [])
+            if str(r.get('message') or '').startswith(h._events.MSG_ALL_PLAYER_COMA)]
+
+
+def test_sadness_at_its_cap_discharges_at_the_time_start():
+    # Location 2 is unsafe, so the recovery neither heals nor calms: sadness stays at the
+    # cap and the overflow rule fires — COS life for a cleared bar, and forced sleep.
+    char = _char_recovery('m1', 1, 'c1', idLocation=2, sad=100)
+    items = [PLAYER, _story_recovery(), _match_recovery(clock=0), char]
+    with _env(items) as (table, _):
+        body = _body(h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None))
+
+    saved = table.get_item('MATCH#m1', 'CHARACTER#c1')
+    assert saved['sad'] == 0
+    assert saved['life'] == 16          # 20 - COS(4)
+    assert saved['isSleeping'] == 1
+    assert body['edgeState']['sadnessOverflowUuids'] == ['c1']
+    assert body['edgeState']['comaUuids'] == []
+    # And the deltas the response reports are the ones actually written.
+    assert body['recovery'][0]['lifeDelta'] == -4
+    assert body['recovery'][0]['sadDelta'] == -100
+    messages = [r.get('message', '')
+                for r in (table.get_item('MATCH#m1').get('eventLog') or [])]
+    assert any(m.startswith(h._events.MSG_SADNESS_OVERFLOW) for m in messages)
+
+
+def test_an_overflow_that_empties_the_life_bar_opens_a_coma():
+    char = _char_recovery('m1', 1, 'c1', idLocation=2, sad=100, life=3)
+    items = [PLAYER, _story_recovery(), _match_recovery(clock=0), char]
+    with _env(items) as (table, _):
+        body = _body(h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None))
+
+    saved = table.get_item('MATCH#m1', 'CHARACTER#c1')
+    assert saved['life'] == 0 and saved['isComa'] == 1
+    assert saved['clockInComa'] == 1          # the clock the time start moved to
+    edge = body['edgeState']
+    assert edge['comaUuids'] == ['c1'] and edge['allPlayersInComa'] is True
+    assert len(_party_rows(table)) == 1
+
+
+def test_a_negative_class_life_bonus_can_open_a_coma_at_the_time_start():
+    story = _story_recovery()
+    story['classBonuses'] = [{'idClass': 1, 'statistic': 'life', 'value': -30}]
+    char = _char_recovery('m1', 1, 'c1')      # safe location 1
+    items = [PLAYER, story, _match_recovery(clock=0), char]
+    with _env(items) as (table, _):
+        body = _body(h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None))
+
+    saved = table.get_item('MATCH#m1', 'CHARACTER#c1')
+    assert saved['life'] == 0 and saved['isComa'] == 1 and saved['isSleeping'] == 1
+    assert body['edgeState']['comaUuids'] == ['c1']
+    # The pass that puts somebody down does not also wake them: the wake reads the flag as
+    # it was BEFORE the pass, and before it this character was standing.
+    messages = [r.get('message', '')
+                for r in (table.get_item('MATCH#m1').get('eventLog') or [])]
+    assert not any(m.startswith(h._events.MSG_COMA_RECOVERED) for m in messages)
+
+
+def test_an_ordinary_recovery_still_moves_no_edge():
+    items = [PLAYER, _story_recovery(), _match_recovery(clock=0),
+             _char_recovery('m1', 1, 'c1')]
+    with _env(items) as (table, _):
+        body = _body(h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None))
+
+    edge = body['edgeState']
+    assert edge['sadnessOverflowUuids'] == [] and edge['comaUuids'] == []
+    assert edge['allPlayersInComa'] is False
+    assert _party_rows(table) == []
+    saved = table.get_item('MATCH#m1', 'CHARACTER#c1')
+    assert saved.get('isComa', 0) == 0
+
+
+def test_a_collapse_at_the_time_start_still_runs_the_story_epilogue():
+    """The recovery writes the party row; running the ending is the event engine's job, and
+    the event this very time start fires is where it happens."""
+    story = _story_recovery()
+    story['idEventAllPlayerComa'] = 70
+    story['events'] = [
+        {'id': 99, 'uuid': 'evt-fuse', 'type': 'AUTOMATIC', 'costEnery': 0, 'coinCost': 0,
+         'flagEndTime': 0, 'idCard': None},
+        {'id': 70, 'uuid': 'evt-coma', 'type': 'AUTOMATIC', 'costEnery': 0, 'coinCost': 0,
+         'flagEndTime': 0, 'idCard': None},
+    ]
+    story['eventEffects'] = []
+    # Unsafe location 2, sadness at the cap and three life left: the overflow empties the
+    # bar, and the counter on that very location fires on the same time start.
+    char = _char_recovery('m1', 1, 'c1', idLocation=2, sad=100, life=3)
+    items = [PLAYER, story, _match_recovery(clock=0), char]
+    with _env(items) as (table, _):
+        body = _body(h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None))
+
+    edge = body['edgeState']
+    assert edge['comaUuids'] == ['c1'] and edge['allPlayersInComa'] is True
+    assert edge['comaEventUuid'] == 'evt-coma'
+    assert edge['comaExecutedEventUuids'] == ['evt-coma']

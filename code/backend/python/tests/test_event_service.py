@@ -6,7 +6,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.core.models.match.event_models import EventCheckContext, EventError
+from app.core.models.match.event_models import (EdgeStateOutcome, EventCheckContext,
+                                                EventError)
+from app.core.models.match.time_models import TimeEndOutcome
 from app.core.services.match.event_service import EventService
 
 MATCH_UUID = "match-uuid"
@@ -88,7 +90,7 @@ def store():
 @pytest.fixture
 def time_service():
     t = MagicMock()
-    t.force_time_end.return_value = 8
+    t.force_time_end.return_value = TimeEndOutcome(8, [], [], EdgeStateOutcome.none())
     return t
 
 

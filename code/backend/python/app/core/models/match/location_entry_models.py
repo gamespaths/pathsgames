@@ -77,6 +77,10 @@ class AutomaticEventFired:
     stat_changes: List[Any] = field(default_factory=list)
     location_changes: List[Any] = field(default_factory=list)
     game_over: bool = False
+    #: v0.35.6 — what the Step 30 rules did about it, epilogue included. An arrival kills
+    #: exactly as an executed event does; before this the collapse reached the board only on
+    #: the next reload, as a flag with no card and no story.
+    edge_state: Any = None
 
 
 @dataclass
@@ -120,6 +124,22 @@ def to_camel_automatic_event(f: AutomaticEventFired) -> Dict[str, Any]:
         "statChanges": [_stat_to_camel(c) for c in (f.stat_changes or [])],
         "locationChanges": [_location_to_camel(c) for c in (f.location_changes or [])],
         "gameOver": bool(f.game_over),
+    }
+
+
+def to_camel_edge_state(e) -> Dict[str, Any]:
+    """v0.35.6 — REST shape of a Step 30 verdict, for the responses that are not
+    execute-event: a movement and a sleep answer the very same object."""
+    if e is None:
+        return None
+    return {
+        "sadnessOverflowUuids": list(e.sadness_overflow_uuids),
+        "comaUuids": list(e.coma_uuids),
+        "allPlayersInComa": e.all_players_in_coma,
+        "comaEventUuid": e.coma_event_uuid,
+        "comaEventCard": e.coma_event_card,
+        "comaExecutedEventUuids": list(e.coma_executed_event_uuids),
+        "comaEffects": [_effect_to_camel(x) for x in (e.coma_effects or [])],
     }
 
 

@@ -1458,7 +1458,11 @@ def _clamp(value, low, high):
 def _compute_recovery(dexterity, intelligence, constitution, energy, life, sad,
                       energy_max, life_max, sad_max, safe, p, difficulty_energy,
                       bonus_energy, bonus_life, bonus_sad):
-    """Step 26 — pure recovery math (safe/unsafe + class bonuses + clamping)."""
+    """Step 26 — pure recovery math (safe/unsafe + class bonuses + clamping).
+
+    v0.35.6 returns the raw sadness beside the clamped one: the Step 30 overflow rule reads
+    what the bonus actually did, not what the column can hold.
+    """
     secure_param = p - difficulty_energy
     new_energy = energy + dexterity + p if safe else energy + difficulty_energy
     new_life = life
@@ -1471,7 +1475,8 @@ def _compute_recovery(dexterity, intelligence, constitution, energy, life, sad,
     new_sad += bonus_sad
     return (_clamp(new_energy, 0, energy_max),
             _clamp(new_life, 0, life_max),
-            _clamp(new_sad, 0, sad_max))
+            _clamp(new_sad, 0, sad_max),
+            new_sad)
 
 
 def _apply_time_start_recovery(match, match_uuid, story):
@@ -1480,8 +1485,12 @@ def _apply_time_start_recovery(match, match_uuid, story):
     Safe (secureParam > 0): energy += DEX + P, life += COS + secureParam, sadness -= INT + secureParam.
     Unsafe: energy += difficulty.energy only (no DEX, no secureParam).
     Counter-zero locations are flagged with a ``pendingEvent``
-    marker (actual event execution is wired in Step 29). Returns the recovery
-    recap (per-character deltas)."""
+    marker (actual event execution is wired in Step 29).
+
+    v0.35.6 runs the full Step 30 evaluator over every recovered character, as java and
+    python do: a recovery can discharge sadness, cost COS life and open a coma.
+
+    Returns (recap of the per-character deltas, pending events, Step 30 verdict)."""
     diff = next((d for d in (story.get('difficulties') or [])
                  if d.get('uuid') == match.get('difficultyUuid')), {}) or {}
     difficulty_energy = _nz(diff.get('energy'))
@@ -1494,6 +1503,9 @@ def _apply_time_start_recovery(match, match_uuid, story):
                     if c.get('idLocation') is not None}
 
     recaps = []
+    # v0.35.6 — who this recovery pushed over an edge, so the sleep response can say so.
+    overflowed = []
+    collapsed = []
     for c in characters:
         loc = story_locations.get(_nz(c.get('idLocation')))
         secure_param = _nz(loc.get('secureParam')) if loc else 0
@@ -1501,26 +1513,46 @@ def _apply_time_start_recovery(match, match_uuid, story):
         p = secure_param + difficulty_energy
         class_id = class_id_by_uuid.get(c.get('classUuid'))
         bonuses = [b for b in class_bonuses if b.get('idClass') == class_id]
-        energy, life, sad = _compute_recovery(
+        energy, life, sad, sad_unclamped = _compute_recovery(
             _nz(c.get('dexterity')), _nz(c.get('intelligence')), _nz(c.get('constitution')),
             _nz(c.get('energy')), _nz(c.get('life')), _nz(c.get('sad')),
             _nz(c.get('energyMax')), _nz(c.get('lifeMax')), _nz(c.get('sadMax')),
             safe, p, difficulty_energy,
             _sum_bonus(bonuses, 'energy'), _sum_bonus(bonuses, 'life'),
             _sum_bonus(bonuses, 'sad'))
+
+        # v0.35.6 — a recovery can still push a character over an edge: a positive class sad
+        # bonus raises sadness and an unsafe location never heals. Evaluated on the RECOVERED
+        # values, with the raw sadness, so the corrected ones are what gets written.
+        was_coma = _nz(c.get('isComa')) == 1
+        verdict = _events.evaluate_edge_state({**c, 'life': life, 'sad': sad_unclamped})
+
         recaps.append({
             "characterUuid": c.get('uuid'),
             "energyDelta": energy - _nz(c.get('energy')),
-            "lifeDelta": life - _nz(c.get('life')),
-            "sadDelta": sad - _nz(c.get('sad')),
+            "lifeDelta": verdict['lifeAfter'] - _nz(c.get('life')),
+            "sadDelta": verdict['sadAfter'] - _nz(c.get('sad')),
         })
-        c['energy'], c['life'], c['sad'] = energy, life, sad
+        c['energy'] = energy
+        c['life'] = verdict['lifeAfter']
+        c['sad'] = verdict['sadAfter']
+        if verdict['sadnessOverflow']:
+            c['isSleeping'] = 1
+            overflowed.append(c.get('uuid'))
+            _log_edge_state(match, c, None,
+                            f"{_events.MSG_SADNESS_OVERFLOW} {c.get('uuid')}")
+        if verdict['comaTriggered']:
+            c['isComa'] = 1
+            c['isSleeping'] = 1
+            c['clockInComa'] = _nz(match.get('currentClock'))
+            collapsed.append(c.get('uuid'))
+            _log_edge_state(match, c, None, f"{_events.MSG_COMA} {c.get('uuid')}")
         # v0.30.1 — a comatose character who rested in a safe location wakes. Safe recovery has
         # already lifted its life above zero (life += COS + secure_param, both >= 1), so it
         # cannot wake awake-but-dead to re-coma next clock. Independent of the others in the
-        # location. NOTE: this backend's recovery does not run the full edge evaluator (Java and
-        # Python do); the wake is the one edge rule the recovery path needs.
-        if _nz(c.get('isComa')) == 1 and safe and life > 0:
+        # location. Read from the flag as it was BEFORE this pass: a character the pass has
+        # just put down is not one who rested.
+        if was_coma and safe and verdict['lifeAfter'] > 0:
             c['isComa'] = 0
             _log_edge_state(match, c, None,
                             f"{_events.MSG_COMA_RECOVERED} {c.get('uuid')}")
@@ -1585,7 +1617,23 @@ def _apply_time_start_recovery(match, match_uuid, story):
 
     # Deterministic across locations: priorityAutomaticEvent first, then location id.
     pending.sort(key=lambda p: (p['priority'], p['idLocation']))
-    return recaps, pending
+
+    # The whole party can go under during a recovery just as during an event. The row is
+    # written here; running the story epilogue is the event engine's job, which owns the
+    # chain runner and a result object to carry a card back in.
+    all_down = _events.all_in_coma(characters)
+    if all_down:
+        _log_edge_state(match, None, None, f"{_events.MSG_ALL_PLAYER_COMA} {match_uuid}")
+    edge_state = {
+        "sadnessOverflowUuids": overflowed,
+        "comaUuids": collapsed,
+        "allPlayersInComa": all_down,
+        # The epilogue's own fields stay empty: this verdict only says who went over which
+        # edge. The events the same time-start fires fill them in if they run one.
+        "comaEventUuid": None, "comaEventCard": None,
+        "comaExecutedEventUuids": [], "comaEffects": [],
+    }
+    return recaps, pending, edge_state
 
 
 def _add_pending_automatic(out, trigger, id_location, id_event, id_actor_uuid, loc):
@@ -2136,10 +2184,12 @@ def _advance_time(match, match_uuid):
 
     # Step 26: per-character recovery, class bonuses and location counters.
     story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
-    recovery, pending = _apply_time_start_recovery(match, match_uuid, story)
+    recovery, pending, recovery_edge = _apply_time_start_recovery(match, match_uuid, story)
     # Step 33: the events that pass collected — counters that reached zero, and the
     # locations whose idEventIfCharacterStartTime fires because a time unit began with
     # somebody standing there.
+    # The recovery's own party row is NOT a reason to skip the epilogue here: a collapse at
+    # a time start still owes the story its ending, and running it is the event engine's job.
     fired = _run_pending_automatic_events(match, match_uuid, story, pending)
     # Step 27: select the weather for the new time unit and apply its energy delta.
     _apply_weather_at_time_start(match, match_uuid, story)
@@ -2171,7 +2221,8 @@ def _advance_time(match, match_uuid):
 
     db_utils.put_item(match)
     # A TimeAdvanced domain event would be published here (WebSocket broadcast: Step 64).
-    return new_clock, recovery, fired
+    edge_state = _merge_edge_states([recovery_edge] + [f.get('edgeState') for f in fired])
+    return new_clock, recovery, fired, edge_state
 
 
 def _sleep(user, match_uuid):
@@ -2211,8 +2262,9 @@ def _sleep(user, match_uuid):
     current_clock = _nz(match.get('currentClock'))
     recovery = []
     counter_zero = []
+    edge_state = _merge_edge_states([])
     if triggered:
-        current_clock, recovery, fired = _advance_time(match, match_uuid)
+        current_clock, recovery, fired, edge_state = _advance_time(match, match_uuid)
         # Step 33 — the same events, told to THIS player. The caller is the only recipient
         # with an open request; the rest learn about it over the broadcast once Steps 49-54
         # land, through this very path called once per player.
@@ -2231,6 +2283,7 @@ def _sleep(user, match_uuid):
         # counters can run out on one time-start. Already filtered for this caller: `card`
         # is absent entirely when visibility is ANONYMOUS.
         "counterZero": counter_zero,
+        "edgeState": edge_state,
     })
 
 
@@ -2464,6 +2517,9 @@ def _start_movement(user, match_uuid, body):
         # What the destination did about the arrival. The board already has the new
         # location for its left page; these belong on the right.
         "automaticEvents": automatic_events,
+        # v0.35.6 — an arrival can kill: the Step 30 verdict of the whole move, in the very
+        # shape execute-event answers, so the board reads a collapse the same way always.
+        "edgeState": _merge_edge_states([f.get('edgeState') for f in automatic_events]),
     })
 
 
@@ -2782,7 +2838,10 @@ def _execute_event(user, match_uuid, body, lang='en'):
         for c in _match_characters(match_uuid):
             c['isSleeping'] = 1
             db_utils.put_item(c)
-        current_clock, _recovery, _fired = _advance_time(match, match_uuid)
+        current_clock, _recovery, _fired, time_edge = _advance_time(match, match_uuid)
+        # v0.35.6 — the time start this event forced runs a recovery, and a recovery can push
+        # somebody over an edge: that verdict belongs in this response, not the next reload.
+        _fold_edge_uuids(edge_state, time_edge)
         time_ended = True
     else:
         db_utils.put_item(match)
@@ -3421,8 +3480,19 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
                                             characters, ctx, events_by_id, acc,
                                             item_uuids, location_uuids, lang)
 
+    # v0.35.6 — a lethal OPTION puts the party down exactly as a lethal event does, so the
+    # epilogue is owed here too. Before this, only execute-event ever resolved it.
+    _resolve_epilogue(match, match_uuid, story, caller, characters, ctx,
+                      events_by_id, acc, item_uuids, location_uuids, lang)
+
     for c in acc['touched'].values():
         db_utils.put_item(c)
+
+    # v0.35.6 — a forced move is an arrival like any other, and java and python drain these
+    # while AWS silently did not. After the writes above, because the destination re-reads
+    # the characters; and told that the epilogue is spent, so it cannot run a second time.
+    _drain_arrivals(match, match_uuid, story, acc, location_uuids, lang,
+                    acc['edgeState']['allPlayersInComa'])
 
     # ── close the cycle: the marker, the history row, the milestone ──
     clock = _nz(match.get('currentClock'))
@@ -3459,15 +3529,29 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
         for c in _match_characters(match_uuid):
             c['isSleeping'] = 1
             db_utils.put_item(c)
-        current_clock, _recovery, _fired = _advance_time(match, match_uuid)
+        current_clock, _recovery, _fired, time_edge = _advance_time(match, match_uuid)
+        # The forced time start can push somebody over an edge too — same as above.
+        _fold_edge_uuids(acc['edgeState'], time_edge)
         time_ended = True
     else:
         db_utils.put_item(match)
+
+    # The epilogue is sliced off the tail so the board can tell it from the option's chain.
+    if acc['edgeState']['comaEventUuid'] is None:
+        chain_event_uuids, chain_effects = acc['executedUuids'], acc['effects']
+        coma_event_uuids, coma_effects = [], []
+    else:
+        mark_e, mark_f = acc['comaEventMark'], acc['comaEffectMark']
+        chain_event_uuids = acc['executedUuids'][:mark_e]
+        coma_event_uuids = acc['executedUuids'][mark_e:]
+        chain_effects = acc['effects'][:mark_f]
+        coma_effects = acc['effects'][mark_f:]
 
     changed = any([time_ended, acc['flags']['itemAdded'], acc['flags']['itemRemoved'],
                    acc['flags']['weatherApplied'], acc['flags']['movementApplied'],
                    acc['flags']['comaTriggered'], acc['flags']['gameOver'],
                    acc['edgeState']['sadnessOverflowUuids'], acc['edgeState']['comaUuids'],
+                   acc['edgeState']['allPlayersInComa'],
                    acc['statChanges'], acc['registryChanges'], acc['traitChanges'],
                    acc['characteristicChanges']])
 
@@ -3478,7 +3562,7 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
         "eventType": event.get('type'),
         "status": status,
         "card": _resolve_card_from_raw(raw_cards, raw_texts, event.get('idCard'), lang),
-        "executedEventUuids": acc['executedUuids'],
+        "executedEventUuids": chain_event_uuids,
         # Always 0: the open already paid, and resolving is what that payment bought.
         "energySpent": 0,
         "coinSpent": 0,
@@ -3505,14 +3589,16 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
         "itemChanges": acc['itemChanges'],
         "characteristicChanges": acc['characteristicChanges'],
         "locationChanges": acc['locationChanges'],
-        "effects": acc['effects'],
+        "effects": chain_effects,
         "pendingChoices": pending,
         "edgeState": {
             "sadnessOverflowUuids": acc['edgeState']['sadnessOverflowUuids'],
             "comaUuids": acc['edgeState']['comaUuids'],
             "allPlayersInComa": acc['edgeState']['allPlayersInComa'],
-            "comaEventUuid": None, "comaEventCard": None,
-            "comaExecutedEventUuids": [], "comaEffects": [],
+            "comaEventUuid": acc['edgeState']['comaEventUuid'],
+            "comaEventCard": acc['edgeState']['comaEventCard'],
+            "comaExecutedEventUuids": coma_event_uuids,
+            "comaEffects": coma_effects,
         },
         # ── what only a resolution knows ──
         "choiceUuid": choice.get('uuid'),
@@ -3538,10 +3624,40 @@ def _new_accumulator(caller):
         # re-runnable however many times it has been executed before.
         'visited': set(),
         'choiceEventUuid': None, 'choiceEventCard': None,
-        'edgeState': {'sadnessOverflowUuids': [], 'comaUuids': [], 'allPlayersInComa': False},
+        # v0.35.6 — the epilogue's own state: where its events and effects start in the two
+        # lists above, and the latch that keeps it to one run per resolution.
+        'allComaResolved': False, 'comaEventMark': 0, 'comaEffectMark': 0,
+        'epiloguePhase': False,
+        'edgeState': {'sadnessOverflowUuids': [], 'comaUuids': [], 'allPlayersInComa': False,
+                      'comaEventUuid': None, 'comaEventCard': None},
         'flags': {'itemAdded': False, 'itemRemoved': False, 'weatherApplied': False,
                   'movementApplied': False, 'comaTriggered': False, 'gameOver': False,
                   'endTime': False, 'forcedSleep': False},
+    }
+
+
+def _chain_effects(acc):
+    """The effects the pass itself applied — the epilogue's are sliced off the tail."""
+    if acc['edgeState']['comaEventUuid'] is None:
+        return list(acc['effects'])
+    return list(acc['effects'][:acc['comaEffectMark']])
+
+
+def _edge_state_payload(acc):
+    """The REST shape of a Step 30 verdict, epilogue sliced off the tail of the two lists."""
+    if acc['edgeState']['comaEventUuid'] is None:
+        coma_events, coma_effects = [], []
+    else:
+        coma_events = list(acc['executedUuids'][acc['comaEventMark']:])
+        coma_effects = list(acc['effects'][acc['comaEffectMark']:])
+    return {
+        "sadnessOverflowUuids": list(acc['edgeState']['sadnessOverflowUuids']),
+        "comaUuids": list(acc['edgeState']['comaUuids']),
+        "allPlayersInComa": acc['edgeState']['allPlayersInComa'],
+        "comaEventUuid": acc['edgeState']['comaEventUuid'],
+        "comaEventCard": acc['edgeState']['comaEventCard'],
+        "comaExecutedEventUuids": coma_events,
+        "comaEffects": coma_effects,
     }
 
 
@@ -3599,6 +3715,82 @@ def _apply_edge_states(match, caller, acc, event_id):
             _log_edge_state(match, c, event_id, f"{_events.MSG_COMA} {c.get('uuid')}")
             if caller is not None and c.get('uuid') == caller.get('uuid'):
                 acc['flags']['comaTriggered'] = True
+
+
+def _drain_arrivals(match, match_uuid, story, acc, location_uuids, lang, epilogue_done):
+    """Every character an effect pushed somewhere has ARRIVED there, and arriving is a
+    trigger. Each destination is resolved once, in the order the moves were applied.
+
+    The edges those arrivals opened are folded into this request's verdict: the uuids only,
+    since each arrival keeps its own chain and this response has no room for another one.
+    """
+    for change in list(acc['locationChanges']):
+        moved_to = location_uuids_inverse(location_uuids, change.get('toLocationUuid'))
+        if moved_to is None:
+            continue
+        out = []
+        _resolve_arrival(match, match_uuid, story, change.get('characterUuid'), moved_to,
+                         lang, 1, out, epilogue_done)
+        for fired in out:
+            _fold_edge_uuids(acc['edgeState'], fired.get('edgeState'))
+
+
+def _merge_edge_states(parts):
+    """v0.35.6 — one REST verdict out of several passes over the rules.
+
+    A movement or a time-start can run a handful of automatic events, each with its own
+    pass: the caller gets ONE edge state, the same shape execute-event answers. The uuids
+    are unioned and the FIRST epilogue wins — it is latched per request either way.
+    """
+    merged = {"sadnessOverflowUuids": [], "comaUuids": [], "allPlayersInComa": False,
+              "comaEventUuid": None, "comaEventCard": None,
+              "comaExecutedEventUuids": [], "comaEffects": []}
+    for part in parts or []:
+        if not part:
+            continue
+        _fold_edge_uuids(merged, part)
+        if merged['comaEventUuid'] is None and part.get('comaEventUuid') is not None:
+            merged['comaEventUuid'] = part.get('comaEventUuid')
+            merged['comaEventCard'] = part.get('comaEventCard')
+        merged['comaExecutedEventUuids'].extend(part.get('comaExecutedEventUuids') or [])
+        merged['comaEffects'].extend(part.get('comaEffects') or [])
+    return merged
+
+
+def _fold_edge_uuids(edge_state, other):
+    """Union the who-went-over-an-edge halves of another verdict into this one."""
+    if not other:
+        return
+    for uuid in other.get('sadnessOverflowUuids') or []:
+        if uuid not in edge_state['sadnessOverflowUuids']:
+            edge_state['sadnessOverflowUuids'].append(uuid)
+    for uuid in other.get('comaUuids') or []:
+        if uuid not in edge_state['comaUuids']:
+            edge_state['comaUuids'].append(uuid)
+    edge_state['allPlayersInComa'] = edge_state['allPlayersInComa'] or bool(
+        other.get('allPlayersInComa'))
+
+
+def _resolve_epilogue(match, match_uuid, story, caller, characters, ctx,
+                      events_by_id, acc, item_uuids, location_uuids, lang):
+    """v0.35.6 — run the all-players-in-coma epilogue when this pass put the last character
+    down. Called from a resolved option and from an arrival, as java and python do."""
+    coma_event = _resolve_all_player_coma(
+        match, match_uuid, caller, acc['touched'], acc['edgeState'], events_by_id, ctx,
+        story, story.get('raw_cards') or [], story.get('raw_texts') or [], lang,
+        acc['allComaResolved'])
+    acc['allComaResolved'] = True
+    if coma_event is None:
+        return
+    # Marked BEFORE the chain runs: everything appended from here on is the epilogue's.
+    acc['comaEventMark'] = len(acc['executedUuids'])
+    acc['comaEffectMark'] = len(acc['effects'])
+    acc['epiloguePhase'] = True
+    try:
+        _run_event_chain(match, story, coma_event, caller, characters, ctx, events_by_id,
+                         acc, item_uuids, location_uuids, lang)
+    finally:
+        acc['epiloguePhase'] = False
 
 
 def _run_linked_event(match, match_uuid, story, id_event, caller, characters, ctx,
@@ -3744,7 +3936,8 @@ def _run_event_chain(match, story, first, caller, characters, ctx, events_by_id,
             "message": f'{_events.MSG_EVENT_EXECUTED} {event_id}',
         })
 
-        if acc['flags']['comaTriggered']:
+        if acc['flags']['comaTriggered'] and not acc['epiloguePhase']:
+            # The epilogue runs BECAUSE the party is down, so the coma cannot unwind it.
             return  # coma stops the chain, and flagEndTime with it
         nxt = current.get('idEventNext')
         if not nxt or _events._nz(nxt) <= 0:
@@ -3815,7 +4008,8 @@ def _log_automatic_event(match, actor_uuid, id_location, id_event, clock, messag
     })
 
 
-def _resolve_arrival(match, match_uuid, story, actor_uuid, id_location, lang, depth, out):
+def _resolve_arrival(match, match_uuid, story, actor_uuid, id_location, lang, depth, out,
+                     epilogue_done=False):
     """The dispatch table of an arrival.
 
     The order is fixed rather than authored: the history trigger (first or subsequent —
@@ -3837,13 +4031,16 @@ def _resolve_arrival(match, match_uuid, story, actor_uuid, id_location, lang, de
         return
     triggers = _location_triggers(story, id_location)
     visited = _flag_visited(match, id_location) == 1
+    # An arrival can fire two events, and each runs its own pass: the party's collapse is
+    # answered by the first one that sees it, never again by the second.
+    epilogue = {'done': bool(epilogue_done)}
     if triggers is not None:
         history_event = (triggers.get('idEventNotFirstTime') if visited
                          else triggers.get('idEventIfFirstTime'))
         history_trigger = (_events.TRIGGER_SUBSEQUENT_ENTRY if visited
                            else _events.TRIGGER_FIRST_ENTRY)
         _run_automatic_event(match, match_uuid, story, actor_uuid, history_event,
-                             id_location, history_trigger, lang, depth, out)
+                             id_location, history_trigger, lang, depth, out, epilogue)
 
         others = [c for c in _match_characters(match_uuid)
                   if _nz(c.get('idLocation')) == id_location
@@ -3852,12 +4049,12 @@ def _resolve_arrival(match, match_uuid, story, actor_uuid, id_location, lang, de
             _run_automatic_event(match, match_uuid, story, actor_uuid,
                                  triggers.get('idEventIfCharacterEnterEmptyLocation'),
                                  id_location, _events.TRIGGER_MOVE_INTO_EMPTY_LOCATION, lang,
-                                 depth, out)
+                                 depth, out, epilogue)
     _mark_location_visited(match, id_location)
 
 
 def _run_automatic_event(match, match_uuid, story, actor_uuid, id_event, id_location,
-                         trigger, lang, depth, out):
+                         trigger, lang, depth, out, epilogue=None):
     """Run one automatic event and its whole ``idEventNext`` chain.
 
     What makes it different from ``_execute_event``:
@@ -3899,11 +4096,21 @@ def _run_automatic_event(match, match_uuid, story, actor_uuid, id_event, id_loca
     ctx = _events.build_context(match, story, actor)
 
     acc = _new_accumulator(actor) if actor is not None else _new_accumulator_no_actor()
+    # An epilogue already answered this request is spent: neither the other trigger of this
+    # arrival nor an arrival the epilogue itself caused may run it again on a party that is
+    # still, of course, all down.
+    epilogue = epilogue if epilogue is not None else {'done': False}
+    acc['allComaResolved'] = bool(epilogue['done'])
     item_uuids = {_nz(i.get('id')): i.get('uuid') for i in (story.get('items') or [])}
     location_uuids = {_nz(l.get('id')): l.get('uuid') for l in (story.get('locations') or [])}
 
     _run_event_chain(match, story, event, actor, characters, ctx, events_by_id, acc,
                      item_uuids, location_uuids, lang)
+    # v0.35.6 — an arrival kills exactly as an executed event does, so the epilogue is owed
+    # here too (java resolves it in resolveArrival; AWS did not resolve it at all).
+    _resolve_epilogue(match, match_uuid, story, actor, characters, ctx, events_by_id, acc,
+                      item_uuids, location_uuids, lang)
+    epilogue['done'] = epilogue['done'] or acc['edgeState']['allPlayersInComa']
 
     for touched in acc['touched'].values():
         if touched is not None:
@@ -3921,10 +4128,12 @@ def _run_automatic_event(match, match_uuid, story, actor_uuid, id_event, id_loca
         "idLocation": id_location,
         "eventUuid": event.get('uuid'),
         "card": _resolve_card_from_raw(raw_cards, raw_texts, event.get('idCard'), lang),
-        "effects": list(acc['effects']),
+        "effects": _chain_effects(acc),
         "statChanges": list(acc['statChanges']),
         "locationChanges": list(acc['locationChanges']),
         "gameOver": bool(acc['flags']['gameOver']),
+        # v0.35.6 — what the Step 30 rules did about this arrival, epilogue included.
+        "edgeState": _edge_state_payload(acc),
     })
 
     # The events this one caused by pushing somebody somewhere: a forced move is an
@@ -3934,7 +4143,7 @@ def _run_automatic_event(match, match_uuid, story, actor_uuid, id_event, id_loca
         moved_to = location_uuids_inverse(location_uuids, change.get('toLocationUuid'))
         if moved_to is not None:
             _resolve_arrival(match, match_uuid, story, moved_uuid, moved_to, lang,
-                             depth + 1, out)
+                             depth + 1, out, epilogue['done'])
 
 
 def location_uuids_inverse(location_uuids, uuid):
@@ -3954,14 +4163,20 @@ def _new_accumulator_no_actor():
     return acc
 
 
-def _run_pending_automatic_events(match, match_uuid, story, pending, lang='en'):
+def _run_pending_automatic_events(match, match_uuid, story, pending, lang='en',
+                                  epilogue_done=False):
     """Run the events a time-start collected — counter-zero fuses and
-    idEventIfCharacterStartTime — in the order the recovery pass produced them."""
+    idEventIfCharacterStartTime — in the order the recovery pass produced them.
+
+    They share one epilogue latch: a party collapse is answered once per time start, by the
+    recovery that saw it or by the first event that did.
+    """
     out = []
+    epilogue = {'done': bool(epilogue_done)}
     for p in (pending or []):
         _run_automatic_event(match, match_uuid, story, p.get('actorUuid'),
                              p.get('idEvent'), p.get('idLocation'), p.get('trigger'),
-                             lang, 0, out)
+                             lang, 0, out, epilogue)
     return out
 
 

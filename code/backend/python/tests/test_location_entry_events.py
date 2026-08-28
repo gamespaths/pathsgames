@@ -114,6 +114,33 @@ def test_first_arrival_fires_id_event_if_first_time(service, store, location_sto
     assert fired[0].id_location == LOCATION
 
 
+def test_v0356_a_lethal_arrival_carries_its_edge_state(service, store, location_store):
+    """An arrival kills exactly as an executed event does, epilogue and all."""
+    store.find_events_by_id.return_value = {40: _event(40, "evt-trap"),
+                                            50: _event(50, "evt-coma")}
+    store.find_effects_by_event_id.return_value = {40: [_effect(statistics="life", value=-99)]}
+    store.find_id_event_all_player_coma.return_value = 50
+    location_store.find_location_triggers.return_value = _triggers(first=40)
+
+    fired = service.on_arrival(_arrival())
+
+    edge = fired[0].edge_state
+    assert "char-7" in edge.coma_uuids
+    assert edge.all_players_in_coma is True
+    assert edge.coma_event_uuid == "evt-coma"
+    assert edge.coma_executed_event_uuids == ["evt-coma"]
+
+
+def test_v0356_a_quiet_arrival_carries_an_empty_edge_state(service, store, location_store):
+    store.find_events_by_id.return_value = {40: _event(40, "evt-first")}
+    location_store.find_location_triggers.return_value = _triggers(first=40)
+
+    fired = service.on_arrival(_arrival())
+
+    assert fired[0].edge_state is not None
+    assert fired[0].edge_state.anything() is False
+
+
 def test_a_visited_destination_fires_id_event_not_first_time(service, store, location_store):
     store.find_events_by_id.return_value = {40: _event(40, "evt-first"),
                                             41: _event(41, "evt-again")}

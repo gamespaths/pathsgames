@@ -51,6 +51,9 @@ def _sleep_to_camel(r: SleepResult) -> dict:
         # counters can run out on one time-start. Already filtered for this caller: `card`
         # is absent entirely when visibility is ANONYMOUS.
         "counterZero": [lem.to_camel_counter_zero(i) for i in (r.counter_zero or [])],
+        # v0.35.6 — the recovery and the events a time-start fires can empty a life bar: the
+        # verdict travels with the answer instead of surfacing as a flag on the next reload.
+        "edgeState": lem.to_camel_edge_state(r.edge_state),
     }
 
 

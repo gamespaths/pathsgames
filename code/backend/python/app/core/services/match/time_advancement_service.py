@@ -10,12 +10,14 @@ from typing import Any, Dict, List
 
 from app.core.models.match import match_statuses
 from app.core.models.match import turn_models as tm
+from app.core.models.match.event_models import EdgeStateOutcome
 from app.core.models.match.time_models import (
     ClockCharacter,
     ClockResult,
     RecoveryItem,
     SleepResult,
     TimeAdvanced,
+    TimeEndOutcome,
 )
 from app.core.models.match.turn_models import TurnCycleError
 from app.core.ports.event.event_ports import DomainEventPublisher
@@ -72,8 +74,9 @@ class TimeAdvancementService(TimeAdvancementPort):
         current_clock = match["current_clock"]
         recovery: List[RecoveryItem] = []
         counter_zero: List[Any] = []
+        edge_state = EdgeStateOutcome.none()
         if triggered:
-            current_clock, recovery, fired = self._advance_time(match)
+            current_clock, recovery, fired, edge_state = self._advance_time(match)
             # Step 33 — the same events, told to THIS player. The caller is the only
             # recipient with an open request; the rest learn about it over the WebSocket
             # once Steps 49-54 land, through this very method called once per player.
@@ -81,8 +84,11 @@ class TimeAdvancementService(TimeAdvancementPort):
                                                        current_clock)
 
         # After a time-end every character is awake again; otherwise the caller stays asleep.
+        # v0.35.6 — a time-start kills too: the recovery itself can empty a life bar, and so
+        # can the events it sets off. Without this the sleeper woke up comatose with nothing
+        # on screen to say why.
         return SleepResult(match_uuid, caller["uuid"], not triggered, triggered,
-                           current_clock, recovery, counter_zero)
+                           current_clock, recovery, counter_zero, edge_state)
 
     def clock(self, match_uuid: str, user_uuid: str) -> ClockResult:
         user_id = self._require_user(user_uuid)
@@ -114,7 +120,7 @@ class TimeAdvancementService(TimeAdvancementPort):
                 return False
         return True
 
-    def force_time_end(self, match_uuid: str) -> int:
+    def force_time_end(self, match_uuid: str) -> TimeEndOutcome:
         """Step 29 — force a time end: put every character to sleep, then advance.
 
         Exposed on the class and deliberately NOT on TimeAdvancementPort: nothing over REST
@@ -124,8 +130,8 @@ class TimeAdvancementService(TimeAdvancementPort):
         """
         match = self._require_match(match_uuid)
         self.store.set_all_characters_sleeping(match["id"])
-        new_clock, _recovery, _fired = self._advance_time(match)
-        return new_clock
+        new_clock, recovery, _fired, edge_state = self._advance_time(match)
+        return TimeEndOutcome(new_clock, recovery, [], edge_state)
 
     def _advance_time(self, match: Dict[str, Any]):
         new_clock = self.store.increment_match_clock(match["id"])
@@ -146,7 +152,9 @@ class TimeAdvancementService(TimeAdvancementPort):
             self.weather_service.apply_at_time_start(match["id"])
         self._rebuild_queue(match["id"], new_clock)
         self.event_publisher.publish(TimeAdvanced(match["uuid"], new_clock))
-        return new_clock, outcome.recovery, fired
+        # The recovery's own verdict first, then whatever its events did: one edge state.
+        parts = [outcome.edge_state] + [f.edge_state for f in fired]
+        return new_clock, outcome.recovery, fired, EdgeStateOutcome.merge(parts)
 
     def _describe_counter_zero(self, id_match: int, id_recipient_character,
                                fired: List[Any], clock: int) -> List[Any]:

@@ -258,6 +258,42 @@ describe('GameBook', () => {
     })
   })
 
+  // v0.35.6 — an arrival kills as an event does: the move answers an edgeState and the
+  // board must narrate it, epilogue card and all, instead of leaving the player to notice
+  // on the next reload that they are comatose.
+  it('map: a move whose arrival put the party down opens the coma page', async () => {
+    const mapGameData = {
+      ...GAME_DATA,
+      playerStats: { life: 10, energy: 10 },
+      actions: [],
+      locations: [{ uuid: 'lb', idLocation: 6, name: 'Into the dark', energyCost: 2,
+        card: { title: 'Into the dark' } }],
+      info: {
+        players: [{ idLocation: 1 }],
+        locations: [{ idLocation: 1, flagAlreadyActived: 1, clockCounter: 0 }],
+        locationsActive: [{
+          idLocation: 1, uuid: 'l1', card: { title: 'Start location' },
+          neighbors: [{ uuid: 'lb', idLocation: 6, idLocationFrom: 1, idLocationTo: 6,
+            direction: 'WEST', flagBack: 0, card: { title: 'Into the dark' } }],
+        }],
+      },
+    }
+    startMovement.mockResolvedValue({
+      automaticEvents: [],
+      edgeState: {
+        sadnessOverflowUuids: [], comaUuids: [], allPlayersInComa: true,
+        comaEventUuid: 'evt-coma', comaEventCard: { title: 'The dark closes in' },
+        comaExecutedEventUuids: ['evt-coma'], comaEffects: [],
+      },
+    })
+    render(<GameBook gameData={mapGameData} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
+    fireEvent.click(screen.getByTestId('extra-action-0'))
+    fireEvent.click(screen.getByTestId('map-node-6'))
+    fireEvent.click(screen.getByTestId('action-movement'))
+
+    expect(await screen.findByText('The dark closes in')).toBeInTheDocument()
+  })
+
   it('renders gracefully when gameData is null', () => {
     render(<GameBook gameData={null} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
     expect(screen.getByTestId('book')).toBeInTheDocument()

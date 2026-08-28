@@ -131,6 +131,17 @@ leaves no marker claiming otherwise:
 event that owned the resolved option. `status` is `APPLIED`, or `CHOICES_PENDING` when a
 linked event turned out to be another choice-event (§4).
 
+**v0.35.6 — `edgeState` parity on AWS.** `SelectChoiceResponse` extends `ExecuteEventResponse`
+(Step 30 §3), so `comaEventUuid`/`comaEventCard`/`comaExecutedEventUuids`/`comaEffects` were
+already part of the contract, but AWS's `_resolve_choice` answered them hardcoded null/empty —
+only `execute-event` ran the party-collapse epilogue on that backend. `_resolve_choice` now
+calls the same `_resolve_epilogue` helper Java/Python always did. Two more AWS-only gaps closed
+alongside it: a lethal choice effect that forces a move is itself an arrival, so
+`_resolve_choice` now drains those arrivals and resolves the epilogue on their automatic events
+too (Step 33); a per-request latch keeps the epilogue answered exactly once even when several
+fold points (the choice itself, a forced move, a chained automatic event) could each trigger it.
+No schema change, no new endpoint.
+
 ## 7. Database — `V0.32.0__choice_effect_targets.sql`
 
 `ALTER TABLE list_choices_effects ADD COLUMN` × 5: `id_event`, `id_location`, `id_weather`,
@@ -196,11 +207,11 @@ Registry/item/stat changes ride on the payload but get no dedicated UI this step
 | OpenAPI | `adapter-rest/src/main/resources/openapi/v0.32.0-choice-resolution-api.yaml` (new) |
 | Engine (Python) | `app/core/services/match/event_service.py` (`select_choice`), `models/match/event_models.py`, `ports/match/event_ports.py`, `adapters/persistence/match/event_store_adapter.py`, `adapters/rest/match/event_controller.py` |
 | Schema fix (Python) | `app/adapters/persistence/story/models.py`, `story_persistence_adapter.py`, `adapters/persistence/match/models.py` (2 new entities) |
-| Engine (AWS) | `lambda/match/choices.py` (`choice_by_uuid`, `effects_for_choice`, `choice_recipients`), `lambda/match/handler.py` (`_select_choice`, `_resolve_choice`, `_run_linked_event`, `_run_event_chain`) |
+| Engine (AWS) | `lambda/match/choices.py` (`choice_by_uuid`, `effects_for_choice`, `choice_recipients`), `lambda/match/handler.py` (`_select_choice`, `_resolve_choice`, `_run_linked_event`, `_run_event_chain`; **v0.35.6** — `_resolve_epilogue` call, arrival draining, per-request latch) |
 | Validators | Java `StoryValidatorService`, Python `story_validator_service.py`, AWS `lambda/story/story_validator.py` |
 | Seed | Java `adapter-sqlite` dev seed (`R__insert_story_seed_data.sql`), Python `seed_dev_data.py`, AWS `lambda/seed/handler.py` — event 90032 (cost 3) with three options + outcome event 90033 (cost 9, never charged) |
 | Game board | `react-game/src/api/matches.js` (`selectChoice`), `features/gameplay/GameBook.jsx`, `cards/ChoiceCard.jsx`, `cards/PendingChoicesList.jsx`, `i18n/{en,it}.json` |
-| Robot | `code/tests/robot/tests/32_choice_resolution/choice_resolution.robot` (new, 11 cases); `resources/matches.resource` (`Select Choice`) |
+| Robot | `code/tests/robot/tests/32_choice_resolution/choice_resolution.robot` (new, 11 cases); `resources/matches.resource` (`Select Choice`); **v0.35.6** adds `30_edge_states/choice_coma_epilogue.robot` |
 | Tests | Java: `EventExecutionServiceSelectChoiceTest` (36), `ChoiceResolutionEntitiesTest`, `SelectChoiceResponseTest`, plus additions to `EventControllerTest`, `EventExecutionStoreAdapterReadWriteTest`, `StoryValidatorServiceTest`, `StoryCrudServiceCompleteTest`, `MatchPersistenceAdapterTest`. Python: `test_event_service_select_choice.py` (35) + additions to `test_event_controller.py`, `test_event_store_adapter.py`, `test_story_persistence_adapter.py`, `test_story_validator_service.py`. AWS: `test_match_handler_select_choice.py` (29) + `test_choices.py`, `test_story_validator.py`. Frontend: `ChoiceCard.test.jsx`, `GameBookCoverage.test.jsx`. |
 
 Python and AWS mirror the Java engine and validator described above; see
@@ -216,13 +227,14 @@ The Robot suite dry-runs clean (11 cases); it has **not** been executed against 
 
 # Version Control
 
-- **Document Version**: 0.32.0
+- **Document Version**: 0.35.6
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.32.0 | Choice resolution: select-choice applies list_choices_effects (stats, registry, items, forced movement, weather, inline events), runs id_event_torun, reveals the withheld narrative, records log_choices_executed + gaming_story_progress, writes CHOICE_SELECTED; charges nothing (the open paid); open-cycle cost-bypass guard; V0.32.0 choice-effect targets; react-game resolution flow | July 23, 2026 |
+  | 0.35.6 | AWS bugfix: select-choice now resolves the party-collapse epilogue (`_resolve_epilogue`) like Java/Python always did, drains arrivals a forced move produces, and answers the epilogue once per request via a new latch. No schema change. | August 28, 2026 |
 
-- **Last Updated**: July 23, 2026
+- **Last Updated**: August 28, 2026
 - **Status**: Complete
 
 

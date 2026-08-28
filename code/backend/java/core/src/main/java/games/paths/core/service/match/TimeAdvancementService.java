@@ -4,6 +4,7 @@ import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.TurnStatuses;
 import games.paths.core.model.match.event.TimeAdvanced;
 import games.paths.core.port.event.DomainEventPublisher;
+import games.paths.core.port.match.EventExecutionPort.EdgeStateOutcome;
 import games.paths.core.port.match.LocationEntryPort;
 import games.paths.core.port.match.TimeAdvancementPort;
 import games.paths.core.port.match.TurnCyclePort.TurnCycleException;
@@ -100,6 +101,7 @@ public class TimeAdvancementService implements TimeAdvancementPort {
         int currentClock = match.currentClock();
         List<RecoveryItem> recovery = List.of();
         List<CounterZeroItem> counterZero = List.of();
+        EdgeStateOutcome edgeState = EdgeStateOutcome.none();
         if (triggered) {
             AdvanceResult advanced = advanceTime(match);
             currentClock = advanced.newClock();
@@ -109,12 +111,16 @@ public class TimeAdvancementService implements TimeAdvancementPort {
             // once Steps 49-54 land, through this very method called once per player.
             counterZero = describeCounterZero(match.id(), caller.id(),
                     advanced.automaticEvents(), currentClock);
+            // v0.35.6 — a time-start kills too: the recovery itself can empty a life bar, and
+            // so can the events it sets off. Without this the sleeper woke up comatose with
+            // nothing on screen to say why.
+            edgeState = advanced.edgeState();
         }
 
         // After a time-end every character is awake again; otherwise the caller stays asleep.
         boolean finalSleeping = !triggered;
         return new SleepResult(matchUuid, caller.uuid(), finalSleeping, triggered, currentClock,
-                recovery, counterZero);
+                recovery, counterZero, edgeState);
     }
 
     @Override
@@ -175,7 +181,7 @@ public class TimeAdvancementService implements TimeAdvancementPort {
         MatchView match = requireMatch(matchUuid);
         store.setAllCharactersSleeping(match.id());
         AdvanceResult advanced = advanceTime(match);
-        return new TimeEndOutcome(advanced.newClock(), advanced.recovery(),
+        return new TimeEndOutcome(advanced.newClock(), advanced.recovery(), advanced.edgeState(),
                 describeCounterZero(match.id(), idRecipientCharacter,
                         advanced.automaticEvents(), advanced.newClock()));
     }
@@ -198,7 +204,15 @@ public class TimeAdvancementService implements TimeAdvancementPort {
     /** Outcome of {@link #forceTimeEnd(String)}. */
     public record TimeEndOutcome(int newClock,
                                  List<RecoveryItem> recovery,
+                                 /** v0.35.6 — the edges the time-start pushed anyone over. */
+                                 EdgeStateOutcome edgeState,
                                  List<CounterZeroItem> counterZero) {
+
+        /** A time end that moved no edge. */
+        public TimeEndOutcome(int newClock, List<RecoveryItem> recovery,
+                              List<CounterZeroItem> counterZero) {
+            this(newClock, recovery, EdgeStateOutcome.none(), counterZero);
+        }
     }
 
     /**
@@ -243,12 +257,19 @@ public class TimeAdvancementService implements TimeAdvancementPort {
         for (TimeStartRecoveryService.RecoveryRecap r : outcome.recovery()) {
             recovery.add(new RecoveryItem(r.characterUuid(), r.energyDelta(), r.lifeDelta(), r.sadDelta()));
         }
-        return new AdvanceResult(newClock, recovery, fired);
+        // The recovery's own verdict first, then whatever its events did: one edge state.
+        List<EdgeStateOutcome> parts = new ArrayList<>();
+        parts.add(outcome.edgeState());
+        for (LocationEntryPort.AutomaticEventFired f : fired) {
+            parts.add(f.edgeState());
+        }
+        return new AdvanceResult(newClock, recovery, fired, EdgeStateOutcome.merge(parts));
     }
 
     private record AdvanceResult(int newClock,
                                  List<RecoveryItem> recovery,
-                                 List<LocationEntryPort.AutomaticEventFired> automaticEvents) {
+                                 List<LocationEntryPort.AutomaticEventFired> automaticEvents,
+                                 EdgeStateOutcome edgeState) {
     }
 
     /** Rebuild the turn queue for a new clock: all WAITING, highest priority ACTIVE. */

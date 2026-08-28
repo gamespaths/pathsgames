@@ -514,4 +514,58 @@ describe('ItemCard', () => {
       expect(capturedProps.actionsList[0].label).toBe('')
     })
   })
+
+  describe('a comatose character (Step 30)', () => {
+    // The engine answers 409 COMA to use-item AND to drop-item, before it even reads the
+    // row: the bag must not offer a button whose only possible answer is that error.
+    const COMA = { isComa: true, weight: 3, weightMax: 30 }
+
+    it('locks a perfectly usable item, and says why', () => {
+      render(<ItemCard item={ITEM} story={STORY} onPreview={vi.fn()} playerStats={COMA} />)
+
+      expect(screen.getByTestId('locked').textContent).toBe('true')
+      expect(screen.getByTestId('lock-info').textContent).toBe('game.item.reason.COMA')
+      expect(capturedProps.label).toBeUndefined()
+    })
+
+    it('offers neither use nor drop on the big card, only the reason', () => {
+      const onPreview = vi.fn()
+      render(<ItemCard item={ITEM} story={STORY} onPreview={onPreview} playerStats={COMA}
+        matchUuid="m1" accessToken="tok" onDropped={vi.fn()} />)
+
+      const props = previewProps(onPreview)
+      expect(props.onAction).toBeUndefined()
+      expect(props.actionsList).toEqual([])
+      expect(props.extraContent).toBe('game.item.reasonFull.COMA')
+    })
+
+    it('names the coma, not the item, when both would refuse', () => {
+      // The state of the character comes first, in the order the engine refuses.
+      const onPreview = vi.fn()
+      render(<ItemCard item={{ ...CARRIED_ONLY, amount: 1, amountUse: 5 }} story={STORY}
+        onPreview={onPreview} playerStats={COMA} />)
+
+      expect(screen.getByTestId('lock-info').textContent).toBe('game.item.reason.COMA')
+      expect(previewProps(onPreview).extraContent).toBe('game.item.reasonFull.COMA')
+    })
+
+    it('keeps the bin off an overloaded bag too — dropping is an action as well', () => {
+      render(<ItemCard item={ITEM} story={STORY} onPreview={vi.fn()}
+        playerStats={{ ...COMA, weight: 31 }} />)
+
+      expect(capturedProps.actionsList).toEqual([])
+      expect(capturedProps.infoLabelClassName).toBeUndefined()
+    })
+
+    it('gives both actions back to a character who is not comatose', () => {
+      const onPreview = vi.fn()
+      render(<ItemCard item={ITEM} story={STORY} onPreview={onPreview}
+        playerStats={{ isComa: false, weight: 3, weightMax: 30 }} />)
+
+      expect(screen.getByTestId('locked').textContent).toBe('false')
+      const props = previewProps(onPreview)
+      expect(props.onAction).toBeTypeOf('function')
+      expect(props.actionsList).toHaveLength(1)
+    })
+  })
 })

@@ -2,6 +2,7 @@ package games.paths.core.service.match;
 
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.story.CardInfo;
+import games.paths.core.port.match.EventExecutionPort;
 import games.paths.core.port.match.LocationEntryPort;
 import games.paths.core.port.match.MovementPort;
 import games.paths.core.port.match.MovementPort.MovementAvailability;
@@ -158,7 +159,23 @@ public class MovementService implements MovementPort {
                 target.id(), target.uuid(),
                 totalCost, edge.costFood(), edge.costMagic(), edge.costCoin(),
                 newEnergy, newFood, newMagic, newCoin,
-                match.currentClock(), automaticEvents);
+                match.currentClock(), automaticEvents, edgeStateOf(automaticEvents));
+    }
+
+    /**
+     * v0.35.6 — one Step 30 verdict for the whole arrival.
+     *
+     * <p>Several automatic events can fire on one entry and any of them can kill; the move
+     * answers a single edge state, the same shape execute-event does, so the board has one
+     * code path for a collapse however it was caused.</p>
+     */
+    private static EventExecutionPort.EdgeStateOutcome edgeStateOf(
+            List<LocationEntryPort.AutomaticEventFired> automaticEvents) {
+        List<EventExecutionPort.EdgeStateOutcome> parts = new ArrayList<>();
+        for (LocationEntryPort.AutomaticEventFired fired : automaticEvents) {
+            parts.add(fired.edgeState());
+        }
+        return EventExecutionPort.EdgeStateOutcome.merge(parts);
     }
 
     @Override

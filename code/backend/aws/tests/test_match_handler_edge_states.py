@@ -228,3 +228,234 @@ def test_a_quiet_execution_leaves_the_edge_state_empty():
     assert edge['sadnessOverflowUuids'] == []
     assert edge['allPlayersInComa'] is False
     assert edge['comaEventUuid'] is None
+
+
+# ── the epilogue after a CHOICE — v0.35.6 ───────────────────────────────────
+#
+# A lethal OPTION puts the party down exactly as a lethal event does. Until v0.35.6 only
+# execute-event resolved the epilogue, so a story whose killing blow was a choice never
+# ran it: java and python did, AWS did not.
+
+_CHOICE_EVENTS = [
+    {'id': 30, 'uuid': 'evt-fork', 'idSpecificLocation': 1, 'type': 'NORMAL',
+     'idCard': 1, 'costEnery': 0, 'coinCost': 0, 'flagEndTime': 0},
+    # The epilogue, and the second link of its own chain.
+    {'id': 20, 'uuid': 'evt-coma', 'type': 'NORMAL', 'idCard': 1, 'costEnery': 0,
+     'coinCost': 0, 'flagEndTime': 0, 'idEventNext': 21},
+    {'id': 21, 'uuid': 'evt-coma-next', 'type': 'NORMAL', 'idCard': 1, 'costEnery': 0,
+     'coinCost': 0, 'flagEndTime': 0},
+    # The option's outcome event: a comatose character never acts it out.
+    {'id': 34, 'uuid': 'evt-outcome', 'type': 'NORMAL', 'idCard': 1, 'costEnery': 0,
+     'coinCost': 0, 'flagEndTime': 0},
+]
+
+_CHOICE_EVENT_EFFECTS = [
+    # The epilogue moves the body somewhere else — the whole point of authoring one.
+    {'id': 50, 'idEvent': 20, 'idCard': 1, 'idLocation': 3, 'target': 'ONLY_ONE'},
+    {'id': 51, 'idEvent': 21, 'idCard': 1, 'statistics': 'exp', 'value': 4,
+     'target': 'ONLY_ONE'},
+    {'id': 52, 'idEvent': 34, 'idCard': 1, 'statistics': 'exp', 'value': 7,
+     'target': 'ONLY_ONE'},
+]
+
+
+def choice_story(**over):
+    base = {
+        'PK': 'STORY#s1', 'SK': 'METADATA', 'uuid': 's1',
+        'locations': [{'id': 1, 'uuid': 'loc-1'}, {'id': 3, 'uuid': 'loc-3'}],
+        'locationNeighbors': [],
+        'items': [],
+        'events': _CHOICE_EVENTS,
+        'eventEffects': _CHOICE_EVENT_EFFECTS,
+        'choices': [
+            {'id': 40, 'uuid': 'ch-fatal', 'idEvent': 30, 'priority': 1, 'idCard': 1,
+             'idTextName': 201, 'otherwiseFlag': 0, 'isProgress': 0,
+             'logicOperator': 'AND', 'idEventTorun': 34},
+            {'id': 41, 'uuid': 'ch-safe', 'idEvent': 30, 'priority': 2, 'idCard': 1,
+             'idTextName': 201, 'otherwiseFlag': 0, 'isProgress': 0,
+             'logicOperator': 'AND'},
+        ],
+        'choiceConditions': [],
+        'choiceEffects': [
+            {'id': 40, 'idChoices': 40, 'idCard': 1, 'statistics': 'life', 'value': -9999},
+            {'id': 41, 'idChoices': 41, 'idCard': 1, 'statistics': 'exp', 'value': 1},
+        ],
+        'raw_cards': _CARDS, 'raw_texts': _TEXTS,
+    }
+    base.update(over)
+    return base
+
+
+def resolve(the_story, choice_uuid='ch-fatal', characters=None):
+    """Drive select-choice on an OPEN cycle for event 30, return (body, written rows)."""
+    chars = characters if characters is not None else [character()]
+    open_cycle = {**MATCH, 'eventLog': [
+        {'characterUuid': 'c1', 'idEvent': 30, 'clock': 7, 'message': 'EVENT_EXECUTED 30'}]}
+
+    def _get_side(pk, sk='METADATA'):
+        if pk.startswith('USER#'):
+            return USER
+        if pk.startswith('MATCH#'):
+            return dict(open_cycle)
+        if pk.startswith('STORY#'):
+            return the_story
+        return None
+
+    event = make_event('POST', '/api/gameplay/m1/action/select-choice',
+                       body={'choiceUuid': choice_uuid},
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_u1'},
+                       path_params={'uuidMatch': 'm1'})
+    written = []
+    with patch('match.handler.jwt_utils.verify_access_token',
+               return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'}), \
+            patch('match.handler.db_utils.put_item', side_effect=written.append), \
+            patch('match.handler.db_utils.query_by_pk', return_value=chars), \
+            patch('match.handler.db_utils.get_item', side_effect=_get_side):
+        from match.handler import lambda_handler
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 200, result
+    return json.loads(result['body']), written
+
+
+def test_a_lethal_option_runs_the_epilogue():
+    body, written = resolve(choice_story(idEventAllPlayerComa=20))
+
+    edge = body['edgeState']
+    assert body['comaTriggered'] is True
+    assert edge['comaUuids'] == ['c1']
+    assert edge['allPlayersInComa'] is True
+    assert edge['comaEventUuid'] == 'evt-coma'
+    assert edge['comaEventCard']['title'] == 'The dark closes in'
+    assert len(list(party_rows(written))) == 1
+
+
+def test_the_epilogue_chain_runs_past_the_coma_that_opened_it():
+    """The chain unwinds on a coma — except when the chain IS the epilogue."""
+    body, written = resolve(choice_story(idEventAllPlayerComa=20))
+
+    assert body['edgeState']['comaExecutedEventUuids'] == ['evt-coma', 'evt-coma-next']
+    saved = [w for w in written if w.get('SK') == 'CHARACTER#c1'][0]
+    assert saved['exp'] == 4
+
+
+def test_the_epilogue_moves_the_body_and_says_so():
+    body, written = resolve(choice_story(idEventAllPlayerComa=20))
+
+    moves = [m for m in body['locationChanges'] if m['characterUuid'] == 'c1']
+    assert moves and moves[0]['toLocationUuid'] == 'loc-3'
+    assert body['movementApplied'] is True
+    saved = [w for w in written if w.get('SK') == 'CHARACTER#c1'][0]
+    assert saved['idLocation'] == 3
+
+
+def test_the_epilogue_stays_out_of_the_option_s_own_chain():
+    body, _ = resolve(choice_story(idEventAllPlayerComa=20))
+
+    # The outcome event never ran (the actor is down), so the option's chain is empty and
+    # everything executed belongs to the epilogue.
+    assert body['executedEventUuids'] == []
+    assert 'evt-outcome' not in body['edgeState']['comaExecutedEventUuids']
+    # The option's own effect row stays on top; the epilogue's ride on comaEffects.
+    assert [e['effectUuid'] for e in body['effects']] == [None]
+    assert [e['eventUuid'] for e in body['edgeState']['comaEffects']] \
+        == ['evt-coma', 'evt-coma-next']
+
+
+def test_an_option_that_kills_without_an_authored_epilogue_still_logs_the_collapse():
+    body, written = resolve(choice_story())
+
+    assert body['edgeState']['allPlayersInComa'] is True
+    assert body['edgeState']['comaEventUuid'] is None
+    assert body['edgeState']['comaExecutedEventUuids'] == []
+    assert len(list(party_rows(written))) == 1
+
+
+def test_a_dangling_epilogue_id_on_a_choice_is_authored_noise():
+    body, _ = resolve(choice_story(idEventAllPlayerComa=999))
+
+    assert body['edgeState']['allPlayersInComa'] is True
+    assert body['edgeState']['comaEventUuid'] is None
+
+
+def test_a_once_epilogue_already_spent_does_not_fire_again():
+    once = choice_story(idEventAllPlayerComa=20)
+    once['events'] = [{**e, 'type': 'ONCE'} if e['id'] == 20 else e for e in _CHOICE_EVENTS]
+    chars = [character()]
+    open_cycle_log = [
+        {'characterUuid': 'c1', 'idEvent': 30, 'clock': 7, 'message': 'EVENT_EXECUTED 30'},
+        {'characterUuid': 'c1', 'idEvent': 20, 'clock': 3, 'message': 'EVENT_EXECUTED 20'}]
+
+    def _get_side(pk, sk='METADATA'):
+        if pk.startswith('USER#'):
+            return USER
+        if pk.startswith('MATCH#'):
+            return {**MATCH, 'eventLog': list(open_cycle_log)}
+        if pk.startswith('STORY#'):
+            return once
+        return None
+
+    event = make_event('POST', '/api/gameplay/m1/action/select-choice',
+                       body={'choiceUuid': 'ch-fatal'},
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_u1'},
+                       path_params={'uuidMatch': 'm1'})
+    with patch('match.handler.jwt_utils.verify_access_token',
+               return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'}), \
+            patch('match.handler.db_utils.put_item'), \
+            patch('match.handler.db_utils.query_by_pk', return_value=chars), \
+            patch('match.handler.db_utils.get_item', side_effect=_get_side):
+        from match.handler import lambda_handler
+        result = lambda_handler(event, {})
+
+    edge = json.loads(result['body'])['edgeState']
+    assert edge['allPlayersInComa'] is True
+    assert edge['comaEventUuid'] is None
+
+
+def test_one_player_down_out_of_two_is_not_the_party():
+    companion = character(**{'SK': 'CHARACTER#c2', 'uuid': 'c2', 'userUuid': 'u2'})
+    body, written = resolve(choice_story(idEventAllPlayerComa=20),
+                            characters=[character(), companion])
+
+    assert body['edgeState']['comaUuids'] == ['c1']
+    assert body['edgeState']['allPlayersInComa'] is False
+    assert body['edgeState']['comaEventUuid'] is None
+    assert list(party_rows(written)) == []
+
+
+def test_a_harmless_option_leaves_the_edge_state_empty():
+    body, _ = resolve(choice_story(idEventAllPlayerComa=20), choice_uuid='ch-safe')
+
+    edge = body['edgeState']
+    assert edge['comaUuids'] == [] and edge['allPlayersInComa'] is False
+    assert edge['comaEventUuid'] is None and edge['comaEffects'] == []
+    assert body['comaTriggered'] is False
+
+
+def test_the_epilogue_s_move_is_an_arrival_like_any_other():
+    """v0.35.6 — a forced move is an arrival, and arriving is a trigger. AWS drained these
+    nowhere on select-choice; java and python always did."""
+    story = choice_story(idEventAllPlayerComa=20)
+    story['locations'] = [{'id': 1, 'uuid': 'loc-1'},
+                          {'id': 3, 'uuid': 'loc-3', 'idEventIfFirstTime': 60}]
+    story['events'] = _CHOICE_EVENTS + [
+        {'id': 60, 'uuid': 'evt-welcome', 'type': 'AUTOMATIC', 'idCard': 1, 'costEnery': 0,
+         'coinCost': 0, 'flagEndTime': 0}]
+    story['eventEffects'] = _CHOICE_EVENT_EFFECTS + [
+        {'id': 60, 'idEvent': 60, 'idCard': 1, 'statistics': 'exp', 'value': 3,
+         'target': 'ONLY_ONE'}]
+
+    body, written = resolve(story)
+
+    assert body['edgeState']['comaEventUuid'] == 'evt-coma'
+    logged = [row.get('idEvent') for w in written if w.get('SK') == 'METADATA'
+              for row in (w.get('eventLog') or [])]
+    assert 60 in logged, 'the destination the epilogue carried the body to never fired'
+    # And the epilogue is spent: that arrival must not run it a second time on a party
+    # that is, of course, still entirely down. Counted on the FINAL match snapshot: the
+    # same dict is written several times, so party_rows(written) would count it once per
+    # write rather than once per row.
+    from match import events as _events
+    final = [w for w in written if w.get('SK') == 'METADATA'][-1]
+    party = [r for r in final.get('eventLog') or []
+             if str(r.get('message') or '').startswith(_events.MSG_ALL_PLAYER_COMA)]
+    assert len(party) == 1

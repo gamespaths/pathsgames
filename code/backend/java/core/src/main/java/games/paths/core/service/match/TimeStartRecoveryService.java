@@ -1,6 +1,7 @@
 package games.paths.core.service.match;
 
 import games.paths.core.port.match.EdgeStateStorePort;
+import games.paths.core.port.match.EventExecutionPort.EdgeStateOutcome;
 import games.paths.core.port.match.LocationEntryPort;
 import games.paths.core.port.match.LocationEntryPort.PendingAutomaticEvent;
 import games.paths.core.port.match.RecoveryStorePort;
@@ -127,6 +128,9 @@ public class TimeStartRecoveryService {
         // 2. Recover each character (recovery + class bonus + clamp + Step 30 edge states).
         List<RecoveryRecap> recaps = new ArrayList<>();
         List<Boolean> comaAfter = new ArrayList<>();
+        // v0.35.6 — who the recovery pushed over an edge, so the sleep response can say so.
+        List<String> overflowed = new ArrayList<>();
+        List<String> collapsed = new ArrayList<>();
         for (RecoveryCharacter c : characters) {
             LocationSafety s = c.idLocation() == null ? null : safetyByLocation.get(c.idLocation());
             int secureParam = s == null ? 0 : nz(s.secureParam());
@@ -161,6 +165,12 @@ public class TimeStartRecoveryService {
                             + " dEnergy=" + energyDelta + " dLife=" + lifeDelta + " dSad=" + sadDelta);
             EdgeStateEvaluator.persist(edgeStore, idMatch, verdict, ctx.currentClock(), null);
             recaps.add(new RecoveryRecap(c.uuid(), energyDelta, lifeDelta, sadDelta));
+            if (verdict.sadnessOverflow()) {
+                overflowed.add(c.uuid());
+            }
+            if (verdict.comaTriggered()) {
+                collapsed.add(c.uuid());
+            }
 
             // v0.30.1 — a comatose character who rested in a safe location wakes. Safe recovery
             // has already lifted its life above zero (life += COS + secure_param, both ≥ 1), so
@@ -179,10 +189,17 @@ public class TimeStartRecoveryService {
         // The whole party can go under during a recovery just as during an event. The row is
         // written here; running the story epilogue is the event engine's job, which owns the
         // chain runner and a result object to carry a card back in.
-        if (EdgeStateEvaluator.allInComa(comaAfter)) {
+        boolean allDown = EdgeStateEvaluator.allInComa(comaAfter);
+        if (allDown) {
             edgeStore.logEdgeState(idMatch, null, null, ctx.currentClock(),
                     EdgeStateStorePort.MSG_ALL_PLAYER_COMA + " " + idMatch);
         }
+        // The epilogue's own fields stay empty: running it is the event engine's job, and it
+        // fills them in when it does — this verdict only says who went over which edge.
+        EdgeStateOutcome edgeState = overflowed.isEmpty() && collapsed.isEmpty() && !allDown
+                ? EdgeStateOutcome.none()
+                : new EdgeStateOutcome(overflowed, collapsed, allDown, null, null,
+                        List.of(), List.of());
 
         // 3. Decrement location counters; flag zeros and collect the events they owe.
         //    A counter is a ONE-SHOT FUSE: `current <= 0` skips an exhausted one and
@@ -221,7 +238,7 @@ public class TimeStartRecoveryService {
         pending.sort(Comparator.comparingInt(PendingAutomaticEvent::priority)
                 .thenComparingLong(PendingAutomaticEvent::idLocation));
 
-        return new TimeStartOutcome(recaps, pending);
+        return new TimeStartOutcome(recaps, pending, edgeState);
     }
 
     /** Skips a null or non-positive event id — an unauthored trigger is not a trigger. */
@@ -339,10 +356,17 @@ public class TimeStartRecoveryService {
      * already ordered by {@code priority_automatic_event} then location id.
      */
     public record TimeStartOutcome(List<RecoveryRecap> recovery,
-                                   List<PendingAutomaticEvent> pending) {
+                                   List<PendingAutomaticEvent> pending,
+                                   /** v0.35.6 — the edges this recovery pushed anyone over. */
+                                   EdgeStateOutcome edgeState) {
+
+        /** A time start that pushed nobody over an edge. */
+        public TimeStartOutcome(List<RecoveryRecap> recovery, List<PendingAutomaticEvent> pending) {
+            this(recovery, pending, EdgeStateOutcome.none());
+        }
 
         public static TimeStartOutcome none() {
-            return new TimeStartOutcome(List.of(), List.of());
+            return new TimeStartOutcome(List.of(), List.of(), EdgeStateOutcome.none());
         }
     }
 }

@@ -14,8 +14,9 @@ from unittest.mock import MagicMock
 import pytest
 
 from app.core.models.match.event_models import (
-    STATUS_APPLIED, STATUS_CHOICES_PENDING, EventCheckContext, EventError,
+    STATUS_APPLIED, STATUS_CHOICES_PENDING, EdgeStateOutcome, EventCheckContext, EventError,
 )
+from app.core.models.match.time_models import TimeEndOutcome
 from app.core.ports.match.event_ports import MSG_CHOICE_SELECTED, MSG_EVENT_EXECUTED
 from app.core.services.match import choice_availability as ca
 from app.core.services.match.event_service import EventService
@@ -465,6 +466,42 @@ def test_a_lethal_choice_effect_triggers_the_coma_rules(service, store):
     assert "char-uuid" in r.execution.edge_state.coma_uuids
 
 
+def test_a_lethal_option_runs_the_all_player_coma_epilogue(service, store):
+    """The epilogue is owed after an OPTION too, and it may carry the body elsewhere."""
+    epilogue = _event(id=9, uuid="coma-uuid")
+    store.find_events_by_id.return_value = {EVENT_ID: _event(), 9: epilogue}
+    store.find_id_event_all_player_coma.return_value = 9
+    carry = {**_event_effect(9, None, 0), "id_location": FAR_LOC}
+    store.find_effects_by_event_id.return_value = {9: [carry]}
+    store.find_choice_effects_by_choice_id.return_value = [
+        _effect(1, statistics="life", value=-99)]
+
+    r = _resolve(service)
+
+    edge = r.execution.edge_state
+    assert edge.all_players_in_coma is True
+    assert edge.coma_event_uuid == "coma-uuid"
+    assert edge.coma_executed_event_uuids == ["coma-uuid"]
+    # Two chains, two lists: what the option caused is not what the collapse caused.
+    assert "coma-uuid" not in r.execution.executed_event_uuids
+    assert any(c.to_location_uuid == "loc-far" for c in r.execution.location_changes)
+
+
+def test_a_surviving_party_gets_no_epilogue(service, store):
+    companion = _character(33, "other-uuid", 99, 50, LOC)
+    store.find_characters_for_event.return_value = [
+        store.find_character_by_match_and_user.return_value, companion]
+    store.find_id_event_all_player_coma.return_value = 9
+    store.find_choice_effects_by_choice_id.return_value = [
+        _effect(1, statistics="life", value=-99)]
+
+    r = _resolve(service)
+
+    assert "char-uuid" in r.execution.edge_state.coma_uuids
+    assert r.execution.edge_state.all_players_in_coma is False
+    assert r.execution.edge_state.coma_event_uuid is None
+
+
 def test_a_lethal_row_does_not_silence_its_siblings(service, store):
     """Same rule as an event: all rows land, then the Step 30 pass."""
     store.find_choice_effects_by_choice_id.return_value = [
@@ -491,7 +528,8 @@ def test_a_coma_stops_the_consequences(service, store):
 
 def test_flag_end_time_ends_the_time_unit(store):
     time_service = MagicMock()
-    time_service.force_time_end.return_value = CLOCK + 1
+    time_service.force_time_end.return_value = TimeEndOutcome(CLOCK + 1, [], [],
+                                                             EdgeStateOutcome.none())
     svc = EventService(store, edge_store=MagicMock(), content_read_port=None,
                        time_service=time_service)
     ender = _event(id=4, uuid="ender-uuid", flag_end_time=1)

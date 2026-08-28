@@ -108,12 +108,17 @@ gets its chance to run even for a party that is entirely comatose.
 
 ## 2. Endpoint APIs
 
-No new endpoint. The two call sites are existing ones, unchanged in shape:
+No new endpoint. Call sites, unchanged in shape:
 
 - `POST /api/gameplay/{uuidMatch}/action/execute-event?lang=` (Step 29)
+- `POST /api/gameplay/{uuidMatch}/action/select-choice?lang=` (Step 32)
 - the internal time-start recovery path invoked by `POST /api/gameplay/{uuidMatch}/action/sleep` (Step 25/26)
+- **v0.35.6**: `POST /api/gameplay/{uuidMatch}/movements/start` (Step 28) — folds the verdicts of any automatic arrival events the move triggered
 
-Both now return an additional `edgeState` object; see §3.
+All now return an additional `edgeState` object; see §3. **v0.35.6**: a forced time-end (an event
+or choice effect that ends the turn early) folds the recovery's own verdict into that same
+response, and AWS's `select-choice` now runs the party-collapse epilogue itself instead of
+answering it null — see [Step32_ChoiceResolution.md](./Step32_ChoiceResolution.md).
 
 The character projection gained one field, `clockInComa`, on every endpoint that returns a
 character (`GET /api/match/{uuidMatch}/characters/{uuidCharacter}`, `POST /api/matches/{uuid}/join`
@@ -243,9 +248,9 @@ in the entity model; none of their definitions changed.
 | DI wiring | `ms-launcher/.../CoreConfig.java` |
 | OpenAPI | `adapter-rest/src/main/resources/openapi/v0.30.0-edge-states-api.yaml` |
 | Python mirror | `app/core/services/match/edge_state_evaluator.py`, `app/core/ports/match/edge_state_ports.py`, `app/adapters/persistence/match/edge_state_store_adapter.py`; modified `event_service.py`, `event_models.py`, `event_ports.py`, `event_store_adapter.py`, `time_start_recovery_service.py`, `time_ports.py`, `time_store_adapter.py`, `time_advancement_service.py`, `event_controller.py`, `launcher.py` |
-| AWS mirror | `lambda/match/events.py` — `evaluate_edge_state`, `all_in_coma`, `MSG_SADNESS_OVERFLOW`/`MSG_COMA`/`MSG_ALL_PLAYER_COMA`; `lambda/match/handler.py` — `_log_edge_state`, `_resolve_all_player_coma`. No new SAM route. The AWS engine evaluates the already-**clamped** `sad` straight off the character dict rather than carrying a shadow pre-clamp field like the Java/Python `sadUnclamped` — those dicts are exactly what gets written to DynamoDB, and a shadow key would end up persisted as a real column. The verdict is identical either way. |
-| react-game | new `features/gameplay/cards/SadnessCard.jsx`, `ComaCard.jsx`; new `sad`/`coma` entries in `data/images.json` (icon-only, Font Awesome 5, no photo credit invented); `buildCardSad`/`buildCardComa` in `utils/loadoutCards.js`; `GameBook.jsx` consumes `edgeState` in `handleEventExecuted`, adds `sad`/`coma` right-page card kinds; `matchInfoAdapter.js` projects `constitution`, `isComa`, `isSleeping`; new `game.sad.*`, `game.coma.*`, `game.allComa.*` keys in `i18n/en.json`, `i18n/it.json`. `ComaCard` prefers the story's own epilogue card when the party is down, filling in only the halves the author left blank. |
-| Robot | `code/tests/robot/tests/30_edge_states/edge_states.robot` (6 tests) |
+| AWS mirror | `lambda/match/events.py` — `evaluate_edge_state`, `all_in_coma`, `MSG_SADNESS_OVERFLOW`/`MSG_COMA`/`MSG_ALL_PLAYER_COMA`; `lambda/match/handler.py` — `_log_edge_state`, `_resolve_all_player_coma`. No new SAM route. The AWS engine evaluates the already-**clamped** `sad` straight off the character dict rather than carrying a shadow pre-clamp field like the Java/Python `sadUnclamped` — those dicts are exactly what gets written to DynamoDB, and a shadow key would end up persisted as a real column. The verdict is identical either way. **v0.35.6**: `_resolve_epilogue` (renamed from `_resolve_all_player_coma`) also runs from `_resolve_choice`, matching Java/Python; `_resolve_choice` drains the arrivals a forced move produces and resolves the epilogue on their automatic events too; a per-request latch answers the party-collapse epilogue once even when several fold points could trigger it; `movements/start` and `sleep` fold `edgeState` from any automatic arrival/recovery events they run. |
+| react-game | new `features/gameplay/cards/SadnessCard.jsx`, `ComaCard.jsx`; new `sad`/`coma` entries in `data/images.json` (icon-only, Font Awesome 5, no photo credit invented); `buildCardSad`/`buildCardComa` in `utils/loadoutCards.js`; `GameBook.jsx` consumes `edgeState` in `handleEventExecuted`, adds `sad`/`coma` right-page card kinds; `matchInfoAdapter.js` projects `constitution`, `isComa`, `isSleeping`; new `game.sad.*`, `game.coma.*`, `game.allComa.*` keys in `i18n/en.json`, `i18n/it.json`. `ComaCard` prefers the story's own epilogue card when the party is down, filling in only the halves the author left blank. **v0.35.6**: `useGameplayResults`'s `applyEdgeState` also runs from `handleMovementDone` and `handleSlept`, so the coma page can open after a plain move or a wake-up, not only after `execute-event`. |
+| Robot | `code/tests/robot/tests/30_edge_states/edge_states.robot` (6 tests); **v0.35.6** adds `choice_coma_epilogue.robot` (a lethal choice starts the epilogue, which can move the character) |
 
 ---
 
@@ -323,14 +328,15 @@ feature) were corrected to "step 59" — the roadmap number that now carries res
 
 # Version Control
 
-- **Document Version**: 0.30.1
+- **Document Version**: 0.35.6
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.30.0 | Edge states: sadness overflow and coma rules (`EdgeStateEvaluator`), `clock_in_coma` stamping, all-players-in-coma story epilogue, `edgeState` on `ExecuteEventResponse`. No new endpoint, no migration. | July 20, 2026 |
   | 0.30.1 | Waking from coma: resting in a safe location clears `is_coma` at time-start recovery once post-recovery life is `> 0`; new `COMA_RECOVERED` audit prefix (`startsWith`-collides with `COMA`); wake is independent per character. Closes the softlock where nothing in-game ever cleared `is_coma`. No new endpoint, no migration. | July 20, 2026 |
+  | 0.35.6 | `edgeState` now also folds on `movements/start` (automatic arrival events) and on `sleep` (already computed but never exposed); AWS's `select-choice` gained the party-epilogue resolution Java/Python already had, plus arrival-draining and a per-request latch. No new endpoint, no migration. | August 28, 2026 |
 
-- **Last Updated**: July 20, 2026
+- **Last Updated**: August 28, 2026
 - **Status**: Complete
 
 # < Paths Games />

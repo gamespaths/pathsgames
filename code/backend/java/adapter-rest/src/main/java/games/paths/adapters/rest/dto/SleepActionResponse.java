@@ -16,6 +16,10 @@ import java.util.List;
  * <p>v0.33.1 widened each entry from one card to three: the event's card, the cards of the
  * effects it applied, and the location's card. Until then only the location travelled, so the
  * player woke to the name of a place instead of the news of what had happened in it.</p>
+ *
+ * <p>v0.35.6 added {@code edgeState}: the recovery — and the events the time-start fires —
+ * can empty a life bar, and that verdict now travels with the answer instead of surfacing as
+ * a bare flag on the next reload.</p>
  */
 public class SleepActionResponse {
 
@@ -26,6 +30,7 @@ public class SleepActionResponse {
     private int currentClock;
     private List<RecoveryItem> recovery = new ArrayList<>();
     private List<CounterZeroItem> counterZero = new ArrayList<>();
+    private ExecuteEventResponse.EdgeStateOutcomeDto edgeState;
 
     public static SleepActionResponse fromModel(TimeAdvancementPort.SleepResult m) {
         SleepActionResponse r = new SleepActionResponse();
@@ -53,6 +58,7 @@ public class SleepActionResponse {
                         item.eventUuid(), item.clock(), item.visibility()));
             }
         }
+        r.edgeState = ExecuteEventResponse.EdgeStateOutcomeDto.fromModel(m.edgeState());
         return r;
     }
 
@@ -63,6 +69,7 @@ public class SleepActionResponse {
     public int getCurrentClock() { return currentClock; }
     public List<RecoveryItem> getRecovery() { return recovery; }
     public List<CounterZeroItem> getCounterZero() { return counterZero; }
+    public ExecuteEventResponse.EdgeStateOutcomeDto getEdgeState() { return edgeState; }
 
     /**
      * One automatic event a time-start fired, as this caller is allowed to hear it (Step 33).

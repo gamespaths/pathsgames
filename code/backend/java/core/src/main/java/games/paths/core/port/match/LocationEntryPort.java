@@ -112,6 +112,24 @@ public interface LocationEntryPort {
                                List<EventExecutionPort.AppliedEffect> effects,
                                List<EventExecutionPort.StatChange> statChanges,
                                List<EventExecutionPort.LocationChange> locationChanges,
-                               boolean gameOver) {
+                               boolean gameOver,
+                               /**
+                                * v0.35.6 — what the Step 30 rules did about it, epilogue
+                                * included. An arrival kills exactly as an executed event
+                                * does; before this the collapse reached the board only on
+                                * the next reload, as a flag with no card and no story.
+                                */
+                               EventExecutionPort.EdgeStateOutcome edgeState) {
+
+        /** An automatic event that moved no edge — the ordinary case. */
+        public AutomaticEventFired(String trigger, long idLocation, String eventUuid,
+                                   CardInfo card,
+                                   List<EventExecutionPort.AppliedEffect> effects,
+                                   List<EventExecutionPort.StatChange> statChanges,
+                                   List<EventExecutionPort.LocationChange> locationChanges,
+                                   boolean gameOver) {
+            this(trigger, idLocation, eventUuid, card, effects, statChanges, locationChanges,
+                    gameOver, EventExecutionPort.EdgeStateOutcome.none());
+        }
     }
 }

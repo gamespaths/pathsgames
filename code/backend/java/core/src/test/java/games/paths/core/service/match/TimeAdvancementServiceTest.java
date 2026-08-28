@@ -4,6 +4,7 @@ import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.TurnStatuses;
 import games.paths.core.model.match.event.TimeAdvanced;
 import games.paths.core.port.event.DomainEventPublisher;
+import games.paths.core.port.match.EventExecutionPort;
 import games.paths.core.port.match.LocationEntryPort;
 import games.paths.core.port.match.TimeAdvancementPort;
 import games.paths.core.port.match.TurnCyclePort.TurnCycleException;
@@ -127,6 +128,65 @@ class TimeAdvancementServiceTest {
             verify(store).wakeAllCharacters(MATCH_ID);
             verify(store).replaceQueue(eq(MATCH_ID), anyList());
             verify(publisher, times(1)).publish(any(TimeAdvanced.class));
+        }
+
+        @Test
+        @DisplayName("v0.35.6: the time-start's Step 30 verdict rides on the sleep answer")
+        void sleepCarriesTheEdgeStateOfTheTimeStart() {
+            LocationEntryPort runner = mock(LocationEntryPort.class);
+            // The recovery emptied one bar; an event the same time-start fired emptied another.
+            EventExecutionPort.EdgeStateOutcome fromRecovery =
+                    new EventExecutionPort.EdgeStateOutcome(List.of(CHAR_UUID), List.of(), false,
+                            null, null, List.of(), List.of());
+            EventExecutionPort.EdgeStateOutcome fromEvent =
+                    new EventExecutionPort.EdgeStateOutcome(List.of(), List.of(CHAR_UUID), true,
+                            "coma-uuid", null, List.of("coma-uuid"), List.of());
+            LocationEntryPort.PendingAutomaticEvent pending =
+                    new LocationEntryPort.PendingAutomaticEvent(
+                            LocationEntryPort.TRIGGER_COUNTER_ZERO, 12L, 340L, CHAR_ID, 0);
+            LocationEntryPort.AutomaticEventFired fired =
+                    new LocationEntryPort.AutomaticEventFired(
+                            LocationEntryPort.TRIGGER_COUNTER_ZERO, 12L, "evt-fuse", null,
+                            List.of(), List.of(), List.of(), false, fromEvent);
+            when(recoveryService.applyAtTimeStart(MATCH_ID)).thenReturn(
+                    new TimeStartRecoveryService.TimeStartOutcome(
+                            List.of(), List.of(pending), fromRecovery));
+            when(runner.runPendingAutomaticEvents(eq(MATCH_ID), eq(4), anyList(), any()))
+                    .thenReturn(List.of(fired));
+            service.setAutomaticEventRunner(runner);
+
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match(MatchStatuses.RUNNING, 3)));
+            when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID))
+                    .thenReturn(Optional.of(character(CHAR_ID, CHAR_UUID, 50, false)));
+            when(store.findCharactersByMatchId(MATCH_ID))
+                    .thenReturn(List.of(character(CHAR_ID, CHAR_UUID, 50, true)));
+            when(store.incrementMatchClock(MATCH_ID)).thenReturn(4);
+
+            TimeAdvancementPort.SleepResult r = service.sleep(MATCH, USER);
+
+            // Both halves, one verdict: the sleeper is told what the whole time-start did.
+            assertEquals(List.of(CHAR_UUID), r.edgeState().sadnessOverflowUuids());
+            assertEquals(List.of(CHAR_UUID), r.edgeState().comaUuids());
+            assertTrue(r.edgeState().allPlayersInComa());
+            assertEquals("coma-uuid", r.edgeState().comaEventUuid());
+        }
+
+        @Test
+        @DisplayName("v0.35.6: a sleep that triggers nothing answers an empty edge state")
+        void sleepWithoutATimeEndAnswersAnEmptyEdgeState() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match(MatchStatuses.RUNNING, 3)));
+            when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID))
+                    .thenReturn(Optional.of(character(CHAR_ID, CHAR_UUID, 50, false)));
+            // A second character still awake: no time end, so no recovery and no verdict.
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(
+                    character(CHAR_ID, CHAR_UUID, 50, true),
+                    character(99L, "other-uuid", 50, false)));
+
+            TimeAdvancementPort.SleepResult r = service.sleep(MATCH, USER);
+
+            assertFalse(r.timeEndTriggered());
+            assertNotNull(r.edgeState());
+            assertFalse(r.edgeState().anything());
         }
 
         @Test

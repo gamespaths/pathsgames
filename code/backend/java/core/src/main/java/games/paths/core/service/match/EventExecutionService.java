@@ -1233,6 +1233,9 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         flush(x);
         TimeAdvancementService.TimeEndOutcome outcome =
                 timeAdvancementService.forceTimeEnd(x.match.uuid());
+        // v0.35.6 — the time-start this event forced runs a recovery, and a recovery can push
+        // somebody over an edge: that verdict belongs in this response, not in the next reload.
+        mergeEdgeState(x, outcome.edgeState());
         x.timeEnded = true;
         x.forcedSleep = true;
         x.currentClock = outcome.newClock();
@@ -1429,10 +1432,12 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         locationStore.logAutomaticEvent(idMatch, idActorCharacter, idLocation, idEvent,
                 x.currentClock, LocationEntryStorePort.MSG_AUTOMATIC_EVENT + " " + idEvent
                         + " (" + trigger + ") at location " + idLocation);
+        // v0.35.6 — the epilogue is sliced off the tail here too: what the arrival did and
+        // what the collapse answered are two chains, and the board narrates them apart.
         out.add(new AutomaticEventFired(trigger, idLocation, event.getUuid(),
                 resolveCard(x, event.getIdCard()),
-                new ArrayList<>(x.effects), new ArrayList<>(x.statChanges),
-                new ArrayList<>(x.locationChanges), x.gameOver));
+                new ArrayList<>(chainEffects(x)), new ArrayList<>(x.statChanges),
+                new ArrayList<>(x.locationChanges), x.gameOver, buildEdgeState(x)));
 
         // The events this one caused by pushing somebody somewhere.
         drainArrivals(x, out);
@@ -1518,6 +1523,24 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         return x.comaEventUuid == null
                 ? x.effects
                 : new ArrayList<>(x.effects.subList(0, x.comaEffectMark));
+    }
+
+    /** Folds an edge state produced elsewhere — a forced time end — into this execution. */
+    private static void mergeEdgeState(Exec x, EdgeStateOutcome other) {
+        if (other == null) {
+            return;
+        }
+        for (String uuid : other.sadnessOverflowUuids()) {
+            if (!x.sadnessOverflowUuids.contains(uuid)) {
+                x.sadnessOverflowUuids.add(uuid);
+            }
+        }
+        for (String uuid : other.comaUuids()) {
+            if (!x.comaUuids.contains(uuid)) {
+                x.comaUuids.add(uuid);
+            }
+        }
+        x.allPlayersInComa = x.allPlayersInComa || other.allPlayersInComa();
     }
 
     private static EdgeStateOutcome buildEdgeState(Exec x) {

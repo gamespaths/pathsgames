@@ -17,6 +17,7 @@ weight is 0 until inventory lands).
 from typing import Any, Dict, List, Optional
 
 from app.core.models.match import match_statuses
+from app.core.models.match.event_models import EdgeStateOutcome
 from app.core.models.match.location_entry_models import ArrivalContext
 from app.core.models.match.movement_models import (
     MovementError,
@@ -164,13 +165,17 @@ class MovementService(MovementPort):
                 lang=None,
             ))
 
+        # v0.35.6 — one Step 30 verdict for the whole arrival: several automatic events can
+        # fire on one entry and any of them can kill, so the move answers a single edge state.
+        edge_state = EdgeStateOutcome.merge([f.edge_state for f in automatic_events])
         return MovementResult(match_uuid, caller["uuid"], caller["id_location"], None,
                               target["id"], target.get("uuid"), total_cost, new_energy,
                               match["current_clock"],
                               automatic_events=automatic_events,
                               food_spent=cost_food, magic_spent=cost_magic,
                               coin_spent=cost_coin, new_food=new_food,
-                              new_magic=new_magic, new_coin=new_coin)
+                              new_magic=new_magic, new_coin=new_coin,
+                              edge_state=edge_state)
 
     def list_locations(self, match_uuid: str, user_uuid: str,
                        lang: str = "en") -> List[VisitedLocation]:

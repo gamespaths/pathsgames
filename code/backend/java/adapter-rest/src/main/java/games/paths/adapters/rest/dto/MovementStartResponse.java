@@ -10,6 +10,9 @@ import java.util.List;
  *
  * <p>Step 33 added {@code automaticEvents}: what the destination did about the arrival. The
  * board already has the new location for its left page; these belong on the right.</p>
+ *
+ * <p>v0.35.6 added {@code edgeState}: an arrival can kill, and the Step 30 verdict of the
+ * whole arrival rides here in the very shape execute-event answers.</p>
  */
 public class MovementStartResponse {
 
@@ -30,6 +33,7 @@ public class MovementStartResponse {
     private int newCoin;
     private int currentClock;
     private List<AutomaticEventResponse> automaticEvents = new ArrayList<>();
+    private ExecuteEventResponse.EdgeStateOutcomeDto edgeState;
 
     public static MovementStartResponse fromModel(MovementPort.MovementResult m) {
         MovementStartResponse r = new MovementStartResponse();
@@ -49,6 +53,7 @@ public class MovementStartResponse {
         r.newCoin = m.newCoin();
         r.currentClock = m.currentClock();
         r.automaticEvents = AutomaticEventResponse.fromModels(m.automaticEvents());
+        r.edgeState = ExecuteEventResponse.EdgeStateOutcomeDto.fromModel(m.edgeState());
         return r;
     }
 
@@ -68,4 +73,5 @@ public class MovementStartResponse {
     public int getNewCoin() { return newCoin; }
     public int getCurrentClock() { return currentClock; }
     public List<AutomaticEventResponse> getAutomaticEvents() { return automaticEvents; }
+    public ExecuteEventResponse.EdgeStateOutcomeDto getEdgeState() { return edgeState; }
 }

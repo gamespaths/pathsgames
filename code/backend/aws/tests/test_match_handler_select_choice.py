@@ -155,6 +155,13 @@ def _resolve(choice_uuid, *, characters=None, get_side=None, lang=None):
         return _call(_event(choice_uuid, lang))
 
 
+def _empty_edge():
+    """What a time start that pushed nobody over an edge answers (v0.35.6)."""
+    return {'sadnessOverflowUuids': [], 'comaUuids': [], 'allPlayersInComa': False,
+            'comaEventUuid': None, 'comaEventCard': None,
+            'comaExecutedEventUuids': [], 'comaEffects': []}
+
+
 def _body(result):
     return json.loads(result['body'])
 
@@ -439,7 +446,8 @@ def test_flag_end_time_on_a_linked_event_ends_the_time_unit():
          patch('match.handler.db_utils.get_item', side_effect=_get_side), \
          patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)]), \
          patch('match.handler.db_utils.put_item'), \
-         patch('match.handler._advance_time', return_value=(2, [], [])) as advance:
+         patch('match.handler._advance_time',
+               return_value=(2, [], [], _empty_edge())) as advance:
         result = _call(_event('ch-ender'))
 
     body = _body(result)

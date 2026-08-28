@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.EventExecutionPort;
 import games.paths.core.port.match.LocationEntryPort;
 import games.paths.core.port.match.MovementPort.MovementException;
 import games.paths.core.port.match.MovementPort.MovementResult;
@@ -168,6 +169,47 @@ class MovementServiceTest {
                     anyInt(), anyInt(), anyInt());
             verify(store, never()).insertMovementLog(anyLong(), anyLong(), any(), anyLong(),
                     anyInt(), anyInt(), anyInt(), anyInt());
+        }
+
+        @Test
+        @DisplayName("v0.35.6: the arrival's Step 30 verdict is folded into one edge state")
+        void theArrivalsEdgeStateRidesOnTheMove() {
+            LocationEntryPort entry = mock(LocationEntryPort.class);
+            EventExecutionPort.EdgeStateOutcome downed = new EventExecutionPort.EdgeStateOutcome(
+                    List.of(), List.of("char-uuid"), true, "coma-uuid", null,
+                    List.of("coma-uuid"), List.of());
+            LocationEntryPort.AutomaticEventFired quiet = new LocationEntryPort.AutomaticEventFired(
+                    LocationEntryPort.TRIGGER_FIRST_ENTRY, 2L, "evt-welcome", null,
+                    List.of(), List.of(), List.of(), false);
+            LocationEntryPort.AutomaticEventFired lethal = new LocationEntryPort.AutomaticEventFired(
+                    LocationEntryPort.TRIGGER_MOVE_INTO_EMPTY_LOCATION, 2L, "evt-trap", null,
+                    List.of(), List.of(), List.of(), false, downed);
+            when(entry.onArrival(any())).thenReturn(List.of(quiet, lethal));
+            MovementService withEntry =
+                    new MovementService(store, userAccessPort, contentQueryPort, entry);
+            wireHappyPath(10, 2, 1, 1, 3, 99, 100, 0);
+
+            MovementResult r = withEntry.startMovement(MATCH, USER, "loc-2");
+
+            // One verdict for the whole arrival, whichever of its events did the killing.
+            assertEquals(List.of("char-uuid"), r.edgeState().comaUuids());
+            assertTrue(r.edgeState().allPlayersInComa());
+            assertEquals("coma-uuid", r.edgeState().comaEventUuid());
+        }
+
+        @Test
+        @DisplayName("v0.35.6: an ordinary arrival answers an empty edge state, never null")
+        void aQuietArrivalAnswersAnEmptyEdgeState() {
+            LocationEntryPort entry = mock(LocationEntryPort.class);
+            when(entry.onArrival(any())).thenReturn(List.of());
+            MovementService withEntry =
+                    new MovementService(store, userAccessPort, contentQueryPort, entry);
+            wireHappyPath(10, 2, 1, 1, 3, 99, 100, 0);
+
+            MovementResult r = withEntry.startMovement(MATCH, USER, "loc-2");
+
+            assertNotNull(r.edgeState());
+            assertFalse(r.edgeState().anything());
         }
 
         @Test

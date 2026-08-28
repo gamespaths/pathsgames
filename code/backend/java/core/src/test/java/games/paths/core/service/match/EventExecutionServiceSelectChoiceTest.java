@@ -743,6 +743,56 @@ class EventExecutionServiceSelectChoiceTest {
     }
 
     @Test
+    @DisplayName("a lethal option runs the all-players-in-coma epilogue, and can be carried away by it")
+    void lethalOptionRunsTheEpilogue() {
+        EventEntity epilogue = new EventEntity();
+        epilogue.setId(9L);
+        epilogue.setUuid("coma-uuid");
+        epilogue.setType("NORMAL");
+        epilogue.setFlagEndTime(0);
+        when(store.findEventsById(STORY_ID)).thenReturn(Map.of(EVENT_ID, event(), 9L, epilogue));
+        when(store.findIdEventAllPlayerComa(STORY_ID)).thenReturn(Optional.of(9L));
+        // Carrying the body elsewhere is the reason an author writes an epilogue at all.
+        EventEffectEntity carry = new EventEffectEntity();
+        carry.setIdEvent(9);
+        carry.setIdLocation((int) FAR_LOC);
+        carry.setTarget("ONLY_ONE");
+        when(store.findEffectsByEventId(STORY_ID)).thenReturn(Map.of(9L, List.of(carry)));
+        ChoiceEffectEntity lethal = effect(1);
+        lethal.setStatistics("life");
+        lethal.setValue(-99);
+        givenEffects(lethal);
+
+        ChoiceResolutionResult r = resolve();
+
+        EventExecutionPort.EdgeStateOutcome edge = r.execution().edgeState();
+        assertTrue(edge.allPlayersInComa());
+        assertEquals("coma-uuid", edge.comaEventUuid());
+        assertEquals(List.of("coma-uuid"), edge.comaExecutedEventUuids());
+        // Two chains, two lists: what the option caused is not what the collapse caused.
+        assertFalse(r.execution().executedEventUuids().contains("coma-uuid"));
+        assertTrue(r.execution().locationChanges().stream()
+                .anyMatch(c -> "loc-far".equals(c.toLocationUuid())));
+    }
+
+    @Test
+    @DisplayName("a party still standing gets no epilogue, however lethal the option was")
+    void aSurvivingPartyGetsNoEpilogue() {
+        when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(actor(), companion()));
+        when(store.findIdEventAllPlayerComa(STORY_ID)).thenReturn(Optional.of(9L));
+        ChoiceEffectEntity lethal = effect(1);
+        lethal.setStatistics("life");
+        lethal.setValue(-99);
+        givenEffects(lethal);
+
+        ChoiceResolutionResult r = resolve();
+
+        assertTrue(r.execution().edgeState().comaUuids().contains("char-uuid"));
+        assertFalse(r.execution().edgeState().allPlayersInComa());
+        assertNull(r.execution().edgeState().comaEventUuid());
+    }
+
+    @Test
     @DisplayName("a lethal row does not silence its siblings — the edge pass comes after them all")
     void lethalRowDoesNotStopItsSiblings() {
         ChoiceEffectEntity lethal = effect(1);

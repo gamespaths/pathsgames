@@ -45,7 +45,21 @@ public interface TimeAdvancementPort {
                         * <b>list</b>, because several counters can expire on one time-start,
                         * and empty in the ordinary case.
                         */
-                       List<CounterZeroItem> counterZero) {
+                       List<CounterZeroItem> counterZero,
+                       /**
+                        * v0.35.6 — the Step 30 verdict of the time-start the sleep set off:
+                        * the recovery's own, folded with the events it fired. Same shape
+                        * execute-event answers, and none() when nothing was triggered.
+                        */
+                       EventExecutionPort.EdgeStateOutcome edgeState) {
+
+        /** A sleep that moved no edge. */
+        public SleepResult(String matchUuid, String characterUuid, boolean isSleeping,
+                           boolean timeEndTriggered, int currentClock,
+                           List<RecoveryItem> recovery, List<CounterZeroItem> counterZero) {
+            this(matchUuid, characterUuid, isSleeping, timeEndTriggered, currentClock,
+                    recovery, counterZero, EventExecutionPort.EdgeStateOutcome.none());
+        }
     }
 
     /**

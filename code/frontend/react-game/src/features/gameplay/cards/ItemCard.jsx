@@ -17,6 +17,8 @@ import { isBagOverloaded } from '@/utils/gamebook'
  * Both calls name `item.uuid`, the INVENTORY ROW — never `item.itemUuid`, which is the
  * story definition. Using removes the row; the amount is not decremented.
  *
+ * A comatose character is refused BOTH actions by the engine, so neither is offered here.
+ *
  * `use-item` answers the execute-event payload, so `onDone` is the board's
  * `handleEventExecuted`: an item carrying a SADNESS effect trips the Step 30 overflow or
  * coma and the handler already knows how to show it.
@@ -39,19 +41,25 @@ export default function ItemCard({
   // only spares the player a click that was going to be answered with an error.
   const perUse = unitsPerUse(item)
   const carried = item?.amount ?? 1
+  // Step 30 — the engine refuses a comatose character both actions, use AND drop, before it
+  // ever reads the row: pre-blocking here spares a click answered with a certain 409 COMA.
+  const inComa = !!playerStats?.isComa
   // The same predicate the bag sorts by (isItemUsable), so a locked card can never end up
-  // among the usable ones.
-  const usable = isItemUsable(item)
+  // among the usable ones — in a coma every card is locked, so the halves cannot interleave.
+  const usable = isItemUsable(item) && !inComa
   const locked = !usable
   // Two registers for the same refusal: the card has room for one word, the preview has
   // room for the sentence that explains it. The figures ride on the long one, since the
   // sentence cannot interpolate them (the i18n helper takes a key and nothing else).
-  const reasonKey = consumable ? 'ITEM_NOT_ENOUGH' : 'ITEM_NOT_CONSUMABLE'
+  // The state of the character comes first, in the order the engine itself refuses.
+  const reasonKey = inComa ? 'COMA' : consumable ? 'ITEM_NOT_ENOUGH' : 'ITEM_NOT_CONSUMABLE'
   const lockInfo = locked ? t(`game.item.reason.${reasonKey}`) : undefined
   const lockInfoFull = !locked ? undefined
-    : consumable
-      ? `${t('game.item.reasonFull.ITEM_NOT_ENOUGH')} (${carried}/${perUse})`
-      : t('game.item.reasonFull.ITEM_NOT_CONSUMABLE')
+    : inComa
+      ? t('game.item.reasonFull.COMA')
+      : consumable
+        ? `${t('game.item.reasonFull.ITEM_NOT_ENOUGH')} (${carried}/${perUse})`
+        : t('game.item.reasonFull.ITEM_NOT_CONSUMABLE')
 
   const cardData = item?.card ?? {
     title: item?.name ?? item?.itemUuid,
@@ -132,7 +140,8 @@ export default function ItemCard({
   // Only a consumable row shows it: a carried-only one is dropped from its page, where the
   // player is looking at what they are about to lose.
   const overloaded = isBagOverloaded(playerStats)
-  const showRowBin = overloaded && consumable
+  // In a coma the bin would be a button for a refusal, so the overloaded bag waits.
+  const showRowBin = overloaded && consumable && !inComa
   const rowBin = { label: '', icon: 'fa-trash m-1', ariaLabel: t('game.item.drop'),
     onAction: openPreview }
 
@@ -148,7 +157,9 @@ export default function ItemCard({
       props: usable
         ? { onAction: handleUse, actionLabel: useLabel, actionIcon,
             actionsList: [dropAction], actionListClass: 'display-grid2' }
-        : { extraContent: lockInfoFull, actionsList: [dropAction] },
+        // A comatose character keeps the page — the reason is what it is there to say — but
+        // not the bin: dropping is an action too, and the engine refuses it just the same.
+        : { extraContent: lockInfoFull, actionsList: inComa ? [] : [dropAction] },
     })
   }
 

@@ -1008,7 +1008,11 @@ class EventService(EventPort):
         # disk. _flush also latches x.flushed, which stops _build_result from writing the
         # now-stale in-memory copy back over what the recovery just computed.
         self._flush(x)
-        new_clock = self.time_service.force_time_end(x.match["uuid"])
+        outcome = self.time_service.force_time_end(x.match["uuid"])
+        new_clock = outcome.new_clock
+        # v0.35.6 — the time-start this event forced runs a recovery, and a recovery can push
+        # somebody over an edge: that verdict belongs in this response, not the next reload.
+        self._merge_edge_state(x, outcome.edge_state)
         x.time_ended = True
         x.forced_sleep = True
         x.current_clock = new_clock
@@ -1194,9 +1198,12 @@ class EventService(EventPort):
         self.location_store.log_automatic_event(
             id_match, id_actor_character, id_location, id_event, x.current_clock,
             f"{lem.MSG_AUTOMATIC_EVENT} {id_event} ({trigger}) at location {id_location}")
+        # v0.35.6 — the epilogue is sliced off the tail here too: what the arrival did and
+        # what the collapse answered are two chains, and the board narrates them apart.
         out.append(lem.AutomaticEventFired(
             trigger, id_location, event.get("uuid"), x.resolve_card(event.get("id_card")),
-            list(x.effects), list(x.stat_changes), list(x.location_changes), x.game_over))
+            list(self._chain_effects(x)), list(x.stat_changes), list(x.location_changes),
+            x.game_over, self._build_edge_state(x)))
 
         # The events this one caused by pushing somebody somewhere.
         self._drain_arrivals(x, out)
@@ -1295,6 +1302,19 @@ class EventService(EventPort):
             edge_state=edge_state,
             automatic_events=list(x.automatic_events),
         )
+
+    @staticmethod
+    def _merge_edge_state(x: "_Exec", other) -> None:
+        """Folds an edge state produced elsewhere — a forced time end — into this execution."""
+        if other is None:
+            return
+        for uuid in other.sadness_overflow_uuids:
+            if uuid not in x.sadness_overflow_uuids:
+                x.sadness_overflow_uuids.append(uuid)
+        for uuid in other.coma_uuids:
+            if uuid not in x.coma_uuids:
+                x.coma_uuids.append(uuid)
+        x.all_players_in_coma = x.all_players_in_coma or other.all_players_in_coma
 
     @staticmethod
     def _chain_event_uuids(x: "_Exec") -> List[str]:

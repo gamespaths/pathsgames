@@ -254,6 +254,7 @@ totalEnergyCost   = neighborEdge.energyCost
 | `newMagic` | integer | **v0.35.3** — character's magic after deduction |
 | `newCoin` | integer | **v0.35.3** — character's coin after deduction |
 | `currentClock` | integer | Match clock at the time of the move |
+| `edgeState` | `EdgeStateOutcome` | **v0.35.6** — folds the verdicts of any automatic arrival events the move triggered; see [Step30_EdgeStates.md §3](./Step30_EdgeStates.md#3-dtos-and-domain-models) |
 
 ### 5.3 `MatchLocationsResponse`
 
@@ -2293,7 +2294,7 @@ in place above, plus the summary below.
 
 # Version Control
 
-- **Document Version**: 0.35.4
+- **Document Version**: 0.35.6
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -2314,8 +2315,9 @@ in place above, plus the summary below.
   | 0.35.3 | Same version, continued: a Robot suite now covers this contract (`resource_costs.robot`, `29_events`, without ever executing a tolled move), and the E2E run found `/locations`' Java and Python neighbor mapping was still missing the three cost fields §5.3 already documented — both now fixed. Full detail in [Step35 §12.f-g](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353). | August 24, 2026 |
   | 0.35.4 | Match Logs API gains `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` entries from `log_item_usage`, now the register of every item action rather than usages alone (`action`, `id_event`, signed `energy`/`food`/`magic`/`coin` columns), plus `energy_gain`/`food_gain`/`magic_gain`/`coin_gain` on `log_events` — the counterpart of v0.35.3's cost columns. The eight resource fields are now numbers on every entry, never null (a Python/AWS contract fix). See "New: Item Actions and Resource Gains (v0.35.4)" above. | August 24, 2026 |
   | 0.35.4 | Same version, continued: react-admin's `MatchLogsCard` gains a Resources column and badges/filters for the three new types (plus the previously uncoloured `COUNTER_ZERO`/`AUTOMATIC_EVENT`); react-game's `MatchLogCard` renders `ITEM_*` entries with the item's own card via `BonusBadgeList`; new Robot suite `item_logs.robot` (7 tests, `34_inventory`, backend-agnostic). | August 24, 2026 |
+  | 0.35.6 | `MovementStartResponse` gains `edgeState` (§5.2), folding the verdicts of any automatic arrival events the move triggered. Full writeup in [Step30_EdgeStates.md](./Step30_EdgeStates.md). | August 28, 2026 |
 
-- **Last Updated**: August 24, 2026
+- **Last Updated**: August 28, 2026
 - **Status**: Complete (Step 28 implementation). Step 33 has since shipped and is Complete; §6.3's forward reference to it is no longer a reference to a design-only document.
 
 # < Paths Games />

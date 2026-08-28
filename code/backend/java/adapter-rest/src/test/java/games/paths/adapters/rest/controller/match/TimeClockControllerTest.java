@@ -56,6 +56,25 @@ class TimeClockControllerTest {
     }
 
     @Test
+    void sleep_carriesTheEdgeStateOfTheTimeStart() throws Exception {
+        // v0.35.6 — the recovery and the events a time-start fires can empty a life bar; the
+        // sleeper is told in the answer instead of finding out on the next reload.
+        when(timeAdvancementPort.sleep("m1", "user-uuid")).thenReturn(
+                new TimeAdvancementPort.SleepResult("m1", "char-a", false, true, 3,
+                        List.of(), List.of(),
+                        new games.paths.core.port.match.EventExecutionPort.EdgeStateOutcome(
+                                List.of("char-a"), List.of("char-a"), true, "coma-uuid", null,
+                                List.of("coma-uuid"), List.of())));
+
+        mockMvc.perform(authed(post("/api/gameplay/m1/action/sleep")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.edgeState.sadnessOverflowUuids[0]").value("char-a"))
+                .andExpect(jsonPath("$.edgeState.comaUuids[0]").value("char-a"))
+                .andExpect(jsonPath("$.edgeState.allPlayersInComa").value(true))
+                .andExpect(jsonPath("$.edgeState.comaEventUuid").value("coma-uuid"));
+    }
+
+    @Test
     void sleep_returns200WithTheRecoveryDeltasWhenTimeEndTriggers() throws Exception {
         when(timeAdvancementPort.sleep("m1", "user-uuid")).thenReturn(
                 new TimeAdvancementPort.SleepResult("m1", "char-a", true, true, 3,

@@ -838,6 +838,13 @@ comes from the `game.item.reason.*` i18n keys; the long preview sentence (`game.
 i18n helper takes a key and cannot interpolate. New i18n keys, both `en.json` and `it.json`:
 `game.item.perUse`, `game.item.reason.ITEM_NOT_ENOUGH`, `game.item.reasonFull.ITEM_NOT_ENOUGH`.
 
+**v0.35.6 — a comatose character cannot use or drop.** A third lock reason, `COMA`, wins over
+the item's own reason: character state is checked before item state, the same order the engine
+already refuses in (Step 30's coma gate runs ahead of `ITEM_NOT_CONSUMABLE`/`ITEM_NOT_ENOUGH`).
+`ItemCard` drops the use button, the page's own trash icon, and the row trash icon shown on an
+overweight backpack. No new i18n keys — reuses the existing `game.item.reason.COMA`/
+`reasonFull.COMA` pair.
+
 The `effects[]` promise (§5) stays keyed on `isConsumabile` alone, unaffected by this increment:
 an item you cannot currently afford to use still says what using it would do.
 
@@ -1018,7 +1025,7 @@ an item you cannot currently afford to use still says what using it would do.
 | REST, quantities on the payload (Python) | `app/adapters/rest/match/inventory_controller.py` — `item_to_camel` projects `maxPerCharacter`/`amountDrop`/`amountUse` |
 | Engine, quantities on the payload (AWS, §8f) | `lambda/match/handler.py` — `_item_rows` sets the three keys off the resolved item, `None` on the story-item-gone branch |
 | OpenAPI, quantities on the payload | `v0.34.0-inventory-resources-api.yaml` — `ItemInstance.maxPerCharacter`/`.amountDrop`/`.amountUse` (new nullable properties) |
-| Game board, quantities on the payload (react-game, §8f) | `src/utils/statBadges.js` — `itemCap(item)`, `unitsPerUse(item)` (new helpers); `itemCarryBadges` writes `carried/cap`; `itemDescriptionBadges` appends a `perUse` badge above one unit; `src/features/gameplay/cards/ItemCard.jsx` — `usable = isConsumabile && enough`, new `ITEM_NOT_ENOUGH` lock reason with `(carried/needed)` appended to the long sentence; `src/i18n/en.json`, `src/i18n/it.json` — `game.item.perUse`, `game.item.reason.ITEM_NOT_ENOUGH`, `game.item.reasonFull.ITEM_NOT_ENOUGH` |
+| Game board, quantities on the payload (react-game, §8f) | `src/utils/statBadges.js` — `itemCap(item)`, `unitsPerUse(item)` (new helpers); `itemCarryBadges` writes `carried/cap`; `itemDescriptionBadges` appends a `perUse` badge above one unit; `src/features/gameplay/cards/ItemCard.jsx` — `usable = isConsumabile && enough`, new `ITEM_NOT_ENOUGH` lock reason with `(carried/needed)` appended to the long sentence; `src/i18n/en.json`, `src/i18n/it.json` — `game.item.perUse`, `game.item.reason.ITEM_NOT_ENOUGH`, `game.item.reasonFull.ITEM_NOT_ENOUGH`. **v0.35.6**: `ItemCard.jsx` also locks on `COMA` (character state wins over item state), hiding use, page-trash and row-trash actions; no new i18n keys |
 | Tests, quantities on the payload (§9) | Java: `ItemInstanceMapperTest` (`Quantities` nested class), `InventoryDtosTest.itemInstanceResponse_projectsTheQuantities` (new cases). Python: `test_inventory_service.py`, `test_inventory_controller.py`, `test_character_query_service.py` (new cases). AWS: `test_match_handler_inventory.py` (new case, plus null assertions on the existing listing test). react-game: `statBadges.test.js` (5 new), `ItemCard.test.jsx` (4 new) |
 | Documentation | `documentation_v0/Step35_ItemsResolution.md` (this file, §6-§7-§8-§10 added, intro reframed; §8f added for the payload/react-game increment; §11 added for the v0.35.2 backpack UX fixes); `documentation_v0/Step34_InventoryAndResources.md` — corrected the now-superseded "whole row"/"two rows" passages (§8e note); `documentation_v0/Step09_DesignCoreDataModel.md` — `list_items` row gains `max_per_character`/`amount_drop`/`amount_use`, `gaming_inventory_items` row notes the new unique index (unchanged by §8f — additive to an existing payload, no new column); `documentation_v0/Step23_CharacterStatsInitialization.md` — new §6.4 (trait stat deltas apply on grant, v0.35.2 bugfix); `documentation_v0/Step29_NormalEvents.md` — pointer to §6.4 added to the Effects section; `documentation_v0/INDEX.md` — `Step35_ItemsResolution.md`, `Step23_CharacterStatsInitialization.md` rows updated |
 | Game board, backpack UX (react-game, §11, v0.35.2) | `src/features/gameplay/cards/ItemsCard.jsx` — figures now built as a `statItemsToPageContent`/`statistics` badge list instead of description prose; `src/features/gameplay/cards/ItemsCards.jsx` — rows sorted usable-first via `isItemUsable`; `src/components/layout/Card.jsx` — new `bonusBadgeShowZeros` prop (default `false`) |
@@ -1310,10 +1317,11 @@ left no trace anywhere.
 
 # Version Control
 
-- **Document Version**: 0.35.4
+- **Document Version**: 0.35.6
 
   | Version | Description | Date |
   |---------|-------------|------|
+  | 0.35.6 | A comatose character can no longer use or drop an item: `ItemCard.jsx` locks on `COMA` ahead of `ITEM_NOT_CONSUMABLE`/`ITEM_NOT_ENOUGH`, hiding the use button and both trash icons. No new i18n keys, no schema change. | August 28, 2026 |
   | 0.35.4 | The log's other half (§i): `log_events` gains `energy_gain`/`food_gain`/`magic_gain`/`coin_gain`, the counterpart of §12's cost columns; `log_item_usage` becomes the register of every item action (`action`, `id_event`, signed deltas) instead of usages alone. Three new match-log types `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP`; the eight resource fields are now numbers on every log entry, never null. Full writeup in [Step28](./Step28_MovementSystem.md). | August 24, 2026 |
   | 0.35.4 | Same version, continued (§i): react-admin's `MatchLogsCard` gains a Resources column and badges for the three new types; react-game's `MatchLogCard` shows the item's own card via `BonusBadgeList`, which gains a per-badge icon/color override and an `actor` visual; new Robot suite `item_logs.robot` (7 tests). | August 24, 2026 |
   | 0.35.3 | Food, magic and coin become a cost of acting (§12): `list_events.coin_cost` is renamed `cost_coin`, and both events and movement edges can now charge food/magic/coin, while `list_choices` gets the same three columns reserved for a future option-level cost. Import/admin accept both `coinCost` and `costCoin`; automatic events, forced moves and open choice cycles never pay. | August 23, 2026 |
@@ -1324,7 +1332,7 @@ left no trace anywhere.
   | 0.35.1 | Items resolution, part four — the quantities. Three nullable columns on `list_items` (`V0.35.1__item_amounts_and_unique_inventory_row.sql`): `max_per_character` caps what a character may hold and refuses a further ADD without failing the event that offered it, while `amount_drop` and `amount_use` say how many units one drop or one usage moves — and the same migration folds duplicate inventory rows and forbids new ones (§8a-§8e). The three numbers then travel in `items[]`, so the bag can write "2/3" and grey out a usage the engine would refuse (§8f). | August 22, 2026 |
   | 0.35.0 | Items resolution — UX refinement of the Step 34 inventory engine: using an item now closes the backpack and narrates on a clean page, an item card falls back on its own card when no effect row carries one, and the react-admin Item Effects form finally offers the narrative card, a closed vocabulary for `effect_code` and the trait pickers (§1-§4). `flagShowEffects` lets a story keep an item's effects secret while still applying them, and `effects[]` on every inventory row lets the board show what using it promises (§5-§7). | August 21, 2026 |
 
-- **Last Updated**: August 24, 2026
+- **Last Updated**: August 28, 2026
 - **Status**: Complete
 
 

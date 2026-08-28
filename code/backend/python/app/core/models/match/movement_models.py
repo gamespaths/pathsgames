@@ -66,6 +66,8 @@ class MovementResult:
     #: Step 33 — what the destination did about the arrival: its id_event_if_first_time /
     #: id_event_not_first_time / id_event_if_character_enter_empty_location, already executed.
     automatic_events: List[Any] = field(default_factory=list)
+    #: v0.35.6 — the Step 30 verdict of the whole arrival, folded from the events above.
+    edge_state: Any = None
 
 
 @dataclass

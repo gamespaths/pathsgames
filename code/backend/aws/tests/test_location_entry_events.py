@@ -381,3 +381,95 @@ def test_the_starting_location_is_seeded_as_already_visited():
 
     by_location = {s['idLocation']: s['flagVisited'] for s in states}
     assert by_location == {LOC_A: 1, LOC_B: 0}
+
+
+# ── v0.35.6: the Step 30 verdict travels with the move and with the sleep ─────
+#
+# An arrival kills exactly as an executed event does, and so can a time-start. Until
+# v0.35.6 neither answer carried an edgeState at all: the flag landed on the character and
+# the player learned of it on the next reload, with no card and no story.
+
+def _lethal(event_id):
+    return {'id': 1, 'idEvent': event_id, 'idCard': None, 'statistics': 'life',
+            'value': -999, 'target': 'ONLY_ONE'}
+
+
+def test_a_lethal_arrival_reports_the_edge_state_on_the_move():
+    story = _locations_with(idEventIfFirstTime=40)
+    story['events'] = [_event(40, 'evt-first')]
+    story['eventEffects'] = [_lethal(40)]
+    with _env([PLAYER, story, _match(), _char()]):
+        body = _body(h.lambda_handler(_move_event(), None))
+
+    edge = body['edgeState']
+    assert edge['comaUuids'] == ['c1']
+    assert edge['allPlayersInComa'] is True
+    # The event that did it says so too: the move's verdict is the fold of these.
+    assert body['automaticEvents'][0]['edgeState']['comaUuids'] == ['c1']
+
+
+def test_a_lethal_arrival_runs_the_epilogue_and_keeps_it_apart():
+    story = _locations_with(idEventIfFirstTime=40)
+    story['events'] = [_event(40, 'evt-first'), _event(50, 'evt-coma')]
+    story['eventEffects'] = [_lethal(40)]
+    story['idEventAllPlayerComa'] = 50
+    with _env([PLAYER, story, _match(), _char()]):
+        body = _body(h.lambda_handler(_move_event(), None))
+
+    edge = body['edgeState']
+    assert edge['comaEventUuid'] == 'evt-coma'
+    assert edge['comaExecutedEventUuids'] == ['evt-coma']
+    # Two chains: the epilogue is not part of what the arrival itself applied.
+    assert [e['eventUuid'] for e in body['automaticEvents'][0]['effects']] == ['evt-first']
+
+
+def test_a_quiet_arrival_answers_an_empty_edge_state():
+    story = _locations_with(idEventIfFirstTime=40)
+    story['events'] = [_event(40, 'evt-first')]
+    with _env([PLAYER, story, _match(), _char()]):
+        edge = _body(h.lambda_handler(_move_event(), None))['edgeState']
+
+    assert edge['comaUuids'] == [] and edge['sadnessOverflowUuids'] == []
+    assert edge['allPlayersInComa'] is False and edge['comaEventUuid'] is None
+
+
+def test_a_lethal_time_start_event_reports_the_edge_state_on_the_sleep():
+    story = _locations_with()
+    story['locations'][0]['idEventIfCounterZero'] = 777   # LOC_A, where the player stands
+    story['events'] = [_event(777, 'evt-fuse')]
+    story['eventEffects'] = [_lethal(777)]
+    match = _match(clock=3)
+    for ls in match['locations']:
+        if ls['idLocation'] == LOC_A:
+            ls['clockCounter'] = 1
+    with _env([PLAYER, story, match, _char()]):
+        body = _body(h.lambda_handler(_sleep_event(), None))
+
+    assert body['timeEndTriggered'] is True
+    assert body['edgeState']['comaUuids'] == ['c1']
+    assert body['edgeState']['allPlayersInComa'] is True
+
+
+def test_an_ordinary_sleep_answers_an_empty_edge_state():
+    with _env([PLAYER, _story(), _match(clock=3), _char()]):
+        body = _body(h.lambda_handler(_sleep_event(), None))
+
+    assert body['edgeState']['comaUuids'] == []
+    assert body['edgeState']['allPlayersInComa'] is False
+
+
+def test_v0356_one_arrival_answers_the_collapse_once_even_with_two_triggers():
+    """Both triggers of an arrival run their own pass; the party's collapse is answered by
+    the first that sees it, or the epilogue would fire twice on one entry."""
+    story = _locations_with(idEventIfFirstTime=40, idEventIfCharacterEnterEmptyLocation=42)
+    story['events'] = [_event(40, 'evt-trap'), _event(42, 'evt-alone'), _event(50, 'evt-coma')]
+    story['eventEffects'] = [_lethal(40)]
+    story['idEventAllPlayerComa'] = 50
+    with _env([PLAYER, story, _match(), _char()]) as table:
+        body = _body(h.lambda_handler(_move_event(), None))
+
+    assert body['edgeState']['comaEventUuid'] == 'evt-coma'
+    final = table.get_item(f'MATCH#{MATCH_UUID}')
+    party = [r for r in final.get('eventLog') or []
+             if str(r.get('message') or '').startswith(_events.MSG_ALL_PLAYER_COMA)]
+    assert len(party) == 1

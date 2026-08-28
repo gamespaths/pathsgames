@@ -21,6 +21,7 @@ from typing import Any, Dict, List
 
 from app.core.models.match import location_entry_models as lem
 from app.core.models.match.location_entry_models import PendingAutomaticEvent
+from app.core.models.match.event_models import EdgeStateOutcome
 from app.core.models.match.time_models import RecoveryItem, TimeStartOutcome
 from app.core.ports.match.edge_state_ports import EdgeStateStorePort
 from app.core.ports.match.time_ports import TimeStorePort
@@ -88,6 +89,8 @@ class TimeStartRecoveryService:
         # 2. Recover each character.
         recaps: List[RecoveryItem] = []
         coma_after: List[bool] = []
+        overflowed: List[str] = []
+        collapsed: List[str] = []
         for c in characters:
             s = safety_by_location.get(c.get("id_location"))
             secure_param = _nz(s.get("secure_param")) if s else 0
@@ -119,6 +122,11 @@ class TimeStartRecoveryService:
             )
             edge_state_evaluator.persist(self.edge_store, id_match, v, current_clock, None)
             recaps.append(RecoveryItem(c["uuid"], energy_delta, life_delta, sad_delta))
+            # v0.35.6 — who the recovery pushed over an edge, so the sleep response can say so.
+            if v.sadness_overflow:
+                overflowed.append(c["uuid"])
+            if v.coma_triggered:
+                collapsed.append(c["uuid"])
 
             # v0.30.1 — a comatose character who rested in a safe location wakes. Safe recovery
             # has already lifted life above zero (life += COS + secure_param, both >= 1), so the
@@ -133,9 +141,14 @@ class TimeStartRecoveryService:
                 still_coma = False
             coma_after.append(still_coma)
 
-        if edge_state_evaluator.all_in_coma(coma_after):
+        all_down = edge_state_evaluator.all_in_coma(coma_after)
+        if all_down:
             edge_state_evaluator.log_all_player_coma(self.edge_store, id_match, None,
                                                      current_clock)
+        # The epilogue's own fields stay empty: running it is the event engine's job, and it
+        # fills them in when it does — this verdict only says who went over which edge.
+        edge_state = (EdgeStateOutcome.none() if not overflowed and not collapsed and not all_down
+                      else EdgeStateOutcome(overflowed, collapsed, all_down, None, None, [], []))
 
         # 3. Decrement counters; flag zeros and collect the events they owe.
         #    A counter is a ONE-SHOT FUSE: `current <= 0` skips an exhausted one and
@@ -175,7 +188,7 @@ class TimeStartRecoveryService:
         # Deterministic across locations: priority_automatic_event first, then location id.
         pending_events.sort(key=lambda p: (p.priority, p.id_location))
 
-        return TimeStartOutcome(recaps, pending_events)
+        return TimeStartOutcome(recaps, pending_events, edge_state)
 
 
 def _add_pending(out: List[PendingAutomaticEvent], trigger: str, id_location: int,

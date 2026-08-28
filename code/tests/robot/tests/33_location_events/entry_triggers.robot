@@ -100,7 +100,39 @@ An Arrival Reports Every Trigger It Fired, Not Just The First
     END
 
 
+A Move And A Sleep Both Answer A Step 30 Edge State
+    [Documentation]    v0.35.6 — an arrival kills exactly as an executed event does, and so
+    ...                can a time-start. Both answers carry the SAME object execute-event
+    ...                carries, so the board has one code path for a collapse however it
+    ...                happened. On a quiet move and a quiet sleep every field is empty —
+    ...                present and empty, never absent, or the board would read a missing
+    ...                key as "nothing happened" and be right by accident.
+    [Tags]    location-events    step33    step30    edge
+    ${token}    ${match}=    Fresh Entry Triggers Match
+    ${seen}=    Create List
+    ${to}=      Unvisited Neighbor Uuid    ${token}    ${match}    ${seen}
+    Should Not Be Equal    ${to}    ${EMPTY}    msg=the start location has no neighbour to walk into
+
+    ${moved}=    Move With Energy Guard    ${token}    ${match}    ${to}
+    Edge State Should Be Well Formed    ${moved.json()}[edgeState]
+
+    ${slept}=    Sleep Action    ${token}    ${match}    200
+    Edge State Should Be Well Formed    ${slept.json()}[edgeState]
+
+
 *** Keywords ***
+
+Edge State Should Be Well Formed
+    [Documentation]    The seven fields of a Step 30 verdict, in the shape execute-event
+    ...                answers. A character who fell into a coma is named in comaUuids; on
+    ...                the ordinary move and sleep this suite makes, nobody has.
+    [Arguments]    ${edge}
+    FOR    ${key}    IN    sadnessOverflowUuids    comaUuids    allPlayersInComa
+    ...    comaEventUuid    comaEventCard    comaExecutedEventUuids    comaEffects
+        Dictionary Should Contain Key    ${edge}    ${key}
+    END
+    Should Be True    isinstance($edge['comaUuids'], list)
+    Should Be True    isinstance($edge['allPlayersInComa'], bool)
 
 Suite Setup Entry Triggers
     [Documentation]    An admin session (to read the seed) plus the story loadout every case

@@ -41,10 +41,13 @@ vi.mock('../features/matches/MatchLogCard', () => ({
     <div data-testid="match-log-card"><button data-testid="log-back" onClick={onBack}>back</button></div>
   ),
 }))
+// What the sleep answers is set per test: the card owns the call, the board owns the news.
+const sleepAnswer = vi.hoisted(() => ({ result: undefined }))
 vi.mock('../features/gameplay/cards/GoToSleepCard', () => ({
   default: ({ onSlept, onPreview, autoPreview }) => (
     <div data-testid="go-to-sleep-card" data-auto-preview={autoPreview ? '1' : '0'}>
-      <button aria-label="Sleep" data-testid="action-sleep" onClick={() => onSlept?.()}>sleep</button>
+      <button aria-label="Sleep" data-testid="action-sleep"
+        onClick={() => onSlept?.(sleepAnswer.result)}>sleep</button>
       <button data-testid="preview-sleep" onClick={() => onPreview?.(
         { card: { title: 'Sleep page' }, type: 'sleep', side: 'right' })}>i</button>
     </div>
@@ -176,6 +179,25 @@ describe('GameBook — edge states after an executed event', () => {
     })
     await executeAction()
     expect(await screen.findByText('All asleep forever')).toBeInTheDocument()
+  })
+
+  // v0.35.6 — a time-start kills too: the recovery, or an event a counter set off. Before
+  // this the sleeper woke up comatose with nothing on screen to say why.
+  it('shows the coma page when the time-start the sleep triggered put the party down', async () => {
+    sleepAnswer.result = {
+      timeEndTriggered: true, counterZero: [],
+      edgeState: {
+        sadnessOverflowUuids: [], comaUuids: ['me'], allPlayersInComa: true,
+        comaEventUuid: 'evt-coma', comaEventCard: { title: 'You do not wake' },
+        comaExecutedEventUuids: ['evt-coma'], comaEffects: [],
+      },
+    }
+    renderBook()
+    fireEvent.click(screen.getAllByTestId('preview-information')[0])
+    fireEvent.click(await screen.findByTestId('action-sleep'))
+
+    expect(await screen.findByText('You do not wake')).toBeInTheDocument()
+    sleepAnswer.result = undefined
   })
 
   // A personal coma (this client's character is listed) shows the generic coma page.
@@ -327,9 +349,9 @@ describe('GameBook — the Step 32 choice resolution', () => {
     edgeState: { comaUuids: [], sadnessOverflowUuids: [] },
   }
 
-  async function openChoices() {
+  async function openChoices(props = {}) {
     executeEvent.mockResolvedValue(PENDING)
-    renderBook()
+    renderBook({}, props)
     fireEvent.click(screen.getByTestId('preview-action'))
     fireEvent.click(screen.getByTestId('action-action'))
     expect(await screen.findByTestId('cc-choice')).toBeInTheDocument()
@@ -421,6 +443,46 @@ describe('GameBook — the Step 32 choice resolution', () => {
     fireEvent.click(screen.getByTestId('select-choice'))
 
     expect(await screen.findByText('All asleep forever')).toBeInTheDocument()
+  })
+
+  // v0.35.6 — the epilogue may carry the body somewhere else, so its card is only half the
+  // news: the board is re-read, which is what puts the player in the new location.
+  it('reloads the board when the option ran the party-coma epilogue', async () => {
+    const onReload = vi.fn()
+    await openChoices({ onReload })
+    selectChoice.mockResolvedValue({
+      ...RESOLVED,
+      movementApplied: true,
+      locationChanges: [{ characterUuid: 'me', fromLocationUuid: 'l1', toLocationUuid: 'l9' }],
+      edgeState: {
+        comaUuids: ['me'], sadnessOverflowUuids: [], allPlayersInComa: true,
+        comaEventUuid: 'evt-coma', comaEventCard: { title: 'Carried away' },
+        comaExecutedEventUuids: ['evt-coma'], comaEffects: [],
+      },
+    })
+
+    fireEvent.click(screen.getByTestId('select-choice'))
+
+    expect(await screen.findByText('Carried away')).toBeInTheDocument()
+    await waitFor(() => expect(onReload).toHaveBeenCalled())
+  })
+
+  // A story need not author an epilogue: the party collapse is still the news, and ComaCard
+  // falls back to its own party copy — game.allComa, not the personal game.coma.
+  it('shows the party-coma page after an option even when no epilogue card comes back', async () => {
+    await openChoices()
+    selectChoice.mockResolvedValue({
+      ...RESOLVED,
+      edgeState: {
+        comaUuids: ['me'], sadnessOverflowUuids: [], allPlayersInComa: true,
+        comaEventUuid: null, comaEventCard: null,
+        comaExecutedEventUuids: [], comaEffects: [],
+      },
+    })
+
+    fireEvent.click(screen.getByTestId('select-choice'))
+
+    expect(await screen.findByText('game.allComa.title')).toBeInTheDocument()
   })
 })
 
