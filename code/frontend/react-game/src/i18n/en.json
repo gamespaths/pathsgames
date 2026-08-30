@@ -2,7 +2,10 @@
   "nav": {
     "brand": "Paths Games",
     "guest": "Guest",
-    "login": "Login"
+    "login": "Login",
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "x": "X"
   },
   "home": {
     "heroTitle": "Epic Adventures Await",

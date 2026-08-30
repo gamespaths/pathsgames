@@ -231,6 +231,28 @@ html, body {
   gap: 10px;
 }
 
+/* Social links — dropped by the media rules in mobile.css when the bar is too narrow. */
+.navbar-social {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: 4px;
+}
+
+.navbar-social-link {
+  color: var(--color-gold-light);
+  font-size: 1.15rem;
+  line-height: 1;
+  text-decoration: none;
+  opacity: 0.85;
+  transition: color 0.2s, opacity 0.2s, transform 0.2s;
+}
+.navbar-social-link:hover {
+  color: var(--color-gold-shine);
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
 .navbar-home-btn {
   font-size: 0.75rem !important;
   padding: 4px 12px !important;

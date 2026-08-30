@@ -231,6 +231,9 @@
   /* Navbar home button: show only icon */
   .navbar-home-btn span { display: none; }
 
+  /* Navbar socials: no room left beside brand and guest button */
+  .navbar-social { display: none; }
+
   /* Catalog grid: smaller gap on mobile */
   .stories-grid { gap: 10px; padding: 10px 4px 14px; }
 
@@ -311,3 +314,7 @@
   }
 }
 
+/* Navbar socials on a game page: the exit button takes their room first. */
+@media (max-width: 991px) {
+  .navbar-social--tight { display: none; }
+}

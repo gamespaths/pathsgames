@@ -2,7 +2,10 @@
   "nav": {
     "brand": "Paths Games",
     "guest": "Ospite",
-    "login": "Accedi"
+    "login": "Accedi",
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "x": "X"
   },
   "home": {
     "heroTitle": "Avventure Epiche ti Aspettano",

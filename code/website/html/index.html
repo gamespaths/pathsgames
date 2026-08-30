@@ -50,6 +50,17 @@
     </div>
   </nav>
 
+  <!-- ════════════ AUTO-REDIRECT BAR ════════════ -->
+  <div class="pg-redirect" id="pg-redirect" hidden>
+    <i class="fas fa-dice-d20 pg-redirect-icon"></i>
+    <span class="pg-redirect-text">
+      Taking you to the game in <strong id="pg-redirect-count">5</strong>s&hellip;
+    </span>
+    <button type="button" class="pg-redirect-stay" id="pg-redirect-stay">
+      <i class="fas fa-hand-paper me-1"></i>Stay on this page
+    </button>
+  </div>
+
 
   <!-- ════════════ HERO ════════════ -->
   <section class="pg-hero">
@@ -159,6 +170,9 @@
   <!-- First-party cookie consent (self-hosted, replaces CookieYes) -->
   <script src="assets/cookieconsent.umd.js"></script>
   <script src="assets/cookieconsent-config.js"></script>
+
+  <!-- Auto-redirect to the game (countdown, cancellable) -->
+  <script src="assets/redirect.js"></script>
 
 </body>
 </html>

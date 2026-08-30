@@ -158,6 +158,49 @@ body {
   color: var(--color-gold-light);
 }
 
+/* ─── AUTO-REDIRECT BAR ─── */
+.pg-redirect {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1.5rem;
+  background: linear-gradient(180deg, var(--color-brown-mid) 0%, var(--color-brown-dark) 100%);
+  border-bottom: 2px solid var(--color-gold-dark);
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  color: var(--color-parchment);
+}
+
+.pg-redirect[hidden] { display: none; }
+
+.pg-redirect-icon {
+  color: var(--color-gold-light);
+}
+
+.pg-redirect-text strong {
+  color: var(--color-gold-shine);
+}
+
+.pg-redirect-stay {
+  padding: 0.25rem 0.9rem;
+  border-radius: 4px;
+  border: 1px solid var(--color-gold-dark);
+  background: linear-gradient(180deg, var(--color-brown-mid), var(--color-brown-dark));
+  color: var(--color-gold-light);
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.pg-redirect-stay:hover {
+  background: linear-gradient(180deg, var(--color-brown-warm), var(--color-brown-mid));
+  border-color: var(--color-gold);
+  color: var(--color-gold-shine);
+}
+
 /* ─── CARDS SECTION ─── */
 .pg-cards-section {
   background: linear-gradient(180deg, var(--color-brown-deep) 0%, #0d0602 100%);

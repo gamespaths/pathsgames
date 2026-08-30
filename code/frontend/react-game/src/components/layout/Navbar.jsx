@@ -14,6 +14,13 @@ export default function Navbar() {
     ? '…'
     : /*(guestUser?.username ?? */ t('nav.guest') //)
 
+  // v0.35.7 — same socials as the landing page; CSS hides them when the bar runs out of room.
+  const socials = [
+    { key: 'instagram', href: 'https://www.instagram.com/pathsgames/', icon: 'fab fa-instagram' },
+    { key: 'youtube', href: 'https://www.youtube.com/channel/UCbrfVJJDmX-iBda6WhURPkQ', icon: 'fab fa-youtube' },
+    { key: 'x', href: 'https://x.com/PathsGames', icon: 'fab fa-x-twitter' },
+  ]
+
   return (
     <nav className="navbar-medieval">
       <a className="navbar-brand-pg" href="/">
@@ -27,8 +34,21 @@ export default function Navbar() {
             <i className="fas fa-home me-1" />{t('game.exitToHome')}
           </button>
         )}
-
-
+        <div className={`navbar-social${isGamePage ? ' navbar-social--tight' : ''}`}>
+          {socials.map(s => (
+            <a
+              key={s.key}
+              href={s.href}
+              target="_blank"
+              rel="noopener"
+              className="navbar-social-link"
+              aria-label={t(`nav.${s.key}`)}
+              title={t(`nav.${s.key}`)}
+            >
+              <i className={s.icon} />
+            </a>
+          ))}
+        </div>
 
         <button
           className="nav-user-btn"

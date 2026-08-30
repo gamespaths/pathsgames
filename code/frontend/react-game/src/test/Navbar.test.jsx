@@ -5,6 +5,12 @@ import Navbar from '../components/layout/Navbar'
 
 const mockSetLang = vi.fn()
 const mockChangeServer = vi.fn()
+const mockNavigate = vi.fn()
+
+vi.mock('react-router-dom', async (importOriginal) => ({
+  ...(await importOriginal()),
+  useNavigate: () => mockNavigate,
+}))
 
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({
@@ -79,5 +85,37 @@ describe('Navbar', () => {
   it('shows exit button on play page', () => {
     renderNavbar('/play/123')
     expect(screen.getByText('game.exitToHome')).toBeInTheDocument()
+  })
+
+  it('exit button navigates back home', () => {
+    renderNavbar('/play/123')
+    fireEvent.click(screen.getByText('game.exitToHome'))
+    expect(mockNavigate).toHaveBeenCalledWith('/')
+  })
+
+  it('renders the three social links with their targets', () => {
+    renderNavbar()
+    expect(screen.getByTitle('nav.instagram')).toHaveAttribute('href', 'https://www.instagram.com/pathsgames/')
+    expect(screen.getByTitle('nav.youtube')).toHaveAttribute(
+      'href', 'https://www.youtube.com/channel/UCbrfVJJDmX-iBda6WhURPkQ')
+    expect(screen.getByTitle('nav.x')).toHaveAttribute('href', 'https://x.com/PathsGames')
+  })
+
+  it('social links open in a new tab', () => {
+    renderNavbar()
+    const link = screen.getByTitle('nav.instagram')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener')
+    expect(link).toHaveAttribute('aria-label', 'nav.instagram')
+  })
+
+  it('social row is not marked tight on the home page', () => {
+    const { container } = renderNavbar('/')
+    expect(container.querySelector('.navbar-social')).not.toHaveClass('navbar-social--tight')
+  })
+
+  it('social row is marked tight on a play page, where the exit button takes the room', () => {
+    const { container } = renderNavbar('/play/123')
+    expect(container.querySelector('.navbar-social')).toHaveClass('navbar-social--tight')
   })
 })
