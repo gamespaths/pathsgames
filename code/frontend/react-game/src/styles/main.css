@@ -508,27 +508,28 @@ html, body {
 
 }
 /* ═══════════════════════════════════════════
-   STORY CARD (home) — pg-card pg-card--medium
-   Image fills card via absolute, title at bottom
+   STORY CARD (home) — shared Card, variant "little"
    ═══════════════════════════════════════════ */
+/* Fixed catalog size: it must win over the flex:1 of .pg-card--grid. */
 .story-netflix-card {
   scroll-snap-align: start;
   cursor: pointer;
+  width: 225px;
+  flex: 0 0 225px;
+  aspect-ratio: 2 / 3;
   border-color: var(--color-brown-mid);
 }
-/* Image fills the entire card */
-.story-card-img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.5s ease;
-}
-.story-netflix-card:hover .story-card-img { transform: scale(1.08); }
+/* The overlay box only carries the badges here: no darkening gradient. */
+.story-netflix-card .gc-img__overlay { background: none; }
+/* Badge strip: no height of its own, so it hangs over the top of the picture. */
+.story-netflix-card .gc-img-content { height: 0; }
+/* A teaser story has nothing to click: no pointer, and its picture stays faded. */
+.story-card--soon { cursor: default; }
+.story-card--soon .gc-img { filter: grayscale(35%) brightness(0.8); }
 
-/* Category badge top-right */
+/* Category badge top-right — hidden for now: the section label already names the category. */
+.story-netflix-card .story-card-badge { display: none; }
+
 .story-card-badge {
   position: absolute;
   top: 8px; right: 8px;
@@ -566,6 +567,7 @@ html, body {
   color: var(--color-gold-light);
   border: 1px solid var(--color-gold-dark);
 }
+.story-card-status__check { color: #4ade80; }
 /* v0.32.1 — an admin-paused match: it blocks a new run but cannot be resumed,
    so it gets its own badge instead of the "resume" one. */
 .story-card-status--paused {
@@ -576,7 +578,7 @@ html, body {
 
 /* v0.32.1 — the card is waiting for the match list before it can open */
 .story-card--pending { cursor: progress; }
-.story-card--pending .story-card-img { filter: grayscale(40%) brightness(0.7); }
+.story-card--pending .gc-img { filter: grayscale(40%) brightness(0.7); }
 .story-card-pending-overlay {
   position: absolute;
   inset: 0;
@@ -589,42 +591,7 @@ html, body {
   font-size: 1.6rem;
 }
 
-/* Play icon on hover, centred */
-.story-card-play-icon {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -60%) scale(0);
-  z-index: 2;
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  background: rgba(200,150,10,0.9);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--color-brown-deep);
-  font-size: 1.1rem;
-  transition: transform 0.3s ease;
-}
-.story-netflix-card:hover .story-card-play-icon { transform: translate(-50%, -60%) scale(1); }
-
-/* Title gradient overlay at bottom */
-.story-card-body {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  z-index: 2;
-  background: linear-gradient(transparent, rgba(26,10,2,0.92) 40%);
-  padding: 28px 10px 10px;
-}
-
-.story-card-title {
-  text-align: center;
-  font-family: var(--font-heading);
-  font-size: 1.25rem;
-  color: var(--color-gold-light);
-  margin: 0;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+/* Title bar and footer button come from the shared Card (.gc-title / .gc-footer). */
 
 /* ═══════════════════════════════════════════
    BOOK OVERLAY / WRAPPER
@@ -1756,7 +1723,9 @@ html, body {
   flex-shrink: 0;
   border-radius: 8px 8px 0 0;
 }
-
+.stories-grid .gc-title__text{
+  font-size: 1.25rem;
+}
 .gc-title__text {
   flex: 1;
   white-space: nowrap;

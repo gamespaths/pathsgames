@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '../i18n/context'
 import { getStories } from '../api/stories'
 import { listMatches } from '../api/matches'
@@ -8,7 +9,9 @@ import StartBookModal from '../features/start-book/StartBookModal'
 import TurnstileWidget from '../components/ui/TurnstileWidget'
 import { TURNSTILE_APPEARANCE } from '../utils/turnstile'
 import useAntibot from '../hooks/useAntibot'
-import { storyHasBlockingMatch } from '../utils/matchStatus'
+import { storyHasBlockingMatch, findResumableMatch } from '../utils/matchStatus'
+import { RESUME_WITHOUT_MODAL, ADD_COMING_SOON_STORIES } from '../constants/features'
+import { withComingSoonStories } from '../utils/comingSoonStories'
 import LoadingCard from '@/components/layout/LoadingCard'
 
 const HERO_IMG = {
@@ -19,6 +22,7 @@ const HERO_IMG = {
 
 export default function HomePage() {
   const { t, lang } = useTranslation()
+  const navigate = useNavigate()
   const { user, openGuestModal } = useGuestUser()
   const [stories, setStories] = useState([])
   const [matches, setMatches] = useState(null) // guest matches, loaded once when human
@@ -32,6 +36,10 @@ export default function HomePage() {
   // promise instead of firing its own request.
   const matchesPromise = useRef(null)
   const [matchesAttempt, setMatchesAttempt] = useState(0)
+  // A rejected catalog fetch used to leave `loading` true for ever, so a CORS block
+  // or a backend hiccup looked exactly like a slow load.
+  const [storiesError, setStoriesError] = useState(false)
+  const [storiesAttempt, setStoriesAttempt] = useState(0)
   // Antibot gate (session-cached): the catalog stays hidden until Turnstile
   // passes. No site key — or a still-valid recent pass cookie — skips the widget
   // entirely so we don't re-verify on every visit. Shared with start-match via
@@ -43,13 +51,21 @@ export default function HomePage() {
   useEffect(() => {
     if (gate.phase !== 'ready') return undefined
     let cancelled = false
-    getStories(lang).then(data => {
-      if (cancelled) return
-      setStories(data)
-      setLoading(false)
-    })
+    setStoriesError(false)
+    setLoading(true)
+    getStories(lang)
+      .then(data => {
+        if (cancelled) return
+        setStories(withComingSoonStories(data, lang, ADD_COMING_SOON_STORIES))
+        setLoading(false)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setStoriesError(true)
+        setLoading(false)
+      })
     return () => { cancelled = true }
-  }, [gate.phase, lang])
+  }, [gate.phase, lang, storiesAttempt])
 
   // Load the guest's matches once cleared, so the catalog can badge stories and
   // a story click can reuse the list (no extra fetch, and it is handed to the
@@ -77,6 +93,7 @@ export default function HomePage() {
   }, [gate.phase, user?.accessToken, matchesAttempt])
 
   const retryMatches = useCallback(() => setMatchesAttempt(n => n + 1), [])
+  const retryStories = useCallback(() => setStoriesAttempt(n => n + 1), [])
 
   async function handleStoryClick(story) {
     if (pendingStoryUuid) return
@@ -95,7 +112,12 @@ export default function HomePage() {
       }
       setPendingStoryUuid(null)
     }
-    if (storyHasBlockingMatch(list, story.uuid)) {
+    // RESUME_WITHOUT_MODAL — the card already said "Resume", so the modal would only
+    // ask again which match to open: jump straight into it.
+    const resumable = RESUME_WITHOUT_MODAL ? findResumableMatch(list, story.uuid) : null
+    if (resumable) {
+      navigate(`/play/${story.uuid}`, { state: { matchUuid: resumable.uuid } })
+    } else if (storyHasBlockingMatch(list, story.uuid)) {
       openGuestModal(list)
     } else {
       setSelectedStory(story)
@@ -139,6 +161,16 @@ export default function HomePage() {
         </div>
       ) : loading ? (
         <LoadingCard story={null} maxWidth="500px" />
+      ) : storiesError ? (
+        <div className="stories-section-center stories-loading">
+          <i className="fas fa-exclamation-triangle me-2" />{t('home.storiesError')}
+          <br />
+          <div className="mt-3">
+            <button className="btn-start-game" onClick={retryStories}>
+              <i className="fas fa-sync-alt me-2" />{t('startMatch.retry')}
+            </button>
+          </div>
+        </div>
       ) : (
         <>
           {/* v0.32.1 — the match list could not be read: say so and offer a retry
@@ -157,6 +189,7 @@ export default function HomePage() {
           <StoryCatalog
             stories={stories}
             matches={matches}
+            matchesStatus={matchesStatus}
             pendingStoryUuid={pendingStoryUuid}
             onStoryClick={handleStoryClick}
           />

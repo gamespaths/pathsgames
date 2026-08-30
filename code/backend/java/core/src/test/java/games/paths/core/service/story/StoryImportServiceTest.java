@@ -713,4 +713,131 @@ class StoryImportServiceTest {
             assertNotNull(result);
         }
     }
+
+    // === SECTION: NOT NULL DEFAULTS ===
+
+    @Nested
+    @DisplayName("NOT NULL column defaults")
+    class NotNullDefaults {
+
+        private void stubMinimalStory(String uuid) {
+            when(persistencePort.findStoryByUuid(uuid)).thenReturn(Optional.empty());
+            when(persistencePort.saveStory(any(StoryEntity.class))).thenAnswer(inv -> {
+                StoryEntity e = inv.getArgument(0);
+                e.setId(1L);
+                return e;
+            });
+        }
+
+        @Test
+        @DisplayName("An item effect without effectCode/effectValue keeps the columns non-null")
+        void itemEffect_missingCodeAndValue() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "eff-uuid");
+            // A trait-only effect (v0.34.0) carries no statistic at all.
+            Map<String, Object> effect = new HashMap<>();
+            effect.put("id", 4);
+            effect.put("idItem", 3);
+            effect.put("traitsToAdd", "7");
+            data.put("itemEffects", List.of(effect));
+
+            stubMinimalStory("eff-uuid");
+            when(persistencePort.saveItemEffects(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<List<ItemEffectEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveItemEffects(captor.capture());
+            ItemEffectEntity saved = captor.getValue().get(0);
+            assertEquals("", saved.getEffectCode());
+            assertEquals(0, saved.getEffectValue());
+        }
+
+        @Test
+        @DisplayName("An item effect with an unparseable effectValue falls back to 0")
+        void itemEffect_blankValue() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "eff2-uuid");
+            Map<String, Object> effect = new HashMap<>();
+            effect.put("id", 5);
+            effect.put("idItem", 2);
+            effect.put("effectCode", "");
+            effect.put("effectValue", "");
+            data.put("itemEffects", List.of(effect));
+
+            stubMinimalStory("eff2-uuid");
+            when(persistencePort.saveItemEffects(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<List<ItemEffectEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveItemEffects(captor.capture());
+            assertEquals(0, captor.getValue().get(0).getEffectValue());
+        }
+
+        @Test
+        @DisplayName("A choice effect without flagGroup defaults to 0, the actor alone")
+        void choiceEffect_missingFlagGroup() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "ce-uuid");
+            data.put("choiceEffects", List.of(Map.of("id", 1, "idChoices", 1, "statistics", "LIFE")));
+
+            stubMinimalStory("ce-uuid");
+            when(persistencePort.saveChoiceEffects(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<List<ChoiceEffectEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveChoiceEffects(captor.capture());
+            assertEquals(0, captor.getValue().get(0).getFlagGroup());
+        }
+
+        @Test
+        @DisplayName("A weather rule without active defaults to 0, the value findActiveWeatherRules skips")
+        void weatherRule_missingActive() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "wr-uuid");
+            data.put("weatherRules", List.of(Map.of("id", 1, "probability", 50)));
+
+            stubMinimalStory("wr-uuid");
+            when(persistencePort.saveWeatherRules(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<List<WeatherRuleEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveWeatherRules(captor.capture());
+            assertEquals(0, captor.getValue().get(0).getActive());
+        }
+
+        @Test
+        @DisplayName("Values present in the JSON are kept, not overwritten by the defaults")
+        void presentValues_areKept() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "keep-uuid");
+            data.put("itemEffects", List.of(Map.of("id", 1, "idItem", 2, "effectCode", "LIFE", "effectValue", 3)));
+            data.put("choiceEffects", List.of(Map.of("id", 1, "idChoices", 1, "flagGroup", 1)));
+            data.put("weatherRules", List.of(Map.of("id", 1, "active", 1)));
+
+            stubMinimalStory("keep-uuid");
+            when(persistencePort.saveItemEffects(anyList())).thenAnswer(inv -> inv.getArgument(0));
+            when(persistencePort.saveChoiceEffects(anyList())).thenAnswer(inv -> inv.getArgument(0));
+            when(persistencePort.saveWeatherRules(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<List<ItemEffectEntity>> items = ArgumentCaptor.forClass(List.class);
+            ArgumentCaptor<List<ChoiceEffectEntity>> choices = ArgumentCaptor.forClass(List.class);
+            ArgumentCaptor<List<WeatherRuleEntity>> weather = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveItemEffects(items.capture());
+            verify(persistencePort).saveChoiceEffects(choices.capture());
+            verify(persistencePort).saveWeatherRules(weather.capture());
+
+            assertAll("explicit values survive",
+                () -> assertEquals("LIFE", items.getValue().get(0).getEffectCode()),
+                () -> assertEquals(3, items.getValue().get(0).getEffectValue()),
+                () -> assertEquals(1, choices.getValue().get(0).getFlagGroup()),
+                () -> assertEquals(1, weather.getValue().get(0).getActive())
+            );
+        }
+    }
 }

@@ -16,6 +16,12 @@ export function storyHasActiveMatch(matches, storyUuid) {
   )
 }
 
+/** The guest's resumable match for a story, or null — what a direct "Resume" jumps into. */
+export function findResumableMatch(matches, storyUuid) {
+  if (!Array.isArray(matches)) return null
+  return matches.find(m => m.storyUuid === storyUuid && ACTIVE_MATCH_STATUSES.has(m.status)) ?? null
+}
+
 /**
  * True when the guest already has a match that prevents starting a new one on
  * this story — the client-side mirror of the backend guard.

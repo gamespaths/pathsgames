@@ -14,9 +14,12 @@
     "loading": "Loading stories…",
     "noStories": "No stories available.",
     "badgeResume": "Resume",
+    "badgePlay": "Play",
+    "loadingMatches": "Loading…",
     "badgeCompleted": "Completed",
     "badgePaused": "Paused",
-    "matchesError": "Your matches could not be loaded, so a new adventure cannot be started right now."
+    "matchesError": "Your matches could not be loaded, so a new adventure cannot be started right now.",
+    "storiesError": "The adventures could not be loaded. Check your connection and try again."
   },
   "antibot": {
     "blocked": "Antibot activated — these adventures are only for humans!",

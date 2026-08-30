@@ -241,8 +241,8 @@
   .pg-card--medium { width: 130px; flex: 0 0 130px; }
   .pg-card--home   { width: 180px; flex: 0 0 180px; }
 
-  /* Story card title bigger on mobile for readability */
-  .story-card-title { font-size: 0.92rem; }
+  /* Catalog cards narrower on mobile */
+  .story-netflix-card { width: 180px; flex: 0 0 180px; }
 
   /* Section labels */
   .section-label    { font-size: 0.88rem; }

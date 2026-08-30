@@ -16,6 +16,12 @@ export const SHOW_BOOK_BOOKMARKS = parseFlag(import.meta.env?.VITE_SHOW_BOOK_BOO
 export const SHOW_CARD_CHARACTERISTICS = parseFlag(import.meta.env?.VITE_SHOW_CARD_CHARACTERISTICS, false)
 export const SHOW_MOBILE_CARD_CHARACTERISTICS = parseFlag(import.meta.env?.VITE_SHOW_MOBILE_CARD_CHARACTERISTICS, true)
 
+// v0.35.8 — teaser stories from data/stories.json appended to the API catalog on the Home.
+export const ADD_COMING_SOON_STORIES = parseFlag(import.meta.env?.VITE_ADD_COMING_SOON_STORIES, false)
+
+// v0.35.8 — Home "Resume" jumps straight into the match instead of opening the guest modal.
+export const RESUME_WITHOUT_MODAL = parseFlag(import.meta.env?.VITE_RESUME_WITHOUT_MODAL, false)
+
 /**
  * The board is rendered TWICE — once inside the book, once in the mobile stack — from one
  * content tree, so a card that shows in one and not in the other cannot be an `if`: both

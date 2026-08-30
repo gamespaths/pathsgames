@@ -858,7 +858,7 @@
       "idCard": 71,
       "idCreator": 1,
       "idTextCopyright": 200,
-      "idTextDescription": 195,
+      "idTextDescription": 394,
       "idTextName": 195,
       "idTextTitle": 195,
       "linkCopyright": "https://unsplash.com/photos/a-river-running-through-a-lush-green-forest-O_1yMiPYtX0",
@@ -1590,7 +1590,7 @@
       "uuid": "35077af3-3660-4ef0-adc1-a37d1307bf18"
     }
   ],
-  "category": "adventure",
+  "category": "Tutorial",
   "characterTemplateCount": 6,
   "characterTemplates": [
     {
@@ -2481,6 +2481,7 @@
     {
       "id": 18,
       "idCard": 127,
+      "idEvent": 22,
       "idTextDescription": 370,
       "idTextName": 370,
       "id_card": 127,
@@ -2915,8 +2916,8 @@
       "weight": 0
     },
     {
-      "amountDrop": 2,
-      "amountUse": 1,
+      "amountDrop": "",
+      "amountUse": "",
       "flagShowEffects": true,
       "id": 2,
       "idCard": 115,
@@ -2924,7 +2925,7 @@
       "idTextName": 333,
       "id_card": 115,
       "isConsumabile": true,
-      "maxPerCharacter": 3,
+      "maxPerCharacter": "",
       "uuid": "bc1bdd66-ac82-479a-9749-2558eafc0f76",
       "weight": 1
     },
@@ -6350,8 +6351,8 @@
       "idText": 165,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Go to ending",
-      "shortText": "Go to ending",
+      "longText": "The path reaches a decisive turn, where the steps taken so far find their natural conclusion. <br />\n<br />\nWith this movement you will move toward the location where you can complete this tutorial.",
+      "shortText": "The path reaches a decisive turn, where the steps taken so far find their natural conclusion. <br />\n<br />\nWith this movement you will move toward the location where you can complete this tutorial.",
       "uuid": "59705bf6-5960-41b4-ba47-3391f7355f49"
     },
     {
@@ -6360,8 +6361,8 @@
       "idText": 165,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Vai al finale",
-      "shortText": "Vai al finale",
+      "longText": "Il cammino giunge a una svolta decisiva, dove i passi compiuti finora trovano la loro naturale conclusione. <br />\n<br />\nCon questo movimento ti muoverai verso la location dove potrai terminare questo tutorial.",
+      "shortText": "Il cammino giunge a una svolta decisiva, dove i passi compiuti finora trovano la loro naturale conclusione. <br />\n<br />\nCon questo movimento ti muoverai verso la location dove potrai terminare questo tutorial.",
       "uuid": "2d24cc34-a1ab-4b4b-b2ff-a8ad035e17e1"
     },
     {
@@ -6520,8 +6521,8 @@
       "idText": 177,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Montains",
-      "shortText": "Montains",
+      "longText": "Mountains",
+      "shortText": "Mountains",
       "uuid": "a8eebf4c-3c58-469c-a490-2dba94da051b"
     },
     {
@@ -6600,8 +6601,8 @@
       "idText": 183,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Montain canyon",
-      "shortText": "Montain canyon",
+      "longText": "Mountain canyon",
+      "shortText": "Mountain canyon",
       "uuid": "8f9d4763-df3e-42f2-97e3-8549c4d8b301"
     },
     {
@@ -6760,8 +6761,8 @@
       "idText": 195,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Large river",
-      "shortText": "Large river",
+      "longText": "Large River",
+      "shortText": "Large River",
       "uuid": "46cfec88-7ef0-45c1-aaf9-50279dd77168"
     },
     {
@@ -7100,8 +7101,8 @@
       "idText": 214,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Explore montains",
-      "shortText": "Explore montains",
+      "longText": "Explore mountains",
+      "shortText": "Explore mountains",
       "uuid": "4dc1f5b2-14ce-4540-956b-6a0a166e357f"
     },
     {
@@ -9160,8 +9161,8 @@
       "idText": 330,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Use montain map",
-      "shortText": "Use montain map",
+      "longText": "Use mountain map",
+      "shortText": "Use mountain map",
       "uuid": "ecc7b6c3-cf8f-4a98-bbe9-78293a2a88a0"
     },
     {
@@ -9170,8 +9171,8 @@
       "idText": 330,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "",
-      "shortText": "",
+      "longText": "Usa la mappa",
+      "shortText": "Usa la mappa",
       "uuid": "cff86e6b-947f-42b4-a4d0-2a6817d835f8"
     },
     {
@@ -10273,6 +10274,66 @@
       "longText": "Un'aura brillante avvolge l'ambiente circostante, sfumando i contorni del paesaggio in un bagliore etereo. Questo sito radioso emana un'energia arcana capace di risvegliare potenziali sopiti nel cuore dei viaggiatori. <br />\n<br />\nIn questa location magica puoi eseguire movimenti e azioni speciali.",
       "shortText": "Un'aura brillante avvolge l'ambiente circostante, sfumando i contorni del paesaggio in un bagliore etereo. Questo sito radioso emana un'energia arcana capace di risvegliare potenziali sopiti nel cuore dei viaggiatori. <br />\n<br />\nIn questa location magica puoi eseguire movimenti e azioni speciali.",
       "uuid": "50e2b52c-f60a-423a-ab2e-92d47d82cf6d"
+    },
+    {
+      "id": 195,
+      "idCreator": 1,
+      "idText": 195,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Grande Fiume",
+      "shortText": "Grande Fiume",
+      "uuid": "04080aee-aeaa-4e9c-aaec-d005a574e705"
+    },
+    {
+      "id": 394,
+      "idCreator": 1,
+      "idText": 394,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The jagged banks of the majestic waterway hide quiet nooks and vistas teeming with life. Listening to the rushing current reveals multiple opportunities for those who look closely.<br />\n<br />\nIn this location you can find actions to perform.",
+      "shortText": "The jagged banks of the majestic waterway hide quiet nooks and vistas teeming with life. Listening to the rushing current reveals multiple opportunities for those who look closely.<br />\n<br />\nIn this location you can find actions to perform.",
+      "uuid": "bda48905-efe9-4998-876d-1951b3b6cc24"
+    },
+    {
+      "id": 394,
+      "idCreator": 1,
+      "idText": 394,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Le sponde frastagliate del maestoso corso d'acqua nascondono anfratti tranquilli e scorci brulicanti di vita. Ascoltare il flusso della corrente rivela molteplici opportunità per chi sa osservare con attenzione. <br />\n<br />\nAnche in questo luogo puoi trovare azioni da svolgere.",
+      "shortText": "Le sponde frastagliate del maestoso corso d'acqua nascondono anfratti tranquilli e scorci brulicanti di vita. Ascoltare il flusso della corrente rivela molteplici opportunità per chi sa osservare con attenzione. <br />\n<br />\nAnche in questo luogo puoi trovare azioni da svolgere.",
+      "uuid": "9010acac-b84f-4ecc-b071-1516239e5b70"
+    },
+    {
+      "id": 183,
+      "idCreator": 1,
+      "idText": 183,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Canyon montano",
+      "shortText": "Canyon montano",
+      "uuid": "9d7f0732-d162-43e9-92ff-4b432839a12b"
+    },
+    {
+      "id": 177,
+      "idCreator": 1,
+      "idText": 177,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Montagne",
+      "shortText": "Montagne",
+      "uuid": "cab0c9ea-e7df-43c6-a8b7-ae6c2f0556d1"
+    },
+    {
+      "id": 214,
+      "idCreator": 1,
+      "idText": 214,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Esplora le montagne",
+      "shortText": "Esplora le montagne",
+      "uuid": "6a9610d7-216f-4e49-9b5e-d673d6cc04e0"
     }
   ],
   "title": "Paths Tutorial",
@@ -10465,6 +10526,7 @@
   "visibility": "PUBLIC",
   "weatherRules": [
     {
+      "active": 1,
       "costMoveNotSafeLocation": 1,
       "costMoveSafeLocation": 1,
       "id": 1,
@@ -10475,6 +10537,7 @@
       "uuid": "9efa0012-39cf-4c8b-bc83-505faf9ed0d1"
     },
     {
+      "active": 1,
       "costMoveNotSafeLocation": 3,
       "costMoveSafeLocation": 3,
       "id": 2,

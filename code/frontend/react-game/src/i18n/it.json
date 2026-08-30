@@ -14,9 +14,12 @@
     "loading": "Caricamento storie…",
     "noStories": "Nessuna storia disponibile.",
     "badgeResume": "Riprendi",
+    "badgePlay": "Gioca",
+    "loadingMatches": "Caricamento…",
     "badgeCompleted": "Completata",
     "badgePaused": "In pausa",
-    "matchesError": "Non è stato possibile caricare le tue partite, quindi non puoi iniziarne una nuova ora."
+    "matchesError": "Non è stato possibile caricare le tue partite, quindi non puoi iniziarne una nuova ora.",
+    "storiesError": "Non è stato possibile caricare le avventure. Controlla la connessione e riprova."
   },
   "antibot": {
     "blocked": "Antibot attivato — queste avventure sono solo per umani!",

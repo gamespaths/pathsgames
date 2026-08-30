@@ -539,7 +539,7 @@ public class StoryImportService implements StoryImportPort {
             e.setCostMoveNotSafeLocation(getInteger(item, "costMoveNotSafeLocation"));
             e.setConditionKey(getString(item, "conditionKey"));
             e.setConditionKeyValue(getString(item, "conditionKeyValue"));
-            e.setActive(getInteger(item, "active"));
+            e.setActive(getIntegerOrDefault(item, "active", 0));
             e.setPriority(getInteger(item, "priority"));
             e.setDeltaEnergy(getInteger(item, "deltaEnergy"));
             entities.add(e);
@@ -659,8 +659,8 @@ public class StoryImportService implements StoryImportPort {
             e.setId(resolveStoryScopedId(item, "story/list_items_effects", "list_items_effects", "id", storyId, "id"));
             e.setIdStory(storyId);
             e.setIdItem(getInteger(item, "idItem"));
-            e.setEffectCode(getString(item, "effectCode"));
-            e.setEffectValue(getInteger(item, "effectValue"));
+            e.setEffectCode(getStringOrDefault(item, "effectCode", ""));
+            e.setEffectValue(getIntegerOrDefault(item, "effectValue", 0));
             // v0.34.0: CSV of trait ids, same field names and same format as eventEffects.
             e.setTraitsToAdd(getString(item, "traitsToAdd"));
             e.setTraitsToRemove(getString(item, "traitsToRemove"));
@@ -699,7 +699,7 @@ public class StoryImportService implements StoryImportPort {
             e.setIdStory(storyId);
             e.setIdChoices(getInteger(item, "idChoices"));
             e.setIdScelta(getInteger(item, "idScelta"));
-            e.setFlagGroup(getInteger(item, "flagGroup"));
+            e.setFlagGroup(getIntegerOrDefault(item, "flagGroup", 0));
             e.setStatistics(getString(item, "statistics"));
             e.setValue(getInteger(item, "value"));
             e.setIdText(getInteger(item, "idText"));
@@ -773,6 +773,17 @@ public class StoryImportService implements StoryImportPort {
             }
         }
         return null;
+    }
+
+    // NOT NULL columns whose absence the rest of the code already reads as a default.
+    private String getStringOrDefault(Map<String, Object> data, String key, String fallback) {
+        String value = getString(data, key);
+        return value != null ? value : fallback;
+    }
+
+    private Integer getIntegerOrDefault(Map<String, Object> data, String key, Integer fallback) {
+        Integer value = getInteger(data, key);
+        return value != null ? value : fallback;
     }
 
     private Integer normalizeOptionalFk(Integer value) {

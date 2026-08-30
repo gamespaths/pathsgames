@@ -47,7 +47,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 32 | [Choice resolution](./Step32_ChoiceResolution.md) | ✅ | Select choice engine applies choices effects |
 | 33 | [Location entry events](./Step33_LocationEntryEvents.md) | ✅ | Automatic triggers bind on columns; counter-zero finally executed; `flag_visited`  |
 | 34 | [Inventory management](./Step34_InventoryAndResources.md) | ✅ | `use-item` / `drop-item` endpoints, item cards |
-| 35 | [Resource management](./Step34_InventoryAndResources.md) | ✅ | Food/magic/coin on `/info`; carried weight (`Σ item.weight × amount`); resource costs on events & movement edges (v0.35.3, [details](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353)); item actions and resource gains now appear in the match log (v0.35.4, [details](./Step28_MovementSystem.md)) |
+| 35 | [Resource management](./Step34_InventoryAndResources.md) | ✅ | Food/magic/coin on `/info`; carried weight (`Σ item.weight × amount`) |
 
 | Steps | Phase |
 | -- | -- |

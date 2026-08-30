@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { storyHasActiveMatch, storyHasBlockingMatch, storyMatchBadge } from '../utils/matchStatus'
+import { storyHasActiveMatch, storyHasBlockingMatch, storyMatchBadge, findResumableMatch } from '../utils/matchStatus'
 
 const M = (storyUuid, status) => ({ uuid: `${storyUuid}-${status}`, storyUuid, status })
 
@@ -34,5 +34,15 @@ describe('matchStatus', () => {
     expect(storyMatchBadge([M('s1', 'GAMEOVER')], 's1')).toBe(null)
     expect(storyMatchBadge([M('s2', 'RUNNING')], 's1')).toBe(null)
     expect(storyMatchBadge(null, 's1')).toBe(null)
+  })
+
+  it('findResumableMatch: the CREATED/RUNNING match of that story, else null', () => {
+    const running = M('s1', 'RUNNING')
+    const matches = [M('s1', 'ENDED'), running, M('s2', 'CREATED'), M('s3', 'PAUSED')]
+    expect(findResumableMatch(matches, 's1')).toBe(running)
+    expect(findResumableMatch(matches, 's2')).toEqual(M('s2', 'CREATED'))
+    expect(findResumableMatch(matches, 's3')).toBeNull()
+    expect(findResumableMatch(matches, 's4')).toBeNull()
+    expect(findResumableMatch(null, 's1')).toBeNull()
   })
 })

@@ -29,6 +29,14 @@ vi.mock('@/features/guest-user/GuestUserContext', () => ({
   useGuestUser: () => ({ user: mockUser, openGuestModal: mockOpenGuestModal }),
 }))
 
+// The flags come from .env*, which a build (or a developer) flips: pin them here so this
+// suite always describes the modal flow. The direct-resume one has its own suite.
+vi.mock('../constants/features', async (importOriginal) => ({
+  ...(await importOriginal()),
+  RESUME_WITHOUT_MODAL: false,
+  ADD_COMING_SOON_STORIES: false,
+}))
+
 vi.mock('../api/stories', () => ({ getStories: vi.fn() }))
 vi.mock('../api/matches', () => ({ listMatches: vi.fn() }))
 vi.mock('../features/catalog/StoryCatalog', () => ({
@@ -172,5 +180,76 @@ describe('HomePage — story click with active match check', () => {
     expect(await screen.findByText('Forest Path')).toBeInTheDocument()
     expect(screen.queryByTestId('turnstile-mock')).not.toBeInTheDocument()
     expect(getStories).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('HomePage — the catalog fetch fails', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ts.behavior = 'success'
+    document.cookie = 'pathsgames.turnstilePass=1; path=/'
+    listMatches.mockResolvedValue([])
+  })
+
+  it('shows the error and a retry instead of spinning for ever', async () => {
+    getStories.mockRejectedValue(new Error('Network Error'))
+    wrap(<HomePage />)
+    expect(await screen.findByText('home.storiesError')).toBeInTheDocument()
+    expect(screen.getByText('startMatch.retry')).toBeInTheDocument()
+    expect(screen.queryByText('home.loading')).not.toBeInTheDocument()
+  })
+
+  it('retry refetches and shows the catalog once the call succeeds', async () => {
+    getStories.mockRejectedValueOnce(new Error('Network Error'))
+      .mockResolvedValueOnce([STORY_A, STORY_B])
+    wrap(<HomePage />)
+    fireEvent.click(await screen.findByText('startMatch.retry'))
+    expect(await screen.findByText('Forest Path')).toBeInTheDocument()
+    expect(screen.queryByText('home.storiesError')).not.toBeInTheDocument()
+    expect(getStories).toHaveBeenCalledTimes(2)
+  })
+
+  it('leaves the error showing when the retry fails too', async () => {
+    getStories.mockRejectedValue(new Error('Network Error'))
+    wrap(<HomePage />)
+    fireEvent.click(await screen.findByText('startMatch.retry'))
+    await waitFor(() => expect(getStories).toHaveBeenCalledTimes(2))
+    expect(await screen.findByText('home.storiesError')).toBeInTheDocument()
+  })
+
+  it('shows the catalog, not the error, when the fetch succeeds', async () => {
+    getStories.mockResolvedValue([STORY_A])
+    wrap(<HomePage />)
+    expect(await screen.findByText('Forest Path')).toBeInTheDocument()
+    expect(screen.queryByText('home.storiesError')).not.toBeInTheDocument()
+  })
+})
+
+describe('HomePage — unmounted before the catalog fetch settles', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ts.behavior = 'success'
+    document.cookie = 'pathsgames.turnstilePass=1; path=/'
+    listMatches.mockResolvedValue([])
+  })
+
+  it('ignores a rejection that lands after unmount', async () => {
+    let reject
+    getStories.mockReturnValue(new Promise((_, r) => { reject = r }))
+    const { unmount } = wrap(<HomePage />)
+    unmount()
+    reject(new Error('Network Error'))
+    await waitFor(() => expect(getStories).toHaveBeenCalled())
+    expect(screen.queryByText('home.storiesError')).not.toBeInTheDocument()
+  })
+
+  it('ignores a resolution that lands after unmount', async () => {
+    let resolve
+    getStories.mockReturnValue(new Promise(r => { resolve = r }))
+    const { unmount } = wrap(<HomePage />)
+    unmount()
+    resolve([STORY_A])
+    await waitFor(() => expect(getStories).toHaveBeenCalled())
+    expect(screen.queryByText('Forest Path')).not.toBeInTheDocument()
   })
 })

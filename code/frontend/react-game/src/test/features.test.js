@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   parseFlag, hideWhereClass,
   SHOW_BOOK_BOOKMARKS, SHOW_CARD_CHARACTERISTICS, SHOW_MOBILE_CARD_CHARACTERISTICS,
+  RESUME_WITHOUT_MODAL, ADD_COMING_SOON_STORIES,
 } from '../constants/features'
 
 describe('constants/features', () => {
@@ -27,6 +28,12 @@ describe('constants/features', () => {
     expect(SHOW_CARD_CHARACTERISTICS).toBe(false)
     // The mobile stack has no bookmarks at all: without the card the news would be lost.
     expect(SHOW_MOBILE_CARD_CHARACTERISTICS).toBe(true)
+  })
+
+  it('exposes the home flags as booleans read from the build env', () => {
+    // Their value belongs to .env*, so only the parsing is asserted here.
+    expect(typeof RESUME_WITHOUT_MODAL).toBe('boolean')
+    expect(typeof ADD_COMING_SOON_STORIES).toBe('boolean')
   })
 })
 
