@@ -263,6 +263,15 @@ Files changed (react-admin only):
 | `src/tests/components/EntityTable.test.jsx` | +4 tests |
 | `src/tests/pages/StoryEditorPage.test.jsx` | +6 tests (418 total pass) |
 
+#### Text length cap (v0.35.8)
+
+`list_texts.short_text` was widened to `VARCHAR(2000)` (see [Step09](./Step09_DesignCoreDataModel.md) and [Step14](./Step14_StoriesImportSystem.md)), and the admin editors now cap input at the same 2000 characters everywhere a short text is authored, so a value the form accepts always fits the column:
+
+- New `src/constants/story/textLimits.js` — `TEXT_MAX_LENGTH = 2000` and `textLengthLabel`.
+- New `src/components/common/story/TextLengthHint.jsx` — a live character counter that turns gold at 90% of the limit.
+- Applied to `EntityForm.jsx` (honours a per-field `field.maxLength`), the `texts` entity fields in `storiesEntities.jsx`, the four textareas of `FastTextCreatorModal`, and the one-line generator of `FastTextSelectorModal`.
+- Same version, the export test now also pins that falsy item flags (`isConsumabile: 0/false`, `flagShowEffects: 0/false`) are written to the exported JSON rather than dropped.
+
 ### 7.2 Game Client (`react-game`)
 - **Story Catalog**: A public interface that lists available stories with medieval-themed styling (Cinzel/Crimson Text fonts).
 - **Architecture**: Initialized with Vite, Tailwind CSS, and a public `storyApi.js` for story consumption.
@@ -389,7 +398,7 @@ Files changed (react-admin only):
 
 cd /mnt/Dati4/Workspace/pathsgames/code/tests/robot && source /mnt/Dati4/Workspace/pathsgames/.venv/bin/activate && pip install -q -r requirements.txt && python -m robot --variablefile variables/dev.yaml tests/14_admin/story_import.robot
 
-- **Document Version**: 0.26.1
+- **Document Version**: 0.35.8
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.17.0 | Admin CRUD APIs | April 25, 2026 |
@@ -401,8 +410,9 @@ cd /mnt/Dati4/Workspace/pathsgames/code/tests/robot && source /mnt/Dati4/Workspa
     | 0.26.1 | AWS bugfix: duplicate sub-entity ID after mid-list delete in `create_entity` | June 23, 2026 |
     | 0.28.2 | Loc Neighbors "Card Back" column in `EntityTable.jsx`; `handleDuplicateCardBack` in `StoryEditorPage.jsx`; `idCardBack` plain column removed from `storiesEntities.jsx` for neighbors; +10 vitest tests (418 total pass) | June 26, 2026 |
     | 0.28.2 | **Bugfix** Stories export: `handleExport` in `StoriesPage.jsx` used camelCase apiTypes `'weatherRules'` and `'globalRandomEvents'`; admin API requires kebab-case, so those collections exported empty and were lost on reimport. Corrected to `'weather-rules'` / `'global-random-events'`; jsonKey values unchanged. Regression test added; 419 vitest tests pass. | June 26, 2026 |
+    | 0.35.8 | Story texts capped at 2000 chars everywhere, matching the widened `short_text` column. New `textLimits.js`/`TextLengthHint.jsx`, applied to `EntityForm`, the texts entity fields, and both fast-text modals. | August 30, 2026 |
 
-- **Last Updated**: June 26, 2026
+- **Last Updated**: August 30, 2026
 - **Status**: In progress
 
 

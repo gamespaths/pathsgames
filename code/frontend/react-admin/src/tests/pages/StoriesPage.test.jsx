@@ -213,6 +213,50 @@ describe('StoriesPage', () => {
     clickSpy.mockRestore()
   })
 
+  it('exports the falsy item flags instead of dropping them', async () => {
+    // v0.35.8 — isConsumabile / flagShowEffects are 0 for an item that is NOT consumable
+    // and hides its promise. Dropping a falsy value here would make the re-import fall
+    // back to the schema default (1) and quietly flip both.
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    let capturedBlob = null
+    global.URL.createObjectURL = vi.fn((blob) => { capturedBlob = blob; return mockObjectURL })
+
+    listEntities.mockImplementation((_uuid, apiType) =>
+      apiType === 'items'
+        ? Promise.resolve([
+            // Java and Python answer with the INTEGER column…
+            {
+              id: 1, uuid: 'it-1', isConsumabile: 0, flagShowEffects: 0, weight: 0,
+              maxPerCharacter: null, idStory: 9, tsInsert: 'x', tsUpdate: 'y',
+            },
+            // …while a story authored (or stored on DynamoDB) as JSON carries the BOOLEAN.
+            { id: 2, uuid: 'it-2', isConsumabile: false, flagShowEffects: false },
+          ])
+        : Promise.resolve([])
+    )
+
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getAllByTitle('Export JSON')[0])
+    await waitFor(() => expect(capturedBlob).not.toBeNull())
+
+    const [item, boolItem] = JSON.parse(await capturedBlob.text()).items
+    expect(item.isConsumabile).toBe(0)
+    expect(item.flagShowEffects).toBe(0)
+    expect(item.weight).toBe(0)
+    // a literal false is written as false — never omitted, never turned into null
+    expect(boolItem).toHaveProperty('isConsumabile', false)
+    expect(boolItem).toHaveProperty('flagShowEffects', false)
+    expect(await capturedBlob.text()).toContain('"isConsumabile": false')
+    // a null stays a null — the import reads it as "not authored", not as 0
+    expect(item.maxPerCharacter).toBeNull()
+    // only the bookkeeping columns are stripped
+    expect(item).not.toHaveProperty('tsInsert')
+    expect(item).not.toHaveProperty('idStory')
+
+    clickSpy.mockRestore()
+  })
+
   it('exports JSON with alphabetically sorted keys, including nested nodes', async () => {
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     let capturedBlob = null

@@ -191,7 +191,9 @@ def _party_ports():
         "id": 8, "uuid": "item-uuid", "weight": 2, "id_card": 77,
         "id_text_name": 99, "is_consumabile": 1,
         "id_class_permitted": None, "id_class_prohibited": None}]
-    story.find_card_by_story_id_and_card_id.return_value = {"uuid": "card-77"}
+    # v0.35.8 — the port hands back the RAW row; the service maps it to the API contract.
+    story.find_card_by_story_id_and_card_id.return_value = {
+        "uuid": "card-77", "url_image": "http://img", "id_text_title": 9}
     story.find_text_by_story_id_text_and_lang.return_value = {"short_text": "Corda"}
     story.find_item_effects_by_item_id.return_value = {}
 
@@ -240,10 +242,12 @@ def test_item_cards_and_names_are_resolved_in_the_requested_language():
                                  mask_other_inventories=True)[0].items[0]
 
     assert item.id_card == 77
-    assert item.card == {"uuid": "card-77"}
+    assert item.card["uuid"] == "card-77"
+    assert item.card["urlImage"] == "http://img"
     assert item.name == "Corda"
     assert item.is_consumabile is True
-    story.find_text_by_story_id_text_and_lang.assert_called_once_with(5, 99, "it")
+    # the card title is resolved too now, so the item name is one of two lookups
+    story.find_text_by_story_id_text_and_lang.assert_any_call(5, 99, "it")
 
 
 def test_the_info_items_promise_the_effects_of_using_them():

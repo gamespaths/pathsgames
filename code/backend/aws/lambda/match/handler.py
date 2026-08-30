@@ -572,7 +572,7 @@ def _item_rows(char, story, raw_cards=None, raw_texts=None, lang="en"):
             "state": row.get("state") or "ACTIVE",
             "idCard": item.get("idCard") if item else None,
             "card": None,
-            "isConsumabile": (_nz(item.get("isConsumabile")) == 1) if item else None,
+            "isConsumabile": _inventory.is_consumable(item) if item else None,
             # Step 35 — what using it promises. Always an array: an item with no effect,
             # and a row whose story item is gone, both answer [].
             "effects": [],

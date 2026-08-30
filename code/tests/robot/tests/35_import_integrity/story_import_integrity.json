@@ -1,0 +1,218 @@
+{
+  "author": "robottest_import_integrity",
+  "cards": [
+    {
+      "id": 1,
+      "idCreator": 1,
+      "idTextCopyright": 1,
+      "idTextDescription": 2,
+      "idTextTitle": 1,
+      "linkCopyright": "https://example.invalid/credit",
+      "urlImage": "https://example.invalid/card-1.jpg"
+    },
+    {
+      "id": 2,
+      "idCreator": 1,
+      "idTextTitle": 1,
+      "urlImage": "https://example.invalid/card-2.jpg"
+    }
+  ],
+  "category": "robottest",
+  "creators": [
+    {
+      "id": 1,
+      "idText": 1,
+      "link": "paths.games",
+      "url": "paths.games"
+    }
+  ],
+  "eventEffects": [
+    {
+      "id": 1,
+      "idCard": 1,
+      "idEvent": 5,
+      "idTextName": 1,
+      "idWeather": "",
+      "statistics": "LIFE",
+      "target": "ALL",
+      "value": 1
+    }
+  ],
+  "events": [
+    {
+      "costEnery": 1,
+      "id": 5,
+      "idCard": 1,
+      "idEventNext": 6,
+      "idItemToAdd": 2,
+      "idSpecificLocation": 1,
+      "idTextDescription": 2,
+      "idTextName": 1,
+      "idWeather": 1,
+      "type": "NORMAL"
+    },
+    {
+      "costEnery": 1,
+      "id": 6,
+      "idCard": 1,
+      "idSpecificLocation": 1,
+      "idTextName": 1,
+      "type": "NORMAL"
+    },
+    {
+      "id": 10,
+      "idCard": 1,
+      "idTextName": 1,
+      "type": "AUTOMATIC"
+    },
+    {
+      "id": 11,
+      "idCard": 1,
+      "idTextName": 1,
+      "type": "AUTOMATIC"
+    },
+    {
+      "id": 12,
+      "idCard": 1,
+      "idTextName": 1,
+      "type": "AUTOMATIC"
+    },
+    {
+      "id": 13,
+      "idCard": 1,
+      "idTextName": 1,
+      "type": "AUTOMATIC"
+    },
+    {
+      "id": 14,
+      "idCard": 1,
+      "idTextName": 1,
+      "type": "AUTOMATIC"
+    }
+  ],
+  "group": "robottest",
+  "idCard": 1,
+  "idCreator": 1,
+  "idEventEndGame": 6,
+  "idLocationAllPlayerComa": 1,
+  "idLocationStart": 1,
+  "idTextDescription": 2,
+  "idTextTitle": 1,
+  "items": [
+    {
+      "id": 2,
+      "idCard": 1,
+      "idTextDescription": 2,
+      "idTextName": 1
+    },
+    {
+      "flagShowEffects": false,
+      "id": 3,
+      "idCard": 1,
+      "idTextName": 1,
+      "isConsumabile": false,
+      "weight": 2
+    }
+  ],
+  "locationNeighbors": [
+    {
+      "conditionRegistryKey": "door",
+      "conditionRegistryValue": "open",
+      "costCoin": 4,
+      "costFood": 2,
+      "costMagic": 3,
+      "direction": "NORTH",
+      "energyCost": "",
+      "flagBack": 1,
+      "id": 1,
+      "idCard": 1,
+      "idCardBack": 2,
+      "idLocationFrom": 1,
+      "idLocationTo": 2,
+      "idTextBack": 5,
+      "idTextGo": 4,
+      "idTextName": 1
+    }
+  ],
+  "locations": [
+    {
+      "costEnergyEnter": 0,
+      "counterTime": 3,
+      "id": 1,
+      "idCard": 1,
+      "idEventIfCharacterStartTime": 11,
+      "idEventIfCounterZero": 10,
+      "idEventIfFirstTime": 13,
+      "idEventNotFirstTime": 12,
+      "idTextDescription": 2,
+      "idTextName": 1,
+      "isSafe": 1,
+      "maxCharacters": 10
+    },
+    {
+      "costEnergyEnter": 1,
+      "id": 2,
+      "idCard": 1,
+      "idEventIfCharacterEnterFirstTime": 14,
+      "idTextName": 1
+    }
+  ],
+  "texts": [
+    {
+      "id": 1,
+      "idCreator": 1,
+      "idText": 1,
+      "lang": "en",
+      "longText": "Import Integrity",
+      "shortText": "Import Integrity"
+    },
+    {
+      "id": 2,
+      "idCreator": 1,
+      "idText": 2,
+      "lang": "en",
+      "longText": "This description is deliberately longer than five hundred characters, because list_texts.short_text used to be VARCHAR(500) on PostgreSQL and an import carrying a longer text died with 'value too long for type character varying(500)' \u2014 rolling the whole story back. SQLite declares the same column as TEXT, so the failure only ever appeared on a PostgreSQL deployment and never in a local run. V0.35.8 widened the column to 2000 characters and the admin editors cap every text field at the same number, so a text the form accepts always fits the column. This paragraph exists to be exactly that kind of text.",
+      "shortText": "This description is deliberately longer than five hundred characters, because list_texts.short_text used to be VARCHAR(500) on PostgreSQL and an import carrying a longer text died with 'value too long for type character varying(500)' \u2014 rolling the whole story back. SQLite declares the same column as TEXT, so the failure only ever appeared on a PostgreSQL deployment and never in a local run. V0.35.8 widened the column to 2000 characters and the admin editors cap every text field at the same number, so a text the form accepts always fits the column. This paragraph exists to be exactly that kind of text."
+    },
+    {
+      "id": 3,
+      "idCreator": 1,
+      "idText": 3,
+      "lang": "en",
+      "longText": "Clear sky",
+      "shortText": "Clear sky"
+    },
+    {
+      "id": 4,
+      "idCreator": 1,
+      "idText": 4,
+      "lang": "en",
+      "longText": "Go north",
+      "shortText": "Go north"
+    },
+    {
+      "id": 5,
+      "idCreator": 1,
+      "idText": 5,
+      "lang": "en",
+      "longText": "Come back",
+      "shortText": "Come back"
+    }
+  ],
+  "uuid": "f0350008-0000-4000-8000-000000000358",
+  "visibility": "PRIVATE",
+  "weatherRules": [
+    {
+      "active": 1,
+      "costMoveNotSafeLocation": 2,
+      "costMoveSafeLocation": 1,
+      "id": 1,
+      "idCard": 1,
+      "idEvent": 6,
+      "idText": 3,
+      "probability": 100,
+      "timeFrom": 6,
+      "timeTo": 20
+    }
+  ]
+}

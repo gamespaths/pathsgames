@@ -245,16 +245,20 @@ def test_storyless_match_resolves_no_story_item(service, store):
 def test_list_resolves_the_item_card_and_name(service, store, story_read):
     store.find_inventory.return_value = [_row(1, "row-1", 900)]
     store.find_items_by_id.return_value = {900: _item(id_card=77)}
-    story_read.find_card_by_story_id_and_card_id.return_value = {"uuid": "card-77"}
+    # v0.35.8 — the port hands back the RAW row; the service maps it to the API contract.
+    story_read.find_card_by_story_id_and_card_id.return_value = {
+        "uuid": "card-77", "url_image": "http://img", "id_text_title": 9}
     story_read.find_text_by_story_id_text_and_lang.return_value = {"short_text": "Pozione"}
 
     item = service.list_inventory(MATCH_UUID, USER_UUID, "it")["items"][0]
 
     assert item.id_card == 77
-    assert item.card == {"uuid": "card-77"}
+    assert item.card["uuid"] == "card-77"
+    assert item.card["urlImage"] == "http://img"
     assert item.name == "Pozione"
     assert item.is_consumabile is True
-    story_read.find_text_by_story_id_text_and_lang.assert_called_once_with(STORY_ID, 400, "it")
+    # the card title is resolved too now, so the item name is one of two lookups
+    story_read.find_text_by_story_id_text_and_lang.assert_any_call(STORY_ID, 400, "it")
 
 
 def test_items_sharing_a_card_cost_one_lookup(service, store, story_read):
@@ -374,11 +378,14 @@ def test_use_an_item_with_no_effect_row_still_consumes_it(service, store, engine
 def test_use_narrates_with_the_items_own_card(service, store, story_read, engine):
     store.find_inventory.return_value = [_row(1, "row-1", 900)]
     store.find_items_by_id.return_value = {900: _item(id_card=77)}
-    story_read.find_card_by_story_id_and_card_id.return_value = {"uuid": "card-77"}
+    # v0.35.8 — the port hands back the RAW row; the service maps it to the API contract.
+    story_read.find_card_by_story_id_and_card_id.return_value = {
+        "uuid": "card-77", "url_image": "http://img", "id_text_title": 9}
 
     service.use_item(MATCH_UUID, USER_UUID, "row-1", "it")
 
-    assert engine.apply_standalone_effects.call_args[0][3] == {"uuid": "card-77"}
+    assert engine.apply_standalone_effects.call_args[0][3]["uuid"] == "card-77"
+    assert engine.apply_standalone_effects.call_args[0][3]["urlImage"] == "http://img"
 
 
 def test_a_sadness_item_trips_the_same_edge_state_an_event_would(service, store, engine):

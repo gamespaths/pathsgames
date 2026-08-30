@@ -53,7 +53,7 @@ integration mistake in this step.
 | 404 | `ITEM_NOT_FOUND` | unknown row uuid — **or** a row belonging to another character |
 | 400 | `MISSING_ITEM` | the body carries no `itemInstanceUuid` |
 | 409 | `MATCH_NOT_RUNNING` / `COMA` / `SLEEPING` | the usual action gates |
-| 409 | `ITEM_NOT_CONSUMABLE` | `is_consumabile != 1` — use-item only |
+| 409 | `ITEM_NOT_CONSUMABLE` | `is_consumabile` is an **explicit** non-1 value — use-item only. A missing/never-authored value reads as consumable (schema `DEFAULT 1`); see the v0.35.8 note under "Rules of use". |
 | 409 | `ITEM_CLASS_NOT_PERMITTED` / `ITEM_CLASS_PROHIBITED` | class gate — use-item only |
 | 409 | `ITEM_NOT_ENOUGH` | fewer units carried than `list_items.amount_use` spends — use-item only (v0.35.1, [Step35 §8](./Step35_ItemsResolution.md#8-quantities-and-the-per-character-cap-v0351)) |
 
@@ -83,6 +83,17 @@ Step-30 sadness overflow or coma, and the response has to be able to say so. On 
 - **Only consumables can be used.** `list_items.is_consumabile = 1`. A non-consumable item is
   carried — it adds weight and can satisfy an item condition on an event or a choice — but
   `use-item` refuses it with `ITEM_NOT_CONSUMABLE`.
+  **v0.35.8 (AWS bugfix)**: the gate now refuses only an item whose `isConsumabile` is an
+  *explicit* non-1 value; a missing key means consumable, matching the shared schema
+  (`INTEGER NOT NULL DEFAULT 1`) and Java's `@PrePersist`. Before this fix AWS read an
+  absent key as a refusal, so the same story's item behaved as usable on Java/Python and
+  not on AWS. New `is_consumable(item)` in `lambda/match/inventory.py`, used by both the
+  use-item gate and the `isConsumabile` field on the inventory response. **This is a
+  behaviour change on AWS**: an item of a story that never authored the flag is now usable
+  where it previously was not. Same version, Python's importer stopped forcing `weight` to
+  `0` and `is_consumabile` to a non-default value — both now fall through to the schema
+  default (`weight` 1, `is_consumabile` 1) exactly like Java, see
+  [Step14](./Step14_StoriesImportSystem.md#python-import-robustness-v0358).
 - **Class restrictions are honoured**: `id_class_permitted` and `id_class_prohibited` are
   checked against the character's class, exactly as they already are for traits and character
   templates. `0` or `null` means "no restriction".
@@ -185,6 +196,15 @@ New Java entity/repository: `LogItemUsageEntity`, `LogItemUsageEntityId`,
 - `players[].items[]` now carries `idCard` **and** the resolved `card` object, plus
   `isConsumabile`, and the item name is resolved in the **requested** language (it was
   hardcoded to `"en"` before this step).
+- **Python bugfix (v0.35.8)**: this `card`, the item's own card on a `use-item` response,
+  and the card on an event-execution or character-info response could come back empty.
+  `inventory_service.py`, `character_query_service.py` and `event_service.py` each built
+  their own card dict from the raw `list_cards` row — snake_case, with `id_text_*`
+  references left unresolved — so a client reading `card.title`/`card.description`/
+  `card.urlImage` found nothing to render. New shared
+  `app/core/services/match/card_mapper.py` (`card_response`, `resolve_card`,
+  `resolve_card_text`) is now the one place a story card becomes the API answer; all three
+  services were switched to it.
 - The `items` key stays on **every** player, but is populated **only** for the calling user's
   character — an empty array for the others. No leak of another player's inventory, DTO shape
   unchanged. `weight` is deliberately **not** masked: a scalar total says a rival is heavy, the
@@ -347,14 +367,15 @@ in §8.
 
 # Version Control
 
-- **Document Version**: 0.35.6
+- **Document Version**: 0.35.8
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.34.0 | Inventory and resources, implemented: four endpoints under `/api/gameplay/` (`inventory`, `use-item`, `drop-item`, `resources`), with `use-item` answering the execute-event payload through one shared door on the effect engine — no second engine, so an item trips the same Step 30 edge states an event does (§1-§3). `V0.34.0__add_item_effect_traits.sql` adds the trait CSVs to `list_items_effects`, `/info` masks every inventory but the caller's, and Step 35 switches on the `OVERWEIGHT` refusal the movement gate had always implemented against a hardcoded zero (§4-§7). | August 20, 2026 |
   | 0.35.6 | react-game: `use_item.robot` gains coma-lock regression cases (§9), covering the `ItemCard` change documented in [Step35 §8f](./Step35_ItemsResolution.md). | August 28, 2026 |
+  | 0.35.8 | AWS bugfix: `is_consumable` refuses only an explicit non-1 value, missing key now reads as consumable. Python bugfix: `inventory_service`/`character_query_service`/`event_service` now share `card_mapper.py` instead of shipping the raw unresolved card row. | August 30, 2026 |
 
-- **Last Updated**: August 28, 2026
+- **Last Updated**: August 30, 2026
 - **Status**: Complete
 
 

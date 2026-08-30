@@ -324,6 +324,11 @@ it through a 409:
   `home.matchesError` with a retry, and never opens the start-match flow.
 * If a 409 still reaches `StartMatchFlow` (another tab, a stale page), it is
   rendered as `startMatch.errorActiveMatch`, not as a raw error code.
+* **`RESUME_WITHOUT_MODAL` (v0.35.8, off by default)** — when on, a click on a story
+  already carrying a resumable match skips the guest modal entirely: `HomePage` calls
+  the new `findResumableMatch(matches, storyUuid)` helper (`matchStatus.js`) and, if it
+  returns a match, navigates straight to `/play/<storyUuid>` with `state: { matchUuid }`.
+  See [Step18](./Step18_GameMainFrontend.md#story-catalog-card-v0358).
 
 **Consequence for the Robot suites.** Any suite that created two matches for the
 same guest on the same story now hits the guard. The shared keyword
@@ -544,9 +549,10 @@ The same suite passes against the Python backends — see `code/scripts/dev/run_
   
   > Ciao, i've a problem; when rotob test runned , in tables there are so many rows from tests execution, for example guest users and matches. I wanna remove these elements from tables (sql/dynamo) after robot test runned, i wanna remove only robot test rows preserve others informations. 
 
-- **Document Version**: 0.32.1
+- **Document Version**: 0.35.8
     | Version | Description | Date |
     | --- | --- | --- |
+
     | 0.19.0 | Single player match creation | May 08, 2026 |
     | 0.19.1 | Single player match creation | May 08, 2026 |
     | 0.19.2 | Bug fix: story defailt for website, story export in admin project, sonar coverage | May 08, 2026 |
@@ -563,8 +569,9 @@ The same suite passes against the Python backends — see `code/scripts/dev/run_
     | 0.19.13 | `?lang` param on GET /api/match/{uuid}/info (all 3 backends); react-game forwards lang to /api/stories and match info | Jun 23, 2026 |
     | 0.28.1 | GET /api/admin/matches pagination & filtering | Jun 26, 2026 |
     | 0.32.1 | One active match per user and story | Aug 10, 2026 |
+    | 0.35.8 | New opt-in `RESUME_WITHOUT_MODAL` flag (§6.1): "Resume" jumps straight into the match, skipping the guest modal, via the new `findResumableMatch` helper. | August 30, 2026 |
 
-- **Last Updated**: Aug 10, 2026
+- **Last Updated**: Aug 30, 2026
 - **Status**: Complete
 
 

@@ -394,8 +394,37 @@ The `StoryImportService` processes a structured JSON map:
 2. Check if story exists by UUID → if yes, **cascade-delete** all data
 3. Save `StoryEntity` to get the generated primary key
 4. Import texts and update story text ID references
-5. Import all 14 sub-entity types in order
-6. Return `StoryImportResult` with counts
+5. Import all 14 sub-entity types in order — **weather rules before events** (**v0.35.8**:
+   `list_events.id_weather` points at a weather rule, so an event gated by weather was
+   rejected while the rules did not exist yet)
+6. Second pass: `linkDeferredReferences` (**v0.35.8**, see below)
+7. Return `StoryImportResult` with counts
+
+### Deferred References — Second Import Pass (v0.35.8)
+
+Some reference fields point at a row imported **later** in the sequence, or back into a
+**cycle** (an event chaining to another event; a weather rule running an event that is
+itself gated by that same rule). Rather than reordering the whole import or deferring a
+database constraint, these fields are left `NULL` on first insert and written in one
+extra pass — `linkDeferredReferences` (Java) / `link_deferred_references` (Python) — once
+locations, events and weather rules all exist. The pass uses **merge**, not insert
+(`saveEvent`/`saveLocation`/`saveWeatherRule` in Java; an `UPDATE ... WHERE uuid=` in
+Python), since the bulk import already inserted the row.
+
+| Field | Table | Note |
+|---|---|---|
+| `id_event_next` | `list_events` | self-reference / chain |
+| `id_item_to_add` | `list_events` | items are imported after events |
+| `id_event_if_counter_zero`, `id_event_if_character_start_time`, `id_event_if_character_enter_empty_location`, `id_event_if_first_time`, `id_event_not_first_time` | `list_locations` | the five location-trigger columns of [Step33](./Step33_LocationEntryEvents.md) — **previously never written at all**, so an imported story silently lost its automatic events |
+| `id_event` | `list_weather_rules` | a rule that runs an event on match |
+
+`id_event_if_character_enter_empty_location` also accepts the pre-V0.33.2 JSON key
+`idEventIfCharacterEnterFirstTime` as a fallback, so a story exported before that rename
+still imports correctly.
+
+Same version, weather rules also gained `idText`/`timeFrom`/`timeTo` on the **first**
+pass (Java `importWeatherRules`) — the rule's own label and the hours it applies to were
+silently dropped by every import before v0.35.8.
 
 ### FK Constraints vs. Soft References in Import Payloads
 
@@ -410,6 +439,48 @@ This distinction affects Robot test design: a test that imports a bare `characte
 
 ### Cascading Delete
 When a story is deleted, all 22 sub-tables are cleared in reverse foreign-key dependency order before the story row itself is removed. This prevents constraint violations.
+
+**Python parity (v0.35.8).** `delete_story_by_id` now matches the Java order exactly: it
+deletes the **matches played on the story first** (14 `gaming_*`/`log_*` child tables by
+`id_match`, then `gaming_match` itself — a database created before this version has no
+`ON DELETE CASCADE`, so these were left orphaned), then nulls out the story's own FK
+columns (`id_event_end_game`, `id_location_start`, `id_card`, `id_creator`, ...) before
+deleting the rows they point at, and deletes `list_creator` **last** since both texts and
+cards reference it. Deleting a story therefore discards the matches played on it, same as
+Java. `app/adapters/persistence/match/models.py` also gained `ondelete="CASCADE"` on all
+14 `id_match` foreign keys, matching what the Java Flyway migrations already declare
+(`gaming_match.id_story` deliberately keeps no cascade).
+
+### Python Import Robustness (v0.35.8)
+
+- **`_make(entity_class, **kwargs)`** — every child-entity construction (event effects,
+  item effects, class bonuses, choice conditions/effects, mission steps, location
+  neighbors, texts) now runs its kwargs through the same type coercion the top-level rows
+  already used. An authored `""` in a numeric field used to reach PostgreSQL as-is and
+  kill the whole import (`invalid input syntax for type integer`). `update_entity` and
+  `update_story_by_id` (the admin PUT path) go through the same coercion, since the admin
+  form submits JSON booleans for flag columns and `""` for empty numbers — both previously
+  fatal to an integer column.
+- **Top-level `locationNeighbors` import** — the canonical shared JSON contract puts edges
+  in a top-level `locationNeighbors` array; only the nested `location.neighbors` form was
+  ever read. A story imported this way kept its locations but **lost every edge between
+  them**. New `save_location_neighbors` (port + adapter) reads the top-level array,
+  covering all 16 fields (both cards, the three resource costs, the canonical
+  `conditionRegistryKey/Value` with the short `conditionKey/Value` spellings as fallback).
+  The model was realigned onto the Java schema: `condition_registry_key`/`_value` (the
+  Python-only `condition_key`/`_value` names do not exist in the shared schema) plus the
+  previously-missing `id_text_go`/`id_text_back`.
+- **`align_schema()`** (`app/adapters/persistence/database.py`, called from `init_db()`
+  after `create_all`) — Python has no Flyway, and SQLAlchemy's `create_all` never alters
+  an existing table, so a model whose columns changed left a live database behind.
+  `align_schema` replays the known drifts idempotently on startup: currently the two
+  `list_locations_neighbors` column renames (`condition_key`→`condition_registry_key`,
+  `condition_value`→`condition_registry_value`) and the two added columns
+  (`id_text_go`, `id_text_back`).
+- **Item defaults aligned to Java**: `weight` now defaults to `1` (the import used to
+  force it to `0` regardless of the authored value); `is_consumabile` is left to the
+  schema default of `1` rather than being forced. An item that declares neither now
+  behaves the same on every backend — see also [Step34, Rules of use](./Step34_InventoryAndResources.md#rules-of-use).
 
 ### Default Values for Difficulty Fields
 When difficulty integer fields are null in the database, the following defaults are applied:
@@ -474,7 +545,7 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.14.0-story-a
     > create a AWS backend version "code/backend/aws" with cloudformation, aws api gateway, lambda function, dynamo and cloudwatch. I wanna all api with openpi "code/backend/java/adapter-rest/src/main/resources/openapi" and jwt rules. Let's go!
 
 
-- **Document Version**: 0.26.1
+- **Document Version**: 0.35.8
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.14.0 | Create a website new prototype with React and Vite | April 8, 2026 |
@@ -485,7 +556,9 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.14.0-story-a
     | 0.19.3 | Document hard FK vs. soft reference distinction in import payloads (`fk_char_templates_card`) | May 14, 2026 |
     | 0.19.3 | Add style fields columns into card tables and use into frontend | May 14, 2026 |
     | 0.26.1 | AWS i18n bugfix: `_resolve_text` per-field English fallback; new `_resolve_story_text` reads title/description from `raw_texts` first (like cards); 4 new AWS unit tests; Robot regression test `Story List Lang IT Never Blanks A Title That English Has` added to suite `26_time_recovery/match_info_lang.robot` | June 23, 2026 |
-- **Last Updated**: June 23, 2026
+    | 0.35.8 | Java: weather rules import before events; new `linkDeferredReferences` second pass (location triggers, `id_event_next`, `id_item_to_add`, weather `id_event`). Python: same second pass, top-level `locationNeighbors` import, `_make` type coercion, `delete_story_by_id` matches-first cascade, new `align_schema()` startup drift-repair. | August 30, 2026 |
+    
+- **Last Updated**: August 30, 2026
 - **Status**: ✅ Complete
 
 

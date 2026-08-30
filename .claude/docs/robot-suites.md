@@ -31,6 +31,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `32_choice_resolution` | Step 32 choice resolution (see breakdown below) |
 | `33_location_events` | Step 33 automatic location events (see breakdown below) |
 | `34_inventory` | Steps 34/35 inventory, resources, use/drop, effects preview, quantities, v0.35.4 item logs (see breakdown below) |
+| `35_import_integrity` | v0.35.8 import/schema/admin-CRUD regressions — ships its own story, no seed (see breakdown below) |
 
 ### `19_match` breakdown
 
@@ -193,6 +194,33 @@ the event whose effect handed the item over, an `ITEM_USE` with the units spent 
 eight resource fields — `{energy,food,magic,coin}Cost` and `…Gain` — present, non-negative
 and never both moving at once on one usage. The item entries are asserted to sort in among
 the others rather than trail them.
+
+### `35_import_integrity` breakdown
+
+`import_integrity.robot` (14 tests) — the v0.35.8 round of import, schema and admin-CRUD
+fixes. Every case failed against a real PostgreSQL deployment while passing on a local
+SQLite one, or imported "successfully" and silently dropped what it was given.
+
+The suite is the only one that **ships its own story**: `story_import_integrity.json`, next
+to the .robot file, imported in Suite Setup and deleted by the last test. Nothing is added
+to the four seeds — the fixture is authored to carry, all at once, every reference and value
+that used to break: a 608-character `shortText` (the column was VARCHAR(500) on PostgreSQL),
+an event chained to an event further down the list, an event handing over an item imported
+after it, an event gated on a weather rule (which must go in first) and a rule pointing back
+at an event (the cycle), a location naming four trigger events plus one using the
+pre-V0.33.2 `idEventIfCharacterEnterFirstTime` spelling, an `""` in a numeric field, the
+canonical top-level `locationNeighbors[]` with its three edge costs and both direction
+labels, and two items — one declaring no flags (the schema default decides) and one
+declaring them false (what is authored wins). The last two cases leave the import: a PUT
+carrying real JSON booleans (the update path set them raw, which PostgreSQL refuses), and
+the delete, which has to clear the story's own forward references and remove the creator
+last.
+
+Backend-agnostic by construction: a SQL backend answers with the column (0/1, the default
+where nothing was authored) while AWS answers with the attribute as authored and omits what
+was never set, so the flag cases assert the MEANING (`Should Read As Set` / `As Clear`) and
+the renamed-column case accepts either spelling. Entities are addressed by their story-local
+`id` through the `Entity With Id` keyword, never by uuid — the uuids are generated per import.
 
 ## Seed data and reports per backend
 

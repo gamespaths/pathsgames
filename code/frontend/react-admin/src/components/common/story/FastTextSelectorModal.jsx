@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import FastTextCreatorModal from './FastTextCreatorModal'
+import TextLengthHint from './TextLengthHint'
+import { TEXT_MAX_LENGTH } from '../../../constants/story/textLimits'
 
 function groupTextsById(texts) {
   const grouped = new Map()
@@ -158,6 +160,7 @@ export default function FastTextSelectorModal({
                 ref={generatorInputRef}
                 className="pg-input"
                 placeholder="Insert text value"
+                maxLength={TEXT_MAX_LENGTH}
                 value={generatedText}
                 onChange={e => setGeneratedText(e.target.value)}
                 onKeyDown={e => {
@@ -167,6 +170,7 @@ export default function FastTextSelectorModal({
                   handleSaveGeneratedText()
                 }}
               />
+              <TextLengthHint value={generatedText} />
               {generatorError && (
                 <div className="pg-alert pg-alert-danger mt-3">
                   <i className="fas fa-exclamation-triangle" /> {generatorError}

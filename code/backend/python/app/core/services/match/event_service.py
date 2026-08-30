@@ -36,6 +36,7 @@ from app.core.ports.match.event_ports import (
     MSG_CHOICE_SELECTED, MSG_EVENT_EXECUTED, EventPort, EventStorePort,
 )
 from app.core.services.match import choice_availability, edge_state_evaluator, event_availability
+from app.core.services.match.card_mapper import resolve_card
 
 ADD = "ADD"
 REMOVE = "REMOVE"
@@ -1222,11 +1223,13 @@ class EventService(EventPort):
                                   x.entry_depth + 1, out)
 
     def _resolve_card_for(self, id_story: int, id_card, lang: str):
-        # The Python card reader takes no lang yet (unlike the Java one) — same as
-        # _Exec.resolve_card and GET /locations on this backend.
         if id_card is None or self.content_read_port is None:
             return None
-        return self.content_read_port.find_card_by_story_id_and_card_id(id_story, id_card)
+        # v0.35.8 — mapped onto the API contract (camelCase, id_text_* resolved): the raw
+        # row went out as-is, so a client reading card.title / .description / .urlImage
+        # rendered an empty card.
+        return resolve_card(self.content_read_port, id_story, id_card, lang)
+
 
     # ── persistence & result ────────────────────────────────────────────────
 
@@ -1598,17 +1601,13 @@ class _Exec:
         return self.living[key]
 
     def resolve_card(self, id_card: Optional[int]) -> Optional[Dict[str, Any]]:
-        """Memoized: an effect's card is reachable from several rows of the same chain.
-
-        The Python card reader takes no lang yet (unlike the Java one), so `lang` is carried
-        on the request but not honoured here — same as GET /locations on this backend.
-        """
+        """Memoized: an effect's card is reachable from several rows of the same chain."""
         port = self._service.content_read_port
         if port is None or not id_card:
             return None
         if id_card not in self._card_cache:
-            self._card_cache[id_card] = port.find_card_by_story_id_and_card_id(
-                self.match["id_story"], id_card)
+            self._card_cache[id_card] = self._service._resolve_card_for(
+                self.match["id_story"], id_card, self.lang)
         return self._card_cache[id_card]
 
 

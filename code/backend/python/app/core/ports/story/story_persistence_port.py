@@ -32,6 +32,10 @@ class StoryPersistencePort(ABC):
         pass
 
     @abstractmethod
+    def save_location_neighbors(self, story_id: int, neighbors: List[Dict[str, Any]]) -> None:
+        pass
+
+    @abstractmethod
     def save_event_effects(self, story_id: int, effects: List[Dict[str, Any]]) -> None:
         """v0.29.0 — the top-level `eventEffects` array of the shared JSON contract.
 
@@ -100,6 +104,12 @@ class StoryPersistencePort(ABC):
         
     @abstractmethod
     def save_creators(self, story_id: int, creators: List[Dict[str, Any]]) -> None:
+        pass
+
+    @abstractmethod
+    def link_deferred_references(self, story_id: int, data: Dict[str, Any]) -> None:
+        """Write the references that could not go in on the first insert because they
+        point at a row imported later, or back into a cycle. Rows are addressed by uuid."""
         pass
 
     # Step 17: Generic entity CRUD

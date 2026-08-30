@@ -101,14 +101,22 @@ public class StoryImportService implements StoryImportPort {
         // Import sub-entities
         int difficultiesImported = importDifficulties(storyData, storyId);
         int classesImported = importClasses(storyData, storyId);
-        int locationsImported = importLocations(storyData, storyId);
-        int eventsImported = importEvents(storyData, storyId);
+        List<LocationEntity> locations = importLocations(storyData, storyId);
+        // v0.35.8 — must run BEFORE events: list_events.id_weather points at a weather rule,
+        // so an event gated by weather is rejected when the rules are not there yet.
+        List<WeatherRuleEntity> weatherRules = importWeatherRules(storyData, storyId);
+        List<EventEntity> events = importEvents(storyData, storyId);
+        int locationsImported = locations.size();
+        int eventsImported = events.size();
         int itemsImported = importItems(storyData, storyId);
+        // v0.35.8 — everything exists now, so the references that point forward (or in a
+        // cycle) can finally be written: an event chained to a later event, an event
+        // handing out an item, a location triggering an event, a weather rule running one.
+        linkDeferredReferences(storyData, locations, events, weatherRules);
         int choicesImported = importChoices(storyData, storyId);
         importKeys(storyData, storyId);
         importTraits(storyData, storyId);
         importCharacterTemplates(storyData, storyId);
-        importWeatherRules(storyData, storyId);
         importGlobalRandomEvents(storyData, storyId);
         importMissions(storyData, storyId);
         importLocationNeighbors(storyData, storyId);
@@ -276,9 +284,9 @@ public class StoryImportService implements StoryImportPort {
         return persistencePort.saveClasses(entities).size();
     }
 
-    private int importLocations(Map<String, Object> data, Long storyId) {
+    private List<LocationEntity> importLocations(Map<String, Object> data, Long storyId) {
         List<Map<String, Object>> items = getList(data, "locations");
-        if (items.isEmpty()) return 0;
+        if (items.isEmpty()) return List.of();
 
         List<LocationEntity> entities = new ArrayList<>();
         for (Map<String, Object> item : items) {
@@ -296,12 +304,15 @@ public class StoryImportService implements StoryImportPort {
             e.setMaxCharacters(getInteger(item, "maxCharacters"));
             entities.add(e);
         }
-        return persistencePort.saveLocations(entities).size();
+        // The idEventIf* columns are NOT written here: they point at events that do not
+        // exist yet. linkDeferredReferences fills them once the events are in.
+        persistencePort.saveLocations(entities);
+        return entities;
     }
 
-    private int importEvents(Map<String, Object> data, Long storyId) {
+    private List<EventEntity> importEvents(Map<String, Object> data, Long storyId) {
         List<Map<String, Object>> items = getList(data, "events");
-        if (items.isEmpty()) return 0;
+        if (items.isEmpty()) return List.of();
 
         List<EventEntity> entities = new ArrayList<>();
         for (Map<String, Object> item : items) {
@@ -326,14 +337,16 @@ public class StoryImportService implements StoryImportPort {
             // imported story had location-less events and no chains.
             e.setIdSpecificLocation(getInteger(item, "idSpecificLocation"));
             e.setIdWeather(getInteger(item, "idWeather"));
-            e.setIdEventNext(getInteger(item, "idEventNext"));
             e.setRegistryKeyCondition(getString(item, "registryKeyCondition"));
             e.setRegistryValueCondition(getString(item, "registryValueCondition"));
             e.setIdClassCondition(getInteger(item, "idClassCondition"));
             e.setIdItemCondition(getInteger(item, "idItemCondition"));
             entities.add(e);
         }
-        return persistencePort.saveEvents(entities).size();
+        // idEventNext (an event further down this very list) and idItemToAdd (an item
+        // imported later) are left to linkDeferredReferences.
+        persistencePort.saveEvents(entities);
+        return entities;
     }
 
     private int importItems(Map<String, Object> data, Long storyId) {
@@ -521,9 +534,9 @@ public class StoryImportService implements StoryImportPort {
         persistencePort.saveCharacterTemplates(entities);
     }
 
-    private void importWeatherRules(Map<String, Object> data, Long storyId) {
+    private List<WeatherRuleEntity> importWeatherRules(Map<String, Object> data, Long storyId) {
         List<Map<String, Object>> items = getList(data, "weatherRules");
-        if (items.isEmpty()) return;
+        if (items.isEmpty()) return List.of();
 
         List<WeatherRuleEntity> entities = new ArrayList<>();
         for (Map<String, Object> item : items) {
@@ -534,6 +547,10 @@ public class StoryImportService implements StoryImportPort {
             e.setIdCard(getInteger(item, "idCard"));
             e.setIdTextName(getInteger(item, "idTextName"));
             e.setIdTextDescription(getInteger(item, "idTextDescription"));
+            // The rule's own label, and the hours it applies to — dropped until v0.35.8.
+            e.setIdText(getInteger(item, "idText"));
+            e.setTimeFrom(getInteger(item, "timeFrom"));
+            e.setTimeTo(getInteger(item, "timeTo"));
             e.setProbability(getInteger(item, "probability"));
             e.setCostMoveSafeLocation(getInteger(item, "costMoveSafeLocation"));
             e.setCostMoveNotSafeLocation(getInteger(item, "costMoveNotSafeLocation"));
@@ -544,7 +561,73 @@ public class StoryImportService implements StoryImportPort {
             e.setDeltaEnergy(getInteger(item, "deltaEnergy"));
             entities.add(e);
         }
+        // idEvent is deliberately left null here: it references an event that does not
+        // exist yet. linkWeatherRuleEvents fills it once the events are in — and it gets
+        // the list built here, whose order matches the JSON, not the adapter's answer.
         persistencePort.saveWeatherRules(entities);
+        return entities;
+    }
+
+    /**
+     * Second pass for every reference that cannot be written on the first insert: it points
+     * at a row imported later, or back into a cycle (an event chains to an event, a weather
+     * rule runs an event that is gated on that same rule). Writing them here is what keeps
+     * the FKs satisfied without deferring a single constraint in the schema.
+     *
+     * <p>These go through the SINGULAR save methods: the bulk ones persist(), which on a row
+     * that already exists is a duplicate-key insert, while the singular ones merge.</p>
+     */
+    private void linkDeferredReferences(Map<String, Object> data,
+                                        List<LocationEntity> locations,
+                                        List<EventEntity> events,
+                                        List<WeatherRuleEntity> weatherRules) {
+        List<EventEntity> eventsToUpdate = new ArrayList<>();
+        List<Map<String, Object>> eventItems = getList(data, "events");
+        for (int i = 0; i < events.size() && i < eventItems.size(); i++) {
+            Map<String, Object> item = eventItems.get(i);
+            Integer idEventNext = normalizeOptionalFk(getInteger(item, "idEventNext"));
+            Integer idItemToAdd = normalizeOptionalFk(getInteger(item, "idItemToAdd"));
+            if (idEventNext == null && idItemToAdd == null) continue;
+            EventEntity e = events.get(i);
+            e.setIdEventNext(idEventNext);
+            e.setIdItemToAdd(idItemToAdd);
+            eventsToUpdate.add(e);
+        }
+        eventsToUpdate.forEach(persistencePort::saveEvent);
+
+        List<LocationEntity> locationsToUpdate = new ArrayList<>();
+        List<Map<String, Object>> locationItems = getList(data, "locations");
+        for (int i = 0; i < locations.size() && i < locationItems.size(); i++) {
+            Map<String, Object> item = locationItems.get(i);
+            Integer counterZero = normalizeOptionalFk(getInteger(item, "idEventIfCounterZero"));
+            Integer startTime = normalizeOptionalFk(getInteger(item, "idEventIfCharacterStartTime"));
+            // V0.33.2 renamed the column; a story exported before that carries the old key.
+            Integer enterEmpty = normalizeOptionalFk(getInteger(item, "idEventIfCharacterEnterEmptyLocation"));
+            if (enterEmpty == null) enterEmpty = normalizeOptionalFk(getInteger(item, "idEventIfCharacterEnterFirstTime"));
+            Integer firstTime = normalizeOptionalFk(getInteger(item, "idEventIfFirstTime"));
+            Integer notFirstTime = normalizeOptionalFk(getInteger(item, "idEventNotFirstTime"));
+            if (counterZero == null && startTime == null
+                    && enterEmpty == null && firstTime == null && notFirstTime == null) continue;
+            LocationEntity e = locations.get(i);
+            e.setIdEventIfCounterZero(counterZero);
+            e.setIdEventIfCharacterStartTime(startTime);
+            e.setIdEventIfCharacterEnterEmptyLocation(enterEmpty);
+            e.setIdEventIfFirstTime(firstTime);
+            e.setIdEventNotFirstTime(notFirstTime);
+            locationsToUpdate.add(e);
+        }
+        locationsToUpdate.forEach(persistencePort::saveLocation);
+
+        List<WeatherRuleEntity> rulesToUpdate = new ArrayList<>();
+        List<Map<String, Object>> ruleItems = getList(data, "weatherRules");
+        for (int i = 0; i < weatherRules.size() && i < ruleItems.size(); i++) {
+            Integer idEvent = normalizeOptionalFk(getInteger(ruleItems.get(i), "idEvent"));
+            if (idEvent == null) continue;
+            WeatherRuleEntity e = weatherRules.get(i);
+            e.setIdEvent(idEvent);
+            rulesToUpdate.add(e);
+        }
+        rulesToUpdate.forEach(persistencePort::saveWeatherRule);
     }
 
     private void importGlobalRandomEvents(Map<String, Object> data, Long storyId) {
@@ -764,6 +847,12 @@ public class StoryImportService implements StoryImportPort {
         Object value = data.get(key);
         if (value instanceof Number) {
             return ((Number) value).intValue();
+        }
+        // v0.35.8 — a JSON boolean is how the admin form writes a flag column
+        // (isConsumabile, flagShowEffects, isSafe, active, hideOnStartMatch...). Read as
+        // null it was dropped in silence, and the NOT NULL default then said the opposite.
+        if (value instanceof Boolean) {
+            return ((Boolean) value) ? 1 : 0;
         }
         if (value instanceof String) {
             try {

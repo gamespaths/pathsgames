@@ -2222,6 +2222,18 @@ destination entry cost + weather modifier (safe/unsafe).
 
 No database/schema change.
 
+## v0.35.8 bugfix — Python verdict judged edges as free and ungated
+
+`story_match_read_adapter.find_location_neighbors_by_story_id` — the read used by
+`MatchQueryService._build_locations_active` to build the verdict above — did not carry
+`cost_food`/`cost_magic`/`cost_coin` or `condition_registry_key`/`_value` on its rows. This
+is a **different** code path from the `/locations` mapping v0.35.3 already fixed (see the
+0.35.3 row below): every edge on `/info`'s `locationsActive[].neighbors[]` verdict read as
+free **and** affordable, and every registry-gated edge read as open, regardless of the
+authored data. The board therefore never showed a locked arrow for a costed or gated move
+here, even though a `POST movements/start` on the same edge correctly refused it. Both
+fields are now included, closing the gap between this verdict and the real check.
+
 ---
 
 # Paths Games V0 - Step 0.29.3 (cross-reference): Forced Movement via Event Effects
@@ -2294,7 +2306,7 @@ in place above, plus the summary below.
 
 # Version Control
 
-- **Document Version**: 0.35.6
+- **Document Version**: 0.35.8
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -2316,8 +2328,9 @@ in place above, plus the summary below.
   | 0.35.4 | Match Logs API gains `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` entries from `log_item_usage`, now the register of every item action rather than usages alone (`action`, `id_event`, signed `energy`/`food`/`magic`/`coin` columns), plus `energy_gain`/`food_gain`/`magic_gain`/`coin_gain` on `log_events` — the counterpart of v0.35.3's cost columns. The eight resource fields are now numbers on every entry, never null (a Python/AWS contract fix). See "New: Item Actions and Resource Gains (v0.35.4)" above. | August 24, 2026 |
   | 0.35.4 | Same version, continued: react-admin's `MatchLogsCard` gains a Resources column and badges/filters for the three new types (plus the previously uncoloured `COUNTER_ZERO`/`AUTOMATIC_EVENT`); react-game's `MatchLogCard` renders `ITEM_*` entries with the item's own card via `BonusBadgeList`; new Robot suite `item_logs.robot` (7 tests, `34_inventory`, backend-agnostic). | August 24, 2026 |
   | 0.35.6 | `MovementStartResponse` gains `edgeState` (§5.2), folding the verdicts of any automatic arrival events the move triggered. Full writeup in [Step30_EdgeStates.md](./Step30_EdgeStates.md). | August 28, 2026 |
+  | 0.35.8 | Python bugfix: the `/info` availability verdict's own neighbor read was missing `cost_food`/`cost_magic`/`cost_coin` and `condition_registry_key`/`_value`, a different gap from the v0.35.3 `/locations` fix. See "v0.35.8 bugfix" above. | August 30, 2026 |
 
-- **Last Updated**: August 28, 2026
+- **Last Updated**: August 30, 2026
 - **Status**: Complete (Step 28 implementation). Step 33 has since shipped and is Complete; §6.3's forward reference to it is no longer a reference to a design-only document.
 
 # < Paths Games />

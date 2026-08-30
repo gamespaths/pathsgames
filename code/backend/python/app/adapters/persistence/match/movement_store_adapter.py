@@ -97,8 +97,8 @@ class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
                         "id_to": n.id_location_to,
                         "direction": n.direction,
                         "energy_cost": n.energy_cost or 0,
-                        "condition_key": n.condition_key,
-                        "condition_value": n.condition_value,
+                        "condition_key": n.condition_registry_key,
+                        "condition_value": n.condition_registry_value,
                         "flag_back": n.flag_back or 0,
                         # v0.35.3 — the edge's resource price; edge-only, no entry/weather term.
                         "cost_food": n.cost_food or 0,

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { translationsWithHtmlLineBreaks } from '../../../utils/htmlLineBreaks'
+import TextLengthHint from './TextLengthHint'
+import { TEXT_MAX_LENGTH } from '../../../constants/story/textLimits'
 
 export default function FastTextCreatorModal({
   open,
@@ -110,12 +112,24 @@ export default function FastTextCreatorModal({
             <div className="pg-fast-text-head">Long Text</div>
 
             <div className="pg-fast-text-lang">en</div>
-            <textarea aria-label="en-short" className="pg-textarea" rows={4} value={enShortText} onChange={e => { setEnShortText(e.target.value); setEnLongText(e.target.value) }} />
-            <textarea aria-label="en-long" className="pg-textarea" rows={4} value={enLongText} onChange={e => setEnLongText(e.target.value)} />
+            <div>
+              <textarea aria-label="en-short" className="pg-textarea" rows={4} maxLength={TEXT_MAX_LENGTH} value={enShortText} onChange={e => { setEnShortText(e.target.value); setEnLongText(e.target.value) }} />
+              <TextLengthHint value={enShortText} />
+            </div>
+            <div>
+              <textarea aria-label="en-long" className="pg-textarea" rows={4} maxLength={TEXT_MAX_LENGTH} value={enLongText} onChange={e => setEnLongText(e.target.value)} />
+              <TextLengthHint value={enLongText} />
+            </div>
 
             <div className="pg-fast-text-lang">it</div>
-            <textarea aria-label="it-short" className="pg-textarea" rows={4} value={itShortText} onChange={e => { setItShortText(e.target.value); setItLongText(e.target.value) }} />
-            <textarea aria-label="it-long" className="pg-textarea" rows={4} value={itLongText} onChange={e => setItLongText(e.target.value)} />
+            <div>
+              <textarea aria-label="it-short" className="pg-textarea" rows={4} maxLength={TEXT_MAX_LENGTH} value={itShortText} onChange={e => { setItShortText(e.target.value); setItLongText(e.target.value) }} />
+              <TextLengthHint value={itShortText} />
+            </div>
+            <div>
+              <textarea aria-label="it-long" className="pg-textarea" rows={4} maxLength={TEXT_MAX_LENGTH} value={itLongText} onChange={e => setItLongText(e.target.value)} />
+              <TextLengthHint value={itLongText} />
+            </div>
           </div>
 
           {error && (

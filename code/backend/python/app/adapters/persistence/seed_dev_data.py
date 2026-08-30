@@ -229,15 +229,15 @@ INSERT OR IGNORE INTO list_items_effects (id, id_story, id_item, effect_type, ef
 (90003, 9001, 90004, 'ENERGY', 3);
 
 -- ── Story 1 Weather Rules ───────────────────────────────────────
-INSERT OR IGNORE INTO list_weather_rules (id, id_story, id_text_name, probability, delta_energy, is_active) VALUES
+INSERT OR IGNORE INTO list_weather_rules (id, id_story, id_text_name, probability, delta_energy, active) VALUES
 (90001, 9001, 800, 50, 0, 1);
-INSERT OR IGNORE INTO list_weather_rules (id, id_story, id_text_name, probability, delta_energy, is_active) VALUES
+INSERT OR IGNORE INTO list_weather_rules (id, id_story, id_text_name, probability, delta_energy, active) VALUES
 (90002, 9001, 801, 35, 0, 1);
-INSERT OR IGNORE INTO list_weather_rules (id, id_story, id_text_name, probability, delta_energy, is_active) VALUES
+INSERT OR IGNORE INTO list_weather_rules (id, id_story, id_text_name, probability, delta_energy, active) VALUES
 (90003, 9001, 802, 15, -1, 1);
 -- Step 29: inactive, so the roll at time-start can never land on it. An event conditioned on
 -- this weather is blocked until an effect sets it — in every run, not just the lucky ones.
-INSERT OR IGNORE INTO list_weather_rules (id, id_story, id_text_name, probability, delta_energy, is_active) VALUES
+INSERT OR IGNORE INTO list_weather_rules (id, id_story, id_text_name, probability, delta_energy, active) VALUES
 (90004, 9001, 802, 0, 0, 0);
 
 -- ── Story 1 Events ──────────────────────────────────────────────

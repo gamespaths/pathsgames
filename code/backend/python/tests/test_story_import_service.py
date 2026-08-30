@@ -172,3 +172,27 @@ def test_import_story_id_as_string(mock_persistence_port):
     result = service.import_story(data)
     assert result.status == "IMPORTED"
     mock_persistence_port.exists_story_id.assert_called_with(990002)
+
+
+def test_import_story_links_deferred_references_after_every_entity(monkeypatch):
+    # The link pass must run once, after the sub-entities are in — before it, the rows
+    # its references point at do not exist yet.
+    from unittest.mock import MagicMock
+    from app.core.services.story.story_import_service import StoryImportService
+
+    port = MagicMock()
+    port.find_story_id_by_uuid.return_value = None
+    port.save_story.return_value = 1
+    port.exists_entity_id.return_value = False
+    calls = []
+    port.save_events.side_effect = lambda *a, **k: calls.append("events")
+    port.link_deferred_references.side_effect = lambda *a, **k: calls.append("link")
+    port.sync_sequences.side_effect = lambda *a, **k: calls.append("sync")
+
+    StoryImportService(port).import_story({
+        "uuid": "link-uuid",
+        "events": [{"id": 5, "idEventNext": 6}, {"id": 6}],
+    })
+
+    assert calls == ["events", "link", "sync"]
+    port.link_deferred_references.assert_called_once()

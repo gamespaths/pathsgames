@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 from app.core.models.match.match_models import ItemEffectPreview, ItemInstanceInfo
 from app.core.ports.match.event_ports import ITEM_ACTION_DROP, ITEM_ACTION_USE
 from app.core.ports.match.inventory_ports import InventoryError, InventoryPort, InventoryStorePort
+from app.core.services.match.card_mapper import resolve_card
 
 _RUNNING = "RUNNING"
 _DEFAULT_LANG = "en"
@@ -152,7 +153,7 @@ class InventoryService(InventoryPort):
                 f"The character carries {held} of this item and using it takes {spend}")
 
         effects = self._standalone_effects(ctx, item)
-        card = self._resolve_card(ctx, item.get("id_card"))
+        card = self._resolve_card(ctx, item.get("id_card"), lang=lang)
 
         # The units go first: an item whose effects grant the same item back must not pay
         # for itself, and what was spent stays spent even if the effect chain ends in a
@@ -302,7 +303,7 @@ class InventoryService(InventoryPort):
             if item:
                 info.id_card = item.get("id_card")
                 info.is_consumabile = item.get("is_consumabile") == 1
-                info.card = self._resolve_card(ctx, item.get("id_card"), card_cache)
+                info.card = self._resolve_card(ctx, item.get("id_card"), card_cache, lang)
                 info.name = self._resolve_name(story_id, item.get("id_text_name"), lang)
                 info.max_per_character = item.get("max_per_character")
                 info.amount_drop = item.get("amount_drop")
@@ -327,13 +328,15 @@ class InventoryService(InventoryPort):
         return text.get("short_text") if text else None
 
     def _resolve_card(self, ctx: Dict[str, Any], id_card,
-                      cache: Optional[Dict[int, Any]] = None):
+                      cache: Optional[Dict[int, Any]] = None, lang: Optional[str] = None):
+        # v0.35.8 — mapped onto the API contract, not the raw row: an item whose card went
+        # out unresolved rendered with no title, no description and no image.
         story_id = ctx["match"].get("id_story")
         if id_card is None or story_id is None or self.story_read_port is None:
             return None
         if cache is not None and id_card in cache:
             return cache[id_card]
-        card = self.story_read_port.find_card_by_story_id_and_card_id(story_id, id_card)
+        card = resolve_card(self.story_read_port, story_id, id_card, lang or "en")
         if cache is not None:
             cache[id_card] = card
         return card

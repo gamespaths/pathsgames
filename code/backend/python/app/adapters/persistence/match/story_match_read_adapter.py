@@ -118,6 +118,16 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "energy_cost": r.energy_cost,
                     "id_card": r.id_card,
                     "id_card_back": r.id_card_back,
+                    # v0.35.3 — the EDGE's resource price. Missing here, match-info reported
+                    # every edge as free and judged it affordable: the board offered a move
+                    # that POST /move then refused.
+                    "cost_food": r.cost_food,
+                    "cost_magic": r.cost_magic,
+                    "cost_coin": r.cost_coin,
+                    # The registry gate, for the same reason: absent, every gated edge read
+                    # as open.
+                    "condition_registry_key": r.condition_registry_key,
+                    "condition_registry_value": r.condition_registry_value,
                 }
                 for r in rows
             ]

@@ -125,6 +125,7 @@ code/backend/php/debug_sql.php
 code/backend/php/converted.sql
 code/scripts/test/aws_ec2_with_java_postgres_docker_compose/.state
 code/scripts/test/aws_ec2_with_java_docker/.state
+code/scripts/test/aws_ec2_with_python_docker/.state
 # test units
 code/frontend/react-admin/test-results.junit.xml
 code/backend/aws/.unit-junit.xml

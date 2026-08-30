@@ -588,6 +588,32 @@ def test_list_entities_success():
     assert len(_body(result)) == 1
 
 
+def test_list_entities_keeps_the_false_item_flags():
+    """v0.35.8 — the admin list is what the react-admin export writes to the file. A
+    `false` must travel: dropped here, the re-import would fall back to the schema
+    default (consumable, effects shown) and quietly flip both flags."""
+    story = {**STORY_ITEM, 'items': [
+        {'uuid': 'i1', 'id': 1, 'isConsumabile': False, 'flagShowEffects': False},
+        {'uuid': 'i2', 'id': 2, 'isConsumabile': 0, 'flagShowEffects': 0},
+        # never authored: the key is simply absent, which every backend reads as the
+        # schema default (consumable, effects shown)
+        {'uuid': 'i3', 'id': 3},
+    ]}
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, story]):
+        from story.handler import lambda_handler
+        event = admin_event('GET', '/api/admin/stories/story-uuid-1/items',
+                            path_params={'uuidStory': 'story-uuid-1', 'entityType': 'items'})
+        result = lambda_handler(event, {})
+
+    assert result['statusCode'] == 200
+    rows = _body(result)
+    assert rows[0]['isConsumabile'] is False
+    assert rows[0]['flagShowEffects'] is False
+    assert rows[1]['isConsumabile'] == 0
+    assert rows[1]['flagShowEffects'] == 0
+    assert 'isConsumabile' not in rows[2]
+
+
 # ── create_entity ─────────────────────────────────────────────────────────────
 
 def test_create_entity_story_not_found():

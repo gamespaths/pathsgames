@@ -38,7 +38,7 @@ class WeatherStoreAdapter:
                     .filter(WeatherRuleEntity.id_story == id_story).all())
             out = []
             for w in rows:
-                if not w.is_active:
+                if not w.active:
                     continue
                 out.append(self._rule_to_dict(w))
             return out
@@ -134,7 +134,7 @@ class WeatherStoreAdapter:
                 "probability": w.probability, "delta_energy": w.delta_energy,
                 "cost_move_safe_location": w.cost_move_safe_location,
                 "cost_move_not_safe_location": w.cost_move_not_safe_location,
-                "active": bool(w.is_active), "current": current is not None and current == w.id,
+                "active": bool(w.active), "current": current is not None and current == w.id,
             } for w in rows]
 
     def _resolve_weather_name(self, session, id_story, id_text_name, id_card):
@@ -193,8 +193,8 @@ class WeatherStoreAdapter:
     def _rule_to_dict(w: WeatherRuleEntity) -> Dict[str, Any]:
         return {
             "id": w.id, "uuid": w.uuid, "probability": w.probability,
-            "time_start": w.time_start, "time_end": w.time_end,
-            "condition_key": w.condition_key, "condition_value": w.condition_value,
+            "time_from": w.time_from, "time_to": w.time_to,
+            "condition_key": w.condition_key, "condition_key_value": w.condition_key_value,
             "delta_energy": w.delta_energy, "id_event": w.id_event,
             "id_text_name": w.id_text_name,
         }

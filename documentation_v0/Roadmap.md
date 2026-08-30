@@ -75,8 +75,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 
 # Next steps
 1. OpenPoint & todo
-    - su AWS ItemUsageLog massimo 400Kb dynamo per partite lunghizzime
-    - 
+
 
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
 36. Registry system — key-value game state tracking (check if componets already exists)
@@ -122,6 +121,8 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Build frontend admin snapshot viewer with list, details, and restore action (frontend)
     - Write backend unit tests for snapshot creation, serialization, restoration, integrity validation, and listing (backend tests)
 41. Security updates
+    - su AWS ItemUsageLog massimo 400Kb dynamo per partite lunghizzime
+        - valutare anche dimensioni delle api e delle response e delle varie tabelle!    
     - Rate Limiting: user and match creation limits, into API creation guest user and creation match , add limit 10 creation for source IP
     - XSS risk: on react-game when used dangerouslySetInnerHTML, use DOMPurify to remove scripts from backend (avoid administrators/source add malevolous script from react-admin to game components)
     - CSRF (Cross-Site Request Forgery) and SameSite, implement CSRF Token for creation match API (using X-CSRF-TOKEN)

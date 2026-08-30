@@ -2,6 +2,27 @@ from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import Integer, Numeric
 from app.core.ports.story.story_persistence_port import StoryPersistencePort
+# Registers gaming_match on the shared metadata: deleting a story deletes the matches
+# played on it, and the table has to be mapped for that query to exist.
+from app.adapters.persistence.match.models import (
+    GamingMatchEntity, GamingStateLocationEntity, GamingStateRegistryEntity,
+    GamingCharacterInstanceEntity, GamingBackpackResourcesEntity,
+    GamingInventoryItemsEntity, GamingCharacterTraitsEntity, GamingTurnQueueEntity,
+    GamingStoryProgressEntity, LogClockHistoryEntity, LogEventsEntity,
+    LogItemUsageEntity, LogWeatherEntity, LogMovementEntity, LogChoicesExecutedEntity,
+)
+
+# Everything hanging off a match, deleted before the match itself. The FKs declare
+# ON DELETE CASCADE, but only for a schema created after v0.35.8: a database whose
+# gaming_* tables predate it has plain constraints that block the delete, so the rows
+# are removed explicitly rather than trusting the cascade.
+_MATCH_CHILD_ENTITIES = (
+    GamingStateLocationEntity, GamingStateRegistryEntity, GamingCharacterInstanceEntity,
+    GamingBackpackResourcesEntity, GamingInventoryItemsEntity, GamingCharacterTraitsEntity,
+    GamingTurnQueueEntity, GamingStoryProgressEntity, LogClockHistoryEntity,
+    LogEventsEntity, LogItemUsageEntity, LogWeatherEntity, LogMovementEntity,
+    LogChoicesExecutedEntity,
+)
 from app.adapters.persistence.story.models import (
     StoryEntity, TextEntity, StoryDifficultyEntity, 
     LocationEntity, LocationNeighborEntity, EventEntity, EventEffectEntity, 
@@ -128,7 +149,39 @@ class StoryPersistenceAdapter(StoryPersistencePort):
         with self.session_factory() as session:
             # We must delete in correct order due to potential foreign keys if mapped later
             # For now, just delete all related tables explicitly
-            
+
+            # v0.35.8 — the matches PLAYED on this story come first: gaming_match.id_story
+            # references list_stories. Same order the Java deleteStoryData has always used.
+            match_ids = [row[0] for row in session.query(GamingMatchEntity.id).filter(
+                GamingMatchEntity.id_story == story_id).all()]
+            if match_ids:
+                for child in _MATCH_CHILD_ENTITIES:
+                    session.query(child).filter(
+                        child.id_match.in_(match_ids)).delete(synchronize_session=False)
+                session.query(GamingMatchEntity).filter(
+                    GamingMatchEntity.id.in_(match_ids)).delete(synchronize_session=False)
+
+            # The story's own FK columns point at rows about to be deleted (the end-game
+            # event, the start location, the cover card...). PostgreSQL rejects the delete
+            # while they still do, so they are cleared first.
+            story = session.query(StoryEntity).filter(StoryEntity.id == story_id).first()
+            if story is not None:
+                for column in ("id_event_end_game", "id_event_all_player_coma",
+                               "id_location_start", "id_location_all_player_coma",
+                               "id_card", "id_creator", "id_image"):
+                    if hasattr(story, column):
+                        setattr(story, column, None)
+                session.flush()
+
+            # v0.35.8 — the references that point INTO a table this delete empties: an event
+            # chained to another event, and a weather rule naming one (the rules go after the
+            # events). PostgreSQL refuses to delete a row while a pointer to it still stands.
+            session.query(EventEntity).filter(
+                EventEntity.id_story == story_id).update({"id_event_next": None})
+            session.query(WeatherRuleEntity).filter(
+                WeatherRuleEntity.id_story == story_id).update({"id_event": None})
+            session.flush()
+
             # Sub-sub entities
             session.query(LocationNeighborEntity).filter(LocationNeighborEntity.id_story == story_id).delete()
             session.query(EventEffectEntity).filter(EventEffectEntity.id_story == story_id).delete()
@@ -151,9 +204,11 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             session.query(CharacterTemplateEntity).filter(CharacterTemplateEntity.id_story == story_id).delete()
             session.query(WeatherRuleEntity).filter(WeatherRuleEntity.id_story == story_id).delete()
             session.query(GlobalRandomEventEntity).filter(GlobalRandomEventEntity.id_story == story_id).delete()
-            session.query(CreatorEntity).filter(CreatorEntity.id_story == story_id).delete()
             session.query(CardEntity).filter(CardEntity.id_story == story_id).delete()
             session.query(KeyEntity).filter(KeyEntity.id_story == story_id).delete()
+            # list_texts.id_creator and list_cards.id_creator both reference list_creator:
+            # the creators go last, or the delete fails with "still referenced from".
+            session.query(CreatorEntity).filter(CreatorEntity.id_story == story_id).delete()
 
             # Finally, the story itself
             session.query(StoryEntity).filter(StoryEntity.id == story_id).delete()
@@ -230,7 +285,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                         kwargs[db_col] = item[json_key]
                 if kwargs.get("lang") is None:
                     kwargs["lang"] = "en"
-                session.add(TextEntity(**kwargs))
+                session.add(self._make(TextEntity, **kwargs))
             session.commit()
 
     def save_difficulties(self, story_id: int, items: List[Dict[str, Any]]) -> None:
@@ -256,21 +311,13 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 kwargs = dict(
                     id_story=story_id,
                     uuid=item.get("uuid") or str(__import__('uuid').uuid4()),
+                    counter_time=item.get("counterTime"),
+                    id_card=item.get("idCard"),
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
                     is_safe=item.get("isSafe", 0),
                     max_characters=item.get("maxCharacters"),
                     id_event_on_enter=item.get("idEventOnEnter"),
-                    id_event_if_counter_zero=item.get("idEventIfCounterZero"),
-                    counter_time=item.get("counterTime"),
-                    id_card=item.get("idCard"),
-                    # Step 33 — the location-side trigger columns. A null column is not a
-                    # trigger, so an authored story that names none behaves exactly as before.
-                    id_event_if_first_time=item.get("idEventIfFirstTime"),
-                    id_event_not_first_time=item.get("idEventNotFirstTime"),
-                    id_event_if_character_enter_empty_location=item.get(
-                        "idEventIfCharacterEnterEmptyLocation"),
-                    id_event_if_character_start_time=item.get("idEventIfCharacterStartTime"),
                     priority_automatic_event=item.get("priorityAutomaticEvent"),
                 )
                 explicit_id = _get_long(item, "id")
@@ -279,30 +326,60 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 session.add(loc)
                 session.flush()
 
+                # A story may nest its edges under the location (Python's own format); the
+                # canonical contract puts them in a top-level array — see save_location_neighbors.
                 for n in item.get("neighbors", []):
-                    ne = LocationNeighborEntity(
-                        id=next_nb_id(),
-                        id_story=story_id,
-                        # A uuid is required for the neighbor to be addressable via the
-                        # admin CRUD API (GET/PUT/DELETE .../location-neighbors/{uuid}).
-                        uuid=n.get("uuid") or str(__import__('uuid').uuid4()),
-                        id_location_from=loc.id,
-                        id_location_to=n.get("idLocationTo"),
-                        direction=n.get("direction"),
-                        energy_cost=n.get("energyCost", 1),
-                        condition_key=n.get("conditionKey"),
-                        condition_value=n.get("conditionValue"),
-                        id_card=n.get("idCard"),
-                        id_card_back=n.get("idCardBack"),
-                        # `flag_back` decides whether the edge can be walked BACKWARDS.
-                        # The column and the movement engine have always honoured it
-                        # (movement_service._traversable_from), but the import never mapped
-                        # it, so every imported story silently became one-way: the column
-                        # defaults to 0 and no authored value could ever reach it.
-                        flag_back=n.get("flagBack", 0),
-                    )
-                    session.add(ne)
+                    session.add(self._location_neighbor(story_id, next_nb_id(), n, loc.id))
             session.commit()
+
+    def save_location_neighbors(self, story_id: int, items: List[Dict[str, Any]]) -> None:
+        """v0.35.8 — the top-level `locationNeighbors` array of the shared JSON contract.
+        It was never read: an imported story kept its locations and lost every edge between
+        them, so the board offered no movement at all."""
+        with self.session_factory() as session:
+            next_nb_id = self._make_id_counter(session, "list_locations_neighbors", "id", story_id)
+            for n in items:
+                explicit_id = _get_long(n, "id")
+                new_id = explicit_id if explicit_id is not None else next_nb_id()
+                session.add(self._location_neighbor(
+                    story_id, new_id, n, n.get("idLocationFrom")))
+            session.commit()
+
+    def _location_neighbor(self, story_id: int, new_id: int, n: Dict[str, Any],
+                           id_location_from: Any) -> LocationNeighborEntity:
+        return self._make(
+            LocationNeighborEntity,
+            id=new_id,
+            id_story=story_id,
+            # A uuid is required for the neighbor to be addressable via the
+            # admin CRUD API (GET/PUT/DELETE .../location-neighbors/{uuid}).
+            uuid=n.get("uuid") or str(__import__('uuid').uuid4()),
+            id_location_from=id_location_from,
+            id_location_to=n.get("idLocationTo"),
+            direction=n.get("direction"),
+            energy_cost=n.get("energyCost", 1),
+            # The canonical keys are conditionRegistryKey/Value; the shorter spellings are
+            # what Python's own nested format has always written.
+            condition_registry_key=n.get("conditionRegistryKey", n.get("conditionKey")),
+            condition_registry_value=n.get("conditionRegistryValue", n.get("conditionValue")),
+            id_card=n.get("idCard"),
+            id_card_back=n.get("idCardBack"),
+            id_text_name=n.get("idTextName"),
+            id_text_description=n.get("idTextDescription"),
+            # The label of the edge in each direction.
+            id_text_go=n.get("idTextGo"),
+            id_text_back=n.get("idTextBack"),
+            # v0.35.3 — the resources the mover pays for this edge.
+            cost_food=n.get("costFood", 0),
+            cost_magic=n.get("costMagic", 0),
+            cost_coin=n.get("costCoin", 0),
+            # `flag_back` decides whether the edge can be walked BACKWARDS.
+            # The column and the movement engine have always honoured it
+            # (movement_service._traversable_from), but the import never mapped
+            # it, so every imported story silently became one-way: the column
+            # defaults to 0 and no authored value could ever reach it.
+            flag_back=n.get("flagBack", 0),
+        )
 
     def save_events(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         with self.session_factory() as session:
@@ -327,7 +404,6 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     cost_food=item.get("costFood", 0),
                     cost_magic=item.get("costMagic", 0),
                     flag_end_time=item.get("flagEndTime", 0),
-                    id_event_next=item.get("idEventNext"),
                     id_specific_location=item.get("idSpecificLocation")
                     if item.get("idSpecificLocation") is not None else item.get("idLocation"),
                     id_weather=item.get("idWeather"),
@@ -335,7 +411,6 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     registry_value_condition=item.get("registryValueCondition"),
                     id_item_condition=item.get("idItemCondition"),
                     id_class_condition=item.get("idClassCondition"),
-                    id_item_to_add=item.get("idItemToAdd"),
                 )
                 explicit_id = _get_long(item, "id")
                 kwargs["id"] = explicit_id if explicit_id is not None else next_ev_id()
@@ -361,7 +436,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def _event_effect(self, story_id: int, new_id: int, ef: Dict[str, Any],
                       id_event: Any) -> EventEffectEntity:
-        return EventEffectEntity(
+        return self._make(
+            EventEffectEntity,
             id=new_id,
             id_story=story_id,
             uuid=ef.get("uuid") or str(__import__('uuid').uuid4()),
@@ -398,9 +474,12 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     id_card=item.get("idCard"),
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
-                    weight=item.get("weight", 0),
+                    # v0.35.8 — absent means "use the schema default" (weight 1,
+                    # consumable), which is what Java's @PrePersist does. Passing 0 here
+                    # made an item that never declared a weight weigh nothing.
+                    weight=item.get("weight"),
                     # v0.34.0 — step 34 gates use-item on these three.
-                    is_consumabile=item.get("isConsumabile", 1),
+                    is_consumabile=item.get("isConsumabile"),
                     # v0.35.0 — absent stays None, which reads as "show the effects": an
                     # old story file keeps behaving exactly as before the column existed.
                     flag_show_effects=item.get("flagShowEffects"),
@@ -435,7 +514,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def _item_effect(self, story_id: int, new_id: int, ef: Dict[str, Any],
                      id_item: Any) -> ItemEffectEntity:
-        return ItemEffectEntity(
+        return self._make(
+            ItemEffectEntity,
             id=new_id,
             id_story=story_id,
             uuid=ef.get("uuid") or str(__import__('uuid').uuid4()),
@@ -471,7 +551,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 session.flush()
 
                 for b in item.get("bonuses", []):
-                    cb = ClassBonusEntity(
+                    cb = self._make(
+                        ClassBonusEntity,
                         id=next_cb_id(),
                         id_story=story_id,
                         id_class=cls.id,
@@ -525,7 +606,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 session, "list_choices_conditions", "id", story_id)
             for c in items:
                 explicit_id = _get_long(c, "id")
-                cc = ChoiceConditionEntity(
+                cc = self._make(
+                    ChoiceConditionEntity,
                     id=explicit_id if explicit_id is not None else next_cc_id(),
                     id_story=story_id,
                     uuid=c.get("uuid") or str(__import__('uuid').uuid4()),
@@ -545,7 +627,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 session, "list_choices_effects", "id", story_id)
             for ef in items:
                 explicit_id = _get_long(ef, "id")
-                ce = ChoiceEffectEntity(
+                ce = self._make(
+                    ChoiceEffectEntity,
                     id=explicit_id if explicit_id is not None else next_ce_id(),
                     id_story=story_id,
                     uuid=ef.get("uuid") or str(__import__('uuid').uuid4()),
@@ -617,8 +700,10 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             "delta_energy": "deltaEnergy", "id_event": "idEvent",
             "cost_move_safe_location": "costMoveSafeLocation",
             "cost_move_not_safe_location": "costMoveNotSafeLocation",
-            "condition_key": "conditionKey", "condition_value": "conditionValue",
-            "time_start": "timeStart", "time_end": "timeEnd", "is_active": "isActive"
+            "condition_key": "conditionKey", "condition_key_value": "conditionKeyValue",
+            # v0.35.8 — the rule's own label and the hours it applies to: dropped until now.
+            "id_text": "idText", "time_from": "timeFrom", "time_to": "timeTo",
+            "active": "active",
         })
 
     def save_global_random_events(self, story_id: int, items: List[Dict[str, Any]]) -> None:
@@ -649,7 +734,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 session.flush()
 
                 for idx, step in enumerate(item.get("steps", [])):
-                    st = MissionStepEntity(
+                    st = self._make(
+                        MissionStepEntity,
                         id=next_st_id(),
                         id_story=story_id,
                         id_mission=m.id,
@@ -694,6 +780,61 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 kwargs[col_name] = _coerce_value(columns[col_name].type, value)
         return kwargs
 
+    # v0.35.8 — the second pass of the import: see link_deferred_references.
+    _DEFERRED_EVENT_COLUMNS = {
+        "id_event_next": ("idEventNext",),
+        "id_item_to_add": ("idItemToAdd",),
+    }
+    _DEFERRED_LOCATION_COLUMNS = {
+        "id_event_if_counter_zero": ("idEventIfCounterZero",),
+        "id_event_if_first_time": ("idEventIfFirstTime",),
+        "id_event_not_first_time": ("idEventNotFirstTime",),
+        # V0.33.2 renamed the column; a story exported before that carries the old key.
+        "id_event_if_character_enter_empty_location": (
+            "idEventIfCharacterEnterEmptyLocation", "idEventIfCharacterEnterFirstTime"),
+        "id_event_if_character_start_time": ("idEventIfCharacterStartTime",),
+    }
+    _DEFERRED_WEATHER_COLUMNS = {"id_event": ("idEvent",)}
+
+    def link_deferred_references(self, story_id: int, data: Dict[str, Any]) -> None:
+        """Write the references that cannot go in on the first insert: they point at a row
+        imported later (an event handing out an item), or back into a cycle (an event chained
+        to an event, a location or a weather rule triggering one). Doing it here is what keeps
+        the PostgreSQL foreign keys satisfied without deferring a single constraint.
+
+        Rows are addressed by uuid, which the import assigns to every item before saving."""
+        plan = (
+            (EventEntity, data.get("events"), self._DEFERRED_EVENT_COLUMNS),
+            (LocationEntity, data.get("locations"), self._DEFERRED_LOCATION_COLUMNS),
+            (WeatherRuleEntity, data.get("weatherRules"), self._DEFERRED_WEATHER_COLUMNS),
+        )
+        with self.session_factory() as session:
+            for entity_class, items, columns in plan:
+                if not isinstance(items, list):
+                    continue
+                for item in items:
+                    row_uuid = item.get("uuid")
+                    if not row_uuid:
+                        continue
+                    values = {}
+                    for column, json_keys in columns.items():
+                        value = next((item[k] for k in json_keys if item.get(k) is not None), None)
+                        value = _coerce_value(entity_class.__table__.columns[column].type, value)
+                        # 0 means "none" in the authored JSON, exactly as in the Java import.
+                        if value:
+                            values[column] = value
+                    if values:
+                        session.query(entity_class).filter_by(
+                            id_story=story_id, uuid=row_uuid).update(values)
+            session.commit()
+
+    @classmethod
+    def _make(cls, entity_class, **kwargs):
+        """Build an entity with its kwargs coerced to the column types. Every row of an
+        imported story goes through here: an authored "" in a numeric field is a valid
+        JSON value that PostgreSQL rejects outright ("invalid input syntax for integer")."""
+        return entity_class(**cls._coerce_kwargs(entity_class, kwargs))
+
     def _insert_batch(self, entity_class, story_id: int, items: List[Dict[str, Any]], field_map: Dict[str, str]) -> None:
         id_col = "id_tipo" if entity_class == CharacterTemplateEntity else "id"
         table_name = entity_class.__tablename__
@@ -701,6 +842,11 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             next_id = self._make_id_counter(session, table_name, id_col, story_id)
             for item in items:
                 kwargs = {"id_story": story_id}
+                # v0.35.8 — every imported row needs a uuid: it is how the admin CRUD
+                # addresses it (GET/PUT/DELETE .../{entityUuid}) and how the second import
+                # pass finds it again. Three field maps (keys, weather rules, global random
+                # events) did not carry it, so those rows landed unaddressable.
+                kwargs["uuid"] = item.get("uuid") or str(__import__('uuid').uuid4())
                 explicit_id = _get_long(item, "id", "idTipo", "id_tipo")
                 kwargs[id_col] = explicit_id if explicit_id is not None else next_id()
                 for db_col, json_key in field_map.items():
@@ -800,7 +946,10 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     continue
                 value = self._value_for_column(table_name, col_name, data)
                 if value is not _MISSING:
-                    setattr(entity, col_name, value)
+                    # v0.35.8 — through the same coercion the insert path uses: the admin
+                    # form sends JSON booleans for the flag columns and "" for an empty
+                    # number, and PostgreSQL takes neither in an integer column.
+                    setattr(entity, col_name, _coerce_value(col.type, value))
             session.commit()
 
     def delete_entity_by_uuid(self, table_name: str, uuid: str) -> None:
@@ -827,9 +976,13 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 "idEventEndGame": "id_event_end_game", "idTextCopyright": "id_text_copyright",
                 "linkCopyright": "link_copyright", "idCreator": "id_creator", "idCard": "id_card",
             }
+            columns = StoryEntity.__table__.columns
             for json_key, db_attr in field_map.items():
                 if json_key in data:
-                    setattr(story, db_attr, data[json_key])
+                    value = data[json_key]
+                    if db_attr in columns:
+                        value = _coerce_value(columns[db_attr].type, value)
+                    setattr(story, db_attr, value)
             session.commit()
 
     @staticmethod

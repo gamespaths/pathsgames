@@ -3,6 +3,7 @@ import PathsSelector from './PathsSelector'
 import FastTextSelectorModal from './FastTextSelectorModal'
 import FastTextCreatorModal from './FastTextCreatorModal'
 import PathsOptionsSelectorModal from './PathsOptionsSelectorModal'
+import TextLengthHint from './TextLengthHint'
 
 /**
  * Generic form for story sub-entities.
@@ -268,24 +269,32 @@ export default function EntityForm({
                     <label htmlFor={`field-${field.key}`} style={{ fontSize: '0.8rem', cursor: 'pointer' }}>{field.label}</label>
                   </>
                 ) : field.type === 'textarea' ? (
-                  <textarea
-                    id={`field-${field.key}`}
-                    className="pg-textarea"
-                    rows={3}
-                    style={{ fontSize: '0.8rem', padding: '4px 8px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
-                    value={data[field.key] ?? ''}
-                    onChange={e => setFieldValue(field, e.target.value)}
-                  />
+                  <>
+                    <textarea
+                      id={`field-${field.key}`}
+                      className="pg-textarea"
+                      rows={3}
+                      maxLength={field.maxLength}
+                      style={{ fontSize: '0.8rem', padding: '4px 8px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
+                      value={data[field.key] ?? ''}
+                      onChange={e => setFieldValue(field, e.target.value)}
+                    />
+                    {field.maxLength && <TextLengthHint value={data[field.key]} max={field.maxLength} />}
+                  </>
                 ) : (
-                  <input
-                    id={`field-${field.key}`}
-                    type={field.type || 'text'}
-                    size={1}
-                    className="pg-input"
-                    style={{ fontSize: '0.8rem', padding: '4px 8px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
-                    value={data[field.key] ?? ''}
-                    onChange={e => setFieldValue(field, e.target.value)}
-                  />
+                  <>
+                    <input
+                      id={`field-${field.key}`}
+                      type={field.type || 'text'}
+                      size={1}
+                      className="pg-input"
+                      maxLength={field.maxLength}
+                      style={{ fontSize: '0.8rem', padding: '4px 8px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
+                      value={data[field.key] ?? ''}
+                      onChange={e => setFieldValue(field, e.target.value)}
+                    />
+                    {field.maxLength && <TextLengthHint value={data[field.key]} max={field.maxLength} />}
+                  </>
                 )}
               </div>
             ))}

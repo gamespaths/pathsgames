@@ -183,6 +183,27 @@ Create Admin Entity
     ...    headers=${headers}    expected_status=any
     RETURN    ${response}
 
+List Admin Entities
+    [Documentation]    GET /api/admin/stories/{uuidStory}/{entityType}. Returns the response.
+    [Arguments]    ${uuid}    ${entity_type}
+    &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
+    ${response}=    GET On Session    admin_session
+    ...    /api/admin/stories/${uuid}/${entity_type}
+    ...    headers=${headers}    expected_status=any
+    RETURN    ${response}
+
+Update Admin Entity
+    [Documentation]    PUT /api/admin/stories/{uuidStory}/{entityType}/{entityUuid} with a
+    ...                JSON body. Returns the response (any status).
+    [Arguments]    ${uuid}    ${entity_type}    ${entity_uuid}    ${json_body}
+    &{headers}=    Create Dictionary
+    ...    Authorization=Bearer ${ADMIN_TOKEN}
+    ...    Content-Type=application/json
+    ${response}=    PUT On Session    admin_session
+    ...    /api/admin/stories/${uuid}/${entity_type}/${entity_uuid}    json=${json_body}
+    ...    headers=${headers}    expected_status=any
+    RETURN    ${response}
+
 Delete Admin Entity
     [Documentation]    DELETE /api/admin/stories/{uuid}/{entityType}/{entityUuid}.
     [Arguments]    ${uuid}    ${entity_type}    ${entity_uuid}

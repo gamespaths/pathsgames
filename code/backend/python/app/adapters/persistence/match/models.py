@@ -39,10 +39,12 @@ class GamingMatchEntity(Base):
     ts_update = Column(String(50), nullable=False)
 
 
+# v0.35.8 — every id_match FK cascades, exactly as the Java migrations declare
+# (V0.10.6-V0.10.10): a match is deleted as a unit, with its state and its logs.
 class GamingStateLocationEntity(Base):
     __tablename__ = "gaming_state_locations"
 
-    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id", ondelete="CASCADE"), primary_key=True)
     id_location = Column(Integer, primary_key=True)
     uuid = Column(String(36), unique=True, nullable=False)
     flag_already_actived = Column(Integer, default=0, nullable=False)
@@ -60,7 +62,7 @@ class GamingStateRegistryEntity(Base):
     __tablename__ = "gaming_state_registry"
 
     id = Column(Integer, primary_key=True)
-    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id", ondelete="CASCADE"), primary_key=True)
     uuid = Column(String(36), unique=True, nullable=False)
     key = Column(String(255), nullable=False)
     string_value = Column(String(2000))
@@ -81,7 +83,7 @@ class GamingCharacterInstanceEntity(Base):
     __tablename__ = "gaming_character_instance"
 
     id = Column(Integer, primary_key=True)
-    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id", ondelete="CASCADE"), primary_key=True)
     uuid = Column(String(36), unique=True, nullable=False)
     id_user = Column(Integer, ForeignKey("users.id"), nullable=False)
     id_character_template = Column(Integer, nullable=False)
@@ -118,7 +120,7 @@ class GamingBackpackResourcesEntity(Base):
     __tablename__ = "gaming_backpack_resources"
 
     id = Column(Integer, primary_key=True)
-    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id", ondelete="CASCADE"), primary_key=True)
     uuid = Column(String(36), unique=True, nullable=False)
     id_character_match = Column(Integer, nullable=False)
     food = Column(Integer, default=0, nullable=False)
@@ -134,7 +136,7 @@ class GamingInventoryItemsEntity(Base):
     __tablename__ = "gaming_inventory_items"
 
     id = Column(Integer, primary_key=True)
-    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id", ondelete="CASCADE"), primary_key=True)
     uuid = Column(String(36), unique=True, nullable=False)
     id_character_match = Column(Integer, nullable=False)
     id_item = Column(Integer, nullable=False)
@@ -150,7 +152,7 @@ class GamingCharacterTraitsEntity(Base):
     __tablename__ = "gaming_character_traits"
 
     id = Column(Integer, primary_key=True)
-    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id", ondelete="CASCADE"), primary_key=True)
     uuid = Column(String(36), unique=True, nullable=False)
     id_character_match = Column(Integer, nullable=False)
     id_traits = Column(Integer, nullable=False)
@@ -165,7 +167,7 @@ class GamingTurnQueueEntity(Base):
 
     __tablename__ = "gaming_turn_queue"
 
-    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id", ondelete="CASCADE"), primary_key=True)
     id_character_match = Column(Integer, primary_key=True)
     uuid = Column(String(36), unique=True, nullable=False)
     clock = Column(Integer, nullable=False)
@@ -187,7 +189,7 @@ class LogClockHistoryEntity(Base):
     __tablename__ = "log_clock_history"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
-    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id", ondelete="CASCADE"), primary_key=True)
     uuid = Column(String(36), unique=True, nullable=False)
     clock = Column(Integer, nullable=False)
     weather = Column(String(100))
@@ -208,7 +210,7 @@ class LogEventsEntity(Base):
     __tablename__ = "log_events"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
-    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id", ondelete="CASCADE"), primary_key=True)
     uuid = Column(String(36), unique=True, nullable=False)
     id_character_match = Column(Integer)
     timestamp = Column(String(50))
@@ -245,7 +247,7 @@ class LogItemUsageEntity(Base):
     __tablename__ = "log_item_usage"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
-    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id", ondelete="CASCADE"), primary_key=True)
     uuid = Column(String(36), unique=True, nullable=False)
     id_character_match = Column(Integer, nullable=False)
     id_item = Column(Integer, nullable=False)
@@ -275,7 +277,7 @@ class LogWeatherEntity(Base):
     __tablename__ = "log_weather"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
-    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id", ondelete="CASCADE"), primary_key=True)
     uuid = Column(String(36), unique=True, nullable=False)
     clock = Column(Integer, nullable=False)
     id_weather = Column(Integer)
@@ -294,7 +296,7 @@ class LogMovementEntity(Base):
     __tablename__ = "log_movements"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
-    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id", ondelete="CASCADE"), primary_key=True)
     uuid = Column(String(36), unique=True, nullable=False)
     id_character_match = Column(Integer, nullable=False)
     id_location_from = Column(Integer)
@@ -323,7 +325,7 @@ class LogChoicesExecutedEntity(Base):
     __tablename__ = "log_choices_executed"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
-    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id", ondelete="CASCADE"), primary_key=True)
     uuid = Column(String(36), unique=True, nullable=False)
     clock = Column(Integer)
     id_event = Column(Integer)
@@ -345,7 +347,7 @@ class GamingStoryProgressEntity(Base):
     __tablename__ = "gaming_story_progress"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
-    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id", ondelete="CASCADE"), primary_key=True)
     uuid = Column(String(36), unique=True, nullable=False)
     clock = Column(Integer)
     id_event = Column(Integer)

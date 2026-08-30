@@ -92,9 +92,9 @@ code/frontend/react-game/
     │       ├── BookPageRight.jsx    # Corner ornaments + page-inner slot
     │       └── BookPageContent.jsx  # Book page content: title, image, description, bonus-stats panel
     ├── features/
-    │   ├── home/
-    │   │   ├── StoryCard.jsx       # Home medium card (225px, hover scale + gold border)
-    │   │   └── StoryCatalog.jsx    # Rows by category, responsive horizontal scroll
+    │   ├── catalog/
+    │   │   ├── StoryCard.jsx       # Home card: shared `Card` (`variant="little"`), fixed 225px via `.story-netflix-card` (v0.35.8)
+    │   │   └── StoryCatalog.jsx    # Rows by category, responsive horizontal scroll; `matchesStatus` gates each card's footer button
     │   ├── startBook/
     │   │   ├── StartBookModal.jsx  # Book overlay orchestrator (desktop); renders CardPreviewOverlay
     │   │   ├── StartBookMobile.jsx # Mobile layout (extracted from StartBookModal)
@@ -140,7 +140,7 @@ All size variants enforce `aspect-ratio: 2/3` (unified, replaces the previous `1
 |-------|-------|-------|
 | `.pg-card--small` | 100px fixed | — |
 | `.pg-card--medium` | 150px fixed | Game rows (neighbors, actions) |
-| `.pg-card--home` | 225px fixed | Story catalog |
+| `.pg-card--home` | 225px fixed | Defined in CSS but unused by any component since v0.35.8 — see below |
 | `.pg-card--large` | 100% fill | Left page big card |
 | `.pg-card--grid` | flex:1 | Config grid |
 
@@ -154,6 +154,33 @@ Config view (`ConfigView`) uses a `card-big-list` 2-column layout (big cards) in
 New CSS rules in `main.css`: `.card-preview-overlay` (`position: absolute; inset: 0` solid book-page overlay), `.card-preview-close`, `.card-preview-info`, `.card-magnify-btn`, `@keyframes fadeIn`. `gc-actions` uses `align-items: stretch` for equal-height buttons; `gc-footer__btn` is `display: flex` + `gap: 4px`; `gc-footer__btn-label` truncates text with ellipsis; `gc-footer__btn--icon` is the icon-only / fixed-width button modifier. Removed: `.book-page-stats__badge`, `.book-page-stats__value`, `.config-total-bonus__badge`, `.config-total-bonus__value`, old two-column grid classes, `.story-card-full*` rules.
 
 Cards support `style_main`, `style_detail`, and three size-specific image style fields (`style_image_little`, `style_image_medium`, `style_image_large`) in mock JSON to inject extra CSS classes on the wrapper and image respectively.
+
+### Story Catalog Card (v0.35.8)
+
+`StoryCard.jsx` was rewritten as a thin wrapper over the shared `Card` component
+(`variant="little"`) instead of a bespoke Netflix-style card: a golden title bar on top,
+the image, and the footer button below — the title no longer overlays the picture. The
+catalog's fixed size (225px, 180px on mobile, 2/3 aspect ratio) now lives entirely on the
+`.story-netflix-card` override class (`main.css`/`mobile.css`), not on `.pg-card--home`
+(now dead CSS — nothing references it). Category and match-status badges sit over the
+picture via `Card`'s `childrenIntoImage`; the pending spinner uses plain `children`. Hover
+zoom on the image was removed (only the whole card still lifts on hover); the category
+badge is hidden for now (`.story-netflix-card .story-card-badge { display: none }`).
+
+The footer button (Play / Resume / Paused) now waits for the guest's match list:
+`StoryCatalog` takes a `matchesStatus` prop from `HomePage` and only passes
+`showActions={matchesStatus !== 'loading'}` to each card once it resolves — until then the
+footer shows a spinner and `home.loadingMatches`, so the card's height does not jump. A
+teaser (`comingSoon`) card is always locked, showing `book.comingSoon`. New i18n keys:
+`home.badgePlay`, `home.loadingMatches` (en/it).
+
+Two feature flags, both **off** by default (`src/constants/features.js`, documented in
+`.env.example`):
+
+| Flag | Env var | Effect |
+|---|---|---|
+| `RESUME_WITHOUT_MODAL` | `VITE_RESUME_WITHOUT_MODAL` | A "Resume" click jumps straight to `/play/<storyUuid>` with `state: { matchUuid }`, skipping the guest player modal. New helper `findResumableMatch(matches, storyUuid)` in `src/utils/matchStatus.js`. See also [Step19 §6.1](./Step19_SinglePlayerMatchCreation.md#61-one-active-match-per-user-and-story-v0321). |
+| `ADD_COMING_SOON_STORIES` | `VITE_ADD_COMING_SOON_STORIES` | Appends teaser stories from `src/data/stories.json` (previously empty, now 3 teasers) to the home catalog. New `src/utils/comingSoonStories.js`: `comingSoonStories(lang)` maps each teaser's `translations[lang]` over its English fields; `withComingSoonStories(list, lang, add)` appends when `add` is true. Each teaser follows `StorySummaryResponse` plus `comingSoon: true` and a `translations: { it: { title, description } }` block. |
 
 ### Hover Interactions
 
@@ -431,7 +458,7 @@ gameplay card. It is unrelated to the same-named, differently-shaped `onPreview`
 | Breakpoint | Layout changes |
 |-----------|---------------|
 | ≤767px | Book modal switches to vertical list; game book stacks pages; navbar brand text hidden; hero shorter |
-| ≤767px | `pg-card--medium` shrinks to 130px; `pg-card--home` shrinks to 180px |
+| ≤767px | `pg-card--medium` shrinks to 130px; `.story-netflix-card` (story catalog, v0.35.8) shrinks to 180px |
 
 Mobile CSS lives in `src/styles/mobile.css` and is imported at the top of `main.css`.
 
@@ -492,7 +519,7 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     > - **Button alignment**: `config-change-btn` and `config-coming-soon-btn` are `width: auto`, font-size reduced to `0.65rem`, footer aligned right (`align-items: flex-end`) so buttons sit in the bottom-right corner of cover cards.
     > - **Mobile top clipping fix**: `book-overlay` padding-top raised to `56px` on mobile so the first card in the vertical list is not hidden under the navbar.
 
-- **Document Version**: 0.35.5
+- **Document Version**: 0.35.8
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.35.5 | `GameBook.jsx` decomposed 1005 → ~170 lines: `features/game/` renamed `features/gameplay/`, split into `PageLeft`/`PageRight`/`PageRightMain`/`PageRightInfo` + `useMatchChrome`/`useBookView`/`useGameplayResults` hooks. Gameplay card `onPreview` moved from 6 positional args to one object; `GoToSleepCard` gains `autoPreview`, fixing a broken Italian shortcut | Aug 27, 2026 |
@@ -505,8 +532,9 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     | 0.19.13 | `?lang=` forwarded to /api/stories, /api/stories/{uuid}, /api/match/{uuid}/info; bug fix: story catalog and END_GAME card now translated correctly | Jun 23, 2026 |
     | 0.20.3 | GTM section updated: Consent Mode v2 defaults inline + GTM loaded via `src/consent/gtm.js`; inline GTM snippet removed | May 28, 2026 |
     | 0.28.2 | i18n: `LanguageProvider` persists lang to `localStorage['pathsgames.lang']`; initial lang resolves from saved choice → browser lang → `'en'`; `pathsgames.lang` added to strictly-necessary consent table in `cookieConsent.js`; 14 tests in `i18nContext.test.jsx` | Jun 26, 2026 |
+    | 0.35.8 | `StoryCard.jsx` rewritten as a thin wrapper over the shared `Card` (`variant="little"`); footer button now gated on `matchesStatus`. Two new opt-in flags, `RESUME_WITHOUT_MODAL` and `ADD_COMING_SOON_STORIES`. | August 30, 2026 |
 
-- **Last Updated**: Aug 27, 2026
+- **Last Updated**: Aug 30, 2026
 - **Status**: Active development
 
 

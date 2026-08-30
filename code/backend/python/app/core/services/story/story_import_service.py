@@ -102,6 +102,15 @@ class StoryImportService(StoryImportPort):
             # All other sub-entities (with UUID auto-generation)
             entity_mapping = [
                 ("locations", "list_locations", "id", self.persistence_port.save_locations),
+                # v0.35.8 — the canonical top-level array of edges; must run AFTER locations,
+                # which both ends of every edge point at. Never imported before: a story kept
+                # its locations and lost every movement between them.
+                ("locationNeighbors", "list_locations_neighbors", "id",
+                 self.persistence_port.save_location_neighbors),
+                # v0.35.8 — must run BEFORE events: list_events.id_weather points at a rule,
+                # so a weather-gated event is rejected when the rules are not there yet.
+                ("weatherRules", "list_weather_rules", "id",
+                 self.persistence_port.save_weather_rules),
                 ("events", "list_events", "id", self.persistence_port.save_events),
                 # v0.29.0 — must run AFTER events: an effect points at its owning event.
                 ("eventEffects", "list_events_effects", "id",
@@ -123,8 +132,6 @@ class StoryImportService(StoryImportPort):
                 ("traits", "list_traits", "id", self.persistence_port.save_traits),
                 ("characterTemplates", "list_character_templates", "id_tipo",
                  self.persistence_port.save_character_templates),
-                ("weatherRules", "list_weather_rules", "id",
-                 self.persistence_port.save_weather_rules),
                 ("globalRandomEvents", "list_global_random_events", "id",
                  self.persistence_port.save_global_random_events),
                 ("missions", "list_missions", "id", self.persistence_port.save_missions),
@@ -139,6 +146,11 @@ class StoryImportService(StoryImportPort):
                         if not item.get("uuid"):
                             item["uuid"] = str(uuid.uuid4())
                     self._save_with_ids(story_id, arr, table_name, id_col, save_fn)
+
+            # v0.35.8 — everything exists now, so the references that point forward (an
+            # event chained to a later event, an event handing out an item, a location or a
+            # weather rule triggering an event) can finally be written.
+            self.persistence_port.link_deferred_references(story_id, data)
 
             # 6. Sync PostgreSQL sequences
             self.persistence_port.sync_sequences()

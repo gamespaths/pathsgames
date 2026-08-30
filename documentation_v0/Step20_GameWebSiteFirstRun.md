@@ -490,7 +490,7 @@ All cards share a **2:3 aspect ratio** and the same base class `.pg-card`.
 |-------|-------|-------------|
 | `.pg-card--small` | `100px` | Tiny card (compact lists) |
 | `.pg-card--medium` | `150px` (130px on mobile) | Game selection row cards |
-| `.pg-card--home` | `225px` (180px on mobile) | Story catalog cards |
+| `.pg-card--home` | `225px` (180px on mobile) | Defined but unused since v0.35.8 — the story catalog now sizes via `.story-netflix-card` on top of `variant="little"`, see [Step18](./Step18_GameMainFrontend.md#story-catalog-card-v0358) |
 | `.pg-card--large` | `100%` | Location card (fills container) |
 | `.pg-card--grid` | `flex:1` | Config selection grid |
 
@@ -1346,7 +1346,7 @@ curl http://<EC2-IP>:8044/api/admin/matches
 
 
 
-- **Document Version**: 0.28.2
+- **Document Version**: 0.35.8
 
     | Version | Description | Date |
     |---------|-------------|------|
@@ -1362,8 +1362,9 @@ curl http://<EC2-IP>:8044/api/admin/matches
     | 0.20.7 | EC2 Docker deploy — Java backend on server2 (`aws_ec2_with_java_docker/`, tag `:test`) | June 05, 2026 |
     | 0.24.2 | EC2 Docker deploy — Python backend on server3 (`aws_ec2_with_python_docker/`, tag `:test-python`); server naming convention table; Dockerfile dual-port (8042+8044); HOST env var; optional story seed via `scripts/seed_stories.py` | June 14, 2026 |
     | 0.28.2 | i18n: `LanguageProvider` persists lang to `localStorage['pathsgames.lang']`; initial lang resolves from saved choice → browser lang → `'en'`; `pathsgames.lang` added to strictly-necessary consent table in `cookieConsent.js`; 14 tests in `i18nContext.test.jsx` | Jun 26, 2026 |
+    | 0.35.8 | Correction only: `.pg-card--home` is unused since the Story Catalog card rewrite — see [Step18](./Step18_GameMainFrontend.md#story-catalog-card-v0358). | August 30, 2026 |
 
-- **Last Updated**: June 26, 2026
+- **Last Updated**: August 30, 2026
 - **Status**: Complete
 
 # < Paths Games />

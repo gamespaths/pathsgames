@@ -124,7 +124,7 @@ def test_find_neighbors_of_location_is_undirected(session_factory, adapter):
         s.add(LocationNeighborEntity(id=1, id_story=9001, uuid="n-1",
                                      id_location_from=100, id_location_to=200,
                                      direction="N", energy_cost=2, flag_back=1,
-                                     condition_key="k", condition_value="v"))
+                                     condition_registry_key="k", condition_registry_value="v"))
         s.add(LocationNeighborEntity(id=2, id_story=9001, uuid="n-2",
                                      id_location_from=300, id_location_to=100,
                                      direction="S", energy_cost=0, flag_back=None))

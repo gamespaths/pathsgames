@@ -95,8 +95,8 @@ class WeatherSelectionService:
 
     @staticmethod
     def time_matches(rule: Dict[str, Any], clock: int) -> bool:
-        time_from = rule.get("time_start")
-        time_to = rule.get("time_end")
+        time_from = rule.get("time_from")
+        time_to = rule.get("time_to")
         if time_from is not None and clock < time_from:
             return False
         return time_to is None or clock <= time_to
@@ -106,7 +106,7 @@ class WeatherSelectionService:
         if not key:
             return True
         actual = self.store.find_registry_value(id_match, key)
-        expected = rule.get("condition_value")
+        expected = rule.get("condition_key_value")
         return actual is None if expected is None else expected == actual
 
     @staticmethod

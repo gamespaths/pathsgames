@@ -15,6 +15,7 @@ import {
   LOGIC_OPERATOR_OPTIONS,
   POSSIBLE_STATISTICS_OPTIONS,
 } from './storyFieldOptions'
+import { TEXT_MAX_LENGTH } from './textLimits'
 
 export const STORIES_ENTITIES_TABS = [
   { id: 'metadata', label: 'Story Info', icon: 'fa-info-circle' },
@@ -265,8 +266,8 @@ export const STORIES_ENTITIES_FIELDS = {
     texts: [
       { key: 'idText', label: 'Text ID', type: 'number' },
       { key: 'lang', label: 'Language', type: 'text' },
-      { key: 'shortText', label: 'Short Text', type: 'text' },
-      { key: 'longText', label: 'Long Text', type: 'textarea' },
+      { key: 'shortText', label: 'Short Text', type: 'text', maxLength: TEXT_MAX_LENGTH },
+      { key: 'longText', label: 'Long Text', type: 'textarea', maxLength: TEXT_MAX_LENGTH },
       { key: 'idTextCopyright', label: 'Copyright Text ID', type: 'number' },
       { key: 'linkCopyright', label: 'Copyright Link', type: 'text' },
       { key: 'idCreator', label: 'Creator ID', type: 'number' },

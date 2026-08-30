@@ -1,4 +1,6 @@
-# script per eseguire la versione java
+# script per eseguire la versione python 
+
+
 
 #!/usr/bin/env bash
 set -euo pipefail
@@ -15,7 +17,15 @@ echo "Env file loaded: ${ENV_FILE:-None}"
 echo "Kill all process using 8042 port"
 fuser -k 8042/tcp || true
 
-cd "$PROJECT_ROOT/code/backend/java" && mvn clean install package  -DskipTests && mvn -pl ms-launcher spring-boot:run
-#java -jar target/pathsgames-java-1.0-SNAPSHOT.jar
+# Setup venv and install dependencies BEFORE starting the server
+cd "$PROJECT_ROOT/code/backend/python"
+python3 -m venv .venv
+.venv/bin/pip install -q -r requirements.txt
 
+echo "Execute script to seed stories in database"
+.venv/bin/python scripts/seed_stories.py
+
+# start local server
+.venv/bin/python -m app.launcher &
+SERVER_PID=$!
 

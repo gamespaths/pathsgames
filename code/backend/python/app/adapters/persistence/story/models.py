@@ -74,7 +74,7 @@ class TextEntity(Base):
     id_text_description = Column(Integer)
     id_text = Column(Integer, nullable=False)
     lang = Column(String(10), default="en")
-    short_text = Column(String(1000))
+    short_text = Column(String(2000))
     long_text = Column(Text)
     id_text_copyright = Column(Integer)
     link_copyright = Column(Text)
@@ -210,8 +210,13 @@ class LocationNeighborEntity(Base):
     cost_food = Column(Integer, default=0)
     cost_magic = Column(Integer, default=0)
     cost_coin = Column(Integer, default=0)
-    condition_key = Column(String(255))
-    condition_value = Column(String(255))
+    # v0.35.8 — realigned onto the Java schema (V0.10.3): the columns are
+    # condition_registry_key/_value, so the old condition_key/_value never existed.
+    condition_registry_key = Column(String(200))
+    condition_registry_value = Column(String(200))
+    # The label of the edge in each direction: "Go to the end" / "Back from end".
+    id_text_go = Column(Integer)
+    id_text_back = Column(Integer)
 
 
 class ItemEntity(Base):
@@ -231,7 +236,9 @@ class ItemEntity(Base):
     id_card = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
-    weight = Column(Integer, default=0)
+    # v0.35.8 — 1, like the Java schema (V0.10.3: weight INTEGER NOT NULL DEFAULT 1) and
+    # its @PrePersist: an item that does not declare a weight still weighs something.
+    weight = Column(Integer, default=1)
     # 1 = can be consumed with use-item; 0 = carried only (weight + item conditions).
     is_consumabile = Column(Integer, default=1)
     # v0.35.0 — 1/None report the effects[] promise before the item is used, 0 keeps the
@@ -283,11 +290,15 @@ class WeatherRuleEntity(Base):
     cost_move_safe_location = Column(Integer, default=0)
     cost_move_not_safe_location = Column(Integer, default=0)
     id_event = Column(Integer)
-    condition_key = Column(String(255))
-    condition_value = Column(String(255))
-    time_start = Column(Integer)
-    time_end = Column(Integer)
-    is_active = Column(Integer, default=1)
+    # v0.35.8 — realigned onto the Java schema (V0.10.3). The old condition_value /
+    # time_start / time_end / is_active names are columns that do not exist there, and
+    # id_text — the rule's own label — was missing altogether.
+    condition_key = Column(String(200))
+    condition_key_value = Column(String(200))
+    time_from = Column(Integer)
+    time_to = Column(Integer)
+    id_text = Column(Integer)
+    active = Column(Integer, default=1)
 
 
 class EventEntity(Base):

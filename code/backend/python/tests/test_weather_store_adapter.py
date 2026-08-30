@@ -56,12 +56,12 @@ def _seed_rules(session_factory):
         s.add(WeatherRuleEntity(id=10, id_story=9001, uuid="w-sun", id_card=1,
                                 id_text_name=500, probability=0.7, delta_energy=1,
                                 cost_move_safe_location=1, cost_move_not_safe_location=2,
-                                id_event=90, condition_key="k", condition_value="v",
-                                time_start=0, time_end=12, is_active=1))
+                                id_event=90, condition_key="k", condition_key_value="v",
+                                time_from=0, time_to=12, active=1))
         s.add(WeatherRuleEntity(id=11, id_story=9001, uuid="w-rain", id_card=2,
                                 probability=0.3, delta_energy=-2,
                                 cost_move_safe_location=3, cost_move_not_safe_location=4,
-                                time_start=12, time_end=24, is_active=0))
+                                time_from=12, time_to=24, active=0))
         s.add(TextEntity(id=1, id_story=9001, id_text=500, lang="en", short_text="Sun"))
         s.add(CardEntity(id=2, id_story=9001, uuid="card-rain", id_text_title=600))
         s.add(TextEntity(id=2, id_story=9001, id_text=600, lang="en", short_text="Rain"))
@@ -86,10 +86,10 @@ def test_find_active_weather_rules_skips_the_inactive_ones(session_factory, adap
     assert [r["id"] for r in rules] == [10]
     assert rules[0]["uuid"] == "w-sun"
     assert rules[0]["probability"] == 0.7
-    assert rules[0]["time_start"] == 0
-    assert rules[0]["time_end"] == 12
+    assert rules[0]["time_from"] == 0
+    assert rules[0]["time_to"] == 12
     assert rules[0]["condition_key"] == "k"
-    assert rules[0]["condition_value"] == "v"
+    assert rules[0]["condition_key_value"] == "v"
     assert rules[0]["delta_energy"] == 1
     assert rules[0]["id_event"] == 90
     assert rules[0]["id_text_name"] == 500
@@ -235,10 +235,10 @@ def test_find_weather_rules_for_match_unknown_uuid(session_factory, adapter):
 def test_weather_name_is_none_without_text_or_card(session_factory, adapter):
     _seed_match(session_factory)
     with session_factory() as s:
-        s.add(WeatherRuleEntity(id=12, id_story=9001, uuid="w-plain", is_active=1))
+        s.add(WeatherRuleEntity(id=12, id_story=9001, uuid="w-plain", active=1))
         # a card with no resolvable title text
         s.add(WeatherRuleEntity(id=13, id_story=9001, uuid="w-card", id_card=9,
-                                is_active=1))
+                                active=1))
         s.add(CardEntity(id=9, id_story=9001, uuid="card-9"))
         s.commit()
 

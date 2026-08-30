@@ -112,9 +112,21 @@ def check(match, char, item, *, require_consumable):
         return None
     if item is None:
         return "ITEM_NOT_FOUND"
-    if _nz(item.get("isConsumabile")) != 1:
+    if not is_consumable(item):
         return "ITEM_NOT_CONSUMABLE"
     return check_class_gate(char, item)
+
+
+def is_consumable(item):
+    """v0.35.8 — may this item be used up? Only an explicit non-1 refuses.
+
+    A missing key is the reading of every story that never authored the field, and the
+    shared schema says such an item IS consumable (list_items.is_consumabile INTEGER NOT
+    NULL DEFAULT 1, and Java's ItemEntity @PrePersist writes 1). Reading an absence as a
+    refusal made the same story behave one way here and the other way on Java/Python.
+    """
+    value = (item or {}).get("isConsumabile")
+    return value is None or _nz(value) == 1
 
 
 def check_class_gate(char, item):

@@ -315,6 +315,8 @@ def test_an_empty_pending_list_does_nothing(service, store):
 EVENT_CARD = {"title": "The fuse burns out"}
 EFFECT_CARD = {"title": "You feel weaker"}
 LOCATION_CARD = {"title": "The old mill"}
+# v0.35.8 — what the port actually returns: the raw row, which the service maps.
+LOCATION_CARD_ROW = {"uuid": "card-loc", "id_text_title": 501, "url_image": "http://img"}
 
 
 def _fired_at(id_location=LOCATION):
@@ -330,7 +332,8 @@ def _fired_at(id_location=LOCATION):
 def service_with_cards(store, location_store):
     """The location card is authored, so cardLocation actually resolves to something."""
     content = MagicMock()
-    content.find_card_by_story_id_and_card_id.return_value = LOCATION_CARD
+    content.find_card_by_story_id_and_card_id.return_value = LOCATION_CARD_ROW
+    content.find_text_by_story_id_text_and_lang.return_value = {"short_text": "The old mill"}
     location_store.find_location_triggers.return_value = _triggers()
     return EventService(store, edge_store=MagicMock(), location_store=location_store,
                         content_read_port=content)
@@ -346,7 +349,9 @@ def test_standing_there_is_full(service_with_cards, location_store):
     assert told[0].clock == CLOCK
     # v0.33.1: the news is the event and what it did, not the name of the place.
     assert told[0].card == EVENT_CARD
-    assert told[0].card_location == LOCATION_CARD
+    # the raw row is mapped to the API contract, with the title resolved
+    assert told[0].card_location["title"] == "The old mill"
+    assert told[0].card_location["urlImage"] == "http://img"
     assert [e.card for e in told[0].card_effects] == [EFFECT_CARD]
 
 
@@ -358,7 +363,7 @@ def test_having_been_there_before_is_named(service_with_cards, location_store):
 
     assert told[0].visibility == lem.VISIBILITY_NAMED
     assert told[0].card == EVENT_CARD
-    assert told[0].card_location == LOCATION_CARD
+    assert told[0].card_location["title"] == "The old mill"
     assert len(told[0].card_effects) == 1
 
 

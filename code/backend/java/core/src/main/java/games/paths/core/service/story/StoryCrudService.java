@@ -864,6 +864,9 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("flagEndTime", ev.getFlagEndTime());
             m.put("idWeather", ev.getIdWeather());
             m.put("idEventNext", ev.getIdEventNext());
+            // v0.35.8 — the item the event hands over: imported and stored, but never
+            // reported, so the admin never saw it and the export dropped it.
+            m.put("idItemToAdd", ev.getIdItemToAdd());
             m.put("costCoin", ev.getCostCoin());
             m.put("costFood", ev.getCostFood());
             m.put("costMagic", ev.getCostMagic());

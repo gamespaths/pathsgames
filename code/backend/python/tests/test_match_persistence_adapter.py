@@ -338,3 +338,30 @@ def test_delete_match_by_uuid_removes_match_and_children(session_factory):
 def test_delete_match_by_uuid_unknown(session_factory):
     adapter = MatchPersistenceAdapter(session_factory)
     assert adapter.delete_match_by_uuid("nope") is False
+
+
+def test_find_location_neighbors_carries_the_edge_price_and_gate(session_factory):
+    """v0.35.8 — match-info judges and reports each edge from THIS dict. Without the
+    resource costs it called every edge free (and affordable), and without the registry
+    keys it called every gated edge open: the board offered a move POST /move refuses."""
+    from app.adapters.persistence.story.models import LocationNeighborEntity
+
+    with session_factory() as session:
+        session.add(StoryEntity(id=7, uuid="story-edges", author="A"))
+        session.add(LocationNeighborEntity(
+            id=1, id_story=7, uuid="edge-1", id_location_from=1, id_location_to=2,
+            direction="WEST", flag_back=0, energy_cost=1,
+            cost_food=2, cost_magic=3, cost_coin=4,
+            condition_registry_key="door", condition_registry_value="open"))
+        session.commit()
+
+    edges = StoryMatchReadAdapter(session_factory).find_location_neighbors_by_story_id(7)
+
+    assert len(edges) == 1
+    edge = edges[0]
+    assert (edge["cost_food"], edge["cost_magic"], edge["cost_coin"]) == (2, 3, 4)
+    assert edge["condition_registry_key"] == "door"
+    assert edge["condition_registry_value"] == "open"
+    # and what was already there stays there
+    assert (edge["id_location_from"], edge["id_location_to"]) == (1, 2)
+    assert edge["energy_cost"] == 1
