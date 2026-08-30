@@ -68,50 +68,72 @@
     <div class="container">
       <div class="row justify-content-center g-4 pg-cards-row">
 
-        <!-- Card 1 — Play Alpha -->
+        <!-- Card 1 — Play Tutorial -->
         <div class="col-12 col-md-4">
-          <a href="https://test.paths.games/"  rel="noopener" class="pg-card pg-card--play">
-            <div class="pg-card-icon-wrap">
-              <i class="fas fa-play-circle"></i>
+          <div class="pg-card">
+            <div class="gc-title">
+              <div class="gc-title__text">Play Tutorial</div>
             </div>
-            <div class="pg-card-body">
-              <h2 class="pg-card-title">Play Alpha Version</h2>
-              <p class="pg-card-desc">Step into the world &mdash; the adventure has already begun. Try the current alpha build, explore the first stories and forge your own path.</p>
-              <span class="pg-card-cta">Play <i class="fas fa-chevron-right ms-1"></i></span>
+            <div class="gc-img gc-img--tutorial">
+              <i class="fas fa-play-circle gc-placeholder"></i>
             </div>
-            <div class="pg-card-glow pg-card-glow--gold"></div>
-          </a>
+            <div class="gc-desc">
+              Step into the world &mdash; the adventure has already begun. Try the current alpha build, explore the first stories and forge your own path.
+            </div>
+            <div class="gc-footer">
+              <div class="gc-actions">
+                <a href="https://test.paths.games/" rel="noopener" class="gc-footer__btn">
+                  <i class="fas fa-hand-pointer"></i>
+                  <span class="gc-footer__btn-label">Play</span>
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Card 2 — Develop / GitHub -->
+        <!-- Card 2 — Open Source -->
         <div class="col-12 col-md-4">
-          <a href="https://github.com/gamespaths/pathsgames" target="_blank" rel="noopener" class="pg-card pg-card--dev">
-            <div class="pg-card-icon-wrap">
-              <i class="fab fa-git-alt"></i>
+          <div class="pg-card">
+            <div class="gc-title">
+              <div class="gc-title__text">Open Source</div>
             </div>
-            <div class="pg-card-body">
-              <h2 class="pg-card-title">Open Source</h2>
-              <p class="pg-card-desc">Paths Games is built in the open. Explore the source code, follow the devlog, contribute ideas or report issues &mdash; every path starts with a first commit.</p>
-              <span class="pg-card-cta">View on GitHub <i class="fas fa-chevron-right ms-1"></i></span>
+            <div class="gc-img gc-img--opensource">
+              <i class="fab fa-git-alt gc-placeholder"></i>
             </div>
-            <div class="pg-card-glow pg-card-glow--amber"></div>
-          </a>
+            <div class="gc-desc">
+              Paths Games is built in the open. Explore the source code, follow the devlog, contribute ideas or report issues &mdash; every path starts with a first commit.
+            </div>
+            <div class="gc-footer">
+              <div class="gc-actions">
+                <a href="https://github.com/gamespaths/pathsgames" target="_blank" rel="noopener" class="gc-footer__btn">
+                  <i class="fab fa-github"></i>
+                  <span class="gc-footer__btn-label">View on GitHub</span>
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Card 3 — Crowdfunding Coming Soon -->
+        <!-- Card 3 — Crowdfunding (locked) -->
         <div class="col-12 col-md-4">
-          <div class="pg-card pg-card--crowd pg-card--soon">
-            <div class="pg-card-icon-wrap">
-              <i class="fas fa-coins"></i>
+          <div class="pg-card pg-card--soon">
+            <div class="gc-title">
+              <div class="gc-title__text">Crowdfunding</div>
             </div>
-            <div class="pg-card-body">
-              <h2 class="pg-card-title">Crowdfunding</h2>
-              <p class="pg-card-desc">Great stories need bold patrons. A campaign is coming &mdash; help us forge weapons, weave lore and bring this world to life. Your coin, your legend.</p>
-              <span class="pg-card-cta pg-card-cta--soon">
-                <i class="fas fa-hourglass-half me-1"></i>Coming Soon
-              </span>
+            <div class="gc-img gc-img--crowdfunding">
+              <i class="fas fa-coins gc-placeholder"></i>
             </div>
-            <div class="pg-card-glow pg-card-glow--ember"></div>
+            <div class="gc-desc">
+              Great stories need bold patrons. A campaign is coming &mdash; help us forge weapons, weave lore and bring this world to life. Your coin, your legend.
+            </div>
+            <div class="gc-footer">
+              <div class="gc-actions">
+                <button type="button" class="gc-footer__btn" disabled>
+                  <i class="fas fa-hourglass-half"></i>
+                  <span class="gc-footer__btn-label">Coming Soon</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -124,7 +146,7 @@
     <div class="pg-footer-inner">
       <span class="pg-footer-brand"><i class="fas fa-dice-d20 me-1"></i>Paths Games</span>
       <span class="pg-footer-sep">&middot;</span>
-      <span class="pg-footer-copy">&copy; 2026 All rights reserved - v0.25.5 - Crafted with <i class="fas fa-heart me-1"></i> by the Paths Games Dev Team</span>
+      <span class="pg-footer-copy">&copy; 2026 All rights reserved - v0.35.7 - Crafted with <i class="fas fa-heart me-1"></i> by the Paths Games Dev Team</span>
       <span class="pg-footer-sep">&middot;</span>
       <a href="cookies.html" class="pg-footer-link">
         <i class="fas fa-cookie-bite me-1"></i>Cookies Policy
