@@ -2,7 +2,6 @@ package games.paths.core.service.match;
 
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
-import games.paths.core.entity.match.GamingStateRegistryEntity;
 import games.paths.core.entity.story.ClassEntity;
 import games.paths.core.entity.story.EventEntity;
 import games.paths.core.entity.story.KeyEntity;
@@ -46,6 +45,8 @@ class MatchCommandServiceTest {
     private MatchPersistencePort persistencePort;
     private UserAccessPort userAccessPort;
     private SystemModePort systemModePort;
+    private games.paths.core.port.match.RegistryStorePort registryStorePort;
+    private RegistryService registryService;
     private MatchCommandService service;
 
     @BeforeEach
@@ -54,7 +55,11 @@ class MatchCommandServiceTest {
         persistencePort = mock(MatchPersistencePort.class);
         userAccessPort = mock(UserAccessPort.class);
         systemModePort = mock(SystemModePort.class);
-        service = new MatchCommandService(storyReadPort, persistencePort, userAccessPort, systemModePort);
+        registryStorePort = mock(games.paths.core.port.match.RegistryStorePort.class);
+        // A real service over a mocked store: the seeding codec is the thing under test here.
+        registryService = new RegistryService(registryStorePort);
+        service = new MatchCommandService(storyReadPort, persistencePort, userAccessPort,
+                systemModePort, registryService);
     }
 
     private MatchCreateCommand cmd(String userUuid, String storyUuid, String diffUuid) {
@@ -178,7 +183,8 @@ class MatchCommandServiceTest {
         void turnstileRejected() {
             TurnstileVerificationPort rejectAll = (token, ip) -> false;
             MatchCommandService strictService = new MatchCommandService(
-                    storyReadPort, persistencePort, userAccessPort, systemModePort, rejectAll);
+                    storyReadPort, persistencePort, userAccessPort, systemModePort, rejectAll,
+                    registryService);
             MatchCommandPort.MatchCreationException ex = assertThrows(
                     MatchCommandPort.MatchCreationException.class,
                     () -> strictService.createMatch(new MatchCreateCommand("u", "s", "d",
@@ -414,7 +420,7 @@ class MatchCommandServiceTest {
                             && firstLocation(list).getClockCounter() == 5
             ));
 
-            verify(persistencePort).saveRegistry(argThat(list ->
+            verify(registryStorePort).insertAll(anyLong(), argThat(list ->
                     list != null && list.size() == 4
             ));
         }
@@ -523,7 +529,7 @@ class MatchCommandServiceTest {
 
             MatchSummary result = service.createMatch(cmd("user-uuid", "story-uuid", "diff-uuid"));
             assertNotNull(result);
-            verify(persistencePort).saveRegistry(argThat(list -> list != null && list.isEmpty()));
+            verify(registryStorePort).insertAll(anyLong(), argThat(list -> list != null && list.isEmpty()));
         }
 
         @Test
@@ -618,7 +624,7 @@ class MatchCommandServiceTest {
 
         verify(persistencePort).saveMatch(any(GamingMatchEntity.class));
         verify(persistencePort).saveLocations(anyList());
-        verify(persistencePort).saveRegistry(anyList());
+        verify(registryStorePort).insertAll(anyLong(), anyList());
     }
 
     @Nested
@@ -644,10 +650,10 @@ class MatchCommandServiceTest {
         }
 
         @SuppressWarnings("unchecked")
-        private List<GamingStateRegistryEntity> capturedRegistry() {
-            org.mockito.ArgumentCaptor<List<GamingStateRegistryEntity>> captor =
+        private List<games.paths.core.port.match.RegistryStorePort.RegistryRow> capturedRegistry() {
+            org.mockito.ArgumentCaptor<List<games.paths.core.port.match.RegistryStorePort.RegistryRow>> captor =
                     org.mockito.ArgumentCaptor.forClass(List.class);
-            verify(persistencePort).saveRegistry(captor.capture());
+            verify(registryStorePort).insertAll(anyLong(), captor.capture());
             return captor.getValue();
         }
 
@@ -657,10 +663,10 @@ class MatchCommandServiceTest {
             when(storyReadPort.findKeysByStoryId(2L))
                     .thenReturn(List.of(key(20L, "n", "42")));
             service.createMatch(cmd("u", "s", "d"));
-            List<GamingStateRegistryEntity> saved = capturedRegistry();
+            List<games.paths.core.port.match.RegistryStorePort.RegistryRow> saved = capturedRegistry();
             assertEquals(1, saved.size());
-            assertEquals(42, saved.get(0).getIntValue());
-            assertNull(saved.get(0).getStringValue());
+            assertEquals(42, saved.get(0).intValue());
+            assertNull(saved.get(0).stringValue());
         }
 
         @Test
@@ -669,9 +675,9 @@ class MatchCommandServiceTest {
             when(storyReadPort.findKeysByStoryId(2L))
                     .thenReturn(List.of(key(20L, "name", "hi")));
             service.createMatch(cmd("u", "s", "d"));
-            List<GamingStateRegistryEntity> saved = capturedRegistry();
-            assertEquals("hi", saved.get(0).getStringValue());
-            assertNull(saved.get(0).getIntValue());
+            List<games.paths.core.port.match.RegistryStorePort.RegistryRow> saved = capturedRegistry();
+            assertEquals("hi", saved.get(0).stringValue());
+            assertNull(saved.get(0).intValue());
         }
 
         @Test
@@ -680,8 +686,8 @@ class MatchCommandServiceTest {
             when(storyReadPort.findKeysByStoryId(2L))
                     .thenReturn(List.of(key(20L, "n", "   ")));
             service.createMatch(cmd("u", "s", "d"));
-            List<GamingStateRegistryEntity> saved = capturedRegistry();
-            assertEquals("", saved.get(0).getStringValue());
+            List<games.paths.core.port.match.RegistryStorePort.RegistryRow> saved = capturedRegistry();
+            assertEquals("", saved.get(0).stringValue());
         }
 
         @Test
@@ -690,9 +696,9 @@ class MatchCommandServiceTest {
             when(storyReadPort.findKeysByStoryId(2L))
                     .thenReturn(List.of(key(20L, "n", null)));
             service.createMatch(cmd("u", "s", "d"));
-            List<GamingStateRegistryEntity> saved = capturedRegistry();
-            assertNull(saved.get(0).getStringValue());
-            assertNull(saved.get(0).getIntValue());
+            List<games.paths.core.port.match.RegistryStorePort.RegistryRow> saved = capturedRegistry();
+            assertNull(saved.get(0).stringValue());
+            assertNull(saved.get(0).intValue());
         }
     }
 

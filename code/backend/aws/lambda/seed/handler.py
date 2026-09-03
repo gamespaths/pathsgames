@@ -204,8 +204,10 @@ SEED_STORIES = [
                       "urlImage": None, "awesomeIcon": "fas fa-arrow-up"}},
         ],
         "keys": [
-            {"id": 1, "uuid": "key-tutorial-1", "keyName": "tutorial_intro_done", "keyValue": "0"},
-            {"id": 2, "uuid": "key-tutorial-2", "keyName": "training_completed", "keyValue": "no"},
+            {"id": 1, "uuid": "key-tutorial-1", "keyName": "tutorial_intro_done",
+             "keyValue": "0", "keyGroup": "tutorial", "visibility": "PUBLIC", "priority": 1},
+            {"id": 2, "uuid": "key-tutorial-2", "keyName": "training_completed",
+             "keyValue": "0", "keyGroup": "tutorial", "visibility": "PUBLIC", "priority": 2},
         ],
         # Step 20.1 — events for end-game trigger; Step 27.x — idLocation + card
         "idEventEndGame":    99,
@@ -900,9 +902,12 @@ SEED_STORIES = [
                       "urlImage": None, "awesomeIcon": "fas fa-arrow-down"}},
         ],
         "keys": [
-            {"id": 1, "uuid": "key-demo1-1", "keyName": "main_quest_started", "keyValue": "0"},
-            {"id": 2, "uuid": "key-demo1-2", "keyName": "found_treasure", "keyValue": "no"},
-            {"id": 3, "uuid": "key-demo1-3", "keyName": "ally_count", "keyValue": "0"},
+            {"id": 1, "uuid": "key-demo1-1", "keyName": "main_quest_started",
+             "keyValue": "0", "keyGroup": "quest", "visibility": "PUBLIC", "priority": 1},
+            {"id": 2, "uuid": "key-demo1-2", "keyName": "found_treasure",
+             "keyValue": "0", "keyGroup": "quest", "visibility": "PUBLIC", "priority": 2},
+            {"id": 3, "uuid": "key-demo1-3", "keyName": "ally_count",
+             "keyValue": "0", "keyGroup": "quest", "visibility": "PUBLIC", "priority": 3},
         ],
         # Step 20.1 — events for end-game trigger; Step 27.x — idLocation + card
         "idEventEndGame":    77,

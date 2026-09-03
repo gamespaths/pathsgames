@@ -50,7 +50,7 @@ class EventExecutionStoreAdapterTest {
                 mock(GamingBackpackResourcesRepository.class),
                 mock(GamingInventoryItemsRepository.class),
                 mock(GamingCharacterTraitsRepository.class),
-                mock(GamingStateRegistryRepository.class),
+                mock(games.paths.core.port.match.RegistryStorePort.class),
                 mock(LogEventsRepository.class),
                 mock(LogItemUsageRepository.class),
                 logMovementRepository,

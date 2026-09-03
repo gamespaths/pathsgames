@@ -36,6 +36,8 @@ from app.adapters.persistence.match.story_match_read_adapter import StoryMatchRe
 from app.adapters.persistence.match.user_access_adapter import UserAccessAdapter
 from app.adapters.persistence.match.character_persistence_adapter import CharacterPersistenceAdapter
 from app.core.services.match.match_command_service import MatchCommandService
+from app.core.services.match.registry_service import RegistryService
+from app.adapters.persistence.match.registry_store_adapter import RegistryStoreAdapter
 from app.core.services.match.match_query_service import MatchQueryService
 from app.core.services.match.character_command_service import CharacterCommandService
 from app.core.services.match.character_query_service import CharacterQueryService
@@ -114,12 +116,17 @@ turnstile_adapter = TurnstileVerificationAdapter(
     bypass_token=settings.turnstile_bypass_token,
     env=settings.env,
 )
+# Step 36 — one service owns every read, write and comparison of gaming_state_registry.
+registry_store_adapter = RegistryStoreAdapter(SessionLocal)
+registry_service = RegistryService(registry_store_adapter, story_match_read_adapter,
+                                   content_query_service)
 match_command_service = MatchCommandService(
     story_match_read_adapter,
     match_persistence_adapter,
     user_access_adapter,
     system_mode_service,
     turnstile_adapter,
+    registry_service,
 )
 # Step 21 — character join adapters and services
 character_persistence_adapter = CharacterPersistenceAdapter(SessionLocal)
@@ -149,6 +156,7 @@ match_query_service = MatchQueryService(
     character_persistence_adapter,
     movement_store_adapter,
     event_store_adapter,
+    registry_service,
 )
 
 # Dev-only test-data cleanup service
@@ -172,7 +180,7 @@ character_controller = CharacterController(character_command_service, character_
 
 # Step 27 — weather selection engine (shared by turn-start, time-advancement and queries).
 weather_store_adapter = WeatherStoreAdapter(SessionLocal)
-weather_selection_service = WeatherSelectionService(weather_store_adapter)
+weather_selection_service = WeatherSelectionService(weather_store_adapter, registry_service)
 weather_controller = WeatherController(weather_selection_service, content_query_service)
 
 # Step 28 — movement system service (shared by player and admin controllers).
@@ -182,7 +190,8 @@ weather_controller = WeatherController(weather_selection_service, content_query_
 location_entry_store_adapter = LocationEntryStoreAdapter(SessionLocal)
 # The MovementService is built AFTER the event service below, because the arrival hook is
 # the event service itself; a placeholder here keeps the admin controller wiring readable.
-movement_service = MovementService(movement_store_adapter, story_match_read_adapter)
+movement_service = MovementService(movement_store_adapter, story_match_read_adapter,
+                                  registry_service_instance=registry_service)
 
 match_admin_controller = MatchAdminController(match_command_service, match_query_service,
                                                character_command_service,
@@ -215,7 +224,8 @@ event_service = EventService(event_store_adapter,
                              edge_store=edge_state_store_adapter,
                              content_read_port=story_match_read_adapter,
                              time_service=time_advancement_service,
-                             location_store=location_entry_store_adapter)
+                             location_store=location_entry_store_adapter,
+                             registry_service_instance=registry_service)
 event_controller = EventController(event_service)
 
 # Steps 34 & 35 — inventory and resources. Depends on the CONCRETE EventService, not on

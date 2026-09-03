@@ -169,12 +169,6 @@ public interface EventExecutionStorePort {
     /** False when the trait was not held. */
     boolean removeTrait(long idMatch, long idCharacter, long idTrait);
 
-    /**
-     * Upsert a {@code gaming_state_registry} key of the match. A numeric {@code value}
-     * lands in {@code int_value}, anything else in {@code string_value}.
-     */
-    void upsertRegistry(long idMatch, String key, String value, Long idCharacter, Long idEvent, int clock);
-
     /** Sets {@code gaming_match.id_current_weather} (null clears it). */
     void setCurrentWeather(long idMatch, Long idWeather);
 

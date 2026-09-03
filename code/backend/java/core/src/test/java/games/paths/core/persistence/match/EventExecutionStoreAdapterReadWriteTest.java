@@ -64,7 +64,7 @@ class EventExecutionStoreAdapterReadWriteTest {
     private GamingBackpackResourcesRepository backpackRepository;
     private GamingInventoryItemsRepository inventoryRepository;
     private GamingCharacterTraitsRepository traitsRepository;
-    private GamingStateRegistryRepository registryRepository;
+    private games.paths.core.port.match.RegistryStorePort registryStorePort;
     private LogEventsRepository logEventsRepository;
     private LogMovementRepository logMovementRepository;
     private LogItemUsageRepository logItemUsageRepository;
@@ -81,7 +81,7 @@ class EventExecutionStoreAdapterReadWriteTest {
         backpackRepository = mock(GamingBackpackResourcesRepository.class);
         inventoryRepository = mock(GamingInventoryItemsRepository.class);
         traitsRepository = mock(GamingCharacterTraitsRepository.class);
-        registryRepository = mock(GamingStateRegistryRepository.class);
+        registryStorePort = mock(games.paths.core.port.match.RegistryStorePort.class);
         logEventsRepository = mock(LogEventsRepository.class);
         logMovementRepository = mock(LogMovementRepository.class);
         logItemUsageRepository = mock(LogItemUsageRepository.class);
@@ -90,7 +90,7 @@ class EventExecutionStoreAdapterReadWriteTest {
         storyReadPort = mock(StoryReadPort.class);
         weatherStorePort = mock(WeatherStorePort.class);
         adapter = new EventExecutionStoreAdapter(matchRepository, characterRepository,
-                backpackRepository, inventoryRepository, traitsRepository, registryRepository,
+                backpackRepository, inventoryRepository, traitsRepository, registryStorePort,
                 logEventsRepository, logItemUsageRepository, logMovementRepository,
                 logChoicesRepository, storyProgressRepository, storyReadPort, weatherStorePort);
     }
@@ -404,7 +404,7 @@ class EventExecutionStoreAdapterReadWriteTest {
                 inventoryRow(1L, 500L, 2),
                 inventoryRow(2L, 501L, 0),      // amount 0 → not owned
                 inventoryRow(3L, null, 5)));    // no item id → skipped
-        when(registryRepository.findByIdMatch(1L)).thenReturn(List.of(
+        when(registryStorePort.findByMatch(1L)).thenReturn(List.of(
                 registryRow("flag", "yes", null),
                 registryRow("count", null, 7),
                 registryRow("empty", null, null),
@@ -454,12 +454,9 @@ class EventExecutionStoreAdapterReadWriteTest {
         assertTrue(ctx.consumedEventIds().isEmpty());
     }
 
-    private static GamingStateRegistryEntity registryRow(String key, String s, Integer i) {
-        GamingStateRegistryEntity r = new GamingStateRegistryEntity();
-        r.setKey(key);
-        r.setStringValue(s);
-        r.setIntValue(i);
-        return r;
+    private static games.paths.core.port.match.RegistryStorePort.RegistryRow registryRow(
+            String key, String s, Integer i) {
+        return games.paths.core.port.match.RegistryStorePort.RegistryRow.of(key, s, i);
     }
 
     // ── writes ──────────────────────────────────────────────────────────────
@@ -710,65 +707,10 @@ class EventExecutionStoreAdapterReadWriteTest {
         assertFalse(adapter.removeTrait(1L, 3L, 900L));
     }
 
-    @Test
-    void upsertRegistry_ignoresNullAndBlankKeys() {
-        adapter.upsertRegistry(1L, null, "v", null, null, 0);
-        adapter.upsertRegistry(1L, "   ", "v", null, null, 0);
-        verifyNoInteractions(registryRepository);
-    }
 
-    @Test
-    void upsertRegistry_updatesTheExistingKey_numericGoesToIntValue() {
-        GamingStateRegistryEntity existing = registryRow("count", "old", null);
-        when(registryRepository.findByIdMatch(1L)).thenReturn(List.of(existing));
 
-        adapter.upsertRegistry(1L, "count", " 42 ", 3L, 12L, 5);
 
-        assertEquals(42, existing.getIntValue());
-        assertNull(existing.getStringValue());
-        assertEquals(3L, existing.getIdCharacter());
-        assertEquals(12L, existing.getIdEvent());
-        assertEquals(5, existing.getClock());
-        verify(registryRepository).save(existing);
-    }
 
-    @Test
-    void upsertRegistry_nonNumericGoesToStringValue_andNullClearsBoth() {
-        GamingStateRegistryEntity existing = registryRow("flag", null, 1);
-        when(registryRepository.findByIdMatch(1L)).thenReturn(List.of(existing));
-
-        adapter.upsertRegistry(1L, "flag", "yes", null, null, 1);
-        assertEquals("yes", existing.getStringValue());
-        assertNull(existing.getIntValue());
-
-        adapter.upsertRegistry(1L, "flag", null, null, null, 2);
-        assertNull(existing.getStringValue());
-        assertNull(existing.getIntValue());
-    }
-
-    @Test
-    void upsertRegistry_insertsANewKeyWithTheNextId() {
-        when(registryRepository.findByIdMatch(1L)).thenReturn(List.of(
-                registryRow("other", "x", null), registryWithId(4L)));
-
-        adapter.upsertRegistry(1L, "fresh", "hello", 3L, 12L, 6);
-
-        ArgumentCaptor<GamingStateRegistryEntity> cap =
-                ArgumentCaptor.forClass(GamingStateRegistryEntity.class);
-        verify(registryRepository).save(cap.capture());
-        GamingStateRegistryEntity row = cap.getValue();
-        assertEquals(5L, row.getId());
-        assertEquals(1L, row.getIdMatch());
-        assertEquals("fresh", row.getKey());
-        assertEquals("hello", row.getStringValue());
-        assertEquals(6, row.getClock());
-    }
-
-    private static GamingStateRegistryEntity registryWithId(long id) {
-        GamingStateRegistryEntity r = registryRow("with-id", "y", null);
-        r.setId(id);
-        return r;
-    }
 
     @Test
     void setCurrentWeather_delegatesToTheWeatherPort() {

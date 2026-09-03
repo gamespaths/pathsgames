@@ -154,6 +154,13 @@ export function getNewEntityDefaults(activeTab) {
   if (activeTab === 'items') {
     return { flagShowEffects: 1 }
   }
+  // Step 36 — a new registry key is born visible. The backend shows a key only when its
+  // visibility is exactly PUBLIC, so a key created with the field untouched would be written
+  // by the engine and then never seen. Only NEW keys are defaulted: an existing row is left
+  // exactly as it is, whatever it holds.
+  if (activeTab === 'keys') {
+    return { visibility: 'PUBLIC' }
+  }
   return null
 }
 

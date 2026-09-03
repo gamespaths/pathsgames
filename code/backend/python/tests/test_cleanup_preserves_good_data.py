@@ -26,6 +26,7 @@ from app.adapters.persistence.story.models import (  # noqa: F401
 )
 import app.adapters.persistence.match.models  # noqa: F401  registers gaming_* tables
 from app.core.services.dev.test_data_cleanup_service import TestDataCleanupService
+from app.adapters.persistence.match.registry_store_adapter import RegistryStoreAdapter
 
 FUTURE = "2099-01-01T00:00:00Z"
 
@@ -74,7 +75,7 @@ def test_cleanup_matches_preserves_real_matches_and_children(session_factory):
     robot = adapter.save_match({"id_story": 1, "id_difficulty": 1, "id_user_creator": 1,
                                 "name": "robottest_match"})
     adapter.save_locations([{"id_match": robot["id"], "id_location": 1}])
-    adapter.save_registry([{"id": 1, "id_match": robot["id"], "key": "k"}])
+    RegistryStoreAdapter(session_factory).insert_all(robot["id"], [{"key": "k"}])
     adapter.save_locations([{"id_match": real["id"], "id_location": 2}])
 
     deleted = adapter.delete_matches_by_name_like("robottest%")

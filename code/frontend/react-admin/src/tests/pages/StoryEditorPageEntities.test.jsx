@@ -79,6 +79,28 @@ describe('StoryEditorPage entity save and delete', () => {
     await waitFor(() => expect(listEntities).toHaveBeenCalledWith(STORY_UUID, 'texts'))
   })
 
+  it('picks the registry key of an event effect, as a choice effect already did', async () => {
+    // Step 36 — `keyToAdd` lives on list_events_effects (it moved off list_events in v0.29.0),
+    // but the keys picker was still registered on the `events` tab, where no such field
+    // exists any more. The author had to type the key name by hand on one table and pick it
+    // on the other, for the same registry.
+    mockLists({
+      keys: [{ uuid: 'k-1', id: 1, name: 'STEP29_GATE' }],
+      // `statistics` is one of the columns the table actually renders, so the row is findable.
+      'event-effects': [{ uuid: 'ee-1', id: 1, idEvent: 1, statistics: 'EXP',
+                          keyToAdd: 'STEP29_GATE' }],
+    })
+    renderPage()
+    await gotoTab('Event Effects')
+
+    await userEvent.click(rowActions('EXP').edit)
+
+    // A picker, not a bare text box: it renders the chosen value and a Select button.
+    const select = await screen.findByTitle('Select Registry Key to Write')
+    expect(select).toBeInTheDocument()
+    expect(screen.getByTitle('STEP29_GATE')).toBeInTheDocument()
+  })
+
   it('refreshes the reference lists after an event is deleted', async () => {
     mockLists({ events: [{ uuid: 'ev-1', id: 1, type: 'EVENT-ONE' }] })
     renderPage()

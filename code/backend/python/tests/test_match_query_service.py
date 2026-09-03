@@ -47,8 +47,11 @@ def _build(user=None, match=None, matches=None, story=None, difficulty=None, loc
     story_read.find_difficulty_by_id.return_value = difficulty
     story_read.find_locations_by_story_id.return_value = locations or []
     persistence.find_locations_by_match_id.return_value = state_locations or []
-    persistence.find_registry_by_match_id.return_value = registry or []
-    return MatchQueryService(persistence, story_read, user_access), {
+    registry_service = MagicMock()
+    registry_service.list_entries.return_value = registry or []
+    registry_service.load_all.return_value = {}
+    return MatchQueryService(persistence, story_read, user_access,
+                             registry_service_instance=registry_service), {
         "persistence": persistence,
         "story_read": story_read,
         "user_access": user_access,
@@ -447,7 +450,11 @@ def _build_enriched(player_loc=10):
         lambda sid, tid, lang: {"short_text": texts.get(tid)} if tid in texts else None
     )
 
-    service = MatchQueryService(persistence, story_read, user_access, character_read)
+    registry_service = MagicMock()
+    registry_service.list_entries.return_value = []
+    registry_service.load_all.return_value = {}
+    service = MatchQueryService(persistence, story_read, user_access, character_read,
+                                registry_service_instance=registry_service)
     return service
 
 

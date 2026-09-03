@@ -22,6 +22,11 @@ public interface GamingStateRegistryRepository
 
     List<GamingStateRegistryEntity> findByIdMatch(Long idMatch);
 
+    /** Step 36 - the single-key lookup every caller used to do by scanning the match. */
+    @Query("SELECT r FROM GamingStateRegistryEntity r WHERE r.idMatch = :idMatch AND r.key = :key")
+    java.util.Optional<GamingStateRegistryEntity> findByIdMatchAndKey(@Param("idMatch") Long idMatch,
+                                                                     @Param("key") String key);
+
     /**
      * Deletes every registry row belonging to the given match ids.
      * Used by the dev-only test-data cleanup.

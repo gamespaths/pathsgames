@@ -29,7 +29,6 @@ class WeatherStoreAdapterTest {
 
     private GamingMatchRepository matchRepository;
     private GamingCharacterInstanceRepository characterRepository;
-    private GamingStateRegistryRepository registryRepository;
     private WeatherRuleRepository weatherRuleRepository;
     private LogWeatherRepository logWeatherRepository;
     private LogEventsRepository logEventsRepository;
@@ -40,12 +39,11 @@ class WeatherStoreAdapterTest {
     void setUp() {
         matchRepository = mock(GamingMatchRepository.class);
         characterRepository = mock(GamingCharacterInstanceRepository.class);
-        registryRepository = mock(GamingStateRegistryRepository.class);
         weatherRuleRepository = mock(WeatherRuleRepository.class);
         logWeatherRepository = mock(LogWeatherRepository.class);
         logEventsRepository = mock(LogEventsRepository.class);
         storyReadPort = mock(games.paths.core.port.story.StoryReadPort.class);
-        adapter = new WeatherStoreAdapter(matchRepository, characterRepository, registryRepository,
+        adapter = new WeatherStoreAdapter(matchRepository, characterRepository,
                 weatherRuleRepository, logWeatherRepository, logEventsRepository, storyReadPort);
     }
 
@@ -99,20 +97,6 @@ class WeatherStoreAdapterTest {
         assertEquals(3L, rules.get(1).id());
     }
 
-    @Test
-    void findRegistryValue_prefersStringThenInt() {
-        GamingStateRegistryEntity strRow = new GamingStateRegistryEntity();
-        strRow.setKey("SEASON");
-        strRow.setStringValue("WINTER");
-        GamingStateRegistryEntity intRow = new GamingStateRegistryEntity();
-        intRow.setKey("DAY");
-        intRow.setIntValue(5);
-        when(registryRepository.findByIdMatch(1L)).thenReturn(List.of(strRow, intRow));
-
-        assertEquals(Optional.of("WINTER"), adapter.findRegistryValue(1L, "SEASON"));
-        assertEquals(Optional.of("5"), adapter.findRegistryValue(1L, "DAY"));
-        assertTrue(adapter.findRegistryValue(1L, "MISSING").isEmpty());
-    }
 
     @Test
     void findCharacters_mapsEnergyAndCap() {
@@ -289,24 +273,7 @@ class WeatherStoreAdapterTest {
         assertTrue(adapter.findActiveWeatherRules(7L).isEmpty());
     }
 
-    @Test
-    void findRegistryValue_readsTheIntColumnWhenTheStringOneIsEmpty() {
-        GamingStateRegistryEntity r = new GamingStateRegistryEntity();
-        r.setKey("day");
-        r.setIntValue(4);
-        when(registryRepository.findByIdMatch(1L)).thenReturn(List.of(r));
 
-        assertEquals("4", adapter.findRegistryValue(1L, "day").orElseThrow());
-    }
-
-    @Test
-    void findRegistryValue_aRowWithNoValueAtAllIsEmpty() {
-        GamingStateRegistryEntity r = new GamingStateRegistryEntity();
-        r.setKey("day");
-        when(registryRepository.findByIdMatch(1L)).thenReturn(List.of(r));
-
-        assertTrue(adapter.findRegistryValue(1L, "day").isEmpty());
-    }
 
     @Test
     void updateCharacterEnergy_savesTheNewValue() {

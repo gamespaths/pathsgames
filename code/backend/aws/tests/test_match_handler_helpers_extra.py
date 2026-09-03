@@ -86,15 +86,27 @@ def test_weather_condition_matches_int_registry_value_as_string():
     assert h._weather_condition_matches(rule, [{'key': 'phase', 'intValue': 3}]) is True
 
 
-def test_weather_condition_missing_key_only_matches_null_expectation():
+def test_weather_condition_with_no_expected_value_is_never_met():
+    """Step 36 — this used to read as "the key must be unset". A condition that names a key
+    but no value is now never met, the reading events and movement always had. Say "unset"
+    with != instead."""
     h = _h()
-    assert h._weather_condition_matches({'conditionKey': 'x', 'conditionValue': None}, []) is True
+    assert h._weather_condition_matches({'conditionKey': 'x', 'conditionValue': None}, []) is False
     assert h._weather_condition_matches({'conditionKey': 'x', 'conditionValue': 'y'}, []) is False
+
+
+def test_weather_condition_unset_key_is_expressed_with_not_equals():
+    h = _h()
+    rule = {'conditionKey': 'x', 'conditionValue': 'y',
+            'registryValueOperatorCondition': '!='}
+    assert h._weather_condition_matches(rule, []) is True
 
 
 def test_weather_condition_registry_none():
     h = _h()
-    assert h._weather_condition_matches({'conditionKey': 'x'}, None) is True
+    # No key at all is still no condition, whatever the registry holds.
+    assert h._weather_condition_matches({}, None) is True
+    assert h._weather_condition_matches({'conditionKey': 'x'}, None) is False
 
 
 # ── weighted pick ────────────────────────────────────────────────────────────

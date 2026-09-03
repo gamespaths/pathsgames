@@ -19,6 +19,7 @@ from app.adapters.persistence.story.models import (
 )
 from app.adapters.persistence.auth.models import User
 import app.adapters.persistence.match.models  # noqa: F401  registers gaming_* tables
+from app.adapters.persistence.match.registry_store_adapter import RegistryStoreAdapter
 
 
 @pytest.fixture()
@@ -210,15 +211,6 @@ def test_find_matches_page_limit_and_empty(session_factory):
     assert adapter.find_matches_page("GAMEOVER", None, None, None, None, None, 50) == []
 
 
-def test_save_locations_and_registry_no_op_when_empty(session_factory):
-    adapter = MatchPersistenceAdapter(session_factory)
-    adapter.save_locations([])
-    adapter.save_registry([])
-    adapter.save_locations(None)
-    adapter.save_registry(None)
-    assert adapter.find_locations_by_match_id(99) == []
-    assert adapter.find_registry_by_match_id(99) == []
-
 
 def test_save_and_find_locations_and_registry(session_factory):
     adapter = MatchPersistenceAdapter(session_factory)
@@ -226,11 +218,11 @@ def test_save_and_find_locations_and_registry(session_factory):
     adapter.save_locations([
         {"id_match": saved["id"], "id_location": 10, "flag_already_actived": 0, "clock_counter": 5},
     ])
-    adapter.save_registry([
-        {"id": 1, "id_match": saved["id"], "key": "k", "string_value": "v", "int_value": None},
-    ])
+    # Step 36 — the registry has its own store; this asserts the two live side by side.
+    registry = RegistryStoreAdapter(session_factory)
+    registry.insert_all(saved["id"], [{"key": "k", "string_value": "v", "int_value": None}])
     locs = adapter.find_locations_by_match_id(saved["id"])
-    regs = adapter.find_registry_by_match_id(saved["id"])
+    regs = registry.find_by_match(saved["id"])
     assert len(locs) == 1 and locs[0]["id_location"] == 10
     assert locs[0]["clock_counter"] == 5
     assert len(regs) == 1 and regs[0]["string_value"] == "v"
@@ -326,13 +318,14 @@ def test_delete_match_by_uuid_removes_match_and_children(session_factory):
     saved = adapter.save_match({"id_story": 1, "id_difficulty": 1, "id_user_creator": 1,
                                 "name": "m", "status": "ENDED"})
     adapter.save_locations([{"id_match": saved["id"], "id_location": 1}])
-    adapter.save_registry([{"id": 1, "id_match": saved["id"], "key": "k"}])
+    registry = RegistryStoreAdapter(session_factory)
+    registry.insert_all(saved["id"], [{"key": "k"}])
 
     assert adapter.delete_match_by_uuid(saved["uuid"]) is True
 
     assert adapter.find_match_by_uuid(saved["uuid"]) is None
     assert adapter.find_locations_by_match_id(saved["id"]) == []
-    assert adapter.find_registry_by_match_id(saved["id"]) == []
+    assert registry.find_by_match(saved["id"]) == []
 
 
 def test_delete_match_by_uuid_unknown(session_factory):

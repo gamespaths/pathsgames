@@ -173,20 +173,10 @@ public final class ChoiceAvailabilityChecker {
      */
     private static boolean keysMet(ChoiceConditionEntity row, ChoiceCheckContext ctx) {
         String key = trim(row.getKey());
-        String expected = row.getValue();
-        if (key.isEmpty() || expected == null) {
+        if (key.isEmpty()) {
             return false;
         }
-        String actual = ctx.registry().get(key);
-        return switch (operator(row)) {
-            case "=" -> expected.equals(actual);
-            case "!=" -> !expected.equals(actual);
-            case ">" -> numeric(actual) != null && numeric(expected) != null
-                    && numeric(actual) > numeric(expected);
-            case "<" -> numeric(actual) != null && numeric(expected) != null
-                    && numeric(actual) < numeric(expected);
-            default -> false;
-        };
+        return RegistryService.evaluate(operator(row), row.getValue(), ctx.registry().get(key));
     }
 
     /** ITEM / traits: the story-local id sits in {@code value} ({@code key} as fallback). */

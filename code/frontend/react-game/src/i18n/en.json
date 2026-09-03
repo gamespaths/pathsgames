@@ -110,7 +110,8 @@
     },
     "map": "Map",
     "automatic-event": "Event",
-    "automatic-event-done": "Continue"
+    "automatic-event-done": "Continue",
+    "registry": "Registry"
   },
   "startMatch": {
     "starting": "Starting match…",
@@ -426,6 +427,16 @@
       "count": "carried",
       "capacity": "Capacity"
     },
+    "registry": {
+      "title": "Registry",
+      "description": "A page preserves the memory of your every step, recording the decisions that have marked your journey. <br /><br />Turning these pages allows you to retrace the footprint left by your passage through the game world. On this page you can see the history of all important events and some relevant choices you made in the game that can influence the story and change the ending.",
+      "open": "Registry",
+      "empty": "",
+      "back": "Back",
+      "count": "recorded",
+      "value": "Value",
+      "category": "Category"
+    },
     "map": {
       "title": "Map",
       "here": "Selected",
@@ -454,7 +465,7 @@
       "backpack": "Backpack",
       "missions": "Missions",
       "multiplayer": "Multiplayer",
-      "comingSoon": "Missions and registry coming soon"
+      "comingSoon": "Missions coming soon"
     }
   },
   "footer": {

@@ -29,8 +29,6 @@ class FakeStore:
     def find_active_weather_rules(self, id_story):
         return self._rules
 
-    def find_registry_value(self, id_match, key):
-        return self._registry.get(key)
 
     def find_characters(self, id_match):
         return self._characters
@@ -88,7 +86,7 @@ def test_weighted_pick_dominating_weight():
 
 def test_empty_context_returns_none():
     store = FakeStore(ctx=None)
-    out = WeatherSelectionService(store).apply_at_time_start(1)
+    out = WeatherSelectionService(store, _FakeRegistry(store._registry)).apply_at_time_start(1)
     assert out["selected"] is False
     assert store.current_weather_set == "UNSET"
     assert store.logged == []
@@ -97,7 +95,7 @@ def test_empty_context_returns_none():
 def test_no_eligible_clears_weather():
     store = FakeStore(ctx={"id_story": 7, "current_clock": 5, "rng_seed": 42},
                       rules=[_rule(1, time_from=0, time_to=2, delta_energy=-3)])
-    out = WeatherSelectionService(store).apply_at_time_start(1)
+    out = WeatherSelectionService(store, _FakeRegistry(store._registry)).apply_at_time_start(1)
     assert out["selected"] is False
     assert store.current_weather_set is None
     assert store.logged == []
@@ -109,7 +107,7 @@ def test_selects_logs_and_applies_clamped_delta():
         rules=[_rule(9, probability=100, delta_energy=-5)],
         characters=[{"id": 100, "energy": 3, "energy_max": 50},
                     {"id": 101, "energy": 20, "energy_max": 50}])
-    out = WeatherSelectionService(store).apply_at_time_start(1)
+    out = WeatherSelectionService(store, _FakeRegistry(store._registry)).apply_at_time_start(1)
     assert out["selected"] is True and out["id_weather"] == 9
     assert store.current_weather_set == 9
     assert store.logged == [(0, 9)]
@@ -120,7 +118,7 @@ def test_selects_logs_and_applies_clamped_delta():
 def test_zero_delta_logs_but_no_energy_change():
     store = FakeStore(ctx={"id_story": 7, "current_clock": 0, "rng_seed": 42},
                       rules=[_rule(9, probability=100, delta_energy=0)])
-    out = WeatherSelectionService(store).apply_at_time_start(1)
+    out = WeatherSelectionService(store, _FakeRegistry(store._registry)).apply_at_time_start(1)
     assert out["selected"] is True
     assert store.energy_updates == []
     assert store.logged == [(0, 9)]
@@ -132,25 +130,35 @@ def test_condition_filters_non_matching():
         rules=[_rule(1, condition_key="SEASON", condition_key_value="WINTER"),
                _rule(2, condition_key="SEASON", condition_key_value="SUMMER")],
         registry={"SEASON": "SUMMER"})
-    out = WeatherSelectionService(store).apply_at_time_start(1)
+    out = WeatherSelectionService(store, _FakeRegistry(store._registry)).apply_at_time_start(1)
     assert out["id_weather"] == 2
 
 
 def test_weather_event_recorded():
     store = FakeStore(ctx={"id_story": 7, "current_clock": 0, "rng_seed": 42},
                       rules=[_rule(9, probability=100, id_event=55)])
-    WeatherSelectionService(store).apply_at_time_start(1)
+    WeatherSelectionService(store, _FakeRegistry(store._registry)).apply_at_time_start(1)
     assert store.events == [55]
 
 
 def test_null_seed_falls_back_to_story_id():
     store = FakeStore(ctx={"id_story": 7, "current_clock": 0, "rng_seed": None},
                       rules=[_rule(9, probability=100)])
-    out = WeatherSelectionService(store).apply_at_time_start(1)
+    out = WeatherSelectionService(store, _FakeRegistry(store._registry)).apply_at_time_start(1)
     assert out["selected"] is True
 
 
 # ── query delegates ───────────────────────────────────────────────────────────
+
+class _FakeRegistry:
+    """Only `find` is reached from a weather condition."""
+
+    def __init__(self, registry):
+        self.registry = registry
+
+    def find(self, id_match, key):
+        return self.registry.get(key)
+
 
 class FakeQueryStore:
     def find_current_weather_by_uuid(self, match_uuid):
@@ -173,13 +181,13 @@ class FakeQueryStore:
 
 
 def test_current_weather_delegates():
-    got = WeatherSelectionService(FakeQueryStore()).current_weather("m-1")
+    got = WeatherSelectionService(FakeQueryStore(), _FakeRegistry({})).current_weather("m-1")
     assert got["id_weather"] == 9
     assert got["id_card"] == 55
 
 
 def test_weather_admin_aggregates():
-    admin = WeatherSelectionService(FakeQueryStore()).weather_admin("m-1")
+    admin = WeatherSelectionService(FakeQueryStore(), _FakeRegistry({})).weather_admin("m-1")
     assert admin["rng_seed"] == 42
     assert admin["current"]["id_weather"] == 9
     assert len(admin["rules"]) == 2

@@ -36,6 +36,4 @@ public interface MatchReadPort {
     }
 
     List<GamingStateLocationsEntity> findLocationsByMatchId(Long matchId);
-
-    List<GamingStateRegistryEntity> findRegistryByMatchId(Long matchId);
 }

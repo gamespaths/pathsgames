@@ -362,6 +362,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             # what Python's own nested format has always written.
             condition_registry_key=n.get("conditionRegistryKey", n.get("conditionKey")),
             condition_registry_value=n.get("conditionRegistryValue", n.get("conditionValue")),
+            registry_value_operator_condition=n.get("registryValueOperatorCondition"),
             id_card=n.get("idCard"),
             id_card_back=n.get("idCardBack"),
             id_text_name=n.get("idTextName"),
@@ -409,6 +410,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     id_weather=item.get("idWeather"),
                     registry_key_condition=item.get("registryKeyCondition"),
                     registry_value_condition=item.get("registryValueCondition"),
+                    registry_value_operator_condition=item.get("registryValueOperatorCondition"),
                     id_item_condition=item.get("idItemCondition"),
                     id_class_condition=item.get("idClassCondition"),
                 )
@@ -669,7 +671,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
     def save_keys(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         self._insert_batch(KeyEntity, story_id, items, {
             "id_card": "idCard", "key_name": "keyName", "key_value": "keyValue",
-            "key_group": "keyGroup", "is_visible": "isVisible"
+            "key_group": "keyGroup", "is_visible": "isVisible",
+            "priority": "priority",
         })
 
     def save_traits(self, story_id: int, items: List[Dict[str, Any]]) -> None:
@@ -701,6 +704,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             "cost_move_safe_location": "costMoveSafeLocation",
             "cost_move_not_safe_location": "costMoveNotSafeLocation",
             "condition_key": "conditionKey", "condition_key_value": "conditionKeyValue",
+            "registry_value_operator_condition": "registryValueOperatorCondition",
             # v0.35.8 — the rule's own label and the hours it applies to: dropped until now.
             "id_text": "idText", "time_from": "timeFrom", "time_to": "timeTo",
             "active": "active",

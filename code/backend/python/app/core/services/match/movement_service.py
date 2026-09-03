@@ -28,6 +28,7 @@ from app.core.models.match.movement_models import (
 from app.core.ports.match.movement_ports import MovementPort, MovementStorePort
 from app.core.services.match import movement_availability
 from app.core.services.match.movement_availability import MoveCheckContext, MoveEdgeCheck
+from app.core.services.match import registry_service
 
 
 def move_check_context(match: Dict[str, Any],
@@ -74,7 +75,7 @@ def _reason_message(code: str) -> str:
 
 class MovementService(MovementPort):
     def __init__(self, store: MovementStorePort, story_read_port=None,
-                 location_entry=None) -> None:
+                 location_entry=None, registry_service_instance=None) -> None:
         # ``story_read_port`` (StoryMatchReadPort) resolves the location cards;
         # optional so legacy wiring keeps working (cards stay None without it).
         self.store = store
@@ -82,6 +83,8 @@ class MovementService(MovementPort):
         # Step 33 — the location engine. None keeps the pre-33 behaviour: a move fires
         # nothing.
         self.location_entry = location_entry
+        # Step 36 — every registry read of a move condition goes through it.
+        self.registry_service = registry_service_instance
 
     # ── public API ──────────────────────────────────────────────────────────
 
@@ -318,10 +321,11 @@ class MovementService(MovementPort):
 
     def _condition_met(self, id_match: int, edge: Dict[str, Any]) -> bool:
         key = edge.get("condition_key")
-        if not key:
+        if registry_service.no_condition(key):
             return True
-        value = self.store.find_registry_value(id_match, key)
-        return edge.get("condition_value") is not None and edge["condition_value"] == value
+        value = self.registry_service.find(id_match, key)
+        return registry_service.evaluate(edge.get("registry_value_operator_condition"),
+                                         edge.get("condition_value"), value)
 
     def _require_user(self, user_uuid: str) -> int:
         user_id = self.store.find_user_id_by_uuid(user_uuid)

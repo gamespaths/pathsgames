@@ -41,6 +41,7 @@ PLAYER_ROUTES = [
     ('GET',   '/api/matches/mX/weather'),
     ('GET',   '/api/matches/mX/logs'),
     ('GET',   '/api/match/mX/info'),
+    ('GET',   '/api/match/mX/registry'),
     ('PATCH', '/api/match/mX/end/e1'),
     ('POST',  '/api/matches/mX/join'),
     ('GET',   '/api/match/mX/players'),

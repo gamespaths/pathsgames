@@ -60,6 +60,12 @@ def _triggers(first=None, not_first=None, alone=None, id_location=LOCATION):
 
 
 @pytest.fixture
+def registry_service():
+    """Step 36 — registry writes leave the event store and go through their own service."""
+    return MagicMock()
+
+
+@pytest.fixture
 def store():
     s = MagicMock()
     s.find_match_by_id.return_value = {
@@ -92,8 +98,9 @@ def location_store():
 
 
 @pytest.fixture
-def service(store, location_store):
-    return EventService(store, edge_store=MagicMock(), location_store=location_store)
+def service(store, location_store, registry_service):
+    return EventService(store, edge_store=MagicMock(), location_store=location_store,
+                        registry_service_instance=registry_service)
 
 
 def _arrival():
@@ -290,7 +297,7 @@ def test_pending_events_run_in_the_order_given(service, store, location_store):
     assert [f.event_uuid for f in fired] == ["evt-a", "evt-b"]
 
 
-def test_a_fuse_in_an_empty_location_still_writes_the_registry(service, store, location_store):
+def test_a_fuse_in_an_empty_location_still_writes_the_registry(service, store, location_store, registry_service):
     store.find_events_by_id.return_value = {50: _event(50, "evt-empty-room")}
     store.find_effects_by_event_id.return_value = {
         50: [_effect(key_to_add="DOOR_OPEN", key_value_to_add="YES")]}
@@ -300,8 +307,8 @@ def test_a_fuse_in_an_empty_location_still_writes_the_registry(service, store, l
 
     assert len(fired) == 1
     # id_character None: the world changed, but around no one.
-    store.upsert_registry.assert_called_once()
-    assert store.upsert_registry.call_args[0][3] is None
+    registry_service.upsert.assert_called_once()
+    assert registry_service.upsert.call_args[0][3] is None
     store.update_character_stats.assert_not_called()
 
 
@@ -336,7 +343,8 @@ def service_with_cards(store, location_store):
     content.find_text_by_story_id_text_and_lang.return_value = {"short_text": "The old mill"}
     location_store.find_location_triggers.return_value = _triggers()
     return EventService(store, edge_store=MagicMock(), location_store=location_store,
-                        content_read_port=content)
+                        content_read_port=content,
+                        registry_service_instance=MagicMock())
 
 
 def test_standing_there_is_full(service_with_cards, location_store):
@@ -407,7 +415,8 @@ def test_nothing_fired_nothing_told(service):
 # ── the pre-Step-33 engine ───────────────────────────────────────────────────
 
 def test_without_a_location_store_the_engine_is_exactly_as_before(store):
-    legacy = EventService(store, edge_store=MagicMock())
+    legacy = EventService(store, edge_store=MagicMock(),
+                          registry_service_instance=MagicMock())
 
     assert legacy.on_arrival(_arrival()) == []
     assert legacy.run_pending_automatic_events(MATCH_ID, CLOCK, [

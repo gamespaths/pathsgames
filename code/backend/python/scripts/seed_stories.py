@@ -100,6 +100,19 @@ def seed():
              # Step 23 — trait cost budgets (None/missing = no limit)
              "traitCostPositiveBudget": 2, "traitCostNegativeBudget": 3}
         ],
+        # Step 36 — the registry keys the match seeds from. Without them a Python match had
+        # an empty registry and the step-36 suite exercised nothing here.
+        "keys": [
+            {"id": 1, "keyName": "tutorial_progress", "keyValue": "0",
+             "keyGroup": "tutorial", "isVisible": 1, "priority": 1},
+            {"id": 2, "keyName": "items_collected", "keyValue": "0",
+             "keyGroup": "tutorial", "isVisible": 1, "priority": 2},
+            {"id": 3, "keyName": "choice_made", "keyValue": "0",
+             "keyGroup": "tutorial", "isVisible": 1, "priority": 3},
+            # A hidden one, so includeHidden has something to reveal.
+            {"id": 4, "keyName": "secret_door", "keyValue": "0",
+             "keyGroup": "secrets", "isVisible": 0, "priority": 1},
+        ],
         "locations": [
             # Step 26: safe location (isSafe=1 -> secure recovery) carrying a time
             # counter so the location-counter decrement/zero path is exercised.

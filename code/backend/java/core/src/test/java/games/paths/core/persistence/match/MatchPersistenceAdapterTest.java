@@ -9,7 +9,6 @@ import games.paths.core.repository.match.GamingCharacterTraitsRepository;
 import games.paths.core.repository.match.GamingInventoryItemsRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingStateLocationsRepository;
-import games.paths.core.repository.match.GamingStateRegistryRepository;
 import games.paths.core.repository.match.GamingStoryProgressRepository;
 import games.paths.core.repository.match.LogChoicesExecutedRepository;
 import games.paths.core.repository.match.LogEventsRepository;
@@ -30,7 +29,7 @@ class MatchPersistenceAdapterTest {
 
     private GamingMatchRepository matchRepository;
     private GamingStateLocationsRepository locationsRepository;
-    private GamingStateRegistryRepository registryRepository;
+    private games.paths.core.port.match.RegistryStorePort registryStorePort;
     private GamingCharacterInstanceRepository characterRepository;
     private GamingBackpackResourcesRepository backpackRepository;
     private GamingCharacterTraitsRepository characterTraitsRepository;
@@ -47,7 +46,7 @@ class MatchPersistenceAdapterTest {
     void setUp() {
         matchRepository = mock(GamingMatchRepository.class);
         locationsRepository = mock(GamingStateLocationsRepository.class);
-        registryRepository = mock(GamingStateRegistryRepository.class);
+        registryStorePort = mock(games.paths.core.port.match.RegistryStorePort.class);
         characterRepository = mock(GamingCharacterInstanceRepository.class);
         backpackRepository = mock(GamingBackpackResourcesRepository.class);
         characterTraitsRepository = mock(GamingCharacterTraitsRepository.class);
@@ -57,11 +56,11 @@ class MatchPersistenceAdapterTest {
         logChoicesRepository = mock(LogChoicesExecutedRepository.class);
         logItemUsageRepository = mock(LogItemUsageRepository.class);
         storyProgressRepository = mock(GamingStoryProgressRepository.class);
-        adapter = new MatchPersistenceAdapter(matchRepository, locationsRepository, registryRepository,
+        adapter = new MatchPersistenceAdapter(matchRepository, locationsRepository, registryStorePort,
                 characterRepository, backpackRepository, characterTraitsRepository, inventoryRepository,
                 logEventsRepository, logMovementRepository, logChoicesRepository, logItemUsageRepository,
                 storyProgressRepository);
-        readAdapter = new MatchReadAdapter(matchRepository, locationsRepository, registryRepository);
+        readAdapter = new MatchReadAdapter(matchRepository, locationsRepository);
     }
 
     @Test
@@ -110,19 +109,7 @@ class MatchPersistenceAdapterTest {
         verify(locationsRepository).saveAll(list);
     }
 
-    @Test
-    void saveRegistry_skipsWhenNullOrEmpty() {
-        adapter.saveRegistry(null);
-        adapter.saveRegistry(List.of());
-        verify(registryRepository, never()).saveAll(any());
-    }
 
-    @Test
-    void saveRegistry_savesAll() {
-        List<GamingStateRegistryEntity> list = List.of(new GamingStateRegistryEntity());
-        adapter.saveRegistry(list);
-        verify(registryRepository).saveAll(list);
-    }
 
     @Test
     void deleteMatchesByNameLike_noMatches_returnsZeroAndSkipsChildren() {
@@ -132,7 +119,7 @@ class MatchPersistenceAdapterTest {
 
         assertEquals(0, deleted);
         verify(locationsRepository, never()).deleteByMatchIdIn(any());
-        verify(registryRepository, never()).deleteByMatchIdIn(any());
+        verify(registryStorePort, never()).deleteByMatchIdIn(any());
         verify(characterRepository, never()).deleteByMatchIdIn(any());
         verify(matchRepository, never()).deleteByNameLike(any());
     }
@@ -160,7 +147,7 @@ class MatchPersistenceAdapterTest {
         verify(storyProgressRepository).deleteByMatchIdIn(ids);
         verify(characterRepository).deleteByMatchIdIn(ids);
         verify(locationsRepository).deleteByMatchIdIn(ids);
-        verify(registryRepository).deleteByMatchIdIn(ids);
+        verify(registryStorePort).deleteByMatchIdIn(ids);
         verify(matchRepository).deleteByNameLike("robottest%");
     }
 
@@ -216,7 +203,7 @@ class MatchPersistenceAdapterTest {
         verify(storyProgressRepository).deleteByMatchIdIn(List.of(5L));
         verify(characterRepository).deleteByMatchIdIn(List.of(5L));
         verify(locationsRepository).deleteByMatchIdIn(List.of(5L));
-        verify(registryRepository).deleteByMatchIdIn(List.of(5L));
+        verify(registryStorePort).deleteByMatchIdIn(List.of(5L));
         verify(matchRepository).delete(m);
     }
 
@@ -265,17 +252,7 @@ class MatchPersistenceAdapterTest {
         assertEquals(1, readAdapter.findLocationsByMatchId(1L).size());
     }
 
-    @Test
-    void readAdapter_findRegistryByMatchId_nullReturnsEmpty() {
-        assertTrue(readAdapter.findRegistryByMatchId(null).isEmpty());
-    }
 
-    @Test
-    void readAdapter_findRegistryByMatchId_delegates() {
-        when(registryRepository.findByIdMatch(1L))
-                .thenReturn(List.of(new GamingStateRegistryEntity()));
-        assertEquals(1, readAdapter.findRegistryByMatchId(1L).size());
-    }
 
     @Test
     void readAdapter_findMatchesPage_delegatesWithLimitAndCriteria() {

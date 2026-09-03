@@ -106,7 +106,8 @@
     },
     "map": "Mappa",
     "automatic-event": "Evento",
-    "automatic-event-done": "Continua"
+    "automatic-event-done": "Continua",
+    "registry": "Registro"
   },
   "startMatch": {
     "starting": "Avvio della partita…",
@@ -415,6 +416,16 @@
       "count": "trasportati",
       "capacity": "Capacità"
     },
+    "registry": {
+      "title": "Registro",
+      "description": "Quasta pagina conserva la memoria di ogni tuo passo, annotando le decisioni che hanno segnato il tuo cammino. Sfogliare queste pagine ti permette di ripercorrere l'impronta lasciata dal tuo passaggio nel mondo di gioco. <br /><br />In questa pagina puoi vedere lo storico di tutti gli eventi importanti e alcune scelte rilevanti che hai fatto nel gioco che possono condizionare la storia e cambiare il finale.",
+      "open": "Registro",
+      "empty": "",
+      "back": "Indietro",
+      "count": "registrate",
+      "value": "Valore",
+      "category": "Categoria"
+    },
     "map": {
       "title": "Mappa",
       "here": "Selezionata",
@@ -443,7 +454,7 @@
       "backpack": "Zaino",
       "missions": "Missioni",
       "multiplayer": "Multigiocatore",
-      "comingSoon": "Missioni e registro in arrivo"
+      "comingSoon": "Missioni in arrivo"
     }
   },
   "footer": {

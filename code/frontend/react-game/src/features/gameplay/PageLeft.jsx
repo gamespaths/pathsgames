@@ -4,8 +4,9 @@ import LocationCard from './cards/LocationCard'
 import ComaCard from './cards/ComaCard'
 import SadnessCard from './cards/SadnessCard'
 import ItemsCard from './cards/ItemsCard'
+import RegistryCard from './cards/RegistryCard'
 import InformationCard from './cards/InformationCard'
-import { bagSummaryProps } from './js/boardProps'
+import { bagSummaryProps, registrySummaryProps } from './js/boardProps'
 
 /**
  * PageLeft — the LEFT reading page, in priority order: an open choice-event, an edge
@@ -15,7 +16,7 @@ import { bagSummaryProps } from './js/boardProps'
 export default function PageLeft({
   view, pendingChoices, previewLeft, story, t, playerStats, clock, gameData, matchLocations,
   mapSelected, actualLocationCard, storyCard, loading,
-  onCloseChoices, onCloseLeft, onCloseItems, onSelectMapNode, onBack,
+  onCloseChoices, onCloseLeft, onCloseItems, onCloseRegistry, onSelectMapNode, onBack,
 }) {
   // Step 31 — an open choice-event: the event card sits here, without an execute button;
   // its back arrow ends the event (and clears the options on the right).
@@ -40,6 +41,12 @@ export default function PageLeft({
   if (view === 'items') {
     return <ItemsCard variant="page" story={story} onClose={onCloseItems}
       {...bagSummaryProps(playerStats)} />
+  }
+  // Step 36 — the registry owns the left page the same way the bag does: the title and the
+  // way back live here, the keys themselves fill the right page.
+  if (view === 'registry') {
+    return <RegistryCard variant="page" story={story} onClose={onCloseRegistry}
+      {...registrySummaryProps(gameData)} />
   }
   // Step 0.28.5 — the world map takes over the left page; its back arrow returns to the board.
   if (view === 'map') {

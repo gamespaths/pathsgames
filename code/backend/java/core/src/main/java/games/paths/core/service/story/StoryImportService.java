@@ -339,6 +339,7 @@ public class StoryImportService implements StoryImportPort {
             e.setIdWeather(getInteger(item, "idWeather"));
             e.setRegistryKeyCondition(getString(item, "registryKeyCondition"));
             e.setRegistryValueCondition(getString(item, "registryValueCondition"));
+            e.setRegistryValueOperatorCondition(getString(item, "registryValueOperatorCondition"));
             e.setIdClassCondition(getInteger(item, "idClassCondition"));
             e.setIdItemCondition(getInteger(item, "idItemCondition"));
             entities.add(e);
@@ -556,6 +557,7 @@ public class StoryImportService implements StoryImportPort {
             e.setCostMoveNotSafeLocation(getInteger(item, "costMoveNotSafeLocation"));
             e.setConditionKey(getString(item, "conditionKey"));
             e.setConditionKeyValue(getString(item, "conditionKeyValue"));
+            e.setRegistryValueOperatorCondition(getString(item, "registryValueOperatorCondition"));
             e.setActive(getIntegerOrDefault(item, "active", 0));
             e.setPriority(getInteger(item, "priority"));
             e.setDeltaEnergy(getInteger(item, "deltaEnergy"));
@@ -685,6 +687,7 @@ public class StoryImportService implements StoryImportPort {
             e.setFlagBack(getInteger(item, "flagBack"));
             e.setConditionRegistryKey(getString(item, "conditionRegistryKey"));
             e.setConditionRegistryValue(getString(item, "conditionRegistryValue"));
+            e.setRegistryValueOperatorCondition(getString(item, "registryValueOperatorCondition"));
             e.setEnergyCost(getInteger(item, "energyCost"));
             e.setCostFood(getInteger(item, "costFood"));
             e.setCostMagic(getInteger(item, "costMagic"));

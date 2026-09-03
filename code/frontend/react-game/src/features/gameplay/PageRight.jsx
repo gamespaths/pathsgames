@@ -7,6 +7,7 @@ import SadnessCard from './cards/SadnessCard'
 import LocationCard from './cards/LocationCard'
 import MovementCard from './cards/MovementCard'
 import ItemsCards from './cards/ItemsCards'
+import RegistryCards from './cards/RegistryCards'
 import PendingChoicesList from './cards/PendingChoicesList'
 import AutomaticEvents from './cards/AutomaticEvents'
 import MatchLogCard from '@/features/matches/MatchLogCard'
@@ -68,7 +69,8 @@ export default function PageRight(props) {
     hereLocationId, mapSelected, matchUuid, accessToken, choiceInFlight, endError,
     onPreview, onCloseRight, onCloseChoices, onSelectChoice, onDismissCounterZero,
     onEnterCurrentLocation, onMoved, onError, onDone, onDropped, onItemUsed, onSlept,
-    onOpenMap, onOpenItems, onOpenInfo, onPreviewMatchLog, onEndGame, onEndGamePreview,
+    onOpenMap, onOpenItems, onOpenRegistry, onOpenInfo, onPreviewMatchLog,
+    onEndGame, onEndGamePreview,
     onForceSleepCard, sleepCardForced, activeAction, onExit,
   } = props
 
@@ -125,11 +127,17 @@ export default function PageRight(props) {
       matchUuid={matchUuid} accessToken={accessToken}
       onDone={onItemUsed} onDropped={onDropped} onError={onError} />
   }
+  // Step 36 — the registry, opened from the same (i) list as the backpack and replacing it
+  // for exactly the same reason.
+  if (view === 'registry') {
+    return <RegistryCards registry={gameData?.info?.registry} story={story}
+      onPreview={onPreview} previewSide="right" />
+  }
   if (view === 'info') {
     return <PageRightInfo story={story} storyFull={storyFull} gameData={gameData}
       playerStats={playerStats} weather={weather} matchUuid={matchUuid} accessToken={accessToken}
       onPreview={onPreview} onSlept={onSlept} onOpenMap={onOpenMap} onOpenItems={onOpenItems}
-      onPreviewMatchLog={onPreviewMatchLog} />
+      onOpenRegistry={onOpenRegistry} onPreviewMatchLog={onPreviewMatchLog} />
   }
   return <PageRightMain story={story} storyFull={storyFull} t={t} gameData={gameData}
     playerStats={playerStats} clock={clock} weather={weather} locations={locations}
@@ -137,6 +145,7 @@ export default function PageRight(props) {
     matchUuid={matchUuid} accessToken={accessToken} endError={endError}
     sleepCardForced={sleepCardForced} onForceSleepCard={onForceSleepCard}
     onPreview={onPreview} onOpenMap={onOpenMap} onOpenItems={onOpenItems}
-    onOpenInfo={onOpenInfo} onMoved={onMoved} onDone={onDone} onSlept={onSlept}
+    onOpenRegistry={onOpenRegistry} onOpenInfo={onOpenInfo}
+    onMoved={onMoved} onDone={onDone} onSlept={onSlept}
     onError={onError} onEndGame={onEndGame} onEndGamePreview={onEndGamePreview} />
 }

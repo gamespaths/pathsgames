@@ -68,6 +68,7 @@ class EventExecutionServiceSelectChoiceTest {
     private static final int CLOCK = 7;
 
     private EventExecutionStorePort store;
+    private RegistryService registryService;
     private EdgeStateStorePort edgeStore;
     private UserAccessPort userAccessPort;
     private ContentQueryPort contentQueryPort;
@@ -77,12 +78,13 @@ class EventExecutionServiceSelectChoiceTest {
     @BeforeEach
     void setUp() {
         store = mock(EventExecutionStorePort.class);
+        registryService = mock(RegistryService.class);
         edgeStore = mock(EdgeStateStorePort.class);
         userAccessPort = mock(UserAccessPort.class);
         contentQueryPort = mock(ContentQueryPort.class);
         timeAdvancementService = mock(TimeAdvancementService.class);
         service = new EventExecutionService(store, edgeStore, userAccessPort, contentQueryPort,
-                timeAdvancementService);
+                timeAdvancementService, registryService);
 
         when(userAccessPort.findByUuid(USER_UUID)).thenReturn(Optional.of(
                 new UserAccessPort.UserView(USER_ID, USER_UUID, "player", "USER", 2)));
@@ -425,7 +427,7 @@ class EventExecutionServiceSelectChoiceTest {
 
             ChoiceResolutionResult r = resolve();
 
-            verify(store).upsertRegistry(MATCH_ID, "DOOR", "OPEN", CHAR_ID, EVENT_ID, CLOCK);
+            verify(registryService).upsert(MATCH_ID, "DOOR", "OPEN", CHAR_ID, EVENT_ID, null, CLOCK);
             assertEquals(1, r.execution().registryChanges().size());
             assertEquals("OPEN", r.execution().registryChanges().get(0).newValue());
         }
@@ -445,7 +447,7 @@ class EventExecutionServiceSelectChoiceTest {
 
             ChoiceResolutionResult r = resolve();
 
-            verify(store).upsertRegistry(MATCH_ID, "DOOR", null, CHAR_ID, EVENT_ID, CLOCK);
+            verify(registryService).upsert(MATCH_ID, "DOOR", null, CHAR_ID, EVENT_ID, null, CLOCK);
             assertNull(r.execution().registryChanges().get(0).newValue());
         }
 
@@ -464,7 +466,7 @@ class EventExecutionServiceSelectChoiceTest {
 
             ChoiceResolutionResult r = resolve();
 
-            verify(store, never()).upsertRegistry(anyLong(), anyString(), any(), any(), any(), anyInt());
+            verify(registryService, never()).upsert(anyLong(), anyString(), any(), any(), any(), any(), anyInt());
             assertTrue(r.execution().registryChanges().isEmpty());
         }
 

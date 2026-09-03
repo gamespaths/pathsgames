@@ -44,6 +44,11 @@ describe('bookViewReducer', () => {
     expect(info).toMatchObject({ view: 'info', previewLeft: preview })
     expect(bookViewReducer(info, { type: 'openItems' })).toMatchObject({ view: 'items', previewLeft: null })
     expect(bookViewReducer(info, { type: 'openMap' })).toMatchObject({ view: 'map', previewLeft: null })
+    // Step 36 — the registry joined the same set, so opening it puts every other page away.
+    expect(bookViewReducer(info, { type: 'openRegistry' }))
+      .toMatchObject({ view: 'registry', previewLeft: null })
+    expect(bookViewReducer({ ...BASE, view: 'registry' }, { type: 'openItems' }))
+      .toMatchObject({ view: 'items' })
   })
 
   it('accepts an updater for the right page, so the weather can decorate what is there', () => {

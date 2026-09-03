@@ -2,7 +2,6 @@ package games.paths.core.service.match;
 
 import games.paths.core.entity.match.GamingCharacterInstanceEntity;
 import games.paths.core.entity.match.GamingMatchEntity;
-import games.paths.core.entity.match.GamingStateRegistryEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.LocationNeighborEntity;
 import games.paths.core.entity.story.StoryEntity;
@@ -22,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,6 +52,7 @@ class MatchQueryServiceMoveAvailabilityTest {
     private StoryReadPort storyReadPort;
     private CharacterReadPort characterReadPort;
     private MovementStorePort movementStorePort;
+    private RegistryService registryService;
     private MatchQueryService service;
 
     @BeforeEach
@@ -62,8 +63,9 @@ class MatchQueryServiceMoveAvailabilityTest {
         movementStorePort = mock(MovementStorePort.class);
         UserAccessPort userAccessPort = mock(UserAccessPort.class);
 
+        registryService = mock(RegistryService.class);
         service = new MatchQueryService(matchReadPort, storyReadPort, userAccessPort,
-                characterReadPort, null, movementStorePort);
+                characterReadPort, null, movementStorePort, null, registryService);
     }
 
     // ── fixtures ────────────────────────────────────────────────────────────
@@ -96,7 +98,7 @@ class MatchQueryServiceMoveAvailabilityTest {
 
     /** Wire a RUNNING match: one character at HERE, one edge HERE→THERE. */
     private void wire(MoveCharacterView caller, LocationEntity there, LocationNeighborEntity n,
-                      List<GamingStateRegistryEntity> registry) {
+                      Map<String, String> registry) {
         GamingMatchEntity m = new GamingMatchEntity();
         m.setId(MATCH_ID);
         m.setUuid("match-uuid");
@@ -124,7 +126,7 @@ class MatchQueryServiceMoveAvailabilityTest {
         when(storyReadPort.findLocationNeighborsByStoryId(STORY_ID)).thenReturn(List.of(n));
         when(storyReadPort.findEventsByStoryId(STORY_ID)).thenReturn(List.of());
         when(matchReadPort.findLocationsByMatchId(MATCH_ID)).thenReturn(List.of());
-        when(matchReadPort.findRegistryByMatchId(MATCH_ID)).thenReturn(registry);
+        when(registryService.loadAll(MATCH_ID)).thenReturn(registry);
         when(characterReadPort.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(c));
 
         when(movementStorePort.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(HERE, THERE));
@@ -136,7 +138,7 @@ class MatchQueryServiceMoveAvailabilityTest {
     }
 
     private void wire(MoveCharacterView caller) {
-        wire(caller, location(THERE, "loc-there"), edge(), List.of());
+        wire(caller, location(THERE, "loc-there"), edge(), Map.of());
     }
 
     private LocationNeighborInfo neighbor() {
@@ -185,12 +187,12 @@ class MatchQueryServiceMoveAvailabilityTest {
     void insufficientEnergy() {
         LocationEntity there = location(THERE, "loc-there");
         there.setCostEnergyEnter(10);           // + edge 5 = 15 needed
-        wire(mover(false, false, 14), there, edge(), List.of());
+        wire(mover(false, false, 14), there, edge(), Map.of());
 
         assertEquals("INSUFFICIENT_ENERGY", neighbor().getReason());
 
         // one more energy point and the same path opens
-        wire(mover(false, false, 15), there, edge(), List.of());
+        wire(mover(false, false, 15), there, edge(), Map.of());
         assertTrue(neighbor().isAvailable());
     }
 
@@ -201,12 +203,12 @@ class MatchQueryServiceMoveAvailabilityTest {
         gated.setConditionRegistryKey("gate");
         gated.setConditionRegistryValue("open");
 
-        wire(mover(false, false, 100), location(THERE, "loc-there"), gated, List.of());
+        wire(mover(false, false, 100), location(THERE, "loc-there"), gated, Map.of());
         assertEquals("MOVEMENT_CONDITION_NOT_MET", neighbor().getReason());
 
         // ...and the same key, set to the expected value in the match registry, opens it
         wire(mover(false, false, 100), location(THERE, "loc-there"), gated,
-                List.of(registryRow("gate", "open")));
+                Map.of("gate", "open"));
         assertTrue(neighbor().isAvailable());
     }
 
@@ -218,7 +220,7 @@ class MatchQueryServiceMoveAvailabilityTest {
         MoveCharacterView squatter = new MoveCharacterView(2L, "other-uuid", 8L, THERE,
                 100, 100, 0, 50, false, false);
 
-        wire(mover(false, false, 100), there, edge(), List.of());
+        wire(mover(false, false, 100), there, edge(), Map.of());
         when(movementStorePort.findCharactersByMatchId(MATCH_ID))
                 .thenReturn(List.of(mover(false, false, 100), squatter));
 
@@ -236,13 +238,4 @@ class MatchQueryServiceMoveAvailabilityTest {
         assertEquals("CHARACTER_CANNOT_ACT", neighbor().getReason());
     }
 
-    private static GamingStateRegistryEntity registryRow(String key, String value) {
-        GamingStateRegistryEntity r = new GamingStateRegistryEntity();
-        r.setId(1L);
-        r.setIdMatch(MATCH_ID);
-        r.setUuid("reg-uuid");
-        r.setKey(key);
-        r.setStringValue(value);
-        return r;
-    }
 }

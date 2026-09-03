@@ -66,6 +66,8 @@ public class MatchLogsService implements MatchLogsPort {
     private static final String TYPE_COUNTER_ZERO = "COUNTER_ZERO";
     /** Step 33 — an event the engine fired: an arrival, a counter, a time-start. */
     private static final String TYPE_AUTOMATIC_EVENT = "AUTOMATIC_EVENT";
+    /** Step 36 — a registry key was written by an event, a choice or the engine. */
+    private static final String TYPE_REGISTRY_CHANGE = "REGISTRY_CHANGE";
     /** v0.35.4 — the three item actions, read off {@code log_item_usage.action}. */
     private static final String TYPE_ITEM_ADD = "ITEM_ADD";
     private static final String TYPE_ITEM_USE = "ITEM_USE";
@@ -223,6 +225,10 @@ public class MatchLogsService implements MatchLogsPort {
                 entries.add(LogEntry.builder(TYPE_AUTOMATIC_EVENT, e.timestamp())
                         .clock(e.clock()).character(e.idCharacterMatch())
                         .locationTo(e.idLocation()).message(msg).idEvent(e.idEvent()).build());
+            } else if (msg.startsWith(RegistryService.MSG_REGISTRY_CHANGE)) {
+                entries.add(LogEntry.builder(TYPE_REGISTRY_CHANGE, e.timestamp())
+                        .clock(e.clock()).character(e.idCharacterMatch())
+                        .message(msg).idEvent(e.idEvent()).build());
             } else if (msg.startsWith("recovery")) {
                 entries.add(LogEntry.builder(TYPE_RECOVERY, e.timestamp())
                         .clock(e.clock()).character(e.idCharacterMatch()).message(msg).build());

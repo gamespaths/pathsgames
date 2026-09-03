@@ -120,6 +120,14 @@ public class MatchInfoResponse {
         private String key;
         private String stringValue;
         private Integer intValue;
+        // Step 36 — the key's own definition rides along so the board can group and dress it
+        // without a second request; the duplication with /registry is deliberate.
+        private Long idCharacter;
+        private String category;
+        private boolean visible;
+        private Integer priority;
+        private Integer idCard;
+        private CardInfoResponse card;
 
         public static RegistryEntryDto fromModel(MatchRegistryEntry e) {
             RegistryEntryDto d = new RegistryEntryDto();
@@ -127,6 +135,12 @@ public class MatchInfoResponse {
             d.key = e.getKey();
             d.stringValue = e.getStringValue();
             d.intValue = e.getIntValue();
+            d.idCharacter = e.getIdCharacter();
+            d.category = e.getCategory();
+            d.visible = e.isVisible();
+            d.priority = e.getPriority();
+            d.idCard = e.getIdCard();
+            d.card = CardInfoResponse.fromModel(e.getCard());
             return d;
         }
 
@@ -138,6 +152,18 @@ public class MatchInfoResponse {
         public void setStringValue(String stringValue) { this.stringValue = stringValue; }
         public Integer getIntValue() { return intValue; }
         public void setIntValue(Integer intValue) { this.intValue = intValue; }
+        public Long getIdCharacter() { return idCharacter; }
+        public void setIdCharacter(Long idCharacter) { this.idCharacter = idCharacter; }
+        public String getCategory() { return category; }
+        public void setCategory(String category) { this.category = category; }
+        public boolean isVisible() { return visible; }
+        public void setVisible(boolean visible) { this.visible = visible; }
+        public Integer getPriority() { return priority; }
+        public void setPriority(Integer priority) { this.priority = priority; }
+        public Integer getIdCard() { return idCard; }
+        public void setIdCard(Integer idCard) { this.idCard = idCard; }
+        public CardInfoResponse getCard() { return card; }
+        public void setCard(CardInfoResponse card) { this.card = card; }
     }
 
     public static class EventOptionDto extends AbstractUuidNameDto {

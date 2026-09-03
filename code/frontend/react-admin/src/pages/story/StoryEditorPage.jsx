@@ -680,36 +680,11 @@ export default function StoryEditorPage() {
       idSpecificLocation: {
         options: locationOptions,
       },
-      keyToAdd: {
-        options: keysOptions,
-        valueType: 'string',
-      },
-      characteristicToAdd: {
-        options: [
-          { value: 'DEXTERITY', label: 'DEXTERITY' },
-          { value: 'INTELLIGENCE', label: 'INTELLIGENCE' },
-          { value: 'CONSTITUTION', label: 'CONSTITUTION' },
-          { value: 'LIFE', label: 'LIFE' },
-          { value: 'ENERGY', label: 'ENERGY' },
-          { value: 'SAD', label: 'SAD' },
-          { value: 'COINS', label: 'COINS' },
-          { value: 'TIME', label: 'TIME' },
-        ],
-        valueType: 'string',
-      },
-      characteristicToRemove: {
-        options: [
-          { value: 'DEXTERITY', label: 'DEXTERITY' },
-          { value: 'INTELLIGENCE', label: 'INTELLIGENCE' },
-          { value: 'CONSTITUTION', label: 'CONSTITUTION' },
-          { value: 'LIFE', label: 'LIFE' },
-          { value: 'ENERGY', label: 'ENERGY' },
-          { value: 'SAD', label: 'SAD' },
-          { value: 'COINS', label: 'COINS' },
-          { value: 'TIME', label: 'TIME' },
-        ],
-        valueType: 'string',
-      },
+      // v0.29.0 moved characteristic_to_add/_remove onto list_events_effects, so the two
+      // pickers that used to live here had no field left to attach to. They are not moved to
+      // that tab either: a characteristic is a free-form CSV tag the engine only adds to a set
+      // (`csv(add)` -> characteristics.add), never a statistic — the seed writes 'BRAVE'. A
+      // single-select over eight stat names would offer the wrong vocabulary AND lose the CSV.
       idItemToAdd: {
         options: itemsOptions,
       },
@@ -729,6 +704,13 @@ export default function StoryEditorPage() {
     'event-effects': {
       idEvent: {
         options: eventOptions,
+      },
+      // Step 36 — the key this effect writes, picked from the story's own keys exactly as
+      // choice-effects.key is: the two tables write the same registry, so an author must not
+      // have to type a raw name here and pick one there.
+      keyToAdd: {
+        options: keysOptions,
+        valueType: 'string',
       },
       // The effect's own card is the narrative the board renders when the event runs, so it
       // gets the same picker (and the same "new card" shortcut) as every other idCard.

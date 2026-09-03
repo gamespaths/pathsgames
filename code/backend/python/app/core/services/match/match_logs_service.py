@@ -41,6 +41,7 @@ from app.core.ports.match.event_ports import (
     ITEM_ACTION_ADD, ITEM_ACTION_DROP, ITEM_ACTION_REMOVE, ITEM_ACTION_USE,
     MSG_EVENT_EXECUTED,
 )
+from app.core.services.match import registry_service
 
 
 def _item_type(action: Optional[str]) -> Optional[str]:
@@ -82,6 +83,8 @@ _TYPE_EVENT = "EVENT"
 _TYPE_COUNTER_ZERO = "COUNTER_ZERO"
 # Step 33 — an event the engine fired: an arrival, a counter, a time-start.
 _TYPE_AUTOMATIC_EVENT = "AUTOMATIC_EVENT"
+# Step 36 — a registry key was written by an event, a choice or the engine.
+_TYPE_REGISTRY_CHANGE = "REGISTRY_CHANGE"
 # v0.35.4 — the three item actions, read off log_item_usage.action rather than a message.
 _TYPE_ITEM_ADD = "ITEM_ADD"
 _TYPE_ITEM_USE = "ITEM_USE"
@@ -285,6 +288,15 @@ class MatchLogsService:
                     "timestamp": e.timestamp,
                     "idCharacterMatch": e.id_character_match,
                     "idLocationTo": e.id_location,
+                    "message": msg,
+                    "idEvent": e.id_event,
+                })
+            elif msg.startswith(registry_service.MSG_REGISTRY_CHANGE):
+                entries.append({
+                    "type": _TYPE_REGISTRY_CHANGE,
+                    "clock": e.clock,
+                    "timestamp": e.timestamp,
+                    "idCharacterMatch": e.id_character_match,
                     "message": msg,
                     "idEvent": e.id_event,
                 })

@@ -108,17 +108,11 @@ class MatchPersistencePort(ABC):
     def save_locations(self, rows: List[Dict[str, Any]]) -> None:
         ...
 
-    @abstractmethod
-    def save_registry(self, rows: List[Dict[str, Any]]) -> None:
-        ...
 
     @abstractmethod
     def find_locations_by_match_id(self, match_id: int) -> List[Dict[str, Any]]:
         ...
 
-    @abstractmethod
-    def find_registry_by_match_id(self, match_id: int) -> List[Dict[str, Any]]:
-        ...
 
     @abstractmethod
     def delete_matches_by_name_like(self, name_like_pattern: str) -> int:

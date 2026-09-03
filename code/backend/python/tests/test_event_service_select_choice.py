@@ -87,6 +87,12 @@ def _ctx(**over):
 
 
 @pytest.fixture
+def registry_service():
+    """Step 36 — registry writes leave the event store and go through their own service."""
+    return MagicMock()
+
+
+@pytest.fixture
 def store():
     s = MagicMock()
     s.find_user_id_by_uuid.return_value = USER_ID
@@ -123,9 +129,10 @@ def store():
 
 
 @pytest.fixture
-def service(store):
+def service(store, registry_service):
     return EventService(store, edge_store=MagicMock(), content_read_port=None,
-                        time_service=MagicMock())
+                        time_service=MagicMock(),
+                        registry_service_instance=registry_service)
 
 
 def _resolve(service):
@@ -300,37 +307,37 @@ def test_flag_group_one_is_location_scoped(service, store):
     assert r.execution.effects[0].character_uuids == ["char-uuid", "other-uuid"]
 
 
-def test_key_and_value_to_add_write_the_registry(service, store):
+def test_key_and_value_to_add_write_the_registry(service, store, registry_service):
     store.find_choice_effects_by_choice_id.return_value = [
         _effect(1, key="DOOR", value_to_add="OPEN")]
 
     r = _resolve(service)
 
-    store.upsert_registry.assert_called_once_with(
-        MATCH_ID, "DOOR", "OPEN", CHAR_ID, EVENT_ID, CLOCK)
+    registry_service.upsert.assert_called_once_with(
+        MATCH_ID, "DOOR", "OPEN", CHAR_ID, EVENT_ID, None, CLOCK)
     assert r.execution.registry_changes[0].new_value == "OPEN"
 
 
-def test_value_to_remove_clears_the_key_when_the_value_matches(service, store):
+def test_value_to_remove_clears_the_key_when_the_value_matches(service, store, registry_service):
     store.load_check_context.return_value = _ctx(registry={"DOOR": "OPEN"})
     store.find_choice_effects_by_choice_id.return_value = [
         _effect(1, key="DOOR", value_to_remove="OPEN")]
 
     r = _resolve(service)
 
-    store.upsert_registry.assert_called_once_with(
-        MATCH_ID, "DOOR", None, CHAR_ID, EVENT_ID, CLOCK)
+    registry_service.upsert.assert_called_once_with(
+        MATCH_ID, "DOOR", None, CHAR_ID, EVENT_ID, None, CLOCK)
     assert r.execution.registry_changes[0].new_value is None
 
 
-def test_value_to_remove_leaves_a_key_the_story_moved_on(service, store):
+def test_value_to_remove_leaves_a_key_the_story_moved_on(service, store, registry_service):
     store.load_check_context.return_value = _ctx(registry={"DOOR": "SEALED"})
     store.find_choice_effects_by_choice_id.return_value = [
         _effect(1, key="DOOR", value_to_remove="OPEN")]
 
     r = _resolve(service)
 
-    store.upsert_registry.assert_not_called()
+    registry_service.upsert.assert_not_called()
     assert r.execution.registry_changes == []
 
 
@@ -531,7 +538,8 @@ def test_flag_end_time_ends_the_time_unit(store):
     time_service.force_time_end.return_value = TimeEndOutcome(CLOCK + 1, [], [],
                                                              EdgeStateOutcome.none())
     svc = EventService(store, edge_store=MagicMock(), content_read_port=None,
-                       time_service=time_service)
+                       time_service=time_service,
+                       registry_service_instance=MagicMock())
     ender = _event(id=4, uuid="ender-uuid", flag_end_time=1)
     store.find_events_by_id.return_value = {EVENT_ID: _event(), 4: ender}
     store.find_choice_by_story_and_uuid.return_value = _choice(id_event_torun=4)

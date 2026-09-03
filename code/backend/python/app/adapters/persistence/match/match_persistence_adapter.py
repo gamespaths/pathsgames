@@ -166,25 +166,6 @@ class MatchPersistenceAdapter(MatchPersistencePort):
                 session.add(entity)
             session.commit()
 
-    def save_registry(self, rows: List[Dict[str, Any]]) -> None:
-        if not rows:
-            return
-        with self.session_factory() as session:
-            now = _now_iso()
-            for r in rows:
-                entity = GamingStateRegistryEntity(
-                    id=r["id"],
-                    id_match=r["id_match"],
-                    uuid=_new_uuid(),
-                    key=r.get("key", ""),
-                    string_value=r.get("string_value"),
-                    int_value=r.get("int_value"),
-                    ts_insert=now,
-                    ts_update=now,
-                )
-                session.add(entity)
-            session.commit()
-
     def find_locations_by_match_id(self, match_id: int) -> List[Dict[str, Any]]:
         with self.session_factory() as session:
             rows = (
@@ -200,25 +181,6 @@ class MatchPersistenceAdapter(MatchPersistencePort):
                     "flag_already_actived": r.flag_already_actived,
                     "flag_visited": r.flag_visited or 0,
                     "clock_counter": r.clock_counter or 0,
-                }
-                for r in rows
-            ]
-
-    def find_registry_by_match_id(self, match_id: int) -> List[Dict[str, Any]]:
-        with self.session_factory() as session:
-            rows = (
-                session.query(GamingStateRegistryEntity)
-                .filter(GamingStateRegistryEntity.id_match == match_id)
-                .all()
-            )
-            return [
-                {
-                    "id": r.id,
-                    "id_match": r.id_match,
-                    "uuid": r.uuid,
-                    "key": r.key,
-                    "string_value": r.string_value,
-                    "int_value": r.int_value,
                 }
                 for r in rows
             ]

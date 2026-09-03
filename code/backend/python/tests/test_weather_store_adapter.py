@@ -97,21 +97,6 @@ def test_find_active_weather_rules_skips_the_inactive_ones(session_factory, adap
     assert adapter.find_active_weather_rules(9999) == []
 
 
-def test_find_registry_value_prefers_string_then_int(session_factory, adapter):
-    with session_factory() as s:
-        s.add(GamingStateRegistryEntity(id=1, id_match=1, uuid="r-a", key="door",
-                                        string_value="open", ts_insert=_NOW, ts_update=_NOW))
-        s.add(GamingStateRegistryEntity(id=2, id_match=1, uuid="r-b", key="count",
-                                        int_value=7, ts_insert=_NOW, ts_update=_NOW))
-        s.add(GamingStateRegistryEntity(id=3, id_match=1, uuid="r-c", key="empty",
-                                        ts_insert=_NOW, ts_update=_NOW))
-        s.commit()
-
-    assert adapter.find_registry_value(1, "door") == "open"
-    assert adapter.find_registry_value(1, "count") == "7"
-    assert adapter.find_registry_value(1, "empty") is None
-    assert adapter.find_registry_value(1, "ghost") is None
-
 
 def test_find_characters_projects_energy(session_factory, adapter):
     _seed_match(session_factory)

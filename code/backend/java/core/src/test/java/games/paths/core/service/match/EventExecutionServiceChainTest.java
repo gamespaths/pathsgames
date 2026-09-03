@@ -43,6 +43,7 @@ class EventExecutionServiceChainTest {
     private static final long LOC = 100L;
 
     private EventExecutionStorePort store;
+    private RegistryService registryService;
     private EdgeStateStorePort edgeStore;
     private TimeAdvancementService timeAdvancementService;
     private EventExecutionService service;
@@ -51,11 +52,13 @@ class EventExecutionServiceChainTest {
     @BeforeEach
     void setUp() {
         store = mock(EventExecutionStorePort.class);
+        registryService = mock(RegistryService.class);
         edgeStore = mock(EdgeStateStorePort.class);
         UserAccessPort userAccessPort = mock(UserAccessPort.class);
         ContentQueryPort contentQueryPort = mock(ContentQueryPort.class);
         timeAdvancementService = mock(TimeAdvancementService.class);
-        service = new EventExecutionService(store, edgeStore, userAccessPort, contentQueryPort, timeAdvancementService);
+        service = new EventExecutionService(store, edgeStore, userAccessPort, contentQueryPort,
+                timeAdvancementService, registryService);
         ctx = ctx();
 
         when(userAccessPort.findByUuid(USER_UUID)).thenReturn(Optional.of(

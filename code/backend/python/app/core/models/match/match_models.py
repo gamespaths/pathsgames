@@ -86,10 +86,19 @@ class MatchLocationState:
 
 @dataclass
 class MatchRegistryEntry:
+    """Step 36 — the row joined with its list_keys definition, so the board reads the category
+    and visibility the author gave the key, not only the value the engine wrote."""
+
     uuid: str
     key: str
     string_value: Optional[str] = None
     int_value: Optional[int] = None
+    id_character: Optional[int] = None
+    category: Optional[str] = None
+    visible: bool = False
+    priority: Optional[int] = None
+    id_card: Optional[int] = None
+    card: Optional[Any] = None
 
 
 @dataclass

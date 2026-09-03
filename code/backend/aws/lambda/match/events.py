@@ -13,6 +13,8 @@ carries ``registry`` / ``eventLog`` / ``currentWeatherId``.
 
 import uuid as _uuid
 
+from match import registry as _registry
+
 # Only these two types are player-executable; AUTOMATIC and FIRST are engine-driven, and
 # authored stories also use END / END_GAME for the end-game event (identified by
 # story.idEventEndGame, not by its type). Anything unknown is simply not executable.
@@ -109,17 +111,7 @@ def build_context(match, story, caller):
                         if c.get("uuid") == class_uuid), None)
             class_id = cls.get("id") if cls else None
 
-    registry = {}
-    for r in (match.get("registry") or []):
-        key = r.get("key")
-        if not key:
-            continue
-        if r.get("stringValue") is not None:
-            registry[key] = r.get("stringValue")
-        elif r.get("intValue") is not None:
-            registry[key] = str(r.get("intValue"))
-        else:
-            registry[key] = None
+    registry = _registry.load_all(match)
 
     return {
         "idCharacter": (caller.get("id") or caller.get("uuid")) if caller else None,
@@ -209,10 +201,12 @@ def check(event, ctx):
         return False, "NOT_ENOUGH_MAGIC"
 
     key = event.get("registryKeyCondition")
-    if key and str(key).strip():
-        expected = event.get("registryValueCondition")
-        # A key with no expected value can never be met — it must not read as "no condition".
-        if expected is None or expected != ctx.get("registry", {}).get(key):
+    if not _registry.no_condition(key):
+        # Step 36 — the operator column widens the condition past equality; a key with no
+        # expected value is still never met.
+        if not _registry.evaluate(event.get("registryValueOperatorCondition"),
+                                  event.get("registryValueCondition"),
+                                  ctx.get("registry", {}).get(key)):
             return False, "REGISTRY_CONDITION_NOT_MET"
 
     # On the event, idWeather is a CONDITION; on an effect it is an EFFECT (it SETS it).
@@ -456,27 +450,11 @@ def apply_location(match, char, effect, location_uuids, changes, ts):
     return True
 
 
-def apply_registry(match, key, value, changes):
-    """The registry is match-scoped: written once per effect row, not once per recipient."""
-    registry = match.setdefault("registry", [])
-    row = next((r for r in registry if r.get("key") == key), None)
-    old = None
-    if row:
-        old = row.get("stringValue")
-        if old is None and row.get("intValue") is not None:
-            old = str(row.get("intValue"))
-    else:
-        row = {"key": key}
-        registry.append(row)
-
-    try:
-        row["intValue"] = int(str(value).strip())
-        row["stringValue"] = None
-    except (TypeError, ValueError):
-        row["stringValue"] = value
-        row["intValue"] = None
-
-    changes.append({"key": key, "oldValue": old, "newValue": value})
+def apply_registry(match, key, value, changes, id_character=None, id_event=None,
+                   id_choice=None, clock=None, character_uuid=None, timestamp=None):
+    """Step 36 — kept as the name every caller already uses; the work is the registry's own."""
+    return _registry.upsert(match, key, value, changes, id_character, id_event, id_choice,
+                            clock, character_uuid, timestamp)
 
 
 def _csv(value):

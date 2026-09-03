@@ -72,6 +72,10 @@ public class EventEntity extends BaseStoryScopedEntity {
     @Column(name = "registry_value_condition")
     private String registryValueCondition;
 
+    /** CONDITION: how registryValueCondition is compared - = != > < ; null means =. */
+    @Column(name = "registry_value_operator_condition")
+    private String registryValueOperatorCondition;
+
     /** CONDITION: the character must have this class. */
     @Column(name = "id_class_condition")
     private Integer idClassCondition;
@@ -131,6 +135,9 @@ public class EventEntity extends BaseStoryScopedEntity {
 
     public String getRegistryValueCondition() { return registryValueCondition; }
     public void setRegistryValueCondition(String registryValueCondition) { this.registryValueCondition = registryValueCondition; }
+
+    public String getRegistryValueOperatorCondition() { return registryValueOperatorCondition; }
+    public void setRegistryValueOperatorCondition(String registryValueOperatorCondition) { this.registryValueOperatorCondition = registryValueOperatorCondition; }
 
     public Integer getIdClassCondition() { return idClassCondition; }
     public void setIdClassCondition(Integer idClassCondition) { this.idClassCondition = idClassCondition; }

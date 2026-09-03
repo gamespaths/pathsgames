@@ -86,6 +86,13 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "uuid": r.uuid,
                     "key_name": r.key_name,
                     "key_value": r.key_value,
+                    # Step 36 — the definition the registry joins against. Python stores the
+                    # visibility as a flag where Java stores the word; the port speaks Java's
+                    # vocabulary so both backends answer the same JSON.
+                    "key_group": r.key_group,
+                    "priority": r.priority,
+                    "id_card": r.id_card,
+                    "visibility": "PUBLIC" if r.is_visible else "HIDDEN",
                 }
                 for r in rows
             ]
@@ -128,6 +135,8 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     # as open.
                     "condition_registry_key": r.condition_registry_key,
                     "condition_registry_value": r.condition_registry_value,
+                    "registry_value_operator_condition":
+                        r.registry_value_operator_condition,
                 }
                 for r in rows
             ]
@@ -161,6 +170,8 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "id_weather": r.id_weather,
                     "registry_key_condition": r.registry_key_condition,
                     "registry_value_condition": r.registry_value_condition,
+                    "registry_value_operator_condition":
+                        r.registry_value_operator_condition,
                     "id_item_condition": r.id_item_condition,
                     "id_class_condition": r.id_class_condition,
                 }

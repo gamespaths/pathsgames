@@ -5,7 +5,6 @@ import games.paths.core.entity.match.GamingCharacterInstanceEntity;
 import games.paths.core.entity.match.GamingCharacterInstanceEntityId;
 import games.paths.core.entity.match.GamingCharacterTraitsEntity;
 import games.paths.core.entity.match.GamingInventoryItemsEntity;
-import games.paths.core.entity.match.GamingStateRegistryEntity;
 import games.paths.core.entity.match.GamingStoryProgressEntity;
 import games.paths.core.entity.match.LogChoicesExecutedEntity;
 import games.paths.core.entity.match.LogEventsEntity;
@@ -28,7 +27,6 @@ import games.paths.core.repository.match.GamingCharacterInstanceRepository;
 import games.paths.core.repository.match.GamingCharacterTraitsRepository;
 import games.paths.core.repository.match.GamingInventoryItemsRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
-import games.paths.core.repository.match.GamingStateRegistryRepository;
 import games.paths.core.repository.match.GamingStoryProgressRepository;
 import games.paths.core.repository.match.LogChoicesExecutedRepository;
 import games.paths.core.repository.match.LogEventsRepository;
@@ -67,7 +65,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     private final GamingBackpackResourcesRepository backpackRepository;
     private final GamingInventoryItemsRepository inventoryRepository;
     private final GamingCharacterTraitsRepository traitsRepository;
-    private final GamingStateRegistryRepository registryRepository;
+    private final games.paths.core.port.match.RegistryStorePort registryStorePort;
     private final LogEventsRepository logEventsRepository;
     private final LogItemUsageRepository logItemUsageRepository;
     private final LogMovementRepository logMovementRepository;
@@ -82,7 +80,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
                                       GamingBackpackResourcesRepository backpackRepository,
                                       GamingInventoryItemsRepository inventoryRepository,
                                       GamingCharacterTraitsRepository traitsRepository,
-                                      GamingStateRegistryRepository registryRepository,
+                                      games.paths.core.port.match.RegistryStorePort registryStorePort,
                                       LogEventsRepository logEventsRepository,
                                       LogItemUsageRepository logItemUsageRepository,
                                       LogMovementRepository logMovementRepository,
@@ -95,7 +93,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
         this.backpackRepository = backpackRepository;
         this.inventoryRepository = inventoryRepository;
         this.traitsRepository = traitsRepository;
-        this.registryRepository = registryRepository;
+        this.registryStorePort = registryStorePort;
         this.logEventsRepository = logEventsRepository;
         this.logItemUsageRepository = logItemUsageRepository;
         this.logMovementRepository = logMovementRepository;
@@ -295,9 +293,10 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
         }
 
         Map<String, String> registry = new HashMap<>();
-        for (GamingStateRegistryEntity r : registryRepository.findByIdMatch(idMatch)) {
-            if (r.getKey() != null) {
-                registry.put(r.getKey(), registryValue(r));
+        for (games.paths.core.port.match.RegistryStorePort.RegistryRow r
+                : registryStorePort.findByMatch(idMatch)) {
+            if (r.key() != null) {
+                registry.put(r.key(), games.paths.core.service.match.RegistryService.render(r));
             }
         }
 
@@ -470,34 +469,6 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
             }
         }
         return false;
-    }
-
-    @Override
-    public void upsertRegistry(long idMatch, String key, String value,
-                               Long idCharacter, Long idEvent, int clock) {
-        if (key == null || key.isBlank()) {
-            return;
-        }
-        List<GamingStateRegistryEntity> rows = registryRepository.findByIdMatch(idMatch);
-        for (GamingStateRegistryEntity r : rows) {
-            if (key.equals(r.getKey())) {
-                applyValue(r, value);
-                r.setIdCharacter(idCharacter);
-                r.setIdEvent(idEvent);
-                r.setClock(clock);
-                registryRepository.save(r);
-                return;
-            }
-        }
-        GamingStateRegistryEntity e = new GamingStateRegistryEntity();
-        e.setId(nextId(rows.stream().map(GamingStateRegistryEntity::getId)));
-        e.setIdMatch(idMatch);
-        e.setKey(key);
-        applyValue(e, value);
-        e.setIdCharacter(idCharacter);
-        e.setIdEvent(idEvent);
-        e.setClock(clock);
-        registryRepository.save(e);
     }
 
     @Override
@@ -690,30 +661,6 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────
-
-    /** A numeric value lands in int_value, anything else in string_value (never both). */
-    private static void applyValue(GamingStateRegistryEntity r, String value) {
-        if (value == null) {
-            r.setStringValue(null);
-            r.setIntValue(null);
-            return;
-        }
-        try {
-            r.setIntValue(Integer.valueOf(value.trim()));
-            r.setStringValue(null);
-        } catch (NumberFormatException notNumeric) {
-            r.setStringValue(value);
-            r.setIntValue(null);
-        }
-    }
-
-    /** Mirrors WeatherStoreAdapter.findRegistryValue: the string wins, else the int. */
-    private static String registryValue(GamingStateRegistryEntity r) {
-        if (r.getStringValue() != null) {
-            return r.getStringValue();
-        }
-        return r.getIntValue() == null ? null : String.valueOf(r.getIntValue());
-    }
 
     private long nextInventoryId(long idMatch) {
         return nextId(inventoryRepository.findByIdMatch(idMatch).stream()

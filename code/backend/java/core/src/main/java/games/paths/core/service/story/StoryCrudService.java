@@ -809,6 +809,7 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("flagBack", ln.getFlagBack());
             m.put("conditionRegistryKey", ln.getConditionRegistryKey());
             m.put("conditionRegistryValue", ln.getConditionRegistryValue());
+            m.put("registryValueOperatorCondition", ln.getRegistryValueOperatorCondition());
             m.put("energyCost", ln.getEnergyCost());
             m.put("costFood", ln.getCostFood());
             m.put("costMagic", ln.getCostMagic());
@@ -872,6 +873,7 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("costMagic", ev.getCostMagic());
             m.put("registryKeyCondition", ev.getRegistryKeyCondition());
             m.put("registryValueCondition", ev.getRegistryValueCondition());
+            m.put("registryValueOperatorCondition", ev.getRegistryValueOperatorCondition());
             m.put("idClassCondition", ev.getIdClassCondition());
             m.put("idItemCondition", ev.getIdItemCondition());
         } else if (e instanceof ChoiceConditionEntity) {
@@ -935,6 +937,7 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("costMoveNotSafeLocation", wr.getCostMoveNotSafeLocation());
             m.put("conditionKey", wr.getConditionKey());
             m.put("conditionKeyValue", wr.getConditionKeyValue());
+            m.put("registryValueOperatorCondition", wr.getRegistryValueOperatorCondition());
             m.put("timeFrom", wr.getTimeFrom());
             m.put("timeTo", wr.getTimeTo());
             m.put("idText", wr.getIdText());
@@ -1227,6 +1230,8 @@ public class StoryCrudService implements StoryCrudPort {
             e.setRegistryKeyCondition(str(d, "registryKeyCondition"));
         if (d.containsKey("registryValueCondition"))
             e.setRegistryValueCondition(str(d, "registryValueCondition"));
+        if (d.containsKey("registryValueOperatorCondition"))
+            e.setRegistryValueOperatorCondition(str(d, "registryValueOperatorCondition"));
         if (d.containsKey("idClassCondition"))
             e.setIdClassCondition(intVal(d, "idClassCondition"));
         if (d.containsKey("idItemCondition"))
@@ -1420,6 +1425,8 @@ public class StoryCrudService implements StoryCrudPort {
             e.setConditionRegistryKey(str(d, "conditionRegistryKey"));
         if (d.containsKey("conditionRegistryValue"))
             e.setConditionRegistryValue(str(d, "conditionRegistryValue"));
+        if (d.containsKey("registryValueOperatorCondition"))
+            e.setRegistryValueOperatorCondition(str(d, "registryValueOperatorCondition"));
         if (d.containsKey("energyCost"))
             e.setEnergyCost(intVal(d, "energyCost"));
         if (d.containsKey("costFood"))
@@ -1578,6 +1585,8 @@ public class StoryCrudService implements StoryCrudPort {
             e.setConditionKey(str(d, "conditionKey"));
         if (d.containsKey("conditionKeyValue"))
             e.setConditionKeyValue(str(d, "conditionKeyValue"));
+        if (d.containsKey("registryValueOperatorCondition"))
+            e.setRegistryValueOperatorCondition(str(d, "registryValueOperatorCondition"));
         if (d.containsKey("timeFrom"))
             e.setTimeFrom(intVal(d, "timeFrom"));
         if (d.containsKey("timeTo"))

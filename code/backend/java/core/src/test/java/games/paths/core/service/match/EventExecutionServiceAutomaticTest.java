@@ -66,6 +66,7 @@ class EventExecutionServiceAutomaticTest {
     private static final int CLOCK = 4;
 
     private EventExecutionStorePort store;
+    private RegistryService registryService;
     private EdgeStateStorePort edgeStore;
     private LocationEntryStorePort locationStore;
     private ContentQueryPort contentQueryPort;
@@ -74,11 +75,12 @@ class EventExecutionServiceAutomaticTest {
     @BeforeEach
     void setUp() {
         store = mock(EventExecutionStorePort.class);
+        registryService = mock(RegistryService.class);
         edgeStore = mock(EdgeStateStorePort.class);
         locationStore = mock(LocationEntryStorePort.class);
         contentQueryPort = mock(ContentQueryPort.class);
         service = new EventExecutionService(store, edgeStore, mock(UserAccessPort.class),
-                contentQueryPort, null, locationStore);
+                contentQueryPort, null, locationStore, registryService);
 
         when(store.findMatchById(MATCH_ID)).thenReturn(Optional.of(
                 new MatchEventView(MATCH_ID, "m1", "RUNNING", CLOCK, STORY_ID, 3L, null)));
@@ -370,8 +372,8 @@ class EventExecutionServiceAutomaticTest {
 
             assertEquals(1, fired.size());
             // idCharacter null: the world changed, but around no one.
-            verify(store).upsertRegistry(eq(MATCH_ID), eq("DOOR_OPEN"), eq("YES"), eq(null),
-                    any(), anyInt());
+            verify(registryService).upsert(eq(MATCH_ID), eq("DOOR_OPEN"), eq("YES"), eq(null),
+                    any(), eq(null), any());
             verify(store, never()).updateCharacterStats(anyLong(), anyLong(), any());
         }
 
@@ -519,7 +521,7 @@ class EventExecutionServiceAutomaticTest {
     @DisplayName("without a location store the engine is exactly as it was before Step 33")
     void noLocationStoreIsAPreStep33Engine() {
         EventExecutionService legacy = new EventExecutionService(store, edgeStore,
-                mock(UserAccessPort.class), mock(ContentQueryPort.class), null);
+                mock(UserAccessPort.class), mock(ContentQueryPort.class), null, registryService);
 
         assertTrue(legacy.onArrival(arrival()).isEmpty());
         assertTrue(legacy.runPendingAutomaticEvents(MATCH_ID, CLOCK,

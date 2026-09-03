@@ -121,7 +121,8 @@ class _Live:
 class EventService(EventPort):
 
     def __init__(self, store: EventStorePort, edge_store: EdgeStateStorePort = None,
-                 content_read_port=None, time_service=None, location_store=None) -> None:
+                 content_read_port=None, time_service=None, location_store=None,
+                 registry_service_instance=None) -> None:
         self.store = store
         self.edge_store = edge_store
         # Step 33 — the location engine's own store. None keeps the pre-33 behaviour:
@@ -133,6 +134,8 @@ class EventService(EventPort):
         # never ends). Held as the concrete class, not the port: force_time_end is
         # deliberately absent from TimeAdvancementPort so REST cannot reach it.
         self.time_service = time_service
+        # Step 36 — every registry write of an effect goes through it.
+        self.registry_service = registry_service_instance
 
     # ── the public flow ─────────────────────────────────────────────────────
 
@@ -416,8 +419,8 @@ class EventService(EventPort):
             value = None  # clears both value columns — the key reads as unset afterwards
         else:
             return
-        self.store.upsert_registry(x.match["id"], key, value, x.actor["id"],
-                                   event.get("id"), x.current_clock)
+        self.registry_service.upsert(x.match["id"], key, value, x.actor["id"],
+                                     event.get("id"), None, x.current_clock)
         x.ctx.registry[key] = value
         x.registry_changes.append(RegistryChange(key, old, value))
 
@@ -880,8 +883,8 @@ class EventService(EventPort):
             return
         value = effect.get("key_value_to_add")
         old = x.ctx.registry.get(key)
-        self.store.upsert_registry(x.match["id"], key, value, x.actor_id(),
-                                   event.get("id"), x.current_clock)
+        self.registry_service.upsert(x.match["id"], key, value, x.actor_id(),
+                                     event.get("id"), None, x.current_clock)
         x.ctx.registry[key] = value
         x.registry_changes.append(RegistryChange(key, old, value))
 

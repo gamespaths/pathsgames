@@ -99,6 +99,8 @@ class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
                         "energy_cost": n.energy_cost or 0,
                         "condition_key": n.condition_registry_key,
                         "condition_value": n.condition_registry_value,
+                        "registry_value_operator_condition":
+                            n.registry_value_operator_condition,
                         "flag_back": n.flag_back or 0,
                         # v0.35.3 — the edge's resource price; edge-only, no entry/weather term.
                         "cost_food": n.cost_food or 0,
@@ -106,18 +108,6 @@ class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
                         "cost_coin": n.cost_coin or 0,
                     })
             return out
-
-    def find_registry_value(self, id_match: int, key: str) -> Optional[str]:
-        with self.session_factory() as session:
-            for r in (session.query(GamingStateRegistryEntity)
-                      .filter(GamingStateRegistryEntity.id_match == id_match).all()):
-                if r.key == key:
-                    if r.string_value is not None:
-                        return r.string_value
-                    if r.int_value is not None:
-                        return str(r.int_value)
-                    return None
-            return None
 
     def find_current_weather_move_cost(self, id_match: int) -> Tuple[int, int]:
         with self.session_factory() as session:

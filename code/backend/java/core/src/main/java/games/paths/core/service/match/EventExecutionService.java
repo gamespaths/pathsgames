@@ -110,6 +110,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
     private static final int MAX_ENTRY_DEPTH = 8;
 
     private final EventExecutionStorePort store;
+    private final RegistryService registryService;
     private final EdgeStateStorePort edgeStore;
     private final UserAccessPort userAccessPort;
     private final ContentQueryPort contentQueryPort;
@@ -122,8 +123,10 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                                  EdgeStateStorePort edgeStore,
                                  UserAccessPort userAccessPort,
                                  ContentQueryPort contentQueryPort,
-                                 TimeAdvancementService timeAdvancementService) {
-        this(store, edgeStore, userAccessPort, contentQueryPort, timeAdvancementService, null);
+                                 TimeAdvancementService timeAdvancementService,
+                                 RegistryService registryService) {
+        this(store, edgeStore, userAccessPort, contentQueryPort, timeAdvancementService, null,
+                registryService);
     }
 
     public EventExecutionService(EventExecutionStorePort store,
@@ -131,7 +134,9 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                                  UserAccessPort userAccessPort,
                                  ContentQueryPort contentQueryPort,
                                  TimeAdvancementService timeAdvancementService,
-                                 LocationEntryStorePort locationStore) {
+                                 LocationEntryStorePort locationStore,
+                                 RegistryService registryService) {
+        this.registryService = registryService;
         this.store = store;
         this.edgeStore = edgeStore;
         this.userAccessPort = userAccessPort;
@@ -640,7 +645,8 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         } else {
             return;
         }
-        store.upsertRegistry(x.match.id(), key, value, x.actor.id(), event.getId(), x.currentClock);
+        registryService.upsert(x.match.id(), key, value, x.actor.id(), event.getId(),
+                null, x.currentClock);
         x.ctx.registry().put(key, value);
         x.registryChanges.add(new RegistryChange(key, old, value));
     }
@@ -1083,7 +1089,8 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         }
         String value = effect.getKeyValueToAdd();
         String old = x.ctx.registry().get(key);
-        store.upsertRegistry(x.match.id(), key, value, x.actorId(), event.getId(), x.currentClock);
+        registryService.upsert(x.match.id(), key, value, x.actorId(), event.getId(),
+                null, x.currentClock);
         x.ctx.registry().put(key, value);
         x.registryChanges.add(new RegistryChange(key, old, value));
     }

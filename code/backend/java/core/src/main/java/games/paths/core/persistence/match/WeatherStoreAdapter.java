@@ -3,14 +3,12 @@ package games.paths.core.persistence.match;
 import games.paths.core.entity.match.GamingCharacterInstanceEntity;
 import games.paths.core.entity.match.GamingCharacterInstanceEntityId;
 import games.paths.core.entity.match.GamingMatchEntity;
-import games.paths.core.entity.match.GamingStateRegistryEntity;
 import games.paths.core.entity.match.LogEventsEntity;
 import games.paths.core.entity.match.LogWeatherEntity;
 import games.paths.core.entity.story.WeatherRuleEntity;
 import games.paths.core.port.match.WeatherStorePort;
 import games.paths.core.repository.match.GamingCharacterInstanceRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
-import games.paths.core.repository.match.GamingStateRegistryRepository;
 import games.paths.core.repository.match.LogEventsRepository;
 import games.paths.core.repository.match.LogWeatherRepository;
 import games.paths.core.repository.story.WeatherRuleRepository;
@@ -31,7 +29,6 @@ public class WeatherStoreAdapter implements WeatherStorePort {
 
     private final GamingMatchRepository matchRepository;
     private final GamingCharacterInstanceRepository characterRepository;
-    private final GamingStateRegistryRepository registryRepository;
     private final WeatherRuleRepository weatherRuleRepository;
     private final LogWeatherRepository logWeatherRepository;
     private final LogEventsRepository logEventsRepository;
@@ -39,14 +36,12 @@ public class WeatherStoreAdapter implements WeatherStorePort {
 
     public WeatherStoreAdapter(GamingMatchRepository matchRepository,
                                GamingCharacterInstanceRepository characterRepository,
-                               GamingStateRegistryRepository registryRepository,
                                WeatherRuleRepository weatherRuleRepository,
                                LogWeatherRepository logWeatherRepository,
                                LogEventsRepository logEventsRepository,
                                games.paths.core.port.story.StoryReadPort storyReadPort) {
         this.matchRepository = matchRepository;
         this.characterRepository = characterRepository;
-        this.registryRepository = registryRepository;
         this.weatherRuleRepository = weatherRuleRepository;
         this.logWeatherRepository = logWeatherRepository;
         this.logEventsRepository = logEventsRepository;
@@ -75,23 +70,6 @@ public class WeatherStoreAdapter implements WeatherStorePort {
             out.add(toView(w));
         }
         return out;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<String> findRegistryValue(long idMatch, String key) {
-        for (GamingStateRegistryEntity r : registryRepository.findByIdMatch(idMatch)) {
-            if (key.equals(r.getKey())) {
-                if (r.getStringValue() != null) {
-                    return Optional.of(r.getStringValue());
-                }
-                if (r.getIntValue() != null) {
-                    return Optional.of(String.valueOf(r.getIntValue()));
-                }
-                return Optional.empty();
-            }
-        }
-        return Optional.empty();
     }
 
     @Override
@@ -252,7 +230,7 @@ public class WeatherStoreAdapter implements WeatherStorePort {
         return new WeatherRuleView(
                 w.getId(), w.getUuid(), nz(w.getProbability()), nz(w.getPriority()),
                 w.getTimeFrom(), w.getTimeTo(), w.getConditionKey(), w.getConditionKeyValue(),
-                w.getDeltaEnergy(), w.getIdEvent(),
+                w.getRegistryValueOperatorCondition(), w.getDeltaEnergy(), w.getIdEvent(),
                 w.getCostMoveSafeLocation(), w.getCostMoveNotSafeLocation(), w.getIdTextName());
     }
 

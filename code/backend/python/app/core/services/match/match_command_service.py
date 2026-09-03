@@ -36,12 +36,14 @@ class MatchCommandService(MatchCommandPort):
         user_access_port: UserAccessPort,
         system_mode_port: SystemModePort,
         turnstile_port: Optional[TurnstileVerificationPort] = None,
+        registry_service=None,
     ) -> None:
         self.story_read_port = story_read_port
         self.match_persistence_port = match_persistence_port
         self.user_access_port = user_access_port
         self.system_mode_port = system_mode_port
         self.turnstile_port = turnstile_port or _PassthroughTurnstile()
+        self.registry_service = registry_service
 
     def create_match(self, command: MatchCreateCommand) -> MatchSummary:
         if (
@@ -154,20 +156,7 @@ class MatchCommandService(MatchCommandPort):
             })
         self.match_persistence_port.save_locations(location_rows)
 
-        registry_rows: List[Dict[str, Any]] = []
-        next_id = 1
-        for k in keys:
-            row = {
-                "id": next_id,
-                "id_match": saved["id"],
-                "key": k.get("key_name") or k.get("name") or "",
-                "string_value": None,
-                "int_value": None,
-            }
-            self._apply_default(row, k.get("key_value") or k.get("value"))
-            registry_rows.append(row)
-            next_id += 1
-        self.match_persistence_port.save_registry(registry_rows)
+        self.registry_service.seed(saved["id"], keys)
 
         return MatchSummary(
             uuid=saved["uuid"],
@@ -240,21 +229,3 @@ class MatchCommandService(MatchCommandPort):
         self.match_persistence_port.update_match_fields(uuid_match, match_statuses.ENDED, None)
         return "COMPLETED"
 
-    @staticmethod
-    def _apply_default(row: Dict[str, Any], raw_value):
-        if raw_value is None:
-            return
-        if not isinstance(raw_value, str):
-            try:
-                row["int_value"] = int(raw_value)
-            except (TypeError, ValueError):
-                row["string_value"] = str(raw_value)
-            return
-        trimmed = raw_value.strip()
-        if trimmed == "":
-            row["string_value"] = ""
-            return
-        try:
-            row["int_value"] = int(trimmed)
-        except ValueError:
-            row["string_value"] = trimmed

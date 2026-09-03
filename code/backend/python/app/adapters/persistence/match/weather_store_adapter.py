@@ -43,19 +43,6 @@ class WeatherStoreAdapter:
                 out.append(self._rule_to_dict(w))
             return out
 
-    def find_registry_value(self, id_match: int, key: str) -> Optional[str]:
-        with self.session_factory() as session:
-            r = (session.query(GamingStateRegistryEntity)
-                 .filter(GamingStateRegistryEntity.id_match == id_match,
-                         GamingStateRegistryEntity.key == key).first())
-            if r is None:
-                return None
-            if r.string_value is not None:
-                return r.string_value
-            if r.int_value is not None:
-                return str(r.int_value)
-            return None
-
     def find_characters(self, id_match: int) -> List[Dict[str, Any]]:
         with self.session_factory() as session:
             rows = (session.query(GamingCharacterInstanceEntity)
@@ -195,6 +182,7 @@ class WeatherStoreAdapter:
             "id": w.id, "uuid": w.uuid, "probability": w.probability,
             "time_from": w.time_from, "time_to": w.time_to,
             "condition_key": w.condition_key, "condition_key_value": w.condition_key_value,
+            "registry_value_operator_condition": w.registry_value_operator_condition,
             "delta_energy": w.delta_energy, "id_event": w.id_event,
             "id_text_name": w.id_text_name,
         }

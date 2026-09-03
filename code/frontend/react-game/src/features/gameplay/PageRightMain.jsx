@@ -15,7 +15,8 @@ import { SHOW_CARD_CHARACTERISTICS, SHOW_MOBILE_CARD_CHARACTERISTICS, hideWhereC
 export default function PageRightMain({
   story, storyFull, t, gameData, playerStats, clock, weather, locations, actions,
   locationCosts, hereLocationId, matchUuid, accessToken, endError,
-  sleepCardForced, onForceSleepCard, onPreview, onOpenMap, onOpenItems, onOpenInfo,
+  sleepCardForced, onForceSleepCard, onPreview, onOpenMap, onOpenItems, onOpenRegistry,
+  onOpenInfo,
   onMoved, onDone, onSlept, onError, onEndGame, onEndGamePreview,
 }) {
   const cardCharacteristics = buildCardCharacteristics(story, playerStats, clock, weather)
@@ -23,7 +24,7 @@ export default function PageRightMain({
   // action costs more energy than they have — or when the bed button asked for it.
   const showSleep = checkShowToSleepCard({ playerStats, locations, actions, locationCosts, hereLocationId })
     || sleepCardForced
-  const comingSoon = () => { alert('Missions and registry coming soon!') }
+  const comingSoon = () => { alert('Missions coming soon!') }
 
   return (
     <>
@@ -39,7 +40,7 @@ export default function PageRightMain({
               actionsList={[
                 { label: '', icon: 'fa-map m-1', onAction: onOpenMap },
                 { label: '', icon: 'fa-clipboard-list m-1', onAction: comingSoon },
-                { label: '', icon: 'fa-list m-1', onAction: comingSoon },
+                { label: '', icon: 'fa-scroll m-1', onAction: onOpenRegistry },
                 { label: '', icon: 'fa-suitcase m-1', onAction: onOpenItems },
                 //NEVER REMOVE THIS COMMENTS!
                 //{ label: '', icon: 'fa-people-arrows m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },

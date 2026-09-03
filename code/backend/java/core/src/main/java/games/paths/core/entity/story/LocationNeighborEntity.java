@@ -28,6 +28,10 @@ public class LocationNeighborEntity extends BaseStoryScopedEntity {
     @Column(name = "condition_registry_value")
     private String conditionRegistryValue;
 
+    /** CONDITION: how conditionRegistryValue is compared - = != > < ; null means =. */
+    @Column(name = "registry_value_operator_condition")
+    private String registryValueOperatorCondition;
+
     @Column(name = "energy_cost")
     private Integer energyCost;
 
@@ -78,6 +82,9 @@ public class LocationNeighborEntity extends BaseStoryScopedEntity {
 
     public String getConditionRegistryValue() { return conditionRegistryValue; }
     public void setConditionRegistryValue(String conditionRegistryValue) { this.conditionRegistryValue = conditionRegistryValue; }
+
+    public String getRegistryValueOperatorCondition() { return registryValueOperatorCondition; }
+    public void setRegistryValueOperatorCondition(String registryValueOperatorCondition) { this.registryValueOperatorCondition = registryValueOperatorCondition; }
 
     public Integer getEnergyCost() { return energyCost; }
     public void setEnergyCost(Integer energyCost) { this.energyCost = energyCost; }

@@ -142,18 +142,6 @@ def _is_maintenance():
     return str(cfg.get('serverStatus', 'OK')).upper() == _MAINTENANCE_VALUE
 
 
-def _apply_default(row, raw_value):
-    """Mirror of the Java/Python/AWS default-value parser."""
-    if raw_value is None:
-        return
-    text = str(raw_value).strip()
-    if text == '':
-        row['stringValue'] = ''
-        return
-    try:
-        row['intValue'] = int(text)
-    except ValueError:
-        row['stringValue'] = text
 
 
 def _verify_turnstile(token, remote_ip=None):
@@ -261,7 +249,10 @@ def _detail_from_item(item, players=None, lang='en', all_locations=False,
         "currentLocationId": current_id,
         "currentLocationUuid": current_uuid,
         "locations": location_states,
-        "registry": item.get("registry", []),
+        # Step 36 — the same joined entries the /registry endpoint answers, visible keys only,
+        # so the board renders its registry section without a second request and the two
+        # payloads cannot disagree. Hidden keys are never on /info, whoever asks.
+        "registry": _registry.list_entries(item, story, include_hidden=False),
         "events": [],
         "choices": [],
         # Step 21 — the players/characters of the match (summary rows).
@@ -317,11 +308,7 @@ def _judge_neighbor(judge, edge, target):
     if target is None:
         return False, 'NOT_A_NEIGHBOR'
     total_cost, _ = _movement_total_cost(edge, target, judge.get('weatherRule'))
-    cond_key = edge.get('conditionKey') or edge.get('conditionRegistryKey')
-    condition_met = True
-    if cond_key:
-        cond_value = edge.get('conditionValue') or edge.get('conditionRegistryValue')
-        condition_met = _registry_value(judge.get('registry'), cond_key) == cond_value
+    condition_met = _edge_condition_met(edge, judge.get('registry'))
     return _movements.check(judge.get('ctx'), _movements.edge_check(
         condition_met,
         total_cost,
@@ -334,6 +321,7 @@ from common.data_utils import resolve_card_from_raw as _resolve_card_from_raw
 from match import inventory as _inventory
 from match import choices as _choices
 from match import events as _events
+from match import registry as _registry
 from match import movements as _movements
 
 
@@ -793,19 +781,7 @@ def _create_match(user, body):
             "clockCounter": int(loc.get('counterTime') or loc.get('counter_time') or 0),
         })
 
-    registry = []
-    next_id = 1
-    for k in keys:
-        row = {
-            "id": next_id,
-            "uuid": str(uuid_lib.uuid4()),
-            "key": k.get('keyName') or k.get('name') or '',
-            "stringValue": None,
-            "intValue": None,
-        }
-        _apply_default(row, k.get('keyValue') or k.get('value'))
-        registry.append(row)
-        next_id += 1
+    registry = _registry.seed(story)
 
     start_id = story.get('idLocationStart')
     start_loc = next((l for l in locations if int(l.get('id', -1)) == int(start_id or -1)), None)
@@ -932,6 +908,19 @@ def _get_match_info(user, match_uuid, lang='en'):
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
     return _ok(_detail_from_item(item, _match_characters(match_uuid), lang,
                                 requester_uuid=(user or {}).get('uuid')))
+
+
+def _get_match_registry(user, match_uuid, include_hidden=False):
+    """Step 36 — GET /api/match/{uuidMatch}/registry, grouped by category.
+
+    Owner-only: any other caller reads 404, so a match nobody may see is indistinguishable
+    from one that does not exist. ``includeHidden`` is the owner's debugging door.
+    """
+    item, err = _require_owned_match(user, match_uuid)
+    if err is not None:
+        return err
+    groups = _registry.list_groups(item, _story_of(item), include_hidden)
+    return _ok({'groups': groups})
 
 
 def _end_match(user, match_uuid, event_uuid):
@@ -1677,20 +1666,18 @@ def _weather_time_matches(rule, clock):
 
 
 def _weather_condition_matches(rule, registry):
-    """No conditionKey → always matches; otherwise the registry value must equal it."""
+    """No conditionKey → always matches; otherwise Step 36's shared comparison decides.
+
+    A rule with a key but no value used to mean "the key must be unset"; it is now never met,
+    as it already was for events and movement. Say it with != instead.
+    """
     key = rule.get('conditionKey')
-    if not key:
+    if _registry.no_condition(key):
         return True
-    actual = None
-    for r in (registry or []):
-        if r.get('key') == key:
-            if r.get('stringValue') is not None:
-                actual = r.get('stringValue')
-            elif r.get('intValue') is not None:
-                actual = str(r.get('intValue'))
-            break
-    expected = rule.get('conditionValue')
-    return actual is None if expected is None else expected == actual
+    actual = _registry.render_row(
+        next((r for r in (registry or []) if r.get('key') == key), None))
+    return _registry.evaluate(rule.get('registryValueOperatorCondition'),
+                              rule.get('conditionValue'), actual)
 
 
 def _weather_weighted_pick(eligible, seed):
@@ -1925,6 +1912,9 @@ def _assemble_match_logs(match, match_uuid):
             entry_type = "COUNTER_ZERO"
         elif message.startswith(_events.MSG_AUTOMATIC_EVENT):
             entry_type = "AUTOMATIC_EVENT"
+        elif message.startswith(_registry.MSG_REGISTRY_CHANGE):
+            # Step 36 — a registry key was written by an event, a choice or the engine.
+            entry_type = "REGISTRY_CHANGE"
         else:
             continue
         entries.append({
@@ -2329,16 +2319,25 @@ def _get_clock(user, match_uuid):
 
 # ─── Step 28 — movement system ────────────────────────────────────────────────
 
+def _edge_condition_met(edge, registry):
+    """Step 36 — the ONE neighbour registry check, where there were three copies.
+
+    All three omitted the "expected value is not None" guard the Java and Python engines
+    enforce, so an edge with a key but no value read as OPEN whenever the key was unset.
+    It now reads as blocked, and the operator column widens the comparison past equality.
+    """
+    key = edge.get('conditionKey') or edge.get('conditionRegistryKey')
+    if _registry.no_condition(key):
+        return True
+    expected = edge.get('conditionValue') or edge.get('conditionRegistryValue')
+    actual = _registry.render_row(
+        next((r for r in (registry or []) if r.get('key') == key), None))
+    return _registry.evaluate(edge.get('registryValueOperatorCondition'), expected, actual)
+
+
 def _registry_value(registry, key):
-    """Current registry value for a key (string/int), or None when absent."""
-    for r in (registry or []):
-        if r.get('key') == key:
-            if r.get('stringValue') is not None:
-                return r.get('stringValue')
-            if r.get('intValue') is not None:
-                return str(r.get('intValue'))
-            return None
-    return None
+    """Current registry value for a key, through the one codec Step 36 left standing."""
+    return _registry.render_row(next((r for r in (registry or []) if r.get('key') == key), None))
 
 
 def _current_weather_rule(match, story):
@@ -2434,11 +2433,7 @@ def _start_movement(user, match_uuid, body):
         characters_at_target = sum(
             1 for c in _match_characters(match_uuid) if c.get('idLocation') == target.get('id'))
 
-    cond_key = edge.get('conditionKey') or edge.get('conditionRegistryKey')
-    condition_met = True
-    if cond_key:
-        cond_value = edge.get('conditionValue') or edge.get('conditionRegistryValue')
-        condition_met = _registry_value(match.get('registry'), cond_key) == cond_value
+    condition_met = _edge_condition_met(edge, match.get('registry'))
 
     cost_food = _nz(edge.get('costFood'))
     cost_magic = _nz(edge.get('costMagic'))
@@ -2725,7 +2720,13 @@ def _execute_event(user, match_uuid, body, lang='en'):
             key = effect.get('keyToAdd')
             if key:
                 value = effect.get('keyValueToAdd')
-                _events.apply_registry(match, key, value, registry_changes)
+                # Step 36 — the row remembers who wrote it and when, as it does on Java.
+                _events.apply_registry(match, key, value, registry_changes,
+                                       id_character=(caller or {}).get('id'),
+                                       id_event=current.get('id'),
+                                       clock=_nz(match.get('currentClock')),
+                                       character_uuid=(caller or {}).get('uuid'),
+                                       timestamp=_ts_ms())
                 ctx['registry'][key] = value
 
             applied_effects.append({
@@ -3678,7 +3679,10 @@ def _apply_choice_registry(match, ctx, effect, changes):
         value = None  # the key reads as unset afterwards
     else:
         return
-    _events.apply_registry(match, key, value, changes)
+    _events.apply_registry(match, key, value, changes,
+                           id_character=(ctx.get('callerId')),
+                           clock=_nz(match.get('currentClock')),
+                           timestamp=_ts_ms())
     ctx['registry'][key] = value
 
 
@@ -3908,7 +3912,12 @@ def _run_event_chain(match, story, first, caller, characters, ctx, events_by_id,
             key = effect.get('keyToAdd')
             if key:
                 value = effect.get('keyValueToAdd')
-                _events.apply_registry(match, key, value, acc['registryChanges'])
+                _events.apply_registry(match, key, value, acc['registryChanges'],
+                                       id_character=(caller or {}).get('id'),
+                                       id_event=current.get('id'),
+                                       clock=_nz(match.get('currentClock')),
+                                       character_uuid=(caller or {}).get('uuid'),
+                                       timestamp=_ts_ms())
                 ctx['registry'][key] = value
             acc['effects'].append({
                 "eventUuid": current.get('uuid'),
@@ -4290,11 +4299,7 @@ def _visited_locations_payload(match, match_uuid, lang='en'):
             other = loc_by_id.get(other_id)
             if other is None:
                 continue
-            cond_key = n.get('conditionKey') or n.get('conditionRegistryKey')
-            cond_met = True
-            if cond_key:
-                cond_value = n.get('conditionValue') or n.get('conditionRegistryValue')
-                cond_met = _registry_value(match.get('registry'), cond_key) == cond_value
+            cond_met = _edge_condition_met(n, match.get('registry'))
             safe = _nz(other.get('secureParam')) > 0
             weather_mod = 0
             if weather_rule is not None:
@@ -4476,6 +4481,18 @@ def lambda_handler(event, context):
             match_uuid = segments[3] if len(segments) > 4 else ''
         lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
         return _get_match_info(user, match_uuid, lang)
+
+    # Step 36 — GET /api/match/{uuidMatch}/registry
+    if (path.startswith('/api/match/') and path.endswith('/registry') and method == 'GET'):
+        params = (event.get('pathParameters') or {})
+        match_uuid = params.get('uuidMatch')
+        if not match_uuid:
+            # Fallback when API Gateway didn't expose the path parameter
+            segments = path.split('/')
+            match_uuid = segments[3] if len(segments) > 4 else ''
+        qs = (event.get('queryStringParameters') or {})
+        include_hidden = str(qs.get('includeHidden') or '').lower() == 'true'
+        return _get_match_registry(user, match_uuid, include_hidden)
 
     # Step 20.1 — PATCH /api/match/{uuidMatch}/end/{uuidEvent}
     if (path.startswith('/api/match/') and '/end/' in path and method == 'PATCH'):

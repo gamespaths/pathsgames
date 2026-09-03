@@ -28,7 +28,7 @@ class WeatherSelectionServiceTest {
                                         String condKey, String condVal,
                                         Integer deltaEnergy, Integer idEvent) {
         return new WeatherRuleView(id, "w-" + id, probability, priority, from, to,
-                condKey, condVal, deltaEnergy, idEvent, 1, 2, 100 + (int) id);
+                condKey, condVal, null, deltaEnergy, idEvent, 1, 2, 100 + (int) id);
     }
 
     // ── pure helpers ─────────────────────────────────────────────────────────
@@ -108,9 +108,10 @@ class WeatherSelectionServiceTest {
         @DisplayName("empty context returns a 'none' selection and writes nothing")
         void emptyContext() {
             WeatherStorePort store = mock(WeatherStorePort.class);
+            RegistryService registryService = mock(RegistryService.class);
             when(store.loadContext(1L)).thenReturn(Optional.empty());
 
-            WeatherSelection sel = new WeatherSelectionService(store).applyAtTimeStart(1L);
+            WeatherSelection sel = new WeatherSelectionService(store, registryService).applyAtTimeStart(1L);
 
             assertFalse(sel.selected());
             verify(store, never()).setCurrentWeather(anyLong(), any());
@@ -121,12 +122,13 @@ class WeatherSelectionServiceTest {
         @DisplayName("no eligible rule clears the current weather")
         void noEligibleClears() {
             WeatherStorePort store = mock(WeatherStorePort.class);
+            RegistryService registryService = mock(RegistryService.class);
             when(store.loadContext(1L)).thenReturn(Optional.of(new WeatherMatchContext(7L, 5, 42L)));
             // rule only valid for clock 0..2, current clock is 5 → not eligible
             when(store.findActiveWeatherRules(7L)).thenReturn(List.of(
                     rule(1, 100, 0, 0, 2, null, null, -3, null)));
 
-            WeatherSelection sel = new WeatherSelectionService(store).applyAtTimeStart(1L);
+            WeatherSelection sel = new WeatherSelectionService(store, registryService).applyAtTimeStart(1L);
 
             assertFalse(sel.selected());
             verify(store).setCurrentWeather(1L, null);
@@ -137,6 +139,7 @@ class WeatherSelectionServiceTest {
         @DisplayName("selects a weather, logs it and applies the clamped energy delta")
         void selectsAndAppliesDelta() {
             WeatherStorePort store = mock(WeatherStorePort.class);
+            RegistryService registryService = mock(RegistryService.class);
             when(store.loadContext(1L)).thenReturn(Optional.of(new WeatherMatchContext(7L, 0, 42L)));
             when(store.findActiveWeatherRules(7L)).thenReturn(List.of(
                     rule(9, 100, 0, null, null, null, null, -5, null)));
@@ -144,7 +147,7 @@ class WeatherSelectionServiceTest {
                     new WeatherCharacter(100L, 3, 50),    // 3-5 → clamp to 0 (applied -3)
                     new WeatherCharacter(101L, 20, 50))); // 20-5 = 15 (applied -5)
 
-            WeatherSelection sel = new WeatherSelectionService(store).applyAtTimeStart(1L);
+            WeatherSelection sel = new WeatherSelectionService(store, registryService).applyAtTimeStart(1L);
 
             assertTrue(sel.selected());
             assertEquals(9L, sel.idWeather());
@@ -159,11 +162,12 @@ class WeatherSelectionServiceTest {
         @DisplayName("zero delta applies no energy change but still logs the weather")
         void zeroDelta() {
             WeatherStorePort store = mock(WeatherStorePort.class);
+            RegistryService registryService = mock(RegistryService.class);
             when(store.loadContext(1L)).thenReturn(Optional.of(new WeatherMatchContext(7L, 0, 42L)));
             when(store.findActiveWeatherRules(7L)).thenReturn(List.of(
                     rule(9, 100, 0, null, null, null, null, 0, null)));
 
-            WeatherSelection sel = new WeatherSelectionService(store).applyAtTimeStart(1L);
+            WeatherSelection sel = new WeatherSelectionService(store, registryService).applyAtTimeStart(1L);
 
             assertTrue(sel.selected());
             verify(store, never()).findCharacters(anyLong());
@@ -175,14 +179,33 @@ class WeatherSelectionServiceTest {
         @DisplayName("registry condition filters out non-matching rules")
         void conditionFilters() {
             WeatherStorePort store = mock(WeatherStorePort.class);
+            RegistryService registryService = mock(RegistryService.class);
             when(store.loadContext(1L)).thenReturn(Optional.of(new WeatherMatchContext(7L, 0, 42L)));
             when(store.findActiveWeatherRules(7L)).thenReturn(List.of(
                     rule(1, 100, 0, null, null, "SEASON", "WINTER", 0, null),
                     rule(2, 100, 0, null, null, "SEASON", "SUMMER", 0, null)));
-            when(store.findRegistryValue(1L, "SEASON")).thenReturn(Optional.of("SUMMER"));
+            when(registryService.find(1L, "SEASON")).thenReturn(Optional.of("SUMMER"));
 
-            WeatherSelection sel = new WeatherSelectionService(store).applyAtTimeStart(1L);
+            WeatherSelection sel = new WeatherSelectionService(store, registryService).applyAtTimeStart(1L);
 
+            assertEquals(2L, sel.idWeather());
+        }
+
+        @Test
+        @DisplayName("Step 36: a condition key with no value no longer matches an unset key")
+        void nullExpectedValueIsNeverMet() {
+            WeatherStorePort store = mock(WeatherStorePort.class);
+            RegistryService registryService = mock(RegistryService.class);
+            when(store.loadContext(1L)).thenReturn(Optional.of(new WeatherMatchContext(7L, 0, 42L)));
+            when(store.findActiveWeatherRules(7L)).thenReturn(List.of(
+                    rule(1, 100, 0, null, null, "SEASON", null, 0, null),
+                    rule(2, 100, 0, null, null, null, null, 0, null)));
+            when(registryService.find(1L, "SEASON")).thenReturn(Optional.empty());
+
+            WeatherSelection sel = new WeatherSelectionService(store, registryService)
+                    .applyAtTimeStart(1L);
+
+            // Before Step 36 rule 1 would have won: a null expected value read as "must be unset".
             assertEquals(2L, sel.idWeather());
         }
 
@@ -190,11 +213,12 @@ class WeatherSelectionServiceTest {
         @DisplayName("a weather-linked event is recorded as pending")
         void logsEvent() {
             WeatherStorePort store = mock(WeatherStorePort.class);
+            RegistryService registryService = mock(RegistryService.class);
             when(store.loadContext(1L)).thenReturn(Optional.of(new WeatherMatchContext(7L, 0, 42L)));
             when(store.findActiveWeatherRules(7L)).thenReturn(List.of(
                     rule(9, 100, 0, null, null, null, null, 0, 55)));
 
-            new WeatherSelectionService(store).applyAtTimeStart(1L);
+            new WeatherSelectionService(store, registryService).applyAtTimeStart(1L);
 
             verify(store).logWeatherEvent(eq(1L), eq(55), anyString());
         }
@@ -203,11 +227,12 @@ class WeatherSelectionServiceTest {
         @DisplayName("a null rng seed falls back to the story id and still selects")
         void nullSeedFallback() {
             WeatherStorePort store = mock(WeatherStorePort.class);
+            RegistryService registryService = mock(RegistryService.class);
             when(store.loadContext(1L)).thenReturn(Optional.of(new WeatherMatchContext(7L, 0, null)));
             when(store.findActiveWeatherRules(7L)).thenReturn(List.of(
                     rule(9, 100, 0, null, null, null, null, 0, null)));
 
-            WeatherSelection sel = new WeatherSelectionService(store).applyAtTimeStart(1L);
+            WeatherSelection sel = new WeatherSelectionService(store, registryService).applyAtTimeStart(1L);
             assertTrue(sel.selected());
         }
     }
@@ -218,10 +243,11 @@ class WeatherSelectionServiceTest {
     @DisplayName("currentWeather delegates to the store by uuid")
     void currentWeatherDelegates() {
         WeatherStorePort store = mock(WeatherStorePort.class);
+        RegistryService registryService = mock(RegistryService.class);
         CurrentWeatherView view = new CurrentWeatherView(9L, "w-9", 7L, 55, 109, -5, 1, 2, 0);
         when(store.findCurrentWeatherByMatchUuid("m-1")).thenReturn(Optional.of(view));
 
-        Optional<CurrentWeatherView> got = new WeatherSelectionService(store).currentWeather("m-1");
+        Optional<CurrentWeatherView> got = new WeatherSelectionService(store, registryService).currentWeather("m-1");
         assertTrue(got.isPresent());
         assertEquals(9L, got.get().idWeather());
         assertEquals(55, got.get().idCard());
@@ -231,6 +257,7 @@ class WeatherSelectionServiceTest {
     @DisplayName("weatherAdmin aggregates seed, current weather, rules and log")
     void weatherAdminAggregates() {
         WeatherStorePort store = mock(WeatherStorePort.class);
+        RegistryService registryService = mock(RegistryService.class);
         when(store.findRngSeed("m-1")).thenReturn(Optional.of(42L));
         CurrentWeatherView view = new CurrentWeatherView(9L, "w-9", 7L, 55, 109, -5, 1, 2, 3);
         when(store.findCurrentWeatherByMatchUuid("m-1")).thenReturn(Optional.of(view));
@@ -240,7 +267,7 @@ class WeatherSelectionServiceTest {
         when(store.findWeatherLog("m-1")).thenReturn(List.of(
                 new WeatherLogView(1L, "l-1", 0, 9L, "w-9", 109, "2026-06-24T00:00:00Z")));
 
-        var admin = new WeatherSelectionService(store).weatherAdmin("m-1");
+        var admin = new WeatherSelectionService(store, registryService).weatherAdmin("m-1");
         assertEquals(42L, admin.rngSeed());
         assertEquals(9L, admin.current().idWeather());
         assertEquals(2, admin.rules().size());

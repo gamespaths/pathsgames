@@ -36,9 +36,11 @@ import java.util.Random;
 public class WeatherSelectionService {
 
     private final WeatherStorePort store;
+    private final RegistryService registryService;
 
-    public WeatherSelectionService(WeatherStorePort store) {
+    public WeatherSelectionService(WeatherStorePort store, RegistryService registryService) {
         this.store = store;
+        this.registryService = registryService;
     }
 
     /**
@@ -138,14 +140,17 @@ public class WeatherSelectionService {
         return r.timeTo() == null || clock <= r.timeTo();
     }
 
-    /** No condition_key → always matches; otherwise the registry value must equal it. */
+    /**
+     * No condition_key → always matches; otherwise {@link RegistryService#evaluate} decides.
+     * Step 36 retired the old reading of a null condition_key_value as "the key must be unset":
+     * a condition with no value is now never met, as it already was for events and movement.
+     */
     private boolean conditionMatches(WeatherRuleView r, long idMatch) {
-        if (r.conditionKey() == null || r.conditionKey().isBlank()) {
+        if (RegistryService.noCondition(r.conditionKey())) {
             return true;
         }
-        String actual = store.findRegistryValue(idMatch, r.conditionKey()).orElse(null);
-        String expected = r.conditionKeyValue();
-        return expected == null ? actual == null : expected.equals(actual);
+        String actual = registryService.find(idMatch, r.conditionKey()).orElse(null);
+        return RegistryService.evaluate(r.conditionOperator(), r.conditionKeyValue(), actual);
     }
 
     /**

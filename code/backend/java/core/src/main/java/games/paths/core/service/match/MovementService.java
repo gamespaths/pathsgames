@@ -61,25 +61,29 @@ public class MovementService implements MovementPort {
     private static final String DEFAULT_LANG = "en";
 
     private final MovementStorePort store;
+    private final RegistryService registryService;
     private final UserAccessPort userAccessPort;
     private final ContentQueryPort contentQueryPort;
     /** Step 33. Null keeps the pre-33 behaviour: a move fires nothing. */
     private final LocationEntryPort locationEntryPort;
 
-    public MovementService(MovementStorePort store, UserAccessPort userAccessPort) {
-        this(store, userAccessPort, null, null);
+    public MovementService(MovementStorePort store, UserAccessPort userAccessPort,
+                           RegistryService registryService) {
+        this(store, userAccessPort, null, null, registryService);
     }
 
     /** {@code contentQueryPort} resolves the location cards (nullable). */
     public MovementService(MovementStorePort store, UserAccessPort userAccessPort,
-                           ContentQueryPort contentQueryPort) {
-        this(store, userAccessPort, contentQueryPort, null);
+                           ContentQueryPort contentQueryPort, RegistryService registryService) {
+        this(store, userAccessPort, contentQueryPort, null, registryService);
     }
 
     /** Full constructor: {@code locationEntryPort} runs the Step 33 arrival triggers. */
     public MovementService(MovementStorePort store, UserAccessPort userAccessPort,
                            ContentQueryPort contentQueryPort,
-                           LocationEntryPort locationEntryPort) {
+                           LocationEntryPort locationEntryPort,
+                           RegistryService registryService) {
+        this.registryService = registryService;
         this.store = store;
         this.userAccessPort = userAccessPort;
         this.contentQueryPort = contentQueryPort;
@@ -326,11 +330,11 @@ public class MovementService implements MovementPort {
 
     private boolean conditionMet(long idMatch, NeighborEdge edge) {
         String key = edge.conditionKey();
-        if (key == null || key.isBlank()) {
+        if (RegistryService.noCondition(key)) {
             return true;
         }
-        String value = store.findRegistryValue(idMatch, key).orElse(null);
-        return edge.conditionValue() != null && edge.conditionValue().equals(value);
+        String value = registryService.find(idMatch, key).orElse(null);
+        return RegistryService.evaluate(edge.conditionOperator(), edge.conditionValue(), value);
     }
 
     private long requireUser(String userUuid) {

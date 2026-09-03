@@ -119,17 +119,11 @@ public class MovementStoreAdapter implements MovementStorePort {
             if (from == idLocation || to == idLocation) {
                 out.add(new NeighborEdge(from, to, n.getDirection(),
                         nz(n.getEnergyCost()), n.getConditionRegistryKey(), n.getConditionRegistryValue(),
-                        nz(n.getFlagBack()),
+                        n.getRegistryValueOperatorCondition(), nz(n.getFlagBack()),
                         nz(n.getCostFood()), nz(n.getCostMagic()), nz(n.getCostCoin())));
             }
         }
         return out;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<String> findRegistryValue(long idMatch, String key) {
-        return weatherStorePort.findRegistryValue(idMatch, key);
     }
 
     @Override

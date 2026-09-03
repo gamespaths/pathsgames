@@ -196,6 +196,15 @@
     "styleImageLarge": ""
   },
   {
+    "id": "registry",
+    "linkCopyright": "https://unsplash.com/photos/white-printer-paper-on-brown-table-dBF1FAIHs3k",
+    "urlImage": "https://images.unsplash.com/photo-1582972677567-42a2c06ca9ad?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "copyrightText": "Waldemar Brandt",
+    "awesomeIcon": "fas fa-scroll",
+    "description": "Registry of what the party has learned and done",
+    "styleImageLarge": ""
+  },
+  {
     "id": "crown-of-ashes",
     "url": "https://images.unsplash.com/photo-1735756045961-eaefc57a89e4?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     "author": "Sai Madhav",

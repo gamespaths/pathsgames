@@ -199,8 +199,8 @@ INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_d
 
 -- ── Story 1 Keys ────────────────────────────────────────────────
 INSERT INTO list_keys (id, id_story, name, value, "group") VALUES (90001, 9001, 'tutorial_progress', '0', 'tutorial');
-INSERT INTO list_keys (id, id_story, name, value, "group") VALUES (90002, 9001, 'items_collected', 'false', 'tutorial');
-INSERT INTO list_keys (id, id_story, name, value, "group") VALUES (90003, 9001, 'choice_made', 'false', 'tutorial');
+INSERT INTO list_keys (id, id_story, name, value, "group") VALUES (90002, 9001, 'items_collected', '0', 'tutorial');
+INSERT INTO list_keys (id, id_story, name, value, "group") VALUES (90003, 9001, 'choice_made', '0', 'tutorial');
 
 -- ── Story 1 Cards ───────────────────────────────────────────────
 -- Inserted before locations: fk_locations_card (id_card, id_story) requires the card to exist.
@@ -466,17 +466,17 @@ INSERT INTO list_global_random_events (id, id_story, probability) VALUES (90001,
 
 -- ── Story 1 Missions ────────────────────────────────────────────
 INSERT INTO list_missions (id, id_story, condition_key, condition_value_from, condition_value_to, id_text_name, id_text_description) VALUES (90001, 9001, 'tutorial_progress', '0', '3', 900, 900);
-INSERT INTO list_missions (id, id_story, condition_key, condition_value_to, id_text_name, id_text_description) VALUES (90002, 9001, 'items_collected', 'true', 901, 901);
+INSERT INTO list_missions (id, id_story, condition_key, condition_value_to, id_text_name, id_text_description) VALUES (90002, 9001, 'items_collected', '1', 901, 901);
 INSERT INTO list_missions (id, id_story, condition_key, condition_value_to, id_text_name, id_text_description) VALUES (90003, 9001, 'choice_made', 'gold', 902, 902);
 
 -- ── Story 1 Mission Steps ───────────────────────────────────────
-INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90001, 9001, 90001, 1, 'visited_movement', 'true');
-INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90002, 9001, 90001, 2, 'visited_energy', 'true');
-INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90003, 9001, 90001, 3, 'visited_graduation', 'true');
-INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90004, 9001, 90002, 1, 'potion_collected', 'true');
-INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90005, 9001, 90002, 2, 'snack_used', 'true');
-INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90006, 9001, 90003, 1, 'entered_arena', 'true');
-INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90007, 9001, 90003, 2, 'door_chosen', 'true');
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90001, 9001, 90001, 1, 'visited_movement', '1');
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90002, 9001, 90001, 2, 'visited_energy', '1');
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90003, 9001, 90001, 3, 'visited_graduation', '1');
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90004, 9001, 90002, 1, 'potion_collected', '1');
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90005, 9001, 90002, 2, 'snack_used', '1');
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90006, 9001, 90003, 1, 'entered_arena', '1');
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90007, 9001, 90003, 2, 'door_chosen', '1');
 
 -- ── Story 1 Creator ─────────────────────────────────────────────
 INSERT INTO list_creator (id, id_story, link) VALUES (90001, 9001, 'https://paths.games');

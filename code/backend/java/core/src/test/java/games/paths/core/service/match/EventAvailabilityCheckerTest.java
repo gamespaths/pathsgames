@@ -363,6 +363,29 @@ class EventAvailabilityCheckerTest {
         }
 
         @Test
+        @DisplayName("Step 36: the operator column widens the condition past equality")
+        void registryOperatorGreaterThan() {
+            EventEntity e = event();
+            e.setRegistryKeyCondition("REP");
+            e.setRegistryValueCondition("3");
+            e.setRegistryValueOperatorCondition(">");
+            assertUnavailable(EventAvailabilityChecker.check(e, ctx(b -> b.registry.put("REP", "3"))),
+                    Code.REGISTRY_CONDITION_NOT_MET);
+            assertTrue(EventAvailabilityChecker.check(e, ctx(b -> b.registry.put("REP", "4")))
+                    .available());
+        }
+
+        @Test
+        @DisplayName("Step 36: != is met by a key that was never set")
+        void registryOperatorNotEqualsOnAbsentKey() {
+            EventEntity e = event();
+            e.setRegistryKeyCondition("GATE");
+            e.setRegistryValueCondition("OPEN");
+            e.setRegistryValueOperatorCondition("!=");
+            assertTrue(EventAvailabilityChecker.check(e, ctx()).available());
+        }
+
+        @Test
         @DisplayName("A registry key with no expected value can never be met")
         void registryValueMissing() {
             EventEntity e = event();

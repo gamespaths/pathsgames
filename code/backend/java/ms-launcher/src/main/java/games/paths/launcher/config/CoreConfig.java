@@ -159,14 +159,26 @@ public class CoreConfig {
                 turnstileSecretKey, turnstileBypassToken, gameEnv, restTemplate);
     }
 
+    // ───── Step 36: Registry (reads, writes and comparisons of gaming_state_registry) ─────
+
+    @Bean
+    public games.paths.core.service.match.RegistryService registryService(
+            games.paths.core.port.match.RegistryStorePort registryStorePort,
+            StoryReadPort storyReadPort,
+            ContentQueryPort contentQueryPort) {
+        return new games.paths.core.service.match.RegistryService(registryStorePort,
+                storyReadPort, contentQueryPort);
+    }
+
     @Bean
     public MatchCommandPort matchCommandPort(StoryReadPort storyReadPort,
                                              MatchPersistencePort matchPersistencePort,
                                              UserAccessPort userAccessPort,
                                              SystemModePort systemModePort,
-                                             TurnstileVerificationPort turnstileVerificationPort) {
+                                             TurnstileVerificationPort turnstileVerificationPort,
+                                             games.paths.core.service.match.RegistryService registryService) {
         return new MatchCommandService(storyReadPort, matchPersistencePort,
-                userAccessPort, systemModePort, turnstileVerificationPort);
+                userAccessPort, systemModePort, turnstileVerificationPort, registryService);
     }
 
     @Bean
@@ -178,17 +190,21 @@ public class CoreConfig {
             CharacterReadPort characterReadPort,
             ContentQueryPort contentQueryPort,
             games.paths.core.port.match.MovementStorePort movementStorePort,
-            games.paths.core.port.match.EventExecutionStorePort eventExecutionStorePort) {
+            games.paths.core.port.match.EventExecutionStorePort eventExecutionStorePort,
+            games.paths.core.service.match.RegistryService registryService) {
         return new MatchQueryService(matchReadPort, storyReadPort, userAccessPort,
-                characterReadPort, contentQueryPort, movementStorePort, eventExecutionStorePort);
+                characterReadPort, contentQueryPort, movementStorePort, eventExecutionStorePort,
+                registryService);
     }
 
     // ───── Step 24: Turn cycle engine (single-player) ─────
 
     @Bean
     public games.paths.core.service.match.WeatherSelectionService weatherSelectionService(
-            games.paths.core.port.match.WeatherStorePort weatherStorePort) {
-        return new games.paths.core.service.match.WeatherSelectionService(weatherStorePort);
+            games.paths.core.port.match.WeatherStorePort weatherStorePort,
+            games.paths.core.service.match.RegistryService registryService) {
+        return new games.paths.core.service.match.WeatherSelectionService(weatherStorePort,
+                registryService);
     }
 
     @Bean
@@ -245,9 +261,11 @@ public class CoreConfig {
             games.paths.core.port.match.MovementStorePort movementStorePort,
             UserAccessPort userAccessPort,
             ContentQueryPort contentQueryPort,
-            games.paths.core.port.match.LocationEntryPort locationEntryPort) {
+            games.paths.core.port.match.LocationEntryPort locationEntryPort,
+            games.paths.core.service.match.RegistryService registryService) {
         return new games.paths.core.service.match.MovementService(
-                movementStorePort, userAccessPort, contentQueryPort, locationEntryPort);
+                movementStorePort, userAccessPort, contentQueryPort, locationEntryPort,
+                registryService);
     }
 
     // ───── Step 29: Normal events (player-triggered actions) ─────
@@ -268,11 +286,13 @@ public class CoreConfig {
             UserAccessPort userAccessPort,
             ContentQueryPort contentQueryPort,
             games.paths.core.service.match.TimeAdvancementService timeAdvancementService,
-            games.paths.core.port.match.LocationEntryStorePort locationEntryStorePort) {
+            games.paths.core.port.match.LocationEntryStorePort locationEntryStorePort,
+            games.paths.core.service.match.RegistryService registryService) {
         games.paths.core.service.match.EventExecutionService service =
                 new games.paths.core.service.match.EventExecutionService(
                         eventExecutionStorePort, edgeStateStorePort, userAccessPort,
-                        contentQueryPort, timeAdvancementService, locationEntryStorePort);
+                        contentQueryPort, timeAdvancementService, locationEntryStorePort,
+                        registryService);
         // Closes the one cycle in the graph: the event engine needs the time engine for
         // flag_end_time, and the time engine needs the event engine to run what a time-start
         // set off. Constructor injection either way is impossible; this setter is called once,

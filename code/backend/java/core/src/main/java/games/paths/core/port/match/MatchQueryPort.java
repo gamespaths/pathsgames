@@ -2,6 +2,7 @@ package games.paths.core.port.match;
 
 import games.paths.core.model.match.MatchDetail;
 import games.paths.core.model.match.MatchListFilter;
+import games.paths.core.model.match.MatchRegistryGroup;
 import games.paths.core.model.match.MatchSummary;
 import games.paths.core.model.match.MatchSummaryPage;
 
@@ -47,4 +48,14 @@ public interface MatchQueryPort {
      * @return {@code null} only when the match does not exist.
      */
     MatchDetail getMatchInfoForAdmin(String matchUuid);
+
+    /**
+     * Step 36 — the match registry, grouped by the category of each key's {@code list_keys}
+     * definition. Only visible keys unless {@code includeHidden}, which the owner alone may ask
+     * for: a hidden key is usually a puzzle the player has not solved yet.
+     *
+     * @return {@code null} when the match does not exist or the user does not own it.
+     */
+    List<MatchRegistryGroup> getMatchRegistry(String matchUuid, String userUuid,
+                                              boolean includeHidden, String lang);
 }

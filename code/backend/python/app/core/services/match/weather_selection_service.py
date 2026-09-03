@@ -14,11 +14,13 @@ rng_seed=42 is reproducible and the weather still varies clock-to-clock.
 """
 import random
 from typing import Any, Dict, List, Optional
+from app.core.services.match import registry_service
 
 
 class WeatherSelectionService:
-    def __init__(self, store: "WeatherStorePort") -> None:
+    def __init__(self, store: "WeatherStorePort", registry_service_instance=None) -> None:
         self.store = store
+        self.registry_service = registry_service_instance
 
     # ── selection ────────────────────────────────────────────────────────────
 
@@ -102,12 +104,14 @@ class WeatherSelectionService:
         return time_to is None or clock <= time_to
 
     def _condition_matches(self, rule: Dict[str, Any], id_match: int) -> bool:
+        """Step 36 retired the reading of a null condition_key_value as "the key must be
+        unset": a condition with no value is now never met, as for events and movement."""
         key = rule.get("condition_key")
-        if not key:
+        if registry_service.no_condition(key):
             return True
-        actual = self.store.find_registry_value(id_match, key)
-        expected = rule.get("condition_key_value")
-        return actual is None if expected is None else expected == actual
+        actual = self.registry_service.find(id_match, key)
+        return registry_service.evaluate(rule.get("registry_value_operator_condition"),
+                                         rule.get("condition_key_value"), actual)
 
     @staticmethod
     def _weighted_pick(eligible: List[Dict[str, Any]], seed: int) -> Dict[str, Any]:

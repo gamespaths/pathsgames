@@ -283,9 +283,4 @@ class MovementStoreAdapterTest {
         assertEquals(2, ids.size());
     }
 
-    @Test
-    void findRegistryValue_delegates() {
-        when(weatherStorePort.findRegistryValue(1L, "DOOR")).thenReturn(Optional.of("OPEN"));
-        assertEquals("OPEN", adapter.findRegistryValue(1L, "DOOR").orElseThrow());
-    }
 }

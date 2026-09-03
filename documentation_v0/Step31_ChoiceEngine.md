@@ -103,6 +103,11 @@ A pure function, no ports, no I/O — a twin of `EventAvailabilityChecker` ([Ste
    - An **absent registry key** satisfies only `!=`.
    - An **unknown type, blank key, or unparseable value makes that condition NOT met** — a typo
      locks an option visibly; it never silently unlocks one.
+   - **v0.36.0**: `KEYS` conditions no longer carry their own copy of this comparison —
+     `keysMet` now calls the shared `RegistryService.evaluate`, the same one events, movement
+     and weather conditions use. Behaviour is unchanged; this was already the widest
+     vocabulary in the project, and every other registry condition was widened to match it
+     rather than the reverse. See [Step36](./Step36_RegistrySystem.md).
 
 `reason` is a plain string that rides on the **200** response — never a thrown error code: the
 first failing check under AND (`LIMIT_SAD_EXCEEDED`, `LIMIT_DEX_NOT_MET`, `LIMIT_INT_NOT_MET`,

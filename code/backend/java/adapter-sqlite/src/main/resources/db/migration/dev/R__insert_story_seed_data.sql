@@ -231,8 +231,8 @@ INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_d
 -- ── Keys ────────────────────────────────────────────────────────
 INSERT INTO list_keys (id, id_story, name, value, id_text_description, "group", priority, visibility) VALUES
 (90001, 9001, 'tutorial_progress', '0',     950, 'tutorial', 1, 'PUBLIC'),
-(90002, 9001, 'items_collected',   'false', 951, 'tutorial', 2, 'PUBLIC'),
-(90003, 9001, 'choice_made',       'false', 952, 'tutorial', 3, 'PUBLIC');
+(90002, 9001, 'items_collected',   '0',     951, 'tutorial', 2, 'PUBLIC'),
+(90003, 9001, 'choice_made',       '0',     952, 'tutorial', 3, 'PUBLIC');
 
 -- ── Locations (8 training rooms) ────────────────────────────────
 -- Step 26: secure_param > 0 marks a SAFE location (full energy/life recovery and
@@ -463,8 +463,8 @@ INSERT INTO list_choices_conditions (id, id_story, id_choices, type, key, value,
 INSERT INTO list_choices_effects (id, id_story, id_choices, statistics, value, key, value_to_add) VALUES
 (90001, 9001, 90001, 'exp',     5,  'choice_made', 'gold'),
 (90002, 9001, 90002, 'life',   -1,  'choice_made', 'red'),
-(90003, 9001, 90003, 'exp',     3,  'items_collected', 'true'),
-(90004, 9001, 90004, 'exp',    10,  'tutorial_complete', 'true');
+(90003, 9001, 90003, 'exp',     3,  'items_collected', '1'),
+(90004, 9001, 90004, 'exp',    10,  'tutorial_complete', '1');
 
 -- ── Step 31 Choice pack — the choice-engine test-bed ────────────
 -- Two choice-events at the START location (90001): executing them answers
@@ -573,18 +573,18 @@ INSERT INTO list_global_random_events (id, id_story, condition_key, condition_va
 -- ── Missions ────────────────────────────────────────────────────
 INSERT INTO list_missions (id, id_story, condition_key, condition_value_from, condition_value_to, id_text_name, id_text_description) VALUES
 (90001, 9001, 'tutorial_progress',  '0', '3', 900, 900),
-(90002, 9001, 'items_collected',    NULL, 'true', 901, 901),
+(90002, 9001, 'items_collected',    NULL, '1', 901, 901),
 (90003, 9001, 'choice_made',        NULL, 'gold', 902, 902);
 
 -- ── Mission Steps ───────────────────────────────────────────────
 INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_from, condition_value_to, id_text_name, id_text_description) VALUES
-(90001, 9001, 90001, 1, 'visited_movement',  NULL, 'true', 910, 910),
-(90002, 9001, 90001, 2, 'visited_energy',    NULL, 'true', 911, 911),
-(90003, 9001, 90001, 3, 'visited_graduation', NULL, 'true', 912, 912),
-(90004, 9001, 90002, 1, 'potion_collected',  NULL, 'true', 920, 920),
-(90005, 9001, 90002, 2, 'snack_used',        NULL, 'true', 921, 921),
-(90006, 9001, 90003, 1, 'entered_arena',     NULL, 'true', 930, 930),
-(90007, 9001, 90003, 2, 'door_chosen',       NULL, 'true', 931, 931);
+(90001, 9001, 90001, 1, 'visited_movement',  NULL, '1', 910, 910),
+(90002, 9001, 90001, 2, 'visited_energy',    NULL, '1', 911, 911),
+(90003, 9001, 90001, 3, 'visited_graduation', NULL, '1', 912, 912),
+(90004, 9001, 90002, 1, 'potion_collected',  NULL, '1', 920, 920),
+(90005, 9001, 90002, 2, 'snack_used',        NULL, '1', 921, 921),
+(90006, 9001, 90003, 1, 'entered_arena',     NULL, '1', 930, 930),
+(90007, 9001, 90003, 2, 'door_chosen',       NULL, '1', 931, 931);
 
 -- ── Creator ─────────────────────────────────────────────────────
 INSERT INTO list_creator (id, id_story, link, url, url_image) VALUES
@@ -786,9 +786,9 @@ INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_d
 
 -- ── Keys ────────────────────────────────────────────────────────
 INSERT INTO list_keys (id, id_story, name, value, id_text_description, "group", priority, visibility) VALUES
-(91001, 9002, 'monastery_records', 'false', 950, 'evidence',  1, 'PUBLIC'),
-(91002, 9002, 'monk_testimony',    'false', 951, 'evidence',  2, 'PUBLIC'),
-(91003, 9002, 'countess_letter',   'false', 952, 'diplomacy', 3, 'PUBLIC');
+(91001, 9002, 'monastery_records', '0',     950, 'evidence',  1, 'PUBLIC'),
+(91002, 9002, 'monk_testimony',    '0',     951, 'evidence',  2, 'PUBLIC'),
+(91003, 9002, 'countess_letter',   '0',     952, 'diplomacy', 3, 'PUBLIC');
 
 -- ── Locations (12) ─────────────────────────────────────────────
 INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, cost_energy_enter, max_characters) VALUES
@@ -873,8 +873,8 @@ INSERT INTO list_choices (id, id_story, id_event, priority, id_text_name, id_tex
 -- ── Choice Conditions ───────────────────────────────────────────
 INSERT INTO list_choices_conditions (id, id_story, id_choices, type, key, value, operator) VALUES
 (91001, 9002, 91001, 'statistics', 'dex',               '3', '>'),    -- Fight: needs DEX > 3
-(91002, 9002, 91003, 'KEYS',       'monastery_records', 'true', '='), -- Present records: must have them
-(91003, 9002, 91004, 'KEYS',       'monk_testimony',    'true', '='); -- Call monk: must have testimony
+(91002, 9002, 91003, 'KEYS',       'monastery_records', '1', '='), -- Present records: must have them
+(91003, 9002, 91004, 'KEYS',       'monk_testimony',    '1', '='); -- Call monk: must have testimony
 
 -- ── Choice Effects ──────────────────────────────────────────────
 INSERT INTO list_choices_effects (id, id_story, id_choices, statistics, value, key, value_to_add) VALUES
@@ -887,24 +887,24 @@ INSERT INTO list_choices_effects (id, id_story, id_choices, statistics, value, k
 -- ── Global Random Events ────────────────────────────────────────
 INSERT INTO list_global_random_events (id, id_story, condition_key, condition_value, probability) VALUES
 (91001, 9002, NULL,              NULL,    15),   -- Random bandits anywhere
-(91002, 9002, 'monk_testimony', 'false',  20),   -- Spy events while monk not found
+(91002, 9002, 'monk_testimony', '0',  20),   -- Spy events while monk not found
 (91003, 9002, NULL,              NULL,    10);   -- Minor random encounters
 
 -- ── Missions ────────────────────────────────────────────────────
 INSERT INTO list_missions (id, id_story, condition_key, condition_value_from, condition_value_to, id_text_name, id_text_description) VALUES
 (91001, 9002, 'trial_result',      NULL, 'records_presented', 900, 900),
-(91002, 9002, 'monastery_records', NULL, 'true',              901, 901),
-(91003, 9002, 'escort_secured',    NULL, 'true',              902, 902);
+(91002, 9002, 'monastery_records', NULL, '1',              901, 901),
+(91003, 9002, 'escort_secured',    NULL, '1',              902, 902);
 
 -- ── Mission Steps ───────────────────────────────────────────────
 INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_from, condition_value_to, id_text_name, id_text_description) VALUES
-(91001, 9002, 91001, 1, 'visited_monastery', NULL,  'true',              910, 910),
-(91002, 9002, 91001, 2, 'monk_found',        NULL,  'true',              911, 911),
+(91001, 9002, 91001, 1, 'visited_monastery', NULL,  '1',              910, 910),
+(91002, 9002, 91001, 2, 'monk_found',        NULL,  '1',              911, 911),
 (91003, 9002, 91001, 3, 'trial_result',      NULL,  'records_presented', 912, 912),
-(91004, 9002, 91002, 1, 'met_anselmo',       NULL,  'true',              920, 920),
-(91005, 9002, 91002, 2, 'monk_testimony',    NULL,  'true',              921, 921),
-(91006, 9002, 91003, 1, 'soldiers_recruited', NULL, 'true',              930, 930),
-(91007, 9002, 91003, 2, 'road_cleared',      NULL,  'true',              931, 931);
+(91004, 9002, 91002, 1, 'met_anselmo',       NULL,  '1',              920, 920),
+(91005, 9002, 91002, 2, 'monk_testimony',    NULL,  '1',              921, 921),
+(91006, 9002, 91003, 1, 'soldiers_recruited', NULL, '1',              930, 930),
+(91007, 9002, 91003, 2, 'road_cleared',      NULL,  '1',              931, 931);
 
 -- ── Creator ─────────────────────────────────────────────────────
 INSERT INTO list_creator (id, id_story, link, url, url_image) VALUES

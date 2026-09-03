@@ -24,6 +24,7 @@ from app.adapters.persistence.story.models import (
 )
 from app.core.models.match.event_models import EventCheckContext
 from app.core.ports.match.event_ports import MSG_EVENT_EXECUTED, EventStorePort
+from app.core.services.match.registry_service import render as registry_render
 from app.adapters.persistence.auth.models import User
 
 
@@ -179,7 +180,7 @@ class EventStoreAdapter(EventStorePort):
             }
 
             registry = {
-                r.key: _registry_value(r)
+                r.key: registry_render(r.string_value, r.int_value)
                 for r in session.query(GamingStateRegistryEntity).filter(
                     GamingStateRegistryEntity.id_match == id_match).all()
                 if r.key
@@ -346,29 +347,6 @@ class EventStoreAdapter(EventStorePort):
             session.delete(row)
             session.commit()
             return True
-
-    def upsert_registry(self, id_match: int, key: str, value: Optional[str],
-                        id_character: Optional[int], id_event: Optional[int],
-                        clock: int) -> None:
-        if not key or not str(key).strip():
-            return
-        with self.session_factory() as session:
-            row = session.query(GamingStateRegistryEntity).filter(
-                GamingStateRegistryEntity.id_match == id_match,
-                GamingStateRegistryEntity.key == key).first()
-            now = _now_iso()
-            if not row:
-                row = GamingStateRegistryEntity(
-                    id=_next_id(session, GamingStateRegistryEntity, id_match),
-                    id_match=id_match, uuid=str(uuid_lib.uuid4()), key=key,
-                    ts_insert=now, ts_update=now)
-                session.add(row)
-            _apply_registry_value(row, value)
-            row.id_character = id_character
-            row.id_event = id_event
-            row.clock = clock
-            row.ts_update = now
-            session.commit()
 
     def set_current_weather(self, id_match: int, id_weather: Optional[int]) -> None:
         with self.session_factory() as session:
@@ -638,22 +616,3 @@ def _effect_dict(ef: EventEffectEntity) -> Dict[str, Any]:
     }
 
 
-def _registry_value(r: GamingStateRegistryEntity) -> Optional[str]:
-    """The string wins, else the int — mirrors the Java reader."""
-    if r.string_value is not None:
-        return r.string_value
-    return None if r.int_value is None else str(r.int_value)
-
-
-def _apply_registry_value(r: GamingStateRegistryEntity, value: Optional[str]) -> None:
-    """A numeric value lands in int_value, anything else in string_value (never both)."""
-    if value is None:
-        r.string_value = None
-        r.int_value = None
-        return
-    try:
-        r.int_value = int(str(value).strip())
-        r.string_value = None
-    except ValueError:
-        r.string_value = value
-        r.int_value = None

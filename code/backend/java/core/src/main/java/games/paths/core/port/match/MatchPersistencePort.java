@@ -31,8 +31,6 @@ public interface MatchPersistencePort {
 
     void saveLocations(List<GamingStateLocationsEntity> entities);
 
-    void saveRegistry(List<GamingStateRegistryEntity> entities);
-
     /**
      * Deletes all matches whose name matches the given SQL LIKE pattern,
      * together with their derived runtime state (locations and registry rows).

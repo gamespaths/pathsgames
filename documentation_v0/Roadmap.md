@@ -48,6 +48,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 33 | [Location entry events](./Step33_LocationEntryEvents.md) | ✅ | Automatic triggers bind on columns; counter-zero finally executed; `flag_visited`  |
 | 34 | [Inventory management](./Step34_InventoryAndResources.md) | ✅ | `use-item` / `drop-item` endpoints, item cards |
 | 35 | [Resource management](./Step34_InventoryAndResources.md) | ✅ | Food/magic/coin on `/info`; carried weight (`Σ item.weight × amount`) |
+| 36 | [Registry system](./Step36_RegistrySystem.md) | ✅ | RegistryService (render/parse/evaluate) & registry api &  operator column on events/edges/weather |
 
 | Steps | Phase |
 | -- | -- |
@@ -74,19 +75,10 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 
 
 # Next steps
-1. OpenPoint & todo
-
+- Ciao, read step 36 points and tell me what you think, doubits and open points. For every point max 3 rows. Don't execute any changes. always all backend and all frontend projecs
+- Ciao, read step 36 points and create a plan to develop all. Ask me if you have any questions/doubits. I've already bump version to 0.36.0 
 
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
-36. Registry system — key-value game state tracking (check if componets already exists)
-    - Implement GET /matches/{uuid}/registry endpoint returning all visible registry entries grouped by category (backend)
-    - Implement registry update service used by events, choices, and game engine to set/modify key-value pairs (backend)
-    - Support registry value types: boolean (YES/NO) and numeric (integer values) (backend)
-    - Implement registry-based game phase tracking (Chapter, Phase, Day keys) with progression validation (backend)
-    - Implement registry query service for condition evaluation: check key existence, value comparison (=, >, <, !=) (backend)
-    - Build frontend registry display component showing visible keys as card collection organized by group (frontend)
-    - Write backend unit tests for registry CRUD, value types, condition queries, and phase tracking (backend tests)
-    - manage effect (event and coices) add/remove keys!
 37. Mission tracking and progression
     - Implement GET /match/{uuid_match}/missions/active endpoint listing active and completed missions (backend)
     - Implement GET /match/{uuid_match}/missions/{uuid_mission}/progress endpoint returning mission details with all steps (backend)
@@ -95,6 +87,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Track mission status through registry: AVAILABLE → ACTIVE → step progression → COMPLETED/FAILED (backend)
     - Build frontend mission panel component showing active missions as cards with step progress indicators (frontend)
     - Write backend unit tests for mission activation, step progression, completion events, and status transitions (backend tests)
+    - on react-game on "mission section" (on first position) add "registry card" 
 38. Experience and character advancement
     - exp on event (on 29 step event exp is silence)
     - Implement experience gain through events: add experience points to gaming_character_instance on eligible events (backend)
@@ -105,6 +98,8 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Build frontend advancement UI showing available stat upgrades, costs, and current experience (frontend)
     - Write backend unit tests for experience gain, advancement validation, cost calculation, and stat update (backend tests)
 39. Action logging and match history
+    - su AWS ItemUsageLog massimo 400Kb dynamo per partite lunghizzime
+        - valutare anche dimensioni delle api e delle response e delle varie tabelle!    
     - Implement centralized logging service recording all player actions with match UUID, character, timestamp, and details (backend)
     - Log all events triggered (automatic and optional) in log_events with full context (backend)
     - Log all movements in log_movements with from/to, energy cost, and weather conditions (backend) - note: maybe done on 28 step (don't remove this note)!
@@ -121,8 +116,6 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Build frontend admin snapshot viewer with list, details, and restore action (frontend)
     - Write backend unit tests for snapshot creation, serialization, restoration, integrity validation, and listing (backend tests)
 41. Security updates
-    - su AWS ItemUsageLog massimo 400Kb dynamo per partite lunghizzime
-        - valutare anche dimensioni delle api e delle response e delle varie tabelle!    
     - Rate Limiting: user and match creation limits, into API creation guest user and creation match , add limit 10 creation for source IP
     - XSS risk: on react-game when used dangerouslySetInnerHTML, use DOMPurify to remove scripts from backend (avoid administrators/source add malevolous script from react-admin to game components)
     - CSRF (Cross-Site Request Forgery) and SameSite, implement CSRF Token for creation match API (using X-CSRF-TOKEN)

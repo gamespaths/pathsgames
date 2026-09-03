@@ -94,6 +94,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     viewActions.closeAll()
     scrollMobileIntoView('.book-mobile-left')
   }
+  function closeRegistryView() {
+    viewActions.closeAll()
+    scrollMobileIntoView('.book-mobile-left')
+  }
 
   if (gameEnded) {
     return <EndGameBook story={story} endGameCard={endGameCard} onClose={onClose} />
@@ -107,6 +111,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     onCloseChoices={viewActions.closeChoices}
     onCloseLeft={() => viewActions.setPreviewLeft(null)}
     onCloseItems={closeItemsView}
+    onCloseRegistry={closeRegistryView}
     onSelectMapNode={viewActions.selectMapNode}
     onBack={handleBackOrClose} />
 
@@ -134,6 +139,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     onError={onError}
     onOpenMap={viewActions.openMap}
     onOpenItems={viewActions.openItems}
+    onOpenRegistry={viewActions.openRegistry}
     onOpenInfo={openInformationView}
     onForceSleepCard={viewActions.forceSleepCard}
     onPreviewMatchLog={() => viewActions.setPreviewRight({ kind: 'matchlog' })}

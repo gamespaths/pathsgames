@@ -2,7 +2,6 @@ package games.paths.core.service.match;
 
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
-import games.paths.core.entity.match.GamingStateRegistryEntity;
 import games.paths.core.entity.story.ClassEntity;
 import games.paths.core.entity.story.EventEntity;
 import games.paths.core.entity.story.KeyEntity;
@@ -39,19 +38,24 @@ public class MatchCommandService implements MatchCommandPort {
     private final UserAccessPort userAccessPort;
     private final SystemModePort systemModePort;
     private final TurnstileVerificationPort turnstilePort;
+    private final RegistryService registryService;
 
     public MatchCommandService(StoryReadPort storyReadPort,
                                MatchPersistencePort persistencePort,
                                UserAccessPort userAccessPort,
-                               SystemModePort systemModePort) {
-        this(storyReadPort, persistencePort, userAccessPort, systemModePort, (token, ip) -> true);
+                               SystemModePort systemModePort,
+                               RegistryService registryService) {
+        this(storyReadPort, persistencePort, userAccessPort, systemModePort, (token, ip) -> true,
+                registryService);
     }
 
     public MatchCommandService(StoryReadPort storyReadPort,
                                MatchPersistencePort persistencePort,
                                UserAccessPort userAccessPort,
                                SystemModePort systemModePort,
-                               TurnstileVerificationPort turnstilePort) {
+                               TurnstileVerificationPort turnstilePort,
+                               RegistryService registryService) {
+        this.registryService = registryService;
         this.storyReadPort = storyReadPort;
         this.persistencePort = persistencePort;
         this.userAccessPort = userAccessPort;
@@ -159,19 +163,7 @@ public class MatchCommandService implements MatchCommandPort {
         }
         persistencePort.saveLocations(stateLocations);
 
-        List<GamingStateRegistryEntity> registryRows = new ArrayList<>();
-        long nextId = 1L;
-        if (keys != null) {
-            for (KeyEntity k : keys) {
-                GamingStateRegistryEntity r = new GamingStateRegistryEntity();
-                r.setId(nextId++);
-                r.setIdMatch(saved.getId());
-                r.setKey(k.getName());
-                applyKeyDefaultValue(r, k.getValue());
-                registryRows.add(r);
-            }
-        }
-        persistencePort.saveRegistry(registryRows);
+        registryService.seed(saved.getId(), keys);
 
         return toSummary(saved, story, difficulty, user.uuid());
     }
@@ -255,22 +247,6 @@ public class MatchCommandService implements MatchCommandPort {
         } catch (TraitSelectionValidator.TraitSelectionException ex) {
             throw new MatchCreationException(
                     MatchCreationException.Code.valueOf(ex.getViolation().name()), ex.getMessage());
-        }
-    }
-
-    private void applyKeyDefaultValue(GamingStateRegistryEntity r, String rawValue) {
-        if (rawValue == null) {
-            return;
-        }
-        String trimmed = rawValue.trim();
-        if (trimmed.isEmpty()) {
-            r.setStringValue("");
-            return;
-        }
-        try {
-            r.setIntValue(Integer.parseInt(trimmed));
-        } catch (NumberFormatException ex) {
-            r.setStringValue(trimmed);
         }
     }
 

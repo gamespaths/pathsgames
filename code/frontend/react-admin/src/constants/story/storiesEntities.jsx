@@ -12,6 +12,7 @@ import {
   EVENT_EFFECT_STATISTICS_OPTIONS,
   ITEM_ACTION_OPTIONS,
   ITEM_EFFECT_CODE_OPTIONS,
+  KEY_VISIBILITY_OPTIONS,
   LOGIC_OPERATOR_OPTIONS,
   POSSIBLE_STATISTICS_OPTIONS,
 } from './storyFieldOptions'
@@ -93,6 +94,9 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'direction', label: 'Direction', type: 'select', options: LOCATION_NEIGHBOR_DIRECTION_OPTIONS },
       { key: 'conditionRegistryKey', label: 'Condition Registry Key', type: 'text' },
       { key: 'conditionRegistryValue', label: 'Condition Registry Value', type: 'text' },
+      // Step 36 — how the value above is compared. Blank means '=', which is what every edge
+      // authored before v0.36.0 did.
+      { key: 'registryValueOperatorCondition', label: 'Registry Operator (condition)', type: 'select', options: CHOICE_CONDITION_OPERATOR_OPTIONS },
       { key: 'idTextGo', label: 'Text Go ID', type: 'number' },
       { key: 'idTextBack', label: 'Text Back ID', type: 'number' },
       { key: 'energyCost', label: 'Energy Cost', type: 'number' },
@@ -125,6 +129,8 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idWeather', label: 'Weather (condition)', type: 'number' },
       { key: 'registryKeyCondition', label: 'Registry Key (condition)', type: 'text' },
       { key: 'registryValueCondition', label: 'Registry Value (condition)', type: 'text' },
+      // Step 36 — blank means '=', so every event authored before v0.36.0 keeps its behaviour.
+      { key: 'registryValueOperatorCondition', label: 'Registry Operator (condition)', type: 'select', options: CHOICE_CONDITION_OPERATOR_OPTIONS },
       { key: 'idItemCondition', label: 'Item Owned (condition)', type: 'number' },
       { key: 'idClassCondition', label: 'Class (condition)', type: 'number' },
     ],
@@ -279,7 +285,7 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'value', label: 'Value', type: 'text' },
       { key: 'group', label: 'Group', type: 'text' },
       { key: 'priority', label: 'Priority', type: 'number' },
-      { key: 'visibility', label: 'Visibility', type: 'text' },
+      { key: 'visibility', label: 'Visibility', type: 'select', options: KEY_VISIBILITY_OPTIONS },
     ],
     choices: [
       { key: 'idCard', label: 'Card ID', type: 'number' },
@@ -335,6 +341,9 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'costMoveNotSafeLocation', label: 'Cost Move Not Safe', type: 'number' },
       { key: 'conditionKey', label: 'Condition Key', type: 'text' },
       { key: 'conditionKeyValue', label: 'Condition Key Value', type: 'text' },
+      // Step 36 — blank means '='. A key with no value is now never met, where before v0.36.0
+      // it meant "the key must be unset"; say that with != instead.
+      { key: 'registryValueOperatorCondition', label: 'Registry Operator (condition)', type: 'select', options: CHOICE_CONDITION_OPERATOR_OPTIONS },
       { key: 'timeFrom', label: 'Time From', type: 'number' },
       { key: 'timeTo', label: 'Time To', type: 'number' },
       { key: 'active', label: 'Active', type: 'number' },

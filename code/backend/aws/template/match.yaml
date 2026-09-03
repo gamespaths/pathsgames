@@ -137,6 +137,14 @@ Resources:
       RouteKey: "GET /api/match/{uuidMatch}/info"
       Target: !Sub "integrations/${MatchIntegration}"
 
+  # Step 36 — GET /api/match/{uuidMatch}/registry
+  GetMatchRegistryRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/match/{uuidMatch}/registry"
+      Target: !Sub "integrations/${MatchIntegration}"
+
   # Step 20.1 — PATCH /api/match/{uuidMatch}/end/{uuidEvent}
   EndMatchRoute:
     Type: AWS::ApiGatewayV2::Route

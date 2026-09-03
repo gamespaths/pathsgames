@@ -32,7 +32,10 @@ def test_align_schema_renames_and_adds_the_neighbor_columns():
     assert "condition_registry_key" in columns and "condition_key" not in columns
     assert "condition_registry_value" in columns and "condition_value" not in columns
     assert {"id_text_go", "id_text_back"} <= columns
-    assert len(applied) == 4
+    # Step 36 added the registry operator to the same table, as TEXT and not as an integer.
+    assert "registry_value_operator_condition" in columns
+    assert any("registry_value_operator_condition TEXT" in a for a in applied)
+    assert len(applied) == 5
 
 
 def test_align_schema_is_idempotent():

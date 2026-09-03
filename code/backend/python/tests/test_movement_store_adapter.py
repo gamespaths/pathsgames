@@ -138,27 +138,13 @@ def test_find_neighbors_of_location_is_undirected(session_factory, adapter):
     assert len(out) == 2
     assert out[0] == {"id_from": 100, "id_to": 200, "direction": "N", "energy_cost": 2,
                       "cost_food": 0, "cost_magic": 0, "cost_coin": 0,
-                      "condition_key": "k", "condition_value": "v", "flag_back": 1}
+                      "condition_key": "k", "condition_value": "v",
+                      # Step 36 — how the value is compared; None means '='.
+                      "registry_value_operator_condition": None, "flag_back": 1}
     assert out[1]["id_from"] == 300
     assert out[1]["energy_cost"] == 0
     assert out[1]["flag_back"] == 0
 
-
-def test_find_registry_value(session_factory, adapter):
-    with session_factory() as s:
-        s.add(GamingStateRegistryEntity(id=1, id_match=1, uuid="r-a", key="door",
-                                        string_value="open", ts_insert=_NOW, ts_update=_NOW))
-        s.add(GamingStateRegistryEntity(id=2, id_match=1, uuid="r-b", key="count",
-                                        int_value=3, ts_insert=_NOW, ts_update=_NOW))
-        s.add(GamingStateRegistryEntity(id=3, id_match=1, uuid="r-c", key="empty",
-                                        ts_insert=_NOW, ts_update=_NOW))
-        s.commit()
-
-    assert adapter.find_registry_value(1, "door") == "open"
-    assert adapter.find_registry_value(1, "count") == "3"
-    assert adapter.find_registry_value(1, "empty") is None
-    assert adapter.find_registry_value(1, "ghost") is None
-    assert adapter.find_registry_value(2, "door") is None
 
 
 def test_find_current_weather_move_cost(session_factory, adapter):

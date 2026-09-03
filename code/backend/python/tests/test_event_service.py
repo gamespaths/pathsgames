@@ -47,6 +47,12 @@ def _effect(**over):
 
 
 @pytest.fixture
+def registry_service():
+    """Step 36 — registry writes leave the event store and go through their own service."""
+    return MagicMock()
+
+
+@pytest.fixture
 def store():
     s = MagicMock()
     s.find_user_id_by_uuid.return_value = USER_ID
@@ -95,9 +101,10 @@ def time_service():
 
 
 @pytest.fixture
-def service(store, edge_store, time_service):
+def service(store, edge_store, time_service, registry_service):
     return EventService(store, edge_store=edge_store, content_read_port=None,
-                        time_service=time_service)
+                        time_service=time_service,
+                        registry_service_instance=registry_service)
 
 
 @pytest.fixture
@@ -397,7 +404,7 @@ def test_traits_and_characteristics(service, store):
     store.set_character_characteristics.assert_called_once_with(MATCH_ID, CHAR_ID, "BRAVE")
 
 
-def test_registry_is_written_once_and_seen_by_the_next_effect(service, store):
+def test_registry_is_written_once_and_seen_by_the_next_effect(service, store, registry_service):
     store.find_effects_by_event_id.return_value = {1: [
         _effect(key_to_add="GATE", key_value_to_add="OPEN", target="ALL"),
         _effect(id=2, key_to_add="GATE", key_value_to_add="SHUT"),
@@ -405,7 +412,7 @@ def test_registry_is_written_once_and_seen_by_the_next_effect(service, store):
 
     r = run(service)
 
-    assert store.upsert_registry.call_count == 2  # once per row, not once per recipient
+    assert registry_service.upsert.call_count == 2  # once per row, not once per recipient
     assert r.registry_changes[1].old_value == "OPEN"
     assert r.registry_changes[1].new_value == "SHUT"
 

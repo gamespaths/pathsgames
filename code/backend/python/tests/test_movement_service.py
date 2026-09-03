@@ -64,8 +64,6 @@ class FakeMovementStore:
                     out.append(dict(e))
         return out
 
-    def find_registry_value(self, id_match, key):
-        return self.registry.get(key)
 
     def find_current_weather_move_cost(self, id_match):
         return self.weather
@@ -93,9 +91,20 @@ def store():
     return FakeMovementStore()
 
 
+class _FakeRegistry:
+    """Only `find` is reached from a move condition."""
+
+    def __init__(self, registry):
+        self.registry = registry
+
+    def find(self, id_match, key):
+        return self.registry.get(key)
+
+
 @pytest.fixture()
 def service(store):
-    return MovementService(store)
+    # Step 36 — the registry is read through its own service, not the move store.
+    return MovementService(store, registry_service_instance=_FakeRegistry(store.registry))
 
 
 # ─── start_movement ────────────────────────────────────────────────────────────

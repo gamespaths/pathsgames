@@ -26,6 +26,7 @@ from app.core.services.match.character_query_service import build_character_info
 from app.core.services.match import movement_availability
 from app.core.services.match.movement_availability import MoveCheckContext, MoveEdgeCheck
 from app.core.services.match.movement_service import move_check_context
+from app.core.services.match import registry_service
 
 
 class _MoveJudge:
@@ -48,10 +49,11 @@ class _MoveJudge:
 
     def _condition_met(self, n) -> bool:
         key = n.get("condition_registry_key")
-        if not key or not str(key).strip():
+        if registry_service.no_condition(key):
             return True
-        expected = n.get("condition_registry_value")
-        return expected is not None and expected == self.registry.get(key)
+        return registry_service.evaluate(n.get("registry_value_operator_condition"),
+                                         n.get("condition_registry_value"),
+                                         self.registry.get(key))
 
     def judge(self, n, target):
         if target is None:
@@ -83,6 +85,7 @@ class MatchQueryService(MatchQueryPort):
         character_read_port: Optional[CharacterReadPort] = None,
         movement_store=None,
         event_store=None,
+        registry_service_instance=None,
     ) -> None:
         self.match_persistence_port = match_persistence_port
         self.story_read_port = story_read_port
@@ -97,6 +100,8 @@ class MatchQueryService(MatchQueryPort):
         # locations_active can report its `available` flag (and, when blocked, the reason).
         # None (legacy wiring) makes every event report unavailable rather than pretend to work.
         self.event_store = event_store
+        # Step 36 — every registry read of /info and of the move conditions.
+        self.registry_service = registry_service_instance
 
     def list_user_matches(self, user_uuid: str) -> List[MatchSummary]:
         if not user_uuid:
@@ -181,6 +186,22 @@ class MatchQueryService(MatchQueryPort):
         return self._build_detail(match, user["uuid"], lang if lang and lang.strip() else "en",
                                   all_locations=False)
 
+    def get_match_registry(self, uuid_match: str, user_uuid: str,
+                           include_hidden: bool = False, lang: str = "en"):
+        """Step 36 — the registry grouped by category. None when the match does not exist or
+        the caller does not own it: a match nobody may see must not be distinguishable from
+        one that does not exist."""
+        if not uuid_match or not user_uuid or self.registry_service is None:
+            return None
+        user = self.user_access_port.find_by_uuid(user_uuid)
+        if user is None:
+            return None
+        match = self.match_persistence_port.find_match_by_uuid(uuid_match)
+        if match is None or match.get("id_user_creator") != user["id"]:
+            return None
+        return self.registry_service.list_groups(match["id"], match.get("id_story"),
+                                                 include_hidden, lang or "en")
+
     def get_match_info_for_admin(self, match_uuid: str) -> Optional[MatchDetail]:
         if not match_uuid:
             return None
@@ -230,15 +251,24 @@ class MatchQueryService(MatchQueryPort):
             or r["id_location"] in visited_loc_ids
         ]
 
-        registry_rows = self.match_persistence_port.find_registry_by_match_id(match["id"])
+        # Step 36 — the entries carry their list_keys definition, so the board can group
+        # and dress them without a second request. Visible keys only, whoever asks.
+        registry_entries = self.registry_service.list_entries(
+            match["id"], match.get("id_story"), include_hidden=False, lang=lang)
         registry = [
             MatchRegistryEntry(
-                uuid=r["uuid"],
-                key=r["key"],
-                string_value=r.get("string_value"),
-                int_value=r.get("int_value"),
+                uuid=e["uuid"],
+                key=e["key"],
+                string_value=e.get("string_value"),
+                int_value=e.get("int_value"),
+                id_character=e.get("id_character"),
+                category=e.get("category"),
+                visible=bool(e.get("visible")),
+                priority=e.get("priority"),
+                id_card=e.get("id_card"),
+                card=e.get("card"),
             )
-            for r in registry_rows
+            for e in registry_entries
         ]
 
         summary = self._to_summary(
@@ -282,7 +312,7 @@ class MatchQueryService(MatchQueryPort):
         check_ctx = self._load_check_context(match)
         # ...and one for every neighbor, same idea: the move verdict is a pure function of the
         # mover's state plus the edge, so no query happens inside the neighbor loop either.
-        move_judge = self._load_move_judge(match, registry_rows)
+        move_judge = self._load_move_judge(match)
         locations_active = self._build_locations_active(
             story_id, end_event_id, active_loc_ids, loc_by_id, lang, visited_loc_ids, check_ctx,
             move_judge
@@ -316,7 +346,7 @@ class MatchQueryService(MatchQueryPort):
                 break
         return self.event_store.load_check_context(match["id"], ref_id)
 
-    def _load_move_judge(self, match, registry_rows) -> "_MoveJudge":
+    def _load_move_judge(self, match) -> "_MoveJudge":
         """Everything the move verdict needs, loaded once per request: the mover's state, the
         weather energy modifier in force, how many characters stand on each location (for
         LOCATION_FULL) and the match registry (for the edge conditions).
@@ -339,13 +369,7 @@ class MatchQueryService(MatchQueryPort):
 
         weather = self.movement_store.find_current_weather_move_cost(match["id"]) or (0, 0)
 
-        registry = {}
-        for r in registry_rows or []:
-            if r.get("key") is not None:
-                value = r.get("string_value")
-                if value is None and r.get("int_value") is not None:
-                    value = str(r["int_value"])
-                registry[r["key"]] = value
+        registry = self.registry_service.load_all(match["id"])
 
         return _MoveJudge(move_check_context(match, caller), weather, counts, registry)
 

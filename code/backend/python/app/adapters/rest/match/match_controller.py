@@ -188,6 +188,33 @@ def _location_info_to_camel(l):
     }
 
 
+def _registry_to_camel(groups):
+    """Step 36 — the grouped registry, in the shape the OpenAPI spec describes."""
+    return {
+        "groups": [
+            {
+                "category": g.get("category"),
+                "entries": [
+                    {
+                        "uuid": e.get("uuid"),
+                        "key": e.get("key"),
+                        "stringValue": e.get("string_value"),
+                        "intValue": e.get("int_value"),
+                        "idCharacter": e.get("id_character"),
+                        "category": e.get("category"),
+                        "visible": bool(e.get("visible")),
+                        "priority": e.get("priority"),
+                        "idCard": e.get("id_card"),
+                        "card": e.get("card"),
+                    }
+                    for e in g.get("entries") or []
+                ],
+            }
+            for g in groups or []
+        ]
+    }
+
+
 def _detail_to_camel(detail):
     return {
         "match": _summary_to_camel(detail.match),
@@ -210,6 +237,14 @@ def _detail_to_camel(detail):
                 "key": r.key,
                 "stringValue": r.string_value,
                 "intValue": r.int_value,
+                # Step 36 — the key's own definition rides along so the board can group and
+                # dress it without a second request.
+                "idCharacter": r.id_character,
+                "category": r.category,
+                "visible": bool(r.visible),
+                "priority": r.priority,
+                "idCard": r.id_card,
+                "card": r.card,
             }
             for r in detail.registry
         ],
@@ -238,6 +273,9 @@ class MatchController:
         )
         self.router.add_api_route(
             "/api/match/{uuid_match}/info", self.get_match_info, methods=["GET"]
+        )
+        self.router.add_api_route(
+            "/api/match/{uuid_match}/registry", self.get_match_registry, methods=["GET"]
         )
         self.router.add_api_route(
             "/api/match/{uuid_match}/end/{uuid_event}",
@@ -287,6 +325,18 @@ class MatchController:
         if detail is None:
             return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
         return JSONResponse(status_code=200, content=_detail_to_camel(detail))
+
+    def get_match_registry(self, uuid_match: str, request: Request, lang: str = "en",
+                           includeHidden: bool = False):
+        user_uuid = getattr(request.state, "user_uuid", None)
+        if not user_uuid:
+            return _error("UNAUTHENTICATED", "User identity is missing", 401)
+        if not uuid_match or not uuid_match.strip():
+            return _error("INVALID_INPUT", "Match uuid is required", 400)
+        groups = self.query_port.get_match_registry(uuid_match, user_uuid, includeHidden, lang)
+        if groups is None:
+            return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
+        return JSONResponse(status_code=200, content=_registry_to_camel(groups))
 
     def end_match(self, uuid_match: str, uuid_event: str, request: Request):
         """Step 20.1 — PATCH /api/match/{uuid_match}/end/{uuid_event}.

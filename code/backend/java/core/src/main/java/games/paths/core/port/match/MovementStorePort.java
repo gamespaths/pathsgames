@@ -30,9 +30,6 @@ public interface MovementStorePort {
     /** Neighbor edges of {@code idLocation} (either endpoint), for the story. */
     List<NeighborEdge> findNeighborsOfLocation(long idStory, long idLocation);
 
-    /** Current registry value for a key (condition checks); empty when absent. */
-    Optional<String> findRegistryValue(long idMatch, String key);
-
     /** Current weather move costs (0/0 when no weather is selected). */
     WeatherMoveCost findCurrentWeatherMoveCost(long idMatch);
 
@@ -106,6 +103,8 @@ public interface MovementStorePort {
                         int energyCost,
                         String conditionKey,
                         String conditionValue,
+                        /** Step 36 - how conditionValue is compared; null means =. */
+                        String conditionOperator,
                         int flagBack,
                         /**
                          * v0.35.3 — resources this edge costs. Unlike energy, which sums the
@@ -122,7 +121,7 @@ public interface MovementStorePort {
                             int energyCost, String conditionKey, String conditionValue,
                             int flagBack) {
             this(idLocationFrom, idLocationTo, direction, energyCost, conditionKey,
-                    conditionValue, flagBack, 0, 0, 0);
+                    conditionValue, null, flagBack, 0, 0, 0);
         }
 
         /**

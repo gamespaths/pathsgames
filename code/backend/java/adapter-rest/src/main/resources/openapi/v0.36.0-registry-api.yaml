@@ -1,0 +1,210 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Registry API
+  description: |
+    Step 36 — the match registry becomes readable.
+
+    The registry is the key-value game state of a match (`gaming_state_registry`): the flags,
+    counters and progress markers that events, choices and the engine write, and that events,
+    edges, weather rules and choice options read back as conditions. Until v0.36.0 it rode
+    only as a flat `registry[]` array on `/api/match/{uuidMatch}/info` and nothing described
+    what a key meant.
+
+    ## What v0.36.0 adds
+
+    - **`GET /api/match/{uuidMatch}/registry`** — the keys grouped by **category**, which is
+      the `"group"` column of the key's `list_keys` definition. A key with no group falls into
+      the `null` category rather than being dropped.
+    - Every entry is joined with its definition, so it carries `category`, `visible`,
+      `priority`, `idCard` and the resolved `card` alongside the value the engine wrote, plus
+      `idCharacter` — **the character who wrote the value last**, null while nothing has.
+    - The same six fields are added to the `registry[]` entries of `/api/match/{uuidMatch}/info`.
+      The duplication is deliberate: the game board already loads `/info`, so it can render the
+      registry section with no second request and can never disagree with itself.
+
+    ## Visibility
+
+    A key is visible when its `list_keys.visibility` is `PUBLIC`; anything else hides it. The
+    column is free text, so a typo hides a key rather than leaking one — the safe direction.
+
+    `?includeHidden=true` returns the hidden keys too. It is **owner-only**, like the endpoint
+    itself, and it exists for debugging a story: a hidden key is usually a puzzle the player has
+    not solved yet. `/info` never returns hidden keys, whatever the caller asks.
+
+    ## Values
+
+    A value lives in exactly one of two columns and never both: a numeric value goes to
+    `intValue`, anything else to `stringValue`. Both are returned as they are stored, so a
+    client can tell `"0"` from `0`. Booleans are integers by convention — `0` is no, anything
+    else is yes.
+
+    ## Ordering
+
+    Entries are sorted by category, then by the key's `priority`, then by key name. Groups come
+    out in the order their first entry appears, so the ordering is stable across calls.
+  version: 0.36.0
+servers:
+  - url: http://localhost:8042
+    description: Local development (public/player API)
+tags:
+  - name: registry
+    description: Match key-value game state
+security:
+  - bearerAuth: []
+paths:
+  /api/match/{uuidMatch}/registry:
+    get:
+      tags: [registry]
+      summary: The match registry, grouped by category (owner-only)
+      description: |
+        Returns the visible registry keys of the match. Only the match creator may read it;
+        any other caller gets 404, so a match nobody may see is indistinguishable from one
+        that does not exist.
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          schema: { type: string }
+          description: Match uuid.
+        - name: lang
+          in: query
+          required: false
+          schema: { type: string, default: en }
+          description: Language used to resolve each key's card. Falls back to English.
+        - name: includeHidden
+          in: query
+          required: false
+          schema: { type: boolean, default: false }
+          description: |
+            Include keys whose definition is not `PUBLIC`. Owner-only, like the endpoint itself.
+      responses:
+        '200':
+          description: The registry, grouped by category.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchRegistryResponse'
+              examples:
+                tutorial:
+                  summary: Two categories, one of them holding a numeric counter
+                  value:
+                    groups:
+                      - category: tutorial
+                        entries:
+                          - uuid: 3f2b1c4d-1111-4a7b-8c9d-0e1f2a3b4c5d
+                            key: tutorial_progress
+                            stringValue: null
+                            intValue: 3
+                            idCharacter: 12
+                            category: tutorial
+                            visible: true
+                            priority: 1
+                            idCard: 950
+                            card:
+                              title: Training progress
+                              description: How far along the training you are.
+                      - category: evidence
+                        entries:
+                          - uuid: 7a8b9c0d-2222-4a7b-8c9d-0e1f2a3b4c5d
+                            key: monastery_records
+                            stringValue: null
+                            intValue: 0
+                            idCharacter: null
+                            category: evidence
+                            visible: true
+                            priority: 1
+                            idCard: null
+                            card: null
+        '400':
+          description: The match uuid is missing or blank.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '401':
+          description: No authenticated user on the request.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          description: The match does not exist, or the caller does not own it.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    MatchRegistryResponse:
+      type: object
+      properties:
+        groups:
+          type: array
+          items: { $ref: '#/components/schemas/RegistryGroup' }
+    RegistryGroup:
+      type: object
+      properties:
+        category:
+          type: string
+          nullable: true
+          description: The `list_keys."group"` of the keys in this bucket; null when unset.
+        entries:
+          type: array
+          items: { $ref: '#/components/schemas/RegistryEntry' }
+    RegistryEntry:
+      type: object
+      properties:
+        uuid:
+          type: string
+          description: Uuid of the `gaming_state_registry` row.
+        key:
+          type: string
+        stringValue:
+          type: string
+          nullable: true
+          description: Set when the value is not numeric; null otherwise.
+        intValue:
+          type: integer
+          nullable: true
+          description: Set when the value is numeric; null otherwise. Booleans use 0/non-zero.
+        idCharacter:
+          type: integer
+          format: int64
+          nullable: true
+          description: The character that wrote this value last; null while nothing has.
+        category:
+          type: string
+          nullable: true
+        visible:
+          type: boolean
+          description: False only in an `includeHidden` response.
+        priority:
+          type: integer
+          nullable: true
+        idCard:
+          type: integer
+          nullable: true
+        card:
+          nullable: true
+          description: The key's card, resolved in `lang`; null when the key has none.
+          allOf:
+            - $ref: '#/components/schemas/Card'
+    Card:
+      type: object
+      properties:
+        title: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        urlImage: { type: string, nullable: true }
+        alternativeImage: { type: string, nullable: true }
+        copyrightText: { type: string, nullable: true }
+        linkCopyright: { type: string, nullable: true }
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          enum: [UNAUTHENTICATED, INVALID_INPUT, MATCH_NOT_FOUND]
+        message: { type: string }
+        timestamp: { type: integer, format: int64 }

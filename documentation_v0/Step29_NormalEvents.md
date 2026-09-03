@@ -36,6 +36,7 @@ told "no" by the endpoint, and a blocked action already knows its cause.
 | `id_event_next` | The chained event. |
 | `id_weather` | **CONDITION** — available only under that weather. |
 | `registry_key_condition` / `registry_value_condition` | **NEW** — the key must currently hold that value. |
+| `registry_value_operator_condition` | **New in v0.36.0** — how `registry_value_condition` is compared: `=`/`!=`/`>`/`<`; null means `=`. Shared comparison, see [Step36](./Step36_RegistrySystem.md). |
 | `id_item_condition` | **NEW** — the character must carry that item. |
 | `id_class_condition` | **NEW** — the character must have that class. |
 | ~~`characteristic_to_add` / `characteristic_to_remove` / `key_to_add` / `key_value_to_add`~~ | **DROPPED** — moved to `list_events_effects`. |
@@ -111,7 +112,10 @@ Semantics worth stating:
 - **`ONCE` is per-MATCH.** Once triggered, it stays spent for the rest of that match — not per
   clock, not per location.
 - **A registry key with no expected value is never met.** A condition that can never be satisfied
-  must not read as "no condition". The Step 22 validator flags it as `R7_EVENT_CONDITION`.
+  must not read as "no condition". The Step 22 validator flags it as `R7_EVENT_CONDITION`. This
+  reading was the reference: v0.36.0 unified movement's and weather's registry conditions onto
+  the same rule, behind the single `RegistryService.evaluate` — see
+  [Step36 §5](./Step36_RegistrySystem.md#5-the-operator-column-four-conditions-one-comparison).
 - **`type` is deliberately NOT a closed vocabulary.** The column is free text and authored stories
   already use values beyond the documented four (`END`, `END_GAME`), while the end-game event is
   identified by `story.idEventEndGame` rather than by its type. Rejecting an unknown type at import

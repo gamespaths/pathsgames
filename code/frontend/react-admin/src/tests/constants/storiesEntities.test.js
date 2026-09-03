@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { STORIES_ENTITIES_FIELDS, STORIES_ENTITIES_COLUMNS } from '../../constants/story/storiesEntities'
-import { ITEM_EFFECT_CODE_OPTIONS } from '../../constants/story/storyFieldOptions'
+import {
+  ITEM_EFFECT_CODE_OPTIONS, CHOICE_CONDITION_OPERATOR_OPTIONS, KEY_VISIBILITY_OPTIONS,
+} from '../../constants/story/storyFieldOptions'
 
 describe('event-effects entity config', () => {
   it('opens the form with card, name, description and event, in this order', () => {
@@ -128,5 +130,61 @@ describe('traits entity config (v0.35.2)', () => {
   it('keeps it next to the costs, which are the other rules of picking a trait', () => {
     const keys = STORIES_ENTITIES_FIELDS.traits.map(f => f.key)
     expect(keys.indexOf('hideOnStartMatch')).toBe(keys.indexOf('costNegative') + 1)
+  })
+})
+
+describe('registry condition operator (Step 36)', () => {
+  const OPERATOR_ENTITIES = ['events', 'location-neighbors', 'weather-rules']
+
+  it('is offered on every entity that gates on a registry key', () => {
+    for (const entity of OPERATOR_ENTITIES) {
+      const field = STORIES_ENTITIES_FIELDS[entity]
+        .find(f => f.key === 'registryValueOperatorCondition')
+      expect(field, `missing on ${entity}`).toBeTruthy()
+      expect(field.type).toBe('select')
+    }
+  })
+
+  it('reuses the choice-condition vocabulary: one operator list, not four', () => {
+    for (const entity of OPERATOR_ENTITIES) {
+      const field = STORIES_ENTITIES_FIELDS[entity]
+        .find(f => f.key === 'registryValueOperatorCondition')
+      expect(field.options).toBe(CHOICE_CONDITION_OPERATOR_OPTIONS)
+    }
+    expect(CHOICE_CONDITION_OPERATOR_OPTIONS.map(o => o.value)).toEqual(['=', '>', '<', '!='])
+  })
+
+  it('sits right after the value it compares, so the pair reads together', () => {
+    const after = {
+      events: 'registryValueCondition',
+      'location-neighbors': 'conditionRegistryValue',
+      'weather-rules': 'conditionKeyValue',
+    }
+    for (const [entity, valueKey] of Object.entries(after)) {
+      const keys = STORIES_ENTITIES_FIELDS[entity].map(f => f.key)
+      expect(keys[keys.indexOf(valueKey) + 1]).toBe('registryValueOperatorCondition')
+    }
+  })
+
+  it('stores a string: an operator must not be coerced to a number', () => {
+    for (const entity of OPERATOR_ENTITIES) {
+      const field = STORIES_ENTITIES_FIELDS[entity]
+        .find(f => f.key === 'registryValueOperatorCondition')
+      expect(field.valueType).toBeUndefined()
+    }
+  })
+})
+
+describe('registry key visibility (Step 36)', () => {
+  it('is a select, so a key cannot be left in an ambiguous state by hand', () => {
+    const field = STORIES_ENTITIES_FIELDS.keys.find(f => f.key === 'visibility')
+    expect(field).toMatchObject({ key: 'visibility', type: 'select' })
+    expect(field.options).toBe(KEY_VISIBILITY_OPTIONS)
+  })
+
+  it('offers exactly the two states the engine distinguishes', () => {
+    // The backend shows a key only when visibility is exactly PUBLIC; everything else hides
+    // it. Offering a third word here would invent a state the engine does not have.
+    expect(KEY_VISIBILITY_OPTIONS.map(o => o.value)).toEqual(['PUBLIC', 'HIDDEN'])
   })
 })

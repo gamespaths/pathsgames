@@ -45,6 +45,7 @@ class EventExecutionServiceStandaloneTest {
     private static final long LOC = 100L;
 
     private EventExecutionStorePort store;
+    private RegistryService registryService;
     private EdgeStateStorePort edgeStore;
     private ContentQueryPort contentQueryPort;
     private EventExecutionService service;
@@ -52,12 +53,13 @@ class EventExecutionServiceStandaloneTest {
     @BeforeEach
     void setUp() {
         store = mock(EventExecutionStorePort.class);
+        registryService = mock(RegistryService.class);
         edgeStore = mock(EdgeStateStorePort.class);
         UserAccessPort userAccessPort = mock(UserAccessPort.class);
         contentQueryPort = mock(ContentQueryPort.class);
         TimeAdvancementService timeAdvancementService = mock(TimeAdvancementService.class);
         service = new EventExecutionService(store, edgeStore, userAccessPort,
-                contentQueryPort, timeAdvancementService);
+                contentQueryPort, timeAdvancementService, registryService);
 
         when(store.findMatchById(MATCH_ID)).thenReturn(Optional.of(
                 new MatchEventView(MATCH_ID, "match-uuid", "RUNNING", 7, STORY_ID, USER_ID, null)));

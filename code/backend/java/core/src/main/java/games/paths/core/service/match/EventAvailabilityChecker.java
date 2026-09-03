@@ -108,16 +108,16 @@ public final class EventAvailabilityChecker {
     }
 
     /**
-     * A key with no expected value is never met — a condition that can never be satisfied
-     * would otherwise read as "no condition". Mirrors {@code MovementService.conditionMet}.
+     * Step 36 — the comparison itself is {@link RegistryService#evaluate}, shared with
+     * choices, movement and weather, and the operator column widens it beyond equality.
      */
     private static boolean registryMet(EventEntity event, EventCheckContext ctx) {
         String key = event.getRegistryKeyCondition();
-        if (key == null || key.isBlank()) {
+        if (RegistryService.noCondition(key)) {
             return true;
         }
-        String expected = event.getRegistryValueCondition();
-        return expected != null && expected.equals(ctx.registry().get(key));
+        return RegistryService.evaluate(event.getRegistryValueOperatorCondition(),
+                event.getRegistryValueCondition(), ctx.registry().get(key));
     }
 
     private static String type(EventEntity event) {

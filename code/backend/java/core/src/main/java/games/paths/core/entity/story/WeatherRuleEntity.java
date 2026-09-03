@@ -25,6 +25,10 @@ public class WeatherRuleEntity extends BaseStoryScopedEntity {
     @Column(name = "condition_key_value")
     private String conditionKeyValue;
 
+    /** CONDITION: how conditionKeyValue is compared - = != > < ; null means =. */
+    @Column(name = "registry_value_operator_condition")
+    private String registryValueOperatorCondition;
+
     @Column(name = "time_from")
     private Integer timeFrom;
 
@@ -71,6 +75,9 @@ public class WeatherRuleEntity extends BaseStoryScopedEntity {
 
     public String getConditionKeyValue() { return conditionKeyValue; }
     public void setConditionKeyValue(String conditionKeyValue) { this.conditionKeyValue = conditionKeyValue; }
+
+    public String getRegistryValueOperatorCondition() { return registryValueOperatorCondition; }
+    public void setRegistryValueOperatorCondition(String registryValueOperatorCondition) { this.registryValueOperatorCondition = registryValueOperatorCondition; }
 
     public Integer getTimeFrom() { return timeFrom; }
     public void setTimeFrom(Integer timeFrom) { this.timeFrom = timeFrom; }

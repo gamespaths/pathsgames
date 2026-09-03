@@ -39,7 +39,14 @@ info:
       `idCard`/`card`. Before v0.35.4 the table was written on a use and read by nobody,
       and taking or dropping an item was not logged at all.
 
-    Future additions: CHOICE_EXECUTED, REGISTRY_CHANGE.
+    - **REGISTRY_CHANGE** (v0.36.0, Step 36): a registry key was written — by an event effect,
+      a choice effect or the engine. Emitted from the single `RegistryService.upsert`, so a
+      write can neither be missed nor logged twice. The message reads
+      `REGISTRY_CHANGE <key> <old> -> <new>`, and the row carries the clock, the character that
+      wrote it, and `idEvent`/`idChoise` when an event or an option was behind it. Seeding a
+      match writes no such rows: defaults are not changes.
+
+    Future additions: CHOICE_EXECUTED.
 
     **Public endpoint** (owner-only): `GET /api/matches/{uuidMatch}/logs`
     **Admin endpoint** (no ownership check, admin port 8044):

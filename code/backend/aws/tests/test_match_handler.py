@@ -567,6 +567,11 @@ def test_get_match_info_success(mock_jwt, mock_get, mock_query):
                 'locations': [{'idLocation': 1, 'uuid': 'l', 'flagAlreadyActived': 0, 'clockCounter': 0}],
                 'registry': [{'uuid': 'r', 'key': 'k', 'stringValue': None, 'intValue': 1}],
             }
+        if pk == 'STORY#s':
+            # Step 36 — /info joins the registry with the story's key definitions, so a key
+            # the story does not declare reads as hidden and is filtered out.
+            return {'uuid': 's', 'keys': [{'keyName': 'k', 'keyGroup': 'tutorial',
+                                           'visibility': 'PUBLIC', 'priority': 1}]}
         return None
 
     mock_get.side_effect = get_side

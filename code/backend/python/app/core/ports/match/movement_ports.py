@@ -51,9 +51,6 @@ class MovementStorePort(ABC):
                                    id_location: int) -> List[Dict[str, Any]]:
         """[{id_from, id_to, direction, energy_cost, condition_key, condition_value}]."""
 
-    @abstractmethod
-    def find_registry_value(self, id_match: int, key: str) -> Optional[str]:
-        ...
 
     @abstractmethod
     def find_current_weather_move_cost(self, id_match: int) -> Tuple[int, int]:

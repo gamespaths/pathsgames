@@ -267,9 +267,15 @@ All indexes follow the pattern: `idx_{table_short_name}_{column(s)}`
 ```
 idx_match_status          → gaming_match(status)
 idx_char_inst_match       → gaming_character_instance(id_match)
-idx_state_reg_key         → gaming_state_registry(id_match, key)
+idx_state_reg_key         → gaming_state_registry(id_match, key)  -- UNIQUE since V0.36.0
 idx_texts_story_text      → list_texts(id_story, id_text)
 ```
+
+`idx_state_reg_key` was a plain (non-unique) index from `V0.10.11` until `V0.36.0__registry_operator_conditions.sql`
+([Step36](./Step36_RegistrySystem.md)) made it `UNIQUE`, turning "at most one row per key per
+match" from an assumption the application code made into a constraint the database enforces.
+The same migration adds `registry_value_operator_condition` (`TEXT DEFAULT '='`) to
+`list_events`, `list_locations_neighbors` and `list_weather_rules`.
 
 
 

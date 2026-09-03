@@ -93,6 +93,8 @@ class KeyEntity(Base):
     key_value = Column(String(255))
     key_group = Column(String(100))
     is_visible = Column(Integer, default=0)
+    # Step 36 — orders the keys inside their category, as list_keys.priority does on Java.
+    priority = Column(Integer, default=0)
 
 
 class ClassEntity(Base):
@@ -214,6 +216,7 @@ class LocationNeighborEntity(Base):
     # condition_registry_key/_value, so the old condition_key/_value never existed.
     condition_registry_key = Column(String(200))
     condition_registry_value = Column(String(200))
+    registry_value_operator_condition = Column(String(10))  # = != > < ; None means =
     # The label of the edge in each direction: "Go to the end" / "Back from end".
     id_text_go = Column(Integer)
     id_text_back = Column(Integer)
@@ -295,6 +298,7 @@ class WeatherRuleEntity(Base):
     # id_text — the rule's own label — was missing altogether.
     condition_key = Column(String(200))
     condition_key_value = Column(String(200))
+    registry_value_operator_condition = Column(String(10))  # = != > < ; None means =
     time_from = Column(Integer)
     time_to = Column(Integer)
     id_text = Column(Integer)
@@ -340,6 +344,7 @@ class EventEntity(Base):
     id_weather = Column(Integer)
     registry_key_condition = Column(String(200))
     registry_value_condition = Column(String(500))
+    registry_value_operator_condition = Column(String(10))  # = != > < ; None means =
     id_item_condition = Column(Integer)
     id_class_condition = Column(Integer)
     # DEPRECATED v0.29.0: ignored by the engine. Items are granted through effects.

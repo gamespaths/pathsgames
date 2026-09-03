@@ -72,7 +72,15 @@ def _build(mover=None, target_overrides=None, edge_overrides=None, registry=None
     story_read.find_card_by_story_and_card_id.return_value = None
 
     persistence.find_locations_by_match_id.return_value = []
-    persistence.find_registry_by_match_id.return_value = registry or []
+    registry_service = MagicMock()
+    registry_service.list_entries.return_value = []
+    # The judge now reads the rendered map, which is what load_all answers.
+    registry_service.load_all.return_value = {
+        r["key"]: (r.get("string_value")
+                   if r.get("string_value") is not None
+                   else (None if r.get("int_value") is None else str(r["int_value"])))
+        for r in (registry or []) if r.get("key")
+    }
 
     character_read.find_characters_by_match_id.return_value = [_character()]
     character_read.find_backpack.return_value = None
@@ -88,7 +96,8 @@ def _build(mover=None, target_overrides=None, edge_overrides=None, registry=None
         ([caller] if caller else []) + others)
 
     return MatchQueryService(persistence, story_read, user_access, character_read,
-                             movement_store=movement_store)
+                             movement_store=movement_store,
+                             registry_service_instance=registry_service)
 
 
 def _neighbor(service):

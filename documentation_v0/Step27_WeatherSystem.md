@@ -19,8 +19,10 @@ Step 27 covers the following items from the Roadmap:
   `rngSeed=42` for deterministic outcomes.
 - Weighted weather selection at every time-start: filter `list_weather_rules` by
   `is_active`, current clock time range (`time_from`/`time_to`), and an optional
-  registry condition (`condition_key`/`condition_value`). Roll using each rule's
-  `probability` as its weight.
+  registry condition (`condition_key`/`condition_value`, compared with
+  `registry_value_operator_condition` since v0.36.0 — see
+  [Step36 §5](./Step36_RegistrySystem.md#5-the-operator-column-four-conditions-one-comparison)).
+  Roll using each rule's `probability` as its weight.
 - Apply the winning rule's `delta_energy` to every character in the match, clamped to
   `[0, energy_max]`.
 - Persist the chosen rule id in `gaming_match.id_current_weather`; append a row to
@@ -201,7 +203,7 @@ Key functions in `lambda/match/handler.py`:
 | Function | Role |
 |----------|------|
 | `_weather_time_matches(rule, clock)` | Checks `time_from`/`time_to` inclusive, null = open bound |
-| `_weather_condition_matches(rule, match)` | Looks up `condition_key` in match registry |
+| `_weather_condition_matches(rule, registry)` | No `condition_key` → always matches; otherwise `RegistryService.evaluate` decides (v0.36.0, [Step36](./Step36_RegistrySystem.md)) |
 | `_weather_weighted_pick(eligible_rules, seed, clock)` | Deterministic weighted roll using `seed + clock` |
 | `_apply_weather_at_time_start(match, clock)` | Orchestrator hooked into `_advance_time` and `_start_match` |
 
@@ -219,7 +221,12 @@ From `list_weather_rules` for the match's story, retain only rules where:
 1. `is_active == true`
 2. `time_from IS NULL OR clock >= time_from`
 3. `time_to IS NULL OR clock <= time_to`
-4. `condition_key IS NULL OR match_registry[condition_key] == condition_value`
+4. `condition_key IS NULL OR RegistryService.evaluate(registry_value_operator_condition,
+   condition_key_value, match_registry[condition_key])` — **v0.36.0** ([Step36
+   §5](./Step36_RegistrySystem.md#5-the-operator-column-four-conditions-one-comparison)):
+   before this step a `condition_key` with a null `condition_key_value` meant "the key must be
+   unset"; that reading is retired, and a null expected value is now never met, exactly as it
+   already was for events and movement
 
 ### 4.2 Weighted roll
 
@@ -341,7 +348,11 @@ Full sequence:
 4. Filter by time range: retain rules where clock falls within `[time_from, time_to]`
    (null bounds are open).
 5. Filter by registry condition: retain rules where `condition_key IS NULL` or
-   `registry[condition_key] == condition_value`.
+   `RegistryService.evaluate` (`=`/`!=`/`>`/`<`, via `registry_value_operator_condition`)
+   is met against `registry[condition_key]`. **v0.36.0**: a `condition_key` with a null
+   `condition_key_value` used to mean "the key must be unset"; it is now never met, unifying
+   this rule with events and movement — see
+   [Step36 §5](./Step36_RegistrySystem.md#5-the-operator-column-four-conditions-one-comparison).
 6. If the eligible list is empty: set `gaming_match.id_current_weather = NULL`; return.
 7. Perform the weighted roll using seed `effective_seed + clock`.
 8. Persist the winner: update `gaming_match.id_current_weather`.

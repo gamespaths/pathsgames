@@ -79,6 +79,11 @@ export function buildItemsCard(t) {
   return metaCard('backpack', t('game.items.title'), null)
 }
 
+/** Step 36 — registry card (RegistryCard), the backpack's neighbour in the same list. */
+export function buildRegistryCard(t) {
+  return metaCard('registry', t('game.registry.title'), null)
+}
+
 /** "Loading…" card shown on the book page while the board reloads (LoadingCard). */
 export function buildLoadingCard(t) {
   return metaCard('loading', t('game.loadingCard.title'), t('game.loadingCard.description'))

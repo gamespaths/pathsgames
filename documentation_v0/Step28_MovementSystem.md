@@ -437,6 +437,7 @@ notions of "visited" then agree everywhere, and returning home correctly fires
 | `flag_back` | INTEGER | One-way link control: `1` = two-way (destination B lists source A as a neighbor); `0` = one-way (B does NOT list A as a neighbor). Forward travel A→B is always permitted regardless of this flag. See §v0.28.3. |
 | `condition_registry_key` | VARCHAR (nullable) | Registry key to check; null = no condition |
 | `condition_registry_value` | VARCHAR (nullable) | Expected registry value |
+| `registry_value_operator_condition` | VARCHAR (nullable) | **New in v0.36.0** — how `condition_registry_value` is compared: `=`/`!=`/`>`/`<`; null means `=`. See [Step36](./Step36_RegistrySystem.md). |
 
 ### 6.5 `list_locations` — columns read by Step 28
 
@@ -460,7 +461,11 @@ notions of "visited" then agree everywhere, and returning home correctly fires
 4. Load neighbor edges for the character's current location; assert `targetLocationUuid`
    appears in the list → `NOT_A_NEIGHBOR`.
 5. If the matched edge has `conditionRegistryKey != null`, look it up in the match
-   registry; assert it equals `conditionRegistryValue` → `MOVEMENT_CONDITION_NOT_MET`.
+   registry; assert `RegistryService.evaluate(registryValueOperatorCondition,
+   conditionRegistryValue, actual)` → `MOVEMENT_CONDITION_NOT_MET`. **v0.36.0**: the
+   comparison is no longer a hardcoded equality — the operator column widens it to
+   `=`/`!=`/`>`/`<`, and the lookup itself is `RegistryService.find`, not a
+   per-caller registry scan. See [Step36](./Step36_RegistrySystem.md).
 6. Compute `carriedWeight` (0 in Step 28); assert weight ≤ capacity → `OVERWEIGHT`.
 7. Compute `totalEnergyCost` (§4); assert `character.energy >= totalEnergyCost` →
    `INSUFFICIENT_ENERGY`.
@@ -2152,7 +2157,8 @@ being deleted before their `log_movements` rows, so the delete violated the FK.
 - `EVENT_TRIGGERED` — from `log_events` (Step 29+, when event logging is added)
 - AWS `RECOVERY` entries and a numeric-id-free (`characterUuid`) field alignment with
   Java/Python — see the AWS gap note in §"Log Data Sources"
-- `REGISTRY_CHANGE` — from `gaming_state_registry` (future step)
+- ~~`REGISTRY_CHANGE` — from `gaming_state_registry` (future step)~~ — **done, v0.36.0**, see
+  [Step36_RegistrySystem.md §7](./Step36_RegistrySystem.md#7-one-writer-one-audit-row)
 - Pagination support for long matches
 
 ---

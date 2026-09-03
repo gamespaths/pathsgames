@@ -504,6 +504,24 @@ Execute Event
     ...    headers=${headers}    json=${body}    params=${params}    expected_status=${expected_status}
     RETURN    ${response}
 
+Get Registry
+    [Documentation]    GET /api/match/{uuidMatch}/registry — the match registry grouped by the
+    ...                category of each key's story definition (Step 36). Visible keys only
+    ...                unless ${include_hidden}, which the match owner alone may ask for.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any    ${lang}=${EMPTY}
+    ...            ${include_hidden}=${EMPTY}
+    ${headers}=    Get Auth Headers    ${token}
+    ${params}=    Create Dictionary
+    IF    '${lang}' != '${EMPTY}'
+        Set To Dictionary    ${params}    lang=${lang}
+    END
+    IF    '${include_hidden}' != '${EMPTY}'
+        Set To Dictionary    ${params}    includeHidden=${include_hidden}
+    END
+    ${response}=    GET On Session    public_session    /api/match/${match_uuid}/registry
+    ...    headers=${headers}    params=${params}    expected_status=${expected_status}
+    RETURN    ${response}
+
 Get Inventory
     [Documentation]    GET /api/gameplay/{uuidMatch}/inventory — the calling character's items
     ...                (Step 34). Readable in any match status; only use-item and drop-item

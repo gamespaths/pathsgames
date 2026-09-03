@@ -25,6 +25,7 @@ authored noise is skipped, because skipping here would GRANT something).
 from typing import Any, Dict, List, Optional
 
 from app.core.models.match.event_models import ChoiceAvailability, ChoiceCheckContext
+from app.core.services.match import registry_service
 
 # ── reason vocabulary (per-option, returned on the response) ────────────────
 LIMIT_SAD_EXCEEDED = "LIMIT_SAD_EXCEEDED"
@@ -120,21 +121,9 @@ def _keys_met(row: Dict[str, Any], ctx: ChoiceCheckContext) -> bool:
     value as a string); > and < require both sides numeric. An absent key satisfies only
     != — "the flag was never set" IS different."""
     key = (row.get("key") or "").strip()
-    expected = row.get("value")
-    if not key or expected is None:
+    if not key:
         return False
-    actual = ctx.registry.get(key)
-    op = _operator(row)
-    if op == "=":
-        return expected == actual
-    if op == "!=":
-        return expected != actual
-    if op in (">", "<"):
-        a, e = _numeric(actual), _numeric(expected)
-        if a is None or e is None:
-            return False
-        return a > e if op == ">" else a < e
-    return False
+    return registry_service.evaluate(_operator(row), row.get("value"), ctx.registry.get(key))
 
 
 def _membership_met(row: Dict[str, Any], held: Optional[set]) -> bool:

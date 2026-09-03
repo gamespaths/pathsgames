@@ -41,9 +41,15 @@ _RENAMED_COLUMNS = {
     ],
 }
 _ADDED_COLUMNS = {
-    "list_locations_neighbors": ["id_text_go", "id_text_back"],
-    "list_weather_rules": ["id_text"],
+    "list_locations_neighbors": ["id_text_go", "id_text_back",
+                                 "registry_value_operator_condition"],
+    "list_weather_rules": ["id_text", "registry_value_operator_condition"],
+    # Step 36 — the operator on events, and the ordering column list_keys never had.
+    "list_events": ["registry_value_operator_condition"],
+    "list_keys": ["priority"],
 }
+# Added columns are integers unless named here: the Step 36 operator holds "=", ">", "<", "!=".
+_TEXT_COLUMNS = {"registry_value_operator_condition"}
 
 
 def align_schema(bind=None):
@@ -66,7 +72,8 @@ def align_schema(bind=None):
         columns = {c["name"] for c in inspector.get_columns(table)}
         for column in additions:
             if column not in columns:
-                statements.append(f"ALTER TABLE {table} ADD COLUMN {column} {int_type}")
+                column_type = "TEXT" if column in _TEXT_COLUMNS else int_type
+                statements.append(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
     if not statements:
         return []
     with bind.begin() as connection:

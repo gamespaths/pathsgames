@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 from app.core.models.match.match_models import MatchCreateCommand, MatchCreationError
 from app.core.ports.match.match_ports import TurnstileVerificationPort
 from app.core.services.match.match_command_service import MatchCommandService
+from app.core.services.match.registry_service import RegistryService
 
 
 def _build_service(
@@ -31,11 +32,16 @@ def _build_service(
     # v0.32.1 — no duplicate-match guard hit by default (a bare MagicMock would be truthy)
     persistence.has_active_match_for_story.return_value = False
 
-    return MatchCommandService(story_read, persistence, user_access, system_mode), {
+    registry_store = MagicMock()
+    registry_service = RegistryService(registry_store)
+
+    return MatchCommandService(story_read, persistence, user_access, system_mode,
+                               registry_service=registry_service), {
         "story_read": story_read,
         "persistence": persistence,
         "user_access": user_access,
         "system_mode": system_mode,
+        "registry_store": registry_store,
     }
 
 
@@ -104,7 +110,8 @@ def test_turnstile_rejected():
     user_access = MagicMock()
     system_mode = MagicMock()
     system_mode.is_maintenance.return_value = False
-    strict = MatchCommandService(story_read, persistence, user_access, system_mode, _RejectAll())
+    strict = MatchCommandService(story_read, persistence, user_access, system_mode,
+                                 _RejectAll(), RegistryService(MagicMock()))
     with pytest.raises(MatchCreationError) as exc:
         strict.create_match(MatchCreateCommand("u", "s", "d", turnstile_token="bad"))
     assert exc.value.code == MatchCreationError.TURNSTILE_VALIDATION_FAILED
@@ -239,7 +246,7 @@ def test_happy_path_creates_match_and_seeds_state():
     # Step 33 — the fixture story authors no id_location_start, so nothing is pre-visited.
     assert [r["flag_visited"] for r in save_locations] == [0, 0]
 
-    save_registry = mocks["persistence"].save_registry.call_args[0][0]
+    save_registry = mocks["registry_store"].insert_all.call_args[0][1]
     assert len(save_registry) == 4
     assert save_registry[0]["int_value"] == 1
     assert save_registry[0]["string_value"] is None
@@ -274,21 +281,11 @@ def test_keys_legacy_field_names_supported():
     service.create_match(MatchCreateCommand("u", "s", "d"))
     save_locations = mocks["persistence"].save_locations.call_args[0][0]
     assert save_locations[0]["clock_counter"] == 7
-    save_registry = mocks["persistence"].save_registry.call_args[0][0]
+    save_registry = mocks["registry_store"].insert_all.call_args[0][1]
     assert save_registry[0]["key"] == "foo"
     assert save_registry[0]["string_value"] == "bar"
 
 
-def test_apply_default_handles_int_directly():
-    row = {"int_value": None, "string_value": None}
-    MatchCommandService._apply_default(row, 42)
-    assert row["int_value"] == 42
-
-
-def test_apply_default_falls_back_to_string_for_unknown_types():
-    row = {"int_value": None, "string_value": None}
-    MatchCommandService._apply_default(row, ["nope"])
-    assert row["string_value"] == "['nope']"
 
 
 def test_happy_path_persists_creator_loadout():

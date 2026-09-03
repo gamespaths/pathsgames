@@ -2,11 +2,11 @@ package games.paths.core.service.match;
 
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
-import games.paths.core.entity.match.GamingStateRegistryEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.StoryDifficultyEntity;
 import games.paths.core.entity.story.StoryEntity;
 import games.paths.core.model.match.MatchDetail;
+import games.paths.core.model.match.MatchRegistryEntry;
 import games.paths.core.model.match.MatchSummary;
 import games.paths.core.port.match.MatchReadPort;
 import games.paths.core.port.match.MovementStorePort;
@@ -32,6 +32,7 @@ class MatchQueryServiceTest {
     private MatchReadPort matchReadPort;
     private StoryReadPort storyReadPort;
     private UserAccessPort userAccessPort;
+    private RegistryService registryService;
     private MatchQueryService service;
 
     @BeforeEach
@@ -39,7 +40,9 @@ class MatchQueryServiceTest {
         matchReadPort = mock(MatchReadPort.class);
         storyReadPort = mock(StoryReadPort.class);
         userAccessPort = mock(UserAccessPort.class);
-        service = new MatchQueryService(matchReadPort, storyReadPort, userAccessPort);
+        registryService = mock(RegistryService.class);
+        service = new MatchQueryService(matchReadPort, storyReadPort, userAccessPort,
+                null, null, null, null, registryService);
     }
 
     private UserAccessPort.UserView user(long id, String uuid) {
@@ -97,11 +100,9 @@ class MatchQueryServiceTest {
         return e;
     }
 
-    private GamingStateRegistryEntity regEntry(Long id, Long matchId, String key) {
-        GamingStateRegistryEntity e = new GamingStateRegistryEntity();
-        e.setId(id);
-        e.setIdMatch(matchId);
-        e.setUuid("reg-" + id);
+    private MatchRegistryEntry regEntry(String key) {
+        MatchRegistryEntry e = new MatchRegistryEntry();
+        e.setUuid("reg-" + key);
         e.setKey(key);
         e.setIntValue(1);
         return e;
@@ -448,8 +449,8 @@ class MatchQueryServiceTest {
                     .thenReturn(List.of(difficulty(3L, "diff-uuid"), difficulty(99L, "other")));
             when(matchReadPort.findLocationsByMatchId(1L))
                     .thenReturn(List.of(locState(1L, 10L), locState(1L, 11L)));
-            when(matchReadPort.findRegistryByMatchId(1L))
-                    .thenReturn(List.of(regEntry(20L, 1L, "k")));
+            when(registryService.listEntries(eq(1L), any(), eq(false), any()))
+                    .thenReturn(List.of(regEntry("k")));
 
             MatchDetail detail = service.getMatchInfo("m", "u", "en");
             assertNotNull(detail);
@@ -477,7 +478,8 @@ class MatchQueryServiceTest {
             when(storyReadPort.findDifficultiesByStoryId(2L)).thenReturn(List.of());
             when(matchReadPort.findLocationsByMatchId(1L))
                     .thenReturn(List.of(locState(1L, 10L), locState(1L, 11L)));
-            when(matchReadPort.findRegistryByMatchId(1L)).thenReturn(List.of());
+            when(registryService.listEntries(eq(1L), any(), eq(false), any()))
+                    .thenReturn(List.of());
 
             // Only location 10 has been visited.
             MovementStorePort movementStorePort = mock(MovementStorePort.class);
@@ -504,7 +506,8 @@ class MatchQueryServiceTest {
             when(storyReadPort.findLocationsByStoryId(2L)).thenReturn(List.of());
             when(storyReadPort.findDifficultiesByStoryId(2L)).thenReturn(List.of());
             when(matchReadPort.findLocationsByMatchId(1L)).thenReturn(List.of());
-            when(matchReadPort.findRegistryByMatchId(1L)).thenReturn(List.of());
+            when(registryService.listEntries(eq(1L), any(), eq(false), any()))
+                    .thenReturn(List.of());
 
             MatchDetail detail = service.getMatchInfo("m", "u", "en");
             assertNotNull(detail);
@@ -522,7 +525,8 @@ class MatchQueryServiceTest {
             when(storyReadPort.findLocationsByStoryId(2L)).thenReturn(List.of());
             when(storyReadPort.findDifficultiesByStoryId(2L)).thenReturn(List.of());
             when(matchReadPort.findLocationsByMatchId(1L)).thenReturn(List.of());
-            when(matchReadPort.findRegistryByMatchId(1L)).thenReturn(List.of());
+            when(registryService.listEntries(eq(1L), any(), eq(false), any()))
+                    .thenReturn(List.of());
 
             MatchDetail detail = service.getMatchInfo("m", "u", "en");
             assertNotNull(detail);
@@ -538,7 +542,8 @@ class MatchQueryServiceTest {
             when(matchReadPort.findMatchByUuid("m")).thenReturn(Optional.of(m));
             when(storyReadPort.findAllStories()).thenReturn(List.of());
             when(matchReadPort.findLocationsByMatchId(1L)).thenReturn(List.of());
-            when(matchReadPort.findRegistryByMatchId(1L)).thenReturn(List.of());
+            when(registryService.listEntries(eq(1L), any(), eq(false), any()))
+                    .thenReturn(List.of());
 
             MatchDetail detail = service.getMatchInfo("m", "u", "en");
             assertNotNull(detail);
@@ -572,7 +577,8 @@ class MatchQueryServiceTest {
             when(storyReadPort.findDifficultiesByStoryId(2L))
                     .thenReturn(List.of(difficulty(3L, "diff-uuid")));
             when(matchReadPort.findLocationsByMatchId(1L)).thenReturn(List.of(locState(1L, 10L)));
-            when(matchReadPort.findRegistryByMatchId(1L)).thenReturn(List.of(regEntry(20L, 1L, "k")));
+            when(registryService.listEntries(eq(1L), any(), eq(false), any()))
+                    .thenReturn(List.of(regEntry("k")));
 
             MatchDetail detail = service.getMatchInfoForAdmin("m");
             assertNotNull(detail);
