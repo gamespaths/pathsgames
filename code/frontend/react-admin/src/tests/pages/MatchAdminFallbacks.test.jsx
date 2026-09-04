@@ -219,13 +219,13 @@ describe('GuestsPage and MatchDetailModal fallbacks', () => {
         info: {
           match: {},
           locations: [{ uuid: 'loc-1', idLocation: 1, flagAlreadyActived: 1, flagVisited: 1, clockCounter: 2 }],
-          registry: [{ uuid: 'r1', key: 'gate', stringValue: 'OPEN', intValue: 3 }],
+          registry: [{ uuid: 'r1', key: 'gate', values: ['OPEN'], multiValue: false }],
         },
       }}
       onClose={vi.fn()} />)
 
     const row = screen.getByText('#1').closest('tr')
     expect(row).toHaveTextContent('yes')
-    expect(screen.getByText('3')).toBeInTheDocument()
+    expect(screen.getByText('OPEN')).toBeInTheDocument()
   })
 })

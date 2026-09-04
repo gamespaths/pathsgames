@@ -59,7 +59,7 @@ def test_returns_visible_keys_grouped_by_category(_jwt, mock_get):
     assert group['category'] == 'tutorial'
     entry = group['entries'][0]
     assert entry['key'] == 'tutorial_progress'
-    assert entry['intValue'] == 3 and entry['stringValue'] is None
+    assert entry['values'] == ['3'] and entry['multiValue'] is False
     assert entry['visible'] is True and entry['priority'] == 1
     assert entry['idCharacter'] == 12 and entry['idCard'] == 950
 
@@ -82,7 +82,8 @@ def test_include_hidden_reveals_the_keys_the_story_hid(_jwt, mock_get):
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'})
-def test_an_empty_registry_is_an_empty_array(_jwt, mock_get):
+def test_a_match_holding_no_rows_still_lists_its_declared_keys_empty(_jwt, mock_get):
+    """Step 36.1 — a key whose members were all removed keeps its entry, with an empty set."""
     mock_get.side_effect = _get_side(match={'uuid': 'm1', 'storyUuid': 's1',
                                             'userCreatorUuid': 'player-uuid-001'})
     from match.handler import lambda_handler
@@ -91,7 +92,9 @@ def test_an_empty_registry_is_an_empty_array(_jwt, mock_get):
         _player_event('GET', '/api/match/m1/registry', {'uuidMatch': 'm1'}), {})
 
     assert result['statusCode'] == 200
-    assert json.loads(result['body']) == {'groups': []}
+    entries = json.loads(result['body'])['groups'][0]['entries']
+    assert [e['key'] for e in entries] == ['tutorial_progress']
+    assert entries[0]['values'] == []
 
 
 @patch('match.handler.db_utils.get_item')
@@ -138,9 +141,9 @@ def test_info_carries_the_same_joined_entries_as_the_endpoint(_jwt, mock_get, _q
     registry = json.loads(lambda_handler(
         _player_event('GET', '/api/match/m1/registry', {'uuidMatch': 'm1'}), {})['body'])
 
-    from_endpoint = sorted((e['key'], e['intValue'], e['stringValue'])
+    from_endpoint = sorted((e['key'], tuple(e['values']), e['multiValue'])
                            for g in registry['groups'] for e in g['entries'])
-    from_info = sorted((e['key'], e['intValue'], e['stringValue'])
+    from_info = sorted((e['key'], tuple(e['values']), e['multiValue'])
                        for e in info['registry'] if e['visible'])
     assert from_info == from_endpoint
     # And the hidden key is on neither: /info has no includeHidden door at all.

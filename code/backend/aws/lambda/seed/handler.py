@@ -208,6 +208,11 @@ SEED_STORIES = [
              "keyValue": "0", "keyGroup": "tutorial", "visibility": "PUBLIC", "priority": 1},
             {"id": 2, "uuid": "key-tutorial-2", "keyName": "training_completed",
              "keyValue": "0", "keyGroup": "tutorial", "visibility": "PUBLIC", "priority": 2},
+            # Step 36.1 — multiValue = 1 makes a key hold a SET: each write adds a member
+            # instead of replacing the value. No default, so its set starts EMPTY: no row.
+            {"id": 3, "uuid": "key-tutorial-3", "keyName": "evidence_found",
+             "keyValue": None, "keyGroup": "evidence", "visibility": "PUBLIC",
+             "priority": 1, "multiValue": 1},
         ],
         # Step 20.1 — events for end-game trigger; Step 27.x — idLocation + card
         "idEventEndGame":    99,
@@ -359,6 +364,31 @@ SEED_STORIES = [
              "idSpecificLocation": None, "type": "NORMAL", "idCard": 1,
              "idTextName": 617, "idTextDescription": 617,
              "costEnery": 9, "costCoin": 0, "flagEndTime": 0},
+            # Step 36.1 — the SET test-bed, four FREE events at the start location. A zero
+            # cost is what keeps them invisible to the Step 31/32 finders, which only ever
+            # pick a choice-event that costs something.
+            #   360 / 361  add one member each, and are repeatable — running one twice must
+            #              leave the set unchanged, which is the whole point of a SET.
+            #   362        gated on evidence_found = letter, so it stays blocked until 361
+            #              has run: = quantifies EXISTENTIALLY over the members.
+            #   363        a choice-event whose only option TAKES ONE MEMBER AWAY.
+            {"id": 360, "uuid": "evt-step361-ledger", "name": "The Ledger",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "idTextName": 500, "idTextDescription": 500,
+             "costEnery": 0, "costCoin": 0, "flagEndTime": 0},
+            {"id": 361, "uuid": "evt-step361-letter", "name": "The Letter",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "idTextName": 500, "idTextDescription": 500,
+             "costEnery": 0, "costCoin": 0, "flagEndTime": 0},
+            {"id": 362, "uuid": "evt-step361-gated", "name": "Read The Letter",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "idTextName": 500, "idTextDescription": 500,
+             "costEnery": 0, "costCoin": 0, "flagEndTime": 0,
+             "registryKeyCondition": "evidence_found", "registryValueCondition": "letter"},
+            {"id": 363, "uuid": "evt-step361-burn", "name": "Burn One Piece",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "idTextName": 500, "idTextDescription": 500,
+             "costEnery": 0, "costCoin": 0, "flagEndTime": 0},
         ],
         # Step 31 — the options of the two choice-events above (top-level arrays keyed by
         # idChoices, the canonical shape shared with the SQL backends' seeds).
@@ -396,8 +426,22 @@ SEED_STORIES = [
             {"id": 22, "uuid": "ch-step32-locked", "idEvent": 32, "priority": 3,
              "idTextName": 613, "idTextDescription": 613, "idCard": 1,
              "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "AND", "limitDex": 99},
+            # Step 36.1 — otherwiseFlag 1 and no narrative: always selectable, and never the
+            # option the Step 32 suite looks for (that one wants a narrated option).
+            {"id": 360, "uuid": "ch-step361-burn", "idEvent": 363, "priority": 1,
+             "idTextName": 612, "idTextDescription": 612, "idCard": 1,
+             "otherwiseFlag": 1, "isProgress": 0, "logicOperator": "AND"},
+            # v0.36.1 — the same event's SECOND option, gated on the multi key with !=: it is
+            # offered while the set does not hold the value and refused once it does.
+            {"id": 361, "uuid": "ch-step361-gated", "idEvent": 363, "priority": 2,
+             "idTextName": 612, "idTextDescription": 612, "idCard": 1,
+             "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "AND"},
         ],
         "choiceConditions": [
+            # v0.36.1 — != over a SET: met while no member equals the value, refused as soon
+            # as one does. R4_CHOICE_EMPTY is why option 361 also carries an effect below.
+            {"id": 360, "idChoices": 361, "type": "KEYS", "key": "evidence_found",
+             "value": "ledger", "operator": "!="},
             {"id": 2, "idChoices": 11, "type": "statistics", "key": "int", "value": "99", "operator": ">"},
             {"id": 3, "idChoices": 12, "type": "KEYS", "key": "STEP29_GATE", "value": "OPEN", "operator": "="},
             {"id": 4, "idChoices": 12, "type": "statistics", "key": "life", "value": "0", "operator": ">"},
@@ -416,6 +460,11 @@ SEED_STORIES = [
             {"id": 21, "idChoices": 21, "idCard": 1, "key": "STEP32_GATE",
              "valueToAdd": "OPEN", "idItemTarget": 1, "itemAction": "ADD",
              "idLocation": 3, "idWeather": 3},
+            # Step 36.1 — valueToRemove on a MULTI key takes that one member away and leaves
+            # the rest, where on a single key it still clears the value.
+            {"id": 360, "idChoices": 360, "idCard": 1, "key": "evidence_found",
+             "valueToRemove": "ledger"},
+            {"id": 361, "idChoices": 361, "idCard": 1, "statistics": "exp", "value": 1},
         ],
         # Step 29 — the EFFECT side. Each row's own idCard is the narrative the board shows.
         "eventEffects": [
@@ -437,6 +486,11 @@ SEED_STORIES = [
             {"id": 10, "idEvent": 25, "idCard": 1, "target": "ONLY_ONE",
              "idItemTarget": 1, "itemAction": "ADD"},
             # v0.34.0 — event 51 hands over the two consumables, 52 the heavy ingot.
+            # Step 36.1 — the two writes that build the SET, one member each.
+            {"id": 360, "idEvent": 360, "idCard": 1, "target": "ONLY_ONE",
+             "keyToAdd": "evidence_found", "keyValueToAdd": "ledger"},
+            {"id": 361, "idEvent": 361, "idCard": 1, "target": "ONLY_ONE",
+             "keyToAdd": "evidence_found", "keyValueToAdd": "letter"},
             {"id": 50, "idEvent": 51, "idCard": 1, "target": "ONLY_ONE",
              "idItemTarget": 2, "itemAction": "ADD"},
             {"id": 51, "idEvent": 51, "idCard": 1, "target": "ONLY_ONE",

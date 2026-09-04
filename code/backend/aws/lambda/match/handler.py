@@ -1656,10 +1656,39 @@ def _nominal_actor(characters, id_location):
 
 # ─── Step 27 — weather selection & effects ───────────────────────────────────
 
+def _rule_field(rule, *names):
+    """One field of a weather rule, tried under each spelling in turn.
+
+    The canonical vocabulary is the one `list_weather_rules` declares and the admin form,
+    the import contract and the other two backends all speak: `conditionKeyValue`,
+    `timeFrom`/`timeTo`, `active`, `idText`. This backend was written against a private set
+    of names — `conditionValue`, `timeStart`/`timeEnd`, `isActive`, `idTextName` — which its
+    own seed also authors, so seeded rules worked and the suites stayed green while a rule
+    written in the admin, or imported from a canonical story file, silently lost every one of
+    those fields. On the condition that was fatal: no expected value means the comparison is
+    never met, so a rule gained a key condition and simply stopped ever happening.
+
+    Canonical first, legacy second: the seed keeps working, an authored rule starts to.
+    """
+    for name in names:
+        value = (rule or {}).get(name)
+        if value is not None:
+            return value
+    return None
+
+
+def _weather_active(rule):
+    """A rule that names neither spelling is ACTIVE: the column defaults to 1, and a story
+    that says nothing about it means the rule is in play. An explicit 0 under either name
+    switches it off — which is why this cannot go through a plain `or`."""
+    value = _rule_field(rule, 'active', 'isActive')
+    return 1 if value is None else value
+
+
 def _weather_time_matches(rule, clock):
-    """A null bound is open; otherwise clock must fall inside [timeStart, timeEnd]."""
-    time_from = rule.get('timeStart')
-    time_to = rule.get('timeEnd')
+    """A null bound is open; otherwise clock must fall inside the rule's window."""
+    time_from = _rule_field(rule, 'timeFrom', 'timeStart')
+    time_to = _rule_field(rule, 'timeTo', 'timeEnd')
     if time_from is not None and clock < time_from:
         return False
     return time_to is None or clock <= time_to
@@ -1674,10 +1703,9 @@ def _weather_condition_matches(rule, registry):
     key = rule.get('conditionKey')
     if _registry.no_condition(key):
         return True
-    actual = _registry.render_row(
-        next((r for r in (registry or []) if r.get('key') == key), None))
     return _registry.evaluate(rule.get('registryValueOperatorCondition'),
-                              rule.get('conditionValue'), actual)
+                              _rule_field(rule, 'conditionKeyValue', 'conditionValue'),
+                              _registry.values_in(registry, key))
 
 
 def _weather_weighted_pick(eligible, seed):
@@ -1703,7 +1731,7 @@ def _apply_weather_at_time_start(match, match_uuid, story):
     rules = story.get('weatherRules') or []
     clock = _nz(match.get('currentClock'))
     eligible = [r for r in rules
-                if _nz(r.get('isActive', 1)) != 0
+                if _nz(_weather_active(r)) != 0
                 and _weather_time_matches(r, clock)
                 and _weather_condition_matches(r, match.get('registry'))]
     if not eligible:
@@ -2124,13 +2152,14 @@ def _get_admin_match_weather(match_uuid):
     rules = [{
         "id": r.get('id'),
         "uuid": r.get('uuid'),
-        "idTextName": r.get('idTextName'),
-        "name": _resolve_weather_name(raw_cards, raw_texts, r.get('idTextName'), r.get('idCard')),
+        "idTextName": _rule_field(r, 'idText', 'idTextName'),
+        "name": _resolve_weather_name(raw_cards, raw_texts,
+                                      _rule_field(r, 'idText', 'idTextName'), r.get('idCard')),
         "probability": r.get('probability'),
         "deltaEnergy": r.get('deltaEnergy'),
         "costMoveSafeLocation": r.get('costMoveSafeLocation'),
         "costMoveNotSafeLocation": r.get('costMoveNotSafeLocation'),
-        "active": _nz(r.get('isActive', 1)) != 0,
+        "active": _nz(_weather_active(r)) != 0,
         "current": current_id is not None and _nz(r.get('id')) == current_id,
     } for r in all_rules]
     log = []
@@ -2142,7 +2171,7 @@ def _get_admin_match_weather(match_uuid):
             "clock": entry.get('clock'),
             "idWeather": entry.get('idWeather'),
             "weatherUuid": (rule or {}).get('uuid') or entry.get('weatherUuid'),
-            "idTextName": (rule or {}).get('idTextName'),
+            "idTextName": _rule_field(rule, 'idText', 'idTextName'),
             "timestampStart": entry.get('timestampStart'),
         })
     return _ok({
@@ -2330,14 +2359,13 @@ def _edge_condition_met(edge, registry):
     if _registry.no_condition(key):
         return True
     expected = edge.get('conditionValue') or edge.get('conditionRegistryValue')
-    actual = _registry.render_row(
-        next((r for r in (registry or []) if r.get('key') == key), None))
-    return _registry.evaluate(edge.get('registryValueOperatorCondition'), expected, actual)
+    return _registry.evaluate(edge.get('registryValueOperatorCondition'), expected,
+                              _registry.values_in(registry, key))
 
 
 def _registry_value(registry, key):
-    """Current registry value for a key, through the one codec Step 36 left standing."""
-    return _registry.render_row(next((r for r in (registry or []) if r.get('key') == key), None))
+    """Current registry values for a key, through the one codec Step 36 left standing."""
+    return _registry.values_in(registry, key)
 
 
 def _current_weather_rule(match, story):
@@ -2721,13 +2749,14 @@ def _execute_event(user, match_uuid, body, lang='en'):
             if key:
                 value = effect.get('keyValueToAdd')
                 # Step 36 — the row remembers who wrote it and when, as it does on Java.
-                _events.apply_registry(match, key, value, registry_changes,
-                                       id_character=(caller or {}).get('id'),
-                                       id_event=current.get('id'),
-                                       clock=_nz(match.get('currentClock')),
-                                       character_uuid=(caller or {}).get('uuid'),
-                                       timestamp=_ts_ms())
-                ctx['registry'][key] = value
+                written = _events.apply_registry(
+                    match, key, value, registry_changes,
+                    id_character=(caller or {}).get('id'),
+                    id_event=current.get('id'),
+                    clock=_nz(match.get('currentClock')),
+                    character_uuid=(caller or {}).get('uuid'),
+                    timestamp=_ts_ms(), story=story)
+                ctx['registry'][key] = (written or {}).get('values') or []
 
             applied_effects.append({
                 "eventUuid": current.get('uuid'),
@@ -3450,7 +3479,7 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
                                            acc['locationChanges'], _ts_ms())
             acc['flags']['movementApplied'] = acc['flags']['movementApplied'] or moved
 
-        _apply_choice_registry(match, ctx, effect, acc['registryChanges'])
+        _apply_choice_registry(match, ctx, effect, acc['registryChanges'], story)
 
         acc['effects'].append({
             "eventUuid": event.get('uuid'),
@@ -3662,7 +3691,7 @@ def _edge_state_payload(acc):
     }
 
 
-def _apply_choice_registry(match, ctx, effect, changes):
+def _apply_choice_registry(match, ctx, effect, changes, story=None):
     """The registry pair of a choice effect. ``valueToAdd`` sets the key;
     ``valueToRemove`` clears it, but only when the stored value actually matches — an
     option must not be able to wipe a key some other branch of the story has since moved
@@ -3670,20 +3699,24 @@ def _apply_choice_registry(match, ctx, effect, changes):
     key = effect.get('key')
     if not key:
         return
-    old = ctx['registry'].get(key)
     add = effect.get('valueToAdd')
     remove = effect.get('valueToRemove')
     if add:
-        value = add
-    elif remove and remove == old:
-        value = None  # the key reads as unset afterwards
+        written = _events.apply_registry(match, key, add, changes,
+                                         id_character=(ctx.get('callerId')),
+                                         clock=_nz(match.get('currentClock')),
+                                         timestamp=_ts_ms(), story=story)
+    elif remove:
+        # Step 36.1 — on a multi key this takes one member away; on a single one it is the
+        # compare-and-clear it has always been, and the registry itself refuses to wipe a
+        # value some other branch of the story has moved on from.
+        written = _events.remove_registry(match, key, remove, changes,
+                                          id_character=(ctx.get('callerId')),
+                                          clock=_nz(match.get('currentClock')),
+                                          timestamp=_ts_ms())
     else:
         return
-    _events.apply_registry(match, key, value, changes,
-                           id_character=(ctx.get('callerId')),
-                           clock=_nz(match.get('currentClock')),
-                           timestamp=_ts_ms())
-    ctx['registry'][key] = value
+    ctx['registry'][key] = (written or {}).get('values') or []
 
 
 def _apply_edge_states(match, caller, acc, event_id):
@@ -3912,13 +3945,14 @@ def _run_event_chain(match, story, first, caller, characters, ctx, events_by_id,
             key = effect.get('keyToAdd')
             if key:
                 value = effect.get('keyValueToAdd')
-                _events.apply_registry(match, key, value, acc['registryChanges'],
-                                       id_character=(caller or {}).get('id'),
-                                       id_event=current.get('id'),
-                                       clock=_nz(match.get('currentClock')),
-                                       character_uuid=(caller or {}).get('uuid'),
-                                       timestamp=_ts_ms())
-                ctx['registry'][key] = value
+                written = _events.apply_registry(
+                    match, key, value, acc['registryChanges'],
+                    id_character=(caller or {}).get('id'),
+                    id_event=current.get('id'),
+                    clock=_nz(match.get('currentClock')),
+                    character_uuid=(caller or {}).get('uuid'),
+                    timestamp=_ts_ms(), story=story)
+                ctx['registry'][key] = (written or {}).get('values') or []
             acc['effects'].append({
                 "eventUuid": current.get('uuid'),
                 "effectUuid": effect.get('uuid'),

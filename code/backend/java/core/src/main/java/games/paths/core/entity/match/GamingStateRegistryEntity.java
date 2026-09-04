@@ -52,6 +52,10 @@ public class GamingStateRegistryEntity {
     @Column(name = "id_mission_steps")
     private Long idMissionSteps;
 
+    /** Step 36.1 - mirrors list_keys.multi_value so the partial unique indexes can see it. */
+    @Column(name = "multi_value")
+    private Integer multiValue;
+
     @Column(name = "ts_insert", nullable = false, updatable = false)
     private String tsInsert;
 
@@ -106,6 +110,9 @@ public class GamingStateRegistryEntity {
 
     public Long getIdMissionSteps() { return idMissionSteps; }
     public void setIdMissionSteps(Long idMissionSteps) { this.idMissionSteps = idMissionSteps; }
+
+    public Integer getMultiValue() { return multiValue; }
+    public void setMultiValue(Integer multiValue) { this.multiValue = multiValue; }
 
     public String getTsInsert() { return tsInsert; }
     public void setTsInsert(String tsInsert) { this.tsInsert = tsInsert; }

@@ -50,8 +50,9 @@ public class MatchRegistryResponse {
     public static class EntryDto {
         private String uuid;
         private String key;
-        private String stringValue;
-        private Integer intValue;
+        // Step 36.1 — the SET of values, ordered by the backend so every client agrees.
+        private List<String> values = new ArrayList<>();
+        private boolean multiValue;
         private Long idCharacter;
         private String category;
         private boolean visible;
@@ -63,8 +64,8 @@ public class MatchRegistryResponse {
             EntryDto d = new EntryDto();
             d.uuid = e.getUuid();
             d.key = e.getKey();
-            d.stringValue = e.getStringValue();
-            d.intValue = e.getIntValue();
+            d.values = e.getValues();
+            d.multiValue = e.isMultiValue();
             d.idCharacter = e.getIdCharacter();
             d.category = e.getCategory();
             d.visible = e.isVisible();
@@ -78,10 +79,10 @@ public class MatchRegistryResponse {
         public void setUuid(String uuid) { this.uuid = uuid; }
         public String getKey() { return key; }
         public void setKey(String key) { this.key = key; }
-        public String getStringValue() { return stringValue; }
-        public void setStringValue(String stringValue) { this.stringValue = stringValue; }
-        public Integer getIntValue() { return intValue; }
-        public void setIntValue(Integer intValue) { this.intValue = intValue; }
+        public List<String> getValues() { return values; }
+        public void setValues(List<String> values) { this.values = values; }
+        public boolean isMultiValue() { return multiValue; }
+        public void setMultiValue(boolean multiValue) { this.multiValue = multiValue; }
         public Long getIdCharacter() { return idCharacter; }
         public void setIdCharacter(Long idCharacter) { this.idCharacter = idCharacter; }
         public String getCategory() { return category; }

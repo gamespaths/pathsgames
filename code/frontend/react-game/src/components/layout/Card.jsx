@@ -62,6 +62,8 @@ export default function Card({
   children,
 
   statistics, flagShowFullStatistics=false,
+  /* Badges that ride in the TITLE whatever flagShowFullStatistics does with `statistics`. */
+  titleStatistics=null,
   /* v0.35.2 — keep the badges whose value is zero. Off by default, because a zero stat is
      usually noise; a bag is the exception, where "0 items, 0/30" is the whole news. */
   bonusBadgeShowZeros=false,
@@ -151,6 +153,10 @@ export default function Card({
         <div className="gc-title__text">{name}</div>
         {!flagShowFullStatistics && statistics && statistics.length > 0 &&
           <BonusBadgeList className="mt-0 mb-0 config-total-bonus float-right" items={statistics}
+            littleVersion={bonusBadgeListLittleTitle} showZeros={bonusBadgeShowZeros} />
+        }
+        {titleStatistics && titleStatistics.length > 0 &&
+          <BonusBadgeList className="mt-0 mb-0 config-total-bonus float-right" items={titleStatistics}
             littleVersion={bonusBadgeListLittleTitle} showZeros={bonusBadgeShowZeros} />
         }
         {typeBadgeLabel && <span className="gc-type-badge">{typeBadgeLabel}</span>}

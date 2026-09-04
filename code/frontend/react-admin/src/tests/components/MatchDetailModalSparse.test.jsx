@@ -15,7 +15,7 @@ describe('MatchDetailModal without a story context', () => {
     match: {},
     currentLocationUuid: 'loc-x',
     locations: [{ idLocation: 4 }],           // no uuid, no flags, no clock
-    registry: [{ key: 'gate', stringValue: 'OPEN' }],
+    registry: [{ key: 'gate', values: ['OPEN'] }],
   }
 
   it('dashes out every story field the context cannot resolve', () => {
@@ -36,9 +36,10 @@ describe('MatchDetailModal without a story context', () => {
     expect(cells[3]).toHaveTextContent('no')
     expect(cells[4]).toHaveTextContent('0')
 
-    // The registry row has no int value.
+    // Step 36.1 — the registry row holds one value, and is not a multi key.
     const regRow = screen.getByText('gate').closest('tr')
-    expect(within(regRow).getAllByRole('cell')[2]).toHaveTextContent('—')
+    expect(within(regRow).getAllByRole('cell')[1]).toHaveTextContent('OPEN')
+    expect(within(regRow).getAllByRole('cell')[2]).toHaveTextContent('no')
   })
 
   it('shows the raw uuids when difficulty, character and class do not resolve', () => {

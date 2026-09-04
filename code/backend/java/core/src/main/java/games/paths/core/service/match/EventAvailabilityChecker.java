@@ -5,6 +5,7 @@ import games.paths.core.port.match.EventExecutionPort.EventAvailability;
 import games.paths.core.port.match.EventExecutionPort.EventExecutionException.Code;
 import games.paths.core.port.match.EventExecutionStorePort.EventCheckContext;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -117,7 +118,7 @@ public final class EventAvailabilityChecker {
             return true;
         }
         return RegistryService.evaluate(event.getRegistryValueOperatorCondition(),
-                event.getRegistryValueCondition(), ctx.registry().get(key));
+                event.getRegistryValueCondition(), ctx.registry().getOrDefault(key, List.of()));
     }
 
     private static String type(EventEntity event) {

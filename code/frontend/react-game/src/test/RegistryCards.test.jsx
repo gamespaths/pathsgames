@@ -15,7 +15,7 @@ import RegistryCards from '../features/gameplay/cards/RegistryCards'
 
 const entry = (key, category, priority, extra = {}) => ({
   uuid: `u-${key}`, key, category, priority, visible: true,
-  stringValue: null, intValue: 1, ...extra,
+  values: ['1'], multiValue: false, ...extra,
 })
 
 describe('RegistryCards (Step 36)', () => {
@@ -77,5 +77,26 @@ describe('RegistryCards (Step 36)', () => {
     expect(seen[0].story).toBe(story)
     expect(seen[0].onPreview).toBe(onPreview)
     expect(seen[0].previewSide).toBe('right')
+  })
+
+  it('passes the joining flag down, and leaves the cards separated by default', () => {
+    render(<RegistryCards registry={[entry('k', 'tutorial', 1)]} />)
+    expect(seen[0].joinValues).toBe(false)
+
+    seen.length = 0
+    render(<RegistryCards joinValues registry={[entry('k', 'tutorial', 1)]} />)
+    expect(seen[0].joinValues).toBe(true)
+  })
+
+  it('still renders a key whose set was emptied, which comes back with no uuid', () => {
+    // Step 36.1 — an entry is built from the key's ROWS, and an emptied multi key has none:
+    // there is no last row to take a uuid from. The key name is what keys the card then.
+    const { container } = render(<RegistryCards registry={[
+      { key: 'clues', category: 'evidence', priority: 1, visible: true,
+        uuid: null, values: [], multiValue: true },
+    ]} />)
+
+    expect(seen.map(p => p.entry.key)).toEqual(['clues'])
+    expect(container.querySelectorAll('[data-testid="key-card"]')).toHaveLength(1)
   })
 })

@@ -472,6 +472,7 @@ public class StoryImportService implements StoryImportPort {
             e.setGroup(getString(item, "group"));
             e.setPriority(getInteger(item, "priority"));
             e.setVisibility(getString(item, "visibility"));
+            e.setMultiValue(getInteger(item, "multiValue"));
             entities.add(e);
         }
         persistencePort.saveKeys(entities);

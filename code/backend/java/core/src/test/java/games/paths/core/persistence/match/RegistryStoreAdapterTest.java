@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,6 +28,12 @@ class RegistryStoreAdapterTest {
         repository = mock(GamingStateRegistryRepository.class);
         logEventsRepository = mock(LogEventsRepository.class);
         adapter = new RegistryStoreAdapter(repository, logEventsRepository);
+    }
+
+    private static GamingStateRegistryEntity multi(Long id, String key, String s, Integer i) {
+        GamingStateRegistryEntity e = entity(id, key, s, i);
+        e.setMultiValue(1);
+        return e;
     }
 
     private static GamingStateRegistryEntity entity(Long id, String key, String s, Integer i) {
@@ -68,20 +73,30 @@ class RegistryStoreAdapterTest {
     }
 
     @Test
-    @DisplayName("findByMatchAndKey uses the indexed lookup; a null key is empty")
+    @DisplayName("findByMatchAndKey answers every row of the key; a null key is empty")
     void findByMatchAndKey() {
         when(repository.findByIdMatchAndKey(1L, "count"))
-                .thenReturn(Optional.of(entity(1L, "count", null, 7)));
-        assertEquals(7, adapter.findByMatchAndKey(1L, "count").orElseThrow().intValue());
+                .thenReturn(List.of(entity(1L, "count", null, 7)));
+        assertEquals(7, adapter.findByMatchAndKey(1L, "count").get(0).intValue());
         assertTrue(adapter.findByMatchAndKey(1L, null).isEmpty());
         verify(repository, never()).findByIdMatchAndKey(1L, null);
+    }
+
+    @Test
+    @DisplayName("Step 36.1: a multi key answers every member, not just the first")
+    void findByMatchAndKeyAnswersTheWholeSet() {
+        when(repository.findByIdMatchAndKey(1L, "clues")).thenReturn(List.of(
+                multi(1L, "clues", "A", null), multi(2L, "clues", "B", null)));
+
+        assertEquals(List.of("A", "B"), adapter.findByMatchAndKey(1L, "clues").stream()
+                .map(r -> r.stringValue()).toList());
     }
 
     @Test
     @DisplayName("upsert overwrites the existing key in place")
     void upsertUpdatesExisting() {
         GamingStateRegistryEntity existing = entity(4L, "count", "old", null);
-        when(repository.findByIdMatchAndKey(1L, "count")).thenReturn(Optional.of(existing));
+        when(repository.findByIdMatchAndKey(1L, "count")).thenReturn(List.of(existing));
 
         adapter.upsert(1L, "count", null, 42, 3L, 12L, 9L, 5);
 
@@ -97,7 +112,7 @@ class RegistryStoreAdapterTest {
     @Test
     @DisplayName("upsert inserts a new key with the next free id")
     void upsertInsertsWithNextId() {
-        when(repository.findByIdMatchAndKey(1L, "fresh")).thenReturn(Optional.empty());
+        when(repository.findByIdMatchAndKey(1L, "fresh")).thenReturn(List.of());
         when(repository.findByIdMatch(1L)).thenReturn(List.of(
                 entity(2L, "other", "x", null), entity(4L, "with-id", "y", null)));
 
@@ -117,7 +132,7 @@ class RegistryStoreAdapterTest {
     @Test
     @DisplayName("a match with no rows yet starts its ids at 1")
     void upsertFirstIdIsOne() {
-        when(repository.findByIdMatchAndKey(1L, "first")).thenReturn(Optional.empty());
+        when(repository.findByIdMatchAndKey(1L, "first")).thenReturn(List.of());
         when(repository.findByIdMatch(1L)).thenReturn(List.of());
 
         adapter.upsert(1L, "first", "v", null, null, null, null, 0);
@@ -126,6 +141,71 @@ class RegistryStoreAdapterTest {
                 ArgumentCaptor.forClass(GamingStateRegistryEntity.class);
         verify(repository).save(cap.capture());
         assertEquals(1L, cap.getValue().getId());
+    }
+
+    @Test
+    @DisplayName("Step 36.1: insertValue adds a member and stamps the mirror")
+    void insertValueStampsTheMirror() {
+        when(repository.findByIdMatch(1L)).thenReturn(List.of(multi(2L, "clues", "A", null)));
+
+        adapter.insertValue(1L, "clues", "B", null, 3L, 12L, null, 6);
+
+        ArgumentCaptor<GamingStateRegistryEntity> cap =
+                ArgumentCaptor.forClass(GamingStateRegistryEntity.class);
+        verify(repository).save(cap.capture());
+        assertEquals(3L, cap.getValue().getId());
+        assertEquals("B", cap.getValue().getStringValue());
+        // The mirror is what the partial unique index reads, and what decides how this match
+        // writes the key from now on.
+        assertEquals(1, cap.getValue().getMultiValue());
+    }
+
+    @Test
+    @DisplayName("Step 36.1: deleteValue removes the one row holding that member")
+    void deleteValueRemovesOneMember() {
+        GamingStateRegistryEntity a = multi(1L, "clues", "A", null);
+        GamingStateRegistryEntity b = multi(2L, "clues", "B", null);
+        when(repository.findByIdMatchAndKey(1L, "clues")).thenReturn(List.of(a, b));
+
+        adapter.deleteValue(1L, "clues", "B", null);
+
+        verify(repository).delete(b);
+        verify(repository, never()).delete(a);
+    }
+
+    @Test
+    @DisplayName("Step 36.1: deleting a member the key does not hold touches nothing")
+    void deleteValueMissingMember() {
+        when(repository.findByIdMatchAndKey(1L, "clues"))
+                .thenReturn(List.of(multi(1L, "clues", "A", null)));
+
+        adapter.deleteValue(1L, "clues", "Z", null);
+
+        verify(repository, never()).delete(any(GamingStateRegistryEntity.class));
+    }
+
+    @Test
+    @DisplayName("Step 36.1: a member matching on one column only is not the same member")
+    void deleteValueMatchesBothColumns() {
+        when(repository.findByIdMatchAndKey(1L, "clues"))
+                .thenReturn(List.of(multi(1L, "clues", null, 2)));
+
+        adapter.deleteValue(1L, "clues", null, 3);
+
+        verify(repository, never()).delete(any(GamingStateRegistryEntity.class));
+    }
+
+    @Test
+    @DisplayName("Step 36.1: insertAll carries each seeded row's own mirror")
+    void insertAllCarriesTheMirror() {
+        adapter.insertAll(9L, List.of(RegistryRow.of("single", "x", null, false),
+                RegistryRow.of("clues", "A", null, true)));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<GamingStateRegistryEntity>> cap = ArgumentCaptor.forClass(List.class);
+        verify(repository).saveAll(cap.capture());
+        assertEquals(0, cap.getValue().get(0).getMultiValue());
+        assertEquals(1, cap.getValue().get(1).getMultiValue());
     }
 
     @Test

@@ -349,9 +349,9 @@ describe('GameBook — the Step 32 choice resolution', () => {
     edgeState: { comaUuids: [], sadnessOverflowUuids: [] },
   }
 
-  async function openChoices(props = {}) {
+  async function openChoices(props = {}, overrides = {}) {
     executeEvent.mockResolvedValue(PENDING)
-    renderBook({}, props)
+    renderBook(overrides, props)
     fireEvent.click(screen.getByTestId('preview-action'))
     fireEvent.click(screen.getByTestId('action-action'))
     expect(await screen.findByTestId('cc-choice')).toBeInTheDocument()
@@ -369,6 +369,25 @@ describe('GameBook — the Step 32 choice resolution', () => {
     // narrative card, which is the point of the whole exchange.
     await waitFor(() => expect(screen.queryAllByTestId('cc-choice')).toHaveLength(0))
     expect(screen.getByText('A wound')).toBeInTheDocument()
+  })
+
+  // Step 36.1 — an option writes the registry as an event effect does. The badges were wired
+  // into the execute-event path only, so a key written by a CHOICE was silently dropped.
+  it('badges a registry key the resolved option wrote', async () => {
+    await openChoices({}, { info: { ...GAME_DATA.info, registry: [
+      { key: 'evidence_found', visible: true, multiValue: true,
+        card: { title: 'Evidence found' } },
+    ] } })
+    selectChoice.mockResolvedValue({
+      ...RESOLVED,
+      registryChanges: [{ key: 'evidence_found', oldValue: null, newValue: 'ledger' }],
+    })
+
+    fireEvent.click(screen.getByTestId('select-choice'))
+
+    expect(await screen.findByText('A wound')).toBeInTheDocument()
+    const badges = screen.getAllByTestId('cc-stats').map(n => n.textContent).join('|')
+    expect(badges).toContain('registry:evidence_found:+ledger')
   })
 
   it('narrates with the linked event card when an effect ran one', async () => {
@@ -795,6 +814,50 @@ describe('GameBook — the backpack page (Step 34)', () => {
     expect(badges).toContain('weight:2')
     expect(badges).not.toContain('amount')
     expect(badges).not.toContain('experience')
+  })
+
+  // Step 36.1 — a key an event wrote belongs to the OUTCOME, beside the stat changes: the
+  // player is told what the world now records, not only what their character gained.
+  it('badges a registry key the event wrote, named by that key card title', async () => {
+    executeEvent.mockResolvedValue({
+      card: { title: 'The Study' },
+      effects: [{ card: { title: 'You pocket the ledger' } }],
+      statChanges: [{ characterUuid: 'me', statistic: 'exp', before: 0, after: 2, delta: 2 }],
+      registryChanges: [{ key: 'evidence_found', oldValue: null, newValue: 'ledger' }],
+    })
+    renderBook({ info: { ...GAME_DATA.info, registry: [
+      { key: 'evidence_found', visible: true, multiValue: true,
+        card: { title: 'Evidence found' } },
+    ] } })
+
+    fireEvent.click(screen.getByTestId('preview-action'))
+    fireEvent.click(screen.getByTestId('action-action'))
+
+    await waitFor(() => expect(screen.getAllByText('You pocket the ledger').length).toBeGreaterThan(0))
+    const badges = screen.getAllByTestId('cc-stats').map(n => n.textContent).join('|')
+    // Namespaced, so a key named after a statistic cannot steal its glyph.
+    expect(badges).toContain('registry:evidence_found:+ledger')
+    // It rides WITH what the character earned, never instead of it.
+    expect(badges).toContain('experience:+2')
+  })
+
+  it('says nothing on the outcome card about a key the story hid', async () => {
+    executeEvent.mockResolvedValue({
+      card: { title: 'The Study' },
+      effects: [{ card: { title: 'Something clicks' } }],
+      registryChanges: [{ key: 'secret_door', oldValue: null, newValue: 'OPEN' }],
+    })
+    // /info never carries a hidden key, so the board holds no title for it — and announcing
+    // it here would give away the very secret the story is keeping.
+    renderBook({ info: { ...GAME_DATA.info, registry: [] } })
+
+    fireEvent.click(screen.getByTestId('preview-action'))
+    fireEvent.click(screen.getByTestId('action-action'))
+
+    await waitFor(() => expect(screen.getAllByText('Something clicks').length).toBeGreaterThan(0))
+    const badges = screen.getAllByTestId('cc-stats').map(n => n.textContent).join('|')
+    expect(badges).not.toContain('secret_door')
+    expect(badges).not.toContain('OPEN')
   })
 
   it('an item whose story hides its effects is received with no badge at all', async () => {

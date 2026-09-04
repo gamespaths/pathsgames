@@ -76,9 +76,10 @@ def _build(mover=None, target_overrides=None, edge_overrides=None, registry=None
     registry_service.list_entries.return_value = []
     # The judge now reads the rendered map, which is what load_all answers.
     registry_service.load_all.return_value = {
-        r["key"]: (r.get("string_value")
-                   if r.get("string_value") is not None
-                   else (None if r.get("int_value") is None else str(r["int_value"])))
+        r["key"]: [v for v in [(r.get("string_value")
+                                if r.get("string_value") is not None
+                                else (None if r.get("int_value") is None
+                                      else str(r["int_value"])))] if v is not None]
         for r in (registry or []) if r.get("key")
     }
 

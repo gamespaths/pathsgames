@@ -81,7 +81,7 @@ describe('MatchDetailModal render', () => {
         },
         currentLocationName: 'Cave',
         locations: [{ uuid: 'loc-1', idLocation: 1, flagAlreadyActived: true, clockCounter: 2 }],
-        registry: [{ uuid: 'r1', key: 'gold', stringValue: 'x', intValue: 10 }],
+        registry: [{ uuid: 'r1', key: 'gold', values: ['x', '10'], multiValue: true }],
       },
       storyCtx: {
         story: { title: 'Quest', author: 'Bob' },

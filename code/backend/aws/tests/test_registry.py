@@ -13,9 +13,15 @@ def _match(*rows):
     return {'registry': list(rows)}
 
 
-def _key(name, group=None, priority=None, visibility='PUBLIC', id_card=None, value=None):
+def _key(name, group=None, priority=None, visibility='PUBLIC', id_card=None, value=None,
+         multi_value=0):
     return {'keyName': name, 'keyGroup': group, 'priority': priority,
-            'visibility': visibility, 'idCard': id_card, 'keyValue': value}
+            'visibility': visibility, 'idCard': id_card, 'keyValue': value,
+            'multiValue': multi_value}
+
+
+def _multi_row(key, string_value=None, int_value=None):
+    return _row(key, string_value, int_value, multiValue=1)
 
 
 # ── render / parse are exact inverses ────────────────────────────────────────
@@ -43,12 +49,12 @@ def test_a_parsed_value_renders_back_to_what_was_written(value):
 # ── evaluate ─────────────────────────────────────────────────────────────────
 
 def test_equality_is_textual_and_ordering_needs_numbers():
-    assert r.evaluate('=', 'OPEN', 'OPEN')
-    assert r.evaluate('!=', 'OPEN', 'SHUT')
-    assert r.evaluate('>', '3', '4')
-    assert not r.evaluate('>', '3', '3')
-    assert r.evaluate('<', '3', '2')
-    assert not r.evaluate('>', '3', 'many')
+    assert r.evaluate('=', 'OPEN', ['OPEN'])
+    assert r.evaluate('!=', 'OPEN', ['SHUT'])
+    assert r.evaluate('>', '3', ['4'])
+    assert not r.evaluate('>', '3', ['3'])
+    assert r.evaluate('<', '3', ['2'])
+    assert not r.evaluate('>', '3', ['many'])
 
 
 def test_an_absent_key_satisfies_only_not_equals():
@@ -57,14 +63,37 @@ def test_an_absent_key_satisfies_only_not_equals():
 
 
 def test_a_null_expected_value_is_never_met():
-    assert not r.evaluate('=', None, 'OPEN')
-    assert not r.evaluate('!=', None, 'OPEN')
+    assert not r.evaluate('=', None, ['OPEN'])
+    assert not r.evaluate('!=', None, ['OPEN'])
 
 
 def test_operator_defaults_to_equals_and_unknown_never_matches():
-    assert r.evaluate(None, 'OPEN', 'OPEN')
-    assert r.evaluate('  ', 'OPEN', 'OPEN')
-    assert not r.evaluate('~=', 'OPEN', 'OPEN')
+    assert r.evaluate(None, 'OPEN', ['OPEN'])
+    assert r.evaluate('  ', 'OPEN', ['OPEN'])
+    assert not r.evaluate('~=', 'OPEN', ['OPEN'])
+
+
+# ── Step 36.1 — the comparison quantifies over the whole set ────────────────
+
+def test_equals_asks_whether_any_member_matches():
+    assert r.evaluate('=', 'B', ['A', 'B'])
+    assert not r.evaluate('=', 'C', ['A', 'B'])
+    assert r.evaluate('!=', 'C', ['A', 'B'])
+    assert not r.evaluate('!=', 'A', ['A', 'B'])
+
+
+def test_greater_and_less_ask_every_member_and_an_empty_set_never_answers_yes():
+    assert r.evaluate('>', '3', ['5', '7'])
+    assert not r.evaluate('>', '3', ['2', '7'])
+    assert r.evaluate('<', '3', ['1', '2'])
+    assert not r.evaluate('>', '3', [])
+    assert not r.evaluate('<', '3', [])
+    assert not r.evaluate('>', 'lots', ['4'])
+
+
+def test_ordered_puts_the_numbers_first_and_numerically():
+    assert r.ordered(['beta', '10', 'alpha', '2']) == ['2', '10', 'alpha', 'beta']
+    assert r.ordered(None) == []
 
 
 def test_no_condition():
@@ -76,14 +105,14 @@ def test_no_condition():
 
 def test_load_all_renders_every_row_and_skips_a_row_with_no_key():
     match = _match(_row('flag', 'yes'), _row('count', None, 7), _row('empty'), _row(None, 'x'))
-    assert r.load_all(match) == {'flag': 'yes', 'count': '7', 'empty': None}
+    assert r.load_all(match) == {'flag': ['yes'], 'count': ['7'], 'empty': []}
 
 
-def test_find_returns_none_for_an_absent_key():
+def test_find_returns_an_empty_set_for_an_absent_key():
     match = _match(_row('count', None, 7))
-    assert r.find(match, 'count') == '7'
-    assert r.find(match, 'gone') is None
-    assert r.find(None, 'gone') is None
+    assert r.find(match, 'count') == ['7']
+    assert r.find(match, 'gone') == []
+    assert r.find(None, 'gone') == []
 
 
 def test_condition_met_reads_an_authored_row():
@@ -105,7 +134,7 @@ def test_entries_carry_category_priority_and_visibility():
     story = {'keys': [_key('progress', 'tutorial', 2)]}
     entry = r.list_entries(match, story)[0]
     assert entry['category'] == 'tutorial' and entry['priority'] == 2
-    assert entry['visible'] is True and entry['intValue'] == 3
+    assert entry['visible'] is True and entry['values'] == ['3']
 
 
 def test_anything_but_public_is_hidden_and_dropped_by_default():
@@ -167,7 +196,7 @@ def test_a_row_created_at_runtime_is_shaped_like_a_seeded_one():
     """Before Step 36 it carried neither an id nor a uuid, so /info held ragged rows."""
     match = _match(_row('other', 'x'))
     r.upsert(match, 'fresh', 'hello')
-    fresh = r.find_row(match, 'fresh')
+    fresh = r.find_rows(match, 'fresh')[0]
     assert fresh['id'] == 2 and fresh['uuid']
 
 
@@ -197,7 +226,7 @@ def test_a_write_with_no_actor_stamps_a_null_character_instead_of_failing():
 
     r.upsert(match, 'gate', 'OPEN', id_character=None, character_uuid=None, clock=4)
 
-    row = r.find_row(match, 'gate')
+    row = r.find_rows(match, 'gate')[0]
     assert row['idCharacter'] is None
     assert row['stringValue'] == 'OPEN' and row['clock'] == 4
     assert match['eventLog'][0]['characterUuid'] is None
@@ -223,7 +252,118 @@ def test_the_event_chain_survives_a_null_caller_and_writes_the_key():
     h._run_event_chain(match, story, story['events'][0], None, [], ctx,
                        {1: story['events'][0]}, h._new_accumulator_no_actor(), {}, {}, 'en')
 
-    row = r.find_row(match, 'gate')
+    row = r.find_rows(match, 'gate')[0]
     assert row['stringValue'] == 'OPEN'
     assert row['idCharacter'] is None and row['clock'] == 4
     assert match['eventLog'][0]['characterUuid'] is None
+
+
+# ── Step 36.1 — multi-valued keys ───────────────────────────────────────────
+
+def test_a_key_the_story_declares_multi_joins_instead_of_replacing():
+    match = _match()
+    story = {'keys': [_key('clues', multi_value=1)]}
+    changes = []
+
+    result = r.upsert(match, 'clues', 'A', changes, id_character=3, clock=6, story=story)
+
+    assert result['values'] == ['A']
+    assert [row['multiValue'] for row in match['registry']] == [1]
+    assert changes == [{'key': 'clues', 'oldValue': None, 'newValue': 'A'}]
+    assert match['eventLog'][0]['message'] == f'{r.MSG_REGISTRY_CHANGE} clues +A'
+
+
+def test_the_rows_decide_not_the_story():
+    """A running match keeps the behaviour it was born with."""
+    match = _match(_multi_row('clues', 'A'))
+    story = {'keys': [_key('clues', multi_value=0)]}
+
+    assert r.upsert(match, 'clues', 'B', story=story)['values'] == ['A', 'B']
+    assert len(match['registry']) == 2
+
+
+def test_adding_a_member_the_set_already_holds_writes_nothing():
+    match = _match(_multi_row('clues', 'A'))
+    changes = []
+
+    assert r.upsert(match, 'clues', 'A', changes)['values'] == ['A']
+    assert r.upsert(match, 'clues', None, changes)['values'] == ['A']
+
+    assert len(match['registry']) == 1
+    assert changes == [] and 'eventLog' not in match
+
+
+def test_remove_on_a_blank_or_untouched_key_does_nothing():
+    match = _match()
+    assert r.remove(match, '  ', 'A') is None
+    assert r.remove(match, 'clues', 'A')['values'] == []
+    assert match['registry'] == []
+
+
+def test_on_a_single_key_remove_is_still_compare_and_clear():
+    match = _match(_row('door', 'OPEN'))
+    changes = []
+
+    assert r.remove(match, 'door', 'OPEN', changes, clock=6)['values'] == []
+
+    assert match['registry'][0]['stringValue'] is None
+    assert changes == [{'key': 'door', 'oldValue': 'OPEN', 'newValue': None}]
+    assert match['eventLog'][0]['message'] == f'{r.MSG_REGISTRY_CHANGE} door OPEN -> None'
+
+
+def test_a_single_key_the_story_moved_on_from_is_left_alone():
+    match = _match(_row('door', 'SEALED'))
+    changes = []
+
+    assert r.remove(match, 'door', 'OPEN', changes)['values'] == ['SEALED']
+    assert r.remove(match, 'door', None, changes)['values'] == ['SEALED']
+
+    assert match['registry'][0]['stringValue'] == 'SEALED'
+    assert changes == []
+
+
+def test_on_a_multi_key_remove_takes_one_member_and_leaves_the_rest():
+    match = _match(_multi_row('clues', 'A'), _multi_row('clues', 'B'))
+    changes = []
+
+    assert r.remove(match, 'clues', 'B', changes, clock=4)['values'] == ['A']
+
+    assert [row['stringValue'] for row in match['registry']] == ['A']
+    assert changes == [{'key': 'clues', 'oldValue': 'A,B', 'newValue': 'A'}]
+    assert match['eventLog'][0]['message'] == f'{r.MSG_REGISTRY_CHANGE} clues -B'
+
+
+def test_removing_a_member_the_set_never_held_changes_nothing():
+    match = _match(_multi_row('clues', 'A'))
+
+    assert r.remove(match, 'clues', 'Z')['values'] == ['A']
+    assert r.remove(match, 'clues', None)['values'] == ['A']
+    assert len(match['registry']) == 1
+
+
+def test_seed_stamps_the_mirror_and_a_multi_key_with_no_default_seeds_no_row():
+    rows = r.seed({'keys': [_key('clues', multi_value=1),
+                            _key('found', value='A', multi_value=1),
+                            _key('door', value='SHUT')]})
+
+    assert [row['key'] for row in rows] == ['found', 'door']
+    assert [row['multiValue'] for row in rows] == [1, 0]
+    assert [row['id'] for row in rows] == [1, 2]
+
+
+def test_entries_are_one_per_key_and_an_emptied_key_still_has_one():
+    match = _match(_multi_row('clues', 'B'), _multi_row('clues', 'A'))
+    story = {'keys': [_key('clues', 'g', 1, multi_value=1),
+                      _key('gone', 'g', 2, multi_value=1)]}
+
+    by_key = {e['key']: e for e in r.list_entries(match, story, include_hidden=True)}
+
+    assert by_key['clues']['values'] == ['A', 'B']
+    assert by_key['clues']['multiValue'] is True
+    assert by_key['gone']['values'] == []
+
+
+def test_values_in_reads_a_bare_registry_list():
+    registry = [_multi_row('clues', 'A'), _multi_row('clues'), _row('door', 'SHUT')]
+    assert r.values_in(registry, 'clues') == ['A']
+    assert r.values_in(registry, 'gone') == []

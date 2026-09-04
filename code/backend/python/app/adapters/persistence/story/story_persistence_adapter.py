@@ -672,7 +672,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
         self._insert_batch(KeyEntity, story_id, items, {
             "id_card": "idCard", "key_name": "keyName", "key_value": "keyValue",
             "key_group": "keyGroup", "is_visible": "isVisible",
-            "priority": "priority",
+            "priority": "priority", "multi_value": "multiValue",
         })
 
     def save_traits(self, story_id: int, items: List[Dict[str, Any]]) -> None:

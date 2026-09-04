@@ -179,12 +179,16 @@ class EventStoreAdapter(EventStorePort):
                 if i.id_item is not None and (i.amount or 0) > 0
             }
 
-            registry = {
-                r.key: registry_render(r.string_value, r.int_value)
-                for r in session.query(GamingStateRegistryEntity).filter(
-                    GamingStateRegistryEntity.id_match == id_match).all()
-                if r.key
-            }
+            # Step 36.1 — one entry per key holding its whole set. A multi-valued key owns
+            # several rows, and the flat dict this used to build kept only the last one.
+            registry = {}
+            for r in session.query(GamingStateRegistryEntity).filter(
+                    GamingStateRegistryEntity.id_match == id_match).all():
+                if r.key:
+                    value = registry_render(r.string_value, r.int_value)
+                    bucket = registry.setdefault(r.key, [])
+                    if value is not None:
+                        bucket.append(value)
 
             m = session.query(GamingMatchEntity).filter(
                 GamingMatchEntity.id == id_match).first()

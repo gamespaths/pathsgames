@@ -40,7 +40,7 @@ class RegistryControllerTest {
         MatchRegistryEntry e = new MatchRegistryEntry();
         e.setUuid("reg-" + key);
         e.setKey(key);
-        e.setIntValue(intValue);
+        e.setValues(java.util.List.of(String.valueOf(intValue)));
         e.setCategory("tutorial");
         e.setVisible(true);
         e.setPriority(1);
@@ -59,8 +59,8 @@ class RegistryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.groups[0].category").value("tutorial"))
                 .andExpect(jsonPath("$.groups[0].entries[0].key").value("tutorial_progress"))
-                .andExpect(jsonPath("$.groups[0].entries[0].intValue").value(3))
-                .andExpect(jsonPath("$.groups[0].entries[0].stringValue").doesNotExist())
+                .andExpect(jsonPath("$.groups[0].entries[0].values[0]").value("3"))
+                .andExpect(jsonPath("$.groups[0].entries[0].multiValue").value(false))
                 .andExpect(jsonPath("$.groups[0].entries[0].visible").value(true))
                 .andExpect(jsonPath("$.groups[0].entries[0].priority").value(1))
                 .andExpect(jsonPath("$.groups[0].entries[0].idCharacter").value(12));

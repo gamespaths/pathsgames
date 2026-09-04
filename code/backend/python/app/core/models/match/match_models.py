@@ -91,8 +91,10 @@ class MatchRegistryEntry:
 
     uuid: str
     key: str
-    string_value: Optional[str] = None
-    int_value: Optional[int] = None
+    # Step 36.1 — the SET of values the key holds, ordered for display. A single-valued key
+    # has one member, a multi-valued one may have many, and an emptied key has none.
+    values: List[str] = field(default_factory=list)
+    multi_value: bool = False
     id_character: Optional[int] = None
     category: Optional[str] = None
     visible: bool = False

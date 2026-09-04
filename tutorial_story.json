@@ -917,12 +917,12 @@
       "id": 76,
       "idCard": 76,
       "idCreator": 1,
-      "idTextCopyright": 3,
+      "idTextCopyright": 400,
       "idTextDescription": 218,
       "idTextName": 217,
       "idTextTitle": 217,
-      "linkCopyright": null,
-      "urlImage": null,
+      "linkCopyright": "https://unsplash.com/photos/landscape-around-the-mirador-solar-de-tristaina-ordino-arcalis-andorra-T0lM3c_VDsw",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1754251237542-2ea93c514310?q=80&w=1471&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "d0e2b41a-af98-471c-85d7-15165f12ad4e"
     },
     {
@@ -1151,12 +1151,13 @@
       "id": 96,
       "idCard": 96,
       "idCreator": 1,
-      "idTextCopyright": 3,
+      "idTextCopyright": 399,
       "idTextDescription": 278,
       "idTextName": 267,
       "idTextTitle": 267,
-      "linkCopyright": null,
-      "urlImage": null,
+      "id_card": 96,
+      "linkCopyright": "https://unsplash.com/photos/body-of-water-between-trees-under-cloudy-sky-rB7-LCa_diU",
+      "urlImage": "https://images.unsplash.com/photo-1455577380025-4321f1e1dca7?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "06d9bf3d-3409-478b-a93f-e6a3cbc6aeaf"
     },
     {
@@ -1588,6 +1589,58 @@
       "linkCopyright": "https://unsplash.com/photos/orange-and-yellow-light-digital-wallpaper-4BoVGAHGr7w",
       "urlImage": "https://images.unsplash.com/photo-1604845417426-76f5e80950b7?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "35077af3-3660-4ef0-adc1-a37d1307bf18"
+    },
+    {
+      "id": 134,
+      "idCard": 134,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 395,
+      "idTextName": 395,
+      "idTextTitle": 395,
+      "uuid": "db4a3ff2-8441-453b-9de3-b97fe3f11d81"
+    },
+    {
+      "id": 135,
+      "idCard": 135,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 396,
+      "idTextName": 396,
+      "idTextTitle": 396,
+      "uuid": "97a2a00d-cd93-4c1a-b920-bdf38a78f741"
+    },
+    {
+      "id": 136,
+      "idCard": 136,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 397,
+      "idTextName": 397,
+      "idTextTitle": 397,
+      "uuid": "7dc1f966-3432-423f-a33c-79e5eb2472c3"
+    },
+    {
+      "id": 137,
+      "idCard": 137,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 398,
+      "idTextName": 398,
+      "idTextTitle": 398,
+      "uuid": "caa39596-d995-404c-812c-d00333a4dae4"
+    },
+    {
+      "id": 138,
+      "idCard": 138,
+      "idCreator": 1,
+      "idTextCopyright": 404,
+      "idTextDescription": 403,
+      "idTextName": 402,
+      "idTextTitle": 402,
+      "linkCopyright": "https://unsplash.com/photos/a-person-jumping-into-a-body-of-water-orDKMt97KH4",
+      "urlImage": "https://images.unsplash.com/photo-1642675482166-f0c27bf2e3df?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "a6051bd4-93d9-462a-b638-8637ec264968"
     }
   ],
   "category": "Tutorial",
@@ -1805,6 +1858,24 @@
       "type": "ITEM",
       "uuid": "084abd8b-bfac-49bb-a964-8b83b546e04b",
       "value": "1"
+    },
+    {
+      "id": 8,
+      "idChoices": 11,
+      "key": "EXPLORER",
+      "operator": "=",
+      "type": "KEYS",
+      "uuid": "7fe4f51c-0767-4e59-a8e6-7a7f30867a76",
+      "value": "River"
+    },
+    {
+      "id": 9,
+      "idChoices": 4,
+      "key": "EXPLORER",
+      "operator": "!=",
+      "type": "KEYS",
+      "uuid": "d698e1c0-315f-474d-ab54-69b1d4aed398",
+      "value": "River"
     }
   ],
   "choiceEffects": [
@@ -1849,7 +1920,9 @@
       "idScelta": 4,
       "idTextName": 267,
       "id_card": 96,
-      "uuid": "b9c213cf-d521-4865-8396-eaa8cda65481"
+      "key": "EXPLORER",
+      "uuid": "b9c213cf-d521-4865-8396-eaa8cda65481",
+      "valueToAdd": "River"
     },
     {
       "id": 5,
@@ -2002,6 +2075,15 @@
       "id_card": 121,
       "priority": 6,
       "uuid": "3216d778-d28d-406f-952f-adc869f1200d"
+    },
+    {
+      "id": 11,
+      "idCard": 69,
+      "idEvent": 8,
+      "idTextName": 401,
+      "id_card": 69,
+      "priority": 10,
+      "uuid": "b02bb6fc-42d1-4695-a0f6-cf6369560b84"
     }
   ],
   "classBonuses": [
@@ -2167,7 +2249,7 @@
       "costHelpComa": 0,
       "costMaxCharacteristics": 0,
       "dexterity": 0,
-      "energy": 8,
+      "energy": 16,
       "expCost": 0,
       "id": 1,
       "idCard": 20,
@@ -2197,7 +2279,7 @@
       "costHelpComa": 0,
       "costMaxCharacteristics": 0,
       "dexterity": 0,
-      "energy": 6,
+      "energy": 12,
       "expCost": 0,
       "id": 2,
       "idCard": 21,
@@ -2227,7 +2309,7 @@
       "costHelpComa": 0,
       "costMaxCharacteristics": 0,
       "dexterity": 0,
-      "energy": 4,
+      "energy": 8,
       "expCost": 0,
       "id": 3,
       "idCard": 22,
@@ -2257,7 +2339,7 @@
       "costHelpComa": 0,
       "costMaxCharacteristics": 0,
       "dexterity": 0,
-      "energy": 2,
+      "energy": 4,
       "expCost": 0,
       "id": 4,
       "idCard": 23,
@@ -2292,6 +2374,8 @@
       "idTextDescription": 212,
       "idTextName": 207,
       "id_card": 74,
+      "keyToAdd": "EXPLORER",
+      "keyValueToAdd": "Hills",
       "statistics": "ENERGY",
       "target": "ALL",
       "uuid": "67415d38-a9a7-4ce3-aead-6966bed7dec3",
@@ -2304,6 +2388,8 @@
       "idTextDescription": 218,
       "idTextName": 217,
       "id_card": 76,
+      "keyToAdd": "EXPLORER",
+      "keyValueToAdd": "Mountains",
       "uuid": "fb452178-8ff1-4e7b-a310-51fef215910b"
     },
     {
@@ -2313,6 +2399,8 @@
       "idTextDescription": 222,
       "idTextName": 220,
       "id_card": 78,
+      "keyToAdd": "EXPLORER",
+      "keyValueToAdd": "Peaks",
       "statistics": "LIFE",
       "uuid": "5570225b-b917-4ab0-8701-76c61709578e",
       "value": -1
@@ -2326,6 +2414,8 @@
       "idTextName": 227,
       "idWeather": 1,
       "id_card": 81,
+      "keyToAdd": "EXPLORER",
+      "keyValueToAdd": "Desert",
       "statistics": "SAD",
       "uuid": "02ef9a06-7731-4bb4-98d5-fa830647fa92",
       "value": 1
@@ -2419,6 +2509,8 @@
       "idItemTarget": 1,
       "id_card": 111,
       "itemAction": "ADD",
+      "keyToAdd": "ITEMS",
+      "keyValueToAdd": "Map",
       "uuid": "116ebaac-d84a-4c8f-8742-bc7220dcc07e"
     },
     {
@@ -2440,6 +2532,8 @@
       "idTextName": 333,
       "id_card": 115,
       "itemAction": "ADD",
+      "keyToAdd": "ITEMS",
+      "keyValueToAdd": "Bottle",
       "uuid": "bca8ea8d-9ccc-4ad9-bed1-81b69bbf7e8d"
     },
     {
@@ -2451,6 +2545,8 @@
       "idTextName": 341,
       "id_card": 119,
       "itemAction": "ADD",
+      "keyToAdd": "ITEMS",
+      "keyValueToAdd": "Onion",
       "uuid": "15332657-5adc-43f9-92e7-da86523af22b"
     },
     {
@@ -2460,6 +2556,8 @@
       "idTextDescription": 357,
       "idTextName": 357,
       "id_card": 124,
+      "keyToAdd": "RELAX",
+      "keyValueToAdd": "DONE",
       "statistics": "LIFE",
       "target": "ALL",
       "traitsToRemove": 7,
@@ -2542,6 +2640,13 @@
       "target": "ALL",
       "uuid": "4b4acb1d-2bc2-4dc2-aa47-5fba53d3758e",
       "value": 1
+    },
+    {
+      "id": 24,
+      "idLocation": 12,
+      "idTextDescription": 402,
+      "idTextName": 402,
+      "uuid": "598a8cb4-49b7-4402-8ebd-6c6d8efaf3c6"
     }
   ],
   "events": [
@@ -2852,6 +2957,20 @@
       "id_card": 131,
       "type": "NORMAL",
       "uuid": "42a8bc57-c56b-4c43-8831-00ae9783a3aa"
+    },
+    {
+      "costEnery": 2,
+      "id": 27,
+      "idCard": 138,
+      "idSpecificLocation": 11,
+      "idTextDescription": 402,
+      "idTextName": 402,
+      "id_card": 138,
+      "registryKeyCondition": "EXPLORER",
+      "registryValueCondition": "River",
+      "registryValueOperatorCondition": "=",
+      "type": "NORMAL",
+      "uuid": "8f5fcab2-289d-4bc8-9d9c-ef8dfd00520e"
     }
   ],
   "globalRandomEvents": [],
@@ -2944,7 +3063,55 @@
       "weight": 1
     }
   ],
-  "keys": [],
+  "keys": [
+    {
+      "group": "KEYS",
+      "id": 1,
+      "idCard": 134,
+      "idTextDescription": 395,
+      "id_card": 134,
+      "multiValue": true,
+      "name": "EXPLORER",
+      "priority": 1,
+      "uuid": "d73c9d1f-0101-4e60-976e-d8d56a472534",
+      "visibility": "PUBLIC"
+    },
+    {
+      "group": "KEYS",
+      "id": 2,
+      "idCard": 135,
+      "idTextDescription": 396,
+      "id_card": 135,
+      "name": "RELAX",
+      "priority": 2,
+      "uuid": "00969eb4-d424-40f5-b0be-cc982905f21c",
+      "visibility": "PUBLIC"
+    },
+    {
+      "group": "KEYS",
+      "id": 3,
+      "idCard": 136,
+      "idTextDescription": 397,
+      "id_card": 136,
+      "multiValue": true,
+      "name": "ITEMS",
+      "priority": 3,
+      "uuid": "77db22b5-759c-4ba7-89f5-799b1d932106",
+      "visibility": "PUBLIC"
+    },
+    {
+      "group": "HIDDEN",
+      "id": 4,
+      "idCard": 137,
+      "idTextDescription": 398,
+      "id_card": 137,
+      "name": "HIDDEN KEY",
+      "priority": 4,
+      "uuid": "4c503c27-4e25-48de-b2e1-aa5f1600e580",
+      "value": "0",
+      "visibility": "HIDDEN"
+    }
+  ],
   "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM",
   "locationCount": 4,
   "locationNeighbors": [
@@ -3073,13 +3240,17 @@
       "uuid": "f1b1554f-e756-403b-9ea4-5237769d6781"
     },
     {
+      "conditionRegistryKey": "EXPLORER",
+      "conditionRegistryValue": "River",
       "direction": "SOUTH",
       "energyCost": 2,
-      "flagBack": 1,
+      "flagBack": 0,
       "id": 12,
+      "idCardBack": "",
       "idLocationFrom": 11,
       "idLocationTo": 12,
       "idTextName": 194,
+      "registryValueOperatorCondition": "=",
       "uuid": "f15ec6b5-e13f-41bf-8698-aee0b11d8f9b"
     },
     {
@@ -3177,6 +3348,15 @@
       "idLocationTo": 2,
       "id_card": 0,
       "uuid": "cbbf350c-25f7-4a71-bd8f-c2017a6e3c96"
+    },
+    {
+      "direction": "NORTH",
+      "flagBack": 0,
+      "id": 23,
+      "idCardBack": "",
+      "idLocationFrom": 12,
+      "idLocationTo": 11,
+      "uuid": "75fab0e0-4558-44a9-b79e-7fa268c8d66a"
     }
   ],
   "locations": [
@@ -7991,8 +8171,8 @@
       "idText": 265,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Follow the river",
-      "shortText": "Follow the river",
+      "longText": "Explore the river",
+      "shortText": "Explore the river",
       "uuid": "5c0e4432-4ad0-4bf3-b3cd-21b159968750"
     },
     {
@@ -8011,8 +8191,8 @@
       "idText": 267,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Follow the river",
-      "shortText": "Follow the river",
+      "longText": "Explore the river",
+      "shortText": "Explore the river",
       "uuid": "37de6f41-801b-474b-aee3-84fbdb26f0bf"
     },
     {
@@ -10334,6 +10514,186 @@
       "longText": "Esplora le montagne",
       "shortText": "Esplora le montagne",
       "uuid": "6a9610d7-216f-4e49-9b5e-d673d6cc04e0"
+    },
+    {
+      "id": 395,
+      "idCreator": 1,
+      "idText": 395,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Explorer",
+      "shortText": "Explorer",
+      "uuid": "f4584f61-ff8f-43cd-ae63-dd215083727a"
+    },
+    {
+      "id": 396,
+      "idCreator": 1,
+      "idText": 396,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "RELAX",
+      "shortText": "RELAX",
+      "uuid": "6b99ebbb-ab40-4d4d-88b0-a9c11c281256"
+    },
+    {
+      "id": 397,
+      "idCreator": 1,
+      "idText": 397,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "RELAX",
+      "shortText": "RELAX",
+      "uuid": "b7012550-b0bd-4044-9f26-e4835277afb8"
+    },
+    {
+      "id": 398,
+      "idCreator": 1,
+      "idText": 398,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "HIDDEN KEY",
+      "shortText": "HIDDEN KEY",
+      "uuid": "c99063dc-6889-42fe-8eaa-3fb2d65331bf"
+    },
+    {
+      "id": 267,
+      "idCreator": 1,
+      "idText": 267,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "e440d282-bdd2-4967-8962-776de509405c"
+    },
+    {
+      "id": 265,
+      "idCreator": 1,
+      "idText": 265,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "5e807b8a-7a97-4e69-a52f-5f4f800e9886"
+    },
+    {
+      "id": 399,
+      "idCreator": 1,
+      "idText": 399,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Jon Flobrant",
+      "shortText": "Jon Flobrant",
+      "uuid": "d9e93c3c-5c7c-483e-a0d9-de3d123da0e9"
+    },
+    {
+      "id": 399,
+      "idCreator": 1,
+      "idText": 399,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "e82f4e3e-0e57-41a5-bd56-46e246e6b307"
+    },
+    {
+      "id": 397,
+      "idCreator": 1,
+      "idText": 397,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "bed83946-4afa-4356-8b38-569cfd244a71"
+    },
+    {
+      "id": 396,
+      "idCreator": 1,
+      "idText": 396,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "651d91e9-4799-46f7-aeb7-9e44a81f6de8"
+    },
+    {
+      "id": 400,
+      "idCreator": 1,
+      "idText": 400,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Getty Images",
+      "shortText": "Getty Images",
+      "uuid": "2c751ec0-0612-45fd-831b-de3e2be555cc"
+    },
+    {
+      "id": 400,
+      "idCreator": 1,
+      "idText": 400,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "985611ed-6459-4ced-ad58-ef9a82a1faed"
+    },
+    {
+      "id": 401,
+      "idCreator": 1,
+      "idText": 401,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "To the river",
+      "shortText": "To the river",
+      "uuid": "2f6191b1-145a-46a0-ae58-051c9f226511"
+    },
+    {
+      "id": 402,
+      "idCreator": 1,
+      "idText": 402,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Swim in River",
+      "shortText": "Swim in River",
+      "uuid": "f55b64a7-9d43-4f39-95b3-584c3e523624"
+    },
+    {
+      "id": 403,
+      "idCreator": 1,
+      "idText": 403,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The cool currents push against your body, offering an alternative path along the stream's course. Plunging in demands courage and proper preparation to avoid being overwhelmed by nature's force. <br />\n<br />\nThis action is available only after you have explored the forest and found the river, ensuring you have the correct key in the log.",
+      "shortText": "The cool currents push against your body, offering an alternative path along the stream's course. Plunging in demands courage and proper preparation to avoid being overwhelmed by nature's force. <br />\n<br />\nThis action is available only after you have explored the forest and found the river, ensuring you have the correct key in the log.",
+      "uuid": "34df673e-2e3b-4cc1-8008-e39b29713448"
+    },
+    {
+      "id": 403,
+      "idCreator": 1,
+      "idText": 403,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Le correnti fresche dell'acqua spingono contro il tuo corpo, offrendo una via di passaggio alternativa lungo il corso del torrente. Tuffarsi richiede coraggio e la giusta preparazione per non farsi travolgere dalla forza della natura. <br />\n<br />\nQuesta azione è disponibile solo dopo che hai esplorato la foresta e trovato il fiume così da avere la chiave corretta nel registro.",
+      "shortText": "Le correnti fresche dell'acqua spingono contro il tuo corpo, offrendo una via di passaggio alternativa lungo il corso del torrente. Tuffarsi richiede coraggio e la giusta preparazione per non farsi travolgere dalla forza della natura. <br />\n<br />\nQuesta azione è disponibile solo dopo che hai esplorato la foresta e trovato il fiume così da avere la chiave corretta nel registro.",
+      "uuid": "a5661095-ac8d-4fee-a514-c3f0aefa565e"
+    },
+    {
+      "id": 404,
+      "idCreator": 1,
+      "idText": 404,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "DJ Paine",
+      "shortText": "DJ Paine",
+      "uuid": "6c9294c9-52b4-48a2-996b-bec0ebe90401"
+    },
+    {
+      "id": 404,
+      "idCreator": 1,
+      "idText": 404,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "64355979-ce7b-4677-b4de-8b5dd5c44291"
     }
   ],
   "title": "Paths Tutorial",
@@ -10527,7 +10887,7 @@
   "weatherRules": [
     {
       "active": 1,
-      "costMoveNotSafeLocation": 1,
+      "costMoveNotSafeLocation": 2,
       "costMoveSafeLocation": 1,
       "id": 1,
       "idCard": 48,
@@ -10538,13 +10898,16 @@
     },
     {
       "active": 1,
+      "conditionKey": "RELAX",
+      "conditionKeyValue": "DONE",
       "costMoveNotSafeLocation": 3,
-      "costMoveSafeLocation": 3,
+      "costMoveSafeLocation": 2,
       "id": 2,
       "idCard": 49,
       "idText": 136,
       "id_card": 49,
       "probability": 50,
+      "registryValueOperatorCondition": "!=",
       "uuid": "34c34e37-2875-4684-8a54-0bc77e1adcc2"
     },
     {

@@ -34,23 +34,29 @@ describe('RegistryCard (Step 36)', () => {
     expect(captured.card.urlImage).toBe(registry.urlImage)
   })
 
-  it('counts the recorded keys as a badge, in the body over the image', () => {
+  it('counts the recorded keys as a badge, where Card puts one by default', () => {
     render(<RegistryCard onOpen={vi.fn()} count={4} />)
 
     expect(captured.statistics).toEqual([
       { key: 'registry', value: '4', label: 'game.registry.count' },
     ])
-    // flagShowFullStatistics is the switch that moves the badges out of the title and into
-    // the body, over the image — the same place the backpack card puts its figures.
-    expect(captured.flagShowFullStatistics).toBe(true)
+    // flagShowFullStatistics and bonusBadgeListLittleIntoImage would move the badge into the
+    // body over the image; the (i) list card deliberately asks for neither, so it reads like
+    // its neighbours in that list rather than like the per-key cards.
+    expect(captured.flagShowFullStatistics).toBeUndefined()
+    expect(captured.bonusBadgeListLittleIntoImage).toBeUndefined()
   })
 
-  it('lets an empty registry show no badge at all', () => {
-    // showZeros is deliberately off here: a "0 recorded" badge on the (i) list says nothing
-    // the empty section would not say better. The per-key cards DO pass it, because there a
-    // key worth 0 is a value, not an absence.
+  it('reports an empty registry as a zero rather than hiding it', () => {
+    // showZeros is on: a registry with nothing in it is exactly the state worth reporting,
+    // the same reasoning the empty backpack follows. Without it BonusBadgeList drops any
+    // badge whose value is not a non-zero number, and the card would show nothing at all.
     render(<RegistryCard onOpen={vi.fn()} count={0} />)
-    expect(captured.bonusBadgeShowZeros).toBeUndefined()
+
+    expect(captured.statistics).toEqual([
+      { key: 'registry', value: '0', label: 'game.registry.count' },
+    ])
+    expect(captured.bonusBadgeShowZeros).toBe(true)
   })
 
   describe('page variant', () => {
@@ -62,6 +68,7 @@ describe('RegistryCard (Step 36)', () => {
       expect(captured.onClose).toBe(onClose)
       expect(captured.onAction).toBeUndefined()
       expect(captured.hidePreview).toBe(true)
+      expect(captured.bonusBadgeShowZeros).toBe(true)
       // The page carries no figure of its own: the count belongs to the (i) list card, and
       // the facing page already shows one card per key.
       expect(captured.statItemsToPageContent).toBeUndefined()

@@ -271,7 +271,7 @@ def test_load_check_context_loads_everything(session_factory, adapter):
     assert ctx.owned_item_ids == {60}
     assert ctx.current_weather_id == 42
     assert ctx.consumed_event_ids == {50}
-    assert ctx.registry == {"door": "open", "count": "5", "empty": None}
+    assert ctx.registry == {"door": ["open"], "count": ["5"], "empty": []}
 
 
 def test_load_check_context_without_a_backpack_reports_zero_coin(session_factory, adapter):

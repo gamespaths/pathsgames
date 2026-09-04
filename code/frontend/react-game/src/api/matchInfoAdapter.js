@@ -22,8 +22,8 @@
  *     match: { uuid, name, status, currentClock, ... },
  *     currentLocationId, currentLocationUuid,
  *     locations: [{ idLocation, uuid, flagAlreadyActived, clockCounter }],  // visited only
- *     registry:  [{ uuid, key, stringValue, intValue,
- *                  idCharacter, category, visible, priority, idCard, card }],  // Step 36
+ *     registry:  [{ uuid, key, values, multiValue,
+ *                  idCharacter, category, visible, priority, idCard, card }],  // Step 36.1
  *     events:    [{ uuid, name, type }],
  *     choices:   [{ uuid, name, type }],
  *     players:   [{ uuid, idLocation, energy, life, sad, ... }],

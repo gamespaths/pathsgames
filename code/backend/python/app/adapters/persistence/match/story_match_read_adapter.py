@@ -93,6 +93,7 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "priority": r.priority,
                     "id_card": r.id_card,
                     "visibility": "PUBLIC" if r.is_visible else "HIDDEN",
+                    "multi_value": r.multi_value,
                 }
                 for r in rows
             ]

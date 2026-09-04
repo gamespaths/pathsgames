@@ -97,9 +97,9 @@ def test_limits_fail_before_any_condition_is_read():
 
 def test_keys_equals_matches_the_registry_value_textually():
     assert ca.check(choice(), [cond("KEYS", "gate", "OPEN", "=")],
-                    ctx(registry={"gate": "OPEN"})).available
+                    ctx(registry={"gate": ["OPEN"]})).available
     blocked(ca.check(choice(), [cond("KEYS", "gate", "OPEN", "=")],
-                     ctx(registry={"gate": "SHUT"})), ca.CONDITION_KEYS_NOT_MET)
+                     ctx(registry={"gate": ["SHUT"]})), ca.CONDITION_KEYS_NOT_MET)
 
 
 def test_keys_absent_key_satisfies_only_not_equals():
@@ -109,21 +109,21 @@ def test_keys_absent_key_satisfies_only_not_equals():
 
 
 def test_keys_numeric_comparison():
-    c = ctx(registry={"day": "5"})
+    c = ctx(registry={"day": ["5"]})
     assert ca.check(choice(), [cond("KEYS", "day", "3", ">")], c).available
     blocked(ca.check(choice(), [cond("KEYS", "day", "5", ">")], c), ca.CONDITION_KEYS_NOT_MET)
     assert ca.check(choice(), [cond("KEYS", "day", "9", "<")], c).available
     blocked(ca.check(choice(), [cond("KEYS", "day", "3", ">")],
-                     ctx(registry={"day": "many"})), ca.CONDITION_KEYS_NOT_MET)
+                     ctx(registry={"day": ["many"]})), ca.CONDITION_KEYS_NOT_MET)
 
 
 def test_keys_malformed_can_never_be_satisfied():
     blocked(ca.check(choice(), [cond("KEYS", " ", "OPEN", "=")], ctx()),
             ca.CONDITION_KEYS_NOT_MET)
     blocked(ca.check(choice(), [cond("KEYS", "gate", None, "!=")],
-                     ctx(registry={"gate": "OPEN"})), ca.CONDITION_KEYS_NOT_MET)
+                     ctx(registry={"gate": ["OPEN"]})), ca.CONDITION_KEYS_NOT_MET)
     blocked(ca.check(choice(), [cond("KEYS", "gate", "OPEN", ">=")],
-                     ctx(registry={"gate": "OPEN"})), ca.CONDITION_KEYS_NOT_MET)
+                     ctx(registry={"gate": ["OPEN"]})), ca.CONDITION_KEYS_NOT_MET)
 
 
 # ── ITEM / traits (membership) ──────────────────────────────────────────────
@@ -229,7 +229,7 @@ def test_and_first_failing_row_names_the_reason():
 def test_and_every_row_must_pass():
     assert ca.check(choice(), [cond("KEYS", "gate", "OPEN", "="),
                                cond("statistics", "int", "2", ">")],
-                    ctx(registry={"gate": "OPEN"})).available
+                    ctx(registry={"gate": ["OPEN"]})).available
 
 
 def test_or_one_passing_row_is_enough():
@@ -273,7 +273,7 @@ def test_unknown_type_locks_never_unlocks():
 
 def test_missing_operator_defaults_to_equals():
     assert ca.check(choice(), [cond("KEYS", "gate", "OPEN", None)],
-                    ctx(registry={"gate": "OPEN"})).available
+                    ctx(registry={"gate": ["OPEN"]})).available
 
 
 # ── the user's scenario: CLASS = 1 OR CLASS = 2 ─────────────────────────────

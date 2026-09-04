@@ -9,12 +9,12 @@ import games.paths.core.port.story.ContentQueryPort;
 import games.paths.core.port.story.StoryReadPort;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * RegistryService - Step 36. The one place that reads, writes and compares the match registry.
@@ -85,22 +85,55 @@ public class RegistryService {
     // ── comparison ─────────────────────────────────────────────────────────
 
     /**
-     * The one registry comparison. {@code =} and {@code !=} are textual, {@code >} and {@code <}
-     * need both sides numeric. A null expected value, an unparseable operand or an unknown
-     * operator is NOT met: a typo must lock a door, never open one. An absent key satisfies
-     * only {@code !=} — "never set" really is different.
+     * The one registry comparison, over the SET of values a key holds. Step 36.1 generalised it;
+     * on a one-element set every reading below is the equality or comparison it always was, which
+     * is why no caller and no authored story had to change.
+     *
+     * <ul>
+     *   <li>{@code =}  — ∃: at least one member equals the value</li>
+     *   <li>{@code !=} — ∄: no member equals it (so an absent key satisfies it, as before)</li>
+     *   <li>{@code >} {@code <} — ∀: EVERY member compares that way, and an empty set never
+     *       does. Vacuous truth would open a door, and the doctrine is that a typo closes one.</li>
+     * </ul>
+     *
+     * A null expected value, an unparseable operand or an unknown operator is NOT met.
      */
-    public static boolean evaluate(String operator, String expected, String actual) {
+    public static boolean evaluate(String operator, String expected, Collection<String> actual) {
         if (expected == null) {
             return false;
         }
+        Collection<String> values = actual == null ? List.of() : actual;
         return switch (operator(operator)) {
-            case OP_EQ -> expected.equals(actual);
-            case OP_NE -> !expected.equals(actual);
-            case OP_GT -> compare(actual, expected) > 0;
-            case OP_LT -> compare(actual, expected) < 0;
+            case OP_EQ -> values.stream().anyMatch(expected::equals);
+            case OP_NE -> values.stream().noneMatch(expected::equals);
+            // ∀ over an empty set is vacuously true in logic and wrong here.
+            case OP_GT -> !values.isEmpty() && values.stream().allMatch(v -> compare(v, expected) > 0);
+            case OP_LT -> !values.isEmpty() && values.stream().allMatch(v -> compare(v, expected) < 0);
             default -> false;
         };
+    }
+
+    /**
+     * Members ordered for display: numbers numerically first, then everything else
+     * alphabetically. Computed here so both payloads and all three backends agree.
+     */
+    public static List<String> ordered(Collection<String> values) {
+        List<String> out = new ArrayList<>(values == null ? List.of() : values);
+        out.sort((a, b) -> {
+            Integer na = numeric(a);
+            Integer nb = numeric(b);
+            if (na != null && nb != null) {
+                return Integer.compare(na, nb);
+            }
+            if (na != null) {
+                return -1;
+            }
+            if (nb != null) {
+                return 1;
+            }
+            return nz(a).compareTo(nz(b));
+        });
+        return out;
     }
 
     /** True when the condition is absent altogether — a blank key means "no condition". */
@@ -135,27 +168,32 @@ public class RegistryService {
 
     // ── reads ──────────────────────────────────────────────────────────────
 
-    /** Every key of the match as one map. A row with no value at all maps the key to null. */
-    public Map<String, String> loadAll(long idMatch) {
-        Map<String, String> out = new HashMap<>();
+    /**
+     * Every key of the match, each with the SET of values it holds. A key with no value at all
+     * maps to an empty list — never to null, so a caller never has to guard.
+     */
+    public Map<String, List<String>> loadAll(long idMatch) {
+        Map<String, List<String>> out = new HashMap<>();
         for (RegistryRow r : store.findByMatch(idMatch)) {
             if (r.key() != null) {
-                out.put(r.key(), render(r));
+                String value = render(r);
+                List<String> values = out.computeIfAbsent(r.key(), k -> new ArrayList<>());
+                if (value != null) {
+                    values.add(value);
+                }
             }
         }
         return out;
     }
 
-    /** One key. Empty means the key is absent; a present key with no value renders as null. */
-    public Optional<String> find(long idMatch, String key) {
-        return store.findByMatchAndKey(idMatch, key).map(RegistryService::render);
-    }
-
-    /** The raw rows, with no story metadata. Used where only the values matter. */
-    public List<MatchRegistryEntry> listEntries(long idMatch) {
-        List<MatchRegistryEntry> out = new ArrayList<>();
-        for (RegistryRow r : store.findByMatch(idMatch)) {
-            out.add(toEntry(r));
+    /** The values of one key. Empty when the key is absent, or present with an empty set. */
+    public List<String> find(long idMatch, String key) {
+        List<String> out = new ArrayList<>();
+        for (RegistryRow r : store.findByMatchAndKey(idMatch, key)) {
+            String value = render(r);
+            if (value != null) {
+                out.add(value);
+            }
         }
         return out;
     }
@@ -168,21 +206,37 @@ public class RegistryService {
     public List<MatchRegistryEntry> listEntries(long idMatch, Long idStory, boolean includeHidden,
                                                 String lang) {
         Map<String, KeyEntity> defs = keyDefinitions(idStory);
-        List<MatchRegistryEntry> out = new ArrayList<>();
+
+        // One entry per KEY, holding its whole set. The keys are the union of what the story
+        // declares and what the match actually holds: a key whose members were all removed, or
+        // one added to the story after this match began, still has an entry with an empty set,
+        // and a row whose key the story no longer declares is kept but reads as hidden.
+        Map<String, List<RegistryRow>> byKey = new LinkedHashMap<>();
+        for (String name : defs.keySet()) {
+            byKey.put(name, new ArrayList<>());
+        }
         for (RegistryRow r : store.findByMatch(idMatch)) {
-            MatchRegistryEntry e = toEntry(r);
-            KeyEntity def = r.key() == null ? null : defs.get(r.key());
+            if (r.key() != null) {
+                byKey.computeIfAbsent(r.key(), k -> new ArrayList<>()).add(r);
+            }
+        }
+
+        List<MatchRegistryEntry> out = new ArrayList<>();
+        byKey.forEach((name, rows) -> {
+            MatchRegistryEntry e = toEntry(name, rows);
+            KeyEntity def = defs.get(name);
             if (def != null) {
                 e.setCategory(def.getGroup());
                 e.setPriority(def.getPriority());
                 e.setVisible(VISIBILITY_PUBLIC.equalsIgnoreCase(trim(def.getVisibility())));
                 e.setIdCard(def.getIdCard());
                 e.setCard(card(idStory, def.getIdCard(), lang));
+                e.setMultiValue(isMulti(def));
             }
             if (e.isVisible() || includeHidden) {
                 out.add(e);
             }
-        }
+        });
         out.sort(Comparator
                 .comparing((MatchRegistryEntry e) -> nz(e.getCategory()))
                 .thenComparingInt(e -> e.getPriority() == null ? 0 : e.getPriority())
@@ -225,14 +279,32 @@ public class RegistryService {
         return contentQueryPort.getCardByStoryIdAndCardId(idStory, idCard, lang);
     }
 
-    private static MatchRegistryEntry toEntry(RegistryRow r) {
+    /**
+     * One entry per key. {@code uuid} and {@code idCharacter} come from the LAST row written —
+     * on a multi key that means "who last wrote anything here", which is what the payload says.
+     */
+    private static MatchRegistryEntry toEntry(String key, List<RegistryRow> rows) {
         MatchRegistryEntry e = new MatchRegistryEntry();
-        e.setUuid(r.uuid());
-        e.setKey(r.key());
-        e.setStringValue(r.stringValue());
-        e.setIntValue(r.intValue());
-        e.setIdCharacter(r.idCharacter());
+        e.setKey(key);
+        List<String> values = new ArrayList<>();
+        for (RegistryRow r : rows) {
+            String value = render(r);
+            if (value != null) {
+                values.add(value);
+            }
+            e.setUuid(r.uuid());
+            e.setIdCharacter(r.idCharacter());
+            if (r.isMulti()) {
+                e.setMultiValue(true);
+            }
+        }
+        e.setValues(ordered(values));
         return e;
+    }
+
+    /** The story's own declaration, which decides how a write behaves for a key with no row yet. */
+    private static boolean isMulti(KeyEntity def) {
+        return def != null && def.getMultiValue() != null && def.getMultiValue() != 0;
     }
 
     private static String nz(String v) {
@@ -245,27 +317,129 @@ public class RegistryService {
 
     // ── writes ─────────────────────────────────────────────────────────────
 
-    /** Set one key. A blank key is authored noise and is skipped, not an error. */
-    public void upsert(long idMatch, String key, String value, Long idCharacter,
-                       Long idEvent, Long idChoice, Integer clock) {
+    /**
+     * Write one key. A blank key is authored noise and is skipped, not an error.
+     *
+     * <p>Whether the value REPLACES the key or JOINS it is decided by the rows already there —
+     * their {@code multi_value} mirror — and only by the story's declaration when the key has no
+     * row yet. That is what lets an author flip the flag without disturbing a match already in
+     * progress: a running match keeps the behaviour it was born with.</p>
+     */
+    @SuppressWarnings("java:S107")
+    public List<String> upsert(long idMatch, Long idStory, String key, String value,
+                               Long idCharacter, Long idEvent, Long idChoice, Integer clock) {
         if (noCondition(key)) {
-            return;
+            return List.of();
         }
-        String previous = find(idMatch, key).orElse(null);
+        List<RegistryRow> rows = store.findByMatchAndKey(idMatch, key);
+        // The rows decide; the story is consulted only for a key this match has never written.
+        boolean multi = rows.isEmpty() ? declaredMulti(idStory, key) : rows.get(0).isMulti();
         RegistryRow parsed = parse(key, value);
-        store.upsert(idMatch, key, parsed.stringValue(), parsed.intValue(),
+
+        String rendered = render(parsed.stringValue(), parsed.intValue());
+
+        if (!multi) {
+            String previous = rows.isEmpty() ? null : render(rows.get(0));
+            store.upsert(idMatch, key, parsed.stringValue(), parsed.intValue(),
+                    idCharacter, idEvent, idChoice, clock);
+            log(idMatch, idCharacter, idEvent, idChoice, clock,
+                    key + " " + previous + " -> " + value);
+            return rendered == null ? List.of() : List.of(rendered);
+        }
+        // A set: adding a member it already holds changes nothing, so it says nothing either.
+        List<String> current = values(rows);
+        if (rendered == null || current.contains(rendered)) {
+            return ordered(current);
+        }
+        store.insertValue(idMatch, key, parsed.stringValue(), parsed.intValue(),
                 idCharacter, idEvent, idChoice, clock);
-        // One writer, one audit row: a registry change can neither be missed nor doubled.
-        store.logChange(idMatch, idCharacter, idEvent, idChoice, clock,
-                MSG_REGISTRY_CHANGE + " " + key + " " + previous + " -> " + value);
+        log(idMatch, idCharacter, idEvent, idChoice, clock, key + " +" + rendered);
+        List<String> after = new ArrayList<>(current);
+        after.add(rendered);
+        return ordered(after);
     }
 
-    /** Match creation: one row per story key, holding the default from {@code list_keys.value}. */
+    /**
+     * Take one value away. On a single key this is the compare-and-clear it has always been; on
+     * a multi key it removes that one member and leaves the rest. Removing the last member
+     * leaves the key with an empty set — the row goes, the key does not.
+     */
+    @SuppressWarnings("java:S107")
+    public List<String> remove(long idMatch, String key, String value, Long idCharacter,
+                               Long idEvent, Long idChoice, Integer clock) {
+        if (noCondition(key)) {
+            return List.of();
+        }
+        List<RegistryRow> rows = store.findByMatchAndKey(idMatch, key);
+        List<String> current = values(rows);
+        if (rows.isEmpty()) {
+            return current;
+        }
+        RegistryRow parsed = parse(key, value);
+        String rendered = render(parsed.stringValue(), parsed.intValue());
+
+        if (!rows.get(0).isMulti()) {
+            if (rendered == null || !rendered.equals(render(rows.get(0)))) {
+                return current;   // a value the story has since moved on from: leave it alone
+            }
+            store.upsert(idMatch, key, null, null, idCharacter, idEvent, idChoice, clock);
+            log(idMatch, idCharacter, idEvent, idChoice, clock, key + " " + rendered + " -> null");
+            return List.of();
+        }
+        if (rendered == null || !current.contains(rendered)) {
+            return ordered(current);
+        }
+        store.deleteValue(idMatch, key, parsed.stringValue(), parsed.intValue());
+        log(idMatch, idCharacter, idEvent, idChoice, clock, key + " -" + rendered);
+        List<String> after = new ArrayList<>(current);
+        after.remove(rendered);
+        return ordered(after);
+    }
+
+    /** The rendered members of a key's rows, skipping a row that holds no value at all. */
+    private static List<String> values(List<RegistryRow> rows) {
+        List<String> out = new ArrayList<>();
+        for (RegistryRow r : rows) {
+            String v = render(r);
+            if (v != null) {
+                out.add(v);
+            }
+        }
+        return out;
+    }
+
+    /** One writer, one audit row: a registry change can neither be missed nor doubled. */
+    private void log(long idMatch, Long idCharacter, Long idEvent, Long idChoice, Integer clock,
+                     String detail) {
+        store.logChange(idMatch, idCharacter, idEvent, idChoice, clock,
+                MSG_REGISTRY_CHANGE + " " + detail);
+    }
+
+    /** What the story says about a key the match has never written. */
+    private boolean declaredMulti(Long idStory, String key) {
+        if (storyReadPort == null || idStory == null) {
+            return false;
+        }
+        return isMulti(keyDefinitions(idStory).get(key));
+    }
+
+    /**
+     * Match creation: one row per story key, holding the default from {@code list_keys.value}.
+     * A MULTI key with no default seeds no row at all — its set starts empty, and an empty set
+     * is the absence of rows, not a row holding nothing. Each row carries the mirror that will
+     * decide how this match writes the key from now on.
+     */
     public void seed(long idMatch, List<KeyEntity> keys) {
         List<RegistryRow> rows = new ArrayList<>();
         if (keys != null) {
             for (KeyEntity k : keys) {
-                rows.add(parse(k.getName(), k.getValue()));
+                boolean multi = isMulti(k);
+                RegistryRow parsed = parse(k.getName(), k.getValue());
+                if (multi && render(parsed.stringValue(), parsed.intValue()) == null) {
+                    continue;
+                }
+                rows.add(RegistryRow.of(k.getName(), parsed.stringValue(), parsed.intValue(),
+                        multi));
             }
         }
         store.insertAll(idMatch, rows);

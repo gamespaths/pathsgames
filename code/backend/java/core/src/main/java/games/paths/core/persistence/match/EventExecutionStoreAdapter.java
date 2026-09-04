@@ -292,11 +292,17 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
             }
         }
 
-        Map<String, String> registry = new HashMap<>();
+        // Step 36.1 — one entry per key holding its whole set. A multi-valued key owns several
+        // rows, and the flat map this used to build collapsed them to the last one silently.
+        Map<String, List<String>> registry = new HashMap<>();
         for (games.paths.core.port.match.RegistryStorePort.RegistryRow r
                 : registryStorePort.findByMatch(idMatch)) {
             if (r.key() != null) {
-                registry.put(r.key(), games.paths.core.service.match.RegistryService.render(r));
+                String value = games.paths.core.service.match.RegistryService.render(r);
+                List<String> values = registry.computeIfAbsent(r.key(), k -> new ArrayList<>());
+                if (value != null) {
+                    values.add(value);
+                }
             }
         }
 

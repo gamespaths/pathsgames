@@ -73,6 +73,9 @@ class GamingStateRegistryEntity(Base):
     clock = Column(Integer)
     id_mission = Column(Integer)
     id_mission_steps = Column(Integer)
+    # Step 36.1 — mirrors list_keys.multi_value: a running match keeps the behaviour it
+    # was born with even if the author flips the flag later.
+    multi_value = Column(Integer, default=0)
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
 

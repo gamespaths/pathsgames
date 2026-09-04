@@ -2,6 +2,9 @@ package games.paths.core.model.match;
 
 import games.paths.core.model.story.CardInfo;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * MatchRegistryEntry - Domain model for one row of {@code gaming_state_registry}.
  * Step 36 joins it with its {@code list_keys} definition, so a caller reads the category and
@@ -11,8 +14,13 @@ public class MatchRegistryEntry {
 
     private String uuid;
     private String key;
-    private String stringValue;
-    private Integer intValue;
+    /**
+     * Step 36.1 — the SET of values the key holds, ordered for display. A single-valued key has
+     * one member, a multi-valued one may have many, and an emptied key has none.
+     */
+    private List<String> values = new ArrayList<>();
+    /** True when the key accumulates instead of replacing — visible so a client can say which. */
+    private boolean multiValue;
     /** Step 36 - who wrote the value last; null while nothing has written it. */
     private Long idCharacter;
     private String category;
@@ -30,11 +38,11 @@ public class MatchRegistryEntry {
     public String getKey() { return key; }
     public void setKey(String key) { this.key = key; }
 
-    public String getStringValue() { return stringValue; }
-    public void setStringValue(String stringValue) { this.stringValue = stringValue; }
+    public List<String> getValues() { return values; }
+    public void setValues(List<String> values) { this.values = values; }
 
-    public Integer getIntValue() { return intValue; }
-    public void setIntValue(Integer intValue) { this.intValue = intValue; }
+    public boolean isMultiValue() { return multiValue; }
+    public void setMultiValue(boolean multiValue) { this.multiValue = multiValue; }
 
     public Long getIdCharacter() { return idCharacter; }
     public void setIdCharacter(Long idCharacter) { this.idCharacter = idCharacter; }

@@ -33,7 +33,7 @@ def _groups():
         "category": "tutorial",
         "entries": [{
             "uuid": "reg-1", "key": "tutorial_progress",
-            "string_value": None, "int_value": 3, "id_character": 12,
+            "values": ["3"], "multi_value": False, "id_character": 12,
             "category": "tutorial", "visible": True, "priority": 1,
             "id_card": 950, "card": None,
         }],
@@ -49,7 +49,7 @@ def test_returns_the_groups_with_every_field_the_board_needs(env):
     entry = body["groups"][0]["entries"][0]
     assert body["groups"][0]["category"] == "tutorial"
     assert entry["key"] == "tutorial_progress"
-    assert entry["intValue"] == 3 and entry["stringValue"] is None
+    assert entry["values"] == ["3"] and entry["multiValue"] is False
     assert entry["visible"] is True and entry["priority"] == 1
     assert entry["idCharacter"] == 12 and entry["idCard"] == 950
 

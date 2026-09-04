@@ -61,8 +61,12 @@ def _triggers(first=None, not_first=None, alone=None, id_location=LOCATION):
 
 @pytest.fixture
 def registry_service():
-    """Step 36 — registry writes leave the event store and go through their own service."""
-    return MagicMock()
+    """Step 36 — registry writes leave the event store and go through their own service.
+    Step 36.1 — a write hands back the set it just wrote; the mock stands in for that set."""
+    mock = MagicMock()
+    mock.upsert.side_effect = lambda *a: [] if a[3] is None else [a[3]]
+    mock.remove.side_effect = lambda *a: []
+    return mock
 
 
 @pytest.fixture
@@ -308,7 +312,7 @@ def test_a_fuse_in_an_empty_location_still_writes_the_registry(service, store, l
     assert len(fired) == 1
     # id_character None: the world changed, but around no one.
     registry_service.upsert.assert_called_once()
-    assert registry_service.upsert.call_args[0][3] is None
+    assert registry_service.upsert.call_args[0][4] is None
     store.update_character_stats.assert_not_called()
 
 

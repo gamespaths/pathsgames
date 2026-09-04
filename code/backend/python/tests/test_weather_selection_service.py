@@ -129,7 +129,7 @@ def test_condition_filters_non_matching():
         ctx={"id_story": 7, "current_clock": 0, "rng_seed": 42},
         rules=[_rule(1, condition_key="SEASON", condition_key_value="WINTER"),
                _rule(2, condition_key="SEASON", condition_key_value="SUMMER")],
-        registry={"SEASON": "SUMMER"})
+        registry={"SEASON": ["SUMMER"]})
     out = WeatherSelectionService(store, _FakeRegistry(store._registry)).apply_at_time_start(1)
     assert out["id_weather"] == 2
 
@@ -157,7 +157,7 @@ class _FakeRegistry:
         self.registry = registry
 
     def find(self, id_match, key):
-        return self.registry.get(key)
+        return self.registry.get(key) or []
 
 
 class FakeQueryStore:

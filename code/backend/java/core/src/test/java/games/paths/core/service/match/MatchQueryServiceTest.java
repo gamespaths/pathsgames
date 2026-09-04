@@ -104,7 +104,7 @@ class MatchQueryServiceTest {
         MatchRegistryEntry e = new MatchRegistryEntry();
         e.setUuid("reg-" + key);
         e.setKey(key);
-        e.setIntValue(1);
+        e.setValues(java.util.List.of("1"));
         return e;
     }
 

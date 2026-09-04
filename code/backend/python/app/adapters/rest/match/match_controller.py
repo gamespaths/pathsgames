@@ -198,8 +198,9 @@ def _registry_to_camel(groups):
                     {
                         "uuid": e.get("uuid"),
                         "key": e.get("key"),
-                        "stringValue": e.get("string_value"),
-                        "intValue": e.get("int_value"),
+                        # Step 36.1 — the SET of values, ordered by the backend.
+                        "values": e.get("values") or [],
+                        "multiValue": bool(e.get("multi_value")),
                         "idCharacter": e.get("id_character"),
                         "category": e.get("category"),
                         "visible": bool(e.get("visible")),
@@ -235,8 +236,9 @@ def _detail_to_camel(detail):
             {
                 "uuid": r.uuid,
                 "key": r.key,
-                "stringValue": r.string_value,
-                "intValue": r.int_value,
+                # Step 36.1 — the SET of values, ordered by the backend.
+                "values": r.values,
+                "multiValue": r.multi_value,
                 # Step 36 — the key's own definition rides along so the board can group and
                 # dress it without a second request.
                 "idCharacter": r.id_character,

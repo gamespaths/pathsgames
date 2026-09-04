@@ -259,8 +259,8 @@ class MatchQueryService(MatchQueryPort):
             MatchRegistryEntry(
                 uuid=e["uuid"],
                 key=e["key"],
-                string_value=e.get("string_value"),
-                int_value=e.get("int_value"),
+                values=e.get("values") or [],
+                multi_value=bool(e.get("multi_value")),
                 id_character=e.get("id_character"),
                 category=e.get("category"),
                 visible=bool(e.get("visible")),

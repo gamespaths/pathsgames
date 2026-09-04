@@ -371,14 +371,14 @@ public interface EventExecutionStorePort {
                              Set<Long> ownedItemIds,
                              Long currentWeatherId,
                              Set<Long> consumedEventIds,
-                             Map<String, String> registry) {
+                             Map<String, List<String>> registry) {
 
         /** Pre-v0.35.3 shape: a character whose backpack holds no food and no magic. */
         @SuppressWarnings("java:S107")
         public EventCheckContext(Long idCharacter, Long idLocation, boolean sleeping, boolean coma,
                                  int energy, int coin, Long idClass, Set<Long> ownedItemIds,
                                  Long currentWeatherId, Set<Long> consumedEventIds,
-                                 Map<String, String> registry) {
+                                 Map<String, List<String>> registry) {
             this(idCharacter, idLocation, sleeping, coma, energy, coin, 0, 0, idClass,
                     ownedItemIds, currentWeatherId, consumedEventIds, registry);
         }

@@ -840,6 +840,7 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("group", k.getGroup());
             m.put("priority", k.getPriority());
             m.put("visibility", k.getVisibility());
+            m.put("multiValue", k.getMultiValue());
         } else if (e instanceof EventEffectEntity) {
             EventEffectEntity ee = (EventEffectEntity) e;
             m.put("idEvent", ee.getIdEvent());
@@ -1454,6 +1455,8 @@ public class StoryCrudService implements StoryCrudPort {
             e.setPriority(intVal(d, "priority"));
         if (d.containsKey("visibility"))
             e.setVisibility(str(d, "visibility"));
+        if (d.containsKey("multiValue"))
+            e.setMultiValue(intVal(d, "multiValue"));
     }
 
     private void applyEventEffectFields(EventEffectEntity e, Map<String, Object> d) {

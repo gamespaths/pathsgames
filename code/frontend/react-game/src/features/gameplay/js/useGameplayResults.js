@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getInventory, selectChoice } from '@/api/matches'
 import { grantedItemUuids, itemRowForUuid, lastEffectCard } from '@/utils/gameResults'
-import { itemPromiseBadges, statChangeItems } from '@/utils/statBadges'
+import { itemPromiseBadges, registryChangeItems, statChangeItems } from '@/utils/statBadges'
 import { scrollBookToTop } from './mobileView'
 
 // How long the board shows its loading page after a reload was asked for.
@@ -186,13 +186,21 @@ export default function useGameplayResults({
     // Step 35 — the card of an item just RECEIVED describes the ITEM: what it weighs and what
     // using it promises, not the statChanges of the event that handed it over. Mixing "+2 exp
     // you just earned" with "+3 life if you drink this" under one picture unreads both.
-    const stats = grantedCard
-      ? itemPromiseBadges(grantedRow, t)
-      : statChangeItems(result, playerUuid, t)
+    // A key the event wrote rides beside them: it is part of the same outcome, and the board
+    // already holds the titles to name it with.
+    const registryBadges = registryChangeItems(result, gameData?.info?.registry)
+    const stats = [
+      ...(grantedCard ? itemPromiseBadges(grantedRow, t) : statChangeItems(result, playerUuid, t)),
+      ...registryBadges,
+    ]
+    // BonusBadgeList drops any badge whose value is not a non-zero NUMBER, and a registry
+    // value is a word. Armed only when there is one, so the item path keeps its own reading.
+    const badgeProps = registryBadges.length > 0 ? { bonusBadgeShowZeros: true } : null
     // An item is on its way even when its card is not resolved yet, so it arms the flag too.
     eventEffectActiveRef.current = !!narrative || !!grantedUuid
     if (narrative) {
-      viewActions.openPreview({ card: narrative, type: narrativeType, stats, side: 'right' })
+      viewActions.openPreview({ card: narrative, type: narrativeType, stats, side: 'right',
+        props: badgeProps })
     } else if (grantedUuid) {
       // The row was just created, so its card lives only in the inventory. A failure is
       // swallowed on purpose — the board is reloading anyway and the bag will show it.
@@ -201,7 +209,8 @@ export default function useGameplayResults({
           const row = itemRowForUuid(inventory?.items, grantedUuid)
           if (row?.card) {
             viewActions.openPreview({ card: row.card, type: 'item',
-              stats: itemPromiseBadges(row, t), side: 'right' })
+              stats: [...itemPromiseBadges(row, t), ...registryBadges], side: 'right',
+              props: badgeProps })
           }
         })
         .catch(() => {})
@@ -209,7 +218,7 @@ export default function useGameplayResults({
     applyEdgeState(result?.edgeState)
     stopLoading()
   }, [reloadBoard, applyChoicesPending, applyEdgeState, stopLoading, playerStats, playerUuid,
-    t, viewActions, matchUuid, accessToken, lang])
+    t, viewActions, matchUuid, accessToken, lang, gameData])
 
   // Step 33 — a movement answers with what the destination did about the arrival.
   // v0.35.6 — an arrival kills as an event does: the edge state comes last, so a collapse
@@ -270,8 +279,12 @@ export default function useGameplayResults({
       const narrative = result?.choiceEventCard ?? lastEffectCard(result)
       eventEffectActiveRef.current = !!narrative
       if (narrative) {
+        // An option writes the registry as an event effect does, so its outcome card says so
+        // the same way — the badges live on the OUTCOME, whichever door reached it.
+        const registryBadges = registryChangeItems(result, gameData?.info?.registry)
         viewActions.openPreview({ card: narrative, type: 'event',
-          stats: statChangeItems(result, playerUuid, t), side: 'right' })
+          stats: [...statChangeItems(result, playerUuid, t), ...registryBadges], side: 'right',
+          props: registryBadges.length > 0 ? { bonusBadgeShowZeros: true } : null })
       }
       applyEdgeState(result?.edgeState)
     } catch (e) {
@@ -282,7 +295,7 @@ export default function useGameplayResults({
       stopLoading()
     }
   }, [choiceInFlight, matchUuid, accessToken, lang, reloadBoard, applyChoicesPending,
-    applyEdgeState, stopLoading, playerUuid, t, viewActions, onError])
+    applyEdgeState, stopLoading, playerUuid, t, viewActions, onError, gameData])
 
   return {
     loading, startLoading, stopLoading, choiceInFlight,

@@ -1,21 +1,38 @@
 import { describe, it, expect } from 'vitest'
-import { registryValue, visibleRegistry } from '../utils/registry'
+import { registryValue, registryValues, visibleRegistry } from '../utils/registry'
 
 describe('registry utils (Step 36)', () => {
   describe('registryValue', () => {
-    it('renders the string, else the int, else nothing — the backend rule', () => {
-      expect(registryValue({ stringValue: 'OPEN', intValue: null })).toBe('OPEN')
-      expect(registryValue({ stringValue: null, intValue: 5 })).toBe('5')
-      expect(registryValue({ stringValue: null, intValue: null })).toBeNull()
+    it('shows the one member of a single-valued key', () => {
+      expect(registryValue({ values: ['OPEN'] })).toBe('OPEN')
+      expect(registryValue({ values: ['5'] })).toBe('5')
+    })
+
+    it('joins the members of a multi-valued key, in the order the backend sent', () => {
+      expect(registryValue({ values: ['2', '10', 'alpha'], multiValue: true }))
+        .toBe('2, 10, alpha')
+    })
+
+    it('reads an empty set as nothing at all', () => {
+      expect(registryValue({ values: [] })).toBeNull()
+      expect(registryValue({})).toBeNull()
       expect(registryValue(null)).toBeNull()
     })
 
     it('keeps a zero, which is a value and not an absence', () => {
-      expect(registryValue({ stringValue: null, intValue: 0 })).toBe('0')
+      expect(registryValue({ values: ['0'] })).toBe('0')
     })
 
     it('keeps an empty string, which is what a blank default seeds', () => {
-      expect(registryValue({ stringValue: '', intValue: null })).toBe('')
+      expect(registryValue({ values: [''] })).toBe('')
+    })
+  })
+
+  describe('registryValues', () => {
+    it('hands back the members, and an empty list when there are none', () => {
+      expect(registryValues({ values: ['a', 'b'] })).toEqual(['a', 'b'])
+      expect(registryValues({})).toEqual([])
+      expect(registryValues(null)).toEqual([])
     })
   })
 

@@ -22,6 +22,7 @@ An unknown type, an unparseable value or a blank key make that condition NOT met
 locks the option visibly rather than silently unlocking it.
 """
 
+from match import registry as _registry
 from match.events import _nz  # noqa: F401 — the shared null-safe int coercion
 
 # Marker of a resolved choice-event cycle. Step 31 only READS it: a choice-event is
@@ -234,24 +235,19 @@ def _condition_met(row, cctx):
 
 
 def _keys_met(row, cctx):
-    """Textual equality (the registry renders every value as a string); > and < require
-    both sides numeric. An absent key satisfies only != — never set IS different."""
+    """The registry comparison, through the ONE Step 36 left standing.
+
+    This file used to keep its own copy of it. That copy compared the expected value to
+    whatever sat in the context — fine while a key held a single string, wrong from v0.36.1,
+    where a key holds a SET and the context carries a LIST. A string is never equal to a
+    list, so every `=` failed and every `!=` passed: an option gated on "the key must NOT
+    hold this" opened even when the key held exactly that.
+    """
     key = str(row.get("key") or "").strip()
-    expected = row.get("value")
-    if not key or expected is None:
+    if not key:
         return False
-    actual = (cctx.get("registry") or {}).get(key)
-    op = _operator(row)
-    if op == "=":
-        return expected == actual
-    if op == "!=":
-        return expected != actual
-    if op in (">", "<"):
-        a, e = _numeric(actual), _numeric(expected)
-        if a is None or e is None:
-            return False
-        return a > e if op == ">" else a < e
-    return False
+    return _registry.evaluate(_operator(row), row.get("value"),
+                              (cctx.get("registry") or {}).get(key))
 
 
 def _membership_met(row, held):

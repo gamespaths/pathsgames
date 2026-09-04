@@ -435,9 +435,9 @@ class EventExecutionStoreAdapterReadWriteTest {
         assertEquals(java.util.Set.of(500L), ctx.ownedItemIds());
         assertEquals(77L, ctx.currentWeatherId());
         assertEquals(java.util.Set.of(12L), ctx.consumedEventIds());
-        assertEquals("yes", ctx.registry().get("flag"));
-        assertEquals("7", ctx.registry().get("count"));
-        assertNull(ctx.registry().get("empty"));
+        assertEquals(java.util.List.of("yes"), ctx.registry().get("flag"));
+        assertEquals(java.util.List.of("7"), ctx.registry().get("count"));
+        assertTrue(ctx.registry().get("empty").isEmpty());
         assertEquals(3, ctx.registry().size());
     }
 

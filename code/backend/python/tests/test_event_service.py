@@ -48,8 +48,12 @@ def _effect(**over):
 
 @pytest.fixture
 def registry_service():
-    """Step 36 — registry writes leave the event store and go through their own service."""
-    return MagicMock()
+    """Step 36 — registry writes leave the event store and go through their own service.
+    Step 36.1 — a write hands back the set it just wrote; the mock stands in for that set."""
+    mock = MagicMock()
+    mock.upsert.side_effect = lambda *a: [] if a[3] is None else [a[3]]
+    mock.remove.side_effect = lambda *a: []
+    return mock
 
 
 @pytest.fixture

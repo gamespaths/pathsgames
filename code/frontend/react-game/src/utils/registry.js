@@ -1,13 +1,15 @@
 /**
- * The registry as the board reads it. `/info` sends both value columns apart so a client can
- * tell "0" from 0; everything on screen wants the one comparable string, and it must be the
- * same rule the backend renders with — the string wins, else the int, else nothing.
+ * The registry as the board reads it. Step 36.1 — a key holds a SET, already rendered and
+ * ordered by the backend, so the board neither parses columns nor sorts members.
  */
+export function registryValues(entry) {
+  return Array.isArray(entry?.values) ? entry.values : []
+}
+
+/** The one string a key shows: its members joined, or null when the set is empty. */
 export function registryValue(entry) {
-  if (!entry) return null
-  if (entry.stringValue !== null && entry.stringValue !== undefined) return entry.stringValue
-  if (entry.intValue !== null && entry.intValue !== undefined) return String(entry.intValue)
-  return null
+  const values = registryValues(entry)
+  return values.length === 0 ? null : values.join(', ')
 }
 
 /** The visible keys of the match, ordered as the backend groups them: category, priority, key. */

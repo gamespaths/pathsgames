@@ -1176,6 +1176,12 @@ html, body {
   font-size: 0.7rem !important;
   padding: 1px 3px !important;
 }
+/* Step 36 — a registry badge carries a WORD, not a two-digit number, and at the shared little
+   size it is unreadable. Scoped to the registry card, so no other card changes size. */
+.pg-card--registry .config-total-bonus-little .bonus-badge-little-version{
+  font-size: 0.8rem !important;
+  padding: 3px 6px !important;
+}
 
 .config-info-btn {
   position: absolute;

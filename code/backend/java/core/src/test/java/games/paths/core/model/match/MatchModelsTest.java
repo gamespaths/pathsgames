@@ -76,12 +76,12 @@ class MatchModelsTest {
         MatchRegistryEntry r = new MatchRegistryEntry();
         r.setUuid("u");
         r.setKey("k");
-        r.setStringValue("s");
-        r.setIntValue(1);
+        r.setValues(java.util.List.of("s", "1"));
+        r.setMultiValue(true);
         assertEquals("u", r.getUuid());
         assertEquals("k", r.getKey());
-        assertEquals("s", r.getStringValue());
-        assertEquals(1, r.getIntValue());
+        assertEquals(java.util.List.of("s", "1"), r.getValues());
+        assertTrue(r.isMultiValue());
     }
 
     @Test

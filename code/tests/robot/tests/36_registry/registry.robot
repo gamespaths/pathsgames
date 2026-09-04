@@ -5,13 +5,16 @@
 # The contract under test, end-to-end and backend-agnostic:
 #
 #   1. GET /api/match/{uuid}/registry answers the VISIBLE keys of the match, grouped by
-#      the category their story definition gives them, each carrying its value, its
-#      visibility, its priority and the character that wrote it last.
+#      the category their story definition gives them, each carrying the SET of values it
+#      holds, its visibility, its priority and the character that wrote it last.
 #   2. ?includeHidden=true adds the keys the story hid, and only the owner may ask.
 #   3. The same entries ride on /info, so the board needs no second request and the two
 #      payloads cannot disagree.
 #   4. A registry write leaves exactly one REGISTRY_CHANGE row on the match log — not
 #      none, and not one per recipient.
+#   5. Step 36.1 — every entry answers with `values` (a list) and `multiValue`, whatever
+#      kind the key is: a single key has one member, a multi key may have several, and an
+#      emptied key has none.
 #
 # Nothing here is addressed by a seeded id or uuid: the keys are discovered from the
 # payload itself, so the suite runs green on java-sqlite, java-postgres, python and aws
@@ -33,8 +36,8 @@ Suite Setup    Suite Setup Registry
 
 The Registry Answers The Visible Keys Grouped By Category
     [Documentation]    Every group carries a category (possibly null) and a non-empty list of
-    ...                entries; every entry carries the key and both value columns, so a
-    ...                client can tell "0" from 0.
+    ...                entries; every entry carries the key, the SET of values it holds and
+    ...                the flag saying which kind of key it is.
     [Tags]    registry    step36
     ${response}=    Get Registry    ${TOKEN}    ${MATCH_UUID}    200
 
@@ -45,24 +48,44 @@ The Registry Answers The Visible Keys Grouped By Category
         Should Not Be Empty    ${group}[entries]    msg=a group with no entries is not a group
         FOR    ${entry}    IN    @{group}[entries]
             Dictionary Should Contain Key    ${entry}    key
-            Dictionary Should Contain Key    ${entry}    stringValue
-            Dictionary Should Contain Key    ${entry}    intValue
+            Dictionary Should Contain Key    ${entry}    values
+            Dictionary Should Contain Key    ${entry}    multiValue
             Should Be True    ${entry}[visible]
             ...    msg=a hidden key must not appear without includeHidden
         END
     END
 
-A Value Lives In Exactly One Column, Never Both
-    [Documentation]    A numeric value goes to intValue, anything else to stringValue. The two
-    ...                are never both set: that is what lets a client render 0 as a value.
+A Key Answers With A List Of Rendered Values, And A Single Key Holds At Most One
+    [Documentation]    Step 36.1 — values is always a list of strings, never a bare value and
+    ...                never null. A key the story did not declare multi holds at most one
+    ...                member; a multi key may hold several, and either may hold none.
     [Tags]    registry    step36
     # A story that declares no key at all is legal, so this asserts the invariant over
     # whatever the backend's own seed happens to carry rather than demanding keys exist.
     ${entries}=    Registry Entries    ${TOKEN}    ${MATCH_UUID}    include_hidden=true
     FOR    ${entry}    IN    @{entries}
-        ${both}=    Evaluate
-        ...    $entry['stringValue'] is not None and $entry['intValue'] is not None
-        Should Not Be True    ${both}    msg=${entry}[key] has both value columns set
+        ${shaped}=    Evaluate
+        ...    isinstance($entry['values'], list) and all(isinstance(v, str) for v in $entry['values'])
+        Should Be True    ${shaped}    msg=${entry}[key] does not answer with a list of strings
+        IF    not $entry['multiValue']
+            Should Be True    len($entry['values']) <= 1
+            ...    msg=${entry}[key] is not a multi key but holds several values
+        END
+    END
+
+A Multi Key Holds A SET: No Member Ever Appears Twice
+    [Documentation]    Step 36.1 — writing a member a multi key already holds changes nothing,
+    ...                so no set the payload carries may hold a duplicate. Ordering is the
+    ...                backend's: numbers numerically first, then the rest alphabetically.
+    [Tags]    registry    step36
+    ${entries}=    Registry Entries    ${TOKEN}    ${MATCH_UUID}    include_hidden=true
+    FOR    ${entry}    IN    @{entries}
+        Should Be True    len(set($entry['values'])) == len($entry['values'])
+        ...    msg=${entry}[key] holds the same value twice
+        ${sorted}=    Evaluate
+        ...    sorted($entry['values'], key=lambda v: (0, int(v), '') if v.lstrip('-').isdigit() else (1, 0, v))
+        Should Be Equal    ${sorted}    ${entry}[values]
+        ...    msg=${entry}[key] is not ordered as the backend promises
     END
 
 Include Hidden Never Removes A Key, And Only Ever Adds
@@ -225,7 +248,7 @@ Key Value Pairs
     ...                without depending on the order either one happened to use.
     [Arguments]    ${entries}
     ${pairs}=    Evaluate
-    ...    sorted((e['key'], e['stringValue'] if e['stringValue'] is not None else (None if e['intValue'] is None else str(e['intValue']))) for e in $entries)
+    ...    sorted((e['key'], tuple(e['values'])) for e in $entries)
     RETURN    ${pairs}
 
 Registry Value Of
@@ -233,8 +256,8 @@ Registry Value Of
     ${entries}=    Registry Entries    ${token}    ${match_uuid}    include_hidden=true
     FOR    ${entry}    IN    @{entries}
         IF    $entry['key'] == $key
-            ${value}=    Evaluate
-            ...    $entry['stringValue'] if $entry['stringValue'] is not None else (None if $entry['intValue'] is None else str($entry['intValue']))
+            # Step 36.1 — a set as one comparable string; an empty set reads as absent.
+            ${value}=    Evaluate    ','.join($entry['values']) or None
             RETURN    ${value}
         END
     END

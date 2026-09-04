@@ -207,7 +207,7 @@ export default function MatchDetailModal({ detail, onClose }) {
             <p className="pg-card-title mb-1"><i className="fas fa-list me-1" />Registry ({info.registry?.length ?? 0})</p>
             <table className="pg-table" style={{ fontSize: '0.78rem' }}>
               <thead>
-                <tr><th>Key</th><th>String value</th><th>Int value</th></tr>
+                <tr><th>Key</th><th>Values</th><th>Multi</th></tr>
               </thead>
               <tbody>
                 {(info.registry ?? []).length === 0 && (
@@ -216,8 +216,10 @@ export default function MatchDetailModal({ detail, onClose }) {
                 {(info.registry ?? []).map(r => (
                   <tr key={r.uuid ?? r.key}>
                     <td>{r.key}</td>
-                    <td style={{ wordBreak: 'break-all' }}>{r.stringValue ?? '—'}</td>
-                    <td>{r.intValue ?? '—'}</td>
+                    <td style={{ wordBreak: 'break-all' }}>
+                      {(r.values ?? []).length === 0 ? '—' : (r.values ?? []).join(', ')}
+                    </td>
+                    <td>{r.multiValue ? 'yes' : 'no'}</td>
                   </tr>
                 ))}
               </tbody>

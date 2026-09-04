@@ -149,8 +149,8 @@ public class WeatherSelectionService {
         if (RegistryService.noCondition(r.conditionKey())) {
             return true;
         }
-        String actual = registryService.find(idMatch, r.conditionKey()).orElse(null);
-        return RegistryService.evaluate(r.conditionOperator(), r.conditionKeyValue(), actual);
+        return RegistryService.evaluate(r.conditionOperator(), r.conditionKeyValue(),
+                registryService.find(idMatch, r.conditionKey()));
     }
 
     /**

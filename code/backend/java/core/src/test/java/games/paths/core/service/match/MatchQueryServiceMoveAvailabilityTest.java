@@ -98,7 +98,7 @@ class MatchQueryServiceMoveAvailabilityTest {
 
     /** Wire a RUNNING match: one character at HERE, one edge HERE→THERE. */
     private void wire(MoveCharacterView caller, LocationEntity there, LocationNeighborEntity n,
-                      Map<String, String> registry) {
+                      Map<String, List<String>> registry) {
         GamingMatchEntity m = new GamingMatchEntity();
         m.setId(MATCH_ID);
         m.setUuid("match-uuid");
@@ -208,7 +208,7 @@ class MatchQueryServiceMoveAvailabilityTest {
 
         // ...and the same key, set to the expected value in the match registry, opens it
         wire(mover(false, false, 100), location(THERE, "loc-there"), gated,
-                Map.of("gate", "open"));
+                Map.of("gate", List.of("open")));
         assertTrue(neighbor().isAvailable());
     }
 

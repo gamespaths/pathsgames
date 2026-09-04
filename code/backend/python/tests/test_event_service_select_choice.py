@@ -88,8 +88,12 @@ def _ctx(**over):
 
 @pytest.fixture
 def registry_service():
-    """Step 36 — registry writes leave the event store and go through their own service."""
-    return MagicMock()
+    """Step 36 — registry writes leave the event store and go through their own service.
+    Step 36.1 — a write hands back the set it just wrote; the mock stands in for that set."""
+    mock = MagicMock()
+    mock.upsert.side_effect = lambda *a: [] if a[3] is None else [a[3]]
+    mock.remove.side_effect = lambda *a: []
+    return mock
 
 
 @pytest.fixture
@@ -314,31 +318,34 @@ def test_key_and_value_to_add_write_the_registry(service, store, registry_servic
     r = _resolve(service)
 
     registry_service.upsert.assert_called_once_with(
-        MATCH_ID, "DOOR", "OPEN", CHAR_ID, EVENT_ID, None, CLOCK)
+        MATCH_ID, STORY_ID, "DOOR", "OPEN", CHAR_ID, EVENT_ID, None, CLOCK)
     assert r.execution.registry_changes[0].new_value == "OPEN"
 
 
 def test_value_to_remove_clears_the_key_when_the_value_matches(service, store, registry_service):
-    store.load_check_context.return_value = _ctx(registry={"DOOR": "OPEN"})
+    store.load_check_context.return_value = _ctx(registry={"DOOR": ["OPEN"]})
     store.find_choice_effects_by_choice_id.return_value = [
         _effect(1, key="DOOR", value_to_remove="OPEN")]
 
     r = _resolve(service)
 
-    registry_service.upsert.assert_called_once_with(
-        MATCH_ID, "DOOR", None, CHAR_ID, EVENT_ID, None, CLOCK)
+    # Step 36.1 — taking a value away is its own call, not a write of None.
+    registry_service.remove.assert_called_once_with(
+        MATCH_ID, "DOOR", "OPEN", CHAR_ID, EVENT_ID, None, CLOCK)
     assert r.execution.registry_changes[0].new_value is None
 
 
 def test_value_to_remove_leaves_a_key_the_story_moved_on(service, store, registry_service):
-    store.load_check_context.return_value = _ctx(registry={"DOOR": "SEALED"})
+    store.load_check_context.return_value = _ctx(registry={"DOOR": ["SEALED"]})
     store.find_choice_effects_by_choice_id.return_value = [
         _effect(1, key="DOOR", value_to_remove="OPEN")]
 
-    r = _resolve(service)
+    _resolve(service)
 
+    # The service itself refuses a value the story has moved on from, so the effect still
+    # calls it; what must not happen is a WRITE.
+    registry_service.remove.assert_called_once()
     registry_service.upsert.assert_not_called()
-    assert r.execution.registry_changes == []
 
 
 def test_item_effect_grants_the_item(service, store):

@@ -634,21 +634,29 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         if (blank(key)) {
             return;
         }
-        String old = x.ctx.registry().get(key);
+        List<String> before = x.ctx.registry().getOrDefault(key, List.of());
         String add = effect.getValueToAdd();
         String remove = effect.getValueToRemove();
-        String value;
+
+        List<String> after;
         if (!blank(add)) {
-            value = add;
-        } else if (!blank(remove) && remove.equals(old)) {
-            value = null; // clears both value columns — the key reads as unset afterwards
+            after = registryService.upsert(x.match.id(), x.match.idStory(), key, add, x.actor.id(),
+                    event.getId(), null, x.currentClock);
+        } else if (!blank(remove)) {
+            // Step 36.1 — on a multi key this takes one member away; on a single one it is the
+            // compare-and-clear it has always been, and the service still refuses to wipe a
+            // value some other branch of the story has moved on from.
+            after = registryService.remove(x.match.id(), key, remove, x.actor.id(), event.getId(),
+                    null, x.currentClock);
         } else {
             return;
         }
-        registryService.upsert(x.match.id(), key, value, x.actor.id(), event.getId(),
-                null, x.currentClock);
-        x.ctx.registry().put(key, value);
-        x.registryChanges.add(new RegistryChange(key, old, value));
+        x.ctx.registry().put(key, after);
+        // A write the registry refused — a duplicate member, or a value some other branch has
+        // moved on from — changed nothing, so it reports nothing.
+        if (!after.equals(before)) {
+            x.registryChanges.add(new RegistryChange(key, joined(before), joined(after)));
+        }
     }
 
     /**
@@ -1088,11 +1096,13 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             return;
         }
         String value = effect.getKeyValueToAdd();
-        String old = x.ctx.registry().get(key);
-        registryService.upsert(x.match.id(), key, value, x.actorId(), event.getId(),
-                null, x.currentClock);
-        x.ctx.registry().put(key, value);
-        x.registryChanges.add(new RegistryChange(key, old, value));
+        List<String> before = x.ctx.registry().getOrDefault(key, List.of());
+        List<String> after = registryService.upsert(x.match.id(), x.match.idStory(), key, value,
+                x.actorId(), event.getId(), null, x.currentClock);
+        x.ctx.registry().put(key, after);
+        if (!after.equals(before)) {
+            x.registryChanges.add(new RegistryChange(key, joined(before), joined(after)));
+        }
     }
 
     /**
@@ -1643,6 +1653,14 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
     private static EventExecutionException notFound() {
         return new EventExecutionException(EventExecutionException.Code.MATCH_NOT_FOUND,
                 "Match not found or not accessible");
+    }
+
+    /** A set as one string for the RegistryChange payload: empty reads as null, as it did. */
+    private static String joined(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+        return values.size() == 1 ? values.get(0) : String.join(",", values);
     }
 
     private static boolean blank(String s) {

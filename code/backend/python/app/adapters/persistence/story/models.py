@@ -95,6 +95,8 @@ class KeyEntity(Base):
     is_visible = Column(Integer, default=0)
     # Step 36 — orders the keys inside their category, as list_keys.priority does on Java.
     priority = Column(Integer, default=0)
+    # Step 36.1 — 1 = the key holds a set, each write adding a member; 0 = one value.
+    multi_value = Column(Integer, default=0)
 
 
 class ClassEntity(Base):

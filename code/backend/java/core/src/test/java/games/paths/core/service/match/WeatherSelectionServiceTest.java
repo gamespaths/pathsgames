@@ -184,7 +184,7 @@ class WeatherSelectionServiceTest {
             when(store.findActiveWeatherRules(7L)).thenReturn(List.of(
                     rule(1, 100, 0, null, null, "SEASON", "WINTER", 0, null),
                     rule(2, 100, 0, null, null, "SEASON", "SUMMER", 0, null)));
-            when(registryService.find(1L, "SEASON")).thenReturn(Optional.of("SUMMER"));
+            when(registryService.find(1L, "SEASON")).thenReturn(List.of("SUMMER"));
 
             WeatherSelection sel = new WeatherSelectionService(store, registryService).applyAtTimeStart(1L);
 
@@ -200,7 +200,7 @@ class WeatherSelectionServiceTest {
             when(store.findActiveWeatherRules(7L)).thenReturn(List.of(
                     rule(1, 100, 0, null, null, "SEASON", null, 0, null),
                     rule(2, 100, 0, null, null, null, null, 0, null)));
-            when(registryService.find(1L, "SEASON")).thenReturn(Optional.empty());
+            when(registryService.find(1L, "SEASON")).thenReturn(List.of());
 
             WeatherSelection sel = new WeatherSelectionService(store, registryService)
                     .applyAtTimeStart(1L);

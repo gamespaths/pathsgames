@@ -333,8 +333,8 @@ public class MovementService implements MovementPort {
         if (RegistryService.noCondition(key)) {
             return true;
         }
-        String value = registryService.find(idMatch, key).orElse(null);
-        return RegistryService.evaluate(edge.conditionOperator(), edge.conditionValue(), value);
+        return RegistryService.evaluate(edge.conditionOperator(), edge.conditionValue(),
+                registryService.find(idMatch, key));
     }
 
     private long requireUser(String userUuid) {

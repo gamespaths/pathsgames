@@ -286,6 +286,8 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'group', label: 'Group', type: 'text' },
       { key: 'priority', label: 'Priority', type: 'number' },
       { key: 'visibility', label: 'Visibility', type: 'select', options: KEY_VISIBILITY_OPTIONS },
+      // Step 36.1 — a multi key ACCUMULATES: each write adds a value instead of replacing it.
+      { key: 'multiValue', label: 'Multi Value', type: 'checkbox' },
     ],
     choices: [
       { key: 'idCard', label: 'Card ID', type: 'number' },
@@ -504,6 +506,7 @@ export const STORIES_ENTITIES_COLUMNS = {
       { key: 'group', label: 'Group' },
       { key: 'priority', label: 'Priority' },
       { key: 'visibility', label: 'Visibility' },
+      { key: 'multiValue', label: 'Multi', type: 'boolean' },
     ],
     choices: [
       { key: 'idTextName', label: 'Name', type: 'idTextName' },

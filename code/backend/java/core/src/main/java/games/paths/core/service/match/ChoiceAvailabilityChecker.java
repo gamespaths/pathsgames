@@ -83,7 +83,7 @@ public final class ChoiceAvailabilityChecker {
                                      Long idLocation,
                                      Set<Long> ownedItemIds,
                                      Set<Long> traitIds,
-                                     Map<String, String> registry,
+                                     Map<String, List<String>> registry,
                                      List<Long> partyLocations,
                                      Map<String, Integer> partyStatSums) {
     }
@@ -176,7 +176,8 @@ public final class ChoiceAvailabilityChecker {
         if (key.isEmpty()) {
             return false;
         }
-        return RegistryService.evaluate(operator(row), row.getValue(), ctx.registry().get(key));
+        return RegistryService.evaluate(operator(row), row.getValue(),
+                ctx.registry().getOrDefault(key, List.of()));
     }
 
     /** ITEM / traits: the story-local id sits in {@code value} ({@code key} as fallback). */

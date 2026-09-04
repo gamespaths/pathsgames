@@ -112,6 +112,10 @@ def seed():
             # A hidden one, so includeHidden has something to reveal.
             {"id": 4, "keyName": "secret_door", "keyValue": "0",
              "keyGroup": "secrets", "isVisible": 0, "priority": 1},
+            # Step 36.1 — multiValue = 1 makes a key hold a SET: each write adds a member
+            # instead of replacing the value. No default, so its set starts EMPTY: no row.
+            {"id": 5, "keyName": "evidence_found", "keyValue": None,
+             "keyGroup": "evidence", "isVisible": 1, "priority": 1, "multiValue": 1},
         ],
         "locations": [
             # Step 26: safe location (isSafe=1 -> secure recovery) carrying a time
@@ -300,6 +304,27 @@ def seed():
              "idCard": 1,
              "effects": [{"idCard": 1, "statistics": "exp", "value": 14, "target": "ONLY_ONE",
                           "keyToAdd": "STEP33_STARTTIME", "keyValueToAdd": "YES"}]},
+            # Step 36.1 — the SET test-bed, four FREE events at the start location. A zero
+            # cost is what keeps them invisible to the Step 31/32 finders, which only ever
+            # pick a choice-event that costs something.
+            #   360 / 361  add one member each, and are repeatable — running one twice must
+            #              leave the set unchanged, which is the whole point of a SET.
+            #   362        gated on evidence_found = letter, so it stays blocked until 361
+            #              has run: = quantifies EXISTENTIALLY over the members.
+            #   363        a choice-event whose only option TAKES ONE MEMBER AWAY.
+            {"id": 360, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "evidence_found", "keyValueToAdd": "ledger"}]},
+            {"id": 361, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "evidence_found", "keyValueToAdd": "letter"}]},
+            {"id": 362, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "registryKeyCondition": "evidence_found", "registryValueCondition": "letter"},
+            {"id": 363, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1},
         ],
         # Step 31 — the options of the two choice-events above (canonical top-level arrays
         # keyed by idChoices). Event 30: one always-available option, one gated on INT > 99
@@ -329,8 +354,22 @@ def seed():
             {"id": 22, "idEvent": 32, "idCard": 1, "idTextName": 613, "idTextDescription": 613,
              "priority": 3, "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "AND",
              "limitDex": 99},
+            # Step 36.1 — otherwiseFlag 1 and no narrative: always selectable, and never the
+            # option the Step 32 suite looks for (that one wants a narrated option).
+            {"id": 360, "idEvent": 363, "idCard": 1, "idTextName": 612,
+             "idTextDescription": 612, "priority": 1, "otherwiseFlag": 1, "isProgress": 0,
+             "logicOperator": "AND"},
+            # v0.36.1 — the same event's SECOND option, gated on the multi key with !=: it is
+            # offered while the set does not hold the value and refused once it does.
+            {"id": 361, "idEvent": 363, "idCard": 1, "idTextName": 612,
+             "idTextDescription": 612, "priority": 2, "otherwiseFlag": 0, "isProgress": 0,
+             "logicOperator": "AND"},
         ],
         "choiceConditions": [
+            # v0.36.1 — != over a SET: met while no member equals the value, refused as soon
+            # as one does. R4_CHOICE_EMPTY is why option 361 also carries an effect below.
+            {"id": 360, "idChoices": 361, "type": "KEYS", "key": "evidence_found",
+             "value": "ledger", "operator": "!="},
             {"id": 2, "idChoices": 11, "type": "statistics", "key": "int", "value": "99", "operator": ">"},
             {"id": 3, "idChoices": 12, "type": "statistics", "key": "int", "value": "99", "operator": ">"},
             {"id": 4, "idChoices": 12, "type": "statistics", "key": "life", "value": "0", "operator": ">"},
@@ -351,6 +390,11 @@ def seed():
             {"id": 21, "idChoices": 21, "idCard": 1, "key": "STEP32_GATE",
              "valueToAdd": "OPEN", "idItemTarget": 1, "itemAction": "ADD",
              "idLocation": 3, "idWeather": 3},
+            # Step 36.1 — valueToRemove on a MULTI key takes that one member away and leaves
+            # the rest, where on a single key it still clears the value.
+            {"id": 360, "idChoices": 360, "idCard": 1, "key": "evidence_found",
+             "valueToRemove": "ledger"},
+            {"id": 361, "idChoices": 361, "idCard": 1, "statistics": "exp", "value": 1},
         ],
         # v0.34.0 — the inventory test-bed. Item 1 is CARRIED ONLY (it gates event 15 and
         # must stay in the bag), item 2 is the consumable that gates event 50, item 3 is

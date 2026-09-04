@@ -697,6 +697,13 @@ export default function StoryEditorPage() {
       idWeather: {
         options: weatherRulesOptions,
       },
+      // Step 36 — the key this event is GATED on, picked from the story's own keys exactly as
+      // the choice, weather, mission and neighbour conditions already are. It was the last
+      // registry field left as free text, so a typo here silently closed a door for good.
+      registryKeyCondition: {
+        options: keysOptions,
+        valueType: 'string',
+      },
       idEventNext: {
         options: eventOptions,
       },

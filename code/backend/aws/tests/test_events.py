@@ -96,7 +96,7 @@ def test_all_conditions_satisfied():
     e = event(idSpecificLocation=LOC, registryKeyCondition="GATE",
               registryValueCondition="OPEN", idWeather=3, idItemCondition=42,
               idClassCondition=50)
-    c = ctx(registry={"GATE": "OPEN"}, currentWeatherId=3, ownedItemIds={42}, idClass=50)
+    c = ctx(registry={"GATE": ["OPEN"]}, currentWeatherId=3, ownedItemIds={42}, idClass=50)
     assert events.check(e, c) == (True, None)
 
 
@@ -161,12 +161,12 @@ def test_not_enough_energy_and_coins():
 def test_registry_key_absent_or_different():
     e = event(registryKeyCondition="GATE", registryValueCondition="OPEN")
     blocked(events.check(e, ctx()), "REGISTRY_CONDITION_NOT_MET")
-    blocked(events.check(e, ctx(registry={"GATE": "SHUT"})), "REGISTRY_CONDITION_NOT_MET")
+    blocked(events.check(e, ctx(registry={"GATE": ["SHUT"]})), "REGISTRY_CONDITION_NOT_MET")
 
 
 def test_registry_key_with_no_expected_value_is_never_met():
     e = event(registryKeyCondition="GATE", registryValueCondition=None)
-    blocked(events.check(e, ctx(registry={"GATE": "OPEN"})), "REGISTRY_CONDITION_NOT_MET")
+    blocked(events.check(e, ctx(registry={"GATE": ["OPEN"]})), "REGISTRY_CONDITION_NOT_MET")
 
 
 def test_weather_item_and_class_conditions():
@@ -215,7 +215,7 @@ def test_build_context_resolves_the_class_id_from_the_class_uuid():
 
     assert c["idClass"] == 42
     assert c["ownedItemIds"] == {9}          # a zero-amount row is not "owned"
-    assert c["registry"] == {"K": "3"}       # the int is stringified, like the other backends
+    assert c["registry"] == {"K": ["3"]}     # the int is stringified, like the other backends
     assert c["currentWeatherId"] == 1
 
 

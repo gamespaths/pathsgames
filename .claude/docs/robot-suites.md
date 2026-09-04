@@ -32,6 +32,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `33_location_events` | Step 33 automatic location events (see breakdown below) |
 | `34_inventory` | Steps 34/35 inventory, resources, use/drop, effects preview, quantities, v0.35.4 item logs (see breakdown below) |
 | `35_import_integrity` | v0.35.8 import/schema/admin-CRUD regressions — ships its own story, no seed (see breakdown below) |
+| `36_registry` | Step 36 registry read API + v0.36.1 multi-valued keys (see breakdown below) |
 
 ### `19_match` breakdown
 
@@ -194,6 +195,41 @@ the event whose effect handed the item over, an `ITEM_USE` with the units spent 
 eight resource fields — `{energy,food,magic,coin}Cost` and `…Gain` — present, non-negative
 and never both moving at once on one usage. The item entries are asserted to sort in among
 the others rather than trail them.
+
+### `36_registry` breakdown
+
+`registry.robot` (11 tests) — `GET /api/match/{uuid}/registry`: the visible keys grouped by
+their `list_keys` category, `?includeHidden=true` as an owner-only superset, the same entries
+riding on `/info`, and exactly one `REGISTRY_CHANGE` row per write. Since v0.36.1 every entry
+answers with `values` (a list of rendered strings) and `multiValue`, so two cases guard the
+shape itself: a key the story did not declare multi holds at most one member, and no set ever
+carries a duplicate or breaks the backend's ordering (numbers numerically first, then the rest
+alphabetically).
+
+`registry_multi_value.robot` (v0.36.1, 11 tests) — the SET semantics end to end. A multi key
+with no default starts EMPTY (the entry is there, `values` is `[]` — an empty set is the
+absence of rows, not a row holding nothing); two writes of two values leave BOTH where a
+single key would have kept the last; writing a member the set already holds adds nothing and
+reports nothing, not even a `REGISTRY_CHANGE`; `=` quantifies EXISTENTIALLY, so an event gated
+on one member stays blocked while the set holds only another and opens when that one joins;
+`value_to_remove` takes THAT member away and leaves the rest; emptying the key leaves it with
+an empty set rather than making it vanish; and the execute-event response reports the whole
+set as `newValue`, which `/info` and `/registry` both agree with. The last two cases are the
+choice-condition half: an option gated on `!=` over the key is offered while the set does not
+hold the value and refused (`CONDITION_KEYS_NOT_MET`) as soon as it does — the AWS choice check
+kept a private copy of the comparison and matched the expected value against the whole LIST, so
+every `!=` passed whatever the set held.
+
+The four seeds ship the test-bed on the tutorial story: the multi key `evidence_found` (no
+default, so no seeded row), two FREE events adding one member each, one event gated on a
+member, and a choice-event carrying two options: one `otherwise` that removes a member, one
+gated on `!=` over the key (with an effect of its own, which R4_CHOICE_EMPTY requires of any
+option that is not the fallback). Every one of those events costs
+ZERO energy on purpose — the Step 31/32 finders only ever pick a choice-event with a positive
+cost, so this pack can never become the fixture those suites address by behaviour. Nothing is
+addressed by seeded id: the key is the one the story declares multi, the adders are the events
+whose effects write it. Each writing case runs on its own guest and its own match, since a set
+latches.
 
 ### `35_import_integrity` breakdown
 

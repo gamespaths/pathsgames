@@ -98,7 +98,7 @@ class _FakeRegistry:
         self.registry = registry
 
     def find(self, id_match, key):
-        return self.registry.get(key)
+        return self.registry.get(key) or []
 
 
 @pytest.fixture()
@@ -327,7 +327,7 @@ def test_not_adjacent(service, store):
 def test_condition_unmet(service, store):
     store.neighbors[1][0]["condition_key"] = "DOOR"
     store.neighbors[1][0]["condition_value"] = "OPEN"
-    store.registry["DOOR"] = "CLOSED"
+    store.registry["DOOR"] = ["CLOSED"]
     with pytest.raises(MovementError) as e:
         service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
     assert e.value.code == MovementError.MOVEMENT_CONDITION_NOT_MET
@@ -336,7 +336,7 @@ def test_condition_unmet(service, store):
 def test_condition_met(service, store):
     store.neighbors[1][0]["condition_key"] = "DOOR"
     store.neighbors[1][0]["condition_value"] = "OPEN"
-    store.registry["DOOR"] = "OPEN"
+    store.registry["DOOR"] = ["OPEN"]
     r = service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
     assert r.to_location_id == 2
 

@@ -422,7 +422,7 @@ class MovementServiceTest {
                     .thenReturn(Optional.of(location(2L, "loc-2", 1, 0, 100)));
             when(store.findNeighborsOfLocation(STORY_ID, 1L))
                     .thenReturn(List.of(new NeighborEdge(1L, 2L, "N", 1, "DOOR", "OPEN", 1)));
-            when(registryService.find(MATCH_ID, "DOOR")).thenReturn(Optional.of("CLOSED"));
+            when(registryService.find(MATCH_ID, "DOOR")).thenReturn(List.of("CLOSED"));
             MovementException ex = assertThrows(MovementException.class,
                     () -> service.startMovement(MATCH, USER, "loc-2"));
             assertEquals(MovementException.Code.MOVEMENT_CONDITION_NOT_MET, ex.getCode());
@@ -438,7 +438,7 @@ class MovementServiceTest {
                     .thenReturn(Optional.of(location(2L, "loc-2", 1, 0, 100)));
             when(store.findNeighborsOfLocation(STORY_ID, 1L))
                     .thenReturn(List.of(new NeighborEdge(1L, 2L, "N", 1, "DOOR", "OPEN", 1)));
-            when(registryService.find(MATCH_ID, "DOOR")).thenReturn(Optional.of("OPEN"));
+            when(registryService.find(MATCH_ID, "DOOR")).thenReturn(List.of("OPEN"));
             when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
             when(store.countCharactersAtLocation(MATCH_ID, 2L)).thenReturn(0);
             MovementResult r = service.startMovement(MATCH, USER, "loc-2");

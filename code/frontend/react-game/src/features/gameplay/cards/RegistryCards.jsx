@@ -16,7 +16,8 @@ import { useTranslation } from '@/i18n/context'
  * Nothing but the rows lives here: the title and the way back are on the LEFT page
  * (RegistryCard, page variant), exactly as the backpack is arranged.
  */
-export default function RegistryCards({ registry, story, onPreview, previewSide = 'right' }) {
+export default function RegistryCards({ registry, story, onPreview, previewSide = 'right',
+  joinValues = false }) {
   const { t } = useTranslation()
   // Already sorted by category, then priority, then key — so the grid reads in groups
   // without needing a group element to say so.
@@ -29,7 +30,7 @@ export default function RegistryCards({ registry, story, onPreview, previewSide 
           ? <p className="game-empty">{t('game.registry.empty')}</p>
           : rows.map(entry => (
             <RegistryKeyCard key={entry.uuid ?? entry.key} entry={entry} story={story}
-              onPreview={onPreview} previewSide={previewSide} />
+              onPreview={onPreview} previewSide={previewSide} joinValues={joinValues} />
           ))}
       </div>
     </div>

@@ -141,20 +141,41 @@ def test_limits():
             ch.LIMIT_DEX_NOT_MET)
 
 
+def test_keys_conditions_over_a_set():
+    """v0.36.1 — a key holds a SET, and this module used to compare the expected value to
+    the whole list. A string is never equal to a list, so every = failed and every !=
+    passed: an option gated on "must NOT hold River" opened on a key holding exactly it."""
+    held = cctx(registry={"EXPLORER": ["Hills", "River"]})
+
+    # = is EXISTENTIAL: one member equal to the value is enough.
+    assert ch.check_choice(choice(), [cond("KEYS", "EXPLORER", "River", "=")],
+                           held) == (True, None)
+    assert ch.check_choice(choice(), [cond("KEYS", "EXPLORER", "Hills", "=")],
+                           held) == (True, None)
+    blocked(ch.check_choice(choice(), [cond("KEYS", "EXPLORER", "Lake", "=")], held),
+            ch.CONDITION_KEYS_NOT_MET)
+
+    # != is its exact complement: the set must NOT hold the value. This is the regression.
+    blocked(ch.check_choice(choice(), [cond("KEYS", "EXPLORER", "River", "!=")], held),
+            ch.CONDITION_KEYS_NOT_MET)
+    assert ch.check_choice(choice(), [cond("KEYS", "EXPLORER", "Lake", "!=")],
+                           held) == (True, None)
+
+
 def test_keys_conditions():
     assert ch.check_choice(choice(), [cond("KEYS", "gate", "OPEN", "=")],
-                           cctx(registry={"gate": "OPEN"})) == (True, None)
+                           cctx(registry={"gate": ["OPEN"]})) == (True, None)
     blocked(ch.check_choice(choice(), [cond("KEYS", "gate", "OPEN", "=")],
-                            cctx(registry={"gate": "SHUT"})), ch.CONDITION_KEYS_NOT_MET)
+                            cctx(registry={"gate": ["SHUT"]})), ch.CONDITION_KEYS_NOT_MET)
     # An absent key satisfies only != — never having set the flag IS different.
     blocked(ch.check_choice(choice(), [cond("KEYS", "gate", "OPEN", "=")], cctx()),
             ch.CONDITION_KEYS_NOT_MET)
     assert ch.check_choice(choice(), [cond("KEYS", "gate", "OPEN", "!=")], cctx()) == (True, None)
     # Numeric > / < when both sides parse; anything else is never met.
-    reg = cctx(registry={"day": "5"})
+    reg = cctx(registry={"day": ["5"]})
     assert ch.check_choice(choice(), [cond("KEYS", "day", "3", ">")], reg) == (True, None)
     blocked(ch.check_choice(choice(), [cond("KEYS", "day", "3", ">")],
-                            cctx(registry={"day": "many"})), ch.CONDITION_KEYS_NOT_MET)
+                            cctx(registry={"day": ["many"]})), ch.CONDITION_KEYS_NOT_MET)
     blocked(ch.check_choice(choice(), [cond("KEYS", " ", "OPEN", "=")], cctx()),
             ch.CONDITION_KEYS_NOT_MET)
     blocked(ch.check_choice(choice(), [cond("KEYS", "gate", None, "!=")], reg),
@@ -239,7 +260,7 @@ def test_logic_operator():
             ch.CONDITION_KEYS_NOT_MET)
     assert ch.check_choice(choice(), [cond("KEYS", "gate", "OPEN", "="),
                                       cond("statistics", "int", "2", ">")],
-                           cctx(registry={"gate": "OPEN"})) == (True, None)
+                           cctx(registry={"gate": ["OPEN"]})) == (True, None)
     # OR: one passing row is enough; all failing reports the aggregate.
     c = choice(logicOperator="OR")
     assert ch.check_choice(c, [cond("KEYS", "gate", "OPEN", "="),
@@ -271,7 +292,7 @@ def test_unknown_types_and_operator_default():
                             cond("statistics", "life", "0", ">")], cctx()) == (True, None)
     # A missing operator defaults to =.
     assert ch.check_choice(choice(), [cond("KEYS", "gate", "OPEN", None)],
-                           cctx(registry={"gate": "OPEN"})) == (True, None)
+                           cctx(registry={"gate": ["OPEN"]})) == (True, None)
 
 
 # ── Step 32 lookups ─────────────────────────────────────────────────────────

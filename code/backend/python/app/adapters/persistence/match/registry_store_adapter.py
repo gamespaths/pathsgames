@@ -26,6 +26,7 @@ def _to_row(r: GamingStateRegistryEntity) -> Dict[str, Any]:
         "id_event": r.id_event,
         "id_choice": r.id_choice,
         "clock": r.clock,
+        "multi_value": r.multi_value,
     }
 
 
@@ -40,14 +41,14 @@ class RegistryStoreAdapter(RegistryStorePort):
                     .filter(GamingStateRegistryEntity.id_match == id_match).all())
             return [_to_row(r) for r in rows]
 
-    def find_by_match_and_key(self, id_match: int, key: str) -> Optional[Dict[str, Any]]:
+    def find_by_match_and_key(self, id_match: int, key: str) -> List[Dict[str, Any]]:
         if key is None:
-            return None
+            return []
         with self.session_factory() as session:
-            r = (session.query(GamingStateRegistryEntity)
-                 .filter(GamingStateRegistryEntity.id_match == id_match,
-                         GamingStateRegistryEntity.key == key).first())
-            return None if r is None else _to_row(r)
+            rows = (session.query(GamingStateRegistryEntity)
+                    .filter(GamingStateRegistryEntity.id_match == id_match,
+                            GamingStateRegistryEntity.key == key).all())
+            return [_to_row(r) for r in rows]
 
     def upsert(self, id_match: int, key: str, string_value: Optional[str],
                int_value: Optional[int], id_character: Optional[int],
@@ -61,7 +62,8 @@ class RegistryStoreAdapter(RegistryStorePort):
             if row is None:
                 row = GamingStateRegistryEntity(
                     id=self._next_id(session, id_match), id_match=id_match,
-                    uuid=str(uuid_lib.uuid4()), key=key, ts_insert=now, ts_update=now)
+                    uuid=str(uuid_lib.uuid4()), key=key, multi_value=0,
+                    ts_insert=now, ts_update=now)
                 session.add(row)
             row.string_value = string_value
             row.int_value = int_value
@@ -72,6 +74,32 @@ class RegistryStoreAdapter(RegistryStorePort):
             row.ts_update = now
             session.commit()
 
+    def insert_value(self, id_match: int, key: str, string_value: Optional[str],
+                     int_value: Optional[int], id_character: Optional[int],
+                     id_event: Optional[int], id_choice: Optional[int],
+                     clock: Optional[int]) -> None:
+        with self.session_factory() as session:
+            now = _now_iso()
+            session.add(GamingStateRegistryEntity(
+                id=self._next_id(session, id_match), id_match=id_match,
+                uuid=str(uuid_lib.uuid4()), key=key, multi_value=1,
+                string_value=string_value, int_value=int_value,
+                id_character=id_character, id_event=id_event, id_choice=id_choice,
+                clock=clock, ts_insert=now, ts_update=now))
+            session.commit()
+
+    def delete_value(self, id_match: int, key: str, string_value: Optional[str],
+                     int_value: Optional[int]) -> None:
+        with self.session_factory() as session:
+            row = (session.query(GamingStateRegistryEntity)
+                   .filter(GamingStateRegistryEntity.id_match == id_match,
+                           GamingStateRegistryEntity.key == key,
+                           GamingStateRegistryEntity.string_value == string_value,
+                           GamingStateRegistryEntity.int_value == int_value).first())
+            if row is not None:
+                session.delete(row)
+                session.commit()
+
     def insert_all(self, id_match: int, rows: List[Dict[str, Any]]) -> None:
         if not rows:
             return
@@ -81,7 +109,8 @@ class RegistryStoreAdapter(RegistryStorePort):
                 session.add(GamingStateRegistryEntity(
                     id=index, id_match=id_match, uuid=str(uuid_lib.uuid4()),
                     key=r.get("key"), string_value=r.get("string_value"),
-                    int_value=r.get("int_value"), ts_insert=now, ts_update=now))
+                    int_value=r.get("int_value"), multi_value=r.get("multi_value") or 0,
+                    ts_insert=now, ts_update=now))
             session.commit()
 
     def delete_by_match_ids(self, match_ids: List[int]) -> None:

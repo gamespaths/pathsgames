@@ -229,10 +229,13 @@ INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_d
 (90003, 9001, 212, 212, 11, 14, 7, 5, 2, 4, NULL,  90001);
 
 -- ── Keys ────────────────────────────────────────────────────────
-INSERT INTO list_keys (id, id_story, name, value, id_text_description, "group", priority, visibility) VALUES
-(90001, 9001, 'tutorial_progress', '0',     950, 'tutorial', 1, 'PUBLIC'),
-(90002, 9001, 'items_collected',   '0',     951, 'tutorial', 2, 'PUBLIC'),
-(90003, 9001, 'choice_made',       '0',     952, 'tutorial', 3, 'PUBLIC');
+-- Step 36.1: multi_value = 1 makes a key hold a SET — each write adds a member instead of
+-- replacing the value. 'evidence_found' has no default, so its set starts EMPTY: no row.
+INSERT INTO list_keys (id, id_story, name, value, id_text_description, "group", priority, visibility, multi_value) VALUES
+(90001, 9001, 'tutorial_progress', '0',     950, 'tutorial', 1, 'PUBLIC', 0),
+(90002, 9001, 'items_collected',   '0',     951, 'tutorial', 2, 'PUBLIC', 0),
+(90003, 9001, 'choice_made',       '0',     952, 'tutorial', 3, 'PUBLIC', 0),
+(90004, 9001, 'evidence_found',    NULL,    950, 'evidence', 1, 'PUBLIC', 1);
 
 -- ── Locations (8 training rooms) ────────────────────────────────
 -- Step 26: secure_param > 0 marks a SAFE location (full energy/life recovery and
@@ -565,6 +568,55 @@ INSERT INTO list_choices_effects (id, id_story, id_choices, id_card, statistics,
 -- One row, every kind of effect: a registry key, an item, a forced move to the Hidden
 -- Grove (90003, which no neighbor edge reaches), and the inactive Arcane Storm (90004).
 (90021, 9001, 90021, 90001, NULL, 0, 'STEP32_GATE', 'OPEN', 90001, 'ADD', 90003, 90004, NULL);
+
+-- ── Step 36.1 multi-value pack — the SET test-bed ───────────────
+-- Four events at the START hall (90001), every one of them FREE. A zero cost is what keeps
+-- them invisible to the Step 31/32 finders, which only ever pick a choice-event that costs
+-- something: this pack must not become the fixture those suites address by behaviour.
+--   90360 / 90361  add one member each to the multi key, and are repeatable — running one
+--                  twice must leave the set unchanged, which is the whole point of a SET.
+--   90362          is gated on evidence_found = letter, so it stays blocked until 90361 has
+--                  run: it proves = quantifies EXISTENTIALLY over the members.
+--   90363          is a choice-event whose only option TAKES ONE MEMBER AWAY — value_to_remove
+--                  on a multi key removes that member and leaves the rest, where on a single
+--                  key it still clears the value.
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location,
+                         type, cost_enery, cost_coin, flag_end_time, id_event_next,
+                         id_weather, registry_key_condition, registry_value_condition,
+                         id_item_condition, id_class_condition) VALUES
+(90360, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL,             NULL,     NULL, NULL),
+(90361, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL,             NULL,     NULL, NULL),
+(90362, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, 'evidence_found', 'letter', NULL, NULL),
+(90363, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL,             NULL,     NULL, NULL);
+
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES
+(90360, 9001, 90360, 90001, 'ONLY_ONE', 'evidence_found', 'ledger'),
+(90361, 9001, 90361, 90001, 'ONLY_ONE', 'evidence_found', 'letter');
+
+-- otherwise_flag 1 and no narrative: always selectable, and never the option the Step 32
+-- suite is looking for (it wants a narrated one).
+INSERT INTO list_choices (id, id_story, id_card, id_event, priority, id_text_name, id_text_description,
+                          id_text_narrative, id_event_torun,
+                          otherwise_flag, is_progress, logic_operator, limit_dex) VALUES
+(90360, 9001, 90001, 90363, 1, 500, 500, NULL, NULL, 1, 0, 'AND', NULL);
+
+INSERT INTO list_choices_effects (id, id_story, id_choices, id_card, key, value_to_remove) VALUES
+(90360, 9001, 90360, 90001, 'evidence_found', 'ledger');
+
+-- v0.36.1 — the same event carries a SECOND option, gated on the multi key with !=, so one
+-- open shows both readings at once: the option is offered while the set does not hold the
+-- value and refused once it does. otherwise_flag 0 (a real verdict) and an effect of its own,
+-- which R4_CHOICE_EMPTY requires of any option that is not the fallback.
+INSERT INTO list_choices (id, id_story, id_card, id_event, priority, id_text_name, id_text_description,
+                          id_text_narrative, id_event_torun,
+                          otherwise_flag, is_progress, logic_operator, limit_dex) VALUES
+(90361, 9001, 90001, 90363, 2, 500, 500, NULL, NULL, 0, 0, 'AND', NULL);
+
+INSERT INTO list_choices_conditions (id, id_story, id_choices, type, key, value, operator) VALUES
+(90360, 9001, 90361, 'KEYS', 'evidence_found', 'ledger', '!=');
+
+INSERT INTO list_choices_effects (id, id_story, id_choices, id_card, statistics, value) VALUES
+(90361, 9001, 90361, 90001, 'exp', 1);
 
 -- ── Global Random Events ────────────────────────────────────────
 INSERT INTO list_global_random_events (id, id_story, condition_key, condition_value, probability) VALUES

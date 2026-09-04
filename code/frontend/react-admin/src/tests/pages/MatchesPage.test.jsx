@@ -50,7 +50,7 @@ const MOCK_INFO = {
   match: MOCK_MATCHES[0],
   currentLocationId: 10, currentLocationUuid: 'loc-1',
   locations: [{ idLocation: 10, uuid: 'loc-1', flagAlreadyActived: 0, clockCounter: 3 }],
-  registry: [{ uuid: 'r1', key: 'act_1_done', intValue: 0, stringValue: null }],
+  registry: [{ uuid: 'r1', key: 'act_1_done', values: ['0'], multiValue: false }],
   events: [], choices: [],
 }
 

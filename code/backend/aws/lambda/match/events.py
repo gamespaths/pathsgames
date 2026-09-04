@@ -451,9 +451,17 @@ def apply_location(match, char, effect, location_uuids, changes, ts):
 
 
 def apply_registry(match, key, value, changes, id_character=None, id_event=None,
-                   id_choice=None, clock=None, character_uuid=None, timestamp=None):
+                   id_choice=None, clock=None, character_uuid=None, timestamp=None,
+                   story=None):
     """Step 36 — kept as the name every caller already uses; the work is the registry's own."""
     return _registry.upsert(match, key, value, changes, id_character, id_event, id_choice,
+                            clock, character_uuid, timestamp, story)
+
+
+def remove_registry(match, key, value, changes, id_character=None, id_event=None,
+                    id_choice=None, clock=None, character_uuid=None, timestamp=None):
+    """Step 36.1 — taking a value away is its own call, not a write of None."""
+    return _registry.remove(match, key, value, changes, id_character, id_event, id_choice,
                             clock, character_uuid, timestamp)
 
 

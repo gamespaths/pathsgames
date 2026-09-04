@@ -372,7 +372,7 @@ class EventExecutionServiceAutomaticTest {
 
             assertEquals(1, fired.size());
             // idCharacter null: the world changed, but around no one.
-            verify(registryService).upsert(eq(MATCH_ID), eq("DOOR_OPEN"), eq("YES"), eq(null),
+            verify(registryService).upsert(eq(MATCH_ID), any(), eq("DOOR_OPEN"), eq("YES"), eq(null),
                     any(), eq(null), any());
             verify(store, never()).updateCharacterStats(anyLong(), anyLong(), any());
         }

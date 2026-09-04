@@ -425,13 +425,17 @@ components:
           format: uuid
         key:
           type: string
-        stringValue:
-          type: string
-          nullable: true
-        intValue:
-          type: integer
-          format: int32
-          nullable: true
+        values:
+          type: array
+          description: >-
+            Step 36.1 — the SET of values the key holds, ordered by the backend (numbers
+            numerically first, then the rest alphabetically). One member for a single-valued
+            key, several for a multi-valued one, none for a key whose set is empty.
+          items:
+            type: string
+        multiValue:
+          type: boolean
+          description: True when the key accumulates values instead of replacing them.
 
     EventOption:
       type: object

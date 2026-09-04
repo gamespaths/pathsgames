@@ -667,6 +667,16 @@ class EventExecutionServiceEffectsTest {
     @DisplayName("Registry")
     class Registry {
 
+        /** The service hands back the set it just wrote; the mock stands in for that set. */
+        @org.junit.jupiter.api.BeforeEach
+        void writeEchoesTheValue() {
+            when(registryService.upsert(anyLong(), any(), any(), any(), any(), any(), any(), any()))
+                    .thenAnswer(inv -> {
+                        String written = inv.getArgument(3);
+                        return written == null ? java.util.List.of() : java.util.List.of(written);
+                    });
+        }
+
         @Test
         @DisplayName("A key is upserted once, by the actor, and reported with its old value")
         void upsert() {
@@ -678,7 +688,8 @@ class EventExecutionServiceEffectsTest {
 
             EventExecutionResult r = execute();
 
-            verify(registryService, times(1)).upsert(MATCH_ID, "GATE", "OPEN", CHAR_ID, 1L, null, 7);
+            verify(registryService, times(1)).upsert(eq(MATCH_ID), any(), eq("GATE"), eq("OPEN"),
+                    eq(CHAR_ID), eq(1L), eq(null), eq(7));
             assertEquals(1, r.registryChanges().size());
             assertNull(r.registryChanges().get(0).oldValue());
             assertEquals("OPEN", r.registryChanges().get(0).newValue());

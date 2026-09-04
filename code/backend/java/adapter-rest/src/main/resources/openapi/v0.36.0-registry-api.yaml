@@ -33,16 +33,31 @@ info:
 
     ## Values
 
-    A value lives in exactly one of two columns and never both: a numeric value goes to
-    `intValue`, anything else to `stringValue`. Both are returned as they are stored, so a
-    client can tell `"0"` from `0`. Booleans are integers by convention — `0` is no, anything
-    else is yes.
+    A key holds a SET of values, returned as `values`. Step 36.1 made the set the shape every
+    key answers with: a single-valued key has one member, a multi-valued one may have many, and
+    a key whose set is empty has none. Members are rendered strings — a numeric value is stored
+    apart from a textual one, but both read back the same way, and booleans are integers by
+    convention (`0` is no, anything else is yes).
+
+    `multiValue` says which kind the key is. A multi-valued key ACCUMULATES: each write adds a
+    member, writing a member it already holds changes nothing, and `value_to_remove` takes one
+    member away instead of clearing the key. A single-valued key replaces, exactly as before.
+    The kind is declared per key on `list_keys.multi_value` and mirrored onto the state row when
+    the match first writes it, so a running match keeps the behaviour it was born with.
+
+    ## Conditions over a set
+
+    `=` and `!=` quantify existentially: `=` is met when ANY member equals the value, `!=` when
+    NONE does. `>` and `<` quantify universally: met when EVERY member compares that way, and
+    never over an empty set — vacuous truth would open a door, and a typo must close one.
 
     ## Ordering
 
     Entries are sorted by category, then by the key's `priority`, then by key name. Groups come
-    out in the order their first entry appears, so the ordering is stable across calls.
-  version: 0.36.0
+    out in the order their first entry appears, so the ordering is stable across calls. Inside
+    an entry the members are ordered by the backend: numbers numerically first, then everything
+    else alphabetically, so every client renders the same set the same way.
+  version: 0.36.1
 servers:
   - url: http://localhost:8042
     description: Local development (public/player API)
@@ -86,15 +101,15 @@ paths:
                 $ref: '#/components/schemas/MatchRegistryResponse'
               examples:
                 tutorial:
-                  summary: Two categories, one of them holding a numeric counter
+                  summary: A numeric counter, and a multi-valued key holding three clues
                   value:
                     groups:
                       - category: tutorial
                         entries:
                           - uuid: 3f2b1c4d-1111-4a7b-8c9d-0e1f2a3b4c5d
                             key: tutorial_progress
-                            stringValue: null
-                            intValue: 3
+                            values: ["3"]
+                            multiValue: false
                             idCharacter: 12
                             category: tutorial
                             visible: true
@@ -107,8 +122,8 @@ paths:
                         entries:
                           - uuid: 7a8b9c0d-2222-4a7b-8c9d-0e1f2a3b4c5d
                             key: monastery_records
-                            stringValue: null
-                            intValue: 0
+                            values: ["ledger", "letter", "seal"]
+                            multiValue: true
                             idCharacter: null
                             category: evidence
                             visible: true
@@ -161,14 +176,16 @@ components:
           description: Uuid of the `gaming_state_registry` row.
         key:
           type: string
-        stringValue:
-          type: string
-          nullable: true
-          description: Set when the value is not numeric; null otherwise.
-        intValue:
-          type: integer
-          nullable: true
-          description: Set when the value is numeric; null otherwise. Booleans use 0/non-zero.
+        values:
+          type: array
+          description: >-
+            The SET of values the key holds, ordered by the backend. One member for a
+            single-valued key, several for a multi-valued one, none when the set is empty.
+          items:
+            type: string
+        multiValue:
+          type: boolean
+          description: True when the key accumulates values instead of replacing them.
         idCharacter:
           type: integer
           format: int64

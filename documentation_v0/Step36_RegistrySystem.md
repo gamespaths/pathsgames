@@ -38,31 +38,36 @@ public static String render(String stringValue, Integer intValue) { ... }
 // never both. Trimmed in both branches, so what an author types is what a condition reads.
 public static RegistryRow parse(String key, String value) { ... }
 
-// The one registry comparison. = and != are textual, > and < need both sides numeric.
-// A null expected value, an unparseable operand or an unknown operator is NOT met.
-// An absent key satisfies only !=.
-public static boolean evaluate(String operator, String expected, String actual) { ... }
+// The one registry comparison, over the SET of values a key holds (Step 36.1 generalised it):
+// = is ∃ (any member equals the value), != is ∄ (no member does, so an absent key still
+// satisfies it), > and < are ∀ (EVERY member compares that way) and are never met over an
+// empty set — vacuous truth would open a door, and a typo must close one. On a one-element
+// set every reading below is the equality or comparison it always was.
+public static boolean evaluate(String operator, String expected, Collection<String> actual) { ... }
 ```
 
 `render`/`parse` are exact inverses — trimmed in both branches, which is the seeding behaviour
-that won over the write-side parsers it replaced. `evaluate` is reused, unchanged, by
-`EventAvailabilityChecker` (event conditions), `MovementService` (edge conditions),
+that won over the write-side parsers it replaced. `evaluate` is reused, unchanged in who calls
+it, by `EventAvailabilityChecker` (event conditions), `MovementService` (edge conditions),
 `WeatherSelectionService` (weather rule conditions) and `ChoiceAvailabilityChecker` (choice
-conditions, which already had the widest vocabulary and lost nothing by delegating to it).
+conditions, which already had the widest vocabulary and lost nothing by delegating to it) —
+Step 36.1 widened what it compares against, not who calls it or with what operator.
 Java, Python and AWS carry the identical three functions — the AWS module's own docstring says
 it plainly: "Mirrors the Java `RegistryService` and the Python `registry_service`."
 
 | Operator | Meaning |
 |---|---|
-| `=` (default) | Textual equality. A `null`/blank operator column reads as `=`. |
-| `!=` | Textual inequality — the **only** operator an absent key can satisfy. |
-| `>` / `<` | Numeric only; either side failing to parse as an integer makes the condition **not met**, never an error. |
+| `=` (default) | ∃ — met when ANY member of the key's set equals the value. A `null`/blank operator column reads as `=`. |
+| `!=` | ∄ — met when NO member equals the value; the **only** operator an absent key (an empty set) can satisfy. |
+| `>` / `<` | ∀ — met when EVERY member compares that way numerically, and never over an empty set; a member failing to parse as an integer makes the whole condition **not met**, never an error. |
 
 A **null expected value is never met**, regardless of operator — "a typo must lock a door,
 never open one" is the comment on all three backends. A **blank condition key** means "no
 condition at all" (`RegistryService.noCondition(key)` / `no_condition`), which is a different
 thing from a key with no expected value; the former short-circuits to *always available*, the
-latter to *never met*.
+latter to *never met*. On a single-valued key — still the overwhelming majority — the set has
+at most one member, so every one of these readings collapses to the equality or comparison it
+always was; that is why Step 36.1 changed no authored story's meaning (§7.2).
 
 ## 2. `GET /api/match/{uuidMatch}/registry`
 
@@ -70,11 +75,12 @@ latter to *never met*.
 |---|---|---|
 | GET | `/api/match/{uuidMatch}/registry` | the caller's match registry, grouped by category |
 
-New OpenAPI spec:
-[`v0.36.0-registry-api.yaml`](../code/backend/java/adapter-rest/src/main/resources/openapi/v0.36.0-registry-api.yaml).
-Owner-only, like `/info`: any other caller — including a match that genuinely does not exist —
-gets `404 MATCH_NOT_FOUND`, never `403`, so a match nobody may see is indistinguishable from
-one that is not there.
+OpenAPI spec:
+[`v0.36.0-registry-api.yaml`](../code/backend/java/adapter-rest/src/main/resources/openapi/v0.36.0-registry-api.yaml)
+— the filename stayed, the `version:` field inside it is `0.36.1` since the multi-value payload
+change (§3) is documented there. Owner-only, like `/info`: any other caller — including a match
+that genuinely does not exist — gets `404 MATCH_NOT_FOUND`, never `403`, so a match nobody may
+see is indistinguishable from one that is not there.
 
 ```jsonc
 {
@@ -83,14 +89,29 @@ one that is not there.
       "category": "tutorial",
       "entries": [
         { "uuid": "3f2b1c4d-…", "key": "tutorial_progress",
-          "stringValue": null, "intValue": 3,
+          "values": ["3"], "multiValue": false,
           "idCharacter": 12, "category": "tutorial", "visible": true,
           "priority": 1, "idCard": 950, "card": { "title": "Training progress", "...": "..." } }
+      ]
+    },
+    {
+      "category": "evidence",
+      "entries": [
+        { "uuid": "7a8b9c0d-…", "key": "monastery_records",
+          "values": ["ledger", "letter", "seal"], "multiValue": true,
+          "idCharacter": null, "category": "evidence", "visible": true,
+          "priority": 1, "idCard": null, "card": null }
       ]
     }
   ]
 }
 ```
+
+`values` and `multiValue` are Step 36.1: they replace `stringValue`/`intValue` on this payload
+and on `/info`'s `registry[]` (§8). `values` is the SET of rendered strings the key holds,
+ordered by the backend (§3); a single-valued key's set has at most one member, a multi-valued
+one's may have many, and an empty array is a key with no members at all, not a key that is
+missing.
 
 Query parameters:
 
@@ -101,9 +122,21 @@ Query parameters:
 
 ## 3. Values, visibility, ordering
 
-**Values.** A row's value lives in exactly one of `stringValue`/`intValue`, never both, so a
-client can tell `"0"` from `0`. Booleans are integers by convention: `0` is no, anything else
-is yes — see §5 for the sweep that made this actually true across the story schema.
+**Values.** Step 36.1 replaced the one-row-one-value shape with one entry per **key**, holding
+the whole SET of values it has. `values` is the array of rendered strings (§1's `render`,
+applied per row); `multiValue` says whether the key accumulates. A single-valued key's set has
+at most one member and reads exactly as the old `stringValue`/`intValue` pair did — those two
+fields are gone from both payloads, though they remain the storage columns underneath (§6). A
+multi-valued key's set can hold many members, and an **empty set (`values: []`) is the absence
+of rows, not a row holding nothing**. Booleans are integers by convention: `0` is no, anything
+else is yes — see §5 for the sweep that made this actually true across the story schema.
+
+**One entry per key, the union of story and match.** `listEntries` starts from every key the
+story declares, adds every key the match's rows actually name, and builds one entry per name —
+so a key whose members were all removed, or one the story added after the match began, still
+gets an entry, just with an empty `values`. `uuid` and `idCharacter` on that entry come from the
+LAST row written, which on a multi key means "who last touched this key at all," not who wrote
+any one member.
 
 **Visibility.** A key is visible when `list_keys.visibility` is `PUBLIC`; anything else hides
 it. The column is free text with no enum, deliberately: a typo hides a key rather than leaking
@@ -113,10 +146,13 @@ caller asks — there is no `includeHidden` on that path at all.
 
 **Ordering.** Entries sort by category, then by the key's `priority`, then by key name. Groups
 come out in the order their first entry appears (`LinkedHashMap` on java, an ordered dict on
-python), so the grouping is stable across calls without a second sort pass.
+python), so the grouping is stable across calls without a second sort pass. Inside an entry, the
+members of `values` are ordered by the backend too (`RegistryService.ordered`): numbers
+numerically first, then everything else alphabetically, so every client renders the same set
+the same way without sorting it itself.
 
-**A row whose key the story no longer declares is kept but reads as hidden.** It is state the
-engine wrote; dropping it silently would hide a bug rather than a key.
+**A key whose story definition is gone is kept but reads as hidden.** It is state the engine
+wrote; dropping it silently would hide a bug rather than a key.
 
 ## 4. `list_registry_keys` does not exist — `list_keys` does
 
@@ -145,7 +181,9 @@ door needed all along and all the engine callers keep using.
 Before this step, `=` was the only comparison a registry condition could express anywhere but
 `list_choices_conditions`, which already carried `operator` (`=`/`!=`/`>`/`<`) and was the
 widest vocabulary in the project. Step 36 widens the other three condition owners to match, by
-reusing that vocabulary rather than inventing a second one:
+reusing that vocabulary rather than inventing a second one. Step 36.1 later changed what these
+four operators compare *against* — the whole set a key holds, not one row — without touching
+this column, its vocabulary, or any of its callers at all (§1):
 
 ```sql
 -- V0.36.0__registry_operator_conditions.sql (SQLite and PostgreSQL)
@@ -224,16 +262,67 @@ always *assumed* one row per `(id_match, key)`, but nothing enforced it, and the
 validator does not reject two `list_keys` rows sharing a name. The dedup delete runs first so
 the index creation cannot fail against pre-existing duplicates on an upgrading database.
 
+### 6.1 V0.36.1 — a key may hold a SET, the mirror, two partial indexes
+
+```sql
+-- V0.36.1__registry_multi_value.sql (SQLite and PostgreSQL)
+ALTER TABLE list_keys              ADD COLUMN multi_value INTEGER DEFAULT 0; -- the declaration
+ALTER TABLE gaming_state_registry  ADD COLUMN multi_value INTEGER DEFAULT 0; -- the mirror
+
+DROP INDEX IF EXISTS idx_state_reg_key;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_state_reg_key_single
+    ON gaming_state_registry(id_match, key) WHERE multi_value = 0;
+
+-- One row per DISTINCT value. The expression is literally RegistryService.render — the string
+-- wins, else the int — so '1' and 1 are the same member. KEEP IN SYNC WITH render(): if one
+-- changes, the other must.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_state_reg_key_multi
+    ON gaming_state_registry(id_match, key, COALESCE(string_value, CAST(int_value AS TEXT)))
+    WHERE multi_value = 1;
+```
+
+`list_keys.multi_value` is the author's declaration; `gaming_state_registry.multi_value` is a
+**mirror** of it, copied onto the state row the first time a match writes the key and never
+reconciled afterwards — a match already in progress keeps the behaviour it was born with even
+if the author flips the flag on the story later. The single `idx_state_reg_key` from V0.36.0
+cannot serve both kinds at once, so it is dropped and replaced by two **partial** indexes:
+`idx_state_reg_key_single` keeps the V0.36.0 invariant (one row per key) for `multi_value = 0`
+rows, and `idx_state_reg_key_multi` keeps one row per DISTINCT value for `multi_value = 1` rows.
+The multi index is built on the **rendered expression**, not the two raw columns, because
+PostgreSQL treats NULLs as distinct in a unique index and exactly one of `string_value`/
+`int_value` is always null — indexing the columns directly would let every duplicate through.
+That expression is `render` (§1) written in SQL, which is why the migration carries a
+`KEEP IN SYNC` comment: change one and the other silently stops matching it.
+
+**A key holds one row per DISTINCT value; an empty set is the absence of rows, not a row
+holding nothing.** Nothing needed migrating for this: a multi key that has never been written
+simply has no rows yet, on an upgraded database exactly as on a fresh one.
+
 ## 7. One writer, one audit row
 
-Every write — engine, event effect, choice effect — now goes through
-`RegistryService.upsert(idMatch, key, value, idCharacter, idEvent, idChoice, clock)`, which
-reads the previous value, writes the new one, and appends exactly one
+Every write — engine, event effect, choice effect — goes through
+`RegistryService.upsert(idMatch, idStory, key, value, idCharacter, idEvent, idChoice, clock)`
+(gained `idStory` in Step 36.1, to resolve a never-written multi key's declaration — §7.2), and
+every removal through the sibling `remove(idMatch, key, value, idCharacter, idEvent, idChoice,
+clock)`. Both now RETURN the resulting SET rather than `void`, and both append **at most** one
 `log_events`/`eventLog` row:
 
 ```
-REGISTRY_CHANGE <key> <old> -> <new>
+REGISTRY_CHANGE <key> <old> -> <new>        -- a single key
+REGISTRY_CHANGE <key> +<member>             -- a multi key, a member added
+REGISTRY_CHANGE <key> -<member>             -- a multi key, a member removed
 ```
+
+**A refused write leaves no trace in the log — new in Step 36.1.** Before this step even a
+no-op (`old == new`) still emitted a `REGISTRY_CHANGE` row; now `upsert`/`remove` compare the
+SET they return against the SET they started from and log only when it actually differs. A
+duplicate member on a multi key, or a `value_to_remove` naming a value the key does not hold,
+changes nothing, so it reports nothing — the log is a history of changes, not of write
+attempts. `EventExecutionService.applyRegistryEffect` (event effects) and
+`applyChoiceRegistryEffect` (choice effects) both guard the same comparison
+(`if (!after.equals(before))`) before adding a `RegistryChange` to the response — one doctrine,
+enforced identically at both call sites of the same class.
 
 `RegistryService.MSG_REGISTRY_CHANGE` is the prefix `MatchLogsService` now recognises as its
 own log type, `REGISTRY_CHANGE`, surfaced on `GET /api/matches/{uuidMatch}/logs` — the
@@ -247,7 +336,10 @@ diverge from the first.
 
 **Seeding a match writes no `REGISTRY_CHANGE` rows.** `RegistryService.seed(idMatch, keys)`
 calls `store.insertAll` directly, bypassing `upsert` and its logging entirely: a default is not
-a change, and a brand-new match's log history starts empty.
+a change, and a brand-new match's log history starts empty. A **MULTI** key with no authored
+default seeds **no row at all** — its set starts empty, consistent with §6.1's rule that an
+empty set is the absence of rows, not a row holding nothing — and every row seeding does write
+carries the `multi_value` mirror that will govern how this match writes that key from here on.
 
 ### 7.1 What the provenance columns mean
 
@@ -257,20 +349,34 @@ row therefore carries a null `id_character` until something writes it, and every
 overwrites the stamp rather than appending to it: the registry is state, not a history, and the
 history is what `REGISTRY_CHANGE` is for. `id_character` is the actor who executed the event or
 chose the option, never the recipient of its effects — a registry key is match-scoped, so an
-effect targeting every character still writes one row, stamped once, by the one who acted.
+effect targeting every character still writes one row, stamped once, by the one who acted. On a
+multi key the stamp is per KEY, not per member (§3): it says who last touched the key at all.
 
-### 7.2 A key effect SETS a value, it does not add to one
+### 7.2 A key effect SETS a value on a single key — a multi key ACCUMULATES
+
+*(Corrected for Step 36.1 — a single key still works exactly as this section always said; a
+multi key does not.)*
 
 The effect columns are named `key_to_add` / `key_value_to_add` (events) and
-`key` / `value_to_add` / `value_to_remove` (choices), and the verb "add" there means *add a
-key/value pair to the registry* — **not** increment. `value` replaces whatever the key held,
-whether the column in play ends up being `string_value` or `int_value`; there is no `+1`/`-1`
-arithmetic anywhere in the write path. A story that wants a counter to climb authors one effect
-per value it should reach, or drives the arithmetic from the event chain.
+`key` / `value_to_add` / `value_to_remove` (choices), and the verb "add" there has always meant
+*add a key/value pair to the registry*, never arithmetic increment — there is no `+1`/`-1`
+anywhere in the write path. What "add" resolves to now depends on the key's kind (§6.1):
 
-`value_to_remove` on a choice effect is the one conditional write: it clears the key only when
-the stored value still equals it, so an option cannot wipe a key some other branch of the story
-has since moved on. `value_to_add` wins whenever both are set.
+- **Single key** (unchanged since Step 36.0): `value_to_add` REPLACES whatever the key held,
+  whether the column in play ends up being `string_value` or `int_value`. A story that wants a
+  counter to climb still authors one effect per value it should reach, or drives the arithmetic
+  from the event chain.
+- **Multi key** (new in Step 36.1): `value_to_add` JOINS the set — it adds that member
+  alongside whatever the key already holds. Adding a member the key already has changes nothing
+  and logs nothing (§7).
+
+`value_to_remove` on a choice effect is still the one conditional write, but what it clears now
+depends on the same kind: on a single key it is the compare-and-clear it has always been — it
+clears the key only when the stored value still equals it, so an option cannot wipe a value
+some other branch of the story has since moved on. On a multi key it takes **that one member**
+away and leaves the rest; removing the last member leaves the key with an empty set, not a row
+deleted out from under it — the row goes, the key does not (§6.1). `value_to_add` wins whenever
+both are set, on either kind.
 
 ## 8. `/info` gains the same six fields, deliberately duplicated
 
@@ -282,6 +388,12 @@ are built from the same `RegistryService.listEntries` call, can never disagree w
 dedicated endpoint would answer. `/info`'s registry list is always built with
 `includeHidden=false` — there is no way to ask `/info` for hidden keys; that door only exists
 on `/registry` itself.
+
+Step 36.1's payload change (§2-§3) lands here identically: `registry[]` entries on `/info`
+carry `values`/`multiValue` instead of `stringValue`/`intValue` too, precisely because both
+payloads are built from that one shared call — there was never a second shape to update.
+`v0.19.0-match-creation-api.yaml`'s `RegistryEntry` schema was updated alongside the dedicated
+`v0.36.0-registry-api.yaml` spec so the two documents describe the one shape identically.
 
 ## 9. Five bugs fixed in passing
 
@@ -349,6 +461,14 @@ a new branch in `lambda_handler`'s dispatcher — without the route, API Gateway
 lambda runs at all, the same class of gap every other AWS endpoint addition in this project has
 had to close.
 
+**Step 36.1** widened the module the same way it widened Java: `rows_in(match, key)` /
+`values_in(match, key)` replace the old single-row lookup over the embedded list,
+`upsert(match, key, value, changes, ..., story=None)` gained the optional `story` argument that
+resolves a never-written key's declaration exactly like Java's `idStory`, and a new
+`remove(match, key, value, changes, ...)` mirrors `RegistryService.remove` over the same list.
+The rules are identical to Java's (§1, §6.1, §7.2) — only the storage shape (an embedded list,
+not a table with two partial indexes) differs.
+
 ### Python
 
 `RegistryService` mirrors the Java class field-for-field, wrapping a `store` port plus optional
@@ -363,6 +483,13 @@ grouped snake_case model into the OpenAPI shape. `KeyEntity.priority`,
 `EventEntity.registry_value_operator_condition` are new SQLAlchemy columns; no Flyway migration
 exists on this backend, so `align_schema()` (`app/adapters/persistence/database.py`) is what a
 running dev database actually gets — see §9.3.
+
+**Step 36.1** added `KeyEntity.multi_value` and the matching mirror column on the state-row
+model, the same pair Java's `V0.36.1__registry_multi_value.sql` adds (§6.1); the store gained
+`insert_value`/`delete_value` and its `find_by_match_and_key` now returns a LIST, so
+`registry_service.py`'s `upsert`/`remove` stay the same algorithm as Java's, field for field
+(§1, §7.2). `align_schema()` is again what actually lands the two new columns on a running dev
+database — the same mechanism §9's third bug fix already relied on.
 
 ## 11. Frontend — react-game
 
@@ -380,7 +507,12 @@ A new **Registry** section, built as the backpack's structural twin (Step 34's `
   same reading-page preview `ItemCard` uses, through `onPreview`.
 - `utils/registry.js` — `registryValue`, `visibleRegistry`, `groupRegistry`: the same
   render/sort rule the backend uses (string wins, else int, else nothing; category → priority →
-  key), so the frontend can never present the entries in an order the backend did not.
+  key), so the frontend can never present the entries in an order the backend did not. **Step
+  36.1** adds `registryValues(entry)`, returning the raw `values` array a multi-valued entry
+  carries, beside `registryValue(entry)`, which keeps doing what display needs: the members
+  joined for one line of text, `null` on an empty set — so `RegistryKeyCard.jsx` did not have
+  to change to keep working on a multi key, it just shows a comma-joined badge instead of a
+  single value.
 - `useBookView.js` gains a `'registry'` view alongside `'board' | 'info' | 'items' | 'map'`, and
   `openRegistry`/`onOpenRegistry`/`onCloseRegistry` are threaded through `GameBook.jsx` →
   `PageLeft`/`PageRight`/`PageRightInfo`/`PageRightMain`, mirroring the items wiring exactly.
@@ -404,8 +536,17 @@ has used since Step 31, so no second operator vocabulary was authored for the ad
 
 The admin match-detail page already had a `RegistryCard.jsx`
 (`code/frontend/react-admin/src/components/match/detail/`) showing the raw
-key/string-value/int-value table — it has carried that since `v0.28.0` and Step 36 leaves it
-untouched; it is unrelated to the new `react-game` component of the same name.
+key/string-value/int-value table — it carried that from `v0.28.0` through Step 36.0
+untouched. **Step 36.1** replaces those two columns with **Values** (the set, joined for
+display) and **Multi** (a badge for `multiValue`), in both `RegistryCard.jsx` and
+`MatchDetailModal`, because `stringValue`/`intValue` no longer exist on the payload (§3) — the
+raw pair simply is not there to show anymore. It remains unrelated to the `react-game`
+component of the same name.
+
+The story key editor (`list_keys`, also in `storiesEntities.jsx`) gained a **Multi Value**
+checkbox — `multiValue`, a checkbox input in the form and a boolean column in the list —
+authoring `list_keys.multi_value` (§6.1) directly. Story import/export carries `multiValue` on
+keys the same way, on all three backends.
 
 ## 13. Test coverage
 
@@ -430,30 +571,49 @@ write and none at seeding, and owner-only 404 masking.
 1032, react-admin 662. Robot: 614/614 against a local java server, and 614/614 against python.
 AWS Robot was deliberately not run this pass.
 
+**Step 36.1** added dedicated coverage for the SET semantics: java `RegistryService` 99.5%
+lines / 95.5% branches, `RegistryStoreAdapter` 100%/100%; python 99% lines / 100% branches; AWS
+`registry.py` 99%.
+
+New Robot suite `code/tests/robot/tests/36_registry/registry_multi_value.robot` (9 tests, tags
+`registry` + `step36`): an empty set on a fresh match, two writes leaving both members, a
+duplicate add changing and reporting nothing, `=` satisfied by any member, `value_to_remove`
+taking one member and leaving the rest, an emptied key keeping its entry, a removal of a member
+never held being a no-op, the response reporting the whole set as `newValue`, and `/info`
+agreeing with `/registry`. The existing `registry.robot` was updated to the new `values`/
+`multiValue` payload shape and gained a set-shape case, growing from 10 cases to 11.
+
+All four seeds now ship a multi-value test-bed on the tutorial story: key `evidence_found`
+(group `evidence`, `PUBLIC`, no default — an empty set), two FREE events each adding one
+member, one event gated on a member being present, and one choice-event whose only option
+removes a member. Every one of those events costs **zero** energy on purpose, so the Step 31/32
+fixture finders — which only pick a choice-event with a positive cost — can never latch onto it
+by accident.
+
 ## 14. Scope of change
 
 | Layer | Path |
 |---|---|
-| Migration | `adapter-{sqlite,postgres}/src/main/resources/db/migration/v0/V0.36.0__registry_operator_conditions.sql` — `registry_value_operator_condition` on `list_events`, `list_locations_neighbors`, `list_weather_rules`; dedup + `UNIQUE INDEX idx_state_reg_key ON gaming_state_registry(id_match, key)` |
-| Entities (Java) | `EventEntity`, `LocationNeighborEntity`, `WeatherRuleEntity` gain `registryValueOperatorCondition` |
-| Engine (Java) | `core/service/match/RegistryService.java` (new); `MovementService`, `WeatherSelectionService`, `ChoiceAvailabilityChecker`, `EventAvailabilityChecker`, `EventExecutionService.applyRegistryEffect`/choice-effect write, `MatchCommandService.createMatch` (seeding), `MatchQueryService` (`/info` + `getMatchRegistry`), `MatchLogsService` (`REGISTRY_CHANGE` type) all updated to call it |
-| Ports/persistence (Java) | `core/port/match/RegistryStorePort.java` (new); `core/persistence/match/RegistryStoreAdapter.java` (new); `GamingStateRegistryRepository.findByIdMatchAndKey` (new) |
-| Model (Java) | `core/model/match/MatchRegistryEntry.java` (extended: `idCharacter`/`category`/`visible`/`priority`/`idCard`/`card`), `MatchRegistryGroup.java` (new) |
-| REST (Java) | `adapter-rest/.../controller/match/RegistryController.java` (new); `MatchRegistryResponse` (new DTO); `MatchInfoResponse.RegistryEntryDto` extended (same six fields) |
+| Migration | `adapter-{sqlite,postgres}/src/main/resources/db/migration/v0/V0.36.0__registry_operator_conditions.sql` — `registry_value_operator_condition` on `list_events`, `list_locations_neighbors`, `list_weather_rules`; dedup + `UNIQUE INDEX idx_state_reg_key ON gaming_state_registry(id_match, key)`. **Step 36.1**: `V0.36.1__registry_multi_value.sql` — `multi_value` on `list_keys` and `gaming_state_registry`; `idx_state_reg_key` split into `idx_state_reg_key_single`/`idx_state_reg_key_multi` (§6.1) |
+| Entities (Java) | `EventEntity`, `LocationNeighborEntity`, `WeatherRuleEntity` gain `registryValueOperatorCondition`. **36.1**: `KeyEntity.multiValue` |
+| Engine (Java) | `core/service/match/RegistryService.java` (new); `MovementService`, `WeatherSelectionService`, `ChoiceAvailabilityChecker`, `EventAvailabilityChecker`, `EventExecutionService.applyRegistryEffect`/choice-effect write, `MatchCommandService.createMatch` (seeding), `MatchQueryService` (`/info` + `getMatchRegistry`), `MatchLogsService` (`REGISTRY_CHANGE` type) all updated to call it. **36.1**: `evaluate`/`upsert`/`remove`/`ordered` widened to sets (§1, §7, §7.2); `applyChoiceRegistryEffect` now also calls `remove` |
+| Ports/persistence (Java) | `core/port/match/RegistryStorePort.java` (new); `core/persistence/match/RegistryStoreAdapter.java` (new); `GamingStateRegistryRepository.findByIdMatchAndKey` (new). **36.1**: `findByMatchAndKey` returns a LIST; `insertValue`/`deleteValue` added |
+| Model (Java) | `core/model/match/MatchRegistryEntry.java` (extended: `idCharacter`/`category`/`visible`/`priority`/`idCard`/`card`), `MatchRegistryGroup.java` (new). **36.1**: `MatchRegistryEntry` gains `values`/`multiValue`, drops the row-shaped fields |
+| REST (Java) | `adapter-rest/.../controller/match/RegistryController.java` (new); `MatchRegistryResponse` (new DTO); `MatchInfoResponse.RegistryEntryDto` extended (same six fields). **36.1**: both DTOs' `stringValue`/`intValue` replaced by `values`/`multiValue` |
 | Wiring (Java) | `ms-launcher/.../config/CoreConfig.java` — new `registryService` bean; `MatchCommandPort`, `MatchQueryPort`, `WeatherSelectionService` beans gain the `RegistryService` dependency |
-| OpenAPI | `v0.36.0-registry-api.yaml` (new); `v0.28.7-match-logs-api.yaml` updated (`REGISTRY_CHANGE` documented, no longer a future addition) |
-| Authoring (Java) | `StoryCrudService`, `StoryImportService` — `registryValueOperatorCondition` round-trips on events, edges, weather rules |
-| Engine (Python) | `app/core/services/match/registry_service.py` (new); `choice_availability.py`, `event_availability.py`, `movement_service.py`, `weather_selection_service.py`, `event_service.py`, `match_command_service.py`, `match_logs_service.py`, `match_query_service.py` updated |
-| Ports/persistence (Python) | `app/core/ports/match/registry_ports.py` (new); `app/adapters/persistence/match/registry_store_adapter.py` (new); `story_match_read_adapter.find_keys_by_story_id` (vocabulary normalisation, bug §9.3) |
-| REST (Python) | `app/adapters/rest/match/match_controller.py` — new route + `_registry_to_camel`; `/info`'s `_detail_to_camel` extended |
-| Schema (Python) | `app/adapters/persistence/story/models.py` — `KeyEntity.priority`; `registry_value_operator_condition` on `LocationNeighborEntity`/`WeatherRuleEntity`/`EventEntity`; `database.py` `align_schema()` drift replayer extended, `_TEXT_COLUMNS` |
-| Engine (AWS) | `lambda/match/registry.py` (new); `lambda/match/events.py` (`apply_registry` now delegates, bug §9.1); `lambda/match/handler.py` (`_edge_condition_met` consolidation — bug §9.2 —, `_weather_condition_matches`, `_get_match_registry`, dispatcher route) |
+| OpenAPI | `v0.36.0-registry-api.yaml` (new); `v0.28.7-match-logs-api.yaml` updated (`REGISTRY_CHANGE` documented, no longer a future addition). **36.1**: `v0.36.0-registry-api.yaml` bumped to `version: 0.36.1` (Values / Conditions-over-a-set / Ordering rewritten, §2); `v0.19.0-match-creation-api.yaml`'s `RegistryEntry` schema updated too (§8) |
+| Authoring (Java) | `StoryCrudService`, `StoryImportService` — `registryValueOperatorCondition` round-trips on events, edges, weather rules. **36.1**: `multiValue` round-trips on keys too |
+| Engine (Python) | `app/core/services/match/registry_service.py` (new); `choice_availability.py`, `event_availability.py`, `movement_service.py`, `weather_selection_service.py`, `event_service.py`, `match_command_service.py`, `match_logs_service.py`, `match_query_service.py` updated. **36.1**: `evaluate`/`upsert`/`remove` widened to sets, mirroring Java |
+| Ports/persistence (Python) | `app/core/ports/match/registry_ports.py` (new); `app/adapters/persistence/match/registry_store_adapter.py` (new); `story_match_read_adapter.find_keys_by_story_id` (vocabulary normalisation, bug §9.3). **36.1**: list-returning `find_by_match_and_key`, `insert_value`/`delete_value` added |
+| REST (Python) | `app/adapters/rest/match/match_controller.py` — new route + `_registry_to_camel`; `/info`'s `_detail_to_camel` extended. **36.1**: both drop `stringValue`/`intValue` for `values`/`multiValue` |
+| Schema (Python) | `app/adapters/persistence/story/models.py` — `KeyEntity.priority`; `registry_value_operator_condition` on `LocationNeighborEntity`/`WeatherRuleEntity`/`EventEntity`; `database.py` `align_schema()` drift replayer extended, `_TEXT_COLUMNS`. **36.1**: `multi_value` added on `KeyEntity` and the state-row model, applied via `align_schema()` (no Flyway on this backend, §10) |
+| Engine (AWS) | `lambda/match/registry.py` (new); `lambda/match/events.py` (`apply_registry` now delegates, bug §9.1); `lambda/match/handler.py` (`_edge_condition_met` consolidation — bug §9.2 —, `_weather_condition_matches`, `_get_match_registry`, dispatcher route). **36.1**: `registry.py` gains `rows_in`/`values_in`/`remove`; `upsert(..., story=None)` (§10) |
 | Infra (AWS) | `template/match.yaml` — one new route |
-| Seed (all four + demo JSON) | `R__insert_story_seed_data.sql`, `scripts/seed_stories.py` (registry keys added — gap §9), `lambda/seed/handler.py`, `story_demo_3.json`, `story_demo_4.json` — boolean vocabulary sweep (§5) |
-| Game board | `react-game/src/features/gameplay/cards/RegistryCard.jsx`, `RegistryCards.jsx`, `RegistryKeyCard.jsx` (new); `utils/registry.js` (new); `useBookView.js`, `GameBook.jsx`, `PageLeft.jsx`, `PageRight.jsx`, `PageRightInfo.jsx`, `PageRightMain.jsx`, `js/boardProps.js`, `utils/loadoutCards.js`, `api/matchInfoAdapter.js` (doc only) updated; `data/images.json`, i18n `en.json`/`it.json` |
-| Admin | `constants/story/storiesEntities.jsx` — `registryValueOperatorCondition` select on `events`/`location-neighbors`/`weather-rules`, reusing `CHOICE_CONDITION_OPERATOR_OPTIONS` |
-| Robot | `code/tests/robot/tests/36_registry/registry.robot` (10 tests); `Get Registry` keyword in `resources/matches.resource` — see `.claude/docs/robot-suites.md` for suite/keyword detail, not duplicated here |
-| Tests | Java: `RegistryServiceTest`, `RegistryStoreAdapterTest`, `RegistryControllerTest`, plus updates across `EventAvailabilityCheckerTest`, `WeatherSelectionServiceTest`, `MovementServiceTest` and more. Python: `test_registry_service.py`, `test_registry_store_adapter.py`, `test_match_controller_registry.py`, plus equivalents. AWS: `test_registry.py`, `test_match_handler_registry.py`. React-game: `RegistryCard.test.jsx`, `RegistryCards.test.jsx`, `registryUtils.test.js`. |
+| Seed (all four + demo JSON) | `R__insert_story_seed_data.sql`, `scripts/seed_stories.py` (registry keys added — gap §9), `lambda/seed/handler.py`, `story_demo_3.json`, `story_demo_4.json` — boolean vocabulary sweep (§5). **36.1**: all four gain the `evidence_found` multi-value test-bed on the tutorial story (§13) |
+| Game board | `react-game/src/features/gameplay/cards/RegistryCard.jsx`, `RegistryCards.jsx`, `RegistryKeyCard.jsx` (new); `utils/registry.js` (new); `useBookView.js`, `GameBook.jsx`, `PageLeft.jsx`, `PageRight.jsx`, `PageRightInfo.jsx`, `PageRightMain.jsx`, `js/boardProps.js`, `utils/loadoutCards.js`, `api/matchInfoAdapter.js` (doc only) updated; `data/images.json`, i18n `en.json`/`it.json`. **36.1**: `utils/registry.js` gains `registryValues(entry)` (§11) |
+| Admin | `constants/story/storiesEntities.jsx` — `registryValueOperatorCondition` select on `events`/`location-neighbors`/`weather-rules`, reusing `CHOICE_CONDITION_OPERATOR_OPTIONS`. **36.1**: `RegistryCard.jsx`/`MatchDetailModal` show Values/Multi instead of String/Int value; `storiesEntities.jsx`'s key form gains a `multiValue` checkbox (§12) |
+| Robot | `code/tests/robot/tests/36_registry/registry.robot` (10 tests); `Get Registry` keyword in `resources/matches.resource` — see `.claude/docs/robot-suites.md` for suite/keyword detail, not duplicated here. **36.1**: new `36_registry/registry_multi_value.robot` (9 tests); `registry.robot` updated to the new payload shape and grew to 11 tests (§13) |
+| Tests | Java: `RegistryServiceTest`, `RegistryStoreAdapterTest`, `RegistryControllerTest`, plus updates across `EventAvailabilityCheckerTest`, `WeatherSelectionServiceTest`, `MovementServiceTest` and more. Python: `test_registry_service.py`, `test_registry_store_adapter.py`, `test_match_controller_registry.py`, plus equivalents. AWS: `test_registry.py`, `test_match_handler_registry.py`. React-game: `RegistryCard.test.jsx`, `RegistryCards.test.jsx`, `registryUtils.test.js`. **36.1** coverage: java `RegistryService` 99.5%/95.5% branches, `RegistryStoreAdapter` 100%/100%; python 99%/100%; AWS `registry.py` 99% (§13) |
 
 Python and AWS mirror the Java engine described above, subject to the AWS storage note in §10
 and the bugs fixed in §9.
@@ -462,13 +622,14 @@ and the bugs fixed in §9.
 
 # Version Control
 
-- **Document Version**: 0.36.0
+- **Document Version**: 0.36.1
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.36.0 | Registry System, implemented: `RegistryService` consolidates every registry read, write and comparison behind `render`/`parse`/`evaluate` on all three backends (§1); `GET /api/match/{uuid}/registry` reads the visible keys grouped by `list_keys.group`, duplicated onto `/info` (§2-§4, §8); a new `registry_value_operator_condition` column on events, edges and weather rules reuses the choice-conditions operator vocabulary, retiring weather's old "null value means unset" doctrine in favour of the strict reading events and movement already used (§5); `V0.36.0__registry_operator_conditions.sql` also makes `idx_state_reg_key` unique (§6); every write now leaves exactly one `REGISTRY_CHANGE` match-log row (§7); five bugs fixed in passing — AWS registry rows with no id/uuid, three duplicated AWS neighbour checks missing a null-guard, Python's `list_keys` model realigned to the Java vocabulary, plus the two the AWS Robot run caught after the first pass: `/info` not joining the registry there, and a null actor crashing the event chain on a time-start write (§9). | September 3, 2026 |
+  | 0.36.1 | Registry multi-value keys, implemented: `list_keys.multi_value` lets a key hold a SET instead of one value, mirrored onto `gaming_state_registry.multi_value` per match so a match already in progress keeps the behaviour it was born with (§6.1); `evaluate` now reads `=`/`!=` as ∃/∄ and `>`/`<` as ∀ over the set, never vacuously true on an empty one, and a single-valued key's set still collapses to the reading it always had (§1, §7.2). Both registry payloads drop `stringValue`/`intValue` for a backend-ordered `values` array plus `multiValue` (§2-§3, §8); `value_to_add`/`value_to_remove` join or remove one member on a multi key instead of replacing it (§7.2); a write the registry refuses now leaves no `REGISTRY_CHANGE` row at all (§7). | September 4, 2026 |
 
-- **Last Updated**: September 3, 2026
+- **Last Updated**: September 4, 2026
 - **Status**: Complete
 
 

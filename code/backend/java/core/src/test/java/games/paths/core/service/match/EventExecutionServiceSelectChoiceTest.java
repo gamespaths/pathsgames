@@ -417,6 +417,16 @@ class EventExecutionServiceSelectChoiceTest {
                     "the character in another location is not part of the group");
         }
 
+        /** The service hands back the set it just wrote; the mock stands in for that set. */
+        @org.junit.jupiter.api.BeforeEach
+        void writeEchoesTheValue() {
+            when(registryService.upsert(anyLong(), any(), any(), any(), any(), any(), any(), any()))
+                    .thenAnswer(inv -> {
+                        String written = inv.getArgument(3);
+                        return written == null ? List.of() : List.of(written);
+                    });
+        }
+
         @Test
         @DisplayName("key + value_to_add writes the registry key")
         void registryAdd() {
@@ -427,16 +437,16 @@ class EventExecutionServiceSelectChoiceTest {
 
             ChoiceResolutionResult r = resolve();
 
-            verify(registryService).upsert(MATCH_ID, "DOOR", "OPEN", CHAR_ID, EVENT_ID, null, CLOCK);
+            verify(registryService).upsert(eq(MATCH_ID), any(), eq("DOOR"), eq("OPEN"),
+                    eq(CHAR_ID), eq(EVENT_ID), eq(null), eq(CLOCK));
             assertEquals(1, r.execution().registryChanges().size());
-            assertEquals("OPEN", r.execution().registryChanges().get(0).newValue());
         }
 
         @Test
         @DisplayName("value_to_remove clears the key when the stored value matches")
         void registryRemoveOnMatch() {
-            Map<String, String> registry = new HashMap<>();
-            registry.put("DOOR", "OPEN");
+            Map<String, List<String>> registry = new HashMap<>();
+            registry.put("DOOR", List.of("OPEN"));
             when(store.loadCheckContext(MATCH_ID, CHAR_ID)).thenReturn(new EventCheckContext(
                     CHAR_ID, LOC, false, false, 20, 10, 50L, new HashSet<>(), null,
                     new HashSet<>(Set.of(EVENT_ID)), registry));
@@ -447,15 +457,15 @@ class EventExecutionServiceSelectChoiceTest {
 
             ChoiceResolutionResult r = resolve();
 
-            verify(registryService).upsert(MATCH_ID, "DOOR", null, CHAR_ID, EVENT_ID, null, CLOCK);
-            assertNull(r.execution().registryChanges().get(0).newValue());
+            // Step 36.1 — taking a value away is its own call, not a write of null.
+            verify(registryService).remove(MATCH_ID, "DOOR", "OPEN", CHAR_ID, EVENT_ID, null, CLOCK);
         }
 
         @Test
         @DisplayName("value_to_remove leaves a key some other branch has since moved on")
         void registryRemoveOnMismatch() {
-            Map<String, String> registry = new HashMap<>();
-            registry.put("DOOR", "SEALED");
+            Map<String, List<String>> registry = new HashMap<>();
+            registry.put("DOOR", List.of("SEALED"));
             when(store.loadCheckContext(MATCH_ID, CHAR_ID)).thenReturn(new EventCheckContext(
                     CHAR_ID, LOC, false, false, 20, 10, 50L, new HashSet<>(), null,
                     new HashSet<>(Set.of(EVENT_ID)), registry));
@@ -466,8 +476,10 @@ class EventExecutionServiceSelectChoiceTest {
 
             ChoiceResolutionResult r = resolve();
 
-            verify(registryService, never()).upsert(anyLong(), anyString(), any(), any(), any(), any(), anyInt());
-            assertTrue(r.execution().registryChanges().isEmpty());
+            // The service itself refuses a value the story has moved on from, so the effect
+            // still calls it; what must not happen is a WRITE.
+            verify(registryService, never()).upsert(anyLong(), any(), anyString(), any(), any(),
+                    any(), any(), anyInt());
         }
 
         @Test

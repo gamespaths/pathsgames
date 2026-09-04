@@ -59,7 +59,7 @@ def test_every_condition_satisfied():
     e = event(id_specific_location=LOC, registry_key_condition="GATE",
               registry_value_condition="OPEN", id_weather=3, id_item_condition=42,
               id_class_condition=50)
-    v = check(e, ctx(registry={"GATE": "OPEN"}, current_weather_id=3,
+    v = check(e, ctx(registry={"GATE": ["OPEN"]}, current_weather_id=3,
                      owned_item_ids={42}, id_class=50))
     assert v.available is True, v.reason
 
@@ -165,13 +165,13 @@ def test_registry_key_absent():
 
 def test_registry_value_differs():
     e = event(registry_key_condition="GATE", registry_value_condition="OPEN")
-    assert_blocked(check(e, ctx(registry={"GATE": "SHUT"})),
+    assert_blocked(check(e, ctx(registry={"GATE": ["SHUT"]})),
                    EventError.REGISTRY_CONDITION_NOT_MET)
 
 
 def test_registry_key_with_no_expected_value_is_never_met():
     e = event(registry_key_condition="GATE", registry_value_condition=None)
-    assert_blocked(check(e, ctx(registry={"GATE": "OPEN"})),
+    assert_blocked(check(e, ctx(registry={"GATE": ["OPEN"]})),
                    EventError.REGISTRY_CONDITION_NOT_MET)
 
 

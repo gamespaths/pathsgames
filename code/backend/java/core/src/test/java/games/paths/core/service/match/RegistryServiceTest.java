@@ -34,7 +34,11 @@ class RegistryServiceTest {
     }
 
     private static RegistryRow row(String key, String s, Integer i) {
-        return new RegistryRow(1L, "u-" + key, key, s, i, null, null, null, null);
+        return new RegistryRow(1L, "u-" + key, key, s, i, null, null, null, null, 0);
+    }
+
+    private static RegistryRow multiRow(String key, String s, Integer i) {
+        return new RegistryRow(1L, "u-" + key, key, s, i, null, null, null, null, 1);
     }
 
     @Nested
@@ -91,45 +95,45 @@ class RegistryServiceTest {
         @Test
         @DisplayName("= and != are textual")
         void equality() {
-            assertTrue(RegistryService.evaluate("=", "OPEN", "OPEN"));
-            assertFalse(RegistryService.evaluate("=", "OPEN", "SHUT"));
-            assertTrue(RegistryService.evaluate("!=", "OPEN", "SHUT"));
-            assertFalse(RegistryService.evaluate("!=", "OPEN", "OPEN"));
+            assertTrue(RegistryService.evaluate("=", "OPEN", List.of("OPEN")));
+            assertFalse(RegistryService.evaluate("=", "OPEN", List.of("SHUT")));
+            assertTrue(RegistryService.evaluate("!=", "OPEN", List.of("SHUT")));
+            assertFalse(RegistryService.evaluate("!=", "OPEN", List.of("OPEN")));
         }
 
         @Test
         @DisplayName("> and < need both sides numeric")
         void ordering() {
-            assertTrue(RegistryService.evaluate(">", "3", "4"));
-            assertFalse(RegistryService.evaluate(">", "3", "3"));
-            assertTrue(RegistryService.evaluate("<", "3", "2"));
-            assertFalse(RegistryService.evaluate(">", "3", "many"));
-            assertFalse(RegistryService.evaluate("<", "lots", "2"));
+            assertTrue(RegistryService.evaluate(">", "3", List.of("4")));
+            assertFalse(RegistryService.evaluate(">", "3", List.of("3")));
+            assertTrue(RegistryService.evaluate("<", "3", List.of("2")));
+            assertFalse(RegistryService.evaluate(">", "3", List.of("many")));
+            assertFalse(RegistryService.evaluate("<", "lots", List.of("2")));
         }
 
         @Test
         @DisplayName("an absent key satisfies only !=")
         void absentKey() {
-            assertTrue(RegistryService.evaluate("!=", "OPEN", null));
-            assertFalse(RegistryService.evaluate("=", "OPEN", null));
-            assertFalse(RegistryService.evaluate(">", "1", null));
+            assertTrue(RegistryService.evaluate("!=", "OPEN", List.of()));
+            assertFalse(RegistryService.evaluate("=", "OPEN", List.of()));
+            assertFalse(RegistryService.evaluate(">", "1", List.of()));
         }
 
         @Test
         @DisplayName("a null expected value is never met — a typo must lock a door")
         void nullExpectedNeverMet() {
-            assertFalse(RegistryService.evaluate("=", null, "OPEN"));
-            assertFalse(RegistryService.evaluate("!=", null, "OPEN"));
-            assertFalse(RegistryService.evaluate("=", null, null));
+            assertFalse(RegistryService.evaluate("=", null, List.of("OPEN")));
+            assertFalse(RegistryService.evaluate("!=", null, List.of("OPEN")));
+            assertFalse(RegistryService.evaluate("=", null, List.of()));
         }
 
         @Test
         @DisplayName("a null or blank operator means =, an unknown one is never met")
         void operatorDefaulting() {
-            assertTrue(RegistryService.evaluate(null, "OPEN", "OPEN"));
-            assertTrue(RegistryService.evaluate("   ", "OPEN", "OPEN"));
-            assertTrue(RegistryService.evaluate(" = ", "OPEN", "OPEN"));
-            assertFalse(RegistryService.evaluate("~=", "OPEN", "OPEN"));
+            assertTrue(RegistryService.evaluate(null, "OPEN", List.of("OPEN")));
+            assertTrue(RegistryService.evaluate("   ", "OPEN", List.of("OPEN")));
+            assertTrue(RegistryService.evaluate(" = ", "OPEN", List.of("OPEN")));
+            assertFalse(RegistryService.evaluate("~=", "OPEN", List.of("OPEN")));
         }
 
         @Test
@@ -151,20 +155,20 @@ class RegistryServiceTest {
             when(store.findByMatch(1L)).thenReturn(List.of(
                     row("flag", "yes", null), row("count", null, 7),
                     row("empty", null, null), row(null, "orphan", null)));
-            Map<String, String> map = service.loadAll(1L);
+            Map<String, List<String>> map = service.loadAll(1L);
             assertEquals(3, map.size());
-            assertEquals("yes", map.get("flag"));
-            assertEquals("7", map.get("count"));
+            assertEquals(List.of("yes"), map.get("flag"));
+            assertEquals(List.of("7"), map.get("count"));
             assertTrue(map.containsKey("empty"));
-            assertNull(map.get("empty"));
+            assertTrue(map.get("empty").isEmpty());
         }
 
         @Test
         @DisplayName("find renders one key; an absent key is empty")
         void find() {
-            when(store.findByMatchAndKey(1L, "count")).thenReturn(Optional.of(row("count", null, 7)));
-            when(store.findByMatchAndKey(1L, "gone")).thenReturn(Optional.empty());
-            assertEquals(Optional.of("7"), service.find(1L, "count"));
+            when(store.findByMatchAndKey(1L, "count")).thenReturn(List.of(row("count", null, 7)));
+            when(store.findByMatchAndKey(1L, "gone")).thenReturn(List.of());
+            assertEquals(List.of("7"), service.find(1L, "count"));
             assertTrue(service.find(1L, "gone").isEmpty());
         }
 
@@ -172,11 +176,10 @@ class RegistryServiceTest {
         @DisplayName("listEntries keeps both columns apart for the /info payload")
         void listEntries() {
             when(store.findByMatch(1L)).thenReturn(List.of(row("flag", "yes", null)));
-            List<MatchRegistryEntry> out = service.listEntries(1L);
+            List<MatchRegistryEntry> out = service.listEntries(1L, null, true, "en");
             assertEquals(1, out.size());
             assertEquals("flag", out.get(0).getKey());
-            assertEquals("yes", out.get(0).getStringValue());
-            assertNull(out.get(0).getIntValue());
+            assertEquals(List.of("yes"), out.get(0).getValues());
             assertEquals("u-flag", out.get(0).getUuid());
         }
     }
@@ -217,7 +220,7 @@ class RegistryServiceTest {
             assertEquals("tutorial", e.getCategory());
             assertEquals(2, e.getPriority());
             assertTrue(e.isVisible());
-            assertEquals(3, e.getIntValue());
+            assertEquals(java.util.List.of("3"), e.getValues());
         }
 
         @Test
@@ -304,22 +307,22 @@ class RegistryServiceTest {
         @Test
         @DisplayName("a blank key is authored noise and is skipped, not an error")
         void blankKeySkipped() {
-            service.upsert(1L, null, "v", null, null, null, 0);
-            service.upsert(1L, "   ", "v", null, null, null, 0);
+            service.upsert(1L, null, null, "v", null, null, null, 0);
+            service.upsert(1L, null, "   ", "v", null, null, null, 0);
             verifyNoInteractions(store);
         }
 
         @Test
         @DisplayName("upsert splits the value and carries the whole provenance")
         void upsertCarriesProvenance() {
-            service.upsert(1L, "count", " 42 ", 3L, 12L, 9L, 5);
+            service.upsert(1L, null, "count", " 42 ", 3L, 12L, 9L, 5);
             verify(store).upsert(1L, "count", null, 42, 3L, 12L, 9L, 5);
         }
 
         @Test
         @DisplayName("a null value clears both columns")
         void upsertNullClearsBoth() {
-            service.upsert(1L, "flag", null, null, null, null, 2);
+            service.upsert(1L, null, "flag", null, null, null, null, 2);
             verify(store).upsert(1L, "flag", null, null, null, null, null, 2);
         }
 
@@ -363,6 +366,236 @@ class RegistryServiceTest {
             k.setName(name);
             k.setValue(value);
             return k;
+        }
+    }
+
+    @Nested
+    @DisplayName("multi-valued keys (Step 36.1)")
+    class MultiValued {
+
+        private games.paths.core.port.story.StoryReadPort storyReadPort;
+        private RegistryService declaring;
+
+        @BeforeEach
+        void wire() {
+            storyReadPort = mock(games.paths.core.port.story.StoryReadPort.class);
+            declaring = new RegistryService(store, storyReadPort, null);
+        }
+
+        private KeyEntity key(String name, String value, boolean multi) {
+            KeyEntity k = new KeyEntity();
+            k.setName(name);
+            k.setValue(value);
+            k.setMultiValue(multi ? 1 : 0);
+            return k;
+        }
+
+        @Test
+        @DisplayName("= and != quantify over the set: one member is enough, none is required")
+        void existsAndNotExists() {
+            List<String> set = List.of("A", "B");
+            assertTrue(RegistryService.evaluate("=", "B", set));
+            assertFalse(RegistryService.evaluate("=", "C", set));
+            assertTrue(RegistryService.evaluate("!=", "C", set));
+            assertFalse(RegistryService.evaluate("!=", "A", set));
+            assertTrue(RegistryService.evaluate("!=", "A", null));
+        }
+
+        @Test
+        @DisplayName("> and < ask EVERY member, and an empty set never answers yes")
+        void forAllMembers() {
+            assertTrue(RegistryService.evaluate(">", "3", List.of("5", "7")));
+            assertFalse(RegistryService.evaluate(">", "3", List.of("2", "7")));
+            assertTrue(RegistryService.evaluate("<", "3", List.of("1", "2")));
+            assertFalse(RegistryService.evaluate("<", "3", List.of("1", "9")));
+            assertFalse(RegistryService.evaluate(">", "3", List.of()));
+            assertFalse(RegistryService.evaluate("<", "3", List.of()));
+        }
+
+        @Test
+        @DisplayName("ordered puts the numbers first and numerically, then the rest by name")
+        void orderedMembers() {
+            assertEquals(List.of("2", "10", "alpha", "beta"),
+                    RegistryService.ordered(List.of("beta", "10", "alpha", "2")));
+            assertTrue(RegistryService.ordered(null).isEmpty());
+        }
+
+        @Test
+        @DisplayName("a key the story declares MULTI joins instead of replacing")
+        void firstWriteFollowsTheStory() {
+            when(storyReadPort.findKeysByStoryId(9L)).thenReturn(List.of(key("clues", null, true)));
+
+            assertEquals(List.of("A"), declaring.upsert(1L, 9L, "clues", "A", 3L, 12L, null, 6));
+
+            verify(store).insertValue(1L, "clues", "A", null, 3L, 12L, null, 6);
+            verify(store, never()).upsert(anyLong(), any(), any(), any(), any(), any(), any(), any());
+            verify(store).logChange(1L, 3L, 12L, null, 6,
+                    RegistryService.MSG_REGISTRY_CHANGE + " clues +A");
+        }
+
+        @Test
+        @DisplayName("the rows decide, not the story: a match keeps the behaviour it was born with")
+        void rowsWinOverTheStory() {
+            when(store.findByMatchAndKey(1L, "clues"))
+                    .thenReturn(List.of(multiRow("clues", "A", null)));
+            when(storyReadPort.findKeysByStoryId(9L)).thenReturn(List.of(key("clues", null, false)));
+
+            assertEquals(List.of("A", "B"),
+                    declaring.upsert(1L, 9L, "clues", "B", null, null, null, 1));
+            verify(store).insertValue(1L, "clues", "B", null, null, null, null, 1);
+        }
+
+        @Test
+        @DisplayName("adding a member the set already holds writes nothing and logs nothing")
+        void duplicateMemberIsANoOp() {
+            when(store.findByMatchAndKey(1L, "clues"))
+                    .thenReturn(List.of(multiRow("clues", "A", null)));
+
+            assertEquals(List.of("A"), service.upsert(1L, null, "clues", "A", null, null, null, 1));
+            assertEquals(List.of("A"), service.upsert(1L, null, "clues", null, null, null, null, 1));
+
+            verify(store, never()).insertValue(anyLong(), any(), any(), any(), any(), any(), any(), any());
+            verify(store, never()).logChange(anyLong(), any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("remove on a blank key, or on a key this match never wrote, does nothing")
+        void removeNoOp() {
+            assertTrue(service.remove(1L, "  ", "A", null, null, null, 1).isEmpty());
+            assertTrue(service.remove(1L, "clues", "A", null, null, null, 1).isEmpty());
+            verify(store, never()).deleteValue(anyLong(), any(), any(), any());
+            verify(store, never()).upsert(anyLong(), any(), any(), any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("on a SINGLE key remove is still compare-and-clear")
+        void removeClearsASingleKey() {
+            when(store.findByMatchAndKey(1L, "door")).thenReturn(List.of(row("door", "OPEN", null)));
+
+            assertTrue(service.remove(1L, "door", "OPEN", 3L, 12L, null, 6).isEmpty());
+
+            verify(store).upsert(1L, "door", null, null, 3L, 12L, null, 6);
+            verify(store).logChange(1L, 3L, 12L, null, 6,
+                    RegistryService.MSG_REGISTRY_CHANGE + " door OPEN -> null");
+        }
+
+        @Test
+        @DisplayName("a single key the story has since moved on from is left alone")
+        void removeLeavesAMovedOnValue() {
+            when(store.findByMatchAndKey(1L, "door")).thenReturn(List.of(row("door", "SHUT", null)));
+
+            assertEquals(List.of("SHUT"), service.remove(1L, "door", "OPEN", null, null, null, 1));
+            assertEquals(List.of("SHUT"), service.remove(1L, "door", null, null, null, null, 1));
+
+            verify(store, never()).upsert(anyLong(), any(), any(), any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("on a MULTI key remove takes one member away and leaves the rest")
+        void removeTakesOneMember() {
+            when(store.findByMatchAndKey(1L, "clues")).thenReturn(List.of(
+                    multiRow("clues", "A", null), multiRow("clues", "B", null)));
+
+            assertEquals(List.of("A"), service.remove(1L, "clues", "B", 3L, null, 9L, 4));
+
+            verify(store).deleteValue(1L, "clues", "B", null);
+            verify(store).logChange(1L, 3L, null, 9L, 4,
+                    RegistryService.MSG_REGISTRY_CHANGE + " clues -B");
+        }
+
+        @Test
+        @DisplayName("removing a member the set never held changes nothing")
+        void removeAbsentMember() {
+            when(store.findByMatchAndKey(1L, "clues"))
+                    .thenReturn(List.of(multiRow("clues", "A", null)));
+
+            assertEquals(List.of("A"), service.remove(1L, "clues", "Z", null, null, null, 1));
+            verify(store, never()).deleteValue(anyLong(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("seed stamps the mirror, and a MULTI key with no default seeds no row at all")
+        void seedStampsTheMirror() {
+            declaring.seed(9L, List.of(key("clues", null, true), key("found", "A", true),
+                    key("door", "SHUT", false)));
+
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<List<RegistryRow>> cap = ArgumentCaptor.forClass(List.class);
+            verify(store).insertAll(eq(9L), cap.capture());
+            List<RegistryRow> rows = cap.getValue();
+
+            assertEquals(2, rows.size());
+            assertEquals("found", rows.get(0).key());
+            assertTrue(rows.get(0).isMulti());
+            assertEquals("door", rows.get(1).key());
+            assertFalse(rows.get(1).isMulti());
+        }
+
+        @Test
+        @DisplayName("loadAll and find give a multi key every one of its members")
+        void readsCollectTheWholeSet() {
+            List<RegistryRow> rows = List.of(
+                    multiRow("clues", "A", null), multiRow("clues", null, 2));
+            when(store.findByMatch(1L)).thenReturn(rows);
+            when(store.findByMatchAndKey(1L, "clues")).thenReturn(rows);
+
+            assertEquals(List.of("A", "2"), service.loadAll(1L).get("clues"));
+            assertEquals(List.of("A", "2"), service.find(1L, "clues"));
+        }
+
+        @Test
+        @DisplayName("listEntries gives one ordered entry per key, an emptied key included")
+        void entriesAreOnePerKey() {
+            when(store.findByMatch(1L)).thenReturn(List.of(
+                    multiRow("clues", "B", null), multiRow("clues", "A", null)));
+            when(storyReadPort.findKeysByStoryId(9L)).thenReturn(List.of(
+                    key("clues", null, true), key("gone", null, true)));
+
+            Map<String, MatchRegistryEntry> byKey = new java.util.HashMap<>();
+            for (MatchRegistryEntry e : declaring.listEntries(1L, 9L, true, "en")) {
+                byKey.put(e.getKey(), e);
+            }
+
+            assertEquals(List.of("A", "B"), byKey.get("clues").getValues());
+            assertTrue(byKey.get("clues").isMultiValue());
+            assertTrue(byKey.get("gone").getValues().isEmpty());
+        }
+
+        @Test
+        @DisplayName("replacing a SINGLE key logs the value it held before")
+        void singleKeyLogsThePreviousValue() {
+            when(store.findByMatchAndKey(1L, "door")).thenReturn(List.of(row("door", "SHUT", null)));
+
+            assertEquals(List.of("OPEN"),
+                    service.upsert(1L, null, "door", "OPEN", 3L, 12L, null, 6));
+
+            verify(store).upsert(1L, "door", "OPEN", null, 3L, 12L, null, 6);
+            verify(store).logChange(1L, 3L, 12L, null, 6,
+                    RegistryService.MSG_REGISTRY_CHANGE + " door SHUT -> OPEN");
+        }
+
+        @Test
+        @DisplayName("removing nothing from a set takes nothing away")
+        void removeNullFromASet() {
+            when(store.findByMatchAndKey(1L, "clues"))
+                    .thenReturn(List.of(multiRow("clues", "A", null)));
+
+            assertEquals(List.of("A"), service.remove(1L, "clues", null, null, null, null, 1));
+            verify(store, never()).deleteValue(anyLong(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("a row holding no value at all is not a member of the set")
+        void aValuelessRowIsNotAMember() {
+            List<RegistryRow> rows = List.of(
+                    multiRow("clues", "A", null), multiRow("clues", null, null));
+            when(store.findByMatch(1L)).thenReturn(rows);
+            when(store.findByMatchAndKey(1L, "clues")).thenReturn(rows);
+
+            assertEquals(List.of("A"), service.find(1L, "clues"));
+            assertEquals(List.of("A"),
+                    service.listEntries(1L, null, true, "en").get(0).getValues());
+            assertEquals(List.of("A"), service.remove(1L, "clues", "Z", null, null, null, 1));
         }
     }
 }

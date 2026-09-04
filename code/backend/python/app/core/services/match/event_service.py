@@ -60,6 +60,13 @@ _CLAMPED = {"life": "life_max", "energy": "energy_max", "sad": "sad_max"}
 _FIELD = {"dex": "dexterity", "int": "intelligence", "cos": "constitution"}
 
 
+def _joined(values: Optional[List[str]]) -> Optional[str]:
+    """A set as one string for the RegistryChange payload: empty reads as None, as it did."""
+    if not values:
+        return None
+    return values[0] if len(values) == 1 else ",".join(values)
+
+
 def _clamp(value: int, low: int, high: int) -> int:
     if high < low:
         return low
@@ -410,19 +417,26 @@ class EventService(EventPort):
         key = effect.get("key")
         if not key:
             return
-        old = x.ctx.registry.get(key)
+        before = x.ctx.registry.get(key) or []
         add = effect.get("value_to_add")
         remove = effect.get("value_to_remove")
         if add:
-            value = add
-        elif remove and remove == old:
-            value = None  # clears both value columns — the key reads as unset afterwards
+            after = self.registry_service.upsert(
+                x.match["id"], x.match.get("id_story"), key, add, x.actor["id"],
+                event.get("id"), None, x.current_clock)
+        elif remove:
+            # Step 36.1 — on a multi key this takes one member away; on a single one it is
+            # the compare-and-clear it has always been.
+            after = self.registry_service.remove(
+                x.match["id"], key, remove, x.actor["id"], event.get("id"), None,
+                x.current_clock)
         else:
             return
-        self.registry_service.upsert(x.match["id"], key, value, x.actor["id"],
-                                     event.get("id"), None, x.current_clock)
-        x.ctx.registry[key] = value
-        x.registry_changes.append(RegistryChange(key, old, value))
+        x.ctx.registry[key] = after
+        # A write the registry refused — a duplicate member, or a value some other branch has
+        # moved on from — changed nothing, so it reports nothing.
+        if after != before:
+            x.registry_changes.append(RegistryChange(key, _joined(before), _joined(after)))
 
     def _run_linked_event(self, x: "_Exec", id_event: Optional[int]) -> None:
         """Run an event a choice points at — ``id_event_torun`` on the option, or
@@ -882,11 +896,15 @@ class EventService(EventPort):
         if not key:
             return
         value = effect.get("key_value_to_add")
-        old = x.ctx.registry.get(key)
-        self.registry_service.upsert(x.match["id"], key, value, x.actor_id(),
-                                     event.get("id"), None, x.current_clock)
-        x.ctx.registry[key] = value
-        x.registry_changes.append(RegistryChange(key, old, value))
+        before = x.ctx.registry.get(key) or []
+        after = self.registry_service.upsert(
+            x.match["id"], x.match.get("id_story"), key, value, x.actor_id(),
+            event.get("id"), None, x.current_clock)
+        x.ctx.registry[key] = after
+        # A write the registry refused — a duplicate member, or a value some other branch has
+        # moved on from — changed nothing, so it reports nothing.
+        if after != before:
+            x.registry_changes.append(RegistryChange(key, _joined(before), _joined(after)))
 
     def _apply_movement(self, x: "_Exec", recipient: Dict[str, Any],
                         effect: Dict[str, Any]) -> None:

@@ -37,17 +37,17 @@ def _ctx(registry):
 
 def test_build_context_skips_keyless_registry_rows():
     ctx = _ctx([{'stringValue': 'orphan'}, {'key': 'a', 'stringValue': 'A'}])
-    assert ctx['registry'] == {'a': 'A'}
+    assert ctx['registry'] == {'a': ['A']}
 
 
 def test_build_context_stringifies_int_registry_values():
     ctx = _ctx([{'key': 'n', 'intValue': 12}])
-    assert ctx['registry']['n'] == '12'
+    assert ctx['registry']['n'] == ['12']
 
 
-def test_build_context_null_registry_value_stays_none():
+def test_build_context_a_valueless_row_is_an_empty_set():
     ctx = _ctx([{'key': 'empty'}])
-    assert ctx['registry']['empty'] is None
+    assert ctx['registry']['empty'] == []
 
 
 # ── apply_stat ───────────────────────────────────────────────────────────────

@@ -22,10 +22,14 @@ public interface GamingStateRegistryRepository
 
     List<GamingStateRegistryEntity> findByIdMatch(Long idMatch);
 
-    /** Step 36 - the single-key lookup every caller used to do by scanning the match. */
+    /**
+     * Step 36.1 - every row of one key. A LIST and not an Optional: a multi-valued key owns
+     * several rows, and an Optional query throws NonUniqueResultException on the second one
+     * rather than quietly picking a winner.
+     */
     @Query("SELECT r FROM GamingStateRegistryEntity r WHERE r.idMatch = :idMatch AND r.key = :key")
-    java.util.Optional<GamingStateRegistryEntity> findByIdMatchAndKey(@Param("idMatch") Long idMatch,
-                                                                     @Param("key") String key);
+    List<GamingStateRegistryEntity> findByIdMatchAndKey(@Param("idMatch") Long idMatch,
+                                                        @Param("key") String key);
 
     /**
      * Deletes every registry row belonging to the given match ids.

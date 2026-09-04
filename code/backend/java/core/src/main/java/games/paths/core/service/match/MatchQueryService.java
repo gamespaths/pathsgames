@@ -534,7 +534,7 @@ public class MatchQueryService implements MatchQueryPort {
                              MoveCheckContext ctx,
                              WeatherMoveCost weather,
                              Map<Long, Integer> charactersByLocation,
-                             Map<String, String> registry) {
+                             Map<String, List<String>> registry) {
 
         /** No movement store wired (legacy constructor): every neighbor reads as blocked. */
         static MoveJudge noCharacter(long idMatch) {
@@ -548,7 +548,7 @@ public class MatchQueryService implements MatchQueryPort {
                 return true;
             }
             return RegistryService.evaluate(n.getRegistryValueOperatorCondition(),
-                    n.getConditionRegistryValue(), registry.get(key));
+                    n.getConditionRegistryValue(), registry.getOrDefault(key, List.of()));
         }
     }
 
@@ -575,7 +575,7 @@ public class MatchQueryService implements MatchQueryPort {
         }
         WeatherMoveCost weather = movementStorePort.findCurrentWeatherMoveCost(match.getId());
 
-        Map<String, String> registry = registryService == null
+        Map<String, List<String>> registry = registryService == null
                 ? new HashMap<>() : registryService.loadAll(match.getId());
 
         MoveCheckContext ctx = new MoveCheckContext(

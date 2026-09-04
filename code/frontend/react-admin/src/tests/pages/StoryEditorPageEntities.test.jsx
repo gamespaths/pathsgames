@@ -101,6 +101,25 @@ describe('StoryEditorPage entity save and delete', () => {
     expect(screen.getByTitle('STEP29_GATE')).toBeInTheDocument()
   })
 
+  it('picks the registry key an event is GATED on, as every other condition already did', async () => {
+    // Step 36 — the keys picker was registered on choice conditions, choice effects, weather
+    // rules, missions and neighbour edges, but not on the event's own condition: it was the
+    // last registry field left as free text, where a typo silently shuts a door for good.
+    mockLists({
+      keys: [{ uuid: 'k-1', id: 1, name: 'STEP29_GATE' }],
+      events: [{ uuid: 'ev-1', id: 1, type: 'EVENT-GATED',
+                 registryKeyCondition: 'STEP29_GATE', registryValueCondition: 'OPEN' }],
+    })
+    renderPage()
+    await gotoTab('Events')
+
+    await userEvent.click(rowActions('EVENT-GATED').edit)
+
+    // A picker, not a bare text box: it renders the chosen value and a Select button.
+    expect(await screen.findByTitle('Select Registry Key (condition)')).toBeInTheDocument()
+    expect(screen.getByTitle('STEP29_GATE')).toBeInTheDocument()
+  })
+
   it('refreshes the reference lists after an event is deleted', async () => {
     mockLists({ events: [{ uuid: 'ev-1', id: 1, type: 'EVENT-ONE' }] })
     renderPage()
