@@ -46,9 +46,10 @@ const GUEST = {
 describe('GuestsPage edge cases', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    listGuests.mockResolvedValue([GUEST])
+    // v0.36.2 — the endpoint answers the paged envelope, not a bare array.
+    listGuests.mockResolvedValue({ items: [GUEST], nextCursor: null, limit: 50 })
     getGuestStats.mockResolvedValue({ totalGuests: 1, activeGuests: 1, expiredGuests: 0 })
-    listMatches.mockResolvedValue(null)     // not a list
+    listMatches.mockResolvedValue(null)     // not an envelope
     getMatchInfo.mockResolvedValue({ match: {}, locations: [], registry: [] })
     getStory.mockResolvedValue({})
     listEntities.mockResolvedValue([])
@@ -94,9 +95,10 @@ describe('GuestsPage edge cases', () => {
   })
 
   it('pauses a running match of the guest and reports a refusal', async () => {
-    listMatches.mockResolvedValue([
-      { uuid: 'm1', name: 'Run', status: 'RUNNING', userCreatorUuid: GUEST.userUuid },
-    ])
+    listMatches.mockResolvedValue({
+      items: [{ uuid: 'm1', name: 'Run', status: 'RUNNING', userCreatorUuid: GUEST.userUuid }],
+      nextCursor: null, limit: 50,
+    })
     pauseMatch.mockRejectedValue({ response: { data: { message: 'cannot pause' } } })
     render(<MemoryRouter><GuestsPage /></MemoryRouter>)
     await screen.findByText('guest_aaa')

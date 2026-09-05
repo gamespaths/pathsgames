@@ -39,11 +39,60 @@ def test_list_guests_requires_admin():
 
 
 def test_list_guests_returns_guest_infos():
+    """v0.36.2 — one bounded page, in the {items, nextCursor, limit} envelope."""
     with patch('auth.handler.db_utils.get_item', return_value=ADMIN_USER), \
-         patch('auth.handler.db_utils.scan_filter', return_value=GUESTS):
+         patch('auth.handler.db_utils.scan_filter_page', return_value=(GUESTS, None)):
         result = _call(admin_event('GET', '/api/admin/guests'))
     assert result['statusCode'] == 200
-    assert len(_body(result)) == 2
+    body = _body(result)
+    assert len(body['items']) == 2
+    assert body['limit'] == 50
+
+
+def test_list_guests_is_one_bounded_scan_page_not_the_whole_table():
+    """The whole-table scan is what timed out at 15s; the page must carry the cursor on."""
+    seen = {}
+
+    def _page(attr, value, limit=None, start_key=None, extra_filter=None):
+        seen['limit'] = limit
+        return GUESTS[:1], {'PK': 'USER#g-2'}
+
+    with patch('auth.handler.db_utils.get_item', return_value=ADMIN_USER), \
+         patch('auth.handler.db_utils.scan_filter_page', side_effect=_page):
+        result = _call(admin_event('GET', '/api/admin/guests', qs={'limit': '1'}))
+    body = _body(result)
+    assert seen['limit'] == 1
+    assert body['nextCursor'] is not None
+
+    # The cursor round-trips: the next request resumes exactly where this page stopped.
+    with patch('auth.handler.db_utils.get_item', return_value=ADMIN_USER), \
+         patch('auth.handler.db_utils.scan_filter_page', return_value=([], None)) as nxt:
+        _call(admin_event('GET', '/api/admin/guests', qs={'cursor': body['nextCursor']}))
+    assert nxt.call_args.args[3] == {'PK': 'USER#g-2'}
+
+
+def test_stale_guests_refuses_without_a_bound():
+    """Without olderThanDays the purge would take EVERY guest: refuse, never guess."""
+    with patch('auth.handler.db_utils.get_item', return_value=ADMIN_USER):
+        result = _call(admin_event('DELETE', '/api/admin/guests/stale'))
+    assert result['statusCode'] == 400
+    assert _body(result)['error'] == 'INVALID_INPUT'
+
+
+def test_delete_stale_guests_takes_their_matches_first():
+    deleted = []
+    stale = [{'PK': 'USER#g-1', 'uuid': 'g-1', 'is_guest': True, 'ts_last_access': 1}]
+    matches = [{'PK': 'MATCH#m-1', 'SK': 'METADATA', 'userCreatorUuid': 'g-1'}]
+    with patch('auth.handler.db_utils.get_item', return_value=ADMIN_USER), \
+         patch('auth.handler.db_utils.scan_filter', return_value=stale), \
+         patch('auth.handler.db_utils.scan_pk_prefix', return_value=matches), \
+         patch('auth.handler.db_utils.delete_item',
+               side_effect=lambda pk, sk=None: deleted.append(pk)):
+        result = _call(admin_event('DELETE', '/api/admin/guests/stale', qs={'olderThanDays': '1'}))
+    body = _body(result)
+    assert body == {'guests': 1, 'matches': 1, 'status': 'CLEANUP_COMPLETE'}
+    # The match goes before its creator, as the SQL backends' foreign key requires.
+    assert deleted == ['MATCH#m-1', 'USER#g-1']
 
 
 def test_guest_stats_counts_expired():

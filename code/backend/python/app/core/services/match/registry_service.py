@@ -61,6 +61,21 @@ def _numeric(value: Optional[str]) -> Optional[int]:
         return None
 
 
+def _norm(value: Optional[str]) -> Optional[str]:
+    """v0.36.2 — the form a value is COMPARED in: trimmed and case-folded, never stored."""
+    return None if value is None else str(value).strip().lower()
+
+
+def _eq(a: Optional[str], b: Optional[str]) -> bool:
+    """Equality as every registry comparison means it: blind to case and to padding."""
+    return _norm(a) == _norm(b)
+
+
+def _first_matching(rows, value):
+    """The row a value names, whatever case the author wrote it in. None when none does."""
+    return next((r for r in rows if _eq(render_row(r), value)), None)
+
+
 def no_condition(key: Optional[str]) -> bool:
     """True when the condition is absent altogether — a blank key means "no condition"."""
     return key is None or not str(key).strip()
@@ -85,9 +100,9 @@ def evaluate(operator: Optional[str], expected: Optional[str],
     values = list(actual or [])
     op = OP_EQ if operator is None or not str(operator).strip() else str(operator).strip()
     if op == OP_EQ:
-        return any(v == expected for v in values)
+        return any(_eq(v, expected) for v in values)
     if op == OP_NE:
-        return all(v != expected for v in values)
+        return not any(_eq(v, expected) for v in values)
     if op in (OP_GT, OP_LT):
         # ∀ over an empty set is vacuously true in logic and wrong here.
         if not values:
@@ -253,7 +268,7 @@ class RegistryService:
 
         # A set: adding a member it already holds changes nothing, so it says nothing either.
         current = _values(rows)
-        if rendered is None or rendered in current:
+        if rendered is None or any(_eq(v, rendered) for v in current):
             return ordered(current)
         self.store.insert_value(id_match, key, parsed["string_value"], parsed["int_value"],
                                 id_character, id_event, id_choice, clock)
@@ -276,7 +291,7 @@ class RegistryService:
         rendered = render(parsed["string_value"], parsed["int_value"])
 
         if not rows[0].get("multi_value"):
-            if rendered is None or rendered != render_row(rows[0]):
+            if rendered is None or not _eq(rendered, render_row(rows[0])):
                 return current  # a value the story has since moved on from: leave it alone
             self.store.upsert(id_match, key, None, None,
                               id_character, id_event, id_choice, clock)
@@ -284,13 +299,55 @@ class RegistryService:
                       f"{key} {rendered} -> None")
             return []
 
-        if rendered is None or rendered not in current:
+        # The member is named case-blind but deleted as stored, or the delete matches nothing.
+        stored = None if rendered is None else _first_matching(rows, rendered)
+        if stored is None:
             return ordered(current)
-        self.store.delete_value(id_match, key, parsed["string_value"], parsed["int_value"])
-        self._log(id_match, id_character, id_event, id_choice, clock, f"{key} -{rendered}")
+        stored_value = render_row(stored)
+        self.store.delete_value(id_match, key, stored.get("string_value"),
+                                stored.get("int_value"))
+        self._log(id_match, id_character, id_event, id_choice, clock,
+                  f"{key} -{stored_value}")
         after = list(current)
-        after.remove(rendered)
+        after.remove(stored_value)
         return ordered(after)
+
+    # ── admin edit (v0.36.2) ─────────────────────────────────────────────────
+
+    def find_by_match_uuid(self, match_uuid: str, key: Optional[str]) -> List[str]:
+        """The values of one key, by match uuid. Empty when the match or the key is unknown."""
+        ids = self.store.find_match_and_story_id_by_uuid(match_uuid)
+        return [] if ids is None else self.find(ids[0], key)
+
+    def upsert_by_match_uuid(self, match_uuid: str, key: Optional[str],
+                             value: Optional[str]) -> Optional[List[str]]:
+        """The admin console writing a key by match uuid. Nobody in the fiction did this, so
+        the character, event and choice columns stay None — but the audit row is the ordinary
+        one, because a correction the log does not mention is one nobody can trace.
+        None when no match answers to the uuid."""
+        ids = self.store.find_match_and_story_id_by_uuid(match_uuid)
+        if ids is None:
+            return None
+        return self.upsert(ids[0], ids[1], key, value)
+
+    def remove_by_match_uuid(self, match_uuid: str, key: Optional[str],
+                             value: Optional[str]) -> Optional[List[str]]:
+        """The admin console taking a value away. A None value empties the key outright rather
+        than comparing first: the console is correcting the row, not playing the story."""
+        ids = self.store.find_match_and_story_id_by_uuid(match_uuid)
+        if ids is None:
+            return None
+        if value is None:
+            return self._clear(ids[0], key)
+        return self.remove(ids[0], key, value)
+
+    def _clear(self, id_match: int, key: Optional[str]) -> List[str]:
+        """Empty a key whatever it holds: every member of a set, or a single key's value."""
+        if no_condition(key):
+            return []
+        for member in _values(self.store.find_by_match_and_key(id_match, key) or []):
+            self.remove(id_match, key, member)
+        return []
 
     def _log(self, id_match: int, id_character: Optional[int], id_event: Optional[int],
              id_choice: Optional[int], clock: Optional[int], detail: str) -> None:

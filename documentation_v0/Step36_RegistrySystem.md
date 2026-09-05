@@ -395,7 +395,7 @@ payloads are built from that one shared call — there was never a second shape 
 `v0.19.0-match-creation-api.yaml`'s `RegistryEntry` schema was updated alongside the dedicated
 `v0.36.0-registry-api.yaml` spec so the two documents describe the one shape identically.
 
-## 9. Five bugs fixed in passing
+## 9. Six bugs fixed in passing
 
 1. **AWS registry rows had no `id` and no `uuid`.** `events.apply_registry` used to mutate the
    match's embedded `registry` list directly, so a row created at runtime was shaped
@@ -444,6 +444,14 @@ fix:
 The lesson is worth keeping: a payload built by three backends needs a cross-backend test of
 the payload itself. Both defects were invisible to 4700 unit tests and obvious to the Robot
 suite the moment it ran against AWS.
+
+### One more, found while building v0.36.2
+
+6. **Python's `execute-event` and `/info` disagreed on the operator.** `event_store_adapter.py`'s
+   `_event_dict` built its row without `registry_value_operator_condition`, so an event authored
+   with `>`, `<` or `!=` was evaluated as `=` on the execute-event path while `/info` (built from
+   `RegistryService.evaluate` through a different read) reported the correct verdict — the two
+   disagreed on the very same event. `_event_dict` now carries the column like every other one.
 
 ## 10. Other backends
 
@@ -548,7 +556,76 @@ checkbox — `multiValue`, a checkbox input in the form and a boolean column in 
 authoring `list_keys.multi_value` (§6.1) directly. Story import/export carries `multiValue` on
 keys the same way, on all three backends.
 
-## 13. Test coverage
+## 13. v0.36.2 — case-insensitive, whitespace-trimmed value comparison
+
+Scoped deliberately narrow: **values only, at comparison time.** Registry KEYS still match
+exactly, and nothing is normalised in storage — `/registry` and the admin console still answer
+exactly what the story wrote, padding and capitals included. Only the moment a value is
+*compared* now folds case and trims both sides, via the same `norm`/`_norm` helper on all three
+backends (Java `norm`, python `_norm`, AWS `_norm` in `lambda/match/registry.py`).
+
+Three call sites share the one helper:
+
+- **`evaluate()`** — `=` (∃) and `!=` (∄) now compare case-insensitively and trimmed on both
+  sides; `>`/`<` are unchanged — still ∀ over a non-empty set, still requiring a number on both
+  sides, where case does not apply.
+- **The multi-key dedupe in `upsert()`** — a set can no longer hold two spellings of the same
+  value (`"Ledger"` and `"ledger"` are one member, not two); `containsNorm`/`firstMatching`
+  (java), the python and AWS equivalents, decide membership case-blind.
+- **The compare-and-clear in `remove()`** — on a single key the compare is now case-blind; on a
+  multi key the member to remove is *named* case-blind but **deleted exactly as stored**, so a
+  `value_to_remove` of `"LEDGER"` finds and removes a stored `"ledger"` without rewriting it.
+
+Files: `core/.../service/match/RegistryService.java`, `app/core/services/match/registry_service.py`,
+`lambda/match/registry.py`.
+
+## 14. v0.36.2 — a LOCATION can write the registry
+
+Until this step only events and choices could write `gaming_state_registry`; a location itself
+could not. New migration **`V0.36.2__location_registry_keys.sql`** (SQLite and PostgreSQL) adds
+four nullable columns to `list_locations`:
+
+| Column | Written on |
+|---|---|
+| `key_to_add` / `key_value_to_add` | the party's **first** arrival at the location |
+| `key_to_add_not_first` / `key_value_to_add_not_first` | **every later** arrival |
+
+An arrival takes exactly one branch, never both — the same split `id_event_if_first_time` /
+`id_event_not_first_time` already draws for automatic events (Step 33). The write happens during
+arrival resolution, **before** `flag_visited` is latched, with no event involved at all; a blank
+key is authored noise and `upsert` already skips it. It goes through the ordinary
+`RegistryService.upsert`, so it leaves the usual single `REGISTRY_CHANGE` audit row, stamped with
+the arriving character and a null `idEvent`/`idChoice` — the place wrote it, not an event.
+
+Entry points: Java `EventExecutionService.resolveArrival` → new `writeArrivalRegistry`; Python
+`event_service._resolve_arrival` → `_write_arrival_registry`; AWS `match/handler.py
+_resolve_arrival` → `_write_arrival_registry`. The four columns round-trip through story
+import/export and admin CRUD as camelCase `keyToAdd`, `keyValueToAdd`, `keyToAddNotFirst`,
+`keyValueToAddNotFirst`.
+
+## 15. v0.36.2 — Admin registry edit API
+
+Two new admin-only routes, all three backends, port 8044 / the IP-restricted admin API on AWS:
+
+| Method | Path | Body / Query | Answers |
+|---|---|---|---|
+| PUT | `/api/admin/matches/{uuidMatch}/registry` | `{ key, value }` | `{ key, values[] }` |
+| DELETE | `/api/admin/matches/{uuidMatch}/registry?key=K[&value=V]` | — | `{ key, values[] }` |
+
+Naming no `value` on the DELETE empties the key outright, whatever it holds. Both go through the
+ordinary `RegistryService` (`upsertByMatchUuid`/`removeByMatchUuid` on java) — a single key is
+replaced and a multi key gains or loses a member exactly as an event or choice effect would, so
+the console gets no private set of rules, and every write leaves a `REGISTRY_CHANGE` row: a
+correction the log does not mention is one nobody can trace. `idCharacter`/`idEvent`/`idChoice`
+are stamped null — nobody in the fiction did this. 404 on an unknown match, 400 on a blank key.
+
+react-admin `RegistryCard.jsx` (`code/frontend/react-admin/src/components/match/detail/`) gained
+per-row controls: a pen to write/replace a value, a minus per member to drop it from a multi key,
+an eraser to clear a key outright, and an "Add a key" row to write a key the match does not yet
+carry. Every action calls `updateMatchRegistry`/`deleteMatchRegistry` and refreshes the card from
+the response.
+
+## 16. Test coverage
 
 New: java `RegistryServiceTest`, `RegistryStoreAdapterTest`, `RegistryControllerTest`; python
 `test_registry_service.py`, `test_registry_store_adapter.py`, `test_match_controller_registry.py`;
@@ -590,30 +667,48 @@ removes a member. Every one of those events costs **zero** energy on purpose, so
 fixture finders — which only pick a choice-event with a positive cost — can never latch onto it
 by accident.
 
-## 14. Scope of change
+**v0.36.2** added three new Robot suites under `code/tests/robot/tests/36_registry/`:
+`registry_case_insensitive.robot` (5 cases — folded comparison on `=`/`!=`, dedupe on upsert,
+case-blind removal by name, storage left untouched), `registry_location_writes.robot` (5 cases —
+first-arrival vs. later-arrival pair, one `REGISTRY_CHANGE` per arrival, a blank key writing
+nothing), `registry_admin_edit.robot` (6 cases — PUT replacing/joining, DELETE with and without
+a value, 404 on an unknown match, 400 on a blank key). `registry_multi_value.robot`'s fixture
+discovery was also made behaviour-based (it used to grab "the first multi key" declared by the
+story, which broke the moment a second one was seeded) so it now picks the key by what it can do,
+not by position. All four seeds gained the v0.36.2 pack described above (`case_notes`, `signal`,
+`vault_seen`, the Records Vault location, four FREE events at the start hall). `tests/14_admin/
+guest_admin.robot` was reworked for the new `/api/admin/guests` paged envelope and gained
+stale-purge cases (17 total) — see [Step12 §Admin guest management](./Step12_GuestLoginMethod.md).
+
+Full verification for v0.36.2: Java `mvn clean install -P dev` green, python 1432 tests,
+AWS 879, react-admin 687, react-game 1069. Robot green on **all four targets**: 645/645 on
+java/SQLite, java/Postgres and python, 641/641 on AWS — the four it does not run there are
+the Turnstile dev-bypass cases, which the AWS dev environment does not bypass.
+
+## 17. Scope of change
 
 | Layer | Path |
 |---|---|
-| Migration | `adapter-{sqlite,postgres}/src/main/resources/db/migration/v0/V0.36.0__registry_operator_conditions.sql` — `registry_value_operator_condition` on `list_events`, `list_locations_neighbors`, `list_weather_rules`; dedup + `UNIQUE INDEX idx_state_reg_key ON gaming_state_registry(id_match, key)`. **Step 36.1**: `V0.36.1__registry_multi_value.sql` — `multi_value` on `list_keys` and `gaming_state_registry`; `idx_state_reg_key` split into `idx_state_reg_key_single`/`idx_state_reg_key_multi` (§6.1) |
-| Entities (Java) | `EventEntity`, `LocationNeighborEntity`, `WeatherRuleEntity` gain `registryValueOperatorCondition`. **36.1**: `KeyEntity.multiValue` |
-| Engine (Java) | `core/service/match/RegistryService.java` (new); `MovementService`, `WeatherSelectionService`, `ChoiceAvailabilityChecker`, `EventAvailabilityChecker`, `EventExecutionService.applyRegistryEffect`/choice-effect write, `MatchCommandService.createMatch` (seeding), `MatchQueryService` (`/info` + `getMatchRegistry`), `MatchLogsService` (`REGISTRY_CHANGE` type) all updated to call it. **36.1**: `evaluate`/`upsert`/`remove`/`ordered` widened to sets (§1, §7, §7.2); `applyChoiceRegistryEffect` now also calls `remove` |
+| Migration | `adapter-{sqlite,postgres}/src/main/resources/db/migration/v0/V0.36.0__registry_operator_conditions.sql` — `registry_value_operator_condition` on `list_events`, `list_locations_neighbors`, `list_weather_rules`; dedup + `UNIQUE INDEX idx_state_reg_key ON gaming_state_registry(id_match, key)`. **Step 36.1**: `V0.36.1__registry_multi_value.sql` — `multi_value` on `list_keys` and `gaming_state_registry`; `idx_state_reg_key` split into `idx_state_reg_key_single`/`idx_state_reg_key_multi` (§6.1). **36.2**: `V0.36.2__location_registry_keys.sql` — `key_to_add`/`key_value_to_add`/`key_to_add_not_first`/`key_value_to_add_not_first` on `list_locations` (§14) |
+| Entities (Java) | `EventEntity`, `LocationNeighborEntity`, `WeatherRuleEntity` gain `registryValueOperatorCondition`. **36.1**: `KeyEntity.multiValue`. **36.2**: `LocationEntity` gains the four arrival-registry columns |
+| Engine (Java) | `core/service/match/RegistryService.java` (new); `MovementService`, `WeatherSelectionService`, `ChoiceAvailabilityChecker`, `EventAvailabilityChecker`, `EventExecutionService.applyRegistryEffect`/choice-effect write, `MatchCommandService.createMatch` (seeding), `MatchQueryService` (`/info` + `getMatchRegistry`), `MatchLogsService` (`REGISTRY_CHANGE` type) all updated to call it. **36.1**: `evaluate`/`upsert`/`remove`/`ordered` widened to sets (§1, §7, §7.2); `applyChoiceRegistryEffect` now also calls `remove`. **36.2**: `RegistryService` gains `norm`/`eq`/`containsNorm`/`firstMatching` for case-insensitive, trimmed value comparison (§13); `EventExecutionService.resolveArrival` gains `writeArrivalRegistry` (§14) |
 | Ports/persistence (Java) | `core/port/match/RegistryStorePort.java` (new); `core/persistence/match/RegistryStoreAdapter.java` (new); `GamingStateRegistryRepository.findByIdMatchAndKey` (new). **36.1**: `findByMatchAndKey` returns a LIST; `insertValue`/`deleteValue` added |
 | Model (Java) | `core/model/match/MatchRegistryEntry.java` (extended: `idCharacter`/`category`/`visible`/`priority`/`idCard`/`card`), `MatchRegistryGroup.java` (new). **36.1**: `MatchRegistryEntry` gains `values`/`multiValue`, drops the row-shaped fields |
-| REST (Java) | `adapter-rest/.../controller/match/RegistryController.java` (new); `MatchRegistryResponse` (new DTO); `MatchInfoResponse.RegistryEntryDto` extended (same six fields). **36.1**: both DTOs' `stringValue`/`intValue` replaced by `values`/`multiValue` |
+| REST (Java) | `adapter-rest/.../controller/match/RegistryController.java` (new); `MatchRegistryResponse` (new DTO); `MatchInfoResponse.RegistryEntryDto` extended (same six fields). **36.1**: both DTOs' `stringValue`/`intValue` replaced by `values`/`multiValue`. **36.2**: `adapter-admin/.../MatchAdminController` gains `PUT`/`DELETE /{uuidMatch}/registry` (§15) and its weather `rules[]` rows gain `conditionKey`/`conditionValue`/`conditionOperator`/`registryMet` ([Step27](./Step27_WeatherSystem.md)) |
 | Wiring (Java) | `ms-launcher/.../config/CoreConfig.java` — new `registryService` bean; `MatchCommandPort`, `MatchQueryPort`, `WeatherSelectionService` beans gain the `RegistryService` dependency |
 | OpenAPI | `v0.36.0-registry-api.yaml` (new); `v0.28.7-match-logs-api.yaml` updated (`REGISTRY_CHANGE` documented, no longer a future addition). **36.1**: `v0.36.0-registry-api.yaml` bumped to `version: 0.36.1` (Values / Conditions-over-a-set / Ordering rewritten, §2); `v0.19.0-match-creation-api.yaml`'s `RegistryEntry` schema updated too (§8) |
 | Authoring (Java) | `StoryCrudService`, `StoryImportService` — `registryValueOperatorCondition` round-trips on events, edges, weather rules. **36.1**: `multiValue` round-trips on keys too |
-| Engine (Python) | `app/core/services/match/registry_service.py` (new); `choice_availability.py`, `event_availability.py`, `movement_service.py`, `weather_selection_service.py`, `event_service.py`, `match_command_service.py`, `match_logs_service.py`, `match_query_service.py` updated. **36.1**: `evaluate`/`upsert`/`remove` widened to sets, mirroring Java |
+| Engine (Python) | `app/core/services/match/registry_service.py` (new); `choice_availability.py`, `event_availability.py`, `movement_service.py`, `weather_selection_service.py`, `event_service.py`, `match_command_service.py`, `match_logs_service.py`, `match_query_service.py` updated. **36.1**: `evaluate`/`upsert`/`remove` widened to sets, mirroring Java. **36.2**: `registry_service.py` gains `_norm`/`_eq` for case-insensitive comparison (§13); `event_service._resolve_arrival` gains `_write_arrival_registry` (§14); `event_store_adapter._event_dict` bugfix (§9, bug 6) |
 | Ports/persistence (Python) | `app/core/ports/match/registry_ports.py` (new); `app/adapters/persistence/match/registry_store_adapter.py` (new); `story_match_read_adapter.find_keys_by_story_id` (vocabulary normalisation, bug §9.3). **36.1**: list-returning `find_by_match_and_key`, `insert_value`/`delete_value` added |
-| REST (Python) | `app/adapters/rest/match/match_controller.py` — new route + `_registry_to_camel`; `/info`'s `_detail_to_camel` extended. **36.1**: both drop `stringValue`/`intValue` for `values`/`multiValue` |
-| Schema (Python) | `app/adapters/persistence/story/models.py` — `KeyEntity.priority`; `registry_value_operator_condition` on `LocationNeighborEntity`/`WeatherRuleEntity`/`EventEntity`; `database.py` `align_schema()` drift replayer extended, `_TEXT_COLUMNS`. **36.1**: `multi_value` added on `KeyEntity` and the state-row model, applied via `align_schema()` (no Flyway on this backend, §10) |
-| Engine (AWS) | `lambda/match/registry.py` (new); `lambda/match/events.py` (`apply_registry` now delegates, bug §9.1); `lambda/match/handler.py` (`_edge_condition_met` consolidation — bug §9.2 —, `_weather_condition_matches`, `_get_match_registry`, dispatcher route). **36.1**: `registry.py` gains `rows_in`/`values_in`/`remove`; `upsert(..., story=None)` (§10) |
-| Infra (AWS) | `template/match.yaml` — one new route |
-| Seed (all four + demo JSON) | `R__insert_story_seed_data.sql`, `scripts/seed_stories.py` (registry keys added — gap §9), `lambda/seed/handler.py`, `story_demo_3.json`, `story_demo_4.json` — boolean vocabulary sweep (§5). **36.1**: all four gain the `evidence_found` multi-value test-bed on the tutorial story (§13) |
-| Game board | `react-game/src/features/gameplay/cards/RegistryCard.jsx`, `RegistryCards.jsx`, `RegistryKeyCard.jsx` (new); `utils/registry.js` (new); `useBookView.js`, `GameBook.jsx`, `PageLeft.jsx`, `PageRight.jsx`, `PageRightInfo.jsx`, `PageRightMain.jsx`, `js/boardProps.js`, `utils/loadoutCards.js`, `api/matchInfoAdapter.js` (doc only) updated; `data/images.json`, i18n `en.json`/`it.json`. **36.1**: `utils/registry.js` gains `registryValues(entry)` (§11) |
-| Admin | `constants/story/storiesEntities.jsx` — `registryValueOperatorCondition` select on `events`/`location-neighbors`/`weather-rules`, reusing `CHOICE_CONDITION_OPERATOR_OPTIONS`. **36.1**: `RegistryCard.jsx`/`MatchDetailModal` show Values/Multi instead of String/Int value; `storiesEntities.jsx`'s key form gains a `multiValue` checkbox (§12) |
-| Robot | `code/tests/robot/tests/36_registry/registry.robot` (10 tests); `Get Registry` keyword in `resources/matches.resource` — see `.claude/docs/robot-suites.md` for suite/keyword detail, not duplicated here. **36.1**: new `36_registry/registry_multi_value.robot` (9 tests); `registry.robot` updated to the new payload shape and grew to 11 tests (§13) |
-| Tests | Java: `RegistryServiceTest`, `RegistryStoreAdapterTest`, `RegistryControllerTest`, plus updates across `EventAvailabilityCheckerTest`, `WeatherSelectionServiceTest`, `MovementServiceTest` and more. Python: `test_registry_service.py`, `test_registry_store_adapter.py`, `test_match_controller_registry.py`, plus equivalents. AWS: `test_registry.py`, `test_match_handler_registry.py`. React-game: `RegistryCard.test.jsx`, `RegistryCards.test.jsx`, `registryUtils.test.js`. **36.1** coverage: java `RegistryService` 99.5%/95.5% branches, `RegistryStoreAdapter` 100%/100%; python 99%/100%; AWS `registry.py` 99% (§13) |
+| REST (Python) | `app/adapters/rest/match/match_controller.py` — new route + `_registry_to_camel`; `/info`'s `_detail_to_camel` extended. **36.1**: both drop `stringValue`/`intValue` for `values`/`multiValue`. **36.2**: `match_admin_controller.py` gains `PUT`/`DELETE /{uuidMatch}/registry` (§15) and the admin weather rule rows gain the registry-verdict fields ([Step27](./Step27_WeatherSystem.md)) |
+| Schema (Python) | `app/adapters/persistence/story/models.py` — `KeyEntity.priority`; `registry_value_operator_condition` on `LocationNeighborEntity`/`WeatherRuleEntity`/`EventEntity`; `database.py` `align_schema()` drift replayer extended, `_TEXT_COLUMNS`. **36.1**: `multi_value` added on `KeyEntity` and the state-row model, applied via `align_schema()` (no Flyway on this backend, §10). **36.2**: `LocationEntity` gains the four arrival-registry columns (§14), also applied via `align_schema()` |
+| Engine (AWS) | `lambda/match/registry.py` (new); `lambda/match/events.py` (`apply_registry` now delegates, bug §9.1); `lambda/match/handler.py` (`_edge_condition_met` consolidation — bug §9.2 —, `_weather_condition_matches`, `_get_match_registry`, dispatcher route). **36.1**: `registry.py` gains `rows_in`/`values_in`/`remove`; `upsert(..., story=None)` (§10). **36.2**: `registry.py` gains `_norm`/`_eq` (§13); `handler.py _resolve_arrival` gains `_write_arrival_registry` (§14); new `PUT`/`DELETE` registry routes and admin-weather registry fields (§15, [Step27](./Step27_WeatherSystem.md)) |
+| Infra (AWS) | `template/match.yaml` — one new route. **36.2**: two more routes (admin registry PUT/DELETE) |
+| Seed (all four + demo JSON) | `R__insert_story_seed_data.sql`, `scripts/seed_stories.py` (registry keys added — gap §9), `lambda/seed/handler.py`, `story_demo_3.json`, `story_demo_4.json` — boolean vocabulary sweep (§5). **36.1**: all four gain the `evidence_found` multi-value test-bed on the tutorial story (§13). **36.2**: all four gain `case_notes`/`signal`/`vault_seen` keys, the Records Vault location and four FREE events (§16) |
+| Game board | `react-game/src/features/gameplay/cards/RegistryCard.jsx`, `RegistryCards.jsx`, `RegistryKeyCard.jsx` (new); `utils/registry.js` (new); `useBookView.js`, `GameBook.jsx`, `PageLeft.jsx`, `PageRight.jsx`, `PageRightInfo.jsx`, `PageRightMain.jsx`, `js/boardProps.js`, `utils/loadoutCards.js`, `api/matchInfoAdapter.js` (doc only) updated; `data/images.json`, i18n `en.json`/`it.json`. **36.1**: `utils/registry.js` gains `registryValues(entry)` (§11). **36.2**: `src/utils/matchStatus.js`/`StoryCard.jsx` Replay button — unrelated to the registry, see [Step18](./Step18_GameMainFrontend.md) |
+| Admin | `constants/story/storiesEntities.jsx` — `registryValueOperatorCondition` select on `events`/`location-neighbors`/`weather-rules`, reusing `CHOICE_CONDITION_OPERATOR_OPTIONS`. **36.1**: `RegistryCard.jsx`/`MatchDetailModal` show Values/Multi instead of String/Int value; `storiesEntities.jsx`'s key form gains a `multiValue` checkbox (§12). **36.2**: `RegistryCard.jsx` gains per-row edit/remove-member/clear-key controls and an "Add a key" row (§15); `WeatherCard.jsx` gains the Registry column ([Step27](./Step27_WeatherSystem.md)); `GuestsPage.jsx` bugfix (§9.2 note in [Step12](./Step12_GuestLoginMethod.md)) |
+| Robot | `code/tests/robot/tests/36_registry/registry.robot` (10 tests); `Get Registry` keyword in `resources/matches.resource` — see `.claude/docs/robot-suites.md` for suite/keyword detail, not duplicated here. **36.1**: new `36_registry/registry_multi_value.robot` (9 tests); `registry.robot` updated to the new payload shape and grew to 11 tests (§13). **36.2**: new `registry_case_insensitive.robot` (5), `registry_location_writes.robot` (5), `registry_admin_edit.robot` (6); `registry_multi_value.robot` fixture discovery made behaviour-based (§16) |
+| Tests | Java: `RegistryServiceTest`, `RegistryStoreAdapterTest`, `RegistryControllerTest`, plus updates across `EventAvailabilityCheckerTest`, `WeatherSelectionServiceTest`, `MovementServiceTest` and more. Python: `test_registry_service.py`, `test_registry_store_adapter.py`, `test_match_controller_registry.py`, plus equivalents. AWS: `test_registry.py`, `test_match_handler_registry.py`. React-game: `RegistryCard.test.jsx`, `RegistryCards.test.jsx`, `registryUtils.test.js`. **36.1** coverage: java `RegistryService` 99.5%/95.5% branches, `RegistryStoreAdapter` 100%/100%; python 99%/100%; AWS `registry.py` 99% (§13). **36.2**: java 2466+ tests, python 1432, AWS 879, react-admin 687, react-game 1069 — full suite green (§16) |
 
 Python and AWS mirror the Java engine described above, subject to the AWS storage note in §10
 and the bugs fixed in §9.
@@ -622,14 +717,15 @@ and the bugs fixed in §9.
 
 # Version Control
 
-- **Document Version**: 0.36.1
+- **Document Version**: 0.36.2
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.36.0 | Registry System, implemented: `RegistryService` consolidates every registry read, write and comparison behind `render`/`parse`/`evaluate` on all three backends (§1); `GET /api/match/{uuid}/registry` reads the visible keys grouped by `list_keys.group`, duplicated onto `/info` (§2-§4, §8); a new `registry_value_operator_condition` column on events, edges and weather rules reuses the choice-conditions operator vocabulary, retiring weather's old "null value means unset" doctrine in favour of the strict reading events and movement already used (§5); `V0.36.0__registry_operator_conditions.sql` also makes `idx_state_reg_key` unique (§6); every write now leaves exactly one `REGISTRY_CHANGE` match-log row (§7); five bugs fixed in passing — AWS registry rows with no id/uuid, three duplicated AWS neighbour checks missing a null-guard, Python's `list_keys` model realigned to the Java vocabulary, plus the two the AWS Robot run caught after the first pass: `/info` not joining the registry there, and a null actor crashing the event chain on a time-start write (§9). | September 3, 2026 |
   | 0.36.1 | Registry multi-value keys, implemented: `list_keys.multi_value` lets a key hold a SET instead of one value, mirrored onto `gaming_state_registry.multi_value` per match so a match already in progress keeps the behaviour it was born with (§6.1); `evaluate` now reads `=`/`!=` as ∃/∄ and `>`/`<` as ∀ over the set, never vacuously true on an empty one, and a single-valued key's set still collapses to the reading it always had (§1, §7.2). Both registry payloads drop `stringValue`/`intValue` for a backend-ordered `values` array plus `multiValue` (§2-§3, §8); `value_to_add`/`value_to_remove` join or remove one member on a multi key instead of replacing it (§7.2); a write the registry refuses now leaves no `REGISTRY_CHANGE` row at all (§7). | September 4, 2026 |
+  | 0.36.2 | Value comparison folds case and trims both sides, at comparison time only — keys still match exactly and storage is untouched (§13); `list_locations` gains two registry pairs, one for the first arrival and one for every later one (§14); new admin `PUT`/`DELETE /api/admin/matches/{uuid}/registry` route the console through the ordinary engine (§15). A sixth bug fixed in passing: Python's `_event_dict` dropped the operator column, so `execute-event` and `/info` disagreed on the same event (§9, bug 6). | September 5, 2026 |
 
-- **Last Updated**: September 4, 2026
+- **Last Updated**: September 5, 2026
 - **Status**: Complete
 
 

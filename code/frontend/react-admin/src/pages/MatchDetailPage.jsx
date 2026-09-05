@@ -277,7 +277,7 @@ export default function MatchDetailPage() {
           )}
 
           {tab === 'registry' && (
-            <RegistryCard registry={info.registry} />
+            <RegistryCard registry={info.registry} matchUuid={uuid} onChanged={loadInfo} />
           )}
 
           {tab === 'turn' && (

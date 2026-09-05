@@ -329,6 +329,25 @@ Resources:
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId
 
+  # v0.36.2 — the console correcting one registry key of a match.
+  AdminMatchRegistryPutRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "PUT /api/admin/matches/{uuidMatch}/registry"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  AdminMatchRegistryDeleteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "DELETE /api/admin/matches/{uuidMatch}/registry"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
   # Step 28.7 — admin log timeline (no ownership check)
   AdminMatchLogsRoute:
     Type: AWS::ApiGatewayV2::Route

@@ -1377,8 +1377,22 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                         triggers.idEventIfCharacterEnterEmptyLocation(), idLocation,
                         TRIGGER_MOVE_INTO_EMPTY_LOCATION, currentClock, lang, true, depth, out);
             }
+            writeArrivalRegistry(idMatch, idStory, idCharacter, triggers, visited, currentClock);
         }
         locationStore.markStateLocationVisited(idMatch, idLocation);
+    }
+
+    /**
+     * Step 36.2 — the place writes the registry itself. The history branch chooses the pair,
+     * exactly as it chose the event above, so one arrival writes one pair and never both.
+     * A blank key is authored noise, and {@code upsert} already skips it.
+     */
+    private void writeArrivalRegistry(long idMatch, long idStory, long idCharacter,
+                                      LocationTriggerView triggers, boolean visited,
+                                      int currentClock) {
+        String key = visited ? triggers.keyToAddNotFirst() : triggers.keyToAdd();
+        String value = visited ? triggers.keyValueToAddNotFirst() : triggers.keyValueToAdd();
+        registryService.upsert(idMatch, idStory, key, value, idCharacter, null, null, currentClock);
     }
 
     /** Null-tolerant entry: a null or non-positive column is simply not a trigger. */

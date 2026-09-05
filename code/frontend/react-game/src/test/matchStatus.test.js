@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { storyHasActiveMatch, storyHasBlockingMatch, storyMatchBadge, findResumableMatch } from '../utils/matchStatus'
+import {
+  storyHasActiveMatch, storyHasBlockingMatch, storyMatchBadge, findResumableMatch,
+  FINISHED_MATCH_STATUSES,
+} from '../utils/matchStatus'
 
 const M = (storyUuid, status) => ({ uuid: `${storyUuid}-${status}`, storyUuid, status })
 
@@ -31,7 +34,8 @@ describe('matchStatus', () => {
     expect(storyMatchBadge([M('s1', 'RUNNING'), M('s1', 'PAUSED')], 's1')).toBe('active')
     expect(storyMatchBadge([M('s1', 'PAUSED'), M('s1', 'ENDED')], 's1')).toBe('paused')
     expect(storyMatchBadge([M('s1', 'ENDED')], 's1')).toBe('completed')
-    expect(storyMatchBadge([M('s1', 'GAMEOVER')], 's1')).toBe(null)
+    // v0.36.2 — a lost run is a played one, so it reads as completed too.
+    expect(storyMatchBadge([M('s1', 'GAMEOVER')], 's1')).toBe('completed')
     expect(storyMatchBadge([M('s2', 'RUNNING')], 's1')).toBe(null)
     expect(storyMatchBadge(null, 's1')).toBe(null)
   })
@@ -44,5 +48,14 @@ describe('matchStatus', () => {
     expect(findResumableMatch(matches, 's3')).toBeNull()
     expect(findResumableMatch(matches, 's4')).toBeNull()
     expect(findResumableMatch(null, 's1')).toBeNull()
+  })
+})
+
+describe('FINISHED_MATCH_STATUSES (v0.36.2)', () => {
+  it('holds both ways a run can be over, and nothing that is still live', () => {
+    expect(FINISHED_MATCH_STATUSES.has('ENDED')).toBe(true)
+    expect(FINISHED_MATCH_STATUSES.has('GAMEOVER')).toBe(true)
+    expect(FINISHED_MATCH_STATUSES.has('RUNNING')).toBe(false)
+    expect(FINISHED_MATCH_STATUSES.has('PAUSED')).toBe(false)
   })
 })

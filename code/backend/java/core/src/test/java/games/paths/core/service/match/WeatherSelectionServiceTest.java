@@ -262,8 +262,12 @@ class WeatherSelectionServiceTest {
         CurrentWeatherView view = new CurrentWeatherView(9L, "w-9", 7L, 55, 109, -5, 1, 2, 3);
         when(store.findCurrentWeatherByMatchUuid("m-1")).thenReturn(Optional.of(view));
         when(store.findWeatherRulesForMatch("m-1")).thenReturn(List.of(
-                new WeatherStorePort.WeatherRuleSummary(9L, "w-9", 109, "Storm", 30, -5, 1, 3, true, true),
-                new WeatherStorePort.WeatherRuleSummary(8L, "w-8", 108, "Clear", 70, 0, 0, 1, true, false)));
+                // v0.36.2 — the storm is gated on a key the registry does not hold; the
+                // admin view must say so instead of silently listing it as available.
+                new WeatherStorePort.WeatherRuleSummary(9L, "w-9", 109, "Storm", 30, -5, 1, 3,
+                        true, true, "gate", "OPEN", "=", false),
+                new WeatherStorePort.WeatherRuleSummary(8L, "w-8", 108, "Clear", 70, 0, 0, 1,
+                        true, false, null, null, null, false)));
         when(store.findWeatherLog("m-1")).thenReturn(List.of(
                 new WeatherLogView(1L, "l-1", 0, 9L, "w-9", 109, "2026-06-24T00:00:00Z")));
 
@@ -272,6 +276,9 @@ class WeatherSelectionServiceTest {
         assertEquals(9L, admin.current().idWeather());
         assertEquals(2, admin.rules().size());
         assertTrue(admin.rules().get(0).current());
+        // The gated rule is refused (the registry holds nothing); the unconditional one passes.
+        assertFalse(admin.rules().get(0).registryMet());
+        assertTrue(admin.rules().get(1).registryMet());
         assertEquals(1, admin.log().size());
     }
 }

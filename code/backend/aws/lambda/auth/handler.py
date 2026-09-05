@@ -13,6 +13,8 @@ Routes (API contracts match Java OpenAPI specs):
   GET    /api/admin/guests           → list_guests         (ADMIN)
   GET    /api/admin/guests/stats     → guest_stats         (ADMIN)
   DELETE /api/admin/guests/expired   → cleanup_expired     (ADMIN)
+  GET    /api/admin/guests/stale     → preview_stale_guests (ADMIN)
+  DELETE /api/admin/guests/stale     → delete_stale_guests  (ADMIN)
   GET    /api/admin/guests/{uuid}    → get_guest_by_uuid   (ADMIN)
   DELETE /api/admin/guests/{uuid}    → delete_guest        (ADMIN)
 
@@ -25,6 +27,7 @@ Response shapes follow:
   ErrorResponse           (shared)
 """
 
+import base64
 import json
 import os
 import re
@@ -202,6 +205,10 @@ def lambda_handler(event, context):
         return list_guests(event)
     if path == '/api/admin/guests/stats' and method == 'GET':
         return guest_stats(event)
+    if path == '/api/admin/guests/stale' and method == 'GET':
+        return preview_stale_guests(event)
+    if path == '/api/admin/guests/stale' and method == 'DELETE':
+        return delete_stale_guests(event)
     if path == '/api/admin/guests/expired' and method == 'DELETE':
         return cleanup_expired(event)
     # parameterised
@@ -412,12 +419,135 @@ def get_me(event):
 
 # ─── admin / guests ───────────────────────────────────────────────────────────
 
+#: Page size when the caller names none, and the ceiling whatever it names.
+DEFAULT_PAGE_LIMIT = 50
+MAX_PAGE_LIMIT = 200
+
+
+def _seen_at(user):
+    """When a guest was last seen, in epoch millis: its last access, or its registration if
+    it never came back. One expression, so the page order and the purge bound agree."""
+    return _nzms(user.get('ts_last_access')) or _nzms(
+        user.get('ts_registration', user.get('ts_insert')))
+
+
+def _nzms(value):
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _clamp_limit(requested):
+    try:
+        return max(1, min(int(requested), MAX_PAGE_LIMIT))
+    except (TypeError, ValueError):
+        return DEFAULT_PAGE_LIMIT
+
+
+def _bound_ms(older_than_days):
+    """The epoch-millis instant N days ago, or None when the caller named no bound."""
+    try:
+        days = int(older_than_days)
+    except (TypeError, ValueError):
+        return None
+    return None if days < 0 else _now_ms() - days * 86400000
+
+
 def list_guests(event):
+    """GET /api/admin/guests — v0.36.2, ONE page at a time, most recently seen first.
+
+    This used to scan the whole table to completion and time out at 15s. The scan is now
+    bounded per request; ``nextCursor`` carries DynamoDB's LastEvaluatedKey back.
+
+    Because DynamoDB applies Limit before the filter, a page may come back short or even
+    empty while nextCursor is still set: an empty page is not the end of the data.
+    """
     _, err = _require_admin(event)
     if err:
         return err
-    guests = db_utils.scan_filter('is_guest', True)
-    return _ok([_guest_info(g) for g in guests])
+    qs = event.get('queryStringParameters') or {}
+    limit = _clamp_limit(qs.get('limit'))
+    bound = _bound_ms(qs.get('olderThanDays'))
+    start_key = _decode_cursor(qs.get('cursor'))
+
+    items, last_key = db_utils.scan_filter_page('is_guest', True, limit, start_key)
+    guests = [g for g in items if bound is None or _seen_at(g) < bound]
+    guests.sort(key=_seen_at, reverse=True)
+    return _ok({
+        'items': [_guest_info(g) for g in guests],
+        'nextCursor': _encode_cursor(last_key),
+        'limit': limit,
+    })
+
+
+def _encode_cursor(last_key):
+    """DynamoDB's LastEvaluatedKey as one opaque string. None when there is no next page."""
+    if not last_key:
+        return None
+    return base64.urlsafe_b64encode(
+        json.dumps(last_key, default=str).encode('utf-8')).decode('ascii').rstrip('=')
+
+
+def _decode_cursor(cursor):
+    """None for a missing or malformed token, so the scan restarts at page one, never fails."""
+    if not cursor:
+        return None
+    try:
+        padded = cursor + '=' * (-len(cursor) % 4)
+        decoded = json.loads(base64.urlsafe_b64decode(padded).decode('utf-8'))
+        return decoded if isinstance(decoded, dict) else None
+    except (ValueError, TypeError):
+        return None
+
+
+def preview_stale_guests(event):
+    """GET /api/admin/guests/stale?olderThanDays=N — the dry run: how many guests, and how
+    many of their matches, the deletion below would take."""
+    _, err = _require_admin(event)
+    if err:
+        return err
+    bound = _bound_ms(((event.get('queryStringParameters') or {}).get('olderThanDays')))
+    if bound is None:
+        return _err(400, 'INVALID_INPUT', 'olderThanDays is required and must be >= 0')
+    stale = _stale_guests(bound)
+    return _ok({'guests': len(stale), 'matches': len(_matches_of(stale))})
+
+
+def delete_stale_guests(event):
+    """DELETE /api/admin/guests/stale?olderThanDays=N — remove every guest not seen for N days
+    AND every match they created, whatever its status. Matches go first, as they do on the SQL
+    backends where the creator is a foreign key. Distinct from DELETE /expired, which only ever
+    removes sessions whose own expiry has passed and never touches a match."""
+    _, err = _require_admin(event)
+    if err:
+        return err
+    bound = _bound_ms(((event.get('queryStringParameters') or {}).get('olderThanDays')))
+    if bound is None:
+        return _err(400, 'INVALID_INPUT', 'olderThanDays is required and must be >= 0')
+    stale = _stale_guests(bound)
+    matches = _matches_of(stale)
+    for match in matches:
+        db_utils.delete_item(match['PK'], match.get('SK', 'METADATA'))
+    for guest in stale:
+        db_utils.delete_item(guest['PK'], guest.get('SK', 'METADATA'))
+    return _ok({'guests': len(stale), 'matches': len(matches),
+                'status': 'CLEANUP_COMPLETE'})
+
+
+def _stale_guests(bound_ms):
+    """Every guest last seen before the bound. Unbounded on purpose: a purge must see the
+    whole table, and it is a deliberate admin action, not a page the console polls."""
+    return [g for g in db_utils.scan_filter('is_guest', True) if _seen_at(g) < bound_ms]
+
+
+def _matches_of(guests):
+    """Every match these guests created, whatever its status."""
+    uuids = {g.get('uuid') for g in guests if g.get('uuid')}
+    if not uuids:
+        return []
+    return [m for m in db_utils.scan_pk_prefix('MATCH#')
+            if m.get('SK', 'METADATA') == 'METADATA' and m.get('userCreatorUuid') in uuids]
 
 
 def guest_stats(event):

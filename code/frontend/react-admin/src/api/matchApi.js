@@ -77,3 +77,15 @@ export const changePlayerStatistics = (matchUuid, playerUuid, body) =>
 export const getMatchLogs = (uuid, params = {}) =>
   apiClient().get(`/api/admin/matches/${uuid}/logs`, { params: { order: 'desc', ...params } })
     .then(r => r.data)
+
+// PUT /api/admin/matches/:uuid/registry — v0.36.2, correct one registry key.
+// Body { key, value }. A single key is replaced, a multi key gains a member;
+// either way the match log gains a REGISTRY_CHANGE row. Returns { key, values }.
+export const updateMatchRegistry = (uuid, body) =>
+  apiClient().put(`/api/admin/matches/${uuid}/registry`, body).then(r => r.data)
+
+// DELETE /api/admin/matches/:uuid/registry?key=K[&value=V] — take one member
+// away, or empty the key outright when no value is named.
+export const deleteMatchRegistry = (uuid, key, value) =>
+  apiClient().delete(`/api/admin/matches/${uuid}/registry`, { params: { key, value } })
+    .then(r => r.data)

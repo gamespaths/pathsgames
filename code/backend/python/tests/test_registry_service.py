@@ -396,3 +396,39 @@ def test_with_no_story_to_join_against_entries_still_come_back_bare(enriched, st
     store.find_by_match.return_value = [_row("a")]
     assert len(service.list_entries(1, None, include_hidden=True)) == 1
     story_read.find_keys_by_story_id.assert_not_called()
+
+
+# ── v0.36.2 — a string comparison ignores case and padding ───────────────────
+
+def test_equality_is_blind_to_case_and_padding():
+    assert evaluate("=", "ledger", [" Ledger "])
+    assert evaluate("=", " LEDGER ", ["ledger"])
+    assert not evaluate("!=", "ledger", [" Ledger "])
+    assert evaluate("!=", "letter", [" Ledger "])
+
+
+def test_numeric_comparison_still_needs_numbers_on_both_sides():
+    assert evaluate(">", "3", [" 4 "])
+    assert not evaluate(">", "3", ["four"])
+
+
+def test_a_set_does_not_gain_a_second_spelling_of_a_member_it_holds(service, store):
+    store.find_by_match_and_key.return_value = [_multi_row("clues", " Ledger ")]
+
+    assert service.upsert(1, None, "clues", "LEDGER") == [" Ledger "]
+    store.insert_value.assert_not_called()
+
+
+def test_compare_and_clear_empties_a_single_key_named_in_another_case(service, store):
+    store.find_by_match_and_key.return_value = [_row("clue", " Ledger ")]
+
+    assert service.remove(1, "clue", "ledger") == []
+    store.upsert.assert_called_once_with(1, "clue", None, None, None, None, None, None)
+
+
+def test_a_set_member_is_named_case_blind_but_deleted_as_stored(service, store):
+    store.find_by_match_and_key.return_value = [
+        _multi_row("clues", " Ledger "), _multi_row("clues", "letter")]
+
+    assert service.remove(1, "clues", "LEDGER") == ["letter"]
+    store.delete_value.assert_called_once_with(1, "clues", " Ledger ", None)

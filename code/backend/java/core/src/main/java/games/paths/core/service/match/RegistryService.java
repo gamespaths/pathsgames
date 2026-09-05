@@ -14,7 +14,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * RegistryService - Step 36. The one place that reads, writes and compares the match registry.
@@ -104,8 +106,8 @@ public class RegistryService {
         }
         Collection<String> values = actual == null ? List.of() : actual;
         return switch (operator(operator)) {
-            case OP_EQ -> values.stream().anyMatch(expected::equals);
-            case OP_NE -> values.stream().noneMatch(expected::equals);
+            case OP_EQ -> values.stream().anyMatch(v -> eq(v, expected));
+            case OP_NE -> values.stream().noneMatch(v -> eq(v, expected));
             // ∀ over an empty set is vacuously true in logic and wrong here.
             case OP_GT -> !values.isEmpty() && values.stream().allMatch(v -> compare(v, expected) > 0);
             case OP_LT -> !values.isEmpty() && values.stream().allMatch(v -> compare(v, expected) < 0);
@@ -143,6 +145,31 @@ public class RegistryService {
 
     private static String operator(String raw) {
         return raw == null || raw.isBlank() ? OP_EQ : raw.trim();
+    }
+
+    /** v0.36.2 - the form a value is COMPARED in: trimmed and case-folded, never stored. */
+    private static String norm(String value) {
+        return value == null ? null : value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    /** Equality as every registry comparison means it: blind to case and to padding. */
+    private static boolean eq(String a, String b) {
+        return Objects.equals(norm(a), norm(b));
+    }
+
+    /** Membership under {@link #eq}, so a set never holds two spellings of one value. */
+    private static boolean containsNorm(Collection<String> values, String value) {
+        return values.stream().anyMatch(v -> eq(v, value));
+    }
+
+    /** The row a value names, whatever case the author wrote it in. Null when none does. */
+    private static RegistryRow firstMatching(List<RegistryRow> rows, String value) {
+        for (RegistryRow r : rows) {
+            if (eq(render(r), value)) {
+                return r;
+            }
+        }
+        return null;
     }
 
     /** -1/0/1 comparing two numerics; 0 when either side is not a number, which never passes. */
@@ -348,7 +375,7 @@ public class RegistryService {
         }
         // A set: adding a member it already holds changes nothing, so it says nothing either.
         List<String> current = values(rows);
-        if (rendered == null || current.contains(rendered)) {
+        if (rendered == null || containsNorm(current, rendered)) {
             return ordered(current);
         }
         store.insertValue(idMatch, key, parsed.stringValue(), parsed.intValue(),
@@ -379,20 +406,23 @@ public class RegistryService {
         String rendered = render(parsed.stringValue(), parsed.intValue());
 
         if (!rows.get(0).isMulti()) {
-            if (rendered == null || !rendered.equals(render(rows.get(0)))) {
+            if (rendered == null || !eq(rendered, render(rows.get(0)))) {
                 return current;   // a value the story has since moved on from: leave it alone
             }
             store.upsert(idMatch, key, null, null, idCharacter, idEvent, idChoice, clock);
             log(idMatch, idCharacter, idEvent, idChoice, clock, key + " " + rendered + " -> null");
             return List.of();
         }
-        if (rendered == null || !current.contains(rendered)) {
+        // The member is named case-blind but deleted as stored, or the delete matches nothing.
+        RegistryRow stored = rendered == null ? null : firstMatching(rows, rendered);
+        if (stored == null) {
             return ordered(current);
         }
-        store.deleteValue(idMatch, key, parsed.stringValue(), parsed.intValue());
-        log(idMatch, idCharacter, idEvent, idChoice, clock, key + " -" + rendered);
+        String storedValue = render(stored);
+        store.deleteValue(idMatch, key, stored.stringValue(), stored.intValue());
+        log(idMatch, idCharacter, idEvent, idChoice, clock, key + " -" + storedValue);
         List<String> after = new ArrayList<>(current);
-        after.remove(rendered);
+        after.remove(storedValue);
         return ordered(after);
     }
 
@@ -443,6 +473,55 @@ public class RegistryService {
             }
         }
         store.insertAll(idMatch, rows);
+    }
+
+    // ── admin edit (v0.36.2) ────────────────────────────────────────────────
+
+    /** The values of one key, by match uuid. Empty when the match or the key is unknown. */
+    public List<String> findByMatchUuid(String matchUuid, String key) {
+        long[] ids = store.findMatchAndStoryIdByUuid(matchUuid).orElse(null);
+        return ids == null ? List.of() : find(ids[0], key);
+    }
+
+    /**
+     * The admin console writing a key by match uuid. Nobody in the fiction did this, so the
+     * character, event and choice columns stay null — but the audit row is the ordinary one,
+     * because a correction the log does not mention is a correction nobody can trace.
+     * Null when no match answers to the uuid.
+     */
+    public List<String> upsertByMatchUuid(String matchUuid, String key, String value) {
+        long[] ids = store.findMatchAndStoryIdByUuid(matchUuid).orElse(null);
+        if (ids == null) {
+            return null;
+        }
+        return upsert(ids[0], ids[1], key, value, null, null, null, null);
+    }
+
+    /**
+     * The admin console taking a value away. A null value empties a single key outright
+     * rather than comparing first: the console is correcting the row, not playing the story.
+     */
+    public List<String> removeByMatchUuid(String matchUuid, String key, String value) {
+        long[] ids = store.findMatchAndStoryIdByUuid(matchUuid).orElse(null);
+        if (ids == null) {
+            return null;
+        }
+        if (value == null) {
+            return clear(ids[0], key);
+        }
+        return remove(ids[0], key, value, null, null, null, null);
+    }
+
+    /** Empty a key whatever it holds: every member of a set, or the value of a single key. */
+    private List<String> clear(long idMatch, String key) {
+        if (noCondition(key)) {
+            return List.of();
+        }
+        List<RegistryRow> rows = store.findByMatchAndKey(idMatch, key);
+        for (String member : values(rows)) {
+            remove(idMatch, key, member, null, null, null, null);
+        }
+        return List.of();
     }
 
     public void deleteByMatch(List<Long> matchIds) {

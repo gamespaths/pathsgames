@@ -302,6 +302,10 @@ public class StoryImportService implements StoryImportPort {
             e.setCostEnergyEnter(getInteger(item, "costEnergyEnter"));
             e.setCounterTime(getInteger(item, "counterTime"));
             e.setMaxCharacters(getInteger(item, "maxCharacters"));
+            e.setKeyToAdd(getString(item, "keyToAdd"));
+            e.setKeyValueToAdd(getString(item, "keyValueToAdd"));
+            e.setKeyToAddNotFirst(getString(item, "keyToAddNotFirst"));
+            e.setKeyValueToAddNotFirst(getString(item, "keyValueToAddNotFirst"));
             entities.add(e);
         }
         // The idEventIf* columns are NOT written here: they point at events that do not

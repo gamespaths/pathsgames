@@ -42,6 +42,15 @@ public interface MatchPersistencePort {
      */
     int deleteMatchesByNameLike(String nameLikePattern);
 
+    /** v0.36.2 — how many matches these users created, whatever the status. */
+    long countMatchesByUserCreatorIds(java.util.List<Long> userIds);
+
+    /**
+     * v0.36.2 — delete every match these users created, whatever the status. Called before the
+     * users themselves go: {@code gaming_match.id_user_creator} is a foreign key.
+     */
+    int deleteMatchesByUserCreatorIds(java.util.List<Long> userIds);
+
     /**
      * Updates the status and/or name of a single match.
      *

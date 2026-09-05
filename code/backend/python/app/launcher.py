@@ -99,7 +99,6 @@ echo_service = EchoService(
 )
 session_service = SessionService(jwt_adapter, token_persistence, 5)
 guest_auth_service = GuestAuthService(jwt_adapter, persistence_adapter)
-guest_admin_service = GuestAdminService(persistence_adapter)
 story_query_service = StoryQueryService(story_read_adapter)
 story_validator_service = StoryValidatorService(story_read_adapter)
 story_import_service = StoryImportService(story_persistence_adapter, story_validator_service)
@@ -108,6 +107,8 @@ story_crud_service = StoryCrudService(story_read_adapter, story_persistence_adap
 
 # Step 19 — match adapters and services
 match_persistence_adapter = MatchPersistenceAdapter(SessionLocal)
+# v0.36.2 — the stale purge takes a guest's matches with it, so it needs both ports.
+guest_admin_service = GuestAdminService(persistence_adapter, match_persistence_adapter)
 story_match_read_adapter = StoryMatchReadAdapter(SessionLocal)
 user_access_adapter = UserAccessAdapter(SessionLocal)
 system_mode_service = PropertySystemModeService(server_status="OK")
@@ -197,7 +198,8 @@ match_admin_controller = MatchAdminController(match_command_service, match_query
                                                character_command_service,
                                                weather_selection_service,
                                                movement_service,
-                                               match_logs_service)
+                                               match_logs_service,
+                                               registry_service)
 turn_cycle_store_adapter = TurnCycleStoreAdapter(SessionLocal)
 turn_cycle_service = TurnCycleService(turn_cycle_store_adapter, weather_selection_service)
 turn_cycle_controller = TurnCycleController(turn_cycle_service)

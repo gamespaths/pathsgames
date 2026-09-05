@@ -598,4 +598,55 @@ class RegistryServiceTest {
             assertEquals(List.of("A"), service.remove(1L, "clues", "Z", null, null, null, 1));
         }
     }
+
+    @Nested
+    @DisplayName("v0.36.2 - a string comparison ignores case and padding")
+    class CaseAndPadding {
+
+        @Test
+        @DisplayName("= and != fold case and trim both sides")
+        void equalityIsBlindToCaseAndPadding() {
+            assertTrue(RegistryService.evaluate("=", "ledger", List.of(" Ledger ")));
+            assertTrue(RegistryService.evaluate("=", " LEDGER ", List.of("ledger")));
+            assertFalse(RegistryService.evaluate("!=", "ledger", List.of(" Ledger ")));
+            assertTrue(RegistryService.evaluate("!=", "letter", List.of(" Ledger ")));
+        }
+
+        @Test
+        @DisplayName("a numeric comparison is unchanged: padding trims, both sides must parse")
+        void numericComparisonStillNeedsNumbers() {
+            assertTrue(RegistryService.evaluate(">", "3", List.of(" 4 ")));
+            assertFalse(RegistryService.evaluate(">", "3", List.of("four")));
+        }
+
+        @Test
+        @DisplayName("a set does not gain a second spelling of a member it already holds")
+        void multiUpsertDeduplicatesAcrossSpellings() {
+            when(store.findByMatchAndKey(1L, "clues")).thenReturn(List.of(multiRow("clues", " Ledger ", null)));
+
+            assertEquals(List.of(" Ledger "),
+                    service.upsert(1L, null, "clues", "LEDGER", null, null, null, 1));
+            verify(store, never()).insertValue(anyLong(), any(), any(), any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("compare-and-clear empties a single key named in another case")
+        void singleRemoveMatchesAcrossSpellings() {
+            when(store.findByMatchAndKey(1L, "clue")).thenReturn(List.of(row("clue", " Ledger ", null)));
+
+            assertEquals(List.of(), service.remove(1L, "clue", "ledger", null, null, null, 1));
+            verify(store).upsert(1L, "clue", null, null, null, null, null, 1);
+        }
+
+        @Test
+        @DisplayName("a set member is named case-blind but deleted exactly as it is stored")
+        void multiRemoveDeletesTheStoredSpelling() {
+            when(store.findByMatchAndKey(1L, "clues"))
+                    .thenReturn(List.of(multiRow("clues", " Ledger ", null), multiRow("clues", "letter", null)));
+
+            assertEquals(List.of("letter"),
+                    service.remove(1L, "clues", "LEDGER", null, null, null, 1));
+            verify(store).deleteValue(1L, "clues", " Ledger ", null);
+        }
+    }
 }

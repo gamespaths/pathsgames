@@ -116,6 +116,16 @@ def seed():
             # instead of replacing the value. No default, so its set starts EMPTY: no row.
             {"id": 5, "keyName": "evidence_found", "keyValue": None,
              "keyGroup": "evidence", "isVisible": 1, "priority": 1, "multiValue": 1},
+            # Step 36.2 — the case/padding test-bed. 'case_notes' is written with padding and
+            # capitals while every condition on it is authored lowercase and bare; 'signal' is
+            # the mirror, its lowercase default read by a padded, upper-case condition.
+            # 'vault_seen' is written by no event and no choice: only a LOCATION writes it.
+            {"id": 6, "keyName": "case_notes", "keyValue": None,
+             "keyGroup": "evidence", "isVisible": 1, "priority": 2, "multiValue": 1},
+            {"id": 7, "keyName": "signal", "keyValue": "green",
+             "keyGroup": "evidence", "isVisible": 1, "priority": 3},
+            {"id": 8, "keyName": "vault_seen", "keyValue": None,
+             "keyGroup": "evidence", "isVisible": 1, "priority": 4},
         ],
         "locations": [
             # Step 26: safe location (isSafe=1 -> secure recovery) carrying a time
@@ -129,6 +139,9 @@ def seed():
              # flagBack 1 — a two-way door. Without it the edge is one-way and the party
              # can never walk back, which makes every re-entry behaviour untestable.
              "neighbors": [{"idLocationTo": 2, "direction": "NORTH", "energyCost": 2,
+                            "idCardBack": 1, "flagBack": 1},
+                           # Step 36.2 — free both ways, so a test can walk in and out again.
+                           {"idLocationTo": 6, "direction": "SOUTH", "energyCost": 0,
                             "idCardBack": 1, "flagBack": 1}]},
             # Step 28: a second location to move into.
             # Step 0.28.5: both locations carry idCard so GET /locations resolves
@@ -154,6 +167,12 @@ def seed():
             #       reported on the sleep that advanced the clock, not on a movement.
             {"id": 5, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
              "idEventIfCharacterStartTime": 44, "priorityAutomaticEvent": 2},
+            # Step 36.2 — the Records Vault writes the registry by being entered. Two pairs:
+            # the first arrival and every later one take different branches, never both, and
+            # no event is involved at all.
+            {"id": 6, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
+             "keyToAdd": "vault_seen", "keyValueToAdd": "first",
+             "keyToAddNotFirst": "vault_seen", "keyValueToAddNotFirst": "again"},
         ],
         "events": [
             {"id": 1, "idTextName": 500, "idTextDescription": 500, "type": "FIRST",
@@ -325,6 +344,31 @@ def seed():
              "registryKeyCondition": "evidence_found", "registryValueCondition": "letter"},
             {"id": 363, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
              "idSpecificLocation": 1, "idCard": 1},
+            # Step 36.2 — spelling must not decide a gate. Four more FREE events at the start
+            # location, for the same reason as the 36.1 pack above.
+            #   370  WRITES ' Ledger ' — padded and capitalised, as a careless author writes.
+            #   371  READS  'ledger'   — bare and lowercase. It must open once 370 has run,
+            #                            which is the whole claim of v0.36.2 in two rows.
+            #   372  WRITES 'LEDGER'   — a third spelling of the member the set already holds;
+            #                            the set must stay at one member.
+            #   373  READS  '  GREEN ' — the mirror: a padded, upper-case condition against
+            #                            the lowercase default 'signal' carries from the key.
+            {"id": 370, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "case_notes", "keyValueToAdd": " Ledger "}]},
+            {"id": 371, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "registryKeyCondition": "case_notes", "registryValueCondition": "ledger",
+             "registryValueOperatorCondition": "="},
+            {"id": 372, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "case_notes", "keyValueToAdd": "LEDGER"}]},
+            {"id": 373, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "registryKeyCondition": "signal", "registryValueCondition": "  GREEN  ",
+             "registryValueOperatorCondition": "="},
         ],
         # Step 31 — the options of the two choice-events above (canonical top-level arrays
         # keyed by idChoices). Event 30: one always-available option, one gated on INT > 99

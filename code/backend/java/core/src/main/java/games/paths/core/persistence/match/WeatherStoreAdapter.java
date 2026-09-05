@@ -195,7 +195,10 @@ public class WeatherStoreAdapter implements WeatherStorePort {
                     w.getProbability(), w.getDeltaEnergy(),
                     w.getCostMoveSafeLocation(), w.getCostMoveNotSafeLocation(),
                     w.getActive() != null && w.getActive() != 0,
-                    current != null && current.equals(w.getId())));
+                    current != null && current.equals(w.getId()),
+                    // The verdict needs the registry; WeatherSelectionService fills it in.
+                    w.getConditionKey(), w.getConditionKeyValue(),
+                    w.getRegistryValueOperatorCondition(), false));
         }
         return out;
     }

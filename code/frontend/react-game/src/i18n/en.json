@@ -16,6 +16,7 @@
     "badgeResume": "Resume",
     "badgePlay": "Play",
     "loadingMatches": "Loading…",
+    "badgeReplay": "Replay",
     "badgeCompleted": "Completed",
     "badgePaused": "Paused",
     "matchesError": "Your matches could not be loaded, so a new adventure cannot be started right now.",

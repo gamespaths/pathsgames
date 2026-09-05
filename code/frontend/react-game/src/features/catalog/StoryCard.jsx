@@ -7,12 +7,18 @@ import Card from '../../components/layout/Card'
  */
 export default function StoryCard({ story, onClick, badge, pending = false, showActions = false }) {
   const { t } = useTranslation()
+  // v0.36.2 — a story the player has already finished offers Replay, not Play: the
+  // click starts a brand-new match either way, but the card should say so.
   const actionLabel = badge === 'active'
     ? t('home.badgeResume')
     : badge === 'paused'
       ? t('home.badgePaused')
-      : t('home.badgePlay')
-  const actionIcon = badge === 'paused' ? 'fa-pause' : 'fa-play'
+      : badge === 'completed'
+        ? t('home.badgeReplay')
+        : t('home.badgePlay')
+  const actionIcon = badge === 'paused'
+    ? 'fa-pause'
+    : badge === 'completed' ? 'fa-rotate-right' : 'fa-play'
   // Two ways a card has no button: the teaser has none at all, and until the matches
   // answer we cannot tell Play from Resume — that one waits behind a spinner.
   const waitingForMatches = !showActions && !story.comingSoon

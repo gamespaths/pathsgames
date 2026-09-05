@@ -833,6 +833,10 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("priorityAutomaticEvent", l.getPriorityAutomaticEvent());
             m.put("idAudio", l.getIdAudio());
             m.put("maxCharacters", l.getMaxCharacters());
+            m.put("keyToAdd", l.getKeyToAdd());
+            m.put("keyValueToAdd", l.getKeyValueToAdd());
+            m.put("keyToAddNotFirst", l.getKeyToAddNotFirst());
+            m.put("keyValueToAddNotFirst", l.getKeyValueToAddNotFirst());
         } else if (e instanceof KeyEntity) {
             KeyEntity k = (KeyEntity) e;
             m.put("name", k.getName());
@@ -1202,6 +1206,14 @@ public class StoryCrudService implements StoryCrudPort {
             e.setIdAudio(intVal(d, "idAudio"));
         if (d.containsKey("maxCharacters"))
             e.setMaxCharacters(intVal(d, "maxCharacters"));
+        if (d.containsKey("keyToAdd"))
+            e.setKeyToAdd(str(d, "keyToAdd"));
+        if (d.containsKey("keyValueToAdd"))
+            e.setKeyValueToAdd(str(d, "keyValueToAdd"));
+        if (d.containsKey("keyToAddNotFirst"))
+            e.setKeyToAddNotFirst(str(d, "keyToAddNotFirst"));
+        if (d.containsKey("keyValueToAddNotFirst"))
+            e.setKeyValueToAddNotFirst(str(d, "keyValueToAddNotFirst"));
     }
 
     private void applyEventFields(EventEntity e, Map<String, Object> d) {

@@ -47,9 +47,14 @@ _ADDED_COLUMNS = {
     # Step 36 — the operator on events, and the ordering column list_keys never had.
     "list_events": ["registry_value_operator_condition"],
     "list_keys": ["priority"],
+    # Step 36.2 — the two registry pairs a location writes on arrival.
+    "list_locations": ["key_to_add", "key_value_to_add",
+                       "key_to_add_not_first", "key_value_to_add_not_first"],
 }
 # Added columns are integers unless named here: the Step 36 operator holds "=", ">", "<", "!=".
-_TEXT_COLUMNS = {"registry_value_operator_condition"}
+_TEXT_COLUMNS = {"registry_value_operator_condition",
+                 "key_to_add", "key_value_to_add",
+                 "key_to_add_not_first", "key_value_to_add_not_first"}
 
 
 def align_schema(bind=None):

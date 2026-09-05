@@ -9,6 +9,10 @@ export const ACTIVE_MATCH_STATUSES = new Set(['CREATED', 'RUNNING'])
 // a new run without being resumable, so it needs its own badge, not "resume".
 export const BLOCKING_MATCH_STATUSES = new Set(['CREATED', 'RUNNING', 'PAUSED'])
 
+// v0.36.2 — a run that is over, however it ended. Both mean the player has played
+// this story, so the card offers Replay instead of Play.
+export const FINISHED_MATCH_STATUSES = new Set(['ENDED', 'GAMEOVER'])
+
 /** True when the guest has an active (resumable) match for the given story. */
 export function storyHasActiveMatch(matches, storyUuid) {
   return Array.isArray(matches) && matches.some(
@@ -36,7 +40,8 @@ export function storyHasBlockingMatch(matches, storyUuid) {
  * Badge to show on a StoryCard for the guest's matches of that story:
  *   'active'    → at least one resumable match (CREATED/RUNNING)
  *   'paused'    → no resumable match but one paused by an admin (v0.32.1)
- *   'completed' → nothing active or paused but at least one ENDED
+ *   'completed' → nothing active or paused but at least one finished run (v0.36.2:
+ *                 GAMEOVER counts — a lost run is a played one)
  *   null        → nothing to show
  * Active wins over paused, paused over completed.
  */
@@ -45,6 +50,6 @@ export function storyMatchBadge(matches, storyUuid) {
   const mine = matches.filter(m => m.storyUuid === storyUuid)
   if (mine.some(m => ACTIVE_MATCH_STATUSES.has(m.status))) return 'active'
   if (mine.some(m => m.status === 'PAUSED')) return 'paused'
-  if (mine.some(m => m.status === 'ENDED')) return 'completed'
+  if (mine.some(m => FINISHED_MATCH_STATUSES.has(m.status))) return 'completed'
   return null
 }

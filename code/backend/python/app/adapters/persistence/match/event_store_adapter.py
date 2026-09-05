@@ -600,6 +600,7 @@ def _event_dict(e: EventEntity) -> Dict[str, Any]:
         "id_specific_location": e.id_specific_location, "id_weather": e.id_weather,
         "registry_key_condition": e.registry_key_condition,
         "registry_value_condition": e.registry_value_condition,
+        "registry_value_operator_condition": e.registry_value_operator_condition,
         "id_item_condition": e.id_item_condition,
         "id_class_condition": e.id_class_condition,
     }

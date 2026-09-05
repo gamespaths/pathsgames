@@ -367,3 +367,42 @@ def test_values_in_reads_a_bare_registry_list():
     registry = [_multi_row('clues', 'A'), _multi_row('clues'), _row('door', 'SHUT')]
     assert r.values_in(registry, 'clues') == ['A']
     assert r.values_in(registry, 'gone') == []
+
+
+# ── v0.36.2 — a string comparison ignores case and padding ───────────────────
+
+def test_equality_is_blind_to_case_and_padding():
+    assert r.evaluate('=', 'ledger', [' Ledger '])
+    assert r.evaluate('=', ' LEDGER ', ['ledger'])
+    assert not r.evaluate('!=', 'ledger', [' Ledger '])
+    assert r.evaluate('!=', 'letter', [' Ledger '])
+
+
+def test_numeric_comparison_still_needs_numbers_on_both_sides():
+    assert r.evaluate('>', '3', [' 4 '])
+    assert not r.evaluate('>', '3', ['four'])
+
+
+def test_a_set_does_not_gain_a_second_spelling_of_a_member_it_holds():
+    match = _match(_multi_row('clues', ' Ledger '))
+
+    written = r.upsert(match, 'clues', 'LEDGER')
+
+    assert written['newValue'] == written['oldValue'] == ' Ledger '
+    assert len(match['registry']) == 1
+
+
+def test_compare_and_clear_empties_a_single_key_named_in_another_case():
+    match = _match(_row('clue', ' Ledger '))
+
+    r.remove(match, 'clue', 'ledger')
+
+    assert match['registry'][0]['stringValue'] is None
+
+
+def test_a_set_member_is_named_case_blind_but_removed_as_stored():
+    match = _match(_multi_row('clues', ' Ledger '), _multi_row('clues', 'letter'))
+
+    r.remove(match, 'clues', 'LEDGER')
+
+    assert [row['stringValue'] for row in match['registry']] == ['letter']

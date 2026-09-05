@@ -85,6 +85,8 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 (90017, 9001, 106, 'en', 'Mission Board', 'A large board covered with quest notices. Each mission has steps that update the State Registry. "Complete missions to progress the story. Check your registry to track progress!"'),
 (90018, 9001, 106, 'it', 'Bacheca Missioni', 'Una grande bacheca coperta di avvisi di missioni. Ogni missione ha passaggi che aggiornano il Registro di Stato. "Completa le missioni per progredire nella storia. Controlla il tuo registro per tracciare i progressi!"'),
 (90019, 9001, 107, 'en', 'Multiplayer Courtyard', 'An open courtyard where training dummies represent other players. Signs explain: "Players take turns based on a formula using DEX, INT, and COS. When ALL players sleep, a new Time Unit begins."'),
+(91110, 9001, 109, 'en', 'Records Vault', 'A cold room of ledgers and letters. The archivist writes down every visitor — the first arrival and each one after it are recorded differently.'),
+(91111, 9001, 109, 'it', 'Sala degli Archivi', 'Una stanza fredda di registri e lettere. L''archivista annota ogni visitatore: il primo arrivo e quelli successivi sono registrati in modo diverso.'),
 (90020, 9001, 107, 'it', 'Cortile Multigiocatore', 'Un cortile aperto dove manichini da allenamento rappresentano altri giocatori. Cartelli spiegano: "I giocatori agiscono in turno secondo una formula basata su DES, INT e COS. Quando TUTTI dormono, inizia una nuova Unità di Tempo."'),
 (90021, 9001, 108, 'en', 'Graduation Hall', 'A grand hall with a golden trophy at the center. "Congratulations! You have completed the tutorial. You now know the fundamentals of Paths Games. Go forth and play a real story!"'),
 (90022, 9001, 108, 'it', 'Sala della Laurea', 'Una sala maestosa con un trofeo dorato al centro. "Congratulazioni! Hai completato il tutorial. Ora conosci le basi di Paths Games. Vai e gioca una storia vera!"'),
@@ -235,7 +237,14 @@ INSERT INTO list_keys (id, id_story, name, value, id_text_description, "group", 
 (90001, 9001, 'tutorial_progress', '0',     950, 'tutorial', 1, 'PUBLIC', 0),
 (90002, 9001, 'items_collected',   '0',     951, 'tutorial', 2, 'PUBLIC', 0),
 (90003, 9001, 'choice_made',       '0',     952, 'tutorial', 3, 'PUBLIC', 0),
-(90004, 9001, 'evidence_found',    NULL,    950, 'evidence', 1, 'PUBLIC', 1);
+(90004, 9001, 'evidence_found',    NULL,    950, 'evidence', 1, 'PUBLIC', 1),
+-- Step 36.2: the case/padding test-bed. 'case_notes' is written with padding and capitals
+-- while every condition on it is authored lowercase and bare; 'signal' is the mirror, its
+-- lowercase default read by a padded, upper-case condition. 'vault_seen' is written by no
+-- event and no choice at all: only a LOCATION writes it, by being entered.
+(90005, 9001, 'case_notes',        NULL,    950, 'evidence', 2, 'PUBLIC', 1),
+(90006, 9001, 'signal',            'green', 950, 'evidence', 3, 'PUBLIC', 0),
+(90007, 9001, 'vault_seen',        NULL,    950, 'evidence', 4, 'PUBLIC', 0);
 
 -- ── Locations (8 training rooms) ────────────────────────────────
 -- Step 26: secure_param > 0 marks a SAFE location (full energy/life recovery and
@@ -254,6 +263,12 @@ INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_descrip
 (90007, 9001, 90002, 106, 106, 1, 0, 10, 1, NULL, NULL),-- Mission Board (safe)
 (90008, 9001, 90001, 107, 107, 1, 0, 10, 1, NULL, NULL);-- Multiplayer Courtyard (safe)
 
+-- Step 36.2 — the Records Vault writes the registry by being entered. Two pairs: the first
+-- arrival and every later one take different branches, never both, and no event is involved.
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, cost_energy_enter, max_characters, secure_param, counter_time, id_event_if_counter_zero,
+                            key_to_add, key_value_to_add, key_to_add_not_first, key_value_to_add_not_first) VALUES
+(90009, 9001, 90001, 109, 109, 1, 0, 10, 1, NULL, NULL, 'vault_seen', 'first', 'vault_seen', 'again');
+
 -- ── Location Neighbors ──────────────────────────────────────────
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
 (90001, 9001, 90001, 90002, 'NORTH', 1, 2),   -- Welcome ↔ Movement Room (Step 28: edge energy cost)
@@ -263,7 +278,8 @@ INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_locatio
 (90005, 9001, 90005, 90006, 'NORTH', 1, 1),   -- Choice ↔ Weather Observatory
 (90006, 9001, 90006, 90007, 'EAST',  1, 0),   -- Weather ↔ Mission Board
 (90007, 9001, 90007, 90008, 'NORTH', 1, 0),   -- Mission ↔ Multiplayer Courtyard
-(90008, 9001, 90001, 90008, 'EAST',  1, 1);   -- Welcome ↔ Multiplayer (shortcut)
+(90008, 9001, 90001, 90008, 'EAST',  1, 1),   -- Welcome ↔ Multiplayer (shortcut)
+(90009, 9001, 90001, 90009, 'SOUTH', 1, 0);   -- Welcome ↔ Records Vault (Step 36.2, free)
 
 -- Step 0.28.2 — optional return card: when the player stands on locationTo (90002)
 -- the Welcome↔Movement edge shows id_card_back (catalog card 90003) instead of card.
@@ -617,6 +633,31 @@ INSERT INTO list_choices_conditions (id, id_story, id_choices, type, key, value,
 
 INSERT INTO list_choices_effects (id, id_story, id_choices, id_card, statistics, value) VALUES
 (90361, 9001, 90361, 90001, 'exp', 1);
+
+-- ── Step 36.2 case-and-padding pack — spelling must not decide a gate ───
+-- Four more FREE events at the START hall (90001), for the same reason as the 36.1 pack:
+-- a zero cost keeps them invisible to the Step 31/32 finders.
+--   90370  WRITES ' Ledger ' — padded and capitalised, exactly as a careless author writes.
+--   90371  READS  'ledger'   — bare and lowercase. It must open once 90370 has run, which
+--                              is the whole claim of v0.36.2 in one pair of rows.
+--   90372  WRITES 'LEDGER'   — a third spelling of the member the set already holds. The set
+--                              must stay at one member: a duplicate is not a new value.
+--   90373  READS  '  GREEN ' — the mirror direction: a padded, upper-case condition against
+--                              the lowercase default 'signal' carries from list_keys. Open
+--                              from the very first turn, with nothing written at all.
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location,
+                         type, cost_enery, cost_coin, flag_end_time, id_event_next,
+                         id_weather, registry_key_condition, registry_value_condition,
+                         registry_value_operator_condition,
+                         id_item_condition, id_class_condition) VALUES
+(90370, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL,         NULL,        '=', NULL, NULL),
+(90371, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, 'case_notes', 'ledger',    '=', NULL, NULL),
+(90372, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL,         NULL,        '=', NULL, NULL),
+(90373, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, 'signal',     '  GREEN  ', '=', NULL, NULL);
+
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES
+(90370, 9001, 90370, 90001, 'ONLY_ONE', 'case_notes', ' Ledger '),
+(90372, 9001, 90372, 90001, 'ONLY_ONE', 'case_notes', 'LEDGER');
 
 -- ── Global Random Events ────────────────────────────────────────
 INSERT INTO list_global_random_events (id, id_story, condition_key, condition_value, probability) VALUES

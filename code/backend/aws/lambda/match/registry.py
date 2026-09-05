@@ -60,6 +60,21 @@ def _numeric(value):
 
 # ── comparison ──────────────────────────────────────────────────────────────
 
+def _norm(value):
+    """v0.36.2 — the form a value is COMPARED in: trimmed and case-folded, never stored."""
+    return None if value is None else str(value).strip().lower()
+
+
+def _eq(a, b):
+    """Equality as every registry comparison means it: blind to case and to padding."""
+    return _norm(a) == _norm(b)
+
+
+def _first_matching(rows, value):
+    """The row a value names, whatever case the author wrote it in. None when none does."""
+    return next((r for r in rows if _eq(render_row(r), value)), None)
+
+
 def no_condition(key):
     """True when the condition is absent altogether — a blank key means "no condition"."""
     return key is None or not str(key).strip()
@@ -83,9 +98,9 @@ def evaluate(operator, expected, actual):
     values = list(actual or [])
     op = OP_EQ if operator is None or not str(operator).strip() else str(operator).strip()
     if op == OP_EQ:
-        return any(v == expected for v in values)
+        return any(_eq(v, expected) for v in values)
     if op == OP_NE:
-        return all(v != expected for v in values)
+        return not any(_eq(v, expected) for v in values)
     if op in (OP_GT, OP_LT):
         # ∀ over an empty set is vacuously true in logic and wrong here.
         if not values:
@@ -283,7 +298,7 @@ def upsert(match, key, value, changes=None, id_character=None, id_event=None,
                         id_event, clock, character_uuid, timestamp)
 
     # A set: adding a member it already holds changes nothing, so it says nothing either.
-    if rendered is None or rendered in before:
+    if rendered is None or any(_eq(v, rendered) for v in before):
         return _unchanged(key, before, changes)
     row = {'id': _next_id(registry), 'uuid': str(_uuid.uuid4()), 'key': key, 'multiValue': 1,
            'stringValue': parsed['stringValue'], 'intValue': parsed['intValue']}
@@ -309,7 +324,7 @@ def remove(match, key, value, changes=None, id_character=None, id_event=None,
     rendered = render(parsed['stringValue'], parsed['intValue'])
 
     if not rows[0].get('multiValue'):
-        if rendered is None or rendered != render_row(rows[0]):
+        if rendered is None or not _eq(rendered, render_row(rows[0])):
             return _unchanged(key, before, changes)  # a value the story has moved on from
         rows[0]['stringValue'] = None
         rows[0]['intValue'] = None
@@ -317,12 +332,15 @@ def remove(match, key, value, changes=None, id_character=None, id_event=None,
         return _written(match, key, before, [], changes, f'{key} {rendered} -> None',
                         id_event, clock, character_uuid, timestamp)
 
-    if rendered is None or rendered not in before:
+    # The member is named case-blind but removed as stored, or the removal matches nothing.
+    stored = None if rendered is None else _first_matching(rows, rendered)
+    if stored is None:
         return _unchanged(key, before, changes)
-    registry.remove(next(r for r in rows if render_row(r) == rendered))
+    stored_value = render_row(stored)
+    registry.remove(stored)
     after = list(before)
-    after.remove(rendered)
-    return _written(match, key, before, ordered(after), changes, f'{key} -{rendered}',
+    after.remove(stored_value)
+    return _written(match, key, before, ordered(after), changes, f'{key} -{stored_value}',
                     id_event, clock, character_uuid, timestamp)
 
 

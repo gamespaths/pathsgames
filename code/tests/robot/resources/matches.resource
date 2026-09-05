@@ -522,6 +522,37 @@ Get Registry
     ...    headers=${headers}    params=${params}    expected_status=${expected_status}
     RETURN    ${response}
 
+# ── v0.36.2 — the admin console correcting one registry key ──
+
+Admin Upsert Registry
+    [Documentation]    PUT /api/admin/matches/{uuidMatch}/registry — write one key by uuid.
+    ...                A single key is replaced, a multi key gains a member; either way the
+    ...                match log gains a REGISTRY_CHANGE row. Answers { key, values }.
+    [Arguments]    ${token}    ${match_uuid}    ${key}    ${value}=${NONE}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    &{body}=    Create Dictionary    key=${key}
+    IF    $value is not None
+        Set To Dictionary    ${body}    value=${value}
+    END
+    ${response}=    PUT On Session    admin_session
+    ...    /api/admin/matches/${match_uuid}/registry
+    ...    headers=${headers}    json=${body}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Admin Delete Registry
+    [Documentation]    DELETE /api/admin/matches/{uuidMatch}/registry?key=K[&value=V] — take
+    ...                one member away, or empty the key outright when no value is named.
+    [Arguments]    ${token}    ${match_uuid}    ${key}    ${value}=${NONE}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${params}=    Create Dictionary    key=${key}
+    IF    $value is not None
+        Set To Dictionary    ${params}    value=${value}
+    END
+    ${response}=    DELETE On Session    admin_session
+    ...    /api/admin/matches/${match_uuid}/registry
+    ...    headers=${headers}    params=${params}    expected_status=${expected_status}
+    RETURN    ${response}
+
 Get Inventory
     [Documentation]    GET /api/gameplay/{uuidMatch}/inventory — the calling character's items
     ...                (Step 34). Readable in any match status; only use-item and drop-item

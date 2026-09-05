@@ -59,7 +59,12 @@ public interface WeatherStorePort {
                               Integer costMoveSafeLocation,
                               Integer costMoveNotSafeLocation,
                               boolean active,
-                              boolean current) {
+                              boolean current,
+                              /** v0.36.2 - the authored registry condition, and whether it is met. */
+                              String conditionKey,
+                              String conditionValue,
+                              String conditionOperator,
+                              boolean registryMet) {
     }
 
     record WeatherLogView(long id,

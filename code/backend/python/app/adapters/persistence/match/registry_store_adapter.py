@@ -7,7 +7,8 @@ import uuid as uuid_lib
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from app.adapters.persistence.match.models import GamingStateRegistryEntity, LogEventsEntity
+from app.adapters.persistence.match.models import (GamingMatchEntity,
+                                                    GamingStateRegistryEntity, LogEventsEntity)
 from app.core.ports.match.registry_ports import RegistryStorePort
 
 
@@ -34,6 +35,16 @@ class RegistryStoreAdapter(RegistryStorePort):
 
     def __init__(self, session_factory) -> None:
         self.session_factory = session_factory
+
+    def find_match_and_story_id_by_uuid(self, match_uuid: str) -> Optional[tuple]:
+        if not match_uuid or not str(match_uuid).strip():
+            return None
+        with self.session_factory() as session:
+            m = (session.query(GamingMatchEntity)
+                 .filter(GamingMatchEntity.uuid == match_uuid).first())
+            if m is None or m.id is None or m.id_story is None:
+                return None
+            return (m.id, m.id_story)
 
     def find_by_match(self, id_match: int) -> List[Dict[str, Any]]:
         with self.session_factory() as session:

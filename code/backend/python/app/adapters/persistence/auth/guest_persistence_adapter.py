@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import and_, func, or_
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 from app.core.ports.auth.guest_persistence_port import GuestPersistencePort
@@ -107,6 +107,45 @@ class GuestPersistenceAdapter(GuestPersistencePort, GuestAdminPersistencePort):
             session.delete(user)
             session.commit()
             return True
+
+    # === v0.36.2: paging and the stale purge ===
+
+    @staticmethod
+    def _seen_at():
+        """When a guest was last seen: its last access, or its registration if it never
+        came back. One expression, so the page order and the purge bound agree."""
+        return func.coalesce(User.last_access, User.ts_registration)
+
+    def find_guests_page(self, last_access_before, ts_cursor, id_cursor, limit):
+        seen = self._seen_at()
+        with self.session_factory() as session:
+            q = session.query(User).filter(User.state == 6)
+            if last_access_before is not None:
+                q = q.filter(seen < last_access_before)
+            if ts_cursor is not None:
+                q = q.filter(or_(seen < ts_cursor,
+                                 and_(seen == ts_cursor, User.id < (id_cursor or 0))))
+            users = q.order_by(seen.desc(), User.id.desc()).limit(max(1, limit)).all()
+            return [self._user_to_dict(u) for u in users]
+
+    def find_guest_ids_with_last_access_before(self, before: str) -> List[int]:
+        if before is None:
+            return []
+        with self.session_factory() as session:
+            rows = (session.query(User.id)
+                    .filter(User.state == 6, self._seen_at() < before).all())
+            return [r[0] for r in rows]
+
+    def delete_guests_by_ids(self, ids: List[int]) -> int:
+        if not ids:
+            return 0
+        with self.session_factory() as session:
+            session.query(UserToken).filter(
+                UserToken.id_user.in_(ids)).delete(synchronize_session=False)
+            deleted = session.query(User).filter(
+                User.state == 6, User.id.in_(ids)).delete(synchronize_session=False)
+            session.commit()
+            return deleted
 
     def count_all_guests(self) -> int:
         with self.session_factory() as session:

@@ -272,15 +272,16 @@ def test_list_guests_player_forbidden():
     assert result['statusCode'] == 403
 
 def test_list_guests_admin_returns_200():
+    """v0.36.2 — the endpoint answers the paged envelope, not a bare array."""
     with patch('auth.handler.db_utils.get_item', return_value=ADMIN_USER), \
-         patch('auth.handler.db_utils.scan_filter', return_value=[PLAYER_USER]):
+         patch('auth.handler.db_utils.scan_filter_page', return_value=([PLAYER_USER], None)):
         from auth.handler import lambda_handler
         event = admin_event('GET', '/api/admin/guests')
         result = lambda_handler(event, {})
     assert result['statusCode'] == 200
     body = _body(result)
-    assert isinstance(body, list)
-    assert len(body) == 1
+    assert len(body['items']) == 1
+    assert body['nextCursor'] is None
 
 
 # ── admin: delete_guest ───────────────────────────────────────────────────────

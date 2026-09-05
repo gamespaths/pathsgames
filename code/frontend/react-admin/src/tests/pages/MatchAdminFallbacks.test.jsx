@@ -173,9 +173,16 @@ describe('MatchDetailPage error fallbacks', () => {
 describe('GuestsPage and MatchDetailModal fallbacks', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    listGuests.mockResolvedValue([{ userUuid: 'g1', username: 'guest_a', expired: true }])
+    // v0.36.2 — the endpoint answers the paged envelope, not a bare array.
+    listGuests.mockResolvedValue({
+      items: [{ userUuid: 'g1', username: 'guest_a', expired: true }],
+      nextCursor: null, limit: 50,
+    })
     getGuestStats.mockResolvedValue({ totalGuests: 1, activeGuests: 0, expiredGuests: 1 })
-    matchApi.listMatches.mockResolvedValue([{ uuid: 'm1', name: 'Run', status: 'RUNNING', userCreatorUuid: 'g1' }])
+    matchApi.listMatches.mockResolvedValue({
+      items: [{ uuid: 'm1', name: 'Run', status: 'RUNNING', userCreatorUuid: 'g1' }],
+      nextCursor: null, limit: 50,
+    })
     matchApi.getMatchInfo.mockResolvedValue({ match: {}, locations: [], registry: [] })
     getStory.mockResolvedValue({})
     listEntities.mockResolvedValue([])

@@ -139,6 +139,33 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public long countMatchesByUserCreatorIds(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return 0;
+        }
+        return matchRepository.findMatchIdsByUserCreatorIds(userIds).size();
+    }
+
+    @Override
+    public int deleteMatchesByUserCreatorIds(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return 0;
+        }
+        // The same order deleteMatchesByNameLike uses: derived runtime state first, because
+        // SQLite does not enforce the foreign-key cascades PostgreSQL does.
+        List<Long> matchIds = matchRepository.findMatchIdsByUserCreatorIds(userIds);
+        if (matchIds.isEmpty()) {
+            return 0;
+        }
+        matchRepository.clearCurrentTurnByMatchIdIn(matchIds);
+        deleteCharacterState(matchIds);
+        locationsRepository.deleteByMatchIdIn(matchIds);
+        registryStorePort.deleteByMatchIdIn(matchIds);
+        return matchRepository.deleteByIdIn(matchIds);
+    }
+
+    @Override
     public boolean updateMatchFields(String uuid, String status, String name) {
         Optional<GamingMatchEntity> opt = matchRepository.findByUuid(uuid);
         if (opt.isEmpty()) {

@@ -104,9 +104,23 @@ and the full `log_weather` history ordered by clock ascending.
       "idWeather": 3,
       "deltaEnergy": -2
     }
+  ],
+  "rules": [
+    {
+      "id": 3, "uuid": "rule-uuid", "idTextName": 10, "name": "storm",
+      "probability": 30, "deltaEnergy": -2,
+      "costMoveSafeLocation": 1, "costMoveNotSafeLocation": 3,
+      "active": true, "current": true,
+      "conditionKey": "depth", "conditionValue": "3", "conditionOperator": ">",
+      "registryMet": true
+    }
   ]
 }
 ```
+
+`rules[]` (one row per `list_weather_rules` catalogue entry, all of them, not just the
+winner) predates v0.36.2. **v0.36.2** adds `conditionKey`/`conditionValue`/
+`conditionOperator`/`registryMet` to each row — see §3.2.
 
 **Error codes:**
 
@@ -153,6 +167,19 @@ No changes to the response shape or status codes.
 | `rngSeed` | long | The match's RNG seed |
 | `current` | `WeatherResponse` | Current weather (may be null when none is set) |
 | `log` | array | Each entry: `{ clock, idWeather, deltaEnergy }` |
+| `rules` | array | Every catalogue rule for the story, admin view (see below) |
+
+**`rules[]` row** (Java `WeatherStorePort.WeatherRuleSummary`, widened v0.36.2 from 10 to
+14 components — the adapter fills the first 10 plus the three authored condition
+columns, the service computes the 14th):
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `id`, `uuid`, `idTextName`, `name`, `probability`, `deltaEnergy`, `costMoveSafeLocation`, `costMoveNotSafeLocation`, `active`, `current` | — | Pre-existing, unchanged |
+| `conditionKey` | string (nullable) | Authored registry key; `null` = unconditional. Exposed since v0.36.2; the column itself is v0.36.0 |
+| `conditionValue` | string (nullable) | Authored comparison value |
+| `conditionOperator` | string (nullable) | Authored operator (`=`, `!=`, `>`, `<`, …); `null` means `=` |
+| `registryMet` | boolean | **v0.36.2.** Whether the rule's condition currently passes, computed with the very comparison `WeatherSelectionService` uses to pick the winner, so this cannot disagree with the engine |
 
 ### 3.3 Java core domain models
 
@@ -171,6 +198,10 @@ No changes to the response shape or status codes.
 
 DI wired in `CoreConfig`.
 
+**v0.36.2**: `weatherAdmin(matchUuid)` now runs every rule through a new private
+`withRegistryVerdict`/`registryMet` pair before returning it, so the admin `rules[]` rows
+carry the registry verdict (§3.2).
+
 ### 3.4 Python core models
 
 | Item | Path | Purpose |
@@ -187,6 +218,10 @@ Python's `WeatherRuleEntity` model columns relevant to Step 27: `probability` (F
 
 Wired in `launcher.py`. Hooked into `time_advancement_service._advance_time` and
 `turn_cycle_service.start_match`.
+
+**v0.36.2**: `weather_selection_service._with_registry_verdict` mirrors the Java
+`withRegistryVerdict`/`registryMet` pair, adding `registry_met` (camelCased to
+`registryMet` in `match_admin_controller.py`) to each admin `rules[]` row.
 
 ### 3.5 AWS Lambda models
 
@@ -209,6 +244,10 @@ Key functions in `lambda/match/handler.py`:
 
 Seed weather rules embedded in `lambda/seed/handler.py`: two rules (clear and storm)
 on the seed story item.
+
+**v0.36.2**: the admin weather handler reuses the same `_weather_condition_matches(rule,
+registry)` that selection already calls, to fill `registryMet` on each admin `rules[]`
+row — no separate comparison to drift out of sync.
 
 ---
 
@@ -468,6 +507,9 @@ Full `mvn test` = BUILD SUCCESS.
   - New Weather panel: current weather info (`idWeather`, `deltaEnergy`, safe/unsafe move costs) + `log_weather` history table (columns: clock, idWeather, deltaEnergy).
   - Panel hidden gracefully when the endpoint returns an error (backward compatibility with older backends).
 - [x] `MatchDetailPage.test.jsx` and `matchApi.test.js` updated. Full suite = **398 passed**.
+- [x] **v0.36.2** — `WeatherCard.jsx` gains a **Registry** column in the rules table:
+  `—` when `conditionKey` is null, a green badge with the clause (e.g. `depth > 3`) when
+  `registryMet` is true, a red badge titled "blocked by the registry" when false.
 
 ---
 
@@ -535,6 +577,7 @@ All six tests use `rngSeed=42` via `Create Match With Rng Seed`.
 | `POST /api/matches` | Modified (v0.27.0) | Request body gains optional `rngSeed` field |
 | `GET /api/matches/{uuid}/weather` | **New** (v0.27.0) | Current weather; 404 when none set |
 | `GET /api/admin/matches/{uuid}/weather` | **New** (v0.27.0) | Admin: rngSeed + current + log[] (port 8044) |
+| `GET /api/admin/matches/{uuid}/weather` | Modified (v0.36.2) | Each `rules[]` row gains `conditionKey`/`conditionValue`/`conditionOperator`/`registryMet` — no new columns, only exposing the verdict |
 
 No existing endpoints have status codes removed.
 
@@ -587,13 +630,14 @@ No existing endpoints have status codes removed.
   step=27 weather system random selection & effects
   ```
 
-- **Document Version**: 0.27.0
+- **Document Version**: 0.36.2
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.27.0 | Initial Step 27 documentation: weather engine (weighted roll, time/condition filter, rng_seed, delta_energy, log_weather), new GET /api/matches/{uuid}/weather and admin weather endpoint, WeatherCard in react-game, weather panel + rngSeed row in react-admin MatchDetailPage, Robot suite 27_weather (6 tests with rngSeed=42) | June 24, 2026 |
+  | 0.36.2 | Admin weather `rules[]` exposes the registry verdict: `conditionKey`/`conditionValue`/`conditionOperator`/`registryMet`, computed with the same comparison the weather selection uses. `WeatherCard.jsx` gets a Registry column. No new DB columns. | September 5, 2026 |
 
-- **Last Updated**: June 24, 2026
+- **Last Updated**: September 5, 2026
 - **Status**: Complete
 
 

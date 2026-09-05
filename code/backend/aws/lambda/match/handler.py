@@ -1226,6 +1226,40 @@ def _get_admin_match_info(match_uuid):
     return _ok(_detail_from_item(item, _match_characters(match_uuid), all_locations=True))
 
 
+def _upsert_admin_registry(match_uuid, body):
+    """PUT /api/admin/matches/{uuid}/registry — v0.36.2, the console correcting one key.
+    The write goes through the ordinary registry module, so a single key is replaced, a multi
+    key gains a member, and either way the match log carries a REGISTRY_CHANGE row."""
+    key = (body or {}).get('key')
+    if not match_uuid or not str(match_uuid).strip() or not key or not str(key).strip():
+        return _err(400, 'INVALID_INPUT', 'Match uuid and a registry key are required')
+    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    if match is None:
+        return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
+    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    _registry.upsert(match, key, (body or {}).get('value'), None,
+                     clock=_nz(match.get('currentClock')), timestamp=_ts_ms(), story=story)
+    db_utils.put_item(match)
+    return _ok({'key': key, 'values': _registry.find(match, key)})
+
+
+def _delete_admin_registry(match_uuid, key, value):
+    """DELETE /api/admin/matches/{uuid}/registry?key=K[&value=V] — take one member away, or
+    empty the key outright when no value is named."""
+    if not match_uuid or not str(match_uuid).strip() or not key or not str(key).strip():
+        return _err(400, 'INVALID_INPUT', 'Match uuid and a registry key are required')
+    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    if match is None:
+        return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
+    clock, stamp = _nz(match.get('currentClock')), _ts_ms()
+    # A named value takes one member away; no value empties the key whatever it holds.
+    members = [value] if value is not None else _registry.find(match, key)
+    for member in members:
+        _registry.remove(match, key, member, None, clock=clock, timestamp=stamp)
+    db_utils.put_item(match)
+    return _ok({'key': key, 'values': _registry.find(match, key)})
+
+
 def _list_match_statuses():
     """The valid match statuses, each flagged ``terminal`` when a match in that
     status is stopped (deletable)."""
@@ -2161,6 +2195,12 @@ def _get_admin_match_weather(match_uuid):
         "costMoveNotSafeLocation": r.get('costMoveNotSafeLocation'),
         "active": _nz(_weather_active(r)) != 0,
         "current": current_id is not None and _nz(r.get('id')) == current_id,
+        # v0.36.2 — the authored registry condition and whether it lets the rule through,
+        # by the very comparison the selection uses, so the two cannot drift apart.
+        "conditionKey": r.get('conditionKey'),
+        "conditionValue": _rule_field(r, 'conditionKeyValue', 'conditionValue'),
+        "conditionOperator": r.get('registryValueOperatorCondition'),
+        "registryMet": _weather_condition_matches(r, match.get('registry')),
     } for r in all_rules]
     log = []
     for entry in (match.get('weatherLog') or []):
@@ -4085,7 +4125,8 @@ def _resolve_arrival(match, match_uuid, story, actor_uuid, id_location, lang, de
         _run_automatic_event(match, match_uuid, story, actor_uuid, history_event,
                              id_location, history_trigger, lang, depth, out, epilogue)
 
-        others = [c for c in _match_characters(match_uuid)
+        characters = _match_characters(match_uuid)
+        others = [c for c in characters
                   if _nz(c.get('idLocation')) == id_location
                   and c.get('uuid') != actor_uuid]
         if not others:
@@ -4093,7 +4134,24 @@ def _resolve_arrival(match, match_uuid, story, actor_uuid, id_location, lang, de
                                  triggers.get('idEventIfCharacterEnterEmptyLocation'),
                                  id_location, _events.TRIGGER_MOVE_INTO_EMPTY_LOCATION, lang,
                                  depth, out, epilogue)
+        actor = next((c for c in characters if c.get('uuid') == actor_uuid), None)
+        _write_arrival_registry(match, story, actor, triggers, visited)
     _mark_location_visited(match, id_location)
+
+
+def _write_arrival_registry(match, story, actor, triggers, visited):
+    """Step 36.2 — the place writes the registry itself. The history branch chooses the pair,
+    exactly as it chose the event above, so one arrival writes one pair and never both.
+    A blank key is authored noise, and upsert already skips it."""
+    key = (triggers.get('keyToAddNotFirst') if visited else triggers.get('keyToAdd'))
+    value = (triggers.get('keyValueToAddNotFirst') if visited else triggers.get('keyValueToAdd'))
+    if not key:
+        return
+    _events.apply_registry(match, key, value, None,
+                           id_character=(actor or {}).get('id'),
+                           clock=_nz(match.get('currentClock')),
+                           character_uuid=(actor or {}).get('uuid'),
+                           timestamp=_ts_ms(), story=story)
 
 
 def _run_automatic_event(match, match_uuid, story, actor_uuid, id_event, id_location,
@@ -4440,6 +4498,15 @@ def lambda_handler(event, context):
         if path.endswith('/locations') and method == 'GET':
             lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
             return _get_admin_locations(match_uuid, lang)
+        if path.endswith('/registry') and method == 'PUT':
+            try:
+                body = json.loads(event.get('body') or '{}')
+            except (TypeError, ValueError):
+                return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
+            return _upsert_admin_registry(match_uuid, body)
+        if path.endswith('/registry') and method == 'DELETE':
+            qs = (event.get('queryStringParameters') or {})
+            return _delete_admin_registry(match_uuid, qs.get('key'), qs.get('value'))
         if path.endswith('/stop') and method == 'POST':
             return _update_match(match_uuid, 'ENDED', None)
         if path.endswith('/pause') and method == 'POST':

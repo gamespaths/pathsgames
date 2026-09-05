@@ -200,12 +200,38 @@ def decode_cursor(cursor):
 
 
 def scan_filter(attr_name, attr_value):
-    """Scan the table filtering on a single attribute value (paginated)."""
+    """Scan the table filtering on a single attribute value (paginated to completion)."""
     try:
         return _paginate(_get_table().scan, FilterExpression=Attr(attr_name).eq(attr_value))
     except ClientError as e:
         print(f"Error scanning filter {attr_name}={attr_value}: {e}")
         return []
+
+def scan_filter_page(attr_name, attr_value, limit=None, start_key=None, extra_filter=None):
+    """v0.36.2 — ONE bounded scan page, not the whole table.
+
+    Returns ``(items, last_evaluated_key)``. ``scan_filter`` above follows every
+    LastEvaluatedKey to the end, which on a real users table is what made
+    GET /api/admin/guests time out at 15s. Here the caller gets a page and the key to
+    ask for the next one.
+
+    DynamoDB applies ``Limit`` BEFORE the FilterExpression, so a page can come back
+    short — or empty — while ``last_evaluated_key`` is still set. An empty page is
+    therefore NOT the end of the data; only a null key is.
+    """
+    kwargs = {'FilterExpression': Attr(attr_name).eq(attr_value)}
+    if extra_filter is not None:
+        kwargs['FilterExpression'] = kwargs['FilterExpression'] & extra_filter
+    if limit:
+        kwargs['Limit'] = int(limit)
+    if start_key:
+        kwargs['ExclusiveStartKey'] = start_key
+    try:
+        response = _get_table().scan(**kwargs)
+        return response.get('Items', []), response.get('LastEvaluatedKey')
+    except ClientError as e:
+        print(f"Error scanning page {attr_name}={attr_value}: {e}")
+        return [], None
 
 def scan_pk_prefix(prefix):
     """Scan the table returning every item whose PK starts with the prefix (paginated)."""

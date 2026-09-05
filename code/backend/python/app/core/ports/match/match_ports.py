@@ -115,6 +115,15 @@ class MatchPersistencePort(ABC):
 
 
     @abstractmethod
+    def count_matches_by_user_creator_ids(self, user_ids) -> int:
+        """v0.36.2 — how many matches these users created, whatever the status."""
+
+    @abstractmethod
+    def delete_matches_by_user_creator_ids(self, user_ids) -> int:
+        """v0.36.2 — delete every match these users created, whatever the status. Called
+        before the users themselves go: gaming_match.id_user_creator is a foreign key."""
+
+    @abstractmethod
     def delete_matches_by_name_like(self, name_like_pattern: str) -> int:
         """Delete all matches whose name matches the given SQL LIKE pattern,
         together with their derived runtime state (locations and registry

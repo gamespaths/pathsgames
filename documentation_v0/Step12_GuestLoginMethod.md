@@ -260,6 +260,64 @@ The Navbar reads the cached `username` via `useGuestUser()` and displays it as t
 
 Cookie consent is managed in-project since v0.20.3 using the self-hosted **vanilla-cookieconsent v3.1.0** library gated to **Google Consent Mode v2** (see `code/frontend/react-game/src/consent/`). The backend HttpOnly session cookies (`pathsgames.guestcookie`, `pathsgames.refreshToken`) are listed in the consent banner's `necessary` cookie table as strictly-necessary and consent-exempt. No Cookies-Yes / third-party consent SaaS is used.
 
+## Admin guest management
+
+Admin-port (8044) endpoints for `GuestAdminController`/`guest_admin_controller.py`/
+`lambda/auth/handler.py`, listed at [Step01](./Step01_StartProject.md).
+
+### `GET /api/admin/guests` — paged list (v0.36.2, breaking change)
+
+Used to answer a bare array; now answers **`{ items, nextCursor, limit }`**, matching the
+envelope the admin match list (v0.28.1) already uses — any consumer reading a bare array
+must update. Optional query: `limit` (default 50, max 200), `cursor` (an opaque token from
+a previous `nextCursor`), `olderThanDays`. Ordered most-recently-seen first, where "seen"
+is `COALESCE(ts_last_access, ts_registration)` — a guest that registered and never
+returned is ordered by its registration date, the only one it has.
+
+- Java: `GuestAdminService.listGuestsPage(GuestListFilter)` over-fetches one extra row to
+  learn whether a further page exists, then encodes `nextCursor` as the same opaque
+  base64 `"<timestamp>|<id>"` keyset token the admin match list uses. New records
+  `GuestListFilter`, `GuestInfoPage` in `core/model/auth/`. Python mirrors this shape.
+- AWS: the old list was `db_utils.scan_filter('is_guest', True)`, a full-table Scan paged
+  to exhaustion — it timed out past 15 s on a large guest table. It is now **one bounded
+  Scan page per request** via new `db_utils.scan_filter_page`, with DynamoDB's
+  `LastEvaluatedKey` carried back as `nextCursor`. Caveat: DynamoDB applies `Limit`
+  **before** the `FilterExpression`, so a page can come back short, or even empty, while
+  `nextCursor` is still set — an empty page is not the end of the data, only a null
+  cursor is.
+
+### `GET|DELETE /api/admin/guests/stale?olderThanDays=N` — stale purge (v0.36.2, new)
+
+- `GET .../stale` → `{ guests, matches }` (Java/Python `StaleGuestsSummary`). A **dry
+  run**: it deletes nothing, and the react-admin console shows this count before asking
+  for confirmation.
+- `DELETE .../stale` → `{ guests, matches, status: "CLEANUP_COMPLETE" }`. Deletes those
+  guests **and every match they created, whatever its status**. Matches are deleted
+  first: `gaming_match.id_user_creator` is a foreign key, so children must go before the
+  parent — the same ordering `TestDataCleanupService` already relies on.
+- Both verbs answer **400 `INVALID_INPUT`** when `olderThanDays` is missing — without a
+  bound the purge would take every guest.
+- Java `GuestAdminService` gained an optional `MatchPersistencePort` dependency for this;
+  on the bare (no-port) constructor the stale purge refuses rather than orphaning matches.
+
+### `DELETE /api/admin/guests/expired` — unchanged
+
+Still what it always was: deletes guests whose refresh token has expired, and **never
+touches a match**. Easy to confuse with the new stale purge above — the two are
+unrelated: "expired" is about the token, "stale" is about last-seen activity.
+
+### react-admin `GuestsPage.jsx`
+
+Cursor-pagination footer; a "Not seen for N days" server-side filter; a Count-stale →
+Purge-stale flow whose confirm dialog names both the guest count and the match count
+before deleting.
+
+**Bugfix (v0.36.2):** the guest detail modal's match list did
+`Array.isArray(listMatches())`, which has been `false` since `listMatches` moved to the
+`{ items, nextCursor, limit }` envelope in v0.28.1 — so the list was **always empty**.
+It now reads `page.items` and passes `userUuid` as a server-side filter instead of
+fetching every match to sift it client-side.
+
 
 
 # Version Control
@@ -272,7 +330,7 @@ Cookie consent is managed in-project since v0.20.3 using the self-hosted **vanil
 
     > ciao, write me openapi file (into /mnt/Dati4/Workspace/pathsgames/code/backend/java/adapter-rest/src/main/resources/openapi folder) about API written into step 12 (on v0.12.x version), please don't change others files
 
-- **Document Version**: 0.20.3
+- **Document Version**: 0.36.2
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.12.0 | Step 12: Implement guest login method | March 27, 2026 |
@@ -282,7 +340,8 @@ Cookie consent is managed in-project since v0.20.3 using the self-hosted **vanil
     | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
     | 0.19.8 | React-game client-side guest flow: GuestUserProvider, resume-on-load, mock synthesis, GuestUserModal, Navbar modal trigger | May 19, 2026 |
     | 0.20.3 | GuestUserContext refactored to React-state-only identity (no frontend cookie); cookie-consent updated to in-project vanilla-cookieconsent v3.1.0 | May 28, 2026 |
-- **Last Updated**: May 28, 2026
+    | 0.36.2 | Admin guest management: `GET /api/admin/guests` now paged (breaking change); new stale-purge preview/delete endpoints; `GuestsPage.jsx` cursor pagination fix. | September 5, 2026 |
+- **Last Updated**: September 5, 2026
 - **Status**: ✅ Complete
 
 

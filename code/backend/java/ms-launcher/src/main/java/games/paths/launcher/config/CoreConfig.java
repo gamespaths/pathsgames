@@ -105,8 +105,10 @@ public class CoreConfig {
     }
 
     @Bean
-    public GuestAdminPort guestAdminPort(GuestAdminPersistencePort persistencePort) {
-        return new GuestAdminService(persistencePort);
+    public GuestAdminPort guestAdminPort(GuestAdminPersistencePort persistencePort,
+                                         games.paths.core.port.match.MatchPersistencePort matchPersistencePort) {
+        // v0.36.2 — the stale purge takes a guest's matches with it, so it needs both ports.
+        return new GuestAdminService(persistencePort, matchPersistencePort);
     }
 
     @Bean

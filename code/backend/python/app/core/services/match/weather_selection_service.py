@@ -78,9 +78,25 @@ class WeatherSelectionService:
         return {
             "rng_seed": self.store.find_rng_seed(match_uuid),
             "current": self.store.find_current_weather_by_uuid(match_uuid),
-            "rules": self.store.find_weather_rules_for_match(match_uuid),
+            "rules": self._with_registry_verdict(
+                match_uuid, self.store.find_weather_rules_for_match(match_uuid)),
             "log": self.store.find_weather_log(match_uuid),
         }
+
+    def _with_registry_verdict(self, match_uuid: str,
+                               rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """v0.36.2 — answer each rule with whether the registry lets it through, so the console
+        can say why a rule never fires. Computed by the very comparison the selection uses, so
+        the two cannot drift apart."""
+        for rule in rules or []:
+            key = rule.get("condition_key")
+            rule["registry_met"] = bool(
+                registry_service.no_condition(key)
+                or registry_service.evaluate(
+                    rule.get("registry_value_operator_condition"),
+                    rule.get("condition_key_value"),
+                    self.registry_service.find_by_match_uuid(match_uuid, key)))
+        return rules or []
 
     # ── pure helpers ───────────────────────────────────────────────────────────
 

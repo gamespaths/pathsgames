@@ -210,6 +210,33 @@ class MatchPersistenceAdapter(MatchPersistencePort):
             session.commit()
             return deleted_count
 
+    def count_matches_by_user_creator_ids(self, user_ids) -> int:
+        if not user_ids:
+            return 0
+        with self.session_factory() as session:
+            return session.query(GamingMatchEntity).filter(
+                GamingMatchEntity.id_user_creator.in_(user_ids)).count()
+
+    def delete_matches_by_user_creator_ids(self, user_ids) -> int:
+        """The same order delete_matches_by_name_like uses: the derived runtime state first,
+        because SQLite does not enforce the foreign-key cascades PostgreSQL does."""
+        if not user_ids:
+            return 0
+        with self.session_factory() as session:
+            ids = [row[0] for row in session.query(GamingMatchEntity.id).filter(
+                GamingMatchEntity.id_user_creator.in_(user_ids)).all()]
+            if not ids:
+                return 0
+            self._delete_character_state(session, ids)
+            session.query(GamingStateLocationEntity).filter(
+                GamingStateLocationEntity.id_match.in_(ids)).delete(synchronize_session=False)
+            session.query(GamingStateRegistryEntity).filter(
+                GamingStateRegistryEntity.id_match.in_(ids)).delete(synchronize_session=False)
+            deleted_count = session.query(GamingMatchEntity).filter(
+                GamingMatchEntity.id.in_(ids)).delete(synchronize_session=False)
+            session.commit()
+            return deleted_count
+
     def update_match_fields(self, uuid: str, status: Optional[str], name: Optional[str]) -> bool:
         with self.session_factory() as session:
             entity = session.query(GamingMatchEntity).filter(

@@ -21,7 +21,7 @@ describe('guestApi', () => {
   it('listGuests calls correct endpoint', async () => {
     mockGet.mockResolvedValue({ data: [] })
     await guestApi.listGuests()
-    expect(mockGet).toHaveBeenCalledWith('/api/admin/guests')
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/guests', { params: {} })
   })
 
   it('getGuestStats calls correct endpoint', async () => {

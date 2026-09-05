@@ -164,6 +164,25 @@ Resources:
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId
 
+  # v0.36.2 — guests not seen for N days, and the matches they leave behind.
+  PreviewStaleGuestsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "GET /api/admin/guests/stale"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  DeleteStaleGuestsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "DELETE /api/admin/guests/stale"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
   GetGuestByUuidRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:

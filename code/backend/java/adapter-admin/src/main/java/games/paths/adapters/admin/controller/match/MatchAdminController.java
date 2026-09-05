@@ -52,14 +52,17 @@ public class MatchAdminController {
     private final games.paths.core.service.match.WeatherSelectionService weatherService;
     private final MovementPort movementPort;
     private final MatchLogsPort matchLogsPort;
+    private final games.paths.core.service.match.RegistryService registryService;
 
+    @SuppressWarnings("java:S107")
     public MatchAdminController(MatchCommandPort matchCommandPort,
                                 MatchQueryPort matchQueryPort,
                                 TimeAdvancementPort timeAdvancementPort,
                                 CharacterCommandPort characterCommandPort,
                                 games.paths.core.service.match.WeatherSelectionService weatherService,
                                 MovementPort movementPort,
-                                MatchLogsPort matchLogsPort) {
+                                MatchLogsPort matchLogsPort,
+                                games.paths.core.service.match.RegistryService registryService) {
         this.matchCommandPort = matchCommandPort;
         this.matchQueryPort = matchQueryPort;
         this.timeAdvancementPort = timeAdvancementPort;
@@ -67,6 +70,7 @@ public class MatchAdminController {
         this.weatherService = weatherService;
         this.movementPort = movementPort;
         this.matchLogsPort = matchLogsPort;
+        this.registryService = registryService;
     }
 
     /**
@@ -179,6 +183,12 @@ public class MatchAdminController {
             row.put("costMoveNotSafeLocation", r.costMoveNotSafeLocation());
             row.put("active", r.active());
             row.put("current", r.current());
+            // v0.36.2 — the authored registry condition and whether it currently lets the
+            // rule through, so the console can say why a rule never fires.
+            row.put("conditionKey", r.conditionKey());
+            row.put("conditionValue", r.conditionValue());
+            row.put("conditionOperator", r.conditionOperator());
+            row.put("registryMet", r.registryMet());
             return row;
         }).collect(Collectors.toList());
         body.put("rules", rules);
@@ -416,6 +426,54 @@ public class MatchAdminController {
 
     private static boolean isBlank(String s) {
         return s == null || s.isBlank();
+    }
+
+    /**
+     * PUT /api/admin/matches/{uuidMatch}/registry — v0.36.2, the console correcting one key.
+     * The write goes through the ordinary RegistryService, so a single key is replaced, a
+     * multi key gains a member, and either way the match log carries a REGISTRY_CHANGE row.
+     */
+    @PutMapping("/{uuidMatch}/registry")
+    public ResponseEntity<Object> upsertRegistry(@PathVariable String uuidMatch,
+                                                 @RequestBody(required = false) Map<String, Object> body) {
+        String key = body == null ? null : str(body.get("key"));
+        if (isBlank(uuidMatch) || isBlank(key)) {
+            return error(HttpStatus.BAD_REQUEST, "INVALID_INPUT",
+                    "Match uuid and a registry key are required");
+        }
+        List<String> values = registryService.upsertByMatchUuid(uuidMatch, key,
+                str(body.get("value")));
+        return registryBody(uuidMatch, key, values);
+    }
+
+    /**
+     * DELETE /api/admin/matches/{uuidMatch}/registry?key=K[&value=V] — take one member away,
+     * or empty the key outright when no value is named.
+     */
+    @DeleteMapping("/{uuidMatch}/registry")
+    public ResponseEntity<Object> deleteRegistry(@PathVariable String uuidMatch,
+                                                 @RequestParam(required = false) String key,
+                                                 @RequestParam(required = false) String value) {
+        if (isBlank(uuidMatch) || isBlank(key)) {
+            return error(HttpStatus.BAD_REQUEST, "INVALID_INPUT",
+                    "Match uuid and a registry key are required");
+        }
+        return registryBody(uuidMatch, key, registryService.removeByMatchUuid(uuidMatch, key, value));
+    }
+
+    /** The one answer shape both registry edits give; a null values list means no such match. */
+    private ResponseEntity<Object> registryBody(String uuidMatch, String key, List<String> values) {
+        if (values == null) {
+            return error(HttpStatus.NOT_FOUND, "MATCH_NOT_FOUND", "Match not found: " + uuidMatch);
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("key", key);
+        out.put("values", values);
+        return ResponseEntity.ok(out);
+    }
+
+    private static String str(Object value) {
+        return value == null ? null : value.toString();
     }
 
     private static ResponseEntity<Object> error(HttpStatus status, String code, String message) {

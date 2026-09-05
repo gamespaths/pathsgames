@@ -180,6 +180,13 @@ SEED_STORIES = [
             {"id": 5, "uuid": "loc-tutorial-5", "name": "Sundial Court", "counterTime": 0,
              "secureParam": 1, "idEventIfCounterZero": None, "idCard": 2,
              "idEventIfCharacterStartTime": 44, "priorityAutomaticEvent": 2},
+            # Step 36.2 — the Records Vault writes the registry by being entered. Two pairs:
+            # the first arrival and every later one take different branches, never both, and
+            # no event is involved at all.
+            {"id": 6, "uuid": "loc-tutorial-6", "name": "Records Vault", "counterTime": 0,
+             "secureParam": 1, "idEventIfCounterZero": None, "idCard": 2,
+             "keyToAdd": "vault_seen", "keyValueToAdd": "first",
+             "keyToAddNotFirst": "vault_seen", "keyValueToAddNotFirst": "again"},
         ],
         # Step 27.x — neighbor links between locations (bidirectional 1<->2)
         # v0.33.2 — extended into a walkable chain 1 <-> 2 <-> 4 <-> 5 so the entry
@@ -202,6 +209,12 @@ SEED_STORIES = [
              "idCardBack": 2,
              "card": {"title": "Out to the Sundial", "description": "The hours are marked in stone.",
                       "urlImage": None, "awesomeIcon": "fas fa-arrow-up"}},
+            # Step 36.2 — free both ways, so a test can walk in and out again.
+            {"id": 4, "uuid": "nb-tutorial-4", "idLocationFrom": 1, "idLocationTo": 6,
+             "direction": "S", "flagBack": 1, "energyCost": 0, "idCard": None,
+             "idCardBack": 2,
+             "card": {"title": "Down to the Vault", "description": "Ledgers, letters and dust.",
+                      "urlImage": None, "awesomeIcon": "fas fa-arrow-down"}},
         ],
         "keys": [
             {"id": 1, "uuid": "key-tutorial-1", "keyName": "tutorial_intro_done",
@@ -213,6 +226,19 @@ SEED_STORIES = [
             {"id": 3, "uuid": "key-tutorial-3", "keyName": "evidence_found",
              "keyValue": None, "keyGroup": "evidence", "visibility": "PUBLIC",
              "priority": 1, "multiValue": 1},
+            # Step 36.2 — the case/padding test-bed. 'case_notes' is written with padding and
+            # capitals while every condition on it is authored lowercase and bare; 'signal' is
+            # the mirror, its lowercase default read by a padded, upper-case condition.
+            # 'vault_seen' is written by no event and no choice: only a LOCATION writes it.
+            {"id": 4, "uuid": "key-tutorial-4", "keyName": "case_notes",
+             "keyValue": None, "keyGroup": "evidence", "visibility": "PUBLIC",
+             "priority": 2, "multiValue": 1},
+            {"id": 5, "uuid": "key-tutorial-5", "keyName": "signal",
+             "keyValue": "green", "keyGroup": "evidence", "visibility": "PUBLIC",
+             "priority": 3},
+            {"id": 6, "uuid": "key-tutorial-6", "keyName": "vault_seen",
+             "keyValue": None, "keyGroup": "evidence", "visibility": "PUBLIC",
+             "priority": 4},
         ],
         # Step 20.1 — events for end-game trigger; Step 27.x — idLocation + card
         "idEventEndGame":    99,
@@ -389,6 +415,32 @@ SEED_STORIES = [
              "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
              "idTextName": 500, "idTextDescription": 500,
              "costEnery": 0, "costCoin": 0, "flagEndTime": 0},
+            # Step 36.2 — spelling must not decide a gate. Four more FREE events at the start
+            # location, for the same reason as the 36.1 pack above.
+            #   370  WRITES ' Ledger ' — padded and capitalised, as a careless author writes.
+            #   371  READS  'ledger'   — bare and lowercase; it must open once 370 has run.
+            #   372  WRITES 'LEDGER'   — a third spelling of the member the set already holds.
+            #   373  READS  '  GREEN ' — the mirror, against the lowercase default of 'signal'.
+            {"id": 370, "uuid": "evt-step362-write", "name": "The Padded Ledger",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "idTextName": 500, "idTextDescription": 500,
+             "costEnery": 0, "costCoin": 0, "flagEndTime": 0},
+            {"id": 371, "uuid": "evt-step362-gated", "name": "Read The Padded Ledger",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "idTextName": 500, "idTextDescription": 500,
+             "costEnery": 0, "costCoin": 0, "flagEndTime": 0,
+             "registryKeyCondition": "case_notes", "registryValueCondition": "ledger",
+             "registryValueOperatorCondition": "="},
+            {"id": 372, "uuid": "evt-step362-dup", "name": "The Shouted Ledger",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "idTextName": 500, "idTextDescription": 500,
+             "costEnery": 0, "costCoin": 0, "flagEndTime": 0},
+            {"id": 373, "uuid": "evt-step362-signal", "name": "Read The Signal",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "idTextName": 500, "idTextDescription": 500,
+             "costEnery": 0, "costCoin": 0, "flagEndTime": 0,
+             "registryKeyCondition": "signal", "registryValueCondition": "  GREEN  ",
+             "registryValueOperatorCondition": "="},
         ],
         # Step 31 — the options of the two choice-events above (top-level arrays keyed by
         # idChoices, the canonical shape shared with the SQL backends' seeds).
@@ -491,6 +543,11 @@ SEED_STORIES = [
              "keyToAdd": "evidence_found", "keyValueToAdd": "ledger"},
             {"id": 361, "idEvent": 361, "idCard": 1, "target": "ONLY_ONE",
              "keyToAdd": "evidence_found", "keyValueToAdd": "letter"},
+            # Step 36.2 — the same member in two spellings; the set must stay at one.
+            {"id": 370, "idEvent": 370, "idCard": 1, "target": "ONLY_ONE",
+             "keyToAdd": "case_notes", "keyValueToAdd": " Ledger "},
+            {"id": 372, "idEvent": 372, "idCard": 1, "target": "ONLY_ONE",
+             "keyToAdd": "case_notes", "keyValueToAdd": "LEDGER"},
             {"id": 50, "idEvent": 51, "idCard": 1, "target": "ONLY_ONE",
              "idItemTarget": 2, "itemAction": "ADD"},
             {"id": 51, "idEvent": 51, "idCard": 1, "target": "ONLY_ONE",

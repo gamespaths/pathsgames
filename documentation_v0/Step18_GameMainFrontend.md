@@ -174,6 +174,14 @@ footer shows a spinner and `home.loadingMatches`, so the card's height does not 
 teaser (`comingSoon`) card is always locked, showing `book.comingSoon`. New i18n keys:
 `home.badgePlay`, `home.loadingMatches` (en/it).
 
+**Replay button (v0.36.2).** `storyMatchBadge` in `src/utils/matchStatus.js` now returns
+`'completed'` for a **GAMEOVER** match as well as `ENDED` — a lost run is still a played
+one — via new exported `FINISHED_MATCH_STATUSES = new Set(['ENDED', 'GAMEOVER'])`.
+`StoryCard.jsx` shows the footer button as **Replay** (`fa-rotate-right`) instead of
+**Play** (`fa-play`) whenever `badge === 'completed'`. New i18n key `home.badgeReplay`
+(en "Replay", it "Rigioca"). No flow change: the click already started a new match
+through `StartBookModal`; only the label and icon were wrong for a lost run.
+
 Two feature flags, both **off** by default (`src/constants/features.js`, documented in
 `.env.example`):
 
@@ -519,7 +527,7 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     > - **Button alignment**: `config-change-btn` and `config-coming-soon-btn` are `width: auto`, font-size reduced to `0.65rem`, footer aligned right (`align-items: flex-end`) so buttons sit in the bottom-right corner of cover cards.
     > - **Mobile top clipping fix**: `book-overlay` padding-top raised to `56px` on mobile so the first card in the vertical list is not hidden under the navbar.
 
-- **Document Version**: 0.35.8
+- **Document Version**: 0.36.2
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.35.5 | `GameBook.jsx` decomposed 1005 → ~170 lines: `features/game/` renamed `features/gameplay/`, split into `PageLeft`/`PageRight`/`PageRightMain`/`PageRightInfo` + `useMatchChrome`/`useBookView`/`useGameplayResults` hooks. Gameplay card `onPreview` moved from 6 positional args to one object; `GoToSleepCard` gains `autoPreview`, fixing a broken Italian shortcut | Aug 27, 2026 |
@@ -533,8 +541,9 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     | 0.20.3 | GTM section updated: Consent Mode v2 defaults inline + GTM loaded via `src/consent/gtm.js`; inline GTM snippet removed | May 28, 2026 |
     | 0.28.2 | i18n: `LanguageProvider` persists lang to `localStorage['pathsgames.lang']`; initial lang resolves from saved choice → browser lang → `'en'`; `pathsgames.lang` added to strictly-necessary consent table in `cookieConsent.js`; 14 tests in `i18nContext.test.jsx` | Jun 26, 2026 |
     | 0.35.8 | `StoryCard.jsx` rewritten as a thin wrapper over the shared `Card` (`variant="little"`); footer button now gated on `matchesStatus`. Two new opt-in flags, `RESUME_WITHOUT_MODAL` and `ADD_COMING_SOON_STORIES`. | August 30, 2026 |
+    | 0.36.2 | `storyMatchBadge` treats GAMEOVER as completed too (`FINISHED_MATCH_STATUSES`); `StoryCard.jsx` shows Replay (`fa-rotate-right`) instead of Play on a finished story. | September 5, 2026 |
 
-- **Last Updated**: Aug 30, 2026
+- **Last Updated**: September 5, 2026
 - **Status**: Active development
 
 

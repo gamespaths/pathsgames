@@ -7,9 +7,9 @@ player match endpoints stay in ``MatchController`` on the public app/port.
 The camelCase presenters (``_summary_to_camel`` / ``_detail_to_camel``) and ``_error`` are
 reused from ``match_controller`` so admin and player responses keep an identical shape.
 """
-from typing import Optional
+from typing import Any, Dict, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -49,7 +49,8 @@ class ChangeStatisticsRequestBody(BaseModel):
 class MatchAdminController:
     def __init__(self, command_port: MatchCommandPort, query_port: MatchQueryPort,
                  character_command_port: Optional[CharacterCommandPort] = None,
-                 weather_service=None, movement_service=None, match_logs_service=None):
+                 weather_service=None, movement_service=None, match_logs_service=None,
+                 registry_service=None):
         self.command_port = command_port
         self.query_port = query_port
         self.character_command_port = character_command_port
@@ -59,6 +60,8 @@ class MatchAdminController:
         self.movement_service = movement_service
         # Step 28.7 — match logs timeline.
         self.match_logs_service = match_logs_service
+        # v0.36.2 — the console correcting one registry key.
+        self.registry_service = registry_service
         self.router = APIRouter()
         self.router.add_api_route(
             "/api/admin/matches", self.list_all_matches, methods=["GET"]
@@ -94,9 +97,46 @@ class MatchAdminController:
             "/api/admin/matches/{uuid_match}", self.delete_match, methods=["DELETE"]
         )
         self.router.add_api_route(
+            "/api/admin/matches/{uuid_match}/registry", self.upsert_registry, methods=["PUT"]
+        )
+        self.router.add_api_route(
+            "/api/admin/matches/{uuid_match}/registry", self.delete_registry, methods=["DELETE"]
+        )
+        self.router.add_api_route(
             "/api/admin/matches/{uuid_match}/player/{uuid_player}/changeStatistics",
             self.change_statistics, methods=["POST"],
         )
+
+    def upsert_registry(self, uuid_match: str, body: Optional[Dict[str, Any]] = Body(None)):
+        """PUT /api/admin/matches/{uuid}/registry — v0.36.2, the console correcting one key.
+        The write goes through the ordinary RegistryService, so a single key is replaced, a
+        multi key gains a member, and either way the log carries a REGISTRY_CHANGE row."""
+        key = (body or {}).get("key")
+        if not uuid_match or not str(uuid_match).strip() or not key or not str(key).strip():
+            return _error("INVALID_INPUT", "Match uuid and a registry key are required", 400)
+        if self.registry_service is None:
+            return _error("NOT_IMPLEMENTED", "Registry service not wired", 501)
+        values = self.registry_service.upsert_by_match_uuid(uuid_match, key,
+                                                            (body or {}).get("value"))
+        return self._registry_body(uuid_match, key, values)
+
+    def delete_registry(self, uuid_match: str, key: Optional[str] = None,
+                        value: Optional[str] = None):
+        """DELETE /api/admin/matches/{uuid}/registry?key=K[&value=V] — take one member away,
+        or empty the key outright when no value is named."""
+        if not uuid_match or not str(uuid_match).strip() or not key or not str(key).strip():
+            return _error("INVALID_INPUT", "Match uuid and a registry key are required", 400)
+        if self.registry_service is None:
+            return _error("NOT_IMPLEMENTED", "Registry service not wired", 501)
+        values = self.registry_service.remove_by_match_uuid(uuid_match, key, value)
+        return self._registry_body(uuid_match, key, values)
+
+    @staticmethod
+    def _registry_body(uuid_match: str, key: str, values):
+        """The one answer shape both registry edits give; None values means no such match."""
+        if values is None:
+            return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
+        return JSONResponse(status_code=200, content={"key": key, "values": values})
 
     def list_all_matches(self, limit: Optional[int] = None, cursor: Optional[str] = None,
                          status: Optional[str] = None, userUuid: Optional[str] = None,
@@ -215,6 +255,12 @@ class MatchAdminController:
                     "costMoveSafeLocation": r.get("cost_move_safe_location"),
                     "costMoveNotSafeLocation": r.get("cost_move_not_safe_location"),
                     "active": r.get("active"), "current": r.get("current"),
+                    # v0.36.2 — the authored registry condition and whether it lets the
+                    # rule through, so the console can say why a rule never fires.
+                    "conditionKey": r.get("condition_key"),
+                    "conditionValue": r.get("condition_key_value"),
+                    "conditionOperator": r.get("registry_value_operator_condition"),
+                    "registryMet": r.get("registry_met"),
                 }
                 for r in view.get("rules", [])
             ],

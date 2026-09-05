@@ -372,14 +372,25 @@ Admin Rows
     RETURN    ${response.json()}
 
 Multi Key Name
-    [Documentation]    The key the story declares multi. A SQL backend answers with the column
-    ...                (0 where nothing was authored), AWS with the attribute as authored and
-    ...                omits what was never set, so the truthiness is what is read.
+    [Documentation]    The multi-valued key THIS suite is about: the one whose seeded events
+    ...                add both members it works with. A SQL backend answers multiValue with
+    ...                the column (0 where nothing was authored), AWS with the attribute as
+    ...                authored and omits what was never set, so truthiness is what is read.
+    ...
+    ...                v0.36.2 — "the first multi key" is no longer enough: the seed declares
+    ...                a second one for the case-and-padding pack, and picking it would leave
+    ...                this suite hunting for members no event of that key ever adds.
     ${keys}=    Admin Rows    keys
-    ${name}=    Evaluate    next((k.get('name') or k.get('keyName') for k in $keys if k.get('multiValue')), None)
-    Should Not Be Equal    ${name}    ${None}
+    ${candidates}=    Evaluate
+    ...    [k.get('name') or k.get('keyName') for k in $keys if k.get('multiValue')]
+    Should Not Be Empty    ${candidates}
     ...    msg=the story declares no multi-valued key — the Step 36.1 seed is missing
-    RETURN    ${name}
+    FOR    ${name}    IN    @{candidates}
+        ${adders}=    Adder Event Uuids    ${name}
+        ${has_both}=    Evaluate    $LEDGER in $adders and $LETTER in $adders
+        IF    ${has_both}    RETURN    ${name}
+    END
+    Fail    no multi-valued key is written with both ${LEDGER} and ${LETTER}
 
 Adder Event Uuids
     [Documentation]    value → the uuid of the event whose effect adds that value to the key.
@@ -391,8 +402,8 @@ Adder Event Uuids
     ${adders}=    Evaluate
     ...    {e['keyValueToAdd']: uuids[e['idEvent']] for e in $effects if e.get('keyToAdd') == '${key}' and e.get('keyValueToAdd') and e.get('idEvent') in uuids}
     ...    namespace=${{ {'effects': $effects, 'uuids': {e['id']: e['uuid'] for e in $events}} }}
-    Should Not Be Empty    ${adders}
-    ...    msg=no seeded event writes ${key} — the Step 36.1 seed is missing
+    # Empty is not an error here: Multi Key Name probes every multi key with this, and the
+    # callers that need members assert for the ones they actually work with.
     RETURN    ${adders}
 
 Gated Option

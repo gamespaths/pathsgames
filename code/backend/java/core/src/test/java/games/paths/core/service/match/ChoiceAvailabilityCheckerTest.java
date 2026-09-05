@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -78,8 +79,11 @@ class ChoiceAvailabilityCheckerTest {
         Map<String, Integer> partySums = new HashMap<>();
 
         ChoiceCheckContext build() {
+            // v0.36.1 made a key hold a SET; the tests still state one value per key.
+            Map<String, List<String>> keys = new LinkedHashMap<>();
+            registry.forEach((k, v) -> keys.put(k, List.of(v)));
             return new ChoiceCheckContext(stats, idClass, idLocation, items, traits,
-                    registry, partyLocations, partySums);
+                    keys, partyLocations, partySums);
         }
     }
 

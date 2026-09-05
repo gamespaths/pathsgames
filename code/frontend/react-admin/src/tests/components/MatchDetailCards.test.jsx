@@ -162,6 +162,67 @@ describe('WeatherCard', () => {
     )
     expect(screen.getByText('Storm')).toBeInTheDocument()
   })
+
+  // ── v0.36.2: the Registry column says why a rule never fires ───────────────
+
+  it('shows a dash for a rule with no registry condition', () => {
+    render(
+      <WeatherCard
+        weather={{ rngSeed: 0, rules: [{ id: 1, name: 'Clear', active: true }], log: [] }}
+        match={{}}
+        texts={TEXTS}
+      />
+    )
+    expect(screen.getByRole('columnheader', { name: 'Registry' })).toBeInTheDocument()
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+  })
+
+  it('shows the clause a met condition passed', () => {
+    render(
+      <WeatherCard
+        weather={{ rngSeed: 0, log: [], rules: [{
+          id: 1, name: 'Storm', active: true,
+          conditionKey: 'depth', conditionOperator: '>', conditionValue: '3',
+          registryMet: true,
+        }] }}
+        match={{}}
+        texts={TEXTS}
+      />
+    )
+    const badge = screen.getByText('depth > 3')
+    expect(badge).toHaveClass('pg-badge-success')
+    expect(badge).toHaveAttribute('title', 'the registry lets this rule through')
+  })
+
+  it('flags the clause that is blocking the rule', () => {
+    render(
+      <WeatherCard
+        weather={{ rngSeed: 0, log: [], rules: [{
+          id: 1, name: 'Storm', active: true,
+          conditionKey: 'depth', conditionOperator: '>', conditionValue: '3',
+          registryMet: false,
+        }] }}
+        match={{}}
+        texts={TEXTS}
+      />
+    )
+    const badge = screen.getByText('depth > 3')
+    expect(badge).toHaveClass('pg-badge-danger')
+    expect(badge).toHaveAttribute('title', 'blocked by the registry')
+  })
+
+  it('defaults a missing operator to = and tolerates a missing value', () => {
+    render(
+      <WeatherCard
+        weather={{ rngSeed: 0, log: [], rules: [{
+          id: 1, name: 'Storm', active: true, conditionKey: 'gate', registryMet: false,
+        }] }}
+        match={{}}
+        texts={TEXTS}
+      />
+    )
+    expect(screen.getByText('gate =')).toBeInTheDocument()
+  })
 })
 
 describe('PlayersCard', () => {

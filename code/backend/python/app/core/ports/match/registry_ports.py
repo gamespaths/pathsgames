@@ -11,6 +11,11 @@ class RegistryStorePort(ABC):
     """Reads and writes of the match registry, plus the audit row every write leaves."""
 
     @abstractmethod
+    def find_match_and_story_id_by_uuid(self, match_uuid: str) -> Optional[tuple]:
+        """v0.36.2 — (id_match, id_story) behind a match uuid, for the admin edit which only
+        ever holds the uuid. None when no match answers to it."""
+
+    @abstractmethod
     def find_by_match(self, id_match: int) -> List[Dict[str, Any]]:
         """Every row of the match: id, uuid, key, string_value, int_value, id_character,
         id_event, id_choice, clock, multi_value. Step 36.1 — one row per VALUE, so a

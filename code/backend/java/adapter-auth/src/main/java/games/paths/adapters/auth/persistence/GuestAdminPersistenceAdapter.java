@@ -97,6 +97,44 @@ public class GuestAdminPersistenceAdapter implements GuestAdminPersistencePort {
         return userRepository.countExpiredGuests(GUEST_STATE, now);
     }
 
+    // === v0.36.2: paging and the stale purge ===
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> findGuestsPage(String lastAccessBefore, String tsCursor,
+                                                    Long idCursor, int limit) {
+        // idCursor only ever matters alongside tsCursor; a null one would break the comparison.
+        Long id = tsCursor == null ? null : (idCursor == null ? Long.MAX_VALUE : idCursor);
+        return userRepository.findGuestsPage(GUEST_STATE, lastAccessBefore, tsCursor, id,
+                        org.springframework.data.domain.PageRequest.of(0, Math.max(1, limit)))
+                .stream().map(this::toMapWithId).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Long> findGuestIdsWithLastAccessBefore(String lastAccessBefore) {
+        if (lastAccessBefore == null) {
+            return List.of();
+        }
+        return userRepository.findGuestIdsWithLastAccessBefore(GUEST_STATE, lastAccessBefore);
+    }
+
+    @Override
+    public int deleteGuestsByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        userTokenRepository.deleteTokensOfUsers(ids);
+        return userRepository.deleteGuestsByIds(GUEST_STATE, ids);
+    }
+
+    /** The page rows carry the numeric id too: the keyset cursor is built from it. */
+    private Map<String, Object> toMapWithId(UserEntity user) {
+        Map<String, Object> map = toMap(user);
+        map.put("id", user.getId());
+        return map;
+    }
+
     private Map<String, Object> toMap(UserEntity user) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("uuid", user.getUuid());

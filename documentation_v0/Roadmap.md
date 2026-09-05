@@ -48,7 +48,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 33 | [Location entry events](./Step33_LocationEntryEvents.md) | ✅ | Automatic triggers bind on columns; counter-zero finally executed; `flag_visited`  |
 | 34 | [Inventory management](./Step34_InventoryAndResources.md) | ✅ | `use-item` / `drop-item` endpoints, item cards |
 | 35 | [Resource management](./Step34_InventoryAndResources.md) | ✅ | Food/magic/coin on `/info`; carried weight (`Σ item.weight × amount`) |
-| 36 | [Registry system](./Step36_RegistrySystem.md) | ✅ | RegistryService (render/parse/evaluate) & registry api &  operator column on events/edges/weather; v0.36.1 multi-value keys (SET semantics, ∃/∄/∀ operators) |
+| 36 | [Registry system](./Step36_RegistrySystem.md) | ✅ | RegistryService (render/parse/evaluate) & registry api &  operator column on events/edges/weather; v0.36.1 multi-value keys (SET semantics, ∃/∄/∀ operators); v0.36.2 case-insensitive trimmed value compare, locations write the registry on arrival, admin registry edit API |
 
 | Steps | Phase |
 | -- | -- |

@@ -39,6 +39,10 @@ class LocationEntryStoreAdapter(LocationEntryStorePort):
                 "id_event_if_character_start_time": l.id_event_if_character_start_time,
                 "id_event_if_counter_zero": l.id_event_if_counter_zero,
                 "priority_automatic_event": l.priority_automatic_event,
+                "key_to_add": l.key_to_add,
+                "key_value_to_add": l.key_value_to_add,
+                "key_to_add_not_first": l.key_to_add_not_first,
+                "key_value_to_add_not_first": l.key_value_to_add_not_first,
             }
 
     def find_flag_visited(self, id_match: int, id_location: int) -> int:

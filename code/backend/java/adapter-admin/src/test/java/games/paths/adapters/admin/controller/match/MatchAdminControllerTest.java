@@ -42,6 +42,7 @@ class MatchAdminControllerTest {
     private games.paths.core.service.match.WeatherSelectionService weatherService;
     private MovementPort movementPort;
     private games.paths.core.port.match.MatchLogsPort matchLogsPort;
+    private games.paths.core.service.match.RegistryService registryService;
 
     @BeforeEach
     void setUp() {
@@ -52,9 +53,11 @@ class MatchAdminControllerTest {
         weatherService = mock(games.paths.core.service.match.WeatherSelectionService.class);
         movementPort = mock(MovementPort.class);
         matchLogsPort = mock(games.paths.core.port.match.MatchLogsPort.class);
+        registryService = mock(games.paths.core.service.match.RegistryService.class);
         mockMvc = MockMvcBuilders.standaloneSetup(
                 new MatchAdminController(commandPort, queryPort, timeAdvancementPort,
-                        characterCommandPort, weatherService, movementPort, matchLogsPort)).build();
+                        characterCommandPort, weatherService, movementPort, matchLogsPort,
+                        registryService)).build();
     }
 
     @Test
@@ -182,7 +185,8 @@ class MatchAdminControllerTest {
                         new games.paths.core.port.match.WeatherStorePort.CurrentWeatherView(
                                 9L, "w-9", 7L, 55, 123, -5, 1, 2, 3),
                         List.of(new games.paths.core.port.match.WeatherStorePort.WeatherRuleSummary(
-                                9L, "w-9", 123, "Storm", 30, -5, 1, 3, true, true)),
+                                9L, "w-9", 123, "Storm", 30, -5, 1, 3, true, true,
+                                "gate", "OPEN", "=", false)),
                         List.of(new games.paths.core.port.match.WeatherStorePort.WeatherLogView(
                                 1L, "l-1", 0, 9L, "w-9", 123, "2026-06-24T00:00:00Z"))));
         mockMvc.perform(get("/api/admin/matches/m1/weather"))
@@ -196,6 +200,11 @@ class MatchAdminControllerTest {
                 .andExpect(jsonPath("$.rules[0].costMoveSafeLocation").value(1))
                 .andExpect(jsonPath("$.rules[0].costMoveNotSafeLocation").value(3))
                 .andExpect(jsonPath("$.rules[0].probability").value(30))
+                // v0.36.2 — the console must be able to say WHY a rule never fires.
+                .andExpect(jsonPath("$.rules[0].conditionKey").value("gate"))
+                .andExpect(jsonPath("$.rules[0].conditionValue").value("OPEN"))
+                .andExpect(jsonPath("$.rules[0].conditionOperator").value("="))
+                .andExpect(jsonPath("$.rules[0].registryMet").value(false))
                 .andExpect(jsonPath("$.log[0].weatherUuid").value("w-9"));
     }
 

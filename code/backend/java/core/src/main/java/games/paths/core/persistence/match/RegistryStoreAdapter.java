@@ -23,11 +23,25 @@ public class RegistryStoreAdapter implements RegistryStorePort {
 
     private final GamingStateRegistryRepository registryRepository;
     private final LogEventsRepository logEventsRepository;
+    private final games.paths.core.repository.match.GamingMatchRepository matchRepository;
 
     public RegistryStoreAdapter(GamingStateRegistryRepository registryRepository,
-                                LogEventsRepository logEventsRepository) {
+                                LogEventsRepository logEventsRepository,
+                                games.paths.core.repository.match.GamingMatchRepository matchRepository) {
         this.registryRepository = registryRepository;
         this.logEventsRepository = logEventsRepository;
+        this.matchRepository = matchRepository;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Optional<long[]> findMatchAndStoryIdByUuid(String matchUuid) {
+        if (matchUuid == null || matchUuid.isBlank()) {
+            return java.util.Optional.empty();
+        }
+        return matchRepository.findByUuid(matchUuid)
+                .filter(m -> m.getId() != null && m.getIdStory() != null)
+                .map(m -> new long[]{m.getId(), m.getIdStory()});
     }
 
     @Override

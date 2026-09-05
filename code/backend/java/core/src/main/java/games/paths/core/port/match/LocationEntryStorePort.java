@@ -69,6 +69,12 @@ public interface LocationEntryStorePort {
                                Integer idEventIfCharacterEnterEmptyLocation,
                                Integer idEventIfCharacterStartTime,
                                Integer idEventIfCounterZero,
-                               Integer priorityAutomaticEvent) {
+                               Integer priorityAutomaticEvent,
+                               /** Step 36.2 - the registry pair for the first arrival. */
+                               String keyToAdd,
+                               String keyValueToAdd,
+                               /** Step 36.2 - the pair for every later arrival. */
+                               String keyToAddNotFirst,
+                               String keyValueToAddNotFirst) {
     }
 }

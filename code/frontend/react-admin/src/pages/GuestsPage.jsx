@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { listGuests, getGuestStats, deleteGuest, deleteExpiredGuests } from '../api/guestApi'
+import {
+  listGuests, getGuestStats, deleteGuest, deleteExpiredGuests,
+  previewStaleGuests, deleteStaleGuests,
+} from '../api/guestApi'
 import {
   listMatches, getMatchInfo,
   stopMatch, pauseMatch, resumeMatch,
@@ -12,6 +15,10 @@ import MatchDetailModal, { fmtDate, shortUuid, StatusBadge, fetchStoryCtx } from
 const TERMINAL_STATUSES = new Set(['ENDED', 'GAMEOVER'])
 const isTerminal = (s) => TERMINAL_STATUSES.has(s)
 
+// v0.36.2 — the list is server-paginated: asking for every guest at once timed out
+// against AWS, where it is a full-table scan.
+const PAGE_LIMIT = 50
+
 export default function GuestsPage() {
   const [guests,       setGuests]       = useState([])
   const [stats,        setStats]        = useState(null)
@@ -19,22 +26,60 @@ export default function GuestsPage() {
   const [error,        setError]        = useState('')
   const [success,      setSuccess]      = useState('')
   const [filter,       setFilter]       = useState('')
+  const [olderThanDays, setOlderThanDays] = useState('')  // server-side "not seen for N days"
+  const [nextCursor,   setNextCursor]   = useState(null)
+  const [loadingMore,  setLoadingMore]  = useState(false)
+  const [stale,        setStale]        = useState(null)  // { guests, matches } dry run
   const [modal,        setModal]        = useState(null) // { type: 'single'|'cleanup', uuid? }
   const [guestDetail,  setGuestDetail]  = useState(null) // guest object
   const [userMatches,  setUserMatches]  = useState({ loading: false, list: [], error: '' })
   const [matchDetail,  setMatchDetail]  = useState(null) // { uuid, loading, info, error, storyCtx }
   const [matchError,   setMatchError]   = useState('')   // inline action error
 
+  // Only the parameters the server understands; the text box stays client-side.
+  const queryParams = () => {
+    const params = { limit: PAGE_LIMIT }
+    if (olderThanDays !== '') params.olderThanDays = Number(olderThanDays)
+    return params
+  }
+
   const load = () => {
     setLoading(true)
     setError('')
-    Promise.allSettled([listGuests(), getGuestStats()])
+    setStale(null)
+    Promise.allSettled([listGuests(queryParams()), getGuestStats()])
       .then(([g, s]) => {
-        if (g.status === 'fulfilled') setGuests(g.value)
-        else setError(g.reason?.message || 'Failed to load guests')
+        if (g.status === 'fulfilled') {
+          setGuests(g.value?.items ?? [])
+          setNextCursor(g.value?.nextCursor ?? null)
+        } else {
+          setError(g.reason?.message || 'Failed to load guests')
+        }
         if (s.status === 'fulfilled') setStats(s.value)
         setLoading(false)
       })
+  }
+
+  // A filtered scan can answer a short — even empty — page while the cursor still
+  // points further on, so "no rows here" is not "no more rows": keep the button live.
+  const loadMore = () => {
+    if (!nextCursor) return
+    setLoadingMore(true)
+    listGuests({ ...queryParams(), cursor: nextCursor })
+      .then(page => {
+        setGuests(prev => [...prev, ...(page?.items ?? [])])
+        setNextCursor(page?.nextCursor ?? null)
+      })
+      .catch(e => setError(e.message || 'Failed to load more guests'))
+      .finally(() => setLoadingMore(false))
+  }
+
+  // The dry run first: the console shows what it is about to destroy before asking.
+  const previewStale = () => {
+    setError('')
+    previewStaleGuests(Number(olderThanDays))
+      .then(setStale)
+      .catch(e => setError(e.message || 'Failed to count stale guests'))
   }
 
   useEffect(load, [])
@@ -44,9 +89,10 @@ export default function GuestsPage() {
     setUserMatches({ loading: true, list: [], error: '' })
     setMatchError('')
     try {
-      const all = await listMatches()
-      const list = (Array.isArray(all) ? all : []).filter(m => m.userCreatorUuid === guest.userUuid)
-      setUserMatches({ loading: false, list, error: '' })
+      // listMatches answers the { items, nextCursor, limit } envelope since v0.28.1,
+      // and userUuid is a server-side filter — no need to fetch every match to sift it.
+      const page = await listMatches({ userUuid: guest.userUuid })
+      setUserMatches({ loading: false, list: page?.items ?? [], error: '' })
     } catch (e) {
       setUserMatches({ loading: false, list: [], error: e.message || 'Failed to load matches' })
     }
@@ -79,9 +125,8 @@ export default function GuestsPage() {
       if (action === 'pause')  await pauseMatch(matchUuid)
       if (action === 'resume') await resumeMatch(matchUuid)
       // Refresh user matches list
-      const all = await listMatches()
-      const list = (Array.isArray(all) ? all : []).filter(m => m.userCreatorUuid === guestDetail.userUuid)
-      setUserMatches(prev => ({ ...prev, list }))
+      const page = await listMatches({ userUuid: guestDetail.userUuid })
+      setUserMatches(prev => ({ ...prev, list: page?.items ?? [] }))
     } catch (e) {
       setMatchError(e.response?.data?.message || e.message || `Failed to ${action} match`)
     }
@@ -89,6 +134,7 @@ export default function GuestsPage() {
 
   const confirmDelete = (uuid) => setModal({ type: 'single', uuid })
   const confirmCleanup = ()    => setModal({ type: 'cleanup' })
+  const confirmStale   = ()    => setModal({ type: 'stale' })
 
   const handleConfirm = async () => {
     const m = modal
@@ -97,6 +143,9 @@ export default function GuestsPage() {
       if (m.type === 'single') {
         await deleteGuest(m.uuid)
         setSuccess(`Guest ${m.uuid.slice(0, 8)}… deleted.`)
+      } else if (m.type === 'stale') {
+        const res = await deleteStaleGuests(Number(olderThanDays))
+        setSuccess(`Purge done: ${res.guests} guests and ${res.matches} matches removed.`)
       } else {
         const res = await deleteExpiredGuests()
         setSuccess(`Cleanup done: ${res.deletedCount} expired sessions removed.`)
@@ -158,6 +207,40 @@ export default function GuestsPage() {
         <button className="pg-btn pg-btn-danger" onClick={confirmCleanup} disabled={!stats?.expiredGuests}>
           <i className="fas fa-trash-alt" /> Cleanup Expired ({stats?.expiredGuests ?? 0})
         </button>
+      </div>
+
+      {/* v0.36.2 — the stale purge. Unlike "Cleanup Expired" this also deletes the
+          guests' matches, started or not, so it always shows the count first. */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <label htmlFor="olderThanDays" style={{ color: 'var(--color-ash)', fontSize: '0.85rem' }}>
+          Not seen for
+        </label>
+        <input
+          id="olderThanDays"
+          className="pg-input"
+          style={{ width: '6rem' }}
+          type="number"
+          min="0"
+          placeholder="days"
+          value={olderThanDays}
+          onChange={e => { setOlderThanDays(e.target.value); setStale(null) }}
+        />
+        <button className="pg-btn pg-btn-ghost" onClick={load} disabled={olderThanDays === ''}>
+          <i className="fas fa-filter" /> Apply filter
+        </button>
+        <button className="pg-btn pg-btn-ghost" onClick={previewStale} disabled={olderThanDays === ''}>
+          <i className="fas fa-calculator" /> Count stale
+        </button>
+        {stale && (
+          <>
+            <span style={{ color: 'var(--color-ash)', fontSize: '0.85rem' }}>
+              {stale.guests} guests · {stale.matches} matches
+            </span>
+            <button className="pg-btn pg-btn-danger" onClick={confirmStale} disabled={!stale.guests}>
+              <i className="fas fa-user-slash" /> Purge stale
+            </button>
+          </>
+        )}
       </div>
 
       {/* Table */}
@@ -228,11 +311,39 @@ export default function GuestsPage() {
         </div>
       )}
 
+      {/* Server-side pagination footer (v0.36.2). A filtered scan can answer a short or
+          empty page while the cursor still points further on, so the button stays live
+          on the cursor, never on how many rows this page happened to hold. */}
+      {!loading && (
+        <div className="flex items-center justify-between mt-4">
+          <span style={{ color: 'var(--color-ash)', fontSize: '0.85rem' }}>
+            Showing {filtered.length} of {guests.length} loaded
+            {nextCursor ? ' — more available' : ' — all loaded'}
+          </span>
+          <button
+            className="pg-btn pg-btn-ghost"
+            onClick={loadMore}
+            disabled={loadingMore || !nextCursor}
+          >
+            <i className="fas fa-angles-down" />{' '}
+            {loadingMore ? 'Loading…' : nextCursor ? 'Load more' : 'No more pages'}
+          </button>
+        </div>
+      )}
+
       {/* Confirm modals */}
       {modal?.type === 'single' && (
         <ConfirmModal
           title="Delete Guest"
           message={`Are you sure you want to delete guest ${modal.uuid}? This cannot be undone.`}
+          onConfirm={handleConfirm}
+          onCancel={() => setModal(null)}
+        />
+      )}
+      {modal?.type === 'stale' && (
+        <ConfirmModal
+          title="Purge Stale Guests"
+          message={`This will delete ${stale?.guests} guests not seen for ${olderThanDays} days AND their ${stale?.matches} matches, started or not. This cannot be undone. Continue?`}
           onConfirm={handleConfirm}
           onCancel={() => setModal(null)}
         />

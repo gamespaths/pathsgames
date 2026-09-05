@@ -3,7 +3,9 @@
 # guest_admin.robot — tests for admin guest management API.
 #
 # Endpoints under test:
-#   GET    /api/admin/guests           → 200, list of guests
+#   GET    /api/admin/guests           → 200, { items, nextCursor, limit } (v0.36.2)
+#   GET    /api/admin/guests/stale     → 200, { guests, matches } dry run (v0.36.2)
+#   DELETE /api/admin/guests/stale     → 200, purge, matches included (v0.36.2)
 #   GET    /api/admin/guests/stats     → 200, stats object
 #   GET    /api/admin/guests/{uuid}    → 200 | 404
 #   DELETE /api/admin/guests/{uuid}    → 200 | 404
@@ -25,6 +27,7 @@ Suite Setup    Initialize Admin Suite
 ${GUESTS_PATH}          /api/admin/guests
 ${GUESTS_STATS_PATH}    /api/admin/guests/stats
 ${GUESTS_EXPIRED_PATH}  /api/admin/guests/expired
+${GUESTS_STALE_PATH}    /api/admin/guests/stale
 
 
 *** Keywords ***
@@ -86,12 +89,16 @@ Admin Guest List Returns 200
     ${response}=    Admin GET    ${GUESTS_PATH}
     Status Should Be    ${response}    200
 
-Admin Guest List Is A List
-    [Documentation]    The response body is a JSON array.
-    [Tags]    admin    guests    step12
+Admin Guest List Is A Paged Envelope
+    [Documentation]    v0.36.2 — the body is { items, nextCursor, limit }, not a bare array.
+    ...                Asking for every guest at once is what timed out against AWS.
+    [Tags]    admin    guests    step12    step36-2
     ${response}=    Admin GET    ${GUESTS_PATH}
     ${body}=    Set Variable    ${response.json()}
-    ${type}=    Evaluate    type(${body}).__name__
+    Dictionary Should Contain Key    ${body}    items
+    Dictionary Should Contain Key    ${body}    nextCursor
+    Dictionary Should Contain Key    ${body}    limit
+    ${type}=    Evaluate    type($body['items']).__name__
     Should Be Equal    ${type}    list
 
 Admin Guest List Not Empty After Login
@@ -100,14 +107,52 @@ Admin Guest List Not Empty After Login
     # Ensure at least one guest exists
     Create Guest Session And Get Token
     ${response}=    Admin GET    ${GUESTS_PATH}
-    List Response Should Not Be Empty    ${response}
+    Should Not Be Empty    ${response.json()}[items]
 
 Guest List Items Have userUuid Field
     [Documentation]    Each guest in the list has a userUuid field.
     [Tags]    admin    guests    step12
     Create Guest Session And Get Token
     ${response}=    Admin GET    ${GUESTS_PATH}
-    List Item Should Contain Field    ${response}    userUuid
+    FOR    ${item}    IN    @{response.json()}[items]
+        Dictionary Should Contain Key    ${item}    userUuid
+    END
+
+Admin Guest List Honours The Page Limit
+    [Documentation]    v0.36.2 — ?limit=1 returns at most one guest and reports the limit
+    ...                that produced the page.
+    [Tags]    admin    guests    step36-2
+    Create Guest Session And Get Token
+    ${response}=    Admin GET    ${GUESTS_PATH}?limit=1
+    Status Should Be    ${response}    200
+    ${body}=    Set Variable    ${response.json()}
+    Should Be Equal As Integers    ${body}[limit]    1
+    ${count}=    Get Length    ${body}[items]
+    Should Be True    ${count} <= 1
+
+The Stale Preview Counts Guests And Their Matches Without Deleting Anything
+    [Documentation]    v0.36.2 — the dry run the console shows before it asks. A bound far in
+    ...                the future covers every guest, so both counts are answerable.
+    [Tags]    admin    guests    step36-2
+    Create Guest Session And Get Token
+    ${before}=    Admin GET    ${GUESTS_PATH}
+    ${response}=    Admin GET    ${GUESTS_STALE_PATH}?olderThanDays=0
+    Status Should Be    ${response}    200
+    ${body}=    Set Variable    ${response.json()}
+    Dictionary Should Contain Key    ${body}    guests
+    Dictionary Should Contain Key    ${body}    matches
+    Should Be True    ${body}[guests] >= 0
+    # A preview deletes nothing: the guest just created is still there.
+    ${after}=    Admin GET    ${GUESTS_PATH}
+    Should Not Be Empty    ${after.json()}[items]
+
+The Stale Purge Refuses Without A Bound
+    [Documentation]    v0.36.2 — without olderThanDays the purge would take EVERY guest and
+    ...                every match they own. It refuses rather than guessing.
+    [Tags]    admin    guests    step36-2
+    ${response}=    Admin DELETE    ${GUESTS_STALE_PATH}
+    Status Should Be    ${response}    400
+    Should Be Equal    ${response.json()}[error]    INVALID_INPUT
 
 # ---- stats tests ------------------------------------------------------------
 

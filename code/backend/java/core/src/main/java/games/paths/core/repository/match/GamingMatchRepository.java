@@ -74,6 +74,14 @@ public interface GamingMatchRepository extends JpaRepository<GamingMatchEntity, 
     @Query("SELECT m.id FROM GamingMatchEntity m WHERE m.name LIKE :pattern")
     List<Long> findMatchIdsByNameLike(@Param("pattern") String pattern);
 
+    /** v0.36.2 — the matches these users created, whatever the status. */
+    @Query("SELECT m.id FROM GamingMatchEntity m WHERE m.idUserCreator IN :userIds")
+    List<Long> findMatchIdsByUserCreatorIds(@Param("userIds") List<Long> userIds);
+
+    @Modifying
+    @Query("DELETE FROM GamingMatchEntity m WHERE m.id IN :ids")
+    int deleteByIdIn(@Param("ids") List<Long> ids);
+
     /**
      * Clears the current-turn character pointer for the given matches. Must run
      * before the per-match character instances are deleted: the

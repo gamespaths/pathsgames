@@ -122,6 +122,10 @@ class WeatherStoreAdapter:
                 "cost_move_safe_location": w.cost_move_safe_location,
                 "cost_move_not_safe_location": w.cost_move_not_safe_location,
                 "active": bool(w.active), "current": current is not None and current == w.id,
+                # v0.36.2 — the authored registry condition; the verdict is the service's job.
+                "condition_key": w.condition_key,
+                "condition_key_value": w.condition_key_value,
+                "registry_value_operator_condition": w.registry_value_operator_condition,
             } for w in rows]
 
     def _resolve_weather_name(self, session, id_story, id_text_name, id_card):

@@ -192,6 +192,12 @@ class LocationEntity(Base):
     id_event_if_character_enter_empty_location = Column(Integer)
     id_event_if_character_start_time = Column(Integer)
     priority_automatic_event = Column(Integer, default=0)
+    # Step 36.2 — the registry pair for the first arrival, and the one for every later
+    # arrival. An arrival takes one branch, never both.
+    key_to_add = Column(String(200))
+    key_value_to_add = Column(String(500))
+    key_to_add_not_first = Column(String(200))
+    key_value_to_add_not_first = Column(String(500))
 
 
 class LocationNeighborEntity(Base):

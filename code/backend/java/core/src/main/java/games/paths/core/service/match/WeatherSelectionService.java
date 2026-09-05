@@ -103,8 +103,35 @@ public class WeatherSelectionService {
         return new WeatherAdminView(
                 store.findRngSeed(matchUuid).orElse(null),
                 store.findCurrentWeatherByMatchUuid(matchUuid).orElse(null),
-                store.findWeatherRulesForMatch(matchUuid),
+                withRegistryVerdict(matchUuid, store.findWeatherRulesForMatch(matchUuid)),
                 store.findWeatherLog(matchUuid));
+    }
+
+    /**
+     * v0.36.2 — answer each rule with whether the registry lets it through, so the console can
+     * say why a rule never fires. Computed here rather than in the adapter, and by the very
+     * comparison the selection uses, so the two cannot drift apart.
+     */
+    private List<WeatherStorePort.WeatherRuleSummary> withRegistryVerdict(
+            String matchUuid, List<WeatherStorePort.WeatherRuleSummary> rules) {
+        List<WeatherStorePort.WeatherRuleSummary> out = new ArrayList<>();
+        for (WeatherStorePort.WeatherRuleSummary r : rules) {
+            out.add(new WeatherStorePort.WeatherRuleSummary(
+                    r.id(), r.uuid(), r.idTextName(), r.name(), r.probability(), r.deltaEnergy(),
+                    r.costMoveSafeLocation(), r.costMoveNotSafeLocation(), r.active(), r.current(),
+                    r.conditionKey(), r.conditionValue(), r.conditionOperator(),
+                    registryMet(matchUuid, r)));
+        }
+        return out;
+    }
+
+    /** A rule with no condition key is always let through; otherwise the shared comparison. */
+    private boolean registryMet(String matchUuid, WeatherStorePort.WeatherRuleSummary r) {
+        if (RegistryService.noCondition(r.conditionKey())) {
+            return true;
+        }
+        return RegistryService.evaluate(r.conditionOperator(), r.conditionValue(),
+                registryService.findByMatchUuid(matchUuid, r.conditionKey()));
     }
 
     /** Aggregate returned to the admin weather endpoint. */

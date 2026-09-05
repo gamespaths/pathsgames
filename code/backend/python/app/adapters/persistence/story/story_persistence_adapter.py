@@ -319,6 +319,10 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     max_characters=item.get("maxCharacters"),
                     id_event_on_enter=item.get("idEventOnEnter"),
                     priority_automatic_event=item.get("priorityAutomaticEvent"),
+                    key_to_add=item.get("keyToAdd"),
+                    key_value_to_add=item.get("keyValueToAdd"),
+                    key_to_add_not_first=item.get("keyToAddNotFirst"),
+                    key_value_to_add_not_first=item.get("keyValueToAddNotFirst"),
                 )
                 explicit_id = _get_long(item, "id")
                 kwargs["id"] = explicit_id if explicit_id is not None else next_loc_id()

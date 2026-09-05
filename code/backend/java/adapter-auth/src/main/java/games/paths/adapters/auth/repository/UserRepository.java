@@ -67,6 +67,35 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     @Query("SELECT COUNT(u) FROM UserEntity u WHERE u.state = :state AND u.guestExpiresAt < :now")
     long countExpiredGuests(@Param("state") Integer state, @Param("now") String now);
 
+    // === v0.36.2: paging and the stale purge ===
+
+    /**
+     * One keyset page of guests, newest last-access first. {@code lastAccessBefore} is an
+     * optional upper bound; the cursor pair continues a previous page. A guest that has never
+     * been back is ordered by its registration, which is the only date it has.
+     */
+    @Query("SELECT u FROM UserEntity u WHERE u.state = :state"
+            + " AND (:before IS NULL OR COALESCE(u.tsLastAccess, u.tsRegistration) < :before)"
+            + " AND (:tsCursor IS NULL"
+            + "      OR COALESCE(u.tsLastAccess, u.tsRegistration) < :tsCursor"
+            + "      OR (COALESCE(u.tsLastAccess, u.tsRegistration) = :tsCursor AND u.id < :idCursor))"
+            + " ORDER BY COALESCE(u.tsLastAccess, u.tsRegistration) DESC, u.id DESC")
+    List<UserEntity> findGuestsPage(@Param("state") Integer state,
+                                    @Param("before") String lastAccessBefore,
+                                    @Param("tsCursor") String tsCursor,
+                                    @Param("idCursor") Long idCursor,
+                                    org.springframework.data.domain.Pageable pageable);
+
+    /** The ids of every guest whose last access (or registration) predates the bound. */
+    @Query("SELECT u.id FROM UserEntity u WHERE u.state = :state"
+            + " AND COALESCE(u.tsLastAccess, u.tsRegistration) < :before")
+    List<Long> findGuestIdsWithLastAccessBefore(@Param("state") Integer state,
+                                                @Param("before") String before);
+
+    @Modifying
+    @Query("DELETE FROM UserEntity u WHERE u.state = :state AND u.id IN :ids")
+    int deleteGuestsByIds(@Param("state") Integer state, @Param("ids") List<Long> ids);
+
     // === Step 13: Session & Token Management ===
 
     /**

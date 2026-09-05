@@ -123,6 +123,8 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90018, 9001, 106, 'it', 'Bacheca Missioni', 'Una grande bacheca coperta di avvisi di missioni.');
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90019, 9001, 107, 'en', 'Multiplayer Courtyard', 'An open courtyard where training dummies represent other players.');
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90020, 9001, 107, 'it', 'Cortile Multigiocatore', 'Un cortile aperto con manichini da allenamento.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91214, 9001, 109, 'en', 'Records Vault', 'A cold room of ledgers and letters.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91215, 9001, 109, 'it', 'Sala degli Archivi', 'Una stanza fredda di registri e lettere.');
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90021, 9001, 108, 'en', 'Graduation Hall', 'A grand hall with a golden trophy at the center.');
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90022, 9001, 108, 'it', 'Sala della Laurea', 'Una sala maestosa con un trofeo dorato al centro.');
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90029, 9001, 200, 'en', 'Student', 'A balanced beginner. Good at everything, master of nothing.');
@@ -204,6 +206,13 @@ INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_val
 -- Step 36.1: multi_value = 1 makes a key hold a SET — each write adds a member instead of
 -- replacing the value. 'evidence_found' has no default, so its set starts EMPTY: no row.
 INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_value) VALUES (90004, 9001, 'evidence_found', NULL, 'evidence', 'PUBLIC', 1);
+-- Step 36.2: the case/padding test-bed. 'case_notes' is written with padding and capitals
+-- while every condition on it is authored lowercase and bare; 'signal' is the mirror, its
+-- lowercase default read by a padded, upper-case condition. 'vault_seen' is written by no
+-- event and no choice at all: only a LOCATION writes it, by being entered.
+INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_value) VALUES (90005, 9001, 'case_notes', NULL, 'evidence', 'PUBLIC', 1);
+INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_value) VALUES (90006, 9001, 'signal', 'green', 'evidence', 'PUBLIC', 0);
+INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_value) VALUES (90007, 9001, 'vault_seen', NULL, 'evidence', 'PUBLIC', 0);
 
 -- ── Story 1 Cards ───────────────────────────────────────────────
 -- Inserted before locations: fk_locations_card (id_card, id_story) requires the card to exist.
@@ -231,6 +240,9 @@ INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_descrip
 INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (90006, 9001, 90003, 105, 105, 1, 10);
 INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (90007, 9001, 90002, 106, 106, 1, 10);
 INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (90008, 9001, 90001, 107, 107, 1, 10);
+-- Step 36.2 — the Records Vault writes the registry by being entered. Two pairs: the first
+-- arrival and every later one take different branches, never both, and no event is involved.
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters, key_to_add, key_value_to_add, key_to_add_not_first, key_value_to_add_not_first) VALUES (90009, 9001, 90001, 109, 109, 1, 10, 'vault_seen', 'first', 'vault_seen', 'again');
 
 -- ── Story 1 Location Neighbors ──────────────────────────────────
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES (90001, 9001, 90001, 90002, 'NORTH', 1, 2);
@@ -241,6 +253,7 @@ INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_locatio
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES (90006, 9001, 90006, 90007, 'EAST', 1, 0);
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES (90007, 9001, 90007, 90008, 'NORTH', 1, 0);
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES (90008, 9001, 90001, 90008, 'EAST', 1, 1);
+INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES (90009, 9001, 90001, 90009, 'SOUTH', 1, 0);
 -- Step 0.28.2 — optional return card on the Welcome↔Movement edge (catalog card 90003).
 UPDATE list_locations_neighbors SET id_card_back = 90003 WHERE id = 90001 AND id_story = 9001;
 
@@ -494,6 +507,24 @@ INSERT INTO list_choices_effects (id, id_story, id_choices, id_card, key, value_
 INSERT INTO list_choices (id, id_story, id_card, id_event, priority, id_text_name, id_text_description, id_text_narrative, id_event_torun, otherwise_flag, is_progress, logic_operator, limit_dex) VALUES (90361, 9001, 90001, 90363, 2, 500, 500, NULL, NULL, 0, 0, 'AND', NULL);
 INSERT INTO list_choices_conditions (id, id_story, id_choices, type, key, value, operator) VALUES (90360, 9001, 90361, 'KEYS', 'evidence_found', 'ledger', '!=');
 INSERT INTO list_choices_effects (id, id_story, id_choices, id_card, statistics, value) VALUES (90361, 9001, 90361, 90001, 'exp', 1);
+
+-- ── Step 36.2 case-and-padding pack — spelling must not decide a gate ───
+-- Four more FREE events at the START hall (90001), for the same reason as the 36.1 pack:
+-- a zero cost keeps them invisible to the Step 31/32 finders.
+--   90370  WRITES ' Ledger ' — padded and capitalised, exactly as a careless author writes.
+--   90371  READS  'ledger'   — bare and lowercase. It must open once 90370 has run, which
+--                              is the whole claim of v0.36.2 in one pair of rows.
+--   90372  WRITES 'LEDGER'   — a third spelling of the member the set already holds. The set
+--                              must stay at one member: a duplicate is not a new value.
+--   90373  READS  '  GREEN ' — the mirror direction: a padded, upper-case condition against
+--                              the lowercase default 'signal' carries from list_keys.
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, registry_value_operator_condition, id_item_condition, id_class_condition) VALUES (90370, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, '=', NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, registry_value_operator_condition, id_item_condition, id_class_condition) VALUES (90371, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, 'case_notes', 'ledger', '=', NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, registry_value_operator_condition, id_item_condition, id_class_condition) VALUES (90372, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, '=', NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, registry_value_operator_condition, id_item_condition, id_class_condition) VALUES (90373, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, 'signal', '  GREEN  ', '=', NULL, NULL);
+
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES (90370, 9001, 90370, 90001, 'ONLY_ONE', 'case_notes', ' Ledger ');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES (90372, 9001, 90372, 90001, 'ONLY_ONE', 'case_notes', 'LEDGER');
 
 -- ── Story 1 Global Random Events ────────────────────────────────
 INSERT INTO list_global_random_events (id, id_story, probability) VALUES (90001, 9001, 10);

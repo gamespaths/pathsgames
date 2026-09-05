@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
@@ -178,6 +179,140 @@ class GuestAdminServiceTest {
             when(persistence.deleteExpiredGuests()).thenReturn(5);
             assertEquals(5, service.deleteExpiredGuests());
             verify(persistence).deleteExpiredGuests();
+        }
+    }
+
+    @Nested
+    @DisplayName("v0.36.2 - paging and the stale purge")
+    class PagingAndPurge {
+
+        private final games.paths.core.port.match.MatchPersistencePort matches =
+                mock(games.paths.core.port.match.MatchPersistencePort.class);
+
+        private GuestAdminService paged() {
+            return new GuestAdminService(persistence, matches);
+        }
+
+        private static Map<String, Object> row(long id, String lastAccess) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", id);
+            m.put("uuid", "g" + id);
+            m.put("username", "u" + id);
+            m.put("role", "PLAYER");
+            m.put("state", 6);
+            m.put("tsRegistration", "2020-01-01T00:00:00Z");
+            m.put("tsLastAccess", lastAccess);
+            return m;
+        }
+
+        @Test
+        @DisplayName("a full page answers a cursor and drops the over-fetched row")
+        void aFullPageAnswersACursor() {
+            // The service asks for limit+1 to learn whether more exist, then hands back limit.
+            when(persistence.findGuestsPage(null, null, null, 3)).thenReturn(List.of(
+                    row(3, "2026-01-03T00:00:00Z"),
+                    row(2, "2026-01-02T00:00:00Z"),
+                    row(1, "2026-01-01T00:00:00Z")));
+
+            var page = paged().listGuestsPage(
+                    new games.paths.core.model.auth.GuestListFilter(null, null, 2));
+
+            assertEquals(2, page.items().size());
+            assertEquals(2, page.limit());
+            assertNotNull(page.nextCursor());
+        }
+
+        @Test
+        @DisplayName("the last page answers no cursor")
+        void theLastPageAnswersNoCursor() {
+            when(persistence.findGuestsPage(null, null, null, 51))
+                    .thenReturn(List.of(row(1, "2026-01-01T00:00:00Z")));
+
+            var page = paged().listGuestsPage(
+                    new games.paths.core.model.auth.GuestListFilter(null, null, null));
+
+            assertNull(page.nextCursor());
+            assertEquals(50, page.limit());
+        }
+
+        @Test
+        @DisplayName("the cursor round-trips to the row it named")
+        void theCursorRoundTrips() {
+            when(persistence.findGuestsPage(null, null, null, 2)).thenReturn(List.of(
+                    row(2, "2026-01-02T00:00:00Z"), row(1, "2026-01-01T00:00:00Z")));
+            String cursor = paged().listGuestsPage(
+                    new games.paths.core.model.auth.GuestListFilter(null, null, 1)).nextCursor();
+
+            paged().listGuestsPage(
+                    new games.paths.core.model.auth.GuestListFilter(null, cursor, 1));
+
+            verify(persistence).findGuestsPage(null, "2026-01-02T00:00:00Z", 2L, 2);
+        }
+
+        @Test
+        @DisplayName("a malformed cursor restarts at page one instead of failing")
+        void aMalformedCursorRestarts() {
+            paged().listGuestsPage(
+                    new games.paths.core.model.auth.GuestListFilter(null, "not-a-cursor", 10));
+
+            verify(persistence).findGuestsPage(null, null, null, 11);
+        }
+
+        @Test
+        @DisplayName("a guest that never came back is ordered by its registration")
+        void aGuestThatNeverCameBackUsesItsRegistration() {
+            when(persistence.findGuestsPage(null, null, null, 2))
+                    .thenReturn(List.of(row(2, null), row(1, null)));
+
+            String cursor = paged().listGuestsPage(
+                    new games.paths.core.model.auth.GuestListFilter(null, null, 1)).nextCursor();
+            paged().listGuestsPage(
+                    new games.paths.core.model.auth.GuestListFilter(null, cursor, 1));
+
+            verify(persistence).findGuestsPage(null, "2020-01-01T00:00:00Z", 2L, 2);
+        }
+
+        @Test
+        @DisplayName("the purge takes the matches BEFORE the guests")
+        void thePurgeTakesTheMatchesFirst() {
+            // A match references its creator by foreign key: the children must go first.
+            when(persistence.findGuestIdsWithLastAccessBefore(any())).thenReturn(List.of(7L, 8L));
+            when(matches.deleteMatchesByUserCreatorIds(List.of(7L, 8L))).thenReturn(5);
+            when(persistence.deleteGuestsByIds(List.of(7L, 8L))).thenReturn(2);
+
+            var summary = paged().deleteStaleGuests(90);
+
+            assertEquals(2, summary.guests());
+            assertEquals(5, summary.matches());
+            var order = inOrder(matches, persistence);
+            order.verify(matches).deleteMatchesByUserCreatorIds(List.of(7L, 8L));
+            order.verify(persistence).deleteGuestsByIds(List.of(7L, 8L));
+        }
+
+        @Test
+        @DisplayName("the preview deletes nothing")
+        void thePreviewDeletesNothing() {
+            when(persistence.findGuestIdsWithLastAccessBefore(any())).thenReturn(List.of(7L, 8L));
+            when(matches.countMatchesByUserCreatorIds(List.of(7L, 8L))).thenReturn(5L);
+
+            var summary = paged().previewStaleGuests(90);
+
+            assertEquals(2, summary.guests());
+            assertEquals(5, summary.matches());
+            verify(persistence, never()).deleteGuestsByIds(any());
+            verify(matches, never()).deleteMatchesByUserCreatorIds(any());
+        }
+
+        @Test
+        @DisplayName("a purge that matches nobody touches nothing")
+        void aPurgeThatMatchesNobodyTouchesNothing() {
+            when(persistence.findGuestIdsWithLastAccessBefore(any())).thenReturn(List.of());
+
+            var summary = paged().deleteStaleGuests(90);
+
+            assertEquals(0, summary.guests());
+            assertEquals(0, summary.matches());
+            verify(matches, never()).deleteMatchesByUserCreatorIds(any());
         }
     }
 }

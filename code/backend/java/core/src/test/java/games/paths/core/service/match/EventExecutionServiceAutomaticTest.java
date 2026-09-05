@@ -320,7 +320,7 @@ class EventExecutionServiceAutomaticTest {
                     .thenReturn(Optional.of(triggers(40, 40, null)));
             when(locationStore.findLocationTriggers(STORY_ID, 90003L))
                     .thenReturn(Optional.of(new LocationTriggerView(90003L, null, 41, 41,
-                            null, null, null, 0)));
+                            null, null, null, 0, null, null, null, null)));
 
             List<AutomaticEventFired> fired = service.onArrival(arrival());
 
@@ -562,7 +562,8 @@ class EventExecutionServiceAutomaticTest {
     }
 
     private static LocationTriggerView triggers(Integer first, Integer notFirst, Integer alone) {
-        return new LocationTriggerView(LOCATION, 500, first, notFirst, alone, null, null, 0);
+        return new LocationTriggerView(LOCATION, 500, first, notFirst, alone, null, null, 0,
+                null, null, null, null);
     }
 
     /** A card with just the two fields the assertions care about. */

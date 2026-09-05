@@ -1162,7 +1162,21 @@ class EventService(EventPort):
                     id_match, id_character,
                     triggers.get("id_event_if_character_enter_empty_location"), id_location,
                     lem.TRIGGER_MOVE_INTO_EMPTY_LOCATION, current_clock, lang, True, depth, out)
+            self._write_arrival_registry(id_match, id_story, id_character, triggers, visited,
+                                         current_clock)
         self.location_store.mark_state_location_visited(id_match, id_location)
+
+    def _write_arrival_registry(self, id_match, id_story, id_character, triggers, visited,
+                                current_clock) -> None:
+        """Step 36.2 — the place writes the registry itself. The history branch chooses the
+        pair, exactly as it chose the event above, so one arrival writes one pair and never
+        both. A blank key is authored noise, and upsert already skips it."""
+        key = (triggers.get("key_to_add_not_first") if visited
+               else triggers.get("key_to_add"))
+        value = (triggers.get("key_value_to_add_not_first") if visited
+                 else triggers.get("key_value_to_add"))
+        self.registry_service.upsert(id_match, id_story, key, value, id_character, None, None,
+                                     current_clock)
 
     def _run_automatic_event_if_set(self, id_match, id_actor_character, id_event, id_location,
                                     trigger, current_clock, lang, allow_time_end, depth,

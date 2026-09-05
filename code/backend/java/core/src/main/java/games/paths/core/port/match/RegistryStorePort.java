@@ -33,6 +33,12 @@ public interface RegistryStorePort {
         }
     }
 
+    /**
+     * v0.36.2 — the numeric id and story id behind a match uuid, for the admin edit which
+     * only ever holds the uuid. Empty when no match answers to it.
+     */
+    java.util.Optional<long[]> findMatchAndStoryIdByUuid(String matchUuid);
+
     List<RegistryRow> findByMatch(long idMatch);
 
     /** Every row of one key: one for a single key, N for a multi-valued one, none when empty. */

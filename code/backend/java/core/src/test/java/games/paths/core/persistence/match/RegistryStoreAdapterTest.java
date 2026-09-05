@@ -21,13 +21,15 @@ class RegistryStoreAdapterTest {
 
     private GamingStateRegistryRepository repository;
     private LogEventsRepository logEventsRepository;
+    private games.paths.core.repository.match.GamingMatchRepository matchRepository;
     private RegistryStoreAdapter adapter;
 
     @BeforeEach
     void setUp() {
         repository = mock(GamingStateRegistryRepository.class);
         logEventsRepository = mock(LogEventsRepository.class);
-        adapter = new RegistryStoreAdapter(repository, logEventsRepository);
+        matchRepository = mock(games.paths.core.repository.match.GamingMatchRepository.class);
+        adapter = new RegistryStoreAdapter(repository, logEventsRepository, matchRepository);
     }
 
     private static GamingStateRegistryEntity multi(Long id, String key, String s, Integer i) {
