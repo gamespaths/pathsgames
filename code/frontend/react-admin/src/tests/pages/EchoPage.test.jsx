@@ -78,4 +78,11 @@ describe('EchoPage', () => {
     })
     expect(pre).toBeInTheDocument()
   })
+
+  it('a response with no timestamp shows a dash instead of an invalid date', async () => {
+    getServerStatus.mockResolvedValue({ status: 'OK', properties: {} })
+    render(<EchoPage />)
+    expect(await screen.findByText('OK')).toBeInTheDocument()
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+  })
 })

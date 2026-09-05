@@ -298,3 +298,66 @@ describe('MovementCard', () => {
     })
   })
 })
+
+describe('MovementCard — the sleeping refusal and the icon fallbacks', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    capturedProps = null
+  })
+
+  const base = {
+    location: LOCATION, story: STORY, onPreview: vi.fn(), isNeighbor: true,
+    matchUuid: 'm1', accessToken: 'tok', onMoved: vi.fn(),
+  }
+
+  it('a sleeping character is refused with SLEEPING, not with the location reason', () => {
+    render(<MovementCard {...base} playerStats={{ energy: 30, isSleeping: true }} />)
+    expect(screen.getByTestId('locked').textContent).toBe('true')
+  })
+
+  it('a comatose character is refused with COMA, whatever else is true', () => {
+    render(<MovementCard {...base} playerStats={{ energy: 30, isComa: true, isSleeping: true }} />)
+    expect(screen.getByTestId('locked').textContent).toBe('true')
+  })
+
+  it('the info icon falls back to the card icon, then to the default arrow', () => {
+    const { rerender } = render(
+      <MovementCard {...base} location={{ ...LOCATION, awesomeIcon: 'fa-door' }}
+        playerStats={{ energy: 30 }} />)
+    expect(capturedProps.infoIconClassName).toBe('fa-door')
+
+    rerender(<MovementCard {...base}
+      location={{ ...LOCATION, awesomeIcon: '', card: { ...LOCATION.card, awesomeIcon: 'fa-key' } }}
+      playerStats={{ energy: 30 }} />)
+    expect(capturedProps.infoIconClassName).toBe('fa-key')
+
+    rerender(<MovementCard {...base}
+      location={{ ...LOCATION, awesomeIcon: '', card: { ...LOCATION.card, awesomeIcon: '' } }}
+      playerStats={{ energy: 30 }} />)
+    expect(capturedProps.infoIconClassName).toBe('fas fa-location-arrow')
+  })
+
+  it('a refused move has no info icon at all', () => {
+    render(<MovementCard {...base} playerStats={{ energy: 0 }} totalEnergyCost={9} />)
+    expect(capturedProps.infoIconClassName).toBeNull()
+  })
+
+  it('seen from the map, a locked neighbour shows the refusal as extra content', () => {
+    render(<MovementCard {...base} viewFromMap playerStats={{ energy: 0 }} totalEnergyCost={9} />)
+    expect(capturedProps.extraContent).not.toBeNull()
+  })
+
+  it('seen from the map, a reachable neighbour needs no extra content', () => {
+    render(<MovementCard {...base} viewFromMap playerStats={{ energy: 30 }} totalEnergyCost={1} />)
+    expect(capturedProps.extraContent).toBeNull()
+  })
+
+  it('a location with no card previews a null card', () => {
+    const onPreview = vi.fn()
+    render(<MovementCard {...base} onPreview={onPreview}
+      location={{ uuid: 'loc-9', idLocation: 9, energyCost: 1 }}
+      playerStats={{ energy: 30 }} />)
+    fireEvent.click(screen.getByTestId('preview-btn'))
+    expect(onPreview).toHaveBeenCalledWith(expect.objectContaining({ card: null }))
+  })
+})

@@ -107,4 +107,43 @@ class CharacterEntitiesTest {
         assertEquals(3L, t.getId());
         assertEquals(4L, t.getIdMatch());
     }
+
+    @Test
+    void characterInstance_onCreate_leavesEveryValueTheCallerAlreadySet() {
+        GamingCharacterInstanceEntity e = new GamingCharacterInstanceEntity();
+        e.setDexterity(9);
+        e.setIntelligence(8);
+        e.setConstitution(7);
+        e.setEnergy(6);
+        e.setLife(5);
+        e.setSad(4);
+        e.setLifeMax(100);
+        e.setEnergyMax(90);
+        e.setSadMax(80);
+        e.setWeightMax(70);
+        e.setIsSleeping(true);
+        e.setIsComa(true);
+        e.setClockInComa(3);
+        e.setCounterConsecutivePass(2);
+        e.setExp(11);
+
+        e.onCreate();
+
+        assertAll(
+                () -> assertEquals(9, e.getDexterity()),
+                () -> assertEquals(8, e.getIntelligence()),
+                () -> assertEquals(7, e.getConstitution()),
+                () -> assertEquals(6, e.getEnergy()),
+                () -> assertEquals(5, e.getLife()),
+                () -> assertEquals(4, e.getSad()),
+                () -> assertEquals(100, e.getLifeMax()),
+                () -> assertEquals(90, e.getEnergyMax()),
+                () -> assertEquals(80, e.getSadMax()),
+                () -> assertEquals(70, e.getWeightMax()),
+                () -> assertTrue(e.getIsSleeping()),
+                () -> assertTrue(e.getIsComa()),
+                () -> assertEquals(3, e.getClockInComa()),
+                () -> assertEquals(2, e.getCounterConsecutivePass()),
+                () -> assertEquals(11, e.getExp()));
+    }
 }

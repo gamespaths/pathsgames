@@ -73,3 +73,24 @@ def test_delete_entity_not_found():
     with pytest.raises(HTTPException) as ei:
         _run(ctrl.delete_entity(_req(), uuidStory="u1", entityType="locations", entityUuid="e1"))
     assert ei.value.status_code == 404
+
+
+def test_get_story_requires_admin():
+    with pytest.raises(HTTPException) as ei:
+        _run(_ctrl().get_story_route(_req(role="PLAYER"), uuidStory="u1"))
+    assert ei.value.status_code == 403
+
+
+def test_get_story_not_found():
+    ctrl = _ctrl()
+    ctrl.crud_port.get_story.return_value = None
+    with pytest.raises(HTTPException) as ei:
+        _run(ctrl.get_story_route(_req(), uuidStory="u1"))
+    assert ei.value.status_code == 404
+    assert ei.value.detail["error"] == "STORY_NOT_FOUND"
+
+
+def test_get_story_returns_the_story():
+    ctrl = _ctrl()
+    ctrl.crud_port.get_story.return_value = {"uuid": "u1"}
+    assert _run(ctrl.get_story_route(_req(), uuidStory="u1")) == {"uuid": "u1"}

@@ -110,8 +110,11 @@ describe('MatchDetailModal without a story context', () => {
 
     const panel = document.querySelector('.pg-modal')
     await userEvent.click(panel)
-    fireEvent.keyDown(panel, { key: 'Escape' })
     expect(onClose).not.toHaveBeenCalled()
+
+    fireEvent.keyDown(panel, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledTimes(1)
+    onClose.mockClear()
 
     await userEvent.click(screen.getByText('Close'))
     expect(onClose).toHaveBeenCalled()

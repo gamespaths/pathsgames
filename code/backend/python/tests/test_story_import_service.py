@@ -196,3 +196,34 @@ def test_import_story_links_deferred_references_after_every_entity(monkeypatch):
 
     assert calls == ["events", "link", "sync"]
     port.link_deferred_references.assert_called_once()
+
+
+# ── _get_long accepts the several shapes an export can carry ─────────────────
+
+def test_get_long_reads_ints_floats_and_numeric_strings():
+    from app.core.services.story.story_import_service import _get_long
+    assert _get_long(None, "id") is None
+    assert _get_long({}, "id") is None
+    assert _get_long({"id": 5}, "id") == 5
+    assert _get_long({"id": 5.9}, "id") == 5
+    assert _get_long({"id": "7"}, "id") == 7
+    assert _get_long({"id": None, "idAlt": 3}, "id", "idAlt") == 3
+    assert _get_long({"id": "not-a-number"}, "id") is None
+
+
+def test_import_story_hard_fails_on_an_invalid_payload():
+    from unittest.mock import MagicMock
+    from app.core.services.story.story_import_service import StoryImportService
+    from app.core.ports.story.story_validator_port import (
+        StoryValidationException, StoryValidationReport,
+    )
+
+    report = StoryValidationReport()
+    report.add("DANGLING_REF", "events", "1", "idEventNext", "no such event")
+    validator = MagicMock()
+    validator.validate_import_data.return_value = report
+    persistence = MagicMock()
+
+    with pytest.raises(StoryValidationException):
+        StoryImportService(persistence, validator).import_story({"uuid": "s1"})
+    persistence.save_story.assert_not_called()

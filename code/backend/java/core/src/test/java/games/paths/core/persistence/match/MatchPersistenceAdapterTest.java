@@ -283,4 +283,52 @@ class MatchPersistenceAdapterTest {
         verify(matchRepository).findMatchesPage(any(), any(), any(), any(), any(), any(), pageCaptor.capture());
         assertEquals(1, pageCaptor.getValue().getPageSize()); // PageRequest rejects size < 1
     }
+
+    // ── the guest purge deletes by creator, not by name ─────────────────────
+
+    @Test
+    void countMatchesByUserCreatorIds_withoutCreatorsIsZero() {
+        assertEquals(0, adapter.countMatchesByUserCreatorIds(null));
+        assertEquals(0, adapter.countMatchesByUserCreatorIds(List.of()));
+        verify(matchRepository, never()).findMatchIdsByUserCreatorIds(any());
+    }
+
+    @Test
+    void countMatchesByUserCreatorIds_countsWhatTheCreatorsOwn() {
+        when(matchRepository.findMatchIdsByUserCreatorIds(List.of(1L))).thenReturn(List.of(5L, 6L));
+
+        assertEquals(2, adapter.countMatchesByUserCreatorIds(List.of(1L)));
+    }
+
+    @Test
+    void deleteMatchesByUserCreatorIds_withoutCreatorsIsANoOp() {
+        assertEquals(0, adapter.deleteMatchesByUserCreatorIds(null));
+        assertEquals(0, adapter.deleteMatchesByUserCreatorIds(List.of()));
+        verify(matchRepository, never()).findMatchIdsByUserCreatorIds(any());
+    }
+
+    @Test
+    void deleteMatchesByUserCreatorIds_creatorsWithNoMatchTouchNothing() {
+        when(matchRepository.findMatchIdsByUserCreatorIds(List.of(1L))).thenReturn(List.of());
+
+        assertEquals(0, adapter.deleteMatchesByUserCreatorIds(List.of(1L)));
+        verify(matchRepository, never()).clearCurrentTurnByMatchIdIn(any());
+        verify(locationsRepository, never()).deleteByMatchIdIn(any());
+        verify(registryStorePort, never()).deleteByMatchIdIn(any());
+    }
+
+    @Test
+    void deleteMatchesByUserCreatorIds_deletesTheRuntimeStateFirst() {
+        List<Long> ids = List.of(5L);
+        when(matchRepository.findMatchIdsByUserCreatorIds(List.of(1L))).thenReturn(ids);
+        when(matchRepository.deleteByIdIn(ids)).thenReturn(1);
+
+        assertEquals(1, adapter.deleteMatchesByUserCreatorIds(List.of(1L)));
+
+        verify(matchRepository).clearCurrentTurnByMatchIdIn(ids);
+        verify(characterRepository).deleteByMatchIdIn(ids);
+        verify(locationsRepository).deleteByMatchIdIn(ids);
+        verify(registryStorePort).deleteByMatchIdIn(ids);
+        verify(matchRepository).deleteByIdIn(ids);
+    }
 }

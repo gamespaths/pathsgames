@@ -1,5 +1,6 @@
 """Coverage for the admin match-control routes in match/handler.py
 (stop/pause/resume/info/delete + PUT validation). jwt + db_utils are patched."""
+import copy
 import json
 from unittest.mock import patch
 
@@ -313,3 +314,112 @@ def test_flags_untouched_when_the_body_carries_none(mock_get, mock_put, _jwt):
     _call(event)
     updated = mock_put.call_args[0][0]
     assert 'isSleeping' not in updated and 'isComa' not in updated
+
+
+# ── v0.36.2 — the console editing the registry of one match ─────────────────
+
+REGISTRY_MATCH = dict(MATCH, storyUuid='s1', registry=[
+    {'key': 'WINTER', 'stringValue': 'YES', 'intValue': None, 'multiValue': 0},
+])
+
+
+def _registry_side(match_item):
+    def _side(pk, sk='METADATA'):
+        if pk == 'USER#admin-uuid-001':
+            return ADMIN_USER
+        if pk.startswith('MATCH#'):
+            return match_item
+        if pk.startswith('STORY#'):
+            return {'PK': 'STORY#s1', 'uuid': 's1'}
+        return None
+    return _side
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
+@patch('match.handler.db_utils.put_item', return_value=True)
+@patch('match.handler.db_utils.get_item')
+def test_put_registry_replaces_a_single_key(mock_get, mock_put, _jwt):
+    mock_get.side_effect = _registry_side(copy.deepcopy(REGISTRY_MATCH))
+    result = _call(_admin_event('PUT', '/api/admin/matches/m1/registry',
+                                body={'key': 'WINTER', 'value': 'NO'}))
+    assert result['statusCode'] == 200
+    assert _body(result) == {'key': 'WINTER', 'values': ['NO']}
+    mock_put.assert_called_once()
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
+@patch('match.handler.db_utils.put_item', return_value=True)
+@patch('match.handler.db_utils.get_item')
+def test_put_registry_rejects_a_missing_key(mock_get, mock_put, _jwt):
+    mock_get.side_effect = _registry_side(copy.deepcopy(REGISTRY_MATCH))
+    result = _call(_admin_event('PUT', '/api/admin/matches/m1/registry', body={'value': 'NO'}))
+    assert result['statusCode'] == 400
+    assert _body(result)['error'] == 'INVALID_INPUT'
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
+@patch('match.handler.db_utils.put_item', return_value=True)
+@patch('match.handler.db_utils.get_item')
+def test_put_registry_rejects_a_body_that_is_not_json(mock_get, mock_put, _jwt):
+    mock_get.side_effect = _registry_side(copy.deepcopy(REGISTRY_MATCH))
+    result = _call(_admin_event('PUT', '/api/admin/matches/m1/registry', body='{not json'))
+    assert result['statusCode'] == 400
+    assert _body(result)['message'] == 'Body must be valid JSON'
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
+@patch('match.handler.db_utils.put_item', return_value=True)
+@patch('match.handler.db_utils.get_item')
+def test_put_registry_unknown_match(mock_get, mock_put, _jwt):
+    mock_get.side_effect = _registry_side(None)
+    result = _call(_admin_event('PUT', '/api/admin/matches/m1/registry',
+                                body={'key': 'WINTER', 'value': 'NO'}))
+    assert result['statusCode'] == 404
+    assert _body(result)['error'] == 'MATCH_NOT_FOUND'
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
+@patch('match.handler.db_utils.put_item', return_value=True)
+@patch('match.handler.db_utils.get_item')
+def test_delete_registry_takes_one_value_away(mock_get, mock_put, _jwt):
+    mock_get.side_effect = _registry_side(copy.deepcopy(REGISTRY_MATCH))
+    result = _call(_admin_event('DELETE', '/api/admin/matches/m1/registry',
+                                qs={'key': 'WINTER', 'value': 'YES'}))
+    assert result['statusCode'] == 200
+    assert _body(result) == {'key': 'WINTER', 'values': []}
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
+@patch('match.handler.db_utils.put_item', return_value=True)
+@patch('match.handler.db_utils.get_item')
+def test_delete_registry_without_a_value_empties_the_key(mock_get, mock_put, _jwt):
+    mock_get.side_effect = _registry_side(copy.deepcopy(REGISTRY_MATCH))
+    result = _call(_admin_event('DELETE', '/api/admin/matches/m1/registry', qs={'key': 'WINTER'}))
+    assert result['statusCode'] == 200
+    assert _body(result)['values'] == []
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
+@patch('match.handler.db_utils.put_item', return_value=True)
+@patch('match.handler.db_utils.get_item')
+def test_delete_registry_rejects_a_missing_key(mock_get, mock_put, _jwt):
+    mock_get.side_effect = _registry_side(copy.deepcopy(REGISTRY_MATCH))
+    result = _call(_admin_event('DELETE', '/api/admin/matches/m1/registry', qs={}))
+    assert result['statusCode'] == 400
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
+@patch('match.handler.db_utils.put_item', return_value=True)
+@patch('match.handler.db_utils.get_item')
+def test_delete_registry_unknown_match(mock_get, mock_put, _jwt):
+    mock_get.side_effect = _registry_side(None)
+    result = _call(_admin_event('DELETE', '/api/admin/matches/m1/registry', qs={'key': 'WINTER'}))
+    assert result['statusCode'] == 404

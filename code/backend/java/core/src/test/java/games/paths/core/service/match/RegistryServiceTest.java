@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 @DisplayName("RegistryService (Step 36)")
@@ -647,6 +648,88 @@ class RegistryServiceTest {
             assertEquals(List.of("letter"),
                     service.remove(1L, "clues", "LEDGER", null, null, null, 1));
             verify(store).deleteValue(1L, "clues", " Ledger ", null);
+        }
+    }
+
+    @Nested
+    @DisplayName("admin edit by match uuid (v0.36.2)")
+    class AdminEdit {
+
+        @Test
+        @DisplayName("an unknown match answers empty, never a guess")
+        void findUnknownMatch() {
+            when(store.findMatchAndStoryIdByUuid("nope")).thenReturn(Optional.empty());
+            assertEquals(List.of(), service.findByMatchUuid("nope", "clue"));
+        }
+
+        @Test
+        @DisplayName("the values of one key, addressed by match uuid")
+        void findByUuid() {
+            when(store.findMatchAndStoryIdByUuid("m-1")).thenReturn(Optional.of(new long[] {7L, 3L}));
+            when(store.findByMatchAndKey(7L, "clue")).thenReturn(List.of(row("clue", "ledger", null)));
+
+            assertEquals(List.of("ledger"), service.findByMatchUuid("m-1", "clue"));
+        }
+
+        @Test
+        @DisplayName("upsert on an unknown match is null, not an empty list")
+        void upsertUnknownMatch() {
+            when(store.findMatchAndStoryIdByUuid("nope")).thenReturn(Optional.empty());
+            assertNull(service.upsertByMatchUuid("nope", "clue", "ledger"));
+        }
+
+        @Test
+        @DisplayName("the console writing a key goes through the ordinary upsert")
+        void upsertByUuid() {
+            when(store.findMatchAndStoryIdByUuid("m-1")).thenReturn(Optional.of(new long[] {7L, 3L}));
+            when(store.findByMatchAndKey(7L, "clue")).thenReturn(List.of());
+
+            assertEquals(List.of("ledger"), service.upsertByMatchUuid("m-1", "clue", "ledger"));
+            verify(store).upsert(eq(7L), eq("clue"), eq("ledger"), isNull(), isNull(), isNull(), isNull(), isNull());
+        }
+
+        @Test
+        @DisplayName("remove on an unknown match is null")
+        void removeUnknownMatch() {
+            when(store.findMatchAndStoryIdByUuid("nope")).thenReturn(Optional.empty());
+            assertNull(service.removeByMatchUuid("nope", "clue", "ledger"));
+        }
+
+        @Test
+        @DisplayName("a named value takes one member away and leaves the rest")
+        void removeOneMember() {
+            when(store.findMatchAndStoryIdByUuid("m-1")).thenReturn(Optional.of(new long[] {7L, 3L}));
+            when(store.findByMatchAndKey(7L, "clues"))
+                    .thenReturn(List.of(multiRow("clues", "ledger", null), multiRow("clues", "letter", null)));
+
+            assertEquals(List.of("letter"), service.removeByMatchUuid("m-1", "clues", "ledger"));
+        }
+
+        @Test
+        @DisplayName("no value empties the key whatever it holds")
+        void removeWithoutAValueClearsTheKey() {
+            when(store.findMatchAndStoryIdByUuid("m-1")).thenReturn(Optional.of(new long[] {7L, 3L}));
+            when(store.findByMatchAndKey(7L, "clues"))
+                    .thenReturn(List.of(multiRow("clues", "ledger", null), multiRow("clues", "letter", null)));
+
+            assertEquals(List.of(), service.removeByMatchUuid("m-1", "clues", null));
+            verify(store, times(2)).deleteValue(eq(7L), eq("clues"), any(), any());
+        }
+
+        @Test
+        @DisplayName("a blank key is authored noise: nothing is cleared")
+        void clearRejectsABlankKey() {
+            when(store.findMatchAndStoryIdByUuid("m-1")).thenReturn(Optional.of(new long[] {7L, 3L}));
+
+            assertEquals(List.of(), service.removeByMatchUuid("m-1", "  ", null));
+            verify(store, never()).deleteValue(anyLong(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("a value that is not a number stays in the string column")
+        void numericIgnoresANonNumber() {
+            assertNull(RegistryService.parse("k", "winter").intValue());
+            assertEquals("winter", RegistryService.parse("k", "winter").stringValue());
         }
     }
 }

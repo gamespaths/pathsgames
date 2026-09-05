@@ -52,11 +52,12 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit}>
           {/* Server selector */}
           <div className="mb-4">
-            <label className="pg-label">
+            <label className="pg-label" htmlFor="login-server">
               <i className="fas fa-server me-1" />
               Backend Server
             </label>
             <select
+              id="login-server"
               className="pg-input"
               value={server}
               onChange={e => changeServer(e.target.value)}
@@ -70,11 +71,12 @@ export default function LoginPage() {
 
           {/* Token field */}
           <div className="mb-4">
-            <label className="pg-label">
+            <label className="pg-label" htmlFor="login-token">
               <i className="fas fa-key me-1" />
               JWT Access Token
             </label>
             <textarea
+              id="login-token"
               className="pg-textarea"
               rows={4}
               placeholder="eyJhbGciOiJIUzI1NiJ9..."

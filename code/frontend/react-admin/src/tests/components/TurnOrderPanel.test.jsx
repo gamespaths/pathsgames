@@ -38,4 +38,9 @@ describe('TurnOrderPanel', () => {
     render(<TurnOrderPanel />)
     expect(screen.getByTestId('turn-order-empty')).toBeInTheDocument()
   })
+
+  it('a player row with no uuid is keyed by its position', () => {
+    render(<TurnOrderPanel players={[{ idCharacterMatch: 1 }, { idCharacterMatch: 2 }]} />)
+    expect(screen.getAllByTestId('turn-order-row')).toHaveLength(2)
+  })
 })

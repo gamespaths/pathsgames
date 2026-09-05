@@ -335,3 +335,64 @@ def test_real_choice_effect_targets_pass():
                            "idWeather": 1, "idItemTarget": 1, "itemAction": "ADD"}]
     report = validator().validate_import_data(s)
     assert report.is_valid(), f"expected valid, got: {[e.field_name for e in report.errors]}"
+
+
+# ── the collections only the richer payloads carry ───────────────────────────
+
+def test_item_effects_class_bonuses_missions_and_weather_are_checked():
+    s = valid_story()
+    s["missions"] = [{"id": 1}]
+    s["traits"] = [{"id": 1}]
+    s["itemEffects"] = [{"id": 1, "idItem": 1, "traitsToAdd": "1", "traitsToRemove": " 1 , "}]
+    s["classBonuses"] = [{"id": 1, "idClass": 1}]
+    s["missionSteps"] = [{"id": 1, "idMission": 1}]
+    s["weatherRules"] = [{"id": 1, "idEvent": 1}]
+    s["globalRandomEvents"] = [{"id": 1, "idEvent": 1}]
+    assert validator().validate_import_data(s).is_valid()
+
+
+def test_dangling_refs_in_those_collections_are_reported():
+    s = valid_story()
+    s["missions"] = [{"id": 1}]
+    s["traits"] = [{"id": 1}]
+    s["itemEffects"] = [{"id": 1, "idItem": 99, "traitsToAdd": "99"}]
+    s["classBonuses"] = [{"id": 1, "idClass": 99}]
+    s["missionSteps"] = [{"id": 1, "idMission": 99}]
+    s["weatherRules"] = [{"id": 1, "idEvent": 99}]
+    s["globalRandomEvents"] = [{"id": 1, "idEvent": 99}]
+    report = validator().validate_import_data(s)
+    assert not report.is_valid()
+    fields = {e.field_name for e in report.errors}
+    assert {"idItem", "traitsToAdd", "idClass", "idMission", "idEvent"} <= fields
+
+
+def test_trait_csv_skips_blank_and_non_numeric_entries():
+    s = valid_story()
+    s["traits"] = [{"id": 1}]
+    s["itemEffects"] = [{"id": 1, "idItem": 1, "traitsToAdd": " , 1 ,,", "traitsToRemove": "ALL"}]
+    assert validator().validate_import_data(s).is_valid()
+
+
+def test_trait_csv_absent_or_blank_is_not_a_reference():
+    s = valid_story()
+    s["itemEffects"] = [{"id": 1, "idItem": 1, "traitsToAdd": None, "traitsToRemove": "   "}]
+    assert validator().validate_import_data(s).is_valid()
+
+
+def test_traits_and_items_carry_class_restrictions():
+    s = valid_story()
+    s["traits"] = [{"id": 1, "idClassPermitted": 1, "idClassProhibited": 1}]
+    s["items"] = [{"id": 1, "idClassPermitted": 99}]
+    report = validator().validate_import_data(s)
+    assert not report.is_valid()
+
+
+def test_event_effects_are_checked_on_the_import_payload():
+    s = valid_story()
+    s["traits"] = [{"id": 1}]
+    s["eventEffects"] = [{"id": 1, "idEvent": 1, "traitsToAdd": "1"}]
+    assert validator().validate_import_data(s).is_valid()
+
+    s["eventEffects"] = [{"id": 1, "idEvent": 99, "traitsToAdd": "99"}]
+    report = validator().validate_import_data(s)
+    assert not report.is_valid()

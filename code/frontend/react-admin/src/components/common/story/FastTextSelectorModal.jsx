@@ -146,8 +146,8 @@ export default function FastTextSelectorModal({
 
   return (
     <>
-      <div className="pg-modal-backdrop" onClick={onClose}>
-        <div className="pg-modal" style={{ maxWidth: 920, width: '95vw' }} onClick={e => e.stopPropagation()}>
+      <div className="pg-modal-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+        <div className="pg-modal" style={{ maxWidth: 920, width: '95vw' }}>
           <h3 className="pg-modal-title"><i className="fas fa-search me-2" /> Fast Text Selector</h3>
 
           {viewMode === 'input-generator' ? (

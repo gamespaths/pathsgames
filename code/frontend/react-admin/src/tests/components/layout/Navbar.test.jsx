@@ -84,4 +84,45 @@ describe('Navbar', () => {
     // just checking no error thrown — AuthContext changeServer is a no-op in test
     expect(select).toBeInTheDocument()
   })
+
+  it('unmounting before the ping answers sets no state', async () => {
+    let resolve
+    getServerStatus.mockReturnValue(new Promise(r => { resolve = r }))
+    const { unmount } = renderNavbar()
+
+    unmount()
+    resolve({ properties: { version: '9.9.9' } })
+    await Promise.resolve()
+
+    expect(screen.queryByText('9.9.9')).toBeNull()
+  })
+
+  it('unmounting before a failing ping answers sets no state', async () => {
+    let reject
+    getServerStatus.mockReturnValue(new Promise((_, r) => { reject = r }))
+    const { unmount } = renderNavbar()
+
+    unmount()
+    reject(new Error('down'))
+    await Promise.resolve()
+
+    expect(screen.queryByText(/offline/i)).toBeNull()
+  })
+
+  it('a server that answers with no version at all reads as online with a blank one', async () => {
+    getServerStatus.mockResolvedValue({})
+    renderNavbar()
+    await waitFor(() => expect(screen.queryByText('1.2.3')).toBeNull())
+  })
+
+  it('a mousedown outside the open menu closes it', async () => {
+    renderNavbar()
+    const toggle = document.querySelector('.pg-navbar-server')
+      ?? screen.getAllByRole('button')[0]
+    fireEvent.click(toggle)
+
+    fireEvent.mouseDown(document.body)
+
+    await waitFor(() => expect(document.querySelector('.pg-dropdown-menu')).toBeNull())
+  })
 })

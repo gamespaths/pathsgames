@@ -94,4 +94,46 @@ describe('RegistryCard', () => {
 
     expect(await screen.findByText(/registry is locked/i)).toBeInTheDocument()
   })
+
+  it('Enter in the value box writes the key, as the check button would', async () => {
+    render(<RegistryCard registry={[SINGLE]} matchUuid="m1" />)
+    await userEvent.click(screen.getByLabelText('Edit signal'))
+    const box = screen.getByLabelText('New value for signal')
+    await userEvent.type(box, 'red{Enter}')
+
+    await waitFor(() => expect(updateMatchRegistry).toHaveBeenCalledWith('m1', { key: 'signal', value: 'red' }))
+  })
+
+  it('any other key in the value box writes nothing', async () => {
+    render(<RegistryCard registry={[SINGLE]} matchUuid="m1" />)
+    await userEvent.click(screen.getByLabelText('Edit signal'))
+    await userEvent.type(screen.getByLabelText('New value for signal'), 'red')
+
+    expect(updateMatchRegistry).not.toHaveBeenCalled()
+  })
+
+  it('a multi key offers to add a member; a single one to replace the value', async () => {
+    const { rerender } = render(<RegistryCard registry={[MULTI]} matchUuid="m1" />)
+    await userEvent.click(screen.getByLabelText('Edit case_notes'))
+    expect(screen.getByTitle('add this member')).toBeInTheDocument()
+
+    rerender(<RegistryCard registry={[SINGLE]} matchUuid="m1" />)
+    await userEvent.click(screen.getByLabelText('Edit signal'))
+    expect(screen.getByTitle('replace the value')).toBeInTheDocument()
+  })
+
+  it('a failing write with no message shows the generic one', async () => {
+    updateMatchRegistry.mockRejectedValue({})
+    render(<RegistryCard registry={[SINGLE]} matchUuid="m1" />)
+    await userEvent.click(screen.getByLabelText('Edit signal'))
+    await userEvent.click(screen.getByTitle('replace the value'))
+
+    expect(await screen.findByText('The registry write failed.')).toBeInTheDocument()
+  })
+
+  it('a row with no values at all still renders its dash and its buttons', () => {
+    render(<RegistryCard registry={[{ key: 'bare', multiValue: true }]} matchUuid="m1" />)
+    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.getByLabelText('Clear bare')).toBeInTheDocument()
+  })
 })

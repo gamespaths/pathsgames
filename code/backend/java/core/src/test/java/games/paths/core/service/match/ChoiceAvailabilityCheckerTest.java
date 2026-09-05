@@ -696,4 +696,65 @@ class ChoiceAvailabilityCheckerTest {
                     cond("KEYS", "gate", "OPEN", null)).available());
         }
     }
+
+    // ── operators the story may author but the engine does not honour ───────
+
+    @Test
+    @DisplayName("an ITEM condition ordered with > or < is authored noise and refuses")
+    void itemOrderingIsNoise() {
+        assertFalse(check(choice(), ctx(b -> b.items.add(9L)),
+                cond("ITEM", null, "9", ">")).available());
+        assertFalse(check(choice(), ctx(b -> b.items.add(9L)),
+                cond("ITEM", null, "9", "<")).available());
+    }
+
+    @Test
+    @DisplayName("an ITEM condition naming no id at all refuses")
+    void itemWithoutAnId() {
+        assertFalse(check(choice(), ctx(b -> b.items.add(9L)),
+                cond("ITEM", null, null, "=")).available());
+    }
+
+    @Test
+    @DisplayName("a CLASS condition ordered with > refuses; = and != answer identity")
+    void classIdentityOnly() {
+        assertTrue(check(choice(), ctx(), cond("CLASS", null, "50", "=")).available());
+        assertTrue(check(choice(), ctx(), cond("CLASS", null, "51", "!=")).available());
+        assertFalse(check(choice(), ctx(), cond("CLASS", null, "50", ">")).available());
+    }
+
+    @Test
+    @DisplayName("a CLASS condition naming no id refuses")
+    void classWithoutAnId() {
+        assertFalse(check(choice(), ctx(), cond("CLASS", null, null, "=")).available());
+    }
+
+    @Test
+    @DisplayName("a STATISTICS condition naming an unknown stat, or no number, refuses")
+    void statWithoutAnActualOrAnExpected() {
+        assertFalse(check(choice(), ctx(), cond("STATISTICS", "karma", "1", ">")).available());
+        assertFalse(check(choice(), ctx(), cond("STATISTICS", "life", "many", ">")).available());
+    }
+
+    @Test
+    @DisplayName("a STATISTICS condition with an operator the engine does not know refuses")
+    void statUnknownOperator() {
+        assertFalse(check(choice(), ctx(), cond("STATISTICS", "life", "10", ">=")).available());
+    }
+
+    @Test
+    @DisplayName("STATISTICS honours =, !=, > and <")
+    void statOperators() {
+        assertTrue(check(choice(), ctx(), cond("STATISTICS", "life", "10", "=")).available());
+        assertTrue(check(choice(), ctx(), cond("STATISTICS", "life", "9", "!=")).available());
+        assertTrue(check(choice(), ctx(), cond("STATISTICS", "life", "9", ">")).available());
+        assertTrue(check(choice(), ctx(), cond("STATISTICS", "life", "11", "<")).available());
+    }
+
+    @Test
+    @DisplayName("a value that is blank falls back to the key as the id")
+    void blankValueFallsBackToTheKey() {
+        assertTrue(check(choice(), ctx(b -> b.items.add(9L)),
+                cond("ITEM", "9", "   ", "=")).available());
+    }
 }

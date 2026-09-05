@@ -137,3 +137,28 @@ def test_log_change_writes_one_row_carrying_the_whole_provenance(adapter, sessio
         assert row.id_match == 1 and row.id_character_match == 3
         assert row.id_event == 12 and row.id_choise == 9 and row.clock == 5
         assert row.log_message == "REGISTRY_CHANGE gate None -> OPEN"
+
+
+# ── v0.36.2 — the admin console addresses a match by uuid, not by id ─────────
+
+def _insert_match(session_factory, uuid, id_story=3):
+    from app.adapters.persistence.match.models import GamingMatchEntity
+    with session_factory() as session:
+        session.add(GamingMatchEntity(uuid=uuid, id_story=id_story, id_difficulty=1,
+                                      id_user_creator=1, ts_insert="2026-01-01T00:00:00",
+                                      ts_update="2026-01-01T00:00:00"))
+        session.commit()
+
+
+def test_find_match_and_story_id_by_uuid_returns_both_ids(adapter, session_factory):
+    _insert_match(session_factory, "m-1")
+    assert adapter.find_match_and_story_id_by_uuid("m-1") == (1, 3)
+
+
+def test_find_match_and_story_id_by_uuid_unknown_match(adapter):
+    assert adapter.find_match_and_story_id_by_uuid("nope") is None
+
+
+@pytest.mark.parametrize("uuid", [None, "", "   "])
+def test_find_match_and_story_id_by_uuid_rejects_a_blank_uuid(adapter, uuid):
+    assert adapter.find_match_and_story_id_by_uuid(uuid) is None

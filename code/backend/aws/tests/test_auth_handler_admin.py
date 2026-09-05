@@ -142,3 +142,63 @@ def test_logout_all_revokes_sessions():
                                   headers={'Authorization': 'Bearer MOCK_ACCESS_admin-uuid-001'}))
     assert result['statusCode'] == 200
     assert _body(result)['status'] == 'OK'
+
+
+# ── GET /api/admin/guests/stale — the dry run before the purge ───────────────
+
+def test_preview_stale_guests_refuses_without_a_bound():
+    with patch('auth.handler.db_utils.get_item', return_value=ADMIN_USER):
+        result = _call(admin_event('GET', '/api/admin/guests/stale'))
+    assert result['statusCode'] == 400
+    assert _body(result)['error'] == 'INVALID_INPUT'
+
+
+def test_preview_stale_guests_refuses_a_negative_bound():
+    with patch('auth.handler.db_utils.get_item', return_value=ADMIN_USER):
+        result = _call(admin_event('GET', '/api/admin/guests/stale', qs={'olderThanDays': '-1'}))
+    assert result['statusCode'] == 400
+
+
+def test_preview_stale_guests_counts_without_deleting():
+    stale = [{'PK': 'USER#g-1', 'uuid': 'g-1', 'is_guest': True, 'ts_last_access': 1}]
+    matches = [{'PK': 'MATCH#m-1', 'SK': 'METADATA', 'userCreatorUuid': 'g-1'}]
+    with patch('auth.handler.db_utils.get_item', return_value=ADMIN_USER), \
+         patch('auth.handler.db_utils.scan_filter', return_value=stale), \
+         patch('auth.handler.db_utils.scan_pk_prefix', return_value=matches), \
+         patch('auth.handler.db_utils.delete_item') as deleter:
+        result = _call(admin_event('GET', '/api/admin/guests/stale', qs={'olderThanDays': '1'}))
+    assert _body(result) == {'guests': 1, 'matches': 1}
+    deleter.assert_not_called()
+
+
+def test_preview_stale_guests_with_nobody_to_purge():
+    with patch('auth.handler.db_utils.get_item', return_value=ADMIN_USER), \
+         patch('auth.handler.db_utils.scan_filter', return_value=[]), \
+         patch('auth.handler.db_utils.scan_pk_prefix') as prefix:
+        result = _call(admin_event('GET', '/api/admin/guests/stale', qs={'olderThanDays': '1'}))
+    assert _body(result) == {'guests': 0, 'matches': 0}
+    # No guest, no scan: the match table is never touched.
+    prefix.assert_not_called()
+
+
+def test_nzms_falls_back_to_zero_on_a_value_that_is_not_a_number():
+    from auth.handler import _nzms
+    assert _nzms(None) == 0
+    assert _nzms('12') == 12
+    assert _nzms('not-a-number') == 0
+
+
+def test_stale_guest_routes_require_admin():
+    for method in ('GET', 'DELETE'):
+        with patch('auth.handler.db_utils.get_item', return_value={**ADMIN_USER, 'role': 'PLAYER'}):
+            result = _call(admin_event(method, '/api/admin/guests/stale',
+                                       qs={'olderThanDays': '1'}))
+        assert result['statusCode'] == 403
+
+
+def test_a_cursor_that_is_not_base64_json_starts_from_the_beginning():
+    with patch('auth.handler.db_utils.get_item', return_value=ADMIN_USER), \
+         patch('auth.handler.db_utils.scan_filter_page', return_value=([], None)) as page:
+        result = _call(admin_event('GET', '/api/admin/guests', qs={'cursor': 'not-a-cursor'}))
+    assert result['statusCode'] == 200
+    assert page.call_args.args[3] is None

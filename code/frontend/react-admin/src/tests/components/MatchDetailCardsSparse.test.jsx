@@ -151,3 +151,32 @@ describe('MatchConfigCard and RegistryCard with sparse data', () => {
     expect(within(row).getAllByRole('cell')[2]).toHaveTextContent('no')
   })
 })
+
+describe('MatchLogsCard — the detail column of every row type', () => {
+  const row = (entry) => render(<MatchLogsCard entries={[{ clock: 1, ...entry }]} currentClock={1} />)
+
+  it('a counter-zero row names the location it happened in', () => {
+    row({ type: 'COUNTER_ZERO', idLocationTo: 7 })
+    expect(screen.getByText('location #7')).toBeInTheDocument()
+  })
+
+  it('a counter-zero row with no location reads as a dash', () => {
+    row({ type: 'COUNTER_ZERO' })
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+  })
+
+  it('an item row with no item id says so rather than inventing one', () => {
+    row({ type: 'ITEM_USE' })
+    expect(screen.getByText('item ?')).toBeInTheDocument()
+  })
+
+  it('an item row names the item, its count and the event behind it', () => {
+    row({ type: 'ITEM_ADD', idItem: 3, counter: 2, idEvent: 9 })
+    expect(screen.getByText('item #3 ×2 (event #9)')).toBeInTheDocument()
+  })
+
+  it('a row of a type the console does not know yet still renders', () => {
+    row({ type: 'SOMETHING_NEW' })
+    expect(screen.getByText(/Showing 1 of 1/)).toBeInTheDocument()
+  })
+})

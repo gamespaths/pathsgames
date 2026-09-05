@@ -245,6 +245,7 @@ export default function MatchLogsCard({
       <div style={{ padding: '0.75rem 1rem 0.5rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
         <p className="pg-card-title" style={{ margin: 0 }}>
           <i className="fas fa-scroll me-1" />
+          {' '}
           Match log
           <span className="pg-muted" style={{ fontWeight: 400, marginLeft: '0.4rem', fontSize: '0.85rem' }}>
             ({shown} of {total ?? shown} {(total ?? shown) === 1 ? 'entry' : 'entries'} · clock {currentClock})

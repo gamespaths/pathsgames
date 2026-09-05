@@ -459,3 +459,70 @@ def test_the_epilogue_s_move_is_an_arrival_like_any_other():
     party = [r for r in final.get('eventLog') or []
              if str(r.get('message') or '').startswith(_events.MSG_ALL_PLAYER_COMA)]
     assert len(party) == 1
+
+
+# ── _apply_edge_states over the whole roster, not only the caller ────────────
+
+def _acc():
+    return {'touched': {}, 'statChanges': [], 'locationChanges': [],
+            'flags': {'forcedSleep': False, 'comaTriggered': False},
+            'edgeState': {'sadnessOverflowUuids': [], 'comaUuids': [],
+                          'allPlayersInComa': False, 'comaEventUuid': None,
+                          'comaEventCard': None, 'comaExecutedEventUuids': [],
+                          'comaEffects': []}}
+
+
+def _char(uuid, **over):
+    base = {'uuid': uuid, 'life': 30, 'sad': 0, 'sadMax': 50, 'constitution': 10,
+            'isComa': 0, 'isSleeping': 0}
+    base.update(over)
+    return base
+
+
+def test_apply_edge_states_skips_a_character_over_no_edge():
+    from match.handler import _apply_edge_states
+    match, acc = {'currentClock': 4}, _acc()
+    acc['touched']['c1'] = _char('c1')
+    _apply_edge_states(match, None, acc, 7)
+    assert acc['statChanges'] == []
+    assert acc['edgeState']['sadnessOverflowUuids'] == []
+    assert 'eventLog' not in match
+
+
+def test_apply_edge_states_discharges_sadness_and_logs_it():
+    from match.handler import _apply_edge_states
+    match, acc = {'currentClock': 4}, _acc()
+    caller = _char('c1', sad=50)
+    acc['touched']['c1'] = caller
+    _apply_edge_states(match, caller, acc, 7)
+
+    assert caller['sad'] == 0 and caller['life'] == 20 and caller['isSleeping'] == 1
+    assert acc['edgeState']['sadnessOverflowUuids'] == ['c1']
+    assert acc['flags']['forcedSleep'] is True
+    assert [(s['statistic'], s['after']) for s in acc['statChanges']] == [('life', 20), ('sad', 0)]
+    assert len(match['eventLog']) == 1
+
+
+def test_apply_edge_states_stamps_the_coma_and_the_clock():
+    from match.handler import _apply_edge_states
+    match, acc = {'currentClock': 9}, _acc()
+    caller = _char('c1', life=0)
+    acc['touched']['c1'] = caller
+    _apply_edge_states(match, caller, acc, 7)
+
+    assert caller['isComa'] == 1 and caller['clockInComa'] == 9
+    assert acc['edgeState']['comaUuids'] == ['c1']
+    assert acc['flags']['comaTriggered'] is True
+
+
+def test_apply_edge_states_does_not_flag_the_caller_for_somebody_else():
+    from match.handler import _apply_edge_states
+    match, acc = {'currentClock': 1}, _acc()
+    caller = _char('c1')
+    acc['touched']['c1'] = caller
+    acc['touched']['c2'] = _char('c2', life=0, sad=50)
+    _apply_edge_states(match, caller, acc, 7)
+
+    assert acc['edgeState']['sadnessOverflowUuids'] == ['c2']
+    assert acc['edgeState']['comaUuids'] == ['c2']
+    assert acc['flags'] == {'forcedSleep': False, 'comaTriggered': False}

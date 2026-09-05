@@ -162,11 +162,10 @@ export default function EntityForm({
   }
 
   return (
-    <div className="pg-modal-backdrop" onClick={onCancel} data-testid="entity-form-backdrop">
+    <div className="pg-modal-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) onCancel() }} data-testid="entity-form-backdrop">
       <div
         className="pg-modal"
         style={{ maxWidth: 720, width: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
-        onClick={e => e.stopPropagation()}
       >
         <h3 className="pg-modal-title" style={{ flexShrink: 0 }}>
           <i className={`fas ${isEditMode ? 'fa-edit' : 'fa-plus'} me-2`} />
@@ -234,12 +233,7 @@ export default function EntityForm({
                       }
                     }}
                     onClear={() => {
-                      const config = pathSelectorOptions?.[field.key] || {}
-                      const valueType = config.valueType || 'number'
-                      setData(prev => ({
-                        ...prev,
-                        [field.key]: valueType === 'string' ? '' : '',
-                      }))
+                      setData(prev => ({ ...prev, [field.key]: '' }))
                     }}
                     showNewButton={field.key === 'idCard' && !!onCreateFastCard}
                     newButtonLabel={isCreatingFastCard ? 'Creating...' : 'New Fast Card'}

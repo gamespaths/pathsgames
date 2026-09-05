@@ -730,4 +730,77 @@ class MatchLogsServiceTest {
             assertEquals("WEATHER", r.logs().get(1).type());
         }
     }
+
+    @Nested
+    @DisplayName("the card each row is narrated by")
+    class Cards {
+
+        @Test
+        @DisplayName("a REGISTRY_CHANGE row is its own type and carries no card")
+        void registryChangeRow() {
+            when(store.findEventLog(MATCH_ID)).thenReturn(List.of(new EventLogEntry(
+                    1L, 2L, 0, "2026-01-01T00:01:30Z",
+                    RegistryService.MSG_REGISTRY_CHANGE + " clue None -> ledger", null, null)));
+
+            LogEntry e = admin().logs().get(0);
+
+            assertEquals("REGISTRY_CHANGE", e.type());
+            assertNull(e.card());
+        }
+
+        @Test
+        @DisplayName("an AUTOMATIC_EVENT row is narrated by the event's own card")
+        void automaticEventCard() {
+            when(store.findEventLog(MATCH_ID)).thenReturn(List.of(new EventLogEntry(
+                    1L, 2L, 0, "2026-01-01T00:01:30Z",
+                    games.paths.core.port.match.LocationEntryStorePort.MSG_AUTOMATIC_EVENT + " fired", 5L, 7L)));
+            when(store.findEventIdCards(STORY_ID)).thenReturn(Map.of(5L, 11));
+            when(contentQueryPort.getCardByStoryIdAndCardId(STORY_ID, 11, "en"))
+                    .thenReturn(card("The bell"));
+
+            LogEntry e = admin().logs().get(0);
+
+            assertEquals("AUTOMATIC_EVENT", e.type());
+            assertEquals("The bell", e.card().title());
+        }
+
+        @Test
+        @DisplayName("with no content port at all every row comes back card-less")
+        void noContentPort() {
+            MatchLogsService bare = new MatchLogsService(store, userAccessPort, null);
+            when(store.findEventLog(MATCH_ID)).thenReturn(List.of(new EventLogEntry(
+                    1L, 2L, 0, "2026-01-01T00:01:30Z", "ACTION_SLEEP", null, null)));
+
+            LogEntry e = bare.getMatchLogsForAdmin(MATCH_UUID, null, null, null, null).logs().get(0);
+
+            assertNull(e.card());
+        }
+
+        @Test
+        @DisplayName("a row whose character the match no longer holds is left unnamed")
+        void unknownCharacter() {
+            when(store.findEventLog(MATCH_ID)).thenReturn(List.of(new EventLogEntry(
+                    1L, 99L, 0, "2026-01-01T00:01:30Z", "ACTION_SLEEP", null, null)));
+
+            LogEntry e = admin().logs().get(0);
+
+            assertNull(e.characterUuid());
+            assertNull(e.characterName());
+        }
+
+        @Test
+        @DisplayName("a blank lang falls back to English")
+        void blankLangIsEnglish() {
+            when(store.findEventLog(MATCH_ID)).thenReturn(List.of(new EventLogEntry(
+                    1L, 2L, 0, "2026-01-01T00:01:30Z", "EVENT_EXECUTED 5", 5L, 7L)));
+            when(store.findEventIdCards(STORY_ID)).thenReturn(Map.of(5L, 11));
+            when(contentQueryPort.getCardByStoryIdAndCardId(STORY_ID, 11, "en"))
+                    .thenReturn(card("The bell"));
+
+            LogEntry e = service.getMatchLogsForAdmin(MATCH_UUID, "  ", null, null, null)
+                    .logs().get(0);
+
+            assertEquals("The bell", e.card().title());
+        }
+    }
 }

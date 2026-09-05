@@ -7,6 +7,7 @@ import {
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import ErrorAlert from '../components/common/ErrorAlert'
 import ConfirmModal from '../components/common/ConfirmModal'
+import useEscapeKey from '../hooks/useEscapeKey'
 import MatchDetailModal, { fmtDate, shortUuid, StatusBadge, fetchStoryCtx } from '../components/match/MatchDetailModal'
 
 /**
@@ -342,6 +343,7 @@ export default function MatchesPage() {
 
 /** Modal to edit a match — status and name. */
 function MatchEditModal({ match, statuses, onClose, onSaved }) {
+  useEscapeKey(onClose)
   const [name,   setName]   = useState(match.name || '')
   const [status, setStatus] = useState(match.status || '')
   const [saving, setSaving] = useState(false)
@@ -360,8 +362,8 @@ function MatchEditModal({ match, statuses, onClose, onSaved }) {
   }
 
   return (
-    <div className="pg-modal-backdrop" role="button" tabIndex="0" onClick={onClose} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
-      <div className="pg-modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+    <div className="pg-modal-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="pg-modal" style={{ maxWidth: 460 }}>
         <p className="pg-modal-title"><i className="fas fa-pen me-2" />Edit match</p>
 
         <ErrorAlert message={error} />

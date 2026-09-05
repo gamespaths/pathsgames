@@ -38,8 +38,8 @@ export default function EditStatsModal({ matchUuid, player, onClose, onSaved }) 
     const body = {}
     STATS_FIELDS.forEach(f => {
       const raw = vals[f.key]
-      const n = raw === '' ? -1 : parseInt(raw, 10)
-      body[f.key] = isNaN(n) ? -1 : n
+      const n = raw === '' ? -1 : Number.parseInt(raw, 10)
+      body[f.key] = Number.isNaN(n) ? -1 : n
     })
     body.sleeping = sleeping
     // Clearing coma also wakes the character and lifts life to 1 when it is still 0: the

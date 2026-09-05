@@ -159,4 +159,79 @@ describe('MatchDetailPage edge cases', () => {
     await userEvent.click(screen.getByRole('tab', { name: /Locations/i }))
     expect(await screen.findByText('#42')).toBeInTheDocument()
   })
+
+  it('appends the next log page and keeps what the page does not say', async () => {
+    matchApi.getMatchLogs.mockResolvedValueOnce({
+      logs: [{ id: 1, type: 'EVENT', clock: 0 }], currentClock: 2, total: 3, nextCursor: 'p2',
+    })
+    matchApi.getMatchLogs.mockResolvedValueOnce({ logs: [{ id: 2, type: 'EVENT', clock: 1 }] })
+    renderPage()
+    await userEvent.click(await screen.findByText('Logs'))
+
+    await userEvent.click(await screen.findByText('Load more'))
+
+    // The second page names no clock and no total, so the first page's values stand.
+    await waitFor(() => expect(matchApi.getMatchLogs).toHaveBeenCalledTimes(2))
+    expect(screen.getAllByText(/of 3/).length).toBeGreaterThan(0)
+  })
+
+  it('a failing log page with no response body falls back to the error message', async () => {
+    matchApi.getMatchLogs.mockResolvedValueOnce({ logs: [{ id: 1, type: 'EVENT', clock: 0 }], nextCursor: 'p2' })
+    matchApi.getMatchLogs.mockRejectedValueOnce(new Error('network down'))
+    renderPage()
+    await userEvent.click(await screen.findByText('Logs'))
+
+    await userEvent.click(await screen.findByText('Load more'))
+
+    expect(await screen.findByText(/network down/)).toBeInTheDocument()
+  })
+
+  it('a failing log page with neither body nor message falls back to the generic one', async () => {
+    matchApi.getMatchLogs.mockResolvedValueOnce({ logs: [{ id: 1, type: 'EVENT', clock: 0 }], nextCursor: 'p2' })
+    matchApi.getMatchLogs.mockRejectedValueOnce({})
+    renderPage()
+    await userEvent.click(await screen.findByText('Logs'))
+
+    await userEvent.click(await screen.findByText('Load more'))
+
+    expect(await screen.findByText('Failed to load match logs')).toBeInTheDocument()
+  })
+
+  it('the stop dialog names the match by uuid when it has no name', async () => {
+    renderPage()
+    await userEvent.click(await screen.findByText('Stop match'))
+    expect(await screen.findByText(/status to ENDED/)).toBeInTheDocument()
+  })
+
+  it('the delete dialog names the match by uuid when it has no name', async () => {
+    matchApi.getMatchInfo.mockResolvedValue({
+      ...BARE_INFO, match: { ...BARE_INFO.match, status: 'ENDED' },
+    })
+    renderPage()
+    await userEvent.click(await screen.findByText('Delete match'))
+    expect(await screen.findByText(/and all its data/)).toBeInTheDocument()
+  })
+
+  it('the turn-order tab renders with no player at all', async () => {
+    renderPage()
+    await userEvent.click(await screen.findByText('Turn order'))
+    await waitFor(() => expect(screen.getByText('Turn order')).toBeInTheDocument())
+  })
+
+  it('a class and a trait the story context does not know are named by their uuid', async () => {
+    matchApi.getMatchInfo.mockResolvedValue({
+      ...BARE_INFO,
+      players: [{
+        uuid: 'p1', characterUuid: 'c1', classUuid: 'cls-unknown',
+        traitUuids: ['tr-unknown'], items: [],
+      }],
+    })
+    renderPage()
+
+    await userEvent.click(await screen.findByText('Players'))
+
+    // No story context at all, so each uuid is shown shortened rather than dropped.
+    expect(await screen.findByText(/cls-unkn/)).toBeInTheDocument()
+    expect(screen.getByText(/tr-unkno/)).toBeInTheDocument()
+  })
 })

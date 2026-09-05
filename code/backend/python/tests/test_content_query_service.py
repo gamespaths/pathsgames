@@ -450,3 +450,50 @@ def test_resolve_creator_empty_list(mock_read_port):
     mock_read_port.find_creators_for_story.return_value = []
     service = ContentQueryService(mock_read_port)
     assert service._resolve_creator(1, 5, "en") is None
+
+
+# ── get_card_by_story_id_and_card_id (Step 27, weather endpoint) ──────────────
+
+def test_get_card_by_ids_null_story_id(mock_read_port):
+    service = ContentQueryService(mock_read_port)
+    assert service.get_card_by_story_id_and_card_id(None, 7, "en") is None
+
+def test_get_card_by_ids_null_card_id(mock_read_port):
+    service = ContentQueryService(mock_read_port)
+    assert service.get_card_by_story_id_and_card_id(1, None, "en") is None
+
+def test_get_card_by_ids_card_not_found(mock_read_port):
+    mock_read_port.find_card_for_story.return_value = None
+    service = ContentQueryService(mock_read_port)
+    assert service.get_card_by_story_id_and_card_id(1, 7, "en") is None
+
+def test_get_card_by_ids_success(mock_read_port):
+    mock_read_port.find_card_for_story.return_value = {
+        "uuid": "card-7", "card_type": "WEATHER", "url_image": "https://img.png",
+        "alternative_image": "alt", "awesome_icon": "fa-cloud",
+        "style_main": "bg-dark", "style_detail": "text-light",
+        "style_image_little": "s", "style_image_medium": "m", "style_image_large": "l",
+        "link_copyright": "https://cc.example",
+        "id_text_title": 10, "id_text_description": 11, "id_text_copyright": 12,
+        "id_creator": 3,
+    }
+    mock_read_port.find_text_by_story_id_text_and_lang.side_effect = lambda sid, tid, lang: {
+        "short_text": f"value-{tid}",
+    }
+
+    card = ContentQueryService(mock_read_port).get_card_by_story_id_and_card_id(1, 7, "en")
+    assert isinstance(card, CardInfo)
+    assert card.uuid == "card-7"
+    assert card.cardType == "WEATHER"
+    assert card.linkCopyright == "https://cc.example"
+    assert card.title == "value-10"
+    assert card.description == "value-11"
+    assert card.copyrightText == "value-12"
+
+def test_get_card_by_ids_falls_back_to_the_numeric_id(mock_read_port):
+    mock_read_port.find_card_for_story.return_value = {"id": 7, "card_type": "WEATHER"}
+    mock_read_port.find_text_by_story_id_text_and_lang.return_value = None
+    service = ContentQueryService(mock_read_port)
+    card = service.get_card_by_story_id_and_card_id(1, 7, "en")
+    assert card.uuid == "7"
+    assert card.title is None

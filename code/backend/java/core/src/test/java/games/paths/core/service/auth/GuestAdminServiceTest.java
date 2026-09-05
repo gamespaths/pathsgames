@@ -314,5 +314,83 @@ class GuestAdminServiceTest {
             assertEquals(0, summary.matches());
             verify(matches, never()).deleteMatchesByUserCreatorIds(any());
         }
+
+        @Test
+        @DisplayName("a null filter is the same as asking for the first default page")
+        void aNullFilterIsTheDefaultPage() {
+            when(persistence.findGuestsPage(null, null, null, 51)).thenReturn(List.of());
+
+            var page = paged().listGuestsPage(null);
+
+            assertEquals(50, page.limit());
+            assertTrue(page.items().isEmpty());
+            assertNull(page.nextCursor());
+        }
+
+        @Test
+        @DisplayName("a malformed cursor restarts at page one rather than failing")
+        void aMalformedCursorRestartsAtPageOne() {
+            assertNull(GuestAdminService.decodeCursor(null));
+            assertNull(GuestAdminService.decodeCursor("   "));
+            assertNull(GuestAdminService.decodeCursor("!!not-base64!!"));
+            assertNull(GuestAdminService.decodeCursor(
+                    java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(
+                            "no-separator".getBytes(java.nio.charset.StandardCharsets.UTF_8))));
+            assertNull(GuestAdminService.decodeCursor(
+                    java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(
+                            "|7".getBytes(java.nio.charset.StandardCharsets.UTF_8))));
+            assertNull(GuestAdminService.decodeCursor(
+                    java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(
+                            "2026-01-01T00:00:00Z|".getBytes(java.nio.charset.StandardCharsets.UTF_8))));
+            assertNull(GuestAdminService.decodeCursor(
+                    java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(
+                            "2026-01-01T00:00:00Z|not-a-number".getBytes(java.nio.charset.StandardCharsets.UTF_8))));
+        }
+
+        @Test
+        @DisplayName("a preview with nobody stale counts no match either")
+        void previewWithNobodyStale() {
+            when(persistence.findGuestIdsWithLastAccessBefore(any())).thenReturn(List.of());
+
+            var summary = paged().previewStaleGuests(90);
+
+            assertEquals(0, summary.guests());
+            assertEquals(0, summary.matches());
+            verify(matches, never()).countMatchesByUserCreatorIds(any());
+        }
+
+        @Test
+        @DisplayName("a preview counts the guests and the matches they created")
+        void previewCountsGuestsAndMatches() {
+            when(persistence.findGuestIdsWithLastAccessBefore(any())).thenReturn(List.of(1L, 2L));
+            when(matches.countMatchesByUserCreatorIds(List.of(1L, 2L))).thenReturn(5L);
+
+            var summary = paged().previewStaleGuests(90);
+
+            assertEquals(2, summary.guests());
+            assertEquals(5, summary.matches());
+        }
+
+        @Test
+        @DisplayName("a negative bound names no instant, so nothing is stale")
+        void aNegativeBoundIsNoBound() {
+            when(persistence.findGuestIdsWithLastAccessBefore(null)).thenReturn(List.of());
+
+            assertEquals(0, paged().previewStaleGuests(-1).guests());
+            verify(persistence).findGuestIdsWithLastAccessBefore(null);
+        }
+
+        @Test
+        @DisplayName("the purge deletes the matches first, then the guests")
+        void thePurgeDeletesMatchesFirst() {
+            when(persistence.findGuestIdsWithLastAccessBefore(any())).thenReturn(List.of(1L));
+            when(matches.deleteMatchesByUserCreatorIds(List.of(1L))).thenReturn(3);
+            when(persistence.deleteGuestsByIds(List.of(1L))).thenReturn(1);
+
+            var summary = paged().deleteStaleGuests(90);
+
+            assertEquals(1, summary.guests());
+            assertEquals(3, summary.matches());
+        }
     }
 }

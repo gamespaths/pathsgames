@@ -640,3 +640,16 @@ def test_a_link_is_not_run_twice_within_one_resolution():
     assert body['executedEventUuids'].count('evt-linked') == 1
     # exp +2 once, not twice.
     assert sum(c['delta'] for c in body['statChanges'] if c['statistic'] == 'exp') == 2
+
+
+def test_a_linked_event_can_change_the_weather():
+    """Weather belongs to the MATCH: one effect row sets it, however many it targets."""
+    story = _story_with(
+        extra_events=[{'id': 42, 'uuid': 'evt-storm', 'type': 'NORMAL', 'idCard': 1,
+                       'costEnery': 0, 'flagEndTime': 0}],
+        extra_effects=[{'id': 42, 'idEvent': 42, 'idWeather': 9, 'target': 'ONLY_ONE'}],
+        extra_choices=[{'id': 42, 'uuid': 'ch-storm', 'idEvent': 32, 'priority': 9,
+                        'otherwiseFlag': 1, 'isProgress': 0, 'idEventTorun': 42}])
+
+    body = _body(_resolve('ch-storm', get_side=_with_story(story)))
+    assert body['weatherApplied'] is True

@@ -122,3 +122,94 @@ describe('Card variants and fallbacks', () => {
     expect(screen.getByText('entity description')).toBeInTheDocument()
   })
 })
+
+/**
+ * The page variant places the bonus badges in one of three slots, and the title/extra
+ * slots have their own on/off props. Each combination is a branch nothing else takes.
+ */
+describe('Card — the page variant and its badge slots', () => {
+  const CARD = { uuid: 'card-1', title: 'Chapter', description: 'A long description', urlImage: 'p.png' }
+  const ITEMS = [{ key: 'life', label: 'Life', value: 3 }]
+
+  it('puts the badges in the description slot', () => {
+    render(<Card card={CARD} variant="page" positionBonusBadge="desc" statItemsToPageContent={ITEMS} />)
+    const badge = screen.getByTestId('bonus-list')
+    expect(badge.className).toContain('book-page-stats')
+    expect(badge.closest('.book-page-desc')).not.toBeNull()
+  })
+
+  it('puts the badges in the extra slot, with the class the caller named', () => {
+    render(<Card card={CARD} variant="page" positionBonusBadge="extra"
+                 statItemsToPageContent={ITEMS} extraContentClassName="my-extra" />)
+    const extra = screen.getByTestId('bonus-list').closest('.book-page-extra')
+    expect(extra.className).toContain('my-extra')
+  })
+
+  it('renders the extra slot with no class when the caller names none', () => {
+    render(<Card card={CARD} variant="page" positionBonusBadge="extra"
+                 extraContent={<span data-testid="extra-content" />} />)
+    expect(screen.getByTestId('extra-content')).toBeInTheDocument()
+    expect(screen.queryByTestId('bonus-list')).toBeNull()
+  })
+
+  it('overlays the badges on the image and keeps the large image style', () => {
+    render(<Card card={{ ...CARD, styleImageLarge: 'large-style' }} variant="page"
+                 statItemsToPageContent={ITEMS} imageAlt="page" />)
+    expect(screen.getByAltText('page').className).toContain('large-style')
+    expect(screen.getByTestId('bonus-list').closest('.book-page-img-badge-overlay')).not.toBeNull()
+  })
+
+  it('a page with no bonus items shows no badge at all', () => {
+    render(<Card card={CARD} variant="page" statItemsToPageContent={[]} />)
+    expect(screen.queryByTestId('bonus-list')).toBeNull()
+  })
+
+  it('the back and forward buttons appear only when their handler is given', () => {
+    const onClose = vi.fn()
+    const onForward = vi.fn()
+    const { rerender } = render(<Card card={CARD} variant="page" />)
+    expect(screen.queryByLabelText('card.back')).toBeNull()
+    expect(screen.queryByLabelText('card.forward')).toBeNull()
+
+    rerender(<Card card={CARD} variant="page" onClose={onClose} onForward={onForward} />)
+    fireEvent.click(screen.getByLabelText('card.back'))
+    fireEvent.click(screen.getByLabelText('card.forward'))
+    expect(onClose).toHaveBeenCalled()
+    expect(onForward).toHaveBeenCalled()
+  })
+})
+
+describe('Card — title badges and the image overlay', () => {
+  it('titleStatistics ride in the title whatever flagShowFullStatistics says', () => {
+    render(<Card card={{ title: 'Hero' }} titleStatistics={[{ key: 'life', value: 1 }]}
+                 flagShowFullStatistics />)
+    expect(screen.getByTestId('bonus-list').className).toContain('config-total-bonus')
+  })
+
+  it('the full-statistics overlay takes the little class only when asked', () => {
+    const stats = [{ key: 'life', value: 1 }]
+    const { rerender } = render(<Card card={{ title: 'Hero' }} statistics={stats} flagShowFullStatistics />)
+    expect(screen.getByTestId('bonus-list').className).not.toContain('config-total-bonus-little')
+
+    rerender(<Card card={{ title: 'Hero' }} statistics={stats} flagShowFullStatistics
+                   bonusBadgeListLittleIntoImage />)
+    expect(screen.getByTestId('bonus-list').className).toContain('config-total-bonus-little')
+  })
+
+  it('the entity-type badge falls back to the raw type when there is no translation', () => {
+    render(<Card card={{ title: 'Hero' }} entityType="items" />)
+    // The mocked t() echoes the key, so the component reads it as "untranslated".
+    expect(screen.getByText('items')).toBeInTheDocument()
+  })
+
+  it('the copyright link shows the card description when it has one', () => {
+    render(<Card card={{ title: 'Hero', linkCopyright: 'http://cc.example', description: 'Photo by Ada' }}
+                 showLinkCopyright />)
+    expect(screen.getByText(/Photo by Ada/)).toBeInTheDocument()
+  })
+
+  it('the copyright link falls back to the generic label with no description', () => {
+    render(<Card card={{ title: 'Hero', linkCopyright: 'http://cc.example' }} showLinkCopyright />)
+    expect(screen.getByText(/card.viewOriginal/)).toBeInTheDocument()
+  })
+})

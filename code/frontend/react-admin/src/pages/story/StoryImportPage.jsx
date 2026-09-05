@@ -97,11 +97,12 @@ export default function StoryImportPage() {
       )}
 
       <div className="mb-3">
-        <label className="pg-label">
+        <label className="pg-label" htmlFor="story-import-json">
           <i className="fas fa-code me-1" />
           Story JSON
         </label>
         <textarea
+          id="story-import-json"
           className="pg-textarea"
           rows={24}
           value={json}

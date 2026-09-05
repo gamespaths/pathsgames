@@ -220,3 +220,17 @@ def test_get_admin_locations_match_not_found(_get):
     h = _h()
     result = h._get_admin_locations('nope', 'en')
     assert result['statusCode'] == 404
+
+
+def test_visited_location_ids_unions_the_roster_and_the_movement_log():
+    """Where the party stands now, plus both endpoints of every move it has ever made."""
+    from unittest.mock import patch as _patch
+
+    import match.handler as mh
+
+    match = {'movementLog': [{'idLocationFrom': 1, 'idLocationTo': 2},
+                             {'idLocationFrom': 2, 'idLocationTo': 3},
+                             {'idLocationFrom': None, 'idLocationTo': None}]}
+    with _patch.object(mh, '_match_characters',
+                       return_value=[{'idLocation': 2}, {'idLocation': None}, {'idLocation': 5}]):
+        assert mh._visited_location_ids(match, 'm1') == [2, 5, 1, 3]

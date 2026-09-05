@@ -96,11 +96,13 @@ export default function DashboardPage() {
       <div className="pg-card">
         <div className="pg-card-title mb-3">
           <i className="fas fa-bolt me-1" />
+          {' '}
           Quick Actions
         </div>
         <div className="flex flex-wrap gap-3">
           <a href="/guests" className="pg-btn pg-btn-gold">
             <i className="fas fa-user-secret" />
+            {' '}
             Manage Guests
           </a>
           <a href="/stories" className="pg-btn pg-btn-gold">

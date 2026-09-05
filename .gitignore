@@ -66,6 +66,7 @@ database.sqlite
 **/*.pyc
 .venv
 code/backend/python/coverage.xml
+code/backend/python/.coverage
 
 # Backend php
 code/backend/php/vendor

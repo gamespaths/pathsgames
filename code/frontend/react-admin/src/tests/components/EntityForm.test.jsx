@@ -121,4 +121,56 @@ describe('EntityForm', () => {
     await userEvent.click(screen.getByText('Save'))
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ idTextName: 999 }))
   })
+
+  const PATH_FIELDS = [{ key: 'idCard', label: 'Card ID', type: 'path-selector' }]
+
+  it('a path selector of string type keeps the value as a string, empty for nothing', async () => {
+    render(<EntityForm fields={PATH_FIELDS} onSave={onSave} onCancel={onCancel}
+                       pathSelectorOptions={{ idCard: { valueType: 'string', options: [{ value: 'val1' }] } }} />)
+
+    await userEvent.click(screen.getByTitle('Select Card ID'))
+    await userEvent.click(screen.getByText('Select val1'))
+    await userEvent.click(screen.getByText('Save'))
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ idCard: 'val1' }))
+  })
+
+  it('a path selector with no config at all falls back to the numeric reading', async () => {
+    render(<EntityForm fields={PATH_FIELDS} onSave={onSave} onCancel={onCancel}
+                       pathSelectorOptions={{ idCard: {} }} />)
+
+    await userEvent.click(screen.getByTitle('Select Card ID'))
+    await userEvent.click(screen.getByText('Select val1'))
+    await userEvent.click(screen.getByText('Save'))
+
+    // 'val1' is not a number, so the numeric reading empties the field.
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ idCard: '' }))
+  })
+
+  it('the New Fast Card button does nothing without a handler', async () => {
+    render(<EntityForm fields={PATH_FIELDS} onSave={onSave} onCancel={onCancel}
+                       pathSelectorOptions={{ idCard: {} }} />)
+    expect(screen.queryByTitle('New Card ID')).toBeNull()
+  })
+
+  it('a text field with a value opens the creator on the row it already names', async () => {
+    const texts = [{ idText: 5, lang: 'en', shortText: 'Hello' }]
+    render(<EntityForm fields={[{ key: 'idTextName', label: 'Text Name' }]}
+                       entity={{ idTextName: 5 }} texts={texts}
+                       storyUuid="s1" onSaveFastText={vi.fn()}
+                       onSave={onSave} onCancel={onCancel} />)
+
+    await userEvent.click(screen.getByTitle('Select Text Name'))
+    // The creator opens on the existing row rather than the plain selector list.
+    expect(screen.queryByTestId('fast-text-modal')).toBeNull()
+  })
+
+  it('a text field with no value at all opens the selector list', async () => {
+    render(<EntityForm fields={[{ key: 'idTextName', label: 'Text Name' }]}
+                       storyUuid="s1" onSaveFastText={vi.fn()}
+                       onSave={onSave} onCancel={onCancel} />)
+
+    await userEvent.click(screen.getByTitle('Select Text Name'))
+    expect(screen.getByTestId('fast-text-modal')).toBeInTheDocument()
+  })
 })

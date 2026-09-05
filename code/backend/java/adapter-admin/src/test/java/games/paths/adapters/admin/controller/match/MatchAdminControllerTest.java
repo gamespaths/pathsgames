@@ -574,4 +574,105 @@ class MatchAdminControllerTest {
                 .andExpect(jsonPath("$.error").value("INVALID_INPUT"));
         verifyNoInteractions(commandPort);
     }
+
+    // ── v0.36.2 — the console editing one match's registry ──────────────────
+
+    @Test
+    void upsertRegistry_writesTheKeyAndAnswersWithItsValues() throws Exception {
+        when(registryService.upsertByMatchUuid("m1", "clue", "ledger")).thenReturn(List.of("ledger"));
+
+        mockMvc.perform(put("/api/admin/matches/m1/registry")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"key\":\"clue\",\"value\":\"ledger\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.key").value("clue"))
+                .andExpect(jsonPath("$.values[0]").value("ledger"));
+    }
+
+    @Test
+    void upsertRegistry_returns400WhenTheBodyNamesNoKey() throws Exception {
+        mockMvc.perform(put("/api/admin/matches/m1/registry")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"value\":\"ledger\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_INPUT"));
+        verifyNoInteractions(registryService);
+    }
+
+    @Test
+    void upsertRegistry_returns400WhenTheBodyIsAbsent() throws Exception {
+        mockMvc.perform(put("/api/admin/matches/m1/registry"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_INPUT"));
+        verifyNoInteractions(registryService);
+    }
+
+    @Test
+    void upsertRegistry_returns404WhenNoMatchAnswersToTheUuid() throws Exception {
+        when(registryService.upsertByMatchUuid("m1", "clue", null)).thenReturn(null);
+
+        mockMvc.perform(put("/api/admin/matches/m1/registry")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"key\":\"clue\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("MATCH_NOT_FOUND"));
+    }
+
+    @Test
+    void deleteRegistry_takesTheNamedValueAway() throws Exception {
+        when(registryService.removeByMatchUuid("m1", "clues", "ledger")).thenReturn(List.of("letter"));
+
+        mockMvc.perform(delete("/api/admin/matches/m1/registry")
+                        .param("key", "clues").param("value", "ledger"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.values[0]").value("letter"));
+    }
+
+    @Test
+    void deleteRegistry_withoutAValueEmptiesTheKey() throws Exception {
+        when(registryService.removeByMatchUuid("m1", "clues", null)).thenReturn(List.of());
+
+        mockMvc.perform(delete("/api/admin/matches/m1/registry").param("key", "clues"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.values").isEmpty());
+    }
+
+    @Test
+    void deleteRegistry_returns400WhenNoKeyIsNamed() throws Exception {
+        mockMvc.perform(delete("/api/admin/matches/m1/registry"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_INPUT"));
+        verifyNoInteractions(registryService);
+    }
+
+    @Test
+    void deleteRegistry_returns404WhenNoMatchAnswersToTheUuid() throws Exception {
+        when(registryService.removeByMatchUuid("m1", "clues", null)).thenReturn(null);
+
+        mockMvc.perform(delete("/api/admin/matches/m1/registry").param("key", "clues"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("MATCH_NOT_FOUND"));
+    }
+
+    @Test
+    void changeStatisticsRequest_roundTripsEveryOptionalField() {
+        MatchAdminController.ChangeStatisticsRequest r = new MatchAdminController.ChangeStatisticsRequest();
+        r.setLife(1);
+        r.setEnergy(2);
+        r.setCoin(3);
+        r.setSad(5);
+        r.setFood(6);
+        r.setMagic(7);
+        r.setSleeping(Boolean.TRUE);
+        r.setComa(Boolean.FALSE);
+
+        assertEquals(1, r.getLife());
+        assertEquals(2, r.getEnergy());
+        assertEquals(3, r.getCoin());
+        assertEquals(5, r.getSad());
+        assertEquals(6, r.getFood());
+        assertEquals(7, r.getMagic());
+        assertEquals(Boolean.TRUE, r.getSleeping());
+        assertEquals(Boolean.FALSE, r.getComa());
+    }
 }

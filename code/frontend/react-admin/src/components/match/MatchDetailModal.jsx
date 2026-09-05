@@ -1,4 +1,5 @@
 import { getStory, listEntities } from '../../api/storyApi'
+import useEscapeKey from '../../hooks/useEscapeKey'
 import LoadingSpinner from '../common/LoadingSpinner'
 import ErrorAlert from '../common/ErrorAlert'
 
@@ -55,6 +56,7 @@ export async function fetchStoryCtx(storyUuid) {
 }
 
 export default function MatchDetailModal({ detail, onClose }) {
+  useEscapeKey(onClose)
   const { uuid, loading, info, error, storyCtx } = detail
   const match = info?.match
 
@@ -74,8 +76,8 @@ export default function MatchDetailModal({ detail, onClose }) {
   }
 
   return (
-    <div className="pg-modal-backdrop" role="button" tabIndex="0" onClick={onClose} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
-      <div className="pg-modal" style={{ maxWidth: 680 }} onClick={e => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+    <div className="pg-modal-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="pg-modal" style={{ maxWidth: 680 }}>
         <p className="pg-modal-title">
           <i className="fas fa-gamepad me-2" />
           {match?.name || `Match ${shortUuid(uuid)}`}

@@ -1022,40 +1022,40 @@ export default function StoryEditorPage() {
           <form id="story-metadata-form" onSubmit={handleUpdateStory} className="pg-card flex flex-col gap-1">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
               <div>
-                <label className="pg-label">Author</label>
-                <input className="pg-input" value={story?.author || ''} onChange={e => setStory({ ...story, author: e.target.value })} />
+                <label className="pg-label" htmlFor="story-author">Author</label>
+                <input id="story-author" className="pg-input" value={story?.author || ''} onChange={e => setStory({ ...story, author: e.target.value })} />
               </div>
               <div>
-                <label className="pg-label">Category</label>
-                <input className="pg-input" value={story?.category || ''} onChange={e => setStory({ ...story, category: e.target.value })} />
+                <label className="pg-label" htmlFor="story-category">Category</label>
+                <input id="story-category" className="pg-input" value={story?.category || ''} onChange={e => setStory({ ...story, category: e.target.value })} />
               </div>
               <div>
-                <label className="pg-label">Group</label>
-                <input className="pg-input" value={story?.group || ''} onChange={e => setStory({ ...story, group: e.target.value })} />
+                <label className="pg-label" htmlFor="story-group">Group</label>
+                <input id="story-group" className="pg-input" value={story?.group || ''} onChange={e => setStory({ ...story, group: e.target.value })} />
               </div>
               <div>
-                <label className="pg-label">Visibility</label>
-                <select className="pg-input" value={story?.visibility || 'DRAFT'} onChange={e => setStory({ ...story, visibility: e.target.value })}>
+                <label className="pg-label" htmlFor="story-visibility">Visibility</label>
+                <select id="story-visibility" className="pg-input" value={story?.visibility || 'DRAFT'} onChange={e => setStory({ ...story, visibility: e.target.value })}>
                   <option value="DRAFT">DRAFT</option>
                   <option value="PUBLIC">PUBLIC</option>
                   <option value="PRIVATE">PRIVATE</option>
                 </select>
               </div>
               <div>
-                <label className="pg-label">Priority</label>
-                <input type="number" className="pg-input" value={story?.priority || 0} onChange={e => setStory({ ...story, priority: parseInt(e.target.value) })} />
+                <label className="pg-label" htmlFor="story-priority">Priority</label>
+                <input id="story-priority" type="number" className="pg-input" value={story?.priority || 0} onChange={e => setStory({ ...story, priority: Number.parseInt(e.target.value, 10) })} />
               </div>
               <div>
-                <label className="pg-label">PEGHI</label>
-                <input type="number" className="pg-input" value={story?.peghi || 0} onChange={e => setStory({ ...story, peghi: parseInt(e.target.value) })} />
+                <label className="pg-label" htmlFor="story-peghi">PEGHI</label>
+                <input id="story-peghi" type="number" className="pg-input" value={story?.peghi || 0} onChange={e => setStory({ ...story, peghi: Number.parseInt(e.target.value, 10) })} />
               </div>
               <div>
-                <label className="pg-label">Version Min</label>
-                <input className="pg-input" value={story?.versionMin || ''} onChange={e => setStory({ ...story, versionMin: e.target.value })} />
+                <label className="pg-label" htmlFor="story-version-min">Version Min</label>
+                <input id="story-version-min" className="pg-input" value={story?.versionMin || ''} onChange={e => setStory({ ...story, versionMin: e.target.value })} />
               </div>
               <div>
-                <label className="pg-label">Version Max</label>
-                <input className="pg-input" value={story?.versionMax || ''} onChange={e => setStory({ ...story, versionMax: e.target.value })} />
+                <label className="pg-label" htmlFor="story-version-max">Version Max</label>
+                <input id="story-version-max" className="pg-input" value={story?.versionMax || ''} onChange={e => setStory({ ...story, versionMax: e.target.value })} />
               </div>
               <div>
                 <PathsSelector
@@ -1178,8 +1178,8 @@ export default function StoryEditorPage() {
                 />
               </div>
               <div>
-                <label className="pg-label">Copyright Link</label>
-                <input className="pg-input" value={story?.linkCopyright || ''} onChange={e => setStory({ ...story, linkCopyright: e.target.value })} />
+                <label className="pg-label" htmlFor="story-copyright-link">Copyright Link</label>
+                <input id="story-copyright-link" className="pg-input" value={story?.linkCopyright || ''} onChange={e => setStory({ ...story, linkCopyright: e.target.value })} />
               </div>
               <div>
                 <PathsSelector

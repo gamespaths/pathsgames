@@ -141,4 +141,44 @@ describe('MatchDetailModal render', () => {
     fireEvent.keyDown(backdrop, { key: 'Enter' })
     expect(onClose).not.toHaveBeenCalled()
   })
+
+  it('a click inside the panel does not close the modal', () => {
+    const onClose = vi.fn()
+    render(<MatchDetailModal detail={makeDetail()} onClose={onClose} />)
+    fireEvent.click(document.querySelector('.pg-modal'))
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('a click on the backdrop itself closes the modal', () => {
+    const onClose = vi.fn()
+    render(<MatchDetailModal detail={makeDetail()} onClose={onClose} />)
+    fireEvent.click(document.querySelector('.pg-modal-backdrop'))
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('an entity with no name text, and a story with no texts, both read as a dash', () => {
+    const detail = makeDetail()
+    detail.storyCtx = {
+      ...detail.storyCtx,
+      texts: null,
+      difficulties: [{ uuid: 'diff-1' }],   // no idTextName at all
+    }
+    render(<MatchDetailModal detail={detail} onClose={vi.fn()} />)
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+  })
+
+  it('a registry key holding nothing reads as a dash', () => {
+    const detail = makeDetail()
+    detail.info.registry = [{ uuid: 'r1', key: 'gold', values: [], multiValue: false }]
+    render(<MatchDetailModal detail={detail} onClose={vi.fn()} />)
+    expect(screen.getByText('gold')).toBeInTheDocument()
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+  })
+
+  it('a registry row with no values array at all still renders', () => {
+    const detail = makeDetail()
+    detail.info.registry = [{ key: 'gold' }]
+    render(<MatchDetailModal detail={detail} onClose={vi.fn()} />)
+    expect(screen.getByText('gold')).toBeInTheDocument()
+  })
 })

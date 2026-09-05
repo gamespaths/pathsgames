@@ -323,3 +323,20 @@ def test_admin_locations():
     assert loc['idLocation'] == 1
     assert loc['card']['uuid'] == 'card-2'
     assert loc['neighbors'][0]['card']['uuid'] == 'card-3'
+
+
+def test_move_also_pays_the_food_magic_and_coin_the_edge_asks_for():
+    """v0.35.3 — an edge may cost more than energy; all four leave the mover together."""
+    story = _story()
+    story['neighbors'][0].update({'costFood': 2, 'costMagic': 1, 'costCoin': 3})
+    char = _char('m1', 1, 'c1', energy=10, location=1)
+    char.update({'food': 5, 'magic': 4, 'coin': 9})
+    items = [PLAYER, story, _match(clock=3), char]
+    with _env(items) as table:
+        result = h.lambda_handler(
+            _event('POST', '/api/gameplay/m1/movements/start',
+                   body={'targetLocationUuid': 'loc-2'}), None)
+    assert result['statusCode'] == 200
+    moved = table.get_item('MATCH#m1', 'CHARACTER#c1')
+    assert (moved['food'], moved['magic'], moved['coin']) == (3, 3, 6)
+    assert moved['energy'] == 8

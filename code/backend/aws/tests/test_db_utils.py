@@ -370,3 +370,46 @@ class TestCursorCodec:
     def test_decode_malformed_token_is_none(self):
         assert db.decode_cursor('!!!not-base64!!!') is None
         assert db.decode_cursor('bm90LWpzb24=') is None  # base64 of "not-json"
+
+
+@patch.object(db, '_table')
+class TestScanFilterPage:
+    def test_returns_the_page_and_its_key(self, mock_table):
+        mock_table.scan.return_value = {'Items': [{'PK': 'USER#1'}], 'LastEvaluatedKey': {'PK': 'USER#1'}}
+        items, key = db.scan_filter_page('type', 'USER')
+        assert items == [{'PK': 'USER#1'}]
+        assert key == {'PK': 'USER#1'}
+        assert 'Limit' not in mock_table.scan.call_args.kwargs
+        assert 'ExclusiveStartKey' not in mock_table.scan.call_args.kwargs
+
+    def test_an_empty_page_is_not_the_end(self, mock_table):
+        mock_table.scan.return_value = {'Items': [], 'LastEvaluatedKey': {'PK': 'USER#9'}}
+        assert db.scan_filter_page('type', 'USER') == ([], {'PK': 'USER#9'})
+
+    def test_the_last_page_has_no_key(self, mock_table):
+        mock_table.scan.return_value = {'Items': [{'PK': 'USER#1'}]}
+        assert db.scan_filter_page('type', 'USER') == ([{'PK': 'USER#1'}], None)
+
+    def test_limit_start_key_and_extra_filter_are_forwarded(self, mock_table):
+        from boto3.dynamodb.conditions import Attr
+        mock_table.scan.return_value = {'Items': []}
+        db.scan_filter_page('type', 'USER', limit='25', start_key={'PK': 'USER#1'},
+                            extra_filter=Attr('role').eq('GUEST'))
+        kwargs = mock_table.scan.call_args.kwargs
+        assert kwargs['Limit'] == 25
+        assert kwargs['ExclusiveStartKey'] == {'PK': 'USER#1'}
+
+    def test_a_client_error_yields_an_empty_last_page(self, mock_table):
+        mock_table.scan.side_effect = ClientError({'Error': {'Code': 'X'}}, 'Scan')
+        assert db.scan_filter_page('type', 'USER') == ([], None)
+
+
+@patch.object(db, '_table')
+class TestScanPkPrefix:
+    def test_returns_every_matching_item(self, mock_table):
+        mock_table.scan.return_value = {'Items': [{'PK': 'MATCH#1'}]}
+        assert db.scan_pk_prefix('MATCH#') == [{'PK': 'MATCH#1'}]
+
+    def test_a_client_error_yields_nothing(self, mock_table):
+        mock_table.scan.side_effect = ClientError({'Error': {'Code': 'X'}}, 'Scan')
+        assert db.scan_pk_prefix('MATCH#') == []

@@ -427,4 +427,78 @@ describe('GuestsPage', () => {
     await screen.findByText('Dragon Run')
     expect(listMatches).toHaveBeenCalledWith({ userUuid: 'aaa-111-aaa' })
   })
+
+  it('a second page is appended to the first', async () => {
+    listGuests.mockResolvedValueOnce({ items: MOCK_GUESTS, nextCursor: 'page-2', limit: 50 })
+    listGuests.mockResolvedValueOnce({ items: [{ ...MOCK_GUESTS[0], userUuid: 'zzz', username: 'guest_zzz' }],
+                                       nextCursor: null, limit: 50 })
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+
+    await userEvent.click(screen.getByText('Load more'))
+
+    expect(await screen.findByText('guest_zzz')).toBeInTheDocument()
+    expect(screen.getByText('guest_aaa111aa')).toBeInTheDocument()
+    expect(screen.getByText('No more pages')).toBeInTheDocument()
+  })
+
+  it('a page that answers nothing appends nothing and keeps the cursor', async () => {
+    listGuests.mockResolvedValueOnce({ items: MOCK_GUESTS, nextCursor: 'page-2', limit: 50 })
+    listGuests.mockResolvedValueOnce(null)
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+
+    await userEvent.click(screen.getByText('Load more'))
+
+    await waitFor(() => expect(screen.getByText('No more pages')).toBeInTheDocument())
+  })
+
+  it('a failing second page with no message shows the generic error', async () => {
+    listGuests.mockResolvedValueOnce({ items: MOCK_GUESTS, nextCursor: 'page-2', limit: 50 })
+    listGuests.mockRejectedValueOnce({})
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+
+    await userEvent.click(screen.getByText('Load more'))
+
+    expect(await screen.findByText('Failed to load more guests')).toBeInTheDocument()
+  })
+
+  it('the load-more button does nothing once there is no cursor', async () => {
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    listGuests.mockClear()
+
+    await userEvent.click(screen.getByText('No more pages'))
+
+    expect(listGuests).not.toHaveBeenCalled()
+  })
+
+  it('a failing stale count with no message shows the generic error', async () => {
+    previewStaleGuests.mockRejectedValue({})
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+
+    await userEvent.type(screen.getByLabelText(/Not seen for/i), '90')
+    await userEvent.click(screen.getByText(/Count stale/i))
+
+    expect(await screen.findByText('Failed to count stale guests')).toBeInTheDocument()
+  })
+
+  it('a guest list that answers no items at all renders an empty table', async () => {
+    listGuests.mockResolvedValue(null)
+    renderPage()
+
+    await waitFor(() => expect(screen.queryByText('guest_aaa111aa')).toBeNull())
+  })
+
+  it('a failing match list with no message shows the generic error in the detail', async () => {
+    listMatches.mockRejectedValue({})
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+
+    await userEvent.click(screen.getAllByTitle('View detail')[0])
+
+    expect(await screen.findByText('Failed to load matches')).toBeInTheDocument()
+  })
 })

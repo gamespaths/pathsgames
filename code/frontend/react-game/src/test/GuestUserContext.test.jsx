@@ -127,3 +127,77 @@ describe('GuestUserContext', () => {
     expect(screen.getByTestId('matches').textContent).toBe('null')
   })
 })
+
+describe('GuestUserContext — the shapes the auth API can answer with', () => {
+  beforeEach(async () => {
+    vi.restoreAllMocks()
+    await setServer('http://api.test')
+  })
+
+  it('a resume that answers nothing falls through to creating a guest', async () => {
+    vi.spyOn(authApi, 'resumeGuestSession').mockResolvedValue(null)
+    vi.spyOn(authApi, 'createGuestSession').mockResolvedValue({
+      userUuid: 'u2', username: 'guest_2', accessToken: 'tok-2',
+    })
+
+    render(<GuestUserProvider><Probe /></GuestUserProvider>)
+
+    await waitFor(() => expect(screen.getByTestId('username')).toHaveTextContent('guest_2'))
+  })
+
+  it('a create that answers nothing leaves no user and no error', async () => {
+    vi.spyOn(authApi, 'resumeGuestSession').mockResolvedValue(null)
+    vi.spyOn(authApi, 'createGuestSession').mockResolvedValue(null)
+
+    render(<GuestUserProvider><Probe /></GuestUserProvider>)
+
+    await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('no'))
+    expect(screen.getByTestId('username')).toHaveTextContent('none')
+    expect(screen.getByTestId('error')).toHaveTextContent('')
+  })
+
+  it('a session with no access token still names the guest', async () => {
+    vi.spyOn(authApi, 'resumeGuestSession').mockResolvedValue({ userUuid: 'u3', username: 'guest_3' })
+
+    render(<GuestUserProvider><Probe /></GuestUserProvider>)
+
+    await waitFor(() => expect(screen.getByTestId('username')).toHaveTextContent('guest_3'))
+    expect(screen.getByTestId('token')).toHaveTextContent('no-token')
+  })
+
+  it('a create failure with no message falls back to the generic error', async () => {
+    vi.spyOn(authApi, 'resumeGuestSession').mockRejectedValue(new Error('no cookie'))
+    vi.spyOn(authApi, 'createGuestSession').mockRejectedValue({})
+
+    render(<GuestUserProvider><Probe /></GuestUserProvider>)
+
+    await waitFor(() => expect(screen.getByTestId('error')).toHaveTextContent('guest-init-failed'))
+  })
+
+  it('a refresh that answers nothing keeps the guest already there', async () => {
+    vi.spyOn(authApi, 'resumeGuestSession').mockResolvedValue({
+      userUuid: 'u1', username: 'guest_1', accessToken: 'tok-1',
+    })
+    render(<GuestUserProvider><Probe /></GuestUserProvider>)
+    await waitFor(() => expect(screen.getByTestId('username')).toHaveTextContent('guest_1'))
+
+    vi.spyOn(authApi, 'createGuestSession').mockResolvedValue(null)
+    fireEvent.click(screen.getByText('refresh'))
+
+    await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('no'))
+    expect(screen.getByTestId('username')).toHaveTextContent('guest_1')
+  })
+
+  it('a refresh failure with no message falls back to the generic error', async () => {
+    vi.spyOn(authApi, 'resumeGuestSession').mockResolvedValue({
+      userUuid: 'u1', username: 'guest_1', accessToken: 'tok-1',
+    })
+    render(<GuestUserProvider><Probe /></GuestUserProvider>)
+    await waitFor(() => expect(screen.getByTestId('username')).toHaveTextContent('guest_1'))
+
+    vi.spyOn(authApi, 'createGuestSession').mockRejectedValue({})
+    fireEvent.click(screen.getByText('refresh'))
+
+    await waitFor(() => expect(screen.getByTestId('error')).toHaveTextContent('guest-init-failed'))
+  })
+})

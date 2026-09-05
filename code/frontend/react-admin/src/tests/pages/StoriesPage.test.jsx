@@ -442,4 +442,62 @@ describe('StoriesPage', () => {
     await userEvent.click(createBtn)
     await waitFor(() => expect(screen.getByText(/Create failed/i)).toBeInTheDocument())
   })
+
+  it('an entity row with no id of its own keeps the numeric id the backend gave it', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    let capturedBlob = null
+    global.URL.createObjectURL = vi.fn((blob) => { capturedBlob = blob; return mockObjectURL })
+
+    listEntities.mockImplementation((_uuid, apiType) => {
+      if (apiType === 'locations') return Promise.resolve([{ id: 4, uuid: 'l1', tsInsert: 'x' }])
+      // A row with neither `id` nor `idText` is exported as it stands.
+      if (apiType === 'items') return Promise.resolve([{ uuid: 'i1' }])
+      return Promise.resolve([])
+    })
+
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getAllByTitle('Export JSON')[0])
+    await waitFor(() => expect(capturedBlob).not.toBeNull())
+
+    const parsed = JSON.parse(await capturedBlob.text())
+    expect(parsed.locations[0].id).toBe(4)
+    expect(parsed.locations[0].tsInsert).toBeUndefined()
+    expect(parsed.items[0].id).toBeUndefined()
+
+    clickSpy.mockRestore()
+  })
+
+  it('an exported story sorts nested object keys so two exports diff cleanly', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    let capturedBlob = null
+    global.URL.createObjectURL = vi.fn((blob) => { capturedBlob = blob; return mockObjectURL })
+
+    listEntities.mockImplementation((_uuid, apiType) => (
+      apiType === 'locations'
+        ? Promise.resolve([{ id: 1, meta: { zeta: 1, alpha: 2 }, tags: [{ b: 1, a: 2 }] }])
+        : Promise.resolve([])
+    ))
+
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getAllByTitle('Export JSON')[0])
+    await waitFor(() => expect(capturedBlob).not.toBeNull())
+
+    const text = await capturedBlob.text()
+    expect(text.indexOf('"alpha"')).toBeLessThan(text.indexOf('"zeta"'))
+    expect(text.indexOf('"a"')).toBeLessThan(text.indexOf('"b"'))
+
+    clickSpy.mockRestore()
+  })
+
+  it('a detail modal for a story with no title falls back to a generic heading', async () => {
+    listAllStories.mockResolvedValue([{ uuid: 'aaa-111', author: 'Nobody' }])
+    renderPage()
+    await screen.findByText('Nobody')
+
+    await userEvent.click(screen.getAllByTitle('View Info')[0])
+
+    expect(await screen.findByText('Story Detail')).toBeInTheDocument()
+  })
 })

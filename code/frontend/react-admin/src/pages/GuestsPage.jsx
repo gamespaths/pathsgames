@@ -10,6 +10,7 @@ import {
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import ErrorAlert from '../components/common/ErrorAlert'
 import ConfirmModal from '../components/common/ConfirmModal'
+import useEscapeKey from '../hooks/useEscapeKey'
 import MatchDetailModal, { fmtDate, shortUuid, StatusBadge, fetchStoryCtx } from '../components/match/MatchDetailModal'
 
 const TERMINAL_STATUSES = new Set(['ENDED', 'GAMEOVER'])
@@ -104,6 +105,8 @@ export default function GuestsPage() {
     setMatchDetail(null)
     setMatchError('')
   }
+
+  useEscapeKey(closeGuestDetail, !!guestDetail)
 
   const openMatchDetail = async (m) => {
     setMatchDetail({ uuid: m.uuid, loading: true, info: null, error: '', storyCtx: null })
@@ -359,7 +362,7 @@ export default function GuestsPage() {
 
       {/* Guest detail modal */}
       {guestDetail && (
-        <div className="pg-modal-backdrop" role="button" tabIndex="0" onClick={closeGuestDetail} onKeyDown={(e) => e.key === 'Escape' && closeGuestDetail()}>
+        <div className="pg-modal-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) closeGuestDetail() }}>
           <div className="pg-modal" style={{ maxWidth: 680 }} onClick={e => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
             <p className="pg-modal-title">
               <i className="fas fa-user-secret me-2" />

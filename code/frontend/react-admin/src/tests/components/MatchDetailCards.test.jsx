@@ -329,3 +329,19 @@ describe('PlayersCard', () => {
     expect(screen.getByText('#12')).toBeInTheDocument()
   })
 })
+
+describe('PlayersCard — the cells the API may leave out', () => {
+  const noop = () => '—'
+
+  it('a character with no weight cap shows its bare weight, or a dash', () => {
+    const { rerender } = render(
+      <PlayersCard players={[{ uuid: 'p1', weight: 7 }]} templateName={noop} className={noop}
+                   traitName={noop} locationName20={noop} onEditStats={vi.fn()} />)
+    expect(screen.getByText('7')).toBeInTheDocument()
+
+    rerender(
+      <PlayersCard players={[{ uuid: 'p2' }]} templateName={noop} className={noop}
+                   traitName={noop} locationName20={noop} onEditStats={vi.fn()} />)
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+  })
+})

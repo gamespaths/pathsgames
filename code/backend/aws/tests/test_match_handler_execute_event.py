@@ -149,3 +149,138 @@ def test_v0354_the_event_row_carries_the_gains_beside_the_price(_q, _p, _jwt):
     # Only the positive half: the drained magic is the effect's own business, not a gain.
     assert (row['coinGain'], row['foodGain']) == (30, 4)
     assert (row['energyGain'], row['magicGain']) == (0, 0)
+
+
+# ── the effect writing the registry (Step 36) ───────────────────────────────
+
+REGISTRY_STORY = dict(STORY, eventEffects=[
+    {'id': 1, 'idEvent': 10, 'statistics': 'exp', 'value': 5, 'target': 'ONLY_ONE',
+     'keyToAdd': 'WINTER', 'keyValueToAdd': 'YES'},
+])
+
+
+def _registry_side(pk, sk='METADATA'):
+    if pk.startswith('USER#'):
+        return USER
+    if pk.startswith('MATCH#'):
+        return dict(MATCH)
+    if pk.startswith('STORY#'):
+        return REGISTRY_STORY
+    return None
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
+@patch('match.handler.db_utils.put_item')
+@patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)])
+@patch('match.handler.db_utils.get_item', side_effect=_registry_side)
+def test_execute_event_writes_the_registry_key_its_effect_names(_g, _q, _p, _jwt):
+    result = _call(_event())
+    assert result['statusCode'] == 200
+    body = json.loads(result['body'])
+    assert [c.get('key') for c in body['registryChanges']] == ['WINTER']
+    assert body['registryChanges'][0]['newValue'] == 'YES'
+
+
+# ── the chain the event's idEventNext opens ─────────────────────────────────
+
+def _chain_side(story):
+    def inner(pk, sk='METADATA'):
+        if pk.startswith('USER#'):
+            return USER
+        if pk.startswith('MATCH#'):
+            return dict(MATCH)
+        if pk.startswith('STORY#'):
+            return story
+        return None
+    return inner
+
+
+def _chain_story(*events):
+    return dict(STORY, events=list(events), eventEffects=[])
+
+
+HEAD = {'id': 10, 'uuid': 'evt-plain', 'idSpecificLocation': 1, 'type': 'NORMAL',
+        'costEnery': 1, 'coinCost': 0, 'flagEndTime': 0}
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
+@patch('match.handler.db_utils.put_item')
+@patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)])
+@patch('match.handler.db_utils.get_item')
+def test_execute_event_follows_the_chain_to_its_end(mock_get, _q, _p, _jwt):
+    mock_get.side_effect = _chain_side(_chain_story(
+        dict(HEAD, idEventNext=11),
+        {'id': 11, 'uuid': 'evt-second', 'type': 'NORMAL', 'costEnery': 0, 'coinCost': 0,
+         'flagEndTime': 0},
+    ))
+    body = json.loads(_call(_event())['body'])
+    assert body['executedEventUuids'] == ['evt-plain', 'evt-second']
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
+@patch('match.handler.db_utils.put_item')
+@patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)])
+@patch('match.handler.db_utils.get_item')
+def test_execute_event_stops_on_a_dangling_next(mock_get, _q, _p, _jwt):
+    mock_get.side_effect = _chain_side(_chain_story(dict(HEAD, idEventNext=99)))
+    body = json.loads(_call(_event())['body'])
+    assert body['executedEventUuids'] == ['evt-plain']
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
+@patch('match.handler.db_utils.put_item')
+@patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)])
+@patch('match.handler.db_utils.get_item')
+def test_execute_event_stops_on_an_authored_loop(mock_get, _q, _p, _jwt):
+    mock_get.side_effect = _chain_side(_chain_story(
+        dict(HEAD, idEventNext=11),
+        {'id': 11, 'uuid': 'evt-second', 'type': 'NORMAL', 'costEnery': 0, 'coinCost': 0,
+         'flagEndTime': 0, 'idEventNext': 10},
+    ))
+    body = json.loads(_call(_event())['body'])
+    assert body['executedEventUuids'] == ['evt-plain', 'evt-second']
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
+@patch('match.handler.db_utils.put_item')
+@patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)])
+@patch('match.handler.db_utils.get_item')
+def test_execute_event_does_not_replay_a_spent_once_event_mid_chain(mock_get, _q, _p, _jwt):
+    story = _chain_story(
+        dict(HEAD, idEventNext=11),
+        {'id': 11, 'uuid': 'evt-once', 'type': 'ONCE', 'costEnery': 0, 'coinCost': 0,
+         'flagEndTime': 0},
+    )
+    from match.events import MSG_EVENT_EXECUTED
+    spent = dict(MATCH, eventLog=[{'idEvent': 11, 'message': f'{MSG_EVENT_EXECUTED} evt-once'}])
+
+    def side(pk, sk='METADATA'):
+        if pk.startswith('USER#'):
+            return USER
+        if pk.startswith('MATCH#'):
+            return dict(spent)
+        if pk.startswith('STORY#'):
+            return story
+        return None
+
+    mock_get.side_effect = side
+    body = json.loads(_call(_event())['body'])
+    assert body['executedEventUuids'] == ['evt-plain']
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
+@patch('match.handler.db_utils.put_item')
+@patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)])
+@patch('match.handler.db_utils.get_item')
+def test_an_end_time_event_puts_everybody_to_sleep_and_advances_the_clock(mock_get, _q, _p, _jwt):
+    mock_get.side_effect = _chain_side(_chain_story(dict(HEAD, flagEndTime=1)))
+    body = json.loads(_call(_event())['body'])
+    assert body['timeEnded'] is True
+    assert body['currentClock'] == 2
+    assert body['forcedSleep'] is True

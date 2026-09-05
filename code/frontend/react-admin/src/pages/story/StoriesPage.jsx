@@ -158,10 +158,10 @@ export default function StoriesPage() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <label className="pg-label" style={{ marginBottom: 0, whiteSpace: 'nowrap' }}>
+          <label className="pg-label" htmlFor="stories-lang-filter" style={{ marginBottom: 0, whiteSpace: 'nowrap' }}>
             <i className="fas fa-language me-1" />Lang
           </label>
-          <select className="pg-input" style={{ width: '70px' }} value={lang} onChange={e => setLang(e.target.value)}>
+          <select id="stories-lang-filter" className="pg-input" style={{ width: '70px' }} value={lang} onChange={e => setLang(e.target.value)}>
             {['en','it','de','fr','es','pt'].map(l => <option key={l} value={l}>{l}</option>)}
           </select>
         </div>
@@ -255,8 +255,8 @@ export default function StoriesPage() {
 
       {/* Detail modal */}
       {detail && (
-        <div className="pg-modal-backdrop" onClick={() => setDetail(null)}>
-          <div className="pg-modal" style={{ maxWidth: 600, maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+        <div className="pg-modal-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) setDetail(null) }}>
+          <div className="pg-modal" style={{ maxWidth: 600, maxHeight: '80vh', overflowY: 'auto' }}>
             <p className="pg-modal-title">
               <i className="fas fa-book-open me-2" />
               {detail.title || 'Story Detail'}

@@ -90,4 +90,27 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Import Story')).toHaveAttribute('href', '/stories/import')
     expect(screen.getByText('Server Status')).toHaveAttribute('href', '/echo')
   })
+
+  it('a stat the backend could not answer reads as an em dash', async () => {
+    getServerStatus.mockResolvedValue(MOCK_SERVER_DATA)
+    getGuestStats.mockRejectedValue(new Error('guests down'))
+    listAllStories.mockRejectedValue(new Error('stories down'))
+
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>)
+
+    // Both the guest counters and the story count fall back to the placeholder.
+    await screen.findByText('Dashboard')
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+  })
+
+  it('renders with no server status either', async () => {
+    getServerStatus.mockRejectedValue(new Error('echo down'))
+    getGuestStats.mockRejectedValue(new Error('guests down'))
+    listAllStories.mockRejectedValue(new Error('stories down'))
+
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>)
+
+    await screen.findByText('Dashboard')
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+  })
 })

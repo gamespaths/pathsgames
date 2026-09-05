@@ -58,11 +58,11 @@ export default function EchoPage() {
             <table className="pg-table">
               <tbody>
                 <tr>
-                  <td style={{ fontFamily: 'Cinzel, serif', fontSize: '0.7rem', color: 'var(--color-gold-dark)' }}>Status</td>
+                  <th scope="row" style={{ fontFamily: 'Cinzel, serif', fontSize: '0.7rem', color: 'var(--color-gold-dark)' }}>Status</th>
                   <td><span className="pg-badge pg-badge-success">{data.status}</span></td>
                 </tr>
                 <tr>
-                  <td style={{ fontFamily: 'Cinzel, serif', fontSize: '0.7rem', color: 'var(--color-gold-dark)' }}>Timestamp</td>
+                  <th scope="row" style={{ fontFamily: 'Cinzel, serif', fontSize: '0.7rem', color: 'var(--color-gold-dark)' }}>Timestamp</th>
                   <td style={{ fontSize: '0.85rem' }}>{data.timestamp ? new Date(data.timestamp).toLocaleString() : '—'}</td>
                 </tr>
               </tbody>
@@ -77,7 +77,7 @@ export default function EchoPage() {
                 <tbody>
                   {Object.entries(data.properties).map(([k, v]) => (
                     <tr key={k}>
-                      <td style={{ fontFamily: 'Cinzel, serif', fontSize: '0.7rem', color: 'var(--color-gold-dark)' }}>{k}</td>
+                      <th scope="row" style={{ fontFamily: 'Cinzel, serif', fontSize: '0.7rem', color: 'var(--color-gold-dark)' }}>{k}</th>
                       <td style={{ fontSize: '0.85rem' }}>{v}</td>
                     </tr>
                   ))}

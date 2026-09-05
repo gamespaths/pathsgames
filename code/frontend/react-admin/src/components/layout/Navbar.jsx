@@ -89,6 +89,7 @@ export default function Navbar() {
       {/* Brand */}
       <a className="pg-navbar-brand" href="/">
         <i className="fas fa-dice-d20 dice-bounce me-2" />
+        {' '}
         Paths Games
         <span style={{ color: 'var(--color-ember)', marginLeft: '0.4rem' }}>ADMIN</span>
       </a>
@@ -129,6 +130,7 @@ export default function Navbar() {
         {token && (
           <span style={{ color: 'var(--color-ash)', fontSize: '0.72rem', fontFamily: 'Cinzel, serif' }}>
             <i className="fas fa-key me-1" style={{ color: 'var(--color-gold-dark)' }} />
+            {' '}
             JWT active
           </span>
         )}

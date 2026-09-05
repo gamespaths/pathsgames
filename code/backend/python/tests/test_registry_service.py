@@ -234,7 +234,7 @@ def test_remove_on_a_blank_or_untouched_key_does_nothing(service, store):
     store.find_by_match_and_key.return_value = []
     assert service.remove(1, "  ", "A") == []
     assert service.remove(1, "clues", "A") == []
-    store.delete_value.assert_not_called()
+    store.upsert.assert_not_called()
     store.upsert.assert_not_called()
 
 
@@ -270,7 +270,7 @@ def test_removing_a_member_the_set_never_held_changes_nothing(service, store):
     store.find_by_match_and_key.return_value = [_multi_row("clues", "A")]
     assert service.remove(1, "clues", "Z") == ["A"]
     assert service.remove(1, "clues", None) == ["A"]
-    store.delete_value.assert_not_called()
+    store.upsert.assert_not_called()
 
 
 def test_seed_stamps_the_mirror_and_a_multi_key_with_no_default_seeds_no_row(service, store):
@@ -432,3 +432,61 @@ def test_a_set_member_is_named_case_blind_but_deleted_as_stored(service, store):
 
     assert service.remove(1, "clues", "LEDGER") == ["letter"]
     store.delete_value.assert_called_once_with(1, "clues", " Ledger ", None)
+
+
+# ── admin edit by match uuid (v0.36.2) ───────────────────────────────────────
+
+def test_find_by_match_uuid_unknown_match(service, store):
+    store.find_match_and_story_id_by_uuid.return_value = None
+    assert service.find_by_match_uuid("nope", "WINTER") == []
+
+
+def test_find_by_match_uuid_returns_the_values(service, store):
+    store.find_match_and_story_id_by_uuid.return_value = (7, 3)
+    store.find_by_match_and_key.return_value = [_row("WINTER", "YES")]
+    assert service.find_by_match_uuid("m-uuid", "WINTER") == ["YES"]
+    store.find_by_match_and_key.assert_called_once_with(7, "WINTER")
+
+
+def test_upsert_by_match_uuid_unknown_match(service, store):
+    store.find_match_and_story_id_by_uuid.return_value = None
+    assert service.upsert_by_match_uuid("nope", "WINTER", "YES") is None
+
+
+def test_upsert_by_match_uuid_writes_the_key(service, store):
+    store.find_match_and_story_id_by_uuid.return_value = (7, 3)
+    store.find_by_match_and_key.return_value = []
+    store.find_registry_declaration.return_value = None
+    assert service.upsert_by_match_uuid("m-uuid", "WINTER", "YES") == ["YES"]
+    store.upsert.assert_called_once()
+
+
+def test_remove_by_match_uuid_unknown_match(service, store):
+    store.find_match_and_story_id_by_uuid.return_value = None
+    assert service.remove_by_match_uuid("nope", "WINTER", "YES") is None
+
+
+def test_remove_by_match_uuid_removes_one_value(service, store):
+    store.find_match_and_story_id_by_uuid.return_value = (7, 3)
+    store.find_by_match_and_key.return_value = [_multi_row("WINTER", "YES"), _multi_row("WINTER", "NO")]
+    assert service.remove_by_match_uuid("m-uuid", "WINTER", "YES") == ["NO"]
+
+
+def test_remove_by_match_uuid_with_no_value_empties_the_key(service, store):
+    store.find_match_and_story_id_by_uuid.return_value = (7, 3)
+    store.find_by_match_and_key.return_value = [_multi_row("WINTER", "YES"), _multi_row("WINTER", "NO")]
+    assert service.remove_by_match_uuid("m-uuid", "WINTER", None) == []
+    assert store.delete_value.call_count == 2
+
+
+def test_remove_by_match_uuid_with_a_blank_key_is_a_no_op(service, store):
+    store.find_match_and_story_id_by_uuid.return_value = (7, 3)
+    assert service.remove_by_match_uuid("m-uuid", "  ", None) == []
+    store.delete_value.assert_not_called()
+
+
+def test_numeric_ignores_a_value_that_is_not_a_number():
+    from app.core.services.match.registry_service import _numeric
+    assert _numeric(None) is None
+    assert _numeric(" 42 ") == 42
+    assert _numeric("winter") is None

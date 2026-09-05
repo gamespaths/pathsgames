@@ -73,14 +73,14 @@ export default function FastTextCreatorModal({
   }
 
   return (
-    <div className="pg-modal-backdrop" onClick={() => onClose(null)}>
+    <div className="pg-modal-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) onClose(null) }}>
       <div
         className="pg-modal"
         style={{ maxWidth: 860, width: '95vw' }}
-        onClick={e => e.stopPropagation()}
       >
         <h3 className="pg-modal-title">
           <i className={`fas ${mode === 'edit' ? 'fa-edit' : 'fa-plus'} me-2`} />
+          {' '}
           Fast Text Creator
         </h3>
 
