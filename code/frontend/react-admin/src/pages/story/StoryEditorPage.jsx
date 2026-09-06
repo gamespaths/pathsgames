@@ -672,6 +672,16 @@ export default function StoryEditorPage() {
       idEventNotFirstTime: {
         options: eventOptions,
       },
+      // Step 36.2 — the two keys the location itself writes, picked from the story's own
+      // keys exactly as every other registry field is.
+      keyToAdd: {
+        options: keysOptions,
+        valueType: 'string',
+      },
+      keyToAddNotFirst: {
+        options: keysOptions,
+        valueType: 'string',
+      },
     },
     events: {
       idCard: {

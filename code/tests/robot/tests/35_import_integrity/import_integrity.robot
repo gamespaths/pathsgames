@@ -17,8 +17,9 @@
 #     · location 2 → the pre-V0.33.2 idEventIfCharacterEnterFirstTime spelling
 #     · eventEffect 1 → idWeather ""    → an empty string in a numeric column
 #     · a top-level locationNeighbors[] → the canonical array, with its prices
-#     · item 2 declares no flags        → the schema default decides
+#     · item 2 declares no flags        → weight 1, promise shown, NOT consumable
 #     · item 3 declares them false      → what is authored always wins
+#     · choiceEffect 1 → the five v0.32.0 effect targets (v0.36.3: never imported)
 #
 # Endpoints under test:
 #   POST   /api/admin/stories/import
@@ -34,7 +35,7 @@
 # The suite owns its story: it imports it in Suite Setup and the last test
 # deletes it (the teardown repeats the delete, harmlessly, if a case aborts).
 #
-# Tags: admin, import, schema, step14, step17, v0358
+# Tags: admin, import, schema, step14, step17, v0358, v0363
 # ---------------------------------------------------------------------------
 Library    RequestsLibrary
 Library    OperatingSystem
@@ -81,6 +82,17 @@ Entity With Id
     ${ids}=    Evaluate    [r.get('id') for r in $rows]
     Fail    No ${entity_type} with id ${id} — the story has ${ids}
 
+Entity With Uuid
+    [Documentation]    The entity of that type carrying that uuid — the handle a create
+    ...                answers with, when the row has no story-local id to look it up by.
+    [Arguments]    ${entity_type}    ${uuid}
+    ${response}=    List Admin Entities    ${STORY_UUID}    ${entity_type}
+    Should Be Equal As Integers    ${response.status_code}    200
+    FOR    ${row}    IN    @{response.json()}
+        IF    $row.get('uuid') == $uuid    RETURN    ${row}
+    END
+    Fail    no ${entity_type} with uuid ${uuid}
+
 Value Of
     [Documentation]    A field of an entity, or ${None} when the backend does not carry it.
     ...                AWS omits an attribute that was never authored; a SQL backend always
@@ -96,6 +108,16 @@ Should Read As Set
     [Arguments]    ${value}    ${what}
     ${set}=    Evaluate    $value is None or $value is True or str($value) in ('1', 'True')
     Should Be True    ${set}    msg=${what} should read as set, got ${value}
+
+Should Not Read As Consumable
+    [Documentation]    Asserts an item is CARRIED-ONLY. A SQL backend answers with the
+    ...                column (0, what the model default writes); AWS omits an attribute it
+    ...                was never given. Absence and 0 are the same statement — the story
+    ...                never declared this item consumable — and only an explicit 1 is not.
+    [Arguments]    ${value}    ${what}
+    ${carried}=    Evaluate
+    ...    $value is None or $value is False or str($value) in ('0', 'False')
+    Should Be True    ${carried}    msg=${what} should read as carried-only, got ${value}
 
 Should Read As Clear
     [Documentation]    Asserts a flag column reads as CLEAR: 0 or false, never absent — the
@@ -243,16 +265,47 @@ An Edge Keeps Its Resource Price And Its Labels
     Should Be Equal As Integers    ${card_back}    2
 
 An Item Declaring Nothing Takes The Schema Default
-    [Documentation]    is_consumabile is NOT NULL DEFAULT 1 and the weight defaults to 1:
-    ...                an item that declares neither is consumable and weighs something, on
-    ...                every backend. AWS used to read the absence as a refusal, and the
-    ...                Python import forced the weight to 0.
+    [Documentation]    An item that declares no flags still tells the player what it does:
+    ...                flag_show_effects is 1 by default, so the promise is shown. AWS omits
+    ...                an attribute it was never given, a SQL backend answers with the
+    ...                column, and both readings mean the same thing.
     [Tags]    admin    import    v0358
     ${item}=    Entity With Id    items    2
-    ${consumable}=    Value Of    ${item}    isConsumabile
-    ${effects}=       Value Of    ${item}    flagShowEffects
-    Should Read As Set    ${consumable}    isConsumabile of an item that declares none
+    ${effects}=   Value Of    ${item}    flagShowEffects
     Should Read As Set    ${effects}       flagShowEffects of an item that declares none
+
+An Imported Item Declaring Nothing Cannot Be Consumed
+    [Documentation]    v0.36.3 — what nobody declared consumable can only be CARRIED. Until
+    ...                this version the three backends disagreed about the absence: AWS read
+    ...                it as consumable (v0.35.8, aligning with a schema default nothing on
+    ...                that backend ever writes) while java and python read it as carried —
+    ...                so the same story offered the player a USE that another backend
+    ...                refused. The reading is now the authored one everywhere: only an
+    ...                explicit yes makes an item usable.
+    [Tags]    admin    import    v0363
+    ${item}=    Entity With Id    items    2
+    ${consumable}=    Value Of    ${item}    isConsumabile
+    Should Not Read As Consumable    ${consumable}
+    ...    the isConsumabile of an item whose story never declared it
+
+An Item Created From The Console Without The Flag Cannot Be Consumed
+    [Documentation]    v0.36.3 — the path the bug actually came in by: the admin form sends
+    ...                a checkbox ONLY once it has been touched, so an item created without
+    ...                ticking "consumable" reaches the backend with no flag at all. What
+    ...                the console shows unticked must be what the API reports and what
+    ...                use-item refuses. The row is deleted again, so the fixture story is
+    ...                left exactly as the cases above found it.
+    [Tags]    admin    crud    v0363
+    &{body}=    Create Dictionary    idTextName=${1}    idCard=${1}    weight=${2}
+    ${created}=    Create Admin Entity    ${STORY_UUID}    items    ${body}
+    Should Be Equal As Integers    ${created.status_code}    201
+
+    ${uuid}=    Set Variable    ${created.json()}[uuid]
+    ${stored}=    Entity With Uuid    items    ${uuid}
+    ${consumable}=    Value Of    ${stored}    isConsumabile
+    Should Not Read As Consumable    ${consumable}
+    ...    the isConsumabile of an item created without the flag
+    [Teardown]    Delete Admin Entity    ${STORY_UUID}    items    ${uuid}
 
 An Item Declaring The Flags False Keeps Them False
     [Documentation]    What the story authors always wins over the default — and a falsy
@@ -281,6 +334,31 @@ Updating An Item With JSON Booleans Sticks
     ${effects}=       Value Of    ${updated}    flagShowEffects
     Should Read As Clear    ${consumable}    isConsumabile after the update
     Should Read As Clear    ${effects}       flagShowEffects after the update
+
+An Option Keeps The Effect Targets V0320 Gave It
+    [Documentation]    v0.36.3 — list_choices_effects has carried idEvent / idLocation /
+    ...                idWeather / idItemTarget / itemAction since V0.32.0, but the import
+    ...                mapped none of them: an imported story kept its options and lost the
+    ...                forced move, the item, the weather and the linked event they applied.
+    ...                The narrative half (uuid, card) went the same way, so an applied
+    ...                effect could not even be addressed in the resolution response.
+    [Tags]    admin    import    v0363
+    ${effect}=    Entity With Id    choice-effects    1
+    ${event}=     Value Of    ${effect}    idEvent
+    ${location}=  Value Of    ${effect}    idLocation
+    ${weather}=   Value Of    ${effect}    idWeather
+    ${item}=      Value Of    ${effect}    idItemTarget
+    ${action}=    Value Of    ${effect}    itemAction
+    ${card}=      Value Of    ${effect}    idCard
+    Should Be Equal As Integers    ${event}       6
+    Should Be Equal As Integers    ${location}    2
+    Should Be Equal As Integers    ${weather}     1
+    Should Be Equal As Integers    ${item}        2
+    Should Be Equal As Strings     ${action}      ADD
+    Should Be Equal As Integers    ${card}        1
+    ${uuid}=    Value Of    ${effect}    uuid
+    Should Not Be Equal    ${uuid}    ${None}
+    ...    msg=an applied effect is addressed by uuid; an imported one had none
 
 Deleting The Story Removes It Whole
     [Documentation]    Runs LAST: it takes the fixture down. The story points at its own

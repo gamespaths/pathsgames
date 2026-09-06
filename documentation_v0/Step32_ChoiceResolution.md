@@ -161,6 +161,13 @@ schema's `ON DELETE CASCADE`).
 See [Step09_DesignCoreDataModel.md](./Step09_DesignCoreDataModel.md) for the updated
 `ChoiceEffect` row and the new `INV-46`.
 
+**v0.36.3 — Java's story import never mapped these columns.** `importChoiceEffects` kept
+building `ChoiceEffectEntity` from only the pre-v0.32.0 fields; an imported story kept its
+options but lost the forced move, the item, the weather and the linked event they were meant
+to apply — plus `uuid`/`idCard`/`idTextName`/`idTextDescription`. Python and AWS always
+imported the full row. `importChoiceEffects` now maps all of them (a missing `uuid` is
+generated, as every other imported entity already does).
+
 ## 8. Validation — Step 22 `R1` extension
 
 Referential integrity (`R1`) is extended to the four new choice-effect columns: `idEvent` →
@@ -227,14 +234,15 @@ The Robot suite dry-runs clean (11 cases); it has **not** been executed against 
 
 # Version Control
 
-- **Document Version**: 0.35.6
+- **Document Version**: 0.36.3
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.32.0 | Choice resolution: select-choice applies list_choices_effects (stats, registry, items, forced movement, weather, inline events), runs id_event_torun, reveals the withheld narrative, records log_choices_executed + gaming_story_progress, writes CHOICE_SELECTED; charges nothing (the open paid); open-cycle cost-bypass guard; V0.32.0 choice-effect targets; react-game resolution flow | July 23, 2026 |
   | 0.35.6 | AWS bugfix: select-choice now resolves the party-collapse epilogue (`_resolve_epilogue`) like Java/Python always did, drains arrivals a forced move produces, and answers the epilogue once per request via a new latch. No schema change. | August 28, 2026 |
+  | 0.36.3 | Java bugfix: `importChoiceEffects` now maps the v0.32.0 targets (`idEvent`/`idLocation`/`idWeather`/`idItemTarget`/`itemAction`) plus `uuid`/`idCard`/`idTextName`/`idTextDescription` — an imported story previously kept its options but lost what they did. Python and AWS already imported the full row. | September 6, 2026 |
 
-- **Last Updated**: August 28, 2026
+- **Last Updated**: September 6, 2026
 - **Status**: Complete
 
 

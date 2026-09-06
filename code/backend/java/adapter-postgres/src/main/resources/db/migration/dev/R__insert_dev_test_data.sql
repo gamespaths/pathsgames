@@ -326,6 +326,8 @@ INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_descriptio
 INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90027, 9001, 90001, 503, 503, 90001, 'AUTOMATIC', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
 -- v0.29.3 teleporter: its effect moves the actor to 90006
 INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90028, 9001, 90001, 503, 503, 90001, 'NORMAL', 2, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+-- v0.36.3 bell: ends the time unit AND moves the actor to 90002, in the Records Vault (90009).
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90060, 9001, 90001, 503, 503, 90009, 'NORMAL', 0, 0, 1, NULL, NULL, NULL, NULL, NULL, NULL);
 
 -- ── Step 29 Event Effects — one per effect kind. The EFFECT's card is the narrative. ──
 INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES (90010, 9001, 90010, 90001, 'exp', 5, 'ONLY_ONE');
@@ -344,6 +346,9 @@ INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, va
 -- 90028 teleporter (v0.29.3): moves the actor to the Weather Observatory (90006), which is NOT
 -- a neighbor of the start location — no checks, no movement cost, only the event's energy cost.
 INSERT INTO list_events_effects (id, id_story, id_event, id_card, value, target, id_location) VALUES (90023, 9001, 90028, 90001, 0, 'ONLY_ONE', 90006);
+-- v0.36.3 — the bell moves into 90002, whose first arrival fires an automatic event: one
+-- execution reads the forced move, the time end it survives and the arrival it produces.
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, value, target, id_location) VALUES (90060, 9001, 90060, 90001, 0, 'ONLY_ONE', 90002);
 
 -- v0.34.0 inventory pair: 90050 is gated by item 90003, which 90051 grants. Because 90003
 -- is CONSUMABLE, using it must close 90050 again — the step-34 acceptance test. 90052 hands

@@ -12,6 +12,8 @@ import { updateMatchRegistry, deleteMatchRegistry } from '../../api/matchApi'
 
 const SINGLE = { uuid: 'r-1', key: 'signal', values: ['green'], multiValue: false }
 const MULTI  = { uuid: 'r-2', key: 'case_notes', values: ['Ledger', 'letter'], multiValue: true }
+// v0.36.3 — only the admin payload carries one of these.
+const HIDDEN = { uuid: 'r-3', key: 'secret_plan', values: ['ready'], multiValue: false, visible: false }
 
 describe('RegistryCard', () => {
   beforeEach(() => {
@@ -20,11 +22,41 @@ describe('RegistryCard', () => {
     deleteMatchRegistry.mockResolvedValue({ key: 'signal', values: [] })
   })
 
-  it('renders the key, its whole set and the multi flag', () => {
+  it('renders the key, every member of its set and the multi flag', () => {
     render(<RegistryCard registry={[SINGLE, MULTI]} />)
     expect(screen.getByText('signal')).toBeInTheDocument()
-    expect(screen.getByText('Ledger, letter')).toBeInTheDocument()
+    // v0.36.3 — one column holds the whole set, a chip per member rather than a joined string.
+    expect(screen.getByText('Ledger')).toBeInTheDocument()
+    expect(screen.getByText('letter')).toBeInTheDocument()
     expect(screen.getByText('yes')).toBeInTheDocument()
+  })
+
+  it('shows the members without a ✕ when there is no match to write to', () => {
+    render(<RegistryCard registry={[MULTI]} />)
+    expect(screen.getByText('Ledger')).toBeInTheDocument()
+    expect(screen.queryByLabelText(/^Remove /)).not.toBeInTheDocument()
+  })
+
+  it('says of every key whether the player can see it', () => {
+    render(<RegistryCard registry={[SINGLE, HIDDEN]} />)
+    expect(screen.getByText('public')).toBeInTheDocument()
+    expect(screen.getByText('hidden')).toBeInTheDocument()
+  })
+
+  it('counts the hidden keys in the title, so the console knows what it is holding', () => {
+    render(<RegistryCard registry={[SINGLE, HIDDEN]} />)
+    expect(screen.getByText(/Registry \(2\)/)).toBeInTheDocument()
+    expect(screen.getByText(/1 hidden/)).toBeInTheDocument()
+  })
+
+  it('says nothing about hidden keys when every one of them is public', () => {
+    render(<RegistryCard registry={[SINGLE, MULTI]} />)
+    expect(screen.queryByText(/hidden/)).not.toBeInTheDocument()
+  })
+
+  it('treats an entry with no visible flag as public — an older payload is not a secret', () => {
+    render(<RegistryCard registry={[{ key: 'legacy', values: ['x'], multiValue: false }]} />)
+    expect(screen.getByText('public')).toBeInTheDocument()
   })
 
   it('shows an em dash for a key whose set is empty', () => {
@@ -71,6 +103,36 @@ describe('RegistryCard', () => {
 
     await waitFor(() => expect(deleteMatchRegistry)
       .toHaveBeenCalledWith('m-1', 'case_notes', 'Ledger'))
+  })
+
+  it('puts the ✕ on the button and leaves the member itself as text', async () => {
+    render(<RegistryCard registry={[MULTI]} matchUuid="m-1" />)
+
+    // The clickable thing is the ✕, named for what it removes; the value is not a button.
+    const remove = screen.getByLabelText('Remove Ledger from case_notes')
+    expect(remove.tagName).toBe('BUTTON')
+    expect(remove).toHaveTextContent('')
+    expect(screen.getAllByText('Ledger').some(el => el.closest('button'))).toBe(false)
+
+    await userEvent.click(remove)
+    await waitFor(() => expect(deleteMatchRegistry)
+      .toHaveBeenCalledWith('m-1', 'case_notes', 'Ledger'))
+  })
+
+  it('wraps the member list instead of running it off the table', () => {
+    render(<RegistryCard registry={[MULTI]} matchUuid="m-1" />)
+
+    const chip = screen.getByLabelText('Remove Ledger from case_notes').closest('span')
+    expect(chip.parentElement).toHaveStyle({ display: 'flex', flexWrap: 'wrap' })
+  })
+
+  it('gives a single-valued key the same chip — its ✕ is the compare-and-clear', async () => {
+    render(<RegistryCard registry={[SINGLE]} matchUuid="m-1" />)
+
+    await userEvent.click(screen.getByLabelText('Remove green from signal'))
+
+    await waitFor(() => expect(deleteMatchRegistry)
+      .toHaveBeenCalledWith('m-1', 'signal', 'green'))
   })
 
   it('adds a key the match has never written', async () => {

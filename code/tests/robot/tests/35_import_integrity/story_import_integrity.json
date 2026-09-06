@@ -18,6 +18,35 @@
     }
   ],
   "category": "robottest",
+  "choiceEffects": [
+    {
+      "flagGroup": 0,
+      "id": 1,
+      "idCard": 1,
+      "idChoices": 1,
+      "idEvent": 6,
+      "idItemTarget": 2,
+      "idLocation": 2,
+      "idWeather": 1,
+      "itemAction": "ADD",
+      "statistics": "exp",
+      "uuid": "f0360003-0000-4000-8000-000000000001",
+      "value": 1
+    }
+  ],
+  "choices": [
+    {
+      "id": 1,
+      "idCard": 1,
+      "idEvent": 5,
+      "idTextDescription": 2,
+      "idTextName": 1,
+      "isProgress": 0,
+      "logicOperator": "AND",
+      "otherwiseFlag": 1,
+      "priority": 1
+    }
+  ],
   "creators": [
     {
       "id": 1,

@@ -276,6 +276,15 @@ def seed():
             {"id": 28, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
              "idSpecificLocation": 1, "costEnery": 2, "idCard": 1,
              "effects": [{"idCard": 1, "target": "ONLY_ONE", "idLocation": 3}]},
+            # v0.36.3 — the bell BOTH moves the actor and ends the time unit, the pair that
+            # used to cancel each other out (the time-start pass wrote the roster back as it
+            # was, undoing the move). It moves into location 2, whose first arrival fires an
+            # automatic event, so one execution exercises the arrival it produced too. It
+            # lives in the Records Vault (6), not at the start: no suite picking "any
+            # available event" can trip over it.
+            {"id": 60, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 6, "costEnery": 0, "flagEndTime": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE", "idLocation": 2}]},
             # Step 31 — the choice-engine test-bed: executing these answers CHOICES_PENDING
             # (cost paid, marker written, effects withheld). Event 30 even carries an effect
             # that must NEVER run while pending; 31 is ONCE. Cost 2 on 30 keeps the "cost 1"

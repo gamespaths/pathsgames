@@ -320,8 +320,12 @@ different places.
 Any response that can cause a character to arrive somewhere carries the events firing
 produced: `POST movements/start` (an ordinary move), and `POST action/execute-event` and
 `POST action/select-choice`, because either can move a character through an effect, which is
-itself an arrival (§5's forced-movement note). Each entry is one fired event and its whole
-`id_event_next` chain:
+itself an arrival (§5's forced-movement note). **This held as a contract before it held as
+code**: until v0.36.3, AWS's `execute-event` never drained its own forced-move arrivals and
+answered no `automaticEvents` key at all, and Python's `execute-event` response mapper
+dropped the field the engine had queued since this step — both are fixed now, see
+[Step29 — "two AWS-only bugs"](./Step29_NormalEvents.md#3-execution). Each entry is one fired
+event and its whole `id_event_next` chain:
 
 ```jsonc
 "automaticEvents": [
@@ -495,7 +499,7 @@ server.
 
 # Version Control
 
-- **Document Version**: 0.35.6
+- **Document Version**: 0.36.3
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -503,8 +507,9 @@ server.
   | 0.33.2 | Rename, no behaviour change: `id_event_if_character_enter_first_time` becomes `id_event_if_character_enter_empty_location` and its trigger `FIRST_IN_LOCATION` becomes `MOVE_INTO_EMPTY_LOCATION`, because the column never had anything to do with a first time — it fires when the arriving character finds nobody else there. Renamed by `V0.33.2__rename_enter_empty_location.sql` with **no read alias**, so an old story JSON silently loses the trigger and AWS story items must be re-seeded (§2, §5). | August 13, 2026 |
   | 0.33.1 | Bugfix on the sleep response's `counterZero[]` items: `card` used to be the location's, so the player woke to the name of a place instead of the news of what happened in it. `card` now carries the event's narrative, `cardLocation` holds what it used to, `cardEffects` carries one `AppliedEffect` per effect row, and fog of war hides all three together (§3, §8). | August 13, 2026 |
   | 0.33.0 | Location entry events, implemented: five triggers bound on `list_locations` rather than on the event, resolved in two passes with a specified cross-location order, and counter-zero events finally executed — closing the dead end Step 26 left. `V0.33.0__location_entry_events.sql` adds `gaming_state_locations.flag_visited` and `log_events.id_location`; automatic events never own choices, and `automaticEvents[]` / `counterZero[]` join the movement, event and sleep responses (§1-§10). | August 12, 2026 |
+  | 0.36.3 | Bugfix, AWS + Python: `execute-event` on AWS never drained its own forced-move arrivals, and Python's `execute-event` response mapper never mapped `automaticEvents[]`. Both now answer it like `select-choice` and `movements/start` always did. See [Step29 §3](./Step29_NormalEvents.md#3-execution). | September 6, 2026 |
 
-- **Last Updated**: August 28, 2026
+- **Last Updated**: September 6, 2026
 - **Status**: Complete
 
 

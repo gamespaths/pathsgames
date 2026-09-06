@@ -249,10 +249,12 @@ def _detail_from_item(item, players=None, lang='en', all_locations=False,
         "currentLocationId": current_id,
         "currentLocationUuid": current_uuid,
         "locations": location_states,
-        # Step 36 — the same joined entries the /registry endpoint answers, visible keys only,
-        # so the board renders its registry section without a second request and the two
-        # payloads cannot disagree. Hidden keys are never on /info, whoever asks.
-        "registry": _registry.list_entries(item, story, include_hidden=False),
+        # Step 36 — the same joined entries the /registry endpoint answers, so the board
+        # renders its registry section without a second request and the two payloads cannot
+        # disagree. A hidden key never reaches a PLAYER; v0.36.3 gives the whole set to the
+        # ADMIN view, which is the same door all_locations already opens, and every entry
+        # says which it is through `visible`.
+        "registry": _registry.list_entries(item, story, include_hidden=all_locations),
         "events": [],
         "choices": [],
         # Step 21 — the players/characters of the match (summary rows).
@@ -618,6 +620,17 @@ def _match_characters(match_uuid):
     """Return the CHARACTER# items stored under the match partition."""
     items = db_utils.query_by_pk(f'MATCH#{match_uuid}') or []
     return [i for i in items if str(i.get('SK', '')).startswith('CHARACTER#')]
+
+
+def _reread_characters(match_uuid, touched):
+    """v0.36.3 — the roster, with the rows this request already changed kept as they are.
+
+    A character just written and read back again is the same row twice, and writing the
+    re-read copy discards what the request did to it — an event that moved somebody and
+    ended the time unit put them back where they started.
+    """
+    by_uuid = {c.get('uuid'): c for c in (touched or {}).values() if c is not None}
+    return [by_uuid.get(c.get('uuid'), c) for c in _match_characters(match_uuid)]
 
 
 def _nz(value):
@@ -2905,7 +2918,7 @@ def _execute_event(user, match_uuid, body, lang='en'):
     current_clock = _nz(match.get('currentClock'))
     time_ended = False
     if flags['endTime'] and not flags['comaTriggered']:
-        for c in _match_characters(match_uuid):
+        for c in _reread_characters(match_uuid, touched):
             c['isSleeping'] = 1
             db_utils.put_item(c)
         current_clock, _recovery, _fired, time_edge = _advance_time(match, match_uuid)
@@ -2914,6 +2927,15 @@ def _execute_event(user, match_uuid, body, lang='en'):
         _fold_edge_uuids(edge_state, time_edge)
         time_ended = True
     else:
+        db_utils.put_item(match)
+
+    # v0.36.3 — an effect may have pushed somebody somewhere, and arriving is a trigger.
+    # java drains here (after the time-end branch) and select-choice already did; only
+    # execute-event never resolved its own forced moves.
+    automatic_events = _drain_arrivals(
+        match, match_uuid, story, location_changes, edge_state, location_uuids, lang,
+        edge_state['allPlayersInComa'])
+    if automatic_events:
         db_utils.put_item(match)
 
     # The epilogue is sliced off the tail so the board can tell it from the player's chain.
@@ -2927,7 +2949,7 @@ def _execute_event(user, match_uuid, body, lang='en'):
         chain_effects, coma_effects = applied_effects[:mark_f], applied_effects[mark_f:]
 
     changed = any([time_ended, flags['itemAdded'], flags['itemRemoved'],
-                   flags['weatherApplied'], flags['movementApplied'],
+                   flags['weatherApplied'], flags['movementApplied'], automatic_events,
                    flags['comaTriggered'], flags['gameOver'],
                    edge_state['sadnessOverflowUuids'], edge_state['comaUuids'],
                    edge_state['allPlayersInComa'],
@@ -2967,6 +2989,9 @@ def _execute_event(user, match_uuid, body, lang='en'):
         "itemChanges": item_changes,
         "characteristicChanges": characteristic_changes,
         "locationChanges": location_changes,
+        # v0.36.3 — what the destination did about a forced move, exactly as a movement
+        # and a choice resolution answer it.
+        "automaticEvents": automatic_events,
         "effects": chain_effects,
         # Empty by definition on APPLIED — the options ride on CHOICES_PENDING only.
         "pendingChoices": [],
@@ -3561,8 +3586,9 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
     # v0.35.6 — a forced move is an arrival like any other, and java and python drain these
     # while AWS silently did not. After the writes above, because the destination re-reads
     # the characters; and told that the epilogue is spent, so it cannot run a second time.
-    _drain_arrivals(match, match_uuid, story, acc, location_uuids, lang,
-                    acc['edgeState']['allPlayersInComa'])
+    automatic_events = _drain_arrivals(
+        match, match_uuid, story, acc['locationChanges'], acc['edgeState'], location_uuids,
+        lang, acc['edgeState']['allPlayersInComa'])
 
     # ── close the cycle: the marker, the history row, the milestone ──
     clock = _nz(match.get('currentClock'))
@@ -3596,7 +3622,7 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
     current_clock = clock
     time_ended = False
     if acc['flags']['endTime'] and not acc['flags']['comaTriggered']:
-        for c in _match_characters(match_uuid):
+        for c in _reread_characters(match_uuid, acc['touched']):
             c['isSleeping'] = 1
             db_utils.put_item(c)
         current_clock, _recovery, _fired, time_edge = _advance_time(match, match_uuid)
@@ -3659,6 +3685,9 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
         "itemChanges": acc['itemChanges'],
         "characteristicChanges": acc['characteristicChanges'],
         "locationChanges": acc['locationChanges'],
+        # v0.36.3 — what the destinations of the forced moves did about the arrivals, the
+        # same list a movement answers with. java has carried it since Step 33.
+        "automaticEvents": automatic_events,
         "effects": chain_effects,
         "pendingChoices": pending,
         "edgeState": {
@@ -3794,14 +3823,17 @@ def _apply_edge_states(match, caller, acc, event_id):
                 acc['flags']['comaTriggered'] = True
 
 
-def _drain_arrivals(match, match_uuid, story, acc, location_uuids, lang, epilogue_done):
+def _drain_arrivals(match, match_uuid, story, location_changes, edge_state, location_uuids,
+                    lang, epilogue_done):
     """Every character an effect pushed somewhere has ARRIVED there, and arriving is a
     trigger. Each destination is resolved once, in the order the moves were applied.
 
     The edges those arrivals opened are folded into this request's verdict: the uuids only,
     since each arrival keeps its own chain and this response has no room for another one.
+    v0.36.3 — what they fired is RETURNED, so the response can carry it as java does.
     """
-    for change in list(acc['locationChanges']):
+    fired_all = []
+    for change in list(location_changes or []):
         moved_to = location_uuids_inverse(location_uuids, change.get('toLocationUuid'))
         if moved_to is None:
             continue
@@ -3809,7 +3841,9 @@ def _drain_arrivals(match, match_uuid, story, acc, location_uuids, lang, epilogu
         _resolve_arrival(match, match_uuid, story, change.get('characterUuid'), moved_to,
                          lang, 1, out, epilogue_done)
         for fired in out:
-            _fold_edge_uuids(acc['edgeState'], fired.get('edgeState'))
+            _fold_edge_uuids(edge_state, fired.get('edgeState'))
+        fired_all.extend(out)
+    return fired_all
 
 
 def _merge_edge_states(parts):

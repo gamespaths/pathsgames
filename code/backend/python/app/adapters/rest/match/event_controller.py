@@ -17,6 +17,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from app.core.models.match import location_entry_models as lem
 from app.core.models.match.event_models import (
     AppliedEffect, ChoiceResolutionResult, EntityChange, EventError,
     EventExecutionResult, LocationChange, RegistryChange, StatChange,
@@ -127,6 +128,10 @@ def _result_to_camel(r: EventExecutionResult) -> dict:
             _entity_to_camel(c, "characteristic") for c in r.characteristic_changes
         ],
         "locationChanges": [_location_to_camel(c) for c in r.location_changes],
+        # v0.36.3 — what the destination did about a forced move. The engine has queued
+        # these since Step 33 and java has answered with them; only this mapper dropped them.
+        "automaticEvents": [lem.to_camel_automatic_event(f)
+                            for f in (r.automatic_events or [])],
         "effects": [_effect_to_camel(e) for e in r.effects],
         "pendingChoices": r.pending_choices,
         "edgeState": _edge_state_to_camel(r.edge_state),

@@ -358,6 +358,7 @@ INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_descriptio
 (90026, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- resources: food/magic/coin
 (90027, 9001, 90001, 503, 503, 90001, 'AUTOMATIC', 0, 0, 0, NULL, NULL, NULL,           NULL,   NULL,  NULL),   -- EVENT_NOT_EXECUTABLE_TYPE
 (90028, 9001, 90001, 503, 503, 90001, 'NORMAL',    2, 0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- v0.29.3 teleporter: its effect moves the actor to 90006
+(90060, 9001, 90001, 503, 503, 90009, 'NORMAL',    0, 0, 1, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- v0.36.3 bell: ends the time unit AND moves the actor to 90002
 -- v0.34.0 inventory pair: 90029 is gated by item 90003, which 90030 grants. Because 90003
 -- is CONSUMABLE, using it must close 90029 again — that is the step-34 acceptance test.
 (90050, 9001, 90001, 503, 503, 90001, 'NORMAL',    0, 0, 0, NULL,  NULL, NULL,           NULL,  90003,  NULL),   -- ITEM_CONDITION_NOT_MET until 90051 grants item 90003
@@ -425,6 +426,12 @@ INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, va
 -- a neighbor of the start location — no checks, no movement cost, only the event's energy cost.
 INSERT INTO list_events_effects (id, id_story, id_event, id_card, value, target, id_location) VALUES
 (90023, 9001, 90028, 90001, 0, 'ONLY_ONE', 90006);
+
+-- v0.36.3 — the bell (90060) moves the actor to the Movement Training Room (90002) AND ends
+-- the time unit. The two together used to cancel each other out on AWS, and 90002 is where
+-- a first arrival fires an automatic event, so one execution reads both fixes at once.
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, value, target, id_location) VALUES
+(90060, 9001, 90060, 90001, 0, 'ONLY_ONE', 90002);
 
 -- ── Step 33 Events — the ones nobody asks for ───────────────────
 -- Bound to no location of their own: an automatic event is named BY the location, through

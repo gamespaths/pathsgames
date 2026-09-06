@@ -718,13 +718,16 @@ class StoryEntitiesTest {
     class ItemEntityTests {
 
         @Test
-        @DisplayName("@PrePersist sets defaults: weight=1, isConsumabile=1")
+        @DisplayName("@PrePersist sets defaults: weight=1, isConsumabile=0 (carried only)")
         void prePersist_defaults() {
+            // v0.36.3 — an item nobody declared consumable can only be carried: the console
+            // never sends an untouched checkbox, and what it shows unticked must be what
+            // use-item refuses.
             ItemEntity e = new ItemEntity();
             e.onCreate();
             assertAll(
                 () -> assertEquals(1, e.getWeight()),
-                () -> assertEquals(1, e.getIsConsumabile())
+                () -> assertEquals(0, e.getIsConsumabile())
             );
         }
 

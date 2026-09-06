@@ -32,7 +32,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `33_location_events` | Step 33 automatic location events (see breakdown below) |
 | `34_inventory` | Steps 34/35 inventory, resources, use/drop, effects preview, quantities, v0.35.4 item logs (see breakdown below) |
 | `35_import_integrity` | v0.35.8 import/schema/admin-CRUD regressions — ships its own story, no seed (see breakdown below) |
-| `36_registry` | Step 36 registry read API + v0.36.1 multi-valued keys (see breakdown below) |
+| `36_registry` | Step 36 registry read API, v0.36.1 multi-valued keys + v0.36.3 `forced_move.robot` (see breakdown below) |
 
 ### `19_match` breakdown
 
@@ -198,13 +198,16 @@ the others rather than trail them.
 
 ### `36_registry` breakdown
 
-`registry.robot` (11 tests) — `GET /api/match/{uuid}/registry`: the visible keys grouped by
+`registry.robot` (12 tests) — `GET /api/match/{uuid}/registry`: the visible keys grouped by
 their `list_keys` category, `?includeHidden=true` as an owner-only superset, the same entries
 riding on `/info`, and exactly one `REGISTRY_CHANGE` row per write. Since v0.36.1 every entry
 answers with `values` (a list of rendered strings) and `multiValue`, so two cases guard the
 shape itself: a key the story did not declare multi holds at most one member, and no set ever
 carries a duplicate or breaks the backend's ordering (numbers numerically first, then the rest
 alphabetically).
+v0.36.3 added the admin half: the registry on `GET /api/admin/matches/{uuid}/info` is a
+superset of the player's, every entry carries `visible`, and no key marked hidden reaches
+the player view.
 
 `registry_multi_value.robot` (v0.36.1, 11 tests) — the SET semantics end to end. A multi key
 with no default starts EMPTY (the entry is there, `values` is `[]` — an empty set is the
@@ -231,9 +234,26 @@ addressed by seeded id: the key is the one the story declares multi, the adders 
 whose effects write it. Each writing case runs on its own guest and its own match, since a set
 latches.
 
+### `36_registry/forced_move.robot` breakdown
+
+`forced_move.robot` (5 tests) — v0.36.3, the two things that happen AROUND a forced move.
+An event that moves the actor AND ends the time unit used to put them back where they
+started (the time start re-read the roster and wrote the pre-move row on top, which on AWS
+is what an eventually consistent read hands back), so the case reads the position from
+match-info rather than believing `movementApplied`, and the timeline must carry the cost-0
+MOVEMENT row. The other half is Step 33: being pushed into a place is arriving there, so
+the destination's `FIRST_ENTRY` trigger fires and rides on the response as
+`automaticEvents` — a key AWS execute-event never sent and the python mapper dropped; one
+case asserts it is present even when empty. The fixture is the seeded "bell", found by
+BEHAVIOUR (the only event that both ends the time unit and carries an effect with an
+idLocation), never by uuid; it sits in the Records Vault rather than at the start location
+so no suite picking "any available event" can trip over it. Every case runs on its own
+guest and its own match — the move strands the character and the arrival latches
+flagVisited.
+
 ### `35_import_integrity` breakdown
 
-`import_integrity.robot` (14 tests) — the v0.35.8 round of import, schema and admin-CRUD
+`import_integrity.robot` (17 tests) — the v0.35.8 round of import, schema and admin-CRUD
 fixes. Every case failed against a real PostgreSQL deployment while passing on a local
 SQLite one, or imported "successfully" and silently dropped what it was given.
 
@@ -251,6 +271,13 @@ declaring them false (what is authored wins). The last two cases leave the impor
 carrying real JSON booleans (the update path set them raw, which PostgreSQL refuses), and
 the delete, which has to clear the story's own forward references and remove the creator
 last.
+
+v0.36.3 added three cases and the rows they read: an option carrying all five v0.32.0
+effect targets (`idEvent`, `idLocation`, `idWeather`, `idItemTarget`, `itemAction`)
+plus its uuid and card, none of which the java import ever mapped; and the two halves
+of the consumable default — an imported item that declares no `isConsumabile`, and one
+created from the console without the flag (the admin form sends a checkbox only once
+touched), both of which must read as carried-only rather than usable.
 
 Backend-agnostic by construction: a SQL backend answers with the column (0/1, the default
 where nothing was authored) while AWS answers with the attribute as authored and omits what

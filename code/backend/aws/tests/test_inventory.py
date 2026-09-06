@@ -337,24 +337,29 @@ def test_a_dangling_row_still_loses_to_the_state_gates():
 
 # ── the consumable flag ─────────────────────────────────────────────────────
 
-def test_is_consumable_reads_a_missing_flag_as_yes():
-    """v0.35.8 — the shared schema declares is_consumabile NOT NULL DEFAULT 1, and Java's
-    @PrePersist writes 1. A story that never authored the field must behave the same on
-    every backend: reading the absence as a refusal made an item usable on Java/Python and
-    dead here."""
+def test_is_consumable_reads_a_missing_flag_as_no():
+    """v0.36.3 — what nobody declared consumable can only be carried.
+
+    v0.35.8 read the absence as a yes, to match a schema default of 1 that nothing on this
+    backend ever writes: an item created from the console (which never sends an untouched
+    checkbox) became usable, and the game offered USE on it.
+    """
     # a story item that never authored the field at all
-    assert inventory.is_consumable({'id': 900, 'uuid': 'item-900'}) is True
-    assert inventory.is_consumable(None) is True
-    # only an explicit non-1 refuses
+    assert inventory.is_consumable({'id': 900, 'uuid': 'item-900'}) is False
+    assert inventory.is_consumable(None) is False
+    # only an explicit 1 allows it
     assert inventory.is_consumable({'isConsumabile': 1}) is True
     assert inventory.is_consumable({'isConsumabile': True}) is True
     assert inventory.is_consumable({'isConsumabile': 0}) is False
     assert inventory.is_consumable({'isConsumabile': False}) is False
 
 
-def test_use_is_refused_only_by_an_explicit_zero():
+def test_use_is_allowed_only_by_an_explicit_one():
     match, char = {'status': 'RUNNING'}, {'uuid': 'c-1'}
     bare = {'id': 900, 'uuid': 'item-900'}
-    assert inventory.check(match, char, bare, require_consumable=True) is None
+    assert inventory.check(match, char, bare,
+                           require_consumable=True) == 'ITEM_NOT_CONSUMABLE'
+    assert inventory.check(match, char, dict(bare, isConsumabile=1),
+                           require_consumable=True) is None
     assert inventory.check(match, char, dict(bare, isConsumabile=0),
                            require_consumable=True) == 'ITEM_NOT_CONSUMABLE'

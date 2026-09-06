@@ -59,7 +59,11 @@ public class ItemEntity extends BaseStoryScopedEntity {
     @PrePersist
     protected void onCreate() {
         if (weight == null) weight = 1;
-        if (isConsumabile == null) isConsumabile = 1;
+        // v0.36.3 — an item nobody declared consumable is one that can only be carried.
+        // The column still defaults to 1 for a raw INSERT (seeds spell it out anyway); every
+        // writer that goes through the model sends the explicit 0, so what the admin form
+        // shows unticked is what the engine refuses to consume.
+        if (isConsumabile == null) isConsumabile = 0;
     }
 
     // === Getters & Setters ===

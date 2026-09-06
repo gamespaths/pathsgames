@@ -10,6 +10,7 @@ from app.core.models.match.event_models import (
     AppliedEffect, ChoiceResolutionResult, EntityChange, EventError,
     EventExecutionResult, LocationChange, RegistryChange, StatChange,
 )
+from app.core.models.match.location_entry_models import AutomaticEventFired
 
 URL = "/api/gameplay/m1/action/execute-event"
 BODY = {"eventUuid": "evt-1"}
@@ -176,6 +177,32 @@ def _resolution() -> ChoiceResolutionResult:
         choice_event_card={"title": "Beyond the door"},
         progress_recorded=True,
     )
+
+
+def test_execute_event_carries_what_a_forced_move_fired(env):
+    """v0.36.3 — the arrivals a forced move produced ride on the response, as on java."""
+    client, port = env
+    result = _result()
+    result.automatic_events = [AutomaticEventFired(
+        trigger="FIRST_ENTRY", id_location=7, event_uuid="evt-entry",
+        card={"title": "The gate closes"},
+        location_changes=[LocationChange("char-1", "loc-b", "loc-c")])]
+    port.execute_event.return_value = result
+
+    body = client.post(URL, json=BODY, headers=AUTH).json()
+
+    assert body["automaticEvents"][0]["trigger"] == "FIRST_ENTRY"
+    assert body["automaticEvents"][0]["idLocation"] == 7
+    assert body["automaticEvents"][0]["eventUuid"] == "evt-entry"
+    assert body["automaticEvents"][0]["locationChanges"][0]["toLocationUuid"] == "loc-c"
+
+
+def test_execute_event_always_carries_the_automatic_events_key(env):
+    """Empty is the normal case: the board must not tell it from an old backend."""
+    client, port = env
+    port.execute_event.return_value = _result()
+
+    assert client.post(URL, json=BODY, headers=AUTH).json()["automaticEvents"] == []
 
 
 def test_select_choice_returns_the_execution_block_and_the_choice_fields(env):

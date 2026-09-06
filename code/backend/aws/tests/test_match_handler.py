@@ -1567,3 +1567,70 @@ def test_admin_match_info_keeps_all_locations_but_same_fog(mock_jwt):
     nb = body['locationsActive'][0]['neighbors'][0]
     assert nb['cardLocationFrom']['title'] == 'Hall'
     assert nb['cardLocationTo'] is None
+
+
+# ── v0.36.3 — the admin match-info registry carries the hidden keys ────────────
+
+_HIDDEN_KEY_MATCH = {
+    'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'status': 'RUNNING',
+    'userCreatorUuid': 'player-uuid-001', 'storyUuid': 's1',
+    'registry': [{'uuid': 'r-1', 'key': 'signal', 'stringValue': 'green'},
+                 {'uuid': 'r-2', 'key': 'secret_plan', 'stringValue': 'ready'}],
+}
+
+_HIDDEN_KEY_STORY = {
+    'PK': 'STORY#s1', 'SK': 'METADATA', 'uuid': 's1',
+    'keys': [{'id': 1, 'keyName': 'signal', 'visibility': 'PUBLIC'},
+             {'id': 2, 'keyName': 'secret_plan', 'visibility': 'PRIVATE'}],
+}
+
+
+def _hidden_key_get_side(pk, sk='METADATA'):
+    if pk == 'USER#admin-uuid-001':
+        return ADMIN_USER
+    if pk == 'USER#player-uuid-001':
+        return PLAYER_USER
+    if pk.startswith('MATCH#'):
+        return dict(_HIDDEN_KEY_MATCH)
+    if pk.startswith('STORY#'):
+        return _HIDDEN_KEY_STORY
+    return None
+
+
+def _registry_keys(body):
+    return {e['key']: e for e in body['registry']}
+
+
+@patch('match.handler.db_utils.query_by_pk', return_value=[])
+@patch('match.handler.db_utils.get_item', side_effect=_hidden_key_get_side)
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
+def test_admin_match_info_carries_the_hidden_keys_and_says_which(_jwt, _get, _query):
+    """The console is the one reader that must see the whole state, labelled."""
+    from match.handler import lambda_handler
+    event = make_event('GET', '/api/admin/matches/m1/info',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_admin'},
+                       path_params={'uuidMatch': 'm1'})
+    result = lambda_handler(event, {})
+
+    assert result['statusCode'] == 200
+    entries = _registry_keys(_body(result))
+    assert set(entries) == {'signal', 'secret_plan'}
+    assert entries['signal']['visible'] is True
+    assert entries['secret_plan']['visible'] is False
+
+
+@patch('match.handler.db_utils.query_by_pk', return_value=[])
+@patch('match.handler.db_utils.get_item', side_effect=_hidden_key_get_side)
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'})
+def test_player_match_info_still_hides_them(_jwt, _get, _query):
+    """The player door does not move: /info has never carried a hidden key."""
+    from match.handler import lambda_handler
+    event = make_event('GET', '/api/match/m1/info',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_player'},
+                       path_params={'uuidMatch': 'm1'})
+    result = lambda_handler(event, {})
+
+    assert result['statusCode'] == 200
+    assert list(_registry_keys(_body(result))) == ['signal']

@@ -613,6 +613,48 @@ class StoryImportServiceTest {
         }
 
         @Test
+        @DisplayName("Should import the v0.32.0 effect targets of a choiceEffect")
+        void importStory_withChoiceEffectTargets() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "cet-uuid");
+            data.put("choiceEffects", List.of(Map.of("idChoices", 4, "uuid", "eff-1", "idCard", 7,
+                    "idEvent", 11, "idLocation", 12, "idWeather", 13,
+                    "idItemTarget", 14, "itemAction", "ADD")));
+            setupStory("cet-uuid");
+            when(persistencePort.saveChoiceEffects(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            verify(persistencePort).saveChoiceEffects(argThat(list -> {
+                ChoiceEffectEntity e = (ChoiceEffectEntity) list.get(0);
+                return list.size() == 1
+                        && "eff-1".equals(e.getUuid())
+                        && e.getIdCard() == 7
+                        && e.getIdEvent() == 11
+                        && e.getIdLocation() == 12
+                        && e.getIdWeather() == 13
+                        && e.getIdItemTarget() == 14
+                        && "ADD".equals(e.getItemAction());
+            }));
+        }
+
+        @Test
+        @DisplayName("A choiceEffect without a uuid still gets one")
+        void importStory_withChoiceEffectWithoutUuid() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "ceu-uuid");
+            data.put("choiceEffects", List.of(Map.of("idChoices", 4, "statistics", "life", "value", 1)));
+            setupStory("ceu-uuid");
+            when(persistencePort.saveChoiceEffects(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            verify(persistencePort).saveChoiceEffects(argThat(list ->
+                    ((ChoiceEffectEntity) list.get(0)).getUuid() != null
+                            && !((ChoiceEffectEntity) list.get(0)).getUuid().isBlank()));
+        }
+
+        @Test
         @DisplayName("Should import classBonuses")
         void importStory_withClassBonuses() {
             Map<String, Object> data = new HashMap<>();

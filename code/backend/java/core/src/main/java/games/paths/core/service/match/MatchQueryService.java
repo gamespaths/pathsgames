@@ -439,9 +439,11 @@ public class MatchQueryService implements MatchQueryPort {
         }
         detail.setLocations(stateModels);
 
+        // v0.36.3 — a hidden key never reaches a PLAYER; the ADMIN view gets the whole set,
+        // the same door allLocations already opens, and every entry says which it is.
         detail.setRegistry(registryService == null
                 ? new ArrayList<>()
-                : registryService.listEntries(match.getId(), match.getIdStory(), false, lang));
+                : registryService.listEntries(match.getId(), match.getIdStory(), allLocations, lang));
 
         // Step 21 — populate the players/characters of the match (empty when no
         // character read port is wired, e.g. in the legacy 3-arg constructor).

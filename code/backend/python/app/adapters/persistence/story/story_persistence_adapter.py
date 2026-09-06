@@ -485,6 +485,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     # made an item that never declared a weight weigh nothing.
                     weight=item.get("weight"),
                     # v0.34.0 — step 34 gates use-item on these three.
+                    # v0.36.3 — absent means NOT consumable (the model default), so an
+                    # imported item that never declared the flag is carried, never used.
                     is_consumabile=item.get("isConsumabile"),
                     # v0.35.0 — absent stays None, which reads as "show the effects": an
                     # old story file keeps behaving exactly as before the column existed.

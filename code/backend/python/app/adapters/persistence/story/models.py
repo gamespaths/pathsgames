@@ -251,7 +251,10 @@ class ItemEntity(Base):
     # its @PrePersist: an item that does not declare a weight still weighs something.
     weight = Column(Integer, default=1)
     # 1 = can be consumed with use-item; 0 = carried only (weight + item conditions).
-    is_consumabile = Column(Integer, default=1)
+    # v0.36.3 — an item nobody declared consumable can only be carried: the default is 0,
+    # so what the admin form shows unticked is what use-item refuses. The SQL column still
+    # defaults to 1 for a raw INSERT; every writer here sends an explicit value.
+    is_consumabile = Column(Integer, default=0)
     # v0.35.0 — 1/None report the effects[] promise before the item is used, 0 keeps the
     # secret. Nullable: a story authored before the column existed already shipped the
     # promise, so an absence must read as "shown", never as a refusal.

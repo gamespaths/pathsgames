@@ -118,15 +118,16 @@ def check(match, char, item, *, require_consumable):
 
 
 def is_consumable(item):
-    """v0.35.8 — may this item be used up? Only an explicit non-1 refuses.
+    """May this item be used up? Only an explicit 1 allows it.
 
-    A missing key is the reading of every story that never authored the field, and the
-    shared schema says such an item IS consumable (list_items.is_consumabile INTEGER NOT
-    NULL DEFAULT 1, and Java's ItemEntity @PrePersist writes 1). Reading an absence as a
-    refusal made the same story behave one way here and the other way on Java/Python.
+    v0.35.8 read a MISSING key as consumable, to match a schema default of 1. It was the
+    wrong end to align: on this backend nothing writes that default, so every item an
+    author created without ticking the box — the console never sends an untouched checkbox
+    — became usable, and the game offered USE on a thing meant only to be carried.
+    v0.36.3 puts the rule where an author can see it: what was not declared cannot be
+    consumed, here and on java and python alike.
     """
-    value = (item or {}).get("isConsumabile")
-    return value is None or _nz(value) == 1
+    return _nz((item or {}).get("isConsumabile")) == 1
 
 
 def check_class_gate(char, item):

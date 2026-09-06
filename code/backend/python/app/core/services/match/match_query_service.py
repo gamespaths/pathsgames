@@ -252,9 +252,11 @@ class MatchQueryService(MatchQueryPort):
         ]
 
         # Step 36 — the entries carry their list_keys definition, so the board can group
-        # and dress them without a second request. Visible keys only, whoever asks.
+        # and dress them without a second request. v0.36.3 — a hidden key never reaches a
+        # PLAYER; the ADMIN view gets the whole set, the same door all_locations already
+        # opens, and every entry says which it is through `visible`.
         registry_entries = self.registry_service.list_entries(
-            match["id"], match.get("id_story"), include_hidden=False, lang=lang)
+            match["id"], match.get("id_story"), include_hidden=all_locations, lang=lang)
         registry = [
             MatchRegistryEntry(
                 uuid=e["uuid"],

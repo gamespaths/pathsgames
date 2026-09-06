@@ -52,6 +52,30 @@ describe('choice-effects entity config (Step 32)', () => {
   })
 })
 
+describe('locations entity config (Step 36.2)', () => {
+  const fields = () => STORIES_ENTITIES_FIELDS.locations
+
+  it('exposes both registry pairs a location writes on arrival', () => {
+    const keys = fields().map(field => field.key)
+    expect(keys).toEqual(expect.arrayContaining([
+      'keyToAdd', 'keyValueToAdd', 'keyToAddNotFirst', 'keyValueToAddNotFirst',
+    ]))
+  })
+
+  it('types them as text, like every other registry key and value', () => {
+    const byKey = Object.fromEntries(fields().map(f => [f.key, f]))
+    for (const key of ['keyToAdd', 'keyValueToAdd', 'keyToAddNotFirst', 'keyValueToAddNotFirst']) {
+      expect(byKey[key].type).toBe('text')
+    }
+  })
+
+  it('keeps the first-entry pair next to the trigger events it belongs with', () => {
+    const keys = fields().map(field => field.key)
+    expect(keys.indexOf('keyToAdd')).toBeGreaterThan(keys.indexOf('idEventIfFirstTime'))
+    expect(keys.indexOf('keyToAdd')).toBeLessThan(keys.indexOf('priorityAutomaticEvent'))
+  })
+})
+
 describe('location-neighbors entity config', () => {
   it('hides Card Back ID unless flagBack is YES (1)', () => {
     const field = STORIES_ENTITIES_FIELDS['location-neighbors'].find(f => f.key === 'idCardBack')

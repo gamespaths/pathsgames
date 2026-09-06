@@ -39,7 +39,8 @@ class TestGetItem:
         mock_table.get_item.return_value = {'Item': {'PK': 'USER#1', 'uuid': '1'}}
         result = db.get_item('USER#1')
         assert result['uuid'] == '1'
-        mock_table.get_item.assert_called_once_with(Key={'PK': 'USER#1', 'SK': 'METADATA'})
+        mock_table.get_item.assert_called_once_with(
+            Key={'PK': 'USER#1', 'SK': 'METADATA'}, ConsistentRead=True)
 
     def test_miss(self, mock_table):
         mock_table.get_item.return_value = {}
@@ -48,7 +49,8 @@ class TestGetItem:
     def test_custom_sk(self, mock_table):
         mock_table.get_item.return_value = {}
         db.get_item('X', sk='CUSTOM')
-        mock_table.get_item.assert_called_once_with(Key={'PK': 'X', 'SK': 'CUSTOM'})
+        mock_table.get_item.assert_called_once_with(
+            Key={'PK': 'X', 'SK': 'CUSTOM'}, ConsistentRead=True)
 
 
 @patch.object(db, '_table')
@@ -96,6 +98,13 @@ class TestQueryByPk:
     def test_empty(self, mock_table):
         mock_table.query.return_value = {'Items': []}
         assert db.query_by_pk('MISSING') == []
+
+    def test_reads_strongly_consistent(self, mock_table):
+        """v0.36.3 — a match partition is read back inside the very request that wrote it,
+        so an eventually consistent answer would hand back rows the caller has replaced."""
+        mock_table.query.return_value = {'Items': []}
+        db.query_by_pk('MATCH#m1')
+        assert mock_table.query.call_args.kwargs['ConsistentRead'] is True
 
 
 @patch.object(db, '_table')

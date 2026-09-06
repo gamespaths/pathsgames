@@ -226,6 +226,24 @@ verdict, no location-capacity check. Rules, applied per recipient:
   existing flags (weather/item/coma/time-end). OpenAPI: `LocationChange` schema in
   `v0.29.0-events-api.yaml`.
 
+**v0.36.3 — two AWS-only bugs where a forced move meets what happens right after it.**
+(1) An event that both moves the actor (`id_location`) and ends the time unit
+(`flag_end_time`) had the move undone: step 8's roster re-read used DynamoDB's default
+eventually-consistent read, so it could still see the pre-move row and write it straight
+back. `db_utils.get_item`/`query_by_pk` now read with `ConsistentRead=True` (GSI queries and
+scans are unaffected), and a new `_reread_characters` helper keeps the rows the request
+itself already touched instead of trusting a second read at all. Java/Python never had this
+bug — a single DB transaction sees its own writes. (2) A forced move is an arrival, and
+arriving must fire the destination's Step 33 entry triggers — `select-choice` already drained
+them, but `execute-event` on AWS never did, so `automaticEvents[]` came back empty and the
+Step 33 note above (§8, "Arrival — `automaticEvents[]`") did not hold there. Same version,
+Python's `execute-event` response mapper was also found never mapping `automaticEvents[]` at
+all (the engine had queued them since Step 33); both are fixed, so all three backends now
+answer `execute-event` with the destination's fired events. New Robot suite
+`forced_move.robot` (5 cases) in `code/tests/robot/tests/36_registry/`, discovering its own
+fixture by behaviour (an event that ends the time unit and moves the actor into a location
+with a first-entry event) rather than a hardcoded id.
+
 ### Coma short-circuits everything
 
 Life at zero → `is_coma = true`, `is_sleeping = true`, log, **return**. The chain stops and
@@ -317,7 +335,7 @@ effect 14 with `idLocation: 3` — see the [v0.29.3 Roadmap entry](./Roadmap.md)
 
 # Version Control
 
-- **Document Version**: 0.35.3 (here only due changes)
+- **Document Version**: 0.36.3 (here only due changes)
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -327,9 +345,10 @@ effect 14 with `idLocation: 3` — see the [v0.29.3 Roadmap entry](./Roadmap.md)
   | 0.35.2 | Noted that `traits_to_add`/`traits_to_remove` on this effect row now also move the recipient's stats, not just the trait list. The formula itself is documented in [Step23 §6.4](./Step23_CharacterStatsInitialization.md#64-trait-stat-deltas-apply-on-grant-not-only-at-creation-v0352). | August 22, 2026 |
   | 0.35.3 | `list_events.coin_cost` renamed `cost_coin`, plus new `cost_food`/`cost_magic`: the check procedure gains `NOT_ENOUGH_FOOD`/`NOT_ENOUGH_MAGIC` after `NOT_ENOUGH_COINS` (§1, §2), and payment (§3) now covers all four resources for the head of a chain only. Full writeup in [Step35 §12](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353). | August 23, 2026 |
   | 0.35.3 | Same version, continued: new Robot suite `resource_costs.robot` (9 tests, §7) covers this event cost round trip end to end; two `events.robot` id-selector predicates fixed after the `coinCost` → `costCoin` rename. Full detail in [Step35 §12.f-g](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353). | August 24, 2026 |
+  | 0.36.3 | AWS bugfix: a forced move (`id_location`) undone by the time-end roster re-read (eventually consistent DynamoDB read) now survives, via `ConsistentRead=True` and a `_reread_characters` helper. Same version: `execute-event` on AWS, and its response mapper on Python, now drain and report the destination's arrival triggers (`automaticEvents[]`), matching Java and `select-choice`. New `forced_move.robot` (5 cases). | September 6, 2026 |
 
 
-- **Last Updated**: August 24, 2026
+- **Last Updated**: September 6, 2026
 - **Status**: Complete
 
 # < Paths Games />

@@ -82,6 +82,13 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idEventNotFirstTime', label: 'Event if Not First Time', type: 'number' },
       { key: 'idEventIfCharacterEnterEmptyLocation', label: 'Event if enters an empty location', type: 'number' },
       { key: 'idEventIfFirstTime', label: 'Event if First Time, no trigger back', type: 'number' },
+      // Step 36.2 (v0.36.2) — the place writes the registry by being entered, with no event
+      // involved. The history branch picks ONE pair: the first arrival writes the first, every
+      // later one the second.
+      { key: 'keyToAdd', label: 'Registry Key to Write (first entry)', type: 'text' },
+      { key: 'keyValueToAdd', label: 'Registry Value to Write (first entry)', type: 'text' },
+      { key: 'keyToAddNotFirst', label: 'Registry Key to Write (later entries)', type: 'text' },
+      { key: 'keyValueToAddNotFirst', label: 'Registry Value to Write (later entries)', type: 'text' },
       { key: 'priorityAutomaticEvent', label: 'Auto Event Priority', type: 'number' },
       { key: 'idAudio', label: 'Audio ID', type: 'number' },
       { key: 'maxCharacters', label: 'Max Characters', type: 'number' },

@@ -797,6 +797,19 @@ public class StoryImportService implements StoryImportPort {
             e.setKey(getString(item, "key"));
             e.setValueToAdd(getString(item, "valueToAdd"));
             e.setValueToRemove(getString(item, "valueToRemove"));
+            // v0.36.3 — the v0.32.0 effect targets, never imported before: an imported story
+            // kept its options and lost the forced move, the item, the weather and the linked
+            // event they applied. The narrative half (uuid, card, texts) went the same way.
+            String uuid = getString(item, "uuid");
+            e.setUuid(uuid == null || uuid.isBlank() ? UUID.randomUUID().toString() : uuid);
+            e.setIdCard(getInteger(item, "idCard"));
+            e.setIdTextName(getInteger(item, "idTextName"));
+            e.setIdTextDescription(getInteger(item, "idTextDescription"));
+            e.setIdEvent(getInteger(item, "idEvent"));
+            e.setIdLocation(getInteger(item, "idLocation"));
+            e.setIdWeather(getInteger(item, "idWeather"));
+            e.setIdItemTarget(getInteger(item, "idItemTarget"));
+            e.setItemAction(getString(item, "itemAction"));
             entities.add(e);
         }
         persistencePort.saveChoiceEffects(entities);

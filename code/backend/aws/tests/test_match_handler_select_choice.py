@@ -469,7 +469,9 @@ def test_the_payload_is_the_execute_event_one_plus_the_choice_block():
                   'comaTriggered', 'gameOver', 'refreshRecommended', 'statChanges',
                   'registryChanges', 'traitChanges', 'itemChanges',
                   'characteristicChanges', 'locationChanges', 'effects',
-                  'pendingChoices', 'edgeState'):
+                  'pendingChoices', 'edgeState',
+                  # v0.36.3 — what the destination of a forced move did about the arrival
+                  'automaticEvents'):
         assert field in body, f'{field} missing from the resolution payload'
     for field in ('choiceUuid', 'narrative', 'choiceCard', 'choiceEventUuid',
                   'choiceEventCard', 'progressRecorded'):

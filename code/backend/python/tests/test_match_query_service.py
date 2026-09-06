@@ -385,6 +385,22 @@ def test_get_match_info_for_admin_returns_detail_of_any_owner():
     assert len(detail.registry) == 1
 
 
+def test_the_admin_asks_for_the_hidden_keys_and_the_player_does_not():
+    """v0.36.3 — the console is the one reader that gets the whole registry."""
+    service, _ = _build(
+        user=_user(), match=_match(),
+        story={"id": 2, "uuid": "story-uuid", "id_location_start": None},
+        difficulty={"id": 3, "uuid": "diff-uuid"},
+    )
+    registry_service = service.registry_service
+
+    service.get_match_info("m", "u")
+    assert registry_service.list_entries.call_args.kwargs["include_hidden"] is False
+
+    service.get_match_info_for_admin("m")
+    assert registry_service.list_entries.call_args.kwargs["include_hidden"] is True
+
+
 # ── Step 27.x — locations_active enrichment ───────────────────────────────────
 
 def _character(loc=10):

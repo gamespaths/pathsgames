@@ -497,6 +497,25 @@ class MatchQueryServiceTest {
         }
 
         @Test
+        @DisplayName("v0.36.3 — the admin registry carries the hidden keys, the player's does not")
+        void hiddenKeysReachTheAdminOnly() {
+            when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(user(7L, "u")));
+            GamingMatchEntity m = match(1L, "m", 7L, 2L, 3L);
+            when(matchReadPort.findMatchByUuid("m")).thenReturn(Optional.of(m));
+            when(storyReadPort.findAllStories()).thenReturn(List.of(story(2L, "story-uuid", 10)));
+            when(storyReadPort.findLocationsByStoryId(2L)).thenReturn(List.of(location(10L, "loc-10")));
+            when(storyReadPort.findDifficultiesByStoryId(2L)).thenReturn(List.of());
+            when(matchReadPort.findLocationsByMatchId(1L)).thenReturn(List.of(locState(1L, 10L)));
+            when(registryService.listEntries(eq(1L), any(), eq(false), any()))
+                    .thenReturn(List.of(regEntry("signal")));
+            when(registryService.listEntries(eq(1L), any(), eq(true), any()))
+                    .thenReturn(List.of(regEntry("signal"), regEntry("secret_plan")));
+
+            assertEquals(1, service.getMatchInfo("m", "u", "en").getRegistry().size());
+            assertEquals(2, service.getMatchInfoForAdmin("m").getRegistry().size());
+        }
+
+        @Test
         @DisplayName("story without start location")
         void noStartLocation() {
             when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(user(7L, "u")));
@@ -577,7 +596,8 @@ class MatchQueryServiceTest {
             when(storyReadPort.findDifficultiesByStoryId(2L))
                     .thenReturn(List.of(difficulty(3L, "diff-uuid")));
             when(matchReadPort.findLocationsByMatchId(1L)).thenReturn(List.of(locState(1L, 10L)));
-            when(registryService.listEntries(eq(1L), any(), eq(false), any()))
+            // v0.36.3 — the admin view asks for the hidden keys too; the stub answers either way.
+            when(registryService.listEntries(eq(1L), any(), anyBoolean(), any()))
                     .thenReturn(List.of(regEntry("k")));
 
             MatchDetail detail = service.getMatchInfoForAdmin("m");

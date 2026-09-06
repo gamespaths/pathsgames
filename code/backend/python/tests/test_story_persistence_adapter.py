@@ -516,9 +516,10 @@ def test_delete_story_by_id_removes_the_state_hanging_off_each_match(adapter, se
 
 
 def test_save_items_leaves_the_schema_defaults_to_the_schema(adapter, session_factory):
-    """v0.35.8 — an item that declares neither weight nor isConsumabile takes the schema
-    default (weight 1, consumable), exactly as Java's ItemEntity @PrePersist does. The
-    import used to force weight=0, so such an item silently weighed nothing."""
+    """v0.35.8 — an item that declares no weight takes the schema default (1), exactly as
+    Java's ItemEntity @PrePersist does; the import used to force 0, so such an item silently
+    weighed nothing. v0.36.3 — isConsumabile is the other way round: what nobody declared
+    consumable can only be CARRIED, on this backend as on java and aws."""
     from app.adapters.persistence.story.models import ItemEntity
     story_id = adapter.save_story({"uuid": "test-uuid-item-defaults"})
     adapter.save_items(story_id, [
@@ -532,10 +533,11 @@ def test_save_items_leaves_the_schema_defaults_to_the_schema(adapter, session_fa
         rows = {r.id: r for r in session.query(ItemEntity).filter_by(id_story=story_id).all()}
         # an explicit 0 is honoured — it is a weightless item, not a missing value
         assert rows[1].weight == 0
-        assert rows[1].is_consumabile == 1
-        # nothing declared: the schema decides, and it says 1 / consumable / show effects
+        # …and declaring nothing about consumption means carried-only (v0.36.3)
+        assert rows[1].is_consumabile == 0
+        # nothing declared at all: weight 1, show its effects, and NOT consumable
         assert rows[2].weight == 1
-        assert rows[2].is_consumabile == 1
+        assert rows[2].is_consumabile == 0
         assert rows[2].flag_show_effects == 1
         # and what the story DOES declare always wins
         assert rows[3].weight == 5

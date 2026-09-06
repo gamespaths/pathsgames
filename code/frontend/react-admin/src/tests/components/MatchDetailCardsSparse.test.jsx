@@ -145,10 +145,11 @@ describe('MatchConfigCard and RegistryCard with sparse data', () => {
     expect(screen.getByText(/Registry \(0\)/)).toBeInTheDocument()
 
     // Step 36.1 — a key whose set is empty dashes out; the multi column still answers.
+    // v0.36.3 — the values are the LAST column now, the multi flag the first after the key.
     rerender(<RegistryCard registry={[{ key: 'gate' }]} />)
     const row = screen.getByText('gate').closest('tr')
-    expect(within(row).getAllByRole('cell')[1]).toHaveTextContent('—')
-    expect(within(row).getAllByRole('cell')[2]).toHaveTextContent('no')
+    expect(within(row).getAllByRole('cell')[1]).toHaveTextContent('no')
+    expect(within(row).getAllByRole('cell')[3]).toHaveTextContent('—')
   })
 })
 

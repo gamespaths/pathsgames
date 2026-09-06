@@ -40,9 +40,14 @@ def _to_dynamodb_value(value):
     return value
 
 def get_item(pk, sk='METADATA'):
-    """Fetch a single item from DynamoDB."""
+    """Fetch a single item from DynamoDB, STRONGLY consistent.
+
+    v0.36.3 — one Lambda invocation writes an item and reads it back (an event moves a
+    character, then the time-start pass reads the roster): an eventually consistent read
+    returns the row as it was and the caller writes that stale row back, undoing the move.
+    """
     try:
-        response = _get_table().get_item(Key={'PK': pk, 'SK': sk})
+        response = _get_table().get_item(Key={'PK': pk, 'SK': sk}, ConsistentRead=True)
         return response.get('Item')
     except ClientError as e:
         print(f"Error fetching item {pk}/{sk}: {e}")
@@ -101,12 +106,14 @@ def _paginate(operation, **kwargs):
     return items
 
 def query_by_pk(pk):
-    """Query all items with the same Partition Key (paginated)."""
+    """Query all items with the same Partition Key (paginated), STRONGLY consistent.
+    Same reason as get_item: a match partition is read back after being written."""
     try:
         return _paginate(
             _get_table().query,
             KeyConditionExpression='PK = :pk',
             ExpressionAttributeValues={':pk': pk},
+            ConsistentRead=True,
         )
     except ClientError as e:
         print(f"Error querying PK {pk}: {e}")

@@ -346,6 +346,14 @@ SEED_STORIES = [
             {"id": 28, "uuid": "evt-step29-teleport", "name": "Secret Passage",
              "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
              "costEnery": 2, "costCoin": 0, "flagEndTime": 0},
+            # v0.36.3 — the bell: it BOTH moves the actor and ends the time unit, the pair
+            # that used to cancel each other out (the time-start pass wrote the roster back
+            # as it was, undoing the move). It sits in the Records Vault, not at the start,
+            # so no suite picking "any available event" can trip over it.
+            {"id": 60, "uuid": "evt-v0363-bell", "name": "The Bell Toll",
+             "idSpecificLocation": 6, "type": "NORMAL", "idCard": 1,
+             "idTextName": 500, "idTextDescription": 500,
+             "costEnery": 0, "costCoin": 0, "flagEndTime": 1},
             # Step 33 — the events nobody asks for. Named BY the location, through its
             # idEvent* columns, so idSpecificLocation stays absent and /info never offers
             # them as actions. type AUTOMATIC is what the {NORMAL, ONCE} allowlist already
@@ -568,6 +576,9 @@ SEED_STORIES = [
             # with no neighbor edge at all — no checks, no movement cost, only the event's
             # own energy cost.
             {"id": 14, "idEvent": 28, "idCard": 1, "target": "ONLY_ONE", "idLocation": 3},
+            # v0.36.3 — the bell moves the actor into location 2, whose first arrival fires
+            # an automatic event: one forced move exercising the arrival it produces too.
+            {"id": 60, "idEvent": 60, "idCard": 1, "target": "ONLY_ONE", "idLocation": 2},
             # Step 31 — withheld on CHOICES_PENDING: must never apply while pending.
             {"id": 15, "idEvent": 30, "idCard": 1, "statistics": "exp", "value": 99, "target": "ONLY_ONE"},
             # Step 33 — one recognisable effect per trigger, so a Robot test can tell which

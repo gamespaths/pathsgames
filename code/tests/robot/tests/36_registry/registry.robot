@@ -177,6 +177,33 @@ Seeding A Match Writes No Registry Change
     ${count}=    Registry Change Count    ${token}    ${match}
     Should Be Equal As Integers    ${count}    0
 
+The Admin Match Info Carries Every Key, Labelled
+    [Documentation]    v0.36.3 — the console is the one reader that must see the WHOLE state:
+    ...                the admin match-info registry is a superset of the player's, and every
+    ...                entry says through `visible` which of the two it is. Before this the
+    ...                admin payload was built with the player's filter, so a hidden key was
+    ...                simply absent and nothing on the console said so.
+    [Tags]    registry    admin    step36    v0363
+    ${player}=    Info Registry Entries    ${TOKEN}    ${MATCH_UUID}
+    ${admin}=     Admin Info Registry Entries    ${MATCH_UUID}
+
+    ${player_keys}=    Evaluate    [e['key'] for e in $player]
+    ${admin_keys}=     Evaluate    [e['key'] for e in $admin]
+    FOR    ${key}    IN    @{player_keys}
+        List Should Contain Value    ${admin_keys}    ${key}
+        ...    msg=the admin view dropped ${key}, which the player is shown
+    END
+    Should Be True    len(${admin_keys}) >= len(${player_keys})
+
+    FOR    ${entry}    IN    @{admin}
+        Dictionary Should Contain Key    ${entry}    visible
+        ...    msg=${entry}[key] does not say whether the player can see it
+    END
+    ${hidden}=    Evaluate    [e['key'] for e in $admin if e.get('visible') is False]
+    ${leaked}=    Evaluate    [k for k in $hidden if k in $player_keys]
+    Should Be Empty    ${leaked}    msg=a hidden key reached the player view: ${leaked}
+
+
 
 *** Keywords ***
 
@@ -299,6 +326,13 @@ Registry Writing Event Uuids
         IF    $event['id'] in $owners    Append To List    ${uuids}    ${event}[uuid]
     END
     RETURN    ${uuids}
+
+Admin Info Registry Entries
+    [Documentation]    The registry rows of GET /api/admin/matches/{uuid}/info — the console's
+    ...                own view, hidden keys included since v0.36.3.
+    [Arguments]    ${match_uuid}
+    ${response}=    Admin Get Match Info    ${ADMIN_TOKEN}    ${match_uuid}    200
+    RETURN    ${response.json()}[registry]
 
 Registry Change Count
     [Documentation]    How many REGISTRY_CHANGE rows the match log carries so far.

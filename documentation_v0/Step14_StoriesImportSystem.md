@@ -479,8 +479,10 @@ Java. `app/adapters/persistence/match/models.py` also gained `ondelete="CASCADE"
   (`id_text_go`, `id_text_back`).
 - **Item defaults aligned to Java**: `weight` now defaults to `1` (the import used to
   force it to `0` regardless of the authored value); `is_consumabile` is left to the
-  schema default of `1` rather than being forced. An item that declares neither now
-  behaves the same on every backend — see also [Step34, Rules of use](./Step34_InventoryAndResources.md#rules-of-use).
+  model default rather than being forced. **v0.36.3**: that default itself flipped from
+  `1` to `0` on Java and Python, so an imported item that declares neither field now
+  weighs 1 and is NOT consumable, on every backend — see also
+  [Step34, Rules of use](./Step34_InventoryAndResources.md#rules-of-use).
 
 ### Default Values for Difficulty Fields
 When difficulty integer fields are null in the database, the following defaults are applied:
@@ -545,7 +547,7 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.14.0-story-a
     > create a AWS backend version "code/backend/aws" with cloudformation, aws api gateway, lambda function, dynamo and cloudwatch. I wanna all api with openpi "code/backend/java/adapter-rest/src/main/resources/openapi" and jwt rules. Let's go!
 
 
-- **Document Version**: 0.35.8
+- **Document Version**: 0.36.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.14.0 | Create a website new prototype with React and Vite | April 8, 2026 |
@@ -557,8 +559,9 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.14.0-story-a
     | 0.19.3 | Add style fields columns into card tables and use into frontend | May 14, 2026 |
     | 0.26.1 | AWS i18n bugfix: `_resolve_text` per-field English fallback; new `_resolve_story_text` reads title/description from `raw_texts` first (like cards); 4 new AWS unit tests; Robot regression test `Story List Lang IT Never Blanks A Title That English Has` added to suite `26_time_recovery/match_info_lang.robot` | June 23, 2026 |
     | 0.35.8 | Java: weather rules import before events; new `linkDeferredReferences` second pass (location triggers, `id_event_next`, `id_item_to_add`, weather `id_event`). Python: same second pass, top-level `locationNeighbors` import, `_make` type coercion, `delete_story_by_id` matches-first cascade, new `align_schema()` startup drift-repair. | August 30, 2026 |
+    | 0.36.3 | Java bugfix: `importChoiceEffects` now maps the v0.32.0 choice-effect targets it had silently dropped since Step 32 — see [Step32 §7](./Step32_ChoiceResolution.md#7-database--v0320choice_effect_targetssql). Same version, `is_consumabile`'s import-time default flips to non-consumable (§ Python Import Robustness above). | September 6, 2026 |
     
-- **Last Updated**: August 30, 2026
+- **Last Updated**: September 6, 2026
 - **Status**: ✅ Complete
 
 
