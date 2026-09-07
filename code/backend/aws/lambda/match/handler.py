@@ -1242,7 +1242,9 @@ def _get_admin_match_info(match_uuid):
 def _upsert_admin_registry(match_uuid, body):
     """PUT /api/admin/matches/{uuid}/registry — v0.36.2, the console correcting one key.
     The write goes through the ordinary registry module, so a single key is replaced, a multi
-    key gains a member, and either way the match log carries a REGISTRY_CHANGE row."""
+    key gains a member, and either way the match log carries a REGISTRY_CHANGE row.
+    v0.36.4 — a key the story does not declare is refused: a typo here would create an orphan
+    key the player never sees and the console cannot tell from an engine bug."""
     key = (body or {}).get('key')
     if not match_uuid or not str(match_uuid).strip() or not key or not str(key).strip():
         return _err(400, 'INVALID_INPUT', 'Match uuid and a registry key are required')
@@ -1250,6 +1252,9 @@ def _upsert_admin_registry(match_uuid, body):
     if match is None:
         return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
     story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    if not _registry.is_declared(story, key):
+        return _err(400, 'UNKNOWN_KEY',
+                    f'The story does not declare a registry key named: {key}')
     _registry.upsert(match, key, (body or {}).get('value'), None,
                      clock=_nz(match.get('currentClock')), timestamp=_ts_ms(), story=story)
     db_utils.put_item(match)
@@ -1258,7 +1263,8 @@ def _upsert_admin_registry(match_uuid, body):
 
 def _delete_admin_registry(match_uuid, key, value):
     """DELETE /api/admin/matches/{uuid}/registry?key=K[&value=V] — take one member away, or
-    empty the key outright when no value is named."""
+    empty the key outright when no value is named. Unlike the PUT above, an undeclared key is
+    allowed here: cleaning an orphan row up is the whole point of the verb."""
     if not match_uuid or not str(match_uuid).strip() or not key or not str(key).strip():
         return _err(400, 'INVALID_INPUT', 'Match uuid and a registry key are required')
     match = db_utils.get_item(f'MATCH#{match_uuid}')

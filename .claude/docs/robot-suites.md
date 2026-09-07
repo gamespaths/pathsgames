@@ -32,7 +32,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `33_location_events` | Step 33 automatic location events (see breakdown below) |
 | `34_inventory` | Steps 34/35 inventory, resources, use/drop, effects preview, quantities, v0.35.4 item logs (see breakdown below) |
 | `35_import_integrity` | v0.35.8 import/schema/admin-CRUD regressions — ships its own story, no seed (see breakdown below) |
-| `36_registry` | Step 36 registry read API, v0.36.1 multi-valued keys + v0.36.3 `forced_move.robot` (see breakdown below) |
+| `36_registry` | Step 36 registry read API, v0.36.1 multi-valued keys, v0.36.3 `forced_move.robot` + v0.36.4 `registry_repeated_writes.robot` (see breakdown below) |
 
 ### `19_match` breakdown
 
@@ -233,6 +233,17 @@ cost, so this pack can never become the fixture those suites address by behaviou
 addressed by seeded id: the key is the one the story declares multi, the adders are the events
 whose effects write it. Each writing case runs on its own guest and its own match, since a set
 latches.
+
+`registry_repeated_writes.robot` (v0.36.4, 7 tests) — the registry under a write said twice.
+Java and Python keep a multi key honest with a partial UNIQUE index; AWS holds the registry as
+an embedded list and has no index at all, so what the three must AGREE on is pinned from
+outside: the same member written twice leaves ONE member and exactly one `REGISTRY_CHANGE`,
+five repeats never grow the set, add/remove/add leaves the member held once, and a single key
+rewritten with its own value still holds one value. The last two cases are the v0.36.4 admin
+guard: `PUT` refuses a key the story does not declare (400 `UNKNOWN_KEY`, and nothing lands in
+the registry), while `DELETE` still accepts one — cleaning an orphan row up is the point of it.
+Both fixture keys are found by behaviour (the first multi and the first single key the match
+answers with), and each case runs on its own guest and match since a key latches.
 
 ### `36_registry/forced_move.robot` breakdown
 

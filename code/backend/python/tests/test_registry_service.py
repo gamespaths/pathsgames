@@ -245,7 +245,7 @@ def test_on_a_single_key_remove_is_still_compare_and_clear(service, store):
 
     store.upsert.assert_called_once_with(1, "door", None, None, 3, 12, None, 6)
     store.log_change.assert_called_once_with(1, 3, 12, None, 6,
-                                             f"{MSG_REGISTRY_CHANGE} door OPEN -> None")
+                                             f"{MSG_REGISTRY_CHANGE} door OPEN -> null")
 
 
 def test_a_single_key_the_story_moved_on_from_is_left_alone(service, store):
@@ -289,7 +289,7 @@ def test_a_row_holding_no_value_at_all_is_not_a_member(service, store):
     store.find_by_match_and_key.return_value = rows
 
     assert service.find(1, "clues") == ["A"]
-    assert service.list_entries(1)[0]["values"] == ["A"]
+    assert service.list_entries(1, include_hidden=True)[0]["values"] == ["A"]
     assert service.remove(1, "clues", "Z") == ["A"]
 
 
@@ -477,6 +477,35 @@ def test_remove_by_match_uuid_with_no_value_empties_the_key(service, store):
     store.find_by_match_and_key.return_value = [_multi_row("WINTER", "YES"), _multi_row("WINTER", "NO")]
     assert service.remove_by_match_uuid("m-uuid", "WINTER", None) == []
     assert store.delete_value.call_count == 2
+
+
+def test_is_declared_for_match_uuid_unknown_match(service, store):
+    store.find_match_and_story_id_by_uuid.return_value = None
+    assert service.is_declared_for_match_uuid("nope", "WINTER") is None
+
+
+def test_is_declared_for_match_uuid_follows_the_story(enriched, store):
+    # v0.36.4 — a typo would otherwise create an orphan key nobody can tell from a bug.
+    service, story_read, _ = enriched
+    store.find_match_and_story_id_by_uuid.return_value = (7, 3)
+    story_read.find_keys_by_story_id.return_value = [_definition("WINTER", "weather", 1)]
+
+    assert service.is_declared_for_match_uuid("m-uuid", " WINTER ") is True
+    assert service.is_declared_for_match_uuid("m-uuid", "WNITER") is False
+    assert service.is_declared_for_match_uuid("m-uuid", None) is False
+
+
+def test_is_declared_for_match_uuid_without_a_story_port(service, store):
+    store.find_match_and_story_id_by_uuid.return_value = (7, 3)
+    assert service.is_declared_for_match_uuid("m-uuid", "WINTER") is False
+
+
+def test_the_audit_row_names_the_stored_value_not_the_raw_one(service, store):
+    # v0.36.4 — storage trims, so the log has to name what storage kept.
+    store.find_by_match_and_key.return_value = []
+    service.upsert(1, 9, "door", "  OPEN  ", 3, 12, None, 6)
+    store.log_change.assert_called_once_with(1, 3, 12, None, 6,
+                                             f"{MSG_REGISTRY_CHANGE} door null -> OPEN")
 
 
 def test_remove_by_match_uuid_with_a_blank_key_is_a_no_op(service, store):

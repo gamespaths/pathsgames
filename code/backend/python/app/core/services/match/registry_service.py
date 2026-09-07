@@ -76,6 +76,12 @@ def _first_matching(rows, value):
     return next((r for r in rows if _eq(render_row(r), value)), None)
 
 
+def _logged(value: Optional[str]) -> str:
+    """v0.36.4 — a value as the audit row spells it. "null" and not "None": one REGISTRY_CHANGE
+    text on all three backends, whichever language wrote the row."""
+    return "null" if value is None else str(value)
+
+
 def no_condition(key: Optional[str]) -> bool:
     """True when the condition is absent altogether — a blank key means "no condition"."""
     return key is None or not str(key).strip()
@@ -117,11 +123,17 @@ def evaluate(operator: Optional[str], expected: Optional[str],
     return False
 
 
+def _order_key(value: Optional[str]):
+    """Numbers sort numerically and first; everything else alphabetically behind them."""
+    number = _numeric(value)
+    return (0, number, "") if number is not None else (1, 0, value or "")
+
+
 def ordered(values: Optional[Iterable[str]]) -> List[str]:
     """Members ordered for display: numbers numerically first, then the rest alphabetically.
     Computed here so both payloads and all three backends agree."""
     out = list(values or [])
-    out.sort(key=lambda v: (0, _numeric(v), "") if _numeric(v) is not None else (1, 0, v or ""))
+    out.sort(key=_order_key)
     return out
 
 
@@ -163,7 +175,7 @@ class RegistryService:
         return bool(self.store.find_by_match_and_key(id_match, key))
 
     def list_entries(self, id_match: int, id_story: Optional[int] = None,
-                     include_hidden: bool = True, lang: str = "en") -> List[Dict[str, Any]]:
+                     include_hidden: bool = False, lang: str = "en") -> List[Dict[str, Any]]:
         """The rows joined with their list_keys definition. A row whose key the story no longer
         declares is kept but reads as hidden: it is state the engine wrote, and dropping it
         silently would hide a bug rather than a key."""
@@ -262,8 +274,9 @@ class RegistryService:
             previous = render_row(rows[0]) if rows else None
             self.store.upsert(id_match, key, parsed["string_value"], parsed["int_value"],
                               id_character, id_event, id_choice, clock)
+            # v0.36.4 — what was STORED, not the raw string the author typed.
             self._log(id_match, id_character, id_event, id_choice, clock,
-                      f"{key} {previous} -> {value}")
+                      f"{key} {_logged(previous)} -> {_logged(rendered)}")
             return [] if rendered is None else [rendered]
 
         # A set: adding a member it already holds changes nothing, so it says nothing either.
@@ -296,7 +309,7 @@ class RegistryService:
             self.store.upsert(id_match, key, None, None,
                               id_character, id_event, id_choice, clock)
             self._log(id_match, id_character, id_event, id_choice, clock,
-                      f"{key} {rendered} -> None")
+                      f"{key} {rendered} -> null")
             return []
 
         # The member is named case-blind but deleted as stored, or the delete matches nothing.
@@ -318,6 +331,16 @@ class RegistryService:
         """The values of one key, by match uuid. Empty when the match or the key is unknown."""
         ids = self.store.find_match_and_story_id_by_uuid(match_uuid)
         return [] if ids is None else self.find(ids[0], key)
+
+    def is_declared_for_match_uuid(self, match_uuid: str,
+                                   key: Optional[str]) -> Optional[bool]:
+        """v0.36.4 — whether the story behind a match DECLARES this key. None when no match
+        answers to the uuid. The console asks before writing, so a typo cannot leave behind an
+        orphan key that reads as hidden and is indistinguishable from an engine bug."""
+        ids = self.store.find_match_and_story_id_by_uuid(match_uuid)
+        if ids is None:
+            return None
+        return (key or "").strip() in self._key_definitions(ids[1])
 
     def upsert_by_match_uuid(self, match_uuid: str, key: Optional[str],
                              value: Optional[str]) -> Optional[List[str]]:

@@ -110,12 +110,20 @@ class MatchAdminController:
     def upsert_registry(self, uuid_match: str, body: Optional[Dict[str, Any]] = Body(None)):
         """PUT /api/admin/matches/{uuid}/registry — v0.36.2, the console correcting one key.
         The write goes through the ordinary RegistryService, so a single key is replaced, a
-        multi key gains a member, and either way the log carries a REGISTRY_CHANGE row."""
+        multi key gains a member, and either way the log carries a REGISTRY_CHANGE row.
+        v0.36.4 — a key the story does not declare is refused: a typo here would create an
+        orphan key the player never sees and the console cannot tell from an engine bug."""
         key = (body or {}).get("key")
         if not uuid_match or not str(uuid_match).strip() or not key or not str(key).strip():
             return _error("INVALID_INPUT", "Match uuid and a registry key are required", 400)
         if self.registry_service is None:
             return _error("NOT_IMPLEMENTED", "Registry service not wired", 501)
+        declared = self.registry_service.is_declared_for_match_uuid(uuid_match, key)
+        if declared is None:
+            return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
+        if not declared:
+            return _error("UNKNOWN_KEY",
+                          f"The story does not declare a registry key named: {key}", 400)
         values = self.registry_service.upsert_by_match_uuid(uuid_match, key,
                                                             (body or {}).get("value"))
         return self._registry_body(uuid_match, key, values)
@@ -123,7 +131,8 @@ class MatchAdminController:
     def delete_registry(self, uuid_match: str, key: Optional[str] = None,
                         value: Optional[str] = None):
         """DELETE /api/admin/matches/{uuid}/registry?key=K[&value=V] — take one member away,
-        or empty the key outright when no value is named."""
+        or empty the key outright when no value is named. Unlike the PUT above, an undeclared
+        key is allowed here: cleaning an orphan row up is the whole point of the verb."""
         if not uuid_match or not str(uuid_match).strip() or not key or not str(key).strip():
             return _error("INVALID_INPUT", "Match uuid and a registry key are required", 400)
         if self.registry_service is None:

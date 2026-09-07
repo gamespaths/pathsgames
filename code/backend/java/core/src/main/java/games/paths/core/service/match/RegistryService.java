@@ -369,8 +369,9 @@ public class RegistryService {
             String previous = rows.isEmpty() ? null : render(rows.get(0));
             store.upsert(idMatch, key, parsed.stringValue(), parsed.intValue(),
                     idCharacter, idEvent, idChoice, clock);
+            // v0.36.4 - the audit row names what was STORED, not the raw string the author typed.
             log(idMatch, idCharacter, idEvent, idChoice, clock,
-                    key + " " + previous + " -> " + value);
+                    key + " " + previous + " -> " + rendered);
             return rendered == null ? List.of() : List.of(rendered);
         }
         // A set: adding a member it already holds changes nothing, so it says nothing either.
@@ -481,6 +482,19 @@ public class RegistryService {
     public List<String> findByMatchUuid(String matchUuid, String key) {
         long[] ids = store.findMatchAndStoryIdByUuid(matchUuid).orElse(null);
         return ids == null ? List.of() : find(ids[0], key);
+    }
+
+    /**
+     * v0.36.4 - whether the story behind a match DECLARES this key. Null when no match answers
+     * to the uuid. The admin console asks before writing, so a typo cannot leave behind an
+     * orphan key that reads as hidden and is indistinguishable from an engine bug.
+     */
+    public Boolean isDeclaredForMatchUuid(String matchUuid, String key) {
+        long[] ids = store.findMatchAndStoryIdByUuid(matchUuid).orElse(null);
+        if (ids == null) {
+            return null;
+        }
+        return keyDefinitions(ids[1]).containsKey(key == null ? null : key.trim());
     }
 
     /**

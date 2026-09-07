@@ -308,7 +308,7 @@ def test_on_a_single_key_remove_is_still_compare_and_clear():
 
     assert match['registry'][0]['stringValue'] is None
     assert changes == [{'key': 'door', 'oldValue': 'OPEN', 'newValue': None}]
-    assert match['eventLog'][0]['message'] == f'{r.MSG_REGISTRY_CHANGE} door OPEN -> None'
+    assert match['eventLog'][0]['message'] == f'{r.MSG_REGISTRY_CHANGE} door OPEN -> null'
 
 
 def test_a_single_key_the_story_moved_on_from_is_left_alone():

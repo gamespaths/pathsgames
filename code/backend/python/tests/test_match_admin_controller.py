@@ -61,6 +61,78 @@ def _detail():
     )
 
 
+@pytest.fixture()
+def registry_env():
+    """The same controller, wired with the registry service the two edit routes need."""
+    registry_service = MagicMock()
+    controller = MatchAdminController(MagicMock(), MagicMock(),
+                                      registry_service=registry_service)
+    app = FastAPI()
+    app.include_router(controller.router)
+    return TestClient(app), registry_service
+
+
+def test_upsert_registry_writes_a_declared_key(registry_env):
+    client, registry_service = registry_env
+    registry_service.is_declared_for_match_uuid.return_value = True
+    registry_service.upsert_by_match_uuid.return_value = ["ledger"]
+
+    response = client.put("/api/admin/matches/m1/registry",
+                          json={"key": "clue", "value": "ledger"})
+
+    assert response.status_code == 200
+    assert response.json() == {"key": "clue", "values": ["ledger"]}
+
+
+def test_upsert_registry_refuses_a_key_the_story_does_not_declare(registry_env):
+    # v0.36.4 — a typo would otherwise create an orphan key nobody can tell from a bug.
+    client, registry_service = registry_env
+    registry_service.is_declared_for_match_uuid.return_value = False
+
+    response = client.put("/api/admin/matches/m1/registry", json={"key": "clu", "value": "x"})
+
+    assert response.status_code == 400
+    assert response.json()["error"] == "UNKNOWN_KEY"
+    registry_service.upsert_by_match_uuid.assert_not_called()
+
+
+def test_upsert_registry_unknown_match(registry_env):
+    client, registry_service = registry_env
+    registry_service.is_declared_for_match_uuid.return_value = None
+
+    response = client.put("/api/admin/matches/m1/registry", json={"key": "clue"})
+
+    assert response.status_code == 404
+    assert response.json()["error"] == "MATCH_NOT_FOUND"
+
+
+def test_upsert_registry_needs_a_key(registry_env):
+    client, registry_service = registry_env
+    assert client.put("/api/admin/matches/m1/registry", json={"value": "x"}).status_code == 400
+    registry_service.is_declared_for_match_uuid.assert_not_called()
+
+
+def test_delete_registry_still_takes_an_undeclared_key(registry_env):
+    # The DELETE has no such guard: cleaning an orphan row up is the point of the verb.
+    client, registry_service = registry_env
+    registry_service.remove_by_match_uuid.return_value = []
+
+    response = client.request("DELETE", "/api/admin/matches/m1/registry",
+                              params={"key": "orphan"})
+
+    assert response.status_code == 200
+    assert response.json() == {"key": "orphan", "values": []}
+    registry_service.is_declared_for_match_uuid.assert_not_called()
+
+
+def test_registry_routes_answer_501_when_the_service_is_not_wired(env):
+    client, _, _ = env
+    assert client.put("/api/admin/matches/m1/registry",
+                      json={"key": "clue"}).status_code == 501
+    assert client.request("DELETE", "/api/admin/matches/m1/registry",
+                          params={"key": "clue"}).status_code == 501
+
+
 def test_list_all_matches_returns_envelope(env):
     client, _, query_port = env
     query_port.list_matches_page.return_value = MatchSummaryPage(

@@ -7,6 +7,7 @@ import { updateMatchRegistry, deleteMatchRegistry } from '../../../api/matchApi'
  * v0.36.2 — and the console can correct one: every write lands in the log as a REGISTRY_CHANGE.
  * v0.36.3 — the admin payload carries the HIDDEN keys too (the player's never does), so the
  * table says of each which it is rather than silently leaving half the state out.
+ * v0.36.4 — a write the backend refuses shows the backend's own reason, not the HTTP status.
  */
 export default function RegistryCard({ registry, matchUuid, onChanged }) {
   const rows = registry ?? []
@@ -29,7 +30,9 @@ export default function RegistryCard({ registry, matchUuid, onChanged }) {
       setEditing(null)
       if (onChanged) await onChanged()
     } catch (e) {
-      setError(e.message || 'The registry write failed.')
+      // v0.36.4 — the server's own message first: a key the story does not declare is
+      // refused, and "Request failed with status code 400" does not say which key.
+      setError(e.response?.data?.message || e.message || 'The registry write failed.')
     } finally {
       setBusy(false)
     }

@@ -579,6 +579,7 @@ class MatchAdminControllerTest {
 
     @Test
     void upsertRegistry_writesTheKeyAndAnswersWithItsValues() throws Exception {
+        when(registryService.isDeclaredForMatchUuid("m1", "clue")).thenReturn(Boolean.TRUE);
         when(registryService.upsertByMatchUuid("m1", "clue", "ledger")).thenReturn(List.of("ledger"));
 
         mockMvc.perform(put("/api/admin/matches/m1/registry")
@@ -609,13 +610,37 @@ class MatchAdminControllerTest {
 
     @Test
     void upsertRegistry_returns404WhenNoMatchAnswersToTheUuid() throws Exception {
-        when(registryService.upsertByMatchUuid("m1", "clue", null)).thenReturn(null);
+        when(registryService.isDeclaredForMatchUuid("m1", "clue")).thenReturn(null);
 
         mockMvc.perform(put("/api/admin/matches/m1/registry")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"key\":\"clue\"}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("MATCH_NOT_FOUND"));
+    }
+
+    @Test
+    void upsertRegistry_returns400WhenTheStoryDoesNotDeclareTheKey() throws Exception {
+        // v0.36.4 — a typo would otherwise create an orphan key nobody can tell from a bug.
+        when(registryService.isDeclaredForMatchUuid("m1", "clu")).thenReturn(Boolean.FALSE);
+
+        mockMvc.perform(put("/api/admin/matches/m1/registry")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"key\":\"clu\",\"value\":\"ledger\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("UNKNOWN_KEY"));
+        verify(registryService, never()).upsertByMatchUuid(any(), any(), any());
+    }
+
+    @Test
+    void deleteRegistry_stillTakesAKeyTheStoryDoesNotDeclare() throws Exception {
+        // The DELETE has no such guard: cleaning an orphan row up is the point of the verb.
+        when(registryService.removeByMatchUuid("m1", "orphan", null)).thenReturn(List.of());
+
+        mockMvc.perform(delete("/api/admin/matches/m1/registry").param("key", "orphan"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.key").value("orphan"));
+        verify(registryService, never()).isDeclaredForMatchUuid(any(), any());
     }
 
     @Test

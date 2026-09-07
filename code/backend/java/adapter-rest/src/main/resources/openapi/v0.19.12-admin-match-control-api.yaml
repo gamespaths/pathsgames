@@ -18,7 +18,11 @@ info:
     All endpoints require the `ADMIN` role; role enforcement is handled by each
     backend's JWT filter / middleware (the AWS Lambda handler checks the role
     field explicitly).
-  version: 0.19.12
+
+    Version 0.36.2 added the registry edit pair (`PUT` / `DELETE
+    /api/admin/matches/{uuidMatch}/registry`); 0.36.4 documents it here and
+    refuses a `PUT` naming a key the story does not declare.
+  version: 0.36.4
   contact:
     name: Paths Games
     url: https://paths.games
@@ -144,6 +148,72 @@ paths:
         '409':
           description: The match is not stopped (status is not ENDED/GAMEOVER)
 
+  /api/admin/matches/{uuidMatch}/registry:
+    put:
+      tags: [Admin Matches]
+      summary: Write one registry key of a match (v0.36.2)
+      description: |
+        The console correcting one key. The write goes through the ordinary
+        engine, so a single key is REPLACED and a multi-valued one GAINS the
+        member, and either way the match log keeps a `REGISTRY_CHANGE` row.
+        Since v0.36.4 a key the story does not declare is refused
+        (`400 UNKNOWN_KEY`): a typo would otherwise leave behind an orphan key
+        the player never sees and the console cannot tell from an engine bug.
+      operationId: upsertMatchRegistry
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistryEditRequest'
+      responses:
+        '200':
+          description: The key as it stands after the write
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryEditResult'
+        '400':
+          description: No key named (`INVALID_INPUT`), or a key the story does not declare (`UNKNOWN_KEY`)
+        '404':
+          description: No match exists with the given uuid
+    delete:
+      tags: [Admin Matches]
+      summary: Take one value away from a registry key (v0.36.2)
+      description: |
+        Removes the named member of a multi-valued key, or compares-and-clears
+        a single one. Without `value` the key is emptied whatever it holds —
+        the key stays, its set does not. Unlike the `PUT`, an undeclared key is
+        accepted here: cleaning an orphan row up is the point of the verb.
+      operationId: deleteMatchRegistry
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - name: key
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The registry key to edit
+        - name: value
+          in: query
+          required: false
+          schema:
+            type: string
+          description: The member to take away; omit to empty the key outright
+      responses:
+        '200':
+          description: The key as it stands after the removal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryEditResult'
+        '400':
+          description: No key named (`INVALID_INPUT`)
+        '404':
+          description: No match exists with the given uuid
+
   /api/admin/matches/{uuidMatch}/stop:
     post:
       tags: [Admin Matches]
@@ -231,6 +301,30 @@ components:
         name:
           type: string
           description: New name; omit to leave unchanged
+    RegistryEditRequest:
+      type: object
+      required: [key]
+      properties:
+        key:
+          type: string
+          description: The registry key to write; the story must declare it
+          example: evidence_found
+        value:
+          type: string
+          description: The value to write, or the member to join; omit to clear
+          example: ledger
+    RegistryEditResult:
+      type: object
+      properties:
+        key:
+          type: string
+          example: evidence_found
+        values:
+          type: array
+          description: The whole SET the key holds after the edit, backend-ordered
+          items:
+            type: string
+          example: [ledger, letter]
     MatchActionResult:
       type: object
       properties:

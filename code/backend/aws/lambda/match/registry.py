@@ -75,6 +75,12 @@ def _first_matching(rows, value):
     return next((r for r in rows if _eq(render_row(r), value)), None)
 
 
+def _logged(value):
+    """v0.36.4 — a value as the audit row spells it. 'null' and not 'None': one REGISTRY_CHANGE
+    text on all three backends, whichever language wrote the row."""
+    return 'null' if value is None else str(value)
+
+
 def no_condition(key):
     """True when the condition is absent altogether — a blank key means "no condition"."""
     return key is None or not str(key).strip()
@@ -113,11 +119,17 @@ def evaluate(operator, expected, actual):
     return False
 
 
+def _order_key(value):
+    """Numbers sort numerically and first; everything else alphabetically behind them."""
+    number = _numeric(value)
+    return (0, number, '') if number is not None else (1, 0, value or '')
+
+
 def ordered(values):
     """Members ordered for display: numbers numerically first, then the rest alphabetically.
     Computed here so both payloads and all three backends agree."""
     out = list(values or [])
-    out.sort(key=lambda v: (0, _numeric(v), '') if _numeric(v) is not None else (1, 0, v or ''))
+    out.sort(key=_order_key)
     return out
 
 
@@ -293,8 +305,9 @@ def upsert(match, key, value, changes=None, id_character=None, id_event=None,
         row['intValue'] = parsed['intValue']
         _stamp(row, id_character, id_event, id_choice, clock)
         after = [] if rendered is None else [rendered]
+        # v0.36.4 — the audit row names what was STORED, not the raw string the author typed.
         return _written(match, key, before, after, changes,
-                        f'{key} {_joined(before)} -> {value}',
+                        f'{key} {_logged(_joined(before))} -> {_logged(rendered)}',
                         id_event, clock, character_uuid, timestamp)
 
     # A set: adding a member it already holds changes nothing, so it says nothing either.
@@ -329,7 +342,7 @@ def remove(match, key, value, changes=None, id_character=None, id_event=None,
         rows[0]['stringValue'] = None
         rows[0]['intValue'] = None
         _stamp(rows[0], id_character, id_event, id_choice, clock)
-        return _written(match, key, before, [], changes, f'{key} {rendered} -> None',
+        return _written(match, key, before, [], changes, f'{key} {rendered} -> null',
                         id_event, clock, character_uuid, timestamp)
 
     # The member is named case-blind but removed as stored, or the removal matches nothing.
@@ -342,6 +355,12 @@ def remove(match, key, value, changes=None, id_character=None, id_event=None,
     after.remove(stored_value)
     return _written(match, key, before, ordered(after), changes, f'{key} -{stored_value}',
                     id_event, clock, character_uuid, timestamp)
+
+
+def is_declared(story, key):
+    """v0.36.4 — whether the story DECLARES this key. The admin console asks before writing,
+    so a typo cannot leave behind an orphan key indistinguishable from an engine bug."""
+    return _definition(story, (key or '').strip()) is not None
 
 
 def _definition(story, key):

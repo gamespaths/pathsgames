@@ -469,6 +469,17 @@ class RegistryServiceTest {
         }
 
         @Test
+        @DisplayName("v0.36.4 - the audit row names the STORED value, not the raw one")
+        void logNamesTheStoredValue() {
+            when(store.findByMatchAndKey(1L, "door")).thenReturn(List.of());
+
+            service.upsert(1L, 9L, "door", "  OPEN  ", 3L, 12L, null, 6);
+
+            verify(store).logChange(1L, 3L, 12L, null, 6,
+                    RegistryService.MSG_REGISTRY_CHANGE + " door null -> OPEN");
+        }
+
+        @Test
         @DisplayName("on a SINGLE key remove is still compare-and-clear")
         void removeClearsASingleKey() {
             when(store.findByMatchAndKey(1L, "door")).thenReturn(List.of(row("door", "OPEN", null)));
@@ -723,6 +734,36 @@ class RegistryServiceTest {
 
             assertEquals(List.of(), service.removeByMatchUuid("m-1", "  ", null));
             verify(store, never()).deleteValue(anyLong(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("v0.36.4 - the declaration is null when no match answers to the uuid")
+        void declaredUnknownMatch() {
+            when(store.findMatchAndStoryIdByUuid("nope")).thenReturn(Optional.empty());
+            assertNull(service.isDeclaredForMatchUuid("nope", "clue"));
+        }
+
+        @Test
+        @DisplayName("v0.36.4 - a key the story declares is writable, a typo of it is not")
+        void declaredFollowsTheStory() {
+            games.paths.core.port.story.StoryReadPort storyReadPort =
+                    mock(games.paths.core.port.story.StoryReadPort.class);
+            RegistryService declaring = new RegistryService(store, storyReadPort, null);
+            KeyEntity k = new KeyEntity();
+            k.setName("clue");
+            when(store.findMatchAndStoryIdByUuid("m-1")).thenReturn(Optional.of(new long[] {7L, 3L}));
+            when(storyReadPort.findKeysByStoryId(3L)).thenReturn(List.of(k));
+
+            assertEquals(Boolean.TRUE, declaring.isDeclaredForMatchUuid("m-1", " clue "));
+            assertEquals(Boolean.FALSE, declaring.isDeclaredForMatchUuid("m-1", "CLUE"));
+            assertEquals(Boolean.FALSE, declaring.isDeclaredForMatchUuid("m-1", null));
+        }
+
+        @Test
+        @DisplayName("v0.36.4 - a service with no story port declares nothing")
+        void declaredWithoutAStoryPort() {
+            when(store.findMatchAndStoryIdByUuid("m-1")).thenReturn(Optional.of(new long[] {7L, 3L}));
+            assertEquals(Boolean.FALSE, service.isDeclaredForMatchUuid("m-1", "clue"));
         }
 
         @Test

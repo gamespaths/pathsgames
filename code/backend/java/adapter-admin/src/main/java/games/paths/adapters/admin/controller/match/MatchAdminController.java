@@ -432,6 +432,8 @@ public class MatchAdminController {
      * PUT /api/admin/matches/{uuidMatch}/registry — v0.36.2, the console correcting one key.
      * The write goes through the ordinary RegistryService, so a single key is replaced, a
      * multi key gains a member, and either way the match log carries a REGISTRY_CHANGE row.
+     * v0.36.4 - a key the story does not declare is refused: a typo here would create an
+     * orphan key the player never sees and the console cannot tell from an engine bug.
      */
     @PutMapping("/{uuidMatch}/registry")
     public ResponseEntity<Object> upsertRegistry(@PathVariable String uuidMatch,
@@ -441,6 +443,14 @@ public class MatchAdminController {
             return error(HttpStatus.BAD_REQUEST, "INVALID_INPUT",
                     "Match uuid and a registry key are required");
         }
+        Boolean declared = registryService.isDeclaredForMatchUuid(uuidMatch, key);
+        if (declared == null) {
+            return error(HttpStatus.NOT_FOUND, "MATCH_NOT_FOUND", "Match not found: " + uuidMatch);
+        }
+        if (!declared) {
+            return error(HttpStatus.BAD_REQUEST, "UNKNOWN_KEY",
+                    "The story does not declare a registry key named: " + key);
+        }
         List<String> values = registryService.upsertByMatchUuid(uuidMatch, key,
                 str(body.get("value")));
         return registryBody(uuidMatch, key, values);
@@ -448,7 +458,8 @@ public class MatchAdminController {
 
     /**
      * DELETE /api/admin/matches/{uuidMatch}/registry?key=K[&value=V] — take one member away,
-     * or empty the key outright when no value is named.
+     * or empty the key outright when no value is named. Unlike the PUT above, an undeclared
+     * key is allowed here: cleaning an orphan row up is the whole point of the verb.
      */
     @DeleteMapping("/{uuidMatch}/registry")
     public ResponseEntity<Object> deleteRegistry(@PathVariable String uuidMatch,

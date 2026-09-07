@@ -193,6 +193,19 @@ describe('RegistryCard', () => {
     expect(await screen.findByText('The registry write failed.')).toBeInTheDocument()
   })
 
+  it("shows the backend's own reason, not the HTTP status", async () => {
+    // v0.36.4 — the console refuses an undeclared key; the admin has to be told which.
+    updateMatchRegistry.mockRejectedValue({
+      message: 'Request failed with status code 400',
+      response: { data: { error: 'UNKNOWN_KEY', message: 'The story does not declare a registry key named: signl' } },
+    })
+    render(<RegistryCard registry={[SINGLE]} matchUuid="m1" />)
+    await userEvent.click(screen.getByLabelText('Edit signal'))
+    await userEvent.click(screen.getByTitle('replace the value'))
+
+    expect(await screen.findByText(/does not declare a registry key named: signl/i)).toBeInTheDocument()
+  })
+
   it('a row with no values at all still renders its dash and its buttons', () => {
     render(<RegistryCard registry={[{ key: 'bare', multiValue: true }]} matchUuid="m1" />)
     expect(screen.getByText('—')).toBeInTheDocument()

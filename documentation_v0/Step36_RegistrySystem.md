@@ -341,6 +341,13 @@ default seeds **no row at all** — its set starts empty, consistent with §6.1'
 empty set is the absence of rows, not a row holding nothing — and every row seeding does write
 carries the `multi_value` mirror that will govern how this match writes that key from here on.
 
+**v0.36.4 — one spelling of the audit row.** Two details of the `REGISTRY_CHANGE` text were
+backend-dependent and are no longer. The row names what was STORED, not the raw string the
+author typed — storage trims, so `door " OPEN " ` now logs `door null -> OPEN` and not the
+padding it threw away. And an absent value reads `null` everywhere: Java always wrote `null`
+while Python and AWS wrote `None`, so the one line a support case greps for did not match
+itself across backends.
+
 ### 7.1 What the provenance columns mean
 
 `upsert` stamps `id_character`, `id_event`, `id_choice` and `clock` on the row it writes, so a
@@ -489,6 +496,16 @@ resolves a never-written key's declaration exactly like Java's `idStory`, and a 
 `remove(match, key, value, changes, ...)` mirrors `RegistryService.remove` over the same list.
 The rules are identical to Java's (§1, §6.1, §7.2) — only the storage shape (an embedded list,
 not a table with two partial indexes) differs.
+
+**v0.36.4 — where the three backends are NOT the same underneath.** Java and Python keep a
+multi key's set honest with a partial `UNIQUE` index (`idx_state_reg_key_multi`, §6.1): a
+duplicate member is refused by the database even if the service somehow asked for it. AWS has
+no index at all — the registry is a list on one item — so there the set property rests entirely
+on `upsert`'s own `_eq` membership check, and two writers racing on one match item are
+serialised only by DynamoDB's last-write-wins on the whole item. The behaviour the three must
+AGREE on is therefore pinned from OUTSIDE, by `registry_repeated_writes.robot` (§16), not by
+the storage: the same member written twice leaves one member and one `REGISTRY_CHANGE`, and
+add/remove/add leaves the member held exactly once.
 
 ### Python
 
@@ -643,6 +660,18 @@ Visibility column and a hidden-key count in the card header, and the old joined 
 was replaced: each member of a set is now its own chip with a per-chip ✕ delete button, and the
 inline pen/eraser editor moved into that same Values column instead of a separate one.
 
+### 15.1 v0.36.4 — the PUT refuses a key the story does not declare
+
+`PUT /api/admin/matches/{uuid}/registry` now asks first: `RegistryService.isDeclaredForMatchUuid`
+(`is_declared_for_match_uuid` / `registry.is_declared`) answers null when no match owns the
+uuid — a 404 as before — and false when the story declares no such key, which is a
+`400 UNKNOWN_KEY`. Without it a typo in the console's "Add a key" box wrote a key the story
+never had; §4 keeps such a row but reads it as hidden, so it looked exactly like an engine bug
+nobody could tell from a real one. The DELETE deliberately keeps NO such guard: cleaning an
+orphan row up is the whole point of that verb. `RegistryCard.jsx` now shows the backend's own
+message rather than "Request failed with status code 400", and the pair is finally written
+down in `v0.19.12-admin-match-control-api.yaml`, which 36.2 had left undocumented.
+
 ## 16. Test coverage
 
 New: java `RegistryServiceTest`, `RegistryStoreAdapterTest`, `RegistryControllerTest`; python
@@ -710,6 +739,19 @@ keyword `Admin Info Registry Entries`. All four seeds also gained the "bell" fix
 in [Step29 §3](./Step29_NormalEvents.md#3-execution), which the new `forced_move.robot` suite
 (5 cases, same `36_registry/` folder) discovers by behaviour.
 
+**v0.36.4** added `code/tests/robot/tests/36_registry/registry_repeated_writes.robot` (7 cases,
+tags `registry` + `step36-4`): the same member written twice leaving one member and exactly one
+`REGISTRY_CHANGE`, five repeats never growing the set, add/remove/add leaving the member held
+once, a single key rewritten with its own value still holding one value, the console refusing a
+key the story does not declare (400 `UNKNOWN_KEY`, and nothing written), and the DELETE still
+accepting an undeclared key. Both fixture keys are found by behaviour — the first multi and the
+first single key the match answers with — so the suite runs unmodified on all four targets.
+Unit tests: java `RegistryServiceTest` gained the declaration and the stored-value audit row,
+`MatchAdminControllerTest` the 400/404 split on the PUT; python `test_registry_service.py` the
+same three plus `test_match_admin_controller.py`'s first coverage of the two registry routes
+(6 cases, none existed); AWS `test_match_handler_admin_routes.py` the undeclared key on both
+verbs. Java 2477 tests, python 1566, AWS 931, react-admin 777 — all green.
+
 ## 17. Scope of change
 
 | Layer | Path |
@@ -742,7 +784,7 @@ and the bugs fixed in §9.
 
 # Version Control
 
-- **Document Version**: 0.36.3
+- **Document Version**: 0.36.4
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -751,7 +793,9 @@ and the bugs fixed in §9.
   | 0.36.2 | Value comparison folds case and trims both sides, at comparison time only — keys still match exactly and storage is untouched (§13); `list_locations` gains two registry pairs, one for the first arrival and one for every later one (§14); new admin `PUT`/`DELETE /api/admin/matches/{uuid}/registry` route the console through the ordinary engine (§15). A sixth bug fixed in passing: Python's `_event_dict` dropped the operator column, so `execute-event` and `/info` disagreed on the same event (§9, bug 6). | September 5, 2026 |
   | 0.36.3 | `GET /api/admin/matches/{uuid}/info` now returns hidden keys too, reusing the `allLocations`/`all_locations` switch (§8.1); `RegistryCard.jsx` gains a Visibility column, a hidden-key count, per-member chips with a delete button (§15); new admin Robot case. Same version, unrelated AWS/Python bugfixes on `execute-event`'s forced-move handling — see [Step29 §3](./Step29_NormalEvents.md#3-execution). | September 6, 2026 |
 
-- **Last Updated**: September 6, 2026
+  | 0.36.4 | The `REGISTRY_CHANGE` row now names the value as STORED and spells an absent one `null` on all three backends (§7); admin `PUT` refuses a key the story does not declare with 400 `UNKNOWN_KEY`, the `DELETE` still accepts one so an orphan row can be cleaned up (§15.1). Python's `list_entries` defaults to hidden-keys-EXCLUDED like Java and AWS, the admin registry pair is finally in `v0.19.12-admin-match-control-api.yaml`, and `registry_repeated_writes.robot` pins from outside the set behaviour Java/Python get from an index and AWS does not (§10, §16). | September 8, 2026 |
+
+- **Last Updated**: September 8, 2026
 - **Status**: Complete
 
 

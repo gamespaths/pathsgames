@@ -330,7 +330,9 @@ def _registry_side(match_item):
         if pk.startswith('MATCH#'):
             return match_item
         if pk.startswith('STORY#'):
-            return {'PK': 'STORY#s1', 'uuid': 's1'}
+            # v0.36.4 — the console refuses a key the story does not declare, so the stub
+            # story has to declare the one every case below writes.
+            return {'PK': 'STORY#s1', 'uuid': 's1', 'keys': [{'keyName': 'WINTER'}]}
         return None
     return _side
 
@@ -346,6 +348,36 @@ def test_put_registry_replaces_a_single_key(mock_get, mock_put, _jwt):
     assert result['statusCode'] == 200
     assert _body(result) == {'key': 'WINTER', 'values': ['NO']}
     mock_put.assert_called_once()
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
+@patch('match.handler.db_utils.put_item', return_value=True)
+@patch('match.handler.db_utils.get_item')
+def test_put_registry_rejects_a_key_the_story_does_not_declare(mock_get, mock_put, _jwt):
+    # v0.36.4 — a typo would otherwise create an orphan key nobody can tell from a bug.
+    mock_get.side_effect = _registry_side(copy.deepcopy(REGISTRY_MATCH))
+    result = _call(_admin_event('PUT', '/api/admin/matches/m1/registry',
+                                body={'key': 'WNITER', 'value': 'NO'}))
+    assert result['statusCode'] == 400
+    assert _body(result)['error'] == 'UNKNOWN_KEY'
+    mock_put.assert_not_called()
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
+@patch('match.handler.db_utils.put_item', return_value=True)
+@patch('match.handler.db_utils.get_item')
+def test_delete_registry_still_takes_an_undeclared_key(mock_get, mock_put, _jwt):
+    # The DELETE has no such guard: cleaning an orphan row up is the point of the verb.
+    match = copy.deepcopy(REGISTRY_MATCH)
+    match['registry'].append({'key': 'ORPHAN', 'stringValue': 'X', 'intValue': None,
+                              'multiValue': 0})
+    mock_get.side_effect = _registry_side(match)
+    result = _call(_admin_event('DELETE', '/api/admin/matches/m1/registry',
+                                qs={'key': 'ORPHAN'}))
+    assert result['statusCode'] == 200
+    assert _body(result) == {'key': 'ORPHAN', 'values': []}
 
 
 @patch('match.handler.jwt_utils.verify_access_token',
