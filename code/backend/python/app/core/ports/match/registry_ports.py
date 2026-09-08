@@ -14,6 +14,19 @@ class RegistryStorePort(ABC):
     def find_match_and_story_id_by_uuid(self, match_uuid: str) -> Optional[tuple]:
         """v0.36.2 — (id_match, id_story) behind a match uuid, for the admin edit which only
         ever holds the uuid. None when no match answers to it."""
+    @abstractmethod
+    def find_story_id_by_match(self, id_match: int) -> Optional[int]:
+        """Step 37 - the story a match plays."""
+
+    @abstractmethod
+    def find_mission_states(self, id_match: int) -> List[Dict[str, Any]]:
+        """Step 37 - every mission of the match that has state."""
+
+    @abstractmethod
+    def upsert_mission_state(self, id_match: int, key: str, status: str, id_mission: int,
+                             id_mission_steps: Optional[int], clock: Optional[int]) -> None:
+        """Step 37 - write the state of one mission."""
+
 
     @abstractmethod
     def find_by_match(self, id_match: int) -> List[Dict[str, Any]]:

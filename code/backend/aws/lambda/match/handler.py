@@ -255,6 +255,9 @@ def _detail_from_item(item, players=None, lang='en', all_locations=False,
         # ADMIN view, which is the same door all_locations already opens, and every entry
         # says which it is through `visible`.
         "registry": _registry.list_entries(item, story, include_hidden=all_locations),
+        # Step 37 — the same deliberate duplication: the board renders its mission panel
+        # off /info and never pays for a second request.
+        "missions": _missions.list_missions(item, story, None, lang),
         "events": [],
         "choices": [],
         # Step 21 — the players/characters of the match (summary rows).
@@ -323,6 +326,7 @@ from common.data_utils import resolve_card_from_raw as _resolve_card_from_raw
 from match import inventory as _inventory
 from match import choices as _choices
 from match import events as _events
+from match import missions as _missions
 from match import registry as _registry
 from match import movements as _movements
 
@@ -936,6 +940,30 @@ def _get_match_registry(user, match_uuid, include_hidden=False):
     return _ok({'groups': groups})
 
 
+def _get_match_missions(user, match_uuid, status=None, lang='en'):
+    """Step 37 — GET /api/match/{uuidMatch}/missions, optionally filtered by status.
+
+    Owner-only and 404-masked exactly as the registry endpoint is. A mission this match has
+    never reached is not listed at all: listing it would spoil it.
+    """
+    item, err = _require_owned_match(user, match_uuid)
+    if err is not None:
+        return err
+    return _ok({'missions': _missions.list_missions(item, _story_of(item), status, lang)})
+
+
+def _get_match_mission(user, match_uuid, mission_uuid, lang='en'):
+    """Step 37 — GET /api/match/{uuidMatch}/missions/{uuidMission}, with all its steps."""
+    item, err = _require_owned_match(user, match_uuid)
+    if err is not None:
+        return err
+    mission = _missions.find_mission(item, _story_of(item), mission_uuid, lang)
+    # A mission this match has not reached reads as not-found, like the match itself would.
+    if mission is None:
+        return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+    return _ok(mission)
+
+
 def _end_match(user, match_uuid, event_uuid):
     """Step 20.1 — PATCH /api/match/{uuidMatch}/end/{uuidEvent}.
     Completes the match (status → ENDED) when the supplied event uuid resolves
@@ -965,6 +993,9 @@ def _end_match(user, match_uuid, event_uuid):
                     'The supplied event is not the end-game event for this match')
 
     item['status'] = 'ENDED'
+    # Step 37 — a mission that opened and never closed has now failed; one never reached is
+    # simply ignored, as it was never the player's business.
+    _missions.on_story_end(item)
     db_utils.put_item(item)
     return _ok({'status': 'ENDED', 'uuid': match_uuid})
 
@@ -1115,6 +1146,34 @@ def _list_players(user, match_uuid):
 def _story_of(match):
     """The STORY item behind a match; an empty dict when it cannot be resolved."""
     return db_utils.get_item(f'STORY#{(match or {}).get("storyUuid")}') or {}
+
+
+# Step 37 — how far a mission cascade may run. A completion event writes the registry, which
+# may complete another mission; the same cap that stops a runaway arrival chain stops this.
+_MISSION_DEPTH = [0]
+
+
+def _run_missions(match, lang='en'):
+    """Called after every successful registry write. Moves the mission states in place, then
+    runs whatever completion events that made due."""
+    if _MISSION_DEPTH[0] >= _events.MAX_ENTRY_DEPTH:
+        return
+    story = _story_of(match)
+    if not story:
+        return
+    pending = _missions.evaluate(match, story, match.get('currentClock'))
+    if not pending:
+        return
+    _MISSION_DEPTH[0] += 1
+    try:
+        for id_event in pending:
+            _run_automatic_event(match, match.get('uuid'), story, None, id_event, 0,
+                                 'mission completed', lang, _MISSION_DEPTH[0], [])
+    finally:
+        _MISSION_DEPTH[0] -= 1
+
+
+_registry.set_mission_hook(_run_missions)
 
 
 def _get_character(user, match_uuid, char_uuid):
@@ -4634,6 +4693,20 @@ def lambda_handler(event, context):
         qs = (event.get('queryStringParameters') or {})
         include_hidden = str(qs.get('includeHidden') or '').lower() == 'true'
         return _get_match_registry(user, match_uuid, include_hidden)
+
+    # Step 37 — GET /api/match/{uuidMatch}/missions[/{uuidMission}]
+    if path.startswith('/api/match/') and '/missions' in path and method == 'GET':
+        params = (event.get('pathParameters') or {})
+        segments = path.split('/')
+        match_uuid = params.get('uuidMatch') or (segments[3] if len(segments) > 4 else '')
+        qs = (event.get('queryStringParameters') or {})
+        lang = qs.get('lang') or 'en'
+        mission_uuid = params.get('uuidMission')
+        if not mission_uuid and len(segments) > 5:
+            mission_uuid = segments[5]
+        if mission_uuid:
+            return _get_match_mission(user, match_uuid, mission_uuid, lang)
+        return _get_match_missions(user, match_uuid, qs.get('status'), lang)
 
     # Step 20.1 — PATCH /api/match/{uuidMatch}/end/{uuidEvent}
     if (path.startswith('/api/match/') and '/end/' in path and method == 'PATCH'):

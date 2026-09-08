@@ -44,6 +44,11 @@ class MatchCommandService(MatchCommandPort):
         self.system_mode_port = system_mode_port
         self.turnstile_port = turnstile_port or _PassthroughTurnstile()
         self.registry_service = registry_service
+        # Step 37 - set after construction; a story that ends fails whatever is still open.
+        self.mission_service = None
+
+    def set_mission_service(self, mission_service) -> None:
+        self.mission_service = mission_service
 
     def create_match(self, command: MatchCreateCommand) -> MatchSummary:
         if (
@@ -227,5 +232,9 @@ class MatchCommandService(MatchCommandPort):
             return "NOT_ACCEPTABLE"
 
         self.match_persistence_port.update_match_fields(uuid_match, match_statuses.ENDED, None)
+        # Step 37 — a mission that opened and never closed has now failed; one never reached
+        # is simply ignored, as it was never the player's business.
+        if getattr(self, "mission_service", None) is not None:
+            self.mission_service.on_story_end(match["id"])
         return "COMPLETED"
 

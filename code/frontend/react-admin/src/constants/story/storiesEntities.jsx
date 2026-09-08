@@ -368,23 +368,26 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idText', label: 'Text ID', type: 'number' },
       { key: 'idEvent', label: 'Event ID', type: 'number' },
     ],
+    // Step 37: the from/to pair is gone. conditionValue holds one value; conditionValues is
+    // a PIPE list read as an AND, edited as chips so a pipe is never typed by hand.
     missions: [
       { key: 'idCard', label: 'Card ID', type: 'number' },
       { key: 'idTextName', label: 'Name Text ID', type: 'number' },
       { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
-      { key: 'conditionKey', label: 'Condition Key', type: 'text' },
-      { key: 'conditionValueFrom', label: 'Condition Value From', type: 'number' },
-      { key: 'conditionValueTo', label: 'Condition Value To', type: 'number' },
+      { key: 'conditionKey', label: 'Condition Key', type: 'text', required: true },
+      { key: 'conditionValue', label: 'Condition Value', type: 'text' },
+      { key: 'conditionValues', label: 'Condition Values (all of)', type: 'chips' },
       { key: 'idEventCompleted', label: 'Completed Event ID', type: 'number' },
     ],
     'mission-steps': [
       { key: 'idMission', label: 'Mission ID', type: 'number' },
       { key: 'step', label: 'Step Number', type: 'number' },
+      { key: 'idCard', label: 'Card ID', type: 'number' },
       { key: 'idTextName', label: 'Name Text ID', type: 'number' },
       { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
-      { key: 'conditionKey', label: 'Condition Key', type: 'text' },
-      { key: 'conditionValueFrom', label: 'Condition Value From', type: 'number' },
-      { key: 'conditionValueTo', label: 'Condition Value To', type: 'number' },
+      { key: 'conditionKey', label: 'Condition Key', type: 'text', required: true },
+      { key: 'conditionValue', label: 'Condition Value', type: 'text' },
+      { key: 'conditionValues', label: 'Condition Values (all of)', type: 'chips' },
       { key: 'idEventCompleted', label: 'Completed Event ID', type: 'number' },
     ],
   }
@@ -553,12 +556,16 @@ export const STORIES_ENTITIES_COLUMNS = {
     missions: [
       { key: 'idTextName', label: 'Name', type: 'idTextName' },
       { key: 'conditionKey', label: 'Condition Key' },
+      { key: 'conditionValue', label: 'Condition Value' },
+      { key: 'conditionValues', label: 'All Of' },
       { key: 'idEventCompleted', label: 'Completed Event' },
     ],
     'mission-steps': [
       { key: 'idMission', label: 'Mission ID' },
       { key: 'step', label: 'Step' },
       { key: 'conditionKey', label: 'Condition Key' },
+      { key: 'conditionValue', label: 'Condition Value' },
+      { key: 'conditionValues', label: 'All Of' },
       { key: 'idEventCompleted', label: 'Completed Event' },
     ],
   }

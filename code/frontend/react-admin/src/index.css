@@ -455,6 +455,27 @@ select.pg-input option {
 .pg-badge-info    { background: rgba(23,162,184,0.15);color: #6edff6; border: 1px solid rgba(23,162,184,0.3); }
 .pg-badge-gold    { background: rgba(200,150,10,0.15); color: var(--color-gold-light); border: 1px solid rgba(200,150,10,0.3); }
 
+/* ── Chips (Step 37) — one member of a PIPE list, removable ── */
+.pg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--color-ash);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: var(--color-parchment-light);
+}
+.pg-chip-remove {
+  background: none;
+  border: none;
+  padding: 0;
+  line-height: 1;
+  color: var(--color-ash);
+  cursor: pointer;
+}
+.pg-chip-remove:hover { color: #ff7b88; }
+
 .pg-badge-resolved {
   background: rgba(200,150,10,0.1);
   color: var(--color-parchment-light);

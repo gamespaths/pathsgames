@@ -70,9 +70,9 @@ describe('GameBook — the book bookmarks', () => {
     // Multiplayer is commented out in GameBook: an empty row renders nothing at all.
     expect(container.querySelector('.book-bookmarks--right')).toBeNull()
 
+    // Step 37 lit the missions tab up: it opens the panel it had been promising.
     const missions = screen.getByLabelText('game.bookmarks.missions')
-    expect(missions).toHaveClass('is-disabled')
-    expect(missions).toHaveAttribute('title', 'game.bookmarks.comingSoon')
+    expect(missions).not.toHaveClass('is-disabled')
   })
 
   it('prints no words: a tab is its icon and its badges', () => {

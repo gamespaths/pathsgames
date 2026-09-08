@@ -484,6 +484,22 @@ Java. `app/adapters/persistence/match/models.py` also gained `ondelete="CASCADE"
   weighs 1 and is NOT consumable, on every backend — see also
   [Step34, Rules of use](./Step34_InventoryAndResources.md#rules-of-use).
 
+### Mission Import Fixes (v0.37.0)
+
+Two pre-existing bugs, closed alongside the mission engine itself — see
+[Step37_MissionSystem.md](./Step37_MissionSystem.md):
+
+- **Java**: `StoryImportService.importMissions` never set `idEventCompleted`;
+  `importMissionSteps` wrote only `id`/`idStory`/`idMission`/`step` and silently dropped
+  `uuid`, `idCard`, both text ids and every condition field. A mission imported from JSON
+  therefore had no completion event and steps that could never be resolved by uuid.
+- **Python**: the importer read a nested `steps` list off the mission object and never looked
+  at the top-level `missionSteps` array the shared JSON contract actually uses — the exact
+  same shape of bug the v0.35.8 `locationNeighbors` fix closed above. The validator checked
+  the right (top-level) array while the importer read the wrong one, so a story could
+  validate clean and still import with zero mission steps. New `save_mission_steps` on the
+  persistence port reads the top-level array.
+
 ### Default Values for Difficulty Fields
 When difficulty integer fields are null in the database, the following defaults are applied:
 | Field | Default |
@@ -547,7 +563,7 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.14.0-story-a
     > create a AWS backend version "code/backend/aws" with cloudformation, aws api gateway, lambda function, dynamo and cloudwatch. I wanna all api with openpi "code/backend/java/adapter-rest/src/main/resources/openapi" and jwt rules. Let's go!
 
 
-- **Document Version**: 0.36.3
+- **Document Version**: 0.37.0
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.14.0 | Create a website new prototype with React and Vite | April 8, 2026 |
@@ -560,8 +576,9 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.14.0-story-a
     | 0.26.1 | AWS i18n bugfix: `_resolve_text` per-field English fallback; new `_resolve_story_text` reads title/description from `raw_texts` first (like cards); 4 new AWS unit tests; Robot regression test `Story List Lang IT Never Blanks A Title That English Has` added to suite `26_time_recovery/match_info_lang.robot` | June 23, 2026 |
     | 0.35.8 | Java: weather rules import before events; new `linkDeferredReferences` second pass (location triggers, `id_event_next`, `id_item_to_add`, weather `id_event`). Python: same second pass, top-level `locationNeighbors` import, `_make` type coercion, `delete_story_by_id` matches-first cascade, new `align_schema()` startup drift-repair. | August 30, 2026 |
     | 0.36.3 | Java bugfix: `importChoiceEffects` now maps the v0.32.0 choice-effect targets it had silently dropped since Step 32 — see [Step32 §7](./Step32_ChoiceResolution.md#7-database--v0320choice_effect_targetssql). Same version, `is_consumabile`'s import-time default flips to non-consumable (§ Python Import Robustness above). | September 6, 2026 |
+    | 0.37.0 | Mission import fixes: Java's `importMissions`/`importMissionSteps` now set `idEventCompleted` and every field (uuid, card, texts, conditions) it used to drop; Python's importer now reads the top-level `missionSteps` array instead of a nested one it was validating but never persisting (new `save_mission_steps` port method). See [Step37_MissionSystem.md](./Step37_MissionSystem.md). | September 8, 2026 |
     
-- **Last Updated**: September 6, 2026
+- **Last Updated**: September 8, 2026
 - **Status**: ✅ Complete
 
 

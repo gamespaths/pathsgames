@@ -1117,24 +1117,24 @@
   "missions": [
     {
       "conditionKey": "venice_alliance",
-      "conditionValueFrom": null,
-      "conditionValueTo": "true",
       "idTextName": 900,
-      "idTextDescription": 900
+      "idTextDescription": 900,
+      "conditionValue": "true",
+      "conditionValues": null
     },
     {
       "conditionKey": "prisoners_freed",
-      "conditionValueFrom": null,
-      "conditionValueTo": "true",
       "idTextName": 901,
-      "idTextDescription": 901
+      "idTextDescription": 901,
+      "conditionValue": "true",
+      "conditionValues": null
     },
     {
       "conditionKey": "ezzelino_defeated",
-      "conditionValueFrom": null,
-      "conditionValueTo": "true",
       "idTextName": 902,
-      "idTextDescription": 902
+      "idTextDescription": 902,
+      "conditionValue": "true",
+      "conditionValues": null
     }
   ]
 }

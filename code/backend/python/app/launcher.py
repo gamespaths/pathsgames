@@ -36,6 +36,7 @@ from app.adapters.persistence.match.story_match_read_adapter import StoryMatchRe
 from app.adapters.persistence.match.user_access_adapter import UserAccessAdapter
 from app.adapters.persistence.match.character_persistence_adapter import CharacterPersistenceAdapter
 from app.core.services.match.match_command_service import MatchCommandService
+from app.core.services.match.mission_service import MissionService
 from app.core.services.match.registry_service import RegistryService
 from app.adapters.persistence.match.registry_store_adapter import RegistryStoreAdapter
 from app.core.services.match.match_query_service import MatchQueryService
@@ -121,6 +122,13 @@ turnstile_adapter = TurnstileVerificationAdapter(
 registry_store_adapter = RegistryStoreAdapter(SessionLocal)
 registry_service = RegistryService(registry_store_adapter, story_match_read_adapter,
                                    content_query_service)
+# Step 37 — the mission engine and the registry know each other in a circle: the registry
+# tells it a value moved, and it reads the registry back to decide what that means.
+# The STORY read adapter, not the match one: the engine reads the mission rows and their
+# texts through the same generic story reader the admin CRUD uses.
+mission_service = MissionService(registry_store_adapter, story_read_adapter,
+                                 content_query_service)
+registry_service.mission_service = mission_service
 match_command_service = MatchCommandService(
     story_match_read_adapter,
     match_persistence_adapter,
@@ -129,6 +137,7 @@ match_command_service = MatchCommandService(
     turnstile_adapter,
     registry_service,
 )
+match_command_service.set_mission_service(mission_service)
 # Step 21 — character join adapters and services
 character_persistence_adapter = CharacterPersistenceAdapter(SessionLocal)
 character_command_service = CharacterCommandService(
@@ -159,6 +168,7 @@ match_query_service = MatchQueryService(
     event_store_adapter,
     registry_service,
 )
+match_query_service.set_mission_service(mission_service)
 
 # Dev-only test-data cleanup service
 test_data_cleanup_service = TestDataCleanupService(persistence_adapter, match_persistence_adapter)
@@ -228,6 +238,10 @@ event_service = EventService(event_store_adapter,
                              time_service=time_advancement_service,
                              location_store=location_entry_store_adapter,
                              registry_service_instance=registry_service)
+# Step 37 — the second cycle, closed the same way: a mission completion runs an event, and
+# an event moves the registry that decides the mission.
+event_service.set_mission_service(mission_service)
+mission_service.event_port = event_service
 event_controller = EventController(event_service)
 
 # Steps 34 & 35 — inventory and resources. Depends on the CONCRETE EventService, not on

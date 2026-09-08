@@ -250,6 +250,8 @@ def _detail_to_camel(detail):
             }
             for r in detail.registry
         ],
+        # Step 37 — already camelCase from the engine, so it crosses as it is.
+        "missions": detail.missions,
         "events": [asdict(e) for e in detail.events],
         "choices": [asdict(c) for c in detail.choices],
         "players": [_character_summary_to_camel(p) for p in detail.players],
@@ -280,10 +282,46 @@ class MatchController:
             "/api/match/{uuid_match}/registry", self.get_match_registry, methods=["GET"]
         )
         self.router.add_api_route(
+            "/api/match/{uuid_match}/missions", self.get_match_missions, methods=["GET"]
+        )
+        self.router.add_api_route(
+            "/api/match/{uuid_match}/missions/{uuid_mission}", self.get_match_mission,
+            methods=["GET"]
+        )
+        self.router.add_api_route(
             "/api/match/{uuid_match}/end/{uuid_event}",
             self.end_match,
             methods=["PATCH"],
         )
+
+    def get_match_missions(self, uuid_match: str, request: Request, lang: str = "en",
+                           status: Optional[str] = None):
+        """Step 37 — the missions this match has reached, optionally filtered by status."""
+        user_uuid = getattr(request.state, "user_uuid", None)
+        if not user_uuid:
+            return _error("UNAUTHENTICATED", "User identity is missing", 401)
+        if not uuid_match or not uuid_match.strip():
+            return _error("INVALID_INPUT", "Match uuid is required", 400)
+        missions = self.query_port.get_match_missions(uuid_match, user_uuid, status, lang)
+        if missions is None:
+            return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
+        return JSONResponse(content={"missions": missions})
+
+    def get_match_mission(self, uuid_match: str, uuid_mission: str, request: Request,
+                          lang: str = "en"):
+        """Step 37 — one mission with all its steps. A mission this match has not reached
+        reads as not-found, exactly as the match itself would."""
+        user_uuid = getattr(request.state, "user_uuid", None)
+        if not user_uuid:
+            return _error("UNAUTHENTICATED", "User identity is missing", 401)
+        if not uuid_match or not uuid_match.strip():
+            return _error("INVALID_INPUT", "Match uuid is required", 400)
+        if not uuid_mission or not uuid_mission.strip():
+            return _error("INVALID_INPUT", "Mission uuid is required", 400)
+        mission = self.query_port.get_match_mission(uuid_match, user_uuid, uuid_mission, lang)
+        if mission is None:
+            return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
+        return JSONResponse(content=mission)
 
     def create_match(self, request: Request, body: Optional[MatchCreateRequestBody] = None):
         user_uuid = getattr(request.state, "user_uuid", None)

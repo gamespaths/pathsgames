@@ -706,3 +706,50 @@ def test_neighbor_location_card_when_standing_on_to_endpoint():
     n = next(x for x in detail.locations_active[0].neighbors if x.id_location == 10)
     assert n.card_location_from is None            # destination still under fog
     assert n.card_location_to["title"] == "Cellar"  # where the player stands
+
+
+# ── Step 37: missions ────────────────────────────────────────────────────────
+
+def _mission_service_env(creator=7):
+    persistence = MagicMock()
+    story_read = MagicMock()
+    user_access = MagicMock()
+    user_access.find_by_uuid.side_effect = (
+        lambda uuid: _user(uuid=uuid) if uuid == "user-uuid" else
+        ({"id": 8, "uuid": uuid, "username": "o", "role": "PLAYER", "state": 2}
+         if uuid == "other" else None))
+    persistence.find_match_by_uuid.side_effect = (
+        lambda mu: _match(creator=creator) if mu == "match-uuid" else None)
+    service = MatchQueryService(persistence, story_read, user_access)
+    mission_service = MagicMock()
+    service.set_mission_service(mission_service)
+    return service, mission_service
+
+
+def test_the_owner_reads_the_missions_of_the_match():
+    service, missions = _mission_service_env()
+    missions.list.return_value = [{"uuid": "m-1"}]
+    missions.detail.return_value = {"uuid": "m-1"}
+
+    assert service.get_match_missions("match-uuid", "user-uuid", "ACTIVE", None) == [{"uuid": "m-1"}]
+    missions.list.assert_called_once_with(99, 2, "ACTIVE", "en")
+    assert service.get_match_mission("match-uuid", "user-uuid", "m-1", "it") == {"uuid": "m-1"}
+    missions.detail.assert_called_once_with(99, 2, "m-1", "it")
+
+
+def test_anyone_else_and_every_unknown_uuid_read_as_not_found():
+    service, _ = _mission_service_env()
+
+    assert service.get_match_missions("match-uuid", "other", None, "en") is None
+    assert service.get_match_missions("match-uuid", "ghost", None, "en") is None
+    assert service.get_match_missions("nope", "user-uuid", None, "en") is None
+    assert service.get_match_missions("", "user-uuid", None, "en") is None
+    assert service.get_match_mission("match-uuid", "  ", "m-1", "en") is None
+
+
+def test_with_no_engine_wired_the_endpoints_answer_not_found_rather_than_empty():
+    service, _ = _mission_service_env()
+    service.set_mission_service(None)
+
+    assert service.get_match_missions("match-uuid", "user-uuid", None, "en") is None
+    assert service.get_match_mission("match-uuid", "user-uuid", "m-1", "en") is None

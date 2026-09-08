@@ -8,6 +8,7 @@ import {
   startMovement, getMatchLocations, getMatchLogs,
   executeEvent, selectChoice,
   getInventory, useItem, dropItem, getResources,
+  getMatchMissions, getMatchMission,
 } from '../api/matches'
 
 vi.mock('../api/client', () => ({ apiClient: vi.fn() }))
@@ -20,6 +21,30 @@ describe('matches api', () => {
     const get = vi.fn()
     const patch = vi.fn()
     beforeEach(() => apiClient.mockReturnValue({ post, get, patch }))
+
+    // Step 37 — the board reads missions off /info; these back a panel that wants them alone.
+    it('getMatchMissions asks for the missions of one match', async () => {
+      get.mockResolvedValue({ data: { missions: [] } })
+      const res = await getMatchMissions('m1', 'tok', { lang: 'it', status: 'ACTIVE' })
+      expect(get).toHaveBeenCalledWith(
+        '/api/match/m1/missions?lang=it&status=ACTIVE',
+        expect.objectContaining({ headers: { Authorization: 'Bearer tok' } }))
+      expect(res).toEqual({ missions: [] })
+    })
+
+    it('getMatchMissions defaults the language and omits an absent status', async () => {
+      get.mockResolvedValue({ data: { missions: [] } })
+      await getMatchMissions('m1', 'tok')
+      expect(get).toHaveBeenCalledWith('/api/match/m1/missions?lang=en', expect.anything())
+    })
+
+    it('getMatchMission asks for one mission and all its steps', async () => {
+      get.mockResolvedValue({ data: { uuid: 'mis-1' } })
+      const res = await getMatchMission('m1', 'mis-1', 'tok')
+      expect(get).toHaveBeenCalledWith('/api/match/m1/missions/mis-1?lang=en',
+        expect.anything())
+      expect(res).toEqual({ uuid: 'mis-1' })
+    })
 
     it('createMatch posts to /api/matches with the bearer token', async () => {
       post.mockResolvedValue({ data: { uuid: 'm1' } })

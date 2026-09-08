@@ -511,6 +511,8 @@ class GlobalRandomEventEntity(Base):
 
 
 class MissionEntity(Base):
+    """Step 37 - condition_value replaces the from/to pair; condition_values is a PIPE list."""
+
     __tablename__ = "list_missions"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
@@ -520,21 +522,27 @@ class MissionEntity(Base):
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     condition_key = Column(String(255))
-    condition_value_from = Column(String(255))
-    condition_value_to = Column(String(255))
+    condition_value = Column(String(500))
+    condition_values = Column(String(2000))
     id_event_completed = Column(Integer)
 
 
 class MissionStepEntity(Base):
+    """Step 37 - aligned to the Java schema: `step` (not step_order), uuid, card and texts."""
+
     __tablename__ = "list_missions_steps"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
     id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
+    uuid = Column(String(36))
+    id_card = Column(Integer)
     id_mission = Column(Integer)
-    step_order = Column(Integer)
+    step = Column(Integer)
+    id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     condition_key = Column(String(255))
-    condition_value = Column(String(255))
+    condition_value = Column(String(500))
+    condition_values = Column(String(2000))
     id_event_completed = Column(Integer)
 
 

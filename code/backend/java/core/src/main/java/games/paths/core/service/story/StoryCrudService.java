@@ -1046,8 +1046,8 @@ public class StoryCrudService implements StoryCrudPort {
 
     private void putMissionFields(Map<String, Object> m, BaseMissionEntity e) {
         m.put("conditionKey", e.getConditionKey());
-        m.put("conditionValueFrom", e.getConditionValueFrom());
-        m.put("conditionValueTo", e.getConditionValueTo());
+        m.put("conditionValue", e.getConditionValue());
+        m.put("conditionValues", e.getConditionValues());
         m.put("idEventCompleted", e.getIdEventCompleted());
     }
 
@@ -1140,10 +1140,10 @@ public class StoryCrudService implements StoryCrudPort {
     private void applyMissionFields(BaseMissionEntity e, Map<String, Object> d) {
         if (d.containsKey("conditionKey"))
             e.setConditionKey(str(d, "conditionKey"));
-        if (d.containsKey("conditionValueFrom"))
-            e.setConditionValueFrom(str(d, "conditionValueFrom"));
-        if (d.containsKey("conditionValueTo"))
-            e.setConditionValueTo(str(d, "conditionValueTo"));
+        if (d.containsKey("conditionValue"))
+            e.setConditionValue(str(d, "conditionValue"));
+        if (d.containsKey("conditionValues"))
+            e.setConditionValues(str(d, "conditionValues"));
         if (d.containsKey("idEventCompleted"))
             e.setIdEventCompleted(intVal(d, "idEventCompleted"));
     }

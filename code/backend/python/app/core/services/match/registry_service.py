@@ -61,19 +61,19 @@ def _numeric(value: Optional[str]) -> Optional[int]:
         return None
 
 
-def _norm(value: Optional[str]) -> Optional[str]:
+def norm(value: Optional[str]) -> Optional[str]:
     """v0.36.2 — the form a value is COMPARED in: trimmed and case-folded, never stored."""
     return None if value is None else str(value).strip().lower()
 
 
-def _eq(a: Optional[str], b: Optional[str]) -> bool:
+def eq(a: Optional[str], b: Optional[str]) -> bool:
     """Equality as every registry comparison means it: blind to case and to padding."""
-    return _norm(a) == _norm(b)
+    return norm(a) == norm(b)
 
 
 def _first_matching(rows, value):
     """The row a value names, whatever case the author wrote it in. None when none does."""
-    return next((r for r in rows if _eq(render_row(r), value)), None)
+    return next((r for r in rows if eq(render_row(r), value)), None)
 
 
 def _logged(value: Optional[str]) -> str:
@@ -106,9 +106,9 @@ def evaluate(operator: Optional[str], expected: Optional[str],
     values = list(actual or [])
     op = OP_EQ if operator is None or not str(operator).strip() else str(operator).strip()
     if op == OP_EQ:
-        return any(_eq(v, expected) for v in values)
+        return any(eq(v, expected) for v in values)
     if op == OP_NE:
-        return not any(_eq(v, expected) for v in values)
+        return not any(eq(v, expected) for v in values)
     if op in (OP_GT, OP_LT):
         # ∀ over an empty set is vacuously true in logic and wrong here.
         if not values:
@@ -151,6 +151,8 @@ class RegistryService:
         self.store = store
         self.story_read_port = story_read_port
         self.content_query_port = content_query_port
+        # Step 37 - set after construction: the mission engine reads the registry it listens to.
+        self.mission_service = None
 
     # ── reads ────────────────────────────────────────────────────────────────
 
@@ -281,7 +283,7 @@ class RegistryService:
 
         # A set: adding a member it already holds changes nothing, so it says nothing either.
         current = _values(rows)
-        if rendered is None or any(_eq(v, rendered) for v in current):
+        if rendered is None or any(eq(v, rendered) for v in current):
             return ordered(current)
         self.store.insert_value(id_match, key, parsed["string_value"], parsed["int_value"],
                                 id_character, id_event, id_choice, clock)
@@ -304,7 +306,7 @@ class RegistryService:
         rendered = render(parsed["string_value"], parsed["int_value"])
 
         if not rows[0].get("multi_value"):
-            if rendered is None or not _eq(rendered, render_row(rows[0])):
+            if rendered is None or not eq(rendered, render_row(rows[0])):
                 return current  # a value the story has since moved on from: leave it alone
             self.store.upsert(id_match, key, None, None,
                               id_character, id_event, id_choice, clock)
@@ -377,6 +379,10 @@ class RegistryService:
         """One writer, one audit row: a registry change can neither be missed nor doubled."""
         self.store.log_change(id_match, id_character, id_event, id_choice, clock,
                               f"{MSG_REGISTRY_CHANGE} {detail}")
+        # Step 37 - the audit row and the mission pass share one choke point on purpose: a
+        # write that is worth logging is exactly a write that may move a mission.
+        if self.mission_service is not None:
+            self.mission_service.on_registry_change(id_match, clock)
 
     def _declared_multi(self, id_story: Optional[int], key: str) -> bool:
         """What the story says about a key the match has never written."""

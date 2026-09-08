@@ -84,6 +84,11 @@ export function buildRegistryCard(t) {
   return metaCard('registry', t('game.registry.title'), null)
 }
 
+/** Step 37 — missions card (MissionCard), the registry's neighbour in the same list. */
+export function buildMissionsCard(t) {
+  return metaCard('missions', t('game.missions.title'), null)
+}
+
 /** "Loading…" card shown on the book page while the board reloads (LoadingCard). */
 export function buildLoadingCard(t) {
   return metaCard('loading', t('game.loadingCard.title'), t('game.loadingCard.description'))

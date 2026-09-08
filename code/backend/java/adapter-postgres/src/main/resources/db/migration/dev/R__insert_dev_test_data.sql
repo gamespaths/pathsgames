@@ -213,6 +213,15 @@ INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_val
 INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_value) VALUES (90005, 9001, 'case_notes', NULL, 'evidence', 'PUBLIC', 1);
 INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_value) VALUES (90006, 9001, 'signal', 'green', 'evidence', 'PUBLIC', 0);
 INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_value) VALUES (90007, 9001, 'vault_seen', NULL, 'evidence', 'PUBLIC', 0);
+-- Step 37: the keys the tutorial missions and their steps read. No default value at all, so
+-- every one of them starts absent and a mission opens only once something has written it.
+INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_value) VALUES (90008, 9001, 'visited_movement', NULL, 'missions', 'PUBLIC', 0);
+INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_value) VALUES (90009, 9001, 'visited_energy', NULL, 'missions', 'PUBLIC', 0);
+INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_value) VALUES (90010, 9001, 'visited_graduation', NULL, 'missions', 'PUBLIC', 0);
+INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_value) VALUES (90011, 9001, 'potion_collected', NULL, 'missions', 'PUBLIC', 0);
+INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_value) VALUES (90012, 9001, 'snack_used', NULL, 'missions', 'PUBLIC', 0);
+INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_value) VALUES (90013, 9001, 'entered_arena', NULL, 'missions', 'PUBLIC', 0);
+INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_value) VALUES (90014, 9001, 'door_chosen', NULL, 'missions', 'PUBLIC', 0);
 
 -- ── Story 1 Cards ───────────────────────────────────────────────
 -- Inserted before locations: fk_locations_card (id_card, id_story) requires the card to exist.
@@ -531,22 +540,53 @@ INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_descriptio
 INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES (90370, 9001, 90370, 90001, 'ONLY_ONE', 'case_notes', ' Ledger ');
 INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES (90372, 9001, 90372, 90001, 'ONLY_ONE', 'case_notes', 'LEDGER');
 
+-- ── Step 37 mission pack — a writer for every mission condition ────────
+-- Until now the seven mission-step keys were read by the steps and written by nothing at all,
+-- so no tutorial mission could ever move. These are FREE NORMAL events at the start hall, the
+-- same shape as the 36.1 and 36.2 packs: a zero cost keeps them invisible to the Step 31/32
+-- finders while giving each condition exactly one thing that can satisfy it.
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90380, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90381, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90382, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90383, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90384, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90385, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90386, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90387, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90388, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, cost_coin, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90389, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES (90380, 9001, 90380, 90001, 'ONLY_ONE', 'tutorial_progress', '1');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES (90381, 9001, 90381, 90001, 'ONLY_ONE', 'items_collected', '1');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES (90382, 9001, 90382, 90001, 'ONLY_ONE', 'choice_made', 'gold');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES (90383, 9001, 90383, 90001, 'ONLY_ONE', 'visited_movement', '1');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES (90384, 9001, 90384, 90001, 'ONLY_ONE', 'visited_energy', '1');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES (90385, 9001, 90385, 90001, 'ONLY_ONE', 'visited_graduation', '1');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES (90386, 9001, 90386, 90001, 'ONLY_ONE', 'potion_collected', '1');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES (90387, 9001, 90387, 90001, 'ONLY_ONE', 'snack_used', '1');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES (90388, 9001, 90388, 90001, 'ONLY_ONE', 'entered_arena', '1');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES (90389, 9001, 90389, 90001, 'ONLY_ONE', 'door_chosen', '1');
+
 -- ── Story 1 Global Random Events ────────────────────────────────
 INSERT INTO list_global_random_events (id, id_story, probability) VALUES (90001, 9001, 10);
 
 -- ── Story 1 Missions ────────────────────────────────────────────
-INSERT INTO list_missions (id, id_story, condition_key, condition_value_from, condition_value_to, id_text_name, id_text_description) VALUES (90001, 9001, 'tutorial_progress', '0', '3', 900, 900);
-INSERT INTO list_missions (id, id_story, condition_key, condition_value_to, id_text_name, id_text_description) VALUES (90002, 9001, 'items_collected', '1', 901, 901);
-INSERT INTO list_missions (id, id_story, condition_key, condition_value_to, id_text_name, id_text_description) VALUES (90003, 9001, 'choice_made', 'gold', 902, 902);
+-- Step 37: condition_value replaces the from/to pair, and condition_values is a PIPE list
+-- read as an AND. Mission 90004 has NO steps and reads a multi key: both members must be in
+-- the set, so it goes AVAILABLE and COMPLETED in the same write once they are.
+INSERT INTO list_missions (id, id_story, condition_key, condition_value, id_text_name, id_text_description) VALUES (90001, 9001, 'tutorial_progress', '1', 900, 900);
+INSERT INTO list_missions (id, id_story, condition_key, condition_value, id_text_name, id_text_description) VALUES (90002, 9001, 'items_collected', '1', 901, 901);
+INSERT INTO list_missions (id, id_story, condition_key, condition_value, id_text_name, id_text_description) VALUES (90003, 9001, 'choice_made', 'gold', 902, 902);
+INSERT INTO list_missions (id, id_story, condition_key, condition_values, id_text_name, id_text_description) VALUES (90004, 9001, 'evidence_found', 'ledger|letter', 903, 903);
 
 -- ── Story 1 Mission Steps ───────────────────────────────────────
-INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90001, 9001, 90001, 1, 'visited_movement', '1');
-INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90002, 9001, 90001, 2, 'visited_energy', '1');
-INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90003, 9001, 90001, 3, 'visited_graduation', '1');
-INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90004, 9001, 90002, 1, 'potion_collected', '1');
-INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90005, 9001, 90002, 2, 'snack_used', '1');
-INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90006, 9001, 90003, 1, 'entered_arena', '1');
-INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90007, 9001, 90003, 2, 'door_chosen', '1');
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value, id_text_name, id_text_description) VALUES (90001, 9001, 90001, 1, 'visited_movement', '1', 910, 910);
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value, id_text_name, id_text_description) VALUES (90002, 9001, 90001, 2, 'visited_energy', '1', 911, 911);
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value, id_text_name, id_text_description) VALUES (90003, 9001, 90001, 3, 'visited_graduation', '1', 912, 912);
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value, id_text_name, id_text_description) VALUES (90004, 9001, 90002, 1, 'potion_collected', '1', 920, 920);
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value, id_text_name, id_text_description) VALUES (90005, 9001, 90002, 2, 'snack_used', '1', 921, 921);
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value, id_text_name, id_text_description) VALUES (90006, 9001, 90003, 1, 'entered_arena', '1', 930, 930);
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value, id_text_name, id_text_description) VALUES (90007, 9001, 90003, 2, 'door_chosen', '1', 931, 931);
 
 -- ── Story 1 Creator ─────────────────────────────────────────────
 INSERT INTO list_creator (id, id_story, link) VALUES (90001, 9001, 'https://paths.games');
@@ -604,6 +644,23 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91105, 9002, 11, 'it', 'ore', 'ore');
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91106, 9002, 10, 'en', 'hour', 'hour');
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91107, 9002, 11, 'en', 'hours', 'hours');
+
+-- Step 37: the mission and mission-step texts, which this seed never carried.
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90303, 9001, 900, 'en', 'Complete the Tutorial', 'Visit all the training rooms and learn every game mechanic.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90304, 9001, 900, 'it', 'Completa il Tutorial', 'Visita tutte le stanze di addestramento e impara ogni meccanica del gioco.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90305, 9001, 901, 'en', 'Collect Training Items', 'Pick up and use a training potion and an energy snack to learn about items.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90306, 9001, 901, 'it', 'Raccogli Oggetti di Addestramento', 'Raccogli e usa una pozione di addestramento e uno spuntino energetico.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90307, 9001, 902, 'en', 'Make Your First Choice', 'Enter the Choice Arena and pick a door to experience the choice system.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90308, 9001, 902, 'it', 'Fai la Tua Prima Scelta', 'Entra nellArena delle Scelte e scegli una porta.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90309, 9001, 903, 'en', 'Gather the Evidence', 'Find both the ledger and the letter. The set must hold them together, not one or the other.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90310, 9001, 903, 'it', 'Raccogli le Prove', 'Trova sia il registro sia la lettera. Linsieme deve contenerle entrambe.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90311, 9001, 910, 'en', 'Visit the Movement Room', 'Go to the Movement Training Room to learn about navigation.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90312, 9001, 911, 'en', 'Visit the Energy Classroom', 'Go to the Energy & Life Classroom to understand stats.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90313, 9001, 912, 'en', 'Reach the Graduation Hall', 'Complete the tutorial by reaching the final room.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90314, 9001, 920, 'en', 'Pick Up Training Potion', 'Collect the training potion from the Item Workshop.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90315, 9001, 921, 'en', 'Use the Energy Snack', 'Consume the energy snack to see how consumable items work.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90316, 9001, 930, 'en', 'Enter the Choice Arena', 'Go to the Choice Arena to face your first choice.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90317, 9001, 931, 'en', 'Pick a Door', 'Choose either the gold or red door to experience the choice system.');
 
 -- ── Story 2 Difficulties ────────────────────────────────────────
 INSERT INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES (91001, 9002, 300, 3, 20, 1, 4, 2, 2, 3, 130, 120, 0, 12, 12, 14, 14);

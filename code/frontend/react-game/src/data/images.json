@@ -205,6 +205,15 @@
     "styleImageLarge": ""
   },
   {
+    "id": "missions",
+    "linkCopyright": "https://unsplash.com/photos/a-close-up-of-a-open-book-with-writing-on-it-fJXv46LT7Xk",
+    "urlImage": "https://images.unsplash.com/photo-1516414447565-b14be0adf13e?q=80&w=1470&auto=format&fit=crop",
+    "copyrightText": "Kelly Sikkema",
+    "awesomeIcon": "fas fa-clipboard-list",
+    "description": "What the party has been asked to do, and how far along it is",
+    "styleImageLarge": ""
+  },
+  {
     "id": "crown-of-ashes",
     "url": "https://images.unsplash.com/photo-1735756045961-eaefc57a89e4?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     "author": "Sai Madhav",

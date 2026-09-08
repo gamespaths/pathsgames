@@ -135,6 +135,9 @@ class StoryImportService(StoryImportPort):
                 ("globalRandomEvents", "list_global_random_events", "id",
                  self.persistence_port.save_global_random_events),
                 ("missions", "list_missions", "id", self.persistence_port.save_missions),
+                # Step 37 - the steps come after their missions, and no longer get dropped.
+                ("missionSteps", "list_missions_steps", "id",
+                 self.persistence_port.save_mission_steps),
                 ("creators", "list_creator", "id", self.persistence_port.save_creators),
             ]
 

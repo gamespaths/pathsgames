@@ -136,6 +136,13 @@ describe('bookmarks', () => {
       playerStats: { weight: 12, weightMax: 10, life: 0 } })
     expect(items.find(b => b.key === 'items')).toMatchObject({ active: true, danger: true })
     expect(items.find(b => b.key === 'information').danger).toBe(true)
+    // Step 37 — the missions tab is a tab like any other now, active with its own view.
+    const missions = buildBookmarksLeft({ t, view: 'missions', previewLeft: null,
+      playerStats: {}, openMissions: 2 })
+    expect(missions.find(b => b.key === 'missions').active).toBe(true)
+    expect(missions.find(b => b.key === 'missions').disabled).toBeUndefined()
+    expect(missions.find(b => b.key === 'missions').badges[0].value).toBe('2')
+
     expect(buildBookmarksLeft({ t, view: 'map', previewLeft: null, playerStats: {} })
       .find(b => b.key === 'map').active).toBe(true)
     expect(buildBookmarksLeft({ t, view: 'board', previewLeft: { type: 'information' }, playerStats: {} })

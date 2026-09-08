@@ -14,6 +14,7 @@ import useMatchChrome from './js/useMatchChrome'
 import useBookView from './js/useBookView'
 import useGameplayResults from './js/useGameplayResults'
 import { buildBookmarksLeft, BOOKMARKS_RIGHT } from './js/bookmarks'
+import { missionsSummaryProps } from './js/boardProps'
 import { scrollMobileIntoView } from './js/mobileView'
 
 // Re-exported: these readers were part of this module's surface before they moved to
@@ -98,6 +99,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     viewActions.closeAll()
     scrollMobileIntoView('.book-mobile-left')
   }
+  function closeMissionsView() {
+    viewActions.closeAll()
+    scrollMobileIntoView('.book-mobile-left')
+  }
 
   if (gameEnded) {
     return <EndGameBook story={story} endGameCard={endGameCard} onClose={onClose} />
@@ -112,6 +117,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     onCloseLeft={() => viewActions.setPreviewLeft(null)}
     onCloseItems={closeItemsView}
     onCloseRegistry={closeRegistryView}
+    onCloseMissions={closeMissionsView}
     onSelectMapNode={viewActions.selectMapNode}
     onBack={handleBackOrClose} />
 
@@ -140,6 +146,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     onOpenMap={viewActions.openMap}
     onOpenItems={viewActions.openItems}
     onOpenRegistry={viewActions.openRegistry}
+    onOpenMissions={viewActions.openMissions}
     onOpenInfo={openInformationView}
     onForceSleepCard={viewActions.forceSleepCard}
     onPreviewMatchLog={() => viewActions.setPreviewRight({ kind: 'matchlog' })}
@@ -158,7 +165,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
         right={right}
         bookmarksLeft={buildBookmarksLeft({ t, view: view.view, previewLeft: view.previewLeft,
           playerStats, onBack: handleBackOrClose, onOpenInfo: openInformationView,
-          onOpenItems: viewActions.openItems, onOpenMap: viewActions.openMap })}
+          onOpenItems: viewActions.openItems, onOpenMap: viewActions.openMap,
+          onOpenMissions: viewActions.openMissions,
+          openMissions: missionsSummaryProps(gameData).count })}
         bookmarksRight={BOOKMARKS_RIGHT}
         mobile={<GameBookMobile left={leftContent} right={right} endError={endError} />}
       />

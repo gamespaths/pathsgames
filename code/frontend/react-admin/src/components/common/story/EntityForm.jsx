@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import ChipListInput from './ChipListInput'
 import PathsSelector from './PathsSelector'
 import FastTextSelectorModal from './FastTextSelectorModal'
 import FastTextCreatorModal from './FastTextCreatorModal'
@@ -139,6 +140,13 @@ export default function EntityForm({
       setError('Card Back (idCardBack) must differ from Card (idCard).')
       return
     }
+    // Step 37 — a mission or step with no condition key never activates and is ignored by
+    // every backend, so authoring one is blocked here rather than saved and lost.
+    const missing = fields.find(f => f.required && !hasValue(data[f.key]))
+    if (missing) {
+      setError(`${missing.label} is required.`)
+      return
+    }
     setError(null)
     onSave(data)
   }
@@ -262,6 +270,12 @@ export default function EntityForm({
                     />
                     <label htmlFor={`field-${field.key}`} style={{ fontSize: '0.8rem', cursor: 'pointer' }}>{field.label}</label>
                   </>
+                ) : field.type === 'chips' ? (
+                  <ChipListInput
+                    id={`field-${field.key}`}
+                    value={data[field.key]}
+                    onChange={next => setData({ ...data, [field.key]: next })}
+                  />
                 ) : field.type === 'textarea' ? (
                   <>
                     <textarea

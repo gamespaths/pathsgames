@@ -454,8 +454,23 @@
       "map": "Mappa",
       "backpack": "Zaino",
       "missions": "Missioni",
-      "multiplayer": "Multigiocatore",
-      "comingSoon": "Missioni in arrivo"
+      "multiplayer": "Multigiocatore"
+    },
+    "missions": {
+      "title": "Missioni",
+      "description": "Cosa è stato chiesto al gruppo, e a che punto è.",
+      "openAction": "Apri missioni",
+      "open": "Aperte",
+      "count": "Missioni",
+      "empty": "Nessuna missione è ancora iniziata.",
+      "progress": "Passi",
+      "statusLabel": "Stato",
+      "status": {
+        "AVAILABLE": "Disponibile",
+        "ACTIVE": "In corso",
+        "COMPLETED": "Completata",
+        "FAILED": "Fallita"
+      }
     }
   },
   "footer": {

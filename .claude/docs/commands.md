@@ -70,6 +70,15 @@ npm run dev    # http://localhost:5172, proxies /api/* -> http://localhost:8044 
 npm run test
 ```
 
+## React game frontend — `code/frontend/react-game/`
+
+```bash
+npm install
+npm run dev    # http://localhost:5174, proxies /api/* -> http://localhost:8042 (public port)
+npm run test
+npm run test:coverage
+```
+
 ## Flask admin console (alternative) — `code/frontend/python-flask-admin/`
 
 ```bash

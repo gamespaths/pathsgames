@@ -8,6 +8,7 @@ import LocationCard from './cards/LocationCard'
 import MovementCard from './cards/MovementCard'
 import ItemsCards from './cards/ItemsCards'
 import RegistryCards from './cards/RegistryCards'
+import MissionCards from './cards/MissionCards'
 import PendingChoicesList from './cards/PendingChoicesList'
 import AutomaticEvents from './cards/AutomaticEvents'
 import MatchLogCard from '@/features/matches/MatchLogCard'
@@ -69,7 +70,7 @@ export default function PageRight(props) {
     hereLocationId, mapSelected, matchUuid, accessToken, choiceInFlight, endError,
     onPreview, onCloseRight, onCloseChoices, onSelectChoice, onDismissCounterZero,
     onEnterCurrentLocation, onMoved, onError, onDone, onDropped, onItemUsed, onSlept,
-    onOpenMap, onOpenItems, onOpenRegistry, onOpenInfo, onPreviewMatchLog,
+    onOpenMap, onOpenItems, onOpenRegistry, onOpenMissions, onOpenInfo, onPreviewMatchLog,
     onEndGame, onEndGamePreview,
     onForceSleepCard, sleepCardForced, activeAction, onExit,
   } = props
@@ -133,11 +134,18 @@ export default function PageRight(props) {
     return <RegistryCards registry={gameData?.info?.registry} story={story}
       onPreview={onPreview} previewSide="right" />
   }
+  // Step 37 — a parallel section, not part of the registry: the two answer different
+  // questions and the board reads them one after the other.
+  if (view === 'missions') {
+    return <MissionCards missions={gameData?.info?.missions} story={story}
+      onPreview={onPreview} previewSide="right" />
+  }
   if (view === 'info') {
     return <PageRightInfo story={story} storyFull={storyFull} gameData={gameData}
       playerStats={playerStats} weather={weather} matchUuid={matchUuid} accessToken={accessToken}
       onPreview={onPreview} onSlept={onSlept} onOpenMap={onOpenMap} onOpenItems={onOpenItems}
-      onOpenRegistry={onOpenRegistry} onPreviewMatchLog={onPreviewMatchLog} />
+      onOpenRegistry={onOpenRegistry} onOpenMissions={onOpenMissions}
+      onPreviewMatchLog={onPreviewMatchLog} />
   }
   return <PageRightMain story={story} storyFull={storyFull} t={t} gameData={gameData}
     playerStats={playerStats} clock={clock} weather={weather} locations={locations}
@@ -145,7 +153,7 @@ export default function PageRight(props) {
     matchUuid={matchUuid} accessToken={accessToken} endError={endError}
     sleepCardForced={sleepCardForced} onForceSleepCard={onForceSleepCard}
     onPreview={onPreview} onOpenMap={onOpenMap} onOpenItems={onOpenItems}
-    onOpenRegistry={onOpenRegistry} onOpenInfo={onOpenInfo}
+    onOpenRegistry={onOpenRegistry} onOpenMissions={onOpenMissions} onOpenInfo={onOpenInfo}
     onMoved={onMoved} onDone={onDone} onSlept={onSlept}
     onError={onError} onEndGame={onEndGame} onEndGamePreview={onEndGamePreview} />
 }

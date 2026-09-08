@@ -282,7 +282,7 @@ class StoryCrudServiceFieldMappingTest {
     void createsAMissionWithEveryFieldMapped() {
         assertEveryFieldRoundTrips("missions", data(
                 "idTextName", 195, "idTextDescription", 196, "idCard", 197, "conditionKey", "conditionKey-v",
-                "conditionValueFrom", "conditionValueFrom-v", "conditionValueTo", "conditionValueTo-v",
+                "conditionValue", "conditionValue-v", "conditionValues", "conditionValues-v",
                 "idEventCompleted", 198));
     }
 
@@ -290,7 +290,7 @@ class StoryCrudServiceFieldMappingTest {
     void createsAMissionStepWithEveryFieldMapped() {
         assertEveryFieldRoundTrips("mission-steps", data(
                 "idTextName", 199, "idTextDescription", 200, "idCard", 201, "conditionKey", "conditionKey-v",
-                "conditionValueFrom", "conditionValueFrom-v", "conditionValueTo", "conditionValueTo-v",
+                "conditionValue", "conditionValue-v", "conditionValues", "conditionValues-v",
                 "idEventCompleted", 202, "idMission", 203, "step", 204));
     }
 

@@ -21,6 +21,9 @@ MSG_REGISTRY_CHANGE = "REGISTRY_CHANGE"
 #: A key hidden from the player: anything its definition does not mark PUBLIC.
 VISIBILITY_PUBLIC = "PUBLIC"
 
+#: Step 37 - set by the handler; None wherever the engine is not wired (story tools, tests).
+_MISSION_HOOK = None
+
 
 # ── the two value primitives, exact inverses of each other ──────────────────
 
@@ -60,19 +63,19 @@ def _numeric(value):
 
 # ── comparison ──────────────────────────────────────────────────────────────
 
-def _norm(value):
+def norm(value):
     """v0.36.2 — the form a value is COMPARED in: trimmed and case-folded, never stored."""
     return None if value is None else str(value).strip().lower()
 
 
-def _eq(a, b):
+def eq(a, b):
     """Equality as every registry comparison means it: blind to case and to padding."""
-    return _norm(a) == _norm(b)
+    return norm(a) == norm(b)
 
 
 def _first_matching(rows, value):
     """The row a value names, whatever case the author wrote it in. None when none does."""
-    return next((r for r in rows if _eq(render_row(r), value)), None)
+    return next((r for r in rows if eq(render_row(r), value)), None)
 
 
 def _logged(value):
@@ -104,9 +107,9 @@ def evaluate(operator, expected, actual):
     values = list(actual or [])
     op = OP_EQ if operator is None or not str(operator).strip() else str(operator).strip()
     if op == OP_EQ:
-        return any(_eq(v, expected) for v in values)
+        return any(eq(v, expected) for v in values)
     if op == OP_NE:
-        return not any(_eq(v, expected) for v in values)
+        return not any(eq(v, expected) for v in values)
     if op in (OP_GT, OP_LT):
         # ∀ over an empty set is vacuously true in logic and wrong here.
         if not values:
@@ -148,7 +151,24 @@ def find_rows(match, key):
 
 def rows_in(registry, key):
     """The same, off a bare registry list — the shape most of the handler holds."""
-    return [row for row in (registry or []) if row.get('key') == key]
+    return [row for row in (registry or []) if row.get('key') == key and not is_mission(row)]
+
+
+def set_mission_hook(hook):
+    """Step 37 - installed once by the handler: the only thing registry.py knows about
+    missions is that something wants telling after a write."""
+    global _MISSION_HOOK  # noqa: PLW0603 - one process-level seam, set at import
+    _MISSION_HOOK = hook
+
+
+def is_mission(row):
+    """Step 37 — a row carrying mission state is bookkeeping, never part of the registry."""
+    return (row or {}).get('idMission') is not None
+
+
+def mission_states(match):
+    """Step 37 — one row per mission the match has reached."""
+    return [row for row in (match or {}).get('registry') or [] if is_mission(row)]
 
 
 def values_of(rows):
@@ -172,7 +192,7 @@ def load_all(match):
     out = {}
     for row in (match or {}).get('registry') or []:
         key = row.get('key')
-        if key:
+        if key and not is_mission(row):
             value = render_row(row)
             bucket = out.setdefault(key, [])
             if value is not None:
@@ -208,7 +228,7 @@ def list_entries(match, story, include_hidden=False):
     # one added to the story after this match began, still has an entry with an empty set.
     by_key = {name: [] for name in definitions}
     for row in (match or {}).get('registry') or []:
-        if row.get('key'):
+        if row.get('key') and not is_mission(row):
             by_key.setdefault(row['key'], []).append(row)
 
     out = []
@@ -311,7 +331,7 @@ def upsert(match, key, value, changes=None, id_character=None, id_event=None,
                         id_event, clock, character_uuid, timestamp)
 
     # A set: adding a member it already holds changes nothing, so it says nothing either.
-    if rendered is None or any(_eq(v, rendered) for v in before):
+    if rendered is None or any(eq(v, rendered) for v in before):
         return _unchanged(key, before, changes)
     row = {'id': _next_id(registry), 'uuid': str(_uuid.uuid4()), 'key': key, 'multiValue': 1,
            'stringValue': parsed['stringValue'], 'intValue': parsed['intValue']}
@@ -337,7 +357,7 @@ def remove(match, key, value, changes=None, id_character=None, id_event=None,
     rendered = render(parsed['stringValue'], parsed['intValue'])
 
     if not rows[0].get('multiValue'):
-        if rendered is None or not _eq(rendered, render_row(rows[0])):
+        if rendered is None or not eq(rendered, render_row(rows[0])):
             return _unchanged(key, before, changes)  # a value the story has moved on from
         rows[0]['stringValue'] = None
         rows[0]['intValue'] = None
@@ -409,5 +429,7 @@ def _written(match, key, before, after, changes, detail, id_event, clock,
         'characterUuid': character_uuid,
         'idEvent': id_event,
     })
+    if _MISSION_HOOK is not None:
+        _MISSION_HOOK(match)
     return {'key': key, 'oldValue': old, 'newValue': new, 'values': after,
             'message': message}

@@ -65,3 +65,54 @@ def test_align_schema_keeps_the_rows_it_renames():
             "SELECT condition_registry_key, condition_registry_value"
             " FROM list_locations_neighbors WHERE id = 1")).one()
     assert tuple(row) == ("door", "open")
+
+
+def _legacy_mission_engine():
+    """A database shaped like the pre-Step-37 mission tables: the from/to pair, step_order,
+    and none of the columns the step row shares with every other story entity."""
+    engine = create_engine("sqlite:///:memory:")
+    with engine.begin() as connection:
+        connection.execute(text("""
+            CREATE TABLE list_missions (
+                id INTEGER, id_story INTEGER, uuid TEXT, condition_key TEXT,
+                condition_value_from TEXT, condition_value_to TEXT
+            )
+        """))
+        connection.execute(text("""
+            CREATE TABLE list_missions_steps (
+                id INTEGER, id_story INTEGER, id_mission INTEGER, step_order INTEGER,
+                condition_key TEXT, condition_value TEXT,
+                condition_value_from TEXT, condition_value_to TEXT
+            )
+        """))
+    return engine
+
+
+def test_align_schema_moves_the_mission_tables_onto_the_step_37_shape():
+    engine = _legacy_mission_engine()
+
+    align_schema(engine)
+
+    missions = {c["name"] for c in inspect(engine).get_columns("list_missions")}
+    assert {"condition_value", "condition_values"} <= missions
+    assert not {"condition_value_from", "condition_value_to"} & missions
+
+    steps = {c["name"] for c in inspect(engine).get_columns("list_missions_steps")}
+    assert "step" in steps and "step_order" not in steps
+    assert {"condition_value", "condition_values", "uuid", "id_card", "id_text_name"} <= steps
+    assert not {"condition_value_from", "condition_value_to"} & steps
+
+
+def test_align_schema_is_idempotent_on_the_mission_tables():
+    engine = _legacy_mission_engine()
+    align_schema(engine)
+
+    assert align_schema(engine) == []
+
+
+def test_the_mission_text_columns_are_not_created_as_integers():
+    engine = _legacy_mission_engine()
+
+    applied = align_schema(engine)
+
+    assert any("list_missions ADD COLUMN condition_values TEXT" in a for a in applied)

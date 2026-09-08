@@ -23,6 +23,7 @@ public class MatchInfoResponse {
     private String currentLocationUuid;
     private List<LocationStateDto> locations = new ArrayList<>();
     private List<RegistryEntryDto> registry = new ArrayList<>();
+    private List<MatchMissionResponse> missions = new ArrayList<>();
     private List<EventOptionDto> events = new ArrayList<>();
     private List<EventOptionDto> choices = new ArrayList<>();
     private List<CharacterSummaryResponse> players = new ArrayList<>();
@@ -43,6 +44,7 @@ public class MatchInfoResponse {
         for (MatchRegistryEntry e : d.getRegistry()) {
             r.registry.add(RegistryEntryDto.fromModel(e));
         }
+        r.missions = MatchMissionResponse.fromModel(d.getMissions());
         for (MatchEventOption e : d.getEvents()) {
             r.events.add(EventOptionDto.fromModel(e));
         }
@@ -72,6 +74,9 @@ public class MatchInfoResponse {
 
     public List<RegistryEntryDto> getRegistry() { return registry; }
     public void setRegistry(List<RegistryEntryDto> registry) { this.registry = registry; }
+
+    public List<MatchMissionResponse> getMissions() { return missions; }
+    public void setMissions(List<MatchMissionResponse> missions) { this.missions = missions; }
 
     public List<EventOptionDto> getEvents() { return events; }
     public void setEvents(List<EventOptionDto> events) { this.events = events; }

@@ -15,6 +15,7 @@ import games.paths.core.model.match.LocationNeighborInfo;
 import games.paths.core.model.match.MatchDetail;
 import games.paths.core.model.match.MatchEventOption;
 import games.paths.core.model.match.MatchListFilter;
+import games.paths.core.model.match.MatchMission;
 import games.paths.core.model.match.MatchLocationState;
 import games.paths.core.model.match.MatchRegistryGroup;
 import games.paths.core.model.match.MatchSummary;
@@ -68,6 +69,7 @@ public class MatchQueryService implements MatchQueryPort {
     private final EventExecutionStorePort eventExecutionStorePort;
     /** Step 36. Null on the legacy constructors: the registry then reads as empty. */
     private final RegistryService registryService;
+    private MissionService missionService;
 
     public MatchQueryService(MatchReadPort matchReadPort,
                              StoryReadPort storyReadPort,
@@ -158,6 +160,46 @@ public class MatchQueryService implements MatchQueryPort {
         this.contentQueryPort = contentQueryPort;
         this.movementStorePort = movementStorePort;
         this.eventExecutionStorePort = eventExecutionStorePort;
+    }
+
+    /** Step 37 - set after construction, so the already-crowded constructor keeps its shape. */
+    public void setMissionService(MissionService missionService) {
+        this.missionService = missionService;
+    }
+
+    /** The match this user owns, or null - which every caller turns into the same 404. */
+    private GamingMatchEntity ownedMatch(String matchUuid, String userUuid) {
+        if (matchUuid == null || matchUuid.isBlank() || userUuid == null || userUuid.isBlank()) {
+            return null;
+        }
+        Optional<UserAccessPort.UserView> userOpt = userAccessPort.findByUuid(userUuid);
+        Optional<GamingMatchEntity> matchOpt = matchReadPort.findMatchByUuid(matchUuid);
+        if (userOpt.isEmpty() || matchOpt.isEmpty()) {
+            return null;
+        }
+        GamingMatchEntity match = matchOpt.get();
+        return match.getIdUserCreator().equals(userOpt.get().id()) ? match : null;
+    }
+
+    @Override
+    public List<MatchMission> getMatchMissions(String matchUuid, String userUuid, String status,
+                                               String lang) {
+        GamingMatchEntity match = ownedMatch(matchUuid, userUuid);
+        if (match == null || missionService == null) {
+            return null;
+        }
+        return missionService.list(match.getId(), match.getIdStory(), status, resolveLang(lang));
+    }
+
+    @Override
+    public MatchMission getMatchMission(String matchUuid, String userUuid, String missionUuid,
+                                        String lang) {
+        GamingMatchEntity match = ownedMatch(matchUuid, userUuid);
+        if (match == null || missionService == null) {
+            return null;
+        }
+        return missionService.detail(match.getId(), match.getIdStory(), missionUuid,
+                resolveLang(lang));
     }
 
     @Override
@@ -444,6 +486,12 @@ public class MatchQueryService implements MatchQueryPort {
         detail.setRegistry(registryService == null
                 ? new ArrayList<>()
                 : registryService.listEntries(match.getId(), match.getIdStory(), allLocations, lang));
+
+        // Step 37 - the same deliberate duplication the registry already gets: the board reads
+        // the missions it must render off /info, and never pays for a second request.
+        detail.setMissions(missionService == null
+                ? new ArrayList<>()
+                : missionService.list(match.getId(), match.getIdStory(), null, lang));
 
         // Step 21 — populate the players/characters of the match (empty when no
         // character read port is wired, e.g. in the legacy 3-arg constructor).

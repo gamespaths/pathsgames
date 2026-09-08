@@ -49,6 +49,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 34 | [Inventory management](./Step34_InventoryAndResources.md) | ✅ | `use-item` / `drop-item` endpoints, item cards |
 | 35 | [Resource management](./Step34_InventoryAndResources.md) | ✅ | Food/magic/coin on `/info`; carried weight (`Σ item.weight × amount`) |
 | 36 | [Registry system](./Step36_RegistrySystem.md) | ✅ | RegistryService (render/parse/evaluate) & registry api &  operator column on events/edges/weather; v0.36.1 multi-value keys (SET semantics, ∃/∄/∀ operators); v0.36.2 case-insensitive trimmed value compare, locations write the registry on arrival, admin registry edit API |
+| 37 | [Mission system](./Step37_MissionSystem.md) | ✅ | Missions are a projection of the registry: `condition_value`/`condition_values` (PIPE AND), AVAILABLE→ACTIVE→COMPLETED/FAILED, `/api/match/{uuid}/missions` and `missions[]` on `/info` |
 
 | Steps | Phase |
 | -- | -- |
@@ -79,62 +80,6 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 - Ciao, read step 36 points and create a plan to develop all. Ask me if you have any questions/doubits. I've already bump version to 0.36.0 
 
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
-37. Mission tracking and progression
-    - Schema: on list_missions and list_missions_steps, drop condition_value_from/condition_value_to; add
-      condition_value (single) and condition_values (optional PIPE-separated "|" list, one TEXT column); each
-      value is trimmed around its pipe and empty segments are dropped (backend)
-    - Migration on sqlite and postgres adapters, python align_schema() equivalent, and AWS story item shape (backend)
-    - No operator column on missions: comparison is always "=", which RegistryService.evaluate already reads as
-      equality on a single-valued key and CONTAINED IN on a multi-valued (set) key; condition_values is an AND —
-      on a set key every listed value must be present, not just one (backend)
-    - When both condition_value and condition_values are populated on the same row, condition_values wins; this is
-      not a validation error (backend)
-    - A mission or mission step with an empty condition_key is invalid: react-admin blocks it at authoring time,
-      and all three backends silently ignore such a row (it never activates, progresses, or completes) — the
-      opposite of the registry's own "blank key = no condition" rule (backend, frontend)
-    - No duplicated comparison code: mission engine calls the existing Step 36 RegistryService (java RegistryService,
-      python registry_service.py, aws lambda/match/registry.py); expose its private comparison helpers instead of
-      copying them, so case-fold/trim stays consistent with events (backend)
-    - Mission state lives on gaming_state_registry via its existing id_mission / id_mission_steps columns; no new
-      state table (backend)
-    - Mission steps are strictly sequential by their step integer: step N+1 only reachable once step N completes (backend)
-    - Implement GET /api/match/{uuidMatch}/missions endpoint listing missions, optionally filtered by ?status=;
-      owner-only, 404-masked the same way as the registry endpoints (backend)
-    - Implement GET /api/match/{uuidMatch}/missions/{uuidMission} endpoint returning mission details with all steps;
-      owner-only, same 404-masking (backend)
-    - Also surface missions on GET /api/match/{uuidMatch}/info, the same deliberate duplication Step 36 already
-      applies to the registry (backend)
-    - Implement mission activation service triggered by registry value changes (condition_key match via RegistryService) (backend)
-    - Status machine driven entirely by conditions: list_missions.condition_key satisfied → AVAILABLE; the FIRST
-      list_missions_steps condition satisfied → ACTIVE; the LAST step condition satisfied → COMPLETED; a
-      single-step mission goes AVAILABLE → COMPLETED directly, skipping ACTIVE (backend)
-    - An intermediate step completing does NOT move the mission status: a three-step mission stays ACTIVE when
-      its second step closes; only the first and the last step transitions move status (backend)
-    - Persisted mission state is therefore (status + step reached), not status alone; the frontend panel's step
-      progress indicators still notify the player when an intermediate step closes (backend, frontend)
-    - Steps may be satisfied out of order: on every registry write the engine re-evaluates the following steps
-      in sequence, closing each one already satisfied and stopping at the first that isn't — one write can close
-      several steps, up to and including the mission (backend)
-    - Mission states are not reversible: once a status/step is reached it is never lost, even if the registry
-      condition that produced it later stops being true (append-and-correct registry, no state row deletion) (backend)
-    - Execute list_missions_steps.id_event_completed when that step completes (not only at mission end), and
-      list_missions.id_event_completed when the mission as a whole completes; accept the cascade risk (event
-      effects may complete another mission), capped by reusing EventExecutionService's existing
-      MAX_ENTRY_DEPTH = 8 (java/python/aws), not a new constant (backend)
-    - A mission that reached AVAILABLE or later and is still open when the story ENDS becomes FAILED at that
-      moment (no per-mission failure condition/event); a mission never AVAILABLE by story end is ignored for
-      now — no FAILED, no end-of-story outcome (backend)
-    - Missions are match-scoped (same scope as gaming_state_registry), not character-scoped; relevant for Phase 2 (backend)
-    - AWS 400 KB DynamoDB item-size impact of mission state on the match item is deferred to a dedicated later analysis (backend)
-    - Fix seeded mission fixtures: declare the seven mission-step condition keys (visited_movement, visited_energy,
-      visited_graduation, potion_collected, snack_used, entered_arena, door_chosen) in list_keys and have events
-      write them; also write tutorial_progress after seeding — across sqlite/postgres SQL, python
-      scripts/seed_stories.py, AWS lambda/seed/handler.py, and the demo story JSONs (backend)
-    - Build frontend mission panel component showing active missions as cards with step progress indicators; edit
-      condition_values with a chip/tag-style list editor, not free-typed pipes (frontend)
-    - Write backend unit tests for mission activation, step progression, completion events, and status transitions (backend tests)
-    - on react-game the mission panel is a parallel section alongside the registry card (not absorbed into it);
-      the registry card renders first, missions after — placement may be revisited later (frontend)
 38. Experience and character advancement
     - exp on event (on 29 step event exp is silence)
     - Implement experience gain through events: add experience points to gaming_character_instance on eligible events (backend)
@@ -689,9 +634,10 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.1.0 | first version of this document | February 3, 2026 |
 	| 0.1.1 | added licence and version control sections, file renamed from "todolist" to "roadmap" | February 5, 2026 |
     | 0.1.2 | update "2. Define the V1 scope" and "3. Define the technology stack" sections | February 10, 2026 |
+    | 0.37.0 | step 37 implemented: missions become a projection of the registry, `condition_value`/`condition_values` replace the from/to pair, AVAILABLE→ACTIVE→COMPLETED/FAILED. New `/api/match/{uuid}/missions` endpoints, `missions[]` on `/info`, Missions bookmark live on react-game. | September 8, 2026 |
     | X.Y.Z | every step and every new vesion update this file | October 42, 2100 |
 
-- **Last Updated**: July 22, 2026 (v0.31.0)
+- **Last Updated**: September 8, 2026 (v0.37.0)
 - **Status**: In progress
 
 

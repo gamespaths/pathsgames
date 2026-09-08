@@ -46,9 +46,15 @@ public class RegistryStoreAdapter implements RegistryStorePort {
 
     @Override
     @Transactional(readOnly = true)
+    public Long findStoryIdByMatch(long idMatch) {
+        return matchRepository.findById(idMatch).map(m -> m.getIdStory()).orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<RegistryRow> findByMatch(long idMatch) {
         List<RegistryRow> out = new ArrayList<>();
-        for (GamingStateRegistryEntity r : registryRepository.findByIdMatch(idMatch)) {
+        for (GamingStateRegistryEntity r : registryRepository.findByIdMatchAndIdMissionIsNull(idMatch)) {
             out.add(toRow(r));
         }
         return out;
@@ -147,6 +153,36 @@ public class RegistryStoreAdapter implements RegistryStorePort {
             return;
         }
         registryRepository.deleteByMatchIdIn(matchIds);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MissionStateRow> findMissionStates(long idMatch) {
+        List<MissionStateRow> out = new ArrayList<>();
+        for (GamingStateRegistryEntity r : registryRepository.findByIdMatchAndIdMissionIsNotNull(idMatch)) {
+            out.add(new MissionStateRow(r.getIdMission(), r.getIdMissionSteps(), r.getStringValue()));
+        }
+        return out;
+    }
+
+    @Override
+    @Transactional
+    public void upsertMissionState(long idMatch, String key, String status, Long idMission,
+                                   Long idMissionSteps, Integer clock) {
+        List<GamingStateRegistryEntity> rows = registryRepository.findByIdMatchAndIdMission(idMatch, idMission);
+        GamingStateRegistryEntity row = rows.isEmpty() ? null : rows.get(0);
+        if (row == null) {
+            row = new GamingStateRegistryEntity();
+            row.setId(nextId(idMatch));
+            row.setIdMatch(idMatch);
+            row.setKey(key);
+            row.setMultiValue(0);
+            row.setIdMission(idMission);
+        }
+        row.setStringValue(status);
+        row.setIdMissionSteps(idMissionSteps);
+        row.setClock(clock);
+        registryRepository.save(row);
     }
 
     @Override

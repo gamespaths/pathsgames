@@ -69,7 +69,8 @@ import java.util.Set;
  * <p>See {@code documentation_v0/Step29_NormalEvents.md} and
  * {@code documentation_v0/Step33_LocationEntryEvents.md}.</p>
  */
-public class EventExecutionService implements EventExecutionPort, LocationEntryPort {
+public class EventExecutionService implements EventExecutionPort, LocationEntryPort,
+        games.paths.core.port.match.MissionEventPort {
 
     private static final String DEFAULT_LANG = "en";
     private static final String ADD = "ADD";
@@ -107,7 +108,29 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
      * <p>Not creating the loop remains the author's responsibility; this only converts a
      * hung request into a logged abort.</p>
      */
-    private static final int MAX_ENTRY_DEPTH = 8;
+    public static final int MAX_ENTRY_DEPTH = 8;
+
+    private static final String TRIGGER_MISSION = "mission completed";
+
+    /** Step 37 - set after construction; the mission engine and this service need each other. */
+    private MissionService missionService;
+
+    public void setMissionService(MissionService missionService) {
+        this.missionService = missionService;
+    }
+
+    /** Hold mission completion events until this execution has written everything it touched. */
+    private void missionsBegin() {
+        if (missionService != null) {
+            missionService.beginDeferral();
+        }
+    }
+
+    private void missionsEnd() {
+        if (missionService != null) {
+            missionService.endDeferral();
+        }
+    }
 
     private final EventExecutionStorePort store;
     private final RegistryService registryService;
@@ -148,6 +171,16 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
     @Override
     public EventExecutionResult executeEvent(String matchUuid, String userUuid,
                                              String eventUuid, String lang) {
+        missionsBegin();
+        try {
+            return executeEventInternal(matchUuid, userUuid, eventUuid, lang);
+        } finally {
+            missionsEnd();
+        }
+    }
+
+    private EventExecutionResult executeEventInternal(String matchUuid, String userUuid,
+                                                      String eventUuid, String lang) {
         long userId = requireUser(userUuid);
         MatchEventView match = requireMatch(matchUuid);
 
@@ -439,6 +472,16 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
      */
     @Override
     public ChoiceResolutionResult selectChoice(String matchUuid, String userUuid,
+                                               String choiceUuid, String lang) {
+        missionsBegin();
+        try {
+            return selectChoiceInternal(matchUuid, userUuid, choiceUuid, lang);
+        } finally {
+            missionsEnd();
+        }
+    }
+
+    private ChoiceResolutionResult selectChoiceInternal(String matchUuid, String userUuid,
                                                String choiceUuid, String lang) {
         long userId = requireUser(userUuid);
         MatchEventView match = requireMatch(matchUuid);
@@ -1263,6 +1306,15 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
 
     @Override
     public List<AutomaticEventFired> onArrival(ArrivalContext arrival) {
+        missionsBegin();
+        try {
+            return onArrivalInternal(arrival);
+        } finally {
+            missionsEnd();
+        }
+    }
+
+    private List<AutomaticEventFired> onArrivalInternal(ArrivalContext arrival) {
         List<AutomaticEventFired> fired = new ArrayList<>();
         resolveArrival(arrival.idMatch(), arrival.idStory(), arrival.idCharacter(),
                 arrival.idLocation(), arrival.currentClock(), arrival.lang(), 0, fired);
@@ -1273,6 +1325,16 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
     public List<AutomaticEventFired> runPendingAutomaticEvents(long idMatch, int currentClock,
                                                                List<PendingAutomaticEvent> pending,
                                                                String lang) {
+        missionsBegin();
+        try {
+            return runPendingAutomaticEventsInternal(idMatch, currentClock, pending, lang);
+        } finally {
+            missionsEnd();
+        }
+    }
+
+    private List<AutomaticEventFired> runPendingAutomaticEventsInternal(
+            long idMatch, int currentClock, List<PendingAutomaticEvent> pending, String lang) {
         List<AutomaticEventFired> fired = new ArrayList<>();
         if (locationStore == null || pending == null || pending.isEmpty()) {
             return fired;
@@ -2014,4 +2076,22 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             this.sad = TimeStartRecoveryService.clamp(raw, 0, sadMax);
         }
     }
+
+    /**
+     * Step 37 - run a mission's {@code id_event_completed}. No actor, no cost, no verdict, and
+     * capped by the same {@link #MAX_ENTRY_DEPTH} that stops an arrival chain running away.
+     */
+    @Override
+    public void runMissionEvent(long idMatch, long idEvent, int depth) {
+        if (depth >= MAX_ENTRY_DEPTH) {
+            return;
+        }
+        MatchEventView match = store.findMatchById(idMatch).orElse(null);
+        if (match == null) {
+            return;
+        }
+        runAutomaticEvent(idMatch, null, idEvent, 0L, TRIGGER_MISSION, match.currentClock(),
+                null, false, depth, new ArrayList<>());
+    }
+
 }

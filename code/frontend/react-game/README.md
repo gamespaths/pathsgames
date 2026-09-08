@@ -146,7 +146,7 @@ All Unsplash images and SVG icons documented in [`src/data/images.json`](src/dat
 
 ---
 
-- **Document Version**: 0.35.6
+- **Document Version**: 0.37.0
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.18.0 | React game frontend initial implementation | May 04, 2026 |
@@ -176,7 +176,8 @@ All Unsplash images and SVG icons documented in [`src/data/images.json`](src/dat
     | current | i18n persistence: `LanguageProvider` persists language choice to `localStorage['pathsgames.lang']`; initial language resolved from saved choice → browser language (`navigator.language`, en/it only) → `'en'` fallback; `pathsgames.lang` added to strictly-necessary section of cookie table in `cookieConsent.js` (en + it); 14 tests in `src/test/i18nContext.test.jsx`, coverage > 95%. | Jun 26, 2026 |
     | 0.35.5 | `GameBook.jsx` decomposed 1005 → ~170 lines into `PageLeft`/`PageRight`/`PageRightMain`/`PageRightInfo` + `useMatchChrome`/`useBookView`/`useGameplayResults` hooks (`features/gameplay/js/`); gameplay card `onPreview` moved from 6 positional args to one object. Bugfix: `GoToSleepCard` opens its own preview via `autoPreview` instead of an aria-label `document.querySelector`, which silently failed in Italian; 90 test files, 974 tests, >95% coverage | Aug 27, 2026 |
     | 0.35.6 | `ItemCard` locks use/drop for a comatose character (`COMA` reason wins over the item's own); `useGameplayResults`'s `applyEdgeState` now also runs after a movement and a sleep, not only after `execute-event`, so the coma page can open there too. | Aug 28, 2026 |
-- **Last Updated**: Aug 28, 2026
+    | 0.37.0 | Missions bookmark (greyed since 0.35.5) goes live: new `MissionCard`/`MissionCards`/`MissionStepCard` and `utils/missions.js` ride the `missions[]` array already on `/info`, no extra request. A closed mission shows LOCKED with the reason in `lockInfo`, never `label`. | Sep 08, 2026 |
+- **Last Updated**: Sep 08, 2026
 - **Status**: Active development
 
 ---

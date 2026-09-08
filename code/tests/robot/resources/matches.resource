@@ -522,6 +522,41 @@ Get Registry
     ...    headers=${headers}    params=${params}    expected_status=${expected_status}
     RETURN    ${response}
 
+Get Missions
+    [Documentation]    GET /api/match/{uuidMatch}/missions — the missions this match has
+    ...                REACHED (Step 37), optionally filtered by ${status}. A mission the
+    ...                match has never reached is absent, not LOCKED: listing it would spoil
+    ...                it. Owner-only and 404-masked exactly as the registry endpoint is.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any    ${status}=${EMPTY}
+    ...            ${lang}=${EMPTY}
+    ${headers}=    Get Auth Headers    ${token}
+    ${params}=    Create Dictionary
+    IF    '${lang}' != '${EMPTY}'
+        Set To Dictionary    ${params}    lang=${lang}
+    END
+    IF    '${status}' != '${EMPTY}'
+        Set To Dictionary    ${params}    status=${status}
+    END
+    ${response}=    GET On Session    public_session    /api/match/${match_uuid}/missions
+    ...    headers=${headers}    params=${params}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Get Mission
+    [Documentation]    GET /api/match/{uuidMatch}/missions/{uuidMission} — one mission with
+    ...                all its steps. A mission this match has not reached reads 404, exactly
+    ...                as the match itself would for anybody who does not own it.
+    [Arguments]    ${token}    ${match_uuid}    ${mission_uuid}    ${expected_status}=any
+    ...            ${lang}=${EMPTY}
+    ${headers}=    Get Auth Headers    ${token}
+    ${params}=    Create Dictionary
+    IF    '${lang}' != '${EMPTY}'
+        Set To Dictionary    ${params}    lang=${lang}
+    END
+    ${response}=    GET On Session    public_session
+    ...    /api/match/${match_uuid}/missions/${mission_uuid}
+    ...    headers=${headers}    params=${params}    expected_status=${expected_status}
+    RETURN    ${response}
+
 # ── v0.36.2 — the admin console correcting one registry key ──
 
 Admin Upsert Registry

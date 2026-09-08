@@ -10,7 +10,7 @@ import { isMobileViewport, scrollMobileIntoView } from './mobileView'
  * the board owes the player and survive a reload on purpose.
  */
 const INITIAL = {
-  view: 'board',        // 'board' | 'info' | 'items' | 'registry' | 'map'
+  view: 'board',        // 'board' | 'info' | 'items' | 'registry' | 'missions' | 'map'
   previewLeft: null,    // { card, type, ... } | { kind: 'coma' | 'sad' } | null
   previewRight: null,   // { kind, ... } | null
   previewModal: null,   // the mobile (i) modal payload | null
@@ -41,6 +41,8 @@ export function bookViewReducer(state, action) {
       return { ...closeAll(state), view: 'items' }
     case 'openRegistry':
       return { ...closeAll(state), view: 'registry' }
+    case 'openMissions':
+      return { ...closeAll(state), view: 'missions' }
     case 'openMap':
       return { ...closeAll(state), view: 'map' }
     case 'clearPreview':
@@ -131,6 +133,7 @@ export default function useBookView() {
     },
     openItems: () => { dispatch({ type: 'openItems' }); scrollMobileIntoView('.book-mobile-right') },
     openRegistry: () => { dispatch({ type: 'openRegistry' }); scrollMobileIntoView('.book-mobile-right') },
+    openMissions: () => { dispatch({ type: 'openMissions' }); scrollMobileIntoView('.book-mobile-right') },
     openMap: () => { dispatch({ type: 'openMap' }); scrollMobileIntoView('.book-mobile-left') },
     setPreviewLeft: value => dispatch({ type: 'previewLeft', value }),
     setPreviewRight: value => dispatch({ type: 'previewRight', value }),

@@ -162,3 +162,41 @@ def test_find_match_and_story_id_by_uuid_unknown_match(adapter):
 @pytest.mark.parametrize("uuid", [None, "", "   "])
 def test_find_match_and_story_id_by_uuid_rejects_a_blank_uuid(adapter, uuid):
     assert adapter.find_match_and_story_id_by_uuid(uuid) is None
+
+
+# ── Step 37: mission bookkeeping rows ────────────────────────────────────────
+
+def test_the_story_behind_a_match_is_read_off_the_match_row(adapter, session_factory):
+    from app.adapters.persistence.match.models import GamingMatchEntity
+    with session_factory() as session:
+        session.add(GamingMatchEntity(id=9, uuid="mu", id_story=42, id_user_creator=1,
+                                      id_difficulty=1, status="RUNNING",
+                                      ts_insert="now", ts_update="now"))
+        session.commit()
+
+    assert adapter.find_story_id_by_match(9) == 42
+    assert adapter.find_story_id_by_match(404) is None
+
+
+def test_mission_state_is_written_once_and_moved_in_place(adapter):
+    adapter.upsert_mission_state(9, "mission:m-1", "AVAILABLE", 5, None, 2)
+
+    states = adapter.find_mission_states(9)
+    assert states == [{"id_mission": 5, "id_mission_steps": None, "status": "AVAILABLE"}]
+
+    adapter.upsert_mission_state(9, "mission:m-1", "COMPLETED", 5, 7, 3)
+
+    states = adapter.find_mission_states(9)
+    assert len(states) == 1
+    assert states[0] == {"id_mission": 5, "id_mission_steps": 7, "status": "COMPLETED"}
+
+
+def test_a_mission_row_is_bookkeeping_and_never_part_of_the_registry(adapter):
+    adapter.insert_all(9, [{"key": "flag", "string_value": "yes", "int_value": None}])
+    adapter.upsert_mission_state(9, "mission:m-1", "ACTIVE", 5, None, None)
+
+    assert [r["key"] for r in adapter.find_by_match(9)] == ["flag"]
+    assert adapter.find_by_match_and_key(9, "mission:m-1") == []
+    # And a later registry write still numbers around it, so nothing can collide.
+    adapter.upsert(9, "other", "v", None, None, None, None, None)
+    assert sorted(r["key"] for r in adapter.find_by_match(9)) == ["flag", "other"]

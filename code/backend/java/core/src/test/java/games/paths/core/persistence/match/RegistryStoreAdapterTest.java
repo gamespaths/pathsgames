@@ -1,6 +1,7 @@
 package games.paths.core.persistence.match;
 
 import games.paths.core.entity.match.GamingStateRegistryEntity;
+import games.paths.core.port.match.RegistryStorePort;
 import games.paths.core.port.match.RegistryStorePort.RegistryRow;
 import games.paths.core.repository.match.GamingStateRegistryRepository;
 import games.paths.core.repository.match.LogEventsRepository;
@@ -57,7 +58,7 @@ class RegistryStoreAdapterTest {
         e.setIdEvent(12L);
         e.setIdChoice(9L);
         e.setClock(5);
-        when(repository.findByIdMatch(1L)).thenReturn(List.of(e));
+        when(repository.findByIdMatchAndIdMissionIsNull(1L)).thenReturn(List.of(e));
 
         List<RegistryRow> rows = adapter.findByMatch(1L);
 
@@ -263,5 +264,67 @@ class RegistryStoreAdapterTest {
     void deleteDelegates() {
         adapter.deleteByMatchIdIn(List.of(1L, 2L));
         verify(repository).deleteByMatchIdIn(List.of(1L, 2L));
+    }
+
+    // ── Step 37: mission bookkeeping rows ──────────────────────────────────
+
+    @Test
+    @DisplayName("the story behind a match is read straight off the match row")
+    void findStoryIdByMatch() {
+        games.paths.core.entity.match.GamingMatchEntity m =
+                new games.paths.core.entity.match.GamingMatchEntity();
+        m.setIdStory(42L);
+        when(matchRepository.findById(1L)).thenReturn(java.util.Optional.of(m));
+        when(matchRepository.findById(2L)).thenReturn(java.util.Optional.empty());
+
+        assertEquals(42L, adapter.findStoryIdByMatch(1L));
+        assertNull(adapter.findStoryIdByMatch(2L));
+    }
+
+    @Test
+    @DisplayName("mission state reads only the rows that carry a mission")
+    void findMissionStates() {
+        GamingStateRegistryEntity e = entity(5L, "mission:m-1", "ACTIVE", null);
+        e.setIdMission(9L);
+        e.setIdMissionSteps(3L);
+        when(repository.findByIdMatchAndIdMissionIsNotNull(1L)).thenReturn(List.of(e));
+
+        List<RegistryStorePort.MissionStateRow> rows = adapter.findMissionStates(1L);
+
+        assertEquals(1, rows.size());
+        assertEquals(9L, rows.get(0).idMission());
+        assertEquals(3L, rows.get(0).idMissionSteps());
+        assertEquals("ACTIVE", rows.get(0).status());
+    }
+
+    @Test
+    @DisplayName("the first write mints the row; later ones move the status on the same row")
+    void upsertMissionState() {
+        when(repository.findByIdMatchAndIdMission(1L, 9L)).thenReturn(List.of());
+        when(repository.findByIdMatch(1L)).thenReturn(List.of(entity(4L, "k", "v", null)));
+
+        adapter.upsertMissionState(1L, "mission:m-1", "AVAILABLE", 9L, null, 2);
+
+        ArgumentCaptor<GamingStateRegistryEntity> captor =
+                ArgumentCaptor.forClass(GamingStateRegistryEntity.class);
+        verify(repository).save(captor.capture());
+        GamingStateRegistryEntity saved = captor.getValue();
+        assertEquals(5L, saved.getId());
+        assertEquals("mission:m-1", saved.getKey());
+        assertEquals("AVAILABLE", saved.getStringValue());
+        assertEquals(9L, saved.getIdMission());
+        assertEquals(0, saved.getMultiValue());
+
+        reset(repository);
+        GamingStateRegistryEntity existing = entity(5L, "mission:m-1", "AVAILABLE", null);
+        existing.setIdMission(9L);
+        when(repository.findByIdMatchAndIdMission(1L, 9L)).thenReturn(List.of(existing));
+
+        adapter.upsertMissionState(1L, "mission:m-1", "COMPLETED", 9L, 7L, 3);
+
+        verify(repository).save(existing);
+        assertEquals("COMPLETED", existing.getStringValue());
+        assertEquals(7L, existing.getIdMissionSteps());
+        assertEquals(3, existing.getClock());
     }
 }

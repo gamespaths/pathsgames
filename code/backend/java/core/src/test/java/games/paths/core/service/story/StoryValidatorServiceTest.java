@@ -665,13 +665,15 @@ class StoryValidatorServiceTest {
         @DisplayName("a mission step, a weather rule and a class bonus are all checked")
         void theOtherCollections() {
             Map<String, Object> s = validStory();
-            s.put("missions", rows(entity("id", 1)));
-            s.put("missionSteps", rows(entity("id", 1, "idMission", 1)));
+            s.put("missions", rows(entity("id", 1, "conditionKey", "k", "conditionValue", "1")));
+            s.put("missionSteps", rows(entity("id", 1, "idMission", 1,
+                    "conditionKey", "k", "conditionValue", "1")));
             s.put("weatherRules", rows(entity("id", 1, "idEvent", 1)));
             s.put("classBonuses", rows(entity("id", 1, "idClass", 1)));
             assertTrue(validator().validateImportData(s).isValid());
 
-            s.put("missionSteps", rows(entity("id", 1, "idMission", 99)));
+            s.put("missionSteps", rows(entity("id", 1, "idMission", 99,
+                    "conditionKey", "k", "conditionValue", "1")));
             assertFalse(validator().validateImportData(s).isValid());
         }
 

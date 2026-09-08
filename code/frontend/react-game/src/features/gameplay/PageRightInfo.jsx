@@ -3,8 +3,9 @@ import GoToSleepCard from './cards/GoToSleepCard'
 import MapCard from './cards/MapCard'
 import ItemsCard from './cards/ItemsCard'
 import RegistryCard from './cards/RegistryCard'
+import MissionCard from './cards/MissionCard'
 import PlayerCards from './cards/PlayerCards'
-import { bagSummaryProps, registrySummaryProps } from './js/boardProps'
+import { bagSummaryProps, missionsSummaryProps, registrySummaryProps } from './js/boardProps'
 
 /**
  * PageRightInfo — the (i) view's RIGHT page: the weather, the way to sleep, and the doors
@@ -12,7 +13,7 @@ import { bagSummaryProps, registrySummaryProps } from './js/boardProps'
  */
 export default function PageRightInfo({
   story, storyFull, gameData, playerStats, weather, matchUuid, accessToken,
-  onPreview, onSlept, onOpenMap, onOpenItems, onOpenRegistry, onPreviewMatchLog,
+  onPreview, onSlept, onOpenMap, onOpenItems, onOpenRegistry, onOpenMissions, onPreviewMatchLog,
 }) {
   return (
     <div className="config-view-wrap config-view--config">
@@ -24,6 +25,7 @@ export default function PageRightInfo({
         <MapCard onOpen={onOpenMap} />
         <ItemsCard onOpen={onOpenItems} {...bagSummaryProps(playerStats)} />
         <RegistryCard onOpen={onOpenRegistry} {...registrySummaryProps(gameData)} />
+        <MissionCard onOpen={onOpenMissions} {...missionsSummaryProps(gameData)} />
         <PlayerCards storyFull={storyFull} story={story} playerStats={playerStats}
           gameData={gameData} onPreview={onPreview} previewSide="right"
           onPreviewMatchLog={onPreviewMatchLog} />

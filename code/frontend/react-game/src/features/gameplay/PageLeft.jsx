@@ -5,8 +5,9 @@ import ComaCard from './cards/ComaCard'
 import SadnessCard from './cards/SadnessCard'
 import ItemsCard from './cards/ItemsCard'
 import RegistryCard from './cards/RegistryCard'
+import MissionCard from './cards/MissionCard'
 import InformationCard from './cards/InformationCard'
-import { bagSummaryProps, registrySummaryProps } from './js/boardProps'
+import { bagSummaryProps, missionsSummaryProps, registrySummaryProps } from './js/boardProps'
 
 /**
  * PageLeft — the LEFT reading page, in priority order: an open choice-event, an edge
@@ -16,7 +17,7 @@ import { bagSummaryProps, registrySummaryProps } from './js/boardProps'
 export default function PageLeft({
   view, pendingChoices, previewLeft, story, t, playerStats, clock, gameData, matchLocations,
   mapSelected, actualLocationCard, storyCard, loading,
-  onCloseChoices, onCloseLeft, onCloseItems, onCloseRegistry, onSelectMapNode, onBack,
+  onCloseChoices, onCloseLeft, onCloseItems, onCloseRegistry, onCloseMissions, onSelectMapNode, onBack,
 }) {
   // Step 31 — an open choice-event: the event card sits here, without an execute button;
   // its back arrow ends the event (and clears the options on the right).
@@ -47,6 +48,11 @@ export default function PageLeft({
   if (view === 'registry') {
     return <RegistryCard variant="page" story={story} onClose={onCloseRegistry}
       {...registrySummaryProps(gameData)} />
+  }
+  // Step 37 — the missions own the left page the same way the registry does.
+  if (view === 'missions') {
+    return <MissionCard variant="page" story={story} onClose={onCloseMissions}
+      {...missionsSummaryProps(gameData)} />
   }
   // Step 0.28.5 — the world map takes over the left page; its back arrow returns to the board.
   if (view === 'map') {

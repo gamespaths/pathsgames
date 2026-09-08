@@ -1,3 +1,4 @@
+import uuid
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import Integer, Numeric
@@ -729,12 +730,13 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             for item in items:
                 kwargs = dict(
                     id_story=story_id,
+                    uuid=item.get("uuid"),
                     id_card=item.get("idCard"),
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
                     condition_key=item.get("conditionKey"),
-                    condition_value_from=item.get("conditionValueFrom"),
-                    condition_value_to=item.get("conditionValueTo"),
+                    condition_value=item.get("conditionValue"),
+                    condition_values=item.get("conditionValues"),
                     id_event_completed=item.get("idEventCompleted")
                 )
                 explicit_id = _get_long(item, "id")
@@ -743,20 +745,41 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 session.add(m)
                 session.flush()
 
+                # A mission may still carry its steps nested; the top-level missionSteps
+                # array is imported by save_mission_steps instead.
                 for idx, step in enumerate(item.get("steps", [])):
-                    st = self._make(
-                        MissionStepEntity,
-                        id=next_st_id(),
-                        id_story=story_id,
-                        id_mission=m.id,
-                        step_order=step.get("stepOrder", idx + 1),
-                        id_text_description=step.get("idTextDescription"),
-                        condition_key=step.get("conditionKey"),
-                        condition_value=step.get("conditionValue"),
-                        id_event_completed=step.get("idEventCompleted")
-                    )
-                    session.add(st)
+                    session.add(self._mission_step(step, story_id, m.id,
+                                                   step.get("step", idx + 1), next_st_id()))
             session.commit()
+
+    def save_mission_steps(self, story_id: int, items: List[Dict[str, Any]]) -> None:
+        """Step 37 - the top-level missionSteps array, which the importer used to drop."""
+        with self.session_factory() as session:
+            next_st_id = self._make_id_counter(session, "list_missions_steps", "id", story_id)
+            for item in items:
+                explicit_id = _get_long(item, "id")
+                session.add(self._mission_step(
+                    item, story_id, item.get("idMission"), item.get("step"),
+                    explicit_id if explicit_id is not None else next_st_id()))
+            session.commit()
+
+    def _mission_step(self, step: Dict[str, Any], story_id: int, id_mission,
+                      order, step_id) -> MissionStepEntity:
+        return self._make(
+            MissionStepEntity,
+            id=step_id,
+            id_story=story_id,
+            uuid=step.get("uuid") or str(uuid.uuid4()),
+            id_card=step.get("idCard"),
+            id_mission=id_mission,
+            step=order,
+            id_text_name=step.get("idTextName"),
+            id_text_description=step.get("idTextDescription"),
+            condition_key=step.get("conditionKey"),
+            condition_value=step.get("conditionValue"),
+            condition_values=step.get("conditionValues"),
+            id_event_completed=step.get("idEventCompleted")
+        )
 
     def save_creators(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         self._insert_batch(CreatorEntity, story_id, items, {

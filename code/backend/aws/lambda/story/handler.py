@@ -1011,7 +1011,7 @@ def validate_story(event, story_uuid):
     if not item:
         return _err(404, 'STORY_NOT_FOUND',
                     f'No story found with UUID: {story_uuid}')
-    errors = story_validator.validate_story_dict(item)
+    errors = story_validator.validate_story_dict(item, include_mission_conditions=True)
     return _ok({"valid": len(errors) == 0, "count": len(errors), "errors": errors})
 
 

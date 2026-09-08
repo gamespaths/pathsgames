@@ -172,15 +172,37 @@ public class CoreConfig {
                 storyReadPort, contentQueryPort);
     }
 
+    // ───── Step 37: Missions (a projection of the registry, with its own status machine) ─────
+
+    /**
+     * The engine and the registry know each other in a circle: the registry tells it a value
+     * moved, and it reads the registry back to decide what that means. One setter, called here.
+     */
+    @Bean
+    public games.paths.core.service.match.MissionService missionService(
+            games.paths.core.port.match.RegistryStorePort registryStorePort,
+            StoryReadPort storyReadPort,
+            ContentQueryPort contentQueryPort,
+            games.paths.core.service.match.RegistryService registryService) {
+        games.paths.core.service.match.MissionService service =
+                new games.paths.core.service.match.MissionService(registryStorePort,
+                        storyReadPort, contentQueryPort);
+        registryService.setMissionService(service);
+        return service;
+    }
+
     @Bean
     public MatchCommandPort matchCommandPort(StoryReadPort storyReadPort,
                                              MatchPersistencePort matchPersistencePort,
                                              UserAccessPort userAccessPort,
                                              SystemModePort systemModePort,
                                              TurnstileVerificationPort turnstileVerificationPort,
-                                             games.paths.core.service.match.RegistryService registryService) {
-        return new MatchCommandService(storyReadPort, matchPersistencePort,
+                                             games.paths.core.service.match.RegistryService registryService,
+                                             games.paths.core.service.match.MissionService missionService) {
+        MatchCommandService service = new MatchCommandService(storyReadPort, matchPersistencePort,
                 userAccessPort, systemModePort, turnstileVerificationPort, registryService);
+        service.setMissionService(missionService);
+        return service;
     }
 
     @Bean
@@ -193,10 +215,13 @@ public class CoreConfig {
             ContentQueryPort contentQueryPort,
             games.paths.core.port.match.MovementStorePort movementStorePort,
             games.paths.core.port.match.EventExecutionStorePort eventExecutionStorePort,
-            games.paths.core.service.match.RegistryService registryService) {
-        return new MatchQueryService(matchReadPort, storyReadPort, userAccessPort,
-                characterReadPort, contentQueryPort, movementStorePort, eventExecutionStorePort,
-                registryService);
+            games.paths.core.service.match.RegistryService registryService,
+            games.paths.core.service.match.MissionService missionService) {
+        MatchQueryService service = new MatchQueryService(matchReadPort, storyReadPort,
+                userAccessPort, characterReadPort, contentQueryPort, movementStorePort,
+                eventExecutionStorePort, registryService);
+        service.setMissionService(missionService);
+        return service;
     }
 
     // ───── Step 24: Turn cycle engine (single-player) ─────
@@ -282,6 +307,7 @@ public class CoreConfig {
      * the two apart would only produce a dependency cycle.
      */
     @Bean
+    @SuppressWarnings("java:S107")
     public games.paths.core.service.match.EventExecutionService eventExecutionService(
             games.paths.core.port.match.EventExecutionStorePort eventExecutionStorePort,
             games.paths.core.port.match.EdgeStateStorePort edgeStateStorePort,
@@ -289,7 +315,8 @@ public class CoreConfig {
             ContentQueryPort contentQueryPort,
             games.paths.core.service.match.TimeAdvancementService timeAdvancementService,
             games.paths.core.port.match.LocationEntryStorePort locationEntryStorePort,
-            games.paths.core.service.match.RegistryService registryService) {
+            games.paths.core.service.match.RegistryService registryService,
+            games.paths.core.service.match.MissionService missionService) {
         games.paths.core.service.match.EventExecutionService service =
                 new games.paths.core.service.match.EventExecutionService(
                         eventExecutionStorePort, edgeStateStorePort, userAccessPort,
@@ -300,6 +327,10 @@ public class CoreConfig {
         // set off. Constructor injection either way is impossible; this setter is called once,
         // here, and never again.
         timeAdvancementService.setAutomaticEventRunner(service);
+        // Step 37 - the second cycle, closed the same way: a mission completion runs an event,
+        // and an event moves the registry that decides the mission.
+        service.setMissionService(missionService);
+        missionService.setEventPort(service);
         return service;
     }
 

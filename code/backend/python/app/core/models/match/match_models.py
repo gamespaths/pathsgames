@@ -274,6 +274,8 @@ class MatchDetail:
     current_location_uuid: Optional[str] = None
     locations: List[MatchLocationState] = field(default_factory=list)
     registry: List[MatchRegistryEntry] = field(default_factory=list)
+    # Step 37 — the missions this match has reached, already camelCase for the payload.
+    missions: List[dict] = field(default_factory=list)
     events: List[MatchEventOption] = field(default_factory=list)
     choices: List[MatchEventOption] = field(default_factory=list)
     players: List[CharacterInstanceInfo] = field(default_factory=list)

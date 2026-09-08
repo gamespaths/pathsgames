@@ -21,21 +21,21 @@ class BaseMissionEntityTest {
     }
 
     @Test
-    @DisplayName("conditionValueFrom round-trip")
-    void conditionValueFrom() {
+    @DisplayName("conditionValue round-trip")
+    void conditionValue() {
         MissionEntity e = new MissionEntity();
-        assertNull(e.getConditionValueFrom());
-        e.setConditionValueFrom("0");
-        assertEquals("0", e.getConditionValueFrom());
+        assertNull(e.getConditionValue());
+        e.setConditionValue("0");
+        assertEquals("0", e.getConditionValue());
     }
 
     @Test
-    @DisplayName("conditionValueTo round-trip")
-    void conditionValueTo() {
+    @DisplayName("conditionValues round-trip")
+    void conditionValues() {
         MissionEntity e = new MissionEntity();
-        assertNull(e.getConditionValueTo());
-        e.setConditionValueTo("1");
-        assertEquals("1", e.getConditionValueTo());
+        assertNull(e.getConditionValues());
+        e.setConditionValues("1");
+        assertEquals("1", e.getConditionValues());
     }
 
     @Test
@@ -52,14 +52,14 @@ class BaseMissionEntityTest {
     void missionStepInherits() {
         MissionStepEntity e = new MissionStepEntity();
         e.setConditionKey("STEP_KEY");
-        e.setConditionValueFrom("A");
-        e.setConditionValueTo("B");
+        e.setConditionValue("A");
+        e.setConditionValues("B");
         e.setIdEventCompleted(99);
 
         assertAll(
             () -> assertEquals("STEP_KEY", e.getConditionKey()),
-            () -> assertEquals("A", e.getConditionValueFrom()),
-            () -> assertEquals("B", e.getConditionValueTo()),
+            () -> assertEquals("A", e.getConditionValue()),
+            () -> assertEquals("B", e.getConditionValues()),
             () -> assertEquals(99, e.getIdEventCompleted())
         );
     }

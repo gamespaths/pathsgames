@@ -69,6 +69,10 @@ public class StoryValidatorService implements StoryValidatorPort {
         }
         StoryGraph g = buildFromReadPort(storyId);
         runRules(g, report);
+        // Step 37 — reported only here, on the author's own "validate story" pass. Import and
+        // admin-create must not fail on it: every backend IGNORES such a row rather than
+        // refusing it, and a story already carrying one must stay importable.
+        validateMissions(g, report);
         return report;
     }
 
@@ -225,6 +229,43 @@ public class StoryValidatorService implements StoryValidatorPort {
         validateEvents(g, report);        // R7 event conditions (Step 29)
         validateChoices(g, report);       // R8 choice-event binding (Step 31)
         validateLocationTriggers(g, report); // R9 automatic location events (Step 33)
+    }
+
+    /**
+     * Step 37 — a mission whose condition can never be met is silently dead: the engine ignores
+     * it, so nothing at runtime will ever tell the author. Only validation can.
+     */
+    private void missionCond(StoryGraph g, String entityType, String entityId,
+                             Map<String, Object> data) {
+        g.missionConds.add(new MissionCond(entityType, entityId, str(data.get("conditionKey")),
+                str(data.get("conditionValue")), str(data.get("conditionValues"))));
+    }
+
+    private void validateMissions(StoryGraph g, StoryValidationReport report) {
+        for (MissionCond mc : g.missionConds) {
+            missionCondition(mc.entityType, mc.entityId, mc.key, mc.value, mc.values, report);
+        }
+    }
+
+    private void missionCondition(String entityType, String entityId, String key, String value,
+                                  String values, StoryValidationReport report) {
+        if (key == null || key.isBlank()) {
+            report.add("R10_MISSION_CONDITION", entityType, entityId, "conditionKey",
+                    entityType + " has no condition key: it can never activate, progress or"
+                            + " complete and is ignored by every backend");
+            return;
+        }
+        if (isBlankBoth(value, values)) {
+            report.add("R10_MISSION_CONDITION", entityType, entityId, "conditionValue",
+                    entityType + " condition key '" + key + "' has no value to compare against,"
+                            + " so the condition is never satisfied");
+        }
+    }
+
+    private static boolean isBlankBoth(String value, String values) {
+        boolean noValue = value == null || value.isBlank();
+        boolean noValues = values == null || values.chars().allMatch(c -> c == '|' || c == ' ');
+        return noValue && noValues;
     }
 
     private void validateReferences(StoryGraph g, StoryValidationReport report) {
@@ -514,6 +555,10 @@ public class StoryValidatorService implements StoryValidatorPort {
         }
         for (Map<String, Object> ms : list(data, "missionSteps")) {
             ref(g, "mission-steps", str(ms.get("id")), "idMission", Target.MISSION, asInt(ms.get("idMission")));
+            missionCond(g, "mission-steps", str(ms.get("id")), ms);
+        }
+        for (Map<String, Object> m : list(data, "missions")) {
+            missionCond(g, "missions", str(m.get("id")), m);
         }
         for (Map<String, Object> wr : list(data, "weatherRules")) {
             ref(g, "weather-rules", str(wr.get("id")), "idEvent", Target.EVENT, asInt(wr.get("idEvent")));
@@ -571,6 +616,8 @@ public class StoryValidatorService implements StoryValidatorPort {
         }
         for (MissionEntity m : missions) {
             addId(g.missions, m.getId());
+            g.missionConds.add(new MissionCond("missions", str(m.getId()), m.getConditionKey(),
+                    m.getConditionValue(), m.getConditionValues()));
         }
         for (KeyEntity k : readPort.findKeysByStoryId(storyId)) {
             if (k.getName() != null) {
@@ -659,6 +706,8 @@ public class StoryValidatorService implements StoryValidatorPort {
         }
         for (MissionStepEntity ms : readPort.findMissionStepsByStoryId(storyId)) {
             ref(g, "mission-steps", str(ms.getId()), "idMission", Target.MISSION, ms.getIdMission());
+            g.missionConds.add(new MissionCond("mission-steps", str(ms.getId()),
+                    ms.getConditionKey(), ms.getConditionValue(), ms.getConditionValues()));
         }
         for (WeatherRuleEntity wr : readPort.findWeatherRulesByStoryId(storyId)) {
             addId(g.weathers, wr.getId());
@@ -812,6 +861,10 @@ public class StoryValidatorService implements StoryValidatorPort {
     private record TemplateStat(String entityId, Integer lifeMax, Integer energyMax,
                                 Integer dexterity, Integer intelligence, Integer constitution, Integer sadMax) {}
 
+    /** Step 37 — one authored mission or mission-step condition as the rule engine reads it. */
+    private record MissionCond(String entityType, String entityId, String key, String value,
+                               String values) { }
+
     private static final class StoryGraph {
         final Set<Integer> locations = new HashSet<>();
         final Set<Integer> events = new HashSet<>();
@@ -826,6 +879,8 @@ public class StoryValidatorService implements StoryValidatorPort {
         final List<Ref> refs = new ArrayList<>();
         final List<Neighbor> neighbors = new ArrayList<>();
         final List<KeyRef> keyRefs = new ArrayList<>();
+        /** Step 37 — every authored mission/step condition, for the R10 rule. */
+        final List<MissionCond> missionConds = new ArrayList<>();
         final List<ClassRestriction> restrictions = new ArrayList<>();
         final List<TemplateStat> templates = new ArrayList<>();
         final Map<Integer, Integer> eventNext = new HashMap<>();

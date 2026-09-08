@@ -83,8 +83,8 @@ These tables are populated by a story importer and are **read-only** during game
 | **ChoiceCondition** | `list_choices_conditions` | Condition rules for a choice: `id_story`, `id_choices`, `type` (KEYS/ITEM/CLASS/LOCATION/ALL_IN_SAME_LOC/traits/statistics/statistics_SUM), `key`, `value`, `operator` (= > < !=), `id_text_name`, `id_text_description`. |
 | **ChoiceEffect** | `list_choices_effects` | What a selected option does: `id_story`, `id_choices`, `id_scelta`, `flag_group` (**INV-46**: `1` = every character in the actor's location — the same set `EventEffect.target=ALL` resolves, INV-27; anything else = the acting character alone), `statistics` (life/energy/sad/DEX/COS/INT), `value`, `id_text`, `key`, `value_to_add`, `value_to_remove`. **New in v0.32.0** (see [Step32_ChoiceResolution.md](./Step32_ChoiceResolution.md)) — five columns named and typed exactly like their `EventEffect` twins, no FKs (same story-scoped reasoning as the v0.29.3 `EventEffect.id_location` addition; Step 22 `R1` owns the existence check): `id_event` (runs that event inline, whole `id_event_next` chain), `id_location` (forced movement of the recipients, no adjacency/energy check, cost-0 `log_movements` row), `id_weather` (SETS the match weather, once per row), `id_item_target` + `item_action` (ADD/REMOVE). |
 | **GlobalRandomEvent** | `list_global_random_events` | Random events triggered at time start: `id_card`, `id_story`, `condition_key`, `condition_value`, `probability`, `id_text`, `id_event`. |
-| **Mission** | `list_missions` | Mission definition: `id_card`, `id_story`, `condition_key`, `condition_value_from`, `condition_value_to`, `id_text_name`, `id_text_description`, `id_event_completed`. |
-| **MissionStep** | `list_missions_steps` | Ordered mission steps: `id_card`, `id_story`, `id_mission`, `step`, `condition_key`, `condition_value_from`, `condition_value_to`, `id_text_name`, `id_text_description`, `id_event_completed`. |
+| **Mission** | `list_missions` | Mission definition: `id_card`, `id_story`, `condition_key`, `condition_value`, `condition_values` (**v0.37.0**, replaces `condition_value_from`/`condition_value_to`: one value, or a PIPE-separated list read as an AND over a set key — `condition_values` wins when both are set), `id_text_name`, `id_text_description`, `id_event_completed`. No operator column — comparison is always `"="` through [Step36](./Step36_RegistrySystem.md)'s `RegistryService.evaluate`. See [Step37_MissionSystem.md](./Step37_MissionSystem.md). |
+| **MissionStep** | `list_missions_steps` | Ordered mission steps: `id_card`, `id_story`, `id_mission`, `step`, `condition_key`, `condition_value`, `condition_values` (**v0.37.0**, same semantics as `Mission` above), `id_text_name`, `id_text_description`, `id_event_completed`. **v0.37.0**: unique index on `(id_story, id_mission, step)`. |
 | **Card** | `list_cards` | Visual card data: `id_story`, `id_card`, `url_immage`, `id_text_title`, `id_text_description`, `id_text_copyright`, `link_copyright`, `id_creator`, `alternative_image`, `awesome-icon`, `style_main`, `style_detail`, `style_image_little`, `style_image_medium`, `style_image_large`, `card_type` (VARCHAR(50)/TEXT, nullable — classifies which story entity the card belongs to; see Step15 how-to guide). |
 | **Text** | `list_texts` | Multi-language text catalog: `id_story`, `id_text`, `lang`, `short_text`, `long_text`, `id_text_copyright`, `link_copyright`, `id_creator`. `short_text` is `VARCHAR(2000)` on PostgreSQL (**v0.35.8**, was `VARCHAR(500)` — a story whose authored text passed 500 chars died on import; SQLite's `TEXT` column was never bounded) and `TEXT` on SQLite; the react-admin editors cap input at the same 2000 chars. `long_text` stays unbounded `TEXT` on both. |
 | **Creator** | `list_creator` | Creator/author information: `id_story`, `id_text`, `link`, `url`, `url_image`, `url_emote`, `url_instagram`. |
@@ -313,7 +313,7 @@ All `list_` tables also carry `id_card` (FK to `list_cards.id`) for visual card 
 | Current carrying weight | `Σ(item.weight × amount)` — food, magic and coins weigh nothing; source of truth is [Step34 §7](./Step34_InventoryAndResources.md#7-carried-weight-and-movement-step-35) | Every inventory mutation |
 | Max carrying capacity | `constitution + difficulty.max_weight + DefaultInventoryCapacity` | On stat/difficulty change |
 | Available choices | `list_choices` filtered by conditions vs character state + registry | On event/location request |
-| Mission progress | `gaming_state_registry` values vs `list_missions_steps` conditions | On registry change via `checkMissionProgress()` |
+| Mission progress | `gaming_state_registry` values vs `list_missions`/`list_missions_steps` conditions | On registry change via `MissionService.onRegistryChange()` (**v0.37.0**), status + step reached persisted on `gaming_state_registry` itself |
 | Shortest path | Dijkstra on `list_locations_neighbors` graph | On demand via `spaceFindShortestPath()` |
 
 
@@ -870,7 +870,7 @@ Total tables: **52** (2 system + 2 user + 23 reference + 25 runtime/log)
     > Read all documentation_v0 content and create Step09 — Design the core data model: Identify main entities, Define relationships between entities, Identify persistent vs transient data, List valid game states, Define rules that must never be broken, Validate models with real cases  
     
     > Reload Step01 file and update the document with new tables
-- **Document Version**: 0.36.3
+- **Document Version**: 0.37.0
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.9.0 | first version of document | March 9, 2026 |
@@ -888,8 +888,9 @@ Total tables: **52** (2 system + 2 user + 23 reference + 25 runtime/log)
     | 0.35.4 | `log_events` gains `energy_gain`/`food_gain`/`magic_gain`/`coin_gain`, the counterpart of v0.35.3's spend columns. `log_item_usage` becomes the register of every item action (`action`, `id_event`, signed `energy`/`food`/`magic`/`coin`) instead of usages alone, surfacing as `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` on the match log; see Step28 "New: Item Actions and Resource Gains (v0.35.4)". | August 24, 2026 |
     | 0.35.8 | `list_texts.short_text` widened `VARCHAR(500)` → `VARCHAR(2000)` on PostgreSQL (`long_text` unaffected). `is_consumabile`'s `DEFAULT 1` reading is now unified across Java/Python/AWS. | August 30, 2026 |
     | 0.36.3 | `is_consumabile`'s default reading flips from consumable to non-consumable, on all three backends' writers (SQL column keeps `DEFAULT 1` for a raw INSERT); an item declaring nothing can no longer be used. See Step34/35. | September 6, 2026 |
+    | 0.37.0 | `list_missions`/`list_missions_steps` drop `condition_value_from`/`condition_value_to`, add `condition_value`/`condition_values` (PIPE-separated AND); new unique index on `list_missions_steps (id_story, id_mission, step)`. Mission progress now runs via `MissionService.onRegistryChange()`. See Step37. | September 8, 2026 |
     
-- **Last Updated**: September 6, 2026
+- **Last Updated**: September 8, 2026
 - **Status**: Complete ✅
 
 

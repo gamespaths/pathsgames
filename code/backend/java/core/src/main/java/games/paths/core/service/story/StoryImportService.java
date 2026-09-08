@@ -668,10 +668,11 @@ public class StoryImportService implements StoryImportPort {
             e.setUuid(getString(item, "uuid"));
             e.setIdCard(getInteger(item, "idCard"));
             e.setConditionKey(getString(item, "conditionKey"));
-            e.setConditionValueFrom(getString(item, "conditionValueFrom"));
-            e.setConditionValueTo(getString(item, "conditionValueTo"));
+            e.setConditionValue(getString(item, "conditionValue"));
+            e.setConditionValues(getString(item, "conditionValues"));
             e.setIdTextName(getInteger(item, "idTextName"));
             e.setIdTextDescription(getInteger(item, "idTextDescription"));
+            e.setIdEventCompleted(getInteger(item, "idEventCompleted"));
             entities.add(e);
         }
         persistencePort.saveMissions(entities);
@@ -841,8 +842,16 @@ public class StoryImportService implements StoryImportPort {
             MissionStepEntity e = new MissionStepEntity();
             e.setId(resolveStoryScopedId(item, "story/list_missions_steps", "list_missions_steps", "id", storyId, "id"));
             e.setIdStory(storyId);
+            e.setUuid(getString(item, "uuid"));
+            e.setIdCard(getInteger(item, "idCard"));
             e.setIdMission(getInteger(item, "idMission"));
             e.setStep(getInteger(item, "step"));
+            e.setConditionKey(getString(item, "conditionKey"));
+            e.setConditionValue(getString(item, "conditionValue"));
+            e.setConditionValues(getString(item, "conditionValues"));
+            e.setIdTextName(getInteger(item, "idTextName"));
+            e.setIdTextDescription(getInteger(item, "idTextDescription"));
+            e.setIdEventCompleted(getInteger(item, "idEventCompleted"));
             entities.add(e);
         }
         persistencePort.saveMissionSteps(entities);

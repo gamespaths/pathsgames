@@ -33,6 +33,10 @@ _RENAMED_COLUMNS = {
         ("condition_key", "condition_registry_key"),
         ("condition_value", "condition_registry_value"),
     ],
+    # Step 37 - the mission step column was named step_order here and `step` everywhere else.
+    "list_missions_steps": [
+        ("step_order", "step"),
+    ],
     "list_weather_rules": [
         ("condition_value", "condition_key_value"),
         ("time_start", "time_from"),
@@ -50,11 +54,21 @@ _ADDED_COLUMNS = {
     # Step 36.2 — the two registry pairs a location writes on arrival.
     "list_locations": ["key_to_add", "key_value_to_add",
                        "key_to_add_not_first", "key_value_to_add_not_first"],
+    # Step 37 — one value or a PIPE list of them, and the columns the step row never had.
+    "list_missions": ["condition_value", "condition_values"],
+    "list_missions_steps": ["condition_value", "condition_values", "uuid", "id_card",
+                           "id_text_name"],
+}
+# Step 37 — the from/to pair is gone: a mission has no operator, so a range meant nothing.
+_DROPPED_COLUMNS = {
+    "list_missions": ["condition_value_from", "condition_value_to"],
+    "list_missions_steps": ["condition_value_from", "condition_value_to"],
 }
 # Added columns are integers unless named here: the Step 36 operator holds "=", ">", "<", "!=".
 _TEXT_COLUMNS = {"registry_value_operator_condition",
                  "key_to_add", "key_value_to_add",
-                 "key_to_add_not_first", "key_value_to_add_not_first"}
+                 "key_to_add_not_first", "key_value_to_add_not_first",
+                 "condition_value", "condition_values", "uuid"}
 
 
 def align_schema(bind=None):
@@ -79,6 +93,13 @@ def align_schema(bind=None):
             if column not in columns:
                 column_type = "TEXT" if column in _TEXT_COLUMNS else int_type
                 statements.append(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
+    for table, drops in _DROPPED_COLUMNS.items():
+        if not inspector.has_table(table):
+            continue
+        columns = {c["name"] for c in inspector.get_columns(table)}
+        for column in drops:
+            if column in columns:
+                statements.append(f"ALTER TABLE {table} DROP COLUMN {column}")
     if not statements:
         return []
     with bind.begin() as connection:

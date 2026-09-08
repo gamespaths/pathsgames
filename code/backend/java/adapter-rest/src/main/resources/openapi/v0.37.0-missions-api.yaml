@@ -1,0 +1,246 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Missions API
+  description: |
+    Step 37 — missions become playable.
+
+    `list_missions` and `list_missions_steps` have existed since `V0.10.4`, but nothing read
+    them: a story could author a mission and no match would ever notice. v0.37.0 gives them an
+    engine, two endpoints and a place on `/info`.
+
+    ## A mission is a projection of the registry
+
+    There is no operator column on a mission and no state table of its own. Every condition is
+    read through the Step 36 `RegistryService` with `"="`, which on a single-valued key means
+    equality and on a multi-valued (set) key means CONTAINED IN. The comparison is the same one
+    events use — trimmed and case-folded — because it is literally the same code.
+
+    ## The condition columns
+
+    `condition_value_from` and `condition_value_to` are gone. In their place:
+
+    - **`condition_value`** — one value.
+    - **`condition_values`** — a PIPE-separated list (`a|b|c`). Each segment is trimmed and
+      empty segments are dropped. It is an **AND**: on a set key every listed value must be
+      present, not just one.
+
+    When both columns hold something, `condition_values` **wins**. That is not a validation
+    error; it is the documented precedence.
+
+    A row whose `condition_key` is blank is **invalid**: it never activates, progresses or
+    completes, and all three backends ignore it silently. This is the exact opposite of the
+    registry's own "blank key = no condition" rule, and deliberately so — an unfinished mission
+    must not open itself. `react-admin` refuses to save such a row and story validation reports
+    it as `R10_MISSION_CONDITION`.
+
+    ## The status machine
+
+    | Transition | What causes it |
+    |---|---|
+    | → `AVAILABLE` | the `list_missions` condition is satisfied |
+    | → `ACTIVE` | the FIRST `list_missions_steps` condition is satisfied |
+    | → `COMPLETED` | the LAST step condition is satisfied |
+    | → `FAILED` | the story ENDS while the mission is still open |
+
+    A single-step mission goes `AVAILABLE` → `COMPLETED` directly, skipping `ACTIVE`. A mission
+    with no steps at all completes on its own condition. An **intermediate** step closing does
+    NOT move the status: a three-step mission stays `ACTIVE` when its second step closes, and
+    only `stepReached` moves — which is why the persisted state is (status + step reached) and
+    not status alone.
+
+    Steps are strictly sequential by their `step` integer, but may be **satisfied out of
+    order**: on every registry write the engine re-evaluates forward from the step reached,
+    closing each one already satisfied and stopping at the first that is not. One write can
+    close several steps and the mission with them.
+
+    Nothing is reversible. Once a status or a step is reached it is never lost, even if the
+    registry value that produced it is later taken away.
+
+    ## Completion events
+
+    `list_missions_steps.id_event_completed` runs when THAT step closes, not only at the end;
+    `list_missions.id_event_completed` runs when the mission completes. Those events may write
+    the registry and so complete another mission: the cascade is accepted, and capped by the
+    same `MAX_ENTRY_DEPTH = 8` that stops a runaway arrival chain.
+
+    ## What is listed
+
+    A mission the match has never reached is not returned at all — not as `LOCKED`, not as an
+    empty shell. Listing it would spoil it. `?status=` filters within the missions already
+    reached.
+
+    Missions are **match-scoped**, like the registry itself, not character-scoped.
+
+    ## Where they are served
+
+    - `GET /api/match/{uuidMatch}/missions` — the list, optionally filtered by status.
+    - `GET /api/match/{uuidMatch}/missions/{uuidMission}` — one mission with all its steps.
+    - `missions[]` on `GET /api/match/{uuidMatch}/info` — the same deliberate duplication the
+      registry already gets, so the board renders missions with no second request.
+
+    Both endpoints are **owner-only** and 404-masked the same way the registry endpoints are: a
+    match somebody else owns is indistinguishable from one that does not exist, and so is a
+    mission this match has not reached.
+  version: 0.37.0
+  license:
+    name: GNU General Public License v3.0
+    url: https://www.gnu.org/licenses/gpl-3.0.html
+
+servers:
+  - url: http://localhost:8042
+    description: Development (dev profile)
+  - url: http://localhost:8080
+    description: Production (prod profile)
+
+paths:
+  /api/match/{uuidMatch}/missions:
+    get:
+      tags: [Missions]
+      summary: The missions this match has reached
+      operationId: getMatchMissions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: status
+          in: query
+          required: false
+          description: AVAILABLE, ACTIVE, COMPLETED or FAILED. Read case-insensitively.
+          schema:
+            type: string
+            enum: [AVAILABLE, ACTIVE, COMPLETED, FAILED]
+        - name: lang
+          in: query
+          required: false
+          schema: { type: string, default: en }
+      responses:
+        '200':
+          description: The missions, in the order the story authored them.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  missions:
+                    type: array
+                    items: { $ref: '#/components/schemas/Mission' }
+        '400':
+          description: INVALID_INPUT — the match uuid is blank.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: UNAUTHENTICATED — no identity on the request.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: MATCH_NOT_FOUND — unknown match, or one the caller does not own.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/match/{uuidMatch}/missions/{uuidMission}:
+    get:
+      tags: [Missions]
+      summary: One mission with all its steps
+      operationId: getMatchMission
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: uuidMission
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: lang
+          in: query
+          required: false
+          schema: { type: string, default: en }
+      responses:
+        '200':
+          description: The mission.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Mission' }
+        '400':
+          description: INVALID_INPUT — a blank uuid.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: UNAUTHENTICATED — no identity on the request.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: >-
+            MATCH_NOT_FOUND — unknown match, a match the caller does not own, or a mission this
+            match has not reached. The three are deliberately indistinguishable.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Mission:
+      type: object
+      properties:
+        uuid: { type: string, format: uuid }
+        name:
+          type: string
+          nullable: true
+          description: Resolved from id_text_name in the requested language, falling back to en.
+        description: { type: string, nullable: true }
+        status:
+          type: string
+          enum: [AVAILABLE, ACTIVE, COMPLETED, FAILED]
+        stepReached:
+          type: integer
+          nullable: true
+          description: The `step` number of the last step closed; null while none has been.
+        stepsTotal: { type: integer }
+        idCard: { type: integer, nullable: true }
+        card:
+          nullable: true
+          description: The resolved visual card, as everywhere else in the match payloads.
+          type: object
+        steps:
+          type: array
+          items: { $ref: '#/components/schemas/MissionStep' }
+
+    MissionStep:
+      type: object
+      properties:
+        uuid: { type: string, format: uuid }
+        step:
+          type: integer
+          description: The authored position. Steps are returned in this order.
+        name: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        idCard: { type: integer, nullable: true }
+        card: { type: object, nullable: true }
+        done:
+          type: boolean
+          description: >-
+            True for every step up to and including the one reached; a COMPLETED mission
+            reports all of them done.
+
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        message: { type: string }
+        timestamp: { type: integer, format: int64 }

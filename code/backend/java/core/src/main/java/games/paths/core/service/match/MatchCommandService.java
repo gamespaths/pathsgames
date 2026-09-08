@@ -39,6 +39,12 @@ public class MatchCommandService implements MatchCommandPort {
     private final SystemModePort systemModePort;
     private final TurnstileVerificationPort turnstilePort;
     private final RegistryService registryService;
+    /** Step 37 - set after construction; a story that ends fails whatever is still open. */
+    private MissionService missionService;
+
+    public void setMissionService(MissionService missionService) {
+        this.missionService = missionService;
+    }
 
     public MatchCommandService(StoryReadPort storyReadPort,
                                MatchPersistencePort persistencePort,
@@ -224,6 +230,11 @@ public class MatchCommandService implements MatchCommandPort {
         }
 
         persistencePort.updateMatchFields(uuidMatch, MatchStatuses.ENDED, null);
+        // Step 37 - a mission that opened and never closed has now failed; one never reached
+        // is simply ignored, as it was never the player's business.
+        if (missionService != null) {
+            missionService.onStoryEnd(match.getId());
+        }
         return EndMatchOutcome.COMPLETED;
     }
 

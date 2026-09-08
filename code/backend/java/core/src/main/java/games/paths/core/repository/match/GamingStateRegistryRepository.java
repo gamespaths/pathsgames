@@ -20,14 +20,25 @@ import java.util.List;
 public interface GamingStateRegistryRepository
         extends JpaRepository<GamingStateRegistryEntity, GamingStateRegistryEntityId> {
 
+    /** Every row, mission bookkeeping included. Only id minting needs this much. */
     List<GamingStateRegistryEntity> findByIdMatch(Long idMatch);
+
+    /** Step 37 - the player-visible registry: rows carrying mission state are not part of it. */
+    List<GamingStateRegistryEntity> findByIdMatchAndIdMissionIsNull(Long idMatch);
+
+    /** Step 37 - the mission bookkeeping rows, one per mission that has reached AVAILABLE. */
+    List<GamingStateRegistryEntity> findByIdMatchAndIdMissionIsNotNull(Long idMatch);
+
+    /** Step 37 - the one bookkeeping row of one mission, if it has one yet. */
+    List<GamingStateRegistryEntity> findByIdMatchAndIdMission(Long idMatch, Long idMission);
 
     /**
      * Step 36.1 - every row of one key. A LIST and not an Optional: a multi-valued key owns
      * several rows, and an Optional query throws NonUniqueResultException on the second one
      * rather than quietly picking a winner.
      */
-    @Query("SELECT r FROM GamingStateRegistryEntity r WHERE r.idMatch = :idMatch AND r.key = :key")
+    @Query("SELECT r FROM GamingStateRegistryEntity r WHERE r.idMatch = :idMatch AND r.key = :key"
+            + " AND r.idMission IS NULL")
     List<GamingStateRegistryEntity> findByIdMatchAndKey(@Param("idMatch") Long idMatch,
                                                         @Param("key") String key);
 

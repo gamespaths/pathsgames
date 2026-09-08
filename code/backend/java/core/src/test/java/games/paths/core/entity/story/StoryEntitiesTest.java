@@ -1003,8 +1003,8 @@ class StoryEntitiesTest {
             e.setIdCard(2);
             e.setIdStory(3L);
             e.setConditionKey("QUEST_FLAG");
-            e.setConditionValueFrom("0");
-            e.setConditionValueTo("1");
+            e.setConditionValue("0");
+            e.setConditionValues("1");
             e.setIdTextName(4);
             e.setIdTextDescription(5);
             e.setIdEventCompleted(6);
@@ -1012,8 +1012,8 @@ class StoryEntitiesTest {
             assertAll(
                 () -> assertEquals(1L, e.getId()),
                 () -> assertEquals("QUEST_FLAG", e.getConditionKey()),
-                () -> assertEquals("0", e.getConditionValueFrom()),
-                () -> assertEquals("1", e.getConditionValueTo()),
+                () -> assertEquals("0", e.getConditionValue()),
+                () -> assertEquals("1", e.getConditionValues()),
                 () -> assertEquals(6, e.getIdEventCompleted())
             );
         }
@@ -1037,8 +1037,8 @@ class StoryEntitiesTest {
             e.setIdTextDescription(6);
             e.setStep(2);
             e.setConditionKey("QUEST");
-            e.setConditionValueFrom("0");
-            e.setConditionValueTo("1");
+            e.setConditionValue("0");
+            e.setConditionValues("1");
             e.setIdEventCompleted(7);
 
             assertAll(
@@ -1046,8 +1046,8 @@ class StoryEntitiesTest {
                 () -> assertEquals(4, e.getIdMission()),
                 () -> assertEquals(2, e.getStep()),
                 () -> assertEquals("QUEST", e.getConditionKey()),
-                () -> assertEquals("0", e.getConditionValueFrom()),
-                () -> assertEquals("1", e.getConditionValueTo()),
+                () -> assertEquals("0", e.getConditionValue()),
+                () -> assertEquals("1", e.getConditionValues()),
                 () -> assertEquals(7, e.getIdEventCompleted())
             );
         }

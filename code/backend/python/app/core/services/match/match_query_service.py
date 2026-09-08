@@ -102,6 +102,41 @@ class MatchQueryService(MatchQueryPort):
         self.event_store = event_store
         # Step 36 — every registry read of /info and of the move conditions.
         self.registry_service = registry_service_instance
+        # Step 37 — set after construction, so the crowded constructor keeps its shape.
+        self.mission_service = None
+
+    def set_mission_service(self, mission_service) -> None:
+        self.mission_service = mission_service
+
+    def _owned_match(self, uuid_match: Optional[str], user_uuid: Optional[str]):
+        """The match this user owns, or None - which every caller turns into the same 404."""
+        if not uuid_match or not user_uuid or not str(uuid_match).strip():
+            return None
+        user = self.user_access_port.find_by_uuid(user_uuid)
+        if user is None:
+            return None
+        match = self.match_persistence_port.find_match_by_uuid(uuid_match)
+        if match is None or match.get("id_user_creator") != user["id"]:
+            return None
+        return match
+
+    def get_match_missions(self, uuid_match: str, user_uuid: str, status: Optional[str] = None,
+                           lang: str = "en"):
+        """Step 37 — the missions this match has reached. None is the 404 the registry uses."""
+        match = self._owned_match(uuid_match, user_uuid)
+        if match is None or self.mission_service is None:
+            return None
+        return self.mission_service.list(match["id"], match.get("id_story"), status,
+                                         lang or "en")
+
+    def get_match_mission(self, uuid_match: str, user_uuid: str, mission_uuid: str,
+                          lang: str = "en"):
+        """Step 37 — one mission with all its steps, masked exactly the same way."""
+        match = self._owned_match(uuid_match, user_uuid)
+        if match is None or self.mission_service is None:
+            return None
+        return self.mission_service.detail(match["id"], match.get("id_story"), mission_uuid,
+                                           lang or "en")
 
     def list_user_matches(self, user_uuid: str) -> List[MatchSummary]:
         if not user_uuid:
@@ -326,6 +361,9 @@ class MatchQueryService(MatchQueryPort):
             current_location_uuid=current_loc["uuid"] if current_loc else None,
             locations=location_states,
             registry=registry,
+            # Step 37 — the same deliberate duplication the registry already gets.
+            missions=(self.mission_service.list(match["id"], match.get("id_story"), None, lang)
+                      if self.mission_service is not None else []),
             events=[],
             choices=[],
             players=players,

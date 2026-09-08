@@ -340,3 +340,42 @@ describe('EntityForm', () => {
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ idCard: 42 }))
   })
 })
+
+describe('EntityForm — Step 37 mission conditions', () => {
+  const MISSION_FIELDS = [
+    { key: 'conditionKey', label: 'Condition Key', type: 'text', required: true },
+    { key: 'conditionValues', label: 'Condition Values', type: 'chips' },
+  ]
+
+  it('renders a chips field for the PIPE list instead of a raw text box', () => {
+    render(<EntityForm entity={{ conditionKey: 'k', conditionValues: 'ledger|letter' }}
+      fields={MISSION_FIELDS} onSave={() => {}} onCancel={() => {}} />)
+
+    expect(screen.getByTestId('chips-field-conditionValues')).toBeTruthy()
+    expect(screen.getByTestId('chip-ledger')).toBeTruthy()
+  })
+
+  it('edits the list through the chips and saves it back in the pipe form', async () => {
+    const onSave = vi.fn()
+    render(<EntityForm entity={{ conditionKey: 'k', conditionValues: 'ledger' }}
+      fields={MISSION_FIELDS} onSave={onSave} onCancel={() => {}} />)
+
+    const draft = screen.getByTestId('chips-field-conditionValues').querySelector('input')
+    await userEvent.type(draft, 'letter{Enter}')
+    fireEvent.submit(screen.getByTestId('chips-field-conditionValues').closest('form'))
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ conditionValues: 'ledger|letter' }))
+  })
+
+  it('refuses to save a mission with no condition key: it would never activate', async () => {
+    const onSave = vi.fn()
+    render(<EntityForm entity={{ conditionValues: 'x' }} fields={MISSION_FIELDS}
+      onSave={onSave} onCancel={() => {}} />)
+
+    fireEvent.submit(screen.getByTestId('chips-field-conditionValues').closest('form'))
+
+    expect(onSave).not.toHaveBeenCalled()
+    expect(screen.getByTestId('entity-form-error').textContent).toContain('Condition Key')
+  })
+})

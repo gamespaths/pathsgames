@@ -43,6 +43,13 @@ public class RegistryService {
     private final ContentQueryPort contentQueryPort;
 
     /** Values-only constructor: enough for the codec, the comparison and every write. */
+    /** Step 37 - set after construction: the mission engine reads the registry it listens to. */
+    private MissionService missionService;
+
+    public void setMissionService(MissionService missionService) {
+        this.missionService = missionService;
+    }
+
     public RegistryService(RegistryStorePort store) {
         this(store, null, null);
     }
@@ -148,17 +155,17 @@ public class RegistryService {
     }
 
     /** v0.36.2 - the form a value is COMPARED in: trimmed and case-folded, never stored. */
-    private static String norm(String value) {
+    public static String norm(String value) {
         return value == null ? null : value.trim().toLowerCase(Locale.ROOT);
     }
 
     /** Equality as every registry comparison means it: blind to case and to padding. */
-    private static boolean eq(String a, String b) {
+    public static boolean eq(String a, String b) {
         return Objects.equals(norm(a), norm(b));
     }
 
     /** Membership under {@link #eq}, so a set never holds two spellings of one value. */
-    private static boolean containsNorm(Collection<String> values, String value) {
+    public static boolean containsNorm(Collection<String> values, String value) {
         return values.stream().anyMatch(v -> eq(v, value));
     }
 
@@ -444,6 +451,11 @@ public class RegistryService {
                      String detail) {
         store.logChange(idMatch, idCharacter, idEvent, idChoice, clock,
                 MSG_REGISTRY_CHANGE + " " + detail);
+        // Step 37 - the audit row and the mission pass share one choke point on purpose: a
+        // write that is worth logging is exactly a write that may move a mission.
+        if (missionService != null) {
+            missionService.onRegistryChange(idMatch, clock);
+        }
     }
 
     /** What the story says about a key the match has never written. */

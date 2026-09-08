@@ -567,12 +567,12 @@ describe('GameBook — map and statistics view', () => {
     expect(await screen.findByText('Sleep page')).toBeInTheDocument()
   })
 
-  // The two registry shortcuts on the characteristics card have no backend yet.
-  it('says the missions and registry shortcuts are still coming', () => {
+  // Step 37 — the missions shortcut on the characteristics card opens the panel now.
+  it('opens the missions panel from the characteristics card shortcut', () => {
     const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
     renderBook()
     fireEvent.click(screen.getByTestId('extra-action-1'))
-    expect(alertSpy).toHaveBeenCalled()
+    expect(alertSpy).not.toHaveBeenCalled()
     alertSpy.mockRestore()
   })
 

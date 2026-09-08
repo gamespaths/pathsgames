@@ -58,4 +58,16 @@ public interface MatchQueryPort {
      */
     List<MatchRegistryGroup> getMatchRegistry(String matchUuid, String userUuid,
                                               boolean includeHidden, String lang);
+
+    /**
+     * Step 37 - the missions this match has reached, optionally filtered by status. Null when
+     * the match does not exist or the caller does not own it: the same masking /info applies.
+     */
+    List<games.paths.core.model.match.MatchMission> getMatchMissions(String matchUuid,
+                                                                     String userUuid,
+                                                                     String status, String lang);
+
+    /** Step 37 - one mission with all its steps, null-masked exactly the same way. */
+    games.paths.core.model.match.MatchMission getMatchMission(String matchUuid, String userUuid,
+                                                              String missionUuid, String lang);
 }

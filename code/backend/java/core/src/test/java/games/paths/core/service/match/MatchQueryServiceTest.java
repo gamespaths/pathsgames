@@ -6,6 +6,7 @@ import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.StoryDifficultyEntity;
 import games.paths.core.entity.story.StoryEntity;
 import games.paths.core.model.match.MatchDetail;
+import games.paths.core.model.match.MatchMission;
 import games.paths.core.model.match.MatchRegistryEntry;
 import games.paths.core.model.match.MatchSummary;
 import games.paths.core.port.match.MatchReadPort;
@@ -605,6 +606,60 @@ class MatchQueryServiceTest {
             assertEquals("m", detail.getMatch().getUuid());
             assertEquals("story-uuid", detail.getMatch().getStoryUuid());
             assertEquals(1, detail.getRegistry().size());
+        }
+    }
+
+    @Nested
+    @DisplayName("Step 37 - missions")
+    class Missions {
+
+        private MissionService missionService;
+
+        @BeforeEach
+        void wire() {
+            missionService = mock(MissionService.class);
+            service.setMissionService(missionService);
+        }
+
+        @Test
+        @DisplayName("the owner reads the missions of the match, status filter and all")
+        void owner() {
+            GamingMatchEntity m = match(1L, "mu", 7L, 3L, null);
+            when(userAccessPort.findByUuid("uu")).thenReturn(Optional.of(user(7L, "uu")));
+            when(matchReadPort.findMatchByUuid("mu")).thenReturn(Optional.of(m));
+            when(missionService.list(1L, 3L, "ACTIVE", "en")).thenReturn(List.of(new MatchMission()));
+            when(missionService.detail(1L, 3L, "m-1", "en")).thenReturn(new MatchMission());
+
+            assertEquals(1, service.getMatchMissions("mu", "uu", "ACTIVE", null).size());
+            assertNotNull(service.getMatchMission("mu", "uu", "m-1", "en"));
+        }
+
+        @Test
+        @DisplayName("anyone else, any unknown uuid and a blank argument all read as not-found")
+        void masked() {
+            GamingMatchEntity m = match(1L, "mu", 7L, 3L, null);
+            when(userAccessPort.findByUuid("other")).thenReturn(Optional.of(user(8L, "other")));
+            when(userAccessPort.findByUuid("ghost")).thenReturn(Optional.empty());
+            when(matchReadPort.findMatchByUuid("mu")).thenReturn(Optional.of(m));
+            when(matchReadPort.findMatchByUuid("nope")).thenReturn(Optional.empty());
+
+            assertNull(service.getMatchMissions("mu", "other", null, "en"));
+            assertNull(service.getMatchMissions("mu", "ghost", null, "en"));
+            assertNull(service.getMatchMissions("nope", "other", null, "en"));
+            assertNull(service.getMatchMissions("", "other", null, "en"));
+            assertNull(service.getMatchMission("mu", "  ", "m-1", "en"));
+        }
+
+        @Test
+        @DisplayName("with no engine wired the endpoints answer not-found rather than empty")
+        void noEngine() {
+            service.setMissionService(null);
+            GamingMatchEntity m = match(1L, "mu", 7L, 3L, null);
+            when(userAccessPort.findByUuid("uu")).thenReturn(Optional.of(user(7L, "uu")));
+            when(matchReadPort.findMatchByUuid("mu")).thenReturn(Optional.of(m));
+
+            assertNull(service.getMatchMissions("mu", "uu", null, "en"));
+            assertNull(service.getMatchMission("mu", "uu", "m-1", "en"));
         }
     }
 }

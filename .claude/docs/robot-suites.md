@@ -33,6 +33,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `34_inventory` | Steps 34/35 inventory, resources, use/drop, effects preview, quantities, v0.35.4 item logs (see breakdown below) |
 | `35_import_integrity` | v0.35.8 import/schema/admin-CRUD regressions — ships its own story, no seed (see breakdown below) |
 | `36_registry` | Step 36 registry read API, v0.36.1 multi-valued keys, v0.36.3 `forced_move.robot` + v0.36.4 `registry_repeated_writes.robot` (see breakdown below) |
+| `37_missions` | Step 37 mission read API, the status machine and the condition semantics (see breakdown below) |
 
 ### `19_match` breakdown
 
@@ -261,6 +262,34 @@ idLocation), never by uuid; it sits in the Records Vault rather than at the star
 so no suite picking "any available event" can trip over it. Every case runs on its own
 guest and its own match — the move strands the character and the arrival latches
 flagVisited.
+
+### `37_missions` breakdown
+
+Three files, 24 tests, sharing `resources/missions.resource`:
+
+- `missions.robot` (10) — the read API. A mission the match has never reached is ABSENT, not
+  LOCKED: the list of a fresh match is empty, and asking for such a mission by uuid is 404
+  `MATCH_NOT_FOUND`, the same answer an unknown match and a foreign one get. `?status=` is
+  read case-insensitively, `/info` carries the same missions the endpoint answers, and the
+  engine's bookkeeping rows never appear on `/registry` even with `includeHidden`.
+- `missions_progression.robot` (7) — the status machine: mission condition → `AVAILABLE`,
+  first step → `ACTIVE`, last step → `COMPLETED`, and an INTERMEDIATE step moving
+  `stepReached` while the status stays `ACTIVE`. Also the two rules that are easy to get
+  wrong: a later step satisfied first closes nothing until the ones before it do (and then
+  one write closes both), and emptying the key that opened a mission never takes its status
+  back.
+- `missions_conditions.robot` (7) — `conditionValues` as an AND over a set key (part of the
+  list is not enough; all of it completes a step-less mission in one write), case- and
+  padding-blindness, and the fixture guard that no seeded mission ships a blank
+  `conditionKey` — which the engine ignores and story validation reports as
+  `R10_MISSION_CONDITION`.
+
+Fixtures are found by BEHAVIOUR throughout: the missions and their steps are read from the
+story through the admin CRUD, and the event that satisfies a condition is the one whose
+effect writes that key (`Key Writing Event Uuids`). No seeded id or uuid is named. Every
+case runs on its own guest and its own match, because a mission latches and cannot be
+re-opened. The `conditionValues` cases `Skip` themselves when the story declares no PIPE
+list, so a leaner seed does not fail the suite.
 
 ### `35_import_integrity` breakdown
 

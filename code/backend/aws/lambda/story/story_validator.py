@@ -86,12 +86,32 @@ def summary(errors):
     return head if len(errors) <= 5 else head + "; (+{} more)".format(len(errors) - 5)
 
 
+def _mission_condition(entity_type, row):
+    """Step 37 - a mission whose condition can never be met is silently dead: the engine
+    ignores it, so nothing at runtime will ever tell the author. Only validation can."""
+    eid = str(_field(row, "id"))
+    key = _field(row, "conditionKey")
+    if key is None or not str(key).strip():
+        return [_err("R10_MISSION_CONDITION", entity_type, eid, "conditionKey",
+                     f"{entity_type} has no condition key: it can never activate, progress"
+                     " or complete and is ignored by every backend")]
+    value = _field(row, "conditionValue")
+    values = _field(row, "conditionValues")
+    no_value = value is None or not str(value).strip()
+    no_values = values is None or not [p for p in str(values).split("|") if p.strip()]
+    if no_value and no_values:
+        return [_err("R10_MISSION_CONDITION", entity_type, eid, "conditionValue",
+                     f"{entity_type} condition key '{key}' has no value to compare against,"
+                     " so the condition is never satisfied")]
+    return []
+
+
 def _arr(data, key):
     v = data.get(key)
     return v if isinstance(v, list) else []
 
 
-def validate_story_dict(data):
+def validate_story_dict(data, include_mission_conditions=False):
     """Run all full-graph rules. Returns a list of error dicts (empty == valid)."""
     if not data:
         return [_err("R0_EMPTY", "story", None, None, "story data is null or empty")]
@@ -207,6 +227,13 @@ def validate_story_dict(data):
         ref("class-bonuses", str(_field(cb, "id")), "idClass", _CLASS, _field(cb, "idClass"))
     for ms in _arr(data, "missionSteps"):
         ref("mission-steps", str(_field(ms, "id")), "idMission", _MISSION, _field(ms, "idMission"))
+    # Step 37 - reported only on the author's own "validate story" pass. Import must not fail
+    # on it: the engine IGNORES such a row rather than refusing it.
+    if include_mission_conditions:
+        for row in _arr(data, "missions"):
+            errors.extend(_mission_condition("missions", row))
+        for row in _arr(data, "missionSteps"):
+            errors.extend(_mission_condition("mission-steps", row))
     for wr in _arr(data, "weatherRules"):
         ref("weather-rules", str(_field(wr, "id")), "idEvent", _EVENT, _field(wr, "idEvent"))
     for gr in _arr(data, "globalRandomEvents"):

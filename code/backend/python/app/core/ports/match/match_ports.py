@@ -63,6 +63,18 @@ class MatchQueryPort(ABC):
         ...
 
     @abstractmethod
+    def get_match_missions(self, uuid_match: str, user_uuid: str, status: Optional[str] = None,
+                           lang: str = "en"):
+        """Step 37 - the missions this match has reached, optionally filtered by status.
+        None when the match is unknown or the caller does not own it: the same masking
+        /info applies, so the two are indistinguishable."""
+
+    @abstractmethod
+    def get_match_mission(self, uuid_match: str, user_uuid: str, mission_uuid: str,
+                          lang: str = "en"):
+        """Step 37 - one mission with all its steps, None-masked exactly the same way."""
+
+    @abstractmethod
     def get_match_info_for_admin(self, match_uuid: str) -> Optional[MatchDetail]:
         """Return the full match detail for the admin view — without the
         per-user ownership check. Returns None only when the match is unknown."""

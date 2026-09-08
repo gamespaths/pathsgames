@@ -34,10 +34,20 @@ public interface RegistryStorePort {
     }
 
     /**
+     * Step 37 — the bookkeeping of one mission: the status it has reached and the last step
+     * it closed. Persisted as a registry row whose {@code idMission} is set, which is exactly
+     * what keeps it out of every player-facing registry read.
+     */
+    record MissionStateRow(Long idMission, Long idMissionSteps, String status) { }
+
+    /**
      * v0.36.2 — the numeric id and story id behind a match uuid, for the admin edit which
      * only ever holds the uuid. Empty when no match answers to it.
      */
     java.util.Optional<long[]> findMatchAndStoryIdByUuid(String matchUuid);
+
+    /** Step 37 - the story a match plays, for the mission engine which only holds the match. */
+    Long findStoryIdByMatch(long idMatch);
 
     List<RegistryRow> findByMatch(long idMatch);
 
@@ -59,6 +69,13 @@ public interface RegistryStorePort {
     void insertAll(long idMatch, List<RegistryRow> rows);
 
     void deleteByMatchIdIn(List<Long> matchIds);
+
+    /** Step 37 - every mission of the match that has state, in no particular order. */
+    List<MissionStateRow> findMissionStates(long idMatch);
+
+    /** Step 37 - write the state of one mission, minting the row the first time it is reached. */
+    void upsertMissionState(long idMatch, String key, String status, Long idMission,
+                            Long idMissionSteps, Integer clock);
 
     /** Audit row on {@code log_events}; the message carries the key and the two values. */
     void logChange(long idMatch, Long idCharacter, Long idEvent, Long idChoice, Integer clock,

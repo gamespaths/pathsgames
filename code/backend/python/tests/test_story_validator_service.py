@@ -341,11 +341,11 @@ def test_real_choice_effect_targets_pass():
 
 def test_item_effects_class_bonuses_missions_and_weather_are_checked():
     s = valid_story()
-    s["missions"] = [{"id": 1}]
+    s["missions"] = [{"id": 1, "conditionKey": "k", "conditionValue": "1"}]
     s["traits"] = [{"id": 1}]
     s["itemEffects"] = [{"id": 1, "idItem": 1, "traitsToAdd": "1", "traitsToRemove": " 1 , "}]
     s["classBonuses"] = [{"id": 1, "idClass": 1}]
-    s["missionSteps"] = [{"id": 1, "idMission": 1}]
+    s["missionSteps"] = [{"id": 1, "idMission": 1, "conditionKey": "k", "conditionValue": "1"}]
     s["weatherRules"] = [{"id": 1, "idEvent": 1}]
     s["globalRandomEvents"] = [{"id": 1, "idEvent": 1}]
     assert validator().validate_import_data(s).is_valid()
@@ -353,11 +353,12 @@ def test_item_effects_class_bonuses_missions_and_weather_are_checked():
 
 def test_dangling_refs_in_those_collections_are_reported():
     s = valid_story()
-    s["missions"] = [{"id": 1}]
+    s["missions"] = [{"id": 1, "conditionKey": "k", "conditionValue": "1"}]
     s["traits"] = [{"id": 1}]
     s["itemEffects"] = [{"id": 1, "idItem": 99, "traitsToAdd": "99"}]
     s["classBonuses"] = [{"id": 1, "idClass": 99}]
-    s["missionSteps"] = [{"id": 1, "idMission": 99}]
+    s["missionSteps"] = [{"id": 1, "idMission": 99, "conditionKey": "k",
+                          "conditionValue": "1"}]
     s["weatherRules"] = [{"id": 1, "idEvent": 99}]
     s["globalRandomEvents"] = [{"id": 1, "idEvent": 99}]
     report = validator().validate_import_data(s)
@@ -396,3 +397,31 @@ def test_event_effects_are_checked_on_the_import_payload():
     s["eventEffects"] = [{"id": 1, "idEvent": 99, "traitsToAdd": "99"}]
     report = validator().validate_import_data(s)
     assert not report.is_valid()
+
+
+# ── Step 37: R10 is a report, not a gate ─────────────────────────────────────
+
+def test_a_mission_with_no_condition_key_is_reported_but_only_on_validate_story():
+    """The author's own validate pass says the mission is dead; import must not fail on it,
+    because every backend IGNORES such a row rather than refusing it."""
+    from unittest.mock import MagicMock
+    from app.core.services.story.story_validator_service import StoryValidatorService
+
+    read_port = MagicMock()
+    read_port.find_story_by_id.return_value = {"id": 1}
+    read_port.find_locations_for_story.return_value = []
+    read_port.find_events_for_story.return_value = []
+    read_port.find_items_for_story.return_value = []
+    read_port.find_classes_for_story.return_value = []
+    read_port.find_class_bonuses_for_story.return_value = []
+    read_port.find_character_templates_for_story.return_value = []
+    read_port.find_entities_for_story.side_effect = (
+        lambda _s, table: [{"id": 1}] if table == "list_missions" else [])
+
+    report = StoryValidatorService(read_port).validate_story(1)
+    assert any(e.rule == "R10_MISSION_CONDITION" for e in report.errors)
+
+    s = valid_story()
+    s["missions"] = [{"id": 1}]
+    imported = validator().validate_import_data(s)
+    assert not any(e.rule == "R10_MISSION_CONDITION" for e in imported.errors)

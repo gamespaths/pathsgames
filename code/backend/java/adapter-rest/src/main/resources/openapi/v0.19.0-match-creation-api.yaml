@@ -476,6 +476,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/RegistryEntry'
+        missions:
+          description: >
+            Step 37 - the missions this match has reached, steps and progress included.
+            A mission never reached is absent, not LOCKED. Same shape as
+            GET /api/match/{uuidMatch}/missions (see v0.37.0-missions-api.yaml).
+          type: array
+          items:
+            type: object
         events:
           type: array
           items:

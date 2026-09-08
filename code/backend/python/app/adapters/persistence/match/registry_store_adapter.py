@@ -46,10 +46,19 @@ class RegistryStoreAdapter(RegistryStorePort):
                 return None
             return (m.id, m.id_story)
 
+    def find_story_id_by_match(self, id_match: int) -> Optional[int]:
+        """Step 37 — the story a match plays, for the engine which only holds the match."""
+        with self.session_factory() as session:
+            m = (session.query(GamingMatchEntity)
+                 .filter(GamingMatchEntity.id == id_match).first())
+            return None if m is None else m.id_story
+
     def find_by_match(self, id_match: int) -> List[Dict[str, Any]]:
+        # Step 37 — a row carrying mission state is bookkeeping, never part of the registry.
         with self.session_factory() as session:
             rows = (session.query(GamingStateRegistryEntity)
-                    .filter(GamingStateRegistryEntity.id_match == id_match).all())
+                    .filter(GamingStateRegistryEntity.id_match == id_match,
+                            GamingStateRegistryEntity.id_mission.is_(None)).all())
             return [_to_row(r) for r in rows]
 
     def find_by_match_and_key(self, id_match: int, key: str) -> List[Dict[str, Any]]:
@@ -58,8 +67,38 @@ class RegistryStoreAdapter(RegistryStorePort):
         with self.session_factory() as session:
             rows = (session.query(GamingStateRegistryEntity)
                     .filter(GamingStateRegistryEntity.id_match == id_match,
-                            GamingStateRegistryEntity.key == key).all())
+                            GamingStateRegistryEntity.key == key,
+                            GamingStateRegistryEntity.id_mission.is_(None)).all())
             return [_to_row(r) for r in rows]
+
+    def find_mission_states(self, id_match: int) -> List[Dict[str, Any]]:
+        """Step 37 — one row per mission the match has reached."""
+        with self.session_factory() as session:
+            rows = (session.query(GamingStateRegistryEntity)
+                    .filter(GamingStateRegistryEntity.id_match == id_match,
+                            GamingStateRegistryEntity.id_mission.isnot(None)).all())
+            return [{"id_mission": r.id_mission, "id_mission_steps": r.id_mission_steps,
+                     "status": r.string_value} for r in rows]
+
+    def upsert_mission_state(self, id_match: int, key: str, status: str, id_mission: int,
+                             id_mission_steps: Optional[int], clock: Optional[int]) -> None:
+        """Step 37 — write the state of one mission, minting the row the first time."""
+        with self.session_factory() as session:
+            row = (session.query(GamingStateRegistryEntity)
+                   .filter(GamingStateRegistryEntity.id_match == id_match,
+                           GamingStateRegistryEntity.id_mission == id_mission).first())
+            now = _now_iso()
+            if row is None:
+                row = GamingStateRegistryEntity(
+                    id=self._next_id(session, id_match), id_match=id_match, key=key,
+                    uuid=str(uuid_lib.uuid4()), multi_value=0, id_mission=id_mission,
+                    ts_insert=now, ts_update=now)
+                session.add(row)
+            row.string_value = status
+            row.id_mission_steps = id_mission_steps
+            row.clock = clock
+            row.ts_update = now
+            session.commit()
 
     def upsert(self, id_match: int, key: str, string_value: Optional[str],
                int_value: Optional[int], id_character: Optional[int],

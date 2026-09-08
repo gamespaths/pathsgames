@@ -4,9 +4,11 @@ import games.paths.core.entity.story.*;
 import games.paths.core.model.story.StoryValidationReport;
 import games.paths.core.port.story.StoryReadPort;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -60,6 +62,8 @@ class StoryValidatorServiceDbPathTest {
         cls.setId(1L);
         when(readPort.findClassesByStoryId(1L)).thenReturn(List.of(cls));
         MissionEntity mission = new MissionEntity();
+        mission.setConditionKey("k");
+        mission.setConditionValue("1");
         mission.setId(1L);
         when(readPort.findMissionsByStoryId(1L)).thenReturn(List.of(mission));
 
@@ -97,6 +101,8 @@ class StoryValidatorServiceDbPathTest {
         MissionStepEntity ms = new MissionStepEntity();
         ms.setId(1L);
         ms.setIdMission(1);
+        ms.setConditionKey("k");
+        ms.setConditionValue("1");
         when(readPort.findMissionStepsByStoryId(1L)).thenReturn(List.of(ms));
 
         WeatherRuleEntity wr = new WeatherRuleEntity();
@@ -185,5 +191,26 @@ class StoryValidatorServiceDbPathTest {
         // all readPort.find* return empty lists by Mockito default
         StoryValidationReport report = service.validateStory(2L);
         assertNotNull(report);
+    }
+
+    @Test
+    @DisplayName("Step 37 - a mission with no condition key is reported, but only on validateStory")
+    void missionConditionIsReportedNotEnforced() {
+        MissionEntity mission = new MissionEntity();
+        mission.setId(1L);
+        when(readPort.findMissionsByStoryId(1L)).thenReturn(List.of(mission));
+
+        StoryValidationReport report = service.validateStory(1L);
+
+        assertTrue(report.getErrors().stream()
+                .anyMatch(e -> "R10_MISSION_CONDITION".equals(e.rule())),
+                "the author's own validate pass must say the mission is dead");
+
+        // Import must NOT fail on it: every backend ignores such a row rather than refusing
+        // it, and a story already carrying one has to stay importable.
+        Map<String, Object> data = new java.util.HashMap<>();
+        data.put("missions", List.of(Map.of("id", 1)));
+        assertTrue(service.validateImportData(data).getErrors().stream()
+                .noneMatch(e -> "R10_MISSION_CONDITION".equals(e.rule())));
     }
 }

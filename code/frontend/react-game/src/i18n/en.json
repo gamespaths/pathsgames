@@ -465,8 +465,23 @@
       "map": "Map",
       "backpack": "Backpack",
       "missions": "Missions",
-      "multiplayer": "Multiplayer",
-      "comingSoon": "Missions coming soon"
+      "multiplayer": "Multiplayer"
+    },
+    "missions": {
+      "title": "Missions",
+      "description": "What the party has been asked to do, and how far along it is.",
+      "openAction": "Open missions",
+      "open": "Open",
+      "count": "Missions",
+      "empty": "No mission has opened yet.",
+      "progress": "Steps",
+      "statusLabel": "Status",
+      "status": {
+        "AVAILABLE": "Available",
+        "ACTIVE": "In progress",
+        "COMPLETED": "Completed",
+        "FAILED": "Failed"
+      }
     }
   },
   "footer": {

@@ -894,8 +894,8 @@ class StoryCrudServiceCompleteTest {
         Map<String, Object> data = new HashMap<>();
         data.put("idTextName", 1);
         data.put("conditionKey", "k");
-        data.put("conditionValueFrom", "0");
-        data.put("conditionValueTo", "10");
+        data.put("conditionValue", "0");
+        data.put("conditionValues", "10");
         data.put("idEventCompleted", 9);
         assertNotNull(service.createEntity("s", "missions", data));
     }
@@ -907,8 +907,8 @@ class StoryCrudServiceCompleteTest {
         Map<String, Object> data = new HashMap<>();
         data.put("idTextName", 1);
         data.put("conditionKey", "k");
-        data.put("conditionValueFrom", "0");
-        data.put("conditionValueTo", "10");
+        data.put("conditionValue", "0");
+        data.put("conditionValues", "10");
         data.put("idEventCompleted", 9);
         data.put("idMission", 5);
         data.put("step", 1);
@@ -1321,8 +1321,8 @@ class StoryCrudServiceCompleteTest {
         Map<String, Object> data = new HashMap<>();
         data.put("idTextName", 1);
         data.put("conditionKey", "k");
-        data.put("conditionValueFrom", "0");
-        data.put("conditionValueTo", "5");
+        data.put("conditionValue", "0");
+        data.put("conditionValues", "5");
         data.put("idEventCompleted", 7);
         assertNotNull(service.updateEntity("s", "missions", "u", data));
     }
@@ -1336,8 +1336,8 @@ class StoryCrudServiceCompleteTest {
         Map<String, Object> data = new HashMap<>();
         data.put("idTextName", 1);
         data.put("conditionKey", "k");
-        data.put("conditionValueFrom", "0");
-        data.put("conditionValueTo", "5");
+        data.put("conditionValue", "0");
+        data.put("conditionValues", "5");
         data.put("idEventCompleted", 7);
         data.put("idMission", 3);
         data.put("step", 2);

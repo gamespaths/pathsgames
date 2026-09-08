@@ -100,6 +100,8 @@ class _Graph:
         self.refs: List[tuple] = []          # (rule, entity_type, entity_id, field, target, value)
         self.neighbors: List[tuple] = []     # (entity_id, frm, to, direction)
         self.key_refs: List[tuple] = []      # (entity_id, type, key)
+        # Step 37 — (entity_type, entity_id, key, value, values) for the R10 rule.
+        self.mission_conds: List[tuple] = []
         # Step 31 — choice id to its raw (idEvent, idLocation), for the R8 binding rule.
         self.choice_data: Dict[str, tuple] = {}
         self.restrictions: List[tuple] = []  # (entity_type, entity_id, permitted, prohibited)
@@ -133,7 +135,12 @@ class StoryValidatorService(StoryValidatorPort):
         if story_id is None:
             report.add("R0_EMPTY", "story", None, None, "storyId is null")
             return report
-        self._run_rules(self._build_from_db(story_id), report)
+        g = self._build_from_db(story_id)
+        self._run_rules(g, report)
+        # Step 37 — reported only here, on the author's own "validate story" pass. Import and
+        # admin-create must not fail on it: every backend IGNORES such a row rather than
+        # refusing it, and a story already carrying one must stay importable.
+        self._validate_missions(g, report)
         return report
 
     def validate_story_by_uuid(self, uuid: str) -> Optional[StoryValidationReport]:
@@ -186,6 +193,31 @@ class StoryValidatorService(StoryValidatorPort):
         self._validate_restrictions(g, report)
         self._validate_choices(g, report)  # R8 choice-event binding (Step 31)
         self._validate_location_triggers(g, report)  # R9 automatic events (Step 33)
+
+    def _validate_missions(self, g: _Graph, report: StoryValidationReport) -> None:
+        """Step 37 — a mission whose condition can never be met is silently dead: the engine
+        ignores it, so nothing at runtime will ever tell the author. Only validation can."""
+        for entity_type, eid, key, value, values in g.mission_conds:
+            self._mission_condition(entity_type, eid, key, value, values, report)
+
+    def _mission_condition(self, entity_type: str, eid, key, value, values,
+                           report: StoryValidationReport) -> None:
+        if key is None or not str(key).strip():
+            report.add("R10_MISSION_CONDITION", entity_type, eid, "conditionKey",
+                       f"{entity_type} has no condition key: it can never activate, progress"
+                       " or complete and is ignored by every backend")
+            return
+        no_value = value is None or not str(value).strip()
+        no_values = values is None or not [p for p in str(values).split("|") if p.strip()]
+        if no_value and no_values:
+            report.add("R10_MISSION_CONDITION", entity_type, eid, "conditionValue",
+                       f"{entity_type} condition key '{key}' has no value to compare against,"
+                       " so the condition is never satisfied")
+
+    def _mission_cond(self, g: _Graph, entity_type: str, row: Dict[str, Any]) -> None:
+        g.mission_conds.append((entity_type, self._str(_get(row, "id")),
+                                _get(row, "conditionKey"), _get(row, "conditionValue"),
+                                _get(row, "conditionValues")))
 
     def _validate_choices(self, g: _Graph, report: StoryValidationReport) -> None:
         """Step 31 — story-wide: every choice belongs to an event, and only to an event."""
@@ -406,6 +438,9 @@ class StoryValidatorService(StoryValidatorPort):
             self._ref(g, "class-bonuses", self._str(_get(cb, "id")), "idClass", _CLASS, _as_int(_get(cb, "idClass")))
         for ms in data.get("missionSteps") or []:
             self._ref(g, "mission-steps", self._str(_get(ms, "id")), "idMission", _MISSION, _as_int(_get(ms, "idMission")))
+            self._mission_cond(g, "mission-steps", ms)
+        for m in data.get("missions") or []:
+            self._mission_cond(g, "missions", m)
         for wr in data.get("weatherRules") or []:
             self._ref(g, "weather-rules", self._str(_get(wr, "id")), "idEvent", _EVENT, _as_int(_get(wr, "idEvent")))
         for gr in data.get("globalRandomEvents") or []:
@@ -443,6 +478,7 @@ class StoryValidatorService(StoryValidatorPort):
             self._add_id(g.classes, _get(row, "id"))
         for row in missions:
             self._add_id(g.missions, _get(row, "id"))
+            self._mission_cond(g, "missions", row)
         for k in rp.find_entities_for_story(story_id, "list_keys"):
             name = _get(k, "name")
             if name:
@@ -475,6 +511,7 @@ class StoryValidatorService(StoryValidatorPort):
             self._ref(g, "class-bonuses", self._str(_get(cb, "id")), "idClass", _CLASS, _as_int(_get(cb, "idClass")))
         for ms in rp.find_entities_for_story(story_id, "list_missions_steps"):
             self._ref(g, "mission-steps", self._str(_get(ms, "id")), "idMission", _MISSION, _as_int(_get(ms, "idMission")))
+            self._mission_cond(g, "mission-steps", ms)
         for wr in rp.find_entities_for_story(story_id, "list_weather_rules"):
             self._ref(g, "weather-rules", self._str(_get(wr, "id")), "idEvent", _EVENT, _as_int(_get(wr, "idEvent")))
         for gr in rp.find_entities_for_story(story_id, "list_global_random_events"):

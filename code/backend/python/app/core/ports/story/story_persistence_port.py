@@ -101,6 +101,11 @@ class StoryPersistencePort(ABC):
     @abstractmethod
     def save_missions(self, story_id: int, missions: List[Dict[str, Any]]) -> None:
         pass
+
+    @abstractmethod
+    def save_mission_steps(self, story_id: int, steps: List[Dict[str, Any]]) -> None:
+        """Step 37 - the top-level missionSteps array of a story export."""
+        pass
         
     @abstractmethod
     def save_creators(self, story_id: int, creators: List[Dict[str, Any]]) -> None:

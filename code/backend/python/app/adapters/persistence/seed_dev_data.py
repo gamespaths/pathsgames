@@ -495,27 +495,31 @@ INSERT OR IGNORE INTO list_global_random_events (id, id_story, probability) VALU
 (90001, 9001, 10);
 
 -- ── Story 1 Missions ────────────────────────────────────────────
-INSERT OR IGNORE INTO list_missions (id, id_story, condition_key, condition_value_from, condition_value_to, id_text_name, id_text_description) VALUES
-(90001, 9001, 'tutorial_progress', '0', '3', 900, 900);
-INSERT OR IGNORE INTO list_missions (id, id_story, condition_key, condition_value_to, id_text_name, id_text_description) VALUES
+-- Step 37: condition_value replaces the from/to pair; a mission has no operator, so a
+-- range was a promise the engine could not keep.
+INSERT OR IGNORE INTO list_missions (id, id_story, condition_key, condition_value, id_text_name, id_text_description) VALUES
+(90001, 9001, 'tutorial_progress', '1', 900, 900);
+INSERT OR IGNORE INTO list_missions (id, id_story, condition_key, condition_value, id_text_name, id_text_description) VALUES
 (90002, 9001, 'items_collected', '1', 901, 901);
-INSERT OR IGNORE INTO list_missions (id, id_story, condition_key, condition_value_to, id_text_name, id_text_description) VALUES
+INSERT OR IGNORE INTO list_missions (id, id_story, condition_key, condition_value, id_text_name, id_text_description) VALUES
 (90003, 9001, 'choice_made', 'gold', 902, 902);
+INSERT OR IGNORE INTO list_missions (id, id_story, condition_key, condition_values, id_text_name, id_text_description) VALUES
+(90004, 9001, 'evidence_found', 'ledger|letter', 903, 903);
 
 -- ── Story 1 Mission Steps ───────────────────────────────────────
-INSERT OR IGNORE INTO list_missions_steps (id, id_story, id_mission, step_order, condition_key, condition_value) VALUES
+INSERT OR IGNORE INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value) VALUES
 (90001, 9001, 90001, 1, 'visited_movement', '1');
-INSERT OR IGNORE INTO list_missions_steps (id, id_story, id_mission, step_order, condition_key, condition_value) VALUES
+INSERT OR IGNORE INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value) VALUES
 (90002, 9001, 90001, 2, 'visited_energy', '1');
-INSERT OR IGNORE INTO list_missions_steps (id, id_story, id_mission, step_order, condition_key, condition_value) VALUES
+INSERT OR IGNORE INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value) VALUES
 (90003, 9001, 90001, 3, 'visited_graduation', '1');
-INSERT OR IGNORE INTO list_missions_steps (id, id_story, id_mission, step_order, condition_key, condition_value) VALUES
+INSERT OR IGNORE INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value) VALUES
 (90004, 9001, 90002, 1, 'potion_collected', '1');
-INSERT OR IGNORE INTO list_missions_steps (id, id_story, id_mission, step_order, condition_key, condition_value) VALUES
+INSERT OR IGNORE INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value) VALUES
 (90005, 9001, 90002, 2, 'snack_used', '1');
-INSERT OR IGNORE INTO list_missions_steps (id, id_story, id_mission, step_order, condition_key, condition_value) VALUES
+INSERT OR IGNORE INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value) VALUES
 (90006, 9001, 90003, 1, 'entered_arena', '1');
-INSERT OR IGNORE INTO list_missions_steps (id, id_story, id_mission, step_order, condition_key, condition_value) VALUES
+INSERT OR IGNORE INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value) VALUES
 (90007, 9001, 90003, 2, 'door_chosen', '1');
 
 -- ── Story 1 Creator ─────────────────────────────────────────────

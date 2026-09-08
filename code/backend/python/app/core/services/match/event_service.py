@@ -135,6 +135,8 @@ class EventService(EventPort):
         # Step 33 — the location engine's own store. None keeps the pre-33 behaviour:
         # no automatic events at all.
         self.location_store = location_store
+        # Step 37 - set after construction; None until the launcher wires it.
+        self.mission_service = None
         # Resolves the localized cards (nullable: the cards are then left None).
         self.content_read_port = content_read_port
         # TimeAdvancementService, for an event carrying flag_end_time (nullable: time then
@@ -146,8 +148,42 @@ class EventService(EventPort):
 
     # ── the public flow ─────────────────────────────────────────────────────
 
+    # ── Step 37: missions ────────────────────────────────────────────────────
+
+    def set_mission_service(self, mission_service) -> None:
+        """The second cycle, closed by a setter: a mission completion runs an event, and an
+        event moves the registry that decides the mission."""
+        self.mission_service = mission_service
+
+    def _missions_begin(self) -> None:
+        if getattr(self, "mission_service", None) is not None:
+            self.mission_service.begin_deferral()
+
+    def _missions_end(self) -> None:
+        if getattr(self, "mission_service", None) is not None:
+            self.mission_service.end_deferral()
+
+    def run_mission_event(self, id_match: int, id_event: int, depth: int) -> None:
+        """Run a mission's id_event_completed. No actor, no cost, no verdict, and capped by
+        the same MAX_ENTRY_DEPTH that stops an arrival chain running away."""
+        if depth >= lem.MAX_ENTRY_DEPTH:
+            return
+        match = self.store.find_match_by_id(id_match)
+        if not match:
+            return
+        self._run_automatic_event(id_match, None, id_event, 0, "mission completed",
+                                  match.get("current_clock") or 0, None, False, depth, [])
+
     def execute_event(self, match_uuid: str, user_uuid: str, event_uuid: str,
                       lang: str = "en") -> EventExecutionResult:
+        self._missions_begin()
+        try:
+            return self._execute_event(match_uuid, user_uuid, event_uuid, lang)
+        finally:
+            self._missions_end()
+
+    def _execute_event(self, match_uuid: str, user_uuid: str, event_uuid: str,
+                       lang: str = "en") -> EventExecutionResult:
         user_id = self.store.find_user_id_by_uuid(user_uuid)
         if user_id is None:
             raise self._not_found()
@@ -237,6 +273,14 @@ class EventService(EventPort):
 
     def select_choice(self, match_uuid: str, user_uuid: str, choice_uuid: str,
                       lang: str = "en") -> ChoiceResolutionResult:
+        self._missions_begin()
+        try:
+            return self._select_choice(match_uuid, user_uuid, choice_uuid, lang)
+        finally:
+            self._missions_end()
+
+    def _select_choice(self, match_uuid: str, user_uuid: str, choice_uuid: str,
+                       lang: str = "en") -> ChoiceResolutionResult:
         """Resolve one option of an open choice-event: apply its list_choices_effects, run
         the events they and id_event_torun point at, record the milestone, close the cycle.
 
@@ -1049,6 +1093,13 @@ class EventService(EventPort):
     # ── Step 33: automatic location events ──────────────────────────────────
 
     def on_arrival(self, arrival) -> List[Any]:
+        self._missions_begin()
+        try:
+            return self._on_arrival(arrival)
+        finally:
+            self._missions_end()
+
+    def _on_arrival(self, arrival) -> List[Any]:
         """Resolve and run every trigger a successful arrival fires, then mark the location
         visited.
 
@@ -1064,6 +1115,14 @@ class EventService(EventPort):
 
     def run_pending_automatic_events(self, id_match: int, current_clock: int,
                                      pending: List[Any], lang: str = "en") -> List[Any]:
+        self._missions_begin()
+        try:
+            return self._run_pending_automatic_events(id_match, current_clock, pending, lang)
+        finally:
+            self._missions_end()
+
+    def _run_pending_automatic_events(self, id_match: int, current_clock: int,
+                                      pending: List[Any], lang: str = "en") -> List[Any]:
         """Run the events a time-start collected — counter-zero fuses and
         ``id_event_if_character_start_time`` — in the order the recovery pass produced."""
         fired: List[Any] = []
