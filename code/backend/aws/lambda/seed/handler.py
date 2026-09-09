@@ -1159,8 +1159,10 @@ SEED_STORIES = [
         "locations": [
             # Step 27.x — locations reference a real card via idCard; resolved from
             # raw_cards at seed time (see _seed_stories) so cards appear in the list.
+            # v0.37.1 — the START location writes its first-entry pair when the match starts:
+            # the party begins standing here, so no arrival will ever fire in this place.
             {"id": 1, "uuid": "loc-demo1-1", "name": "Crossroads", "counterTime": 0,
-             "idCard": 1},
+             "idCard": 1, "keyToAdd": "journey_begun", "keyValueToAdd": "yes"},
             {"id": 2, "uuid": "loc-demo1-2", "name": "Northern Path", "counterTime": 5,
              "idCard": 2},
             {"id": 3, "uuid": "loc-demo1-3", "name": "Southern Cave", "counterTime": 10,
@@ -1184,6 +1186,20 @@ SEED_STORIES = [
              "keyValue": "0", "keyGroup": "quest", "visibility": "PUBLIC", "priority": 2},
             {"id": 3, "uuid": "key-demo1-3", "keyName": "ally_count",
              "keyValue": "0", "keyGroup": "quest", "visibility": "PUBLIC", "priority": 3},
+            # v0.37.1 — written by nothing but the start location, and only as the match starts.
+            {"id": 4, "uuid": "key-demo1-4", "keyName": "journey_begun",
+             "keyValue": None, "keyGroup": "missions", "visibility": "PUBLIC", "priority": 4},
+        ],
+        # v0.37.1 — the mission only the start location can open, held at AVAILABLE by a step
+        # nothing here satisfies. Fixture of tests/37_missions/mission_from_start.robot.
+        "missions": [
+            {"id": 1, "uuid": "mis-demo1-1", "idCard": 1, "conditionKey": "journey_begun",
+             "conditionValue": "yes", "idTextName": 900, "idTextDescription": 900},
+        ],
+        "missionSteps": [
+            {"id": 1, "uuid": "mst-demo1-1", "idMission": 1, "step": 1,
+             "conditionKey": "found_treasure", "conditionValue": "1",
+             "idTextName": 910, "idTextDescription": 910},
         ],
         # Step 20.1 — events for end-game trigger; Step 27.x — idLocation + card
         "idEventEndGame":    77,

@@ -85,6 +85,8 @@ export const STORIES_ENTITIES_FIELDS = {
       // Step 36.2 (v0.36.2) — the place writes the registry by being entered, with no event
       // involved. The history branch picks ONE pair: the first arrival writes the first, every
       // later one the second.
+      // v0.37.1 — the party never ENTERS the start location, so there its first pair is written
+      // when the match starts instead; hence the label, which is why the field is not dead there.
       { key: 'keyToAdd', label: 'Registry Key to Write (first entry)', type: 'text' },
       { key: 'keyValueToAdd', label: 'Registry Value to Write (first entry)', type: 'text' },
       { key: 'keyToAddNotFirst', label: 'Registry Key to Write (later entries)', type: 'text' },

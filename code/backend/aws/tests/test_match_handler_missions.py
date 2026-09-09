@@ -53,6 +53,7 @@ def _get_side(match=MATCH, story=STORY):
 
 def _call(event, match=MATCH):
     with patch('match.handler.db_utils.get_item') as get_item, \
+            patch('match.handler.db_utils.query_by_pk', return_value=[]), \
             patch('match.handler.jwt_utils.verify_access_token', return_value=PLAYER_USER):
         get_item.side_effect = _get_side(match)
         from match.handler import lambda_handler

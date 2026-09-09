@@ -93,6 +93,16 @@ public class MissionService {
         deferrals.set(left);
         if (left == 0) {
             drain();
+            releaseIfIdle();
+        }
+    }
+
+    /** Drop the thread's copies once the cascade is over, so a pooled thread carries nothing. */
+    private void releaseIfIdle() {
+        if (depth.get() == 0 && deferrals.get() == 0 && pending.get().isEmpty()) {
+            depth.remove();
+            deferrals.remove();
+            pending.remove();
         }
     }
 
@@ -176,6 +186,7 @@ public class MissionService {
         if (deferrals.get() == 0) {
             drain();
         }
+        releaseIfIdle();
     }
 
     /** Everything still open when the story ends has failed; what never opened is ignored. */

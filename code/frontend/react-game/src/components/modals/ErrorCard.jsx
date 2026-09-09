@@ -34,7 +34,7 @@ export default function ErrorCard({ status, message, onClose, maxWidth = null })
           onClose={onClose}
           onAction={onClose}
           actionLabel={t('modals.close')} 
-          actionIcon="fa-xmark"
+          actionIcon="fa-times"
         />
       </div>
     </div>

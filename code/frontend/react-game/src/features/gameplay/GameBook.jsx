@@ -12,9 +12,9 @@ import PageLeft from './PageLeft'
 import PageRight from './PageRight'
 import useMatchChrome from './js/useMatchChrome'
 import useBookView from './js/useBookView'
+import useMissionsAlert from './js/useMissionsAlert'
 import useGameplayResults from './js/useGameplayResults'
 import { buildBookmarksLeft, BOOKMARKS_RIGHT } from './js/bookmarks'
-import { missionsSummaryProps } from './js/boardProps'
 import { scrollMobileIntoView } from './js/mobileView'
 
 // Re-exported: these readers were part of this module's surface before they moved to
@@ -52,6 +52,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   const { clock, weather, matchLocations, locationCosts, refresh: refreshChrome } =
     useMatchChrome(matchUuid, accessToken, lang)
   const [view, viewActions] = useBookView()
+  // v0.37.1 — whether the missions moved since the player last opened them. Watching the
+  // pages keeps the mark up to date on its own, so news read as it lands never lights the tab.
+  const missionsAlert = useMissionsAlert(gameData?.info?.missions,
+    view.view === 'missions' || view.view === 'missionSteps')
   const results = useGameplayResults({
     matchUuid, accessToken, lang, t, playerUuid, playerStats, gameData, weather,
     view, viewActions, refreshChrome, onReload, onError,
@@ -103,6 +107,12 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     viewActions.closeAll()
     scrollMobileIntoView('.book-mobile-left')
   }
+  // v0.37.1 — opening the panel is reading the news: the gold tab goes out here, and nowhere
+  // else, so it stays lit until the player has actually looked.
+  function openMissionsView() {
+    missionsAlert.markSeen()
+    viewActions.openMissions()
+  }
 
   if (gameEnded) {
     return <EndGameBook story={story} endGameCard={endGameCard} onClose={onClose} />
@@ -118,13 +128,14 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     onCloseItems={closeItemsView}
     onCloseRegistry={closeRegistryView}
     onCloseMissions={closeMissionsView}
+    onCloseMission={viewActions.openMissions}
     onSelectMapNode={viewActions.selectMapNode}
     onBack={handleBackOrClose} />
 
   const rightContent = <PageRight
     view={view.view} previewRight={view.previewRight} pendingChoices={view.pendingChoices}
     counterZero={view.counterZero} sleepCardForced={view.sleepCardForced}
-    mapSelected={view.mapSelected}
+    mapSelected={view.mapSelected} missionSelected={view.missionSelected}
     story={story} storyFull={storyFull} t={t} gameData={gameData} playerStats={playerStats}
     playerUuid={playerUuid} weather={weather} clock={clock}
     actualLocationCard={actualLocationCard} locations={locations} actions={actions}
@@ -147,6 +158,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     onOpenItems={viewActions.openItems}
     onOpenRegistry={viewActions.openRegistry}
     onOpenMissions={viewActions.openMissions}
+    onOpenMission={viewActions.openMission}
     onOpenInfo={openInformationView}
     onForceSleepCard={viewActions.forceSleepCard}
     onPreviewMatchLog={() => viewActions.setPreviewRight({ kind: 'matchlog' })}
@@ -166,8 +178,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
         bookmarksLeft={buildBookmarksLeft({ t, view: view.view, previewLeft: view.previewLeft,
           playerStats, onBack: handleBackOrClose, onOpenInfo: openInformationView,
           onOpenItems: viewActions.openItems, onOpenMap: viewActions.openMap,
-          onOpenMissions: viewActions.openMissions,
-          openMissions: missionsSummaryProps(gameData).count })}
+          onOpenMissions: openMissionsView,
+          missionsChanged: missionsAlert.changed })}
         bookmarksRight={BOOKMARKS_RIGHT}
         mobile={<GameBookMobile left={leftContent} right={right} endError={endError} />}
       />

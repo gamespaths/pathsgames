@@ -22,6 +22,8 @@ const CARD_REF_TYPES = [
   'difficulties', 'locations', 'location-neighbors', 'events', 'event-effects', 'items',
   'item-effects', 'character-templates', 'classes', 'traits', 'creators', 'keys',
   'choices', 'choice-effects', 'weather-rules', 'global-random-events', 'missions',
+  // v0.37.1: a mission STEP carries a card of its own — the game reads the steps as cards.
+  'mission-steps',
 ]
 
 // ─── Desc-Text alignment ─────────────────────────────────────────────────────
@@ -34,7 +36,7 @@ const CARD_REF_TYPES = [
 // mismatch are reported as warnings rather than silently updated.
 const DESC_ALIGN_TYPES = [
   'difficulties', 'locations', 'events', 'event-effects', 'items',
-  'character-templates', 'classes', 'traits', 'keys', 'missions',
+  'character-templates', 'classes', 'traits', 'keys', 'missions', 'mission-steps',
 ]
 // ─────────────────────────────────────────────────────────────────────────────
 

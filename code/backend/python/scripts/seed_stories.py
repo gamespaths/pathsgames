@@ -680,6 +680,10 @@ def seed():
             {"idText": 100, "lang": "it", "shortText": "Castelfranco"},
             {"idText": 101, "lang": "en", "shortText": "Treviso"},
             {"idText": 101, "lang": "it", "shortText": "Treviso"},
+            {"idText": 900, "lang": "en", "shortText": "The Journey Begins"},
+            {"idText": 910, "lang": "en", "shortText": "Obtain the Records"},
+            {"idText": 950, "lang": "en", "shortText": "Journey begun"},
+            {"idText": 951, "lang": "en", "shortText": "Monastery records"},
         ],
         "difficulties": [
             {"uuid": "demo2-diff-1", "idTextDescription": 300, "expCost": 3, "maxWeight": 20,
@@ -695,10 +699,29 @@ def seed():
         # AWS seeds ship a real map here; two walkable places are enough to make the same
         # case runnable without transcribing the whole Veneto.
         "locations": [
+            # v0.37.1 — the START location writes its first-entry pair when the match starts:
+            # the party begins standing here, so no arrival will ever fire in this place.
             {"id": 1, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
+             "keyToAdd": "journey_begun", "keyValueToAdd": "yes",
              "neighbors": [{"idLocationTo": 2, "direction": "EAST", "energyCost": 1,
                             "idCardBack": 1, "flagBack": 1}]},
             {"id": 2, "idTextName": 101, "idTextDescription": 101, "isSafe": 0, "idCard": 1},
+        ],
+        # v0.37.1 — the mission that only the start location can open, held at AVAILABLE by a
+        # step nothing here satisfies. Fixture of tests/37_missions/mission_from_start.robot.
+        "keys": [
+            {"id": 1, "keyName": "journey_begun", "keyValue": None,
+             "keyGroup": "missions", "isVisible": 1, "priority": 1},
+            {"id": 2, "keyName": "monastery_records", "keyValue": "0",
+             "keyGroup": "evidence", "isVisible": 1, "priority": 2},
+        ],
+        "missions": [
+            {"id": 1, "conditionKey": "journey_begun", "conditionValue": "yes",
+             "idTextName": 900, "idTextDescription": 900},
+        ],
+        "missionSteps": [
+            {"id": 1, "idMission": 1, "step": 1, "conditionKey": "monastery_records",
+             "conditionValue": "1", "idTextName": 910, "idTextDescription": 910},
         ],
         "events": [],
         "items": [],

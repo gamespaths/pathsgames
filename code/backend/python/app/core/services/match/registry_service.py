@@ -327,6 +327,33 @@ class RegistryService:
         after.remove(stored_value)
         return ordered(after)
 
+    def write_start_location_entry(self, id_match: int, id_character: Optional[int],
+                                   clock: Optional[int]) -> List[str]:
+        """v0.37.1 — the start location writes its FIRST-ENTRY pair when the match starts.
+
+        The party begins standing in id_location_start, so it never arrives there: the state row
+        is seeded flag_visited = 1 on purpose (Step 33), which keeps the place the story opened
+        in from announcing itself as a discovery. That reasoning holds for the narrative triggers
+        and not for the registry, which is state other rules read — so without this the
+        key_to_add of the starting location would be the one authored field that can never be
+        written, at any point of any match.
+
+        Called from the CREATED to RUNNING transition rather than from match creation: there the
+        clock exists, a character is active to own the row, and the write goes through upsert, so
+        a Step 37 mission waiting on that key opens at once."""
+        id_story = self.store.find_story_id_by_match(id_match)
+        if id_story is None or self.story_read_port is None:
+            return []
+        story = self.story_read_port.find_story_by_id(id_story) or {}
+        id_location_start = story.get("id_location_start")
+        if id_location_start is None:
+            return []
+        for loc in self.story_read_port.find_locations_by_story_id(id_story) or []:
+            if loc.get("id") == id_location_start:
+                return self.upsert(id_match, id_story, loc.get("key_to_add"),
+                                   loc.get("key_value_to_add"), id_character, None, None, clock)
+        return []
+
     # ── admin edit (v0.36.2) ─────────────────────────────────────────────────
 
     def find_by_match_uuid(self, match_uuid: str, key: Optional[str]) -> List[str]:

@@ -17,7 +17,8 @@ import { bagSummaryProps, missionsSummaryProps, registrySummaryProps } from './j
 export default function PageLeft({
   view, pendingChoices, previewLeft, story, t, playerStats, clock, gameData, matchLocations,
   mapSelected, actualLocationCard, storyCard, loading,
-  onCloseChoices, onCloseLeft, onCloseItems, onCloseRegistry, onCloseMissions, onSelectMapNode, onBack,
+  onCloseChoices, onCloseLeft, onCloseItems, onCloseRegistry, onCloseMissions, onCloseMission,
+  onSelectMapNode, onBack,
 }) {
   // Step 31 — an open choice-event: the event card sits here, without an execute button;
   // its back arrow ends the event (and clears the options on the right).
@@ -53,6 +54,15 @@ export default function PageLeft({
   if (view === 'missions') {
     return <MissionCard variant="page" story={story} onClose={onCloseMissions}
       {...missionsSummaryProps(gameData)} />
+  }
+  // v0.37.1 — one mission opened from the grid reads here while its steps fill the right page;
+  // the back arrow returns to the grid, not to the board.
+  if (view === 'missionSteps' && previewLeft) {
+    // showZeros is not optional: the status badge carries a WORD, and BonusBadgeList drops
+    // anything whose value is not a non-zero number — which is why Done never appeared here.
+    return <Card variant="page" card={previewLeft.card} entityType="missions" loading={false}
+      story={story} onClose={onCloseMission} bonusBadgeShowZeros
+      statItemsToPageContent={previewLeft.statItemsToPageContent} hidePreview />
   }
   // Step 0.28.5 — the world map takes over the left page; its back arrow returns to the board.
   if (view === 'map') {

@@ -83,6 +83,17 @@ def test_create_match_no_auth_returns_401():
     event = make_event('POST', '/api/matches', body={'storyUuid': 's', 'difficultyUuid': 'd'})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 401
+    # v0.37.1 — the Java filter's code, so the shared Robot suites can pin it on any backend.
+    assert json.loads(result['body'])['error'] == 'MISSING_TOKEN'
+
+
+def test_an_empty_bearer_is_told_apart_from_a_missing_one():
+    from match.handler import lambda_handler
+    event = make_event('POST', '/api/matches', headers={'Authorization': 'Bearer '},
+                       body={'storyUuid': 's', 'difficultyUuid': 'd'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 401
+    assert json.loads(result['body'])['error'] == 'EMPTY_TOKEN'
 
 
 @patch('match.handler.db_utils.get_item')
@@ -94,6 +105,8 @@ def test_invalid_token_returns_401(mock_jwt, mock_get):
                        body={'storyUuid': 's', 'difficultyUuid': 'd'})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 401
+    # A token that does not verify is INVALID_TOKEN, not the same word as no token at all.
+    assert json.loads(result['body'])['error'] == 'INVALID_TOKEN'
 
 
 @patch('match.handler.db_utils.get_item')
@@ -413,6 +426,26 @@ def test_create_match_persists_creator_loadout(create_env):
     assert persisted['characterTemplateUuid'] == 'ct'
     assert persisted['classUuid'] == 'cl'
     assert persisted['traitUuids'] == ['t1', 't2']
+
+
+def test_create_match_with_blank_class_columns_on_a_trait(create_env):
+    """v0.37.1 — a story authored through the admin form keeps "" where a field was left
+    empty, and DynamoDB stores it verbatim. int("") raised, and every match creation on such
+    a story answered 500."""
+    import copy
+    story = copy.deepcopy(STORY_ITEM)
+    story['traits'][0]['idClassPermitted'] = ''
+    story['traits'][0]['idClassProhibited'] = ''
+    story['difficulties'][0]['traitCostPositiveBudget'] = ''
+    story['difficulties'][0]['traitCostNegativeBudget'] = ''
+    create_env['configure'](story=story)
+    from match.handler import lambda_handler
+    event = _player_event('POST', '/api/matches', body={
+        'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1',
+        'characterTemplateUuid': 'ct', 'classUuid': 'cl', 'traitUuids': ['t1'],
+    })
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 201, _body(result)
 
 
 def test_create_match_single_player_defaults_to_1(create_env):

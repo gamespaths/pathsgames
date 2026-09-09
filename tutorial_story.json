@@ -1330,12 +1330,12 @@
       "id": 111,
       "idCard": 111,
       "idCreator": 1,
-      "idTextCopyright": 322,
+      "idTextCopyright": 436,
       "idTextDescription": 321,
       "idTextName": 319,
       "idTextTitle": 319,
-      "linkCopyright": "https://unsplash.com/photos/wanderlust-and-explore-concept-old-compass-lying-on-map-top-view-space-for-text-vintage-toned-image-8_B6VHqOkIE",
-      "urlImage": "https://plus.unsplash.com/premium_photo-1661311943117-c515634ea81d?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "linkCopyright": "https://unsplash.com/photos/brown-wooden-handle-on-white-and-brown-textile-DYWHwLZyJ64",
+      "urlImage": "https://images.unsplash.com/photo-1612257998095-1feb6bd2bcf9?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "78293b97-8d6c-4006-a139-a7b05c114867"
     },
     {
@@ -1594,10 +1594,12 @@
       "id": 134,
       "idCard": 134,
       "idCreator": 1,
-      "idTextCopyright": 3,
+      "idTextCopyright": 435,
       "idTextDescription": 395,
       "idTextName": 395,
       "idTextTitle": 395,
+      "linkCopyright": "https://unsplash.com/photos/magnifying-glass-and-compass-on-an-antique-map-OKJHAjc7wz0",
+      "urlImage": "https://images.unsplash.com/photo-1743715033185-11ee19e66522?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "db4a3ff2-8441-453b-9de3-b97fe3f11d81"
     },
     {
@@ -1614,10 +1616,12 @@
       "id": 136,
       "idCard": 136,
       "idCreator": 1,
-      "idTextCopyright": 3,
+      "idTextCopyright": 434,
       "idTextDescription": 397,
       "idTextName": 397,
       "idTextTitle": 397,
+      "linkCopyright": "https://unsplash.com/photos/a-table-topped-with-lots-of-halloween-decorations-yDXGbCnbhtE",
+      "urlImage": "https://images.unsplash.com/photo-1643208932920-45a9d127d30f?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "7dc1f966-3432-423f-a33c-79e5eb2472c3"
     },
     {
@@ -1641,6 +1645,128 @@
       "linkCopyright": "https://unsplash.com/photos/a-person-jumping-into-a-body-of-water-orDKMt97KH4",
       "urlImage": "https://images.unsplash.com/photo-1642675482166-f0c27bf2e3df?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "a6051bd4-93d9-462a-b638-8637ec264968"
+    },
+    {
+      "id": 139,
+      "idCard": 139,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 405,
+      "idTextName": 405,
+      "idTextTitle": 405,
+      "uuid": "36abe200-e187-4ea2-8f79-b79493008041"
+    },
+    {
+      "id": 140,
+      "idCard": 140,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 406,
+      "idTextName": 406,
+      "idTextTitle": 406,
+      "uuid": "0a84f819-1505-4cff-9b15-82daa70b38b7"
+    },
+    {
+      "id": 141,
+      "idCard": 141,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 407,
+      "idTextName": 407,
+      "idTextTitle": 407,
+      "uuid": "1704f364-63a2-4904-a552-3313cf5d6c38"
+    },
+    {
+      "id": 142,
+      "idCard": 142,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 408,
+      "idTextName": 408,
+      "idTextTitle": 408,
+      "uuid": "4e33f926-d822-4291-ba2f-d8bc49aedeba"
+    },
+    {
+      "id": 143,
+      "idCard": 143,
+      "idCreator": 1,
+      "idTextCopyright": 414,
+      "idTextDescription": 415,
+      "idTextName": 409,
+      "idTextTitle": 409,
+      "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM",
+      "urlImage": "https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?q=80&w=1333&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "af1b5c63-a373-4bb8-8b72-f7d165fe76cb"
+    },
+    {
+      "id": 144,
+      "idCard": 144,
+      "idCreator": 1,
+      "idTextCopyright": 416,
+      "idTextDescription": 417,
+      "idTextName": 410,
+      "idTextTitle": 410,
+      "linkCopyright": "https://unsplash.com/photos/a-wooden-path-in-a-field-with-mountains-in-the-background-n0eQB589B6I",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1692911035405-68371738b438?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "7c9268fb-9f99-4c48-bf95-2292a4ad11de"
+    },
+    {
+      "id": 145,
+      "idCard": 145,
+      "idCreator": 1,
+      "idTextCopyright": 418,
+      "idTextDescription": 419,
+      "idTextName": 411,
+      "idTextTitle": 411,
+      "linkCopyright": "https://unsplash.com/photos/text-KNZGAIBfYnI",
+      "urlImage": "https://images.unsplash.com/photo-1609375457088-84cb07bc8021?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "4902aee0-52c3-4843-ac34-b4c0b6dc78d8"
+    },
+    {
+      "id": 146,
+      "idCard": 146,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 420,
+      "idTextName": 412,
+      "idTextTitle": 412,
+      "linkCopyright": null,
+      "urlImage": null,
+      "uuid": "6fc8775e-e066-46eb-9f7b-c7b06b80ac5f"
+    },
+    {
+      "id": 147,
+      "idCard": 147,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 413,
+      "idTextName": 413,
+      "idTextTitle": 413,
+      "uuid": "8ccc99e7-43f2-46ba-b63f-c9424c3d37b5"
+    },
+    {
+      "id": 148,
+      "idCard": 148,
+      "idCreator": 1,
+      "idTextCopyright": 426,
+      "idTextDescription": 427,
+      "idTextName": 421,
+      "idTextTitle": 421,
+      "linkCopyright": "https://unsplash.com/photos/assortment-of-dog-themed-accessories-and-fishing-net-GFpa8x3v8Ls",
+      "urlImage": "https://images.unsplash.com/photo-1770944233994-f3e5d3372191?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "6cd0798b-d6c7-4dff-920f-393db69f9882"
+    },
+    {
+      "id": 149,
+      "idCard": 149,
+      "idCreator": 1,
+      "idTextCopyright": 428,
+      "idTextDescription": 429,
+      "idTextName": 422,
+      "idTextTitle": 422,
+      "linkCopyright": "https://unsplash.com/photos/magnifying-glass-and-compass-on-an-antique-map-OKJHAjc7wz0",
+      "urlImage": "https://images.unsplash.com/photo-1743715033185-11ee19e66522?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "a4ace7af-6f47-4c4b-bca7-619edb961026"
     }
   ],
   "category": "Tutorial",
@@ -2427,6 +2553,8 @@
       "idTextDescription": 236,
       "idTextName": 236,
       "idWeather": "",
+      "keyToAdd": "COMA",
+      "keyValueToAdd": "YES",
       "statistics": "LIFE",
       "target": "ALL",
       "uuid": "1df34eaa-09fb-4016-aac2-c27cc6c1db6f",
@@ -2647,6 +2775,17 @@
       "idTextDescription": 402,
       "idTextName": 402,
       "uuid": "598a8cb4-49b7-4402-8ebd-6c6d8efaf3c6"
+    },
+    {
+      "id": 25,
+      "idCard": 147,
+      "idEvent": 28,
+      "idTextDescription": 413,
+      "idTextName": 413,
+      "id_card": 147,
+      "keyToAdd": "TUTORIAL",
+      "keyValueToAdd": "END",
+      "uuid": "b50d55f6-fcc7-4fda-9474-3fca69c64140"
     }
   ],
   "events": [
@@ -3110,6 +3249,49 @@
       "uuid": "4c503c27-4e25-48de-b2e1-aa5f1600e580",
       "value": "0",
       "visibility": "HIDDEN"
+    },
+    {
+      "id": 5,
+      "idCard": 139,
+      "idTextDescription": 405,
+      "id_card": 139,
+      "multiValue": true,
+      "name": "LOCATION",
+      "uuid": "2479d357-e3d5-4f71-b0ca-f0c92a6ca21d",
+      "visibility": "HIDDEN"
+    },
+    {
+      "group": "KEYS",
+      "id": 6,
+      "idCard": 140,
+      "idTextDescription": 406,
+      "id_card": 140,
+      "multiValue": true,
+      "name": "SAFELOCATION",
+      "priority": 10,
+      "uuid": "22f20d1e-507f-4fe8-a43c-5aa6e0a622a0",
+      "visibility": "HIDDEN"
+    },
+    {
+      "id": 7,
+      "idCard": 141,
+      "idTextDescription": 407,
+      "id_card": 141,
+      "multiValue": false,
+      "name": "COMA",
+      "uuid": "a41990bf-78bd-4697-a4e7-430b7fa103e5",
+      "value": "NO",
+      "visibility": "HIDDEN"
+    },
+    {
+      "id": 8,
+      "idCard": 142,
+      "idTextDescription": 408,
+      "id_card": 142,
+      "multiValue": true,
+      "name": "TUTORIAL",
+      "uuid": "2e9f2447-ecfe-4c3f-b9b6-59e792b7d08b",
+      "visibility": "HIDDEN"
     }
   ],
   "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM",
@@ -3393,6 +3575,8 @@
       "idTextNarrative": null,
       "id_card": 44,
       "isSafe": false,
+      "keyToAdd": "TUTORIAL",
+      "keyValueToAdd": "START",
       "maxCharacters": 100,
       "priorityAutomaticEvent": 0,
       "secureParam": 0,
@@ -3431,6 +3615,10 @@
       "idTextNarrative": null,
       "id_card": 46,
       "isSafe": 0,
+      "keyToAdd": "LOCATION",
+      "keyToAddNotFirst": "LOCATION",
+      "keyValueToAdd": "ENDING",
+      "keyValueToAddNotFirst": "ENDING_BACK",
       "maxCharacters": 100,
       "priorityAutomaticEvent": 0,
       "secureParam": 0,
@@ -3458,6 +3646,10 @@
       "idTextDescription": 154,
       "idTextName": 138,
       "id_card": 50,
+      "keyToAdd": "LOCATION",
+      "keyToAddNotFirst": "LOCATION",
+      "keyValueToAdd": "LOCATION",
+      "keyValueToAddNotFirst": "LOCATION_BACK",
       "uuid": "c4149c69-5ea4-4b58-9a13-d1b374d6bd1b"
     },
     {
@@ -3483,6 +3675,10 @@
       "idTextName": 142,
       "id_card": 53,
       "isSafe": true,
+      "keyToAdd": "SAFELOCATION",
+      "keyToAddNotFirst": "SAFELOCATION",
+      "keyValueToAdd": "SAFE",
+      "keyValueToAddNotFirst": "SAFE_BACK",
       "secureParam": 1,
       "uuid": "4549aaff-e89f-4711-8b71-32af58391503"
     },
@@ -3494,6 +3690,10 @@
       "idTextName": 168,
       "id_card": 59,
       "isSafe": true,
+      "keyToAdd": "LOCATION",
+      "keyToAddNotFirst": "LOCATION",
+      "keyValueToAdd": "Secret",
+      "keyValueToAddNotFirst": "Secret_BACK",
       "secureParam": 1,
       "uuid": "7b740f34-61b8-4c77-ab4c-5f8f0f7b76f2"
     },
@@ -3507,6 +3707,10 @@
       "idTextName": 174,
       "id_card": 62,
       "isSafe": true,
+      "keyToAdd": "LOCATION",
+      "keyToAddNotFirst": "LOCATION",
+      "keyValueToAdd": "HILLS",
+      "keyValueToAddNotFirst": "Hills_back",
       "uuid": "d9eda609-69af-4575-ba23-6e97536d1792"
     },
     {
@@ -3516,6 +3720,10 @@
       "idTextDescription": 177,
       "idTextName": 177,
       "id_card": 64,
+      "keyToAdd": "LOCATION",
+      "keyToAddNotFirst": "LOCATION",
+      "keyValueToAdd": "Mountains",
+      "keyValueToAddNotFirst": "Mountains_Back",
       "uuid": "80a8b231-e74e-4843-8d7e-42028eb07ee5"
     },
     {
@@ -3525,6 +3733,10 @@
       "idTextDescription": 180,
       "idTextName": 180,
       "id_card": 65,
+      "keyToAdd": "LOCATION",
+      "keyToAddNotFirst": "LOCATION",
+      "keyValueToAdd": "peak",
+      "keyValueToAddNotFirst": "peak_back",
       "uuid": "6dd29155-a4f9-4e36-bda2-edefddcebffb"
     },
     {
@@ -3534,6 +3746,10 @@
       "idTextDescription": 183,
       "idTextName": 183,
       "id_card": 66,
+      "keyToAdd": "LOCATION",
+      "keyToAddNotFirst": "LOCATION",
+      "keyValueToAdd": "canyon",
+      "keyValueToAddNotFirst": "canyon_Back",
       "uuid": "27bdfc64-0ffb-48b0-8ac7-8e4d5a0263cd"
     },
     {
@@ -3543,6 +3759,10 @@
       "idTextDescription": 259,
       "idTextName": 184,
       "id_card": 67,
+      "keyToAdd": "LOCATION",
+      "keyToAddNotFirst": "LOCATION",
+      "keyValueToAdd": "Badlands",
+      "keyValueToAddNotFirst": "Badlands_Back",
       "uuid": "fbbb5744-1d8a-49be-8f7b-b4ae27e65915"
     },
     {
@@ -3552,6 +3772,10 @@
       "idTextDescription": 269,
       "idTextName": 189,
       "id_card": 68,
+      "keyToAdd": "LOCATION",
+      "keyToAddNotFirst": "LOCATION",
+      "keyValueToAdd": "forest",
+      "keyValueToAddNotFirst": "forest_Back",
       "uuid": "a3887dd8-f690-41fc-bf52-cb139dadcc35"
     },
     {
@@ -3563,6 +3787,10 @@
       "idTextDescription": 263,
       "idTextName": 192,
       "id_card": 69,
+      "keyToAdd": "LOCATION",
+      "keyToAddNotFirst": "LOCATION",
+      "keyValueToAdd": "River",
+      "keyValueToAddNotFirst": "River_Back",
       "uuid": "88511e91-54ea-48c4-b8a8-64c6960e2a26"
     },
     {
@@ -3574,6 +3802,10 @@
       "idTextDescription": 195,
       "idTextName": 195,
       "id_card": 71,
+      "keyToAdd": "LOCATION",
+      "keyToAddNotFirst": "LOCATION",
+      "keyValueToAdd": "LargeRiver",
+      "keyValueToAddNotFirst": "LargeRiver_Back",
       "uuid": "39793f5e-f800-41ce-b9af-3f8002aa97d2"
     },
     {
@@ -3585,6 +3817,10 @@
       "idTextName": 198,
       "id_card": 72,
       "isSafe": true,
+      "keyToAdd": "SAFELOCATION",
+      "keyToAddNotFirst": "SAFELOCATION",
+      "keyValueToAdd": "LAKE",
+      "keyValueToAddNotFirst": "LAKE_BACK",
       "secureParam": 1,
       "uuid": "4e1bee59-29f4-45fe-9110-bbb1b8cb768f"
     },
@@ -3597,6 +3833,10 @@
       "idTextDescription": 199,
       "idTextName": 199,
       "id_card": 73,
+      "keyToAdd": "LOCATION",
+      "keyToAddNotFirst": "LOCATION",
+      "keyValueToAdd": "DELTA",
+      "keyValueToAddNotFirst": "Delta_back",
       "uuid": "f282dbaa-ed98-4b69-9746-9e397e3996a5"
     },
     {
@@ -3605,6 +3845,10 @@
       "idTextDescription": 235,
       "idTextName": 232,
       "id_card": 82,
+      "keyToAdd": "LOCATION",
+      "keyToAddNotFirst": "LOCATION",
+      "keyValueToAdd": "Desert",
+      "keyValueToAddNotFirst": "Desert_Back",
       "uuid": "d3f20146-68b8-40d5-a967-1ae50f78d518"
     },
     {
@@ -3613,11 +3857,165 @@
       "idTextDescription": 391,
       "idTextName": 391,
       "id_card": 133,
+      "keyToAdd": "LOCATION",
+      "keyToAddNotFirst": "LOCATION",
+      "keyValueToAdd": "Light",
+      "keyValueToAddNotFirst": "Light_back",
       "uuid": "e4be741f-06b4-41b3-a553-bd5551f9d4d1"
     }
   ],
-  "missionSteps": [],
-  "missions": [],
+  "missionSteps": [
+    {
+      "conditionKey": "LOCATION",
+      "conditionValue": "LOCATION",
+      "id": 1,
+      "idCard": 144,
+      "idMission": 1,
+      "idTextDescription": 410,
+      "idTextName": 410,
+      "id_card": 144,
+      "step": 1,
+      "uuid": "3ea20bfe-92a0-4fe9-b1e3-875bbbdad48b"
+    },
+    {
+      "conditionKey": "LOCATION",
+      "conditionValue": "ENDING",
+      "id": 2,
+      "idCard": 145,
+      "idMission": 1,
+      "idTextDescription": 411,
+      "idTextName": 411,
+      "id_card": 145,
+      "step": 2,
+      "uuid": "db9f2c6e-c552-40c5-8879-942f9b45e88d"
+    },
+    {
+      "conditionKey": "ITEMS",
+      "conditionValue": "Onion",
+      "id": 4,
+      "idCard": 119,
+      "idMission": 2,
+      "idTextDescription": 423,
+      "idTextName": 423,
+      "id_card": 119,
+      "step": 3,
+      "uuid": "1a2d2586-ae2d-4140-9772-323ecd00759a"
+    },
+    {
+      "conditionKey": "ITEMS",
+      "conditionValue": "Bottle",
+      "id": 5,
+      "idCard": 115,
+      "idMission": 2,
+      "idTextDescription": 424,
+      "idTextName": 424,
+      "id_card": 115,
+      "step": 2,
+      "uuid": "ed77a06d-42a7-4718-95c0-81f286441c09"
+    },
+    {
+      "conditionKey": "ITEMS",
+      "conditionValue": "map",
+      "id": 6,
+      "idCard": 112,
+      "idMission": 2,
+      "idTextDescription": 425,
+      "idTextName": 425,
+      "id_card": 112,
+      "step": 1,
+      "uuid": "a2d2a725-c6aa-48ba-ac46-c217438fff39"
+    },
+    {
+      "conditionKey": "EXPLORER",
+      "conditionValue": "Hills",
+      "id": 7,
+      "idCard": 58,
+      "idMission": 3,
+      "idTextDescription": 430,
+      "idTextName": 430,
+      "id_card": 58,
+      "step": 1,
+      "uuid": "684e6b8f-bb12-41e7-8050-6b983aa572e3"
+    },
+    {
+      "conditionKey": "EXPLORER",
+      "conditionValue": "Mountains",
+      "id": 8,
+      "idCard": 75,
+      "idMission": 3,
+      "idTextDescription": 431,
+      "idTextName": 431,
+      "id_card": 75,
+      "step": 2,
+      "uuid": "d622ebef-cf06-4dea-b134-37debbf608cf"
+    },
+    {
+      "conditionKey": "EXPLORER",
+      "conditionValue": "Peaks",
+      "id": 9,
+      "idCard": 77,
+      "idMission": 3,
+      "id_card": 77,
+      "step": 3,
+      "uuid": "e7cde47e-3ac3-4f81-a05e-56ac049b1c6b"
+    },
+    {
+      "conditionKey": "EXPLORER",
+      "conditionValue": "Desert",
+      "id": 10,
+      "idCard": 79,
+      "idMission": 3,
+      "idTextDescription": 432,
+      "idTextName": 432,
+      "id_card": 79,
+      "step": 4,
+      "uuid": "df159900-6045-475e-a266-6c5fcff3825b"
+    },
+    {
+      "conditionKey": "EXPLORER",
+      "conditionValue": "River",
+      "id": 11,
+      "idCard": 94,
+      "idMission": 3,
+      "idTextDescription": 433,
+      "idTextName": 433,
+      "id_card": 94,
+      "step": 5,
+      "uuid": "e569a9a4-9f48-4030-a1df-7a9639424534"
+    }
+  ],
+  "missions": [
+    {
+      "conditionKey": "TUTORIAL",
+      "conditionValue": "START",
+      "id": 1,
+      "idCard": 143,
+      "idTextDescription": 409,
+      "idTextName": 409,
+      "id_card": 143,
+      "uuid": "90cfc6ed-966c-4c04-84bd-aaffc3ab8540"
+    },
+    {
+      "conditionKey": "TUTORIAL",
+      "conditionValue": "START",
+      "id": 2,
+      "idCard": 148,
+      "idTextDescription": 421,
+      "idTextName": 421,
+      "id_card": 148,
+      "uuid": "900004c4-2e9c-4534-94fd-06b8361f7587"
+    },
+    {
+      "conditionKey": "LOCATION",
+      "conditionValue": "HILLS",
+      "id": 3,
+      "idCard": 149,
+      "idTextDescription": 422,
+      "idTextName": 422,
+      "id_card": 149,
+      "uuid": "5b61595b-0968-4309-a2f9-8b7f1d36239b"
+    }
+  ],
   "peghi": 3,
   "priority": 1,
   "texts": [
@@ -9801,8 +10199,8 @@
       "idText": 356,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Nap at Lake",
-      "shortText": "Nap at Lake",
+      "longText": "Relax at Lake",
+      "shortText": "Relax at Lake",
       "uuid": "6b7183c7-93c2-437a-830e-6074201e717f"
     },
     {
@@ -10541,8 +10939,8 @@
       "idText": 397,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "RELAX",
-      "shortText": "RELAX",
+      "longText": "ITEMS",
+      "shortText": "ITEMS",
       "uuid": "b7012550-b0bd-4044-9f26-e4835277afb8"
     },
     {
@@ -10694,6 +11092,486 @@
       "longText": "",
       "shortText": "",
       "uuid": "64355979-ce7b-4677-b4de-8b5dd5c44291"
+    },
+    {
+      "id": 405,
+      "idCreator": 1,
+      "idText": 405,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "LOCATION",
+      "shortText": "LOCATION",
+      "uuid": "c1d1f090-1639-4121-93bf-0a8b48b97efe"
+    },
+    {
+      "id": 406,
+      "idCreator": 1,
+      "idText": 406,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "SAFE LOCATION",
+      "shortText": "SAFE LOCATION",
+      "uuid": "0c62795f-fc63-4c96-802b-9e3e5fc38127"
+    },
+    {
+      "id": 407,
+      "idCreator": 1,
+      "idText": 407,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "COMA",
+      "shortText": "COMA",
+      "uuid": "2298e761-28c6-485d-b600-492ab469de7e"
+    },
+    {
+      "id": 356,
+      "idCreator": 1,
+      "idText": 356,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "a40fbb91-2005-4a6d-9ce6-93b9c4b6cf00"
+    },
+    {
+      "id": 408,
+      "idCreator": 1,
+      "idText": 408,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "TUTORIAL",
+      "shortText": "TUTORIAL",
+      "uuid": "47a8270e-6dc4-477f-a6eb-d5cc7f8f8591"
+    },
+    {
+      "id": 409,
+      "idCreator": 1,
+      "idText": 409,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Complete Story",
+      "shortText": "Complete Story",
+      "uuid": "829be286-301c-4b4c-9084-e080d7cbc02b"
+    },
+    {
+      "id": 410,
+      "idCreator": 1,
+      "idText": 410,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Execute movement",
+      "shortText": "Execute movement",
+      "uuid": "2d30d0f9-38f5-4f35-b97d-2c89798dec99"
+    },
+    {
+      "id": 411,
+      "idCreator": 1,
+      "idText": 411,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Search exit",
+      "shortText": "Search exit",
+      "uuid": "ab91dce0-2d4e-4dc5-9f02-d5febae0ac07"
+    },
+    {
+      "id": 412,
+      "idCreator": 1,
+      "idText": 412,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Complete tutorial",
+      "shortText": "Complete tutorial",
+      "uuid": "2b9aa666-27d8-44cb-963a-971bce6fcf2e"
+    },
+    {
+      "id": 413,
+      "idCreator": 1,
+      "idText": 413,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Tutorial END",
+      "shortText": "Tutorial END",
+      "uuid": "192f3a6b-f0dc-4cbd-9217-8ace812f6cc1"
+    },
+    {
+      "id": 414,
+      "idCreator": 1,
+      "idText": 414,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Lili Popper",
+      "shortText": "Lili Popper",
+      "uuid": "a349e580-5717-4869-9937-d84a3759d234"
+    },
+    {
+      "id": 414,
+      "idCreator": 1,
+      "idText": 414,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "2fcfbe7f-6bbb-4b74-af30-1f3182072cd3"
+    },
+    {
+      "id": 415,
+      "idCreator": 1,
+      "idText": 415,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "A guided path accompanies you step by step through learning the mechanics that govern your destiny. Understanding how to move and interact with the environment will provide you with the resources needed to survive. <br />\n<br />\nThis tutorial teaches you the various game mechanics of paths.games, follow the path and find the way to complete the story.",
+      "shortText": "A guided path accompanies you step by step through learning the mechanics that govern your destiny. Understanding how to move and interact with the environment will provide you with the resources needed to survive. <br />\n<br />\nThis tutorial teaches you the various game mechanics of paths.games, follow the path and find the way to complete the story.",
+      "uuid": "c50d4ab0-1c02-4609-b0f9-142a79beed2b"
+    },
+    {
+      "id": 415,
+      "idCreator": 1,
+      "idText": 415,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Un percorso guidato ti accompagna passo dopo passo nell'apprendimento delle logiche che governano il tuo destino. Comprendere come muoverti ed interagire con l'ambiente ti garantirà le risorse necessarie per sopravvivere. <br />\n<br />\nQuesto tutorial ti insegna le varie meccaniche di gioco di paths.games, segui la strada e trova il modo di completare la storia.",
+      "shortText": "Un percorso guidato ti accompagna passo dopo passo nell'apprendimento delle logiche che governano il tuo destino. Comprendere come muoverti ed interagire con l'ambiente ti garantirà le risorse necessarie per sopravvivere. <br />\n<br />\nQuesto tutorial ti insegna le varie meccaniche di gioco di paths.games, segui la strada e trova il modo di completare la storia.",
+      "uuid": "e8764320-51b3-4be3-9b64-e2f0cb3d9f73"
+    },
+    {
+      "id": 409,
+      "idCreator": 1,
+      "idText": 409,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Completa la storia",
+      "shortText": "Completa la storia",
+      "uuid": "93872d89-5a18-4863-abd7-30ce22877b6f"
+    },
+    {
+      "id": 416,
+      "idCreator": 1,
+      "idText": 416,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Ahmed",
+      "shortText": "Ahmed",
+      "uuid": "f17036be-9675-4b5d-b3f2-72a921a542bb"
+    },
+    {
+      "id": 416,
+      "idCreator": 1,
+      "idText": 416,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "eb41830c-8d3f-43c7-9141-9cc7d13c85d6"
+    },
+    {
+      "id": 417,
+      "idCreator": 1,
+      "idText": 417,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Learning to move through the world is the best way to get familiar with the adventure about to begin. Make your first move in the tutorial.",
+      "shortText": "Learning to move through the world is the best way to get familiar with the adventure about to begin. Make your first move in the tutorial.",
+      "uuid": "5cdfd9da-8cea-41f1-ad7e-69f792c6fd9d"
+    },
+    {
+      "id": 417,
+      "idCreator": 1,
+      "idText": 417,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Imparare a muoverti nel mondo è il modo migliore per prendere confidenza con l'avventura che sta per iniziare. Esegui il tuo primo movimento nel tutorial.",
+      "shortText": "Imparare a muoverti nel mondo è il modo migliore per prendere confidenza con l'avventura che sta per iniziare. Esegui il tuo primo movimento nel tutorial.",
+      "uuid": "ef9551be-61c0-4ced-b970-b2601378f7b6"
+    },
+    {
+      "id": 418,
+      "idCreator": 1,
+      "idText": 418,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Shelter",
+      "shortText": "Shelter",
+      "uuid": "6de1779a-2e90-4aad-938a-30f7d934cb48"
+    },
+    {
+      "id": 418,
+      "idCreator": 1,
+      "idText": 418,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "b305fa94-28e1-4ae7-8521-a1e549e9a628"
+    },
+    {
+      "id": 419,
+      "idCreator": 1,
+      "idText": 419,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Search every map carefully to pinpoint the exact spot where you can execute the final act. Find the location where the event to complete the story is located.",
+      "shortText": "Search every map carefully to pinpoint the exact spot where you can execute the final act. Find the location where the event to complete the story is located.",
+      "uuid": "7011f2e4-9ac0-41e0-8ad6-9daf0fcda657"
+    },
+    {
+      "id": 419,
+      "idCreator": 1,
+      "idText": 419,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Perlustra con attenzione ogni mappa per individuare il punto esatto in cui compiere l'atto conclusivo. Trova la location dove c'è l'evento per completare la storia.",
+      "shortText": "Perlustra con attenzione ogni mappa per individuare il punto esatto in cui compiere l'atto conclusivo. Trova la location dove c'è l'evento per completare la storia.",
+      "uuid": "58e6d108-40f5-46a6-8c32-4f822bc067a9"
+    },
+    {
+      "id": 420,
+      "idCreator": 1,
+      "idText": 420,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Beyond every complex plot and intricate mechanism, the heart of your adventure lies in bringing the journey you started to an end. Every step and choice inevitably brings you closer to the epilogue of your quest. It sounds simple, but the mission is to complete the story.",
+      "shortText": "Beyond every complex plot and intricate mechanism, the heart of your adventure lies in bringing the journey you started to an end. Every step and choice inevitably brings you closer to the epilogue of your quest. It sounds simple, but the mission is to complete the story.",
+      "uuid": "98757f9b-60e6-4710-858d-87a65fcc6a6d"
+    },
+    {
+      "id": 420,
+      "idCreator": 1,
+      "idText": 420,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Oltre ogni complessa trama e intricato meccanismo, il cuore della tua avventura risiede nel portare a termine il viaggio che hai iniziato. Ogni passo e ogni scelta ti avvicinano inevitabilmente all'epilogo della tua impresa. Sembra banale ma la missione è completare la storia.",
+      "shortText": "Oltre ogni complessa trama e intricato meccanismo, il cuore della tua avventura risiede nel portare a termine il viaggio che hai iniziato. Ogni passo e ogni scelta ti avvicinano inevitabilmente all'epilogo della tua impresa. Sembra banale ma la missione è completare la storia.",
+      "uuid": "6f65b5d7-b9de-456f-b4ea-2057778f0176"
+    },
+    {
+      "id": 421,
+      "idCreator": 1,
+      "idText": 421,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The Collector",
+      "shortText": "The Collector",
+      "uuid": "3a909632-610e-4f8f-8822-fe309f18fbac"
+    },
+    {
+      "id": 422,
+      "idCreator": 1,
+      "idText": 422,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Explorer",
+      "shortText": "Explorer",
+      "uuid": "f71e5f0c-9645-4b56-9183-7d81a671f9ea"
+    },
+    {
+      "id": 423,
+      "idCreator": 1,
+      "idText": 423,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Wild Onion",
+      "shortText": "Wild Onion",
+      "uuid": "d1022a21-2fa7-4482-9d26-04f1c36bcc4d"
+    },
+    {
+      "id": 424,
+      "idCreator": 1,
+      "idText": 424,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Water Bottle",
+      "shortText": "Water Bottle",
+      "uuid": "c844112e-ee2b-4cc9-ae42-f91a597dee3a"
+    },
+    {
+      "id": 425,
+      "idCreator": 1,
+      "idText": 425,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Mountain map",
+      "shortText": "Mountain map",
+      "uuid": "0b6ffe46-fdc7-4a4c-a7c7-70f022138a75"
+    },
+    {
+      "id": 426,
+      "idCreator": 1,
+      "idText": 426,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "tommao wang",
+      "shortText": "tommao wang",
+      "uuid": "abd41b52-43bf-4799-86dc-0657437520ab"
+    },
+    {
+      "id": 426,
+      "idCreator": 1,
+      "idText": 426,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "052f223a-6342-428a-a1ac-325466bd0505"
+    },
+    {
+      "id": 427,
+      "idCreator": 1,
+      "idText": 427,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "A keen eye recognizes the value of every single relic, artifact, or curiosity scattered along the path. <br />\n<br />\nTurn your journey into a true treasure hunt to leave no reward behind. Your goal is to acquire all the items available in the story.",
+      "shortText": "A keen eye recognizes the value of every single relic, artifact, or curiosity scattered along the path. <br />\n<br />\nTurn your journey into a true treasure hunt to leave no reward behind. Your goal is to acquire all the items available in the story.",
+      "uuid": "e4f1dc14-d963-42f8-abd1-391e68b15de4"
+    },
+    {
+      "id": 427,
+      "idCreator": 1,
+      "idText": 427,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Un occhio attento sa cogliere il valore di ogni singola reliquia, manufatto o curiosità disseminata lungo il cammino. <br />\n<br />\nTrasforma il tuo viaggio in una vera caccia al tesoro per non lasciare indietro alcun premio. Il tuo obiettivo è riuscire ad avere tutti gli oggetti disponibili nella storia.",
+      "shortText": "Un occhio attento sa cogliere il valore di ogni singola reliquia, manufatto o curiosità disseminata lungo il cammino. <br />\n<br />\nTrasforma il tuo viaggio in una vera caccia al tesoro per non lasciare indietro alcun premio. Il tuo obiettivo è riuscire ad avere tutti gli oggetti disponibili nella storia.",
+      "uuid": "fc1d9f1a-a5ef-4101-bbcc-319ccf7cade9"
+    },
+    {
+      "id": 428,
+      "idCreator": 1,
+      "idText": 428,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Angelo Casto",
+      "shortText": "Angelo Casto",
+      "uuid": "d9430235-1ac8-4a05-a1d6-04252ac1ce27"
+    },
+    {
+      "id": 428,
+      "idCreator": 1,
+      "idText": 428,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "78e7ffec-beb2-4da7-93ab-63ad0cf701a0"
+    },
+    {
+      "id": 429,
+      "idCreator": 1,
+      "idText": 429,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Pushing past known borders will allow you to discover unexpected passages and wonders. <br />\n<br />\nIn this tutorial there are special events that allow you to explore locations.",
+      "shortText": "Pushing past known borders will allow you to discover unexpected passages and wonders. <br />\n<br />\nIn this tutorial there are special events that allow you to explore locations.",
+      "uuid": "773d14c7-ca0b-47bb-975f-c764cc48c5ec"
+    },
+    {
+      "id": 429,
+      "idCreator": 1,
+      "idText": 429,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Spingerti oltre i confini conosciuti ti permetterà di scoprire passaggi e meraviglie inaspettate. <br />\n<br />\nIn questo tutorial ci sono degli eventi speciali che ti permettono di esplorare luoghi.",
+      "shortText": "Spingerti oltre i confini conosciuti ti permetterà di scoprire passaggi e meraviglie inaspettate. <br />\n<br />\nIn questo tutorial ci sono degli eventi speciali che ti permettono di esplorare luoghi.",
+      "uuid": "8e91b5b3-a839-4ef6-8bb8-9b1fabcaa952"
+    },
+    {
+      "id": 430,
+      "idCreator": 1,
+      "idText": 430,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Hills",
+      "shortText": "Hills",
+      "uuid": "f616d5cd-ff77-49fa-8d8e-0df9a4bfdd09"
+    },
+    {
+      "id": 431,
+      "idCreator": 1,
+      "idText": 431,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Mountains",
+      "shortText": "Mountains",
+      "uuid": "54b412c8-2d96-4abd-9793-4231d6e7ccb6"
+    },
+    {
+      "id": 432,
+      "idCreator": 1,
+      "idText": 432,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Desert",
+      "shortText": "Desert",
+      "uuid": "8d9285d8-5fb5-4e06-8ef7-021fcde5e9b3"
+    },
+    {
+      "id": 433,
+      "idCreator": 1,
+      "idText": 433,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "River",
+      "shortText": "River",
+      "uuid": "4b760038-683b-45c0-82f5-ff5fb6b72449"
+    },
+    {
+      "id": 434,
+      "idCreator": 1,
+      "idText": 434,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Roman Davydko",
+      "shortText": "Roman Davydko",
+      "uuid": "95272fd5-744b-49c4-aa37-ff2bbbcd79d0"
+    },
+    {
+      "id": 434,
+      "idCreator": 1,
+      "idText": 434,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "6d75fd7b-9b79-4fe1-89f2-519e3fe98710"
+    },
+    {
+      "id": 435,
+      "idCreator": 1,
+      "idText": 435,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Angelo Casto",
+      "shortText": "Angelo Casto",
+      "uuid": "9e85b772-0bf5-4e3d-a398-39662f894e07"
+    },
+    {
+      "id": 435,
+      "idCreator": 1,
+      "idText": 435,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "3482a9a4-0db9-4a5d-9494-f12d0d96a2f4"
+    },
+    {
+      "id": 436,
+      "idCreator": 1,
+      "idText": 436,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Suhash Villuri",
+      "shortText": "Suhash Villuri",
+      "uuid": "5d3fdf50-9907-4326-ab76-c68053c1ed1b"
+    },
+    {
+      "id": 436,
+      "idCreator": 1,
+      "idText": 436,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "2ba49457-e312-4f3b-94bb-5b7c3be4db4c"
     }
   ],
   "title": "Paths Tutorial",

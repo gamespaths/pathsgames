@@ -773,4 +773,88 @@ class RegistryServiceTest {
             assertEquals("winter", RegistryService.parse("k", "winter").stringValue());
         }
     }
+
+    @Nested
+    @DisplayName("v0.37.1 - the start location writes its first-entry pair when the match starts")
+    class StartLocationEntry {
+
+        private games.paths.core.port.story.StoryReadPort storyReadPort;
+        private RegistryService starting;
+
+        @BeforeEach
+        void setUp() {
+            storyReadPort = mock(games.paths.core.port.story.StoryReadPort.class);
+            starting = new RegistryService(store, storyReadPort, null);
+            when(store.findStoryIdByMatch(7L)).thenReturn(3L);
+        }
+
+        private games.paths.core.entity.story.StoryEntity story(Integer idLocationStart) {
+            games.paths.core.entity.story.StoryEntity st =
+                    new games.paths.core.entity.story.StoryEntity();
+            st.setId(3L);
+            st.setIdLocationStart(idLocationStart);
+            return st;
+        }
+
+        private games.paths.core.entity.story.LocationEntity location(long id, String key,
+                                                                      String value) {
+            games.paths.core.entity.story.LocationEntity loc =
+                    new games.paths.core.entity.story.LocationEntity();
+            loc.setId(id);
+            loc.setKeyToAdd(key);
+            loc.setKeyValueToAdd(value);
+            return loc;
+        }
+
+        @Test
+        @DisplayName("writes the keyToAdd of idLocationStart, owned by the active character")
+        void writesTheStartPair() {
+            when(storyReadPort.findStoryById(3L)).thenReturn(Optional.of(story(4)));
+            when(storyReadPort.findLocationsByStoryId(3L)).thenReturn(List.of(
+                    location(2L, "elsewhere", "no"), location(4L, "GATE", "OPEN")));
+            when(store.findByMatchAndKey(7L, "GATE")).thenReturn(List.of());
+
+            assertEquals(List.of("OPEN"), starting.writeStartLocationEntry(7L, 11L, 0));
+
+            verify(store).upsert(eq(7L), eq("GATE"), eq("OPEN"), isNull(), eq(11L),
+                    isNull(), isNull(), eq(0));
+        }
+
+        @Test
+        @DisplayName("the keyToAddNotFirst pair is NOT the one the start writes")
+        void neverTheLaterPair() {
+            games.paths.core.entity.story.LocationEntity start = location(4L, null, null);
+            start.setKeyToAddNotFirst("GATE");
+            start.setKeyValueToAddNotFirst("AGAIN");
+            when(storyReadPort.findStoryById(3L)).thenReturn(Optional.of(story(4)));
+            when(storyReadPort.findLocationsByStoryId(3L)).thenReturn(List.of(start));
+
+            assertEquals(List.of(), starting.writeStartLocationEntry(7L, 11L, 0));
+            verify(store, never()).upsert(anyLong(), any(), any(), any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("nothing to write when the story names no start, or the location is gone")
+        void nothingToWrite() {
+            when(storyReadPort.findStoryById(3L)).thenReturn(Optional.of(story(null)));
+            assertEquals(List.of(), starting.writeStartLocationEntry(7L, 11L, 0));
+
+            when(storyReadPort.findStoryById(3L)).thenReturn(Optional.of(story(4)));
+            when(storyReadPort.findLocationsByStoryId(3L)).thenReturn(List.of(location(9L, "K", "V")));
+            assertEquals(List.of(), starting.writeStartLocationEntry(7L, 11L, 0));
+
+            when(storyReadPort.findStoryById(3L)).thenReturn(Optional.empty());
+            assertEquals(List.of(), starting.writeStartLocationEntry(7L, 11L, 0));
+        }
+
+        @Test
+        @DisplayName("no story behind the match, or no story port, writes nothing")
+        void noStory() {
+            when(store.findStoryIdByMatch(8L)).thenReturn(null);
+            assertEquals(List.of(), starting.writeStartLocationEntry(8L, 11L, 0));
+            // The bare constructor has no story port at all: the same silence, not a failure.
+            when(store.findStoryIdByMatch(9L)).thenReturn(3L);
+            assertEquals(List.of(), service.writeStartLocationEntry(9L, 11L, 0));
+        }
+    }
 }

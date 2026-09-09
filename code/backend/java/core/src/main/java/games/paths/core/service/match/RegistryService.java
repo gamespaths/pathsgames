@@ -1,6 +1,7 @@
 package games.paths.core.service.match;
 
 import games.paths.core.entity.story.KeyEntity;
+import games.paths.core.entity.story.StoryEntity;
 import games.paths.core.model.match.MatchRegistryEntry;
 import games.paths.core.model.match.MatchRegistryGroup;
 import games.paths.core.port.match.RegistryStorePort;
@@ -392,6 +393,39 @@ public class RegistryService {
         List<String> after = new ArrayList<>(current);
         after.add(rendered);
         return ordered(after);
+    }
+
+    /**
+     * v0.37.1 - the start location writes its FIRST-ENTRY pair when the match starts.
+     *
+     * <p>The party begins standing in {@code idLocationStart}, so it never arrives there: the
+     * state row is seeded {@code flag_visited = 1} on purpose (Step 33), which keeps the place
+     * the story opened in from announcing itself as a discovery. That reasoning holds for the
+     * narrative triggers and not for the registry, which is state other rules read — so without
+     * this the {@code keyToAdd} of the starting location would be the one authored field that
+     * can never be written, at any point of any match.</p>
+     *
+     * <p>Called from the CREATED to RUNNING transition rather than from match creation: there
+     * the clock exists, a character is active to own the row, and the write goes through
+     * {@link #upsert}, so a Step 37 mission waiting on that key opens at once.</p>
+     */
+    public List<String> writeStartLocationEntry(long idMatch, Long idCharacter, Integer clock) {
+        Long idStory = store.findStoryIdByMatch(idMatch);
+        if (idStory == null || storyReadPort == null) {
+            return List.of();
+        }
+        Integer idLocationStart = storyReadPort.findStoryById(idStory)
+                .map(StoryEntity::getIdLocationStart)
+                .orElse(null);
+        if (idLocationStart == null) {
+            return List.of();
+        }
+        return storyReadPort.findLocationsByStoryId(idStory).stream()
+                .filter(l -> l.getId() != null && l.getId().intValue() == idLocationStart)
+                .findFirst()
+                .map(l -> upsert(idMatch, idStory, l.getKeyToAdd(), l.getKeyValueToAdd(),
+                        idCharacter, null, null, clock))
+                .orElseGet(List::of);
     }
 
     /**

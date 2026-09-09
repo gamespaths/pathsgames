@@ -16,19 +16,45 @@ const mission = (over = {}) => ({
 })
 
 describe('MissionStepCard (Step 37)', () => {
-  it('badges the status and the step progress over the image', () => {
+  it('badges the step progress over the image, and not the status of an open mission', () => {
     render(<MissionStepCard mission={mission()} />)
 
-    expect(captured.statistics.map(s => s.value))
-      .toEqual(['game.missions.status.ACTIVE', '1/2'])
+    expect(captured.statistics.map(s => s.value)).toEqual(['1/2'])
     expect(captured.flagShowFullStatistics).toBe(true)
-    expect(captured.bonusBadgeListLittleIntoImage).toBe(true)
+    // v0.37.1 — full-size badges: the little version renders no label, only a tooltip.
+    expect(captured.statistics[0].label).toBe('game.missions.progress')
+    expect(captured.bonusBadgeListLittleIntoImage).toBeUndefined()
   })
 
-  it('shows no progress badge for a mission with no steps at all', () => {
+  it('badges the status only once the mission is closed', () => {
+    render(<MissionStepCard mission={mission({ status: 'FAILED' })} />)
+    expect(captured.statistics.map(s => s.key)).toEqual(['missionStatus', 'missionSteps'])
+
+    render(<MissionStepCard mission={mission({ status: 'FAILED', steps: [] })} />)
+    expect(captured.statistics.map(s => s.value)).toEqual(['game.missions.status.FAILED'])
+    expect(captured.statistics[0].icon).toBe('fas fa-times-circle')
+
+    render(<MissionStepCard mission={mission({ status: 'AVAILABLE' })} />)
+    expect(captured.statistics.map(s => s.key)).not.toContain('missionStatus')
+  })
+
+  it('shows no badge at all for an open mission with no steps', () => {
     render(<MissionStepCard mission={mission({ steps: [] })} />)
 
+    expect(captured.statistics).toEqual([])
+  })
+
+  it('counts no step on a mission that is DONE — Completed is the whole answer', () => {
+    const onPreview = vi.fn()
+    render(<MissionStepCard mission={mission({ status: 'COMPLETED' })} onPreview={onPreview} />)
+
     expect(captured.statistics.map(s => s.key)).toEqual(['missionStatus'])
+    expect(captured.statistics[0].value).toBe('game.missions.status.COMPLETED')
+
+    captured.onPreview()
+    // The reading page still carries both: there the count is history, not a repetition.
+    expect(onPreview.mock.calls[0][0].stats.map(s => s.key))
+      .toEqual(['missionStatus', 'missionSteps'])
   })
 
   it('falls back to the mission name when the author wrote no card', () => {
@@ -56,7 +82,7 @@ describe('MissionStepCard (Step 37)', () => {
     render(<MissionStepCard mission={mission({ status: 'FAILED' })} />)
 
     expect(captured.locked).toBe(true)
-    expect(captured.lockedIcon).toBe('fas fa-circle-xmark')
+    expect(captured.lockedIcon).toBe('fas fa-times-circle')
   })
 
   it('leaves an open mission unlocked and unhinted', () => {
@@ -66,9 +92,28 @@ describe('MissionStepCard (Step 37)', () => {
     expect(captured.lockInfo).toBeUndefined()
   })
 
-  it('hides the lens when there is neither a picture nor a description to turn to', () => {
+  it('hides the lens only when there is no page and no step to turn to', () => {
     render(<MissionStepCard mission={mission()} />)
+    // v0.37.1 — the steps are read on that page now, so a mission with steps keeps its lens.
+    expect(captured.hidePreview).toBe(false)
+
+    render(<MissionStepCard mission={mission({ steps: [] })} />)
     expect(captured.hidePreview).toBe(true)
+  })
+
+  it('opens the mission on the left page with its steps on the right', () => {
+    const onOpenMission = vi.fn()
+    const onPreview = vi.fn()
+    render(<MissionStepCard mission={mission()} onOpenMission={onOpenMission}
+      onPreview={onPreview} />)
+
+    captured.onPreview()
+
+    expect(onPreview).not.toHaveBeenCalled()
+    const arg = onOpenMission.mock.calls[0][0]
+    expect(arg.mission.uuid).toBe('m-1')
+    expect(arg.card.title).toBe('Complete the Tutorial')
+    expect(arg.stats.map(s => s.key)).toEqual(['missionStatus', 'missionSteps'])
   })
 
   it('hands the reading page the status, the progress and every step', () => {

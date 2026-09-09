@@ -469,17 +469,18 @@
     },
     "missions": {
       "title": "Missions",
-      "description": "What the party has been asked to do, and how far along it is.",
-      "openAction": "Open missions",
+      "description": "Consulting these notes guides you through the challenges of your journey, pointing the way toward glory. <br /><br />On this page of the book you can see the various quests, the various statuses, and all the phases that allow you to complete the quests.",
+      "openAction": "Missions",
       "open": "Open",
       "count": "Missions",
-      "empty": "No mission has opened yet.",
+      "empty": "",
       "progress": "Steps",
       "statusLabel": "Status",
+      "stepsEmpty": "",
       "status": {
         "AVAILABLE": "Available",
         "ACTIVE": "In progress",
-        "COMPLETED": "Completed",
+        "COMPLETED": "Done",
         "FAILED": "Failed"
       }
     }

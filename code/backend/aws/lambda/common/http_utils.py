@@ -28,6 +28,17 @@ def bearer_token(event):
     return None
 
 
+def bearer_token_error(event):
+    """v0.37.1 — which refusal a request WITHOUT a usable Bearer token deserves, in the
+    vocabulary the Java filter set: MISSING_TOKEN when no Bearer header was sent at all,
+    EMPTY_TOKEN when one was sent carrying nothing. Returns ``(code, message)``."""
+    headers = {k.lower(): v for k, v in (event.get('headers') or {}).items()}
+    auth = headers.get('authorization')
+    if not auth or not auth.lower().startswith('bearer '):
+        return 'MISSING_TOKEN', 'Authorization header with Bearer token is required'
+    return 'EMPTY_TOKEN', 'Bearer token is empty'
+
+
 def check_admin_ip(event):
     """Return error response if caller IP not in ADMIN_IP_WHITELIST, else None."""
     whitelist_raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()

@@ -707,6 +707,19 @@ html, body {
 }
 .book-bookmark.is-danger .bonus-badge { border-color: #7b1f14; }
 
+/* v0.37.1 — light gold: the page behind this tab has moved since the player last opened it.
+   Quieter than is-danger on purpose — news to read, not something to act on. */
+.book-bookmark.is-alert {
+  border-color: var(--color-gold-light);
+  background: linear-gradient(180deg, #d9b64a 0%, #8a6a12 100%);
+  color: #fff6d5;
+  box-shadow: 0 -3px 10px rgba(212, 175, 55, 0.6);
+}
+.book-bookmark.is-alert.is-active {
+  background: linear-gradient(180deg, #f0d27a 0%, #a8830f 100%);
+  color: #fffdf5;
+}
+
 .book-bookmark.is-disabled { opacity: 0.45; cursor: not-allowed; }
 .book-bookmark.is-disabled:hover { transform: none; }
 .book-bookmark__badges { gap: 4px; flex-wrap: nowrap; }
@@ -1183,6 +1196,17 @@ html, body {
   padding: 3px 6px !important;
 }
 
+/* v0.37.1 — a mission badge carries a LABEL and a word, so it opts out of the little version
+   (which renders no label at all) and is trimmed back down from the full 1rem. */
+.pg-card--mission .config-total-bonus{
+  margin-top: 3px;
+  gap: 4px;
+}
+.pg-card--mission .config-total-bonus .bonus-badge{
+  font-size: 0.82rem;
+  padding: 2px 6px;
+  letter-spacing: 0.5px;
+}
 .config-info-btn {
   position: absolute;
   top: 6px;

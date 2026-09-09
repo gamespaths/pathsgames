@@ -17,7 +17,8 @@ import PageRight from '../features/gameplay/PageRight'
 
 const BASE = {
   view: 'board', previewLeft: null, previewRight: null, previewModal: null,
-  pendingChoices: null, counterZero: null, mapSelected: null, sleepCardForced: false,
+  pendingChoices: null, counterZero: null, mapSelected: null, missionSelected: null,
+  sleepCardForced: false,
 }
 
 describe('bookViewReducer', () => {
@@ -49,6 +50,19 @@ describe('bookViewReducer', () => {
       .toMatchObject({ view: 'registry', previewLeft: null })
     expect(bookViewReducer({ ...BASE, view: 'registry' }, { type: 'openItems' }))
       .toMatchObject({ view: 'items' })
+  })
+
+  it('opens one mission on the left page and remembers whose steps the right one shows', () => {
+    const preview = { card: { title: 'The Journey' }, type: 'missions' }
+    const mission = { uuid: 'm-1', steps: [{ done: true }] }
+    const open = bookViewReducer({ ...BASE, view: 'missions' },
+      { type: 'openMission', preview, mission })
+
+    expect(open).toMatchObject({ view: 'missionSteps', previewLeft: preview })
+    expect(open.missionSelected).toBe(mission)
+    // Going back to the grid forgets it, so no stale mission can outlive the page.
+    expect(bookViewReducer(open, { type: 'openMissions' }))
+      .toMatchObject({ view: 'missions', previewLeft: null, missionSelected: null })
   })
 
   it('accepts an updater for the right page, so the weather can decorate what is there', () => {
@@ -109,6 +123,17 @@ describe('useBookView — openPreview', () => {
     expect(result.current[0].previewRight).toBeNull()
   })
 
+  it('turns a mission card into a left page and keeps the mission for the right one', () => {
+    const { result } = renderHook(() => useBookView())
+    const mission = { uuid: 'm-1', steps: [] }
+    act(() => result.current[1].openMission({ mission, card: { title: 'The Journey' } }))
+
+    expect(result.current[0].view).toBe('missionSteps')
+    expect(result.current[0].previewLeft).toMatchObject({ type: 'missions' })
+    expect(result.current[0].previewLeft.statItemsToPageContent).toEqual([])
+    expect(result.current[0].missionSelected).toBe(mission)
+  })
+
   it('hides the (i) modal instance when the board reloads', () => {
     const hide = vi.fn()
     window.bootstrap = { Modal: { getOrCreateInstance: () => ({ show: vi.fn(), hide }) } }
@@ -138,10 +163,14 @@ describe('bookmarks', () => {
     expect(items.find(b => b.key === 'information').danger).toBe(true)
     // Step 37 — the missions tab is a tab like any other now, active with its own view.
     const missions = buildBookmarksLeft({ t, view: 'missions', previewLeft: null,
-      playerStats: {}, openMissions: 2 })
+      playerStats: {}, missionsChanged: true })
     expect(missions.find(b => b.key === 'missions').active).toBe(true)
     expect(missions.find(b => b.key === 'missions').disabled).toBeUndefined()
-    expect(missions.find(b => b.key === 'missions').badges[0].value).toBe('2')
+    // v0.37.1 — no count on this tab: one bit, whether the missions moved.
+    expect(missions.find(b => b.key === 'missions').badges).toBeUndefined()
+    expect(missions.find(b => b.key === 'missions').alert).toBe(true)
+    expect(buildBookmarksLeft({ t, view: 'board', previewLeft: null, playerStats: {} })
+      .find(b => b.key === 'missions').alert).toBe(false)
 
     expect(buildBookmarksLeft({ t, view: 'map', previewLeft: null, playerStats: {} })
       .find(b => b.key === 'map').active).toBe(true)
@@ -170,6 +199,18 @@ describe('PageLeft', () => {
     render(<PageLeft view="board" previewLeft={{ kind: 'sad' }} t={k => k} story={{}}
       playerStats={{ constitution: 2 }} onCloseLeft={vi.fn()} />)
     expect(screen.getByText('game.sad.title')).toBeInTheDocument()
+  })
+
+  it('shows the mission page with its status badge, word value and all', () => {
+    const preview = { card: { title: 'The Journey' }, type: 'missions',
+      statItemsToPageContent: [{ key: 'missionStatus', value: 'Completed', label: 'Status' }] }
+    render(<PageLeft view="missionSteps" previewLeft={preview} t={k => k} story={{}}
+      onCloseMission={vi.fn()} />)
+
+    expect(screen.getByText('The Journey')).toBeInTheDocument()
+    // v0.37.1 — a status is a WORD, and BonusBadgeList drops non-numeric values unless the
+    // page asks for zeros: without that the Done badge never reached this page.
+    expect(screen.getByText('Completed')).toBeInTheDocument()
   })
 
   it('renders nothing when there is no location and no story card', () => {

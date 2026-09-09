@@ -27,6 +27,8 @@ public class TurnCycleService implements TurnCyclePort {
     private final TurnCycleStorePort store;
     private final UserAccessPort userAccessPort;
     private final WeatherSelectionService weatherService;
+    /** v0.37.1 — the start location's own registry pair; null in the older tests. */
+    private final RegistryService registryService;
 
     public TurnCycleService(TurnCycleStorePort store, UserAccessPort userAccessPort) {
         this(store, userAccessPort, null);
@@ -35,9 +37,17 @@ public class TurnCycleService implements TurnCyclePort {
     /** Step 27 — overload wiring the weather selection engine (may be null in tests). */
     public TurnCycleService(TurnCycleStorePort store, UserAccessPort userAccessPort,
                             WeatherSelectionService weatherService) {
+        this(store, userAccessPort, weatherService, null);
+    }
+
+    /** v0.37.1 — overload wiring the registry, so the start location can write its key. */
+    public TurnCycleService(TurnCycleStorePort store, UserAccessPort userAccessPort,
+                            WeatherSelectionService weatherService,
+                            RegistryService registryService) {
         this.store = store;
         this.userAccessPort = userAccessPort;
         this.weatherService = weatherService;
+        this.registryService = registryService;
     }
 
     @Override
@@ -76,6 +86,14 @@ public class TurnCycleService implements TurnCyclePort {
         // Step 27: select the initial weather for clock 0 when the match starts.
         if (weatherService != null) {
             weatherService.applyAtTimeStart(match.id());
+        }
+
+        // v0.37.1: the party never ARRIVES in the starting location, so no arrival ever writes
+        // its first-entry key. The match starting is that moment, and the active character owns
+        // the row — a mission waiting on that key opens here.
+        if (registryService != null) {
+            registryService.writeStartLocationEntry(match.id(), top.idCharacterMatch(),
+                    match.currentClock());
         }
 
         return buildSequence(matchUuid, match.currentClock(), MatchStatuses.RUNNING,

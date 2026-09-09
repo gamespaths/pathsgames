@@ -211,7 +211,8 @@ match_admin_controller = MatchAdminController(match_command_service, match_query
                                                match_logs_service,
                                                registry_service)
 turn_cycle_store_adapter = TurnCycleStoreAdapter(SessionLocal)
-turn_cycle_service = TurnCycleService(turn_cycle_store_adapter, weather_selection_service)
+turn_cycle_service = TurnCycleService(turn_cycle_store_adapter, weather_selection_service,
+                                      registry_service)
 turn_cycle_controller = TurnCycleController(turn_cycle_service)
 
 # Step 25 — time advancement & clock cycle.

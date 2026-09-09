@@ -194,3 +194,56 @@ def test_turn_sequence_without_token_returns_401():
         ev = make_event('GET', '/api/match/m1/turn-sequence', path_params={'uuidMatch': 'm1'})
         result = h.lambda_handler(ev, None)
     assert result['statusCode'] == 401
+
+
+# ── v0.37.1: the start location's own registry pair ──────────────────────────
+
+def _story(id_location_start=4, locations=None, keys=None):
+    return {
+        'PK': 'STORY#s1', 'SK': 'METADATA', 'uuid': 's1',
+        'idLocationStart': id_location_start,
+        'locations': locations if locations is not None else [
+            {'id': 2, 'keyToAdd': 'elsewhere', 'keyValueToAdd': 'no'},
+            {'id': 4, 'keyToAdd': 'GATE', 'keyValueToAdd': 'OPEN'},
+        ],
+        'keys': keys if keys is not None else [{'id': 1, 'name': 'GATE'}],
+    }
+
+
+def _registry_of(table, uuid='m1'):
+    return table.get_item(f'MATCH#{uuid}').get('registry') or []
+
+
+def _values(registry, key):
+    return [r for r in registry if r.get('key') == key]
+
+
+def test_start_match_writes_the_start_location_key():
+    items = [PLAYER, _match(), _story(), _char('m1', 1, 'c1', dex=9), _char('m1', 2, 'c2', dex=1)]
+    with _env(items) as (table, _):
+        assert h.lambda_handler(_event('POST', '/api/matches/m1/start'), None)['statusCode'] == 200
+    rows = _values(_registry_of(table), 'GATE')
+    assert len(rows) == 1
+    assert rows[0].get('stringValue') == 'OPEN'
+    # The character that got the first turn owns the row.
+    assert rows[0].get('idCharacter') == 1
+
+
+def test_start_match_never_writes_the_later_pair_of_the_start_location():
+    story = _story(locations=[{'id': 4, 'keyToAddNotFirst': 'GATE',
+                               'keyValueToAddNotFirst': 'AGAIN'}])
+    items = [PLAYER, _match(), story, _char('m1', 1, 'c1')]
+    with _env(items) as (table, _):
+        h.lambda_handler(_event('POST', '/api/matches/m1/start'), None)
+    assert _values(_registry_of(table), 'GATE') == []
+
+
+def test_start_match_without_a_start_location_or_a_key_writes_nothing():
+    for story in (_story(id_location_start=None),
+                  _story(locations=[{'id': 4}]),
+                  _story(locations=[])):
+        items = [PLAYER, _match(), story, _char('m1', 1, 'c1')]
+        with _env(items) as (table, _):
+            assert h.lambda_handler(
+                _event('POST', '/api/matches/m1/start'), None)['statusCode'] == 200
+        assert _values(_registry_of(table), 'GATE') == []

@@ -519,3 +519,60 @@ def test_numeric_ignores_a_value_that_is_not_a_number():
     assert _numeric(None) is None
     assert _numeric(" 42 ") == 42
     assert _numeric("winter") is None
+
+
+# ── v0.37.1 — the start location writes its first-entry pair on match start ──
+
+def _starting(store, id_location_start=4, locations=None):
+    story_read = MagicMock()
+    story_read.find_story_by_id.return_value = {"id_location_start": id_location_start}
+    story_read.find_locations_by_story_id.return_value = locations or []
+    story_read.find_keys_by_story_id.return_value = []
+    store.find_story_id_by_match.return_value = 3
+    store.find_by_match_and_key.return_value = []
+    return RegistryService(store, story_read, MagicMock()), story_read
+
+
+def test_the_start_location_writes_its_key_to_add(store):
+    service, _ = _starting(store, locations=[
+        {"id": 2, "key_to_add": "elsewhere", "key_value_to_add": "no"},
+        {"id": 4, "key_to_add": "GATE", "key_value_to_add": "OPEN"},
+    ])
+
+    assert service.write_start_location_entry(7, 11, 0) == ["OPEN"]
+
+    store.upsert.assert_called_once_with(7, "GATE", "OPEN", None, 11, None, None, 0)
+
+
+def test_the_start_location_never_writes_the_later_pair(store):
+    service, _ = _starting(store, locations=[
+        {"id": 4, "key_to_add": None, "key_value_to_add": None,
+         "key_to_add_not_first": "GATE", "key_value_to_add_not_first": "AGAIN"},
+    ])
+
+    assert service.write_start_location_entry(7, 11, 0) == []
+    store.upsert.assert_not_called()
+
+
+def test_no_start_location_and_no_matching_row_write_nothing(store):
+    service, _ = _starting(store, id_location_start=None)
+    assert service.write_start_location_entry(7, 11, 0) == []
+
+    service, _ = _starting(store, locations=[{"id": 9, "key_to_add": "K",
+                                              "key_value_to_add": "V"}])
+    assert service.write_start_location_entry(7, 11, 0) == []
+    store.upsert.assert_not_called()
+
+
+def test_a_story_that_does_not_answer_writes_nothing(store):
+    service, story_read = _starting(store)
+    story_read.find_story_by_id.return_value = None
+    assert service.write_start_location_entry(7, 11, 0) == []
+
+
+def test_no_story_behind_the_match_or_no_story_port_writes_nothing(store, service):
+    store.find_story_id_by_match.return_value = None
+    assert service.write_start_location_entry(8, 11, 0) == []
+    # The values-only wiring has no story port at all: the same silence, not a failure.
+    store.find_story_id_by_match.return_value = 3
+    assert service.write_start_location_entry(9, 11, 0) == []

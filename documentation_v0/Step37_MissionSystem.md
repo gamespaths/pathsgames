@@ -77,6 +77,13 @@ NULL` for every player-facing registry read, so a bookkeeping row never appears 
 critically — never reaches `evaluate` as if it were a real key. On AWS the same rows live in
 the match item's `registry` list, skipped by `registry.is_mission(row)`.
 
+**v0.37.1 bugfix.** A mission gated on the start location's own first-entry key
+(`list_locations.key_to_add`, [Step 36 §14](./Step36_RegistrySystem.md#14-v0362--a-location-can-write-the-registry))
+could never open: that write only ran through `onArrival`, and the party is seeded already
+`flag_visited = 1` there, so it never "arrives". `RegistryService.writeStartLocationEntry` now
+writes that pair once, at match start, closing the gap — see
+[Step 36 §14.1](./Step36_RegistrySystem.md#141-v0371-bugfix--the-start-locations-own-pair-never-wrote).
+
 ## 3. Completion events and firing order
 
 `list_missions_steps.id_event_completed` runs when THAT step closes, not only at the end;
@@ -228,6 +235,14 @@ missions at all** — added) and `seed_dev_data.py`, AWS `lambda/seed/handler.py
 carries `missions`/`missionSteps`), plus `story_demo_3.json` / `story_demo_4.json` field
 rename.
 
+**v0.37.1 addition — a match-start fixture, on the SECOND story.** All four seeds gain key
+`journey_begun` (PUBLIC, no default, group `missions`), written on the *second* story's
+(Il Valvassore / demo1) starting location via `key_to_add`/`key_value_to_add`, plus a mission
+reading it whose one step targets a key still at `0` — so the mission opens `AVAILABLE` but no
+further. It deliberately does **not** sit on the tutorial story: a mission opening the instant
+a fresh tutorial match starts would have broken three existing suite-37 cases that assert a
+fresh match has reached no mission at all.
+
 ## 12. Frontends
 
 ### react-admin
@@ -240,6 +255,21 @@ the backend compares. `EntityForm` gained a `required` guard on the field schema
 a mission or step with no `conditionKey` cannot be saved — the authoring-time half of
 `R10_MISSION_CONDITION`. The old fields were typed `number` while the backend column is
 `String`, so a value like `OPEN` was literally unauthorable before this step.
+
+**v0.37.1.** The `mission-steps` section's `idCard` field is now the shared card picker
+(`{ options: cardsOptions }`), matching every other section — it had been a raw numeric input.
+The admin match-detail page gains a **Missions** tab: new `MissionsCard.jsx`
+(`src/components/match/detail/`), a read-only twin of `RegistryCard.jsx` — Mission/Uuid/Status/
+Steps/Reached table, a status badge (`AVAILABLE`/`ACTIVE`/`COMPLETED`/`FAILED`), expandable
+steps, a per-status count in the header, and "No mission reached by this match" when empty.
+No backend change: `MatchQueryService.buildDetail` already populated `detail.missions` on the
+admin path and `MatchInfoResponse` already serialized it, so `GET /api/admin/matches/{uuid}/info`
+was already carrying `info.missions` — only the tab was missing.
+
+`CardsFastEditPage.jsx` gains `mission-steps` in both `CARD_REF_TYPES` and
+`DESC_ALIGN_TYPES`: a card used by a step no longer shows as orphaned in the "used by" column
+(and so is no longer deletable by mistake as unreferenced), and the step is now included in the
+`idTextDescription` alignment check.
 
 ### react-game
 
@@ -259,6 +289,37 @@ characteristics card is gone. New i18n block `game.missions.*` in `en.json`/`it.
 `game.bookmarks.comingSoon` removed. The missions card sits in the (i) list **after** the
 registry card — a parallel section, not absorbed into it.
 
+**v0.37.1 — steps become readable.** `MissionStepCard`'s status badge now shows only on a
+CLOSED mission (`COMPLETED`/`FAILED`); an open mission is simply available or in progress, and
+badging every card cost space that belongs to progress. Badges switched from `BonusBadgeList`'s
+little variant (tooltip only, no label) to full-size, restyled down by a dedicated
+`.pg-card--mission` rule in `src/styles/main.css` (0.82rem, mirroring the existing
+`.pg-card--registry` rule) so Status/Steps keep their labels. The (i) no longer hides itself
+when a mission has steps but no image/description — that page is now where the steps live —
+and routes through the new `onOpenMission` when wired, falling back to the old single-page
+preview otherwise.
+
+`useBookView` gains view `'missionSteps'`, state field `missionSelected` (cleared by
+`closeAll`), and action `openMission({ mission, card, stats })`: the (i) on a mission now opens
+the mission card (`variant="page"`) on the LEFT page and its steps list on the RIGHT page — the
+same split zaino/registry already use; back returns to the missions grid, not the board. Wired
+through `PageLeft.jsx` (`missionSteps` branch), `PageRight.jsx` (renders the new
+`MissionStepsCards`), `GameBook.jsx`, `MissionCards.jsx`, and `js/bookmarks.js` (the Missions
+bookmark stays lit inside `missionSteps` too). The previous path passed a `steps` field into
+`openPreview`, which never destructured it — steps were never actually shown before this.
+
+New `src/features/gameplay/cards/MissionStepsCards.jsx`: one card per step on the right page,
+its own (i) opening the step card in `"page"` as an overlay above the list (back returns to the
+list); the step number is no longer displayed. A closed step is `locked` with a green
+"Completed" badge (`game.missions.status.COMPLETED`, class `.pg-card--mission-done`) doubling as
+the lock hint; an open step carries no badge. Of the still-open steps, only the first in story
+order is shown — later ones are what the story hasn't asked for yet, and listing them would
+spoil it (helper exported as `visibleSteps(mission)`). New i18n key `game.missions.stepsEmpty`
+in `en.json`/`it.json`.
+
+Dev-seed note: in every seed except AWS's mission fixture, missions and steps carry no
+`id_card`, so in dev they render as image-less cards falling back to their name as title.
+
 ## Test coverage
 
 - Java: `MissionServiceTest` (39), `MissionControllerTest` (6), `MatchMissionResponseTest`,
@@ -274,6 +335,20 @@ registry card — a parallel section, not absorbed into it.
   `resources/missions.resource`. New keywords `Get Missions` / `Get Mission` in
   `matches.resource`. **685/685 green on java-sqlite and on python.**
 
+**v0.37.1** — Java: `RegistryServiceTest` nested class `StartLocationEntry` (4 cases),
+`TurnCycleServiceTest` (1 case). Python: `test_registry_service.py` (5), `test_turn_cycle_service.py`
+(2). AWS: `test_turn_cycle_handler.py` (3). react-admin: new `MissionsCard.test.jsx` (8 cases,
+100% stmts / 97.8% branch on that file, 794 total). Robot: new
+`code/tests/robot/tests/37_missions/mission_from_start.robot` (5 cases) — see
+`.claude/docs/robot-suites.md`. Results: Java BUILD SUCCESS, Python 1627 passed, AWS 970 passed,
+react-admin 794 passed.
+
+**v0.37.1, second pass (frontend)** — new `MissionStepsCards.test.jsx` and
+`MissionCardsRendering.test.jsx` (the latter renders through the real `Card`, not a mock, and
+asserts image, labelled badges, and the (i) button actually reach the DOM); updated
+`MissionStepCard.test.jsx` and `GameBookViewModel.test.jsx`. Results: react-game 1175 passed /
+3 skipped, react-admin 794 passed.
+
 ## Scope of change
 
 | Layer | Path |
@@ -284,21 +359,24 @@ registry card — a parallel section, not absorbed into it.
 | Java rest | `MissionController`, `MatchMissionResponse` |
 | Python | `app/core/services/match/mission_service.py`, `align_schema()` `_DROPPED_COLUMNS`, `save_mission_steps` persistence port, `registry_service.py` public `norm`/`eq` |
 | AWS | `lambda/match/missions.py`, `lambda/match/registry.py` public `norm`/`eq` and `is_mission`/`set_mission_hook` |
-| react-admin | `ChipListInput.jsx`, `missions`/`mission-steps` field schemas, `EntityForm` required guard |
-| react-game | `utils/missions.js`, `MissionCard.jsx`, `MissionCards.jsx`, `MissionStepCard.jsx`, `boardProps.js`, `useBookView`, `en.json`/`it.json` |
-| Seeds | sqlite `R__insert_story_seed_data.sql`, postgres `R__insert_dev_test_data.sql`, python `scripts/seed_stories.py` + `seed_dev_data.py`, AWS `lambda/seed/handler.py`, `story_demo_3.json`/`story_demo_4.json` |
+| react-admin | `ChipListInput.jsx`, `missions`/`mission-steps` field schemas, `EntityForm` required guard. **37.1**: `MissionsCard.jsx` (new, Missions tab on `MatchDetailPage.jsx`); `StoryEditorPage.jsx` `mission-steps` `idCard` picker fix; `CardsFastEditPage.jsx` `CARD_REF_TYPES`/`DESC_ALIGN_TYPES` gain `mission-steps` |
+| react-game | `utils/missions.js`, `MissionCard.jsx`, `MissionCards.jsx`, `MissionStepCard.jsx`, `boardProps.js`, `useBookView`, `en.json`/`it.json`. **37.1**: `MissionStepCard.jsx` (badge only on closed mission, full-size badges, (i) always visible), new `MissionStepsCards.jsx`, `useBookView.js` (`missionSteps` view, `openMission`), `PageLeft.jsx`, `PageRight.jsx`, `GameBook.jsx`, `MissionCards.jsx`, `js/bookmarks.js`, `styles/main.css` (`.pg-card--mission`, `.pg-card--mission-done`), `en.json`/`it.json` (`game.missions.stepsEmpty`) |
+| Seeds | sqlite `R__insert_story_seed_data.sql`, postgres `R__insert_dev_test_data.sql`, python `scripts/seed_stories.py` + `seed_dev_data.py`, AWS `lambda/seed/handler.py`, `story_demo_3.json`/`story_demo_4.json`. **37.1**: same four files, `journey_begun` key + start-location writer on the second story (§11) |
+| Registry engine (37.1) | Java `RegistryService.writeStartLocationEntry`, `TurnCycleService.startMatch`, `CoreConfig` wiring; Python `registry_service.write_start_location_entry`, `turn_cycle_service.start_match`, `story_match_read_adapter.find_locations_by_story_id`, `launcher.py`; AWS `handler.py _write_start_location_registry`, called from `_start_match` — see [Step36 §14.1](./Step36_RegistrySystem.md#141-v0371-bugfix--the-start-locations-own-pair-never-wrote) |
+| Robot (37.1) | `code/tests/robot/tests/37_missions/mission_from_start.robot` (5 cases) |
 
 ---
 
 # Version Control
 
-- **Document Version**: 0.37.0
+- **Document Version**: 0.37.1
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.37.0 | Mission tracking and progression, implemented: missions become a projection of the Step 36 registry — no operator, no state table, comparison always `"="` through `RegistryService.evaluate` (§0-§1); `condition_value`/`condition_values` (PIPE-separated AND) replace the from/to pair on `list_missions`/`list_missions_steps`, new unique `idx_missions_steps_order` (§8); status machine `AVAILABLE`→`ACTIVE`→`COMPLETED`/`FAILED`, persisted as (status + step reached) on `gaming_state_registry` via its existing `id_mission`/`id_mission_steps` columns, isolated from every player-facing registry read (§1-§2); completion events deferred through `MissionService.beginDeferral`/`endDeferral` around the four `EventExecutionService` entry points (§3); new `GET /api/match/{uuid}/missions` and `.../missions/{uuid}`, plus `missions[]` on `/info`, owner-only and 404-masked, a mission never reached simply absent from the list (§5); new validation rule `R10_MISSION_CONDITION`, report-only on the validate pass (§9); import bugs closed on Java and Python (§10); tutorial seed gained live writers for all mission keys plus a fourth, 0-step, set-AND mission (§11); react-admin `ChipListInput` and a required-condition-key guard, react-game's Missions bookmark goes live off `/info` (§12). | September 8, 2026 |
+  | 0.37.1 | Bugfix: the start location's own first-entry registry pair — the one field a mission could gate on that could never fire — now writes at match start via `RegistryService.writeStartLocationEntry`, all three backends (§2, see [Step36 §14.1](./Step36_RegistrySystem.md#141-v0371-bugfix--the-start-locations-own-pair-never-wrote)); admin gains a read-only Missions tab (`MissionsCard.jsx`) on the match detail page; `mission-steps`' `idCard` field is now the card picker instead of a raw number (§12); new fixture — key `journey_begun` written on the second story's start location plus a mission reading it — in all four seeds (§11); new Robot suite `37_missions/mission_from_start.robot` (5 cases). Second pass, frontend: `MissionStepCard`'s status badge now only on a closed mission, full-size labelled badges, (i) always reachable; new `useBookView` `missionSteps` split-page view and `MissionStepsCards.jsx` render a mission's steps (only the next open one, to avoid spoilers); `CardsFastEditPage.jsx` recognizes `mission-steps` card references (§12). | September 9, 2026 |
 
-- **Last Updated**: September 8, 2026
+- **Last Updated**: September 9, 2026
 - **Status**: Complete
 
 # < Paths Games />

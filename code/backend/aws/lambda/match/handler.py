@@ -39,7 +39,8 @@ from common import jwt_utils
 from common.response import dumps as _dumps, ok as _ok, HEADERS
 from common.http_utils import (normalize_path as _normalize_path,
                                get_source_ip as _get_source_ip,
-                               bearer_token as _bearer_token)
+                               bearer_token as _bearer_token,
+                               bearer_token_error as _bearer_token_error)
 from common.data_utils import safe_int as _safe_int, resolve_raw_text as _resolve_raw_text
 
 _TURNSTILE_SECRET = os.environ.get('TURNSTILE_SECRET_KEY', '')
@@ -115,12 +116,14 @@ def _resolve_user(event):
     a synthetic dict so the match flow can run for users that exist only in
     the Java backend.
     """
+    # v0.37.1 — the Java filter's refusal codes: no token, an empty one and a bad one differ.
     token = _bearer_token(event)
     if not token:
-        return None, _err(401, 'UNAUTHENTICATED', 'Authorization header with Bearer token is required')
+        code, message = _bearer_token_error(event)
+        return None, _err(401, code, message)
     claims = jwt_utils.verify_access_token(token)
     if not claims or not claims.get('uuid'):
-        return None, _err(401, 'UNAUTHENTICATED', 'Access token is invalid or expired')
+        return None, _err(401, 'INVALID_TOKEN', 'Access token is invalid, expired, or malformed')
 
     user_uuid = claims['uuid']
     user = db_utils.get_item(f'USER#{user_uuid}')
@@ -644,6 +647,16 @@ def _nz(value):
         return 0
 
 
+def _class_ref(value):
+    """v0.37.1 - a class-restriction column. A BLANK one is no restriction at all, not class
+    zero: the admin form writes "" where the author left the field empty, and the story item
+    keeps that "" verbatim because DynamoDB holds the raw json. Anything unparseable reads the
+    same way, since a restriction nobody can resolve is one the engine must not enforce."""
+    if value is None or str(value).strip() == '':
+        return None
+    return _safe_int(value, None)
+
+
 _BONUS_KEYS = {"dex": "dex", "int": "int", "con": "con", "life": "life", "energy": "energy"}
 
 
@@ -683,12 +696,13 @@ def _resolve_and_validate_traits(story, clazz, difficulty, trait_uuids):
             # An event or an item may still grant it; that is the point of the flag.
             return None, _err(400, 'TRAIT_NOT_SELECTABLE',
                               f'Trait {key} cannot be chosen at character creation')
-        permitted = trait.get('idClassPermitted')
-        prohibited = trait.get('idClassProhibited')
-        if permitted is not None and (class_id is None or int(permitted) != int(class_id)):
+        permitted = _class_ref(trait.get('idClassPermitted'))
+        prohibited = _class_ref(trait.get('idClassProhibited'))
+        selected = _class_ref(class_id)
+        if permitted is not None and (selected is None or permitted != selected):
             return None, _err(400, 'TRAIT_NOT_COMPATIBLE',
                               f'Trait {key} is permitted only for another class')
-        if prohibited is not None and class_id is not None and int(prohibited) == int(class_id):
+        if prohibited is not None and selected is not None and prohibited == selected:
             return None, _err(400, 'TRAIT_NOT_COMPATIBLE',
                               f'Trait {key} is prohibited for the selected class')
         resolved.append(trait)
@@ -697,10 +711,13 @@ def _resolve_and_validate_traits(story, clazz, difficulty, trait_uuids):
         total_negative = sum(_nz(t.get('costNegative')) for t in resolved)
         positive_budget = difficulty.get('traitCostPositiveBudget')
         negative_budget = difficulty.get('traitCostNegativeBudget')
-        if positive_budget is not None and total_positive > int(positive_budget):
+        # A blank budget is no budget: int("") raised where the author simply left it empty.
+        positive_budget = _safe_int(positive_budget, None) if str(positive_budget or '').strip() else None
+        negative_budget = _safe_int(negative_budget, None) if str(negative_budget or '').strip() else None
+        if positive_budget is not None and total_positive > positive_budget:
             return None, _err(400, 'TRAIT_COST_EXCEEDED',
                               f'Total positive trait cost {total_positive} exceeds the difficulty budget {positive_budget}')
-        if negative_budget is not None and total_negative > int(negative_budget):
+        if negative_budget is not None and total_negative > negative_budget:
             return None, _err(400, 'TRAIT_COST_EXCEEDED',
                               f'Total negative trait cost {total_negative} exceeds the difficulty budget {negative_budget}')
     return resolved, None
@@ -1003,9 +1020,11 @@ def _end_match(user, match_uuid, event_uuid):
 # ─── Step 21 — character join / players / detail ─────────────────────────────
 
 def _validate_class(template, clazz):
-    class_id = clazz.get('id')
-    permitted = template.get('idClassPermitted')
-    prohibited = template.get('idClassProhibited')
+    # v0.37.1 - read through _class_ref: a blank column used to refuse EVERY class here, since
+    # "" is not None and never equals an id.
+    class_id = _class_ref(clazz.get('id'))
+    permitted = _class_ref(template.get('idClassPermitted'))
+    prohibited = _class_ref(template.get('idClassProhibited'))
     if permitted is not None and permitted != class_id:
         return _err(409, 'CLASS_NOT_COMPATIBLE', 'Selected class is not permitted for this character template')
     if prohibited is not None and prohibited == class_id:
@@ -1145,7 +1164,10 @@ def _list_players(user, match_uuid):
 
 def _story_of(match):
     """The STORY item behind a match; an empty dict when it cannot be resolved."""
-    return db_utils.get_item(f'STORY#{(match or {}).get("storyUuid")}') or {}
+    story_uuid = (match or {}).get('storyUuid')
+    if not story_uuid:
+        return {}
+    return db_utils.get_item(f'STORY#{story_uuid}') or {}
 
 
 # Step 37 — how far a mission cascade may run. A completion event writes the registry, which
@@ -1471,9 +1493,38 @@ def _start_match(user, match_uuid):
     story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
     _apply_weather_at_time_start(match, match_uuid, story)
 
+    # v0.37.1: the party never ARRIVES in the starting location, so no arrival ever writes its
+    # first-entry key. The match starting is that moment, and the active character owns the row.
+    _write_start_location_registry(match, story, characters, top)
+
     db_utils.put_item(match)
 
     return _ok(_sequence_response(match, rows))
+
+
+def _write_start_location_registry(match, story, characters, top):
+    """v0.37.1 — the start location writes its FIRST-ENTRY pair when the match starts.
+
+    The party begins standing in idLocationStart, so it never arrives there: the state row is
+    seeded flagVisited = 1 on purpose (Step 33), which keeps the place the story opened in from
+    announcing itself as a discovery. That reasoning holds for the narrative triggers and not
+    for the registry, which is state other rules read — so without this the keyToAdd of the
+    starting location would be the one authored field that can never be written, at any point
+    of any match. keyToAddNotFirst stays what it is: the pair for coming BACK.
+    """
+    id_location_start = story.get('idLocationStart')
+    if id_location_start is None:
+        return
+    triggers = _location_triggers(story, _nz(id_location_start))
+    key = (triggers or {}).get('keyToAdd')
+    if not key:
+        return
+    actor = next((c for c in characters if c.get('uuid') == top.get('characterUuid')), None)
+    _events.apply_registry(match, key, triggers.get('keyValueToAdd'), None,
+                           id_character=(actor or {}).get('id'),
+                           clock=_nz(match.get('currentClock')),
+                           character_uuid=(actor or {}).get('uuid'),
+                           timestamp=_ts_ms(), story=story)
 
 
 def _pass_turn(user, match_uuid):

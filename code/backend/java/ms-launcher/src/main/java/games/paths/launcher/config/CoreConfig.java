@@ -238,9 +238,10 @@ public class CoreConfig {
     public games.paths.core.port.match.TurnCyclePort turnCyclePort(
             games.paths.core.port.match.TurnCycleStorePort turnCycleStorePort,
             UserAccessPort userAccessPort,
-            games.paths.core.service.match.WeatherSelectionService weatherSelectionService) {
+            games.paths.core.service.match.WeatherSelectionService weatherSelectionService,
+            games.paths.core.service.match.RegistryService registryService) {
         return new games.paths.core.service.match.TurnCycleService(
-                turnCycleStorePort, userAccessPort, weatherSelectionService);
+                turnCycleStorePort, userAccessPort, weatherSelectionService, registryService);
     }
 
     // ───── Step 25: Time advancement & clock cycle (single-player) ─────

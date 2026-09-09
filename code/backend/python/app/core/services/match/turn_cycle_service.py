@@ -13,10 +13,13 @@ from app.core.ports.match.turn_ports import TurnCyclePort, TurnCycleStorePort
 
 
 class TurnCycleService(TurnCyclePort):
-    def __init__(self, store: TurnCycleStorePort, weather_service=None) -> None:
+    def __init__(self, store: TurnCycleStorePort, weather_service=None,
+                 registry_service=None) -> None:
         self.store = store
         # Step 27 — optional weather selection engine (may be None in tests).
         self.weather_service = weather_service
+        # v0.37.1 — the start location's own registry pair; None in the older tests.
+        self.registry_service = registry_service
 
     # ── public API ──────────────────────────────────────────────────────────
 
@@ -50,6 +53,13 @@ class TurnCycleService(TurnCyclePort):
         # Step 27: select the initial weather for clock 0 when the match starts.
         if self.weather_service is not None:
             self.weather_service.apply_at_time_start(match["id"])
+
+        # v0.37.1: the party never ARRIVES in the starting location, so no arrival ever writes
+        # its first-entry key. The match starting is that moment, and the active character owns
+        # the row — a mission waiting on that key opens here.
+        if self.registry_service is not None:
+            self.registry_service.write_start_location_entry(match["id"], top_id,
+                                                             match["current_clock"])
 
         return self._build_sequence(match_uuid, match["current_clock"],
                                     match_statuses.RUNNING, top_id, rows, characters)

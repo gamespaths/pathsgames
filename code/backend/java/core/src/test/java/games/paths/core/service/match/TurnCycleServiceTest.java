@@ -76,6 +76,23 @@ class TurnCycleServiceTest {
         }
 
         @Test
+        @DisplayName("v0.37.1 - the start location writes its first-entry key as the match starts")
+        void writesTheStartLocationRegistry() {
+            RegistryService registry = mock(RegistryService.class);
+            TurnCycleService withRegistry =
+                    new TurnCycleService(store, userAccessPort, null, registry);
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match(MatchStatuses.CREATED, null)));
+            when(store.findCharactersByMatchId(1L)).thenReturn(
+                    List.of(character(20L, "char-weak", 1, 1, 1, 5),
+                            character(10L, "char-strong", 10, 10, 10, 50)));
+
+            withRegistry.startMatch(MATCH, USER);
+
+            // The character that got the first turn owns the row, and the clock is still 0.
+            verify(registry).writeStartLocationEntry(1L, 10L, 0);
+        }
+
+        @Test
         @DisplayName("MATCH_NOT_FOUND when caller is not the creator")
         void notOwner() {
             when(store.findMatchByUuid(MATCH)).thenReturn(

@@ -937,7 +937,10 @@ INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_d
 INSERT INTO list_keys (id, id_story, name, value, id_text_description, "group", priority, visibility) VALUES
 (91001, 9002, 'monastery_records', '0',     950, 'evidence',  1, 'PUBLIC'),
 (91002, 9002, 'monk_testimony',    '0',     951, 'evidence',  2, 'PUBLIC'),
-(91003, 9002, 'countess_letter',   '0',     952, 'diplomacy', 3, 'PUBLIC');
+(91003, 9002, 'countess_letter',   '0',     952, 'diplomacy', 3, 'PUBLIC'),
+-- v0.37.1: written by nothing but the START LOCATION, and only as the match starts. The party
+-- never ENTERS the place it opens in, so this is the one key no arrival could ever write.
+(91004, 9002, 'journey_begun',     NULL,    950, 'missions',  4, 'PUBLIC');
 
 -- ── Locations (12) ─────────────────────────────────────────────
 INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, cost_energy_enter, max_characters) VALUES
@@ -953,6 +956,11 @@ INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_descrip
 (91010, 9002, 91001, 109, 109, 0, 2, 12),   -- Vicenza
 (91011, 9002, 91002, 110, 110, 0, 2, 6),    -- Bosco del Montello
 (91012, 9002, 91003, 111, 111, 1, 0, 8);    -- Ponte di Piave
+
+-- v0.37.1: the starting location writes its FIRST-ENTRY pair when the match starts, since the
+-- party begins standing in it and no arrival will ever fire there. Mission 91001 reads this key.
+UPDATE list_locations SET key_to_add = 'journey_begun', key_value_to_add = 'yes'
+ WHERE id = 91001 AND id_story = 9002;
 
 -- ── Location Neighbors ──────────────────────────────────────────
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
@@ -1043,7 +1051,10 @@ INSERT INTO list_global_random_events (id, id_story, condition_key, condition_va
 INSERT INTO list_missions (id, id_story, condition_key, condition_value, id_text_name, id_text_description) VALUES
 (91001, 9002, 'trial_result',      'records_presented', 900, 900),
 (91002, 9002, 'monastery_records', '1',                 901, 901),
-(91003, 9002, 'escort_secured',    '1',                 902, 902);
+(91003, 9002, 'escort_secured',    '1',                 902, 902),
+-- v0.37.1: the one mission only the START location can open. The party never enters the place
+-- the story opens in, so this key is written as the match starts and by nothing else.
+(91004, 9002, 'journey_begun',     'yes',               900, 900);
 
 -- ── Mission Steps ───────────────────────────────────────────────
 INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value, id_text_name, id_text_description) VALUES
@@ -1053,7 +1064,9 @@ INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, 
 (91004, 9002, 91002, 1, 'met_anselmo',        '1',                 920, 920),
 (91005, 9002, 91002, 2, 'monk_testimony',     '1',                 921, 921),
 (91006, 9002, 91003, 1, 'soldiers_recruited', '1',                 930, 930),
-(91007, 9002, 91003, 2, 'road_cleared',       '1',                 931, 931);
+(91007, 9002, 91003, 2, 'road_cleared',       '1',                 931, 931),
+-- v0.37.1: a step nothing satisfies, so mission 91004 opens AVAILABLE and stays there.
+(91008, 9002, 91004, 1, 'monastery_records',  '1',                 910, 910);
 
 -- ── Creator ─────────────────────────────────────────────────────
 INSERT INTO list_creator (id, id_story, link, url, url_image) VALUES

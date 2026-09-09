@@ -56,8 +56,13 @@ const GAME_DATA = {
 }
 const STORY = { uuid: 's1', title: 'Test Story', card: { title: 'Test Story' } }
 
-function renderBook() {
-  return render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
+function renderBook(gameData = GAME_DATA) {
+  return render(<GameBook gameData={gameData} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
+}
+
+/** The same board with one mission in whatever state the case needs. */
+function withMissions(missions) {
+  return { ...GAME_DATA, info: { ...GAME_DATA.info, missions } }
 }
 
 describe('GameBook — the book bookmarks', () => {
@@ -219,5 +224,24 @@ describe('GameBook — the book bookmarks', () => {
         matchUuid="m1" story={STORY} onClose={vi.fn()} />)
       expect(screen.getByLabelText('game.bookmarks.position')).toBeInTheDocument()
     })
+  })
+
+  // v0.37.1 — the missions tab carries no count any more: it lights up in gold when the
+  // missions have MOVED, and the click that opens the panel puts it out.
+  it('lights the missions tab when a mission moves, and only then', () => {
+    const open = [{ uuid: 'm-1', status: 'ACTIVE', steps: [{ done: false }] }]
+    const { rerender } = renderBook(withMissions(open))
+    const tab = () => screen.getByLabelText('game.bookmarks.missions')
+
+    // The first payload is the baseline: a match resumed mid-story does not open lit.
+    expect(tab()).not.toHaveClass('is-alert')
+    expect(tab().textContent).toBe('')
+
+    rerender(<GameBook gameData={withMissions([{ uuid: 'm-1', status: 'COMPLETED',
+      steps: [{ done: true }] }])} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
+    expect(tab()).toHaveClass('is-alert')
+
+    fireEvent.click(tab())
+    expect(tab()).not.toHaveClass('is-alert')
   })
 })

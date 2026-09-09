@@ -13,6 +13,7 @@ import PlayersCard from '../components/match/detail/PlayersCard'
 import WeatherCard from '../components/match/detail/WeatherCard'
 import LocationStateCard from '../components/match/detail/LocationStateCard'
 import RegistryCard from '../components/match/detail/RegistryCard'
+import MissionsCard from '../components/match/detail/MissionsCard'
 import MatchLogsCard from '../components/match/detail/MatchLogsCard'
 import EditStatsModal from '../components/match/detail/EditStatsModal'
 import { TERMINAL, STATUS_COLOR, findByUuid, resolveEntityName, name20 } from '../components/match/detail/matchDetailShared'
@@ -20,7 +21,7 @@ import { TERMINAL, STATUS_COLOR, findByUuid, resolveEntityName, name20 } from '.
 /**
  * MatchDetailPage — Step 21 admin match details page (/matches/:uuid).
  *
- * The sections (configuration, players, weather, locations, registry, turn order)
+ * The sections (configuration, players, weather, locations, registry, missions, turn order)
  * are laid out as tabs, defaulting to "Match configuration". Each section is its
  * own component under components/match/detail/. This page is the container: it
  * loads the data, owns the resolvers/handlers, and renders the active tab.
@@ -36,6 +37,7 @@ const DETAIL_TABS = [
   { id: 'weather',   label: 'Weather',             icon: 'fa-cloud-sun-rain' },
   { id: 'locations', label: 'Locations',           icon: 'fa-map' },
   { id: 'registry',  label: 'Registry',            icon: 'fa-list' },
+  { id: 'missions',  label: 'Missions',            icon: 'fa-flag-checkered' },
   { id: 'turn',      label: 'Turn order',          icon: 'fa-list-ol' },
 ]
 
@@ -278,6 +280,10 @@ export default function MatchDetailPage() {
 
           {tab === 'registry' && (
             <RegistryCard registry={info.registry} matchUuid={uuid} onChanged={loadInfo} />
+          )}
+
+          {tab === 'missions' && (
+            <MissionsCard missions={info.missions} />
           )}
 
           {tab === 'turn' && (

@@ -458,13 +458,14 @@
     },
     "missions": {
       "title": "Missioni",
-      "description": "Cosa è stato chiesto al gruppo, e a che punto è.",
-      "openAction": "Apri missioni",
+      "description": "Consultare questi appunti ti guida attraverso le sfide del tuo viaggio, indicandoti la strada per completare le missioni. <br /><br />In questa pagina del libro puoi vedere le varie missioni, i vari stati e tutte le fasi che ti permettono di concludere le missioni.",
+      "openAction": "Missioni",
       "open": "Aperte",
       "count": "Missioni",
       "empty": "Nessuna missione è ancora iniziata.",
       "progress": "Passi",
       "statusLabel": "Stato",
+      "stepsEmpty": "Questa missione non ha passi.",
       "status": {
         "AVAILABLE": "Disponibile",
         "ACTIVE": "In corso",

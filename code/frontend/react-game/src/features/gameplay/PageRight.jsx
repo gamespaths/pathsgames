@@ -9,6 +9,7 @@ import MovementCard from './cards/MovementCard'
 import ItemsCards from './cards/ItemsCards'
 import RegistryCards from './cards/RegistryCards'
 import MissionCards from './cards/MissionCards'
+import MissionStepsCards from './cards/MissionStepsCards'
 import PendingChoicesList from './cards/PendingChoicesList'
 import AutomaticEvents from './cards/AutomaticEvents'
 import MatchLogCard from '@/features/matches/MatchLogCard'
@@ -67,10 +68,11 @@ export default function PageRight(props) {
   const {
     view, previewRight, pendingChoices, counterZero, story, storyFull, t, gameData, playerStats,
     playerUuid, weather, clock, actualLocationCard, locations, actions, locationCosts,
-    hereLocationId, mapSelected, matchUuid, accessToken, choiceInFlight, endError,
+    hereLocationId, mapSelected, missionSelected, matchUuid, accessToken, choiceInFlight, endError,
     onPreview, onCloseRight, onCloseChoices, onSelectChoice, onDismissCounterZero,
     onEnterCurrentLocation, onMoved, onError, onDone, onDropped, onItemUsed, onSlept,
-    onOpenMap, onOpenItems, onOpenRegistry, onOpenMissions, onOpenInfo, onPreviewMatchLog,
+    onOpenMap, onOpenItems, onOpenRegistry, onOpenMissions, onOpenMission, onOpenInfo,
+    onPreviewMatchLog,
     onEndGame, onEndGamePreview,
     onForceSleepCard, sleepCardForced, activeAction, onExit,
   } = props
@@ -138,6 +140,11 @@ export default function PageRight(props) {
   // questions and the board reads them one after the other.
   if (view === 'missions') {
     return <MissionCards missions={gameData?.info?.missions} story={story}
+      onPreview={onPreview} onOpenMission={onOpenMission} previewSide="right" />
+  }
+  // v0.37.1 — one mission open: its card reads on the left page, its steps fill this one.
+  if (view === 'missionSteps') {
+    return <MissionStepsCards mission={missionSelected} story={story}
       onPreview={onPreview} previewSide="right" />
   }
   if (view === 'info') {

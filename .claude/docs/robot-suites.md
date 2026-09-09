@@ -33,7 +33,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `34_inventory` | Steps 34/35 inventory, resources, use/drop, effects preview, quantities, v0.35.4 item logs (see breakdown below) |
 | `35_import_integrity` | v0.35.8 import/schema/admin-CRUD regressions — ships its own story, no seed (see breakdown below) |
 | `36_registry` | Step 36 registry read API, v0.36.1 multi-valued keys, v0.36.3 `forced_move.robot` + v0.36.4 `registry_repeated_writes.robot` (see breakdown below) |
-| `37_missions` | Step 37 mission read API, the status machine and the condition semantics (see breakdown below) |
+| `37_missions` | Step 37 mission read API, the status machine, the condition semantics, and the v0.37.1 match-start trigger fix (see breakdown below) |
 
 ### `19_match` breakdown
 
@@ -290,6 +290,14 @@ effect writes that key (`Key Writing Event Uuids`). No seeded id or uuid is name
 case runs on its own guest and its own match, because a mission latches and cannot be
 re-opened. The `conditionValues` cases `Skip` themselves when the story declares no PIPE
 list, so a leaner seed does not fail the suite.
+
+- `mission_from_start.robot` (v0.37.1, 5 cases) — the start-location registry-write bugfix:
+  (1) creating a match does not yet write the key; (2) starting it does; (3) exactly once,
+  with exactly one `REGISTRY_CHANGE` row; (4) the mission gated on that key is reached the
+  instant the match starts, before any event runs or any movement happens; (5) a mission with
+  an unsatisfied step stays `AVAILABLE`. The fixture is found by BEHAVIOUR — the first public
+  story whose start location's `keyToAdd` a mission reads — and the whole suite `Skip`s if no
+  seed has one. `--dryrun` passes; not yet run against a live backend.
 
 ### `35_import_integrity` breakdown
 

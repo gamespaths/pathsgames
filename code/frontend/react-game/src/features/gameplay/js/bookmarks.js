@@ -11,7 +11,7 @@ import { buildStatBadges } from '@/utils/statBadges'
  * the page it returns to names the location in full.
  */
 export function buildBookmarksLeft({ t, view, previewLeft, playerStats,
-  onBack, onOpenInfo, onOpenItems, onOpenMap, onOpenMissions, openMissions = 0 }) {
+  onBack, onOpenInfo, onOpenItems, onOpenMap, onOpenMissions, missionsChanged = false }) {
   const boardShowing = view === 'board' && !previewLeft
   return [
     { key: 'position', icon: 'fas fa-map-marker-alt', label: t('game.bookmarks.position'),
@@ -29,9 +29,12 @@ export function buildBookmarksLeft({ t, view, previewLeft, playerStats,
       active: view === 'items', danger: isBagOverloaded(playerStats), onClick: onOpenItems },
     { key: 'map', icon: 'fas fa-map', label: t('game.bookmarks.map'),
       active: view === 'map', onClick: onOpenMap },
+    // v0.37.1 — no count: what a player wants between two turns is whether anything MOVED,
+    // and `alert` is that one bit. The click that opens the panel puts it out.
     { key: 'missions', icon: 'fas fa-clipboard-list', label: t('game.bookmarks.missions'),
-      badges: [{ key: 'missions', label: t('game.missions.open'), value: `${openMissions}` }],
-      active: view === 'missions', onClick: onOpenMissions },
+      alert: missionsChanged,
+      // One mission's steps are still the missions section, so the tab stays lit.
+      active: view === 'missions' || view === 'missionSteps', onClick: onOpenMissions },
   ]
 }
 

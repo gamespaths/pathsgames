@@ -69,6 +69,9 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "id_card": r.id_card,
                     # Python schema: is_safe doubles as secure_param (no dedicated column).
                     "secure_param": r.is_safe or 0,
+                    # v0.37.1: the start location's own registry pair, written when the match starts.
+                    "key_to_add": r.key_to_add,
+                    "key_value_to_add": r.key_value_to_add,
                 }
                 for r in rows
             ]

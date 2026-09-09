@@ -918,6 +918,9 @@ export default function StoryEditorPage() {
       },
     },
     'mission-steps': {
+      idCard: {
+        options: cardsOptions,
+      },
       idMission: {
         options: missionsOptions,
       },

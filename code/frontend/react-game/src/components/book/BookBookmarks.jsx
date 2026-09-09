@@ -7,6 +7,7 @@ import BonusBadgeList from '@/components/ui/BonusBadgeList'
  * reader and to the tooltip.
  *
  * `danger` paints the tab red: the page behind it holds news the player has to act on.
+ * `alert` paints it light gold: the page behind it has MOVED since the player last opened it.
  *
  * An active tab is inert — the page it opened is already there, and the way back is that
  * page's own arrow — and so is a disabled one (a feature that has not landed yet).
@@ -24,7 +25,7 @@ export default function BookBookmarks({ items = [], side = 'left' }) {
             key={item.key}
             type="button"
             className={['book-bookmark', item.active ? 'is-active' : '', item.disabled ? 'is-disabled' : '',
-              item.danger ? 'is-danger' : ''].filter(Boolean).join(' ')}
+              item.danger ? 'is-danger' : '', item.alert ? 'is-alert' : ''].filter(Boolean).join(' ')}
             onClick={inert ? undefined : item.onClick}
             // aria-disabled, not the attribute: a disabled button shows no tooltip, and the
             // "coming soon" title is the whole point of the missions tab.

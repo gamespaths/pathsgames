@@ -695,6 +695,17 @@ INSERT INTO list_cards (id, id_story, awesome_icon, style_main, id_text_title, i
 INSERT INTO list_cards (id, id_story, awesome_icon, style_main, id_text_title, id_text_description, id_text_name) VALUES (91011, 9002, 'fas fa-smog', 'weather', 801, 801, 801);
 INSERT INTO list_cards (id, id_story, awesome_icon, style_main, id_text_title, id_text_description, id_text_name) VALUES (91012, 9002, 'fas fa-cloud-bolt', 'weather', 802, 802, 802);
 
+-- ── Story 2 Missions (v0.37.1) ──────────────────────────────────
+-- One mission opened by the START LOCATION alone: the party never enters the place it opens
+-- in, so this key is written when the match starts and by nothing else. The step holds the
+-- mission at AVAILABLE. Fixture of tests/37_missions/mission_from_start.robot.
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91500, 9002, 900, 'en', 'The Journey Begins', 'Set out from Castelfranco and save Martino.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91501, 9002, 910, 'en', 'Obtain the Records', 'Bring back the incriminating documents from Campese.');
+INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_value) VALUES (91004, 9002, 'journey_begun', NULL, 'missions', 'PUBLIC', 0);
+INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_value) VALUES (91001, 9002, 'monastery_records', '0', 'evidence', 'PUBLIC', 0);
+INSERT INTO list_missions (id, id_story, condition_key, condition_value, id_text_name, id_text_description) VALUES (91001, 9002, 'journey_begun', 'yes', 900, 900);
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value, id_text_name, id_text_description) VALUES (91001, 9002, 91001, 1, 'monastery_records', '1', 910, 910);
+
 -- ── Story 2 Locations ───────────────────────────────────────────
 INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (91001, 9002, 91001, 100, 100, 1, 10);
 INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (91002, 9002, 91002, 101, 101, 1, 15);
@@ -772,5 +783,7 @@ SELECT setval('list_cards_id_seq',              (SELECT MAX(id) FROM list_cards)
 -- returns a populated locationsActive with an event flagged endGame=true.
 UPDATE list_stories SET id_location_start = 90001, id_event_end_game = 90005 WHERE id = 9001;
 UPDATE list_stories SET id_location_start = 91001, id_event_end_game = 91005 WHERE id = 9002;
+-- v0.37.1 — the starting location writes its first-entry pair as the match starts.
+UPDATE list_locations SET key_to_add = 'journey_begun', key_value_to_add = 'yes' WHERE id = 91001 AND id_story = 9002;
 UPDATE list_events  SET id_specific_location = 90001 WHERE id = 90005 AND id_story = 9001;
 UPDATE list_events  SET id_specific_location = 91001 WHERE id = 91005 AND id_story = 9002;

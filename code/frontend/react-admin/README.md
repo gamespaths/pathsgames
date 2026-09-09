@@ -27,7 +27,7 @@ Follows the medieval dark theme (`v0.16.3-prototype-api`):
 | `/guests`          | List, inspect and delete guest users; cleanup expired    |
 | `/stories`         | List all stories (any visibility); delete stories        |
 | `/stories/import`  | Import a complete story from JSON (`POST /api/admin/stories/import`) |
-| `/matches`         | List all matches across all players with server-side pagination (Load more / nextCursor), status filter and period filter (7/30/90 days / All); open detail modal with match info, location state and registry |
+| `/matches`         | List all matches across all players with server-side pagination (Load more / nextCursor), status filter and period filter (7/30/90 days / All); open detail modal with match info, location state, registry and missions (read-only) |
 | `/echo`            | Server health check (`GET /api/echo/status`)             |
 
 ## Admin APIs covered

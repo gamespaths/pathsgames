@@ -13,7 +13,8 @@ import { useTranslation } from '@/i18n/context'
  * A mission the match has NOT reached is not here because the backend never sent it: listing
  * it would spoil it.
  */
-export default function MissionCards({ missions, story, onPreview, previewSide = 'right' }) {
+export default function MissionCards({ missions, story, onPreview, onOpenMission,
+  previewSide = 'right' }) {
   const { t } = useTranslation()
   const rows = orderedMissions(missions)
 
@@ -24,7 +25,7 @@ export default function MissionCards({ missions, story, onPreview, previewSide =
           ? <p className="game-empty">{t('game.missions.empty')}</p>
           : rows.map(mission => (
             <MissionStepCard key={mission.uuid ?? mission.name} mission={mission} story={story}
-              onPreview={onPreview} previewSide={previewSide} />
+              onPreview={onPreview} onOpenMission={onOpenMission} previewSide={previewSide} />
           ))}
       </div>
     </div>

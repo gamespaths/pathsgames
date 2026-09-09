@@ -40,7 +40,7 @@ const HIDDEN_TYPES = new Set(['CLOCK_ADVANCE'])
 // Icon per entry type; mirrors the admin console's TYPE_META.
 const TYPE_ICON = {
   WEATHER:         'fa-cloud-sun-rain',
-  MOVEMENT:        'fa-person-walking',
+  MOVEMENT:        'fa-walking',
   SLEEP:           'fa-bed',
   CLOCK_ADVANCE:   'fa-clock',
   RECOVERY:        'fa-heart',
