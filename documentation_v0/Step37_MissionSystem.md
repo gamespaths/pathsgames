@@ -320,6 +320,190 @@ in `en.json`/`it.json`.
 Dev-seed note: in every seed except AWS's mission fixture, missions and steps carry no
 `id_card`, so in dev they render as image-less cards falling back to their name as title.
 
+## 13. Match log entry `MISSION_CHANGE` (v0.37.2)
+
+Before this, a mission transition left no trace on the match log: `upsertMissionState` wrote
+only the state row on `gaming_state_registry` (§2), and the timeline carried the
+`REGISTRY_CHANGE` that caused the advance but not the advance itself — reading a log meant
+knowing by heart which key belonged to which mission. The only indirect trace was
+`automatic event <id> (mission completed)`, and only when the author had wired an
+`idEventCompleted`.
+
+Every transition now writes a row from the same place the state is saved — one writer, so a
+transition can be neither lost nor doubled, the same rule §4's `REGISTRY_CHANGE` already
+follows. Message format:
+
+```
+MISSION_CHANGE <uuid mission> <previous status|none> -> <new status>[ step <number>]
+```
+
+Examples: `MISSION_CHANGE m-1 none -> AVAILABLE`, `MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 7`,
+`MISSION_CHANGE m-1 ACTIVE -> FAILED`.
+
+Three deliberate choices:
+
+- the mission is named by **uuid**, not id, so the row reads against the API payload with no
+  lookup;
+- the step number is the **author's own** `step` column, not the row id — a log is read by a
+  person, and in the seeds the two do not coincide;
+- the row names no character, event or choice — nothing in the fiction moves a mission, the
+  engine does.
+
+**Collateral fix.** `onStoryEnd` wrote the FAILED state's key with the mission's `id`, while
+`advance` writes it with the `uuid` — same registry key, two different names. It now resolves
+an id→uuid map once, at story end, so the closing row names the mission consistently (falling
+back to the id when the story cannot be read).
+
+Files: `code/backend/java/core/src/main/java/games/paths/core/service/match/MissionService.java`
+(public constant `MSG_MISSION_CHANGE`, new private `transition`, `onStoryEnd` now resolves
+`missionUuids`); `code/backend/python/app/core/services/match/mission_service.py`
+(`MSG_MISSION_CHANGE`, `_transition`, `_mission_uuids`); `code/backend/aws/lambda/match/missions.py`
+(`MSG_MISSION_CHANGE`, `_log`, `_step_number`, `on_story_end(match, story=None)` — now takes the
+story).
+
+### One row per thing that happened, second pass (v0.37.2)
+
+The first pass above wrote **one** row per engine pass, naming the last step reached. That
+under-reported multi-step passes, and it collided with the next need (§ below): a card can
+only narrate one status change, so a row that quietly meant two had no single card to wear.
+
+`transition` now writes one row **per thing that happened**, in story order:
+
+- the mission opening (`none -> AVAILABLE`) is always its own row, with **no** `step` —
+  that is what points the timeline at the mission's own card, not a step's;
+- each step closed by the pass gets its own `... step N` row, in the order the steps sit in
+  the story, not the order the registry happened to close them;
+- closing the mission's **last** step writes **two** rows, in this order: the step's
+  (`-> COMPLETED step N`) first, then the mission's (`-> COMPLETED`, no step) second — so the
+  mission's own card, not the last step's, gets to say the mission ended;
+- a mission that opens and closes a step in the same pass writes the mission row before the
+  step row;
+- a step-less mission that completes in one write still writes exactly one row, as before.
+
+The message format is unchanged — only how many rows one engine pass produces, driven by
+whether `step N` is present. New private helper `rowsOf` (Java) / module helper `_rows_of`
+(Python `_rows_of`, AWS `_rows_of` in `missions.py`) builds the ordered list of `(step|None)`
+entries for one pass; `transition`/`_transition`/`_write` calls `log`/`_log` once per entry.
+AWS's `_write` now also takes the pass's closed steps and the `fresh` flag (was: just the
+final status) so it can reconstruct the same ordered list.
+
+### Timeline classification
+
+All three match-log assemblers recognize the new prefix and expose it as `type: "MISSION_CHANGE"`:
+Java `MatchLogsService`, Python `match_logs_service.py`, and the `elif` chain in AWS
+`lambda/match/handler.py`. An unrecognized message is dropped, so without this branch the rows
+would never reach the timeline — see
+[Step28_MovementSystem.md's "Future Additions"](./Step28_MovementSystem.md#future-additions-out-of-scope-v0287)
+for where `MISSION_CHANGE` sits alongside `REGISTRY_CHANGE` in that catalog.
+
+### The row's own card, second pass (v0.37.2)
+
+A `MISSION_CHANGE` row now carries `idCard`/`card` like any other entry — resolved from the
+mission's or the step's own card, never the log's (the `log_events` table has no mission
+column at all; the uuid inside the message is the only handle). Which one:
+
+- a row with **no** `step` → the mission's own card, keyed by its uuid;
+- a row with `step N` → that step's own card, keyed by `"<mission uuid>/<step number>"`;
+- **deliberately**: a step with no card leaves the row card-less — it does **not** fall back
+  to the mission's card. Narrating an advance with the wrong picture is worse than showing
+  none.
+
+Java: new port methods `findMissionIdCardsByUuid` and `findMissionStepIdCardsByMissionUuid` on
+`MatchLogsStorePort`, implemented in `MatchLogsStoreAdapter` (now also takes `MissionRepository`
+and `MissionStepRepository`), plus helpers `missionUuidOf`/`stepNumberOf` and a new branch in
+`MatchLogsService.enrich`. Python: `mission_cards`/`step_cards` maps and helpers
+`_mission_uuid_of`/`_step_number_of` in `match_logs_service.py`. AWS: the same two maps and two
+helpers in `lambda/match/handler.py`.
+
+**Bugfix found in doing this.** A message with no uuid (any row this branch did not itself
+write) used to do `Map.of(...).get(null)` on Java's immutable map, which throws
+`NullPointerException` on a null key — one malformed row turned into a 500 on the **entire**
+timeline. Guarded: a null uuid now resolves to a null card, not a lookup.
+
+### Frontends
+
+Neither `REGISTRY_CHANGE` nor `MISSION_CHANGE` had a timeline mapping before this: both fell to
+the default grey entry, no icon, no filter chip in the admin console. Added to
+`code/frontend/react-game/src/features/matches/MatchLogCard.jsx` (`TYPE_ICON`/`TYPE_COLOR`) and
+`code/frontend/react-admin/src/components/match/detail/MatchLogsCard.jsx` (`TYPE_META`) —
+mission in gold, registry in blue. Also fixed `fa-wand-magic-sparkles` (a Font Awesome 6 glyph)
+to `fa-magic` for `AUTOMATIC_EVENT`: react-game loads FA 5.15.4, so the icon was simply invisible.
+
+See "react-game history rewrite, second pass" below for how the resolved card now reaches the
+match-log timeline in the game frontend.
+
+### Seed data: missions and steps gain a card (v0.37.2, second pass)
+
+No mission or step in any seed carried an `id_card`, so §12's mission cards and the row card
+above had nothing to resolve — missions rendered image-less and a `MISSION_CHANGE` row's (i)
+had no picture to open. All four seeds now give the tutorial's 4 missions and 7 steps a card
+(reusing cards already present in that story), and the same for the second story's
+mission/step pair. Files: `adapter-sqlite/.../R__insert_story_seed_data.sql`,
+`adapter-postgres/.../R__insert_dev_test_data.sql`, `code/backend/python/scripts/seed_stories.py`,
+`code/backend/aws/lambda/seed/handler.py`.
+
+### react-game history rewrite, second pass (v0.37.2)
+
+- `code/frontend/react-game/src/features/gameplay/cards/PlayerCards.jsx`: the small story card
+  that opens the history now passes `entityType="matchlog"` instead of `"story"` — the player
+  had no way to tell what tapping it would open. New i18n key `book.matchlog` (`en.json`
+  "History", `it.json` "Cronologia") — the history page itself already used this `entityType`
+  and, without the key, showed the raw i18n path.
+- `MatchLogCard.jsx`: the timeline is a **list of rows**, not a grid of card tiles. New
+  exported `LogEntryRow` replaces `LogEntryCard`; the tile-only `entryBadges` helper is
+  removed. Each row: a type badge (icon + colour), the entry's card title, and the same (i)
+  button as before, opening that card as a page on the right. Date, actor and the resource
+  badges (`resourceBadges`) now live only on that page, not on the row.
+  - `REGISTRY_CHANGE` rows are the one exception: no card exists behind a registry write, so
+    the row shows what the message says instead (the text after the `REGISTRY_CHANGE` prefix,
+    e.g. `gate null -> open`, via new exported helper `registryDetail`) and carries no (i).
+  - With the backend now resolving the mission's/step's own card (see above), a
+    `MISSION_CHANGE` row's title is that card's own title, not a repeated "Mission" label, and
+    its (i) opens the real card image.
+- New i18n keys `matchLog.types.REGISTRY_CHANGE` / `matchLog.types.MISSION_CHANGE`
+  ("Registro"/"Registry", "Missione"/"Mission") — without them the type badge printed the raw
+  i18n key.
+
+### Robot suite, second pass (v0.37.2)
+
+`code/tests/robot/tests/37_missions/mission_log.robot` grew from 5 to **8** cases. The three
+new ones: a mission row carries the mission's own card (`idCard` + resolved title); a step row
+carries its **own** card, not the card of the event that opened it (proves the lookup reads the
+right table); and "Closing The Last Step Says So Twice: The Step, Then The Mission", which
+plays a mission to completion and asserts the row count (`len(steps) + 2`), that the
+second-to-last row names the last step, and that the last row names no step at all — the step
+case also checks the step's own `idCard`. All found by BEHAVIOUR, no seeded uuid; the new cases
+`Skip` when the story gives no mission a card.
+
+## 14. AWS fixes (v0.37.2)
+
+### Empty class references crashed match creation
+
+`int("")` raises `ValueError`, and any match on an admin-authored story with an empty class
+reference answered 500: the guard was `is not None`, but the admin form writes `""` into a
+field left blank, and on AWS the story is stored as raw JSON in DynamoDB, so that `""` survives
+untouched. Java and Python never hit this because the column is an `Integer` on the database
+and import normalizes optional FKs to `NULL`.
+
+New helper `_class_ref(value)` in `code/backend/aws/lambda/match/handler.py`: an empty or
+unreadable class reference is **no constraint**, not class zero. Used in
+`_resolve_and_validate_traits` (where it crashed) and in `_validate_class`, which had the same
+bug silently — an empty column made the template reject every class as
+`CLASS_NOT_COMPATIBLE`. The two trait budgets get the same treatment: an empty budget now means
+no limit.
+
+### 401 codes aligned with the Java filter
+
+The Java filter has a scale of rejections — `MISSING_TOKEN` (no Bearer header), `EMPTY_TOKEN`
+(Bearer with no value), `INVALID_TOKEN` (a token that fails to validate) — while AWS flattened
+all three to `UNAUTHENTICATED`, so `37_missions/missions.robot` (which pins `MISSING_TOKEN`)
+could not pass on AWS. New helper `bearer_token_error(event)` in
+`code/backend/aws/lambda/common/http_utils.py`; `_resolve_user` in `lambda/match/handler.py`
+uses it and now answers `INVALID_TOKEN` when the token fails to verify. `UNAUTHENTICATED`
+remains only for "user not found". Scoped to the `match` lambda (`/api/matches`, `/api/match/*`,
+`/api/gameplay/*`); the `auth` and `story` lambdas still answer `UNAUTHORIZED` — a known
+divergence, left for a dedicated pass.
+
 ## Test coverage
 
 - Java: `MissionServiceTest` (39), `MissionControllerTest` (6), `MatchMissionResponseTest`,
@@ -349,6 +533,22 @@ asserts image, labelled badges, and the (i) button actually reach the DOM); upda
 `MissionStepCard.test.jsx` and `GameBookViewModel.test.jsx`. Results: react-game 1175 passed /
 3 skipped, react-admin 794 passed.
 
+**v0.37.2** — six new backend cases for the mission log (opening, closing a step with the
+author's step number, a no-step mission completing, a mission that does not move writing
+nothing, story-end failure by uuid, fallback to id with no story port); 3 AWS cases for empty
+class references; 5 AWS cases for the 401 codes (`test_common_http_utils.py`,
+`test_match_handler.py`). New Robot suite `37_missions/mission_log.robot` (5 cases). Results:
+Java BUILD SUCCESS, Python 1633 passed, AWS 983 passed, react-game 1184 passed / 3 skipped,
+react-admin 794 passed.
+
+**v0.37.2, second pass** — engine: three new cases (last step closes with two rows, two steps
+closed by one write produce two ordered rows, opening a mission and closing a step in the same
+pass produce mission-then-step); timeline: three new cases (a mission row resolves the
+mission's card, a row with `step N` resolves that step's card, an unknown step resolves no
+card); one Java adapter case (`uuid/step` keys, orphan/unnumbered steps excluded). New Robot
+cases bring `mission_log.robot` to 8. Results: Java BUILD SUCCESS, Python 1640 passed, AWS 990
+passed, react-game 1185 passed / 3 skipped, react-admin 794 passed.
+
 ## Scope of change
 
 | Layer | Path |
@@ -361,20 +561,25 @@ asserts image, labelled badges, and the (i) button actually reach the DOM); upda
 | AWS | `lambda/match/missions.py`, `lambda/match/registry.py` public `norm`/`eq` and `is_mission`/`set_mission_hook` |
 | react-admin | `ChipListInput.jsx`, `missions`/`mission-steps` field schemas, `EntityForm` required guard. **37.1**: `MissionsCard.jsx` (new, Missions tab on `MatchDetailPage.jsx`); `StoryEditorPage.jsx` `mission-steps` `idCard` picker fix; `CardsFastEditPage.jsx` `CARD_REF_TYPES`/`DESC_ALIGN_TYPES` gain `mission-steps` |
 | react-game | `utils/missions.js`, `MissionCard.jsx`, `MissionCards.jsx`, `MissionStepCard.jsx`, `boardProps.js`, `useBookView`, `en.json`/`it.json`. **37.1**: `MissionStepCard.jsx` (badge only on closed mission, full-size badges, (i) always visible), new `MissionStepsCards.jsx`, `useBookView.js` (`missionSteps` view, `openMission`), `PageLeft.jsx`, `PageRight.jsx`, `GameBook.jsx`, `MissionCards.jsx`, `js/bookmarks.js`, `styles/main.css` (`.pg-card--mission`, `.pg-card--mission-done`), `en.json`/`it.json` (`game.missions.stepsEmpty`) |
-| Seeds | sqlite `R__insert_story_seed_data.sql`, postgres `R__insert_dev_test_data.sql`, python `scripts/seed_stories.py` + `seed_dev_data.py`, AWS `lambda/seed/handler.py`, `story_demo_3.json`/`story_demo_4.json`. **37.1**: same four files, `journey_begun` key + start-location writer on the second story (§11) |
+| Seeds | sqlite `R__insert_story_seed_data.sql`, postgres `R__insert_dev_test_data.sql`, python `scripts/seed_stories.py` + `seed_dev_data.py`, AWS `lambda/seed/handler.py`, `story_demo_3.json`/`story_demo_4.json`. **37.1**: same four files, `journey_begun` key + start-location writer on the second story (§11). **37.2, second pass**: same four files, `id_card` added to the tutorial's 4 missions/7 steps and the second story's mission/step pair |
 | Registry engine (37.1) | Java `RegistryService.writeStartLocationEntry`, `TurnCycleService.startMatch`, `CoreConfig` wiring; Python `registry_service.write_start_location_entry`, `turn_cycle_service.start_match`, `story_match_read_adapter.find_locations_by_story_id`, `launcher.py`; AWS `handler.py _write_start_location_registry`, called from `_start_match` — see [Step36 §14.1](./Step36_RegistrySystem.md#141-v0371-bugfix--the-start-locations-own-pair-never-wrote) |
 | Robot (37.1) | `code/tests/robot/tests/37_missions/mission_from_start.robot` (5 cases) |
+| Match log (37.2) | Java `MissionService` (`MSG_MISSION_CHANGE`, `transition`, `onStoryEnd` `missionUuids`), `MatchLogsService`; Python `mission_service.py` (`MSG_MISSION_CHANGE`, `_transition`, `_mission_uuids`), `match_logs_service.py`; AWS `lambda/match/missions.py` (`MSG_MISSION_CHANGE`, `_log`, `_step_number`, `on_story_end(match, story=None)`), `lambda/match/handler.py` classification. **Second pass**: Java `MissionService` (`rowsOf`, rewritten `transition`), `MatchLogsStorePort`/`MatchLogsStoreAdapter` (`findMissionIdCardsByUuid`, `findMissionStepIdCardsByMissionUuid`), `MatchLogsService.enrich`; Python `mission_service.py` (`_rows_of`), `match_logs_service.py` (`mission_cards`/`step_cards`, `_mission_uuid_of`/`_step_number_of`); AWS `lambda/match/missions.py` (`_rows_of`, `_write` now takes closed steps + `fresh`), `lambda/match/handler.py` (same two maps/helpers) |
+| Frontends (37.2) | react-game `MatchLogCard.jsx` (`TYPE_ICON`/`TYPE_COLOR` for `REGISTRY_CHANGE`/`MISSION_CHANGE`, `fa-magic` fix); react-admin `MatchLogsCard.jsx` (`TYPE_META`). **Second pass**: react-game `PlayerCards.jsx` (`entityType="matchlog"`), `MatchLogCard.jsx` (`LogEntryRow` replaces `LogEntryCard`, `registryDetail`, row layout), `en.json`/`it.json` (`book.matchlog`, `matchLog.types.REGISTRY_CHANGE`/`MISSION_CHANGE`) |
+| AWS fixes (37.2) | `lambda/match/handler.py` (`_class_ref`, `_resolve_and_validate_traits`, `_validate_class`); `lambda/common/http_utils.py` (`bearer_token_error`), `handler.py` `_resolve_user` |
+| Robot (37.2) | `code/tests/robot/tests/37_missions/mission_log.robot` (5 cases; **8** after the second pass) |
 
 ---
 
 # Version Control
 
-- **Document Version**: 0.37.1
+- **Document Version**: 0.37.2
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.37.0 | Mission tracking and progression, implemented: missions become a projection of the Step 36 registry — no operator, no state table, comparison always `"="` through `RegistryService.evaluate` (§0-§1); `condition_value`/`condition_values` (PIPE-separated AND) replace the from/to pair on `list_missions`/`list_missions_steps`, new unique `idx_missions_steps_order` (§8); status machine `AVAILABLE`→`ACTIVE`→`COMPLETED`/`FAILED`, persisted as (status + step reached) on `gaming_state_registry` via its existing `id_mission`/`id_mission_steps` columns, isolated from every player-facing registry read (§1-§2); completion events deferred through `MissionService.beginDeferral`/`endDeferral` around the four `EventExecutionService` entry points (§3); new `GET /api/match/{uuid}/missions` and `.../missions/{uuid}`, plus `missions[]` on `/info`, owner-only and 404-masked, a mission never reached simply absent from the list (§5); new validation rule `R10_MISSION_CONDITION`, report-only on the validate pass (§9); import bugs closed on Java and Python (§10); tutorial seed gained live writers for all mission keys plus a fourth, 0-step, set-AND mission (§11); react-admin `ChipListInput` and a required-condition-key guard, react-game's Missions bookmark goes live off `/info` (§12). | September 8, 2026 |
   | 0.37.1 | Bugfix: the start location's own first-entry registry pair — the one field a mission could gate on that could never fire — now writes at match start via `RegistryService.writeStartLocationEntry`, all three backends (§2, see [Step36 §14.1](./Step36_RegistrySystem.md#141-v0371-bugfix--the-start-locations-own-pair-never-wrote)); admin gains a read-only Missions tab (`MissionsCard.jsx`) on the match detail page; `mission-steps`' `idCard` field is now the card picker instead of a raw number (§12); new fixture — key `journey_begun` written on the second story's start location plus a mission reading it — in all four seeds (§11); new Robot suite `37_missions/mission_from_start.robot` (5 cases). Second pass, frontend: `MissionStepCard`'s status badge now only on a closed mission, full-size labelled badges, (i) always reachable; new `useBookView` `missionSteps` split-page view and `MissionStepsCards.jsx` render a mission's steps (only the next open one, to avoid spoilers); `CardsFastEditPage.jsx` recognizes `mission-steps` card references (§12). | September 9, 2026 |
+  | 0.37.2 | New match-log entry `MISSION_CHANGE`, written by the same call that saves a mission's state, naming it by uuid with the author's own step number (§13); classified by all three timeline assemblers and given an icon/colour in both frontends, alongside the previously-uncoloured `REGISTRY_CHANGE` (§13); collateral fix — `onStoryEnd` now resolves mission uuids once so a FAILED close names the mission consistently with `advance`; new Robot suite `37_missions/mission_log.robot` (5 cases); AWS bugfix — empty class/trait-budget references from admin-authored stories no longer 500 on match creation (§14); AWS 401 codes aligned with the Java filter's `MISSING_TOKEN`/`EMPTY_TOKEN`/`INVALID_TOKEN` scale, scoped to the `match` lambda (§14). **Second pass**: one engine pass now writes one row **per thing that happened** instead of one naming only the last step — mission opening, each step closed (story order), and a completed mission's last step closes with the step's row then the mission's own (§13); a `MISSION_CHANGE` row now resolves and carries its own `idCard`/`card` (mission uuid, or `uuid/step` for a step; a step with no card stays card-less, never falls back to the mission's), fixing a null-uuid `NullPointerException` that 500'd the whole timeline (§13); all four seeds give the tutorial's missions/steps and the second story's mission/step pair an `id_card`; react-game's history is now a row list (`LogEntryRow`) instead of card tiles, opens via `entityType="matchlog"` ("History"/"Cronologia") instead of "Story", and `REGISTRY_CHANGE` rows show the written value with no lens; Robot's `mission_log.robot` grows from 5 to 8 cases. | September 9, 2026 |
 
 - **Last Updated**: September 9, 2026
 - **Status**: Complete

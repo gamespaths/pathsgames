@@ -10,6 +10,8 @@ import games.paths.core.entity.match.LogWeatherEntity;
 import games.paths.core.entity.story.CharacterTemplateEntity;
 import games.paths.core.entity.story.EventEntity;
 import games.paths.core.entity.story.ItemEntity;
+import games.paths.core.entity.story.MissionEntity;
+import games.paths.core.entity.story.MissionStepEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.WeatherRuleEntity;
 import games.paths.core.port.match.MatchLogsStorePort;
@@ -29,6 +31,8 @@ import games.paths.core.repository.match.LogWeatherRepository;
 import games.paths.core.repository.story.CharacterTemplateRepository;
 import games.paths.core.repository.story.EventRepository;
 import games.paths.core.repository.story.ItemRepository;
+import games.paths.core.repository.story.MissionRepository;
+import games.paths.core.repository.story.MissionStepRepository;
 import games.paths.core.repository.story.LocationRepository;
 import games.paths.core.repository.story.WeatherRuleRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,6 +65,8 @@ class MatchLogsStoreAdapterTest {
     private EventRepository eventRepository;
     private LogItemUsageRepository logItemUsageRepository;
     private ItemRepository itemRepository;
+    private MissionRepository missionRepository;
+    private MissionStepRepository missionStepRepository;
     private MatchLogsStoreAdapter adapter;
 
     @BeforeEach
@@ -77,11 +83,13 @@ class MatchLogsStoreAdapterTest {
         eventRepository = mock(EventRepository.class);
         logItemUsageRepository = mock(LogItemUsageRepository.class);
         itemRepository = mock(ItemRepository.class);
+        missionRepository = mock(MissionRepository.class);
+        missionStepRepository = mock(MissionStepRepository.class);
         adapter = new MatchLogsStoreAdapter(matchRepository, logWeatherRepository,
                 logMovementRepository, logClockHistoryRepository, logEventsRepository,
                 logItemUsageRepository, weatherRuleRepository, locationRepository,
                 characterTemplateRepository, characterInstanceRepository, eventRepository,
-                itemRepository);
+                itemRepository, missionRepository, missionStepRepository);
     }
 
     @Test
@@ -213,6 +221,50 @@ class MatchLogsStoreAdapterTest {
         when(eventRepository.findByIdStory(9L)).thenReturn(List.of(ev));
 
         assertEquals(Map.of(60L, 404), adapter.findEventIdCards(9L));
+    }
+
+    @Test
+    @DisplayName("v0.37.2 — mission cards are keyed by UUID, and one without a uuid is skipped")
+    void findMissionIdCardsByUuid_keysByUuid() {
+        MissionEntity named = new MissionEntity();
+        named.setId(1L);
+        named.setUuid("m-1");
+        named.setIdCard(70);
+        MissionEntity unnamed = new MissionEntity();
+        unnamed.setId(2L);
+        when(missionRepository.findByIdStory(9L)).thenReturn(List.of(named, unnamed));
+
+        // The log names a mission by uuid, so that is the key; a row without one could never
+        // be matched against a message and is left out rather than keyed by null.
+        assertEquals(Map.of("m-1", 70), adapter.findMissionIdCardsByUuid(9L));
+    }
+
+    @Test
+    @DisplayName("v0.37.2 — step cards are keyed mission-uuid/step, the author's own number")
+    void findMissionStepIdCards_keysByMissionUuidAndStep() {
+        MissionEntity mission = new MissionEntity();
+        mission.setId(1L);
+        mission.setUuid("m-1");
+        when(missionRepository.findByIdStory(9L)).thenReturn(List.of(mission));
+
+        MissionStepEntity step = new MissionStepEntity();
+        step.setId(10L);
+        step.setIdMission(1);
+        step.setStep(7);
+        step.setIdCard(71);
+        MissionStepEntity orphan = new MissionStepEntity();
+        orphan.setId(11L);
+        orphan.setIdMission(99);
+        orphan.setStep(1);
+        MissionStepEntity unnumbered = new MissionStepEntity();
+        unnumbered.setId(12L);
+        unnumbered.setIdMission(1);
+        when(missionStepRepository.findByIdStory(9L))
+                .thenReturn(List.of(step, orphan, unnumbered));
+
+        // A step of no mission this story declares, and one with no number, cannot be matched
+        // against a message and are left out rather than keyed by null.
+        assertEquals(Map.of("m-1/7", 71), adapter.findMissionStepIdCardsByMissionUuid(9L));
     }
 
     @Test

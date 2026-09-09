@@ -9,6 +9,8 @@ import games.paths.core.entity.match.LogWeatherEntity;
 import games.paths.core.entity.story.CharacterTemplateEntity;
 import games.paths.core.entity.story.EventEntity;
 import games.paths.core.entity.story.ItemEntity;
+import games.paths.core.entity.story.MissionEntity;
+import games.paths.core.entity.story.MissionStepEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.WeatherRuleEntity;
 import games.paths.core.port.match.MatchLogsStorePort;
@@ -23,6 +25,8 @@ import games.paths.core.repository.story.CharacterTemplateRepository;
 import games.paths.core.repository.story.EventRepository;
 import games.paths.core.repository.story.ItemRepository;
 import games.paths.core.repository.story.LocationRepository;
+import games.paths.core.repository.story.MissionRepository;
+import games.paths.core.repository.story.MissionStepRepository;
 import games.paths.core.repository.story.WeatherRuleRepository;
 
 import org.springframework.stereotype.Repository;
@@ -58,6 +62,8 @@ public class MatchLogsStoreAdapter implements MatchLogsStorePort {
     private final GamingCharacterInstanceRepository characterInstanceRepository;
     private final EventRepository eventRepository;
     private final ItemRepository itemRepository;
+    private final MissionRepository missionRepository;
+    private final MissionStepRepository missionStepRepository;
 
     public MatchLogsStoreAdapter(GamingMatchRepository matchRepository,
                                  LogWeatherRepository logWeatherRepository,
@@ -70,7 +76,9 @@ public class MatchLogsStoreAdapter implements MatchLogsStorePort {
                                  CharacterTemplateRepository characterTemplateRepository,
                                  GamingCharacterInstanceRepository characterInstanceRepository,
                                  EventRepository eventRepository,
-                                 ItemRepository itemRepository) {
+                                 ItemRepository itemRepository,
+                                 MissionRepository missionRepository,
+                                 MissionStepRepository missionStepRepository) {
         this.matchRepository = matchRepository;
         this.logWeatherRepository = logWeatherRepository;
         this.logMovementRepository = logMovementRepository;
@@ -83,6 +91,8 @@ public class MatchLogsStoreAdapter implements MatchLogsStorePort {
         this.characterInstanceRepository = characterInstanceRepository;
         this.eventRepository = eventRepository;
         this.itemRepository = itemRepository;
+        this.missionRepository = missionRepository;
+        this.missionStepRepository = missionStepRepository;
     }
 
     @Override
@@ -188,6 +198,34 @@ public class MatchLogsStoreAdapter implements MatchLogsStorePort {
         Map<Long, Integer> out = new LinkedHashMap<>();
         for (ItemEntity i : itemRepository.findByIdStory(idStory)) {
             out.put(i.getId(), i.getIdCard());
+        }
+        return out;
+    }
+
+    @Override
+    public Map<String, Integer> findMissionIdCardsByUuid(long idStory) {
+        Map<String, Integer> out = new LinkedHashMap<>();
+        for (MissionEntity m : missionRepository.findByIdStory(idStory)) {
+            if (m.getUuid() != null) {
+                out.put(m.getUuid(), m.getIdCard());
+            }
+        }
+        return out;
+    }
+
+    @Override
+    public Map<String, Integer> findMissionStepIdCardsByMissionUuid(long idStory) {
+        Map<Long, String> uuids = new LinkedHashMap<>();
+        for (MissionEntity m : missionRepository.findByIdStory(idStory)) {
+            uuids.put(m.getId(), m.getUuid());
+        }
+        Map<String, Integer> out = new LinkedHashMap<>();
+        for (MissionStepEntity step : missionStepRepository.findByIdStory(idStory)) {
+            String uuid = step.getIdMission() == null
+                    ? null : uuids.get(step.getIdMission().longValue());
+            if (uuid != null && step.getStep() != null) {
+                out.put(uuid + "/" + step.getStep(), step.getIdCard());
+            }
         }
         return out;
     }

@@ -112,7 +112,8 @@
     "map": "Map",
     "automatic-event": "Event",
     "automatic-event-done": "Continue",
-    "registry": "Registry"
+    "registry": "Registry",
+    "matchlog": "History"
   },
   "startMatch": {
     "starting": "Starting match…",
@@ -163,7 +164,9 @@
       "AUTOMATIC_EVENT": "Event",
       "ITEM_ADD": "Item found",
       "ITEM_USE": "Item used",
-      "ITEM_DROP": "Item left behind"
+      "ITEM_DROP": "Item left behind",
+      "REGISTRY_CHANGE": "Registry",
+      "MISSION_CHANGE": "Mission"
     }
   },
   "card": {

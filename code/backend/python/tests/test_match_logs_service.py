@@ -23,6 +23,8 @@ from app.adapters.persistence.story.models import (
     EventEntity,
     ItemEntity,
     LocationEntity,
+    MissionEntity,
+    MissionStepEntity,
     WeatherRuleEntity,
 )
 from app.core.models.story.card_info import CardInfo
@@ -607,3 +609,77 @@ def test_v0354_every_entry_carries_the_eight_resource_fields_whatever_its_type(s
             assert entry[f"{name}Gain"] is not None, f"{name}Gain missing on {entry['type']}"
     weather = next(e for e in logs if e["type"] == "WEATHER")
     assert (weather["energyCost"], weather["coinGain"]) == (0, 0)
+
+
+# ── v0.37.2 — a mission row is narrated by the mission's own card ─────────────
+
+def _seed_mission_row(session_factory, message, row_id=21):
+    with session_factory() as s:
+        s.add(LogEventsEntity(id=row_id, id_match=MATCH_ID, uuid=f"e{row_id}", timestamp=_NOW,
+                              clock=4, log_message=message, ts_insert=_NOW, ts_update=_NOW))
+        s.commit()
+
+
+def _seed_mission_and_step(session_factory):
+    with session_factory() as s:
+        s.add(MissionEntity(id=1, id_story=STORY_ID, uuid="m-1", condition_key="k",
+                            condition_value="1", id_card=70))
+        s.add(MissionStepEntity(id=10, id_story=STORY_ID, id_mission=1, step=7,
+                                condition_key="s1", condition_value="1", id_card=71))
+        s.commit()
+
+
+def test_v0372_a_row_about_the_mission_itself_carries_the_missions_card(session_factory):
+    _seed_match(session_factory)
+    _seed_mission_and_step(session_factory)
+    # No step named: the mission opening, or the row that says it is over.
+    _seed_mission_row(session_factory, "MISSION_CHANGE m-1 none -> AVAILABLE")
+    content = _FakeContentQueryService({70: "The Journey", 71: "Reach the hills"})
+
+    entry = MatchLogsService(session_factory, content).get_match_logs_for_admin(MATCH_UUID)["logs"][0]
+
+    assert entry["type"] == "MISSION_CHANGE"
+    # The uuid in the message is the only handle the row has: no mission column exists.
+    assert entry["idCard"] == 70
+    assert entry["card"]["title"] == "The Journey"
+
+
+def test_v0372_a_row_that_names_a_step_carries_the_steps_card(session_factory):
+    _seed_match(session_factory)
+    _seed_mission_and_step(session_factory)
+    _seed_mission_row(session_factory, "MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 7")
+    content = _FakeContentQueryService({70: "The Journey", 71: "Reach the hills"})
+
+    entry = MatchLogsService(session_factory, content).get_match_logs_for_admin(MATCH_UUID)["logs"][0]
+
+    # An advance is the STEP's news; the mission's card is for its opening and its end.
+    assert entry["idCard"] == 71
+    assert entry["card"]["title"] == "Reach the hills"
+
+
+def test_v0372_a_step_the_story_does_not_declare_leaves_the_row_without_a_card(session_factory):
+    _seed_match(session_factory)
+    _seed_mission_and_step(session_factory)
+    _seed_mission_row(session_factory, "MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 9")
+    content = _FakeContentQueryService({70: "The Journey", 71: "Reach the hills"})
+
+    entry = MatchLogsService(session_factory, content).get_match_logs_for_admin(MATCH_UUID)["logs"][0]
+
+    # It does NOT fall back to the mission's card: that would narrate an advance with the
+    # wrong picture.
+    assert entry["card"] is None
+
+
+def test_v0372_an_unknown_mission_and_a_shapeless_message_carry_no_card(session_factory):
+    _seed_match(session_factory)
+    with session_factory() as s:
+        s.add(MissionEntity(id=1, id_story=STORY_ID, uuid="m-1", condition_key="k",
+                            condition_value="1", id_card=70))
+        s.commit()
+    _seed_mission_row(session_factory, "MISSION_CHANGE m-9 none -> AVAILABLE")
+    logs = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"]
+    assert logs[0]["card"] is None
+
+    _seed_mission_row(session_factory, "MISSION_CHANGE", row_id=22)
+    logs = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"]
+    assert all(e["card"] is None for e in logs)

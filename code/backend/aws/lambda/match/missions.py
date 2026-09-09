@@ -12,6 +12,7 @@ deliberately so: an unfinished mission must not open itself.
 State rides on the match item's ``registry`` list, one row per mission carrying ``idMission``,
 which is exactly what keeps it out of every player-facing registry read.
 """
+import time as _time
 import uuid as _uuid
 
 from common.data_utils import resolve_card_from_raw as _card, resolve_raw_text as _text
@@ -25,6 +26,12 @@ STATUS_FAILED = 'FAILED'
 
 # The reserved key prefix of a bookkeeping row. Never declared in the story's keys.
 KEY_PREFIX = 'mission:'
+
+# v0.37.2 - the audit row of a mission that moved. The state row alone said WHERE a match
+# stands and never HOW it got there: the timeline carried the registry write that opened a
+# mission but not the opening. One writer, _write, so a move can be neither missed nor
+# doubled - the same rule REGISTRY_CHANGE follows.
+MSG_MISSION_CHANGE = 'MISSION_CHANGE'
 
 _TERMINAL = (STATUS_COMPLETED, STATUS_FAILED)
 
@@ -84,11 +91,19 @@ def evaluate(match, story, clock=None):
     return pending
 
 
-def on_story_end(match):
+def on_story_end(match, story=None):
     """Everything still open when the story ends has failed; what never opened is ignored."""
+    # v0.37.2 - named by uuid like every other MISSION_CHANGE, so one reader parses the whole
+    # timeline; the story is read once, at the end, for that alone.
+    uuids = {_int(m.get('id')): (m.get('uuid') or m.get('id'))
+             for m in ((story or {}).get('missions') or [])}
     for row in _registry.mission_states(match):
-        if row.get('stringValue') in (STATUS_AVAILABLE, STATUS_ACTIVE):
+        previous = row.get('stringValue')
+        if previous in (STATUS_AVAILABLE, STATUS_ACTIVE):
             row['stringValue'] = STATUS_FAILED
+            id_mission = _int(row.get('idMission'))
+            _log(match, uuids.get(id_mission, id_mission), previous, STATUS_FAILED, None,
+                 row.get('clock'))
 
 
 def _advance(match, mission, steps, values, state, clock):
@@ -105,9 +120,13 @@ def _advance(match, mission, steps, values, state, clock):
     index = _index_of(steps, reached) + 1
     moved = fresh
     closed = []
+    # v0.37.2 — the steps this very pass closed, in order: each one gets a log row of its own,
+    # so the timeline can narrate it with the STEP's card rather than the mission's.
+    closed_steps = []
     while index < len(steps) and satisfied(steps[index], values):
         reached = _int(steps[index].get('id'))
         closed.append(steps[index].get('idEventCompleted'))
+        closed_steps.append(steps[index])
         index += 1
         moved = True
     if not moved:
@@ -118,7 +137,8 @@ def _advance(match, mission, steps, values, state, clock):
     elif reached is not None:
         status = STATUS_ACTIVE
 
-    _write(match, mission, state, status, reached, clock)
+    _write(match, mission, state, None if fresh else state.get('stringValue'), status,
+           reached, closed_steps, fresh, clock)
     pending = [e for e in closed if e is not None and _int(e) and _int(e) > 0]
     if status == STATUS_COMPLETED:
         own = mission.get('idEventCompleted')
@@ -127,7 +147,14 @@ def _advance(match, mission, steps, values, state, clock):
     return [_int(e) for e in pending]
 
 
-def _write(match, mission, state, status, reached, clock):
+def _write(match, mission, state, previous, status, reached, closed_steps, fresh, clock):
+    """Write the state and say so on the log. The two belong together: a status the timeline
+    does not mention is one nobody can explain after the fact.
+
+    v0.37.2 — one pass can be several things happening at once, and each of them is its own row,
+    because each is narrated by a different card: the MISSION's when it opens and again when it
+    is over, the STEP's for every step the pass closed. A row naming a step is what tells the
+    timeline which of the two to resolve."""
     if state is None:
         state = {
             'id': _next_id(match),
@@ -140,6 +167,36 @@ def _write(match, mission, state, status, reached, clock):
     state['stringValue'] = status
     state['idMissionSteps'] = reached
     state['clock'] = clock
+    for step in _rows_of(closed_steps, status, fresh):
+        _log(match, mission.get('uuid') or mission.get('id'), previous, status, step, clock)
+
+
+def _log(match, name, previous, status, step, clock):
+    """One MISSION_CHANGE row. Nobody in the fiction moves a mission, so no character rides
+    on it — otherwise the same shape a registry write leaves behind."""
+    detail = f"{MSG_MISSION_CHANGE} {name} {previous or 'none'} -> {status}"
+    if step is not None:
+        # The step number the author wrote, not the row id: the log is read by a person.
+        detail = f"{detail} step {step}"
+    match.setdefault('eventLog', []).append({
+        'message': detail,
+        'clock': clock,
+        'timestamp': int(_time.time() * 1000),
+        'characterUuid': None,
+        'idEvent': None,
+    })
+
+
+def _rows_of(closed_steps, status, fresh):
+    """The rows one pass writes, as the step each names — None for the mission itself. A mission
+    that opens says so, every step it closed says so, and a mission that is over says THAT too,
+    after its last step."""
+    rows = [None] if fresh else []
+    rows.extend((step or {}).get('step') for step in closed_steps)
+    if status == STATUS_COMPLETED and closed_steps:
+        rows.append(None)
+    # Neither opened nor closed anything, yet the state moved: say it once, plainly.
+    return rows or [None]
 
 
 def _next_id(match):

@@ -45,6 +45,19 @@ public interface MatchLogsStorePort {
     /** Item (list_items) id → its own {@code id_card}, for every item of the story (v0.35.4). */
     Map<Long, Integer> findItemIdCards(long idStory);
 
+    /**
+     * v0.37.2 — mission UUID to its {@code id_card}. Keyed by uuid, not by id, because that is
+     * what a {@code MISSION_CHANGE} row names: the log is the only reader, and it reads names.
+     */
+    Map<String, Integer> findMissionIdCardsByUuid(long idStory);
+
+    /**
+     * v0.37.2 — mission step {@code id_card}, keyed {@code "<mission uuid>/<step>"}. A row that
+     * names a step is narrated by the STEP's card: an advance is the step's news, not the
+     * mission's, and the mission's own card is kept for its opening and its end.
+     */
+    Map<String, Integer> findMissionStepIdCardsByMissionUuid(long idStory);
+
     /** Character instance id → its uuid and template, for every character of the match. */
     Map<Long, CharacterLogView> findCharactersByMatch(long idMatch);
 

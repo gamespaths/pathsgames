@@ -15,6 +15,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import org.mockito.ArgumentCaptor;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -26,6 +28,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 @DisplayName("MissionService (Step 37)")
@@ -471,6 +474,145 @@ class MissionServiceTest {
                     2L, 20L, null);
             verify(store, never()).upsertMissionState(anyLong(), any(),
                     eq(MissionService.STATUS_FAILED), eq(3L), any(), any());
+        }
+    }
+
+    // ── the timeline (v0.37.2) ─────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("v0.37.2 - every move says so on the log")
+    class Timeline {
+
+        private List<String> allMessages() {
+            ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
+            verify(store, atLeastOnce()).logChange(eq(MATCH), isNull(), isNull(), isNull(),
+                    any(), message.capture());
+            return message.getAllValues();
+        }
+
+        private String lastMessage() {
+            ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
+            verify(store, atLeastOnce()).logChange(eq(MATCH), isNull(), isNull(), isNull(),
+                    any(), message.capture());
+            return message.getValue();
+        }
+
+        @Test
+        @DisplayName("opening one names the mission, both statuses and no step yet")
+        void opening() {
+            story(List.of(mission(1, "k", "1", null)),
+                    List.of(step(10, 1, 1, "s1", "1", null)));
+            registry("k", "1");
+
+            service.onRegistryChange(MATCH, STORY, 4);
+
+            assertEquals("MISSION_CHANGE m-1 none -> AVAILABLE", lastMessage());
+        }
+
+        @Test
+        @DisplayName("closing a step names the number the AUTHOR wrote, not the row id")
+        void stepClosed() {
+            story(List.of(mission(1, "k", "1", null)),
+                    List.of(step(10, 1, 7, "s1", "1", null), step(11, 1, 9, "s2", "1", null)));
+            registry("k", "1", "s1", "1");
+            states(new MissionStateRow(1L, null, MissionService.STATUS_AVAILABLE));
+
+            service.onRegistryChange(MATCH, STORY, 5);
+
+            assertEquals("MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 7", lastMessage());
+        }
+
+        @Test
+        @DisplayName("a mission with no step at all completes, and the row says so")
+        void completed() {
+            story(List.of(mission(1, "k", "1", null)), List.of());
+            registry("k", "1");
+
+            service.onRegistryChange(MATCH, STORY, 2);
+
+            assertEquals("MISSION_CHANGE m-1 none -> COMPLETED", lastMessage());
+        }
+
+        @Test
+        @DisplayName("a mission that does not move writes no row at all")
+        void quiet() {
+            story(List.of(mission(1, "k", "1", null)),
+                    List.of(step(10, 1, 1, "s1", "1", null)));
+            registry("k", "other");
+
+            service.onRegistryChange(MATCH, STORY, 1);
+
+            verify(store, never()).logChange(anyLong(), any(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("v0.37.2 - closing the LAST step writes the step row and then the mission's")
+        void lastStepAndTheMission() {
+            story(List.of(mission(1, "k", "1", null)),
+                    List.of(step(10, 1, 7, "s1", "1", null)));
+            registry("k", "1", "s1", "1");
+            states(new MissionStateRow(1L, null, MissionService.STATUS_AVAILABLE));
+
+            service.onRegistryChange(MATCH, STORY, 6);
+
+            // Two rows: the step is the step's news, the end is the mission's — and the
+            // timeline narrates each with its own card.
+            assertEquals(List.of("MISSION_CHANGE m-1 AVAILABLE -> COMPLETED step 7",
+                            "MISSION_CHANGE m-1 AVAILABLE -> COMPLETED"),
+                    allMessages());
+        }
+
+        @Test
+        @DisplayName("v0.37.2 - two steps closed at once are two rows, in the story's order")
+        void everyStepClosedGetsItsOwnRow() {
+            story(List.of(mission(1, "k", "1", null)),
+                    List.of(step(10, 1, 1, "s1", "1", null), step(11, 1, 2, "s2", "1", null),
+                            step(12, 1, 3, "s3", "1", null)));
+            registry("k", "1", "s1", "1", "s2", "1");
+            states(new MissionStateRow(1L, null, MissionService.STATUS_AVAILABLE));
+
+            service.onRegistryChange(MATCH, STORY, 7);
+
+            assertEquals(List.of("MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 1",
+                            "MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 2"),
+                    allMessages());
+        }
+
+        @Test
+        @DisplayName("v0.37.2 - a mission that opens AND closes a step says both, mission first")
+        void openingAndClosingInOnePass() {
+            story(List.of(mission(1, "k", "1", null)),
+                    List.of(step(10, 1, 1, "k", "1", null), step(11, 1, 2, "s2", "1", null)));
+            registry("k", "1");
+
+            service.onRegistryChange(MATCH, STORY, 8);
+
+            assertEquals(List.of("MISSION_CHANGE m-1 none -> ACTIVE",
+                            "MISSION_CHANGE m-1 none -> ACTIVE step 1"),
+                    allMessages());
+        }
+
+        @Test
+        @DisplayName("what the story end fails is named by uuid, like every other row")
+        void failedAtStoryEnd() {
+            story(List.of(mission(1, "k", "1", null)), List.of());
+            states(new MissionStateRow(1L, null, MissionService.STATUS_ACTIVE));
+
+            service.onStoryEnd(MATCH);
+
+            assertEquals("MISSION_CHANGE m-1 ACTIVE -> FAILED", lastMessage());
+        }
+
+        @Test
+        @DisplayName("with no story port to ask, the failed row falls back to the id")
+        void failedWithoutAStory() {
+            MissionService bare = new MissionService(store);
+            when(store.findMissionStates(MATCH)).thenReturn(
+                    List.of(new MissionStateRow(1L, null, MissionService.STATUS_AVAILABLE)));
+
+            bare.onStoryEnd(MATCH);
+
+            assertEquals("MISSION_CHANGE 1 AVAILABLE -> FAILED", lastMessage());
         }
     }
 

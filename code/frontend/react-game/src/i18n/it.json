@@ -108,7 +108,8 @@
     "map": "Mappa",
     "automatic-event": "Evento",
     "automatic-event-done": "Continua",
-    "registry": "Registro"
+    "registry": "Registro",
+    "matchlog": "Cronologia"
   },
   "startMatch": {
     "starting": "Avvio della partita…",
@@ -159,7 +160,9 @@
       "AUTOMATIC_EVENT": "Evento",
       "ITEM_ADD": "Oggetto trovato",
       "ITEM_USE": "Oggetto usato",
-      "ITEM_DROP": "Oggetto lasciato"
+      "ITEM_DROP": "Oggetto lasciato",
+      "REGISTRY_CHANGE": "Registro",
+      "MISSION_CHANGE": "Missione"
     }
   },
   "card": {

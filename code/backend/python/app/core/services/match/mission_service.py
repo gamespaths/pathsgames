@@ -26,6 +26,12 @@ STATUS_FAILED = "FAILED"
 # The reserved key prefix of a bookkeeping row. Never declared in list_keys.
 KEY_PREFIX = "mission:"
 
+# v0.37.2 - the audit row of a mission that moved. The state row alone said WHERE a match
+# stands and never HOW it got there: the timeline carried the registry write that opened a
+# mission but not the opening. One writer, _transition, so a move can be neither missed nor
+# doubled - the same rule REGISTRY_CHANGE follows.
+MSG_MISSION_CHANGE = "MISSION_CHANGE"
+
 _TERMINAL = (STATUS_COMPLETED, STATUS_FAILED)
 
 
@@ -113,11 +119,25 @@ class MissionService:
 
     def on_story_end(self, id_match: int) -> None:
         """Everything still open when the story ends has failed; what never opened is ignored."""
+        uuids = self._mission_uuids(self.store.find_story_id_by_match(id_match))
         for state in self.store.find_mission_states(id_match) or []:
             if state.get("status") in (STATUS_AVAILABLE, STATUS_ACTIVE):
+                id_mission = state.get("id_mission")
                 self.store.upsert_mission_state(
-                    id_match, f"{KEY_PREFIX}{state.get('id_mission')}", STATUS_FAILED,
-                    state.get("id_mission"), state.get("id_mission_steps"), None)
+                    id_match, f"{KEY_PREFIX}{id_mission}", STATUS_FAILED,
+                    id_mission, state.get("id_mission_steps"), None)
+                # v0.37.2 - named by uuid like every other MISSION_CHANGE, so one reader parses
+                # the whole timeline; the story is read once, at the end, for that alone.
+                self.store.log_change(
+                    id_match, None, None, None, None,
+                    f"{MSG_MISSION_CHANGE} {uuids.get(id_mission, id_mission)} "
+                    f"{state.get('status')} -> {STATUS_FAILED}")
+
+    def _mission_uuids(self, id_story: Optional[int]) -> Dict[Any, str]:
+        """Mission id to uuid for one story. Empty when the story cannot be read."""
+        if id_story is None or self.story_read_port is None:
+            return {}
+        return {m.get("id"): _uuid_of(m) for m in self._missions(id_story)}
 
     def _advance(self, id_match: int, mission: Dict[str, Any], steps: List[Dict[str, Any]],
                  values: Dict[str, List[str]], state: Optional[Dict[str, Any]],
@@ -135,9 +155,13 @@ class MissionService:
         index = _index_of(steps, reached) + 1
         moved = fresh
         closed = []
+        # v0.37.2 — the steps this very pass closed, in order: each one gets a log row of its
+        # own, so the timeline can narrate it with the STEP's card rather than the mission's.
+        closed_steps = []
         while index < len(steps) and satisfied(steps[index], values):
             reached = steps[index].get("id")
             closed.append(steps[index].get("id_event_completed"))
+            closed_steps.append(steps[index])
             index += 1
             moved = True
         if not moved:
@@ -147,12 +171,31 @@ class MissionService:
             status = STATUS_COMPLETED
         elif reached is not None:
             status = STATUS_ACTIVE
-        self.store.upsert_mission_state(id_match, f"{KEY_PREFIX}{_uuid_of(mission)}", status,
-                                        mission.get("id"), reached, clock)
+        self._transition(id_match, mission, None if fresh else state.get("status"), status,
+                         reached, closed_steps, fresh, clock)
         for id_event in closed:
             self._queue(id_match, id_event)
         if status == STATUS_COMPLETED:
             self._queue(id_match, mission.get("id_event_completed"))
+
+    def _transition(self, id_match: int, mission: Dict[str, Any], previous: Optional[str],
+                    status: str, reached: Optional[int], closed_steps: List[Dict[str, Any]],
+                    fresh: bool, clock: Optional[int]) -> None:
+        """Write the state and say so on the log. The two belong together: a status the
+        timeline does not mention is one nobody can explain after the fact.
+
+        v0.37.2 — one pass can be several things happening at once, and each of them is its own
+        row, because each is narrated by a different card: the MISSION's when it opens and again
+        when it is over, the STEP's for every step the pass closed. A row naming a step is what
+        tells the timeline which of the two to resolve."""
+        self.store.upsert_mission_state(id_match, f"{KEY_PREFIX}{_uuid_of(mission)}", status,
+                                        mission.get("id"), reached, clock)
+        for step in _rows_of(closed_steps, status, fresh):
+            detail = f"{MSG_MISSION_CHANGE} {_uuid_of(mission)} {previous or 'none'} -> {status}"
+            if step is not None:
+                # The step number the author wrote, not the row id: a person reads this.
+                detail = f"{detail} step {step}"
+            self.store.log_change(id_match, None, None, None, clock, detail)
 
     def _queue(self, id_match: int, id_event: Optional[int]) -> None:
         if id_event is not None and int(id_event) > 0:
@@ -289,6 +332,18 @@ class MissionService:
         if self.content_query_port is None or id_card is None:
             return None
         return self.content_query_port.get_card_by_story_id_and_card_id(id_story, id_card, lang)
+
+
+def _rows_of(closed_steps: List[Dict[str, Any]], status: str, fresh: bool) -> List[Any]:
+    """The rows one pass writes, as the step each names — None for the mission itself. A mission
+    that opens says so, every step it closed says so, and a mission that is over says THAT too,
+    after its last step."""
+    rows: List[Any] = [None] if fresh else []
+    rows.extend(step.get("step") for step in closed_steps)
+    if status == STATUS_COMPLETED and closed_steps:
+        rows.append(None)
+    # Neither opened nor closed anything, yet the state moved: say it once, plainly.
+    return rows or [None]
 
 
 def _index_of(steps: List[Dict[str, Any]], reached: Optional[int]) -> int:

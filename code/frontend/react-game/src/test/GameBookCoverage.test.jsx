@@ -543,7 +543,8 @@ describe('GameBook — map and statistics view', () => {
   it('opens the match log page from the story card in the statistics view', async () => {
     renderBook()
     fireEvent.click(screen.getAllByTestId('preview-information')[0])
-    fireEvent.click(await screen.findByTestId('preview-story'))
+    // v0.37.2 — the story tile that opens the history is badged "History" (entityType).
+    fireEvent.click(await screen.findByTestId('preview-matchlog'))
     expect(await screen.findByTestId('match-log-card')).toBeInTheDocument()
   })
 

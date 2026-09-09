@@ -139,7 +139,9 @@ describe('PlayerCards — story card and match log', () => {
       playerStats={PLAYER_STATS} gameData={GAME_DATA}
       onPreview={onPreview} previewSide="right" onPreviewMatchLog={onPreviewMatchLog} />)
 
-    fireEvent.click(screen.getByTestId('preview-story'))
+    // v0.37.2 — the tile is badged "History", not "Story": what it opens is the history,
+    // and the player had no way of knowing that from a story picture.
+    fireEvent.click(screen.getByTestId('preview-matchlog'))
 
     // the story card is forced to the left page (not `previewSide`), no modal
     expect(onPreview).toHaveBeenCalledWith({ card: STORY.card, type: 'story', modal: false, side: 'left' })

@@ -47,6 +47,15 @@ public class MissionService {
     /** The reserved key prefix of a bookkeeping row. Never declared in {@code list_keys}. */
     private static final String KEY_PREFIX = "mission:";
 
+    /**
+     * v0.37.2 - the audit row of a mission that moved. The state row alone said WHERE a match
+     * stands and never HOW it got there: the timeline carried the registry write that opened a
+     * mission but not the opening, so reading a log meant knowing by heart which key belonged
+     * to which mission. One writer, {@link #transition}, so a move can be neither missed nor
+     * doubled - the same rule {@code REGISTRY_CHANGE} follows.
+     */
+    public static final String MSG_MISSION_CHANGE = "MISSION_CHANGE";
+
     private final RegistryStorePort store;
     private final StoryReadPort storyReadPort;
     private final ContentQueryPort contentQueryPort;
@@ -191,12 +200,31 @@ public class MissionService {
 
     /** Everything still open when the story ends has failed; what never opened is ignored. */
     public void onStoryEnd(long idMatch) {
+        Map<Long, String> uuids = missionUuids(store.findStoryIdByMatch(idMatch));
         for (MissionStateRow state : store.findMissionStates(idMatch)) {
             if (STATUS_AVAILABLE.equals(state.status()) || STATUS_ACTIVE.equals(state.status())) {
                 store.upsertMissionState(idMatch, KEY_PREFIX + state.idMission(), STATUS_FAILED,
                         state.idMission(), state.idMissionSteps(), null);
+                // v0.37.2 - named by uuid like every other MISSION_CHANGE, so one reader parses
+                // the whole timeline; the story is read once, at the end, for that alone.
+                store.logChange(idMatch, null, null, null, null,
+                        MSG_MISSION_CHANGE + " "
+                                + uuids.getOrDefault(state.idMission(), String.valueOf(state.idMission()))
+                                + " " + state.status() + " -> " + STATUS_FAILED);
             }
         }
+    }
+
+    /** Mission id to uuid for one story. Empty when the story cannot be read. */
+    private Map<Long, String> missionUuids(Long idStory) {
+        if (idStory == null || storyReadPort == null) {
+            return Map.of();
+        }
+        Map<Long, String> out = new HashMap<>();
+        for (MissionEntity mission : missions(idStory)) {
+            out.put(id(mission), uuidOf(mission));
+        }
+        return out;
     }
 
     /**
@@ -219,10 +247,14 @@ public class MissionService {
         int next = indexAfter(steps, reached);
         boolean moved = fresh;
         List<Integer> closed = new ArrayList<>();
+        // v0.37.2 — the steps this very pass closed, in order: each one gets a log row of its
+        // own, so the timeline can narrate it with the STEP's card rather than the mission's.
+        List<MissionStepEntity> closedSteps = new ArrayList<>();
         while (next < steps.size() && satisfied(steps.get(next), registry)) {
             MissionStepEntity step = steps.get(next);
             reached = step.getId();
             closed.add(step.getIdEventCompleted());
+            closedSteps.add(step);
             next++;
             moved = true;
         }
@@ -235,12 +267,67 @@ public class MissionService {
         } else if (reached != null) {
             status = STATUS_ACTIVE;
         }
-        store.upsertMissionState(idMatch, KEY_PREFIX + uuidOf(mission), status, id(mission),
-                reached, clock);
+        transition(idMatch, mission, fresh ? null : state.status(), status, reached,
+                closedSteps, fresh, clock);
         closed.forEach(idEvent -> queue(idMatch, idEvent));
         if (STATUS_COMPLETED.equals(status)) {
             queue(idMatch, mission.getIdEventCompleted());
         }
+    }
+
+    /**
+     * Write the state and say so on the log. The two belong together: a status the timeline
+     * does not mention is one nobody can explain after the fact.
+     *
+     * <p>v0.37.2 — one pass can be several things happening at once, and each of them is its
+     * own row, because each is narrated by a different card: the MISSION's when it opens and
+     * again when it is over, the STEP's for every step the pass closed. A row naming a step is
+     * what tells the timeline which of the two to resolve.</p>
+     */
+    @SuppressWarnings("java:S107")
+    private void transition(long idMatch, MissionEntity mission, String previous, String status,
+                            Long reached, List<MissionStepEntity> closedSteps, boolean fresh,
+                            Integer clock) {
+        store.upsertMissionState(idMatch, KEY_PREFIX + uuidOf(mission), status, id(mission),
+                reached, clock);
+        for (Integer step : rowsOf(closedSteps, status, fresh)) {
+            log(idMatch, mission, previous, status, step, clock);
+        }
+    }
+
+    /**
+     * The rows one pass writes, as the step each names — {@code null} for the mission itself.
+     * A mission that opens says so, every step it closed says so, and a mission that is over
+     * says THAT too, after its last step.
+     */
+    private static List<Integer> rowsOf(List<MissionStepEntity> closedSteps, String status,
+                                        boolean fresh) {
+        List<Integer> rows = new ArrayList<>();
+        if (fresh) {
+            rows.add(null);
+        }
+        closedSteps.forEach(step -> rows.add(step.getStep()));
+        if (STATUS_COMPLETED.equals(status) && !closedSteps.isEmpty()) {
+            rows.add(null);
+        }
+        if (rows.isEmpty()) {
+            // Neither opened nor closed anything, yet the state moved: say it once, plainly.
+            rows.add(null);
+        }
+        return rows;
+    }
+
+    private void log(long idMatch, MissionEntity mission, String previous, String status,
+                     Integer step, Integer clock) {
+        StringBuilder detail = new StringBuilder(MSG_MISSION_CHANGE)
+                .append(' ').append(uuidOf(mission))
+                .append(' ').append(previous == null ? "none" : previous)
+                .append(" -> ").append(status);
+        if (step != null) {
+            // The step number the author wrote, not the row id: the log is read by a person.
+            detail.append(" step ").append(step);
+        }
+        store.logChange(idMatch, null, null, null, clock, detail.toString());
     }
 
     private void queue(long idMatch, Integer idEvent) {

@@ -61,6 +61,8 @@ class MatchLogsServiceTest {
         when(store.findCharacterTemplateIdCards(STORY_ID)).thenReturn(Map.of());
         when(store.findEventIdCards(STORY_ID)).thenReturn(Map.of());
         when(store.findItemIdCards(STORY_ID)).thenReturn(Map.of());
+        when(store.findMissionIdCardsByUuid(STORY_ID)).thenReturn(Map.of());
+        when(store.findMissionStepIdCardsByMissionUuid(STORY_ID)).thenReturn(Map.of());
         when(store.findCharactersByMatch(MATCH_ID)).thenReturn(Map.of());
         when(userAccessPort.findByUuid(USER_UUID))
                 .thenReturn(Optional.of(new UserAccessPort.UserView(USER_ID, USER_UUID, "u", "PLAYER", 2)));
@@ -746,6 +748,76 @@ class MatchLogsServiceTest {
 
             assertEquals("REGISTRY_CHANGE", e.type());
             assertNull(e.card());
+        }
+
+        @Test
+        @DisplayName("v0.37.2 — a row about the MISSION itself wears the mission's own card")
+        void missionChangeCard() {
+            // No step named: this is the mission opening, or the row that says it is over.
+            when(store.findEventLog(MATCH_ID)).thenReturn(List.of(new EventLogEntry(
+                    1L, null, 4, "2026-01-01T00:01:30Z",
+                    MissionService.MSG_MISSION_CHANGE + " m-1 none -> AVAILABLE",
+                    null, null)));
+            when(store.findMissionIdCardsByUuid(STORY_ID)).thenReturn(Map.of("m-1", 70));
+            when(contentQueryPort.getCardByStoryIdAndCardId(STORY_ID, 70, "en"))
+                    .thenReturn(card("The Journey"));
+
+            LogEntry e = admin().logs().get(0);
+
+            assertEquals("MISSION_CHANGE", e.type());
+            // The uuid in the message is the only handle the row has: no mission column exists.
+            assertEquals("The Journey", e.card().title());
+        }
+
+        @Test
+        @DisplayName("v0.37.2 — a row that names a STEP wears the step's card, not the mission's")
+        void missionStepCard() {
+            when(store.findEventLog(MATCH_ID)).thenReturn(List.of(new EventLogEntry(
+                    1L, null, 4, "2026-01-01T00:01:30Z",
+                    MissionService.MSG_MISSION_CHANGE + " m-1 AVAILABLE -> ACTIVE step 7",
+                    null, null)));
+            when(store.findMissionIdCardsByUuid(STORY_ID)).thenReturn(Map.of("m-1", 70));
+            when(store.findMissionStepIdCardsByMissionUuid(STORY_ID))
+                    .thenReturn(Map.of("m-1/7", 71));
+            when(contentQueryPort.getCardByStoryIdAndCardId(STORY_ID, 71, "en"))
+                    .thenReturn(card("Reach the hills"));
+
+            LogEntry e = admin().logs().get(0);
+
+            // An advance is the STEP's news; the mission's card is for its opening and its end.
+            assertEquals(71, e.idCard());
+            assertEquals("Reach the hills", e.card().title());
+        }
+
+        @Test
+        @DisplayName("v0.37.2 — a step with no card of its own leaves the row without one")
+        void missionStepWithoutACard() {
+            when(store.findEventLog(MATCH_ID)).thenReturn(List.of(new EventLogEntry(
+                    1L, null, 4, "2026-01-01T00:01:30Z",
+                    MissionService.MSG_MISSION_CHANGE + " m-1 AVAILABLE -> ACTIVE step 9",
+                    null, null)));
+            when(store.findMissionIdCardsByUuid(STORY_ID)).thenReturn(Map.of("m-1", 70));
+            when(store.findMissionStepIdCardsByMissionUuid(STORY_ID))
+                    .thenReturn(Map.of("m-1/7", 71));
+
+            // Step 9 is not in the map: the row does NOT fall back to the mission's card,
+            // which would narrate an advance with the wrong picture.
+            assertNull(admin().logs().get(0).card());
+        }
+
+        @Test
+        @DisplayName("v0.37.2 — a mission row nothing can be matched against carries no card")
+        void missionChangeWithoutACard() {
+            when(store.findEventLog(MATCH_ID)).thenReturn(List.of(
+                    new EventLogEntry(1L, null, 4, "2026-01-01T00:01:30Z",
+                            MissionService.MSG_MISSION_CHANGE + " m-9 none -> AVAILABLE", null, null),
+                    new EventLogEntry(2L, null, 4, "2026-01-01T00:01:31Z",
+                            MissionService.MSG_MISSION_CHANGE, null, null)));
+            when(store.findMissionIdCardsByUuid(STORY_ID)).thenReturn(Map.of("m-1", 70));
+
+            // An unknown mission, and a message with no uuid at all: neither is an error.
+            assertNull(admin().logs().get(0).card());
+            assertNull(admin().logs().get(1).card());
         }
 
         @Test

@@ -33,7 +33,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `34_inventory` | Steps 34/35 inventory, resources, use/drop, effects preview, quantities, v0.35.4 item logs (see breakdown below) |
 | `35_import_integrity` | v0.35.8 import/schema/admin-CRUD regressions — ships its own story, no seed (see breakdown below) |
 | `36_registry` | Step 36 registry read API, v0.36.1 multi-valued keys, v0.36.3 `forced_move.robot` + v0.36.4 `registry_repeated_writes.robot` (see breakdown below) |
-| `37_missions` | Step 37 mission read API, the status machine, the condition semantics, and the v0.37.1 match-start trigger fix (see breakdown below) |
+| `37_missions` | Step 37 mission read API, the status machine, the condition semantics, the v0.37.1 match-start trigger fix, and the v0.37.2 `MISSION_CHANGE` log entry (see breakdown below) |
 
 ### `19_match` breakdown
 
@@ -265,7 +265,8 @@ flagVisited.
 
 ### `37_missions` breakdown
 
-Three files, 24 tests, sharing `resources/missions.resource`:
+Three files, 24 tests, sharing `resources/missions.resource` (plus `mission_from_start.robot`
+and `mission_log.robot` below, v0.37.1/v0.37.2):
 
 - `missions.robot` (10) — the read API. A mission the match has never reached is ABSENT, not
   LOCKED: the list of a fresh match is empty, and asking for such a mission by uuid is 404
@@ -298,6 +299,18 @@ list, so a leaner seed does not fail the suite.
   an unsatisfied step stays `AVAILABLE`. The fixture is found by BEHAVIOUR — the first public
   story whose start location's `keyToAdd` a mission reads — and the whole suite `Skip`s if no
   seed has one. `--dryrun` passes; not yet run against a live backend.
+
+- `mission_log.robot` (v0.37.2, **8** cases, grew from 5 in a second pass) — the new
+  `MISSION_CHANGE` match-log entry: a match that never moves a mission writes none; opening
+  one writes exactly one row naming the mission and its two states; that row names no
+  character; closing a step writes another row with the author's own step number, not the row
+  id; a `MISSION_CHANGE` always follows the `REGISTRY_CHANGE` that caused it (state first, log
+  second); a mission row carries the mission's own `idCard`/title; a step row carries its own
+  card, not the card of the event that opened it; and "Closing The Last Step Says So Twice"
+  plays a mission to completion and checks the row count (`len(steps) + 2`), that the
+  penultimate row names the last step, and the last names none. Fixtures found by BEHAVIOUR
+  through `resources/missions.resource`, no seeded uuid; the three new cases `Skip` when the
+  story gives no mission a card.
 
 ### `35_import_integrity` breakdown
 

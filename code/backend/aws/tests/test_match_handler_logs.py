@@ -379,17 +379,23 @@ STORY = {
     'locations': [{'id': 2, 'uuid': 'loc-2', 'idCard': 400}],
     'characterTemplates': [{'uuid': 'tpl-9', 'idCard': 500}],
     'events': [{'id': 90010, 'idCard': 600}],
+    'missions': [{'id': 1, 'uuid': 'm-1', 'idCard': 700}],
+    'missionSteps': [{'id': 10, 'idMission': 1, 'step': 7, 'idCard': 701}],
     'raw_cards': [
         {'id': 300, 'uuid': 'card-300', 'idTextTitle': 1},
         {'id': 400, 'uuid': 'card-400', 'idTextTitle': 2},
         {'id': 500, 'uuid': 'card-500', 'idTextTitle': 3},
         {'id': 600, 'uuid': 'card-600', 'idTextTitle': 4},
+        {'id': 700, 'uuid': 'card-700', 'idTextTitle': 5},
+        {'id': 701, 'uuid': 'card-701', 'idTextTitle': 6},
     ],
     'raw_texts': [
         {'idText': 1, 'lang': 'en', 'shortText': 'Thunderstorm'},
         {'idText': 2, 'lang': 'en', 'shortText': 'Dark Forest'},
         {'idText': 3, 'lang': 'en', 'shortText': 'Ranger'},
         {'idText': 4, 'lang': 'en', 'shortText': 'A Fork In The Road'},
+        {'idText': 5, 'lang': 'en', 'shortText': 'The Journey'},
+        {'idText': 6, 'lang': 'en', 'shortText': 'Reach the hills'},
     ],
 }
 
@@ -574,3 +580,80 @@ def test_v0354_every_entry_carries_the_eight_resource_fields_whatever_its_type(
             assert entry[f'{name}Gain'] is not None, f"{name}Gain missing on {entry['type']}"
     weather = next(e for e in logs if e['type'] == 'WEATHER')
     assert (weather['energyCost'], weather['coinGain']) == (0, 0)
+
+
+# ── v0.37.2 — a mission row is narrated by the mission's own card ─────────────
+
+def _mission_side(message):
+    """get_item for a match whose only log row is the given MISSION_CHANGE."""
+    match = {**ENRICH_MATCH, 'eventLog': [
+        {'message': message, 'clock': 4, 'timestamp': 1000,
+         'characterUuid': None, 'idEvent': None}]}
+
+    def side(pk, sk='METADATA'):
+        if pk.startswith('USER#'):
+            return USER
+        if pk.startswith('STORY#'):
+            return STORY
+        if pk.startswith('MATCH#'):
+            return match
+        return None
+    return side
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
+@patch('match.handler.db_utils.query_by_pk', return_value=[CHARACTER])
+@patch('match.handler.db_utils.get_item')
+def test_v0372_a_row_about_the_mission_itself_carries_the_missions_card(mock_get, _q, _jwt):
+    # No step named: the mission opening, or the row that says it is over.
+    mock_get.side_effect = _mission_side('MISSION_CHANGE m-1 none -> AVAILABLE')
+
+    entry = next(e for e in _body(_call(_player_event()))['logs']
+                 if e['type'] == 'MISSION_CHANGE')
+
+    # The uuid in the message is the only handle the row has: no mission column exists.
+    assert entry['idCard'] == 700
+    assert entry['card']['title'] == 'The Journey'
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
+@patch('match.handler.db_utils.query_by_pk', return_value=[CHARACTER])
+@patch('match.handler.db_utils.get_item')
+def test_v0372_a_row_that_names_a_step_carries_the_steps_card(mock_get, _q, _jwt):
+    mock_get.side_effect = _mission_side('MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 7')
+
+    entry = next(e for e in _body(_call(_player_event()))['logs']
+                 if e['type'] == 'MISSION_CHANGE')
+
+    # An advance is the STEP's news; the mission's card is for its opening and its end.
+    assert entry['idCard'] == 701
+    assert entry['card']['title'] == 'Reach the hills'
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
+@patch('match.handler.db_utils.query_by_pk', return_value=[CHARACTER])
+@patch('match.handler.db_utils.get_item')
+def test_v0372_a_step_the_story_does_not_declare_leaves_the_row_without_a_card(mock_get, _q, _jwt):
+    mock_get.side_effect = _mission_side('MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 9')
+
+    entry = next(e for e in _body(_call(_player_event()))['logs']
+                 if e['type'] == 'MISSION_CHANGE')
+
+    # It does NOT fall back to the mission's card: that would narrate an advance with the
+    # wrong picture.
+    assert entry['card'] is None
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
+@patch('match.handler.db_utils.query_by_pk', return_value=[CHARACTER])
+@patch('match.handler.db_utils.get_item')
+def test_v0372_an_unknown_mission_and_a_shapeless_message_carry_no_card(mock_get, _q, _jwt):
+    for message in ('MISSION_CHANGE m-9 none -> AVAILABLE', 'MISSION_CHANGE'):
+        mock_get.side_effect = _mission_side(message)
+        entry = next(e for e in _body(_call(_player_event()))['logs']
+                     if e['type'] == 'MISSION_CHANGE')
+        assert entry['card'] is None, message

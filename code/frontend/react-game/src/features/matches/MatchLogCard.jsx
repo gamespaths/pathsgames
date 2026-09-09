@@ -34,6 +34,9 @@ import { buildCardToSleep } from '@/utils/loadoutCards'
 
 const PAGE_LIMIT = 50
 
+/** The prefix the backends write in front of a registry change; stripped off in the row. */
+const MSG_REGISTRY_CHANGE = 'REGISTRY_CHANGE'
+
 /** Entries of these types are never shown in the timeline. */
 const HIDDEN_TYPES = new Set(['CLOCK_ADVANCE'])
 
@@ -46,7 +49,10 @@ const TYPE_ICON = {
   RECOVERY:        'fa-heart',
   EVENT:           'fa-scroll',
   COUNTER_ZERO:    'fa-hourglass-end',
-  AUTOMATIC_EVENT: 'fa-wand-magic-sparkles',
+  AUTOMATIC_EVENT: 'fa-magic',
+  // Step 36 / v0.37.2 — both were answered by the API and fell back to the grey default.
+  REGISTRY_CHANGE: 'fa-list',
+  MISSION_CHANGE:  'fa-clipboard-list',
   ITEM_ADD:        'fa-hand-holding',
   ITEM_USE:        'fa-flask',
   ITEM_DROP:       'fa-trash',
@@ -67,6 +73,8 @@ const TYPE_COLOR = {
   EVENT:           '#f87171',
   COUNTER_ZERO:    '#fb923c',
   AUTOMATIC_EVENT: '#e879f9',
+  REGISTRY_CHANGE: '#38bdf8',
+  MISSION_CHANGE:  '#d4af37',
   ITEM_ADD:        '#4ade80',
   ITEM_USE:        '#a78bfa',
   ITEM_DROP:       '#9ca3af',
@@ -107,37 +115,6 @@ export function resourceBadges(entry, t) {
 }
 
 /**
- * The same, with what the entry WAS and who did it in front — the little tile has no room
- * to spell either of them out, so there they are badges too. The page does have the room
- * and says both in words instead, so it asks for the resources alone.
- */
-export function entryBadges(entry, actor, t) {
-  const items = []
-  if (entry?.type) {
-    // The type leads: it is what the entry IS, and it carries its own glyph rather than a
-    // stat one — BonusBadgeList takes the icon off the item when the shared vocabulary has
-    // no word for it. `label: null` keeps the page variant from printing it twice, once as
-    // the label and once as the value.
-    const badge = {
-      key: `type-${entry.type}`,
-      label: null,
-      value: t(`matchLog.types.${entry.type}`),
-      icon: `fas ${TYPE_ICON[entry.type] || 'fa-circle'}`,
-    }
-    // Left off entirely rather than set to null when the type is unknown: BonusBadgeList
-    // reads the key's PRESENCE, so a null would mean "no colour" instead of "use yours".
-    if (TYPE_COLOR[entry.type]) {
-      badge.color = TYPE_COLOR[entry.type]
-    }
-    items.push(badge)
-  }
-  if (actor) {
-    items.push({ key: 'actor', label: t('matchLog.character'), value: actor })
-  }
-  return [...items, ...resourceBadges(entry, t)]
-}
-
-/**
  * Date + time in the reader's locale, so the day/month order follows the
  * language (e.g. 12/07 in it, 7/12 in en) instead of being hardcoded.
  */
@@ -166,33 +143,47 @@ function resolveEntryCard(entry, t) {
   return entry.card ?? null
 }
 
+/** What a REGISTRY_CHANGE row says: the key and the two values, without the prefix. */
+export function registryDetail(entry, t) {
+  const message = (entry?.message ?? '').trim()
+  const detail = message.startsWith(MSG_REGISTRY_CHANGE)
+    ? message.slice(MSG_REGISTRY_CHANGE.length).trim()
+    : message
+  return detail || t(`matchLog.types.${entry?.type}`)
+}
+
 /**
- * One timeline entry as a little Card: the entry's card gives title + image, the type
- * and the resources it moved are stat badges overlaid on that image (v0.35.4) and the
- * date goes underneath. Entries with no card of their own (RECOVERY) fall back to the
- * type label and its icon.
+ * v0.37.2 — one timeline entry as a ROW, not a tile: a history is read down a column, and a
+ * grid of pictures made the reader hunt for the order things happened in. What the entry WAS
+ * leads as a badge, its card's title names it, and the (i) opens that card as a page — the
+ * picture is one click away rather than in the way.
+ *
+ * A registry write is the exception: it owns no card, so the row says WHAT was written and
+ * carries no lens at all — the page behind it would have nothing the row does not already say.
  */
-// showActor: add the character that acted as one more badge (off by default)
-export function LogEntryCard({ entry, lang, t, onPreview, showActor = false }) {
+export function LogEntryRow({ entry, lang, t, onPreview }) {
   const typeLabel = t(`matchLog.types.${entry.type}`)
-  const actor = entry.characterName || entry.characterUuid
-  const card = resolveEntryCard(entry, t)
+  const registry = entry.type === 'REGISTRY_CHANGE'
+  const card = registry ? null : resolveEntryCard(entry, t)
+  // An entry with no card of its own (RECOVERY) is named by what it was.
+  const title = registry ? registryDetail(entry, t) : (card?.title ?? typeLabel)
+  const color = TYPE_COLOR[entry.type]
 
   return (
-    <Card
-      variant="little"
-      card={card}
-      name={card?.title ?? typeLabel}
-      icon={`fas ${TYPE_ICON[entry.type] || 'fa-circle'}`}
-      entityType={undefined}
-      onPreview={() => onPreview(entry)}
-      statistics={entryBadges(entry, showActor ? actor : null, t)}
-      flagShowFullStatistics
-      bonusBadgeListLittleIntoImage
-      bonusBadgeShowZeros
-      locked={true} lockedIcon=""
-      lockInfo={formatLogDate(entry.timestamp, lang)}
-    />
+    <li className="match-log-row" data-testid="match-log-row">
+      <span className="match-log-row__type" style={color ? { color } : undefined}>
+        <i className={`fas ${TYPE_ICON[entry.type] || 'fa-circle'} me-1`} />
+        {typeLabel}
+      </span>
+      <span className="match-log-row__title" title={title}>{title}</span>
+      {!registry && (
+        <button type="button" className="card-info-btn match-log-row__info"
+          onClick={() => onPreview(entry)}
+          title={t('card.info')} aria-label={`${t('card.info')} ${title}`}>
+          <i className="fas fa-info" />
+        </button>
+      )}
+    </li>
   )
 }
 
@@ -261,16 +252,15 @@ export default function MatchLogCard({ matchUuid, accessToken, story = null, onB
         <p className="match-log-state">{t('matchLog.empty')}</p>
       ) : (
         <>
-          <div className="match-log-list selection-list">
+          <ul className="match-log-list">
             {visibleEntries.map((entry, idx) => (
-              <LogEntryCard
+              <LogEntryRow
                 key={`${entry.type}-${entry.timestamp}-${idx}`}
                 entry={entry} lang={lang} t={t}
                 onPreview={setPreview}
-                showActor
               />
             ))}
-          </div>
+          </ul>
 
           {/* Load more sits at the end of the list, big and centered. It borrows
               CardButtons' look (gc-footer__btn) so it reads as the same control,

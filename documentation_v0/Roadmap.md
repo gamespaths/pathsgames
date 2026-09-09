@@ -636,9 +636,10 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.1.2 | update "2. Define the V1 scope" and "3. Define the technology stack" sections | February 10, 2026 |
     | 0.37.0 | step 37 implemented: missions become a projection of the registry, `condition_value`/`condition_values` replace the from/to pair, AVAILABLE→ACTIVE→COMPLETED/FAILED. New `/api/match/{uuid}/missions` endpoints, `missions[]` on `/info`, Missions bookmark live on react-game. | September 8, 2026 |
     | 0.37.1 | bugfix: the start location's first-entry registry pair now writes at match start (`RegistryService.writeStartLocationEntry`), closing the one authorable field that could never fire; new admin Missions tab on the match detail page; `mission-steps` card field is now a picker, not a raw number. Frontend follow-up: react-game mission step cards are readable (badge only on closed mission, split-page steps view showing only the next open step); react-admin fast-edit page now tracks `mission-steps` card references. | September 9, 2026 |
+    | 0.37.2 | new match-log entry `MISSION_CHANGE`, one writer alongside the mission-state save, classified on all three timelines and coloured in both frontends; AWS bugfix for empty class/trait-budget references crashing match creation on admin-authored stories, and AWS 401 codes aligned with Java's `MISSING_TOKEN`/`EMPTY_TOKEN`/`INVALID_TOKEN` scale; new Robot suite `37_missions/mission_log.robot`. | September 9, 2026 |
     | X.Y.Z | every step and every new vesion update this file | October 42, 2100 |
 
-- **Last Updated**: September 9, 2026 (v0.37.1)
+- **Last Updated**: September 9, 2026 (v0.37.2)
 - **Status**: In progress
 
 

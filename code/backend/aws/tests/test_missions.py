@@ -173,6 +173,109 @@ def test_what_opened_and_never_closed_fails_and_what_closed_is_left_alone():
     assert _state(match, 2)["stringValue"] == m.STATUS_COMPLETED
 
 
+# ── v0.37.2: every move says so on the log ───────────────────────────────────
+
+def _messages(match):
+    return [e.get("message") for e in (match.get("eventLog") or [])]
+
+
+def test_opening_a_mission_names_it_both_statuses_and_no_step_yet():
+    match = _match(k="1")
+    m.evaluate(match, _story([_mission(1)], [_step(10, 1, 1, "s1")]), 4)
+
+    assert _messages(match) == ["MISSION_CHANGE m-1 none -> AVAILABLE"]
+    assert match["eventLog"][0]["clock"] == 4
+    # Nobody in the fiction moves a mission: no character, no event rides on the row.
+    assert match["eventLog"][0]["characterUuid"] is None
+    assert match["eventLog"][0]["idEvent"] is None
+
+
+def test_closing_a_step_names_the_number_the_author_wrote():
+    match = _match(k="1")
+    story = _story([_mission(1)], [_step(10, 1, 7, "s1"), _step(11, 1, 9, "s2")])
+    m.evaluate(match, story, 1)
+    match["registry"].append({"id": 90, "key": "s1", "stringValue": "1", "intValue": None})
+
+    m.evaluate(match, story, 5)
+
+    assert _messages(match)[-1] == "MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 7"
+
+
+def test_a_mission_with_no_step_completes_and_the_row_says_so():
+    match = _match(k="1")
+    m.evaluate(match, _story([_mission(1)], []), 2)
+
+    assert _messages(match) == ["MISSION_CHANGE m-1 none -> COMPLETED"]
+
+
+def test_a_mission_that_does_not_move_writes_no_row_at_all():
+    match = _match(k="other")
+    m.evaluate(match, _story([_mission(1)], [_step(10, 1, 1, "s1")]), 1)
+
+    assert match.get("eventLog") is None
+
+
+def test_closing_the_last_step_writes_the_step_row_then_the_missions():
+    match = _match(k="1")
+    story = _story([_mission(1)], [_step(10, 1, 7, "s1")])
+    m.evaluate(match, story, 1)
+    match["registry"].append({"id": 90, "key": "s1", "stringValue": "1", "intValue": None})
+
+    m.evaluate(match, story, 6)
+
+    # Two rows: the step is the step's news, the end is the mission's — and the timeline
+    # narrates each with its own card.
+    assert _messages(match)[-2:] == [
+        "MISSION_CHANGE m-1 AVAILABLE -> COMPLETED step 7",
+        "MISSION_CHANGE m-1 AVAILABLE -> COMPLETED",
+    ]
+
+
+def test_two_steps_closed_at_once_are_two_rows_in_the_storys_order():
+    match = _match(k="1")
+    story = _story([_mission(1)],
+                   [_step(10, 1, 1, "s1"), _step(11, 1, 2, "s2"), _step(12, 1, 3, "s3")])
+    m.evaluate(match, story, 1)
+    match["registry"].append({"id": 90, "key": "s1", "stringValue": "1", "intValue": None})
+    match["registry"].append({"id": 91, "key": "s2", "stringValue": "1", "intValue": None})
+
+    m.evaluate(match, story, 7)
+
+    assert _messages(match)[-2:] == [
+        "MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 1",
+        "MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 2",
+    ]
+
+
+def test_a_mission_that_opens_and_closes_a_step_says_both():
+    match = _match(k="1")
+    m.evaluate(match, _story([_mission(1)], [_step(10, 1, 1, "k"), _step(11, 1, 2, "s2")]), 8)
+
+    assert _messages(match) == [
+        "MISSION_CHANGE m-1 none -> ACTIVE",
+        "MISSION_CHANGE m-1 none -> ACTIVE step 1",
+    ]
+
+
+def test_what_the_story_end_fails_is_named_by_uuid_when_the_story_is_at_hand():
+    match = _match(k="1")
+    story = _story([_mission(1)], [_step(10, 1, 1, "s1")])
+    m.evaluate(match, story)
+
+    m.on_story_end(match, story)
+
+    assert _messages(match)[-1] == "MISSION_CHANGE m-1 AVAILABLE -> FAILED"
+
+
+def test_without_the_story_the_failed_row_falls_back_to_the_id():
+    match = _match(k="1")
+    m.evaluate(match, _story([_mission(1)], [_step(10, 1, 1, "s1")]))
+
+    m.on_story_end(match)
+
+    assert _messages(match)[-1] == "MISSION_CHANGE 1 AVAILABLE -> FAILED"
+
+
 # ── the payload ──────────────────────────────────────────────────────────────
 
 def test_only_missions_the_match_has_reached_are_listed():

@@ -2965,8 +2965,72 @@ html, body {
 }
 
 /* The entry tiles reuse the same grid the other card lists use. */
+/* v0.37.2 — the timeline is a LIST: a badge for what happened, the card's title, when it
+   happened, and the lens that opens that card as a page. */
 .match-log-list {
   width: 100%;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.match-log-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 4px;
+  background: transparent;
+  transition: background 0.2s, border-color 0.2s;
+}
+.match-log-row:hover {
+  background: rgba(200, 150, 10, 0.75);
+  border-color: var(--color-gold-super-deep); 
+}
+/* The badge of a row is the badge of a page: the same dark pill .stat-badge paints there,
+   keeping the type's own colour on the words so the kind still reads at a glance. */
+.match-log-row__type {
+  flex: 0 0 auto;
+  min-width: 7.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 20px;
+  background: var(--color-brown-mid);
+  color: var(--color-parchment);
+  white-space: nowrap;
+}
+/* The title takes what is left and stops at one line: a long event name must not push the
+   lens off the row. */
+.match-log-row__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.95rem;
+}
+.match-log-row__info {
+  position: static;
+  flex: 0 0 auto;
+  opacity: 1;
+  width: 28px;
+  height: 28px;
+  font-size: 0.8rem;
+}
+@media (max-width: 640px) {
+  /* Narrow: the badge gives up its column so the title keeps a line of its own. */
+  .match-log-row { flex-wrap: wrap; }
+  .match-log-row__type { min-width: 0; }
 }
 
 /* Event type, overlaid on the entry card's image. */

@@ -2159,6 +2159,9 @@ being deleted before their `log_movements` rows, so the delete violated the FK.
   Java/Python — see the AWS gap note in §"Log Data Sources"
 - ~~`REGISTRY_CHANGE` — from `gaming_state_registry` (future step)~~ — **done, v0.36.0**, see
   [Step36_RegistrySystem.md §7](./Step36_RegistrySystem.md#7-one-writer-one-audit-row)
+- `MISSION_CHANGE` — mission status/step transitions, **done, v0.37.2**, same
+  `gaming_state_registry`-backed timeline, see
+  [Step37_MissionSystem.md §13](./Step37_MissionSystem.md#13-match-log-entry-mission_change-v0372)
 - Pagination support for long matches
 
 ---

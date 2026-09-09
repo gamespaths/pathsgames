@@ -574,10 +574,10 @@ INSERT INTO list_global_random_events (id, id_story, probability) VALUES (90001,
 -- Step 37: condition_value replaces the from/to pair, and condition_values is a PIPE list
 -- read as an AND. Mission 90004 has NO steps and reads a multi key: both members must be in
 -- the set, so it goes AVAILABLE and COMPLETED in the same write once they are.
-INSERT INTO list_missions (id, id_story, condition_key, condition_value, id_text_name, id_text_description) VALUES (90001, 9001, 'tutorial_progress', '1', 900, 900);
-INSERT INTO list_missions (id, id_story, condition_key, condition_value, id_text_name, id_text_description) VALUES (90002, 9001, 'items_collected', '1', 901, 901);
-INSERT INTO list_missions (id, id_story, condition_key, condition_value, id_text_name, id_text_description) VALUES (90003, 9001, 'choice_made', 'gold', 902, 902);
-INSERT INTO list_missions (id, id_story, condition_key, condition_values, id_text_name, id_text_description) VALUES (90004, 9001, 'evidence_found', 'ledger|letter', 903, 903);
+INSERT INTO list_missions (id, id_story, id_card, condition_key, condition_value, id_text_name, id_text_description) VALUES (90001, 9001, 90002, 'tutorial_progress', '1', 900, 900);
+INSERT INTO list_missions (id, id_story, id_card, condition_key, condition_value, id_text_name, id_text_description) VALUES (90002, 9001, 90003, 'items_collected', '1', 901, 901);
+INSERT INTO list_missions (id, id_story, id_card, condition_key, condition_value, id_text_name, id_text_description) VALUES (90003, 9001, 90001, 'choice_made', 'gold', 902, 902);
+INSERT INTO list_missions (id, id_story, id_card, condition_key, condition_values, id_text_name, id_text_description) VALUES (90004, 9001, 90002, 'evidence_found', 'ledger|letter', 903, 903);
 
 -- ── Story 1 Mission Steps ───────────────────────────────────────
 INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value, id_text_name, id_text_description) VALUES (90001, 9001, 90001, 1, 'visited_movement', '1', 910, 910);
@@ -703,7 +703,7 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91501, 9002, 910, 'en', 'Obtain the Records', 'Bring back the incriminating documents from Campese.');
 INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_value) VALUES (91004, 9002, 'journey_begun', NULL, 'missions', 'PUBLIC', 0);
 INSERT INTO list_keys (id, id_story, name, value, "group", visibility, multi_value) VALUES (91001, 9002, 'monastery_records', '0', 'evidence', 'PUBLIC', 0);
-INSERT INTO list_missions (id, id_story, condition_key, condition_value, id_text_name, id_text_description) VALUES (91001, 9002, 'journey_begun', 'yes', 900, 900);
+INSERT INTO list_missions (id, id_story, id_card, condition_key, condition_value, id_text_name, id_text_description) VALUES (91001, 9002, 91002, 'journey_begun', 'yes', 900, 900);
 INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value, id_text_name, id_text_description) VALUES (91001, 9002, 91001, 1, 'monastery_records', '1', 910, 910);
 
 -- ── Story 2 Locations ───────────────────────────────────────────
@@ -781,6 +781,10 @@ SELECT setval('list_cards_id_seq',              (SELECT MAX(id) FROM list_cards)
 -- Set the start location (so a joined character has idLocation), mark the
 -- end-game event and pin it to a location, so GET /api/match/{uuid}/info
 -- returns a populated locationsActive with an event flagged endGame=true.
+-- v0.37.2 — every mission step carries a card too: the board renders a step as a card.
+UPDATE list_missions_steps SET id_card = 90003 WHERE id_story = 9001;
+UPDATE list_missions_steps SET id_card = 91003 WHERE id_story = 9002;
+
 UPDATE list_stories SET id_location_start = 90001, id_event_end_game = 90005 WHERE id = 9001;
 UPDATE list_stories SET id_location_start = 91001, id_event_end_game = 91005 WHERE id = 9002;
 -- v0.37.1 — the starting location writes its first-entry pair as the match starts.

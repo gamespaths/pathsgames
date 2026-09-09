@@ -719,21 +719,23 @@ INSERT INTO list_global_random_events (id, id_story, condition_key, condition_va
 -- Step 37: condition_value replaces the from/to pair, and condition_values is a PIPE list
 -- read as an AND. Mission 90004 has NO steps and reads a multi key: both members must be in
 -- the set, so it goes AVAILABLE and COMPLETED in the same write once they are.
-INSERT INTO list_missions (id, id_story, condition_key, condition_value, condition_values, id_text_name, id_text_description) VALUES
-(90001, 9001, 'tutorial_progress', '1',    NULL,            900, 900),
-(90002, 9001, 'items_collected',   '1',    NULL,            901, 901),
-(90003, 9001, 'choice_made',       'gold', NULL,            902, 902),
-(90004, 9001, 'evidence_found',    NULL,   'ledger|letter', 903, 903);
+-- v0.37.2: every mission carries a CARD. The board renders a mission as a card and the match
+-- log narrates a MISSION_CHANGE row with it, so a mission without one reads as a bare title.
+INSERT INTO list_missions (id, id_story, id_card, condition_key, condition_value, condition_values, id_text_name, id_text_description) VALUES
+(90001, 9001, 90002, 'tutorial_progress', '1',    NULL,            900, 900),
+(90002, 9001, 90003, 'items_collected',   '1',    NULL,            901, 901),
+(90003, 9001, 90001, 'choice_made',       'gold', NULL,            902, 902),
+(90004, 9001, 90002, 'evidence_found',    NULL,   'ledger|letter', 903, 903);
 
 -- ── Mission Steps ───────────────────────────────────────────────
-INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value, condition_values, id_text_name, id_text_description) VALUES
-(90001, 9001, 90001, 1, 'visited_movement',   '1', NULL, 910, 910),
-(90002, 9001, 90001, 2, 'visited_energy',     '1', NULL, 911, 911),
-(90003, 9001, 90001, 3, 'visited_graduation', '1', NULL, 912, 912),
-(90004, 9001, 90002, 1, 'potion_collected',   '1', NULL, 920, 920),
-(90005, 9001, 90002, 2, 'snack_used',         '1', NULL, 921, 921),
-(90006, 9001, 90003, 1, 'entered_arena',      '1', NULL, 930, 930),
-(90007, 9001, 90003, 2, 'door_chosen',        '1', NULL, 931, 931);
+INSERT INTO list_missions_steps (id, id_story, id_mission, id_card, step, condition_key, condition_value, condition_values, id_text_name, id_text_description) VALUES
+(90001, 9001, 90001, 90003, 1, 'visited_movement',   '1', NULL, 910, 910),
+(90002, 9001, 90001, 90003, 2, 'visited_energy',     '1', NULL, 911, 911),
+(90003, 9001, 90001, 90002, 3, 'visited_graduation', '1', NULL, 912, 912),
+(90004, 9001, 90002, 90003, 1, 'potion_collected',   '1', NULL, 920, 920),
+(90005, 9001, 90002, 90002, 2, 'snack_used',         '1', NULL, 921, 921),
+(90006, 9001, 90003, 90001, 1, 'entered_arena',      '1', NULL, 930, 930),
+(90007, 9001, 90003, 90003, 2, 'door_chosen',        '1', NULL, 931, 931);
 
 -- ── Creator ─────────────────────────────────────────────────────
 INSERT INTO list_creator (id, id_story, link, url, url_image) VALUES
@@ -1055,6 +1057,7 @@ INSERT INTO list_missions (id, id_story, condition_key, condition_value, id_text
 -- v0.37.1: the one mission only the START location can open. The party never enters the place
 -- the story opens in, so this key is written as the match starts and by nothing else.
 (91004, 9002, 'journey_begun',     'yes',               900, 900);
+UPDATE list_missions       SET id_card = 91002 WHERE id = 91004 AND id_story = 9002;
 
 -- ── Mission Steps ───────────────────────────────────────────────
 INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value, id_text_name, id_text_description) VALUES
@@ -1067,6 +1070,7 @@ INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, 
 (91007, 9002, 91003, 2, 'road_cleared',       '1',                 931, 931),
 -- v0.37.1: a step nothing satisfies, so mission 91004 opens AVAILABLE and stays there.
 (91008, 9002, 91004, 1, 'monastery_records',  '1',                 910, 910);
+UPDATE list_missions_steps SET id_card = 91003 WHERE id = 91008 AND id_story = 9002;
 
 -- ── Creator ─────────────────────────────────────────────────────
 INSERT INTO list_creator (id, id_story, link, url, url_image) VALUES

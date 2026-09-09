@@ -10,7 +10,7 @@ vi.mock('../api/matches', () => ({
 }))
 
 import { getMatchLogs } from '../api/matches'
-import MatchLogCard, { formatLogDate, entryBadges, resourceBadges, LogEntryCard } from '../features/matches/MatchLogCard'
+import MatchLogCard, { formatLogDate, resourceBadges, LogEntryRow } from '../features/matches/MatchLogCard'
 
 const PAGE = {
   matchUuid: 'm1',
@@ -85,13 +85,13 @@ describe('MatchLogCard', () => {
     expect(await screen.findByText('matchLog.empty')).toBeInTheDocument()
   })
 
-  it('shows the card title and image of weather and movement entries', async () => {
+  it('names every entry by its card title, and shows no picture in the list', async () => {
     render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
     expect(await screen.findByText('Thunderstorm')).toBeInTheDocument()
-    expect(screen.getByAltText('Thunderstorm')).toHaveAttribute('src', 'http://img/storm.png')
-    // no image → the card's awesome icon stands in for the thumbnail
     expect(screen.getByText('Dark Forest')).toBeInTheDocument()
-    expect(screen.queryByAltText('Dark Forest')).not.toBeInTheDocument()
+    // v0.37.2 — the timeline is a list of rows: the picture lives on the page the (i) opens.
+    expect(screen.queryByAltText('Thunderstorm')).not.toBeInTheDocument()
+    expect(screen.getAllByTestId('match-log-row').length).toBeGreaterThan(1)
   })
 
   it('shows an EVENT entry with its own card, icon and label (v0.30.3)', async () => {
@@ -111,17 +111,28 @@ describe('MatchLogCard', () => {
     expect(document.querySelector('.fa-scroll')).toBeInTheDocument()
   })
 
-  it('names the character that performed the action, next to the date', async () => {
+  it('leaves the actor to the page: a row is what happened, not who did it', async () => {
     render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
     await screen.findByTestId('match-log-card')
-    // movement + sleep both carry the actor, rendered as "· Ranger" after the date
-    expect(screen.getAllByText(/Ranger/)).toHaveLength(2)
+    // v0.37.2 — the row carries the type, the title, the date and the lens; the actor is
+    // one of the things the page has room to spell out.
+    expect(screen.queryByText(/Ranger/)).not.toBeInTheDocument()
+
+    // The movement row is the one whose entry names an actor.
+    const movement = screen.getByText('Dark Forest').closest('.match-log-row')
+    fireEvent.click(movement.querySelector('.match-log-row__info'))
+    expect(screen.getByText(/Ranger/)).toBeInTheDocument()
   })
 
-  it('shows the date of each entry in the reader language', async () => {
+  it('keeps the date off the rows and shows it on the page a row opens', async () => {
     render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
     await screen.findByTestId('match-log-card')
-    // lang is 'it' in this file's i18n mock → day before month (12/07/26)
+    // v0.37.2 — a row is the badge, the title and the lens; the date is one of the things
+    // the page has room for. lang is 'it' here → day before month (12/07/26).
+    expect(screen.queryByText(/12\/07\/26/)).not.toBeInTheDocument()
+
+    const row = screen.getByText('Thunderstorm').closest('.match-log-row')
+    fireEvent.click(row.querySelector('.match-log-row__info'))
     expect(screen.getAllByText(/12\/07\/26/).length).toBeGreaterThan(0)
   })
 
@@ -159,9 +170,9 @@ describe('MatchLogCard', () => {
     render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
     await screen.findByTestId('match-log-card')
 
-    // (i) on the weather tile → its card takes over the page
-    const weatherTile = screen.getByText('Thunderstorm').closest('.pg-card')
-    fireEvent.click(weatherTile.querySelector('button'))
+    // (i) on the weather row → its card takes over the page
+    const weatherRow = screen.getByText('Thunderstorm').closest('.match-log-row')
+    fireEvent.click(weatherRow.querySelector('.match-log-row__info'))
 
     expect(screen.queryByTestId('match-log-card')).not.toBeInTheDocument()
     expect(screen.getByText('Thunderstorm')).toBeInTheDocument()
@@ -182,9 +193,9 @@ describe('MatchLogCard', () => {
     render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
     await screen.findByTestId('match-log-card')
 
-    // RECOVERY carries no card → the tile title is the type label
-    const recoveryTile = screen.getAllByText('matchLog.types.RECOVERY')[0].closest('.pg-card')
-    fireEvent.click(recoveryTile.querySelector('button'))
+    // RECOVERY carries no card → the row is named by the type label
+    const recoveryRow = screen.getAllByText('matchLog.types.RECOVERY')[0].closest('.match-log-row')
+    fireEvent.click(recoveryRow.querySelector('.match-log-row__info'))
 
     expect(screen.queryByTestId('match-log-card')).not.toBeInTheDocument()
     expect(screen.getAllByText('matchLog.types.RECOVERY').length).toBeGreaterThan(0)
@@ -194,9 +205,9 @@ describe('MatchLogCard', () => {
     render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
     await screen.findByTestId('match-log-card')
 
-    // (i) on the sleep tile → the preview page shows the same card, not just the type label
-    const sleepTile = screen.getByText('game.sleep.confirmTitle').closest('.pg-card')
-    fireEvent.click(sleepTile.querySelector('button'))
+    // (i) on the sleep row → the preview page shows the same card, not just the type label
+    const sleepRow = screen.getByText('game.sleep.confirmTitle').closest('.match-log-row')
+    fireEvent.click(sleepRow.querySelector('.match-log-row__info'))
 
     expect(screen.queryByTestId('match-log-card')).not.toBeInTheDocument()
     expect(screen.getAllByText('game.sleep.confirmTitle').length).toBeGreaterThan(0)
@@ -265,40 +276,91 @@ describe('v0.35.4 — items and resources in the timeline', () => {
     vi.clearAllMocks()
   })
 
-  it('entryBadges leads with the type, names the actor, then splits the two families', () => {
+  it('a row is a type badge, the card title and the lens — and nothing else', () => {
     const t = (k) => k
-    const items = entryBadges(
-      { type: 'EVENT', energyCost: 5, coinCost: 7, foodGain: 2, coinGain: 30 }, 'Ranger', t)
+    const { container } = render(
+      <LogEntryRow entry={{ type: 'EVENT', timestamp: '2026-07-12T10:02:00Z',
+        card: { title: 'A Fork In The Road', urlImage: 'http://img/fork.png' } }}
+        lang="it" t={t} onPreview={vi.fn()} />
+    )
 
-    // The type first, then the actor, then one badge per half that actually moved — coins
-    // twice, because an event that charged and refunded them did two different things.
-    expect(items.map(i => [i.key, i.prefix ?? '', i.value])).toEqual([
-      ['type-EVENT', '', 'matchLog.types.EVENT'],
-      ['actor', '', 'Ranger'],
-      ['energy', '−', 5],
-      ['food', '+', 2],
-      ['coins', '−', 7],
-      ['coins', '+', 30],
-    ])
-    // The type carries its own glyph — the stat vocabulary has no word for it — and no
-    // label, so the page variant does not print it twice.
-    expect(items[0].icon).toBe('fas fa-scroll')
-    expect(items[0].color).toBe('#f87171')
-    expect(items[0].label).toBeNull()
+    const row = container.querySelector('.match-log-row')
+    expect(row.querySelector('.match-log-row__type').textContent).toBe('matchLog.types.EVENT')
+    expect(row.querySelector('.match-log-row__title').textContent).toBe('A Fork In The Road')
+    expect(row.querySelector('.match-log-row__info')).toBeInTheDocument()
+    // The picture and the date both belong to the page the lens opens, not to the row.
+    expect(row.querySelector('img')).toBeNull()
+    expect(row.textContent).not.toContain(formatLogDate('2026-07-12T10:02:00Z', 'it'))
   })
 
-  it('entryBadges leaves out what did not move, and the actor when there is none', () => {
+  it('a mission row is named and pictured by the mission card the backend sends', () => {
     const t = (k) => k
-    expect(entryBadges({ energyCost: 0, foodGain: 0 }, null, t)).toEqual([])
-    expect(entryBadges(undefined, null, t)).toEqual([])
-    // An entry with no resources still names whoever acted.
-    expect(entryBadges({}, 'Ranger', t).map(i => i.key)).toEqual(['actor'])
-    // An unknown type still gets a badge, on the fallback glyph.
-    const unknown = entryBadges({ type: 'WHATEVER' }, null, t)
-    expect(unknown.map(i => i.key)).toEqual(['type-WHATEVER'])
-    expect(unknown[0].icon).toBe('fas fa-circle')
-    // and no colour key at all, so BonusBadgeList falls back to its own default
-    expect('color' in unknown[0]).toBe(false)
+    const onPreview = vi.fn()
+    const entry = { type: 'MISSION_CHANGE', timestamp: '2026-07-12T10:02:00Z',
+      message: 'MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 7',
+      idCard: 70, card: { title: 'The Journey', urlImage: 'http://img/journey.png' } }
+    const { container } = render(
+      <LogEntryRow entry={entry} lang="it" t={t} onPreview={onPreview} />)
+
+    // v0.37.2 — the timeline resolves the mission's own card, so the row is not just
+    // "Mission" twice over, and the lens opens the picture.
+    expect(container.querySelector('.match-log-row__title').textContent).toBe('The Journey')
+    fireEvent.click(container.querySelector('.match-log-row__info'))
+    expect(onPreview).toHaveBeenCalledWith(entry)
+  })
+
+  it('a registry row says WHAT was written and carries no lens', () => {
+    const t = (k) => k
+    const { container, rerender } = render(
+      <LogEntryRow lang="it" t={t} onPreview={vi.fn()}
+        entry={{ type: 'REGISTRY_CHANGE', timestamp: '2026-07-12T10:02:00Z',
+                 message: 'REGISTRY_CHANGE gate null -> open' }} />
+    )
+
+    expect(container.querySelector('.match-log-row__title').textContent)
+      .toBe('gate null -> open')
+    // There is no card behind a registry write, so a lens would open an empty page.
+    expect(container.querySelector('.match-log-row__info')).toBeNull()
+
+    // A row whose message the backend did not prefix is shown whole rather than swallowed.
+    rerender(<LogEntryRow lang="it" t={t} onPreview={vi.fn()}
+      entry={{ type: 'REGISTRY_CHANGE', message: 'clues +letter' }} />)
+    expect(container.querySelector('.match-log-row__title').textContent).toBe('clues +letter')
+
+    // And one with no message at all falls back to what it was.
+    rerender(<LogEntryRow lang="it" t={t} onPreview={vi.fn()}
+      entry={{ type: 'REGISTRY_CHANGE' }} />)
+    expect(container.querySelector('.match-log-row__title').textContent)
+      .toBe('matchLog.types.REGISTRY_CHANGE')
+  })
+
+  it('paints the type badge in the colour of its kind, and names an entry with no card', () => {
+    const t = (k) => k
+    const { container, rerender } = render(
+      <LogEntryRow entry={{ type: 'MISSION_CHANGE', timestamp: null }}
+        lang="it" t={t} onPreview={vi.fn()} />
+    )
+    const badge = container.querySelector('.match-log-row__type')
+    // v0.37.2 — the mission gold; an entry with no card of its own is named by its type.
+    expect(badge).toHaveStyle({ color: '#d4af37' })
+    expect(container.querySelector('.match-log-row__title').textContent)
+      .toBe('matchLog.types.MISSION_CHANGE')
+
+    // An unknown type keeps the fallback glyph and takes no colour at all.
+    rerender(<LogEntryRow entry={{ type: 'WHATEVER' }} lang="it" t={t} onPreview={vi.fn()} />)
+    expect(container.querySelector('.match-log-row__type i').className)
+      .toContain('fa-circle')
+  })
+
+  it('hands the whole entry to the lens, so the page knows what to open', () => {
+    const t = (k) => k
+    const onPreview = vi.fn()
+    const entry = { type: 'EVENT', timestamp: '2026-07-12T10:02:00Z', card: { title: 'Fork' } }
+    render(<LogEntryRow entry={entry} lang="it" t={t} onPreview={onPreview} />)
+
+    fireEvent.click(screen.getByLabelText('card.info Fork'))
+
+    expect(onPreview).toHaveBeenCalledWith(entry)
   })
 
   it('renders the three item types with their own card and label', async () => {
@@ -326,7 +388,7 @@ describe('v0.35.4 — items and resources in the timeline', () => {
     expect(screen.getByText('Rusty Sword')).toBeInTheDocument()
   })
 
-  it('shows the actor and the resources an entry moved as badges on the tile', async () => {
+  it('carries the same badges onto the page a row opens', async () => {
     getMatchLogs.mockResolvedValue({
       matchUuid: 'm1', currentClock: 2, total: 1, limit: 50, nextCursor: null,
       logs: [
@@ -338,48 +400,8 @@ describe('v0.35.4 — items and resources in the timeline', () => {
     render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
     await screen.findByTestId('match-log-card')
 
-    // The badges: what it was, who acted, then what the usage gave and what it took.
-    expect(screen.getByText('matchLog.types.ITEM_USE')).toBeInTheDocument()
-    expect(screen.getByTitle('matchLog.character')).toHaveTextContent('Ranger')
-    expect(screen.getByTitle('game.stats.energy')).toHaveTextContent('+9')
-    expect(screen.getByTitle('game.stats.magic')).toHaveTextContent('−3')
-    // And the date is on its own under the tile, with no separator left dangling.
-    expect(screen.getByText(formatLogDate('2026-07-12T10:02:00Z', 'it'))).toBeInTheDocument()
-  })
-
-  it('leaves the actor off a tile unless it is asked for (showActor default)', () => {
-    const entry = {
-      type: 'ITEM_USE', timestamp: '2026-07-12T10:02:00Z', idItem: 900, itemAction: 'USE',
-      counter: 1, characterName: 'Ranger', magicCost: 3, energyGain: 9,
-      idCard: 700, card: { title: 'Healing Potion' },
-    }
-    const t = (k) => k
-    const { rerender } = render(
-      <LogEntryCard entry={entry} lang="it" t={t} onPreview={vi.fn()} />
-    )
-    // default: the resources are there, the character is not
-    expect(screen.getByTitle('game.stats.energy')).toHaveTextContent('+9')
-    expect(screen.queryByTitle('matchLog.character')).not.toBeInTheDocument()
-    expect(screen.queryByText('Ranger')).not.toBeInTheDocument()
-
-    rerender(<LogEntryCard entry={entry} lang="it" t={t} onPreview={vi.fn()} showActor />)
-    expect(screen.getByTitle('matchLog.character')).toHaveTextContent('Ranger')
-  })
-
-  it('carries the same badges onto the page a tile opens', async () => {
-    getMatchLogs.mockResolvedValue({
-      matchUuid: 'm1', currentClock: 2, total: 1, limit: 50, nextCursor: null,
-      logs: [
-        { type: 'ITEM_USE', timestamp: '2026-07-12T10:02:00Z', idItem: 900, itemAction: 'USE',
-          counter: 1, characterName: 'Ranger', magicCost: 3, energyGain: 9,
-          idCard: 700, card: { title: 'Healing Potion' } },
-      ],
-    })
-    render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
-    await screen.findByTestId('match-log-card')
-
-    const tile = screen.getByText('Healing Potion').closest('.pg-card')
-    fireEvent.click(tile.querySelector('button'))
+    const row = screen.getByText('Healing Potion').closest('.match-log-row')
+    fireEvent.click(row.querySelector('.match-log-row__info'))
 
     // The timeline is gone and the page carries both halves of the usage as badges.
     expect(screen.queryByTestId('match-log-card')).not.toBeInTheDocument()

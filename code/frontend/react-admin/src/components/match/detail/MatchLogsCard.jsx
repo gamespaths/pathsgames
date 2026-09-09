@@ -34,6 +34,10 @@ const TYPE_META = {
   // no badge colour and no filter chip of their own.
   COUNTER_ZERO:    { icon: 'fa-hourglass-end',   style: { background: '#3a2a10', color: '#fb923c', border: '1px solid #f97316' } },
   AUTOMATIC_EVENT: { icon: 'fa-wand-magic-sparkles', style: { background: '#2a1a2a', color: '#e879f9', border: '1px solid #d946ef' } },
+  // Step 36 / v0.37.2 — both were answered by the API and fell through to DEFAULT_META, so
+  // they had no badge colour and no filter chip of their own.
+  REGISTRY_CHANGE: { icon: 'fa-list',            style: { background: '#0d2a3a', color: '#38bdf8', border: '1px solid #0ea5e9' } },
+  MISSION_CHANGE:  { icon: 'fa-clipboard-list',  style: { background: '#332a10', color: '#d4af37', border: '1px solid #b8860b' } },
   ITEM_ADD:        { icon: 'fa-hand-holding',    style: { background: '#12331f', color: '#4ade80', border: '1px solid #16a34a' } },
   ITEM_USE:        { icon: 'fa-flask',           style: { background: '#241a3a', color: '#a78bfa', border: '1px solid #7c3aed' } },
   ITEM_DROP:       { icon: 'fa-trash',           style: { background: '#2a2a2a', color: '#9ca3af', border: '1px solid #6b7280' } },

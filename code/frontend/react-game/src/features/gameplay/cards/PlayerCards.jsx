@@ -64,7 +64,8 @@ export default function PlayerCards({ storyFull, story, playerStats, gameData, o
           (Step 28.7 logs API) alongside it on the RIGHT — unlike the other cards
           here, which follow `previewSide`. Without a match log handler it keeps
           the default behaviour. */}
-      <Card card={story.card} entityType="story" story={story} flagInformationCard={true}
+      <Card card={story.card} entityType={onPreviewMatchLog ? 'matchlog' : 'story'} story={story}
+        flagInformationCard={true}
         onPreview={() => {
           if (onPreviewMatchLog) {
             onPreview({ card: story.card, type: 'story', modal: false, side: 'left' })

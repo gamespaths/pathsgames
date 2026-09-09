@@ -396,3 +396,114 @@ def test_a_card_is_resolved_only_when_a_content_port_is_wired(store, read_port):
 
     assert MissionService(store, read_port).list(MATCH, STORY)[0]["card"] is None
     assert MissionService(store, read_port, content).list(MATCH, STORY)[0]["card"] == {"uuid": "c-1"}
+
+
+# ── v0.37.2 — every move says so on the log ──────────────────────────────────
+
+def _last_message(store):
+    """The message of the last MISSION_CHANGE row written."""
+    rows = [c.args[5] for c in store.log_change.call_args_list]
+    assert rows, "no log row was written at all"
+    return rows[-1]
+
+
+def test_opening_a_mission_names_it_both_statuses_and_no_step_yet(service, store, read_port):
+    _story(read_port, [_mission(1)], [_step(10, 1, 1, "s1")])
+    _registry(store, k="1")
+
+    service.on_registry_change(MATCH, 4, STORY)
+
+    assert _last_message(store) == "MISSION_CHANGE m-1 none -> AVAILABLE"
+
+
+def test_closing_a_step_names_the_number_the_author_wrote(service, store, read_port):
+    _story(read_port, [_mission(1)], [_step(10, 1, 7, "s1"), _step(11, 1, 9, "s2")])
+    _registry(store, k="1", s1="1")
+    store.find_mission_states.return_value = [_state(1, None, STATUS_AVAILABLE)]
+
+    service.on_registry_change(MATCH, 5, STORY)
+
+    assert _last_message(store) == "MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 7"
+
+
+def test_a_mission_with_no_step_completes_and_the_row_says_so(service, store, read_port):
+    _story(read_port, [_mission(1)], [])
+    _registry(store, k="1")
+
+    service.on_registry_change(MATCH, 2, STORY)
+
+    assert _last_message(store) == "MISSION_CHANGE m-1 none -> COMPLETED"
+
+
+def test_a_mission_that_does_not_move_writes_no_row_at_all(service, store, read_port):
+    _story(read_port, [_mission(1)], [_step(10, 1, 1, "s1")])
+    _registry(store, k="other")
+
+    service.on_registry_change(MATCH, 1, STORY)
+
+    store.log_change.assert_not_called()
+
+
+def test_what_the_story_end_fails_is_named_by_uuid(service, store, read_port):
+    _story(read_port, [_mission(1)], [])
+    store.find_mission_states.return_value = [_state(1, None, STATUS_ACTIVE)]
+
+    service.on_story_end(MATCH)
+
+    assert _last_message(store) == "MISSION_CHANGE m-1 ACTIVE -> FAILED"
+
+
+def test_with_no_story_port_the_failed_row_falls_back_to_the_id(store):
+    bare = MissionService(store)
+    store.find_mission_states.return_value = [_state(1, None, STATUS_AVAILABLE)]
+
+    bare.on_story_end(MATCH)
+
+    assert _last_message(store) == "MISSION_CHANGE 1 AVAILABLE -> FAILED"
+
+
+# ── v0.37.2 — one row per thing that happened, each with its own card ─────────
+
+def _all_messages(store):
+    return [c.args[5] for c in store.log_change.call_args_list]
+
+
+def test_closing_the_last_step_writes_the_step_row_then_the_missions(service, store, read_port):
+    _story(read_port, [_mission(1)], [_step(10, 1, 7, "s1")])
+    _registry(store, k="1", s1="1")
+    store.find_mission_states.return_value = [_state(1, None, STATUS_AVAILABLE)]
+
+    service.on_registry_change(MATCH, 6, STORY)
+
+    # Two rows: the step is the step's news, the end is the mission's — and the timeline
+    # narrates each with its own card.
+    assert _all_messages(store) == [
+        "MISSION_CHANGE m-1 AVAILABLE -> COMPLETED step 7",
+        "MISSION_CHANGE m-1 AVAILABLE -> COMPLETED",
+    ]
+
+
+def test_two_steps_closed_at_once_are_two_rows_in_the_storys_order(service, store, read_port):
+    _story(read_port, [_mission(1)],
+           [_step(10, 1, 1, "s1"), _step(11, 1, 2, "s2"), _step(12, 1, 3, "s3")])
+    _registry(store, k="1", s1="1", s2="1")
+    store.find_mission_states.return_value = [_state(1, None, STATUS_AVAILABLE)]
+
+    service.on_registry_change(MATCH, 7, STORY)
+
+    assert _all_messages(store) == [
+        "MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 1",
+        "MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 2",
+    ]
+
+
+def test_a_mission_that_opens_and_closes_a_step_says_both(service, store, read_port):
+    _story(read_port, [_mission(1)], [_step(10, 1, 1, "k"), _step(11, 1, 2, "s2")])
+    _registry(store, k="1")
+
+    service.on_registry_change(MATCH, 8, STORY)
+
+    assert _all_messages(store) == [
+        "MISSION_CHANGE m-1 none -> ACTIVE",
+        "MISSION_CHANGE m-1 none -> ACTIVE step 1",
+    ]

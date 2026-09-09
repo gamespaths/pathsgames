@@ -68,6 +68,8 @@ public class MatchLogsService implements MatchLogsPort {
     private static final String TYPE_AUTOMATIC_EVENT = "AUTOMATIC_EVENT";
     /** Step 36 — a registry key was written by an event, a choice or the engine. */
     private static final String TYPE_REGISTRY_CHANGE = "REGISTRY_CHANGE";
+    /** v0.37.2 — a mission opened, advanced, completed or failed. */
+    private static final String TYPE_MISSION_CHANGE = "MISSION_CHANGE";
     /** v0.35.4 — the three item actions, read off {@code log_item_usage.action}. */
     private static final String TYPE_ITEM_ADD = "ITEM_ADD";
     private static final String TYPE_ITEM_USE = "ITEM_USE";
@@ -229,6 +231,10 @@ public class MatchLogsService implements MatchLogsPort {
                 entries.add(LogEntry.builder(TYPE_REGISTRY_CHANGE, e.timestamp())
                         .clock(e.clock()).character(e.idCharacterMatch())
                         .message(msg).idEvent(e.idEvent()).build());
+            } else if (msg.startsWith(MissionService.MSG_MISSION_CHANGE)) {
+                // v0.37.2 — nobody in the fiction moves a mission: no character rides on it.
+                entries.add(LogEntry.builder(TYPE_MISSION_CHANGE, e.timestamp())
+                        .clock(e.clock()).message(msg).build());
             } else if (msg.startsWith("recovery")) {
                 entries.add(LogEntry.builder(TYPE_RECOVERY, e.timestamp())
                         .clock(e.clock()).character(e.idCharacterMatch()).message(msg).build());
@@ -238,6 +244,38 @@ public class MatchLogsService implements MatchLogsPort {
         // ISO timestamps are lexicographically comparable; nulls sort first.
         entries.sort((a, b) -> nz(a.timestamp()).compareTo(nz(b.timestamp())));
         return entries;
+    }
+
+    /**
+     * The mission a {@code MISSION_CHANGE} message names: the second word, which is where
+     * {@link MissionService#MSG_MISSION_CHANGE} writes the uuid. Null when the shape is not
+     * the one this service wrote.
+     */
+    private static String missionUuidOf(String message) {
+        if (message == null) {
+            return null;
+        }
+        String[] parts = message.trim().split("\\s+");
+        return parts.length < 2 ? null : parts[1];
+    }
+
+    /**
+     * The step a {@code MISSION_CHANGE} message names, as the author numbered it, or null when
+     * the row is about the mission itself.
+     */
+    private static Integer stepNumberOf(String message) {
+        if (message == null) {
+            return null;
+        }
+        int at = message.lastIndexOf(" step ");
+        if (at < 0) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(message.substring(at + 6).trim());
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     /**
@@ -255,6 +293,8 @@ public class MatchLogsService implements MatchLogsPort {
         Map<Long, Integer> templateCards = store.findCharacterTemplateIdCards(match.idStory());
         Map<Long, Integer> eventCards = store.findEventIdCards(match.idStory());
         Map<Long, Integer> itemCards = store.findItemIdCards(match.idStory());
+        Map<String, Integer> missionCards = store.findMissionIdCardsByUuid(match.idStory());
+        Map<String, Integer> stepCards = store.findMissionStepIdCardsByMissionUuid(match.idStory());
         Map<Long, CharacterLogView> characters = store.findCharactersByMatch(match.id());
 
         List<LogEntry> out = new ArrayList<>(page.size());
@@ -272,6 +312,21 @@ public class MatchLogsService implements MatchLogsPort {
             } else if (TYPE_COUNTER_ZERO.equals(e.type()) && e.idLocationTo() != null) {
                 // Step 33 — a counter belongs to a place, so the place's card names it.
                 idCard = locationCards.get(e.idLocationTo());
+            } else if (TYPE_MISSION_CHANGE.equals(e.type())) {
+                // v0.37.2 — the uuid in the message is the only handle the row has: the log
+                // table holds no mission column. A row that NAMES A STEP is that step's news,
+                // so it wears the step's card; the mission's own is for its opening and its
+                // end. A message this service did not write names neither, and an immutable
+                // Map throws on a null key, so such a row must not reach the lookup at all.
+                String uuid = missionUuidOf(e.message());
+                Integer step = stepNumberOf(e.message());
+                if (uuid == null) {
+                    idCard = null;
+                } else {
+                    idCard = step == null
+                            ? missionCards.get(uuid)
+                            : stepCards.get(uuid + "/" + step);
+                }
             } else if (e.idItem() != null) {
                 // v0.35.4 — an item entry is narrated by the item's own card, whichever of
                 // the three actions it is.

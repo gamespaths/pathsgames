@@ -647,6 +647,25 @@ def _nz(value):
         return 0
 
 
+def _mission_uuid_of(message):
+    """The mission a MISSION_CHANGE message names: the second word, which is where
+    missions._log writes the uuid. None when the shape is not the one it wrote."""
+    parts = (message or '').strip().split()
+    return parts[1] if len(parts) >= 2 else None
+
+
+def _step_number_of(message):
+    """The step a MISSION_CHANGE message names, as the author numbered it, or None when the row
+    is about the mission itself."""
+    parts = (message or '').strip().split()
+    if len(parts) < 2 or parts[-2] != 'step':
+        return None
+    try:
+        return int(parts[-1])
+    except ValueError:
+        return None
+
+
 def _class_ref(value):
     """v0.37.1 - a class-restriction column. A BLANK one is no restriction at all, not class
     zero: the admin form writes "" where the author left the field empty, and the story item
@@ -1012,7 +1031,7 @@ def _end_match(user, match_uuid, event_uuid):
     item['status'] = 'ENDED'
     # Step 37 — a mission that opened and never closed has now failed; one never reached is
     # simply ignored, as it was never the player's business.
-    _missions.on_story_end(item)
+    _missions.on_story_end(item, story)
     db_utils.put_item(item)
     return _ok({'status': 'ENDED', 'uuid': match_uuid})
 
@@ -2106,6 +2125,9 @@ def _assemble_match_logs(match, match_uuid):
         elif message.startswith(_registry.MSG_REGISTRY_CHANGE):
             # Step 36 — a registry key was written by an event, a choice or the engine.
             entry_type = "REGISTRY_CHANGE"
+        elif message.startswith(_missions.MSG_MISSION_CHANGE):
+            # v0.37.2 — a mission opened, advanced, completed or failed.
+            entry_type = "MISSION_CHANGE"
         else:
             continue
         entries.append({
@@ -2212,6 +2234,17 @@ def _enrich_match_logs(page, match, match_uuid, lang):
                    for ev in (story.get('events') or [])}
     item_cards = {_nz(it.get('id')): it.get('idCard')
                   for it in (story.get('items') or [])}
+    # v0.37.2 — keyed by UUID, not by id: that is what a MISSION_CHANGE row names.
+    mission_cards = {m.get('uuid'): m.get('idCard')
+                     for m in (story.get('missions') or []) if m.get('uuid')}
+    mission_uuids = {_nz(m.get('id')): m.get('uuid') for m in (story.get('missions') or [])}
+    # And the steps, keyed "<mission uuid>/<step>": a row that names a step wears the step's
+    # card, an advance being the step's news and not the mission's.
+    step_cards = {}
+    for st in (story.get('missionSteps') or []):
+        uuid = mission_uuids.get(_nz(st.get('idMission')))
+        if uuid and st.get('step') is not None:
+            step_cards[f"{uuid}/{_nz(st.get('step'))}"] = st.get('idCard')
     characters = {c.get('uuid'): c for c in _match_characters(match_uuid)}
 
     out = []
@@ -2231,6 +2264,18 @@ def _enrich_match_logs(page, match, match_uuid, lang):
         elif entry['type'] == 'COUNTER_ZERO' and entry.get('idLocationTo') is not None:
             # Step 33 — a counter belongs to a place, so the place's card names it.
             id_card = location_cards.get(_nz(entry['idLocationTo']))
+        elif entry['type'] == 'MISSION_CHANGE':
+            # v0.37.2 — the uuid in the message is the only handle the row has, the log holding
+            # no mission column. A row that NAMES A STEP wears that step's card; the mission's
+            # own is for its opening and its end.
+            uuid = _mission_uuid_of(entry.get('message'))
+            step = _step_number_of(entry.get('message'))
+            if uuid is None:
+                id_card = None
+            elif step is None:
+                id_card = mission_cards.get(uuid)
+            else:
+                id_card = step_cards.get(f"{uuid}/{step}")
         elif entry.get('idItem') is not None:
             # v0.35.4 — an item entry is narrated by the item's own card, whichever of the
             # three actions it is.

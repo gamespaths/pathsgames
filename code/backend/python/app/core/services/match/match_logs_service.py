@@ -35,13 +35,15 @@ from app.adapters.persistence.story.models import (
     EventEntity,
     ItemEntity,
     LocationEntity,
+    MissionEntity,
+    MissionStepEntity,
     WeatherRuleEntity,
 )
 from app.core.ports.match.event_ports import (
     ITEM_ACTION_ADD, ITEM_ACTION_DROP, ITEM_ACTION_REMOVE, ITEM_ACTION_USE,
     MSG_EVENT_EXECUTED,
 )
-from app.core.services.match import registry_service
+from app.core.services.match import mission_service, registry_service
 
 
 def _item_type(action: Optional[str]) -> Optional[str]:
@@ -85,6 +87,27 @@ _TYPE_COUNTER_ZERO = "COUNTER_ZERO"
 _TYPE_AUTOMATIC_EVENT = "AUTOMATIC_EVENT"
 # Step 36 — a registry key was written by an event, a choice or the engine.
 _TYPE_REGISTRY_CHANGE = "REGISTRY_CHANGE"
+# v0.37.2 — a mission opened, advanced, completed or failed.
+_TYPE_MISSION_CHANGE = "MISSION_CHANGE"
+
+
+def _step_number_of(message: Optional[str]) -> Optional[int]:
+    """The step a MISSION_CHANGE message names, as the author numbered it, or None when the row
+    is about the mission itself."""
+    parts = (message or "").strip().split()
+    if len(parts) < 2 or parts[-2] != "step":
+        return None
+    try:
+        return int(parts[-1])
+    except ValueError:
+        return None
+
+
+def _mission_uuid_of(message: Optional[str]) -> Optional[str]:
+    """The mission a MISSION_CHANGE message names: the second word, which is where
+    MissionService writes the uuid. None when the shape is not the one it wrote."""
+    parts = (message or "").strip().split()
+    return parts[1] if len(parts) >= 2 else None
 # v0.35.4 — the three item actions, read off log_item_usage.action rather than a message.
 _TYPE_ITEM_ADD = "ITEM_ADD"
 _TYPE_ITEM_USE = "ITEM_USE"
@@ -300,6 +323,14 @@ class MatchLogsService:
                     "message": msg,
                     "idEvent": e.id_event,
                 })
+            elif msg.startswith(mission_service.MSG_MISSION_CHANGE):
+                # v0.37.2 — nobody in the fiction moves a mission: no character rides on it.
+                entries.append({
+                    "type": _TYPE_MISSION_CHANGE,
+                    "clock": e.clock,
+                    "timestamp": e.timestamp,
+                    "message": msg,
+                })
             elif msg.startswith("recovery"):
                 entries.append({
                     "type": _TYPE_RECOVERY,
@@ -361,6 +392,19 @@ class MatchLogsService:
                        .filter(EventEntity.id_story == match.id_story).all()}
         item_cards = {it.id: it.id_card for it in session.query(ItemEntity)
                       .filter(ItemEntity.id_story == match.id_story).all()}
+        # v0.37.2 — keyed by UUID, not by id: that is what a MISSION_CHANGE row names.
+        missions = session.query(MissionEntity).filter(
+            MissionEntity.id_story == match.id_story).all()
+        mission_cards = {m.uuid: m.id_card for m in missions if m.uuid}
+        mission_uuids = {m.id: m.uuid for m in missions}
+        # And the steps, keyed "<mission uuid>/<step>": a row that names a step wears the
+        # step's card, an advance being the step's news and not the mission's.
+        step_cards = {}
+        for st in session.query(MissionStepEntity).filter(
+                MissionStepEntity.id_story == match.id_story).all():
+            uuid = mission_uuids.get(st.id_mission)
+            if uuid and st.step is not None:
+                step_cards[f"{uuid}/{st.step}"] = st.id_card
         characters = {c.id: c for c in session.query(GamingCharacterInstanceEntity)
                       .filter(GamingCharacterInstanceEntity.id_match == match.id).all()}
 
@@ -381,6 +425,18 @@ class MatchLogsService:
             elif entry["type"] == _TYPE_COUNTER_ZERO and entry.get("idLocationTo") is not None:
                 # Step 33 — a counter belongs to a place, so the place's card names it.
                 id_card = location_cards.get(entry["idLocationTo"])
+            elif entry["type"] == _TYPE_MISSION_CHANGE:
+                # v0.37.2 — the uuid in the message is the only handle the row has, the log
+                # table holding no mission column. A row that NAMES A STEP wears that step's
+                # card; the mission's own is for its opening and its end.
+                uuid = _mission_uuid_of(entry.get("message"))
+                step = _step_number_of(entry.get("message"))
+                if uuid is None:
+                    id_card = None
+                elif step is None:
+                    id_card = mission_cards.get(uuid)
+                else:
+                    id_card = step_cards.get(f"{uuid}/{step}")
             elif entry.get("idItem") is not None:
                 # v0.35.4 — an item entry is narrated by the item's own card, whichever of
                 # the three actions it is.
