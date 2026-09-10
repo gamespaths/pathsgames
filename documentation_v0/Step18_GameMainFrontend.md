@@ -446,6 +446,15 @@ select-choice, sleep, move, use/drop item).
 `PageRightMain` is the board proper: stat cards, `ComaCard`, `GoToSleepCard`, one
 `MovementCard` per neighbor, one `ActionCard`/`EndGameCard` per action.
 
+**Status card shortcuts (v0.37.3).** The stat-characteristics card's action row lost the
+registry shortcut (`fa-scroll`) — the registry stays reachable from the (i) view
+(`PageRightInfo`'s `RegistryCard`) — and the `fa-bed` "force sleep" action: `GoToSleepCard` now
+shows only when the player is energy-stuck (`checkShowToSleepCard`), never on demand; the
+`forceSleepCard` action on `useBookView` is unused but left in place. The remaining shortcuts
+(Info · Map · Missions · Backpack) are now named, reusing `card.info` and `game.bookmarks.*`;
+on mobile only they render one per row (`card-status` marker class, rules in `mobile.css`) with
+the label visible, while inside the book the labels stay hidden (`main.css`).
+
 ### Mobile layout
 
 `GameBookMobile` stacks the same `PageLeft`/`PageRight` content vertically instead of showing
@@ -527,7 +536,7 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     > - **Button alignment**: `config-change-btn` and `config-coming-soon-btn` are `width: auto`, font-size reduced to `0.65rem`, footer aligned right (`align-items: flex-end`) so buttons sit in the bottom-right corner of cover cards.
     > - **Mobile top clipping fix**: `book-overlay` padding-top raised to `56px` on mobile so the first card in the vertical list is not hidden under the navbar.
 
-- **Document Version**: 0.36.2
+- **Document Version**: 0.37.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.35.5 | `GameBook.jsx` decomposed 1005 → ~170 lines: `features/game/` renamed `features/gameplay/`, split into `PageLeft`/`PageRight`/`PageRightMain`/`PageRightInfo` + `useMatchChrome`/`useBookView`/`useGameplayResults` hooks. Gameplay card `onPreview` moved from 6 positional args to one object; `GoToSleepCard` gains `autoPreview`, fixing a broken Italian shortcut | Aug 27, 2026 |
@@ -542,8 +551,9 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     | 0.28.2 | i18n: `LanguageProvider` persists lang to `localStorage['pathsgames.lang']`; initial lang resolves from saved choice → browser lang → `'en'`; `pathsgames.lang` added to strictly-necessary consent table in `cookieConsent.js`; 14 tests in `i18nContext.test.jsx` | Jun 26, 2026 |
     | 0.35.8 | `StoryCard.jsx` rewritten as a thin wrapper over the shared `Card` (`variant="little"`); footer button now gated on `matchesStatus`. Two new opt-in flags, `RESUME_WITHOUT_MODAL` and `ADD_COMING_SOON_STORIES`. | August 30, 2026 |
     | 0.36.2 | `storyMatchBadge` treats GAMEOVER as completed too (`FINISHED_MATCH_STATUSES`); `StoryCard.jsx` shows Replay (`fa-rotate-right`) instead of Play on a finished story. | September 5, 2026 |
+    | 0.37.3 | Status card's action row drops the registry shortcut (still reachable from (i)) and the `fa-bed` force-sleep action; `GoToSleepCard` shows only when energy-stuck. Remaining shortcuts (Info/Map/Missions/Backpack) are named, one per row on mobile. | September 10, 2026 |
 
-- **Last Updated**: September 5, 2026
+- **Last Updated**: September 10, 2026
 - **Status**: Active development
 
 

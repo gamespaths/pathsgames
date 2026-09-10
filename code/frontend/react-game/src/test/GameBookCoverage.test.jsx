@@ -57,8 +57,9 @@ vi.mock('../features/gameplay/cards/GoToSleepCard', () => ({
 // the branch behind it can be fired from a test.
 vi.mock('../components/layout/Card', () => ({
   default: ({ entityType, card, children, childrenIntoImage, onPreview, onAction, onClose,
-              onForward, actionsList, onSelect, locked, lockInfo, statItemsToPageContent }) => (
-    <div data-testid={entityType ? `cc-${entityType}` : 'game-card'}>
+              onForward, actionsList, onSelect, locked, lockInfo, statItemsToPageContent,
+              additionalCardClasses, infoLabel }) => (
+    <div data-testid={entityType ? `cc-${entityType}` : 'game-card'} className={additionalCardClasses}>
       <span>{card?.title}</span>{children}{childrenIntoImage}
       {/* The badges under the card: key:value pairs, so a test can read WHICH numbers a
           card is describing — the item's own promise or the event's stat changes. */}
@@ -67,12 +68,12 @@ vi.mock('../components/layout/Card', () => ({
       </span>
       {onClose && <button data-testid="page-back" onClick={onClose}>back</button>}
       {onForward && <button data-testid="page-forward" onClick={onForward}>forward</button>}
-      {onPreview && <button data-testid={`preview-${entityType}`} onClick={onPreview}>preview</button>}
+      {onPreview && <button data-testid={`preview-${entityType}`} onClick={onPreview}>{infoLabel ?? 'preview'}</button>}
       {onAction && <button data-testid={`action-${entityType}`} onClick={onAction}>action</button>}
       {onSelect && <button data-testid={`select-${entityType}`} onClick={onSelect}>select</button>}
       {locked && <span data-testid={`locked-${entityType}`}>{lockInfo}</span>}
       {(actionsList ?? []).map((a, i) => (
-        <button key={i} data-testid={`extra-action-${i}`} onClick={a.onAction}>{a.icon}</button>
+        <button key={i} data-testid={`extra-action-${i}`} onClick={a.onAction}>{a.icon}{a.label}</button>
       ))}
     </div>
   ),
@@ -548,16 +549,12 @@ describe('GameBook — map and statistics view', () => {
     expect(await screen.findByTestId('match-log-card')).toBeInTheDocument()
   })
 
-  // The (i) characteristics card carries a fa-bed shortcut: it reveals the sleep card on
-  // the board and asks it to open its own reading page (autoPreview). It is the card's MAIN
-  // action — fa-map, which used to be, now sits first in actionsList.
-  it('reveals and auto-opens the sleep card from the characteristics fa-bed shortcut', () => {
+  // v0.37.3 — the fa-bed shortcut left the characteristics card: sleeping is offered by the
+  // board itself, when every movement and action here costs more energy than the player has.
+  it('no longer offers the sleep shortcut on the characteristics card', () => {
     renderBook()
+    expect(screen.queryByTestId('action-information')).not.toBeInTheDocument()
     expect(screen.queryByTestId('go-to-sleep-card')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByTestId('action-information'))
-    const card = screen.getByTestId('go-to-sleep-card')
-    expect(card).toBeInTheDocument()
-    expect(card).toHaveAttribute('data-auto-preview', '1')
   })
 
   // A card asking for a reading page reaches it through openPreview, side and all.
@@ -575,6 +572,27 @@ describe('GameBook — map and statistics view', () => {
     fireEvent.click(screen.getByTestId('extra-action-1'))
     expect(alertSpy).not.toHaveBeenCalled()
     alertSpy.mockRestore()
+  })
+
+  // v0.37.3 — the scroll shortcut left the row; the registry is reached from the (i) view.
+  it('no longer offers the registry shortcut on the characteristics card', () => {
+    renderBook()
+    expect(screen.queryAllByText(/fa-scroll/)).toHaveLength(0)
+    expect(screen.getAllByText(/fa-clipboard-list/).length).toBeGreaterThan(0)
+  })
+
+  // v0.37.3 — the mobile stack has no bookmarks, so the status card names its own shortcuts
+  // and carries the marker class the one-per-row mobile rule hangs on.
+  it('names the status card shortcuts and marks the card for the mobile layout rule', () => {
+    renderBook()
+    const statusCard = document.querySelector('.card-status')
+    expect(statusCard).toBeTruthy()
+    expect(statusCard.className).toContain('hide-in-book')
+    // The (i) keeps CardButtons' own short name (card.info = "Info"), covered there; the
+    // three shortcuts carry the bookmark names.
+    for (const key of ['map', 'missions', 'backpack']) {
+      expect(screen.getAllByText(new RegExp(`game\\.bookmarks\\.${key}`)).length).toBeGreaterThan(0)
+    }
   })
 
   // A comatose character gets the coma card among the board cards.
@@ -600,7 +618,7 @@ describe('GameBook — inventory (Step 34)', () => {
       },
     })
     // The bag lives on its own page now: the flask button is the way in.
-    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getAllByTestId('extra-action-2')[0])
 
     expect(screen.getAllByTestId('cc-item')).toHaveLength(2)
     // The non-consumable one renders locked — carried, not usable.
@@ -609,7 +627,7 @@ describe('GameBook — inventory (Step 34)', () => {
 
   it('renders no ItemCard when the player carries nothing', () => {
     renderBook({ playerStats: { life: 10, energy: 10, constitution: 3, items: [] } })
-    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getAllByTestId('extra-action-2')[0])
     expect(screen.queryByTestId('cc-item')).toBeNull()
   })
 
@@ -628,7 +646,7 @@ describe('GameBook — inventory (Step 34)', () => {
       },
     }, { onReload })
 
-    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getAllByTestId('extra-action-2')[0])
     fireEvent.click(screen.getByTestId('preview-item'))
     fireEvent.click(screen.getAllByTestId('extra-action-0').at(-1))
 
@@ -658,14 +676,14 @@ describe('GameBook — the backpack page (Step 34)', () => {
     // Before: the characteristics card, no item cards.
     expect(screen.queryByTestId('cc-item')).toBeNull()
     // The flask is the 4th secondary action of the characteristics card (index 3).
-    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getAllByTestId('extra-action-2')[0])
 
     expect(screen.getAllByTestId('cc-item').length).toBeGreaterThan(0)
   })
 
   it('the backpack lists one card per row, and the left page closes it again', () => {
     renderBook({ playerStats: BAG })
-    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getAllByTestId('extra-action-2')[0])
 
     // Right page: the rows. Left page: the bag card, which owns the way back.
     expect(screen.getAllByTestId('cc-item')).toHaveLength(1)
@@ -715,7 +733,7 @@ describe('GameBook — the backpack page (Step 34)', () => {
       effects: [{ statistic: 'life', card: { title: 'You feel better' } }],
     })
     renderBook({ playerStats: BAG })
-    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getAllByTestId('extra-action-2')[0])
     expect(screen.getAllByTestId('cc-item').length).toBeGreaterThan(0)
 
     // "use" lives on the item's RIGHT preview, as the primary action.
@@ -739,7 +757,7 @@ describe('GameBook — the backpack page (Step 34)', () => {
       effects: [{ statistic: 'life', value: 3 }],
     })
     renderBook({ playerStats: BAG })
-    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getAllByTestId('extra-action-2')[0])
     fireEvent.click(screen.getByTestId('preview-item'))
     fireEvent.click(screen.getAllByTestId('action-item').at(-1))
 
@@ -766,7 +784,7 @@ describe('GameBook — the backpack page (Step 34)', () => {
   it('dropping an item keeps the bag open: the list is what the player is working through', async () => {
     dropItem.mockResolvedValue({})
     renderBook({ playerStats: BAG })
-    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getAllByTestId('extra-action-2')[0])
     fireEvent.click(screen.getByTestId('preview-item'))
     fireEvent.click(screen.getAllByTestId('extra-action-0').at(-1))
 

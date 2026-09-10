@@ -16,7 +16,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `17_admin_crud` | Admin CRUD for all story entities |
 | `19_match` | Match creation and end flow; `duplicate_match_guard.robot` (v0.32.1, see below) |
 | `20_admin_match` | Admin match control (stop/pause/resume) |
-| `20_website` | Website/Turnstile captcha flow |
+| `20_website` | Website/Turnstile captcha flow; mode-aware since v0.37.3 (see below) |
 | `21_character_selection` | Character join, stat formula, backpack/traits |
 | `22_story_validation` | Story import validation rules |
 | `23_trait_selection` | Trait selection with class/cost/compatibility checks, and the v0.35.2 hidden traits |
@@ -50,6 +50,18 @@ Because of that guard, any suite creating two matches for one guest on the same 
 now mints a guest per match via `Use A Fresh Guest Token` (`resources/auth.resource`;
 rebinds `${TOKEN}`, test-scoped in a test and suite-scoped in a Suite Setup). Already
 applied to 19_match, 20_website, 21, 23, 24, 25, 26, 27 and 28.
+
+### `20_website` breakdown
+
+`turnstile.robot` (v0.37.3) is mode-aware: `Suite Setup Turnstile` reads
+`${CF_TURNSTILE_TOKEN}` (`variables/aws.yaml`) into suite variable
+`${TURNSTILE_ENFORCED}` — set means the server enforces Turnstile (a
+null/arbitrary/foreign token must get 400 `TURNSTILE_VALIDATION_FAILED`), empty means
+dev bypass (201), asserted by the shared keyword `Match Creation Should Follow
+Turnstile Mode`. New case "Create Match With The Deployed Bypass Token Succeeds When
+Enforced" (skips itself under dev bypass) checks the token deployed as
+`TURNSTILE_BYPASS_TOKEN` still gets through. `run_robot_with_aws_serverless.sh` no
+longer passes `--exclude bypass`, so these cases run against the AWS stack.
 
 ### `23_trait_selection` breakdown
 

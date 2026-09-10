@@ -26,9 +26,10 @@ describe('MissionStepsCards (v0.37.1)', () => {
     expect(screen.getAllByTestId('step').map(n => n.textContent))
       .toEqual(['Reach the hills', 'Climb the peak'])
     // No step NUMBER any more — a closed step says Completed, an open one says nothing.
-    // The very badge a closed MISSION wears — same key, same label, same glyph.
+    // The very badge a closed MISSION wears — same key, same glyph, and v0.37.3 no label:
+    // the word next to the check is the whole message.
     expect(captured[0].statistics).toEqual([{ key: 'missionStatus',
-      value: 'game.missions.status.COMPLETED', label: 'game.missions.statusLabel',
+      value: 'game.missions.status.COMPLETED',
       icon: 'fas fa-check-circle', color: null }])
     expect(captured[1].statistics).toEqual([])
   })

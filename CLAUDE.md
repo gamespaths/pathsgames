@@ -30,6 +30,7 @@ Never read `documentation_v0/website_concepts_v0/` (450 MB of images).
 - **Never bump the version** unless the prompt says so. Current version = `code/backend/java/pom.xml` minus `-SNAPSHOT`.
 - **Never touch NotebookLM** unless the prompt says so. (Notebook: "PathsGames - Storytelling Game Platform", `NOTEBOOK=cd7b4625-76cd-4531-971a-98df705b840e`.)
 - Take your time — an accurate answer beats a fast one.
+- Never change `.env` & `.env.test` files , ask me after any changes.
 
 ## Permissions
 

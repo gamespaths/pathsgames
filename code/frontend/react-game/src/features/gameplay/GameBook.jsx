@@ -160,7 +160,6 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     onOpenMissions={viewActions.openMissions}
     onOpenMission={viewActions.openMission}
     onOpenInfo={openInformationView}
-    onForceSleepCard={viewActions.forceSleepCard}
     onPreviewMatchLog={() => viewActions.setPreviewRight({ kind: 'matchlog' })}
     onEndGame={handleEndGame}
     onEndGamePreview={handleEndGamePreviewFull}

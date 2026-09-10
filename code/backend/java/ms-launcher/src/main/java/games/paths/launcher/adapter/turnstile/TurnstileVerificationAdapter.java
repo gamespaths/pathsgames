@@ -1,6 +1,8 @@
 package games.paths.launcher.adapter.turnstile;
 
 import games.paths.core.port.turnstile.TurnstileVerificationPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -18,6 +20,8 @@ import java.util.Map;
  *     token matches it (used by Robot tests against an env with a real key).
  */
 public class TurnstileVerificationAdapter implements TurnstileVerificationPort {
+
+    private static final Logger log = LoggerFactory.getLogger(TurnstileVerificationAdapter.class);
 
     private static final String SITEVERIFY_URL =
             "https://challenges.cloudflare.com/turnstile/v0/siteverify";
@@ -50,6 +54,7 @@ public class TurnstileVerificationAdapter implements TurnstileVerificationPort {
             return true;
         }
         if (token == null || token.isBlank()) {
+            log.warn("Turnstile refused: no turnstileToken in the request body");
             return false;
         }
         try {
@@ -69,8 +74,14 @@ public class TurnstileVerificationAdapter implements TurnstileVerificationPort {
                     new HttpEntity<>(body, headers),
                     Map.class);
 
-            return response != null && Boolean.TRUE.equals(response.get("success"));
+            if (response != null && Boolean.TRUE.equals(response.get("success"))) {
+                return true;
+            }
+            // error-codes tells a wrong secret from a reused/expired token
+            log.warn("Turnstile refused: {}", response == null ? null : response.get("error-codes"));
+            return false;
         } catch (Exception e) {
+            log.warn("Turnstile siteverify call failed: {}", e.getMessage());
             return false;
         }
     }

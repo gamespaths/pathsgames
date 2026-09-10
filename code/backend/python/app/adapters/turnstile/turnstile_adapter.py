@@ -1,4 +1,5 @@
 """Cloudflare Turnstile verification adapter."""
+import logging
 from typing import Optional
 
 import httpx
@@ -6,6 +7,8 @@ import httpx
 from app.core.ports.match.match_ports import TurnstileVerificationPort
 
 _SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+
+logger = logging.getLogger(__name__)
 
 
 class TurnstileVerificationAdapter(TurnstileVerificationPort):
@@ -38,12 +41,19 @@ class TurnstileVerificationAdapter(TurnstileVerificationPort):
         ):
             return True
         if not token:
+            logger.warning("Turnstile refused: no turnstileToken in the request body")
             return False
         try:
             data = {"secret": self._secret_key, "response": token}
             if remote_ip:
                 data["remoteip"] = remote_ip
             response = httpx.post(_SITEVERIFY_URL, data=data, timeout=5.0)
-            return response.json().get("success", False) is True
-        except Exception:
+            payload = response.json()
+            if payload.get("success", False) is True:
+                return True
+            # error-codes tells a wrong secret from a reused/expired token
+            logger.warning("Turnstile refused: %s", payload.get("error-codes"))
+            return False
+        except Exception as exc:
+            logger.warning("Turnstile siteverify call failed: %s", exc)
             return False

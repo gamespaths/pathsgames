@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
@@ -65,6 +65,15 @@ function withMissions(missions) {
   return { ...GAME_DATA, info: { ...GAME_DATA.info, missions } }
 }
 
+/** v0.37.3 — the mobile status card now names its shortcuts with the very same words the
+ * tabs carry, so every tab query is scoped to the tab strip instead of the whole page. */
+function tabStrip() {
+  return document.querySelector('.book-bookmarks--left')
+}
+function tab(label) {
+  return within(tabStrip()).getByLabelText(label)
+}
+
 describe('GameBook — the book bookmarks', () => {
   beforeEach(() => vi.clearAllMocks())
 
@@ -76,68 +85,68 @@ describe('GameBook — the book bookmarks', () => {
     expect(container.querySelector('.book-bookmarks--right')).toBeNull()
 
     // Step 37 lit the missions tab up: it opens the panel it had been promising.
-    const missions = screen.getByLabelText('game.bookmarks.missions')
+    const missions = tab('game.bookmarks.missions')
     expect(missions).not.toHaveClass('is-disabled')
   })
 
   it('prints no words: a tab is its icon and its badges', () => {
     renderBook()
-    expect(screen.getByLabelText('game.bookmarks.map').textContent).toBe('')
-    expect(screen.queryByText('game.bookmarks.information')).toBeNull()
+    expect(tab('game.bookmarks.map').textContent).toBe('')
+    expect(within(tabStrip()).queryByText('game.bookmarks.information')).toBeNull()
   })
 
   it('reads the board without opening it: life/energy/sadness on (i), the load on the bag', () => {
     renderBook()
 
-    const info = screen.getByLabelText('game.bookmarks.information')
+    const info = tab('game.bookmarks.information')
     expect(info.textContent).toContain('3/10')
     expect(info.textContent).toContain('2/8')
     expect(info.textContent).toContain('1/5')
-    expect(screen.getByLabelText('game.bookmarks.backpack').textContent).toContain('7/30')
+    expect(tab('game.bookmarks.backpack').textContent).toContain('7/30')
   })
 
   it('falls back to 0/0 on the bag when no weight is projected yet', () => {
     render(<GameBook gameData={{ ...GAME_DATA, playerStats: {} }} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
-    expect(screen.getByLabelText('game.bookmarks.backpack').textContent).toContain('0/0')
+    expect(tab('game.bookmarks.backpack').textContent).toContain('0/0')
   })
 
   it('the map tab opens the map page and then goes inert', () => {
     renderBook()
-    fireEvent.click(screen.getByLabelText('game.bookmarks.map'))
+    fireEvent.click(tab('game.bookmarks.map'))
 
     expect(screen.getByTestId('map-page')).toBeInTheDocument()
-    expect(screen.getByLabelText('game.bookmarks.map')).toHaveClass('is-active')
+    expect(tab('game.bookmarks.map')).toHaveClass('is-active')
   })
 
   it('the backpack tab opens the bag page and then goes inert', () => {
     renderBook()
-    fireEvent.click(screen.getByLabelText('game.bookmarks.backpack'))
+    fireEvent.click(tab('game.bookmarks.backpack'))
 
     expect(screen.getByTestId('items-cards')).toBeInTheDocument()
-    expect(screen.getByLabelText('game.bookmarks.backpack')).toHaveClass('is-active')
+    expect(tab('game.bookmarks.backpack')).toHaveClass('is-active')
   })
 
   it('the (i) tab opens the same information view the card lens opens', () => {
     const { container } = renderBook()
-    fireEvent.click(screen.getByLabelText('game.bookmarks.information'))
+    fireEvent.click(tab('game.bookmarks.information'))
 
     // The information page took the left page over — its badge rows are the giveaway.
     expect(container.querySelector('.information-card-rows')).toBeInTheDocument()
-    expect(screen.getByLabelText('game.bookmarks.information')).toHaveClass('is-active')
+    expect(tab('game.bookmarks.information')).toHaveClass('is-active')
   })
 
   it('the tabs are exclusive: opening one puts the page another left open away', () => {
     const { container } = renderBook()
 
-    fireEvent.click(screen.getByLabelText('game.bookmarks.information'))
-    fireEvent.click(screen.getByLabelText('game.bookmarks.map'))
+    fireEvent.click(tab('game.bookmarks.information'))
+    fireEvent.click(tab('game.bookmarks.map'))
 
     // The map took the page; the information one is gone, not merely covered.
     expect(screen.getByTestId('map-page')).toBeInTheDocument()
     expect(container.querySelector('.information-card-rows')).toBeNull()
-    expect(screen.getByLabelText('game.bookmarks.information')).not.toHaveClass('is-active')
+    expect(tab('game.bookmarks.information')).not.toHaveClass('is-active')
 
-    fireEvent.click(screen.getByLabelText('game.bookmarks.backpack'))
+    fireEvent.click(tab('game.bookmarks.backpack'))
     expect(screen.queryByTestId('map-page')).toBeNull()
     expect(screen.getByTestId('items-cards')).toBeInTheDocument()
   })
@@ -146,7 +155,7 @@ describe('GameBook — the book bookmarks', () => {
     const { container } = renderBook()
 
     for (const key of ['information', 'map', 'backpack']) {
-      fireEvent.click(screen.getByLabelText(`game.bookmarks.${key}`))
+      fireEvent.click(tab(`game.bookmarks.${key}`))
       // The map page owns its back button; the other two are reading pages, whose arrow
       // Card labels card.back.
       if (key === 'map') fireEvent.click(screen.getByTestId('map-back'))
@@ -159,7 +168,7 @@ describe('GameBook — the book bookmarks', () => {
       // tab is the position one — which IS the board.
       expect(screen.getByTestId('location-card')).toBeInTheDocument()
       expect(container.querySelectorAll('.book-bookmark.is-active').length).toBe(1)
-      expect(screen.getByLabelText('game.bookmarks.position')).toHaveClass('is-active')
+      expect(tab('game.bookmarks.position')).toHaveClass('is-active')
     }
   })
 
@@ -171,48 +180,48 @@ describe('GameBook — the book bookmarks', () => {
     ]) {
       const { unmount } = render(<GameBook gameData={{ ...GAME_DATA, playerStats: stats }}
         matchUuid="m1" story={STORY} onClose={vi.fn()} />)
-      expect(screen.getByLabelText('game.bookmarks.information')).toHaveClass('is-danger')
+      expect(tab('game.bookmarks.information')).toHaveClass('is-danger')
       unmount()
     }
   })
 
   it('leaves both tabs calm while the character is fine', () => {
     renderBook()
-    expect(screen.getByLabelText('game.bookmarks.information')).not.toHaveClass('is-danger')
-    expect(screen.getByLabelText('game.bookmarks.backpack')).not.toHaveClass('is-danger')
+    expect(tab('game.bookmarks.information')).not.toHaveClass('is-danger')
+    expect(tab('game.bookmarks.backpack')).not.toHaveClass('is-danger')
   })
 
   it('paints the bag tab red only PAST the limit, not at it', () => {
     const bagWith = weight => ({ ...GAME_DATA, playerStats: { ...GAME_DATA.playerStats, weight, weightMax: 30 } })
 
     const { unmount } = render(<GameBook gameData={bagWith(30)} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
-    expect(screen.getByLabelText('game.bookmarks.backpack')).not.toHaveClass('is-danger')
+    expect(tab('game.bookmarks.backpack')).not.toHaveClass('is-danger')
     unmount()
 
     render(<GameBook gameData={bagWith(31)} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
-    expect(screen.getByLabelText('game.bookmarks.backpack')).toHaveClass('is-danger')
+    expect(tab('game.bookmarks.backpack')).toHaveClass('is-danger')
   })
 
   describe('the position tab', () => {
     it('is the pin alone: the page it returns to names the location in full', () => {
       renderBook()
-      expect(screen.getByLabelText('game.bookmarks.position').textContent).toBe('')
+      expect(tab('game.bookmarks.position').textContent).toBe('')
     })
 
     it('is lit and inert while the board is what is already showing', () => {
       renderBook()
-      const tab = screen.getByLabelText('game.bookmarks.position')
+      const positionTab = tab('game.bookmarks.position')
 
-      expect(tab).toHaveClass('is-active')
-      fireEvent.click(tab)
+      expect(positionTab).toHaveClass('is-active')
+      fireEvent.click(positionTab)
       expect(screen.getByTestId('location-card')).toBeInTheDocument()
     })
 
     it('brings any open page back to the board', () => {
       const { container } = renderBook()
 
-      fireEvent.click(screen.getByLabelText('game.bookmarks.map'))
-      fireEvent.click(screen.getByLabelText('game.bookmarks.position'))
+      fireEvent.click(tab('game.bookmarks.map'))
+      fireEvent.click(tab('game.bookmarks.position'))
 
       expect(screen.queryByTestId('map-page')).toBeNull()
       expect(screen.getByTestId('location-card')).toBeInTheDocument()
@@ -222,7 +231,7 @@ describe('GameBook — the book bookmarks', () => {
     it('is there even before a location card is loaded', () => {
       render(<GameBook gameData={{ ...GAME_DATA, actualLocationCard: null }}
         matchUuid="m1" story={STORY} onClose={vi.fn()} />)
-      expect(screen.getByLabelText('game.bookmarks.position')).toBeInTheDocument()
+      expect(tab('game.bookmarks.position')).toBeInTheDocument()
     })
   })
 
@@ -231,17 +240,17 @@ describe('GameBook — the book bookmarks', () => {
   it('lights the missions tab when a mission moves, and only then', () => {
     const open = [{ uuid: 'm-1', status: 'ACTIVE', steps: [{ done: false }] }]
     const { rerender } = renderBook(withMissions(open))
-    const tab = () => screen.getByLabelText('game.bookmarks.missions')
+    const missionsTab = () => tab('game.bookmarks.missions')
 
     // The first payload is the baseline: a match resumed mid-story does not open lit.
-    expect(tab()).not.toHaveClass('is-alert')
-    expect(tab().textContent).toBe('')
+    expect(missionsTab()).not.toHaveClass('is-alert')
+    expect(missionsTab().textContent).toBe('')
 
     rerender(<GameBook gameData={withMissions([{ uuid: 'm-1', status: 'COMPLETED',
       steps: [{ done: true }] }])} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
-    expect(tab()).toHaveClass('is-alert')
+    expect(missionsTab()).toHaveClass('is-alert')
 
-    fireEvent.click(tab())
-    expect(tab()).not.toHaveClass('is-alert')
+    fireEvent.click(missionsTab())
+    expect(missionsTab()).not.toHaveClass('is-alert')
   })
 })

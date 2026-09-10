@@ -146,7 +146,7 @@ All Unsplash images and SVG icons documented in [`src/data/images.json`](src/dat
 
 ---
 
-- **Document Version**: 0.37.0
+- **Document Version**: 0.37.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.18.0 | React game frontend initial implementation | May 04, 2026 |
@@ -178,7 +178,8 @@ All Unsplash images and SVG icons documented in [`src/data/images.json`](src/dat
     | 0.35.6 | `ItemCard` locks use/drop for a comatose character (`COMA` reason wins over the item's own); `useGameplayResults`'s `applyEdgeState` now also runs after a movement and a sleep, not only after `execute-event`, so the coma page can open there too. | Aug 28, 2026 |
     | 0.37.0 | Missions bookmark (greyed since 0.35.5) goes live: new `MissionCard`/`MissionCards`/`MissionStepCard` and `utils/missions.js` ride the `missions[]` array already on `/info`, no extra request. A closed mission shows LOCKED with the reason in `lockInfo`, never `label`. | Sep 08, 2026 |
     | 0.37.1 | Mission steps become readable: `MissionStepCard`'s status badge shows only on a closed mission, badges switch to full-size (labelled) via new `.pg-card--mission` CSS; new `useBookView` view `missionSteps` + `openMission` action open the mission on the left page and a new `MissionStepsCards.jsx` (one card per step, only the next open one shown, spoiler-safe) on the right; new i18n key `game.missions.stepsEmpty`. | Sep 09, 2026 |
-- **Last Updated**: Sep 09, 2026
+    | 0.37.3 | Turnstile token bugfix: `StartMatchFlow`'s widget stays mounted (hidden) for the whole flow instead of unmounting on pass, token read via ref, `useAntibot.retry()` drops the stale token; Retry now offered on `TURNSTILE_VALIDATION_FAILED` too. Status card drops its force-sleep/registry shortcuts, remaining ones (Info/Map/Missions/Backpack) are named. `missionStatusBadge` drops its `label` ("Completed" not "Status: Completed"). | Sep 10, 2026 |
+- **Last Updated**: Sep 10, 2026
 - **Status**: Active development
 
 ---

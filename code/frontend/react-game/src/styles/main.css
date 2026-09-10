@@ -635,6 +635,10 @@ html, body {
 .book-wrapper .hide-in-book { display: none !important; }
 .book-mobile-layout .hide-in-mobile { display: none !important; }
 
+/* The status card names its shortcuts for the mobile stack only; inside the book the
+   bookmarks already carry those names, so the labels stay off there. */
+.book-wrapper .card-status .gc-footer__btn-label { display: none; }
+
 /* ═══════════════════════════════════════════
    BOOK BOOKMARKS (v0.35.5)
    Tabs slotted into the book's top edge: inside .book-wrapper, so the mobile rule that

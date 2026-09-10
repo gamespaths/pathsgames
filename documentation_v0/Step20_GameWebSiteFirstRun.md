@@ -207,7 +207,58 @@ The long-form GDPR policy text is separately in the react-game `CookiesModal` (`
 - `npx vitest run` on the affected files: **28 passed**. `npm run build` succeeds. Full suite: 104 passed; the remaining failures are pre-existing in `Footer.test.jsx`, `Navbar.test.jsx`, `SelectionView.test.jsx` (untouched files, unrelated to this change).
 - Not verified here: real browser click-through of the live Cloudflare challenge.
 
+## 0.37.3 — Turnstile hardening: server diagnostics, client token lifecycle fix, mode-aware Robot suite
 
+### Server-side: why a refusal happened (verdict unchanged)
+
+`_verify_turnstile` (AWS `lambda/match/handler.py`) and `TurnstileVerificationAdapter` (Java,
+Python) now log the reason for every refusal instead of returning a bare `false`: a missing
+`turnstileToken`, Cloudflare's `error-codes` on a normal refusal (wrong secret vs a
+reused/expired token), the HTTP status + response body when Cloudflare answers with an
+`HTTPError` (400 means the secret itself is malformed — AWS only, via `urllib`), and any
+transport failure. Java/Python log through slf4j/`logging`; AWS uses `print` (CloudWatch). Pure
+observability — the accept/refuse outcome is unchanged.
+
+### Client-side: a real bug — the Turnstile token could go stale before the POST
+
+`StartMatchFlow.jsx` used to unmount `TurnstileWidget` once it passed, which kills its
+auto-refresh; the countdown before `POST /api/matches` could then outlive the token's ~300s
+single-use lifetime and a real user's request failed with `TURNSTILE_VALIDATION_FAILED`. Fix:
+the widget now stays mounted for the whole flow (`hidden` once passed, never unmounted), the
+token is read through a `tokenRef` (an auto-refreshed token is picked up without restarting the
+countdown effect), `useAntibot`'s `retry()` drops the stored token before re-challenging (a
+burnt token is never resent), and retrying with no site key configured just resolves to `ready`
+(nothing to remount). `MatchStatus.jsx`'s Retry button, previously hidden on
+`TURNSTILE_VALIDATION_FAILED` (leaving only Home — a dead end), is now offered on every error;
+it re-runs the antibot check and resumes automatically once a fresh pass comes back.
+
+### Test policy: `20_website/turnstile.robot` is now mode-aware
+
+The suite used to assume dev bypass (no secret key) throughout. It now reads
+`CF_TURNSTILE_TOKEN` (`variables/aws.yaml`) to know the server's mode: set → Turnstile is
+**enforced** (a null/arbitrary/foreign token must get 400 `TURNSTILE_VALIDATION_FAILED`); empty
+→ dev bypass (201), same as before. Three cases were renamed from "...Succeeds In Dev Bypass"
+to "...Follows The Server Mode" and now branch on `${TURNSTILE_ENFORCED}` via the new `Match
+Creation Should Follow Turnstile Mode` keyword. A new case, "Create Match With The Deployed
+Bypass Token Succeeds When Enforced", asserts the one token that must still get through — the
+value deployed as `TURNSTILE_BYPASS_TOKEN` — and skips itself under dev bypass.
+`run_robot_with_aws_serverless.sh` dropped `--exclude bypass`, so these cases now run against
+the AWS stack instead of being skipped.
+
+`aws_backend_deploy.sh` (`code/scripts/test/aws/`) reworks how that bypass token is chosen:
+`_TURNSTILE_BYPASS` is now always initialised before the environment check (previously only set
+inside each branch). This script still refuses outright to deploy a `prod` environment (it is a
+test/robot-only path); for every other environment it takes `TURNSTILE_BYPASS_TOKEN_ROBOT`,
+falling back to `TURNSTILE_BYPASS_TOKEN_TEST`, and warns when `TURNSTILE_SECRET_KEY` is empty
+(Turnstile validation off on that stack). `variables/aws.yaml`'s comment now names
+`TURNSTILE_BYPASS_TOKEN_ROBOT` as the source env var.
+
+Real users and Robot share one AWS stack: the site passes Turnstile through the real Cloudflare
+widget/secret, Robot through the deployed bypass token — which the handler only honours when
+`_ENV != 'prod'`.
+
+New `src/test/StartMatchTurnstileRetry.test.jsx`; `useAntibot.test.jsx` updated for the
+token-dropping retry; AWS/Python/Java gain unit-test coverage for the diagnostic logging paths.
 
 # Website Styles: React-Game Frontend Design System
 
@@ -1346,7 +1397,7 @@ curl http://<EC2-IP>:8044/api/admin/matches
 
 
 
-- **Document Version**: 0.35.8
+- **Document Version**: 0.37.3
 
     | Version | Description | Date |
     |---------|-------------|------|
@@ -1363,8 +1414,9 @@ curl http://<EC2-IP>:8044/api/admin/matches
     | 0.24.2 | EC2 Docker deploy — Python backend on server3 (`aws_ec2_with_python_docker/`, tag `:test-python`); server naming convention table; Dockerfile dual-port (8042+8044); HOST env var; optional story seed via `scripts/seed_stories.py` | June 14, 2026 |
     | 0.28.2 | i18n: `LanguageProvider` persists lang to `localStorage['pathsgames.lang']`; initial lang resolves from saved choice → browser lang → `'en'`; `pathsgames.lang` added to strictly-necessary consent table in `cookieConsent.js`; 14 tests in `i18nContext.test.jsx` | Jun 26, 2026 |
     | 0.35.8 | Correction only: `.pg-card--home` is unused since the Story Catalog card rewrite — see [Step18](./Step18_GameMainFrontend.md#story-catalog-card-v0358). | August 30, 2026 |
+    | 0.37.3 | Turnstile refusals now logged with a reason on all 3 backends (verdict unchanged); react-game bugfix — the widget no longer unmounts once passed, so a stale token can't reach `POST /api/matches`; Retry now offered on `TURNSTILE_VALIDATION_FAILED`; `20_website/turnstile.robot` is mode-aware (`CF_TURNSTILE_TOKEN` set = enforced), `aws_backend_deploy.sh` bypass-token selection reworked. | September 10, 2026 |
 
-- **Last Updated**: August 30, 2026
+- **Last Updated**: September 10, 2026
 - **Status**: Complete
 
 # < Paths Games />

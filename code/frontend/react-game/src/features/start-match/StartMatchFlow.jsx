@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '@/i18n/context'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
@@ -50,6 +50,11 @@ export default function StartMatchFlow({ story, config, storyId }) {
   const [match, setMatch] = useState(null)
   const [errorMsg, setErrorMsg] = useState('')
   const [preview,setPreview] = useState(false)
+  // Retry pending a fresh Turnstile token (the failed one is already burnt).
+  const [retryPending, setRetryPending] = useState(false)
+  // Read through a ref so an auto-refreshed token never restarts the countdown.
+  const tokenRef = useRef(gate.token)
+  useEffect(() => { tokenRef.current = gate.token }, [gate.token])
 
   function handleSelectionPreview(card, entityType , lockedReason , statItemsToPageContent) {
     setPreview(card ? { card, entityType, lockedReason, statItemsToPageContent } : null)
@@ -101,7 +106,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
         name: story.title ?? story.name ?? null,
         ...loadout,
         singlePlayer: 1,
-        turnstileToken: gate.token,
+        turnstileToken: tokenRef.current,
       }
       const created = await createMatch(payload, user?.accessToken)
       setMatch(created)
@@ -127,7 +132,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
         : (apiError || e?.message || ''))
       setPhase('error')
     }
-  }, [story, config, user, gate.token, waitWithCountdown, t])
+  }, [story, config, user, waitWithCountdown, t])
 
   // Timed phases: 'starting' counts down then creates the match; 'created'
   // counts down then enters the game. Both reuse the same configured delay.
@@ -146,6 +151,21 @@ export default function StartMatchFlow({ story, config, storyId }) {
     }, 1000)
     return () => clearInterval(id)
   }, [phase, runCreateMatch, navigate, storyId, match])
+
+  // A retry never reuses `gate.token`: Turnstile tokens are single-use, so a
+  // second POST with the same one always fails. Re-challenge, then resume.
+  function handleRetry() {
+    setErrorMsg('')
+    setRetryPending(true)
+    gate.retry()
+  }
+
+  useEffect(() => {
+    if (retryPending && gate.phase === 'ready') {
+      setRetryPending(false)
+      setPhase('starting')
+    }
+  }, [retryPending, gate.phase])
 
   // The (i) lens on the terms card opens the shared Terms & Conditions modal.
   function openTermsModal() {
@@ -187,6 +207,20 @@ export default function StartMatchFlow({ story, config, storyId }) {
     </div>
   )
 
+  // The widget stays mounted for the whole flow (hidden once passed): unmounting
+  // it kills Turnstile's auto-refresh and the 300s token expires before the POST.
+  const antibotWidget = (
+    <div className="start-match-antibot" hidden={gate.phase === 'ready'}>
+      <TurnstileWidget
+        key={gate.attempt}
+        appearance={TURNSTILE_APPEARANCE.config}
+        onSuccess={gate.onSuccess}
+        onError={gate.onError}
+        onExpire={gate.onExpire}
+      />
+    </div>
+  )
+
   // Bottom action area (pinned to the page bottom): antibot → confirm → status.
   let bottom
   if (gate.phase === 'checking' || gate.phase === 'error') {
@@ -206,7 +240,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
         phase={phase}
         countdown={countdown}
         errorMsg={errorMsg}
-        onRetry={() => { setErrorMsg(''); setPhase('starting') }}
+        onRetry={handleRetry}
         onHome={goHome}
         t={t}
       />
@@ -222,7 +256,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
         <div className="book-mobile-layout">
           <Card variant="page" card={story.card} story={story} loading={false} />
           <div className="start-match-cards">{cardsBlock}</div>
-          <div className="start-match-footer">{bottom}</div>
+          <div className="start-match-footer">{antibotWidget}{bottom}</div>
         </div>
       }
       left={ preview 
@@ -236,7 +270,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
       right={
         <div className="start-match-right">
           <div className="start-match-cards">{cardsBlock}</div>
-          <div className="start-match-footer">{bottom}</div>
+          <div className="start-match-footer">{antibotWidget}{bottom}</div>
         </div>
       }
     />
@@ -246,7 +280,8 @@ export default function StartMatchFlow({ story, config, storyId }) {
   )
 }
 
-/** Antibot verification block (verifying spinner + widget, or error + actions). */
+/** Antibot verification block (verifying spinner, or error + actions); the
+ * Turnstile widget itself lives in the flow so it is never unmounted. */
 function AntibotBlock({ gate, t, onHome }) {
   if (gate.phase === 'error') {
     return (
@@ -266,13 +301,6 @@ function AntibotBlock({ gate, t, onHome }) {
   return (
     <div className="start-match-status">
       <p><i className="fas fa-spinner fa-spin me-2" />{t('antibot.verifying')}</p>
-      <TurnstileWidget
-        key={gate.attempt}
-        appearance={TURNSTILE_APPEARANCE.config}
-        onSuccess={gate.onSuccess}
-        onError={gate.onError}
-        onExpire={gate.onExpire}
-      />
     </div>
   )
 }

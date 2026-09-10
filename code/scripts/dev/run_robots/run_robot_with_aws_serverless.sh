@@ -104,7 +104,6 @@ robot --variablefile variables/aws.yaml \
     --variable BASE_URL:"$API_URL" \
     --variable ADMIN_BASE_URL:"$ADMIN_API_URL" \
     --variable ADMIN_TOKEN:"$ADMIN_TOKEN_VALUE" \
-    --exclude bypass \
     --outputdir reports-aws/ tests/ || ROBOT_EXIT=$?
 
 # Remove the rows created by this Robot run (guests + matches tagged "robottest"),

@@ -320,6 +320,13 @@ in `en.json`/`it.json`.
 Dev-seed note: in every seed except AWS's mission fixture, missions and steps carry no
 `id_card`, so in dev they render as image-less cards falling back to their name as title.
 
+**v0.37.3 — badge drops its `label`.** `missionStatusBadge` (`utils/missions.js`) no longer sets
+a `label`, so the badge on both the mission card and the step card reads the status word alone
+("Completed") instead of "Status: Completed" repeating what the badge already is.
+`game.missions.status.COMPLETED` changes "Done" → "Completed" in `en.json` (`it.json` was
+already "Completata"). The reading-page stats list, which labels every stat including status,
+is unaffected.
+
 ## 13. Match log entry `MISSION_CHANGE` (v0.37.2)
 
 Before this, a mission transition left no trace on the match log: `upsertMissionState` wrote
@@ -573,15 +580,16 @@ passed, react-game 1185 passed / 3 skipped, react-admin 794 passed.
 
 # Version Control
 
-- **Document Version**: 0.37.2
+- **Document Version**: 0.37.3
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.37.0 | Mission tracking and progression, implemented: missions become a projection of the Step 36 registry — no operator, no state table, comparison always `"="` through `RegistryService.evaluate` (§0-§1); `condition_value`/`condition_values` (PIPE-separated AND) replace the from/to pair on `list_missions`/`list_missions_steps`, new unique `idx_missions_steps_order` (§8); status machine `AVAILABLE`→`ACTIVE`→`COMPLETED`/`FAILED`, persisted as (status + step reached) on `gaming_state_registry` via its existing `id_mission`/`id_mission_steps` columns, isolated from every player-facing registry read (§1-§2); completion events deferred through `MissionService.beginDeferral`/`endDeferral` around the four `EventExecutionService` entry points (§3); new `GET /api/match/{uuid}/missions` and `.../missions/{uuid}`, plus `missions[]` on `/info`, owner-only and 404-masked, a mission never reached simply absent from the list (§5); new validation rule `R10_MISSION_CONDITION`, report-only on the validate pass (§9); import bugs closed on Java and Python (§10); tutorial seed gained live writers for all mission keys plus a fourth, 0-step, set-AND mission (§11); react-admin `ChipListInput` and a required-condition-key guard, react-game's Missions bookmark goes live off `/info` (§12). | September 8, 2026 |
   | 0.37.1 | Bugfix: the start location's own first-entry registry pair — the one field a mission could gate on that could never fire — now writes at match start via `RegistryService.writeStartLocationEntry`, all three backends (§2, see [Step36 §14.1](./Step36_RegistrySystem.md#141-v0371-bugfix--the-start-locations-own-pair-never-wrote)); admin gains a read-only Missions tab (`MissionsCard.jsx`) on the match detail page; `mission-steps`' `idCard` field is now the card picker instead of a raw number (§12); new fixture — key `journey_begun` written on the second story's start location plus a mission reading it — in all four seeds (§11); new Robot suite `37_missions/mission_from_start.robot` (5 cases). Second pass, frontend: `MissionStepCard`'s status badge now only on a closed mission, full-size labelled badges, (i) always reachable; new `useBookView` `missionSteps` split-page view and `MissionStepsCards.jsx` render a mission's steps (only the next open one, to avoid spoilers); `CardsFastEditPage.jsx` recognizes `mission-steps` card references (§12). | September 9, 2026 |
   | 0.37.2 | New match-log entry `MISSION_CHANGE`, written by the same call that saves a mission's state, naming it by uuid with the author's own step number (§13); classified by all three timeline assemblers and given an icon/colour in both frontends, alongside the previously-uncoloured `REGISTRY_CHANGE` (§13); collateral fix — `onStoryEnd` now resolves mission uuids once so a FAILED close names the mission consistently with `advance`; new Robot suite `37_missions/mission_log.robot` (5 cases); AWS bugfix — empty class/trait-budget references from admin-authored stories no longer 500 on match creation (§14); AWS 401 codes aligned with the Java filter's `MISSING_TOKEN`/`EMPTY_TOKEN`/`INVALID_TOKEN` scale, scoped to the `match` lambda (§14). **Second pass**: one engine pass now writes one row **per thing that happened** instead of one naming only the last step — mission opening, each step closed (story order), and a completed mission's last step closes with the step's row then the mission's own (§13); a `MISSION_CHANGE` row now resolves and carries its own `idCard`/`card` (mission uuid, or `uuid/step` for a step; a step with no card stays card-less, never falls back to the mission's), fixing a null-uuid `NullPointerException` that 500'd the whole timeline (§13); all four seeds give the tutorial's missions/steps and the second story's mission/step pair an `id_card`; react-game's history is now a row list (`LogEntryRow`) instead of card tiles, opens via `entityType="matchlog"` ("History"/"Cronologia") instead of "Story", and `REGISTRY_CHANGE` rows show the written value with no lens; Robot's `mission_log.robot` grows from 5 to 8 cases. | September 9, 2026 |
+  | 0.37.3 | `missionStatusBadge` drops its `label`: the status badge on mission/step cards reads "Completed" instead of "Status: Completed"; `game.missions.status.COMPLETED` "Done" → "Completed" in `en.json`. | September 10, 2026 |
 
-- **Last Updated**: September 9, 2026
+- **Last Updated**: September 10, 2026
 - **Status**: Complete
 
 # < Paths Games />

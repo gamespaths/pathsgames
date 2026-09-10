@@ -483,7 +483,7 @@
       "status": {
         "AVAILABLE": "Available",
         "ACTIVE": "In progress",
-        "COMPLETED": "Done",
+        "COMPLETED": "Completed",
         "FAILED": "Failed"
       }
     }

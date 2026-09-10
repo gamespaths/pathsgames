@@ -41,12 +41,14 @@ export const MISSION_STATUS_ICON = {
 /**
  * The badge a CLOSED mission wears on its little card — and the very same one a DONE step
  * wears on its own: done is done, and two spellings of it would read as two different things.
+ *
+ * v0.37.3 — no `label`: "Completed" next to the check glyph says it, and "Status: Completed"
+ * only spent a word repeating what the badge already is.
  */
 export function missionStatusBadge(t, status) {
   return {
     key: 'missionStatus',
     value: t(`game.missions.status.${status}`) || status,
-    label: t('game.missions.statusLabel'),
     icon: MISSION_STATUS_ICON[status] ?? MISSION_STATUS_ICON.AVAILABLE,
     color: null,
   }

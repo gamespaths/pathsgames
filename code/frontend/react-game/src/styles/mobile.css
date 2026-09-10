@@ -137,6 +137,15 @@
   grid-template-columns: repeat(2, 1fr);
   overflow: visible;
 }
+/* v0.37.3 — the status card's shortcuts read one per row, icon then name: the mobile stack
+   has no bookmarks, so this row is the only place those four names appear. */
+.book-mobile-layout .card-status .gc-actions {
+  grid-template-columns: 1fr;
+}
+.book-mobile-layout .card-status .gc-footer__btn {
+  justify-content: flex-start;
+}
+
 /* Enlarge the small (little) card titles on mobile for readability; allow them
    to wrap rather than truncate at the bigger size. */
 .book-mobile-layout .selection-list .gc-title__text {

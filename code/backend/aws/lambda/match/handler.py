@@ -33,6 +33,7 @@ import time
 import uuid as uuid_lib
 import urllib.request
 import urllib.parse
+import urllib.error
 
 from common import db_utils
 from common import jwt_utils
@@ -157,6 +158,7 @@ def _verify_turnstile(token, remote_ip=None):
     if _ENV != 'prod' and _TURNSTILE_BYPASS_TOKEN and token == _TURNSTILE_BYPASS_TOKEN:
         return True
     if not token:
+        print('Turnstile refused: no turnstileToken in the request body')
         return False
     try:
         data = {'secret': _TURNSTILE_SECRET, 'response': token}
@@ -166,8 +168,18 @@ def _verify_turnstile(token, remote_ip=None):
         req = urllib.request.Request(_SITEVERIFY_URL, data=encoded, method='POST')
         with urllib.request.urlopen(req, timeout=5) as resp:
             result = json.loads(resp.read())
-            return result.get('success') is True
-    except Exception:
+            if result.get('success') is True:
+                return True
+            # error-codes tells a wrong secret from a reused/expired token
+            print(f"Turnstile refused: {result.get('error-codes')}")
+            return False
+    except urllib.error.HTTPError as exc:
+        # Cloudflare answers 400 when the secret itself is malformed
+        detail = exc.read().decode('utf-8', 'replace')[:200]
+        print(f"Turnstile siteverify HTTP {exc.code}: {detail}")
+        return False
+    except Exception as exc:
+        print(f"Turnstile siteverify call failed: {exc}")
         return False
 
 

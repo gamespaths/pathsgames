@@ -11,8 +11,9 @@ import { CF_KEY, isTurnstilePassValid, recordTurnstilePass } from '@/utils/turns
  *     (skip re-verifying within the TTL).
  *
  * `onSuccess(token)` stores the token and, when `cookie:true`, records the pass
- * cookie. `retry` remounts the widget (bump `attempt`, used as its React `key`,
- * for a fresh challenge) and returns to 'checking'.
+ * cookie. `retry` drops the stored token (single-use server-side, worthless once
+ * expired) and remounts the widget (bump `attempt`, used as its React `key`, for
+ * a fresh challenge), returning to 'checking'.
  *
  * Two call sites:
  *   - `cookie:true`  → Home/guest gates: skippable, session-cached; the token
@@ -27,6 +28,12 @@ export default function useAntibot({ cookie = false } = {}) {
   const [attempt, setAttempt] = useState(0)
 
   function retry() {
+    setToken(null)
+    // No site key (dev bypass): there is no widget to remount, stay ready.
+    if (!CF_KEY) {
+      setPhase('ready')
+      return
+    }
     setAttempt(a => a + 1)
     setPhase('checking')
   }

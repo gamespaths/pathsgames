@@ -17,6 +17,7 @@ if [ -n "${1:-}" ] && [[ "$1" != "--auto-confirm" ]]; then
     AWS_ENVIRONMENT_NAME_TEST="$1"
 fi
 
+
 # Required inputs (from environment or .env)
 # - AWS_ENVIRONMENT_NAME_TEST: environment name used by the SAM template (e.g. dev, prod)
 # - AWS_STACK_NAME_TEST: CloudFormation stack name to create/update
@@ -55,20 +56,20 @@ fi
 
 sam build
 
-# Dev uses an empty key to activate the server-side bypass (handler returns
-# true when TURNSTILE_SECRET_KEY is empty); all other envs use the real key.
-if [ "${AWS_ENVIRONMENT_NAME_TEST}" = "dev" ]; then
-    _TURNSTILE_SAM_KEY=""
-else
-    _TURNSTILE_SAM_KEY="${TURNSTILE_SECRET_KEY:-}"
-fi
+# Cloudflare secret: vuoto = validazione disattivata (bypass server-side).
+_TURNSTILE_SAM_KEY="${TURNSTILE_SECRET_KEY:-}"
 
-# Robot-test bypass token: only injected in non-prod environments so production
-# can never be bypassed regardless of which token a client sends.
+# Bypass token: mai in prod, così la produzione non è aggirabile.
+_TURNSTILE_BYPASS=""
 if [ "${AWS_ENVIRONMENT_NAME_TEST}" = "prod" ]; then
-    _TURNSTILE_BYPASS=""
+    echo "Error: prod env into test deploy script."
+    exit 1
 else
-    _TURNSTILE_BYPASS="${TURNSTILE_BYPASS_TOKEN_TEST:-}"
+    # Robot manda un token fisso; il sito usa il widget vero e non serve qui.
+    _TURNSTILE_BYPASS="${TURNSTILE_BYPASS_TOKEN_ROBOT:-${TURNSTILE_BYPASS_TOKEN_TEST:-}}"
+    if [ -z "$_TURNSTILE_SAM_KEY" ]; then
+        echo "  WARNING: TURNSTILE_SECRET_KEY is empty — Turnstile validation is OFF on this stack."
+    fi
 fi
 
 # Admin IP whitelist: combine ADMIN_IP_WHITELIST from .env with the current

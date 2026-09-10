@@ -63,3 +63,38 @@ def test_valid_token_passes_cloudflare_returns_true():
         "app.adapters.turnstile.turnstile_adapter.httpx.post", return_value=fake_response
     ):
         assert adapter.verify("valid-cf-token", "1.2.3.4") is True
+
+
+def test_refusal_logs_the_cloudflare_error_codes(caplog):
+    """The error-codes are the only way to tell a wrong secret from a reused or
+    expired token, so they must reach the logs."""
+    adapter = TurnstileVerificationAdapter("real-secret", bypass_token="", env="test")
+    fake_response = MagicMock()
+    fake_response.json.return_value = {
+        "success": False,
+        "error-codes": ["timeout-or-duplicate"],
+    }
+    with patch(
+        "app.adapters.turnstile.turnstile_adapter.httpx.post", return_value=fake_response
+    ):
+        with caplog.at_level("WARNING"):
+            assert adapter.verify("burnt-token", None) is False
+    assert "timeout-or-duplicate" in caplog.text
+
+
+def test_missing_token_is_logged(caplog):
+    adapter = TurnstileVerificationAdapter("real-secret", bypass_token="", env="test")
+    with caplog.at_level("WARNING"):
+        assert adapter.verify(None, None) is False
+    assert "no turnstileToken" in caplog.text
+
+
+def test_transport_failure_is_logged_and_refuses(caplog):
+    adapter = TurnstileVerificationAdapter("real-secret", bypass_token="", env="test")
+    with patch(
+        "app.adapters.turnstile.turnstile_adapter.httpx.post",
+        side_effect=RuntimeError("boom"),
+    ):
+        with caplog.at_level("WARNING"):
+            assert adapter.verify("some-token", None) is False
+    assert "boom" in caplog.text

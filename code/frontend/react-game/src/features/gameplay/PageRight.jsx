@@ -74,7 +74,7 @@ export default function PageRight(props) {
     onOpenMap, onOpenItems, onOpenRegistry, onOpenMissions, onOpenMission, onOpenInfo,
     onPreviewMatchLog,
     onEndGame, onEndGamePreview,
-    onForceSleepCard, sleepCardForced, activeAction, onExit,
+    sleepCardForced, activeAction, onExit,
   } = props
 
   if (previewRight) {
@@ -158,9 +158,9 @@ export default function PageRight(props) {
     playerStats={playerStats} clock={clock} weather={weather} locations={locations}
     actions={actions} locationCosts={locationCosts} hereLocationId={hereLocationId}
     matchUuid={matchUuid} accessToken={accessToken} endError={endError}
-    sleepCardForced={sleepCardForced} onForceSleepCard={onForceSleepCard}
+    sleepCardForced={sleepCardForced}
     onPreview={onPreview} onOpenMap={onOpenMap} onOpenItems={onOpenItems}
-    onOpenRegistry={onOpenRegistry} onOpenMissions={onOpenMissions} onOpenInfo={onOpenInfo}
+    onOpenMissions={onOpenMissions} onOpenInfo={onOpenInfo}
     onMoved={onMoved} onDone={onDone} onSlept={onSlept}
     onError={onError} onEndGame={onEndGame} onEndGamePreview={onEndGamePreview} />
 }

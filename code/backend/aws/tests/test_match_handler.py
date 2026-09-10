@@ -5,6 +5,7 @@ The DynamoDB layer (``common.db_utils``) and the JWT layer
 external state.
 """
 import json
+import io
 from unittest.mock import patch
 
 import pytest
@@ -248,6 +249,55 @@ def test_verify_turnstile_bypass_token_disabled_in_prod(create_env):
         mock_resp.read.return_value = b'{"success": false}'
         assert h._verify_turnstile('0xROBOT') is False
         mock_urlopen.assert_called_once()
+
+
+def test_verify_turnstile_logs_cloudflare_error_codes(create_env, capsys):
+    """The error-codes are the only way to tell a wrong secret from a reused or
+    expired token, so they must reach CloudWatch."""
+    from match import handler as h
+    with patch.object(h, '_TURNSTILE_SECRET', 'real-secret'), \
+         patch.object(h, '_TURNSTILE_BYPASS_TOKEN', ''), \
+         patch.object(h, '_ENV', 'test'), \
+         patch('match.handler.urllib.request.urlopen') as mock_urlopen:
+        mock_resp = mock_urlopen.return_value.__enter__.return_value
+        mock_resp.read.return_value = b'{"success": false, "error-codes": ["timeout-or-duplicate"]}'
+        assert h._verify_turnstile('burnt-token') is False
+    assert 'timeout-or-duplicate' in capsys.readouterr().out
+
+
+def test_verify_turnstile_logs_a_missing_token(create_env, capsys):
+    from match import handler as h
+    with patch.object(h, '_TURNSTILE_SECRET', 'real-secret'), \
+         patch.object(h, '_TURNSTILE_BYPASS_TOKEN', ''), \
+         patch.object(h, '_ENV', 'test'):
+        assert h._verify_turnstile(None) is False
+    assert 'no turnstileToken' in capsys.readouterr().out
+
+
+def test_verify_turnstile_logs_the_cloudflare_http_error_body(create_env, capsys):
+    """A malformed secret (e.g. the site key pasted in its place) makes Cloudflare
+    answer 400; the body is the only hint, so it must be logged."""
+    import urllib.error
+    from match import handler as h
+    err = urllib.error.HTTPError(h._SITEVERIFY_URL, 400, 'Bad Request', {},
+                                 io.BytesIO(b'invalid secret'))
+    with patch.object(h, '_TURNSTILE_SECRET', 'real-secret'), \
+         patch.object(h, '_TURNSTILE_BYPASS_TOKEN', ''), \
+         patch.object(h, '_ENV', 'test'), \
+         patch('match.handler.urllib.request.urlopen', side_effect=err):
+        assert h._verify_turnstile('some-token') is False
+    out = capsys.readouterr().out
+    assert 'HTTP 400' in out and 'invalid secret' in out
+
+
+def test_verify_turnstile_logs_a_transport_failure(create_env, capsys):
+    from match import handler as h
+    with patch.object(h, '_TURNSTILE_SECRET', 'real-secret'), \
+         patch.object(h, '_TURNSTILE_BYPASS_TOKEN', ''), \
+         patch.object(h, '_ENV', 'test'), \
+         patch('match.handler.urllib.request.urlopen', side_effect=RuntimeError('boom')):
+        assert h._verify_turnstile('some-token') is False
+    assert 'boom' in capsys.readouterr().out
 
 
 def test_create_match_with_bypass_token_returns_201(create_env):

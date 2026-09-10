@@ -5,17 +5,15 @@
  */
 export default function MatchStatus({ phase, countdown, errorMsg, onRetry, onHome, t }) {
   if (phase === 'error') {
-    const isTurnstileFail = errorMsg === 'TURNSTILE_VALIDATION_FAILED'
     return (
       <div className="start-match-status start-match-status--error">
         <p><i className="fas fa-exclamation-triangle me-2" />{t('startMatch.error')}</p>
         {errorMsg && <p className="start-match-error-detail">{errorMsg}</p>}
         <div className="start-match-actions">
-          {!isTurnstileFail && (
-            <button className="btn-start-game" onClick={onRetry}>
-              <i className="fas fa-sync-alt me-2" />{t('startMatch.retry')}
-            </button>
-          )}
+          {/* Retry is offered on every error: it re-runs the antibot check first. */}
+          <button className="btn-start-game" onClick={onRetry}>
+            <i className="fas fa-sync-alt me-2" />{t('startMatch.retry')}
+          </button>
           <button className="btn-start-game" onClick={onHome}>
             <i className="fas fa-home me-2" />{t('startMatch.home')}
           </button>

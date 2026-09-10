@@ -15,13 +15,13 @@ import { SHOW_CARD_CHARACTERISTICS, SHOW_MOBILE_CARD_CHARACTERISTICS, hideWhereC
 export default function PageRightMain({
   story, storyFull, t, gameData, playerStats, clock, weather, locations, actions,
   locationCosts, hereLocationId, matchUuid, accessToken, endError,
-  sleepCardForced, onForceSleepCard, onPreview, onOpenMap, onOpenItems, onOpenRegistry, onOpenMissions,
+  sleepCardForced, onPreview, onOpenMap, onOpenItems, onOpenMissions,
   onOpenInfo,
   onMoved, onDone, onSlept, onError, onEndGame, onEndGamePreview,
 }) {
   const cardCharacteristics = buildCardCharacteristics(story, playerStats, clock, weather)
-  // Show the sleep card only when the player is energy-stuck: every available movement and
-  // action costs more energy than they have — or when the bed button asked for it.
+  // v0.37.3 — the bed button is gone: the sleep card shows only when the player is
+  // energy-stuck, i.e. every movement and action here costs more energy than they have.
   const showSleep = checkShowToSleepCard({ playerStats, locations, actions, locationCosts, hereLocationId })
     || sleepCardForced
 
@@ -32,15 +32,14 @@ export default function PageRightMain({
           {(SHOW_CARD_CHARACTERISTICS || SHOW_MOBILE_CARD_CHARACTERISTICS) &&
             <Card card={cardCharacteristics} entityType="information" story={story}
               flagInformationCard={true} previewSide="right"
-              additionalCardClasses={hideWhereClass(SHOW_CARD_CHARACTERISTICS, SHOW_MOBILE_CARD_CHARACTERISTICS)}
-              infoLabel={''} infoIconClassName="fas fa-info-circle font-size-medium m-1"
-              infoLabelClassName="font-size-medium display-none"
-              actionLabel={''} actionIcon="fa-bed m-1" onAction={onForceSleepCard}
+              additionalCardClasses={`card-status ${hideWhereClass(SHOW_CARD_CHARACTERISTICS, SHOW_MOBILE_CARD_CHARACTERISTICS) ?? ''}`}
+              infoIconClassName="fas fa-info-circle font-size-medium m-1"
+              infoLabelClassName="font-size-medium"
               actionsList={[
-                { label: '', icon: 'fa-map m-1', onAction: onOpenMap },
-                { label: '', icon: 'fa-clipboard-list m-1', onAction: onOpenMissions },
-                { label: '', icon: 'fa-scroll m-1', onAction: onOpenRegistry },
-                { label: '', icon: 'fa-suitcase m-1', onAction: onOpenItems },
+                // v0.37.3 — named shortcuts: the mobile stack has no bookmarks to name them
+                { label: t('game.bookmarks.map'), icon: 'fa-map m-1', onAction: onOpenMap },
+                { label: t('game.bookmarks.missions'), icon: 'fa-clipboard-list m-1', onAction: onOpenMissions },
+                { label: t('game.bookmarks.backpack'), icon: 'fa-suitcase m-1', onAction: onOpenItems },
                 //NEVER REMOVE THIS COMMENTS!
                 //{ label: '', icon: 'fa-people-arrows m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
               ]}
