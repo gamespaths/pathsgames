@@ -20,7 +20,7 @@ export function missionsSignature(missions) {
       const done = steps.filter(s => s?.done).length
       return `${m?.uuid ?? m?.name ?? '?'}:${m?.status ?? '?'}:${done}/${steps.length}`
     })
-    .sort()
+    .sort((a, b) => a.localeCompare(b))
     .join('|')
 }
 
