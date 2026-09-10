@@ -3,6 +3,7 @@
 Mirrors the Java RegistryService exactly: `render` and `parse` are inverses, and `evaluate` is
 the single comparison behind every registry condition — events, edges, weather and choices.
 """
+from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, Iterable, List, Optional
 
 OP_EQ = "="
@@ -246,9 +247,11 @@ class RegistryService:
         return out
 
     def _card(self, id_story: Optional[int], id_card: Optional[int], lang: str):
+        # v0.37.2 — the port answers a CardInfo; the API answers JSON, so flatten it here.
         if self.content_query_port is None or id_story is None or id_card is None:
             return None
-        return self.content_query_port.get_card_by_story_id_and_card_id(id_story, id_card, lang)
+        card = self.content_query_port.get_card_by_story_id_and_card_id(id_story, id_card, lang)
+        return asdict(card) if is_dataclass(card) and not isinstance(card, type) else card
 
     # ── writes ───────────────────────────────────────────────────────────────
 

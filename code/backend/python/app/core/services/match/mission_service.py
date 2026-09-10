@@ -13,6 +13,7 @@ State lives on gaming_state_registry, one row per mission with its `id_mission` 
 what keeps it out of every player-facing registry read. Statuses never move backwards.
 """
 
+from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, List, Optional
 
 from app.core.models.match import location_entry_models as lem
@@ -329,9 +330,11 @@ class MissionService:
         return found.get("long_text") if long_text else found.get("short_text")
 
     def _card(self, id_story: int, id_card: Optional[int], lang: str):
+        # v0.37.2 — the port answers a CardInfo; the API answers JSON, so flatten it here.
         if self.content_query_port is None or id_card is None:
             return None
-        return self.content_query_port.get_card_by_story_id_and_card_id(id_story, id_card, lang)
+        card = self.content_query_port.get_card_by_story_id_and_card_id(id_story, id_card, lang)
+        return asdict(card) if is_dataclass(card) and not isinstance(card, type) else card
 
 
 def _rows_of(closed_steps: List[Dict[str, Any]], status: str, fresh: bool) -> List[Any]:

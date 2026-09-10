@@ -458,30 +458,30 @@ def seed():
         # list read as an AND. Mission 4 has NO steps and reads a multi key: both members
         # must be in the set, so it goes AVAILABLE and COMPLETED in the same write.
         "missions": [
-            {"id": 1, "conditionKey": "tutorial_progress", "conditionValue": "1", "idCard": 1,
+            {"id": 1, "conditionKey": "tutorial_progress", "conditionValue": "1", "idCard": 7,
              "idTextName": 900, "idTextDescription": 900},
-            {"id": 2, "conditionKey": "items_collected", "conditionValue": "1", "idCard": 1,
+            {"id": 2, "conditionKey": "items_collected", "conditionValue": "1", "idCard": 7,
              "idTextName": 901, "idTextDescription": 901},
-            {"id": 3, "conditionKey": "choice_made", "conditionValue": "gold", "idCard": 1,
+            {"id": 3, "conditionKey": "choice_made", "conditionValue": "gold", "idCard": 7,
              "idTextName": 902, "idTextDescription": 902},
-            {"id": 4, "conditionKey": "evidence_found", "conditionValues": "ledger|letter", "idCard": 1,
+            {"id": 4, "conditionKey": "evidence_found", "conditionValues": "ledger|letter", "idCard": 7,
              "idTextName": 903, "idTextDescription": 903},
         ],
         "missionSteps": [
             {"id": 1, "idMission": 1, "step": 1, "conditionKey": "visited_movement",
-             "conditionValue": "1", "idCard": 1, "idTextName": 910, "idTextDescription": 910},
+             "conditionValue": "1", "idCard": 8, "idTextName": 910, "idTextDescription": 910},
             {"id": 2, "idMission": 1, "step": 2, "conditionKey": "visited_energy",
-             "conditionValue": "1", "idCard": 1, "idTextName": 911, "idTextDescription": 911},
+             "conditionValue": "1", "idCard": 8, "idTextName": 911, "idTextDescription": 911},
             {"id": 3, "idMission": 1, "step": 3, "conditionKey": "visited_graduation",
-             "conditionValue": "1", "idCard": 1, "idTextName": 912, "idTextDescription": 912},
+             "conditionValue": "1", "idCard": 8, "idTextName": 912, "idTextDescription": 912},
             {"id": 4, "idMission": 2, "step": 1, "conditionKey": "potion_collected",
-             "conditionValue": "1", "idCard": 1, "idTextName": 920, "idTextDescription": 920},
+             "conditionValue": "1", "idCard": 8, "idTextName": 920, "idTextDescription": 920},
             {"id": 5, "idMission": 2, "step": 2, "conditionKey": "snack_used",
-             "conditionValue": "1", "idCard": 1, "idTextName": 921, "idTextDescription": 921},
+             "conditionValue": "1", "idCard": 8, "idTextName": 921, "idTextDescription": 921},
             {"id": 6, "idMission": 3, "step": 1, "conditionKey": "entered_arena",
-             "conditionValue": "1", "idCard": 1, "idTextName": 930, "idTextDescription": 930},
+             "conditionValue": "1", "idCard": 8, "idTextName": 930, "idTextDescription": 930},
             {"id": 7, "idMission": 3, "step": 2, "conditionKey": "door_chosen",
-             "conditionValue": "1", "idCard": 1, "idTextName": 931, "idTextDescription": 931},
+             "conditionValue": "1", "idCard": 8, "idTextName": 931, "idTextDescription": 931},
         ],
         # Step 31 — the options of the two choice-events above (canonical top-level arrays
         # keyed by idChoices). Event 30: one always-available option, one gated on INT > 99
@@ -644,6 +644,13 @@ def seed():
              "idTextDescription": 200, "awesomeIcon": "fa-sun", "styleMain": "card-weather"},
             {"id": 6, "uuid": "card-tutorial-weather-storm", "idTextTitle": 201,
              "idTextDescription": 201, "awesomeIcon": "fa-cloud-bolt", "styleMain": "card-weather"},
+            # v0.37.2 — missions and their steps wear cards of their own, as the SQL seeds do:
+            # sharing the events' card hid a timeline lookup reading the wrong table.
+            {"id": 7, "uuid": "card-tutorial-mission", "idTextTitle": 911,
+             "idTextDescription": 911, "awesomeIcon": "fas fa-scroll", "styleMain": "card-mission"},
+            {"id": 8, "uuid": "card-tutorial-mission-step", "idTextTitle": 912,
+             "idTextDescription": 912, "awesomeIcon": "fas fa-list-check",
+             "styleMain": "card-mission"},
         ]
     }
     

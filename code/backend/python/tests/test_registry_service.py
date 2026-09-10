@@ -1,3 +1,4 @@
+import json
 """Step 36 — the one place that reads, writes and compares the match registry."""
 from unittest.mock import MagicMock
 
@@ -576,3 +577,17 @@ def test_no_story_behind_the_match_or_no_story_port_writes_nothing(store, servic
     # The values-only wiring has no story port at all: the same silence, not a failure.
     store.find_story_id_by_match.return_value = 3
     assert service.write_start_location_entry(9, 11, 0) == []
+
+
+def test_a_key_card_comes_back_as_a_plain_dict_the_api_can_serialize(enriched, store):
+    # v0.37.2 — the port answers a CardInfo dataclass; JSONResponse only speaks dict.
+    from app.core.models.story.card_info import CardInfo
+    service, story_read, content = enriched
+    store.find_by_match.return_value = [_row("a")]
+    story_read.find_keys_by_story_id.return_value = [_definition("a", "g", 1, id_card=950)]
+    content.get_card_by_story_id_and_card_id.return_value = CardInfo(uuid="c-9", title="Key")
+
+    card = service.list_entries(1, 9, include_hidden=False)[0]["card"]
+    assert isinstance(card, dict)
+    assert card["uuid"] == "c-9" and card["title"] == "Key"
+    json.dumps(card)

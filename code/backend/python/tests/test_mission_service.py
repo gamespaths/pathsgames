@@ -1,4 +1,5 @@
 """Step 37 — the mission engine: conditions, the status machine, events and the API reads."""
+import json
 from unittest.mock import MagicMock
 
 import pytest
@@ -507,3 +508,19 @@ def test_a_mission_that_opens_and_closes_a_step_says_both(service, store, read_p
         "MISSION_CHANGE m-1 none -> ACTIVE",
         "MISSION_CHANGE m-1 none -> ACTIVE step 1",
     ]
+
+
+def test_a_card_comes_back_as_a_plain_dict_the_api_can_serialize(store, read_port):
+    # v0.37.2 — the port answers a CardInfo dataclass; JSONResponse only speaks dict.
+    from app.core.models.story.card_info import CardInfo
+    content = MagicMock()
+    content.get_card_by_story_id_and_card_id.return_value = CardInfo(uuid="c-1", title="Quest")
+    mission = _mission(1)
+    mission["id_card"] = 5
+    _story(read_port, [mission], [])
+    store.find_mission_states.return_value = [_state(1, None, STATUS_AVAILABLE)]
+
+    card = MissionService(store, read_port, content).list(MATCH, STORY)[0]["card"]
+    assert isinstance(card, dict)
+    assert card["uuid"] == "c-1" and card["title"] == "Quest"
+    json.dumps(card)
