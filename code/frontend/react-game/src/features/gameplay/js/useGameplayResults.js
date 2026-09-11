@@ -4,9 +4,6 @@ import { grantedItemUuids, itemRowForUuid, lastEffectCard } from '@/utils/gameRe
 import { itemPromiseBadges, registryChangeItems, statChangeItems } from '@/utils/statBadges'
 import { scrollBookToTop } from './mobileView'
 
-// How long the board shows its loading page after a reload was asked for.
-const LOADING_TIMEOUT_MS = 1000 // TODO drive this off the in-flight reload instead of a timer
-
 /**
  * useGameplayResults — everything the board does with the ANSWER of a gameplay call
  * (execute-event, select-choice, sleep, move, use/drop item): reload the board, then decide
@@ -22,7 +19,8 @@ export default function useGameplayResults({
 }) {
   const [loading, setLoading] = useState(false)
   const [choiceInFlight, setChoiceInFlight] = useState(false)
-  const loadingTimerRef = useRef(null)
+  // v0.37.4 — the reload in flight, numbered: only the LATEST one may put the loading page away.
+  const reloadSeqRef = useRef(0)
   // Step 29 — true while an executed event is showing its effect card on the right page. If
   // the SAME event also changed the weather, the async weather reload must NOT cover the
   // effect: it attaches a forward arrow to it instead.
@@ -36,16 +34,8 @@ export default function useGameplayResults({
   const viewRef = useRef(view)
   useEffect(() => { viewRef.current = view }, [view])
 
-  const stopLoading = useCallback(() => {
-    clearTimeout(loadingTimerRef.current)
-    setLoading(false)
-  }, [])
-  const startLoading = useCallback(() => {
-    clearTimeout(loadingTimerRef.current)
-    setLoading(true)
-    loadingTimerRef.current = setTimeout(() => setLoading(false), LOADING_TIMEOUT_MS)
-  }, [])
-  useEffect(() => () => clearTimeout(loadingTimerRef.current), [])
+  const stopLoading = useCallback(() => setLoading(false), [])
+  const startLoading = useCallback(() => setLoading(true), [])
 
   // Mobile: after a sleep/movement reload lands (new gameData), scroll the board back to the
   // top so the new card is in view instead of the old action button.
@@ -87,12 +77,18 @@ export default function useGameplayResults({
 
   // Reload the board and every side payload time may have changed, and put the open pages
   // away. The news the answer carries is written by the caller, right after.
+  // v0.37.4 — resolves when the NEW board has landed (or the reload failed): the loading page
+  // used to be a fixed timer, so a slow /info showed the old location back before the new one.
+  // The caller keeps its own "Executing" until this settles, which is what the player sees.
   const reloadBoard = useCallback(() => {
+    const seq = ++reloadSeqRef.current
     startLoading()
     refreshChrome()
     scrollTopAfterReloadRef.current = true
-    onReload?.()
+    const reload = Promise.resolve().then(() => onReload?.()).catch(() => {})
+      .then(() => { if (seq === reloadSeqRef.current) setLoading(false) })
     viewActions.resetForReload()
+    return reload
   }, [startLoading, refreshChrome, onReload, viewActions])
 
   /**
@@ -111,7 +107,10 @@ export default function useGameplayResults({
     } else if (edge?.sadnessOverflowUuids?.includes(playerUuid)) {
       eventEffectActiveRef.current = true
       viewActions.setPreviewLeft({ kind: 'sad' })
+    } else {
+      return false
     }
+    return true
   }, [playerUuid, viewActions])
 
   /**
@@ -166,11 +165,11 @@ export default function useGameplayResults({
    * Left null for events on purpose: there `result.card` is the EVENT card.
    */
   const handleEventExecuted = useCallback((result, fallbackCard = null) => {
-    reloadBoard()
+    const reload = reloadBoard()
     if (result?.status === 'CHOICES_PENDING') {
       applyChoicesPending(result)
       stopLoading()
-      return
+      return reload
     }
     const grantedUuid = grantedItemUuids(result)[0] ?? null
     // Already carried one? Then match-info has resolved its card and there is nothing to
@@ -215,8 +214,11 @@ export default function useGameplayResults({
         })
         .catch(() => {})
     }
-    applyEdgeState(result?.edgeState)
-    stopLoading()
+    const edge = applyEdgeState(result?.edgeState)
+    // v0.37.4 — news covers the reload; with none, the loading page stays until the new
+    // board lands. Putting it away at once showed the OLD location back for the whole wait.
+    if (narrative || grantedUuid || edge) stopLoading()
+    return reload
   }, [reloadBoard, applyChoicesPending, applyEdgeState, stopLoading, playerStats, playerUuid,
     t, viewActions, matchUuid, accessToken, lang, gameData])
 
@@ -224,35 +226,39 @@ export default function useGameplayResults({
   // v0.35.6 — an arrival kills as an event does: the edge state comes last, so a collapse
   // covers the arrival's own card rather than the other way round.
   const handleMovementDone = useCallback(result => {
-    reloadBoard()
-    showAutomaticEvents(result?.automaticEvents)
-    applyEdgeState(result?.edgeState)
-    stopLoading()
+    const reload = reloadBoard()
+    const fired = showAutomaticEvents(result?.automaticEvents)
+    const edge = applyEdgeState(result?.edgeState)
+    // v0.37.4 — same rule as an event: no news, the loading page stays until the destination lands.
+    if (fired || edge) stopLoading()
+    return reload
   }, [reloadBoard, showAutomaticEvents, applyEdgeState, stopLoading])
 
   // Step 33 — a sleep answers with the location counters that ran out while the party slept,
   // already filtered for this player. Empty is the normal case and renders nothing.
   const handleSlept = useCallback(result => {
-    reloadBoard()
+    const reload = reloadBoard()
     const fired = result?.counterZero ?? []
     viewActions.setCounterZero(fired.length ? fired : null)
     // v0.35.6 — the recovery and the events a time-start fires can empty a life bar; waking
     // up comatose with nothing on screen to say why was the whole complaint.
     applyEdgeState(result?.edgeState)
+    return reload
   }, [reloadBoard, viewActions, applyEdgeState])
 
   // Step 34 — dropping applies nothing and narrates nothing. The bag stays open on purpose:
   // dropping is a tidying gesture and usually comes in a run, so the list the player is
   // working through must not vanish under them.
   const handleItemDropped = useCallback(() => {
-    reloadBoard()
+    const reload = reloadBoard()
     viewActions.openItems()
+    return reload
   }, [reloadBoard, viewActions])
 
   // Step 35 — using an item closes the bag: the row is consumed, and what matters now is the
   // effect it applied — which narrates on the very page the item list was covering.
   const handleItemUsed = useCallback(result => {
-    handleEventExecuted(result, result?.card ?? null)
+    return handleEventExecuted(result, result?.card ?? null)
   }, [handleEventExecuted])
 
   /**
@@ -266,11 +272,12 @@ export default function useGameplayResults({
     setChoiceInFlight(true)
     try {
       const result = await selectChoice(matchUuid, choice.uuid, accessToken, lang)
-      reloadBoard()
+      const reload = reloadBoard()
       // A linked choice-event: the story chained one choice onto another, so the options
       // list is re-armed rather than closed.
       if (result?.status === 'CHOICES_PENDING') {
         applyChoicesPending(result)
+        await reload
         return
       }
       viewActions.closeChoices()
@@ -287,6 +294,8 @@ export default function useGameplayResults({
           props: registryBadges.length > 0 ? { bonusBadgeShowZeros: true } : null })
       }
       applyEdgeState(result?.edgeState)
+      // The option stays "in flight" until the new board has landed, not just until answered.
+      await reload
     } catch (e) {
       // The option stays on screen: the cycle is still open, so retrying is legal.
       onError?.(e?.response?.data?.error || e?.message || 'select-choice-failed')

@@ -1720,7 +1720,7 @@ html, body {
 /* legacy 3-col grid (kept for any remaining usages) */
 .selection-list {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-auto-rows: auto;
   align-content: start;
   align-items: start;
@@ -1730,11 +1730,13 @@ html, body {
   isolation: isolate;
   overflow-y: auto;
 }
+/* v0.37.4 — equal columns for real: a card must be allowed to shrink below its content. */
+.selection-list > *, .card-big-list > *, .matches-list-grid > * { min-width: 0; }
 
 /* ── CardBig — 2-col selection grid ─────────────────────────────── */
 .card-big-list {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.9rem;
   align-content: start;
   padding: 4px 2px;
@@ -1762,6 +1764,7 @@ html, body {
 }
 .gc-title__text {
   flex: 1;
+  min-width: 0;
   white-space: nowrap;
   font-family: var(--font-heading);
   font-size: clamp(0.65rem, 1.5vw, 0.9rem);
@@ -1769,7 +1772,8 @@ html, body {
   font-weight: 700;
   text-shadow: 0 0 8px rgba(232,184,48,0.5);
   line-height: 1.2;
-  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .gc-title__btn {
@@ -1906,7 +1910,7 @@ html, body {
   color: var(--color-gold-shine);
 }
 
-.gc-footer__coming-soon {
+.gc-footer__cards-buttons {
   flex: 1;
   font-size: 1rem;
   color: var(--color-parchment);
@@ -1914,6 +1918,7 @@ html, body {
   opacity: 0.6;
   text-align: center;
   padding: 2px 0;
+  text-wrap: nowrap;
 }
 
 /* credits bar — same style as gc-title, smaller */
@@ -2612,7 +2617,7 @@ html, body {
 }
 .matches-list-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-auto-rows: auto;
   gap: 1rem;
   overflow-y: auto;

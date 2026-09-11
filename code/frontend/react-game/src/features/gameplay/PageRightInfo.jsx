@@ -13,7 +13,7 @@ import { bagSummaryProps, missionsSummaryProps, registrySummaryProps } from './j
  */
 export default function PageRightInfo({
   story, storyFull, gameData, playerStats, weather, matchUuid, accessToken,
-  onPreview, onSlept, onOpenMap, onOpenItems, onOpenRegistry, onOpenMissions, onPreviewMatchLog,
+  onPreview, onSlept, onOpenMap, onOpenItems, onOpenRegistry, onOpenMissions,
 }) {
   return (
     <div className="config-view-wrap config-view--config">
@@ -27,8 +27,7 @@ export default function PageRightInfo({
         <RegistryCard onOpen={onOpenRegistry} {...registrySummaryProps(gameData)} />
         <MissionCard onOpen={onOpenMissions} {...missionsSummaryProps(gameData)} />
         <PlayerCards storyFull={storyFull} story={story} playerStats={playerStats}
-          gameData={gameData} onPreview={onPreview} previewSide="right"
-          onPreviewMatchLog={onPreviewMatchLog} />
+          gameData={gameData} onPreview={onPreview} previewSide="right" />
       </div>
     </div>
   )

@@ -66,7 +66,7 @@ export default function CardButtons({
     return (<div className={divStyle}><div className={gcActionClass}>
       {onPreview && !hidePreview && getPreviewButton(false, "mr-1", true)}
       <span
-        className="gc-footer__coming-soon"
+        className="gc-footer__cards-buttons"
         title={lockedReason || undefined}
         aria-label={lockedReason || undefined}
       >
@@ -92,7 +92,7 @@ export default function CardButtons({
   }
   if (onAction && actionStarted){
     return (<div className={divStyle}><div className={gcActionClass}>
-        <span className="gc-footer__coming-soon ">
+        <span className="gc-footer__cards-buttons ">
             <i className={`fas fa-spinner fa-spin me-1`} />{t('card.actionInProgress')}
         </span>
     </div></div>)

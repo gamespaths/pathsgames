@@ -13,12 +13,12 @@ describe('missions utils (Step 37)', () => {
     ]
 
     expect(orderedMissions(rows).map(m => m.name))
-      .toEqual(['Alpha', 'Beta', 'Zeta', 'Gamma'])
+      .toEqual(['Alpha', 'Beta', 'Gamma', 'Zeta'])
   })
 
-  it('reads an unknown status as last rather than losing the row', () => {
-    const rows = [mission('Odd', 'WHAT'), mission('Open', 'ACTIVE')]
-    expect(orderedMissions(rows).map(m => m.name)).toEqual(['Open', 'Odd'])
+  it('reads an unknown status as late, but a completed mission is always the last', () => {
+    const rows = [mission('Done', 'COMPLETED'), mission('Odd', 'WHAT'), mission('Open', 'ACTIVE')]
+    expect(orderedMissions(rows).map(m => m.name)).toEqual(['Open', 'Odd', 'Done'])
   })
 
   it('treats anything that is not a list as no missions at all', () => {

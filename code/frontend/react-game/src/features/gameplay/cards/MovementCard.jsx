@@ -71,7 +71,8 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
     setMoving(true)
     try {
       const result = await startMovement(matchUuid, location.uuid, accessToken)
-      onMoved?.(result)
+      // v0.37.4 — stays on Executing until the NEW location has landed, not just the answer.
+      await onMoved?.(result)
     } catch (e) {
       console.error('movement failed', e?.response?.data?.error || e?.message)
       // Surface the failure to the GamePage so it is shown instead of failing silently.

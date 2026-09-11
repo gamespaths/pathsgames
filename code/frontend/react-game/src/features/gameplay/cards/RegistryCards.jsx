@@ -1,5 +1,5 @@
 import RegistryKeyCard from './RegistryKeyCard'
-import { visibleRegistry } from '@/utils/registry'
+import { registryValues, visibleRegistry } from '@/utils/registry'
 import { useTranslation } from '@/i18n/context'
 
 /**
@@ -20,8 +20,8 @@ export default function RegistryCards({ registry, story, onPreview, previewSide 
   joinValues = false }) {
   const { t } = useTranslation()
   // Already sorted by category, then priority, then key — so the grid reads in groups
-  // without needing a group element to say so.
-  const rows = visibleRegistry(registry)
+  // without needing a group element to say so. A key holding NOTHING is not a card at all.
+  const rows = visibleRegistry(registry).filter(entry => registryValues(entry).length > 0)
 
   return (
     <div className="config-view-wrap config-view--config">

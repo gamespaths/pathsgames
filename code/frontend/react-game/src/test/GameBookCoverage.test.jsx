@@ -540,13 +540,14 @@ describe('GameBook — map and statistics view', () => {
     expect(screen.getByTestId('game-map-canvas')).toBeInTheDocument()
   })
 
-  // The story card in the statistics view opens the match history on the right page.
-  it('opens the match log page from the story card in the statistics view', async () => {
+  // v0.37.4 — the match history left the board: the story card in the statistics view is
+  // a story card, and no page of the book opens the timeline any more.
+  it('offers no match log page from the statistics view', async () => {
     renderBook()
     fireEvent.click(screen.getAllByTestId('preview-information')[0])
-    // v0.37.2 — the story tile that opens the history is badged "History" (entityType).
-    fireEvent.click(await screen.findByTestId('preview-matchlog'))
-    expect(await screen.findByTestId('match-log-card')).toBeInTheDocument()
+    expect(await screen.findByTestId('preview-story')).toBeInTheDocument()
+    expect(screen.queryByTestId('preview-matchlog')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('match-log-card')).not.toBeInTheDocument()
   })
 
   // v0.37.3 — the fa-bed shortcut left the characteristics card: sleeping is offered by the

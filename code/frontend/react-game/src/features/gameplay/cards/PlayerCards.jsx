@@ -12,7 +12,7 @@ import { getNonZeroStats, STAT_CATEGORY_ORDER } from '@/utils/bonusStats'
  * (with `flagShowFullStatistics`) so Card renders the BonusBadgeList overlaid on
  * the image itself.
  */
-export default function PlayerCards({ storyFull, story, playerStats, gameData, onPreview, previewSide='left', onPreviewMatchLog=null }) {
+export default function PlayerCards({ storyFull, story, playerStats, gameData, onPreview, previewSide='left' }) {
   const { t } = useTranslation()
 
   // Build the {key, label, value} badge items for a resolved selection entity.
@@ -60,20 +60,11 @@ export default function PlayerCards({ storyFull, story, playerStats, gameData, o
         statistics={difficultyItems} flagShowFullStatistics={true} bonusBadgeListLittleIntoImage={true}
         onPreview={() => onPreview({ card: difficultyEntity?.card, type: 'difficulty', stats: difficultyItemsLong, side: previewSide })}
       />
-      {/* The story card always opens on the LEFT page, with the match history
-          (Step 28.7 logs API) alongside it on the RIGHT — unlike the other cards
-          here, which follow `previewSide`. Without a match log handler it keeps
-          the default behaviour. */}
-      <Card card={story.card} entityType={onPreviewMatchLog ? 'matchlog' : 'story'} story={story}
+      {/* v0.37.4 — the story card reads as a story again: the match history left the board
+          for the profile book, where a match is looked back on rather than played. */}
+      <Card card={story.card} entityType="story" story={story}
         flagInformationCard={true}
-        onPreview={() => {
-          if (onPreviewMatchLog) {
-            onPreview({ card: story.card, type: 'story', modal: false, side: 'left' })
-            onPreviewMatchLog()
-          } else {
-            onPreview({ card: story.card, type: 'story', side: previewSide })
-          }
-        }}
+        onPreview={() => onPreview({ card: story.card, type: 'story', side: previewSide })}
       />
     </>
   )

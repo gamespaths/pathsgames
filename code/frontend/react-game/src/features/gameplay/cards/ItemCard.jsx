@@ -95,7 +95,7 @@ export default function ItemCard({
     setRunning(true)
     try {
       const result = await useItem(matchUuid, item.uuid, accessToken)
-      onDone?.(result)
+      await onDone?.(result)
     } catch (e) {
       console.error('use-item failed', e?.response?.data?.error || e?.message)
       onError?.(e)
@@ -109,7 +109,7 @@ export default function ItemCard({
     setRunning(true)
     try {
       const result = await dropItem(matchUuid, item.uuid, accessToken)
-      onDropped?.(result)
+      await onDropped?.(result)
     } catch (e) {
       console.error('drop-item failed', e?.response?.data?.error || e?.message)
       onError?.(e)

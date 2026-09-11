@@ -65,7 +65,7 @@ export default function MissionStepCard({ mission, story = null, onPreview, onOp
       card={card}
       entityType="missions"
       story={story}
-      statistics={badges}
+      statistics={closed ? undefined : badges }
       flagShowFullStatistics
       bonusBadgeShowZeros
       locked={closed}

@@ -137,7 +137,10 @@
       "PAUSED": "In Pausa",
       "ENDED": "Finita",
       "GAMEOVER": "Game Over"
-    }
+    },
+    "history": "Cronologia Partita",
+    "historyDescription": "Ogni passo di questa partita, dal più recente: spostamenti, eventi, riposi e cosa hanno cambiato.",
+    "historyOpen": "Apri"
   },
   "matchLog": {
     "title": "Storia della partita",

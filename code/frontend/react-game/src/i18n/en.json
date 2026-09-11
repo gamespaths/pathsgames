@@ -141,7 +141,10 @@
       "PAUSED": "Paused",
       "ENDED": "Ended",
       "GAMEOVER": "Game Over"
-    }
+    },
+    "history": "Match History",
+    "historyDescription": "Every step this match has taken, newest first: moves, events, rests and what they changed.",
+    "historyOpen": "Open"
   },
   "matchLog": {
     "title": "Match history",

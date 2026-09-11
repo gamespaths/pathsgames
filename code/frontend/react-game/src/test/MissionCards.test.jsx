@@ -41,4 +41,10 @@ describe('MissionCards (Step 37)', () => {
 
     expect(screen.getAllByTestId('mission-row')[0].dataset.side).toBe('left')
   })
+
+  it('closes the grid with the cards a caller hands it, even with no mission at all', () => {
+    render(<MissionCards missions={[]}><div data-testid="extra">History</div></MissionCards>)
+    expect(screen.getByTestId('extra')).toBeTruthy()
+    expect(screen.getByText('game.missions.empty')).toBeTruthy()
+  })
 })

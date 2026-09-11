@@ -127,28 +127,21 @@ describe('PlayerCards', () => {
   })
 })
 
-// ── Step 28.7 — the story card opens the match history on the right page ──────
+// ── v0.37.4 — the story card is a story card: the match history left the board ──────
 
-describe('PlayerCards — story card and match log', () => {
+describe('PlayerCards — story card', () => {
   beforeEach(() => { capturedCards.length = 0 })
 
-  it('opens the story card on the LEFT and the match log on the RIGHT', () => {
-    const onPreview = vi.fn()
-    const onPreviewMatchLog = vi.fn()
+  it('never badges the story tile as the history any more', () => {
     render(<PlayerCards storyFull={STORY_FULL} story={STORY}
       playerStats={PLAYER_STATS} gameData={GAME_DATA}
-      onPreview={onPreview} previewSide="right" onPreviewMatchLog={onPreviewMatchLog} />)
+      onPreview={vi.fn()} previewSide="right" />)
 
-    // v0.37.2 — the tile is badged "History", not "Story": what it opens is the history,
-    // and the player had no way of knowing that from a story picture.
-    fireEvent.click(screen.getByTestId('preview-matchlog'))
-
-    // the story card is forced to the left page (not `previewSide`), no modal
-    expect(onPreview).toHaveBeenCalledWith({ card: STORY.card, type: 'story', modal: false, side: 'left' })
-    expect(onPreviewMatchLog).toHaveBeenCalled()
+    expect(screen.queryByTestId('preview-matchlog')).toBeNull()
+    expect(screen.getByTestId('preview-story')).toBeInTheDocument()
   })
 
-  it('keeps the previous behaviour when no match log handler is passed', () => {
+  it('opens the story card on the side it was given', () => {
     const onPreview = vi.fn()
     render(<PlayerCards storyFull={STORY_FULL} story={STORY}
       playerStats={PLAYER_STATS} gameData={GAME_DATA}

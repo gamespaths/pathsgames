@@ -48,7 +48,7 @@ describe('StoryCatalog', () => {
       <StoryCatalog stories={STORIES} onStoryClick={vi.fn()} />
     )
     expect(container.querySelectorAll('.gc-footer__btn')).toHaveLength(0)
-    expect(container.querySelectorAll('.gc-footer__coming-soon .fa-spinner')).toHaveLength(3)
+    expect(container.querySelectorAll('.gc-footer__cards-buttons .fa-spinner')).toHaveLength(3)
     expect(screen.getAllByText('home.loadingMatches')).toHaveLength(3)
     rerender(
       <StoryCatalog stories={STORIES} matches={matches} matchesStatus="ready" onStoryClick={vi.fn()} />

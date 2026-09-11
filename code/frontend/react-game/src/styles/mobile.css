@@ -6,18 +6,18 @@
 }
 @media (max-width: 991px) {
   .book-mobile-layout .selection-list {
-    grid-template-columns: repeat(3, 1fr) !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 }
 @media (max-width: 550px) {
   .book-mobile-layout .selection-list {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
 @media (max-width: 1120px) {
   .credit-author, .credit-credit { display:none;}
   .selection-list {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
   .btn-start-game{
     font-size: 1rem !important;
@@ -34,7 +34,7 @@
     font-size: 1rem !important;
   }
   .book-mobile-layout .selection-list {
-    grid-template-columns: repeat(1, 1fr) !important;
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
   }
   .start-match-actions {
     display: grid !important;
@@ -134,7 +134,7 @@
   padding: 6px 0 10px;
 }
 .book-mobile-layout .selection-list {
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   overflow: visible;
 }
 /* v0.37.3 — the status card's shortcuts read one per row, icon then name: the mobile stack

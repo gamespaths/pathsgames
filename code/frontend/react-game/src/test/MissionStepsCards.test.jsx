@@ -22,16 +22,16 @@ describe('MissionStepsCards (v0.37.1)', () => {
       { uuid: 's-3', step: 3, name: 'Cross the pass', done: false },
     ])} />)
 
-    // The third is not listed: the story has not asked for it yet.
+    // The third is not listed: the story has not asked for it yet. The open one reads FIRST.
     expect(screen.getAllByTestId('step').map(n => n.textContent))
-      .toEqual(['Reach the hills', 'Climb the peak'])
+      .toEqual(['Climb the peak', 'Reach the hills'])
     // No step NUMBER any more — a closed step says Completed, an open one says nothing.
     // The very badge a closed MISSION wears — same key, same glyph, and v0.37.3 no label:
     // the word next to the check is the whole message.
-    expect(captured[0].statistics).toEqual([{ key: 'missionStatus',
+    expect(captured[0].statistics).toEqual([])
+    expect(captured[1].statistics).toEqual([{ key: 'missionStatus',
       value: 'game.missions.status.COMPLETED',
       icon: 'fas fa-check-circle', color: null }])
-    expect(captured[1].statistics).toEqual([])
   })
 
   it('lists every step once the mission has closed them all', () => {
@@ -63,10 +63,20 @@ describe('MissionStepsCards (v0.37.1)', () => {
       { uuid: 's-2', step: 2, name: 'Open', done: false },
     ])} />)
 
-    expect(captured[0].locked).toBe(true)
-    expect(captured[0].lockInfo).toBe('game.missions.status.COMPLETED')
-    expect(captured[1].locked).toBe(false)
-    expect(captured[1].lockInfo).toBeUndefined()
+    // The open step reads first: what is closed is ALWAYS last.
+    expect(captured[0].card.title).toBe('Open')
+    expect(captured[0].locked).toBe(false)
+    expect(captured[0].lockInfo).toBeUndefined()
+    expect(captured[1].card.title).toBe('Done')
+    expect(captured[1].locked).toBe(true)
+    expect(captured[1].lockInfo).toBe('game.missions.status.COMPLETED')
+  })
+
+  it('keeps the closed steps in the story order among themselves, after the open one', () => {
+    expect(visibleSteps(mission([
+      { uuid: 's-1', name: 'a', done: true }, { uuid: 's-2', name: 'b', done: true },
+      { uuid: 's-3', name: 'c', done: false }, { uuid: 's-4', name: 'd', done: false },
+    ])).map(s => s.name)).toEqual(['c', 'a', 'b'])
   })
 
   it('falls back to the step name when the author wrote no card for it', () => {

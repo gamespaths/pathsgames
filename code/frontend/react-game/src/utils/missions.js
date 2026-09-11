@@ -3,7 +3,8 @@
  * this match has reached, with their steps in order and each one flagged done, so the board
  * neither filters nor sorts what a mission is worth.
  */
-const ORDER = { ACTIVE: 0, AVAILABLE: 1, COMPLETED: 2, FAILED: 3 }
+// A COMPLETED mission is ALWAYS last, after even a status the board does not know.
+const ORDER = { ACTIVE: 0, AVAILABLE: 1, FAILED: 2, COMPLETED: 99 }
 
 /** The missions of the match, open ones first: what is still to do is what is worth reading. */
 export function orderedMissions(missions) {

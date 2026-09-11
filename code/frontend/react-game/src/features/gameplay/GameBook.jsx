@@ -115,7 +115,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   }
 
   if (gameEnded) {
-    return <EndGameBook story={story} endGameCard={endGameCard} onClose={onClose} />
+    return <EndGameBook story={story} endGameCard={endGameCard} onClose={onClose}
+      missions={gameData?.info?.missions} />
   }
 
   const leftContent = <PageLeft
@@ -160,7 +161,6 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     onOpenMissions={viewActions.openMissions}
     onOpenMission={viewActions.openMission}
     onOpenInfo={openInformationView}
-    onPreviewMatchLog={() => viewActions.setPreviewRight({ kind: 'matchlog' })}
     onEndGame={handleEndGame}
     onEndGamePreview={handleEndGamePreviewFull}
     onExit={onClose} />

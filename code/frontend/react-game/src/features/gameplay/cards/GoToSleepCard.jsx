@@ -28,7 +28,7 @@ export default function GoToSleepCard({ story, storyFull,gameData,playerStats, o
     setSleeping(true)
     try {
       const result = await sleepCharacter(matchUuid, accessToken)
-      onSlept?.(result)
+      await onSlept?.(result)
     } catch (e) {
       console.error('sleep failed', e?.response?.data?.error || e?.message)
     } finally {

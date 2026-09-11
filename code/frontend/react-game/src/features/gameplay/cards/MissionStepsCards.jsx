@@ -10,11 +10,12 @@ import { MISSION_STATUS_ICON, missionStatusBadge } from '@/utils/missions'
  * behind it are what the story has not asked for yet, and listing them would spoil the way.
  */
 
-/** Every step already closed, plus the first one that is not — in the story's own order. */
+/** The first step still open, then every step already closed — done ones ALWAYS last. */
 export function visibleSteps(mission) {
   const steps = Array.isArray(mission?.steps) ? mission.steps : []
   const next = steps.findIndex(s => !s?.done)
-  return next === -1 ? steps : steps.slice(0, next + 1)
+  const shown = next === -1 ? steps : steps.slice(0, next + 1)
+  return [...shown].sort((a, b) => Number(Boolean(a?.done)) - Number(Boolean(b?.done)))
 }
 
 export default function MissionStepsCards({ mission, story = null, onPreview,
@@ -42,11 +43,12 @@ export default function MissionStepsCards({ mission, story = null, onPreview,
                 card={card}
                 entityType="missions"
                 story={story}
-                statistics={done ? [badge] : []}
+                statistics={done ? [/*badge*/] : []}
                 flagShowFullStatistics
                 bonusBadgeShowZeros
                 locked={done}
                 lockedIcon={done ? MISSION_STATUS_ICON.COMPLETED : undefined}
+                lo
                 lockInfo={done ? badge.value : undefined} flagInformationCard
                 additionalCardClasses="pg-card--mission"
                 onPreview={() => onPreview?.({ card, type: 'missions', side: previewSide })}

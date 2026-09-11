@@ -14,7 +14,7 @@ import { useTranslation } from '@/i18n/context'
  * it would spoil it.
  */
 export default function MissionCards({ missions, story, onPreview, onOpenMission,
-  previewSide = 'right' }) {
+  previewSide = 'right', children = null }) {
   const { t } = useTranslation()
   const rows = orderedMissions(missions)
 
@@ -27,6 +27,8 @@ export default function MissionCards({ missions, story, onPreview, onOpenMission
             <MissionStepCard key={mission.uuid ?? mission.name} mission={mission} story={story}
               onPreview={onPreview} onOpenMission={onOpenMission} previewSide={previewSide} />
           ))}
+        {/* v0.37.4 — a caller's own cards close the grid (the profile book adds the history). */}
+        {children}
       </div>
     </div>
   )

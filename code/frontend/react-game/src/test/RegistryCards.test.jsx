@@ -88,15 +88,23 @@ describe('RegistryCards (Step 36)', () => {
     expect(seen[0].joinValues).toBe(true)
   })
 
-  it('still renders a key whose set was emptied, which comes back with no uuid', () => {
-    // Step 36.1 — an entry is built from the key's ROWS, and an emptied multi key has none:
-    // there is no last row to take a uuid from. The key name is what keys the card then.
+  it('hides a key holding no value at all — emptied set, missing or malformed values', () => {
+    // v0.37.4 — a key with nothing in it is not a card: only what was recorded is worth a page.
     const { container } = render(<RegistryCards registry={[
       { key: 'clues', category: 'evidence', priority: 1, visible: true,
         uuid: null, values: [], multiValue: true },
+      entry('bare', 'evidence', 2, { values: undefined }),
+      entry('odd', 'evidence', 3, { values: 'not-a-list' }),
+      entry('full', 'evidence', 4, { values: ['a', 'b'] }),
     ]} />)
 
-    expect(seen.map(p => p.entry.key)).toEqual(['clues'])
+    expect(seen.map(p => p.entry.key)).toEqual(['full'])
     expect(container.querySelectorAll('[data-testid="key-card"]')).toHaveLength(1)
+  })
+
+  it('says so when every visible key is still empty', () => {
+    render(<RegistryCards registry={[entry('k', 'tutorial', 1, { values: [] })]} />)
+    expect(screen.getByText('game.registry.empty')).toBeTruthy()
+    expect(seen).toHaveLength(0)
   })
 })

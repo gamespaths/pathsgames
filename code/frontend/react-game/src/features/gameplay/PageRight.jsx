@@ -12,17 +12,16 @@ import MissionCards from './cards/MissionCards'
 import MissionStepsCards from './cards/MissionStepsCards'
 import PendingChoicesList from './cards/PendingChoicesList'
 import AutomaticEvents from './cards/AutomaticEvents'
-import MatchLogCard from '@/features/matches/MatchLogCard'
 import PageRightInfo from './PageRightInfo'
 import PageRightMain from './PageRightMain'
 import { movementCostKey } from '@/utils/gamebook'
 
 /**
- * The dedicated event pages (weather / close / endgame / matchlog / coma / sadness) plus the
+ * The dedicated event pages (weather / close / endgame / coma / sadness) plus the
  * plain right preview, which renders the same page Card the left page uses. Each has a back
  * arrow that clears previewRight.
  */
-function RightPreview({ previewRight, story, playerStats, matchUuid, accessToken,
+function RightPreview({ previewRight, story, playerStats,
   activeAction, onBack, onEndGamePreview, onEndGame }) {
   switch (previewRight?.kind) {
     case 'weather':
@@ -33,9 +32,6 @@ function RightPreview({ previewRight, story, playerStats, matchUuid, accessToken
       return <EndGameCard story={story} action={activeAction}
         handleEndGamePreviewFull={onEndGamePreview}
         handleEndGame={onEndGame} onBack={onBack} variant="page" />
-    case 'matchlog':
-      return <MatchLogCard matchUuid={matchUuid} accessToken={accessToken}
-        story={story} onBack={onBack} />
     case 'coma':
       return <ComaCard story={story} allPlayers={previewRight.allPlayers}
         comaEventCard={previewRight.card} onBack={onBack} onForward={previewRight.onForward} />
@@ -72,14 +68,13 @@ export default function PageRight(props) {
     onPreview, onCloseRight, onCloseChoices, onSelectChoice, onDismissCounterZero,
     onEnterCurrentLocation, onMoved, onError, onDone, onDropped, onItemUsed, onSlept,
     onOpenMap, onOpenItems, onOpenRegistry, onOpenMissions, onOpenMission, onOpenInfo,
-    onPreviewMatchLog,
     onEndGame, onEndGamePreview,
     sleepCardForced, activeAction, onExit,
   } = props
 
   if (previewRight) {
     return <RightPreview previewRight={{ ...previewRight, weather, onExit }}
-      story={story} playerStats={playerStats} matchUuid={matchUuid} accessToken={accessToken}
+      story={story} playerStats={playerStats}
       activeAction={activeAction} onBack={onCloseRight}
       onEndGamePreview={onEndGamePreview} onEndGame={onEndGame} />
   }
@@ -151,8 +146,7 @@ export default function PageRight(props) {
     return <PageRightInfo story={story} storyFull={storyFull} gameData={gameData}
       playerStats={playerStats} weather={weather} matchUuid={matchUuid} accessToken={accessToken}
       onPreview={onPreview} onSlept={onSlept} onOpenMap={onOpenMap} onOpenItems={onOpenItems}
-      onOpenRegistry={onOpenRegistry} onOpenMissions={onOpenMissions}
-      onPreviewMatchLog={onPreviewMatchLog} />
+      onOpenRegistry={onOpenRegistry} onOpenMissions={onOpenMissions} />
   }
   return <PageRightMain story={story} storyFull={storyFull} t={t} gameData={gameData}
     playerStats={playerStats} clock={clock} weather={weather} locations={locations}
