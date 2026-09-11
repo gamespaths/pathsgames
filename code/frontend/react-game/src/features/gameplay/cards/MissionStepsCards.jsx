@@ -43,7 +43,7 @@ export default function MissionStepsCards({ mission, story = null, onPreview,
                 card={card}
                 entityType="missions"
                 story={story}
-                statistics={done ? [/*badge*/] : []}
+                statistics={/*done ? [badge] : */[]}
                 flagShowFullStatistics
                 bonusBadgeShowZeros
                 locked={done}
