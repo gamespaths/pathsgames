@@ -327,6 +327,39 @@ a `label`, so the badge on both the mission card and the step card reads the sta
 already "Completata"). The reading-page stats list, which labels every stat including status,
 is unaffected.
 
+**v0.37.4 — completed missions sort last; end-of-match reads missions first; history moves
+into the profile book.** `utils/missions.js`'s `ORDER` map (`ACTIVE: 0, AVAILABLE: 1, FAILED:
+2, COMPLETED: 99`) now puts `COMPLETED` after every other status including unknown ones —
+previously `FAILED` sorted after `COMPLETED`. `MissionStepsCards.jsx`'s `visibleSteps()` still
+shows every closed step plus the first open one, but now stable-sorts closed steps to the end
+so the open step reads first.
+
+`EndGameBook.jsx` gains a `missions` prop (`gameData?.info?.missions`, wired from `GameBook`)
+and a new first reading, `view='missions'`: left page a `MissionCard` (`variant="page"`),
+right page the `MissionCards` grid; clicking a mission moves to `view='missionSteps'`
+(mission card left, `MissionStepsCards` right, step (i) opens the step card); the missions
+reading's own back arrow moves to the pre-existing `view='end'` reading (story card left,
+end-game card right). A match with no missions skips straight to `end`, unchanged from before
+this step.
+
+The player's match history stops being reachable from gameplay: `PlayerCards`' story card is a
+plain `entityType="story"` preview again, and the `onPreviewMatchLog` prop plus the
+`GameBook`/`PageRight` (`'matchlog'` case)/`PageRightInfo` plumbing that carried it are removed
+— see [Step18 §Gameplay reload](./Step18_GameMainFrontend.md) for the gameplay-side detail and
+[Step28 §28.7](./Step28_MovementSystem.md) for `MatchLogCard` itself, unchanged. The history
+moves to the profile book instead (`src/features/guest-user/GuestUserModal.jsx`): a MatchCard
+now opens that match's missions on the right page via the new `src/features/matches/
+useMatchMissions.js` hook (existing `GET /api/match/{uuid}/missions`, no new endpoint), with a
+new little card `MatchHistoryCard.jsx` (`src/features/matches/`, `entityType="matchlog"`,
+icon `fa-history`) appended to the grid — `MissionCards` now accepts a `children` prop rendered
+after its own items. Opening that card shows the existing `MatchLogCard`. Navigation mirrors
+gameplay's mission reading: mission → steps (`MissionStepsCards`) → step card; back arrows step
+back one page at a time (step → steps → missions → matches list). New i18n keys
+`matches.history`, `matches.historyDescription`, `matches.historyOpen` (`en.json`/`it.json`).
+
+New tests: `useMatchMissions.test.jsx`, `MatchHistoryCard.test.jsx`, `EndGameBookMissions.
+test.jsx`.
+
 ## 13. Match log entry `MISSION_CHANGE` (v0.37.2)
 
 Before this, a mission transition left no trace on the match log: `upsertMissionState` wrote
@@ -567,7 +600,7 @@ passed, react-game 1185 passed / 3 skipped, react-admin 794 passed.
 | Python | `app/core/services/match/mission_service.py`, `align_schema()` `_DROPPED_COLUMNS`, `save_mission_steps` persistence port, `registry_service.py` public `norm`/`eq` |
 | AWS | `lambda/match/missions.py`, `lambda/match/registry.py` public `norm`/`eq` and `is_mission`/`set_mission_hook` |
 | react-admin | `ChipListInput.jsx`, `missions`/`mission-steps` field schemas, `EntityForm` required guard. **37.1**: `MissionsCard.jsx` (new, Missions tab on `MatchDetailPage.jsx`); `StoryEditorPage.jsx` `mission-steps` `idCard` picker fix; `CardsFastEditPage.jsx` `CARD_REF_TYPES`/`DESC_ALIGN_TYPES` gain `mission-steps` |
-| react-game | `utils/missions.js`, `MissionCard.jsx`, `MissionCards.jsx`, `MissionStepCard.jsx`, `boardProps.js`, `useBookView`, `en.json`/`it.json`. **37.1**: `MissionStepCard.jsx` (badge only on closed mission, full-size badges, (i) always visible), new `MissionStepsCards.jsx`, `useBookView.js` (`missionSteps` view, `openMission`), `PageLeft.jsx`, `PageRight.jsx`, `GameBook.jsx`, `MissionCards.jsx`, `js/bookmarks.js`, `styles/main.css` (`.pg-card--mission`, `.pg-card--mission-done`), `en.json`/`it.json` (`game.missions.stepsEmpty`) |
+| react-game | `utils/missions.js`, `MissionCard.jsx`, `MissionCards.jsx`, `MissionStepCard.jsx`, `boardProps.js`, `useBookView`, `en.json`/`it.json`. **37.1**: `MissionStepCard.jsx` (badge only on closed mission, full-size badges, (i) always visible), new `MissionStepsCards.jsx`, `useBookView.js` (`missionSteps` view, `openMission`), `PageLeft.jsx`, `PageRight.jsx`, `GameBook.jsx`, `MissionCards.jsx`, `js/bookmarks.js`, `styles/main.css` (`.pg-card--mission`, `.pg-card--mission-done`), `en.json`/`it.json` (`game.missions.stepsEmpty`). **37.4**: `utils/missions.js` (`ORDER`), `MissionStepsCards.jsx` (`visibleSteps` sort), `EndGameBook.jsx` (missions-first reading), `PlayerCards.jsx`/`GameBook.jsx`/`PageRight.jsx`/`PageRightInfo.jsx` (match-log door removed), new `features/matches/useMatchMissions.js` + `MatchHistoryCard.jsx`, `guest-user/GuestUserModal.jsx`, `en.json`/`it.json` (`matches.history*`) |
 | Seeds | sqlite `R__insert_story_seed_data.sql`, postgres `R__insert_dev_test_data.sql`, python `scripts/seed_stories.py` + `seed_dev_data.py`, AWS `lambda/seed/handler.py`, `story_demo_3.json`/`story_demo_4.json`. **37.1**: same four files, `journey_begun` key + start-location writer on the second story (§11). **37.2, second pass**: same four files, `id_card` added to the tutorial's 4 missions/7 steps and the second story's mission/step pair |
 | Registry engine (37.1) | Java `RegistryService.writeStartLocationEntry`, `TurnCycleService.startMatch`, `CoreConfig` wiring; Python `registry_service.write_start_location_entry`, `turn_cycle_service.start_match`, `story_match_read_adapter.find_locations_by_story_id`, `launcher.py`; AWS `handler.py _write_start_location_registry`, called from `_start_match` — see [Step36 §14.1](./Step36_RegistrySystem.md#141-v0371-bugfix--the-start-locations-own-pair-never-wrote) |
 | Robot (37.1) | `code/tests/robot/tests/37_missions/mission_from_start.robot` (5 cases) |
@@ -580,7 +613,7 @@ passed, react-game 1185 passed / 3 skipped, react-admin 794 passed.
 
 # Version Control
 
-- **Document Version**: 0.37.3
+- **Document Version**: 0.37.4
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -588,8 +621,9 @@ passed, react-game 1185 passed / 3 skipped, react-admin 794 passed.
   | 0.37.1 | Bugfix: the start location's own first-entry registry pair — the one field a mission could gate on that could never fire — now writes at match start via `RegistryService.writeStartLocationEntry`, all three backends (§2, see [Step36 §14.1](./Step36_RegistrySystem.md#141-v0371-bugfix--the-start-locations-own-pair-never-wrote)); admin gains a read-only Missions tab (`MissionsCard.jsx`) on the match detail page; `mission-steps`' `idCard` field is now the card picker instead of a raw number (§12); new fixture — key `journey_begun` written on the second story's start location plus a mission reading it — in all four seeds (§11); new Robot suite `37_missions/mission_from_start.robot` (5 cases). Second pass, frontend: `MissionStepCard`'s status badge now only on a closed mission, full-size labelled badges, (i) always reachable; new `useBookView` `missionSteps` split-page view and `MissionStepsCards.jsx` render a mission's steps (only the next open one, to avoid spoilers); `CardsFastEditPage.jsx` recognizes `mission-steps` card references (§12). | September 9, 2026 |
   | 0.37.2 | New match-log entry `MISSION_CHANGE`, written by the same call that saves a mission's state, naming it by uuid with the author's own step number (§13); classified by all three timeline assemblers and given an icon/colour in both frontends, alongside the previously-uncoloured `REGISTRY_CHANGE` (§13); collateral fix — `onStoryEnd` now resolves mission uuids once so a FAILED close names the mission consistently with `advance`; new Robot suite `37_missions/mission_log.robot` (5 cases); AWS bugfix — empty class/trait-budget references from admin-authored stories no longer 500 on match creation (§14); AWS 401 codes aligned with the Java filter's `MISSING_TOKEN`/`EMPTY_TOKEN`/`INVALID_TOKEN` scale, scoped to the `match` lambda (§14). **Second pass**: one engine pass now writes one row **per thing that happened** instead of one naming only the last step — mission opening, each step closed (story order), and a completed mission's last step closes with the step's row then the mission's own (§13); a `MISSION_CHANGE` row now resolves and carries its own `idCard`/`card` (mission uuid, or `uuid/step` for a step; a step with no card stays card-less, never falls back to the mission's), fixing a null-uuid `NullPointerException` that 500'd the whole timeline (§13); all four seeds give the tutorial's missions/steps and the second story's mission/step pair an `id_card`; react-game's history is now a row list (`LogEntryRow`) instead of card tiles, opens via `entityType="matchlog"` ("History"/"Cronologia") instead of "Story", and `REGISTRY_CHANGE` rows show the written value with no lens; Robot's `mission_log.robot` grows from 5 to 8 cases. | September 9, 2026 |
   | 0.37.3 | `missionStatusBadge` drops its `label`: the status badge on mission/step cards reads "Completed" instead of "Status: Completed"; `game.missions.status.COMPLETED` "Done" → "Completed" in `en.json`. | September 10, 2026 |
+  | 0.37.4 | react-game: `COMPLETED` missions now always sort last (`utils/missions.js` `ORDER`), open mission steps read before closed ones; `EndGameBook` reads missions first (mission grid → steps → step), falling back to the old end-of-match reading when a match has none; the match-history door is removed from gameplay and moves into the profile book behind a new `MatchHistoryCard` reached from a match's missions view (§12). | September 11, 2026 |
 
-- **Last Updated**: September 10, 2026
+- **Last Updated**: September 11, 2026 (v0.37.4)
 - **Status**: Complete
 
 # < Paths Games />

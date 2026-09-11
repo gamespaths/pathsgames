@@ -74,6 +74,10 @@ describe('matches api', () => {
       get.mockResolvedValue({ data: [{ uuid: 'm1' }] })
       expect(await listMatches('tok')).toEqual([{ uuid: 'm1' }])
       expect(get).toHaveBeenCalledWith('/api/matches', expect.any(Object))
+      // v0.37.5 — the list waits longer than the 5 s client default.
+      const cfg = get.mock.calls[0][1]
+      expect(cfg.timeout).toBe(15000)
+      expect(cfg.headers.Authorization).toBe('Bearer tok')
     })
 
     it('getMatchInfo gets /api/match/{uuid}/info with default lang', async () => {

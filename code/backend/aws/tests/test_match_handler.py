@@ -593,6 +593,22 @@ def test_list_user_matches_returns_summaries(mock_jwt, mock_get, mock_query):
     assert result['statusCode'] == 200
     body = _body(result)
     assert [m['uuid'] for m in body] == ['m2', 'm1']  # newest first
+    # v0.37.5 — the list reads the summary-only projection, never the full GSI1 items.
+    mock_query.assert_called_once_with('GSI1Summary', 'USER_MATCHES#player-uuid-001')
+
+
+@patch('match.handler.db_utils.query_gsi', return_value=[
+    {'uuid': 'm-open', 'storyUuid': 'story-uuid-001', 'status': 'RUNNING'},
+])
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_duplicate_guard_reads_summary_index(mock_jwt, mock_get, mock_query):
+    # v0.37.5 — the duplicate-match guard only needs storyUuid/status: summary index too.
+    from match.handler import _has_active_match_for_story
+    assert _has_active_match_for_story({'uuid': 'player-uuid-001'}, 'story-uuid-001') is True
+    assert _has_active_match_for_story({'uuid': 'player-uuid-001'}, 'other-story') is False
+    for call in mock_query.call_args_list:
+        assert call.args[0] == 'GSI1Summary'
 
 
 @patch('match.handler.db_utils.get_item')

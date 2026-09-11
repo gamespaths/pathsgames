@@ -98,6 +98,31 @@ Resources:
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
+        # v0.37.5 — same keys as GSI1, summary-only projection: GET /api/matches reads
+        # this one, so a match's ever-growing state/logs never travel with the list.
+        - IndexName: GSI1Summary
+          KeySchema:
+            - AttributeName: GSI1_PK
+              KeyType: HASH
+            - AttributeName: GSI1_SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              - uuid
+              - storyUuid
+              - difficultyUuid
+              - name
+              - status
+              - currentClock
+              - expCost
+              - rngSeed
+              - userCreatorUuid
+              - tsInsert
+              - singlePlayer
+              - characterTemplateUuid
+              - classUuid
+              - traitUuids
         # v0.28.1 — "by type" index. Every match METADATA item carries
         # GSI2_PK="MATCH" and GSI2_SK="{tsInsert:020d}#{uuid}". The admin list
         # (GET /api/admin/matches) becomes a single paginated Query on this index

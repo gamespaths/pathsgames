@@ -2113,7 +2113,7 @@ player earned 50 coins had them appear from nowhere in the log.
 | AWS | `lambda/match/inventory.py` — v0.35.4 renames `log_item_usage` to `log_item_action`, adds `ITEM_ACTION_ADD/USE/DROP/REMOVE` constants and `resource_delta()` (sums an effect's stat changes for the acting character only); `lambda/match/handler.py` — assembles `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` entries and the `*Gain` fields from the match item's `itemUsageLog` |
 | OpenAPI | `v0.28.7-match-logs-api.yaml` — v0.35.4 adds `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` to the `type` enum, `idItem`/`itemAction`/`counter`/`energyGain`/`foodGain`/`magicGain`/`coinGain` to `LogEntry` |
 | react-admin | `src/components/match/detail/MatchLogsCard.jsx` — v0.35.4 adds badges + filter chips for `ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` (plus the previously uncoloured `COUNTER_ZERO`/`AUTOMATIC_EVENT`), and a **Resources** column showing what each entry took and gave |
-| react-game | `src/features/matches/MatchLogCard.jsx` — v0.35.4 renders `ITEM_*` tiles with the item's own card and every entry's resources as `BonusBadgeList` badges (type/actor/resources on the little tile, resources only on the page variant) |
+| react-game | `src/features/matches/MatchLogCard.jsx` — v0.35.4 renders `ITEM_*` tiles with the item's own card and every entry's resources as `BonusBadgeList` badges (type/actor/resources on the little tile, resources only on the page variant). `MatchLogCard.jsx` itself is unchanged in v0.37.4, but it is now reached only from the profile book, never from gameplay — see [Step37 §12 react-game (v0.37.4)](./Step37_MissionSystem.md#12-frontends) and [Step18 §8](./Step18_GameMainFrontend.md#8-game-page-playstoryid) |
 | react-game | `src/components/ui/BonusBadgeList.jsx` — v0.35.4 lets a caller override `icon`/`color` per badge, adds an `actor` visual, and keys badges by list position (one list may carry the same stat twice — an event that charged and refunded coins) |
 | react-game | `src/i18n/en.json`, `src/i18n/it.json` — new `matchLog.types.ITEM_ADD`/`ITEM_USE`/`ITEM_DROP` keys |
 | Robot | `code/tests/robot/tests/34_inventory/item_logs.robot` — new suite, 7 tests, backend-agnostic (java-sqlite, python, aws) |
@@ -2315,7 +2315,7 @@ in place above, plus the summary below.
 
 # Version Control
 
-- **Document Version**: 0.35.8
+- **Document Version**: 0.37.4
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -2338,8 +2338,9 @@ in place above, plus the summary below.
   | 0.35.4 | Same version, continued: react-admin's `MatchLogsCard` gains a Resources column and badges/filters for the three new types (plus the previously uncoloured `COUNTER_ZERO`/`AUTOMATIC_EVENT`); react-game's `MatchLogCard` renders `ITEM_*` entries with the item's own card via `BonusBadgeList`; new Robot suite `item_logs.robot` (7 tests, `34_inventory`, backend-agnostic). | August 24, 2026 |
   | 0.35.6 | `MovementStartResponse` gains `edgeState` (§5.2), folding the verdicts of any automatic arrival events the move triggered. Full writeup in [Step30_EdgeStates.md](./Step30_EdgeStates.md). | August 28, 2026 |
   | 0.35.8 | Python bugfix: the `/info` availability verdict's own neighbor read was missing `cost_food`/`cost_magic`/`cost_coin` and `condition_registry_key`/`_value`, a different gap from the v0.35.3 `/locations` fix. See "v0.35.8 bugfix" above. | August 30, 2026 |
+  | 0.37.4 | Cross-reference only, no code change here: `MatchLogCard.jsx` is unchanged, but the door into it moves from gameplay's story card to the profile book's match-missions view. See [Step37 §12 react-game (v0.37.4)](./Step37_MissionSystem.md#12-frontends) and [Step18 §8](./Step18_GameMainFrontend.md#8-game-page-playstoryid). | September 11, 2026 |
 
-- **Last Updated**: August 30, 2026
+- **Last Updated**: September 11, 2026 (v0.37.4 cross-reference)
 - **Status**: Complete (Step 28 implementation). Step 33 has since shipped and is Complete; §6.3's forward reference to it is no longer a reference to a design-only document.
 
 # < Paths Games />

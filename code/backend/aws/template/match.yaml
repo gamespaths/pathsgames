@@ -55,7 +55,8 @@ Resources:
       Runtime: python3.13
       Handler: match.handler.lambda_handler
       Timeout: 30
-      MemorySize: 256
+      # v0.37.5 — 1024 MB: CPU scales with memory, so cold start + DynamoDB fan-out stay under the game client's timeout.
+      MemorySize: 1024
       CodeUri: ../lambda/
       Tags:
         project: PathsGames

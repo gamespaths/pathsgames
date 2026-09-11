@@ -32,9 +32,13 @@ export async function createMatch(payload, accessToken) {
   return res.data
 }
 
+/** v0.37.5 — a cold Lambda plus a long match history can exceed the 5 s client default. */
+const LIST_MATCHES_TIMEOUT_MS = 15000
+
 /** List the matches owned by the authenticated user (newest first). */
 export async function listMatches(accessToken) {
-  const res = await apiClient().get('/api/matches', authConfig(accessToken))
+  const res = await apiClient().get('/api/matches',
+    { ...authConfig(accessToken), timeout: LIST_MATCHES_TIMEOUT_MS })
   return res.data
 }
 

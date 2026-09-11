@@ -565,6 +565,13 @@ A new **Registry** section, built as the backpack's structural twin (Step 34's `
 fields on `/info` (§8) — one request, and it can never disagree with the board it is already
 rendering.
 
+**v0.37.4 — an emptied key stops rendering.** `RegistryCards.jsx` now filters
+`visibleRegistry(registry)` down to entries with at least one value
+(`registryValues(entry).length > 0`) before grouping; a key whose `values` came back empty,
+missing, or not an array no longer shows an empty card. This reverses the v0.36.1 behaviour
+where a key emptied by a multi-key effect stayed visible with a blank badge. If every key is
+now filtered out, the page falls back to the existing `game.registry.empty` message.
+
 ## 12. Admin
 
 `registryValueOperatorCondition` is a new `select` field on the `events`,
@@ -788,7 +795,7 @@ verbs. Java 2477 tests, python 1566, AWS 931, react-admin 777 — all green.
 | Engine (AWS) | `lambda/match/registry.py` (new); `lambda/match/events.py` (`apply_registry` now delegates, bug §9.1); `lambda/match/handler.py` (`_edge_condition_met` consolidation — bug §9.2 —, `_weather_condition_matches`, `_get_match_registry`, dispatcher route). **36.1**: `registry.py` gains `rows_in`/`values_in`/`remove`; `upsert(..., story=None)` (§10). **36.2**: `registry.py` gains `_norm`/`_eq` (§13); `handler.py _resolve_arrival` gains `_write_arrival_registry` (§14); new `PUT`/`DELETE` registry routes and admin-weather registry fields (§15, [Step27](./Step27_WeatherSystem.md)). **36.3**: `handler.py _detail_from_item` passes `all_locations` into `_registry.list_entries` (§8.1); new `_reread_characters` and `db_utils` `ConsistentRead=True` (see [Step29 §3](./Step29_NormalEvents.md#3-execution)). **37.1**: `handler.py _write_start_location_registry(match, story, characters, top)`, called from `_start_match` before the match item is persisted (§14.1) |
 | Infra (AWS) | `template/match.yaml` — one new route. **36.2**: two more routes (admin registry PUT/DELETE) |
 | Seed (all four + demo JSON) | `R__insert_story_seed_data.sql`, `scripts/seed_stories.py` (registry keys added — gap §9), `lambda/seed/handler.py`, `story_demo_3.json`, `story_demo_4.json` — boolean vocabulary sweep (§5). **36.1**: all four gain the `evidence_found` multi-value test-bed on the tutorial story (§13). **36.2**: all four gain `case_notes`/`signal`/`vault_seen` keys, the Records Vault location and four FREE events (§16) |
-| Game board | `react-game/src/features/gameplay/cards/RegistryCard.jsx`, `RegistryCards.jsx`, `RegistryKeyCard.jsx` (new); `utils/registry.js` (new); `useBookView.js`, `GameBook.jsx`, `PageLeft.jsx`, `PageRight.jsx`, `PageRightInfo.jsx`, `PageRightMain.jsx`, `js/boardProps.js`, `utils/loadoutCards.js`, `api/matchInfoAdapter.js` (doc only) updated; `data/images.json`, i18n `en.json`/`it.json`. **36.1**: `utils/registry.js` gains `registryValues(entry)` (§11). **36.2**: `src/utils/matchStatus.js`/`StoryCard.jsx` Replay button — unrelated to the registry, see [Step18](./Step18_GameMainFrontend.md) |
+| Game board | `react-game/src/features/gameplay/cards/RegistryCard.jsx`, `RegistryCards.jsx`, `RegistryKeyCard.jsx` (new); `utils/registry.js` (new); `useBookView.js`, `GameBook.jsx`, `PageLeft.jsx`, `PageRight.jsx`, `PageRightInfo.jsx`, `PageRightMain.jsx`, `js/boardProps.js`, `utils/loadoutCards.js`, `api/matchInfoAdapter.js` (doc only) updated; `data/images.json`, i18n `en.json`/`it.json`. **36.1**: `utils/registry.js` gains `registryValues(entry)` (§11). **36.2**: `src/utils/matchStatus.js`/`StoryCard.jsx` Replay button — unrelated to the registry, see [Step18](./Step18_GameMainFrontend.md). **37.4**: `RegistryCards.jsx` filters out keys with no values (§11) |
 | Admin | `constants/story/storiesEntities.jsx` — `registryValueOperatorCondition` select on `events`/`location-neighbors`/`weather-rules`, reusing `CHOICE_CONDITION_OPERATOR_OPTIONS`. **36.1**: `RegistryCard.jsx`/`MatchDetailModal` show Values/Multi instead of String/Int value; `storiesEntities.jsx`'s key form gains a `multiValue` checkbox (§12). **36.2**: `RegistryCard.jsx` gains per-row edit/remove-member/clear-key controls and an "Add a key" row (§15); `WeatherCard.jsx` gains the Registry column ([Step27](./Step27_WeatherSystem.md)); `GuestsPage.jsx` bugfix (§9.2 note in [Step12](./Step12_GuestLoginMethod.md)) |
 | Robot | `code/tests/robot/tests/36_registry/registry.robot` (10 tests); `Get Registry` keyword in `resources/matches.resource` — see `.claude/docs/robot-suites.md` for suite/keyword detail, not duplicated here. **36.1**: new `36_registry/registry_multi_value.robot` (9 tests); `registry.robot` updated to the new payload shape and grew to 11 tests (§13). **36.2**: new `registry_case_insensitive.robot` (5), `registry_location_writes.robot` (5), `registry_admin_edit.robot` (6); `registry_multi_value.robot` fixture discovery made behaviour-based (§16). **36.3**: `registry.robot` gains one case (§16); new `forced_move.robot` (5 cases, see [Step29 §3](./Step29_NormalEvents.md#3-execution)) |
 | Tests | Java: `RegistryServiceTest`, `RegistryStoreAdapterTest`, `RegistryControllerTest`, plus updates across `EventAvailabilityCheckerTest`, `WeatherSelectionServiceTest`, `MovementServiceTest` and more. Python: `test_registry_service.py`, `test_registry_store_adapter.py`, `test_match_controller_registry.py`, plus equivalents. AWS: `test_registry.py`, `test_match_handler_registry.py`. React-game: `RegistryCard.test.jsx`, `RegistryCards.test.jsx`, `registryUtils.test.js`. **36.1** coverage: java `RegistryService` 99.5%/95.5% branches, `RegistryStoreAdapter` 100%/100%; python 99%/100%; AWS `registry.py` 99% (§13). **36.2**: java 2466+ tests, python 1432, AWS 879, react-admin 687, react-game 1069 — full suite green (§16) |
@@ -800,7 +807,7 @@ and the bugs fixed in §9.
 
 # Version Control
 
-- **Document Version**: 0.37.1
+- **Document Version**: 0.37.4
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -812,8 +819,9 @@ and the bugs fixed in §9.
   | 0.36.4 | The `REGISTRY_CHANGE` row now names the value as STORED and spells an absent one `null` on all three backends (§7); admin `PUT` refuses a key the story does not declare with 400 `UNKNOWN_KEY`, the `DELETE` still accepts one so an orphan row can be cleaned up (§15.1). Python's `list_entries` defaults to hidden-keys-EXCLUDED like Java and AWS, the admin registry pair is finally in `v0.19.12-admin-match-control-api.yaml`, and `registry_repeated_writes.robot` pins from outside the set behaviour Java/Python get from an index and AWS does not (§10, §16). | September 8, 2026 |
 
   | 0.37.1 | Bugfix: the start location's own `key_to_add`/`key_value_to_add` pair (§14) never wrote in any match, because `writeArrivalRegistry` only runs through `onArrival`, which the seeded starting location never triggers. New `RegistryService.writeStartLocationEntry` runs once at match start instead (§14.1), all three backends. | September 9, 2026 |
+  | 0.37.4 | react-game bugfix: `RegistryCards.jsx` no longer renders a key whose `values` came back empty, missing, or not an array — reverses the v0.36.1 behaviour of showing an emptied key with a blank badge; an all-empty registry falls back to the existing empty message (§11). | September 11, 2026 |
 
-- **Last Updated**: September 9, 2026
+- **Last Updated**: September 11, 2026 (v0.37.4)
 - **Status**: Complete
 
 

@@ -87,6 +87,8 @@ the **v0.19.9** loadout (`characterTemplateUuid`, `classUuid`, `traitUuids`,
 
 Returns the matches owned by the authenticated user, newest first.
 
+**AWS GSI1Summary — perf note (v0.37.4):** a new DynamoDB index **GSI1Summary** (same `GSI1_PK`/`GSI1_SK` keys as GSI1, `Projection: INCLUDE` on the 14 `_summary_from_item` fields) backs this query and `_has_active_match_for_story` (§6.1), replacing the full-item GSI1 read that returned locations/registry/logs for every match and risked the game client's 5 s timeout. No backfill needed — existing items are indexed on deploy; while `IndexStatus` is backfilling, the list query returns `[]`. `MatchFunction` memory raised 256→1024 MB to cut cold-start latency.
+
 ### 2.3 `GET /api/admin/matches` *(v0.19.10 — paginato e filtrabile da v0.28.1)*
 
 Returns **all** matches on the platform, regardless of creator. Requires `ADMIN` role.
@@ -305,7 +307,7 @@ retried request or an F5 during the start countdown all produced a duplicate.
 |---|---|
 | Java | `MatchPersistencePort.hasActiveMatchForStory(userId, storyId, statuses)` → the Spring Data derived query `existsByIdUserCreatorAndIdStoryAndStatusIn` on `GamingMatchRepository`. The port was already injected into `MatchCommandService`, so no wiring changed. |
 | Python | `MatchPersistencePort.has_active_match_for_story(...)` → a SQLAlchemy `query(id).filter(...).first()` in `MatchPersistenceAdapter`: existence only, it does not materialise the list. |
-| AWS | `_has_active_match_for_story(user, story_uuid)` queries **GSI1** on `USER_MATCHES#{userUuid}` — the same paginated access path as `GET /api/matches` — and filters `storyUuid` + `status` in memory. `storyUuid` is not part of `GSI1_SK`, so it cannot narrow the key condition, but the read stays inside the caller's own partition: **never a Scan**, and no template/GSI change. |
+| AWS | `_has_active_match_for_story(user, story_uuid)` queries **GSI1Summary** *(v0.37.4, was GSI1)* on `USER_MATCHES#{userUuid}` — the same paginated access path as `GET /api/matches` — and filters `storyUuid` + `status` in memory. `storyUuid` is not part of `GSI1_SK`, so it cannot narrow the key condition, but the read stays inside the caller's own partition: **never a Scan**. |
 
 **react-game side (v0.32.1).** The home mirrors the rule instead of discovering
 it through a 409:
@@ -549,7 +551,7 @@ The same suite passes against the Python backends — see `code/scripts/dev/run_
   
   > Ciao, i've a problem; when rotob test runned , in tables there are so many rows from tests execution, for example guest users and matches. I wanna remove these elements from tables (sql/dynamo) after robot test runned, i wanna remove only robot test rows preserve others informations. 
 
-- **Document Version**: 0.35.8
+- **Document Version**: 0.37.4
     | Version | Description | Date |
     | --- | --- | --- |
 
@@ -570,8 +572,9 @@ The same suite passes against the Python backends — see `code/scripts/dev/run_
     | 0.28.1 | GET /api/admin/matches pagination & filtering | Jun 26, 2026 |
     | 0.32.1 | One active match per user and story | Aug 10, 2026 |
     | 0.35.8 | New opt-in `RESUME_WITHOUT_MODAL` flag (§6.1): "Resume" jumps straight into the match, skipping the guest modal, via the new `findResumableMatch` helper. | August 30, 2026 |
+    | 0.37.4 | AWS `GET /api/matches` perf fix: new GSI1Summary index (summary-only projection) replaces full-item GSI1 for the user match list and the §6.1 duplicate guard; `MatchFunction` memory 256→1024 MB. | Sep 11, 2026 |
 
-- **Last Updated**: Aug 30, 2026
+- **Last Updated**: Sep 11, 2026
 - **Status**: Complete
 
 

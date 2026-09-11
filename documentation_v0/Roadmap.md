@@ -90,8 +90,9 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Build frontend advancement UI showing available stat upgrades, costs, and current experience (frontend)
     - Write backend unit tests for experience gain, advancement validation, cost calculation, and stat update (backend tests)
 39. Action logging and match history
-    - su AWS ItemUsageLog massimo 400Kb dynamo per partite lunghizzime
-        - valutare anche dimensioni delle api e delle response e delle varie tabelle!    
+    - on AWS ItemUsageLog max 400Kb dynamo
+        - AWS dynamo tables: to divide unique table to multiple tables (users, stories, matches, logs)
+        - evaluate api response dimensions!    
     - Implement centralized logging service recording all player actions with match UUID, character, timestamp, and details (backend)
     - Log all events triggered (automatic and optional) in log_events with full context (backend)
     - Log all movements in log_movements with from/to, energy cost, and weather conditions (backend) - note: maybe done on 28 step (don't remove this note)!
@@ -107,7 +108,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Validate snapshot integrity against current schema version before restoration (backend)
     - Build frontend admin snapshot viewer with list, details, and restore action (frontend)
     - Write backend unit tests for snapshot creation, serialization, restoration, integrity validation, and listing (backend tests)
-41. Security updates
+41. Security updates    
     - Rate Limiting: user and match creation limits, into API creation guest user and creation match , add limit 10 creation for source IP
     - XSS risk: on react-game when used dangerouslySetInnerHTML, use DOMPurify to remove scripts from backend (avoid administrators/source add malevolous script from react-admin to game components)
     - CSRF (Cross-Site Request Forgery) and SameSite, implement CSRF Token for creation match API (using X-CSRF-TOKEN)
@@ -634,12 +635,9 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.1.0 | first version of this document | February 3, 2026 |
 	| 0.1.1 | added licence and version control sections, file renamed from "todolist" to "roadmap" | February 5, 2026 |
     | 0.1.2 | update "2. Define the V1 scope" and "3. Define the technology stack" sections | February 10, 2026 |
-    | 0.37.0 | step 37 implemented: missions become a projection of the registry, `condition_value`/`condition_values` replace the from/to pair, AVAILABLE→ACTIVE→COMPLETED/FAILED. New `/api/match/{uuid}/missions` endpoints, `missions[]` on `/info`, Missions bookmark live on react-game. | September 8, 2026 |
-    | 0.37.1 | bugfix: the start location's first-entry registry pair now writes at match start (`RegistryService.writeStartLocationEntry`), closing the one authorable field that could never fire; new admin Missions tab on the match detail page; `mission-steps` card field is now a picker, not a raw number. Frontend follow-up: react-game mission step cards are readable (badge only on closed mission, split-page steps view showing only the next open step); react-admin fast-edit page now tracks `mission-steps` card references. | September 9, 2026 |
-    | 0.37.2 | new match-log entry `MISSION_CHANGE`, one writer alongside the mission-state save, classified on all three timelines and coloured in both frontends; AWS bugfix for empty class/trait-budget references crashing match creation on admin-authored stories, and AWS 401 codes aligned with Java's `MISSING_TOKEN`/`EMPTY_TOKEN`/`INVALID_TOKEN` scale; new Robot suite `37_missions/mission_log.robot`. | September 9, 2026 |
-    | X.Y.Z | every step and every new vesion update this file | October 42, 2100 |
+ 
 
-- **Last Updated**: September 9, 2026 (v0.37.2)
+- **Last Updated**: September 11, 2026 (v0.37.4)
 - **Status**: In progress
 
 

@@ -16,6 +16,7 @@ DynamoDB layout:
   PK = MATCH#{uuid}, SK = METADATA
     Match metadata + embedded ``locations`` / ``registry`` lists.
     GSI1_PK = USER_MATCHES#{userUuid}, GSI1_SK = MATCH#{tsInsertMs}#{uuid}
+    (read through GSI1Summary, v0.37.5: same keys, summary-only projection)
       v0.32.1 — also backs the duplicate-match guard of POST /api/matches: the
       creator's own partition is queried and filtered on storyUuid + status, so
       a second active match on the same story answers 409
@@ -71,6 +72,8 @@ _MOVE_REASON_MESSAGES = {
     'CHARACTER_CANNOT_ACT': 'Character cannot act',
 }
 _API_MATCHES_PATH = "/api/matches/"
+# v0.37.5 — GSI1 keys, but only the _summary_from_item attributes projected (see template.yaml).
+_USER_MATCHES_INDEX = 'GSI1Summary'
 _API_GAMEPLAY_PATH = "/api/gameplay/"
 
 # Lifecycle statuses of a match. A match is "stopped" (terminal) when it is
@@ -761,7 +764,7 @@ def _has_active_match_for_story(user, story_uuid):
     story. Reads the user's own GSI1 partition (the same access path as
     `_list_user_matches`, which is fully paginated) and filters in memory:
     `storyUuid` is not part of GSI1_SK, so it cannot narrow the key condition."""
-    items = db_utils.query_gsi('GSI1', f'USER_MATCHES#{user["uuid"]}') or []
+    items = db_utils.query_gsi(_USER_MATCHES_INDEX, f'USER_MATCHES#{user["uuid"]}') or []
     return any(i.get('storyUuid') == story_uuid and i.get('status') in ACTIVE_STATUSES
                for i in items)
 
@@ -890,7 +893,7 @@ def _create_match(user, body):
 
 
 def _list_user_matches(user):
-    items = db_utils.query_gsi('GSI1', f'USER_MATCHES#{user["uuid"]}') or []
+    items = db_utils.query_gsi(_USER_MATCHES_INDEX, f'USER_MATCHES#{user["uuid"]}') or []
     items_sorted = sorted(items, key=lambda i: i.get('tsInsert', 0), reverse=True)
     return _ok([_summary_from_item(i) for i in items_sorted])
 

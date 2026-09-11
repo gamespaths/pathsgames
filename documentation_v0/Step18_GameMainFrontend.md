@@ -155,6 +155,14 @@ New CSS rules in `main.css`: `.card-preview-overlay` (`position: absolute; inset
 
 Cards support `style_main`, `style_detail`, and three size-specific image style fields (`style_image_little`, `style_image_medium`, `style_image_large`) in mock JSON to inject extra CSS classes on the wrapper and image respectively.
 
+**v0.37.4 — grid columns no longer blow out on a long label (bugfix).** Every card-grid rule
+in `main.css`/`mobile.css` (`.selection-list`, `.card-big-list`, `.matches-list-grid`, and their
+mobile breakpoints) switches `repeat(N, 1fr)` to `repeat(N, minmax(0, 1fr))`; plain `1fr` is
+`minmax(auto, 1fr)`, so a nowrap title or button label was widening its own column and pushing
+later columns off the page (seen on the profile's matches grid). `.selection-list > *,
+.card-big-list > *, .matches-list-grid > * { min-width: 0 }` and `.gc-title__text` gains
+`min-width: 0; overflow: hidden; text-overflow: ellipsis`.
+
 ### Story Catalog Card (v0.35.8)
 
 `StoryCard.jsx` was rewritten as a thin wrapper over the shared `Card` component
@@ -468,6 +476,29 @@ closes whichever preview is open. This replaced the previous 6-argument position
 gameplay card. It is unrelated to the same-named, differently-shaped `onPreview` still used by
 `start-book`/`start-match`/`MatchCard`/`MatchLogCard`/`GuestUserModal`.
 
+**v0.37.4 — reload waits for the board, not a fixed timer (bugfix).**
+`useGameplayResults.js` drops the fixed `LOADING_TIMEOUT_MS = 1000` timer. `reloadBoard()` now
+returns a promise that settles only once `onReload` (`GamePage`'s `reloadGameData`, which calls
+`/info`) has actually landed, guarded by a `reloadSeqRef` counter so an older, still in-flight
+reload can never clear the newer one's loading state. `handleEventExecuted`,
+`handleMovementDone`, `handleSlept`, `handleItemDropped`, `handleItemUsed` all return that
+promise; `handleSelectChoice` awaits it, so a choice stays in flight until the new board is on
+screen. `stopLoading()` still fires synchronously the moment the answer carries something to
+show (an effect/item card, a granted item, automatic events on arrival, coma/sadness, pending
+choices) — only when there is nothing to show does the `LoadingCard` now stay up (left page
+still shows the location loading) until the reloaded `/info` lands, instead of flashing the old
+board back for the wait. `applyEdgeState` now returns a boolean. Cards `MovementCard`,
+`ActionCard`, `GoToSleepCard`, `ItemCard` `await` their `onMoved`/`onDone`/`onSlept`/`onDropped`
+call inside the try block, so the "Executing" spinner now lasts until the new board is showing.
+
+**v0.37.4 — match history leaves gameplay.** The story card in `PlayerCards` goes back to a
+plain `entityType="story"` preview; the `onPreviewMatchLog` prop and the `'matchlog'` case are
+removed from `GameBook`, `PageRight`, `PageRightInfo`, and `PlayerCards`. The match's log is no
+longer reachable during play — it moved into the profile book, reached from a match's missions
+view; see [Step37 §12 react-game (v0.37.4)](./Step37_MissionSystem.md#12-frontends) for the new
+`MatchHistoryCard`/`useMatchMissions` path, and [Step28 §28.7](./Step28_MovementSystem.md) for
+`MatchLogCard` itself, unchanged.
+
 ---
 
 ## 9. Responsive Breakpoints
@@ -536,7 +567,7 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     > - **Button alignment**: `config-change-btn` and `config-coming-soon-btn` are `width: auto`, font-size reduced to `0.65rem`, footer aligned right (`align-items: flex-end`) so buttons sit in the bottom-right corner of cover cards.
     > - **Mobile top clipping fix**: `book-overlay` padding-top raised to `56px` on mobile so the first card in the vertical list is not hidden under the navbar.
 
-- **Document Version**: 0.37.3
+- **Document Version**: 0.37.4
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.35.5 | `GameBook.jsx` decomposed 1005 → ~170 lines: `features/game/` renamed `features/gameplay/`, split into `PageLeft`/`PageRight`/`PageRightMain`/`PageRightInfo` + `useMatchChrome`/`useBookView`/`useGameplayResults` hooks. Gameplay card `onPreview` moved from 6 positional args to one object; `GoToSleepCard` gains `autoPreview`, fixing a broken Italian shortcut | Aug 27, 2026 |
@@ -552,8 +583,9 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     | 0.35.8 | `StoryCard.jsx` rewritten as a thin wrapper over the shared `Card` (`variant="little"`); footer button now gated on `matchesStatus`. Two new opt-in flags, `RESUME_WITHOUT_MODAL` and `ADD_COMING_SOON_STORIES`. | August 30, 2026 |
     | 0.36.2 | `storyMatchBadge` treats GAMEOVER as completed too (`FINISHED_MATCH_STATUSES`); `StoryCard.jsx` shows Replay (`fa-rotate-right`) instead of Play on a finished story. | September 5, 2026 |
     | 0.37.3 | Status card's action row drops the registry shortcut (still reachable from (i)) and the `fa-bed` force-sleep action; `GoToSleepCard` shows only when energy-stuck. Remaining shortcuts (Info/Map/Missions/Backpack) are named, one per row on mobile. | September 10, 2026 |
+    | 0.37.4 | `useGameplayResults` reload now waits on the reloaded board instead of a fixed 1s timer, guarded by a reload sequence counter; card grid CSS fix so a long label can no longer widen a grid column and push later ones off the page; match-history door removed from gameplay (`PlayerCards`/`GameBook`/`PageRight`/`PageRightInfo`), moved to the profile book (see [Step37](./Step37_MissionSystem.md)). | September 11, 2026 |
 
-- **Last Updated**: September 10, 2026
+- **Last Updated**: September 11, 2026 (v0.37.4)
 - **Status**: Active development
 
 
