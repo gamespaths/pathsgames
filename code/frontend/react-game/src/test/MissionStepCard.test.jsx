@@ -26,13 +26,15 @@ describe('MissionStepCard (Step 37)', () => {
     expect(captured.bonusBadgeListLittleIntoImage).toBeUndefined()
   })
 
-  it('badges the status only once the mission is closed', () => {
+  it('wears no badge once the mission is closed — the lock carries the status', () => {
     render(<MissionStepCard mission={mission({ status: 'FAILED' })} />)
-    expect(captured.statistics.map(s => s.key)).toEqual(['missionStatus', 'missionSteps'])
+    // v0.37.4 — a closed mission hands Card no statistics at all: no progress, no status.
+    expect(captured.statistics).toBeUndefined()
+    expect(captured.lockInfo).toBe('game.missions.status.FAILED')
 
     render(<MissionStepCard mission={mission({ status: 'FAILED', steps: [] })} />)
-    expect(captured.statistics.map(s => s.value)).toEqual(['game.missions.status.FAILED'])
-    expect(captured.statistics[0].icon).toBe('fas fa-times-circle')
+    expect(captured.statistics).toBeUndefined()
+    expect(captured.lockedIcon).toBe('fas fa-times-circle')
 
     render(<MissionStepCard mission={mission({ status: 'AVAILABLE' })} />)
     expect(captured.statistics.map(s => s.key)).not.toContain('missionStatus')
@@ -48,8 +50,9 @@ describe('MissionStepCard (Step 37)', () => {
     const onPreview = vi.fn()
     render(<MissionStepCard mission={mission({ status: 'COMPLETED' })} onPreview={onPreview} />)
 
-    expect(captured.statistics.map(s => s.key)).toEqual(['missionStatus'])
-    expect(captured.statistics[0].value).toBe('game.missions.status.COMPLETED')
+    // v0.37.4 — the grid card badges nothing: the lock hint alone says Completed.
+    expect(captured.statistics).toBeUndefined()
+    expect(captured.lockInfo).toBe('game.missions.status.COMPLETED')
 
     captured.onPreview()
     // The reading page still carries both: there the count is history, not a repetition.
