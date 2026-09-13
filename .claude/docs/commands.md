@@ -106,3 +106,12 @@ pytest --cov=app --cov-report=term-missing
 ```bash
 code/script/dev/run_sonar_scanner_java.sh
 ```
+
+## Stress tests (k6) — `code/tests/stress/`
+
+```bash
+./run_stress.sh -l "1 10" -c          # VU levels in series, cleanup robottest* after each (needs docker or k6)
+./run_stress.sh -b http://localhost:8080 -a http://localhost:8044 -l "10 100"   # other backend URLs
+./cleanup.sh [-n] [-f]               # remove leftover robottest* data (dry run / admin-API sweep)
+./run_stress.sh -h                    # options; README.md in the folder for details
+```

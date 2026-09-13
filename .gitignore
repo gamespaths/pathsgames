@@ -145,3 +145,6 @@ code/frontend/python-flask-game/.venv
 code/frontend/python-flask-admin/.pytest_cache
 code/frontend/python-flask-game/.pytest_cache
 
+
+code/tests/stress/reports/*
+!code/tests/stress/reports/.gitkeep
