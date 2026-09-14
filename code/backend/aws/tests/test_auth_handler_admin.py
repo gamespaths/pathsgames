@@ -86,8 +86,10 @@ def test_delete_stale_guests_takes_their_matches_first():
     with patch('auth.handler.db_utils.get_item', return_value=ADMIN_USER), \
          patch('auth.handler.db_utils.scan_filter', return_value=stale), \
          patch('auth.handler.db_utils.scan_pk_prefix', return_value=matches), \
+         patch('auth.handler.db_utils.delete_all_by_pk',
+               side_effect=lambda pk: (deleted.append(pk), 1)[1]), \
          patch('auth.handler.db_utils.delete_item',
-               side_effect=lambda pk, sk=None: deleted.append(pk)):
+               side_effect=lambda pk, sk=None, consistent=True: deleted.append(pk)):
         result = _call(admin_event('DELETE', '/api/admin/guests/stale', qs={'olderThanDays': '1'}))
     body = _body(result)
     assert body == {'guests': 1, 'matches': 1, 'status': 'CLEANUP_COMPLETE'}

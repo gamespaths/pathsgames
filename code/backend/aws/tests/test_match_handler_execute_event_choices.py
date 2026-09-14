@@ -68,7 +68,7 @@ STORY = {
 }
 
 
-def _get_side(pk, sk='METADATA'):
+def _get_side(pk, sk='METADATA', consistent=True):
     if pk.startswith('USER#'):
         return USER
     if pk.startswith('MATCH#'):
@@ -78,12 +78,11 @@ def _get_side(pk, sk='METADATA'):
     return None
 
 
-def _get_side_open_cycle(pk, sk='METADATA'):
+def _get_side_open_cycle(pk, sk='METADATA', consistent=True):
     """The match already carries one EVENT_EXECUTED marker for event 30 — an open cycle."""
     if pk.startswith('MATCH#'):
-        return {**MATCH, 'eventLog': [
-            {'characterUuid': 'c1', 'idEvent': 30, 'clock': 1,
-             'message': 'EVENT_EXECUTED 30'}]}
+        return {**MATCH, 'executedEventIds': [30],
+                'eventMarkers': {'30': {'executed': 1, 'selected': 0}}}
     return _get_side(pk, sk)
 
 
@@ -108,7 +107,7 @@ def _jwt():
 def test_no_choice_event_answers_applied():
     with _jwt(), \
          patch('match.handler.db_utils.get_item', side_effect=_get_side), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)]), \
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)]), \
          patch('match.handler.db_utils.put_item'):
         result = _call(_event('evt-plain'))
     assert result['statusCode'] == 200
@@ -121,7 +120,7 @@ def test_no_choice_event_answers_applied():
 def test_first_open_pays_marks_and_presents():
     with _jwt(), \
          patch('match.handler.db_utils.get_item', side_effect=_get_side), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)]), \
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)]), \
          patch('match.handler.db_utils.put_item') as put_item:
         result = _call(_event('evt-choices'))
 
@@ -150,15 +149,18 @@ def test_first_open_pays_marks_and_presents():
     caller_item = next(i for i in put_calls if i.get('SK', '').startswith('CHARACTER#'))
     match_item = next(i for i in put_calls if i.get('SK') == 'METADATA')
     assert caller_item['energy'] == 9
-    markers = [e for e in match_item['eventLog']
+    from helpers import written_rows
+    markers = [e for e in written_rows().logs()
                if str(e.get('message', '')).startswith('EVENT_EXECUTED')]
     assert len(markers) == 1 and markers[0]['idEvent'] == 30
+    assert match_item['eventMarkers']['30'] == {'executed': 1, 'selected': 0}
+    assert match_item['logCount'] == 1
 
 
 def test_open_cycle_serves_again_without_charging_or_writing():
     with _jwt(), \
          patch('match.handler.db_utils.get_item', side_effect=_get_side_open_cycle), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)]), \
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)]), \
          patch('match.handler.db_utils.put_item') as put_item:
         result = _call(_event('evt-choices'))
 
@@ -172,18 +174,17 @@ def test_open_cycle_serves_again_without_charging_or_writing():
 
 
 def test_open_cycle_bypasses_the_verdict_for_a_spent_once():
-    def broke_open(pk, sk='METADATA'):
+    def broke_open(pk, sk='METADATA', consistent=True):
         if pk.startswith('MATCH#'):
-            return {**MATCH, 'eventLog': [
-                {'characterUuid': 'c1', 'idEvent': 31, 'clock': 1,
-                 'message': 'EVENT_EXECUTED 31'}]}
+            return {**MATCH, 'executedEventIds': [31],
+                    'eventMarkers': {'31': {'executed': 1, 'selected': 0}}}
         return _get_side(pk, sk)
 
     # Energy 0: the verdict would also reject NOT_ENOUGH_ENERGY — both bypassed.
     broke = {**CHARACTER, 'energy': 0}
     with _jwt(), \
          patch('match.handler.db_utils.get_item', side_effect=broke_open), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[broke]), \
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[broke]), \
          patch('match.handler.db_utils.put_item') as put_item:
         result = _call(_event('evt-choices-once'))
 
@@ -194,18 +195,15 @@ def test_open_cycle_bypasses_the_verdict_for_a_spent_once():
 
 
 def test_closed_cycle_of_a_once_event_is_spent():
-    def closed(pk, sk='METADATA'):
+    def closed(pk, sk='METADATA', consistent=True):
         if pk.startswith('MATCH#'):
-            return {**MATCH, 'eventLog': [
-                {'characterUuid': 'c1', 'idEvent': 31, 'clock': 1,
-                 'message': 'EVENT_EXECUTED 31'},
-                {'characterUuid': 'c1', 'idEvent': 31, 'clock': 1,
-                 'message': 'CHOICE_SELECTED 31'}]}
+            return {**MATCH, 'executedEventIds': [31],
+                    'eventMarkers': {'31': {'executed': 1, 'selected': 1}}}
         return _get_side(pk, sk)
 
     with _jwt(), \
          patch('match.handler.db_utils.get_item', side_effect=closed), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)]), \
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)]), \
          patch('match.handler.db_utils.put_item'):
         result = _call(_event('evt-choices-once'))
 
@@ -217,7 +215,7 @@ def test_first_open_of_an_unavailable_event_is_rejected():
     broke = {**CHARACTER, 'energy': 0}
     with _jwt(), \
          patch('match.handler.db_utils.get_item', side_effect=_get_side), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[broke]), \
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[broke]), \
          patch('match.handler.db_utils.put_item') as put_item:
         result = _call(_event('evt-choices'))
 

@@ -1,0 +1,52 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Admin cache API
+  description: |
+    v0.37.5 — the AWS backend keeps every STORY item in the memory of the Lambda container
+    that served it (`STORY_CACHE_TTL_SECONDS`, default 300). A story written through the
+    admin API is dropped everywhere at once through a version stamp on `SYSTEM#cache`;
+    this endpoint bumps the global stamp so every container refetches every story.
+
+    AWS-only for now: the Java and Python backends hold no story cache and do not expose
+    this route (404).
+  version: 0.37.5
+servers:
+  - url: /
+paths:
+  /api/admin/cache/flush:
+    post:
+      tags: [admin]
+      summary: Invalidate the story cache of every backend instance
+      operationId: flushCache
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The stamp was bumped; the next read of any story hits the database.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlushCacheResponse'
+        '401':
+          description: Missing or invalid access token.
+        '403':
+          description: ADMIN role required, or caller IP outside the admin allow-list.
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    FlushCacheResponse:
+      type: object
+      required: [status, globalVersion]
+      properties:
+        status:
+          type: string
+          enum: [FLUSHED]
+        globalVersion:
+          type: integer
+          format: int64
+          description: Epoch milliseconds of the new global stamp.
+          example: 1789390000000

@@ -9,7 +9,7 @@ jwt_utils and db_utils are patched; no AWS calls are made.
 import json
 from unittest.mock import patch
 
-from helpers import make_event
+from helpers import make_event, written_rows
 
 USER = {'PK': 'USER#u1', 'SK': 'METADATA', 'uuid': 'u1', 'username': 'guest', 'role': 'PLAYER'}
 
@@ -54,7 +54,7 @@ STORY = {
 }
 
 
-def _get_side(pk, sk='METADATA'):
+def _get_side(pk, sk='METADATA', consistent=True):
     if pk.startswith('USER#'):
         return USER
     if pk.startswith('MATCH#'):
@@ -75,7 +75,7 @@ def _call(method, path, body=None, qs=None):
 def _patched(fn):
     """The four patches every route test needs, in one decorator."""
     fn = patch('match.handler.db_utils.get_item', side_effect=_get_side)(fn)
-    fn = patch('match.handler.db_utils.query_by_pk',
+    fn = patch('match.handler.db_utils.query_sk_prefix',
                return_value=[json.loads(json.dumps(CHARACTER))])(fn)
     fn = patch('match.handler.db_utils.put_item')(fn)
     fn = patch('match.handler.jwt_utils.verify_access_token',
@@ -141,11 +141,11 @@ def test_inventory_hides_the_promise_of_a_secret_item(_put=None):
         {'uuid': 'row-9', 'idItem': 902, 'amount': 1, 'state': 'ACTIVE'},
     ])
 
-    def _side(pk, sk='METADATA'):
+    def _side(pk, sk='METADATA', consistent=True):
         return story if pk.startswith('STORY#') else _get_side(pk, sk)
 
     with patch('match.handler.db_utils.get_item', side_effect=_side), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[character]), \
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[character]), \
          patch('match.handler.db_utils.put_item'), \
          patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'}):
@@ -210,8 +210,10 @@ def test_use_item_spends_one_unit_and_logs_the_usage(_get, _query, _put, _jwt):
     # v0.35.1 — one unit by default, so the row of 2 survives with 1.
     row = next(r for r in char['items'] if r['uuid'] == 'row-1')
     assert row['amount'] == 1
-    assert match['itemUsageLog'][0]['idItem'] == 900
-    assert match['itemUsageLog'][0]['counter'] == 1
+    # v0.37.5 — the usage is its own LOG# row, counted on the match item.
+    usage = written_rows().logs()[0]
+    assert usage['type'] == 'ITEM_USE' and usage['idItem'] == 900 and usage['counter'] == 1
+    assert match['logCount'] == 1
 
 
 def test_inventory_reports_the_authored_quantities(_put=None):
@@ -223,11 +225,11 @@ def test_inventory_reports_the_authored_quantities(_put=None):
     character = dict(json.loads(json.dumps(CHARACTER)), items=[
         {'uuid': 'row-1', 'idItem': 900, 'amount': 1, 'state': 'ACTIVE'}])
 
-    def _side(pk, sk='METADATA'):
+    def _side(pk, sk='METADATA', consistent=True):
         return story if pk.startswith('STORY#') else _get_side(pk, sk)
 
     with patch('match.handler.db_utils.get_item', side_effect=_side), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[character]), \
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[character]), \
          patch('match.handler.db_utils.put_item'), \
          patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'}):
@@ -247,11 +249,11 @@ def test_use_item_refuses_when_there_are_not_enough_units(_put=None):
     character = dict(json.loads(json.dumps(CHARACTER)), items=[
         {'uuid': 'row-1', 'idItem': 900, 'amount': 2, 'state': 'ACTIVE'}])
 
-    def _side(pk, sk='METADATA'):
+    def _side(pk, sk='METADATA', consistent=True):
         return story if pk.startswith('STORY#') else _get_side(pk, sk)
 
     with patch('match.handler.db_utils.get_item', side_effect=_side), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[character]), \
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[character]), \
          patch('match.handler.db_utils.put_item') as put, \
          patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'}):
@@ -313,14 +315,13 @@ def test_drop_item_discards_a_non_consumable_too(_get, _query, _put, _jwt):
 def test_v0354_drop_item_writes_a_drop_row_on_the_match(_get, _query, _put, _jwt):
     _call('POST', '/api/gameplay/m1/inventory/drop-item', body={'itemInstanceUuid': 'row-1'})
 
-    written = [c.args[0] for c in _put.call_args_list]
-    logs = [w['itemUsageLog'] for w in written if 'itemUsageLog' in w]
+    logs = written_rows().logs()
     assert len(logs) == 1
-    assert logs[0][0]['action'] == 'DROP'
-    assert logs[0][0]['counter'] == 1
+    assert logs[0]['type'] == 'ITEM_DROP' and logs[0]['itemAction'] == 'DROP'
+    assert logs[0]['counter'] == 1
     # A drop moves no resource, and it is the player's own doing: no source event.
-    assert logs[0][0]['idEvent'] is None
-    assert logs[0][0]['energy'] == 0
+    assert logs[0]['idEvent'] is None
+    assert logs[0]['energyCost'] == 0 and logs[0]['energyGain'] == 0
 
 
 @_patched
@@ -335,7 +336,7 @@ def test_drop_item_requires_the_row_uuid(_get, _query, _put, _jwt):
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
 @patch('match.handler.db_utils.put_item')
-@patch('match.handler.db_utils.query_by_pk', return_value=[])
+@patch('match.handler.db_utils.query_sk_prefix', return_value=[])
 @patch('match.handler.db_utils.get_item', side_effect=_get_side)
 def test_a_caller_with_no_character_is_a_not_found(_get, _query, _put, _jwt):
     for method, path in [('GET', '/api/gameplay/m1/inventory'),
@@ -348,10 +349,10 @@ def test_a_caller_with_no_character_is_a_not_found(_get, _query, _put, _jwt):
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
 @patch('match.handler.db_utils.put_item')
-@patch('match.handler.db_utils.query_by_pk',
+@patch('match.handler.db_utils.query_sk_prefix',
        return_value=[json.loads(json.dumps(CHARACTER))])
 @patch('match.handler.db_utils.get_item',
-       side_effect=lambda pk, sk='METADATA': (
+       side_effect=lambda pk, sk='METADATA', consistent=True: (
            USER if pk.startswith('USER#')
            else {**MATCH, 'status': 'PAUSED'} if pk.startswith('MATCH#')
            else STORY))
@@ -366,7 +367,7 @@ def test_a_paused_match_refuses_both_actions(_get, _query, _put, _jwt):
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
 @patch('match.handler.db_utils.put_item')
-@patch('match.handler.db_utils.query_by_pk',
+@patch('match.handler.db_utils.query_sk_prefix',
        return_value=[{**json.loads(json.dumps(CHARACTER)),
                       'items': [{'uuid': 'row-9', 'idItem': 999, 'amount': 2,
                                  'state': 'ACTIVE'}]}])
@@ -423,7 +424,7 @@ def _info_env(char_items, requester='u1'):
              'storyUuid': story['uuid'], 'locations': [], 'registry': []}
     char = {**json.loads(json.dumps(CHARACTER)), 'items': char_items}
 
-    def get_side(pk, sk='METADATA'):
+    def get_side(pk, sk='METADATA', consistent=True):
         if pk.startswith('USER#'):
             return USER
         if pk.startswith('MATCH#'):
@@ -439,7 +440,7 @@ def _call_info(get_side, characters, path='/api/match/m1/info'):
     with patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'}), \
          patch('match.handler.db_utils.put_item'), \
-         patch('match.handler.db_utils.query_by_pk', return_value=characters), \
+         patch('match.handler.db_utils.query_sk_prefix', return_value=characters), \
          patch('match.handler.db_utils.get_item', side_effect=get_side):
         from match.handler import lambda_handler
         return lambda_handler(make_event('GET', path,

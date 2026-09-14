@@ -930,3 +930,44 @@ def test_list_traits_for_class_class_not_found(mock_get):
     result = lambda_handler(make_event('GET', '/api/stories/s23/classes/ghost/traits'), {})
     assert result['statusCode'] == 404
     assert json.loads(result['body'])['error'] == 'CLASS_NOT_FOUND'
+
+
+# ── v0.37.5 — POST /api/admin/cache/flush ─────────────────────────────────────
+
+def test_flush_cache_requires_admin():
+    from story.handler import lambda_handler
+    result = lambda_handler(make_event('POST', '/api/admin/cache/flush'), {})
+    assert result['statusCode'] == 401
+    with patch('story.handler.db_utils.get_item', return_value={**ADMIN_USER, 'role': 'PLAYER'}):
+        result = lambda_handler(admin_event('POST', '/api/admin/cache/flush'), {})
+    assert result['statusCode'] == 403
+
+
+def test_flush_cache_bumps_the_global_version_everywhere():
+    from story.handler import lambda_handler
+    with patch('story.handler.db_utils.get_item', return_value=ADMIN_USER), \
+         patch('story.handler.story_cache.flush', return_value=1234) as flush:
+        result = lambda_handler(admin_event('POST', '/api/admin/cache/flush'), {})
+    assert result['statusCode'] == 200
+    assert _body(result) == {'status': 'FLUSHED', 'globalVersion': 1234}
+    flush.assert_called_once()
+
+
+def test_public_story_reads_go_through_the_cache_and_writes_bump_it():
+    from story.handler import lambda_handler
+    story = {'PK': 'STORY#s9', 'SK': 'METADATA', 'uuid': 's9', 'visibility': 'PUBLIC',
+             'texts': {}, 'raw_cards': [], 'raw_texts': []}
+    with patch('story.handler.story_cache.load', return_value=story) as load, \
+         patch('story.handler.db_utils.get_item', return_value=None):
+        result = lambda_handler(make_event('GET', '/api/stories/s9',
+                                           path_params={'uuid': 's9'}), {})
+    assert result['statusCode'] == 200
+    load.assert_called_once_with('s9')
+
+    with patch('story.handler.db_utils.get_item', return_value=ADMIN_USER), \
+         patch('story.handler.db_utils.put_item'), \
+         patch('story.handler.story_cache.bump') as bump:
+        result = lambda_handler(admin_event('POST', '/api/admin/stories/import',
+                                            body={'uuid': 'imp-2', 'texts': []}), {})
+    assert result['statusCode'] in (200, 201), result
+    bump.assert_called_once_with('imp-2')

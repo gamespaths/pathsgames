@@ -6,6 +6,9 @@ Parameters:
     Type: String
   TableName:
     Type: String
+  StoryCacheTtlSeconds:
+    Type: String
+    Default: "300"
   ApiId:
     Type: String
   AllowMockAccess:
@@ -43,6 +46,7 @@ Resources:
           TABLE_NAME: !Ref TableName
           ENV: !Ref Environment
           ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
+          STORY_CACHE_TTL_SECONDS: !Ref StoryCacheTtlSeconds
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName

@@ -3,61 +3,78 @@
 GET /api/matches/{uuid}/logs        — owner-only consolidated timeline
 GET /api/admin/matches/{uuid}/logs  — same payload, no ownership check
 
-jwt_utils and db_utils are patched; no AWS calls are made.
+v0.37.5 — the timeline is read from the LOG# rows of the match partition (one item per
+entry, already normalised) and `total` is the counter the match item keeps. The tests
+drive the handler against the shared FakeTable; no AWS calls are made.
 """
 import json
 from unittest.mock import patch
 
-from helpers import make_event
+from helpers import make_event, FakeTable, patch_table
+from match import logbook
 
 USER = {'PK': 'USER#u1', 'SK': 'METADATA', 'uuid': 'u1', 'username': 'guest', 'role': 'PLAYER'}
 ADMIN_USER = {'PK': 'USER#admin-uuid-001', 'SK': 'METADATA', 'uuid': 'admin-uuid-001',
               'username': 'admin', 'role': 'ADMIN'}
 
-MATCH = {
-    'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'status': 'RUNNING',
-    'currentClock': 2, 'userCreatorUuid': 'u1',
-    'weatherLog': [{'clock': 1, 'idWeather': 3, 'timestampStart': 1000}],
-    'movementLog': [{'characterUuid': 'c1', 'idLocationFrom': 1, 'idLocationTo': 2,
-                     'energyCost': 4, 'timestampStart': 2000}],
-    'sleepLog': [{'characterUuid': 'c1', 'clock': 1, 'timestamp': 3000}],
-}
 
-CLOCK_ITEMS = [
-    {'PK': 'MATCH#m1', 'SK': 'METADATA'},              # the match item itself — skipped
-    {'PK': 'MATCH#m1', 'SK': 'CLOCK#2', 'clock': 2, 'timestampStart': 4000},
+def _match(**over):
+    item = {'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'status': 'RUNNING',
+            'currentClock': 2, 'userCreatorUuid': 'u1'}
+    item.update(over)
+    return item
+
+
+def _row(seq, entry_type, ts, **fields):
+    """One stored LOG# row, the shape logbook.persist writes."""
+    row = {'PK': 'MATCH#m1', 'SK': f'LOG#{ts:013d}#{seq:06d}', 'type': entry_type,
+           'clock': fields.pop('clock', None), 'timestamp': logbook.ms_to_iso(ts),
+           'timestampMs': ts}
+    row.update(fields)
+    return row
+
+
+BASE_ROWS = [
+    _row(1, 'WEATHER', 1000, clock=1, idWeather=3, weatherUuid='w-3'),
+    _row(2, 'MOVEMENT', 2000, characterUuid='c1', idLocationFrom=1, idLocationTo=2,
+         energyCost=4),
+    _row(3, 'SLEEP', 3000, clock=1, characterUuid='c1'),
+    _row(4, 'CLOCK_ADVANCE', 4000, clock=2),
 ]
+
+
+def _table(items=None, rows=BASE_ROWS, match=None):
+    match = match if match is not None else _match(logCount=len(rows), logSeq=len(rows))
+    return FakeTable([USER, ADMIN_USER, match] + list(rows) + list(items or []))
 
 
 def _body(result):
     return json.loads(result['body'])
 
 
-def _call(event):
+def _call(event, table, role='PLAYER', uuid='u1'):
     from match.handler import lambda_handler
-    return lambda_handler(event, {})
+    with patch('match.handler.jwt_utils.verify_access_token',
+               return_value={'uuid': uuid, 'source': 'mock', 'role': role}), \
+         patch('match.handler._check_admin_ip', return_value=None), \
+         patch_table(table):
+        return lambda_handler(event, {})
 
 
-def _get_side(match_item=MATCH, user=USER):
-    def _side(pk, sk='METADATA'):
-        if pk.startswith('USER#'):
-            return user
-        if pk.startswith('MATCH#'):
-            return match_item
-        return None
-    return _side
-
-
-def _player_event(uuid='m1'):
+def _player_event(uuid='m1', qs=None):
     return make_event('GET', f'/api/matches/{uuid}/logs',
                       headers={'Authorization': 'Bearer MOCK_ACCESS_u1'},
-                      path_params={'uuidMatch': uuid})
+                      path_params={'uuidMatch': uuid}, qs=qs)
 
 
-def _admin_event(uuid='m1'):
+def _admin_event(uuid='m1', qs=None):
     return make_event('GET', f'/api/admin/matches/{uuid}/logs',
                       headers={'Authorization': 'Bearer MOCK_ACCESS_admin'},
-                      path_params={'uuidMatch': uuid})
+                      path_params={'uuidMatch': uuid}, qs=qs)
+
+
+def _admin(event, table):
+    return _call(event, table, role='ADMIN', uuid='admin-uuid-001')
 
 
 # ── _ms_to_iso ──────────────────────────────────────────────────────────────
@@ -71,150 +88,105 @@ def test_ms_to_iso_converts_and_handles_none_and_garbage():
 
 # ── player endpoint ─────────────────────────────────────────────────────────
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=CLOCK_ITEMS)
-@patch('match.handler.db_utils.get_item')
-def test_get_match_logs_returns_full_timeline(mock_get, _q, _jwt):
-    mock_get.side_effect = _get_side()
-    result = _call(_player_event())
+def test_get_match_logs_returns_full_timeline():
+    result = _call(_player_event(), _table())
     assert result['statusCode'] == 200
     body = _body(result)
     assert body['matchUuid'] == 'm1'
     assert body['currentClock'] == 2
-    # Sorted by timestamp ascending across all four sources.
+    # Sort-key order = timestamp order, whatever the entry type.
     assert [e['type'] for e in body['logs']] == [
         'WEATHER', 'MOVEMENT', 'SLEEP', 'CLOCK_ADVANCE',
     ]
     weather, movement = body['logs'][0], body['logs'][1]
     assert weather['idWeather'] == 3
     assert movement['idLocationTo'] == 2 and movement['energyCost'] == 4
+    assert body['total'] == 4 and body['nextCursor'] is None
+    # Row bookkeeping never reaches the API.
+    for entry in body['logs']:
+        assert not {'PK', 'SK', 'timestampMs', 'weatherUuid', 'ts_insert'} & set(entry)
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=[])
-@patch('match.handler.db_utils.get_item')
-def test_get_match_logs_empty_match_returns_empty_list(mock_get, _q, _jwt):
-    mock_get.side_effect = _get_side(match_item={
-        'uuid': 'm1', 'userCreatorUuid': 'u1', 'currentClock': 0,
-    })
-    result = _call(_player_event())
+def test_get_match_logs_empty_match_returns_empty_list():
+    table = _table(rows=[], match=_match(currentClock=0))
+    result = _call(_player_event(), table)
     assert result['statusCode'] == 200
-    assert _body(result)['logs'] == []
+    body = _body(result)
+    assert body['logs'] == [] and body['total'] == 0 and body['nextCursor'] is None
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.get_item')
-def test_get_match_logs_unknown_match_returns_404(mock_get, _jwt):
-    mock_get.side_effect = _get_side(match_item=None)
-    result = _call(_player_event('nope'))
+def test_a_legacy_match_with_inline_lists_answers_an_empty_timeline():
+    """A match written before v0.37.5: its lists are ignored, never a crash."""
+    legacy = _match(weatherLog=[{'clock': 1}], eventLog=[{'message': 'EVENT_EXECUTED 1'}])
+    body = _body(_call(_player_event(), _table(rows=[], match=legacy)))
+    assert body['logs'] == [] and body['total'] == 0
+
+
+def test_get_match_logs_unknown_match_returns_404():
+    result = _call(_player_event('nope'), _table())
     assert result['statusCode'] == 404
     assert _body(result)['error'] == 'MATCH_NOT_FOUND'
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.get_item')
-def test_get_match_logs_of_another_user_returns_404(mock_get, _jwt):
-    mock_get.side_effect = _get_side(match_item={**MATCH, 'userCreatorUuid': 'someone-else'})
-    result = _call(_player_event())
+def test_get_match_logs_of_another_user_returns_404():
+    table = _table(match=_match(userCreatorUuid='someone-else'))
+    result = _call(_player_event(), table)
     assert result['statusCode'] == 404
     assert _body(result)['error'] == 'MATCH_NOT_FOUND'
 
 
-# ── v0.30.3: EVENT filtering + idEvent ───────────────────────────────────────
-
-EVENT_MATCH = {**MATCH, 'eventLog': [
-    {'characterUuid': 'c1', 'idEvent': 90010, 'clock': 3,
-     'timestamp': 5000, 'message': 'EVENT_EXECUTED 90010'},
-    # Step 30 edge-state audit rows share the same list — must not surface as EVENT.
-    {'characterUuid': 'c1', 'idEvent': None, 'clock': 3,
-     'timestamp': 5100, 'message': 'SADNESS_OVERFLOW c1'},
-    {'characterUuid': 'c1', 'idEvent': None, 'clock': 3,
-     'timestamp': 5200, 'message': 'COMA c1'},
-]}
-
-
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=[])
-@patch('match.handler.db_utils.get_item')
-def test_edge_state_rows_are_skipped_not_shown_as_event(mock_get, _q, _jwt):
-    mock_get.side_effect = _get_side(match_item=EVENT_MATCH)
-    body = _body(_call(_player_event()))
-    events = [e for e in body['logs'] if e['type'] == 'EVENT']
-    assert len(events) == 1
-    assert events[0]['idEvent'] == 90010
-    assert events[0]['message'] == 'EVENT_EXECUTED 90010'
+def test_audit_rows_never_reach_the_timeline():
+    """Step 30 edge-state rows are AUDIT# items: neither listed nor counted."""
+    rows = [_row(1, 'EVENT', 5000, clock=3, characterUuid='c1', idEvent=90010,
+                 message='EVENT_EXECUTED 90010')]
+    audits = [{'PK': 'MATCH#m1', 'SK': 'AUDIT#0000000005100#000002', 'kind': 'EDGE_STATE',
+               'message': 'SADNESS_OVERFLOW c1'},
+              {'PK': 'MATCH#m1', 'SK': 'AUDIT#0000000005200#000003', 'kind': 'EDGE_STATE',
+               'message': 'COMA c1'}]
+    table = _table(items=audits, rows=rows, match=_match(logCount=1, logSeq=3))
+    body = _body(_call(_player_event(), table))
+    assert [e['type'] for e in body['logs']] == ['EVENT']
+    assert body['logs'][0]['idEvent'] == 90010
+    assert body['total'] == 1
 
 
 def test_get_match_logs_without_token_returns_401():
-    result = _call(make_event('GET', '/api/matches/m1/logs',
-                              path_params={'uuidMatch': 'm1'}))
+    from match.handler import lambda_handler
+    event = make_event('GET', '/api/matches/m1/logs', path_params={'uuidMatch': 'm1'})
+    result = lambda_handler(event, {})
     assert result['statusCode'] == 401
 
 
 # ── admin endpoint ──────────────────────────────────────────────────────────
 
-@patch('match.handler._check_admin_ip', return_value=None)
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
-@patch('match.handler.db_utils.query_by_pk', return_value=CLOCK_ITEMS)
-@patch('match.handler.db_utils.get_item')
-def test_admin_logs_skips_the_ownership_check(mock_get, _q, _jwt, _ip):
-    # The match belongs to u1, the caller is the admin — still 200.
-    mock_get.side_effect = _get_side(user=ADMIN_USER)
-    result = _call(_admin_event())
+def test_admin_logs_skips_the_ownership_check():
+    table = _table(match=_match(userCreatorUuid='someone-else', logCount=4))
+    result = _admin(_admin_event(), table)
     assert result['statusCode'] == 200
-    assert _body(result)['matchUuid'] == 'm1'
+    assert len(_body(result)['logs']) == 4
 
 
-@patch('match.handler._check_admin_ip', return_value=None)
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
-@patch('match.handler.db_utils.get_item')
-def test_admin_logs_blank_uuid_returns_400(mock_get, _jwt, _ip):
-    mock_get.side_effect = _get_side(user=ADMIN_USER)
-    result = _call(make_event('GET', '/api/admin/matches/ /logs',
-                              headers={'Authorization': 'Bearer MOCK_ACCESS_admin'},
-                              path_params={'uuidMatch': ' '}))
+def test_admin_logs_blank_uuid_returns_400():
+    from match.handler import _get_admin_match_logs
+    result = _get_admin_match_logs('  ')
     assert result['statusCode'] == 400
     assert _body(result)['error'] == 'INVALID_INPUT'
 
 
-@patch('match.handler._check_admin_ip', return_value=None)
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
-@patch('match.handler.db_utils.get_item')
-def test_admin_logs_unknown_match_returns_404(mock_get, _jwt, _ip):
-    def _side(pk, sk='METADATA'):
-        return ADMIN_USER if pk.startswith('USER#') else None
-    mock_get.side_effect = _side
-    result = _call(_admin_event('nope'))
+def test_admin_logs_unknown_match_returns_404():
+    result = _admin(_admin_event('nope'), _table())
     assert result['statusCode'] == 404
     assert _body(result)['error'] == 'MATCH_NOT_FOUND'
 
 
 # ── v0.28.7: cursor pagination ──────────────────────────────────────────────
 
-def _clock_match(count):
-    """A match whose timeline is `count` CLOCK_ADVANCE entries."""
-    return {**MATCH, 'weatherLog': [], 'movementLog': [], 'sleepLog': []}
+def _clock_rows(count):
+    return [_row(i + 1, 'CLOCK_ADVANCE', 1000 * (i + 1), clock=i) for i in range(count)]
 
 
-def _clock_items(count):
-    return [{'PK': 'MATCH#m1', 'SK': f'CLOCK#{i}', 'clock': i,
-             'timestampStart': 1000 * (i + 1)} for i in range(count)]
-
-
-def test_cursor_helpers_round_trip():
-    from match.handler import _decode_logs_cursor, _encode_logs_cursor
-    assert _decode_logs_cursor(_encode_logs_cursor(42)) == 42
-    assert _decode_logs_cursor(None) == 0
-    assert _decode_logs_cursor('') == 0
-    assert _decode_logs_cursor('###') == 0
+def _clock_table(count):
+    return _table(rows=_clock_rows(count), match=_match(logCount=count, logSeq=count))
 
 
 def test_clamp_limit_bounds():
@@ -227,15 +199,8 @@ def test_clamp_limit_bounds():
     assert _clamp_logs_limit('10') == 10
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=_clock_items(5))
-@patch('match.handler.db_utils.get_item')
-def test_first_page_is_capped_and_exposes_next_cursor(mock_get, _q, _jwt):
-    mock_get.side_effect = _get_side(match_item=_clock_match(5))
-    ev = _player_event()
-    ev['queryStringParameters'] = {'limit': '2'}
-    body = _body(_call(ev))
+def test_first_page_is_capped_and_exposes_next_cursor():
+    body = _body(_call(_player_event(qs={'limit': '2'}), _clock_table(5)))
 
     assert len(body['logs']) == 2
     assert body['limit'] == 2
@@ -244,19 +209,14 @@ def test_first_page_is_capped_and_exposes_next_cursor(mock_get, _q, _jwt):
     assert [e['clock'] for e in body['logs']] == [0, 1]
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=_clock_items(5))
-@patch('match.handler.db_utils.get_item')
-def test_next_cursor_walks_to_the_end_then_goes_none(mock_get, _q, _jwt):
-    mock_get.side_effect = _get_side(match_item=_clock_match(5))
+def test_next_cursor_walks_to_the_end_then_goes_none():
+    table = _clock_table(5)
 
     def page(cursor=None):
-        ev = _player_event()
-        ev['queryStringParameters'] = {'limit': '2'}
+        qs = {'limit': '2'}
         if cursor:
-            ev['queryStringParameters']['cursor'] = cursor
-        return _body(_call(ev))
+            qs['cursor'] = cursor
+        return _body(_call(_player_event(qs=qs), table))
 
     p1 = page()
     p2 = page(p1['nextCursor'])
@@ -267,107 +227,73 @@ def test_next_cursor_walks_to_the_end_then_goes_none(mock_get, _q, _jwt):
     assert p3['nextCursor'] is None
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=_clock_items(2))
-@patch('match.handler.db_utils.get_item')
-def test_offset_past_the_end_returns_an_empty_page(mock_get, _q, _jwt):
-    from match.handler import _encode_logs_cursor
+def test_a_page_that_ends_exactly_on_the_last_row_has_no_cursor():
+    body = _body(_call(_player_event(qs={'limit': '2'}), _clock_table(2)))
+    assert [e['clock'] for e in body['logs']] == [0, 1]
+    assert body['nextCursor'] is None and body['total'] == 2
 
-    mock_get.side_effect = _get_side(match_item=_clock_match(2))
-    ev = _player_event()
-    ev['queryStringParameters'] = {'limit': '2', 'cursor': _encode_logs_cursor(99)}
-    body = _body(_call(ev))
 
-    assert body['logs'] == []
-    assert body['nextCursor'] is None
-    assert body['total'] == 2
+def test_a_garbage_or_foreign_cursor_restarts_from_the_first_page():
+    from common import db_utils
+    table = _clock_table(2)
+    foreign = db_utils.encode_cursor({'PK': 'MATCH#other', 'SK': 'LOG#0000000000001#000001'})
+    for cursor in ('###', foreign, db_utils.encode_cursor({'PK': 'MATCH#m1', 'SK': 'TURN#x'})):
+        body = _body(_call(_player_event(qs={'limit': '2', 'cursor': cursor}), table))
+        assert [e['clock'] for e in body['logs']] == [0, 1], cursor
+        assert body['nextCursor'] is None
+        assert body['total'] == 2
 
 
 # ── order=asc|desc ──────────────────────────────────────────────────────────
 
 def test_normalize_order_accepts_only_desc():
     from match.handler import _normalize_logs_order
-    assert _normalize_logs_order(None) == 'asc'
-    assert _normalize_logs_order('') == 'asc'
-    assert _normalize_logs_order('nonsense') == 'asc'
-    assert _normalize_logs_order('asc') == 'asc'
     assert _normalize_logs_order('desc') == 'desc'
-    assert _normalize_logs_order('  DESC ') == 'desc'
+    assert _normalize_logs_order(' DESC ') == 'desc'
+    assert _normalize_logs_order('asc') == 'asc'
+    assert _normalize_logs_order(None) == 'asc'
+    assert _normalize_logs_order('sideways') == 'asc'
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=_clock_items(5))
-@patch('match.handler.db_utils.get_item')
-def test_desc_starts_from_the_newest_entry(mock_get, _q, _jwt):
-    mock_get.side_effect = _get_side(match_item=_clock_match(5))
-    ev = _player_event()
-    ev['queryStringParameters'] = {'order': 'desc'}
-    body = _body(_call(ev))
-
+def test_desc_starts_from_the_newest_entry():
+    body = _body(_call(_player_event(qs={'order': 'desc', 'limit': '2'}), _clock_table(5)))
     assert body['order'] == 'desc'
-    assert [e['clock'] for e in body['logs']] == [4, 3, 2, 1, 0]
+    assert [e['clock'] for e in body['logs']] == [4, 3]
+    assert body['total'] == 5
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=_clock_items(5))
-@patch('match.handler.db_utils.get_item')
-def test_desc_cursor_walks_towards_the_older_entries(mock_get, _q, _jwt):
-    mock_get.side_effect = _get_side(match_item=_clock_match(5))
+def test_desc_cursor_walks_towards_the_older_entries():
+    table = _clock_table(5)
 
     def page(cursor=None):
-        ev = _player_event()
-        ev['queryStringParameters'] = {'limit': '2', 'order': 'desc'}
+        qs = {'order': 'desc', 'limit': '2'}
         if cursor:
-            ev['queryStringParameters']['cursor'] = cursor
-        return _body(_call(ev))
+            qs['cursor'] = cursor
+        return _body(_call(_player_event(qs=qs), table))
 
     p1 = page()
     p2 = page(p1['nextCursor'])
-    assert [e['clock'] for e in p1['logs']] == [4, 3]
+    p3 = page(p2['nextCursor'])
     assert [e['clock'] for e in p2['logs']] == [2, 1]
+    assert [e['clock'] for e in p3['logs']] == [0]
+    assert p3['nextCursor'] is None
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=CLOCK_ITEMS)
-@patch('match.handler.db_utils.get_item')
-def test_desc_reverses_entries_of_every_type(mock_get, _q, _jwt):
-    mock_get.side_effect = _get_side()
-    ev = _player_event()
-    ev['queryStringParameters'] = {'order': 'desc'}
-    body = _body(_call(ev))
+def test_desc_reverses_entries_of_every_type():
+    body = _body(_call(_player_event(qs={'order': 'desc'}), _table()))
     assert [e['type'] for e in body['logs']] == [
         'CLOCK_ADVANCE', 'SLEEP', 'MOVEMENT', 'WEATHER',
     ]
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=_clock_items(3))
-@patch('match.handler.db_utils.get_item')
-def test_unknown_order_falls_back_to_ascending(mock_get, _q, _jwt):
-    mock_get.side_effect = _get_side(match_item=_clock_match(3))
-    ev = _player_event()
-    ev['queryStringParameters'] = {'order': 'sideways'}
-    body = _body(_call(ev))
-
+def test_unknown_order_falls_back_to_ascending():
+    body = _body(_call(_player_event(qs={'order': 'sideways'}), _clock_table(3)))
     assert body['order'] == 'asc'
     assert [e['clock'] for e in body['logs']] == [0, 1, 2]
 
 
-@patch('match.handler._check_admin_ip', return_value=None)
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
-@patch('match.handler.db_utils.query_by_pk', return_value=_clock_items(3))
-@patch('match.handler.db_utils.get_item')
-def test_admin_endpoint_honours_the_order_too(mock_get, _q, _jwt, _ip):
-    mock_get.side_effect = _get_side(match_item=_clock_match(3), user=ADMIN_USER)
-    ev = _admin_event()
-    ev['queryStringParameters'] = {'order': 'desc'}
-    body = _body(_call(ev))
+def test_admin_endpoint_honours_the_order_too():
+    body = _body(_admin(_admin_event(qs={'order': 'desc'}), _clock_table(3)))
     assert [e['clock'] for e in body['logs']] == [2, 1, 0]
 
 
@@ -381,6 +307,7 @@ STORY = {
     'events': [{'id': 90010, 'idCard': 600}],
     'missions': [{'id': 1, 'uuid': 'm-1', 'idCard': 700}],
     'missionSteps': [{'id': 10, 'idMission': 1, 'step': 7, 'idCard': 701}],
+    'items': [{'id': 900, 'idCard': 800}],
     'raw_cards': [
         {'id': 300, 'uuid': 'card-300', 'idTextTitle': 1},
         {'id': 400, 'uuid': 'card-400', 'idTextTitle': 2},
@@ -388,6 +315,7 @@ STORY = {
         {'id': 600, 'uuid': 'card-600', 'idTextTitle': 4},
         {'id': 700, 'uuid': 'card-700', 'idTextTitle': 5},
         {'id': 701, 'uuid': 'card-701', 'idTextTitle': 6},
+        {'id': 800, 'uuid': 'card-800', 'idTextTitle': 7},
     ],
     'raw_texts': [
         {'idText': 1, 'lang': 'en', 'shortText': 'Thunderstorm'},
@@ -396,30 +324,21 @@ STORY = {
         {'idText': 4, 'lang': 'en', 'shortText': 'A Fork In The Road'},
         {'idText': 5, 'lang': 'en', 'shortText': 'The Journey'},
         {'idText': 6, 'lang': 'en', 'shortText': 'Reach the hills'},
+        {'idText': 7, 'lang': 'en', 'shortText': 'Old Lantern'},
     ],
 }
 
-ENRICH_MATCH = {**MATCH, 'storyUuid': 's1'}
 CHARACTER = {'PK': 'MATCH#m1', 'SK': 'CHARACTER#c1', 'uuid': 'c1',
              'characterTemplateUuid': 'tpl-9'}
 
 
-def _enrich_side(pk, sk='METADATA'):
-    if pk.startswith('USER#'):
-        return USER
-    if pk.startswith('STORY#'):
-        return STORY
-    if pk.startswith('MATCH#'):
-        return ENRICH_MATCH
-    return None
+def _enrich_table(rows=BASE_ROWS):
+    return _table(items=[STORY, CHARACTER], rows=rows,
+                  match=_match(storyUuid='s1', logCount=len(rows), logSeq=len(rows)))
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=[CHARACTER])
-@patch('match.handler.db_utils.get_item', side_effect=_enrich_side)
-def test_weather_and_movement_entries_carry_their_cards(_get, _q, _jwt):
-    body = _body(_call(_player_event()))
+def test_weather_and_movement_entries_carry_their_cards():
+    body = _body(_call(_player_event(), _enrich_table()))
 
     weather = next(e for e in body['logs'] if e['type'] == 'WEATHER')
     assert weather['idCard'] == 300
@@ -430,36 +349,17 @@ def test_weather_and_movement_entries_carry_their_cards(_get, _q, _jwt):
     assert movement['card']['title'] == 'Dark Forest'
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=[CHARACTER])
-@patch('match.handler.db_utils.get_item', side_effect=_enrich_side)
-def test_movement_entry_names_the_character_that_moved(_get, _q, _jwt):
-    body = _body(_call(_player_event()))
+def test_movement_entry_names_the_character_that_moved():
+    body = _body(_call(_player_event(), _enrich_table()))
     movement = next(e for e in body['logs'] if e['type'] == 'MOVEMENT')
     assert movement['characterUuid'] == 'c1'
     assert movement['characterName'] == 'Ranger'
 
 
-ENRICH_EVENT_MATCH = {**ENRICH_MATCH, 'eventLog': EVENT_MATCH['eventLog']}
-
-
-def _enrich_event_side(pk, sk='METADATA'):
-    if pk.startswith('USER#'):
-        return USER
-    if pk.startswith('STORY#'):
-        return STORY
-    if pk.startswith('MATCH#'):
-        return ENRICH_EVENT_MATCH
-    return None
-
-
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=[CHARACTER])
-@patch('match.handler.db_utils.get_item', side_effect=_enrich_event_side)
-def test_event_entry_carries_its_own_card_and_character(_get, _q, _jwt):
-    body = _body(_call(_player_event()))
+def test_event_entry_carries_its_own_card_and_character():
+    rows = [_row(1, 'EVENT', 5000, clock=3, characterUuid='c1', idEvent=90010,
+                 message='EVENT_EXECUTED 90010')]
+    body = _body(_call(_player_event(), _enrich_table(rows)))
     event = next(e for e in body['logs'] if e['type'] == 'EVENT')
     assert event['idEvent'] == 90010
     assert event['idCard'] == 600
@@ -468,14 +368,9 @@ def test_event_entry_carries_its_own_card_and_character(_get, _q, _jwt):
     assert event['characterName'] == 'Ranger'
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=CLOCK_ITEMS)
-@patch('match.handler.db_utils.get_item')
-def test_entries_without_a_card_resolve_to_null(mock_get, _q, _jwt):
-    # The default MATCH points at a story that get_item does not return.
-    mock_get.side_effect = _get_side()
-    body = _body(_call(_player_event()))
+def test_entries_without_a_card_resolve_to_null():
+    # The default match points at no story at all.
+    body = _body(_call(_player_event(), _table()))
     weather = next(e for e in body['logs'] if e['type'] == 'WEATHER')
     assert weather['idCard'] is None
     assert weather['card'] is None
@@ -483,95 +378,46 @@ def test_entries_without_a_card_resolve_to_null(mock_get, _q, _jwt):
 
 # ── v0.35.4: items and resource gains ───────────────────────────────────────
 
-_ITEM_MATCH = {
-    'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'status': 'RUNNING',
-    'currentClock': 2, 'userCreatorUuid': 'u1',
-    'itemUsageLog': [
-        {'characterUuid': 'c1', 'idItem': 900, 'action': 'ADD', 'counter': 1,
-         'idEvent': 42, 'clock': 1, 'timestamp': 1000,
-         'energy': 0, 'food': 0, 'magic': 0, 'coin': 0},
-        {'characterUuid': 'c1', 'idItem': 900, 'action': 'USE', 'counter': 2,
-         'idEvent': None, 'clock': 2, 'timestamp': 2000,
-         'energy': 9, 'food': 0, 'magic': -3, 'coin': 0},
-        {'characterUuid': 'c1', 'idItem': 901, 'action': 'remove', 'counter': 1,
-         'idEvent': 43, 'clock': 2, 'timestamp': 3000},
-    ],
-}
-
-
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=[])
-@patch('match.handler.db_utils.get_item')
-def test_v0354_item_rows_become_item_entries_on_the_timeline(mock_get, _q, _jwt):
-    mock_get.side_effect = _get_side(match_item=_ITEM_MATCH)
-
-    logs = _body(_call(_player_event()))['logs']
+def test_v0354_item_rows_are_item_entries_with_their_card():
+    rows = [
+        _row(1, 'ITEM_ADD', 1000, clock=1, characterUuid='c1', idItem=900, itemAction='ADD',
+             counter=1, idEvent=42),
+        _row(2, 'ITEM_USE', 2000, clock=2, characterUuid='c1', idItem=900, itemAction='USE',
+             counter=2, idEvent=None, energyGain=9, magicCost=3),
+        _row(3, 'ITEM_DROP', 3000, clock=2, characterUuid='c1', idItem=901,
+             itemAction='remove', counter=1, idEvent=43),
+    ]
+    logs = _body(_call(_player_event(), _enrich_table(rows)))['logs']
 
     # REMOVE and DROP share one type; the raw action survives for whoever needs it.
     assert [e['type'] for e in logs] == ['ITEM_ADD', 'ITEM_USE', 'ITEM_DROP']
     assert logs[0]['idItem'] == 900 and logs[0]['idEvent'] == 42
     assert logs[1]['counter'] == 2 and logs[1]['idEvent'] is None
     assert logs[2]['itemAction'] == 'remove'
-    # A signed delta splits: the restored energy is a gain, the drained magic a cost.
+    # The cost/gain halves were split when the row was written.
     assert logs[1]['energyGain'] == 9 and logs[1]['energyCost'] == 0
     assert logs[1]['magicCost'] == 3 and logs[1]['magicGain'] == 0
-    # Every item entry carries a card slot, resolved from the item when the story has one.
-    assert all('card' in e and 'idCard' in e for e in logs)
+    # An item entry is narrated by the item's own card.
+    assert logs[0]['idCard'] == 800 and logs[0]['card']['title'] == 'Old Lantern'
+    assert logs[2]['card'] is None
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=[])
-@patch('match.handler.db_utils.get_item')
-def test_v0354_a_row_with_no_action_reads_as_a_usage_and_an_unknown_one_is_dropped(
-        mock_get, _q, _jwt):
-    mock_get.side_effect = _get_side(match_item={
-        'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'status': 'RUNNING',
-        'currentClock': 2, 'userCreatorUuid': 'u1',
-        'itemUsageLog': [
-            {'characterUuid': 'c1', 'idItem': 900, 'counter': 1, 'clock': 1,
-             'timestamp': 1000},
-            {'characterUuid': 'c1', 'idItem': 901, 'action': 'TELEPORTED',
-             'counter': 1, 'clock': 1, 'timestamp': 2000},
-        ],
-    })
-
-    logs = _body(_call(_player_event()))['logs']
-    assert [e['type'] for e in logs] == ['ITEM_USE']
-
-
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=[])
-@patch('match.handler.db_utils.get_item')
-def test_v0354_an_event_row_reports_what_it_gave_beside_what_it_took(mock_get, _q, _jwt):
-    mock_get.side_effect = _get_side(match_item={
-        'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'status': 'RUNNING',
-        'currentClock': 2, 'userCreatorUuid': 'u1',
-        'eventLog': [{'characterUuid': 'c1', 'idEvent': 42, 'clock': 2, 'timestamp': 1000,
-                      'message': 'EVENT_EXECUTED 42',
-                      'energyCost': 5, 'coinCost': 7, 'foodGain': 2, 'coinGain': 30}],
-    })
-
-    entry = _body(_call(_player_event()))['logs'][0]
+def test_v0354_an_event_row_reports_what_it_gave_beside_what_it_took():
+    rows = [_row(1, 'EVENT', 1000, clock=2, characterUuid='c1', idEvent=42,
+                 message='EVENT_EXECUTED 42', energyCost=5, coinCost=7, foodGain=2,
+                 coinGain=30)]
+    entry = _body(_call(_player_event(), _table(rows=rows)))['logs'][0]
     assert (entry['energyCost'], entry['coinCost']) == (5, 7)
     assert (entry['foodGain'], entry['coinGain']) == (2, 30)
-    # A row written before v0.35.4 has no gain keys at all; 0 is the honest reading.
     assert (entry['energyGain'], entry['magicGain']) == (0, 0)
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=CLOCK_ITEMS)
-@patch('match.handler.db_utils.get_item')
-def test_v0354_every_entry_carries_the_eight_resource_fields_whatever_its_type(
-        mock_get, _q, _jwt):
-    """The Java reference has always answered this shape; this backend used to leave the
-    keys out of the types that move nothing, which made the contract type-dependent."""
-    mock_get.side_effect = _get_side()
-
-    logs = _body(_call(_player_event()))['logs']
+def test_v0354_every_entry_carries_the_eight_resource_fields_whatever_its_type():
+    """The Java reference has always answered this shape; a stored row missing a resource
+    key (none should) still reads as 0."""
+    rows = [dict(r) for r in BASE_ROWS]
+    rows[0].pop('energyCost', None)
+    logs = _body(_call(_player_event(), _table(rows=rows)))['logs']
 
     assert len(logs) > 1
     for entry in logs:
@@ -584,76 +430,35 @@ def test_v0354_every_entry_carries_the_eight_resource_fields_whatever_its_type(
 
 # ── v0.37.2 — a mission row is narrated by the mission's own card ─────────────
 
-def _mission_side(message):
-    """get_item for a match whose only log row is the given MISSION_CHANGE."""
-    match = {**ENRICH_MATCH, 'eventLog': [
-        {'message': message, 'clock': 4, 'timestamp': 1000,
-         'characterUuid': None, 'idEvent': None}]}
-
-    def side(pk, sk='METADATA'):
-        if pk.startswith('USER#'):
-            return USER
-        if pk.startswith('STORY#'):
-            return STORY
-        if pk.startswith('MATCH#'):
-            return match
-        return None
-    return side
+def _mission_entry(message):
+    rows = [_row(1, 'MISSION_CHANGE', 1000, clock=4, message=message, characterUuid=None,
+                 idEvent=None)]
+    return next(e for e in _body(_call(_player_event(), _enrich_table(rows)))['logs']
+                if e['type'] == 'MISSION_CHANGE')
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=[CHARACTER])
-@patch('match.handler.db_utils.get_item')
-def test_v0372_a_row_about_the_mission_itself_carries_the_missions_card(mock_get, _q, _jwt):
+def test_v0372_a_row_about_the_mission_itself_carries_the_missions_card():
     # No step named: the mission opening, or the row that says it is over.
-    mock_get.side_effect = _mission_side('MISSION_CHANGE m-1 none -> AVAILABLE')
-
-    entry = next(e for e in _body(_call(_player_event()))['logs']
-                 if e['type'] == 'MISSION_CHANGE')
-
+    entry = _mission_entry('MISSION_CHANGE m-1 none -> AVAILABLE')
     # The uuid in the message is the only handle the row has: no mission column exists.
     assert entry['idCard'] == 700
     assert entry['card']['title'] == 'The Journey'
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=[CHARACTER])
-@patch('match.handler.db_utils.get_item')
-def test_v0372_a_row_that_names_a_step_carries_the_steps_card(mock_get, _q, _jwt):
-    mock_get.side_effect = _mission_side('MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 7')
-
-    entry = next(e for e in _body(_call(_player_event()))['logs']
-                 if e['type'] == 'MISSION_CHANGE')
-
+def test_v0372_a_row_that_names_a_step_carries_the_steps_card():
+    entry = _mission_entry('MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 7')
     # An advance is the STEP's news; the mission's card is for its opening and its end.
     assert entry['idCard'] == 701
     assert entry['card']['title'] == 'Reach the hills'
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=[CHARACTER])
-@patch('match.handler.db_utils.get_item')
-def test_v0372_a_step_the_story_does_not_declare_leaves_the_row_without_a_card(mock_get, _q, _jwt):
-    mock_get.side_effect = _mission_side('MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 9')
-
-    entry = next(e for e in _body(_call(_player_event()))['logs']
-                 if e['type'] == 'MISSION_CHANGE')
-
+def test_v0372_a_step_the_story_does_not_declare_leaves_the_row_without_a_card():
+    entry = _mission_entry('MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 9')
     # It does NOT fall back to the mission's card: that would narrate an advance with the
     # wrong picture.
     assert entry['card'] is None
 
 
-@patch('match.handler.jwt_utils.verify_access_token',
-       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
-@patch('match.handler.db_utils.query_by_pk', return_value=[CHARACTER])
-@patch('match.handler.db_utils.get_item')
-def test_v0372_an_unknown_mission_and_a_shapeless_message_carry_no_card(mock_get, _q, _jwt):
+def test_v0372_an_unknown_mission_and_a_shapeless_message_carry_no_card():
     for message in ('MISSION_CHANGE m-9 none -> AVAILABLE', 'MISSION_CHANGE'):
-        mock_get.side_effect = _mission_side(message)
-        entry = next(e for e in _body(_call(_player_event()))['logs']
-                     if e['type'] == 'MISSION_CHANGE')
-        assert entry['card'] is None, message
+        assert _mission_entry(message)['card'] is None, message

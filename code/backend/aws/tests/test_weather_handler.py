@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from unittest.mock import patch
 
 from match import handler as h
-from helpers import make_event
+from helpers import make_event, FakeTable, patch_table
 
 
 def _body(result):
@@ -25,12 +25,12 @@ ADMIN = {
 }
 
 
-def _match(uuid='m1', status='RUNNING', clock=3, seed=42, weather=None, log=None):
+def _match(uuid='m1', status='RUNNING', clock=3, seed=42, weather=None):
     return {
         'PK': f'MATCH#{uuid}', 'SK': 'METADATA', 'uuid': uuid,
         'status': status, 'currentClock': clock, 'userCreatorUuid': 'player-uuid-001',
         'storyUuid': 's1', 'tsInsert': 1, 'rngSeed': seed,
-        'currentWeatherId': weather, 'weatherLog': log or [], 'registry': [],
+        'currentWeatherId': weather, 'registry': [],
     }
 
 
@@ -71,20 +71,6 @@ def _char(match_uuid, cid, uuid, energy=50, sleeping=0):
     }
 
 
-class FakeTable:
-    def __init__(self, items):
-        self.store = {(i['PK'], i.get('SK', 'METADATA')): dict(i) for i in items}
-
-    def get_item(self, pk, sk='METADATA'):
-        it = self.store.get((pk, sk))
-        return dict(it) if it else None
-
-    def put_item(self, item):
-        self.store[(item['PK'], item.get('SK', 'METADATA'))] = dict(item)
-
-    def query_by_pk(self, pk):
-        return [dict(v) for (p, _), v in self.store.items() if p == pk]
-
 
 @contextmanager
 def _env(items, user_uuid='player-uuid-001'):
@@ -93,9 +79,7 @@ def _env(items, user_uuid='player-uuid-001'):
                return_value={'uuid': user_uuid, 'source': 'mock', 'role':
                              'ADMIN' if 'admin' in user_uuid else 'PLAYER'}), \
          patch('match.handler._check_admin_ip', return_value=None), \
-         patch('match.handler.db_utils.get_item', side_effect=table.get_item), \
-         patch('match.handler.db_utils.put_item', side_effect=table.put_item), \
-         patch('match.handler.db_utils.query_by_pk', side_effect=table.query_by_pk):
+         patch_table(table):
         yield table
 
 
@@ -114,8 +98,9 @@ def test_sleep_selects_weather_deterministically():
     assert result['statusCode'] == 200
     match = table.get_item('MATCH#m1')
     assert match['currentWeatherId'] in (1, 2)
-    assert len(match['weatherLog']) == 1
-    assert match['weatherLog'][0]['clock'] == 4
+    weather_rows = [r for r in table.logs('m1') if r['type'] == 'WEATHER']
+    assert len(weather_rows) == 1
+    assert weather_rows[0]['clock'] == 4
 
 
 def test_weather_endpoint_returns_current_with_resolved_card():
@@ -141,9 +126,10 @@ def test_weather_endpoint_404_when_none():
 
 
 def test_admin_weather_endpoint_returns_seed_current_and_log():
-    log = [{'id': 1, 'clock': 0, 'idWeather': 2, 'weatherUuid': 'we-storm',
-            'timestampStart': 1}]
-    items = [ADMIN, _story(), _match(weather=2, log=log)]
+    # v0.37.5 — the history is read back from the WEATHER rows of the match partition.
+    log_row = {'PK': 'MATCH#m1', 'SK': 'LOG#0000000000001#000001', 'type': 'WEATHER',
+               'clock': 0, 'idWeather': 2, 'weatherUuid': 'we-storm', 'timestampMs': 1}
+    items = [ADMIN, _story(), _match(weather=2), log_row]
     with _env(items, user_uuid='admin-uuid-001'):
         result = h.lambda_handler(
             make_event('GET', '/api/admin/matches/m1/weather',

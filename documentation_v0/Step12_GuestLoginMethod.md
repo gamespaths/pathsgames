@@ -106,6 +106,11 @@ Resumes an existing guest session using the cookie token.
 }
 ```
 
+**AWS lookup (v0.37.5):** the cookie-token lookup in `lambda/auth/handler.py` now queries the
+new `GSI2Summary` index (`GSI2_PK=GUEST_TOKEN#<token>`) instead of `GSI1`, falling back to
+`GSI1` while the index migration/backfill is in progress. See
+[code/backend/aws/README.md](../code/backend/aws/README.md).
+
 
 ## JWT Token Structure
 
@@ -330,7 +335,7 @@ fetching every match to sift it client-side.
 
     > ciao, write me openapi file (into /mnt/Dati4/Workspace/pathsgames/code/backend/java/adapter-rest/src/main/resources/openapi folder) about API written into step 12 (on v0.12.x version), please don't change others files
 
-- **Document Version**: 0.36.2
+- **Document Version**: 0.37.5
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.12.0 | Step 12: Implement guest login method | March 27, 2026 |
@@ -341,7 +346,8 @@ fetching every match to sift it client-side.
     | 0.19.8 | React-game client-side guest flow: GuestUserProvider, resume-on-load, mock synthesis, GuestUserModal, Navbar modal trigger | May 19, 2026 |
     | 0.20.3 | GuestUserContext refactored to React-state-only identity (no frontend cookie); cookie-consent updated to in-project vanilla-cookieconsent v3.1.0 | May 28, 2026 |
     | 0.36.2 | Admin guest management: `GET /api/admin/guests` now paged (breaking change); new stale-purge preview/delete endpoints; `GuestsPage.jsx` cursor pagination fix. | September 5, 2026 |
-- **Last Updated**: September 5, 2026
+    | 0.37.5 | AWS-only: guest cookie-token resume now looks up `GSI2Summary` (`GUEST_TOKEN#<token>`) with a `GSI1` fallback during migration. No REST contract change. | September 14, 2026 |
+- **Last Updated**: September 14, 2026
 - **Status**: ✅ Complete
 
 

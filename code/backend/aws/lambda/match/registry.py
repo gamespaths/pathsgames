@@ -10,6 +10,8 @@ so the "store" is that list and every write is part of the item the caller alrea
 
 import uuid as _uuid
 
+from match import logbook as _logbook
+
 OP_EQ = "="
 OP_NE = "!="
 OP_GT = ">"
@@ -422,13 +424,8 @@ def _written(match, key, before, after, changes, detail, id_event, clock,
         changes.append({'key': key, 'oldValue': old, 'newValue': new})
     # One writer, one audit row: a registry change can neither be missed nor doubled.
     message = f'{MSG_REGISTRY_CHANGE} {detail}'
-    match.setdefault('eventLog', []).append({
-        'message': message,
-        'clock': clock,
-        'timestamp': timestamp,
-        'characterUuid': character_uuid,
-        'idEvent': id_event,
-    })
+    _logbook.append(match, 'REGISTRY_CHANGE', clock, timestamp_ms=timestamp,
+                    message=message, characterUuid=character_uuid, idEvent=id_event)
     if _MISSION_HOOK is not None:
         _MISSION_HOOK(match)
     return {'key': key, 'oldValue': old, 'newValue': new, 'values': after,

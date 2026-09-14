@@ -14,7 +14,7 @@ Everything here is a pure function over already-loaded dicts, so the handler sta
 router and the whole surface is unit-testable without DynamoDB.
 """
 
-import time
+from match import logbook as _logbook
 
 _RUNNING = "RUNNING"
 
@@ -25,10 +25,6 @@ ITEM_ACTION_USE = "USE"
 ITEM_ACTION_DROP = "DROP"
 ITEM_ACTION_REMOVE = "REMOVE"
 
-
-def _ts_ms():
-    """Epoch millis, the shape every other embedded log on the match item uses."""
-    return int(time.time() * 1000)
 
 #: The ONE genuine divergence between the item vocabulary the schema documents
 #: (LIFE, ENERGY, EXP, SADNESS, DEX, INT, COS, FOOD, MAGIC, COIN) and the token the engine
@@ -267,20 +263,34 @@ def log_item_action(match, char, id_item, action, clock, effects=None, counter=1
     {energy, food, magic, coin} the action produced.
     """
     d = delta or {}
-    match.setdefault("itemUsageLog", []).append({
-        "characterUuid": char.get("uuid"),
-        "idItem": _nz(id_item),
-        "action": action,
-        "idEvent": _nz(id_event) if id_event is not None else None,
-        # v0.35.1 — the units this action actually moved; hardcoded to 1 until then.
-        "counter": _nz(counter) or 1,
-        "clock": _nz(clock),
-        "energy": _nz(d.get("energy")),
-        "food": _nz(d.get("food")),
-        "magic": _nz(d.get("magic")),
-        "coin": _nz(d.get("coin")),
-        "effects": effects,
-        # A row written before v0.35.4 has none of the keys above: the timeline reads them
-        # defensively, exactly as it does the v0.35.3 costs.
-        "timestamp": _ts_ms(),
-    })
+    entry_type = log_type(action)
+    if entry_type is None:
+        return None
+    # A signed delta splits: the negative half is a cost, the positive half a gain,
+    # so one reader covers a move, an event and a potion.
+    resources = {}
+    for name in ("energy", "food", "magic", "coin"):
+        value = _nz(d.get(name))
+        resources[f"{name}Cost"] = max(0, -value)
+        resources[f"{name}Gain"] = max(0, value)
+    return _logbook.append(match, entry_type, _nz(clock), characterUuid=char.get("uuid"),
+                           idItem=_nz(id_item), itemAction=action,
+                           idEvent=_nz(id_event) if id_event is not None else None,
+                           # v0.35.1 — the units this action actually moved; 1 until then.
+                           counter=_nz(counter) or 1, **resources)
+
+
+_LOG_TYPES = {
+    ITEM_ACTION_ADD: "ITEM_ADD",
+    ITEM_ACTION_USE: "ITEM_USE",
+    ITEM_ACTION_DROP: "ITEM_DROP",
+    ITEM_ACTION_REMOVE: "ITEM_DROP",
+}
+
+
+def log_type(action):
+    """v0.35.4 — item action to timeline type; REMOVE (an effect) and DROP (the player)
+    leave the same bag, so they share one type. Unknown actions log nothing."""
+    if action is None:
+        return _LOG_TYPES[ITEM_ACTION_USE]
+    return _LOG_TYPES.get(str(action).strip().upper())

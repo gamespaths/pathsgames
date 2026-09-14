@@ -34,6 +34,8 @@ import time
 
 from common import db_utils
 from common import jwt_utils
+from common import story_cache
+from common import story_index
 from common.response import HEADERS
 from common.data_utils import (safe_int as _safe_int,
                                resolve_raw_text as _resolve_raw_text,
@@ -1525,7 +1527,8 @@ def _seed_stories():
             "GSI1_PK":                  "STORY_LIST",
             "GSI1_SK":                  f"STORY#{story_uuid}",
         }
-        db_utils.put_item(story_item)
+        db_utils.put_item(story_index.stamp(story_item))
+        story_cache.bump(story_uuid)
         seeded.append({"uuid": story_uuid, "title": s["texts"]["en"]["title"]})
     return seeded
 
@@ -1577,6 +1580,7 @@ def _handle_cleanup():
     deleted_stories = 0
     for s in SEED_STORIES:
         if db_utils.delete_all_by_pk(f"STORY#{s['uuid']}") > 0:
+            story_cache.bump(s['uuid'])
             deleted_stories += 1
 
     return {

@@ -18,7 +18,7 @@ def _body(result):
 
 
 def _admin_side(match_item=MATCH):
-    def _side(pk, sk='METADATA'):
+    def _side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#admin-uuid-001':
             return ADMIN_USER
         if pk.startswith('MATCH#'):
@@ -113,7 +113,7 @@ CHARACTER = {
 
 
 def _admin_side_with_char(match_item=MATCH, char_item=CHARACTER):
-    def _side(pk, sk='METADATA'):
+    def _side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#admin-uuid-001':
             return ADMIN_USER
         if pk.startswith('MATCH#') and sk == 'METADATA':
@@ -187,10 +187,10 @@ def test_change_statistics_caps_energy_at_max(mock_get, mock_put, _jwt):
 
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 def test_change_statistics_match_not_found(mock_get, mock_query_pk, _jwt):
-    def _side(pk, sk='METADATA'):
+    def _side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#admin-uuid-001':
             return ADMIN_USER
         return None  # no match, no character
@@ -209,10 +209,10 @@ def test_change_statistics_match_not_found(mock_get, mock_query_pk, _jwt):
 
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 def test_change_statistics_player_not_found(mock_get, mock_query_pk, _jwt):
-    def _side(pk, sk='METADATA'):
+    def _side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#admin-uuid-001':
             return ADMIN_USER
         if pk.startswith('MATCH#') and sk == 'METADATA':
@@ -324,7 +324,7 @@ REGISTRY_MATCH = dict(MATCH, storyUuid='s1', registry=[
 
 
 def _registry_side(match_item):
-    def _side(pk, sk='METADATA'):
+    def _side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#admin-uuid-001':
             return ADMIN_USER
         if pk.startswith('MATCH#'):

@@ -73,6 +73,11 @@ This step extends the existing hexagonal architecture from Step 14. No new modul
 
 ## API Endpoints
 
+**AWS cost note (v0.37.5):** story listing (this file's endpoints, `GET /api/stories`, and the
+admin story list) now reads a precomputed `summary` map via the new `GSI2Summary` index
+instead of the full story item's `raw_texts`/`raw_cards`. Full detail in
+[Step17_StoryAdminCRUD.md §6.9](./Step17_StoryAdminCRUD.md#69-aws-story-cache-and-post-apiadmincacheflush-v0375).
+
 ### New Endpoints (Step 15)
 
 #### GET `/api/stories/categories` — List Story Categories
@@ -446,7 +451,7 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.15.0-story-c
 - First version created with AI prompts:
     > Set Step/XX=15. write all java backend code into 'code/backend/java' project using JPA, never add new module, complete all unit-test using mokito to cover 100% of branches-case. write new md file inside documentation_v0 folder with all details, write a section with (endpoint apis, DTO, roles, tables, test cases and business logic). add (or update) openapi documentation into '/code/backend/java/adapter-rest/src/main/resources/openapi' folder with new/changed api. create a new simple web example to use new interfaces inside new code/website/concepts_v0/ folder. add new folder inside 'code/tests/robot/test' and write new robot-framework test. don't look and don't change 'backend/python',  'backend/aws' and others concepts folder into 'website'
 
-- **Document Version**: 0.19.5
+- **Document Version**: 0.37.5
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.15.0 | Story content APIs: categories, groups, enriched detail | April 16, 2026 |
@@ -454,7 +459,8 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.15.0-story-c
     | 0.19.3 | Add cardType field to CardInfoResponse (all backends + OpenAPI) | May 14, 2026 |
     | 0.19.4 | Characters and traits not permitted for class selection | May 18, 2026 |
     | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits`| May 19, 2026 |
-- **Last Updated**: May 19, 2026
+    | 0.37.5 | AWS-only, no code change here: story listing now backed by the `GSI2Summary` index and a precomputed `summary` map. See [Step17 §6.9](./Step17_StoryAdminCRUD.md#69-aws-story-cache-and-post-apiadmincacheflush-v0375). | September 14, 2026 |
+- **Last Updated**: September 14, 2026
 - **Status**: ✅ Complete
 
 

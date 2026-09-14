@@ -48,7 +48,7 @@ STORY = {
 }
 
 
-def _get_side(pk, sk='METADATA'):
+def _get_side(pk, sk='METADATA', consistent=True):
     if pk.startswith('USER#'):
         return USER
     if pk.startswith('MATCH#'):
@@ -74,7 +74,7 @@ def _call(event):
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
 @patch('match.handler.db_utils.put_item')
-@patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)])
+@patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)])
 @patch('match.handler.db_utils.get_item', side_effect=_get_side)
 def test_execute_event_resolves_the_card_of_the_event_and_of_every_effect(_g, _q, _p, _jwt):
     result = _call(_event())
@@ -96,7 +96,7 @@ def test_execute_event_resolves_the_card_of_the_event_and_of_every_effect(_g, _q
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
 @patch('match.handler.db_utils.put_item')
-@patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)])
+@patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)])
 @patch('match.handler.db_utils.get_item', side_effect=_get_side)
 def test_execute_event_cards_follow_the_lang_parameter(_g, _q, _p, _jwt):
     body = json.loads(_call(_event(lang='it'))['body'])
@@ -124,7 +124,7 @@ _GIVING_STORY = {
 
 
 def _giving_side(match_state):
-    def inner(pk, sk='METADATA'):
+    def inner(pk, sk='METADATA', consistent=True):
         if pk.startswith('USER#'):
             return USER
         if pk.startswith('MATCH#'):
@@ -138,13 +138,14 @@ def _giving_side(match_state):
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
 @patch('match.handler.db_utils.put_item')
-@patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)])
+@patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)])
 def test_v0354_the_event_row_carries_the_gains_beside_the_price(_q, _p, _jwt):
     match = {**MATCH, 'coin': 0}
     with patch('match.handler.db_utils.get_item', side_effect=_giving_side(match)):
         assert _call(_event())['statusCode'] == 200
 
-    row = match['eventLog'][-1]
+    from helpers import written_rows
+    row = [r for r in written_rows().logs() if r['type'] == 'EVENT'][-1]
     assert (row['energyCost'], row['coinCost']) == (1, 0)
     # Only the positive half: the drained magic is the effect's own business, not a gain.
     assert (row['coinGain'], row['foodGain']) == (30, 4)
@@ -159,7 +160,7 @@ REGISTRY_STORY = dict(STORY, eventEffects=[
 ])
 
 
-def _registry_side(pk, sk='METADATA'):
+def _registry_side(pk, sk='METADATA', consistent=True):
     if pk.startswith('USER#'):
         return USER
     if pk.startswith('MATCH#'):
@@ -172,7 +173,7 @@ def _registry_side(pk, sk='METADATA'):
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
 @patch('match.handler.db_utils.put_item')
-@patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)])
+@patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)])
 @patch('match.handler.db_utils.get_item', side_effect=_registry_side)
 def test_execute_event_writes_the_registry_key_its_effect_names(_g, _q, _p, _jwt):
     result = _call(_event())
@@ -185,7 +186,7 @@ def test_execute_event_writes_the_registry_key_its_effect_names(_g, _q, _p, _jwt
 # ── the chain the event's idEventNext opens ─────────────────────────────────
 
 def _chain_side(story):
-    def inner(pk, sk='METADATA'):
+    def inner(pk, sk='METADATA', consistent=True):
         if pk.startswith('USER#'):
             return USER
         if pk.startswith('MATCH#'):
@@ -207,7 +208,7 @@ HEAD = {'id': 10, 'uuid': 'evt-plain', 'idSpecificLocation': 1, 'type': 'NORMAL'
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
 @patch('match.handler.db_utils.put_item')
-@patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)])
+@patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)])
 @patch('match.handler.db_utils.get_item')
 def test_execute_event_follows_the_chain_to_its_end(mock_get, _q, _p, _jwt):
     mock_get.side_effect = _chain_side(_chain_story(
@@ -222,7 +223,7 @@ def test_execute_event_follows_the_chain_to_its_end(mock_get, _q, _p, _jwt):
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
 @patch('match.handler.db_utils.put_item')
-@patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)])
+@patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)])
 @patch('match.handler.db_utils.get_item')
 def test_execute_event_stops_on_a_dangling_next(mock_get, _q, _p, _jwt):
     mock_get.side_effect = _chain_side(_chain_story(dict(HEAD, idEventNext=99)))
@@ -233,7 +234,7 @@ def test_execute_event_stops_on_a_dangling_next(mock_get, _q, _p, _jwt):
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
 @patch('match.handler.db_utils.put_item')
-@patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)])
+@patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)])
 @patch('match.handler.db_utils.get_item')
 def test_execute_event_stops_on_an_authored_loop(mock_get, _q, _p, _jwt):
     mock_get.side_effect = _chain_side(_chain_story(
@@ -248,7 +249,7 @@ def test_execute_event_stops_on_an_authored_loop(mock_get, _q, _p, _jwt):
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
 @patch('match.handler.db_utils.put_item')
-@patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)])
+@patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)])
 @patch('match.handler.db_utils.get_item')
 def test_execute_event_does_not_replay_a_spent_once_event_mid_chain(mock_get, _q, _p, _jwt):
     story = _chain_story(
@@ -257,9 +258,10 @@ def test_execute_event_does_not_replay_a_spent_once_event_mid_chain(mock_get, _q
          'flagEndTime': 0},
     )
     from match.events import MSG_EVENT_EXECUTED
-    spent = dict(MATCH, eventLog=[{'idEvent': 11, 'message': f'{MSG_EVENT_EXECUTED} evt-once'}])
+    assert MSG_EVENT_EXECUTED  # the marker the executedEventIds list stands for
+    spent = dict(MATCH, executedEventIds=[11])
 
-    def side(pk, sk='METADATA'):
+    def side(pk, sk='METADATA', consistent=True):
         if pk.startswith('USER#'):
             return USER
         if pk.startswith('MATCH#'):
@@ -276,7 +278,7 @@ def test_execute_event_does_not_replay_a_spent_once_event_mid_chain(mock_get, _q
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
 @patch('match.handler.db_utils.put_item')
-@patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)])
+@patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)])
 @patch('match.handler.db_utils.get_item')
 def test_an_end_time_event_puts_everybody_to_sleep_and_advances_the_clock(mock_get, _q, _p, _jwt):
     mock_get.side_effect = _chain_side(_chain_story(dict(HEAD, flagEndTime=1)))

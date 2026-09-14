@@ -57,7 +57,7 @@ def _run(story):
     ``ConsistentRead`` buys, and what every other backend gets from its transaction."""
     match = copy.deepcopy(MATCH)
 
-    def _get(pk, sk='METADATA'):
+    def _get(pk, sk='METADATA', consistent=True):
         if pk.startswith('USER#'):
             return USER
         if pk.startswith('MATCH#'):
@@ -73,7 +73,7 @@ def _run(story):
                        path_params={'uuidMatch': 'm1'})
     live = [copy.deepcopy(CHARACTER)]
 
-    def _query(_pk):
+    def _query(_pk, _prefix='CHARACTER#', **_kw):
         return copy.deepcopy(live)
 
     def _put(item):
@@ -84,7 +84,7 @@ def _run(story):
     with patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'}), \
             patch('match.handler.db_utils.put_item', side_effect=_put), \
-            patch('match.handler.db_utils.query_by_pk', side_effect=_query), \
+            patch('match.handler.db_utils.query_sk_prefix', side_effect=_query), \
             patch('match.handler.db_utils.get_item', side_effect=_get):
         from match.handler import lambda_handler
         result = lambda_handler(event, {})
@@ -156,7 +156,7 @@ def test_reread_characters_keeps_the_rows_this_request_changed():
     from match import handler as h
 
     moved = {'uuid': 'c1', 'SK': 'CHARACTER#c1', 'idLocation': 2}
-    with patch('match.handler.db_utils.query_by_pk',
+    with patch('match.handler.db_utils.query_sk_prefix',
                return_value=[{'uuid': 'c1', 'SK': 'CHARACTER#c1', 'idLocation': 1},
                              {'uuid': 'c2', 'SK': 'CHARACTER#c2', 'idLocation': 5}]):
         rows = h._reread_characters('m1', {'c1': moved})
@@ -168,7 +168,7 @@ def test_reread_characters_keeps_the_rows_this_request_changed():
 def test_reread_characters_tolerates_an_empty_touched_set():
     from match import handler as h
 
-    with patch('match.handler.db_utils.query_by_pk',
+    with patch('match.handler.db_utils.query_sk_prefix',
                return_value=[{'uuid': 'c1', 'SK': 'CHARACTER#c1', 'idLocation': 1}]):
         assert [r['idLocation'] for r in h._reread_characters('m1', {})] == [1]
         assert [r['idLocation'] for r in h._reread_characters('m1', None)] == [1]

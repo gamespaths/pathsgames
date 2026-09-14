@@ -193,13 +193,11 @@ def test_location_wins_over_cost_and_energy_over_coins():
 # ── the consumed-ONCE set must ignore merely-referenced events ──────────────
 
 def test_consumed_set_only_counts_executed_rows():
-    match = {"eventLog": [
-        {"idEvent": 5, "message": "EVENT_EXECUTED 5"},
-        # Written by the recovery / weather engine for an event that never ran.
-        {"idEvent": 6, "message": "counter reached zero at location 3; pending event 6"},
-        {"idEvent": 7, "message": "Weather 2 triggered event 7"},
-    ]}
+    # v0.37.5 — the set is the executedEventIds list the logbook keeps on the match item;
+    # a merely referenced event (counter zero, weather) never lands there.
+    match = {"executedEventIds": [5, "5"]}
     assert events.consumed_event_ids(match) == {5}
+    assert events.consumed_event_ids({}) == set()
 
 
 # ── the check context ───────────────────────────────────────────────────────
@@ -344,10 +342,11 @@ def test_forced_movement_moves_the_character_and_logs_at_cost_zero():
 
     assert moved is True
     assert c["idLocation"] == 200 and c["locationUuid"] == "loc-target"
-    assert match["movementLog"] == [{
-        "characterUuid": "a", "idLocationFrom": LOC, "idLocationTo": 200,
-        "energyCost": 0, "timestampStart": 123,
-    }]
+    row = match["_pendingLogs"][0]
+    assert row["type"] == "MOVEMENT" and row["timestampMs"] == 123
+    assert (row["characterUuid"], row["idLocationFrom"], row["idLocationTo"]) == ("a", LOC, 200)
+    assert row["energyCost"] == 0
+    assert match["visitedLocationIds"] == [LOC, 200]
     assert changes == [{"characterUuid": "a", "fromLocationUuid": "loc-here",
                         "toLocationUuid": "loc-target"}]
 
@@ -358,7 +357,7 @@ def test_forced_movement_to_an_unknown_location_is_skipped():
     assert events.apply_location(match, c, {"idLocation": 555},
                                  _LOCATION_UUIDS, changes, 123) is False
     assert c["idLocation"] == LOC
-    assert "movementLog" not in match and changes == []
+    assert "_pendingLogs" not in match and changes == []
 
 
 def test_forced_movement_to_the_current_location_is_a_no_op():
@@ -366,7 +365,7 @@ def test_forced_movement_to_the_current_location_is_a_no_op():
     c = _char(uuid="a")
     assert events.apply_location(match, c, {"idLocation": LOC},
                                  _LOCATION_UUIDS, changes, 123) is False
-    assert "movementLog" not in match and changes == []
+    assert "_pendingLogs" not in match and changes == []
 
 
 def test_a_moved_character_resolves_all_at_the_new_location():

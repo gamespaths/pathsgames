@@ -179,7 +179,7 @@ def test_a_blank_key_is_skipped_not_an_error():
     assert r.upsert(match, None, 'v') is None
     assert r.upsert(match, '   ', 'v') is None
     assert match['registry'] == []
-    assert match.get('eventLog') is None
+    assert match.get('_pendingLogs') is None
 
 
 def test_upsert_overwrites_in_place_and_keeps_one_row():
@@ -203,8 +203,8 @@ def test_a_row_created_at_runtime_is_shaped_like_a_seeded_one():
 def test_every_write_leaves_exactly_one_audit_row():
     match = _match(_row('gate', 'SHUT'))
     r.upsert(match, 'gate', 'OPEN', clock=5, character_uuid='c-1')
-    assert len(match['eventLog']) == 1
-    logged = match['eventLog'][0]
+    assert len(match['_pendingLogs']) == 1
+    logged = match['_pendingLogs'][0]
     assert logged['message'].startswith(r.MSG_REGISTRY_CHANGE)
     assert 'gate' in logged['message'] and 'SHUT' in logged['message']
     assert logged['clock'] == 5 and logged['characterUuid'] == 'c-1'
@@ -229,7 +229,7 @@ def test_a_write_with_no_actor_stamps_a_null_character_instead_of_failing():
     row = r.find_rows(match, 'gate')[0]
     assert row['idCharacter'] is None
     assert row['stringValue'] == 'OPEN' and row['clock'] == 4
-    assert match['eventLog'][0]['characterUuid'] is None
+    assert match['_pendingLogs'][0]['characterUuid'] is None
 
 
 def test_the_event_chain_survives_a_null_caller_and_writes_the_key():
@@ -255,7 +255,7 @@ def test_the_event_chain_survives_a_null_caller_and_writes_the_key():
     row = r.find_rows(match, 'gate')[0]
     assert row['stringValue'] == 'OPEN'
     assert row['idCharacter'] is None and row['clock'] == 4
-    assert match['eventLog'][0]['characterUuid'] is None
+    assert match['_pendingLogs'][0]['characterUuid'] is None
 
 
 # ── Step 36.1 — multi-valued keys ───────────────────────────────────────────
@@ -270,7 +270,7 @@ def test_a_key_the_story_declares_multi_joins_instead_of_replacing():
     assert result['values'] == ['A']
     assert [row['multiValue'] for row in match['registry']] == [1]
     assert changes == [{'key': 'clues', 'oldValue': None, 'newValue': 'A'}]
-    assert match['eventLog'][0]['message'] == f'{r.MSG_REGISTRY_CHANGE} clues +A'
+    assert match['_pendingLogs'][0]['message'] == f'{r.MSG_REGISTRY_CHANGE} clues +A'
 
 
 def test_the_rows_decide_not_the_story():
@@ -290,7 +290,7 @@ def test_adding_a_member_the_set_already_holds_writes_nothing():
     assert r.upsert(match, 'clues', None, changes)['values'] == ['A']
 
     assert len(match['registry']) == 1
-    assert changes == [] and 'eventLog' not in match
+    assert changes == [] and '_pendingLogs' not in match
 
 
 def test_remove_on_a_blank_or_untouched_key_does_nothing():
@@ -308,7 +308,7 @@ def test_on_a_single_key_remove_is_still_compare_and_clear():
 
     assert match['registry'][0]['stringValue'] is None
     assert changes == [{'key': 'door', 'oldValue': 'OPEN', 'newValue': None}]
-    assert match['eventLog'][0]['message'] == f'{r.MSG_REGISTRY_CHANGE} door OPEN -> null'
+    assert match['_pendingLogs'][0]['message'] == f'{r.MSG_REGISTRY_CHANGE} door OPEN -> null'
 
 
 def test_a_single_key_the_story_moved_on_from_is_left_alone():
@@ -330,7 +330,7 @@ def test_on_a_multi_key_remove_takes_one_member_and_leaves_the_rest():
 
     assert [row['stringValue'] for row in match['registry']] == ['A']
     assert changes == [{'key': 'clues', 'oldValue': 'A,B', 'newValue': 'A'}]
-    assert match['eventLog'][0]['message'] == f'{r.MSG_REGISTRY_CHANGE} clues -B'
+    assert match['_pendingLogs'][0]['message'] == f'{r.MSG_REGISTRY_CHANGE} clues -B'
 
 
 def test_removing_a_member_the_set_never_held_changes_nothing():

@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from unittest.mock import patch
 
 from match import handler as h
-from helpers import make_event
+from helpers import make_event, FakeTable, patch_table
 
 
 def _body(result):
@@ -47,29 +47,13 @@ def _char(match_uuid, cid, uuid, owner='player-uuid-001', dex=3, life=10,
     }
 
 
-class FakeTable:
-    def __init__(self, items):
-        self.store = {(i['PK'], i.get('SK', 'METADATA')): dict(i) for i in items}
-
-    def get_item(self, pk, sk='METADATA'):
-        it = self.store.get((pk, sk))
-        return dict(it) if it else None
-
-    def put_item(self, item):
-        self.store[(item['PK'], item.get('SK', 'METADATA'))] = dict(item)
-
-    def query_by_pk(self, pk):
-        return [dict(v) for (p, _), v in self.store.items() if p == pk]
-
 
 @contextmanager
 def _env(items):
     table = FakeTable(items)
     with patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'player-uuid-001'}) as mock_jwt, \
-         patch('match.handler.db_utils.get_item', side_effect=table.get_item), \
-         patch('match.handler.db_utils.put_item', side_effect=table.put_item), \
-         patch('match.handler.db_utils.query_by_pk', side_effect=table.query_by_pk):
+         patch_table(table):
         yield table, mock_jwt
 
 
@@ -90,9 +74,10 @@ def test_sleep_triggers_time_end_and_advances_clock():
     assert body['timeEndTriggered'] is True
     assert body['currentClock'] == 4
     assert body['isSleeping'] is False  # woke up at time start
-    # clock-history item appended and queue rebuilt
+    # v0.37.5 — the clock history is a CLOCK_ADVANCE row; the queue is rebuilt
     rows = table.query_by_pk('MATCH#m1')
-    assert any(r.get('SK') == 'CLOCK#4' for r in rows)
+    assert any(r['type'] == 'CLOCK_ADVANCE' and r['clock'] == 4 for r in table.logs('m1'))
+    assert table.get_item('MATCH#m1')['logCount'] >= 2   # SLEEP + CLOCK_ADVANCE
     turns = [r for r in rows if str(r.get('SK', '')).startswith('TURN#')]
     assert len(turns) == 1
     assert turns[0]['status'] == 'ACTIVE'
@@ -108,8 +93,7 @@ def test_sleep_without_trigger_keeps_clock():
     assert body['timeEndTriggered'] is False
     assert body['currentClock'] == 3
     assert body['isSleeping'] is True
-    rows = table.query_by_pk('MATCH#m1')
-    assert not any(str(r.get('SK', '')).startswith('CLOCK#') for r in rows)
+    assert not any(r['type'] == 'CLOCK_ADVANCE' for r in table.logs('m1'))
 
 
 def test_sleep_on_non_running_returns_409():
@@ -318,9 +302,8 @@ def test_sleep_in_a_safe_location_wakes_from_coma():
     saved = table.get_item('MATCH#m1', 'CHARACTER#c1')
     assert saved['isComa'] == 0
     assert saved['life'] == 5
-    # The wake is audited on the match event log.
-    match = table.get_item('MATCH#m1')
-    messages = [r.get('message', '') for r in (match.get('eventLog') or [])]
+    # The wake is audited as an AUDIT# row of the match partition.
+    messages = [r.get('message', '') for r in table.audits('m1')]
     assert any(m.startswith(h._events.MSG_COMA_RECOVERED) for m in messages)
 
 
@@ -344,8 +327,7 @@ def test_sleep_in_an_unsafe_location_does_not_wake_from_coma():
 # life to zero left them standing. Java and Python had always evaluated both rules here.
 
 def _party_rows(table):
-    match = table.get_item('MATCH#m1')
-    return [r for r in (match.get('eventLog') or [])
+    return [r for r in table.audits('m1')
             if str(r.get('message') or '').startswith(h._events.MSG_ALL_PLAYER_COMA)]
 
 
@@ -366,8 +348,7 @@ def test_sadness_at_its_cap_discharges_at_the_time_start():
     # And the deltas the response reports are the ones actually written.
     assert body['recovery'][0]['lifeDelta'] == -4
     assert body['recovery'][0]['sadDelta'] == -100
-    messages = [r.get('message', '')
-                for r in (table.get_item('MATCH#m1').get('eventLog') or [])]
+    messages = [r.get('message', '') for r in table.audits('m1')]
     assert any(m.startswith(h._events.MSG_SADNESS_OVERFLOW) for m in messages)
 
 
@@ -398,8 +379,7 @@ def test_a_negative_class_life_bonus_can_open_a_coma_at_the_time_start():
     assert body['edgeState']['comaUuids'] == ['c1']
     # The pass that puts somebody down does not also wake them: the wake reads the flag as
     # it was BEFORE the pass, and before it this character was standing.
-    messages = [r.get('message', '')
-                for r in (table.get_item('MATCH#m1').get('eventLog') or [])]
+    messages = [r.get('message', '') for r in table.audits('m1')]
     assert not any(m.startswith(h._events.MSG_COMA_RECOVERED) for m in messages)
 
 

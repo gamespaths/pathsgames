@@ -183,7 +183,7 @@ def test_visited_locations_payload_covers_neighbor_edges(mock_get, mock_chars):
     mock_get.return_value = STORY
     mock_chars.return_value = [{'uuid': 'c1', 'idLocation': 1}]
     match = {'storyUuid': 's1', 'registry': [{'key': 'gate', 'stringValue': 'OPEN'}],
-             'movementLog': [{'idLocationFrom': 1, 'idLocationTo': 999}]}
+             'visitedLocationIds': [1, 999]}
     payload = h._visited_locations_payload(match, 'm1', 'en')
     # location 999 is unknown → skipped (the `loc is None: continue` branch)
     assert [loc['idLocation'] for loc in payload['locations']] == [1]
@@ -228,9 +228,7 @@ def test_visited_location_ids_unions_the_roster_and_the_movement_log():
 
     import match.handler as mh
 
-    match = {'movementLog': [{'idLocationFrom': 1, 'idLocationTo': 2},
-                             {'idLocationFrom': 2, 'idLocationTo': 3},
-                             {'idLocationFrom': None, 'idLocationTo': None}]}
+    match = {'visitedLocationIds': [1, 2, 3]}
     with _patch.object(mh, '_match_characters',
                        return_value=[{'idLocation': 2}, {'idLocation': None}, {'idLocation': 5}]):
         assert mh._visited_location_ids(match, 'm1') == [2, 5, 1, 3]

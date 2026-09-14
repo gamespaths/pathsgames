@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from match import handler as h
 from match import events as _events
-from helpers import make_event
+from helpers import make_event, FakeTable, patch_table
 
 MATCH_UUID, STORY_UUID = 'm1', 's1'
 LOC_A, LOC_B = 90001, 90002
@@ -37,7 +37,7 @@ def _match(clock=2, locations=None, status='RUNNING'):
             {'idLocation': LOC_B, 'uuid': 'sl-b', 'flagAlreadyActived': 0,
              'flagVisited': 0, 'clockCounter': 0},
         ],
-        'registry': [], 'eventLog': [], 'movementLog': [],
+        'registry': [],
     }
 
 
@@ -78,29 +78,13 @@ def _event(eid, uuid, **over):
     return base
 
 
-class FakeTable:
-    def __init__(self, items):
-        self.store = {(i['PK'], i.get('SK', 'METADATA')): dict(i) for i in items}
-
-    def get_item(self, pk, sk='METADATA'):
-        it = self.store.get((pk, sk))
-        return dict(it) if it else None
-
-    def put_item(self, item):
-        self.store[(item['PK'], item.get('SK', 'METADATA'))] = dict(item)
-
-    def query_by_pk(self, pk):
-        return [dict(v) for (p, _), v in self.store.items() if p == pk]
-
 
 @contextmanager
 def _env(items):
     table = FakeTable(items)
     with patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'player-uuid-001'}), \
-         patch('match.handler.db_utils.get_item', side_effect=table.get_item), \
-         patch('match.handler.db_utils.put_item', side_effect=table.put_item), \
-         patch('match.handler.db_utils.query_by_pk', side_effect=table.query_by_pk):
+         patch_table(table):
         yield table
 
 
@@ -224,11 +208,11 @@ def test_a_choice_owning_event_is_refused_and_logged():
         fired = _body(h.lambda_handler(_move_event(), None))['automaticEvents']
 
     assert fired == []
-    log = table.get_item(f'MATCH#{MATCH_UUID}')['eventLog']
+    log = table.logs(MATCH_UUID)
     # No EVENT_EXECUTED marker: writing one would open a cycle that no select-choice call
     # could ever close, and the match would carry it for ever.
-    assert not any(str(r['message']).startswith(_events.MSG_EVENT_EXECUTED) for r in log)
-    assert any('may not own choices' in str(r['message']) for r in log)
+    assert not any(str(r.get('message')).startswith(_events.MSG_EVENT_EXECUTED) for r in log)
+    assert any('may not own choices' in str(r.get('message')) for r in log)
 
 
 def test_nobody_pays_for_an_automatic_event():
@@ -249,9 +233,9 @@ def test_the_audit_row_carries_the_trigger_the_location_and_the_clock():
     with _env([PLAYER, story, _match(clock=5), _char()]) as table:
         h.lambda_handler(_move_event(), None)
 
-    row = next(r for r in table.get_item(f'MATCH#{MATCH_UUID}')['eventLog']
-               if str(r['message']).startswith(_events.MSG_AUTOMATIC_EVENT))
-    assert row['idLocation'] == LOC_B
+    row = next(r for r in table.logs(MATCH_UUID)
+               if str(r.get('message')).startswith(_events.MSG_AUTOMATIC_EVENT))
+    assert row['type'] == 'AUTOMATIC_EVENT' and row['idLocationTo'] == LOC_B
     assert row['idEvent'] == 40
     assert row['clock'] == 5
     assert _events.TRIGGER_FIRST_ENTRY in row['message']
@@ -276,9 +260,8 @@ def test_a_counter_reaching_zero_runs_its_event_and_reports_it_on_the_sleep():
     # Standing there is FULL, so the place may be named.
     assert body['counterZero'][0]['visibility'] == _events.VISIBILITY_FULL
 
-    stored = table.get_item(f'MATCH#{MATCH_UUID}')
     # Step 33 — the row the AWS backend never used to write at all.
-    assert any(str(r['message']).startswith('counter') for r in stored['eventLog'])
+    assert any(r['type'] == 'COUNTER_ZERO' for r in table.logs(MATCH_UUID))
 
 
 def test_a_full_counter_zero_tells_the_event_its_effects_and_the_place():
@@ -367,9 +350,7 @@ def test_the_starting_location_is_seeded_as_already_visited():
     story = _story()
     items = [PLAYER, story]
     table = FakeTable(items)
-    with patch('match.handler.db_utils.get_item', side_effect=table.get_item), \
-         patch('match.handler.db_utils.put_item', side_effect=table.put_item), \
-         patch('match.handler.db_utils.query_by_pk', side_effect=table.query_by_pk):
+    with patch_table(table):
         states = []
         for loc in story['locations']:
             loc_id = int(loc.get('id', 0))
@@ -469,7 +450,7 @@ def test_v0356_one_arrival_answers_the_collapse_once_even_with_two_triggers():
         body = _body(h.lambda_handler(_move_event(), None))
 
     assert body['edgeState']['comaEventUuid'] == 'evt-coma'
-    final = table.get_item(f'MATCH#{MATCH_UUID}')
-    party = [r for r in final.get('eventLog') or []
+    # v0.37.5 — edge-state rows are AUDIT# items: never on the timeline, never in total.
+    party = [r for r in table.audits(MATCH_UUID)
              if str(r.get('message') or '').startswith(_events.MSG_ALL_PLAYER_COMA)]
     assert len(party) == 1

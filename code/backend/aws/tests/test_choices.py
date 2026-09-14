@@ -64,14 +64,9 @@ def test_conditions_by_choice_groups_and_orders():
 
 
 def test_count_log_markers():
-    match = {"eventLog": [
-        {"idEvent": 30, "message": "EVENT_EXECUTED 30"},
-        {"idEvent": 30, "message": "EVENT_EXECUTED 30"},
-        {"idEvent": 30, "message": "CHOICE_SELECTED 30"},
-        {"idEvent": 31, "message": "EVENT_EXECUTED 31"},
-        {"idEvent": 30, "message": "WEATHER something"},
-        {"idEvent": None, "message": "EVENT_EXECUTED ?"},
-    ]}
+    # v0.37.5 — the markers are counters on the match item, fed by the logbook.
+    match = {"eventMarkers": {"30": {"executed": 2, "selected": 1},
+                              "31": {"executed": 1, "selected": 0}}}
     assert ch.count_log_markers(match, 30, "EVENT_EXECUTED") == 2
     assert ch.count_log_markers(match, 30, ch.MSG_CHOICE_SELECTED) == 1
     assert ch.count_log_markers(match, 32, "EVENT_EXECUTED") == 0

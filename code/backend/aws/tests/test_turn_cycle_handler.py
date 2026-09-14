@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 
 from match import handler as h
-from helpers import make_event
+from helpers import make_event, FakeTable, patch_table
 
 
 def _body(result):
@@ -43,29 +43,13 @@ def _char(match_uuid, cid, uuid, owner='player-uuid-001', dex=3, life=10):
     }
 
 
-class FakeTable:
-    def __init__(self, items):
-        self.store = {(i['PK'], i.get('SK', 'METADATA')): dict(i) for i in items}
-
-    def get_item(self, pk, sk='METADATA'):
-        it = self.store.get((pk, sk))
-        return dict(it) if it else None
-
-    def put_item(self, item):
-        self.store[(item['PK'], item.get('SK', 'METADATA'))] = dict(item)
-
-    def query_by_pk(self, pk):
-        return [dict(v) for (p, _), v in self.store.items() if p == pk]
-
 
 @contextmanager
 def _env(items):
     table = FakeTable(items)
     with patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'player-uuid-001'}) as mock_jwt, \
-         patch('match.handler.db_utils.get_item', side_effect=table.get_item), \
-         patch('match.handler.db_utils.put_item', side_effect=table.put_item), \
-         patch('match.handler.db_utils.query_by_pk', side_effect=table.query_by_pk):
+         patch_table(table):
         yield table, mock_jwt
 
 

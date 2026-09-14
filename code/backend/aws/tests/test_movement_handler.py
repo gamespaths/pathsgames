@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from unittest.mock import patch
 
 from match import handler as h
-from helpers import make_event
+from helpers import make_event, FakeTable, patch_table
 
 
 def _body(result):
@@ -72,29 +72,13 @@ def _char(match_uuid, cid, uuid, owner='player-uuid-001', energy=50, location=1,
     }
 
 
-class FakeTable:
-    def __init__(self, items):
-        self.store = {(i['PK'], i.get('SK', 'METADATA')): dict(i) for i in items}
-
-    def get_item(self, pk, sk='METADATA'):
-        it = self.store.get((pk, sk))
-        return dict(it) if it else None
-
-    def put_item(self, item):
-        self.store[(item['PK'], item.get('SK', 'METADATA'))] = dict(item)
-
-    def query_by_pk(self, pk):
-        return [dict(v) for (p, _), v in self.store.items() if p == pk]
-
 
 @contextmanager
 def _env(items):
     table = FakeTable(items)
     with patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'player-uuid-001'}), \
-         patch('match.handler.db_utils.get_item', side_effect=table.get_item), \
-         patch('match.handler.db_utils.put_item', side_effect=table.put_item), \
-         patch('match.handler.db_utils.query_by_pk', side_effect=table.query_by_pk):
+         patch_table(table):
         yield table
 
 
@@ -266,9 +250,9 @@ def test_locations_lists_visited_with_total_cost():
 
 
 def _match_visited_2():
-    # A match whose movement log records a move 1→2, so location 2 counts as visited.
+    # A match whose visited list (fed by every MOVEMENT row) holds 1→2, so 2 counts as visited.
     m = _match()
-    m['movementLog'] = [{'idLocationFrom': 1, 'idLocationTo': 2}]
+    m['visitedLocationIds'] = [1, 2]
     return m
 
 

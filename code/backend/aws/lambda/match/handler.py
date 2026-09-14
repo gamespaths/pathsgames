@@ -38,6 +38,8 @@ import urllib.error
 
 from common import db_utils
 from common import jwt_utils
+from common import story_cache
+from match import logbook as _logbook
 from common.response import dumps as _dumps, ok as _ok, HEADERS
 from common.http_utils import (normalize_path as _normalize_path,
                                get_source_ip as _get_source_ip,
@@ -130,7 +132,7 @@ def _resolve_user(event):
         return None, _err(401, 'INVALID_TOKEN', 'Access token is invalid, expired, or malformed')
 
     user_uuid = claims['uuid']
-    user = db_utils.get_item(f'USER#{user_uuid}')
+    user = db_utils.get_item(f'USER#{user_uuid}', consistent=False)
     if user is None:
         if claims.get('source') == 'jwt':
             return ({
@@ -145,7 +147,7 @@ def _resolve_user(event):
 
 def _is_maintenance():
     """Maintenance flag is read from the system-config singleton."""
-    cfg = db_utils.get_item('SYSTEM#config') or {}
+    cfg = db_utils.get_item('SYSTEM#config', consistent=False) or {}
     return str(cfg.get('serverStatus', 'OK')).upper() == _MAINTENANCE_VALUE
 
 
@@ -233,14 +235,10 @@ def _detail_from_item(item, players=None, lang='en', all_locations=False,
     # _visited_locations_payload; hides the neighbor location-card fallback for
     # never-visited destinations.
     visited_loc_ids = set(active_loc_ids)
-    for m in (item.get('movementLog') or []):
-        if m.get('idLocationFrom') is not None:
-            visited_loc_ids.add(m.get('idLocationFrom'))
-        if m.get('idLocationTo') is not None:
-            visited_loc_ids.add(m.get('idLocationTo'))
+    visited_loc_ids.update(_logbook.visited_location_ids(item))
 
     # The STORY item carries the enriched locations/neighbors/events (with cards).
-    story = db_utils.get_item(f'STORY#{item.get("storyUuid")}') or {}
+    story = _load_story(item.get("storyUuid")) or {}
 
     # Current location reflects where the player actually is; fall back to the
     # value stored on the match (the story start location set at creation).
@@ -640,8 +638,7 @@ def _character_full(item, story=None, raw_cards=None, raw_texts=None, lang="en")
 
 def _match_characters(match_uuid):
     """Return the CHARACTER# items stored under the match partition."""
-    items = db_utils.query_by_pk(f'MATCH#{match_uuid}') or []
-    return [i for i in items if str(i.get('SK', '')).startswith('CHARACTER#')]
+    return db_utils.query_sk_prefix(f'MATCH#{match_uuid}', 'CHARACTER#') or []
 
 
 def _reread_characters(match_uuid, touched):
@@ -786,7 +783,7 @@ def _create_match(user, body):
     if user.get('state') in _BANNED_STATES:
         return _err(403, 'USER_BANNED', 'User is not allowed to create matches')
 
-    story = db_utils.get_item(f'STORY#{story_uuid}')
+    story = _load_story(story_uuid)
     if story is None:
         return _err(404, 'STORY_NOT_FOUND', f'Story not found: {story_uuid}')
 
@@ -869,9 +866,12 @@ def _create_match(user, body):
         "currentClock": 0,
         "rngSeed": rng_seed,
         "currentWeatherId": None,
-        "weatherLog": [],
-        "movementLog": [],
-        "sleepLog": [],
+        # v0.37.5 — logs live in LOG# rows; METADATA keeps only what the engine derives.
+        "logCount": 0,
+        "logSeq": 0,
+        "executedEventIds": [],
+        "eventMarkers": {},
+        "visitedLocationIds": [int(start_id)] if start_id is not None else [],
         "expCost": int(matched_diff.get('expCost') or 5),
         "userCreatorUuid": user['uuid'],
         "tsInsert": now_ms,
@@ -888,7 +888,7 @@ def _create_match(user, body):
         "GSI2_PK": 'MATCH',
         "GSI2_SK": f'{now_ms:020d}#{match_uuid}',
     }
-    db_utils.put_item(item)
+    _logbook.persist(item)
     return _ok(_summary_from_item(item), status=201)
 
 
@@ -958,7 +958,7 @@ def _list_all_matches(event):
         'storyUuid': (params.get('storyUuid') or '').strip() or None,
     }
     items, last_key = db_utils.query_index_page(
-        'GSI2', 'GSI2_PK', 'MATCH', sk_name='GSI2_SK', sk_from=sk_from,
+        'GSI2Summary', 'GSI2_PK', 'MATCH', sk_name='GSI2_SK', sk_from=sk_from,
         eq_filters=eq_filters, limit=limit, start_key=start_key, ascending=False,
     )
     return _ok({
@@ -1027,7 +1027,7 @@ def _end_match(user, match_uuid, event_uuid):
     if item is None or item.get('userCreatorUuid') != user.get('uuid'):
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
 
-    story = db_utils.get_item(f'STORY#{item.get("storyUuid")}')
+    story = _load_story(item.get("storyUuid"))
     if story is None:
         return _err(406, 'EVENT_NOT_END_GAME',
                     'The supplied event is not the end-game event for this match')
@@ -1047,7 +1047,7 @@ def _end_match(user, match_uuid, event_uuid):
     # Step 37 — a mission that opened and never closed has now failed; one never reached is
     # simply ignored, as it was never the player's business.
     _missions.on_story_end(item, story)
-    db_utils.put_item(item)
+    _logbook.persist(item)
     return _ok({'status': 'ENDED', 'uuid': match_uuid})
 
 
@@ -1093,7 +1093,7 @@ def _join_match(user, match_uuid, body):
     if any(c.get('userUuid') == user['uuid'] for c in existing):
         return _err(409, 'ALREADY_JOINED', 'User already has a character in this match')
 
-    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}')
+    story = _load_story(match.get("storyUuid"))
     if story is None:
         return _err(404, 'MATCH_NOT_FOUND', 'Match story not found')
 
@@ -1196,12 +1196,16 @@ def _list_players(user, match_uuid):
     ])
 
 
+def _load_story(story_uuid):
+    """v0.37.5 — the STORY item, through the per-container cache (None when missing)."""
+    if not story_uuid:
+        return None
+    return story_cache.load(story_uuid)
+
+
 def _story_of(match):
     """The STORY item behind a match; an empty dict when it cannot be resolved."""
-    story_uuid = (match or {}).get('storyUuid')
-    if not story_uuid:
-        return {}
-    return db_utils.get_item(f'STORY#{story_uuid}') or {}
+    return _load_story((match or {}).get('storyUuid')) or {}
 
 
 # Step 37 — how far a mission cascade may run. A completion event writes the registry, which
@@ -1336,7 +1340,7 @@ def _change_statistics(match_uuid, player_uuid, body):
     if updates:
         updated = dict(item)
         updated.update(updates)
-        db_utils.put_item(updated)
+        _logbook.persist(updated)
 
     return _ok({'status': 'UPDATED', 'matchUuid': match_uuid, 'playerUuid': player_uuid})
 
@@ -1366,13 +1370,13 @@ def _upsert_admin_registry(match_uuid, body):
     match = db_utils.get_item(f'MATCH#{match_uuid}')
     if match is None:
         return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
-    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    story = _load_story(match.get("storyUuid")) or {}
     if not _registry.is_declared(story, key):
         return _err(400, 'UNKNOWN_KEY',
                     f'The story does not declare a registry key named: {key}')
     _registry.upsert(match, key, (body or {}).get('value'), None,
                      clock=_nz(match.get('currentClock')), timestamp=_ts_ms(), story=story)
-    db_utils.put_item(match)
+    _logbook.persist(match)
     return _ok({'key': key, 'values': _registry.find(match, key)})
 
 
@@ -1390,7 +1394,7 @@ def _delete_admin_registry(match_uuid, key, value):
     members = [value] if value is not None else _registry.find(match, key)
     for member in members:
         _registry.remove(match, key, member, None, clock=clock, timestamp=stamp)
-    db_utils.put_item(match)
+    _logbook.persist(match)
     return _ok({'key': key, 'values': _registry.find(match, key)})
 
 
@@ -1413,7 +1417,7 @@ def _update_match(match_uuid, status, name):
         item['status'] = status
     if name is not None:
         item['name'] = name
-    db_utils.put_item(item)
+    _logbook.persist(item)
     return _ok({'status': 'UPDATED', 'uuid': match_uuid})
 
 
@@ -1425,7 +1429,8 @@ def _delete_match(match_uuid):
     if str(item.get('status')) not in TERMINAL_STATUSES:
         return _err(409, 'MATCH_NOT_STOPPED',
                     'Only stopped matches (ENDED or GAMEOVER) can be deleted')
-    db_utils.delete_item(item['PK'], item.get('SK', 'METADATA'))
+    # v0.37.5 — the whole partition goes (CHARACTER#, TURN#, LOG#), not just METADATA.
+    db_utils.delete_all_by_pk(item['PK'])
     return _ok({'status': 'DELETED', 'uuid': match_uuid})
 
 
@@ -1445,8 +1450,7 @@ def _turn_priority(dexterity, intelligence, constitution, life, id_character):
 
 def _turn_items(match_uuid):
     """Return the TURN# queue items stored under the match partition."""
-    items = db_utils.query_by_pk(f'MATCH#{match_uuid}') or []
-    return [i for i in items if str(i.get('SK', '')).startswith('TURN#')]
+    return db_utils.query_sk_prefix(f'MATCH#{match_uuid}', 'TURN#') or []
 
 
 def _turn_entry(item):
@@ -1524,14 +1528,14 @@ def _start_match(user, match_uuid):
     match['activeCharacterUuid'] = top['characterUuid']
 
     # Step 27: select the initial weather for clock 0 when the match starts.
-    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    story = _load_story(match.get("storyUuid")) or {}
     _apply_weather_at_time_start(match, match_uuid, story)
 
     # v0.37.1: the party never ARRIVES in the starting location, so no arrival ever writes its
     # first-entry key. The match starting is that moment, and the active character owns the row.
     _write_start_location_registry(match, story, characters, top)
 
-    db_utils.put_item(match)
+    _logbook.persist(match)
 
     return _ok(_sequence_response(match, rows))
 
@@ -1603,7 +1607,7 @@ def _pass_turn(user, match_uuid):
     db_utils.put_item(nxt)
 
     match['activeCharacterUuid'] = nxt.get('characterUuid')
-    db_utils.put_item(match)
+    _logbook.persist(match)
 
     return _ok({
         "matchUuid": match.get('uuid'),
@@ -1781,14 +1785,9 @@ def _apply_time_start_recovery(match, match_uuid, story):
             message = f'counter reached zero at location {id_location}'
             if id_event is not None:
                 message += f'; pending event {_nz(id_event)}'
-            match.setdefault('eventLog', []).append({
-                "characterUuid": None,
-                "idEvent": _nz(id_event) if id_event is not None else None,
-                "idLocation": id_location,
-                "clock": clock,
-                "timestamp": _ts_ms(),
-                "message": message,
-            })
+            _logbook.append(match, 'COUNTER_ZERO', clock, characterUuid=None,
+                            idEvent=_nz(id_event) if id_event is not None else None,
+                            idLocationTo=id_location, message=message)
             _add_pending_automatic(pending, _events.TRIGGER_COUNTER_ZERO, id_location,
                                    id_event, _nominal_actor(characters, id_location), loc)
 
@@ -1943,12 +1942,8 @@ def _apply_weather_at_time_start(match, match_uuid, story):
     chosen = _weather_weighted_pick(eligible, seed)
 
     match['currentWeatherId'] = chosen.get('id')
-    log = match.get('weatherLog')
-    if not isinstance(log, list):
-        log = []
-    log.append({"id": len(log) + 1, "clock": clock, "idWeather": chosen.get('id'),
-                "weatherUuid": chosen.get('uuid'), "timestampStart": _ts_ms()})
-    match['weatherLog'] = log
+    _logbook.append(match, 'WEATHER', clock, idWeather=chosen.get('id'),
+                    weatherUuid=chosen.get('uuid'))
 
     delta = _nz(chosen.get('deltaEnergy'))
     if delta != 0:
@@ -2002,7 +1997,7 @@ def _get_weather(match_uuid, lang='en'):
     match = db_utils.get_item(f'MATCH#{match_uuid}')
     if match is None:
         return _err(404, 'WEATHER_NOT_FOUND', 'No weather is currently set for this match')
-    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    story = _load_story(match.get("storyUuid")) or {}
     payload = _current_weather_payload(match, story, lang)
     if payload is None:
         return _err(404, 'WEATHER_NOT_FOUND', 'No weather is currently set for this match')
@@ -2010,20 +2005,12 @@ def _get_weather(match_uuid, lang='en'):
 
 
 def _ms_to_iso(ts_ms):
-    """Convert millisecond timestamp to ISO string; return None if ts_ms is None."""
-    if ts_ms is None:
-        return None
-    try:
-        import datetime
-        moment = datetime.datetime.fromtimestamp(int(ts_ms) / 1000, datetime.timezone.utc)
-        return moment.strftime('%Y-%m-%dT%H:%M:%S.') + f'{int(ts_ms) % 1000:03d}Z'
-    except Exception:
-        return str(ts_ms)
+    """Millisecond timestamp to ISO string (shared with the log rows)."""
+    return _logbook.ms_to_iso(ts_ms)
 
 
 LOGS_DEFAULT_LIMIT = 50
 LOGS_MAX_LIMIT = 200
-_CURSOR_PREFIX = 'offset:'
 LOGS_ORDER_ASC = 'asc'
 LOGS_ORDER_DESC = 'desc'
 
@@ -2045,185 +2032,9 @@ def _clamp_logs_limit(limit):
         return LOGS_DEFAULT_LIMIT
 
 
-def _encode_logs_cursor(offset):
-    """Encodes the offset of the next page into an opaque url-safe token."""
-    import base64
-    raw = f'{_CURSOR_PREFIX}{offset}'.encode('utf-8')
-    return base64.urlsafe_b64encode(raw).decode('ascii').rstrip('=')
-
-
-def _decode_logs_cursor(cursor):
-    """Decodes an opaque cursor into an offset. Unreadable cursors restart from 0."""
-    import base64
-    if not cursor or not str(cursor).strip():
-        return 0
-    try:
-        padded = cursor + '=' * (-len(cursor) % 4)
-        raw = base64.urlsafe_b64decode(padded.encode('ascii')).decode('utf-8')
-        if not raw.startswith(_CURSOR_PREFIX):
-            return 0
-        return max(0, int(raw[len(_CURSOR_PREFIX):]))
-    except (ValueError, TypeError):
-        return 0
-
-
-_ITEM_LOG_TYPES = {
-    _inventory.ITEM_ACTION_ADD: "ITEM_ADD",
-    _inventory.ITEM_ACTION_USE: "ITEM_USE",
-    _inventory.ITEM_ACTION_DROP: "ITEM_DROP",
-    _inventory.ITEM_ACTION_REMOVE: "ITEM_DROP",
-}
-
-
 def _item_log_type(action):
-    """v0.35.4 — itemUsageLog action to timeline type.
-
-    REMOVE is an effect taking the item away and DROP is the player putting it down: the
-    bag ends up the same, so they share one type. An unknown action is dropped, like an
-    unknown log message.
-    """
-    if action is None:
-        return _ITEM_LOG_TYPES[_inventory.ITEM_ACTION_USE]
-    return _ITEM_LOG_TYPES.get(str(action).strip().upper())
-
-
-def _assemble_match_logs(match, match_uuid):
-    """The whole timeline, sorted by timestamp ascending, with no enrichment yet."""
-    entries = []
-
-    # WEATHER from weatherLog
-    for w in (match.get('weatherLog') or []):
-        entries.append({
-            "type": "WEATHER",
-            "clock": w.get('clock'),
-            "timestamp": _ms_to_iso(w.get('timestampStart')),
-            "idWeather": w.get('idWeather'),
-        })
-
-    # MOVEMENT from movementLog
-    for m in (match.get('movementLog') or []):
-        entries.append({
-            "type": "MOVEMENT",
-            "clock": None,
-            "timestamp": _ms_to_iso(m.get('timestampStart')),
-            "characterUuid": m.get('characterUuid'),
-            "idLocationFrom": m.get('idLocationFrom'),
-            "idLocationTo": m.get('idLocationTo'),
-            "energyCost": m.get('energyCost'),
-            # v0.35.3 — a row written before today has no cost keys: default to 0 rather
-            # than letting a pre-existing match break the timeline.
-            "foodCost": _nz(m.get('foodCost')),
-            "magicCost": _nz(m.get('magicCost')),
-            "coinCost": _nz(m.get('coinCost')),
-        })
-
-    # Step 29 — EVENT from eventLog (an event the player triggered).
-    #
-    # v0.30.3 — eventLog is a shared list: Step 30 also appends SADNESS_OVERFLOW/COMA
-    # audit rows to it. Only messages the Java/Python backends recognise as an executed
-    # event reach the timeline here too, so all three backends agree on what an EVENT
-    # entry is — anything else is dropped, not shown as garbage.
-    for e in (match.get('eventLog') or []):
-        message = e.get('message')
-        if not message:
-            continue
-        if message.startswith(_events.MSG_EVENT_EXECUTED):
-            entry_type = "EVENT"
-        elif message.startswith('counter'):
-            # Step 33 — a counter running out and a character healing are unrelated
-            # events, so COUNTER_ZERO is its own type. The location rides in
-            # idLocationTo so it enriches like a MOVEMENT does. Until v0.33.0 this
-            # backend wrote no row at all when a counter ran out.
-            entry_type = "COUNTER_ZERO"
-        elif message.startswith(_events.MSG_AUTOMATIC_EVENT):
-            entry_type = "AUTOMATIC_EVENT"
-        elif message.startswith(_registry.MSG_REGISTRY_CHANGE):
-            # Step 36 — a registry key was written by an event, a choice or the engine.
-            entry_type = "REGISTRY_CHANGE"
-        elif message.startswith(_missions.MSG_MISSION_CHANGE):
-            # v0.37.2 — a mission opened, advanced, completed or failed.
-            entry_type = "MISSION_CHANGE"
-        else:
-            continue
-        entries.append({
-            "type": entry_type,
-            "clock": e.get('clock'),
-            "timestamp": _ms_to_iso(e.get('timestamp')),
-            "characterUuid": e.get('characterUuid'),
-            "idLocationTo": e.get('idLocation'),
-            "message": message,
-            "idEvent": e.get('idEvent'),
-            # v0.35.3 — the price paid to open this event; a row written before today has
-            # no cost keys, and 0 is the honest reading of "nothing was recorded".
-            "energyCost": _nz(e.get('energyCost')),
-            "foodCost": _nz(e.get('foodCost')),
-            "magicCost": _nz(e.get('magicCost')),
-            "coinCost": _nz(e.get('coinCost')),
-            # v0.35.4 — and what the event gave back, read the same defensive way.
-            "energyGain": _nz(e.get('energyGain')),
-            "foodGain": _nz(e.get('foodGain')),
-            "magicGain": _nz(e.get('magicGain')),
-            "coinGain": _nz(e.get('coinGain')),
-        })
-
-    # v0.35.4 — ITEM_ADD / ITEM_USE / ITEM_DROP from itemUsageLog. Unlike eventLog this
-    # list needs no message parsing: the action key says what happened, and an unknown one
-    # is dropped the same way. A row written before v0.35.4 has no action at all — back
-    # then the list only held usages, so that is how it reads.
-    for i in (match.get('itemUsageLog') or []):
-        entry_type = _item_log_type(i.get('action'))
-        if entry_type is None:
-            continue
-        entry = {
-            "type": entry_type,
-            "clock": i.get('clock'),
-            "timestamp": _ms_to_iso(i.get('timestamp')),
-            "characterUuid": i.get('characterUuid'),
-            "idItem": i.get('idItem'),
-            "itemAction": i.get('action'),
-            "counter": i.get('counter'),
-            "idEvent": i.get('idEvent'),
-        }
-        # A signed delta splits: the negative half is a cost, the positive half a gain,
-        # so one reader covers a move, an event and a potion.
-        for name in ('energy', 'food', 'magic', 'coin'):
-            value = _nz(i.get(name))
-            entry[f'{name}Cost'] = max(0, -value)
-            entry[f'{name}Gain'] = max(0, value)
-        entries.append(entry)
-
-    # SLEEP from sleepLog
-    for s in (match.get('sleepLog') or []):
-        entries.append({
-            "type": "SLEEP",
-            "clock": s.get('clock'),
-            "timestamp": _ms_to_iso(s.get('timestamp')),
-            "characterUuid": s.get('characterUuid'),
-        })
-
-    # CLOCK_ADVANCE from the CLOCK#<n> items written by _advance_time under the
-    # match partition (they are separate items, not embedded in the match).
-    for c in (db_utils.query_by_pk(f'MATCH#{match_uuid}') or []):
-        if not str(c.get('SK') or '').startswith('CLOCK#'):
-            continue
-        entries.append({
-            "type": "CLOCK_ADVANCE",
-            "clock": _nz(c.get('clock')),
-            "timestamp": _ms_to_iso(c.get('timestampStart')),
-        })
-
-    # v0.35.4 — every entry carries the eight resource fields, whatever its type, so a
-    # client can sum a column without null checks. The Java reference has always answered
-    # this shape; this backend built per-type dicts and left the keys out of the types that
-    # move nothing, which made the contract type-dependent.
-    for entry in entries:
-        for name in ('energy', 'food', 'magic', 'coin'):
-            entry.setdefault(f'{name}Cost', 0)
-            entry.setdefault(f'{name}Gain', 0)
-
-    # Sort by timestamp ascending; None timestamps sort last
-    entries.sort(key=lambda x: x.get('timestamp') or '9999')
-    return entries
+    """v0.35.4 — item action to timeline type (kept for the callers that still ask)."""
+    return _inventory.log_type(action)
 
 
 def _enrich_match_logs(page, match, match_uuid, lang):
@@ -2236,7 +2047,7 @@ def _enrich_match_logs(page, match, match_uuid, lang):
     if not page:
         return []
 
-    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    story = _load_story(match.get("storyUuid")) or {}
     raw_cards = story.get('raw_cards') or []
     raw_texts = story.get('raw_texts') or []
     weather_cards = {_nz(w.get('id')): w.get('idCard')
@@ -2312,26 +2123,23 @@ def _enrich_match_logs(page, match, match_uuid, lang):
 def _build_match_logs(match, match_uuid, lang='en', limit=None, cursor=None, order=None):
     """One page of the consolidated log (Step 28.7, paginated + enriched in v0.28.7).
 
-    `order=desc` flips the whole timeline (newest first) before the page is cut, so the
-    cursor keeps walking away from the first returned entry — with `desc` "load more"
-    moves towards the older entries."""
-    entries = _assemble_match_logs(match, match_uuid)
+    v0.37.5 — the page is a DynamoDB range read over the LOG# rows: `order=desc` walks the
+    sort key backwards (newest first) and the cursor is the key of the last entry served,
+    so "load more" keeps moving away from the first returned entry. `total` is the counter
+    the match item keeps of every row ever written."""
     effective_order = _normalize_logs_order(order)
-    if effective_order == LOGS_ORDER_DESC:
-        entries.reverse()
-
     effective_limit = _clamp_logs_limit(limit)
-    offset = min(_decode_logs_cursor(cursor), len(entries))
-    end = min(offset + effective_limit, len(entries))
-    page = _enrich_match_logs(entries[offset:end], match, match_uuid, lang or 'en')
+    entries, next_cursor = _logbook.page(match_uuid, effective_limit, cursor,
+                                         ascending=(effective_order == LOGS_ORDER_ASC))
+    page = _enrich_match_logs(entries, match, match_uuid, lang or 'en')
 
     return {
         "matchUuid": match_uuid,
         "currentClock": _nz(match.get('currentClock')),
         "logs": page,
-        "nextCursor": _encode_logs_cursor(end) if end < len(entries) else None,
+        "nextCursor": next_cursor,
         "limit": effective_limit,
-        "total": len(entries),
+        "total": _nz(match.get('logCount')),
         "order": effective_order,
     }
 
@@ -2366,7 +2174,7 @@ def _get_admin_match_weather(match_uuid):
     match = db_utils.get_item(f'MATCH#{match_uuid}')
     if match is None:
         return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
-    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    story = _load_story(match.get("storyUuid")) or {}
     all_rules = story.get('weatherRules') or []
     raw_cards = story.get('raw_cards') or []
     raw_texts = story.get('raw_texts') or []
@@ -2392,16 +2200,16 @@ def _get_admin_match_weather(match_uuid):
         "registryMet": _weather_condition_matches(r, match.get('registry')),
     } for r in all_rules]
     log = []
-    for entry in (match.get('weatherLog') or []):
+    for seq, entry in enumerate(_logbook.entries_of_type(match_uuid, 'WEATHER'), start=1):
         rule = rules_by_id.get(_nz(entry.get('idWeather')))
         log.append({
-            "id": entry.get('id'),
+            "id": seq,
             "uuid": entry.get('weatherUuid'),
             "clock": entry.get('clock'),
             "idWeather": entry.get('idWeather'),
             "weatherUuid": (rule or {}).get('uuid') or entry.get('weatherUuid'),
             "idTextName": _rule_field(rule, 'idText', 'idTextName'),
-            "timestampStart": entry.get('timestampStart'),
+            "timestampStart": entry.get('timestampMs'),
         })
     return _ok({
         "rngSeed": match.get('rngSeed'),
@@ -2416,13 +2224,8 @@ def _advance_time(match, match_uuid):
     new_clock = _nz(match.get('currentClock')) + 1
     match['currentClock'] = new_clock
 
-    # Append a clock-history item under the match partition.
-    db_utils.put_item({
-        "PK": f'MATCH#{match_uuid}',
-        "SK": f'CLOCK#{new_clock}',
-        "clock": new_clock,
-        "timestampStart": _ts_ms(),
-    })
+    # v0.37.5 — the clock history is a CLOCK_ADVANCE row like any other timeline entry.
+    _logbook.append(match, 'CLOCK_ADVANCE', new_clock)
 
     # Wake every character.
     for c in _match_characters(match_uuid):
@@ -2431,7 +2234,7 @@ def _advance_time(match, match_uuid):
             db_utils.put_item(c)
 
     # Step 26: per-character recovery, class bonuses and location counters.
-    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    story = _load_story(match.get("storyUuid")) or {}
     recovery, pending, recovery_edge = _apply_time_start_recovery(match, match_uuid, story)
     # Step 33: the events that pass collected — counters that reached zero, and the
     # locations whose idEventIfCharacterStartTime fires because a time unit began with
@@ -2467,7 +2270,7 @@ def _advance_time(match, match_uuid):
             **r,
         })
 
-    db_utils.put_item(match)
+    _logbook.persist(match)
     # A TimeAdvanced domain event would be published here (WebSocket broadcast: Step 64).
     edge_state = _merge_edge_states([recovery_edge] + [f.get('edgeState') for f in fired])
     return new_clock, recovery, fired, edge_state
@@ -2494,14 +2297,9 @@ def _sleep(user, match_uuid):
     db_utils.put_item(caller)
 
     # Step 28.7 — log the sleep action for the match logs timeline.
-    sleep_log = match.get('sleepLog') or []
-    sleep_log.append({
-        "characterUuid": caller.get('uuid'),
-        "clock": _nz(match.get('currentClock')),
-        "timestamp": _ts_ms(),
-    })
-    match['sleepLog'] = sleep_log
-    db_utils.put_item(match)
+    _logbook.append(match, 'SLEEP', _nz(match.get('currentClock')),
+                    characterUuid=caller.get('uuid'))
+    _logbook.persist(match)
 
     # Re-read so the trigger sees the just-applied sleep flag.
     characters = _match_characters(match_uuid)
@@ -2516,7 +2314,7 @@ def _sleep(user, match_uuid):
         # Step 33 — the same events, told to THIS player. The caller is the only recipient
         # with an open request; the rest learn about it over the broadcast once Steps 49-54
         # land, through this very path called once per player.
-        story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+        story = _load_story(match.get("storyUuid")) or {}
         counter_zero = _describe_for_recipient(match, match_uuid, story,
                                                caller.get('uuid'), fired, current_clock)
 
@@ -2556,7 +2354,7 @@ def _get_clock(user, match_uuid):
     if err:
         return err
     characters = _match_characters(match_uuid)
-    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    story = _load_story(match.get("storyUuid")) or {}
     any_sleeping = any(_nz(c.get('isSleeping')) == 1 for c in characters)
     return _ok({
         "matchUuid": match.get('uuid'),
@@ -2657,7 +2455,7 @@ def _start_movement(user, match_uuid, body):
 
     # Step 35 — the story is read before the check now: the carried weight the OVERWEIGHT
     # gate acts on is computed from its item weights.
-    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    story = _load_story(match.get("storyUuid")) or {}
 
     # The mover's own state (match RUNNING, coma, sleep) is judged before the target is even
     # resolved, so an asleep player is told they are asleep rather than that their destination
@@ -2726,29 +2524,19 @@ def _start_movement(user, match_uuid, body):
         caller['coin'] = new_coin
     db_utils.put_item(caller)
 
-    # Append a movement log entry on the match item (used to derive visited locations).
-    movement_log = match.get('movementLog') or []
-    movement_log.append({
-        "characterUuid": caller.get('uuid'),
-        "idLocationFrom": from_id,
-        "idLocationTo": target.get('id'),
-        "energyCost": total_cost,
-        # v0.35.3 — what the move took besides energy; 0 when it took nothing.
-        "foodCost": cost_food,
-        "magicCost": cost_magic,
-        "coinCost": cost_coin,
-        "timestampStart": _ts_ms(),
-    })
-    match['movementLog'] = movement_log
-    db_utils.put_item(match)
+    # The MOVEMENT row also feeds the visited set (fog of war) kept on the match item.
+    _logbook.append(match, 'MOVEMENT', None, characterUuid=caller.get('uuid'),
+                    idLocationFrom=from_id, idLocationTo=target.get('id'),
+                    energyCost=total_cost, foodCost=cost_food, magicCost=cost_magic,
+                    coinCost=cost_coin)
 
     # Step 33 — the move is committed, so the arrival is real: ask the destination what it
-    # does about somebody walking in. Deliberately after both writes, because the trigger
-    # resolution reads the character's new position back.
+    # does about somebody walking in. After the character write, because the trigger
+    # resolution reads the character's new position back; the match is saved once below.
     automatic_events = []
     _resolve_arrival(match, match_uuid, story, caller.get('uuid'), _nz(target.get('id')),
                      'en', 0, automatic_events)
-    db_utils.put_item(match)
+    _logbook.persist(match)
 
     return _ok({
         "matchUuid": match.get('uuid'),
@@ -2783,13 +2571,9 @@ def _log_edge_state(match, character, id_event, message):
     ``character`` may be None for the party-wide row, which belongs to the match rather
     than to any one character.
     """
-    match.setdefault('eventLog', []).append({
-        "characterUuid": character.get('uuid') if character else None,
-        "idEvent": id_event,
-        "clock": _nz(match.get('currentClock')),
-        "timestamp": _ts_ms(),
-        "message": message,
-    })
+    _logbook.audit(match, 'EDGE_STATE', _nz(match.get('currentClock')),
+                   characterUuid=character.get('uuid') if character else None,
+                   idEvent=id_event, message=message)
 
 
 def _resolve_all_player_coma(match, match_uuid, caller, touched, edge_state, events_by_id,
@@ -2860,7 +2644,7 @@ def _execute_event(user, match_uuid, body, lang='en'):
     if match.get('status') != 'RUNNING':
         return _err(409, 'MATCH_NOT_RUNNING', _MATCH_NOT_RUNNING_MSG)
 
-    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    story = _load_story(match.get("storyUuid")) or {}
     all_events = story.get('events') or []
     event = next((e for e in all_events if e.get('uuid') == event_uuid), None)
     if event is None:
@@ -3039,12 +2823,9 @@ def _execute_event(user, match_uuid, body, lang='en'):
                 if c.get('uuid') == caller.get('uuid'):
                     flags['comaTriggered'] = True
 
-        event_log = match.setdefault('eventLog', [])
         row = {
             "characterUuid": caller.get('uuid'),
             "idEvent": event_id,
-            "clock": _nz(match.get('currentClock')),
-            "timestamp": _ts_ms(),
             "message": f'{_events.MSG_EVENT_EXECUTED} {event_id}',
         }
         # v0.35.3 — the price rides on the row of the event the player asked for; every
@@ -3055,7 +2836,7 @@ def _execute_event(user, match_uuid, body, lang='en'):
                         "magicCost": magic_spent, "coinCost": coin_spent})
         # v0.35.4 — and what THIS event gave the actor, on the gain half of the same row.
         row.update(_gains_since(stat_changes, gains_mark, caller.get('uuid')))
-        event_log.append(row)
+        _logbook.append(match, 'EVENT', _nz(match.get('currentClock')), executed=True, **row)
 
         if flags['comaTriggered'] and not epilogue_phase:
             # Coma stops the chain, and flag_end_time with it — but if the WHOLE party is
@@ -3102,17 +2883,14 @@ def _execute_event(user, match_uuid, body, lang='en'):
         # somebody over an edge: that verdict belongs in this response, not the next reload.
         _fold_edge_uuids(edge_state, time_edge)
         time_ended = True
-    else:
-        db_utils.put_item(match)
 
     # v0.36.3 — an effect may have pushed somebody somewhere, and arriving is a trigger.
     # java drains here (after the time-end branch) and select-choice already did; only
-    # execute-event never resolved its own forced moves.
+    # execute-event never resolved its own forced moves. One save covers both branches.
     automatic_events = _drain_arrivals(
         match, match_uuid, story, location_changes, edge_state, location_uuids, lang,
         edge_state['allPlayersInComa'])
-    if automatic_events:
-        db_utils.put_item(match)
+    _logbook.persist(match)
 
     # The epilogue is sliced off the tail so the board can tell it from the player's chain.
     if edge_state['comaEventUuid'] is None:
@@ -3345,7 +3123,7 @@ def _drop_item(user, match_uuid, body):
         _inventory.log_item_action(match, caller, item.get('id'),
                                    _inventory.ITEM_ACTION_DROP,
                                    _nz(match.get('currentClock')), None, dropped)
-        db_utils.put_item(match)
+        _logbook.persist(match)
     db_utils.put_item(caller)
 
     return _ok({
@@ -3431,7 +3209,7 @@ def _use_item(user, match_uuid, body, lang='en'):
         acc['statChanges'], spend, None,
         _inventory.resource_delta(acc['statChanges'], caller.get('uuid')))
     db_utils.put_item(caller)
-    db_utils.put_item(match)
+    _logbook.persist(match)
 
     changed = bool(acc['statChanges'] or acc['traitChanges']
                    or acc['edgeState']['sadnessOverflowUuids']
@@ -3526,20 +3304,15 @@ def _execute_choice_event(match, match_uuid, story, event, event_choices,
         if magic_spent:
             caller['magic'] = max(0, _nz(caller.get('magic')) - magic_spent)
         ctx['consumedEventIds'].add(event_id)
-        match.setdefault('eventLog', []).append({
-            "characterUuid": caller.get('uuid'),
-            "idEvent": event_id,
-            "clock": _nz(match.get('currentClock')),
-            "timestamp": _ts_ms(),
-            "message": f'{_events.MSG_EVENT_EXECUTED} {event_id}',
-            # v0.35.3 — the open is what the player paid for; the resolution pays nothing.
-            "energyCost": energy_spent, "foodCost": food_spent,
-            "magicCost": magic_spent, "coinCost": coin_spent,
-            # v0.35.4 — opening a choice-event applies no effect, so it gives nothing.
-            "energyGain": 0, "foodGain": 0, "magicGain": 0, "coinGain": 0,
-        })
+        # v0.35.3 — the open is what the player paid for; the resolution pays nothing,
+        # and opening a choice-event applies no effect, so it gives nothing.
+        _logbook.append(match, 'EVENT', _nz(match.get('currentClock')), executed=True,
+                        characterUuid=caller.get('uuid'), idEvent=event_id,
+                        message=f'{_events.MSG_EVENT_EXECUTED} {event_id}',
+                        energyCost=energy_spent, foodCost=food_spent,
+                        magicCost=magic_spent, coinCost=coin_spent)
         db_utils.put_item(caller)
-        db_utils.put_item(match)
+        _logbook.persist(match)
 
     raw_cards = story.get('raw_cards') or []
     raw_texts = story.get('raw_texts') or []
@@ -3639,7 +3412,7 @@ def _select_choice(user, match_uuid, body, lang='en'):
     if match.get('status') != 'RUNNING':
         return _err(409, 'MATCH_NOT_RUNNING', _MATCH_NOT_RUNNING_MSG)
 
-    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    story = _load_story(match.get("storyUuid")) or {}
     choice = _choices.choice_by_uuid(story, choice_uuid)
     if choice is None:
         return _err(404, 'CHOICE_NOT_FOUND', 'Choice not found in this story')
@@ -3771,29 +3544,15 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
     # The CHOICE_SELECTED marker carries the OWNING EVENT's id, never the option's:
     # count_log_markers pairs it against EVENT_EXECUTED by event, and a row stamped with
     # the choice id would leave the cycle open for ever.
-    match.setdefault('eventLog', []).append({
-        "characterUuid": caller.get('uuid'),
-        "idEvent": event_id,
-        "clock": clock,
-        "timestamp": _ts_ms(),
-        "message": f'{_choices.MSG_CHOICE_SELECTED} {event_id}',
-    })
+    _logbook.audit(match, 'CHOICE_SELECTED', clock, selected=True,
+                   characterUuid=caller.get('uuid'), idEvent=event_id,
+                   message=f'{_choices.MSG_CHOICE_SELECTED} {event_id}')
     choice_id = _events._nz(choice.get('id'))
-    match.setdefault('choiceLog', []).append({
-        "idEvent": event_id,
-        "idChoise": choice_id,
-        "clock": clock,
-        "timestamp": _ts_ms(),
-        "message": f'{_choices.MSG_CHOICE_SELECTED} {choice_id}',
-    })
+    _logbook.audit(match, 'CHOICE_HISTORY', clock, idEvent=event_id, idChoise=choice_id,
+                   message=f'{_choices.MSG_CHOICE_SELECTED} {choice_id}')
     progress_recorded = _events._nz(choice.get('isProgress')) == 1
     if progress_recorded:
-        match.setdefault('storyProgress', []).append({
-            "idEvent": event_id,
-            "idChoise": choice_id,
-            "clock": clock,
-            "timestamp": _ts_ms(),
-        })
+        _logbook.audit(match, 'STORY_PROGRESS', clock, idEvent=event_id, idChoise=choice_id)
 
     current_clock = clock
     time_ended = False
@@ -3806,7 +3565,7 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
         _fold_edge_uuids(acc['edgeState'], time_edge)
         time_ended = True
     else:
-        db_utils.put_item(match)
+        _logbook.persist(match)
 
     # The epilogue is sliced off the tail so the board can tell it from the option's chain.
     if acc['edgeState']['comaEventUuid'] is None:
@@ -4112,13 +3871,9 @@ def _run_linked_event(match, match_uuid, story, id_event, caller, characters, ct
         ctx['consumedEventIds'].add(id_event)
         if linked.get('uuid'):
             acc['executedUuids'].append(linked.get('uuid'))
-        match.setdefault('eventLog', []).append({
-            "characterUuid": caller.get('uuid'),
-            "idEvent": id_event,
-            "clock": _nz(match.get('currentClock')),
-            "timestamp": _ts_ms(),
-            "message": f'{_events.MSG_EVENT_EXECUTED} {id_event}',
-        })
+        _logbook.append(match, 'EVENT', _nz(match.get('currentClock')), executed=True,
+                        characterUuid=caller.get('uuid'), idEvent=id_event,
+                        message=f'{_events.MSG_EVENT_EXECUTED} {id_event}')
         raw_cards = story.get('raw_cards') or []
         raw_texts = story.get('raw_texts') or []
         conditions = _choices.conditions_by_choice(story)
@@ -4220,14 +3975,10 @@ def _run_event_chain(match, story, first, caller, characters, ctx, events_by_id,
             acc['flags']['gameOver'] = True
 
         _apply_edge_states(match, caller, acc, event_id)
-        match.setdefault('eventLog', []).append({
-            # Step 33 — an automatic event in an empty location has no actor at all.
-            "characterUuid": caller.get('uuid') if caller else None,
-            "idEvent": event_id,
-            "clock": _nz(match.get('currentClock')),
-            "timestamp": _ts_ms(),
-            "message": f'{_events.MSG_EVENT_EXECUTED} {event_id}',
-        })
+        # Step 33 — an automatic event in an empty location has no actor at all.
+        _logbook.append(match, 'EVENT', _nz(match.get('currentClock')), executed=True,
+                        characterUuid=caller.get('uuid') if caller else None,
+                        idEvent=event_id, message=f'{_events.MSG_EVENT_EXECUTED} {event_id}')
 
         if acc['flags']['comaTriggered'] and not acc['epiloguePhase']:
             # The epilogue runs BECAUSE the party is down, so the coma cannot unwind it.
@@ -4256,10 +4007,9 @@ def _visited_location_ids(match, match_uuid):
         loc = c.get('idLocation')
         if loc is not None and _nz(loc) not in ids:
             ids.append(_nz(loc))
-    for m in (match.get('movementLog') or []):
-        for loc in (m.get('idLocationFrom'), m.get('idLocationTo')):
-            if loc is not None and _nz(loc) not in ids:
-                ids.append(_nz(loc))
+    for loc in _logbook.visited_location_ids(match):
+        if loc not in ids:
+            ids.append(loc)
     return ids
 
 
@@ -4291,14 +4041,8 @@ def _mark_location_visited(match, id_location):
 
 
 def _log_automatic_event(match, actor_uuid, id_location, id_event, clock, message):
-    match.setdefault('eventLog', []).append({
-        "characterUuid": actor_uuid,
-        "idEvent": id_event,
-        "idLocation": id_location,
-        "clock": clock,
-        "timestamp": _ts_ms(),
-        "message": message,
-    })
+    _logbook.append(match, 'AUTOMATIC_EVENT', clock, characterUuid=actor_uuid,
+                    idEvent=id_event, idLocationTo=id_location, message=message)
 
 
 def _resolve_arrival(match, match_uuid, story, actor_uuid, id_location, lang, depth, out,
@@ -4426,7 +4170,6 @@ def _run_automatic_event(match, match_uuid, story, actor_uuid, id_event, id_loca
     for touched in acc['touched'].values():
         if touched is not None:
             db_utils.put_item(touched)
-    db_utils.put_item(match)
 
     _log_automatic_event(
         match, actor_uuid, id_location, id_event, _nz(match.get('currentClock')),
@@ -4556,7 +4299,7 @@ def _visited_locations_payload(match, match_uuid, lang='en'):
     totalEnergyCost resolved for the current weather and the resolved location
     cards (Step 28). Cards are resolved from idCard against the story's
     raw_cards/raw_texts, exactly like ``_build_locations_active``."""
-    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    story = _load_story(match.get("storyUuid")) or {}
     locations = story.get('locations') or []
     neighbors = _story_neighbors(story)
     loc_by_id = {l.get('id'): l for l in locations}
@@ -4576,9 +4319,8 @@ def _visited_locations_payload(match, match_uuid, lang='en'):
 
     for c in characters:
         add(c.get('idLocation'))
-    for m in (match.get('movementLog') or []):
-        add(m.get('idLocationFrom'))
-        add(m.get('idLocationTo'))
+    for loc in _logbook.visited_location_ids(match):
+        add(loc)
 
     result = []
     for loc_id in visited:
@@ -4664,6 +4406,7 @@ def _get_admin_locations(match_uuid, lang='en'):
 # ─── router ──────────────────────────────────────────────────────────────────
 
 def lambda_handler(event, context):
+    story_cache.begin_request()  # v0.37.5 — one stamp read per invocation
     raw_path = event.get('rawPath') or event.get('path') or ''
     path = _normalize_path(raw_path)
     method = (event.get('requestContext', {})

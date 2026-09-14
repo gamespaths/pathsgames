@@ -136,6 +136,10 @@ The consumed set is therefore built **only** from rows whose message starts with
 `EVENT_EXECUTED` (`EventExecutionStorePort.MSG_EVENT_EXECUTED`). That prefix is load-bearing: it is
 a shared constant, never a duplicated literal.
 
+**AWS, since v0.37.5**: this set is no longer scanned from an embedded log list at read time —
+it is the `executedEventIds` field maintained on the match METADATA item. See
+[Step28 §0.37.5](./Step28_MovementSystem.md).
+
 ---
 
 ## 3. Execution
@@ -212,11 +216,11 @@ verdict, no location-capacity check. Rules, applied per recipient:
   no `LocationChange` entry.
 - **An `id_location` matching no location of the story is authored noise**: the engine resolves it
   against a story location id→uuid map and silently skips the move (checked, not an error).
-- Each actual move writes a **cost-0** row to `log_movements` (AWS: a cost-0 entry in the match
-  item's `movementLog`), purely so the timeline and fog-of-war stay consistent (see
-  [Step28_MovementSystem.md](./Step28_MovementSystem.md)): the Match Logs timeline still surfaces a
-  `MOVEMENT` entry, and the fog-of-war visited set (built from character positions ∪
-  `log_movements`/`movementLog`) stays truthful.
+- Each actual move writes a **cost-0** row to `log_movements` (AWS, since v0.37.5: a cost-0
+  `LOG#` row via `logbook.persist`, and the recipient's location joins the derived
+  `visitedLocationIds` set — see [Step28 §0.37.5](./Step28_MovementSystem.md)), purely so the
+  timeline and fog-of-war stay consistent: the Match Logs timeline still surfaces a `MOVEMENT`
+  entry, and the fog-of-war visited set stays truthful.
 - The recipient's tracked position is updated in the in-memory execution context, so a **later
   effect in the same chain resolves `target=ALL` at the recipient's NEW location**, not the one
   they started the chain at.
@@ -335,7 +339,7 @@ effect 14 with `idLocation: 3` — see the [v0.29.3 Roadmap entry](./Roadmap.md)
 
 # Version Control
 
-- **Document Version**: 0.36.3 (here only due changes)
+- **Document Version**: 0.37.5 (here only due changes)
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -346,9 +350,10 @@ effect 14 with `idLocation: 3` — see the [v0.29.3 Roadmap entry](./Roadmap.md)
   | 0.35.3 | `list_events.coin_cost` renamed `cost_coin`, plus new `cost_food`/`cost_magic`: the check procedure gains `NOT_ENOUGH_FOOD`/`NOT_ENOUGH_MAGIC` after `NOT_ENOUGH_COINS` (§1, §2), and payment (§3) now covers all four resources for the head of a chain only. Full writeup in [Step35 §12](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353). | August 23, 2026 |
   | 0.35.3 | Same version, continued: new Robot suite `resource_costs.robot` (9 tests, §7) covers this event cost round trip end to end; two `events.robot` id-selector predicates fixed after the `coinCost` → `costCoin` rename. Full detail in [Step35 §12.f-g](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353). | August 24, 2026 |
   | 0.36.3 | AWS bugfix: a forced move (`id_location`) undone by the time-end roster re-read (eventually consistent DynamoDB read) now survives, via `ConsistentRead=True` and a `_reread_characters` helper. Same version: `execute-event` on AWS, and its response mapper on Python, now drain and report the destination's arrival triggers (`automaticEvents[]`), matching Java and `select-choice`. New `forced_move.robot` (5 cases). | September 6, 2026 |
+  | 0.37.5 | AWS-only, no code change here: ONCE gating's consumed set and forced-move logging now read the `executedEventIds`/`LOG#` derived state instead of an embedded log list. See [Step28 §0.37.5](./Step28_MovementSystem.md). | September 14, 2026 |
 
 
-- **Last Updated**: September 6, 2026
+- **Last Updated**: September 14, 2026
 - **Status**: Complete
 
 # < Paths Games />

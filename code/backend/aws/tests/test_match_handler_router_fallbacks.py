@@ -28,7 +28,7 @@ def _player_event(method, path, **kw):
 
 
 def _get_side(user):
-    def _side(pk, sk='METADATA'):
+    def _side(pk, sk='METADATA', consistent=True):
         if pk == f"USER#{user['uuid']}":
             return user
         return None
@@ -139,7 +139,7 @@ def test_admin_change_statistics_route(mock_get, _jwt):
 
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'a1', 'source': 'mock', 'role': 'ADMIN'})
-@patch('match.handler.db_utils.query_by_pk', return_value=[])
+@patch('match.handler.db_utils.query_sk_prefix', return_value=[])
 @patch('match.handler.db_utils.get_item')
 def test_admin_change_statistics_uuid_from_segments(mock_get, _q, _jwt):
     mock_get.side_effect = _get_side(ADMIN)

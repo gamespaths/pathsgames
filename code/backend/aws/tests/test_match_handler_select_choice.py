@@ -11,7 +11,7 @@ jwt_utils and db_utils are patched; no AWS calls are made.
 import json
 from unittest.mock import patch
 
-from helpers import make_event
+from helpers import make_event, derived_from_log, written_rows
 
 USER = {'PK': 'USER#u1', 'SK': 'METADATA', 'uuid': 'u1', 'username': 'guest', 'role': 'PLAYER'}
 
@@ -107,10 +107,10 @@ def _match(event_log=None):
     """The match with an open cycle for event 32 unless told otherwise."""
     log = [{'characterUuid': 'c1', 'idEvent': 32, 'clock': 1,
             'message': 'EVENT_EXECUTED 32'}] if event_log is None else event_log
-    return {**MATCH, 'eventLog': log}
+    return {**MATCH, **derived_from_log(log)}
 
 
-def _get_side(pk, sk='METADATA'):
+def _get_side(pk, sk='METADATA', consistent=True):
     if pk.startswith('USER#'):
         return USER
     if pk.startswith('MATCH#'):
@@ -121,7 +121,7 @@ def _get_side(pk, sk='METADATA'):
 
 
 def _get_side_with(match):
-    def side(pk, sk='METADATA'):
+    def side(pk, sk='METADATA', consistent=True):
         if pk.startswith('MATCH#'):
             return match
         return _get_side(pk, sk)
@@ -150,7 +150,7 @@ def _resolve(choice_uuid, *, characters=None, get_side=None, lang=None):
     chars = characters if characters is not None else [dict(CHARACTER)]
     with _jwt(), \
          patch('match.handler.db_utils.get_item', side_effect=get_side or _get_side), \
-         patch('match.handler.db_utils.query_by_pk', return_value=chars), \
+         patch('match.handler.db_utils.query_sk_prefix', return_value=chars), \
          patch('match.handler.db_utils.put_item'):
         return _call(_event(choice_uuid, lang))
 
@@ -241,7 +241,7 @@ def test_a_rejected_resolution_writes_nothing():
     with _jwt(), \
          patch('match.handler.db_utils.get_item',
                side_effect=_get_side_with(_match(event_log=[]))), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)]), \
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)]), \
          patch('match.handler.db_utils.put_item') as put_item:
         result = _call(_event('ch-plain'))
 
@@ -265,41 +265,45 @@ def test_the_cycle_is_closed_and_the_history_recorded():
     match = _match()
     with _jwt(), \
          patch('match.handler.db_utils.get_item', side_effect=_get_side_with(match)), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)]), \
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)]), \
          patch('match.handler.db_utils.put_item'):
         _call(_event('ch-plain'))
 
     # The marker carries the OWNING EVENT's id, never the option's — count_log_markers
     # pairs the two by event, and a choice id would leave the cycle open for ever.
-    assert match['eventLog'][-1]['idEvent'] == 32
-    assert match['eventLog'][-1]['message'] == 'CHOICE_SELECTED 32'
-    row = match['choiceLog'][-1]
+    assert match['eventMarkers']['32'] == {'executed': 1, 'selected': 1}
+    audits = written_rows().audits()
+    marker = next(r for r in audits if r['kind'] == 'CHOICE_SELECTED')
+    assert marker['idEvent'] == 32 and marker['message'] == 'CHOICE_SELECTED 32'
+    row = next(r for r in audits if r['kind'] == 'CHOICE_HISTORY')
     assert row['idEvent'] == 32 and row['idChoise'] == 20
+    # Audit rows never reach the timeline, so they are not counted.
+    assert match['logCount'] == len(written_rows().logs())
 
 
 def test_ordinary_option_records_no_milestone():
     match = _match()
     with _jwt(), \
          patch('match.handler.db_utils.get_item', side_effect=_get_side_with(match)), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)]), \
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)]), \
          patch('match.handler.db_utils.put_item'):
         result = _call(_event('ch-plain'))
 
     assert _body(result)['progressRecorded'] is False
-    assert 'storyProgress' not in match
+    assert not any(r['kind'] == 'STORY_PROGRESS' for r in written_rows().audits())
 
 
 def test_is_progress_option_records_the_milestone():
     match = _match()
     with _jwt(), \
          patch('match.handler.db_utils.get_item', side_effect=_get_side_with(match)), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)]), \
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)]), \
          patch('match.handler.db_utils.put_item'):
         result = _call(_event('ch-progress'))
 
     assert _body(result)['progressRecorded'] is True
-    assert match['storyProgress'][-1]['idEvent'] == 32
-    assert match['storyProgress'][-1]['idChoise'] == 21
+    progress = next(r for r in written_rows().audits() if r['kind'] == 'STORY_PROGRESS')
+    assert progress['idEvent'] == 32 and progress['idChoise'] == 21
 
 
 # ── the narrative, revealed at last ─────────────────────────────────────────
@@ -344,7 +348,7 @@ def test_flag_group_one_is_location_scoped():
         {'id': 20, 'idChoices': 20, 'idCard': 1, 'statistics': 'exp', 'value': 5,
          'flagGroup': 1}]}
 
-    def side(pk, sk='METADATA'):
+    def side(pk, sk='METADATA', consistent=True):
         if pk.startswith('STORY#'):
             return story
         return _get_side(pk, sk)
@@ -361,7 +365,7 @@ def test_the_whole_effect_vocabulary_lands_at_once():
     match = _match()
     with _jwt(), \
          patch('match.handler.db_utils.get_item', side_effect=_get_side_with(match)), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)]), \
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)]), \
          patch('match.handler.db_utils.put_item'):
         result = _call(_event('ch-world'))
 
@@ -375,7 +379,8 @@ def test_the_whole_effect_vocabulary_lands_at_once():
     # forced movement — no adjacency check, no energy cost
     assert body['movementApplied'] is True
     assert body['locationChanges'][0]['toLocationUuid'] == 'loc-3'
-    assert match['movementLog'][-1]['energyCost'] == 0
+    moves = [r for r in written_rows().logs() if r['type'] == 'MOVEMENT']
+    assert moves[-1]['energyCost'] == 0
     # weather
     assert body['weatherApplied'] is True
     assert match['currentWeatherId'] == 3
@@ -384,8 +389,8 @@ def test_the_whole_effect_vocabulary_lands_at_once():
     assert body['choiceEventCard']['title'] == 'A Card'
     assert 'evt-linked' in body['executedEventUuids']
     # v0.35.4 — the ADD leaves a row on the match's item log, naming the owning event.
-    item_log = match['itemUsageLog']
-    assert [r['action'] for r in item_log] == ['ADD']
+    item_log = [r for r in written_rows().logs() if r['type'].startswith('ITEM_')]
+    assert [r['itemAction'] for r in item_log] == ['ADD']
     assert item_log[0]['idItem'] == 1
     assert item_log[0]['counter'] == 1
 
@@ -395,7 +400,7 @@ def test_value_to_remove_clears_the_key_only_on_a_match():
         {'id': 20, 'idChoices': 20, 'key': 'GATE', 'valueToRemove': 'OPEN'}]}
 
     def side(match_state):
-        def inner(pk, sk='METADATA'):
+        def inner(pk, sk='METADATA', consistent=True):
             if pk.startswith('STORY#'):
                 return story
             if pk.startswith('MATCH#'):
@@ -427,7 +432,7 @@ def test_a_linked_choice_event_presents_its_options_for_free():
     match = _match()
     with _jwt(), \
          patch('match.handler.db_utils.get_item', side_effect=_get_side_with(match)), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)]), \
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)]), \
          patch('match.handler.db_utils.put_item'):
         result = _call(_event('ch-nested'))
 
@@ -438,13 +443,13 @@ def test_a_linked_choice_event_presents_its_options_for_free():
     # Opened for free — a consequence is not a choice — but marked, so its cycle opens.
     assert body['energySpent'] == 0
     assert any(row['idEvent'] == 35 and row['message'] == 'EVENT_EXECUTED 35'
-               for row in match['eventLog'])
+               for row in written_rows().logs())
 
 
 def test_flag_end_time_on_a_linked_event_ends_the_time_unit():
     with _jwt(), \
          patch('match.handler.db_utils.get_item', side_effect=_get_side), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)]), \
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[dict(CHARACTER)]), \
          patch('match.handler.db_utils.put_item'), \
          patch('match.handler._advance_time',
                return_value=(2, [], [], _empty_edge())) as advance:
@@ -492,7 +497,7 @@ def _story_with(extra_events=(), extra_effects=(), extra_choices=(),
 
 
 def _with_story(story):
-    def side(pk, sk='METADATA'):
+    def side(pk, sk='METADATA', consistent=True):
         if pk.startswith('STORY#'):
             return story
         return _get_side(pk, sk)
@@ -614,7 +619,7 @@ def test_a_spent_once_linked_event_is_still_barred():
         {'characterUuid': 'c1', 'idEvent': 50, 'clock': 1, 'message': 'EVENT_EXECUTED 50'},
     ])
 
-    def side(pk, sk='METADATA'):
+    def side(pk, sk='METADATA', consistent=True):
         if pk.startswith('STORY#'):
             return story
         if pk.startswith('MATCH#'):

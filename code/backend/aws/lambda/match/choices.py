@@ -23,6 +23,7 @@ locks the option visibly rather than silently unlocking it.
 """
 
 from match import registry as _registry
+from match import logbook as _logbook
 from match.events import _nz  # noqa: F401 — the shared null-safe int coercion
 
 # Marker of a resolved choice-event cycle. Step 31 only READS it: a choice-event is
@@ -112,11 +113,8 @@ def choice_recipients(effect, actor, characters):
 
 def count_log_markers(match, event_id, prefix):
     """How many eventLog rows of the event carry a message starting with prefix."""
-    return sum(
-        1 for e in (match.get("eventLog") or [])
-        if e.get("idEvent") is not None and _nz(e.get("idEvent")) == _nz(event_id)
-        and str(e.get("message") or "").startswith(prefix)
-    )
+    which = "selected" if str(prefix).startswith(MSG_CHOICE_SELECTED) else "executed"
+    return _logbook.marker_count(match, event_id, which)
 
 
 def build_choice_context(match, story, caller, characters, ctx, choices, conditions):

@@ -256,34 +256,42 @@ def test_preview_effects_of_an_item_with_none():
 # ── the usage log ───────────────────────────────────────────────────────────
 
 def test_log_item_action_appends_to_the_match_item():
-    """There is no log table here: logs are embedded lists on the match, like eventLog."""
+    """v0.37.5 — the row is queued on the match and written as its own LOG# item."""
     match = {}
 
     inventory.log_item_action(match, _char(), 900, 'USE', 4, [{'statistic': 'life'}],
                               2, None, {'energy': 9, 'magic': -3})
 
-    row = match['itemUsageLog'][0]
-    assert row['characterUuid'] == 'c1'
-    assert (row['idItem'], row['action'], row['counter'], row['clock']) == (900, 'USE', 2, 4)
-    assert row['effects'] == [{'statistic': 'life'}]
-    # v0.35.4 — the signed deltas the action produced, and the event that caused it.
-    assert (row['energy'], row['magic'], row['food'], row['coin']) == (9, -3, 0, 0)
+    row = match['_pendingLogs'][0]
+    assert row['type'] == 'ITEM_USE' and row['characterUuid'] == 'c1'
+    assert (row['idItem'], row['itemAction'], row['counter'], row['clock']) == (900, 'USE', 2, 4)
+    # v0.35.4 — the signed deltas split into the cost/gain halves, and the source event.
+    assert (row['energyGain'], row['magicCost'], row['foodCost'], row['coinGain']) == (9, 3, 0, 0)
     assert row['idEvent'] is None
-    assert row['timestamp'] > 0
+    assert row['timestampMs'] > 0 and row['timestamp'].endswith('Z')
 
 
 def test_log_item_action_defaults_the_deltas_and_names_the_source_event():
     match = {}
     inventory.log_item_action(match, _char(), 900, 'ADD', 4, None, 1, 42)
-    row = match['itemUsageLog'][0]
-    assert row['idEvent'] == 42
-    assert (row['energy'], row['food'], row['magic'], row['coin']) == (0, 0, 0, 0)
+    row = match['_pendingLogs'][0]
+    assert row['type'] == 'ITEM_ADD' and row['idEvent'] == 42
+    assert (row['energyCost'], row['foodGain'], row['magicCost'], row['coinGain']) == (0, 0, 0, 0)
 
 
 def test_log_item_action_appends_rather_than_replaces():
-    match = {'itemUsageLog': [{'idItem': 1}]}
+    match = {'_pendingLogs': [{'idItem': 1}]}
     inventory.log_item_action(match, _char(), 900, 'USE', 4, [])
-    assert len(match['itemUsageLog']) == 2
+    assert len(match['_pendingLogs']) == 2
+
+
+def test_log_item_action_drops_an_unknown_action_and_maps_remove_to_drop():
+    match = {}
+    assert inventory.log_item_action(match, _char(), 900, 'BOGUS', 4) is None
+    assert '_pendingLogs' not in match
+    inventory.log_item_action(match, _char(), 900, 'REMOVE', 4)
+    assert match['_pendingLogs'][0]['type'] == 'ITEM_DROP'
+    assert inventory.log_type(None) == 'ITEM_USE'
 
 
 def test_resource_delta_sums_the_actors_resources_and_nobody_elses():

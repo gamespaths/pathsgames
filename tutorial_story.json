@@ -1986,15 +1986,6 @@
       "value": "1"
     },
     {
-      "id": 8,
-      "idChoices": 11,
-      "key": "EXPLORER",
-      "operator": "=",
-      "type": "KEYS",
-      "uuid": "7fe4f51c-0767-4e59-a8e6-7a7f30867a76",
-      "value": "River"
-    },
-    {
       "id": 9,
       "idChoices": 4,
       "key": "EXPLORER",
@@ -2201,15 +2192,6 @@
       "id_card": 121,
       "priority": 6,
       "uuid": "3216d778-d28d-406f-952f-adc869f1200d"
-    },
-    {
-      "id": 11,
-      "idCard": 69,
-      "idEvent": 8,
-      "idTextName": 401,
-      "id_card": 69,
-      "priority": 10,
-      "uuid": "b02bb6fc-42d1-4695-a0f6-cf6369560b84"
     }
   ],
   "classBonuses": [
@@ -2771,21 +2753,11 @@
     },
     {
       "id": 24,
+      "idEvent": 27,
       "idLocation": 12,
       "idTextDescription": 402,
       "idTextName": 402,
       "uuid": "598a8cb4-49b7-4402-8ebd-6c6d8efaf3c6"
-    },
-    {
-      "id": 25,
-      "idCard": 147,
-      "idEvent": 28,
-      "idTextDescription": 413,
-      "idTextName": 413,
-      "id_card": 147,
-      "keyToAdd": "TUTORIAL",
-      "keyValueToAdd": "END",
-      "uuid": "b50d55f6-fcc7-4fda-9474-3fca69c64140"
     }
   ],
   "events": [

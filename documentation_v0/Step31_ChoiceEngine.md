@@ -80,6 +80,10 @@ Re-executing an open choice-event serves the options again as a **pure read**:
 - each **option's own** `available`/`reason` is still re-evaluated fresh — the world may have
   changed since the open (an item picked up, a stat that moved, a key flipped).
 
+**AWS, since v0.37.5**: the executed/selected marker count is the `eventMarkers`
+(`{idEvent: {executed, selected}}`) derived field on the match METADATA item, not a scan of an
+embedded log list. See [Step28 §0.37.5](./Step28_MovementSystem.md).
+
 ## 4. Per-option availability — `ChoiceAvailabilityChecker`
 
 A pure function, no ports, no I/O — a twin of `EventAvailabilityChecker` ([Step 29
@@ -186,13 +190,14 @@ Python and AWS mirror the Java engine and validator described above; see
 
 # Version Control
 
-- **Document Version**: 0.31.0
+- **Document Version**: 0.37.5
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.31.0 | Choice engine: choice-owning events branch `execute-event` to `status: CHOICES_PENDING` + `pendingChoices[]` instead of applying effects; cost/marker paid on open, idempotent re-fetch; `ChoiceAvailabilityChecker` (limits + 8 condition types, AND/OR); `R8_CHOICE_EVENT` validation rule; `R4_CONDITION_KEY` fix; choices never nested into `/info`; react-game `PendingChoicesCard` | July 22, 2026 |
+  | 0.37.5 | AWS-only, no code change here: the open-cycle marker count reads the `eventMarkers` derived field instead of scanning an embedded log list. See [Step28 §0.37.5](./Step28_MovementSystem.md). | September 14, 2026 |
 
-- **Last Updated**: July 22, 2026
+- **Last Updated**: September 14, 2026
 - **Status**: Complete — resolution (select-choice, `list_choices_effects`, `id_event_torun`, `CHOICE_SELECTED`) is [Step 32](./Step32_ChoiceResolution.md)
 
 

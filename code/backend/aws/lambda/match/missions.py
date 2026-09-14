@@ -12,12 +12,12 @@ deliberately so: an unfinished mission must not open itself.
 State rides on the match item's ``registry`` list, one row per mission carrying ``idMission``,
 which is exactly what keeps it out of every player-facing registry read.
 """
-import time as _time
 import uuid as _uuid
 
 from common.data_utils import resolve_card_from_raw as _card, resolve_raw_text as _text
 from common.data_utils import safe_int as _int
 from match import registry as _registry
+from match import logbook as _logbook
 
 STATUS_AVAILABLE = 'AVAILABLE'
 STATUS_ACTIVE = 'ACTIVE'
@@ -178,13 +178,8 @@ def _log(match, name, previous, status, step, clock):
     if step is not None:
         # The step number the author wrote, not the row id: the log is read by a person.
         detail = f"{detail} step {step}"
-    match.setdefault('eventLog', []).append({
-        'message': detail,
-        'clock': clock,
-        'timestamp': int(_time.time() * 1000),
-        'characterUuid': None,
-        'idEvent': None,
-    })
+    _logbook.append(match, 'MISSION_CHANGE', clock, message=detail, characterUuid=None,
+                    idEvent=None)
 
 
 def _rows_of(closed_steps, status, fresh):

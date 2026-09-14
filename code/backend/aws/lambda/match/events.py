@@ -14,6 +14,7 @@ carries ``registry`` / ``eventLog`` / ``currentWeatherId``.
 import uuid as _uuid
 
 from match import registry as _registry
+from match import logbook as _logbook
 
 # Only these two types are player-executable; AUTOMATIC and FIRST are engine-driven, and
 # authored stories also use END / END_GAME for the end-game event (identified by
@@ -138,11 +139,7 @@ def consumed_event_ids(match):
     Other writers stamp an idEvent on log rows for events that were merely REFERENCED,
     never run; trusting idEvent alone would burn a ONCE event the player never triggered.
     """
-    return {
-        _nz(e.get("idEvent")) for e in (match.get("eventLog") or [])
-        if e.get("idEvent") is not None
-        and str(e.get("message") or "").startswith(MSG_EVENT_EXECUTED)
-    }
+    return _logbook.consumed_event_ids(match)
 
 
 def event_cost_coin(event):
@@ -435,13 +432,8 @@ def apply_location(match, char, effect, location_uuids, changes, ts):
         return False  # already there: nothing to move, nothing to log
     char["idLocation"] = target
     char["locationUuid"] = target_uuid
-    match.setdefault("movementLog", []).append({
-        "characterUuid": char.get("uuid"),
-        "idLocationFrom": origin,
-        "idLocationTo": target,
-        "energyCost": 0,
-        "timestampStart": ts,
-    })
+    _logbook.append(match, "MOVEMENT", None, timestamp_ms=ts, characterUuid=char.get("uuid"),
+                    idLocationFrom=origin, idLocationTo=target)
     changes.append({
         "characterUuid": char.get("uuid"),
         "fromLocationUuid": location_uuids.get(_nz(origin)) if origin is not None else None,

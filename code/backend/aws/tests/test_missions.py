@@ -176,7 +176,7 @@ def test_what_opened_and_never_closed_fails_and_what_closed_is_left_alone():
 # ── v0.37.2: every move says so on the log ───────────────────────────────────
 
 def _messages(match):
-    return [e.get("message") for e in (match.get("eventLog") or [])]
+    return [e.get("message") for e in (match.get("_pendingLogs") or [])]
 
 
 def test_opening_a_mission_names_it_both_statuses_and_no_step_yet():
@@ -184,10 +184,10 @@ def test_opening_a_mission_names_it_both_statuses_and_no_step_yet():
     m.evaluate(match, _story([_mission(1)], [_step(10, 1, 1, "s1")]), 4)
 
     assert _messages(match) == ["MISSION_CHANGE m-1 none -> AVAILABLE"]
-    assert match["eventLog"][0]["clock"] == 4
+    assert match["_pendingLogs"][0]["clock"] == 4
     # Nobody in the fiction moves a mission: no character, no event rides on the row.
-    assert match["eventLog"][0]["characterUuid"] is None
-    assert match["eventLog"][0]["idEvent"] is None
+    assert match["_pendingLogs"][0]["characterUuid"] is None
+    assert match["_pendingLogs"][0]["idEvent"] is None
 
 
 def test_closing_a_step_names_the_number_the_author_wrote():
@@ -212,7 +212,7 @@ def test_a_mission_that_does_not_move_writes_no_row_at_all():
     match = _match(k="other")
     m.evaluate(match, _story([_mission(1)], [_step(10, 1, 1, "s1")]), 1)
 
-    assert match.get("eventLog") is None
+    assert match.get("_pendingLogs") is None
 
 
 def test_closing_the_last_step_writes_the_step_row_then_the_missions():

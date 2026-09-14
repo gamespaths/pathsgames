@@ -55,7 +55,7 @@ def _character(**over):
 
 
 def _neighbor(match_item, story_item, characters):
-    def get_side(pk, sk='METADATA'):
+    def get_side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#player-uuid-001':
             return PLAYER_USER
         if pk == 'MATCH#m1':
@@ -69,7 +69,7 @@ def _neighbor(match_item, story_item, characters):
     with patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}), \
          patch('match.handler.db_utils.get_item', side_effect=get_side), \
-         patch('match.handler.db_utils.query_by_pk', return_value=characters):
+         patch('match.handler.db_utils.query_sk_prefix', return_value=characters):
         result = lambda_handler(event, {})
 
     assert result['statusCode'] == 200

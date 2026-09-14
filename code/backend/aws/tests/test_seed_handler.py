@@ -130,7 +130,7 @@ def test_cleanup_with_no_robot_data_returns_zero():
     with patch('seed.handler.db_utils.scan_filter', return_value=guests), \
          patch('seed.handler.db_utils.scan_pk_prefix', return_value=matches), \
          patch('seed.handler.db_utils.delete_item',
-               side_effect=lambda pk, sk='METADATA': deleted.append(pk)), \
+               side_effect=lambda pk, sk='METADATA', consistent=True: deleted.append(pk)), \
          patch('seed.handler.db_utils.delete_all_by_pk',
                side_effect=lambda pk: (deleted.append(pk), 0)[1]), \
          patch.dict(os.environ, {'ENV': 'dev'}):

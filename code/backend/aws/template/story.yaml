@@ -6,6 +6,9 @@ Parameters:
     Type: String
   TableName:
     Type: String
+  StoryCacheTtlSeconds:
+    Type: String
+    Default: "300"
   ApiId:
     Type: String
   AdminApiId:
@@ -54,6 +57,7 @@ Resources:
           ENV: !Ref Environment
           ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
           ADMIN_IP_WHITELIST: !Ref AdminIpWhitelist
+          STORY_CACHE_TTL_SECONDS: !Ref StoryCacheTtlSeconds
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName
@@ -147,6 +151,15 @@ Resources:
     Properties:
       ApiId: !Ref AdminApiId
       RouteKey: "POST /api/admin/stories/import"
+      Target: !Sub "integrations/${StoryAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  FlushCacheRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/admin/cache/flush"
       Target: !Sub "integrations/${StoryAdminIntegration}"
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId

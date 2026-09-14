@@ -47,6 +47,8 @@ from common.http_utils import (normalize_path as _normalize_path,
 COOKIE_MAX_ACCESS  = 1_800        # 30 min  (access token lifetime)
 COOKIE_MAX_REFRESH = 15_552_000   # 6 months (refresh token; 180 * 86400)
 COOKIE_MAX_GUEST   = 15_552_000   # 6 months (guest cookie; 180 * 86400)
+# v0.37.5 — D1 of the index migration: guests created before it live only in GSI1.
+_LEGACY_INDEX_FALLBACK = True
 
 def _now_ms():
     return int(time.time() * 1000)
@@ -266,6 +268,9 @@ def create_guest(event):
         # GSI for lookup by guest token
         'GSI1_PK':         f'GUEST_TOKEN#{guest_tok}',
         'GSI1_SK':         'METADATA',
+        # v0.37.5 — the lookup moved to GSI2Summary; GSI1 keys go with the old index.
+        'GSI2_PK':         f'GUEST_TOKEN#{guest_tok}',
+        'GSI2_SK':         'METADATA',
     })
 
     access_exp  = now + COOKIE_MAX_ACCESS  * 1000
@@ -292,7 +297,9 @@ def resume_guest(event):
         return _err(400, 'MISSING_GUEST_COOKIE',
                     'Missing required guestToken cookie. Please create a new guest session.')
 
-    items = db_utils.query_gsi('GSI1', f'GUEST_TOKEN#{guest_tok}')
+    items = db_utils.query_gsi('GSI2Summary', f'GUEST_TOKEN#{guest_tok}')
+    if not items and _LEGACY_INDEX_FALLBACK:
+        items = db_utils.query_gsi('GSI1', f'GUEST_TOKEN#{guest_tok}')
     if not items:
         return _err(401, 'SESSION_EXPIRED_OR_NOT_FOUND',
                     'Guest session is expired or does not exist. Please create a new guest session.')
@@ -528,7 +535,8 @@ def delete_stale_guests(event):
     stale = _stale_guests(bound)
     matches = _matches_of(stale)
     for match in matches:
-        db_utils.delete_item(match['PK'], match.get('SK', 'METADATA'))
+        # v0.37.5 — drop the whole partition (CHARACTER#, TURN#, LOG#), not only METADATA.
+        db_utils.delete_all_by_pk(match['PK'])
     for guest in stale:
         db_utils.delete_item(guest['PK'], guest.get('SK', 'METADATA'))
     return _ok({'guests': len(stale), 'matches': len(matches),

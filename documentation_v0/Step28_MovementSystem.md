@@ -377,8 +377,9 @@ Python uses its own ORM (no Flyway): `LogMovementEntity` is declared as a SQLAlc
 and the table is created via `Base.metadata.create_all` at startup, with `energy_cost`
 holding the move cost (self-contained — Python has no pre-existing log_movements table).
 
-AWS Lambda stores the movement log as an embedded `movementLog` list on the match item
-in DynamoDB; no table migration is required.
+AWS Lambda stores each movement as its own `MATCH#<uuid>` / `LOG#{ts_ms}#{seq}` row
+(`match/logbook.py`) rather than an embedded `movementLog` list — see **Step 0.37.5** below;
+no table migration is required.
 
 ### 6.3 Visited locations — no schema change
 
@@ -1984,18 +1985,15 @@ parameter.
 | `RECOVERY` | `log_events` (`log_message LIKE 'recovery%'` or `'counter%'`) | At every time-start per character (Step 26) |
 | `ITEM_ADD` / `ITEM_USE` / `ITEM_DROP` | `log_item_usage` | **v0.35.4** — every ADD/USE/DROP/REMOVE the engine writes to `log_item_usage`; a REMOVE surfaces as `ITEM_DROP` (§ below). Before v0.35.4 the table was written only on USE and read by no endpoint |
 
-> **AWS gap (known, narrowed but not closed):** the AWS Lambda `_assemble_match_logs` still
-> only builds `WEATHER` / `MOVEMENT` / `SLEEP` / `CLOCK_ADVANCE` from the match item's
-> embedded `weatherLog` / `movementLog` / `sleepLog` arrays plus `CLOCK#<n>` items — there
-> is no `recoveryLog` and **no `RECOVERY` entries are ever returned on AWS**.
-> `idCharacterMatch` is also always `null` on AWS (characters there are keyed by uuid, not
-> by a numeric instance id). As of this pagination/enrichment extension the gap is
-> narrower than before: AWS now exposes the same `characterUuid` / `characterName` /
-> `idCard` / `card` enrichment as Java and Python via `_enrich_match_logs` — only the
-> `RECOVERY` entry type and the numeric `idCharacterMatch` remain AWS-only omissions. This
-> has not been closed because the AWS backend has not yet been verified end-to-end for
-> this feature (unit tests pass; deploy + live verification pending — see the v0.28.7 row
-> in "Version Control" below).
+> **AWS gap (known, narrowed but not closed):** as of **v0.37.5** the AWS Lambda reads the
+> timeline directly from `LOG#` rows (`match/logbook.py`) instead of the match item's
+> embedded `weatherLog` / `movementLog` / `sleepLog` arrays and `CLOCK#<n>` items — see
+> **Step 0.37.5** below. That change is storage-layout only: there is still no `RECOVERY`
+> entry type on AWS, and `idCharacterMatch` is still always `null` (characters there are
+> keyed by uuid, not by a numeric instance id). AWS still exposes the same `characterUuid` /
+> `characterName` / `idCard` / `card` enrichment as Java and Python. Not closed because the
+> AWS backend has not yet been verified end-to-end for `RECOVERY` (see the v0.28.7 row in
+> "Version Control" below).
 
 ## New: Sleep Logging (v0.28.7)
 
@@ -2313,9 +2311,28 @@ in place above, plus the summary below.
 ---
 
 
+# Paths Games V0 - Step 0.37.5: AWS Match Logs Storage — Rows Not Lists
+
+Cost-cutting pass on the AWS single table (full writeup in
+[code/backend/aws/README.md §"v0.37.5 — cost layout"](../code/backend/aws/README.md)).
+Until v0.37.4 every action rewrote the match METADATA item whole, including the seven
+embedded log lists this document describes above (`movementLog` et al.) plus `CLOCK#<n>`
+items. Now each timeline entry is its own `MATCH#<uuid>` / `LOG#{ts_ms:013d}#{seq:06d}`
+item, already shaped like a `GET /api/matches/{uuid}/logs` entry; a `CLOCK_ADVANCE` log row
+replaces `CLOCK#<n>`. Entries the timeline never shows (edge-state audit rows, choice
+history, story progress) are `AUDIT#` items and do not count toward `logCount`/`total`.
+`logbook.persist(match)` is now the single writer of the match item. Pagination is a real
+DynamoDB range read (`nextCursor` = last key served, `order=desc` = `ScanIndexForward=false`).
+METADATA also gains derived state that replaces scanning the old lists: `executedEventIds`
+(ONCE gating, see [Step29](./Step29_NormalEvents.md)), `eventMarkers` (open choice cycle, see
+[Step31](./Step31_ChoiceEngine.md)), `visitedLocationIds` (fog of war). Matches written
+before v0.37.5 keep their inline lists until their first write strips them; their pre-v0.37.5
+logs are simply not shown, and a `ONCE` event already executed may fire once more. REST
+contract unchanged. No Java/Python change.
+
 # Version Control
 
-- **Document Version**: 0.37.4
+- **Document Version**: 0.37.5
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -2339,8 +2356,9 @@ in place above, plus the summary below.
   | 0.35.6 | `MovementStartResponse` gains `edgeState` (§5.2), folding the verdicts of any automatic arrival events the move triggered. Full writeup in [Step30_EdgeStates.md](./Step30_EdgeStates.md). | August 28, 2026 |
   | 0.35.8 | Python bugfix: the `/info` availability verdict's own neighbor read was missing `cost_food`/`cost_magic`/`cost_coin` and `condition_registry_key`/`_value`, a different gap from the v0.35.3 `/locations` fix. See "v0.35.8 bugfix" above. | August 30, 2026 |
   | 0.37.4 | Cross-reference only, no code change here: `MatchLogCard.jsx` is unchanged, but the door into it moves from gameplay's story card to the profile book's match-missions view. See [Step37 §12 react-game (v0.37.4)](./Step37_MissionSystem.md#12-frontends) and [Step18 §8](./Step18_GameMainFrontend.md#8-game-page-playstoryid). | September 11, 2026 |
+  | 0.37.5 | AWS-only cost-cutting: match logs are now `LOG#`/`AUDIT#` DynamoDB rows instead of embedded lists rewritten whole every action; `CLOCK#<n>` items replaced by `CLOCK_ADVANCE` log rows; derived METADATA state (`executedEventIds`, `eventMarkers`, `visitedLocationIds`) replaces list scans. REST contract unchanged; no Java/Python change. See "Step 0.37.5" section above. | September 14, 2026 |
 
-- **Last Updated**: September 11, 2026 (v0.37.4 cross-reference)
+- **Last Updated**: September 14, 2026 (v0.37.5)
 - **Status**: Complete (Step 28 implementation). Step 33 has since shipped and is Complete; §6.3's forward reference to it is no longer a reference to a design-only document.
 
 # < Paths Games />

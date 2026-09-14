@@ -52,6 +52,10 @@ Parameters:
     Type: String
     Default: ""
     Description: "Comma-separated list of IPs allowed to call /api/admin/** endpoints. Empty = no IP restriction (insecure, dev only). Example: 1.2.3.4,5.6.7.8"
+  StoryCacheTtlSeconds:
+    Type: String
+    Default: "300"
+    Description: "v0.37.5 - seconds a Lambda container keeps a STORY item in memory (0 = no cache). POST /api/admin/cache/flush invalidates everywhere."
 
 Conditions:
   HasCustomDomain: !Not [!Equals [!Ref CustomDomainName, ""]]
@@ -135,6 +139,43 @@ Resources:
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
+        # v0.37.5 — summary-only twin of GSI2, the one every reader uses: admin match
+        # list (PK=MATCH), story list (PK=STORY_LIST) and guest resume (PK=GUEST_TOKEN#).
+        # GSI1 (ALL) and GSI2 (ALL) replicated the whole match item — logs included —
+        # on every write; CloudFormation allows one GSI change per update, so the
+        # migration is three deploys: add GSI2Summary, drop GSI2, drop GSI1.
+        - IndexName: GSI2Summary
+          KeySchema:
+            - AttributeName: GSI2_PK
+              KeyType: HASH
+            - AttributeName: GSI2_SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              # match summary (_summary_from_item)
+              - uuid
+              - storyUuid
+              - difficultyUuid
+              - name
+              - status
+              - currentClock
+              - expCost
+              - rngSeed
+              - userCreatorUuid
+              - tsInsert
+              - singlePlayer
+              - characterTemplateUuid
+              - classUuid
+              - traitUuids
+              # story list: one map holds every scalar and text the summary needs
+              # (common/story_index.py) — DynamoDB caps NonKeyAttributes at 20 per index
+              - summary
+              # guest resume (auth/handler.py resume_guest)
+              - username
+              - role
+              - token_version
+              - guest_token
 
   # HTTP API (API Gateway v2) — public/player surface
   PathsGamesApi:
@@ -282,6 +323,7 @@ Resources:
       Location: template/story.yaml
       Parameters:
         Environment: !Ref Environment
+        StoryCacheTtlSeconds: !Ref StoryCacheTtlSeconds
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
         AdminApiId: !Ref PathsGamesAdminApi
@@ -297,6 +339,7 @@ Resources:
       Location: template/match.yaml
       Parameters:
         Environment: !Ref Environment
+        StoryCacheTtlSeconds: !Ref StoryCacheTtlSeconds
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
         AdminApiId: !Ref PathsGamesAdminApi
@@ -314,6 +357,7 @@ Resources:
       Location: template/content.yaml
       Parameters:
         Environment: !Ref Environment
+        StoryCacheTtlSeconds: !Ref StoryCacheTtlSeconds
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
         AllowMockAccess: !Ref AllowMockAccess

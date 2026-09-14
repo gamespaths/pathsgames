@@ -89,6 +89,13 @@ Returns the matches owned by the authenticated user, newest first.
 
 **AWS GSI1Summary — perf note (v0.37.4):** a new DynamoDB index **GSI1Summary** (same `GSI1_PK`/`GSI1_SK` keys as GSI1, `Projection: INCLUDE` on the 14 `_summary_from_item` fields) backs this query and `_has_active_match_for_story` (§6.1), replacing the full-item GSI1 read that returned locations/registry/logs for every match and risked the game client's 5 s timeout. No backfill needed — existing items are indexed on deploy; while `IndexStatus` is backfilling, the list query returns `[]`. `MatchFunction` memory raised 256→1024 MB to cut cold-start latency.
 
+**AWS GSI2Summary — cost note (v0.37.5):** a second `INCLUDE` index, `GSI2Summary`, backs the
+admin match list (§2.3, `GSI2_PK="MATCH"`), story lists, and guest resume — this user list keeps
+`GSI1Summary`. Migration is three `sam deploy`s (CloudFormation allows one GSI change per
+update): add `GSI2Summary` + run `scripts/backfill_gsi2_summary.py`, then drop `GSI2`, then drop
+`GSI1`. Readers fall back to the legacy index when `GSI2Summary` answers nothing. Full detail in
+[code/backend/aws/README.md](../code/backend/aws/README.md).
+
 ### 2.3 `GET /api/admin/matches` *(v0.19.10 — paginato e filtrabile da v0.28.1)*
 
 Returns **all** matches on the platform, regardless of creator. Requires `ADMIN` role.
@@ -551,7 +558,7 @@ The same suite passes against the Python backends — see `code/scripts/dev/run_
   
   > Ciao, i've a problem; when rotob test runned , in tables there are so many rows from tests execution, for example guest users and matches. I wanna remove these elements from tables (sql/dynamo) after robot test runned, i wanna remove only robot test rows preserve others informations. 
 
-- **Document Version**: 0.37.4
+- **Document Version**: 0.37.5
     | Version | Description | Date |
     | --- | --- | --- |
 
@@ -573,8 +580,9 @@ The same suite passes against the Python backends — see `code/scripts/dev/run_
     | 0.32.1 | One active match per user and story | Aug 10, 2026 |
     | 0.35.8 | New opt-in `RESUME_WITHOUT_MODAL` flag (§6.1): "Resume" jumps straight into the match, skipping the guest modal, via the new `findResumableMatch` helper. | August 30, 2026 |
     | 0.37.4 | AWS `GET /api/matches` perf fix: new GSI1Summary index (summary-only projection) replaces full-item GSI1 for the user match list and the §6.1 duplicate guard; `MatchFunction` memory 256→1024 MB. | Sep 11, 2026 |
+    | 0.37.5 | AWS cost pass: new GSI2Summary index backs admin match list, story lists, guest resume (§2.2); three-deploy migration with `backfill_gsi2_summary.py` and legacy-index fallback. | Sep 14, 2026 |
 
-- **Last Updated**: Sep 11, 2026
+- **Last Updated**: Sep 14, 2026
 - **Status**: Complete
 
 

@@ -637,7 +637,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.1.2 | update "2. Define the V1 scope" and "3. Define the technology stack" sections | February 10, 2026 |
  
 
-- **Last Updated**: September 11, 2026 (v0.37.4)
+- **Last Updated**: September 14, 2026 (v0.37.5 — AWS DynamoDB cost-cutting pass: match logs as rows, GSI2Summary, story cache)
 - **Status**: In progress
 
 

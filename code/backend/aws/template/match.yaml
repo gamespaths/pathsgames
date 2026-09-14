@@ -6,6 +6,9 @@ Parameters:
     Type: String
   TableName:
     Type: String
+  StoryCacheTtlSeconds:
+    Type: String
+    Default: "300"
   ApiId:
     Type: String
   AdminApiId:
@@ -68,6 +71,7 @@ Resources:
           JWT_SECRET: !Ref JwtSecret
           TURNSTILE_SECRET_KEY: !Ref TurnstileSecretKey
           TURNSTILE_BYPASS_TOKEN: !Ref TurnstileBypassToken
+          STORY_CACHE_TTL_SECONDS: !Ref StoryCacheTtlSeconds
           ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
           ADMIN_IP_WHITELIST: !Ref AdminIpWhitelist
       Policies:

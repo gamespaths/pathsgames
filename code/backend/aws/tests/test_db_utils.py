@@ -422,3 +422,131 @@ class TestScanPkPrefix:
     def test_a_client_error_yields_nothing(self, mock_table):
         mock_table.scan.side_effect = ClientError({'Error': {'Code': 'X'}}, 'Scan')
         assert db.scan_pk_prefix('MATCH#') == []
+
+
+# ── v0.37.5 — eventual reads, SK-prefix queries, batch writes, cache stamps ───
+
+@patch.object(db, '_table')
+class TestEventualGetItem:
+    def test_consistent_false_is_forwarded(self, mock_table):
+        mock_table.get_item.return_value = {'Item': {'PK': 'STORY#1'}}
+        assert db.get_item('STORY#1', consistent=False) == {'PK': 'STORY#1'}
+        mock_table.get_item.assert_called_once_with(
+            Key={'PK': 'STORY#1', 'SK': 'METADATA'}, ConsistentRead=False)
+
+
+@patch.object(db, '_table')
+class TestQuerySkPrefix:
+    def test_all_pages_consistent_by_default(self, mock_table):
+        mock_table.query.side_effect = [
+            {'Items': [{'SK': 'CHARACTER#a'}], 'LastEvaluatedKey': {'x': 1}},
+            {'Items': [{'SK': 'CHARACTER#b'}]},
+        ]
+        rows = db.query_sk_prefix('MATCH#m1', 'CHARACTER#')
+        assert [r['SK'] for r in rows] == ['CHARACTER#a', 'CHARACTER#b']
+        first = mock_table.query.call_args_list[0][1]
+        assert first['ConsistentRead'] is True and 'FilterExpression' not in first
+        assert mock_table.query.call_args_list[1][1]['ExclusiveStartKey'] == {'x': 1}
+
+    def test_filter_and_eventual(self, mock_table):
+        from boto3.dynamodb.conditions import Attr
+        mock_table.query.return_value = {'Items': []}
+        db.query_sk_prefix('MATCH#m1', 'LOG#', consistent=False,
+                           filter_expr=Attr('type').eq('WEATHER'))
+        kwargs = mock_table.query.call_args[1]
+        assert kwargs['ConsistentRead'] is False and 'FilterExpression' in kwargs
+
+    def test_client_error_returns_empty(self, mock_table):
+        mock_table.query.side_effect = ClientError({'Error': {'Code': 'X'}}, 'Query')
+        assert db.query_sk_prefix('MATCH#m1', 'LOG#') == []
+
+
+@patch.object(db, '_table')
+class TestQuerySkPrefixPage:
+    def test_one_page_with_limit_order_and_start_key(self, mock_table):
+        mock_table.query.return_value = {'Items': [{'SK': 'LOG#1'}],
+                                         'LastEvaluatedKey': {'SK': 'LOG#1'}}
+        items, last = db.query_sk_prefix_page('MATCH#m1', 'LOG#', 3, start_key={'SK': 'LOG#0'},
+                                              ascending=False)
+        assert items == [{'SK': 'LOG#1'}] and last == {'SK': 'LOG#1'}
+        kwargs = mock_table.query.call_args[1]
+        assert kwargs['Limit'] == 3 and kwargs['ScanIndexForward'] is False
+        assert kwargs['ConsistentRead'] is False
+        assert kwargs['ExclusiveStartKey'] == {'SK': 'LOG#0'}
+
+    def test_no_start_key_and_error(self, mock_table):
+        mock_table.query.return_value = {'Items': []}
+        assert db.query_sk_prefix_page('MATCH#m1', 'LOG#', 3) == ([], None)
+        assert 'ExclusiveStartKey' not in mock_table.query.call_args[1]
+        mock_table.query.side_effect = ClientError({'Error': {'Code': 'X'}}, 'Query')
+        assert db.query_sk_prefix_page('MATCH#m1', 'LOG#', 3) == ([], None)
+
+
+@patch.object(db, '_table')
+class TestBatchPutItems:
+    def test_empty_is_a_no_op(self, mock_table):
+        import helpers
+        assert helpers.REAL_BATCH_PUT([]) is True
+        mock_table.batch_writer.assert_not_called()
+
+    def test_rows_are_stamped_and_written_through_the_batch_writer(self, mock_table):
+        writer = MagicMock()
+        mock_table.batch_writer.return_value.__enter__.return_value = writer
+        import helpers
+        rows = [{'PK': 'A', 'SK': 'LOG#1', 'score': 1.5}, {'PK': 'A', 'SK': 'LOG#2', 'ts_insert': 5}]
+        assert helpers.REAL_BATCH_PUT(rows) is True
+        assert writer.put_item.call_count == 2
+        first = writer.put_item.call_args_list[0][1]['Item']
+        assert first['score'] == Decimal('1.5') and first['ts_insert'] > 0 and first['ts_update'] > 0
+        assert writer.put_item.call_args_list[1][1]['Item']['ts_insert'] == 5
+
+    def test_errors_return_false(self, mock_table):
+        import helpers
+        mock_table.batch_writer.side_effect = ClientError({'Error': {'Code': 'X'}}, 'Batch')
+        assert helpers.REAL_BATCH_PUT([{'PK': 'A', 'SK': 'B'}]) is False
+        mock_table.batch_writer.side_effect = RuntimeError('boom')
+        assert helpers.REAL_BATCH_PUT([{'PK': 'A', 'SK': 'B'}]) is False
+
+
+@patch.object(db, '_table')
+class TestQueryGsiKeyMap:
+    def test_gsi2_family_uses_its_own_attributes(self, mock_table):
+        mock_table.query.return_value = {'Items': []}
+        db.query_gsi('GSI2Summary', 'MATCH', sk_prefix='0')
+        kwargs = mock_table.query.call_args[1]
+        assert kwargs['IndexName'] == 'GSI2Summary'
+        assert kwargs['KeyConditionExpression'] == 'GSI2_PK = :pk AND begins_with(GSI2_SK, :sk)'
+
+    def test_unknown_index_falls_back_to_gsi1_attributes(self, mock_table):
+        mock_table.query.return_value = {'Items': []}
+        db.query_gsi('Whatever', 'X')
+        assert mock_table.query.call_args[1]['KeyConditionExpression'] == 'GSI1_PK = :pk'
+
+
+class TestCacheVersions:
+    def test_get_defaults_when_the_item_is_missing(self):
+        with patch.object(db, 'get_item', return_value=None) as get:
+            assert db.get_cache_versions() == {'storyVersions': {}, 'globalVersion': 0}
+        get.assert_called_once_with('SYSTEM#cache')
+
+    def test_get_reads_the_stored_stamps(self):
+        with patch.object(db, 'get_item', return_value={'storyVersions': {'s1': Decimal(5)},
+                                                        'globalVersion': Decimal(9)}):
+            out = db.get_cache_versions()
+        assert out == {'storyVersions': {'s1': Decimal(5)}, 'globalVersion': 9}
+
+    def test_bump_story_creates_the_item_and_stamps_the_story(self):
+        saved = {}
+        with patch.object(db, 'get_item', return_value=None), \
+             patch.object(db, 'put_item', side_effect=lambda item: saved.update(item)):
+            ts = db.bump_story_version('s1')
+        assert saved['PK'] == 'SYSTEM#cache' and saved['SK'] == 'METADATA'
+        assert saved['storyVersions'] == {'s1': ts} and ts > 0
+
+    def test_bump_global_resets_the_per_story_stamps(self):
+        saved = {}
+        with patch.object(db, 'get_item', return_value={'PK': 'SYSTEM#cache', 'SK': 'METADATA',
+                                                        'storyVersions': {'s1': 1}}), \
+             patch.object(db, 'put_item', side_effect=lambda item: saved.update(item)):
+            ts = db.bump_global_version()
+        assert saved['globalVersion'] == ts and saved['storyVersions'] == {}

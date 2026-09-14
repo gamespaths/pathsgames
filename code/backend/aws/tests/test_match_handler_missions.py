@@ -40,7 +40,7 @@ def _player_event(method, path, path_params=None, qs=None):
 
 
 def _get_side(match=MATCH, story=STORY):
-    def side(pk, sk='METADATA'):
+    def side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#player-uuid-001':
             return PLAYER_USER
         if pk == 'MATCH#m1':
@@ -53,7 +53,7 @@ def _get_side(match=MATCH, story=STORY):
 
 def _call(event, match=MATCH):
     with patch('match.handler.db_utils.get_item') as get_item, \
-            patch('match.handler.db_utils.query_by_pk', return_value=[]), \
+            patch('match.handler.db_utils.query_sk_prefix', return_value=[]), \
             patch('match.handler.jwt_utils.verify_access_token', return_value=PLAYER_USER):
         get_item.side_effect = _get_side(match)
         from match.handler import lambda_handler

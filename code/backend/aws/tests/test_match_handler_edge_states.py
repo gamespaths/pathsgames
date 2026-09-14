@@ -11,7 +11,7 @@ jwt_utils and db_utils are patched; no AWS calls are made.
 import json
 from unittest.mock import patch
 
-from helpers import make_event
+from helpers import make_event, derived_from_log, written_rows
 
 USER = {'PK': 'USER#u1', 'SK': 'METADATA', 'uuid': 'u1', 'username': 'guest',
         'role': 'PLAYER'}
@@ -66,7 +66,7 @@ def run(the_story, the_character=None):
     """Drive execute-event with the given story and character, return the parsed body."""
     char = the_character or character()
 
-    def _get_side(pk, sk='METADATA'):
+    def _get_side(pk, sk='METADATA', consistent=True):
         if pk.startswith('USER#'):
             return USER
         if pk.startswith('MATCH#'):
@@ -83,7 +83,7 @@ def run(the_story, the_character=None):
     with patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'}), \
             patch('match.handler.db_utils.put_item', side_effect=written.append), \
-            patch('match.handler.db_utils.query_by_pk', return_value=[char]), \
+            patch('match.handler.db_utils.query_sk_prefix', return_value=[char]), \
             patch('match.handler.db_utils.get_item', side_effect=_get_side):
         from match.handler import lambda_handler
         result = lambda_handler(event, {})
@@ -91,12 +91,12 @@ def run(the_story, the_character=None):
     return json.loads(result['body']), written
 
 
-def party_rows(written):
+def party_rows(_written=None):
+    """v0.37.5 — the party-wide row is an AUDIT# item, batch-written beside the match."""
     from match import events as _events
-    for item in written:
-        for row in item.get('eventLog') or []:
-            if str(row.get('message') or '').startswith(_events.MSG_ALL_PLAYER_COMA):
-                yield row
+    for row in written_rows().audits():
+        if str(row.get('message') or '').startswith(_events.MSG_ALL_PLAYER_COMA):
+            yield row
 
 
 # ── coma ────────────────────────────────────────────────────────────────────
@@ -121,7 +121,7 @@ def test_a_comatose_actor_cannot_execute_at_all():
     """
     already = character(life=0, isComa=1, isSleeping=1, clockInComa=2)
 
-    def _get_side(pk, sk='METADATA'):
+    def _get_side(pk, sk='METADATA', consistent=True):
         if pk.startswith('USER#'):
             return USER
         if pk.startswith('MATCH#'):
@@ -137,7 +137,7 @@ def test_a_comatose_actor_cannot_execute_at_all():
     with patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'}), \
             patch('match.handler.db_utils.put_item'), \
-            patch('match.handler.db_utils.query_by_pk', return_value=[already]), \
+            patch('match.handler.db_utils.query_sk_prefix', return_value=[already]), \
             patch('match.handler.db_utils.get_item', side_effect=_get_side):
         from match.handler import lambda_handler
         result = lambda_handler(event, {})
@@ -289,10 +289,10 @@ def choice_story(**over):
 def resolve(the_story, choice_uuid='ch-fatal', characters=None):
     """Drive select-choice on an OPEN cycle for event 30, return (body, written rows)."""
     chars = characters if characters is not None else [character()]
-    open_cycle = {**MATCH, 'eventLog': [
-        {'characterUuid': 'c1', 'idEvent': 30, 'clock': 7, 'message': 'EVENT_EXECUTED 30'}]}
+    open_cycle = {**MATCH, **derived_from_log([
+        {'characterUuid': 'c1', 'idEvent': 30, 'clock': 7, 'message': 'EVENT_EXECUTED 30'}])}
 
-    def _get_side(pk, sk='METADATA'):
+    def _get_side(pk, sk='METADATA', consistent=True):
         if pk.startswith('USER#'):
             return USER
         if pk.startswith('MATCH#'):
@@ -309,7 +309,7 @@ def resolve(the_story, choice_uuid='ch-fatal', characters=None):
     with patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'}), \
             patch('match.handler.db_utils.put_item', side_effect=written.append), \
-            patch('match.handler.db_utils.query_by_pk', return_value=chars), \
+            patch('match.handler.db_utils.query_sk_prefix', return_value=chars), \
             patch('match.handler.db_utils.get_item', side_effect=_get_side):
         from match.handler import lambda_handler
         result = lambda_handler(event, {})
@@ -385,11 +385,11 @@ def test_a_once_epilogue_already_spent_does_not_fire_again():
         {'characterUuid': 'c1', 'idEvent': 30, 'clock': 7, 'message': 'EVENT_EXECUTED 30'},
         {'characterUuid': 'c1', 'idEvent': 20, 'clock': 3, 'message': 'EVENT_EXECUTED 20'}]
 
-    def _get_side(pk, sk='METADATA'):
+    def _get_side(pk, sk='METADATA', consistent=True):
         if pk.startswith('USER#'):
             return USER
         if pk.startswith('MATCH#'):
-            return {**MATCH, 'eventLog': list(open_cycle_log)}
+            return {**MATCH, **derived_from_log(open_cycle_log)}
         if pk.startswith('STORY#'):
             return once
         return None
@@ -401,7 +401,7 @@ def test_a_once_epilogue_already_spent_does_not_fire_again():
     with patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'}), \
             patch('match.handler.db_utils.put_item'), \
-            patch('match.handler.db_utils.query_by_pk', return_value=chars), \
+            patch('match.handler.db_utils.query_sk_prefix', return_value=chars), \
             patch('match.handler.db_utils.get_item', side_effect=_get_side):
         from match.handler import lambda_handler
         result = lambda_handler(event, {})
@@ -447,18 +447,11 @@ def test_the_epilogue_s_move_is_an_arrival_like_any_other():
     body, written = resolve(story)
 
     assert body['edgeState']['comaEventUuid'] == 'evt-coma'
-    logged = [row.get('idEvent') for w in written if w.get('SK') == 'METADATA'
-              for row in (w.get('eventLog') or [])]
+    logged = [row.get('idEvent') for row in written_rows().logs()]
     assert 60 in logged, 'the destination the epilogue carried the body to never fired'
     # And the epilogue is spent: that arrival must not run it a second time on a party
-    # that is, of course, still entirely down. Counted on the FINAL match snapshot: the
-    # same dict is written several times, so party_rows(written) would count it once per
-    # write rather than once per row.
-    from match import events as _events
-    final = [w for w in written if w.get('SK') == 'METADATA'][-1]
-    party = [r for r in final.get('eventLog') or []
-             if str(r.get('message') or '').startswith(_events.MSG_ALL_PLAYER_COMA)]
-    assert len(party) == 1
+    # that is, of course, still entirely down.
+    assert len(list(party_rows())) == 1
 
 
 # ── _apply_edge_states over the whole roster, not only the caller ────────────
@@ -486,7 +479,7 @@ def test_apply_edge_states_skips_a_character_over_no_edge():
     _apply_edge_states(match, None, acc, 7)
     assert acc['statChanges'] == []
     assert acc['edgeState']['sadnessOverflowUuids'] == []
-    assert 'eventLog' not in match
+    assert '_pendingAudit' not in match
 
 
 def test_apply_edge_states_discharges_sadness_and_logs_it():
@@ -500,7 +493,7 @@ def test_apply_edge_states_discharges_sadness_and_logs_it():
     assert acc['edgeState']['sadnessOverflowUuids'] == ['c1']
     assert acc['flags']['forcedSleep'] is True
     assert [(s['statistic'], s['after']) for s in acc['statChanges']] == [('life', 20), ('sad', 0)]
-    assert len(match['eventLog']) == 1
+    assert len(match['_pendingAudit']) == 1
 
 
 def test_apply_edge_states_stamps_the_coma_and_the_clock():

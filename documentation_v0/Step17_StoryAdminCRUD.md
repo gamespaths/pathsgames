@@ -38,6 +38,7 @@ All endpoints are secured under `/api/admin/` path prefix (requires ADMIN JWT).
 | PUT | `/api/admin/stories/{uuidStory}` | 200/404/400 | Update story metadata |
 | GET | `/api/admin/stories` | 200 | List all stories (existing) |
 | DELETE | `/api/admin/stories/{uuid}` | 200/404 | Delete story (existing) |
+| POST | `/api/admin/cache/flush` | 200 | **AWS-only, v0.37.5** — bump the global story-cache stamp; see §6.9 |
 
 ### 2.2 Sub-Entity CRUD Pattern
 
@@ -222,6 +223,32 @@ Operational outcome:
 - SQLite create flows no longer fail on missing scoped numeric IDs.
 - PostgreSQL create/update flows no longer fail on duplicate `id_story` insert bindings.
 
+### 6.9 AWS Story Cache and `POST /api/admin/cache/flush` (v0.37.5)
+
+**AWS-only** — Java/Python have no story cache and do not expose this route (404). Full
+writeup in [code/backend/aws/README.md](../code/backend/aws/README.md).
+
+A warm Lambda container now serves a STORY item from memory for `STORY_CACHE_TTL_SECONDS`
+(template parameter, default 300s, `0` = off) instead of re-reading it (~326 KB, consistent)
+on every request. Every admin write in this document (import, create/update/delete on §2.1
+and §2.2, seed) bumps that story's cache stamp on `SYSTEM#cache/METADATA`; each handler reads
+the stamp once per invocation, so the very next request sees the edit. New endpoint,
+IP-authorizer + ADMIN role protected:
+
+```
+POST /api/admin/cache/flush
+→ 200 { "status": "FLUSHED", "globalVersion": <ms> }
+```
+
+Bumps the **global** stamp, forcing every warm container to refetch every story on its next
+request — use it after a bulk/manual DynamoDB edit that bypassed the admin API. OpenAPI:
+`code/backend/java/adapter-rest/src/main/resources/openapi/v0.37.5-admin-cache-api.yaml`.
+
+Story listing also gets a precomputed `summary` map (`meta`/`langs`, one attribute) read via
+the new `GSI2Summary` index instead of `raw_texts`/`raw_cards` — see
+[Step15_StoryContentAPIs.md](./Step15_StoryContentAPIs.md) and
+[Step19 §2.2](./Step19_SinglePlayerMatchCreation.md).
+
 ## 7. Frontend Implementation
 
 ### 7.1 Admin Panel (`react-admin`)
@@ -398,7 +425,7 @@ Files changed (react-admin only):
 
 cd /mnt/Dati4/Workspace/pathsgames/code/tests/robot && source /mnt/Dati4/Workspace/pathsgames/.venv/bin/activate && pip install -q -r requirements.txt && python -m robot --variablefile variables/dev.yaml tests/14_admin/story_import.robot
 
-- **Document Version**: 0.35.8
+- **Document Version**: 0.37.5
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.17.0 | Admin CRUD APIs | April 25, 2026 |
@@ -411,8 +438,9 @@ cd /mnt/Dati4/Workspace/pathsgames/code/tests/robot && source /mnt/Dati4/Workspa
     | 0.28.2 | Loc Neighbors "Card Back" column in `EntityTable.jsx`; `handleDuplicateCardBack` in `StoryEditorPage.jsx`; `idCardBack` plain column removed from `storiesEntities.jsx` for neighbors; +10 vitest tests (418 total pass) | June 26, 2026 |
     | 0.28.2 | **Bugfix** Stories export: `handleExport` in `StoriesPage.jsx` used camelCase apiTypes `'weatherRules'` and `'globalRandomEvents'`; admin API requires kebab-case, so those collections exported empty and were lost on reimport. Corrected to `'weather-rules'` / `'global-random-events'`; jsonKey values unchanged. Regression test added; 419 vitest tests pass. | June 26, 2026 |
     | 0.35.8 | Story texts capped at 2000 chars everywhere, matching the widened `short_text` column. New `textLimits.js`/`TextLengthHint.jsx`, applied to `EntityForm`, the texts entity fields, and both fast-text modals. | August 30, 2026 |
+    | 0.37.5 | AWS-only cost pass: new `POST /api/admin/cache/flush` bumps the story cache's global stamp; every admin write here already bumps the story's own stamp. Story listing reads a precomputed `summary` map via `GSI2Summary`. No Java/Python change. | September 14, 2026 |
 
-- **Last Updated**: August 30, 2026
+- **Last Updated**: September 14, 2026
 - **Status**: In progress
 
 

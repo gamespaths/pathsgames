@@ -31,7 +31,7 @@ def _player_event(method, path, path_params=None, qs=None):
 
 
 def _get_side(match=MATCH, story=STORY):
-    def side(pk, sk='METADATA'):
+    def side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#player-uuid-001':
             return PLAYER_USER
         if pk == 'MATCH#m1':
@@ -123,7 +123,7 @@ def test_the_uuid_falls_back_to_the_path_segment(_jwt, mock_get):
     assert result['statusCode'] == 200
 
 
-@patch('match.handler.db_utils.query_by_pk', return_value=[])
+@patch('match.handler.db_utils.query_sk_prefix', return_value=[])
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'})
