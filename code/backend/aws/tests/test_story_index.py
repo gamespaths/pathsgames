@@ -112,6 +112,7 @@ def test_import_writes_the_index_attributes_on_the_story():
     saved = []
     admin = {'PK': 'USER#admin-uuid-001', 'uuid': 'admin-uuid-001', 'role': 'ADMIN'}
     with patch('story.handler.db_utils.get_item', return_value=admin), \
+         patch('story.handler.db_utils.delete_all_by_pk', return_value=0), \
          patch('story.handler.db_utils.query_gsi', return_value=[]), \
          patch('story.handler.db_utils.put_item', side_effect=saved.append), \
          patch('story.handler.story_cache.bump'):

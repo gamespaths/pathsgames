@@ -14,6 +14,32 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 
 @pytest.fixture(autouse=True)
+def _no_real_dynamodb(monkeypatch):
+    """v0.37.5 — a db_utils call nobody patched must fail the same way with or without AWS
+    credentials (CI has none): answer it with a ClientError the helpers already catch."""
+    from botocore.exceptions import ClientError
+    from common import db_utils
+
+    class _Offline:
+        def __getattr__(self, name):
+            def _raise(*_a, **_k):
+                raise ClientError({'Error': {'Code': 'OfflineUnitTest',
+                                             'Message': f'table.{name} reached DynamoDB'}}, name)
+            return _raise
+
+    real_get_table = db_utils._get_table
+
+    def guarded():
+        if db_utils._table is not None:
+            return db_utils._table
+        if db_utils.__dict__.get('_OFFLINE_BYPASS'):
+            return real_get_table()
+        return _Offline()
+
+    monkeypatch.setattr(db_utils, '_get_table', guarded)
+
+
+@pytest.fixture(autouse=True)
 def _row_sink(monkeypatch):
     """v0.37.5 — log rows go to an in-memory sink unless a suite patches the table itself."""
     import helpers

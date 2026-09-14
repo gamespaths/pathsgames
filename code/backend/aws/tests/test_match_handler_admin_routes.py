@@ -74,7 +74,7 @@ def test_put_invalid_json_returns_400(mock_get, _jwt):
 
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
-@patch('match.handler.db_utils.delete_item', return_value=True)
+@patch('match.handler.db_utils.delete_all_by_pk', return_value=1)
 @patch('match.handler.db_utils.get_item')
 def test_delete_match_route(mock_get, _del, _jwt):
     # a terminal (ENDED) match can be deleted

@@ -4,6 +4,8 @@ We patch `common.db_utils._table` (the lazy-initialized DynamoDB Table object)
 so no real AWS calls are made and boto3 is never contacted at import time.
 """
 from decimal import Decimal
+
+import pytest
 from unittest.mock import MagicMock, patch
 from botocore.exceptions import ClientError
 import common.db_utils as db
@@ -137,6 +139,11 @@ class TestUpdateTsLastAccess:
 
 
 class TestGetTable:
+    @pytest.fixture(autouse=True)
+    def _real_get_table(self, monkeypatch):
+        """The conftest guard stands aside: these tests are about the lazy boto3 binding."""
+        monkeypatch.setattr(db, '_OFFLINE_BYPASS', True, raising=False)
+
     def test_lazy_initialization_uses_env_values(self):
         fake_table = MagicMock()
         fake_resource = MagicMock()

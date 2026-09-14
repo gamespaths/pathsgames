@@ -965,6 +965,8 @@ def test_public_story_reads_go_through_the_cache_and_writes_bump_it():
     load.assert_called_once_with('s9')
 
     with patch('story.handler.db_utils.get_item', return_value=ADMIN_USER), \
+         patch('story.handler.db_utils.delete_all_by_pk', return_value=0), \
+         patch('story.handler.db_utils.query_gsi', return_value=[]), \
          patch('story.handler.db_utils.put_item'), \
          patch('story.handler.story_cache.bump') as bump:
         result = lambda_handler(admin_event('POST', '/api/admin/stories/import',
