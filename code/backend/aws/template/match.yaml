@@ -4,11 +4,14 @@ Transform: AWS::Serverless-2016-10-31
 Parameters:
   Environment:
     Type: String
+  LambdaSystemLogLevel:
+    Type: String
+    Default: WARN
   TableName:
     Type: String
   StoryCacheTtlSeconds:
     Type: String
-    Default: "300"
+    Default: "3600"
   ApiId:
     Type: String
   AdminApiId:
@@ -56,6 +59,11 @@ Resources:
     Properties:
       FunctionName: !Sub "pathsgames-${Environment}-MatchFunction"
       Runtime: python3.13
+      Architectures: [arm64]
+      LoggingConfig:
+        LogFormat: JSON
+        SystemLogLevel: !Ref LambdaSystemLogLevel
+        ApplicationLogLevel: INFO
       Handler: match.handler.lambda_handler
       Timeout: 30
       # v0.37.5 — 1024 MB: CPU scales with memory, so cold start + DynamoDB fan-out stay under the game client's timeout.

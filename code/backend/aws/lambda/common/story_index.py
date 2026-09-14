@@ -1,9 +1,9 @@
 """v0.37.5 — the STORY_LIST index attributes: GSI2 keys plus a compact, per-language
-summary so listing stories never reads the 300 KB item (GSI2Summary is an INCLUDE index)."""
+summary so listing stories never reads the 300 KB item (GSI2 is an INCLUDE index)."""
 from common.data_utils import resolve_raw_text, resolve_card_from_raw
 
 STORY_LIST_PK = 'STORY_LIST'
-# DynamoDB projects at most 20 non-key attributes per index, so a story row on GSI2Summary
+# DynamoDB projects at most 20 non-key attributes per index, so a story row on GSI2
 # carries ONE attribute, ``summary``: ``{'meta': {the scalar fields below}, 'langs': {...}}``.
 META_FIELDS = ('id', 'author', 'category', 'group', 'visibility', 'priority', 'peghi',
                'difficulty_count', 'idCard', 'idTextClockSingular', 'idTextClockPlural')

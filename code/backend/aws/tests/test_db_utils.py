@@ -119,14 +119,12 @@ class TestDeleteAllByPk:
         count = db.delete_all_by_pk('S#1')
         assert count == 2
         assert mock_table.delete_item.call_count == 2
+        assert mock_table.query.call_args.kwargs['ProjectionExpression'] == 'PK, SK'
 
-
-@patch.object(db, '_table')
-class TestScanFilter:
-    def test_returns_matching_items(self, mock_table):
-        mock_table.scan.return_value = {'Items': [{'PK': 'USER#1', 'is_guest': True}]}
-        result = db.scan_filter('is_guest', True)
-        assert len(result) == 1
+    def test_query_error_deletes_nothing(self, mock_table):
+        mock_table.query.side_effect = ClientError({'Error': {'Code': 'X'}}, 'Query')
+        assert db.delete_all_by_pk('S#1') == 0
+        mock_table.delete_item.assert_not_called()
 
 
 @patch.object(db, '_table')
@@ -228,13 +226,6 @@ class TestDbUtilsErrorBranches:
         )
         assert db.query_gsi('GSI1', 'X') == []
 
-    def test_scan_filter_client_error_returns_empty(self, mock_table):
-        mock_table.scan.side_effect = ClientError(
-            {'Error': {'Code': 'InternalServerError', 'Message': 'boom'}},
-            'Scan'
-        )
-        assert db.scan_filter('is_guest', True) == []
-
     def test_update_ts_last_access_client_error_returns_false(self, mock_table):
         mock_table.update_item.side_effect = ClientError(
             {'Error': {'Code': 'InternalServerError', 'Message': 'boom'}},
@@ -246,16 +237,6 @@ class TestDbUtilsErrorBranches:
 @patch.object(db, '_table')
 class TestPagination:
     """scan/query helpers must follow LastEvaluatedKey so large tables are fully read."""
-
-    def test_scan_pk_prefix_follows_last_evaluated_key(self, mock_table):
-        mock_table.scan.side_effect = [
-            {'Items': [{'PK': 'MATCH#1'}], 'LastEvaluatedKey': {'PK': 'MATCH#1'}},
-            {'Items': [{'PK': 'MATCH#2'}]},
-        ]
-        result = db.scan_pk_prefix('MATCH#')
-        assert [i['PK'] for i in result] == ['MATCH#1', 'MATCH#2']
-        assert mock_table.scan.call_count == 2
-        assert mock_table.scan.call_args_list[1].kwargs['ExclusiveStartKey'] == {'PK': 'MATCH#1'}
 
     def test_query_by_pk_follows_last_evaluated_key(self, mock_table):
         mock_table.query.side_effect = [
@@ -319,116 +300,6 @@ class TestQueryIndexPage:
         mock_table.query.side_effect = ClientError(
             {'Error': {'Code': 'InternalServerError', 'Message': 'boom'}}, 'Query')
         assert db.query_index_page('GSI2', 'GSI2_PK', 'MATCH') == ([], None)
-
-
-@patch.object(db, '_table')
-class TestBackfillGsi2Matches:
-    """v0.28.1 migration — add GSI2 keys to matches that predate the index."""
-
-    def test_backfills_only_rows_missing_keys(self, mock_table):
-        mock_table.scan.return_value = {'Items': [
-            {'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'tsInsert': 100},
-            {'PK': 'MATCH#m2', 'SK': 'METADATA', 'uuid': 'm2', 'tsInsert': 200,
-             'GSI2_PK': 'MATCH', 'GSI2_SK': '00000000000000000200#m2'},
-        ]}
-        stats = db.backfill_gsi2_matches()
-        assert stats == {'scanned': 2, 'updated': 1, 'skipped': 1}
-        # only m1 is written, with the same SK format as _create_match
-        mock_table.update_item.assert_called_once()
-        kwargs = mock_table.update_item.call_args.kwargs
-        assert kwargs['Key'] == {'PK': 'MATCH#m1', 'SK': 'METADATA'}
-        assert kwargs['ExpressionAttributeValues'][':p'] == 'MATCH'
-        assert kwargs['ExpressionAttributeValues'][':s'] == '00000000000000000100#m1'
-
-    def test_dry_run_writes_nothing(self, mock_table):
-        mock_table.scan.return_value = {'Items': [
-            {'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'tsInsert': 100},
-        ]}
-        stats = db.backfill_gsi2_matches(dry_run=True)
-        assert stats == {'scanned': 1, 'updated': 1, 'skipped': 0}
-        mock_table.update_item.assert_not_called()
-
-    def test_follows_last_evaluated_key(self, mock_table):
-        mock_table.scan.side_effect = [
-            {'Items': [{'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'tsInsert': 1}],
-             'LastEvaluatedKey': {'PK': 'MATCH#m1'}},
-            {'Items': [{'PK': 'MATCH#m2', 'SK': 'METADATA', 'uuid': 'm2', 'tsInsert': 2}]},
-        ]
-        stats = db.backfill_gsi2_matches()
-        assert stats['updated'] == 2
-        assert mock_table.scan.call_count == 2
-
-    def test_derives_uuid_from_pk_and_defaults_missing_ts(self, mock_table):
-        # No 'uuid'/'tsInsert' attributes → derive uuid from PK, ts → 0.
-        mock_table.scan.return_value = {'Items': [{'PK': 'MATCH#abc', 'SK': 'METADATA'}]}
-        db.backfill_gsi2_matches()
-        kwargs = mock_table.update_item.call_args.kwargs
-        assert kwargs['ExpressionAttributeValues'][':s'] == '00000000000000000000#abc'
-
-
-class TestCursorCodec:
-    """Opaque base64 cursor round-trips a DynamoDB LastEvaluatedKey."""
-
-    def test_round_trip(self):
-        key = {'PK': 'MATCH#m1', 'SK': 'METADATA', 'GSI2_SK': '00000000000000000100#m1'}
-        token = db.encode_cursor(key)
-        assert isinstance(token, str)
-        assert db.decode_cursor(token) == key
-
-    def test_encode_none_or_empty_is_none(self):
-        assert db.encode_cursor(None) is None
-        assert db.encode_cursor({}) is None
-
-    def test_decode_none_or_blank_is_none(self):
-        assert db.decode_cursor(None) is None
-        assert db.decode_cursor('') is None
-
-    def test_decode_malformed_token_is_none(self):
-        assert db.decode_cursor('!!!not-base64!!!') is None
-        assert db.decode_cursor('bm90LWpzb24=') is None  # base64 of "not-json"
-
-
-@patch.object(db, '_table')
-class TestScanFilterPage:
-    def test_returns_the_page_and_its_key(self, mock_table):
-        mock_table.scan.return_value = {'Items': [{'PK': 'USER#1'}], 'LastEvaluatedKey': {'PK': 'USER#1'}}
-        items, key = db.scan_filter_page('type', 'USER')
-        assert items == [{'PK': 'USER#1'}]
-        assert key == {'PK': 'USER#1'}
-        assert 'Limit' not in mock_table.scan.call_args.kwargs
-        assert 'ExclusiveStartKey' not in mock_table.scan.call_args.kwargs
-
-    def test_an_empty_page_is_not_the_end(self, mock_table):
-        mock_table.scan.return_value = {'Items': [], 'LastEvaluatedKey': {'PK': 'USER#9'}}
-        assert db.scan_filter_page('type', 'USER') == ([], {'PK': 'USER#9'})
-
-    def test_the_last_page_has_no_key(self, mock_table):
-        mock_table.scan.return_value = {'Items': [{'PK': 'USER#1'}]}
-        assert db.scan_filter_page('type', 'USER') == ([{'PK': 'USER#1'}], None)
-
-    def test_limit_start_key_and_extra_filter_are_forwarded(self, mock_table):
-        from boto3.dynamodb.conditions import Attr
-        mock_table.scan.return_value = {'Items': []}
-        db.scan_filter_page('type', 'USER', limit='25', start_key={'PK': 'USER#1'},
-                            extra_filter=Attr('role').eq('GUEST'))
-        kwargs = mock_table.scan.call_args.kwargs
-        assert kwargs['Limit'] == 25
-        assert kwargs['ExclusiveStartKey'] == {'PK': 'USER#1'}
-
-    def test_a_client_error_yields_an_empty_last_page(self, mock_table):
-        mock_table.scan.side_effect = ClientError({'Error': {'Code': 'X'}}, 'Scan')
-        assert db.scan_filter_page('type', 'USER') == ([], None)
-
-
-@patch.object(db, '_table')
-class TestScanPkPrefix:
-    def test_returns_every_matching_item(self, mock_table):
-        mock_table.scan.return_value = {'Items': [{'PK': 'MATCH#1'}]}
-        assert db.scan_pk_prefix('MATCH#') == [{'PK': 'MATCH#1'}]
-
-    def test_a_client_error_yields_nothing(self, mock_table):
-        mock_table.scan.side_effect = ClientError({'Error': {'Code': 'X'}}, 'Scan')
-        assert db.scan_pk_prefix('MATCH#') == []
 
 
 # ── v0.37.5 — eventual reads, SK-prefix queries, batch writes, cache stamps ───
@@ -517,11 +388,11 @@ class TestBatchPutItems:
 
 @patch.object(db, '_table')
 class TestQueryGsiKeyMap:
-    def test_gsi2_family_uses_its_own_attributes(self, mock_table):
+    def test_gsi2_uses_its_own_attributes(self, mock_table):
         mock_table.query.return_value = {'Items': []}
-        db.query_gsi('GSI2Summary', 'MATCH', sk_prefix='0')
+        db.query_gsi('GSI2', 'MATCH', sk_prefix='0')
         kwargs = mock_table.query.call_args[1]
-        assert kwargs['IndexName'] == 'GSI2Summary'
+        assert kwargs['IndexName'] == 'GSI2'
         assert kwargs['KeyConditionExpression'] == 'GSI2_PK = :pk AND begins_with(GSI2_SK, :sk)'
 
     def test_unknown_index_falls_back_to_gsi1_attributes(self, mock_table):
@@ -557,3 +428,95 @@ class TestCacheVersions:
              patch.object(db, 'put_item', side_effect=lambda item: saved.update(item)):
             ts = db.bump_global_version()
         assert saved['globalVersion'] == ts and saved['storyVersions'] == {}
+
+
+# ── v0.37.5 — story items travel gzipped ─────────────────────────────────────
+
+def _story(**extra):
+    return {'PK': 'STORY#s1', 'SK': 'METADATA', 'uuid': 's1', 'status': 'ACTIVE',
+            'summary': {'meta': {'id': 1}}, 'raw_texts': [{'id': 1, 'lang': 'en', 'text': 'x' * 500}],
+            'locations': [{'id': 1, 'weight': Decimal('1.5'), 'n': Decimal('7')}], **extra}
+
+
+class TestStoryPacking:
+    def test_pack_moves_nested_values_into_one_binary_attribute(self):
+        packed = db._pack(db._to_dynamodb_value(_story()))
+        assert set(packed) == {'PK', 'SK', 'uuid', 'status', 'summary', db.PACKED_ATTR}
+        assert isinstance(packed[db.PACKED_ATTR], bytes)
+        assert len(packed[db.PACKED_ATTR]) < 200  # 500 x's gzip to almost nothing
+
+    def test_unpack_restores_the_item_with_decimals(self):
+        item = _story()
+        restored = db._unpack(db._pack(db._to_dynamodb_value(item)))
+        assert db.PACKED_ATTR not in restored
+        assert restored['raw_texts'] == item['raw_texts']
+        assert restored['locations'][0]['weight'] == Decimal('1.5')
+        assert restored['locations'][0]['n'] == 7
+        assert restored['summary'] == {'meta': {'id': 1}}
+
+    def test_unpack_accepts_the_boto3_binary_wrapper(self):
+        from boto3.dynamodb.types import Binary
+        packed = db._pack(db._to_dynamodb_value(_story()))
+        packed[db.PACKED_ATTR] = Binary(packed[db.PACKED_ATTR])
+        assert db._unpack(packed)['locations'][0]['id'] == 1
+
+    def test_non_story_items_are_left_alone(self):
+        match = {'PK': 'MATCH#m1', 'SK': 'METADATA', 'locations': [{'idLocation': 1}]}
+        assert db._pack(dict(match)) == match
+        char = {'PK': 'STORY#s1', 'SK': 'OTHER', 'rows': [1]}
+        assert db._pack(dict(char)) == char
+        assert db._unpack({'PK': 'X'}) == {'PK': 'X'}
+        assert db._unpack(None) is None
+
+    def test_story_without_nested_values_is_not_packed(self):
+        flat = {'PK': 'STORY#s1', 'SK': 'METADATA', 'uuid': 's1'}
+        assert db._pack(dict(flat)) == flat
+
+    def test_json_default_handles_decimals_and_bytes(self):
+        assert db._json_default(Decimal('2')) == 2
+        assert db._json_default(Decimal('2.5')) == 2.5
+        assert db._json_default(b'ab') == 'YWI='
+        with pytest.raises(TypeError):
+            db._json_default(object())
+
+    @patch.object(db, '_table')
+    def test_put_and_get_round_trip(self, mock_table):
+        stored = {}
+        mock_table.put_item.side_effect = lambda Item: stored.update(Item)
+        mock_table.get_item.side_effect = lambda **_k: {'Item': dict(stored)}
+        item = _story()
+        assert db.put_item(dict(item)) is True
+        assert db.PACKED_ATTR in stored and 'raw_texts' not in stored
+        got = db.get_item('STORY#s1', consistent=False)
+        assert got['raw_texts'] == item['raw_texts']
+        assert got['summary'] == item['summary']
+
+    @patch.object(db, '_table')
+    def test_queries_unpack_every_row(self, mock_table):
+        packed = db._pack(db._to_dynamodb_value(_story()))
+        mock_table.query.return_value = {'Items': [dict(packed)], 'LastEvaluatedKey': None}
+        assert db.query_by_pk('STORY#s1')[0]['locations'][0]['id'] == 1
+        rows, _ = db.query_sk_prefix_page('STORY#s1', 'META', 5)
+        assert rows[0]['raw_texts']
+        rows, _ = db.query_index_page('GSI2', 'GSI2_PK', 'STORY_LIST')
+        assert rows[0]['raw_texts']
+
+    @patch.object(db, '_table')
+    def test_batch_put_packs_stories_too(self, mock_table):
+        import helpers
+        writes = []
+        batch = MagicMock()
+        batch.put_item.side_effect = lambda Item: writes.append(Item)
+        mock_table.batch_writer.return_value.__enter__.return_value = batch
+        assert helpers.REAL_BATCH_PUT([_story(), {'PK': 'MATCH#1', 'SK': 'LOG#1', 'type': 'X'}]) is True
+        assert db.PACKED_ATTR in writes[0] and db.PACKED_ATTR not in writes[1]
+        assert mock_table.batch_writer.call_args.kwargs['overwrite_by_pkeys'] == ['PK', 'SK']
+
+
+@patch.object(db, '_table')
+class TestUpdateTsLastAccessSummary:
+    def test_in_summary_stamps_the_projected_copy_too(self, mock_table):
+        mock_table.update_item.return_value = {}
+        assert db.update_ts_last_access('USER#g1', 5, in_summary=True) is True
+        expr = mock_table.update_item.call_args.kwargs['UpdateExpression']
+        assert expr == 'SET ts_last_access = :t, summary.ts_last_access = :t'

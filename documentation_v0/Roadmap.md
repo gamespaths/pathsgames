@@ -637,7 +637,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.1.2 | update "2. Define the V1 scope" and "3. Define the technology stack" sections | February 10, 2026 |
  
 
-- **Last Updated**: September 14, 2026 (v0.37.5 — AWS DynamoDB cost-cutting pass: match logs as rows, GSI2Summary, story cache)
+- **Last Updated**: September 15, 2026 (v0.37.5 — AWS DynamoDB cost-cutting, round 2: final GSI1/GSI2 layout, gzipped story items, per-request `repo.py` unit of work, sparse match locations, eventually consistent GET reads)
 - **Status**: In progress
 
 

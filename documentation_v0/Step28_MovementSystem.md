@@ -2320,15 +2320,18 @@ embedded log lists this document describes above (`movementLog` et al.) plus `CL
 items. Now each timeline entry is its own `MATCH#<uuid>` / `LOG#{ts_ms:013d}#{seq:06d}`
 item, already shaped like a `GET /api/matches/{uuid}/logs` entry; a `CLOCK_ADVANCE` log row
 replaces `CLOCK#<n>`. Entries the timeline never shows (edge-state audit rows, choice
-history, story progress) are `AUDIT#` items and do not count toward `logCount`/`total`.
-`logbook.persist(match)` is now the single writer of the match item. Pagination is a real
-DynamoDB range read (`nextCursor` = last key served, `order=desc` = `ScanIndexForward=false`).
-METADATA also gains derived state that replaces scanning the old lists: `executedEventIds`
-(ONCE gating, see [Step29](./Step29_NormalEvents.md)), `eventMarkers` (open choice cycle, see
-[Step31](./Step31_ChoiceEngine.md)), `visitedLocationIds` (fog of war). Matches written
-before v0.37.5 keep their inline lists until their first write strips them; their pre-v0.37.5
-logs are simply not shown, and a `ONCE` event already executed may fire once more. REST
-contract unchanged. No Java/Python change.
+history, story progress) are packed **one per request**: a single
+`AUDIT#{ts}#{seq}` item holds a `rows: [...]` array with every audit entry the request
+produced — 1 WRU instead of N — and these items still do not count toward `logCount`/`total`.
+`logbook.persist(match)` goes through the per-request `repo` (`lambda/match/repo.py`, see
+[Step19 §6](./Step19_SinglePlayerMatchCreation.md)), so a request that persists twice still
+writes the METADATA item once. Pagination is a real DynamoDB range read (`nextCursor` = last
+key served, `order=desc` = `ScanIndexForward=false`). METADATA also gains derived state that
+replaces scanning the old lists: `executedEventIds` (ONCE gating, see
+[Step29](./Step29_NormalEvents.md)), `eventMarkers` (open choice cycle, see
+[Step31](./Step31_ChoiceEngine.md)), `visitedLocationIds` (fog of war). The stack is
+redeployed from scratch as of v0.37.5, so there are no pre-v0.37.5 matches with the old
+inline-list layout to account for. REST contract unchanged. No Java/Python change.
 
 # Version Control
 
@@ -2357,8 +2360,9 @@ contract unchanged. No Java/Python change.
   | 0.35.8 | Python bugfix: the `/info` availability verdict's own neighbor read was missing `cost_food`/`cost_magic`/`cost_coin` and `condition_registry_key`/`_value`, a different gap from the v0.35.3 `/locations` fix. See "v0.35.8 bugfix" above. | August 30, 2026 |
   | 0.37.4 | Cross-reference only, no code change here: `MatchLogCard.jsx` is unchanged, but the door into it moves from gameplay's story card to the profile book's match-missions view. See [Step37 §12 react-game (v0.37.4)](./Step37_MissionSystem.md#12-frontends) and [Step18 §8](./Step18_GameMainFrontend.md#8-game-page-playstoryid). | September 11, 2026 |
   | 0.37.5 | AWS-only cost-cutting: match logs are now `LOG#`/`AUDIT#` DynamoDB rows instead of embedded lists rewritten whole every action; `CLOCK#<n>` items replaced by `CLOCK_ADVANCE` log rows; derived METADATA state (`executedEventIds`, `eventMarkers`, `visitedLocationIds`) replaces list scans. REST contract unchanged; no Java/Python change. See "Step 0.37.5" section above. | September 14, 2026 |
+  | 0.37.5 | Same version, round 2: `AUDIT#` rows packed one-per-request (`rows: [...]`, 1 WRU instead of N); `logbook.persist` now goes through the per-request `repo.py` unit of work (§ above); stack redeployed from scratch, so the pre-v0.37.5 inline-list compatibility note above is now historical only. | September 15, 2026 |
 
-- **Last Updated**: September 14, 2026 (v0.37.5)
+- **Last Updated**: September 15, 2026 (v0.37.5)
 - **Status**: Complete (Step 28 implementation). Step 33 has since shipped and is Complete; §6.3's forward reference to it is no longer a reference to a design-only document.
 
 # < Paths Games />

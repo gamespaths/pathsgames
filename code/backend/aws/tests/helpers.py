@@ -88,7 +88,8 @@ class FakeTable:
         return self.rows(f'MATCH#{match_uuid}', 'LOG#')
 
     def audits(self, match_uuid):
-        return self.rows(f'MATCH#{match_uuid}', 'AUDIT#')
+        """The audit entries, unpacked from the one AUDIT# row each persist writes."""
+        return [e for r in self.rows(f'MATCH#{match_uuid}', 'AUDIT#') for e in (r.get('rows') or [])]
 
 
 DB_FUNCTIONS = ('get_item', 'put_item', 'batch_put_items', 'delete_item', 'delete_all_by_pk',
@@ -115,7 +116,7 @@ def pending_audits(match):
 
 
 class RowSink:
-    """Collects the LOG#/AUDIT# rows a handler batch-writes when no FakeTable is in play."""
+    """Collects every row a request flushes (match/repo.py) when no FakeTable is in play."""
 
     def __init__(self):
         self.rows = []
@@ -127,8 +128,24 @@ class RowSink:
     def logs(self):
         return [r for r in self.rows if str(r.get('SK', '')).startswith('LOG#')]
 
-    def audits(self):
+    def audit_items(self):
+        """The AUDIT# rows as written: one per persist, the entries packed in ``rows``."""
         return [r for r in self.rows if str(r.get('SK', '')).startswith('AUDIT#')]
+
+    def audits(self):
+        """The audit entries, unpacked from the one AUDIT# row each persist writes."""
+        return [e for r in self.audit_items() for e in (r.get('rows') or [])]
+
+    def items(self, prefix=''):
+        """The non-log rows (METADATA, CHARACTER#, TURN#…) whose SK starts with ``prefix``."""
+        return [r for r in self.rows
+                if str(r.get('SK', '')).startswith(prefix)
+                and not str(r.get('SK', '')).startswith(('LOG#', 'AUDIT#'))]
+
+    def saved(self, sk='METADATA'):
+        """The last flushed row with this exact SK, or None."""
+        rows = [r for r in self.rows if r.get('SK', 'METADATA') == sk]
+        return rows[-1] if rows else None
 
 
 SINK = RowSink()

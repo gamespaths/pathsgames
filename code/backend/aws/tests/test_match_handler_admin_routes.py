@@ -4,6 +4,7 @@ import copy
 import json
 from unittest.mock import patch
 
+import helpers
 from helpers import make_event
 
 ADMIN_USER = {'PK': 'USER#admin-uuid-001', 'SK': 'METADATA', 'uuid': 'admin-uuid-001',
@@ -47,7 +48,8 @@ def test_stop_pause_resume_routes(mock_get, mock_put, _jwt):
         result = _call(_admin_event('POST', f'/api/admin/matches/m1/{action}',
                                     path_params={'uuidMatch': 'm1'}))
         assert result['statusCode'] == 200, action
-        assert mock_put.call_args[0][0]['status'] == expected
+        assert helpers.SINK.saved()['status'] == expected
+        helpers.SINK.rows.clear()
 
 
 @patch('match.handler.jwt_utils.verify_access_token',
@@ -138,7 +140,7 @@ def test_change_statistics_updates_character(mock_get, mock_put, _jwt):
     ))
     assert result['statusCode'] == 200
     assert _body(result)['status'] == 'UPDATED'
-    mock_put.assert_called_once()
+    assert len(helpers.SINK.items()) == 1
 
 
 @patch('match.handler.jwt_utils.verify_access_token',
@@ -159,7 +161,7 @@ def test_change_statistics_skips_minus_one_whatever_type_it_arrives_as(mock_get,
     ))
 
     assert result['statusCode'] == 200
-    updated = mock_put.call_args[0][0]
+    updated = helpers.SINK.items()[-1]
     assert updated['energy'] != -1
     assert updated['life'] != -1
     assert updated['food'] == 7
@@ -179,7 +181,7 @@ def test_change_statistics_caps_energy_at_max(mock_get, mock_put, _jwt):
     ))
     assert result['statusCode'] == 200
     # energy should be capped at energyMax=100, life at lifeMax=120, sad at sadMax=8
-    updated = mock_put.call_args[0][0]
+    updated = helpers.SINK.items()[-1]
     assert updated['energy'] == 100
     assert updated['life'] == 120
     assert updated['sad'] == 8
@@ -272,7 +274,7 @@ def test_clearing_coma_wakes_the_character_and_gives_it_a_life_to_act_with(mock_
     mock_get.side_effect = _admin_side_with_char(char_item=char)
     result = _call(event)
     assert result['statusCode'] == 200
-    updated = mock_put.call_args[0][0]
+    updated = helpers.SINK.items()[-1]
     assert updated['isComa'] == 0
     assert updated['isSleeping'] == 0
     assert updated['life'] == 1
@@ -286,7 +288,7 @@ def test_clearing_coma_keeps_the_life_the_admin_asked(mock_get, mock_put, _jwt):
     event, char = _change_stats({'coma': False, 'life': 9}, COMATOSE)
     mock_get.side_effect = _admin_side_with_char(char_item=char)
     _call(event)
-    updated = mock_put.call_args[0][0]
+    updated = helpers.SINK.items()[-1]
     assert updated['life'] == 9
     assert updated['isComa'] == 0
 
@@ -299,7 +301,7 @@ def test_sleeping_flag_is_set_on_its_own_and_coma_is_left_alone(mock_get, mock_p
     event, char = _change_stats({'sleeping': True})
     mock_get.side_effect = _admin_side_with_char(char_item=char)
     _call(event)
-    updated = mock_put.call_args[0][0]
+    updated = helpers.SINK.items()[-1]
     assert updated['isSleeping'] == 1
     assert 'isComa' not in updated
 
@@ -312,7 +314,7 @@ def test_flags_untouched_when_the_body_carries_none(mock_get, mock_put, _jwt):
     event, char = _change_stats({'life': 5})
     mock_get.side_effect = _admin_side_with_char(char_item=char)
     _call(event)
-    updated = mock_put.call_args[0][0]
+    updated = helpers.SINK.items()[-1]
     assert 'isSleeping' not in updated and 'isComa' not in updated
 
 
@@ -347,7 +349,7 @@ def test_put_registry_replaces_a_single_key(mock_get, mock_put, _jwt):
                                 body={'key': 'WINTER', 'value': 'NO'}))
     assert result['statusCode'] == 200
     assert _body(result) == {'key': 'WINTER', 'values': ['NO']}
-    mock_put.assert_called_once()
+    assert len(helpers.SINK.items()) == 1
 
 
 @patch('match.handler.jwt_utils.verify_access_token',
@@ -361,7 +363,7 @@ def test_put_registry_rejects_a_key_the_story_does_not_declare(mock_get, mock_pu
                                 body={'key': 'WNITER', 'value': 'NO'}))
     assert result['statusCode'] == 400
     assert _body(result)['error'] == 'UNKNOWN_KEY'
-    mock_put.assert_not_called()
+    assert helpers.SINK.items() == []
 
 
 @patch('match.handler.jwt_utils.verify_access_token',

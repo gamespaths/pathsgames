@@ -92,7 +92,25 @@ def test_persist_writes_the_rows_first_then_the_counted_metadata():
     # Same ms, unique sort keys, insertion order kept.
     assert [r['SK'] for r in table.logs('m1')] == ['LOG#0000000001000#000003',
                                                     'LOG#0000000001000#000004']
-    assert [r['SK'] for r in table.audits('m1')] == ['AUDIT#0000000001000#000005']
+    # v0.37.5 — every audit entry of the persist packed in ONE row (1 WRU, never read back).
+    packed = table.rows('MATCH#m1', 'AUDIT#')
+    assert [r['SK'] for r in packed] == ['AUDIT#0000000001000#000005']
+    assert packed[0]['clock'] == 1 and packed[0]['timestampMs'] == 1000
+    assert [e['message'] for e in table.audits('m1')] == ['COMA c1']
+
+
+def test_persist_packs_every_audit_entry_of_the_request_in_one_row():
+    table = FakeTable([])
+    m = _match()
+    logbook.audit(m, 'EDGE_STATE', 1, timestamp_ms=1000, message='a')
+    logbook.audit(m, 'CHOICE_HISTORY', 1, timestamp_ms=1001, message='b')
+    logbook.audit(m, 'STORY_PROGRESS', 2, timestamp_ms=1002, message='c')
+    with patch_table(table, module='match.logbook'):
+        logbook.persist(m)
+    assert len(table.rows('MATCH#m1', 'AUDIT#')) == 1
+    assert [e['kind'] for e in table.audits('m1')] == ['EDGE_STATE', 'CHOICE_HISTORY',
+                                                       'STORY_PROGRESS']
+    assert m['logSeq'] == 1 and m['logCount'] == 0
 
 
 def test_persist_with_nothing_pending_only_writes_the_metadata():
@@ -109,8 +127,7 @@ def test_persist_derives_the_partition_from_the_uuid_when_pk_is_missing():
     m = {'uuid': 'm1'}
     logbook.append(m, 'SLEEP', 1, timestamp_ms=1)
     written = []
-    with patch('match.logbook.db_utils.batch_put_items', side_effect=written.extend), \
-         patch('match.logbook.db_utils.put_item', return_value=True):
+    with patch('match.repo.db_utils.put_item', side_effect=lambda i: written.append(i) or True):
         logbook.persist(m)
     assert written[0]['PK'] == 'MATCH#m1'
 

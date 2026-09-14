@@ -1523,9 +1523,6 @@ def _seed_stories():
             "raw_texts":                s.get("raw_texts", []),
             "raw_cards":                s.get("raw_cards", []),
             "raw_creators":             s.get("raw_creators", []),
-            # GSI for story listing
-            "GSI1_PK":                  "STORY_LIST",
-            "GSI1_SK":                  f"STORY#{story_uuid}",
         }
         db_utils.put_item(story_index.stamp(story_item))
         story_cache.bump(story_uuid)
@@ -1542,29 +1539,22 @@ def _handle_cleanup():
 
     Everything is removed by PARTITION, never row by row. A match is not one item: its
     ``CHARACTER#…`` rows live under the same PK, and deleting only ``METADATA`` — as this
-    did until v0.34.0 — left them orphaned under a partition whose name was gone, so no
-    later run could recognise them either. The residue that fix cannot reach is reported
-    as ``orphanMatches``; ``code/scripts/dev/aws/purge_robot_test_data.py --orphans``
-    sweeps it.
+    did until v0.34.0 — left them orphaned under a partition whose name was gone.
+    v0.37.5 reads the GSI2 indexes (GUEST_LIST, MATCH) instead of scanning the table, so
+    ``orphanMatches`` is always 0; ``purge_robot_test_data.py --orphans`` is the sweep.
     """
     deleted_guests = 0
-    for user in db_utils.scan_filter("is_guest", True):
-        if str(user.get("username", "")).startswith(ROBOT_TEST_MARKER):
+    for user in db_utils.query_gsi("GSI2", "GUEST_LIST"):
+        username = (user.get("summary") or {}).get("username") or user.get("username", "")
+        if str(username).startswith(ROBOT_TEST_MARKER):
             db_utils.delete_all_by_pk(user["PK"])
             deleted_guests += 1
 
-    # One pass over the MATCH# space: the scan returns EVERY row of every match, so the
-    # partitions are collected first and deleted once each. Only the METADATA row carries
-    # the name — the character rows come along because the partition goes, not because
-    # they match a rule.
-    robot_match_pks, match_pks, match_pks_with_metadata = [], set(), set()
-    for row in db_utils.scan_pk_prefix("MATCH#"):
-        pk = row.get("PK")
-        match_pks.add(pk)
-        if str(row.get("SK") or "") == "METADATA":
-            match_pks_with_metadata.add(pk)
-            if str(row.get("name") or "").startswith(ROBOT_TEST_MARKER):
-                robot_match_pks.append(pk)
+    # v0.37.5 — every match METADATA row is on GSI2 (PK=MATCH, ``name`` projected): one
+    # Query instead of a Scan of every row of every partition. Matches are deleted whole,
+    # so a partition without its METADATA row cannot arise any more (orphanMatches = 0).
+    robot_match_pks = [row["PK"] for row in db_utils.query_gsi("GSI2", "MATCH")
+                       if str(row.get("name") or "").startswith(ROBOT_TEST_MARKER)]
 
     deleted_matches = 0
     for pk in robot_match_pks:
@@ -1574,7 +1564,7 @@ def _handle_cleanup():
     # A partition with no METADATA row cannot be identified: its name is in the row that
     # is already gone. Counted, never deleted — this endpoint runs unattended after every
     # test run, and deleting what it cannot identify is not a thing to do unattended.
-    orphan_matches = len(match_pks - match_pks_with_metadata)
+    orphan_matches = 0  # kept in the response for the callers that read it
 
     # Remove the seed stories (cascading delete of every item under STORY#{uuid}).
     deleted_stories = 0
@@ -1626,9 +1616,6 @@ def lambda_handler(event, context):
             # ── DynamoDB keys ──
             "PK":  f"USER#{uid}",
             "SK":  "METADATA",
-            # ── GSI: allows listing all non-guest users ──
-            "GSI1_PK": "USER_LIST",
-            "GSI1_SK": f"ROLE#{u['role']}#{u['username']}",
             # ── user fields ──
             "uuid":          uid,
             "username":      u["username"],

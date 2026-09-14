@@ -25,7 +25,7 @@ DynamoDB layout for stories
   PK = STORY#{uuid}, SK = METADATA
     All story fields + texts dict + difficulties list + GSI keys.
     Step 15: + characterTemplates, classes, traits, card (inline).
-  GSI: GSI1_PK = STORY_LIST, GSI1_SK = STORY#{uuid}
+  GSI2: GSI2_PK = STORY_LIST, GSI2_SK = STORY#{uuid} (+ ``summary``, see common/story_index.py)
 """
 
 import json
@@ -150,7 +150,7 @@ def _resolve_story_text(item, lang, field, id_text):
 def _story_summary(item, lang):
     """Build StorySummaryResponse from a DynamoDB story item.
 
-    v0.37.5 — a row from GSI2Summary carries the precomputed ``summary`` map instead of
+    v0.37.5 — a GSI2 index row carries the precomputed ``summary`` map instead of
     raw_cards/raw_texts; a full item without it is resolved the way it always was."""
     if item.get('summary'):
         picked = story_index.texts_for(item, lang)
@@ -409,17 +409,11 @@ def lambda_handler(event, context):
 
 # ─── endpoint handlers ────────────────────────────────────────────────────────
 
-# v0.37.5 — D1 of the index migration: stories written before the deploy are not in
-# GSI2Summary until the backfill runs, so an empty read still asks the old index.
-_LEGACY_INDEX_FALLBACK = True
-
-
 def _story_list():
-    """Every story row from the STORY_LIST index, its ``summary.meta`` scalars lifted to the
-    top level so the filters below read an index row and a full item the same way."""
-    items = db_utils.query_gsi('GSI2Summary', story_index.STORY_LIST_PK)
-    if not items and _LEGACY_INDEX_FALLBACK:
-        items = db_utils.query_gsi('GSI1', story_index.STORY_LIST_PK)
+    """Every story row from the STORY_LIST index (GSI2, INCLUDE), its ``summary.meta``
+    scalars lifted to the top level so the filters below read an index row and a full item
+    the same way."""
+    items = db_utils.query_gsi('GSI2', story_index.STORY_LIST_PK)
     return [story_index.lift(i) for i in (items or [])]
 
 
@@ -573,7 +567,7 @@ def import_story(event):
 
     # If story already exists by UUID → delete it first (replace-on-conflict)
     # Must happen before id collision check to avoid self-collision on re-import
-    existing = db_utils.get_item(f'STORY#{story_uuid}')
+    existing = db_utils.get_item(f'STORY#{story_uuid}', consistent=False)
     if existing:
         db_utils.delete_all_by_pk(f'STORY#{story_uuid}')
 
@@ -920,9 +914,6 @@ def import_story(event):
         'choiceEffects':          _assign_ids(data.get('choiceEffects', []), 'id'),
         'classBonuses':           _assign_ids(data.get('classBonuses', []), 'id'),
         'missionSteps':           _assign_ids(data.get('missionSteps', []), 'id'),
-        # GSI for story listing
-        'GSI1_PK':                'STORY_LIST',
-        'GSI1_SK':                f'STORY#{story_uuid}',
     }
     db_utils.put_item(story_index.stamp(story_item))
     story_cache.bump(story_uuid)
@@ -1029,7 +1020,7 @@ def get_admin_story(event, story_uuid):
     if err:
         return err
     lang = _get_lang(event)
-    item = db_utils.get_item(f'STORY#{story_uuid}')
+    item = db_utils.get_item(f'STORY#{story_uuid}', consistent=False)
     if not item:
         return _err(404, 'STORY_NOT_FOUND',
                     f'No story found with UUID: {story_uuid}')
@@ -1041,7 +1032,7 @@ def validate_story(event, story_uuid):
     _, err = _require_admin(event)
     if err:
         return err
-    item = db_utils.get_item(f'STORY#{story_uuid}')
+    item = db_utils.get_item(f'STORY#{story_uuid}', consistent=False)
     if not item:
         return _err(404, 'STORY_NOT_FOUND',
                     f'No story found with UUID: {story_uuid}')
@@ -1166,8 +1157,6 @@ def create_story(event):
         'idCreator':                 _safe_int(data.get('idCreator')),
         'idCard':                    _safe_int(data.get('idCard')),
         'texts':      {},
-        'GSI1_PK':    'STORY_LIST',
-        'GSI1_SK':    f'STORY#{story_uuid}',
     }
     db_utils.put_item(story_index.stamp(story_item))
     story_cache.bump(story_uuid)
@@ -1204,7 +1193,7 @@ def list_entities(event, story_uuid, entity_type):
     _, err = _require_admin(event)
     if err: return err
 
-    item = db_utils.get_item(f'STORY#{story_uuid}')
+    item = db_utils.get_item(f'STORY#{story_uuid}', consistent=False)
     if not item:
         return _err(404, 'STORY_NOT_FOUND', f'Story {story_uuid} not found')
 
@@ -1266,7 +1255,7 @@ def get_entity(event, story_uuid, entity_type, entity_uuid):
     _, err = _require_admin(event)
     if err: return err
 
-    item = db_utils.get_item(f'STORY#{story_uuid}')
+    item = db_utils.get_item(f'STORY#{story_uuid}', consistent=False)
     if not item:
         return _err(404, 'STORY_NOT_FOUND', f'Story {story_uuid} not found')
 

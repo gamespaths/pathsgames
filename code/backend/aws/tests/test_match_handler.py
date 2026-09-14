@@ -14,6 +14,7 @@ import pytest
 # decorators below can resolve the module path at decoration time.
 from match import handler as _match_handler  # noqa: F401
 
+import helpers
 from helpers import make_event
 
 
@@ -389,7 +390,7 @@ def test_create_match_active_match_exists_returns_409(create_env):
     result = lambda_handler(event, {})
     assert result['statusCode'] == 409
     assert _body(result)['error'] == 'ACTIVE_MATCH_ALREADY_EXISTS'
-    create_env['put'].assert_not_called()
+    assert helpers.SINK.rows == []
 
 
 def test_create_match_paused_match_also_blocks(create_env):
@@ -442,7 +443,7 @@ def test_create_match_happy_path(create_env):
     assert body['storyUuid'] == 'story-uuid-1'
     assert body['userCreatorUuid'] == 'player-uuid-001'
 
-    persisted = create_env['put'].call_args.args[0]
+    persisted = helpers.SINK.saved()
     assert persisted['PK'].startswith('MATCH#')
     assert persisted['GSI1_PK'] == 'USER_MATCHES#player-uuid-001'
     assert len(persisted['locations']) == 2
@@ -471,7 +472,7 @@ def test_create_match_persists_creator_loadout(create_env):
     assert body['classUuid'] == 'cl'
     assert body['traitUuids'] == ['t1', 't2']
 
-    persisted = create_env['put'].call_args.args[0]
+    persisted = helpers.SINK.saved()
     assert persisted['singlePlayer'] == 0
     assert persisted['characterTemplateUuid'] == 'ct'
     assert persisted['classUuid'] == 'cl'
@@ -506,7 +507,7 @@ def test_create_match_single_player_defaults_to_1(create_env):
     })
     result = lambda_handler(event, {})
     assert result['statusCode'] == 201
-    persisted = create_env['put'].call_args.args[0]
+    persisted = helpers.SINK.saved()
     assert persisted['singlePlayer'] == 1
     assert persisted['traitUuids'] == []
 
@@ -519,7 +520,7 @@ def test_create_match_no_difficulty_exp_defaults_to_5(create_env):
     event = _player_event('POST', '/api/matches', body={'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1'})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 201
-    persisted = create_env['put'].call_args.args[0]
+    persisted = helpers.SINK.saved()
     assert persisted['expCost'] == 5
 
 
@@ -531,7 +532,7 @@ def test_create_match_no_keys_seeds_empty_registry(create_env):
     event = _player_event('POST', '/api/matches', body={'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1'})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 201
-    persisted = create_env['put'].call_args.args[0]
+    persisted = helpers.SINK.saved()
     assert persisted['registry'] == []
 
 
@@ -543,7 +544,7 @@ def test_create_match_no_start_location_in_locations(create_env):
     event = _player_event('POST', '/api/matches', body={'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1'})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 201
-    persisted = create_env['put'].call_args.args[0]
+    persisted = helpers.SINK.saved()
     assert persisted['currentLocationUuid'] is None
 
 
@@ -561,7 +562,7 @@ def test_create_match_legacy_field_names_supported(create_env):
     event = _player_event('POST', '/api/matches', body={'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1'})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 201
-    persisted = create_env['put'].call_args.args[0]
+    persisted = helpers.SINK.saved()
     assert persisted['locations'][0]['clockCounter'] == 8
     assert persisted['registry'][0]['key'] == 'foo'
     assert persisted['registry'][0]['stringValue'] == 'bar'
@@ -594,7 +595,7 @@ def test_list_user_matches_returns_summaries(mock_jwt, mock_get, mock_query):
     body = _body(result)
     assert [m['uuid'] for m in body] == ['m2', 'm1']  # newest first
     # v0.37.5 — the list reads the summary-only projection, never the full GSI1 items.
-    mock_query.assert_called_once_with('GSI1Summary', 'USER_MATCHES#player-uuid-001')
+    mock_query.assert_called_once_with('GSI1', 'USER_MATCHES#player-uuid-001')
 
 
 @patch('match.handler.db_utils.query_gsi', return_value=[
@@ -608,7 +609,7 @@ def test_duplicate_guard_reads_summary_index(mock_jwt, mock_get, mock_query):
     assert _has_active_match_for_story({'uuid': 'player-uuid-001'}, 'story-uuid-001') is True
     assert _has_active_match_for_story({'uuid': 'player-uuid-001'}, 'other-story') is False
     for call in mock_query.call_args_list:
-        assert call.args[0] == 'GSI1Summary'
+        assert call.args[0] == 'GSI1'
 
 
 @patch('match.handler.db_utils.get_item')
@@ -1144,7 +1145,7 @@ def test_list_all_matches_as_admin_returns_envelope(mock_jwt, mock_get, mock_pag
     assert body['limit'] == 50
     # Backed by GSI2, default page size, newest-first, no filters/cursor.
     args, kwargs = mock_page.call_args
-    assert args[0] == 'GSI2Summary' and args[2] == 'MATCH'
+    assert args[0] == 'GSI2' and args[2] == 'MATCH'
     assert kwargs['limit'] == 50 and kwargs['ascending'] is False
     assert kwargs['start_key'] is None and kwargs['sk_from'] is None
     assert kwargs['eq_filters'] == {'status': None, 'userCreatorUuid': None, 'storyUuid': None}
@@ -1273,7 +1274,7 @@ def test_update_match_returns_200(mock_jwt, mock_get, mock_put):
     result = lambda_handler(event, {})
     assert result['statusCode'] == 200
     assert _body(result)['status'] == 'UPDATED'
-    saved = mock_put.call_args[0][0]
+    saved = helpers.SINK.saved()
     assert saved['status'] == 'ENDED'
     assert saved['name'] == 'x'
 
@@ -1332,7 +1333,7 @@ def test_stop_match_sets_ended(mock_jwt, mock_get, mock_put):
                        path_params={'uuidMatch': 'm1'})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 200
-    assert mock_put.call_args[0][0]['status'] == 'ENDED'
+    assert helpers.SINK.saved()['status'] == 'ENDED'
 
 
 @patch('match.handler.db_utils.delete_all_by_pk')
@@ -1520,7 +1521,7 @@ def test_end_match_completes_and_sets_ended(mock_jwt, mock_get, mock_put):
     body = _body(result)
     assert body['status'] == 'ENDED'
     assert body['uuid'] == 'm1'
-    saved = mock_put.call_args[0][0]
+    saved = helpers.SINK.saved()
     assert saved['status'] == 'ENDED'
     # Ensure idEventEndGame is never exposed in the response payload
     assert 'idEventEndGame' not in body

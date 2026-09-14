@@ -7,6 +7,7 @@ import json
 from unittest.mock import patch
 
 from match import handler as _match_handler  # noqa: F401
+import helpers
 from helpers import make_event
 
 
@@ -115,8 +116,8 @@ def test_join_success(mock_jwt, mock_get, mock_query, mock_put):
     assert b['idLocation'] == 1
     assert b['traitUuids'] == ['trait-1', 'trait-2']
     assert b['food'] == 0
-    mock_put.assert_called_once()
-    saved = mock_put.call_args[0][0]
+    assert len(helpers.SINK.items()) == 1
+    saved = helpers.SINK.items()[0]
     assert saved['SK'].startswith('CHARACTER#')
     assert saved['userUuid'] == 'player-uuid-001'
     # max values are persisted on the DynamoDB character item

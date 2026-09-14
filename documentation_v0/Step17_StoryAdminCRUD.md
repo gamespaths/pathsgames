@@ -229,8 +229,11 @@ Operational outcome:
 writeup in [code/backend/aws/README.md](../code/backend/aws/README.md).
 
 A warm Lambda container now serves a STORY item from memory for `STORY_CACHE_TTL_SECONDS`
-(template parameter, default 300s, `0` = off) instead of re-reading it (~326 KB, consistent)
-on every request. Every admin write in this document (import, create/update/delete on §2.1
+(template parameter, default 3600s, `0` = off) instead of re-reading it on every request. The
+story item itself is gzipped into one `_gz` binary attribute (tutorial story: 334 KB → 75 KB),
+cutting a cold read to ~10 RRU. Admin story GETs (`get_admin_story`, `validate_story`,
+`list_entities`, `get_entity`, import existence check) use eventually consistent reads.
+Every admin write in this document (import, create/update/delete on §2.1
 and §2.2, seed) bumps that story's cache stamp on `SYSTEM#cache/METADATA`; each handler reads
 the stamp once per invocation, so the very next request sees the edit. New endpoint,
 IP-authorizer + ADMIN role protected:
@@ -245,7 +248,7 @@ request — use it after a bulk/manual DynamoDB edit that bypassed the admin API
 `code/backend/java/adapter-rest/src/main/resources/openapi/v0.37.5-admin-cache-api.yaml`.
 
 Story listing also gets a precomputed `summary` map (`meta`/`langs`, one attribute) read via
-the new `GSI2Summary` index instead of `raw_texts`/`raw_cards` — see
+the `GSI2` index (`GSI2_PK=STORY_LIST`, `INCLUDE` projection) instead of `raw_texts`/`raw_cards` — see
 [Step15_StoryContentAPIs.md](./Step15_StoryContentAPIs.md) and
 [Step19 §2.2](./Step19_SinglePlayerMatchCreation.md).
 
@@ -438,9 +441,9 @@ cd /mnt/Dati4/Workspace/pathsgames/code/tests/robot && source /mnt/Dati4/Workspa
     | 0.28.2 | Loc Neighbors "Card Back" column in `EntityTable.jsx`; `handleDuplicateCardBack` in `StoryEditorPage.jsx`; `idCardBack` plain column removed from `storiesEntities.jsx` for neighbors; +10 vitest tests (418 total pass) | June 26, 2026 |
     | 0.28.2 | **Bugfix** Stories export: `handleExport` in `StoriesPage.jsx` used camelCase apiTypes `'weatherRules'` and `'globalRandomEvents'`; admin API requires kebab-case, so those collections exported empty and were lost on reimport. Corrected to `'weather-rules'` / `'global-random-events'`; jsonKey values unchanged. Regression test added; 419 vitest tests pass. | June 26, 2026 |
     | 0.35.8 | Story texts capped at 2000 chars everywhere, matching the widened `short_text` column. New `textLimits.js`/`TextLengthHint.jsx`, applied to `EntityForm`, the texts entity fields, and both fast-text modals. | August 30, 2026 |
-    | 0.37.5 | AWS-only cost pass: new `POST /api/admin/cache/flush` bumps the story cache's global stamp; every admin write here already bumps the story's own stamp. Story listing reads a precomputed `summary` map via `GSI2Summary`. No Java/Python change. | September 14, 2026 |
+    | 0.37.5 | AWS-only cost pass, round 2: new `POST /api/admin/cache/flush`; cache TTL default raised to 3600s; story items gzipped (`_gz`); admin GETs eventually consistent; listing reads `summary` via `GSI2`. No Java/Python change. | September 15, 2026 |
 
-- **Last Updated**: September 14, 2026
+- **Last Updated**: September 15, 2026
 - **Status**: In progress
 
 

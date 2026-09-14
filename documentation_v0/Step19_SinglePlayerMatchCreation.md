@@ -87,13 +87,14 @@ the **v0.19.9** loadout (`characterTemplateUuid`, `classUuid`, `traitUuids`,
 
 Returns the matches owned by the authenticated user, newest first.
 
-**AWS GSI1Summary — perf note (v0.37.4):** a new DynamoDB index **GSI1Summary** (same `GSI1_PK`/`GSI1_SK` keys as GSI1, `Projection: INCLUDE` on the 14 `_summary_from_item` fields) backs this query and `_has_active_match_for_story` (§6.1), replacing the full-item GSI1 read that returned locations/registry/logs for every match and risked the game client's 5 s timeout. No backfill needed — existing items are indexed on deploy; while `IndexStatus` is backfilling, the list query returns `[]`. `MatchFunction` memory raised 256→1024 MB to cut cold-start latency.
-
-**AWS GSI2Summary — cost note (v0.37.5):** a second `INCLUDE` index, `GSI2Summary`, backs the
-admin match list (§2.3, `GSI2_PK="MATCH"`), story lists, and guest resume — this user list keeps
-`GSI1Summary`. Migration is three `sam deploy`s (CloudFormation allows one GSI change per
-update): add `GSI2Summary` + run `scripts/backfill_gsi2_summary.py`, then drop `GSI2`, then drop
-`GSI1`. Readers fall back to the legacy index when `GSI2Summary` answers nothing. Full detail in
+**AWS indexes — final layout (v0.37.4/v0.37.5):** the table has exactly two GSIs, both
+`Projection: INCLUDE`. `GSI1` ("by owner", `GSI1_PK=USER_MATCHES#<uuid>`) backs this query
+and `_has_active_match_for_story` (§6.1) with the 14 `_summary_from_item` fields plus
+`username`/`role`/`token_version`/`guest_token`, replacing the old full-item read that
+returned locations/registry/logs for every match and risked the game client's 5 s timeout.
+`GSI2` ("by type", `GSI2_PK="MATCH"`) backs the admin match list (§2.3), story listing and
+the admin guest list, projecting the same 14 attrs plus `summary`. `MatchFunction` memory
+is 256→1024 MB to cut cold-start latency. Full detail in
 [code/backend/aws/README.md](../code/backend/aws/README.md).
 
 ### 2.3 `GET /api/admin/matches` *(v0.19.10 — paginato e filtrabile da v0.28.1)*
@@ -143,11 +144,11 @@ Admin role enforcement is handled by each backend's existing JWT filter / middle
 |---------|-------------------|----------------|--------------------|
 | Java    | `MatchAdminController.listAllMatches` | `MatchQueryService.listMatchesPage` | `MatchReadPort.findMatchesPage` → `GamingMatchRepository.findMatchesPage(MatchPageCriteria)` — keyset pagination on `(ts_insert DESC, id DESC)` |
 | Python  | `MatchAdminController.list_all_matches` | `MatchQueryService.list_matches_page` | `MatchPersistenceAdapter.find_matches_page` — SQLAlchemy keyset; helpers `_clamp_limit`, `_since_days_to_ts`, `_encode_cursor`, `_decode_cursor` |
-| AWS     | `match/handler.py` `_list_all_matches` | — | `db_utils.query_index_page` on **GSI2** `MATCH` index (newest-first Query, no full Scan); `db_utils.encode_cursor`/`decode_cursor` (base64 of `LastEvaluatedKey`) |
+| AWS     | `match/handler.py` `_list_all_matches` | — | `db_utils.query_index_page` on **GSI2** `MATCH` index (`INCLUDE` projection, newest-first Query, no Scan); eventually consistent read; `db_utils.encode_cursor`/`decode_cursor` (base64 of `LastEvaluatedKey`) |
 
 **New domain types (Java/Python):** `MatchListFilter`, `MatchSummaryPage` (core models); `MatchPageCriteria` (Java port record); `PagedMatchesResponse` (Java REST DTO).
 
-**AWS GSI2 — migration note:** a new DynamoDB index **GSI2** ("by type") is provisioned in `template.yaml`. Every MATCH METADATA item now carries `GSI2_PK="MATCH"` and `GSI2_SK="{tsInsert:020d}#{uuid}"`, enabling a single newest-first **Query** instead of a full table Scan. Matches created before v0.28.1 lack these keys and will not appear in the admin list until they are updated (first-write self-heal on next status change).
+**AWS GSI2 — final state (v0.37.5):** DynamoDB index **GSI2** ("by type") is provisioned in `template.yaml` with an `INCLUDE` projection. Every MATCH METADATA item carries `GSI2_PK="MATCH"` and `GSI2_SK="{tsInsert:020d}#{uuid}"`, enabling a single newest-first **Query** instead of a Scan. The table is redeployed from scratch as of v0.37.5, so there is no legacy-item backfill concern.
 
 Note: for SQL-based backends (Java, Python) the response may leave `userCreatorUuid`, `storyUuid` and `difficultyUuid` null in the `items` array (same behaviour as `GET /api/matches`). The AWS backend populates all three fields from DynamoDB.
 
@@ -270,6 +271,15 @@ stored comma-separated). The involved tables are:
 7. Create one `GamingStateLocationsEntity` per location, copying
    `counter_time` into `clock_counter` (defaults to 0 when null) and setting
    `flagAlreadyActived = 0`.
+   **AWS (v0.37.5):** `locations[]` on the METADATA item is sparse — only the
+   start location (`flagVisited=1`) and locations with `counterTime>0` get a
+   row at creation. `_mark_location_visited` adds a row on first visit;
+   `_location_state(match_uuid, id, visited, counter)` builds it with a
+   stable `uuid5(NAMESPACE_OID, f"{match_uuid}#{id}")`, and
+   `_location_states_full(match, story)` synthesizes the missing all-zero
+   entries so `GET /api/match/{uuid}/info` is unchanged for clients (player:
+   visited only; admin: all). The time-start pass seeds a counter row for an
+   occupied location that gained a `counterTime` after the match was created.
 8. Create one `GamingStateRegistryEntity` per story key, mapping the default
    value from `list_keys.value`:
    - integer-parsable values → `intValue`
@@ -280,6 +290,16 @@ stored comma-separated). The involved tables are:
 `MatchQueryService.getMatchInfo` enforces ownership: a match cannot be
 retrieved by another user — the service returns `null`, which the controller
 surfaces as 404.
+
+**AWS per-request unit of work (v0.37.5):** `lambda_handler` in
+`lambda/match/handler.py` calls `repo.begin()` before dispatch and
+`repo.flush()` in a `finally` block. `repo.match`/`characters`/`turns`/
+`character` (new `lambda/match/repo.py`) are read once per request and
+cached — every step of the handler sees the same dicts — and `repo.save(item)`
+queues a deep-copy snapshot; `flush()` writes the whole dirty set in one
+`batch_writer` (`overwrite_by_pkeys=['PK','SK']`). Outside a request `repo` is
+write-through, so `logbook.persist(match)` calling it twice in one request
+still costs one METADATA write, not two.
 
 ### 6.1 One active match per user and story *(v0.32.1)*
 
@@ -314,7 +334,7 @@ retried request or an F5 during the start countdown all produced a duplicate.
 |---|---|
 | Java | `MatchPersistencePort.hasActiveMatchForStory(userId, storyId, statuses)` → the Spring Data derived query `existsByIdUserCreatorAndIdStoryAndStatusIn` on `GamingMatchRepository`. The port was already injected into `MatchCommandService`, so no wiring changed. |
 | Python | `MatchPersistencePort.has_active_match_for_story(...)` → a SQLAlchemy `query(id).filter(...).first()` in `MatchPersistenceAdapter`: existence only, it does not materialise the list. |
-| AWS | `_has_active_match_for_story(user, story_uuid)` queries **GSI1Summary** *(v0.37.4, was GSI1)* on `USER_MATCHES#{userUuid}` — the same paginated access path as `GET /api/matches` — and filters `storyUuid` + `status` in memory. `storyUuid` is not part of `GSI1_SK`, so it cannot narrow the key condition, but the read stays inside the caller's own partition: **never a Scan**. |
+| AWS | `_has_active_match_for_story(user, story_uuid)` queries **GSI1** on `USER_MATCHES#{userUuid}` — the same paginated access path as `GET /api/matches` — and filters `storyUuid` + `status` in memory. `storyUuid` is not part of `GSI1_SK`, so it cannot narrow the key condition, but the read stays inside the caller's own partition: **never a Scan**. |
 
 **react-game side (v0.32.1).** The home mirrors the rule instead of discovering
 it through a 409:
@@ -579,10 +599,10 @@ The same suite passes against the Python backends — see `code/scripts/dev/run_
     | 0.28.1 | GET /api/admin/matches pagination & filtering | Jun 26, 2026 |
     | 0.32.1 | One active match per user and story | Aug 10, 2026 |
     | 0.35.8 | New opt-in `RESUME_WITHOUT_MODAL` flag (§6.1): "Resume" jumps straight into the match, skipping the guest modal, via the new `findResumableMatch` helper. | August 30, 2026 |
-    | 0.37.4 | AWS `GET /api/matches` perf fix: new GSI1Summary index (summary-only projection) replaces full-item GSI1 for the user match list and the §6.1 duplicate guard; `MatchFunction` memory 256→1024 MB. | Sep 11, 2026 |
-    | 0.37.5 | AWS cost pass: new GSI2Summary index backs admin match list, story lists, guest resume (§2.2); three-deploy migration with `backfill_gsi2_summary.py` and legacy-index fallback. | Sep 14, 2026 |
+    | 0.37.4 | AWS `GET /api/matches` perf fix: `GSI1` given an `INCLUDE` (summary-only) projection, replacing the full-item read for the user match list and the §6.1 duplicate guard; `MatchFunction` memory 256→1024 MB. | Sep 11, 2026 |
+    | 0.37.5 | AWS cost pass, round 2: `GSI2` given an `INCLUDE` projection (admin match list, story lists, admin guest list — §2.2); per-request `repo.py` unit of work batches writes; story items gzipped; sparse match location state; eventually consistent reads on GET routes. Stack redeployed from scratch, no migration. | Sep 15, 2026 |
 
-- **Last Updated**: Sep 14, 2026
+- **Last Updated**: Sep 15, 2026
 - **Status**: Complete
 
 

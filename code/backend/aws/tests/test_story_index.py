@@ -1,4 +1,4 @@
-"""v0.37.5 — common/story_index.py and the readers/writers that moved to GSI2Summary."""
+"""v0.37.5 — common/story_index.py and the readers/writers that moved to the GSI2 INCLUDE index."""
 from unittest.mock import patch
 
 from common import story_index
@@ -73,23 +73,17 @@ def test_story_summary_prefers_the_stored_map_and_falls_back_to_english():
     assert _story_summary(STORY, 'it')['title'] == 'Titolo'
 
 
-def test_story_list_reads_gsi2summary_and_falls_back_to_gsi1_when_empty():
+def test_story_list_reads_gsi2():
     from story import handler as sh
     calls = []
 
     def query(index, pk, sk_prefix=None):
-        calls.append(index)
-        return [STORY] if index == 'GSI1' else []
+        calls.append((index, pk))
+        return [STORY]
 
     with patch('story.handler.db_utils.query_gsi', side_effect=query):
         assert sh._story_list() == [STORY]
-    assert calls == ['GSI2Summary', 'GSI1']
-
-    calls.clear()
-    with patch('story.handler.db_utils.query_gsi', side_effect=query), \
-         patch.object(sh, '_LEGACY_INDEX_FALLBACK', False):
-        assert sh._story_list() == []
-    assert calls == ['GSI2Summary']
+    assert calls == [('GSI2', 'STORY_LIST')]
 
     with patch('story.handler.db_utils.query_gsi', return_value=None):
         assert sh._story_list() == []
@@ -126,7 +120,7 @@ def test_import_writes_the_index_attributes_on_the_story():
     assert story['summary']['meta']['id'] == story['id']
 
 
-def test_guest_creation_carries_both_index_keys_and_resume_falls_back():
+def test_guest_creation_indexes_the_token_on_gsi1_and_the_list_on_gsi2():
     from auth import handler as ah
     saved = []
     with patch('auth.handler.db_utils.put_item', side_effect=saved.append), \
@@ -134,46 +128,26 @@ def test_guest_creation_carries_both_index_keys_and_resume_falls_back():
         result = ah.lambda_handler(make_event('POST', '/api/auth/guest'), {})
     assert result['statusCode'] in (200, 201), result
     guest = saved[-1]
-    assert guest['GSI2_PK'] == guest['GSI1_PK'] and guest['GSI2_PK'].startswith('GUEST_TOKEN#')
-    assert guest['GSI2_SK'] == 'METADATA'
+    assert guest['GSI1_PK'] == f"GUEST_TOKEN#{guest['guest_token']}"
+    assert guest['GSI1_SK'] == 'METADATA'
+    assert guest['GSI2_PK'] == 'GUEST_LIST' and guest['GSI2_SK'] == f"USER#{guest['uuid']}"
+    # the projected copy the admin list reads
+    assert guest['summary']['username'] == guest['username']
+    assert guest['summary']['guest_expires_at'] == guest['guest_expires_at']
+    assert guest['summary']['ts_last_access'] == guest['ts_last_access']
+    assert 'nickname' not in guest['summary']  # None values are not stored
 
     user = {'uuid': 'g1', 'username': 'guest', 'role': 'PLAYER', 'guest_token': 'tok'}
     calls = []
 
     def query(index, pk, sk_prefix=None):
-        calls.append(index)
-        return [user] if index == 'GSI1' else []
+        calls.append((index, pk))
+        return [user]
 
     with patch('auth.handler.db_utils.query_gsi', side_effect=query), \
-         patch('auth.handler.db_utils.update_ts_last_access'):
+         patch('auth.handler.db_utils.update_ts_last_access') as touch:
         result = ah.lambda_handler(make_event('POST', '/api/auth/guest/resume',
                                               cookies=['pathsgames.guestcookie=tok']), {})
     assert result['statusCode'] == 200, result
-    assert calls == ['GSI2Summary', 'GSI1']
-
-
-def test_backfill_gsi2_summary_stamps_stories_and_guests_and_skips_the_rest():
-    from unittest.mock import MagicMock
-    import common.db_utils as db
-    table = MagicMock()
-    table.scan.return_value = {'Items': [
-        {'PK': 'STORY#s1', 'SK': 'METADATA', 'uuid': 's1', 'raw_texts': [], 'raw_cards': []},
-        {'PK': 'STORY#s2', 'SK': 'METADATA', 'uuid': 's2', 'GSI2_PK': 'STORY_LIST'},
-        {'PK': 'USER#g1', 'SK': 'METADATA', 'is_guest': True, 'guest_token': 'tok'},
-        {'PK': 'USER#g2', 'SK': 'METADATA', 'is_guest': True},
-    ]}
-    with patch.object(db, '_table', table):
-        stats = db.backfill_gsi2_summary(dry_run=False)
-    assert stats == {'stories': 1, 'guests': 1, 'skipped': 2}
-    assert table.update_item.call_count == 2
-    story_call = table.update_item.call_args_list[0][1]
-    assert story_call['Key'] == {'PK': 'STORY#s1', 'SK': 'METADATA'}
-    assert set(story_call['ExpressionAttributeNames'].values()) == {'GSI2_PK', 'GSI2_SK', 'summary'}
-    guest_call = table.update_item.call_args_list[1][1]
-    assert ':v0' in guest_call['ExpressionAttributeValues']
-    assert guest_call['ExpressionAttributeValues'][':v0'] == 'GUEST_TOKEN#tok'
-
-    table.update_item.reset_mock()
-    with patch.object(db, '_table', table):
-        assert db.backfill_gsi2_summary(dry_run=True)['stories'] == 1
-    table.update_item.assert_not_called()
+    assert calls == [('GSI1', 'GUEST_TOKEN#tok')]
+    assert touch.call_args.kwargs == {'in_summary': True}

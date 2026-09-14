@@ -15,7 +15,7 @@ import copy
 import json
 from unittest.mock import patch
 
-from helpers import make_event
+from helpers import make_event, written_rows
 
 USER = {'PK': 'USER#u1', 'SK': 'METADATA', 'uuid': 'u1', 'username': 'guest', 'role': 'PLAYER'}
 
@@ -66,33 +66,29 @@ def _run(story):
             return story
         return None
 
-    written = []
     event = make_event('POST', '/api/gameplay/m1/action/execute-event',
                        body={'eventUuid': 'evt-move'},
                        headers={'Authorization': 'Bearer MOCK_ACCESS_u1'},
                        path_params={'uuidMatch': 'm1'})
-    live = [copy.deepcopy(CHARACTER)]
 
+    # v0.37.5 — the roster is read ONCE per request (match/repo.py) and every later step
+    # works on the same dicts, so the store below is only ever asked once.
     def _query(_pk, _prefix='CHARACTER#', **_kw):
-        return copy.deepcopy(live)
-
-    def _put(item):
-        written.append(copy.deepcopy(item))
-        if str(item.get('SK', '')).startswith('CHARACTER#'):
-            live[:] = [item]
+        return [copy.deepcopy(CHARACTER)]
 
     with patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'}), \
-            patch('match.handler.db_utils.put_item', side_effect=_put), \
-            patch('match.handler.db_utils.query_sk_prefix', side_effect=_query), \
+            patch('match.handler.db_utils.query_sk_prefix', side_effect=_query) as roster, \
             patch('match.handler.db_utils.get_item', side_effect=_get):
         from match.handler import lambda_handler
         result = lambda_handler(event, {})
     assert result['statusCode'] == 200, result
-    return json.loads(result['body']), written
+    assert roster.call_count == 1, 'the roster must be read once per request'
+    return json.loads(result['body']), written_rows().items()
 
 
 def _character_locations(written):
+    """One entry per character row flushed — exactly one since v0.37.5."""
     return [w.get('idLocation') for w in written if w.get('SK') == 'CHARACTER#c1']
 
 
@@ -111,9 +107,8 @@ def test_an_end_time_event_does_not_undo_the_move_it_applied():
     assert body['timeEnded'] is True and body['movementApplied'] is True
     locations = _character_locations(written)
     assert locations, 'the character was never written'
-    # Every write of the character, not only the last one: one row carrying the old
-    # location anywhere in the sequence is the bug, whatever ends up on top.
-    assert set(locations) == {2}
+    # The character row is flushed once, and it carries the new location.
+    assert locations == [2]
 
 
 def test_the_end_time_pass_still_puts_everybody_to_sleep():

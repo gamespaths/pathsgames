@@ -4,11 +4,14 @@ Transform: AWS::Serverless-2016-10-31
 Parameters:
   Environment:
     Type: String
+  LambdaSystemLogLevel:
+    Type: String
+    Default: WARN
   TableName:
     Type: String
   StoryCacheTtlSeconds:
     Type: String
-    Default: "300"
+    Default: "3600"
   ApiId:
     Type: String
   AdminApiId:
@@ -44,6 +47,11 @@ Resources:
     Properties:
       FunctionName: !Sub "pathsgames-${Environment}-StoryFunction"
       Runtime: python3.13
+      Architectures: [arm64]
+      LoggingConfig:
+        LogFormat: JSON
+        SystemLogLevel: !Ref LambdaSystemLogLevel
+        ApplicationLogLevel: INFO
       Handler: story.handler.lambda_handler
       Timeout: 30
       MemorySize: 256

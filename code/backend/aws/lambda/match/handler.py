@@ -16,7 +16,7 @@ DynamoDB layout:
   PK = MATCH#{uuid}, SK = METADATA
     Match metadata + embedded ``locations`` / ``registry`` lists.
     GSI1_PK = USER_MATCHES#{userUuid}, GSI1_SK = MATCH#{tsInsertMs}#{uuid}
-    (read through GSI1Summary, v0.37.5: same keys, summary-only projection)
+    (read through GSI1, an INCLUDE projection: the match state never travels)
       v0.32.1 — also backs the duplicate-match guard of POST /api/matches: the
       creator's own partition is queried and filtered on storyUuid + status, so
       a second active match on the same story answers 409
@@ -40,6 +40,7 @@ from common import db_utils
 from common import jwt_utils
 from common import story_cache
 from match import logbook as _logbook
+from match import repo as _repo
 from common.response import dumps as _dumps, ok as _ok, HEADERS
 from common.http_utils import (normalize_path as _normalize_path,
                                get_source_ip as _get_source_ip,
@@ -75,7 +76,7 @@ _MOVE_REASON_MESSAGES = {
 }
 _API_MATCHES_PATH = "/api/matches/"
 # v0.37.5 — GSI1 keys, but only the _summary_from_item attributes projected (see template.yaml).
-_USER_MATCHES_INDEX = 'GSI1Summary'
+_USER_MATCHES_INDEX = 'GSI1'
 _API_GAMEPLAY_PATH = "/api/gameplay/"
 
 # Lifecycle statuses of a match. A match is "stopped" (terminal) when it is
@@ -256,7 +257,7 @@ def _detail_from_item(item, players=None, lang='en', all_locations=False,
     # on the MATCH item.
     location_states = [
         {k: v for k, v in l.items() if k != "name"}
-        for l in (item.get("locations") or [])
+        for l in _location_states_full(item, story)
         if all_locations or l.get("idLocation") in visited_loc_ids
     ]
 
@@ -636,9 +637,9 @@ def _character_full(item, story=None, raw_cards=None, raw_texts=None, lang="en")
     }
 
 
-def _match_characters(match_uuid):
-    """Return the CHARACTER# items stored under the match partition."""
-    return db_utils.query_sk_prefix(f'MATCH#{match_uuid}', 'CHARACTER#') or []
+def _match_characters(match_uuid, consistent=True):
+    """The CHARACTER# rows of the match (read once per request, see match/repo.py)."""
+    return _repo.characters(match_uuid, consistent=consistent)
 
 
 def _reread_characters(match_uuid, touched):
@@ -831,20 +832,20 @@ def _create_match(user, body):
     # as already visited is what makes walking BACK there fire idEventNotFirstTime instead
     # of announcing as a discovery the place the story opened in. idLocationStart is
     # story-level, so this is deterministic however many players join, in whatever order.
+    # v0.37.5 — the state is SPARSE: only the start location and the ones with a counter
+    # get a row; every other location is "all zero" until the party enters it
+    # (_mark_location_visited). The API still answers one entry per story location.
     id_location_start = story.get('idLocationStart')
     location_states = []
     for loc in locations:
         loc_id = int(loc.get('id', 0))
-        location_states.append({
-            "idLocation": loc_id,
-            "uuid": str(uuid_lib.uuid4()),
-            "flagAlreadyActived": 0,
-            # Not flagAlreadyActived, which means "this location's counter has been
-            # consumed" and latches the counter re-seed: overloading it would break both.
-            "flagVisited": 1 if (id_location_start is not None
-                                 and loc_id == _nz(id_location_start)) else 0,
-            "clockCounter": int(loc.get('counterTime') or loc.get('counter_time') or 0),
-        })
+        # Not flagAlreadyActived, which means "this location's counter has been
+        # consumed" and latches the counter re-seed: overloading it would break both.
+        visited = 1 if (id_location_start is not None
+                        and loc_id == _nz(id_location_start)) else 0
+        counter = int(loc.get('counterTime') or loc.get('counter_time') or 0)
+        if visited or counter > 0:
+            location_states.append(_location_state(match_uuid, loc_id, visited, counter))
 
     registry = _registry.seed(story)
 
@@ -958,7 +959,7 @@ def _list_all_matches(event):
         'storyUuid': (params.get('storyUuid') or '').strip() or None,
     }
     items, last_key = db_utils.query_index_page(
-        'GSI2Summary', 'GSI2_PK', 'MATCH', sk_name='GSI2_SK', sk_from=sk_from,
+        'GSI2', 'GSI2_PK', 'MATCH', sk_name='GSI2_SK', sk_from=sk_from,
         eq_filters=eq_filters, limit=limit, start_key=start_key, ascending=False,
     )
     return _ok({
@@ -971,10 +972,10 @@ def _list_all_matches(event):
 def _get_match_info(user, match_uuid, lang='en'):
     if not match_uuid:
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
-    item = db_utils.get_item(f'MATCH#{match_uuid}')
+    item = _repo.match(match_uuid, consistent=False)
     if item is None or item.get('userCreatorUuid') != user['uuid']:
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
-    return _ok(_detail_from_item(item, _match_characters(match_uuid), lang,
+    return _ok(_detail_from_item(item, _match_characters(match_uuid, consistent=False), lang,
                                 requester_uuid=(user or {}).get('uuid')))
 
 
@@ -984,7 +985,7 @@ def _get_match_registry(user, match_uuid, include_hidden=False):
     Owner-only: any other caller reads 404, so a match nobody may see is indistinguishable
     from one that does not exist. ``includeHidden`` is the owner's debugging door.
     """
-    item, err = _require_owned_match(user, match_uuid)
+    item, err = _require_owned_match(user, match_uuid, consistent=False)
     if err is not None:
         return err
     groups = _registry.list_groups(item, _story_of(item), include_hidden)
@@ -997,7 +998,7 @@ def _get_match_missions(user, match_uuid, status=None, lang='en'):
     Owner-only and 404-masked exactly as the registry endpoint is. A mission this match has
     never reached is not listed at all: listing it would spoil it.
     """
-    item, err = _require_owned_match(user, match_uuid)
+    item, err = _require_owned_match(user, match_uuid, consistent=False)
     if err is not None:
         return err
     return _ok({'missions': _missions.list_missions(item, _story_of(item), status, lang)})
@@ -1005,7 +1006,7 @@ def _get_match_missions(user, match_uuid, status=None, lang='en'):
 
 def _get_match_mission(user, match_uuid, mission_uuid, lang='en'):
     """Step 37 — GET /api/match/{uuidMatch}/missions/{uuidMission}, with all its steps."""
-    item, err = _require_owned_match(user, match_uuid)
+    item, err = _require_owned_match(user, match_uuid, consistent=False)
     if err is not None:
         return err
     mission = _missions.find_mission(item, _story_of(item), mission_uuid, lang)
@@ -1023,7 +1024,7 @@ def _end_match(user, match_uuid, event_uuid):
     if not match_uuid or not event_uuid:
         return _err(400, 'INVALID_INPUT', 'Match uuid and event uuid are required')
 
-    item = db_utils.get_item(f'MATCH#{match_uuid}')
+    item = _repo.match(match_uuid)
     if item is None or item.get('userCreatorUuid') != user.get('uuid'):
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
 
@@ -1066,15 +1067,16 @@ def _validate_class(template, clazz):
     return None
 
 
-def _resolve_match_access(user, match_uuid):
+def _resolve_match_access(user, match_uuid, consistent=True):
     """Return ``(match_item, None)`` when the user may view the match (creator or
-    participant), else ``(None, error_response)``."""
-    item = db_utils.get_item(f'MATCH#{match_uuid}')
+    participant), else ``(None, error_response)``. ``consistent=False`` for read-only routes."""
+    item = _repo.match(match_uuid, consistent=consistent)
     if item is None:
         return None, _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
     if item.get('userCreatorUuid') == user['uuid']:
         return item, None
-    if any(c.get('userUuid') == user['uuid'] for c in _match_characters(match_uuid)):
+    if any(c.get('userUuid') == user['uuid']
+           for c in _match_characters(match_uuid, consistent=consistent)):
         return item, None
     return None, _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
 
@@ -1082,7 +1084,7 @@ def _resolve_match_access(user, match_uuid):
 def _join_match(user, match_uuid, body):
     if not match_uuid:
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
-    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    match = _repo.match(match_uuid)
     if match is None:
         return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
     if str(match.get('status')) in TERMINAL_STATUSES:
@@ -1175,7 +1177,7 @@ def _join_match(user, match_uuid, body):
         "magic": 0,
         "coin": 0,
     }
-    db_utils.put_item(char)
+    _repo.save(char)
     return _ok(_character_full(char, story, *_story_cards_texts(story), lang='en'),
                status=201)
 
@@ -1183,7 +1185,7 @@ def _join_match(user, match_uuid, body):
 def _list_players(user, match_uuid):
     if not match_uuid:
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
-    match, err = _resolve_match_access(user, match_uuid)
+    match, err = _resolve_match_access(user, match_uuid, consistent=False)
     if err:
         return err
     story = _story_of(match)
@@ -1192,7 +1194,7 @@ def _list_players(user, match_uuid):
     return _ok([
         _character_summary(c, story, cards, texts, 'en',
                            mask_inventory=c.get('userUuid') != user.get('uuid'))
-        for c in _match_characters(match_uuid)
+        for c in _match_characters(match_uuid, consistent=False)
     ])
 
 
@@ -1239,10 +1241,10 @@ _registry.set_mission_hook(_run_missions)
 def _get_character(user, match_uuid, char_uuid):
     if not match_uuid or not char_uuid:
         return _err(400, 'INVALID_INPUT', 'Match uuid and character uuid are required')
-    _match, err = _resolve_match_access(user, match_uuid)
+    _match, err = _resolve_match_access(user, match_uuid, consistent=False)
     if err:
         return err
-    item = db_utils.get_item(f'MATCH#{match_uuid}', f'CHARACTER#{char_uuid}')
+    item = _repo.character(match_uuid, char_uuid, consistent=False)
     if item is None:
         return _err(404, 'CHARACTER_NOT_FOUND', 'Character not found or not accessible')
     story = _story_of(_match)
@@ -1260,14 +1262,14 @@ def _change_statistics(match_uuid, player_uuid, body):
     if not player_uuid:
         return _err(400, 'INVALID_INPUT', 'Player uuid is required')
 
-    item = db_utils.get_item(f'MATCH#{match_uuid}', f'CHARACTER#{player_uuid}')
+    item = _repo.character(match_uuid, player_uuid)
     if item is None:
         # player_uuid might be the character uuid stored in uuid field — scan characters
         chars = _match_characters(match_uuid)
         item = next((c for c in chars if c.get('uuid') == player_uuid), None)
     if item is None:
         # Try by match existence first
-        match_item = db_utils.get_item(f'MATCH#{match_uuid}', 'METADATA')
+        match_item = _repo.match(match_uuid)
         if match_item is None:
             return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
         return _err(404, 'PLAYER_NOT_FOUND', f'Character not found: {player_uuid}')
@@ -1352,10 +1354,10 @@ def _get_admin_match_info(match_uuid):
     check enforced by GET /api/match/{uuid}/info."""
     if not match_uuid:
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
-    item = db_utils.get_item(f'MATCH#{match_uuid}')
+    item = _repo.match(match_uuid, consistent=False)
     if item is None:
         return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
-    return _ok(_detail_from_item(item, _match_characters(match_uuid), all_locations=True))
+    return _ok(_detail_from_item(item, _match_characters(match_uuid, consistent=False), all_locations=True))
 
 
 def _upsert_admin_registry(match_uuid, body):
@@ -1367,7 +1369,7 @@ def _upsert_admin_registry(match_uuid, body):
     key = (body or {}).get('key')
     if not match_uuid or not str(match_uuid).strip() or not key or not str(key).strip():
         return _err(400, 'INVALID_INPUT', 'Match uuid and a registry key are required')
-    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    match = _repo.match(match_uuid)
     if match is None:
         return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
     story = _load_story(match.get("storyUuid")) or {}
@@ -1386,7 +1388,7 @@ def _delete_admin_registry(match_uuid, key, value):
     allowed here: cleaning an orphan row up is the whole point of the verb."""
     if not match_uuid or not str(match_uuid).strip() or not key or not str(key).strip():
         return _err(400, 'INVALID_INPUT', 'Match uuid and a registry key are required')
-    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    match = _repo.match(match_uuid)
     if match is None:
         return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
     clock, stamp = _nz(match.get('currentClock')), _ts_ms()
@@ -1410,7 +1412,7 @@ def _update_match(match_uuid, status, name):
     """Admin update of a match's status and/or name."""
     if status is not None and status not in MATCH_STATUSES:
         return _err(400, 'INVALID_STATUS', f'status must be one of {MATCH_STATUSES}')
-    item = db_utils.get_item(f'MATCH#{match_uuid}')
+    item = _repo.match(match_uuid)
     if item is None:
         return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
     if status is not None:
@@ -1423,14 +1425,14 @@ def _update_match(match_uuid, status, name):
 
 def _delete_match(match_uuid):
     """Admin deletion of a match. Only terminal (stopped) matches may be removed."""
-    item = db_utils.get_item(f'MATCH#{match_uuid}')
+    item = _repo.match(match_uuid)
     if item is None:
         return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
     if str(item.get('status')) not in TERMINAL_STATUSES:
         return _err(409, 'MATCH_NOT_STOPPED',
                     'Only stopped matches (ENDED or GAMEOVER) can be deleted')
     # v0.37.5 — the whole partition goes (CHARACTER#, TURN#, LOG#), not just METADATA.
-    db_utils.delete_all_by_pk(item['PK'])
+    _repo.delete_partition(item['PK'])
     return _ok({'status': 'DELETED', 'uuid': match_uuid})
 
 
@@ -1448,9 +1450,9 @@ def _turn_priority(dexterity, intelligence, constitution, life, id_character):
     return stats * 1000 + _nz(life) * 10 + _nz(id_character)
 
 
-def _turn_items(match_uuid):
-    """Return the TURN# queue items stored under the match partition."""
-    return db_utils.query_sk_prefix(f'MATCH#{match_uuid}', 'TURN#') or []
+def _turn_items(match_uuid, consistent=True):
+    """The TURN# queue of the match (read once per request, see match/repo.py)."""
+    return _repo.turns(match_uuid, consistent=consistent)
 
 
 def _turn_entry(item):
@@ -1478,12 +1480,12 @@ def _sequence_response(match, rows):
     }
 
 
-def _require_owned_match(user, match_uuid):
+def _require_owned_match(user, match_uuid, consistent=True):
     """Return ``(match_item, None)`` when the user owns the match, else
     ``(None, error_response)``. Ownership errors are reported as 404."""
     if not match_uuid:
         return None, _err(400, 'INVALID_INPUT', 'Match uuid is required')
-    item = db_utils.get_item(f'MATCH#{match_uuid}')
+    item = _repo.match(match_uuid, consistent=consistent)
     if item is None or item.get('userCreatorUuid') != user.get('uuid'):
         return None, _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
     return item, None
@@ -1518,7 +1520,7 @@ def _start_match(user, match_uuid):
     top = rows[0]
 
     for r in rows:
-        db_utils.put_item({
+        _repo.save({
             "PK": f'MATCH#{match_uuid}',
             "SK": f'TURN#{r["characterUuid"]}',
             **r,
@@ -1591,20 +1593,20 @@ def _pass_turn(user, match_uuid):
     # Complete the current turn.
     active['status'] = TURN_COMPLETED
     active['passCounter'] = _nz(active.get('passCounter')) + 1
-    db_utils.put_item(active)
+    _repo.save(active)
 
     # Find the next WAITING character; if none, start a new round (reset all to WAITING).
     waiting = [r for r in rows if r.get('status') == TURN_WAITING]
     if not waiting:
         for r in rows:
             r['status'] = TURN_WAITING
-            db_utils.put_item(r)
+            _repo.save(r)
         waiting = list(rows)
     waiting.sort(key=lambda r: _nz(r.get('priority')), reverse=True)
     nxt = waiting[0]
 
     nxt['status'] = TURN_ACTIVE
-    db_utils.put_item(nxt)
+    _repo.save(nxt)
 
     match['activeCharacterUuid'] = nxt.get('characterUuid')
     _logbook.persist(match)
@@ -1618,10 +1620,10 @@ def _pass_turn(user, match_uuid):
 
 
 def _get_turn_sequence(user, match_uuid):
-    match, err = _require_owned_match(user, match_uuid)
+    match, err = _require_owned_match(user, match_uuid, consistent=False)
     if err:
         return err
-    rows = _turn_items(match_uuid)
+    rows = _turn_items(match_uuid, consistent=False)
     return _ok(_sequence_response(match, rows))
 
 
@@ -1746,21 +1748,21 @@ def _apply_time_start_recovery(match, match_uuid, story):
             c['isComa'] = 0
             _log_edge_state(match, c, None,
                             f"{_events.MSG_COMA_RECOVERED} {c.get('uuid')}")
-        db_utils.put_item(c)
+        _repo.save(c)
 
-    # Re-seed location counters that were pre-created with 0 (match created before
-    # counter_time was set on the location) when the character is now occupying them.
-    for ls in (match.get('locations') or []):
-        id_location = _nz(ls.get('idLocation'))
-        if id_location not in occupied_ids:
-            continue
-        if _nz(ls.get('clockCounter')) != 0:
-            continue
-        if _nz(ls.get('flagAlreadyActived')) != 0:
-            continue
+    # Re-seed the counter of an occupied location the match state does not know (sparse
+    # state, or a counterTime the story gained after the match was created).
+    by_id = {_nz(ls.get('idLocation')): ls for ls in (match.get('locations') or [])}
+    for id_location in occupied_ids:
         loc = story_locations.get(id_location)
         counter_time = _nz((loc or {}).get('counterTime') or (loc or {}).get('counter_time'))
-        if counter_time > 0:
+        if counter_time <= 0:
+            continue
+        ls = by_id.get(id_location)
+        if ls is None:
+            match.setdefault('locations', []).append(
+                _location_state(match.get('uuid'), id_location, 0, counter_time))
+        elif _nz(ls.get('clockCounter')) == 0 and _nz(ls.get('flagAlreadyActived')) == 0:
             ls['clockCounter'] = counter_time
 
     # Decrement location counters on the embedded match state; flag zeros and collect the
@@ -1951,7 +1953,7 @@ def _apply_weather_at_time_start(match, match_uuid, story):
             new_energy = _clamp(_nz(c.get('energy')) + delta, 0, _nz(c.get('energyMax')))
             if new_energy != _nz(c.get('energy')):
                 c['energy'] = new_energy
-                db_utils.put_item(c)
+                _repo.save(c)
     return chosen
 
 
@@ -1994,7 +1996,7 @@ def _get_weather(match_uuid, lang='en'):
     """GET /api/matches/{uuid}/weather — current weather + card + movement modifiers."""
     if not match_uuid or not match_uuid.strip():
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
-    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    match = _repo.match(match_uuid, consistent=False)
     if match is None:
         return _err(404, 'WEATHER_NOT_FOUND', 'No weather is currently set for this match')
     story = _load_story(match.get("storyUuid")) or {}
@@ -2148,7 +2150,7 @@ def _get_match_logs(user, match_uuid, lang='en', limit=None, cursor=None, order=
     """GET /api/matches/{uuid}/logs — consolidated log timeline, owner-only (Step 28.7)."""
     if not match_uuid or not match_uuid.strip():
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
-    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    match = _repo.match(match_uuid, consistent=False)
     if match is None:
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
     # Owner check
@@ -2161,7 +2163,7 @@ def _get_admin_match_logs(match_uuid, lang='en', limit=None, cursor=None, order=
     """GET /api/admin/matches/{uuid}/logs — admin log timeline, no ownership check (Step 28.7)."""
     if not match_uuid or not match_uuid.strip():
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
-    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    match = _repo.match(match_uuid, consistent=False)
     if match is None:
         return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
     return _ok(_build_match_logs(match, match_uuid, lang, limit, cursor, order))
@@ -2171,7 +2173,7 @@ def _get_admin_match_weather(match_uuid):
     """GET /api/admin/matches/{uuid}/weather — rng_seed + current + log_weather."""
     if not match_uuid or not match_uuid.strip():
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
-    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    match = _repo.match(match_uuid, consistent=False)
     if match is None:
         return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
     story = _load_story(match.get("storyUuid")) or {}
@@ -2231,7 +2233,7 @@ def _advance_time(match, match_uuid):
     for c in _match_characters(match_uuid):
         if _nz(c.get('isSleeping')) == 1:
             c['isSleeping'] = 0
-            db_utils.put_item(c)
+            _repo.save(c)
 
     # Step 26: per-character recovery, class bonuses and location counters.
     story = _load_story(match.get("storyUuid")) or {}
@@ -2264,7 +2266,7 @@ def _advance_time(match, match_uuid):
         rows[0]['status'] = TURN_ACTIVE
         match['activeCharacterUuid'] = rows[0]['characterUuid']
     for r in rows:
-        db_utils.put_item({
+        _repo.save({
             "PK": f'MATCH#{match_uuid}',
             "SK": f'TURN#{r["characterUuid"]}',
             **r,
@@ -2279,7 +2281,7 @@ def _advance_time(match, match_uuid):
 def _sleep(user, match_uuid):
     if not match_uuid:
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
-    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    match = _repo.match(match_uuid)
     if match is None:
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
 
@@ -2294,7 +2296,7 @@ def _sleep(user, match_uuid):
 
     # Idempotent: setting sleeping on an already-sleeping character is a no-op effect.
     caller['isSleeping'] = 1
-    db_utils.put_item(caller)
+    _repo.save(caller)
 
     # Step 28.7 — log the sleep action for the match logs timeline.
     _logbook.append(match, 'SLEEP', _nz(match.get('currentClock')),
@@ -2350,10 +2352,10 @@ def _story_clock_label(story, direct_key, text_field, lang='en'):
 
 
 def _get_clock(user, match_uuid):
-    match, err = _require_owned_match(user, match_uuid)
+    match, err = _require_owned_match(user, match_uuid, consistent=False)
     if err:
         return err
-    characters = _match_characters(match_uuid)
+    characters = _match_characters(match_uuid, consistent=False)
     story = _load_story(match.get("storyUuid")) or {}
     any_sleeping = any(_nz(c.get('isSleeping')) == 1 for c in characters)
     return _ok({
@@ -2444,7 +2446,7 @@ def _start_movement(user, match_uuid, body):
     if not target_uuid:
         return _err(400, 'MISSING_TARGET', 'targetLocationUuid is required')
 
-    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    match = _repo.match(match_uuid)
     if match is None:
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
 
@@ -2522,7 +2524,7 @@ def _start_movement(user, match_uuid, body):
         caller['food'] = new_food
         caller['magic'] = new_magic
         caller['coin'] = new_coin
-    db_utils.put_item(caller)
+    _repo.save(caller)
 
     # The MOVEMENT row also feeds the visited set (fog of war) kept on the match item.
     _logbook.append(match, 'MOVEMENT', None, characterUuid=caller.get('uuid'),
@@ -2631,7 +2633,7 @@ def _execute_event(user, match_uuid, body, lang='en'):
     if not event_uuid or not str(event_uuid).strip():
         return _err(400, 'MISSING_EVENT', 'eventUuid is required')
 
-    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    match = _repo.match(match_uuid)
     if match is None:
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
 
@@ -2870,14 +2872,14 @@ def _execute_event(user, match_uuid, body, lang='en'):
         current = nxt_event  # not re-checked, not charged
 
     for c in touched.values():
-        db_utils.put_item(c)
+        _repo.save(c)
 
     current_clock = _nz(match.get('currentClock'))
     time_ended = False
     if flags['endTime'] and not flags['comaTriggered']:
         for c in _reread_characters(match_uuid, touched):
             c['isSleeping'] = 1
-            db_utils.put_item(c)
+            _repo.save(c)
         current_clock, _recovery, _fired, time_edge = _advance_time(match, match_uuid)
         # v0.35.6 — the time start this event forced runs a recovery, and a recovery can push
         # somebody over an edge: that verdict belongs in this response, not the next reload.
@@ -2985,13 +2987,13 @@ def _gameplay_match_uuid(event, path):
     return match_uuid
 
 
-def _resolve_inventory_caller(user, match_uuid):
+def _resolve_inventory_caller(user, match_uuid, consistent=True):
     """(match, story, caller, error). An unknown match and a caller who is not in it are
     deliberately indistinguishable."""
-    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    match = _repo.match(match_uuid, consistent=consistent)
     if match is None:
         return None, None, None, _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
-    caller = next((c for c in _match_characters(match_uuid)
+    caller = next((c for c in _match_characters(match_uuid, consistent=consistent)
                    if c.get('userUuid') == user.get('uuid')), None)
     if caller is None:
         return None, None, None, _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
@@ -3053,7 +3055,7 @@ def _get_inventory(user, match_uuid, lang='en'):
     """GET /api/gameplay/{uuidMatch}/inventory — readable in any match status."""
     if not match_uuid:
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
-    match, story, caller, err = _resolve_inventory_caller(user, match_uuid)
+    match, story, caller, err = _resolve_inventory_caller(user, match_uuid, consistent=False)
     if err:
         return err
     return _ok({
@@ -3069,7 +3071,7 @@ def _get_resources(user, match_uuid):
     """GET /api/gameplay/{uuidMatch}/resources — plain numbers, no card."""
     if not match_uuid:
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
-    match, story, caller, err = _resolve_inventory_caller(user, match_uuid)
+    match, story, caller, err = _resolve_inventory_caller(user, match_uuid, consistent=False)
     if err:
         return err
     return _ok({
@@ -3124,7 +3126,7 @@ def _drop_item(user, match_uuid, body):
                                    _inventory.ITEM_ACTION_DROP,
                                    _nz(match.get('currentClock')), None, dropped)
         _logbook.persist(match)
-    db_utils.put_item(caller)
+    _repo.save(caller)
 
     return _ok({
         "matchUuid": match_uuid,
@@ -3208,7 +3210,7 @@ def _use_item(user, match_uuid, body, lang='en'):
         _nz(match.get('currentClock')),
         acc['statChanges'], spend, None,
         _inventory.resource_delta(acc['statChanges'], caller.get('uuid')))
-    db_utils.put_item(caller)
+    _repo.save(caller)
     _logbook.persist(match)
 
     changed = bool(acc['statChanges'] or acc['traitChanges']
@@ -3311,7 +3313,7 @@ def _execute_choice_event(match, match_uuid, story, event, event_choices,
                         message=f'{_events.MSG_EVENT_EXECUTED} {event_id}',
                         energyCost=energy_spent, foodCost=food_spent,
                         magicCost=magic_spent, coinCost=coin_spent)
-        db_utils.put_item(caller)
+        _repo.save(caller)
         _logbook.persist(match)
 
     raw_cards = story.get('raw_cards') or []
@@ -3399,7 +3401,7 @@ def _select_choice(user, match_uuid, body, lang='en'):
     if not choice_uuid or not str(choice_uuid).strip():
         return _err(400, 'MISSING_CHOICE', 'choiceUuid is required')
 
-    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    match = _repo.match(match_uuid)
     if match is None:
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
 
@@ -3530,7 +3532,7 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
                       events_by_id, acc, item_uuids, location_uuids, lang)
 
     for c in acc['touched'].values():
-        db_utils.put_item(c)
+        _repo.save(c)
 
     # v0.35.6 — a forced move is an arrival like any other, and java and python drain these
     # while AWS silently did not. After the writes above, because the destination re-reads
@@ -3559,7 +3561,7 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
     if acc['flags']['endTime'] and not acc['flags']['comaTriggered']:
         for c in _reread_characters(match_uuid, acc['touched']):
             c['isSleeping'] = 1
-            db_utils.put_item(c)
+            _repo.save(c)
         current_clock, _recovery, _fired, time_edge = _advance_time(match, match_uuid)
         # The forced time start can push somebody over an edge too — same as above.
         _fold_edge_uuids(acc['edgeState'], time_edge)
@@ -4033,11 +4035,35 @@ def _flag_visited(match, id_location):
 
 
 def _mark_location_visited(match, id_location):
-    """Latch the location as visited by the party. Idempotent."""
+    """Latch the location as visited by the party. Idempotent; a location without a row
+    (sparse state, v0.37.5) gets one."""
     for ls in (match.get('locations') or []):
         if _nz(ls.get('idLocation')) == id_location:
             ls['flagVisited'] = 1
             return
+    match.setdefault('locations', []).append(
+        _location_state(match.get('uuid'), _nz(id_location), 1, 0))
+
+
+def _location_state(match_uuid, id_location, visited=0, counter=0):
+    """One row of the match's location state; the uuid is stable per match and location."""
+    return {
+        "idLocation": _nz(id_location),
+        "uuid": str(uuid_lib.uuid5(uuid_lib.NAMESPACE_OID, f'{match_uuid}#{_nz(id_location)}')),
+        "flagAlreadyActived": 0,
+        "flagVisited": _nz(visited),
+        "clockCounter": _nz(counter),
+    }
+
+
+def _location_states_full(match, story):
+    """One entry per story location: the stored row, or an all-zero one (sparse state)."""
+    stored = {_nz(ls.get('idLocation')): ls for ls in (match.get('locations') or [])}
+    out = []
+    for loc in (story.get('locations') or []):
+        loc_id = _nz(loc.get('id'))
+        out.append(stored.get(loc_id) or _location_state(match.get('uuid'), loc_id))
+    return out
 
 
 def _log_automatic_event(match, actor_uuid, id_location, id_event, clock, message):
@@ -4169,7 +4195,7 @@ def _run_automatic_event(match, match_uuid, story, actor_uuid, id_event, id_loca
 
     for touched in acc['touched'].values():
         if touched is not None:
-            db_utils.put_item(touched)
+            _repo.save(touched)
 
     _log_automatic_event(
         match, actor_uuid, id_location, id_event, _nz(match.get('currentClock')),
@@ -4388,7 +4414,7 @@ def _visited_locations_payload(match, match_uuid, lang='en'):
 
 
 def _get_locations(user, match_uuid, lang='en'):
-    match, err = _require_owned_match(user, match_uuid)
+    match, err = _require_owned_match(user, match_uuid, consistent=False)
     if err:
         return err
     return _ok(_visited_locations_payload(match, match_uuid, lang))
@@ -4397,7 +4423,7 @@ def _get_locations(user, match_uuid, lang='en'):
 def _get_admin_locations(match_uuid, lang='en'):
     if not match_uuid or not match_uuid.strip():
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
-    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    match = _repo.match(match_uuid, consistent=False)
     if match is None:
         return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
     return _ok(_visited_locations_payload(match, match_uuid, lang))
@@ -4406,7 +4432,16 @@ def _get_admin_locations(match_uuid, lang='en'):
 # ─── router ──────────────────────────────────────────────────────────────────
 
 def lambda_handler(event, context):
+    """Every write of the request is queued on ``repo`` and lands in one batch at the end."""
     story_cache.begin_request()  # v0.37.5 — one stamp read per invocation
+    _repo.begin()
+    try:
+        return _dispatch(event)
+    finally:
+        _repo.flush()
+
+
+def _dispatch(event):
     raw_path = event.get('rawPath') or event.get('path') or ''
     path = _normalize_path(raw_path)
     method = (event.get('requestContext', {})

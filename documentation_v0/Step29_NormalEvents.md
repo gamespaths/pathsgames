@@ -248,6 +248,15 @@ answer `execute-event` with the destination's fired events. New Robot suite
 fixture by behaviour (an event that ends the time unit and moves the actor into a location
 with a first-entry event) rather than a hardcoded id.
 
+**v0.37.5 — superseded by the per-request `repo`.** The blanket `ConsistentRead=True` and
+`_reread_characters` above were a targeted fix for the write path; `lambda/match/repo.py`
+(see [Step19 §6](./Step19_SinglePlayerMatchCreation.md)) now caches `match`/`characters`/
+`turns`/`character` once per request and every step reads the same dicts, so
+`_reread_characters` is redundant — the roster is the request's own truth regardless of read
+consistency. Read-only GET routes (match info, weather, logs, registry, missions, locations,
+inventory, and the admin equivalents) now read with `consistent=False` for cost; the mutating
+routes this note describes still go through `repo` and are unaffected.
+
 ### Coma short-circuits everything
 
 Life at zero → `is_coma = true`, `is_sleeping = true`, log, **return**. The chain stops and
@@ -351,9 +360,10 @@ effect 14 with `idLocation: 3` — see the [v0.29.3 Roadmap entry](./Roadmap.md)
   | 0.35.3 | Same version, continued: new Robot suite `resource_costs.robot` (9 tests, §7) covers this event cost round trip end to end; two `events.robot` id-selector predicates fixed after the `coinCost` → `costCoin` rename. Full detail in [Step35 §12.f-g](./Step35_ItemsResolution.md#12-resource-costs-food-magic-and-coin-become-a-cost-of-acting-v0353). | August 24, 2026 |
   | 0.36.3 | AWS bugfix: a forced move (`id_location`) undone by the time-end roster re-read (eventually consistent DynamoDB read) now survives, via `ConsistentRead=True` and a `_reread_characters` helper. Same version: `execute-event` on AWS, and its response mapper on Python, now drain and report the destination's arrival triggers (`automaticEvents[]`), matching Java and `select-choice`. New `forced_move.robot` (5 cases). | September 6, 2026 |
   | 0.37.5 | AWS-only, no code change here: ONCE gating's consumed set and forced-move logging now read the `executedEventIds`/`LOG#` derived state instead of an embedded log list. See [Step28 §0.37.5](./Step28_MovementSystem.md). | September 14, 2026 |
+  | 0.37.5 | Same version, round 2: `_reread_characters` (v0.36.3) is now redundant — the per-request `repo.py` unit of work caches the roster instead; read-only GET routes moved to eventually consistent reads for cost. See note above. | September 15, 2026 |
 
 
-- **Last Updated**: September 14, 2026
+- **Last Updated**: September 15, 2026
 - **Status**: Complete
 
 # < Paths Games />

@@ -7,6 +7,7 @@ from boto3.dynamodb.conditions import Attr
 
 from common import db_utils
 from common.data_utils import safe_int as _nz
+from match import repo
 
 LOG_PREFIX = 'LOG#'
 AUDIT_PREFIX = 'AUDIT#'
@@ -96,28 +97,28 @@ def _visit(match, id_location):
 
 
 def persist(match):
-    """Write the match: pending rows first (batch), then the METADATA item that counts them.
-
-    Every former ``db_utils.put_item(match)`` goes through here, so a request that saves
-    twice flushes twice and never reuses a sort key (``logSeq`` lives on the same dict)."""
+    """Save the match: one LOG# row per timeline entry, ONE AUDIT# row for everything else
+    the request recorded, then the METADATA item that counts them — all through ``repo``,
+    so a request that persists twice still writes the METADATA item once (at flush) and
+    never reuses a sort key (``logSeq`` lives on the same dict)."""
     logs = match.pop(PENDING_LOGS, None) or []
     audits = match.pop(PENDING_AUDIT, None) or []
     for key in LEGACY_LISTS:
         match.pop(key, None)
     pk = match.get('PK') or f"MATCH#{match.get('uuid')}"
     seq = _nz(match.get('logSeq'))
-    rows = []
     for entry in logs:
         seq += 1
-        rows.append({'PK': pk, 'SK': _sort_key(LOG_PREFIX, entry, seq), **entry})
-    for row in audits:
+        repo.save({'PK': pk, 'SK': _sort_key(LOG_PREFIX, entry, seq), **entry})
+    if audits:
         seq += 1
-        rows.append({'PK': pk, 'SK': _sort_key(AUDIT_PREFIX, row, seq), **row})
+        first = audits[0]
+        repo.save({'PK': pk, 'SK': _sort_key(AUDIT_PREFIX, first, seq),
+                   'clock': first.get('clock'), 'timestamp': first.get('timestamp'),
+                   'timestampMs': first.get('timestampMs'), 'rows': audits})
     match['logSeq'] = seq
     match['logCount'] = _nz(match.get('logCount')) + len(logs)
-    if rows:
-        db_utils.batch_put_items(rows)
-    return db_utils.put_item(match)
+    return repo.save(match)
 
 
 def _sort_key(prefix, row, seq):

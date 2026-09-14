@@ -97,77 +97,71 @@ All entities coexist in the same table using a prefix for differentiation:
 
 | Entity | Partition Key (PK) | Sort Key (SK) | GSI1_PK (Example) | GSI2_PK | GSI2_SK |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **User** | `USER#<uuid>` | `METADATA` | `USER_LIST` | — | — |
-| **Guest** | `USER#<uuid>` | `METADATA` | `GUEST_TOKEN#<token>` | `GUEST_TOKEN#<token>` | `METADATA` |
-| **Story** | `STORY#<uuid>` | `METADATA` | `STORY_LIST` | `STORY_LIST` | `STORY#<uuid>` |
+| **User** | `USER#<uuid>` | `METADATA` | — | — | — |
+| **Guest** | `USER#<uuid>` | `METADATA` | `GUEST_TOKEN#<token>` | `GUEST_LIST` | `USER#<uuid>` |
+| **Story** | `STORY#<uuid>` | `METADATA` | — | `STORY_LIST` | `STORY#<uuid>` |
 | **Card** | `CARD#<id>` | `METADATA` | — | — | — |
 | **Match** | `MATCH#<uuid>` | `METADATA` | `USER_MATCHES#<uuid>` | `MATCH` | `{tsInsert:020d}#{uuid}` |
 | **Character** | `MATCH#<uuid>` | `CHARACTER#<uuid>` | — | — | — |
 | **Turn** | `MATCH#<uuid>` | `TURN#<characterUuid>` | — | — | — |
 | **Log entry** | `MATCH#<uuid>` | `LOG#{ts_ms:013d}#{seq:06d}` | — | — | — |
-| **Audit row** | `MATCH#<uuid>` | `AUDIT#{ts_ms:013d}#{seq:06d}` | — | — | — |
+| **Audit row** | `MATCH#<uuid>` | `AUDIT#{ts_ms:013d}#{seq:06d}` (one per request, entries in `rows`) | — | — | — |
 | **Cache stamp** | `SYSTEM#cache` | `METADATA` | — | — | — |
 
-### v0.37.5 — cost layout: log rows, derived state, summary indexes, story cache
+### v0.37.5 — cost layout: log rows, gzipped stories, one write per request, INCLUDE indexes
 
 Until v0.37.4 the match METADATA item embedded seven ever-growing log lists and was rewritten
 whole (and replicated by two `ALL` indexes) at every action, while every action re-read the
-~300 KB story item with a consistent read. The layout now is:
+~330 KB story item with a consistent read. The layout now is:
 
 - **Logs are rows.** `match/logbook.py` queues every timeline entry on the match dict
-  (`_pendingLogs`) and `logbook.persist(match)` — the only writer of the match item — batch-writes
-  them as `LOG#` items already in the shape `GET /api/matches/{uuid}/logs` answers. Rows the
-  timeline never shows (edge states, choice history, story progress) go to `AUDIT#`. `logCount`
-  on METADATA is the `total` of the logs endpoint, `logSeq` keeps sort keys unique inside one
-  millisecond. Pagination is a real range read (`nextCursor` = last key served, `order=desc` =
-  `ScanIndexForward=false`).
+  (`_pendingLogs`) and `logbook.persist(match)` — the only writer of the match item — turns
+  them into `LOG#` items already in the shape `GET /api/matches/{uuid}/logs` answers. Rows the
+  timeline never shows (edge states, choice history, story progress) are packed in **one**
+  `AUDIT#` item per request (`rows: [...]`, 1 WRU, never read back). `logCount` on METADATA is
+  the `total` of the logs endpoint, `logSeq` keeps sort keys unique inside one millisecond.
+- **One read, one write per row per request** (`match/repo.py`): `lambda_handler` opens a
+  unit of work, the METADATA item / roster / turn queue are read once and every step works on
+  the same dicts, `repo.save` queues a snapshot and `flush()` batch-writes the dirty set at the
+  end. A request that persists twice (an event that ends the time unit) still writes the match
+  item once. Outside a request `repo` is write-through, so helpers stay unit-testable.
+- **Stories travel gzipped** (`db_utils._pack/_unpack`): every list/map of a `STORY#` item
+  except `summary` is one Binary `_gz` attribute (the tutorial story: 334 KB → 75 KB, 11 ms to
+  pack, 3 ms to unpack). A cold read costs ~10 RRU instead of ~41, a write ~76 WRU instead of
+  ~326, and the 400 KB item limit is far away. Transparent to every handler.
 - **Derived state on METADATA** replaces every scan of the old lists: `executedEventIds` (ONCE
   gating), `eventMarkers` (`{idEvent: {executed, selected}}`, the open-choice cycle),
-  `visitedLocationIds` (fog of war). A match written before v0.37.5 keeps its inline lists until
-  its first write strips them; its old logs are simply not shown.
-- **`CLOCK#<n>` items are gone**: a time advance is a `CLOCK_ADVANCE` log row.
+  `visitedLocationIds` (fog of war). The location state is **sparse**: only the start location
+  and the ones with a counter get a row at creation, a visit adds one; the API still answers
+  one entry per story location (all-zero when there is no row, uuid = uuid5(match, location)).
 - **Partition reads by prefix**: characters and turn rows are `Query PK + begins_with(SK)`
-  (`db_utils.query_sk_prefix`), never the whole partition.
+  (`db_utils.query_sk_prefix`), never the whole partition. Read-only routes (info, weather,
+  logs, players, registry, missions, clock, admin GETs, admin story entity GETs) use
+  eventually consistent reads: half the RRU.
 - **Story cache** (`common/story_cache.py`): a warm container serves the story from memory for
-  `STORY_CACHE_TTL_SECONDS` (template parameter `StoryCacheTtlSeconds`, default 300, `0` = off)
+  `STORY_CACHE_TTL_SECONDS` (template parameter `StoryCacheTtlSeconds`, default 3600, `0` = off)
   and re-reads it when `SYSTEM#cache` (one consistent 1-RRU read per invocation) carries a
   newer stamp for that story. Every admin story write bumps the story's stamp;
   `POST /api/admin/cache/flush` bumps the global one so every container drops everything.
-- **Summary indexes**: readers use `GSI1Summary` (user matches) and the new `GSI2Summary`
-  (admin match list, story list, guest resume), both `INCLUDE` projections. A story item carries
-  a precomputed `summary` map (`common/story_index.py`: `{meta: {id, visibility, priority, …},
-  langs: {lang: {title, description, card}}}`) — one attribute, because DynamoDB projects at most
-  20 non-key attributes per index — so listing stories never reads `raw_texts`/`raw_cards`. Matches are deleted whole
-  (`delete_all_by_pk`), so no `LOG#`/`CHARACTER#` orphans are left behind.
+- **Two INCLUDE indexes, no `ALL`**: `GSI1` = "by owner" (`USER_MATCHES#<uuid>` for
+  `GET /api/matches`, `GUEST_TOKEN#<token>` for the guest resume), `GSI2` = "by type" (`MATCH`
+  for the admin list, `STORY_LIST`, `GUEST_LIST`). Stories and guests carry ONE `summary` map
+  with everything their list needs (`common/story_index.py`, `auth/handler.py`
+  `GUEST_SUMMARY_FIELDS`) — DynamoDB projects at most 20 non-key attributes per index. No
+  reader scans the table any more: the admin guest list, the purge, the stats and the Robot
+  cleanup are all index Queries. Matches are deleted whole (`delete_all_by_pk`, keys-only
+  query), so no `LOG#`/`CHARACTER#` orphans are left behind.
+- **Infra**: every function runs on `arm64` (pure Python, −20 % on GB-s);
+  `LambdaSystemLogLevel` (default `WARN`) drops the START/END/REPORT lines of every invocation
+  (set `INFO` to read `Max Memory Used` again); `TableBillingMode` lets a dev table run
+  `PROVISIONED` inside the always-free 25 RCU/WCU (`samconfig.toml` dev: 10/10 on the table,
+  5/5 on each GSI; prod stays `PAY_PER_REQUEST`). Switch dev back to on-demand before a k6 run.
 
-**Index migration — three deploys, CloudFormation allows one GSI change per stack update:**
+Per gameplay action the estimate goes from ~93 RRU + ~70 WRU (v0.37.4) to ~5 RRU + ~14 WRU
+(story cached, match item ~4 KB written once, one small row per log entry, one audit row,
+two INCLUDE replicas of ~1 KB).
 
-1. **D1 (this template)** adds `GSI2Summary`. Deploy, then index the rows written before it:
-   ```bash
-   python scripts/backfill_gsi2_summary.py --env dev --dry-run   # preview
-   python scripts/backfill_gsi2_summary.py --env dev             # stories + guests
-   ```
-   Until the backfill runs, readers fall back to `GSI1` when `GSI2Summary` answers nothing
-   (`_LEGACY_INDEX_FALLBACK` in `story/handler.py` and `auth/handler.py`).
-2. **D2** — delete the `GSI2` block from `template.yaml` (keep `GSI2_PK`/`GSI2_SK` in
-   `AttributeDefinitions`: `GSI2Summary` uses them). No reader references `GSI2` any more.
-3. **D3** — delete the `GSI1` block (keep `GSI1_PK`/`GSI1_SK`: `GSI1Summary` uses them), set both
-   `_LEGACY_INDEX_FALLBACK` flags to `False`, and drop the never-queried `USER_LIST` keys from
-   `seed/handler.py`. Run the backfill before this step, or guests created before D1 must log in
-   again.
-
-Per gameplay action the estimate goes from ~93 RRU + ~70 WRU to ~10 RRU + ~28 WRU (story cached,
-match item ~8 KB, one small row per log entry, two `INCLUDE` replicas instead of two `ALL`).
-
-**GSI2 — "by type" index** (added v0.28.1): enables a single newest-first **Query** on all match items without scanning the full table. `GSI2_PK` is the constant string `"MATCH"`; `GSI2_SK` is a zero-padded epoch timestamp followed by the UUID, ensuring natural descending order. The `sinceDays` filter uses a range condition on `GSI2_SK`; `status`, `userUuid`, `storyUuid` are applied as FilterExpression. Matches created before v0.28.1 lack GSI2 keys and will not appear in the admin list until their items are rewritten. **After deploying the GSI2 template, run the one-time backfill once per environment** to index existing matches:
-
-```bash
-# from code/backend/aws/ (needs AWS creds with DynamoDB scan/update on the table)
-python scripts/backfill_gsi2_matches.py --env dev            # or --table PathsGamesBackend-prod
-python scripts/backfill_gsi2_matches.py --env dev --dry-run  # preview only, no writes
-```
-
-The script is idempotent (rows already carrying `GSI2_PK` are skipped) and reuses `db_utils.backfill_gsi2_matches`, which writes the exact `GSI2_SK` format `_create_match` uses, so backfilled and new rows sort together.
+**GSI2 — "by type" index** (added v0.28.1): enables a single newest-first **Query** on all match items without scanning the full table. `GSI2_PK` is the constant string `"MATCH"`; `GSI2_SK` is a zero-padded epoch timestamp followed by the UUID, ensuring natural descending order. The `sinceDays` filter uses a range condition on `GSI2_SK`; `status`, `userUuid`, `storyUuid` are applied as FilterExpression.
 
 Cards are stored as standalone items (`PK=CARD#<id>`) and resolved on-the-fly during story detail requests. The `_build_card()` helper in `story/handler.py` fetches the card from DynamoDB and maps its fields (urlImage, alternativeImage, awesomeIcon, styleMain, styleDetail, styleImageLittle, styleImageMedium, styleImageLarge, cardType, localised title/description/copyrightText, linkCopyright). Sub-entities that reference a card (difficulties, characterTemplates, classes, traits) expose both `idCard` (integer) and the fully resolved `card` object in the API response.
 
@@ -200,6 +194,9 @@ The project uses **AWS SAM** to handle packaging and deployment across different
 | Stack name | `pathsgames-dev` | `pathsgames-prod` |
 | S3 bucket | `pathsgames-dev` | `pathsgames-prod` |
 | Region | `us-east-2` | — |
+| `TableBillingMode` | `PROVISIONED` (10/10 table, 5/5 per GSI) | `PAY_PER_REQUEST` |
+| `LambdaSystemLogLevel` | `WARN` | `WARN` |
+| `StoryCacheTtlSeconds` | `3600` | `3600` |
 
 The `deploy` command output will provide the **API Endpoint URL** to be configured in the frontend.
 

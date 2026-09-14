@@ -106,10 +106,9 @@ Resumes an existing guest session using the cookie token.
 }
 ```
 
-**AWS lookup (v0.37.5):** the cookie-token lookup in `lambda/auth/handler.py` now queries the
-new `GSI2Summary` index (`GSI2_PK=GUEST_TOKEN#<token>`) instead of `GSI1`, falling back to
-`GSI1` while the index migration/backfill is in progress. See
-[code/backend/aws/README.md](../code/backend/aws/README.md).
+**AWS lookup (v0.37.5):** the cookie-token lookup in `lambda/auth/handler.py` queries
+`GSI1` on `GSI1_PK=GUEST_TOKEN#<token>` (same "by owner" index as `GET /api/matches`'
+`USER_MATCHES#<uuid>`). See [code/backend/aws/README.md](../code/backend/aws/README.md).
 
 
 ## JWT Token Structure
@@ -283,13 +282,14 @@ returned is ordered by its registration date, the only one it has.
   learn whether a further page exists, then encodes `nextCursor` as the same opaque
   base64 `"<timestamp>|<id>"` keyset token the admin match list uses. New records
   `GuestListFilter`, `GuestInfoPage` in `core/model/auth/`. Python mirrors this shape.
-- AWS: the old list was `db_utils.scan_filter('is_guest', True)`, a full-table Scan paged
-  to exhaustion — it timed out past 15 s on a large guest table. It is now **one bounded
-  Scan page per request** via new `db_utils.scan_filter_page`, with DynamoDB's
-  `LastEvaluatedKey` carried back as `nextCursor`. Caveat: DynamoDB applies `Limit`
-  **before** the `FilterExpression`, so a page can come back short, or even empty, while
-  `nextCursor` is still set — an empty page is not the end of the data, only a null
-  cursor is.
+- AWS (v0.37.5): the old list was `db_utils.scan_filter('is_guest', True)`, a full-table
+  Scan paged to exhaustion — it timed out past 15 s on a large guest table. It is now a
+  `db_utils.query_index_page('GSI2', 'GSI2_PK', 'GUEST_LIST')` Query — every guest item
+  carries `GSI2_PK=GUEST_LIST`, `GSI2_SK=USER#<uuid>` and a precomputed `summary` map
+  (`GUEST_SUMMARY_FIELDS` in `auth/handler.py`), so the page is read and returned with no
+  Scan and no per-item fetch. `DynamoDB`'s `LastEvaluatedKey` is carried back as
+  `nextCursor`. Stale purge and guest stats use the same `GSI2 GUEST_LIST` index via
+  `db_utils.query_gsi`.
 
 ### `GET|DELETE /api/admin/guests/stale?olderThanDays=N` — stale purge (v0.36.2, new)
 
@@ -346,8 +346,8 @@ fetching every match to sift it client-side.
     | 0.19.8 | React-game client-side guest flow: GuestUserProvider, resume-on-load, mock synthesis, GuestUserModal, Navbar modal trigger | May 19, 2026 |
     | 0.20.3 | GuestUserContext refactored to React-state-only identity (no frontend cookie); cookie-consent updated to in-project vanilla-cookieconsent v3.1.0 | May 28, 2026 |
     | 0.36.2 | Admin guest management: `GET /api/admin/guests` now paged (breaking change); new stale-purge preview/delete endpoints; `GuestsPage.jsx` cursor pagination fix. | September 5, 2026 |
-    | 0.37.5 | AWS-only: guest cookie-token resume now looks up `GSI2Summary` (`GUEST_TOKEN#<token>`) with a `GSI1` fallback during migration. No REST contract change. | September 14, 2026 |
-- **Last Updated**: September 14, 2026
+    | 0.37.5 | AWS-only, cost round 2: guest cookie-token resume looks up `GSI1` (`GUEST_TOKEN#<token>`); admin guest list/stale-purge/stats use `GSI2` `GUEST_LIST` with a precomputed `summary` map. No Scan left, no REST contract change. | September 15, 2026 |
+- **Last Updated**: September 15, 2026
 - **Status**: ✅ Complete
 
 

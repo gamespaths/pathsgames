@@ -113,6 +113,12 @@ sam deploy \
         TurnstileSecretKey="${_TURNSTILE_SAM_KEY}" \
         TurnstileBypassToken="${_TURNSTILE_BYPASS}" \
         AdminIpWhitelist="${_ADMIN_IP_WHITELIST}" \
+        TableBillingMode="${AWS_TABLE_BILLING_MODE_TEST:-PAY_PER_REQUEST}" \
+        TableReadCapacity="${AWS_TABLE_READ_CAPACITY_TEST:-10}" \
+        TableWriteCapacity="${AWS_TABLE_WRITE_CAPACITY_TEST:-10}" \
+        GsiReadCapacity="${AWS_GSI_READ_CAPACITY_TEST:-5}" \
+        GsiWriteCapacity="${AWS_GSI_WRITE_CAPACITY_TEST:-5}" \
+        LambdaSystemLogLevel="${AWS_LAMBDA_SYSTEM_LOG_LEVEL_TEST:-WARN}" \
     $CONFIRM \
     --no-fail-on-empty-changeset 2>&1
 

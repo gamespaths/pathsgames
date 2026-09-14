@@ -222,6 +222,42 @@ def test_sleep_reseeds_zero_counter_for_occupied_location():
 
 # ── clock ─────────────────────────────────────────────────────────────────────
 
+
+def test_sleep_seeds_the_counter_of_an_occupied_location_without_a_row():
+    """v0.37.5 — the state is sparse: a location the story gave a counter AFTER the match
+    was created has no row at all. Occupied, it gets one seeded to counterTime, then
+    immediately decremented."""
+    story = {
+        'PK': 'STORY#s1', 'SK': 'METADATA', 'uuid': 's1',
+        'clockSingularDescription': 'hour', 'clockPluralDescription': 'hours',
+        'difficulties': [],
+        'classes': [],
+        'classBonuses': [],
+        'locations': [
+            {'id': 10, 'secureParam': 0, 'counterTime': 5, 'idEventIfCounterZero': None},
+        ],
+    }
+    match = {
+        'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1',
+        'status': 'RUNNING', 'currentClock': 0, 'userCreatorUuid': 'player-uuid-001',
+        'storyUuid': 's1', 'tsInsert': 1,
+        'locations': [],
+    }
+    char = _char('m1', 1, 'c1', energy=50)
+    char['idLocation'] = 10
+    items = [PLAYER, story, match, char]
+    with _env(items) as (table, _):
+        result = h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None)
+    assert result['statusCode'] == 200
+    assert _body(result)['timeEndTriggered'] is True
+    saved_match = table.get_item('MATCH#m1')
+    loc10 = next(l for l in saved_match['locations'] if l['idLocation'] == 10)
+    # must have been re-seeded to 5 then decremented to 4
+    assert loc10['clockCounter'] == 4
+
+
+# ── clock ─────────────────────────────────────────────────────────────────────
+
 def test_clock_returns_labels_and_character_state():
     items = [PLAYER, _story(), _match(clock=5),
              _char('m1', 1, 'c1', energy=40, sleeping=1)]

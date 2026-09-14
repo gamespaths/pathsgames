@@ -82,12 +82,12 @@ def run(the_story, the_character=None):
     written = []
     with patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'}), \
-            patch('match.handler.db_utils.put_item', side_effect=written.append), \
             patch('match.handler.db_utils.query_sk_prefix', return_value=[char]), \
             patch('match.handler.db_utils.get_item', side_effect=_get_side):
         from match.handler import lambda_handler
         result = lambda_handler(event, {})
     assert result['statusCode'] == 200, result
+    written.extend(written_rows().items())  # v0.37.5 — one flush per request
     return json.loads(result['body']), written
 
 
@@ -308,12 +308,12 @@ def resolve(the_story, choice_uuid='ch-fatal', characters=None):
     written = []
     with patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'}), \
-            patch('match.handler.db_utils.put_item', side_effect=written.append), \
             patch('match.handler.db_utils.query_sk_prefix', return_value=chars), \
             patch('match.handler.db_utils.get_item', side_effect=_get_side):
         from match.handler import lambda_handler
         result = lambda_handler(event, {})
     assert result['statusCode'] == 200, result
+    written.extend(written_rows().items())
     return json.loads(result['body']), written
 
 

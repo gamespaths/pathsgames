@@ -74,8 +74,9 @@ This step extends the existing hexagonal architecture from Step 14. No new modul
 ## API Endpoints
 
 **AWS cost note (v0.37.5):** story listing (this file's endpoints, `GET /api/stories`, and the
-admin story list) now reads a precomputed `summary` map via the new `GSI2Summary` index
-instead of the full story item's `raw_texts`/`raw_cards`. Full detail in
+admin story list) reads a precomputed `summary` map via the `GSI2` index (`GSI2_PK=STORY_LIST`,
+`INCLUDE` projection) instead of the full story item's `raw_texts`/`raw_cards`. Full story
+reads (admin detail, gameplay) unpack the item's single gzipped `_gz` attribute. Full detail in
 [Step17_StoryAdminCRUD.md §6.9](./Step17_StoryAdminCRUD.md#69-aws-story-cache-and-post-apiadmincacheflush-v0375).
 
 ### New Endpoints (Step 15)
@@ -459,8 +460,8 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.15.0-story-c
     | 0.19.3 | Add cardType field to CardInfoResponse (all backends + OpenAPI) | May 14, 2026 |
     | 0.19.4 | Characters and traits not permitted for class selection | May 18, 2026 |
     | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits`| May 19, 2026 |
-    | 0.37.5 | AWS-only, no code change here: story listing now backed by the `GSI2Summary` index and a precomputed `summary` map. See [Step17 §6.9](./Step17_StoryAdminCRUD.md#69-aws-story-cache-and-post-apiadmincacheflush-v0375). | September 14, 2026 |
-- **Last Updated**: September 14, 2026
+    | 0.37.5 | AWS-only, cost round 2, no code change here: story listing backed by the `GSI2` index (`STORY_LIST`) and a precomputed `summary` map; full story items are gzipped (`_gz`). See [Step17 §6.9](./Step17_StoryAdminCRUD.md#69-aws-story-cache-and-post-apiadmincacheflush-v0375). | September 15, 2026 |
+- **Last Updated**: September 15, 2026
 - **Status**: ✅ Complete
 
 

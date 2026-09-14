@@ -16,7 +16,7 @@ capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
 # SeedBcryptHash must be passed at deploy time (never commit the real hash):
 #   sam deploy --config-env dev --parameter-overrides SeedBcryptHash="<hash>"
 # Or store in SSM and reference with: resolve:ssm-secure:/pathsgames/seed-bcrypt-hash
-parameter_overrides = "Environment=dev SeedBcryptHash=CHANGEME"
+parameter_overrides = "Environment=dev SeedBcryptHash=CHANGEME TableBillingMode=PROVISIONED TableReadCapacity=10 TableWriteCapacity=10 GsiReadCapacity=5 GsiWriteCapacity=5"
     #CustomDomainName=\"api-dev.paths.games\" CustomDomainCertificateArn=\"arn:aws:acm:us-east-2:xxxx:certificate/xxxx\" CustomDomainHostedZoneId=\"Zzzzzzzzzzzzzz\"
 region = "us-east-2"
 

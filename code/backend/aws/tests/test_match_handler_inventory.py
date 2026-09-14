@@ -204,7 +204,7 @@ def test_use_item_answers_the_execute_event_shape(_get, _query, _put, _jwt):
 def test_use_item_spends_one_unit_and_logs_the_usage(_get, _query, _put, _jwt):
     _call('POST', '/api/gameplay/m1/inventory/use-item', body={'itemInstanceUuid': 'row-1'})
 
-    written = [c.args[0] for c in _put.call_args_list]
+    written = written_rows().items()
     char = next(w for w in written if str(w.get('SK', '')).startswith('CHARACTER#'))
     match = next(w for w in written if w.get('SK') == 'METADATA')
     # v0.35.1 — one unit by default, so the row of 2 survives with 1.

@@ -54,10 +54,37 @@ Parameters:
     Description: "Comma-separated list of IPs allowed to call /api/admin/** endpoints. Empty = no IP restriction (insecure, dev only). Example: 1.2.3.4,5.6.7.8"
   StoryCacheTtlSeconds:
     Type: String
-    Default: "300"
-    Description: "v0.37.5 - seconds a Lambda container keeps a STORY item in memory (0 = no cache). POST /api/admin/cache/flush invalidates everywhere."
+    Default: "3600"
+    Description: "v0.37.5 - seconds a Lambda container keeps a STORY item in memory (0 = no cache). A SYSTEM#cache stamp already invalidates on every write; POST /api/admin/cache/flush invalidates everywhere."
+  TableBillingMode:
+    Type: String
+    Default: PAY_PER_REQUEST
+    AllowedValues: [PAY_PER_REQUEST, PROVISIONED]
+    Description: "v0.37.5 - PROVISIONED keeps a dev table inside the always-free 25 RCU/WCU (table + GSIs share them); prod stays PAY_PER_REQUEST."
+  TableReadCapacity:
+    Type: Number
+    Default: 10
+    Description: "Table RCU when PROVISIONED (ignored otherwise)."
+  TableWriteCapacity:
+    Type: Number
+    Default: 10
+    Description: "Table WCU when PROVISIONED (ignored otherwise)."
+  GsiReadCapacity:
+    Type: Number
+    Default: 5
+    Description: "RCU of each GSI when PROVISIONED (ignored otherwise)."
+  GsiWriteCapacity:
+    Type: Number
+    Default: 5
+    Description: "WCU of each GSI when PROVISIONED (ignored otherwise)."
+  LambdaSystemLogLevel:
+    Type: String
+    Default: WARN
+    AllowedValues: [DEBUG, INFO, WARN]
+    Description: "v0.37.5 - WARN drops the START/END/REPORT lines of every invocation (CloudWatch ingestion); INFO brings the REPORT back for memory tuning."
 
 Conditions:
+  IsProvisioned: !Equals [!Ref TableBillingMode, PROVISIONED]
   HasCustomDomain: !Not [!Equals [!Ref CustomDomainName, ""]]
   HasCustomDomainAndHostedZone: !And
     - !Not [!Equals [!Ref CustomDomainName, ""]]
@@ -92,63 +119,22 @@ Resources:
           KeyType: HASH
         - AttributeName: SK
           KeyType: RANGE
-      BillingMode: PAY_PER_REQUEST
+      # v0.37.5 — PROVISIONED (dev) stays inside the always-free 25 RCU/WCU; prod is on-demand.
+      BillingMode: !Ref TableBillingMode
+      ProvisionedThroughput: !If
+        - IsProvisioned
+        - ReadCapacityUnits: !Ref TableReadCapacity
+          WriteCapacityUnits: !Ref TableWriteCapacity
+        - !Ref AWS::NoValue
       GlobalSecondaryIndexes:
+        # v0.37.5 — both indexes are INCLUDE projections: a match's state and a story's
+        # 300 KB of texts are never replicated. GSI1 = "by owner" (USER_MATCHES#<uuid>,
+        # GUEST_TOKEN#<token>), GSI2 = "by type" (MATCH, STORY_LIST, GUEST_LIST).
         - IndexName: GSI1
           KeySchema:
             - AttributeName: GSI1_PK
               KeyType: HASH
             - AttributeName: GSI1_SK
-              KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
-        # v0.37.5 — same keys as GSI1, summary-only projection: GET /api/matches reads
-        # this one, so a match's ever-growing state/logs never travel with the list.
-        - IndexName: GSI1Summary
-          KeySchema:
-            - AttributeName: GSI1_PK
-              KeyType: HASH
-            - AttributeName: GSI1_SK
-              KeyType: RANGE
-          Projection:
-            ProjectionType: INCLUDE
-            NonKeyAttributes:
-              - uuid
-              - storyUuid
-              - difficultyUuid
-              - name
-              - status
-              - currentClock
-              - expCost
-              - rngSeed
-              - userCreatorUuid
-              - tsInsert
-              - singlePlayer
-              - characterTemplateUuid
-              - classUuid
-              - traitUuids
-        # v0.28.1 — "by type" index. Every match METADATA item carries
-        # GSI2_PK="MATCH" and GSI2_SK="{tsInsert:020d}#{uuid}". The admin list
-        # (GET /api/admin/matches) becomes a single paginated Query on this index
-        # (newest-first, sinceDays as an SK range) instead of a full-table Scan.
-        - IndexName: GSI2
-          KeySchema:
-            - AttributeName: GSI2_PK
-              KeyType: HASH
-            - AttributeName: GSI2_SK
-              KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
-        # v0.37.5 — summary-only twin of GSI2, the one every reader uses: admin match
-        # list (PK=MATCH), story list (PK=STORY_LIST) and guest resume (PK=GUEST_TOKEN#).
-        # GSI1 (ALL) and GSI2 (ALL) replicated the whole match item — logs included —
-        # on every write; CloudFormation allows one GSI change per update, so the
-        # migration is three deploys: add GSI2Summary, drop GSI2, drop GSI1.
-        - IndexName: GSI2Summary
-          KeySchema:
-            - AttributeName: GSI2_PK
-              KeyType: HASH
-            - AttributeName: GSI2_SK
               KeyType: RANGE
           Projection:
             ProjectionType: INCLUDE
@@ -168,14 +154,48 @@ Resources:
               - characterTemplateUuid
               - classUuid
               - traitUuids
-              # story list: one map holds every scalar and text the summary needs
-              # (common/story_index.py) — DynamoDB caps NonKeyAttributes at 20 per index
-              - summary
               # guest resume (auth/handler.py resume_guest)
               - username
               - role
               - token_version
               - guest_token
+          ProvisionedThroughput: !If
+            - IsProvisioned
+            - ReadCapacityUnits: !Ref GsiReadCapacity
+              WriteCapacityUnits: !Ref GsiWriteCapacity
+            - !Ref AWS::NoValue
+        # GSI2_SK="{tsInsert:020d}#{uuid}" on matches: the admin list is one newest-first
+        # Query (sinceDays = SK range). Stories and guests carry ONE ``summary`` map with
+        # everything their list needs — DynamoDB caps NonKeyAttributes at 20 per index.
+        - IndexName: GSI2
+          KeySchema:
+            - AttributeName: GSI2_PK
+              KeyType: HASH
+            - AttributeName: GSI2_SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              - uuid
+              - storyUuid
+              - difficultyUuid
+              - name
+              - status
+              - currentClock
+              - expCost
+              - rngSeed
+              - userCreatorUuid
+              - tsInsert
+              - singlePlayer
+              - characterTemplateUuid
+              - classUuid
+              - traitUuids
+              - summary
+          ProvisionedThroughput: !If
+            - IsProvisioned
+            - ReadCapacityUnits: !Ref GsiReadCapacity
+              WriteCapacityUnits: !Ref GsiWriteCapacity
+            - !Ref AWS::NoValue
 
   # HTTP API (API Gateway v2) — public/player surface
   PathsGamesApi:
@@ -222,6 +242,11 @@ Resources:
       FunctionName: !Sub "pathsgames-${Environment}-AdminIpAuthorizer"
       Runtime: python3.13
       Handler: authorizer.handler.lambda_handler
+      Architectures: [arm64]
+      LoggingConfig:
+        LogFormat: JSON
+        SystemLogLevel: !Ref LambdaSystemLogLevel
+        ApplicationLogLevel: INFO
       Timeout: 10
       MemorySize: 128
       CodeUri: lambda/
@@ -296,6 +321,7 @@ Resources:
       Location: template/echo.yaml
       Parameters:
         Environment: !Ref Environment
+        LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
         AdminApiId: !Ref PathsGamesAdminApi
@@ -308,6 +334,7 @@ Resources:
       Location: template/auth.yaml
       Parameters:
         Environment: !Ref Environment
+        LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
         AdminApiId: !Ref PathsGamesAdminApi
@@ -323,6 +350,7 @@ Resources:
       Location: template/story.yaml
       Parameters:
         Environment: !Ref Environment
+        LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
         StoryCacheTtlSeconds: !Ref StoryCacheTtlSeconds
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
@@ -339,6 +367,7 @@ Resources:
       Location: template/match.yaml
       Parameters:
         Environment: !Ref Environment
+        LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
         StoryCacheTtlSeconds: !Ref StoryCacheTtlSeconds
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
@@ -357,6 +386,7 @@ Resources:
       Location: template/content.yaml
       Parameters:
         Environment: !Ref Environment
+        LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
         StoryCacheTtlSeconds: !Ref StoryCacheTtlSeconds
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
@@ -369,6 +399,7 @@ Resources:
       Location: template/seed.yaml
       Parameters:
         Environment: !Ref Environment
+        LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
         TableName: !Ref PathsGamesTable
         AdminApiId: !Ref PathsGamesAdminApi
         AdminAuthorizerId: !Ref AdminIpAuthorizer

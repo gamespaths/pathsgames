@@ -4,6 +4,9 @@ Transform: AWS::Serverless-2016-10-31
 Parameters:
   Environment:
     Type: String
+  LambdaSystemLogLevel:
+    Type: String
+    Default: WARN
   TableName:
     Type: String
   ApiId:
@@ -34,6 +37,11 @@ Resources:
     Properties:
       FunctionName: !Sub "pathsgames-${Environment}-EchoFunction"
       Runtime: python3.13
+      Architectures: [arm64]
+      LoggingConfig:
+        LogFormat: JSON
+        SystemLogLevel: !Ref LambdaSystemLogLevel
+        ApplicationLogLevel: INFO
       Handler: handler.lambda_handler
       Timeout: 30
       MemorySize: 256

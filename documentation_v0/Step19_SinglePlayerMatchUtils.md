@@ -88,7 +88,7 @@ Implementation by backend:
 |---------|-------------------------------|---------------------------------------|--------------------|
 | Java    | `MatchController.getAdminMatchInfo` → moved to `MatchAdminController` (Step 20a) | `MatchQueryService.getMatchInfoForAdmin` via `MatchQueryPort` | `MatchReadPort.findMatchByUuid` |
 | Python  | `MatchController.get_admin_match_info` → moved to `match_admin_controller.py` (Step 20a) | `MatchQueryService.get_match_info_for_admin` via `MatchQueryPort` | same persistence layer |
-| AWS     | `match/handler.py _get_admin_match_info` | — | `db_utils.get_item("MATCH#{uuid}")` |
+| AWS     | `match/handler.py _get_admin_match_info` | — | `db_utils.get_item("MATCH#{uuid}", consistent=False)` *(v0.37.5, eventually consistent)* |
 
 In the Java / Python backends the detail-building logic was refactored
 into a shared private `buildDetail` helper that is called by both
@@ -348,8 +348,9 @@ instead of the per-user endpoint (bug fix — no API contract change).
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.19.12 | Admin match control (list statuses, update, stop, pause, resume, delete, admin match detail) | May 21, 2026 |
+    | 0.37.5 | AWS-only cost pass, round 2: all admin match GET routes (info, statuses list) read with `consistent=False`. No REST contract change. | September 15, 2026 |
 
-- **Last Updated**: May 21, 2026
+- **Last Updated**: September 15, 2026
 - **Status**: Complete
 
 

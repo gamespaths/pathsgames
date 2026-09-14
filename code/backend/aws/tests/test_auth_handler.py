@@ -274,7 +274,7 @@ def test_list_guests_player_forbidden():
 def test_list_guests_admin_returns_200():
     """v0.36.2 — the endpoint answers the paged envelope, not a bare array."""
     with patch('auth.handler.db_utils.get_item', return_value=ADMIN_USER), \
-         patch('auth.handler.db_utils.scan_filter_page', return_value=([PLAYER_USER], None)):
+         patch('auth.handler.db_utils.query_index_page', return_value=([PLAYER_USER], None)):
         from auth.handler import lambda_handler
         event = admin_event('GET', '/api/admin/guests')
         result = lambda_handler(event, {})
@@ -307,7 +307,7 @@ def test_delete_guest_success_returns_200():
 
 def test_guest_stats_returns_counts():
     with patch('auth.handler.db_utils.get_item', return_value=ADMIN_USER), \
-         patch('auth.handler.db_utils.scan_filter', return_value=[PLAYER_USER, ADMIN_USER]):
+         patch('auth.handler.db_utils.query_gsi', return_value=[PLAYER_USER, ADMIN_USER]):
         from auth.handler import lambda_handler
         event = admin_event('GET', '/api/admin/guests/stats')
         result = lambda_handler(event, {})

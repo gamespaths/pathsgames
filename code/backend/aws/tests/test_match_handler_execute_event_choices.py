@@ -143,8 +143,9 @@ def test_first_open_pays_marks_and_presents():
     assert second['reason'] is None
     assert second['card']['title'] == 'A Card'
 
-    # Exactly two writes — the paid caller and the marked match, one marker row.
-    put_calls = [c.args[0] for c in put_item.call_args_list]
+    # Exactly two rows flushed — the paid caller and the marked match, one marker row.
+    from helpers import written_rows
+    put_calls = written_rows().items()
     assert len(put_calls) == 2
     caller_item = next(i for i in put_calls if i.get('SK', '').startswith('CHARACTER#'))
     match_item = next(i for i in put_calls if i.get('SK') == 'METADATA')

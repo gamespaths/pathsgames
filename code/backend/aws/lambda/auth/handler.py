@@ -47,8 +47,26 @@ from common.http_utils import (normalize_path as _normalize_path,
 COOKIE_MAX_ACCESS  = 1_800        # 30 min  (access token lifetime)
 COOKIE_MAX_REFRESH = 15_552_000   # 6 months (refresh token; 180 * 86400)
 COOKIE_MAX_GUEST   = 15_552_000   # 6 months (guest cookie; 180 * 86400)
-# v0.37.5 — D1 of the index migration: guests created before it live only in GSI1.
-_LEGACY_INDEX_FALLBACK = True
+GUEST_LIST_PK = 'GUEST_LIST'
+# v0.37.5 — what GSI2 projects of a guest (one ``summary`` map): everything the admin
+# list, the purge and the stats read, so none of them ever touches the table.
+GUEST_SUMMARY_FIELDS = ('uuid', 'username', 'nickname', 'role', 'state', 'guest_token',
+                        'guest_expires_at', 'language', 'ts_registration', 'ts_insert',
+                        'ts_last_access')
+
+
+def _guest_summary(user):
+    return {k: user.get(k) for k in GUEST_SUMMARY_FIELDS if user.get(k) is not None}
+
+
+def _guest_rows():
+    """Every guest as its GSI2 row, ``summary`` lifted next to the table keys."""
+    rows = db_utils.query_gsi('GSI2', GUEST_LIST_PK) or []
+    return [_lift_guest(r) for r in rows]
+
+
+def _lift_guest(row):
+    return {**(row.get('summary') or {}), **row}
 
 def _now_ms():
     return int(time.time() * 1000)
@@ -252,7 +270,7 @@ def create_guest(event):
     marker    = _test_marker(event)
     username  = (f'{marker}_' if marker else 'guest_') + user_uuid[:8]
 
-    db_utils.put_item({
+    guest = {
         'PK':              f'USER#{user_uuid}',
         'SK':              'METADATA',
         'uuid':            user_uuid,
@@ -265,13 +283,14 @@ def create_guest(event):
         'ts_registration': now,
         'ts_last_access':  now,
         'token_version':   0,
-        # GSI for lookup by guest token
+        # GSI1: lookup by guest token (resume); GSI2: the guest list (admin, purge, stats)
         'GSI1_PK':         f'GUEST_TOKEN#{guest_tok}',
         'GSI1_SK':         'METADATA',
-        # v0.37.5 — the lookup moved to GSI2Summary; GSI1 keys go with the old index.
-        'GSI2_PK':         f'GUEST_TOKEN#{guest_tok}',
-        'GSI2_SK':         'METADATA',
-    })
+        'GSI2_PK':         GUEST_LIST_PK,
+        'GSI2_SK':         f'USER#{user_uuid}',
+    }
+    guest['summary'] = _guest_summary(guest)
+    db_utils.put_item(guest)
 
     access_exp  = now + COOKIE_MAX_ACCESS  * 1000
     refresh_exp = now + COOKIE_MAX_REFRESH * 1000
@@ -297,9 +316,7 @@ def resume_guest(event):
         return _err(400, 'MISSING_GUEST_COOKIE',
                     'Missing required guestToken cookie. Please create a new guest session.')
 
-    items = db_utils.query_gsi('GSI2Summary', f'GUEST_TOKEN#{guest_tok}')
-    if not items and _LEGACY_INDEX_FALLBACK:
-        items = db_utils.query_gsi('GSI1', f'GUEST_TOKEN#{guest_tok}')
+    items = db_utils.query_gsi('GSI1', f'GUEST_TOKEN#{guest_tok}')
     if not items:
         return _err(401, 'SESSION_EXPIRED_OR_NOT_FOUND',
                     'Guest session is expired or does not exist. Please create a new guest session.')
@@ -310,7 +327,7 @@ def resume_guest(event):
     access_exp  = now + COOKIE_MAX_ACCESS  * 1000
     refresh_exp = now + COOKIE_MAX_REFRESH * 1000
 
-    db_utils.update_ts_last_access(f'USER#{user_uuid}', now)
+    db_utils.update_ts_last_access(f'USER#{user_uuid}', now, in_summary=True)
 
     if jwt_utils.ALLOW_MOCK_ACCESS:
         access_token = f'MOCK_ACCESS_{user_uuid}'
@@ -478,8 +495,9 @@ def list_guests(event):
     bound = _bound_ms(qs.get('olderThanDays'))
     start_key = _decode_cursor(qs.get('cursor'))
 
-    items, last_key = db_utils.scan_filter_page('is_guest', True, limit, start_key)
-    guests = [g for g in items if bound is None or _seen_at(g) < bound]
+    items, last_key = db_utils.query_index_page('GSI2', 'GSI2_PK', GUEST_LIST_PK, limit=limit,
+                                                start_key=start_key, ascending=True)
+    guests = [g for g in map(_lift_guest, items) if bound is None or _seen_at(g) < bound]
     guests.sort(key=_seen_at, reverse=True)
     return _ok({
         'items': [_guest_info(g) for g in guests],
@@ -546,16 +564,16 @@ def delete_stale_guests(event):
 def _stale_guests(bound_ms):
     """Every guest last seen before the bound. Unbounded on purpose: a purge must see the
     whole table, and it is a deliberate admin action, not a page the console polls."""
-    return [g for g in db_utils.scan_filter('is_guest', True) if _seen_at(g) < bound_ms]
+    return [g for g in _guest_rows() if _seen_at(g) < bound_ms]
 
 
 def _matches_of(guests):
     """Every match these guests created, whatever its status."""
-    uuids = {g.get('uuid') for g in guests if g.get('uuid')}
-    if not uuids:
-        return []
-    return [m for m in db_utils.scan_pk_prefix('MATCH#')
-            if m.get('SK', 'METADATA') == 'METADATA' and m.get('userCreatorUuid') in uuids]
+    matches = []
+    for uid in {g.get('uuid') for g in guests if g.get('uuid')}:
+        matches.extend(m for m in (db_utils.query_gsi('GSI1', f'USER_MATCHES#{uid}') or [])
+                       if m.get('SK', 'METADATA') == 'METADATA')
+    return matches
 
 
 def guest_stats(event):
@@ -563,7 +581,7 @@ def guest_stats(event):
     if err:
         return err
     now    = _now_ms()
-    guests = db_utils.scan_filter('is_guest', True)
+    guests = _guest_rows()
     total   = len(guests)
     expired = sum(1 for g in guests if _now_ms() > g.get('guest_expires_at', now + 1))
     return _ok({
@@ -578,7 +596,7 @@ def cleanup_expired(event):
     if err:
         return err
     now    = _now_ms()
-    guests = db_utils.scan_filter('is_guest', True)
+    guests = _guest_rows()
     count  = 0
     for g in guests:
         if now > g.get('guest_expires_at', now + 1):
