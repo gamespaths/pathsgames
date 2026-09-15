@@ -1005,6 +1005,8 @@ def flush_cache(event):
 # ─── v0.37.6 static catalog ──────────────────────────────────────────────────
 
 CATALOG_CACHE_CONTROL = 'public, max-age=300'
+CATALOG_CONNECT_TIMEOUT = 5   # seconds; the function itself is capped at 30s
+CATALOG_READ_TIMEOUT = 10
 
 
 def _catalog_path(lang):
@@ -1025,23 +1027,26 @@ def export_catalog(event):
     if denied:
         return denied
     bucket = os.environ.get('WEBSITE_BUCKET', '').strip()
-    if not bucket:
+    owner = os.environ.get('WEBSITE_BUCKET_OWNER', '').strip()  # account id: guards against bucket sniping
+    if not bucket or not owner:
         return _err(503, 'CATALOG_TARGET_NOT_CONFIGURED',
-                    'No static catalog destination configured (WEBSITE_BUCKET)')
+                    'No static catalog destination configured (WEBSITE_BUCKET, WEBSITE_BUCKET_OWNER)')
     langs = [l.strip() for l in os.environ.get('CATALOG_LANGS', 'en,it').split(',') if l.strip()] or ['en']
     import boto3  # lazy: only this admin route needs S3/CloudFront clients
-    s3 = boto3.client('s3')
+    from botocore.config import Config
+    cfg = Config(connect_timeout=CATALOG_CONNECT_TIMEOUT, read_timeout=CATALOG_READ_TIMEOUT, retries={'max_attempts': 2})
+    s3 = boto3.client('s3', config=cfg)
     files = []
     for lang in langs:
         summaries = _public_summaries(lang)
         key = _catalog_path(lang)
         data = _dumps(summaries).encode('utf-8')
-        s3.put_object(Bucket=bucket, Key=key, Body=data,
+        s3.put_object(Bucket=bucket, Key=key, Body=data, ExpectedBucketOwner=owner,
                       ContentType='application/json', CacheControl=CATALOG_CACHE_CONTROL)
         files.append({'lang': lang, 'path': key, 'count': len(summaries), 'bytes': len(data)})
     dist = os.environ.get('WEBSITE_CLOUDFRONT_ID', '').strip()
     if dist:
-        boto3.client('cloudfront').create_invalidation(
+        boto3.client('cloudfront', config=cfg).create_invalidation(
             DistributionId=dist,
             InvalidationBatch={
                 'Paths': {'Quantity': len(files), 'Items': ['/' + f['path'] for f in files]},

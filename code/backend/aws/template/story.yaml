@@ -82,6 +82,7 @@ Resources:
           ADMIN_IP_WHITELIST: !Ref AdminIpWhitelist
           STORY_CACHE_TTL_SECONDS: !Ref StoryCacheTtlSeconds
           WEBSITE_BUCKET: !Ref WebsiteBucket
+          WEBSITE_BUCKET_OWNER: !Ref AWS::AccountId
           WEBSITE_CLOUDFRONT_ID: !Ref WebsiteCloudFrontId
           CATALOG_LANGS: !Ref CatalogLangs
       Policies:

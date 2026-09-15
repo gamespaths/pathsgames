@@ -7,6 +7,7 @@ from unittest.mock import patch, MagicMock
 from helpers import make_event, admin_event
 
 ADMIN = {'uuid': 'admin-uuid-001', 'role': 'ADMIN'}
+OWNER = '123456789012'
 FORBIDDEN = {'statusCode': 403, 'headers': {}, 'body': json.dumps({'error': 'FORBIDDEN'})}
 
 PUBLIC = {'PK': 'STORY#p', 'SK': 'METADATA', 'uuid': 'p', 'visibility': 'PUBLIC', 'priority': 1,
@@ -24,8 +25,8 @@ def _call(env, boto_client=None):
     from story import handler
     ev = admin_event('POST', '/api/admin/stories/catalog')
     fake_boto = MagicMock()
-    fake_boto.client.side_effect = boto_client or (lambda name: MagicMock())
-    with patch.dict(os.environ, env, clear=False), \
+    fake_boto.client.side_effect = boto_client or (lambda name, **kw: MagicMock())
+    with patch.dict(os.environ, {'WEBSITE_BUCKET_OWNER': OWNER, **env}, clear=False), \
          patch.object(handler, '_require_admin', return_value=(ADMIN, None)), \
          patch('story.handler.db_utils.query_gsi', return_value=[PUBLIC, PRIVATE]), \
          patch.dict('sys.modules', {'boto3': fake_boto}):
@@ -45,10 +46,20 @@ def test_503_without_bucket():
     boto.client.assert_not_called()
 
 
+def test_503_without_bucket_owner():
+    r, boto = _call({'WEBSITE_BUCKET': 'b', 'WEBSITE_BUCKET_OWNER': '', 'WEBSITE_CLOUDFRONT_ID': ''})
+    assert r['statusCode'] == 503
+    assert _body(r)['error'] == 'CATALOG_TARGET_NOT_CONFIGURED'
+    boto.client.assert_not_called()
+
+
 def test_writes_one_file_per_language_public_only():
     clients = {'s3': MagicMock(), 'cloudfront': MagicMock()}
     r, boto = _call({'WEBSITE_BUCKET': 'site-bucket', 'WEBSITE_CLOUDFRONT_ID': '',
-                     'CATALOG_LANGS': 'en, it'}, lambda n: clients[n])
+                     'CATALOG_LANGS': 'en, it'}, lambda n, **kw: clients[n])
+    # every client carries explicit socket timeouts: a hung S3 call must not eat the Lambda budget
+    cfg = boto.client.call_args.kwargs['config']
+    assert (cfg.connect_timeout, cfg.read_timeout) == (5, 10)
     assert r['statusCode'] == 200
     body = _body(r)
     assert body['status'] == 'WRITTEN'
@@ -61,6 +72,7 @@ def test_writes_one_file_per_language_public_only():
     assert len(puts) == 2
     kw = puts[1].kwargs
     assert kw['Bucket'] == 'site-bucket' and kw['Key'] == 'data/stories-it.json'
+    assert kw['ExpectedBucketOwner'] == OWNER
     assert kw['ContentType'] == 'application/json'
     assert kw['CacheControl'] == 'public, max-age=300'
     written = json.loads(kw['Body'].decode('utf-8'))
@@ -71,9 +83,10 @@ def test_writes_one_file_per_language_public_only():
 
 def test_invalidates_cloudfront_when_configured():
     clients = {'s3': MagicMock(), 'cloudfront': MagicMock()}
-    r, _ = _call({'WEBSITE_BUCKET': 'b', 'WEBSITE_CLOUDFRONT_ID': 'E123', 'CATALOG_LANGS': 'en'},
-                 lambda n: clients[n])
+    r, boto = _call({'WEBSITE_BUCKET': 'b', 'WEBSITE_CLOUDFRONT_ID': 'E123', 'CATALOG_LANGS': 'en'},
+                    lambda n, **kw: clients[n])
     assert r['statusCode'] == 200
+    assert boto.client.call_args.kwargs['config'].read_timeout == 10  # cloudfront client too
     inv = clients['cloudfront'].create_invalidation.call_args.kwargs
     assert inv['DistributionId'] == 'E123'
     assert inv['InvalidationBatch']['Paths'] == {'Quantity': 1, 'Items': ['/data/stories-en.json']}
@@ -83,7 +96,7 @@ def test_invalidates_cloudfront_when_configured():
 def test_blank_langs_fall_back_to_english():
     clients = {'s3': MagicMock()}
     r, _ = _call({'WEBSITE_BUCKET': 'b', 'WEBSITE_CLOUDFRONT_ID': '', 'CATALOG_LANGS': ' , '},
-                 lambda n: clients[n])
+                 lambda n, **kw: clients[n])
     assert [f['lang'] for f in _body(r)['files']] == ['en']
 
 
