@@ -116,7 +116,7 @@ export default function Card({
         littleVersion={bonusBadgeListLittleDesc} showZeros={bonusBadgeShowZeros} />
     : null
 
-  /* ── copyright view link (CreditsModal) ── */
+  /* ── copyright view link (PolicyBook credits) ── */
   const viewLink = linkCopyright && showLinkCopyright && !isDisabled && (
     <a
       href={linkCopyright}

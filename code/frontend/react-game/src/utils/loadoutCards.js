@@ -19,10 +19,15 @@ function metaCard(imgId , title=null, description=null) {
     linkCopyright: img.linkCopyright,
     styleImageLarge: img.styleImageLarge,
     styleImageLittle: img.styleImageLittle,
-    title: title ?? null,
+    title: title ?? img.title ?? null,
     description: description ?? null,
     awesomeIcon: img.awesomeIcon ?? null,
   }
+}
+
+/** A data/images.json entry as a page card, titled by its own `title` unless overridden. */
+export function buildImageCard(imgId, title = null, description = null) {
+  return metaCard(imgId, title, description)
 }
 
 /** "Single" game-type card. `t` is the i18n translate function. */

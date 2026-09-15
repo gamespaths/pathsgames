@@ -30,6 +30,10 @@ vi.mock('@/features/guest-user/GuestUserContext', () => ({
   }),
 }))
 vi.mock('@/api/matches', () => ({ createMatch: vi.fn(), joinMatch: vi.fn(), startMatch: vi.fn() }))
+const openPolicyBook = vi.fn()
+vi.mock('@/context/PolicyBookContext', () => ({
+  usePolicyBook: () => ({ policyBook: null, openPolicyBook, closePolicyBook: vi.fn() }),
+}))
 
 import StartMatchPage from '../pages/StartMatchPage'
 import { createMatch, joinMatch, startMatch } from '@/api/matches'
@@ -166,22 +170,12 @@ describe('StartMatchPage', () => {
     // No crash — preview state is set
   })
 
-  it('clicking the terms card info button calls openTermsModal (Bootstrap modal)', () => {
-    const show = vi.fn()
-    window.bootstrap = { Modal: { getOrCreateInstance: vi.fn().mockReturnValue({ show }) } }
-    const termsEl = document.createElement('div')
-    termsEl.id = 'termsModal'
-    document.body.appendChild(termsEl)
-
+  it('clicking the terms card info button opens the terms book', () => {
     renderPage({ story: STORY, config: CONFIG })
-    // The terms card (entityType="terms") preview button calls openTermsModal
     const infoBtns = screen.getAllByRole('button', { name: 'card.info' })
     // The terms card is last in cardsBlock — click its info button
     fireEvent.click(infoBtns[infoBtns.length - 1])
-    // Bootstrap.Modal.getOrCreateInstance may have been called for termsModal
-
-    delete window.bootstrap
-    document.body.removeChild(termsEl)
+    expect(openPolicyBook).toHaveBeenCalledWith('terms')
   })
 
   it('clicking a card info button on mobile triggers Bootstrap modal (handleSelectionPreview mobile path)', () => {

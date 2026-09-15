@@ -600,6 +600,10 @@
       "title": "Image Credits",
       "body": "Every image used by Paths Games — Unsplash photographs and SVG icons from game-icons.net — is credited below. Click an image card to open the original source on the author's page."
     },
+    "policyBook": {
+      "title": "paths.games",
+      "body": "In a spirit of full transparency and appreciation of the digital ecosystem, paths.games stands as an open-architecture resource, firmly committed to collaborative innovation. This open-source vocation goes hand in hand with a rigorous safeguarding of personal data and unconditional compliance with the applicable legal framework. At the same time, the platform reaffirms its ethical commitment to the due protection of intellectual property and to the formal acknowledgement of the artistic and creative heritage of every single author."
+    },
     "guestUser": {
       "languageTitle": "Language",
       "title": "Your Profile",

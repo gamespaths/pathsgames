@@ -1,10 +1,13 @@
 import { useTranslation } from '../../i18n/context'
 import { useServer } from '../../context/ServerContext'
+import { usePolicyBook } from '../../context/PolicyBookContext'
 
 export default function Footer() {
   const { t } = useTranslation()
   // v0.37.6 — status and version come from ServerContext (one request per server).
   const { server, servers, probing, status, version, changeServer } = useServer()
+  const { openPolicyBook } = usePolicyBook()
+  const policyLink = kind => e => { e.preventDefault(); openPolicyBook(kind) }
 
   return (
     <footer className="medieval-footer">
@@ -61,16 +64,16 @@ export default function Footer() {
           </a>
         </div>
         <div className="footer-copy footer-links-row">
-          <a href="#" className="footer-icon-link" data-bs-toggle="modal" data-bs-target="#privacyPolicyModal">
+          <a href="#" className="footer-icon-link" onClick={policyLink('privacy')}>
             <i className="fas fa-shield-alt " /><span>{t('footer.privacy')}</span>
           </a>
-          <a href="#" className="footer-icon-link" data-bs-toggle="modal" data-bs-target="#termsModal">
+          <a href="#" className="footer-icon-link" onClick={policyLink('terms')}>
             <i className="fas fa-file-contract" /><span>{t('footer.terms')}</span>
           </a>
-          <a href="#" className="footer-icon-link" data-bs-toggle="modal" data-bs-target="#cookiePolicyModal">
+          <a href="#" className="footer-icon-link" onClick={policyLink('cookies')}>
             <i className="fas fa-cookie-bite" /><span>{t('footer.cookies')}</span>
           </a>
-          <a href="#" className="footer-icon-link" data-bs-toggle="modal" data-bs-target="#creditsModal" >
+          <a href="#" className="footer-icon-link" onClick={policyLink('credits')}>
             <i className="fas fa-users" /><span>{t('footer.credits')}</span>
           </a>
         </div>

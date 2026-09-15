@@ -13,6 +13,10 @@ vi.mock('@/features/guest-user/GuestUserContext', () => ({
   useGuestUser: () => ({ user: { userUuid: 'u1', accessToken: 'tok' } }),
 }))
 vi.mock('@/api/matches', () => ({ createMatch: vi.fn(), joinMatch: vi.fn(), startMatch: vi.fn() }))
+const openPolicyBook = vi.fn()
+vi.mock('@/context/PolicyBookContext', () => ({
+  usePolicyBook: () => ({ policyBook: null, openPolicyBook, closePolicyBook: vi.fn() }),
+}))
 // The antibot gate is already verified: the flow starts in its 'confirm' phase.
 vi.mock('@/hooks/useAntibot', () => ({
   default: () => ({ phase: 'ready', token: 'tok-cf', retry: vi.fn() }),
@@ -98,20 +102,11 @@ describe('StartMatchFlow — the fixed cards block', () => {
     expect(screen.getAllByTestId('select-terms')[0]).toHaveTextContent('book.accept')
   })
 
-  // The terms lens opens the shared Terms & Conditions Bootstrap modal.
-  it('opens the terms modal from the terms lens', () => {
-    const show = vi.fn()
-    window.bootstrap = { Modal: { getOrCreateInstance: vi.fn(() => ({ show })) } }
-    const el = document.createElement('div')
-    el.id = 'termsModal'
-    document.body.appendChild(el)
-    try {
-      renderFlow()
-      fireEvent.click(screen.getAllByTestId('preview-terms')[0])
-      expect(show).toHaveBeenCalled()
-    } finally {
-      document.body.removeChild(el)
-    }
+  // The terms lens opens the Terms & Conditions book.
+  it('opens the terms book from the terms lens', () => {
+    renderFlow()
+    fireEvent.click(screen.getAllByTestId('preview-terms')[0])
+    expect(openPolicyBook).toHaveBeenCalledWith('terms')
   })
 
   // On mobile there is no left page, so the lens opens the preview modal.

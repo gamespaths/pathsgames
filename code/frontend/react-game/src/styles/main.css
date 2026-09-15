@@ -3152,3 +3152,14 @@ html, body {
   color: var(--color-ash);
   font-size: 0.72rem;
 }
+
+/* PolicyBook — privacy / terms / cookies / credits as a book, above any open book (1050). */
+.policy-book-overlay { z-index: 1060; }
+.policy-book-text {
+  font-size: 0.95rem;
+  font-style: normal;
+  line-height: 1.6;
+  color: var(--color-brown-deep);
+}
+.policy-book-text h6 { color: var(--color-gold-deep); font-weight: 700; margin-top: 1rem; }
+.policy-book-text .policy-book-updated { font-style: italic; font-size: 0.8rem; margin-top: 1rem; }

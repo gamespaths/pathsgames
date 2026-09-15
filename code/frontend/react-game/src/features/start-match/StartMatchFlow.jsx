@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '@/i18n/context'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
+import { usePolicyBook } from '@/context/PolicyBookContext'
 import Book from '@/components/book/Book'
 import Card from '@/components/layout/Card'
 import TurnstileWidget from '@/components/ui/TurnstileWidget'
@@ -38,6 +39,7 @@ function delaySeconds() {
 export default function StartMatchFlow({ story, config, storyId }) {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const { openPolicyBook } = usePolicyBook()
   const { user } = useGuestUser()
   // Always challenge (cookie:false): the backend consumes a fresh single-use
   // token on match creation.
@@ -167,12 +169,8 @@ export default function StartMatchFlow({ story, config, storyId }) {
     }
   }, [retryPending, gate.phase])
 
-  // The (i) lens on the terms card opens the shared Terms & Conditions modal.
-  function openTermsModal() {
-    const el = document.getElementById('termsModal')
-    const Modal = window.bootstrap?.Modal
-    if (el && Modal) Modal.getOrCreateInstance(el).show()
-  }
+  // The (i) lens on the terms card opens the Terms & Conditions book.
+  const openTermsModal = () => openPolicyBook('terms')
 
   //statistics
   const statistics = buildConfigStatistics(config, t);
