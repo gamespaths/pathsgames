@@ -85,7 +85,9 @@ describe('ServerContext — the server list the environment names', () => {
 
     expect(screen.getByTestId('server')).toHaveTextContent('http://stored.example')
     expect(screen.getByTestId('probing')).toHaveTextContent('no')
-    expect(axios.get).not.toHaveBeenCalled()
+    // v0.37.6 — only the footer's status request, for the stored server.
+    expect(axios.get).toHaveBeenCalledTimes(1)
+    expect(axios.get.mock.calls[0][0]).toBe('http://stored.example/api/echo/status')
   })
 
   it('unmounting mid-probe leaves the stored preference untouched', async () => {

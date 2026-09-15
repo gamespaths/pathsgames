@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
 import { getMatchInfo } from '../api/game'
 import { matchInfoToGameData } from '../api/matchInfoAdapter'
@@ -23,6 +23,10 @@ export default function GamePage() {
   const [loading, setLoading] = useState(true)
   const [matchError, setMatchError] = useState(null)
 
+  // v0.37.6 — the board load in flight and its inputs: StrictMode re-runs the effect on
+  // its second mount, which joins this request instead of asking /info again.
+  const boardRequest = useRef(null)
+
   useEffect(() => {
     let cancelled = false
     if (matchUuid === null || storyId === null) {
@@ -30,7 +34,14 @@ export default function GamePage() {
       setLoading(false)
       return
     }
-    Promise.all([getMatchInfo(matchUuid, user?.accessToken, lang), getStory(storyId, lang)])
+    const key = `${matchUuid}|${storyId}|${user?.accessToken}|${lang}`
+    if (boardRequest.current?.key !== key) {
+      boardRequest.current = {
+        key,
+        promise: Promise.all([getMatchInfo(matchUuid, user?.accessToken, lang), getStory(storyId, lang)]),
+      }
+    }
+    boardRequest.current.promise
       .then(([info, st]) => {
         if (cancelled) return
         setStory(st)
@@ -40,6 +51,7 @@ export default function GamePage() {
       })
       .catch(err => {
         if (cancelled) return
+        boardRequest.current = null // a failed load is not kept: the next run asks again
         setMatchError({ status: err.status ?? null })
         setLoading(false)
       })

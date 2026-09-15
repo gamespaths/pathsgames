@@ -1,28 +1,10 @@
-import { useState, useEffect } from 'react'
 import { useTranslation } from '../../i18n/context'
 import { useServer } from '../../context/ServerContext'
-import { getServerStatus } from '../../api/echoApi'
 
 export default function Footer() {
   const { t } = useTranslation()
-  const { server, servers, probing, changeServer } = useServer()
-  const [status, setStatus] = useState('loading')
-  const [version, setVersion] = useState('')
-
-  useEffect(() => {
-    let cancelled = false
-    setStatus('loading')
-    setVersion('')
-    getServerStatus(server)
-      .then(data => {
-        if (!cancelled) {
-          setStatus('online')
-          setVersion(data?.properties?.version || '')
-        }
-      })
-      .catch(() => { if (!cancelled) setStatus('offline') })
-    return () => { cancelled = true }
-  }, [server])
+  // v0.37.6 — status and version come from ServerContext (one request per server).
+  const { server, servers, probing, status, version, changeServer } = useServer()
 
   return (
     <footer className="medieval-footer">

@@ -69,6 +69,22 @@ describe('GamePage', () => {
     expect(screen.getByTestId('match-uuid').textContent).toBe('match-1')
   })
 
+  it('asks /info once under StrictMode double mount (v0.37.6)', async () => {
+    const { StrictMode } = await import('react')
+    getMatchInfo.mockResolvedValue({ locations: [] })
+    getStory.mockResolvedValue({ uuid: 'abc', title: 'Test Story' })
+    render(
+      <StrictMode>
+        <MemoryRouter initialEntries={[{ pathname: '/play/abc', state: { matchUuid: 'match-1' } }]}>
+          <Routes><Route path="/play/:storyId" element={<GamePage />} /></Routes>
+        </MemoryRouter>
+      </StrictMode>,
+    )
+    expect(await screen.findByTestId('game-book')).toBeInTheDocument()
+    expect(getMatchInfo).toHaveBeenCalledTimes(1)
+    expect(getStory).toHaveBeenCalledTimes(1)
+  })
+
   it('shows ErrorCard with status 400 when matchUuid is absent', async () => {
     getStory.mockResolvedValue({ uuid: 'abc', title: 'Test Story' })
     wrap('abc')

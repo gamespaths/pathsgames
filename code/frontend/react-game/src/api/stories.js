@@ -24,22 +24,76 @@ export async function getStoriesStatic(lang) {
   return data
 }
 
-/** v0.37.6 — static file first (no API call), the API only when it is missing or broken. */
+/**
+ * v0.37.6 — static file first (no API call), the API only when it is missing or
+ * broken. Memoised per language for the page load, so GamePage / the matches list
+ * reuse the home's answer instead of refetching the list.
+ */
 export async function getStoriesCatalog(lang) {
-  try {
-    return await getStoriesStatic(lang)
-  } catch {
-    return getStories(lang)
-  }
+  const l = lang ?? 'en'
+  return remember(`list:${l}`, async () => {
+    try {
+      return await getStoriesStatic(l)
+    } catch {
+      return getStories(l)
+    }
+  })
 }
 
+/**
+ * v0.37.6 — story cache. `memo` holds the in-flight/settled promise per key so two
+ * callers in the same tick (StrictMode, modal + page) share ONE request; a rejected
+ * one is dropped so the next call retries. Story details are also kept in
+ * sessionStorage: they change only on an admin import, so a tab keeps them for
+ * its whole session and a later open of the same book costs no request at all.
+ */
+const SESSION_PREFIX = 'pg_story:'
+const memo = new Map()
+
+function readSession(key) {
+  try {
+    const raw = sessionStorage.getItem(SESSION_PREFIX + key)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+function writeSession(key, value) {
+  try { sessionStorage.setItem(SESSION_PREFIX + key, JSON.stringify(value)) } catch { /* quota / private mode */ }
+}
+
+function remember(key, load, { session = false } = {}) {
+  if (memo.has(key)) return memo.get(key)
+  const cached = session ? readSession(key) : null
+  const promise = cached
+    ? Promise.resolve(cached)
+    : load()
+      .then(data => { if (session) writeSession(key, data); return data })
+      .catch(e => { memo.delete(key); throw e })
+  memo.set(key, promise)
+  return promise
+}
+
+/** Forget every cached story (memory + session) — tests, or after an admin import. */
+export function clearStoryCache() {
+  memo.clear()
+  try {
+    Object.keys(sessionStorage)
+      .filter(k => k.startsWith(SESSION_PREFIX))
+      .forEach(k => sessionStorage.removeItem(k))
+  } catch { /* no sessionStorage */ }
+}
+
+/** One story from the catalog list (cached per language for the page load). */
 export async function getStory(uuid, lang) {
-  const stories = await getStories(lang)
+  const stories = await getStoriesCatalog(lang)
   return stories.find(s => s.uuid === uuid) ?? null
 }
 
+/** GET /api/stories/{uuid} — one request per uuid+lang per tab session. */
 export async function getStoryDetail(uuid, lang) {
-  return fetchJson(`/api/stories/${uuid}?lang=${lang ?? 'en'}`)
+  const l = lang ?? 'en'
+  return remember(`detail:${uuid}:${l}`, () => fetchJson(`/api/stories/${uuid}?lang=${l}`), { session: true })
 }
 
 /**

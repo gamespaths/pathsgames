@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { chromeScopeFor } from './chromeScope'
 import { getInventory, selectChoice } from '@/api/matches'
 import { grantedItemUuids, itemRowForUuid, lastEffectCard } from '@/utils/gameResults'
 import { itemPromiseBadges, registryChangeItems, statChangeItems } from '@/utils/statBadges'
 import { scrollBookToTop } from './mobileView'
+
+// v0.37.6 — a drop-item answer carries no clock: read as "time did not move".
+const DROP_ANSWER = Object.freeze({ timeEnded: false })
 
 /**
  * useGameplayResults — everything the board does with the ANSWER of a gameplay call
@@ -14,7 +18,7 @@ import { scrollBookToTop } from './mobileView'
  * short-circuits all of it — nothing was applied yet.
  */
 export default function useGameplayResults({
-  matchUuid, accessToken, lang, t, playerUuid, playerStats, gameData, weather,
+  matchUuid, accessToken, lang, t, playerUuid, playerStats, gameData, weather, clock,
   view, viewActions, refreshChrome, onReload, onError,
 }) {
   const [loading, setLoading] = useState(false)
@@ -33,6 +37,9 @@ export default function useGameplayResults({
   // lets it know whether choices or the wake-up list already own the right page.
   const viewRef = useRef(view)
   useEffect(() => { viewRef.current = view }, [view])
+  // v0.37.6 — the clock the board knows, read when an action answers (not a dep of reloadBoard).
+  const clockRef = useRef(null)
+  useEffect(() => { clockRef.current = clock?.currentClock ?? null }, [clock])
 
   const stopLoading = useCallback(() => setLoading(false), [])
   const startLoading = useCallback(() => setLoading(true), [])
@@ -80,10 +87,12 @@ export default function useGameplayResults({
   // v0.37.4 — resolves when the NEW board has landed (or the reload failed): the loading page
   // used to be a fixed timer, so a slow /info showed the old location back before the new one.
   // The caller keeps its own "Executing" until this settles, which is what the player sees.
-  const reloadBoard = useCallback(() => {
+  // v0.37.6 — `result` is the action's answer: only the side payloads it made stale are
+  // asked again (chromeScopeFor); no answer at all means every one of them.
+  const reloadBoard = useCallback((result = null) => {
     const seq = ++reloadSeqRef.current
     startLoading()
-    refreshChrome()
+    refreshChrome(chromeScopeFor(result, clockRef.current))
     scrollTopAfterReloadRef.current = true
     const reload = Promise.resolve().then(() => onReload?.()).catch(() => {})
       .then(() => { if (seq === reloadSeqRef.current) setLoading(false) })
@@ -165,7 +174,7 @@ export default function useGameplayResults({
    * Left null for events on purpose: there `result.card` is the EVENT card.
    */
   const handleEventExecuted = useCallback((result, fallbackCard = null) => {
-    const reload = reloadBoard()
+    const reload = reloadBoard(result)
     if (result?.status === 'CHOICES_PENDING') {
       applyChoicesPending(result)
       stopLoading()
@@ -226,7 +235,7 @@ export default function useGameplayResults({
   // v0.35.6 — an arrival kills as an event does: the edge state comes last, so a collapse
   // covers the arrival's own card rather than the other way round.
   const handleMovementDone = useCallback(result => {
-    const reload = reloadBoard()
+    const reload = reloadBoard(result)
     const fired = showAutomaticEvents(result?.automaticEvents)
     const edge = applyEdgeState(result?.edgeState)
     // v0.37.4 — same rule as an event: no news, the loading page stays until the destination lands.
@@ -237,7 +246,7 @@ export default function useGameplayResults({
   // Step 33 — a sleep answers with the location counters that ran out while the party slept,
   // already filtered for this player. Empty is the normal case and renders nothing.
   const handleSlept = useCallback(result => {
-    const reload = reloadBoard()
+    const reload = reloadBoard(result)
     const fired = result?.counterZero ?? []
     viewActions.setCounterZero(fired.length ? fired : null)
     // v0.35.6 — the recovery and the events a time-start fires can empty a life bar; waking
@@ -250,7 +259,8 @@ export default function useGameplayResults({
   // dropping is a tidying gesture and usually comes in a run, so the list the player is
   // working through must not vanish under them.
   const handleItemDropped = useCallback(() => {
-    const reload = reloadBoard()
+    // A drop touches the bag and the weight only: nothing of the chrome moves.
+    const reload = reloadBoard(DROP_ANSWER)
     viewActions.openItems()
     return reload
   }, [reloadBoard, viewActions])
@@ -272,7 +282,7 @@ export default function useGameplayResults({
     setChoiceInFlight(true)
     try {
       const result = await selectChoice(matchUuid, choice.uuid, accessToken, lang)
-      const reload = reloadBoard()
+      const reload = reloadBoard(result)
       // A linked choice-event: the story chained one choice onto another, so the options
       // list is re-armed rather than closed.
       if (result?.status === 'CHOICES_PENDING') {

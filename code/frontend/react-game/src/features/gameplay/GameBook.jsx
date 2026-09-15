@@ -57,7 +57,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   const missionsAlert = useMissionsAlert(gameData?.info?.missions,
     view.view === 'missions' || view.view === 'missionSteps')
   const results = useGameplayResults({
-    matchUuid, accessToken, lang, t, playerUuid, playerStats, gameData, weather,
+    matchUuid, accessToken, lang, t, playerUuid, playerStats, gameData, weather, clock,
     view, viewActions, refreshChrome, onReload, onError,
   })
 

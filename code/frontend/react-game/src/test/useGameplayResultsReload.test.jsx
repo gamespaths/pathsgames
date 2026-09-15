@@ -5,7 +5,7 @@ vi.mock('@/api/matches', () => ({ getInventory: vi.fn(), selectChoice: vi.fn() }
 
 import useGameplayResults from '../features/gameplay/js/useGameplayResults'
 
-function setup(onReload) {
+function setup(onReload, { clock = null, refreshChrome = vi.fn() } = {}) {
   const viewActions = {
     resetForReload: vi.fn(), setPreviewRight: vi.fn(), setPreviewLeft: vi.fn(),
     openPreview: vi.fn(), setChoices: vi.fn(), closeChoices: vi.fn(), setCounterZero: vi.fn(),
@@ -13,10 +13,10 @@ function setup(onReload) {
   }
   const hook = renderHook(() => useGameplayResults({
     matchUuid: 'm1', accessToken: 'tok', lang: 'en', t: k => k, playerUuid: 'p1',
-    playerStats: {}, gameData: {}, weather: null, view: {}, viewActions,
-    refreshChrome: vi.fn(), onReload, onError: vi.fn(),
+    playerStats: {}, gameData: {}, weather: null, clock, view: {}, viewActions,
+    refreshChrome, onReload, onError: vi.fn(),
   }))
-  return { ...hook, viewActions }
+  return { ...hook, viewActions, refreshChrome }
 }
 
 /** A reload the test resolves by hand. */
@@ -118,5 +118,62 @@ describe('useGameplayResults — reload-driven loading (v0.37.4)', () => {
     act(() => { reload = result.current.handleItemUsed({}) })
     await act(async () => { await reload })
     expect(result.current.loading).toBe(false)
+  })
+})
+
+// v0.37.6 — the side payloads are asked again only when the answer says they moved.
+describe('useGameplayResults — scoped chrome refresh (v0.37.6)', () => {
+  const ALL = { clock: true, weather: true, locations: true }
+  const NONE = { clock: false, weather: false, locations: false }
+
+  it('a bare reloadBoard() still refreshes everything', async () => {
+    const { result, refreshChrome } = setup(() => Promise.resolve())
+    await act(async () => { await result.current.reloadBoard() })
+    expect(refreshChrome).toHaveBeenCalledWith(ALL)
+  })
+
+  it('a sleep that did not end the time refreshes nothing of the chrome', async () => {
+    const { result, refreshChrome } = setup(() => Promise.resolve(), { clock: { currentClock: 3 } })
+    await act(async () => { await result.current.handleSlept({ timeEndTriggered: false, currentClock: 3 }) })
+    expect(refreshChrome).toHaveBeenCalledWith(NONE)
+  })
+
+  it('a sleep that ended the time refreshes all three', async () => {
+    const { result, refreshChrome } = setup(() => Promise.resolve(), { clock: { currentClock: 3 } })
+    await act(async () => { await result.current.handleSlept({ timeEndTriggered: true, currentClock: 4 }) })
+    expect(refreshChrome).toHaveBeenCalledWith(ALL)
+  })
+
+  it('a move inside the same time unit refreshes the locations only', async () => {
+    const { result, refreshChrome } = setup(() => Promise.resolve(), { clock: { currentClock: 3 } })
+    await act(async () => {
+      await result.current.handleMovementDone({ toLocationUuid: 'l2', currentClock: 3 })
+    })
+    expect(refreshChrome).toHaveBeenCalledWith({ clock: false, weather: false, locations: true })
+  })
+
+  it('an event that changed nothing but stats asks for no side payload', async () => {
+    const { result, refreshChrome } = setup(() => Promise.resolve(), { clock: { currentClock: 3 } })
+    await act(async () => {
+      await result.current.handleEventExecuted({ timeEnded: false, currentClock: 3, weatherApplied: false })
+    })
+    expect(refreshChrome).toHaveBeenCalledWith(NONE)
+  })
+
+  it('a drop never touches the chrome', async () => {
+    const { result, refreshChrome } = setup(() => Promise.resolve(), { clock: { currentClock: 3 } })
+    await act(async () => { await result.current.handleItemDropped() })
+    expect(refreshChrome).toHaveBeenCalledWith(NONE)
+  })
+
+  it('reads the clock the board knows at answer time, not at mount', async () => {
+    const { result, refreshChrome, rerender } = setup(() => Promise.resolve(), { clock: null })
+    // the clock lands after mount (rerender with the new prop through a fresh hook render)
+    rerender()
+    await act(async () => {
+      await result.current.handleMovementDone({ toLocationUuid: 'l2', currentClock: 5 })
+    })
+    // no known clock and no flag → conservative: everything
+    expect(refreshChrome).toHaveBeenLastCalledWith(ALL)
   })
 })

@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
 
 const mockChangeServer = vi.fn()
+// v0.37.6 — status/version are read from ServerContext (one request per server, made
+// there); the footer only renders them.
+const ctx = vi.hoisted(() => ({ status: 'loading', version: '' }))
 vi.mock('../context/ServerContext', () => ({
   useServer: () => ({
     server: 'http://api.test',
@@ -14,40 +17,45 @@ vi.mock('../context/ServerContext', () => ({
       { label: 'Remote', url: 'http://api.remote' },
     ],
     probing: false,
+    status: ctx.status,
+    version: ctx.version,
     changeServer: mockChangeServer,
   }),
 }))
 
-vi.mock('../api/echoApi', () => ({ getServerStatus: vi.fn() }))
-
-import { getServerStatus } from '../api/echoApi'
 import Footer from '../components/layout/Footer'
 
 describe('Footer — real-server status', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => { vi.clearAllMocks(); ctx.status = 'loading'; ctx.version = '' })
 
-  it('shows the version when the server responds online', async () => {
-    getServerStatus.mockResolvedValue({ properties: { version: 'v9.9' } })
-    render(<Footer />)
-    await waitFor(() => expect(screen.getByText('v9.9')).toBeInTheDocument())
-    expect(getServerStatus).toHaveBeenCalledWith('http://api.test')
+  it('shows the version when the server is online', () => {
+    ctx.status = 'online'
+    ctx.version = 'v9.9'
+    const { container } = render(<Footer />)
+    expect(screen.getByText('v9.9')).toBeInTheDocument()
+    expect(container.querySelector('[style*="rgb(76, 175, 80)"]')).toBeInTheDocument()
   })
 
-  it('handles an online server that returns no version', async () => {
-    getServerStatus.mockResolvedValue({})
-    render(<Footer />)
-    await waitFor(() => expect(getServerStatus).toHaveBeenCalled())
+  it('handles an online server with no version', () => {
+    ctx.status = 'online'
+    const { container } = render(<Footer />)
+    expect(container.querySelector('[style*="rgb(76, 175, 80)"]')).toBeInTheDocument()
+    expect(screen.queryByText(/^v\d/)).not.toBeInTheDocument()
   })
 
-  it('marks the server offline when the status call fails', async () => {
-    getServerStatus.mockRejectedValue(new Error('down'))
-    render(<Footer />)
-    await waitFor(() => expect(getServerStatus).toHaveBeenCalled())
+  it('marks the server offline', () => {
+    ctx.status = 'offline'
+    const { container } = render(<Footer />)
+    expect(container.querySelector('[style*="rgb(244, 67, 54)"]')).toBeInTheDocument()
     expect(screen.getByRole('combobox')).toBeInTheDocument()
   })
 
-  it('invokes changeServer when a different server is selected', async () => {
-    getServerStatus.mockResolvedValue({})
+  it('shows an ellipsis while loading', () => {
+    render(<Footer />)
+    expect(screen.getByText('…')).toBeInTheDocument()
+  })
+
+  it('invokes changeServer when a different server is selected', () => {
     render(<Footer />)
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'http://api.remote' } })
     expect(mockChangeServer).toHaveBeenCalledWith('http://api.remote')

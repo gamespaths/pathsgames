@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getMatchClock, getMatchWeather, getMatchLocations } from '@/api/matches'
 import { buildLocationCosts } from '@/utils/gamebook'
+import { CHROME_ALL } from './chromeScope'
 
 /**
  * useMatchChrome — the three per-match side payloads the board reads but never owns: the
@@ -52,13 +53,23 @@ export default function useMatchChrome(matchUuid, accessToken, lang) {
     } catch { /* non-critical: keep the previous cost map */ }
   }, [matchUuid, accessToken, lang])
 
-  const refresh = useCallback(() => {
-    refreshClock()
-    refreshWeather()
-    refreshLocations()
+  // v0.37.6 — `scope` says which of the three to ask again (default: all); see chromeScope.js.
+  const refresh = useCallback((scope = CHROME_ALL) => {
+    if (scope.clock) refreshClock()
+    if (scope.weather) refreshWeather()
+    if (scope.locations) refreshLocations()
   }, [refreshClock, refreshWeather, refreshLocations])
 
-  useEffect(() => { refresh() }, [refresh])
+  // v0.37.6 — the mount-time load runs once per match/token/lang: StrictMode re-runs the
+  // effect on its second mount and used to fire the three requests twice. A later
+  // `refresh()` (after a sleep, a move, an event) is a fresh load and is never skipped.
+  const loadedKey = useRef(null)
+  useEffect(() => {
+    const key = `${matchUuid}|${accessToken}|${lang}`
+    if (loadedKey.current === key) return
+    loadedKey.current = key
+    refresh()
+  }, [refresh, matchUuid, accessToken, lang])
 
   return { clock, weather, matchLocations, locationCosts, refresh }
 }

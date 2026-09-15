@@ -24,7 +24,7 @@ const HERO_IMG = {
 export default function HomePage() {
   const { t, lang } = useTranslation()
   const navigate = useNavigate()
-  const { user, openGuestModal } = useGuestUser()
+  const { user, error: guestError, openGuestModal } = useGuestUser()
   const [stories, setStories] = useState([])
   const [matches, setMatches] = useState(null) // guest matches, loaded once when human
   // v0.32.1 — 'loading' | 'ready' | 'error': an unreadable list must NOT look like
@@ -33,8 +33,8 @@ export default function HomePage() {
   const [pendingStoryUuid, setPendingStoryUuid] = useState(null)
   const [loading, setLoading] = useState(true)
   const [selectedStory, setSelectedStory] = useState(null)
-  // The single in-flight `GET /api/matches`. A click during the load awaits THIS
-  // promise instead of firing its own request.
+  // The single in-flight `GET /api/matches` and the token it was made with. A click
+  // during the load awaits THIS promise instead of firing its own request.
   const matchesPromise = useRef(null)
   // A rejected catalog fetch used to leave `loading` true for ever, so a CORS block
   // or a backend hiccup looked exactly like a slow load.
@@ -45,12 +45,19 @@ export default function HomePage() {
   const gate = useAntibot({ cookie: true })
   const { setError: setHomeError } = useHomeStatus()
 
+  // The in-flight catalog request and its language: StrictMode (dev) runs the effect
+  // twice on mount, the second run joins the first request instead of repeating it.
+  const storiesRequest = useRef(null)
+
   // v0.37.6 — static file first (no API call), API as fallback; see getStoriesCatalog.
   useEffect(() => {
     let cancelled = false
     setStoriesError(false)
     setLoading(true)
-    getStoriesCatalog(lang)
+    if (storiesRequest.current?.lang !== lang) {
+      storiesRequest.current = { lang, promise: getStoriesCatalog(lang) }
+    }
+    storiesRequest.current.promise
       .then(data => {
         if (cancelled) return
         setStories(withComingSoonStories(data, lang, ADD_COMING_SOON_STORIES))
@@ -70,11 +77,21 @@ export default function HomePage() {
   // a click that lands before it resolves waits for it rather than starting a
   // second request — the window in which a duplicate match could be created.
   useEffect(() => {
+    // v0.37.6 — no bearer token yet: the guest session is still being resumed/created,
+    // calling now would only be a 401. A guest that could not be minted at all is an
+    // error (no list can ever come); otherwise stay 'loading' until the token lands.
+    if (!user?.accessToken) {
+      if (guestError) setMatchesStatus('error')
+      return undefined
+    }
     let cancelled = false
     setMatchesStatus('loading')
-    const promise = listMatches(user?.accessToken).then(list => (Array.isArray(list) ? list : []))
-    matchesPromise.current = promise
-    promise
+    // Same token as the request already in flight (StrictMode re-run): join it.
+    if (matchesPromise.current?.token !== user.accessToken) {
+      const promise = listMatches(user.accessToken).then(list => (Array.isArray(list) ? list : []))
+      matchesPromise.current = { token: user.accessToken, promise }
+    }
+    matchesPromise.current.promise
       .then(list => {
         if (cancelled) return
         setMatches(list)
@@ -86,7 +103,7 @@ export default function HomePage() {
         setMatchesStatus('error')
       })
     return () => { cancelled = true }
-  }, [user?.accessToken])
+  }, [user?.accessToken, guestError])
 
   // v0.37.6 — one state for every card footer. The antibot verdict wins over the
   // match list: a failed check blocks the buttons whatever the matches said.
@@ -108,9 +125,11 @@ export default function HomePage() {
     if (pendingStoryUuid || footerState === 'blocked' || footerState === 'error') return
     let list = matches
     if (!Array.isArray(list)) {
+      // Nothing in flight yet (guest session still being created): ignore the click.
+      if (!matchesPromise.current) return
       setPendingStoryUuid(story.uuid)
       try {
-        list = await matchesPromise.current
+        list = await matchesPromise.current.promise
       } catch {
         // Fail closed: without the list we cannot tell whether a match already
         // exists, and starting one anyway is exactly the duplicate we are

@@ -25,9 +25,12 @@ vi.mock('../i18n/context', () => ({
 
 const mockOpenGuestModal = vi.fn()
 const mockUser = { userUuid: 'u1', username: 'guest_u1', accessToken: 'tok' }
+// v0.37.6 — the guest identity the page sees; tests swap it to simulate a session
+// still being created (no token yet) or one that failed.
+const guest = vi.hoisted(() => ({ user: null, error: null }))
 
 vi.mock('@/features/guest-user/GuestUserContext', () => ({
-  useGuestUser: () => ({ user: mockUser, openGuestModal: mockOpenGuestModal }),
+  useGuestUser: () => ({ user: guest.user, error: guest.error, openGuestModal: mockOpenGuestModal }),
 }))
 
 // The flags come from .env*, which a build (or a developer) flips: pin them here so this
@@ -85,6 +88,8 @@ describe('HomePage — story click with active match check', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     ts.behavior = 'success'
+    guest.user = mockUser
+    guest.error = null
     document.cookie = 'pathsgames.turnstilePass=; max-age=0; path=/' // forget prior pass
     getStories.mockResolvedValue([STORY_A, STORY_B])
   })
@@ -202,6 +207,51 @@ describe('HomePage — story click with active match check', () => {
     expect(screen.getByTestId('home-error').textContent).toBe('none')
   })
 
+  it('does not call /api/matches until the guest session hands over a token (v0.37.6)', async () => {
+    guest.user = null
+    listMatches.mockResolvedValue([])
+    const { rerender } = wrap(<HomePage />)
+    await screen.findByText('Forest Path')
+    expect(listMatches).not.toHaveBeenCalled()
+    expect(screen.getByTestId('footer-state').textContent).toBe('loading')
+    // A click meanwhile is ignored: nothing in flight to wait for.
+    fireEvent.click(screen.getByText('Forest Path'))
+    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
+    // The token lands → one call, with that token.
+    guest.user = mockUser
+    rerender(
+      <HomeStatusProvider>
+        <MemoryRouter><HomePage /><HomeErrorProbe /></MemoryRouter>
+      </HomeStatusProvider>,
+    )
+    await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('ready'))
+    expect(listMatches).toHaveBeenCalledTimes(1)
+    expect(listMatches).toHaveBeenCalledWith('tok')
+  })
+
+  it('reports "error" when the guest session itself could not be created (v0.37.6)', async () => {
+    guest.user = null
+    guest.error = 'guest-init-failed'
+    wrap(<HomePage />)
+    await screen.findByText('Forest Path')
+    await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('error'))
+    expect(screen.getByTestId('home-error').textContent).toBe('matches')
+    expect(listMatches).not.toHaveBeenCalled()
+  })
+
+  it('fetches the catalog once under StrictMode double mount, and again on a language change (v0.37.6)', async () => {
+    const { StrictMode } = await import('react')
+    listMatches.mockResolvedValue([])
+    render(
+      <StrictMode>
+        <HomeStatusProvider><MemoryRouter><HomePage /><HomeErrorProbe /></MemoryRouter></HomeStatusProvider>
+      </StrictMode>,
+    )
+    expect(await screen.findByText('Forest Path')).toBeInTheDocument()
+    expect(getStories).toHaveBeenCalledTimes(1)
+    expect(listMatches).toHaveBeenCalledTimes(1)
+  })
+
   it('clears the navbar error when the page unmounts (v0.37.6)', async () => {
     listMatches.mockRejectedValue(new Error('Network error'))
     const { unmount } = wrap(<HomePage />)
@@ -233,6 +283,8 @@ describe('HomePage — the catalog fetch fails', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     ts.behavior = 'success'
+    guest.user = mockUser
+    guest.error = null
     document.cookie = 'pathsgames.turnstilePass=1; path=/'
     listMatches.mockResolvedValue([])
   })
@@ -263,6 +315,8 @@ describe('HomePage — unmounted before the catalog fetch settles', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     ts.behavior = 'success'
+    guest.user = mockUser
+    guest.error = null
     document.cookie = 'pathsgames.turnstilePass=1; path=/'
     listMatches.mockResolvedValue([])
   })

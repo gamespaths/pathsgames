@@ -15,11 +15,11 @@ vi.mock('../context/ServerContext', () => ({
     server: 'http://localhost:8042',
     servers: [{ label: 'Local', url: 'http://localhost:8042' }],
     probing: false,
+    status: 'online',
+    version: '',
     changeServer: vi.fn(),
   }),
 }))
-
-vi.mock('../api/echoApi', () => ({ getServerStatus: vi.fn().mockResolvedValue({}) }))
 
 describe('Footer', () => {
   it('renders Paths Games brand', () => {
