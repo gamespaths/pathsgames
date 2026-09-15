@@ -56,6 +56,18 @@ Parameters:
     Type: String
     Default: "3600"
     Description: "v0.37.5 - seconds a Lambda container keeps a STORY item in memory (0 = no cache). A SYSTEM#cache stamp already invalidates on every write; POST /api/admin/cache/flush invalidates everywhere."
+  WebsiteBucket:
+    Type: String
+    Default: ""
+    Description: "v0.37.6 - S3 bucket of the game website (test.paths.games). POST /api/admin/stories/catalog writes data/stories-{lang}.json there; empty = endpoint answers 503."
+  WebsiteCloudFrontId:
+    Type: String
+    Default: ""
+    Description: "v0.37.6 - CloudFront distribution id of the website, invalidated (/data/stories-*.json only) after a catalog write. Empty = no invalidation."
+  CatalogLangs:
+    Type: String
+    Default: "en,it"
+    Description: "v0.37.6 - languages written by the static catalog export."
   TableBillingMode:
     Type: String
     Default: PAY_PER_REQUEST
@@ -358,6 +370,9 @@ Resources:
         AdminAuthorizerId: !Ref AdminIpAuthorizer
         AllowMockAccess: !Ref AllowMockAccess
         AdminIpWhitelist: !Ref AdminIpWhitelist
+        WebsiteBucket: !Ref WebsiteBucket
+        WebsiteCloudFrontId: !Ref WebsiteCloudFrontId
+        CatalogLangs: !Ref CatalogLangs
 
   # Step 19 — single-player match creation
   MatchModule:

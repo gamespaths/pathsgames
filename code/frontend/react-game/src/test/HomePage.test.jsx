@@ -11,6 +11,7 @@ vi.mock('@marsidev/react-turnstile', async () => {
     Turnstile: ({ onSuccess, onError }) => {
       useEffect(() => {
         if (ts.behavior === 'bot') onError?.()
+        else if (ts.behavior === 'pending') { /* v0.37.6 — never answers */ }
         else onSuccess?.('test-token')
       }, [])
       return <div data-testid="turnstile-mock" />
@@ -37,11 +38,12 @@ vi.mock('../constants/features', async (importOriginal) => ({
   ADD_COMING_SOON_STORIES: false,
 }))
 
-vi.mock('../api/stories', () => ({ getStories: vi.fn() }))
+vi.mock('../api/stories', () => ({ getStoriesCatalog: vi.fn() }))
 vi.mock('../api/matches', () => ({ listMatches: vi.fn() }))
 vi.mock('../features/catalog/StoryCatalog', () => ({
-  default: ({ stories, onStoryClick }) => (
+  default: ({ stories, onStoryClick, footerState }) => (
     <div>
+      <span data-testid="footer-state">{footerState}</span>
       {stories.map(s => (
         <button key={s.uuid} onClick={() => onStoryClick(s)}>{s.title}</button>
       ))}
@@ -58,14 +60,25 @@ vi.mock('../utils/turnstile', async (importOriginal) => {
 })
 
 import HomePage from '../pages/HomePage'
-import { getStories } from '../api/stories'
+import { getStoriesCatalog as getStories } from '../api/stories'
 import { listMatches } from '../api/matches'
+import { HomeStatusProvider, useHomeStatus } from '../context/HomeStatusContext'
+
+// v0.37.6 — what the Navbar would read: the home error code, or "none".
+function HomeErrorProbe() {
+  const { error } = useHomeStatus()
+  return <span data-testid="home-error">{error ?? 'none'}</span>
+}
 
 const STORY_A = { uuid: 's1', title: 'Forest Path', card: {} }
 const STORY_B = { uuid: 's2', title: 'Dragon Keep', card: {} }
 
 function wrap(ui) {
-  return render(<MemoryRouter>{ui}</MemoryRouter>)
+  return render(
+    <HomeStatusProvider>
+      <MemoryRouter>{ui}<HomeErrorProbe /></MemoryRouter>
+    </HomeStatusProvider>,
+  )
 }
 
 describe('HomePage — story click with active match check', () => {
@@ -125,25 +138,26 @@ describe('HomePage — story click with active match check', () => {
     expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
   })
 
-  it('fails closed when listMatches throws: no StartBookModal, an error banner instead (v0.32.1)', async () => {
+  it('fails closed when listMatches throws: no StartBookModal, "error" footers and the navbar error (v0.37.6)', async () => {
     listMatches.mockRejectedValue(new Error('Network error'))
     wrap(<HomePage />)
-    fireEvent.click(await screen.findByText('Forest Path'))
-    expect(await screen.findByText('home.matchesError')).toBeInTheDocument()
+    await screen.findByText('Forest Path')
+    await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('error'))
+    expect(screen.getByTestId('home-error').textContent).toBe('matches')
+    fireEvent.click(screen.getByText('Forest Path'))
     expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
     expect(mockOpenGuestModal).not.toHaveBeenCalled()
+    expect(screen.queryByText('home.matchesError')).not.toBeInTheDocument()
   })
 
-  it('retries the match list from the error banner (v0.32.1)', async () => {
-    listMatches.mockRejectedValueOnce(new Error('Network error'))
-    listMatches.mockResolvedValue([])
+  it('a click that awaited a failing in-flight list also fails closed (v0.32.1)', async () => {
+    let rejectMatches
+    listMatches.mockReturnValue(new Promise((_, rej) => { rejectMatches = rej }))
     wrap(<HomePage />)
-    await screen.findByText('home.matchesError')
-    fireEvent.click(screen.getByText('startMatch.retry'))
-    await waitFor(() => expect(listMatches).toHaveBeenCalledTimes(2))
-    await waitFor(() => expect(screen.queryByText('home.matchesError')).not.toBeInTheDocument())
-    fireEvent.click(screen.getByText('Forest Path'))
-    expect(await screen.findByTestId('start-book-modal')).toBeInTheDocument()
+    fireEvent.click(await screen.findByText('Forest Path'))
+    rejectMatches(new Error('Network error'))
+    await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('error'))
+    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
   })
 
   it('a click during the load awaits the single in-flight request (v0.32.1)', async () => {
@@ -159,13 +173,45 @@ describe('HomePage — story click with active match check', () => {
     expect(listMatches).toHaveBeenCalledTimes(1)
   })
 
-  it('offers a retry (instead of blocking) and never calls getStories on widget error', async () => {
+  it('shows the catalog even when the widget fails, with "blocked" footers, no clicks and the navbar error (v0.37.6)', async () => {
     ts.behavior = 'bot'
+    listMatches.mockResolvedValue([])
     wrap(<HomePage />)
-    expect(await screen.findByText('antibot.error')).toBeInTheDocument()
-    expect(screen.getByText('startMatch.retry')).toBeInTheDocument()
-    expect(screen.queryByText('Forest Path')).not.toBeInTheDocument()
-    expect(getStories).not.toHaveBeenCalled()
+    expect(await screen.findByText('Forest Path')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('blocked'))
+    expect(screen.getByTestId('home-error').textContent).toBe('antibot')
+    expect(getStories).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByText('Forest Path'))
+    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
+    expect(screen.queryByText('antibot.error')).not.toBeInTheDocument()
+  })
+
+  it('fetches stories and matches in parallel with the antibot check, footers spinning meanwhile (v0.37.6)', async () => {
+    ts.behavior = 'pending'
+    listMatches.mockResolvedValue([])
+    wrap(<HomePage />)
+    expect(await screen.findByText('Forest Path')).toBeInTheDocument()
+    expect(screen.getByTestId('turnstile-mock')).toBeInTheDocument()
+    expect(screen.getByText('antibot.verifying')).toBeInTheDocument()
+    // The strip overlays the hero picture, above the title.
+    const strip = document.querySelector('.hero-overlay > .home-antibot-strip')
+    expect(strip).toContainElement(screen.getByTestId('turnstile-mock'))
+    expect(strip.nextElementSibling).toHaveClass('hero-title')
+    await waitFor(() => expect(listMatches).toHaveBeenCalledTimes(1))
+    expect(screen.getByTestId('footer-state').textContent).toBe('loading')
+    expect(screen.getByTestId('home-error').textContent).toBe('none')
+  })
+
+  it('clears the navbar error when the page unmounts (v0.37.6)', async () => {
+    listMatches.mockRejectedValue(new Error('Network error'))
+    const { unmount } = wrap(<HomePage />)
+    await waitFor(() => expect(screen.getByTestId('home-error').textContent).toBe('matches'))
+    unmount()
+    // A fresh mount with a good list starts clean.
+    listMatches.mockResolvedValue([])
+    wrap(<HomePage />)
+    await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('ready'))
+    expect(screen.getByTestId('home-error').textContent).toBe('none')
   })
 
   it('records a pass cookie after a human check', async () => {
@@ -191,37 +237,25 @@ describe('HomePage — the catalog fetch fails', () => {
     listMatches.mockResolvedValue([])
   })
 
-  it('shows the error and a retry instead of spinning for ever', async () => {
+  it('shows only the yellow sign (words and refresh are in the navbar) instead of spinning for ever', async () => {
     getStories.mockRejectedValue(new Error('Network Error'))
     wrap(<HomePage />)
-    expect(await screen.findByText('home.storiesError')).toBeInTheDocument()
-    expect(screen.getByText('startMatch.retry')).toBeInTheDocument()
-    expect(screen.queryByText('home.loading')).not.toBeInTheDocument()
-  })
-
-  it('retry refetches and shows the catalog once the call succeeds', async () => {
-    getStories.mockRejectedValueOnce(new Error('Network Error'))
-      .mockResolvedValueOnce([STORY_A, STORY_B])
-    wrap(<HomePage />)
-    fireEvent.click(await screen.findByText('startMatch.retry'))
-    expect(await screen.findByText('Forest Path')).toBeInTheDocument()
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveAttribute('aria-label', 'home.storiesError')
+    expect(alert.querySelector('.fa-exclamation-triangle.home-stories-error-icon')).toBeInTheDocument()
     expect(screen.queryByText('home.storiesError')).not.toBeInTheDocument()
-    expect(getStories).toHaveBeenCalledTimes(2)
+    expect(screen.queryByText('startMatch.retry')).not.toBeInTheDocument()
+    expect(screen.queryByText('home.loading')).not.toBeInTheDocument()
+    expect(screen.getByTestId('home-error').textContent).toBe('stories')
+    expect(getStories).toHaveBeenCalledTimes(1)
   })
 
-  it('leaves the error showing when the retry fails too', async () => {
-    getStories.mockRejectedValue(new Error('Network Error'))
-    wrap(<HomePage />)
-    fireEvent.click(await screen.findByText('startMatch.retry'))
-    await waitFor(() => expect(getStories).toHaveBeenCalledTimes(2))
-    expect(await screen.findByText('home.storiesError')).toBeInTheDocument()
-  })
-
-  it('shows the catalog, not the error, when the fetch succeeds', async () => {
+  it('shows the catalog, not the sign, when the fetch succeeds', async () => {
     getStories.mockResolvedValue([STORY_A])
     wrap(<HomePage />)
     expect(await screen.findByText('Forest Path')).toBeInTheDocument()
-    expect(screen.queryByText('home.storiesError')).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByTestId('home-error').textContent).toBe('none')
   })
 })
 
@@ -240,7 +274,7 @@ describe('HomePage — unmounted before the catalog fetch settles', () => {
     unmount()
     reject(new Error('Network Error'))
     await waitFor(() => expect(getStories).toHaveBeenCalled())
-    expect(screen.queryByText('home.storiesError')).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('ignores a resolution that lands after unmount', async () => {

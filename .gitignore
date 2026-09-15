@@ -112,6 +112,8 @@ code/frontend/react-admin/jest-test-results.json
 
 code/frontend/react-game/node_modules/
 code/frontend/react-game/build/
+# v0.37.6 local static catalog (CATALOG_EXPORT_DIR)
+code/frontend/react-game/public/data/
 code/frontend/react-game/.env
 code/frontend/react-game/.env.local
 code/frontend/react-game/.env.development

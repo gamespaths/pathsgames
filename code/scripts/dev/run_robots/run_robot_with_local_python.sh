@@ -37,6 +37,11 @@ echo "Execute script to seed stories in database"
 .venv/bin/python scripts/seed_stories.py
 
 # start local server
+# v0.37.6 — static catalog export (POST /api/admin/stories/catalog) writes here; the
+# Robot suite 14_admin/story_catalog.robot reads the files back through the same variable.
+export CATALOG_EXPORT_DIR="${CATALOG_EXPORT_DIR:-/tmp/pathsgames-catalog-robot}"
+rm -rf "$CATALOG_EXPORT_DIR"
+
 .venv/bin/python -m app.launcher &
 SERVER_PID=$!
 

@@ -9,6 +9,8 @@ import games.paths.core.port.auth.GuestAuthPort;
 import games.paths.core.port.auth.SessionPort;
 import games.paths.core.port.auth.TokenPersistencePort;
 import games.paths.core.port.dev.TestDataCleanupPort;
+import games.paths.core.port.story.CatalogWriterPort;
+import games.paths.core.port.story.StoryCatalogExportPort;
 import games.paths.core.port.story.StoryCrudPort;
 import games.paths.core.port.story.StoryImportPort;
 import games.paths.core.port.story.StoryPersistencePort;
@@ -33,6 +35,7 @@ import games.paths.core.service.auth.GuestAdminService;
 import games.paths.core.service.auth.GuestAuthService;
 import games.paths.core.service.auth.SessionService;
 import games.paths.core.service.dev.TestDataCleanupService;
+import games.paths.core.service.story.StoryCatalogExportService;
 import games.paths.core.service.story.StoryCrudService;
 import games.paths.core.service.story.StoryImportService;
 import games.paths.core.service.story.StoryQueryService;
@@ -51,6 +54,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -78,6 +82,10 @@ public class CoreConfig {
 
     @Value("${game.auth.max-tokens-per-user:5}")
     private int maxTokensPerUser;
+
+    // v0.37.6 — languages written by POST /api/admin/stories/catalog.
+    @Value("${game.catalog.langs:en,it}")
+    private List<String> catalogLangs;
 
     @Value("${game.turnstile.secret-key:}")
     private String turnstileSecretKey;
@@ -130,6 +138,12 @@ public class CoreConfig {
     public StoryImportPort storyImportPort(StoryPersistencePort storyPersistencePort,
             StoryValidatorPort storyValidatorPort) {
         return new StoryImportService(storyPersistencePort, storyValidatorPort);
+    }
+
+    @Bean
+    public StoryCatalogExportPort storyCatalogExportPort(StoryQueryPort storyQueryPort,
+            CatalogWriterPort catalogWriterPort) {
+        return new StoryCatalogExportService(storyQueryPort, catalogWriterPort, catalogLangs);
     }
 
     @Bean

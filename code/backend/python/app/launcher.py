@@ -22,6 +22,8 @@ from app.core.services.story.story_import_service import StoryImportService
 from app.core.services.story.story_validator_service import StoryValidatorService
 from app.adapters.rest.story.story_controller import StoryController
 from app.adapters.rest.story.story_admin_controller import StoryAdminController
+from app.adapters.catalog.file_catalog_writer import FileCatalogWriter
+from app.core.services.story.story_catalog_export_service import StoryCatalogExportService
 
 from app.core.services.story.content_query_service import ContentQueryService
 from app.adapters.rest.story.content_controller import ContentController
@@ -105,6 +107,9 @@ story_validator_service = StoryValidatorService(story_read_adapter)
 story_import_service = StoryImportService(story_persistence_adapter, story_validator_service)
 content_query_service = ContentQueryService(story_read_adapter)
 story_crud_service = StoryCrudService(story_read_adapter, story_persistence_adapter, story_validator_service)
+# v0.37.6 — static catalog export (POST /api/admin/stories/catalog)
+story_catalog_export_service = StoryCatalogExportService(
+    story_query_service, FileCatalogWriter(settings.catalog_export_dir), settings.catalog_langs_list)
 
 # Step 19 — match adapters and services
 match_persistence_adapter = MatchPersistenceAdapter(SessionLocal)
@@ -179,7 +184,8 @@ guest_auth_controller = GuestAuthController(guest_auth_service, jwt_adapter, tok
 guest_admin_controller = GuestAdminController(guest_admin_service)
 session_controller = SessionController(session_service)
 story_controller = StoryController(story_query_service)
-story_admin_controller = StoryAdminController(story_query_service, story_import_service, story_validator_service)
+story_admin_controller = StoryAdminController(story_query_service, story_import_service, story_validator_service,
+                                              story_catalog_export_service)
 content_controller = ContentController(content_query_service)
 story_crud_admin_controller = StoryCrudAdminController(story_crud_service)
 # Step 28.7 — consolidated match logs timeline (player + admin endpoints).

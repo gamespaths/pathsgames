@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '../i18n/context'
-import { getStories } from '../api/stories'
+import { getStoriesCatalog } from '../api/stories'
 import { listMatches } from '../api/matches'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import StoryCatalog from '../features/catalog/StoryCatalog'
@@ -13,6 +13,7 @@ import { storyHasBlockingMatch, findResumableMatch } from '../utils/matchStatus'
 import { RESUME_WITHOUT_MODAL, ADD_COMING_SOON_STORIES } from '../constants/features'
 import { withComingSoonStories } from '../utils/comingSoonStories'
 import LoadingCard from '@/components/layout/LoadingCard'
+import { useHomeStatus } from '@/context/HomeStatusContext'
 
 const HERO_IMG = {
   url: 'https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?auto=format&fit=crop&w=1400&q=80',
@@ -35,25 +36,21 @@ export default function HomePage() {
   // The single in-flight `GET /api/matches`. A click during the load awaits THIS
   // promise instead of firing its own request.
   const matchesPromise = useRef(null)
-  const [matchesAttempt, setMatchesAttempt] = useState(0)
   // A rejected catalog fetch used to leave `loading` true for ever, so a CORS block
   // or a backend hiccup looked exactly like a slow load.
   const [storiesError, setStoriesError] = useState(false)
-  const [storiesAttempt, setStoriesAttempt] = useState(0)
-  // Antibot gate (session-cached): the catalog stays hidden until Turnstile
-  // passes. No site key — or a still-valid recent pass cookie — skips the widget
-  // entirely so we don't re-verify on every visit. Shared with start-match via
-  // the useAntibot hook.
+  // Antibot gate (session-cached). v0.37.6 — it no longer gates the fetches: the
+  // widget, the catalog and the match list all start at mount, in parallel. What
+  // it gates is the card footer (Play/Resume buttons) and the click handler.
   const gate = useAntibot({ cookie: true })
+  const { setError: setHomeError } = useHomeStatus()
 
-  // Stories are fetched only once the visitor is cleared as human — a bot never
-  // reaches the API.
+  // v0.37.6 — static file first (no API call), API as fallback; see getStoriesCatalog.
   useEffect(() => {
-    if (gate.phase !== 'ready') return undefined
     let cancelled = false
     setStoriesError(false)
     setLoading(true)
-    getStories(lang)
+    getStoriesCatalog(lang)
       .then(data => {
         if (cancelled) return
         setStories(withComingSoonStories(data, lang, ADD_COMING_SOON_STORIES))
@@ -65,15 +62,14 @@ export default function HomePage() {
         setLoading(false)
       })
     return () => { cancelled = true }
-  }, [gate.phase, lang, storiesAttempt])
+  }, [lang])
 
-  // Load the guest's matches once cleared, so the catalog can badge stories and
+  // Load the guest's matches at mount, so the catalog can badge stories and
   // a story click can reuse the list (no extra fetch, and it is handed to the
   // guest modal instead of being re-fetched there). The promise is kept in a ref:
   // a click that lands before it resolves waits for it rather than starting a
   // second request — the window in which a duplicate match could be created.
   useEffect(() => {
-    if (gate.phase !== 'ready') return undefined
     let cancelled = false
     setMatchesStatus('loading')
     const promise = listMatches(user?.accessToken).then(list => (Array.isArray(list) ? list : []))
@@ -90,13 +86,26 @@ export default function HomePage() {
         setMatchesStatus('error')
       })
     return () => { cancelled = true }
-  }, [gate.phase, user?.accessToken, matchesAttempt])
+  }, [user?.accessToken])
 
-  const retryMatches = useCallback(() => setMatchesAttempt(n => n + 1), [])
-  const retryStories = useCallback(() => setStoriesAttempt(n => n + 1), [])
+  // v0.37.6 — one state for every card footer. The antibot verdict wins over the
+  // match list: a failed check blocks the buttons whatever the matches said.
+  const footerState = gate.phase === 'error'
+    ? 'blocked'
+    : gate.phase === 'checking' || matchesStatus === 'loading'
+      ? 'loading'
+      : matchesStatus === 'error' ? 'error' : 'ready'
+
+  // Tell the Navbar (outside this route) which load failed, so it offers a refresh.
+  useEffect(() => {
+    setHomeError(storiesError ? 'stories' : footerState === 'blocked' ? 'antibot' : footerState === 'error' ? 'matches' : null)
+  }, [storiesError, footerState, setHomeError])
+  useEffect(() => () => setHomeError(null), [setHomeError])
 
   async function handleStoryClick(story) {
-    if (pendingStoryUuid) return
+    // The footer only shows a button when the gate passed and the matches answered
+    // (or are on their way): anything else is a click on a locked card.
+    if (pendingStoryUuid || footerState === 'blocked' || footerState === 'error') return
     let list = matches
     if (!Array.isArray(list)) {
       setPendingStoryUuid(story.uuid)
@@ -105,7 +114,7 @@ export default function HomePage() {
       } catch {
         // Fail closed: without the list we cannot tell whether a match already
         // exists, and starting one anyway is exactly the duplicate we are
-        // preventing. The banner offers a retry.
+        // preventing. The card says "error" and the navbar offers a refresh.
         setMatchesStatus('error')
         setPendingStoryUuid(null)
         return
@@ -126,74 +135,46 @@ export default function HomePage() {
 
   return (
     <>
-      {/* Hero Netflix-style */}
+      {/* Hero Netflix-style. v0.37.6 — the Turnstile strip sits inside the overlay, above
+          the title, so the check runs over the picture while the catalog loads below;
+          `interaction-only` keeps it invisible unless a challenge is due. */}
       <section className="hero-section" style={{ backgroundImage: `url(${HERO_IMG.url})` }}>
         <div className="hero-overlay">
+          {gate.phase === 'checking' && (
+            <div className="home-antibot-strip">
+              <div className="turnstile-checking"> <i className="fas fa-spinner fa-spin me-2" />{t('antibot.verifying')}</div>
+              <div className="mt-2">
+                <TurnstileWidget
+                  key={gate.attempt}
+                  appearance={TURNSTILE_APPEARANCE.home}
+                  onSuccess={gate.onSuccess}
+                  onError={gate.onError}
+                  onExpire={gate.onExpire}
+                />
+              </div>
+            </div>
+          )}
           <h1 className="hero-title">{t('home.heroTitle')}</h1>
           <p className="hero-sub">{t('home.heroSub')}</p>
         </div>
       </section>
 
-      {/* Catalog — gated by the Turnstile antibot check */}
-      {gate.phase === 'error' ? (
-        <div className="stories-section-center stories-loading">
-          <i className="fas fa-exclamation-triangle me-2" />{t('antibot.error')}
-          <br />
-          <div className="mt-5">
-            <button className="btn-start-game" onClick={gate.retry}>
-              <i className="fas fa-sync-alt me-2" />{t('startMatch.retry')}
-            </button>
-          </div>
-        </div>
-      ) : gate.phase === 'checking' ? (
-        <div className="stories-section-center stories-loading">
-          <div className="turnstile-checking"> <i className="fas fa-spinner fa-spin me-2" />{t('antibot.verifying')}</div>
-
-          <div className="mt-5">
-            <TurnstileWidget
-              key={gate.attempt}
-              appearance={TURNSTILE_APPEARANCE.home}
-              onSuccess={gate.onSuccess}
-              onError={gate.onError}
-              onExpire={gate.onExpire}
-            />
-          </div>
-        </div>
-      ) : loading ? (
+      {/* Catalog — a failed fetch is the one technical error with nothing to show */}
+      {loading ? (
         <LoadingCard story={null} maxWidth="500px" />
       ) : storiesError ? (
-        <div className="stories-section-center stories-loading">
-          <i className="fas fa-exclamation-triangle me-2" />{t('home.storiesError')}
-          <br />
-          <div className="mt-3">
-            <button className="btn-start-game" onClick={retryStories}>
-              <i className="fas fa-sync-alt me-2" />{t('startMatch.retry')}
-            </button>
-          </div>
+        <div className="stories-section-center stories-loading" role="alert" aria-label={t('home.storiesError')}>
+          {/* The message and the retry live in the navbar (HomeStatusContext): here only the sign. */}
+          <i className="fas fa-exclamation-triangle home-stories-error-icon" title={t('home.storiesError')} />
         </div>
       ) : (
-        <>
-          {/* v0.32.1 — the match list could not be read: say so and offer a retry
-              instead of letting a click start a match that may already exist. */}
-          {matchesStatus === 'error' && (
-            <div className="stories-section-center stories-loading">
-              <i className="fas fa-exclamation-triangle me-2" />{t('home.matchesError')}
-              <br />
-              <div className="mt-3">
-                <button className="btn-start-game" onClick={retryMatches}>
-                  <i className="fas fa-sync-alt me-2" />{t('startMatch.retry')}
-                </button>
-              </div>
-            </div>
-          )}
-          <StoryCatalog
-            stories={stories}
-            matches={matches}
-            matchesStatus={matchesStatus}
-            pendingStoryUuid={pendingStoryUuid}
-            onStoryClick={handleStoryClick}
-          />
-        </>
+        <StoryCatalog
+          stories={stories}
+          matches={matches}
+          footerState={footerState}
+          pendingStoryUuid={pendingStoryUuid}
+          onStoryClick={handleStoryClick}
+        />
       )}
 
       {/* Book modal */}

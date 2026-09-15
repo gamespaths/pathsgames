@@ -1,6 +1,7 @@
 import { LanguageProvider } from '@/i18n/context'
 import { ServerProvider } from '@/context/ServerContext'
 import { GuestUserProvider } from '@/features/guest-user/GuestUserContext'
+import { HomeStatusProvider } from '@/context/HomeStatusContext'
 
 /**
  * Providers — the global context providers, composed once around the app.
@@ -12,7 +13,9 @@ export default function Providers({ children }) {
     <ServerProvider>
       <LanguageProvider>
         <GuestUserProvider>
-          {children}
+          <HomeStatusProvider>
+            {children}
+          </HomeStatusProvider>
         </GuestUserProvider>
       </LanguageProvider>
     </ServerProvider>

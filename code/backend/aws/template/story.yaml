@@ -27,6 +27,21 @@ Parameters:
     Type: String
     Default: ""
     Description: "Comma-separated allowed IPs for /api/admin/**. Empty = no restriction."
+  WebsiteBucket:
+    Type: String
+    Default: ""
+    Description: "v0.37.6 - S3 bucket of the game website; POST /api/admin/stories/catalog writes data/stories-{lang}.json there. Empty = 503."
+  WebsiteCloudFrontId:
+    Type: String
+    Default: ""
+    Description: "v0.37.6 - CloudFront distribution of the website, invalidated after a catalog write. Empty = no invalidation."
+  CatalogLangs:
+    Type: String
+    Default: "en,it"
+
+Conditions:
+  HasWebsiteBucket: !Not [!Equals [!Ref WebsiteBucket, ""]]
+  HasWebsiteCloudFront: !Not [!Equals [!Ref WebsiteCloudFrontId, ""]]
 
 Resources:
   StoryLogGroup:
@@ -66,9 +81,27 @@ Resources:
           ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
           ADMIN_IP_WHITELIST: !Ref AdminIpWhitelist
           STORY_CACHE_TTL_SECONDS: !Ref StoryCacheTtlSeconds
+          WEBSITE_BUCKET: !Ref WebsiteBucket
+          WEBSITE_CLOUDFRONT_ID: !Ref WebsiteCloudFrontId
+          CATALOG_LANGS: !Ref CatalogLangs
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName
+        # v0.37.6 — static catalog: only the data/ prefix of the website bucket.
+        - !If
+          - HasWebsiteBucket
+          - Statement:
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub "arn:aws:s3:::${WebsiteBucket}/data/*"
+          - !Ref AWS::NoValue
+        - !If
+          - HasWebsiteCloudFront
+          - Statement:
+              - Effect: Allow
+                Action: cloudfront:CreateInvalidation
+                Resource: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${WebsiteCloudFrontId}"
+          - !Ref AWS::NoValue
 
   StoryIntegration:
     Type: AWS::ApiGatewayV2::Integration
@@ -168,6 +201,15 @@ Resources:
     Properties:
       ApiId: !Ref AdminApiId
       RouteKey: "POST /api/admin/cache/flush"
+      Target: !Sub "integrations/${StoryAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  ExportCatalogRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/admin/stories/catalog"
       Target: !Sub "integrations/${StoryAdminIntegration}"
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId

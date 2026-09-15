@@ -1,12 +1,15 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n/context'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
+import { useHomeStatus } from '@/context/HomeStatusContext'
 
 export default function Navbar() {
   const { lang, setLang, t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
   const { user: guestUser, loading: guestLoading, openGuestModal } = useGuestUser()
+  // v0.37.6 — a failed home load (antibot / matches / stories) shows here with a refresh.
+  const { error: homeError } = useHomeStatus()
 
   const isGamePage = location.pathname.startsWith('/play/')
 
@@ -27,6 +30,16 @@ export default function Navbar() {
         <i className="fas fa-dice-d20 navbar-dice" />
         <span className="navbar-brand-text">{t('nav.brand')}</span>
       </a>
+
+      {homeError && (
+        <div className="navbar-error" role="alert">
+          <i className="fas fa-exclamation-triangle me-1" />
+          <span className="navbar-error__text">{t(`nav.error.${homeError}`)}</span>
+          <button className="navbar-error__btn" onClick={() => window.location.reload()}>
+            <i className="fas fa-sync-alt me-1" />{t('nav.refresh')}
+          </button>
+        </div>
+      )}
 
       <div className="navbar-right">
         {isGamePage && (

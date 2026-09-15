@@ -39,6 +39,11 @@ cd "$PROJECT_ROOT/code/backend/java" && \
 echo "Build completed."
 
 # start local server
+# v0.37.6 — static catalog export (POST /api/admin/stories/catalog) writes here; the
+# Robot suite 14_admin/story_catalog.robot reads the files back through the same variable.
+export CATALOG_EXPORT_DIR="${CATALOG_EXPORT_DIR:-/tmp/pathsgames-catalog-robot}"
+rm -rf "$CATALOG_EXPORT_DIR"
+
 java -jar "$PROJECT_ROOT/code/backend/java/ms-launcher/target/ms-launcher-"*-SNAPSHOT.jar &
 SERVER_PID=$!
 

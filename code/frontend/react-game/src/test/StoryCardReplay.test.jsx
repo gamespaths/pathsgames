@@ -12,7 +12,7 @@ const STORY = { uuid: 's1', title: 'Forest Path', category: 'Adventure', card: {
 /** v0.36.2 — a story the player has already finished offers Replay, not Play. */
 describe('StoryCard — the replay button', () => {
   const renderCard = (badge) => render(
-    <StoryCard story={STORY} badge={badge} showActions onClick={vi.fn()} />
+    <StoryCard story={STORY} badge={badge} footerState="ready" onClick={vi.fn()} />
   )
 
   it('says Play on a story never started', () => {
@@ -41,7 +41,7 @@ describe('StoryCard — the replay button', () => {
 
   it('starts a new match from the replay button — the same click as Play', () => {
     const onClick = vi.fn()
-    render(<StoryCard story={STORY} badge="completed" showActions onClick={onClick} />)
+    render(<StoryCard story={STORY} badge="completed" footerState="ready" onClick={onClick} />)
 
     fireEvent.click(screen.getByText('home.badgeReplay'))
 

@@ -28,7 +28,9 @@ npm run build -- --mode test
 
 echo "=== Sync to s3://$AWS_S3_BUCKET_WEBSITE_TEST ==="
 cd "$PROJECT_ROOT"
-aws s3 sync "$REACT_GAME_DIR/dist/" "s3://$AWS_S3_BUCKET_WEBSITE_TEST" --delete
+# v0.37.6 — data/ holds the static catalog written by POST /api/admin/stories/catalog:
+# never let --delete wipe it, it is not part of the build.
+aws s3 sync "$REACT_GAME_DIR/dist/" "s3://$AWS_S3_BUCKET_WEBSITE_TEST" --delete --exclude "data/*"
 
 if [ -n "${AWS_CLOUDFRONT_DISTRIBUTION_ID_TEST:-}" ]; then
   echo "=== Invalidate CloudFront $AWS_CLOUDFRONT_DISTRIBUTION_ID_TEST ==="

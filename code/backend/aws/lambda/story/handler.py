@@ -13,6 +13,7 @@ Routes (API contracts match Java OpenAPI specs):
   GET    /api/admin/stories               → list_all_stories       (ADMIN)
   GET    /api/admin/stories/{uuid}        → get_admin_story        (ADMIN)
   DELETE /api/admin/stories/{uuid}        → delete_story           (ADMIN)
+  POST   /api/admin/stories/catalog       → export_catalog         (ADMIN)  [v0.37.6]
 
 Response shapes follow:
   StorySummaryResponse  (v0.15.0-story-content-api.yaml)
@@ -371,6 +372,8 @@ def lambda_handler(event, context):
         return import_story(event)
     if path == '/api/admin/cache/flush' and method == 'POST':
         return flush_cache(event)
+    if path == '/api/admin/stories/catalog' and method == 'POST':
+        return export_catalog(event)
     if method == 'GET' and path.endswith('/validate') and path.startswith('/api/admin/stories/'):
         v_uuid = params.get('uuid') or path.split('/')[-2]
         return validate_story(event, v_uuid)
@@ -418,13 +421,7 @@ def _story_list():
 
 
 def list_stories(event):
-    lang  = _get_lang(event)
-    items = _story_list()
-    # only PUBLIC stories
-    public = [i for i in items if i.get('visibility') == 'PUBLIC']
-    # sort by priority descending
-    public.sort(key=lambda x: _safe_int(x.get('priority')), reverse=True)
-    return _ok([_story_summary(i, lang) for i in public])
+    return _ok(_public_summaries(_get_lang(event)))
 
 
 def get_story(event, story_uuid):
@@ -1003,6 +1000,54 @@ def flush_cache(event):
     if denied:
         return denied
     return _ok({'status': 'FLUSHED', 'globalVersion': story_cache.flush()})
+
+
+# ─── v0.37.6 static catalog ──────────────────────────────────────────────────
+
+CATALOG_CACHE_CONTROL = 'public, max-age=300'
+
+
+def _catalog_path(lang):
+    return f'data/stories-{lang}.json'
+
+
+def _public_summaries(lang):
+    """The exact body of GET /api/stories?lang=… (PUBLIC only, priority desc)."""
+    public = [i for i in _story_list() if i.get('visibility') == 'PUBLIC']
+    public.sort(key=lambda x: _safe_int(x.get('priority')), reverse=True)
+    return [_story_summary(i, lang) for i in public]
+
+
+def export_catalog(event):
+    """POST /api/admin/stories/catalog — writes data/stories-{lang}.json to the website
+    bucket (WEBSITE_BUCKET) and, when WEBSITE_CLOUDFRONT_ID is set, invalidates them."""
+    _user, denied = _require_admin(event)
+    if denied:
+        return denied
+    bucket = os.environ.get('WEBSITE_BUCKET', '').strip()
+    if not bucket:
+        return _err(503, 'CATALOG_TARGET_NOT_CONFIGURED',
+                    'No static catalog destination configured (WEBSITE_BUCKET)')
+    langs = [l.strip() for l in os.environ.get('CATALOG_LANGS', 'en,it').split(',') if l.strip()] or ['en']
+    import boto3  # lazy: only this admin route needs S3/CloudFront clients
+    s3 = boto3.client('s3')
+    files = []
+    for lang in langs:
+        summaries = _public_summaries(lang)
+        key = _catalog_path(lang)
+        data = _dumps(summaries).encode('utf-8')
+        s3.put_object(Bucket=bucket, Key=key, Body=data,
+                      ContentType='application/json', CacheControl=CATALOG_CACHE_CONTROL)
+        files.append({'lang': lang, 'path': key, 'count': len(summaries), 'bytes': len(data)})
+    dist = os.environ.get('WEBSITE_CLOUDFRONT_ID', '').strip()
+    if dist:
+        boto3.client('cloudfront').create_invalidation(
+            DistributionId=dist,
+            InvalidationBatch={
+                'Paths': {'Quantity': len(files), 'Items': ['/' + f['path'] for f in files]},
+                'CallerReference': f'catalog-{uuid_lib.uuid4()}',
+            })
+    return _ok({'status': 'WRITTEN', 'target': f's3://{bucket}', 'files': files})
 
 
 def list_all_stories(event):

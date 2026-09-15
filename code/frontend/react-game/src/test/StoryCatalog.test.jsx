@@ -36,7 +36,7 @@ describe('StoryCatalog', () => {
   it('calls onStoryClick with the correct story when the card button is clicked', () => {
     const onStoryClick = vi.fn()
     render(
-      <StoryCatalog stories={STORIES} matches={[]} matchesStatus="ready" onStoryClick={onStoryClick} />
+      <StoryCatalog stories={STORIES} matches={[]} footerState="ready" onStoryClick={onStoryClick} />
     )
     fireEvent.click(screen.getByText('Forest Path').closest('.pg-card').querySelector('.gc-footer__btn'))
     expect(onStoryClick).toHaveBeenCalledWith(STORIES[0])
@@ -51,7 +51,7 @@ describe('StoryCatalog', () => {
     expect(container.querySelectorAll('.gc-footer__cards-buttons .fa-spinner')).toHaveLength(3)
     expect(screen.getAllByText('home.loadingMatches')).toHaveLength(3)
     rerender(
-      <StoryCatalog stories={STORIES} matches={matches} matchesStatus="ready" onStoryClick={vi.fn()} />
+      <StoryCatalog stories={STORIES} matches={matches} footerState="ready" onStoryClick={vi.fn()} />
     )
     expect(container.querySelectorAll('.gc-footer__btn')).toHaveLength(3)
     expect(container.querySelectorAll('.fa-spinner')).toHaveLength(0)
@@ -59,12 +59,24 @@ describe('StoryCatalog', () => {
     expect(screen.getAllByText('home.badgePlay')).toHaveLength(2)
   })
 
-  it('shows the buttons too when the match list failed, so the story stays clickable', () => {
+  it('locks every card with "error" when the match list failed (v0.37.6)', () => {
     const { container } = render(
-      <StoryCatalog stories={STORIES} matches={null} matchesStatus="error" onStoryClick={vi.fn()} />
+      <StoryCatalog stories={STORIES} matches={null} footerState="error" onStoryClick={vi.fn()} />
     )
-    expect(container.querySelectorAll('.gc-footer__btn')).toHaveLength(3)
-    expect(screen.getAllByText('home.badgePlay')).toHaveLength(3)
+    expect(container.querySelectorAll('.gc-footer__btn')).toHaveLength(0)
+    expect(screen.getAllByText('home.footerError')).toHaveLength(3)
+    expect(container.querySelectorAll('.gc-footer__cards-buttons .fa-exclamation-triangle')).toHaveLength(3)
+  })
+
+  it('locks every card with "blocked" when the antibot check failed (v0.37.6)', () => {
+    const onStoryClick = vi.fn()
+    const { container } = render(
+      <StoryCatalog stories={STORIES} matches={[]} footerState="blocked" onStoryClick={onStoryClick} />
+    )
+    expect(container.querySelectorAll('.gc-footer__btn')).toHaveLength(0)
+    expect(screen.getAllByText('home.footerBlocked')).toHaveLength(3)
+    expect(container.querySelectorAll('.gc-footer__cards-buttons .fa-ban')).toHaveLength(3)
+    expect(onStoryClick).not.toHaveBeenCalled()
   })
 
   it('shows each category as a section label', () => {
@@ -85,7 +97,7 @@ describe('StoryCatalog', () => {
       // s3 → no badge
     ]
     const { container } = render(
-      <StoryCatalog stories={STORIES} matches={matches} matchesStatus="ready" onStoryClick={vi.fn()} />
+      <StoryCatalog stories={STORIES} matches={matches} footerState="ready" onStoryClick={vi.fn()} />
     )
     expect(screen.getByText('home.badgeResume')).toBeInTheDocument()
     expect(screen.getByText('home.badgeCompleted')).toBeInTheDocument()
@@ -97,7 +109,7 @@ describe('StoryCatalog', () => {
   it('badges a PAUSED match with its own label, not Resume (v0.32.1)', () => {
     const matches = [{ uuid: 'm1', storyUuid: 's1', status: 'PAUSED' }]
     const { container } = render(
-      <StoryCatalog stories={STORIES} matches={matches} matchesStatus="ready" onStoryClick={vi.fn()} />
+      <StoryCatalog stories={STORIES} matches={matches} footerState="ready" onStoryClick={vi.fn()} />
     )
     expect(screen.getAllByText('home.badgePaused').length).toBeGreaterThan(0)
     expect(screen.queryByText('home.badgeResume')).not.toBeInTheDocument()

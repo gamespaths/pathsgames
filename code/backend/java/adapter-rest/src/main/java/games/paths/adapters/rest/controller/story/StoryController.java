@@ -173,12 +173,7 @@ public class StoryController {
     }
 
     private StorySummaryResponse toSummaryResponse(StorySummary s) {
-        CardInfoResponse cardResp = s.card() != null ? toCardInfoResponse(s.card()) : null;
-        return new StorySummaryResponse(
-                s.uuid(), s.title(), s.description(), s.author(),
-                s.category(), s.group(), s.visibility(),
-                s.priority(), s.peghi(), s.difficultyCount(),
-                cardResp);
+        return StorySummaryResponse.fromModel(s);
     }
 
     private StoryDetailResponse toDetailResponse(StoryDetail d) {

@@ -3,9 +3,11 @@ import Card from '../../components/layout/Card'
 
 /**
  * StoryCard — one catalog story as the shared "little" Card: title, image, footer.
- * The footer spins until the matches answer, then says Play / Resume / Coming Soon.
+ * v0.37.6 — the footer follows `footerState`: 'loading' spins until the antibot check
+ * and the match list answer; 'blocked' (antibot failed) and 'error' (matches failed)
+ * lock the card with a message; 'ready' says Play / Resume / Replay.
  */
-export default function StoryCard({ story, onClick, badge, pending = false, showActions = false }) {
+export default function StoryCard({ story, onClick, badge, pending = false, footerState = 'loading' }) {
   const { t } = useTranslation()
   // v0.36.2 — a story the player has already finished offers Replay, not Play: the
   // click starts a brand-new match either way, but the card should say so.
@@ -19,9 +21,16 @@ export default function StoryCard({ story, onClick, badge, pending = false, show
   const actionIcon = badge === 'paused'
     ? 'fa-pause'
     : badge === 'completed' ? 'fa-rotate-right' : 'fa-play'
-  // Two ways a card has no button: the teaser has none at all, and until the matches
-  // answer we cannot tell Play from Resume — that one waits behind a spinner.
-  const waitingForMatches = !showActions && !story.comingSoon
+  // The teaser is locked for good; every other card is locked until the footer is 'ready'.
+  const locked = story.comingSoon === true || footerState !== 'ready'
+  const FOOTER_LOCK = {
+    loading: { icon: 'fas fa-spinner fa-spin', text: t('home.loadingMatches') },
+    blocked: { icon: 'fas fa-ban', text: t('home.footerBlocked') },
+    error: { icon: 'fas fa-exclamation-triangle', text: t('home.footerError') },
+  }
+  const lock = story.comingSoon
+    ? { icon: 'fas fa-hourglass-half', text: t('book.comingSoon') }
+    : FOOTER_LOCK[footerState] ?? FOOTER_LOCK.loading
 
   // Overlays sitting on the picture: category, plus the terminal/blocked match state.
   const imageOverlays = (
@@ -49,10 +58,10 @@ export default function StoryCard({ story, onClick, badge, pending = false, show
       additionalCardClasses={`story-netflix-card${pending ? ' story-card--pending' : ''}`
         + (story.comingSoon ? ' story-card--soon pg-card--no-hover' : '')}
       childrenIntoImage={imageOverlays}
-      locked={story.comingSoon === true || waitingForMatches}
-      lockedIcon={waitingForMatches ? 'fas fa-spinner fa-spin' : 'fas fa-hourglass-half'}
-      lockInfo={waitingForMatches ? t('home.loadingMatches') : t('book.comingSoon')}
-      onAction={showActions && !story.comingSoon ? () => onClick(story) : undefined}
+      locked={locked}
+      lockedIcon={lock.icon}
+      lockInfo={lock.text}
+      onAction={!locked ? () => onClick(story) : undefined}
       actionLabel={actionLabel}
       actionIcon={actionIcon}
     >

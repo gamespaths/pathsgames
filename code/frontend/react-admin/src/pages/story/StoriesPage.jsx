@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { listAllStories, deleteStory, createStory, getStory, listEntities } from '../../api/storyApi'
+import { listAllStories, deleteStory, createStory, getStory, listEntities, writeStaticCatalog } from '../../api/storyApi'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 import ErrorAlert from '../../components/common/ErrorAlert'
 import ConfirmModal from '../../components/common/ConfirmModal'
@@ -54,6 +54,22 @@ export default function StoriesPage() {
       const res = await createStory({ author: 'Admin', visibility: 'DRAFT' })
       navigate(`/stories/${res.uuid}/edit`)
     } catch (e) { setError(e.message) }
+  }
+
+  // v0.37.6 — publish the static catalog; a 503 means this backend has no destination.
+  const [catalogBusy, setCatalogBusy] = useState(false)
+  const handleCatalog = async () => {
+    setCatalogBusy(true)
+    setError('')
+    try {
+      const res = await writeStaticCatalog()
+      const files = (res.files ?? []).map(f => `${f.path} (${f.count})`).join(', ')
+      setSuccess(`Static catalog written to ${res.target}: ${files}`)
+    } catch (e) {
+      const detail = e.response?.data
+      const msg = detail?.message ?? detail?.detail?.message ?? e.message
+      setError(e.response?.status === 503 ? `Static catalog not configured on this backend: ${msg}` : msg)
+    } finally { setCatalogBusy(false) }
   }
 
   const handleExport = async (story) => {
@@ -174,6 +190,10 @@ export default function StoriesPage() {
         <Link to="/stories/import" className="pg-btn pg-btn-ghost">
           <i className="fas fa-file-import" /> Import
         </Link>
+        <button className="pg-btn pg-btn-ghost" onClick={handleCatalog} disabled={catalogBusy}
+          title="Write the static data/stories-{lang}.json files read by the game home">
+          <i className={`fas ${catalogBusy ? 'fa-spinner fa-spin' : 'fa-cloud-upload-alt'}`} /> Static catalog
+        </button>
       </div>
 
       {loading ? (

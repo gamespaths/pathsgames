@@ -45,7 +45,7 @@ describe('StoryCard — a coming-soon story', () => {
     const onStoryClick = vi.fn()
     const stories = withComingSoonStories([API_STORY], 'en', true)
     const { container } = render(
-      <StoryCatalog stories={stories} matches={[]} matchesStatus="ready" onStoryClick={onStoryClick} />
+      <StoryCatalog stories={stories} matches={[]} footerState="ready" onStoryClick={onStoryClick} />
     )
     // only the API story keeps a footer button
     expect(container.querySelectorAll('.gc-footer__btn')).toHaveLength(1)
@@ -65,7 +65,7 @@ describe('StoryCard — a coming-soon story', () => {
 
   it('files each teaser under its own category section', () => {
     const stories = withComingSoonStories([API_STORY], 'en', true)
-    render(<StoryCatalog stories={stories} matchesStatus="ready" onStoryClick={vi.fn()} />)
+    render(<StoryCatalog stories={stories} footerState="ready" onStoryClick={vi.fn()} />)
     // One section per distinct category, teasers merged into the API ones they share.
     const categories = new Set(stories.map(s => s.category))
     expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(categories.size)

@@ -2,7 +2,8 @@ import { useTranslation } from '../../i18n/context'
 import StoryCard from './StoryCard'
 import { storyMatchBadge } from '../../utils/matchStatus'
 
-export default function StoryCatalog({ stories, matches, onStoryClick, pendingStoryUuid = null, matchesStatus = 'loading' }) {
+// v0.37.6 — `footerState`: 'loading' | 'blocked' | 'error' | 'ready' (see HomePage).
+export default function StoryCatalog({ stories, matches, onStoryClick, pendingStoryUuid = null, footerState = 'loading' }) {
   const { t } = useTranslation()
 
   if (!stories || stories.length === 0) {
@@ -32,7 +33,7 @@ export default function StoryCatalog({ stories, matches, onStoryClick, pendingSt
                   onClick={onStoryClick}
                   badge={storyMatchBadge(matches, story.uuid)}
                   pending={pendingStoryUuid === story.uuid}
-                  showActions={matchesStatus !== 'loading'}
+                  footerState={footerState}
                 />
               ))}
             </div>

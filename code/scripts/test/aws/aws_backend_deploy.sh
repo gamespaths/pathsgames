@@ -113,6 +113,8 @@ sam deploy \
         TurnstileSecretKey="${_TURNSTILE_SAM_KEY}" \
         TurnstileBypassToken="${_TURNSTILE_BYPASS}" \
         AdminIpWhitelist="${_ADMIN_IP_WHITELIST}" \
+        WebsiteBucket="${AWS_S3_BUCKET_WEBSITE_TEST:-}" \
+        WebsiteCloudFrontId="${AWS_CLOUDFRONT_DISTRIBUTION_ID_TEST:-}" \
         TableBillingMode="${AWS_TABLE_BILLING_MODE_TEST:-PAY_PER_REQUEST}" \
         TableReadCapacity="${AWS_TABLE_READ_CAPACITY_TEST:-10}" \
         TableWriteCapacity="${AWS_TABLE_WRITE_CAPACITY_TEST:-10}" \

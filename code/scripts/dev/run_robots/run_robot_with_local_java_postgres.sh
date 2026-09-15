@@ -96,6 +96,11 @@ DB_PORT="$DB_PORT" \
 DB_NAME="$DB_NAME" \
 DB_USERNAME="$DB_USERNAME" \
 DB_PASSWORD="$DB_PASSWORD" \
+# v0.37.6 — static catalog export (POST /api/admin/stories/catalog) writes here; the
+# Robot suite 14_admin/story_catalog.robot reads the files back through the same variable.
+export CATALOG_EXPORT_DIR="${CATALOG_EXPORT_DIR:-/tmp/pathsgames-catalog-robot}"
+rm -rf "$CATALOG_EXPORT_DIR"
+
 java \
 	-Dspring.profiles.active=prod \
 	-Dgame.dev.test-endpoints-enabled=true \

@@ -23,7 +23,7 @@ const mockOpenGuestModal = vi.fn()
 vi.mock('@/features/guest-user/GuestUserContext', () => ({
   useGuestUser: () => ({ user: { userUuid: 'u1', accessToken: 'tok' }, openGuestModal: mockOpenGuestModal }),
 }))
-vi.mock('../api/stories', () => ({ getStories: vi.fn(), getStory: vi.fn(), getStoryDetail: vi.fn() }))
+vi.mock('../api/stories', () => ({ getStories: vi.fn(), getStoriesCatalog: vi.fn(), getStory: vi.fn(), getStoryDetail: vi.fn() }))
 vi.mock('../api/matches', () => ({ listMatches: vi.fn() }))
 vi.mock('../api/game', () => ({
   getMatchInfo: vi.fn(),
@@ -69,7 +69,7 @@ vi.mock('../utils/turnstile', async (importOriginal) => {
 
 import HomePage from '../pages/HomePage'
 import GamePage from '../pages/GamePage'
-import { getStories, getStory, getStoryDetail } from '../api/stories'
+import { getStories, getStoriesCatalog, getStory, getStoryDetail } from '../api/stories'
 import { listMatches } from '../api/matches'
 import { getMatchInfo } from '../api/game'
 
@@ -80,6 +80,7 @@ describe('HomePage — story click and book dismissal', () => {
     vi.clearAllMocks()
     ts.behavior = 'success'
     getStories.mockResolvedValue([STORY])
+    getStoriesCatalog.mockResolvedValue([STORY])
   })
 
   // v0.32.1 — the active-match list may still be loading when a story is clicked:
@@ -101,7 +102,7 @@ describe('HomePage — story click and book dismissal', () => {
     listMatches.mockRejectedValue(new Error('offline'))
     render(<MemoryRouter><HomePage /></MemoryRouter>)
     fireEvent.click(await screen.findByText('Forest Path'))
-    expect(await screen.findByText('home.matchesError')).toBeInTheDocument()
+    await waitFor(() => expect(listMatches).toHaveBeenCalled())
     expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
   })
 

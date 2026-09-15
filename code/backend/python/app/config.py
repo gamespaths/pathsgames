@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     # the public app on `port` does not register the admin routers. Lock this port to the
     # owner IP at the network layer (firewall / security group).
     admin_port: int = 8044
-    version: str = "0.37.5"
+    version: str = "0.37.6"
 
 
     # >0.12.5 change version here
@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     # setting the env var DEV_TEST_ENDPOINTS_ENABLED=false.
     dev_test_endpoints_enabled: bool = True
 
+    # v0.37.6 — POST /api/admin/stories/catalog writes data/stories-{lang}.json here
+    # (e.g. react-game/public/data). Empty = endpoint answers 503.
+    catalog_export_dir: str = ""
+    catalog_langs: str = "en,it"
+
     # CORS — comma-separated list of allowed origins, or "*" for all
     cors_allowed_origins: str = "*"
 
@@ -50,6 +55,10 @@ class Settings(BaseSettings):
     db_user: str = "pathsgames"
     db_password: str = "pathsgames"
     db_path: str = "database.sqlite"  # Default for SQLite
+
+    @property
+    def catalog_langs_list(self) -> List[str]:
+        return [l.strip() for l in self.catalog_langs.split(",") if l.strip()]
 
     @property
     def cors_origins_list(self) -> List[str]:

@@ -11,8 +11,9 @@ vi.mock('../../api/storyApi', () => ({
   createStory:    vi.fn(),
   getStory:       vi.fn(),
   listEntities:   vi.fn(),
+  writeStaticCatalog: vi.fn(),
 }))
-import { listAllStories, deleteStory, createStory, getStory, listEntities } from '../../api/storyApi'
+import { listAllStories, deleteStory, createStory, getStory, listEntities, writeStaticCatalog } from '../../api/storyApi'
 
 // Mock URL APIs used by export
 const mockObjectURL = 'blob:http://localhost/test-uuid'
@@ -499,5 +500,50 @@ describe('StoriesPage', () => {
     await userEvent.click(screen.getAllByTitle('View Info')[0])
 
     expect(await screen.findByText('Story Detail')).toBeInTheDocument()
+  })
+})
+
+// ── v0.37.6 static catalog button ──────────────────────────────
+describe('StoriesPage — static catalog', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    listAllStories.mockResolvedValue(MOCK_STORIES)
+  })
+
+  it('writes the catalog and reports the files', async () => {
+    writeStaticCatalog.mockResolvedValue({
+      status: 'WRITTEN', target: 's3://site',
+      files: [{ lang: 'en', path: 'data/stories-en.json', count: 2, bytes: 10 }],
+    })
+    render(<MemoryRouter><StoriesPage /></MemoryRouter>)
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getByRole('button', { name: /static catalog/i }))
+    expect(await screen.findByText(/Static catalog written to s3:\/\/site: data\/stories-en.json \(2\)/)).toBeInTheDocument()
+    expect(writeStaticCatalog).toHaveBeenCalledOnce()
+  })
+
+  it('explains a 503 (no destination configured)', async () => {
+    writeStaticCatalog.mockRejectedValue({
+      response: { status: 503, data: { error: 'CATALOG_TARGET_NOT_CONFIGURED', message: 'No destination' } },
+      message: 'Request failed',
+    })
+    render(<MemoryRouter><StoriesPage /></MemoryRouter>)
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getByRole('button', { name: /static catalog/i }))
+    expect(await screen.findByText(/Static catalog not configured on this backend: No destination/)).toBeInTheDocument()
+  })
+
+  it('shows a plain error otherwise (FastAPI detail shape and bare message)', async () => {
+    writeStaticCatalog.mockRejectedValueOnce({
+      response: { status: 500, data: { detail: { message: 'boom' } } }, message: 'x',
+    })
+    render(<MemoryRouter><StoriesPage /></MemoryRouter>)
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getByRole('button', { name: /static catalog/i }))
+    expect(await screen.findByText('boom')).toBeInTheDocument()
+
+    writeStaticCatalog.mockRejectedValueOnce(new Error('offline'))
+    await userEvent.click(screen.getByRole('button', { name: /static catalog/i }))
+    expect(await screen.findByText('offline')).toBeInTheDocument()
   })
 })

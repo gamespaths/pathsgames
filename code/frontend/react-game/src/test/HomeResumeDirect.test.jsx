@@ -35,7 +35,7 @@ vi.mock('../constants/features', async (importOriginal) => ({
   ADD_COMING_SOON_STORIES: false,
 }))
 
-vi.mock('../api/stories', () => ({ getStories: vi.fn() }))
+vi.mock('../api/stories', () => ({ getStoriesCatalog: vi.fn() }))
 vi.mock('../api/matches', () => ({ listMatches: vi.fn() }))
 vi.mock('../features/catalog/StoryCatalog', () => ({
   default: ({ stories, onStoryClick }) => (
@@ -47,7 +47,7 @@ vi.mock('../features/start-book/StartBookModal', () => ({
 }))
 
 import HomePage from '../pages/HomePage'
-import { getStories } from '../api/stories'
+import { getStoriesCatalog as getStories } from '../api/stories'
 import { listMatches } from '../api/matches'
 
 const STORY_A = { uuid: 's1', title: 'Forest Path', card: {} }

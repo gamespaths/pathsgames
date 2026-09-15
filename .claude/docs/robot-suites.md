@@ -9,7 +9,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `01_smoke` | Basic connectivity |
 | `12_auth` | Guest login, session management |
 | `13_session_token` | Session token validation |
-| `14_admin` | Admin guest management |
+| `14_admin` | Admin guest management, story import; `story_catalog.robot` (v0.37.6) static catalog export — skips when the backend has no `CATALOG_EXPORT_DIR` / `WEBSITE_BUCKET` |
 | `14_stories` | Story catalog |
 | `15_story_content` | Story content APIs |
 | `16_content_detail` | Content detail APIs |

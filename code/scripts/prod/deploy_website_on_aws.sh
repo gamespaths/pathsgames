@@ -15,6 +15,7 @@ if [ -z "${AWS_S3_BUCKET_WEBSITE:-}" ] || [ -z "${AWS_CLOUDFRONT_DISTRIBUTION_ID
     exit 1
 fi
 
-aws s3 sync code/website/html/ s3://$AWS_S3_BUCKET_WEBSITE --delete
+# v0.37.6 — keep data/ (static story catalog written by the admin API) across deploys.
+aws s3 sync code/website/html/ s3://$AWS_S3_BUCKET_WEBSITE --delete --exclude "data/*"
 aws cloudfront create-invalidation --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
 

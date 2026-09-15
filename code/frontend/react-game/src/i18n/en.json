@@ -5,7 +5,13 @@
     "login": "Login",
     "instagram": "Instagram",
     "youtube": "YouTube",
-    "x": "X"
+    "x": "X",
+    "refresh": "Refresh",
+    "error": {
+      "antibot": "Antibot check failed",
+      "matches": "Your matches could not be loaded",
+      "stories": "The adventures could not be loaded"
+    }
   },
   "home": {
     "heroTitle": "Epic Adventures Await",
@@ -20,9 +26,11 @@
     "badgeCompleted": "Completed",
     "badgePaused": "Paused",
     "matchesError": "Your matches could not be loaded, so a new adventure cannot be started right now.",
-    "storiesError": "The adventures could not be loaded. Check your connection and try again."
+    "storiesError": "The adventures could not be loaded. Check your connection and try again.",
+    "footerBlocked": "Blocked",
+    "footerError": "Error"
   },
-  "antibot": {
+  "antibot": { 
     "blocked": "Antibot activated — these adventures are only for humans!",
     "verifying": "Checking you're human…",
     "error": "Verification didn't go through."

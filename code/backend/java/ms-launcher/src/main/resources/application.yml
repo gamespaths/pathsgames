@@ -6,7 +6,7 @@ spring:
 
 game:
   server:
-    version: 0.37.5
+    version: 0.37.6
     # manually change this version if needed >0.13.0
   database:
     # Configurable SQLite path — override with -Dgame.database.path=/your/path
@@ -31,6 +31,11 @@ game:
       guest:
         cleanup:
           cron: 0 42 0 * * ? #runs at 00:42 every day GuestSessionCleanupScheduler
+  catalog:
+    # v0.37.6 — POST /api/admin/stories/catalog writes data/stories-{lang}.json here
+    # (e.g. react-game/public/data). Empty = endpoint answers 503.
+    export-dir: ${CATALOG_EXPORT_DIR:}
+    langs: ${CATALOG_LANGS:en,it}
   turnstile:
     # Cloudflare Turnstile secret key. Leave empty to disable validation (dev bypass).
     # Override in production via env variable TURNSTILE_SECRET_KEY.

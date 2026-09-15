@@ -243,6 +243,12 @@
   /* Navbar socials: no room left beside brand and guest button */
   .navbar-social { display: none; }
 
+  /* v0.37.6 — error pill drops to its own row under the logo */
+  .navbar-medieval { flex-wrap: wrap; height: auto; min-height: 56px; }
+  .navbar-error { order: 3; flex: 1 0 100%; justify-content: center; margin-top: 12px; 
+    background: rgba(139, 26, 26, 0.9) !important;
+  }
+
   /* Catalog grid: smaller gap on mobile */
   .stories-grid { gap: 10px; padding: 10px 4px 14px; }
 

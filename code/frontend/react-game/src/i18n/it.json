@@ -5,7 +5,13 @@
     "login": "Accedi",
     "instagram": "Instagram",
     "youtube": "YouTube",
-    "x": "X"
+    "x": "X",
+    "refresh": "Ricarica",
+    "error": {
+      "antibot": "Verifica antibot fallita",
+      "matches": "Partite non caricate",
+      "stories": "Avventure non caricate"
+    }
   },
   "home": {
     "heroTitle": "Avventure Epiche ti Aspettano",
@@ -20,7 +26,9 @@
     "badgeCompleted": "Completata",
     "badgePaused": "In pausa",
     "matchesError": "Non è stato possibile caricare le tue partite, quindi non puoi iniziarne una nuova ora.",
-    "storiesError": "Non è stato possibile caricare le avventure. Controlla la connessione e riprova."
+    "storiesError": "Non è stato possibile caricare le avventure. Controlla la connessione e riprova.",
+    "footerBlocked": "Bloccato",
+    "footerError": "Errore"
   },
   "antibot": {
     "blocked": "Antibot attivato — queste avventure sono solo per umani!",

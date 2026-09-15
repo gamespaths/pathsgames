@@ -20,6 +20,15 @@ public class StorySummaryResponse extends BaseStorySummaryResponse {
         this.card = card;
     }
 
+    /** v0.37.6 — one mapper for the public list and the static catalog export. */
+    public static StorySummaryResponse fromModel(games.paths.core.model.story.StorySummary s) {
+        return new StorySummaryResponse(
+                s.uuid(), s.title(), s.description(), s.author(),
+                s.category(), s.group(), s.visibility(),
+                s.priority(), s.peghi(), s.difficultyCount(),
+                CardInfoResponse.fromModel(s.card()));
+    }
+
     public CardInfoResponse getCard() { return card; }
     public void setCard(CardInfoResponse card) { this.card = card; }
 }
