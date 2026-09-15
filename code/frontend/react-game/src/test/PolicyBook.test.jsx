@@ -95,8 +95,9 @@ describe('PolicyBook', () => {
     // no page card wrapping the grid: the grid IS the page
     expect(right.querySelector('.book-page-content')).toBeNull()
     expect(right.querySelectorAll('.credits-cards .pg-card--grid').length).toBe(images.length)
-    // (i) of the first credit card (the privacy home card)
-    fireEvent.click(right.querySelectorAll('.credits-cards .gc-footer__btn')[0])
+    // (i) of the privacy home card, wherever it sits in images.json
+    const idx = images.findIndex(x => x.id === 'home-privacy-policy')
+    fireEvent.click(right.querySelectorAll('.credits-cards .gc-footer__btn')[idx])
     expect(right.querySelector('.credits-cards')).toBeNull()
     expect(right.querySelector('.book-page-title').textContent).toContain(titleOf('home-privacy-policy'))
     fireEvent.click(right.querySelector('.book-page-nav--back'))
