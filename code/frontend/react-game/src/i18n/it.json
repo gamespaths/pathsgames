@@ -148,7 +148,7 @@
     },
     "history": "Cronologia Partita",
     "historyDescription": "Ogni passo di questa partita, dal più recente: spostamenti, eventi, riposi e cosa hanno cambiato.",
-    "historyOpen": "Apri"
+    "historyOpen": "Cronologia"
   },
   "matchLog": {
     "title": "Storia della partita",

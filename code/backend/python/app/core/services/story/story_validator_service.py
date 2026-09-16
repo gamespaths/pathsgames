@@ -420,7 +420,10 @@ class StoryValidatorService(StoryValidatorPort):
         for ce in data.get("choiceEffects") or []:
             self._collect_choice_effect(g, ce)
         for cc in data.get("choiceConditions") or []:
-            self._ref(g, "choice-conditions", self._str(_get(cc, "id")), "idChoices", _CHOICE, _as_int(_get(cc, "idChoices")))
+            cc_owner = _as_int(_get(cc, "idChoices"))
+            if cc_owner is None:
+                cc_owner = _as_int(_get(cc, "idChoice"))
+            self._ref(g, "choice-conditions", self._str(_get(cc, "id")), "idChoices", _CHOICE, cc_owner)
             ctype = _get(cc, "type")
             ckey = _get(cc, "key")
             g.key_refs.append((self._str(_get(cc, "id")),
@@ -493,7 +496,10 @@ class StoryValidatorService(StoryValidatorPort):
         for ce in rp.find_entities_for_story(story_id, "list_choices_effects"):
             self._collect_choice_effect(g, ce)
         for cc in rp.find_entities_for_story(story_id, "list_choices_conditions"):
-            self._ref(g, "choice-conditions", self._str(_get(cc, "id")), "idChoices", _CHOICE, _as_int(_get(cc, "idChoices")))
+            cc_owner = _as_int(_get(cc, "idChoices"))
+            if cc_owner is None:
+                cc_owner = _as_int(_get(cc, "idChoice"))
+            self._ref(g, "choice-conditions", self._str(_get(cc, "id")), "idChoices", _CHOICE, cc_owner)
             ctype = _get(cc, "type")
             ckey = _get(cc, "key")
             g.key_refs.append((self._str(_get(cc, "id")),
@@ -569,7 +575,10 @@ class StoryValidatorService(StoryValidatorPort):
         """v0.32.0 — a choice effect names the option it belongs to and, since Step 32, the
         things a resolution can reach. idWeather is deliberately unchecked: this validator
         has no weather target, exactly as for the event effects."""
+        # v0.37.7 — a stored row spells the owner `id_choice`, the import JSON `idChoices`
         cid = _as_int(_get(ce, "idChoices"))
+        if cid is None:
+            cid = _as_int(_get(ce, "idChoice"))
         if cid is not None:
             g.choices_with_option.add(cid)
         eid = self._str(_get(ce, "id"))

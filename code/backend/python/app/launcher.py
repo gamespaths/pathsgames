@@ -180,9 +180,18 @@ test_data_cleanup_service = TestDataCleanupService(persistence_adapter, match_pe
 
 # 4. Initialize Controllers
 echo_controller = EchoController(echo_service)
-guest_auth_controller = GuestAuthController(guest_auth_service, jwt_adapter, token_persistence, settings.dev_test_endpoints_enabled)
+# v0.37.7 — Step 41 security: the rate limiter and the CSRF token issuer shared by the controllers.
+from app.core.services.security.rate_limit_service import RateLimitService
+from app.core.services.security.csrf_token_service import CsrfTokenService
+rate_limit_service = RateLimitService(settings.rate_limit_window_seconds)
+csrf_token_service = CsrfTokenService(settings.csrf_secret or settings.jwt_secret, settings.csrf_enforced)
+
+guest_auth_controller = GuestAuthController(guest_auth_service, jwt_adapter, token_persistence,
+                                            settings.dev_test_endpoints_enabled,
+                                            rate_limit_service, settings.rate_limit_guest_per_ip,
+                                            csrf_token_service)
 guest_admin_controller = GuestAdminController(guest_admin_service)
-session_controller = SessionController(session_service)
+session_controller = SessionController(session_service, csrf_token_service)
 story_controller = StoryController(story_query_service)
 story_admin_controller = StoryAdminController(story_query_service, story_import_service, story_validator_service,
                                               story_catalog_export_service)
@@ -192,7 +201,8 @@ story_crud_admin_controller = StoryCrudAdminController(story_crud_service)
 # content_query_service resolves the weather / location / character cards on the page.
 match_logs_service = MatchLogsService(SessionLocal, content_query_service)
 match_controller = MatchController(match_command_service, match_query_service,
-                                   match_logs_service)
+                                   match_logs_service, rate_limit_service,
+                                   settings.rate_limit_match_per_ip, csrf_token_service)
 character_controller = CharacterController(character_command_service, character_query_service)
 
 # Step 27 — weather selection engine (shared by turn-start, time-advancement and queries).

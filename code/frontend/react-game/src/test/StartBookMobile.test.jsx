@@ -5,7 +5,12 @@ vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
 vi.mock('../components/layout/Card', () => ({
-  default: ({ story }) => <div data-testid="hero-card">{story?.title}</div>,
+  default: ({ story, card, onClose }) => (
+    <div data-testid="hero-card">
+      {story?.title}{card?.title ? ` / ${card.title}` : ''}
+      {onClose && <button onClick={onClose}>detail-back</button>}
+    </div>
+  ),
 }))
 vi.mock('../features/start-book/ConfigView', () => ({
   default: ({ onProceed, onChangeClick }) => (
@@ -63,6 +68,18 @@ describe('StartBookMobile', () => {
     setup({ loadingDetail: true })
     expect(document.querySelector('.fa-spinner')).not.toBeNull()
     expect(screen.queryByTestId('config-view')).not.toBeInTheDocument()
+  })
+
+  // A single-option card's (i): the detail page replaces the whole column, back returns.
+  it('renders the selected entity detail when detailType is set, with back wired to onBackSelection', () => {
+    const { onBackSelection } = setup({
+      detailType: 'class',
+      config: { ...config, class: { uuid: 'c1', card: { title: 'Fighter card' } } },
+    })
+    expect(screen.queryByTestId('config-view')).not.toBeInTheDocument()
+    expect(screen.getByTestId('hero-card')).toHaveTextContent('Fighter card')
+    fireEvent.click(screen.getByText('detail-back'))
+    expect(onBackSelection).toHaveBeenCalled()
   })
 
   it('renders OptionPicker when a card is being changed', () => {

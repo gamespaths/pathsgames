@@ -42,18 +42,18 @@ pytest tests --cov=app --cov-report=term-missing
 NEVER run these without explicit user confirmation.
 
 ```bash
-/code/script/dev/aws_backend_deploy.sh
-/code/script/dev/aws_backend_remove.sh
+code/scripts/test/aws/aws_backend_deploy.sh
+code/scripts/test/aws/aws_backend_remove.sh
 ```
 
 ## Robot E2E tests — `code/tests/robot/`
 
 ```bash
 # via scripts (from repo root)
-code/script/dev/run_robots/run_robot_with_local_java.sh          # Java + SQLite
-code/script/dev/run_robots/run_robot_with_local_java_postgres.sh # Java + PostgreSQL
-code/script/dev/run_robots/run_robot_with_local_python.sh
-code/script/dev/run_robots/run_robot_with_aws_serverless.sh
+code/scripts/dev/run_robots/run_robot_with_local_java.sh          # Java + SQLite
+code/scripts/dev/run_robots/run_robot_with_local_java_postgres.sh # Java + PostgreSQL
+code/scripts/dev/run_robots/run_robot_with_local_python.sh
+code/scripts/dev/run_robots/run_robot_with_aws_serverless.sh
 
 # manually (from code/tests/robot/)
 robot --variablefile variables/dev.yaml --outputdir reports/ tests/
@@ -79,32 +79,10 @@ npm run test
 npm run test:coverage
 ```
 
-## Flask admin console (alternative) — `code/frontend/python-flask-admin/`
-
-```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python run.py                                        # http://localhost:5098 (admin port 8044)
-ADMIN_BASE_URL=http://localhost:8044 python run.py   # explicit backend URL
-pytest                                               # 35 unit tests (backend mocked)
-pytest --cov=app --cov-report=term-missing
-```
-
-## Flask game frontend (alternative) — `code/frontend/python-flask-game/`
-
-```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python run.py                                   # http://localhost:5099 (mock data)
-BASE_URL=http://localhost:8042 python run.py    # live backend mode
-pytest                                          # 35 unit tests
-pytest --cov=app --cov-report=term-missing
-```
-
 ## SonarQube
 
 ```bash
-code/script/dev/run_sonar_scanner_java.sh
+code/scripts/dev/sonar/run_sonar_scanner_java.sh
 ```
 
 ## Stress tests (k6) — `code/tests/stress/`

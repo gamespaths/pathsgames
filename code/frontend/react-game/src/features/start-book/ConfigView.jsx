@@ -3,9 +3,18 @@ import Card from '../../components/layout/Card'
 import BonusBadgeList from '../../components/ui/BonusBadgeList'
 import { aggregateBonusTotals, buildConfigStatistics } from '../../utils/bonusStats'
 import { buildStatisticsCard, buildNoTraitsCard } from '@/utils/loadoutCards'
+import { hasChoiceForType } from './startBookOptions'
 
-export default function ConfigView({ config, story, onChangeClick, onPreview, onProceed }) {
+export default function ConfigView({ config, story, onChangeClick, onInfoClick, onPreview, onProceed }) {
   const { t } = useTranslation()
+
+  // A type with a single option is already selected: no "Change", only an (i) that opens its detail.
+  function selectableProps(type) {
+    if (hasChoiceForType(type, story)) {
+      return { onAction: () => onChangeClick(type), onPreview: () => onChangeClick(type) }
+    }
+    return { flagInformationCard: true, onPreview: () => onInfoClick?.(type) }
+  }
 
   const selectedTraits = Array.isArray(config.traits) ? config.traits : []
   const noTraitsCard = selectedTraits.length === 0 ? buildNoTraitsCard(t) : null
@@ -23,14 +32,14 @@ export default function ConfigView({ config, story, onChangeClick, onPreview, on
       <div className="config-cards-area selection-list">
         {/* Selectable cards: BOTH "Cambia" and the magnifying glass open the
             selection list + preview together (handled by onChangeClick). */}
-        <Card card={config.class?.card} entityType="class" onAction={() => onChangeClick('class')} onPreview={() => onChangeClick('class')} story={story} />
-        <Card card={config.character?.card} entityType="character" onAction={() => onChangeClick('character')} onPreview={() => onChangeClick('character')} story={story} />
+        <Card card={config.class?.card} entityType="class" {...selectableProps('class')} story={story} />
+        <Card card={config.character?.card} entityType="character" {...selectableProps('character')} story={story} />
         <Card card={statisticsCard} entityType="bonuses" flagInformationCard={true} story={story} 
           onPreview={() => onPreview(statisticsCard,"bonuses", null ,statisticCard1) } 
           statistics={statisticCard1} flagShowFullStatistics={true} 
         />
-        <Card card={selectedTraits[0]?.card ?? noTraitsCard} entityType="trait" onAction={() => onChangeClick('trait')} onPreview={() => onChangeClick('trait')} story={story} />
-        <Card card={config.difficulty?.card} entityType="difficulty" onAction={() => onChangeClick('difficulty')} onPreview={() => onChangeClick('difficulty')} story={story} />
+        <Card card={selectedTraits[0]?.card ?? noTraitsCard} entityType="trait" {...selectableProps('trait')} story={story} />
+        <Card card={config.difficulty?.card} entityType="difficulty" {...selectableProps('difficulty')} story={story} />
         <Card card={statisticsCard} entityType="bonuses" flagInformationCard={true} story={story} 
           onPreview={() => onPreview(statisticsCard,"bonuses", null ,statisticCard2) } 
           statistics={statisticCard2} flagShowFullStatistics={true} 

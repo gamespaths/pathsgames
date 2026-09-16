@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     # the public app on `port` does not register the admin routers. Lock this port to the
     # owner IP at the network layer (firewall / security group).
     admin_port: int = 8044
-    version: str = "0.37.6"
+    version: str = "0.37.7"
 
 
     # >0.12.5 change version here
@@ -34,6 +34,16 @@ class Settings(BaseSettings):
     # turnstileToken equals this value, Cloudflare verification is skipped.
     # Leave empty (or run with env=prod) to forbid the bypass entirely.
     turnstile_bypass_token: str = ""
+
+    # v0.37.7 — Step 41. Fixed-window limits per source IP on POST /api/auth/guest and
+    # POST /api/matches; 0 disables a bucket (dev / Robot default), prod sets 10.
+    rate_limit_guest_per_ip: int = 0
+    rate_limit_match_per_ip: int = 0
+    rate_limit_window_seconds: int = 3600
+    # The csrfToken issued with every access token must come back as X-CSRF-TOKEN on
+    # POST /api/matches. Same secret as the JWT unless CSRF_SECRET says otherwise.
+    csrf_enforced: bool = True
+    csrf_secret: str = ""
 
     # Dev-only test endpoints: POST /api/dev/cleanup and the optional
     # X-Test-Marker header on POST /api/auth/guest. Disable in production by

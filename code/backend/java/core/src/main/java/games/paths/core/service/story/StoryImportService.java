@@ -399,6 +399,13 @@ public class StoryImportService implements StoryImportPort {
             e.setIdTextName(getInteger(item, "idTextName"));
             e.setIdTextDescription(getInteger(item, "idTextDescription"));
             e.setIdTextNarrative(getInteger(item, "idTextNarrative"));
+            // v0.37.7 — the owning event and the linked one were never imported (events are already in)
+            e.setIdEvent(normalizeOptionalFk(getInteger(item, "idEvent")));
+            e.setIdEventTorun(normalizeOptionalFk(getInteger(item, "idEventTorun")));
+            e.setLimitSad(getInteger(item, "limitSad"));
+            e.setLimitDex(getInteger(item, "limitDex"));
+            e.setLimitInt(getInteger(item, "limitInt"));
+            e.setLimitCos(getInteger(item, "limitCos"));
             e.setPriority(getInteger(item, "priority"));
             e.setOtherwiseFlag(getInteger(item, "otherwiseFlag"));
             e.setIsProgress(getInteger(item, "isProgress"));

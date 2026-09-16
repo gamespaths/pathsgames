@@ -38,6 +38,7 @@ import urllib.error
 
 from common import db_utils
 from common import jwt_utils
+from common import security_utils
 from common import story_cache
 from match import logbook as _logbook
 from match import repo as _repo
@@ -4531,6 +4532,19 @@ def _dispatch(event):
         return _err(404, 'NOT_FOUND', f'Unknown route {method} {path}')
 
     if path == '/api/matches' and method == 'POST':
+        # Step 41 — the CSRF token issued with this access token must come back as a header
+        if security_utils.csrf_enforced():
+            presented = security_utils.csrf_header(event)
+            if not presented or not presented.strip():
+                return _err(403, 'CSRF_TOKEN_MISSING', 'X-CSRF-TOKEN header is required to create a match')
+            if not security_utils.csrf_matches(_bearer_token(event), presented):
+                return _err(403, 'CSRF_TOKEN_INVALID', 'X-CSRF-TOKEN does not match the access token')
+        # Step 41 — at most RATE_LIMIT_MATCH_PER_IP new matches per source address and window
+        limit = security_utils.match_per_ip()
+        if limit > 0:
+            verdict = security_utils.rate_limit('match', _get_source_ip(event), limit)
+            if not verdict.allowed:
+                return security_utils.rate_limited(verdict, 'Too many matches created from this address')
         try:
             body = json.loads(event.get('body') or '{}')
         except (TypeError, ValueError):

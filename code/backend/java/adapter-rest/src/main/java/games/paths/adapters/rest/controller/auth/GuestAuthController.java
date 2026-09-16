@@ -4,6 +4,8 @@ import games.paths.adapters.rest.cookie.CookieHelper;
 import games.paths.adapters.rest.dto.GuestLoginResponse;
 import games.paths.core.model.auth.GuestSession;
 import games.paths.core.port.auth.GuestAuthPort;
+import games.paths.core.service.security.CsrfTokenService;
+import games.paths.core.service.security.RateLimitService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -30,13 +32,31 @@ import java.util.Map;
 @RequestMapping("/api/auth")
 public class GuestAuthController {
 
+    static final String RATE_BUCKET = "guest";
+
     private final GuestAuthPort guestAuthPort;
     private final boolean testEndpointsEnabled;
+    private final RateLimitService rateLimitService;
+    private final int guestPerIp;
+    private final CsrfTokenService csrfTokenService;
 
     public GuestAuthController(GuestAuthPort guestAuthPort,
                                @Value("${game.dev.test-endpoints-enabled:false}") boolean testEndpointsEnabled) {
+        this(guestAuthPort, testEndpointsEnabled, null, 0, null);
+    }
+
+    /** v0.37.7 — Step 41: the guest bucket of the rate limiter and the CSRF token issuer. */
+    @org.springframework.beans.factory.annotation.Autowired
+    public GuestAuthController(GuestAuthPort guestAuthPort,
+                               @Value("${game.dev.test-endpoints-enabled:false}") boolean testEndpointsEnabled,
+                               RateLimitService rateLimitService,
+                               @Value("${game.security.rate-limit.guest-per-ip:0}") int guestPerIp,
+                               CsrfTokenService csrfTokenService) {
         this.guestAuthPort = guestAuthPort;
         this.testEndpointsEnabled = testEndpointsEnabled;
+        this.rateLimitService = rateLimitService;
+        this.guestPerIp = guestPerIp;
+        this.csrfTokenService = csrfTokenService;
     }
 
     /**
@@ -50,9 +70,19 @@ public class GuestAuthController {
      * only when dev test endpoints are enabled, and ignored in production.</p>
      */
     @PostMapping("/guest")
-    public ResponseEntity<GuestLoginResponse> createGuestSession(
+    public ResponseEntity<Object> createGuestSession(
             @RequestHeader(value = "X-Test-Marker", required = false) String testMarker,
+            HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
+        // Step 41 — at most guest-per-ip new guests per source address and window
+        if (rateLimitService != null && guestPerIp > 0) {
+            String ip = RateLimitService.clientIp(httpRequest.getHeader("X-Forwarded-For"),
+                    httpRequest.getRemoteAddr());
+            RateLimitService.Verdict verdict = rateLimitService.tryAcquire(RATE_BUCKET, ip, guestPerIp);
+            if (!verdict.allowed()) {
+                return rateLimited(verdict);
+            }
+        }
         String marker = testEndpointsEnabled ? testMarker : null;
         GuestSession session = guestAuthPort.createGuestSession(marker);
 
@@ -66,6 +96,7 @@ public class GuestAuthController {
                 session.getAccessToken(),
                 session.getAccessTokenExpiresAt(),
                 session.getRefreshTokenExpiresAt());
+        response.setCsrfToken(csrfTokenFor(session.getAccessToken()));
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -108,7 +139,24 @@ public class GuestAuthController {
                 session.getAccessToken(),
                 session.getAccessTokenExpiresAt(),
                 session.getRefreshTokenExpiresAt());
+        response.setCsrfToken(csrfTokenFor(session.getAccessToken()));
 
         return ResponseEntity.ok(response);
+    }
+
+    private String csrfTokenFor(String accessToken) {
+        return csrfTokenService == null ? null : csrfTokenService.tokenFor(accessToken);
+    }
+
+    private static ResponseEntity<Object> rateLimited(RateLimitService.Verdict verdict) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", "RATE_LIMITED");
+        body.put("message", "Too many guest sessions from this address, retry in "
+                + verdict.retryAfterSeconds() + " seconds");
+        body.put("retryAfterSeconds", verdict.retryAfterSeconds());
+        body.put("timestamp", System.currentTimeMillis());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(verdict.retryAfterSeconds()))
+                .body(body);
     }
 }

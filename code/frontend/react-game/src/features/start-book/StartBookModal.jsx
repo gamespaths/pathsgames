@@ -10,6 +10,7 @@ import CardPreviewModal from '../../components/modals/CardPreviewModal'
 import { getStoryDetail } from '../../api/stories'
 import { buildClassesById, getOptionLockInfo } from '../../utils/bonusStats'
 import { canAddTrait, isTraitHiddenOnStartMatch, selectableTraits, toggleTrait } from '../../utils/traitBudget'
+import { getOptionsForType, selectedEntityForType } from './startBookOptions'
 
 function buildInitialConfig(story) {
   // v0.35.2 — the preselected trait must be one the player could have chosen: picking
@@ -25,16 +26,6 @@ function buildInitialConfig(story) {
   }
 }
 
-function getOptionsForType(type, story) {
-  if (type === 'difficulty') return story?.difficulties ?? []
-  if (type === 'character') return story?.characterTemplates ?? []
-  if (type === 'class') return story?.classes ?? []
-  // v0.35.2 — hidden traits are dropped HERE and nowhere else: the same array feeds the
-  // in-game list of the traits a character owns, where a hidden one must still appear.
-  if (type === 'trait') return selectableTraits(story?.traits)
-  return []
-}
-
 export default function StartBookModal({ story, onClose }) {
   const navigate = useNavigate()
   const { lang } = useTranslation()
@@ -44,6 +35,7 @@ export default function StartBookModal({ story, onClose }) {
   const [config, setConfig] = useState(() => buildInitialConfig(story))
   const [selectionType, setSelectionType] = useState(null)
   const [preview, setPreview] = useState(null) // { entity, type } or null
+  const [detailType, setDetailType] = useState(null) // single-option card whose detail fills the right page
 
   useEffect(() => {
     if (!story?.uuid) return
@@ -109,6 +101,13 @@ export default function StartBookModal({ story, onClose }) {
     setPreview(entity ? { entity, type } : null)
   }
 
+  // From ConfigView: the (i) of a card with a single option (nothing to change) opens its
+  // detail on the RIGHT page, in place of the config; "back" returns to ConfigView.
+  function handleInfoFromConfig(type) {
+    if (!selectedEntityForType(type, config)) return
+    setDetailType(type)
+  }
+
   // From OptionPicker / ConfigView: clicking the magnifying glass on an option
   // swaps the left-page preview without leaving the selection list.
   function handleSelectionPreview(entity, type , lockedReason , statItemsToPageContent) {
@@ -130,6 +129,7 @@ export default function StartBookModal({ story, onClose }) {
   function handleBackOrClose() {
     setPreview(null)
     setSelectionType(null)
+    setDetailType(null)
   }
 
   // "Start Game" — the only step in the book now. Hand the chosen loadout to the
@@ -166,7 +166,17 @@ export default function StartBookModal({ story, onClose }) {
   )
 
   let rightContent
-  if (selectionType) {
+  if (detailType) {
+    rightContent = (
+      <CardPreviewOverlay
+        card={selectedEntityForType(detailType, config)?.card}
+        entity={selectedEntityForType(detailType, config)}
+        entityType={detailType}
+        story={activeStory}
+        onClose={handleBackOrClose}
+      />
+    )
+  } else if (selectionType) {
     rightContent = (
       <OptionPicker
         type={selectionType}
@@ -185,6 +195,7 @@ export default function StartBookModal({ story, onClose }) {
         config={config}
         story={activeStory}
         onChangeClick={handleChangeFromConfig}
+        onInfoClick={handleInfoFromConfig}
         onPreview={handleSelectionPreview}
         onProceed={handleStartGame}
       />
@@ -203,7 +214,9 @@ export default function StartBookModal({ story, onClose }) {
             config={config}
             loadingDetail={loadingDetail}
             selectionType={selectionType}
+            detailType={detailType}
             onChangeClick={handleChangeFromConfig}
+            onInfoClick={handleInfoFromConfig}
             onPreview={handlePreviewModal}
             onProceed={handleStartGame}
             onSelect={handleSelect}

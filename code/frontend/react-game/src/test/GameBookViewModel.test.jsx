@@ -15,6 +15,11 @@ import { bagSummaryProps } from '../features/gameplay/js/boardProps'
 import PageLeft from '../features/gameplay/PageLeft'
 import PageRight from '../features/gameplay/PageRight'
 
+let matchLogProps = null
+vi.mock('@/features/matches/MatchLogCard', () => ({
+  default: (props) => { matchLogProps = props; return <div data-testid="match-log-card" /> },
+}))
+
 const BASE = {
   view: 'board', previewLeft: null, previewRight: null, previewModal: null,
   pendingChoices: null, counterZero: null, mapSelected: null, missionSelected: null,
@@ -237,6 +242,17 @@ describe('PageRight', () => {
       activeAction={{ uuid: 'a1', card: { title: 'The End' } }}
       onEndGame={vi.fn()} onEndGamePreview={vi.fn()} />)
     expect(screen.getByText('The End')).toBeInTheDocument()
+  })
+
+  // v0.37.7 — the match history opened from the PlayerCards door: the log component gets
+  // the match it must read and the back arrow that clears the preview.
+  it('renders the match history on the right and hands it the match', () => {
+    const onCloseRight = vi.fn()
+    render(<PageRight {...base} previewRight={{ kind: 'matchlog' }}
+      matchUuid="m-1" accessToken="tok" onCloseRight={onCloseRight} />)
+    expect(matchLogProps).toMatchObject({ matchUuid: 'm-1', accessToken: 'tok' })
+    matchLogProps.onBack()
+    expect(onCloseRight).toHaveBeenCalledTimes(1)
   })
 
   it('renders nothing for a preview kind it does not know', () => {

@@ -27,6 +27,8 @@ function toIdentity(payload) {
     userUuid: payload.userUuid,
     username: payload.username,
     accessToken: payload.accessToken ?? null,
+    // v0.37.7 — echoed back as X-CSRF-TOKEN when a match is created (Step 41).
+    csrfToken: payload.csrfToken ?? null,
   }
 }
 

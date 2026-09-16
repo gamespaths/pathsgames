@@ -159,6 +159,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     onOpenItems={viewActions.openItems}
     onOpenRegistry={viewActions.openRegistry}
     onOpenMissions={viewActions.openMissions}
+    onOpenHistory={() => viewActions.setPreviewRight({ kind: 'matchlog' })}
     onOpenMission={viewActions.openMission}
     onOpenInfo={openInformationView}
     onEndGame={handleEndGame}

@@ -6,7 +6,7 @@ spring:
 
 game:
   server:
-    version: 0.37.6
+    version: 0.37.7
     # manually change this version if needed >0.13.0
   database:
     # Configurable SQLite path — override with -Dgame.database.path=/your/path
@@ -45,6 +45,18 @@ game:
     # Leave empty (or run with env=prod) to forbid the bypass entirely.
     bypass-token: ${TURNSTILE_BYPASS_TOKEN:}
   env: ${APP_ENV:dev}
+  security:
+    # v0.37.7 — Step 41. Fixed-window limits per source IP on POST /api/auth/guest and
+    # POST /api/matches; 0 disables a bucket (dev / Robot default), prod sets 10.
+    rate-limit:
+      guest-per-ip: ${RATE_LIMIT_GUEST_PER_IP:0}
+      match-per-ip: ${RATE_LIMIT_MATCH_PER_IP:0}
+      window-seconds: ${RATE_LIMIT_WINDOW_SECONDS:3600}
+    # The csrfToken issued with every access token must come back as X-CSRF-TOKEN on
+    # POST /api/matches. Same secret as the JWT unless CSRF_SECRET says otherwise.
+    csrf:
+      enforced: ${CSRF_ENFORCED:true}
+      secret: ${CSRF_SECRET:${JWT_SECRET:PathsGamesDevSecret2026_MustBeAtLeast32Chars!}}
   dev:
     # Enables dev-only endpoints (POST /api/dev/cleanup) and the optional
     # X-Test-Marker header on POST /api/auth/guest. Disabled by the prod profile.

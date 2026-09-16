@@ -87,8 +87,13 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Validate advancement: character must be sleeping in safe location, have sufficient experience (backend)
     - Calculate experience cost per stat point based on difficulty exp_cost parameter (backend)
     - Apply stat increase (+1 DES, INT, or COS), deduct experience, update character instance (backend)
-    - Build frontend advancement UI showing available stat upgrades, costs, and current experience (frontend)
     - Write backend unit tests for experience gain, advancement validation, cost calculation, and stat update (backend tests)
+    - Build frontend advancement UI showing available stat upgrades, costs, and current experience (frontend)
+        - when use-exp is executed insert a log into log-table and show into log views
+        - on save location view: add a card on right page after sleeping, if enough exp > show new card "use exp"
+            when clicked on left card with "use exp detail" ExperienceCard , on right list of little (ExperienceCards) with options (DES, INT , COS, in future others)
+            
+
 39. Action logging and match history
     - on AWS ItemUsageLog max 400Kb dynamo
         - AWS dynamo tables: to divide unique table to multiple tables (users, stories, matches, logs)

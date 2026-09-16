@@ -96,6 +96,16 @@ public class CoreConfig {
     @Value("${game.env:dev}")
     private String gameEnv;
 
+    // v0.37.7 — Step 41 security: rate-limit window and the CSRF secret/switch.
+    @Value("${game.security.rate-limit.window-seconds:3600}")
+    private int rateLimitWindowSeconds;
+
+    @Value("${game.security.csrf.secret:${game.auth.jwt.secret}}")
+    private String csrfSecret;
+
+    @Value("${game.security.csrf.enforced:true}")
+    private boolean csrfEnforced;
+
     @Bean
     public EchoPort echoPort() {
         Map<String, String> properties = new LinkedHashMap<>();
@@ -167,6 +177,16 @@ public class CoreConfig {
     @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate();
+    }
+
+    @Bean
+    public games.paths.core.service.security.RateLimitService rateLimitService() {
+        return new games.paths.core.service.security.RateLimitService(rateLimitWindowSeconds);
+    }
+
+    @Bean
+    public games.paths.core.service.security.CsrfTokenService csrfTokenService() {
+        return new games.paths.core.service.security.CsrfTokenService(csrfSecret, csrfEnforced);
     }
 
     @Bean

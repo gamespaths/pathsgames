@@ -671,3 +671,24 @@ def test_every_imported_row_gets_a_uuid(adapter, session_factory):
         # an authored uuid is kept, never replaced
         authored = session.query(WeatherRuleEntity).filter_by(id_story=story_id, id=2).one()
         assert authored.uuid == "wr-authored"
+
+
+def test_save_keys_reads_the_shared_import_spelling(adapter, session_factory):
+    """v0.37.7 — the import contract (Java, AWS, tutorial_story.json) spells a key
+    name/value/group/visibility; only the private keyName/keyValue/keyGroup/isVisible
+    spelling was mapped, so an imported story had keys with no name at all and every
+    registry gate on this backend read an undeclared key."""
+    from app.adapters.persistence.story.models import KeyEntity
+    story_id = adapter.save_story({"uuid": "test-uuid-key-spelling"})
+    adapter.save_keys(story_id, [
+        {"id": 1, "name": "door", "value": "shut", "group": "GATES", "visibility": "PUBLIC"},
+        {"id": 2, "name": "secret", "group": "GATES", "visibility": "HIDDEN"},
+        # the private spelling still wins when both are present
+        {"id": 3, "name": "ignored", "keyName": "kept", "isVisible": 1, "visibility": "HIDDEN"},
+    ])
+    with session_factory() as session:
+        rows = {r.id: r for r in session.query(KeyEntity).filter_by(id_story=story_id).all()}
+    assert rows[1].key_name == "door" and rows[1].key_value == "shut"
+    assert rows[1].key_group == "GATES" and rows[1].is_visible == 1
+    assert rows[2].key_name == "secret" and rows[2].is_visible == 0
+    assert rows[3].key_name == "kept" and rows[3].is_visible == 1

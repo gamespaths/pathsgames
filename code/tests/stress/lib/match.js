@@ -6,7 +6,7 @@ import http from 'k6/http';
 import { check } from 'k6';
 import { Trend, Counter } from 'k6/metrics';
 import { config, bearer } from './config.js';
-import { safeJson } from './auth.js';
+import { safeJson, csrfTokens } from './auth.js';
 
 export const trends = {
   auth: new Trend('step_auth_ms', true),
@@ -29,8 +29,9 @@ export function createMatch(token, loadout, name) {
   const payload = { storyUuid: loadout.storyUuid, difficultyUuid: loadout.difficultyUuid, name };
   if (config.turnstileToken) payload.turnstileToken = config.turnstileToken;
   const body = JSON.stringify(payload);
+  const csrf = csrfTokens[token];
   const res = timed('match_create', http.post(`${config.baseUrl}/api/matches`, body, {
-    headers: bearer(token),
+    headers: bearer(token, csrf ? { 'X-CSRF-TOKEN': csrf } : undefined),
     tags: { step: 'match_create' },
   }));
   const ok = check(res, {

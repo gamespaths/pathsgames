@@ -4,7 +4,7 @@ import { usePolicyBook } from '../../context/PolicyBookContext'
 
 export default function Footer() {
   const { t } = useTranslation()
-  // v0.37.6 — status and version come from ServerContext (one request per server).
+  // v0.37.7 — status and version come from ServerContext (one request per server).
   const { server, servers, probing, status, version, changeServer } = useServer()
   const { openPolicyBook } = usePolicyBook()
   const policyLink = kind => e => { e.preventDefault(); openPolicyBook(kind) }
@@ -44,7 +44,7 @@ export default function Footer() {
           <span className="gold-light">PATHS GAMES</span> 
           &nbsp; &copy; {t('footer.rights').toUpperCase()} 
           <br />
-          v0.37.6 &nbsp;
+          v0.37.7 &nbsp;
           {t('footer.madeWith').toUpperCase()} <i className="fas fa-heart" /> {t('footer.byTeam').toUpperCase()}
         </div>
 

@@ -63,3 +63,12 @@ def _no_story_cache(monkeypatch):
 def ctx():
     """Dummy Lambda context (unused by all handlers)."""
     return {}
+
+
+@pytest.fixture(autouse=True)
+def _csrf_off_by_default(monkeypatch):
+    """v0.37.7 — Step 41 enforces X-CSRF-TOKEN on POST /api/matches. The suites written before
+    it create matches bare, so the check is off here; test_security_utils turns it on itself."""
+    monkeypatch.setenv('CSRF_ENFORCED', 'false')
+    monkeypatch.delenv('RATE_LIMIT_GUEST_PER_IP', raising=False)
+    monkeypatch.delenv('RATE_LIMIT_MATCH_PER_IP', raising=False)

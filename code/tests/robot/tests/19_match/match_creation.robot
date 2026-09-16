@@ -35,8 +35,7 @@ Create Match Without Token Returns 401
 Create Match With Empty Body Returns 400
     [Documentation]    POST /api/matches with empty JSON body is rejected with 400.
     [Tags]    matches    step19
-    ${headers}=    Get Auth Headers    ${TOKEN}
-    Set To Dictionary    ${headers}    Content-Type=application/json
+    ${headers}=    Get Match Creation Headers    ${TOKEN}
     &{empty}=    Create Dictionary
     ${response}=    POST On Session    public_session    /api/matches
     ...    json=${empty}

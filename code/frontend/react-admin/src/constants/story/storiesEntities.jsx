@@ -50,7 +50,6 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idTextName', label: 'Name Text ID', type: 'number' },
       { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
       { key: 'expCost', label: 'EXP Cost', type: 'number' },
-      { key: 'maxWeight', label: 'Max Weight', type: 'number' },
       { key: 'minCharacter', label: 'Min Characters', type: 'number' },
       { key: 'maxCharacter', label: 'Max Characters', type: 'number' },
       { key: 'costHelpComa', label: 'Cost Help Coma', type: 'number' },
@@ -399,7 +398,6 @@ export const STORIES_ENTITIES_COLUMNS = {
     difficulties: [
       { key: 'idTextName', label: 'Name', type: 'idTextName' },
       { key: 'expCost', label: 'EXP Cost' },
-      { key: 'maxWeight', label: 'Max Weight' },
       { key: 'minCharacter', label: 'Min Chars' },
       { key: 'maxCharacter', label: 'Max Chars' },
       { key: 'costHelpComa', label: 'Help COMA' },

@@ -38,6 +38,15 @@ Parameters:
   AdminIpWhitelist:
     Type: String
     Default: ""
+  RateLimitMatchPerIp:
+    Type: String
+    Default: "0"
+  RateLimitWindowSeconds:
+    Type: String
+    Default: "3600"
+  CsrfEnforced:
+    Type: String
+    Default: "true"
     Description: "Comma-separated allowed IPs for /api/admin/**. Empty = no restriction."
 
 Resources:
@@ -82,6 +91,9 @@ Resources:
           STORY_CACHE_TTL_SECONDS: !Ref StoryCacheTtlSeconds
           ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
           ADMIN_IP_WHITELIST: !Ref AdminIpWhitelist
+          RATE_LIMIT_MATCH_PER_IP: !Ref RateLimitMatchPerIp
+          RATE_LIMIT_WINDOW_SECONDS: !Ref RateLimitWindowSeconds
+          CSRF_ENFORCED: !Ref CsrfEnforced
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName

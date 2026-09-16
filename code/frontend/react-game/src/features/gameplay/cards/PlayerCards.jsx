@@ -1,18 +1,19 @@
 import { useTranslation } from '@/i18n/context'
 import Card from '@/components/layout/Card'
+import MatchHistoryCard from '@/features/matches/MatchHistoryCard'
 import { resolveSelectionEntity } from '@/utils/gamebook'
 import { getNonZeroStats, STAT_CATEGORY_ORDER } from '@/utils/bonusStats'
 
 /**
  * PlayerCards — the player's chosen loadout shown in the statistics view:
- * the selected class, character, traits, difficulty and the story card.
+ * the selected class, character, traits, difficulty, the match history and the story card.
  *
  * Extracted from GameBook's `statisticsCards` branch. For the class, character,
  * trait and difficulty cards the entity stats are passed as Card's `statistics`
  * (with `flagShowFullStatistics`) so Card renders the BonusBadgeList overlaid on
  * the image itself.
  */
-export default function PlayerCards({ storyFull, story, playerStats, gameData, onPreview, previewSide='left' }) {
+export default function PlayerCards({ storyFull, story, playerStats, gameData, onPreview, previewSide='left', onOpenHistory=null }) {
   const { t } = useTranslation()
 
   // Build the {key, label, value} badge items for a resolved selection entity.
@@ -60,8 +61,9 @@ export default function PlayerCards({ storyFull, story, playerStats, gameData, o
         statistics={difficultyItems} flagShowFullStatistics={true} bonusBadgeListLittleIntoImage={true}
         onPreview={() => onPreview({ card: difficultyEntity?.card, type: 'difficulty', stats: difficultyItemsLong, side: previewSide })}
       />
-      {/* v0.37.4 — the story card reads as a story again: the match history left the board
-          for the profile book, where a match is looked back on rather than played. */}
+      {/* v0.37.7 — the match history is back on the board as its own door, the same card the
+          profile book lists after the missions; the story card below keeps reading as a story. */}
+      {onOpenHistory && <MatchHistoryCard story={storyFull ?? story} onOpen={onOpenHistory} />}
       <Card card={story.card} entityType="story" story={story}
         flagInformationCard={true}
         onPreview={() => onPreview({ card: story.card, type: 'story', side: previewSide })}

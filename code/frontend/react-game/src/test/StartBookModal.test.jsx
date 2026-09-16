@@ -10,15 +10,20 @@ vi.mock('../components/book/Book', () => ({
   default: ({ left, right, mobile, onClose }) => <div data-testid="book">{left}{right}{mobile}</div>,
 }))
 vi.mock('../components/layout/Card', () => ({
-  default: ({ card, loading }) => (
-    <div data-testid="book-page" data-loading={String(!!loading)}>{card?.title}</div>
+  default: ({ card, loading, onClose }) => (
+    <div data-testid="book-page" data-loading={String(!!loading)}>
+      {card?.title}
+      {onClose && <button onClick={onClose}>page-back</button>}
+    </div>
   ),
 }))
 vi.mock('../features/start-book/ConfigView', () => ({
-  default: ({ onProceed, onChangeClick }) => (
+  default: ({ onProceed, onChangeClick, onInfoClick }) => (
     <div data-testid="config-view">
       <button onClick={onProceed}>proceed</button>
       <button onClick={() => onChangeClick('class')}>change-class</button>
+      <button onClick={() => onInfoClick('class')}>info-class</button>
+      <button onClick={() => onInfoClick('trait')}>info-trait</button>
     </div>
   ),
 }))
@@ -100,6 +105,28 @@ describe('StartBookModal', () => {
     await screen.findByTestId('config-view')
     fireEvent.click(screen.getByText('change-class'))
     fireEvent.click(screen.getByText('pick:Fighter'))
+    expect(screen.getByTestId('config-view')).toBeInTheDocument()
+  })
+
+  // A single-option card: its (i) swaps the right page for the detail of the selected entity,
+  // and the page's back returns to ConfigView.
+  it('opens the selected entity detail on the right page from the (i) and returns on back', async () => {
+    getStoryDetail.mockResolvedValue({ ...STORY, classes: [{ uuid: 'c1', name: 'Fighter', card: { title: 'Fighter card' } }] })
+    wrap()
+    await screen.findByTestId('config-view')
+    fireEvent.click(screen.getByText('info-class'))
+    expect(screen.queryByTestId('config-view')).not.toBeInTheDocument()
+    expect(screen.getByText('Fighter card')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('page-back'))
+    expect(screen.getByTestId('config-view')).toBeInTheDocument()
+    expect(screen.queryByText('Fighter card')).not.toBeInTheDocument()
+  })
+
+  it('the (i) of a type with nothing selected leaves the config in place', async () => {
+    getStoryDetail.mockResolvedValue({ ...STORY, traits: [] })
+    wrap()
+    await screen.findByTestId('config-view')
+    fireEvent.click(screen.getByText('info-trait'))
     expect(screen.getByTestId('config-view')).toBeInTheDocument()
   })
 

@@ -110,7 +110,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
         singlePlayer: 1,
         turnstileToken: tokenRef.current,
       }
-      const created = await createMatch(payload, user?.accessToken)
+      const created = await createMatch(payload, user?.accessToken, user?.csrfToken)
       setMatch(created)
       await waitWithCountdown(delaySeconds())
       // Step 21 — auto-join: materialise the character in the freshly created

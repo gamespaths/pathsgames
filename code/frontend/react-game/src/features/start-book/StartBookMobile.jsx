@@ -2,6 +2,7 @@ import { useTranslation } from '../../i18n/context'
 import ConfigView from './ConfigView'
 import OptionPicker from './OptionPicker'
 import Card from '../../components/layout/Card'
+import { selectedEntityForType } from './startBookOptions'
 
 /**
  * StartBookMobile — mobile (≤767px) variant of the start book.
@@ -17,7 +18,9 @@ export default function StartBookMobile({
   config,
   loadingDetail,
   selectionType,
+  detailType,
   onChangeClick,
+  onInfoClick,
   onPreview,
   onProceed,
   onSelect,
@@ -26,9 +29,17 @@ export default function StartBookMobile({
 }) {
   const { t } = useTranslation()
 
+  const detailEntity = detailType ? selectedEntityForType(detailType, config) : null
+
   return (
     <div className="book-mobile-layout">
-      {selectionType ? (
+      {detailType ? (
+        // The detail of a single-option card takes the whole column; "back" returns to the config.
+        <div className="book-mobile-hero-card">
+          <Card variant="page" card={detailEntity?.card} entity={detailEntity} entityType={detailType}
+            story={activeStory} onClose={onBackSelection} />
+        </div>
+      ) : selectionType ? (
         <OptionPicker
           type={selectionType}
           options={getOptionsForType(selectionType)}
@@ -55,6 +66,7 @@ export default function StartBookMobile({
                 config={config}
                 story={activeStory}
                 onChangeClick={onChangeClick}
+                onInfoClick={onInfoClick}
                 onPreview={onPreview}
                 onProceed={onProceed}
               />

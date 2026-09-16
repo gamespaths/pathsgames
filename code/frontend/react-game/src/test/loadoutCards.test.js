@@ -9,6 +9,7 @@ import {
   buildCardToSleep,
   buildEndGameCard,
   buildWeatherCard,
+  buildHistoryCard,
 } from '../utils/loadoutCards'
 
 // Identity translate fn so we can assert on the i18n keys directly.
@@ -95,5 +96,20 @@ describe('utils/loadoutCards', () => {
       { key: 'dexterity', label: 'book.stats.totals.dexterity', value: 3 },
       { key: 'intelligence', label: 'book.stats.totals.intelligence', value: 5 },
     ])
+  })
+})
+
+describe('utils/loadoutCards history (v0.37.7)', () => {
+  it('buildHistoryCard reads the history image, titled by matches.history', () => {
+    const c = buildHistoryCard(t)
+    expect(c.title).toBe('matches.history')
+    expect(c.description).toBeNull()
+    expect(c.awesomeIcon).toBe('fas fa-history')
+    expect(c.urlImage).toBeTruthy()
+    expect(c.copyrightText).toBeTruthy()
+  })
+
+  it('buildHistoryCard takes an optional description', () => {
+    expect(buildHistoryCard(t, 'why').description).toBe('why')
   })
 })

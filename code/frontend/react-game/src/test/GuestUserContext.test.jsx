@@ -24,6 +24,7 @@ function Probe() {
       <span data-testid="username">{user?.username ?? 'none'}</span>
       <span data-testid="uuid">{user?.userUuid ?? ''}</span>
       <span data-testid="token">{user?.accessToken ?? 'no-token'}</span>
+      <span data-testid="csrf">{user?.csrfToken ?? 'no-csrf'}</span>
       <span data-testid="loading">{loading ? 'yes' : 'no'}</span>
       <span data-testid="error">{error ?? ''}</span>
       <span data-testid="modal">{guestModalOpen ? 'open' : 'closed'}</span>
@@ -48,6 +49,21 @@ describe('GuestUserContext', () => {
     vi.spyOn(authApi, 'createGuestSession').mockResolvedValue({
       userUuid: 'new-uuid', username: 'guest_new', accessToken: 'jwt-tok',
     })
+  })
+
+  it('keeps the csrfToken of the login response on the identity (v0.37.7)', async () => {
+    vi.spyOn(authApi, 'resumeGuestSession').mockRejectedValue(new Error('401'))
+    vi.spyOn(authApi, 'createGuestSession').mockResolvedValue({
+      userUuid: 'new-uuid', username: 'guest_new', accessToken: 'jwt-tok', csrfToken: 'csrf-1',
+    })
+    render(<GuestUserProvider><Probe /></GuestUserProvider>)
+    await waitFor(() => expect(screen.getByTestId('csrf').textContent).toBe('csrf-1'))
+  })
+
+  it('reads a missing csrfToken as null, never undefined', async () => {
+    render(<GuestUserProvider><Probe /></GuestUserProvider>)
+    await waitFor(() => expect(screen.getByTestId('username').textContent).toBe('guest_resumed'))
+    expect(screen.getByTestId('csrf').textContent).toBe('no-csrf')
   })
 
   it('uses resumeGuestSession when the backend still has a session', async () => {

@@ -7,9 +7,11 @@ vi.mock('../i18n/context', () => ({
 // Card is "dumb": ConfigView passes entityType + handlers directly. Mock Card so
 // `entityType` is the test id and onAction/onPreview stay wired.
 vi.mock('../components/layout/Card', () => ({
-  default: ({ entityType, onAction, onPreview }) => (
+  default: ({ entityType, onAction, onPreview, flagInformationCard }) => (
     <button
       data-testid={`cc-${entityType}`}
+      data-action={String(!!onAction)}
+      data-info={String(!!flagInformationCard)}
       onClick={() => { onAction?.(); onPreview?.() }}
     />
   ),
@@ -20,12 +22,15 @@ import ConfigView from '../features/start-book/ConfigView'
 
 const config = { character: { card: {} }, class: { card: {} }, traits: [], difficulty: { card: {} } }
 
+// Every type offers two options, so every selectable card carries "Change".
+const STORY_WITH_CHOICES = { classes: [{}, {}], characterTemplates: [{}, {}], traits: [{}, {}], difficulties: [{}, {}] }
+
 function setup(props = {}) {
-  const handlers = { onProceed: vi.fn(), onChangeClick: vi.fn(), onPreview: vi.fn() }
+  const handlers = { onProceed: vi.fn(), onChangeClick: vi.fn(), onInfoClick: vi.fn(), onPreview: vi.fn() }
   render(
     <ConfigView
       config={config}
-      story={{ classes: [{}, {}], characterTemplates: [{}], traits: [{}], difficulties: [{}] }}
+      story={STORY_WITH_CHOICES}
       {...handlers}
       {...props}
     />
@@ -89,6 +94,40 @@ describe('ConfigView', () => {
     // The first card carries the characteristics, the second the pools.
     expect(firstStats.map(s => s.key).sort()).toEqual(['constitution', 'dexterity', 'intelligence'])
     expect(secondStats.map(s => s.key).sort()).toEqual(['energy', 'life', 'sad', 'weight'])
+  })
+
+  // A type with a single option has nothing to change: the card loses "Change" and its (i)
+  // asks the book for the detail (onInfoClick) instead of the selection list.
+  it('single-option cards drop the action and wire the (i) to onInfoClick', () => {
+    const { onChangeClick, onInfoClick } = setup({
+      story: { classes: [{}], characterTemplates: [{}], traits: [{}], difficulties: [{}, {}] },
+    })
+    for (const type of ['class', 'character', 'trait']) {
+      const card = screen.getByTestId(`cc-${type}`)
+      expect(card).toHaveAttribute('data-action', 'false')
+      expect(card).toHaveAttribute('data-info', 'true')
+      fireEvent.click(card)
+      expect(onInfoClick).toHaveBeenCalledWith(type)
+    }
+    expect(onChangeClick).not.toHaveBeenCalled()
+    // The difficulty still has a choice, so it keeps "Change".
+    const difficulty = screen.getByTestId('cc-difficulty')
+    expect(difficulty).toHaveAttribute('data-action', 'true')
+    fireEvent.click(difficulty)
+    expect(onChangeClick).toHaveBeenCalledWith('difficulty')
+  })
+
+  it('hidden traits do not count as a choice', () => {
+    const { onInfoClick } = setup({
+      story: { ...STORY_WITH_CHOICES, traits: [{ uuid: 't1' }, { uuid: 't2', hideOnStartMatch: true }] },
+    })
+    fireEvent.click(screen.getByTestId('cc-trait'))
+    expect(onInfoClick).toHaveBeenCalledWith('trait')
+  })
+
+  it('a single-option card without onInfoClick does not crash on (i)', () => {
+    setup({ story: {}, onInfoClick: undefined })
+    fireEvent.click(screen.getByTestId('cc-class'))
   })
 
   it('renders without crashing when story content lists are missing', () => {

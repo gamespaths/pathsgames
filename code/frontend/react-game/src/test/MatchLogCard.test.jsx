@@ -56,6 +56,15 @@ describe('MatchLogCard', () => {
     expect(container.querySelector('img').src).toBe('http://story/cover.jpg')
   })
 
+  // v0.37.7 — the history picture is the little door card's; the reading page shows none.
+  it('shows no history picture on the reading page', async () => {
+    const { container } = render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
+    await screen.findByTestId('match-log-card')
+    expect(screen.getByText('matchLog.title')).toBeInTheDocument()
+    const pageImg = container.querySelector('.book-page-img')
+    expect(pageImg).toBeNull()
+  })
+
   it('renders one card per log entry, with the event type on the image', async () => {
     render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
     await screen.findByTestId('match-log-card')

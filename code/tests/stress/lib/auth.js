@@ -51,8 +51,15 @@ export function guestToken() {
     'guest 201': (r) => r.status === 201,
     'guest has accessToken': (r) => !!safeJson(r).accessToken,
   });
-  return ok ? safeJson(res).accessToken : null;
+  if (!ok) return null;
+  const body = safeJson(res);
+  // v0.37.7 — Step 41: POST /api/matches wants the csrfToken back as X-CSRF-TOKEN
+  if (body.csrfToken) csrfTokens[body.accessToken] = body.csrfToken;
+  return body.accessToken;
 }
+
+// csrfToken per access token, remembered at login (see createMatch)
+export const csrfTokens = {};
 
 export function safeJson(res) {
   try {

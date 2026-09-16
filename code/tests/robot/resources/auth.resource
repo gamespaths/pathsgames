@@ -13,6 +13,7 @@
 # ---------------------------------------------------------------------------
 Library    RequestsLibrary
 Library    Collections
+Library    CsrfHelper.py
 Resource   common.resource
 
 
@@ -29,6 +30,7 @@ Create Guest Session And Get Token
     ${body}=    Set Variable    ${response.json()}
     Dictionary Should Contain Key    ${body}    accessToken
     ${token}=    Set Variable    ${body}[accessToken]
+    Remember Csrf Token    ${token}    ${body.get('csrfToken', '')}
     Set Test Variable    ${GUEST_RESPONSE}    ${response}
     Set Test Variable    ${GUEST_TOKEN}    ${token}
     RETURN    ${token}
@@ -42,6 +44,7 @@ New Guest Token
     ...                (409 ACTIVE_MATCH_ALREADY_EXISTS).
     ${response}=    POST On Session    public_session    /api/auth/guest
     Status Should Be    ${response}    201
+    Remember Csrf Token    ${response.json()}[accessToken]    ${response.json().get('csrfToken', '')}
     RETURN    ${response.json()}[accessToken]
 
 Use A Fresh Guest Token
@@ -72,6 +75,28 @@ Get Auth Headers
     [Documentation]    Returns a headers dict with Authorization: Bearer \${token}.
     [Arguments]    ${token}
     ${headers}=    Create Dictionary    Authorization=Bearer ${token}
+    RETURN    ${headers}
+
+Get Match Creation Headers
+    [Documentation]    v0.37.7 — Step 41: the auth headers PLUS the X-CSRF-TOKEN that
+    ...                POST /api/matches demands. The token was remembered at login; a
+    ...                guest minted outside these keywords is looked up once through
+    ...                GET /api/auth/me, which answers the csrfToken of its own bearer.
+    [Arguments]    ${token}
+    ${headers}=    Get Auth Headers    ${token}
+    Set To Dictionary    ${headers}    Content-Type=application/json
+    ${csrf}=    Known Csrf Token    ${token}
+    IF    '${csrf}' == ''
+        ${me}=    GET On Session    public_session    /api/auth/me
+        ...    headers=${headers}    expected_status=any
+        IF    ${me.status_code} == 200
+            ${csrf}=    Set Variable    ${me.json().get('csrfToken', '')}
+            Remember Csrf Token    ${token}    ${csrf}
+        END
+    END
+    IF    '${csrf}' != ''
+        Set To Dictionary    ${headers}    X-CSRF-TOKEN=${csrf}
+    END
     RETURN    ${headers}
 
 Call Me Endpoint

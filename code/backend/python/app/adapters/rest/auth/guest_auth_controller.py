@@ -6,17 +6,25 @@ from app.core.ports.auth.jwt_port import JwtPort
 from app.core.ports.auth.token_persistence_port import TokenPersistencePort
 
 from fastapi.responses import JSONResponse
+from app.core.services.security import rate_limit_service as _rl
+
+RATE_BUCKET = "guest"
 
 class GuestResumeRequest(BaseModel):
     guestCookieToken: Optional[str] = None
 
 class GuestAuthController:
     def __init__(self, guest_auth_port: GuestAuthPort, jwt_port: JwtPort, token_persistence: TokenPersistencePort,
-                 test_endpoints_enabled: bool = False):
+                 test_endpoints_enabled: bool = False, rate_limit_service=None, guest_per_ip: int = 0,
+                 csrf_token_service=None):
         self.guest_auth_port = guest_auth_port
         self.jwt_port = jwt_port
         self.token_persistence = token_persistence
         self.test_endpoints_enabled = test_endpoints_enabled
+        # v0.37.7 — Step 41: the guest bucket of the rate limiter and the CSRF token issuer
+        self.rate_limit_service = rate_limit_service
+        self.guest_per_ip = guest_per_ip
+        self.csrf_token_service = csrf_token_service
         self.router = APIRouter(prefix="/api/auth/guest")
         self.router.add_api_route("", self.create_guest, methods=["POST"], status_code=status.HTTP_201_CREATED)
         self.router.add_api_route("/resume", self.resume_guest, methods=["POST"])
@@ -43,6 +51,8 @@ class GuestAuthController:
             "accessTokenExpiresAt": self.jwt_port.get_access_token_expiration_ms(),
             "refreshTokenExpiresAt": self.jwt_port.get_refresh_token_expiration_ms()
         }
+        if self.csrf_token_service is not None:
+            data["csrfToken"] = self.csrf_token_service.token_for(access_token)
         
         response = JSONResponse(content=data)
 
@@ -74,6 +84,13 @@ class GuestAuthController:
         # The X-Test-Marker header tags the guest as test data so it can be
         # removed by POST /api/dev/cleanup. Honoured only when dev test
         # endpoints are enabled; ignored in production.
+        # Step 41 — at most guest_per_ip new guests per source address and window
+        if self.rate_limit_service is not None and self.guest_per_ip > 0:
+            ip = _rl.client_ip(request.headers.get("X-Forwarded-For"),
+                               request.client.host if request.client else None)
+            verdict = self.rate_limit_service.try_acquire(RATE_BUCKET, ip, self.guest_per_ip)
+            if not verdict.allowed:
+                return _rate_limited(verdict, "Too many guest sessions from this address")
         marker = x_test_marker if self.test_endpoints_enabled else None
         session = self.guest_auth_port.create_guest_session(marker)
         response = self._process_session_response(session)
@@ -101,3 +118,15 @@ class GuestAuthController:
                 }
             )
         return self._process_session_response(session)
+
+
+def _rate_limited(verdict, what: str) -> JSONResponse:
+    import time
+    return JSONResponse(
+        status_code=429,
+        headers={"Retry-After": str(verdict.retry_after_seconds)},
+        content={"error": "RATE_LIMITED",
+                 "message": f"{what}, retry in {verdict.retry_after_seconds} seconds",
+                 "retryAfterSeconds": verdict.retry_after_seconds,
+                 "timestamp": int(time.time() * 1000)},
+    )

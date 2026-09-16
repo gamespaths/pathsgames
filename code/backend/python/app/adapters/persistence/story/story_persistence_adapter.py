@@ -676,6 +676,9 @@ class StoryPersistenceAdapter(StoryPersistencePort):
         })
 
     def save_keys(self, story_id: int, items: List[Dict[str, Any]]) -> None:
+        # v0.37.7 — the import contract spells a key name/value/group/visibility (Java, AWS,
+        # tutorial_story.json); the private keyName/keyValue/keyGroup/isVisible spelling stays.
+        items = [_normalise_key_item(item) for item in items]
         self._insert_batch(KeyEntity, story_id, items, {
             "id_card": "idCard", "key_name": "keyName", "key_value": "keyValue",
             "key_group": "keyGroup", "is_visible": "isVisible",
@@ -1088,3 +1091,12 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             session.commit()
 
 
+def _normalise_key_item(item: Dict[str, Any]) -> Dict[str, Any]:
+    """One key row in the private spelling, whichever of the two the JSON used."""
+    out = dict(item)
+    for shared, private in (("name", "keyName"), ("value", "keyValue"), ("group", "keyGroup")):
+        if private not in out and shared in out:
+            out[private] = out[shared]
+    if "isVisible" not in out and "visibility" in out:
+        out["isVisible"] = 1 if str(out["visibility"] or "").strip().upper() == "PUBLIC" else 0
+    return out

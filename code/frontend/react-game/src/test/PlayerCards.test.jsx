@@ -151,3 +151,31 @@ describe('PlayerCards — story card', () => {
     expect(onPreview).toHaveBeenCalledWith({ card: STORY.card, type: 'story', side: 'right' })
   })
 })
+
+// v0.37.7 — the match history card sits right before the story card, only when the board
+// hands over a way to open it; its action opens the history on the right page.
+vi.mock('@/features/matches/MatchHistoryCard', () => ({
+  default: ({ onOpen }) => <button data-testid="card-matchlog" onClick={onOpen}>history</button>,
+}))
+
+describe('PlayerCards — match history door', () => {
+  it('lists no history card without an opener', () => {
+    renderCards()
+    expect(screen.queryByTestId('card-matchlog')).toBeNull()
+  })
+
+  it('puts the history card right before the story card and opens it on click', () => {
+    const onOpenHistory = vi.fn()
+    const { container } = render(<PlayerCards storyFull={STORY_FULL} story={STORY}
+      playerStats={PLAYER_STATS} gameData={GAME_DATA} onPreview={vi.fn()}
+      onOpenHistory={onOpenHistory} />)
+    const ids = [...container.querySelectorAll('[data-testid^="card-"]')]
+      .map(el => el.getAttribute('data-testid'))
+    const history = ids.indexOf('card-matchlog')
+    expect(history).toBeGreaterThan(-1)
+    expect(ids[history + 1]).toBe('card-story')
+    expect(ids[history - 1]).toBe('card-difficulty')
+    fireEvent.click(screen.getByTestId('card-matchlog'))
+    expect(onOpenHistory).toHaveBeenCalledTimes(1)
+  })
+})

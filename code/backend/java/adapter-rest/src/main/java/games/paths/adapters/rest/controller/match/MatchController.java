@@ -8,6 +8,8 @@ import games.paths.core.model.match.MatchDetail;
 import games.paths.core.model.match.MatchSummary;
 import games.paths.core.port.match.MatchCommandPort;
 import games.paths.core.port.match.MatchQueryPort;
+import games.paths.core.service.security.CsrfTokenService;
+import games.paths.core.service.security.RateLimitService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -37,9 +39,27 @@ public class MatchController {
     private final MatchCommandPort matchCommandPort;
     private final MatchQueryPort matchQueryPort;
 
+    static final String RATE_BUCKET = "match";
+
+    private final RateLimitService rateLimitService;
+    private final int matchPerIp;
+    private final CsrfTokenService csrfTokenService;
+
     public MatchController(MatchCommandPort matchCommandPort, MatchQueryPort matchQueryPort) {
+        this(matchCommandPort, matchQueryPort, null, 0, null);
+    }
+
+    /** v0.37.7 — Step 41: the match bucket of the rate limiter and the CSRF check on creation. */
+    @org.springframework.beans.factory.annotation.Autowired
+    public MatchController(MatchCommandPort matchCommandPort, MatchQueryPort matchQueryPort,
+                           RateLimitService rateLimitService,
+                           @org.springframework.beans.factory.annotation.Value("${game.security.rate-limit.match-per-ip:0}") int matchPerIp,
+                           CsrfTokenService csrfTokenService) {
         this.matchCommandPort = matchCommandPort;
         this.matchQueryPort = matchQueryPort;
+        this.rateLimitService = rateLimitService;
+        this.matchPerIp = matchPerIp;
+        this.csrfTokenService = csrfTokenService;
     }
 
     @PostMapping("/api/matches")
@@ -49,6 +69,30 @@ public class MatchController {
         if (userUuid == null || userUuid.isBlank()) {
             return error(HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED",
                     "User identity is missing from the request");
+        }
+        // Step 41 — the CSRF token issued with this access token must come back as a header
+        if (csrfTokenService != null && csrfTokenService.isEnforced()) {
+            String presented = request.getHeader(CsrfTokenService.HEADER);
+            if (presented == null || presented.isBlank()) {
+                return error(HttpStatus.FORBIDDEN, "CSRF_TOKEN_MISSING",
+                        CsrfTokenService.HEADER + " header is required to create a match");
+            }
+            if (!csrfTokenService.matches(bearerOf(request), presented)) {
+                return error(HttpStatus.FORBIDDEN, "CSRF_TOKEN_INVALID",
+                        CsrfTokenService.HEADER + " does not match the access token");
+            }
+        }
+        // Step 41 — at most match-per-ip new matches per source address and window
+        if (rateLimitService != null && matchPerIp > 0) {
+            String ip = RateLimitService.clientIp(request.getHeader("X-Forwarded-For"),
+                    request.getRemoteAddr());
+            RateLimitService.Verdict verdict = rateLimitService.tryAcquire(RATE_BUCKET, ip, matchPerIp);
+            if (!verdict.allowed()) {
+                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                        .header("Retry-After", String.valueOf(verdict.retryAfterSeconds()))
+                        .body(errorBody("RATE_LIMITED", "Too many matches created from this address, retry in "
+                                + verdict.retryAfterSeconds() + " seconds", verdict.retryAfterSeconds()));
+            }
         }
         if (body == null || isBlank(body.getStoryUuid()) || isBlank(body.getDifficultyUuid())) {
             return error(HttpStatus.BAD_REQUEST, "INVALID_INPUT",
@@ -155,11 +199,24 @@ public class MatchController {
     }
 
     private static ResponseEntity<Object> error(HttpStatus status, String code, String message) {
+        return ResponseEntity.status(status).body(errorBody(code, message, null));
+    }
+
+    private static Map<String, Object> errorBody(String code, String message, Long retryAfterSeconds) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("error", code);
         body.put("message", message);
+        if (retryAfterSeconds != null) {
+            body.put("retryAfterSeconds", retryAfterSeconds);
+        }
         body.put("timestamp", System.currentTimeMillis());
-        return ResponseEntity.status(status).body(body);
+        return body;
+    }
+
+    /** The raw bearer the filter already validated — the CSRF token is bound to it. */
+    private static String bearerOf(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        return header != null && header.startsWith("Bearer ") ? header.substring(7).trim() : null;
     }
 
     private static HttpStatus mapStatus(MatchCommandPort.MatchCreationException.Code code) {

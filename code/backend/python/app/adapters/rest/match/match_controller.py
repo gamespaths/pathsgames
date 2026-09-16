@@ -13,6 +13,8 @@ from app.core.models.match.match_models import (
 )
 from app.adapters.rest.match.inventory_controller import item_to_camel
 from app.core.ports.match.match_ports import MatchCommandPort, MatchQueryPort
+from app.core.services.security import csrf_token_service as _csrf
+from app.core.services.security import rate_limit_service as _rl
 
 
 _STATUS_BY_CODE = {
@@ -46,6 +48,12 @@ class MatchCreateRequestBody(BaseModel):
     turnstileToken: Optional[str] = None
     # Step 27 — optional deterministic RNG seed (Robot tests pass 42).
     rngSeed: Optional[int] = None
+
+
+def _bearer_of(request: Request) -> Optional[str]:
+    """The raw bearer the middleware already validated — the CSRF token is bound to it."""
+    header = request.headers.get("Authorization") or ""
+    return header[7:].strip() if header.startswith("Bearer ") else None
 
 
 def _error(code: str, message: str, http_status: int) -> JSONResponse:
@@ -261,10 +269,15 @@ def _detail_to_camel(detail):
 
 class MatchController:
     def __init__(self, command_port: MatchCommandPort, query_port: MatchQueryPort,
-                 match_logs_service=None):
+                 match_logs_service=None, rate_limit_service=None, match_per_ip: int = 0,
+                 csrf_token_service=None):
         self.command_port = command_port
         self.query_port = query_port
         self.match_logs_service = match_logs_service
+        # v0.37.7 — Step 41: the match bucket of the rate limiter and the CSRF check on creation
+        self.rate_limit_service = rate_limit_service
+        self.match_per_ip = match_per_ip
+        self.csrf_token_service = csrf_token_service
         self.router = APIRouter()
         self.router.add_api_route(
             "/api/matches", self.create_match, methods=["POST"]
@@ -327,6 +340,29 @@ class MatchController:
         user_uuid = getattr(request.state, "user_uuid", None)
         if not user_uuid:
             return _error("UNAUTHENTICATED", "User identity is missing", 401)
+        # Step 41 — the CSRF token issued with this access token must come back as a header
+        if self.csrf_token_service is not None and self.csrf_token_service.enforced:
+            presented = request.headers.get(_csrf.HEADER)
+            if not presented or not presented.strip():
+                return _error("CSRF_TOKEN_MISSING",
+                              f"{_csrf.HEADER} header is required to create a match", 403)
+            if not self.csrf_token_service.matches(_bearer_of(request), presented):
+                return _error("CSRF_TOKEN_INVALID",
+                              f"{_csrf.HEADER} does not match the access token", 403)
+        # Step 41 — at most match_per_ip new matches per source address and window
+        if self.rate_limit_service is not None and self.match_per_ip > 0:
+            ip = _rl.client_ip(request.headers.get("X-Forwarded-For"),
+                               request.client.host if request.client else None)
+            verdict = self.rate_limit_service.try_acquire("match", ip, self.match_per_ip)
+            if not verdict.allowed:
+                return JSONResponse(
+                    status_code=429,
+                    headers={"Retry-After": str(verdict.retry_after_seconds)},
+                    content={"error": "RATE_LIMITED",
+                             "message": "Too many matches created from this address, retry in "
+                                        f"{verdict.retry_after_seconds} seconds",
+                             "retryAfterSeconds": verdict.retry_after_seconds,
+                             "timestamp": int(time.time() * 1000)})
         if body is None or not body.storyUuid or not body.difficultyUuid:
             return _error("INVALID_INPUT", "storyUuid and difficultyUuid are required", 400)
         command = MatchCreateCommand(

@@ -25,10 +25,15 @@ function authConfig(accessToken) {
 
 /**
  * Create a single-player match. Throws on a backend error so the caller can
- * surface it.
+ * surface it. v0.37.7 — the `csrfToken` issued with the bearer at login travels
+ * back as `X-CSRF-TOKEN`; the backend refuses the creation without it (Step 41).
  */
-export async function createMatch(payload, accessToken) {
-  const res = await apiClient().post('/api/matches', payload, authConfig(accessToken))
+export async function createMatch(payload, accessToken, csrfToken) {
+  const config = authConfig(accessToken)
+  if (csrfToken) {
+    config.headers = { ...(config.headers ?? {}), 'X-CSRF-TOKEN': csrfToken }
+  }
+  const res = await apiClient().post('/api/matches', payload, config)
   return res.data
 }
 

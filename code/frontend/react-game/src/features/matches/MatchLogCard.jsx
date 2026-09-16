@@ -3,7 +3,7 @@ import { useTranslation } from '@/i18n/context'
 import Card from '@/components/layout/Card'
 import LoadingCard from '@/components/layout/LoadingCard'
 import { getMatchLogs } from '@/api/matches'
-import { buildCardToSleep } from '@/utils/loadoutCards'
+import { buildCardToSleep, buildHistoryCard } from '@/utils/loadoutCards'
 
 /**
  * MatchLogCard — the match history, rendered as a full book reading page.
@@ -338,7 +338,8 @@ export default function MatchLogCard({ matchUuid, accessToken, story = null, onB
   return (
     <Card
       variant="page"
-      card={{ title: t('matchLog.title'), description: null, urlImage: null }}
+      // The history image belongs to the little door card; the reading page is the list itself.
+      card={{ ...buildHistoryCard(t), title: t('matchLog.title'), urlImage: null }}
       entityType="matchlog"
       story={story}
       loading={false}

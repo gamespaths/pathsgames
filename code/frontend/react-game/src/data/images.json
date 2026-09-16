@@ -1,5 +1,4 @@
 [
-
   {
     "id": "home",
     "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM",
@@ -215,6 +214,24 @@
     "styleImageLarge": ""
   },
   {
+    "id": "history",
+    "urlImage": "https://images.unsplash.com/photo-1604292771492-1aee47c1456b?q=80&w=1440&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "copyrightText": "Mick Haupt",
+    "linkCopyright": "https://unsplash.com/photos/text-DgugiZUfH9k",
+    "awesomeIcon": "fas fa-history",
+    "description": "History of the match",
+    "styleImageLarge": "no-of-c"
+  },
+  {
+    "id": "history-alternative",
+    "urlImage": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZyBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTI1NiAxNTBjLTQwLTMwLTEwMC0zOC0xNzYtMzB2MjUwYzc2LTggMTM2IDAgMTc2IDMwIDQwLTMwIDEwMC0zOCAxNzYtMzBWMTIwYy03Ni04LTEzNiAwLTE3NiAzMHoiLz48cGF0aCBkPSJNMjU2IDE1MHYyNTAiLz48Y2lyY2xlIGN4PSIzNTIiIGN5PSIyNjIiIHI9IjU4Ii8+PHBhdGggZD0iTTM1MiAyMzJ2MzRsMjQgMTYiLz48cGF0aCBkPSJNMzAyIDIxMGE3MCA3MCAwIDAgMSA5OS0xNE0yOTggMTkwbDQgMzAgMzAtNiIvPjwvZz48L3N2Zz4=",
+    "copyrightText": "Paths Games",
+    "linkCopyright": "https://paths.games",
+    "awesomeIcon": "fas fa-history",
+    "description": "History of the match",
+    "styleImageLarge": "of-c"
+  },
+  {
     "id": "crown-of-ashes",
     "url": "https://images.unsplash.com/photo-1735756045961-eaefc57a89e4?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     "author": "Sai Madhav",
@@ -232,7 +249,7 @@
     "author": "Subhro Vision",
     "authorLink": "https://unsplash.com/photos/a-person-holding-a-lit-lantern-in-the-dark-pRQk1Llu2so"
   },
- {
+  {
     "id": "home-privacy-policy",
     "title": "Privacy Policy",
     "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM",

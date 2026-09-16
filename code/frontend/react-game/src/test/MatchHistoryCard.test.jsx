@@ -24,4 +24,15 @@ describe('MatchHistoryCard (v0.37.4)', () => {
     }))
     expect(captured[0].card.description).toBe('matches.historyDescription')
   })
+
+  // v0.37.7 — the door is drawn from the `history` entry of data/images.json, the same
+  // card the board's PlayerCards and the log page itself use.
+  it('carries the history picture and icon from data/images.json', () => {
+    render(<MatchHistoryCard onOpen={vi.fn()} />)
+    const card = captured.at(-1).card
+    expect(card.title).toBe('matches.history')
+    expect(card.awesomeIcon).toBe('fas fa-history')
+    expect(card.urlImage).toBeTruthy()
+    expect(card.copyrightText).toBeTruthy()
+  })
 })

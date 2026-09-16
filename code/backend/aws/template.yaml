@@ -27,6 +27,25 @@ Parameters:
     Default: "true"
     AllowedValues: ["true", "false"]
     Description: "Enable MOCK_ACCESS_/MOCK_REFRESH_ tokens (dev convenience). Set to 'false' in production."
+  # v0.37.7 — Step 41. Fixed-window limits per source IP on POST /api/auth/guest and
+  # POST /api/matches; "0" disables a bucket (dev / Robot default), prod sets "10".
+  RateLimitGuestPerIp:
+    Type: String
+    Default: "0"
+    Description: "Max new guest sessions per source IP per window. 0 = disabled."
+  RateLimitMatchPerIp:
+    Type: String
+    Default: "0"
+    Description: "Max new matches per source IP per window. 0 = disabled."
+  RateLimitWindowSeconds:
+    Type: String
+    Default: "3600"
+    Description: "Length of the rate-limit window, in seconds."
+  CsrfEnforced:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: "Require the csrfToken issued at login back as X-CSRF-TOKEN on POST /api/matches."
   SeedBcryptHash:
     Type: String
     NoEcho: true
@@ -133,6 +152,10 @@ Resources:
           KeyType: RANGE
       # v0.37.5 — PROVISIONED (dev) stays inside the always-free 25 RCU/WCU; prod is on-demand.
       BillingMode: !Ref TableBillingMode
+      # v0.37.7 — the rate-limit counters (RATELIMIT#…) carry a `ttl` so they expire on their own.
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
       ProvisionedThroughput: !If
         - IsProvisioned
         - ReadCapacityUnits: !Ref TableReadCapacity
@@ -209,12 +232,45 @@ Resources:
               WriteCapacityUnits: !Ref GsiWriteCapacity
             - !Ref AWS::NoValue
 
-  # HTTP API (API Gateway v2) — public/player surface
+  # HTTP API (API Gateway v2) — public/player surface.
+  # v0.37.7 — a plain AWS::ApiGatewayV2::Api, NOT AWS::Serverless::HttpApi: SAM renders the
+  # latter as an Api with an OpenAPI `Body` (paths: {}), and every update of that body
+  # (a CORS or tag change) re-imports the definition and DELETES the routes the nested
+  # modules created — the stage then keeps serving its last snapshot, silently stale.
   PathsGamesApi:
-    Type: AWS::Serverless::HttpApi
+    Type: AWS::ApiGatewayV2::Api
     Properties:
       Name: !Sub "pathsgames-${Environment}"
+      ProtocolType: HTTP
+      Tags:
+        project: PathsGames
+        env: !Ref Environment
+      CorsConfiguration:
+        AllowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+        AllowOrigins: !Ref CorsAllowOrigins
+        # X-CSRF-TOKEN rides on POST /api/matches; without it here the browser's preflight
+        # fails and the game never reaches the API. Retry-After is read on a 429.
+        AllowHeaders: [Content-Type, Authorization, Cookie, X-CSRF-TOKEN]
+        ExposeHeaders: [Retry-After]
+        AllowCredentials: true
+
+  PathsGamesApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref PathsGamesApi
       StageName: !Ref Environment
+      AutoDeploy: true
+      Tags:
+        project: PathsGames
+        env: !Ref Environment
+
+  # Dedicated ADMIN HTTP API — serves ONLY /api/admin/** routes and is gated by an
+  # IP-allow-list Lambda authorizer (the AWS-side equivalent of the 8044 admin port).
+  PathsGamesAdminApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub "pathsgames-${Environment}-admin"
+      ProtocolType: HTTP
       Tags:
         project: PathsGames
         env: !Ref Environment
@@ -224,21 +280,15 @@ Resources:
         AllowHeaders: [Content-Type, Authorization, Cookie]
         AllowCredentials: true
 
-  # Dedicated ADMIN HTTP API — serves ONLY /api/admin/** routes and is gated by an
-  # IP-allow-list Lambda authorizer (the AWS-side equivalent of the 8044 admin port).
-  PathsGamesAdminApi:
-    Type: AWS::Serverless::HttpApi
+  PathsGamesAdminApiStage:
+    Type: AWS::ApiGatewayV2::Stage
     Properties:
-      Name: !Sub "pathsgames-${Environment}-admin"
+      ApiId: !Ref PathsGamesAdminApi
       StageName: !Ref Environment
+      AutoDeploy: true
       Tags:
         project: PathsGames
         env: !Ref Environment
-      CorsConfiguration:
-        AllowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
-        AllowOrigins: !Ref CorsAllowOrigins
-        AllowHeaders: [Content-Type, Authorization, Cookie]
-        AllowCredentials: true
 
   AdminIpAuthorizerLogGroup:
     Type: AWS::Logs::LogGroup
@@ -354,6 +404,9 @@ Resources:
         JwtSecret: !Ref JwtSecret
         AllowMockAccess: !Ref AllowMockAccess
         AdminIpWhitelist: !Ref AdminIpWhitelist
+        RateLimitGuestPerIp: !Ref RateLimitGuestPerIp
+        RateLimitWindowSeconds: !Ref RateLimitWindowSeconds
+        CsrfEnforced: !Ref CsrfEnforced
 
   StoryModule:
     Type: AWS::Serverless::Application
@@ -393,6 +446,9 @@ Resources:
         TurnstileBypassToken: !Ref TurnstileBypassToken
         AllowMockAccess: !Ref AllowMockAccess
         AdminIpWhitelist: !Ref AdminIpWhitelist
+        RateLimitMatchPerIp: !Ref RateLimitMatchPerIp
+        RateLimitWindowSeconds: !Ref RateLimitWindowSeconds
+        CsrfEnforced: !Ref CsrfEnforced
 
   ContentModule:
     Type: AWS::Serverless::Application

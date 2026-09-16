@@ -27,8 +27,7 @@ Create Match
     ...                has a Turnstile key configured, e.g. AWS dev with test key).
     [Arguments]    ${token}    ${story_uuid}    ${difficulty_uuid}
     ...    ${name}=robottest_match    ${expected_status}=any
-    ${headers}=    Get Auth Headers    ${token}
-    Set To Dictionary    ${headers}    Content-Type=application/json
+    ${headers}=    Get Match Creation Headers    ${token}
     &{body}=    Create Dictionary
     ...    storyUuid=${story_uuid}
     ...    difficultyUuid=${difficulty_uuid}
@@ -48,8 +47,7 @@ Create Match With Rng Seed
     ...                selection is deterministic. Robot always passes 42.
     [Arguments]    ${token}    ${story_uuid}    ${difficulty_uuid}
     ...    ${rng_seed}=42    ${name}=robottest_weather    ${expected_status}=any
-    ${headers}=    Get Auth Headers    ${token}
-    Set To Dictionary    ${headers}    Content-Type=application/json
+    ${headers}=    Get Match Creation Headers    ${token}
     &{body}=    Create Dictionary
     ...    storyUuid=${story_uuid}
     ...    difficultyUuid=${difficulty_uuid}
@@ -131,8 +129,7 @@ Create Match With Loadout
     [Arguments]    ${token}    ${story_uuid}    ${difficulty_uuid}
     ...    ${character_uuid}    ${class_uuid}    ${trait_uuids}    ${single_player}
     ...    ${expected_status}=any
-    ${headers}=    Get Auth Headers    ${token}
-    Set To Dictionary    ${headers}    Content-Type=application/json
+    ${headers}=    Get Match Creation Headers    ${token}
     &{body}=    Create Dictionary
     ...    storyUuid=${story_uuid}
     ...    difficultyUuid=${difficulty_uuid}
@@ -209,8 +206,7 @@ Create Match With Turnstile Token
     ...                Cloudflare siteverify API and missing/invalid tokens return 400.
     [Arguments]    ${token}    ${story_uuid}    ${difficulty_uuid}
     ...    ${turnstile_token}=${NONE}    ${name}=robottest_match    ${expected_status}=any
-    ${headers}=    Get Auth Headers    ${token}
-    Set To Dictionary    ${headers}    Content-Type=application/json
+    ${headers}=    Get Match Creation Headers    ${token}
     &{body}=    Create Dictionary
     ...    storyUuid=${story_uuid}
     ...    difficultyUuid=${difficulty_uuid}

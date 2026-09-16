@@ -895,22 +895,25 @@ def import_story(event):
         'raw_texts':              _assign_ids(data.get('texts', []), 'id'),
         'raw_cards':              stored_cards,
         'raw_creators':           stored_creators,
-        'keys':                   _assign_ids(data.get('keys', []), 'id'),
-        'choices':                _assign_ids(data.get('choices', []), 'id'),
-        'weatherRules':           _assign_ids(data.get('weatherRules', []), 'id'),
-        'globalRandomEvents':    _assign_ids(data.get('globalRandomEvents', []), 'id'),
-        'missions':               _assign_ids(data.get('missions', []), 'id'),
-        'locationNeighbors':      _assign_ids(data.get('locationNeighbors', []), 'id'),
+        # v0.37.7 — every row gets a uuid, as on Java and Python: select-choice addresses an
+        # option by it and the admin CRUD addresses every entity by it (a story authored
+        # without uuids used to land with choices nobody could pick).
+        'keys':                   _assign_uuids(_assign_ids(data.get('keys', []), 'id')),
+        'choices':                _assign_uuids(_assign_ids(data.get('choices', []), 'id')),
+        'weatherRules':           _assign_uuids(_assign_ids(data.get('weatherRules', []), 'id')),
+        'globalRandomEvents':    _assign_uuids(_assign_ids(data.get('globalRandomEvents', []), 'id')),
+        'missions':               _assign_uuids(_assign_ids(data.get('missions', []), 'id')),
+        'locationNeighbors':      _assign_uuids(_assign_ids(data.get('locationNeighbors', []), 'id')),
         # v0.29.0 — effects need a uuid: the execute-event response addresses each applied
         # effect by it, and its own idCard is the narrative card the board renders.
         'eventEffects':           _assign_uuids(_assign_ids(data.get('eventEffects', []), 'id')),
         # v0.34.0 — same reason as the event effects above: the use-item response
         # addresses each applied effect by uuid.
         'itemEffects':            _assign_uuids(_assign_ids(data.get('itemEffects', []), 'id')),
-        'choiceConditions':       _assign_ids(data.get('choiceConditions', []), 'id'),
-        'choiceEffects':          _assign_ids(data.get('choiceEffects', []), 'id'),
-        'classBonuses':           _assign_ids(data.get('classBonuses', []), 'id'),
-        'missionSteps':           _assign_ids(data.get('missionSteps', []), 'id'),
+        'choiceConditions':       _assign_uuids(_assign_ids(data.get('choiceConditions', []), 'id')),
+        'choiceEffects':          _assign_uuids(_assign_ids(data.get('choiceEffects', []), 'id')),
+        'classBonuses':           _assign_uuids(_assign_ids(data.get('classBonuses', []), 'id')),
+        'missionSteps':           _assign_uuids(_assign_ids(data.get('missionSteps', []), 'id')),
     }
     db_utils.put_item(story_index.stamp(story_item))
     story_cache.bump(story_uuid)

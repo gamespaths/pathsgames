@@ -883,6 +883,38 @@ class StoryImportServiceTest {
             );
         }
 
+        // v0.37.7 — a choice's owning event, linked event and stat limits were never imported.
+        @Test
+        @DisplayName("Choices keep idEvent, idEventTorun and the four limits")
+        void choices_keepEventAndLimits() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "choice-uuid");
+            data.put("choices", List.of(
+                Map.of("id", 1, "idEvent", 30, "idEventTorun", 31,
+                       "limitSad", 1, "limitDex", 2, "limitInt", 3, "limitCos", 4),
+                Map.of("id", 2, "idEvent", 0)));
+
+            stubMinimalStory("choice-uuid");
+            when(persistencePort.saveChoices(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<List<ChoiceEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveChoices(captor.capture());
+            ChoiceEntity first = captor.getValue().get(0);
+            ChoiceEntity second = captor.getValue().get(1);
+            assertAll("choice references survive the import",
+                () -> assertEquals(30, first.getIdEvent()),
+                () -> assertEquals(31, first.getIdEventTorun()),
+                () -> assertEquals(1, first.getLimitSad()),
+                () -> assertEquals(2, first.getLimitDex()),
+                () -> assertEquals(3, first.getLimitInt()),
+                () -> assertEquals(4, first.getLimitCos()),
+                () -> assertNull(second.getIdEvent()),
+                () -> assertNull(second.getIdEventTorun())
+            );
+        }
+
         // v0.35.8 — list_events.id_weather and list_weather_rules.id_event reference each
         // other: the rules go in first, and the back-reference is written afterwards.
         @Test

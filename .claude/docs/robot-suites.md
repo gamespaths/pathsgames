@@ -34,6 +34,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `35_import_integrity` | v0.35.8 import/schema/admin-CRUD regressions — ships its own story, no seed (see breakdown below) |
 | `36_registry` | Step 36 registry read API, v0.36.1 multi-valued keys, v0.36.3 `forced_move.robot` + v0.36.4 `registry_repeated_writes.robot` (see breakdown below) |
 | `37_missions` | Step 37 mission read API, the status machine, the condition semantics, the v0.37.1 match-start trigger fix, and the v0.37.2 `MISSION_CHANGE` log entry (see breakdown below) |
+| `41_security` | v0.37.7 Step 41: the `csrfToken` on login/resume/`/me` and the `X-CSRF-TOKEN` refusals on `POST /api/matches`; two rate-limit cases that SKIP unless `RATE_LIMIT_GUEST_PER_IP` / `RATE_LIMIT_MATCH_PER_IP` are passed (see breakdown below) |
 
 ### `19_match` breakdown
 
@@ -258,6 +259,29 @@ the registry), while `DELETE` still accepts one — cleaning an orphan row up is
 Both fixture keys are found by behaviour (the first multi and the first single key the match
 answers with), and each case runs on its own guest and match since a key latches.
 
+### `36_registry/registry_gates.robot` breakdown
+
+`registry_gates.robot` (v0.37.7, 17 tests) — every READER and WRITER of the registry the
+earlier suites left untested: the movement-edge gate (`/info` neighbors `available`/`reason`
+= `MOVEMENT_CONDITION_NOT_MET` and the 409 on `movements/start`), the weather-rule gate
+(two rules on one key, `!=` vs `=`, so exactly one qualifies at every time-start and the
+admin `rules[].registryMet` flips), the numeric operators `>`/`<` (never over an empty set,
+a non-number meets neither), an operator column left UNSET reading as `=` on both an event
+and an edge, `!=` met by an absent key, a `target=ALL` effect row writing once, and the two
+choice-effect columns: `valueToAdd` wins over `valueToRemove` on one row, a compare-and-clear
+against another value leaves the key alone (and logs nothing), against the held value empties
+it, on an empty key does nothing. Like `35_import_integrity` it **ships its own story**
+(`story_registry_gates.json`, PRIVATE, category `robottest`): imported in Suite Setup,
+deleted in Suite Teardown after every match it created is stopped and deleted; entities are
+addressed by story-local `id` through the admin CRUD lists (`character-templates` echoes no
+`id`, so the loadout rows are taken by position). Each case runs on its own guest and match.
+Writing it surfaced two import bugs, fixed in v0.37.7: Java never imported
+`choices[].idEvent`/`idEventTorun`/limits, and Python's `save_keys` only knew its private
+`keyName`/`keyValue`/`keyGroup`/`isVisible` spelling (plus its validator read stored
+`id_choice` as missing, so every stored choice failed R4); AWS import gave no uuid to
+choices, keys, weather rules, missions, neighbors, conditions, effects, bonuses or steps,
+so an authored-without-uuid choice could never be selected.
+
 ### `36_registry/forced_move.robot` breakdown
 
 `forced_move.robot` (5 tests) — v0.36.3, the two things that happen AROUND a forced move.
@@ -323,6 +347,25 @@ list, so a leaner seed does not fail the suite.
   penultimate row names the last step, and the last names none. Fixtures found by BEHAVIOUR
   through `resources/missions.resource`, no seeded uuid; the three new cases `Skip` when the
   story gives no mission a card.
+
+### `41_security` breakdown
+
+`security.robot` (v0.37.7, 8 tests) — Step 41. CSRF: guest login issues a `csrfToken`
+bound to the bearer (two guests, two tokens), `GET /api/auth/me` answers the same one,
+resume follows the new bearer (skips when the client keeps no cookie), and `POST
+/api/matches` answers 403 `CSRF_TOKEN_MISSING` without the header and `CSRF_TOKEN_INVALID`
+with another guest's token or a garbled one — creating nothing — while the shared `Create
+Match` keyword still gets 201. `${CSRF_ENFORCED}` (default true) skips the two refusals
+on a server started with `CSRF_ENFORCED=false`. Rate limits: the match case (one guest,
+each match stopped and deleted before the next) and the guest case expect a 429
+`RATE_LIMITED` with `Retry-After` within limit+1 attempts; both SKIP unless
+`--variable RATE_LIMIT_MATCH_PER_IP:N --variable RATE_LIMIT_GUEST_PER_IP:N` match the
+server's env, and must then run ALONE — the window stays shut for every suite after them.
+
+The CSRF plumbing lives in `resources/CsrfHelper.py` + `Get Match Creation Headers`
+(`auth.resource`): the login keywords remember each bearer's `csrfToken`, every
+`Create Match*` keyword echoes it, and a guest minted by a direct `POST /api/auth/guest`
+is looked up once through `GET /api/auth/me`. Suites need no change.
 
 ### `35_import_integrity` breakdown
 

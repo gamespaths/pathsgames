@@ -126,3 +126,24 @@ def test_validate_story_by_uuid_validates_known_story():
     svc = StoryValidatorService(_FakeReadPort(_tables()))
     report = svc.validate_story_by_uuid("known")
     assert report is not None
+
+
+# v0.37.7 — a STORED choice effect / condition names its owner `id_choice` (the column),
+# not `idChoices` (the import spelling); the option must still count for R4.
+def test_validate_story_db_path_reads_stored_id_choice_owner():
+    tables = _tables()
+    tables["list_choices"] = [{"id": 1, "idEvent": 1}]                # no otherwise fallback
+    tables["list_choices_effects"] = [{"id": 1, "id_choice": 1, "key": "mood"}]
+    tables["list_choices_conditions"] = [{"id": 1, "id_choice": 1, "type": "KEYS", "key": "CHAPTER"}]
+    svc = StoryValidatorService(_FakeReadPort(tables))
+    report = svc.validate_story(1)
+    assert report.is_valid() is True, report.errors
+
+
+def test_validate_story_db_path_stored_condition_owner_must_exist():
+    tables = _tables()
+    tables["list_choices_conditions"] = [{"id": 1, "id_choice": 99, "type": "KEYS", "key": "CHAPTER"}]
+    svc = StoryValidatorService(_FakeReadPort(tables))
+    report = svc.validate_story(1)
+    assert report.is_valid() is False
+    assert any(e.entity_type == "choice-conditions" for e in report.errors)

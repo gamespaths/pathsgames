@@ -152,7 +152,7 @@
     },
     "history": "Match History",
     "historyDescription": "Every step this match has taken, newest first: moves, events, rests and what they changed.",
-    "historyOpen": "Open"
+    "historyOpen": "History"
   },
   "matchLog": {
     "title": "Match history",

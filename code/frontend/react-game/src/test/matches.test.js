@@ -57,6 +57,24 @@ describe('matches api', () => {
       expect(res).toEqual({ uuid: 'm1' })
     })
 
+    it('createMatch sends the csrfToken back as X-CSRF-TOKEN (v0.37.7)', async () => {
+      post.mockResolvedValue({ data: { uuid: 'm1' } })
+      await createMatch({ storyUuid: 's1' }, 'tok-123', 'csrf-abc')
+      expect(post).toHaveBeenCalledWith(
+        '/api/matches',
+        { storyUuid: 's1' },
+        expect.objectContaining({
+          headers: { Authorization: 'Bearer tok-123', 'X-CSRF-TOKEN': 'csrf-abc' },
+        }),
+      )
+    })
+
+    it('createMatch adds no X-CSRF-TOKEN header when the identity carries none', async () => {
+      post.mockResolvedValue({ data: { uuid: 'm1' } })
+      await createMatch({ storyUuid: 's1' }, 'tok-123', null)
+      expect(post.mock.calls[0][2].headers).toEqual({ Authorization: 'Bearer tok-123' })
+    })
+
     it('createMatch posts without an Authorization header when no token', async () => {
       post.mockResolvedValue({ data: { uuid: 'm2' } })
       await createMatch({ storyUuid: 's1' })

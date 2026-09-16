@@ -94,6 +94,11 @@ export function buildMissionsCard(t) {
   return metaCard('missions', t('game.missions.title'), null)
 }
 
+/** v0.37.7 — match history card (MatchHistoryCard, MatchLogCard), the missions' neighbour. */
+export function buildHistoryCard(t, description = null) {
+  return metaCard('history', t('matches.history'), description)
+}
+
 /** "Loading…" card shown on the book page while the board reloads (LoadingCard). */
 export function buildLoadingCard(t) {
   return metaCard('loading', t('game.loadingCard.title'), t('game.loadingCard.description'))

@@ -409,6 +409,41 @@ def test_import_story_success_full_payload():
     assert body['storyUuid'] == 'imp-1'
     assert body['textsImported'] == 2
 
+# v0.37.7 — a row authored without a uuid used to land without one on this backend alone;
+# select-choice and the admin CRUD address rows by uuid, so such a choice could never be picked.
+def test_import_story_gives_every_row_a_uuid_and_keeps_authored_ones():
+    payload = {
+        'uuid': 'imp-uuids',
+        'texts': [{'idText': 1, 'lang': 'en', 'shortText': 'T'}],
+        'events': [{'id': 1, 'idTextName': 1}],
+        'choices': [{'id': 1, 'idEvent': 1, 'otherwiseFlag': 1}, {'id': 2, 'idEvent': 1, 'uuid': 'kept', 'otherwiseFlag': 1}],
+        'keys': [{'id': 1, 'name': 'door'}],
+        'weatherRules': [{'id': 1, 'probability': 100}],
+        'globalRandomEvents': [{'id': 1, 'idEvent': 1}],
+        'missions': [{'id': 1, 'conditionKey': 'door', 'conditionValue': '1'}],
+        'missionSteps': [{'id': 1, 'idMission': 1, 'step': 1, 'conditionKey': 'door', 'conditionValue': '1'}],
+        'locations': [{'id': 1, 'idTextName': 1}, {'id': 2, 'idTextName': 1}],
+        'locationNeighbors': [{'id': 1, 'idLocationFrom': 1, 'idLocationTo': 2, 'direction': 'N'}],
+        'choiceConditions': [{'id': 1, 'idChoices': 1, 'type': 'KEYS', 'key': 'door', 'value': '1'}],
+        'choiceEffects': [{'id': 1, 'idChoices': 2, 'key': 'door', 'valueToAdd': '1'}],
+        'classes': [{'id': 1, 'idTextName': 1}],
+        'classBonuses': [{'id': 1, 'idClass': 1, 'statistic': 'life', 'value': 1}],
+    }
+    stored = {}
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, None]), \
+         patch('story.handler.db_utils.query_gsi', return_value=[]), \
+         patch('story.handler.db_utils.put_item', side_effect=lambda item: stored.update(item) or True):
+        from story.handler import lambda_handler
+        result = lambda_handler(admin_event('POST', '/api/admin/stories/import', body=payload), {})
+    assert result['statusCode'] == 201, result
+    for key in ('choices', 'keys', 'weatherRules', 'globalRandomEvents', 'missions', 'missionSteps',
+                'locationNeighbors', 'choiceConditions', 'choiceEffects', 'classBonuses'):
+        for row in stored[key]:
+            assert row.get('uuid'), f'{key} row {row.get("id")} was stored without a uuid'
+    assert stored['choices'][1]['uuid'] == 'kept'
+    assert stored['choices'][0]['uuid'] != 'kept'
+
+
 def test_import_story_persists_character_template_class_fields():
     payload = {
         'uuid': 'imp-ct-1',

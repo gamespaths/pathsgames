@@ -15,6 +15,8 @@ public class GuestLoginResponse {
     private String accessToken;
     private long accessTokenExpiresAt;
     private long refreshTokenExpiresAt;
+    /** v0.37.7 — echoed back as X-CSRF-TOKEN on POST /api/matches. */
+    private String csrfToken;
 
     public GuestLoginResponse() {
     }
@@ -66,5 +68,13 @@ public class GuestLoginResponse {
 
     public void setRefreshTokenExpiresAt(long refreshTokenExpiresAt) {
         this.refreshTokenExpiresAt = refreshTokenExpiresAt;
+    }
+
+    public String getCsrfToken() {
+        return csrfToken;
+    }
+
+    public void setCsrfToken(String csrfToken) {
+        this.csrfToken = csrfToken;
     }
 }

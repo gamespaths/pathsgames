@@ -37,6 +37,7 @@ from datetime import datetime, timezone
 
 from common import db_utils
 from common import jwt_utils
+from common import security_utils
 from common.response import dumps as _dumps, ok as _ok, HEADERS
 from common.http_utils import (normalize_path as _normalize_path,
                                get_source_ip as _get_source_ip,
@@ -264,6 +265,12 @@ def _test_marker(event):
 
 
 def create_guest(event):
+    # Step 41 — at most RATE_LIMIT_GUEST_PER_IP new guests per source address and window
+    limit = security_utils.guest_per_ip()
+    if limit > 0:
+        verdict = security_utils.rate_limit('guest', _get_source_ip(event), limit)
+        if not verdict.allowed:
+            return security_utils.rate_limited(verdict, 'Too many guest sessions from this address')
     now       = _now_ms()
     user_uuid = str(uuid.uuid4())
     guest_tok = str(uuid.uuid4())
@@ -306,6 +313,7 @@ def create_guest(event):
         'accessToken':         access_token,
         'accessTokenExpiresAt':  access_exp,
         'refreshTokenExpiresAt': refresh_exp,
+        'csrfToken':             security_utils.csrf_token_for(access_token),
     }
     return _ok(body, status=201, cookies=_refresh_cookies(user_uuid, guest_tok))
 
@@ -340,6 +348,7 @@ def resume_guest(event):
         'accessToken':         access_token,
         'accessTokenExpiresAt':  access_exp,
         'refreshTokenExpiresAt': refresh_exp,
+        'csrfToken':             security_utils.csrf_token_for(access_token),
     }
     cur_ver = int(user.get('token_version', 0) or 0)
     return _ok(body, cookies=_refresh_cookies(user_uuid, user.get('guest_token', guest_tok), cur_ver))
@@ -404,6 +413,7 @@ def refresh_token(event):
         'accessToken':         access_token,
         'accessTokenExpiresAt':  access_exp,
         'refreshTokenExpiresAt': refresh_exp,
+        'csrfToken':             security_utils.csrf_token_for(access_token),
     }
     return _ok(body, cookies=_refresh_cookies(user_uuid, guest_tok, new_ver))
 
@@ -436,6 +446,8 @@ def get_me(event):
         'userUuid':  user.get('uuid'),
         'username':  user.get('username'),
         'role':      user.get('role', 'PLAYER'),
+        # v0.37.7 — the CSRF token of this bearer, so a client that lost it need not log in again
+        'csrfToken': security_utils.csrf_token_for(_bearer_token(event)),
         'timestamp': _now_ms(),
     }
     return _ok(body)
