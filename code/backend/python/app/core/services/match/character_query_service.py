@@ -11,6 +11,7 @@ from app.core.ports.match.match_ports import (
     UserAccessPort,
 )
 from app.core.services.match.card_mapper import resolve_card
+from app.core.services.match.experience_cost import ExperienceCost
 
 
 def _resolve_card(story_read_port: StoryMatchReadPort, story_id, id_card,
@@ -51,6 +52,11 @@ def build_character_infos(
     if not characters:
         return []
     story_id = match.get("id_story")
+    # Step 38 — the difficulty row prices the next stat point; the match's own copy of
+    # exp_cost is only the fallback when the row is gone.
+    difficulty = (story_read_port.find_difficulty_by_id(story_id, match.get("id_difficulty"))
+                  if story_id is not None and match.get("id_difficulty") is not None else None)
+    pricing = ExperienceCost.of(difficulty, match.get("exp_cost"))
     template_uuid_by_id: Dict[int, str] = {}
     trait_uuid_by_id: Dict[int, str] = {}
     location_by_id: Dict[int, Dict[str, Any]] = {}
@@ -137,6 +143,9 @@ def build_character_infos(
             food=backpack.get("food", 0),
             magic=backpack.get("magic", 0),
             coin=backpack.get("coin", 0),
+            exp=c.get("exp") or 0,
+            exp_costs=pricing.costs(c.get("dexterity") or 0, c.get("intelligence") or 0,
+                                    c.get("constitution") or 0),
         ))
     return result
 

@@ -94,6 +94,24 @@ export function buildMissionsCard(t) {
   return metaCard('missions', t('game.missions.title'), null)
 }
 
+/** Step 38 — experience card (ExperienceCard): training, on the board of a safe location. */
+export function buildExperienceCard(t) {
+  return metaCard('experience', t('game.exp.title'), null)
+}
+
+/** Step 38 — the card a purchase narrates under: the `trained` picture with its own two lines. */
+export function buildTrainedCard(t) {
+  return metaCard('trained', t('game.exp.trained.title'), t('game.exp.trained.description'))
+}
+
+/**
+ * Step 38 — one stat of the training page (ExperienceStatCard): the `experience-<stat>` entry
+ * of data/images.json — its own glyph, the shared training picture — titled by the stat.
+ */
+export function buildExperienceStatCard(stat, title, description = null) {
+  return metaCard(`experience-${stat}`, title, description)
+}
+
 /** v0.37.7 — match history card (MatchHistoryCard, MatchLogCard), the missions' neighbour. */
 export function buildHistoryCard(t, description = null) {
   return metaCard('history', t('matches.history'), description)

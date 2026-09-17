@@ -100,7 +100,8 @@
       "minCharacter": "Giocatori Min",
       "maxCharacter": "Giocatori",
       "costHelpComa": "Costo Aiuto Coma",
-      "costMaxCharacteristics": "Costo Carat.",
+      "expCostBase": "Costo Base EXP",
+      "maxStatValue": "Tetto Stat",
       "numberMaxFreeAction": "Azioni Libere",
       "totals": {
         "life": "Vita",
@@ -171,6 +172,7 @@
       "AUTOMATIC_EVENT": "Evento",
       "ITEM_ADD": "Oggetto trovato",
       "ITEM_USE": "Oggetto usato",
+      "EXP_USE": "Esperienza spesa",
       "ITEM_DROP": "Oggetto lasciato",
       "REGISTRY_CHANGE": "Registro",
       "MISSION_CHANGE": "Missione"
@@ -430,6 +432,29 @@
       "back": "Indietro",
       "count": "trasportati",
       "capacity": "Capacità"
+    },
+    "exp": {
+      "title": "Allenamento",
+      "description": "L'esperienza guadagnata lungo l'avventura si spende qui, in un luogo sicuro, sulle qualità del personaggio: ogni punto comprato alza di uno Destrezza, Intelligenza o Costituzione. Il punto successivo costa sempre più del precedente e ogni qualità ha un tetto fissato dalla storia.",
+      "open": "Allenati",
+      "use": "Migliora",
+      "current": "Attuale",
+      "held": "Attuale",
+      "cost": "Costo",
+      "after": "Dopo",
+      "atMax": "Max",
+      "trained": {
+        "title": "Allenato",
+        "description": "Ore di esercizio nella quiete di un luogo sicuro hanno lasciato il segno: ciò che hai imparato per strada è ora parte di te. L'esperienza è spesa, la qualità che ha comprato resta con te per tutto il viaggio."
+      },
+      "reason": {
+        "NOT_ENOUGH_EXP": "EXP insufficiente",
+        "MAX_STAT_VALUE": "Al massimo"
+      },
+      "reasonFull": {
+        "NOT_ENOUGH_EXP": "Non hai ancora guadagnato abbastanza esperienza per il prossimo punto.",
+        "MAX_STAT_VALUE": "Questa qualità ha raggiunto il tetto fissato dalla storia."
+      }
     },
     "registry": {
       "title": "Registro",

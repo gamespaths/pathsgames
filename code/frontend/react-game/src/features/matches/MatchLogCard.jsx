@@ -56,6 +56,8 @@ const TYPE_ICON = {
   ITEM_ADD:        'fa-hand-holding',
   ITEM_USE:        'fa-flask',
   ITEM_DROP:       'fa-trash',
+  // Step 38 — experience spent on a stat.
+  EXP_USE:         'fa-star',
 }
 
 /**
@@ -78,6 +80,7 @@ const TYPE_COLOR = {
   ITEM_ADD:        '#4ade80',
   ITEM_USE:        '#a78bfa',
   ITEM_DROP:       '#9ca3af',
+  EXP_USE:         '#c4b5fd',
 }
 
 /**

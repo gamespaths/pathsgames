@@ -23,6 +23,14 @@ export function missionsSummaryProps(gameData) {
            total: Array.isArray(missions) ? missions.length : 0 }
 }
 
+/**
+ * Step 38 — the experience summary: the points held and the price of the next point per
+ * stat, read the same way on the board card and on the left page.
+ */
+export function expSummaryProps(playerStats) {
+  return { experience: playerStats?.experience ?? 0, expCosts: playerStats?.expCosts ?? null }
+}
+
 export function bagSummaryProps(playerStats) {
   return {
     count: playerStats?.items?.length ?? 0,

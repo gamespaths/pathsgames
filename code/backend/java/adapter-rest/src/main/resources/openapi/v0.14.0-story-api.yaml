@@ -156,7 +156,8 @@ paths:
                     minCharacter: 1
                     maxCharacter: 4
                     costHelpComa: 3
-                    costMaxCharacteristics: 3
+                    expCostBase: 0
+                    maxStatValue: 0
                     numberMaxFreeAction: 1
         '404':
           description: Story not found
@@ -233,7 +234,7 @@ paths:
               locations:
                 - idTextName: 100
                   idTextDescription: 101
-                  isSafe: 1
+                  secureParam: 1
               events:
                 - idTextName: 200
                   type: "NORMAL"
@@ -562,10 +563,14 @@ components:
           type: integer
           description: Cost to revive a comatose character
           example: 3
-        costMaxCharacteristics:
+        expCostBase:
           type: integer
-          description: Cost to maximise characteristics
-          example: 3
+          description: "Step 38: flat addend of the use-exp cost, max(1, expCost × stat + expCostBase); <= 0 reads as 0"
+          example: 0
+        maxStatValue:
+          type: integer
+          description: "Step 38: cap on DEX/INT/COS reachable through use-exp; <= 0 = no cap"
+          example: 0
         numberMaxFreeAction:
           type: integer
           description: Maximum free actions per turn
@@ -688,7 +693,9 @@ components:
                 type: integer
               costHelpComa:
                 type: integer
-              costMaxCharacteristics:
+              expCostBase:
+                type: integer
+              maxStatValue:
                 type: integer
               numberMaxFreeAction:
                 type: integer

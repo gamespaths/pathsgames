@@ -17,6 +17,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 /**
@@ -243,5 +245,31 @@ class CharacterCommandServiceChangeStatsTest {
                 service.changeStatistics("match-uuid", "player-uuid", cmd));
 
         verify(persistencePort).updateBackpackStats(1L, 2L, null, null, 7);
+    }
+
+    // === Step 38: exp ===
+
+    @Test
+    void expIsWrittenOnItsOwnWhenTheCommandCarriesIt() {
+        wireMatchAndCharacter();
+        ChangeStatsCommand cmd = new ChangeStatsCommand();
+        cmd.setExp(42);
+
+        service.changeStatistics("match-uuid", "player-uuid", cmd);
+
+        verify(persistencePort).updateCharacterExp(1L, 2L, 42);
+        verify(persistencePort).updateCharacterStats(1L, 2L, null, null, null, null, null, null);
+    }
+
+    @Test
+    void expUntouchedWhenOmittedOrMinusOne() {
+        wireMatchAndCharacter();
+        ChangeStatsCommand cmd = new ChangeStatsCommand();
+        cmd.setExp(-1);
+
+        service.changeStatistics("match-uuid", "player-uuid", cmd);
+        service.changeStatistics("match-uuid", "player-uuid", new ChangeStatsCommand());
+
+        verify(persistencePort, never()).updateCharacterExp(anyLong(), anyLong(), anyInt());
     }
 }

@@ -10,7 +10,7 @@ import {
   buildEndGameCard,
   buildWeatherCard,
   buildHistoryCard,
-} from '../utils/loadoutCards'
+  buildExperienceCard, buildExperienceStatCard, buildTrainedCard } from '../utils/loadoutCards'
 
 // Identity translate fn so we can assert on the i18n keys directly.
 const t = (k) => k
@@ -111,5 +111,32 @@ describe('utils/loadoutCards history (v0.37.7)', () => {
 
   it('buildHistoryCard takes an optional description', () => {
     expect(buildHistoryCard(t, 'why').description).toBe('why')
+  })
+
+  it('buildExperienceCard maps the training card (Step 38)', () => {
+    const c = buildExperienceCard(t)
+    expect(c.title).toBe('game.exp.title')
+    expect(c.awesomeIcon).toBe('fas fa-star')
+    expect(c.urlImage).toBeTruthy()
+  })
+
+  it('buildTrainedCard carries the after-purchase title and its two lines', () => {
+    const c = buildTrainedCard(t)
+    expect(c.title).toBe('game.exp.trained.title')
+    expect(c.description).toBe('game.exp.trained.description')
+    expect(c.awesomeIcon).toBe('fas fa-medal')
+    expect(c).toHaveProperty('urlImage')
+  })
+
+  it('buildExperienceStatCard maps one stat onto its own picture and glyph', () => {
+    const dex = buildExperienceStatCard('dex', 'Speed', 'agility')
+    expect(dex.title).toBe('Speed')
+    expect(dex.description).toBe('agility')
+    expect(dex.awesomeIcon).toBe('fas fa-running')
+    expect(dex).toHaveProperty('urlImage')
+    expect(buildExperienceStatCard('int', 'Smart').awesomeIcon).toBe('fas fa-brain')
+    expect(buildExperienceStatCard('cos', 'Physique').awesomeIcon).toBe('fas fa-shield-alt')
+    // an unknown stat has no picture: an empty card, never a crash
+    expect(buildExperienceStatCard('luck', 'Luck')).toEqual({})
   })
 })

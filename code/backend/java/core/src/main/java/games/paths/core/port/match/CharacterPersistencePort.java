@@ -31,6 +31,9 @@ public interface CharacterPersistencePort {
                               Integer dex, Integer intel, Integer con,
                               Integer energy, Integer life, Integer sad);
 
+    /** Admin, Step 38: persist the character's experience points (floored at 0). */
+    void updateCharacterExp(Long matchId, Long characterId, int exp);
+
     /**
      * Admin: persist the character's state flags. A null flag is left as it is.
      * Waking a character out of a coma is what a rescue will do on its own in step 59; until

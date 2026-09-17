@@ -7,6 +7,7 @@ import SadnessCard from './cards/SadnessCard'
 import LocationCard from './cards/LocationCard'
 import MovementCard from './cards/MovementCard'
 import ItemsCards from './cards/ItemsCards'
+import ExperienceCards from './cards/ExperienceCards'
 import RegistryCards from './cards/RegistryCards'
 import MissionCards from './cards/MissionCards'
 import MissionStepsCards from './cards/MissionStepsCards'
@@ -71,8 +72,8 @@ export default function PageRight(props) {
     playerUuid, weather, clock, actualLocationCard, locations, actions, locationCosts,
     hereLocationId, mapSelected, missionSelected, matchUuid, accessToken, choiceInFlight, endError,
     onPreview, onCloseRight, onCloseChoices, onSelectChoice, onDismissCounterZero,
-    onEnterCurrentLocation, onMoved, onError, onDone, onDropped, onItemUsed, onSlept,
-    onOpenMap, onOpenItems, onOpenRegistry, onOpenMissions, onOpenMission, onOpenInfo,
+    onEnterCurrentLocation, onMoved, onError, onDone, onDropped, onItemUsed, onExpUsed, onSlept,
+    onOpenMap, onOpenItems, onOpenRegistry, onOpenMissions, onOpenMission, onOpenInfo, onOpenExp,
     onOpenHistory, onEndGame, onEndGamePreview,
     sleepCardForced, activeAction, onExit,
   } = props
@@ -130,6 +131,12 @@ export default function PageRight(props) {
       matchUuid={matchUuid} accessToken={accessToken}
       onDone={onItemUsed} onDropped={onDropped} onError={onError} />
   }
+  // Step 38 — training: one card per stat, opened from the board's experience card.
+  if (view === 'exp') {
+    return <ExperienceCards playerStats={playerStats} story={story}
+      matchUuid={matchUuid} accessToken={accessToken}
+      onDone={onExpUsed} onError={onError} />
+  }
   // Step 36 — the registry, opened from the same (i) list as the backpack and replacing it
   // for exactly the same reason.
   if (view === 'registry') {
@@ -160,7 +167,7 @@ export default function PageRight(props) {
     matchUuid={matchUuid} accessToken={accessToken} endError={endError}
     sleepCardForced={sleepCardForced}
     onPreview={onPreview} onOpenMap={onOpenMap} onOpenItems={onOpenItems}
-    onOpenMissions={onOpenMissions} onOpenInfo={onOpenInfo}
+    onOpenMissions={onOpenMissions} onOpenInfo={onOpenInfo} onOpenExp={onOpenExp}
     onMoved={onMoved} onDone={onDone} onSlept={onSlept}
     onError={onError} onEndGame={onEndGame} onEndGamePreview={onEndGamePreview} />
 }

@@ -598,7 +598,8 @@
       "minCharacter": 1,
       "maxCharacter": 5,
       "costHelpComa": 1,
-      "costMaxCharacteristics": 2,
+      "expCostBase": 0,
+      "maxStatValue": 0,
       "numberMaxFreeAction": 3
     },
     {
@@ -608,7 +609,8 @@
       "minCharacter": 2,
       "maxCharacter": 4,
       "costHelpComa": 3,
-      "costMaxCharacteristics": 3,
+      "expCostBase": 0,
+      "maxStatValue": 0,
       "numberMaxFreeAction": 1
     },
     {
@@ -618,7 +620,8 @@
       "minCharacter": 3,
       "maxCharacter": 3,
       "costHelpComa": 5,
-      "costMaxCharacteristics": 5,
+      "expCostBase": 0,
+      "maxStatValue": 0,
       "numberMaxFreeAction": 0
     }
   ],
@@ -655,84 +658,72 @@
     {
       "idTextName": 100,
       "idTextDescription": 100,
-      "isSafe": 1,
       "costEnergyEnter": 0,
       "maxCharacters": 15
     },
     {
       "idTextName": 101,
       "idTextDescription": 101,
-      "isSafe": 1,
       "costEnergyEnter": 0,
       "maxCharacters": 10
     },
     {
       "idTextName": 102,
       "idTextDescription": 102,
-      "isSafe": 1,
       "costEnergyEnter": 0,
       "maxCharacters": 10
     },
     {
       "idTextName": 103,
       "idTextDescription": 103,
-      "isSafe": 1,
       "costEnergyEnter": 0,
       "maxCharacters": 8
     },
     {
       "idTextName": 104,
       "idTextDescription": 104,
-      "isSafe": 1,
       "costEnergyEnter": 1,
       "maxCharacters": 6
     },
     {
       "idTextName": 105,
       "idTextDescription": 105,
-      "isSafe": 0,
       "costEnergyEnter": 2,
       "maxCharacters": 6
     },
     {
       "idTextName": 106,
       "idTextDescription": 106,
-      "isSafe": 1,
       "costEnergyEnter": 1,
       "maxCharacters": 4
     },
     {
       "idTextName": 107,
       "idTextDescription": 107,
-      "isSafe": 0,
       "costEnergyEnter": 2,
       "maxCharacters": 8
     },
     {
       "idTextName": 108,
       "idTextDescription": 108,
-      "isSafe": 0,
       "costEnergyEnter": 2,
       "maxCharacters": 5
     },
     {
       "idTextName": 109,
       "idTextDescription": 109,
-      "isSafe": 1,
       "costEnergyEnter": 0,
       "maxCharacters": 15
     },
     {
       "idTextName": 110,
       "idTextDescription": 110,
-      "isSafe": 0,
       "costEnergyEnter": 2,
       "maxCharacters": 6
     },
     {
       "idTextName": 111,
       "idTextDescription": 111,
-      "isSafe": 0,
       "costEnergyEnter": 1,
       "maxCharacters": 8
     }

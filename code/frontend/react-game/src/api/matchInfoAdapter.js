@@ -77,8 +77,9 @@ function toPlayerStats(player) {
     food: player.food ?? 0,
     magic: player.magic ?? 0,
     coins: player.coin ?? 0,
-    // Not yet projected by /info — defaulted until step 38 wires experience.
-    experience: 0,
+    // Step 38 — experience and the price of the next point per stat (null = at cap).
+    experience: player.exp ?? 0,
+    expCosts: player.expCosts ?? null,
 
     intelligence: player.intelligence ?? 0,
     dexterity: player.dexterity ?? 0,

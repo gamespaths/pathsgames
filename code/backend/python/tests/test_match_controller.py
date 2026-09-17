@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from app.adapters.rest.match.match_controller import MatchController
 from app.core.models.match.match_models import (
+    CharacterInstanceInfo,
     EventInfo,
     LocationInfo,
     LocationNeighborInfo,
@@ -213,6 +214,19 @@ def test_get_match_info_success(env):
     assert body["registry"][0]["key"] == "k"
     assert body["events"][0]["uuid"] == "e"
     assert body["choices"][0]["uuid"] == "c"
+
+
+def test_get_match_info_players_carry_exp_and_exp_costs(env):
+    # Step 38 — exp and the per-stat price of the next point, null where the stat is capped.
+    client, _, query_port = env
+    detail = _detail()
+    detail.players = [CharacterInstanceInfo(uuid="c1", exp=40,
+                                            exp_costs={"dex": 23, "int": None, "cos": 11})]
+    query_port.get_match_info.return_value = detail
+    body = client.get("/api/match/abc/info", headers={"x-user": "u"}).json()
+    player = body["players"][0]
+    assert player["exp"] == 40
+    assert player["expCosts"] == {"dex": 23, "int": None, "cos": 11}
 
 
 def test_get_match_info_serializes_locations_active(env):

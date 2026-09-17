@@ -1,0 +1,170 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Experience API
+  description: |
+    Step 38 — experience is spent.
+
+    `gaming_character_instance.exp` has been written by event, choice and item effects since
+    V0.29.0, but nothing read it. v0.38.0 projects it on every player row and adds the one
+    action that spends it: a +1 on DEX, INT or COS.
+
+    ## The price of a point
+
+    `cost = max(1, exp_cost × current_value + exp_cost_base)`, all three read from the
+    **difficulty row** the match was created on (`gaming_match.exp_cost` is only the fallback
+    when that row is gone). `max_stat_value` caps the stat: at the cap the next point costs
+    `null` and the action answers `409 MAX_STAT_VALUE`. Guards: `exp_cost <= 0` reads 1,
+    `exp_cost_base <= 0` reads 0, `max_stat_value <= 0` means no cap.
+
+    ## The action
+
+    `POST /api/gameplay/{uuidMatch}/action/use-exp` with `{"stat": "dex"}`. Zero energy, the
+    turn does not pass, and the point is effective at once (the priority formula is only
+    re-read at the next time-start). Allowed when the match is RUNNING, it is the caller's
+    turn, the character is awake and out of coma, and its location has `secure_param > 0`.
+
+    ## What changed elsewhere
+
+    - `players[]` on `/info`, `/players` and `/character` carry `exp` and
+      `expCosts {dex, int, cos}` — the cost of the next point, `null` where the stat is capped.
+    - `list_stories_difficulty` gains `expCostBase` and `maxStatValue` (default 0) and loses
+      `costMaxCharacteristics`; `list_locations` loses `isSafe` (`secureParam` was the one
+      "safe" the engine ever read). Import ignores both legacy keys.
+    - Match logs gain the `EXP_USE` type, one row per purchase, the character attached.
+    - Admin `changeStatistics` accepts `exp`.
+  version: 0.38.0
+  license:
+    name: GNU General Public License v3.0
+    url: https://www.gnu.org/licenses/gpl-3.0.html
+
+servers:
+  - url: http://localhost:8042
+    description: Development (dev profile)
+  - url: http://localhost:8080
+    description: Production (prod profile)
+
+paths:
+  /api/gameplay/{uuidMatch}/action/use-exp:
+    post:
+      tags: [Experience]
+      summary: Spend experience on a +1 of dex, int or cos
+      operationId: useExp
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UseExpRequest' }
+      responses:
+        '200':
+          description: The point was bought
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UseExpResponse' }
+        '400':
+          description: "`INVALID_STAT` — the body or its stat is missing, or the stat is not dex / int / cos"
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: "`UNAUTHENTICATED`"
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: "`MATCH_NOT_FOUND` — unknown match, unknown user, or the caller owns no character in it"
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: |
+            One of, in the order they are checked: `MATCH_NOT_RUNNING`, `NOT_YOUR_TURN`, `COMA`,
+            `SLEEPING`, `LOCATION_NOT_SAFE`, `MAX_STAT_VALUE`, `NOT_ENOUGH_EXP`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UseExpRequest:
+      type: object
+      required: [stat]
+      properties:
+        stat:
+          type: string
+          enum: [dex, int, cos]
+          description: Trimmed and case-folded; the same tokens the effect vocabulary uses.
+      example: { stat: dex }
+
+    UseExpResponse:
+      type: object
+      properties:
+        matchUuid: { type: string, format: uuid }
+        characterUuid: { type: string, format: uuid }
+        stat: { type: string, enum: [dex, int, cos] }
+        statBefore: { type: integer }
+        statAfter: { type: integer }
+        expBefore: { type: integer }
+        expAfter: { type: integer }
+        expCost: { type: integer, description: What this point cost }
+        expCosts: { $ref: '#/components/schemas/ExpCosts' }
+        statChanges:
+          type: array
+          description: The purchase in the execute-event shape, so the frontend renders it with the badges it already has.
+          items: { $ref: '#/components/schemas/StatChange' }
+      example:
+        matchUuid: 3f2c…
+        characterUuid: 9a1b…
+        stat: dex
+        statBefore: 12
+        statAfter: 13
+        expBefore: 40
+        expAfter: 28
+        expCost: 12
+        expCosts: { dex: 13, int: null, cos: 4 }
+        statChanges:
+          - { characterUuid: 9a1b…, statistic: dex, before: 12, after: 13, delta: 1 }
+          - { characterUuid: 9a1b…, statistic: exp, before: 40, after: 28, delta: -12 }
+
+    ExpCosts:
+      type: object
+      description: The cost of the NEXT point per stat; null where the stat sits at max_stat_value.
+      properties:
+        dex: { type: integer, nullable: true }
+        int: { type: integer, nullable: true }
+        cos: { type: integer, nullable: true }
+
+    StatChange:
+      type: object
+      properties:
+        characterUuid: { type: string, format: uuid }
+        statistic: { type: string }
+        before: { type: integer }
+        after: { type: integer }
+        delta: { type: integer }
+
+    CharacterSummaryExperience:
+      type: object
+      description: The two fields Step 38 adds to every player projection (CharacterSummary, CharacterInstance).
+      properties:
+        exp: { type: integer, description: Experience points }
+        expCosts: { $ref: '#/components/schemas/ExpCosts' }
+
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        message: { type: string }
+        timestamp: { type: integer, format: int64 }

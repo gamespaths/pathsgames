@@ -88,7 +88,8 @@ class StoryQueryServiceTest {
         d.setMinCharacter(1);
         d.setMaxCharacter(4);
         d.setCostHelpComa(3);
-        d.setCostMaxCharacteristics(3);
+        d.setExpCostBase(3);
+        d.setMaxStatValue(20);
         d.setNumberMaxFreeAction(1);
         d.setIdTextDescription(200);
         return d;
@@ -670,7 +671,8 @@ class StoryQueryServiceTest {
                     () -> assertEquals(1, di.getMinCharacter()),
                     () -> assertEquals(4, di.getMaxCharacter()),
                     () -> assertEquals(3, di.getCostHelpComa()),
-                    () -> assertEquals(3, di.getCostMaxCharacteristics()),
+                    () -> assertEquals(0, di.getExpCostBase()),
+                    () -> assertEquals(0, di.getMaxStatValue()),
                     () -> assertEquals(1, di.getNumberMaxFreeAction()));
         }
     }

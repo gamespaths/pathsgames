@@ -27,6 +27,9 @@ public interface LocationRepository extends JpaRepository<LocationEntity, StoryS
 
     Optional<LocationEntity> findByIdStoryAndUuid(Long idStory, String uuid);
 
+    /** Step 38 — one location by its story-local id. */
+    Optional<LocationEntity> findByIdStoryAndId(Long idStory, Long id);
+
     @Modifying
     @Transactional
     void deleteByUuid(String uuid);

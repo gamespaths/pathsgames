@@ -92,6 +92,14 @@ mission's own event last. The cascade — an event writes the registry, which co
 mission — is accepted and capped by the existing `MAX_ENTRY_DEPTH = 8`; no new constant,
 `EventExecutionService.MAX_ENTRY_DEPTH` was widened from private to public in Java.
 
+**Who receives a mission's event (v0.38.0).** A mission is match-scoped, so its event runs
+with **no actor**: until v0.38.0 every character-bound effect on it (exp, life, an item) was
+silently skipped, exactly like a counter-zero fuse in an empty location. Since v0.38.0
+(`Exec.missionRun` in Java, `_Exec.mission_run` in Python, `acc['missionRun']` on AWS) an
+effect with `target = ALL` on a mission-fired event reaches **every character of the match** —
+the reward of a quest goes to the party that won it — `target_class` still narrows, and
+`ONLY_ONE` still names nobody. A counter-zero fuse with no actor keeps reaching nobody.
+
 **Firing is deferred.** An event execution buffers the characters it touches and writes them
 at the end, so firing a mission event mid-execution would let a fresh execution read state the
 outer one has not written yet. `MissionService.beginDeferral()`/`endDeferral()` bracket the

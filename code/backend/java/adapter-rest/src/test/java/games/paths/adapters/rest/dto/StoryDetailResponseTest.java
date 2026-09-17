@@ -17,7 +17,7 @@ class StoryDetailResponseTest {
     @DisplayName("No-arg constructor and setters should work for all fields")
     void settersAndGetters() {
         DifficultyResponse diff = new DifficultyResponse(
-                "diff-1", "Easy", 5, 10, 1, 4, 3, 3, 1);
+                "diff-1", "Easy", 5, 10, 1, 4, 3, 0, 0, 1);
 
         StoryDetailResponse r = new StoryDetailResponse();
         r.setUuid("uuid-1");

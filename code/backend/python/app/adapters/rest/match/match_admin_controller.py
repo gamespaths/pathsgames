@@ -41,6 +41,8 @@ class ChangeStatisticsRequestBody(BaseModel):
     coin:   Optional[int] = None
     food:   Optional[int] = None
     magic:  Optional[int] = None
+    # Step 38 — experience points; -1/omitted leaves them untouched.
+    exp:    Optional[int] = None
     # State flags: omitted (null) means "leave as it is" — the -1 of the numeric fields.
     sleeping: Optional[bool] = None
     coma:     Optional[bool] = None
@@ -313,6 +315,7 @@ class MatchAdminController:
             coin=_skip(body.coin if body else None),
             food=_skip(body.food if body else None),
             magic=_skip(body.magic if body else None),
+            exp=_skip(body.exp if body else None),
             sleeping=(body.sleeping if body else None),
             coma=(body.coma if body else None),
         )

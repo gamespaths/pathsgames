@@ -74,6 +74,8 @@ public class MatchLogsService implements MatchLogsPort {
     private static final String TYPE_ITEM_ADD = "ITEM_ADD";
     private static final String TYPE_ITEM_USE = "ITEM_USE";
     private static final String TYPE_ITEM_DROP = "ITEM_DROP";
+    /** Step 38 — experience spent on a stat. */
+    static final String TYPE_EXP_USE = "EXP_USE";
     private static final String MSG_SLEEP = "ACTION_SLEEP";
     private static final String MSG_COUNTER = "counter";
     private static final String DEFAULT_LANG = "en";
@@ -235,6 +237,9 @@ public class MatchLogsService implements MatchLogsPort {
                 // v0.37.2 — nobody in the fiction moves a mission: no character rides on it.
                 entries.add(LogEntry.builder(TYPE_MISSION_CHANGE, e.timestamp())
                         .clock(e.clock()).message(msg).build());
+            } else if (msg.startsWith(ExperienceService.MSG_EXP_USE)) {
+                entries.add(LogEntry.builder(TYPE_EXP_USE, e.timestamp())
+                        .clock(e.clock()).character(e.idCharacterMatch()).message(msg).build());
             } else if (msg.startsWith("recovery")) {
                 entries.add(LogEntry.builder(TYPE_RECOVERY, e.timestamp())
                         .clock(e.clock()).character(e.idCharacterMatch()).message(msg).build());

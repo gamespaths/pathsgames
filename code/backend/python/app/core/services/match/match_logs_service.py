@@ -43,7 +43,7 @@ from app.core.ports.match.event_ports import (
     ITEM_ACTION_ADD, ITEM_ACTION_DROP, ITEM_ACTION_REMOVE, ITEM_ACTION_USE,
     MSG_EVENT_EXECUTED,
 )
-from app.core.services.match import mission_service, registry_service
+from app.core.services.match import experience_service, mission_service, registry_service
 
 
 def _item_type(action: Optional[str]) -> Optional[str]:
@@ -112,6 +112,8 @@ def _mission_uuid_of(message: Optional[str]) -> Optional[str]:
 _TYPE_ITEM_ADD = "ITEM_ADD"
 _TYPE_ITEM_USE = "ITEM_USE"
 _TYPE_ITEM_DROP = "ITEM_DROP"
+# Step 38 — experience spent on a stat.
+_TYPE_EXP_USE = "EXP_USE"
 _MSG_SLEEP = "ACTION_SLEEP"
 _MSG_COUNTER = "counter"
 _MSG_AUTOMATIC_EVENT = "automatic event"
@@ -329,6 +331,14 @@ class MatchLogsService:
                     "type": _TYPE_MISSION_CHANGE,
                     "clock": e.clock,
                     "timestamp": e.timestamp,
+                    "message": msg,
+                })
+            elif msg.startswith(experience_service.MSG_EXP_USE):
+                entries.append({
+                    "type": _TYPE_EXP_USE,
+                    "clock": e.clock,
+                    "timestamp": e.timestamp,
+                    "idCharacterMatch": e.id_character_match,
                     "message": msg,
                 })
             elif msg.startswith("recovery"):

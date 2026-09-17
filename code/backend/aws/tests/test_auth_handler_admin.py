@@ -22,17 +22,19 @@ GUESTS = [
 ]
 STALE = [{'PK': 'USER#g-1', 'SK': 'METADATA',
           'summary': {'uuid': 'g-1', 'username': 'old', 'ts_last_access': 1}}]
-STALE_MATCHES = [{'PK': 'MATCH#m-1', 'SK': 'METADATA', 'uuid': 'm-1', 'userCreatorUuid': 'g-1'}]
+STALE_MATCHES = [{'PK': 'MATCH#m-1', 'SK': 'METADATA', 'uuid': 'm-1', 'userCreatorUuid': 'g-1'},
+                 # somebody else's match on the same partition: never counted, never deleted
+                 {'PK': 'MATCH#m-2', 'SK': 'METADATA', 'uuid': 'm-2', 'userCreatorUuid': 'alive'}]
 
 
 def _guest_index(guests=None, matches=None):
-    """A query_gsi stand-in answering the GUEST_LIST and USER_MATCHES# partitions."""
+    """A query_gsi stand-in answering the GUEST_LIST and the MATCH "by type" partitions —
+    v0.38.0 reads every match once and filters by creator, no USER_MATCHES# query per guest."""
     def query(index, pk, sk_prefix=None):
         if index == 'GSI2' and pk == 'GUEST_LIST':
             return list(guests or [])
-        if index == 'GSI1' and pk.startswith('USER_MATCHES#'):
-            uid = pk.split('#', 1)[1]
-            return [m for m in (matches or []) if m.get('userCreatorUuid') == uid]
+        if index == 'GSI2' and pk == 'MATCH':
+            return list(matches or [])
         raise AssertionError(f'unexpected index read {index} {pk}')
     return query
 
@@ -183,6 +185,22 @@ def test_preview_stale_guests_counts_without_deleting():
         result = _call(admin_event('GET', '/api/admin/guests/stale', qs={'olderThanDays': '1'}))
     assert _body(result) == {'guests': 1, 'matches': 1}
     deleter.assert_not_called()
+
+
+def test_the_stale_matches_are_read_in_one_index_query_whatever_the_number_of_guests():
+    """v0.38.0 — the preview timed out on a table of a few hundred guests: one GSI1 query
+    per guest. Now the MATCH partition is read once and filtered by creator."""
+    many = [{'PK': f'USER#g-{i}', 'SK': 'METADATA',
+             'summary': {'uuid': f'g-{i}', 'username': f'old{i}', 'ts_last_access': 1}}
+            for i in range(300)]
+    matches = [{'PK': f'MATCH#m-{i}', 'SK': 'METADATA', 'uuid': f'm-{i}', 'userCreatorUuid': f'g-{i}'}
+               for i in range(0, 300, 2)]
+    with patch('auth.handler.db_utils.get_item', return_value=ADMIN_USER), \
+         patch('auth.handler.db_utils.query_gsi', side_effect=_guest_index(many, matches)) as reads:
+        result = _call(admin_event('GET', '/api/admin/guests/stale', qs={'olderThanDays': '1'}))
+    assert _body(result) == {'guests': 300, 'matches': 150}
+    # the guest list, then the match partition: two reads, not three hundred and one
+    assert reads.call_count == 2
 
 
 def test_preview_stale_guests_with_nobody_to_purge():

@@ -73,7 +73,7 @@ describe('StoryEditorPage', () => {
   it('switches tabs and loads entities', async () => {
     listEntities.mockImplementation((uuid, type) => {
         if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
-        if (type === 'locations') return Promise.resolve([{ uuid: 'loc-1', idTextName: 101, idTextDescription: 102, isSafe: 1 }])
+        if (type === 'locations') return Promise.resolve([{ uuid: 'loc-1', idTextName: 101, idTextDescription: 102, secureParam: 1 }])
         return Promise.resolve([])
     })
     renderPage()

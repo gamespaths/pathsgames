@@ -53,6 +53,16 @@ describe('EditStatsModal — state flags', () => {
     expect(body.sleeping).toBe(true)
   })
 
+  it('sends the experience the admin typed (Step 38)', async () => {
+    open({ ...COMATOSE, exp: 7 })
+    const xp = screen.getByDisplayValue('7')
+    fireEvent.change(xp, { target: { value: '42' } })
+    fireEvent.click(screen.getByText('Save'))
+    await waitFor(() => expect(changePlayerStatistics).toHaveBeenCalled())
+    const [, , body] = changePlayerStatistics.mock.calls[0]
+    expect(body.exp).toBe(42)
+  })
+
   it('can put a healthy character to sleep', () => {
     open({ ...COMATOSE, isComa: false, isSleeping: false, life: 10 })
     expect(screen.getByTestId('stats-coma')).not.toBeChecked()

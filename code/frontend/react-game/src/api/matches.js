@@ -382,6 +382,26 @@ export async function useItem(uuidMatch, itemInstanceUuid, accessToken, lang) {
 }
 
 /**
+ * Step 38 — spend experience on a +1 of `stat` (POST /api/gameplay/{uuid}/action/use-exp).
+ *
+ * `stat` is `dex`, `int` or `cos`. Zero energy, the turn does not pass. Resolves to the
+ * purchase: `stat`, `statBefore/After`, `expBefore/After`, `expCost`, the refreshed
+ * `expCosts` and two `statChanges` rows (the stat, then the exp) in the execute-event shape.
+ *
+ * Throws on a backend error: 409 `NOT_ENOUGH_EXP` / `LOCATION_NOT_SAFE` / `MAX_STAT_VALUE` /
+ * `SLEEPING` / `COMA` / `NOT_YOUR_TURN` / `MATCH_NOT_RUNNING`, 400 `INVALID_STAT`, 404
+ * `MATCH_NOT_FOUND`.
+ */
+export async function useExp(uuidMatch, stat, accessToken) {
+  const res = await apiClient().post(
+    `/api/gameplay/${uuidMatch}/action/use-exp`,
+    { stat },
+    authConfig(accessToken),
+  )
+  return res.data
+}
+
+/**
  * Discard one item (POST /api/gameplay/{uuid}/inventory/drop-item).
  *
  * Applies neither the consumable gate nor the class gate: a non-consumable item must be

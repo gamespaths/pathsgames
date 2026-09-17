@@ -23,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -374,6 +375,58 @@ class EventExecutionServiceAutomaticTest {
             // idCharacter null: the world changed, but around no one.
             verify(registryService).upsert(eq(MATCH_ID), any(), eq("DOOR_OPEN"), eq("YES"), eq(null),
                     any(), eq(null), any());
+            verify(store, never()).updateCharacterStats(anyLong(), anyLong(), any());
+        }
+
+        @Test
+        @DisplayName("Step 38: a mission's reward reaches the whole party — ALL with no actor is every character")
+        void missionRewardReachesEveryCharacter() {
+            EventEntity e = event(60L, "evt-reward");
+            EventEffectEntity reward = new EventEffectEntity();
+            reward.setStatistics("exp");
+            reward.setValue(1);
+            reward.setTarget("ALL");
+            EventEffectEntity lonely = new EventEffectEntity();
+            lonely.setStatistics("exp");
+            lonely.setValue(5);
+            lonely.setTarget("ONLY_ONE");
+            EventEffectEntity otherClass = new EventEffectEntity();
+            otherClass.setStatistics("exp");
+            otherClass.setValue(9);
+            otherClass.setTarget("ALL");
+            otherClass.setTargetClass(99);
+            EventActorView second = new EventActorView(8L, "char-2", 4L, null, 90003L,
+                    5, 5, 5, 10, 10, 0, 2, 20, 20, 50, 30, false, false, null);
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(actor(), second));
+            when(store.findEventsById(STORY_ID)).thenReturn(Map.of(60L, e));
+            when(store.findEffectsByEventId(STORY_ID)).thenReturn(Map.of(60L, List.of(reward, lonely, otherClass)));
+
+            service.runMissionEvent(MATCH_ID, 60L, 1);
+
+            // both characters, wherever they stand, gained the one point — and only that one
+            ArgumentCaptor<EventExecutionStorePort.CharacterStats> stats =
+                    ArgumentCaptor.forClass(EventExecutionStorePort.CharacterStats.class);
+            verify(store).updateCharacterStats(eq(MATCH_ID), eq(CHAR_ID), stats.capture());
+            assertEquals(1, stats.getValue().exp());
+            verify(store).updateCharacterStats(eq(MATCH_ID), eq(8L), stats.capture());
+            assertEquals(3, stats.getValue().exp());
+        }
+
+        @Test
+        @DisplayName("Step 38: a counter-zero fuse with no actor still names nobody, ALL or not")
+        void counterZeroStillReachesNobody() {
+            EventEntity e = event(61L, "evt-fuse");
+            EventEffectEntity reward = new EventEffectEntity();
+            reward.setStatistics("exp");
+            reward.setValue(1);
+            reward.setTarget("ALL");
+            when(store.findEventsById(STORY_ID)).thenReturn(Map.of(61L, e));
+            when(store.findEffectsByEventId(STORY_ID)).thenReturn(Map.of(61L, List.of(reward)));
+
+            service.runPendingAutomaticEvents(MATCH_ID, CLOCK,
+                    List.of(new PendingAutomaticEvent(LocationEntryPort.TRIGGER_COUNTER_ZERO,
+                            LOCATION, 61L, null, 0)), "en");
+
             verify(store, never()).updateCharacterStats(anyLong(), anyLong(), any());
         }
 

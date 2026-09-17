@@ -46,7 +46,7 @@ vi.mock('../../../../components/common/story/PathsOptionsSelectorModal', () => (
 const MOCK_FIELDS = [
   { key: 'idTextName', label: 'Name', type: 'number' },
   { key: 'idTextDescription', label: 'Description', type: 'number' },
-  { key: 'isSafe', label: 'Safe', type: 'checkbox' },
+  { key: 'hideOnStartMatch', label: 'Safe', type: 'checkbox' },
   { key: 'type', label: 'Type', type: 'select', options: [{ value: 'A', label: 'Alpha' }] },
   { key: 'comment', label: 'Comment', type: 'textarea' },
   { key: 'other', label: 'Other', type: 'text' },
@@ -81,7 +81,7 @@ describe('EntityForm', () => {
     render(<EntityForm fields={MOCK_FIELDS} onSave={onSave} onCancel={() => {}} />)
     await userEvent.click(screen.getByLabelText('Safe'))
     await userEvent.click(screen.getByText('Save'))
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ isSafe: true }))
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ hideOnStartMatch: true }))
   })
 
   it('handles number input correctly', async () => {

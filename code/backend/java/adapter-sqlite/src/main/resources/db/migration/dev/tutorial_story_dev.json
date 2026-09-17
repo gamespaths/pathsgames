@@ -479,7 +479,8 @@
       "minCharacter": 0,
       "maxCharacter": 0,
       "costHelpComa": 0,
-      "costMaxCharacteristics": 0,
+      "expCostBase": 0,
+      "maxStatValue": 0,
       "numberMaxFreeAction": 0
     },
     {
@@ -492,7 +493,8 @@
       "minCharacter": 0,
       "maxCharacter": 0,
       "costHelpComa": 0,
-      "costMaxCharacteristics": 0,
+      "expCostBase": 0,
+      "maxStatValue": 0,
       "numberMaxFreeAction": 0
     },
     {
@@ -505,7 +507,8 @@
       "minCharacter": 0,
       "maxCharacter": 0,
       "costHelpComa": 0,
-      "costMaxCharacteristics": 0,
+      "expCostBase": 0,
+      "maxStatValue": 0,
       "numberMaxFreeAction": 0
     }
   ],
@@ -518,7 +521,6 @@
       "idTextDescription": 101,
       "idTextNarrative": null,
       "idImage": null,
-      "isSafe": 0,
       "costEnergyEnter": 1,
       "counterTime": null,
       "idEventIfCounterZero": null,
@@ -538,7 +540,6 @@
       "idTextDescription": 102,
       "idTextNarrative": null,
       "idImage": null,
-      "isSafe": 0,
       "costEnergyEnter": 2,
       "counterTime": null,
       "idEventIfCounterZero": null,
@@ -558,7 +559,6 @@
       "idTextDescription": 100,
       "idTextNarrative": null,
       "idImage": null,
-      "isSafe": 1,
       "costEnergyEnter": 0,
       "counterTime": null,
       "idEventIfCounterZero": null,
@@ -578,7 +578,6 @@
       "idTextDescription": 103,
       "idTextNarrative": null,
       "idImage": null,
-      "isSafe": 1,
       "costEnergyEnter": 0,
       "counterTime": null,
       "idEventIfCounterZero": null,

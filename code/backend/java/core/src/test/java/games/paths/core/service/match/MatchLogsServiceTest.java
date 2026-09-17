@@ -200,6 +200,21 @@ class MatchLogsServiceTest {
         }
 
         @Test
+        @DisplayName("Step 38: EXP_USE entry from an EXP_USE log_events message, character attached")
+        void expUseEntry() {
+            when(store.findEventLog(MATCH_ID)).thenReturn(
+                    List.of(new EventLogEntry(1L, 2L, 3, "2026-01-01T00:01:40Z",
+                            "EXP_USE dex 12->13 cost 12", null, null)));
+            MatchLogsResult r = admin();
+            assertEquals(1, r.logs().size());
+            LogEntry e = r.logs().get(0);
+            assertEquals("EXP_USE", e.type());
+            assertEquals(2L, e.idCharacterMatch());
+            assertEquals(3, e.clock());
+            assertEquals("EXP_USE dex 12->13 cost 12", e.message());
+        }
+
+        @Test
         @DisplayName("RECOVERY entry from recovery log_events message")
         void recoveryEntry() {
             when(store.findEventLog(MATCH_ID)).thenReturn(

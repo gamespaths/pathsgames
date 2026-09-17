@@ -246,7 +246,8 @@ public class StoryImportService implements StoryImportPort {
             e.setMinCharacter(getInteger(item, "minCharacter"));
             e.setMaxCharacter(getInteger(item, "maxCharacter"));
             e.setCostHelpComa(getInteger(item, "costHelpComa"));
-            e.setCostMaxCharacteristics(getInteger(item, "costMaxCharacteristics"));
+            e.setExpCostBase(getInteger(item, "expCostBase"));
+            e.setMaxStatValue(getInteger(item, "maxStatValue"));
             e.setNumberMaxFreeAction(getInteger(item, "numberMaxFreeAction"));
             e.setTraitCostPositiveBudget(getInteger(item, "traitCostPositiveBudget"));
             e.setTraitCostNegativeBudget(getInteger(item, "traitCostNegativeBudget"));
@@ -298,9 +299,10 @@ public class StoryImportService implements StoryImportPort {
             e.setIdTextName(getInteger(item, "idTextName"));
             e.setIdTextDescription(getInteger(item, "idTextDescription"));
             e.setIdTextNarrative(getInteger(item, "idTextNarrative"));
-            e.setIsSafe(getInteger(item, "isSafe"));
             e.setCostEnergyEnter(getInteger(item, "costEnergyEnter"));
             e.setCounterTime(getInteger(item, "counterTime"));
+            // Step 38 — the one "safe" the engine reads; is_safe is gone and was never it.
+            e.setSecureParam(getInteger(item, "secureParam"));
             e.setMaxCharacters(getInteger(item, "maxCharacters"));
             e.setKeyToAdd(getString(item, "keyToAdd"));
             e.setKeyValueToAdd(getString(item, "keyValueToAdd"));
@@ -886,7 +888,7 @@ public class StoryImportService implements StoryImportPort {
             return ((Number) value).intValue();
         }
         // v0.35.8 — a JSON boolean is how the admin form writes a flag column
-        // (isConsumabile, flagShowEffects, isSafe, active, hideOnStartMatch...). Read as
+        // (isConsumabile, flagShowEffects, active, hideOnStartMatch...). Read as
         // null it was dropped in silence, and the NOT NULL default then said the opposite.
         if (value instanceof Boolean) {
             return ((Boolean) value) ? 1 : 0;

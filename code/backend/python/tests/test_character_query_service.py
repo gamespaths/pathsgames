@@ -109,6 +109,47 @@ def test_list_players_creator(env):
     assert p.weight == 6
 
 
+def test_list_players_carry_exp_and_exp_costs_priced_by_the_difficulty(env):
+    # Step 38 — the difficulty row prices the next point: 2 × stat + 3, INT capped at 12.
+    service, match_p, char_r, story, user_a = env
+    match = _match()
+    match["id_difficulty"] = 4
+    match["exp_cost"] = 99
+    match_p.find_match_by_uuid.return_value = match
+    user_a.find_by_uuid.return_value = _user()
+    c = _character()
+    c.update({"exp": 40, "dexterity": 10, "intelligence": 12, "constitution": 4})
+    char_r.find_characters_by_match_id.return_value = [c]
+    _wire_lookups(char_r, story)
+    story.find_difficulty_by_id.return_value = {"exp_cost": 2, "exp_cost_base": 3, "max_stat_value": 12}
+
+    p = service.list_players("match-uuid", "user-uuid")[0]
+
+    story.find_difficulty_by_id.assert_called_once_with(STORY_ID, 4)
+    assert p.exp == 40
+    assert p.exp_costs == {"dex": 23, "int": None, "cos": 11}
+
+
+def test_list_players_without_a_difficulty_row_price_with_the_match_exp_cost(env):
+    service, match_p, char_r, story, user_a = env
+    match = _match()
+    match["id_difficulty"] = 4
+    match["exp_cost"] = 4
+    match_p.find_match_by_uuid.return_value = match
+    user_a.find_by_uuid.return_value = _user()
+    c = _character()
+    c["dexterity"] = 5
+    char_r.find_characters_by_match_id.return_value = [c]
+    _wire_lookups(char_r, story)
+    story.find_difficulty_by_id.return_value = None
+
+    p = service.list_players("match-uuid", "user-uuid")[0]
+
+    assert p.exp == 0
+    assert p.exp_costs["dex"] == 20
+    assert p.exp_costs["int"] is not None
+
+
 def test_list_players_participant(env):
     service, match_p, char_r, story, user_a = env
     match_p.find_match_by_uuid.return_value = _match(creator_id=999)

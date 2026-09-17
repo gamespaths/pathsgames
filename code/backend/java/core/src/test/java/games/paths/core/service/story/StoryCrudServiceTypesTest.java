@@ -56,7 +56,7 @@ class StoryCrudServiceTypesTest {
 
     private Map<String, Object> allData() {
         Map<String, Object> m = new java.util.HashMap<>();
-        m.put("idTextNarrative", 1); m.put("idImage", 1); m.put("isSafe", 1); m.put("costEnergyEnter", 1); m.put("counterTime", 1);
+        m.put("idTextNarrative", 1); m.put("idImage", 1); m.put("costEnergyEnter", 1); m.put("counterTime", 1);
         m.put("idEventIfCounterZero", 1); m.put("secureParam", 1); m.put("idEventIfCharacterStartTime", 1);
         m.put("idEventIfCharacterEnterEmptyLocation", 1); m.put("idEventIfFirstTime", 1); m.put("idEventNotFirstTime", 1);
         m.put("priorityAutomaticEvent", 1); m.put("idAudio", 1); m.put("maxCharacters", 1);
@@ -66,7 +66,7 @@ class StoryCrudServiceTypesTest {
         m.put("idLocation", 1);
         m.put("coinCost", 1); m.put("weight", 1); m.put("isConsumabile", 1); m.put("idClassPermitted", 1);
         m.put("idClassProhibited", 1); m.put("expCost", 1); m.put("maxWeight", 1); m.put("minCharacter", 1);
-        m.put("maxCharacter", 1); m.put("costHelpComa", 1); m.put("costMaxCharacteristics", 1);
+        m.put("maxCharacter", 1); m.put("costHelpComa", 1); m.put("expCostBase", 1); m.put("maxStatValue", 1);
         m.put("numberMaxFreeAction", 1); m.put("lifeMax", 1); m.put("energyMax", 1); m.put("sadMax", 1);
         m.put("dexterityStart", 1); m.put("intelligenceStart", 1); m.put("constitutionStart", 1);
         m.put("weightMax", 1); m.put("dexterityBase", 1); m.put("intelligenceBase", 1); m.put("constitutionBase", 1);
@@ -288,7 +288,7 @@ class StoryCrudServiceTypesTest {
         Map<String, Object> data = new java.util.HashMap<>();
         data.put("idTextNarrative", "invalid");
         data.put("idImage", "789");
-        data.put("isSafe", null); // Cover v == null in intVal
+        data.put("costEnergyEnter", null); // Cover v == null in intVal
         service.createEntity("story-uuid", "locations", data);
 
         // Cover partial map for conditions (false branches of containsKey)

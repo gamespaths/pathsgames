@@ -210,7 +210,9 @@ def _story_detail(item, lang):
             'minCharacter':          _safe_int(d.get('minCharacter')),
             'maxCharacter':          _safe_int(d.get('maxCharacter')),
             'costHelpComa':          _safe_int(d.get('costHelpComa')),
-            'costMaxCharacteristics':_safe_int(d.get('costMaxCharacteristics')),
+            # Step 38 — use-exp flat cost addend and DEX/INT/COS cap (0 = no cap)
+            'expCostBase':           _safe_int(d.get('expCostBase', 0)),
+            'maxStatValue':          _safe_int(d.get('maxStatValue', 0)),
             'numberMaxFreeAction':   _safe_int(d.get('numberMaxFreeAction')),
             'life':                  _safe_int(d.get('life', 0)),
             'energy':                _safe_int(d.get('energy', 0)),
@@ -631,7 +633,8 @@ def import_story(event):
             'minCharacter':           d.get('minCharacter', 0),
             'maxCharacter':           d.get('maxCharacter', 0),
             'costHelpComa':           d.get('costHelpComa', 0),
-            'costMaxCharacteristics': d.get('costMaxCharacteristics', 0),
+            'expCostBase':            d.get('expCostBase', 0),
+            'maxStatValue':           d.get('maxStatValue', 0),
             'numberMaxFreeAction':    d.get('numberMaxFreeAction', 0),
             'life':                   d.get('life', 100),
             'energy':                 d.get('energy', 100),
@@ -816,6 +819,8 @@ def import_story(event):
     locations_enriched = []
     for loc in _assign_uuids(_assign_ids(data.get('locations', []), 'id')):
         loc = dict(loc)
+        # Step 38 — isSafe is gone everywhere; a legacy export still carrying it is not stored.
+        loc.pop('isSafe', None)
         loc['card'] = _resolve_inline_card(loc.get('idCard'))
         locations_enriched.append(loc)
 

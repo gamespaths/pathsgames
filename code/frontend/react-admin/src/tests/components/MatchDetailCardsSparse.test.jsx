@@ -117,6 +117,16 @@ describe('MatchLogsCard with sparse data', () => {
     expect(screen.getByText('SOMETHING_NEW')).toBeInTheDocument()
     expect(screen.getByText(/\(5 of 12 entries · clock 9\)/)).toBeInTheDocument()
   })
+
+  it('renders an EXP_USE row with its own badge and the message as detail (Step 38)', () => {
+    render(<MatchLogsCard currentClock={1} entries={[
+      { type: 'EXP_USE', clock: 1, message: 'EXP_USE dex 10->11 cost 23' },
+      { type: 'EXP_USE', clock: 1 },
+    ]} />)
+    expect(screen.getAllByText('EXP_USE').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByText('EXP_USE dex 10->11 cost 23')).toBeInTheDocument()
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1)
+  })
 })
 
 describe('MatchConfigCard and RegistryCard with sparse data', () => {

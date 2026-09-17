@@ -1067,6 +1067,25 @@ class StoryImportServiceTest {
         }
 
         @Test
+        @DisplayName("Step 38: secureParam is imported (it never was) and a legacy isSafe is ignored")
+        void location_secureParamImported() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "secure-uuid");
+            data.put("locations", List.of(Map.of("id", 1, "secureParam", 2, "isSafe", 1),
+                                          Map.of("id", 2)));
+
+            stubMinimalStory("secure-uuid");
+            ArgumentCaptor<List<LocationEntity>> captor = ArgumentCaptor.forClass(List.class);
+            when(persistencePort.saveLocations(captor.capture())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            List<LocationEntity> saved = captor.getValue();
+            assertEquals(2, saved.get(0).getSecureParam());
+            assertNull(saved.get(1).getSecureParam(), "left to the @PrePersist default");
+        }
+
+        @Test
         @DisplayName("The pre-V0.33.2 key still fills the renamed enter-empty-location column")
         void location_legacyEnterFirstTimeKey() {
             Map<String, Object> data = new HashMap<>();

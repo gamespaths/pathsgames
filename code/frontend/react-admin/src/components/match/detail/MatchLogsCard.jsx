@@ -41,6 +41,8 @@ const TYPE_META = {
   ITEM_ADD:        { icon: 'fa-hand-holding',    style: { background: '#12331f', color: '#4ade80', border: '1px solid #16a34a' } },
   ITEM_USE:        { icon: 'fa-flask',           style: { background: '#241a3a', color: '#a78bfa', border: '1px solid #7c3aed' } },
   ITEM_DROP:       { icon: 'fa-trash',           style: { background: '#2a2a2a', color: '#9ca3af', border: '1px solid #6b7280' } },
+  // Step 38 — experience spent on a stat.
+  EXP_USE:         { icon: 'fa-star',            style: { background: '#2a1a3a', color: '#c4b5fd', border: '1px solid #8b5cf6' } },
 }
 
 /**
@@ -192,6 +194,7 @@ function entryDetail(entry) {
       return '—'
 
     case 'RECOVERY':
+    case 'EXP_USE':
       return entry.message ? String(entry.message).slice(0, 60) : '—'
 
     case 'EVENT':

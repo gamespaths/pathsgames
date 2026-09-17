@@ -114,6 +114,9 @@ def _character_summary_to_camel(p):
         "food": p.food,
         "magic": p.magic,
         "coin": p.coin,
+        # Step 38 — experience and the price of the next point per stat (null = at cap).
+        "exp": p.exp,
+        "expCosts": dict(p.exp_costs) if p.exp_costs is not None else None,
         "idLocation": p.id_location,
         "isSleeping": p.is_sleeping,
         "isComa": p.is_coma,
@@ -151,6 +154,8 @@ def _character_full_to_camel(p):
         "food": p.food,
         "magic": p.magic,
         "coin": p.coin,
+        "exp": p.exp,
+        "expCosts": dict(p.exp_costs) if p.exp_costs is not None else None,
     }
 
 

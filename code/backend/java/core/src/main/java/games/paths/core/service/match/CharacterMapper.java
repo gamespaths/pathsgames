@@ -8,6 +8,7 @@ import games.paths.core.entity.story.CharacterTemplateEntity;
 import games.paths.core.entity.story.ItemEffectEntity;
 import games.paths.core.entity.story.ItemEntity;
 import games.paths.core.entity.story.LocationEntity;
+import games.paths.core.entity.story.StoryDifficultyEntity;
 import games.paths.core.entity.story.TraitEntity;
 import games.paths.core.model.match.CharacterInstanceInfo;
 import games.paths.core.model.match.ItemInstanceInfo;
@@ -93,7 +94,15 @@ final class CharacterMapper {
         // Step 35 — one query for the whole story, grouped once for every character: the
         // items[] of /info promise the same effects the inventory endpoint does.
         Map<Long, List<ItemEffectEntity>> effectsByItem = new HashMap<>();
+        // Step 38 — the difficulty row prices the next stat point; the match's own copy of
+        // exp_cost is only the fallback when the row is gone.
+        StoryDifficultyEntity difficulty = null;
         if (storyId != null) {
+            for (StoryDifficultyEntity d : storyReadPort.findDifficultiesByStoryId(storyId)) {
+                if (d.getId() != null && d.getId().equals(match.getIdDifficulty())) {
+                    difficulty = d;
+                }
+            }
             for (CharacterTemplateEntity t : storyReadPort.findCharacterTemplatesByStoryId(storyId)) {
                 templateUuidById.put(t.getIdTipo(), t.getUuid());
             }
@@ -132,9 +141,17 @@ final class CharacterMapper {
                             cardCache, effectsByItem);
             LocationEntity location = c.getIdLocation() != null ? locationById.get(c.getIdLocation()) : null;
             String userUuid = isRequester ? requesterUserUuid : null;
-            result.add(build(c, match.getUuid(), userUuid, templateUuidById, backpack, traitUuids, items, location));
+            CharacterInstanceInfo info =
+                    build(c, match.getUuid(), userUuid, templateUuidById, backpack, traitUuids, items, location);
+            info.setExpCosts(ExperienceCostCalculator.of(difficulty, match.getExpCost())
+                    .costs(nz(c.getDexterity()), nz(c.getIntelligence()), nz(c.getConstitution())));
+            result.add(info);
         }
         return result;
+    }
+
+    private static int nz(Integer v) {
+        return v != null ? v : 0;
     }
 
     /** Total carried weight = Σ (item.weight × amount) over the resolved items. */
@@ -162,6 +179,7 @@ final class CharacterMapper {
         info.setEnergy(c.getEnergy());
         info.setLife(c.getLife());
         info.setSad(c.getSad());
+        info.setExp(nz(c.getExp()));
         info.setLifeMax(c.getLifeMax());
         info.setEnergyMax(c.getEnergyMax());
         info.setSadMax(c.getSadMax());

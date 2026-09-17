@@ -63,7 +63,7 @@ scope, INV-27) is **MOVED** to that location — see §3 "Forced movement" below
 
 Two effect targets that previously had nowhere to be written:
 
-- `exp INTEGER NOT NULL DEFAULT 0` — written here in Step 29, spent in Step 37.
+- `exp INTEGER NOT NULL DEFAULT 0` — written here in Step 29, spent in Step 38.
 - `characteristics TEXT` — CSV, using the existing `MatchTraitCodec` (mirrors `gaming_match.trait_uuids`).
 
 ### Data migration

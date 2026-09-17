@@ -48,6 +48,8 @@ TRIGGER_CHARACTER_START_TIME = "CHARACTER_START_TIME"
 
 #: Message prefix of the audit row an automatic event writes to the match eventLog.
 MSG_AUTOMATIC_EVENT = "automatic event"
+# Step 37/38 — the trigger a completed mission fires its event with: no actor, ALL = the party.
+TRIGGER_MISSION = "mission completed"
 
 #: How many arrivals one request may cascade through before the engine gives up. An
 #: automatic event may move a character, and that move is itself an arrival, so
@@ -234,16 +236,23 @@ def effects_by_event(story):
     return out
 
 
-def resolve_recipients(effect, actor, characters):
+def resolve_recipients(effect, actor, characters, mission_run=False):
     """INV-27: ALL means every character in the ACTOR's location, not every character of the
-    match. target_class then narrows that set; matching nobody is legal."""
+    match. target_class then narrows that set; matching nobody is legal.
+
+    Step 38 — the one exception is an event a completed MISSION fires (``mission_run``):
+    missions are match-scoped, so there is no actor and no location to stand in, and ALL
+    means every character of the match — the reward of a quest goes to the party that won
+    it. ONLY_ONE still names nobody there."""
     target = str(effect.get("target") or "ALL").strip().upper()
     # Step 33 — an automatic event may have no actor at all (a counter reaching zero in a
     # location nobody stands in). There is then nobody to be a recipient: the row's
     # match-scoped halves (weather, registry) are applied by the caller regardless.
     if actor is None:
-        return []
-    if target == "ONLY_ONE" or actor.get("idLocation") is None:
+        if not mission_run or target == "ONLY_ONE":
+            return []
+        base = list(characters or [])
+    elif target == "ONLY_ONE" or actor.get("idLocation") is None:
         base = [actor]
     else:
         base = [c for c in characters if c.get("idLocation") == actor.get("idLocation")]

@@ -472,6 +472,41 @@ def test_import_story_persists_character_template_class_fields():
     assert templates[0]['idClassPermitted'] == 5
     assert templates[0]['idClassProhibited'] == 1
 
+def test_import_story_persists_the_step38_difficulty_columns_and_drops_the_old_one():
+    """Step 38 — expCostBase / maxStatValue are stored (default 0); costMaxCharacteristics
+    and isSafe are legacy keys the import ignores."""
+    payload = {
+        'uuid': 'imp-d38',
+        'texts': [],
+        'difficulties': [{'id': 1, 'expCost': 2, 'expCostBase': 3, 'maxStatValue': 12,
+                          'costMaxCharacteristics': 9},
+                         {'id': 2, 'expCost': 1}],
+        'locations': [{'id': 1, 'isSafe': 1, 'secureParam': 1}],
+    }
+    captured = {}
+
+    def _capture(item):
+        captured['item'] = item
+        return True
+
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, None]), \
+         patch('story.handler.db_utils.query_gsi', return_value=[]), \
+         patch('story.handler.db_utils.put_item', side_effect=_capture):
+        from story.handler import lambda_handler
+        result = lambda_handler(admin_event('POST', '/api/admin/stories/import', body=payload), {})
+    assert result['statusCode'] == 201
+    diffs = captured['item']['difficulties']
+    assert (diffs[0]['expCostBase'], diffs[0]['maxStatValue']) == (3, 12)
+    assert (diffs[1]['expCostBase'], diffs[1]['maxStatValue']) == (0, 0)
+    assert 'costMaxCharacteristics' not in diffs[0]
+
+    from story.handler import _story_detail
+    detail = _story_detail(captured['item'], 'en')
+    assert detail['difficulties'][0]['expCostBase'] == 3
+    assert detail['difficulties'][0]['maxStatValue'] == 12
+    assert 'costMaxCharacteristics' not in detail['difficulties'][0]
+
+
 def test_import_story_resolves_inline_cards_for_gameplay():
     # Step 27.x regression: imported locations/neighbors/events must carry a
     # pre-resolved `card` (and gameplay-friendly keys) so the match handler can

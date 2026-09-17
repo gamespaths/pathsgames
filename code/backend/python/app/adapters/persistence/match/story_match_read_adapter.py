@@ -67,8 +67,7 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "uuid": r.uuid,
                     "counter_time": r.counter_time,
                     "id_card": r.id_card,
-                    # Python schema: is_safe doubles as secure_param (no dedicated column).
-                    "secure_param": r.is_safe or 0,
+                    "secure_param": r.secure_param or 0,
                     # v0.37.1: the start location's own registry pair, written when the match starts.
                     "key_to_add": r.key_to_add,
                     "key_value_to_add": r.key_value_to_add,
@@ -397,6 +396,9 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
             "id": entity.id,
             "uuid": entity.uuid,
             "exp_cost": entity.exp_cost,
+            # Step 38 — the use-exp price list
+            "exp_cost_base": entity.exp_cost_base,
+            "max_stat_value": entity.max_stat_value,
             "max_weight": entity.max_weight,
             "min_character": entity.min_character,
             "max_character": entity.max_character,

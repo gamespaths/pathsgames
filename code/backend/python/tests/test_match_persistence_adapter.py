@@ -235,7 +235,8 @@ def test_story_match_read_adapter(session_factory):
         session.flush()
         story_id = story.id
 
-        diff = StoryDifficultyEntity(id=1, id_story=story_id, uuid="diff-uuid", exp_cost=5)
+        diff = StoryDifficultyEntity(id=1, id_story=story_id, uuid="diff-uuid", exp_cost=5,
+                                     exp_cost_base=3, max_stat_value=12)
         location = LocationEntity(id=10, id_story=story_id, uuid="loc-uuid", counter_time=3)
         key = KeyEntity(id=20, id_story=story_id, uuid="key-uuid", key_name="k", key_value="1")
         session.add_all([diff, location, key])
@@ -254,6 +255,9 @@ def test_story_match_read_adapter(session_factory):
     assert read.find_difficulty_by_uuid(s_by_uuid["id"], "x") is None
     d_by_id = read.find_difficulty_by_id(s_by_uuid["id"], 1)
     assert d_by_id["uuid"] == "diff-uuid"
+    # Step 38 — the use-exp price list rides the match-side projection too (it did not,
+    # so /info priced every point without base and without cap).
+    assert (d_by_id["exp_cost_base"], d_by_id["max_stat_value"]) == (3, 12)
     assert read.find_difficulty_by_id(s_by_uuid["id"], 99) is None
 
     locs = read.find_locations_by_story_id(s_by_uuid["id"])

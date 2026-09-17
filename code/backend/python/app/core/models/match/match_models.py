@@ -185,6 +185,9 @@ class CharacterInstanceInfo:
     food: int = 0
     magic: int = 0
     coin: int = 0
+    # Step 38 — experience points and the cost of the next point per stat (None = at cap).
+    exp: int = 0
+    exp_costs: Dict[str, Optional[int]] = field(default_factory=dict)
 
 
 @dataclass

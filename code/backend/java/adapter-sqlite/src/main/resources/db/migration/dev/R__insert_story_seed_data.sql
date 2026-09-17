@@ -190,9 +190,9 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 
 -- ── Difficulties ────────────────────────────────────────────────
 -- Step 23: difficulty 90001 caps trait costs (positive 2 / negative 3); 90002 has no limits (NULL)
-INSERT INTO list_stories_difficulty (id, id_story, id_card, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight, trait_cost_positive_budget, trait_cost_negative_budget) VALUES
-(90001, 9001, 90001, 300, 1, 20, 1, 4, 1, 1, 3, 120, 110,  0, 12, 12, 12, 12, 2, 3),
-(90002, 9001, 90001, 301, 1, 20, 1, 4, 1, 1, 3, 100, 100, 10, 10, 10, 10, 10, NULL, NULL);
+INSERT INTO list_stories_difficulty (id, id_story, id_card, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, exp_cost_base, max_stat_value, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight, trait_cost_positive_budget, trait_cost_negative_budget) VALUES
+(90001, 9001, 90001, 300, 1, 20, 1, 4, 1, 0, 0, 3, 120, 110,  0, 12, 12, 12, 12, 2, 3),
+(90002, 9001, 90001, 301, 1, 20, 1, 4, 1, 0, 0, 3, 100, 100, 10, 10, 10, 10, 10, NULL, NULL);
 
 -- ── Classes ─────────────────────────────────────────────────────
 INSERT INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES
@@ -264,21 +264,21 @@ INSERT INTO list_keys (id, id_story, name, value, id_text_description, "group", 
 -- player actually stands. The Choice Arena (90005) is UNSAFE (secure_param 0).
 -- Step 27.x: each location carries an id_card (logical FK to list_cards) so
 -- GET /api/match/{uuid}/info returns locationsActive[].idCard + its resolved card.
-INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, cost_energy_enter, max_characters, secure_param, counter_time, id_event_if_counter_zero) VALUES
-(90001, 9001, 90001, 100, 100, 1, 0, 10, 1, 2, NULL),   -- Welcome Hall (start, safe, counter)
-(90002, 9001, 90002, 101, 101, 1, 1, 10, 1, NULL, NULL),-- Movement Training Room (safe)
-(90003, 9001, 90003, 102, 102, 1, 0, 10, 1, NULL, NULL),-- Energy & Life Classroom (safe)
-(90004, 9001, 90002, 103, 103, 1, 0, 10, 1, NULL, NULL),-- Item Workshop (safe)
-(90005, 9001, 90003, 104, 104, 1, 1, 10, 0, NULL, NULL),-- Choice Arena (unsafe)
-(90006, 9001, 90003, 105, 105, 1, 0, 10, 1, NULL, NULL),-- Weather Observatory (safe)
-(90007, 9001, 90002, 106, 106, 1, 0, 10, 1, NULL, NULL),-- Mission Board (safe)
-(90008, 9001, 90001, 107, 107, 1, 0, 10, 1, NULL, NULL);-- Multiplayer Courtyard (safe)
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, cost_energy_enter, max_characters, secure_param, counter_time, id_event_if_counter_zero) VALUES
+(90001, 9001, 90001, 100, 100, 0, 10, 1, 2, NULL),   -- Welcome Hall (start, safe, counter)
+(90002, 9001, 90002, 101, 101, 1, 10, 1, NULL, NULL),-- Movement Training Room (safe)
+(90003, 9001, 90003, 102, 102, 0, 10, 1, NULL, NULL),-- Energy & Life Classroom (safe)
+(90004, 9001, 90002, 103, 103, 0, 10, 1, NULL, NULL),-- Item Workshop (safe)
+(90005, 9001, 90003, 104, 104, 1, 10, 0, NULL, NULL),-- Choice Arena (unsafe)
+(90006, 9001, 90003, 105, 105, 0, 10, 1, NULL, NULL),-- Weather Observatory (safe)
+(90007, 9001, 90002, 106, 106, 0, 10, 1, NULL, NULL),-- Mission Board (safe)
+(90008, 9001, 90001, 107, 107, 0, 10, 1, NULL, NULL);-- Multiplayer Courtyard (safe)
 
 -- Step 36.2 — the Records Vault writes the registry by being entered. Two pairs: the first
 -- arrival and every later one take different branches, never both, and no event is involved.
-INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, cost_energy_enter, max_characters, secure_param, counter_time, id_event_if_counter_zero,
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, cost_energy_enter, max_characters, secure_param, counter_time, id_event_if_counter_zero,
                             key_to_add, key_value_to_add, key_to_add_not_first, key_value_to_add_not_first) VALUES
-(90009, 9001, 90001, 109, 109, 1, 0, 10, 1, NULL, NULL, 'vault_seen', 'first', 'vault_seen', 'again');
+(90009, 9001, 90001, 109, 109, 0, 10, 1, NULL, NULL, 'vault_seen', 'first', 'vault_seen', 'again');
 
 -- ── Location Neighbors ──────────────────────────────────────────
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
@@ -896,10 +896,10 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 (91107, 9002, 11, 'en', 'hours', 'hours');
 
 -- ── Difficulties ────────────────────────────────────────────────
-INSERT INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
-(91001, 9002, 300, 3, 20, 1, 4, 2, 2, 3, 130, 120,  0, 12, 12, 14, 14),
-(91002, 9002, 301, 5, 12, 1, 4, 3, 3, 1, 100, 100, 10, 10, 10, 10, 10),
-(91003, 9002, 302, 8, 8,  2, 3, 5, 5, 0,  80,  90, 20,  8,  8,  8,  8);
+INSERT INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, exp_cost_base, max_stat_value, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(91001, 9002, 300, 3, 20, 1, 4, 2, 0, 0, 3, 130, 120,  0, 12, 12, 14, 14),
+(91002, 9002, 301, 5, 12, 1, 4, 3, 0, 0, 1, 100, 100, 10, 10, 10, 10, 10),
+(91003, 9002, 302, 8, 8,  2, 3, 5, 0, 0, 0,  80,  90, 20,  8,  8,  8,  8);
 
 -- ── Classes ─────────────────────────────────────────────────────
 INSERT INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES
@@ -945,19 +945,19 @@ INSERT INTO list_keys (id, id_story, name, value, id_text_description, "group", 
 (91004, 9002, 'journey_begun',     NULL,    950, 'missions',  4, 'PUBLIC');
 
 -- ── Locations (12) ─────────────────────────────────────────────
-INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, cost_energy_enter, max_characters) VALUES
-(91001, 9002, 91001, 100, 100, 1, 0, 10),   -- Castelfranco Veneto (start)
-(91002, 9002, 91002, 101, 101, 1, 1, 15),   -- Treviso
-(91003, 9002, 91003, 102, 102, 1, 1, 20),   -- Padova
-(91004, 9002, 91002, 103, 103, 0, 2, 8),    -- Bassano del Grappa
-(91005, 9002, 91001, 104, 104, 1, 1, 6),    -- Asolo
-(91006, 9002, 91002, 105, 105, 1, 1, 10),   -- Cittadella
-(91007, 9002, 91003, 106, 106, 0, 2, 4),    -- Monastero di Campese
-(91008, 9002, 91002, 107, 107, 0, 2, 6),    -- Marostica
-(91009, 9002, 91003, 108, 108, 0, 2, 4),    -- Paludi del Sile
-(91010, 9002, 91001, 109, 109, 0, 2, 12),   -- Vicenza
-(91011, 9002, 91002, 110, 110, 0, 2, 6),    -- Bosco del Montello
-(91012, 9002, 91003, 111, 111, 1, 0, 8);    -- Ponte di Piave
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, cost_energy_enter, max_characters) VALUES
+(91001, 9002, 91001, 100, 100, 0, 10),   -- Castelfranco Veneto (start)
+(91002, 9002, 91002, 101, 101, 1, 15),   -- Treviso
+(91003, 9002, 91003, 102, 102, 1, 20),   -- Padova
+(91004, 9002, 91002, 103, 103, 2, 8),    -- Bassano del Grappa
+(91005, 9002, 91001, 104, 104, 1, 6),    -- Asolo
+(91006, 9002, 91002, 105, 105, 1, 10),   -- Cittadella
+(91007, 9002, 91003, 106, 106, 2, 4),    -- Monastero di Campese
+(91008, 9002, 91002, 107, 107, 2, 6),    -- Marostica
+(91009, 9002, 91003, 108, 108, 2, 4),    -- Paludi del Sile
+(91010, 9002, 91001, 109, 109, 2, 12),   -- Vicenza
+(91011, 9002, 91002, 110, 110, 2, 6),    -- Bosco del Montello
+(91012, 9002, 91003, 111, 111, 0, 8);    -- Ponte di Piave
 
 -- v0.37.1: the starting location writes its FIRST-ENTRY pair when the match starts, since the
 -- party begins standing in it and no arrival will ever fire there. Mission 91001 reads this key.

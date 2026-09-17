@@ -277,6 +277,22 @@ def test_only_one_and_target_class():
     assert events.resolve_recipients({"target": "ALL", "targetClass": 9}, actor, everyone) == []
 
 
+def test_a_mission_run_with_no_actor_reaches_the_whole_party():
+    """Step 38 — a completed mission fires its event with no actor: ALL is then every
+    character of the match, ONLY_ONE nobody, and target_class still narrows. Any other
+    actor-less run (a counter-zero fuse) still names nobody."""
+    a = _char(uuid="a", classId=1)
+    b = _char(uuid="b", classId=2, idLocation=999)
+    everyone = [a, b]
+    assert events.resolve_recipients({"target": "ALL"}, None, everyone) == []
+    hit = events.resolve_recipients({"target": "ALL"}, None, everyone, mission_run=True)
+    assert [c["uuid"] for c in hit] == ["a", "b"]
+    assert events.resolve_recipients({"target": "ONLY_ONE"}, None, everyone, mission_run=True) == []
+    narrowed = events.resolve_recipients({"target": "ALL", "targetClass": 2}, None, everyone, mission_run=True)
+    assert [c["uuid"] for c in narrowed] == ["b"]
+    assert events.TRIGGER_MISSION == "mission completed"
+
+
 def test_items_are_added_and_removed():
     c, changes = _char(), []
     uuids = {42: "item-42"}

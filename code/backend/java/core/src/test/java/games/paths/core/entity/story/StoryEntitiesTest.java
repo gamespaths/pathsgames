@@ -842,12 +842,11 @@ class StoryEntitiesTest {
     class LocationEntityTests {
 
         @Test
-        @DisplayName("@PrePersist sets defaults: isSafe=0, costEnergyEnter=1, secureParam=0, priorityAutomaticEvent=0, maxCharacters=100")
+        @DisplayName("@PrePersist sets defaults: costEnergyEnter=1, secureParam=0, priorityAutomaticEvent=0, maxCharacters=100")
         void prePersist_defaults() {
             LocationEntity e = new LocationEntity();
             e.onCreate();
             assertAll(
-                () -> assertEquals(0, e.getIsSafe()),
                 () -> assertEquals(1, e.getCostEnergyEnter()),
                 () -> assertEquals(0, e.getSecureParam()),
                 () -> assertEquals(0, e.getPriorityAutomaticEvent()),
@@ -859,14 +858,12 @@ class StoryEntitiesTest {
         @DisplayName("@PrePersist does NOT overwrite explicitly set values")
         void prePersist_doesNotOverwrite() {
             LocationEntity e = new LocationEntity();
-            e.setIsSafe(1);
             e.setCostEnergyEnter(5);
             e.setSecureParam(1);
             e.setPriorityAutomaticEvent(3);
             e.setMaxCharacters(50);
             e.onCreate();
             assertAll(
-                () -> assertEquals(1, e.getIsSafe()),
                 () -> assertEquals(5, e.getCostEnergyEnter()),
                 () -> assertEquals(1, e.getSecureParam()),
                 () -> assertEquals(3, e.getPriorityAutomaticEvent()),
@@ -902,7 +899,6 @@ class StoryEntitiesTest {
             e.setIdTextDescription(5);
             e.setIdTextNarrative(6);
             e.setIdImage(7);
-            e.setIsSafe(1);
             e.setCostEnergyEnter(2);
             e.setCounterTime(3);
             e.setIdEventIfCounterZero(8);
@@ -913,7 +909,6 @@ class StoryEntitiesTest {
 
             assertAll(
                 () -> assertEquals(1L, e.getId()),
-                () -> assertEquals(1, e.getIsSafe()),
                 () -> assertEquals(2, e.getCostEnergyEnter()),
                 () -> assertEquals(3, e.getCounterTime()),
                 () -> assertEquals(1, e.getSecureParam()),
@@ -1070,7 +1065,8 @@ class StoryEntitiesTest {
                 () -> assertEquals(1, e.getMinCharacter()),
                 () -> assertEquals(4, e.getMaxCharacter()),
                 () -> assertEquals(3, e.getCostHelpComa()),
-                () -> assertEquals(3, e.getCostMaxCharacteristics()),
+                () -> assertEquals(0, e.getExpCostBase()),
+                () -> assertEquals(0, e.getMaxStatValue()),
                 () -> assertEquals(1, e.getNumberMaxFreeAction()),
                 () -> assertEquals(0, e.getLife()),
                 () -> assertEquals(0, e.getEnergy()),
@@ -1091,7 +1087,8 @@ class StoryEntitiesTest {
             e.setMinCharacter(2);
             e.setMaxCharacter(8);
             e.setCostHelpComa(10);
-            e.setCostMaxCharacteristics(5);
+            e.setExpCostBase(5);
+            e.setMaxStatValue(30);
             e.setNumberMaxFreeAction(3);
             e.setLife(200);
             e.setEnergy(150);
@@ -1107,7 +1104,8 @@ class StoryEntitiesTest {
                 () -> assertEquals(2, e.getMinCharacter()),
                 () -> assertEquals(8, e.getMaxCharacter()),
                 () -> assertEquals(10, e.getCostHelpComa()),
-                () -> assertEquals(5, e.getCostMaxCharacteristics()),
+                () -> assertEquals(5, e.getExpCostBase()),
+                () -> assertEquals(30, e.getMaxStatValue()),
                 () -> assertEquals(3, e.getNumberMaxFreeAction()),
                 () -> assertEquals(200, e.getLife()),
                 () -> assertEquals(150, e.getEnergy()),
@@ -1132,7 +1130,8 @@ class StoryEntitiesTest {
             e.setMinCharacter(1);
             e.setMaxCharacter(4);
             e.setCostHelpComa(10);
-            e.setCostMaxCharacteristics(5);
+            e.setExpCostBase(5);
+            e.setMaxStatValue(30);
             e.setNumberMaxFreeAction(3);
             e.setLife(200);
             e.setEnergy(150);
@@ -1149,7 +1148,8 @@ class StoryEntitiesTest {
                 () -> assertEquals(1, e.getMinCharacter()),
                 () -> assertEquals(4, e.getMaxCharacter()),
                 () -> assertEquals(10, e.getCostHelpComa()),
-                () -> assertEquals(5, e.getCostMaxCharacteristics()),
+                () -> assertEquals(5, e.getExpCostBase()),
+                () -> assertEquals(30, e.getMaxStatValue()),
                 () -> assertEquals(3, e.getNumberMaxFreeAction()),
                 () -> assertEquals(200, e.getLife()),
                 () -> assertEquals(150, e.getEnergy()),

@@ -86,6 +86,27 @@ describe('GameBook', () => {
     expect(screen.getByTestId('book')).toBeInTheDocument()
   })
 
+  it('offers training on the board only in a safe place with an affordable point, and opens its page (Step 38)', () => {
+    const rich = { ...GAME_DATA, playerStats: { life: 10, experience: 30, dexterity: 10,
+      intelligence: 12, constitution: 4, expCosts: { dex: 12, int: null, cos: 8 } } }
+    const { unmount } = render(<GameBook gameData={rich} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
+    const open = screen.getByText('game.exp.open')
+    expect(open).toBeInTheDocument()
+    fireEvent.click(open)
+    // the LEFT page now reads the training card, the RIGHT one lists a card per stat
+    expect(screen.getByText('game.stats.dexterity')).toBeInTheDocument()
+    expect(screen.getByText('game.stats.constitution')).toBeInTheDocument()
+    expect(screen.queryByText('game.exp.open')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('page-back'))
+    expect(screen.queryByText('game.stats.constitution')).not.toBeInTheDocument()
+    expect(screen.getByText('game.exp.open')).toBeInTheDocument()
+    unmount()
+
+    const poor = { ...rich, playerStats: { ...rich.playerStats, experience: 3 } }
+    render(<GameBook gameData={poor} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
+    expect(screen.queryByText('game.exp.open')).not.toBeInTheDocument()
+  })
+
   it('renders PlayerStats and action ConfigCards', () => {
     render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
     expect(screen.getByTestId('player-stats')).toBeInTheDocument()

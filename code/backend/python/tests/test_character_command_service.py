@@ -525,6 +525,20 @@ def test_change_statistics_updated_basic():
     char_p.update_backpack_stats.assert_not_called()
 
 
+def test_change_statistics_writes_exp_on_its_own():
+    # Step 38 — exp rides the admin override; -1/None leaves it alone.
+    service, match_p, char_p = _change_stats_env()
+    match_p.find_match_by_uuid.return_value = {"id": 1}
+    char_p.find_character_by_match_and_uuid.return_value = _char_record()
+    assert service.change_statistics("m-uuid", "char-uuid", None, None, None, None, None, None,
+                                     None, None, None, exp=42) == "UPDATED"
+    char_p.update_character_exp.assert_called_once_with(1, 1, 42)
+    char_p.update_character_exp.reset_mock()
+    service.change_statistics("m-uuid", "char-uuid", None, None, None, None, None, None,
+                              None, None, None)
+    char_p.update_character_exp.assert_not_called()
+
+
 def test_change_statistics_caps_at_max():
     service, match_p, char_p = _change_stats_env()
     match_p.find_match_by_uuid.return_value = {"id": 1}

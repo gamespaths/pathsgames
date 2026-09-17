@@ -43,6 +43,11 @@ _RENAMED_COLUMNS = {
         ("time_end", "time_to"),
         ("is_active", "active"),
     ],
+    # Step 38 — is_safe stood in for the secure_param every other backend reads; the data
+    # (0/1) keeps its meaning, only the name changes.
+    "list_locations": [
+        ("is_safe", "secure_param"),
+    ],
 }
 _ADDED_COLUMNS = {
     "list_locations_neighbors": ["id_text_go", "id_text_back",
@@ -58,11 +63,15 @@ _ADDED_COLUMNS = {
     "list_missions": ["condition_value", "condition_values"],
     "list_missions_steps": ["condition_value", "condition_values", "uuid", "id_card",
                            "id_text_name"],
+    # Step 38 — the use-exp price list: flat addend and DEX/INT/COS cap.
+    "list_stories_difficulty": ["exp_cost_base", "max_stat_value"],
 }
 # Step 37 — the from/to pair is gone: a mission has no operator, so a range meant nothing.
 _DROPPED_COLUMNS = {
     "list_missions": ["condition_value_from", "condition_value_to"],
     "list_missions_steps": ["condition_value_from", "condition_value_to"],
+    # Step 38 — replaced by exp_cost_base / max_stat_value.
+    "list_stories_difficulty": ["cost_max_characteristics"],
 }
 # Added columns are integers unless named here: the Step 36 operator holds "=", ">", "<", "!=".
 _TEXT_COLUMNS = {"registry_value_operator_condition",

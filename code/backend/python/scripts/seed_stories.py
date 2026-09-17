@@ -160,12 +160,12 @@ def seed():
              "keyGroup": "missions", "isVisible": 1, "priority": 7},
         ],
         "locations": [
-            # Step 26: safe location (isSafe=1 -> secure recovery) carrying a time
+            # Step 26: safe location (secureParam=1 -> secure recovery) carrying a time
             # counter so the location-counter decrement/zero path is exercised.
             # Step 28: neighbor edge (cost 2) to location 2 so movement is testable.
             # Step 33 — the fuse now points at an AUTOMATIC event that actually does
             # something: Step 26 only ever logged it as pending.
-            {"id": 1, "idTextName": 100, "idTextDescription": 100, "isSafe": 1,
+            {"id": 1, "idTextName": 100, "idTextDescription": 100, "secureParam": 1,
              "idCard": 1, "counterTime": 2, "idEventIfCounterZero": 43,
              "priorityAutomaticEvent": 1,
              # flagBack 1 — a two-way door. Without it the edge is one-way and the party
@@ -179,30 +179,30 @@ def seed():
             # Step 0.28.5: both locations carry idCard so GET /locations resolves
             # a full `card` for each location and neighbor (as Java/AWS seeds do).
             # Step 33 — the first arrival here and every later one fire different events.
-            {"id": 2, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
+            {"id": 2, "idTextName": 100, "idTextDescription": 100, "secureParam": 1, "idCard": 1,
              "idEventIfFirstTime": 40, "idEventNotFirstTime": 41,
              "neighbors": [{"idLocationTo": 4, "direction": "EAST", "energyCost": 0,
                             "idCardBack": 1, "flagBack": 1}]},
             # v0.29.3 — deliberately has NO neighbor edge: only the teleport effect (event 28)
             # can bring a character here, proving the forced movement skips every Step 28 check.
-            {"id": 3, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1},
+            {"id": 3, "idTextName": 100, "idTextDescription": 100, "secureParam": 1, "idCard": 1},
             # v0.33.2 — the two triggers that are NOT history-based, each on a location the
             # party can actually walk to. Location 3 cannot host them: no edge reaches it,
             # and a trigger nobody can walk into is a trigger no end-to-end test can read.
             #   4 — fires when the arriving character finds the room empty (OCCUPANCY, which
             #       in single-player is every arrival).
-            {"id": 4, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
+            {"id": 4, "idTextName": 100, "idTextDescription": 100, "secureParam": 1, "idCard": 1,
              "idEventIfCharacterEnterEmptyLocation": 42,
              "neighbors": [{"idLocationTo": 5, "direction": "NORTH", "energyCost": 0,
                             "idCardBack": 1, "flagBack": 1}]},
             #   5 — fires when a time unit BEGINS with somebody standing here, so it is
             #       reported on the sleep that advanced the clock, not on a movement.
-            {"id": 5, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
+            {"id": 5, "idTextName": 100, "idTextDescription": 100, "secureParam": 1, "idCard": 1,
              "idEventIfCharacterStartTime": 44, "priorityAutomaticEvent": 2},
             # Step 36.2 — the Records Vault writes the registry by being entered. Two pairs:
             # the first arrival and every later one take different branches, never both, and
             # no event is involved at all.
-            {"id": 6, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
+            {"id": 6, "idTextName": 100, "idTextDescription": 100, "secureParam": 1, "idCard": 1,
              "keyToAdd": "vault_seen", "keyValueToAdd": "first",
              "keyToAddNotFirst": "vault_seen", "keyValueToAddNotFirst": "again"},
         ],
@@ -708,11 +708,11 @@ def seed():
         "locations": [
             # v0.37.1 — the START location writes its first-entry pair when the match starts:
             # the party begins standing here, so no arrival will ever fire in this place.
-            {"id": 1, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
+            {"id": 1, "idTextName": 100, "idTextDescription": 100, "secureParam": 1, "idCard": 1,
              "keyToAdd": "journey_begun", "keyValueToAdd": "yes",
              "neighbors": [{"idLocationTo": 2, "direction": "EAST", "energyCost": 1,
                             "idCardBack": 1, "flagBack": 1}]},
-            {"id": 2, "idTextName": 101, "idTextDescription": 101, "isSafe": 0, "idCard": 1},
+            {"id": 2, "idTextName": 101, "idTextDescription": 101, "secureParam": 0, "idCard": 1},
         ],
         # v0.37.1 — the mission that only the start location can open, held at AVAILABLE by a
         # step nothing here satisfies. Fixture of tests/37_missions/mission_from_start.robot.

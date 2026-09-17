@@ -581,7 +581,8 @@
       "maxWeight": 0,
       "expCost": 0,
       "costHelpComa": 0,
-      "costMaxCharacteristics": 0,
+      "expCostBase": 0,
+      "maxStatValue": 0,
       "numberMaxFreeAction": 0,
       "minCharacter": 0,
       "maxCharacter": 0
@@ -594,7 +595,7 @@
       "idCard": 50,
       "idTextName": 50,
       "idTextDescription": 50,
-      "isSafe": 1,
+      "secureParam": 1,
       "maxCharacters": 10,
       "costEnergyEnter": 0
     },
@@ -603,7 +604,7 @@
       "idCard": 51,
       "idTextName": 51,
       "idTextDescription": 51,
-      "isSafe": 1,
+      "secureParam": 1,
       "maxCharacters": 10,
       "costEnergyEnter": 0
     },
@@ -612,7 +613,7 @@
       "idCard": 52,
       "idTextName": 52,
       "idTextDescription": 52,
-      "isSafe": 1,
+      "secureParam": 1,
       "maxCharacters": 10,
       "costEnergyEnter": 0
     },
@@ -621,7 +622,7 @@
       "idCard": 53,
       "idTextName": 53,
       "idTextDescription": 53,
-      "isSafe": 1,
+      "secureParam": 1,
       "maxCharacters": 10,
       "costEnergyEnter": 0
     },
@@ -630,7 +631,7 @@
       "idCard": 54,
       "idTextName": 54,
       "idTextDescription": 54,
-      "isSafe": 1,
+      "secureParam": 1,
       "maxCharacters": 10,
       "costEnergyEnter": 0
     }

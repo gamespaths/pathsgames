@@ -11,6 +11,7 @@ const STATS_FIELDS = [
   { key: 'coin',   label: 'Coin',   hint: null },
   { key: 'food',   label: 'Food',   hint: null },
   { key: 'magic',  label: 'Magic',  hint: null },
+  { key: 'exp',    label: 'XP',     hint: null }, // Step 38
 ]
 
 const PLAYER_FIELD_MAP = { dex: 'dexterity', intel: 'intelligence', con: 'constitution' }

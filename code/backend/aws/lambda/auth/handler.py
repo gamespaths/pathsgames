@@ -580,12 +580,19 @@ def _stale_guests(bound_ms):
 
 
 def _matches_of(guests):
-    """Every match these guests created, whatever its status."""
-    matches = []
-    for uid in {g.get('uuid') for g in guests if g.get('uuid')}:
-        matches.extend(m for m in (db_utils.query_gsi('GSI1', f'USER_MATCHES#{uid}') or [])
-                       if m.get('SK', 'METADATA') == 'METADATA')
-    return matches
+    """Every match these guests created, whatever its status.
+
+    v0.38.0 — ONE read of the GSI2 "by type" partition (GSI2_PK = MATCH, the same index the
+    admin match list pages through; userCreatorUuid is projected) filtered in memory, instead
+    of one USER_MATCHES# query per guest: with olderThanDays=0 every guest is stale, and a
+    table that had grown to a few hundred test guests took the preview past the 30 s Lambda
+    timeout — API Gateway answered 503. Nobody to purge: nothing is read at all.
+    """
+    stale = {g.get('uuid') for g in guests if g.get('uuid')}
+    if not stale:
+        return []
+    return [m for m in (db_utils.query_gsi('GSI2', 'MATCH') or [])
+            if m.get('SK', 'METADATA') == 'METADATA' and m.get('userCreatorUuid') in stale]
 
 
 def guest_stats(event):

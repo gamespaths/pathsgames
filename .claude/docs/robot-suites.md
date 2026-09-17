@@ -34,6 +34,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `35_import_integrity` | v0.35.8 import/schema/admin-CRUD regressions — ships its own story, no seed (see breakdown below) |
 | `36_registry` | Step 36 registry read API, v0.36.1 multi-valued keys, v0.36.3 `forced_move.robot` + v0.36.4 `registry_repeated_writes.robot` (see breakdown below) |
 | `37_missions` | Step 37 mission read API, the status machine, the condition semantics, the v0.37.1 match-start trigger fix, and the v0.37.2 `MISSION_CHANGE` log entry (see breakdown below) |
+| `38_experience` | Step 38 use-exp: `exp`/`expCosts` on `/info`, the purchase, its `EXP_USE` row, every refusal, the missions→rewards→purchase scenario, and the import/export/CRUD contract of `expCostBase`/`maxStatValue` (see breakdown below) |
 | `41_security` | v0.37.7 Step 41: the `csrfToken` on login/resume/`/me` and the `X-CSRF-TOKEN` refusals on `POST /api/matches`; two rate-limit cases that SKIP unless `RATE_LIMIT_GUEST_PER_IP` / `RATE_LIMIT_MATCH_PER_IP` are passed (see breakdown below) |
 
 ### `19_match` breakdown
@@ -298,6 +299,22 @@ idLocation), never by uuid; it sits in the Records Vault rather than at the star
 so no suite picking "any available event" can trip over it. Every case runs on its own
 guest and its own match — the move strands the character and the arrival latches
 flagVisited.
+
+### `38_experience` breakdown
+
+Ships its own story (`story_experience.json`, PRIVATE, category `robottest`, imported in Suite
+Setup and deleted in Suite Teardown after stopping/deleting every match): one template with
+DEX/INT/COS at 2, one difficulty `expCost 1 / expCostBase 0 / maxStatValue 4`, the safe Hall
+and the unsafe Wilds, events granting +1 / +50 exp, and three single-step missions whose
+completion events grant +1 exp each. Shared keywords live in `experience_common.resource`.
+`experience.robot` (14 tests): the price list on `/info`, the purchase and its repricing, the
+`EXP_USE` row, zero energy / no turn change, and every refusal (`MAX_STAT_VALUE`,
+`NOT_ENOUGH_EXP`, `INVALID_STAT`, `LOCATION_NOT_SAFE`, `SLEEPING`, `COMA`, `MATCH_NOT_RUNNING`,
+`MATCH_NOT_FOUND`); sleep and coma are forced through the admin override, which now also
+writes `exp`. `experience_missions.robot` (1): three completed missions pay for one DEX point.
+`experience_admin.robot` (6): import, export and CRUD of `expCostBase` / `maxStatValue`, a
+location echoing `secureParam` and no `isSafe`, and a legacy payload whose dropped keys are
+ignored.
 
 ### `37_missions` breakdown
 

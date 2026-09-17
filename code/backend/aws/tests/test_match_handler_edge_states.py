@@ -171,6 +171,21 @@ def test_the_character_detail_projection_exposes_the_coma_clock():
     assert _character_summary(item)["clockInComa"] == 7
 
 
+def test_the_character_projections_expose_exp_and_the_price_of_the_next_point():
+    """Step 38 — exp and expCosts ride both projections, priced by the match difficulty."""
+    from match.handler import _character_full, _character_summary
+    story = {"difficulties": [{"uuid": "d1", "expCost": 2, "expCostBase": 3, "maxStatValue": 12}]}
+    match = {"difficultyUuid": "d1"}
+    item = {'uuid': 'c1', 'exp': 40, 'dexterity': 10, 'intelligence': 12, 'constitution': 4}
+
+    summary = _character_summary(item, story, match=match)
+    assert summary["exp"] == 40
+    assert summary["expCosts"] == {"dex": 23, "int": None, "cos": 11}
+    assert _character_full(item, story, match=match)["expCosts"]["dex"] == 23
+    # no match at hand: exp still reads, the price list falls back to the defaults
+    assert _character_summary(item)["expCosts"] == {"dex": 10, "int": 12, "cos": 4}
+
+
 def test_an_overflow_that_empties_the_life_bar_also_comas():
     frail = character(life=8)
     body, written = run(story(kill_effect(value=9999, stat='sad')), frail)

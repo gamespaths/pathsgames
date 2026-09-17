@@ -4,8 +4,7 @@ Subclasses :class:`TurnCycleStoreAdapter` to reuse ``find_user_id_by_uuid`` and
 adds the movement reads/writes over gaming_character_instance / list_locations /
 list_locations_neighbors / gaming_state_registry / log_movements. The Python
 location schema has no ``cost_energy_enter`` column, so the location entry cost
-is treated as 0; ``is_safe`` plays the role of ``secure_param`` (safe when > 0),
-mirroring the Step 26 recovery adapter.
+is treated as 0; ``secure_param`` (safe when > 0) mirrors the Step 26 recovery adapter.
 """
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -270,8 +269,7 @@ class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
             "id": l.id,
             "uuid": l.uuid,
             "id_card": l.id_card,
-            # Python schema: is_safe doubles as secure_param; no cost_energy_enter column.
-            "secure_param": l.is_safe or 0,
+            "secure_param": l.secure_param or 0,
             "cost_energy_enter": 0,
             "max_characters": l.max_characters,
         }

@@ -23,7 +23,7 @@ const EXAMPLE = JSON.stringify({
     { idText: 2, lang: "en", shortText: "A great adventure" },
   ],
   difficulties: [
-    { idTextDescription: 10, expCost: 5, maxWeight: 10, minCharacter: 1, maxCharacter: 4,
+    { idTextDescription: 10, expCost: 5, expCostBase: 0, maxStatValue: 0, maxWeight: 10, minCharacter: 1, maxCharacter: 4,
       life: 100, energy: 100, sad: 0, dexterity: 10, intelligence: 10, constitution: 10, weight: 10 }
   ],
   locations: [],

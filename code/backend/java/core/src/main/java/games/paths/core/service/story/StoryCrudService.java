@@ -821,7 +821,6 @@ public class StoryCrudService implements StoryCrudPort {
             LocationEntity l = (LocationEntity) e;
             m.put("idTextNarrative", l.getIdTextNarrative());
             m.put("idImage", l.getIdImage());
-            m.put("isSafe", l.getIsSafe());
             m.put("costEnergyEnter", l.getCostEnergyEnter());
             m.put("counterTime", l.getCounterTime());
             m.put("idEventIfCounterZero", l.getIdEventIfCounterZero());
@@ -964,7 +963,8 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("minCharacter", d.getMinCharacter());
             m.put("maxCharacter", d.getMaxCharacter());
             m.put("costHelpComa", d.getCostHelpComa());
-            m.put("costMaxCharacteristics", d.getCostMaxCharacteristics());
+            m.put("expCostBase", d.getExpCostBase());
+            m.put("maxStatValue", d.getMaxStatValue());
             m.put("numberMaxFreeAction", d.getNumberMaxFreeAction());
             m.put("traitCostPositiveBudget", d.getTraitCostPositiveBudget());
             m.put("traitCostNegativeBudget", d.getTraitCostNegativeBudget());
@@ -1182,8 +1182,6 @@ public class StoryCrudService implements StoryCrudPort {
             e.setIdTextNarrative(intVal(d, "idTextNarrative"));
         if (d.containsKey("idImage"))
             e.setIdImage(intVal(d, "idImage"));
-        if (d.containsKey("isSafe"))
-            e.setIsSafe(intVal(d, "isSafe"));
         if (d.containsKey("costEnergyEnter"))
             e.setCostEnergyEnter(intVal(d, "costEnergyEnter"));
         if (d.containsKey("counterTime"))
@@ -1281,8 +1279,10 @@ public class StoryCrudService implements StoryCrudPort {
             e.setMaxCharacter(intVal(d, "maxCharacter"));
         if (d.containsKey("costHelpComa"))
             e.setCostHelpComa(intVal(d, "costHelpComa"));
-        if (d.containsKey("costMaxCharacteristics"))
-            e.setCostMaxCharacteristics(intVal(d, "costMaxCharacteristics"));
+        if (d.containsKey("expCostBase"))
+            e.setExpCostBase(intVal(d, "expCostBase"));
+        if (d.containsKey("maxStatValue"))
+            e.setMaxStatValue(intVal(d, "maxStatValue"));
         if (d.containsKey("numberMaxFreeAction"))
             e.setNumberMaxFreeAction(intVal(d, "numberMaxFreeAction"));
         if (d.containsKey("traitCostPositiveBudget"))

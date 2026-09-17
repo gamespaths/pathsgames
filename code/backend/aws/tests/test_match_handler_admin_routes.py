@@ -171,6 +171,31 @@ def test_change_statistics_skips_minus_one_whatever_type_it_arrives_as(mock_get,
        return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
 @patch('match.handler.db_utils.put_item', return_value=True)
 @patch('match.handler.db_utils.get_item')
+def test_change_statistics_writes_exp_floored_at_zero(mock_get, mock_put, _jwt):
+    """Step 38 — exp rides the admin override; -1 leaves it alone, a negative floors at 0."""
+    mock_get.side_effect = _admin_side_with_char()
+    result = _call(_admin_event(
+        'POST',
+        '/api/admin/matches/m1/player/char-uuid-1/changeStatistics',
+        path_params={'uuidMatch': 'm1', 'uuidPlayer': 'char-uuid-1'},
+        body={'exp': 42}
+    ))
+    assert result['statusCode'] == 200
+    assert helpers.SINK.items()[-1]['exp'] == 42
+
+    _call(_admin_event(
+        'POST',
+        '/api/admin/matches/m1/player/char-uuid-1/changeStatistics',
+        path_params={'uuidMatch': 'm1', 'uuidPlayer': 'char-uuid-1'},
+        body={'exp': -9}
+    ))
+    assert helpers.SINK.items()[-1]['exp'] == 0
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
+@patch('match.handler.db_utils.put_item', return_value=True)
+@patch('match.handler.db_utils.get_item')
 def test_change_statistics_caps_energy_at_max(mock_get, mock_put, _jwt):
     mock_get.side_effect = _admin_side_with_char()
     result = _call(_admin_event(

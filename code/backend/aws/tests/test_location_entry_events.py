@@ -227,6 +227,28 @@ def test_nobody_pays_for_an_automatic_event():
     assert stored['energy'] == 50
 
 
+def test_a_completed_mission_rewards_the_whole_party():
+    """Step 38 — the mission's completion event has no actor; its exp effect (target ALL)
+    reaches every character of the match, wherever each one stands."""
+    story = _locations_with()
+    story['events'] = [_event(60, 'evt-reward', type='NORMAL')]
+    story['eventEffects'] = [{'id': 1, 'idEvent': 60, 'statistics': 'exp', 'value': 1, 'target': 'ALL'}]
+    story['missions'] = [{'id': 1, 'uuid': 'mis-1', 'conditionKey': 'quest', 'conditionValue': 'done',
+                          'idEventCompleted': 60}]
+    story['missionSteps'] = []
+    far = _char(uuid='c2', cid=2, id_location=LOC_B, owner='someone-else')
+    far['exp'] = 4
+    with _env([PLAYER, story, _match(), _char(), far]) as table:
+        from match import registry as _registry
+        h._repo.begin()
+        match = h._repo.match(MATCH_UUID)
+        _registry.upsert(match, 'quest', 'done')
+        h._repo.flush()
+
+    assert table.get_item(f'MATCH#{MATCH_UUID}', 'CHARACTER#c1')['exp'] == 1
+    assert table.get_item(f'MATCH#{MATCH_UUID}', 'CHARACTER#c2')['exp'] == 5
+
+
 def test_the_audit_row_carries_the_trigger_the_location_and_the_clock():
     story = _locations_with(idEventIfFirstTime=40)
     story['events'] = [_event(40, 'evt-first')]

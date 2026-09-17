@@ -76,6 +76,26 @@ describe('locations entity config (Step 36.2)', () => {
   })
 })
 
+describe('difficulties entity config (Step 38)', () => {
+  it('replaces costMaxCharacteristics with the use-exp price columns, in form and table', () => {
+    const formKeys = STORIES_ENTITIES_FIELDS.difficulties.map(f => f.key)
+    const columnKeys = STORIES_ENTITIES_COLUMNS.difficulties.map(c => c.key)
+    for (const keys of [formKeys, columnKeys]) {
+      expect(keys).toEqual(expect.arrayContaining(['expCostBase', 'maxStatValue']))
+      expect(keys).not.toContain('costMaxCharacteristics')
+    }
+    const byKey = Object.fromEntries(STORIES_ENTITIES_FIELDS.difficulties.map(f => [f.key, f]))
+    expect(byKey.expCostBase.type).toBe('number')
+    expect(byKey.maxStatValue.type).toBe('number')
+  })
+
+  it('drops isSafe from the locations: secureParam is the one "safe" the engine reads', () => {
+    expect(STORIES_ENTITIES_FIELDS.locations.map(f => f.key)).not.toContain('isSafe')
+    expect(STORIES_ENTITIES_COLUMNS.locations.map(c => c.key)).toContain('secureParam')
+    expect(STORIES_ENTITIES_COLUMNS.locations.map(c => c.key)).not.toContain('isSafe')
+  })
+})
+
 describe('location-neighbors entity config', () => {
   it('hides Card Back ID unless flagBack is YES (1)', () => {
     const field = STORIES_ENTITIES_FIELDS['location-neighbors'].find(f => f.key === 'idCardBack')

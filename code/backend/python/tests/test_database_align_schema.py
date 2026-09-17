@@ -116,3 +116,42 @@ def test_the_mission_text_columns_are_not_created_as_integers():
     applied = align_schema(engine)
 
     assert any("list_missions ADD COLUMN condition_values TEXT" in a for a in applied)
+
+
+def _pre_step38_engine():
+    """A database shaped like the v0.37 models: is_safe on locations, cost_max on difficulty."""
+    engine = create_engine("sqlite:///:memory:")
+    with engine.begin() as connection:
+        connection.execute(text("""
+            CREATE TABLE list_locations (
+                id INTEGER, id_story INTEGER, uuid TEXT, is_safe INTEGER, max_characters INTEGER,
+                key_to_add TEXT, key_value_to_add TEXT, key_to_add_not_first TEXT,
+                key_value_to_add_not_first TEXT
+            )
+        """))
+        connection.execute(text("""
+            CREATE TABLE list_stories_difficulty (
+                id INTEGER, id_story INTEGER, uuid TEXT, exp_cost INTEGER,
+                cost_max_characteristics INTEGER
+            )
+        """))
+        connection.execute(text(
+            "INSERT INTO list_locations (id, id_story, uuid, is_safe) VALUES (1, 9, 'l-1', 1)"))
+    return engine
+
+
+def test_align_schema_step38_renames_is_safe_and_swaps_the_difficulty_columns():
+    engine = _pre_step38_engine()
+
+    applied = align_schema(engine)
+
+    locations = {c["name"] for c in inspect(engine).get_columns("list_locations")}
+    assert "secure_param" in locations and "is_safe" not in locations
+    difficulty = {c["name"] for c in inspect(engine).get_columns("list_stories_difficulty")}
+    assert {"exp_cost_base", "max_stat_value"} <= difficulty
+    assert "cost_max_characteristics" not in difficulty
+    assert len(applied) == 4
+    # the 0/1 that meant "safe" keeps meaning it under the new name
+    with engine.connect() as connection:
+        assert connection.execute(text("SELECT secure_param FROM list_locations")).scalar() == 1
+    assert align_schema(engine) == []

@@ -112,6 +112,26 @@ describe('useGameplayResults — reload-driven loading (v0.37.4)', () => {
     expect(viewActions.openPreview).toHaveBeenCalled()
   })
 
+  it('narrates a bought point under the "trained" card, with its two stat badges (Step 38)', async () => {
+    const { result, viewActions } = setup(() => Promise.resolve())
+    let reload
+    act(() => { reload = result.current.handleExpUsed({
+      stat: 'dex', statChanges: [
+        { characterUuid: 'p1', statistic: 'dex', before: 10, after: 11, delta: 1 },
+        { characterUuid: 'p1', statistic: 'exp', before: 40, after: 17, delta: -23 },
+      ] }) })
+    await act(async () => { await reload })
+    expect(result.current.loading).toBe(false)
+    const preview = viewActions.openPreview.mock.calls[0][0]
+    expect(preview.side).toBe('right')
+    expect(preview.card.title).toBe('game.exp.trained.title')
+    expect(preview.card.description).toBe('game.exp.trained.description')
+    expect(preview.stats).toEqual([
+      { key: 'dexterity', label: 'game.stats.dexterity', value: '+1' },
+      { key: 'experience', label: 'game.stats.experience', value: '-23' },
+    ])
+  })
+
   it('works with a caller that wired no reload at all', async () => {
     const { result } = setup(undefined)
     let reload

@@ -2,10 +2,13 @@ import Card from '@/components/layout/Card'
 import PlayerStats from './cards/PlayerStats'
 import ComaCard from './cards/ComaCard'
 import GoToSleepCard from './cards/GoToSleepCard'
+import ExperienceCard from './cards/ExperienceCard'
 import MovementCard from './cards/MovementCard'
 import ActionCard from './cards/ActionCard'
 import EndGameCard from './cards/EndGameCard'
 import { buildCardCharacteristics, checkShowToSleepCard, movementCostKey } from '@/utils/gamebook'
+import { canUseExp } from '@/utils/experience'
+import { expSummaryProps } from './js/boardProps'
 import { SHOW_CARD_CHARACTERISTICS, SHOW_MOBILE_CARD_CHARACTERISTICS, hideWhereClass } from '@/constants/features'
 
 /**
@@ -16,7 +19,7 @@ export default function PageRightMain({
   story, storyFull, t, gameData, playerStats, clock, weather, locations, actions,
   locationCosts, hereLocationId, matchUuid, accessToken, endError,
   sleepCardForced, onPreview, onOpenMap, onOpenItems, onOpenMissions,
-  onOpenInfo,
+  onOpenInfo, onOpenExp,
   onMoved, onDone, onSlept, onError, onEndGame, onEndGamePreview,
 }) {
   const cardCharacteristics = buildCardCharacteristics(story, playerStats, clock, weather)
@@ -24,6 +27,9 @@ export default function PageRightMain({
   // energy-stuck, i.e. every movement and action here costs more energy than they have.
   const showSleep = checkShowToSleepCard({ playerStats, locations, actions, locationCosts, hereLocationId })
     || sleepCardForced
+  // Step 38 — training is offered only where it can be bought: a safe location, an awake
+  // character, and enough experience for at least one point.
+  const showExp = canUseExp(gameData, playerStats)
 
   return (
     <>
@@ -78,6 +84,10 @@ export default function PageRightMain({
               playerStats={playerStats} onPreview={onPreview} previewSide="right"
               matchUuid={matchUuid} accessToken={accessToken} onSlept={onSlept}
               autoPreview={sleepCardForced} />}
+          { /* Step 38 — training closes the board: it reads after resting, because both are
+               what a safe place is for, and it is the one card that spends rather than costs. */ }
+          {showExp &&
+            <ExperienceCard story={story} onOpen={onOpenExp} {...expSummaryProps(playerStats)} />}
           { /* Step 34 — the inventory used to be listed here, next to the actions. It has
                its own page now (ItemsCards on the right, opened by the flask button or by
                ItemsCard in the statistics list), so keeping the list here too would show

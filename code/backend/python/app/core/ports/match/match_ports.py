@@ -273,7 +273,7 @@ class CharacterCommandPort(ABC):
                           dex: Optional[int], intel: Optional[int], con: Optional[int],
                           energy: Optional[int], life: Optional[int], sad: Optional[int],
                           coin: Optional[int], food: Optional[int],
-                          magic: Optional[int]) -> str:
+                          magic: Optional[int], exp: Optional[int] = None) -> str:
         """Admin — override current statistics of a character instance.
         Pass None to skip a field. For energy/life/sad the value is capped at max.
 
@@ -318,6 +318,10 @@ class CharacterPersistencePort(ABC):
                                energy: Optional[int], life: Optional[int],
                                sad: Optional[int]) -> None:
         """Admin: persist updated base stats on the character instance. None = skip."""
+
+    @abstractmethod
+    def update_character_exp(self, match_id: int, character_id: int, exp: int) -> None:
+        """Admin, Step 38: persist the character's experience points (floored at 0)."""
 
     @abstractmethod
     def update_character_flags(self, match_id: int, character_id: int,

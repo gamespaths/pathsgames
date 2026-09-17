@@ -316,6 +316,34 @@ def test_a_fuse_in_an_empty_location_still_writes_the_registry(service, store, l
     store.update_character_stats.assert_not_called()
 
 
+def test_a_mission_reward_reaches_the_whole_party(service, store):
+    """Step 38 — a completed mission fires its event with no actor: ALL is then every
+    character of the match, ONLY_ONE nobody, and target_class still narrows."""
+    other = _character(cid=8, id_location=OTHER_LOCATION)
+    other["exp"] = 2
+    other["id_class"] = 4
+    store.find_characters_for_event.return_value = [_character(), other]
+    store.find_events_by_id.return_value = {60: _event(60, "evt-reward")}
+    store.find_effects_by_event_id.return_value = {60: [
+        _effect(id=1, statistics="exp", value=1, target="ALL"),
+        _effect(id=2, statistics="exp", value=5, target="ONLY_ONE"),
+        _effect(id=3, statistics="exp", value=9, target="ALL", target_class=99),
+    ]}
+
+    service.run_mission_event(MATCH_ID, 60, 1)
+
+    written = {c.args[1]: c.args[2]["exp"] for c in store.update_character_stats.call_args_list}
+    assert written == {CHAR_ID: 1, 8: 3}
+
+
+def test_a_fuse_with_no_actor_still_reaches_nobody_even_with_all(service, store):
+    store.find_events_by_id.return_value = {61: _event(61, "evt-fuse")}
+    store.find_effects_by_event_id.return_value = {61: [_effect(statistics="exp", value=1, target="ALL")]}
+    service.run_pending_automatic_events(MATCH_ID, CLOCK, [
+        PendingAutomaticEvent(lem.TRIGGER_COUNTER_ZERO, LOCATION, 61, None, 0)], "en")
+    store.update_character_stats.assert_not_called()
+
+
 def test_an_empty_pending_list_does_nothing(service, store):
     assert service.run_pending_automatic_events(MATCH_ID, CLOCK, [], "en") == []
     store.find_match_by_id.assert_not_called()

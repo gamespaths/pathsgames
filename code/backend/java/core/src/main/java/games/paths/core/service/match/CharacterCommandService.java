@@ -358,6 +358,10 @@ public class CharacterCommandService implements CharacterCommandPort {
         if (sleeping != null || coma != null) {
             persistencePort.updateCharacterFlags(match.getId(), character.getId(), sleeping, coma);
         }
+        Integer exp = apply(command.getExp(), null);
+        if (exp != null) {
+            persistencePort.updateCharacterExp(match.getId(), character.getId(), exp);
+        }
 
         Integer food  = apply(command.getFood(),  null);
         Integer magic = apply(command.getMagic(), null);

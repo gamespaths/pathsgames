@@ -15,7 +15,7 @@ class DifficultyResponseTest {
     @DisplayName("All-args constructor should set all fields")
     void allArgsConstructor() {
         DifficultyResponse r = new DifficultyResponse(
-                "diff-1", "Easy", 5, 10, 1, 4, 3, 3, 1);
+                "diff-1", "Easy", 5, 10, 1, 4, 3, 3, 20, 1);
 
         assertAll("DifficultyResponse fields",
             () -> assertEquals("diff-1", r.getUuid()),
@@ -25,7 +25,8 @@ class DifficultyResponseTest {
             () -> assertEquals(1, r.getMinCharacter()),
             () -> assertEquals(4, r.getMaxCharacter()),
             () -> assertEquals(3, r.getCostHelpComa()),
-            () -> assertEquals(3, r.getCostMaxCharacteristics()),
+            () -> assertEquals(3, r.getExpCostBase()),
+            () -> assertEquals(20, r.getMaxStatValue()),
             () -> assertEquals(1, r.getNumberMaxFreeAction())
         );
     }
@@ -41,7 +42,8 @@ class DifficultyResponseTest {
         r.setMinCharacter(2);
         r.setMaxCharacter(6);
         r.setCostHelpComa(5);
-        r.setCostMaxCharacteristics(5);
+        r.setExpCostBase(5);
+        r.setMaxStatValue(25);
         r.setNumberMaxFreeAction(2);
 
         assertAll("Setter values",
@@ -52,7 +54,8 @@ class DifficultyResponseTest {
             () -> assertEquals(2, r.getMinCharacter()),
             () -> assertEquals(6, r.getMaxCharacter()),
             () -> assertEquals(5, r.getCostHelpComa()),
-            () -> assertEquals(5, r.getCostMaxCharacteristics()),
+            () -> assertEquals(5, r.getExpCostBase()),
+            () -> assertEquals(25, r.getMaxStatValue()),
             () -> assertEquals(2, r.getNumberMaxFreeAction())
         );
     }

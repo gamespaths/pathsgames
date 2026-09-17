@@ -353,10 +353,16 @@ Admin Change Statistics
     ...                otherwise put the string "-1" in the JSON body, and while Java and Python
     ...                coerce it back to a number, the AWS handler compares it to the integer -1,
     ...                fails, and SETS the statistic to -1 instead of leaving it alone.
+    ...
+    ...                Step 38 — ${exp} rides along the same way; ${sleeping} / ${coma} are
+    ...                the state flags, sent only when given (None = leave the flag alone).
     [Arguments]    ${token}    ${match_uuid}    ${player_uuid}    ${expected_status}=any
-    ...    ${food}=${-1}    ${magic}=${-1}    ${coin}=${-1}    ${energy}=${-1}
+    ...    ${food}=${-1}    ${magic}=${-1}    ${coin}=${-1}    ${energy}=${-1}    ${exp}=${-1}
+    ...    ${sleeping}=${None}    ${coma}=${None}
     ${headers}=    Get Auth Headers    ${token}
-    &{body}=    Create Dictionary    food=${food}    magic=${magic}    coin=${coin}    energy=${energy}
+    &{body}=    Create Dictionary    food=${food}    magic=${magic}    coin=${coin}    energy=${energy}    exp=${exp}
+    IF    $sleeping is not None    Set To Dictionary    ${body}    sleeping=${sleeping}
+    IF    $coma is not None    Set To Dictionary    ${body}    coma=${coma}
     ${response}=    POST On Session    admin_session
     ...    /api/admin/matches/${match_uuid}/player/${player_uuid}/changeStatistics
     ...    headers=${headers}    json=${body}
@@ -613,6 +619,18 @@ Use Item
     END
     ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/inventory/use-item
     ...    headers=${headers}    json=${body}    params=${params}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Use Exp
+    [Documentation]    POST /api/gameplay/{uuidMatch}/action/use-exp — spend experience on a
+    ...                +1 of ${stat} (dex | int | cos), Step 38. Zero energy, the turn does
+    ...                not pass. Answers the purchase (statBefore/After, expBefore/After,
+    ...                expCost, the refreshed expCosts and two statChanges rows).
+    [Arguments]    ${token}    ${match_uuid}    ${stat}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    &{body}=    Create Dictionary    stat=${stat}
+    ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/action/use-exp
+    ...    headers=${headers}    json=${body}    expected_status=${expected_status}
     RETURN    ${response}
 
 Drop Item

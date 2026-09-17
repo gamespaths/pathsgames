@@ -16,9 +16,6 @@ public class LocationEntity extends BaseStoryScopedEntity {
     @Column(name = "id_image")
     private Integer idImage;
 
-    @Column(name = "is_safe", nullable = false)
-    private Integer isSafe;
-
     @Column(name = "cost_energy_enter", nullable = false)
     private Integer costEnergyEnter;
 
@@ -68,7 +65,6 @@ public class LocationEntity extends BaseStoryScopedEntity {
 
     @PrePersist
     protected void onCreate() {
-        if (isSafe == null) isSafe = 0;
         if (costEnergyEnter == null) costEnergyEnter = 1;
         if (secureParam == null) secureParam = 0;
         if (priorityAutomaticEvent == null) priorityAutomaticEvent = 0;
@@ -82,9 +78,6 @@ public class LocationEntity extends BaseStoryScopedEntity {
 
     public Integer getIdImage() { return idImage; }
     public void setIdImage(Integer idImage) { this.idImage = idImage; }
-
-    public Integer getIsSafe() { return isSafe; }
-    public void setIsSafe(Integer isSafe) { this.isSafe = isSafe; }
 
     public Integer getCostEnergyEnter() { return costEnergyEnter; }
     public void setCostEnergyEnter(Integer costEnergyEnter) { this.costEnergyEnter = costEnergyEnter; }

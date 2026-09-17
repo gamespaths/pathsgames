@@ -83,13 +83,14 @@
       "idTextCopyright": 21,
       "idTextDescription": 5,
       "idTextTitle": 5,
-      "linkCopyright": "https://unsplash.com/photos/a-wooden-dock-sitting-on-top-of-a-body-of-water-Gu0mck1if7M",
+      "id_card": 4,
+      "linkCopyright": "https://unsplash.com/photos/white-brick-wall-with-black-and-white-graffiti-BjQTmNKlawg",
       "styleDetail": null,
-      "styleImageLarge": null,
+      "styleImageLarge": "ob-b",
       "styleImageLittle": null,
       "styleImageMedium": null,
       "styleMain": null,
-      "urlImage": "https://plus.unsplash.com/premium_photo-1675198764240-930a8d8b66b1?q=80&w=1451&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "urlImage": "https://images.unsplash.com/photo-1582148818753-2b63c7785867?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "d311a594-ec2e-4abb-b6c3-df8221dc452e"
     },
     {
@@ -159,9 +160,10 @@
       "idTextCopyright": 17,
       "idTextDescription": 11,
       "idTextTitle": 11,
+      "id_card": 8,
       "linkCopyright": "https://unsplash.com/photos/marble-statue-of-a-man-holding-a-spear--RKuvCizV_U",
       "styleDetail": null,
-      "styleImageLarge": null,
+      "styleImageLarge": "ob-c-20 mah",
       "styleImageLittle": null,
       "styleImageMedium": null,
       "styleMain": null,
@@ -298,7 +300,8 @@
     {
       "constitution": 0,
       "costHelpComa": 0,
-      "costMaxCharacteristics": 0,
+      "expCostBase": 0,
+      "maxStatValue": 0,
       "dexterity": 0,
       "energy": 5,
       "expCost": 5,
@@ -325,7 +328,8 @@
     {
       "constitution": 0,
       "costHelpComa": 0,
-      "costMaxCharacteristics": 0,
+      "expCostBase": 0,
+      "maxStatValue": 0,
       "dexterity": 0,
       "energy": 7,
       "expCost": 7,
@@ -352,7 +356,8 @@
     {
       "constitution": 0,
       "costHelpComa": 0,
-      "costMaxCharacteristics": 0,
+      "expCostBase": 0,
+      "maxStatValue": 0,
       "dexterity": 0,
       "energy": 10,
       "expCost": 10,
@@ -453,7 +458,6 @@
       "idTextDescription": 4,
       "idTextName": 4,
       "id_card": 3,
-      "isSafe": false,
       "uuid": "0133d731-3f7b-4a95-9b25-2d79a08da86e"
     }
   ],
@@ -508,8 +512,8 @@
       "idText": 5,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Complete infinite Paths",
-      "shortText": "Complete infinite Paths",
+      "longText": "Complete the Paths",
+      "shortText": "Complete the Paths",
       "uuid": "78b8988d-b900-4916-b2dd-f778548513bf"
     },
     {
@@ -748,8 +752,8 @@
       "idText": 21,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Jonny Gios",
-      "shortText": "Jonny Gios",
+      "longText": "Crawford Jolly",
+      "shortText": "Crawford Jolly",
       "uuid": "6a1e53ec-c863-4008-9856-8fca71db88a2"
     },
     {
@@ -781,6 +785,16 @@
       "longText": "Darkness",
       "shortText": "Darkness",
       "uuid": "b6c1ddc9-0114-4187-a2b0-ad018437f71c"
+    },
+    {
+      "id": 5,
+      "idCreator": 1,
+      "idText": 5,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "3508a78c-d47c-4ec3-b1ed-4cc1e015b6f7"
     }
   ],
   "title": "Infinite Paths",

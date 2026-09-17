@@ -107,6 +107,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     viewActions.closeAll()
     scrollMobileIntoView('.book-mobile-left')
   }
+  function closeExpView() {
+    viewActions.closeAll()
+    scrollMobileIntoView('.book-mobile-left')
+  }
   // v0.37.1 — opening the panel is reading the news: the gold tab goes out here, and nowhere
   // else, so it stays lit until the player has actually looked.
   function openMissionsView() {
@@ -130,6 +134,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     onCloseRegistry={closeRegistryView}
     onCloseMissions={closeMissionsView}
     onCloseMission={viewActions.openMissions}
+    onCloseExp={closeExpView}
     onSelectMapNode={viewActions.selectMapNode}
     onBack={handleBackOrClose} />
 
@@ -152,6 +157,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     onMoved={results.handleMovementDone}
     onDone={results.handleEventExecuted}
     onItemUsed={results.handleItemUsed}
+    onExpUsed={results.handleExpUsed}
     onDropped={results.handleItemDropped}
     onSlept={results.handleSlept}
     onError={onError}
@@ -161,6 +167,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     onOpenMissions={viewActions.openMissions}
     onOpenHistory={() => viewActions.setPreviewRight({ kind: 'matchlog' })}
     onOpenMission={viewActions.openMission}
+    onOpenExp={viewActions.openExp}
     onOpenInfo={openInformationView}
     onEndGame={handleEndGame}
     onEndGamePreview={handleEndGamePreviewFull}

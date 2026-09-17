@@ -238,6 +238,14 @@ Resources:
       RouteKey: "GET /api/match/{uuidMatch}/turn-sequence"
       Target: !Sub "integrations/${MatchIntegration}"
 
+  # Step 38 — experience spent on a stat (player API)
+  UseExpRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/gameplay/{uuidMatch}/action/use-exp"
+      Target: !Sub "integrations/${MatchIntegration}"
+
   # Step 25 — time advancement & clock cycle (player API)
   SleepActionRoute:
     Type: AWS::ApiGatewayV2::Route

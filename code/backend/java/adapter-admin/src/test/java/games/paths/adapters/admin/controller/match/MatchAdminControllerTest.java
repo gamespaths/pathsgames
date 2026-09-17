@@ -401,7 +401,7 @@ class MatchAdminControllerTest {
         mockMvc.perform(post("/api/admin/matches/m1/player/p1/changeStatistics")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"dex\":11,\"intel\":12,\"con\":13,\"energy\":60,\"life\":70,"
-                                + "\"sad\":8,\"coin\":5,\"food\":3,\"magic\":4}"))
+                                + "\"sad\":8,\"coin\":5,\"food\":3,\"magic\":4,\"exp\":21}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("UPDATED"))
                 .andExpect(jsonPath("$.matchUuid").value("m1"))
@@ -419,6 +419,7 @@ class MatchAdminControllerTest {
         assertEquals(5, c.getCoin());
         assertEquals(3, c.getFood());
         assertEquals(4, c.getMagic());
+        assertEquals(21, c.getExp());
     }
 
     @Test
@@ -429,7 +430,7 @@ class MatchAdminControllerTest {
         mockMvc.perform(post("/api/admin/matches/m1/player/p1/changeStatistics")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"dex\":-1,\"intel\":-1,\"con\":-1,\"energy\":-1,\"life\":-1,"
-                                + "\"sad\":-1,\"coin\":-1,\"food\":-1,\"magic\":9}"))
+                                + "\"sad\":-1,\"coin\":-1,\"food\":-1,\"magic\":9,\"exp\":-1}"))
                 .andExpect(status().isOk());
 
         var captor = org.mockito.ArgumentCaptor.forClass(CharacterCommandPort.ChangeStatsCommand.class);
@@ -443,6 +444,7 @@ class MatchAdminControllerTest {
         assertNull(c.getSad());
         assertNull(c.getCoin());
         assertNull(c.getFood());
+        assertNull(c.getExp());
         assertEquals(9, c.getMagic());
     }
 

@@ -399,6 +399,14 @@ public class CoreConfig {
                 inventoryStorePort, userAccessPort, contentQueryPort, storyReadPort, eventExecutionService);
     }
 
+    /** Step 38 — experience spent on a stat; prices with the difficulty row, logs EXP_USE. */
+    @Bean
+    public games.paths.core.port.match.ExperiencePort experiencePort(
+            games.paths.core.port.match.ExperienceStorePort experienceStorePort,
+            UserAccessPort userAccessPort) {
+        return new games.paths.core.service.match.ExperienceService(experienceStorePort, userAccessPort);
+    }
+
     // ───── Step 21: Character template & class selection ─────
 
     @Bean

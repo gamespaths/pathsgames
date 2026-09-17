@@ -46,6 +46,8 @@ REMOVE = "REMOVE"
 #: "you already carry as many as you can" — or, as react-game does today, to say nothing.
 NOT_ADDED = "NOT_ADDED"
 TARGET_ONLY_ONE = "ONLY_ONE"
+# Step 37/38 — the trigger a completed mission fires its event with: no actor, ALL = the party.
+TRIGGER_MISSION = "mission completed"
 
 # A chain longer than this is treated as broken and simply stops. The Step 22 validator
 # rejects cycles at import, but the admin CRUD path is lenient and never sees the whole
@@ -65,6 +67,13 @@ def _joined(values: Optional[List[str]]) -> Optional[str]:
     if not values:
         return None
     return values[0] if len(values) == 1 else ",".join(values)
+
+
+def _narrow_by_class(base: List[Dict[str, Any]], target_class) -> List[Dict[str, Any]]:
+    """target_class narrows the recipients; None or non-positive leaves them as they are."""
+    if not target_class or target_class <= 0:
+        return base
+    return [c for c in base if c.get("id_class") == target_class]
 
 
 def _clamp(value: int, low: int, high: int) -> int:
@@ -171,7 +180,7 @@ class EventService(EventPort):
         match = self.store.find_match_by_id(id_match)
         if not match:
             return
-        self._run_automatic_event(id_match, None, id_event, 0, "mission completed",
+        self._run_automatic_event(id_match, None, id_event, 0, TRIGGER_MISSION,
                                   match.get("current_clock") or 0, None, False, depth, [])
 
     def execute_event(self, match_uuid: str, user_uuid: str, event_uuid: str,
@@ -773,13 +782,20 @@ class EventService(EventPort):
     def _resolve_recipients(self, x: "_Exec", effect: Dict[str, Any]) -> List[Dict[str, Any]]:
         """INV-27: ALL means every character standing in the ACTOR's location, not every
         character of the match. target_class then narrows that set; matching nobody is legal
-        and simply applies nothing."""
+        and simply applies nothing.
+
+        Step 38 — the one exception is an event a completed MISSION fires: missions are
+        match-scoped, so there is no actor and no location to stand in, and ALL means every
+        character of the match — the reward of a quest goes to the party that won it.
+        ONLY_ONE still names nobody there."""
         target = (effect.get("target") or "ALL").strip().upper()
         # Step 33 — an automatic event may have no actor at all (a counter reaching zero in
         # a location nobody stands in). There is then nobody to be a recipient: the row's
         # match-scoped halves (weather, registry) have already been applied by the caller.
         if x.actor is None:
-            return []
+            if not x.mission_run or target == TARGET_ONLY_ONE:
+                return []
+            return _narrow_by_class(list(x.all_characters()), effect.get("target_class"))
         # Locations come from the tracked map, not the raw views: a forced movement earlier
         # in the chain must be seen by the effects that follow it.
         actor_location = x.location_of(x.actor)
@@ -789,10 +805,7 @@ class EventService(EventPort):
             base = [c for c in x.all_characters()
                     if x.location_of(c) == actor_location]
 
-        target_class = effect.get("target_class")
-        if not target_class or target_class <= 0:
-            return base
-        return [c for c in base if c.get("id_class") == target_class]
+        return _narrow_by_class(base, effect.get("target_class"))
 
     def _apply_stat(self, x: "_Exec", recipient: Dict[str, Any],
                     effect: Dict[str, Any]) -> None:
@@ -1285,6 +1298,7 @@ class EventService(EventPort):
 
         x = _Exec(self, match, actor, ctx, lang or "en", event)
         x.entry_depth = depth
+        x.mission_run = trigger == TRIGGER_MISSION
         self._run_chain(x, event)
         self._resolve_all_player_coma(x)
         if x.end_time and not x.coma_triggered and allow_time_end:
@@ -1546,6 +1560,8 @@ class _Exec:
         self.automatic_events: List[Any] = []
         #: How many arrivals deep this execution already is — the runaway-loop guard.
         self.entry_depth: int = 0
+        # Step 38 — fired by a completed mission: no actor, and ALL means the whole party.
+        self.mission_run: bool = False
 
         self.current_clock = match.get("current_clock") or 0
         self.energy_spent = 0

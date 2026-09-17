@@ -120,6 +120,18 @@ describe('MatchLogCard', () => {
     expect(document.querySelector('.fa-scroll')).toBeInTheDocument()
   })
 
+  it('shows an EXP_USE entry with its own icon and label (Step 38)', async () => {
+    getMatchLogs.mockResolvedValue({
+      ...PAGE,
+      logs: [{ type: 'EXP_USE', clock: 3, timestamp: '2026-07-12T10:05:00Z',
+               message: 'EXP_USE dex 10->11 cost 23', characterUuid: 'char-1', characterName: 'Ranger' }],
+    })
+    render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
+    await screen.findByTestId('match-log-card')
+    expect(screen.getAllByText('matchLog.types.EXP_USE').length).toBeGreaterThan(0)
+    expect(document.querySelector('.fa-star')).toBeInTheDocument()
+  })
+
   it('leaves the actor to the page: a row is what happened, not who did it', async () => {
     render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
     await screen.findByTestId('match-log-card')

@@ -53,7 +53,9 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'minCharacter', label: 'Min Characters', type: 'number' },
       { key: 'maxCharacter', label: 'Max Characters', type: 'number' },
       { key: 'costHelpComa', label: 'Cost Help Coma', type: 'number' },
-      { key: 'costMaxCharacteristics', label: 'Cost Max Characteristics', type: 'number' },
+      // Step 38 — use-exp: cost = max(1, expCost × stat + expCostBase); maxStatValue caps DEX/INT/COS (0 = none)
+      { key: 'expCostBase', label: 'EXP Base Cost', type: 'number' },
+      { key: 'maxStatValue', label: 'Max Stat Value (use-exp cap)', type: 'number' },
       { key: 'numberMaxFreeAction', label: 'Max Free Actions', type: 'number' },
       // Step 23 — trait cost budgets (empty = no limit)
       { key: 'traitCostPositiveBudget', label: 'Trait Cost Budget (+)', type: 'number' },
@@ -72,7 +74,6 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
       { key: 'idTextNarrative', label: 'Narrative Text ID', type: 'number' },
       { key: 'idImage', label: 'Image ID', type: 'number' },
-      { key: 'isSafe', label: 'Safe Location', type: 'checkbox' },
       { key: 'costEnergyEnter', label: 'Energy Cost to Enter', type: 'number' },
       { key: 'counterTime', label: 'Counter Time', type: 'number' },
       { key: 'idEventIfCounterZero', label: 'Event if Counter = 0', type: 'number' },
@@ -401,7 +402,8 @@ export const STORIES_ENTITIES_COLUMNS = {
       { key: 'minCharacter', label: 'Min Chars' },
       { key: 'maxCharacter', label: 'Max Chars' },
       { key: 'costHelpComa', label: 'Help COMA' },
-      { key: 'costMaxCharacteristics', label: 'Max Char Cost' },
+      { key: 'expCostBase', label: 'EXP Base' },
+      { key: 'maxStatValue', label: 'Max Stat' },
       { key: 'numberMaxFreeAction', label: 'Max Free Actions' },
       { key: 'life', label: 'Life' },
       { key: 'energy', label: 'Energy' },
@@ -414,7 +416,7 @@ export const STORIES_ENTITIES_COLUMNS = {
     locations: [
       { key: 'idTextName', label: 'Name', type: 'idTextName' },
       { key: 'idTextDescription', label: 'Desc', type: 'idTextDescription' },
-      { key: 'isSafe', label: 'Safe', type: 'boolean' },
+      { key: 'secureParam', label: 'Secure' },
       { key: 'idImage', label: 'Image' },
       { key: 'maxCharacters', label: 'Max Chars' },
     ],

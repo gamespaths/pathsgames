@@ -74,7 +74,8 @@ const STAT_VISUAL = {
   minCharacter:           { icon: 'fas fa-users',        color: '#34495e' },
   maxCharacter:           { icon: 'fas fa-users',        color: '#34495e' },
   costHelpComa:           { icon: 'fas fa-hand-holding-medical', color: '#16a085' },
-  costMaxCharacteristics: { icon: 'fas fa-arrow-up',     color: '#2980b9' },
+  expCostBase:            { icon: 'fas fa-arrow-up',     color: '#2980b9' },
+  maxStatValue:           { icon: 'fas fa-arrow-up',     color: '#2980b9' },
   numberMaxFreeAction:    { icon: 'fas fa-running',      color: '#3498db' },
 }
 

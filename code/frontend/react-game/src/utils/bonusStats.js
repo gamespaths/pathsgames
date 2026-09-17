@@ -6,7 +6,7 @@ export const STAT_FIELDS = {
   character: ['lifeMax', 'energyMax', 'sadMax', 'dexterityStart', 'intelligenceStart', 'constitutionStart'],
   class:     ['weightMax', 'dexterityBase', 'intelligenceBase', 'constitutionBase'],
   trait:     ['costPositive', 'costNegative', 'life', 'energy', 'sad', 'dexterity', 'intelligence', 'constitution', 'weight'],
-  difficulty:['expCost', 'maxWeight', 'minCharacter', 'maxCharacter', 'costHelpComa', 'costMaxCharacteristics', 'numberMaxFreeAction',
+  difficulty:['expCost', 'maxWeight', 'minCharacter', 'maxCharacter', 'costHelpComa', 'expCostBase', 'maxStatValue', 'numberMaxFreeAction',
               'life', 'energy', 'sad', 'dexterity', 'intelligence', 'constitution', 'weight'],
 }
 
@@ -91,6 +91,8 @@ export const STAT_CATEGORY = {
   weightMax:          'weight',
   maxWeight:          'weight',
   expCost:            'exp',
+  expCostBase:        'exp',
+  maxStatValue:       'exp',
   life:               'life',
   energy:             'energy',
   sad:                'sad',

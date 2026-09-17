@@ -10,7 +10,7 @@ import { isMobileViewport, scrollMobileIntoView } from './mobileView'
  * the board owes the player and survive a reload on purpose.
  */
 const INITIAL = {
-  view: 'board',        // 'board' | 'info' | 'items' | 'registry' | 'missions' | 'missionSteps' | 'map'
+  view: 'board',        // 'board' | 'info' | 'items' | 'registry' | 'missions' | 'missionSteps' | 'map' | 'exp'
   previewLeft: null,    // { card, type, ... } | { kind: 'coma' | 'sad' } | null
   previewRight: null,   // { kind, ... } | null
   previewModal: null,   // the mobile (i) modal payload | null
@@ -51,6 +51,9 @@ export function bookViewReducer(state, action) {
         previewLeft: action.preview, missionSelected: action.mission }
     case 'openMap':
       return { ...closeAll(state), view: 'map' }
+    // Step 38 — training: the experience card takes the LEFT page, one card per stat the right.
+    case 'openExp':
+      return { ...closeAll(state), view: 'exp' }
     case 'clearPreview':
       return { ...state, previewLeft: null, previewRight: null, previewModal: null }
     case 'previewLeft':
@@ -147,6 +150,7 @@ export default function useBookView() {
     openRegistry: () => { dispatch({ type: 'openRegistry' }); scrollMobileIntoView('.book-mobile-right') },
     openMissions: () => { dispatch({ type: 'openMissions' }); scrollMobileIntoView('.book-mobile-right') },
     openMap: () => { dispatch({ type: 'openMap' }); scrollMobileIntoView('.book-mobile-left') },
+    openExp: () => { dispatch({ type: 'openExp' }); scrollMobileIntoView('.book-mobile-right') },
     setPreviewLeft: value => dispatch({ type: 'previewLeft', value }),
     setPreviewRight: value => dispatch({ type: 'previewRight', value }),
     setChoices: value => dispatch({ type: 'setChoices', value }),

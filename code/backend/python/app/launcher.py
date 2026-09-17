@@ -61,10 +61,13 @@ from app.adapters.rest.match.movement_controller import MovementController
 from app.adapters.persistence.match.edge_state_store_adapter import EdgeStateStoreAdapter
 from app.adapters.persistence.match.event_store_adapter import EventStoreAdapter
 from app.adapters.persistence.match.inventory_store_adapter import InventoryStoreAdapter
+from app.adapters.persistence.match.experience_store_adapter import ExperienceStoreAdapter
 from app.core.services.match.event_service import EventService
 from app.core.services.match.inventory_service import InventoryService
+from app.core.services.match.experience_service import ExperienceService
 from app.adapters.rest.match.event_controller import EventController
 from app.adapters.rest.match.inventory_controller import InventoryController
+from app.adapters.rest.match.experience_controller import ExperienceController
 from app.adapters.persistence.match.weather_store_adapter import WeatherStoreAdapter
 from app.core.services.match.match_logs_service import MatchLogsService
 from app.core.services.match.weather_selection_service import WeatherSelectionService
@@ -271,6 +274,11 @@ inventory_service = InventoryService(inventory_store_adapter,
                                      effect_engine=event_service)
 inventory_controller = InventoryController(inventory_service)
 
+# Step 38 — experience spent on a stat; prices with the difficulty row, logs EXP_USE.
+experience_store_adapter = ExperienceStoreAdapter(SessionLocal)
+experience_service = ExperienceService(experience_store_adapter, user_access_port=user_access_adapter)
+experience_controller = ExperienceController(experience_service)
+
 # Step 33 — one service, two roles. EventService implements the location engine as well,
 # because a forced-movement effect is an arrival and splitting the two apart would only
 # produce a dependency cycle. These two lines close the one cycle in the graph: the event
@@ -369,6 +377,7 @@ app = _build_app([
     movement_controller.router,
     event_controller.router,
     inventory_controller.router,
+    experience_controller.router,
     weather_controller.router,
 ])
 

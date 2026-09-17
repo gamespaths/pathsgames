@@ -55,6 +55,9 @@ describe('bookViewReducer', () => {
       .toMatchObject({ view: 'registry', previewLeft: null })
     expect(bookViewReducer({ ...BASE, view: 'registry' }, { type: 'openItems' }))
       .toMatchObject({ view: 'items' })
+    // Step 38 — training joined the same set.
+    expect(bookViewReducer(info, { type: 'openExp' })).toMatchObject({ view: 'exp', previewLeft: null })
+    expect(bookViewReducer({ ...BASE, view: 'exp' }, { type: 'closeAll' })).toMatchObject({ view: 'board' })
   })
 
   it('opens one mission on the left page and remembers whose steps the right one shows', () => {

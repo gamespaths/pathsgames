@@ -219,7 +219,7 @@ Import Multiple Stories With All Internal IDs Shared
     ...    "idTextTitle":1,"idTextDescription":2,
     ...    "texts":[{"id":1,"idText":1,"lang":"en","shortText":"Title"},{"id":2,"idText":2,"lang":"en","shortText":"Desc"}],
     ...    "difficulties":[{"id":1,"expCost":1}],"classes":[{"id":1,"weightMax":10}],"traits":[{"id":1,"costPositive":0}],
-    ...    "characterTemplates":[{"id":1,"lifeMax":10}],"locations":[{"id":1,"isSafe":1}],"events":[{"id":1,"type":"NORMAL"}],
+    ...    "characterTemplates":[{"id":1,"lifeMax":10}],"locations":[{"id":1,"secureParam":1}],"events":[{"id":1,"type":"NORMAL"}],
     ...    "items":[{"id":1,"weight":1}],"keys":[{"id":1,"name":"K"}],"choices":[{"id":1,"idEvent":1,"otherwiseFlag":1}],
     ...    "weatherRules":[{"id":1,"probability":0.5}],"missions":[{"id":1,"name":"M"}]}
 
@@ -232,7 +232,7 @@ Import Multiple Stories With All Internal IDs Shared
     ...    "idTextTitle":1,"idTextDescription":2,
     ...    "texts":[{"id":1,"idText":1,"lang":"en","shortText":"Title"},{"id":2,"idText":2,"lang":"en","shortText":"Desc"}],
     ...    "difficulties":[{"id":1,"expCost":1}],"classes":[{"id":1,"weightMax":10}],"traits":[{"id":1,"costPositive":0}],
-    ...    "characterTemplates":[{"id":1,"lifeMax":10}],"locations":[{"id":1,"isSafe":1}],"events":[{"id":1,"type":"NORMAL"}],
+    ...    "characterTemplates":[{"id":1,"lifeMax":10}],"locations":[{"id":1,"secureParam":1}],"events":[{"id":1,"type":"NORMAL"}],
     ...    "items":[{"id":1,"weight":1}],"keys":[{"id":1,"name":"K"}],"choices":[{"id":1,"idEvent":1,"otherwiseFlag":1}],
     ...    "weatherRules":[{"id":1,"probability":0.5}],"missions":[{"id":1,"name":"M"}]}
 
@@ -265,7 +265,7 @@ Import Explicit ID For list_stories_difficulty Returns 201
     Import With Explicit List Entity Id
     ...    62222222-2222-4222-8222-222222222222
     ...    difficulties
-    ...    {"id":971002,"expCost":5,"maxWeight":10,"minCharacter":1,"maxCharacter":4,"costHelpComa":3,"costMaxCharacteristics":3,"numberMaxFreeAction":1}
+    ...    {"id":971002,"expCost":5,"maxWeight":10,"minCharacter":1,"maxCharacter":4,"costHelpComa":3,"expCostBase":3,"maxStatValue":0,"numberMaxFreeAction":1}
 
 Import Explicit ID For list_creator Returns 201
     [Documentation]    Import accepts explicit id for list_creator rows.
@@ -400,7 +400,7 @@ Import Explicit ID For list_locations Returns 201
     Import With Explicit List Entity Id
     ...    69999999-9999-4999-8999-999999999999
     ...    locations
-    ...    {"id":971009,"isSafe":0,"costEnergyEnter":1}
+    ...    {"id":971009,"secureParam":0,"costEnergyEnter":1}
 
 Import Explicit ID For list_events Returns 201
     [Documentation]    Import accepts explicit id for list_events rows.

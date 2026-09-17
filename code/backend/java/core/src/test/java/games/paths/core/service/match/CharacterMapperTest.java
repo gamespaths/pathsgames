@@ -8,6 +8,7 @@ import games.paths.core.entity.story.CharacterTemplateEntity;
 import games.paths.core.entity.story.ItemEffectEntity;
 import games.paths.core.entity.story.ItemEntity;
 import games.paths.core.entity.story.LocationEntity;
+import games.paths.core.entity.story.StoryDifficultyEntity;
 import games.paths.core.entity.story.TextEntity;
 import games.paths.core.entity.story.TraitEntity;
 import games.paths.core.model.match.CharacterInstanceInfo;
@@ -320,5 +321,68 @@ class CharacterMapperTest {
         assertEquals(1, players.get(1).getItems().size(), "the legacy path never masked");
         assertNull(players.get(0).getItems().get(0).getCard(), "and resolved no cards");
         verify(storyReadPort, times(2)).findTextByStoryIdTextAndLang(5L, 99, "en");
+    }
+
+    // === Step 38: exp and expCosts ===
+
+    private static StoryDifficultyEntity difficulty(long id, int expCost, int base, int cap) {
+        StoryDifficultyEntity d = new StoryDifficultyEntity();
+        d.setId(id);
+        d.setExpCost(expCost);
+        d.setExpCostBase(base);
+        d.setMaxStatValue(cap);
+        return d;
+    }
+
+    @Test
+    @DisplayName("Step 38: exp is copied and expCosts priced by the match's difficulty row")
+    void expAndCostsFromDifficulty() {
+        StoryReadPort storyReadPort = mock(StoryReadPort.class);
+        CharacterReadPort characterReadPort = mock(CharacterReadPort.class);
+        GamingMatchEntity m = match(5L);
+        m.setIdDifficulty(2L);
+        m.setExpCost(99);
+        when(storyReadPort.findDifficultiesByStoryId(5L))
+                .thenReturn(List.of(difficulty(1L, 7, 7, 7), difficulty(2L, 2, 3, 12)));
+        GamingCharacterInstanceEntity c = party(10L, 7L);
+        c.setExp(40);
+        c.setDexterity(10);
+        c.setIntelligence(12);
+        c.setConstitution(4);
+        when(characterReadPort.findBackpack(1L, 10L)).thenReturn(Optional.empty());
+        when(characterReadPort.findTraits(1L, 10L)).thenReturn(List.of());
+        when(characterReadPort.findInventory(1L, 10L)).thenReturn(List.of());
+
+        CharacterInstanceInfo info = CharacterMapper.buildAll(List.of(c), m,
+                storyReadPort, characterReadPort, "user-uuid", 7L).get(0);
+
+        assertEquals(40, info.getExp());
+        assertEquals(23, info.getExpCosts().get("dex"));   // 2 × 10 + 3
+        assertNull(info.getExpCosts().get("int"));         // 12 is the cap
+        assertEquals(11, info.getExpCosts().get("cos"));   // 2 × 4 + 3
+        assertEquals(List.of("dex", "int", "cos"), List.copyOf(info.getExpCosts().keySet()));
+    }
+
+    @Test
+    @DisplayName("Step 38: without a difficulty row the match's own expCost prices the points, uncapped")
+    void expCostsFallBackToMatchExpCost() {
+        StoryReadPort storyReadPort = mock(StoryReadPort.class);
+        CharacterReadPort characterReadPort = mock(CharacterReadPort.class);
+        GamingMatchEntity m = match(5L);
+        m.setIdDifficulty(3L);
+        m.setExpCost(4);
+        when(storyReadPort.findDifficultiesByStoryId(5L)).thenReturn(List.of(difficulty(1L, 7, 7, 7)));
+        GamingCharacterInstanceEntity c = party(10L, 7L);
+        c.setDexterity(5);
+        when(characterReadPort.findBackpack(1L, 10L)).thenReturn(Optional.empty());
+        when(characterReadPort.findTraits(1L, 10L)).thenReturn(List.of());
+        when(characterReadPort.findInventory(1L, 10L)).thenReturn(List.of());
+
+        CharacterInstanceInfo info = CharacterMapper.buildAll(List.of(c), m,
+                storyReadPort, characterReadPort, "user-uuid", 7L).get(0);
+
+        assertEquals(0, info.getExp());
+        assertEquals(20, info.getExpCosts().get("dex"));
+        assertEquals(1, info.getExpCosts().get("int"));    // null stat reads as 0 → max(1, 0)
     }
 }

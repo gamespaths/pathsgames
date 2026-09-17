@@ -2,6 +2,7 @@ package games.paths.core.model.match;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * CharacterInstanceInfo - Domain model describing a character materialised in a
@@ -48,6 +49,10 @@ public class CharacterInstanceInfo {
     private Integer food;
     private Integer magic;
     private Integer coin;
+
+    /** Step 38 — experience points and the cost of the next point per stat (null = at cap). */
+    private Integer exp;
+    private Map<String, Integer> expCosts;
 
     public CharacterInstanceInfo() {
     }
@@ -133,4 +138,10 @@ public class CharacterInstanceInfo {
 
     public Integer getCoin() { return coin; }
     public void setCoin(Integer coin) { this.coin = coin; }
+
+    public Integer getExp() { return exp; }
+    public void setExp(Integer exp) { this.exp = exp; }
+
+    public Map<String, Integer> getExpCosts() { return expCosts; }
+    public void setExpCosts(Map<String, Integer> expCosts) { this.expCosts = expCosts; }
 }

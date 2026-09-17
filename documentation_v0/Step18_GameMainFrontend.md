@@ -298,7 +298,7 @@ This ensures that story card text (title/description), location cards and event 
 
 **Bug fixed (v0.19.13):** Before this change, selecting Italian in the react-game did not translate the story catalog card or the `END_GAME` / `Complete the story` event card because those API calls omitted `?lang=`. Character/class/trait selections were already translated because the story detail endpoint had been updated earlier.
 
-The `book.stats.*` namespace (added in v0.19.3) holds labels for all entity bonus/stat fields displayed in the `BookPageContent` preview panel: `lifeMax`, `energyMax`, `sadMax`, `dexterityStart`/`Base`, `intelligenceStart`/`Base`, `constitutionStart`/`Base`, `weightMax`, `costPositive`, `costNegative`, `expCost`, `maxWeight`, `minCharacter`, `maxCharacter`, `costHelpComa`, `costMaxCharacteristics`, `numberMaxFreeAction`, and the seven trait stat-delta keys `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` (added v0.19.6), plus `book.stats.title` for the panel heading. `book.stats.totals.*` holds short labels for the eight ConfigView category pills: `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`, `exp`.
+The `book.stats.*` namespace (added in v0.19.3) holds labels for all entity bonus/stat fields displayed in the `BookPageContent` preview panel: `lifeMax`, `energyMax`, `sadMax`, `dexterityStart`/`Base`, `intelligenceStart`/`Base`, `constitutionStart`/`Base`, `weightMax`, `costPositive`, `costNegative`, `expCost`, `maxWeight`, `minCharacter`, `maxCharacter`, `costHelpComa`, `expCostBase`, `maxStatValue`, `numberMaxFreeAction`, and the seven trait stat-delta keys `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` (added v0.19.6), plus `book.stats.title` for the panel heading. `book.stats.totals.*` holds short labels for the eight ConfigView category pills: `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`, `exp`.
 
 The `card.*` namespace (added in v0.19.3) holds `card.info` ("Info") and `card.viewOriginal` ("View original") used by `GameCard` for the info button and the detail modal link respectively.
 
@@ -314,7 +314,8 @@ The displayed stat names use the in-fiction terminology below (renamed in v0.19.
 | `book.stats.weightMax` / `book.stats.totals.weight` / `game.stats.weight` | Peso Max / Peso | **Trasporto** | Weight      | **Carry** |
 | `book.stats.constitutionStart` / `constitutionBase` / `book.stats.totals.constitution` | Costituzione | **Fisico** | Constitution | **Physique** |
 | `book.stats.maxCharacter`                             | Giocatori Max  | Giocatori    | Max Players | Players   |
-| `book.stats.costMaxCharacteristics`                   | Costo Carat. Max | Costo Carat. | Max Char. Cost | Char. Cost |
+| `book.stats.expCostBase` *(v0.38.0, was costMaxCharacteristics)* | Costo Base EXP | Costo Base EXP | XP Base Cost | XP Base Cost |
+| `book.stats.maxStatValue` *(v0.38.0)*                 | Tetto Stat | Tetto Stat | Stat Cap | Stat Cap |
 
 The "Max" qualifier was dropped from every label so the in-game UI shows the stat name directly. `book.stats.minCharacter` keeps its "Min" prefix (it is a lower bound, not an upper one).
 
@@ -383,7 +384,7 @@ The `description` field (from `card.description` or `entity.description`) is ren
 | `character` | `lifeMax`, `energyMax`, `sadMax`, `dexterityStart`, `intelligenceStart`, `constitutionStart` |
 | `class` | `weightMax`, `dexterityBase`, `intelligenceBase`, `constitutionBase` |
 | `trait` | `costPositive`, `costNegative`, `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` (seven signed stat-delta fields, added v0.19.6; zero values hidden by `getNonZeroStats`) |
-| `difficulty` | `expCost`, `maxWeight`, `minCharacter`, `maxCharacter`, `costHelpComa`, `costMaxCharacteristics`, `numberMaxFreeAction` |
+| `difficulty` | `expCost`, `maxWeight`, `minCharacter`, `maxCharacter`, `costHelpComa`, `expCostBase`, `maxStatValue` (v0.38.0), `numberMaxFreeAction` |
 
 Only fields with a non-null, non-empty value are rendered. Labels come from the `book.stats.*` i18n namespace. `title` and `description` fall back to `entity.name` / `entity.description` when no card is attached to the entity.
 

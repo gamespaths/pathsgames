@@ -1,0 +1,859 @@
+{
+ "uuid": "f0380001-0000-4000-8000-000000000380",
+ "author": "robottest_experience",
+ "category": "robottest",
+ "group": "robottest",
+ "visibility": "PRIVATE",
+ "priority": 0,
+ "idCard": 1,
+ "idCreator": 1,
+ "idTextTitle": 1,
+ "idTextDescription": 2,
+ "idLocationStart": 1,
+ "idEventEndGame": 40,
+ "idEventAllPlayerComa": 41,
+ "idLocationAllPlayerComa": 1,
+ "creators": [
+  {
+   "id": 1,
+   "idText": 1,
+   "link": "paths.games",
+   "url": "paths.games"
+  }
+ ],
+ "texts": [
+  {
+   "id": 1,
+   "idCreator": 1,
+   "idText": 1,
+   "lang": "en",
+   "shortText": "Training Grounds",
+   "longText": "Training Grounds"
+  },
+  {
+   "id": 2,
+   "idCreator": 1,
+   "idText": 2,
+   "lang": "en",
+   "shortText": "A test-bed for Step 38: experience earned by events and missions, spent on DEX/INT/COS in the safe Hall and refused in the Wilds.",
+   "longText": "A test-bed for Step 38: experience earned by events and missions, spent on DEX/INT/COS in the safe Hall and refused in the Wilds."
+  },
+  {
+   "id": 3,
+   "idCreator": 1,
+   "idText": 3,
+   "lang": "en",
+   "shortText": "Clear sky",
+   "longText": "Clear sky"
+  },
+  {
+   "id": 5,
+   "idCreator": 1,
+   "idText": 5,
+   "lang": "en",
+   "shortText": "Go",
+   "longText": "Go"
+  },
+  {
+   "id": 6,
+   "idCreator": 1,
+   "idText": 6,
+   "lang": "en",
+   "shortText": "Back",
+   "longText": "Back"
+  },
+  {
+   "id": 10,
+   "idCreator": 1,
+   "idText": 10,
+   "lang": "en",
+   "shortText": "A small lesson",
+   "longText": "A small lesson"
+  },
+  {
+   "id": 11,
+   "idCreator": 1,
+   "idText": 11,
+   "lang": "en",
+   "shortText": "A great lesson",
+   "longText": "A great lesson"
+  },
+  {
+   "id": 12,
+   "idCreator": 1,
+   "idText": 12,
+   "lang": "en",
+   "shortText": "Quest A done",
+   "longText": "Quest A done"
+  },
+  {
+   "id": 13,
+   "idCreator": 1,
+   "idText": 13,
+   "lang": "en",
+   "shortText": "Quest B done",
+   "longText": "Quest B done"
+  },
+  {
+   "id": 14,
+   "idCreator": 1,
+   "idText": 14,
+   "lang": "en",
+   "shortText": "Quest C done",
+   "longText": "Quest C done"
+  },
+  {
+   "id": 15,
+   "idCreator": 1,
+   "idText": 15,
+   "lang": "en",
+   "shortText": "Reward A",
+   "longText": "Reward A"
+  },
+  {
+   "id": 16,
+   "idCreator": 1,
+   "idText": 16,
+   "lang": "en",
+   "shortText": "Reward B",
+   "longText": "Reward B"
+  },
+  {
+   "id": 17,
+   "idCreator": 1,
+   "idText": 17,
+   "lang": "en",
+   "shortText": "Reward C",
+   "longText": "Reward C"
+  },
+  {
+   "id": 18,
+   "idCreator": 1,
+   "idText": 18,
+   "lang": "en",
+   "shortText": "The quests open",
+   "longText": "The quests open"
+  },
+  {
+   "id": 40,
+   "idCreator": 1,
+   "idText": 40,
+   "lang": "en",
+   "shortText": "The end",
+   "longText": "The end"
+  },
+  {
+   "id": 41,
+   "idCreator": 1,
+   "idText": 41,
+   "lang": "en",
+   "shortText": "All asleep",
+   "longText": "All asleep"
+  },
+  {
+   "id": 50,
+   "idCreator": 1,
+   "idText": 50,
+   "lang": "en",
+   "shortText": "The Hall",
+   "longText": "The Hall"
+  },
+  {
+   "id": 51,
+   "idCreator": 1,
+   "idText": 51,
+   "lang": "en",
+   "shortText": "The Wilds",
+   "longText": "The Wilds"
+  },
+  {
+   "id": 60,
+   "idCreator": 1,
+   "idText": 60,
+   "lang": "en",
+   "shortText": "The Apprentice",
+   "longText": "The Apprentice"
+  },
+  {
+   "id": 61,
+   "idCreator": 1,
+   "idText": 61,
+   "lang": "en",
+   "shortText": "Wanderer",
+   "longText": "Wanderer"
+  },
+  {
+   "id": 62,
+   "idCreator": 1,
+   "idText": 62,
+   "lang": "en",
+   "shortText": "Training",
+   "longText": "Training"
+  },
+  {
+   "id": 70,
+   "idCreator": 1,
+   "idText": 70,
+   "lang": "en",
+   "shortText": "Quest A",
+   "longText": "Quest A"
+  },
+  {
+   "id": 71,
+   "idCreator": 1,
+   "idText": 71,
+   "lang": "en",
+   "shortText": "Quest A, step 1",
+   "longText": "Quest A, step 1"
+  },
+  {
+   "id": 72,
+   "idCreator": 1,
+   "idText": 72,
+   "lang": "en",
+   "shortText": "Quest B",
+   "longText": "Quest B"
+  },
+  {
+   "id": 73,
+   "idCreator": 1,
+   "idText": 73,
+   "lang": "en",
+   "shortText": "Quest B, step 1",
+   "longText": "Quest B, step 1"
+  },
+  {
+   "id": 74,
+   "idCreator": 1,
+   "idText": 74,
+   "lang": "en",
+   "shortText": "Quest C",
+   "longText": "Quest C"
+  },
+  {
+   "id": 75,
+   "idCreator": 1,
+   "idText": 75,
+   "lang": "en",
+   "shortText": "Quest C, step 1",
+   "longText": "Quest C, step 1"
+  },
+  {
+   "id": 80,
+   "idCreator": 1,
+   "idText": 80,
+   "lang": "en",
+   "shortText": "quests",
+   "longText": "quests"
+  },
+  {
+   "id": 81,
+   "idCreator": 1,
+   "idText": 81,
+   "lang": "en",
+   "shortText": "qa",
+   "longText": "qa"
+  },
+  {
+   "id": 82,
+   "idCreator": 1,
+   "idText": 82,
+   "lang": "en",
+   "shortText": "qb",
+   "longText": "qb"
+  },
+  {
+   "id": 83,
+   "idCreator": 1,
+   "idText": 83,
+   "lang": "en",
+   "shortText": "qc",
+   "longText": "qc"
+  }
+ ],
+ "cards": [
+  {
+   "id": 1,
+   "idCreator": 1,
+   "idTextTitle": 1,
+   "idTextDescription": 2,
+   "urlImage": "https://example.invalid/card-1.jpg"
+  },
+  {
+   "id": 3,
+   "idCreator": 1,
+   "idTextTitle": 3,
+   "idTextDescription": 3,
+   "urlImage": "https://example.invalid/card-3.jpg"
+  },
+  {
+   "id": 10,
+   "idCreator": 1,
+   "idTextTitle": 10,
+   "idTextDescription": 10,
+   "urlImage": "https://example.invalid/card-10.jpg"
+  },
+  {
+   "id": 11,
+   "idCreator": 1,
+   "idTextTitle": 11,
+   "idTextDescription": 11,
+   "urlImage": "https://example.invalid/card-11.jpg"
+  },
+  {
+   "id": 12,
+   "idCreator": 1,
+   "idTextTitle": 12,
+   "idTextDescription": 12,
+   "urlImage": "https://example.invalid/card-12.jpg"
+  },
+  {
+   "id": 13,
+   "idCreator": 1,
+   "idTextTitle": 13,
+   "idTextDescription": 13,
+   "urlImage": "https://example.invalid/card-13.jpg"
+  },
+  {
+   "id": 14,
+   "idCreator": 1,
+   "idTextTitle": 14,
+   "idTextDescription": 14,
+   "urlImage": "https://example.invalid/card-14.jpg"
+  },
+  {
+   "id": 15,
+   "idCreator": 1,
+   "idTextTitle": 15,
+   "idTextDescription": 15,
+   "urlImage": "https://example.invalid/card-15.jpg"
+  },
+  {
+   "id": 16,
+   "idCreator": 1,
+   "idTextTitle": 16,
+   "idTextDescription": 16,
+   "urlImage": "https://example.invalid/card-16.jpg"
+  },
+  {
+   "id": 17,
+   "idCreator": 1,
+   "idTextTitle": 17,
+   "idTextDescription": 17,
+   "urlImage": "https://example.invalid/card-17.jpg"
+  },
+  {
+   "id": 18,
+   "idCreator": 1,
+   "idTextTitle": 18,
+   "idTextDescription": 18,
+   "urlImage": "https://example.invalid/card-18.jpg"
+  },
+  {
+   "id": 40,
+   "idCreator": 1,
+   "idTextTitle": 40,
+   "idTextDescription": 40,
+   "urlImage": "https://example.invalid/card-40.jpg"
+  },
+  {
+   "id": 41,
+   "idCreator": 1,
+   "idTextTitle": 41,
+   "idTextDescription": 41,
+   "urlImage": "https://example.invalid/card-41.jpg"
+  },
+  {
+   "id": 50,
+   "idCreator": 1,
+   "idTextTitle": 50,
+   "idTextDescription": 50,
+   "urlImage": "https://example.invalid/card-50.jpg"
+  },
+  {
+   "id": 51,
+   "idCreator": 1,
+   "idTextTitle": 51,
+   "idTextDescription": 51,
+   "urlImage": "https://example.invalid/card-51.jpg"
+  },
+  {
+   "id": 60,
+   "idCreator": 1,
+   "idTextTitle": 60,
+   "idTextDescription": 60,
+   "urlImage": "https://example.invalid/card-60.jpg"
+  },
+  {
+   "id": 61,
+   "idCreator": 1,
+   "idTextTitle": 61,
+   "idTextDescription": 61,
+   "urlImage": "https://example.invalid/card-61.jpg"
+  },
+  {
+   "id": 62,
+   "idCreator": 1,
+   "idTextTitle": 62,
+   "idTextDescription": 62,
+   "urlImage": "https://example.invalid/card-62.jpg"
+  },
+  {
+   "id": 70,
+   "idCreator": 1,
+   "idTextTitle": 70,
+   "idTextDescription": 70,
+   "urlImage": "https://example.invalid/card-70.jpg"
+  },
+  {
+   "id": 71,
+   "idCreator": 1,
+   "idTextTitle": 71,
+   "idTextDescription": 71,
+   "urlImage": "https://example.invalid/card-71.jpg"
+  },
+  {
+   "id": 72,
+   "idCreator": 1,
+   "idTextTitle": 72,
+   "idTextDescription": 72,
+   "urlImage": "https://example.invalid/card-72.jpg"
+  },
+  {
+   "id": 73,
+   "idCreator": 1,
+   "idTextTitle": 73,
+   "idTextDescription": 73,
+   "urlImage": "https://example.invalid/card-73.jpg"
+  },
+  {
+   "id": 74,
+   "idCreator": 1,
+   "idTextTitle": 74,
+   "idTextDescription": 74,
+   "urlImage": "https://example.invalid/card-74.jpg"
+  },
+  {
+   "id": 75,
+   "idCreator": 1,
+   "idTextTitle": 75,
+   "idTextDescription": 75,
+   "urlImage": "https://example.invalid/card-75.jpg"
+  },
+  {
+   "id": 80,
+   "idCreator": 1,
+   "idTextTitle": 80,
+   "idTextDescription": 80,
+   "urlImage": "https://example.invalid/card-80.jpg"
+  },
+  {
+   "id": 81,
+   "idCreator": 1,
+   "idTextTitle": 81,
+   "idTextDescription": 81,
+   "urlImage": "https://example.invalid/card-81.jpg"
+  },
+  {
+   "id": 82,
+   "idCreator": 1,
+   "idTextTitle": 82,
+   "idTextDescription": 82,
+   "urlImage": "https://example.invalid/card-82.jpg"
+  },
+  {
+   "id": 83,
+   "idCreator": 1,
+   "idTextTitle": 83,
+   "idTextDescription": 83,
+   "urlImage": "https://example.invalid/card-83.jpg"
+  }
+ ],
+ "keys": [
+  {
+   "id": 1,
+   "name": "quests",
+   "idCard": 80,
+   "idTextDescription": 80,
+   "group": "QUESTS",
+   "priority": 1,
+   "visibility": "PUBLIC"
+  },
+  {
+   "id": 2,
+   "name": "qa",
+   "idCard": 81,
+   "idTextDescription": 81,
+   "group": "QUESTS",
+   "priority": 2,
+   "visibility": "PUBLIC"
+  },
+  {
+   "id": 3,
+   "name": "qb",
+   "idCard": 82,
+   "idTextDescription": 82,
+   "group": "QUESTS",
+   "priority": 3,
+   "visibility": "PUBLIC"
+  },
+  {
+   "id": 4,
+   "name": "qc",
+   "idCard": 83,
+   "idTextDescription": 83,
+   "group": "QUESTS",
+   "priority": 4,
+   "visibility": "PUBLIC"
+  }
+ ],
+ "characterTemplates": [
+  {
+   "id": 1,
+   "idCard": 60,
+   "idTextName": 60,
+   "idTextDescription": 60,
+   "lifeMax": 10,
+   "energyMax": 20,
+   "sadMax": 5,
+   "dexterityStart": 2,
+   "intelligenceStart": 2,
+   "constitutionStart": 2
+  }
+ ],
+ "classes": [
+  {
+   "id": 1,
+   "idCard": 61,
+   "idTextName": 61,
+   "idTextDescription": 61,
+   "dexterityBase": 0,
+   "intelligenceBase": 0,
+   "constitutionBase": 0,
+   "weightMax": 10
+  }
+ ],
+ "difficulties": [
+  {
+   "id": 1,
+   "idCard": 62,
+   "idTextName": 62,
+   "idTextDescription": 62,
+   "energy": 20,
+   "life": 0,
+   "sad": 0,
+   "dexterity": 0,
+   "intelligence": 0,
+   "constitution": 0,
+   "weight": 0,
+   "maxWeight": 0,
+   "expCost": 1,
+   "expCostBase": 0,
+   "maxStatValue": 4,
+   "costHelpComa": 0,
+   "numberMaxFreeAction": 0,
+   "minCharacter": 0,
+   "maxCharacter": 0
+  }
+ ],
+ "traits": [],
+ "locations": [
+  {
+   "id": 1,
+   "idCard": 50,
+   "idTextName": 50,
+   "idTextDescription": 50,
+   "secureParam": 1,
+   "maxCharacters": 10,
+   "costEnergyEnter": 0
+  },
+  {
+   "id": 2,
+   "idCard": 51,
+   "idTextName": 51,
+   "idTextDescription": 51,
+   "secureParam": 0,
+   "maxCharacters": 10,
+   "costEnergyEnter": 0
+  }
+ ],
+ "locationNeighbors": [
+  {
+   "id": 1,
+   "idLocationFrom": 1,
+   "idLocationTo": 2,
+   "direction": "NORTH",
+   "energyCost": 0,
+   "flagBack": 1,
+   "idCard": 50,
+   "idCardBack": 50,
+   "idTextName": 50,
+   "idTextGo": 5,
+   "idTextBack": 6
+  }
+ ],
+ "events": [
+  {
+   "id": 10,
+   "idCard": 10,
+   "idTextName": 10,
+   "idTextDescription": 10,
+   "type": "NORMAL",
+   "costEnery": 0,
+   "costCoin": 0,
+   "idSpecificLocation": 1
+  },
+  {
+   "id": 11,
+   "idCard": 11,
+   "idTextName": 11,
+   "idTextDescription": 11,
+   "type": "NORMAL",
+   "costEnery": 0,
+   "costCoin": 0,
+   "idSpecificLocation": 1
+  },
+  {
+   "id": 12,
+   "idCard": 12,
+   "idTextName": 12,
+   "idTextDescription": 12,
+   "type": "NORMAL",
+   "costEnery": 0,
+   "costCoin": 0,
+   "idSpecificLocation": 1
+  },
+  {
+   "id": 13,
+   "idCard": 13,
+   "idTextName": 13,
+   "idTextDescription": 13,
+   "type": "NORMAL",
+   "costEnery": 0,
+   "costCoin": 0,
+   "idSpecificLocation": 1
+  },
+  {
+   "id": 14,
+   "idCard": 14,
+   "idTextName": 14,
+   "idTextDescription": 14,
+   "type": "NORMAL",
+   "costEnery": 0,
+   "costCoin": 0,
+   "idSpecificLocation": 1
+  },
+  {
+   "id": 15,
+   "idCard": 15,
+   "idTextName": 15,
+   "idTextDescription": 15,
+   "type": "NORMAL",
+   "costEnery": 0,
+   "costCoin": 0,
+   "idSpecificLocation": null
+  },
+  {
+   "id": 16,
+   "idCard": 16,
+   "idTextName": 16,
+   "idTextDescription": 16,
+   "type": "NORMAL",
+   "costEnery": 0,
+   "costCoin": 0,
+   "idSpecificLocation": null
+  },
+  {
+   "id": 17,
+   "idCard": 17,
+   "idTextName": 17,
+   "idTextDescription": 17,
+   "type": "NORMAL",
+   "costEnery": 0,
+   "costCoin": 0,
+   "idSpecificLocation": null
+  },
+  {
+   "id": 18,
+   "idCard": 18,
+   "idTextName": 18,
+   "idTextDescription": 18,
+   "type": "NORMAL",
+   "costEnery": 0,
+   "costCoin": 0,
+   "idSpecificLocation": 1
+  },
+  {
+   "id": 40,
+   "idCard": 40,
+   "idTextName": 40,
+   "type": "END"
+  },
+  {
+   "id": 41,
+   "idCard": 41,
+   "idTextName": 41,
+   "type": "AUTOMATIC"
+  }
+ ],
+ "eventEffects": [
+  {
+   "id": 1,
+   "idEvent": 10,
+   "idCard": 10,
+   "idTextName": 10,
+   "statistics": "exp",
+   "value": 1,
+   "target": "ALL"
+  },
+  {
+   "id": 2,
+   "idEvent": 11,
+   "idCard": 11,
+   "idTextName": 11,
+   "statistics": "exp",
+   "value": 50,
+   "target": "ALL"
+  },
+  {
+   "id": 3,
+   "idEvent": 12,
+   "idCard": 12,
+   "idTextName": 12,
+   "keyToAdd": "qa",
+   "keyValueToAdd": "done",
+   "target": "ALL"
+  },
+  {
+   "id": 4,
+   "idEvent": 13,
+   "idCard": 13,
+   "idTextName": 13,
+   "keyToAdd": "qb",
+   "keyValueToAdd": "done",
+   "target": "ALL"
+  },
+  {
+   "id": 5,
+   "idEvent": 14,
+   "idCard": 14,
+   "idTextName": 14,
+   "keyToAdd": "qc",
+   "keyValueToAdd": "done",
+   "target": "ALL"
+  },
+  {
+   "id": 6,
+   "idEvent": 15,
+   "idCard": 15,
+   "idTextName": 15,
+   "statistics": "exp",
+   "value": 1,
+   "target": "ALL"
+  },
+  {
+   "id": 7,
+   "idEvent": 16,
+   "idCard": 16,
+   "idTextName": 16,
+   "statistics": "exp",
+   "value": 1,
+   "target": "ALL"
+  },
+  {
+   "id": 8,
+   "idEvent": 17,
+   "idCard": 17,
+   "idTextName": 17,
+   "statistics": "exp",
+   "value": 1,
+   "target": "ALL"
+  },
+  {
+   "id": 9,
+   "idEvent": 18,
+   "idCard": 18,
+   "idTextName": 18,
+   "keyToAdd": "quests",
+   "keyValueToAdd": "open",
+   "target": "ALL"
+  }
+ ],
+ "choices": [],
+ "choiceEffects": [],
+ "choiceConditions": [],
+ "weatherRules": [
+  {
+   "id": 1,
+   "idCard": 3,
+   "idText": 3,
+   "active": 1,
+   "probability": 100,
+   "costMoveSafeLocation": 0,
+   "costMoveNotSafeLocation": 0
+  }
+ ],
+ "items": [],
+ "itemEffects": [],
+ "missions": [
+  {
+   "id": 1,
+   "idCard": 70,
+   "idTextName": 70,
+   "idTextDescription": 70,
+   "conditionKey": "quests",
+   "conditionValue": "open",
+   "idEventCompleted": 15
+  },
+  {
+   "id": 2,
+   "idCard": 72,
+   "idTextName": 72,
+   "idTextDescription": 72,
+   "conditionKey": "quests",
+   "conditionValue": "open",
+   "idEventCompleted": 16
+  },
+  {
+   "id": 3,
+   "idCard": 74,
+   "idTextName": 74,
+   "idTextDescription": 74,
+   "conditionKey": "quests",
+   "conditionValue": "open",
+   "idEventCompleted": 17
+  }
+ ],
+ "missionSteps": [
+  {
+   "id": 1,
+   "idMission": 1,
+   "step": 1,
+   "idCard": 71,
+   "idTextName": 71,
+   "idTextDescription": 71,
+   "conditionKey": "qa",
+   "conditionValue": "done"
+  },
+  {
+   "id": 2,
+   "idMission": 2,
+   "step": 1,
+   "idCard": 73,
+   "idTextName": 73,
+   "idTextDescription": 73,
+   "conditionKey": "qb",
+   "conditionValue": "done"
+  },
+  {
+   "id": 3,
+   "idMission": 3,
+   "step": 1,
+   "idCard": 75,
+   "idTextName": 75,
+   "idTextDescription": 75,
+   "conditionKey": "qc",
+   "conditionValue": "done"
+  }
+ ]
+}

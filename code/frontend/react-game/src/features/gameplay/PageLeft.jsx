@@ -4,10 +4,11 @@ import LocationCard from './cards/LocationCard'
 import ComaCard from './cards/ComaCard'
 import SadnessCard from './cards/SadnessCard'
 import ItemsCard from './cards/ItemsCard'
+import ExperienceCard from './cards/ExperienceCard'
 import RegistryCard from './cards/RegistryCard'
 import MissionCard from './cards/MissionCard'
 import InformationCard from './cards/InformationCard'
-import { bagSummaryProps, missionsSummaryProps, registrySummaryProps } from './js/boardProps'
+import { bagSummaryProps, expSummaryProps, missionsSummaryProps, registrySummaryProps } from './js/boardProps'
 
 /**
  * PageLeft — the LEFT reading page, in priority order: an open choice-event, an edge
@@ -18,7 +19,7 @@ export default function PageLeft({
   view, pendingChoices, previewLeft, story, t, playerStats, clock, gameData, matchLocations,
   mapSelected, actualLocationCard, storyCard, loading,
   onCloseChoices, onCloseLeft, onCloseItems, onCloseRegistry, onCloseMissions, onCloseMission,
-  onSelectMapNode, onBack,
+  onCloseExp, onSelectMapNode, onBack,
 }) {
   // Step 31 — an open choice-event: the event card sits here, without an execute button;
   // its back arrow ends the event (and clears the options on the right).
@@ -43,6 +44,12 @@ export default function PageLeft({
   if (view === 'items') {
     return <ItemsCard variant="page" story={story} onClose={onCloseItems}
       {...bagSummaryProps(playerStats)} />
+  }
+  // Step 38 — training owns the left page the same way the bag does: the experience held and
+  // the price list live here, one card per stat fills the right page.
+  if (view === 'exp') {
+    return <ExperienceCard variant="page" story={story} onClose={onCloseExp}
+      {...expSummaryProps(playerStats)} />
   }
   // Step 36 — the registry owns the left page the same way the bag does: the title and the
   // way back live here, the keys themselves fill the right page.

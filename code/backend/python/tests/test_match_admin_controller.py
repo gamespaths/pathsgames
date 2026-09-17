@@ -314,3 +314,21 @@ def test_get_admin_match_logs_without_service_returns_501(env):
     resp = client.get("/api/admin/matches/m1/logs")
     assert resp.status_code == 501
     assert resp.json()["error"] == "NOT_IMPLEMENTED"
+
+
+def test_change_statistics_forwards_exp_and_skips_minus_one():
+    # Step 38 — exp rides the admin override like the other numbers: -1/omitted = untouched.
+    command_port, query_port, character_port = MagicMock(), MagicMock(), MagicMock()
+    character_port.change_statistics.return_value = "UPDATED"
+    controller = MatchAdminController(command_port, query_port, character_command_port=character_port)
+    app = FastAPI()
+    app.include_router(controller.router)
+    client = TestClient(app)
+
+    resp = client.post("/api/admin/matches/m1/player/p1/changeStatistics", json={"exp": 21, "dex": -1})
+    assert resp.status_code == 200
+    assert character_port.change_statistics.call_args.kwargs["exp"] == 21
+    assert character_port.change_statistics.call_args.kwargs["dex"] is None
+
+    client.post("/api/admin/matches/m1/player/p1/changeStatistics", json={"exp": -1})
+    assert character_port.change_statistics.call_args.kwargs["exp"] is None

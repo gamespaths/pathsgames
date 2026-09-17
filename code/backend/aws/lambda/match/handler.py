@@ -286,7 +286,8 @@ def _detail_from_item(item, players=None, lang='en', all_locations=False,
                 c, story, *_story_cards_texts(story), lang=lang,
                 mask_inventory=(not all_locations
                                 and requester_uuid is not None
-                                and c.get("userUuid") != requester_uuid))
+                                and c.get("userUuid") != requester_uuid),
+                match=item)
             for c in players
         ],
         # Step 27.x — enriched, player-occupied locations with card/neighbors/events.
@@ -347,6 +348,7 @@ from match import events as _events
 from match import missions as _missions
 from match import registry as _registry
 from match import movements as _movements
+from match import experience as _experience
 
 
 def _story_neighbors(story):
@@ -508,7 +510,7 @@ def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=No
 # ─── Step 21 — character presenters & helpers ────────────────────────────────
 
 def _character_summary(item, story=None, raw_cards=None, raw_texts=None, lang="en",
-                       mask_inventory=False):
+                       mask_inventory=False, match=None):
     """Lightweight character row (players list / MatchInfo.players).
 
     Step 34 — `items` is present on EVERY player but populated only for the caller when
@@ -538,6 +540,9 @@ def _character_summary(item, story=None, raw_cards=None, raw_texts=None, lang="e
         "food": int(item.get("food", 0)),
         "magic": int(item.get("magic", 0)),
         "coin": int(item.get("coin", 0)),
+        # Step 38 — experience and the price of the next point per stat (null = at cap).
+        "exp": int(item.get("exp", 0) or 0),
+        "expCosts": _experience.pricing_for(match, story).costs(item),
         "idLocation": item.get("idLocation"),
         "isSleeping": int(item.get("isSleeping", 0)),
         "isComa": int(item.get("isComa", 0)),
@@ -604,7 +609,7 @@ def _item_rows(char, story, raw_cards=None, raw_texts=None, lang="en"):
     return out
 
 
-def _character_full(item, story=None, raw_cards=None, raw_texts=None, lang="en"):
+def _character_full(item, story=None, raw_cards=None, raw_texts=None, lang="en", match=None):
     """Full character detail (join / character endpoint)."""
     return {
         "uuid": item.get("uuid"),
@@ -635,6 +640,8 @@ def _character_full(item, story=None, raw_cards=None, raw_texts=None, lang="en")
         "food": int(item.get("food", 0)),
         "magic": int(item.get("magic", 0)),
         "coin": int(item.get("coin", 0)),
+        "exp": int(item.get("exp", 0) or 0),
+        "expCosts": _experience.pricing_for(match, story).costs(item),
     }
 
 
@@ -1177,9 +1184,10 @@ def _join_match(user, match_uuid, body):
         "food": 0,
         "magic": 0,
         "coin": 0,
+        "exp": 0,
     }
     _repo.save(char)
-    return _ok(_character_full(char, story, *_story_cards_texts(story), lang='en'),
+    return _ok(_character_full(char, story, *_story_cards_texts(story), lang='en', match=match),
                status=201)
 
 
@@ -1194,7 +1202,7 @@ def _list_players(user, match_uuid):
     cards, texts = _story_cards_texts(story)
     return _ok([
         _character_summary(c, story, cards, texts, 'en',
-                           mask_inventory=c.get('userUuid') != user.get('uuid'))
+                           mask_inventory=c.get('userUuid') != user.get('uuid'), match=match)
         for c in _match_characters(match_uuid, consistent=False)
     ])
 
@@ -1231,7 +1239,7 @@ def _run_missions(match, lang='en'):
     try:
         for id_event in pending:
             _run_automatic_event(match, match.get('uuid'), story, None, id_event, 0,
-                                 'mission completed', lang, _MISSION_DEPTH[0], [])
+                                 _events.TRIGGER_MISSION, lang, _MISSION_DEPTH[0], [])
     finally:
         _MISSION_DEPTH[0] -= 1
 
@@ -1249,7 +1257,7 @@ def _get_character(user, match_uuid, char_uuid):
     if item is None:
         return _err(404, 'CHARACTER_NOT_FOUND', 'Character not found or not accessible')
     story = _story_of(_match)
-    return _ok(_character_full(item, story, *_story_cards_texts(story), lang='en'))
+    return _ok(_character_full(item, story, *_story_cards_texts(story), lang='en', match=_match))
 
 
 # ─── admin character statistics change ───────────────────────────────────────
@@ -1300,6 +1308,7 @@ def _change_statistics(match_uuid, player_uuid, body):
     coin   = _skip(body.get('coin'))
     food   = _skip(body.get('food'))
     magic  = _skip(body.get('magic'))
+    exp    = _skip(body.get('exp'))  # Step 38 — floored at 0 like the engine keeps it
     # State flags: absent (null) means "leave as it is" — the -1 of the numeric fields.
     sleeping = body.get('sleeping')
     coma = body.get('coma')
@@ -1337,6 +1346,7 @@ def _change_statistics(match_uuid, player_uuid, body):
     if coin   is not None: updates['coin']         = coin
     if food   is not None: updates['food']         = food
     if magic  is not None: updates['magic']        = magic
+    if exp    is not None: updates['exp']          = max(0, exp)
     if sleeping is not None: updates['isSleeping'] = 1 if sleeping else 0
     if coma     is not None: updates['isComa']     = 1 if coma else 0
 
@@ -3142,6 +3152,53 @@ def _drop_item(user, match_uuid, body):
     })
 
 
+_EXP_REFUSAL_MESSAGES = {
+    'MATCH_NOT_RUNNING': _MATCH_NOT_RUNNING_MSG,
+    'NOT_YOUR_TURN': "It is not your character's turn",
+    'COMA': 'The character is in a coma',
+    'SLEEPING': 'The character is sleeping',
+    'INVALID_STAT': 'stat must be one of dex, int, cos',
+    'LOCATION_NOT_SAFE': 'Experience can only be spent in a safe location',
+    'MAX_STAT_VALUE': 'The stat is already at its maximum',
+    'NOT_ENOUGH_EXP': 'Not enough experience for the next point',
+}
+
+
+def _use_exp(user, match_uuid, body):
+    """POST /api/gameplay/{uuidMatch}/action/use-exp — Step 38.
+
+    Buys one point of dex / int / cos with experience. Zero energy, the turn does not pass;
+    the gates, the price and the purchase live in ``match/experience.py``; one EXP_USE log
+    row per purchase, the character attached.
+    """
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    stat = (body or {}).get('stat') if isinstance(body, dict) else None
+    if not stat or not str(stat).strip():
+        return _err(400, 'INVALID_STAT', 'stat is required: one of dex, int, cos')
+
+    match, story, caller, err = _resolve_inventory_caller(user, match_uuid)
+    if err:
+        return err
+    location = next((l for l in (story.get('locations') or [])
+                     if l.get('id') == caller.get('idLocation')), None)
+    pricing = _experience.pricing_for(match, story)
+    code = _experience.check(match, caller, location, stat, pricing)
+    if code is not None:
+        status = 400 if code == 'INVALID_STAT' else 409
+        return _err(status, code, _EXP_REFUSAL_MESSAGES.get(code, code))
+
+    purchase = _experience.apply(caller, stat, pricing)
+    _repo.save(caller)
+    _logbook.append(match, 'EXP_USE', _nz(match.get('currentClock')),
+                    characterUuid=caller.get('uuid'),
+                    message=f"EXP_USE {purchase['stat']} {purchase['statBefore']}->{purchase['statAfter']}"
+                            f" cost {purchase['expCost']}",
+                    stat=purchase['stat'], expCost=purchase['expCost'])
+    _logbook.persist(match)
+    return _ok({"matchUuid": match_uuid, **purchase})
+
+
 def _use_item(user, match_uuid, body, lang='en'):
     """POST /api/gameplay/{uuidMatch}/inventory/use-item.
 
@@ -3929,7 +3986,8 @@ def _run_event_chain(match, story, first, caller, characters, ctx, events_by_id,
             acc['executedUuids'].append(current.get('uuid'))
 
         for effect in effects_by_event.get(event_id, []):
-            recipients = _events.resolve_recipients(effect, caller, characters)
+            recipients = _events.resolve_recipients(effect, caller, characters,
+                                                    mission_run=bool(acc.get('missionRun')))
             id_weather = effect.get('idWeather')
             if id_weather:
                 match['currentWeatherId'] = _events._nz(id_weather)
@@ -4178,6 +4236,8 @@ def _run_automatic_event(match, match_uuid, story, actor_uuid, id_event, id_loca
     ctx = _events.build_context(match, story, actor)
 
     acc = _new_accumulator(actor) if actor is not None else _new_accumulator_no_actor()
+    # Step 38 — a mission's event has no actor, and ALL then means the whole party.
+    acc['missionRun'] = trigger == _events.TRIGGER_MISSION
     # An epilogue already answered this request is spent: neither the other trigger of this
     # arrival nor an arrival the epilogue itself caused may run it again on a party that is
     # still, of course, all down.
@@ -4711,6 +4771,15 @@ def _dispatch(event):
             segments = path.split('/')  # /api/match/{uuidMatch}/turn-sequence
             match_uuid = segments[3] if len(segments) > 4 else ''
         return _get_turn_sequence(user, match_uuid)
+
+    # ── Step 38 — experience spent on a stat ──
+    if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/action/use-exp') and method == 'POST'):
+        match_uuid = _gameplay_match_uuid(event, path)
+        try:
+            body = json.loads(event.get('body') or '{}')
+        except (TypeError, ValueError):
+            return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
+        return _use_exp(user, match_uuid, body)
 
     # ── Step 25 — time advancement & clock cycle ──
     if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/action/sleep') and method == 'POST'):

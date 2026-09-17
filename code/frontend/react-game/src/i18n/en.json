@@ -104,7 +104,8 @@
       "minCharacter": "Min Players",
       "maxCharacter": "Players",
       "costHelpComa": "Help Coma Cost",
-      "costMaxCharacteristics": "Char. Cost",
+      "expCostBase": "XP Base Cost",
+      "maxStatValue": "Stat Cap",
       "numberMaxFreeAction": "Free Actions",
       "totals": {
         "life": "Life",
@@ -175,6 +176,7 @@
       "AUTOMATIC_EVENT": "Event",
       "ITEM_ADD": "Item found",
       "ITEM_USE": "Item used",
+      "EXP_USE": "Experience spent",
       "ITEM_DROP": "Item left behind",
       "REGISTRY_CHANGE": "Registry",
       "MISSION_CHANGE": "Mission"
@@ -441,6 +443,29 @@
       "back": "Back",
       "count": "carried",
       "capacity": "Capacity"
+    },
+    "exp": {
+      "title": "Training",
+      "description": "Experience earned along the adventure can be spent here, in a safe place, on the character's own qualities: every point bought raises Speed, Smart or Physique by one. The next point always costs more than the last, and each quality has a ceiling the story sets.",
+      "open": "Train",
+      "use": "Improve",
+      "current": "Actual",
+      "held": "Actual",
+      "cost": "Cost",
+      "after": "After",
+      "atMax": "Max",
+      "trained": {
+        "title": "Trained",
+        "description": "Hours of drill in the quiet of a safe place have left their mark: what was learned on the road is now part of who you are. The experience is spent, the quality it bought stays with you for the rest of the journey."
+      },
+      "reason": {
+        "NOT_ENOUGH_EXP": "Not enough",
+        "MAX_STAT_VALUE": "At its max"
+      },
+      "reasonFull": {
+        "NOT_ENOUGH_EXP": "You have not earned enough experience for the next point yet.",
+        "MAX_STAT_VALUE": "This quality has reached the ceiling the story sets for it."
+      }
     },
     "registry": {
       "title": "Registry",

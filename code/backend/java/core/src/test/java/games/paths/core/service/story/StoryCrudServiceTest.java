@@ -354,7 +354,7 @@ class StoryCrudServiceTest {
             saved.setUuid("new-loc");
             saved.setIdStory(1L);
             when(persistencePort.saveLocation(any())).thenReturn(saved);
-            var result = service.createEntity("uuid-1", "locations", Map.of("isSafe", 1));
+            var result = service.createEntity("uuid-1", "locations", Map.of("secureParam", 1));
             assertNotNull(result);
             assertEquals("new-loc", result.get("uuid"));
         }
@@ -369,13 +369,13 @@ class StoryCrudServiceTest {
             loc.setIdStory(1L);
             when(readPort.findLocationByStoryIdAndUuid(1L, "loc-1")).thenReturn(Optional.of(loc));
             when(persistencePort.saveLocation(any())).thenReturn(loc);
-            var result = service.updateEntity("uuid-1", "locations", "loc-1", Map.of("isSafe", 0));
+            var result = service.updateEntity("uuid-1", "locations", "loc-1", Map.of("secureParam", 0));
             assertNotNull(result);
         }
 
         @Test void updateLocation_notFound() {
             when(readPort.findLocationByStoryIdAndUuid(1L, "missing")).thenReturn(Optional.empty());
-            assertNull(service.updateEntity("uuid-1", "locations", "missing", Map.of("isSafe", 0)));
+            assertNull(service.updateEntity("uuid-1", "locations", "missing", Map.of("secureParam", 0)));
         }
 
         @Test void updateUnknownType() {

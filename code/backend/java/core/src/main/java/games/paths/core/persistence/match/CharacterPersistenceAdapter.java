@@ -87,6 +87,14 @@ public class CharacterPersistenceAdapter implements CharacterPersistencePort {
     }
 
     @Override
+    public void updateCharacterExp(Long matchId, Long characterId, int exp) {
+        characterRepository.findByIdMatchAndId(matchId, characterId).ifPresent(entity -> {
+            entity.setExp(Math.max(0, exp));
+            characterRepository.save(entity);
+        });
+    }
+
+    @Override
     public void updateCharacterFlags(Long matchId, Long characterId,
                                      Boolean sleeping, Boolean coma) {
         characterRepository.findByIdMatchAndId(matchId, characterId).ifPresent(entity -> {

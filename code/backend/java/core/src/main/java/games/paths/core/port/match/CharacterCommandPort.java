@@ -58,6 +58,8 @@ public interface CharacterCommandPort {
         private Integer coin;
         private Integer food;
         private Integer magic;
+        /** Step 38 — experience points; null = no change. */
+        private Integer exp;
         /** State flags: null leaves the flag untouched (the -1 of the numeric fields). */
         private Boolean sleeping;
         private Boolean coma;
@@ -85,6 +87,8 @@ public interface CharacterCommandPort {
         public void setFood(Integer food) { this.food = food; }
         public Integer getMagic() { return magic; }
         public void setMagic(Integer magic) { this.magic = magic; }
+        public Integer getExp() { return exp; }
+        public void setExp(Integer exp) { this.exp = exp; }
     }
 
     /**

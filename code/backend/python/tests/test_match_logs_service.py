@@ -162,6 +162,21 @@ def test_sleep_and_recovery_entries_carry_their_detail_fields(session_factory):
     assert recovery["message"].startswith("recovery")
 
 
+def test_exp_use_row_is_its_own_type_with_the_character_attached(session_factory):
+    """Step 38 — one EXP_USE row per purchase, the message kept verbatim."""
+    _seed_match(session_factory)
+    with session_factory() as s:
+        s.add(LogEventsEntity(id=9, id_match=MATCH_ID, uuid="e9", id_character_match=10,
+                              timestamp=_NOW, clock=3, log_message="EXP_USE dex 10->11 cost 23",
+                              ts_insert=_NOW, ts_update=_NOW))
+        s.commit()
+    logs = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"]
+    assert [e["type"] for e in logs] == ["EXP_USE"]
+    assert logs[0]["clock"] == 3
+    assert logs[0]["idCharacterMatch"] == 10
+    assert logs[0]["message"] == "EXP_USE dex 10->11 cost 23"
+
+
 def test_counter_zero_event_is_its_own_type(session_factory):
     """Step 33 — a counter running out and a character healing are unrelated events, so
     COUNTER_ZERO was split out of RECOVERY. The row also carries the clock (it used to be

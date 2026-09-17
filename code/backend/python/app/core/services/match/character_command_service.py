@@ -240,7 +240,8 @@ class CharacterCommandService(CharacterCommandPort):
                           coin: Optional[int], food: Optional[int],
                           magic: Optional[int],
                           sleeping: Optional[bool] = None,
-                          coma: Optional[bool] = None) -> str:
+                          coma: Optional[bool] = None,
+                          exp: Optional[int] = None) -> str:
         match = self.match_persistence_port.find_match_by_uuid(match_uuid)
         if match is None:
             return "MATCH_NOT_FOUND"
@@ -283,6 +284,8 @@ class CharacterCommandService(CharacterCommandPort):
             self.character_persistence_port.update_backpack_stats(
                 match["id"], character["id"], food, magic, coin,
             )
+        if exp is not None:
+            self.character_persistence_port.update_character_exp(match["id"], character["id"], exp)
         return "UPDATED"
 
 

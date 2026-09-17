@@ -560,7 +560,8 @@ class StoryCrudServiceCompleteTest {
         data.put("minCharacter", 1);
         data.put("maxCharacter", 4);
         data.put("costHelpComa", 2);
-        data.put("costMaxCharacteristics", 3);
+        data.put("expCostBase", 3);
+        data.put("maxStatValue", 20);
         data.put("numberMaxFreeAction", 1);
         assertNotNull(service.createEntity("s", "difficulties", data));
     }
@@ -574,7 +575,7 @@ class StoryCrudServiceCompleteTest {
         data.put("idTextName", 1);
         data.put("idTextNarrative", 2);
         data.put("idImage", 3);
-        data.put("isSafe", 1);
+        data.put("secureParam", 1);
         data.put("costEnergyEnter", 5);
         data.put("counterTime", 0);
         data.put("idEventIfCounterZero", 0);
@@ -956,7 +957,8 @@ class StoryCrudServiceCompleteTest {
         data.put("minCharacter", 1);
         data.put("maxCharacter", 4);
         data.put("costHelpComa", 1);
-        data.put("costMaxCharacteristics", 2);
+        data.put("expCostBase", 2);
+        data.put("maxStatValue", 15);
         data.put("numberMaxFreeAction", 1);
         assertNotNull(service.updateEntity("s", "difficulties", "u", data));
     }
@@ -977,7 +979,7 @@ class StoryCrudServiceCompleteTest {
         Map<String, Object> data = new HashMap<>();
         data.put("idTextNarrative", 1);
         data.put("idImage", 2);
-        data.put("isSafe", 1);
+        data.put("secureParam", 1);
         data.put("costEnergyEnter", 3);
         data.put("counterTime", 0);
         data.put("idEventIfCounterZero", 0);

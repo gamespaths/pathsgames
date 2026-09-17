@@ -111,8 +111,8 @@ INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_
 
 -- ── Story 1 Difficulties ────────────────────────────────────────
 -- Step 23: difficulty 90001 caps trait costs (positive 2 / negative 3)
-INSERT OR IGNORE INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight, trait_cost_positive_budget, trait_cost_negative_budget) VALUES
-(90001, 9001, 300, 1, 20, 1, 4, 1, 1, 3, 120, 110, 0, 12, 12, 12, 12, 2, 3);
+INSERT OR IGNORE INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, exp_cost_base, max_stat_value, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight, trait_cost_positive_budget, trait_cost_negative_budget) VALUES
+(90001, 9001, 300, 1, 20, 1, 4, 1, 0, 0, 3, 120, 110, 0, 12, 12, 12, 12, 2, 3);
 
 -- ── Story 1 Classes ─────────────────────────────────────────────
 INSERT OR IGNORE INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES
@@ -173,21 +173,21 @@ INSERT OR IGNORE INTO list_keys (id, id_story, key_name, key_value, key_group, i
 (90003, 9001, 'choice_made', '0', 'tutorial', 1, 3);
 
 -- ── Story 1 Locations ───────────────────────────────────────────
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (90001, 9001, 90001, 100, 100, 1, 10);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (90002, 9001, 90002, 101, 101, 1, 10);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (90003, 9001, 90003, 102, 102, 1, 10);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (90004, 9001, 90002, 103, 103, 1, 10);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (90005, 9001, 90003, 104, 104, 1, 10);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (90006, 9001, 90003, 105, 105, 1, 10);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (90007, 9001, 90002, 106, 106, 1, 10);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (90008, 9001, 90001, 107, 107, 1, 10);
 
 -- ── Story 1 Location Neighbors ──────────────────────────────────
@@ -604,12 +604,12 @@ INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_
 INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91107, 9002, 11, 'en', 'hours', 'hours');
 
 -- ── Story 2 Difficulties ────────────────────────────────────────
-INSERT OR IGNORE INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
-(91001, 9002, 300, 3, 20, 1, 4, 2, 2, 3, 130, 120, 0, 12, 12, 14, 14);
-INSERT OR IGNORE INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
-(91002, 9002, 301, 5, 12, 1, 4, 3, 3, 1, 100, 100, 10, 10, 10, 10, 10);
-INSERT OR IGNORE INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
-(91003, 9002, 302, 8, 8, 2, 3, 5, 5, 0, 80, 90, 20, 8, 8, 8, 8);
+INSERT OR IGNORE INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, exp_cost_base, max_stat_value, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(91001, 9002, 300, 3, 20, 1, 4, 2, 0, 0, 3, 130, 120, 0, 12, 12, 14, 14);
+INSERT OR IGNORE INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, exp_cost_base, max_stat_value, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(91002, 9002, 301, 5, 12, 1, 4, 3, 0, 0, 1, 100, 100, 10, 10, 10, 10, 10);
+INSERT OR IGNORE INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, exp_cost_base, max_stat_value, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(91003, 9002, 302, 8, 8, 2, 3, 5, 0, 0, 0, 80, 90, 20, 8, 8, 8, 8);
 
 -- ── Story 2 Classes ─────────────────────────────────────────────
 INSERT OR IGNORE INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES
@@ -638,29 +638,29 @@ INSERT OR IGNORE INTO list_character_templates (id, id_story, id_tipo, id_text_n
 (91003, 9002, 91003, 212, 212, 14, 12, 10, 4, 1, 5, NULL,  91001);
 
 -- ── Story 2 Locations ───────────────────────────────────────────
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (91001, 9002, 91001, 100, 100, 1, 10);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (91002, 9002, 91002, 101, 101, 1, 15);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (91003, 9002, 91003, 102, 102, 1, 20);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (91004, 9002, 91002, 103, 103, 0, 8);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (91005, 9002, 91001, 104, 104, 1, 6);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (91006, 9002, 91002, 105, 105, 1, 10);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (91007, 9002, 91003, 106, 106, 0, 4);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (91008, 9002, 91002, 107, 107, 0, 6);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (91009, 9002, 91003, 108, 108, 0, 4);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (91010, 9002, 91001, 109, 109, 0, 12);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (91011, 9002, 91002, 110, 110, 0, 6);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, secure_param, max_characters) VALUES
 (91012, 9002, 91003, 111, 111, 1, 8);
 
 -- ── Story 2 Events ──────────────────────────────────────────────

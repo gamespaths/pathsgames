@@ -855,6 +855,11 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
      * INV-27: {@code ALL} means every character standing in the actor's location, not every
      * character of the match. {@code target_class} then narrows that set; matching nobody is
      * legal and simply applies nothing.
+     *
+     * <p>Step 38 — the one exception is an event a completed MISSION fires: missions are
+     * match-scoped, so there is no actor and no location to stand in, and {@code ALL} means
+     * every character of the match — the reward of a quest goes to the party that won it.
+     * {@code ONLY_ONE} still names nobody there.</p>
      */
     private List<EventActorView> resolveRecipients(Exec x, EventEffectEntity effect) {
         String target = effect.getTarget() == null ? "ALL" : effect.getTarget().trim().toUpperCase();
@@ -865,7 +870,11 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         // location nobody stands in). There is then nobody to be a recipient: the row's
         // match-scoped halves (weather, registry) have already been applied by the caller.
         if (x.actor == null) {
-            return List.of();
+            if (!x.missionRun || TARGET_ONLY_ONE.equals(target)) {
+                return List.of();
+            }
+            base.addAll(x.allCharacters());
+            return narrowByClass(base, effect.getTargetClass());
         }
         Long actorLocation = x.locationOf(x.actor);
         if (TARGET_ONLY_ONE.equals(target) || actorLocation == null) {
@@ -877,7 +886,11 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                 }
             }
         }
-        Integer targetClass = effect.getTargetClass();
+        return narrowByClass(base, effect.getTargetClass());
+    }
+
+    /** {@code target_class} narrows the recipients; null or non-positive leaves them as they are. */
+    private static List<EventActorView> narrowByClass(List<EventActorView> base, Integer targetClass) {
         if (targetClass == null || targetClass <= 0) {
             return base;
         }
@@ -1516,6 +1529,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
 
         Exec x = new Exec(match, actor, ctx, resolveLang(lang), event);
         x.entryDepth = depth;
+        x.missionRun = TRIGGER_MISSION.equals(trigger);
         runChain(x, event);
         resolveAllPlayerComa(x);
         if (x.endTime && !x.comaTriggered && allowTimeEnd) {
@@ -1805,6 +1819,11 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         final List<AutomaticEventFired> automaticEvents = new ArrayList<>();
         /** How many arrivals deep this execution already is — the runaway-loop guard. */
         int entryDepth;
+        /**
+         * Step 38 — fired by a completed mission: there is no actor, and {@code ALL} then
+         * means the whole party, because the mission is the party's doing.
+         */
+        boolean missionRun;
 
         int currentClock;
         int energySpent;

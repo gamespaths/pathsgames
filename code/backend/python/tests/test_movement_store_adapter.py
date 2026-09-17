@@ -102,9 +102,9 @@ def test_find_characters_for_movement(session_factory, adapter):
 def _seed_locations(session_factory):
     with session_factory() as s:
         s.add(LocationEntity(id=100, id_story=9001, uuid="loc-a", id_card=1,
-                             is_safe=1, max_characters=2))
+                             secure_param=1, max_characters=2))
         s.add(LocationEntity(id=200, id_story=9001, uuid="loc-b", id_card=2,
-                             is_safe=0, max_characters=None))
+                             secure_param=0, max_characters=None))
         s.commit()
 
 

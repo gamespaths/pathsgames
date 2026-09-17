@@ -221,7 +221,7 @@ public class StoryController {
         DifficultyResponse r = new DifficultyResponse(
                 di.getUuid(), di.getDescription(), di.getExpCost(), di.getMaxWeight(),
                 di.getMinCharacter(), di.getMaxCharacter(), di.getCostHelpComa(),
-                di.getCostMaxCharacteristics(), di.getNumberMaxFreeAction());
+                di.getExpCostBase(), di.getMaxStatValue(), di.getNumberMaxFreeAction());
         r.setLife(di.getLife());
         r.setEnergy(di.getEnergy());
         r.setSad(di.getSad());

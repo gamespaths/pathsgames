@@ -4,6 +4,7 @@ import { getInventory, selectChoice } from '@/api/matches'
 import { grantedItemUuids, itemRowForUuid, lastEffectCard } from '@/utils/gameResults'
 import { itemPromiseBadges, registryChangeItems, statChangeItems } from '@/utils/statBadges'
 import { scrollBookToTop } from './mobileView'
+import { buildTrainedCard } from '@/utils/loadoutCards'
 
 // v0.37.6 — a drop-item answer carries no clock: read as "time did not move".
 const DROP_ANSWER = Object.freeze({ timeEnded: false })
@@ -271,6 +272,13 @@ export default function useGameplayResults({
     return handleEventExecuted(result, result?.card ?? null)
   }, [handleEventExecuted])
 
+  // Step 38 — buying a point closes the training page: the answer carries its two
+  // statChanges (+1 stat, -cost exp) in the execute-event shape, so the event handler
+  // narrates it under the "trained" card with the badges it already has.
+  const handleExpUsed = useCallback(result => {
+    return handleEventExecuted(result, buildTrainedCard(t))
+  }, [handleEventExecuted, t])
+
   /**
    * Step 32 — picking an option: POST select-choice, then narrate what it did. The board
    * reloads first (the resolution may have moved the character, changed the weather or
@@ -319,6 +327,6 @@ export default function useGameplayResults({
   return {
     loading, startLoading, stopLoading, choiceInFlight,
     reloadBoard, handleEventExecuted, handleMovementDone, handleSlept,
-    handleItemDropped, handleItemUsed, handleSelectChoice, showAutomaticEvents,
+    handleItemDropped, handleItemUsed, handleExpUsed, handleSelectChoice, showAutomaticEvents,
   }
 }
