@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { shortUuid } from '../MatchDetailModal'
 
 /** Match statuses that are terminal (deletable, not pausable/resumable). */
@@ -34,13 +34,18 @@ export function name20(name) {
 /** Inline UUID chip — title shows full UUID, click copies it. */
 export function UuidCopy({ uuid, children }) {
   const [copied, setCopied] = useState(false)
+  const timerRef = useRef(null)
+
+  // Clear the "copied" reset timer on unmount so it never fires on a dead component.
+  useEffect(() => () => clearTimeout(timerRef.current), [])
 
   function handleClick(e) {
     e.stopPropagation()
     if (!uuid) return
     navigator.clipboard?.writeText(uuid).then?.(() => {
       setCopied(true)
-      setTimeout(() => setCopied(false), 1200)
+      clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => setCopied(false), 1200)
     })
   }
 
