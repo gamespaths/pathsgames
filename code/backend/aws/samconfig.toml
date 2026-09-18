@@ -1,27 +1,58 @@
 version = 0.1
 
+# Layout: dev + test in Ohio (us-east-2), artifacts in s3://pathsgames-test-iac/<env>/backend/;
+# production in N. Virginia (us-east-1), artifacts in s3://pathsgames-production-iac/production/backend/.
+# `tags` are stack-level: CloudFormation propagates them to every taggable resource, nested stacks
+# included, and they must match the in-template tags (Environment: dev / test / production).
+# SAM does NOT merge config-envs with [default]: each section is self-contained.
+# `version=` in tags (and the template's Version default) is rewritten by code/scripts/dev/bump-version.sh.
+
 [default.deploy.parameters]
-stack_name = "pathsgames-aws-backend"
-s3_bucket = "pathsgames-dev"
-s3_prefix = "cloudformation-backend"
+stack_name = "pathsgames-dev"
+s3_bucket = "pathsgames-test-iac"
+s3_prefix = "dev/backend"
 region = "us-east-2"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+parameter_overrides = "Environment=dev SeedBcryptHash=CHANGEME TableBillingMode=PROVISIONED TableReadCapacity=10 TableWriteCapacity=10 GsiReadCapacity=5 GsiWriteCapacity=5"
+tags = "CostCenter=Paths.games Environment=dev ManagedBy=CloudFormation Owner=AlNao Project=Paths.games version=0.38.1"
 
 [dev.deploy.parameters]
 stack_name = "pathsgames-dev"
-s3_bucket = "pathsgames-dev-cloudformation-backend"
-s3_prefix = "cloudformation-backend"
+s3_bucket = "pathsgames-test-iac"
+s3_prefix = "dev/backend"
+region = "us-east-2"
+confirm_changeset = true
 capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
 # SeedBcryptHash must be passed at deploy time (never commit the real hash):
 #   sam deploy --config-env dev --parameter-overrides SeedBcryptHash="<hash>"
 # Or store in SSM and reference with: resolve:ssm-secure:/pathsgames/seed-bcrypt-hash
+# PROVISIONED 10/10 + 2x5/5 stays inside the always-free 25 RCU/WCU: only ONE env per region can use it.
 parameter_overrides = "Environment=dev SeedBcryptHash=CHANGEME TableBillingMode=PROVISIONED TableReadCapacity=10 TableWriteCapacity=10 GsiReadCapacity=5 GsiWriteCapacity=5"
     #CustomDomainName=\"api-dev.paths.games\" CustomDomainCertificateArn=\"arn:aws:acm:us-east-2:xxxx:certificate/xxxx\" CustomDomainHostedZoneId=\"Zzzzzzzzzzzzzz\"
+tags = "CostCenter=Paths.games Environment=dev ManagedBy=CloudFormation Owner=AlNao Project=Paths.games version=0.38.1"
+
+[test.deploy.parameters]
+stack_name = "pathsgames-test"
+s3_bucket = "pathsgames-test-iac"
+s3_prefix = "test/backend"
 region = "us-east-2"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+# Same region as dev: PAY_PER_REQUEST so the two tables do not compete for the free 25 RCU/WCU.
+# Turnstile / admin IP whitelist / custom domain come from .env via scripts/test/aws/aws_backend_deploy.sh.
+parameter_overrides = "Environment=test SeedBcryptHash=CHANGEME TableBillingMode=PAY_PER_REQUEST"
+    #CustomDomainName=\"api-test.paths.games\" CustomDomainCertificateArn=\"arn:aws:acm:us-east-2:xxxx:certificate/xxxx\" CustomDomainHostedZoneId=\"Zzzzzzzzzzzzzz\"
+tags = "CostCenter=Paths.games Environment=test ManagedBy=CloudFormation Owner=AlNao Project=Paths.games version=0.38.1"
 
 [prod.deploy.parameters]
 stack_name = "pathsgames-prod"
-parameter_overrides = "Environment=prod"
+s3_bucket = "pathsgames-production-iac"
+s3_prefix = "production/backend"
+region = "us-east-1"
 confirm_changeset = false
 fail_on_empty_changeset = false
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+# JwtSecret, TurnstileSecretKey, AdminIpWhitelist, CorsAllowOrigins, custom domain: pass at deploy time.
+parameter_overrides = "Environment=prod AllowMockAccess=false RateLimitGuestPerIp=10 RateLimitMatchPerIp=10"
+tags = "CostCenter=Paths.games Environment=production ManagedBy=CloudFormation Owner=AlNao Project=Paths.games version=0.38.1"

@@ -4,6 +4,12 @@ Transform: AWS::Serverless-2016-10-31
 Parameters:
   Environment:
     Type: String
+  EnvironmentTag:
+    Type: String
+    Description: "Value of the Environment tag (dev / test / production), mapped by the root stack."
+  Version:
+    Type: String
+    Description: "Project version, applied as the `version` tag on every resource."
   LambdaSystemLogLevel:
     Type: String
     Default: WARN
@@ -26,10 +32,20 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-ContentFunction"
       RetentionInDays: 14
       Tags:
-        - Key: project
-          Value: PathsGames
-        - Key: env
-          Value: !Ref Environment
+        - Key: Name
+          Value: !Sub "/aws/lambda/pathsgames-${Environment}-ContentFunction"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: Paths.games
+        - Key: version
+          Value: !Ref Version
 
   ContentFunction:
     Type: AWS::Serverless::Function
@@ -47,8 +63,13 @@ Resources:
       MemorySize: 256
       CodeUri: ../lambda/
       Tags:
-        project: PathsGames
-        env: !Ref Environment
+        Name: !Sub "pathsgames-${Environment}-ContentFunction"
+        CostCenter: Paths.games
+        Environment: !Ref EnvironmentTag
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: Paths.games
+        version: !Ref Version
       Environment:
         Variables:
           TABLE_NAME: !Ref TableName

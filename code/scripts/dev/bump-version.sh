@@ -113,6 +113,24 @@ FOOTER_FILE="$ROOT/code/frontend/react-game/src/components/layout/Footer.jsx"
 sed -i "s|v${CURRENT}|v${NEW}|g" "$FOOTER_FILE"
 
 # ────────────────────────────────────────────
+# 10. AWS - tag `version` su ogni risorsa CloudFormation:
+#     default del parametro Version in template.yaml + tag di stack in samconfig.toml
+# ────────────────────────────────────────────
+echo "  [10/6] AWS - template.yaml / samconfig.toml (tag version)"
+AWS_TEMPLATE="$ROOT/code/backend/aws/template.yaml"
+sed -i "/^  Version:$/,/^  [A-Za-z]*:$/ s|Default: \"${CURRENT}\"|Default: \"${NEW}\"|" "$AWS_TEMPLATE"
+AWS_SAMCONFIG="$ROOT/code/backend/aws/samconfig.toml"
+sed -i "s|version=${CURRENT}|version=${NEW}|g" "$AWS_SAMCONFIG"
+
+# ────────────────────────────────────────────
+# 11. .env / .env.example - VERSION (letta dagli script di deploy AWS per il tag version)
+# ────────────────────────────────────────────
+echo "  [11/6] .env / .env.example (VERSION)"
+for ENV_FILE in "$ROOT/.env" "$ROOT/.env.example"; do
+    [ -f "$ENV_FILE" ] && sed -i "s|^VERSION=${CURRENT}$|VERSION=${NEW}|" "$ENV_FILE"
+done
+
+# ────────────────────────────────────────────
 echo ""
 echo "  Versione aggiornata: $CURRENT → $NEW"
 echo ""

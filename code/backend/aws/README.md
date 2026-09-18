@@ -17,19 +17,31 @@ The infrastructure is built entirely on managed AWS services:
 | Resource | Name | Type |
 | :--- | :--- | :--- |
 | DynamoDB Table | `PathsGamesBackend-<env>` | `AWS::DynamoDB::Table` |
-| HTTP API | — | `AWS::Serverless::HttpApi` |
+| HTTP API (public) | `pathsgames-<env>` | `AWS::ApiGatewayV2::Api` — player/public routes |
+| HTTP API (admin) | `pathsgames-<env>-admin` | `AWS::ApiGatewayV2::Api` — `/api/admin/**` only, gated by `AdminIpAuthorizer` |
 | Lambda Echo | `pathsgames-<env>-EchoFunction` | Health check (`GET /api/echo/status`) |
 | Lambda Auth | `pathsgames-<env>-AuthFunction` | Guest + admin authentication (11 routes) |
 | Lambda Story | `pathsgames-<env>-StoryFunction` | Story catalog + admin + content (9 routes); story detail includes resolved `card` objects on difficulties, classes, character templates and traits |
 | Lambda Match | `pathsgames-<env>-MatchFunction` | Match creation and listing (`POST /api/matches`, `GET /api/matches`, `GET /api/match/{uuid}/info`, `GET /api/admin/matches` with pagination & filters) |
+| Lambda Content | `pathsgames-<env>-ContentFunction` | Content detail: cards, texts, creators (3 routes) |
 | Lambda Seed | `pathsgames-<env>-SeedFunction` | Dev-only: inserts test data (stories, cards) |
-| Log Groups ×5 | `/aws/lambda/pathsgames-<env>-*` | Deleted with the stack |
+| Lambda AdminIpAuthorizer | `pathsgames-<env>-AdminIpAuthorizer` | REQUEST authorizer (no caching) gating the admin HTTP API by source IP |
+| Log Groups ×7 | `/aws/lambda/pathsgames-<env>-*` | One per Lambda above, deleted with the stack |
 
 ### Tagging
 
-All resources are tagged with:
-- `project` = `PathsGames`
-- `env` = `dev` | `prod`
+Every taggable resource (table, both HTTP APIs + stages, all 7 Lambdas, all 7 log groups, the
+custom domain, the 6 nested stacks) carries the same five tags:
+- `CostCenter` = `Paths.games`
+- `Environment` = `dev` | `test` | `production` (mapped from the `Environment` parameter — the
+  parameter keeps `prod`, only the tag says `production`)
+- `ManagedBy` = `CloudFormation`
+- `Owner` = `AlNao`
+- `Project` = `Paths.games`
+
+`Route`/`Integration`/`Authorizer`/`Permission`/`ApiMapping`/`RecordSet` resources do not support
+tags. Stack-level `tags` in `samconfig.toml` propagate the same five tags to every resource,
+nested stacks included.
 
 
 ### Additional commands
@@ -80,11 +92,13 @@ Verification is centralized in `lambda/common/jwt_utils.py` (pure Python stdlib,
 ```text
 code/backend/aws/
 ├── template.yaml         # Unified AWS SAM template
-├── samconfig.toml        # Environment configurations (dev, prod)
+├── samconfig.toml        # Environment configurations (dev, test, prod)
 ├── lambda/               # Function source code
 │   ├── common/           # Shared code (db_utils, jwt_utils)
 │   ├── auth/             # Guest login, sessions, admin guests (11 routes)
+│   ├── authorizer/       # AdminIpAuthorizer: REQUEST authorizer for the admin HTTP API
 │   ├── story/            # Catalog, categories, groups, enriched detail, import (9 routes)
+│   ├── content/          # Content detail: cards, texts, creators (3 routes)
 │   ├── match/            # Match creation and listing (POST, GET /api/matches, GET /api/admin/matches with pagination & filters)
 │   ├── seed/             # Dev seed: inserts test users and stories
 │   └── echo/             # Health check and diagnostics
@@ -172,7 +186,8 @@ The project uses **AWS SAM** to handle packaging and deployment across different
 ### Prerequisites
 - Install [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html).
 - Configure AWS credentials (`aws configure`).
-- Create an S3 bucket for CloudFormation templates (e.g., `pathsgames-dev`).
+- Create the S3 bucket for CloudFormation artifacts: `pathsgames-test-iac` (dev, test — Ohio) /
+  `pathsgames-production-iac` (prod — N. Virginia).
 
 ### Main Commands
 
@@ -181,6 +196,7 @@ The project uses **AWS SAM** to handle packaging and deployment across different
 | **Validate** | `sam validate --lint` |
 | **Build** | `sam build` |
 | **Deploy (Dev)** | `sam deploy --config-env dev` |
+| **Deploy (Test)** | `sam deploy --config-env test` |
 | **Deploy (Prod)** | `sam deploy --config-env prod` |
 | **Real-time Logs** | `sam logs -f --stack-name pathsgames-dev` |
 | **Delete stack** | `sam delete --config-env dev` |
@@ -189,14 +205,21 @@ The project uses **AWS SAM** to handle packaging and deployment across different
 
 ### Environment Configuration (`samconfig.toml`)
 
-| Parameter | Dev | Prod |
-| :--- | :--- | :--- |
-| Stack name | `pathsgames-dev` | `pathsgames-prod` |
-| S3 bucket | `pathsgames-dev` | `pathsgames-prod` |
-| Region | `us-east-2` | — |
-| `TableBillingMode` | `PROVISIONED` (10/10 table, 5/5 per GSI) | `PAY_PER_REQUEST` |
-| `LambdaSystemLogLevel` | `WARN` | `WARN` |
-| `StoryCacheTtlSeconds` | `3600` | `3600` |
+| Parameter | Dev | Test | Prod |
+| :--- | :--- | :--- | :--- |
+| Stack name | `pathsgames-dev` | `pathsgames-test` | `pathsgames-prod` |
+| S3 bucket | `pathsgames-test-iac` | `pathsgames-test-iac` | `pathsgames-production-iac` |
+| Region | `us-east-2` (Ohio) | `us-east-2` (Ohio) | `us-east-1` (N. Virginia) |
+| `TableBillingMode` | `PROVISIONED` (10/10 table, 5/5 per GSI) | `PAY_PER_REQUEST` | `PAY_PER_REQUEST` |
+| `LambdaSystemLogLevel` | `WARN` | `WARN` | `WARN` |
+| `StoryCacheTtlSeconds` | `3600` | `3600` | `3600` |
+
+`sam deploy` does not merge a config-env with `[default]`: each of `dev`/`test`/`prod` is
+self-contained, including its stack-level `tags`. `test` exists because `dev` alone already
+uses 20 of the region's always-free 25 RCU/WCU, so a second `PROVISIONED` table in the same
+region would not fit; `test` runs `PAY_PER_REQUEST` instead. `code/scripts/test/aws/aws_backend_deploy.sh`
+and `aws_backend_remove.sh` take a `[dev|test]` CLI argument that also selects the matching
+stack (`pathsgames-<env>`); production is only ever deployed via `sam deploy --config-env prod`.
 
 The `deploy` command output will provide the **API Endpoint URL** to be configured in the frontend.
 
@@ -221,6 +244,26 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 ---
 
 ## 📝 Changelog
+
+### v0.38.0 — Resource tagging & `test` deploy environment
+
+- **`template.yaml`** + the 6 nested `template/*.yaml` modules: old `project`/`env` tags
+  replaced everywhere (table, both HTTP APIs + stages, all 7 Lambdas, all 7 log groups, the
+  custom domain, all 6 nested stacks) with `CostCenter=Paths.games`,
+  `Environment=dev|test|production`, `ManagedBy=CloudFormation`, `Owner=AlNao`,
+  `Project=Paths.games`. New `Mappings.EnvironmentTags` maps the `Environment` parameter
+  (`dev`/`test`/`prod`) to its tag value (`prod` → `production`); nested stacks receive a new
+  `EnvironmentTag` parameter.
+- **`samconfig.toml`** rewritten: three config-envs (`dev`, `test`, `prod`) plus `default`=dev,
+  each with stack-level `tags` (CloudFormation propagates them to every resource, nested stacks
+  included). New `test` config-env (`pathsgames-test`, `us-east-2`, `PAY_PER_REQUEST` — `dev`
+  already uses 20 of the region's always-free 25 RCU/WCU). `prod` gains its own bucket/region
+  for the first time (`us-east-1`, `s3://pathsgames-production-iac/production/backend/`).
+- **`code/scripts/test/aws/aws_backend_deploy.sh`** / **`aws_backend_remove.sh`**: accept a
+  `[dev|test]` CLI argument that also selects the matching stack (`pathsgames-<env>`), guarded
+  so a stack name not ending in `-<env>` is refused (a mismatch would rename the DynamoDB
+  table); the deploy script passes `--tags` with the five tags.
+- No API contract or DynamoDB item-shape change.
 
 ### v0.29.3 — Forced movement via event effects
 
@@ -394,10 +437,6 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 - Story admin CRUD (create, update, delete) via `StoryFunction`.
 - Robot Framework suites `14_admin`, `15_story_content`, `16_content_detail`, `17_admin_crud` verified against AWS endpoint.
-
-
-
-
 
 # < Paths Games />
 

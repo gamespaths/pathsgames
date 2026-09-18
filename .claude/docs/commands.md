@@ -42,9 +42,12 @@ pytest tests --cov=app --cov-report=term-missing
 NEVER run these without explicit user confirmation.
 
 ```bash
-code/scripts/test/aws/aws_backend_deploy.sh
-code/scripts/test/aws/aws_backend_remove.sh
+code/scripts/test/aws/aws_backend_deploy.sh [dev|test] [--auto-confirm]  # also selects stack pathsgames-<env>
+code/scripts/test/aws/aws_backend_remove.sh [dev|test]                  # also selects stack pathsgames-<env>
 ```
+
+Both dev and test live in `us-east-2` (Ohio); prod has its own region/bucket and is deployed
+only via `sam deploy --config-env prod` from `code/backend/aws/` (not through these scripts).
 
 ## Robot E2E tests — `code/tests/robot/`
 

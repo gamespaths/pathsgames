@@ -6,7 +6,12 @@ Parameters:
   Environment:
     Type: String
     Default: dev
-    Description: "Ambiente di deploy (dev, prod, ecc.)"
+    AllowedValues: [dev, test, prod]
+    Description: "Deploy environment. Suffix of every resource name, API stage and Lambda ENV; the Environment tag is mapped from it (prod -> production)."
+  Version:
+    Type: String
+    Default: "0.38.1"
+    Description: "Project version, applied as the `version` tag on every resource. Source: VERSION in the root .env; code/scripts/dev/bump-version.sh keeps this default in sync."
   JwtSecret:
     Type: String
     NoEcho: true
@@ -114,6 +119,17 @@ Parameters:
     AllowedValues: [DEBUG, INFO, WARN]
     Description: "v0.37.5 - WARN drops the START/END/REPORT lines of every invocation (CloudWatch ingestion); INFO brings the REPORT back for memory tuning."
 
+Mappings:
+  # Environment tag value per deploy environment. The parameter keeps `prod` because resource
+  # names, the API stage and the Lambda ENV guards key on it; only the tag says `production`.
+  EnvironmentTags:
+    dev:
+      Name: dev
+    test:
+      Name: test
+    prod:
+      Name: production
+
 Conditions:
   IsProvisioned: !Equals [!Ref TableBillingMode, PROVISIONED]
   HasCustomDomain: !Not [!Equals [!Ref CustomDomainName, ""]]
@@ -128,10 +144,20 @@ Resources:
     Properties:
       TableName: !Sub "PathsGamesBackend-${Environment}"
       Tags:
-        - Key: project
-          Value: PathsGames
-        - Key: env
-          Value: !Ref Environment
+        - Key: Name
+          Value: !Sub "PathsGamesBackend-${Environment}"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: Paths.games
+        - Key: version
+          Value: !Ref Version
       AttributeDefinitions:
         - AttributeName: PK
           AttributeType: S
@@ -243,8 +269,13 @@ Resources:
       Name: !Sub "pathsgames-${Environment}"
       ProtocolType: HTTP
       Tags:
-        project: PathsGames
-        env: !Ref Environment
+        Name: !Sub "pathsgames-${Environment}"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: Paths.games
+        version: !Ref Version
       CorsConfiguration:
         AllowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
         AllowOrigins: !Ref CorsAllowOrigins
@@ -261,8 +292,13 @@ Resources:
       StageName: !Ref Environment
       AutoDeploy: true
       Tags:
-        project: PathsGames
-        env: !Ref Environment
+        Name: !Sub "pathsgames-${Environment}-ApiStage"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: Paths.games
+        version: !Ref Version
 
   # Dedicated ADMIN HTTP API — serves ONLY /api/admin/** routes and is gated by an
   # IP-allow-list Lambda authorizer (the AWS-side equivalent of the 8044 admin port).
@@ -272,8 +308,13 @@ Resources:
       Name: !Sub "pathsgames-${Environment}-admin"
       ProtocolType: HTTP
       Tags:
-        project: PathsGames
-        env: !Ref Environment
+        Name: !Sub "pathsgames-${Environment}-admin"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: Paths.games
+        version: !Ref Version
       CorsConfiguration:
         AllowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
         AllowOrigins: !Ref CorsAllowOrigins
@@ -287,8 +328,13 @@ Resources:
       StageName: !Ref Environment
       AutoDeploy: true
       Tags:
-        project: PathsGames
-        env: !Ref Environment
+        Name: !Sub "pathsgames-${Environment}-AdminApiStage"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: Paths.games
+        version: !Ref Version
 
   AdminIpAuthorizerLogGroup:
     Type: AWS::Logs::LogGroup
@@ -296,6 +342,21 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-AdminIpAuthorizer"
       RetentionInDays: 14
+      Tags:
+        - Key: Name
+          Value: !Sub "/aws/lambda/pathsgames-${Environment}-AdminIpAuthorizer"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: Paths.games
+        - Key: version
+          Value: !Ref Version
 
   AdminIpAuthorizerFunction:
     Type: AWS::Serverless::Function
@@ -313,8 +374,13 @@ Resources:
       MemorySize: 128
       CodeUri: lambda/
       Tags:
-        project: PathsGames
-        env: !Ref Environment
+        Name: !Sub "pathsgames-${Environment}-AdminIpAuthorizer"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: Paths.games
+        version: !Ref Version
       Environment:
         Variables:
           ADMIN_IP_WHITELIST: !Ref AdminIpWhitelist
@@ -350,6 +416,14 @@ Resources:
       DomainNameConfigurations:
         - CertificateArn: !Ref CustomDomainCertificateArn
           EndpointType: REGIONAL
+      Tags:
+        Name: !Ref CustomDomainName
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: Paths.games
+        version: !Ref Version
 
   PathsGamesApiMapping:
     Type: AWS::ApiGatewayV2::ApiMapping
@@ -381,8 +455,18 @@ Resources:
     DependsOn: [PathsGamesApi, PathsGamesAdminApi, AdminIpAuthorizer]
     Properties:
       Location: template/echo.yaml
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-EchoModule"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: Paths.games
+        version: !Ref Version
       Parameters:
         Environment: !Ref Environment
+        EnvironmentTag: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        Version: !Ref Version
         LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
@@ -394,8 +478,18 @@ Resources:
     DependsOn: [PathsGamesApi, PathsGamesAdminApi, AdminIpAuthorizer]
     Properties:
       Location: template/auth.yaml
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-AuthModule"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: Paths.games
+        version: !Ref Version
       Parameters:
         Environment: !Ref Environment
+        EnvironmentTag: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        Version: !Ref Version
         LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
@@ -413,8 +507,18 @@ Resources:
     DependsOn: [PathsGamesApi, PathsGamesAdminApi, AdminIpAuthorizer]
     Properties:
       Location: template/story.yaml
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-StoryModule"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: Paths.games
+        version: !Ref Version
       Parameters:
         Environment: !Ref Environment
+        EnvironmentTag: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        Version: !Ref Version
         LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
         StoryCacheTtlSeconds: !Ref StoryCacheTtlSeconds
         TableName: !Ref PathsGamesTable
@@ -433,8 +537,18 @@ Resources:
     DependsOn: [PathsGamesApi, PathsGamesAdminApi, AdminIpAuthorizer]
     Properties:
       Location: template/match.yaml
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-MatchModule"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: Paths.games
+        version: !Ref Version
       Parameters:
         Environment: !Ref Environment
+        EnvironmentTag: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        Version: !Ref Version
         LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
         StoryCacheTtlSeconds: !Ref StoryCacheTtlSeconds
         TableName: !Ref PathsGamesTable
@@ -455,8 +569,18 @@ Resources:
     DependsOn: PathsGamesApi
     Properties:
       Location: template/content.yaml
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-ContentModule"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: Paths.games
+        version: !Ref Version
       Parameters:
         Environment: !Ref Environment
+        EnvironmentTag: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        Version: !Ref Version
         LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
         StoryCacheTtlSeconds: !Ref StoryCacheTtlSeconds
         TableName: !Ref PathsGamesTable
@@ -468,8 +592,18 @@ Resources:
     DependsOn: [PathsGamesApi, PathsGamesAdminApi, AdminIpAuthorizer]
     Properties:
       Location: template/seed.yaml
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-SeedModule"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: Paths.games
+        version: !Ref Version
       Parameters:
         Environment: !Ref Environment
+        EnvironmentTag: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        Version: !Ref Version
         LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
         TableName: !Ref PathsGamesTable
         AdminApiId: !Ref PathsGamesAdminApi

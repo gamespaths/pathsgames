@@ -228,6 +228,86 @@
       "idTextName": 23,
       "idTextTitle": 23,
       "uuid": "10fe5020-f3b3-4a29-ac18-8581cda3df59"
+    },
+    {
+      "id": 13,
+      "idCard": 13,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 24,
+      "idTextName": 24,
+      "idTextTitle": 24,
+      "uuid": "82487c32-92f6-4181-a448-e265a188ddfa"
+    },
+    {
+      "id": 14,
+      "idCard": 14,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 25,
+      "idTextName": 25,
+      "idTextTitle": 25,
+      "uuid": "8f0e0f64-c8f9-45d6-9ce4-9a060ba7812c"
+    },
+    {
+      "id": 15,
+      "idCard": 15,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 26,
+      "idTextName": 26,
+      "idTextTitle": 26,
+      "uuid": "9c9df7b4-53bb-4dd2-8750-16c69e470d18"
+    },
+    {
+      "id": 16,
+      "idCard": 16,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 27,
+      "idTextName": 27,
+      "idTextTitle": 27,
+      "uuid": "d4f20551-19f3-4045-b5d3-4ccbddc1664a"
+    },
+    {
+      "id": 17,
+      "idCard": 17,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 28,
+      "idTextName": 28,
+      "idTextTitle": 28,
+      "uuid": "21a60f0d-6d5c-4444-9d6f-6fca3f8d4a4b"
+    },
+    {
+      "id": 18,
+      "idCard": 18,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 29,
+      "idTextName": 29,
+      "idTextTitle": 29,
+      "uuid": "2398d5ad-77ab-4a38-8ab0-f64cf37bc805"
+    },
+    {
+      "id": 19,
+      "idCard": 19,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 30,
+      "idTextName": 30,
+      "idTextTitle": 30,
+      "uuid": "e6a138f7-e76b-4d45-a413-fbe9b0f26a47"
+    },
+    {
+      "id": 20,
+      "idCard": 20,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 31,
+      "idTextName": 31,
+      "idTextTitle": 31,
+      "uuid": "c69e2fb8-b81f-4c9e-8e37-a9baa195da3a"
     }
   ],
   "category": "Adventure",
@@ -257,8 +337,50 @@
     }
   ],
   "choiceConditions": [],
-  "choiceEffects": [],
-  "choices": [],
+  "choiceEffects": [
+    {
+      "id": 1,
+      "idCard": 19,
+      "idChoices": 1,
+      "idScelta": 1,
+      "idTextName": 30,
+      "id_card": 19,
+      "statistics": "FOOD",
+      "uuid": "cbb8b151-43b7-482c-bb1e-450bb85f4e9f",
+      "value": 1
+    },
+    {
+      "id": 2,
+      "idCard": 20,
+      "idChoices": 2,
+      "idScelta": 2,
+      "idTextName": 31,
+      "id_card": 20,
+      "statistics": "COIN",
+      "uuid": "aa343489-b194-436a-958d-48b6f37768d7",
+      "value": 1
+    }
+  ],
+  "choices": [
+    {
+      "id": 1,
+      "idCard": 17,
+      "idEvent": 3,
+      "idTextName": 28,
+      "id_card": 17,
+      "priority": 1,
+      "uuid": "bc038bbd-e999-4e06-bbbc-207adaf679c4"
+    },
+    {
+      "id": 2,
+      "idCard": 18,
+      "idEvent": 3,
+      "idTextName": 29,
+      "id_card": 18,
+      "priority": 2,
+      "uuid": "eca16560-972f-4285-9b54-51d71ba1c4e1"
+    }
+  ],
   "classBonuses": [],
   "classCount": 1,
   "classes": [
@@ -300,8 +422,7 @@
     {
       "constitution": 0,
       "costHelpComa": 0,
-      "expCostBase": 0,
-      "maxStatValue": 0,
+      "costMaxCharacteristics": 0,
       "dexterity": 0,
       "energy": 5,
       "expCost": 5,
@@ -328,8 +449,7 @@
     {
       "constitution": 0,
       "costHelpComa": 0,
-      "expCostBase": 0,
-      "maxStatValue": 0,
+      "costMaxCharacteristics": 0,
       "dexterity": 0,
       "energy": 7,
       "expCost": 7,
@@ -356,8 +476,7 @@
     {
       "constitution": 0,
       "costHelpComa": 0,
-      "expCostBase": 0,
-      "maxStatValue": 0,
+      "costMaxCharacteristics": 0,
       "dexterity": 0,
       "energy": 10,
       "expCost": 10,
@@ -383,7 +502,20 @@
     }
   ],
   "eventCount": 1,
-  "eventEffects": [],
+  "eventEffects": [
+    {
+      "id": 1,
+      "idCard": 15,
+      "idEvent": 2,
+      "idTextDescription": 26,
+      "idTextName": 26,
+      "id_card": 15,
+      "statistics": "ENERGY",
+      "target": "ALL",
+      "uuid": "883778e2-060b-436b-a414-232933c2f45c",
+      "value": -1
+    }
+  ],
   "events": [
     {
       "card": {
@@ -402,6 +534,7 @@
         "urlImage": null,
         "uuid": "d311a594-ec2e-4abb-b6c3-df8221dc452e"
       },
+      "costEnery": 1,
       "id": 1,
       "idCard": 4,
       "idLocation": 1,
@@ -411,6 +544,28 @@
       "id_card": 4,
       "type": "NORMAL",
       "uuid": "88bad083-5aaf-459c-8ce6-d80790452539"
+    },
+    {
+      "costEnery": 1,
+      "id": 2,
+      "idCard": 14,
+      "idSpecificLocation": 2,
+      "idTextDescription": 25,
+      "idTextName": 25,
+      "id_card": 14,
+      "type": "NORMAL",
+      "uuid": "7f78ac39-6dbf-407f-8799-df874834c383"
+    },
+    {
+      "costEnery": 1,
+      "id": 3,
+      "idCard": 16,
+      "idSpecificLocation": 2,
+      "idTextDescription": 27,
+      "idTextName": 27,
+      "id_card": 16,
+      "type": "ONCE",
+      "uuid": "45af070a-87a1-4212-8dca-93769b44c9ea"
     }
   ],
   "globalRandomEvents": [],
@@ -434,7 +589,16 @@
   "keys": [],
   "linkCopyright": "paths.games",
   "locationCount": 1,
-  "locationNeighbors": [],
+  "locationNeighbors": [
+    {
+      "direction": "NORTH",
+      "flagBack": 1,
+      "id": 1,
+      "idLocationFrom": 1,
+      "idLocationTo": 2,
+      "uuid": "f65ea772-e8d5-4be0-8388-6c9af303db89"
+    }
+  ],
   "locations": [
     {
       "card": {
@@ -453,12 +617,23 @@
         "urlImage": null,
         "uuid": "7b876dde-3346-454e-ac78-37b6b899bb94"
       },
+      "costEnergyEnter": 0,
       "id": 1,
       "idCard": 3,
       "idTextDescription": 4,
       "idTextName": 4,
       "id_card": 3,
+      "isSafe": false,
       "uuid": "0133d731-3f7b-4a95-9b25-2d79a08da86e"
+    },
+    {
+      "costEnergyEnter": 0,
+      "id": 2,
+      "idCard": 13,
+      "idTextDescription": 24,
+      "idTextName": 24,
+      "id_card": 13,
+      "uuid": "3881db50-3dbb-460e-84c9-2997218b0e2a"
     }
   ],
   "missionSteps": [],
@@ -795,6 +970,106 @@
       "longText": "",
       "shortText": "",
       "uuid": "3508a78c-d47c-4ec3-b1ed-4cc1e015b6f7"
+    },
+    {
+      "id": 24,
+      "idCreator": 1,
+      "idText": 24,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Ronini Village",
+      "shortText": "Ronini Village",
+      "uuid": "1303c876-b8aa-45ce-ae88-e81b3a1c8b39"
+    },
+    {
+      "id": 24,
+      "idCreator": 1,
+      "idText": 24,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "0d4c8e23-d9b0-41aa-823d-80b347013e16"
+    },
+    {
+      "id": 25,
+      "idCreator": 1,
+      "idText": 25,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Ronini tavern",
+      "shortText": "Ronini tavern",
+      "uuid": "6067eb50-5415-4c93-98ba-dbc1412bde05"
+    },
+    {
+      "id": 26,
+      "idCreator": 1,
+      "idText": 26,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "You are Drunk",
+      "shortText": "You are Drunk",
+      "uuid": "26c429f7-c41f-4401-9db6-2170f089f5ed"
+    },
+    {
+      "id": 27,
+      "idCreator": 1,
+      "idText": 27,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Help Fishermen",
+      "shortText": "Help Fishermen",
+      "uuid": "df4d9991-5fd9-4916-88ff-92686459ed71"
+    },
+    {
+      "id": 27,
+      "idCreator": 1,
+      "idText": 27,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "1ca02907-c99f-47e6-8266-148b45caf0c3"
+    },
+    {
+      "id": 28,
+      "idCreator": 1,
+      "idText": 28,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Fishing",
+      "shortText": "Fishing",
+      "uuid": "61cabf13-71e9-4a2e-acef-9e9c07995589"
+    },
+    {
+      "id": 29,
+      "idCreator": 1,
+      "idText": 29,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Check the Boat",
+      "shortText": "Check the Boat",
+      "uuid": "83954df7-49f6-42a8-b8d9-e9ddee938a67"
+    },
+    {
+      "id": 30,
+      "idCreator": 1,
+      "idText": 30,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Caught a Fish",
+      "shortText": "Caught a Fish",
+      "uuid": "04931537-fa47-47ba-b6c4-d8495d540fde"
+    },
+    {
+      "id": 31,
+      "idCreator": 1,
+      "idText": 31,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Find a Crack",
+      "shortText": "Find a Crack",
+      "uuid": "63ebfee0-923f-4e65-9b73-4c659d13a51b"
     }
   ],
   "title": "Infinite Paths",
@@ -832,7 +1107,7 @@
   "visibility": "PUBLIC",
   "weatherRules": [
     {
-      "costMoveNotSafeLocation": 2,
+      "costMoveNotSafeLocation": 1,
       "costMoveSafeLocation": 0,
       "id": 1,
       "idCard": 11,
@@ -842,8 +1117,8 @@
       "uuid": "864fbf3a-7ee4-48c9-bbb4-d30a3978563d"
     },
     {
-      "costMoveNotSafeLocation": 10,
-      "costMoveSafeLocation": 5,
+      "costMoveNotSafeLocation": 2,
+      "costMoveSafeLocation": 1,
       "id": 2,
       "idCard": 12,
       "idText": 23,
