@@ -3,9 +3,10 @@
 # ==================================================
 
 resource "aws_wafv2_web_acl" "website" {
-  count       = var.enable_waf ? 1 : 0
+  count = var.enable_waf ? 1 : 0
 
-  name        = "paths-games-waf"
+  # production keeps the historical name; every other environment gets a suffix.
+  name        = local.is_production ? "paths-games-waf" : "paths-games-waf-${var.environment}"
   description = "WAF for ${var.domain_name} CloudFront distribution"
   scope       = "CLOUDFRONT" # Must be in us-east-1
 
@@ -112,6 +113,6 @@ resource "aws_wafv2_web_acl" "website" {
   }
 
   tags = {
-    Name = "${var.domain_name} WAF"
+    Name = local.is_production ? "paths-games-waf" : "paths-games-waf-${var.environment}"
   }
 }

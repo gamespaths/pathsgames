@@ -34,7 +34,12 @@
 hs_err_pid*
 replay_pid*
 
+# Terraform (code/website/terraform-aws): one data dir per environment, never a local state
 .terraform
+.terraform-*/
+*.tfstate
+*.tfstate.backup
+code/website/terraform-aws/backups/
 
 target/
 .vscode/

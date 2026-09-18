@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Deploy react-game to S3 test bucket and invalidate CloudFront test distribution.
 
-PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 ENV_FILE="$PROJECT_ROOT/.env"
 if [ -f "$ENV_FILE" ]; then
   . "$ENV_FILE"

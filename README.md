@@ -10,8 +10,9 @@
 
 **Paths Games** is a multi-user storytelling game where choices matter. Players explore dynamic worlds, manage resources, and collaborate (or compete) in real-time narrative adventures. 
 
-Crowdfunding campaign *coming soon*. Visit [paths.games](http://paths.games) website. **Open Source**: Built with ❤️ and released under the **GNU-GPL3** license.
+Crowdfunding campaign *coming soon*. Visit [paths.games](http://paths.games) website. 
 
+**Open Source**: Built with ❤️ and released under the **GNU-GPL3** license.
 
 
 ## Documentation
@@ -22,9 +23,9 @@ Documents includes all steps and the roadmap for create paths.games components, 
 | Steps | Focus | 
 | --- | --- |
 | 📝 **Project Foundation** <br /> Steps 1-11| - ✅ [Start the project](./documentation_v0/Step01_StartProject.md) & [Create the repository](./documentation_v0/Step02_CreateTheRepository.md) & [Define the V1 scope](./documentation_v0/Step03_DefineScope.md) <br />- ✅ [Technology stack](./documentation_v0/Step04_TechnologyStack.md) & [Backend structure](./documentation_v0/Step05_BackendStructure.md) & [Naming conventions](./documentation_v0/Step06_NamingConventions.md) <br />- ✅ [Configure website](./documentation_v0/Step07_ConfigureWebsite.md) & [Configure Environments & CI](./documentation_v0/Step08_ConfigureMinimalCI.md) <br />- ✅ [Design data model](./documentation_v0/Step09_DesignCoreDataModel.md) & [Create initial DB](./documentation_v0/Step10_CreateDBschema.md) & [Define API versioning](./documentation_v0/Step11_DefineAPIVersioning.md) |
-| 📖 **Stories & match** <br />Steps 12-26 | - ✅ [Guest login](./documentation_v0/Step12_GuestLoginMethod.md) & [Session management](Step13_SessionTokenManagement.md) & [Stories magement](./documentation_v0/Step14_StoriesImportSystem.md) <br />- ✅ [Stories contents](./documentation_v0/Step15_StoryContentAPIs.md) & [Content details](./Step16_ContentDetailAPIs.md) & [Stories admin operations](./documentation_v0/Step17_StoryAdminCRUD.md) <br />- ✅ [Frontend: Stories catalog](./Step18_GameMainFrontend.md) & [Match creation](./documentation_v0/Step19_SinglePlayerMatchCreation.md) & [Game first run](./documentation_v0/Step20_GameWebSiteFirstRun.md) <br />- ✅ [Character selection](./documentation_v0/Step21_CharacterSelection.md)  & [Story validation](./documentation_v0/Step22_StoryValidation.md) & [Character stats](./documentation_v0/Step23_CharacterStatsInitialization.md) |
-| ⚙️ **Turns, movements & events** <br />Steps 27-35 |- ✅ [Turn cycle engine](./documentation_v0/Step24_TurnCycleEngine.md) & [Time clock cycle](./documentation_v0/Step25_TimeAdvancementClockCycle.md) & [Time-start recovery](./documentation_v0/Step26_TimeStartRecovery.md) <br/>- ✅ [Weather System](./documentation_v0/Step27_WeatherSystem.md) & [Movement System](./documentation_v0/Step28_MovementSystem.md) & [Normal Events](./documentation_v0/Step29_NormalEvents.md) <br />- ✅ [Coma and status](./documentation_v0/Step30_EdgeStates.md) & [Choice engine](./documentation_v0/Step31_ChoiceEngine.md) & [Choice resolution](./documentation_v0/Step32_ChoiceResolution.md)<br />- ✅ [Location events](./documentation_v0/Step33_LocationEntryEvents.md) & [Inventory](./documentation_v0/Step34_InventoryAndResources.md) & [Items resolution](./documentation_v0/Step35_ItemsResolution.md) |
-| 🧑‍🔬 **Single player** <br /> Steps 36-42 | - ✅ [Registry](./documentation_v0/Step36_RegistrySystem.md) & [Missions](./documentation_v0/Step37_MissionSystem.md) & [Experience system](./documentation_v0/Step38_ExperienceSystem.md)  <br /><br /> 🚧 [**Versions Roadmap**](./documentation_v0/Roadmap.md) & [Developer branch](https://github.com/gamespaths/pathsgames/) 🏗️ <br /> Single player game engine and website prototype |
+| 📖 **Stories & match** <br />Steps 12-26 | - ✅ [Guest login](./documentation_v0/Step12_GuestLoginMethod.md) & [Session management](./documentation_v0/Step13_SessionTokenManagement.md) & [Stories magement](./documentation_v0/Step14_StoriesImportSystem.md) <br />- ✅ [Stories contents](./documentation_v0/Step15_StoryContentAPIs.md) & [Content details](./documentation_v0/Step16_ContentDetailAPIs.md) & [Stories admin operations](./documentation_v0/Step17_StoryAdminCRUD.md) <br />- ✅ [Frontend: Stories catalog](./documentation_v0/Step18_GameMainFrontend.md) & [Match creation](./documentation_v0/Step19_SinglePlayerMatchCreation.md) & [Game first run](./documentation_v0/Step20_GameWebSiteFirstRun.md) <br />- ✅ [Character selection](./documentation_v0/Step21_CharacterSelection.md)  & [Story validation](./documentation_v0/Step22_StoryValidation.md) & [Character stats](./documentation_v0/Step23_CharacterStatsInitialization.md) |
+| ⚙️ **Turns, movements & events** <br />Steps 24-35 |- ✅ [Turn cycle engine](./documentation_v0/Step24_TurnCycleEngine.md) & [Time clock cycle](./documentation_v0/Step25_TimeAdvancementClockCycle.md) & [Time-start recovery](./documentation_v0/Step26_TimeStartRecovery.md) <br/>- ✅ [Weather System](./documentation_v0/Step27_WeatherSystem.md) & [Movement System](./documentation_v0/Step28_MovementSystem.md) & [Normal Events](./documentation_v0/Step29_NormalEvents.md) <br />- ✅ [Coma and status](./documentation_v0/Step30_EdgeStates.md) & [Choice engine](./documentation_v0/Step31_ChoiceEngine.md) & [Choice resolution](./documentation_v0/Step32_ChoiceResolution.md)<br />- ✅ [Location events](./documentation_v0/Step33_LocationEntryEvents.md) & [Inventory](./documentation_v0/Step34_InventoryAndResources.md) & [Items resolution](./documentation_v0/Step35_ItemsResolution.md) |
+| 🧑‍🔬 **Single player release** <br /> Steps 36-42 | - ✅ [Registry](./documentation_v0/Step36_RegistrySystem.md) & [Missions](./documentation_v0/Step37_MissionSystem.md) & [Experience system](./documentation_v0/Step38_ExperienceSystem.md)  <br /><br /> 🚧 [**Versions Roadmap**](./documentation_v0/Roadmap.md) & [Developer branch](https://github.com/gamespaths/pathsgames/) 🏗️ <br /> Single player game engine and website prototype |
 | 🧑‍🤝‍🧑 **Multiplayer** <br /> Steps 43-84 | Multiplayer + credentials, WebSocket, trade, chat, lobby, admin tools, SSO |
 | 🏁 **Launch & Hardening** <br /> Steps 85-101 | Security, E2E testing, load testing, monitoring, production infra, docs, V1 launch |
 | 🎯 **Crowfouning campaign** | Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... ) <br />Anti-Spam Logic (Fatigue) |
@@ -48,7 +49,7 @@ Documents includes all steps and the roadmap for create paths.games components, 
     - Execute all unit test `mvn clean test`
     - Start service in local environment `mvn -pl ms-launcher spring-boot:run`
     - Check local environment with echo API: `curl -s http://localhost:8042/api/echo/status | python3 -m json.tool`
-    -  **sonar-qube** scanner with `/code/scripts/dev/run_sonar_scanner_java.sh`
+    -  **sonar-qube** scanner with `code/scripts/dev/sonar/run_sonar_scanner_java.sh`
         - [SonarCloud](https://sonarcloud.io/project/overview?id=paths-game-backend-java): [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=bugs)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=coverage)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java)
         
 - **Python**: the developers team are creating an alternative backend version developed with python, see [README](./code/backend/python/README.md) for all details.
@@ -61,12 +62,11 @@ Documents includes all steps and the roadmap for create paths.games components, 
 
 - **AWS Serverless**: an alternative backend based on AWS API Gateway, Lambda and DynamoDB, see [README](./code/backend/aws/README.md) for architecture and deployment details.
     - Tecnologies <img src="https://img.shields.io/badge/AWS%20Lambda-%23FF9900?logo=amazonaws&logoColor=white" /> <img src="https://img.shields.io/badge/Python-3766AB?logo=python&logoColor=white" /> <img src="https://img.shields.io/badge/Pytest-0A9EDC?logo=pytest&logoColor=white" />
-    - To deploy all components into cloud run `/code/scripts/dev/aws_backend_deploy.sh`
-    - To test all components with robot run `code/scripts/dev/run_robot_with_aws_serverless.sh`
-        - API URL is `https://xxx.execute-api.us-east-2.amazonaws.com/dev/api/echo/status`
-        - note: remeber `dev` stage on url!
-    - To check cloudformation stack `source /mnt/Dati4/Workspace/pathsgames/.env && aws cloudformation describe-stacks --region "${AWS_REGION_TEST:-us-east-2}" --stack-name "${AWS_STACK_NAME_TEST:-pathsgames-test}" --query "Stacks[0].Outputs" --output table 2>&1`
-    - To remove all component run `/code/scripts/dev/aws_backend_remove.sh`
+    - To deploy all components into cloud run `code/scripts/test/aws/aws_backend_deploy.sh [dev|test]`; production is deployed with `sam deploy --config-env prod` from `code/backend/aws/`.
+    - To test all components with robot run `code/scripts/dev/run_robots/run_robot_with_aws_serverless.sh`
+        - The stage name equals the environment: `https://<id>.execute-api.us-east-2.amazonaws.com/<env>/api/echo/status` (e.g. `/test/`); the test stack also answers on the custom domain `https://api-test.paths.games/api/echo/status`.
+    - To check cloudformation stack (run from the repository root) `source .env && aws cloudformation describe-stacks --region "${AWS_REGION_TEST:-us-east-2}" --stack-name "${AWS_STACK_NAME_TEST:-pathsgames-test}" --query "Stacks[0].Outputs" --output table`, or simply run `code/scripts/test/aws/aws_check_status.sh`.
+    - To remove all component run `code/scripts/test/aws/aws_backend_remove.sh [dev|test]`
     - [SonarCloud](https://sonarcloud.io/project/overview?id=pathsgames_backend-aws-lambda): [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_backend-aws-lambda&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=pathsgames_backend-aws-lambda) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_backend-aws-lambda&metric=bugs)](https://sonarcloud.io/summary/new_code?id=pathsgames_backend-aws-lambda) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_backend-aws-lambda&metric=coverage)](https://sonarcloud.io/summary/new_code?id=pathsgames_backend-aws-lambda) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_backend-aws-lambda&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=pathsgames_backend-aws-lambda) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_backend-aws-lambda&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=pathsgames_backend-aws-lambda)
 
 
@@ -83,15 +83,14 @@ Documents includes all steps and the roadmap for create paths.games components, 
     - All code is available into `code/frontend/react-admin` folder. 
     - To run it locally `npm run dev`
     - To run all test `npm run test`
-    - Test execution: `npm run test` or `robot --variablefile variables/dev.yaml --outputdir reports/ tests/`
     - [SonarCloud](https://sonarcloud.io/project/configuration?id=gamespaths_frontend-react-admin): [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=gamespaths_frontend-react-admin&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=gamespaths_frontend-react-admin) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=gamespaths_frontend-react-admin&metric=bugs)](https://sonarcloud.io/summary/new_code?id=gamespaths_frontend-react-admin) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=gamespaths_frontend-react-admin&metric=coverage)](https://sonarcloud.io/summary/new_code?id=gamespaths_frontend-react-admin) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=gamespaths_frontend-react-admin&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=gamespaths_frontend-react-admin) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=gamespaths_frontend-react-admin&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=gamespaths_frontend-react-admin)
 
 - **WebSite terraform** [README](./code/website/terraform-aws/README.md): Terraform configuration provisions the full AWS infrastructure required for static website hosting.
     - Tecnologies <img src="https://img.shields.io/badge/AWS-%23FF9900?logo=amazonaws&logoColor=white" /> <img src="https://img.shields.io/badge/Terraform-623CE4?logo=terraform&logoColor=white" /> <img src="https://img.shields.io/badge/Google%20Tag%20Manager-246FDB?logo=googletagmanager&logoColor=white" />
-    - It creates and configures an S3 bucket for storing and serving static files, with versioning and security policies.
-    - CloudFront is set up as a CDN with HTTPS support, custom error pages, and geo-restrictions, using an ACM certificate for SSL.
-    - Route53 DNS records and AWS SSM parameters are managed for domain routing and dynamic Content Security Policy (CSP) configuration.
-    - Optional AWS WAF integration provides additional security, and all resources are defined as code for repeatable, automated deployments.
+    - The module (`code/website/terraform-aws`, README there) is environment-parameterized: one Terraform state per environment, run through `./tf.sh <test|production> <init|plan|apply>`; `production` hosts the static website `paths.games` (bucket `pathsgames-com`), `test` hosts the react-game frontend on `test.paths.games` (bucket `pathsgames-com-test`). State lives in `s3://pathsgames-production-iac` / `s3://pathsgames-test-iac`.
+    - Per environment it creates: S3 bucket (versioning, encryption, public access blocked, CloudFront-only bucket policy), CloudFront distribution with HTTPS, SPA fallback error pages and geo-restrictions, a security-headers policy with a dynamic Content Security Policy, and an optional WAF.
+    - Shared resources owned by `production` and looked up by the other environments: the ACM certificate (`paths.games`, `*.paths.games`, `pathsgames.com`) and the SSM parameters holding the CSP allowlists. Route53 DNS records are NOT managed by Terraform (they are created by hand). All resources carry the standard tags (`CostCenter`, `Environment`, `ManagedBy=Terraform`, `Owner`, `Project`, `version`, `Name`).
+    - Content is not deployed by Terraform: production via the `website-deploy` GitHub workflow, test via `code/scripts/test/aws/deploy_frontend-game_on_aws.sh`.
 
 - **Robot-test** project into `code/tests/robot` to execute automatic tests with robot-framework!
     - Technologies <img src="https://img.shields.io/badge/Robot%20Framework-000000?logo=robotframework&logoColor=white" /> <img src="https://img.shields.io/badge/Python-3766AB?logo=python&logoColor=white" />
@@ -102,7 +101,7 @@ Documents includes all steps and the roadmap for create paths.games components, 
 
 - **GitHub actions** configurated into `.github/workflows` folder
     - Technologies <img src="https://img.shields.io/badge/GitHub-000000?logo=github&logoColor=white" /> <img src="https://img.shields.io/badge/GitHub%20Actions-2088FF?logo=githubactions&logoColor=white" />
-    - Backend-ci: Runs main backend build, test, and packaging pipeline for all supported stacks.
+    - Backend-ci: Builds and tests the Java backend with Maven and pushes its Docker image.
     - Sonarqube-aws-lambda: Analyzes AWS Lambda backend code quality and security with SonarQube.
     - Sonarqube-java: Runs SonarQube analysis for the Java backend, checking code quality and coverage.
     - Sonarqube-python: Runs SonarQube analysis for the Python backend, checking code quality and coverage.
@@ -127,20 +126,78 @@ Documents includes all steps and the roadmap for create paths.games components, 
 
 ## References
 - Technologies
-    - [AWS](https://aws.amazon.com/it/)
-    - [Terraform](https://developer.hashicorp.com/terraform)
-    - Python
-    - React
-    - Robot test
-- Game system
-    - [Tainted grail](https://awakenrealms.com/games/awaken-realms/tainted-grail)
-- GitHub Copilot SDK
-    - [copilot-sdk](https://github.com/github/copilot-sdk)
-        - [getting-started](https://github.com/github/copilot-sdk/blob/main/docs/getting-started.md)
-- Ralph-AI system 
-    - [Getting started with ralph](https://www.aihero.dev/getting-started-with-ralph)
-    - [giuppidev](https://www.youtube.com/watch?v=KK3R7v2Rtew) *italian Language*
-        - Code example [ralph-giuppi](https://github.com/giuppidev/ralph-giuppi) 
+    - Java: 
+        [Java 21 (OpenJDK)](https://openjdk.org/projects/jdk/21/) 
+        , [Spring Boot 3](https://spring.io/projects/spring-boot)
+        , [Hibernate](https://hibernate.org/orm/)
+        , [Flyway](https://flywaydb.org/)
+        , [PostgreSQL](https://www.postgresql.org/)
+        , [SQLite](https://www.sqlite.org/)
+        , [MongoDB](https://www.mongodb.com/)
+        , [Apache Kafka](https://kafka.apache.org/)
+        , [Spring WebSocket](https://docs.spring.io/spring-framework/reference/web/websocket.html)
+        , [JJWT](https://github.com/jwtk/jjwt)
+        , [Maven](https://maven.apache.org/)
+        , [JUnit 5](https://junit.org/junit5/)
+        , [Mockito](https://site.mockito.org/)
+        , [JaCoCo](https://www.jacoco.org/jacoco/)
+        , [OpenAPI 3](https://www.openapis.org/)
+    - Python:
+        [Python 3](https://www.python.org/)
+        , [FastAPI](https://fastapi.tiangolo.com/)
+        , [Uvicorn](https://www.uvicorn.org/)
+        , [Pydantic](https://docs.pydantic.dev/)
+        , [SQLAlchemy 2](https://www.sqlalchemy.org/)
+        , [pytest](https://docs.pytest.org/)
+        , [HTTPX](https://www.python-httpx.org/)
+    - AWS serverless backend:
+        [AWS SAM](https://aws.amazon.com/serverless/sam/)
+        , [AWS CloudFormation](https://aws.amazon.com/cloudformation/)
+        , [AWS Lambda](https://aws.amazon.com/lambda/)
+        , [Amazon API Gateway](https://aws.amazon.com/api-gateway/)
+        , [Amazon DynamoDB](https://aws.amazon.com/dynamodb/)
+        , [Amazon CloudWatch Logs](https://aws.amazon.com/cloudwatch/)
+        , [AWS Certificate Manager](https://aws.amazon.com/certificate-manager/)
+        , [Amazon Route 53](https://aws.amazon.com/route53/)
+        , [AWS SDK for Python (boto3)](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html)
+    - Website & infrastructure:
+        [Terraform](https://www.terraform.io/)
+        , [Amazon S3](https://aws.amazon.com/s3/)
+        , [Amazon CloudFront](https://aws.amazon.com/cloudfront/)
+        , [AWS WAF v2](https://aws.amazon.com/waf/)
+        , [AWS Systems Manager Parameter Store](https://aws.amazon.com/systems-manager/features/#Parameter_Store)
+        , [Cloudflare Turnstile](https://www.cloudflare.com/products/turnstile/)
+        , [Google Tag Manager](https://tagmanager.google.com/)
+        , [Bootstrap 5](https://getbootstrap.com/)
+        , [Font Awesome](https://fontawesome.com/)
+    - Frontends:
+         [React 18](https://react.dev/)
+        , [Vite 5](https://vitejs.dev/)
+        , [React Router 6](https://reactrouter.com/)
+        , [Axios](https://axios-http.com/)
+        , [Tailwind CSS](https://tailwindcss.com/)
+        , [PostCSS](https://postcss.org/)
+        , [DOMPurify](https://github.com/cure53/DOMPurify)
+        , [vanilla-cookieconsent](https://cookieconsent.orestbida.com/)
+        , [@marsidev/react-turnstile](https://github.com/marsidev/react-turnstile)
+        , [Node.js](https://nodejs.org/)
+    - Testing & quality:
+         [Robot Framework 7](https://robotframework.org/)
+        , [Vitest](https://vitest.dev/)
+        , [SonarQube / SonarCloud](https://www.sonarsource.com/products/sonarcloud/)
+    - CI/CD & containers:
+         [GitHub Actions](https://docs.github.com/en/actions)
+        , [Docker](https://www.docker.com/)
+        , [Docker Hub](https://hub.docker.com/r/pathsgames/pathsgames)
+- Game system: 
+    [Tainted grail](https://awakenrealms.com/games/awaken-realms/tainted-grail)
+- GitHub Copilot SDK:
+    [copilot-sdk](https://github.com/github/copilot-sdk)
+    , [getting-started](https://github.com/github/copilot-sdk/blob/main/docs/getting-started.md)
+- Ralph-AI system :
+    [Getting started with ralph](https://www.aihero.dev/getting-started-with-ralph)
+    , [giuppidev](https://www.youtube.com/watch?v=KK3R7v2Rtew)
+    , [ralph-giuppi](https://github.com/giuppidev/ralph-giuppi) 
 
 
 

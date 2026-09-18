@@ -31,17 +31,31 @@ The infrastructure is built entirely on managed AWS services:
 ### Tagging
 
 Every taggable resource (table, both HTTP APIs + stages, all 7 Lambdas, all 7 log groups, the
-custom domain, the 6 nested stacks) carries the same five tags:
+custom domain, the 6 nested stacks) carries the same seven tags:
 - `CostCenter` = `Paths.games`
 - `Environment` = `dev` | `test` | `production` (mapped from the `Environment` parameter — the
   parameter keeps `prod`, only the tag says `production`)
 - `ManagedBy` = `CloudFormation`
 - `Owner` = `AlNao`
 - `Project` = `Paths.games`
+- `version` = the project version (e.g. `0.38.1`), from the template's `Version` parameter;
+  its default, the `samconfig.toml` `version=` tag value, and `VERSION` in the root `.env` are
+  kept in sync by `code/scripts/dev/bump-version.sh`.
+- `Name` = a per-resource identifier: resources with an explicit name reuse it (table
+  `PathsGamesBackend-<env>`, HTTP APIs `pathsgames-<env>` / `pathsgames-<env>-admin`, Lambdas
+  `pathsgames-<env>-<Fn>`, log groups `/aws/lambda/pathsgames-<env>-<Fn>`); resources without
+  one get `pathsgames-<env>-<service>` (e.g. `pathsgames-<env>-ApiStage`,
+  `pathsgames-<env>-EchoModule`).
 
 `Route`/`Integration`/`Authorizer`/`Permission`/`ApiMapping`/`RecordSet` resources do not support
-tags. Stack-level `tags` in `samconfig.toml` propagate the same five tags to every resource,
-nested stacks included.
+tags. Stack-level `tags` in `samconfig.toml` (and `--tags` in `aws_backend_deploy.sh`) propagate
+`CostCenter`/`Environment`/`ManagedBy`/`Owner`/`Project`/`version`/`Name` to every resource, nested
+stacks included. That stack-level `Name=pathsgames-<env>` is what tags the root stack itself (a
+CloudFormation stack has no `Tags` property in the template, so this is the only source for it);
+every resource that sets its own `Name` in the template overrides the propagated value, so the
+per-resource `Name`s above still apply everywhere except the root stack. Worth checking once after
+the first deploy of a new environment, e.g. `aws lambda list-tags --resource <arn>` on one function
+should show its own `Name`, not `pathsgames-<env>`.
 
 
 ### Additional commands
@@ -263,6 +277,20 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
   `[dev|test]` CLI argument that also selects the matching stack (`pathsgames-<env>`), guarded
   so a stack name not ending in `-<env>` is refused (a mismatch would rename the DynamoDB
   table); the deploy script passes `--tags` with the five tags.
+- **`version` tag**: new root parameter `Version` (default kept in sync with `VERSION` in the
+  root `.env` by `bump-version.sh` steps `[10/6]`/`[11/6]`), tagged on every resource and passed
+  to every nested stack; `samconfig.toml` stack-level `tags` gained `version=<VERSION>` in all
+  three config-envs; `aws_backend_deploy.sh` reads `VERSION` from `.env` (falls back to the
+  `pom.xml` version with a WARNING, errors if neither exists) and passes it as both
+  `--tags ... version=$VERSION` and `--parameter-overrides Version=$VERSION`.
+- **`Name` tag**: every taggable resource also gets a per-resource `Name` (explicit-name
+  resources reuse their name; the rest get `pathsgames-<env>-<service>`, e.g. API stages and
+  nested stacks) — template-only, not part of the `samconfig.toml` stack-level tags.
+- **Root-stack `Name` tag** (follow-up): the root stack has no `Tags` property in the template,
+  so it had no `Name` tag until now; `samconfig.toml` stack-level `tags` gain a leading
+  `Name=pathsgames-<env>` in every config-env, and `aws_backend_deploy.sh`'s `--tags` gain
+  `Name=$AWS_STACK_NAME_TEST`. Resource-level `Name` in the template still overrides it for
+  every other resource.
 - No API contract or DynamoDB item-shape change.
 
 ### v0.29.3 — Forced movement via event effects

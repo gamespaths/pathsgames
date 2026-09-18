@@ -66,6 +66,7 @@ fi
 
 # Stack-level tags: CloudFormation propagates them to every taggable resource (nested stacks too).
 # Must match the in-template tags; Environment tag = env name (dev / test; prod maps to production).
+# Name = the stack itself: the root stack has no Tags property, every resource keeps its own Name.
 # `version` tag = VERSION from the root .env (falls back to the Java parent pom, the bump script's source of truth).
 _VERSION="${VERSION:-}"
 if [ -z "$_VERSION" ]; then
@@ -76,7 +77,7 @@ if [ -z "$_VERSION" ]; then
     fi
     echo "  WARNING: VERSION not set in .env — using pom.xml version $_VERSION for the version tag."
 fi
-_STACK_TAGS="CostCenter=Paths.games Environment=${AWS_ENVIRONMENT_NAME_TEST} ManagedBy=CloudFormation Owner=AlNao Project=Paths.games version=${_VERSION}"
+_STACK_TAGS="Name=${AWS_STACK_NAME_TEST} CostCenter=Paths.games Environment=${AWS_ENVIRONMENT_NAME_TEST} ManagedBy=CloudFormation Owner=AlNao Project=Paths.games version=${_VERSION}"
 
 
 echo "Deploying stack '$AWS_STACK_NAME_TEST' to region '$AWS_REGION_TEST' (Environment: $AWS_ENVIRONMENT_NAME_TEST, version: $_VERSION, artifacts: s3://$AWS_S3_BUCKET_BASE_TEST/$S3_PREFIX/)"
