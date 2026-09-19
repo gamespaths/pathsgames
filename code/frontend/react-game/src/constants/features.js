@@ -22,6 +22,9 @@ export const ADD_COMING_SOON_STORIES = parseFlag(import.meta.env?.VITE_ADD_COMIN
 // v0.35.8 — Home "Resume" jumps straight into the match instead of opening the guest modal.
 export const RESUME_WITHOUT_MODAL = parseFlag(import.meta.env?.VITE_RESUME_WITHOUT_MODAL, false)
 
+// v0.38.1 — drop the stories listed in data/hidden-stories.json from the Home catalog.
+export const HIDE_STORIES = parseFlag(import.meta.env?.VITE_HIDE_STORIES, true)
+
 /**
  * The board is rendered TWICE — once inside the book, once in the mobile stack — from one
  * content tree, so a card that shows in one and not in the other cannot be an `if`: both

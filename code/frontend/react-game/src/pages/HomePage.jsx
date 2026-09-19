@@ -10,8 +10,9 @@ import TurnstileWidget from '../components/ui/TurnstileWidget'
 import { TURNSTILE_APPEARANCE } from '../utils/turnstile'
 import useAntibot from '../hooks/useAntibot'
 import { storyHasBlockingMatch, findResumableMatch } from '../utils/matchStatus'
-import { RESUME_WITHOUT_MODAL, ADD_COMING_SOON_STORIES } from '../constants/features'
+import { RESUME_WITHOUT_MODAL, ADD_COMING_SOON_STORIES, HIDE_STORIES } from '../constants/features'
 import { withComingSoonStories } from '../utils/comingSoonStories'
+import { withoutHiddenStories } from '../utils/hiddenStories'
 import LoadingCard from '@/components/layout/LoadingCard'
 import { useHomeStatus } from '@/context/HomeStatusContext'
 
@@ -60,7 +61,8 @@ export default function HomePage() {
     storiesRequest.current.promise
       .then(data => {
         if (cancelled) return
-        setStories(withComingSoonStories(data, lang, ADD_COMING_SOON_STORIES))
+        // v0.38.1 — blacklist first, so a hidden story never reaches the catalog.
+        setStories(withComingSoonStories(withoutHiddenStories(data, HIDE_STORIES), lang, ADD_COMING_SOON_STORIES))
         setLoading(false)
       })
       .catch(() => {

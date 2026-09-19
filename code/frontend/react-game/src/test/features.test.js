@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   parseFlag, hideWhereClass,
   SHOW_BOOK_BOOKMARKS, SHOW_CARD_CHARACTERISTICS, SHOW_MOBILE_CARD_CHARACTERISTICS,
-  RESUME_WITHOUT_MODAL, ADD_COMING_SOON_STORIES,
+  RESUME_WITHOUT_MODAL, ADD_COMING_SOON_STORIES, HIDE_STORIES,
 } from '../constants/features'
 
 describe('constants/features', () => {
@@ -34,6 +34,12 @@ describe('constants/features', () => {
     // Their value belongs to .env*, so only the parsing is asserted here.
     expect(typeof RESUME_WITHOUT_MODAL).toBe('boolean')
     expect(typeof ADD_COMING_SOON_STORIES).toBe('boolean')
+  })
+
+  it('hides the blacklisted stories by default (v0.38.1)', () => {
+    // No VITE_HIDE_STORIES in the test env: the fallback must be ON, or the Robot
+    // seed stories would reach the Home whenever a build forgets the variable.
+    expect(HIDE_STORIES).toBe(true)
   })
 })
 

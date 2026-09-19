@@ -311,6 +311,28 @@ describe('HomePage — the catalog fetch fails', () => {
   })
 })
 
+describe('HomePage — hidden stories (v0.38.1, data/hidden-stories.json)', () => {
+  // The Robot seed story that sits on the AWS test backend while a run is in progress.
+  const SEED = { uuid: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', title: 'TUTORIAL — Learn to Play', author: 'PathsMaster', card: {} }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ts.behavior = 'success'
+    guest.user = mockUser
+    guest.error = null
+    document.cookie = 'pathsgames.turnstilePass=1; path=/'
+    listMatches.mockResolvedValue([])
+  })
+
+  it('never hands a blacklisted story to the catalog, the others untouched', async () => {
+    getStories.mockResolvedValue([SEED, STORY_A, STORY_B])
+    wrap(<HomePage />)
+    expect(await screen.findByText('Forest Path')).toBeInTheDocument()
+    expect(screen.getByText('Dragon Keep')).toBeInTheDocument()
+    expect(screen.queryByText('TUTORIAL — Learn to Play')).not.toBeInTheDocument()
+  })
+})
+
 describe('HomePage — unmounted before the catalog fetch settles', () => {
   beforeEach(() => {
     vi.clearAllMocks()
