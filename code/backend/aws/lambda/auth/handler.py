@@ -36,12 +36,16 @@ import time
 from datetime import datetime, timezone
 
 from common import db_utils
+from common import log_utils
 from common import jwt_utils
 from common import security_utils
 from common.response import dumps as _dumps, ok as _ok, HEADERS
 from common.http_utils import (normalize_path as _normalize_path,
                                get_source_ip as _get_source_ip,
                                bearer_token as _bearer_token)
+
+# v0.38.1 — botocore "Found credentials in environment variables" at INFO is noise on every cold start.
+log_utils.quiet_botocore()
 
 # ─── helpers ─────────────────────────────────────────────────────────────────
 

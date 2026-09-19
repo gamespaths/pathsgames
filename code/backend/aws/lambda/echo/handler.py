@@ -3,6 +3,11 @@ import os
 import time
 from datetime import datetime, timezone
 
+from common import log_utils
+
+# v0.38.1 — botocore "Found credentials in environment variables" at INFO is noise on every cold start.
+log_utils.quiet_botocore()
+
 def lambda_handler(event, context):
     """
     Health check endpoint: GET /api/echo/status

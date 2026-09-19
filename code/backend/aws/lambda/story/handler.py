@@ -34,6 +34,7 @@ import os
 import uuid as uuid_lib
 
 from common import db_utils
+from common import log_utils
 from common import jwt_utils
 from common import story_cache
 from common import story_index
@@ -45,6 +46,9 @@ from common.http_utils import (normalize_path as _normalize_path,
 from common.data_utils import (safe_int as _safe_int,
                                resolve_raw_text as _resolve_raw_text,
                                resolve_card_from_raw as _find_card_from_raw)
+
+# v0.38.1 — botocore "Found credentials in environment variables" at INFO is noise on every cold start.
+log_utils.quiet_botocore()
 
 try:
     from story import story_validator

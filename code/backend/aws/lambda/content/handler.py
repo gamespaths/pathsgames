@@ -20,10 +20,14 @@ DynamoDB layout — data resides on the story item:
 import re
 
 from common import db_utils
+from common import log_utils
 from common import story_cache
 from common.response import ok as _ok, err as _err, dumps as _dumps
 from common.http_utils import normalize_path as _normalize_path
 from common.data_utils import safe_int as _safe_int
+
+# v0.38.1 — botocore "Found credentials in environment variables" at INFO is noise on every cold start.
+log_utils.quiet_botocore()
 
 # ─── shared helpers ───────────────────────────────────────────────────────────
 

@@ -22,6 +22,10 @@ export const config = {
   tutorialFile: env('TUTORIAL_FILE', '../data/tutorial_story.json'),
   lang: env('STORY_LANG', 'en'),
   moves: intEnv('MOVES', 5),
+  // events executed per flow (the first `available` one at the current location), 0 = none
+  events: intEnv('EVENTS', 1),
+  // 1 = one sleep per flow: halfway through the moves, or as soon as the energy runs out
+  sleep: env('SLEEP', '1') === '1',
   thinkMs: intEnv('THINK_MS', 0),
   cleanup: env('CLEANUP', '0') === '1',
   testMarker: env('TEST_MARKER', 'robottest'),

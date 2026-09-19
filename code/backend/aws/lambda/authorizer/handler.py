@@ -13,6 +13,10 @@ ADMIN_IP_WHITELIST: comma-separated allow-list. Empty = allow all (dev only, ins
 import os
 
 from common.http_utils import get_source_ip as _get_source_ip
+from common import log_utils
+
+# v0.38.1 — botocore "Found credentials in environment variables" at INFO is noise on every cold start.
+log_utils.quiet_botocore()
 
 
 def _allowed_ips():

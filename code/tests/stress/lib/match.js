@@ -1,5 +1,5 @@
 /**
- * Match lifecycle helpers: create -> join -> start -> info -> move.
+ * Match lifecycle helpers: create -> join -> start -> info -> move / event / sleep.
  * Each call records a check and a per-step Trend (step_<name>_ms).
  */
 import http from 'k6/http';
@@ -15,8 +15,14 @@ export const trends = {
   start: new Trend('step_start_ms', true),
   info: new Trend('step_info_ms', true),
   move: new Trend('step_move_ms', true),
+  event: new Trend('step_event_ms', true),
+  sleep: new Trend('step_sleep_ms', true),
 };
 export const movesDone = new Counter('moves_done');
+export const eventsDone = new Counter('events_done');
+export const sleepsDone = new Counter('sleeps_done');
+// moves not attempted because the character had no energy left (and no sleep to spend)
+export const movesSkippedEnergy = new Counter('moves_skipped_energy');
 export const flowsCompleted = new Counter('flows_completed');
 export const flowsFailed = new Counter('flows_failed');
 
@@ -70,8 +76,9 @@ export function startMatch(token, matchUuid) {
   return ok;
 }
 
-// GET /api/match/{uuid}/info -> uuid of the first exit of the current location
-export function firstNeighbor(token, matchUuid) {
+// GET /api/match/{uuid}/info -> { neighbor, event }: the first exit of the current location
+// and the first event the board marks `available` there (null when none). Null on failure.
+export function readLocation(token, matchUuid) {
   const res = timed('info', http.get(`${config.baseUrl}/api/match/${matchUuid}/info?lang=${config.lang}`, {
     headers: bearer(token),
     tags: { step: 'info' },
@@ -89,19 +96,62 @@ export function firstNeighbor(token, matchUuid) {
     console.warn(`no neighbors for match ${matchUuid} at ${info.currentLocationUuid}`);
     return null;
   }
-  return neighbors[0].uuid;
+  const event = ((current && current.events) || []).find((e) => e.available === true) || null;
+  return { neighbor: neighbors[0].uuid, event: event ? event.uuid : null };
 }
 
+// Backward-compatible shortcut: uuid of the first exit only.
+export function firstNeighbor(token, matchUuid) {
+  const loc = readLocation(token, matchUuid);
+  return loc ? loc.neighbor : null;
+}
+
+// POST /api/gameplay/{uuid}/movements/start -> 'ok' | 'no_energy' | 'failed'.
+// 409 INSUFFICIENT_ENERGY is a game answer, not a backend fault: the flow sleeps or stops,
+// and the 409 stays out of http_req_failed (any other 409 still fails the check below).
+const MOVE_STATUSES = http.expectedStatuses({ min: 200, max: 299 }, 409);
 export function move(token, matchUuid, targetLocationUuid) {
   const body = JSON.stringify({ targetLocationUuid });
   const res = timed('move', http.post(`${config.baseUrl}/api/gameplay/${matchUuid}/movements/start`, body, {
     headers: bearer(token),
     tags: { step: 'move' },
+    responseCallback: MOVE_STATUSES,
   }));
-  const ok = check(res, { 'move 200': (r) => r.status === 200 });
-  if (ok) movesDone.add(1);
-  else console.warn(`move failed: ${res.status} ${res.body}`);
+  const noEnergy = res.status === 409 && safeJson(res).error === 'INSUFFICIENT_ENERGY';
+  const ok = check(res, { 'move 200 (or 409 no energy)': (r) => r.status === 200 || noEnergy });
+  if (res.status === 200) { movesDone.add(1); return 'ok'; }
+  if (noEnergy) return 'no_energy';
+  console.warn(`move failed: ${res.status} ${res.body}`);
+  return 'failed';
+}
+
+// POST /api/gameplay/{uuid}/action/execute-event -> the event ran (200)
+export function executeEvent(token, matchUuid, eventUuid) {
+  const body = JSON.stringify({ eventUuid });
+  const res = timed('event', http.post(`${config.baseUrl}/api/gameplay/${matchUuid}/action/execute-event?lang=${config.lang}`, body, {
+    headers: bearer(token),
+    tags: { step: 'event' },
+  }));
+  const ok = check(res, { 'event 200': (r) => r.status === 200 });
+  if (ok) eventsDone.add(1);
+  else console.warn(`event ${eventUuid} failed: ${res.status} ${res.body}`);
   return ok;
+}
+
+// POST /api/gameplay/{uuid}/action/sleep -> 200; single player: the clock advances at once
+// (timeEndTriggered) and the character wakes at the next time-start with its energy back.
+export function sleep(token, matchUuid) {
+  const res = timed('sleep', http.post(`${config.baseUrl}/api/gameplay/${matchUuid}/action/sleep`, null, {
+    headers: bearer(token),
+    tags: { step: 'sleep' },
+  }));
+  const ok = check(res, {
+    'sleep 200': (r) => r.status === 200,
+    'sleep advanced the clock': (r) => safeJson(r).timeEndTriggered === true,
+  });
+  if (ok) sleepsDone.add(1);
+  else console.warn(`sleep failed: ${res.status} ${res.body}`);
+  return res.status === 200;
 }
 
 // POST /api/dev/cleanup (admin port, dev only) -> removes robottest* guests and matches

@@ -37,6 +37,7 @@ import urllib.parse
 import urllib.error
 
 from common import db_utils
+from common import log_utils
 from common import jwt_utils
 from common import security_utils
 from common import story_cache
@@ -48,6 +49,9 @@ from common.http_utils import (normalize_path as _normalize_path,
                                bearer_token as _bearer_token,
                                bearer_token_error as _bearer_token_error)
 from common.data_utils import safe_int as _safe_int, resolve_raw_text as _resolve_raw_text
+
+# v0.38.1 — botocore "Found credentials in environment variables" at INFO is noise on every cold start.
+log_utils.quiet_botocore()
 
 _TURNSTILE_SECRET = os.environ.get('TURNSTILE_SECRET_KEY', '')
 # Optional Robot-test bypass token: when the current ENV is not "prod", the token
