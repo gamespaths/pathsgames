@@ -113,10 +113,10 @@ curl -s -X POST "$ADMIN_API_URL/api/dev/cleanup" || echo "  cleanup request fail
 echo
 
 # The endpoint above has one 30s Lambda invocation and gives up once a run no longer fits in it.
-echo "Sweeping what the cleanup could not reach (purge_robot_test_data.py) ..."
-python "$PROJECT_ROOT/code/scripts/dev/aws/purge_robot_test_data.py" \
+echo "Sweeping what the cleanup could not reach (purge_robot_test_data.sh) ..."
+"$PROJECT_ROOT/code/scripts/dev/aws/purge_robot_test_data.sh" \
     --env "$AWS_ENVIRONMENT_NAME_TEST" --orphans \
-    || echo "  purge failed — by hand: code/scripts/dev/aws/purge_robot_test_data.py --env $AWS_ENVIRONMENT_NAME_TEST --orphans"
+    || echo "  purge failed — by hand: code/scripts/dev/aws/purge_robot_test_data.sh --env $AWS_ENVIRONMENT_NAME_TEST --orphans"
 echo
 
 echo "Test Robot completed. Report available in $PROJECT_ROOT/code/tests/robot/reports-aws/"

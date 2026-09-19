@@ -35,6 +35,7 @@ DOCKERHUB_IMAGE="${DOCKERHUB_IMAGE_TEST:-pathsgames-backend}"
 IMAGE_TAG="${DOCKERHUB_IMAGE_TAG_TEST:-test}"
 BUILD_PLATFORM="${BUILD_PLATFORM:-linux/amd64}"
 BUILDX_BUILDER="${BUILDX_BUILDER:-pathsgames-builder}"
+BUILDKITD_CONFIG="$SCRIPT_DIR/buildkitd.toml"
 BACKEND_IMAGE="${DOCKERHUB_USERNAME}/${DOCKERHUB_IMAGE}:${IMAGE_TAG}"
 
 # Build context = the Java backend module (Dockerfile + all poms live here).
@@ -55,8 +56,9 @@ if [ "${1:-}" = "--dry-run" ]; then
     echo ""
     echo "=== DRY RUN — commands that would run ==="
     echo "echo \$DOCKERHUB_TOKEN | docker login -u $DOCKERHUB_USERNAME --password-stdin"
-    echo "docker buildx use $BUILDX_BUILDER  ||  docker buildx create --use --name $BUILDX_BUILDER"
+    echo "docker buildx use $BUILDX_BUILDER  ||  docker buildx create --use --name $BUILDX_BUILDER --buildkitd-config $BUILDKITD_CONFIG"
     echo "docker buildx build --platform $BUILD_PLATFORM -t $BACKEND_IMAGE -f $JAVA_DIR/Dockerfile $JAVA_DIR --push"
+    echo "docker buildx rm --force $BUILDX_BUILDER   # always, even on failure (trap EXIT)"
     echo "=== END DRY RUN ==="
     exit 0
 fi
@@ -67,8 +69,14 @@ echo "[build] Logging in to Docker Hub as $DOCKERHUB_USERNAME…"
 echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
 # ── Ensure a buildx builder exists (needed for --platform cross-build) ─────────
+# Throw-away builder (GC-bounded via buildkitd.toml): removed on EXIT with its cache volume.
 docker buildx use "$BUILDX_BUILDER" 2>/dev/null \
-    || docker buildx create --use --name "$BUILDX_BUILDER"
+    || docker buildx create --use --name "$BUILDX_BUILDER" --buildkitd-config "$BUILDKITD_CONFIG"
+cleanup_builder() {
+    echo "[build] Removing buildx builder $BUILDX_BUILDER (container + cache volume) …"
+    docker buildx rm --force "$BUILDX_BUILDER" >/dev/null 2>&1 || true
+}
+trap cleanup_builder EXIT
 
 # ── Build for amd64 and push in one step ────────────────────────────────────────
 echo "[build] Building + pushing $BACKEND_IMAGE …"

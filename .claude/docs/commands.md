@@ -6,6 +6,9 @@ need to build, run, or test a specific component.
 Python and Robot Framework commands ALWAYS run inside the virtualenv: `source .venv/bin/activate`.
 All commands run from the working directory named in each section.
 
+Full reference for every script under `code/scripts/dev/` and the Docker test-image builds
+under `code/scripts/test/`: `code/scripts/dev/README.md`.
+
 ## Java backend (primary) — `code/backend/java/`
 
 ```bash

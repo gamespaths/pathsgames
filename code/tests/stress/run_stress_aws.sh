@@ -102,4 +102,32 @@ if [[ -z "$TURNSTILE_TOKEN" ]]; then
   echo "   warning: no Turnstile bypass token (-k / TURNSTILE_BYPASS_TOKEN_ROBOT): match creation fails when the stack enforces Turnstile" >&2
 fi
 
-exec "$DIR/run_stress.sh" -b "$BASE_URL" -a "$ADMIN_BASE_URL" -t "$ADMIN_TOKEN" -k "$TURNSTILE_TOKEN" ${PASS[@]+"${PASS[@]}"}
+"$DIR/run_stress.sh" -b "$BASE_URL" -a "$ADMIN_BASE_URL" -t "$ADMIN_TOKEN" -k "$TURNSTILE_TOKEN" ${PASS[@]+"${PASS[@]}"}
+STRESS_EXIT=$?
+
+# Sweep what POST /api/dev/cleanup could not reach (CHARACTER# orphans, runs past the Lambda
+# timeout) straight from DynamoDB; skipped when the caller kept the data with -c no / CLEANUP=0.
+keep_data() {
+  [[ "${CLEANUP:-1}" =~ ^(0|no|n|off|false)$ ]] && return 0
+  local i
+  for ((i = 0; i < ${#PASS[@]}; i++)); do
+    case "${PASS[$i]}" in
+      --) return 1 ;;
+      -c) [[ "${PASS[$((i + 1))]:-}" =~ ^([Nn][Oo]?|0|[Oo][Ff][Ff]|[Ff][Aa][Ll][Ss][Ee])$ ]] && return 0 ;;
+      -c*) [[ "${PASS[$i]#-c}" =~ ^([Nn][Oo]?|0|[Oo][Ff][Ff]|[Ff][Aa][Ll][Ss][Ee])$ ]] && return 0 ;;
+    esac
+  done
+  return 1
+}
+PURGE_ENV="${PURGE_ENV:-${AWS_ENVIRONMENT_NAME_TEST:-}}"
+if keep_data; then
+  echo "== Data kept (-c no): skipping purge_robot_test_data.sh"
+elif [[ -z "$PURGE_ENV" ]]; then
+  echo "   warning: AWS_ENVIRONMENT_NAME_TEST unset, skipping purge_robot_test_data.sh (run it by hand with --table)" >&2
+else
+  echo "== Sweeping leftovers from DynamoDB (purge_robot_test_data.sh --env $PURGE_ENV --orphans)"
+  "$PROJECT_ROOT/code/scripts/dev/aws/purge_robot_test_data.sh" --env "$PURGE_ENV" --region "$REGION" --orphans \
+    || echo "   purge failed — by hand: code/scripts/dev/aws/purge_robot_test_data.sh --env $PURGE_ENV --region $REGION --orphans" >&2
+fi
+
+exit $STRESS_EXIT

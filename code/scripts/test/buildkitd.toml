@@ -1,0 +1,14 @@
+# buildkitd config for the "pathsgames-builder" buildx builder (docker-container
+# driver). Bounds the layer cache so repeated test builds cannot fill the disk.
+[worker.oci]
+  gc = true
+  reservedSpace = "2GB"
+  maxUsedSpace = "6GB"
+  minFreeSpace = "10GB"
+
+  [[worker.oci.gcpolicy]]
+    all = true
+    keepDuration = "168h"
+    reservedSpace = "2GB"
+    maxUsedSpace = "6GB"
+    minFreeSpace = "10GB"
