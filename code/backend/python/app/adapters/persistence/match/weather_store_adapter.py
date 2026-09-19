@@ -7,7 +7,6 @@ weather-linked events.
 """
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import func
 
 from app.adapters.persistence.match.models import (
     GamingCharacterInstanceEntity,
@@ -18,6 +17,7 @@ from app.adapters.persistence.match.models import (
 )
 from app.adapters.persistence.match.turn_cycle_store_adapter import _new_uuid, _now_iso
 from app.adapters.persistence.story.models import CardEntity, TextEntity, WeatherRuleEntity
+from app.adapters.persistence.match.log_ids import next_log_id
 
 
 class WeatherStoreAdapter:
@@ -71,7 +71,7 @@ class WeatherStoreAdapter:
     def insert_log_weather(self, id_match: int, clock: int, id_weather: Optional[int]) -> None:
         with self.session_factory() as session:
             now = _now_iso()
-            next_id = (session.query(func.coalesce(func.max(LogWeatherEntity.id), 0)).scalar() or 0) + 1
+            next_id = next_log_id(session, LogWeatherEntity)
             session.add(LogWeatherEntity(
                 id=next_id, id_match=id_match, uuid=_new_uuid(), clock=clock,
                 id_weather=id_weather, timestamp_start=now, ts_insert=now, ts_update=now))
@@ -80,7 +80,7 @@ class WeatherStoreAdapter:
     def log_weather_event(self, id_match: int, id_event: Optional[int], message: str) -> None:
         with self.session_factory() as session:
             now = _now_iso()
-            next_id = (session.query(func.coalesce(func.max(LogEventsEntity.id), 0)).scalar() or 0) + 1
+            next_id = next_log_id(session, LogEventsEntity)
             session.add(LogEventsEntity(
                 id=next_id, id_match=id_match, uuid=_new_uuid(), id_event=id_event,
                 log_message=message, ts_insert=now, ts_update=now))

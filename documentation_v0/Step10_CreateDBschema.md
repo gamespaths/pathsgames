@@ -42,6 +42,11 @@ The 52 entities defined in Step 09 have been translated into SQL `CREATE TABLE` 
 
 **Total: 52 tables** (2 system + 2 user + 23 reference + 25 runtime/log)
 
+> **v0.38.1 (PostgreSQL only)**: `V0.38.1__align_log_sequences.sql` re-seeds the BIGSERIAL
+> sequences (`<table>_id_seq`) of the six `log_*` tables created by `V0.10.9` to
+> `MAX(id)+1`, so `LogIdPort`/`LogIdAdapter` (Java) and `log_ids.py` (Python) can allocate
+> ids via `nextval` instead of a racy `MAX(id)+1` read per writer. SQLite keeps `MAX(id)+1`.
+
 
 ### 1.2 Directory Structure
 
@@ -643,7 +648,7 @@ ORDER BY installed_rank;
     > Read all files into documentation_v0 folder to have project overview. Create SQL files for PostgreSQL and SQLite, one file per table category. Write Step10_CreateDBschema.md documentation with Flyway description and usage guide.
 
     > Now i wanna add uuid item in all tables , the value will be a generated with a randon value when a row is added in a table, the uuid value will be used in API method (to avoid use ID value in public http api)
-- **Document Version**: 0.23.4
+- **Document Version**: 0.38.1
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.10.0 | Initial version: 52 tables, 13 migration files per dialect, indexes, seed data, Flyway guide | March 19, 2026 |
@@ -653,7 +658,8 @@ ORDER BY installed_rank;
     | 0.19.4 | Characters and traits not permitted for class selection | May 18, 2026 |
     | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits`| May 19, 2026 |
     | 0.19.7 | Added seven stat columns (`life`, `energy`,...) to `list_stories_difficulty` | May 19, 2026 |
-- **Last Updated**: June 12, 2026
+    | 0.38.1 | PostgreSQL-only `V0.38.1__align_log_sequences.sql` re-seeds the `log_*` sequences; ids on the six log tables now allocated via `LogIdPort`/`log_ids.py` instead of racy `MAX(id)+1` | September 19, 2026 |
+- **Last Updated**: September 19, 2026
 - **Status**: Complete ✅
 
 

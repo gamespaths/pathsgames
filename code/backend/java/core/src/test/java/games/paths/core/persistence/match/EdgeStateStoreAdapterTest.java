@@ -20,6 +20,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import games.paths.core.port.match.LogIdPort;
+import games.paths.core.model.match.LogTable;
 
 /**
  * EdgeStateStoreAdapter (Step 30) — the coma/sleep flag writes and the log_events rows.
@@ -29,14 +31,16 @@ class EdgeStateStoreAdapterTest {
 
     private GamingCharacterInstanceRepository characterRepository;
     private LogEventsRepository logEventsRepository;
+    private LogIdPort logIds;
     private EdgeStateStoreAdapter adapter;
 
     @BeforeEach
     void setUp() {
         characterRepository = mock(GamingCharacterInstanceRepository.class);
         logEventsRepository = mock(LogEventsRepository.class);
-        adapter = new EdgeStateStoreAdapter(characterRepository, logEventsRepository);
-        when(logEventsRepository.findMaxId()).thenReturn(41L);
+        logIds = mock(LogIdPort.class);
+        adapter = new EdgeStateStoreAdapter(characterRepository, logEventsRepository, logIds);
+        when(logIds.nextId(LogTable.EVENTS)).thenReturn(42L);
     }
 
     private GamingCharacterInstanceEntity character() {

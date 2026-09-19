@@ -1,7 +1,6 @@
 """Step 38 — SQLAlchemy adapter behind use-exp (mirror of the Java ExperienceStoreAdapter)."""
 from typing import Any, Dict, Optional
 
-from sqlalchemy import func
 
 from app.adapters.persistence.match.models import (
     GamingCharacterInstanceEntity,
@@ -11,6 +10,7 @@ from app.adapters.persistence.match.models import (
 from app.adapters.persistence.match.turn_cycle_store_adapter import _new_uuid, _now_iso
 from app.adapters.persistence.story.models import LocationEntity, StoryDifficultyEntity
 from app.core.ports.match.experience_ports import ExperienceStorePort
+from app.adapters.persistence.match.log_ids import next_log_id
 
 
 class ExperienceStoreAdapter(ExperienceStorePort):
@@ -78,10 +78,10 @@ class ExperienceStoreAdapter(ExperienceStorePort):
 
     def log_exp_use(self, id_match: int, id_character: int, clock: int, message: str) -> None:
         with self.session_factory() as session:
-            max_id = session.query(func.max(LogEventsEntity.id)).scalar() or 0
+            next_id = next_log_id(session, LogEventsEntity)
             now = _now_iso()
             session.add(LogEventsEntity(
-                id=max_id + 1, id_match=id_match, uuid=_new_uuid(),
+                id=next_id, id_match=id_match, uuid=_new_uuid(),
                 id_character_match=id_character, timestamp=now, id_event=None,
                 clock=clock, log_message=message, ts_insert=now, ts_update=now,
             ))

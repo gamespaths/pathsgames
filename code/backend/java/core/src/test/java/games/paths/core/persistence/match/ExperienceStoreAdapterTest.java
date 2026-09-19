@@ -27,6 +27,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import games.paths.core.port.match.LogIdPort;
+import games.paths.core.model.match.LogTable;
 
 /** Step 38 — the JPA adapter behind use-exp. */
 class ExperienceStoreAdapterTest {
@@ -36,6 +38,7 @@ class ExperienceStoreAdapterTest {
     private LocationRepository locationRepository;
     private StoryDifficultyRepository difficultyRepository;
     private LogEventsRepository logEventsRepository;
+    private LogIdPort logIds;
     private ExperienceStoreAdapter adapter;
 
     @BeforeEach
@@ -45,8 +48,9 @@ class ExperienceStoreAdapterTest {
         locationRepository = mock(LocationRepository.class);
         difficultyRepository = mock(StoryDifficultyRepository.class);
         logEventsRepository = mock(LogEventsRepository.class);
+        logIds = mock(LogIdPort.class);
         adapter = new ExperienceStoreAdapter(matchRepository, characterRepository, locationRepository,
-                difficultyRepository, logEventsRepository);
+                difficultyRepository, logEventsRepository, logIds);
     }
 
     @Test
@@ -105,7 +109,7 @@ class ExperienceStoreAdapterTest {
 
     @Test
     void logExpUse_appendsOneRow() {
-        when(logEventsRepository.findMaxId()).thenReturn(41L);
+        when(logIds.nextId(LogTable.EVENTS)).thenReturn(42L);
         adapter.logExpUse(1L, 10L, 3, "EXP_USE dex 10->11 cost 23");
         ArgumentCaptor<LogEventsEntity> captor = ArgumentCaptor.forClass(LogEventsEntity.class);
         verify(logEventsRepository).save(captor.capture());

@@ -24,6 +24,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import games.paths.core.port.match.LogIdPort;
+import games.paths.core.model.match.LogTable;
 
 class WeatherStoreAdapterTest {
 
@@ -33,6 +35,7 @@ class WeatherStoreAdapterTest {
     private LogWeatherRepository logWeatherRepository;
     private LogEventsRepository logEventsRepository;
     private games.paths.core.port.story.StoryReadPort storyReadPort;
+    private LogIdPort logIds;
     private WeatherStoreAdapter adapter;
 
     @BeforeEach
@@ -43,8 +46,9 @@ class WeatherStoreAdapterTest {
         logWeatherRepository = mock(LogWeatherRepository.class);
         logEventsRepository = mock(LogEventsRepository.class);
         storyReadPort = mock(games.paths.core.port.story.StoryReadPort.class);
+        logIds = mock(LogIdPort.class);
         adapter = new WeatherStoreAdapter(matchRepository, characterRepository,
-                weatherRuleRepository, logWeatherRepository, logEventsRepository, storyReadPort);
+                weatherRuleRepository, logWeatherRepository, logEventsRepository, storyReadPort, logIds);
     }
 
     private static GamingMatchEntity match(long id, Long idStory) {
@@ -122,7 +126,7 @@ class WeatherStoreAdapterTest {
 
     @Test
     void insertLogWeather_assignsNextId() {
-        when(logWeatherRepository.findMaxId()).thenReturn(4L);
+        when(logIds.nextId(LogTable.WEATHER)).thenReturn(5L);
         adapter.insertLogWeather(1L, 2, 9L);
         verify(logWeatherRepository).save(argThat((LogWeatherEntity e) ->
                 e.getId() == 5L && e.getIdMatch() == 1L && e.getClock() == 2 && e.getIdWeather() == 9L));
@@ -130,7 +134,7 @@ class WeatherStoreAdapterTest {
 
     @Test
     void logWeatherEvent_assignsNextIdAndEvent() {
-        when(logEventsRepository.findMaxId()).thenReturn(7L);
+        when(logIds.nextId(LogTable.EVENTS)).thenReturn(8L);
         adapter.logWeatherEvent(1L, 55, "boom");
         verify(logEventsRepository).save(any());
     }
@@ -299,7 +303,7 @@ class WeatherStoreAdapterTest {
 
     @Test
     void logWeatherEvent_acceptsAWeatherWithNoEventAttached() {
-        when(logEventsRepository.findMaxId()).thenReturn(3L);
+        when(logIds.nextId(LogTable.EVENTS)).thenReturn(4L);
 
         adapter.logWeatherEvent(1L, null, "weather changed");
 

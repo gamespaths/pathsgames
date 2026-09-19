@@ -61,6 +61,11 @@ Both profiles use **Flyway** for automatic schema migration. Migrations run on e
     | `DB_USERNAME` | `pathsgames` | Database user |
     | `DB_PASSWORD` | `pathsgames` | Database password |
 
+**Log table ids (v0.38.1)**: the `log_*` tables have a composite PK, so JPA can't
+auto-generate `id`. `LogIdPort`/`LogIdAdapter` now allocate it — `nextval('<table>_id_seq')`
+on PostgreSQL (aligned once by `V0.38.1__align_log_sequences.sql`), `MAX(id)+1` on SQLite —
+replacing a per-writer `MAX(id)+1` read that could collide under concurrent requests.
+
 
 ## Quick Start
 - Prerequisites: **Java 21+** & **Maven 3.9+**

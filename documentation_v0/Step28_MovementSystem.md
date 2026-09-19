@@ -1995,6 +1995,14 @@ parameter.
 > AWS backend has not yet been verified end-to-end for `RECOVERY` (see the v0.28.7 row in
 > "Version Control" below).
 
+> **Id allocation (v0.38.1):** ids for the six tables above (`log_events`, `log_movements`,
+> `log_item_usage`, `log_weather`, `log_clock_history`, `log_choices_executed`) are no
+> longer read as `MAX(id)+1` inside each writer's own transaction — concurrent requests
+> could collide. Java's `LogIdPort`/`LogIdAdapter` and Python's `log_ids.py` now pull from
+> a PostgreSQL sequence (`V0.38.1__align_log_sequences.sql`), falling back to `MAX(id)+1`
+> on SQLite. See [Step10_CreateDBschema.md](./Step10_CreateDBschema.md). Not relevant to AWS
+> (DynamoDB, no relational ids).
+
 ## New: Sleep Logging (v0.28.7)
 
 Sleep actions were not previously logged. This version adds:
@@ -2335,7 +2343,7 @@ inline-list layout to account for. REST contract unchanged. No Java/Python chang
 
 # Version Control
 
-- **Document Version**: 0.37.5
+- **Document Version**: 0.38.1
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -2361,8 +2369,9 @@ inline-list layout to account for. REST contract unchanged. No Java/Python chang
   | 0.37.4 | Cross-reference only, no code change here: `MatchLogCard.jsx` is unchanged, but the door into it moves from gameplay's story card to the profile book's match-missions view. See [Step37 §12 react-game (v0.37.4)](./Step37_MissionSystem.md#12-frontends) and [Step18 §8](./Step18_GameMainFrontend.md#8-game-page-playstoryid). | September 11, 2026 |
   | 0.37.5 | AWS-only cost-cutting: match logs are now `LOG#`/`AUDIT#` DynamoDB rows instead of embedded lists rewritten whole every action; `CLOCK#<n>` items replaced by `CLOCK_ADVANCE` log rows; derived METADATA state (`executedEventIds`, `eventMarkers`, `visitedLocationIds`) replaces list scans. REST contract unchanged; no Java/Python change. See "Step 0.37.5" section above. | September 14, 2026 |
   | 0.37.5 | Same version, round 2: `AUDIT#` rows packed one-per-request (`rows: [...]`, 1 WRU instead of N); `logbook.persist` now goes through the per-request `repo.py` unit of work (§ above); stack redeployed from scratch, so the pre-v0.37.5 inline-list compatibility note above is now historical only. | September 15, 2026 |
+  | 0.38.1 | Concurrency-safe log-table id allocation (Java + Python, PostgreSQL): ids for the six `log_*` tables now come from `LogIdPort`/`log_ids.py` (sequence `nextval`), fixing a duplicate-key race under concurrent requests. Not relevant to AWS. See "Id allocation (v0.38.1)" above and [Step10_CreateDBschema.md](./Step10_CreateDBschema.md). | September 19, 2026 |
 
-- **Last Updated**: September 15, 2026 (v0.37.5)
+- **Last Updated**: September 19, 2026 (v0.38.1)
 - **Status**: Complete (Step 28 implementation). Step 33 has since shipped and is Complete; §6.3's forward reference to it is no longer a reference to a design-only document.
 
 # < Paths Games />

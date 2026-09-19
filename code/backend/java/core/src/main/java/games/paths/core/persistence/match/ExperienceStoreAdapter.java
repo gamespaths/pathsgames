@@ -12,6 +12,8 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import games.paths.core.model.match.LogTable;
+import games.paths.core.port.match.LogIdPort;
 
 /**
  * ExperienceStoreAdapter - JPA adapter implementing {@link ExperienceStorePort}. Step 38.
@@ -25,17 +27,20 @@ public class ExperienceStoreAdapter implements ExperienceStorePort {
     private final LocationRepository locationRepository;
     private final StoryDifficultyRepository difficultyRepository;
     private final LogEventsRepository logEventsRepository;
+    private final LogIdPort logIds;
 
     public ExperienceStoreAdapter(GamingMatchRepository matchRepository,
                                   GamingCharacterInstanceRepository characterRepository,
                                   LocationRepository locationRepository,
                                   StoryDifficultyRepository difficultyRepository,
-                                  LogEventsRepository logEventsRepository) {
+                                  LogEventsRepository logEventsRepository,
+                                  LogIdPort logIds) {
         this.matchRepository = matchRepository;
         this.characterRepository = characterRepository;
         this.locationRepository = locationRepository;
         this.difficultyRepository = difficultyRepository;
         this.logEventsRepository = logEventsRepository;
+        this.logIds = logIds;
     }
 
     @Override
@@ -85,7 +90,7 @@ public class ExperienceStoreAdapter implements ExperienceStorePort {
     @Override
     public void logExpUse(long idMatch, long idCharacter, int clock, String message) {
         LogEventsEntity e = new LogEventsEntity();
-        e.setId(logEventsRepository.findMaxId() + 1);
+        e.setId(logIds.nextId(LogTable.EVENTS));
         e.setIdMatch(idMatch);
         e.setIdCharacterMatch(idCharacter);
         e.setClock(clock);

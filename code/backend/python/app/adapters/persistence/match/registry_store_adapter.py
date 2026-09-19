@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 from app.adapters.persistence.match.models import (GamingMatchEntity,
                                                     GamingStateRegistryEntity, LogEventsEntity)
 from app.core.ports.match.registry_ports import RegistryStorePort
+from app.adapters.persistence.match.log_ids import next_log_id
 
 
 def _now_iso() -> str:
@@ -175,11 +176,10 @@ class RegistryStoreAdapter(RegistryStorePort):
     def log_change(self, id_match: int, id_character: Optional[int], id_event: Optional[int],
                    id_choice: Optional[int], clock: Optional[int], message: str) -> None:
         with self.session_factory() as session:
-            rows = session.query(LogEventsEntity.id).all()
-            ids = [r[0] for r in rows if r[0] is not None]
+            next_id = next_log_id(session, LogEventsEntity)
             now = _now_iso()
             session.add(LogEventsEntity(
-                id=(max(ids) if ids else 0) + 1, id_match=id_match,
+                id=next_id, id_match=id_match,
                 uuid=str(uuid_lib.uuid4()), id_character_match=id_character,
                 timestamp=now, id_event=id_event, id_choise=id_choice,
                 log_message=message, clock=clock, ts_insert=now, ts_update=now))

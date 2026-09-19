@@ -19,6 +19,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import games.paths.core.model.match.LogTable;
+import games.paths.core.port.match.LogIdPort;
 
 /**
  * LocationEntryStoreAdapter - JPA adapter implementing {@link LocationEntryStorePort}
@@ -33,17 +35,20 @@ public class LocationEntryStoreAdapter implements LocationEntryStorePort {
     private final LogEventsRepository logEventsRepository;
     private final LogMovementRepository logMovementRepository;
     private final StoryReadPort storyReadPort;
+    private final LogIdPort logIds;
 
     public LocationEntryStoreAdapter(GamingStateLocationsRepository stateLocationsRepository,
                                      GamingCharacterInstanceRepository characterRepository,
                                      LogEventsRepository logEventsRepository,
                                      LogMovementRepository logMovementRepository,
-                                     StoryReadPort storyReadPort) {
+                                     StoryReadPort storyReadPort,
+                                     LogIdPort logIds) {
         this.stateLocationsRepository = stateLocationsRepository;
         this.characterRepository = characterRepository;
         this.logEventsRepository = logEventsRepository;
         this.logMovementRepository = logMovementRepository;
         this.storyReadPort = storyReadPort;
+        this.logIds = logIds;
     }
 
     @Override
@@ -126,7 +131,7 @@ public class LocationEntryStoreAdapter implements LocationEntryStorePort {
     public void logAutomaticEvent(long idMatch, Long idCharacter, long idLocation, Long idEvent,
                                   Integer clock, String message) {
         LogEventsEntity e = new LogEventsEntity();
-        e.setId(logEventsRepository.findMaxId() + 1);
+        e.setId(logIds.nextId(LogTable.EVENTS));
         e.setIdMatch(idMatch);
         e.setIdCharacterMatch(idCharacter);
         e.setIdLocation(idLocation);

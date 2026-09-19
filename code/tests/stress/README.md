@@ -27,6 +27,7 @@ story (`story-001`) is published and imports `data/tutorial_story.json` through
 |---|---|
 | `run_stress.sh` | Runner: tutorial setup, then one k6 run per VU level, stops when error rate > threshold |
 | `run_stress_aws.sh` | Wrapper: resolves `-b`/`-a`/`-t`/`-k` from a CloudFormation stack + the repo `.env`, then execs `run_stress.sh` |
+| `../../scripts/test/aws_ec2_with_java_docker/run_stress_ec2.sh`, `.../aws_ec2_with_python_docker/run_stress_ec2.sh` | **v0.38.1** — twin wrappers: resolve `-b`/`-a` from the EC2 instance's `.state` (written by that folder's `start.sh`), mint the admin JWT from the root `.env` `JWT_SECRET`, then exec `run_stress.sh` |
 | `cleanup.sh` | Removes leftover `robottest*` guests/matches (interrupted runs): `/api/dev/cleanup`, else admin API sweep |
 | `scenarios/setup_tutorial.js` | Check / import tutorial (1 VU, 1 iteration) |
 | `scenarios/match_movement.js` | Main scenario (`per-vu-iterations` executor, thresholds, optional teardown cleanup) |
@@ -147,6 +148,18 @@ error threshold, so it is safe to point it at 2000 VU.
 `-b https://api-test.paths.games` to hit the domain instead. Exits `2` with a clear message
 when the stack name, AWS CLI, stack outputs, or admin JWT are missing; a missing Turnstile
 token is a warning only (match creation then fails once the stack enforces Turnstile).
+
+## `run_stress_ec2.sh` — running against a test EC2 instance (v0.38.1)
+
+Twin wrappers, one in `code/scripts/test/aws_ec2_with_java_docker/` and one in
+`code/scripts/test/aws_ec2_with_python_docker/`, for the EC2 test instances started by that
+folder's `start.sh` (see [Step20_GameWebSiteFirstRun.md](../../../documentation_v0/Step20_GameWebSiteFirstRun.md)).
+Requires the folder's `.state` (missing → exit 2); public/admin URLs default to
+`http://<PUBLIC_IP>:8042`/`:8044`, `-D` uses the DNS name instead; admin JWT is minted by
+`run_stress.sh` from the root `.env` `JWT_SECRET` (`-t` overrides); both ports are curl-probed
+before k6 starts. EC2 defaults: levels `10 100 500 1000`, moves 5, iterations 3, think 500ms,
+max error rate 0.05, max duration 10m (override with `DEF_*` or `-l/-m/-i/-e/-d/-w`). Everything
+else is forwarded to `run_stress.sh` exactly like `run_stress_aws.sh` above.
 
 ## `cleanup.sh` — leftover data
 

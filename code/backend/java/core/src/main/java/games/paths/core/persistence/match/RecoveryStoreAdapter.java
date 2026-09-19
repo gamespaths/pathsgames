@@ -21,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import games.paths.core.model.match.LogTable;
+import games.paths.core.port.match.LogIdPort;
 
 /**
  * RecoveryStoreAdapter - JPA adapter implementing {@link RecoveryStorePort} for
@@ -35,17 +37,20 @@ public class RecoveryStoreAdapter implements RecoveryStorePort {
     private final GamingStateLocationsRepository stateLocationsRepository;
     private final LogEventsRepository logEventsRepository;
     private final StoryReadPort storyReadPort;
+    private final LogIdPort logIds;
 
     public RecoveryStoreAdapter(GamingMatchRepository matchRepository,
                                 GamingCharacterInstanceRepository characterRepository,
                                 GamingStateLocationsRepository stateLocationsRepository,
                                 LogEventsRepository logEventsRepository,
-                                StoryReadPort storyReadPort) {
+                                StoryReadPort storyReadPort,
+                                LogIdPort logIds) {
         this.matchRepository = matchRepository;
         this.characterRepository = characterRepository;
         this.stateLocationsRepository = stateLocationsRepository;
         this.logEventsRepository = logEventsRepository;
         this.storyReadPort = storyReadPort;
+        this.logIds = logIds;
     }
 
     @Override
@@ -158,7 +163,7 @@ public class RecoveryStoreAdapter implements RecoveryStorePort {
     @Override
     public void logRecovery(long idMatch, long idCharacter, String message) {
         LogEventsEntity e = new LogEventsEntity();
-        e.setId(logEventsRepository.findMaxId() + 1);
+        e.setId(logIds.nextId(LogTable.EVENTS));
         e.setIdMatch(idMatch);
         e.setIdCharacterMatch(idCharacter);
         e.setLogMessage(message);
@@ -169,7 +174,7 @@ public class RecoveryStoreAdapter implements RecoveryStorePort {
     public void logCounterZero(long idMatch, long idLocation, Integer idEventIfCounterZero,
                                Integer clock, String message) {
         LogEventsEntity e = new LogEventsEntity();
-        e.setId(logEventsRepository.findMaxId() + 1);
+        e.setId(logIds.nextId(LogTable.EVENTS));
         e.setIdMatch(idMatch);
         e.setIdEvent(idEventIfCounterZero == null ? null : idEventIfCounterZero.longValue());
         // Step 33 — without the clock this row sorted outside the timeline, and the

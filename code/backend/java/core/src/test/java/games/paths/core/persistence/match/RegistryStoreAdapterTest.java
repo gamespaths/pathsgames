@@ -16,6 +16,8 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import games.paths.core.port.match.LogIdPort;
+import games.paths.core.model.match.LogTable;
 
 @DisplayName("RegistryStoreAdapter (Step 36)")
 class RegistryStoreAdapterTest {
@@ -23,6 +25,7 @@ class RegistryStoreAdapterTest {
     private GamingStateRegistryRepository repository;
     private LogEventsRepository logEventsRepository;
     private games.paths.core.repository.match.GamingMatchRepository matchRepository;
+    private LogIdPort logIds;
     private RegistryStoreAdapter adapter;
 
     @BeforeEach
@@ -30,7 +33,8 @@ class RegistryStoreAdapterTest {
         repository = mock(GamingStateRegistryRepository.class);
         logEventsRepository = mock(LogEventsRepository.class);
         matchRepository = mock(games.paths.core.repository.match.GamingMatchRepository.class);
-        adapter = new RegistryStoreAdapter(repository, logEventsRepository, matchRepository);
+        logIds = mock(LogIdPort.class);
+        adapter = new RegistryStoreAdapter(repository, logEventsRepository, matchRepository, logIds);
     }
 
     private static GamingStateRegistryEntity multi(Long id, String key, String s, Integer i) {
@@ -242,7 +246,7 @@ class RegistryStoreAdapterTest {
     @Test
     @DisplayName("logChange writes one log_events row carrying the whole provenance")
     void logChangeWritesTheAuditRow() {
-        when(logEventsRepository.findMaxId()).thenReturn(11L);
+        when(logIds.nextId(LogTable.EVENTS)).thenReturn(12L);
 
         adapter.logChange(1L, 3L, 12L, 9L, 5, "REGISTRY_CHANGE gate null -> OPEN");
 

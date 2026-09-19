@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import games.paths.core.model.match.LogTable;
+import games.paths.core.port.match.LogIdPort;
 
 /**
  * MovementStoreAdapter - JPA adapter implementing {@link MovementStorePort} for
@@ -43,6 +45,7 @@ public class MovementStoreAdapter implements MovementStorePort {
     private final GamingBackpackResourcesRepository backpackRepository;
     private final StoryReadPort storyReadPort;
     private final WeatherStorePort weatherStorePort;
+    private final LogIdPort logIds;
 
     public MovementStoreAdapter(GamingMatchRepository matchRepository,
                                 GamingCharacterInstanceRepository characterRepository,
@@ -50,7 +53,8 @@ public class MovementStoreAdapter implements MovementStorePort {
                                 GamingInventoryItemsRepository inventoryRepository,
                                 GamingBackpackResourcesRepository backpackRepository,
                                 StoryReadPort storyReadPort,
-                                WeatherStorePort weatherStorePort) {
+                                WeatherStorePort weatherStorePort,
+                                LogIdPort logIds) {
         this.matchRepository = matchRepository;
         this.characterRepository = characterRepository;
         this.logMovementRepository = logMovementRepository;
@@ -58,6 +62,7 @@ public class MovementStoreAdapter implements MovementStorePort {
         this.backpackRepository = backpackRepository;
         this.storyReadPort = storyReadPort;
         this.weatherStorePort = weatherStorePort;
+        this.logIds = logIds;
     }
 
     @Override
@@ -171,7 +176,7 @@ public class MovementStoreAdapter implements MovementStorePort {
     public void insertMovementLog(long idMatch, long idCharacter, Long fromLocation, long toLocation,
                                   int energyCost, int foodCost, int magicCost, int coinCost) {
         LogMovementEntity e = new LogMovementEntity();
-        e.setId(logMovementRepository.findMaxId() + 1);
+        e.setId(logIds.nextId(LogTable.MOVEMENTS));
         e.setIdMatch(idMatch);
         e.setIdCharacterMatch(idCharacter);
         e.setIdLocationFrom(fromLocation);

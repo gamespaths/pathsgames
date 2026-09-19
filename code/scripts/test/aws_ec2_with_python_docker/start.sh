@@ -107,11 +107,28 @@ fi
 INSTANCE_NAME=${INSTANCE_NAME_TEST_EC2_PY:-"api-test-server3"}
 SG_NAME="${INSTANCE_NAME}-sg"
 
-# Tags applied to every taggable resource we create (SG, instance, volume).
+# Tags applied to every taggable resource we create (SG, instance, volume, CloudFront).
+# Tag list lives in ../aws_tags.txt; ${NAME}/${ENV_TAG}/${LANGUAGE} are expanded here.
 ENV_TAG="${ENV_TAG:-test}"
-PROJECT_TAG="PathsGames"
-COMMON_TAGS="Key=env,Value=$ENV_TAG Key=createdBy,Value=SH Key=project,Value=$PROJECT_TAG"
-COMMON_TAGSPEC="{Key=env,Value=$ENV_TAG},{Key=createdBy,Value=SH},{Key=project,Value=$PROJECT_TAG}"
+LANGUAGE="Python"
+TAGS_FILE="$SCRIPT_DIR/../aws_tags.txt"
+[ -f "$TAGS_FILE" ] || { echo "[start.sh] ERROR: tags file not found: $TAGS_FILE"; exit 1; }
+# Emit "Key<TAB>Value" lines from TAGS_FILE, placeholders expanded ($1 = resource Name)
+_tag_pairs() {
+    local NAME="$1" line k v
+    while IFS= read -r line || [ -n "$line" ]; do
+        case "$line" in ''|'#'*) continue ;; esac
+        k="${line%%=*}"; v="${line#*=}"
+        v="${v//'${NAME}'/"$NAME"}"; v="${v//'${ENV_TAG}'/"$ENV_TAG"}"; v="${v//'${LANGUAGE}'/"$LANGUAGE"}"
+        printf '%s\t%s\n' "$k" "$v"
+    done < "$TAGS_FILE"
+}
+# create-tags syntax: "Key=..,Value=.. Key=..,Value=.."
+_tags_cli()  { _tag_pairs "$1" | awk -F'\t' '{printf "%sKey=%s,Value=%s", (NR>1?" ":""), $1, $2}'; }
+# run-instances --tag-specifications syntax: "{Key=..,Value=..},{Key=..,Value=..}"
+_tags_spec() { _tag_pairs "$1" | awk -F'\t' '{printf "%s{Key=%s,Value=%s}", (NR>1?",":""), $1, $2}'; }
+# CloudFront Tags.Items JSON entries
+_tags_json() { _tag_pairs "$1" | awk -F'\t' '{printf "%s      { \"Key\": \"%s\", \"Value\": \"%s\" }", (NR>1?",\n":""), $1, $2}'; }
 
 # ── Short-circuit: if the instance already exists, do NOTHING ─────────────────
 INSTANCE_ID="None"
@@ -206,7 +223,7 @@ fi
 aws ec2 create-tags \
     --region "$AWS_REGION" \
     --resources "$SG_ID" \
-    --tags "Key=Name,Value=$SG_NAME" $COMMON_TAGS 2>/dev/null \
+    --tags $(_tags_cli "$SG_NAME") 2>/dev/null \
     || echo "[start.sh] WARNING: could not tag SG (continuing)"
 
 # Helper: add ingress rule, ignore DuplicatePermission
@@ -357,8 +374,8 @@ INSTANCE_ID="$(aws ec2 run-instances \
     --security-group-ids "$SG_ID" \
     --user-data "$USER_DATA" \
     --tag-specifications \
-        "ResourceType=instance,Tags=[{Key=Name,Value=$INSTANCE_NAME},$COMMON_TAGSPEC]" \
-        "ResourceType=volume,Tags=[{Key=Name,Value=${INSTANCE_NAME}-vol},$COMMON_TAGSPEC]" \
+        "ResourceType=instance,Tags=[$(_tags_spec "$INSTANCE_NAME")]" \
+        "ResourceType=volume,Tags=[$(_tags_spec "${INSTANCE_NAME}-vol")]" \
     --query 'Instances[0].InstanceId' \
     --output text)"
 echo "[start.sh] Instance launched: $INSTANCE_ID"
@@ -367,7 +384,7 @@ echo "[start.sh] Instance launched: $INSTANCE_ID"
 aws ec2 create-tags \
     --region "$AWS_REGION" \
     --resources "$INSTANCE_ID" \
-    --tags "Key=Name,Value=$INSTANCE_NAME" $COMMON_TAGS 2>/dev/null \
+    --tags $(_tags_cli "$INSTANCE_NAME") 2>/dev/null \
     || echo "[start.sh] WARNING: could not tag instance (continuing)"
 
 # ── Save state ────────────────────────────────────────────────────────────────
@@ -496,10 +513,7 @@ if [ "$ENABLE_CLOUDFRONT" = "true" ]; then
   },
   "Tags": {
     "Items": [
-      { "Key": "Name",      "Value": "${INSTANCE_NAME}-cf" },
-      { "Key": "env",       "Value": "$ENV_TAG" },
-      { "Key": "createdBy", "Value": "SH" },
-      { "Key": "project",   "Value": "$PROJECT_TAG" }
+$(_tags_json "${INSTANCE_NAME}-cf")
     ]
   }
 }
@@ -577,7 +591,7 @@ echo   "╠═══════════════════════
 printf "║  SSH: ssh -i %s ubuntu@%s\n" "$EC2_KEY_PATH" "$PUBLIC_IP"
 printf "║  Admin tunnel: ssh -i %s -L %s:localhost:%s ubuntu@%s\n" "$EC2_KEY_PATH" "$ADMIN_PORT" "$ADMIN_PORT" "$PUBLIC_IP"
 echo   "╠══════════════════════════════════════════════════════════╣"
-printf "║  Tags: env=%s  createdBy=SH  project=PathsGames\n" "$ENV_TAG"
+printf "║  Tags: %s\n" "$(_tag_pairs "$INSTANCE_NAME" | awk -F'\t' '{printf "%s%s=%s", (NR>1?"  ":""), $1, $2}')"
 echo   "║  Init log: /var/log/pathsgames-init.log (on instance)    ║"
 echo   "║  Redeploy: ./redeploy.sh   (pull latest test-python img) ║"
 echo   "║  Stop:     ./stop.sh                                     ║"

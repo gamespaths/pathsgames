@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import games.paths.core.port.match.LogIdPort;
 
 /**
  * InventoryStoreAdapter - JPA adapter implementing {@link InventoryStorePort}. Step 34.
@@ -38,19 +39,22 @@ public class InventoryStoreAdapter implements InventoryStorePort {
     private final GamingBackpackResourcesRepository backpackRepository;
     private final LogItemUsageRepository logItemUsageRepository;
     private final StoryReadPort storyReadPort;
+    private final LogIdPort logIds;
 
     public InventoryStoreAdapter(GamingMatchRepository matchRepository,
                                  GamingCharacterInstanceRepository characterRepository,
                                  GamingInventoryItemsRepository inventoryRepository,
                                  GamingBackpackResourcesRepository backpackRepository,
                                  LogItemUsageRepository logItemUsageRepository,
-                                 StoryReadPort storyReadPort) {
+                                 StoryReadPort storyReadPort,
+                                 LogIdPort logIds) {
         this.matchRepository = matchRepository;
         this.characterRepository = characterRepository;
         this.inventoryRepository = inventoryRepository;
         this.backpackRepository = backpackRepository;
         this.logItemUsageRepository = logItemUsageRepository;
         this.storyReadPort = storyReadPort;
+        this.logIds = logIds;
     }
 
     @Override
@@ -133,7 +137,7 @@ public class InventoryStoreAdapter implements InventoryStorePort {
         // while a usage spent the whole row, so the column has been reporting a number
         // nobody computed since the log was created.
         // idEvent stays null: a use and a drop are the player's own doing, not an event's.
-        ItemLogRows.append(logItemUsageRepository, idMatch, idCharacter, idItem, action,
+        ItemLogRows.append(logItemUsageRepository, logIds, idMatch, idCharacter, idItem, action,
                 counter, null, effectsJson, delta);
     }
 

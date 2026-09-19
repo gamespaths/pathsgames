@@ -22,6 +22,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import games.paths.core.port.match.LogIdPort;
+import games.paths.core.model.match.LogTable;
 
 /**
  * Step 33 - unit tests of the JPA adapter behind {@code LocationEntryStorePort}.
@@ -33,6 +35,7 @@ class LocationEntryStoreAdapterTest {
     private LogEventsRepository logEventsRepository;
     private LogMovementRepository logMovementRepository;
     private StoryReadPort storyReadPort;
+    private LogIdPort logIds;
     private LocationEntryStoreAdapter adapter;
 
     @BeforeEach
@@ -42,8 +45,9 @@ class LocationEntryStoreAdapterTest {
         logEventsRepository = mock(LogEventsRepository.class);
         logMovementRepository = mock(LogMovementRepository.class);
         storyReadPort = mock(StoryReadPort.class);
+        logIds = mock(LogIdPort.class);
         adapter = new LocationEntryStoreAdapter(stateLocationsRepository, characterRepository,
-                logEventsRepository, logMovementRepository, storyReadPort);
+                logEventsRepository, logMovementRepository, storyReadPort, logIds);
     }
 
     private static LocationEntity location(Long id) {
@@ -211,7 +215,7 @@ class LocationEntryStoreAdapterTest {
 
     @Test
     void logAutomaticEventAppendsARowWithTheNextId() {
-        when(logEventsRepository.findMaxId()).thenReturn(41L);
+        when(logIds.nextId(LogTable.EVENTS)).thenReturn(42L);
 
         adapter.logAutomaticEvent(1L, 9L, 2L, 77L, 5, "automatic event 77");
 
@@ -229,7 +233,7 @@ class LocationEntryStoreAdapterTest {
 
     @Test
     void logAutomaticEventAcceptsANullCharacterAndClock() {
-        when(logEventsRepository.findMaxId()).thenReturn(0L);
+        when(logIds.nextId(LogTable.EVENTS)).thenReturn(1L);
 
         adapter.logAutomaticEvent(1L, null, 2L, null, null, "counter zero");
 

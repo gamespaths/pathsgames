@@ -979,6 +979,7 @@ All scripts live under `code/scripts/test/` (build) and
 | `aws_ec2_with_java_docker/start.sh` | Create SG + launch EC2 instance; user-data pulls the image and starts two containers |
 | `aws_ec2_with_java_docker/redeploy.sh` | On a running instance: update env-file, `docker pull`, restart only the backend container |
 | `aws_ec2_with_java_docker/stop.sh` | Terminate instance, delete SG, delete Route53 record (and CloudFront distribution if present) |
+| `aws_ec2_with_java_docker/run_stress_ec2.sh` | **v0.38.1** — k6 stress wrapper: reads `.state`, probes both ports, then execs [`code/tests/stress/run_stress.sh`](../../tests/stress/README.md) with the instance's public/admin URLs and a JWT minted from the root `.env` |
 
 ---
 
@@ -1055,6 +1056,14 @@ Image updates on a running instance are handled by `redeploy.sh`.
    - Runs the backend container, publishing ports 8042 (public) and 8044 (admin).
 5. Launches the EC2 instance and saves state to `.state`.
 6. Optionally creates a Route53 record (see DNS/CloudFront below).
+
+**Tags (v0.38.1)**: the security group, instance, EBS volume and (with CloudFront enabled)
+the CloudFront distribution are all tagged from one shared file,
+[`code/scripts/test/aws_ec2_tags.txt`](../../scripts/test/aws_ec2_tags.txt) — one
+`Key=Value` per line, placeholders `${NAME}`/`${ENV_TAG}`/`${LANGUAGE}` expanded by
+`start.sh` (`Environment`, `Project`, `Owner`, `CostCenter`, `ManagedBy`, `Language=Java`),
+replacing the old hardcoded `env`/`createdBy`/`project` tags. A missing tags file makes
+`start.sh` exit 1. Route53 records stay untagged (not taggable).
 
 ```bash
 cd code/scripts/test/aws_ec2_with_java_docker
@@ -1279,6 +1288,11 @@ All scripts live under `code/scripts/test/` (build) and
 | `aws_ec2_with_python_docker/start.sh` | Create SG + launch EC2 instance (server3); user-data pulls the image and starts two containers |
 | `aws_ec2_with_python_docker/redeploy.sh` | On a running instance: update env-file, `docker pull`, restart only the backend container |
 | `aws_ec2_with_python_docker/stop.sh` | Terminate instance, delete SG, delete Route53 record (and CloudFront distribution if present) |
+| `aws_ec2_with_python_docker/run_stress_ec2.sh` | **v0.38.1** — Python twin of the java `run_stress_ec2.sh` wrapper above (same `.state`-driven k6 stress run) |
+
+Same **v0.38.1** tagging as the Java script: SG/instance/volume/CloudFront distribution are
+tagged from the shared [`aws_ec2_tags.txt`](../../scripts/test/aws_ec2_tags.txt) (`Language=Ph`
+for this script), replacing the old hardcoded `env`/`createdBy`/`project` tags.
 
 ## Configuration
 
@@ -1397,7 +1411,7 @@ curl http://<EC2-IP>:8044/api/admin/matches
 
 
 
-- **Document Version**: 0.37.3
+- **Document Version**: 0.38.1
 
     | Version | Description | Date |
     |---------|-------------|------|
@@ -1415,8 +1429,9 @@ curl http://<EC2-IP>:8044/api/admin/matches
     | 0.28.2 | i18n: `LanguageProvider` persists lang to `localStorage['pathsgames.lang']`; initial lang resolves from saved choice → browser lang → `'en'`; `pathsgames.lang` added to strictly-necessary consent table in `cookieConsent.js`; 14 tests in `i18nContext.test.jsx` | Jun 26, 2026 |
     | 0.35.8 | Correction only: `.pg-card--home` is unused since the Story Catalog card rewrite — see [Step18](./Step18_GameMainFrontend.md#story-catalog-card-v0358). | August 30, 2026 |
     | 0.37.3 | Turnstile refusals now logged with a reason on all 3 backends (verdict unchanged); react-game bugfix — the widget no longer unmounts once passed, so a stale token can't reach `POST /api/matches`; Retry now offered on `TURNSTILE_VALIDATION_FAILED`; `20_website/turnstile.robot` is mode-aware (`CF_TURNSTILE_TOKEN` set = enforced), `aws_backend_deploy.sh` bypass-token selection reworked. | September 10, 2026 |
+    | 0.38.1 | EC2 test scripts: standard tags moved to shared `aws_ec2_tags.txt` (replacing hardcoded `env`/`createdBy`/`project`); new `run_stress_ec2.sh` wrapper added to both `aws_ec2_with_java_docker/` and `aws_ec2_with_python_docker/` for k6 stress runs against the EC2 instances. | September 19, 2026 |
 
-- **Last Updated**: September 10, 2026
+- **Last Updated**: September 19, 2026
 - **Status**: Complete
 
 # < Paths Games />

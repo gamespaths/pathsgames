@@ -22,23 +22,23 @@ The identifying rules are READ from the sources of truth rather than copied — 
 and the seed uuids from ``lambda/seed/handler.py``, the imported-story uuids from the robot
 variable file — so adding a story or renaming the marker cannot leave this script behind.
 
-Safe by default: it prints what it would delete and exits. Deleting needs ``--apply``, and
-a table whose name looks like production is refused outright.
+It shows the plan and deletes, no questions asked; ``--dry`` only prints the plan and
+writes nothing. A table whose name looks like production is refused outright.
 
 Usage
 -----
-    # look, change nothing (the default)
+    # delete, after showing the plan
     ./purge_robot_test_data.py --table PathsGamesBackend-test
 
     # the table name can also come from --env, or from AWS_ENVIRONMENT_NAME_TEST in .env
     ./purge_robot_test_data.py --env test
 
-    # actually delete, after showing the plan and asking
-    ./purge_robot_test_data.py --env test --apply
+    # look, change nothing
+    ./purge_robot_test_data.py --env test --dry
 
     # also sweep partitions an earlier cleanup left half-deleted
-    ./purge_robot_test_data.py --env test --orphans --apply
-    ./code/scripts/dev/aws/purge_robot_test_data.py --env test --orphans --apply
+    ./purge_robot_test_data.py --env test --orphans
+    ./code/scripts/dev/aws/purge_robot_test_data.py --env test --orphans
 """
 import argparse
 import os
@@ -238,15 +238,16 @@ def main():
     parser = argparse.ArgumentParser(
         description="Remove Robot Framework leftovers (seed stories, robot matches and "
                     "robot guests) from a PathsGames DynamoDB table. Real data is never "
-                    "touched. Prints the plan and exits unless --apply is given.")
+                    "touched. Shows the plan and deletes; --dry prints it and stops.")
     parser.add_argument("--table", help="table name; wins over --env")
     parser.add_argument("--env", help=f"environment suffix, i.e. {TABLE_PREFIX}-<env>")
     parser.add_argument("--region", help="AWS region (default: AWS_REGION_TEST from .env)")
     parser.add_argument("--profile", help="AWS credentials profile")
-    parser.add_argument("--apply", action="store_true",
-                        help="actually delete; without it nothing is written")
-    parser.add_argument("--yes", action="store_true",
-                        help="skip the confirmation prompt (for unattended runs)")
+    parser.add_argument("--dry", action="store_true",
+                        help="print the plan only; nothing is written")
+    # accepted and ignored: deleting is the default and unattended since v0.38.1
+    parser.add_argument("--apply", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--yes", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--orphans", action="store_true",
                         help="also delete MATCH# partitions whose METADATA row is already "
                              "gone — the residue an interrupted run leaves behind")
@@ -306,15 +307,9 @@ def main():
     if len(doomed) > 20:
         print(f"    … and {len(doomed) - 20} more")
 
-    if not args.apply:
-        print("\nDRY RUN — nothing was written. Re-run with --apply to delete.")
+    if args.dry:
+        print("\nDRY RUN — nothing was written. Re-run without --dry to delete.")
         return 0
-
-    if not args.yes:
-        answer = input(f"\ndelete {len(doomed)} partitions from {table_name}? [y/N] ")
-        if answer.strip().lower() not in ("y", "yes"):
-            print("aborted, nothing was written.")
-            return 1
 
     removed = delete_partitions(table, doomed)
     print(f"\ndeleted {removed} rows across {len(doomed)} partitions.")

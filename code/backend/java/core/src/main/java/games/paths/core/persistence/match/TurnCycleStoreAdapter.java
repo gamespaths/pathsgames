@@ -22,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import games.paths.core.model.match.LogTable;
+import games.paths.core.port.match.LogIdPort;
 
 /**
  * TurnCycleStoreAdapter - JPA adapter implementing {@link TurnCycleStorePort}
@@ -38,6 +40,7 @@ public class TurnCycleStoreAdapter implements TurnCycleStorePort {
     private final LogEventsRepository logEventsRepository;
     private final StoryRepository storyRepository;
     private final TextRepository textRepository;
+    private final LogIdPort logIds;
 
     public TurnCycleStoreAdapter(GamingMatchRepository matchRepository,
                                  GamingCharacterInstanceRepository characterRepository,
@@ -45,7 +48,8 @@ public class TurnCycleStoreAdapter implements TurnCycleStorePort {
                                  LogClockHistoryRepository logClockHistoryRepository,
                                  LogEventsRepository logEventsRepository,
                                  StoryRepository storyRepository,
-                                 TextRepository textRepository) {
+                                 TextRepository textRepository,
+                                 LogIdPort logIds) {
         this.matchRepository = matchRepository;
         this.characterRepository = characterRepository;
         this.turnQueueRepository = turnQueueRepository;
@@ -53,6 +57,7 @@ public class TurnCycleStoreAdapter implements TurnCycleStorePort {
         this.logEventsRepository = logEventsRepository;
         this.storyRepository = storyRepository;
         this.textRepository = textRepository;
+        this.logIds = logIds;
     }
 
     @Override
@@ -188,7 +193,7 @@ public class TurnCycleStoreAdapter implements TurnCycleStorePort {
     @Override
     public void insertClockHistory(long idMatch, int clock) {
         LogClockHistoryEntity e = new LogClockHistoryEntity();
-        e.setId(logClockHistoryRepository.findMaxId() + 1);
+        e.setId(logIds.nextId(LogTable.CLOCK_HISTORY));
         e.setIdMatch(idMatch);
         e.setClock(clock);
         String now = java.time.Instant.now().toString();
@@ -199,7 +204,7 @@ public class TurnCycleStoreAdapter implements TurnCycleStorePort {
     @Override
     public void logSleep(long idMatch, long idCharacter, int clock) {
         LogEventsEntity e = new LogEventsEntity();
-        e.setId(logEventsRepository.findMaxId() + 1);
+        e.setId(logIds.nextId(LogTable.EVENTS));
         e.setIdMatch(idMatch);
         e.setIdCharacterMatch(idCharacter);
         e.setClock(clock);

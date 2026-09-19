@@ -30,6 +30,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import games.paths.core.port.match.LogIdPort;
+import games.paths.core.model.match.LogTable;
 
 class MovementStoreAdapterTest {
 
@@ -40,6 +42,7 @@ class MovementStoreAdapterTest {
     private StoryReadPort storyReadPort;
     private WeatherStorePort weatherStorePort;
     private GamingBackpackResourcesRepository backpackRepository;
+    private LogIdPort logIds;
     private MovementStoreAdapter adapter;
 
     @BeforeEach
@@ -51,9 +54,10 @@ class MovementStoreAdapterTest {
         storyReadPort = mock(StoryReadPort.class);
         weatherStorePort = mock(WeatherStorePort.class);
         backpackRepository = mock(GamingBackpackResourcesRepository.class);
+        logIds = mock(LogIdPort.class);
         adapter = new MovementStoreAdapter(matchRepository, characterRepository,
                 logMovementRepository, inventoryRepository, backpackRepository,
-                storyReadPort, weatherStorePort);
+                storyReadPort, weatherStorePort, logIds);
     }
 
     private static GamingMatchEntity match() {
@@ -260,7 +264,7 @@ class MovementStoreAdapterTest {
 
     @Test
     void insertMovementLog_assignsNextId() {
-        when(logMovementRepository.findMaxId()).thenReturn(4L);
+        when(logIds.nextId(LogTable.MOVEMENTS)).thenReturn(5L);
         ArgumentCaptor<LogMovementEntity> cap = ArgumentCaptor.forClass(LogMovementEntity.class);
         adapter.insertMovementLog(1L, 50L, 1L, 2L, 6, 0, 0, 0);
         verify(logMovementRepository).save(cap.capture());

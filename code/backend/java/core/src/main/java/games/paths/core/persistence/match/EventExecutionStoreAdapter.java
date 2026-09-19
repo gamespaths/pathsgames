@@ -43,6 +43,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import games.paths.core.model.match.LogTable;
+import games.paths.core.port.match.LogIdPort;
 
 /**
  * EventExecutionStoreAdapter - JPA adapter implementing {@link EventExecutionStorePort}
@@ -73,6 +75,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     private final GamingStoryProgressRepository storyProgressRepository;
     private final StoryReadPort storyReadPort;
     private final WeatherStorePort weatherStorePort;
+    private final LogIdPort logIds;
 
     @SuppressWarnings("java:S107") // one collaborator per table the event engine touches
     public EventExecutionStoreAdapter(GamingMatchRepository matchRepository,
@@ -87,7 +90,8 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
                                       LogChoicesExecutedRepository logChoicesRepository,
                                       GamingStoryProgressRepository storyProgressRepository,
                                       StoryReadPort storyReadPort,
-                                      WeatherStorePort weatherStorePort) {
+                                      WeatherStorePort weatherStorePort,
+                                      LogIdPort logIds) {
         this.matchRepository = matchRepository;
         this.characterRepository = characterRepository;
         this.backpackRepository = backpackRepository;
@@ -101,6 +105,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
         this.storyProgressRepository = storyProgressRepository;
         this.storyReadPort = storyReadPort;
         this.weatherStorePort = weatherStorePort;
+        this.logIds = logIds;
     }
 
     // ── resolve ─────────────────────────────────────────────────────────────
@@ -495,7 +500,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     public void insertMovementLog(long idMatch, long idCharacter, Long fromLocation, long toLocation,
                                   int energyCost, int foodCost, int magicCost, int coinCost) {
         LogMovementEntity e = new LogMovementEntity();
-        e.setId(logMovementRepository.findMaxId() + 1);
+        e.setId(logIds.nextId(LogTable.MOVEMENTS));
         e.setIdMatch(idMatch);
         e.setIdCharacterMatch(idCharacter);
         e.setIdLocationFrom(fromLocation);
@@ -511,7 +516,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     public void logEventExecuted(long idMatch, Long idCharacter, long idEvent, int clock, String message,
                                  SpentResources spent, ResourceDelta gained) {
         LogEventsEntity e = new LogEventsEntity();
-        e.setId(logEventsRepository.findMaxId() + 1);
+        e.setId(logIds.nextId(LogTable.EVENTS));
         e.setIdMatch(idMatch);
         e.setIdCharacterMatch(idCharacter);
         e.setIdEvent(idEvent);
@@ -533,7 +538,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     @Override
     public void logItemAction(long idMatch, long idCharacter, long idItem, String action,
                               int counter, Long idEvent, String effectsJson, ResourceDelta delta) {
-        ItemLogRows.append(logItemUsageRepository, idMatch, idCharacter, idItem, action,
+        ItemLogRows.append(logItemUsageRepository, logIds, idMatch, idCharacter, idItem, action,
                 counter, idEvent, effectsJson, delta);
     }
 
@@ -645,7 +650,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     @Override
     public void logChoiceExecuted(long idMatch, long idEvent, long idChoice, int clock, String message) {
         LogChoicesExecutedEntity e = new LogChoicesExecutedEntity();
-        e.setId(logChoicesRepository.findMaxId() + 1);
+        e.setId(logIds.nextId(LogTable.CHOICES_EXECUTED));
         e.setIdMatch(idMatch);
         e.setIdEvent(idEvent);
         e.setIdChoise(idChoice);

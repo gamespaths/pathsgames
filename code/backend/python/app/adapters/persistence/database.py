@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
 from app.adapters.persistence.auth.models import Base
+from app.adapters.persistence.match.log_ids import align_log_sequences
 from app.config import settings
 import os
 
@@ -120,6 +121,8 @@ def align_schema(bind=None):
 def init_db():
     Base.metadata.create_all(bind=engine)
     align_schema(engine)
+    # v0.38.1 — PostgreSQL hands out the log_* ids from sequences create_all never made.
+    align_log_sequences(engine)
     #if settings.env == "development":
     #    from app.adapters.persistence.seed_dev_data import seed_dev_data
     #    seed_dev_data(engine)

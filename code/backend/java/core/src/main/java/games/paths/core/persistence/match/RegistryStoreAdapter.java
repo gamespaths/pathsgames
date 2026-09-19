@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import games.paths.core.model.match.LogTable;
+import games.paths.core.port.match.LogIdPort;
 
 /**
  * RegistryStoreAdapter - JPA adapter for {@link RegistryStorePort}, the single writer and
@@ -24,13 +26,16 @@ public class RegistryStoreAdapter implements RegistryStorePort {
     private final GamingStateRegistryRepository registryRepository;
     private final LogEventsRepository logEventsRepository;
     private final games.paths.core.repository.match.GamingMatchRepository matchRepository;
+    private final LogIdPort logIds;
 
     public RegistryStoreAdapter(GamingStateRegistryRepository registryRepository,
                                 LogEventsRepository logEventsRepository,
-                                games.paths.core.repository.match.GamingMatchRepository matchRepository) {
+                                games.paths.core.repository.match.GamingMatchRepository matchRepository,
+                                LogIdPort logIds) {
         this.registryRepository = registryRepository;
         this.logEventsRepository = logEventsRepository;
         this.matchRepository = matchRepository;
+        this.logIds = logIds;
     }
 
     @Override
@@ -190,7 +195,7 @@ public class RegistryStoreAdapter implements RegistryStorePort {
     public void logChange(long idMatch, Long idCharacter, Long idEvent, Long idChoice,
                           Integer clock, String message) {
         LogEventsEntity e = new LogEventsEntity();
-        e.setId(logEventsRepository.findMaxId() + 1);
+        e.setId(logIds.nextId(LogTable.EVENTS));
         e.setIdMatch(idMatch);
         e.setIdCharacterMatch(idCharacter);
         e.setIdEvent(idEvent);

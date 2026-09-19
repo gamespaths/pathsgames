@@ -14,6 +14,10 @@ import {
 } from '../lib/match.js';
 
 export const options = {
+  // setup imports the tutorial, teardown cleans up every level's guests/matches: both can
+  // outlast k6's 60s default when a big level left thousands of rows behind.
+  setupTimeout: '300s',
+  teardownTimeout: '300s',
   scenarios: {
     match_movement: {
       executor: 'per-vu-iterations',

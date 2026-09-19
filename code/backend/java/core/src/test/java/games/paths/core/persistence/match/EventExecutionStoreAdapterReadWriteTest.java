@@ -51,6 +51,8 @@ import static games.paths.core.port.match.EventExecutionStorePort.MSG_EVENT_EXEC
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import games.paths.core.port.match.LogIdPort;
+import games.paths.core.model.match.LogTable;
 
 /**
  * EventExecutionStoreAdapter — the Step 29/30 reads (match, actors, backpack, story lookups,
@@ -72,6 +74,7 @@ class EventExecutionStoreAdapterReadWriteTest {
     private GamingStoryProgressRepository storyProgressRepository;
     private StoryReadPort storyReadPort;
     private WeatherStorePort weatherStorePort;
+    private LogIdPort logIds;
     private EventExecutionStoreAdapter adapter;
 
     @BeforeEach
@@ -89,10 +92,11 @@ class EventExecutionStoreAdapterReadWriteTest {
         storyProgressRepository = mock(GamingStoryProgressRepository.class);
         storyReadPort = mock(StoryReadPort.class);
         weatherStorePort = mock(WeatherStorePort.class);
+        logIds = mock(LogIdPort.class);
         adapter = new EventExecutionStoreAdapter(matchRepository, characterRepository,
                 backpackRepository, inventoryRepository, traitsRepository, registryStorePort,
                 logEventsRepository, logItemUsageRepository, logMovementRepository,
-                logChoicesRepository, storyProgressRepository, storyReadPort, weatherStorePort);
+                logChoicesRepository, storyProgressRepository, storyReadPort, weatherStorePort, logIds);
     }
 
     // ── fixtures ────────────────────────────────────────────────────────────
@@ -720,7 +724,7 @@ class EventExecutionStoreAdapterReadWriteTest {
 
     @Test
     void logEventExecuted_writesTheAuditRowWithTheNextId() {
-        when(logEventsRepository.findMaxId()).thenReturn(6L);
+        when(logIds.nextId(LogTable.EVENTS)).thenReturn(7L);
 
         adapter.logEventExecuted(1L, 3L, 12L, 5, MSG_EVENT_EXECUTED + "#12",
                 new EventExecutionStorePort.SpentResources(2, 1, 0, 3),
@@ -885,7 +889,7 @@ class EventExecutionStoreAdapterReadWriteTest {
 
     @Test
     void logChoiceExecuted_writesTheHistoryRowWithTheNextId() {
-        when(logChoicesRepository.findMaxId()).thenReturn(6L);
+        when(logIds.nextId(LogTable.CHOICES_EXECUTED)).thenReturn(7L);
 
         adapter.logChoiceExecuted(1L, 12L, 20L, 5, MSG_CHOICE_SELECTED + " 20");
 

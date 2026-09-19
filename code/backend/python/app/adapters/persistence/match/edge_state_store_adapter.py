@@ -11,6 +11,7 @@ from app.adapters.persistence.match.models import (
     GamingCharacterInstanceEntity, LogEventsEntity,
 )
 from app.core.ports.match.edge_state_ports import EdgeStateStorePort
+from app.adapters.persistence.match.log_ids import next_log_id
 
 
 def _now_iso() -> str:
@@ -60,11 +61,10 @@ class EdgeStateStoreAdapter(EdgeStateStorePort):
     def log_edge_state(self, id_match: int, id_character: Optional[int],
                        id_event: Optional[int], clock: int, message: str) -> None:
         with self.session_factory() as session:
-            max_id = session.query(LogEventsEntity.id).order_by(
-                LogEventsEntity.id.desc()).first()
+            next_id = next_log_id(session, LogEventsEntity)
             now = _now_iso()
             session.add(LogEventsEntity(
-                id=((max_id[0] if max_id else 0) or 0) + 1,
+                id=next_id,
                 id_match=id_match, uuid=str(uuid_lib.uuid4()),
                 id_character_match=id_character, id_event=id_event, clock=clock,
                 log_message=message, timestamp=now, ts_insert=now, ts_update=now))

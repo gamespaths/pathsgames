@@ -30,6 +30,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import games.paths.core.port.match.LogIdPort;
+import games.paths.core.model.match.LogTable;
 
 /** Unit tests for {@link InventoryStoreAdapter} (Step 34). */
 @DisplayName("InventoryStoreAdapter (Step 34)")
@@ -45,6 +47,7 @@ class InventoryStoreAdapterTest {
     private GamingBackpackResourcesRepository backpackRepository;
     private LogItemUsageRepository logItemUsageRepository;
     private StoryReadPort storyReadPort;
+    private LogIdPort logIds;
     private InventoryStoreAdapter adapter;
 
     @BeforeEach
@@ -55,8 +58,9 @@ class InventoryStoreAdapterTest {
         backpackRepository = mock(GamingBackpackResourcesRepository.class);
         logItemUsageRepository = mock(LogItemUsageRepository.class);
         storyReadPort = mock(StoryReadPort.class);
+        logIds = mock(LogIdPort.class);
         adapter = new InventoryStoreAdapter(matchRepository, characterRepository, inventoryRepository,
-                backpackRepository, logItemUsageRepository, storyReadPort);
+                backpackRepository, logItemUsageRepository, storyReadPort, logIds);
     }
 
     private static GamingInventoryItemsEntity row(long id, long idItem) {
@@ -213,7 +217,7 @@ class InventoryStoreAdapterTest {
     @Test
     @DisplayName("the log id is the TABLE-WIDE max plus one: log_item_usage carries UNIQUE (id)")
     void logItemAction_allocatesAGloballyUniqueId() {
-        when(logItemUsageRepository.findMaxId()).thenReturn(41L);
+        when(logIds.nextId(LogTable.ITEM_USAGE)).thenReturn(42L);
 
         adapter.logItemAction(MATCH_ID, CHAR_ID, 900L, "USE", 2, "{}",
                 new EventExecutionStorePort.ResourceDelta(3, 0, -1, 0));
@@ -238,7 +242,7 @@ class InventoryStoreAdapterTest {
     @Test
     @DisplayName("the first row of an empty table gets id 1")
     void logItemAction_firstRow() {
-        when(logItemUsageRepository.findMaxId()).thenReturn(0L);
+        when(logIds.nextId(LogTable.ITEM_USAGE)).thenReturn(1L);
 
         adapter.logItemAction(MATCH_ID, CHAR_ID, 900L, "USE", 1, "{}",
                 EventExecutionStorePort.ResourceDelta.none());

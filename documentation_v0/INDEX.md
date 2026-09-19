@@ -23,7 +23,7 @@ Every Step file follows the same skeleton, so grep for these headings:
 | `Step07_ConfigureWebsite.md` | Domains, AWS Terraform infra, CSP | terraform, website, DNS, CSP |
 | `Step08_ConfigureMinimalCI.md` | Environments, CI, Docker image build/push | CI, docker, environments |
 | `Step09_DesignCoreDataModel.md` | **Core data model.** Entities, relationships, persistent vs transient, valid game states, invariants; **v0.37.0**: Mission/MissionStep columns renamed to `condition_value`/`condition_values` | entities, data model, invariants, game state, condition_value, condition_values, mission |
-| `Step10_CreateDBschema.md` | Tables, PKs, FKs, indexes, schema versioning | schema, flyway, DDL, indexes |
+| `Step10_CreateDBschema.md` | Tables, PKs, FKs, indexes, schema versioning. **v0.38.1**: PostgreSQL log-table id sequences | schema, flyway, DDL, indexes, log sequences, LogIdPort |
 | `Step11_DefineAPIVersioning.md` | Versioning scheme, backward compat, deprecation | versioning, deprecation |
 | `Step12_GuestLoginMethod.md` | Guest login, JWT token structure. v0.36.2: admin guest list paged; **v0.37.5**: AWS cookie resume reads GSI1, admin guest list reads GSI2. | guest, login, JWT, admin-guests, pagination, stale-purge, GSI1, GSI2 |
 | `Step13_SessionTokenManagement.md` | Session/token management, auth filter | session, token, auth filter |

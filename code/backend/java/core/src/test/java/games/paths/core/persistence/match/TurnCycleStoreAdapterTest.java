@@ -31,6 +31,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
+import games.paths.core.port.match.LogIdPort;
+import games.paths.core.model.match.LogTable;
 
 class TurnCycleStoreAdapterTest {
 
@@ -41,6 +43,7 @@ class TurnCycleStoreAdapterTest {
     private LogEventsRepository logEventsRepository;
     private StoryRepository storyRepository;
     private TextRepository textRepository;
+    private LogIdPort logIds;
     private TurnCycleStoreAdapter adapter;
 
     @BeforeEach
@@ -52,8 +55,9 @@ class TurnCycleStoreAdapterTest {
         logEventsRepository = mock(LogEventsRepository.class);
         storyRepository = mock(StoryRepository.class);
         textRepository = mock(TextRepository.class);
+        logIds = mock(LogIdPort.class);
         adapter = new TurnCycleStoreAdapter(matchRepository, characterRepository, turnQueueRepository,
-                logClockHistoryRepository, logEventsRepository, storyRepository, textRepository);
+                logClockHistoryRepository, logEventsRepository, storyRepository, textRepository, logIds);
     }
 
     private GamingMatchEntity match() {
@@ -189,14 +193,14 @@ class TurnCycleStoreAdapterTest {
 
     @Test
     void insertClockHistory_savesWithNextId() {
-        when(logClockHistoryRepository.findMaxId()).thenReturn(4L);
+        when(logIds.nextId(LogTable.CLOCK_HISTORY)).thenReturn(5L);
         adapter.insertClockHistory(1L, 5);
         verify(logClockHistoryRepository).save(any(LogClockHistoryEntity.class));
     }
 
     @Test
     void logSleep_savesEventWithNextIdAndClock() {
-        when(logEventsRepository.findMaxId()).thenReturn(7L);
+        when(logIds.nextId(LogTable.EVENTS)).thenReturn(8L);
         adapter.logSleep(1L, 10L, 3);
 
         ArgumentCaptor<LogEventsEntity> captor = ArgumentCaptor.forClass(LogEventsEntity.class);

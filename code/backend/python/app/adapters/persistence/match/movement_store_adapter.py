@@ -30,6 +30,7 @@ from app.adapters.persistence.story.models import (
     WeatherRuleEntity,
 )
 from app.core.ports.match.movement_ports import MovementStorePort
+from app.adapters.persistence.match.log_ids import next_log_id
 
 
 class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
@@ -164,10 +165,10 @@ class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
                             energy_cost: int, food_cost: int = 0,
                             magic_cost: int = 0, coin_cost: int = 0) -> None:
         with self.session_factory() as session:
-            max_id = session.query(func.max(LogMovementEntity.id)).scalar() or 0
+            next_id = next_log_id(session, LogMovementEntity)
             now = _now_iso()
             session.add(LogMovementEntity(
-                id=max_id + 1,
+                id=next_id,
                 id_match=id_match,
                 uuid=_new_uuid(),
                 id_character_match=id_character,

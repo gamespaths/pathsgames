@@ -12,6 +12,7 @@ from app.adapters.persistence.match.models import (
 from app.adapters.persistence.story.models import LocationEntity
 from app.adapters.persistence.match.turn_cycle_store_adapter import _new_uuid, _now_iso
 from app.core.ports.match.location_entry_ports import LocationEntryStorePort
+from app.adapters.persistence.match.log_ids import next_log_id
 
 
 class LocationEntryStoreAdapter(LocationEntryStorePort):
@@ -84,10 +85,10 @@ class LocationEntryStoreAdapter(LocationEntryStorePort):
                             id_location: int, id_event: Optional[int],
                             clock: Optional[int], message: str) -> None:
         with self.session_factory() as session:
-            max_id = session.query(func.max(LogEventsEntity.id)).scalar() or 0
+            next_id = next_log_id(session, LogEventsEntity)
             now = _now_iso()
             session.add(LogEventsEntity(
-                id=max_id + 1,
+                id=next_id,
                 id_match=id_match,
                 uuid=_new_uuid(),
                 id_character_match=id_character,

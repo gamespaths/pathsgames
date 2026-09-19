@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import games.paths.core.model.match.LogTable;
+import games.paths.core.port.match.LogIdPort;
 
 /**
  * WeatherStoreAdapter - JPA adapter implementing {@link WeatherStorePort} for
@@ -33,19 +35,22 @@ public class WeatherStoreAdapter implements WeatherStorePort {
     private final LogWeatherRepository logWeatherRepository;
     private final LogEventsRepository logEventsRepository;
     private final games.paths.core.port.story.StoryReadPort storyReadPort;
+    private final LogIdPort logIds;
 
     public WeatherStoreAdapter(GamingMatchRepository matchRepository,
                                GamingCharacterInstanceRepository characterRepository,
                                WeatherRuleRepository weatherRuleRepository,
                                LogWeatherRepository logWeatherRepository,
                                LogEventsRepository logEventsRepository,
-                               games.paths.core.port.story.StoryReadPort storyReadPort) {
+                               games.paths.core.port.story.StoryReadPort storyReadPort,
+                               LogIdPort logIds) {
         this.matchRepository = matchRepository;
         this.characterRepository = characterRepository;
         this.weatherRuleRepository = weatherRuleRepository;
         this.logWeatherRepository = logWeatherRepository;
         this.logEventsRepository = logEventsRepository;
         this.storyReadPort = storyReadPort;
+        this.logIds = logIds;
     }
 
     @Override
@@ -102,7 +107,7 @@ public class WeatherStoreAdapter implements WeatherStorePort {
     @Override
     public void insertLogWeather(long idMatch, int clock, Long idWeather) {
         LogWeatherEntity e = new LogWeatherEntity();
-        e.setId(logWeatherRepository.findMaxId() + 1);
+        e.setId(logIds.nextId(LogTable.WEATHER));
         e.setIdMatch(idMatch);
         e.setClock(clock);
         e.setIdWeather(idWeather);
@@ -112,7 +117,7 @@ public class WeatherStoreAdapter implements WeatherStorePort {
     @Override
     public void logWeatherEvent(long idMatch, Integer idEvent, String message) {
         LogEventsEntity e = new LogEventsEntity();
-        e.setId(logEventsRepository.findMaxId() + 1);
+        e.setId(logIds.nextId(LogTable.EVENTS));
         e.setIdMatch(idMatch);
         e.setIdEvent(idEvent == null ? null : idEvent.longValue());
         e.setLogMessage(message);

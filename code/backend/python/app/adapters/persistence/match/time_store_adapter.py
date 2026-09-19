@@ -5,7 +5,6 @@ methods (match, characters, queue) and adds the time-advancement writes.
 """
 from typing import Any, Dict, Optional, Tuple
 
-from sqlalchemy import func
 
 from typing import List
 
@@ -29,6 +28,7 @@ from app.adapters.persistence.story.models import (
     TextEntity,
 )
 from app.core.ports.match.time_ports import TimeStorePort
+from app.adapters.persistence.match.log_ids import next_log_id
 
 
 class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
@@ -116,10 +116,10 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
 
     def insert_clock_history(self, id_match: int, clock: int) -> None:
         with self.session_factory() as session:
-            max_id = session.query(func.max(LogClockHistoryEntity.id)).scalar() or 0
+            next_id = next_log_id(session, LogClockHistoryEntity)
             now = _now_iso()
             session.add(LogClockHistoryEntity(
-                id=max_id + 1,
+                id=next_id,
                 id_match=id_match,
                 uuid=_new_uuid(),
                 clock=clock,
@@ -333,10 +333,10 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
     def _insert_log_event(self, id_match: int, id_character_match, id_event,
                           message: str, clock: int = None, id_location=None) -> None:
         with self.session_factory() as session:
-            max_id = session.query(func.max(LogEventsEntity.id)).scalar() or 0
+            next_id = next_log_id(session, LogEventsEntity)
             now = _now_iso()
             session.add(LogEventsEntity(
-                id=max_id + 1,
+                id=next_id,
                 id_match=id_match,
                 uuid=_new_uuid(),
                 id_character_match=id_character_match,

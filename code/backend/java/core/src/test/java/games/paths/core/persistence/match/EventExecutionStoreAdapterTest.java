@@ -27,6 +27,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import games.paths.core.port.match.LogIdPort;
+import games.paths.core.model.match.LogTable;
 
 /**
  * EventExecutionStoreAdapter — the v0.29.3 forced-movement writes: the location update,
@@ -37,6 +39,7 @@ class EventExecutionStoreAdapterTest {
     private GamingCharacterInstanceRepository characterRepository;
     private LogMovementRepository logMovementRepository;
     private StoryReadPort storyReadPort;
+    private LogIdPort logIds;
     private EventExecutionStoreAdapter adapter;
 
     @BeforeEach
@@ -44,6 +47,7 @@ class EventExecutionStoreAdapterTest {
         characterRepository = mock(GamingCharacterInstanceRepository.class);
         logMovementRepository = mock(LogMovementRepository.class);
         storyReadPort = mock(StoryReadPort.class);
+        logIds = mock(LogIdPort.class);
         adapter = new EventExecutionStoreAdapter(
                 mock(GamingMatchRepository.class),
                 characterRepository,
@@ -57,7 +61,7 @@ class EventExecutionStoreAdapterTest {
                 mock(LogChoicesExecutedRepository.class),
                 mock(GamingStoryProgressRepository.class),
                 storyReadPort,
-                mock(WeatherStorePort.class));
+                mock(WeatherStorePort.class), logIds);
     }
 
     @Test
@@ -85,7 +89,7 @@ class EventExecutionStoreAdapterTest {
 
     @Test
     void insertMovementLog_writesTheRowWithTheNextId() {
-        when(logMovementRepository.findMaxId()).thenReturn(41L);
+        when(logIds.nextId(LogTable.MOVEMENTS)).thenReturn(42L);
 
         adapter.insertMovementLog(1L, 3L, 100L, 200L, 0, 0, 0, 0);
 

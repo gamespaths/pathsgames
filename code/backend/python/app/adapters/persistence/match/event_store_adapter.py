@@ -26,6 +26,7 @@ from app.core.models.match.event_models import EventCheckContext
 from app.core.ports.match.event_ports import MSG_EVENT_EXECUTED, EventStorePort
 from app.core.services.match.registry_service import render as registry_render
 from app.adapters.persistence.auth.models import User
+from app.adapters.persistence.match.log_ids import next_log_id
 
 
 def _now_iso() -> str:
@@ -377,11 +378,10 @@ class EventStoreAdapter(EventStorePort):
                             energy_cost: int, food_cost: int = 0,
                             magic_cost: int = 0, coin_cost: int = 0) -> None:
         with self.session_factory() as session:
-            max_id = session.query(LogMovementEntity.id).order_by(
-                LogMovementEntity.id.desc()).first()
+            next_id = next_log_id(session, LogMovementEntity)
             now = _now_iso()
             session.add(LogMovementEntity(
-                id=((max_id[0] if max_id else 0) or 0) + 1,
+                id=next_id,
                 id_match=id_match, uuid=str(uuid_lib.uuid4()),
                 id_character_match=id_character,
                 id_location_from=from_location, id_location_to=to_location,
@@ -396,11 +396,10 @@ class EventStoreAdapter(EventStorePort):
                            coin_cost: int = 0, gained=None) -> None:
         g = gained or {}
         with self.session_factory() as session:
-            max_id = session.query(LogEventsEntity.id).order_by(
-                LogEventsEntity.id.desc()).first()
+            next_id = next_log_id(session, LogEventsEntity)
             now = _now_iso()
             session.add(LogEventsEntity(
-                id=((max_id[0] if max_id else 0) or 0) + 1,
+                id=next_id,
                 id_match=id_match, uuid=str(uuid_lib.uuid4()),
                 id_character_match=id_character, id_event=id_event, clock=clock,
                 log_message=message, timestamp=now, ts_insert=now, ts_update=now,
@@ -415,12 +414,10 @@ class EventStoreAdapter(EventStorePort):
                         delta=None, id_event=None) -> None:
         d = delta or {}
         with self.session_factory() as session:
-            # Table-wide max: log_item_usage carries UNIQUE (id), like log_events.
-            max_id = session.query(LogItemUsageEntity.id).order_by(
-                LogItemUsageEntity.id.desc()).first()
+            next_id = next_log_id(session, LogItemUsageEntity)
             now = _now_iso()
             session.add(LogItemUsageEntity(
-                id=((max_id[0] if max_id else 0) or 0) + 1,
+                id=next_id,
                 id_match=id_match, uuid=str(uuid_lib.uuid4()),
                 id_character_match=id_character, id_item=id_item, counter=counter,
                 action=action, id_event=id_event,
@@ -509,11 +506,10 @@ class EventStoreAdapter(EventStorePort):
     def log_choice_executed(self, id_match: int, id_event: int, id_choice: int,
                             clock: int, message: str) -> None:
         with self.session_factory() as session:
-            max_id = session.query(LogChoicesExecutedEntity.id).order_by(
-                LogChoicesExecutedEntity.id.desc()).first()
+            next_id = next_log_id(session, LogChoicesExecutedEntity)
             now = _now_iso()
             session.add(LogChoicesExecutedEntity(
-                id=((max_id[0] if max_id else 0) or 0) + 1,
+                id=next_id,
                 id_match=id_match, uuid=str(uuid_lib.uuid4()),
                 id_event=id_event, id_choise=id_choice, clock=clock,
                 log_message=message, ts_insert=now, ts_update=now))

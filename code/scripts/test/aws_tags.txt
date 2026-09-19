@@ -1,0 +1,19 @@
+# aws_ec2_tags.txt — tags applied to EVERY taggable AWS resource created by
+# aws_ec2_with_java_docker/start.sh and aws_ec2_with_python_docker/start.sh:
+#   - EC2 security group        Name=<INSTANCE_NAME>-sg
+#   - EC2 instance              Name=<INSTANCE_NAME>
+#   - EBS root volume           Name=<INSTANCE_NAME>-vol
+#   - CloudFront distribution   Name=<INSTANCE_NAME>-cf   (only when ENABLE_CLOUDFRONT=true)
+# (Route53 records are not taggable.)
+#
+# One Key=Value per line, keys are case-sensitive. Placeholders expanded by start.sh:
+#   ${NAME}      per-resource Name (see list above)
+#   ${ENV_TAG}   ENV_TAG from the root .env (default: test)
+#   ${LANGUAGE}  Java (java script) / Ph (python script)
+Name=${NAME}
+Environment=${ENV_TAG}
+Project=Paths.games
+Owner=AlNao
+CostCenter=Paths.games
+ManagedBy=Sh
+Language=${LANGUAGE}

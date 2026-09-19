@@ -58,10 +58,10 @@ Resources:
         LogFormat: JSON
         SystemLogLevel: !Ref LambdaSystemLogLevel
         ApplicationLogLevel: INFO
-      Handler: handler.lambda_handler
+      Handler: echo.handler.lambda_handler
       Timeout: 30
       MemorySize: 256
-      CodeUri: ../lambda/echo/
+      CodeUri: ../lambda/
       Tags:
         Name: !Sub "pathsgames-${Environment}-EchoFunction"
         CostCenter: Paths.games

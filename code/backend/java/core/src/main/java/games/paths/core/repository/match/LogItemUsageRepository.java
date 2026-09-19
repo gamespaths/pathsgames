@@ -21,9 +21,6 @@ public interface LogItemUsageRepository extends JpaRepository<LogItemUsageEntity
 
     List<LogItemUsageEntity> findByIdMatchAndIdCharacterMatchOrderByIdAsc(Long idMatch, Long idCharacterMatch);
 
-    /** Highest {@code id} across the whole table: the table carries UNIQUE (id). */
-    @Query("SELECT COALESCE(MAX(l.id), 0) FROM LogItemUsageEntity l")
-    long findMaxId();
 
     /**
      * Deletes every usage row for the given matches. Used by the test-data cleanup

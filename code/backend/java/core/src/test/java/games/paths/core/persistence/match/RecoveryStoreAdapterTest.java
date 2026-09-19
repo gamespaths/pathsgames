@@ -26,6 +26,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import games.paths.core.port.match.LogIdPort;
+import games.paths.core.model.match.LogTable;
 
 class RecoveryStoreAdapterTest {
 
@@ -34,6 +36,7 @@ class RecoveryStoreAdapterTest {
     private GamingStateLocationsRepository stateLocationsRepository;
     private LogEventsRepository logEventsRepository;
     private StoryReadPort storyReadPort;
+    private LogIdPort logIds;
     private RecoveryStoreAdapter adapter;
 
     @BeforeEach
@@ -43,9 +46,10 @@ class RecoveryStoreAdapterTest {
         stateLocationsRepository = mock(GamingStateLocationsRepository.class);
         logEventsRepository = mock(LogEventsRepository.class);
         storyReadPort = mock(StoryReadPort.class);
+        logIds = mock(LogIdPort.class);
         adapter = new RecoveryStoreAdapter(
                 matchRepository, characterRepository, stateLocationsRepository,
-                logEventsRepository, storyReadPort);
+                logEventsRepository, storyReadPort, logIds);
     }
 
     // ─── loadContext ────────────────────────────────────────────────────────
@@ -309,7 +313,7 @@ class RecoveryStoreAdapterTest {
 
     @Test
     void logRecovery_savesLogEvent() {
-        when(logEventsRepository.findMaxId()).thenReturn(100L);
+        when(logIds.nextId(LogTable.EVENTS)).thenReturn(101L);
         adapter.logRecovery(1L, 2L, "recovered");
         verify(logEventsRepository).save(any());
     }
@@ -318,14 +322,14 @@ class RecoveryStoreAdapterTest {
 
     @Test
     void logCounterZero_withNullEvent_savesLogEvent() {
-        when(logEventsRepository.findMaxId()).thenReturn(50L);
+        when(logIds.nextId(LogTable.EVENTS)).thenReturn(51L);
         adapter.logCounterZero(1L, 7L, null, 4, "counter zero");
         verify(logEventsRepository).save(any());
     }
 
     @Test
     void logCounterZero_withEvent_savesLogEvent() {
-        when(logEventsRepository.findMaxId()).thenReturn(50L);
+        when(logIds.nextId(LogTable.EVENTS)).thenReturn(51L);
         adapter.logCounterZero(1L, 7L, 99, 4, "counter zero with event");
         verify(logEventsRepository).save(any());
     }
@@ -337,7 +341,7 @@ class RecoveryStoreAdapterTest {
      */
     @Test
     void logCounterZero_stampsTheClockAndTheLocation() {
-        when(logEventsRepository.findMaxId()).thenReturn(50L);
+        when(logIds.nextId(LogTable.EVENTS)).thenReturn(51L);
         ArgumentCaptor<LogEventsEntity> saved = ArgumentCaptor.forClass(LogEventsEntity.class);
 
         adapter.logCounterZero(1L, 7L, 99, 12, "counter reached zero at location 7");
