@@ -399,12 +399,15 @@ public class CoreConfig {
                 inventoryStorePort, userAccessPort, contentQueryPort, storyReadPort, eventExecutionService);
     }
 
-    /** Step 38 — experience spent on a stat; prices with the difficulty row, logs EXP_USE. */
+    /** Step 38 — experience spent on a stat; prices with the difficulty row, logs EXP_USE.
+     *  v0.38.3 — writes the declared use-exp keys on the registry, so a mission can wait for it. */
     @Bean
     public games.paths.core.port.match.ExperiencePort experiencePort(
             games.paths.core.port.match.ExperienceStorePort experienceStorePort,
-            UserAccessPort userAccessPort) {
-        return new games.paths.core.service.match.ExperienceService(experienceStorePort, userAccessPort);
+            UserAccessPort userAccessPort,
+            games.paths.core.service.match.RegistryService registryService) {
+        return new games.paths.core.service.match.ExperienceService(experienceStorePort, userAccessPort,
+                registryService);
     }
 
     // ───── Step 21: Character template & class selection ─────

@@ -3199,6 +3199,11 @@ def _use_exp(user, match_uuid, body):
                     message=f"EXP_USE {purchase['stat']} {purchase['statBefore']}->{purchase['statAfter']}"
                             f" cost {purchase['expCost']}",
                     stat=purchase['stat'], expCost=purchase['expCost'])
+    # v0.38.3 — the declared use-exp keys, after the character is saved so a mission's event reads it fresh.
+    for key, value in _experience.registry_writes(story, match, purchase['stat'], purchase['statAfter']):
+        _registry.upsert(match, key, value, None, id_character=caller.get('id'),
+                         clock=_nz(match.get('currentClock')), character_uuid=caller.get('uuid'),
+                         timestamp=_ts_ms(), story=story)
     _logbook.persist(match)
     return _ok({"matchUuid": match_uuid, **purchase})
 

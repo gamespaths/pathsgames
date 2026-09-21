@@ -113,3 +113,69 @@ def test_without_a_difficulty_row_the_match_exp_cost_prices_the_point(env):
     _wire(store, _match(id_difficulty=None, exp_cost=4), _actor(dex=1, exp=100))
     assert service.use_exp("m1", USER, "dex")["exp_cost"] == 4
     store.find_difficulty.assert_called_once()
+
+
+# ── v0.38.3 — the registry ────────────────────────────────────────────────────
+
+@pytest.fixture()
+def reg_env():
+    store, users, registry = MagicMock(), MagicMock(), MagicMock()
+    users.find_by_uuid.side_effect = lambda u: {"id": USER_ID, "uuid": USER} if u == USER else None
+    registry.is_declared.return_value = False
+    registry.find.return_value = []
+    _wire(store, _match(), _actor(exp=100), difficulty={"exp_cost": 1, "exp_cost_base": 0, "max_stat_value": 0})
+    return ExperienceService(store, users, registry_service=registry), store, registry
+
+
+def test_first_use_writes_use_exp_1_and_the_stat_key_after_the_character(reg_env):
+    service, store, registry = reg_env
+    registry.is_declared.side_effect = lambda s, k: (s, k) in {(5, "use-exp"), (5, "use-exp-DEX")}
+
+    service.use_exp("m1", USER, "dex")
+
+    store.update_character.assert_called_once_with(MATCH_ID, CHAR_ID, 11, 12, 4, 90)
+    assert registry.upsert.call_args_list == [
+        ((MATCH_ID, 5, "use-exp", "1"), {"id_character": CHAR_ID, "clock": 3}),
+        ((MATCH_ID, 5, "use-exp-DEX", "11"), {"id_character": CHAR_ID, "clock": 3}),
+    ]
+
+
+def test_the_counter_grows_from_the_highest_value_stored_and_junk_counts_as_zero(reg_env):
+    service, _, registry = reg_env
+    registry.is_declared.side_effect = lambda s, k: k == "use-exp"
+    registry.find.return_value = ["2"]
+    service.use_exp("m1", USER, "int")
+    registry.upsert.assert_called_once_with(MATCH_ID, 5, "use-exp", "3", id_character=CHAR_ID, clock=3)
+
+    registry.upsert.reset_mock()
+    registry.find.return_value = ["1", " 4 ", "abc", None]
+    service.use_exp("m1", USER, "cos")
+    registry.upsert.assert_called_once_with(MATCH_ID, 5, "use-exp", "5", id_character=CHAR_ID, clock=3)
+
+
+def test_only_the_declared_stat_key_is_written(reg_env):
+    service, _, registry = reg_env
+    registry.is_declared.side_effect = lambda s, k: k == "use-exp-COS"
+    service.use_exp("m1", USER, "cos")
+    registry.upsert.assert_called_once_with(MATCH_ID, 5, "use-exp-COS", "5", id_character=CHAR_ID, clock=3)
+    registry.find.assert_not_called()
+
+
+def test_undeclared_keys_are_skipped_without_error(reg_env):
+    service, _, registry = reg_env
+    assert service.use_exp("m1", USER, "dex")["stat_after"] == 11
+    registry.upsert.assert_not_called()
+
+
+def test_a_failing_gate_never_reaches_the_registry(reg_env):
+    service, store, registry = reg_env
+    registry.is_declared.return_value = True
+    _wire(store, _match(), _actor(exp=0), difficulty={"exp_cost": 1, "exp_cost_base": 0, "max_stat_value": 0})
+    assert _code(service) == ExperienceError.NOT_ENOUGH_EXP
+    registry.upsert.assert_not_called()
+
+
+def test_without_a_registry_service_nothing_is_written(env):
+    service, store = env
+    _wire(store, _match(), _actor(exp=100), difficulty={"exp_cost": 1, "exp_cost_base": 0, "max_stat_value": 0})
+    assert service.use_exp("m1", USER, "dex")["stat_after"] == 11

@@ -275,8 +275,10 @@ inventory_service = InventoryService(inventory_store_adapter,
 inventory_controller = InventoryController(inventory_service)
 
 # Step 38 — experience spent on a stat; prices with the difficulty row, logs EXP_USE.
+# v0.38.3 — writes the declared use-exp keys on the registry, so a mission can wait for it.
 experience_store_adapter = ExperienceStoreAdapter(SessionLocal)
-experience_service = ExperienceService(experience_store_adapter, user_access_port=user_access_adapter)
+experience_service = ExperienceService(experience_store_adapter, user_access_port=user_access_adapter,
+                                       registry_service=registry_service)
 experience_controller = ExperienceController(experience_service)
 
 # Step 33 — one service, two roles. EventService implements the location engine as well,

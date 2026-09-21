@@ -2,8 +2,9 @@
 
 Gates in the order the other gameplay services use, prices the point with
 ``ExperienceCost`` and writes + logs. Mirrors the Java ``ExperienceService``.
+v0.38.3: leaves its mark on the registry so a Step 37 mission can wait for it.
 """
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from app.core.ports.match.experience_ports import (
     ExperienceError,
@@ -15,6 +16,10 @@ from app.core.services.match.experience_cost import STAT_FIELD, STATS, Experienc
 
 # Prefix of the log_events row the timeline classifies as EXP_USE.
 MSG_EXP_USE = "EXP_USE"
+# v0.38.3 — registry key counting the use-exp calls of the match: 1 on the first, then 2, 3...
+KEY_USE_EXP = "use-exp"
+# v0.38.3 — prefix of the per-stat key (``use-exp-DEX``) holding the value just reached.
+KEY_USE_EXP_PREFIX = "use-exp-"
 _RUNNING = "RUNNING"
 
 
@@ -24,10 +29,20 @@ def normalize_stat(stat) -> str | None:
     return token if token in STATS else None
 
 
+def _int_or_zero(value) -> int:
+    """A registry value read as a counter; anything that is not a number counts as zero."""
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return 0
+
+
 class ExperienceService(ExperiencePort):
-    def __init__(self, store: ExperienceStorePort, user_access_port: UserAccessPort) -> None:
+    def __init__(self, store: ExperienceStorePort, user_access_port: UserAccessPort,
+                 registry_service=None) -> None:
         self.store = store
         self.user_access_port = user_access_port
+        self.registry_service = registry_service
 
     def use_exp(self, match_uuid: str, user_uuid: str, stat: str) -> Dict[str, Any]:
         user = self.user_access_port.find_by_uuid(user_uuid) if user_uuid else None
@@ -78,6 +93,7 @@ class ExperienceService(ExperiencePort):
                                     stats["intelligence"], stats["constitution"], exp_after)
         self.store.log_exp_use(match["id"], actor["id"], int(match.get("current_clock") or 0),
                                f"{MSG_EXP_USE} {token} {before}->{after} cost {cost}")
+        self._write_registry(match, actor["id"], token, after)
         return {
             "match_uuid": match.get("uuid"),
             "character_uuid": actor.get("uuid"),
@@ -95,6 +111,26 @@ class ExperienceService(ExperiencePort):
                  "before": exp_before, "after": exp_after, "delta": -cost},
             ],
         }
+
+    def _write_registry(self, match: Dict[str, Any], id_character: int, token: str,
+                        after: int) -> None:
+        """v0.38.3 — the registry keys of use-exp. Only a key the story DECLARES in list_keys is
+        written: an undeclared one is skipped in silence, so a story that never asked for them
+        sees no orphan row. Each write goes through ``RegistryService.upsert``, which is what
+        lets a mission waiting on ``use-exp = 1`` or ``use-exp-DEX = 5`` move at once."""
+        registry = self.registry_service
+        id_story: Optional[int] = match.get("id_story")
+        if registry is None or id_story is None:
+            return
+        clock = int(match.get("current_clock") or 0)
+        if registry.is_declared(id_story, KEY_USE_EXP):
+            count = max((_int_or_zero(v) for v in registry.find(match["id"], KEY_USE_EXP)), default=0)
+            registry.upsert(match["id"], id_story, KEY_USE_EXP, str(count + 1),
+                            id_character=id_character, clock=clock)
+        stat_key = KEY_USE_EXP_PREFIX + token.upper()
+        if registry.is_declared(id_story, stat_key):
+            registry.upsert(match["id"], id_story, stat_key, str(after),
+                            id_character=id_character, clock=clock)
 
     def _pricing_of(self, match: Dict[str, Any]) -> ExperienceCost:
         if match.get("id_story") is None or match.get("id_difficulty") is None:

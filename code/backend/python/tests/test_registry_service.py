@@ -494,6 +494,11 @@ def test_is_declared_for_match_uuid_follows_the_story(enriched, store):
     assert service.is_declared_for_match_uuid("m-uuid", " WINTER ") is True
     assert service.is_declared_for_match_uuid("m-uuid", "WNITER") is False
     assert service.is_declared_for_match_uuid("m-uuid", None) is False
+    # v0.38.3 — the same answer by story id, the form use-exp asks in
+    assert service.is_declared(3, "WINTER") is True
+    assert service.is_declared(3, "use-exp") is False
+    assert service.is_declared(3, None) is False
+    assert service.is_declared(None, "WINTER") is False
 
 
 def test_is_declared_for_match_uuid_without_a_story_port(service, store):

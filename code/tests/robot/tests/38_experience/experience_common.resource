@@ -13,8 +13,13 @@
 #   locations  1 the Hall (secureParam 1, start) — 2 the Wilds (secureParam 0), one edge
 #   events     10 small lesson (+1 exp), 11 great lesson (+50 exp), 18 opens the quests,
 #              12/13/14 close quest A/B/C (qa/qb/qc=done); 15/16/17 are the rewards a
-#              completed mission fires (+1 exp each) and belong to no location
+#              completed mission fires (+1 exp each) and belong to no location;
+#              19 is the reward of the Nimble quest (+1 exp), v0.38.3
 #   missions   A/B/C: available on quests=open, one step each on qa/qb/qc=done
+#              v0.38.3 — First lesson: completed on use-exp=1 (no steps, no reward);
+#              Nimble: available on use-exp=1, one step on use-exp-DEX=4, reward 19
+#   keys       quests/qa/qb/qc (QUESTS); v0.38.3 use-exp, use-exp-DEX (EXPERIENCE) — the
+#              keys use-exp writes; use-exp-INT / use-exp-COS are NOT declared on purpose
 # ---------------------------------------------------------------------------
 Library    RequestsLibrary
 Library    Collections
@@ -130,3 +135,26 @@ Rows Of Type
     ${logs}=    Get Match Logs    ${token}    ${match}    200
     ${rows}=    Evaluate    [e for e in $logs.json()['logs'] if e.get('type') == $type]
     RETURN    ${rows}
+
+Registry Values Of
+    [Documentation]    v0.38.3 — the SET one key holds right now, or None when the registry
+    ...                carries no entry for it (a key the story never declared, never written).
+    [Arguments]    ${token}    ${match}    ${key}
+    ${response}=    Get Registry    ${token}    ${match}    200    include_hidden=true
+    FOR    ${group}    IN    @{response.json()}[groups]
+        FOR    ${entry}    IN    @{group}[entries]
+            IF    $entry['key'] == $key    RETURN    ${entry}[values]
+        END
+    END
+    RETURN    ${None}
+
+Mission Named
+    [Documentation]    v0.38.3 — the /missions row of one mission by name, or None when the
+    ...                match has not reached it yet.
+    [Arguments]    ${token}    ${match}    ${name}
+    ${missions}=    Get Missions    ${token}    ${match}    200
+    FOR    ${m}    IN    @{missions.json()}[missions]
+        IF    $m['name'] == $name    RETURN    ${m}
+    END
+    RETURN    ${None}
+

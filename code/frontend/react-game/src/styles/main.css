@@ -1457,6 +1457,9 @@ html, body {
 .selection-list > .pg-card--grid {
   margin: 8px;
 }
+.selection-list > .match-card-wrap {
+  margin: 8px;
+}
 
 .config-title {
   text-align: center;
@@ -2685,6 +2688,7 @@ html, body {
   overflow: hidden;
 }
 .matches-list-title {
+  display:none;
   font-family: var(--font-heading);
   color: var(--color-gold-super-deep);
   font-size: 1.25rem;

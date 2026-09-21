@@ -540,7 +540,12 @@ public class RegistryService {
         if (ids == null) {
             return null;
         }
-        return keyDefinitions(ids[1]).containsKey(key == null ? null : key.trim());
+        return isDeclared(ids[1], key);
+    }
+
+    /** v0.38.3 - whether the story declares this key in {@code list_keys}; false on a null story. */
+    public boolean isDeclared(Long idStory, String key) {
+        return key != null && keyDefinitions(idStory).containsKey(key.trim());
     }
 
     /**

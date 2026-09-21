@@ -269,6 +269,54 @@
    "lang": "en",
    "shortText": "qc",
    "longText": "qc"
+  },
+  {
+   "id": 19,
+   "idCreator": 1,
+   "idText": 19,
+   "lang": "en",
+   "shortText": "Teacher's gift",
+   "longText": "The Nimble quest pays one point of experience back"
+  },
+  {
+   "id": 76,
+   "idCreator": 1,
+   "idText": 76,
+   "lang": "en",
+   "shortText": "First lesson",
+   "longText": "Spend experience once"
+  },
+  {
+   "id": 77,
+   "idCreator": 1,
+   "idText": 77,
+   "lang": "en",
+   "shortText": "Nimble",
+   "longText": "Bring dexterity to 4 through experience"
+  },
+  {
+   "id": 78,
+   "idCreator": 1,
+   "idText": 78,
+   "lang": "en",
+   "shortText": "Nimble, step 1",
+   "longText": "Dexterity reaches 4"
+  },
+  {
+   "id": 84,
+   "idCreator": 1,
+   "idText": 84,
+   "lang": "en",
+   "shortText": "use-exp",
+   "longText": "use-exp"
+  },
+  {
+   "id": 85,
+   "idCreator": 1,
+   "idText": 85,
+   "lang": "en",
+   "shortText": "use-exp-DEX",
+   "longText": "use-exp-DEX"
   }
  ],
  "cards": [
@@ -467,6 +515,48 @@
    "idTextTitle": 83,
    "idTextDescription": 83,
    "urlImage": "https://example.invalid/card-83.jpg"
+  },
+  {
+   "id": 19,
+   "idCreator": 1,
+   "idTextTitle": 19,
+   "idTextDescription": 19,
+   "urlImage": "https://example.invalid/card-19.jpg"
+  },
+  {
+   "id": 76,
+   "idCreator": 1,
+   "idTextTitle": 76,
+   "idTextDescription": 76,
+   "urlImage": "https://example.invalid/card-76.jpg"
+  },
+  {
+   "id": 77,
+   "idCreator": 1,
+   "idTextTitle": 77,
+   "idTextDescription": 77,
+   "urlImage": "https://example.invalid/card-77.jpg"
+  },
+  {
+   "id": 78,
+   "idCreator": 1,
+   "idTextTitle": 78,
+   "idTextDescription": 78,
+   "urlImage": "https://example.invalid/card-78.jpg"
+  },
+  {
+   "id": 84,
+   "idCreator": 1,
+   "idTextTitle": 84,
+   "idTextDescription": 84,
+   "urlImage": "https://example.invalid/card-84.jpg"
+  },
+  {
+   "id": 85,
+   "idCreator": 1,
+   "idTextTitle": 85,
+   "idTextDescription": 85,
+   "urlImage": "https://example.invalid/card-85.jpg"
   }
  ],
  "keys": [
@@ -504,6 +594,24 @@
    "idTextDescription": 83,
    "group": "QUESTS",
    "priority": 4,
+   "visibility": "PUBLIC"
+  },
+  {
+   "id": 5,
+   "name": "use-exp",
+   "idCard": 84,
+   "idTextDescription": 84,
+   "group": "EXPERIENCE",
+   "priority": 1,
+   "visibility": "PUBLIC"
+  },
+  {
+   "id": 6,
+   "name": "use-exp-DEX",
+   "idCard": 85,
+   "idTextDescription": 85,
+   "group": "EXPERIENCE",
+   "priority": 2,
    "visibility": "PUBLIC"
   }
  ],
@@ -694,6 +802,16 @@
    "idCard": 41,
    "idTextName": 41,
    "type": "AUTOMATIC"
+  },
+  {
+   "id": 19,
+   "idCard": 19,
+   "idTextName": 19,
+   "idTextDescription": 19,
+   "type": "NORMAL",
+   "costEnery": 0,
+   "costCoin": 0,
+   "idSpecificLocation": null
   }
  ],
  "eventEffects": [
@@ -777,6 +895,15 @@
    "keyToAdd": "quests",
    "keyValueToAdd": "open",
    "target": "ALL"
+  },
+  {
+   "id": 10,
+   "idEvent": 19,
+   "idCard": 19,
+   "idTextName": 19,
+   "statistics": "exp",
+   "value": 1,
+   "target": "ALL"
   }
  ],
  "choices": [],
@@ -822,6 +949,24 @@
    "conditionKey": "quests",
    "conditionValue": "open",
    "idEventCompleted": 17
+  },
+  {
+   "id": 4,
+   "idCard": 76,
+   "idTextName": 76,
+   "idTextDescription": 76,
+   "conditionKey": "use-exp",
+   "conditionValue": "1",
+   "idEventCompleted": null
+  },
+  {
+   "id": 5,
+   "idCard": 77,
+   "idTextName": 77,
+   "idTextDescription": 77,
+   "conditionKey": "use-exp",
+   "conditionValue": "1",
+   "idEventCompleted": 19
   }
  ],
  "missionSteps": [
@@ -854,6 +999,16 @@
    "idTextDescription": 75,
    "conditionKey": "qc",
    "conditionValue": "done"
+  },
+  {
+   "id": 4,
+   "idMission": 5,
+   "step": 1,
+   "idCard": 78,
+   "idTextName": 78,
+   "idTextDescription": 78,
+   "conditionKey": "use-exp-DEX",
+   "conditionValue": "4"
   }
  ]
 }

@@ -221,7 +221,9 @@ Shared `experience_common.resource` (Suite Setup/Teardown, `Fresh Experience Mat
 `The Player`, `Give Exp`, `Rows Of Type`).
 
 - `experience.robot` — 14 tests (pricing, gates in order, response shape, log entry).
-- `experience_missions.robot` — 1 test (a mission's reward events feed `exp`).
+- `experience_missions.robot` — 2 tests: a mission's reward events feed `exp`; v0.38.3 — three
+  `use-exp` purchases write `use-exp`/`use-exp-DEX` and move two missions waiting on them,
+  leaving no row for the undeclared `use-exp-INT` (§15).
 - `experience_admin.robot` — 6 tests (import/export/CRUD contract for the new difficulty columns
   plus the legacy-key payload).
 
@@ -257,7 +259,7 @@ now carry `secureParam: 1`).
 | react-game | `api/matches.js` (`useExp`), `api/matchInfoAdapter.js`, `utils/experience.js`, `ExperienceCard.jsx`, `ExperienceStatCard.jsx`, `ExperienceCards.jsx`, `js/useBookView.js`, `js/boardProps.js`, `js/useGameplayResults.js`, `utils/loadoutCards.js`, `data/images.json`, `features/matches/MatchLogCard.jsx`, `utils/bonusStats.js`, `BonusBadgeList.jsx`, `en.json`/`it.json` |
 | react-admin | `constants/story/storiesEntities.jsx` (difficulties gain `expCostBase`/`maxStatValue`, locations lose `isSafe`); `components/match/detail/PlayersCard.jsx` (`XP` column); `EditStatsModal.jsx` (`exp`); `MatchLogsCard.jsx` (`TYPE_META.EXP_USE`); `StoryImportPage.jsx` (example payload) |
 | Seeds | Java dev SQL ×2, Python `seed_dev_data.py`, AWS `seed/handler.py`; JSON fixtures `tutorial_story_dev.json`, `story_demo_3.json`/`story_demo_4.json`, `stories/infinite_paths.json`, stress `tutorial_story.json` |
-| Robot | `code/tests/robot/tests/38_experience/` — `story_experience.json`, `experience_common.resource`, `experience.robot` (14), `experience_missions.robot` (1), `experience_admin.robot` (6); `resources/matches.resource` (`Use Exp` keyword, `Admin Change Statistics` gains `exp`/`sleeping`/`coma`); legacy `isSafe`/`costMaxCharacteristics` removed from `14_admin`, `17_admin_crud`, `35_import_integrity`, `36_registry` fixtures |
+| Robot | `code/tests/robot/tests/38_experience/` — `story_experience.json`, `experience_common.resource`, `experience.robot` (14), `experience_missions.robot` (2), `experience_admin.robot` (6); `resources/matches.resource` (`Use Exp` keyword, `Admin Change Statistics` gains `exp`/`sleeping`/`coma`); legacy `isSafe`/`costMaxCharacteristics` removed from `14_admin`, `17_admin_crud`, `35_import_integrity`, `36_registry` fixtures; **v0.38.3** — `story_experience.json` gains keys `use-exp`/`use-exp-DEX`, event 19 "Teacher's gift", missions "First lesson"/"Nimble"; `experience_common.resource` gains `Registry Values Of`/`Mission Named` (§15) |
 
 ## 13. A mission's reward reaches the party
 
@@ -282,6 +284,47 @@ red row of the AWS Robot run. `_matches_of` now reads the GSI2 "by type" partiti
 once and filters in memory; nobody to purge reads nothing. Covered by
 `test_auth_handler_admin.py`. Needs a deploy.
 
+## 15. `use-exp` writes the registry (v0.38.3)
+
+After `updateCharacter` and the `EXP_USE` log row (§4), `use-exp` writes up to two registry
+keys so a [Step 37](./Step37_MissionSystem.md#4-trigger) mission can wait for experience being
+spent — **only a key the story declares in `list_keys`**; an undeclared key is skipped in
+silence, no row, no `REGISTRY_CHANGE`, and a story declaring neither key sees no change at all:
+
+1. `use-exp` — the highest numeric value currently stored for that key (non-numeric → 0) plus
+   one: `1` on the party's first purchase of the match, `2` on the second, and so on. It is per
+   **match**, not per character — in a multiplayer party it is the party's running total.
+2. `use-exp-<STAT>` — `use-exp-DEX`/`use-exp-INT`/`use-exp-COS`, the stat token upper-cased,
+   set to `statAfter`, the value the stat just reached.
+
+Each write goes through the ordinary `RegistryService.upsert`, so it logs its own
+`REGISTRY_CHANGE` row (`idCharacter` = the buyer, `clock` = the match clock, no event/choice)
+and runs the Step 37 mission pass synchronously — a mission with `conditionKey=use-exp`,
+`conditionValue=1` completes on the first purchase, `use-exp-DEX=4` completes when DEX reaches
+4 through experience, and neither status ever regresses (`use-exp` moving to 2 does not reopen
+a mission closed on 1).
+
+Caveats: the stat key reflects only points bought with experience, not the starting value or
+event/item stat effects; a declared-but-never-written key still shows on `GET .../registry` as
+`values: []` ([Step 36](./Step36_RegistrySystem.md)), not absent; a story that declares
+`use-exp` as a multi-value key reads the counter off its highest member.
+
+Java: `ExperienceService` gains `KEY_USE_EXP`/`KEY_USE_EXP_PREFIX`, a 3-arg constructor
+`(ExperienceStorePort, UserAccessPort, RegistryService)` (the 2-arg form keeps `registryService`
+null — no writes), private `writeRegistry`/`intOrZero`; `RegistryService.isDeclared(idStory,
+key)` is now public, `isDeclaredForMatchUuid` delegates to it; `CoreConfig`'s `experiencePort`
+bean wires the registry service in. Python mirrors it: `experience_service.py` gains
+`KEY_USE_EXP`, `KEY_USE_EXP_PREFIX`, `_int_or_zero`, `registry_service=None` on the
+constructor, `_write_registry`; `registry_service.is_declared(id_story, key)`; `launcher.py`
+passes it in. AWS: `lambda/match/experience.py` adds a pure `registry_writes(story, match,
+token, after)` returning the `(key, value)` pairs to write, `lambda/match/handler.py`'s
+`_use_exp` loops them into `_registry.upsert` before `_logbook.persist`. No new endpoint, no
+OpenAPI change, no migration, no frontend change. Covered by `ExperienceServiceTest`'s nested
+"the registry (v0.38.3)" (5 tests), `RegistryServiceTest`'s `isDeclared` assertions,
+`test_experience_service.py` (+6), `test_experience.py` (+2) and
+`test_match_handler_experience.py` (+1); Robot `38_experience/experience_missions.robot` gains
+"Spending Experience Writes The Declared Keys And Moves The Missions Waiting On Them" (§12).
+
 ## Out of scope / decisions recorded
 
 Missions stay `ACTIVE` after `GAMEOVER`, untouched by this step
@@ -293,13 +336,14 @@ event/item `dex`/`int`/`cos` effects — only `use-exp` honours `max_stat_value`
 
 # Version Control
 
-- **Document Version**: 0.38.0
+- **Document Version**: 0.38.3
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.38.0 | Experience and character advancement, implemented: `gaming_character_instance.exp` (written since V0.29.0, unspent until now) gets a spender — `POST /api/gameplay/{uuid}/action/use-exp` raises DEX/INT/COS by one at `cost = max(1, exp_cost × current + exp_cost_base)`, read from the match's difficulty row and capped by `max_stat_value` (§0-§3); zero-energy, turn-preserving action gated by match/turn/coma/sleep/stat/safe-location/cap/afford checks in that order (§2); new match-log type `EXP_USE` (§4); `players[]` on `/info` (and `/players`, `/character`, admin `/info`) gain `exp`/`expCosts{dex,int,cos}` (§5). `list_locations.is_safe` dropped (Python renames it to `secure_param` instead, closing a Java/Python safety-field contract drift) and `list_stories_difficulty.cost_max_characteristics` dropped for `exp_cost_base`/`max_stat_value` (§8); admin `changeStatistics` gains `exp` (§5). react-game gains the Experience door card and per-stat purchase cards, react-admin gains an `XP` column and an `exp` edit field; new Robot suite `38_experience/` (21 tests, §12). | September 17, 2026 |
+  | 0.38.3 | `use-exp` becomes a registry writer: after the `EXP_USE` log row it writes `use-exp` (running purchase count, per match) and `use-exp-<STAT>` (stat value just reached) through the ordinary `RegistryService.upsert`, each gated on the story declaring that key in `list_keys` (§15). No endpoint, OpenAPI, migration or frontend change; Robot `story_experience.json` gains keys 5-6 and a "Nimble" mission, `experience_missions.robot` grows from 1 to 2 cases (§12). | September 21, 2026 |
 
-- **Last Updated**: September 17, 2026 (v0.38.0)
+- **Last Updated**: September 21, 2026 (v0.38.3)
 - **Status**: Complete
 
 # < Paths Games />

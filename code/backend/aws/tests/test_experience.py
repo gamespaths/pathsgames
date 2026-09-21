@@ -72,3 +72,35 @@ def test_apply_buys_the_point_and_answers_the_purchase():
     assert out["expCosts"] == {"dex": 25, "int": None, "cos": 11}
     assert [c["statistic"] for c in out["statChanges"]] == ["dex", "exp"]
     assert out["statChanges"][1]["delta"] == -23
+
+
+# ── v0.38.3 — the registry keys use-exp names ────────────────────────────────
+
+def _story(*names):
+    return {"keys": [{"keyName": n} for n in names]}
+
+
+def _match(**values):
+    return {"registry": [{"id": i, "key": k, "stringValue": None, "intValue": v, "multiValue": 0}
+                         for i, (k, v) in enumerate(values.items(), 1)]}
+
+
+def test_registry_writes_names_the_counter_then_the_stat_key_when_both_are_declared():
+    story = _story("use-exp", "use-exp-DEX", "use-exp-COS")
+    assert experience.registry_writes(story, _match(), "dex", 11) == [("use-exp", "1"), ("use-exp-DEX", "11")]
+    # the counter grows from the highest value stored; the stat key follows the stat bought
+    assert experience.registry_writes(story, {"registry": [
+        {"id": 1, "key": "use-exp", "stringValue": None, "intValue": 2, "multiValue": 0}]}, "COS", 5) \
+        == [("use-exp", "3"), ("use-exp-COS", "5")]
+    assert experience.registry_writes(story, {"registry": [
+        {"id": 1, "key": "use-exp", "stringValue": "abc", "intValue": None, "multiValue": 1},
+        {"id": 2, "key": "use-exp", "stringValue": None, "intValue": 4, "multiValue": 1}]}, "int", 13) \
+        == [("use-exp", "5")]
+
+
+def test_registry_writes_skips_every_undeclared_key():
+    assert experience.registry_writes({}, _match(), "dex", 11) == []
+    assert experience.registry_writes(None, None, "dex", 11) == []
+    assert experience.registry_writes(_story("use-exp-INT"), _match(), "dex", 11) == []
+    assert experience.registry_writes(_story("use-exp-INT"), _match(), "int", 13) == [("use-exp-INT", "13")]
+

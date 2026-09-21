@@ -311,7 +311,9 @@ completion events grant +1 exp each. Shared keywords live in `experience_common.
 `EXP_USE` row, zero energy / no turn change, and every refusal (`MAX_STAT_VALUE`,
 `NOT_ENOUGH_EXP`, `INVALID_STAT`, `LOCATION_NOT_SAFE`, `SLEEPING`, `COMA`, `MATCH_NOT_RUNNING`,
 `MATCH_NOT_FOUND`); sleep and coma are forced through the admin override, which now also
-writes `exp`. `experience_missions.robot` (1): three completed missions pay for one DEX point.
+writes `exp`. `experience_missions.robot` (2): three completed missions pay for one DEX point;
+v0.38.3 — three `use-exp` purchases write `use-exp`/`use-exp-DEX` and move two missions waiting
+on them, leaving no row for the undeclared `use-exp-INT`.
 `experience_admin.robot` (6): import, export and CRUD of `expCostBase` / `maxStatValue`, a
 location echoing `secureParam` and no `isSafe`, and a legacy payload whose dropped keys are
 ignored.

@@ -757,6 +757,11 @@ class RegistryServiceTest {
             assertEquals(Boolean.TRUE, declaring.isDeclaredForMatchUuid("m-1", " clue "));
             assertEquals(Boolean.FALSE, declaring.isDeclaredForMatchUuid("m-1", "CLUE"));
             assertEquals(Boolean.FALSE, declaring.isDeclaredForMatchUuid("m-1", null));
+            // v0.38.3 - the same answer by story id, the form use-exp asks in
+            assertTrue(declaring.isDeclared(3L, "clue"));
+            assertFalse(declaring.isDeclared(3L, "use-exp"));
+            assertFalse(declaring.isDeclared(3L, null));
+            assertFalse(declaring.isDeclared(null, "clue"));
         }
 
         @Test

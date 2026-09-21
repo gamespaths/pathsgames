@@ -54,7 +54,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 
 | Steps | Phase |
 | -- | -- |
-| 34-38 | Game mechanics — inventory, resources, registry, missions, experience |
+| 34-39 | Game mechanics — inventory, resources, registry, missions, experience |
 | 40 | Logging & snapshots |
 | 41 | Frontend & security: single-player game board and gameplay UI |
 | 42 | **Launch beta version with guest and single-player game** |
@@ -77,52 +77,10 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 
 
 # Next steps
-- Ciao, read step 36 points and tell me what you think, doubits and open points. For every point max 3 rows. Don't execute any changes. always all backend and all frontend projecs
-- Ciao, read step 36 points and create a plan to develop all. Ask me if you have any questions/doubits. I've already bump version to 0.36.0 
+- Ciao, read step xx points and tell me what you think, doubits and open points. For every point max 3 rows. Don't execute any changes. always all backend and all frontend projecs
+- Ciao, read step xx points and create a plan to develop all. Ask me if you have any questions/doubits. I've already bump version to 0.xx.0 
 
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
-38. Experience and character advancement
-    - column "is_safe" is not used by nobody so we should remove it!
-        is secure_param is not present on a backend add it and remove is_safe, 
-    - on difficult table
-        - remove column "cost_max_characteristics" 
-        - add "exp_cost_base default 0" and "max_stat_value default 0"
-    - exp on event (on 29 step event exp is silence)
-    - Implement experience gain through events: add experience points to gaming_character_instance on eligible events (backend)
-        - add exp situation into /info API response into players object list
-            - add /info player expCosts {dex,int,cos} from backend
-    - Implement POST /gameplay/{uuid_match}/action/use-exp endpoint to spend experience on stat increase (backend)
-        - Body {"stat":"dex"} with vocabulary EffectStatCodec (dex/int/cos) — no DES.
-    - Validate advancement: character must be in safe location, have sufficient experience (backend)
-        - note: use-exp is enabled only in safe-location (secure_param>0) and only if it's not sleeping
-            - NOT_ENOUGH_EXP, LOCATION_NOT_SAFE, INVALID_STAT, CHARACTER_IN_COMA, CHARACTER_SLEEPING, NOT_YOUR_TURN, MATCH_NOT_RUNNING , MAX_STAT_VALUE
-        - "use exp" action is zero energy, use-exp don't change turn
-    - Calculate experience cost per stat point based on difficulty exp_cost parameter (backend)
-        - update a stat by 1 point the cost is = max(1,exp_cost × actual_value + exp_cost_base)
-        - new stas value must be <= max_stat_value  (max_stat_value for every stats)
-        - if exp_cost"=0/null/<0" means exp_cost=1 in formula
-        - if exp_cost_base="=0/null/<0" means exp_cost_base=0
-        - if max_stat_value="0/null/<0" means no check (infinte value)
-    - Apply stat increase (+1 DES, INT, or COS), deduct experience, update character instance (backend)
-        "priority turn" is recalculated next turn, in current turn no changes.
-    - Write backend unit tests for experience gain, advancement validation, cost calculation, and stat update (backend tests)
-        - when use-exp is executed insert a log into log-table and show into log views
-            - new EXP_USE in MatchLogsService 
-    - Build frontend advancement UI showing available stat upgrades, costs, and current experience (frontend)
-        - on "safe location" view: add a card on right page in last position when in safe location on own turn
-        - show only if enough exp show new card "use exp"
-        - when clicked on left card with "use exp detail" ExperienceCard , 
-            - on right list of little (ExperienceCards) with options (DES, INT , COS, in future others)
-        - /info expCosts: stat al cap → null, UI nasconde la mini-card.
-    - Robot test
-        - create robot test for every branch code
-        - add additional test "special missions" with multiple mussion with only one step
-            - every mission completed run a event add 1 EXP
-            - an safe location where character could use exp to improve DES!
-            - validate DES is improved!
-    - non ti preoccupare di missioni e gameover che restano active dopo, e stale 0.29.0 lascialo!
-
-    
 39. Random events (global random events at time start) — decisions taken 2026-09-17, ready to develop
     - What exists: `list_global_random_events` since V0.10.4 (`condition_key`, `condition_value`, `probability` INTEGER,
       `id_event`, `id_card`, `id_text`), imported, admin CRUD (`global-random-events`), validated (`idEvent` → event).
@@ -721,10 +679,8 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.1.0 | first version of this document | February 3, 2026 |
 	| 0.1.1 | added licence and version control sections, file renamed from "todolist" to "roadmap" | February 5, 2026 |
     | 0.1.2 | update "2. Define the V1 scope" and "3. Define the technology stack" sections | February 10, 2026 |
-    | 0.38.0 | Step 38 added: `use-exp` spends `gaming_character_instance.exp` to raise DEX/INT/COS; `list_locations.is_safe` dropped for `secure_param`, `list_stories_difficulty.cost_max_characteristics` replaced by `exp_cost_base`/`max_stat_value`. | September 17, 2026 |
- 
 
-- **Last Updated**: September 17, 2026 (v0.38.0 — Experience and character advancement, see [Step38_ExperienceSystem.md](./Step38_ExperienceSystem.md))
+- **Last Updated**: September 21, 2026
 - **Status**: In progress
 
 

@@ -114,6 +114,12 @@ fires from `_written`, the single funnel every successful write passes through.
 writes the `REGISTRY_CHANGE` audit row) — the mission pass is invoked from there. The engine
 resolves the story id itself through a new port method `findStoryIdByMatch`.
 
+**Since v0.38.3**, `use-exp` ([Step 38 §15](./Step38_ExperienceSystem.md#15-use-exp-writes-the-registry-v0383))
+is a registry writer too: it upserts `use-exp` (a running purchase count) and `use-exp-<STAT>`
+(the stat value just reached) through the same `RegistryService.upsert` call, each gated on the
+story declaring that key, so a mission can wait on experience being spent exactly as it waits
+on any other key.
+
 ---
 
 ## 5. Endpoint APIs
@@ -630,6 +636,7 @@ passed, react-game 1185 passed / 3 skipped, react-admin 794 passed.
   | 0.37.2 | New match-log entry `MISSION_CHANGE`, written by the same call that saves a mission's state, naming it by uuid with the author's own step number (§13); classified by all three timeline assemblers and given an icon/colour in both frontends, alongside the previously-uncoloured `REGISTRY_CHANGE` (§13); collateral fix — `onStoryEnd` now resolves mission uuids once so a FAILED close names the mission consistently with `advance`; new Robot suite `37_missions/mission_log.robot` (5 cases); AWS bugfix — empty class/trait-budget references from admin-authored stories no longer 500 on match creation (§14); AWS 401 codes aligned with the Java filter's `MISSING_TOKEN`/`EMPTY_TOKEN`/`INVALID_TOKEN` scale, scoped to the `match` lambda (§14). **Second pass**: one engine pass now writes one row **per thing that happened** instead of one naming only the last step — mission opening, each step closed (story order), and a completed mission's last step closes with the step's row then the mission's own (§13); a `MISSION_CHANGE` row now resolves and carries its own `idCard`/`card` (mission uuid, or `uuid/step` for a step; a step with no card stays card-less, never falls back to the mission's), fixing a null-uuid `NullPointerException` that 500'd the whole timeline (§13); all four seeds give the tutorial's missions/steps and the second story's mission/step pair an `id_card`; react-game's history is now a row list (`LogEntryRow`) instead of card tiles, opens via `entityType="matchlog"` ("History"/"Cronologia") instead of "Story", and `REGISTRY_CHANGE` rows show the written value with no lens; Robot's `mission_log.robot` grows from 5 to 8 cases. | September 9, 2026 |
   | 0.37.3 | `missionStatusBadge` drops its `label`: the status badge on mission/step cards reads "Completed" instead of "Status: Completed"; `game.missions.status.COMPLETED` "Done" → "Completed" in `en.json`. | September 10, 2026 |
   | 0.37.4 | react-game: `COMPLETED` missions now always sort last (`utils/missions.js` `ORDER`), open mission steps read before closed ones; `EndGameBook` reads missions first (mission grid → steps → step), falling back to the old end-of-match reading when a match has none; the match-history door is removed from gameplay and moves into the profile book behind a new `MatchHistoryCard` reached from a match's missions view (§12). | September 11, 2026 |
+  | 0.38.3 | `use-exp` becomes a registry writer ([Step 38 §15](./Step38_ExperienceSystem.md#15-use-exp-writes-the-registry-v0383)): it writes `use-exp`/`use-exp-<STAT>` through the ordinary engine, gated on the story declaring the key, so a mission can wait on experience being spent (§4). | September 21, 2026 |
 
 - **Last Updated**: September 11, 2026 (v0.37.4)
 - **Status**: Complete

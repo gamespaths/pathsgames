@@ -28,8 +28,10 @@ STORY = {
     'difficulties': [{'uuid': 'd1', 'expCost': 2, 'expCostBase': 3, 'maxStatValue': 12}],
     'locations': [{'id': 1, 'uuid': 'l1', 'secureParam': 1}, {'id': 2, 'uuid': 'l2', 'secureParam': 0}],
 }
+# v0.38.3 — the same story declaring the use-exp keys, so the purchase leaves its mark.
+STORY_WITH_KEYS = dict(STORY, keys=[{'keyName': 'use-exp'}, {'keyName': 'use-exp-DEX'}])
 
-_STATE = {'match': None, 'character': None}
+_STATE = {'match': None, 'character': None, 'story': STORY}
 
 
 def _get_side(pk, sk='METADATA', consistent=True):
@@ -38,7 +40,7 @@ def _get_side(pk, sk='METADATA', consistent=True):
     if pk.startswith('MATCH#'):
         return dict(_STATE['match'])
     if pk.startswith('STORY#'):
-        return STORY
+        return _STATE['story']
     return None
 
 
@@ -60,6 +62,7 @@ def _call(body=None, raw=None):
 def _fresh_state():
     _STATE['match'] = dict(MATCH)
     _STATE['character'] = dict(CHARACTER)
+    _STATE['story'] = STORY
 
 
 def _patched(fn):
@@ -90,6 +93,36 @@ def test_use_exp_buys_the_point_and_persists_the_character_and_one_log_row(_get,
     assert logs[0]['message'] == 'EXP_USE dex 10->11 cost 23'
     match = next(w for w in written if w.get('SK') == 'METADATA')
     assert match['logCount'] == 1
+    # v0.38.3 — a story that declares no use-exp key sees no registry row and no REGISTRY_CHANGE
+    assert match.get('registry') in (None, [])
+
+
+@_patched
+def test_use_exp_writes_the_declared_registry_keys_after_the_character(_get, _query, _put, _jwt):
+    _STATE['story'] = STORY_WITH_KEYS
+    assert _call({'stat': 'dex'})['statusCode'] == 200
+
+    written = written_rows().items()
+    match = next(w for w in written if w.get('SK') == 'METADATA')
+    rows = {r['key']: r for r in match['registry']}
+    assert rows['use-exp']['intValue'] == 1 and rows['use-exp-DEX']['intValue'] == 11
+    assert rows['use-exp']['clock'] == 3 and rows['use-exp']['idCharacter'] == CHARACTER.get('id')
+    logs = written_rows().logs()
+    assert [l['type'] for l in logs] == ['EXP_USE', 'REGISTRY_CHANGE', 'REGISTRY_CHANGE']
+    assert logs[1]['message'] == 'REGISTRY_CHANGE use-exp null -> 1'
+    assert logs[2]['message'] == 'REGISTRY_CHANGE use-exp-DEX null -> 11'
+    assert logs[1]['characterUuid'] == 'c1'
+
+    # the second call counts 2; int is bought, and use-exp-INT is not declared
+    _STATE['match'] = dict(match)
+    _STATE['character'] = dict(CHARACTER, dexterity=11, exp=17)
+    assert _call({'stat': 'int'})['statusCode'] == 409  # int is at the cap of 12 - nothing written
+    _STATE['character'] = dict(CHARACTER, dexterity=11, constitution=4, exp=40)
+    assert _call({'stat': 'cos'})['statusCode'] == 200
+    match = next(w for w in reversed(written_rows().items()) if w.get('SK') == 'METADATA')
+    rows = {r['key']: r for r in match['registry']}
+    assert rows['use-exp']['intValue'] == 2 and rows['use-exp-DEX']['intValue'] == 11
+    assert 'use-exp-COS' not in rows
 
 
 @_patched

@@ -372,7 +372,11 @@ class RegistryService:
         ids = self.store.find_match_and_story_id_by_uuid(match_uuid)
         if ids is None:
             return None
-        return (key or "").strip() in self._key_definitions(ids[1])
+        return self.is_declared(ids[1], key)
+
+    def is_declared(self, id_story: Optional[int], key: Optional[str]) -> bool:
+        """v0.38.3 — whether the story declares this key in list_keys; False on a None story."""
+        return bool(key) and key.strip() in self._key_definitions(id_story)
 
     def upsert_by_match_uuid(self, match_uuid: str, key: Optional[str],
                              value: Optional[str]) -> Optional[List[str]]:

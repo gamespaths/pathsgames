@@ -3,10 +3,16 @@
 Pure engine, no DynamoDB: the handler hands in the live match/character dicts and persists
 what changed. ``cost = max(1, expCost × current + expCostBase)``; ``maxStatValue`` caps the
 stat (``<= 0``/missing = no cap). Mirrors the Java ``ExperienceCostCalculator``.
+v0.38.3: names the registry keys use-exp writes, so a Step 37 mission can wait for it.
 """
+from match import registry as _registry
 
 STATS = ("dex", "int", "cos")
 STAT_FIELD = {"dex": "dexterity", "int": "intelligence", "cos": "constitution"}
+# v0.38.3 — registry key counting the use-exp calls of the match: 1 on the first, then 2, 3...
+KEY_USE_EXP = "use-exp"
+# v0.38.3 — prefix of the per-stat key (``use-exp-DEX``) holding the value just reached.
+KEY_USE_EXP_PREFIX = "use-exp-"
 _RUNNING = "RUNNING"
 
 
@@ -106,3 +112,17 @@ def apply(char, stat, pricing):
              "before": exp_before, "after": exp_before - cost, "delta": -cost},
         ],
     }
+
+
+def registry_writes(story, match, token, after):
+    """v0.38.3 — the ``(key, value)`` pairs use-exp writes, in order. Only a key the story
+    DECLARES in ``keys`` is named: an undeclared one is skipped in silence, so a story that
+    never asked for them sees no orphan row. A counter value that is not a number reads as 0."""
+    out = []
+    if _registry.is_declared(story, KEY_USE_EXP):
+        count = max([_nz(v) for v in _registry.find(match, KEY_USE_EXP)] or [0])
+        out.append((KEY_USE_EXP, str(count + 1)))
+    stat_key = KEY_USE_EXP_PREFIX + (normalize_stat(token) or "").upper()
+    if _registry.is_declared(story, stat_key):
+        out.append((stat_key, str(_nz(after))))
+    return out

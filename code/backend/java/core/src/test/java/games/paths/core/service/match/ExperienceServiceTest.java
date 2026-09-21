@@ -20,8 +20,12 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -37,12 +41,13 @@ class ExperienceServiceTest {
     private static final long CHAR_ID = 10L;
 
     private ExperienceStorePort store;
+    private UserAccessPort users;
     private ExperienceService service;
 
     @BeforeEach
     void setUp() {
         store = mock(ExperienceStorePort.class);
-        UserAccessPort users = mock(UserAccessPort.class);
+        users = mock(UserAccessPort.class);
         when(users.findByUuid(USER)).thenReturn(Optional.of(new UserAccessPort.UserView(USER_ID, USER, "guest", "GUEST", 6)));
         when(users.findByUuid("ghost")).thenReturn(Optional.empty());
         service = new ExperienceService(store, users);
@@ -182,6 +187,75 @@ class ExperienceServiceTest {
             when(store.findMatchByUuid("m1")).thenReturn(Optional.of(
                     new MatchExpView(MATCH_ID, "m1", "RUNNING", 5L, null, 4, 0, null)));
             assertEquals(4, service.useExp("m1", USER, "dex").expCost());
+        }
+    }
+    @Nested
+    @DisplayName("the registry (v0.38.3)")
+    class Registry {
+
+        private RegistryService registry;
+
+        @BeforeEach
+        void wireRegistry() {
+            registry = mock(RegistryService.class);
+            service = new ExperienceService(store, users, registry);
+            wire(match("RUNNING", CHAR_ID), actor(10, 100, false, false, 7L), 1, new DifficultyExpView(1, 0, 0));
+        }
+
+        @Test
+        @DisplayName("first use writes use-exp = 1 and use-exp-DEX = the value reached, after the character")
+        void firstUseWritesBothKeys() {
+            when(registry.isDeclared(5L, "use-exp")).thenReturn(true);
+            when(registry.isDeclared(5L, "use-exp-DEX")).thenReturn(true);
+            when(registry.find(MATCH_ID, "use-exp")).thenReturn(List.of());
+
+            service.useExp("m1", USER, "dex");
+
+            verify(store).updateCharacter(MATCH_ID, CHAR_ID, 11, 12, 4, 90);
+            verify(registry).upsert(MATCH_ID, 5L, "use-exp", "1", CHAR_ID, null, null, 3);
+            verify(registry).upsert(MATCH_ID, 5L, "use-exp-DEX", "11", CHAR_ID, null, null, 3);
+        }
+
+        @Test
+        @DisplayName("the counter grows from the highest value stored; junk counts as zero")
+        void counterGrows() {
+            when(registry.isDeclared(5L, "use-exp")).thenReturn(true);
+            when(registry.find(MATCH_ID, "use-exp")).thenReturn(List.of("2"));
+            service.useExp("m1", USER, "int");
+            verify(registry).upsert(MATCH_ID, 5L, "use-exp", "3", CHAR_ID, null, null, 3);
+
+            when(registry.find(MATCH_ID, "use-exp")).thenReturn(List.of("1", " 4 ", "abc"));
+            service.useExp("m1", USER, "cos");
+            verify(registry).upsert(MATCH_ID, 5L, "use-exp", "5", CHAR_ID, null, null, 3);
+            verify(registry, never()).upsert(anyLong(), any(), eq("use-exp-INT"), anyString(), any(), any(), any(), any());
+            verify(registry, never()).upsert(anyLong(), any(), eq("use-exp-COS"), anyString(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("only the declared key is written; the stat key follows the stat bought")
+        void onlyDeclaredKeys() {
+            when(registry.isDeclared(5L, "use-exp-COS")).thenReturn(true);
+            service.useExp("m1", USER, "cos");
+            verify(registry).upsert(MATCH_ID, 5L, "use-exp-COS", "5", CHAR_ID, null, null, 3);
+            verify(registry, never()).find(anyLong(), anyString());
+            verify(registry, never()).upsert(anyLong(), any(), eq("use-exp"), anyString(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("a story that declares neither key sees no registry write and no error")
+        void undeclaredKeysAreSkipped() {
+            assertEquals(11, service.useExp("m1", USER, "dex").statAfter());
+            verify(registry, never()).upsert(anyLong(), any(), anyString(), anyString(), any(), any(), any(), any());
+            verify(registry, never()).upsert(anyLong(), any(), anyString(), isNull(), any(), any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("a gate that fails never reaches the registry")
+        void noWriteOnFailure() {
+            when(registry.isDeclared(anyLong(), anyString())).thenReturn(true);
+            wire(match("RUNNING", CHAR_ID), actor(10, 0, false, false, 7L), 1, new DifficultyExpView(1, 0, 0));
+            assertEquals(Code.NOT_ENOUGH_EXP, codeOf("dex"));
+            verify(registry, never()).upsert(anyLong(), any(), anyString(), anyString(), any(), any(), any(), any());
         }
     }
 }
