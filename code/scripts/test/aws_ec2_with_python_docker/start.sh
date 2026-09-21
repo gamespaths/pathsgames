@@ -108,9 +108,10 @@ INSTANCE_NAME=${INSTANCE_NAME_TEST_EC2_PY:-"api-test-server3"}
 SG_NAME="${INSTANCE_NAME}-sg"
 
 # Tags applied to every taggable resource we create (SG, instance, volume, CloudFront).
-# Tag list lives in ../aws_tags.txt; ${NAME}/${ENV_TAG}/${LANGUAGE} are expanded here.
+# Tag list lives in ../aws_tags.txt; ${NAME}/${ENV_TAG}/${LANGUAGE}/${PROJECT_SUFFIX} are expanded here.
 ENV_TAG="${ENV_TAG:-test}"
 LANGUAGE="Python"
+PROJECT_SUFFIX="aws.ec2.docker.python"
 TAGS_FILE="$SCRIPT_DIR/../aws_tags.txt"
 [ -f "$TAGS_FILE" ] || { echo "[start.sh] ERROR: tags file not found: $TAGS_FILE"; exit 1; }
 # Emit "Key<TAB>Value" lines from TAGS_FILE, placeholders expanded ($1 = resource Name)
@@ -119,7 +120,7 @@ _tag_pairs() {
     while IFS= read -r line || [ -n "$line" ]; do
         case "$line" in ''|'#'*) continue ;; esac
         k="${line%%=*}"; v="${line#*=}"
-        v="${v//'${NAME}'/"$NAME"}"; v="${v//'${ENV_TAG}'/"$ENV_TAG"}"; v="${v//'${LANGUAGE}'/"$LANGUAGE"}"
+        v="${v//'${NAME}'/"$NAME"}"; v="${v//'${ENV_TAG}'/"$ENV_TAG"}"; v="${v//'${LANGUAGE}'/"$LANGUAGE"}"; v="${v//'${PROJECT_SUFFIX}'/"$PROJECT_SUFFIX"}"
         printf '%s\t%s\n' "$k" "$v"
     done < "$TAGS_FILE"
 }

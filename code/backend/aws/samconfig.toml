@@ -17,7 +17,7 @@ region = "us-east-2"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
 parameter_overrides = "Environment=dev SeedBcryptHash=CHANGEME TableBillingMode=PROVISIONED TableReadCapacity=10 TableWriteCapacity=10 GsiReadCapacity=5 GsiWriteCapacity=5"
-tags = "Name=pathsgames-dev CostCenter=Paths.games Environment=dev ManagedBy=CloudFormation Owner=AlNao Project=Paths.games version=0.38.1"
+tags = "Name=pathsgames-dev CostCenter=Paths.games Environment=dev ManagedBy=CloudFormation Owner=AlNao Project=Paths.games.aws.serverless version=0.38.1"
 
 [dev.deploy.parameters]
 stack_name = "pathsgames-dev"
@@ -32,7 +32,7 @@ capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
 # PROVISIONED 10/10 + 2x5/5 stays inside the always-free 25 RCU/WCU: only ONE env per region can use it.
 parameter_overrides = "Environment=dev SeedBcryptHash=CHANGEME TableBillingMode=PROVISIONED TableReadCapacity=10 TableWriteCapacity=10 GsiReadCapacity=5 GsiWriteCapacity=5"
     #CustomDomainName=\"api-dev.paths.games\" CustomDomainCertificateArn=\"arn:aws:acm:us-east-2:xxxx:certificate/xxxx\" CustomDomainHostedZoneId=\"Zzzzzzzzzzzzzz\"
-tags = "Name=pathsgames-dev CostCenter=Paths.games Environment=dev ManagedBy=CloudFormation Owner=AlNao Project=Paths.games version=0.38.1"
+tags = "Name=pathsgames-dev CostCenter=Paths.games Environment=dev ManagedBy=CloudFormation Owner=AlNao Project=Paths.games.aws.serverless version=0.38.1"
 
 [test.deploy.parameters]
 stack_name = "pathsgames-test"
@@ -45,7 +45,7 @@ capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
 # Turnstile / admin IP whitelist / custom domain come from .env via scripts/test/aws/aws_backend_deploy.sh.
 parameter_overrides = "Environment=test SeedBcryptHash=CHANGEME TableBillingMode=PAY_PER_REQUEST"
     #CustomDomainName=\"api-test.paths.games\" CustomDomainCertificateArn=\"arn:aws:acm:us-east-2:xxxx:certificate/xxxx\" CustomDomainHostedZoneId=\"Zzzzzzzzzzzzzz\"
-tags = "Name=pathsgames-test CostCenter=Paths.games Environment=test ManagedBy=CloudFormation Owner=AlNao Project=Paths.games version=0.38.1"
+tags = "Name=pathsgames-test CostCenter=Paths.games Environment=test ManagedBy=CloudFormation Owner=AlNao Project=Paths.games.aws.serverless version=0.38.1"
 
 [prod.deploy.parameters]
 stack_name = "pathsgames-prod"
@@ -57,4 +57,4 @@ fail_on_empty_changeset = false
 capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
 # JwtSecret, TurnstileSecretKey, AdminIpWhitelist, CorsAllowOrigins, custom domain: pass at deploy time.
 parameter_overrides = "Environment=prod AllowMockAccess=false RateLimitGuestPerIp=10 RateLimitMatchPerIp=10"
-tags = "Name=pathsgames-prod CostCenter=Paths.games Environment=production ManagedBy=CloudFormation Owner=AlNao Project=Paths.games version=0.38.1"
+tags = "Name=pathsgames-prod CostCenter=Paths.games Environment=production ManagedBy=CloudFormation Owner=AlNao Project=Paths.games.aws.serverless version=0.38.1"

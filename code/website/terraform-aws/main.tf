@@ -22,7 +22,7 @@ provider "aws" {
       Environment = var.environment
       ManagedBy   = "Terraform"
       Owner       = "AlNao"
-      Project     = "Paths.games"
+      Project     = "Paths.games.aws.websites"
       version     = var.project_version
     }
   }

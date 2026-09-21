@@ -48,7 +48,7 @@ Resources:
         - Key: Owner
           Value: AlNao
         - Key: Project
-          Value: Paths.games
+          Value: Paths.games.aws.serverless
         - Key: version
           Value: !Ref Version
 
@@ -73,7 +73,7 @@ Resources:
         Environment: !Ref EnvironmentTag
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games
+        Project: Paths.games.aws.serverless
         version: !Ref Version
       Environment:
         Variables:

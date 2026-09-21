@@ -155,7 +155,7 @@ Resources:
         - Key: Owner
           Value: AlNao
         - Key: Project
-          Value: Paths.games
+          Value: Paths.games.aws.serverless
         - Key: version
           Value: !Ref Version
       AttributeDefinitions:
@@ -274,7 +274,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games
+        Project: Paths.games.aws.serverless
         version: !Ref Version
       CorsConfiguration:
         AllowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
@@ -297,7 +297,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games
+        Project: Paths.games.aws.serverless
         version: !Ref Version
 
   # Dedicated ADMIN HTTP API — serves ONLY /api/admin/** routes and is gated by an
@@ -313,7 +313,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games
+        Project: Paths.games.aws.serverless
         version: !Ref Version
       CorsConfiguration:
         AllowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
@@ -333,7 +333,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games
+        Project: Paths.games.aws.serverless
         version: !Ref Version
 
   AdminIpAuthorizerLogGroup:
@@ -354,7 +354,7 @@ Resources:
         - Key: Owner
           Value: AlNao
         - Key: Project
-          Value: Paths.games
+          Value: Paths.games.aws.serverless
         - Key: version
           Value: !Ref Version
 
@@ -379,7 +379,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games
+        Project: Paths.games.aws.serverless
         version: !Ref Version
       Environment:
         Variables:
@@ -422,7 +422,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games
+        Project: Paths.games.aws.serverless
         version: !Ref Version
 
   PathsGamesApiMapping:
@@ -461,7 +461,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games
+        Project: Paths.games.aws.serverless
         version: !Ref Version
       Parameters:
         Environment: !Ref Environment
@@ -484,7 +484,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games
+        Project: Paths.games.aws.serverless
         version: !Ref Version
       Parameters:
         Environment: !Ref Environment
@@ -513,7 +513,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games
+        Project: Paths.games.aws.serverless
         version: !Ref Version
       Parameters:
         Environment: !Ref Environment
@@ -543,7 +543,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games
+        Project: Paths.games.aws.serverless
         version: !Ref Version
       Parameters:
         Environment: !Ref Environment
@@ -575,7 +575,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games
+        Project: Paths.games.aws.serverless
         version: !Ref Version
       Parameters:
         Environment: !Ref Environment
@@ -598,7 +598,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games
+        Project: Paths.games.aws.serverless
         version: !Ref Version
       Parameters:
         Environment: !Ref Environment

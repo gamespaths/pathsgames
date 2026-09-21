@@ -9,11 +9,12 @@
 # One Key=Value per line, keys are case-sensitive. Placeholders expanded by start.sh:
 #   ${NAME}      per-resource Name (see list above)
 #   ${ENV_TAG}   ENV_TAG from the root .env (default: test)
-#   ${LANGUAGE}  Java (java script) / Ph (python script)
+#   ${LANGUAGE}  Java (java script) / Python (python script)
+#   ${PROJECT_SUFFIX}  aws.ec2.docker.java (java script) / aws.ec2.docker.python (python script)
 Name=${NAME}
 Environment=${ENV_TAG}
-Project=Paths.games
-Owner=AlNao
+Project=Paths.games.${PROJECT_SUFFIX}
+Owner=Paths.games.opsTeam
 CostCenter=Paths.games
 ManagedBy=Sh
 Language=${LANGUAGE}

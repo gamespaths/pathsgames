@@ -86,7 +86,7 @@ volumes — so without GC configuration it silently grew to ~22 GB on the dev ma
 | `aws/` | `aws_backend_deploy.sh` / `aws_backend_remove.sh` (SAM/CloudFormation deploy & teardown, `dev`/`test`), `aws_check_status.sh` (stack + API Gateway health check), `deploy_frontend-game_on_aws.sh` (react-game → S3 + CloudFront invalidation, test bucket). |
 | `aws_ec2_with_java_docker/` | `start.sh` (launch EC2 + Postgres + Java container), `redeploy.sh` (pull latest `:test` image onto the running instance), `stop.sh` (destroy instance/SG/DNS), `run_stress_ec2.sh` (runs `code/tests/stress/run_stress.sh` against it). |
 | `aws_ec2_with_python_docker/` | Python twin of the above (server3): `start.sh`, `redeploy.sh` (`:test-python`), `stop.sh`, `run_stress_ec2.sh`. |
-| `aws_tags.txt` | Tag template (`Key=Value` per line, `${NAME}`/`${ENV_TAG}`/`${LANGUAGE}` placeholders) applied to every taggable resource the two `start.sh` scripts create. |
+| `aws_tags.txt` | Tag template (`Key=Value` per line, `${NAME}`/`${ENV_TAG}`/`${LANGUAGE}`/`${PROJECT_SUFFIX}` placeholders) applied to every taggable resource the two `start.sh` scripts create; `Project` resolves to `Paths.games.aws.ec2.docker.java` / `Paths.games.aws.ec2.docker.python`. |
 
 ## Part 2 — `code/scripts/dev/`
 
