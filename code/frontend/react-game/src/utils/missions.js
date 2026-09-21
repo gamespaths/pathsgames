@@ -31,6 +31,18 @@ export function missionProgressLabel(mission) {
   return total === 0 ? null : `${done}/${total}`
 }
 
+/** The card a mission reads as: the authored one, else its name and description. */
+export function missionCard(mission) {
+  return {
+    ...(mission?.card ?? {}),
+    title: mission?.card?.title || mission?.name,
+    description: mission?.card?.description || mission?.description,
+  }
+}
+
+/** The green a done mission is drawn in — the same one .bonus-badge--done paints the text. */
+export const MISSION_DONE_COLOR = '#1e7d3a'
+
 /** The glyph each status wears, wherever it is drawn. Font Awesome 5 names: the game loads 5. */
 export const MISSION_STATUS_ICON = {
   AVAILABLE: 'fas fa-clipboard-list',
@@ -53,4 +65,37 @@ export function missionStatusBadge(t, status) {
     icon: MISSION_STATUS_ICON[status] ?? MISSION_STATUS_ICON.AVAILABLE,
     color: null,
   }
+}
+
+/**
+ * v0.38.2 — the ONE badge the "mission completed" page wears in place of "Status: Completed":
+ * it is an announcement, not a state, so it reads as a sentence and in green, glyph included.
+ */
+export function missionCompletedBadge(t) {
+  return {
+    key: 'missionCompleted',
+    value: t('game.missions.completed'),
+    label: null,
+    icon: MISSION_STATUS_ICON.COMPLETED,
+    color: MISSION_DONE_COLOR,
+    className: 'bonus-badge--done',
+  }
+}
+
+/**
+ * The badges a mission's READING page carries: its status (with the glyph once closed) and,
+ * when it has steps, how far down them it is — there the count is history, not a repetition.
+ */
+export function missionPageStats(t, mission) {
+  const status = mission?.status
+  const closed = status === 'COMPLETED' || status === 'FAILED'
+  const progress = missionProgressLabel(mission)
+  return [
+    { key: 'missionStatus', value: t(`game.missions.status.${status}`) || status,
+      label: t('game.missions.statusLabel'),
+      ...(closed ? { icon: MISSION_STATUS_ICON[status] } : {}) },
+    ...(progress
+      ? [{ key: 'missionSteps', value: progress, label: t('game.missions.progress') }]
+      : []),
+  ]
 }

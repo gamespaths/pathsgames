@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
-  missionProgress, missionProgressLabel, openMissions, orderedMissions,
+  MISSION_DONE_COLOR, missionCard, missionCompletedBadge, missionPageStats, missionProgress,
+  missionProgressLabel, openMissions, orderedMissions,
 } from '../utils/missions'
 
 const mission = (name, status, steps = []) => ({ name, status, steps })
@@ -44,5 +45,42 @@ describe('missions utils (Step 37)', () => {
     expect(missionProgress(mission('m', 'AVAILABLE'))).toEqual({ done: 0, total: 0 })
     expect(missionProgressLabel(mission('m', 'AVAILABLE'))).toBeNull()
     expect(missionProgressLabel(null)).toBeNull()
+  })
+})
+
+describe('mission reading page helpers (v0.38.2)', () => {
+  const t = k => k
+
+  it('reads as the authored card, falling back to the name and description', () => {
+    expect(missionCard({ name: 'Quest', description: 'Go', card: { urlImage: 'i.png' } }))
+      .toEqual({ urlImage: 'i.png', title: 'Quest', description: 'Go' })
+    expect(missionCard({ name: 'Quest', card: { title: 'Authored', description: 'Written' } }))
+      .toEqual({ title: 'Authored', description: 'Written' })
+    expect(missionCard(null)).toEqual({ title: undefined, description: undefined })
+  })
+
+  it('badges the status, the glyph once closed, and the progress when there are steps', () => {
+    const open = missionPageStats(t, mission('m', 'ACTIVE', [{ done: true }, { done: false }]))
+    expect(open.map(s => s.key)).toEqual(['missionStatus', 'missionSteps'])
+    expect(open[0].value).toBe('game.missions.status.ACTIVE')
+    expect(open[0].icon).toBeUndefined()
+    expect(open[1].value).toBe('1/2')
+
+    const done = missionPageStats(t, mission('m', 'COMPLETED'))
+    expect(done.map(s => s.key)).toEqual(['missionStatus'])
+    expect(done[0].icon).toBe('fas fa-check-circle')
+  })
+
+  it('announces a completion as one green sentence, no label, glyph in the same green', () => {
+    const badge = missionCompletedBadge(t)
+    expect(badge.value).toBe('game.missions.completed')
+    expect(badge.label).toBeNull()
+    expect(badge.icon).toBe('fas fa-check-circle')
+    expect(badge.color).toBe(MISSION_DONE_COLOR)
+    expect(badge.className).toBe('bonus-badge--done')
+  })
+
+  it('shows the raw status when no translation exists', () => {
+    expect(missionPageStats(() => '', mission('m', 'ODD'))[0].value).toBe('ODD')
   })
 })

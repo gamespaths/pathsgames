@@ -834,7 +834,7 @@ html, body {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 20px; /*quiquiqui ex 20px*/
+  padding: 10px; /*quiquiqui ex 20px*/
   overflow: hidden;
 }
 
@@ -848,10 +848,10 @@ html, body {
   opacity: 0.5;
   pointer-events: none;
 }
-.page-corner-tl { top: 10px; left: 10px; border-width: 2px 0 0 2px; border-radius: 2px 0 0 0; }
-.page-corner-tr { top: 10px; right: 10px; border-width: 2px 2px 0 0; border-radius: 0 2px 0 0; }
-.page-corner-bl { bottom: 10px; left: 10px; border-width: 0 0 2px 2px; border-radius: 0 0 0 2px; }
-.page-corner-br { bottom: 10px; right: 10px; border-width: 0 2px 2px 0; border-radius: 0 0 2px 0; }
+.page-corner-tl { top: 5px; left: 5px; border-width: 2px 0 0 2px; border-radius: 2px 0 0 0; }
+.page-corner-tr { top: 5px; right: 5px; border-width: 2px 2px 0 0; border-radius: 0 2px 0 0; }
+.page-corner-bl { bottom: 5px; left: 5px; border-width: 0 0 2px 2px; border-radius: 0 0 0 2px; }
+.page-corner-br { bottom: 5px; right: 5px; border-width: 0 2px 2px 0; border-radius: 0 0 2px 0; }
 
 /* ═══════════════════════════════════════════
    BOOK CLOSE BUTTON
@@ -1152,6 +1152,11 @@ html, body {
   font-size: 0.725rem !important;
   padding: 1px 5px !important;
 }
+/* v0.38.2 — the "mission completed" announcement: green text, green border, green glyph. */
+.bonus-badge--done {
+  color: #1e7d3a;
+  border-color: #1e7d3a;
+}
 
 .bonus-badge__label { 
   line-height: 1; 
@@ -1435,8 +1440,8 @@ html, body {
   flex-direction: column;
   height: 100%;
   gap: 0;
+  
 }
-
 /* scrollable area containing the card grid */
 .config-cards-area {
   flex: 1;
@@ -1444,6 +1449,13 @@ html, body {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 10px 14px 16px;
+}
+
+.config-cards-area > .pg-card--grid{
+  margin: 8px;
+}
+.selection-list > .pg-card--grid {
+  margin: 8px;
 }
 
 .config-title {
@@ -1737,6 +1749,8 @@ html, body {
 }
 
 .selection-title {
+  padding-left: 10px;
+  padding-top: 10px;
   text-align: center;
   font-family: var(--font-heading);
   font-size: 2.0rem;
@@ -1771,8 +1785,8 @@ html, body {
   grid-auto-rows: auto;
   align-content: start;
   align-items: start;
-  gap: 1rem;
-  padding: 4px 2px;
+  gap: 1px; /* qui ex 1rem;*/
+  padding: 0; /* ex 4px 2px;*/
   animation: slideInRight 0.3s ease;
   isolation: isolate;
   overflow-y: auto;
@@ -1798,7 +1812,7 @@ html, body {
 .gc-title {
   position: relative;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 6px;
   padding: 6px 8px;
   background: linear-gradient(120deg, var(--color-brown-dark) 0%, var(--color-brown-mid) 60%, var(--color-brown-dark) 100%);
@@ -1810,7 +1824,8 @@ html, body {
   font-size: 1.25rem;
 }
 .gc-title__text {
-  flex: 1;
+  flex: 0 0 auto;      /* v0.38.2 — the title never gives way to the badges */
+  max-width: 100%;     /* ellipsis only when the title alone overflows the bar */
   min-width: 0;
   white-space: nowrap;
   font-family: var(--font-heading);
@@ -1822,6 +1837,20 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* v0.38.2 — the badges take what the title leaves, on ONE row, left-aligned right after it;
+   whatever does not fit fades out at the right edge instead of pushing the title into "…". */
+.gc-title .player-stats-bar {
+  flex: 1 1 0;
+  min-width: 0;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  overflow: hidden;
+  margin: 0;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
+}
+.gc-title .player-stats-bar .stat-badge { flex-shrink: 0; }
 
 .gc-title__btn {
   flex-shrink: 0;

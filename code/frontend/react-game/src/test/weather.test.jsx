@@ -41,7 +41,7 @@ let capturedOnPreview = null
 let capturedCard = null
 let capturedStatItems = null
 vi.mock('@/components/layout/Card', () => ({
-  default: ({ card, onPreview, onClose, entityType, variant, statItemsToPageContent }) => {
+  default: ({ card, onPreview, onClose, onForward, entityType, variant, statItemsToPageContent }) => {
     capturedOnPreview = onPreview
     capturedCard = card
     capturedStatItems = statItemsToPageContent
@@ -50,6 +50,7 @@ vi.mock('@/components/layout/Card', () => ({
         <span data-testid="title">{card?.title}</span>
         {onPreview && <button data-testid="preview" onClick={onPreview}>preview</button>}
         {onClose && <button data-testid="back-btn" onClick={onClose}>back</button>}
+        {onForward && <button data-testid="forward-btn" onClick={onForward}>forward</button>}
       </div>
     )
   },
@@ -111,6 +112,19 @@ describe('WeatherCard', () => {
       render(<WeatherCard weather={{ idWeather: 2 }} story={{}} onBack={onBack} />)
       fireEvent.click(screen.getByTestId('back-btn'))
       expect(onBack).toHaveBeenCalledOnce()
+      expect(screen.queryByTestId('forward-btn')).not.toBeInTheDocument()
+    })
+
+    // v0.38.2 — one page of a chain: it only leads on, never back.
+    it('with onForward it is a page that only leads forward', () => {
+      const onBack = vi.fn()
+      const onForward = vi.fn()
+      render(<WeatherCard weather={{ idWeather: 2 }} story={{}} onBack={onBack} onForward={onForward} />)
+      expect(screen.getByTestId('weather-card').dataset.variant).toBe('page')
+      expect(screen.queryByTestId('back-btn')).not.toBeInTheDocument()
+      fireEvent.click(screen.getByTestId('forward-btn'))
+      expect(onForward).toHaveBeenCalledOnce()
+      expect(onBack).not.toHaveBeenCalled()
     })
   })
 })

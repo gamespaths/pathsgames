@@ -27,7 +27,8 @@ function RightPreview({ previewRight, story, playerStats, matchUuid, accessToken
   activeAction, onBack, onEndGamePreview, onEndGame }) {
   switch (previewRight?.kind) {
     case 'weather':
-      return <WeatherCard weather={previewRight.weather} story={story} onBack={onBack} />
+      return <WeatherCard weather={previewRight.weather} story={story} onBack={onBack}
+        onForward={previewRight.onForward} />
     // v0.37.7 — the match history, opened from its own card in the (i) view's PlayerCards.
     case 'matchlog':
       return <MatchLogCard matchUuid={matchUuid} accessToken={accessToken}

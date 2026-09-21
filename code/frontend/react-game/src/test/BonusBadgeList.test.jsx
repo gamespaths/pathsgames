@@ -26,6 +26,21 @@ describe('BonusBadgeList', () => {
     expect(container.querySelector('.extra')).toBeTruthy()
   })
 
+  it('adds an item\'s own className to that badge only, and paints its glyph in its colour', () => {
+    const { container } = render(
+      <BonusBadgeList showZeros items={[
+        { key: 'missionCompleted', label: null, value: 'Done', icon: 'fas fa-check-circle',
+          color: '#1e7d3a', className: 'bonus-badge--done' },
+        { key: 'life', label: 'Life', value: 5 },
+      ]} />
+    )
+    const done = container.querySelectorAll('.bonus-badge--done')
+    expect(done.length).toBe(1)
+    expect(done[0].querySelector('.fa-check-circle').style.color).toBe('rgb(30, 125, 58)')
+    expect(done[0].textContent).toBe('Done')
+    expect(done[0].hasAttribute('title')).toBe(false)
+  })
+
   it('keeps zero values when showZeros is set', () => {
     const { container } = render(
       <BonusBadgeList

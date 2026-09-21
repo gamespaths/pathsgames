@@ -505,6 +505,7 @@
       "progress": "Passi",
       "statusLabel": "Stato",
       "stepsEmpty": "Questa missione non ha passi.",
+      "completed": "Missione completata",
       "status": {
         "AVAILABLE": "Disponibile",
         "ACTIVE": "In corso",

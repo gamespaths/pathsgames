@@ -5,6 +5,7 @@ import { grantedItemUuids, itemRowForUuid, lastEffectCard } from '@/utils/gameRe
 import { itemPromiseBadges, registryChangeItems, statChangeItems } from '@/utils/statBadges'
 import { scrollBookToTop } from './mobileView'
 import { buildTrainedCard } from '@/utils/loadoutCards'
+import { missionCard, missionCompletedBadge, missionPageStats } from '@/utils/missions'
 
 // v0.37.6 — a drop-item answer carries no clock: read as "time did not move".
 const DROP_ANSWER = Object.freeze({ timeEnded: false })
@@ -69,10 +70,13 @@ export default function useGameplayResults({
     if (viewRef.current.counterZero?.length) return
     viewActions.setPreviewRight(prev => {
       // Step 29 — the effect only leads forward to the weather: drop its back arrow.
+      // v0.38.2 — a card that already led somewhere (a mission just closed) keeps its chain:
+      // the weather slots in and leads on to it.
       if (duringEvent && prev && prev.kind === 'preview') {
+        const after = prev.additionalProps?.onForward
         return { ...prev, additionalProps: { ...prev.additionalProps,
           onClose: undefined,
-          onForward: () => viewActions.setPreviewRight({ kind: 'weather' }) } }
+          onForward: () => viewActions.setPreviewRight({ kind: 'weather', onForward: after }) } }
       }
       // Step 30 — a coma or sadness card is the important news; the weather waits behind a
       // forward arrow (→) on it rather than covering it. The card keeps its close arrow.
@@ -166,6 +170,49 @@ export default function useGameplayResults({
   }, [playerUuid, t, viewActions])
 
   /**
+   * v0.38.2 — the missions the reload just CLOSED, each on its own reading page with a back
+   * arrow. They land after the answer's own news (the effect card, a coma), so they chain
+   * behind it with the forward arrow the weather uses rather than covering it; a page that
+   * already led somewhere (the weather) is led to again from the last mission.
+   */
+  const showMissionsCompleted = useCallback(missions => {
+    const rows = (missions ?? []).filter(Boolean)
+    if (rows.length === 0) return false
+    viewActions.setPreviewRight(prev => {
+      const behindCard = prev?.kind === 'preview'
+      // Where the last mission leads: what the card in front already led to, or the page
+      // itself when it cannot carry an arrow (the weather).
+      let next = behindCard
+        ? prev.additionalProps?.onForward
+        : (prev ? () => viewActions.setPreviewRight(prev) : undefined)
+      let first = null
+      // Built back to front, so each card's forward arrow already knows its successor.
+      for (let i = rows.length - 1; i >= 0; i -= 1) {
+        const page = {
+          kind: 'preview',
+          card: missionCard(rows[i]),
+          type: 'missions',
+          lockedReason: null,
+          // "Mission completed" in place of "Status: Completed": news, not a state.
+          statItemsToPageContent: [missionCompletedBadge(t),
+            ...missionPageStats(t, rows[i]).filter(s => s.key !== 'missionStatus')],
+          // "Mission completed" is a sentence: without showZeros the badge list would drop it.
+          additionalProps: { bonusBadgeShowZeros: true,
+            ...(next ? { onClose: undefined, onForward: next } : {}) },
+        }
+        next = () => viewActions.setPreviewRight(page)
+        first = page
+      }
+      if (behindCard) {
+        return { ...prev, additionalProps: { ...prev.additionalProps,
+          onClose: undefined, onForward: next } }
+      }
+      return first
+    })
+    return true
+  }, [t, viewActions])
+
+  /**
    * Step 29/34/35 — an executed event answers with one entry per applied effect, each with
    * its OWN card; the story reads as the last one. An item handed over outranks it: the
    * player wants to see what they just got, not the effect row that gave it.
@@ -216,11 +263,16 @@ export default function useGameplayResults({
       getInventory(matchUuid, accessToken, lang)
         .then(inventory => {
           const row = itemRowForUuid(inventory?.items, grantedUuid)
-          if (row?.card) {
-            viewActions.openPreview({ card: row.card, type: 'item',
-              stats: [...itemPromiseBadges(row, t), ...registryBadges], side: 'right',
-              props: badgeProps })
-          }
+          if (!row?.card) return
+          const page = { kind: 'preview', card: row.card, type: 'item', lockedReason: null,
+            statItemsToPageContent: [...itemPromiseBadges(row, t), ...registryBadges],
+            additionalProps: badgeProps ?? {} }
+          // v0.38.2 — the item is read FIRST: whatever landed meanwhile (a mission it closed,
+          // the weather) waits behind its forward arrow rather than being covered.
+          viewActions.setPreviewRight(prev => prev
+            ? { ...page, additionalProps: { ...page.additionalProps, onClose: undefined,
+                onForward: () => viewActions.setPreviewRight(prev) } }
+            : page)
         })
         .catch(() => {})
     }
@@ -328,5 +380,6 @@ export default function useGameplayResults({
     loading, startLoading, stopLoading, choiceInFlight,
     reloadBoard, handleEventExecuted, handleMovementDone, handleSlept,
     handleItemDropped, handleItemUsed, handleExpUsed, handleSelectChoice, showAutomaticEvents,
+    showMissionsCompleted,
   }
 }

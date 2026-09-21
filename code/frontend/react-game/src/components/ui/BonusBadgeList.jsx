@@ -17,6 +17,7 @@
  *                               which is how a caller badges something the shared stat
  *                               vocabulary has no word for (a match-log entry type, say)
  *                               without adding a key to it. Pass `icon: null` for no glyph.
+ *                               `className` is added to that one badge (a green "done", say).
  * @param {string}  className  - optional extra class on the wrapper
  * @param {boolean} showZeros  - keep items with value 0/missing (default false)
  */
@@ -123,7 +124,7 @@ export default function BonusBadgeList({ items, className = '', showZeros = fals
         // stat twice — a match-log entry that both charged and refunded coins reports
         // both halves — and two spans sharing a key is a React bug waiting to happen.
         return (
-          <span key={`${item.key}-${index}`} className={ "stat-badge bonus-badge" + (littleVersion ? " bonus-badge-little-version" : "") } title={item.label} aria-label={item.label}>
+          <span key={`${item.key}-${index}`} className={ "stat-badge bonus-badge" + (littleVersion ? " bonus-badge-little-version" : "") + (item.className ? " " + item.className : "") } title={item.label} aria-label={item.label}>
             {visual.icon && <i className={visual.icon} style={{ color: visual.color }} />}
             {!littleVersion && <span>{item.label}{item.label ? ':' : ''}</span>} 
             <strong>{item.prefix ?? ''}{item.value}</strong>

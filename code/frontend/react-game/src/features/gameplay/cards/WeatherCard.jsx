@@ -12,9 +12,11 @@ import BonusBadgeList from '@/components/ui/BonusBadgeList'
  *
  * When `onBack` is passed the card is rendered as a full book reading page
  * (variant="page") with the back arrow top-left — the weather-change overlay
- * shown on the book's right page (see GameBook). `onBack` closes it.
+ * shown on the book's right page (see GameBook). `onBack` closes it; with `onForward` the
+ * page is one of a chain and only leads on (v0.38.2).
  */
-export default function WeatherCard({ weather, story, onPreview, onBack = null , previewSide='left' }) {
+export default function WeatherCard({ weather, story, onPreview, onBack = null, onForward = null,
+  previewSide = 'left' }) {
   const { t } = useTranslation()
   if (!weather) return null
 
@@ -34,7 +36,7 @@ export default function WeatherCard({ weather, story, onPreview, onBack = null ,
     : []
 
   // Page (overlay) mode: full reading page with the back arrow, no (i) lens.
-  if (onBack) {
+  if (onBack || onForward) {
     return (
       <Card
         variant="page"
@@ -42,7 +44,8 @@ export default function WeatherCard({ weather, story, onPreview, onBack = null ,
         entityType="weather"
         story={story}
         loading={false}
-        onClose={onBack}
+        onClose={onForward ? undefined : onBack}
+        onForward={onForward ?? undefined}
         statItemsToPageContent={costItems}
         hidePreview
       />

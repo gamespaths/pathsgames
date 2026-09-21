@@ -13,6 +13,7 @@ import PageRight from './PageRight'
 import useMatchChrome from './js/useMatchChrome'
 import useBookView from './js/useBookView'
 import useMissionsAlert from './js/useMissionsAlert'
+import useMissionsCompleted from './js/useMissionsCompleted'
 import useGameplayResults from './js/useGameplayResults'
 import { buildBookmarksLeft, BOOKMARKS_RIGHT } from './js/bookmarks'
 import { scrollMobileIntoView } from './js/mobileView'
@@ -60,6 +61,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     matchUuid, accessToken, lang, t, playerUuid, playerStats, gameData, weather, clock,
     view, viewActions, refreshChrome, onReload, onError,
   })
+  // v0.38.2 — a mission just closed reads on the right page at once, back arrow and all.
+  useMissionsCompleted(gameData?.info?.missions, results.showMissionsCompleted)
 
   // The end-game reading page: the action's own card plus the button that ends the match.
   function handleEndGamePreviewFull({ card, stats = [], props = {} }) {

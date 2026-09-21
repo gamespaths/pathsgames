@@ -57,8 +57,8 @@
 .book-mobile-layout {
   display: none;
   flex-direction: column;
-  gap: 14px;
-  padding: 18px;
+  gap: 5px;
+  padding: 0px;
   max-width: 500px;
   margin: 0 auto;
   width: 100%;
@@ -172,6 +172,9 @@
 
 /* ── Responsive overrides ── */
 @media (max-width: 767px) {
+  .config-view-wrap{
+    overflow-y: unset !important;
+  }
   /* Show mobile layout, hide desktop book */
   .book-wrapper      { display: none !important; }
   .book-mobile-layout { display: flex !important; }
@@ -207,6 +210,30 @@
   .book-mobile-right { max-width: 100%; min-width: 0; }
   .book-mobile-layout * { /* min-width: 0;*/ max-width: 100%; }
   .book-mobile-layout img { height: auto; }
+
+  .book-mobile-left{
+    padding-top:10px;
+    padding-left:10px;
+    padding-right:10px;
+  }
+  .book-mobile-hero-card:has(.book-page-content)  {
+    padding:10px;
+  }
+  .book-mobile-right:has(.book-page-content)  {
+    padding:10px;
+  }
+  .book-mobile-layout:has(.selection-scroll)  {
+    padding:10px;
+  }
+  .book-mobile-layout > DIV > .selection-scroll > .selection-list  {
+    gap:1rem;
+  }
+  .book-mobile-layout > .start-match-cards > .selection-list{
+    gap:1rem;
+  }
+  .start-match-overlay > .book-mobile-layout {
+    padding:10px;
+  }
 
   /* Game page: stack pages vertically */
   .game-book-wrapper {
@@ -323,9 +350,6 @@
   }
   .card-preview-modal-content{
     width: 100%;
-  }
-  .gc-title .player-stats-bar{
-    display:contents !important;
   }
 }
 

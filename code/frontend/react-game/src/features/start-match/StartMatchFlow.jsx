@@ -185,11 +185,14 @@ export default function StartMatchFlow({ story, config, storyId }) {
     <div className="selection-list">
       <Card card={story.card} entityType="story" label={t('book.story')} story={story} flagInformationCard={true} 
         onPreview={() => handleSelectionPreview(story.card,"story")} />
-      <Card card={statisticsCard} entityType="bonuses" flagInformationCard={true} 
-        onPreview={() => handleSelectionPreview(statisticsCard,"bonuses", null ,statisticCard1) }       
-        statistics={statisticCard1} flagShowFullStatistics={true}  />
       <Card card={statisticsCard} entityType="bonuses" 
-        onPreview={() => handleSelectionPreview(statisticsCard,"bonuses", null ,statisticCard2)}  flagInformationCard={true} 
+        onPreview={() => handleSelectionPreview(statisticsCard,"bonuses", null ,statisticCard1) }       
+        flagInformationCard={false}  hidePreview={true}
+        statistics={statisticCard1} flagShowFullStatistics={true} 
+         />
+      <Card card={statisticsCard} entityType="bonuses" 
+        onPreview={() => handleSelectionPreview(statisticsCard,"bonuses", null ,statisticCard2)}  
+        flagInformationCard={false}  hidePreview={true}
         statistics={statisticCard2} flagShowFullStatistics={true} />
       <Card card={buildGameTypeCard(t)} entityType="gameType" label={t('book.single')} 
         onPreview={() => handleSelectionPreview(buildGameTypeCard(t),"gameType")} story={story} locked />

@@ -34,14 +34,14 @@ export default function ConfigView({ config, story, onChangeClick, onInfoClick, 
             selection list + preview together (handled by onChangeClick). */}
         <Card card={config.class?.card} entityType="class" {...selectableProps('class')} story={story} />
         <Card card={config.character?.card} entityType="character" {...selectableProps('character')} story={story} />
-        <Card card={statisticsCard} entityType="bonuses" flagInformationCard={true} story={story} 
-          onPreview={() => onPreview(statisticsCard,"bonuses", null ,statisticCard1) } 
+        <Card card={statisticsCard} entityType="bonuses" flagInformationCard={false} story={story} 
+          onPreview={() => onPreview(statisticsCard,"bonuses", null ,statisticCard1) } hidePreview={true}
           statistics={statisticCard1} flagShowFullStatistics={true} 
         />
         <Card card={selectedTraits[0]?.card ?? noTraitsCard} entityType="trait" {...selectableProps('trait')} story={story} />
         <Card card={config.difficulty?.card} entityType="difficulty" {...selectableProps('difficulty')} story={story} />
-        <Card card={statisticsCard} entityType="bonuses" flagInformationCard={true} story={story} 
-          onPreview={() => onPreview(statisticsCard,"bonuses", null ,statisticCard2) } 
+        <Card card={statisticsCard} entityType="bonuses" flagInformationCard={false} story={story} 
+          onPreview={() => onPreview(statisticsCard,"bonuses", null ,statisticCard2) }  hidePreview={true}
           statistics={statisticCard2} flagShowFullStatistics={true} 
         />
 
