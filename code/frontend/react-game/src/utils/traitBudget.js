@@ -80,3 +80,48 @@ export function selectableTraits(traits) {
 export function isTraitHiddenOnStartMatch(trait) {
   return trait?.hideOnStartMatch === true
 }
+
+/**
+ * v0.38.3 — keeps, in order, only the traits the difficulty budgets can still pay for.
+ * Used when the difficulty changes under an existing selection.
+ */
+export function fitTraitsToBudget(traits, difficulty) {
+  const kept = []
+  for (const tr of (Array.isArray(traits) ? traits : [])) {
+    if (canAddTrait(tr, kept, difficulty)) kept.push(tr)
+  }
+  return kept
+}
+
+/**
+ * v0.38.3 — which cost sides the difficulty actually budgets. A null or zero budget is a
+ * side the story does not play with, and no cost badge of that side is shown anywhere.
+ */
+export function budgetSides(difficulty) {
+  return {
+    positive: nz(difficulty?.traitCostPositiveBudget) > 0,
+    negative: nz(difficulty?.traitCostNegativeBudget) > 0,
+  }
+}
+
+/**
+ * v0.38.3 — the cost badges of ONE trait (+ then −) on the sides the difficulty budgets,
+ * zero included: a free trait is still news to the player choosing it (`keepZero`).
+ */
+export function traitCostItems(trait, t = (k) => k, difficulty = null) {
+  const sides = budgetSides(difficulty)
+  const items = []
+  if (sides.positive) items.push({ key: 'costPositive', label: t('book.stats.costPositive'), value: nz(trait?.costPositive), keepZero: true })
+  if (sides.negative) items.push({ key: 'costNegative', label: t('book.stats.costNegative'), value: nz(trait?.costNegative), keepZero: true })
+  return items
+}
+
+/** v0.38.3 — the "used/max" cost badges of a selection, on the sides the difficulty budgets. */
+export function traitBudgetItems(difficulty, selectedTraits, t = (k) => k) {
+  const totals = traitCostTotals(selectedTraits)
+  const sides = budgetSides(difficulty)
+  const items = []
+  if (sides.positive) items.push({ key: 'costPositive', label: t('book.traitBudgetPositive'), value: `${totals.positive}/${nz(difficulty.traitCostPositiveBudget)}`, keepZero: true })
+  if (sides.negative) items.push({ key: 'costNegative', label: t('book.traitBudgetNegative'), value: `${totals.negative}/${nz(difficulty.traitCostNegativeBudget)}`, keepZero: true })
+  return items
+}

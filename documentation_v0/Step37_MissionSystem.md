@@ -325,8 +325,12 @@ bookmark stays lit inside `missionSteps` too). The previous path passed a `steps
 New `src/features/gameplay/cards/MissionStepsCards.jsx`: one card per step on the right page,
 its own (i) opening the step card in `"page"` as an overlay above the list (back returns to the
 list); the step number is no longer displayed. A closed step is `locked` with a green
-"Completed" badge (`game.missions.status.COMPLETED`, class `.pg-card--mission-done`) doubling as
-the lock hint; an open step carries no badge. Of the still-open steps, only the first in story
+"Completed" badge (`game.missions.status.COMPLETED`) doubling as the lock hint; an open step
+carries no badge. **v0.38.3** — the green card styling is `.pg-card--done` (renamed from
+`.pg-card--mission-done`, now shared with the start-match phase cards' complete state, see
+[Step21 §9.1](./Step21_CharacterSelection.md#91-react-game-startmatchflow-auto-join-v0210));
+`MissionStepCard.jsx` gets the same class on a COMPLETED mission (green border/lock/glyph) —
+FAILED, ACTIVE and AVAILABLE stay uncoloured. Of the still-open steps, only the first in story
 order is shown — later ones are what the story hasn't asked for yet, and listing them would
 spoil it (helper exported as `visibleSteps(mission)`). New i18n key `game.missions.stepsEmpty`
 in `en.json`/`it.json`.
@@ -637,8 +641,9 @@ passed, react-game 1185 passed / 3 skipped, react-admin 794 passed.
   | 0.37.3 | `missionStatusBadge` drops its `label`: the status badge on mission/step cards reads "Completed" instead of "Status: Completed"; `game.missions.status.COMPLETED` "Done" → "Completed" in `en.json`. | September 10, 2026 |
   | 0.37.4 | react-game: `COMPLETED` missions now always sort last (`utils/missions.js` `ORDER`), open mission steps read before closed ones; `EndGameBook` reads missions first (mission grid → steps → step), falling back to the old end-of-match reading when a match has none; the match-history door is removed from gameplay and moves into the profile book behind a new `MatchHistoryCard` reached from a match's missions view (§12). | September 11, 2026 |
   | 0.38.3 | `use-exp` becomes a registry writer ([Step 38 §15](./Step38_ExperienceSystem.md#15-use-exp-writes-the-registry-v0383)): it writes `use-exp`/`use-exp-<STAT>` through the ordinary engine, gated on the story declaring the key, so a mission can wait on experience being spent (§4). | September 21, 2026 |
+  | 0.38.3 | react-game: the green "done" card styling is now the shared `.pg-card--done` class (renamed from `.pg-card--mission-done`); `MissionStepCard.jsx` also applies it to a COMPLETED mission's own card, not just to closed steps. | September 22, 2026 |
 
-- **Last Updated**: September 11, 2026 (v0.37.4)
+- **Last Updated**: September 22, 2026 (v0.38.3)
 - **Status**: Complete
 
 # < Paths Games />

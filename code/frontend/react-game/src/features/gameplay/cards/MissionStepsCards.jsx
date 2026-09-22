@@ -50,7 +50,7 @@ export default function MissionStepsCards({ mission, story = null, onPreview,
                 lockedIcon={done ? MISSION_STATUS_ICON.COMPLETED : undefined}
                 lo
                 lockInfo={done ? badge.value : undefined} flagInformationCard
-                additionalCardClasses="pg-card--mission"
+                additionalCardClasses={`pg-card--mission${done ? ' pg-card--done' : ''}`}
                 onPreview={() => onPreview?.({ card, type: 'missions', side: previewSide })}
               />
             )

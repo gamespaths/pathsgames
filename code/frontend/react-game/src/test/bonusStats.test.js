@@ -19,6 +19,16 @@ describe('getNonZeroStats', () => {
     expect(stats).toContainEqual(expect.objectContaining({ key: 'intelligenceStart', value: 3 }))
   })
 
+  // v0.38.3 — a difficulty leads with its trait budgets (null/zero ones drop out with the
+  // zero filter), while a trait no longer reports its cost as a stat: traitCostItems does.
+  it('leads a difficulty with its trait budgets and keeps cost out of the trait stats', () => {
+    const difficulty = { energy: 4, traitCostPositiveBudget: 2, traitCostNegativeBudget: 0, expCost: 1, life: 5 }
+    expect(getNonZeroStats(difficulty, 'difficulty', t => t).map(s => s.key))
+      .toEqual(['energy', 'traitCostPositiveBudget', 'expCost', 'life'])
+    expect(getNonZeroStats({ costPositive: 2, costNegative: 1, life: 3 }, 'trait', t => t).map(s => s.key))
+      .toEqual(['life'])
+  })
+
   it('returns base stats AND class bonuses for a class', () => {
     const cls = {
       weightMax: 12,

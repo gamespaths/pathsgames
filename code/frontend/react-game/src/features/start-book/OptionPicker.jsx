@@ -1,7 +1,8 @@
 import { useTranslation } from '../../i18n/context'
 import Card from '../../components/layout/Card'
+import BonusBadgeList from '../../components/ui/BonusBadgeList'
 import { buildClassesById, getNonZeroStats, getOptionLockInfo } from '../../utils/bonusStats'
-import { canAddTrait, isTraitSelected, remainingTraitBudget } from '../../utils/traitBudget'
+import { canAddTrait, isTraitSelected, traitBudgetItems, traitCostItems } from '../../utils/traitBudget'
 
 export default function OptionPicker({ type, options, selected, story, config, onSelect, onBack, onPreview }) {
   const { t } = useTranslation()
@@ -11,7 +12,8 @@ export default function OptionPicker({ type, options, selected, story, config, o
   // Step 23 — traits are multi-select within the difficulty cost budgets.
   const isTraitPicker = type === 'trait'
   const selectedTraits = isTraitPicker ? (Array.isArray(selected) ? selected : []) : null
-  const budget = isTraitPicker ? remainingTraitBudget(config?.difficulty, selectedTraits) : null
+  // Cost used/max of the selection, badged beside the title (null budget → used only).
+  const budgetItems = isTraitPicker ? traitBudgetItems(config?.difficulty, selectedTraits, t) : null
 
   function lockMessage(lock) {
     if (!lock) return null
@@ -25,21 +27,19 @@ export default function OptionPicker({ type, options, selected, story, config, o
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div className="selection-header ">
+        {/* v0.38.3 — the title and the back arrow live on the LEFT page card now; only the
+            trait budget stays here, over the list it counts.
         <h3 className="selection-title">
           <button className=" float-left" onClick={onBack}>
-            <i className="fas fa-arrow-left me-1" />{ /*t('book.back')*/ }
+            <i className="fas fa-arrow-left me-1" />{ /*t('book.back')* / }
           </button>
           {t('book.selectTitle')} {t(`book.${type}`)}
         </h3>
-        {isTraitPicker && (budget.positive !== null || budget.negative !== null) && (
-          <p className="trait-budget-info" data-testid="trait-budget">
-            {budget.positive !== null && (
-              <span className="me-2">{t('book.traitBudgetPositive')}: {budget.positive}</span>
-            )}
-            {budget.negative !== null && (
-              <span>{t('book.traitBudgetNegative')}: {budget.negative}</span>
-            )}
-          </p>
+        */}
+        {isTraitPicker && (
+          <span className="trait-budget-info" data-testid="trait-budget">
+            <BonusBadgeList items={budgetItems} littleVersion={true} />
+          </span>
         )}
       </div>
 
@@ -54,11 +54,14 @@ export default function OptionPicker({ type, options, selected, story, config, o
             // is locked; selected traits stay clickable so they can be removed.
             if (isTraitPicker && !lockInfo && !optSelected
                 && !canAddTrait(opt, selectedTraits, config?.difficulty)) {
-              lockInfo = { kind: 'budget' }
+              lockInfo = { kind: 'budget', label: t('book.traitCostLock') }
             }
             const isLocked = !!lockInfo
             const lockedReason = lockMessage(lockInfo)
-            const statItemsToPageContent = getNonZeroStats(opt, type, t);
+            // Trait: its cost (zero included, budgeted sides only) leads the stats, on the
+            // card title and on the page card alike.
+            const costItems = isTraitPicker ? traitCostItems(opt, t, config?.difficulty) : []
+            const statItemsToPageContent = costItems.concat(getNonZeroStats(opt, type, t))
             //console.log("option",opt ,"getNonZeroStats", getNonZeroStats(opt, type, t)  );
             //console.log("option",opt ,"getNonZeroStats", statItemsToPageContent  );
             const previewHandler = onPreview ? () => 
@@ -81,7 +84,7 @@ export default function OptionPicker({ type, options, selected, story, config, o
               onSelect={isLocked ? undefined : () => onSelect(opt)}
               onPreview={previewHandler}
               selectLabel={isTraitPicker && optSelected ? t('book.remove') : t('book.select')}
-              statistics={getNonZeroStats(opt, type,t)}
+              statistics={statItemsToPageContent}
             />
           )})}
         </div>

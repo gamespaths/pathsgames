@@ -3,6 +3,7 @@ import Card from '@/components/layout/Card'
 import MatchHistoryCard from '@/features/matches/MatchHistoryCard'
 import { resolveSelectionEntity } from '@/utils/gamebook'
 import { getNonZeroStats, STAT_CATEGORY_ORDER } from '@/utils/bonusStats'
+import { traitCostItems } from '@/utils/traitBudget'
 
 /**
  * PlayerCards — the player's chosen loadout shown in the statistics view:
@@ -49,7 +50,9 @@ export default function PlayerCards({ storyFull, story, playerStats, gameData, o
       />
       {playerStats?.traitUuids?.map((trait, index) => {
         const traitEntity = resolveSelectionEntity(storyFull, playerStats, gameData, 'trait', index)
-        const traitItems = statItems(traitEntity, 'trait')
+        // Cost first, on the sides the difficulty budgets; a zero cost is noise in-game.
+        const traitItems = traitCostItems(traitEntity, t, difficultyEntity).filter(i => i.value !== 0)
+          .concat(statItems(traitEntity, 'trait'))
         return (
           <Card key={traitEntity?.uuid ?? trait?.uuid ?? index} card={traitEntity?.card} entityType="trait" story={storyFull} flagInformationCard={true}
             statistics={traitItems} flagShowFullStatistics={true} bonusBadgeListLittleIntoImage={true}

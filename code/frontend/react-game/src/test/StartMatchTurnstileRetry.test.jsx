@@ -58,7 +58,8 @@ function renderPage() {
   )
 }
 
-const clickStart = () => fireEvent.click(screen.getAllByText('book.startGame')[0])
+const startButtons = () => screen.getAllByRole('button', { name: 'book.start' })
+const clickStart = () => fireEvent.click(startButtons()[0])
 const turnstileToken = (call) => call[0].turnstileToken
 
 describe('StartMatchFlow — Turnstile token freshness', () => {
@@ -78,7 +79,7 @@ describe('StartMatchFlow — Turnstile token freshness', () => {
 
   it('keeps the widget mounted (hidden) once the gate has passed', () => {
     renderPage()
-    expect(screen.getAllByText('book.startGame').length).toBeGreaterThan(0)
+    expect(startButtons().length).toBeGreaterThan(0)
     expect(screen.getAllByTestId('turnstile-mock').length).toBeGreaterThan(0)
     const holders = document.querySelectorAll('.start-match-antibot')
     expect(holders.length).toBeGreaterThan(0)

@@ -185,6 +185,16 @@ export function buildFreeToPlay(t) {
   return metaCard('freeToPlay', t('book.freeToPlay'), t('book.freeToPlayDesc'));
 }
 
+/** Info page behind the first bonuses card of ConfigView: the character attributes. */
+export function buildCharacterAttributesCard(t) {
+  return metaCard('characterAttributes', t('book.characterAttributesTitle'), t('book.characterAttributesDesc'))
+}
+
+/** One match-setup phase (creating / joining / running / created) as a card, titled by the caller. */
+export function buildPhaseCard(phase, title) {
+  return metaCard(`phase-${phase}`, title)
+}
+
 /** "No traits selected" placeholder card shown in ConfigView when selectedTraits is empty. */
 export function buildNoTraitsCard(t) {
   return metaCard('noTraits', t('book.noTraitsTitle'), t('book.noTraitsDesc'))

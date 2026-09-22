@@ -30,6 +30,9 @@ describe('MissionStepsCards (v0.37.1)', () => {
     expect(captured[0].statistics).toEqual([])
     expect(captured[1].statistics).toEqual([])
     expect(captured[1].lockInfo).toBe('game.missions.status.COMPLETED')
+    // v0.38.3 — the done step reads green, the open one does not.
+    expect(captured[0].additionalCardClasses).toBe('pg-card--mission')
+    expect(captured[1].additionalCardClasses).toBe('pg-card--mission pg-card--done')
   })
 
   it('lists every step once the mission has closed them all', () => {

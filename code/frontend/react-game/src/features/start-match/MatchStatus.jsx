@@ -1,9 +1,8 @@
 /**
- * MatchStatus — bottom-of-page status block for the match-creation phases:
- * spinner/countdown while starting or creating, a success state once created,
- * or an error with retry/home actions. Extracted from the former StartMatchPage.
+ * MatchStatus — bottom-of-page error block of the match creation, with its retry action
+ * (home is the book's (x)). The running phases read on their own cards since v0.38.3.
  */
-export default function MatchStatus({ phase, countdown, errorMsg, onRetry, onHome, t }) {
+export default function MatchStatus({ phase, countdown, errorMsg, onRetry, t }) {
   if (phase === 'error') {
     return (
       <div className="start-match-status start-match-status--error">
@@ -14,14 +13,13 @@ export default function MatchStatus({ phase, countdown, errorMsg, onRetry, onHom
           <button className="btn-start-game" onClick={onRetry}>
             <i className="fas fa-sync-alt me-2" />{t('startMatch.retry')}
           </button>
-          <button className="btn-start-game" onClick={onHome}>
-            <i className="fas fa-home me-2" />{t('startMatch.home')}
-          </button>
         </div>
       </div>
     )
   }
 
+  return null
+  /* v0.38.3 — the per-phase countdown text moved onto the phase cards; kept here, unused.
   const created = phase === 'created'
   // Per-phase status message; unknown phases fall back to the generic "starting".
   const PHASE_LABELS = {
@@ -45,4 +43,5 @@ export default function MatchStatus({ phase, countdown, errorMsg, onRetry, onHom
       </p>
     </div>
   )
+  */
 }

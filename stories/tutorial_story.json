@@ -2320,6 +2320,42 @@
       "styleMain": null,
       "urlImage": "https://images.unsplash.com/photo-1743715033185-11ee19e66522?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "a4ace7af-6f47-4c4b-bca7-619edb961026"
+    },
+    {
+      "id": 150,
+      "idCard": 150,
+      "idCreator": 1,
+      "idTextCopyright": 446,
+      "idTextDescription": 445,
+      "idTextName": 437,
+      "idTextTitle": 437,
+      "linkCopyright": "https://unsplash.com/photos/a-ladder-leaning-up-against-a-white-box-zPMvC6AcYf8",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1693671725924-302f7a2c450b?q=80&w=660&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "5519afbc-cbdb-40d8-b1db-3218110f0e11"
+    },
+    {
+      "id": 151,
+      "idCard": 151,
+      "idCreator": 1,
+      "idTextCopyright": 441,
+      "idTextDescription": 444,
+      "idTextName": 439,
+      "idTextTitle": 439,
+      "linkCopyright": "https://unsplash.com/photos/a-ladder-leaning-up-against-a-white-box-zPMvC6AcYf8",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1693671725924-302f7a2c450b?q=80&w=660&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "97d9cd51-baf3-4bde-be11-8504cfcc874b"
+    },
+    {
+      "id": 152,
+      "idCard": 152,
+      "idCreator": 1,
+      "idTextCopyright": 442,
+      "idTextDescription": 443,
+      "idTextName": 440,
+      "idTextTitle": 440,
+      "linkCopyright": "https://unsplash.com/photos/person-holding-compass-facing-towards-green-pine-trees-_94HLr_QXo8",
+      "urlImage": "https://images.unsplash.com/photo-1505778276668-26b3ff7af103?q=80&w=1461&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "a2b678df-7a55-4dde-999f-549b61379161"
     }
   ],
   "category": "Tutorial",
@@ -3167,10 +3203,10 @@
       "itemAction": "ADD",
       "keyToAdd": "ITEMS",
       "keyValueToAdd": "Map",
-      "statistics": "EXP",
+      "statistics": "",
       "target": "ALL",
       "uuid": "116ebaac-d84a-4c8f-8742-bc7220dcc07e",
-      "value": 1
+      "value": ""
     },
     {
       "id": 13,
@@ -3193,10 +3229,10 @@
       "itemAction": "ADD",
       "keyToAdd": "ITEMS",
       "keyValueToAdd": "Bottle",
-      "statistics": "EXP",
+      "statistics": "",
       "target": "ALL",
       "uuid": "bca8ea8d-9ccc-4ad9-bed1-81b69bbf7e8d",
-      "value": 1
+      "value": ""
     },
     {
       "id": 15,
@@ -3209,10 +3245,10 @@
       "itemAction": "ADD",
       "keyToAdd": "ITEMS",
       "keyValueToAdd": "Onion",
-      "statistics": "EXP",
+      "statistics": "",
       "target": "ALL",
       "uuid": "15332657-5adc-43f9-92e7-da86523af22b",
-      "value": 1
+      "value": ""
     },
     {
       "id": 16,
@@ -3312,10 +3348,10 @@
       "idLocation": 12,
       "idTextDescription": 402,
       "idTextName": 402,
-      "statistics": "EXP",
+      "statistics": "",
       "target": "ALL",
       "uuid": "598a8cb4-49b7-4402-8ebd-6c6d8efaf3c6",
-      "value": 1
+      "value": ""
     }
   ],
   "events": [
@@ -4264,6 +4300,13 @@
       "name": "TUTORIAL",
       "uuid": "2e9f2447-ecfe-4c3f-b9b6-59e792b7d08b",
       "visibility": "HIDDEN"
+    },
+    {
+      "id": 9,
+      "idTextDescription": 438,
+      "name": "use-exp",
+      "uuid": "86e1f0e3-f664-46b9-84ef-d11919c3ba94",
+      "visibility": "HIDDEN"
     }
   ],
   "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM",
@@ -5162,6 +5205,31 @@
       "id_card": 94,
       "step": 5,
       "uuid": "e569a9a4-9f48-4030-a1df-7a9639424534"
+    },
+    {
+      "conditionKey": "use-exp",
+      "conditionValue": "1",
+      "conditionValues": "",
+      "id": 12,
+      "idCard": 151,
+      "idMission": 4,
+      "idTextDescription": 439,
+      "idTextName": 439,
+      "id_card": 151,
+      "step": 2,
+      "uuid": "feb8548a-59c4-4a8d-a942-5b75c346d4f1"
+    },
+    {
+      "conditionKey": "EXPLORER",
+      "conditionValue": "Mountains",
+      "id": 13,
+      "idCard": 152,
+      "idMission": 4,
+      "idTextDescription": 440,
+      "idTextName": 440,
+      "id_card": 152,
+      "step": 1,
+      "uuid": "7fb64f83-8701-4aba-9529-a642511633e8"
     }
   ],
   "missions": [
@@ -5194,6 +5262,16 @@
       "idTextName": 422,
       "id_card": 149,
       "uuid": "5b61595b-0968-4309-a2f9-8b7f1d36239b"
+    },
+    {
+      "conditionKey": "TUTORIAL",
+      "conditionValue": "START",
+      "id": 4,
+      "idCard": 150,
+      "idTextDescription": 437,
+      "idTextName": 437,
+      "id_card": 150,
+      "uuid": "167c40a4-0d14-4729-a038-82078d11d8eb"
     }
   ],
   "peghi": 3,
@@ -12329,8 +12407,8 @@
       "idText": 409,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Complete Story",
-      "shortText": "Complete Story",
+      "longText": "Find the Exit",
+      "shortText": "Find the Exit",
       "uuid": "829be286-301c-4b4c-9084-e080d7cbc02b"
     },
     {
@@ -12399,8 +12477,8 @@
       "idText": 415,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "A guided path accompanies you step by step through learning the mechanics that govern your destiny. Understanding how to move and interact with the environment will provide you with the resources needed to survive. <br />\n<br />\nThis tutorial teaches you the various game mechanics of paths.games, follow the path and find the way to complete the story.",
-      "shortText": "A guided path accompanies you step by step through learning the mechanics that govern your destiny. Understanding how to move and interact with the environment will provide you with the resources needed to survive. <br />\n<br />\nThis tutorial teaches you the various game mechanics of paths.games, follow the path and find the way to complete the story.",
+      "longText": "A guided path accompanies you step by step through learning the mechanics that govern your destiny. Understanding how to move and interact with the environment will provide you with the resources needed to survive. <br />\n<br />The tutorial will guide you to the exit.",
+      "shortText": "A guided path accompanies you step by step through learning the mechanics that govern your destiny. Understanding how to move and interact with the environment will provide you with the resources needed to survive. <br />\n<br />The tutorial will guide you to the exit.",
       "uuid": "c50d4ab0-1c02-4609-b0f9-142a79beed2b"
     },
     {
@@ -12409,8 +12487,8 @@
       "idText": 415,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Un percorso guidato ti accompagna passo dopo passo nell'apprendimento delle logiche che governano il tuo destino. Comprendere come muoverti ed interagire con l'ambiente ti garantirà le risorse necessarie per sopravvivere. <br />\n<br />\nQuesto tutorial ti insegna le varie meccaniche di gioco di paths.games, segui la strada e trova il modo di completare la storia.",
-      "shortText": "Un percorso guidato ti accompagna passo dopo passo nell'apprendimento delle logiche che governano il tuo destino. Comprendere come muoverti ed interagire con l'ambiente ti garantirà le risorse necessarie per sopravvivere. <br />\n<br />\nQuesto tutorial ti insegna le varie meccaniche di gioco di paths.games, segui la strada e trova il modo di completare la storia.",
+      "longText": "Un percorso guidato ti accompagna passo dopo passo nell'apprendimento delle logiche che governano il tuo destino. Comprendere come muoverti ed interagire con l'ambiente ti garantirà le risorse necessarie per sopravvivere. <br />\n<br />Il tutorial ti guiderà fino all'uscita.",
+      "shortText": "Un percorso guidato ti accompagna passo dopo passo nell'apprendimento delle logiche che governano il tuo destino. Comprendere come muoverti ed interagire con l'ambiente ti garantirà le risorse necessarie per sopravvivere. <br />\n<br />Il tutorial ti guiderà fino all'uscita.",
       "uuid": "e8764320-51b3-4be3-9b64-e2f0cb3d9f73"
     },
     {
@@ -12419,8 +12497,8 @@
       "idText": 409,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Completa la storia",
-      "shortText": "Completa la storia",
+      "longText": "Trova l'Uscita",
+      "shortText": "Trova l'Uscita",
       "uuid": "93872d89-5a18-4863-abd7-30ce22877b6f"
     },
     {
@@ -12752,6 +12830,186 @@
       "longText": "",
       "shortText": "",
       "uuid": "2ba49457-e312-4f3b-94bb-5b7c3be4db4c"
+    },
+    {
+      "id": 437,
+      "idCreator": 1,
+      "idText": 437,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Use Experience",
+      "shortText": "Use Experience",
+      "uuid": "79e6b936-6758-4a8b-804b-45acc691fd58"
+    },
+    {
+      "id": 438,
+      "idCreator": 1,
+      "idText": 438,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "use-exp",
+      "shortText": "use-exp",
+      "uuid": "95fa6665-c49f-48f2-bcfe-0d34cecd4770"
+    },
+    {
+      "id": 439,
+      "idCreator": 1,
+      "idText": 439,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Training",
+      "shortText": "Training",
+      "uuid": "c8fc7e47-f9dd-4421-889d-2106d42225ae"
+    },
+    {
+      "id": 440,
+      "idCreator": 1,
+      "idText": 440,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Search for Experience",
+      "shortText": "Search for Experience",
+      "uuid": "585e4182-c452-4280-b2b6-fe67f0bd1e7a"
+    },
+    {
+      "id": 441,
+      "idCreator": 1,
+      "idText": 441,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Sumaid pal Singh Bakshi",
+      "shortText": "Sumaid pal Singh Bakshi",
+      "uuid": "99f70b76-7c80-4db2-8a4e-a8eff16dd127"
+    },
+    {
+      "id": 441,
+      "idCreator": 1,
+      "idText": 441,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "2080ad58-5c3b-467f-ae57-0acefc55fe1b"
+    },
+    {
+      "id": 442,
+      "idCreator": 1,
+      "idText": 442,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Jamie Street",
+      "shortText": "Jamie Street",
+      "uuid": "10585542-9b49-4218-bbdc-a0a0f3984db0"
+    },
+    {
+      "id": 442,
+      "idCreator": 1,
+      "idText": 442,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "4fffac8a-3dc8-4112-8c6f-96202f8bb4e2"
+    },
+    {
+      "id": 440,
+      "idCreator": 1,
+      "idText": 440,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Cerca Esperienza",
+      "shortText": "Cerca Esperienza",
+      "uuid": "a0837cba-aae4-45bb-81a3-21ca9b04aa9f"
+    },
+    {
+      "id": 443,
+      "idCreator": 1,
+      "idText": 443,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Steep peaks and rugged passes hide challenges that will temper your body and mind. Facing the untamed wilderness is the best way to test your skills and grow in strength.<br />\n<br />\nExplore the mountains to gain experience.",
+      "shortText": "Steep peaks and rugged passes hide challenges that will temper your body and mind. Facing the untamed wilderness is the best way to test your skills and grow in strength.<br />\n<br />\nExplore the mountains to gain experience.",
+      "uuid": "276162f7-0405-4474-9dd1-753a32fadad6"
+    },
+    {
+      "id": 443,
+      "idCreator": 1,
+      "idText": 443,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Le vette scoscese e i valichi impervi nascondono sfide che tempgeranno il tuo corpo e la tua mente. Affrontare la natura incontaminata è il modo migliore per mettere alla prova le tue abilità e crescere in forza. <br />\n<br />\nEsplora le montagne per guadagnare esperienza.",
+      "shortText": "Le vette scoscese e i valichi impervi nascondono sfide che tempgeranno il tuo corpo e la tua mente. Affrontare la natura incontaminata è il modo migliore per mettere alla prova le tue abilità e crescere in forza. <br />\n<br />\nEsplora le montagne per guadagnare esperienza.",
+      "uuid": "daa8f77f-5718-44a0-987a-d9c491ce3209"
+    },
+    {
+      "id": 444,
+      "idCreator": 1,
+      "idText": 444,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Seek out a quiet shelter to gather your strength and hone your full potential. <br />\n<br />\nSearch for a safe place to use experience to improve your attributes using \"Training\" card.",
+      "shortText": "Seek out a quiet shelter to gather your strength and hone your full potential. <br />\n<br />\nSearch for a safe place to use experience to improve your attributes using \"Training\" card.",
+      "uuid": "daa4bf4e-7acf-41cf-9b26-8a3894eb570a"
+    },
+    {
+      "id": 444,
+      "idCreator": 1,
+      "idText": 444,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Cerca un riparo tranquillo per raccogliere le forze e sviluppare il tuo pieno potenziale. <br />\n<br />\nCerca un posto sicuro dove usare l'esperienza per migliorare le tue caratteristiche.",
+      "shortText": "Cerca un riparo tranquillo per raccogliere le forze e sviluppare il tuo pieno potenziale. <br />\n<br />\nCerca un posto sicuro dove usare l'esperienza per migliorare le tue caratteristiche.",
+      "uuid": "5afeb3da-7a36-4682-8797-74d7c7740da8"
+    },
+    {
+      "id": 445,
+      "idCreator": 1,
+      "idText": 445,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Find experience points in the game to then use them in a safe place.<br />\n<br />\nFind a moment of rest to put everything you have learned to good use and enhance your abilities using \"Training\" card.",
+      "shortText": "Find experience points in the game to then use them in a safe place.<br />\n<br />\nFind a moment of rest to put everything you have learned to good use and enhance your abilities using \"Training\" card.",
+      "uuid": "8ac29403-ea3e-482a-99d8-78823736dd66"
+    },
+    {
+      "id": 445,
+      "idCreator": 1,
+      "idText": 445,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Trova punti esperienza nel gioco per poi usarli in un luogo sicuro.<br />\n<br />\nTrova un momento di riposo per far fruttare tutto ciò che hai appreso e potenziare le tue capacità. ",
+      "shortText": "Trova punti esperienza nel gioco per poi usarli in un luogo sicuro.<br />\n<br />\nTrova un momento di riposo per far fruttare tutto ciò che hai appreso e potenziare le tue capacità. ",
+      "uuid": "d995f2e8-16a3-4308-a413-f47f0d437ecc"
+    },
+    {
+      "id": 446,
+      "idCreator": 1,
+      "idText": 446,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Sumaid pal Singh Bakshi",
+      "shortText": "Sumaid pal Singh Bakshi",
+      "uuid": "fce87e74-c07c-48e5-8268-9eb773c220d9"
+    },
+    {
+      "id": 446,
+      "idCreator": 1,
+      "idText": 446,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "e9f32e39-84ff-4f85-8cff-958d50b293db"
+    },
+    {
+      "id": 439,
+      "idCreator": 1,
+      "idText": 439,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Crescita",
+      "shortText": "Crescita",
+      "uuid": "d311b37f-0fb4-48bb-995c-68203a28064c"
     }
   ],
   "title": "Paths Tutorial",

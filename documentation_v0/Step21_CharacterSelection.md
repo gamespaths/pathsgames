@@ -419,6 +419,31 @@ Three new API functions in `src/api/matches.js`: `joinMatch`,
 `getMatchPlayers`, `getCharacter` — each with automatic mock fallback when the
 backend is unreachable.
 
+**v0.38.3 — start-match board: card order, Start on card, phase cards, Back to
+book.** Before Start, the board's six cards are (in order): story, gameType,
+bonuses-1 (dexterity/intelligence/constitution/weight, its (i) opens a
+"Character Attributes" page), login, terms, bonuses-2 (life/energy/sad + trait
+used/max badges). "Start" is now the action of the **last** card (bonuses-2),
+gated by `startReady = gate.phase === 'ready' && termsAccepted && phase ===
+'confirm'`; otherwise it locks with label "Start" and a reason tooltip
+(`antibot.verifying`, new `startMatch.acceptTermsFirst`, or `startMatch.starting`).
+`ConfirmStep` is no longer rendered (import/usage commented, file kept). The
+story card's (i) is off and it gets a "Back" action that navigates home with
+router state `{ reopenStory, reopenConfig }`; `HomePage` reads that state,
+reopens `StartBookModal` with the new `initialConfig` prop, then clears it.
+"Back to home" buttons on `AntibotMessage`/`MatchStatus` are removed — home is
+now only the Book's own (x).
+
+After Start, the six cards are replaced by phase cards: the story card (locked,
+green, "Starting") followed by one card per `PHASES = ['creating', 'joining',
+'running', 'created']` (titles Creating/Joining/Running/Loading; images.json
+`phase-creating`/`phase-joining`/`phase-running`/`phase-created`, FontAwesome
+glyph, CSS `.pg-card--phase*`). Each locks under its own status — pending
+(dim hourglass), inProgress (spinner + countdown, gold glow), complete (green
+check), failed (red warning, error as tooltip) — tracked by `failedPhase` /
+`activePhaseIndex(phase)`. `MatchStatus` now renders only the error/retry block;
+its old per-phase countdown text is commented out, moved onto the cards.
+
 ### 9.2 react-admin: MatchDetailPage (v0.21.0)
 
 A new dedicated page `src/pages/MatchDetailPage.jsx` is mounted at the route
@@ -586,8 +611,9 @@ tests passing.
     | --- | --- | --- |
     | 0.21.0 | Character template & class selection — join, players, character detail endpoints across all backends; admin MatchDetailPage; react-game auto-join flow | June 9, 2026 |
     | 0.21.0 | Post-release fixes: PostgreSQL boolean type mismatch on `is_sleeping`/`is_coma`; `classUuid`+`traitUuids` added to `CharacterSummaryResponse` (Java/AWS); react-admin MatchDetailPage `UuidCopy` component + Difficulty row + Class/Traits columns | June 9, 2026 |
+    | 0.38.3 | react-game start-match board rework: fixed card order (story/gameType/bonuses-1/login/terms/bonuses-2), Start moved onto the last bonuses card, `ConfirmStep` retired, new phase cards replace the six cards after Start, "Back to book" replaces "Back to home" — see §9.1. | September 22, 2026 |
 
-- **Last Updated**: June 9, 2026
+- **Last Updated**: September 22, 2026
 - **Status**: Complete
 
 

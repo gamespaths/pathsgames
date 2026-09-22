@@ -10,7 +10,8 @@ import {
   buildEndGameCard,
   buildWeatherCard,
   buildHistoryCard,
-  buildExperienceCard, buildExperienceStatCard, buildTrainedCard } from '../utils/loadoutCards'
+  buildExperienceCard, buildExperienceStatCard, buildTrainedCard,
+  buildCharacterAttributesCard, buildPhaseCard } from '../utils/loadoutCards'
 
 // Identity translate fn so we can assert on the i18n keys directly.
 const t = (k) => k
@@ -39,6 +40,22 @@ describe('utils/loadoutCards weather (Step 27)', () => {
 })
 
 describe('utils/loadoutCards', () => {
+  it('buildCharacterAttributesCard carries the attributes texts and its own image', () => {
+    const c = buildCharacterAttributesCard(t)
+    expect(c.title).toBe('book.characterAttributesTitle')
+    expect(c.description).toBe('book.characterAttributesDesc')
+    expect(c.urlImage).toBeTruthy()
+    expect(c.awesomeIcon).toBe('fas fa-chart-bar')
+  })
+
+  it('buildPhaseCard titles a phase entry of images.json, a glyph in place of a picture', () => {
+    const c = buildPhaseCard('joining', 'Joining')
+    expect(c.title).toBe('Joining')
+    expect(c.awesomeIcon).toBe('fas fa-user-plus')
+    expect(c.urlImage).toBe('')
+    expect(buildPhaseCard('nope', 'x')).toEqual({})
+  })
+
   it('buildGameTypeCard maps the single game-type labels and a person image', () => {
     const c = buildGameTypeCard(t)
     expect(c.title).toBe('book.single')

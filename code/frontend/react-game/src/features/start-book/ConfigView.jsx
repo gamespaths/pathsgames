@@ -2,7 +2,8 @@ import { useTranslation } from '../../i18n/context'
 import Card from '../../components/layout/Card'
 import BonusBadgeList from '../../components/ui/BonusBadgeList'
 import { aggregateBonusTotals, buildConfigStatistics } from '../../utils/bonusStats'
-import { buildStatisticsCard, buildNoTraitsCard } from '@/utils/loadoutCards'
+import { buildStatisticsCard, buildNoTraitsCard, buildCharacterAttributesCard } from '@/utils/loadoutCards'
+import { traitBudgetItems } from '../../utils/traitBudget'
 import { hasChoiceForType } from './startBookOptions'
 
 export default function ConfigView({ config, story, onChangeClick, onInfoClick, onPreview, onProceed }) {
@@ -20,8 +21,15 @@ export default function ConfigView({ config, story, onChangeClick, onInfoClick, 
   const noTraitsCard = selectedTraits.length === 0 ? buildNoTraitsCard(t) : null
   const statistics = buildConfigStatistics(config, t);
   const statisticsCard = buildStatisticsCard(t, statistics , story);
-  const statisticCard1 = statistics.filter(cat => ['dexterity', 'intelligence', 'constitution'].includes(cat.key)) ;
-  const statisticCard2 = statistics.filter(cat => ['life', 'energy', 'sad', 'weight'].includes(cat.key)) ;
+  // The (i) of the first bonuses card opens this page: every non-zero attribute, then the
+  // trait cost used/max.
+  const budgetItems = traitBudgetItems(config.difficulty, selectedTraits, t)
+  const attributesCard = { ...statisticsCard, card: buildCharacterAttributesCard(t) }
+  const attributesStats = statistics.concat(budgetItems)
+  // First stats card: characteristics + carry; second: pools + trait cost used/max, and it
+  // hosts the "Start Game" action (the page footer below is kept hidden).
+  const statisticCard1 = statistics.filter(cat => ['dexterity', 'intelligence', 'constitution', 'weight'].includes(cat.key)) ;
+  const statisticCard2 = statistics.filter(cat => ['life', 'energy', 'sad'].includes(cat.key)).concat(budgetItems) ;
 
   //const gameTypeValue = buildGameTypeCard(t)
   //const loginValue    = buildLoginCard(t)
@@ -34,8 +42,8 @@ export default function ConfigView({ config, story, onChangeClick, onInfoClick, 
             selection list + preview together (handled by onChangeClick). */}
         <Card card={config.class?.card} entityType="class" {...selectableProps('class')} story={story} />
         <Card card={config.character?.card} entityType="character" {...selectableProps('character')} story={story} />
-        <Card card={statisticsCard} entityType="bonuses" flagInformationCard={false} story={story} 
-          onPreview={() => onPreview(statisticsCard,"bonuses", null ,statisticCard1) } hidePreview={true}
+        <Card card={statisticsCard} entityType="bonuses" flagInformationCard={true} story={story} 
+          onPreview={() => onPreview(attributesCard,"bonuses", null ,attributesStats) }
           statistics={statisticCard1} flagShowFullStatistics={true} 
         />
         <Card card={selectedTraits[0]?.card ?? noTraitsCard} entityType="trait" {...selectableProps('trait')} story={story} />
@@ -43,6 +51,7 @@ export default function ConfigView({ config, story, onChangeClick, onInfoClick, 
         <Card card={statisticsCard} entityType="bonuses" flagInformationCard={false} story={story} 
           onPreview={() => onPreview(statisticsCard,"bonuses", null ,statisticCard2) }  hidePreview={true}
           statistics={statisticCard2} flagShowFullStatistics={true} 
+          onAction={onProceed} actionLabel={t('book.start')} actionIcon="fa-play"
         />
 
 
@@ -51,6 +60,7 @@ export default function ConfigView({ config, story, onChangeClick, onInfoClick, 
       {/* totalItems.length > 0 && (
         <BonusBadgeList className="config-total-bonus" items={totalItems} />
       )*/ }
+      {/* "Start Game" moved onto the second bonuses card; the footer stays here, hidden.
       <div className="page-footer">
         <button
           className="btn-start-game"
@@ -59,6 +69,7 @@ export default function ConfigView({ config, story, onChangeClick, onInfoClick, 
           <i className="fas fa-play me-2" />{t('book.startGame')}
         </button>
       </div>
+      */}
 
 
     </div>

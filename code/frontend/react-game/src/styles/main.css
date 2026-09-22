@@ -1745,8 +1745,8 @@ html, body {
   /*display: flex;*/
   align-items: center;
   gap: 10px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid var(--color-gold-dark);
+  margin-bottom: 0px;
+  /*border-bottom: 1px solid var(--color-gold-dark);*/
   padding-bottom: 8px;
   flex-shrink: 0;
 }
@@ -1760,6 +1760,53 @@ html, body {
   color: var(--color-gold-super-deep);
   margin: 0;
 }
+/* Mobile picker: the back arrow the picker itself no longer draws. */
+.book-mobile-back {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--color-gold-light);
+  font-size: 1.5rem;
+  padding: 4px 10px;
+}
+
+/* Trait picker: the cost used/max badges are the whole header now — centred over the list. */
+.trait-budget-info {
+  display: flex;
+  justify-content: center;
+  margin: 0;
+}
+.trait-budget-info .player-stats-bar {
+  margin-bottom: 0;
+}
+.trait-budget-info .bonus-badge-little-version {
+  font-size: 1.15rem !important;
+  padding: 2px 10px !important;
+}
+/* Start-match phase cards: no picture, a big glyph instead, tinted by status —
+   green once complete, bright gold while running, red on failure, dim while pending. */
+.pg-card--phase .gc-placeholder {
+  font-size: clamp(3rem, 8vw, 4.5rem);
+  opacity: 0.85;
+}
+.pg-card--phase .gc-footer__cards-buttons { opacity: 1; }
+.pg-card--phase-pending .gc-placeholder,
+.pg-card--phase-pending .gc-footer__cards-buttons { color: var(--color-ash); opacity: 0.5; }
+/* A finished thing — a completed start phase, a done mission or step — reads green. */
+.pg-card--phase-complete, .pg-card--done { border-color: #2ecc71 !important; }
+.pg-card--phase-complete .gc-placeholder,
+.pg-card--phase-complete .gc-footer__cards-buttons,
+.pg-card--done .gc-placeholder,
+.pg-card--done .gc-footer__cards-buttons { color: #2ecc71; opacity: 1; }
+.pg-card--phase-inProgress {
+  border-color: var(--color-gold-shine) !important;
+  box-shadow: 0 0 18px rgba(255,215,0,0.55), 0 0 6px rgba(255,215,0,0.3);
+}
+.pg-card--phase-inProgress .gc-placeholder,
+.pg-card--phase-inProgress .gc-footer__cards-buttons { color: var(--color-gold-shine); opacity: 1; }
+.pg-card--phase-failed { border-color: #e74c3c !important; }
+.pg-card--phase-failed .gc-placeholder,
+.pg-card--phase-failed .gc-footer__cards-buttons { color: #e74c3c; }
 
 .btn-back {
   background: transparent;

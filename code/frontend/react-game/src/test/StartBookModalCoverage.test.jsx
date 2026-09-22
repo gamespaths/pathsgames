@@ -14,7 +14,12 @@ vi.mock('../components/book/Book', () => ({
   default: ({ left, right, mobile }) => <div data-testid="book">{left}{right}{mobile}</div>,
 }))
 vi.mock('../components/layout/Card', () => ({
-  default: ({ card }) => <div data-testid="book-page">{card?.title}</div>,
+  default: ({ card, onClose, statItemsToPageContent }) => (
+    <div data-testid="book-page" data-stats={(statItemsToPageContent ?? []).map(i => i.key).join(',')}>
+      {card?.title}
+      {onClose && <button onClick={onClose}>page-back</button>}
+    </div>
+  ),
 }))
 // ConfigView reports the current selection so the re-validation can be asserted.
 vi.mock('../features/start-book/ConfigView', () => ({
@@ -25,6 +30,7 @@ vi.mock('../features/start-book/ConfigView', () => ({
       <span data-testid="sel-traits">{(config.traits ?? []).map(t => t.name).join(',') || 'none'}</span>
       <button onClick={() => onChangeClick('class')}>change-class</button>
       <button onClick={() => onChangeClick('trait')}>change-trait</button>
+      <button onClick={() => onChangeClick('difficulty')}>change-difficulty</button>
       <button onClick={() => onPreview?.(null, 'bonuses', null, [])}>preview-null</button>
     </div>
   ),
@@ -168,6 +174,103 @@ describe('StartBookModal — class re-validation', () => {
     expect(screen.getByTestId('opt-difficulty')).toHaveTextContent('1')
     expect(screen.getByTestId('opt-character')).toHaveTextContent('2')
     expect(screen.getByTestId('opt-unknown')).toHaveTextContent('0')
+  })
+})
+
+describe('StartBookModal — the left page while a picker is open (v0.38.3)', () => {
+  const BUDGETED = {
+    ...STORY,
+    traits: [{ uuid: 't1', id: 21, name: 'Brave', costPositive: 2, life: 5, card: { title: 'Brave' } }],
+    difficulties: [{ uuid: 'd1', name: 'Easy', traitCostPositiveBudget: 3, card: { title: 'Easy' } }],
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getStoryDetail.mockResolvedValue(BUDGETED)
+  })
+
+  // Opening the trait picker puts the FIRST selected trait on the left page, cost first.
+  it('previews the first selected trait, with its cost ahead of its stats', async () => {
+    wrap(BUDGETED)
+    await screen.findByTestId('config-view')
+    fireEvent.click(screen.getByText('change-trait'))
+    const page = screen.getAllByTestId('book-page')[0]
+    expect(page).toHaveTextContent('Brave')
+    expect(page.dataset.stats).toBe('costPositive,life')
+  })
+
+  // The picker draws no back arrow any more, so the left page always carries one.
+  it('carries a back arrow on the left page even with nothing previewed', async () => {
+    const noTraits = { ...BUDGETED, traits: [] }
+    getStoryDetail.mockResolvedValue(noTraits)
+    wrap(noTraits)
+    await screen.findByTestId('config-view')
+    fireEvent.click(screen.getByText('change-trait'))
+    expect(screen.queryByTestId('config-view')).toBeNull()
+    fireEvent.click(screen.getAllByText('page-back')[0])
+    expect(screen.getByTestId('config-view')).toBeInTheDocument()
+  })
+})
+
+describe('StartBookModal — reopened with a loadout (v0.38.3)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getStoryDetail.mockResolvedValue(STORY)
+  })
+
+  // Back from start-match: the modal shows the handed-back loadout, not the defaults,
+  // and keeps it once the story detail lands.
+  it('starts from initialConfig and keeps it after the detail load', async () => {
+    const initialConfig = { character: STORY.characterTemplates[1], class: STORY.classes[1], traits: [], difficulty: STORY.difficulties[0] }
+    render(<MemoryRouter><StartBookModal story={STORY} onClose={vi.fn()} initialConfig={initialConfig} /></MemoryRouter>)
+    await screen.findByTestId('config-view')
+    expect(screen.getByTestId('sel-class')).toHaveTextContent('Mage')
+    expect(screen.getByTestId('sel-character')).toHaveTextContent('Wanderer')
+    expect(screen.getByTestId('sel-traits')).toHaveTextContent('none')
+  })
+})
+
+describe('StartBookModal — difficulty budgets over the trait selection (v0.38.3)', () => {
+  // Easy pays for both traits; Hard pays for the first one only.
+  const BUDGETS = {
+    ...STORY,
+    traits: [
+      { uuid: 't1', id: 21, name: 'Brave', costPositive: 2, card: { title: 'Brave' } },
+      { uuid: 't2', id: 22, name: 'Greedy', costPositive: 3, card: { title: 'Greedy' } },
+    ],
+    difficulties: [
+      { uuid: 'd1', name: 'Easy', traitCostPositiveBudget: 5, card: { title: 'Easy' } },
+      { uuid: 'd2', name: 'Hard', traitCostPositiveBudget: 2, card: { title: 'Hard' } },
+    ],
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getStoryDetail.mockResolvedValue(BUDGETS)
+  })
+
+  // The bug this covers: traits picked under a lenient difficulty used to survive a
+  // switch to a stricter one, and the server then refused the loadout.
+  it('drops the traits a stricter difficulty can no longer pay for', async () => {
+    wrap(BUDGETS)
+    await screen.findByTestId('config-view')
+    fireEvent.click(screen.getByText('change-trait'))
+    fireEvent.click(screen.getByText('pick:Greedy'))
+    fireEvent.click(screen.getByText('back'))
+    expect(screen.getByTestId('sel-traits')).toHaveTextContent('Brave,Greedy')
+    fireEvent.click(screen.getByText('change-difficulty'))
+    fireEvent.click(screen.getByText('pick:Hard'))
+    expect(screen.getByTestId('sel-traits')).toHaveTextContent('Brave')
+    expect(screen.getByTestId('sel-traits')).not.toHaveTextContent('Greedy')
+  })
+
+  it('does not preselect a first trait the default difficulty cannot pay for', async () => {
+    const story = { ...BUDGETS, difficulties: [BUDGETS.difficulties[1], BUDGETS.difficulties[0]],
+                    traits: [BUDGETS.traits[1], BUDGETS.traits[0]] }
+    getStoryDetail.mockResolvedValue(story)
+    wrap(story)
+    await screen.findByTestId('config-view')
+    expect(screen.getByTestId('sel-traits')).toHaveTextContent('none')
   })
 })
 

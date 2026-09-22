@@ -70,8 +70,8 @@ export default function CardButtons({
         title={lockedReason || undefined}
         aria-label={lockedReason || undefined}
       >
-        {/* A lock with no class name (a budget lock) has nothing to show but the card's own. */}
-        <i className={`${lockedIcon} me-1`} />{lockInfo?.className ?? (typeof lockInfo === 'string' ? lockInfo : null) ?? name}
+        {/* Lock text: its own label, else the class it names, else the card's own name. */}
+        <i className={`${lockedIcon} me-1`} />{lockInfo?.label ?? lockInfo?.className ?? (typeof lockInfo === 'string' ? lockInfo : null) ?? name}
         {actionLabelChildren} 
       </span>
       {!actionStarted && secondaryButtons()}

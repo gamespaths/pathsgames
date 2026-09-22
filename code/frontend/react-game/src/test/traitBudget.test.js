@@ -7,6 +7,10 @@ import {
   toggleTrait,
   selectableTraits,
   isTraitHiddenOnStartMatch,
+  fitTraitsToBudget,
+  budgetSides,
+  traitCostItems,
+  traitBudgetItems,
 } from '../utils/traitBudget'
 
 const TR_POS = { uuid: 'tr-pos', costPositive: 1, costNegative: 0 }
@@ -90,5 +94,68 @@ describe('traits hidden from the start-match picker (v0.35.2)', () => {
   it('survives a story with no traits at all', () => {
     expect(selectableTraits(undefined)).toEqual([])
     expect(selectableTraits(null)).toEqual([])
+  })
+})
+
+describe('fitTraitsToBudget', () => {
+  it('keeps, in order, only the traits the budgets can still pay for', () => {
+    const difficulty = { traitCostPositiveBudget: 2, traitCostNegativeBudget: 1 }
+    expect(fitTraitsToBudget([TR_POS, TR_POS2, TR_NEG, TR_POS], difficulty)).toEqual([TR_POS, TR_POS])
+  })
+
+  it('keeps everything under a difficulty with no limits, and reads a non-array as empty', () => {
+    expect(fitTraitsToBudget([TR_POS, TR_POS2, TR_NEG], null)).toEqual([TR_POS, TR_POS2, TR_NEG])
+    expect(fitTraitsToBudget(undefined, {})).toEqual([])
+  })
+})
+
+describe('budgetSides', () => {
+  it('a side is budgeted only by a positive budget: null and zero mean "not played"', () => {
+    expect(budgetSides({ traitCostPositiveBudget: 2, traitCostNegativeBudget: 0 })).toEqual({ positive: true, negative: false })
+    expect(budgetSides({ traitCostNegativeBudget: 3 })).toEqual({ positive: false, negative: true })
+    expect(budgetSides(null)).toEqual({ positive: false, negative: false })
+  })
+})
+
+describe('traitCostItems', () => {
+  const BOTH = { traitCostPositiveBudget: 2, traitCostNegativeBudget: 3 }
+
+  it('badges the + and − cost of one trait, zero included, on the budgeted sides', () => {
+    const items = traitCostItems({ costPositive: 2 }, k => `L:${k}`, BOTH)
+    expect(items).toEqual([
+      { key: 'costPositive', label: 'L:book.stats.costPositive', value: 2, keepZero: true },
+      { key: 'costNegative', label: 'L:book.stats.costNegative', value: 0, keepZero: true },
+    ])
+  })
+
+  it('drops the side the difficulty does not budget (null or zero)', () => {
+    expect(traitCostItems({ costPositive: 2, costNegative: 1 }, k => k, { traitCostPositiveBudget: 2 }).map(i => i.key))
+      .toEqual(['costPositive'])
+    expect(traitCostItems({ costPositive: 2, costNegative: 1 }, k => k, { traitCostPositiveBudget: 0, traitCostNegativeBudget: 3 }).map(i => i.key))
+      .toEqual(['costNegative'])
+  })
+
+  it('reads a missing trait as free, and no difficulty as no badge at all', () => {
+    expect(traitCostItems(null, undefined, BOTH).map(i => i.label)).toEqual(['book.stats.costPositive', 'book.stats.costNegative'])
+    expect(traitCostItems({ costPositive: 5 })).toEqual([])
+  })
+})
+
+describe('traitBudgetItems', () => {
+  it('formats used/max on each budgeted side only', () => {
+    const items = traitBudgetItems({ traitCostPositiveBudget: 4 }, [TR_POS, TR_NEG], k => k)
+    expect(items).toEqual([
+      { key: 'costPositive', label: 'book.traitBudgetPositive', value: '1/4', keepZero: true },
+    ])
+  })
+
+  it('shows 0/max for an empty selection under a limited difficulty', () => {
+    const items = traitBudgetItems({ traitCostPositiveBudget: 2, traitCostNegativeBudget: 3 }, [])
+    expect(items.map(i => i.value)).toEqual(['0/2', '0/3'])
+  })
+
+  it('shows nothing when the difficulty budgets neither side (null, zero or no difficulty)', () => {
+    expect(traitBudgetItems(null, [TR_POS2])).toEqual([])
+    expect(traitBudgetItems({ traitCostPositiveBudget: 0, traitCostNegativeBudget: null }, [TR_POS2])).toEqual([])
   })
 })

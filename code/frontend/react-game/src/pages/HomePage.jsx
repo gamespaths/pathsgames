@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from '../i18n/context'
 import { getStoriesCatalog } from '../api/stories'
 import { listMatches } from '../api/matches'
@@ -25,6 +25,7 @@ const HERO_IMG = {
 export default function HomePage() {
   const { t, lang } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, error: guestError, openGuestModal } = useGuestUser()
   const [stories, setStories] = useState([])
   const [matches, setMatches] = useState(null) // guest matches, loaded once when human
@@ -34,6 +35,8 @@ export default function HomePage() {
   const [pendingStoryUuid, setPendingStoryUuid] = useState(null)
   const [loading, setLoading] = useState(true)
   const [selectedStory, setSelectedStory] = useState(null)
+  // The loadout the start book reopens with when the player comes back from start-match.
+  const [reopenConfig, setReopenConfig] = useState(null)
   // The single in-flight `GET /api/matches` and the token it was made with. A click
   // during the load awaits THIS promise instead of firing its own request.
   const matchesPromise = useRef(null)
@@ -121,6 +124,16 @@ export default function HomePage() {
   }, [storiesError, footerState, setHomeError])
   useEffect(() => () => setHomeError(null), [setHomeError])
 
+  // Back from start-match: reopen the start book on that story with its loadout, then drop
+  // the router state so a refresh lands on the plain catalog.
+  useEffect(() => {
+    const reopenStory = location.state?.reopenStory
+    if (!reopenStory) return
+    setReopenConfig(location.state?.reopenConfig ?? null)
+    setSelectedStory(reopenStory)
+    navigate('/', { replace: true, state: null })
+  }, [location.state, navigate])
+
   async function handleStoryClick(story) {
     // The footer only shows a button when the gate passed and the matches answered
     // (or are on their way): anything else is a click on a locked card.
@@ -202,7 +215,8 @@ export default function HomePage() {
       {selectedStory && (
         <StartBookModal
           story={selectedStory}
-          onClose={() => setSelectedStory(null)}
+          initialConfig={reopenConfig}
+          onClose={() => { setSelectedStory(null); setReopenConfig(null) }}
         />
       )}
 

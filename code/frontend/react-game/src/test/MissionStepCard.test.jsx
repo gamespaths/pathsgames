@@ -40,6 +40,17 @@ describe('MissionStepCard (Step 37)', () => {
     expect(captured.statistics.map(s => s.key)).not.toContain('missionStatus')
   })
 
+  // v0.38.3 — a COMPLETED mission's card reads green (`pg-card--done`); nothing else does,
+  // a failed or an open one included.
+  it('paints only a completed mission green', () => {
+    render(<MissionStepCard mission={mission({ status: 'COMPLETED' })} />)
+    expect(captured.additionalCardClasses).toBe('pg-card--mission pg-card--done')
+    render(<MissionStepCard mission={mission({ status: 'FAILED' })} />)
+    expect(captured.additionalCardClasses).toBe('pg-card--mission')
+    render(<MissionStepCard mission={mission()} />)
+    expect(captured.additionalCardClasses).toBe('pg-card--mission')
+  })
+
   it('shows no badge at all for an open mission with no steps', () => {
     render(<MissionStepCard mission={mission({ steps: [] })} />)
 

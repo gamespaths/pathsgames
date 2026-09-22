@@ -37,15 +37,15 @@ describe('StartBook SelectionView', () => {
     expect(screen.getByText('Mage')).toBeInTheDocument()
   })
 
-  it('calls onBack when back button is clicked', () => {
-    const onBack = vi.fn()
+  // v0.38.3 — the picker draws no header any more: the left page carries the back arrow
+  // (and the mobile column its own), so only the option buttons are left here.
+  it('draws no header of its own — no title, no back arrow', () => {
     render(
       <StartBookSelectionView type="character" options={OPTIONS} selected={null}
-        story={STORY} config={CONFIG} onSelect={vi.fn()} onBack={onBack} />
+        story={STORY} config={CONFIG} onSelect={vi.fn()} onBack={vi.fn()} />
     )
-    // Back button has only the arrow icon (no text)
-    fireEvent.click(screen.getByRole('button', { name: '' }))
-    expect(onBack).toHaveBeenCalled()
+    expect(document.querySelector('.selection-title')).toBeNull()
+    expect(screen.queryByRole('button', { name: '' })).toBeNull()
   })
 
   it('calls onSelect with the correct option when select button is clicked', () => {

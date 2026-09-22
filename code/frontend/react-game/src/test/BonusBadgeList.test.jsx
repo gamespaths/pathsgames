@@ -26,6 +26,22 @@ describe('BonusBadgeList', () => {
     expect(container.querySelector('.extra')).toBeTruthy()
   })
 
+  // A per-item `keepZero` survives the zero filter without switching showZeros on for all.
+  it('keeps a keepZero item at zero (or "0/3") while still hiding the other zeros', () => {
+    const { container } = render(
+      <BonusBadgeList
+        items={[
+          { key: 'costPositive', label: 'Cost +', value: 0, keepZero: true },
+          { key: 'costNegative', label: 'Cost -', value: '0/3', keepZero: true },
+          { key: 'energy', label: 'Energy', value: 0 },
+        ]}
+      />
+    )
+    const badges = container.querySelectorAll('.stat-badge')
+    expect(badges.length).toBe(2)
+    expect(badges[1].textContent).toContain('0/3')
+  })
+
   it('adds an item\'s own className to that badge only, and paints its glyph in its colour', () => {
     const { container } = render(
       <BonusBadgeList showZeros items={[

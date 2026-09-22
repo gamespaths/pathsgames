@@ -5,9 +5,12 @@
 export const STAT_FIELDS = {
   character: ['lifeMax', 'energyMax', 'sadMax', 'dexterityStart', 'intelligenceStart', 'constitutionStart'],
   class:     ['weightMax', 'dexterityBase', 'intelligenceBase', 'constitutionBase'],
-  trait:     ['costPositive', 'costNegative', 'life', 'energy', 'sad', 'dexterity', 'intelligence', 'constitution', 'weight'],
-  difficulty:['expCost', 'maxWeight', 'minCharacter', 'maxCharacter', 'costHelpComa', 'expCostBase', 'maxStatValue', 'numberMaxFreeAction',
-              'life', 'energy', 'sad', 'dexterity', 'intelligence', 'constitution', 'weight'],
+  // Trait cost is not a stat: traitBudget.traitCostItems badges it, only on the sides the difficulty budgets.
+  trait:     ['life', 'energy', 'sad', 'dexterity', 'intelligence', 'constitution', 'weight'],
+  // Energy (spent on every sleep) leads a difficulty, then its trait cost budgets.
+  difficulty:['energy', 'traitCostPositiveBudget', 'traitCostNegativeBudget',
+              'expCost', 'maxWeight', 'minCharacter', 'maxCharacter', 'costHelpComa', 'expCostBase', 'maxStatValue', 'numberMaxFreeAction',
+              'life', 'sad', 'dexterity', 'intelligence', 'constitution', 'weight'],
 }
 
 /**

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n/context'
 import Book from '../../components/book/Book'
@@ -8,8 +8,8 @@ import OptionPicker from './OptionPicker'
 import StartBookMobile from './StartBookMobile'
 import CardPreviewModal from '../../components/modals/CardPreviewModal'
 import { getStoryDetail } from '../../api/stories'
-import { buildClassesById, getOptionLockInfo } from '../../utils/bonusStats'
-import { canAddTrait, isTraitHiddenOnStartMatch, selectableTraits, toggleTrait } from '../../utils/traitBudget'
+import { buildClassesById, getNonZeroStats, getOptionLockInfo } from '../../utils/bonusStats'
+import { canAddTrait, fitTraitsToBudget, isTraitHiddenOnStartMatch, selectableTraits, toggleTrait, traitCostItems } from '../../utils/traitBudget'
 import { getOptionsForType, selectedEntityForType } from './startBookOptions'
 
 function buildInitialConfig(story) {
@@ -17,22 +17,27 @@ function buildInitialConfig(story) {
   // `traits[0]` blindly would arm the loadout with a hidden trait the picker never shows,
   // leaving nobody able to remove it and the join refused with TRAIT_NOT_SELECTABLE.
   const pickable = selectableTraits(story?.traits)
+  const difficulty = story?.difficulties?.[0] ?? null
   return {
     character: story?.characterTemplates?.[0] ?? null,
     class: story?.classes?.[0] ?? null,
-    // Step 23 — multiple traits can be selected (within the difficulty budgets)
-    traits: pickable[0] ? [pickable[0]] : [],
-    difficulty: story?.difficulties?.[0] ?? null,
+    // Step 23 — multiple traits can be selected (within the difficulty budgets); a first
+    // trait the default difficulty cannot pay for is not preselected (server would refuse).
+    traits: pickable[0] && canAddTrait(pickable[0], [], difficulty) ? [pickable[0]] : [],
+    difficulty,
   }
 }
 
-export default function StartBookModal({ story, onClose }) {
+/** `initialConfig` (optional): a loadout to reopen with, e.g. coming back from start-match. */
+export default function StartBookModal({ story, onClose, initialConfig = null }) {
   const navigate = useNavigate()
-  const { lang } = useTranslation()
+  const { t, lang } = useTranslation()
 
   const [detail, setDetail] = useState(null)
   const [loadingDetail, setLoadingDetail] = useState(true)
-  const [config, setConfig] = useState(() => buildInitialConfig(story))
+  const [config, setConfig] = useState(() => initialConfig ?? buildInitialConfig(story))
+  // Consumed by the first detail load only: a later reload (language change) starts afresh.
+  const reopenRef = useRef(initialConfig)
   const [selectionType, setSelectionType] = useState(null)
   const [preview, setPreview] = useState(null) // { entity, type } or null
   const [detailType, setDetailType] = useState(null) // single-option card whose detail fills the right page
@@ -43,7 +48,9 @@ export default function StartBookModal({ story, onClose }) {
     getStoryDetail(story.uuid, lang)
       .then(data => {
         setDetail(data)
-        setConfig(buildInitialConfig(data ?? story))
+        const reopen = reopenRef.current
+        reopenRef.current = null
+        setConfig(reopen ?? buildInitialConfig(data ?? story))
       })
       .finally(() => setLoadingDetail(false))
   }, [story?.uuid, lang])
@@ -86,19 +93,30 @@ export default function StartBookModal({ story, onClose }) {
             && !getOptionLockInfo({ type: 'trait', option: tr, config: next, classesById })
         )
       }
+      // A stricter difficulty drops the traits its budgets can no longer pay for.
+      if (changedType === 'difficulty') {
+        next.traits = fitTraitsToBudget(next.traits, next.difficulty)
+      }
       return next
     })
     setSelectionType(null)
     setPreview(null)
   }
 
+  /** A trait's page badges: its budgeted cost first, then its stats — the picker's order. */
+  function traitPageStats(trait) {
+    return traitCostItems(trait, t, config.difficulty).concat(getNonZeroStats(trait, 'trait', t))
+  }
+
   // From ConfigView: clicking "Cambia" or the magnifying glass on a selectable
   // card opens BOTH the selection list (right page) and the preview of the
-  // currently-selected option (left page).
+  // currently-selected option (left page) — for traits, of the FIRST selected one.
   function handleChangeFromConfig(type) {
     setSelectionType(type)
-    const entity = config[type]
-    setPreview(entity ? { entity, type } : null)
+    const entity = selectedEntityForType(type, config)
+    setPreview(entity
+      ? { entity, type, statItemsToPageContent: type === 'trait' ? traitPageStats(entity) : undefined }
+      : null)
   }
 
   // From ConfigView: the (i) of a card with a single option (nothing to change) opens its
@@ -162,7 +180,10 @@ export default function StartBookModal({ story, onClose }) {
       statItemsToPageContent={preview?.statItemsToPageContent}
     />
   ) : (
-    <Card variant="page" card={activeStory.card} loading={loadingDetail} story={activeStory}/>
+    // The picker's own back arrow is gone: while a list is open the left page carries it,
+    // even with nothing previewed (a trait picker opened on an empty selection).
+    <Card variant="page" card={activeStory.card} loading={loadingDetail} story={activeStory}
+      onClose={selectionType ? handleBackOrClose : undefined} />
   )
 
   let rightContent

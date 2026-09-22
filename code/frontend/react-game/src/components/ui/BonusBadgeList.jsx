@@ -18,6 +18,8 @@
  *                               vocabulary has no word for (a match-log entry type, say)
  *                               without adding a key to it. Pass `icon: null` for no glyph.
  *                               `className` is added to that one badge (a green "done", say).
+ *                               `keepZero` keeps that one badge past the zero filter (a trait
+ *                               cost of 0 is still news) without turning `showZeros` on for all.
  * @param {string}  className  - optional extra class on the wrapper
  * @param {boolean} showZeros  - keep items with value 0/missing (default false)
  */
@@ -70,6 +72,8 @@ const STAT_VISUAL = {
   // Trait / difficulty stats
   costPositive:           { icon: 'fas fa-plus-circle',  color: '#27ae60' },
   costNegative:           { icon: 'fas fa-minus-circle', color: '#c0392b' },
+  traitCostPositiveBudget: { icon: 'fas fa-plus-circle',  color: '#27ae60' },
+  traitCostNegativeBudget: { icon: 'fas fa-minus-circle', color: '#c0392b' },
   expCost:                { icon: 'fas fa-star',         color: '#9b59b6' },
   maxWeight:              { icon: 'fas fa-weight-hanging',color: '#95a5a6' },
   minCharacter:           { icon: 'fas fa-users',        color: '#34495e' },
@@ -90,6 +94,7 @@ export default function BonusBadgeList({ items, className = '', showZeros = fals
   const visibleItems = showZeros
     ? items
     : items.filter(item => {
+        if (item?.keepZero) return true
         try{
           if (item?.value.includes("/")){
             const parts=item.value.split("/")

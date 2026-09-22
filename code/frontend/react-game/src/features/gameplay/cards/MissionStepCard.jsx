@@ -62,7 +62,7 @@ export default function MissionStepCard({ mission, story = null, onPreview, onOp
       lockedIcon={closed ? MISSION_STATUS_ICON[status] : undefined}
       lockInfo={closed ? t(`game.missions.status.${status}`) : undefined} flagInformationCard
       hidePreview={hidePreview}
-      additionalCardClasses="pg-card--mission"
+      additionalCardClasses={`pg-card--mission${done ? ' pg-card--done' : ''}`}
       onPreview={openPreview}
     />
   )

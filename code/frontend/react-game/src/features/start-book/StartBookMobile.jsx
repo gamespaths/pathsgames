@@ -40,6 +40,12 @@ export default function StartBookMobile({
             story={activeStory} onClose={onBackSelection} />
         </div>
       ) : selectionType ? (
+        <>
+        {/* The picker no longer draws a back arrow (the desktop left page carries it), and
+            the mobile column has no left page: it draws its own. */}
+        <button className="book-mobile-back" onClick={onBackSelection} aria-label={t('book.back')}>
+          <i className="fas fa-arrow-left" />
+        </button>
         <OptionPicker
           type={selectionType}
           options={getOptionsForType(selectionType)}
@@ -50,6 +56,7 @@ export default function StartBookMobile({
           onBack={onBackSelection}
           onPreview={onPreview}
         />
+        </>
       ) : (
         <>
           <div className="book-mobile-hero-card">
@@ -70,12 +77,14 @@ export default function StartBookMobile({
                 onPreview={onPreview}
                 onProceed={onProceed}
               />
+              {/* "Start" now sits on the second bonuses card of ConfigView; kept here, hidden.
               <div className="gc-actions text-center display-flex justify-content-center">
                 <button className="btn-start-game" onClick={onProceed}>
                   <i className="fas fa-play me-1" />
                   <span className="gc-footer__btn-label">{t('book.startGame')}</span>
                 </button>
               </div>
+              */}
             </>
           )}
         </>

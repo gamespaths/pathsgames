@@ -70,6 +70,24 @@ describe('PlayerCards', () => {
     expect(screen.getByTestId('overlay-difficulty')).toBeInTheDocument()
   })
 
+  // v0.38.3 — a trait's cost is badged in-game only on the sides the difficulty budgets,
+  // ahead of its stats, and a zero cost is left out as noise.
+  it('badges the trait cost on the budgeted sides only, non-zero, before the stats', () => {
+    const storyFull = {
+      ...STORY_FULL,
+      traits: [
+        { uuid: 't1', costPositive: 2, costNegative: 1, life: 3, card: { title: 'Brave' } },
+        { uuid: 't2', costPositive: 0, dexterity: 1, card: { title: 'Quick' } },
+      ],
+      difficulties: [{ uuid: 'd1', traitCostPositiveBudget: 3, energy: 4, card: { title: 'Hard' } }],
+    }
+    render(<PlayerCards storyFull={storyFull} story={STORY}
+      playerStats={PLAYER_STATS} gameData={GAME_DATA} onPreview={vi.fn()} />)
+    const traitCards = capturedCards.filter(c => c.entityType === 'trait')
+    expect(traitCards[0].statistics.map(i => i.key)).toEqual(['costPositive', 'life'])
+    expect(traitCards[1].statistics.map(i => i.key)).toEqual(['dexterity'])
+  })
+
   it('includes the difficulty energy-per-sleep badge with the difficulty stats', () => {
     renderCards()
     expect(screen.getByTestId('badge-energy').textContent).toBe('4')

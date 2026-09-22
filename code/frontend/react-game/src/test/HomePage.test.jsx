@@ -54,7 +54,11 @@ vi.mock('../features/catalog/StoryCatalog', () => ({
   ),
 }))
 vi.mock('../features/start-book/StartBookModal', () => ({
-  default: ({ story, onClose }) => <div data-testid="start-book-modal">{story.title}</div>,
+  default: ({ story, onClose, initialConfig }) => (
+    <div data-testid="start-book-modal" data-config={initialConfig?.class?.name ?? ''}>
+      {story.title}<button onClick={onClose}>close-book</button>
+    </div>
+  ),
 }))
 
 vi.mock('../utils/turnstile', async (importOriginal) => {
@@ -102,6 +106,25 @@ describe('HomePage — story click with active match check', () => {
     fireEvent.click(await screen.findByText('Forest Path'))
     expect(await screen.findByTestId('start-book-modal')).toBeInTheDocument()
     expect(mockOpenGuestModal).not.toHaveBeenCalled()
+  })
+
+  // Back from start-match: the router state names the story and the loadout, the start
+  // book reopens on it at once (no card click, no match check) and the state is dropped.
+  it('reopens the start book with the loadout handed back by start-match', async () => {
+    listMatches.mockResolvedValue([])
+    render(
+      <HomeStatusProvider>
+        <MemoryRouter initialEntries={[{ pathname: '/', state: { reopenStory: STORY_B, reopenConfig: { class: { name: 'Mage' } } } }]}>
+          <HomePage /><HomeErrorProbe />
+        </MemoryRouter>
+      </HomeStatusProvider>,
+    )
+    const modal = await screen.findByTestId('start-book-modal')
+    expect(modal).toHaveTextContent('Dragon Keep')
+    expect(modal.dataset.config).toBe('Mage')
+    // Closing it forgets the handed-back loadout too.
+    fireEvent.click(screen.getByText('close-book'))
+    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
   })
 
   it('opens GuestUserModal when RUNNING match exists for that story (handing over the fetched matches)', async () => {

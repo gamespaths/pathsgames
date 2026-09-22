@@ -328,6 +328,15 @@ new `CLASS_NOT_FOUND` error is introduced at create time.
 On `joinMatch` the difficulty is loaded **before** this validator is invoked so the
 budget values are available.
 
+**Budget scope: character creation only.** `traitCostPositiveBudget` /
+`traitCostNegativeBudget` are enforced only inside this validator, i.e. only at match
+create (`POST /api/games`) and character join (`POST /api/game/{id}/characters`) —
+`TraitSelectionValidator` (Java), `trait_selection_validator.py` (Python),
+`match/handler.py` (AWS). Traits granted mid-match (events, items, missions, use-exp,
+registry, or any other mechanism) go through `traits_to_add`, not this validator, and
+never count toward or get checked against either budget. The budget is a
+character-creation constraint only, never an ongoing cap.
+
 ### 6.3 `StoryQueryService.listTraitsForClass`
 
 1. Validate that the story exists; return `STORY_NOT_FOUND` if not.
@@ -476,21 +485,40 @@ Result: **255 passed**.
 |----------|---------|
 | `traitCostTotals(selectedTraits)` | Returns `{ totalPositive, totalNegative }` |
 | `remainingTraitBudget(difficulty, selectedTraits)` | Returns remaining positive and negative budget |
-| `canAddTrait(difficulty, selectedTraits, candidate)` | Returns `true` if adding the candidate would not exceed either budget |
+| `canAddTrait(trait, selectedTraits, difficulty)` | Returns `true` if adding `trait` would not exceed either budget (signature corrected v0.38.3) |
 | `isTraitSelected(selectedTraits, traitUuid)` | Predicate |
 | `toggleTrait(selectedTraits, trait)` | Immutable add/remove |
+| `fitTraitsToBudget(traits, difficulty)` (v0.38.3) | Greedy re-fit: keeps, in order, only the traits the new difficulty's budgets can still pay for |
+| `budgetSides(difficulty)` (v0.38.3) | `{ positive, negative }` — which sides the difficulty actually budgets (`budget > 0`); a null/zero budget hides that side's badge everywhere |
+| `traitCostItems(trait, t, difficulty)` (v0.38.3) | The `+`/`−` cost badges of one trait, **only on the sides `budgetSides` returns true**, zero included (`keepZero: true`) |
+| `traitBudgetItems(difficulty, selectedTraits, t)` (v0.38.3) | "used/max" badges of the selection, **only on the budgeted sides** (an unbudgeted side shows no badge at all, not a bare used count); value is always `"used/max"` |
 
 **`src/api/stories.js`** — new function `getTraitsForClass(storyUuid, classUuid, lang)` with automatic mock fallback when the backend is unreachable.
 
 **`OptionPicker`** — config key renamed from `config.trait` (single) to
-`config.traits[]` (multi-select).  The picker displays the remaining positive and
-negative budget below the list and locks options that would exceed a budget with a
+`config.traits[]` (multi-select).  Options that would exceed a budget lock with a
 `'budget'` lock kind.  i18n keys: `book.traitBudgetPositive`,
 `book.traitBudgetNegative`, `book.traitBudgetExceeded`, `book.remove`.
+**v0.38.3** — the old `<p>` line showing the *remaining* budget is gone; the "Select
+Trait" title now carries the selection's used/max cost badges inline
+(`traitBudgetItems`, CSS `.trait-budget-info`, `data-testid="trait-budget"` kept).
+Each trait card's title shows only that trait's own cost badges (`traitCostItems`,
+budgeted sides only, zero included) **then** its stats — same order on the page/mobile
+preview. `book.traitBudgetPositive`/`Negative` were re-purposed as the generic label
+"Traits"/"Tratti" for those badges. A trait that would exceed its budget locks with
+label `book.traitCostLock` ("Cost"/"Costo") and tooltip `book.traitBudgetExceeded`.
 
 **`ConfigView`** — aggregates every selected trait's costs into the totals displayed
 in the configuration summary.  The trait `ConfigCard` shows the count of selected
-traits.
+traits. **v0.38.3** — stats card 1 is dexterity/intelligence/constitution/**weight**
+(moved here); stats card 2 is life/energy/sad **plus** the `traitBudgetItems`
+used/max badges, and now hosts the Start action (`onAction={onProceed}`,
+`book.start`) — card 1's (i) opens a new "Character Attributes" full-stat page
+(`buildCharacterAttributesCard`, `src/utils/loadoutCards.js`, i18n
+`book.characterAttributesTitle`/`Desc`, `images.json` key `characterAttributes`).
+`StartBookMobile`/`StartBookModal` mirror the same layout; the old footer Start
+buttons are commented out, not removed. `StartBookModal` gained an optional
+`initialConfig` prop (reopen with a saved loadout, consumed once via a ref).
 
 **`StartMatchFlow`** — sends all selected trait uuids in the join request payload.
 
@@ -512,10 +540,27 @@ The filter lives only in these three call sites — never on the shared `story.t
 array itself, because that same array is what resolves a character's already-owned
 traits (§5.3).
 
+**v0.38.3 — difficulty-change budget re-fit bugfix (`StartBookModal.jsx`):** traits
+picked under a lenient difficulty used to survive a switch to a stricter one, so
+`join` was rejected with `TRAIT_COST_EXCEEDED` at submit. Changing the difficulty now
+calls `fitTraitsToBudget` on the current selection. `buildInitialConfig` also now
+preselects the first trait only if `canAddTrait(trait, [], difficulties[0])` passes.
+
+**v0.38.3 — badge plumbing:** `bonusStats.js`'s `STAT_FIELDS.trait` drops
+`costPositive`/`costNegative` (cost is not a generic stat; `traitCostItems` is the
+only source); `STAT_FIELDS.difficulty` now leads with `traitCostPositiveBudget`/
+`traitCostNegativeBudget` so difficulty cards badge their budgets (hidden by the
+zero filter when null/0). `BonusBadgeList` gained the `STAT_VISUAL` entries for both
+keys (⊕ green / ⊖ red) and an `item.keepZero` escape hatch that survives its zero
+filter without `showZeros`. `CardButtons.jsx`'s lock-text precedence is now
+`lockInfo.label` > `lockInfo.className` > string `lockInfo` > card name.
+`PlayerCards.jsx`'s in-game trait card badges are `traitCostItems(trait, t,
+difficultyEntity)` filtered non-zero, then stats.
+
 Vitest result: **267 passed** (v0.23.0, new `src/test/traitBudget.test.js`); the
 v0.35.2 helpers and picker scenarios are covered in the same file and in
-`src/test/StartBookModalCoverage.test.jsx`, part of the full react-game suite
-(853 passed as of v0.35.2).
+`src/test/StartBookModalCoverage.test.jsx`; full react-game suite **1364 passed** as
+of v0.38.3 (125 files, 3 skipped).
 
 ### 9.2 react-admin: difficulty budget fields (v0.23.0)
 
@@ -720,9 +765,12 @@ existing shared validator (§6.2), not a new code path.
     | 0.35.2 | New `list_traits.hide_on_start_match` flag: a trait can be made unpickable at character creation (`TRAIT_NOT_SELECTABLE`) while remaining grantable via `traits_to_add` — see §5.3, §6.2, §9.1-§9.3, §10. | August 22, 2026 |
     | 0.35.2 | Bugfix: a trait's stat deltas now apply the moment it is granted or removed mid-match, not only at character creation — a trait handed out by an event or item used to leave the life/energy/sad/dex/int/con/weight bars untouched. See §6.4. | August 22, 2026 |
     | 0.35.2 | Robot `Step23Helper.py` splits `_is_selectable` (class gates only) from new `_is_pickable` (class gates + not hidden); `Pick Story Loadout` now builds its default trait from the pickable set — see §10.4. | August 22, 2026 |
+    | 0.38.3 | Documented rule: trait cost budgets apply only at character creation (create/join); traits granted mid-match never count toward or are checked against the budgets — see §6.2. | September 22, 2026 |
+    | 0.38.3 | react-game trait picker: title-level used/max cost badges replace the remaining-budget line, per-trait cost badges on each card, new `fitTraitsToBudget`/`traitCostItems`/`traitBudgetItems` helpers, and a bugfix so a difficulty change re-fits the trait selection to the new budgets — see §9.1. | September 22, 2026 |
+    | 0.38.3 | Trait cost badges now budget-scoped: new `budgetSides` helper, badges hide entirely on an unbudgeted side; `bonusStats`/`BonusBadgeList`/`CardButtons`/`PlayerCards` wiring; ConfigView card rework (weight to card 1, Start action + Character Attributes page on card 2) — see §9.1. | September 22, 2026 |
 
 
-- **Last Updated**: August 22, 2026
+- **Last Updated**: September 22, 2026
 - **Status**: Complete
 
 

@@ -87,15 +87,24 @@ describe('StartBookMobile', () => {
     expect(screen.getByTestId('selection-class')).toBeInTheDocument()
   })
 
+  // v0.38.3 — the picker draws no back arrow any more (the desktop left page carries it),
+  // so the mobile column draws its own above the list.
+  it('draws its own back arrow over the picker', () => {
+    const { onBackSelection } = setup({ selectionType: 'class' })
+    fireEvent.click(screen.getByRole('button', { name: 'book.back' }))
+    expect(onBackSelection).toHaveBeenCalled()
+  })
+
   it('wires the proceed action to onProceed', () => {
     const { onProceed } = setup()
     fireEvent.click(screen.getByText('proceed'))
     expect(onProceed).toHaveBeenCalled()
   })
 
-  it('Start Game button advances via onProceed', () => {
-    const { onProceed } = setup()
-    fireEvent.click(screen.getByText('book.startGame'))
-    expect(onProceed).toHaveBeenCalled()
+  // The start action lives on the ConfigView bonuses card now: no separate button below it.
+  it('renders no standalone Start Game button under the config', () => {
+    setup()
+    expect(screen.queryByText('book.startGame')).toBeNull()
+    expect(document.querySelector('.btn-start-game')).toBeNull()
   })
 })

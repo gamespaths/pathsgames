@@ -30,11 +30,13 @@ vi.mock('@/components/modals/CardPreviewModal', () => ({
 // The dumb Card stand-in: `variant="page"` marks the reading page, every other
 // instance is a board card whose (i) and select handlers become buttons.
 vi.mock('@/components/layout/Card', () => ({
-  default: ({ variant, entityType, card, onPreview, onSelect, selectLabel }) => (
-    <div data-testid={variant === 'page' ? 'page-card' : `cc-${entityType}`}>
+  default: ({ variant, entityType, card, onPreview, onSelect, selectLabel, onAction, actionLabel, locked, lockedReason, statistics }) => (
+    <div data-testid={variant === 'page' ? 'page-card' : `cc-${entityType}`} data-locked={String(!!locked)} data-lock-reason={lockedReason ?? ''}
+         data-stats={(statistics ?? []).map(i => `${i.key}=${i.value}`).join(',')}>
       <span>{card?.title}</span>
       {onPreview && <button data-testid={`preview-${entityType ?? 'page'}`} onClick={onPreview}>i</button>}
       {onSelect && <button data-testid={`select-${entityType}`} onClick={onSelect}>{selectLabel}</button>}
+      {onAction && <button data-testid={`action-${entityType}`} onClick={onAction}>{actionLabel}</button>}
     </div>
   ),
 }))
@@ -43,10 +45,10 @@ import StartMatchFlow from '../features/start-match/StartMatchFlow'
 
 const STORY = { uuid: 's1', title: 'The Lost Crown', card: { title: 'The Lost Crown' } }
 const CONFIG = {
-  character: { uuid: 'ch1', name: 'Ranger' },
-  class: { uuid: 'cl1', name: 'Mage' },
-  traits: [{ uuid: 'tr1', name: 'Brave' }],
-  difficulty: { uuid: 'df1', name: 'Normal' },
+  character: { uuid: 'ch1', name: 'Ranger', lifeMax: 10 },
+  class: { uuid: 'cl1', name: 'Mage', weightMax: 4 },
+  traits: [{ uuid: 'tr1', name: 'Brave', costPositive: 1 }],
+  difficulty: { uuid: 'df1', name: 'Normal', traitCostPositiveBudget: 2 },
 }
 
 function renderFlow() {
@@ -61,29 +63,66 @@ describe('StartMatchFlow — the fixed cards block', () => {
   beforeEach(() => vi.clearAllMocks())
   afterEach(() => { delete window.matchMedia; delete window.bootstrap })
 
-  it('renders one card per fixed entry (story, both bonus cards, gameType, login, terms)', () => {
+  it('renders the fixed cards in order: story, gameType, bonuses, login, terms, bonuses', () => {
     renderFlow()
-    expect(screen.getByTestId('cc-story')).toBeInTheDocument()
-    expect(screen.getAllByTestId('cc-bonuses')).toHaveLength(2)
-    expect(screen.getByTestId('cc-gameType')).toBeInTheDocument()
-    expect(screen.getByTestId('cc-login')).toBeInTheDocument()
-    expect(screen.getByTestId('cc-terms')).toBeInTheDocument()
+    const order = Array.from(document.querySelectorAll('[data-testid^="cc-"]')).map(el => el.dataset.testid)
+    expect(order).toEqual(['cc-story', 'cc-gameType', 'cc-bonuses', 'cc-login', 'cc-terms', 'cc-bonuses'])
   })
 
-  // The story lens puts the story card on the reading page.
-  it('routes the story lens to the left reading page', () => {
+  // "Start" is the action of the last bonuses card: offered once the gate passed and the
+  // terms are accepted, locked (with the reason) otherwise. No Home button: the (x) is home.
+  it('offers Start on the last bonuses card and locks it while the terms are refused', () => {
+    renderFlow()
+    const [first, last] = screen.getAllByTestId('cc-bonuses')
+    expect(first.dataset.locked).toBe('false')
+    expect(last.dataset.locked).toBe('false')
+    expect(screen.getByTestId('action-bonuses')).toHaveTextContent('book.start')
+    expect(screen.queryByText('startMatch.home')).toBeNull()
+    fireEvent.click(screen.getAllByTestId('select-terms')[0])
+    expect(screen.queryByTestId('action-bonuses')).toBeNull()
+    expect(screen.getAllByTestId('cc-bonuses')[1].dataset.locked).toBe('true')
+    expect(screen.getAllByTestId('cc-bonuses')[1].dataset.lockReason).toBe('startMatch.acceptTermsFirst')
+  })
+
+  // The first bonuses card carries the characteristics and the carry, the second the pools
+  // and the trait cost used/max against the difficulty budgets.
+  it('splits the totals over the two bonuses cards, trait cost on the second', () => {
+    renderFlow()
+    const [first, last] = screen.getAllByTestId('cc-bonuses')
+    expect(first.dataset.stats).toBe('weight=4')
+    expect(last.dataset.stats).toBe('life=10,costPositive=1/2')
+  })
+
+  // Start swaps the six cards for the phase cards: the story, then creating / joining /
+  // running / created, all locked under their status.
+  it('Start on the card swaps the board for the phase cards', () => {
+    renderFlow()
+    fireEvent.click(screen.getByTestId('action-bonuses'))
+    expect(screen.queryByTestId('action-bonuses')).toBeNull()
+    expect(screen.queryAllByTestId('cc-bonuses')).toHaveLength(0)
+    const order = Array.from(document.querySelectorAll('[data-testid^="cc-"]')).map(el => el.dataset.testid)
+    expect(order).toEqual(['cc-story', 'cc-phase', 'cc-phase', 'cc-phase', 'cc-phase'])
+    expect(screen.getByTestId('cc-story').dataset.locked).toBe('true')
+    expect(screen.getAllByTestId('cc-phase').map(el => el.textContent))
+      .toEqual(['startMatch.phaseTitle.creating', 'startMatch.phaseTitle.joining', 'startMatch.phaseTitle.running', 'startMatch.phaseTitle.created'])
+  })
+
+  // The story lens puts the story card on the reading page; its action is "Back".
+  it('routes the story lens to the left reading page and offers Back on the card', () => {
     renderFlow()
     fireEvent.click(screen.getAllByTestId('preview-story')[0])
     expect(screen.getAllByTestId('preview-modal')[0]).toHaveTextContent('The Lost Crown')
+    expect(screen.getByTestId('action-story')).toHaveTextContent('book.back')
   })
 
-  // Both bonus cards preview the same statistics card with their own subset of stats.
-  it('routes both bonus lenses to the reading page', () => {
+  // The first bonuses lens opens the character-attributes page; the second keeps the
+  // statistics card (its (i) is hidden on the real Card, the handler stays wired).
+  it('routes the bonus lenses to the reading page', () => {
     renderFlow()
     fireEvent.click(screen.getAllByTestId('preview-bonuses')[0])
-    expect(screen.getByTestId('book')).toBeInTheDocument()
+    expect(screen.getAllByTestId('preview-modal')[0]).toHaveTextContent('book.characterAttributesTitle')
     fireEvent.click(screen.getAllByTestId('preview-bonuses')[1])
-    expect(screen.getByTestId('book')).toBeInTheDocument()
+    expect(screen.getAllByTestId('preview-modal')[0]).not.toHaveTextContent('book.characterAttributesTitle')
   })
 
   it('routes the game-type and login lenses to the reading page', () => {
