@@ -48,11 +48,12 @@ describe('utils/loadoutCards', () => {
     expect(c.awesomeIcon).toBe('fas fa-chart-bar')
   })
 
-  it('buildPhaseCard titles a phase entry of images.json, a glyph in place of a picture', () => {
+  it('buildPhaseCard titles a phase entry of images.json, with its picture and glyph', () => {
     const c = buildPhaseCard('joining', 'Joining')
     expect(c.title).toBe('Joining')
     expect(c.awesomeIcon).toBe('fas fa-user-plus')
-    expect(c.urlImage).toBe('')
+    // v0.39.0 — the phase entries of images.json carry an SVG picture.
+    expect(c.urlImage).toMatch(/^data:image\/svg\+xml;base64,/)
     expect(buildPhaseCard('nope', 'x')).toEqual({})
   })
 

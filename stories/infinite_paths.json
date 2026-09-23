@@ -277,6 +277,110 @@
       "linkCopyright": "https://unsplash.com/photos/a-small-boat-sits-in-a-dry-muddy-riverbed-SnXQ2fvNMew",
       "urlImage": "https://images.unsplash.com/photo-1759929549150-630ef273d747?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "c1690f9d-80eb-454d-86f6-71a57b436446"
+    },
+    {
+      "id": 26,
+      "idCard": 26,
+      "idCreator": 1,
+      "idTextCopyright": 69,
+      "idTextDescription": 68,
+      "idTextName": 67,
+      "idTextTitle": 67,
+      "linkCopyright": "https://unsplash.com/photos/a-very-tall-building-with-a-bunch-of-vines-growing-out-of-it--j_Hff-r_Os",
+      "urlImage": "https://images.unsplash.com/photo-1650293375771-6a6adc2ea0e5?q=80&w=686&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "67dd53c5-0524-44b8-b3da-af140acf2d2e"
+    },
+    {
+      "id": 27,
+      "idCard": 27,
+      "idCreator": 1,
+      "idTextCopyright": 72,
+      "idTextDescription": 71,
+      "idTextName": 70,
+      "idTextTitle": 70,
+      "linkCopyright": "https://unsplash.com/photos/a-small-animal-in-the-grass-qBj7yGTNQDg",
+      "urlImage": "https://images.unsplash.com/photo-1667504888877-3cf46ba26ecc?q=80&w=1458&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "f594657c-af75-431c-bbc5-ba4c24e9ad40"
+    },
+    {
+      "id": 28,
+      "idCard": 28,
+      "idCreator": 1,
+      "idTextCopyright": 75,
+      "idTextDescription": 74,
+      "idTextName": 73,
+      "idTextTitle": 73,
+      "linkCopyright": "https://unsplash.com/photos/a-wooden-carriage-with-wheels-WHx_LYTRDLY",
+      "urlImage": "https://images.unsplash.com/photo-1668998909680-7de5ab598be2?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "2ffde0b6-d718-4540-95ce-a34607e85aae"
+    },
+    {
+      "id": 29,
+      "idCard": 29,
+      "idCreator": 1,
+      "idTextCopyright": 78,
+      "idTextDescription": 77,
+      "idTextName": 76,
+      "idTextTitle": 76,
+      "linkCopyright": "https://unsplash.com/photos/scattered-playing-cards-9SewS6lowEU",
+      "urlImage": "https://images.unsplash.com/photo-1501003878151-d3cb87799705?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "c5c376e1-c611-49a4-bafd-0bfddca0567c"
+    },
+    {
+      "id": 30,
+      "idCard": 30,
+      "idCreator": 1,
+      "idTextCopyright": 81,
+      "idTextDescription": 80,
+      "idTextName": 79,
+      "idTextTitle": 79,
+      "linkCopyright": "https://unsplash.com/photos/scattered-playing-cards-9SewS6lowEU",
+      "urlImage": "https://images.unsplash.com/photo-1501003878151-d3cb87799705?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "19734b42-83d2-4f2c-85b8-268b818e69bd"
+    },
+    {
+      "id": 31,
+      "idCard": 31,
+      "idCreator": 1,
+      "idTextCopyright": 84,
+      "idTextDescription": 83,
+      "idTextName": 82,
+      "idTextTitle": 82,
+      "linkCopyright": "https://unsplash.com/photos/geographical-map-sketch-HA0Rgl-ISko",
+      "urlImage": "https://images.unsplash.com/photo-1567910640027-4029c4d8e9e0?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "faae6985-e146-4b22-af1f-906818479a7b"
+    },
+    {
+      "id": 32,
+      "idCard": 32,
+      "idCreator": 1,
+      "idTextCopyright": 87,
+      "idTextDescription": 86,
+      "idTextName": 85,
+      "idTextTitle": 85,
+      "linkCopyright": "https://unsplash.com/photos/antique-map-showing-bodensee-and-surrounding-mountains-Si3RnI6z_js",
+      "urlImage": "https://images.unsplash.com/photo-1730314737143-b2c82d2877f2?q=80&w=695&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "0467b91c-45ca-4191-b150-474b452c9f8e"
+    },
+    {
+      "id": 33,
+      "idCard": 33,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 82,
+      "idTextName": 82,
+      "idTextTitle": 82,
+      "uuid": "038b9636-ffab-40de-9623-7cb06b0d27c2"
+    },
+    {
+      "id": 34,
+      "idCard": 34,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 82,
+      "idTextName": 82,
+      "idTextTitle": 82,
+      "uuid": "1e20589e-5f07-478e-af38-7d69e65122cf"
     }
   ],
   "category": "Adventure",
@@ -312,6 +416,15 @@
       "type": "KEYS",
       "uuid": "1aca0d7f-1cdd-4211-8c51-2bed3d900164",
       "value": "REPAIR_SHIP"
+    },
+    {
+      "id": 2,
+      "idChoices": 3,
+      "key": "STORY",
+      "operator": "=",
+      "type": "KEYS",
+      "uuid": "4d85028d-5897-49c4-8a5e-52ce78975687",
+      "value": "STARTED"
     }
   ],
   "choiceEffects": [
@@ -338,6 +451,32 @@
       "uuid": "aa343489-b194-436a-958d-48b6f37768d7",
       "value": 1,
       "valueToAdd": "REPAIR_SHIP"
+    },
+    {
+      "id": 3,
+      "idCard": 30,
+      "idChoices": 3,
+      "idScelta": 3,
+      "idText": 80,
+      "idTextName": 79,
+      "key": "HELPER",
+      "statistics": "COIN",
+      "uuid": "adc94349-5e29-4f88-a000-a731422e1c52",
+      "value": 1,
+      "valueToAdd": "POKER"
+    },
+    {
+      "id": 4,
+      "idCard": 32,
+      "idChoices": 4,
+      "idItemTarget": 1,
+      "idScelta": 4,
+      "idTextName": 82,
+      "id_card": 32,
+      "itemAction": "ADD",
+      "statistics": "",
+      "uuid": "efa0f303-b703-4595-8a4f-0f921cd8c7c8",
+      "value": ""
     }
   ],
   "choices": [
@@ -358,6 +497,26 @@
       "id_card": 18,
       "priority": 2,
       "uuid": "eca16560-972f-4285-9b54-51d71ba1c4e1"
+    },
+    {
+      "id": 3,
+      "idCard": 29,
+      "idEvent": 7,
+      "idTextName": 76,
+      "idTextNarrative": 76,
+      "id_card": 29,
+      "priority": 1,
+      "uuid": "2eac7d05-6f12-4479-9523-b4a2fb3146e7"
+    },
+    {
+      "id": 4,
+      "idCard": 31,
+      "idEvent": 7,
+      "idTextName": 82,
+      "idTextNarrative": 82,
+      "id_card": 31,
+      "priority": 2,
+      "uuid": "8e21ca66-fbdd-42b4-8d50-4beed84220c8"
     }
   ],
   "classBonuses": [],
@@ -520,6 +679,17 @@
       "target": "ONLY_ONE",
       "uuid": "9cd1f20b-b29f-4a1d-adb8-9e2e6064964f",
       "value": 1
+    },
+    {
+      "id": 4,
+      "idCard": 27,
+      "idEvent": 6,
+      "idTextDescription": 71,
+      "idTextName": 70,
+      "statistics": "EXP",
+      "target": "ALL",
+      "uuid": "1c19aa48-ba69-4772-a27a-e5a33e96d003",
+      "value": 1
     }
   ],
   "events": [
@@ -600,6 +770,26 @@
       "id_card": 24,
       "type": "ONCE",
       "uuid": "64f19eaf-776c-466f-bfb3-f3a533cb7f3b"
+    },
+    {
+      "costEnery": 1,
+      "id": 6,
+      "idCard": 26,
+      "idSpecificLocation": 2,
+      "idTextDescription": 68,
+      "idTextName": 67,
+      "type": "ONCE",
+      "uuid": "eeaa3e25-8749-4ef1-9fff-c56e72c08dea"
+    },
+    {
+      "costEnery": 1,
+      "id": 7,
+      "idCard": 28,
+      "idSpecificLocation": 2,
+      "idTextDescription": 74,
+      "idTextName": 73,
+      "type": "NORMAL",
+      "uuid": "4f784bae-44f2-4192-ad1f-c05cafb1758a"
     }
   ],
   "globalRandomEvents": [],
@@ -619,7 +809,19 @@
   "idTextTitle": 1,
   "itemCount": 0,
   "itemEffects": [],
-  "items": [],
+  "items": [
+    {
+      "flagShowEffects": 1,
+      "id": 1,
+      "idCard": 32,
+      "idTextDescription": 85,
+      "idTextName": 85,
+      "id_card": 32,
+      "maxPerCharacter": 1,
+      "uuid": "2c4073d8-2616-440d-b0f8-63aab033c229",
+      "weight": 0
+    }
+  ],
   "keys": [
     {
       "id": 1,
@@ -1827,6 +2029,296 @@
       "longText": "use-exp",
       "shortText": "use-exp",
       "uuid": "d90c862c-414a-45cd-af30-a0b7e01b7f5a"
+    },
+    {
+      "id": 67,
+      "idCreator": 1,
+      "idText": 67,
+      "lang": "en",
+      "shortText": "Haunted Warehouse",
+      "uuid": "13404c6b-912d-4225-9569-3d4c5338309e"
+    },
+    {
+      "id": 67,
+      "idCreator": 1,
+      "idText": 67,
+      "lang": "it",
+      "shortText": "Magazzino infestato",
+      "uuid": "01bf60d8-aaed-46ab-bed7-cb8e6844a745"
+    },
+    {
+      "id": 68,
+      "idCreator": 1,
+      "idText": 68,
+      "lang": "en",
+      "shortText": "An icy chill grips the air as saltwater trickles from the floorboards, defying the dry heat outside. Mournful whispers echo from the shadows, where lost sailors still cling to the cargo they died to deliver.<br />\n<br />\nA local warehouse is rumored to be haunted by the spirits of drowned sailors. You are requested to cleanse the area of spectral threats.",
+      "uuid": "92ac5656-442c-45f5-94dc-1681fc3f5599"
+    },
+    {
+      "id": 68,
+      "idCreator": 1,
+      "idText": 68,
+      "lang": "it",
+      "shortText": "Un freddo gelido avvolge l'ambiente mentre gocce di acqua salmastra trasudano dal pavimento in legno. Sussurri lamentosi e spettrali echi risuonano nell'ombra, dove i fantasmi dei marinai sorvegliano ancora il loro carico.<br />\n<br />\nSi dice che un magazzino sia infestato dagli spiriti di marinai annegati. Ti viene chiesto di disinfestare l'area dalle presenze spettrali.",
+      "uuid": "90d086ca-8af4-4305-9098-01a194f71511"
+    },
+    {
+      "id": 69,
+      "idCreator": 1,
+      "idText": 69,
+      "lang": "en",
+      "shortText": "Natalia Marcelewicz",
+      "uuid": "70c77205-785e-4474-aeda-f062977b8983"
+    },
+    {
+      "id": 70,
+      "idCreator": 1,
+      "idText": 70,
+      "lang": "en",
+      "shortText": "Groundhogs",
+      "uuid": "41fa883f-9086-4dbd-8654-ff77dfc3d1a5"
+    },
+    {
+      "id": 70,
+      "idCreator": 1,
+      "idText": 70,
+      "lang": "it",
+      "shortText": "Marmotte",
+      "uuid": "6081e96f-df01-4f74-b0ed-74422bd67377"
+    },
+    {
+      "id": 71,
+      "idCreator": 1,
+      "idText": 71,
+      "lang": "en",
+      "shortText": "Squeaks and scurrying paws replace the ghost stories, revealing nothing more than a nest of bloated vermin amidst ruined crates. Gnawed ropes and ruined cargo are all that remain in the quiet, damp gloom.<br />\n<br />\nThe warehouse was only infested by small rodents, not ghosts or monsters. The goods are destroyed and the owners cannot pay you for your work.",
+      "uuid": "edc7308d-7003-48b9-94bd-e9190dc8dc0d"
+    },
+    {
+      "id": 71,
+      "idCreator": 1,
+      "idText": 71,
+      "lang": "it",
+      "shortText": "Squittii e uno zampettare frenetico prendono il posto dei racconti del terrore, svelando soltanto una nidiata di roditori tra casse devastate. Corde rosicchiate e merce distrutta sono tutto ciò che rimane nel buio umido del magazzino.<br />\n<br />\nL'edificio era infestato solo da piccoli roditori, senza alcun fantasma o mostro. Le merci sono purtroppo irrecuperabili e i proprietari non dispongono di denaro per pagarti.",
+      "uuid": "6e248f48-db79-4d12-aea6-cde8e5f1c025"
+    },
+    {
+      "id": 72,
+      "idCreator": 1,
+      "idText": 72,
+      "lang": "en",
+      "shortText": "Camerauthor Photos",
+      "uuid": "4f24d140-00bd-438f-a257-198c472c1e5a"
+    },
+    {
+      "id": 73,
+      "idCreator": 1,
+      "idText": 73,
+      "lang": "en",
+      "shortText": "Merchant",
+      "uuid": "d87bdb84-4f3f-4bd7-8162-7ecec20d76f3"
+    },
+    {
+      "id": 73,
+      "idCreator": 1,
+      "idText": 73,
+      "lang": "it",
+      "shortText": "Mercante",
+      "uuid": "5e55d449-8609-4727-ad00-4984363fb73d"
+    },
+    {
+      "id": 74,
+      "idCreator": 1,
+      "idText": 74,
+      "lang": "en",
+      "shortText": "Behind a counter stacked with exotic wares, a keen-eyed trader pauses to study you with a knowing smile. Years of traveling these roads have left him with a treasure trove of secrets, provided you have the patience to listen.<br />\n<br />\nYou meet a merchant who possesses extensive knowledge of the area. Speak with him to obtain useful information and navigation tips.",
+      "uuid": "4a3ec3f0-a34e-43a5-b466-218f75fc86e2"
+    },
+    {
+      "id": 74,
+      "idCreator": 1,
+      "idText": 74,
+      "lang": "it",
+      "shortText": "Dietro un banco straripante di merce insolita, un mercante dallo sguardo vispo si ferma a osservarti con un sorriso d'intesa. Anni trascorsi a percorrere queste vie gli hanno donato una conoscenza profonda di ogni segreto del territorio.<br />\n<br />\nIncontri un mercante che conosce molto bene la zona. Interagisci con lui per ottenere informazioni utili sulla regione.",
+      "uuid": "7f871114-7c45-41fd-9328-6e8584e37d1d"
+    },
+    {
+      "id": 75,
+      "idCreator": 1,
+      "idText": 75,
+      "lang": "en",
+      "shortText": "Stefanos Nt",
+      "uuid": "b4baa55e-e792-4a57-a8c0-f9579a68b4e9"
+    },
+    {
+      "id": 76,
+      "idCreator": 1,
+      "idText": 76,
+      "lang": "en",
+      "shortText": "Play Poker",
+      "uuid": "e8f60780-c21e-41d7-8648-30abb7fa23ab"
+    },
+    {
+      "id": 76,
+      "idCreator": 1,
+      "idText": 76,
+      "lang": "it",
+      "shortText": "Gioca a poker",
+      "uuid": "ad9bc69e-8875-41b6-8e73-49506f1febc5"
+    },
+    {
+      "id": 77,
+      "idCreator": 1,
+      "idText": 77,
+      "lang": "en",
+      "shortText": "Cards click rhythmically against the worn felt table as smoky air hangs thick above the players' guarded faces. A few coins glint in the center, inviting you to risk your luck and skill for an evening's distraction.<br />\n<br />\nYou join a game of poker for recreation. Engage in the minigame to gamble your currency and boost your mood.",
+      "uuid": "2702030e-9c24-4907-bbf1-66f2e70970ea"
+    },
+    {
+      "id": 77,
+      "idCreator": 1,
+      "idText": 77,
+      "lang": "it",
+      "shortText": "Le carte scivolano con un ritmo ipnotico sul panno consumato del tavolo, mentre un'aria densa di fumo avvolge i volti impassibili dei giocatori. Qualche moneta luccica al centro, invitandoti a sfidare la fortuna per un momento di svago.<br />\n<br />\nPartecipi a una partita a poker per divertirti un po'. Gioca al minigioco per scommettere denaro e migliorare il tuo stato d'animo.",
+      "uuid": "11a0e213-aaed-48bf-ba7e-3dc054e87622"
+    },
+    {
+      "id": 78,
+      "idCreator": 1,
+      "idText": 78,
+      "lang": "en",
+      "shortText": "Jack Hamilton",
+      "uuid": "831da8e9-0fb3-45b2-82d2-a699a99a21f5"
+    },
+    {
+      "id": 79,
+      "idCreator": 1,
+      "idText": 79,
+      "lang": "en",
+      "shortText": "Win at Poker",
+      "uuid": "ebb6c49e-2034-418d-a61e-2ccc03f3c794"
+    },
+    {
+      "id": 79,
+      "idCreator": 1,
+      "idText": 79,
+      "lang": "it",
+      "shortText": "Vinci a poker",
+      "uuid": "bf491eb8-7a24-4ba1-9f33-68ea0e1ce7fc"
+    },
+    {
+      "id": 80,
+      "idCreator": 1,
+      "idText": 80,
+      "lang": "en",
+      "shortText": "The final card settles on the table, securing your triumph over the crestfallen players around you. With a satisfied smile, you rake the pile of glittering coins toward yourself under their envious gaze.<br />\n<br />\nYou win the poker match. You gain gold coins and improve your character's mood.",
+      "uuid": "633a886b-b888-4186-b64e-c5368aa753f0"
+    },
+    {
+      "id": 80,
+      "idCreator": 1,
+      "idText": 80,
+      "lang": "it",
+      "shortText": "L'ultima carta cala sul tavolo, suggellando il tuo trionfo sui giocatori ormai sconfortati intorno a te. Con un sorriso di soddisfazione, raccogli il gruzzolo di monete lucenti sotto i loro sguardi invidiosi.<br />\n<br />\nVinci la partita a poker. Guadagni monete d'oro e migliori lo stato d'animo del tuo personaggio.",
+      "uuid": "1400e124-f930-4615-9753-a0e84643ede3"
+    },
+    {
+      "id": 81,
+      "idCreator": 1,
+      "idText": 81,
+      "lang": "en",
+      "shortText": "Jack Hamilton",
+      "uuid": "a862d8ea-37b5-4189-946f-a6eab21ca039"
+    },
+    {
+      "id": 82,
+      "idCreator": 1,
+      "idText": 82,
+      "lang": "en",
+      "shortText": "Ask for the Map",
+      "uuid": "0a83d05e-94f0-40a5-af02-749056594df4"
+    },
+    {
+      "id": 82,
+      "idCreator": 1,
+      "idText": 82,
+      "lang": "it",
+      "shortText": "Chiedi la mappa",
+      "uuid": "8169fa4c-4eb9-4ed7-861a-95e477bc6ac3"
+    },
+    {
+      "id": 83,
+      "idCreator": 1,
+      "idText": 83,
+      "lang": "en",
+      "shortText": "Faded ink and weathered parchment lie rolled tightly on the desk, hinting at uncharted lands and hidden passages. With a polite gesture, you request a glance at the drawn borders that could guide your journey.<br />\n<br />\nAsk to provide a regional map.",
+      "uuid": "e7402199-bb17-4270-b594-d205e732238a"
+    },
+    {
+      "id": 83,
+      "idCreator": 1,
+      "idText": 83,
+      "lang": "it",
+      "shortText": "Inchiostro sbiadito e pergamena invecchiata giacciono arrotolati sul tavolo, custodendo i dettagli di terre e passaggi segreti. Con un gesto cortese chiedi di poter consultare i confini tracciati che guidino il tuo cammino.<br />\n<br />\nChiedi di fornirti la mappa della regione.",
+      "uuid": "a2464681-71f2-4b57-945d-552dab2a8206"
+    },
+    {
+      "id": 84,
+      "idCreator": 1,
+      "idText": 84,
+      "lang": "en",
+      "shortText": "Alex Boyd",
+      "uuid": "0be75903-f5d1-46c7-8626-38ba874c869b"
+    },
+    {
+      "id": 85,
+      "idCreator": 1,
+      "idText": 85,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Ronini Map",
+      "shortText": "Ronini Map",
+      "uuid": "f24b384c-bfe7-4970-82f9-12ae339e2a64"
+    },
+    {
+      "id": 86,
+      "idCreator": 1,
+      "idText": 86,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Carefully drawn lines and intricate seals mark every ridge, river, and hidden path across the parchment. Holding this masterwork in your hands, the surrounding wilderness feels far less daunting.<br />\n<br />\nA valuable map that allows you to navigate this region.",
+      "shortText": "Carefully drawn lines and intricate seals mark every ridge, river, and hidden path across the parchment. Holding this masterwork in your hands, the surrounding wilderness feels far less daunting.<br />\n<br />\nA valuable map that allows you to navigate this region.",
+      "uuid": "eaea8db9-7455-4051-825c-93f3a17b33d1"
+    },
+    {
+      "id": 86,
+      "idCreator": 1,
+      "idText": 86,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Tratti finemente dettagliati e antichi sigilli tracciano ogni rilievo, fiume e passaggio nascosto sulla pergamena. Custodire questo prezioso documento rende le insidie del territorio molto più decifrabili.<br />\n<br />\nUna mappa molto preziosa utilizzabile per orientarsi nella zona.",
+      "shortText": "Tratti finemente dettagliati e antichi sigilli tracciano ogni rilievo, fiume e passaggio nascosto sulla pergamena. Custodire questo prezioso documento rende le insidie del territorio molto più decifrabili.<br />\n<br />\nUna mappa molto preziosa utilizzabile per orientarsi nella zona.",
+      "uuid": "c1428092-71ee-4d83-a687-f1151550decb"
+    },
+    {
+      "id": 87,
+      "idCreator": 1,
+      "idText": 87,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The New York Public Library",
+      "shortText": "The New York Public Library",
+      "uuid": "d76a2c2a-a778-410e-98cf-5d42eda893ab"
+    },
+    {
+      "id": 87,
+      "idCreator": 1,
+      "idText": 87,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "4047455a-fffb-4584-9358-da6192bb7998"
     }
   ],
   "title": "Infinite Paths",

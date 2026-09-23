@@ -38,6 +38,7 @@ function renderPage(uuid = 'story-123') {
       <Routes>
         <Route path="/stories/:uuid/edit" element={<StoryEditorPage />} />
         <Route path="/stories/:uuid/cards-fast-edit" element={<div>Fast edit page</div>} />
+        <Route path="/stories/:uuid/fast-new-event" element={<div>Fast new event page</div>} />
       </Routes>
     </MemoryRouter>
   )
@@ -63,6 +64,12 @@ describe('StoryEditorPage', () => {
     renderPage()
     await userEvent.click(await screen.findByText('Cards fast edit'))
     expect(await screen.findByText('Fast edit page')).toBeInTheDocument()
+  })
+
+  it('the Fast new event sidebar entry opens its page', async () => {
+    renderPage()
+    await userEvent.click(await screen.findByText('Fast new event'))
+    expect(await screen.findByText('Fast new event page')).toBeInTheDocument()
   })
 
   it('updates story metadata', async () => {

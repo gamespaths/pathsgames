@@ -85,6 +85,14 @@ describe('StoriesPage', () => {
     expect(screen.getByText('Dark Secrets')).toBeInTheDocument()
   })
 
+  it('links every story to its Fast New Event page', async () => {
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    const links = screen.getAllByTitle('Fast New Event')
+    expect(links).toHaveLength(2)
+    expect(links[0]).toHaveAttribute('href', '/stories/aaa-111/fast-new-event')
+  })
+
   it('renders visibility badges', async () => {
     renderPage()
     await screen.findByText('The Lost Kingdom')
