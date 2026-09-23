@@ -134,6 +134,35 @@ class StoryImportServiceTest {
         }
 
         @Test
+        @DisplayName("Should import the difficulty trait budgets, absent staying null")
+        @SuppressWarnings("unchecked")
+        void importStory_difficultyTraitBudgets() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "budget-uuid");
+            data.put("difficulties", List.of(
+                    Map.of("traitCostPositiveBudget", 4, "traitCostNegativeBudget", 2),
+                    Map.of("traitCostPositiveBudget", "3")));
+
+            when(persistencePort.findStoryByUuid("budget-uuid")).thenReturn(Optional.empty());
+            when(persistencePort.saveStory(any(StoryEntity.class))).thenAnswer(inv -> {
+                StoryEntity e = inv.getArgument(0);
+                e.setId(1L);
+                return e;
+            });
+            when(persistencePort.saveDifficulties(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<List<StoryDifficultyEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveDifficulties(captor.capture());
+            List<StoryDifficultyEntity> saved = captor.getValue();
+            assertEquals(4, saved.get(0).getTraitCostPositiveBudget());
+            assertEquals(2, saved.get(0).getTraitCostNegativeBudget());
+            assertEquals(3, saved.get(1).getTraitCostPositiveBudget());
+            assertNull(saved.get(1).getTraitCostNegativeBudget());
+        }
+
+        @Test
         @DisplayName("Should allow same explicit event id in different story scopes")
         void importStory_sameEventIdAcrossDifferentStories() {
             Map<String, Object> story1 = new HashMap<>();

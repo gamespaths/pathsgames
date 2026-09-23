@@ -28,6 +28,7 @@ import {
   getNewEntityDefaults as helperGetNewEntityDefaults,
   mapEntityList as helperMapEntityList,
 } from './StoryEditorPageHelpers'
+import { stripNulls } from '../../utils/storyJson'
 
 
 
@@ -264,32 +265,31 @@ export default function StoryEditorPage() {
         listEntities(uuid, 'class-bonuses'),
       ])
 
+      // Header fields sit top-level: that is the shape every backend import reads.
       const fullStory = {
-        story: {
-          id: story.id,
-          uuid: story.uuid,
-          author: story.author,
-          category: story.category,
-          group: story.group,
-          visibility: story.visibility,
-          priority: story.priority,
-          peghi: story.peghi,
-          versionMin: story.versionMin,
-          versionMax: story.versionMax,
-          idTextTitle: story.idTextTitle,
-          idTextDescription: story.idTextDescription,
-          idLocationStart: story.idLocationStart,
-          idImage: story.idImage,
-          idLocationAllPlayerComa: story.idLocationAllPlayerComa,
-          idEventAllPlayerComa: story.idEventAllPlayerComa,
-          idTextClockSingular: story.idTextClockSingular,
-          idTextClockPlural: story.idTextClockPlural,
-          idEventEndGame: story.idEventEndGame,
-          idTextCopyright: story.idTextCopyright,
-          linkCopyright: story.linkCopyright,
-          idCreator: story.idCreator,
-          idCard: story.idCard,
-        },
+        id: story.id,
+        uuid: story.uuid,
+        author: story.author,
+        category: story.category,
+        group: story.group,
+        visibility: story.visibility,
+        priority: story.priority,
+        peghi: story.peghi,
+        versionMin: story.versionMin,
+        versionMax: story.versionMax,
+        idTextTitle: story.idTextTitle,
+        idTextDescription: story.idTextDescription,
+        idLocationStart: story.idLocationStart,
+        idImage: story.idImage,
+        idLocationAllPlayerComa: story.idLocationAllPlayerComa,
+        idEventAllPlayerComa: story.idEventAllPlayerComa,
+        idTextClockSingular: story.idTextClockSingular,
+        idTextClockPlural: story.idTextClockPlural,
+        idEventEndGame: story.idEventEndGame,
+        idTextCopyright: story.idTextCopyright,
+        linkCopyright: story.linkCopyright,
+        idCreator: story.idCreator,
+        idCard: story.idCard,
         texts: mapEntityList(texts, 'texts'),
         locations: mapEntityList(locations, 'locations'),
         events: mapEntityList(eventsRef, 'events'),
@@ -314,9 +314,7 @@ export default function StoryEditorPage() {
         classBonuses: mapEntityList(classBonusesData, 'class-bonuses'),
       }
 
-      const cleanup = (obj) => obj  // mapping already handles field selection
-
-      const finalJson = cleanup(fullStory)
+      const finalJson = stripNulls(fullStory)
       const blob = new Blob([JSON.stringify(finalJson, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')

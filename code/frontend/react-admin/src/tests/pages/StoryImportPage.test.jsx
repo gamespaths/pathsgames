@@ -53,6 +53,24 @@ describe('StoryImportPage', () => {
     expect(await screen.findByText(/imported successfully/i)).toBeInTheDocument()
   })
 
+  it('lifts a nested story header before sending it to the backend', async () => {
+    importStory.mockResolvedValue({ storyUuid: 'u1', status: 'IMPORTED' })
+    renderPage()
+    const ta = screen.getByPlaceholderText(/uuid/)
+    fireEvent.change(ta, { target: { value: JSON.stringify({ story: { uuid: 'u1', author: 'A' }, texts: [] }) } })
+    await userEvent.click(screen.getByText(/Import Story/i, { selector: 'button' }))
+    await waitFor(() => expect(importStory).toHaveBeenCalledWith({ uuid: 'u1', author: 'A', texts: [] }))
+  })
+
+  it('sends a JSON without null fields as it is', async () => {
+    importStory.mockResolvedValue({ storyUuid: 'u2', status: 'IMPORTED' })
+    renderPage()
+    const ta = screen.getByPlaceholderText(/uuid/)
+    fireEvent.change(ta, { target: { value: JSON.stringify({ uuid: 'u2', items: [{ id: 1 }] }) } })
+    await userEvent.click(screen.getByText(/Import Story/i, { selector: 'button' }))
+    await waitFor(() => expect(importStory).toHaveBeenCalledWith({ uuid: 'u2', items: [{ id: 1 }] }))
+  })
+
   it('shows error alert when importStory fails', async () => {
     importStory.mockRejectedValue(new Error('Import failed'))
     renderPage()

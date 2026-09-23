@@ -167,7 +167,7 @@ export function getNewEntityDefaults(activeTab) {
 /**
  * Projects an entity list onto the field set declared in FIELDS[entityType],
  * defaulting missing fields to null and preserving the `id` reference.
- * Used by the story-export feature.
+ * Used by the story-export feature, which then drops the nulls (see stripNulls).
  */
 export function mapEntityList(list, entityType) {
   const fieldKeys = (FIELDS[entityType] ?? []).map(f => f.key)

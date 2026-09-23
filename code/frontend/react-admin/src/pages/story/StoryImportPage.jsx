@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { importStory } from '../../api/storyApi'
 import ErrorAlert from '../../components/common/ErrorAlert'
+import { normalizeImportJson } from '../../utils/storyJson'
 
 const EXAMPLE = JSON.stringify({
   uuid: null,
@@ -48,7 +49,7 @@ export default function StoryImportPage() {
     }
     setLoading(true)
     try {
-      const res = await importStory(parsed)
+      const res = await importStory(normalizeImportJson(parsed))
       setResult(res)
     } catch (e) {
       setError(e.message)
@@ -69,6 +70,7 @@ export default function StoryImportPage() {
           Paste a complete story JSON here. If the UUID already exists it will be
           <strong style={{ color: 'var(--color-gold-light)' }}> completely replaced</strong>.
           Leave <code style={{ color: 'var(--color-gold-dark)' }}>uuid: null</code> to auto-generate a new UUID.
+          Fields left out of the JSON are imported as null or their default value.
         </p>
         <button className="pg-btn pg-btn-ghost pg-btn-sm" onClick={loadExample}>
           <i className="fas fa-magic me-1" />Load example JSON

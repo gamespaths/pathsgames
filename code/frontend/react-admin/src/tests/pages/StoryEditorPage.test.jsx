@@ -150,6 +150,33 @@ describe('StoryEditorPage', () => {
     clickSpy.mockRestore()
   })
 
+  it('exports a flat header without null values', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    let capturedBlob = null
+    const origCreate = global.URL.createObjectURL
+    const origRevoke = global.URL.revokeObjectURL
+    global.URL.createObjectURL = vi.fn((blob) => { capturedBlob = blob; return 'blob:x' })
+    global.URL.revokeObjectURL = vi.fn()
+    renderPage()
+    await screen.findByDisplayValue('Author')
+
+    await userEvent.click(screen.getByRole('button', { name: /Export JSON/i }))
+    await waitFor(() => expect(capturedBlob).not.toBeNull())
+
+    const text = await capturedBlob.text()
+    const parsed = JSON.parse(text)
+    expect(parsed).not.toHaveProperty('story')
+    expect(parsed.uuid).toBe('story-123')
+    expect(parsed.author).toBe('Author')
+    expect(parsed).not.toHaveProperty('idLocationStart')
+    expect(parsed.texts[0]).toEqual(expect.objectContaining({ id: 101, idText: 101, lang: 'en' }))
+    expect(text).not.toContain('null')
+
+    global.URL.createObjectURL = origCreate
+    global.URL.revokeObjectURL = origRevoke
+    clickSpy.mockRestore()
+  })
+
   it('handles fast text saving', async () => {
     createEntity.mockResolvedValue({ status: 'CREATED' })
     listEntities.mockImplementation((uuid, type) => {

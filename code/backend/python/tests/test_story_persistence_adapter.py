@@ -692,3 +692,18 @@ def test_save_keys_reads_the_shared_import_spelling(adapter, session_factory):
     assert rows[1].key_group == "GATES" and rows[1].is_visible == 1
     assert rows[2].key_name == "secret" and rows[2].is_visible == 0
     assert rows[3].key_name == "kept" and rows[3].is_visible == 1
+
+
+def test_save_difficulties_keeps_trait_budgets(adapter, session_factory):
+    # Step 23 — both budgets survive the import; absent or null stays NULL ("no limit").
+    from app.adapters.persistence.story.models import StoryDifficultyEntity
+    story_id = adapter.save_story({"uuid": "test-uuid-budgets"})
+    adapter.save_difficulties(story_id, [
+        {"id": 1, "traitCostPositiveBudget": 4, "traitCostNegativeBudget": 2},
+        {"id": 2, "traitCostPositiveBudget": 3},
+        {"id": 3, "traitCostPositiveBudget": None, "traitCostNegativeBudget": None},
+    ])
+    with session_factory() as session:
+        rows = session.query(StoryDifficultyEntity).filter_by(id_story=story_id).order_by(StoryDifficultyEntity.id).all()
+        assert [(r.trait_cost_positive_budget, r.trait_cost_negative_budget) for r in rows] == \
+            [(4, 2), (3, None), (None, None)]

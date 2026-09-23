@@ -409,6 +409,28 @@ def test_import_story_success_full_payload():
     assert body['storyUuid'] == 'imp-1'
     assert body['textsImported'] == 2
 
+# Step 23 — the trait budgets were dropped on import, so every imported difficulty had no limit.
+def test_import_story_keeps_difficulty_trait_budgets():
+    payload = {
+        'uuid': 'imp-budget',
+        'difficulties': [
+            {'id': 1, 'traitCostPositiveBudget': 4, 'traitCostNegativeBudget': 2},
+            {'id': 2, 'traitCostPositiveBudget': '3'},
+            {'id': 3, 'traitCostPositiveBudget': None, 'traitCostNegativeBudget': 'x'},
+        ],
+    }
+    puts = []
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, None]), \
+         patch('story.handler.db_utils.query_gsi', return_value=[]), \
+         patch('story.handler.db_utils.put_item', side_effect=lambda i, *a, **k: puts.append(i) or True):
+        from story.handler import lambda_handler
+        result = lambda_handler(admin_event('POST', '/api/admin/stories/import', body=payload), {})
+    assert result['statusCode'] == 201
+    diffs = next(p for p in puts if p.get('difficulties'))['difficulties']
+    budgets = [(d['traitCostPositiveBudget'], d['traitCostNegativeBudget']) for d in diffs]
+    # absent, null or unreadable stays None ("no limit"), never 0 ("nothing allowed")
+    assert budgets == [(4, 2), (3, None), (None, None)]
+
 # v0.37.7 — a row authored without a uuid used to land without one on this backend alone;
 # select-choice and the admin CRUD address rows by uuid, so such a choice could never be picked.
 def test_import_story_gives_every_row_a_uuid_and_keeps_authored_ones():

@@ -4,6 +4,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner'
 import ErrorAlert from '../../components/common/ErrorAlert'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import { Link, useNavigate } from 'react-router-dom'
+import { stripNulls } from '../../utils/storyJson'
 
 // Recursively sort object keys alphabetically; array order is preserved.
 function sortKeysDeep(value) {
@@ -122,7 +123,7 @@ export default function StoriesPage() {
       // eslint-disable-next-line no-unused-vars
       const { tsInsert, tsUpdate, ...finalJson } = exportData
 
-      const blob = new Blob([JSON.stringify(sortKeysDeep(finalJson), null, 2)], { type: 'application/json' })
+      const blob = new Blob([JSON.stringify(sortKeysDeep(stripNulls(finalJson)), null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url

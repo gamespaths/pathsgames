@@ -640,6 +640,9 @@ def import_story(event):
             'expCostBase':            d.get('expCostBase', 0),
             'maxStatValue':           d.get('maxStatValue', 0),
             'numberMaxFreeAction':    d.get('numberMaxFreeAction', 0),
+            # Step 23 budgets — absent/null stays None, which the match reads as "no limit".
+            'traitCostPositiveBudget': _safe_int(d.get('traitCostPositiveBudget'), None),
+            'traitCostNegativeBudget': _safe_int(d.get('traitCostNegativeBudget'), None),
             'life':                   d.get('life', 100),
             'energy':                 d.get('energy', 100),
             'sad':                    d.get('sad', 0),

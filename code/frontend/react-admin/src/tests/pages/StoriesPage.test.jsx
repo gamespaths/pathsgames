@@ -249,8 +249,9 @@ describe('StoriesPage', () => {
     expect(boolItem).toHaveProperty('isConsumabile', false)
     expect(boolItem).toHaveProperty('flagShowEffects', false)
     expect(await capturedBlob.text()).toContain('"isConsumabile": false')
-    // a null stays a null — the import reads it as "not authored", not as 0
-    expect(item.maxPerCharacter).toBeNull()
+    // a null is omitted — every backend import reads the absent key as null/default
+    expect(item).not.toHaveProperty('maxPerCharacter')
+    expect(await capturedBlob.text()).not.toContain('null')
     // only the bookkeeping columns are stripped
     expect(item).not.toHaveProperty('tsInsert')
     expect(item).not.toHaveProperty('idStory')
