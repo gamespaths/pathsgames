@@ -63,11 +63,17 @@ export default function useGameplayResults({
     if (prevUuid === null || weather.uuid === prevUuid) return
     const duringEvent = eventEffectActiveRef.current
     eventEffectActiveRef.current = false
-    // Step 31/33 — a choice-event and the wake-up list own the right page: a weather change
-    // never covers them. The weather stays reachable from the stats view, and the board
-    // (with the current weather) returns once they are closed.
+    // Step 31 — a choice-event owns the right page: a weather change never covers it. The
+    // weather stays reachable from the stats view, and the board returns once it is closed.
     if (viewRef.current.pendingChoices) return
-    if (viewRef.current.counterZero?.length) return
+    // Step 39 — after a sleep the new weather comes first, then (→) the wake-up list
+    // (counter-zero, start-time, random event) waiting underneath it.
+    if (viewRef.current.counterZero?.length) {
+      viewActions.setPreviewRight(prev => prev
+        ? prev
+        : { kind: 'weather', onForward: () => viewActions.setPreviewRight(null) })
+      return
+    }
     viewActions.setPreviewRight(prev => {
       // Step 29 — the effect only leads forward to the weather: drop its back arrow.
       // v0.38.2 — a card that already led somewhere (a mission just closed) keeps its chain:

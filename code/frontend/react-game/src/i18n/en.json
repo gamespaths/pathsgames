@@ -83,7 +83,7 @@
     "antibotDesc": "Antibot check completed successfully: you are ready to start the adventure.",
     "noTraitsTitle": "No Traits",
     "noTraitsDesc": "You have not selected any trait. You can proceed without traits or select one to customise your character.",
-    "characterAttributesTitle": "Character Attributes",
+    "characterAttributesTitle": "Attributes",
     "characterAttributesDesc": "Every character brings a unique set of strengths and weaknesses to consider carefully before embarking. <br/><br /> On this page you can view all the attributes of the character you are selecting for your next adventure.",
     "freeToPlay": "Free to Play",
     "freeToPlayDesc": "Paths Games is free: no cost, no account required. Start playing right away.",
@@ -193,6 +193,7 @@
       "EVENT": "Event",
       "COUNTER_ZERO": "Time ran out",
       "AUTOMATIC_EVENT": "Event",
+      "RANDOM_EVENT": "Random event",
       "ITEM_ADD": "Item found",
       "ITEM_USE": "Item used",
       "EXP_USE": "Experience spent",
@@ -281,7 +282,7 @@
     },
     "sleep": {
       "action": "Sleep",
-      "confirmTitle": "Go to sleep?",
+      "confirmTitle": "Go to sleep",
       "confirmBody": "Your character will fall asleep. When everyone is asleep or out of energy, time advances to the next clock.",
       "confirm": "Sleep",
       "cancel": "Cancel",
@@ -295,7 +296,7 @@
       "close": "Close"
     },
     "coma": {
-      "title": "You're in a coma",
+      "title": "You're in coma",
       "description": "Your life reached zero. <br /><br />You cannot act and you cannot move until another character rescues you or you get sleeping in a safe location. <br /><br />When all players in a game are in a coma, a special event occurs: could be Game over.",
       "close": "Close"
     },

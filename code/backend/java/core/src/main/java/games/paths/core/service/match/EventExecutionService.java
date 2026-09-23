@@ -870,7 +870,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         // location nobody stands in). There is then nobody to be a recipient: the row's
         // match-scoped halves (weather, registry) have already been applied by the caller.
         if (x.actor == null) {
-            if (!x.missionRun || TARGET_ONLY_ONE.equals(target)) {
+            if (!x.partyRun || TARGET_ONLY_ONE.equals(target)) {
                 return List.of();
             }
             base.addAll(x.allCharacters());
@@ -1346,6 +1346,21 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         }
     }
 
+    @Override
+    public List<AutomaticEventFired> runRandomEvent(long idMatch, int currentClock, long idEvent,
+                                                    String lang) {
+        List<AutomaticEventFired> fired = new ArrayList<>();
+        missionsBegin();
+        try {
+            // allowTimeEnd = false: it runs inside the time-start pass, like the pending ones.
+            runAutomaticEvent(idMatch, null, idEvent, 0L, TRIGGER_RANDOM_EVENT, currentClock, lang,
+                    false, 0, fired);
+        } finally {
+            missionsEnd();
+        }
+        return fired;
+    }
+
     private List<AutomaticEventFired> runPendingAutomaticEventsInternal(
             long idMatch, int currentClock, List<PendingAutomaticEvent> pending, String lang) {
         List<AutomaticEventFired> fired = new ArrayList<>();
@@ -1382,6 +1397,13 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                 : new HashSet<>(locationStore.findVisitedLocationIds(idMatch));
 
         for (AutomaticEventFired f : fired) {
+            if (TRIGGER_RANDOM_EVENT.equals(f.trigger())) {
+                // Step 39 - it happened to the whole party, so everyone sees it whole.
+                out.add(new TimeAdvancementPort.CounterZeroItem(f.trigger(), null, f.card(), null,
+                        f.effects() == null ? List.of() : List.copyOf(f.effects()),
+                        f.eventUuid(), clock, TimeAdvancementPort.CounterZeroItem.VISIBILITY_FULL));
+                continue;
+            }
             String visibility;
             if (here != null && here == f.idLocation()) {
                 visibility = TimeAdvancementPort.CounterZeroItem.VISIBILITY_FULL;
@@ -1529,7 +1551,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
 
         Exec x = new Exec(match, actor, ctx, resolveLang(lang), event);
         x.entryDepth = depth;
-        x.missionRun = TRIGGER_MISSION.equals(trigger);
+        x.partyRun = isPartyTrigger(trigger);
         runChain(x, event);
         resolveAllPlayerComa(x);
         if (x.endTime && !x.comaTriggered && allowTimeEnd) {
@@ -1537,8 +1559,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         }
         flush(x);
         locationStore.logAutomaticEvent(idMatch, idActorCharacter, idLocation, idEvent,
-                x.currentClock, LocationEntryStorePort.MSG_AUTOMATIC_EVENT + " " + idEvent
-                        + " (" + trigger + ") at location " + idLocation);
+                x.currentClock, automaticLogMessage(trigger, idEvent, idLocation));
         // v0.35.6 — the epilogue is sliced off the tail here too: what the arrival did and
         // what the collapse answered are two chains, and the board narrates them apart.
         out.add(new AutomaticEventFired(trigger, idLocation, event.getUuid(),
@@ -1548,6 +1569,20 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
 
         // The events this one caused by pushing somebody somewhere.
         drainArrivals(x, out);
+    }
+
+    /** Missions and random events reach the whole party: they have no actor to stand next to. */
+    static boolean isPartyTrigger(String trigger) {
+        return TRIGGER_MISSION.equals(trigger) || TRIGGER_RANDOM_EVENT.equals(trigger);
+    }
+
+    /** Step 39 - a random event gets its own prefix, so the timeline can tell it apart. */
+    static String automaticLogMessage(String trigger, long idEvent, long idLocation) {
+        if (TRIGGER_RANDOM_EVENT.equals(trigger)) {
+            return LocationEntryStorePort.MSG_RANDOM_EVENT + " " + idEvent + " (" + trigger + ")";
+        }
+        return LocationEntryStorePort.MSG_AUTOMATIC_EVENT + " " + idEvent
+                + " (" + trigger + ") at location " + idLocation;
     }
 
     /**
@@ -1822,8 +1857,9 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         /**
          * Step 38 — fired by a completed mission: there is no actor, and {@code ALL} then
          * means the whole party, because the mission is the party's doing.
+         * Step 39 — a random event is party-wide too.
          */
-        boolean missionRun;
+        boolean partyRun;
 
         int currentClock;
         int energySpent;

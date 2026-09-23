@@ -331,6 +331,11 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
      * is anchored on the {@link #MSG_EVENT_EXECUTED} marker.</p>
      */
     private Set<Long> consumedEventIds(long idMatch) {
+        return consumedEventIds(logEventsRepository, idMatch);
+    }
+
+    /** Step 39 - shared with {@link RandomEventStoreAdapter}. */
+    static Set<Long> consumedEventIds(LogEventsRepository logEventsRepository, long idMatch) {
         Set<Long> consumed = new HashSet<>();
         for (LogEventsEntity l : logEventsRepository.findByIdMatchOrderByIdAsc(idMatch)) {
             String msg = l.getLogMessage();

@@ -86,7 +86,7 @@ public class SleepActionResponse {
      */
     public static class CounterZeroItem {
         private final String trigger;
-        private final long idLocation;
+        private final Long idLocation;
         private final CardInfoResponse card;
         private final CardInfoResponse cardLocation;
         private final List<ExecuteEventResponse.AppliedEffectDto> cardEffects;
@@ -94,7 +94,7 @@ public class SleepActionResponse {
         private final int clock;
         private final String visibility;
 
-        public CounterZeroItem(String trigger, long idLocation, CardInfoResponse card,
+        public CounterZeroItem(String trigger, Long idLocation, CardInfoResponse card,
                                CardInfoResponse cardLocation,
                                List<ExecuteEventResponse.AppliedEffectDto> cardEffects,
                                String eventUuid, int clock, String visibility) {
@@ -109,7 +109,8 @@ public class SleepActionResponse {
         }
 
         public String getTrigger() { return trigger; }
-        public long getIdLocation() { return idLocation; }
+        /** Step 39 - null for a RANDOM_EVENT, which happens nowhere in particular. */
+        public Long getIdLocation() { return idLocation; }
         public CardInfoResponse getCard() { return card; }
         public CardInfoResponse getCardLocation() { return cardLocation; }
         public List<ExecuteEventResponse.AppliedEffectDto> getCardEffects() { return cardEffects; }

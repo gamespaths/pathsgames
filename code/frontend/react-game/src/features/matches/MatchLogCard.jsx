@@ -50,6 +50,8 @@ const TYPE_ICON = {
   EVENT:           'fa-scroll',
   COUNTER_ZERO:    'fa-hourglass-end',
   AUTOMATIC_EVENT: 'fa-magic',
+  // Step 39 — a global random event fired at time-start.
+  RANDOM_EVENT:    'fa-dice',
   // Step 36 / v0.37.2 — both were answered by the API and fell back to the grey default.
   REGISTRY_CHANGE: 'fa-list',
   MISSION_CHANGE:  'fa-clipboard-list',
@@ -75,6 +77,7 @@ const TYPE_COLOR = {
   EVENT:           '#f87171',
   COUNTER_ZERO:    '#fb923c',
   AUTOMATIC_EVENT: '#e879f9',
+  RANDOM_EVENT:    '#fbbf24',
   REGISTRY_CHANGE: '#38bdf8',
   MISSION_CHANGE:  '#d4af37',
   ITEM_ADD:        '#4ade80',

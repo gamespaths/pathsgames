@@ -218,7 +218,8 @@ class StoryCrudServiceFieldMappingTest {
     void createsAGlobalRandomEventWithEveryFieldMapped() {
         assertEveryFieldRoundTrips("global-random-events", data(
                 "idTextName", 136, "idTextDescription", 137, "idCard", 138, "conditionKey", "conditionKey-v",
-                "conditionValue", "conditionValue-v", "probability", 139, "idText", 140, "idEvent", 141));
+                "conditionValue", "conditionValue-v", "registryValueOperatorCondition", "!=",
+                "probability", 139, "idText", 140, "idEvent", 141));
     }
 
     @Test

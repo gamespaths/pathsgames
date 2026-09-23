@@ -1088,23 +1088,6 @@
       "deltaEnergy": 1
     }
   ],
-  "globalRandomEvents": [
-    {
-      "conditionKey": null,
-      "conditionValue": null,
-      "probability": 15
-    },
-    {
-      "conditionKey": "territory",
-      "conditionValue": "ezzelino",
-      "probability": 35
-    },
-    {
-      "conditionKey": "rebellion_state",
-      "conditionValue": "active",
-      "probability": 25
-    }
-  ],
   "missions": [
     {
       "conditionKey": "venice_alliance",

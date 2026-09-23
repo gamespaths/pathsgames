@@ -707,3 +707,17 @@ def test_save_difficulties_keeps_trait_budgets(adapter, session_factory):
         rows = session.query(StoryDifficultyEntity).filter_by(id_story=story_id).order_by(StoryDifficultyEntity.id).all()
         assert [(r.trait_cost_positive_budget, r.trait_cost_negative_budget) for r in rows] == \
             [(4, 2), (3, None), (None, None)]
+
+
+def test_step39_random_event_import_keeps_the_operator(adapter, session_factory):
+    from app.adapters.persistence.story.models import GlobalRandomEventEntity
+    story_id = adapter.save_story({"uuid": "test-uuid-random-operator"})
+    adapter.save_global_random_events(story_id, [
+        {"id": 1, "idEvent": 3, "probability": 40, "conditionKey": "storm",
+         "conditionValue": "yes", "registryValueOperatorCondition": "!="},
+        {"id": 2, "idEvent": 3, "probability": 10}])
+    with session_factory() as session:
+        rows = {r.id: r for r in session.query(GlobalRandomEventEntity).filter_by(id_story=story_id)}
+    assert rows[1].registry_value_operator_condition == "!="
+    assert rows[1].id_event == 3
+    assert rows[2].registry_value_operator_condition is None

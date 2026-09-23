@@ -1082,23 +1082,6 @@
       "deltaEnergy": -2
     }
   ],
-  "globalRandomEvents": [
-    {
-      "conditionKey": null,
-      "conditionValue": null,
-      "probability": 15
-    },
-    {
-      "conditionKey": "territory",
-      "conditionValue": "enemy_lands",
-      "probability": 30
-    },
-    {
-      "conditionKey": "alert_level",
-      "conditionValue": "siege",
-      "probability": 25
-    }
-  ],
   "missions": [
     {
       "conditionKey": "lands_defended",

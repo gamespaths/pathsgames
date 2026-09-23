@@ -35,6 +35,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `36_registry` | Step 36 registry read API, v0.36.1 multi-valued keys, v0.36.3 `forced_move.robot` + v0.36.4 `registry_repeated_writes.robot` (see breakdown below) |
 | `37_missions` | Step 37 mission read API, the status machine, the condition semantics, the v0.37.1 match-start trigger fix, and the v0.37.2 `MISSION_CHANGE` log entry (see breakdown below) |
 | `38_experience` | Step 38 use-exp: `exp`/`expCosts` on `/info`, the purchase, its `EXP_USE` row, every refusal, the missions→rewards→purchase scenario, and the import/export/CRUD contract of `expCostBase`/`maxStatValue` (see breakdown below) |
+| `39_random_events` | Step 39 global random events: fire at time-start after the weather (100% always, 0% never), `RANDOM_EVENT` in `counterZero[]` and in the timeline, ONCE, the registry operator, the `R11_RANDOM_EVENT` import refusals, the `warnings[]` on validate, and the CRUD of `registryValueOperatorCondition` (see breakdown below) |
 | `41_security` | v0.37.7 Step 41: the `csrfToken` on login/resume/`/me` and the `X-CSRF-TOKEN` refusals on `POST /api/matches`; two rate-limit cases that SKIP unless `RATE_LIMIT_GUEST_PER_IP` / `RATE_LIMIT_MATCH_PER_IP` are passed (see breakdown below) |
 
 ### `19_match` breakdown
@@ -299,6 +300,18 @@ idLocation), never by uuid; it sits in the Records Vault rather than at the star
 so no suite picking "any available event" can trip over it. Every case runs on its own
 guest and its own match — the move strands the character and the arrival latches
 flagVisited.
+
+### `39_random_events` breakdown
+
+Ships its own story (`story_random_events.json`, PRIVATE, category `robottest`): four random
+rows (100% on `scenario=always`, 0%, 100% ONCE on `scenario=once`, 100% on `level > 2`) whose
+scenarios are switched through the admin registry, so at most one row is ever eligible — Java
+and Python/AWS roll different generators on the same seed. Matches use `rngSeed=42`.
+`random_events.robot` (6): the story validates with one R11 warning (sum 300), nothing fires
+with no eligible row, a 100% row fires party-wide (`counterZero[]` entry `RANDOM_EVENT`, FULL,
+`idLocation` null, +1 exp), its `RANDOM_EVENT` timeline row, a ONCE event fires once in two
+days, and the `>` operator. `random_events_admin.robot` (9): the six `R11_RANDOM_EVENT` import
+refusals, the imported operator, the CRUD round trip of the operator, a legacy payload without it.
 
 ### `38_experience` breakdown
 

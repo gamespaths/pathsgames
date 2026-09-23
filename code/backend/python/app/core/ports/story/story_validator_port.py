@@ -30,10 +30,16 @@ class StoryValidationError:
 class StoryValidationReport:
     """Accumulates validation errors. Valid when empty."""
     errors: List[StoryValidationError] = field(default_factory=list)
+    # Step 39 — advisory findings: they never make the report invalid.
+    warnings: List[StoryValidationError] = field(default_factory=list)
 
     def add(self, rule: str, entity_type: str, entity_id: Optional[str],
             field_name: Optional[str], message: str) -> None:
         self.errors.append(StoryValidationError(rule, entity_type, entity_id, field_name, message))
+
+    def warn(self, rule: str, entity_type: str, entity_id: Optional[str],
+             field_name: Optional[str], message: str) -> None:
+        self.warnings.append(StoryValidationError(rule, entity_type, entity_id, field_name, message))
 
     def is_valid(self) -> bool:
         return len(self.errors) == 0
@@ -49,6 +55,7 @@ class StoryValidationReport:
             "valid": self.is_valid(),
             "count": len(self.errors),
             "errors": [e.to_dict() for e in self.errors],
+            "warnings": [w.to_dict() for w in self.warnings],
         }
 
 

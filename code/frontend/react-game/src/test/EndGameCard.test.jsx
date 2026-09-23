@@ -9,8 +9,10 @@ vi.mock('@/i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
 vi.mock('@/components/layout/Card', () => ({
-  default: ({ card, entityType, variant, onPreview, onAction, onClose, actionLabel }) => (
-    <div data-testid="card" data-entity={entityType} data-variant={variant}>
+  default: ({ card, entityType, variant, onPreview, onAction, onClose, actionLabel,
+    infoLabel, infoIconClassName }) => (
+    <div data-testid="card" data-entity={entityType} data-variant={variant}
+      data-info-label={infoLabel ?? ''} data-info-icon={infoIconClassName ?? ''}>
       <span>{card?.title}</span>
       {onPreview && <button data-testid="preview" onClick={onPreview}>i</button>}
       {onAction && <button data-testid="action" onClick={onAction}>{actionLabel}</button>}
@@ -68,5 +70,19 @@ describe('EndGameCard', () => {
     expect(screen.getByTestId('card')).toHaveAttribute('data-variant', 'page')
     fireEvent.click(screen.getByTestId('back'))
     expect(onBack).toHaveBeenCalled()
+  })
+
+  // The board's little card names its lens "End Game" with the flag, not the generic "Info".
+  it('labels the little card lens End Game with the flag icon', () => {
+    render(<EndGameCard story={{}} action={ACTION} handleEndGamePreviewFull={vi.fn()} handleEndGame={vi.fn()} />)
+    const card = screen.getByTestId('card')
+    expect(card).toHaveAttribute('data-info-label', 'game.endGame')
+    expect(card).toHaveAttribute('data-info-icon', 'fas fa-flag-checkered')
+  })
+
+  it('keeps the default lens on the reading page', () => {
+    render(<EndGameCard story={{}} action={ACTION} variant="page" onBack={vi.fn()}
+      handleEndGamePreviewFull={vi.fn()} handleEndGame={vi.fn()} />)
+    expect(screen.getByTestId('card')).toHaveAttribute('data-info-label', '')
   })
 })

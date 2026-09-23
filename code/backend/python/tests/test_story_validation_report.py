@@ -17,7 +17,17 @@ def test_an_empty_report_is_valid():
     report = StoryValidationReport()
     assert report.is_valid()
     assert report.summary() == "story is valid"
-    assert report.to_dict() == {"valid": True, "count": 0, "errors": []}
+    assert report.to_dict() == {"valid": True, "count": 0, "errors": [], "warnings": []}
+
+
+def test_a_warning_leaves_the_report_valid():
+    """Step 39 — warnings are advisory: never counted, never invalidating."""
+    report = StoryValidationReport()
+    report.warn("R11_RANDOM_EVENT", "global-random-events", None, "probability", "scaled")
+    assert report.is_valid()
+    d = report.to_dict()
+    assert d["count"] == 0
+    assert d["warnings"][0]["rule"] == "R11_RANDOM_EVENT"
 
 
 def test_a_short_report_lists_every_message():

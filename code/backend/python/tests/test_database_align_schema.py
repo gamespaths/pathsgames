@@ -155,3 +155,22 @@ def test_align_schema_step38_renames_is_safe_and_swaps_the_difficulty_columns():
     with engine.connect() as connection:
         assert connection.execute(text("SELECT secure_param FROM list_locations")).scalar() == 1
     assert align_schema(engine) == []
+
+
+def test_align_schema_step39_adds_the_random_event_operator_as_text():
+    engine = create_engine("sqlite:///:memory:")
+    with engine.begin() as connection:
+        connection.execute(text("""
+            CREATE TABLE list_global_random_events (
+                id INTEGER, id_story INTEGER, uuid TEXT, id_event INTEGER, probability REAL,
+                condition_key TEXT, condition_value TEXT
+            )
+        """))
+
+    applied = align_schema(engine)
+
+    columns = {c["name"] for c in inspect(engine).get_columns("list_global_random_events")}
+    assert "registry_value_operator_condition" in columns
+    assert any("list_global_random_events ADD COLUMN registry_value_operator_condition TEXT" in a
+               for a in applied)
+    assert align_schema(engine) == []

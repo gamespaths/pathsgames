@@ -288,6 +288,12 @@ The seed changes with each clock advance so the weather varies over time while r
 reproducible. Robot tests supply `rngSeed=42` so the roll at clock 0 always picks the
 same rule, enabling deterministic assertions.
 
+**v0.39.0**: [Step 39](./Step39_RandomEvents.md#3-seed) random events reuse `rng_seed`/`clock`
+but add a fixed `+ 1_000_003` salt (`rng_seed + clock + 1_000_003`) — deliberately, so day N's
+random-event roll never lands on the same seed as day N+1's `per_clock_seed` weather roll
+above. Only the seeding convention is shared; random events pick with their own algorithm
+(`RandomEventSelectionService`), not `weightedPick`.
+
 ### 4.4 Energy delta application
 
 For each `gaming_character_instance` in the match:
@@ -636,6 +642,7 @@ No existing endpoints have status codes removed.
   |---------|-------------|------|
   | 0.27.0 | Initial Step 27 documentation: weather engine (weighted roll, time/condition filter, rng_seed, delta_energy, log_weather), new GET /api/matches/{uuid}/weather and admin weather endpoint, WeatherCard in react-game, weather panel + rngSeed row in react-admin MatchDetailPage, Robot suite 27_weather (6 tests with rngSeed=42) | June 24, 2026 |
   | 0.36.2 | Admin weather `rules[]` exposes the registry verdict: `conditionKey`/`conditionValue`/`conditionOperator`/`registryMet`, computed with the same comparison the weather selection uses. `WeatherCard.jsx` gets a Registry column. No new DB columns. | September 5, 2026 |
+  | 0.39.0 | Noted the salted seed [Step 39](./Step39_RandomEvents.md) random events reuse: `rng_seed + clock + 1_000_003`, kept away from the plain `rng_seed + clock` weather roll on purpose. Documentation-only, no code change here. | September 23, 2026 |
 
 - **Last Updated**: September 5, 2026
 - **Status**: Complete

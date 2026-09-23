@@ -25,8 +25,10 @@ export default function PageRightMain({
   const cardCharacteristics = buildCardCharacteristics(story, playerStats, clock, weather)
   // v0.37.3 — the bed button is gone: the sleep card shows only when the player is
   // energy-stuck, i.e. every movement and action here costs more energy than they have.
-  const showSleep = checkShowToSleepCard({ playerStats, locations, actions, locationCosts, hereLocationId })
-    || sleepCardForced
+  // The end-game card, when present, always hides the sleep card: the story is over.
+  const hasEndGame = (actions ?? []).some(action => action.endGame)
+  const showSleep = !hasEndGame && (checkShowToSleepCard({ playerStats, locations, actions, locationCosts, hereLocationId })
+    || sleepCardForced)
   // Step 38 — training is offered only where it can be bought: a safe location, an awake
   // character, and enough experience for at least one point.
   const showExp = canUseExp(gameData, playerStats)

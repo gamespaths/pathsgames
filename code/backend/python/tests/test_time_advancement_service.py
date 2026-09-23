@@ -316,3 +316,66 @@ def test_clock_rejects_non_creator():
     with pytest.raises(TurnCycleError) as exc:
         _service(store).clock(MATCH_UUID, "user-uuid")
     assert exc.value.code == TurnCycleError.MATCH_NOT_FOUND
+
+
+def _random_setup(pick):
+    """Step 39 — a sleep with a weather service, a random picker and a runner, all recorded."""
+    from unittest.mock import MagicMock
+    from app.core.models.match import location_entry_models as lem
+    from app.core.models.match.time_models import TimeStartOutcome
+
+    store = FakeTimeStore(match=_match(current_clock=3),
+                          characters=[_char(10, "char-a", energy=50)])
+    calls = []
+    recovery = MagicMock()
+    recovery.apply_at_time_start.return_value = TimeStartOutcome([], [])
+    weather = MagicMock()
+    weather.apply_at_time_start.side_effect = lambda *_: calls.append("weather")
+    random_service = MagicMock()
+
+    def _pick(*_):
+        calls.append("pick")
+        return pick
+    random_service.pick_at_time_start.side_effect = _pick
+    fired = lem.AutomaticEventFired(lem.TRIGGER_RANDOM_EVENT, 0, "evt-wolves")
+    runner = MagicMock()
+
+    def _run(*args):
+        calls.append(("run",) + args)
+        return [fired]
+    runner.run_random_event.side_effect = _run
+    runner.describe_for_recipient.side_effect = lambda _m, _c, clock, f, _l: [
+        lem.CounterZeroItem(x.trigger, None, None, None, [], x.event_uuid, clock,
+                            lem.VISIBILITY_FULL) for x in f]
+    service = TimeAdvancementService(store, RecordingPublisher(), recovery_service=recovery,
+                                     weather_service=weather, random_event_service=random_service)
+    return service, runner, random_service, calls
+
+
+def test_step39_random_event_runs_after_the_weather_and_reaches_counter_zero():
+    service, runner, _random, calls = _random_setup({"id_random_event": 5, "id_event": 77})
+    service.set_automatic_event_runner(runner)
+
+    result = service.sleep(MATCH_UUID, "user-uuid")
+
+    assert calls[:2] == ["weather", "pick"]
+    assert calls[2] == ("run", MATCH_ID, 4, 77, "en")
+    assert [(i.trigger, i.id_location) for i in result.counter_zero] == [("RANDOM_EVENT", None)]
+
+
+def test_step39_empty_pick_runs_nothing():
+    service, runner, _random, _calls = _random_setup(None)
+    service.set_automatic_event_runner(runner)
+
+    result = service.sleep(MATCH_UUID, "user-uuid")
+
+    runner.run_random_event.assert_not_called()
+    assert result.counter_zero == []
+
+
+def test_step39_without_a_runner_the_picker_is_never_asked():
+    service, _runner, random_service, _calls = _random_setup({"id_random_event": 5, "id_event": 77})
+
+    service.sleep(MATCH_UUID, "user-uuid")
+
+    random_service.pick_at_time_start.assert_not_called()

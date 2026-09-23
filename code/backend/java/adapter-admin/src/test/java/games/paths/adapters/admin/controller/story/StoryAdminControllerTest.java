@@ -241,6 +241,22 @@ class StoryAdminControllerTest {
         }
 
         @Test
+        @DisplayName("Step 39: warnings ride on the report and leave it valid")
+        void validateWithWarnings() throws Exception {
+            games.paths.core.model.story.StoryValidationReport report =
+                    new games.paths.core.model.story.StoryValidationReport();
+            report.warn("R11_RANDOM_EVENT", "global-random-events", null, "probability", "scaled");
+            when(storyCrudPort.getStory("uuid-1")).thenReturn(Map.of("id", 5));
+            when(storyValidatorPort.validateStory(5L)).thenReturn(report);
+
+            mockMvc.perform(get("/api/admin/stories/uuid-1/validate"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.valid").value(true))
+                    .andExpect(jsonPath("$.count").value(0))
+                    .andExpect(jsonPath("$.warnings[0].rule").value("R11_RANDOM_EVENT"));
+        }
+
+        @Test
         @DisplayName("GET /{uuid}/validate returns 404 when story missing")
         void validateNotFound() throws Exception {
             when(storyCrudPort.getStory("ghost")).thenReturn(null);

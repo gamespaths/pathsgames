@@ -525,6 +525,86 @@ class StoryValidatorServiceTest {
         }
     }
 
+    /** Step 39 — R11: a random event runs by itself, party-wide, at time-start. */
+    @Nested
+    @DisplayName("R11 global random events (Step 39)")
+    class RandomEvents {
+
+        private Map<String, Object> storyWith(Map<String, Object> row) {
+            Map<String, Object> s = validStory();
+            s.put("globalRandomEvents", rows(row));
+            return s;
+        }
+
+        private List<String> r11Fields(Map<String, Object> s) {
+            return validator().validateImportData(s).getErrors().stream()
+                    .filter(e -> "R11_RANDOM_EVENT".equals(e.rule()))
+                    .map(e -> e.field()).toList();
+        }
+
+        @Test
+        @DisplayName("a complete row on a choice-free event passes")
+        void validRowPasses() {
+            StoryValidationReport r = validator().validateImportData(storyWith(entity(
+                    "id", 1, "idEvent", 2, "probability", 100, "conditionKey", "CHAPTER",
+                    "conditionValue", "1")));
+            assertTrue(r.isValid(), r::summary);
+            assertTrue(r.getWarnings().isEmpty());
+        }
+
+        @Test
+        @DisplayName("probability outside 0..100 fails; a missing one is 0")
+        void probabilityRange() {
+            assertEquals(List.of("probability"), r11Fields(storyWith(entity("id", 1, "idEvent", 2, "probability", 101))));
+            assertEquals(List.of("probability"), r11Fields(storyWith(entity("id", 1, "idEvent", 2, "probability", -1))));
+            assertTrue(r11Fields(storyWith(entity("id", 1, "idEvent", 2))).isEmpty());
+        }
+
+        @Test
+        @DisplayName("a missing or zero idEvent fails")
+        void missingEvent() {
+            assertEquals(List.of("idEvent"), r11Fields(storyWith(entity("id", 1, "probability", 10))));
+            assertEquals(List.of("idEvent"), r11Fields(storyWith(entity("id", 1, "idEvent", 0, "probability", 10))));
+        }
+
+        @Test
+        @DisplayName("an event owning choices fails")
+        void eventWithChoices() {
+            // Event 1 owns choice 1 in the fixture.
+            assertEquals(List.of("idEvent"), r11Fields(storyWith(entity("id", 1, "idEvent", 1, "probability", 10))));
+        }
+
+        @Test
+        @DisplayName("an event with a weather-change effect fails")
+        void eventWithWeatherEffect() {
+            Map<String, Object> s = storyWith(entity("id", 1, "idEvent", 2, "probability", 10));
+            s.put("weatherRules", rows(entity("id", 1)));
+            s.put("eventEffects", rows(entity("id", 1, "idEvent", 2, "idWeather", 1),
+                    entity("id", 2, "idEvent", 1, "idWeather", 0)));
+            assertEquals(List.of("idEvent"), r11Fields(s));
+        }
+
+        @Test
+        @DisplayName("a key without a value, or a value without a key, fails")
+        void halfCondition() {
+            assertEquals(List.of("conditionValue"), r11Fields(storyWith(entity(
+                    "id", 1, "idEvent", 2, "probability", 10, "conditionKey", "CHAPTER"))));
+            assertEquals(List.of("conditionKey"), r11Fields(storyWith(entity(
+                    "id", 1, "idEvent", 2, "probability", 10, "conditionValue", "1", "conditionKey", " "))));
+        }
+
+        @Test
+        @DisplayName("import never warns: the >100 total is a validate-story advisory only")
+        void importDoesNotWarn() {
+            Map<String, Object> s = validStory();
+            s.put("globalRandomEvents", rows(entity("id", 1, "idEvent", 2, "probability", 80),
+                    entity("id", 2, "idEvent", 2, "probability", 80)));
+            StoryValidationReport r = validator().validateImportData(s);
+            assertTrue(r.isValid(), r::summary);
+            assertTrue(r.getWarnings().isEmpty());
+        }
+    }
+
     @Nested
     @DisplayName("validateStory (persisted, via StoryReadPort)")
     class PersistedStory {

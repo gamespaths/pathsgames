@@ -517,3 +517,65 @@ def test_the_counter_zero_card_effects_are_mapped_not_handed_over_raw():
     assert payload['cardLocation'] == LOCATION_CARD
     assert payload['cardEffects'][0]['effectUuid'] == 'eff-1'
     assert payload['cardEffects'][0]['card'] == EFFECT_CARD
+
+
+# ── Step 39: random events ───────────────────────────────────────────────────
+
+def test_step39_a_random_event_reaches_the_whole_party(service, store, location_store):
+    """No actor: ALL is every character of the match, ONLY_ONE nobody, target_class narrows."""
+    other = _character(cid=8, id_location=OTHER_LOCATION)
+    other["exp"] = 2
+    other["id_class"] = 4
+    store.find_characters_for_event.return_value = [_character(), other]
+    store.find_events_by_id.return_value = {70: _event(70, "evt-wolves")}
+    store.find_effects_by_event_id.return_value = {70: [
+        _effect(id=1, statistics="exp", value=1, target="ALL"),
+        _effect(id=2, statistics="exp", value=5, target="ONLY_ONE"),
+        _effect(id=3, statistics="exp", value=9, target="ALL", target_class=99),
+    ]}
+
+    fired = service.run_random_event(MATCH_ID, CLOCK, 70, "en")
+
+    assert [(f.trigger, f.event_uuid) for f in fired] == [(lem.TRIGGER_RANDOM_EVENT, "evt-wolves")]
+    written = {c.args[1]: c.args[2]["exp"] for c in store.update_character_stats.call_args_list}
+    assert written == {CHAR_ID: 1, 8: 3}
+    args = location_store.log_automatic_event.call_args[0]
+    assert args[1] is None and args[2] == 0 and args[3] == 70
+    assert args[5] == "random event 70 (RANDOM_EVENT)"
+
+
+def test_step39_a_random_event_owning_choices_is_skipped(service, store, location_store):
+    store.find_events_by_id.return_value = {71: _event(71, "evt-ask")}
+    store.find_choices_by_event_id.return_value = [{"id": 1}]
+
+    assert service.run_random_event(MATCH_ID, CLOCK, 71, "en") == []
+    assert location_store.log_automatic_event.call_args[0][5].startswith(
+        "automatic event skipped 71")
+
+
+def test_step39_a_random_event_is_told_full_without_a_location(service_with_cards, location_store):
+    from app.core.models.match.event_models import AppliedEffect
+    fired = [lem.AutomaticEventFired(
+        lem.TRIGGER_RANDOM_EVENT, 0, "evt-wolves", EVENT_CARD,
+        effects=[AppliedEffect(event_uuid="evt-wolves", effect_uuid="eff-1", statistic="life",
+                               value=-1, target="ALL", target_class=None,
+                               character_uuids=["char-1"], card=EFFECT_CARD)])]
+
+    for recipient in (CHAR_ID, None):
+        told = service_with_cards.describe_for_recipient(MATCH_ID, recipient, CLOCK, fired, "en")
+        assert told[0].visibility == lem.VISIBILITY_FULL
+        assert told[0].id_location is None
+        assert told[0].card_location is None
+        assert told[0].card == EVENT_CARD
+        assert [e.card for e in told[0].card_effects] == [EFFECT_CARD]
+    location_store.find_location_triggers.assert_not_called()
+
+
+def test_step39_helpers():
+    from app.core.services.match.event_service import automatic_log_message, is_party_trigger
+    assert automatic_log_message(lem.TRIGGER_RANDOM_EVENT, 5, 0) == "random event 5 (RANDOM_EVENT)"
+    assert automatic_log_message(lem.TRIGGER_COUNTER_ZERO, 5, 12) == \
+        "automatic event 5 (COUNTER_ZERO) at location 12"
+    assert is_party_trigger(lem.TRIGGER_RANDOM_EVENT)
+    assert is_party_trigger("mission completed")
+    assert not is_party_trigger(lem.TRIGGER_COUNTER_ZERO)

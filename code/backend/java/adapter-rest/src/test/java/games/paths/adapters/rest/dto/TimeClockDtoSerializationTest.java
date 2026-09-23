@@ -91,6 +91,21 @@ class TimeClockDtoSerializationTest {
         assertTrue(json.contains("\"cardEffects\":[]"), json);
     }
 
+    @Test
+    void randomEventHasANullLocation() throws Exception {
+        TimeAdvancementPort.SleepResult model = new TimeAdvancementPort.SleepResult(
+                "match-uuid", "char-uuid", true, true, 4, List.of(),
+                List.of(new TimeAdvancementPort.CounterZeroItem("RANDOM_EVENT", null,
+                        card("card-wolves", "Wolves"), null, List.of(), "evt-wolves", 4, "FULL")));
+
+        String json = mapper.writeValueAsString(SleepActionResponse.fromModel(model));
+
+        // Step 39 — it happens to the whole party, nowhere in particular.
+        assertTrue(json.contains("\"trigger\":\"RANDOM_EVENT\""), json);
+        assertTrue(json.contains("\"idLocation\":null"), json);
+        assertTrue(json.contains("\"title\":\"Wolves\""), json);
+    }
+
     /** A card with just the fields the assertions read. */
     private static CardInfo card(String uuid, String title) {
         return new CardInfo(uuid, "EVENT", null, null, null, null, null, null, null, null,

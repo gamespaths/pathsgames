@@ -1102,7 +1102,9 @@ def validate_story(event, story_uuid):
         return _err(404, 'STORY_NOT_FOUND',
                     f'No story found with UUID: {story_uuid}')
     errors = story_validator.validate_story_dict(item, include_mission_conditions=True)
-    return _ok({"valid": len(errors) == 0, "count": len(errors), "errors": errors})
+    # Step 39 — warnings never make the story invalid.
+    return _ok({"valid": len(errors) == 0, "count": len(errors), "errors": errors,
+                "warnings": story_validator.random_event_warnings(item)})
 
 
 def delete_story(event, story_uuid):

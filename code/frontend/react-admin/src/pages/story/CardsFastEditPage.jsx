@@ -557,6 +557,13 @@ export default function CardsFastEditPage() {
           <i className={`fas ${savingAll ? 'fa-spinner fa-spin' : 'fa-save'} me-1`} />
           {savingAll ? 'Saving…' : `Save All${dirtyCount > 0 ? ` (${dirtyCount})` : ''}`}
         </button>
+        <button
+          type="button"
+          className="pg-btn pg-btn-ghost"
+          onClick={() => navigate(`/stories/${uuid}/edit`)}
+        >
+          <i className="fas fa-pen me-1" /> Edit story
+        </button>
       </div>
 
       <ErrorAlert message={error} onClose={() => setError('')} />

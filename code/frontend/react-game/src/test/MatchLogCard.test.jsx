@@ -132,6 +132,18 @@ describe('MatchLogCard', () => {
     expect(document.querySelector('.fa-star')).toBeInTheDocument()
   })
 
+  it('shows a RANDOM_EVENT entry with its own icon, label and card (Step 39)', async () => {
+    getMatchLogs.mockResolvedValue({
+      ...PAGE,
+      logs: [{ type: 'RANDOM_EVENT', clock: 4, timestamp: '2026-09-23T10:05:00Z',
+               idEvent: 70, card: { title: 'Wolves' } }],
+    })
+    render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
+    await screen.findByTestId('match-log-card')
+    expect(screen.getByText('Wolves')).toBeInTheDocument()
+    expect(document.querySelector('.fa-dice')).toBeInTheDocument()
+  })
+
   it('leaves the actor to the page: a row is what happened, not who did it', async () => {
     render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
     await screen.findByTestId('match-log-card')

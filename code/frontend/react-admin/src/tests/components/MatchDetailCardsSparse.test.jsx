@@ -100,6 +100,13 @@ describe('MatchLogsCard with sparse data', () => {
     expect(screen.getByText('Rogue')).toBeInTheDocument()
   })
 
+  it('Step 39: a RANDOM_EVENT entry has its own badge and names its event', () => {
+    render(<MatchLogsCard currentClock={4}
+      entries={[{ type: 'RANDOM_EVENT', clock: 4, idEvent: 70 }]} />)
+    expect(screen.getAllByText('RANDOM_EVENT').length).toBeGreaterThan(0)
+    expect(screen.getByText('event #70')).toBeInTheDocument()
+  })
+
   it('renders a dash for every detail an entry does not carry, and for unknown types', () => {
     render(<MatchLogsCard
       currentClock={9}

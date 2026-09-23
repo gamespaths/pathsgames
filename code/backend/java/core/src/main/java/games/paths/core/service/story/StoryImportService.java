@@ -659,7 +659,11 @@ public class StoryImportService implements StoryImportPort {
             e.setIdCard(getInteger(item, "idCard"));
             e.setConditionKey(getString(item, "conditionKey"));
             e.setConditionValue(getString(item, "conditionValue"));
+            e.setRegistryValueOperatorCondition(getString(item, "registryValueOperatorCondition"));
             e.setProbability(getInteger(item, "probability"));
+            // Step 39 - the engine runs idEvent: until now import silently dropped it.
+            e.setIdEvent(normalizeOptionalFk(getInteger(item, "idEvent")));
+            e.setIdText(normalizeOptionalFk(getInteger(item, "idText")));
             entities.add(e);
         }
         persistencePort.saveGlobalRandomEvents(entities);

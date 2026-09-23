@@ -353,6 +353,7 @@ from match import missions as _missions
 from match import registry as _registry
 from match import movements as _movements
 from match import experience as _experience
+from match import random_events as _random_events
 
 
 def _story_neighbors(story):
@@ -2101,7 +2102,7 @@ def _enrich_match_logs(page, match, match_uuid, lang):
             id_card = location_cards.get(_nz(entry['idLocationTo']))
         elif entry['type'] == 'EVENT' and entry.get('idEvent') is not None:
             id_card = event_cards.get(_nz(entry['idEvent']))
-        elif entry['type'] == 'AUTOMATIC_EVENT' and entry.get('idEvent') is not None:
+        elif entry['type'] in ('AUTOMATIC_EVENT', 'RANDOM_EVENT') and entry.get('idEvent') is not None:
             # Step 33 — the event's own card, like a player-triggered one.
             id_card = event_cards.get(_nz(entry['idEvent']))
         elif entry['type'] == 'COUNTER_ZERO' and entry.get('idLocationTo') is not None:
@@ -2261,6 +2262,8 @@ def _advance_time(match, match_uuid):
     fired = _run_pending_automatic_events(match, match_uuid, story, pending)
     # Step 27: select the weather for the new time unit and apply its energy delta.
     _apply_weather_at_time_start(match, match_uuid, story)
+    # Step 39: at most one random event, after the weather.
+    fired = list(fired) + _run_random_event_at_time_start(match, match_uuid, story)
 
     # Rebuild the turn queue for the new clock (all WAITING, highest priority ACTIVE).
     characters = _match_characters(match_uuid)
@@ -3996,7 +3999,7 @@ def _run_event_chain(match, story, first, caller, characters, ctx, events_by_id,
 
         for effect in effects_by_event.get(event_id, []):
             recipients = _events.resolve_recipients(effect, caller, characters,
-                                                    mission_run=bool(acc.get('missionRun')))
+                                                    party_run=bool(acc.get('partyRun')))
             id_weather = effect.get('idWeather')
             if id_weather:
                 match['currentWeatherId'] = _events._nz(id_weather)
@@ -4139,6 +4142,30 @@ def _log_automatic_event(match, actor_uuid, id_location, id_event, clock, messag
                     idEvent=id_event, idLocationTo=id_location, message=message)
 
 
+def _log_random_event(match, id_event, clock, message):
+    """Step 39 — its own timeline type; it happens nowhere in particular, to no one alone."""
+    _logbook.append(match, 'RANDOM_EVENT', clock, idEvent=id_event, message=message)
+
+
+def _run_random_event_at_time_start(match, match_uuid, story, lang='en'):
+    """Step 39 — pick at most one global random event and run it party-wide, no actor."""
+    if str(match.get('status') or '') != 'RUNNING' or _nz(match.get('currentClock')) <= 0:
+        return []
+    if not story.get('globalRandomEvents'):
+        return []
+    owning = {_nz(c.get('idEvent')) for c in (story.get('choices') or [])
+              if c.get('idEvent') is not None}
+    rows = _random_events.eligible(story, match.get('registry'), owning,
+                                   _logbook.consumed_event_ids(match))
+    chosen = _random_events.pick(rows, _random_events.seed_for(match, story))
+    if chosen is None:
+        return []
+    out = []
+    _run_automatic_event(match, match_uuid, story, None, chosen.get('idEvent'), 0,
+                         _events.TRIGGER_RANDOM_EVENT, lang, 0, out)
+    return out
+
+
 def _resolve_arrival(match, match_uuid, story, actor_uuid, id_location, lang, depth, out,
                      epilogue_done=False):
     """The dispatch table of an arrival.
@@ -4245,8 +4272,8 @@ def _run_automatic_event(match, match_uuid, story, actor_uuid, id_event, id_loca
     ctx = _events.build_context(match, story, actor)
 
     acc = _new_accumulator(actor) if actor is not None else _new_accumulator_no_actor()
-    # Step 38 — a mission's event has no actor, and ALL then means the whole party.
-    acc['missionRun'] = trigger == _events.TRIGGER_MISSION
+    # Step 38/39 — a mission's or a random event has no actor, and ALL then means the party.
+    acc['partyRun'] = _events.is_party_trigger(trigger)
     # An epilogue already answered this request is spent: neither the other trigger of this
     # arrival nor an arrival the epilogue itself caused may run it again on a party that is
     # still, of course, all down.
@@ -4267,9 +4294,12 @@ def _run_automatic_event(match, match_uuid, story, actor_uuid, id_event, id_loca
         if touched is not None:
             _repo.save(touched)
 
-    _log_automatic_event(
-        match, actor_uuid, id_location, id_event, _nz(match.get('currentClock')),
-        f'{_events.MSG_AUTOMATIC_EVENT} {id_event} ({trigger}) at location {id_location}')
+    message = _events.automatic_log_message(trigger, id_event, id_location)
+    if trigger == _events.TRIGGER_RANDOM_EVENT:
+        _log_random_event(match, id_event, _nz(match.get('currentClock')), message)
+    else:
+        _log_automatic_event(match, actor_uuid, id_location, id_event,
+                             _nz(match.get('currentClock')), message)
 
     raw_cards = story.get('raw_cards') or []
     raw_texts = story.get('raw_texts') or []
@@ -4359,6 +4389,15 @@ def _describe_for_recipient(match, match_uuid, story, recipient_uuid, fired, clo
     raw_texts = story.get('raw_texts') or []
     out = []
     for f in fired:
+        if f.get('trigger') == _events.TRIGGER_RANDOM_EVENT:
+            # Step 39 — it happened to the whole party, so everyone sees it whole.
+            out.append({
+                "trigger": f.get('trigger'), "idLocation": None, "card": f.get('card'),
+                "cardLocation": None, "cardEffects": list(f.get('effects') or []),
+                "eventUuid": f.get('eventUuid'), "clock": clock,
+                "visibility": _events.VISIBILITY_FULL,
+            })
+            continue
         id_location = f.get('idLocation')
         if here is not None and here == id_location:
             visibility = _events.VISIBILITY_FULL

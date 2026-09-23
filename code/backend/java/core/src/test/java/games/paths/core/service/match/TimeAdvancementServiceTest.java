@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -366,6 +367,87 @@ class TimeAdvancementServiceTest {
         void clockForAdminNotFound() {
             when(store.findMatchByUuid(MATCH)).thenReturn(Optional.empty());
             assertCode(TurnCycleException.Code.MATCH_NOT_FOUND, () -> service.clockForAdmin(MATCH));
+        }
+    }
+
+    // ── Step 39: random events ───────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("Step 39 random events")
+    class RandomEvents {
+
+        private LocationEntryPort runner;
+        private WeatherSelectionService weather;
+        private RandomEventSelectionService random;
+
+        @BeforeEach
+        void wire() {
+            runner = mock(LocationEntryPort.class);
+            weather = mock(WeatherSelectionService.class);
+            random = mock(RandomEventSelectionService.class);
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match(MatchStatuses.RUNNING, 3)));
+            when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID))
+                    .thenReturn(Optional.of(character(CHAR_ID, CHAR_UUID, 50, false)));
+            when(store.findCharactersByMatchId(MATCH_ID))
+                    .thenReturn(List.of(character(CHAR_ID, CHAR_UUID, 50, true)));
+            when(store.incrementMatchClock(MATCH_ID)).thenReturn(4);
+        }
+
+        @Test
+        @DisplayName("the picked event runs after the weather, before the queue, and reaches counterZero")
+        void pickedEventRunsAfterWeather() {
+            service = new TimeAdvancementService(store, userAccessPort, publisher, recoveryService,
+                    weather, random);
+            service.setAutomaticEventRunner(runner);
+            LocationEntryPort.AutomaticEventFired fired = new LocationEntryPort.AutomaticEventFired(
+                    LocationEntryPort.TRIGGER_RANDOM_EVENT, 0L, "evt-wolves", null,
+                    List.of(), List.of(), List.of(), false);
+            when(random.pickAtTimeStart(MATCH_ID)).thenReturn(
+                    Optional.of(new RandomEventSelectionService.RandomEventPick(5L, 77L)));
+            when(runner.runRandomEvent(eq(MATCH_ID), eq(4), eq(77L), any())).thenReturn(List.of(fired));
+            when(runner.describeForRecipient(eq(MATCH_ID), eq(CHAR_ID), eq(4), anyList(), any()))
+                    .thenAnswer(inv -> {
+                        List<LocationEntryPort.AutomaticEventFired> list = inv.getArgument(3);
+                        assertEquals(List.of(fired), list);
+                        return List.of(new TimeAdvancementPort.CounterZeroItem(
+                                LocationEntryPort.TRIGGER_RANDOM_EVENT, null, null, null, List.of(),
+                                "evt-wolves", 4, TimeAdvancementPort.CounterZeroItem.VISIBILITY_FULL));
+                    });
+
+            TimeAdvancementPort.SleepResult r = service.sleep(MATCH, USER);
+
+            org.mockito.InOrder order = inOrder(weather, random, runner, store);
+            order.verify(weather).applyAtTimeStart(MATCH_ID);
+            order.verify(random).pickAtTimeStart(MATCH_ID);
+            order.verify(runner).runRandomEvent(eq(MATCH_ID), eq(4), eq(77L), any());
+            order.verify(store).replaceQueue(eq(MATCH_ID), anyList());
+            assertEquals(1, r.counterZero().size());
+            assertNull(r.counterZero().get(0).idLocation());
+        }
+
+        @Test
+        @DisplayName("an empty pick runs nothing")
+        void emptyPickRunsNothing() {
+            service = new TimeAdvancementService(store, userAccessPort, publisher, recoveryService,
+                    weather, random);
+            service.setAutomaticEventRunner(runner);
+            when(random.pickAtTimeStart(MATCH_ID)).thenReturn(Optional.empty());
+
+            TimeAdvancementPort.SleepResult r = service.sleep(MATCH, USER);
+
+            verify(runner, never()).runRandomEvent(anyLong(), anyInt(), anyLong(), any());
+            assertTrue(r.counterZero().isEmpty());
+        }
+
+        @Test
+        @DisplayName("without a runner the picker is never asked")
+        void noRunnerNoPick() {
+            service = new TimeAdvancementService(store, userAccessPort, publisher, recoveryService,
+                    weather, random);
+
+            service.sleep(MATCH, USER);
+
+            verify(random, never()).pickAtTimeStart(anyLong());
         }
     }
 

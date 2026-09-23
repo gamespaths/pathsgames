@@ -80,6 +80,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/StoryValidationErrorItem'
+        warnings:
+          type: array
+          description: v0.39.0 — advisory findings (e.g. R11_RANDOM_EVENT total above 100); never make valid false
+          items:
+            $ref: '#/components/schemas/StoryValidationErrorItem'
     StoryValidationErrorItem:
       type: object
       properties:

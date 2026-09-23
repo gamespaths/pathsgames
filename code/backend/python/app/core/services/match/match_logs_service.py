@@ -85,6 +85,8 @@ _TYPE_EVENT = "EVENT"
 _TYPE_COUNTER_ZERO = "COUNTER_ZERO"
 # Step 33 — an event the engine fired: an arrival, a counter, a time-start.
 _TYPE_AUTOMATIC_EVENT = "AUTOMATIC_EVENT"
+# Step 39 — a global random event fired at time-start.
+_TYPE_RANDOM_EVENT = "RANDOM_EVENT"
 # Step 36 — a registry key was written by an event, a choice or the engine.
 _TYPE_REGISTRY_CHANGE = "REGISTRY_CHANGE"
 # v0.37.2 — a mission opened, advanced, completed or failed.
@@ -117,6 +119,7 @@ _TYPE_EXP_USE = "EXP_USE"
 _MSG_SLEEP = "ACTION_SLEEP"
 _MSG_COUNTER = "counter"
 _MSG_AUTOMATIC_EVENT = "automatic event"
+_MSG_RANDOM_EVENT = "random event"
 
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 200
@@ -316,6 +319,15 @@ class MatchLogsService:
                     "message": msg,
                     "idEvent": e.id_event,
                 })
+            elif msg.startswith(_MSG_RANDOM_EVENT):
+                # Step 39 — it happens nowhere in particular: no location rides on it.
+                entries.append({
+                    "type": _TYPE_RANDOM_EVENT,
+                    "clock": e.clock,
+                    "timestamp": e.timestamp,
+                    "message": msg,
+                    "idEvent": e.id_event,
+                })
             elif msg.startswith(registry_service.MSG_REGISTRY_CHANGE):
                 entries.append({
                     "type": _TYPE_REGISTRY_CHANGE,
@@ -429,7 +441,8 @@ class MatchLogsService:
                 id_card = location_cards.get(entry["idLocationTo"])
             elif entry["type"] == _TYPE_EVENT and entry.get("idEvent") is not None:
                 id_card = event_cards.get(entry["idEvent"])
-            elif entry["type"] == _TYPE_AUTOMATIC_EVENT and entry.get("idEvent") is not None:
+            elif (entry["type"] in (_TYPE_AUTOMATIC_EVENT, _TYPE_RANDOM_EVENT)
+                  and entry.get("idEvent") is not None):
                 # Step 33 — the event's own card, like a player-triggered one.
                 id_card = event_cards.get(entry["idEvent"])
             elif entry["type"] == _TYPE_COUNTER_ZERO and entry.get("idLocationTo") is not None:

@@ -189,10 +189,12 @@ components:
       properties:
         trigger:
           type: string
-          enum: [COUNTER_ZERO, CHARACTER_START_TIME]
+          enum: [COUNTER_ZERO, CHARACTER_START_TIME, RANDOM_EVENT]
         idLocation:
           type: integer
           format: int64
+          nullable: true
+          description: null for RANDOM_EVENT (v0.39.0), which happens nowhere in particular
           example: 90001
         card:
           allOf:

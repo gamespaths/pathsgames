@@ -95,7 +95,8 @@ def _tables():
         "list_missions_steps": [{"id": 1, "idMission": 1, "conditionKey": "k",
                                  "conditionValue": "1"}],
         "list_weather_rules": [{"id": 1, "idEvent": 1}],
-        "list_global_random_events": [{"id": 1, "idEvent": 1}],
+        # Step 39 - R11: a random event names a choice-free event (event 1 owns choice 1).
+        "list_global_random_events": [{"id": 1, "idEvent": 2}],
         "list_locations_neighbors": [{"id": 1, "idLocationFrom": 1, "idLocationTo": 2, "direction": "N"}],
     }
 
@@ -147,3 +148,27 @@ def test_validate_story_db_path_stored_condition_owner_must_exist():
     report = svc.validate_story(1)
     assert report.is_valid() is False
     assert any(e.entity_type == "choice-conditions" for e in report.errors)
+
+
+def test_validate_story_db_path_random_events_r11_and_warning():
+    """Step 39 — choices and weather effects fail R11; a total above 100 only warns."""
+    tables = _tables()
+    tables["list_global_random_events"] = [{"id": 1, "idEvent": 1, "probability": 70},
+                                           {"id": 2, "idEvent": 2, "probability": 60}]
+    tables["list_events_effects"] = [{"id": 1, "idEvent": 2, "idWeather": 1}]
+    report = StoryValidatorService(_FakeReadPort(tables)).validate_story(1)
+    messages = [e.message for e in report.errors if e.rule == "R11_RANDOM_EVENT"]
+    assert len(messages) == 2
+    assert "owns choices" in messages[0]
+    assert "weather effect" in messages[1]
+    assert len(report.warnings) == 1
+    assert "130" in report.warnings[0].message
+
+
+def test_validate_story_db_path_random_events_at_hundred_no_warning():
+    tables = _tables()
+    tables["list_global_random_events"] = [{"id": 1, "idEvent": 2, "probability": 60},
+                                           {"id": 2, "idEvent": 2, "probability": 40}]
+    report = StoryValidatorService(_FakeReadPort(tables)).validate_story(1)
+    assert report.warnings == []
+    assert report.is_valid(), report.errors

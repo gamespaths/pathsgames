@@ -1,0 +1,152 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Random Events API
+  description: |
+    Step 39 — global random events fire at time-start.
+
+    `list_global_random_events` has existed since V0.10.4; v0.39.0 gives it an engine. At every
+    time-start, **after the weather**, at most one row fires. Never at clock 0, only on RUNNING
+    matches, never on an arrival or an action.
+
+    ## The pick
+
+    `probability` is an **absolute percentage** (integer 0..100). Eligible rows: the registry
+    condition holds (`conditionKey` blank = no condition; `registryValueOperatorCondition`
+    `=` `!=` `>` `<`, null = `=`), `probability > 0`, the event exists, owns no choices and is
+    not a spent `ONCE` event. They are ordered by `probability` DESC then `id` ASC; `total` is
+    their sum; a roll in `[0, max(100, total))` walks the cumulative ranges. `roll >= total`
+    means nothing fires. So with `total <= 100` each row fires with exactly its own percentage;
+    above 100 every row is scaled down proportionally and one row always fires.
+
+    Seed: `(rngSeed ?? idStory) + clock + 1_000_003`, reproducible per backend (Java and
+    Python/AWS use different generators).
+
+    ## What it does
+
+    The event runs with **no actor**, party-wide: `target = ALL` reaches every character of the
+    match, `ONLY_ONE` nobody, `targetClass` narrows. It writes one timeline row of type
+    `RANDOM_EVENT` and rides on the sleep answer inside `counterZero[]` with
+    `trigger: RANDOM_EVENT`, `idLocation: null` and `visibility: FULL`.
+
+    ## Validation `R11_RANDOM_EVENT`
+
+    Import fails (CRUD stays lenient, `validate` reports) when `probability` is outside 0..100,
+    `idEvent` is missing, the event owns choices, the event has an effect with `idWeather`, or
+    only one of `conditionKey` / `conditionValue` is set. `validate` also returns a **warning**
+    (`warnings[]`, never an error) when the probabilities sum past 100.
+  version: 0.39.0
+  license:
+    name: GNU General Public License v3.0
+    url: https://www.gnu.org/licenses/gpl-3.0.html
+
+servers:
+  - url: http://localhost:8042
+    description: Development (dev profile)
+  - url: http://localhost:8080
+    description: Production (prod profile)
+
+paths:
+  /api/gameplay/{uuidMatch}/action/sleep:
+    post:
+      tags: [Random Events]
+      summary: Sleep — a time-start may fire one random event (see counterZero)
+      operationId: sleepWithRandomEvent
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The sleep answer; `counterZero[]` may carry a `RANDOM_EVENT` entry
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SleepWithRandomEvent' }
+  /api/admin/stories/{uuidStory}/validate:
+    get:
+      tags: [Random Events]
+      summary: Validate a story — errors plus the advisory warnings
+      operationId: validateStoryWithWarnings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uuidStory
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The report; `warnings` never makes `valid` false
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StoryValidationReport' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    GlobalRandomEvent:
+      type: object
+      description: A `global-random-events` row (import, export, admin CRUD).
+      properties:
+        id: { type: integer }
+        uuid: { type: string }
+        idEvent: { type: integer, description: 'The event to run (required by R11)' }
+        probability: { type: integer, minimum: 0, maximum: 100 }
+        conditionKey: { type: string, nullable: true }
+        conditionValue: { type: string, nullable: true }
+        registryValueOperatorCondition:
+          type: string
+          nullable: true
+          enum: ['=', '!=', '>', '<']
+          description: New in v0.39.0; null or blank means `=`
+        idCard: { type: integer, nullable: true }
+        idText: { type: integer, nullable: true, description: 'Kept in the schema, ignored by the engine' }
+    RandomEventCounterZeroItem:
+      type: object
+      properties:
+        trigger: { type: string, enum: [RANDOM_EVENT] }
+        idLocation: { type: integer, nullable: true, description: 'Always null for RANDOM_EVENT' }
+        card: { type: object, nullable: true }
+        cardLocation: { type: object, nullable: true }
+        cardEffects:
+          type: array
+          items: { type: object }
+        eventUuid: { type: string }
+        clock: { type: integer }
+        visibility: { type: string, enum: [FULL] }
+    SleepWithRandomEvent:
+      type: object
+      properties:
+        matchUuid: { type: string }
+        characterUuid: { type: string }
+        isSleeping: { type: boolean }
+        timeEndTriggered: { type: boolean }
+        currentClock: { type: integer }
+        counterZero:
+          type: array
+          items: { $ref: '#/components/schemas/RandomEventCounterZeroItem' }
+    StoryValidationItem:
+      type: object
+      properties:
+        rule: { type: string, example: R11_RANDOM_EVENT }
+        entityType: { type: string, example: global-random-events }
+        entityId: { type: string, nullable: true }
+        field: { type: string, example: probability }
+        message: { type: string }
+    StoryValidationReport:
+      type: object
+      properties:
+        valid: { type: boolean }
+        count: { type: integer, description: 'Number of errors (warnings excluded)' }
+        errors:
+          type: array
+          items: { $ref: '#/components/schemas/StoryValidationItem' }
+        warnings:
+          type: array
+          items: { $ref: '#/components/schemas/StoryValidationItem' }

@@ -85,7 +85,8 @@ public interface TimeAdvancementPort {
      * a name string (v0.28.6 removed the synthetic {@code locationName} fields).</p>
      */
     record CounterZeroItem(String trigger,
-                           long idLocation,
+                           /** Step 39 - null for a RANDOM_EVENT. */
+                           Long idLocation,
                            games.paths.core.model.story.CardInfo card,
                            games.paths.core.model.story.CardInfo cardLocation,
                            List<EventExecutionPort.AppliedEffect> cardEffects,

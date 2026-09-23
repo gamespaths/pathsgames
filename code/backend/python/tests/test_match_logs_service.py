@@ -698,3 +698,23 @@ def test_v0372_an_unknown_mission_and_a_shapeless_message_carry_no_card(session_
     _seed_mission_row(session_factory, "MISSION_CHANGE", row_id=22)
     logs = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"]
     assert all(e["card"] is None for e in logs)
+
+
+def test_step39_random_event_has_no_location_and_wears_the_event_card(session_factory):
+    """Step 39 — its own prefix, its own type; it happens nowhere in particular."""
+    _seed_match(session_factory)
+    _seed_story_content(session_factory)
+    with session_factory() as s:
+        s.add(LogEventsEntity(id=12, id_match=MATCH_ID, uuid="e12", id_character_match=None,
+                              clock=4, timestamp=_NOW, id_event=90010, id_location=0,
+                              log_message="random event 90010 (RANDOM_EVENT)",
+                              ts_insert=_NOW, ts_update=_NOW))
+        s.commit()
+    content = _FakeContentQueryService({600: "Wolves"})
+
+    logs = MatchLogsService(session_factory, content).get_match_logs_for_admin(MATCH_UUID)["logs"]
+    random_row = next(e for e in logs if e["type"] == "RANDOM_EVENT")
+    assert random_row["clock"] == 4
+    assert random_row["idEvent"] == 90010
+    assert random_row.get("idLocationTo") is None
+    assert random_row["card"]["title"] == "Wolves"

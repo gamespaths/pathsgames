@@ -39,6 +39,7 @@ import java.util.Map;
  *   <li>COUNTER_ZERO — from log_events WHERE log_message LIKE 'counter%' (Step 33; until
  *       then these rows were folded into RECOVERY, which they never were)</li>
  *   <li>AUTOMATIC_EVENT — from log_events WHERE log_message LIKE 'automatic event%' (Step 33)</li>
+ *   <li>RANDOM_EVENT — from log_events WHERE log_message LIKE 'random event%' (Step 39)</li>
  *   <li>ITEM_ADD / ITEM_USE / ITEM_DROP — from log_item_usage, one per action (v0.35.4)</li>
  * </ul>
  * </p>
@@ -66,6 +67,8 @@ public class MatchLogsService implements MatchLogsPort {
     private static final String TYPE_COUNTER_ZERO = "COUNTER_ZERO";
     /** Step 33 — an event the engine fired: an arrival, a counter, a time-start. */
     private static final String TYPE_AUTOMATIC_EVENT = "AUTOMATIC_EVENT";
+    /** Step 39 — a global random event fired at time-start. */
+    static final String TYPE_RANDOM_EVENT = "RANDOM_EVENT";
     /** Step 36 — a registry key was written by an event, a choice or the engine. */
     private static final String TYPE_REGISTRY_CHANGE = "REGISTRY_CHANGE";
     /** v0.37.2 — a mission opened, advanced, completed or failed. */
@@ -229,6 +232,10 @@ public class MatchLogsService implements MatchLogsPort {
                 entries.add(LogEntry.builder(TYPE_AUTOMATIC_EVENT, e.timestamp())
                         .clock(e.clock()).character(e.idCharacterMatch())
                         .locationTo(e.idLocation()).message(msg).idEvent(e.idEvent()).build());
+            } else if (msg.startsWith(LocationEntryStorePort.MSG_RANDOM_EVENT)) {
+                // Step 39 — it happens nowhere in particular: no location rides on it.
+                entries.add(LogEntry.builder(TYPE_RANDOM_EVENT, e.timestamp())
+                        .clock(e.clock()).message(msg).idEvent(e.idEvent()).build());
             } else if (msg.startsWith(RegistryService.MSG_REGISTRY_CHANGE)) {
                 entries.add(LogEntry.builder(TYPE_REGISTRY_CHANGE, e.timestamp())
                         .clock(e.clock()).character(e.idCharacterMatch())
@@ -311,7 +318,8 @@ public class MatchLogsService implements MatchLogsPort {
                 idCard = locationCards.get(e.idLocationTo());
             } else if (TYPE_EVENT.equals(e.type()) && e.idEvent() != null) {
                 idCard = eventCards.get(e.idEvent());
-            } else if (TYPE_AUTOMATIC_EVENT.equals(e.type()) && e.idEvent() != null) {
+            } else if ((TYPE_AUTOMATIC_EVENT.equals(e.type()) || TYPE_RANDOM_EVENT.equals(e.type()))
+                    && e.idEvent() != null) {
                 // Step 33 — the event's own card, like a player-triggered one.
                 idCard = eventCards.get(e.idEvent());
             } else if (TYPE_COUNTER_ZERO.equals(e.type()) && e.idLocationTo() != null) {

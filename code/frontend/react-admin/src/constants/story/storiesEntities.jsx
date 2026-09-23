@@ -362,13 +362,15 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'deltaEnergy', label: 'Delta Energy', type: 'number' },
       { key: 'idEvent', label: 'Event ID', type: 'number' },
     ],
+    // Step 39 — probability is an absolute % (0..100); the event runs party-wide at time-start.
     'global-random-events': [
       { key: 'idCard', label: 'Card ID', type: 'number' },
       { key: 'conditionKey', label: 'Condition Key', type: 'text' },
       { key: 'conditionValue', label: 'Condition Value', type: 'text' },
-      { key: 'probability', label: 'Probability', type: 'number' },
+      { key: 'registryValueOperatorCondition', label: 'Registry Operator (condition)', type: 'select', options: CHOICE_CONDITION_OPERATOR_OPTIONS },
+      { key: 'probability', label: 'Probability (%)', type: 'number', required: true, min: 0, max: 100 },
       { key: 'idText', label: 'Text ID', type: 'number' },
-      { key: 'idEvent', label: 'Event ID', type: 'number' },
+      { key: 'idEvent', label: 'Event ID', type: 'number', required: true },
     ],
     // Step 37: the from/to pair is gone. conditionValue holds one value; conditionValues is
     // a PIPE list read as an AND, edited as chips so a pipe is never typed by hand.
@@ -552,6 +554,7 @@ export const STORIES_ENTITIES_COLUMNS = {
     'global-random-events': [
       { key: 'conditionKey', label: 'Condition Key' },
       { key: 'conditionValue', label: 'Condition Value' },
+      { key: 'registryValueOperatorCondition', label: 'Operator' },
       { key: 'probability', label: 'Probability' },
       { key: 'idEvent', label: 'Event ID' },
     ],

@@ -208,7 +208,7 @@ components:
       properties:
         type:
           type: string
-          enum: [WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY, EVENT, COUNTER_ZERO, AUTOMATIC_EVENT, REGISTRY_CHANGE, MISSION_CHANGE, ITEM_ADD, ITEM_USE, ITEM_DROP, EXP_USE]
+          enum: [WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY, EVENT, COUNTER_ZERO, AUTOMATIC_EVENT, RANDOM_EVENT, REGISTRY_CHANGE, MISSION_CHANGE, ITEM_ADD, ITEM_USE, ITEM_DROP, EXP_USE]
           description: Log entry type
         clock:
           type: integer

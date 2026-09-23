@@ -198,3 +198,46 @@ describe('useGameplayResults — the weather keeps a chain it lands on (v0.38.2)
       .toEqual({ kind: 'weather', onForward: undefined })
   })
 })
+
+// Step 39 — after a sleep the new weather comes first, the wake-up list waits behind (→).
+describe('useGameplayResults — the weather leads on to the wake-up list (Step 39)', () => {
+  const SUNNY = { uuid: 'w1', card: { title: 'Sunny' } }
+  const RAINY = { uuid: 'w2', card: { title: 'Rainy' } }
+
+  function setupWith(view) {
+    const viewActions = {
+      resetForReload: vi.fn(), setPreviewRight: vi.fn(), setPreviewLeft: vi.fn(),
+      openPreview: vi.fn(), setChoices: vi.fn(), closeChoices: vi.fn(), setCounterZero: vi.fn(),
+      openItems: vi.fn(),
+    }
+    const hook = renderHook(({ w }) => useGameplayResults({
+      matchUuid: 'm1', accessToken: 'tok', lang: 'en', t: k => k, playerUuid: 'p1',
+      playerStats: {}, gameData: {}, weather: w, clock: null, view, viewActions,
+      refreshChrome: vi.fn(), onReload: vi.fn(), onError: vi.fn(),
+    }), { initialProps: { w: SUNNY } })
+    return { ...hook, viewActions }
+  }
+
+  it('opens the weather page, whose forward arrow reveals the random event underneath', () => {
+    const { viewActions, rerender } = setupWith({ counterZero: [{ trigger: 'RANDOM_EVENT' }] })
+    rerender({ w: RAINY })
+    const page = applied(viewActions, null)
+    expect(page.kind).toBe('weather')
+    page.onForward()
+    expect(viewActions.setPreviewRight).toHaveBeenLastCalledWith(null)
+  })
+
+  it('never covers a card that already owns the right page (a coma)', () => {
+    const { viewActions, rerender } = setupWith({ counterZero: [{ trigger: 'COUNTER_ZERO' }] })
+    rerender({ w: RAINY })
+    const coma = { kind: 'coma' }
+    expect(applied(viewActions, coma)).toBe(coma)
+  })
+
+  it('a pending choice still keeps the weather away entirely', () => {
+    const { viewActions, rerender } = setupWith({ pendingChoices: { event: {} },
+      counterZero: [{ trigger: 'RANDOM_EVENT' }] })
+    rerender({ w: RAINY })
+    expect(viewActions.setPreviewRight).not.toHaveBeenCalled()
+  })
+})

@@ -268,6 +268,15 @@ public class CoreConfig {
                 registryService);
     }
 
+    // Step 39 - picks the day's random event after the weather.
+    @Bean
+    public games.paths.core.service.match.RandomEventSelectionService randomEventSelectionService(
+            games.paths.core.port.match.RandomEventStorePort randomEventStorePort,
+            games.paths.core.service.match.RegistryService registryService) {
+        return new games.paths.core.service.match.RandomEventSelectionService(randomEventStorePort,
+                registryService);
+    }
+
     @Bean
     public games.paths.core.port.match.TurnCyclePort turnCyclePort(
             games.paths.core.port.match.TurnCycleStorePort turnCycleStorePort,
@@ -304,10 +313,11 @@ public class CoreConfig {
             UserAccessPort userAccessPort,
             games.paths.core.port.event.DomainEventPublisher domainEventPublisher,
             games.paths.core.service.match.TimeStartRecoveryService timeStartRecoveryService,
-            games.paths.core.service.match.WeatherSelectionService weatherSelectionService) {
+            games.paths.core.service.match.WeatherSelectionService weatherSelectionService,
+            games.paths.core.service.match.RandomEventSelectionService randomEventSelectionService) {
         return new games.paths.core.service.match.TimeAdvancementService(
                 turnCycleStorePort, userAccessPort, domainEventPublisher,
-                timeStartRecoveryService, weatherSelectionService);
+                timeStartRecoveryService, weatherSelectionService, randomEventSelectionService);
     }
 
     @Bean

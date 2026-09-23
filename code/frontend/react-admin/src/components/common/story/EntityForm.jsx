@@ -147,6 +147,14 @@ export default function EntityForm({
       setError(`${missing.label} is required.`)
       return
     }
+    // Step 39 — a number field may declare its bounds (random event probability is 0..100).
+    const outOfRange = fields.find(f => hasValue(data[f.key])
+      && ((f.min !== undefined && Number(data[f.key]) < f.min)
+        || (f.max !== undefined && Number(data[f.key]) > f.max)))
+    if (outOfRange) {
+      setError(`${outOfRange.label} must be between ${outOfRange.min ?? '-∞'} and ${outOfRange.max ?? '∞'}.`)
+      return
+    }
     setError(null)
     onSave(data)
   }
@@ -297,6 +305,8 @@ export default function EntityForm({
                       size={1}
                       className="pg-input"
                       maxLength={field.maxLength}
+                      min={field.min}
+                      max={field.max}
                       style={{ fontSize: '0.8rem', padding: '4px 8px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                       value={data[field.key] ?? ''}
                       onChange={e => setFieldValue(field, e.target.value)}

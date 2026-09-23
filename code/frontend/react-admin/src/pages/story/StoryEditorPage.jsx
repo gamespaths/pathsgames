@@ -967,7 +967,8 @@ export default function StoryEditorPage() {
   return (
     <div className="flex flex-col md:flex-row gap-6 align-item-start">
       {/* Sidebar Tabs */}
-      <StoryEditorPageSidebar tabs={TABS} activeTab={activeTab} onSelectTab={setActiveTab} />
+      <StoryEditorPageSidebar tabs={TABS} activeTab={activeTab} onSelectTab={setActiveTab}
+        onOpenCardsFastEdit={() => navigate(`/stories/${uuid}/cards-fast-edit`)} />
 
       {/* Main Content */}
       <div className="flex-grow min-w-0">

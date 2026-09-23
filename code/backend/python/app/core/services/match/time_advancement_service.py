@@ -30,12 +30,14 @@ DEFAULT_LANG = "en"
 class TimeAdvancementService(TimeAdvancementPort):
     def __init__(self, store: TimeStorePort, event_publisher: DomainEventPublisher,
                  recovery_service: "TimeStartRecoveryService | None" = None,
-                 weather_service=None, edge_store=None) -> None:
+                 weather_service=None, edge_store=None, random_event_service=None) -> None:
         self.store = store
         self.event_publisher = event_publisher
         self.recovery_service = recovery_service or TimeStartRecoveryService(store, edge_store)
         # Step 27 — optional weather selection engine (may be None in tests).
         self.weather_service = weather_service
+        # Step 39 — picks the day's random event after the weather (may be None in tests).
+        self.random_event_service = random_event_service
         # Step 33 — the engine that runs the automatic events a time-start collected.
         # Injected through a setter rather than the constructor, and deliberately so: the
         # runner is EventService, which already depends on this service for
@@ -145,11 +147,17 @@ class TimeAdvancementService(TimeAdvancementPort):
         # the event engine sits above it in the wiring, and an event can force a time end.
         fired: List[Any] = []
         if self.automatic_event_runner is not None and outcome.pending:
-            fired = self.automatic_event_runner.run_pending_automatic_events(
-                match["id"], new_clock, outcome.pending, DEFAULT_LANG)
+            fired = list(self.automatic_event_runner.run_pending_automatic_events(
+                match["id"], new_clock, outcome.pending, DEFAULT_LANG))
         # Step 27: select the weather for the new time unit and apply its delta.
         if self.weather_service is not None:
             self.weather_service.apply_at_time_start(match["id"])
+        # Step 39: at most one random event, after the weather.
+        if self.random_event_service is not None and self.automatic_event_runner is not None:
+            pick = self.random_event_service.pick_at_time_start(match["id"])
+            if pick is not None:
+                fired += self.automatic_event_runner.run_random_event(
+                    match["id"], new_clock, pick["id_event"], DEFAULT_LANG)
         self._rebuild_queue(match["id"], new_clock)
         self.event_publisher.publish(TimeAdvanced(match["uuid"], new_clock))
         # The recovery's own verdict first, then whatever its events did: one edge state.

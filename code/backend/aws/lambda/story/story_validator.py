@@ -8,6 +8,7 @@ validated (null / absent / <= 0 means "none"). Field access is key-agnostic.
 Public API:
     validate_story_dict(data)            -> list[dict]   (full-graph rules)
     validate_entity(entity_type, data)   -> list[dict]   (entity-local rules)
+    random_event_warnings(data)          -> list[dict]   (Step 39 advisory findings)
     summary(errors)                      -> str
 """
 
@@ -32,6 +33,8 @@ _LOCATION_TRIGGER_FIELDS = (
 # The two types a player can execute. Mirrors events.EXECUTABLE_TYPES, duplicated rather
 # than imported because the validator lives in the story lambda.
 _EXECUTABLE_EVENT_TYPES = {"NORMAL", "ONCE"}
+_R11 = "R11_RANDOM_EVENT"
+_RANDOM_TYPE = "global-random-events"
 
 
 def _camel_to_snake(name):
@@ -214,9 +217,14 @@ def validate_story_dict(data, include_mission_conditions=False):
     for cc in _arr(data, "choiceConditions"):
         ref("choice-conditions", str(_field(cc, "id")), "idChoices", _CHOICE, _field(cc, "idChoices"))
         key_refs.append((str(_field(cc, "id")), _field(cc, "type"), _field(cc, "key")))
+    # Step 39 — events owning an effect row that sets the weather (unfit to be random).
+    weather_effect_events = set()
     for ee in _arr(data, "eventEffects"):
         eid = str(_field(ee, "id"))
         ref("event-effects", eid, "idEvent", _EVENT, _field(ee, "idEvent"))
+        ee_event, ee_weather = _as_int(_field(ee, "idEvent")), _as_int(_field(ee, "idWeather"))
+        if ee_event and ee_event > 0 and ee_weather and ee_weather > 0:
+            weather_effect_events.add(ee_event)
         ref("event-effects", eid, "idItemTarget", _ITEM, _field(ee, "idItemTarget"))
         ref("event-effects", eid, "targetClass", _CLASS, _field(ee, "targetClass"))
         # v0.29.3 — forced movement: the location the effect moves its recipients to.
@@ -236,8 +244,10 @@ def validate_story_dict(data, include_mission_conditions=False):
             errors.extend(_mission_condition("mission-steps", row))
     for wr in _arr(data, "weatherRules"):
         ref("weather-rules", str(_field(wr, "id")), "idEvent", _EVENT, _field(wr, "idEvent"))
+    random_rows = []
     for gr in _arr(data, "globalRandomEvents"):
         ref("global-random-events", str(_field(gr, "id")), "idEvent", _EVENT, _field(gr, "idEvent"))
+        random_rows.append(gr)
     for n in _arr(data, "locationNeighbors"):
         frm, to = _as_int(_field(n, "idLocationFrom")), _as_int(_field(n, "idLocationTo"))
         nid = str(_field(n, "id"))
@@ -313,6 +323,12 @@ def validate_story_dict(data, include_mission_conditions=False):
                     " player-executable — use AUTOMATIC (step 33)".format(
                         id_event, field, etype)))
 
+    # Step 39 (R11): a random event runs by itself at time-start, party-wide.
+    if random_rows:
+        owning = {ev for (_cid, ev, _loc) in choice_data if ev is not None and ev > 0}
+        for row in random_rows:
+            errors.extend(_random_event_errors(row, owning, weather_effect_events))
+
     for eid, ctype, key in key_refs:
         # Only KEYS conditions read the registry. On every other type `key` means
         # something else entirely (a stat name for statistics, unused for ITEM), so
@@ -336,6 +352,51 @@ def validate_story_dict(data, include_mission_conditions=False):
             errors.append(_err("R6_CLASS_CONFLICT", etype, eid, "idClassPermitted",
                                "{} {} has the same class permitted and prohibited ({})".format(etype, eid, permitted)))
     return errors
+
+
+def _random_event_errors(row, owning, weather_effect_events):
+    """Step 39 — R11_RANDOM_EVENT: an event with no choices and no weather effect, a 0..100
+    probability and a complete condition (key and value together)."""
+    out = []
+    eid = str(_field(row, "id"))
+    probability = _as_int(_field(row, "probability"))
+    if probability is not None and (probability < 0 or probability > 100):
+        out.append(_err(_R11, _RANDOM_TYPE, eid, "probability",
+                        "probability={} is outside 0..100 (step 39)".format(probability)))
+    id_event = _as_int(_field(row, "idEvent"))
+    if id_event is None or id_event <= 0:
+        out.append(_err(_R11, _RANDOM_TYPE, eid, "idEvent",
+                        "random event {} has no idEvent (step 39)".format(eid)))
+    else:
+        if id_event in owning:
+            out.append(_err(_R11, _RANDOM_TYPE, eid, "idEvent",
+                            "event {} owns choices — a random event has no one to ask"
+                            " (step 39)".format(id_event)))
+        if id_event in weather_effect_events:
+            out.append(_err(_R11, _RANDOM_TYPE, eid, "idEvent",
+                            "event {} has a weather effect — a random event may not change"
+                            " the weather (step 39)".format(id_event)))
+    key, value = _field(row, "conditionKey"), _field(row, "conditionValue")
+    has_key = key is not None and str(key).strip() != ""
+    has_value = value is not None and str(value).strip() != ""
+    if has_key and not has_value:
+        out.append(_err(_R11, _RANDOM_TYPE, eid, "conditionValue",
+                        "conditionKey={} has no conditionValue (step 39)".format(key)))
+    elif has_value and not has_key:
+        out.append(_err(_R11, _RANDOM_TYPE, eid, "conditionKey",
+                        "conditionValue={} has no conditionKey (step 39)".format(value)))
+    return out
+
+
+def random_event_warnings(data):
+    """Step 39 — advisory only: probabilities summing past 100 are scaled by the engine."""
+    total = sum(max(0, _as_int(_field(r, "probability")) or 0)
+                for r in _arr(data, "globalRandomEvents"))
+    if total <= 100:
+        return []
+    return [_err(_R11, _RANDOM_TYPE, None, "probability",
+                 "random event probabilities sum to {} (> 100): percentages will be scaled"
+                 " (step 39)".format(total))]
 
 
 def _detect_cycles(events, event_next):

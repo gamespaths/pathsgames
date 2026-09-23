@@ -71,6 +71,8 @@ from app.adapters.rest.match.experience_controller import ExperienceController
 from app.adapters.persistence.match.weather_store_adapter import WeatherStoreAdapter
 from app.core.services.match.match_logs_service import MatchLogsService
 from app.core.services.match.weather_selection_service import WeatherSelectionService
+from app.adapters.persistence.match.random_event_store_adapter import RandomEventStoreAdapter
+from app.core.services.match.random_event_selection_service import RandomEventSelectionService
 from app.adapters.rest.match.weather_controller import WeatherController
 from app.adapters.turnstile.turnstile_adapter import TurnstileVerificationAdapter
 import app.adapters.persistence.match.models  # noqa: F401  - registers ORM tables
@@ -239,9 +241,13 @@ time_store_adapter = TimeStoreAdapter(SessionLocal)
 domain_event_publisher = InProcessDomainEventPublisher()
 # Step 30 — the edge-state store is shared by the recovery and the event engine.
 edge_state_store_adapter = EdgeStateStoreAdapter(SessionLocal)
+# Step 39 — the day's random event, picked after the weather.
+random_event_selection_service = RandomEventSelectionService(
+    RandomEventStoreAdapter(SessionLocal), registry_service)
 time_advancement_service = TimeAdvancementService(time_store_adapter, domain_event_publisher,
                                                   weather_service=weather_selection_service,
-                                                  edge_store=edge_state_store_adapter)
+                                                  edge_store=edge_state_store_adapter,
+                                                  random_event_service=random_event_selection_service)
 time_clock_controller = TimeClockController(time_advancement_service)
 
 # Step 28 — movement system (single-player). The controller is mounted on the

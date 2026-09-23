@@ -285,12 +285,22 @@ def test_a_mission_run_with_no_actor_reaches_the_whole_party():
     b = _char(uuid="b", classId=2, idLocation=999)
     everyone = [a, b]
     assert events.resolve_recipients({"target": "ALL"}, None, everyone) == []
-    hit = events.resolve_recipients({"target": "ALL"}, None, everyone, mission_run=True)
+    hit = events.resolve_recipients({"target": "ALL"}, None, everyone, party_run=True)
     assert [c["uuid"] for c in hit] == ["a", "b"]
-    assert events.resolve_recipients({"target": "ONLY_ONE"}, None, everyone, mission_run=True) == []
-    narrowed = events.resolve_recipients({"target": "ALL", "targetClass": 2}, None, everyone, mission_run=True)
+    assert events.resolve_recipients({"target": "ONLY_ONE"}, None, everyone, party_run=True) == []
+    narrowed = events.resolve_recipients({"target": "ALL", "targetClass": 2}, None, everyone, party_run=True)
     assert [c["uuid"] for c in narrowed] == ["b"]
     assert events.TRIGGER_MISSION == "mission completed"
+
+
+def test_step39_party_trigger_and_log_message():
+    assert events.is_party_trigger(events.TRIGGER_RANDOM_EVENT)
+    assert events.is_party_trigger(events.TRIGGER_MISSION)
+    assert not events.is_party_trigger(events.TRIGGER_COUNTER_ZERO)
+    assert events.automatic_log_message(events.TRIGGER_RANDOM_EVENT, 5, 0) == \
+        "random event 5 (RANDOM_EVENT)"
+    assert events.automatic_log_message(events.TRIGGER_COUNTER_ZERO, 5, 12) == \
+        "automatic event 5 (COUNTER_ZERO) at location 12"
 
 
 def test_items_are_added_and_removed():

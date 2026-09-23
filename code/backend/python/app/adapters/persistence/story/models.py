@@ -510,6 +510,7 @@ class GlobalRandomEventEntity(Base):
     probability = Column(Float)
     condition_key = Column(String(255))
     condition_value = Column(String(255))
+    registry_value_operator_condition = Column(String(10))  # Step 39: = != > < ; None means =
 
 
 class MissionEntity(Base):

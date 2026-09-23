@@ -37,6 +37,7 @@ function renderPage(uuid = 'story-123') {
     <MemoryRouter initialEntries={[`/stories/${uuid}/edit`]}>
       <Routes>
         <Route path="/stories/:uuid/edit" element={<StoryEditorPage />} />
+        <Route path="/stories/:uuid/cards-fast-edit" element={<div>Fast edit page</div>} />
       </Routes>
     </MemoryRouter>
   )
@@ -56,6 +57,12 @@ describe('StoryEditorPage', () => {
     renderPage()
     expect(await screen.findByDisplayValue('Author')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Story Info/i })).toHaveClass(/text-gold-light/i)
+  })
+
+  it('the last sidebar entry opens Cards fast edit', async () => {
+    renderPage()
+    await userEvent.click(await screen.findByText('Cards fast edit'))
+    expect(await screen.findByText('Fast edit page')).toBeInTheDocument()
   })
 
   it('updates story metadata', async () => {

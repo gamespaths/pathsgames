@@ -882,6 +882,33 @@ class StoryImportServiceTest {
         }
 
         @Test
+        @DisplayName("Step 39: a random event keeps idEvent, idText and its operator; legacy rows read null")
+        void globalRandomEvent_keepsEventAndOperator() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "gr-uuid");
+            data.put("globalRandomEvents", List.of(
+                    Map.of("id", 1, "idEvent", 7, "idText", 3, "probability", 40,
+                            "conditionKey", "storm", "conditionValue", "yes",
+                            "registryValueOperatorCondition", "!="),
+                    Map.of("id", 2, "idEvent", 0, "probability", 5)));
+
+            stubMinimalStory("gr-uuid");
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<List<GlobalRandomEventEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveGlobalRandomEvents(captor.capture());
+            GlobalRandomEventEntity first = captor.getValue().get(0);
+            assertEquals(7, first.getIdEvent());
+            assertEquals(3, first.getIdText());
+            assertEquals("!=", first.getRegistryValueOperatorCondition());
+            assertEquals(40, first.getProbability());
+            GlobalRandomEventEntity legacy = captor.getValue().get(1);
+            assertNull(legacy.getIdEvent());
+            assertNull(legacy.getRegistryValueOperatorCondition());
+        }
+
+        @Test
         @DisplayName("Values present in the JSON are kept, not overwritten by the defaults")
         void presentValues_areKept() {
             Map<String, Object> data = new HashMap<>();

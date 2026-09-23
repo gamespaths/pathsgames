@@ -506,12 +506,23 @@ describe('GameBook', () => {
     const stuckData = {
       ...GAME_DATA,
       playerStats: { life: 10, energy: 1, energyMax: 10 },
-      // The only neighbor costs 5 and the only action is an end-game escape hatch
-      // (ignored) → nothing affordable → checkShowToSleepCard is true.
+      // The only neighbor costs 5 and there is no action → nothing affordable →
+      // checkShowToSleepCard is true.
       locations: [{ uuid: 'l1', name: 'Cave', energyCost: 5 }],
+      actions: [],
     }
     render(<GameBook gameData={stuckData} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
     expect(screen.getByTestId('go-to-sleep-card')).toBeInTheDocument()
+  })
+
+  it('never shows the sleep card next to the end-game card, even when energy-stuck', () => {
+    const stuckData = {
+      ...GAME_DATA,
+      playerStats: { life: 10, energy: 1, energyMax: 10 },
+      locations: [{ uuid: 'l1', name: 'Cave', energyCost: 5 }],
+    }
+    render(<GameBook gameData={stuckData} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
+    expect(screen.queryByTestId('go-to-sleep-card')).not.toBeInTheDocument()
   })
 
   it('hides the sleep card in the normal view when a movement is still affordable', () => {

@@ -953,6 +953,7 @@ public class StoryCrudService implements StoryCrudPort {
             GlobalRandomEventEntity gr = (GlobalRandomEventEntity) e;
             m.put("conditionKey", gr.getConditionKey());
             m.put("conditionValue", gr.getConditionValue());
+            m.put("registryValueOperatorCondition", gr.getRegistryValueOperatorCondition());
             m.put("probability", gr.getProbability());
             m.put("idText", gr.getIdText());
             m.put("idEvent", gr.getIdEvent());
@@ -1623,6 +1624,8 @@ public class StoryCrudService implements StoryCrudPort {
             e.setConditionKey(str(d, "conditionKey"));
         if (d.containsKey("conditionValue"))
             e.setConditionValue(str(d, "conditionValue"));
+        if (d.containsKey("registryValueOperatorCondition"))
+            e.setRegistryValueOperatorCondition(str(d, "registryValueOperatorCondition"));
         if (d.containsKey("probability"))
             e.setProbability(intVal(d, "probability"));
         if (d.containsKey("idText"))

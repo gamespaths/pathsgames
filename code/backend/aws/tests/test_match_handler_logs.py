@@ -368,6 +368,15 @@ def test_event_entry_carries_its_own_card_and_character():
     assert event['characterName'] == 'Ranger'
 
 
+def test_step39_random_event_entry_carries_the_event_card():
+    rows = [_row(1, 'RANDOM_EVENT', 5000, clock=4, idEvent=90010,
+                 message='random event 90010 (RANDOM_EVENT)')]
+    body = _body(_call(_player_event(), _enrich_table(rows)))
+    entry = next(e for e in body['logs'] if e['type'] == 'RANDOM_EVENT')
+    assert entry['idEvent'] == 90010
+    assert entry['card']['title'] == 'A Fork In The Road'
+
+
 def test_entries_without_a_card_resolve_to_null():
     # The default match points at no story at all.
     body = _body(_call(_player_event(), _table()))

@@ -344,7 +344,12 @@ event and its whole `id_event_next` chain:
 
 `trigger` is one of `FIRST_ENTRY`, `SUBSEQUENT_ENTRY`, `MOVE_INTO_EMPTY_LOCATION`, `COUNTER_ZERO`,
 `CHARACTER_START_TIME` — a plain string tag on the response, not a `list_events.type` value
-(§1: no such values exist). react-game's `GameBook.jsx` renders the list through
+(§1: no such values exist). **v0.39.0** adds a sixth tag, `RANDOM_EVENT` — it appears only in
+`counterZero[]` below, never in an arrival's `automaticEvents[]`, since a random event only
+ever fires at time-start ([Step 39](./Step39_RandomEvents.md)); its entry carries
+`idLocation: null` (now a nullable field, was always populated before) and
+`visibility: "FULL"` always, since the event is party-wide rather than tied to one place.
+react-game's `GameBook.jsx` renders the list through
 `showAutomaticEvents(result.automaticEvents)`, called from `handleMovementDone`: each fired
 event is chained behind the existing forward arrow (→), so a movement that triggers one, two,
 or several automatic events reads as a sequence of pages rather than arriving all at once.
@@ -413,6 +418,12 @@ first: **`previewRight` → `pendingChoices` → `counterZero` → `weather` →
 counter-zero card that opens choices cannot exist (§4), so `pendingChoices` and `counterZero`
 never actually contend for the same beat; the ordering only decides what the player reads
 first when a weather change and a counter-zero list are both pending on the same wake-up.
+
+**v0.39.0 reorders the last two**: when a sleep changes the weather *and* produces a
+`counterZero[]` list (any trigger, including the new `RANDOM_EVENT`), the new-weather card is
+now shown **first**, its forward arrow leading into the `counterZero` list instead of the two
+being shown independently — read as weather → counterZero, not counterZero-then-weather. See
+[Step 39 §7](./Step39_RandomEvents.md#7-react-game--weather-first-then-the-effect-card-not-the-event-card-and-not-last).
 
 ## 9. Multiplayer — why this payload is designed as a list of recipients
 
@@ -507,6 +518,7 @@ server.
   | 0.33.2 | Rename, no behaviour change: `id_event_if_character_enter_first_time` becomes `id_event_if_character_enter_empty_location` and its trigger `FIRST_IN_LOCATION` becomes `MOVE_INTO_EMPTY_LOCATION`, because the column never had anything to do with a first time — it fires when the arriving character finds nobody else there. Renamed by `V0.33.2__rename_enter_empty_location.sql` with **no read alias**, so an old story JSON silently loses the trigger and AWS story items must be re-seeded (§2, §5). | August 13, 2026 |
   | 0.33.1 | Bugfix on the sleep response's `counterZero[]` items: `card` used to be the location's, so the player woke to the name of a place instead of the news of what happened in it. `card` now carries the event's narrative, `cardLocation` holds what it used to, `cardEffects` carries one `AppliedEffect` per effect row, and fog of war hides all three together (§3, §8). | August 13, 2026 |
   | 0.33.0 | Location entry events, implemented: five triggers bound on `list_locations` rather than on the event, resolved in two passes with a specified cross-location order, and counter-zero events finally executed — closing the dead end Step 26 left. `V0.33.0__location_entry_events.sql` adds `gaming_state_locations.flag_visited` and `log_events.id_location`; automatic events never own choices, and `automaticEvents[]` / `counterZero[]` join the movement, event and sleep responses (§1-§10). | August 12, 2026 |
+  | 0.39.0 | `counterZero[]` gains a sixth trigger, `RANDOM_EVENT` ([Step 39](./Step39_RandomEvents.md)); `idLocation` is now nullable (null for a party-wide random event) and its `visibility` is always `FULL`. The wake-up precedence reorders: a new-weather card now leads into the `counterZero` list instead of the two competing independently (§8). | September 23, 2026 |
   | 0.36.3 | Bugfix, AWS + Python: `execute-event` on AWS never drained its own forced-move arrivals, and Python's `execute-event` response mapper never mapped `automaticEvents[]`. Both now answer it like `select-choice` and `movements/start` always did. See [Step29 §3](./Step29_NormalEvents.md#3-execution). | September 6, 2026 |
 
 - **Last Updated**: September 6, 2026

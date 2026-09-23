@@ -24,9 +24,13 @@ TRIGGER_MOVE_INTO_EMPTY_LOCATION = "MOVE_INTO_EMPTY_LOCATION"
 TRIGGER_COUNTER_ZERO = "COUNTER_ZERO"
 #: A time unit began with a character standing here.
 TRIGGER_CHARACTER_START_TIME = "CHARACTER_START_TIME"
+#: Step 39 — a global random event fired at time-start; no actor, no location.
+TRIGGER_RANDOM_EVENT = "RANDOM_EVENT"
 
 #: Message prefix of the audit row an automatic event writes to ``log_events``.
 MSG_AUTOMATIC_EVENT = "automatic event"
+#: Step 39 — message prefix of the audit row a random event writes.
+MSG_RANDOM_EVENT = "random event"
 
 #: How many arrivals one request may cascade through before the engine gives up.
 #: An automatic event may move a character, and that move is itself an arrival, so
@@ -98,7 +102,7 @@ class CounterZeroItem:
     ``card_location`` is the place. Until v0.33.1 only the place travelled.
     """
     trigger: str
-    id_location: int
+    id_location: Optional[int]  # Step 39: None for a RANDOM_EVENT
     card: Optional[dict]
     card_location: Optional[dict]
     card_effects: List[Any]

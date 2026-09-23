@@ -39,6 +39,8 @@ public class TimeAdvancementService implements TimeAdvancementPort {
     private final DomainEventPublisher eventPublisher;
     private final TimeStartRecoveryService recoveryService;
     private final WeatherSelectionService weatherService;
+    /** Step 39 - picks the day's random event after the weather (may be null in tests). */
+    private final RandomEventSelectionService randomEventService;
     /**
      * Step 33 — the engine that runs the automatic events a time-start collected.
      *
@@ -63,11 +65,22 @@ public class TimeAdvancementService implements TimeAdvancementPort {
                                   DomainEventPublisher eventPublisher,
                                   TimeStartRecoveryService recoveryService,
                                   WeatherSelectionService weatherService) {
+        this(store, userAccessPort, eventPublisher, recoveryService, weatherService, null);
+    }
+
+    /** Step 39 - overload wiring the random event picker. */
+    public TimeAdvancementService(TurnCycleStorePort store,
+                                  UserAccessPort userAccessPort,
+                                  DomainEventPublisher eventPublisher,
+                                  TimeStartRecoveryService recoveryService,
+                                  WeatherSelectionService weatherService,
+                                  RandomEventSelectionService randomEventService) {
         this.store = store;
         this.userAccessPort = userAccessPort;
         this.eventPublisher = eventPublisher;
         this.recoveryService = recoveryService;
         this.weatherService = weatherService;
+        this.randomEventService = randomEventService;
     }
 
     /** Step 33 — see {@link #automaticEventRunner}. Called once, from the bean wiring. */
@@ -244,12 +257,17 @@ public class TimeAdvancementService implements TimeAdvancementPort {
         // with somebody standing there. Run here rather than inside the recovery service:
         // the event engine sits above it in the wiring, and an event can force a time end.
         List<LocationEntryPort.AutomaticEventFired> fired = automaticEventRunner == null
-                ? List.of()
-                : automaticEventRunner.runPendingAutomaticEvents(
-                        match.id(), newClock, outcome.pending(), DEFAULT_LANG);
+                ? new ArrayList<>()
+                : new ArrayList<>(automaticEventRunner.runPendingAutomaticEvents(
+                        match.id(), newClock, outcome.pending(), DEFAULT_LANG));
         // Step 27: select the weather for the new time unit and apply its energy delta.
         if (weatherService != null) {
             weatherService.applyAtTimeStart(match.id());
+        }
+        // Step 39: at most one random event, after the weather.
+        if (randomEventService != null && automaticEventRunner != null) {
+            randomEventService.pickAtTimeStart(match.id()).ifPresent(p -> fired.addAll(
+                    automaticEventRunner.runRandomEvent(match.id(), newClock, p.idEvent(), DEFAULT_LANG)));
         }
         rebuildQueue(match.id(), newClock);
         eventPublisher.publish(new TimeAdvanced(match.uuid(), newClock));

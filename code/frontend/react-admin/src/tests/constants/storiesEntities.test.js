@@ -178,7 +178,7 @@ describe('traits entity config (v0.35.2)', () => {
 })
 
 describe('registry condition operator (Step 36)', () => {
-  const OPERATOR_ENTITIES = ['events', 'location-neighbors', 'weather-rules']
+  const OPERATOR_ENTITIES = ['events', 'location-neighbors', 'weather-rules', 'global-random-events']
 
   it('is offered on every entity that gates on a registry key', () => {
     for (const entity of OPERATOR_ENTITIES) {
@@ -203,6 +203,7 @@ describe('registry condition operator (Step 36)', () => {
       events: 'registryValueCondition',
       'location-neighbors': 'conditionRegistryValue',
       'weather-rules': 'conditionKeyValue',
+      'global-random-events': 'conditionValue',
     }
     for (const [entity, valueKey] of Object.entries(after)) {
       const keys = STORIES_ENTITIES_FIELDS[entity].map(f => f.key)
@@ -230,5 +231,20 @@ describe('registry key visibility (Step 36)', () => {
     // The backend shows a key only when visibility is exactly PUBLIC; everything else hides
     // it. Offering a third word here would invent a state the engine does not have.
     expect(KEY_VISIBILITY_OPTIONS.map(o => o.value)).toEqual(['PUBLIC', 'HIDDEN'])
+  })
+})
+
+describe('global random events (Step 39)', () => {
+  const fields = STORIES_ENTITIES_FIELDS['global-random-events']
+  const field = (key) => fields.find(f => f.key === key)
+
+  it('requires a 0..100 probability and an event', () => {
+    expect(field('probability')).toMatchObject({ type: 'number', required: true, min: 0, max: 100 })
+    expect(field('idEvent').required).toBe(true)
+  })
+
+  it('shows the operator column in the table', () => {
+    const columns = STORIES_ENTITIES_COLUMNS['global-random-events'].map(c => c.key)
+    expect(columns).toContain('registryValueOperatorCondition')
   })
 })

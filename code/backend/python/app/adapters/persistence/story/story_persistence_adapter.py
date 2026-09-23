@@ -724,7 +724,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
     def save_global_random_events(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         self._insert_batch(GlobalRandomEventEntity, story_id, items, {
             "id_card": "idCard", "id_event": "idEvent", "probability": "probability", 
-            "condition_key": "conditionKey", "condition_value": "conditionValue"
+            "condition_key": "conditionKey", "condition_value": "conditionValue",
+            "registry_value_operator_condition": "registryValueOperatorCondition",
         })
 
     def save_missions(self, story_id: int, items: List[Dict[str, Any]]) -> None:

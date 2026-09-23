@@ -16,6 +16,10 @@ public class GlobalRandomEventEntity extends BaseStoryScopedEntity {
     @Column(name = "condition_value")
     private String conditionValue;
 
+    /** Step 39 - how conditionValue is compared: = != > < ; null means =. */
+    @Column(name = "registry_value_operator_condition")
+    private String registryValueOperatorCondition;
+
     @Column(nullable = false)
     private Integer probability;
 
@@ -37,6 +41,9 @@ public class GlobalRandomEventEntity extends BaseStoryScopedEntity {
 
     public String getConditionValue() { return conditionValue; }
     public void setConditionValue(String conditionValue) { this.conditionValue = conditionValue; }
+
+    public String getRegistryValueOperatorCondition() { return registryValueOperatorCondition; }
+    public void setRegistryValueOperatorCondition(String registryValueOperatorCondition) { this.registryValueOperatorCondition = registryValueOperatorCondition; }
 
     public Integer getProbability() { return probability; }
     public void setProbability(Integer probability) { this.probability = probability; }

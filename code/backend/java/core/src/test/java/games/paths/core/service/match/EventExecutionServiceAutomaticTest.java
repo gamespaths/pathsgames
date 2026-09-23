@@ -438,6 +438,108 @@ class EventExecutionServiceAutomaticTest {
         }
     }
 
+    // ── Step 39: random events ──────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("Step 39 runRandomEvent — a party-wide event with no actor")
+    class RandomEvents {
+
+        @Test
+        @DisplayName("ALL reaches every character, ONLY_ONE nobody, targetClass narrows")
+        void reachesTheWholeParty() {
+            EventEntity e = event(70L, "evt-wolves");
+            EventEffectEntity all = new EventEffectEntity();
+            all.setStatistics("exp");
+            all.setValue(1);
+            all.setTarget("ALL");
+            EventEffectEntity lonely = new EventEffectEntity();
+            lonely.setStatistics("exp");
+            lonely.setValue(5);
+            lonely.setTarget("ONLY_ONE");
+            EventEffectEntity otherClass = new EventEffectEntity();
+            otherClass.setStatistics("exp");
+            otherClass.setValue(9);
+            otherClass.setTarget("ALL");
+            otherClass.setTargetClass(99);
+            EventActorView second = new EventActorView(8L, "char-2", 4L, null, 90003L,
+                    5, 5, 5, 10, 10, 0, 2, 20, 20, 50, 30, false, false, null);
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(actor(), second));
+            when(store.findEventsById(STORY_ID)).thenReturn(Map.of(70L, e));
+            when(store.findEffectsByEventId(STORY_ID)).thenReturn(Map.of(70L, List.of(all, lonely, otherClass)));
+
+            List<AutomaticEventFired> fired = service.runRandomEvent(MATCH_ID, CLOCK, 70L, "en");
+
+            assertEquals(1, fired.size());
+            assertEquals(LocationEntryPort.TRIGGER_RANDOM_EVENT, fired.get(0).trigger());
+            assertEquals("evt-wolves", fired.get(0).eventUuid());
+            ArgumentCaptor<EventExecutionStorePort.CharacterStats> stats =
+                    ArgumentCaptor.forClass(EventExecutionStorePort.CharacterStats.class);
+            verify(store).updateCharacterStats(eq(MATCH_ID), eq(CHAR_ID), stats.capture());
+            assertEquals(1, stats.getValue().exp());
+            verify(store).updateCharacterStats(eq(MATCH_ID), eq(8L), stats.capture());
+            assertEquals(3, stats.getValue().exp());
+            // its own log prefix, no actor, no location
+            verify(locationStore).logAutomaticEvent(eq(MATCH_ID), eq(null), eq(0L), eq(70L), anyInt(),
+                    eq("random event 70 (RANDOM_EVENT)"));
+        }
+
+        @Test
+        @DisplayName("an event owning choices is skipped and logged, nothing fires")
+        void choicesAreSkipped() {
+            when(store.findEventsById(STORY_ID)).thenReturn(Map.of(71L, event(71L, "evt-ask")));
+            when(store.findChoicesByEventId(STORY_ID, 71L)).thenReturn(List.of(new ChoiceEntity()));
+
+            assertTrue(service.runRandomEvent(MATCH_ID, CLOCK, 71L, "en").isEmpty());
+            verify(locationStore).logAutomaticEvent(eq(MATCH_ID), eq(null), eq(0L), eq(71L), eq(CLOCK),
+                    org.mockito.ArgumentMatchers.startsWith("automatic event skipped 71"));
+        }
+
+        @Test
+        @DisplayName("told FULL to anyone, with no location and no location lookup")
+        void toldFullWithoutLocation() {
+            CardInfo eventCard = card("card-wolves", "Wolves");
+            CardInfo effectCard = card("card-bite", "A bite");
+            List<AutomaticEventFired> fired = List.of(new AutomaticEventFired(
+                    LocationEntryPort.TRIGGER_RANDOM_EVENT, 0L, "evt-wolves", eventCard,
+                    List.of(new EventExecutionPort.AppliedEffect("evt-wolves", "eff-a", "LIFE",
+                            -1, "ALL", null, List.of("char-1"), effectCard)),
+                    List.of(), List.of(), false));
+
+            for (Long recipient : new Long[]{CHAR_ID, null}) {
+                List<CounterZeroItem> told =
+                        service.describeForRecipient(MATCH_ID, recipient, CLOCK, fired, "en");
+                assertEquals(CounterZeroItem.VISIBILITY_FULL, told.get(0).visibility());
+                assertNull(told.get(0).idLocation());
+                assertNull(told.get(0).cardLocation());
+                assertEquals(eventCard, told.get(0).card());
+                assertEquals(effectCard, told.get(0).cardEffects().get(0).card());
+            }
+            verify(locationStore, never()).findLocationTriggers(anyLong(), anyLong());
+        }
+
+        @Test
+        @DisplayName("a fired event with null effects is told with an empty list")
+        void nullEffects() {
+            List<AutomaticEventFired> fired = List.of(new AutomaticEventFired(
+                    LocationEntryPort.TRIGGER_RANDOM_EVENT, 0L, "evt-quiet", null,
+                    null, List.of(), List.of(), false));
+            assertTrue(service.describeForRecipient(MATCH_ID, CHAR_ID, CLOCK, fired, "en")
+                    .get(0).cardEffects().isEmpty());
+        }
+
+        @Test
+        @DisplayName("the log message and the party flag")
+        void helpers() {
+            assertEquals("random event 5 (RANDOM_EVENT)",
+                    EventExecutionService.automaticLogMessage(LocationEntryPort.TRIGGER_RANDOM_EVENT, 5, 0));
+            assertEquals("automatic event 5 (COUNTER_ZERO) at location 12",
+                    EventExecutionService.automaticLogMessage(LocationEntryPort.TRIGGER_COUNTER_ZERO, 5, 12));
+            assertTrue(EventExecutionService.isPartyTrigger(LocationEntryPort.TRIGGER_RANDOM_EVENT));
+            assertTrue(EventExecutionService.isPartyTrigger("mission completed"));
+            assertFalse(EventExecutionService.isPartyTrigger(LocationEntryPort.TRIGGER_COUNTER_ZERO));
+        }
+    }
+
     // ── fog of war ──────────────────────────────────────────────────────────
 
     @Nested

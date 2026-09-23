@@ -836,6 +836,26 @@ class MatchLogsServiceTest {
         }
 
         @Test
+        @DisplayName("Step 39: a RANDOM_EVENT row has no location and wears the event's card")
+        void randomEventCard() {
+            when(store.findEventLog(MATCH_ID)).thenReturn(List.of(new EventLogEntry(
+                    1L, null, 4, "2026-01-01T00:01:30Z",
+                    games.paths.core.port.match.LocationEntryStorePort.MSG_RANDOM_EVENT
+                            + " 5 (RANDOM_EVENT)", 5L, 0L)));
+            when(store.findEventIdCards(STORY_ID)).thenReturn(Map.of(5L, 11));
+            when(contentQueryPort.getCardByStoryIdAndCardId(STORY_ID, 11, "en"))
+                    .thenReturn(card("Wolves"));
+
+            LogEntry e = admin().logs().get(0);
+
+            assertEquals(MatchLogsService.TYPE_RANDOM_EVENT, e.type());
+            assertEquals(4, e.clock());
+            assertEquals(5L, e.idEvent());
+            assertNull(e.idLocationTo());
+            assertEquals("Wolves", e.card().title());
+        }
+
+        @Test
         @DisplayName("an AUTOMATIC_EVENT row is narrated by the event's own card")
         void automaticEventCard() {
             when(store.findEventLog(MATCH_ID)).thenReturn(List.of(new EventLogEntry(

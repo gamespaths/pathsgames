@@ -173,4 +173,49 @@ describe('EntityForm', () => {
     await userEvent.click(screen.getByTitle('Select Text Name'))
     expect(screen.getByTestId('fast-text-modal')).toBeInTheDocument()
   })
+
+  // Step 39 — a number field may declare min/max; out-of-range values are refused.
+  describe('min / max bounds', () => {
+    const BOUNDED = [{ key: 'probability', label: 'Probability (%)', type: 'number', min: 0, max: 100 }]
+    // The browser's own constraint check would stop a click first: submit the form directly.
+    const submit = () => fireEvent.submit(screen.getByText('Save').closest('form'))
+
+    it('refuses a value above max and one below min', () => {
+      const { unmount } = render(<EntityForm entity={{ uuid: '1', probability: 101 }} fields={BOUNDED} onSave={onSave} onCancel={onCancel} />)
+      submit()
+      expect(screen.getByText('Probability (%) must be between 0 and 100.')).toBeInTheDocument()
+      unmount()
+      render(<EntityForm entity={{ uuid: '2', probability: -1 }} fields={BOUNDED} onSave={onSave} onCancel={onCancel} />)
+      submit()
+      expect(screen.getByText('Probability (%) must be between 0 and 100.')).toBeInTheDocument()
+      expect(onSave).not.toHaveBeenCalled()
+    })
+
+    it('accepts a value inside the bounds, and an empty one', async () => {
+      render(<EntityForm entity={{ uuid: '1', probability: 100 }} fields={BOUNDED} onSave={onSave} onCancel={onCancel} />)
+      await userEvent.click(screen.getByText('Save'))
+      expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ probability: 100 }))
+    })
+
+    it('names an open bound when only one side is declared', () => {
+      const MIN_ONLY = [{ key: 'n', label: 'N', type: 'number', min: 5 }]
+      render(<EntityForm entity={{ uuid: '1', n: 1 }} fields={MIN_ONLY} onSave={onSave} onCancel={onCancel} />)
+      submit()
+      expect(screen.getByText('N must be between 5 and ∞.')).toBeInTheDocument()
+    })
+
+    it('names an open lower bound too', () => {
+      const MAX_ONLY = [{ key: 'n', label: 'N', type: 'number', max: 5 }]
+      render(<EntityForm entity={{ uuid: '1', n: 9 }} fields={MAX_ONLY} onSave={onSave} onCancel={onCancel} />)
+      submit()
+      expect(screen.getByText('N must be between -∞ and 5.')).toBeInTheDocument()
+    })
+
+    it('passes the bounds to the number input', () => {
+      render(<EntityForm fields={BOUNDED} onSave={onSave} onCancel={onCancel} />)
+      const input = screen.getByLabelText('Probability (%)')
+      expect(input).toHaveAttribute('min', '0')
+      expect(input).toHaveAttribute('max', '100')
+    })
+  })
 })

@@ -273,6 +273,11 @@ still names nobody, and any other actor-less run (a counter-zero fuse) is unchan
 by `EventExecutionServiceAutomaticTest`, `test_location_entry_events.py` (Python and AWS) and
 `test_events.py`.
 
+**v0.39.0**: the flag is renamed/generalised from `missionRun` to `partyRun` (Java
+`isPartyTrigger(trigger)`, Python `_Exec.party_run`, AWS `acc['partyRun']`) so the same
+actor-less, party-wide path also carries [Step 39](./Step39_RandomEvents.md)'s global random
+events — `partyRun = trigger in {MISSION, RANDOM_EVENT}`. No behaviour change for missions.
+
 ## 14. AWS fix — the stale-guest preview timed out
 
 `GET/DELETE /api/admin/guests/stale` ([Step 12 §Admin guest management](./Step12_GuestLoginMethod.md), v0.36.2) resolved the
@@ -342,11 +347,15 @@ event/item `dex`/`int`/`cos` effects — only `use-exp` honours `max_stat_value`
   |---------|-------------|------|
   | 0.38.0 | Experience and character advancement, implemented: `gaming_character_instance.exp` (written since V0.29.0, unspent until now) gets a spender — `POST /api/gameplay/{uuid}/action/use-exp` raises DEX/INT/COS by one at `cost = max(1, exp_cost × current + exp_cost_base)`, read from the match's difficulty row and capped by `max_stat_value` (§0-§3); zero-energy, turn-preserving action gated by match/turn/coma/sleep/stat/safe-location/cap/afford checks in that order (§2); new match-log type `EXP_USE` (§4); `players[]` on `/info` (and `/players`, `/character`, admin `/info`) gain `exp`/`expCosts{dex,int,cos}` (§5). `list_locations.is_safe` dropped (Python renames it to `secure_param` instead, closing a Java/Python safety-field contract drift) and `list_stories_difficulty.cost_max_characteristics` dropped for `exp_cost_base`/`max_stat_value` (§8); admin `changeStatistics` gains `exp` (§5). react-game gains the Experience door card and per-stat purchase cards, react-admin gains an `XP` column and an `exp` edit field; new Robot suite `38_experience/` (21 tests, §12). | September 17, 2026 |
   | 0.38.3 | `use-exp` becomes a registry writer: after the `EXP_USE` log row it writes `use-exp` (running purchase count, per match) and `use-exp-<STAT>` (stat value just reached) through the ordinary `RegistryService.upsert`, each gated on the story declaring that key in `list_keys` (§15). No endpoint, OpenAPI, migration or frontend change; Robot `story_experience.json` gains keys 5-6 and a "Nimble" mission, `experience_missions.robot` grows from 1 to 2 cases (§12). | September 21, 2026 |
+  | 0.39.0 | The actor-less `missionRun` flag (§13) is renamed/generalised to `partyRun`, now true for both a mission-fired event and a [Step 39](./Step39_RandomEvents.md) random event. Documentation-only note here; behaviour for missions is unchanged. | September 23, 2026 |
 
 - **Last Updated**: September 21, 2026 (v0.38.3)
 - **Status**: Complete
 
-# < Paths Games />
+
+
+
+# &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
 
 Some content and portions of code in this repository were also produced with the support of artificial intelligence tools, whose contribution helped enrich and accelerate the creation of the material. Every piece of information and code fragment has nevertheless been carefully checked and validated with the goal of ensuring the highest quality and reliability of the provided content.
@@ -364,3 +373,14 @@ Public projects
 
 
 The software is distributed under the terms of the GNU General Public License v3.0. Use, modification, and redistribution are permitted, provided that any copy or derivative work is released under the same license. The content is provided "as is", without any warranty, express or implied.
+
+
+Narrative Content & Assets: The story, dialogues, characters, sounds, musics, paint, all artist contents and world-building (located on /data folder) are NOT open source. They are licensed under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 (CC BY-NC-ND 4.0).
+
+
+(ITA) Il software è distribuito secondo i termini della GNU General Public License v3.0. L'uso, la modifica e la ridistribuzione sono consentiti, a condizione che ogni copia o lavoro derivato sia rilasciato con la stessa licenza. Il contenuto è fornito "così com'è", senza alcuna garanzia, esplicita o implicita.
+
+
+
+
+

@@ -34,6 +34,8 @@ const TYPE_META = {
   // no badge colour and no filter chip of their own.
   COUNTER_ZERO:    { icon: 'fa-hourglass-end',   style: { background: '#3a2a10', color: '#fb923c', border: '1px solid #f97316' } },
   AUTOMATIC_EVENT: { icon: 'fa-wand-magic-sparkles', style: { background: '#2a1a2a', color: '#e879f9', border: '1px solid #d946ef' } },
+  // Step 39 — a global random event fired at time-start.
+  RANDOM_EVENT:    { icon: 'fa-dice',           style: { background: '#1a2a3a', color: '#fbbf24', border: '1px solid #f59e0b' } },
   // Step 36 / v0.37.2 — both were answered by the API and fell through to DEFAULT_META, so
   // they had no badge colour and no filter chip of their own.
   REGISTRY_CHANGE: { icon: 'fa-list',            style: { background: '#0d2a3a', color: '#38bdf8', border: '1px solid #0ea5e9' } },
@@ -199,6 +201,7 @@ function entryDetail(entry) {
 
     case 'EVENT':
     case 'AUTOMATIC_EVENT':
+    case 'RANDOM_EVENT':
       return entry.idEvent != null ? `event #${entry.idEvent}` : '—'
 
     case 'COUNTER_ZERO':

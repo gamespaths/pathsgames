@@ -347,7 +347,8 @@ def test_item_effects_class_bonuses_missions_and_weather_are_checked():
     s["classBonuses"] = [{"id": 1, "idClass": 1}]
     s["missionSteps"] = [{"id": 1, "idMission": 1, "conditionKey": "k", "conditionValue": "1"}]
     s["weatherRules"] = [{"id": 1, "idEvent": 1}]
-    s["globalRandomEvents"] = [{"id": 1, "idEvent": 1}]
+    # Step 39 - R11: event 1 owns choice 1, so the random event names event 2.
+    s["globalRandomEvents"] = [{"id": 1, "idEvent": 2}]
     assert validator().validate_import_data(s).is_valid()
 
 
@@ -425,3 +426,56 @@ def test_a_mission_with_no_condition_key_is_reported_but_only_on_validate_story(
     s["missions"] = [{"id": 1}]
     imported = validator().validate_import_data(s)
     assert not any(e.rule == "R10_MISSION_CONDITION" for e in imported.errors)
+
+
+# ── Step 39: R11 global random events ────────────────────────────────────────
+
+def _r11_fields(row, **extra):
+    s = valid_story()
+    s["globalRandomEvents"] = [row]
+    s.update(extra)
+    return [e.field_name for e in validator().validate_import_data(s).errors
+            if e.rule == "R11_RANDOM_EVENT"]
+
+
+def test_r11_complete_row_on_choice_free_event_passes():
+    assert _r11_fields({"id": 1, "idEvent": 2, "probability": 100,
+                        "conditionKey": "CHAPTER", "conditionValue": "1"}) == []
+
+
+def test_r11_probability_outside_range_fails_missing_is_zero():
+    assert _r11_fields({"id": 1, "idEvent": 2, "probability": 101}) == ["probability"]
+    assert _r11_fields({"id": 1, "idEvent": 2, "probability": -1}) == ["probability"]
+    assert _r11_fields({"id": 1, "idEvent": 2}) == []
+
+
+def test_r11_missing_event_fails():
+    assert _r11_fields({"id": 1, "probability": 10}) == ["idEvent"]
+    assert _r11_fields({"id": 1, "idEvent": 0, "probability": 10}) == ["idEvent"]
+
+
+def test_r11_event_owning_choices_fails():
+    assert _r11_fields({"id": 1, "idEvent": 1, "probability": 10}) == ["idEvent"]
+
+
+def test_r11_event_with_weather_effect_fails():
+    assert _r11_fields({"id": 1, "idEvent": 2, "probability": 10},
+                       weatherRules=[{"id": 1}],
+                       eventEffects=[{"id": 1, "idEvent": 2, "idWeather": 1},
+                                     {"id": 2, "idEvent": 1, "idWeather": 0}]) == ["idEvent"]
+
+
+def test_r11_half_condition_fails():
+    assert _r11_fields({"id": 1, "idEvent": 2, "probability": 10,
+                        "conditionKey": "CHAPTER"}) == ["conditionValue"]
+    assert _r11_fields({"id": 1, "idEvent": 2, "probability": 10,
+                        "conditionKey": " ", "conditionValue": "1"}) == ["conditionKey"]
+
+
+def test_r11_import_never_warns():
+    s = valid_story()
+    s["globalRandomEvents"] = [{"id": 1, "idEvent": 2, "probability": 80},
+                               {"id": 2, "idEvent": 2, "probability": 80}]
+    report = validator().validate_import_data(s)
+    assert report.is_valid()
+    assert report.warnings == []

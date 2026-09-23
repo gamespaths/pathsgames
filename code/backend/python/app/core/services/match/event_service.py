@@ -49,6 +49,20 @@ TARGET_ONLY_ONE = "ONLY_ONE"
 # Step 37/38 — the trigger a completed mission fires its event with: no actor, ALL = the party.
 TRIGGER_MISSION = "mission completed"
 
+
+
+def is_party_trigger(trigger) -> bool:
+    """Missions and random events reach the whole party: they have no actor to stand next to."""
+    return trigger in (TRIGGER_MISSION, lem.TRIGGER_RANDOM_EVENT)
+
+
+def automatic_log_message(trigger, id_event, id_location) -> str:
+    """Step 39 — a random event gets its own prefix, so the timeline can tell it apart."""
+    if trigger == lem.TRIGGER_RANDOM_EVENT:
+        return f"{lem.MSG_RANDOM_EVENT} {id_event} ({trigger})"
+    return f"{lem.MSG_AUTOMATIC_EVENT} {id_event} ({trigger}) at location {id_location}"
+
+
 # A chain longer than this is treated as broken and simply stops. The Step 22 validator
 # rejects cycles at import, but the admin CRUD path is lenient and never sees the whole
 # graph, so an authored A -> B -> A can reach the engine. The visited set already breaks
@@ -793,7 +807,7 @@ class EventService(EventPort):
         # a location nobody stands in). There is then nobody to be a recipient: the row's
         # match-scoped halves (weather, registry) have already been applied by the caller.
         if x.actor is None:
-            if not x.mission_run or target == TARGET_ONLY_ONE:
+            if not x.party_run or target == TARGET_ONLY_ONE:
                 return []
             return _narrow_by_class(list(x.all_characters()), effect.get("target_class"))
         # Locations come from the tracked map, not the raw views: a forced movement earlier
@@ -1134,6 +1148,19 @@ class EventService(EventPort):
         finally:
             self._missions_end()
 
+    def run_random_event(self, id_match: int, current_clock: int, id_event: int,
+                         lang: str = "en") -> List[Any]:
+        """Step 39 — run a picked random event as a party-wide event with no actor."""
+        fired: List[Any] = []
+        self._missions_begin()
+        try:
+            # allow_time_end = False: it runs inside the time-start pass, like the pending ones.
+            self._run_automatic_event(id_match, None, id_event, 0, lem.TRIGGER_RANDOM_EVENT,
+                                      current_clock, lang, False, 0, fired)
+        finally:
+            self._missions_end()
+        return fired
+
     def _run_pending_automatic_events(self, id_match: int, current_clock: int,
                                       pending: List[Any], lang: str = "en") -> List[Any]:
         """Run the events a time-start collected — counter-zero fuses and
@@ -1173,6 +1200,12 @@ class EventService(EventPort):
             if id_recipient_character is not None else set()
 
         for f in fired:
+            if f.trigger == lem.TRIGGER_RANDOM_EVENT:
+                # Step 39 — it happened to the whole party, so everyone sees it whole.
+                out.append(lem.CounterZeroItem(f.trigger, None, f.card, None,
+                                               list(f.effects or []), f.event_uuid, clock,
+                                               lem.VISIBILITY_FULL))
+                continue
             if here is not None and here == f.id_location:
                 visibility = lem.VISIBILITY_FULL
             elif f.id_location in visited:
@@ -1298,7 +1331,7 @@ class EventService(EventPort):
 
         x = _Exec(self, match, actor, ctx, lang or "en", event)
         x.entry_depth = depth
-        x.mission_run = trigger == TRIGGER_MISSION
+        x.party_run = is_party_trigger(trigger)
         self._run_chain(x, event)
         self._resolve_all_player_coma(x)
         if x.end_time and not x.coma_triggered and allow_time_end:
@@ -1306,7 +1339,7 @@ class EventService(EventPort):
         self._flush(x)
         self.location_store.log_automatic_event(
             id_match, id_actor_character, id_location, id_event, x.current_clock,
-            f"{lem.MSG_AUTOMATIC_EVENT} {id_event} ({trigger}) at location {id_location}")
+            automatic_log_message(trigger, id_event, id_location))
         # v0.35.6 — the epilogue is sliced off the tail here too: what the arrival did and
         # what the collapse answered are two chains, and the board narrates them apart.
         out.append(lem.AutomaticEventFired(
@@ -1561,7 +1594,8 @@ class _Exec:
         #: How many arrivals deep this execution already is — the runaway-loop guard.
         self.entry_depth: int = 0
         # Step 38 — fired by a completed mission: no actor, and ALL means the whole party.
-        self.mission_run: bool = False
+        # Step 38/39 — a mission or a random event: no actor, ALL = the whole party.
+        self.party_run: bool = False
 
         self.current_clock = match.get("current_clock") or 0
         self.energy_spent = 0

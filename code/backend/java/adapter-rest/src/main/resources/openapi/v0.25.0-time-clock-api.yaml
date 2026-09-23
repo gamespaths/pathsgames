@@ -98,8 +98,8 @@ components:
             properties:
               trigger:
                 type: string
-                enum: [COUNTER_ZERO, CHARACTER_START_TIME]
-              idLocation: { type: integer }
+                enum: [COUNTER_ZERO, CHARACTER_START_TIME, RANDOM_EVENT]
+              idLocation: { type: integer, nullable: true, description: 'null for RANDOM_EVENT (v0.39.0)' }
               card: { type: object, nullable: true }
               cardLocation: { type: object, nullable: true }
               cardEffects:

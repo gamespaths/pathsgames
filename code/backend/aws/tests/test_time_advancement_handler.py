@@ -456,3 +456,83 @@ def test_a_collapse_at_the_time_start_still_runs_the_story_epilogue():
     assert edge['comaUuids'] == ['c1'] and edge['allPlayersInComa'] is True
     assert edge['comaEventUuid'] == 'evt-coma'
     assert edge['comaExecutedEventUuids'] == ['evt-coma']
+
+
+# ── Step 39: random events ───────────────────────────────────────────────────
+
+def _random_story(probability=100, event_type='AUTOMATIC', **extra):
+    story = _story()
+    story.update({
+        'id': 9,
+        'events': [{'id': 70, 'uuid': 'evt-wolves', 'type': event_type}],
+        'eventEffects': [{'id': 1, 'uuid': 'eff-1', 'idEvent': 70, 'statistics': 'exp',
+                          'value': 1, 'target': 'ALL'}],
+        'globalRandomEvents': [{'id': 1, 'idEvent': 70, 'probability': probability}],
+    })
+    story.update(extra)
+    return story
+
+
+def _two_sleepers(clock=3):
+    other = _char('m1', 2, 'c2', owner='other-uuid-002', sleeping=1)
+    other['idLocation'] = 99
+    mine = _char('m1', 1, 'c1')
+    mine['idLocation'] = 5
+    return [PLAYER, _match(clock=clock), mine, other]
+
+
+def test_step39_sleep_fires_the_random_event_for_the_whole_party():
+    items = [_random_story()] + _two_sleepers()
+    with _env(items) as (table, _):
+        result = h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None)
+    body = _body(result)
+    assert body['timeEndTriggered'] is True
+    told = [c for c in body['counterZero'] if c['trigger'] == 'RANDOM_EVENT']
+    assert len(told) == 1
+    assert told[0]['idLocation'] is None
+    assert told[0]['visibility'] == 'FULL'
+    assert told[0]['eventUuid'] == 'evt-wolves'
+    # ALL with no actor reaches both characters, wherever they stand
+    assert table.get_item('MATCH#m1', 'CHARACTER#c1').get('exp') == 1
+    assert table.get_item('MATCH#m1', 'CHARACTER#c2').get('exp') == 1
+    rows = [r for r in table.logs('m1') if r['type'] == 'RANDOM_EVENT']
+    assert len(rows) == 1
+    assert rows[0]['idEvent'] == 70
+    assert rows[0]['message'] == 'random event 70 (RANDOM_EVENT)'
+
+
+def test_step39_probability_zero_never_fires():
+    items = [_random_story(probability=0)] + _two_sleepers()
+    with _env(items) as (table, _):
+        body = _body(h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None))
+    assert [c for c in body['counterZero'] if c['trigger'] == 'RANDOM_EVENT'] == []
+    assert not any(r['type'] == 'RANDOM_EVENT' for r in table.logs('m1'))
+
+
+def test_step39_a_spent_once_event_does_not_fire_again():
+    items = [_random_story(event_type='ONCE')] + _two_sleepers()
+    items[2]['executedEventIds'] = [70]
+    with _env(items) as (table, _):
+        h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None)
+    assert not any(r['type'] == 'RANDOM_EVENT' for r in table.logs('m1'))
+
+
+def test_step39_a_story_without_random_events_fires_nothing():
+    items = [_random_story(globalRandomEvents=[])] + _two_sleepers()
+    with _env(items) as (table, _):
+        h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None)
+    assert not any(r['type'] == 'RANDOM_EVENT' for r in table.logs('m1'))
+
+
+def test_step39_not_running_or_clock_zero_fires_nothing():
+    assert h._run_random_event_at_time_start({'status': 'PAUSED', 'currentClock': 3}, 'm1',
+                                             _random_story()) == []
+    assert h._run_random_event_at_time_start({'status': 'RUNNING', 'currentClock': 0}, 'm1',
+                                             _random_story()) == []
+
+
+def test_step39_a_random_event_owning_choices_is_not_eligible():
+    items = [_random_story(choices=[{'id': 1, 'idEvent': 70}])] + _two_sleepers()
+    with _env(items) as (table, _):
+        h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None)
+    assert not any(r['type'] == 'RANDOM_EVENT' for r in table.logs('m1'))

@@ -112,7 +112,8 @@ class StoryValidatorServiceDbPathTest {
 
         GlobalRandomEventEntity gr = new GlobalRandomEventEntity();
         gr.setId(1L);
-        gr.setIdEvent(1);
+        // Step 39 - R11: a random event names a choice-free event (event 1 owns choice 1).
+        gr.setIdEvent(2);
         when(readPort.findGlobalRandomEventsByStoryId(1L)).thenReturn(List.of(gr));
 
         LocationNeighborEntity n = new LocationNeighborEntity();
@@ -212,5 +213,52 @@ class StoryValidatorServiceDbPathTest {
         data.put("missions", List.of(Map.of("id", 1)));
         assertTrue(service.validateImportData(data).getErrors().stream()
                 .noneMatch(e -> "R10_MISSION_CONDITION".equals(e.rule())));
+    }
+    private GlobalRandomEventEntity random(long id, Integer idEvent, int probability) {
+        GlobalRandomEventEntity r = new GlobalRandomEventEntity();
+        r.setId(id);
+        r.setIdEvent(idEvent);
+        r.setProbability(probability);
+        return r;
+    }
+
+    @Test
+    @DisplayName("Step 39 - R11 from the DB: choices and weather effects, plus the >100 warning")
+    void randomEventsFromDb() {
+        EventEffectEntity weatherEffect = new EventEffectEntity();
+        weatherEffect.setId(1L);
+        weatherEffect.setIdEvent(2);
+        weatherEffect.setIdWeather(1);
+        WeatherRuleEntity weather = new WeatherRuleEntity();
+        weather.setId(1L);
+        when(readPort.findEventsByStoryId(1L)).thenReturn(List.of(event(1, null), event(2, null)));
+        when(readPort.findChoicesByStoryId(1L)).thenReturn(List.of(choice(1)));
+        when(readPort.findEventEffectsByStoryId(1L)).thenReturn(List.of(weatherEffect));
+        when(readPort.findWeatherRulesByStoryId(1L)).thenReturn(List.of(weather));
+        when(readPort.findGlobalRandomEventsByStoryId(1L)).thenReturn(List.of(
+                random(1, 1, 70), random(2, 2, 60)));
+
+        StoryValidationReport report = service.validateStory(1L);
+
+        List<String> r11 = report.getErrors().stream()
+                .filter(e -> "R11_RANDOM_EVENT".equals(e.rule())).map(e -> e.message()).toList();
+        assertEquals(2, r11.size());
+        assertTrue(r11.get(0).contains("owns choices"));
+        assertTrue(r11.get(1).contains("weather effect"));
+        assertEquals(1, report.getWarnings().size());
+        assertTrue(report.getWarnings().get(0).message().contains("130"));
+    }
+
+    @Test
+    @DisplayName("Step 39 - a total of exactly 100 is no warning")
+    void randomEventsAtHundredNoWarning() {
+        when(readPort.findEventsByStoryId(1L)).thenReturn(List.of(event(1, null)));
+        when(readPort.findGlobalRandomEventsByStoryId(1L)).thenReturn(List.of(
+                random(1, 1, 60), random(2, 1, 40)));
+
+        StoryValidationReport report = service.validateStory(1L);
+
+        assertTrue(report.getWarnings().isEmpty());
+        assertTrue(report.getErrors().stream().noneMatch(e -> "R11_RANDOM_EVENT".equals(e.rule())));
     }
 }

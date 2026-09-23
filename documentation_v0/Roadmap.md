@@ -51,10 +51,11 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 36 | [Registry system](./Step36_RegistrySystem.md) | ✅ | RegistryService (render/parse/evaluate) & registry api &  operator column on events/edges/weather; v0.36.1 multi-value keys (SET semantics, ∃/∄/∀ operators); v0.36.2 case-insensitive trimmed value compare, locations write the registry on arrival, admin registry edit API |
 | 37 | [Mission system](./Step37_MissionSystem.md) | ✅ | Missions are a projection of the registry: `condition_value`/`condition_values` (PIPE AND), AVAILABLE→ACTIVE→COMPLETED/FAILED, `/api/match/{uuid}/missions` and `missions[]` on `/info` |
 | 38 | [Experience system](./Step38_ExperienceSystem.md) | ✅ | `use-exp` spends `gaming_character_instance.exp` to raise DEX/INT/COS by one at a difficulty-priced cost; `is_safe`→`secure_param`, `cost_max_characteristics`→`exp_cost_base`/`max_stat_value` |
+| 39 | [Random events](./Step39_RandomEvents.md) | ✅ | At most one `list_global_random_events` row fires at time-start, after the weather; absolute-percentage pick, party-wide reach, `RANDOM_EVENT` trigger in `counterZero[]` |
 
 | Steps | Phase |
 | -- | -- |
-| 34-39 | Game mechanics — inventory, resources, registry, missions, experience |
+| 34-39 | Game mechanics — inventory, resources, registry, missions, experience, random events |
 | 40 | Logging & snapshots |
 | 41 | Frontend & security: single-player game board and gameplay UI |
 | 42 | **Launch beta version with guest and single-player game** |
@@ -81,58 +82,6 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 - Ciao, read step xx points and create a plan to develop all. Ask me if you have any questions/doubits. I've already bump version to 0.xx.0 
 
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
-39. Random events (global random events at time start) — decisions taken 2026-09-17, ready to develop
-    - What exists: `list_global_random_events` since V0.10.4 (`condition_key`, `condition_value`, `probability` INTEGER,
-      `id_event`, `id_card`, `id_text`), imported, admin CRUD (`global-random-events`), validated (`idEvent` → event).
-      NO engine reads it on any backend. Step 09 §4.7 already places "random events checked" in the time lifecycle.
-    - WHEN: only at time-start, on every backend, in the sequence of `TimeAdvancementService`:
-      clock++ → clock history → wake all → recovery → pending automatic events (counter-zero, start-time) → weather
-      → **random events (new, AFTER the weather)** → turn queue. Never at clock 0 (match start), only RUNNING matches,
-      never on arrival or on an action.
-    - HOW MANY / HOW: at most ONE event per day. Weighted pick like the weather (Step 27): among the ELIGIBLE rows
-      (condition met, probability > 0) `probability` is the weight; if at least one row is eligible one always fires.
-      `probability` is an INTEGER 0..100 (no decimals); 0 = never eligible. A random event can fire again on later days
-      unless its event is `type = ONCE` (the `EVENT_EXECUTED` markers the automatic run already writes make ONCE work).
-    - RNG: the Step 27 generator, `Random(rng_seed + clock + salt)` with its own salt so weather and random never
-      influence each other and a match with `rngSeed=42` is reproducible (Robot).
-    - CONDITION: `condition_key/value` read through `RegistryService.evaluate` like events/edges/weather; blank key = no
-      condition (the EVENT rule, opposite of the mission rule). New column `registry_value_operator_condition` on
-      `list_global_random_events` (V0.39.0 Flyway ×2, Python `align_schema` TEXT column, AWS raw) so `=`, `!=`, `>`, `<`
-      work as everywhere else; NULL/blank operator = `=`. `id_text` of the row is IGNORED for now (kept in the schema).
-    - WHO: a GLOBAL event with NO actor (like a mission's event): `target = ALL` reaches EVERY character of the match,
-      wherever each one stands (generalise the Step 38 `missionRun` flag into a "party run": mission | random),
-      `ONLY_ONE` names nobody, `target_class` still narrows. Every effect a normal event row may carry is allowed
-      (stats, items, traits, registry, weather, forced move). An event that owns CHOICES cannot be automatic: the engine
-      keeps skipping + logging it, AND the validator refuses it (see rules).
-    - LOG: new timeline type `RANDOM_EVENT` (Java/Python/AWS `MatchLogsService`, OpenAPI enum, react-game `MatchLogCard`,
-      react-admin `MatchLogsCard`), one row per event fired with the event card; no row when nothing fires.
-    - WHAT THE PLAYER SEES: the sleep answer (`SleepActionResponse.automaticEvents[]`, Step 33.3) carries the fired
-      random event with `trigger: "random"`, `idLocation: null`, its `card` and `effects[]` cards. react-game shows it
-      after the sleep, AFTER the possible new-weather card (weather → random), as a RIGHT page card: the card of the
-      LAST effect that has one; if no effect has a card, or there is no effect, the EVENT's card. Reuse
-      `showAutomaticEvents` / `lastEffectCard`; nothing new on the left page.
-    - VALIDATION `R11_RANDOM_EVENT` (import hard-fail, CRUD lenient, `validate` endpoint): `probability` outside 0..100;
-      `idEvent` missing; the referenced event owns choices; `conditionKey` present with blank `conditionValue`.
-      react-admin form: `probability` number min 0 max 100 required, `idEvent` required, new `registryValueOperatorCondition`
-      select (`=`, `!=`, `>`, `<`) like the events form; import/export/CRUD carry the new column (all backends).
-    - SEEDS: the user adds the random events to the tutorial story himself (`stories/infinite_paths.json`, dev seeds).
-      The Robot suite ships its OWN story: `code/tests/robot/tests/39_random_events/story_random_events.json` with a fixed
-      `rngSeed` (pattern of `36_registry` / `38_experience`), keyword resources in a `random_events_common.resource`.
-    - ROBOT (`39_random_events/`): fires at time-start after a sleep with seed 42 (one and only one row, weighted);
-      nothing fires when no row is eligible (condition not met / probability 0); the ONCE event fires once in two days;
-      the party-wide reach (effect on the character whatever its location); the `RANDOM_EVENT` log row; the
-      `automaticEvents[]` entry with `trigger: "random"` on the sleep answer; validation refusals (probability 101,
-      missing idEvent, event with choices) on import; admin CRUD round-trip of the new column; legacy payload without the
-      column imports (operator defaults to `=`).
-    - UNIT TESTS (> 95 %): Java `RandomEventSelectionService` (or inside `WeatherSelectionService`'s sibling) — eligibility,
-      weighted pick with the seeded RNG, ONCE, party reach, no actor, choice refusal; Python and AWS equivalents;
-      react-game order weather → random and the effect/event card rule; react-admin form rules.
-    - OUT OF SCOPE: multiplayer broadcast (§65 stays as it is), an admin "force a random event" endpoint (the seed is
-      enough), decimals on probability, `id_text` narrative override.
-    - Version 0.39.0 (bump on request, as always); docs via `/doc-update` at the end: new `Step39_RandomEvents.md`,
-      INDEX, this table, Step 25 (time-start order), Step 27 (RNG salt), Step 33 (automaticEvents trigger `random`).
-
-
 40. Action logging and match history
     - on AWS ItemUsageLog max 400Kb dynamo
         - AWS dynamo tables: to divide unique table to multiple tables (users, stories, matches, logs)

@@ -39,6 +39,8 @@ public interface LocationEntryPort {
     String TRIGGER_COUNTER_ZERO = "COUNTER_ZERO";
     /** A time unit began with a character standing here. */
     String TRIGGER_CHARACTER_START_TIME = "CHARACTER_START_TIME";
+    /** Step 39 - a global random event fired at time-start; no actor, no location. */
+    String TRIGGER_RANDOM_EVENT = "RANDOM_EVENT";
 
     /**
      * Resolve and run every trigger a successful arrival fires, then mark the
@@ -56,6 +58,9 @@ public interface LocationEntryPort {
     List<AutomaticEventFired> runPendingAutomaticEvents(long idMatch, int currentClock,
                                                         List<PendingAutomaticEvent> pending,
                                                         String lang);
+
+    /** Step 39 - run a picked random event as a party-wide event with no actor. */
+    List<AutomaticEventFired> runRandomEvent(long idMatch, int currentClock, long idEvent, String lang);
 
     /**
      * Describe an already-run list of automatic events <b>to one recipient</b>, applying the

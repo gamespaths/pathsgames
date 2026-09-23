@@ -345,6 +345,13 @@ pass action might trigger in future steps.
    e. Update `gaming_match.id_character_current_turn` to that character's `id`.
 8. Publish `TimeAdvanced` domain event with `matchUuid`, `previousClock`, `newClock`.
 
+> **v0.39.0**: steps 26, 27 and 39 insert three more stages between step 5 (wake all) and
+> step 7 (turn queue rebuild) above. The shipped order is: wake all → recovery
+> ([Step 26](./Step26_TimeStartRecovery.md)) → pending automatic events (counter-zero,
+> start-time, [Step 33](./Step33_LocationEntryEvents.md)) → weather
+> ([Step 27](./Step27_WeatherSystem.md)) → **random event** ([Step 39](./Step39_RandomEvents.md),
+> at most one, after the weather) → turn queue rebuild.
+
 ### 6.4 Clock label resolution (`GET .../clock`)
 
 1. Validate match and caller participation (→ `404`).
@@ -1507,6 +1514,7 @@ render an explicit "end game" affordance without re-deriving it from the event
     | 0.25.4 | Events cards into GameBook and end match flag to complete a match | June 16, 2026 |
     | 0.25.4 | EndGame and sleep card on GameBook, sleep action to call APIs | June 16, 2026 |
     | 0.26.1 | Bugfix: added `idCard` to `locationsActive[]` entries across all backends and fixed the AWS seed, which had been returning cards absent from `list_cards`. See §15 of the Step 26 doc. | June 22, 2026 |
+    | 0.39.0 | Documented the final time-start stage order: wake all → recovery → pending automatic events → weather → random event → turn queue. See §6.3 note and [Step 39](./Step39_RandomEvents.md). | September 23, 2026 |
 
 - **Last Updated**: June 22, 2026
 - **Status**: Complete

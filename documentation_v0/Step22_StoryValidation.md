@@ -57,6 +57,7 @@ A rule produces zero or more `StoryValidationError { rule, entityType, entityId,
 | `R6_DIFFICULTY_RANGE` | (entity-local) `minCharacter` exceeds `maxCharacter`. |
 | `R8_CHOICE_EVENT` | **(v0.31.0)** Every choice must have a non-null `idEvent` and a null `idLocation` — a choice belongs to an event, never a location (the location binding is deprecated). Hard-fail on import and `validate-story`; entity-local (lenient CRUD) rejects only a non-null `idLocation`, tolerating a still-missing `idEvent` so a draft choice can exist before its event while authoring. See [Step31_ChoiceEngine.md](./Step31_ChoiceEngine.md). |
 | `R10_MISSION_CONDITION` | **(v0.37.0)** A mission or mission-step with a blank `conditionKey`, or one whose key has no value to compare against. **Report-only**: runs solely on the `validate-story` pass, never on import or admin create — every backend silently ignores such a row rather than refusing it, and a story already carrying one must stay importable. `react-admin` separately blocks it at authoring time via a `required` field guard. See [Step37_MissionSystem.md](./Step37_MissionSystem.md). |
+| `R11_RANDOM_EVENT` | **(v0.39.0)** A `list_global_random_events` row with `probability` outside 0..100; a missing/zero `idEvent`; the referenced event owning choices or carrying a weather-change effect (`idWeather`); `conditionKey` set without `conditionValue`, or vice versa. Hard-fail on import, lenient on CRUD, reported on `validate-story`. See [Step39_RandomEvents.md](./Step39_RandomEvents.md). |
 
 **Entity-local (lenient CRUD) subset:** `character-templates` → stat ranges + class
 conflict; `items`/`traits` → class conflict; `difficulties` → character range; `choices` →
@@ -82,9 +83,16 @@ OpenAPI source of truth:
 
 | HTTP | Condition |
 |------|-----------|
-| `200` | `{ "valid": bool, "count": int, "errors": [ {rule,entityType,entityId,field,message} ] }` |
+| `200` | `{ "valid": bool, "count": int, "errors": [ {rule,entityType,entityId,field,message} ], "warnings": [ {...} ] }` |
 | `401` | Missing / invalid admin token |
 | `404` | `STORY_NOT_FOUND` |
+
+**v0.39.0**: `warnings[]` (same `{rule,entityType,entityId,field,message}` shape) is new,
+populated only on this read-only report, never on import or CRUD, and never flips `valid` to
+`false` or counts towards `count`. Today it carries exactly one check — `R11_RANDOM_EVENT`
+warns when a story's random-event `probability` values sum past 100 (legal, but scaled at
+runtime, see [Step39_RandomEvents.md](./Step39_RandomEvents.md)). react-admin does not yet
+surface `warnings[]` in the report panel (§5.3).
 
 ### 3.2 `POST /api/admin/stories/import` (extended)
 
@@ -190,6 +198,7 @@ existing `ErrorAlert` + `client.js` interceptor. New API function
     | 0.22.0 | Story validation & integrity checking — StoryValidator across all 4 backends (import hard-fail, CRUD lenient), `GET /api/admin/stories/{uuid}/validate` report endpoint, robot suite `22_story_validation`, react-admin Validate button | June 10, 2026 |
     | 0.31.0 | New rule `R8_CHOICE_EVENT` (choice→event binding mandatory, `idLocation` deprecated, see [Step31_ChoiceEngine.md](./Step31_ChoiceEngine.md)); fixed `R4_CONDITION_KEY` to run only on `KEYS`-type conditions | July 22, 2026 |
     | 0.37.0 | New rule `R10_MISSION_CONDITION` (blank `conditionKey`, or a key with nothing to compare, on a mission/mission-step); report-only on `validate-story`, never a gate on import or admin create. See [Step37_MissionSystem.md](./Step37_MissionSystem.md). | September 8, 2026 |
+    | 0.39.0 | New rule `R11_RANDOM_EVENT` (hard-fail on import, lenient CRUD, reported on `validate-story`); new `warnings[]` array on the validate report (advisory-only, never gates `valid`), carrying the random-event probability-sum-over-100 warning. See [Step39_RandomEvents.md](./Step39_RandomEvents.md). | September 23, 2026 |
 
 - **Last Updated**: September 8, 2026
 - **Status**: Complete

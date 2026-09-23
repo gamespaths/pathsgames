@@ -438,12 +438,15 @@ Import Explicit ID For list_weather_rules Returns 201
     ...    {"id":971013,"probability":1,"active":1}
 
 Import Explicit ID For list_global_random_events Returns 201
-    [Documentation]    Import accepts explicit id for list_global_random_events rows.
+    [Documentation]    Import accepts explicit id for list_global_random_events rows. Step 39:
+    ...                a random event must name an event (R11), so the payload carries one.
     [Tags]    admin    step14
-    Import With Explicit List Entity Id
-    ...    6eeeeeee-eeee-4eee-8eee-eeeeeeeeeeee
-    ...    globalRandomEvents
-    ...    {"id":971014,"probability":1}
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"6eeeeeee-eeee-4eee-8eee-eeeeeeeeeeee","author":"robot-explicit-id",
+    ...    "events":[{"id":1,"type":"AUTOMATIC"}],
+    ...    "globalRandomEvents":[{"id":971014,"idEvent":1,"probability":1}]}
+    Import Payload Should Return 201 And Cleanup
+    ...    ${payload}    6eeeeeee-eeee-4eee-8eee-eeeeeeeeeeee
 
 Import Explicit ID For list_missions Returns 201
     [Documentation]    Import accepts explicit id for list_missions rows.

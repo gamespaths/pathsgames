@@ -437,11 +437,12 @@ def test_import_story_gives_every_row_a_uuid_and_keeps_authored_ones():
     payload = {
         'uuid': 'imp-uuids',
         'texts': [{'idText': 1, 'lang': 'en', 'shortText': 'T'}],
-        'events': [{'id': 1, 'idTextName': 1}],
+        # Step 39 - R11: the random event names event 2, which owns no choices.
+        'events': [{'id': 1, 'idTextName': 1}, {'id': 2}],
         'choices': [{'id': 1, 'idEvent': 1, 'otherwiseFlag': 1}, {'id': 2, 'idEvent': 1, 'uuid': 'kept', 'otherwiseFlag': 1}],
         'keys': [{'id': 1, 'name': 'door'}],
         'weatherRules': [{'id': 1, 'probability': 100}],
-        'globalRandomEvents': [{'id': 1, 'idEvent': 1}],
+        'globalRandomEvents': [{'id': 1, 'idEvent': 2}],
         'missions': [{'id': 1, 'conditionKey': 'door', 'conditionValue': '1'}],
         'missionSteps': [{'id': 1, 'idMission': 1, 'step': 1, 'conditionKey': 'door', 'conditionValue': '1'}],
         'locations': [{'id': 1, 'idTextName': 1}, {'id': 2, 'idTextName': 1}],
@@ -949,6 +950,20 @@ def test_validate_story_endpoint_returns_report():
     body = _body(result)
     assert body['valid'] is True
     assert body['count'] == 0
+
+
+def test_step39_validate_story_endpoint_carries_warnings():
+    item = dict(STORY_ITEM)
+    item['events'] = [{'id': 1}]
+    item['globalRandomEvents'] = [{'id': 1, 'idEvent': 1, 'probability': 80},
+                                  {'id': 2, 'idEvent': 1, 'probability': 80}]
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, item]):
+        from story.handler import lambda_handler
+        event = admin_event('GET', '/api/admin/stories/story-uuid-1/validate')
+        event['pathParameters'] = {'uuid': 'story-uuid-1'}
+        body = _body(lambda_handler(event, {}))
+    assert body['warnings'][0]['rule'] == 'R11_RANDOM_EVENT'
+    assert all(e['rule'] != 'R11_RANDOM_EVENT' for e in body['errors'])
 
 
 def test_validate_story_endpoint_not_found():

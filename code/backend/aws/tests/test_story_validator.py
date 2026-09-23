@@ -288,3 +288,58 @@ def test_real_choice_effect_targets_pass():
     s["choiceEffects"] = [{"id": 1, "idChoices": 1, "idEvent": 2, "idLocation": 2,
                            "idWeather": 1, "idItemTarget": 1, "itemAction": "ADD"}]
     assert sv.validate_story_dict(s) == []
+
+
+# ── Step 39: R11 global random events ────────────────────────────────────────
+
+def _r11_fields(row, **extra):
+    s = valid_story()
+    s["globalRandomEvents"] = [row]
+    s.update(extra)
+    return [e["field"] for e in sv.validate_story_dict(s) if e["rule"] == "R11_RANDOM_EVENT"]
+
+
+def test_r11_complete_row_on_choice_free_event_passes():
+    assert _r11_fields({"id": 1, "idEvent": 2, "probability": 100,
+                        "conditionKey": "CHAPTER", "conditionValue": "1"}) == []
+
+
+def test_r11_probability_outside_range_fails_missing_is_zero():
+    assert _r11_fields({"id": 1, "idEvent": 2, "probability": 101}) == ["probability"]
+    assert _r11_fields({"id": 1, "idEvent": 2, "probability": -1}) == ["probability"]
+    assert _r11_fields({"id": 1, "idEvent": 2}) == []
+
+
+def test_r11_missing_event_fails():
+    assert _r11_fields({"id": 1, "probability": 10}) == ["idEvent"]
+    assert _r11_fields({"id": 1, "idEvent": 0, "probability": 10}) == ["idEvent"]
+
+
+def test_r11_event_owning_choices_fails():
+    assert _r11_fields({"id": 1, "idEvent": 1, "probability": 10}) == ["idEvent"]
+
+
+def test_r11_event_with_weather_effect_fails():
+    assert _r11_fields({"id": 1, "idEvent": 2, "probability": 10},
+                       eventEffects=[{"id": 1, "idEvent": 2, "idWeather": 1},
+                                     {"id": 2, "idEvent": 1, "idWeather": 0}]) == ["idEvent"]
+
+
+def test_r11_half_condition_fails():
+    assert _r11_fields({"id": 1, "idEvent": 2, "probability": 10,
+                        "conditionKey": "CHAPTER"}) == ["conditionValue"]
+    assert _r11_fields({"id": 1, "idEvent": 2, "probability": 10,
+                        "conditionKey": " ", "conditionValue": "1"}) == ["conditionKey"]
+
+
+def test_r11_warning_only_above_100():
+    s = valid_story()
+    s["globalRandomEvents"] = [{"id": 1, "idEvent": 2, "probability": 70},
+                               {"id": 2, "idEvent": 2, "probability": 60}]
+    assert sv.validate_story_dict(s) == []
+    warnings = sv.random_event_warnings(s)
+    assert [w["rule"] for w in warnings] == ["R11_RANDOM_EVENT"]
+    assert "130" in warnings[0]["message"]
+    s["globalRandomEvents"] = [{"id": 1, "idEvent": 2, "probability": 60},
+                               {"id": 2, "idEvent": 2, "probability": 40}]
+    assert sv.random_event_warnings(s) == []

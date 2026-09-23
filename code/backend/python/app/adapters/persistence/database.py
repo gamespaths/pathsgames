@@ -66,6 +66,8 @@ _ADDED_COLUMNS = {
                            "id_text_name"],
     # Step 38 — the use-exp price list: flat addend and DEX/INT/COS cap.
     "list_stories_difficulty": ["exp_cost_base", "max_stat_value"],
+    # Step 39 — random events get the registry operator the other conditions have.
+    "list_global_random_events": ["registry_value_operator_condition"],
 }
 # Step 37 — the from/to pair is gone: a mission has no operator, so a range meant nothing.
 _DROPPED_COLUMNS = {

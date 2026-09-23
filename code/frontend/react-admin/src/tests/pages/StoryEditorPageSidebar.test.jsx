@@ -38,4 +38,19 @@ describe('StoryEditorPageSidebar', () => {
     expect(container.querySelector('.fa-info-circle')).toBeInTheDocument()
     expect(container.querySelector('.fa-layer-group')).toBeInTheDocument()
   })
+
+  it('adds Cards fast edit as the LAST entry when a handler is given', async () => {
+    const onOpenCardsFastEdit = vi.fn()
+    render(<StoryEditorPageSidebar tabs={TABS} activeTab="metadata" onSelectTab={() => {}}
+      onOpenCardsFastEdit={onOpenCardsFastEdit} />)
+    const buttons = screen.getAllByRole('button')
+    expect(buttons.at(-1)).toHaveTextContent('Cards fast edit')
+    await userEvent.click(buttons.at(-1))
+    expect(onOpenCardsFastEdit).toHaveBeenCalled()
+  })
+
+  it('has no Cards fast edit entry without a handler', () => {
+    render(<StoryEditorPageSidebar tabs={TABS} activeTab="metadata" onSelectTab={() => {}} />)
+    expect(screen.queryByText('Cards fast edit')).not.toBeInTheDocument()
+  })
 })
