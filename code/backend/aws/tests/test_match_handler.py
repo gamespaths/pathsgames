@@ -456,6 +456,29 @@ def test_create_match_happy_path(create_env):
     assert persisted['registry'][3]['intValue'] is None
 
 
+def _create_named_match(create_env, name, env, ttl_hours='1'):
+    """v0.39.1 — the METADATA row a creation persists, under the given ENV and TTL setting."""
+    import os
+    create_env['configure'](story=STORY_ITEM)
+    from match.handler import lambda_handler
+    event = _player_event('POST', '/api/matches', body={
+        'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1', 'name': name})
+    with patch.dict(os.environ, {'ENV': env, 'ROBOT_TEST_DATA_TTL_HOURS': ttl_hours}), \
+         patch('common.test_data_ttl.time.time', return_value=1_000):
+        assert lambda_handler(event, {})['statusCode'] == 201
+    return helpers.SINK.saved()
+
+
+def test_create_match_robot_name_gets_a_ttl(create_env):
+    assert _create_named_match(create_env, 'robottest_match', 'test')['ttl'] == 1_000 + 3600
+
+
+def test_create_match_real_name_or_ttl_off_gets_no_ttl(create_env):
+    assert 'ttl' not in _create_named_match(create_env, 'My run', 'test')
+    assert 'ttl' not in _create_named_match(create_env, 'robottest_match', 'test', '0')
+    assert 'ttl' not in _create_named_match(create_env, 'robottest_match', 'prod')
+
+
 def test_create_match_persists_creator_loadout(create_env):
     create_env['configure'](story=STORY_ITEM)
     from match.handler import lambda_handler

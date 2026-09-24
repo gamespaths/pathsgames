@@ -41,6 +41,7 @@ from common import log_utils
 from common import jwt_utils
 from common import security_utils
 from common import story_cache
+from common import test_data_ttl
 from match import logbook as _logbook
 from match import repo as _repo
 from common.response import dumps as _dumps, ok as _ok, HEADERS
@@ -902,6 +903,10 @@ def _create_match(user, body):
         "GSI2_PK": 'MATCH',
         "GSI2_SK": f'{now_ms:020d}#{match_uuid}',
     }
+    # v0.39.1 — a robot match expires through the table TTL; repo.save copies it to every row
+    expires_at = test_data_ttl.expiry() if test_data_ttl.is_robot_name(item['name']) else None
+    if expires_at:
+        item[test_data_ttl.TTL_ATTRIBUTE] = expires_at
     _logbook.persist(item)
     return _ok(_summary_from_item(item), status=201)
 

@@ -106,6 +106,33 @@ def test_create_guest_ignores_test_marker_when_not_dev():
     assert _body(result)['username'].startswith('guest_')
 
 
+def _create_guest_row(env, headers, ttl_hours='1'):
+    """v0.39.1 — the USER# row create_guest writes, under the given ENV and TTL setting."""
+    with patch('auth.handler.db_utils.put_item', return_value=True) as put, \
+         patch.dict(os.environ, {'ENV': env, 'ROBOT_TEST_DATA_TTL_HOURS': ttl_hours}):
+        from auth.handler import lambda_handler
+        result = lambda_handler(make_event('POST', '/api/auth/guest', headers=headers), {})
+    assert result['statusCode'] == 201
+    return put.call_args[0][0]
+
+
+def test_create_guest_honours_test_marker_on_the_test_stack():
+    row = _create_guest_row('test', {'x-test-marker': 'robottest'})
+    assert row['username'].startswith('robottest_')
+
+
+def test_create_guest_with_test_marker_gets_a_ttl():
+    with patch('common.test_data_ttl.time.time', return_value=1_000):
+        row = _create_guest_row('test', {'x-test-marker': 'robottest'}, ttl_hours='2')
+    assert row['ttl'] == 1_000 + 2 * 3600
+
+
+def test_create_guest_without_marker_or_with_ttl_off_gets_no_ttl():
+    assert 'ttl' not in _create_guest_row('test', {})
+    assert 'ttl' not in _create_guest_row('test', {'x-test-marker': 'robottest'}, ttl_hours='0')
+    assert 'ttl' not in _create_guest_row('prod', {'x-test-marker': 'robottest'})
+
+
 # ── resume_guest ──────────────────────────────────────────────────────────────
 
 def test_resume_guest_missing_cookie_returns_400():

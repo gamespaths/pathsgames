@@ -150,3 +150,29 @@ def test_cleanup_with_no_robot_data_returns_zero():
     # Only the seed stories were attempted, and they held nothing.
     from seed.handler import SEED_STORIES
     assert deleted == [f"STORY#{s['uuid']}" for s in SEED_STORIES]
+
+
+def test_cleanup_leaves_rows_with_a_ttl_to_dynamodb():
+    """v0.39.1 — a robot guest or match carrying a ttl expires on its own (a free TTL
+    delete): the cleanup skips it and deletes only the robot rows without one."""
+    guests = [
+        {'PK': 'USER#rob-ttl', 'SK': 'METADATA', 'username': 'robottest_ttl00001'},
+        {'PK': 'USER#rob-old', 'SK': 'METADATA', 'username': 'robottest_old00001'},
+    ]
+    matches = [
+        {'PK': 'MATCH#rob-ttl', 'SK': 'METADATA', 'name': 'robottest_match'},
+        {'PK': 'MATCH#rob-old', 'SK': 'METADATA', 'name': 'robottest_match'},
+    ]
+    looked_up = []
+
+    def get_item(pk, sk='METADATA', consistent=True):
+        looked_up.append((pk, consistent))
+        return {'PK': pk, 'SK': sk, 'ttl': 123} if pk.endswith('-ttl') else {'PK': pk, 'SK': sk}
+
+    with patch('seed.handler.db_utils.get_item', side_effect=get_item):
+        body, purged = _run_cleanup(guests, matches)
+
+    assert body['deletedGuests'] == 1 and body['deletedMatches'] == 1
+    assert 'USER#rob-ttl' not in purged and 'MATCH#rob-ttl' not in purged
+    assert 'USER#rob-old' in purged and 'MATCH#rob-old' in purged
+    assert all(consistent is False for _, consistent in looked_up)

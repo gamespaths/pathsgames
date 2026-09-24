@@ -152,6 +152,7 @@ sam deploy \
         RateLimitMatchPerIp="${AWS_RATE_LIMIT_MATCH_PER_IP_TEST:-0}" \
         RateLimitWindowSeconds="${AWS_RATE_LIMIT_WINDOW_SECONDS_TEST:-3600}" \
         CsrfEnforced="${AWS_CSRF_ENFORCED_TEST:-true}" \
+        RobotTestDataTtlHours="${AWS_ROBOT_TEST_DATA_TTL_HOURS_TEST:-1}" \
         WebsiteBucket="${AWS_S3_BUCKET_WEBSITE_TEST:-}" \
         WebsiteCloudFrontId="${AWS_CLOUDFRONT_DISTRIBUTION_ID_TEST:-}" \
         TableBillingMode="${AWS_TABLE_BILLING_MODE_TEST:-PAY_PER_REQUEST}" \

@@ -37,6 +37,7 @@ from common import log_utils
 from common import jwt_utils
 from common import story_cache
 from common import story_index
+from common import test_data_ttl
 from common.response import HEADERS
 from common.data_utils import (safe_int as _safe_int,
                                resolve_raw_text as _resolve_raw_text,
@@ -49,7 +50,7 @@ log_utils.quiet_botocore()
 
 # Canonical marker tagging rows created by automated (Robot Framework) test
 # runs — see POST /api/dev/cleanup below.
-ROBOT_TEST_MARKER = "robottest"
+ROBOT_TEST_MARKER = test_data_ttl.ROBOT_TEST_MARKER
 
 # BCrypt hash is loaded from the environment variable SEED_BCRYPT_HASH
 # (set via CloudFormation parameter SeedBcryptHash with NoEcho:true)
@@ -1535,6 +1536,11 @@ def _seed_stories():
 
 # ─── test-data cleanup ───────────────────────────────────────────────────────
 
+def _expires_on_its_own(pk):
+    """True when the partition's METADATA row carries a ttl (the GSI2 projection does not)."""
+    return test_data_ttl.expires(db_utils.get_item(pk, consistent=False))
+
+
 def _handle_cleanup():
     """POST /api/dev/cleanup — removes the data created by automated (Robot
     Framework) test runs: guests whose username starts with the ``robottest``
@@ -1546,11 +1552,12 @@ def _handle_cleanup():
     did until v0.34.0 — left them orphaned under a partition whose name was gone.
     v0.37.5 reads the GSI2 indexes (GUEST_LIST, MATCH) instead of scanning the table, so
     ``orphanMatches`` is always 0; ``purge_robot_test_data.py --orphans`` is the sweep.
+    v0.39.1 — a row carrying a ``ttl`` is left to DynamoDB, whose TTL deletes are free.
     """
     deleted_guests = 0
     for user in db_utils.query_gsi("GSI2", "GUEST_LIST"):
         username = (user.get("summary") or {}).get("username") or user.get("username", "")
-        if str(username).startswith(ROBOT_TEST_MARKER):
+        if str(username).startswith(ROBOT_TEST_MARKER) and not _expires_on_its_own(user["PK"]):
             db_utils.delete_all_by_pk(user["PK"])
             deleted_guests += 1
 
@@ -1558,7 +1565,8 @@ def _handle_cleanup():
     # Query instead of a Scan of every row of every partition. Matches are deleted whole,
     # so a partition without its METADATA row cannot arise any more (orphanMatches = 0).
     robot_match_pks = [row["PK"] for row in db_utils.query_gsi("GSI2", "MATCH")
-                       if str(row.get("name") or "").startswith(ROBOT_TEST_MARKER)]
+                       if str(row.get("name") or "").startswith(ROBOT_TEST_MARKER)
+                       and not _expires_on_its_own(row["PK"])]
 
     deleted_matches = 0
     for pk in robot_match_pks:

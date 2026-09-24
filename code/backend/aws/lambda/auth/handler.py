@@ -39,6 +39,7 @@ from common import db_utils
 from common import log_utils
 from common import jwt_utils
 from common import security_utils
+from common import test_data_ttl
 from common.response import dumps as _dumps, ok as _ok, HEADERS
 from common.http_utils import (normalize_path as _normalize_path,
                                get_source_ip as _get_source_ip,
@@ -255,10 +256,10 @@ def _test_marker(event):
     """Returns the sanitized X-Test-Marker header value, or None.
 
     The header tags the guest as test data so it can be removed by
-    POST /api/dev/cleanup. Honoured only when ENV=dev, so production guests
-    are never affected.
+    POST /api/dev/cleanup. Honoured only when ENV=dev or ENV=test (v0.39.1: the
+    Robot runs on AWS use the test stack), so production guests are never affected.
     """
-    if os.environ.get("ENV", "dev") != "dev":
+    if os.environ.get("ENV", "dev") not in test_data_ttl.TEST_ENVS:
         return None
     headers = event.get('headers') or {}
     raw = headers.get('x-test-marker') or headers.get('X-Test-Marker')
@@ -301,6 +302,10 @@ def create_guest(event):
         'GSI2_SK':         f'USER#{user_uuid}',
     }
     guest['summary'] = _guest_summary(guest)
+    # v0.39.1 — a tagged guest expires through the table TTL instead of a paid cleanup delete
+    expires_at = test_data_ttl.expiry() if marker else None
+    if expires_at:
+        guest[test_data_ttl.TTL_ATTRIBUTE] = expires_at
     db_utils.put_item(guest)
 
     access_exp  = now + COOKIE_MAX_ACCESS  * 1000

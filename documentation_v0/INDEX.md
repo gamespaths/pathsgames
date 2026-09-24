@@ -17,7 +17,7 @@ Every Step file follows the same skeleton, so grep for these headings:
 | `Step01_StartProject.md` | Main game-design concept and rules | game rules, concept, design |
 | `Step02_CreateTheRepository.md` | 4 | Repo creation | git |
 | `Step03_DefineScope.md` | V1 mandatory vs excluded features, complexity limit, definition of done | scope, V1, out of scope |
-| `Step04_TechnologyStack.md` | Chosen stack | stack, technology |
+| `Step04_TechnologyStack.md` | Chosen stack. **v0.39.1**: hosting cost hypotheses at 3 traffic tiers | stack, technology, hosting cost, cloudflare, ec2, fargate, dynamodb |
 | `Step05_BackendStructure.md` | Hexagonal module split: domain, api, realtime, persistence, shared | hexagonal, modules, ports |
 | `Step06_NamingConventions.md` | REST, WebSocket, DB table/column, Java, DTO/JSON naming | naming, kebab-case, conventions |
 | `Step07_ConfigureWebsite.md` | Domains, AWS Terraform infra, CSP | terraform, website, DNS, CSP |

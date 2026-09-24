@@ -3,6 +3,7 @@ Active only between ``begin()`` and ``flush()`` (the Lambda handler); write-thro
 import copy
 
 from common import db_utils
+from common import test_data_ttl
 
 METADATA = 'METADATA'
 CHARACTER_PREFIX = 'CHARACTER#'
@@ -79,9 +80,21 @@ def _rows(pk, prefix, consistent):
     return list(rows)
 
 
+def _inherit_ttl(item):
+    """v0.39.1 — a CHARACTER#/TURN#/LOG#/AUDIT# row expires with its match METADATA."""
+    ttl = test_data_ttl.TTL_ATTRIBUTE
+    if item.get(ttl) is not None or item.get('SK', METADATA) == METADATA \
+            or not str(item.get('PK')).startswith('MATCH#') or not test_data_ttl.hours():
+        return
+    meta = _item(item['PK'], METADATA, True)
+    if test_data_ttl.expires(meta):
+        item[ttl] = meta[ttl]
+
+
 def save(item):
     """Queue the item for ``flush`` (a later save of the same key replaces the snapshot),
     or write it at once outside a request."""
+    _inherit_ttl(item)
     if not _ACTIVE:
         return db_utils.put_item(item)
     pk, sk = item.get('PK'), item.get('SK', METADATA)

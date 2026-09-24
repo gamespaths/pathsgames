@@ -139,3 +139,60 @@ def test_begin_forgets_the_previous_request():
         assert repo.pending() == 0
         repo.flush()
     batch.assert_not_called()
+
+
+# ── v0.39.1 — every row of a robot match inherits the METADATA ttl ─────────────
+
+def _ttl_env(hours='1'):
+    import os
+    return patch.dict(os.environ, {'ENV': 'test', 'ROBOT_TEST_DATA_TTL_HOURS': hours})
+
+
+def _robot_rows():
+    rows = _rows()
+    rows[0]['ttl'] = 999
+    return rows
+
+
+def test_child_rows_inherit_the_match_ttl_inside_a_request():
+    table = FakeTable(_robot_rows())
+    flushed = []
+    with patch_table(table, module='match.repo'), _ttl_env(), \
+         patch('match.repo.db_utils.batch_put_items',
+               side_effect=lambda items: flushed.extend(items) or True):
+        repo.begin()
+        repo.save({'PK': 'MATCH#m1', 'SK': 'LOG#1'})
+        repo.save({'PK': 'MATCH#m1', 'SK': 'CHARACTER#c3', 'uuid': 'c3'})
+        repo.flush()
+    assert [r.get('ttl') for r in flushed] == [999, 999]
+
+
+def test_child_rows_inherit_the_match_ttl_outside_a_request():
+    table = FakeTable(_robot_rows())
+    with patch_table(table, module='match.repo'), _ttl_env():
+        repo.save({'PK': 'MATCH#m1', 'SK': 'TURN#c2', 'characterUuid': 'c2'})
+    assert table.get_item('MATCH#m1', 'TURN#c2')['ttl'] == 999
+
+
+def test_rows_of_a_match_without_ttl_stay_without():
+    table = FakeTable(_rows())
+    with patch_table(table, module='match.repo'), _ttl_env():
+        repo.save({'PK': 'MATCH#m1', 'SK': 'LOG#1'})
+    assert 'ttl' not in table.get_item('MATCH#m1', 'LOG#1')
+
+
+def test_no_inheritance_when_disabled_metadata_other_pk_or_own_ttl():
+    table = FakeTable(_robot_rows())
+    calls = _table_calls(table)
+    with patch_table(table, module='match.repo'):
+        with _ttl_env('0'):
+            repo.save({'PK': 'MATCH#m1', 'SK': 'LOG#1'})
+        with _ttl_env():
+            repo.save({'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1'})
+            repo.save({'PK': 'USER#u1', 'SK': 'LOG#2'})
+            repo.save({'PK': 'MATCH#m1', 'SK': 'LOG#3', 'ttl': 5})
+    assert calls['get'] == 0, 'no METADATA lookup when nothing is to be inherited'
+    assert 'ttl' not in table.get_item('MATCH#m1', 'LOG#1')
+    assert 'ttl' not in table.get_item('MATCH#m1', 'METADATA')
+    assert 'ttl' not in table.get_item('USER#u1', 'LOG#2')
+    assert table.get_item('MATCH#m1', 'LOG#3')['ttl'] == 5

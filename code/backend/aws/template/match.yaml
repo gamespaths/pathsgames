@@ -54,6 +54,9 @@ Parameters:
     Type: String
     Default: "true"
     Description: "Comma-separated allowed IPs for /api/admin/**. Empty = no restriction."
+  RobotTestDataTtlHours:
+    Type: String
+    Default: "0"
 
 Resources:
   MatchLogGroup:
@@ -115,6 +118,7 @@ Resources:
           RATE_LIMIT_MATCH_PER_IP: !Ref RateLimitMatchPerIp
           RATE_LIMIT_WINDOW_SECONDS: !Ref RateLimitWindowSeconds
           CSRF_ENFORCED: !Ref CsrfEnforced
+          ROBOT_TEST_DATA_TTL_HOURS: !Ref RobotTestDataTtlHours
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName

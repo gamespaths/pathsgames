@@ -850,6 +850,18 @@ the same IP boundary (no admin JWT required; the network/IP gate is the protecti
 Run scripts call cleanup on the admin endpoint: local `POST http://localhost:8044/api/dev/cleanup`;
 AWS seeds/cleans via `AdminApiUrl` (env `AWS_ADMIN_API_URL_TEST` or the stack output).
 
+**AWS Robot test-data marking, bugfix + TTL (v0.39.1):** `POST /api/auth/guest`'s `X-Test-Marker`
+header (tags the guest `robottest_…` for cleanup) was honoured only on `ENV=dev` in
+`auth/handler.py._test_marker()`; the Robot suites run against the `test` stack, so ~416 tagged
+guests per run were silently created as untracked `guest_…` rows instead (the test table reached
+29,237 items / 18.9 MB, ~28k of them guests). `_test_marker()` now accepts `ENV` in `dev`/`test`
+(prod unchanged). Separately, a robot-tagged guest and any match named `robottest…` now also get a
+DynamoDB `ttl` (new `common/test_data_ttl.py`, env `ROBOT_TEST_DATA_TTL_HOURS`, dev/test only,
+0/unset = disabled; `match/repo.py` copies the match's `ttl` to its `CHARACTER#`/`TURN#`/`LOG#`/
+`AUDIT#` rows), so the row expires for free instead of needing a paid delete; `_handle_cleanup()`
+skips rows that already carry a `ttl`. `purge_robot_test_data.py` is unchanged and still deletes
+robottest rows immediately when it runs (e.g. weekly), which is when the TTL saving materialises.
+
 ---
 
 ## Java — `code/backend/java/`
@@ -1411,7 +1423,7 @@ curl http://<EC2-IP>:8044/api/admin/matches
 
 
 
-- **Document Version**: 0.38.1
+- **Document Version**: 0.39.1
 
     | Version | Description | Date |
     |---------|-------------|------|
@@ -1430,8 +1442,9 @@ curl http://<EC2-IP>:8044/api/admin/matches
     | 0.35.8 | Correction only: `.pg-card--home` is unused since the Story Catalog card rewrite — see [Step18](./Step18_GameMainFrontend.md#story-catalog-card-v0358). | August 30, 2026 |
     | 0.37.3 | Turnstile refusals now logged with a reason on all 3 backends (verdict unchanged); react-game bugfix — the widget no longer unmounts once passed, so a stale token can't reach `POST /api/matches`; Retry now offered on `TURNSTILE_VALIDATION_FAILED`; `20_website/turnstile.robot` is mode-aware (`CF_TURNSTILE_TOKEN` set = enforced), `aws_backend_deploy.sh` bypass-token selection reworked. | September 10, 2026 |
     | 0.38.1 | EC2 test scripts: standard tags moved to shared `aws_ec2_tags.txt` (replacing hardcoded `env`/`createdBy`/`project`); new `run_stress_ec2.sh` wrapper added to both `aws_ec2_with_java_docker/` and `aws_ec2_with_python_docker/` for k6 stress runs against the EC2 instances. | September 19, 2026 |
+    | 0.39.1 | AWS-only bugfix: `X-Test-Marker` now honoured on `ENV=test` too (was `dev`-only), fixing ~416 untracked Robot guests/run; new DynamoDB `ttl` on robot-tagged guests/matches (`ROBOT_TEST_DATA_TTL_HOURS`, dev/test only) so `/api/dev/cleanup` can leave expiry to DynamoDB instead of a paid delete. | September 24, 2026 |
 
-- **Last Updated**: September 19, 2026
+- **Last Updated**: September 24, 2026
 - **Status**: Complete
 
 # < Paths Games />

@@ -46,6 +46,11 @@ Parameters:
     Type: String
     Default: "3600"
     Description: "Length of the rate-limit window, in seconds."
+  # v0.39.1 — robottest guests/matches get a DynamoDB ttl, honoured only on dev/test stacks.
+  RobotTestDataTtlHours:
+    Type: String
+    Default: "0"
+    Description: "Hours after which Robot test guests and matches expire via TTL. 0 = disabled."
   CsrfEnforced:
     Type: String
     Default: "true"
@@ -501,6 +506,7 @@ Resources:
         RateLimitGuestPerIp: !Ref RateLimitGuestPerIp
         RateLimitWindowSeconds: !Ref RateLimitWindowSeconds
         CsrfEnforced: !Ref CsrfEnforced
+        RobotTestDataTtlHours: !Ref RobotTestDataTtlHours
 
   StoryModule:
     Type: AWS::Serverless::Application
@@ -563,6 +569,7 @@ Resources:
         RateLimitMatchPerIp: !Ref RateLimitMatchPerIp
         RateLimitWindowSeconds: !Ref RateLimitWindowSeconds
         CsrfEnforced: !Ref CsrfEnforced
+        RobotTestDataTtlHours: !Ref RobotTestDataTtlHours
 
   ContentModule:
     Type: AWS::Serverless::Application

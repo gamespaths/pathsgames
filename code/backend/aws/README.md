@@ -259,6 +259,28 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 ## 📝 Changelog
 
+### v0.39.1 — Robot test-data bugfix + DynamoDB TTL
+
+- **Bugfix**: `_test_marker()` in `lambda/auth/handler.py` honoured the `X-Test-Marker` header
+  (tags a guest `robottest_…` for cleanup) only on `ENV=dev`; the Robot suites run against the
+  `test` stack, so ~416 tagged guests per run were created as untracked `guest_…` rows instead
+  (the `test` table reached 29,237 items / 18.9 MB, ~28k of them guests). Now accepts `ENV` in
+  `dev`/`test` (prod unchanged).
+- **New DynamoDB TTL**: `lambda/common/test_data_ttl.py` (env `ROBOT_TEST_DATA_TTL_HOURS`,
+  dev/test only, 0/unset = disabled) sets a `ttl` attribute on robot-tagged guests
+  (`auth/handler.py create_guest`) and on `robottest…`-named matches (`match/handler.py
+  _create_match`); `match/repo.py` (`_inherit_ttl`) copies it to the match's
+  `CHARACTER#`/`TURN#`/`LOG#`/`AUDIT#` rows. DynamoDB deletes expired rows for free, "within a
+  few days". `seed/handler.py _handle_cleanup()` now skips rows that already carry a `ttl` (one
+  extra eventually-consistent `get_item`) instead of deleting them; `purge_robot_test_data.py`
+  is unchanged, so running it (e.g. weekly) still deletes robottest rows immediately — the TTL
+  only saves cost the rest of the time.
+- New template parameter `RobotTestDataTtlHours` (default `"0"`, i.e. disabled unless overridden)
+  passed to `AuthModule`/`MatchModule` as `ROBOT_TEST_DATA_TTL_HOURS`.
+  `code/scripts/test/aws/aws_backend_deploy.sh` passes `AWS_ROBOT_TEST_DATA_TTL_HOURS_TEST`
+  (default `1`); `samconfig.toml`'s `dev`/`test`/`prod` config-envs don't override it, so a plain
+  `sam deploy --config-env ...` leaves it disabled.
+
 ### v0.38.1 — Per-target `Project` tag
 
 - `Project` tag now `Paths.games.aws.serverless` in `template.yaml`, the 6 nested `template/*.yaml` modules, `samconfig.toml` (all config-envs) and `aws_backend_deploy.sh`.

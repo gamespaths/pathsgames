@@ -41,6 +41,9 @@ Parameters:
   CsrfEnforced:
     Type: String
     Default: "true"
+  RobotTestDataTtlHours:
+    Type: String
+    Default: "0"
 
 Resources:
   AuthLogGroup:
@@ -98,6 +101,7 @@ Resources:
           RATE_LIMIT_GUEST_PER_IP: !Ref RateLimitGuestPerIp
           RATE_LIMIT_WINDOW_SECONDS: !Ref RateLimitWindowSeconds
           CSRF_ENFORCED: !Ref CsrfEnforced
+          ROBOT_TEST_DATA_TTL_HOURS: !Ref RobotTestDataTtlHours
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName

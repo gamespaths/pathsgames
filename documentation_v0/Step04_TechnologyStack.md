@@ -93,6 +93,62 @@ All backends share the same REST API contract validated by the Robot Framework E
 - Final goal is run all component into Kubernetes Cloud cluster and/or AWS Elastic Beanstalk
 
 
+### 7. Hosting cost hypotheses (v0.39.1)
+
+Estimates, **not quotes**: USD/month, VAT excluded, us-east-1 list prices (Sept 2026) unless a
+row says otherwise.
+
+**Assumptions.** 200 requests/user/day (the k6 stress flow is ~15 requests/game-flow; 200
+approximates a real session + catalog browsing, conservative). Peak hour = 15% of daily
+traffic, peak = 3× the hourly average. 5 KB average response. CPU/request: Python ~20 ms, Java
+~5 ms. Serverless request: Lambda arm64 1024 MB / 100 ms, 5 DynamoDB reads + 3 writes
+(on-demand), 1 KB logs. Traffic tiers: 100 users/day = 600k req/month (peak ≈2.5 rps); 1,000 =
+6M (peak ≈25 rps); 10,000 = 60M (peak ≈250 rps).
+
+| Option | 100 users/day | 1,000 users/day | 10,000 users/day |
+| :--- | :--- | :--- | :--- |
+| Cloudflare: Python backend in Containers + Neon Postgres | ~7–10 (1 `lite` always on, Neon free) | ~76 (3 `basic`, Neon Launch 0.5 CU) | ~425 (20 `basic`, Neon 2 CU) |
+| AWS serverless (current: API Gateway HTTP + Lambda + DynamoDB), 1 region | ~2.4–3 | ~28–29 | ~345 |
+| AWS serverless, 10 regions (users split, DynamoDB provisioned inside each region's free 25 RCU/WCU) | ~1.1 | ~14 | ~390 (on-demand needed) |
+| AWS EC2 + Java (single instance, Postgres on the box up to 1,000) | ~18 (`t4g.small`) | ~32 (`t4g.medium`) | ~139 (`m7g.large` + RDS `db.t4g.medium`, no HA) |
+| AWS ECS Fargate + Java (ALB + RDS) | ~59 | ~91 | ~181 (2 tasks, HA + autoscaling) |
+
+A dedicated domain `pathsgames.app` on Cloudflare Registrar costs 14.20 USD/year (≈1.2/month);
+the AWS options can use a `*.paths.games` subdomain instead, at no extra cost.
+
+**Cloudflare notes.** Workers Paid plan (5 USD/month) is required for Containers. Container
+memory/disk are billed on provisioned size, CPU on active usage (since 2025-11-21); container
+disk is ephemeral, hence Neon for persistence. No autoscaling yet — capacity is sized by
+instance count. Neon free tier = 100 CU-h + 0.5 GB, scales to zero after 5 min idle; Launch =
+0.106 USD/CU-h + 0.35 USD/GB-month. `.app` is HSTS-preloaded (HTTPS mandatory).
+
+**AWS notes.** DynamoDB on-demand: 0.125 USD/M reads, 0.625 USD/M writes (us-east-1/us-east-2).
+API Gateway HTTP: 1 USD/M requests. The Lambda free tier (1M requests + 400k GB-s) is per
+account across regions, while the DynamoDB free 25 RCU/WCU provisioned is per region. Regional
+prices average +16–18% over us-east-1 for API Gateway/DynamoDB across the 10-region spread
+(sa-east-1 the most expensive). DynamoDB Global Tables would multiply write cost — avoid for
+multi-region (~1,300 USD/month of replicated writes at 10,000 users/day). Break-even,
+serverless vs EC2, is ≈2,000–4,000 users/day. Current stacks: `dev` = `PROVISIONED` 10/10 +
+2×5/5 (inside the region's free tier, us-east-2); `test` = `PAY_PER_REQUEST` (same region as
+`dev`, absorbs Robot/stress bursts); `prod` = `PAY_PER_REQUEST` by default (us-east-1).
+
+**Robot Framework runs on AWS (current, measured).** Measured via Cost Explorer + CloudWatch on
+2026-09-23 on stack `pathsgames-test` (us-east-2, on-demand):
+
+| Metric | Value |
+| :--- | :--- |
+| One full run | 766 tests, ~18 min |
+| HTTP calls (RequestsLibrary) → billed API Gateway requests | ~6.4k → ~9.6k |
+| DynamoDB writes / reads | ~23.3k / ~26.4k |
+| Cost per run | ≈0.028 USD (DynamoDB ≈0.018, API Gateway ≈0.0096, Lambda inside free tier) |
+| At 3 runs/day | ≈2.5 USD/month (≈30 USD/year) |
+| Post-run cleanup + purge | ≈5.2k writes + 4.3k reads ≈0.0036 USD/run (≈0.32 USD/month) — the part the v0.39.1 TTL can remove once purge runs less often |
+
+k6 stress tests against the serverless stack cost ≈1.38 USD/session (2026-09-19 run: 1.45M
+writes, 314k API requests) — run stress tests on EC2 instead (`run_stress_ec2.sh`, see
+[Step20_GameWebSiteFirstRun.md](./Step20_GameWebSiteFirstRun.md)).
+
+
 # Version Control
 - First version created with AI prompts:
     > check this document, update the english language error and complete tecnoloty stack section with java, spring boot last vesion and rest controller and websotket,  i need docker and kubernetes compatibility, database sqlite on developer env and postgres on servers, react with bootstrap, deploy with github actions and jenkins, on aws we will use code build and code pipeline on eks or elastic beanstalk  
@@ -102,14 +158,15 @@ All backends share the same REST API contract validated by the Robot Framework E
     > read all documents and tell me, the number 1 is my defenitive edition so don't try to change roles, i need suggestion for file 2 e 3 e 4  
     
     > add flyway information in the document  
-- **Document Version**: 0.23.4
+- **Document Version**: 0.39.1
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.4 | first version of document with points list | February 10, 2026 |
     | 0.7 | configure `hub.docker.com/r/pathsgames/pathsgames` repository | February 27, 2026 |
     | 0.10.12 | added Flyway as database migration tool (section 4) | March 19, 2026 |
     | 0.23.1 | added alternative backends to section 1 | June 12, 2026 |
-- **Last Updated**: June 12, 2026
+    | 0.39.1 | added section 7, hosting cost hypotheses (Cloudflare, AWS serverless/EC2/Fargate) at 3 traffic tiers, plus measured Robot/k6 AWS cost | September 24, 2026 |
+- **Last Updated**: September 24, 2026
 - **Status**: Complete ✅ , frozen until V0 completion
 
 
