@@ -230,14 +230,16 @@ export default function StartMatchFlow({ story, config, storyId }) {
         onPreview={() => handleSelectionPreview(story.card,"story")}
         onAction={goBackToBook} actionLabel={t('book.back')} actionIcon="fa-arrow-left" />
       <Card card={buildGameTypeCard(t)} entityType="gameType" label={t('book.single')} 
-        onPreview={() => handleSelectionPreview(buildGameTypeCard(t),"gameType")} story={story} locked />
+        onPreview={() => handleSelectionPreview(buildGameTypeCard(t),"gameType")} story={story} locked
+        lockInfo={{ kind: 'gameType', label: t('book.singlePlayer') }} />
       <Card card={statisticsCard} entityType="bonuses" 
         onPreview={() => handleSelectionPreview(attributesCard,"bonuses", null ,attributesStats) }       
         flagInformationCard={true}
         statistics={statisticCard1} flagShowFullStatistics={true} 
          />
       <Card card={buildLoginCard(t)} entityType="login" label={t('book.login')} 
-        onPreview={() => handleSelectionPreview(buildLoginCard(t),"login")} story={story} locked />
+        onPreview={() => handleSelectionPreview(buildLoginCard(t),"login")} story={story} locked
+        lockInfo={{ kind: 'login', label: t('book.guestLock') }} />
       <Card card={buildTermsCard(t)} entityType="terms" label={t('book.terms')} 
         onPreview={openTermsModal}
         onSelect={() => setTermsAccepted(v => !v)}

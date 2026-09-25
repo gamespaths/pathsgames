@@ -109,6 +109,13 @@ describe('Card', () => {
       expect(container.querySelector('.book-page-desc')).toBeTruthy()
     })
 
+    it('halves the blank lines of the page description (Step 40)', () => {
+      const card = { title: 'Cave', description: 'Dark.<br /><br />Cold.' }
+      const { container } = render(<Card variant="page" card={card} />)
+      expect(container.querySelectorAll('.book-page-desc .book-page-gap')).toHaveLength(1)
+      expect(container.querySelectorAll('.book-page-desc br')).toHaveLength(0)
+    })
+
     it('shows the loading spinner and fires onClose from the back button', () => {
       const onClose = vi.fn()
       const { container } = render(

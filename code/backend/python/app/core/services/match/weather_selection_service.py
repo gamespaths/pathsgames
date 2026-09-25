@@ -74,6 +74,10 @@ class WeatherSelectionService:
     def current_weather(self, match_uuid: str) -> Optional[Dict[str, Any]]:
         return self.store.find_current_weather_by_uuid(match_uuid)
 
+    def current_weather_by_id(self, id_match: int) -> Optional[Dict[str, Any]]:
+        """Step 40 — the current weather of a match by id (no side effects)."""
+        return self.store.find_current_weather(id_match)
+
     def weather_admin(self, match_uuid: str) -> Dict[str, Any]:
         return {
             "rng_seed": self.store.find_rng_seed(match_uuid),

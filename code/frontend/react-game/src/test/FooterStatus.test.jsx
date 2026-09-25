@@ -40,7 +40,8 @@ describe('Footer — real-server status', () => {
     ctx.status = 'online'
     const { container } = render(<Footer />)
     expect(container.querySelector('[style*="rgb(76, 175, 80)"]')).toBeInTheDocument()
-    expect(screen.queryByText(/^v\d/)).not.toBeInTheDocument()
+    // No server version beside the status dot (the build's own v0.x line lives elsewhere).
+    expect(container.querySelector('.footer-server-row').textContent).not.toMatch(/v\d/)
   })
 
   it('marks the server offline', () => {
@@ -48,6 +49,8 @@ describe('Footer — real-server status', () => {
     const { container } = render(<Footer />)
     expect(container.querySelector('[style*="rgb(244, 67, 54)"]')).toBeInTheDocument()
     expect(screen.getByRole('combobox')).toBeInTheDocument()
+    // Two servers: the drop-down, never the fixed name.
+    expect(container.querySelector('.footer-server-name')).toBeNull()
   })
 
   it('shows an ellipsis while loading', () => {

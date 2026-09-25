@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n/context'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import { useHomeStatus } from '@/context/HomeStatusContext'
+import EnvBadge from './EnvBadge'
 
 export default function Navbar() {
   const { lang, setLang, t } = useTranslation()
@@ -30,6 +31,7 @@ export default function Navbar() {
         <i className="fas fa-dice-d20 navbar-dice" />
         <span className="navbar-brand-text">{t('nav.brand')}</span>
       </a>
+      <EnvBadge />
 
       {homeError && (
         <div className="navbar-error" role="alert">

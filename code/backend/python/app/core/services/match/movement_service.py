@@ -73,6 +73,14 @@ def _reason_message(code: str) -> str:
     return _REASON_MESSAGES.get(code, "Movement refused")
 
 
+
+def time_end_of(automatic_events):
+    """Step 40 — the first arrival event that ended the time carries its news; None otherwise."""
+    for fired in automatic_events or []:
+        if getattr(fired, "time_end", None) is not None:
+            return fired.time_end
+    return None
+
 class MovementService(MovementPort):
     def __init__(self, store: MovementStorePort, story_read_port=None,
                  location_entry=None, registry_service_instance=None) -> None:
@@ -171,14 +179,15 @@ class MovementService(MovementPort):
         # v0.35.6 — one Step 30 verdict for the whole arrival: several automatic events can
         # fire on one entry and any of them can kill, so the move answers a single edge state.
         edge_state = EdgeStateOutcome.merge([f.edge_state for f in automatic_events])
+        time_end = time_end_of(automatic_events)
         return MovementResult(match_uuid, caller["uuid"], caller["id_location"], None,
                               target["id"], target.get("uuid"), total_cost, new_energy,
-                              match["current_clock"],
+                              time_end.new_clock if time_end else match["current_clock"],
                               automatic_events=automatic_events,
                               food_spent=cost_food, magic_spent=cost_magic,
                               coin_spent=cost_coin, new_food=new_food,
                               new_magic=new_magic, new_coin=new_coin,
-                              edge_state=edge_state)
+                              edge_state=edge_state, time_end=time_end)
 
     def list_locations(self, match_uuid: str, user_uuid: str,
                        lang: str = "en") -> List[VisitedLocation]:

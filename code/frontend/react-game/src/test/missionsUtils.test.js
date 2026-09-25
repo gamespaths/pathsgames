@@ -59,12 +59,15 @@ describe('mission reading page helpers (v0.38.2)', () => {
     expect(missionCard(null)).toEqual({ title: undefined, description: undefined })
   })
 
-  it('badges the status, the glyph once closed, and the progress when there are steps', () => {
+  it('badges the status and the progress with the little card glyphs, never the grey fallback', () => {
     const open = missionPageStats(t, mission('m', 'ACTIVE', [{ done: true }, { done: false }]))
     expect(open.map(s => s.key)).toEqual(['missionStatus', 'missionSteps'])
     expect(open[0].value).toBe('game.missions.status.ACTIVE')
-    expect(open[0].icon).toBeUndefined()
+    expect(open[0].label).toBe('game.missions.statusLabel')
+    expect(open[0].icon).toBe('fas fa-hourglass-half')
+    expect(open[0].keepZero).toBe(true)
     expect(open[1].value).toBe('1/2')
+    expect(open[1].icon).toBe('fas fa-list-ol')
 
     const done = missionPageStats(t, mission('m', 'COMPLETED'))
     expect(done.map(s => s.key)).toEqual(['missionStatus'])
@@ -82,5 +85,17 @@ describe('mission reading page helpers (v0.38.2)', () => {
 
   it('shows the raw status when no translation exists', () => {
     expect(missionPageStats(() => '', mission('m', 'ODD'))[0].value).toBe('ODD')
+  })
+})
+
+describe('Step 40 — the Completed check is green, as in the story list', () => {
+  it('colours only the COMPLETED glyph, on the grid badge and on the reading page', async () => {
+    const { missionStatusBadge, missionPageStats, MISSION_CHECK_COLOR } = await import('../utils/missions')
+    const t = k => k
+    expect(MISSION_CHECK_COLOR).toBe('#4ade80')
+    expect(missionStatusBadge(t, 'COMPLETED').color).toBe(MISSION_CHECK_COLOR)
+    expect(missionStatusBadge(t, 'FAILED').color).toBeNull()
+    expect(missionPageStats(t, { status: 'COMPLETED' })[0].color).toBe(MISSION_CHECK_COLOR)
+    expect(missionPageStats(t, { status: 'FAILED' })[0].color).toBeNull()
   })
 })

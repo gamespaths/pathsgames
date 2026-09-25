@@ -31,6 +31,8 @@ export default function GuestUserModal() {
   // The mission opened from the grid ({ mission, card, stats }) and a step's own (i) card.
   const [selected, setSelected] = useState(null)
   const [stepPreview, setStepPreview] = useState(null)
+  // Step 40 — History opened straight from the list: its back arrow returns to the list.
+  const [historyFromList, setHistoryFromList] = useState(false)
   const matchUuid = previewInfo?.match?.uuid ?? null
   const missions = useMatchMissions(matchUuid, user?.accessToken, lang)
   // 'checking' until Turnstile passes, then 'human'; 'bot' on failure. The
@@ -56,12 +58,19 @@ export default function GuestUserModal() {
     setMatchView('missions')
     setSelected(null)
     setStepPreview(null)
+    setHistoryFromList(false)
   }
   function openPreview(info) {
     setMatchView('missions')
     setSelected(null)
     setStepPreview(null)
+    setHistoryFromList(false)
     setPreviewInfo(info)
+  }
+  function openHistory(info) {
+    openPreview(info)
+    setMatchView('history')
+    setHistoryFromList(true)
   }
   function openMission({ mission, card, stats = [] }) {
     setStepPreview(null)
@@ -94,13 +103,15 @@ export default function GuestUserModal() {
   let rightPage
   if (matchUuid && matchView === 'history') {
     rightPage = <MatchLogCard matchUuid={matchUuid} accessToken={user?.accessToken}
-      story={story} onBack={backToMissions} />
+      story={story} match={previewInfo?.match ?? null}
+      onBack={historyFromList ? closePreview : backToMissions} />
   } else if (matchUuid && stepPreview) {
     rightPage = <Card variant="page" card={stepPreview.card} entityType={stepPreview.type}
-      loading={false} story={story} onClose={() => setStepPreview(null)} />
+      loading={false} story={story} onClose={() => setStepPreview(null)}
+      statItemsToPageContent={stepPreview.stats} />
   } else if (matchUuid && matchView === 'missionSteps' && selected) {
     rightPage = <MissionStepsCards mission={selected.mission} story={story}
-      onPreview={({ card, type }) => setStepPreview(card ? { card, type } : null)}
+      onPreview={({ card, type, stats }) => setStepPreview(card ? { card, type, stats } : null)}
       previewSide="right" />
   } else if (matchUuid && missions.loading) {
     rightPage = <LoadingCard story={story} />
@@ -108,7 +119,7 @@ export default function GuestUserModal() {
     rightPage = (
       <MissionCards missions={missions.missions} story={story} previewSide="right"
         onOpenMission={openMission}>
-        <MatchHistoryCard story={story} onOpen={() => setMatchView('history')} />
+        {!previewInfo?.missionsOnly && <MatchHistoryCard story={story} onOpen={() => setMatchView('history')} />}
       </MissionCards>
     )
   } else rightPage = <>
@@ -136,6 +147,7 @@ export default function GuestUserModal() {
         accessToken={user?.accessToken}
         preloadedMatches={matches}
         onPreviewCard={openPreview}
+        onOpenHistory={openHistory}
         onClose={closeGuestModal}
       />
     )}

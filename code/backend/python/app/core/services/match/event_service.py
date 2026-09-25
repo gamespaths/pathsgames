@@ -25,6 +25,7 @@ Rules worth stating, because they are easy to get wrong:
 from typing import Any, Dict, List, Optional
 
 from app.core.models.match import location_entry_models as lem
+from app.core.models.match.time_models import TimeEndNews
 from app.core.models.match.event_models import (
     STATUS_APPLIED, STATUS_CHOICES_PENDING, AppliedEffect, ChoiceCheckContext,
     ChoiceResolutionResult, EdgeStateOutcome, EntityChange, EventCheckContext, EventError,
@@ -412,10 +413,13 @@ class EventService(EventPort):
         authored to read a key the option writes must find it already written.
         """
         linked: List[int] = []
+        mark = x.gains_mark()
         for effect in self.store.find_choice_effects_by_choice_id(x.match["id_story"], choice_id):
             self._apply_choice_effect(x, effect, event)
             if effect.get("id_event"):
                 linked.append(effect["id_event"])
+        # Step 40 — the option's own rows only: linked events log their gains on their own rows.
+        x.choice_gains = x.gains_since(mark)
         # No _apply_event ran for these rows, so the edge pass has to be given here — once,
         # over everyone the rows touched, exactly where _apply_event would have run it.
         self._check_edge_states(x, event_id)
@@ -553,7 +557,7 @@ class EventService(EventPort):
         # A resolution is not something the player pays for: the open already did.
         self.store.log_event_executed(x.match["id"], x.actor["id"], event_id,
                                       x.current_clock, f"{MSG_CHOICE_SELECTED} {event_id}",
-                                      0, 0, 0, 0)
+                                      0, 0, 0, 0, x.choice_gains or {})
         self.store.log_choice_executed(x.match["id"], event_id, choice_id, x.current_clock,
                                        f"{MSG_CHOICE_SELECTED} {choice_id}")
         if (choice.get("is_progress") or 0) == 1:
@@ -842,8 +846,9 @@ class EventService(EventPort):
         else:
             return  # an unknown statistic is authored noise, not an error
 
-        if x.is_actor(recipient["id"]):
+        if x.actor is None or x.is_actor(recipient["id"]):
             # The log row is character-scoped: only the actor's own resources ride on it.
+            # Step 40 — a party run has no actor: every recipient's gain is summed.
             x.record_gain(stat, after - before)
         x.stat_changes.append(StatChange(recipient.get("uuid"), stat, before, after, after - before))
 
@@ -1101,8 +1106,13 @@ class EventService(EventPort):
         # disk. _flush also latches x.flushed, which stops _build_result from writing the
         # now-stale in-memory copy back over what the recovery just computed.
         self._flush(x)
-        outcome = self.time_service.force_time_end(x.match["uuid"])
+        outcome = self.time_service.force_time_end(x.match["uuid"], x.actor_id())
         new_clock = outcome.new_clock
+        # Step 40 — the time-start's news, told to the actor, travels with this answer.
+        weather = outcome.weather
+        if weather is not None:
+            weather.card = x.resolve_card(weather.id_card)
+        x.time_end = TimeEndNews(new_clock, list(outcome.counter_zero or []), weather)
         # v0.35.6 — the time-start this event forced runs a recovery, and a recovery can push
         # somebody over an edge: that verdict belongs in this response, not the next reload.
         self._merge_edge_state(x, outcome.edge_state)
@@ -1345,7 +1355,7 @@ class EventService(EventPort):
         out.append(lem.AutomaticEventFired(
             trigger, id_location, event.get("uuid"), x.resolve_card(event.get("id_card")),
             list(self._chain_effects(x)), list(x.stat_changes), list(x.location_changes),
-            x.game_over, self._build_edge_state(x)))
+            x.game_over, self._build_edge_state(x), x.time_end))
 
         # The events this one caused by pushing somebody somewhere.
         self._drain_arrivals(x, out)
@@ -1445,6 +1455,7 @@ class EventService(EventPort):
             pending_choices=x.pending_choices,
             edge_state=edge_state,
             automatic_events=list(x.automatic_events),
+            time_end=x.time_end,
         )
 
     @staticmethod
@@ -1615,6 +1626,9 @@ class _Exec:
         self.choice_event_uuid: Optional[str] = None
         self.choice_event_card: Optional[Dict[str, Any]] = None
         self.progress_recorded = False
+        # Step 40 — the option's own gains, and the news of a forced time-end.
+        self.choice_gains: Optional[Dict[str, int]] = None
+        self.time_end: Optional[TimeEndNews] = None
         self.end_time = False
         self.time_ended = False
         self.item_added = False

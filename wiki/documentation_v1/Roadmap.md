@@ -67,6 +67,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
 8. **Guest to Google linking — frontend and E2E** — offer to keep the guest progress.
     - "Keep your guest progress" prompt after the first Google login (frontend)
     - Show cancelled matches in the match list (frontend)
+    - Match list "last played" date from the match `tsUpdate`, returned by all backends, AWS included (backend, frontend)
     - Robot suite: guest plays, logs in, finds the merged matches (tests)
     - Update [Game Rules](../GameRules.md) with the `CANCELLED` status (docs)
     - Unit tests (tests)

@@ -27,3 +27,21 @@ describe('utils/sanitizeHtml', () => {
     expect(named).toBe(sanitizeHtml)
   })
 })
+
+describe('halveBlankLines (Step 40)', () => {
+  const GAP = '<span class="book-page-gap"></span>'
+  it('turns a blank line (2 br) into one half-line gap, whatever br spelling and spacing', async () => {
+    const { halveBlankLines } = await import('../utils/sanitizeHtml')
+    expect(halveBlankLines('a<br><br>b')).toBe(`a${GAP}b`)
+    expect(halveBlankLines('a<br /> \n <BR/>b')).toBe(`a${GAP}b`)
+  })
+
+  it('gives each extra br its own gap, and leaves a single br and plain text alone', async () => {
+    const { halveBlankLines } = await import('../utils/sanitizeHtml')
+    expect(halveBlankLines('a<br><br><br>b')).toBe(`a${GAP}${GAP}b`)
+    expect(halveBlankLines('a<br>b')).toBe('a<br>b')
+    expect(halveBlankLines('plain')).toBe('plain')
+    expect(halveBlankLines('')).toBe('')
+    expect(halveBlankLines(null)).toBe('')
+  })
+})

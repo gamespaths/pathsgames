@@ -6,6 +6,8 @@ import Book from '@/components/book/Book'
 import Card from '@/components/layout/Card'
 import { buildImageCard } from '@/utils/loadoutCards'
 import images from '@/data/images.json'
+import roadmap from '@/data/roadmap.json'
+import { roadmapCard, roadmapStatus, sortRoadmap } from '@/utils/roadmap'
 
 /**
  * PolicyBook — the Privacy / Terms / Cookies / Credits book opened from the footer links.
@@ -40,6 +42,8 @@ const POLICIES = {
     ],
   },
   credits: { imgId: 'home-credits', ns: 'modals.credits' },
+  // Step 40 — the Devlog: project intro on the left, one small card per version on the right.
+  roadmap: { imgId: 'home', ns: 'modals.roadmap' },
 }
 
 // images.json mixes {urlImage, copyrightText, linkCopyright, description} and {url, author, authorLink}.
@@ -85,6 +89,27 @@ function CreditsCards({ onPreview }) {
   )
 }
 
+/** Step 40 — one small card per version of data/roadmap.json, laid out like the credits. */
+export function RoadmapCards({ entries = roadmap, t }) {
+  return (
+    <div className="config-view-wrap config-view--config">
+      <div className="config-cards-area selection-list roadmap-cards">
+        {sortRoadmap(entries).map(entry => (
+          <Card key={entry.id} card={roadmapCard(entry)} name={entry.title ?? entry.id}
+            imageAlt={entry.id} hidePreview
+            childrenIntoImage={roadmapStatus(entry) === 'current'
+              ? <span className="story-card-status story-card-status--active story-card-status--center stat-badge bonus-badge"
+                  data-testid="roadmap-current">
+                  <i className="fas fa-play me-1" />{t('modals.roadmap.current')}</span>
+              : null}
+            onAction={() => window.open(entry.link, '_blank', 'noopener,noreferrer')}
+            actionLabel={t('modals.roadmap.button')} actionIcon="fa-map-signs" />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function PolicyBook() {
   const { t } = useTranslation()
   const { policyBook, closePolicyBook } = usePolicyBook()
@@ -97,10 +122,14 @@ export default function PolicyBook() {
   // Left: the home-* image with the paths.games manifesto; right: the policy's own title.
   const leftCard = buildImageCard(policy.imgId, t('modals.policyBook.title'), t('modals.policyBook.body'))
   const title = buildImageCard(policy.imgId).title
-  const leftPage = <Card variant="page" card={leftCard} loading={false} />
+  let leftPage = <Card variant="page" card={leftCard} loading={false} />
 
   let rightPage
-  if (policyBook === 'credits') {
+  if (policyBook === 'roadmap') {
+    leftPage = <Card variant="page" loading={false}
+      card={buildImageCard('home', 'paths.games', t('modals.roadmap.intro'))} />
+    rightPage = <RoadmapCards t={t} />
+  } else if (policyBook === 'credits') {
     rightPage = preview
       ? <Card variant="page" card={creditCard(preview)} loading={false} onClose={() => setPreview(null)} />
       : <CreditsCards onPreview={setPreview} />

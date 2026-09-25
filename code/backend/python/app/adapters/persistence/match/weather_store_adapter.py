@@ -92,19 +92,28 @@ class WeatherStoreAdapter:
         with self.session_factory() as session:
             m = (session.query(GamingMatchEntity)
                  .filter(GamingMatchEntity.uuid == match_uuid).first())
-            if m is None or m.id_current_weather is None or m.id_story is None:
-                return None
-            w = (session.query(WeatherRuleEntity)
-                 .filter(WeatherRuleEntity.id_story == m.id_story,
-                         WeatherRuleEntity.id == m.id_current_weather).first())
-            if w is None:
-                return None
-            return {"id_weather": w.id, "uuid": w.uuid, "id_story": m.id_story,
-                    "id_card": w.id_card, "id_text_name": w.id_text_name,
-                    "delta_energy": w.delta_energy,
-                    "cost_move_safe_location": w.cost_move_safe_location,
-                    "cost_move_not_safe_location": w.cost_move_not_safe_location,
-                    "current_clock": m.current_clock or 0}
+            return self._current_weather_of(session, m)
+
+    def find_current_weather(self, id_match: int) -> Optional[Dict[str, Any]]:
+        """Step 40 — the same view, by match id."""
+        with self.session_factory() as session:
+            return self._current_weather_of(session, session.get(GamingMatchEntity, id_match))
+
+    @staticmethod
+    def _current_weather_of(session, m) -> Optional[Dict[str, Any]]:
+        if m is None or m.id_current_weather is None or m.id_story is None:
+            return None
+        w = (session.query(WeatherRuleEntity)
+             .filter(WeatherRuleEntity.id_story == m.id_story,
+                     WeatherRuleEntity.id == m.id_current_weather).first())
+        if w is None:
+            return None
+        return {"id_weather": w.id, "uuid": w.uuid, "id_story": m.id_story,
+                "id_card": w.id_card, "id_text_name": w.id_text_name,
+                "delta_energy": w.delta_energy,
+                "cost_move_safe_location": w.cost_move_safe_location,
+                "cost_move_not_safe_location": w.cost_move_not_safe_location,
+                "current_clock": m.current_clock or 0}
 
     def find_weather_rules_for_match(self, match_uuid: str) -> List[Dict[str, Any]]:
         with self.session_factory() as session:

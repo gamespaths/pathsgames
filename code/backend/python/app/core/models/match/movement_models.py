@@ -68,6 +68,8 @@ class MovementResult:
     automatic_events: List[Any] = field(default_factory=list)
     #: v0.35.6 — the Step 30 verdict of the whole arrival, folded from the events above.
     edge_state: Any = None
+    #: Step 40 — set (TimeEndNews) when an arrival event ended the time, else None.
+    time_end: Any = None
 
 
 @dataclass

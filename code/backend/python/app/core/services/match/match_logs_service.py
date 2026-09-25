@@ -41,7 +41,7 @@ from app.adapters.persistence.story.models import (
 )
 from app.core.ports.match.event_ports import (
     ITEM_ACTION_ADD, ITEM_ACTION_DROP, ITEM_ACTION_REMOVE, ITEM_ACTION_USE,
-    MSG_EVENT_EXECUTED,
+    MSG_CHOICE_SELECTED, MSG_EVENT_EXECUTED,
 )
 from app.core.services.match import experience_service, mission_service, registry_service
 
@@ -81,6 +81,8 @@ _TYPE_SLEEP = "SLEEP"
 _TYPE_CLOCK_ADVANCE = "CLOCK_ADVANCE"
 _TYPE_RECOVERY = "RECOVERY"
 _TYPE_EVENT = "EVENT"
+# Step 40 — an option the player picked, with what its own effect rows gave.
+_TYPE_CHOICE = "CHOICE"
 # Step 33 — a location's counter ran out. Split out of RECOVERY, which it never was.
 _TYPE_COUNTER_ZERO = "COUNTER_ZERO"
 # Step 33 — an event the engine fired: an arrival, a counter, a time-start.
@@ -276,9 +278,9 @@ class MatchLogsService:
                     "timestamp": e.timestamp,
                     "idCharacterMatch": e.id_character_match,
                 })
-            elif msg.startswith(MSG_EVENT_EXECUTED):
+            elif msg.startswith(MSG_EVENT_EXECUTED) or msg.startswith(MSG_CHOICE_SELECTED):
                 entries.append({
-                    "type": _TYPE_EVENT,
+                    "type": _TYPE_EVENT if msg.startswith(MSG_EVENT_EXECUTED) else _TYPE_CHOICE,
                     "clock": e.clock,
                     "timestamp": e.timestamp,
                     "idCharacterMatch": e.id_character_match,
@@ -439,7 +441,7 @@ class MatchLogsService:
                 id_card = weather_cards.get(entry["idWeather"])
             elif entry["type"] == _TYPE_MOVEMENT and entry.get("idLocationTo") is not None:
                 id_card = location_cards.get(entry["idLocationTo"])
-            elif entry["type"] == _TYPE_EVENT and entry.get("idEvent") is not None:
+            elif entry["type"] in (_TYPE_EVENT, _TYPE_CHOICE) and entry.get("idEvent") is not None:
                 id_card = event_cards.get(entry["idEvent"])
             elif (entry["type"] in (_TYPE_AUTOMATIC_EVENT, _TYPE_RANDOM_EVENT)
                   and entry.get("idEvent") is not None):

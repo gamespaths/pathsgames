@@ -718,3 +718,20 @@ def test_step39_random_event_has_no_location_and_wears_the_event_card(session_fa
     assert random_row["idEvent"] == 90010
     assert random_row.get("idLocationTo") is None
     assert random_row["card"]["title"] == "Wolves"
+
+
+def test_step40_choice_selected_is_a_choice_entry_with_gains_and_the_event_card(session_factory):
+    _seed_match(session_factory)
+    with session_factory() as s:
+        s.add(EventEntity(id=90011, id_story=STORY_ID, uuid="ev-90011", id_card=610))
+        s.add(LogEventsEntity(id=14, id_match=MATCH_ID, uuid="e14", id_character_match=10,
+                              clock=4, timestamp=_NOW, id_event=90011,
+                              log_message="CHOICE_SELECTED 90011", food_gain=2, coin_gain=1,
+                              ts_insert=_NOW, ts_update=_NOW))
+        s.commit()
+    content = _FakeContentQueryService({610: "The Crossroads"})
+    logs = MatchLogsService(session_factory, content).get_match_logs_for_admin(MATCH_UUID)["logs"]
+    assert [e["type"] for e in logs] == ["CHOICE"]
+    assert logs[0]["idEvent"] == 90011
+    assert logs[0]["foodGain"] == 2 and logs[0]["coinGain"] == 1
+    assert logs[0]["card"]["title"] == "The Crossroads"

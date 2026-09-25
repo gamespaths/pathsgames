@@ -325,6 +325,25 @@ class MatchLogsServiceTest {
         }
 
         @Test
+        @DisplayName("Step 40 — a CHOICE_SELECTED row is a CHOICE entry with its gains and the owning event's card")
+        void choiceEntry() {
+            when(store.findEventLog(MATCH_ID)).thenReturn(
+                    List.of(new EventLogEntry(1L, 2L, 3, "2026-01-01T00:05:00Z",
+                            "CHOICE_SELECTED 42", 42L, null, 0, 0, 0, 0, 0, 2, 0, 1)));
+            when(store.findEventIdCards(STORY_ID)).thenReturn(Map.of(42L, 600));
+            when(contentQueryPort.getCardByStoryIdAndCardId(STORY_ID, 600, "en"))
+                    .thenReturn(card("The Crossroads"));
+            LogEntry e = admin().logs().get(0);
+            assertEquals(LogEntry.TYPE_CHOICE, e.type());
+            assertEquals(42L, e.idEvent());
+            assertEquals(3, e.clock());
+            assertEquals(2, e.foodGain());
+            assertEquals(1, e.coinGain());
+            assertEquals(600, e.idCard());
+            assertEquals("The Crossroads", e.card().title());
+        }
+
+        @Test
         @DisplayName("empty match returns empty log list with correct currentClock")
         void emptyLogs() {
             MatchLogsResult r = admin();

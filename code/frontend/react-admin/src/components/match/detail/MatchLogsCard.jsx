@@ -45,6 +45,8 @@ const TYPE_META = {
   ITEM_DROP:       { icon: 'fa-trash',           style: { background: '#2a2a2a', color: '#9ca3af', border: '1px solid #6b7280' } },
   // Step 38 — experience spent on a stat.
   EXP_USE:         { icon: 'fa-star',            style: { background: '#2a1a3a', color: '#c4b5fd', border: '1px solid #8b5cf6' } },
+  // Step 40 — an option picked, with what its own effect rows gave.
+  CHOICE:          { icon: 'fa-code-branch',     style: { background: '#3a1a2e', color: '#f472b6', border: '1px solid #ec4899' } },
 }
 
 /**
@@ -206,6 +208,9 @@ function entryDetail(entry) {
 
     case 'COUNTER_ZERO':
       return entry.idLocationTo != null ? `location #${entry.idLocationTo}` : '—'
+
+    case 'CHOICE':
+      return entry.idEvent != null ? `choice of event #${entry.idEvent}` : '—'
 
     case 'ITEM_ADD':
     case 'ITEM_USE':

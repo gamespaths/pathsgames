@@ -74,7 +74,7 @@ class EventExecutionServiceChainTest {
         when(store.findItemUuidsById(STORY_ID)).thenReturn(Map.of());
         when(store.findTraitUuidsById(STORY_ID)).thenReturn(Map.of());
         when(store.loadCheckContext(MATCH_ID, CHAR_ID)).thenReturn(ctx);
-        when(timeAdvancementService.forceTimeEnd(MATCH_UUID))
+        when(timeAdvancementService.forceTimeEnd(eq(MATCH_UUID), any()))
                 .thenReturn(new TimeAdvancementService.TimeEndOutcome(8, List.<TimeAdvancementPort.RecoveryItem>of(), List.of()));
     }
 
@@ -315,7 +315,7 @@ class EventExecutionServiceChainTest {
 
             assertEquals(List.of("event-1", "event-2", "event-3"), r.executedEventUuids(),
                     "the chain completes before time advances");
-            verify(timeAdvancementService, times(1)).forceTimeEnd(MATCH_UUID);
+            verify(timeAdvancementService, times(1)).forceTimeEnd(eq(MATCH_UUID), any());
             assertTrue(r.timeEnded());
             assertTrue(r.forcedSleep());
             assertEquals(8, r.currentClock(), "the response carries the NEW clock");
@@ -333,7 +333,7 @@ class EventExecutionServiceChainTest {
 
             execute(a);
 
-            verify(timeAdvancementService, times(1)).forceTimeEnd(MATCH_UUID);
+            verify(timeAdvancementService, times(1)).forceTimeEnd(eq(MATCH_UUID), any());
         }
 
         @Test
@@ -344,7 +344,7 @@ class EventExecutionServiceChainTest {
 
             EventExecutionResult r = execute(a);
 
-            verify(timeAdvancementService, never()).forceTimeEnd(anyString());
+            verify(timeAdvancementService, never()).forceTimeEnd(anyString(), any());
             assertFalse(r.timeEnded());
             assertEquals(7, r.currentClock());
         }

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { getServerStatus } from '../../api/echoApi'
+import EnvBadge from './EnvBadge'
 
 const MENU = [
   { section: 'Overview' },
@@ -93,6 +94,7 @@ export default function Navbar() {
         Paths Games
         <span style={{ color: 'var(--color-ember)', marginLeft: '0.4rem' }}>ADMIN</span>
       </a>
+      <EnvBadge />
 
       {/* Server selector */}
       <div className="flex items-center gap-2 flex-1 max-w-xs mx-4">

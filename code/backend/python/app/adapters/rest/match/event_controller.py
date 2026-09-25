@@ -135,6 +135,8 @@ def _result_to_camel(r: EventExecutionResult) -> dict:
         "effects": [_effect_to_camel(e) for e in r.effects],
         "pendingChoices": r.pending_choices,
         "edgeState": _edge_state_to_camel(r.edge_state),
+        # Step 40 — a forced time-end tells the weather and what the time-start fired.
+        **lem.to_camel_time_end(r.time_end),
     }
 
 

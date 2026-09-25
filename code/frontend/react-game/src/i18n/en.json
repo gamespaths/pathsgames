@@ -30,7 +30,7 @@
     "footerBlocked": "Blocked",
     "footerError": "Error"
   },
-  "antibot": { 
+  "antibot": {
     "blocked": "Antibot activated — these adventures are only for humans!",
     "verifying": "Checking you're human…",
     "error": "Verification didn't go through."
@@ -44,12 +44,14 @@
     "difficulty": "Difficulty",
     "gameType": "Type",
     "login": "Login",
-    "single": "Single",
+    "single": "Single player",
+    "singlePlayer": "Locked",
     "singleDesc": "Embark on a solo journey through our immersive stories. Make choices, face challenges, and shape your own destiny in a world of endless possibilities. <br /><br /><p align='center'>Multiplayer mode coming soon!</p>",
     "multiplayer": "Multiplayer",
     "multiplayerDesc": "Join forces with friends or compete against others in thrilling multiplayer adventures. Collaborate, strategize, and experience the excitement of shared storytelling.",
     "competitive": "Competitive",
-    "guest": "Guest",
+    "guest": "Guest user",
+    "guestLock": "Locked",
     "guestDesc": "Play as a guest and dive into our captivating stories without the need for an account. Experience the thrill of adventure with just a click.<br /><br /> <p align='center'>Login coming soon for a personalized experience!</p>",
     "register": "Register",
     "comingSoon": "Coming Soon",
@@ -129,7 +131,9 @@
     "automatic-event": "Event",
     "automatic-event-done": "Continue",
     "registry": "Registry",
-    "matchlog": "History"
+    "matchlog": "History",
+    "missions": "Mission",
+    "missionStep": "Mission step"
   },
   "startMatch": {
     "starting": "Starting match…",
@@ -159,20 +163,21 @@
     "loading": "Loading matches…",
     "noMatches": "No matches yet. Start an adventure!",
     "unknownStory": "Unknown story",
-    "resume": "Play",
+    "resume": "Resume",
     "statusLabel": "Status",
     "created": "Started",
     "clock": "Clock",
     "status": {
-      "CREATED": "Ready",
-      "RUNNING": "In Progress",
+      "CREATED": "In progress",
+      "RUNNING": "In progress",
       "PAUSED": "Paused",
-      "ENDED": "Ended",
-      "GAMEOVER": "Game Over"
+      "ENDED": "Completed",
+      "GAMEOVER": "Defeat"
     },
     "history": "Match History",
     "historyDescription": "Every step this match has taken, newest first: moves, events, rests and what they changed.",
-    "historyOpen": "History"
+    "historyOpen": "History",
+    "logOpen": "Log"
   },
   "matchLog": {
     "title": "Match history",
@@ -199,8 +204,11 @@
       "EXP_USE": "Experience spent",
       "ITEM_DROP": "Item left behind",
       "REGISTRY_CHANGE": "Registry",
-      "MISSION_CHANGE": "Mission"
-    }
+      "MISSION_CHANGE": "Mission",
+      "CHOICE": "Choice"
+    },
+    "statusTile": "Status",
+    "creation": "Creation"
   },
   "card": {
     "info": "Info",
@@ -208,7 +216,9 @@
     "viewOriginal": "View original",
     "actionInProgress": "Executing",
     "back": "Back",
-    "forward": "Go"
+    "forward": "Go",
+    "tip": "tip",
+    "hideTip": "hide tip"
   },
   "game": {
     "currentLocation": "Current Location",
@@ -546,7 +556,8 @@
     }
   },
   "footer": {
-    "alpha": "This is only an Alpha version. Servers may be unavailable or reset at any time. ",
+    "alphaPrefix": "This is only the",
+    "serversWarning": "Servers may be unavailable or reset at any time.",
     "serverSelect": "Server",
     "rights": "All rights reserved",
     "madeWith": "Crafted with",
@@ -664,6 +675,39 @@
       "allRights": "All stories, artwork and game content are",
       "copyright": "© paths.games 2026 — All rights reserved",
       "goBack": "Go Back"
+    },
+    "roadmap": {
+      "title": "Devlog",
+      "intro": "paths.games is an open-source project: anyone can read, study and improve it.<br /><br />The code is released under the GNU GPL v3 license, while the stories are under CC BY-NC-ND 4.0.<br /><br />Above all, it is a project made to have fun: playing, writing and building it together.",
+      "current": "In progress",
+      "button": "Roadmap"
     }
+  },
+  "tips": {
+    "location": "This is where your character stands. Its events and the paths leaving it are on the right page.",
+    "event": "An event is something you can do here. It may cost energy or coins, and its effects change your character.",
+    "action": "An action is something you can do right now. Check its cost before you choose it.",
+    "item": "An item sits in your backpack. Use it to apply its effects, or drop it to free some weight.",
+    "items": "Your backpack: every item you carry, and how much it weighs against what you can carry.",
+    "movement": "A path to a nearby place. Moving costs energy, more when the weather is bad or the place is unsafe.",
+    "class": "Your class gives your character bonuses and decides some of the choices you can make.",
+    "character": "Your character: life, energy and the other statistics every choice reads and changes.",
+    "trait": "A trait changes your statistics for the whole match, for better or for worse.",
+    "missions": "Missions are goals the story sets. Complete their steps to earn the reward.",
+    "missionStep": "A step of the mission: complete it to move on to the next one. Only the next open step is shown, the ones after it stay hidden.",
+    "registry": "The registry remembers what happened in this match: keys written by places, events and choices.",
+    "map": "The map shows the places you have visited. Select one to read it; the unknown ones stay hidden.",
+    "weather": "The weather changes at every new time unit and changes the energy you spend to move.",
+    "sleep": "Sleeping ends the time unit: you recover energy and the world moves on while you rest.",
+    "choice": "A choice: pick one option, its consequences cannot be undone.",
+    "experience": "Experience earned in your adventures can be spent to raise a statistic.",
+    "story": "The story you are playing: its author, its world and its rules.",
+    "difficulty": "The difficulty sets how much energy, life and time you start with."
+  },
+  "envBadge": {
+    "dev": "Local version",
+    "test": "Test version",
+    "alpha": "Alpha version",
+    "beta": "Beta version"
   }
 }

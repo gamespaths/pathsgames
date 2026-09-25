@@ -9,7 +9,7 @@ import { useTranslation } from '../../i18n/context'
 export default function CardButtons({
   isPage, name,
   locked, lockedReason, lockInfo, lockedIcon,
-  onSelect, selected, selectLabel,
+  onSelect, selected, selectLabel, selectIcon = null,
   onAction, actionLabel, actionIcon, actionOnlyIfPreview, actionLabelChildren=null,
   onPreview, onPreviewClick, previewOpened, hidePreview,
   // Secondary footer buttons, rendered after the main action one, in order:
@@ -85,7 +85,7 @@ export default function CardButtons({
         className={`gc-footer__btn${selected ? ' gc-footer__btn--selected' : ''}`}
         onClick={onSelect}
       >
-        <i className={`fas ${selected ? 'fa-check' : 'fa-hand-pointer'} me-1`} />
+        <i className={`fas ${selected ? 'fa-check' : (selectIcon ?? 'fa-hand-pointer')} me-1`} />
         <span className="gc-footer__btn-label">{selectLabel}</span>
       </button>
     </div></div>)

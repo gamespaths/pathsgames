@@ -87,6 +87,8 @@ public class SelectChoiceResponse extends ExecuteEventResponse {
         setEffects(s.getEffects());
         setPendingChoices(s.getPendingChoices());
         setEdgeState(s.getEdgeState());
+        setWeather(s.getWeather());
+        setCounterZero(s.getCounterZero());
     }
 
     public String getChoiceUuid() { return choiceUuid; }

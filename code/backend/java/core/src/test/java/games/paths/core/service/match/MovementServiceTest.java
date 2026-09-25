@@ -200,6 +200,30 @@ class MovementServiceTest {
         }
 
         @Test
+        @DisplayName("Step 40: an arrival that ended the time carries its news and the new clock")
+        void anArrivalThatEndsTheTimeCarriesItsNews() {
+            LocationEntryPort entry = mock(LocationEntryPort.class);
+            games.paths.core.port.match.TimeAdvancementPort.TimeEndNews news =
+                    new games.paths.core.port.match.TimeAdvancementPort.TimeEndNews(9, List.of(), null);
+            LocationEntryPort.AutomaticEventFired quiet = new LocationEntryPort.AutomaticEventFired(
+                    LocationEntryPort.TRIGGER_FIRST_ENTRY, 2L, "evt-welcome", null,
+                    List.of(), List.of(), List.of(), false);
+            LocationEntryPort.AutomaticEventFired ender = new LocationEntryPort.AutomaticEventFired(
+                    LocationEntryPort.TRIGGER_FIRST_ENTRY, 2L, "evt-night", null,
+                    List.of(), List.of(), List.of(), false,
+                    EventExecutionPort.EdgeStateOutcome.none(), news);
+            when(entry.onArrival(any())).thenReturn(List.of(quiet, ender));
+            MovementService withEntry =
+                    new MovementService(store, userAccessPort, contentQueryPort, entry, registryService);
+            wireHappyPath(10, 2, 1, 1, 3, 99, 100, 0);
+
+            MovementResult r = withEntry.startMovement(MATCH, USER, "loc-2");
+
+            assertSame(news, r.timeEnd());
+            assertEquals(9, r.currentClock());
+        }
+
+        @Test
         @DisplayName("v0.35.6: an ordinary arrival answers an empty edge state, never null")
         void aQuietArrivalAnswersAnEmptyEdgeState() {
             LocationEntryPort entry = mock(LocationEntryPort.class);

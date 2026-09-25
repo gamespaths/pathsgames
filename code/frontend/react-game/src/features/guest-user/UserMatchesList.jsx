@@ -5,12 +5,15 @@ import { listMatches } from '@/api/matches'
 import { getStory } from '@/api/stories'
 import MatchCard from '@/features/matches/MatchCard'
 import LoadingCard from '@/components/layout/LoadingCard'
+import { sortMatchesForList } from '@/utils/matchStatus'
+import { toEpochMs } from '@/utils/dates'
 
 /**
  * UserMatchesList — fetches the current user's matches and story cards,
  * then renders a scrollable grid of MatchCard items.
+ * Step 40 — active first, then paused, then finished, newest first in each group.
  */
-export default function UserMatchesList({ accessToken, preloadedMatches, onPreviewCard, onClose }) {
+export default function UserMatchesList({ accessToken, preloadedMatches, onPreviewCard, onOpenHistory, onClose }) {
   const { t, lang } = useTranslation()
   const navigate = useNavigate()
   const [matches,  setMatches]  = useState([])
@@ -33,7 +36,7 @@ export default function UserMatchesList({ accessToken, preloadedMatches, onPrevi
       .then(async list => {
         if (cancelled) return
         const safeList = Array.isArray(list) ? list : []
-        setMatches(safeList)
+        setMatches(sortMatchesForList(safeList, toEpochMs))
 
         const uniqueUuids = [...new Set(safeList.map(m => m.storyUuid).filter(Boolean))]
         const stories = await Promise.all(uniqueUuids.map(uuid => getStory(uuid, lang).catch(() => null)))
@@ -75,6 +78,7 @@ export default function UserMatchesList({ accessToken, preloadedMatches, onPrevi
               story={storyMap[match.storyUuid] ?? null}
               onResume={() => { onClose?.(); navigate(`/play/${match.storyUuid}`, { state: { matchUuid: match.uuid } }) }}
               onPreviewCard={onPreviewCard}
+              onHistory={onOpenHistory}
             />
           ))}
         </div>

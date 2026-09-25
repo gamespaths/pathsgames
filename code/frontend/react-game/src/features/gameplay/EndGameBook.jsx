@@ -66,8 +66,8 @@ export default function EndGameBook({ story, endGameCard, onClose, missions = []
     setSelected({ mission, card, stats })
     setView('missionSteps')
   }
-  function openPreview({ card, type }) {
-    setPreview(card ? { card, type } : null)
+  function openPreview({ card, type, stats }) {
+    setPreview(card ? { card, type, stats } : null)
   }
   function backToMissions() {
     setPreview(null)
@@ -85,7 +85,8 @@ export default function EndGameBook({ story, endGameCard, onClose, missions = []
     let rightPage
     if (preview) {
       rightPage = <Card variant="page" card={preview.card} entityType={preview.type}
-        loading={false} story={story} onClose={() => setPreview(null)} />
+        loading={false} story={story} onClose={() => setPreview(null)}
+        statItemsToPageContent={preview.stats} />
     } else if (view === 'missionSteps' && selected) {
       rightPage = <MissionStepsCards mission={selected.mission} story={story}
         onPreview={openPreview} previewSide="right" />

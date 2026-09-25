@@ -2105,7 +2105,7 @@ def _enrich_match_logs(page, match, match_uuid, lang):
             id_card = weather_cards.get(_nz(entry['idWeather']))
         elif entry['type'] == 'MOVEMENT' and entry.get('idLocationTo') is not None:
             id_card = location_cards.get(_nz(entry['idLocationTo']))
-        elif entry['type'] == 'EVENT' and entry.get('idEvent') is not None:
+        elif entry['type'] in ('EVENT', 'CHOICE') and entry.get('idEvent') is not None:
             id_card = event_cards.get(_nz(entry['idEvent']))
         elif entry['type'] in ('AUTOMATIC_EVENT', 'RANDOM_EVENT') and entry.get('idEvent') is not None:
             # Step 33 — the event's own card, like a player-triggered one.
@@ -2299,6 +2299,53 @@ def _advance_time(match, match_uuid):
     # A TimeAdvanced domain event would be published here (WebSocket broadcast: Step 64).
     edge_state = _merge_edge_states([recovery_edge] + [f.get('edgeState') for f in fired])
     return new_clock, recovery, fired, edge_state
+
+
+def _time_start_weather(match, story, before_id, lang='en'):
+    """Step 40 — the weather after a forced time-start, ``changed`` vs ``before_id``."""
+    payload = _current_weather_payload(match, story, lang)
+    if payload is None:
+        return None
+    return {
+        "idWeather": payload['idWeather'],
+        "uuid": payload['uuid'],
+        "card": payload['card'],
+        "deltaEnergy": payload['deltaEnergy'],
+        "costMoveSafeLocation": payload['costMoveSafeLocation'],
+        "costMoveNotSafeLocation": payload['costMoveNotSafeLocation'],
+        "changed": before_id is None or _nz(before_id) != _nz(payload['idWeather']),
+    }
+
+
+def _force_time_end_news(match, match_uuid, story, touched, recipient_uuid, lang='en'):
+    """Step 40 — put everybody to sleep, run the time-start, and tell the recipient what it
+    set off: ``(new_clock, edge_state, {"weather", "counterZero"})``."""
+    for c in _reread_characters(match_uuid, touched):
+        c['isSleeping'] = 1
+        _repo.save(c)
+    before = match.get('currentWeatherId')
+    new_clock, _recovery, fired, time_edge = _advance_time(match, match_uuid)
+    news = {
+        "weather": _time_start_weather(match, story, before, lang),
+        "counterZero": _describe_for_recipient(match, match_uuid, story, recipient_uuid,
+                                               fired, new_clock, lang),
+    }
+    return new_clock, time_edge, news
+
+
+def _no_time_end_news():
+    """Step 40 — the two keys an answer carries when the time did not end."""
+    return {"weather": None, "counterZero": []}
+
+
+def _pop_time_end(fired):
+    """Step 40 — strip the private news off fired entries; the first one found wins."""
+    found = None
+    for f in fired or []:
+        news = f.pop('_timeEnd', None)
+        if found is None and news is not None:
+            found = news
+    return found
 
 
 def _sleep(user, match_uuid):
@@ -2561,6 +2608,7 @@ def _start_movement(user, match_uuid, body):
     automatic_events = []
     _resolve_arrival(match, match_uuid, story, caller.get('uuid'), _nz(target.get('id')),
                      'en', 0, automatic_events)
+    time_news = _pop_time_end(automatic_events)
     _logbook.persist(match)
 
     return _ok({
@@ -2582,6 +2630,10 @@ def _start_movement(user, match_uuid, body):
         # What the destination did about the arrival. The board already has the new
         # location for its left page; these belong on the right.
         "automaticEvents": automatic_events,
+        # Step 40 — an arrival event that ended the time: its weather and wake-up list.
+        "timeEnded": time_news is not None,
+        "weather": (time_news or {}).get('weather'),
+        "counterZero": (time_news or {}).get('counterZero') or [],
         # v0.35.6 — an arrival can kill: the Step 30 verdict of the whole move, in the very
         # shape execute-event answers, so the board reads a collapse the same way always.
         "edgeState": _merge_edge_states([f.get('edgeState') for f in automatic_events]),
@@ -2899,11 +2951,10 @@ def _execute_event(user, match_uuid, body, lang='en'):
 
     current_clock = _nz(match.get('currentClock'))
     time_ended = False
+    time_news = _no_time_end_news()
     if flags['endTime'] and not flags['comaTriggered']:
-        for c in _reread_characters(match_uuid, touched):
-            c['isSleeping'] = 1
-            _repo.save(c)
-        current_clock, _recovery, _fired, time_edge = _advance_time(match, match_uuid)
+        current_clock, time_edge, time_news = _force_time_end_news(
+            match, match_uuid, story, touched, caller.get('uuid'), lang)
         # v0.35.6 — the time start this event forced runs a recovery, and a recovery can push
         # somebody over an edge: that verdict belongs in this response, not the next reload.
         _fold_edge_uuids(edge_state, time_edge)
@@ -2915,6 +2966,7 @@ def _execute_event(user, match_uuid, body, lang='en'):
     automatic_events = _drain_arrivals(
         match, match_uuid, story, location_changes, edge_state, location_uuids, lang,
         edge_state['allPlayersInComa'])
+    _pop_time_end(automatic_events)
     _logbook.persist(match)
 
     # The epilogue is sliced off the tail so the board can tell it from the player's chain.
@@ -2971,6 +3023,8 @@ def _execute_event(user, match_uuid, body, lang='en'):
         # v0.36.3 — what the destination did about a forced move, exactly as a movement
         # and a choice resolution answer it.
         "automaticEvents": automatic_events,
+        # Step 40 — a forced time-end tells the weather and what the time-start fired.
+        **time_news,
         "effects": chain_effects,
         # Empty by definition on APPLIED — the options ride on CHOICES_PENDING only.
         "pendingChoices": [],
@@ -3326,6 +3380,7 @@ def _use_item(user, match_uuid, body, lang='en'):
         "characteristicChanges": [],
         "locationChanges": [],
         "effects": applied_effects,
+        **_no_time_end_news(),
         # An item owns no choices and cannot be the story's end-game event.
         "pendingChoices": [],
         "edgeState": {
@@ -3447,6 +3502,7 @@ def _execute_choice_event(match, match_uuid, story, event, event_choices,
         "characteristicChanges": [],
         "locationChanges": [],
         "effects": [],
+        **_no_time_end_news(),
         "pendingChoices": pending,
         "edgeState": {
             "sadnessOverflowUuids": [], "comaUuids": [], "allPlayersInComa": False,
@@ -3546,6 +3602,7 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
 
     acc = _new_accumulator(caller)
     linked = []
+    gains_mark = len(acc['statChanges'])
 
     # ── the option's own effect rows, in authored order ──
     for effect in _choices.effects_for_choice(story, _events._nz(choice.get('id'))):
@@ -3586,6 +3643,9 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
         if effect.get('idEvent'):
             linked.append(_events._nz(effect.get('idEvent')))
 
+    # Step 40 — the option's own rows only: linked events log their gains on their own rows.
+    choice_gains = _gains_since(acc['statChanges'], gains_mark, caller.get('uuid'))
+
     # No event ran for those rows, so the Step 30 pass has to be given here — once, over
     # everyone they touched, exactly where the event flow runs it. A lethal row therefore
     # does NOT silence its siblings; what a coma stops is the consequences below.
@@ -3615,6 +3675,7 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
     automatic_events = _drain_arrivals(
         match, match_uuid, story, acc['locationChanges'], acc['edgeState'], location_uuids,
         lang, acc['edgeState']['allPlayersInComa'])
+    _pop_time_end(automatic_events)
 
     # ── close the cycle: the marker, the history row, the milestone ──
     clock = _nz(match.get('currentClock'))
@@ -3624,6 +3685,9 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
     _logbook.audit(match, 'CHOICE_SELECTED', clock, selected=True,
                    characterUuid=caller.get('uuid'), idEvent=event_id,
                    message=f'{_choices.MSG_CHOICE_SELECTED} {event_id}')
+    # Step 40 — the timeline row of the pick, with what the option's own rows gave.
+    _logbook.append(match, 'CHOICE', clock, characterUuid=caller.get('uuid'), idEvent=event_id,
+                    message=f'{_choices.MSG_CHOICE_SELECTED} {event_id}', **choice_gains)
     choice_id = _events._nz(choice.get('id'))
     _logbook.audit(match, 'CHOICE_HISTORY', clock, idEvent=event_id, idChoise=choice_id,
                    message=f'{_choices.MSG_CHOICE_SELECTED} {choice_id}')
@@ -3633,11 +3697,10 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
 
     current_clock = clock
     time_ended = False
+    time_news = _no_time_end_news()
     if acc['flags']['endTime'] and not acc['flags']['comaTriggered']:
-        for c in _reread_characters(match_uuid, acc['touched']):
-            c['isSleeping'] = 1
-            _repo.save(c)
-        current_clock, _recovery, _fired, time_edge = _advance_time(match, match_uuid)
+        current_clock, time_edge, time_news = _force_time_end_news(
+            match, match_uuid, story, acc['touched'], caller.get('uuid'), lang)
         # The forced time start can push somebody over an edge too — same as above.
         _fold_edge_uuids(acc['edgeState'], time_edge)
         time_ended = True
@@ -3700,6 +3763,8 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
         # v0.36.3 — what the destinations of the forced moves did about the arrivals, the
         # same list a movement answers with. java has carried it since Step 33.
         "automaticEvents": automatic_events,
+        # Step 40 — a forced time-end tells the weather and what the time-start fired.
+        **time_news,
         "effects": chain_effects,
         "pendingChoices": pending,
         "edgeState": {
@@ -4002,6 +4067,8 @@ def _run_event_chain(match, story, first, caller, characters, ctx, events_by_id,
         if current.get('uuid'):
             acc['executedUuids'].append(current.get('uuid'))
 
+        # Step 40 — the mark before the effects: this row logs what THIS event gave.
+        gains_mark = len(acc['statChanges'])
         for effect in effects_by_event.get(event_id, []):
             recipients = _events.resolve_recipients(effect, caller, characters,
                                                     party_run=bool(acc.get('partyRun')))
@@ -4054,9 +4121,12 @@ def _run_event_chain(match, story, first, caller, characters, ctx, events_by_id,
 
         _apply_edge_states(match, caller, acc, event_id)
         # Step 33 — an automatic event in an empty location has no actor at all.
+        # With no actor (a party run) every recipient's gain is summed.
         _logbook.append(match, 'EVENT', _nz(match.get('currentClock')), executed=True,
                         characterUuid=caller.get('uuid') if caller else None,
-                        idEvent=event_id, message=f'{_events.MSG_EVENT_EXECUTED} {event_id}')
+                        idEvent=event_id, message=f'{_events.MSG_EVENT_EXECUTED} {event_id}',
+                        **_gains_since(acc['statChanges'], gains_mark,
+                                       caller.get('uuid') if caller else None))
 
         if acc['flags']['comaTriggered'] and not acc['epiloguePhase']:
             # The epilogue runs BECAUSE the party is down, so the coma cannot unwind it.
@@ -4299,6 +4369,16 @@ def _run_automatic_event(match, match_uuid, story, actor_uuid, id_event, id_loca
         if touched is not None:
             _repo.save(touched)
 
+    # Step 40 — an ARRIVAL event with flagEndTime ends the time, as on java and python; the
+    # time-start events run inside that pass and may not end it again.
+    time_news = None
+    if (trigger in _ARRIVAL_TRIGGERS and acc['flags']['endTime']
+            and not acc['flags']['comaTriggered']):
+        new_clock, time_edge, time_news = _force_time_end_news(
+            match, match_uuid, story, acc['touched'], actor_uuid, lang)
+        time_news['newClock'] = new_clock
+        _fold_edge_uuids(acc['edgeState'], time_edge)
+
     message = _events.automatic_log_message(trigger, id_event, id_location)
     if trigger == _events.TRIGGER_RANDOM_EVENT:
         _log_random_event(match, id_event, _nz(match.get('currentClock')), message)
@@ -4320,6 +4400,9 @@ def _run_automatic_event(match, match_uuid, story, actor_uuid, id_event, id_loca
         # v0.35.6 — what the Step 30 rules did about this arrival, epilogue included.
         "edgeState": _edge_state_payload(acc),
     })
+    if time_news is not None:
+        # Step 40 — private: popped by the answer that carries it, never serialized.
+        out[-1]['_timeEnd'] = time_news
 
     # The events this one caused by pushing somebody somewhere: a forced move is an
     # arrival like any other.
@@ -4329,6 +4412,10 @@ def _run_automatic_event(match, match_uuid, story, actor_uuid, id_event, id_loca
         if moved_to is not None:
             _resolve_arrival(match, match_uuid, story, moved_uuid, moved_to, lang,
                              depth + 1, out, epilogue['done'])
+
+
+_ARRIVAL_TRIGGERS = (_events.TRIGGER_FIRST_ENTRY, _events.TRIGGER_SUBSEQUENT_ENTRY,
+                     _events.TRIGGER_MOVE_INTO_EMPTY_LOCATION)
 
 
 def location_uuids_inverse(location_uuids, uuid):

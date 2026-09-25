@@ -37,3 +37,16 @@ export function hideWhereClass(showInBook, showInMobile) {
   if (!showInMobile) classes.push('hide-in-mobile')
   return classes.length ? classes.join(' ') : null
 }
+
+// Step 40 — the story category whose pages open their tip by default (case-insensitive).
+export const TUTORIAL_CATEGORY = import.meta.env?.VITE_TUTORIAL_CATEGORY || 'tutorial'
+
+/** True when the story belongs to the tutorial category. */
+export function isTutorialStory(story, category = TUTORIAL_CATEGORY) {
+  const value = story?.category
+  if (!value || !category) return false
+  return String(value).trim().toLowerCase() === String(category).trim().toLowerCase()
+}
+
+// Step 40 — build-time environment code (dev, test, alpha, beta…) shown as a header badge.
+export const ENV_BADGE = import.meta.env?.VITE_ENV_BADGE ?? ''

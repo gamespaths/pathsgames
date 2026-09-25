@@ -18,6 +18,7 @@ from app.core.models.match.time_models import (
     SleepResult,
     TimeAdvanced,
     TimeEndOutcome,
+    TimeStartWeather,
 )
 from app.core.models.match.turn_models import TurnCycleError
 from app.core.ports.event.event_ports import DomainEventPublisher
@@ -78,7 +79,7 @@ class TimeAdvancementService(TimeAdvancementPort):
         counter_zero: List[Any] = []
         edge_state = EdgeStateOutcome.none()
         if triggered:
-            current_clock, recovery, fired, edge_state = self._advance_time(match)
+            current_clock, recovery, fired, edge_state, _weather = self._advance_time(match)
             # Step 33 — the same events, told to THIS player. The caller is the only
             # recipient with an open request; the rest learn about it over the WebSocket
             # once Steps 49-54 land, through this very method called once per player.
@@ -122,20 +123,42 @@ class TimeAdvancementService(TimeAdvancementPort):
                 return False
         return True
 
-    def force_time_end(self, match_uuid: str) -> TimeEndOutcome:
+    def force_time_end(self, match_uuid: str, id_recipient_character=None) -> TimeEndOutcome:
         """Step 29 — force a time end: put every character to sleep, then advance.
 
         Exposed on the class and deliberately NOT on TimeAdvancementPort: nothing over REST
         should be able to skip a time unit, only the engine. Note that _advance_time wakes
         everybody right after, so the net observable state is "awake at clock+1"; the
         forced_sleep flag the event returns records the transition.
+
+        Step 40 — the time-start's news is told to ``id_recipient_character`` (the actor).
         """
         match = self._require_match(match_uuid)
         self.store.set_all_characters_sleeping(match["id"])
-        new_clock, recovery, _fired, edge_state = self._advance_time(match)
-        return TimeEndOutcome(new_clock, recovery, [], edge_state)
+        new_clock, recovery, fired, edge_state, weather = self._advance_time(match)
+        counter_zero = self._describe_counter_zero(match["id"], id_recipient_character, fired,
+                                                   new_clock)
+        return TimeEndOutcome(new_clock, recovery, counter_zero, edge_state, weather)
+
+    def _current_weather(self, id_match: int):
+        """Step 40 — None when no weather engine is wired or the match has no weather."""
+        if self.weather_service is None:
+            return None
+        return self.weather_service.current_weather_by_id(id_match)
+
+    @staticmethod
+    def weather_view(before, after):
+        """Step 40 — the weather after the time-start, flagged when it differs from before."""
+        if not after:
+            return None
+        changed = not before or before.get("id_weather") != after.get("id_weather")
+        return TimeStartWeather(after.get("id_weather"), after.get("uuid"), after.get("id_card"),
+                                None, after.get("delta_energy"),
+                                after.get("cost_move_safe_location"),
+                                after.get("cost_move_not_safe_location"), changed)
 
     def _advance_time(self, match: Dict[str, Any]):
+        weather_before = self._current_weather(match["id"])
         new_clock = self.store.increment_match_clock(match["id"])
         self.store.insert_clock_history(match["id"], new_clock)
         self.store.wake_all_characters(match["id"])
@@ -162,7 +185,8 @@ class TimeAdvancementService(TimeAdvancementPort):
         self.event_publisher.publish(TimeAdvanced(match["uuid"], new_clock))
         # The recovery's own verdict first, then whatever its events did: one edge state.
         parts = [outcome.edge_state] + [f.edge_state for f in fired]
-        return new_clock, outcome.recovery, fired, EdgeStateOutcome.merge(parts)
+        weather = self.weather_view(weather_before, self._current_weather(match["id"]))
+        return new_clock, outcome.recovery, fired, EdgeStateOutcome.merge(parts), weather
 
     def _describe_counter_zero(self, id_match: int, id_recipient_character,
                                fired: List[Any], clock: int) -> List[Any]:

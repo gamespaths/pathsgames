@@ -45,10 +45,12 @@
     "gameType": "Tipo di Gioco",
     "login": "Accesso",
     "single": "Singolo",
+    "singlePlayer": "Bloccato",
     "singleDesc": "Intraprendi un viaggio in solitaria attraverso le nostre storie immersive. Compi scelte, affronta sfide e plasma il tuo destino in un mondo di infinite possibilità.<br /><br /><p align='center'>Modalità multigiocatore in arrivo!</p>",
     "multiplayer": "Multigiocatore",
     "competitive": "Competitivo",
     "guest": "Ospite",
+    "guestLock": "Bloccato",
     "guestDesc": "Gioca come ospite e immergiti nelle nostre storie avvincenti senza bisogno di un account. Vivi l'emozione dell'avventura con un solo clic.<br /><br /><p align='center'>Accesso in arrivo per un'esperienza personalizzata!</p>",
     "register": "Registrati",
     "comingSoon": "Prossimamente",
@@ -125,7 +127,9 @@
     "automatic-event": "Evento",
     "automatic-event-done": "Continua",
     "registry": "Registro",
-    "matchlog": "Cronologia"
+    "matchlog": "Cronologia",
+    "missions": "Missione",
+    "missionStep": "Passo della missione"
   },
   "startMatch": {
     "starting": "Avvio della partita…",
@@ -160,15 +164,16 @@
     "created": "Iniziata",
     "clock": "Orologio",
     "status": {
-      "CREATED": "Pronta",
-      "RUNNING": "In Corso",
-      "PAUSED": "In Pausa",
-      "ENDED": "Finita",
-      "GAMEOVER": "Game Over"
+      "CREATED": "In corso",
+      "RUNNING": "In corso",
+      "PAUSED": "In pausa",
+      "ENDED": "Completata",
+      "GAMEOVER": "Sconfitta"
     },
     "history": "Cronologia Partita",
     "historyDescription": "Ogni passo di questa partita, dal più recente: spostamenti, eventi, riposi e cosa hanno cambiato.",
-    "historyOpen": "Cronologia"
+    "historyOpen": "Cronologia",
+    "logOpen": "Log"
   },
   "matchLog": {
     "title": "Storia della partita",
@@ -195,8 +200,11 @@
       "EXP_USE": "Esperienza spesa",
       "ITEM_DROP": "Oggetto lasciato",
       "REGISTRY_CHANGE": "Registro",
-      "MISSION_CHANGE": "Missione"
-    }
+      "MISSION_CHANGE": "Missione",
+      "CHOICE": "Scelta"
+    },
+    "statusTile": "Stato",
+    "creation": "Creazione"
   },
   "card": {
     "info": "Info",
@@ -204,7 +212,9 @@
     "viewOriginal": "Vedi originale",
     "actionInProgress": "Esecuzione",
     "back": "Indietro",
-    "forward": "Vai"
+    "forward": "Vai",
+    "tip": "suggerimento",
+    "hideTip": "nascondi suggerimento"
   },
   "game": {
     "currentLocation": "Posizione Attuale",
@@ -535,7 +545,8 @@
     }
   },
   "footer": {
-    "alpha": "⚠ Versione alpha — i server potrebbero non essere disponibili o essere reimpostati in qualsiasi momento.",
+    "alphaPrefix": "Questa è solo la",
+    "serversWarning": "I server potrebbero non essere disponibili o essere reimpostati in qualsiasi momento.",
     "serverSelect": "Server",
     "rights": "Tutti i diritti riservati",
     "madeWith": "Realizzato con",
@@ -653,6 +664,39 @@
       "allRights": "Tutte le storie, artwork e contenuti di gioco sono",
       "copyright": "© paths.games 2026 — Tutti i diritti riservati",
       "goBack": "Torna Indietro"
+    },
+    "roadmap": {
+      "title": "Devlog",
+      "intro": "paths.games è un progetto open source: chiunque può leggerlo, studiarlo e migliorarlo.<br /><br />Il codice è rilasciato con licenza GNU GPL v3, mentre le storie con licenza CC BY-NC-ND 4.0.<br /><br />Prima di tutto è un progetto per divertirsi: giocando, scrivendo e costruendolo insieme.",
+      "current": "In corso",
+      "button": "Roadmap"
     }
+  },
+  "tips": {
+    "location": "Questo è il luogo dove si trova il tuo personaggio. I suoi eventi e i sentieri che ne partono sono nella pagina di destra.",
+    "event": "Un evento è qualcosa che puoi fare qui. Può costare energia o monete, e i suoi effetti cambiano il tuo personaggio.",
+    "action": "Un'azione è qualcosa che puoi fare adesso. Controlla il costo prima di sceglierla.",
+    "item": "Un oggetto nel tuo zaino. Usalo per applicarne gli effetti, o lascialo per alleggerirti.",
+    "items": "Il tuo zaino: ogni oggetto che porti, e quanto pesa rispetto a quanto puoi portare.",
+    "movement": "Un sentiero verso un luogo vicino. Muoversi costa energia, di più con il brutto tempo o in un luogo insicuro.",
+    "class": "La tua classe dà bonus al personaggio e decide alcune delle scelte che puoi fare.",
+    "character": "Il tuo personaggio: vita, energia e le altre statistiche che ogni scelta legge e cambia.",
+    "trait": "Un tratto cambia le tue statistiche per tutta la partita, nel bene o nel male.",
+    "missions": "Le missioni sono obiettivi che la storia ti dà. Completa i loro passi per ottenere la ricompensa.",
+    "missionStep": "Un passo della missione: completalo per passare al successivo. Si vede solo il prossimo passo aperto, quelli dopo restano nascosti.",
+    "registry": "Il registro ricorda cosa è successo in questa partita: chiavi scritte da luoghi, eventi e scelte.",
+    "map": "La mappa mostra i luoghi che hai visitato. Selezionane uno per leggerlo; quelli sconosciuti restano nascosti.",
+    "weather": "Il meteo cambia a ogni nuova unità di tempo e cambia l'energia che spendi per muoverti.",
+    "sleep": "Dormire chiude l'unità di tempo: recuperi energia e il mondo va avanti mentre riposi.",
+    "choice": "Una scelta: scegli un'opzione, le sue conseguenze non si possono annullare.",
+    "experience": "L'esperienza guadagnata nelle avventure si può spendere per alzare una statistica.",
+    "story": "La storia che stai giocando: il suo autore, il suo mondo e le sue regole.",
+    "difficulty": "La difficoltà decide con quanta energia, vita e tempo inizi."
+  },
+  "envBadge": {
+    "dev": "Locale version",
+    "test": "Test version",
+    "alpha": "Alpha version",
+    "beta": "Beta version"
   }
 }

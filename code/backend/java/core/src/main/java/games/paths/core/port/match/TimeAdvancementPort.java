@@ -99,6 +99,28 @@ public interface TimeAdvancementPort {
         public static final String VISIBILITY_ANONYMOUS = "ANONYMOUS";
     }
 
+    /** Step 40 - the weather in force after a forced time-start; {@code changed} vs before it. */
+    record TimeStartWeather(long idWeather,
+                            String uuid,
+                            Integer idCard,
+                            games.paths.core.model.story.CardInfo card,
+                            Integer deltaEnergy,
+                            Integer costMoveSafeLocation,
+                            Integer costMoveNotSafeLocation,
+                            boolean changed) {
+
+        public TimeStartWeather withCard(games.paths.core.model.story.CardInfo resolved) {
+            return new TimeStartWeather(idWeather, uuid, idCard, resolved, deltaEnergy,
+                    costMoveSafeLocation, costMoveNotSafeLocation, changed);
+        }
+    }
+
+    /** Step 40 - what an action that ended the time early tells its caller. */
+    record TimeEndNews(int newClock,
+                       List<CounterZeroItem> counterZero,
+                       TimeStartWeather weather) {
+    }
+
     /**
      * Per-character recovery summary (Step 26): the energy/life/sad deltas applied
      * at time-start. Empty when the sleep action did not trigger a time-end.

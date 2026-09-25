@@ -1,5 +1,5 @@
 import { isValidElement } from 'react'
-import { sanitizeHtml } from '../../utils/sanitizeHtml'
+import { sanitizeHtml, halveBlankLines } from '../../utils/sanitizeHtml'
 
 /**
  * SafeHtml — renders a value that may be a React element OR an HTML string.
@@ -8,9 +8,11 @@ import { sanitizeHtml } from '../../utils/sanitizeHtml'
  * - null/undefined→ nothing
  *
  * Shared by the book "page" rendering for both title and description.
+ * `halfBlankLines` (the page description only): a blank line is half a line high.
  */
-export default function SafeHtml({ value }) {
+export default function SafeHtml({ value, halfBlankLines = false }) {
   if (value == null) return null
   if (isValidElement(value)) return value
-  return <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(String(value)) }} />
+  const html = sanitizeHtml(String(value))
+  return <span dangerouslySetInnerHTML={{ __html: halfBlankLines ? halveBlankLines(html) : html }} />
 }

@@ -85,6 +85,8 @@ class AutomaticEventFired:
     #: exactly as an executed event does; before this the collapse reached the board only on
     #: the next reload, as a flag with no card and no story.
     edge_state: Any = None
+    #: Step 40 — set (TimeEndNews) when this event forced a time-end, else None.
+    time_end: Any = None
 
 
 @dataclass
@@ -192,4 +194,23 @@ def to_camel_counter_zero(i: CounterZeroItem) -> Dict[str, Any]:
         "eventUuid": i.event_uuid,
         "clock": i.clock,
         "visibility": i.visibility,
+    }
+
+
+def to_camel_time_end(news) -> Dict[str, Any]:
+    """Step 40 — the ``weather`` and ``counterZero`` keys of an answer that may have ended the
+    time early. Both always present: ``None`` and ``[]`` when the time did not end."""
+    weather = getattr(news, "weather", None) if news is not None else None
+    return {
+        "weather": None if weather is None else {
+            "idWeather": weather.id_weather,
+            "uuid": weather.uuid,
+            "card": weather.card,
+            "deltaEnergy": weather.delta_energy,
+            "costMoveSafeLocation": weather.cost_move_safe_location,
+            "costMoveNotSafeLocation": weather.cost_move_not_safe_location,
+            "changed": bool(weather.changed),
+        },
+        "counterZero": [to_camel_counter_zero(i)
+                        for i in ((news.counter_zero or []) if news is not None else [])],
     }

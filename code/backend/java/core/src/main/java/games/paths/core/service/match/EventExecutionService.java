@@ -590,12 +590,15 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
      */
     private void applyChoiceEffects(Exec x, long choiceId, long eventId, EventEntity event) {
         List<Integer> linked = new ArrayList<>();
+        int[] gainsMark = x.gainsMark();
         for (ChoiceEffectEntity effect : store.findChoiceEffectsByChoiceId(x.match.idStory(), choiceId)) {
             applyChoiceEffect(x, effect, event);
             if (effect.getIdEvent() != null && effect.getIdEvent() > 0) {
                 linked.add(effect.getIdEvent());
             }
         }
+        // Step 40 - the option's own rows only: linked events log their gains on their own rows.
+        x.choiceGains = x.gainsSince(gainsMark);
         // No applyEvent ran for these rows, so the edge pass has to be given here — once,
         // over everyone the rows touched, exactly where applyEvent would have run it.
         checkEdgeStates(x, eventId);
@@ -756,7 +759,8 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
     private void writeResolutionMarkers(Exec x, ChoiceEntity choice, long eventId, long choiceId) {
         store.logEventExecuted(x.match.id(), x.actor.id(), eventId, x.currentClock,
                 EventExecutionStorePort.MSG_CHOICE_SELECTED + " " + eventId,
-                EventExecutionStorePort.SpentResources.none(), ResourceDelta.none());
+                EventExecutionStorePort.SpentResources.none(),
+                x.choiceGains == null ? ResourceDelta.none() : x.choiceGains);
         store.logChoiceExecuted(x.match.id(), eventId, choiceId, x.currentClock,
                 EventExecutionStorePort.MSG_CHOICE_SELECTED + " " + choiceId);
         if (nz(choice.getIsProgress()) == 1) {
@@ -976,8 +980,9 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             }
         }
         String normalized = stat.trim().toLowerCase();
-        if (x.isActor(recipient.id())) {
+        if (x.actor == null || x.isActor(recipient.id())) {
             // The log row is character-scoped: only the actor's own resources ride on it.
+            // Step 40 - a party run has no actor: every recipient's gain is summed.
             x.recordGain(normalized, after - before);
         }
         x.statChanges.add(new StatChange(recipient.uuid(), normalized,
@@ -1305,13 +1310,18 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         // now-stale in-memory copy back over what the recovery just computed.
         flush(x);
         TimeAdvancementService.TimeEndOutcome outcome =
-                timeAdvancementService.forceTimeEnd(x.match.uuid());
+                timeAdvancementService.forceTimeEnd(x.match.uuid(), x.actorId());
         // v0.35.6 — the time-start this event forced runs a recovery, and a recovery can push
         // somebody over an edge: that verdict belongs in this response, not in the next reload.
         mergeEdgeState(x, outcome.edgeState());
         x.timeEnded = true;
         x.forcedSleep = true;
         x.currentClock = outcome.newClock();
+        // Step 40 - the time-start's news, told to the actor, travels with this answer.
+        x.timeEndNews = new TimeAdvancementPort.TimeEndNews(outcome.newClock(),
+                outcome.counterZero() == null ? List.of() : List.copyOf(outcome.counterZero()),
+                outcome.weather() == null ? null
+                        : outcome.weather().withCard(resolveCard(x, outcome.weather().idCard())));
         x.refreshActorAfterTimeEnd();
     }
 
@@ -1565,7 +1575,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         out.add(new AutomaticEventFired(trigger, idLocation, event.getUuid(),
                 resolveCard(x, event.getIdCard()),
                 new ArrayList<>(chainEffects(x)), new ArrayList<>(x.statChanges),
-                new ArrayList<>(x.locationChanges), x.gameOver, buildEdgeState(x)));
+                new ArrayList<>(x.locationChanges), x.gameOver, buildEdgeState(x), x.timeEndNews));
 
         // The events this one caused by pushing somebody somewhere.
         drainArrivals(x, out);
@@ -1652,7 +1662,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                 x.forcedSleep, x.comaTriggered, x.gameOver, changed,
                 x.statChanges, x.registryChanges, x.traitChanges, x.itemChanges,
                 x.characteristicChanges, x.locationChanges, chainEffects(x), x.pendingChoices,
-                edgeState, new ArrayList<>(x.automaticEvents));
+                edgeState, new ArrayList<>(x.automaticEvents), x.timeEndNews);
     }
 
     /** The events the player's own chain ran — the epilogue's are sliced off the tail. */
@@ -1907,6 +1917,10 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         String choiceEventUuid;
         CardInfo choiceEventCard;
         boolean progressRecorded;
+        /** Step 40 - what the option's own effect rows gave, for the CHOICE_SELECTED row. */
+        ResourceDelta choiceGains;
+        /** Step 40 - the news of a forced time-end, null when the time did not end here. */
+        TimeAdvancementPort.TimeEndNews timeEndNews;
         boolean endTime;
         boolean timeEnded;
         boolean itemAdded;

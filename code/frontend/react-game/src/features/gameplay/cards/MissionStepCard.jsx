@@ -1,17 +1,14 @@
 import Card from '@/components/layout/Card'
 import { useTranslation } from '@/i18n/context'
-import { MISSION_STATUS_ICON, missionCard, missionPageStats, missionProgressLabel, missionStatusBadge }
+import { missionCard, missionPageStats, missionProgressLabel, missionStatusBadge, missionStepsBadge }
   from '@/utils/missions'
 
 /**
  * MissionStepCard — Step 37. One mission of the match, as a little card in the grid.
  *
  * The step progress rides as a badge over the image, and so does the status once the mission
- * is CLOSED. A closed mission is LOCKED rather than hidden: what the party finished is part
- * of the story it can still read.
- *
- * The lock hint travels as `lockInfo`, never as `label` — `label` is a display override and
- * would replace the mission's own name.
+ * is CLOSED. Step 40 — a closed mission is no longer locked: its status is a badge like the
+ * progress, and the footer keeps only the wide (i), as an open mission does.
  */
 export default function MissionStepCard({ mission, story = null, onPreview, onOpenMission,
   previewSide = 'right' }) {
@@ -25,10 +22,7 @@ export default function MissionStepCard({ mission, story = null, onPreview, onOp
   // Only a CLOSED mission badges its status: an open one simply IS available or active.
   const badges = [
     ...(closed ? [missionStatusBadge(t, status)] : []),
-    ...(progress && !done
-      ? [{ key: 'missionSteps', value: progress, label: t('game.missions.progress'),
-           icon: 'fas fa-list-ol', color: null }]
-      : []),
+    ...(progress && !done ? [missionStepsBadge(t, progress)] : []),
   ]
 
   const card = missionCard(mission)
@@ -55,12 +49,10 @@ export default function MissionStepCard({ mission, story = null, onPreview, onOp
       card={card}
       entityType="missions"
       story={story}
-      statistics={closed ? undefined : badges }
+      statistics={badges}
       flagShowFullStatistics
       bonusBadgeShowZeros
-      locked={closed}
-      lockedIcon={closed ? MISSION_STATUS_ICON[status] : undefined}
-      lockInfo={closed ? t(`game.missions.status.${status}`) : undefined} flagInformationCard
+      flagInformationCard
       hidePreview={hidePreview}
       additionalCardClasses={`pg-card--mission${done ? ' pg-card--done' : ''}`}
       onPreview={openPreview}

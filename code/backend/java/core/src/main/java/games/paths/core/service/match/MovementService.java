@@ -4,6 +4,7 @@ import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.match.EventExecutionPort;
 import games.paths.core.port.match.LocationEntryPort;
+import games.paths.core.port.match.TimeAdvancementPort;
 import games.paths.core.port.match.MovementPort;
 import games.paths.core.port.match.MovementPort.MovementAvailability;
 import games.paths.core.port.match.MovementStorePort;
@@ -158,12 +159,25 @@ public class MovementService implements MovementPort {
                         match.id(), match.idStory(), caller.id(), target.id(),
                         match.currentClock(), null));
 
+        TimeAdvancementPort.TimeEndNews timeEnd = timeEndOf(automaticEvents);
         return new MovementResult(matchUuid, caller.uuid(),
                 caller.idLocation(), null,
                 target.id(), target.uuid(),
                 totalCost, edge.costFood(), edge.costMagic(), edge.costCoin(),
                 newEnergy, newFood, newMagic, newCoin,
-                match.currentClock(), automaticEvents, edgeStateOf(automaticEvents));
+                timeEnd == null ? match.currentClock() : timeEnd.newClock(),
+                automaticEvents, edgeStateOf(automaticEvents), timeEnd);
+    }
+
+    /** Step 40 - the first arrival event that ended the time carries its news; null otherwise. */
+    static TimeAdvancementPort.TimeEndNews timeEndOf(
+            List<LocationEntryPort.AutomaticEventFired> automaticEvents) {
+        for (LocationEntryPort.AutomaticEventFired fired : automaticEvents) {
+            if (fired.timeEnd() != null) {
+                return fired.timeEnd();
+            }
+        }
+        return null;
     }
 
     /**

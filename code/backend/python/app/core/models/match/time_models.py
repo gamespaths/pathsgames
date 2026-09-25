@@ -37,6 +37,29 @@ class TimeEndOutcome:
     counter_zero: List[Any] = field(default_factory=list)
     #: v0.35.6 — the edges the time-start pushed anyone over.
     edge_state: Any = None
+    #: Step 40 — the weather after the time-start (TimeStartWeather), None when none.
+    weather: Any = None
+
+
+@dataclass
+class TimeStartWeather:
+    """Step 40 — the weather in force after a forced time-start; ``changed`` vs before it."""
+    id_weather: int
+    uuid: Optional[str]
+    id_card: Optional[int] = None
+    card: Optional[dict] = None
+    delta_energy: Optional[int] = None
+    cost_move_safe_location: Optional[int] = None
+    cost_move_not_safe_location: Optional[int] = None
+    changed: bool = False
+
+
+@dataclass
+class TimeEndNews:
+    """Step 40 — what an action that ended the time early tells its caller."""
+    new_clock: int
+    counter_zero: List[Any] = field(default_factory=list)
+    weather: Optional[TimeStartWeather] = None
 
 
 @dataclass

@@ -43,6 +43,9 @@ export function missionCard(mission) {
 /** The green a done mission is drawn in — the same one .bonus-badge--done paints the text. */
 export const MISSION_DONE_COLOR = '#1e7d3a'
 
+/** Step 40 — the green of a Completed check glyph, the same as the story list (.story-card-status__check). */
+export const MISSION_CHECK_COLOR = '#4ade80'
+
 /** The glyph each status wears, wherever it is drawn. Font Awesome 5 names: the game loads 5. */
 export const MISSION_STATUS_ICON = {
   AVAILABLE: 'fas fa-clipboard-list',
@@ -63,7 +66,8 @@ export function missionStatusBadge(t, status) {
     key: 'missionStatus',
     value: t(`game.missions.status.${status}`) || status,
     icon: MISSION_STATUS_ICON[status] ?? MISSION_STATUS_ICON.AVAILABLE,
-    color: null,
+    color: status === 'COMPLETED' ? MISSION_CHECK_COLOR : null,
+    keepZero: true, // a word, not a number: never dropped by the zero filter
   }
 }
 
@@ -82,20 +86,20 @@ export function missionCompletedBadge(t) {
   }
 }
 
+/** Step 40 — the step-progress badge ("2/3"), the same on the little card and on the page. */
+export function missionStepsBadge(t, progress) {
+  return { key: 'missionSteps', value: progress, label: t('game.missions.progress'),
+    icon: 'fas fa-list-ol', color: null }
+}
+
 /**
- * The badges a mission's READING page carries: its status (with the glyph once closed) and,
- * when it has steps, how far down them it is — there the count is history, not a repetition.
+ * The badges a mission's READING page carries: its status and, when it has steps, how far down
+ * them it is. Step 40 — the very badges of the little card, glyphs included, so none reads grey.
  */
 export function missionPageStats(t, mission) {
-  const status = mission?.status
-  const closed = status === 'COMPLETED' || status === 'FAILED'
   const progress = missionProgressLabel(mission)
   return [
-    { key: 'missionStatus', value: t(`game.missions.status.${status}`) || status,
-      label: t('game.missions.statusLabel'),
-      ...(closed ? { icon: MISSION_STATUS_ICON[status] } : {}) },
-    ...(progress
-      ? [{ key: 'missionSteps', value: progress, label: t('game.missions.progress') }]
-      : []),
+    { ...missionStatusBadge(t, mission?.status), label: t('game.missions.statusLabel') },
+    ...(progress ? [missionStepsBadge(t, progress)] : []),
   ]
 }

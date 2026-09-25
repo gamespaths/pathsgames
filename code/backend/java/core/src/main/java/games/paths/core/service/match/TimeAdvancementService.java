@@ -14,6 +14,7 @@ import games.paths.core.port.match.TurnCycleStorePort.ClockLabels;
 import games.paths.core.port.match.TurnCycleStorePort.MatchView;
 import games.paths.core.port.match.TurnCycleStorePort.QueueRow;
 import games.paths.core.port.match.UserAccessPort;
+import games.paths.core.port.match.WeatherStorePort;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -196,7 +197,8 @@ public class TimeAdvancementService implements TimeAdvancementPort {
         AdvanceResult advanced = advanceTime(match);
         return new TimeEndOutcome(advanced.newClock(), advanced.recovery(), advanced.edgeState(),
                 describeCounterZero(match.id(), idRecipientCharacter,
-                        advanced.automaticEvents(), advanced.newClock()));
+                        advanced.automaticEvents(), advanced.newClock()),
+                advanced.weather());
     }
 
     /**
@@ -219,12 +221,20 @@ public class TimeAdvancementService implements TimeAdvancementPort {
                                  List<RecoveryItem> recovery,
                                  /** v0.35.6 — the edges the time-start pushed anyone over. */
                                  EdgeStateOutcome edgeState,
-                                 List<CounterZeroItem> counterZero) {
+                                 List<CounterZeroItem> counterZero,
+                                 /** Step 40 - the weather after the time-start, null when none. */
+                                 TimeAdvancementPort.TimeStartWeather weather) {
 
         /** A time end that moved no edge. */
         public TimeEndOutcome(int newClock, List<RecoveryItem> recovery,
                               List<CounterZeroItem> counterZero) {
-            this(newClock, recovery, EdgeStateOutcome.none(), counterZero);
+            this(newClock, recovery, EdgeStateOutcome.none(), counterZero, null);
+        }
+
+        /** A time end with no weather view (pre-Step 40 shape). */
+        public TimeEndOutcome(int newClock, List<RecoveryItem> recovery,
+                              EdgeStateOutcome edgeState, List<CounterZeroItem> counterZero) {
+            this(newClock, recovery, edgeState, counterZero, null);
         }
     }
 
@@ -246,6 +256,7 @@ public class TimeAdvancementService implements TimeAdvancementPort {
     }
 
     private AdvanceResult advanceTime(MatchView match) {
+        WeatherStorePort.CurrentWeatherView weatherBefore = currentWeather(match.id());
         int newClock = store.incrementMatchClock(match.id());
         store.insertClockHistory(match.id(), newClock);
         store.wakeAllCharacters(match.id());
@@ -281,13 +292,32 @@ public class TimeAdvancementService implements TimeAdvancementPort {
         for (LocationEntryPort.AutomaticEventFired f : fired) {
             parts.add(f.edgeState());
         }
-        return new AdvanceResult(newClock, recovery, fired, EdgeStateOutcome.merge(parts));
+        return new AdvanceResult(newClock, recovery, fired, EdgeStateOutcome.merge(parts),
+                weatherView(weatherBefore, currentWeather(match.id())));
     }
 
     private record AdvanceResult(int newClock,
                                  List<RecoveryItem> recovery,
                                  List<LocationEntryPort.AutomaticEventFired> automaticEvents,
-                                 EdgeStateOutcome edgeState) {
+                                 EdgeStateOutcome edgeState,
+                                 TimeAdvancementPort.TimeStartWeather weather) {
+    }
+
+    /** Step 40 - null when no weather engine is wired or the match has no weather. */
+    private WeatherStorePort.CurrentWeatherView currentWeather(long idMatch) {
+        return weatherService == null ? null : weatherService.currentWeather(idMatch).orElse(null);
+    }
+
+    /** Step 40 - the weather in force after the time-start, flagged when it differs from before. */
+    static TimeAdvancementPort.TimeStartWeather weatherView(WeatherStorePort.CurrentWeatherView before,
+                                                            WeatherStorePort.CurrentWeatherView after) {
+        if (after == null) {
+            return null;
+        }
+        boolean changed = before == null || before.idWeather() != after.idWeather();
+        return new TimeAdvancementPort.TimeStartWeather(after.idWeather(), after.uuid(),
+                after.idCard(), null, after.deltaEnergy(), after.costMoveSafeLocation(),
+                after.costMoveNotSafeLocation(), changed);
     }
 
     /** Rebuild the turn queue for a new clock: all WAITING, highest priority ACTIVE. */

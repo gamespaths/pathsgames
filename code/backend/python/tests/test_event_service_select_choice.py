@@ -232,7 +232,8 @@ def test_choice_selected_marker_carries_the_owning_event_id(service, store):
     _resolve(service)
 
     store.log_event_executed.assert_called_once_with(
-        MATCH_ID, CHAR_ID, EVENT_ID, CLOCK, f"{MSG_CHOICE_SELECTED} {EVENT_ID}", 0, 0, 0, 0)
+        MATCH_ID, CHAR_ID, EVENT_ID, CLOCK, f"{MSG_CHOICE_SELECTED} {EVENT_ID}", 0, 0, 0, 0,
+        {"energy": 0, "food": 0, "magic": 0, "coin": 0})
 
 
 def test_choice_history_records_both_the_event_and_the_option(service, store):

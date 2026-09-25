@@ -98,6 +98,11 @@ public class WeatherSelectionService {
         return store.findCurrentWeatherByMatchUuid(matchUuid);
     }
 
+    /** Step 40 - the current weather of a match by id (no side effects). */
+    public Optional<WeatherStorePort.CurrentWeatherView> currentWeather(long idMatch) {
+        return store.findCurrentWeather(idMatch);
+    }
+
     /** Admin weather view: rng seed + current weather + every rule + log history. */
     public WeatherAdminView weatherAdmin(String matchUuid) {
         return new WeatherAdminView(

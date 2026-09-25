@@ -1,0 +1,8 @@
+[
+  { "id": "v0", "title": "Star project",   "status": "current", "imgId": "phase-creating",           "link": "https://github.com/gamespaths/pathsgames/blob/develop/wiki/documentation_v0/Roadmap.md" },
+  { "id": "v1", "title": "Single-player",    "status": "planned", "imgId": "person",        "link": "https://github.com/gamespaths/pathsgames/blob/develop/wiki/documentation_v1/Roadmap.md" },
+  { "id": "v2", "title": "A living world",   "status": "planned", "imgId": "map-alternative-2",      "link": "https://github.com/gamespaths/pathsgames/blob/develop/wiki/documentation_v2/Roadmap.md" },
+  { "id": "v3", "title": "App and desktop",   "status": "planned", "imgId": "phase-running",      "link": "https://github.com/gamespaths/pathsgames/blob/develop/wiki/documentation_v3/Roadmap.md" },
+  { "id": "v4", "title": "Multiplayer", "status": "planned", "imgId": "phase-joining", "link": "https://github.com/gamespaths/pathsgames/blob/develop/wiki/documentation_v4/Roadmap.md" },
+  { "id": "v5", "title": "To Infinity",    "status": "planned", "imgId": "phase-created",          "link": "https://github.com/gamespaths/pathsgames/blob/develop/wiki/documentation_v5/Roadmap.md" }
+]

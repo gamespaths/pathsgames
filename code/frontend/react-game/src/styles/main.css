@@ -399,20 +399,25 @@ html, body {
 }
 .footer-icon-link:hover { color: var(--color-gold-light); }
 
-.footer-server-row {
-  /*display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;*/
-  margin-top: 0.75rem;
-  padding: 0.3rem 0.8rem;
-  border-radius: 6px;
-  background: rgba(0,0,0,0.3);
-  border: 1px solid rgba(200,150,10,0.15);
-  width: fit-content;
-  margin-left: auto;
-  margin-right: auto;
+/* Step 40 — the server row reads as the rest of the footer: no box, same font and size */
+.footer-server-row { margin-left: 0.4rem; white-space: nowrap; }
+.footer-server-select {
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
 }
+.footer-server-dot {
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  margin-left: 0.4em;
+}
+.footer-server-muted { opacity: 0.7; }
 
 .footer-alpha-warning {
   font-size: 1rem;
@@ -591,37 +596,18 @@ html, body {
   font-weight: 700;
 }
 
-/* Match-state badge (top-left, opposite the category badge). */
+/* Match-state badge (top-left, opposite the category badge): placement only, the look is
+   `.stat-badge.bonus-badge` (added in the markup), as every other badge of the game. */
 .story-card-status {
   position: absolute;
   top: 8px; left: 8px;
   z-index: 2;
-  font-size: 1rem;
-  padding: 2px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  font-family: var(--font-heading);
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
 }
-.story-card-status--active {
-  background: var(--color-gold-light);
-  color: var(--color-brown-deep);
-}
-.story-card-status--completed {
-  background: rgba(20, 12, 4, 0.82);
-  color: var(--color-gold-light);
-  border: 1px solid var(--color-gold-dark);
-}
-.story-card-status__check { color: #4ade80; }
-/* v0.32.1 — an admin-paused match: it blocks a new run but cannot be resumed,
-   so it gets its own badge instead of the "resume" one. */
-.story-card-status--paused {
-  background: rgba(20, 12, 4, 0.82);
-  color: var(--color-parchment-dark);
-  border: 1px solid var(--color-stone);
-}
+.story-card-status .story-card-status__check { color: #4ade80; }
+.story-card-status .story-card-status__defeat { color: #ef4444; }
+/* Step 40 — centred on the picture (match and roadmap cards), or inline in a history row */
+.story-card-status--center { left: 50%; transform: translateX(-50%); white-space: nowrap; }
+.story-card-status.story-card-status--inline { position: static; display: inline-flex; }
 
 /* v0.32.1 — the card is waiting for the match list before it can open */
 .story-card--pending { cursor: progress; }
@@ -1167,6 +1153,13 @@ html, body {
   font-weight: 1000;
   font-size: 1.1rem;
   color: var(--color-gold-super-deep);
+}
+
+/* Step 40 — a blank line (<br><br>) of a page description, half a line high (halveBlankLines) */
+.book-page-gap {
+  display: block;
+  height: 0.75em;
+  height: 0.5lh;
 }
 
 .book-page-desc a {
@@ -2051,7 +2044,9 @@ html, body {
 .gc-credits {
   flex-shrink: 0;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; /* Step 40 — one line: the credits text is cut on the right, never wrapped */
+  white-space: nowrap;
+  overflow: hidden;
   align-items: center;
   justify-content: center;
   gap: 2px;
@@ -2066,6 +2061,13 @@ html, body {
 }
 .gc-credits__label {
   margin-right: 2px;
+}
+.gc-type-badge-credits, .gc-credits__tip { flex-shrink: 0; }
+.gc-credits__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .gc-credits__link {
   color: var(--color-gold-shine);
@@ -3243,3 +3245,69 @@ html, body {
 }
 .policy-book-text h6 { color: var(--color-gold-deep); font-weight: 700; margin-top: 1rem; }
 .policy-book-text .policy-book-updated { font-style: italic; font-size: 0.8rem; margin-top: 1rem; }
+
+/* Step 40 — tip link in the credits bar and the gold-glow tip note in the description */
+.gc-credits__tip {
+  background: none;
+  border: 0;
+  padding: 0 4px;
+  font: inherit;
+  color: var(--color-gold-shine);
+  text-decoration: underline;
+  text-decoration-color: rgba(232,184,48,0.35);
+  cursor: pointer;
+}
+.gc-credits__tip:hover { text-decoration-color: var(--color-gold); }
+.pg-tip {
+  position: relative;
+  margin-top: 10px;
+  padding: 8px 30px 8px 10px; /* right: room for the hide icon, which sits on the last line */
+  border: 2px solid var(--color-gold);
+  border-radius: 6px;
+  background: rgba(255, 215, 0, 0.08);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.55), inset 0 0 6px rgba(255, 215, 0, 0.25);
+  font-size: 1.2rem;
+  animation: pg-tip-fade-in 0.35s ease-out;
+}
+.pg-tip:focus { outline: none; box-shadow: 0 0 14px rgba(255, 215, 0, 0.8), inset 0 0 6px rgba(255, 215, 0, 0.3); }
+.pg-tip__icon { color: var(--color-gold); }
+.pg-tip__hide {
+  position: absolute;
+  right: 6px;
+  bottom: 8px; /* = the box's bottom padding: the icon shares the last line of the text */
+  background: none;
+  border: 0;
+  padding: 0 2px;
+  font-size: inherit;
+  line-height: inherit;
+  color: var(--color-gold-dark);
+  cursor: pointer;
+}
+.pg-tip__hide i { font-size: 0.85em; }
+.pg-tip__hide:hover, .pg-tip__hide:focus-visible { color: var(--color-gold); }
+@keyframes pg-tip-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pg-tip { animation: none; }
+}
+
+.match-log-row--status .match-log-row__type,
+.match-log-row--creation .match-log-row__type { color: var(--color-gold); }
+
+/* Step 40 — the environment badge beside the brand (VITE_ENV_BADGE) */
+.env-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border: 1px solid var(--color-gold);
+  border-radius: 10px;
+  background: rgba(200, 150, 10, 0.18);
+  color: var(--color-gold-shine);
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}

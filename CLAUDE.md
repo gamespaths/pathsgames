@@ -45,7 +45,7 @@ Never read `wiki/documentation_v0/website_concepts_v0/` (450 MB of images).
 ## When you change code
 
 - Python and Robot commands always run inside the venv: `source .venv/bin/activate`.
-- Java / Python / React changes need unit tests; coverage of new code must be **> 95%**.
+- Java / Python / React changes need unit tests; coverage of new code must be **> 96%**.
 - Changing one backend usually means changing the others — they share the API contract.
 - Docs are updated **on request**, via `/doc-update` (runs the `paths-games-doc` subagent). Do not offer it after every task; suggest it only when a feature is complete or the API, schema, or a component actually changed.
     - Version Control table of any doc: max ONE row per version, at the bottom; description ONE line, max 10 plain non-technical words. Row for the current version already there → no new row, at most extend it with a short phrase.

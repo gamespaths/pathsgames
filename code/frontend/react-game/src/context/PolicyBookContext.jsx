@@ -1,12 +1,12 @@
 import { createContext, useContext, useState, useCallback, useMemo } from 'react'
 
 /**
- * PolicyBookContext — which policy book is open ('privacy' | 'terms' | 'cookies' | 'credits'),
- * or null. The footer links and the terms (i) lens open it; PolicyBook renders it.
+ * PolicyBookContext — which policy book is open ('privacy' | 'terms' | 'cookies' | 'credits'
+ * | 'roadmap', Step 40), or null. The footer links and the terms (i) lens open it; PolicyBook renders it.
  */
 const PolicyBookContext = createContext(null)
 
-export const POLICY_KINDS = ['privacy', 'terms', 'cookies', 'credits']
+export const POLICY_KINDS = ['privacy', 'terms', 'cookies', 'credits', 'roadmap']
 
 export function PolicyBookProvider({ children }) {
   const [policyBook, setPolicyBook] = useState(null)

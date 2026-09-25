@@ -61,7 +61,22 @@ public interface MovementPort {
                            * the events above. Same shape execute-event answers, so the board
                            * reads a collapse the same way whatever caused it.
                            */
-                          EventExecutionPort.EdgeStateOutcome edgeState) {
+                          EventExecutionPort.EdgeStateOutcome edgeState,
+                          /** Step 40 - set when an arrival event ended the time, else null. */
+                          TimeAdvancementPort.TimeEndNews timeEnd) {
+
+        /** An arrival that ended no time (pre-Step 40 shape). */
+        public MovementResult(String matchUuid, String characterUuid, Long fromLocationId,
+                              String fromLocationUuid, long toLocationId, String toLocationUuid,
+                              int energySpent, int foodSpent, int magicSpent, int coinSpent,
+                              int newEnergy, int newFood, int newMagic, int newCoin,
+                              int currentClock,
+                              List<LocationEntryPort.AutomaticEventFired> automaticEvents,
+                              EventExecutionPort.EdgeStateOutcome edgeState) {
+            this(matchUuid, characterUuid, fromLocationId, fromLocationUuid, toLocationId,
+                    toLocationUuid, energySpent, foodSpent, magicSpent, coinSpent, newEnergy,
+                    newFood, newMagic, newCoin, currentClock, automaticEvents, edgeState, null);
+        }
 
         /** An arrival that moved no edge — the ordinary move. */
         public MovementResult(String matchUuid, String characterUuid, Long fromLocationId,

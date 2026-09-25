@@ -145,17 +145,38 @@ export default function useGameplayResults({
   }, [viewActions])
 
   /**
+   * Step 40 — an action that ended the time early (execute-event, select-choice, a move)
+   * answers the time-start's news: the weather card only if it changed, then the wake-up
+   * list. Returns the step the action's own card leads to with its forward arrow (null when
+   * there is nothing to tell) and pre-sets the weather uuid so the [weather] effect keeps quiet.
+   */
+  const timeEndTail = useCallback(result => {
+    if (!result?.timeEnded) return null
+    const news = result.weather ?? null
+    const fired = Array.isArray(result.counterZero) ? result.counterZero : []
+    if (news?.uuid) prevWeatherUuidRef.current = news.uuid
+    if (fired.length) viewActions.setCounterZero(fired)
+    const toList = fired.length ? () => viewActions.setPreviewRight(null) : undefined
+    if (news?.changed) return () => viewActions.setPreviewRight({ kind: 'weather', onForward: toList })
+    return toList ?? null
+  }, [viewActions])
+
+  /**
    * Step 33 — the automatic events an ARRIVAL fired. Several can fire on one arrival (the
    * history trigger and, independently, "you found the place empty"), so they are chained
    * with the same forward arrow the weather uses: read one, press →, read the next.
+   * Step 40 — `tail` is where the last card leads (the news of a time-end the arrival forced).
    */
-  const showAutomaticEvents = useCallback(fired => {
+  const showAutomaticEvents = useCallback((fired, tail = null) => {
     const cards = (fired ?? [])
       .map(f => ({ narrative: f?.card ?? lastEffectCard(f), fired: f }))
       .filter(entry => entry.narrative)
-    if (cards.length === 0) return false
+    if (cards.length === 0) {
+      tail?.()
+      return !!tail
+    }
     // Built back to front, so each card's forward arrow already knows its successor.
-    let onForward
+    let onForward = tail ?? undefined
     for (let i = cards.length - 1; i >= 0; i -= 1) {
       const { narrative, fired: f } = cards[i]
       const next = onForward
@@ -234,6 +255,7 @@ export default function useGameplayResults({
       stopLoading()
       return reload
     }
+    const tail = timeEndTail(result)
     const grantedUuid = grantedItemUuids(result)[0] ?? null
     // Already carried one? Then match-info has resolved its card and there is nothing to
     // fetch. A brand-new row is only in the inventory, hence the fallback below.
@@ -262,8 +284,11 @@ export default function useGameplayResults({
     eventEffectActiveRef.current = !!narrative || !!grantedUuid
     if (narrative) {
       viewActions.openPreview({ card: narrative, type: narrativeType, stats, side: 'right',
-        props: badgeProps })
-    } else if (grantedUuid) {
+        props: tail ? { ...(badgeProps ?? {}), onClose: undefined, onForward: tail } : badgeProps })
+    } else {
+      tail?.()
+    }
+    if (!narrative && grantedUuid) {
       // The row was just created, so its card lives only in the inventory. A failure is
       // swallowed on purpose — the board is reloading anyway and the bag will show it.
       getInventory(matchUuid, accessToken, lang)
@@ -285,22 +310,22 @@ export default function useGameplayResults({
     const edge = applyEdgeState(result?.edgeState)
     // v0.37.4 — news covers the reload; with none, the loading page stays until the new
     // board lands. Putting it away at once showed the OLD location back for the whole wait.
-    if (narrative || grantedUuid || edge) stopLoading()
+    if (narrative || grantedUuid || edge || tail) stopLoading()
     return reload
   }, [reloadBoard, applyChoicesPending, applyEdgeState, stopLoading, playerStats, playerUuid,
-    t, viewActions, matchUuid, accessToken, lang, gameData])
+    t, viewActions, matchUuid, accessToken, lang, gameData, timeEndTail])
 
   // Step 33 — a movement answers with what the destination did about the arrival.
   // v0.35.6 — an arrival kills as an event does: the edge state comes last, so a collapse
   // covers the arrival's own card rather than the other way round.
   const handleMovementDone = useCallback(result => {
     const reload = reloadBoard(result)
-    const fired = showAutomaticEvents(result?.automaticEvents)
+    const fired = showAutomaticEvents(result?.automaticEvents, timeEndTail(result))
     const edge = applyEdgeState(result?.edgeState)
     // v0.37.4 — same rule as an event: no news, the loading page stays until the destination lands.
     if (fired || edge) stopLoading()
     return reload
-  }, [reloadBoard, showAutomaticEvents, applyEdgeState, stopLoading])
+  }, [reloadBoard, showAutomaticEvents, applyEdgeState, stopLoading, timeEndTail])
 
   // Step 33 — a sleep answers with the location counters that ran out while the party slept,
   // already filtered for this player. Empty is the normal case and renders nothing.
@@ -357,6 +382,7 @@ export default function useGameplayResults({
         return
       }
       viewActions.closeChoices()
+      const tail = timeEndTail(result)
       // The event an effect ran inline wins over the last effect card: the roadmap asks for
       // "la card del evento" on the right page.
       const narrative = result?.choiceEventCard ?? lastEffectCard(result)
@@ -365,9 +391,12 @@ export default function useGameplayResults({
         // An option writes the registry as an event effect does, so its outcome card says so
         // the same way — the badges live on the OUTCOME, whichever door reached it.
         const registryBadges = registryChangeItems(result, gameData?.info?.registry)
+        const badgeProps = registryBadges.length > 0 ? { bonusBadgeShowZeros: true } : null
         viewActions.openPreview({ card: narrative, type: 'event',
           stats: [...statChangeItems(result, playerUuid, t), ...registryBadges], side: 'right',
-          props: registryBadges.length > 0 ? { bonusBadgeShowZeros: true } : null })
+          props: tail ? { ...(badgeProps ?? {}), onClose: undefined, onForward: tail } : badgeProps })
+      } else {
+        tail?.()
       }
       applyEdgeState(result?.edgeState)
       // The option stays "in flight" until the new board has landed, not just until answered.
@@ -380,7 +409,7 @@ export default function useGameplayResults({
       stopLoading()
     }
   }, [choiceInFlight, matchUuid, accessToken, lang, reloadBoard, applyChoicesPending,
-    applyEdgeState, stopLoading, playerUuid, t, viewActions, onError, gameData])
+    applyEdgeState, stopLoading, playerUuid, t, viewActions, onError, gameData, timeEndTail])
 
   return {
     loading, startLoading, stopLoading, choiceInFlight,

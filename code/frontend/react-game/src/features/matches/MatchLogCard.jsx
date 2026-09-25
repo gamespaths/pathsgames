@@ -4,6 +4,8 @@ import Card from '@/components/layout/Card'
 import LoadingCard from '@/components/layout/LoadingCard'
 import { getMatchLogs } from '@/api/matches'
 import { buildCardToSleep, buildHistoryCard } from '@/utils/loadoutCards'
+import { formatDate } from '@/utils/dates'
+import MatchStatusBadge from './MatchStatusBadge'
 
 /**
  * MatchLogCard — the match history, rendered as a full book reading page.
@@ -26,6 +28,9 @@ import { buildCardToSleep, buildHistoryCard } from '@/utils/loadoutCards'
  * The endpoint is cursor-paginated; "load more" appends the next page. Since
  * v0.30.3 the timeline arrives newest-first (order=desc), so the most recent entry
  * opens the page and "load more" walks back into the past.
+ *
+ * Step 40 — `match` (the match summary, no extra call) adds two client-side tiles: the current
+ * status first, and "Creation" with its date last, once the last page is loaded.
  *
  * Used on the book's RIGHT page, next to the story card on the left:
  *   - GuestUserModal — when (i) is clicked on a MatchCard;
@@ -60,6 +65,8 @@ const TYPE_ICON = {
   ITEM_DROP:       'fa-trash',
   // Step 38 — experience spent on a stat.
   EXP_USE:         'fa-star',
+  // Step 40 — an option picked, with what its own effects gave.
+  CHOICE:          'fa-code-branch',
 }
 
 /**
@@ -84,6 +91,7 @@ const TYPE_COLOR = {
   ITEM_USE:        '#a78bfa',
   ITEM_DROP:       '#9ca3af',
   EXP_USE:         '#c4b5fd',
+  CHOICE:          '#f472b6',
 }
 
 /**
@@ -193,7 +201,27 @@ export function LogEntryRow({ entry, lang, t, onPreview }) {
   )
 }
 
-export default function MatchLogCard({ matchUuid, accessToken, story = null, onBack = null }) {
+/** Step 40 — the first tile: the match's current status. */
+export function StatusTile({ status, t }) {
+  return (
+    <li className="match-log-row match-log-row--status" data-testid="match-log-status">
+      <span className="match-log-row__type"><i className="fas fa-flag me-1" />{t('matchLog.statusTile')}</span>
+      <span className="match-log-row__title"><MatchStatusBadge status={status} inline /></span>
+    </li>
+  )
+}
+
+/** Step 40 — the last tile: when the match was created. */
+export function CreationTile({ date, t }) {
+  return (
+    <li className="match-log-row match-log-row--creation" data-testid="match-log-creation">
+      <span className="match-log-row__type"><i className="fas fa-feather-alt me-1" />{t('matchLog.creation')}</span>
+      <span className="match-log-row__title">{date}</span>
+    </li>
+  )
+}
+
+export default function MatchLogCard({ matchUuid, accessToken, story = null, onBack = null, match = null }) {
   const { t, lang } = useTranslation()
 
   const [entries, setEntries]   = useState([])
@@ -241,6 +269,9 @@ export default function MatchLogCard({ matchUuid, accessToken, story = null, onB
 
   // Clock advances carry no card and no actor: they would render as empty tiles.
   const visibleEntries = entries.filter(e => !HIDDEN_TYPES.has(e.type))
+  const statusTile = match?.status ? <StatusTile status={match.status} t={t} /> : null
+  const creationDate = formatDate(match?.tsInsert, lang)
+  const creationTile = creationDate && !cursor ? <CreationTile date={creationDate} t={t} /> : null
 
   if (loading) return <LoadingCard story={story} />
   const body = (
@@ -254,11 +285,12 @@ export default function MatchLogCard({ matchUuid, accessToken, story = null, onB
           <i className="fas fa-exclamation-circle me-2" />
           {typeof error === 'string' ? error : t('matchLog.error')}
         </p>
-      ) : visibleEntries.length === 0 ? (
+      ) : visibleEntries.length === 0 && !statusTile && !creationTile ? (
         <p className="match-log-state">{t('matchLog.empty')}</p>
       ) : (
         <>
           <ul className="match-log-list">
+            {statusTile}
             {visibleEntries.map((entry, idx) => (
               <LogEntryRow
                 key={`${entry.type}-${entry.timestamp}-${idx}`}
@@ -266,6 +298,7 @@ export default function MatchLogCard({ matchUuid, accessToken, story = null, onB
                 onPreview={setPreview}
               />
             ))}
+            {creationTile}
           </ul>
 
           {/* Load more sits at the end of the list, big and centered. It borrows

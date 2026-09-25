@@ -875,7 +875,7 @@ class EventExecutionServiceEffectsTest {
                     () -> assertEquals(List.of(EVENT_UUID), r.executedEventUuids(),
                             "the chain must stop at the coma"));
             verify(edgeStore).setComa(MATCH_ID, CHAR_ID, 7);
-            verify(timeAdvancementService, never()).forceTimeEnd(anyString());
+            verify(timeAdvancementService, never()).forceTimeEnd(anyString(), any());
         }
 
         @Test

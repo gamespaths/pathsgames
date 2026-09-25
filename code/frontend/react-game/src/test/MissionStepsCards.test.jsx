@@ -25,11 +25,10 @@ describe('MissionStepsCards (v0.37.1)', () => {
     // The third is not listed: the story has not asked for it yet. The open one reads FIRST.
     expect(screen.getAllByTestId('step').map(n => n.textContent))
       .toEqual(['Climb the peak', 'Reach the hills'])
-    // No step NUMBER any more — and v0.37.4 no badge either: a closed step says Completed
-    // through its lock alone, an open one says nothing.
+    // No step NUMBER — Step 40: a closed step wears the green Completed badge, an open one none.
     expect(captured[0].statistics).toEqual([])
-    expect(captured[1].statistics).toEqual([])
-    expect(captured[1].lockInfo).toBe('game.missions.status.COMPLETED')
+    expect(captured[1].statistics).toEqual([{ key: 'missionStatus',
+      value: 'game.missions.status.COMPLETED', icon: 'fas fa-check-circle', color: '#4ade80', keepZero: true }])
     // v0.38.3 — the done step reads green, the open one does not.
     expect(captured[0].additionalCardClasses).toBe('pg-card--mission')
     expect(captured[1].additionalCardClasses).toBe('pg-card--mission pg-card--done')
@@ -51,13 +50,27 @@ describe('MissionStepsCards (v0.37.1)', () => {
     captured[0].onPreview()
 
     expect(onPreview).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'missions', side: 'right',
+      type: 'missionStep', side: 'right',
     }))
     expect(onPreview.mock.calls[0][0].card.title).toBe('Reach the hills')
     expect(captured[0].hidePreview).toBeUndefined()
+    expect(captured[0].entityType).toBe('missionStep')
   })
 
-  it('locks a step this match has closed, and only that one', () => {
+  it('hands the page the same badges as the little card: Completed on a done step, none on an open one', () => {
+    captured.length = 0
+    const onPreview = vi.fn()
+    render(<MissionStepsCards mission={mission([
+      { uuid: 's-1', name: 'Done', done: true }, { uuid: 's-2', name: 'Open', done: false },
+    ])} onPreview={onPreview} />)
+    captured[0].onPreview()
+    captured[1].onPreview()
+    expect(onPreview.mock.calls[0][0].stats).toEqual([])
+    expect(onPreview.mock.calls[1][0].stats).toEqual(captured[1].statistics)
+    expect(onPreview.mock.calls[1][0].stats[0].color).toBe('#4ade80')
+  })
+
+  it('never locks a step: the footer is the wide (i), open or closed', () => {
     captured.length = 0
     render(<MissionStepsCards mission={mission([
       { uuid: 's-1', step: 1, name: 'Done', done: true },
@@ -66,11 +79,12 @@ describe('MissionStepsCards (v0.37.1)', () => {
 
     // The open step reads first: what is closed is ALWAYS last.
     expect(captured[0].card.title).toBe('Open')
-    expect(captured[0].locked).toBe(false)
-    expect(captured[0].lockInfo).toBeUndefined()
     expect(captured[1].card.title).toBe('Done')
-    expect(captured[1].locked).toBe(true)
-    expect(captured[1].lockInfo).toBe('game.missions.status.COMPLETED')
+    for (const props of captured) {
+      expect(props.locked).toBeUndefined()
+      expect(props.lockInfo).toBeUndefined()
+      expect(props.flagInformationCard).toBe(true)
+    }
   })
 
   it('keeps the closed steps in the story order among themselves, after the open one', () => {

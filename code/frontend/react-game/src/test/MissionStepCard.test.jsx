@@ -26,15 +26,15 @@ describe('MissionStepCard (Step 37)', () => {
     expect(captured.bonusBadgeListLittleIntoImage).toBeUndefined()
   })
 
-  it('wears no badge once the mission is closed — the lock carries the status', () => {
+  it('badges the status of a closed mission over the image, beside the progress of a failed one', () => {
     render(<MissionStepCard mission={mission({ status: 'FAILED' })} />)
-    // v0.37.4 — a closed mission hands Card no statistics at all: no progress, no status.
-    expect(captured.statistics).toBeUndefined()
-    expect(captured.lockInfo).toBe('game.missions.status.FAILED')
+    // Step 40 — the status leaves the footer lock and rides as a badge, like the progress.
+    expect(captured.statistics.map(s => s.key)).toEqual(['missionStatus', 'missionSteps'])
+    expect(captured.statistics[0].value).toBe('game.missions.status.FAILED')
+    expect(captured.statistics[0].icon).toBe('fas fa-times-circle')
 
     render(<MissionStepCard mission={mission({ status: 'FAILED', steps: [] })} />)
-    expect(captured.statistics).toBeUndefined()
-    expect(captured.lockedIcon).toBe('fas fa-times-circle')
+    expect(captured.statistics.map(s => s.key)).toEqual(['missionStatus'])
 
     render(<MissionStepCard mission={mission({ status: 'AVAILABLE' })} />)
     expect(captured.statistics.map(s => s.key)).not.toContain('missionStatus')
@@ -61,9 +61,9 @@ describe('MissionStepCard (Step 37)', () => {
     const onPreview = vi.fn()
     render(<MissionStepCard mission={mission({ status: 'COMPLETED' })} onPreview={onPreview} />)
 
-    // v0.37.4 — the grid card badges nothing: the lock hint alone says Completed.
-    expect(captured.statistics).toBeUndefined()
-    expect(captured.lockInfo).toBe('game.missions.status.COMPLETED')
+    // Step 40 — the grid card badges the status alone: Completed is the whole answer.
+    expect(captured.statistics.map(s => s.key)).toEqual(['missionStatus'])
+    expect(captured.statistics[0].value).toBe('game.missions.status.COMPLETED')
 
     captured.onPreview()
     // The reading page still carries both: there the count is history, not a repetition.
@@ -84,26 +84,14 @@ describe('MissionStepCard (Step 37)', () => {
     expect(captured.hidePreview).toBe(false)
   })
 
-  it('locks a closed mission and puts the hint in lockInfo, never in label', () => {
-    render(<MissionStepCard mission={mission({ status: 'COMPLETED' })} />)
+  it.each(['COMPLETED', 'FAILED', 'AVAILABLE'])('never locks a %s mission: the footer is the wide (i) alone', (status) => {
+    render(<MissionStepCard mission={mission({ status })} />)
 
-    expect(captured.locked).toBe(true)
-    expect(captured.lockInfo).toBe('game.missions.status.COMPLETED')
-    expect(captured.label).toBeUndefined()
-  })
-
-  it('locks a failed one the same way', () => {
-    render(<MissionStepCard mission={mission({ status: 'FAILED' })} />)
-
-    expect(captured.locked).toBe(true)
-    expect(captured.lockedIcon).toBe('fas fa-times-circle')
-  })
-
-  it('leaves an open mission unlocked and unhinted', () => {
-    render(<MissionStepCard mission={mission({ status: 'AVAILABLE' })} />)
-
-    expect(captured.locked).toBe(false)
+    expect(captured.locked).toBeUndefined()
     expect(captured.lockInfo).toBeUndefined()
+    expect(captured.lockedIcon).toBeUndefined()
+    expect(captured.label).toBeUndefined()
+    expect(captured.flagInformationCard).toBe(true)
   })
 
   it('hides the lens only when there is no page and no step to turn to', () => {
@@ -140,9 +128,10 @@ describe('MissionStepCard (Step 37)', () => {
     expect(onPreview).toHaveBeenCalledWith(expect.objectContaining({
       type: 'missions', side: 'left',
       stats: [
-        { key: 'missionStatus', value: 'game.missions.status.ACTIVE',
-          label: 'game.missions.statusLabel' },
-        { key: 'missionSteps', value: '1/2', label: 'game.missions.progress' },
+        { key: 'missionStatus', value: 'game.missions.status.ACTIVE', label: 'game.missions.statusLabel',
+          icon: 'fas fa-hourglass-half', color: null, keepZero: true },
+        { key: 'missionSteps', value: '1/2', label: 'game.missions.progress',
+          icon: 'fas fa-list-ol', color: null },
       ],
     }))
     expect(onPreview.mock.calls[0][0].steps).toHaveLength(2)

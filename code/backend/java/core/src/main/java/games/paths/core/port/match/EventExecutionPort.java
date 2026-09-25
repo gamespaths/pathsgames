@@ -135,7 +135,34 @@ public interface EventExecutionPort {
                                  * by pushing somebody somewhere — a forced-movement effect is an
                                  * arrival, and arriving is a trigger. Empty in the ordinary case.
                                  */
-                                List<LocationEntryPort.AutomaticEventFired> automaticEvents) {
+                                List<LocationEntryPort.AutomaticEventFired> automaticEvents,
+                                /** Step 40 - counterZero and weather of a forced time-end, else null. */
+                                TimeAdvancementPort.TimeEndNews timeEnd) {
+
+        /** The pre-Step 40 shape: no forced time-end news. */
+        public EventExecutionResult(String matchUuid, String eventUuid, String eventType,
+                                    String status, CardInfo card, List<String> executedEventUuids,
+                                    int energySpent, int coinSpent, int foodSpent, int magicSpent,
+                                    int newEnergy, int newCoin, int newFood, int newMagic,
+                                    int currentClock, boolean turnConsumed, boolean timeEnded,
+                                    boolean itemAdded, boolean itemRemoved, boolean weatherApplied,
+                                    boolean movementApplied, boolean forcedSleep,
+                                    boolean comaTriggered, boolean gameOver,
+                                    boolean refreshRecommended, List<StatChange> statChanges,
+                                    List<RegistryChange> registryChanges,
+                                    List<TraitChange> traitChanges, List<ItemChange> itemChanges,
+                                    List<CharacteristicChange> characteristicChanges,
+                                    List<LocationChange> locationChanges,
+                                    List<AppliedEffect> effects, List<PendingChoice> pendingChoices,
+                                    EdgeStateOutcome edgeState,
+                                    List<LocationEntryPort.AutomaticEventFired> automaticEvents) {
+            this(matchUuid, eventUuid, eventType, status, card, executedEventUuids, energySpent,
+                    coinSpent, foodSpent, magicSpent, newEnergy, newCoin, newFood, newMagic,
+                    currentClock, turnConsumed, timeEnded, itemAdded, itemRemoved, weatherApplied,
+                    movementApplied, forcedSleep, comaTriggered, gameOver, refreshRecommended,
+                    statChanges, registryChanges, traitChanges, itemChanges, characteristicChanges,
+                    locationChanges, effects, pendingChoices, edgeState, automaticEvents, null);
+        }
     }
 
     /**

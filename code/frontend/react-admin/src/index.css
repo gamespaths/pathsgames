@@ -61,6 +61,20 @@ body {
   white-space: nowrap;
 }
 .pg-navbar-brand i { margin-right: 0.4rem; color: var(--color-gold-light); }
+/* Step 40 — the environment badge beside the brand (VITE_ENV_BADGE) */
+.pg-env-badge {
+  margin-left: 0.5rem;
+  padding: 1px 8px;
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 10px;
+  background: rgba(200, 150, 10, 0.18);
+  color: var(--color-gold-light);
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
 
 /* ── Sidebar ── */
 .pg-sidebar {

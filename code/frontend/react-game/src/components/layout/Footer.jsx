@@ -1,6 +1,8 @@
 import { useTranslation } from '../../i18n/context'
 import { useServer } from '../../context/ServerContext'
 import { usePolicyBook } from '../../context/PolicyBookContext'
+import { ENV_BADGE } from '../../constants/features'
+import EnvBadge, { envBadgeLabel } from './EnvBadge'
 
 export default function Footer() {
   const { t } = useTranslation()
@@ -16,25 +18,31 @@ export default function Footer() {
 
         <div className="footer-copy  footer-alpha-warning">
           <i className="fas fa-flask" style={{ marginRight: '0.4rem', color: 'var(--color-gold, #c8960a)' }} />
-          {t('footer.alpha')}
+          {/* Step 40 — the build's env badge names the version; no badge (prod) → no sentence. */}
+          {envBadgeLabel(ENV_BADGE, t) && <>{t('footer.alphaPrefix')}<EnvBadge /><br /></>}
+          v0.40.0 &nbsp;
+          {t('footer.madeWith').toUpperCase()} <i className="fas fa-heart" /> {t('footer.byTeam').toUpperCase()}
+          <br />
+          {t('footer.serversWarning')}
           <span className="footer-server-row">
+            {/* Step 40 — same look as the rest of the footer: a "Server:" label, the name, the status */}
+            <span className="footer-server-label">{t('footer.serverSelect')}: </span>
             {probing ? (
-              <span style={{ color: 'var(--color-ash, #aaa)', fontSize: '0.65rem', fontFamily: 'Cinzel, serif' }}>detecting…</span>
+              <span className="footer-server-muted">detecting…</span>
+            ) : servers.length <= 1 ? (
+              // One server only (VITE_DEFAULT_SERVERS): its name, nothing to choose.
+              <span className="footer-server-name">{servers[0]?.label ?? server}</span>
             ) : (
-              <select
-                value={server}
-                onChange={e => changeServer(e.target.value)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--color-gold-light, #e8c87a)', fontFamily: 'Cinzel, serif', fontSize: '0.68rem', outline: 'none', cursor: 'pointer' }}
-              >
+              <select className="footer-server-select" value={server} onChange={e => changeServer(e.target.value)}>
                 {servers.map(s => (
                   <option key={s.url} value={s.url} style={{ background: '#2e1508' }}>{s.label}</option>
                 ))}
               </select>
             )}
-            {status === 'online' &&<span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4caf50', display: 'inline-block', marginLeft: '0.3rem' }} />}
-            {status === 'offline' && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f44336', display: 'inline-block', marginLeft: '0.3rem' }} />}
-            {status === 'loading' && <span style={{ color: '#888', fontSize: '0.65rem', marginLeft: '0.3rem' }}>…</span>}
-            {version && <span style={{ color: '#888', fontSize: '0.6rem', fontFamily: 'Cinzel, serif', marginLeft: '0.3rem' }}>{version}</span>}
+            {status === 'online' && <span className="footer-server-dot" style={{ background: '#4caf50' }} />}
+            {status === 'offline' && <span className="footer-server-dot" style={{ background: '#f44336' }} />}
+            {status === 'loading' && <span className="footer-server-muted ms-1">…</span>}
+            {version && <span className="footer-server-muted ms-1">{version}</span>}
           </span>
         </div>
 
@@ -43,23 +51,20 @@ export default function Footer() {
           <i className="fas fa-dice-d20 me-2" />
           <span className="gold-light">PATHS GAMES</span> 
           &nbsp; &copy; {t('footer.rights').toUpperCase()} 
-          <br />
-          v0.40.0 &nbsp;
-          {t('footer.madeWith').toUpperCase()} <i className="fas fa-heart" /> {t('footer.byTeam').toUpperCase()}
         </div>
 
         <div className="footer-links-row">
           <a href="https://github.com/gamespaths/pathsgames" target="_blank" rel="noopener" className="footer-icon-link">
             <i className="fab fa-github" /><span>{t('footer.github')}</span>
           </a>
-          <a href="https://github.com/gamespaths/pathsgames/blob/develop/wiki/documentation_v0/Roadmap.md" target="_blank" rel="noopener" 
-                className="footer-icon-link d-none d-md-inline-flex">
+          {/* Step 40 — the Devlog opens the roadmap book (data/roadmap.json). */}
+          <a href="#" className="footer-icon-link d-none d-md-inline-flex" onClick={policyLink('roadmap')}>
             <i className="fas fa-newspaper" /><span>{t('footer.devlog')}</span>
           </a>
-          <a href="https://www.instagram.com/pathsgames/" target="_blank" rel="noopener" className="footer-icon-link">
+          <a href="https://www.instagram.com/pathsgames/" target="_blank" rel="noopener" className="footer-icon-link footer-social-link">
             <i className="fab fa-instagram" /><span>{t('footer.instagram')}</span>
           </a>
-          <a href="https://www.youtube.com/channel/UCbrfVJJDmX-iBda6WhURPkQ" target="_blank" rel="noopener" className="footer-icon-link">
+          <a href="https://www.youtube.com/channel/UCbrfVJJDmX-iBda6WhURPkQ" target="_blank" rel="noopener" className="footer-icon-link footer-social-link">
             <i className="fab fa-youtube" /><span>{t('footer.youtube')}</span>
           </a>
         </div>

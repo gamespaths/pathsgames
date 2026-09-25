@@ -17,6 +17,7 @@ import games.paths.core.port.match.EventExecutionStorePort.CharacterStats;
 import games.paths.core.port.match.EventExecutionStorePort.EventActorView;
 import games.paths.core.port.match.EventExecutionStorePort.EventCheckContext;
 import games.paths.core.port.match.EventExecutionStorePort.MatchEventView;
+import games.paths.core.port.match.TimeAdvancementPort;
 import games.paths.core.port.match.UserAccessPort;
 import games.paths.core.port.story.ContentQueryPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -856,7 +857,7 @@ class EventExecutionServiceSelectChoiceTest {
         ender.setType("NORMAL");
         ender.setFlagEndTime(1);
         when(store.findEventsById(STORY_ID)).thenReturn(Map.of(EVENT_ID, event(), 4L, ender));
-        when(timeAdvancementService.forceTimeEnd(MATCH_UUID))
+        when(timeAdvancementService.forceTimeEnd(eq(MATCH_UUID), any()))
                 .thenReturn(new TimeAdvancementService.TimeEndOutcome(CLOCK + 1, List.of(), List.of()));
         ChoiceEntity c = choice();
         c.setIdEventTorun(4);
@@ -881,5 +882,81 @@ class EventExecutionServiceSelectChoiceTest {
         assertEquals(EventExecutionPort.STATUS_APPLIED, r.execution().status());
         assertFalse(r.execution().turnConsumed(), "turns are Step 61, for every action at once");
         assertEquals(List.of(), r.execution().pendingChoices());
+    }
+    // ── Step 40 ─────────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("Step 40 - the CHOICE_SELECTED row carries the gains of the option's own rows only")
+    void choiceGainsOnTheMarker() {
+        ChoiceEffectEntity food = effect(1L);
+        food.setStatistics("food");
+        food.setValue(3);
+        ChoiceEffectEntity coin = effect(2L);
+        coin.setStatistics("coin");
+        coin.setValue(2);
+        coin.setIdEvent(5);
+        ChoiceEffectEntity drain = effect(3L);
+        drain.setStatistics("energy");
+        drain.setValue(-4);
+        givenEffects(food, coin, drain);
+        EventEntity linked = new EventEntity();
+        linked.setId(5L);
+        linked.setUuid("linked-uuid");
+        linked.setType("NORMAL");
+        EventEffectEntity magic = new EventEffectEntity();
+        magic.setId(50L);
+        magic.setIdEvent(5);
+        magic.setStatistics("magic");
+        magic.setValue(1);
+        magic.setTarget("ONLY_ONE");
+        when(store.findEventsById(STORY_ID)).thenReturn(Map.of(EVENT_ID, event(), 5L, linked));
+        when(store.findEffectsByEventId(STORY_ID)).thenReturn(Map.of(5L, List.of(magic)));
+
+        resolve();
+
+        verify(store).logEventExecuted(MATCH_ID, CHAR_ID, EVENT_ID, CLOCK,
+                EventExecutionStorePort.MSG_CHOICE_SELECTED + " " + EVENT_ID,
+                EventExecutionStorePort.SpentResources.none(),
+                new EventExecutionStorePort.ResourceDelta(0, 3, 0, 2));
+        verify(store).logEventExecuted(eq(MATCH_ID), eq(CHAR_ID), eq(5L), anyInt(),
+                eq(EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + 5L),
+                any(), eq(new EventExecutionStorePort.ResourceDelta(0, 0, 1, 0)));
+    }
+
+    @Test
+    @DisplayName("Step 40 - an option that ends the time answers counterZero[] and the weather card")
+    void timeEndNewsOnSelectChoice() {
+        EventEntity ender = new EventEntity();
+        ender.setId(4L);
+        ender.setUuid("ender-uuid");
+        ender.setType("NORMAL");
+        ender.setFlagEndTime(1);
+        when(store.findEventsById(STORY_ID)).thenReturn(Map.of(EVENT_ID, event(), 4L, ender));
+        TimeAdvancementPort.CounterZeroItem item = new TimeAdvancementPort.CounterZeroItem(
+                "COUNTER_ZERO", LOC, null, null, List.of(), "cz-uuid", CLOCK + 1, "FULL");
+        TimeAdvancementPort.TimeStartWeather w = new TimeAdvancementPort.TimeStartWeather(
+                9L, "rain", 77, null, -1, 2, 3, true);
+        when(timeAdvancementService.forceTimeEnd(MATCH_UUID, CHAR_ID))
+                .thenReturn(new TimeAdvancementService.TimeEndOutcome(CLOCK + 1, List.of(),
+                        EventExecutionPort.EdgeStateOutcome.none(), List.of(item), w));
+        when(contentQueryPort.getCardByStoryIdAndCardId(STORY_ID, 77, "en")).thenReturn(card("rain-card"));
+        ChoiceEntity c = choice();
+        c.setIdEventTorun(4);
+        when(store.findChoiceByStoryAndUuid(STORY_ID, CHOICE_UUID)).thenReturn(Optional.of(c));
+
+        ChoiceResolutionResult r = resolve();
+
+        TimeAdvancementPort.TimeEndNews news = r.execution().timeEnd();
+        assertNotNull(news);
+        assertEquals(CLOCK + 1, news.newClock());
+        assertEquals(List.of(item), news.counterZero());
+        assertEquals("rain-card", news.weather().card().uuid());
+        assertTrue(news.weather().changed());
+    }
+
+    @Test
+    @DisplayName("Step 40 - a resolution that does not end the time carries no news")
+    void noTimeEndNoNews() {
+        assertNull(resolve().execution().timeEnd());
     }
 }

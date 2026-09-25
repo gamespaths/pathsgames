@@ -1,6 +1,6 @@
 import Card from '@/components/layout/Card'
 import { useTranslation } from '@/i18n/context'
-import { MISSION_STATUS_ICON, missionStatusBadge } from '@/utils/missions'
+import { missionStatusBadge } from '@/utils/missions'
 
 /**
  * MissionStepsCards — v0.37.1. The steps of ONE mission, on the RIGHT page, while the mission's
@@ -8,6 +8,7 @@ import { MISSION_STATUS_ICON, missionStatusBadge } from '@/utils/missions'
  *
  * What the party has closed is shown in full, but only the FIRST step still open is: the ones
  * behind it are what the story has not asked for yet, and listing them would spoil the way.
+ * Step 40 — a done step is not locked: it wears the Completed badge and keeps the wide (i).
  */
 
 /** The first step still open, then every step already closed — done ones ALWAYS last. */
@@ -29,7 +30,6 @@ export default function MissionStepsCards({ mission, story = null, onPreview,
         {steps.length === 0
           ? <p className="game-empty">{t('game.missions.stepsEmpty')}</p>
           : steps.map((step, index) => {
-            // A step closes for good, so a done one is LOCKED exactly as a closed mission is.
             const done = Boolean(step?.done)
             const card = {
               ...(step?.card ?? {}),
@@ -41,17 +41,15 @@ export default function MissionStepsCards({ mission, story = null, onPreview,
             return (
               <Card key={step?.uuid ?? `${index}`}
                 card={card}
-                entityType="missions"
+                entityType="missionStep"
                 story={story}
-                statistics={/*done ? [badge] : */[]}
+                statistics={done ? [badge] : []}
                 flagShowFullStatistics
                 bonusBadgeShowZeros
-                locked={done}
-                lockedIcon={done ? MISSION_STATUS_ICON.COMPLETED : undefined}
-                lo
-                lockInfo={done ? badge.value : undefined} flagInformationCard
+                flagInformationCard
                 additionalCardClasses={`pg-card--mission${done ? ' pg-card--done' : ''}`}
-                onPreview={() => onPreview?.({ card, type: 'missions', side: previewSide })}
+                onPreview={() => onPreview?.({ card, type: 'missionStep', side: previewSide,
+                  stats: done ? [badge] : [] })}
               />
             )
           })}

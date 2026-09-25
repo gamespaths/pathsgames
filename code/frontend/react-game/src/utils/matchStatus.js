@@ -53,3 +53,28 @@ export function storyMatchBadge(matches, storyUuid) {
   if (mine.some(m => FINISHED_MATCH_STATUSES.has(m.status))) return 'completed'
   return null
 }
+
+// Step 40 — each status as the home story-card badge (`story-card-status--<tone>`, stat-badge look) and its glyph.
+export const MATCH_STATUS_BADGE = Object.freeze({
+  CREATED:  { tone: 'active',    icon: 'fas fa-play' },
+  RUNNING:  { tone: 'active',    icon: 'fas fa-play' },
+  PAUSED:   { tone: 'paused',    icon: 'fas fa-pause' },
+  ENDED:    { tone: 'completed', icon: 'fas fa-check-circle story-card-status__check' },
+  GAMEOVER: { tone: 'completed', icon: 'fas fa-skull-crossbones story-card-status__defeat' },
+})
+
+/** Step 40 — list group of a status: active, then paused, then finished, then anything else. */
+export function matchStatusGroup(status) {
+  if (ACTIVE_MATCH_STATUSES.has(status)) return 0
+  if (status === 'PAUSED') return 1
+  if (FINISHED_MATCH_STATUSES.has(status)) return 2
+  return 3
+}
+
+/** Step 40 — a copy of the list ordered by group, newest first inside each group. */
+export function sortMatchesForList(matches, toMs) {
+  if (!Array.isArray(matches)) return []
+  const time = m => (toMs ? toMs(m?.tsInsert) : null) ?? 0
+  return [...matches].sort((a, b) =>
+    matchStatusGroup(a?.status) - matchStatusGroup(b?.status) || time(b) - time(a))
+}

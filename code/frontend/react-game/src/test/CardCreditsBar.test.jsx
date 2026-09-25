@@ -75,4 +75,21 @@ describe('CardCreditsBar', () => {
     expect(container.querySelector('.credit-author')).toBeTruthy()
     expect(container.querySelector('.credit-image')).toBeTruthy()
   })
+
+  it('keeps the credits in one cut-able text box, with the full text as tooltip; type and tip stay outside', () => {
+    const { container } = render(<CardCreditsBar card={{ copyrightText: 'A very long photographer name' }}
+      story={{ author: 'Alice', card: {} }} typeBadgeLabel="Location" tip={{ label: 'tip', onOpen: () => {} }} />)
+    const text = container.querySelector('.gc-credits__text')
+    expect(text.getAttribute('title')).toBe('story by Alice - image by A very long photographer name')
+    expect(text.querySelector('.credit-author')).toBeTruthy()
+    expect(text.querySelector('.credit-image')).toBeTruthy()
+    expect(text.querySelector('.gc-type-badge-credits')).toBeNull()
+    expect(text.querySelector('.gc-credits__tip')).toBeNull()
+  })
+
+  it('renders no text box when there is only a tip', () => {
+    const { container } = render(<CardCreditsBar card={{}} story={{}} tip={{ label: 'tip', onOpen: () => {} }} />)
+    expect(container.querySelector('.gc-credits__tip')).toBeTruthy()
+    expect(container.querySelector('.gc-credits__text')).toBeNull()
+  })
 })

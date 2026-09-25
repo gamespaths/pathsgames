@@ -124,7 +124,20 @@ public interface LocationEntryPort {
                                 * does; before this the collapse reached the board only on
                                 * the next reload, as a flag with no card and no story.
                                 */
-                               EventExecutionPort.EdgeStateOutcome edgeState) {
+                               EventExecutionPort.EdgeStateOutcome edgeState,
+                               /** Step 40 - set when this event forced a time-end, else null. */
+                               TimeAdvancementPort.TimeEndNews timeEnd) {
+
+        /** An automatic event that forced no time-end (pre-Step 40 shape). */
+        public AutomaticEventFired(String trigger, long idLocation, String eventUuid,
+                                   CardInfo card,
+                                   List<EventExecutionPort.AppliedEffect> effects,
+                                   List<EventExecutionPort.StatChange> statChanges,
+                                   List<EventExecutionPort.LocationChange> locationChanges,
+                                   boolean gameOver, EventExecutionPort.EdgeStateOutcome edgeState) {
+            this(trigger, idLocation, eventUuid, card, effects, statChanges, locationChanges,
+                    gameOver, edgeState, null);
+        }
 
         /** An automatic event that moved no edge — the ordinary case. */
         public AutomaticEventFired(String trigger, long idLocation, String eventUuid,

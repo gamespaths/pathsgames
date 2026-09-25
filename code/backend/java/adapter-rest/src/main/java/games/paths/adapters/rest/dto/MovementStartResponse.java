@@ -34,6 +34,10 @@ public class MovementStartResponse {
     private int currentClock;
     private List<AutomaticEventResponse> automaticEvents = new ArrayList<>();
     private ExecuteEventResponse.EdgeStateOutcomeDto edgeState;
+    /** Step 40 - an arrival event ended the time: its weather and wake-up list. */
+    private boolean timeEnded;
+    private TimeStartWeatherResponse weather;
+    private List<SleepActionResponse.CounterZeroItem> counterZero = new ArrayList<>();
 
     public static MovementStartResponse fromModel(MovementPort.MovementResult m) {
         MovementStartResponse r = new MovementStartResponse();
@@ -54,6 +58,9 @@ public class MovementStartResponse {
         r.currentClock = m.currentClock();
         r.automaticEvents = AutomaticEventResponse.fromModels(m.automaticEvents());
         r.edgeState = ExecuteEventResponse.EdgeStateOutcomeDto.fromModel(m.edgeState());
+        r.timeEnded = m.timeEnd() != null;
+        r.weather = m.timeEnd() == null ? null : TimeStartWeatherResponse.fromModel(m.timeEnd().weather());
+        r.counterZero = TimeStartWeatherResponse.counterZeroOf(m.timeEnd());
         return r;
     }
 
@@ -74,4 +81,7 @@ public class MovementStartResponse {
     public int getCurrentClock() { return currentClock; }
     public List<AutomaticEventResponse> getAutomaticEvents() { return automaticEvents; }
     public ExecuteEventResponse.EdgeStateOutcomeDto getEdgeState() { return edgeState; }
+    public boolean isTimeEnded() { return timeEnded; }
+    public TimeStartWeatherResponse getWeather() { return weather; }
+    public List<SleepActionResponse.CounterZeroItem> getCounterZero() { return counterZero; }
 }

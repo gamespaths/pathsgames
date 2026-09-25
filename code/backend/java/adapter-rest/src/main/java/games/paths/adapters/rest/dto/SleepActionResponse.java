@@ -45,19 +45,7 @@ public class SleepActionResponse {
                         item.energyDelta(), item.lifeDelta(), item.sadDelta()));
             }
         }
-        if (m.counterZero() != null) {
-            for (TimeAdvancementPort.CounterZeroItem item : m.counterZero()) {
-                List<ExecuteEventResponse.AppliedEffectDto> effects = new ArrayList<>();
-                if (item.cardEffects() != null) {
-                    item.cardEffects().forEach(e ->
-                            effects.add(ExecuteEventResponse.AppliedEffectDto.fromModel(e)));
-                }
-                r.counterZero.add(new CounterZeroItem(item.trigger(), item.idLocation(),
-                        CardInfoResponse.fromModel(item.card()),
-                        CardInfoResponse.fromModel(item.cardLocation()), effects,
-                        item.eventUuid(), item.clock(), item.visibility()));
-            }
-        }
+        r.counterZero = CounterZeroItem.fromModels(m.counterZero());
         r.edgeState = ExecuteEventResponse.EdgeStateOutcomeDto.fromModel(m.edgeState());
         return r;
     }
@@ -106,6 +94,26 @@ public class SleepActionResponse {
             this.eventUuid = eventUuid;
             this.clock = clock;
             this.visibility = visibility;
+        }
+
+        /** Step 40 - shared with the answers of an action that ended the time early. */
+        public static List<CounterZeroItem> fromModels(List<TimeAdvancementPort.CounterZeroItem> items) {
+            List<CounterZeroItem> out = new ArrayList<>();
+            if (items == null) {
+                return out;
+            }
+            for (TimeAdvancementPort.CounterZeroItem item : items) {
+                List<ExecuteEventResponse.AppliedEffectDto> effects = new ArrayList<>();
+                if (item.cardEffects() != null) {
+                    item.cardEffects().forEach(e ->
+                            effects.add(ExecuteEventResponse.AppliedEffectDto.fromModel(e)));
+                }
+                out.add(new CounterZeroItem(item.trigger(), item.idLocation(),
+                        CardInfoResponse.fromModel(item.card()),
+                        CardInfoResponse.fromModel(item.cardLocation()), effects,
+                        item.eventUuid(), item.clock(), item.visibility()));
+            }
+            return out;
         }
 
         public String getTrigger() { return trigger; }

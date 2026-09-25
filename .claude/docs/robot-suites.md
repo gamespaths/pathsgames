@@ -36,6 +36,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `37_missions` | Step 37 mission read API, the status machine, the condition semantics, the v0.37.1 match-start trigger fix, and the v0.37.2 `MISSION_CHANGE` log entry (see breakdown below) |
 | `38_experience` | Step 38 use-exp: `exp`/`expCosts` on `/info`, the purchase, its `EXP_USE` row, every refusal, the missions→rewards→purchase scenario, and the import/export/CRUD contract of `expCostBase`/`maxStatValue` (see breakdown below) |
 | `39_random_events` | Step 39 global random events: fire at time-start after the weather (100% always, 0% never), `RANDOM_EVENT` in `counterZero[]` and in the timeline, ONCE, the registry operator, the `R11_RANDOM_EVENT` import refusals, the `warnings[]` on validate, and the CRUD of `registryValueOperatorCondition` (see breakdown below) |
+| `40_alpha_ux` | Step 40 alpha UX: the news of an early time-end (`counterZero[]` + `weather` with `changed`) on execute-event, select-choice and movement answers, and the resource gains in the timeline (new `CHOICE` row, party-run and automatic-event gains) (see breakdown below) |
 | `41_security` | v0.37.7 Step 41: the `csrfToken` on login/resume/`/me` and the `X-CSRF-TOKEN` refusals on `POST /api/matches`; two rate-limit cases that SKIP unless `RATE_LIMIT_GUEST_PER_IP` / `RATE_LIMIT_MATCH_PER_IP` are passed (see breakdown below) |
 
 ### `19_match` breakdown
@@ -312,6 +313,21 @@ with no eligible row, a 100% row fires party-wide (`counterZero[]` entry `RANDOM
 `idLocation` null, +1 exp), its `RANDOM_EVENT` timeline row, a ONCE event fires once in two
 days, and the `>` operator. `random_events_admin.robot` (9): the six `R11_RANDOM_EVENT` import
 refusals, the imported operator, the CRUD round trip of the operator, a legacy payload without it.
+
+### `40_alpha_ux` breakdown
+
+Ships its own story (`story_alpha_ux.json`, PRIVATE, category `robottest`, imported in Suite
+Setup and deleted in Suite Teardown): the Camp (start, counter 1 → +1 food and Rain), the Tower
+(first arrival ends the time, start-time event), the Swamp (start-time life -99), Sun/Rain
+weather on `scenario=sun|rain`, a 100% random event (+1 coin) on `scenario=random`, a FREE
+time-ending event (+1 coin), choice-events (one option ends the time, one with food/coin gains,
+one with none, a ONCE one) and a stepless mission (+1 magic). Matches use `rngSeed=42`; keywords
+in `alpha_ux_common.resource`. `time_end_news.robot` (10): counter-zero, weather and `changed`
+on the three doors, the random event in `counterZero[]`, empty news when the time does not end,
+the unchanged sleep answer, the roll overwriting the counter-zero weather (known behaviour),
+the coma edge state. `resource_logs.robot` (9): one `CHOICE` row per pick with its gains and
+card, zeros, two cycles, the ONCE accounting, the random-event and mission sums on their `EVENT`
+rows, the counter-zero food, execute-event/item rows unchanged, the admin logs.
 
 ### `38_experience` breakdown
 

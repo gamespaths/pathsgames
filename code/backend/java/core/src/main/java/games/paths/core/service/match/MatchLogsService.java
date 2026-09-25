@@ -40,6 +40,7 @@ import java.util.Map;
  *       then these rows were folded into RECOVERY, which they never were)</li>
  *   <li>AUTOMATIC_EVENT — from log_events WHERE log_message LIKE 'automatic event%' (Step 33)</li>
  *   <li>RANDOM_EVENT — from log_events WHERE log_message LIKE 'random event%' (Step 39)</li>
+ *   <li>CHOICE — from log_events WHERE log_message LIKE 'CHOICE_SELECTED%' (Step 40)</li>
  *   <li>ITEM_ADD / ITEM_USE / ITEM_DROP — from log_item_usage, one per action (v0.35.4)</li>
  * </ul>
  * </p>
@@ -63,6 +64,8 @@ public class MatchLogsService implements MatchLogsPort {
     private static final String TYPE_RECOVERY = "RECOVERY";
     /** Step 29 — an event the player triggered. */
     private static final String TYPE_EVENT = "EVENT";
+    /** Step 40 — an option the player picked, with what its own effect rows gave. */
+    private static final String TYPE_CHOICE = MatchLogsPort.LogEntry.TYPE_CHOICE;
     /** Step 33 — a location's counter ran out. Split out of RECOVERY, which it never was. */
     private static final String TYPE_COUNTER_ZERO = "COUNTER_ZERO";
     /** Step 33 — an event the engine fired: an arrival, a counter, a time-start. */
@@ -221,6 +224,13 @@ public class MatchLogsService implements MatchLogsPort {
                         .cost(e.energyCost(), e.foodCost(), e.magicCost(), e.coinCost())
                         .gain(e.energyGain(), e.foodGain(), e.magicGain(), e.coinGain())
                         .build());
+            } else if (msg.startsWith(EventExecutionStorePort.MSG_CHOICE_SELECTED)) {
+                entries.add(LogEntry.builder(TYPE_CHOICE, e.timestamp())
+                        .clock(e.clock()).character(e.idCharacterMatch())
+                        .message(msg).idEvent(e.idEvent())
+                        .cost(e.energyCost(), e.foodCost(), e.magicCost(), e.coinCost())
+                        .gain(e.energyGain(), e.foodGain(), e.magicGain(), e.coinGain())
+                        .build());
             } else if (msg.startsWith(MSG_COUNTER)) {
                 // Step 33 split this out of RECOVERY: a counter running out and a character
                 // healing are unrelated events, and the frontend has to tell them apart.
@@ -316,7 +326,8 @@ public class MatchLogsService implements MatchLogsPort {
                 idCard = weatherCards.get(e.idWeather());
             } else if (TYPE_MOVEMENT.equals(e.type()) && e.idLocationTo() != null) {
                 idCard = locationCards.get(e.idLocationTo());
-            } else if (TYPE_EVENT.equals(e.type()) && e.idEvent() != null) {
+            } else if ((TYPE_EVENT.equals(e.type()) || TYPE_CHOICE.equals(e.type()))
+                    && e.idEvent() != null) {
                 idCard = eventCards.get(e.idEvent());
             } else if ((TYPE_AUTOMATIC_EVENT.equals(e.type()) || TYPE_RANDOM_EVENT.equals(e.type()))
                     && e.idEvent() != null) {

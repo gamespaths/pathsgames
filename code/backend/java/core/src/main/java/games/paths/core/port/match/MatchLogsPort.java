@@ -74,6 +74,7 @@ public interface MatchLogsPort {
      *   <li>RECOVERY      — idCharacterMatch, characterUuid, characterName, message</li>
      *   <li>EVENT         — idEvent, idCharacterMatch, characterUuid, characterName,
      *                       message, idCard, card (v0.30.3 — of the triggered event itself)</li>
+     *   <li>CHOICE        — idEvent, idCharacterMatch, message, *Cost/*Gain, card (Step 40)</li>
      *   <li>ITEM_ADD / ITEM_USE / ITEM_DROP — idItem, itemAction, counter, idEvent (the
      *                       effect that moved it), idCharacterMatch, idCard, card (v0.35.4)</li>
      * </ul>
@@ -114,6 +115,9 @@ public interface MatchLogsPort {
             String itemAction,
             Integer counter
     ) {
+
+        /** Step 40 - a picked option: idEvent of the owning event, cost/gain of its own rows. */
+        public static final String TYPE_CHOICE = "CHOICE";
 
         public static Builder builder(String type, String timestamp) {
             return new Builder(type, timestamp);

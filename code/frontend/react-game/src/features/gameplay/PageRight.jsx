@@ -24,7 +24,7 @@ import { movementCostKey } from '@/utils/gamebook'
  * arrow that clears previewRight.
  */
 function RightPreview({ previewRight, story, playerStats, matchUuid, accessToken,
-  activeAction, onBack, onEndGamePreview, onEndGame }) {
+  activeAction, onBack, onEndGamePreview, onEndGame, match = null }) {
   switch (previewRight?.kind) {
     case 'weather':
       return <WeatherCard weather={previewRight.weather} story={story} onBack={onBack}
@@ -32,7 +32,7 @@ function RightPreview({ previewRight, story, playerStats, matchUuid, accessToken
     // v0.37.7 — the match history, opened from its own card in the (i) view's PlayerCards.
     case 'matchlog':
       return <MatchLogCard matchUuid={matchUuid} accessToken={accessToken}
-        story={story} onBack={onBack} />
+        story={story} onBack={onBack} match={match} />
     case 'close':
       return <CloseGameCard story={story} onExit={previewRight.onExit} onBack={onBack} />
     case 'endgame':
@@ -82,7 +82,7 @@ export default function PageRight(props) {
   if (previewRight) {
     return <RightPreview previewRight={{ ...previewRight, weather, onExit }}
       story={story} playerStats={playerStats} matchUuid={matchUuid} accessToken={accessToken}
-      activeAction={activeAction} onBack={onCloseRight}
+      activeAction={activeAction} onBack={onCloseRight} match={gameData?.match ?? null}
       onEndGamePreview={onEndGamePreview} onEndGame={onEndGame} />
   }
   // Step 31 — an open choice-event owns the right page: the options as small cards, plus the

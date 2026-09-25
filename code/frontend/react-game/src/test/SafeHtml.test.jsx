@@ -31,4 +31,13 @@ describe('SafeHtml', () => {
     rerender(<SafeHtml value="<b>appeared</b>" />)
     expect(container.querySelector('b')?.textContent).toBe('appeared')
   })
+
+  it('halves blank lines only when asked (the page description), and keeps them otherwise', () => {
+    const { container, rerender } = render(<SafeHtml value="one<br /><br />two" halfBlankLines />)
+    expect(container.querySelectorAll('.book-page-gap')).toHaveLength(1)
+    expect(container.querySelectorAll('br')).toHaveLength(0)
+    rerender(<SafeHtml value="one<br /><br />two" />)
+    expect(container.querySelectorAll('.book-page-gap')).toHaveLength(0)
+    expect(container.querySelectorAll('br')).toHaveLength(2)
+  })
 })

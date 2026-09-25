@@ -78,7 +78,8 @@ describe('EndGameBook — missions first (v0.37.4)', () => {
     const pages = screen.getAllByTestId('page')
     expect(pages).toHaveLength(2)
     expect(pages[1].textContent).toContain('Climb the peak')
-    expect(pages[1].dataset.type).toBe('missions')
+    // Step 40 — a step reads as its own type: its own footer label and its own tip.
+    expect(pages[1].dataset.type).toBe('missionStep')
 
     fireEvent.click(screen.getByText('back:Climb the peak'))
     expect(screen.getAllByTestId('page')).toHaveLength(1)

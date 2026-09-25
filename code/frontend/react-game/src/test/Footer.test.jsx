@@ -48,6 +48,25 @@ describe('Footer', () => {
     const yt = links.find((l) => l.href.includes('youtube'))
     expect(yt).toBeDefined()
   })
+
+  it('shows the only server as a fixed name, with no drop-down', () => {
+    const { container } = render(<Footer />)
+    expect(screen.queryByRole('combobox')).toBeNull()
+    expect(container.querySelector('.footer-server-row .footer-server-name').textContent).toBe('Local')
+    // The row opens with its own label and draws the status dot as a sized-with-text class.
+    expect(container.querySelector('.footer-server-row .footer-server-label').textContent).toBe('footer.serverSelect: ')
+    expect(container.querySelector('.footer-server-row .footer-server-dot')).toBeTruthy()
+  })
+
+  it('marks Instagram and YouTube as social links (hidden on mobile by mobile.css), not GitHub', () => {
+    render(<Footer />)
+    const links = screen.getAllByRole('link')
+    const byHost = host => links.find((l) => l.href.includes(host))
+    for (const host of ['instagram', 'youtube']) {
+      expect(byHost(host).classList.contains('footer-social-link')).toBe(true)
+    }
+    expect(byHost('github.com').classList.contains('footer-social-link')).toBe(false)
+  })
 })
 
 describe('Footer policy links', () => {

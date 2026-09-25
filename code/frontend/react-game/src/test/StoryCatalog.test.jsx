@@ -104,6 +104,7 @@ describe('StoryCatalog', () => {
     // The completed badge is the only overlay one, with its green check.
     expect(container.querySelectorAll('.story-card-status')).toHaveLength(1)
     expect(container.querySelectorAll('.story-card-status__check')).toHaveLength(1)
+    expect(container.querySelectorAll('.story-card-status.stat-badge.bonus-badge')).toHaveLength(1)
   })
 
   it('badges a PAUSED match with its own label, not Resume (v0.32.1)', () => {

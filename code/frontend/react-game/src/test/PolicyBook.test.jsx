@@ -39,7 +39,7 @@ describe('PolicyBookContext', () => {
     act(() => result.current.openPolicyBook('credits'))
     act(() => result.current.closePolicyBook())
     expect(result.current.policyBook).toBeNull()
-    expect(POLICY_KINDS).toEqual(['privacy', 'terms', 'cookies', 'credits'])
+    expect(POLICY_KINDS).toEqual(['privacy', 'terms', 'cookies', 'credits', 'roadmap'])
   })
 
   it('is inert outside a provider', () => {

@@ -30,8 +30,9 @@ vi.mock('@/components/modals/CardPreviewModal', () => ({
 // The dumb Card stand-in: `variant="page"` marks the reading page, every other
 // instance is a board card whose (i) and select handlers become buttons.
 vi.mock('@/components/layout/Card', () => ({
-  default: ({ variant, entityType, card, onPreview, onSelect, selectLabel, onAction, actionLabel, locked, lockedReason, statistics }) => (
+  default: ({ variant, entityType, card, onPreview, onSelect, selectLabel, onAction, actionLabel, locked, lockedReason, lockInfo, statistics }) => (
     <div data-testid={variant === 'page' ? 'page-card' : `cc-${entityType}`} data-locked={String(!!locked)} data-lock-reason={lockedReason ?? ''}
+         data-lock-info={lockInfo?.label ?? ''}
          data-stats={(statistics ?? []).map(i => `${i.key}=${i.value}`).join(',')}>
       <span>{card?.title}</span>
       {onPreview && <button data-testid={`preview-${entityType ?? 'page'}`} onClick={onPreview}>i</button>}
@@ -67,6 +68,16 @@ describe('StartMatchFlow — the fixed cards block', () => {
     renderFlow()
     const order = Array.from(document.querySelectorAll('[data-testid^="cc-"]')).map(el => el.dataset.testid)
     expect(order).toEqual(['cc-story', 'cc-gameType', 'cc-bonuses', 'cc-login', 'cc-terms', 'cc-bonuses'])
+  })
+
+  it('locks game type and login with their own lock labels, not with the card titles', () => {
+    renderFlow()
+    const gameType = screen.getByTestId('cc-gameType')
+    const login = screen.getByTestId('cc-login')
+    expect(gameType.dataset.locked).toBe('true')
+    expect(gameType.dataset.lockInfo).toBe('book.singlePlayer')
+    expect(login.dataset.locked).toBe('true')
+    expect(login.dataset.lockInfo).toBe('book.guestLock')
   })
 
   // "Start" is the action of the last bonuses card: offered once the gate passed and the

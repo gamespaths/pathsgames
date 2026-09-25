@@ -544,7 +544,7 @@ def test_flag_end_time_advances_the_clock_once_after_the_chain(service, store, t
 
     r = run(service)
 
-    time_service.force_time_end.assert_called_once_with(MATCH_UUID)
+    time_service.force_time_end.assert_called_once_with(MATCH_UUID, CHAR_ID)
     assert r.time_ended is True and r.forced_sleep is True
     assert r.current_clock == 8  # the response carries the NEW clock
 

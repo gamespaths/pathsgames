@@ -6,6 +6,8 @@ import SafeHtml from '../ui/SafeHtml'
 import { getNonZeroStats, STAT_CATEGORY_ORDER } from '../../utils/bonusStats'
 import { useState } from 'react'
 import CardButtons from './CardButtons'
+import TipNote from '../ui/TipNote'
+import { isTutorialStory } from '../../constants/features'
 
 /**
  * Card — unified card component (formerly GameCard + GameCardWrapper).
@@ -47,6 +49,7 @@ export default function Card({
   /* actions */
   onSelect,
   selectLabel = 'Select',
+  selectIcon = null, // Step 40 — replaces the default hand glyph of the select button
   onAction,
   actionLabel = 'Change',
   actionIcon = 'fa-sync-alt',
@@ -134,6 +137,17 @@ export default function Card({
     ? (() => { const k = `book.${entityType}`; const tr = t(k); return tr === k ? entityType : tr })()
     : null
 
+  /* ── Step 40 tip: page cards only, a type without a text shows nothing ── */
+  const tipKey = entityType ? `tips.${entityType}` : null
+  const tipText = isPage && tipKey ? (() => { const tr = t(tipKey); return tr === tipKey ? null : tr })() : null
+  const tipCardKey = `${entityType ?? ''}|${card?.uuid ?? card?.title ?? ''}`
+  const [tipState, setTipState] = useState({ key: tipCardKey, open: null, focus: 0 })
+  const tipSameCard = tipState.key === tipCardKey
+  const tipOpen = !!tipText && (tipSameCard && tipState.open !== null ? tipState.open : isTutorialStory(story))
+  const openTip = () => setTipState(s => ({ key: tipCardKey, open: true,
+    focus: (s.key === tipCardKey ? s.focus : 0) + 1 }))
+  const hideTip = () => setTipState({ key: tipCardKey, open: false, focus: 0 })
+
   const cardClasses = isPage? " book-page-content " : [
     'pg-card',
     isBig ? 'card-big' : isSmall ? 'pg-card--small' : 'pg-card--grid',
@@ -210,10 +224,12 @@ export default function Card({
       {children}
       
       {/* pageDesc */ }
-      {isPage && (pageDesc || (positionBonusBadge === 'desc' && statItemsReal!=null && statItemsReal.length > 0)) && (
+      {isPage && (pageDesc || tipOpen || (positionBonusBadge === 'desc' && statItemsReal!=null && statItemsReal.length > 0)) && (
         <div className="book-page-desc">
           {positionBonusBadge === 'desc' && bonusBadgeNode}
-          <SafeHtml key={card?.uuid ?? card?.title ?? String(pageDesc ?? '')} value={pageDesc} />
+          <SafeHtml key={card?.uuid ?? card?.title ?? String(pageDesc ?? '')} value={pageDesc} halfBlankLines />
+          {tipOpen && <TipNote text={tipText} hideLabel={t('card.hideTip')} onHide={hideTip}
+            focusKey={tipSameCard ? tipState.focus : 0} />}
         </div>
       )}
       
@@ -227,7 +243,7 @@ export default function Card({
 
       <CardButtons isPage={isPage} name={name ?? label} onPreviewClick={onPreviewClick}
             locked={locked} lockedReason={lockedReason} lockInfo={lockInfo} lockedIcon={lockedIcon}
-            onSelect={onSelect} selected={selected} selectLabel={selectLabel}
+            onSelect={onSelect} selected={selected} selectLabel={selectLabel} selectIcon={selectIcon}
             onAction={onAction} actionLabel={actionLabel} actionIcon={actionIcon} actionOnlyIfPreview={actionOnlyIfPreview} actionLabelChildren={actionLabelChildren}
             onPreview={onPreview} previewOpened={previewOpened} hidePreview={hidePreview}
             flagInformationCard={flagInformationCard}
@@ -239,7 +255,8 @@ export default function Card({
 
       {/* The bar decides for itself: it needs an author or an image credit, and a page that
           hides its artwork still credits the story. */}
-      {isPage && <CardCreditsBar card={card} story={story} typeBadgeLabel={typeBadgeLabel} />}
+      {isPage && <CardCreditsBar card={card} story={story} typeBadgeLabel={typeBadgeLabel}
+        tip={tipText ? { label: t('card.tip'), onOpen: openTip } : null} />}
     </div>
   )
 }

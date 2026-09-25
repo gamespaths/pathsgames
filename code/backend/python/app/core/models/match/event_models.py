@@ -232,6 +232,8 @@ class EventExecutionResult:
     # somewhere: a forced-movement effect is an arrival, and arriving is a trigger. Empty
     # in the ordinary case.
     automatic_events: List[Any] = field(default_factory=list)
+    # Step 40 — counterZero and weather of a forced time-end (TimeEndNews), else None.
+    time_end: Any = None
 
 
 @dataclass

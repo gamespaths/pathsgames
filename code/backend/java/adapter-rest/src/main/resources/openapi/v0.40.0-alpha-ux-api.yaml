@@ -1,0 +1,231 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Alpha UX API
+  description: |
+    Step 40 — alpha UX polish. No new endpoint: three answers and the timeline change.
+
+    ## Early time-end news
+
+    An action that ends the time early (`flagEndTime` on an executed event, on the event an
+    option runs, or on the arrival event of a move) runs the same time-start a sleep does. Its
+    answer now carries what that time-start set off, told to the acting character:
+
+    - `counterZero[]` — the automatic events it fired (counter-zero, start-time, random event),
+      same item shape as the sleep answer; empty when nothing fired or the time did not end;
+    - `weather` — the weather in force after the time-start, with `changed` true when it
+      differs from the weather before it; `null` when the time did not end or no weather is
+      eligible.
+
+    Both keys are always present on execute-event, select-choice and movement answers (and on
+    use-item / use-exp, which share the execute-event shape). The movement answer also gains
+    `timeEnded`. The sleep answer is unchanged. Time-start order is unchanged: recovery →
+    counter-zero / start-time events → weather roll → random event, so the roll overwrites the
+    weather a counter-zero event set (known behaviour).
+
+    ## Resource logs
+
+    - `CHOICE` — new timeline type, one row per chosen option: `idEvent` of the owning event,
+      its card, and the `*Gain` of the option's own effect rows (linked events log their own
+      `EVENT` rows).
+    - Events with no actor (random events, mission rewards) log on their `EVENT` row the sum of
+      every recipient's gains; automatic events (arrival, counter-zero, start-time) log the
+      actor's gains on every backend.
+  version: 0.40.0
+  license:
+    name: GNU General Public License v3.0
+    url: https://www.gnu.org/licenses/gpl-3.0.html
+
+servers:
+  - url: http://localhost:8042
+    description: Development (dev profile)
+  - url: http://localhost:8080
+    description: Production (prod profile)
+
+paths:
+  /api/gameplay/{uuidMatch}/action/execute-event:
+    post:
+      tags: [Alpha UX]
+      summary: Execute an event — a forced time-end answers counterZero and weather
+      operationId: executeEventWithTimeEndNews
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: The execute-event answer (Step 29) with the Step 40 keys.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeEndNewsBlock'
+
+  /api/gameplay/{uuidMatch}/action/select-choice:
+    post:
+      tags: [Alpha UX]
+      summary: Select a choice — an option that ends the time answers counterZero and weather
+      operationId: selectChoiceWithTimeEndNews
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: The select-choice answer (Step 32) with the Step 40 keys.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeEndNewsBlock'
+
+  /api/gameplay/{uuidMatch}/movements/start:
+    post:
+      tags: [Alpha UX]
+      summary: Move — an arrival event that ends the time answers timeEnded, counterZero and weather
+      operationId: startMovementWithTimeEndNews
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: The movement answer (Step 28/33) with the Step 40 keys.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/TimeEndNewsBlock'
+                  - type: object
+                    properties:
+                      timeEnded:
+                        type: boolean
+                        description: True when an arrival event forced a time-end.
+
+  /api/matches/{uuidMatch}/logs:
+    get:
+      tags: [Alpha UX]
+      summary: Match timeline — new CHOICE entry type
+      operationId: getMatchLogsWithChoice
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: Same envelope as v0.28.7; entries may be of type CHOICE.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChoiceLogEntry'
+
+  /api/admin/matches/{uuidMatch}/logs:
+    get:
+      tags: [Alpha UX]
+      summary: Admin match timeline (port 8044) — same CHOICE entries
+      operationId: getAdminMatchLogsWithChoice
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: Same payload as the public timeline, no ownership check.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChoiceLogEntry'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    UuidMatch:
+      name: uuidMatch
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    TimeEndNewsBlock:
+      type: object
+      description: The two Step 40 keys, always present.
+      properties:
+        timeEnded:
+          type: boolean
+        weather:
+          $ref: '#/components/schemas/TimeStartWeather'
+        counterZero:
+          type: array
+          description: Same item shape as the sleep answer (Step 33, Step 39).
+          items:
+            $ref: '#/components/schemas/CounterZeroItem'
+
+    TimeStartWeather:
+      type: object
+      nullable: true
+      description: The weather after a forced time-start; null when no time-end or no weather.
+      properties:
+        idWeather: { type: integer, format: int64 }
+        uuid: { type: string }
+        card:
+          type: object
+          nullable: true
+          description: The weather's card (CardInfo).
+        deltaEnergy: { type: integer, nullable: true }
+        costMoveSafeLocation: { type: integer, nullable: true }
+        costMoveNotSafeLocation: { type: integer, nullable: true }
+        changed:
+          type: boolean
+          description: True when it differs from the weather before the time-start.
+
+    CounterZeroItem:
+      type: object
+      properties:
+        trigger:
+          type: string
+          enum: [COUNTER_ZERO, CHARACTER_START_TIME, RANDOM_EVENT]
+        idLocation: { type: integer, format: int64, nullable: true }
+        card: { type: object, nullable: true }
+        cardLocation: { type: object, nullable: true }
+        cardEffects:
+          type: array
+          items: { type: object }
+        eventUuid: { type: string }
+        clock: { type: integer }
+        visibility:
+          type: string
+          enum: [FULL, NAMED, ANONYMOUS]
+
+    ChoiceLogEntry:
+      type: object
+      description: A CHOICE timeline entry (other types unchanged).
+      properties:
+        type:
+          type: string
+          enum: [CHOICE]
+        clock: { type: integer }
+        timestamp: { type: string }
+        idEvent: { type: integer, format: int64, description: The event owning the option. }
+        characterUuid: { type: string, nullable: true }
+        message: { type: string }
+        card: { type: object, nullable: true, description: The owning event's card. }
+        energyCost: { type: integer }
+        foodCost: { type: integer }
+        magicCost: { type: integer }
+        coinCost: { type: integer }
+        energyGain: { type: integer }
+        foodGain: { type: integer }
+        magicGain: { type: integer }
+        coinGain: { type: integer }

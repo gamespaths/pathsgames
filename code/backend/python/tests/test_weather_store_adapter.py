@@ -257,3 +257,11 @@ def test_find_weather_log_joins_the_rules(session_factory, adapter):
 def test_find_weather_log_unknown_match(session_factory, adapter):
     _seed_match(session_factory)
     assert adapter.find_weather_log("ghost") == []
+
+
+def test_step40_find_current_weather_by_match_id(session_factory, adapter):
+    _seed_match(session_factory, weather=10)
+    _seed_rules(session_factory)
+
+    assert adapter.find_current_weather(1)["uuid"] == "w-sun"
+    assert adapter.find_current_weather(999) is None

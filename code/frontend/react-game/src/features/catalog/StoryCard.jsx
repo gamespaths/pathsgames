@@ -37,12 +37,12 @@ export default function StoryCard({ story, onClick, badge, pending = false, foot
     <>
       <span className="story-card-badge">{story.category}</span>
       {badge === 'completed' && (
-        <span className="story-card-status story-card-status--completed">
+        <span className="story-card-status story-card-status--completed stat-badge bonus-badge">
           <i className="fas fa-check-circle story-card-status__check me-1" />{t('home.badgeCompleted')}
         </span>
       )}
       {badge === 'paused' && (
-        <span className="story-card-status story-card-status--paused">
+        <span className="story-card-status story-card-status--paused stat-badge bonus-badge">
           <i className="fas fa-pause me-1" />{t('home.badgePaused')}
         </span>
       )}
