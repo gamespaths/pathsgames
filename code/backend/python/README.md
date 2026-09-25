@@ -115,7 +115,7 @@ code/scripts/test/build_docker_python_test_and_push.sh --dry-run
 This is the Python counterpart of `build_docker_test_and_push.sh` (Java). After pushing,
 use `code/scripts/test/aws_ec2_with_python_docker/redeploy.sh` to roll the image onto a
 running EC2 instance (server3), or `start.sh` to launch a fresh one. See
-`documentation_v0/Step20_GameWebSiteFirstRun.md` — "EC2 Docker Deploy (Python / server3)"
+`wiki/documentation_v0/Step20_GameWebSiteFirstRun.md` — "EC2 Docker Deploy (Python / server3)"
 for full details.
 
 ### Useful Docker commands
@@ -213,7 +213,7 @@ PYTHONPATH=. pytest -v tests/
 
 # Version Control
 - Starting from 0.12.2 version, code is created with AI prompt:
-    > Ciao, read all "documentation_v0" and ""code/backend" content, now i wanna create "code/backend/python" project, let's go!
+    > Ciao, read all "wiki/documentation_v0" and ""code/backend" content, now i wanna create "code/backend/python" project, let's go!
 
     > add into readme file a "test" section with all curl calls
 
@@ -263,7 +263,3 @@ Narrative Content & Assets: The story, dialogues, characters, sounds, musics, pa
 
 
 (ITA) Il software è distribuito secondo i termini della GNU General Public License v3.0. L'uso, la modifica e la ridistribuzione sono consentiti, a condizione che ogni copia o lavoro derivato sia rilasciato con la stessa licenza. Il contenuto è fornito "così com'è", senza alcuna garanzia, esplicita o implicita.
-
-
-
-

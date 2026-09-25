@@ -22,7 +22,7 @@ import java.util.Map;
  *   <li>GET  /api/match/&#123;uuidMatch&#125;/clock            — read clock / sleeping state</li>
  * </ul>
  *
- * <p>See {@code documentation_v0/Step25_TimeAdvancementClockCycle.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step25_TimeAdvancementClockCycle.md}.</p>
  */
 @RestController
 public class TimeClockController {

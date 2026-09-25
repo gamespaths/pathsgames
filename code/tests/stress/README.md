@@ -153,7 +153,7 @@ token is a warning only (match creation then fails once the stack enforces Turns
 
 Twin wrappers, one in `code/scripts/test/aws_ec2_with_java_docker/` and one in
 `code/scripts/test/aws_ec2_with_python_docker/`, for the EC2 test instances started by that
-folder's `start.sh` (see [Step20_GameWebSiteFirstRun.md](../../../documentation_v0/Step20_GameWebSiteFirstRun.md)).
+folder's `start.sh` (see [Step20_GameWebSiteFirstRun.md](../../../wiki/documentation_v0/Step20_GameWebSiteFirstRun.md)).
 Requires the folder's `.state` (missing → exit 2); public/admin URLs default to
 `http://<PUBLIC_IP>:8042`/`:8044`, `-D` uses the DNS name instead; admin JWT is minted by
 `run_stress.sh` from the root `.env` `JWT_SECRET` (`-t` overrides); both ports are curl-probed
@@ -271,6 +271,3 @@ Narrative Content & Assets: The story, dialogues, characters, sounds, musics, pa
 
 
 (ITA) Il software è distribuito secondo i termini della GNU General Public License v3.0. L'uso, la modifica e la ridistribuzione sono consentiti, a condizione che ogni copia o lavoro derivato sia rilasciato con la stessa licenza. Il contenuto è fornito "così com'è", senza alcuna garanzia, esplicita o implicita.
-
-
-

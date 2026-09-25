@@ -345,6 +345,3 @@ Narrative Content & Assets: The story, dialogues, characters, sounds, musics, pa
 
 
 (ITA) Il software è distribuito secondo i termini della GNU General Public License v3.0. L'uso, la modifica e la ridistribuzione sono consentiti, a condizione che ogni copia o lavoro derivato sia rilasciato con la stessa licenza. Il contenuto è fornito "così com'è", senza alcuna garanzia, esplicita o implicita.
-
-
-

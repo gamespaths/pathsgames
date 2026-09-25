@@ -12,7 +12,7 @@ package games.paths.core.port.match;
  * flags but never recorded {@code clock_in_coma}. That method was deleted rather than
  * deprecated so the incomplete write cannot survive anywhere.</p>
  *
- * <p>See {@code documentation_v0/Step30_EdgeStates.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step30_EdgeStates.md}.</p>
  */
 public interface EdgeStateStorePort {
 

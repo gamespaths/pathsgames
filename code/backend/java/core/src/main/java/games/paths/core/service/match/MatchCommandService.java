@@ -27,7 +27,7 @@ import java.util.Optional;
  * MatchCommandService - Domain service implementing single-player match
  * creation. Pure-Java implementation: ports are injected via constructor.
  *
- * <p>Step 19 — see {@code documentation_v0/Step19_SinglePlayerMatchCreation.md}.</p>
+ * <p>Step 19 — see {@code wiki/documentation_v0/Step19_SinglePlayerMatchCreation.md}.</p>
  */
 public class MatchCommandService implements MatchCommandPort {
 

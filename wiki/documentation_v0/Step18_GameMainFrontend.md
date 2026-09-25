@@ -1,0 +1,617 @@
+# Paths Games V1 - Step 18: Game Main Frontend (react-game)
+
+This document describes the **player-facing React frontend** built in `code/frontend/react-game/`. It is the main public website of paths.games — distinct from the admin panel (`react-admin`).
+
+---
+
+## 1. Overview
+
+The frontend is a React 18 single-page application that lets a guest player:
+
+1. Browse the story catalog (home page, Netflix-style rows)
+2. Open a "Start Book" modal to configure and launch a story
+3. Play the game on a dedicated game page (`/play/:storyId`)
+
+All data is fetched from the backend API. When the API is unavailable, mock JSON files are used as transparent fallback.
+
+### Tech Stack
+
+| Tool | Version | Role |
+|------|---------|------|
+| React | 18.3.1 | UI framework |
+| Vite | 5.3.1 | Build tool, dev server (port **5174**) |
+| React Router | 6.23.1 | Client-side routing |
+| Axios | 1.7.2 | HTTP client |
+| Tailwind CSS | 3.4.4 | Primary utility layer |
+| Bootstrap 5.3.3 | CDN only | Modal system and grid |
+| Font Awesome 5.15.4 | CDN only | Icons |
+| Google Fonts | CDN | Cinzel Decorative, Cinzel, Crimson Text |
+
+Bootstrap and Font Awesome are loaded via CDN links in `index.html` — **never** via npm — to avoid CSS conflicts with Tailwind.
+
+### Dev Commands
+
+```bash
+cd code/frontend/react-game
+npm install
+npm run dev      # http://localhost:5174
+npm run build    # production build → dist/
+```
+
+API proxy: `/api` → `http://localhost:8042` (configured in `vite.config.js`).
+
+---
+
+## 2. File Structure
+
+```
+code/frontend/react-game/
+├── index.html                      # CDN links, GTM snippet
+├── .env.example                    # VITE_GTM_ID, VITE_API_URL
+├── package.json
+├── vite.config.js                  # port 5174, /api proxy
+├── tailwind.config.js
+├── postcss.config.js
+└── src/
+    ├── main.jsx                    # React root mount
+    ├── App.jsx                     # GuestUserProvider + Router: / → HomePage, /play/:storyId → GamePage
+    ├── styles/
+    │   ├── variables.css           # CSS custom properties (colors, fonts, spacing)
+    │   ├── main.css                # All component styles + animations (incl. .guest-user-uuid)
+    │   ├── mobile.css              # Responsive overrides (≤767px)
+    │   └── abbrev.css              # Tailwind-style shorthand utilities
+    ├── i18n/
+    │   ├── context.jsx             # LanguageContext + useTranslation hook
+    │   ├── en.json                 # English captions
+    │   └── it.json                 # Italian captions
+    ├── api/
+    │   ├── client.js               # Axios instance + mock fallback helper
+    │   ├── stories.js              # getStories(lang), getStory(uuid, lang) — lang forwarded as ?lang=
+    │   ├── matches.js              # createMatch(), listMatches(), getMatchInfo(uuid, token, lang) — lang forwarded as ?lang=
+    │   ├── game.js                 # getLocations(storyId), getActions(locationId)
+    │   └── auth.js                 # createGuestSession(), resumeGuestSession() — withCredentials:true
+    ├── context/
+    │   └── GuestUserContext.jsx    # GuestUserProvider + useGuestUser(); manages paths.games.user cookie
+    ├── mock/
+    │   ├── stories.json            # 5 stories with characters/classes/traits/difficulties
+    │   ├── gameData.json           # locations + actions
+    │   └── images.json             # SVG/Unsplash credits {id, urlImage, linkCopyright, ...}
+    ├── components/
+    │   ├── layout/
+    │   │   ├── Navbar.jsx          # Sticky navbar: brand, lang switcher, guest-username button → #guestUserModal
+    │   │   └── Footer.jsx          # Social links, legal modal triggers, version
+    │   ├── modals/
+    │   │   ├── PrivacyModal.jsx
+    │   │   ├── TermsModal.jsx
+    │   │   ├── CookiesModal.jsx
+    │   │   ├── CopyrightModal.jsx  # Credits modal: image + text + sound cards
+    │   │   └── GuestUserModal.jsx  # Bootstrap modal #guestUserModal: BookPageContent card with username + UUID
+    │   └── book/
+    │       ├── BookWrapper.jsx      # .book-overlay → .book-wrapper with spine
+    │       ├── BookPageLeft.jsx     # Corner ornaments + page-inner slot
+    │       ├── BookPageRight.jsx    # Corner ornaments + page-inner slot
+    │       └── BookPageContent.jsx  # Book page content: title, image, description, bonus-stats panel
+    ├── features/
+    │   ├── catalog/
+    │   │   ├── StoryCard.jsx       # Home card: shared `Card` (`variant="little"`), fixed 225px via `.story-netflix-card` (v0.35.8)
+    │   │   └── StoryCatalog.jsx    # Rows by category, responsive horizontal scroll; `matchesStatus` gates each card's footer button
+    │   ├── startBook/
+    │   │   ├── StartBookModal.jsx  # Book overlay orchestrator (desktop); renders CardPreviewOverlay
+    │   │   ├── StartBookMobile.jsx # Mobile layout (extracted from StartBookModal)
+    │   │   ├── ConfigView.jsx      # Right page: 2-col big-card grid (card-big-list)
+    │   │   ├── SelectionView.jsx   # Right page: options list for a single config type
+    │   │   └── ConfigCard.jsx      # Single config card; passes variant="big" + onPreview to GameCard
+    │   └── gameplay/                # (v0.35.5) GameBook decomposed into composition + hooks
+    │       ├── GameBook.jsx         # Composition only (~170 lines): wires match payloads into PageLeft/PageRight
+    │       ├── PageLeft.jsx         # Left page, priority: choice-event > edge state (coma/sadness) > backpack > map > left preview > current location > story card
+    │       ├── PageRight.jsx        # Right page, priority: preview > choice-event > wake-up list > selected map node > backpack > stats list > PageRightMain; RightPreview switches on `kind`
+    │       ├── PageRightMain.jsx    # The board: stat cards, ComaCard, GoToSleepCard, one MovementCard per neighbor, one ActionCard/EndGameCard per action
+    │       ├── PageRightInfo.jsx    # The (i) view: weather, sleep, map, backpack, PlayerCards
+    │       ├── EndGameBook.jsx, GameBookMobile.jsx, ClockWidget.jsx
+    │       ├── cards/                # ActionCard, ChoiceCard, ComaCard, SadnessCard, WeatherCard, ItemCard(s), MovementCard, PlayerCards, GoToSleepCard, LocationCard, PlayerStats, MapCard, EndGameCard, ...
+    │       └── js/                   # useMatchChrome (clock/weather/locations/costs), useBookView (view-state reducer), useGameplayResults (reload + API narration), bookmarks.js, boardProps.js, mobileView.js
+    └── pages/
+        ├── HomePage.jsx            # Hero + StoryCatalog + StartBookModal
+        └── GamePage.jsx            # /play/:storyId — Navbar + GameBook + Footer
+```
+
+---
+
+## 3. Design System
+
+### CSS Architecture
+
+All design tokens live in `src/styles/variables.css` as CSS custom properties:
+
+```css
+--color-brown-deep, --color-brown-dark, --color-brown-mid, --color-brown-warm
+--color-gold, --color-gold-dark, --color-gold-light
+--color-parchment, --color-parchment-dark, --color-ash
+--font-display   /* Cinzel Decorative */
+--font-heading   /* Cinzel */
+--font-body      /* Crimson Text */
+```
+
+### Unified Card System
+
+All size variants enforce `aspect-ratio: 2/3` (unified, replaces the previous `1/1.4`):
+
+| Class | Width | Usage |
+|-------|-------|-------|
+| `.pg-card--small` | 100px fixed | — |
+| `.pg-card--medium` | 150px fixed | Game rows (neighbors, actions) |
+| `.pg-card--home` | 225px fixed | Defined in CSS but unused by any component since v0.35.8 — see below |
+| `.pg-card--large` | 100% fill | Left page big card |
+| `.pg-card--grid` | flex:1 | Config grid |
+
+Config view (`ConfigView`) uses a `card-big-list` 2-column layout (big cards) instead of the former `selection-list` 3-column grid. `ConfigCard` passes `variant="big"` and `onPreview` down to `GameCard`.
+
+`GameCard` notable props:
+- `onPreview` — when supplied, a magnifier button (`fas fa-search-plus`) is shown in the title bar and triggers a `CardPreviewOverlay` on the left page. When not set the magnifier is not rendered. The `previewLayout` prop has been removed.
+
+`GameCard` uses `useTranslation` / `t()` for all button labels. New i18n keys: `card.info` (info button aria-label and label), `card.viewOriginal` (detail modal link).
+
+New CSS rules in `main.css`: `.card-preview-overlay` (`position: absolute; inset: 0` solid book-page overlay), `.card-preview-close`, `.card-preview-info`, `.card-magnify-btn`, `@keyframes fadeIn`. `gc-actions` uses `align-items: stretch` for equal-height buttons; `gc-footer__btn` is `display: flex` + `gap: 4px`; `gc-footer__btn-label` truncates text with ellipsis; `gc-footer__btn--icon` is the icon-only / fixed-width button modifier. Removed: `.book-page-stats__badge`, `.book-page-stats__value`, `.config-total-bonus__badge`, `.config-total-bonus__value`, old two-column grid classes, `.story-card-full*` rules.
+
+Cards support `style_main`, `style_detail`, and three size-specific image style fields (`style_image_little`, `style_image_medium`, `style_image_large`) in mock JSON to inject extra CSS classes on the wrapper and image respectively.
+
+**v0.37.4 — grid columns no longer blow out on a long label (bugfix).** Every card-grid rule
+in `main.css`/`mobile.css` (`.selection-list`, `.card-big-list`, `.matches-list-grid`, and their
+mobile breakpoints) switches `repeat(N, 1fr)` to `repeat(N, minmax(0, 1fr))`; plain `1fr` is
+`minmax(auto, 1fr)`, so a nowrap title or button label was widening its own column and pushing
+later columns off the page (seen on the profile's matches grid). `.selection-list > *,
+.card-big-list > *, .matches-list-grid > * { min-width: 0 }` and `.gc-title__text` gains
+`min-width: 0; overflow: hidden; text-overflow: ellipsis`.
+
+### Story Catalog Card (v0.35.8)
+
+`StoryCard.jsx` was rewritten as a thin wrapper over the shared `Card` component
+(`variant="little"`) instead of a bespoke Netflix-style card: a golden title bar on top,
+the image, and the footer button below — the title no longer overlays the picture. The
+catalog's fixed size (225px, 180px on mobile, 2/3 aspect ratio) now lives entirely on the
+`.story-netflix-card` override class (`main.css`/`mobile.css`), not on `.pg-card--home`
+(now dead CSS — nothing references it). Category and match-status badges sit over the
+picture via `Card`'s `childrenIntoImage`; the pending spinner uses plain `children`. Hover
+zoom on the image was removed (only the whole card still lifts on hover); the category
+badge is hidden for now (`.story-netflix-card .story-card-badge { display: none }`).
+
+The footer button (Play / Resume / Paused) now waits for the guest's match list:
+`StoryCatalog` takes a `matchesStatus` prop from `HomePage` and only passes
+`showActions={matchesStatus !== 'loading'}` to each card once it resolves — until then the
+footer shows a spinner and `home.loadingMatches`, so the card's height does not jump. A
+teaser (`comingSoon`) card is always locked, showing `book.comingSoon`. New i18n keys:
+`home.badgePlay`, `home.loadingMatches` (en/it).
+
+**Replay button (v0.36.2).** `storyMatchBadge` in `src/utils/matchStatus.js` now returns
+`'completed'` for a **GAMEOVER** match as well as `ENDED` — a lost run is still a played
+one — via new exported `FINISHED_MATCH_STATUSES = new Set(['ENDED', 'GAMEOVER'])`.
+`StoryCard.jsx` shows the footer button as **Replay** (`fa-rotate-right`) instead of
+**Play** (`fa-play`) whenever `badge === 'completed'`. New i18n key `home.badgeReplay`
+(en "Replay", it "Rigioca"). No flow change: the click already started a new match
+through `StartBookModal`; only the label and icon were wrong for a lost run.
+
+Two feature flags, both **off** by default (`src/constants/features.js`, documented in
+`.env.example`):
+
+| Flag | Env var | Effect |
+|---|---|---|
+| `RESUME_WITHOUT_MODAL` | `VITE_RESUME_WITHOUT_MODAL` | A "Resume" click jumps straight to `/play/<storyUuid>` with `state: { matchUuid }`, skipping the guest player modal. New helper `findResumableMatch(matches, storyUuid)` in `src/utils/matchStatus.js`. See also [Step19 §6.1](./Step19_SinglePlayerMatchCreation.md#61-one-active-match-per-user-and-story-v0321). |
+| `ADD_COMING_SOON_STORIES` | `VITE_ADD_COMING_SOON_STORIES` | Appends teaser stories from `src/data/stories.json` (previously empty, now 3 teasers) to the home catalog. New `src/utils/comingSoonStories.js`: `comingSoonStories(lang)` maps each teaser's `translations[lang]` over its English fields; `withComingSoonStories(list, lang, add)` appends when `add` is true. Each teaser follows `StorySummaryResponse` plus `comingSoon: true` and a `translations: { it: { title, description } }` block. |
+
+### Hover Interactions
+
+- Scale `1.03` + gold border + drop shadow on card hover
+- `z-index: 10` on hovered card so it renders above siblings in scroll rows
+- `(i)` info buttons: `opacity: 0` by default, `opacity: 1` on parent `:hover`
+- On mobile (≤767px) all `(i)` buttons and cover badges are always visible
+
+---
+
+## 4. API Client and Mock Fallback
+
+`src/api/client.js` wraps Axios. Every API call is attempted against the real backend; on any network error the mock JSON is returned transparently:
+
+```js
+export const fetchWithFallback = async (url, mockData) => {
+  try {
+    const res = await axios.get(url)
+    return res.data
+  } catch {
+    return mockData
+  }
+}
+```
+
+`src/api/auth.js` (added v0.19.8) provides dedicated wrappers for the guest auth endpoints with `withCredentials: true` so the backend HttpOnly cookies travel with each request:
+- `createGuestSession()` — `POST /api/auth/guest`
+- `resumeGuestSession()` — `POST /api/auth/guest/resume`
+
+---
+
+## 4a. Guest Identity (v0.19.8)
+
+`src/context/GuestUserContext.jsx` provides `GuestUserProvider` and the `useGuestUser()` hook. The provider is mounted at the root of `App.jsx` around the router.
+
+### Cookie: `paths.games.user`
+
+A non-HttpOnly cookie named `paths.games.user` holds `{userUuid, username}` in JSON. Attributes: Max-Age 30 days, Path=/, SameSite=Lax. The cookie is readable by JavaScript and caches the guest identity across page reloads.
+
+### Mount logic
+
+| Condition | Behaviour |
+|-----------|-----------|
+| `paths.games.user` cookie present | Calls `resumeGuestSession()` in the background. On success the backend refreshes its HttpOnly cookies (`pathsgames.guestcookie`, `pathsgames.refreshToken`). On failure the cached cookie is kept so the player stays identified client-side. |
+| Cookie absent, server is real | Calls `createGuestSession()`. On success persists `{userUuid, username}` to the cookie. |
+| Server is `mock` | Synthesises an offline guest locally via `crypto.randomUUID()` — no network call. |
+
+`useGuestUser()` returns `{ user, loading, error, refreshGuest, clearGuest }`.
+
+### Navbar
+
+The Navbar reads the cached `username` via `useGuestUser()` and shows it as the user-button label. Clicking the button opens `GuestUserModal` using Bootstrap `data-bs-toggle="modal"` / `data-bs-target="#guestUserModal"`. The legacy "Login not yet available" toast was removed in v0.19.8.
+
+### `GuestUserModal`
+
+`src/components/modals/GuestUserModal.jsx` — Bootstrap modal `#guestUserModal`. Renders a `BookPageContent` card:
+- Title: `username`
+- Description: `t('modals.guestUser.body')` (HTML, informs the player they are a guest ready to play)
+- Below a divider: session UUID rendered in `.guest-user-uuid` (monospaced, defined in `main.css`)
+
+i18n keys (EN + IT): `modals.guestUser.title`, `modals.guestUser.anonymous`, `modals.guestUser.uuidLabel`, `modals.guestUser.body`.
+
+---
+
+## 5. Internationalisation (i18n)
+
+`src/i18n/context.jsx` provides a `LanguageContext` with a `lang` state and a `setLang` function. The `useTranslation()` hook returns a `t(key)` function that resolves dot-notation keys from `en.json` / `it.json`.
+
+The language switcher in the Navbar toggles the context. All UI labels use `t()` — no hardcoded strings in components.
+
+### 5.0a Language persistence (localStorage)
+
+`LanguageProvider` persists the selected language to `localStorage` under the key `pathsgames.lang`. On mount the initial language is resolved in the following priority order:
+
+| Priority | Source | Condition |
+|----------|--------|-----------|
+| 1 | `localStorage['pathsgames.lang']` | If a value was saved by the user |
+| 2 | `navigator.language` (browser) | Only if the detected language is supported (`en` or `it`); e.g. `it-IT` → `it` |
+| 3 | `'en'` | Hard fallback |
+
+An explicit user choice always wins over the browser language. The storage key is `STORAGE_KEY = 'pathsgames.lang'` (defined at the top of `context.jsx`).
+
+**GDPR / cookie disclosure:** `pathsgames.lang` is a `localStorage` item (not a cookie), but it is disclosed in the strictly-necessary / functional section of the consent table in `src/consent/cookieConsent.js` (en + it rows, expiration "Persistent (until cleared)"). It does not require blocking consent because it is a functional preference set on an explicit user action.
+
+**Tests:** `src/test/i18nContext.test.jsx` covers 14 cases (persistence on change, restore from storage, browser-language detection, unsupported language fallback, user-choice priority over browser language); coverage of `context.jsx` > 95%.
+
+### 5.0 Backend language propagation (v0.19.13)
+
+The `lang` value from `LanguageContext` is forwarded as a `?lang=` query parameter to every backend call that returns user-visible text:
+
+| Caller | Function | Endpoint | `?lang=` sent |
+|--------|----------|----------|---------------|
+| `HomePage` | `getStories(lang)` | `GET /api/stories` | yes |
+| `StartBookModal` | `getStory(uuid, lang)` | `GET /api/stories/{uuid}` | yes |
+| `GamePage` | `getMatchInfo(uuid, token, lang)` | `GET /api/match/{uuid}/info` | yes |
+| `UserMatchesList` | `getMatchInfo(uuid, token, lang)` | `GET /api/match/{uuid}/info` | yes |
+
+This ensures that story card text (title/description), location cards and event cards in the match-info response are all returned in the player's selected language. The react-admin console does not send `?lang=`, so admin endpoints continue to return English by default.
+
+**Bug fixed (v0.19.13):** Before this change, selecting Italian in the react-game did not translate the story catalog card or the `END_GAME` / `Complete the story` event card because those API calls omitted `?lang=`. Character/class/trait selections were already translated because the story detail endpoint had been updated earlier.
+
+The `book.stats.*` namespace (added in v0.19.3) holds labels for all entity bonus/stat fields displayed in the `BookPageContent` preview panel: `lifeMax`, `energyMax`, `sadMax`, `dexterityStart`/`Base`, `intelligenceStart`/`Base`, `constitutionStart`/`Base`, `weightMax`, `costPositive`, `costNegative`, `expCost`, `maxWeight`, `minCharacter`, `maxCharacter`, `costHelpComa`, `expCostBase`, `maxStatValue`, `numberMaxFreeAction`, and the seven trait stat-delta keys `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` (added v0.19.6), plus `book.stats.title` for the panel heading. `book.stats.totals.*` holds short labels for the eight ConfigView category pills: `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`, `exp`.
+
+The `card.*` namespace (added in v0.19.3) holds `card.info` ("Info") and `card.viewOriginal` ("View original") used by `GameCard` for the info button and the detail modal link respectively.
+
+### 5.1 Stat label vocabulary
+
+The displayed stat names use the in-fiction terminology below (renamed in v0.19.5 — the JSON keys are unchanged so the API contract is unaffected; only the labels seen by players are):
+
+| key                                                   | it (before)    | it (now)     | en (before) | en (now)  |
+|-------------------------------------------------------|----------------|--------------|-------------|-----------|
+| `book.stats.lifeMax` / `book.stats.totals.life`       | Vita Max / Vita | Vita         | Life        | Life      |
+| `book.stats.energyMax` / `book.stats.totals.energy`   | Energia Max / Energia | Energia | Energy      | Energy    |
+| `book.stats.sadMax` / `book.stats.totals.sad` / `game.stats.sadness` | Tristezza Max / Tristezza | **Felicità**  | Sadness     | **Happiness** |
+| `book.stats.weightMax` / `book.stats.totals.weight` / `game.stats.weight` | Peso Max / Peso | **Trasporto** | Weight      | **Carry** |
+| `book.stats.constitutionStart` / `constitutionBase` / `book.stats.totals.constitution` | Costituzione | **Fisico** | Constitution | **Physique** |
+| `book.stats.maxCharacter`                             | Giocatori Max  | Giocatori    | Max Players | Players   |
+| `book.stats.expCostBase` *(v0.38.0, was costMaxCharacteristics)* | Costo Base EXP | Costo Base EXP | XP Base Cost | XP Base Cost |
+| `book.stats.maxStatValue` *(v0.38.0)*                 | Tetto Stat | Tetto Stat | Stat Cap | Stat Cap |
+
+The "Max" qualifier was dropped from every label so the in-game UI shows the stat name directly. `book.stats.minCharacter` keeps its "Min" prefix (it is a lower bound, not an upper one).
+
+---
+
+## 6. Story Entity Shape (from OpenAPI v0.14.0)
+
+```json
+{
+  "uuid": "...",
+  "title": "...",
+  "description": "...",
+  "author": "...",
+  "category": "...",
+  "group": "...",
+  "visibility": "PUBLIC",
+  "priority": 1,
+  "card": {
+    "uuid": "...",
+    "urlImage": "...",
+    "title": "...",
+    "description": "...",
+    "copyrightText": "...",
+    "linkCopyright": "...",
+    "awesomeIcon": "fas fa-...",
+    "style_main": "",
+    "style_detail": ""
+  },
+  "characters": [ { "uuid", "name", "icon", "sub", "card": { ... } } ],
+  "classes":    [ { "uuid", "name", "icon", "sub", "card": { ... } } ],
+  "traits":     [ { "uuid", "name", "icon", "sub", "card": { ... } } ],
+  "difficulties": [ { "uuid", "name", "icon", "sub", "card": { ... } } ]
+}
+```
+
+`characters`, `classes`, `traits`, and `difficulties` are per-story arrays. Different stories can offer different options. The `card` sub-object on each option follows the same OpenAPI card shape including `style_main` / `style_detail` for per-card CSS overrides.
+
+---
+
+## 7. Start Book Modal
+
+### Desktop layout (≥768px)
+
+```
+┌────────────────────┬────────────────────┐
+│   LEFT PAGE        │   RIGHT PAGE       │
+│                    │                    │
+│  Big story card    │  ConfigView        │
+│  (image + title +  │  2-col big cards   │
+│   description)     │  (card-big-list)   │
+│                    │                    │
+│  [CardPreviewOver- │                    │
+│   lay when active] │       [Start Game] │
+│  [✓] Accept Terms  │                    │
+└────────────────────┴────────────────────┘
+```
+
+When the user clicks **Change** on a config card the right page switches to `SelectionView` (options list for that type). Selecting an option returns to `ConfigView` with the new value.
+
+When the user clicks the magnifier button on a config card, a `CardPreviewOverlay` is rendered on the left page. `StartBookModal` now tracks `preview = { entity, type }` (replacing the former `previewCard` state). `BookPageContent` receives `entity` + `entityType` props and renders a **bonus-stats panel** below the description showing the numeric API fields relevant to that entity type.
+
+The `description` field (from `card.description` or `entity.description`) is rendered using `dangerouslySetInnerHTML`. This means HTML markup embedded in translation strings — such as `<br />` line breaks in keys like `guestDesc` — is interpreted by the browser rather than escaped as plain text. Any i18n string that should display formatted text must use valid HTML.
+
+| `entityType` | Fields shown |
+|---|---|
+| `character` | `lifeMax`, `energyMax`, `sadMax`, `dexterityStart`, `intelligenceStart`, `constitutionStart` |
+| `class` | `weightMax`, `dexterityBase`, `intelligenceBase`, `constitutionBase` |
+| `trait` | `costPositive`, `costNegative`, `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` (seven signed stat-delta fields, added v0.19.6; zero values hidden by `getNonZeroStats`) |
+| `difficulty` | `expCost`, `maxWeight`, `minCharacter`, `maxCharacter`, `costHelpComa`, `expCostBase`, `maxStatValue` (v0.38.0), `numberMaxFreeAction` |
+
+Only fields with a non-null, non-empty value are rendered. Labels come from the `book.stats.*` i18n namespace. `title` and `description` fall back to `entity.name` / `entity.description` when no card is attached to the entity.
+
+### Mobile layout (≤767px)
+
+Handled by `StartBookMobile` (extracted component). Vertical scroll list inside `.book-overlay`:
+1. Story card (image + title + description)
+2. Six config cards stacked (character, class, trait, difficulty, game type, login)
+3. Terms checkbox + Start Game button
+
+### Config Cards (6 total)
+
+| # | Type | Changeable | Source |
+|---|------|-----------|--------|
+| 1 | character | yes | `story.characters` |
+| 2 | class | yes | `story.classes` |
+| 3 | trait | yes | `story.traits` |
+| 4 | difficulty | yes | `story.difficulties` |
+| 5 | game type | locked | Fixed (Single Player icon from `images.json` id=`person`) |
+| 6 | login | locked | Fixed (Guest icon from `images.json` id=`gems`) |
+
+Locked cards show a faded gold **"Coming soon"** badge (lock icon, 45% opacity, pointer-events none) instead of a change button.
+
+### Credits (i) Modal
+
+Every config card with an image shows an `(i)` button (top-left, hover-only on desktop). Clicking opens a Bootstrap modal with credit cards:
+
+| # | Card | Content |
+|---|------|---------|
+| 1 | Story | Story card image + author |
+| 2 | Image | Config card image + `copyrightText` + "View original" link |
+| 3 | Text | Disabled ("Coming soon") |
+| 4 | Sound | Disabled ("Coming soon") |
+
+Credit cards are 170px wide, image fills absolutely, gold text overlay at bottom.
+
+---
+
+## 8. Game Page (`/play/:storyId`)
+
+Full React Router route. Navbar and Footer always present.
+
+`GameBook.jsx` (v0.35.5, `features/gameplay/`) is pure composition — it reads the match
+payloads and mounts `Book` with a `PageLeft` and a `PageRight`. Three hooks own the rest:
+`useMatchChrome` (clock + weather + locations/movement costs, single `refresh()`),
+`useBookView` (a reducer for `{ view: 'board'|'info'|'items'|'map', previewLeft, previewRight,
+previewModal, pendingChoices, counterZero, mapSelected, sleepCardForced }`), and
+`useGameplayResults` (reloads the board and narrates each API answer: execute-event,
+select-choice, sleep, move, use/drop item).
+
+### Desktop layout
+
+```
+┌────────────────────┬────────────────────┐
+│   LEFT PAGE        │   RIGHT PAGE       │
+│  PageLeft           │  PageRight         │
+│  (priority order:  │  (priority order:  │
+│   choice-event >    │   preview >        │
+│   edge state >      │   choice-event >   │
+│   backpack > map >  │   wake-up list >   │
+│   left preview >    │   map node >       │
+│   current location  │   backpack >       │
+│   > story card)     │   stats list >     │
+│                    │   PageRightMain)   │
+└────────────────────┴────────────────────┘
+```
+
+`PageRightMain` is the board proper: stat cards, `ComaCard`, `GoToSleepCard`, one
+`MovementCard` per neighbor, one `ActionCard`/`EndGameCard` per action.
+
+**Status card shortcuts (v0.37.3).** The stat-characteristics card's action row lost the
+registry shortcut (`fa-scroll`) — the registry stays reachable from the (i) view
+(`PageRightInfo`'s `RegistryCard`) — and the `fa-bed` "force sleep" action: `GoToSleepCard` now
+shows only when the player is energy-stuck (`checkShowToSleepCard`), never on demand; the
+`forceSleepCard` action on `useBookView` is unused but left in place. The remaining shortcuts
+(Info · Map · Missions · Backpack) are now named, reusing `card.info` and `game.bookmarks.*`;
+on mobile only they render one per row (`card-status` marker class, rules in `mobile.css`) with
+the label visible, while inside the book the labels stay hidden (`main.css`).
+
+### Mobile layout
+
+`GameBookMobile` stacks the same `PageLeft`/`PageRight` content vertically instead of showing
+two book pages side by side.
+
+Card previews (neighbor, action, item, ...) go through a single call,
+`onPreview({ card, type, lockedReason, stats, modal, props, side })` — defaults
+`lockedReason: null`, `stats: null`, `modal: true`, `props: {}`, `side: 'left'`; a `null` card
+closes whichever preview is open. This replaced the previous 6-argument positional call
+(`onPreview(card, type, lockReason, statistics, showModal, additionalProps, side)`) for every
+gameplay card. It is unrelated to the same-named, differently-shaped `onPreview` still used by
+`start-book`/`start-match`/`MatchCard`/`MatchLogCard`/`GuestUserModal`.
+
+**v0.37.4 — reload waits for the board, not a fixed timer (bugfix).**
+`useGameplayResults.js` drops the fixed `LOADING_TIMEOUT_MS = 1000` timer. `reloadBoard()` now
+returns a promise that settles only once `onReload` (`GamePage`'s `reloadGameData`, which calls
+`/info`) has actually landed, guarded by a `reloadSeqRef` counter so an older, still in-flight
+reload can never clear the newer one's loading state. `handleEventExecuted`,
+`handleMovementDone`, `handleSlept`, `handleItemDropped`, `handleItemUsed` all return that
+promise; `handleSelectChoice` awaits it, so a choice stays in flight until the new board is on
+screen. `stopLoading()` still fires synchronously the moment the answer carries something to
+show (an effect/item card, a granted item, automatic events on arrival, coma/sadness, pending
+choices) — only when there is nothing to show does the `LoadingCard` now stay up (left page
+still shows the location loading) until the reloaded `/info` lands, instead of flashing the old
+board back for the wait. `applyEdgeState` now returns a boolean. Cards `MovementCard`,
+`ActionCard`, `GoToSleepCard`, `ItemCard` `await` their `onMoved`/`onDone`/`onSlept`/`onDropped`
+call inside the try block, so the "Executing" spinner now lasts until the new board is showing.
+
+**v0.37.4 — match history leaves gameplay.** The story card in `PlayerCards` goes back to a
+plain `entityType="story"` preview; the `onPreviewMatchLog` prop and the `'matchlog'` case are
+removed from `GameBook`, `PageRight`, `PageRightInfo`, and `PlayerCards`. The match's log is no
+longer reachable during play — it moved into the profile book, reached from a match's missions
+view; see [Step37 §12 react-game (v0.37.4)](./Step37_MissionSystem.md#12-frontends) for the new
+`MatchHistoryCard`/`useMatchMissions` path, and [Step28 §28.7](./Step28_MovementSystem.md) for
+`MatchLogCard` itself, unchanged.
+
+---
+
+## 9. Responsive Breakpoints
+
+| Breakpoint | Layout changes |
+|-----------|---------------|
+| ≤767px | Book modal switches to vertical list; game book stacks pages; navbar brand text hidden; hero shorter |
+| ≤767px | `pg-card--medium` shrinks to 130px; `.story-netflix-card` (story catalog, v0.35.8) shrinks to 180px |
+
+Mobile CSS lives in `src/styles/mobile.css` and is imported at the top of `main.css`.
+
+---
+
+## 10. Google Tag Manager & Consent Mode
+
+Google **Consent Mode v2** defaults (all `denied`) are set inline at the top of `index.html`, before any tag logic. The GTM container is then loaded by `loadGtm()` in `src/consent/gtm.js` (called from `main.jsx`) using the `VITE_GTM_ID` environment variable (default `GTM-T52SH6JQ`; see `.env.example`). GTM loads on every visit, but analytics tags write no cookies until the user accepts the `analytics` category — handled by the in-project cookie-consent layer in `src/consent/` (see Step 20). The previous inline GTM snippet in `index.html` was removed in v0.20.3.
+
+---
+
+## 11. Images and Credits
+
+`src/mock/images.json` lists every static image used by the mock layer:
+
+```json
+[
+  { "id": "person", "urlImage": "data:image/svg+xml;base64,...", "linkCopyright": "https://game-icons.net/..." },
+  { "id": "gems",   "urlImage": "data:image/svg+xml;base64,...", "linkCopyright": "https://game-icons.net/..." },
+  { "id": "shadow-keep", "url": "https://images.unsplash.com/...", "author": "Stefan Steinbauer", "authorLink": "https://unsplash.com/@usinglight" },
+  ...
+]
+```
+
+All Unsplash images are free-license. All SVG icons are from [game-icons.net](https://game-icons.net) (CC BY 3.0).
+
+
+# Version Control
+- Created with AI prompts:
+  > I wanna start new "Frotend react game project" into "code/frontend/react-game" folder. 
+  It is going to be main website of my paths.games project.
+  With react>18 , vite , fontawesome, Bootstrap 5 via CDN only (no npm), Tailwind as primary utility layer — use Bootstrap only for grid/modal classes to avoid CSS conflicts, Axios e React Router 6.
+  Website with alwasy nav-header and footer, copy nav-header and footer from "code/website/html/index.html" file, create navbar/footer as React components inspired by the HTML, don't copy verbatim. Copy "Google Tag Manager" configuration too but GTM-code shound be parametric in env variabiles. USe only color and styles from "documentation_v0/website_concepts_v0/v0.17.5-prototype" folder.
+  If you need some images (fix or in mock) use unsplash.com with free license, write me a json-file with the list of images url, authors link (example "https://unsplash.com/@cedericvandenberghe" ).
+  There are some parts of website:
+  1) modals for privacy, terms of conditions and copyright alert you shound import from actual html website. "privacy/terms as React modal components triggered by footer links".
+  2) main page: home page with netflix style with a list of Stories (get from API or mock), story with medium-card style, click on story open a "start book modal". Stories cards on responsive rows (by story categories). Must be responsive and in mobile like netflix mobile style.
+  2) start book modal: a modal with a book-style (from documentation_v0/website_concepts_v0/v0.16.6-prototype-book). on book there are left and right pages. in book on left there is a big card with image, title, long description. on right a list of medium card and (on bottom) the "start button". main right book page contains two rows with 3 card for ever row: category (first disponibile), class (first disponible), 3 traits (first disponibile), 4 difficulties, 5 type=single player (locked for now, multiplayer coming soon), 6 gues user (locked for now, login system coming soon). On Main-right page every not locked card with button "change" then show a new right-page (left page doen't chage) with list of possibile card (example possibile difficulties), every card with button "select" to back to main-right page with new value/card selected. On bottom "start game" with beautiful checkbox "accept terms of conditions", start game disabled if user doesn't accept terms of condition. On "start game" the user jump to "game book" page. "start-book-modal" must be responsive for tablet and mobile: on little screen there isn't a book but vertical card list: first is a story card, second is category (with possiblity to change in modal), classes, ... on botton "start game" button. 
+  3) Game page is a full React Router route at /play/:storyId, not a modal overlay. get exampe from "html" folder and others prototypes. there aren't any specific story-top-bar (but leave nav-bar), only a "game book". the book is with two pages: right and left. right pages is always the current location big-card, the right page is component with : 3a) player with statistics of Life, Energy, Sadness, Experience, Food (backpack), Magic (backpack), Coins (backpack)", backpack weight 3b) neighbord location with possiblity to move show as a row cards 3c) disponibile actions into this location. The neighbor card and action card is medium side with image and title, on click open a modal big-card with same image, title, long description and button move/execute. On mobile actual location card is first card, after 3 rows  with horizontal scroll system: first of personal situation, second neighbor, third actions. NavBar and footer must be present into Game-page-book too in desktop, tablet and mobile too. Project is multilangage so add language change system and "caption" system (it and en for now).
+  4) every big card have image, title, long description and (i) icon on bottom, the (i) jump to modal popup to show copyright information (from card entity). Book page system must be animated. 
+  Story list and all information come from APIs (is server is not disponbile use a mock-json file). 
+  At the end update code/frontend/react-game/README.md file.
+
+  > I wanna edit all react-game project: all card must be 3 types: little, medium or large. All card must have always height = width × 1,4 ALWAYS and all types, overidde hidden, must be 3 types little, medium and large dimension. on home page use medium, on start-game use large on left page, use medium on right pages. on game component use use large on left page, use medium on right pages
+
+  > **Iterative refinements (session log)**
+    >
+    > - **Unified card system**: all cards enforce `aspect-ratio: 1/1.4` via four size variants (`--small`, `--medium`, `--home`, `--grid`, `--large`). Hover interaction: scale 1.03 + gold border + `z-index: 10` so card renders above siblings in scroll rows.
+    > - **Per-story option lists**: `characters`, `classes`, `traits`, `difficulties` moved from a global static file into each story object in `stories.json`. Values are Young Woman / Young Man / Adult Woman / Adult Man (characters), Human / Elf / Dwarf / Hobbit (classes), Happy / Strong / Smart / Fast (traits). Each item has a `card` sub-object following the OpenAPI card shape (`urlImage`, `copyrightText`, `linkCopyright`, `awesomeIcon`, `style_main`, `style_detail`).
+    > - **`style_main` / `style_detail` fields**: added to card JSON objects to inject additional CSS classes onto the card wrapper (`style_main`) and the image element (`style_detail`) at render time, enabling per-card image positioning or visual overrides without touching CSS.
+    > - **ConfigView grid**: switched from two `config-row-fill` rows to the same `selection-list` grid used by `SelectionView`, giving uniform sizing and spacing across both views.
+    > - **`(i)` info buttons**: rendered via `createPortal` to escape `overflow: hidden` stacking contexts. Positioned top-left (`position: absolute; top: 6px; left: 6px`). Visibility: `opacity: 0` by default, `opacity: 1` on parent `:hover`. On mobile (≤767px) always visible. Present on home story cards, config cards (desktop and selection view), and game location cards.
+    > - **`config-cover-badge`**: same hover-only visibility as `(i)` buttons; always visible on mobile.
+    > - **Credits modal unification**: all `(i)` buttons open a Bootstrap `modal-lg` with the same visual style — 170 px credit cards (image fills absolutely via `position: absolute; inset: 0`), gold gradient overlay, gold-light text. Credits order: 1 Story card (story author + story image), 2 Image credit (config card image + `copyrightText` + "View original" link), 3 Text (disabled, coming soon), 4 Sound (disabled, coming soon). `credits-card--disabled` applies `opacity: 0.35; filter: grayscale(60%); pointer-events: none`.
+    > - **X button**: `margin-left: auto` on `.modal-custom-close` forces the close button to the right in every modal header flex container.
+    > - **ConfigCard `story` prop**: `ConfigView` passes `story={story}` to all four changeable `ConfigCard` instances so the story image appears as the first credit card in the right-page `(i)` modal.
+    > - **Locked cards with images**: `gameType` (Single Player) and `login` (Guest) locked cards now receive real image data from `images.json` (`id="person"` and `id="gems"` respectively — SVG icons from game-icons.net). Locked badge replaced by a faded gold **"Coming soon"** span (lock icon, 45% opacity, border, `pointer-events: none`).
+    > - **Button alignment**: `config-change-btn` and `config-coming-soon-btn` are `width: auto`, font-size reduced to `0.65rem`, footer aligned right (`align-items: flex-end`) so buttons sit in the bottom-right corner of cover cards.
+    > - **Mobile top clipping fix**: `book-overlay` padding-top raised to `56px` on mobile so the first card in the vertical list is not hidden under the navbar.
+
+- **Document Version**: 0.37.4
+    | Version | Description | Date |
+    | --- | --- | --- |
+    | 0.35.5 | `GameBook.jsx` decomposed 1005 → ~170 lines: `features/game/` renamed `features/gameplay/`, split into `PageLeft`/`PageRight`/`PageRightMain`/`PageRightInfo` + `useMatchChrome`/`useBookView`/`useGameplayResults` hooks. Gameplay card `onPreview` moved from 6 positional args to one object; `GoToSleepCard` gains `autoPreview`, fixing a broken Italian shortcut | Aug 27, 2026 |
+    | 0.18.0 | First web main frontend project | May 05, 2026 |
+    | 0.19.2 | StartBookMobile extracted; card-big-list config grid; CardPreviewOverlay + magnifier; aspect-ratio 2/3 | May 12, 2026 |
+    | 0.19.3 | BookPageContent: entity+entityType props & bonus-stats panel | May 18, 2026 |
+    | 0.19.4 | Characters and traits not permitted for class selection | May 18, 2026 |
+    | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits` | May 19, 2026 |
+    | 0.19.8 | Guest identity: GuestUserProvider, paths.games.user cookie, api/auth.js, GuestUserModal, Navbar modal trigger | May 19, 2026 |
+    | 0.19.13 | `?lang=` forwarded to /api/stories, /api/stories/{uuid}, /api/match/{uuid}/info; bug fix: story catalog and END_GAME card now translated correctly | Jun 23, 2026 |
+    | 0.20.3 | GTM section updated: Consent Mode v2 defaults inline + GTM loaded via `src/consent/gtm.js`; inline GTM snippet removed | May 28, 2026 |
+    | 0.28.2 | i18n: `LanguageProvider` persists lang to `localStorage['pathsgames.lang']`; initial lang resolves from saved choice → browser lang → `'en'`; `pathsgames.lang` added to strictly-necessary consent table in `cookieConsent.js`; 14 tests in `i18nContext.test.jsx` | Jun 26, 2026 |
+    | 0.35.8 | `StoryCard.jsx` rewritten as a thin wrapper over the shared `Card` (`variant="little"`); footer button now gated on `matchesStatus`. Two new opt-in flags, `RESUME_WITHOUT_MODAL` and `ADD_COMING_SOON_STORIES`. | August 30, 2026 |
+    | 0.36.2 | `storyMatchBadge` treats GAMEOVER as completed too (`FINISHED_MATCH_STATUSES`); `StoryCard.jsx` shows Replay (`fa-rotate-right`) instead of Play on a finished story. | September 5, 2026 |
+    | 0.37.3 | Status card's action row drops the registry shortcut (still reachable from (i)) and the `fa-bed` force-sleep action; `GoToSleepCard` shows only when energy-stuck. Remaining shortcuts (Info/Map/Missions/Backpack) are named, one per row on mobile. | September 10, 2026 |
+    | 0.37.4 | `useGameplayResults` reload now waits on the reloaded board instead of a fixed 1s timer, guarded by a reload sequence counter; card grid CSS fix so a long label can no longer widen a grid column and push later ones off the page; match-history door removed from gameplay (`PlayerCards`/`GameBook`/`PageRight`/`PageRightInfo`), moved to the profile book (see [Step37](./Step37_MissionSystem.md)). | September 11, 2026 |
+
+- **Last Updated**: September 11, 2026 (v0.37.4)
+- **Status**: Active development
+
+
+
+# &lt; Paths Games /&gt;
+All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
+
+Some content and portions of code in this repository were also produced with the support of artificial intelligence tools, whose contribution helped enrich and accelerate the creation of the material. Every piece of information and code fragment has nevertheless been carefully checked and validated with the goal of ensuring the highest quality and reliability of the provided content.
+
+For all details, in-depth information, or requests for clarification, please visit [Paths.Games](https://paths.games/) website
+
+
+
+## License
+Made with ❤️ by <a href="https://github.com/gamespaths/pathsgames">paths.games dev team</a>
+&bull; 
+Public projects 
+<a href="https://www.gnu.org/licenses/gpl-3.0"  valign="middle"> <img src="https://img.shields.io/badge/License-GPL%20v3-blue?style=plastic" alt="GPL v3" valign="middle" /></a>
+*Free Software!*
+
+
+The software is distributed under the terms of the GNU General Public License v3.0. Use, modification, and redistribution are permitted, provided that any copy or derivative work is released under the same license. The content is provided "as is", without any warranty, express or implied.
+
+
+Narrative Content & Assets: The story, dialogues, characters, sounds, musics, paint, all artist contents and world-building (located on /data folder) are NOT open source. They are licensed under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 (CC BY-NC-ND 4.0).
+
+
+(ITA) Il software è distribuito secondo i termini della GNU General Public License v3.0. L'uso, la modifica e la ridistribuzione sono consentiti, a condizione che ogni copia o lavoro derivato sia rilasciato con la stessa licenza. Il contenuto è fornito "così com'è", senza alcuna garanzia, esplicita o implicita.

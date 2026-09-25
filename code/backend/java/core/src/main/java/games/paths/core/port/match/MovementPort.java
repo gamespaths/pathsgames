@@ -17,7 +17,7 @@ import java.util.List;
  *       per-user participation check (admin console, port 8044).</li>
  * </ul>
  *
- * <p>See {@code documentation_v0/Step28_MovementSystem.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step28_MovementSystem.md}.</p>
  */
 public interface MovementPort {
 

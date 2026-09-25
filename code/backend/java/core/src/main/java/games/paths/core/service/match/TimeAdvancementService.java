@@ -28,7 +28,7 @@ import java.util.List;
  * characters, rebuilds {@code gaming_turn_queue} reusing the Step 24
  * {@link TurnPriorityCalculator}, and publishes a {@link TimeAdvanced} event.</p>
  *
- * <p>See {@code documentation_v0/Step25_TimeAdvancementClockCycle.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step25_TimeAdvancementClockCycle.md}.</p>
  */
 public class TimeAdvancementService implements TimeAdvancementPort {
 

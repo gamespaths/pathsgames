@@ -112,7 +112,7 @@ info:
     `log_choices_executed` and `gaming_story_progress` need no migration: they have
     existed since V0.10.9 / V0.10.7 and Step 32 is simply the first code to write to them.
 
-    See `documentation_v0/Roadmap.md` (step 32).
+    See `wiki/documentation_v0/Roadmap.md` (step 32).
   version: 0.32.0
 
 servers:

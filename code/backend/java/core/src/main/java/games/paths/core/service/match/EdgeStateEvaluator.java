@@ -26,7 +26,7 @@ import java.util.Collection;
  * <p>Rescue, the {@code GAMEOVER} transition and the multiplayer help endpoints are NOT here:
  * they belong to step 59 of the roadmap.</p>
  *
- * <p>See {@code documentation_v0/Step30_EdgeStates.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step30_EdgeStates.md}.</p>
  */
 public final class EdgeStateEvaluator {
 

@@ -64,7 +64,7 @@ info:
     `gaming_character_instance.sad`, `sad_max`, `life`, `is_coma`, `is_sleeping`,
     `clock_in_coma`, and `list_stories.id_event_all_player_coma`.
 
-    See `documentation_v0/Step30_EdgeStates.md`.
+    See `wiki/documentation_v0/Step30_EdgeStates.md`.
   version: 0.30.0
 
 servers:

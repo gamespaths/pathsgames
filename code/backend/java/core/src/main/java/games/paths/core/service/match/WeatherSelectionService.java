@@ -31,7 +31,7 @@ import java.util.Random;
  * </ol>
  *
  * <p>When no rule is eligible the current weather is cleared. See
- * {@code documentation_v0/Step27_WeatherSystem.md}.</p>
+ * {@code wiki/documentation_v0/Step27_WeatherSystem.md}.</p>
  */
 public class WeatherSelectionService {
 

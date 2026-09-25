@@ -4,7 +4,7 @@ import { usePolicyBook } from '../../context/PolicyBookContext'
 
 export default function Footer() {
   const { t } = useTranslation()
-  // v0.39.1 — status and version come from ServerContext (one request per server).
+  // v0.40.0 — status and version come from ServerContext (one request per server).
   const { server, servers, probing, status, version, changeServer } = useServer()
   const { openPolicyBook } = usePolicyBook()
   const policyLink = kind => e => { e.preventDefault(); openPolicyBook(kind) }
@@ -44,7 +44,7 @@ export default function Footer() {
           <span className="gold-light">PATHS GAMES</span> 
           &nbsp; &copy; {t('footer.rights').toUpperCase()} 
           <br />
-          v0.39.1 &nbsp;
+          v0.40.0 &nbsp;
           {t('footer.madeWith').toUpperCase()} <i className="fas fa-heart" /> {t('footer.byTeam').toUpperCase()}
         </div>
 
@@ -52,7 +52,7 @@ export default function Footer() {
           <a href="https://github.com/gamespaths/pathsgames" target="_blank" rel="noopener" className="footer-icon-link">
             <i className="fab fa-github" /><span>{t('footer.github')}</span>
           </a>
-          <a href="https://github.com/gamespaths/pathsgames/blob/develop/documentation_v0/Roadmap.md" target="_blank" rel="noopener" 
+          <a href="https://github.com/gamespaths/pathsgames/blob/develop/wiki/documentation_v0/Roadmap.md" target="_blank" rel="noopener" 
                 className="footer-icon-link d-none d-md-inline-flex">
             <i className="fas fa-newspaper" /><span>{t('footer.devlog')}</span>
           </a>

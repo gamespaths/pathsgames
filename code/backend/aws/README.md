@@ -339,8 +339,8 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
   (`idLocation: 3`, `target: ONLY_ONE`). The cost is 2 on purpose — the Robot lookup
   "Event Uuid By Cost 1" must keep meaning the plain (non-teleport) event.
 - No DynamoDB item shape change beyond the new `movementLog`/response fields already
-  supported by the existing schema. See `documentation_v0/Step29_NormalEvents.md` —
-  "Forced movement (v0.29.3)" and `documentation_v0/Step28_MovementSystem.md` —
+  supported by the existing schema. See `wiki/documentation_v0/Step29_NormalEvents.md` —
+  "Forced movement (v0.29.3)" and `wiki/documentation_v0/Step28_MovementSystem.md` —
   "Step 0.29.3 (cross-reference)".
 
 ### v0.29.1 — Movement availability verdict on `/info`
@@ -356,7 +356,7 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 - The check context (character state, weather, per-location character counts, registry) is
   loaded once per request; no per-neighbor query.
 - No DynamoDB item shape change. OpenAPI `v0.19.0-match-creation-api.yaml` `LocationNeighborInfo`
-  schema updated. See `documentation_v0/Step28_MovementSystem.md` — "Step 0.29.0 (addendum):
+  schema updated. See `wiki/documentation_v0/Step28_MovementSystem.md` — "Step 0.29.0 (addendum):
   Movement Availability Verdict on /info".
 
 ### v0.28.6 — Bugfix: fog-of-war leak on neighbor location cards
@@ -380,7 +380,7 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
   resolves via `/content`) after moving into that location; `GET /info` never leaks the
   location card ahead of the visit; the admin locations view applies the same gating.
 - No API contract change — nullability only. See
-  `documentation_v0/Step28_MovementSystem.md` §14.
+  `wiki/documentation_v0/Step28_MovementSystem.md` §14.
 
 ### v0.28.5 — Location cards on `GET /locations`
 
@@ -398,7 +398,7 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 - **Frontend**: this enrichment feeds the new interactive world map in react-game
   (`Map.jsx`/`mapGraph.js`/`MapCard.jsx`), which renders a photo for every visited
   location without a second round-trip per node. See
-  `documentation_v0/Step28_MovementSystem.md` §12–13.
+  `wiki/documentation_v0/Step28_MovementSystem.md` §12–13.
 
 ### v0.28.2 — AWS bugfix: neighbor `cardBack` desync
 
@@ -420,7 +420,7 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
   (backend-agnostic): admin sets `idCard`+`idCardBack` on a neighbor touching the start
   location; player reads `GET /api/match/{uuid}/info?lang=en`; asserts distinct
   `card`/`cardBack` UUIDs, both resolving as real catalog cards; teardown restores
-  originals. See `documentation_v0/Step29_NeighborCardBack.md` for full details.
+  originals. See `wiki/documentation_v0/Step29_NeighborCardBack.md` for full details.
 - **Note**: `api-test.paths.games` requires a Lambda redeployment (`sam deploy
   --config-env dev`) to apply this fix.
 
@@ -492,24 +492,27 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 - Story admin CRUD (create, update, delete) via `StoryFunction`.
 - Robot Framework suites `14_admin`, `15_story_content`, `16_content_detail`, `17_admin_crud` verified against AWS endpoint.
 
-# < Paths Games />
-
-All source code and information in this repository are the result of careful and patient development work by the developer team, who have made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
+# &lt; Paths Games /&gt;
+All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
 
 Some content and portions of code in this repository were also produced with the support of artificial intelligence tools, whose contribution helped enrich and accelerate the creation of the material. Every piece of information and code fragment has nevertheless been carefully checked and validated with the goal of ensuring the highest quality and reliability of the provided content.
 
-For all details, in-depth information, or requests for clarification, please visit the [Paths.Games](https://paths.games/) website.
+For all details, in-depth information, or requests for clarification, please visit [Paths.Games](https://paths.games/) website
+
+
 
 ## License
-
-Made with ❤️ by the <a href="https://github.com/gamespaths/pathsgames">paths.games dev team</a>
-
-Public projects:
-<a href="https://www.gnu.org/licenses/gpl-3.0" valign="middle"> <img src="https://img.shields.io/badge/License-GPL%20v3-blue?style=plastic" alt="GPL v3" valign="middle" /></a>
+Made with ❤️ by <a href="https://github.com/gamespaths/pathsgames">paths.games dev team</a>
+&bull; 
+Public projects 
+<a href="https://www.gnu.org/licenses/gpl-3.0"  valign="middle"> <img src="https://img.shields.io/badge/License-GPL%20v3-blue?style=plastic" alt="GPL v3" valign="middle" /></a>
 *Free Software!*
+
 
 The software is distributed under the terms of the GNU General Public License v3.0. Use, modification, and redistribution are permitted, provided that any copy or derivative work is released under the same license. The content is provided "as is", without any warranty, express or implied.
 
-Narrative Content & Assets: The story, dialogues, characters, sounds, music, art, and world-building (located in the `/data` folder) are NOT open source. They are licensed under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 (CC BY-NC-ND 4.0).
+
+Narrative Content & Assets: The story, dialogues, characters, sounds, musics, paint, all artist contents and world-building (located on /data folder) are NOT open source. They are licensed under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 (CC BY-NC-ND 4.0).
+
 
 (ITA) Il software è distribuito secondo i termini della GNU General Public License v3.0. L'uso, la modifica e la ridistribuzione sono consentiti, a condizione che ogni copia o lavoro derivato sia rilasciato con la stessa licenza. Il contenuto è fornito "così com'è", senza alcuna garanzia, esplicita o implicita.

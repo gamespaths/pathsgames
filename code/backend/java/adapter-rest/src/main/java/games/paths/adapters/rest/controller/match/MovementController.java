@@ -23,7 +23,7 @@ import java.util.Map;
  *   <li>GET  /api/match/&#123;uuidMatch&#125;/locations          — visited locations + total energy cost</li>
  * </ul>
  *
- * <p>See {@code documentation_v0/Step28_MovementSystem.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step28_MovementSystem.md}.</p>
  */
 @RestController
 public class MovementController {

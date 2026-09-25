@@ -32,8 +32,8 @@ import java.util.List;
  * ONCE were all spent when the event was opened — so its only gate is that a cycle really
  * is open for that event.</p>
  *
- * <p>See {@code documentation_v0/Step29_NormalEvents.md} and
- * {@code documentation_v0/Step32_ChoiceResolution.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step29_NormalEvents.md} and
+ * {@code wiki/documentation_v0/Step32_ChoiceResolution.md}.</p>
  */
 public interface EventExecutionPort {
 

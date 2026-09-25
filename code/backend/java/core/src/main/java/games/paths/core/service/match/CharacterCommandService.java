@@ -33,7 +33,7 @@ import java.util.Optional;
  * deltas and the selected traits; life and energy start at their computed
  * maximum and the character is placed at the story start location.
  *
- * <p>See {@code documentation_v0/Step21_CharacterSelection.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step21_CharacterSelection.md}.</p>
  */
 public class CharacterCommandService implements CharacterCommandPort {
 

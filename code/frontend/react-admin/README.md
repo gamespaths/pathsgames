@@ -78,9 +78,9 @@ npm run test:coverage
 
 ## Version Control
 - First version created with AI prompts:
-    > ciao, into "code/frontend/react-admin" folder create a new project with react con vite e bootstrap e Tailwind e font awesome. Project is a administration frontend of project, read all documents into "documentation_v0" to understand my project. I wanna you create admin section to all admin APIs "code/backend/java/adapter-rest/src/main/resources/openapi". Let's go! Never change files outside  "code/frontend/react-admin" . for admin i wanna a login interface where user insert jwt token to be used in all api calls , use graphics from "documentation_v0/website_concepts_v0/v0.16.3-prototype-api"
+    > ciao, into "code/frontend/react-admin" folder create a new project with react con vite e bootstrap e Tailwind e font awesome. Project is a administration frontend of project, read all documents into "wiki/documentation_v0" to understand my project. I wanna you create admin section to all admin APIs "code/backend/java/adapter-rest/src/main/resources/openapi". Let's go! Never change files outside  "code/frontend/react-admin" . for admin i wanna a login interface where user insert jwt token to be used in all api calls , use graphics from "wiki/documentation_v0/website_concepts_v0/v0.16.3-prototype-api"
 
-    > mi fai uno script in .github/workflows per il progetto "react-admin" ? poi aggiorna il "documentation_v0/Step08_ConfigureMinimalCI.md"
+    > mi fai uno script in .github/workflows per il progetto "react-admin" ? poi aggiorna il "wiki/documentation_v0/Step08_ConfigureMinimalCI.md"
 - **Document Version**: 0.19.10
     | Version | Description | Date |
     | --- | --- | --- |
@@ -123,6 +123,3 @@ Narrative Content & Assets: The story, dialogues, characters, sounds, musics, pa
 
 
 (ITA) Il software è distribuito secondo i termini della GNU General Public License v3.0. L'uso, la modifica e la ridistribuzione sono consentiti, a condizione che ogni copia o lavoro derivato sia rilasciato con la stessa licenza. Il contenuto è fornito "così com'è", senza alcuna garanzia, esplicita o implicita.
-
-
-

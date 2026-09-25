@@ -9,7 +9,7 @@ narratives. The repo holds several backends (Java is the reference implementatio
 and AWS track it), a React admin frontend, a React game frontend, and Robot Framework E2E
 tests — all sharing one REST API contract.
 
-Every time you run, always use `caveman` subagent, ALWAYS!
+Caveman mode (full) is always active: a SessionStart hook loads `.claude/hooks/caveman-rules.md`.
 
 ## Read on demand (do NOT preload)
 
@@ -17,12 +17,16 @@ Every time you run, always use `caveman` subagent, ALWAYS!
 |---|---|
 | Build / run / test any component | `.claude/docs/commands.md` |
 | Robot suites, seed files, report paths | `.claude/docs/robot-suites.md` |
-| Anything in the design docs | `documentation_v0/INDEX.md` — the map. **Never open a Step file without it.** |
+| Anything in the design docs | `wiki/INDEX.md` — the single map (shared docs + one line per version). **Never open a Step file without it.** |
+| Versions, 42-step rules, recurring steps | `wiki/VersionTemplate.md`, `wiki/Roadmap.md` |
+| Game rules / data model / story format | `wiki/GameRules.md`, `DataModel.md`, `StoryFormat.md` |
 | Search the design docs | Ask the `doc-finder` subagent (Haiku, read-only, returns a summary) |
+| Analyse a step / develop an analysed step | `paths-games-new-feature` / `paths-games-dev-feature` subagents |
 
-`documentation_v0/` is ~4.2 MB of markdown (~1M tokens). `Roadmap.md` alone is 24k tokens,
-`Step28_MovementSystem.md` is 29k. Grep and read line ranges; never `cat` a Step file whole.
-Never read `documentation_v0/website_concepts_v0/` (450 MB of images).
+`wiki/` holds small shared docs (current state). Each version has `wiki/documentation_vN/`
+(own `INDEX.md`, `Roadmap.md` with 42 steps, step files). `wiki/documentation_v0/` is ~4.2 MB (~1M
+tokens), `Step28_MovementSystem.md` alone 29k: grep and read line ranges; never `cat` a Step file.
+Never read `wiki/documentation_v0/website_concepts_v0/` (450 MB of images).
 
 ## Hard rules
 
@@ -44,8 +48,9 @@ Never read `documentation_v0/website_concepts_v0/` (450 MB of images).
 - Java / Python / React changes need unit tests; coverage of new code must be **> 95%**.
 - Changing one backend usually means changing the others — they share the API contract.
 - Docs are updated **on request**, via `/doc-update` (runs the `paths-games-doc` subagent). Do not offer it after every task; suggest it only when a feature is complete or the API, schema, or a component actually changed.
-    - When you write on documentation files on Version Control section on table change list: the description must be only 2 rows, add new values on bottom (not on table top).
-    - When you write on documentation index files: the description and "What is in it" must be only 2 rows and Keywords max 10 words!
+    - Version Control table of any doc: max ONE row per version, at the bottom; description ONE line, max 10 plain non-technical words. Row for the current version already there → no new row, at most extend it with a short phrase.
+    - Index files: one line of description per file, Keywords max 10 words. `wiki/INDEX.md` = shared files + one line per version; `wiki/documentation_vN/INDEX.md` = only that version.
+    - Docs of previous (launched) versions are frozen: never edit them, except their `Hotfixes.md`. Shared docs stay small and current. Everything in English.
 - When you add/change comments (for example // in java) add maximum one row.
     On head of file (example with /** comment */ in java) add maximum two row
 
@@ -81,7 +86,7 @@ theme with `pg-*` classes; JWT admin token pasted at login; dev proxy `/api/*` �
 
 - OpenAPI specs: `code/backend/java/adapter-rest/src/main/resources/openapi/`. All REST APIs are OpenAPI-compatible.
 - Prefix `/api/`, no explicit version in V1. Kebab-case segments, plural resource nouns, no verbs in URLs.
-- Contexts: `/api/auth/`, `/api/stories/`, `/api/games/`, `/api/game/{id}/`, `/api/gameplay/{id_game}/`, `/api/admin/`, `/api/echo/`.
+- Contexts: `/api/auth/`, `/api/stories/`, `/api/content/`, `/api/matches/`, `/api/match/{uuidMatch}/`, `/api/gameplay/{uuidMatch}/`, `/api/admin/`, `/api/echo/` (`/api/dev/` dev only).
 
 ## Output
 

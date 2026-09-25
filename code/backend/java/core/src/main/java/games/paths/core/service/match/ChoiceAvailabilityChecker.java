@@ -40,7 +40,7 @@ import java.util.Set;
  * <p>The reasons are plain strings, not {@code EventExecutionException.Code} values: they
  * ride on each option of a 200 response, they are never thrown.</p>
  *
- * <p>See {@code documentation_v0/Roadmap.md} (step 31); the condition vocabulary is the
+ * <p>See {@code wiki/documentation_v0/Roadmap.md} (step 31); the condition vocabulary is the
  * {@code list_choices_conditions} schema comment (V0.10.4).</p>
  */
 public final class ChoiceAvailabilityChecker {

@@ -20,7 +20,7 @@ import java.util.Map;
  * TurnCycleService - single-player turn cycle engine (Step 24).
  * Pure-Java service; ports injected via constructor.
  *
- * <p>See {@code documentation_v0/Step24_TurnCycleEngine.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step24_TurnCycleEngine.md}.</p>
  */
 public class TurnCycleService implements TurnCyclePort {
 

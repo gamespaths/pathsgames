@@ -22,7 +22,7 @@ import java.util.Map;
  *   <li>GET  /api/match/&#123;uuidMatch&#125;/turn-sequence    — read the turn queue</li>
  * </ul>
  *
- * <p>See {@code documentation_v0/Step24_TurnCycleEngine.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step24_TurnCycleEngine.md}.</p>
  */
 @RestController
 public class TurnCycleController {

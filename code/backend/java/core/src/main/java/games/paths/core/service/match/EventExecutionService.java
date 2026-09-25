@@ -66,8 +66,8 @@ import java.util.Set;
  * dependency cycle. Automatic events pay no cost, are never checked against the player-facing
  * availability verdict, and may never own choices.</p>
  *
- * <p>See {@code documentation_v0/Step29_NormalEvents.md} and
- * {@code documentation_v0/Step33_LocationEntryEvents.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step29_NormalEvents.md} and
+ * {@code wiki/documentation_v0/Step33_LocationEntryEvents.md}.</p>
  */
 public class EventExecutionService implements EventExecutionPort, LocationEntryPort,
         games.paths.core.port.match.MissionEventPort {

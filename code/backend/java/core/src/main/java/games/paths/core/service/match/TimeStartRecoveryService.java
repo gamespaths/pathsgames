@@ -44,8 +44,8 @@ import java.util.Set;
  * class {@code sad} bonus can push sadness over its cap — so the same overflow and coma rules
  * that guard event execution apply here too.</p>
  *
- * <p>See {@code documentation_v0/Step26_TimeStartRecovery.md} and
- * {@code documentation_v0/Step30_EdgeStates.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step26_TimeStartRecovery.md} and
+ * {@code wiki/documentation_v0/Step30_EdgeStates.md}.</p>
  */
 public class TimeStartRecoveryService {
 

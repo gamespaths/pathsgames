@@ -34,8 +34,8 @@ import java.util.Map;
  * {@code reason} this endpoint would return as its error code. The same holds for an option,
  * whose {@code available}/{@code reason} ride on the execute-event response that served it.</p>
  *
- * <p>See {@code documentation_v0/Step29_NormalEvents.md} and
- * {@code documentation_v0/Step32_ChoiceResolution.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step29_NormalEvents.md} and
+ * {@code wiki/documentation_v0/Step32_ChoiceResolution.md}.</p>
  */
 @RestController
 public class EventController {

@@ -75,7 +75,7 @@ info:
     - Each executed event appends a `log_events` row, which surfaces as an `EVENT` entry
       on `GET /api/matches/{uuid}/logs`.
 
-    See `documentation_v0/Step29_NormalEvents.md`.
+    See `wiki/documentation_v0/Step29_NormalEvents.md`.
   version: 0.29.0
 
 servers:

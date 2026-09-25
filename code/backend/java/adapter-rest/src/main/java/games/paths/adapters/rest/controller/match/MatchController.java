@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  *   <li>GET  /api/match/&#123;uuid&#125;/info  — match details (state + registry)</li>
  * </ul>
  *
- * <p>Step 19 — see {@code documentation_v0/Step19_SinglePlayerMatchCreation.md}.</p>
+ * <p>Step 19 — see {@code wiki/documentation_v0/Step19_SinglePlayerMatchCreation.md}.</p>
  */
 @RestController
 public class MatchController {

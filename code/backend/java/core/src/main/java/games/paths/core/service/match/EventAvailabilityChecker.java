@@ -30,7 +30,7 @@ import java.util.Set;
  * cheapest / most explanatory reasons come first (a sleeping character is told they cannot
  * act, not that they lack energy).</p>
  *
- * <p>See {@code documentation_v0/Step29_NormalEvents.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step29_NormalEvents.md}.</p>
  */
 public final class EventAvailabilityChecker {
 

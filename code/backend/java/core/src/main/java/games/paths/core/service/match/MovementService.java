@@ -53,8 +53,8 @@ import java.util.Set;
  * concurrent locking are Step 67; the full weight/capacity formula is Step 34 (carried weight
  * is 0 until inventory lands).</p>
  *
- * <p>See {@code documentation_v0/Step28_MovementSystem.md} and
- * {@code documentation_v0/Step33_LocationEntryEvents.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step28_MovementSystem.md} and
+ * {@code wiki/documentation_v0/Step33_LocationEntryEvents.md}.</p>
  */
 public class MovementService implements MovementPort {
 

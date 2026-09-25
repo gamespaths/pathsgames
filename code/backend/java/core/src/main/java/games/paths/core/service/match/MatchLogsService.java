@@ -52,7 +52,7 @@ import java.util.Map;
  * character that moved; SLEEP and RECOVERY entries carry their character. v0.30.3 adds
  * the triggered event's own card to EVENT entries.</p>
  *
- * <p>See {@code documentation_v0/Step28_MovementSystem.md} §8.</p>
+ * <p>See {@code wiki/documentation_v0/Step28_MovementSystem.md} §8.</p>
  */
 public class MatchLogsService implements MatchLogsPort {
 
