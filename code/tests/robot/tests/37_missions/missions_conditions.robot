@@ -179,18 +179,15 @@ Event Writing
     [Documentation]    The uuid of the event whose effect writes exactly this key/value pair,
     ...                or empty when the story has none.
     [Arguments]    ${key}    ${value}
-    ${effects}=    GET On Session    admin_session
-    ...    /api/admin/stories/${STORY_UUID}/event-effects
-    Status Should Be    ${effects}    200
-    ${events}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/events
-    Status Should Be    ${events}    200
+    ${effects}=    Cached Admin Rows    ${STORY_UUID}    event-effects
+    ${events}=    Cached Admin Rows    ${STORY_UUID}    events
     ${by_id}=    Create Dictionary
-    FOR    ${event}    IN    @{events.json()}
+    FOR    ${event}    IN    @{events}
         Set To Dictionary    ${by_id}    ${event}[id]    ${event}[uuid]
     END
     ${wanted}=    Set Variable    ${{ $value.strip().lower() }}
     ${found}=    Set Variable    ${EMPTY}
-    FOR    ${effect}    IN    @{effects.json()}
+    FOR    ${effect}    IN    @{effects}
         ${written}=    Set Variable    ${{ ($effect.get('keyValueToAdd') or '').strip().lower() }}
         ${hit}=    Evaluate    $effect.get('keyToAdd') == $key and $written == $wanted
         IF    $hit and $effect.get('idEvent') in $by_id

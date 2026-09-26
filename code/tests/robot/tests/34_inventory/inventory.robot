@@ -138,6 +138,9 @@ Suite Setup Inventory
     Set Suite Variable    ${CHARACTER}    ${character}
     Set Suite Variable    ${CLASS}    ${class}
     Set Suite Variable    ${TRAIT}    ${trait}
+    # v0.40 — only the item-granting events are tried: the rest of the location costs calls and adds nothing.
+    ${granters}=    Item Granting Event Uuids    ${story}
+    Set Suite Variable    ${GRANTING_EVENTS}    ${granters}
 
 Fresh Inventory Match
     [Documentation]    A fresh running single-player match on its own guest: the inventory
@@ -193,12 +196,12 @@ Execute Events Until An Item Appears
     RETURN    ${NONE}
 
 Next Untried Available Event
-    [Documentation]    The first currently-available event whose uuid is not in ${tried}, or
-    ...                the empty string when there is none left.
+    [Documentation]    The first currently-available ITEM-GRANTING event whose uuid is not in
+    ...                ${tried}, or the empty string when there is none left.
     [Arguments]    ${token}    ${match_uuid}    ${tried}
     ${events}=    Available Event Uuids    ${token}    ${match_uuid}
     FOR    ${event_uuid}    IN    @{events}
-        IF    '${event_uuid}' not in ${tried}
+        IF    '${event_uuid}' not in ${tried} and '${event_uuid}' in ${GRANTING_EVENTS}
             RETURN    ${event_uuid}
         END
     END

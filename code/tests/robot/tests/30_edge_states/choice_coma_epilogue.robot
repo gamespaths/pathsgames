@@ -175,26 +175,22 @@ Empty The Life Bar
 # ── addressing the seeded fixtures by behaviour ──────────────────────────────
 
 Admin Events
-    ${response}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/events
-    Status Should Be    ${response}    200
-    RETURN    ${response.json()}
+    ${rows}=    Cached Admin Rows    ${STORY_UUID}    events
+    RETURN    ${rows}
 
 Admin Event Effects
-    ${response}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/event-effects
-    Status Should Be    ${response}    200
-    RETURN    ${response.json()}
+    ${rows}=    Cached Admin Rows    ${STORY_UUID}    event-effects
+    RETURN    ${rows}
 
 Admin Choices
-    ${response}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/choices
-    Status Should Be    ${response}    200
-    RETURN    ${response.json()}
+    ${rows}=    Cached Admin Rows    ${STORY_UUID}    choices
+    RETURN    ${rows}
 
 Admin Choice Effects
     [Documentation]    The key naming differs by backend (Java/AWS expose idChoices, Python
     ...                idChoice), so both spellings are read — same as the Step 32 suite.
-    ${response}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/choice-effects
-    Status Should Be    ${response}    200
-    RETURN    ${response.json()}
+    ${rows}=    Cached Admin Rows    ${STORY_UUID}    choice-effects
+    RETURN    ${rows}
 
 A Moving Event
     [Documentation]    (event, idLocation) of a NORMAL event whose effect moves its recipients,

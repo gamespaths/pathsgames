@@ -144,9 +144,8 @@ Start Location Of
     [Documentation]    The story location the story itself names as its start, read through
     ...                the admin CRUD so no seeded id is written down here.
     [Arguments]    ${story_uuid}    ${id_location_start}
-    ${locations}=    GET On Session    admin_session    /api/admin/stories/${story_uuid}/locations
-    Status Should Be    ${locations}    200
-    FOR    ${location}    IN    @{locations.json()}
+    ${locations}=    Cached Admin Rows    ${story_uuid}    locations
+    FOR    ${location}    IN    @{locations}
         IF    int($location.get('id') or -1) == int($id_location_start)
             RETURN    ${location}
         END
@@ -156,9 +155,8 @@ Start Location Of
 Mission Reading
     [Documentation]    The story's mission whose conditionKey is exactly this key, or empty.
     [Arguments]    ${story_uuid}    ${key}
-    ${missions}=    GET On Session    admin_session    /api/admin/stories/${story_uuid}/missions
-    Status Should Be    ${missions}    200
-    FOR    ${mission}    IN    @{missions.json()}
+    ${missions}=    Cached Admin Rows    ${story_uuid}    missions
+    FOR    ${mission}    IN    @{missions}
         IF    ($mission.get('conditionKey') or '').strip() == $key    RETURN    ${mission}
     END
     RETURN    ${EMPTY}
@@ -166,11 +164,9 @@ Mission Reading
 Story Steps Of
     [Documentation]    The authored steps of one mission, in the order the story gives them.
     [Arguments]    ${mission}
-    ${steps}=    GET On Session    admin_session
-    ...    /api/admin/stories/${STORY_UUID}/mission-steps
-    Status Should Be    ${steps}    200
+    ${steps}=    Cached Admin Rows    ${STORY_UUID}    mission-steps
     ${mine}=    Evaluate
-    ...    [s for s in $steps.json() if str(s.get('idMission')) == str($mission.get('id'))]
+    ...    [s for s in $steps if str(s.get('idMission')) == str($mission.get('id'))]
     RETURN    ${mine}
 
 Loadout Of Story

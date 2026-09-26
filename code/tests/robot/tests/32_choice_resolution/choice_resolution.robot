@@ -275,14 +275,12 @@ Open The Resolution Event
 
 Admin Choices
     [Documentation]    The story's list_choices rows, from the admin API.
-    ${resp}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/choices
-    Status Should Be    ${resp}    200
-    RETURN    ${resp.json()}
+    ${rows}=    Cached Admin Rows    ${STORY_UUID}    choices
+    RETURN    ${rows}
 
 Admin Events
-    ${resp}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/events
-    Status Should Be    ${resp}    200
-    RETURN    ${resp.json()}
+    ${rows}=    Cached Admin Rows    ${STORY_UUID}    events
+    RETURN    ${rows}
 
 Resolution Event Uuid
     [Documentation]    The location-bound NORMAL choice-event whose options carry a narrative —
@@ -334,9 +332,8 @@ Resolution Choice Effects
     [Documentation]    The story's list_choices_effects rows from the admin API. The key naming
     ...                differs by backend (Java/AWS expose idChoices, Python idChoice), so both
     ...                spellings are read — the suite must stay backend-agnostic.
-    ${resp}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/choice-effects
-    Status Should Be    ${resp}    200
-    RETURN    ${resp.json()}
+    ${rows}=    Cached Admin Rows    ${STORY_UUID}    choice-effects
+    RETURN    ${rows}
 
 Option Linked By An Effect
     [Documentation]    The AVAILABLE option whose CHOICE-EFFECT carries idEvent — the admin's

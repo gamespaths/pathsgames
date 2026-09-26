@@ -18,7 +18,7 @@
 #     one reader covers a move, an event and a potion.
 #
 # Backend-agnostic by construction: nothing is addressed by a seeded id or uuid.
-# The bag is filled by BEHAVIOUR — run whatever the start location offers — so
+# The bag is filled by BEHAVIOUR — run the start location's item-granting events — so
 # the suite runs green on java-sqlite, java-postgres, python and aws alike.
 # =============================================================================
 
@@ -173,6 +173,7 @@ The Item Entries Take Their Place In The Timeline
 Suite Setup Item Logs
     [Documentation]    The story loadout every case builds its own match from, plus the
     ...                blacklist of events that disrupt the board while filling a bag.
+    Create Admin Session
     ${blacklist}=    Create List
     Set Suite Variable    ${DISRUPTIVE_EVENTS}    ${blacklist}
     ${story}    ${difficulty}    ${character}    ${class}    ${trait}=    Pick Story Loadout
@@ -181,6 +182,9 @@ Suite Setup Item Logs
     Set Suite Variable    ${CHARACTER}    ${character}
     Set Suite Variable    ${CLASS}    ${class}
     Set Suite Variable    ${TRAIT}    ${trait}
+    # v0.40 — only the item-granting events fill a bag: the rest of the location costs calls and adds nothing.
+    ${granters}=    Item Granting Event Uuids    ${story}
+    Set Suite Variable    ${GRANTING_EVENTS}    ${granters}
 
 Fresh Item Logs Match
     [Documentation]    A fresh running single-player match on its own guest — the v0.32.1
@@ -249,14 +253,14 @@ Execution Disrupted The Board
     RETURN    ${disrupted}
 
 Next Untried Available Event
-    [Documentation]    The first currently-available event whose uuid is neither tried nor
-    ...                known to disrupt the board, or the empty string when there is none.
+    [Documentation]    The first currently-available ITEM-GRANTING event whose uuid is neither
+    ...                tried nor known to disrupt the board, or the empty string when there is none.
     [Arguments]    ${token}    ${match_uuid}    ${tried}
     ${info}=    Get Match Info    ${token}    ${match_uuid}    200
     FOR    ${location}    IN    @{info.json()}[locationsActive]
         ${events}=    Get From Dictionary    ${location}    events    ${EMPTY}
         FOR    ${event}    IN    @{events}
-            ${skip}=    Evaluate    '${event}[uuid]' in ${tried} or '${event}[uuid]' in ${DISRUPTIVE_EVENTS}
+            ${skip}=    Evaluate    '${event}[uuid]' in ${tried} or '${event}[uuid]' in ${DISRUPTIVE_EVENTS} or '${event}[uuid]' not in ${GRANTING_EVENTS}
             IF    ${event}[available] == ${True} and not ${skip}
                 RETURN    ${event}[uuid]
             END

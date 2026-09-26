@@ -141,9 +141,8 @@ Fresh Case Match
 Admin Rows
     [Documentation]    One of the story's own tables, straight from the admin CRUD.
     [Arguments]    ${slug}
-    ${response}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/${slug}
-    Status Should Be    ${response}    200
-    RETURN    ${response.json()}
+    ${rows}=    Cached Admin Rows    ${STORY_UUID}    ${slug}
+    RETURN    ${rows}
 
 Registry Members
     [Documentation]    The SET one key holds right now, as the registry answers it.

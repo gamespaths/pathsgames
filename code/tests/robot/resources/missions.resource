@@ -47,31 +47,25 @@ Fresh Mission Match
 Story Missions
     [Documentation]    The missions the story declares, read through the admin CRUD so no
     ...                seeded id is ever named here.
-    ${response}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/missions
-    Status Should Be    ${response}    200
-    RETURN    ${response.json()}
+    ${rows}=    Cached Admin Rows    ${STORY_UUID}    missions
+    RETURN    ${rows}
 
 Story Mission Steps
-    ${response}=    GET On Session    admin_session
-    ...    /api/admin/stories/${STORY_UUID}/mission-steps
-    Status Should Be    ${response}    200
-    RETURN    ${response.json()}
+    ${rows}=    Cached Admin Rows    ${STORY_UUID}    mission-steps
+    RETURN    ${rows}
 
 Key Writing Event Uuids
     [Documentation]    Registry key to the uuids of the events whose effects write it. Read
     ...                from the story, so any story with mission writers works.
-    ${effects}=    GET On Session    admin_session
-    ...    /api/admin/stories/${STORY_UUID}/event-effects
-    Status Should Be    ${effects}    200
-    ${events}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/events
-    Status Should Be    ${events}    200
+    ${effects}=    Cached Admin Rows    ${STORY_UUID}    event-effects
+    ${events}=    Cached Admin Rows    ${STORY_UUID}    events
 
     ${by_id}=    Create Dictionary
-    FOR    ${event}    IN    @{events.json()}
+    FOR    ${event}    IN    @{events}
         Set To Dictionary    ${by_id}    ${event}[id]    ${event}[uuid]
     END
     ${writers}=    Create Dictionary
-    FOR    ${effect}    IN    @{effects.json()}
+    FOR    ${effect}    IN    @{effects}
         ${key}=    Set Variable    ${effect.get('keyToAdd')}
         ${id}=     Set Variable    ${effect.get('idEvent')}
         IF    $key and $id in $by_id

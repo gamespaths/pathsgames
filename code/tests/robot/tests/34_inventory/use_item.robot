@@ -205,6 +205,9 @@ Suite Setup Use Item
     Set Suite Variable    ${CHARACTER}    ${character}
     Set Suite Variable    ${CLASS}    ${class}
     Set Suite Variable    ${TRAIT}    ${trait}
+    # v0.40 — only the item-granting events fill a bag: the rest of the location costs calls and adds nothing.
+    ${granters}=    Item Granting Event Uuids    ${story}
+    Set Suite Variable    ${GRANTING_EVENTS}    ${granters}
 
 Fresh Use Item Match
     [Documentation]    A fresh running single-player match on its own guest: an inventory is
@@ -283,14 +286,14 @@ Match With A Filled Bag
     RETURN    ${token}    ${match}    ${rows}
 
 Next Untried Available Event
-    [Documentation]    The first currently-available event whose uuid is not in ${tried}, or
-    ...                the empty string when there is none left.
+    [Documentation]    The first currently-available ITEM-GRANTING event whose uuid is not in
+    ...                ${tried}, or the empty string when there is none left.
     [Arguments]    ${token}    ${match_uuid}    ${tried}
     ${info}=    Get Match Info    ${token}    ${match_uuid}    200
     FOR    ${location}    IN    @{info.json()}[locationsActive]
         ${events}=    Get From Dictionary    ${location}    events    ${EMPTY}
         FOR    ${event}    IN    @{events}
-            ${skip}=    Evaluate    '${event}[uuid]' in ${tried} or '${event}[uuid]' in ${DISRUPTIVE_EVENTS}
+            ${skip}=    Evaluate    '${event}[uuid]' in ${tried} or '${event}[uuid]' in ${DISRUPTIVE_EVENTS} or '${event}[uuid]' not in ${GRANTING_EVENTS}
             IF    ${event}[available] == ${True} and not ${skip}
                 RETURN    ${event}[uuid]
             END

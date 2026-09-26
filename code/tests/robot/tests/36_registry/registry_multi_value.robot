@@ -367,9 +367,8 @@ Registry Change Count
 Admin Rows
     [Documentation]    One admin collection of the story under test.
     [Arguments]    ${entity_type}
-    ${response}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/${entity_type}
-    Status Should Be    ${response}    200
-    RETURN    ${response.json()}
+    ${rows}=    Cached Admin Rows    ${STORY_UUID}    ${entity_type}
+    RETURN    ${rows}
 
 Multi Key Name
     [Documentation]    The multi-valued key THIS suite is about: the one whose seeded events
