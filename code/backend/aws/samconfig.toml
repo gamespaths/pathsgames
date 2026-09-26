@@ -1,9 +1,9 @@
 version = 0.1
 
 # Layout: dev + test in Ohio (us-east-2), artifacts in s3://pathsgames-test-iac/<env>/backend/;
-# production in N. Virginia (us-east-1), artifacts in s3://pathsgames-production-iac/production/backend/.
+# alpha, beta and production in N. Virginia (us-east-1), artifacts in s3://pathsgames-production-iac/<env>/backend/.
 # `tags` are stack-level: CloudFormation propagates them to every taggable resource, nested stacks
-# included, and they must match the in-template tags (Environment: dev / test / production).
+# included, and they must match the in-template tags (Environment: dev / test / alpha / beta / production).
 # SAM does NOT merge config-envs with [default]: each section is self-contained.
 # `version=` in tags (and the template's Version default) is rewritten by code/scripts/dev/bump-version.sh.
 # `Name=` on the stack tags is the stack itself (the root stack has no Tags property); every resource
@@ -17,7 +17,7 @@ region = "us-east-2"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
 parameter_overrides = "Environment=dev SeedBcryptHash=CHANGEME TableBillingMode=PROVISIONED TableReadCapacity=10 TableWriteCapacity=10 GsiReadCapacity=5 GsiWriteCapacity=5"
-tags = "Name=pathsgames-dev CostCenter=Paths.games Environment=dev ManagedBy=CloudFormation Owner=AlNao Project=Paths.games.aws.serverless version=0.38.1"
+tags = "Name=pathsgames-dev CostCenter=Paths.games Environment=dev ManagedBy=CloudFormation Owner=AlNao Project=Paths.games.aws.dev.serverless version=0.38.1"
 
 [dev.deploy.parameters]
 stack_name = "pathsgames-dev"
@@ -32,7 +32,7 @@ capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
 # PROVISIONED 10/10 + 2x5/5 stays inside the always-free 25 RCU/WCU: only ONE env per region can use it.
 parameter_overrides = "Environment=dev SeedBcryptHash=CHANGEME TableBillingMode=PROVISIONED TableReadCapacity=10 TableWriteCapacity=10 GsiReadCapacity=5 GsiWriteCapacity=5"
     #CustomDomainName=\"api-dev.paths.games\" CustomDomainCertificateArn=\"arn:aws:acm:us-east-2:xxxx:certificate/xxxx\" CustomDomainHostedZoneId=\"Zzzzzzzzzzzzzz\"
-tags = "Name=pathsgames-dev CostCenter=Paths.games Environment=dev ManagedBy=CloudFormation Owner=AlNao Project=Paths.games.aws.serverless version=0.38.1"
+tags = "Name=pathsgames-dev CostCenter=Paths.games Environment=dev ManagedBy=CloudFormation Owner=AlNao Project=Paths.games.aws.dev.serverless version=0.38.1"
 
 [test.deploy.parameters]
 stack_name = "pathsgames-test"
@@ -45,7 +45,32 @@ capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
 # Turnstile / admin IP whitelist / custom domain come from .env via scripts/test/aws/aws_backend_deploy.sh.
 parameter_overrides = "Environment=test SeedBcryptHash=CHANGEME TableBillingMode=PAY_PER_REQUEST"
     #CustomDomainName=\"api-test.paths.games\" CustomDomainCertificateArn=\"arn:aws:acm:us-east-2:xxxx:certificate/xxxx\" CustomDomainHostedZoneId=\"Zzzzzzzzzzzzzz\"
-tags = "Name=pathsgames-test CostCenter=Paths.games Environment=test ManagedBy=CloudFormation Owner=AlNao Project=Paths.games.aws.serverless version=0.38.1"
+tags = "Name=pathsgames-test CostCenter=Paths.games Environment=test ManagedBy=CloudFormation Owner=AlNao Project=Paths.games.aws.test.serverless version=0.38.1"
+
+# alpha / beta are public releases (V0 alpha, V1 beta): configured like prod, own stack and table.
+[alpha.deploy.parameters]
+stack_name = "pathsgames-alpha"
+s3_bucket = "pathsgames-production-iac"
+s3_prefix = "alpha/backend"
+region = "us-east-1"
+confirm_changeset = false
+fail_on_empty_changeset = false
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+# JwtSecret, TurnstileSecretKey, AdminIpWhitelist, CorsAllowOrigins, custom domain: pass at deploy time.
+parameter_overrides = "Environment=alpha AllowMockAccess=false RateLimitGuestPerIp=10 RateLimitMatchPerIp=10"
+tags = "Name=pathsgames-alpha CostCenter=Paths.games Environment=alpha ManagedBy=CloudFormation Owner=AlNao Project=Paths.games.aws.alpha.serverless version=0.38.1"
+
+[beta.deploy.parameters]
+stack_name = "pathsgames-beta"
+s3_bucket = "pathsgames-production-iac"
+s3_prefix = "beta/backend"
+region = "us-east-1"
+confirm_changeset = false
+fail_on_empty_changeset = false
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+# JwtSecret, TurnstileSecretKey, AdminIpWhitelist, CorsAllowOrigins, custom domain: pass at deploy time.
+parameter_overrides = "Environment=beta AllowMockAccess=false RateLimitGuestPerIp=10 RateLimitMatchPerIp=10"
+tags = "Name=pathsgames-beta CostCenter=Paths.games Environment=beta ManagedBy=CloudFormation Owner=AlNao Project=Paths.games.aws.beta.serverless version=0.38.1"
 
 [prod.deploy.parameters]
 stack_name = "pathsgames-prod"
@@ -57,4 +82,4 @@ fail_on_empty_changeset = false
 capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
 # JwtSecret, TurnstileSecretKey, AdminIpWhitelist, CorsAllowOrigins, custom domain: pass at deploy time.
 parameter_overrides = "Environment=prod AllowMockAccess=false RateLimitGuestPerIp=10 RateLimitMatchPerIp=10"
-tags = "Name=pathsgames-prod CostCenter=Paths.games Environment=production ManagedBy=CloudFormation Owner=AlNao Project=Paths.games.aws.serverless version=0.38.1"
+tags = "Name=pathsgames-prod CostCenter=Paths.games Environment=production ManagedBy=CloudFormation Owner=AlNao Project=Paths.games.aws.production.serverless version=0.38.1"

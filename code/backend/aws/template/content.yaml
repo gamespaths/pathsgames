@@ -6,7 +6,7 @@ Parameters:
     Type: String
   EnvironmentTag:
     Type: String
-    Description: "Value of the Environment tag (dev / test / production), mapped by the root stack."
+    Description: "Value of the Environment tag (dev / test / alpha / beta / production), mapped by the root stack."
   Version:
     Type: String
     Description: "Project version, applied as the `version` tag on every resource."
@@ -43,7 +43,7 @@ Resources:
         - Key: Owner
           Value: AlNao
         - Key: Project
-          Value: Paths.games.aws.serverless
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
         - Key: version
           Value: !Ref Version
 
@@ -68,7 +68,7 @@ Resources:
         Environment: !Ref EnvironmentTag
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games.aws.serverless
+        Project: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
         version: !Ref Version
       Environment:
         Variables:

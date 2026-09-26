@@ -111,7 +111,7 @@ google-analytics.com  →  https://google-analytics.com  +  https://*.google-ana
 
 ## Tagging
 
-Every resource is tagged through the provider's `default_tags` (`main.tf`), the same seven keys used by the SAM backend stacks (though `Project` here still reads `Paths.games`, not the SAM stacks' `Paths.games.aws.serverless`):
+Every resource is tagged through the provider's `default_tags` (`main.tf`), the same seven keys used by the SAM backend stacks (though `Project` here still reads `Paths.games`, not the SAM stacks' `Paths.games.aws.<env>.serverless`):
 
 | Tag | Value |
 |---|---|

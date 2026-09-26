@@ -6,7 +6,7 @@ Parameters:
   Environment:
     Type: String
     Default: dev
-    AllowedValues: [dev, test, prod]
+    AllowedValues: [dev, test, alpha, beta, prod]
     Description: "Deploy environment. Suffix of every resource name, API stage and Lambda ENV; the Environment tag is mapped from it (prod -> production)."
   Version:
     Type: String
@@ -127,13 +127,23 @@ Parameters:
 Mappings:
   # Environment tag value per deploy environment. The parameter keeps `prod` because resource
   # names, the API stage and the Lambda ENV guards key on it; only the tag says `production`.
+  # Project tag = Paths.games.aws.<Name>.serverless.
   EnvironmentTags:
     dev:
       Name: dev
+      Project: Paths.games.aws.dev.serverless
     test:
       Name: test
+      Project: Paths.games.aws.test.serverless
+    alpha:
+      Name: alpha
+      Project: Paths.games.aws.alpha.serverless
+    beta:
+      Name: beta
+      Project: Paths.games.aws.beta.serverless
     prod:
       Name: production
+      Project: Paths.games.aws.production.serverless
 
 Conditions:
   IsProvisioned: !Equals [!Ref TableBillingMode, PROVISIONED]
@@ -160,7 +170,7 @@ Resources:
         - Key: Owner
           Value: AlNao
         - Key: Project
-          Value: Paths.games.aws.serverless
+          Value: !FindInMap [EnvironmentTags, !Ref Environment, Project]
         - Key: version
           Value: !Ref Version
       AttributeDefinitions:
@@ -279,7 +289,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games.aws.serverless
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
         version: !Ref Version
       CorsConfiguration:
         AllowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
@@ -302,7 +312,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games.aws.serverless
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
         version: !Ref Version
 
   # Dedicated ADMIN HTTP API — serves ONLY /api/admin/** routes and is gated by an
@@ -318,7 +328,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games.aws.serverless
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
         version: !Ref Version
       CorsConfiguration:
         AllowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
@@ -338,7 +348,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games.aws.serverless
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
         version: !Ref Version
 
   AdminIpAuthorizerLogGroup:
@@ -359,7 +369,7 @@ Resources:
         - Key: Owner
           Value: AlNao
         - Key: Project
-          Value: Paths.games.aws.serverless
+          Value: !FindInMap [EnvironmentTags, !Ref Environment, Project]
         - Key: version
           Value: !Ref Version
 
@@ -384,7 +394,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games.aws.serverless
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
         version: !Ref Version
       Environment:
         Variables:
@@ -427,7 +437,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games.aws.serverless
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
         version: !Ref Version
 
   PathsGamesApiMapping:
@@ -466,7 +476,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games.aws.serverless
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
         version: !Ref Version
       Parameters:
         Environment: !Ref Environment
@@ -489,7 +499,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games.aws.serverless
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
         version: !Ref Version
       Parameters:
         Environment: !Ref Environment
@@ -519,7 +529,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games.aws.serverless
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
         version: !Ref Version
       Parameters:
         Environment: !Ref Environment
@@ -549,7 +559,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games.aws.serverless
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
         version: !Ref Version
       Parameters:
         Environment: !Ref Environment
@@ -582,7 +592,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games.aws.serverless
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
         version: !Ref Version
       Parameters:
         Environment: !Ref Environment
@@ -605,7 +615,7 @@ Resources:
         Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
         ManagedBy: CloudFormation
         Owner: AlNao
-        Project: Paths.games.aws.serverless
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
         version: !Ref Version
       Parameters:
         Environment: !Ref Environment

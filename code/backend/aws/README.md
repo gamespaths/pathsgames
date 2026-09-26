@@ -37,7 +37,7 @@ custom domain, the 6 nested stacks) carries the same seven tags:
   parameter keeps `prod`, only the tag says `production`)
 - `ManagedBy` = `CloudFormation`
 - `Owner` = `AlNao`
-- `Project` = `Paths.games.aws.serverless`
+- `Project` = `Paths.games.aws.<env>.serverless`
 - `version` = the project version (e.g. `0.38.1`), from the template's `Version` parameter;
   its default, the `samconfig.toml` `version=` tag value, and `VERSION` in the root `.env` are
   kept in sync by `code/scripts/dev/bump-version.sh`.
@@ -283,7 +283,7 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 ### v0.38.1 — Per-target `Project` tag
 
-- `Project` tag now `Paths.games.aws.serverless` in `template.yaml`, the 6 nested `template/*.yaml` modules, `samconfig.toml` (all config-envs) and `aws_backend_deploy.sh`.
+- `Project` tag now `Paths.games.aws.<env>.serverless` in `template.yaml`, the 6 nested `template/*.yaml` modules, `samconfig.toml` (all config-envs) and `aws_backend_deploy.sh`.
 
 ### v0.38.0 — Resource tagging & `test` deploy environment
 

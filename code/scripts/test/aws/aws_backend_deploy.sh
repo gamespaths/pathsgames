@@ -77,7 +77,7 @@ if [ -z "$_VERSION" ]; then
     fi
     echo "  WARNING: VERSION not set in .env — using pom.xml version $_VERSION for the version tag."
 fi
-_STACK_TAGS="Name=${AWS_STACK_NAME_TEST} CostCenter=Paths.games Environment=${AWS_ENVIRONMENT_NAME_TEST} ManagedBy=CloudFormation Owner=AlNao Project=Paths.games.aws.serverless version=${_VERSION}"
+_STACK_TAGS="Name=${AWS_STACK_NAME_TEST} CostCenter=Paths.games Environment=${AWS_ENVIRONMENT_NAME_TEST} ManagedBy=CloudFormation Owner=AlNao Project=Paths.games.aws.${AWS_ENVIRONMENT_NAME_TEST}.serverless version=${_VERSION}"
 
 
 echo "Deploying stack '$AWS_STACK_NAME_TEST' to region '$AWS_REGION_TEST' (Environment: $AWS_ENVIRONMENT_NAME_TEST, version: $_VERSION, artifacts: s3://$AWS_S3_BUCKET_BASE_TEST/$S3_PREFIX/)"

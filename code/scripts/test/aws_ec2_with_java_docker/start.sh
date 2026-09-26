@@ -102,7 +102,7 @@ SG_NAME="${INSTANCE_NAME}-sg"
 # Tag list lives in ../aws_tags.txt; ${NAME}/${ENV_TAG}/${LANGUAGE}/${PROJECT_SUFFIX} are expanded here.
 ENV_TAG="${ENV_TAG:-test}"
 LANGUAGE="Java"
-PROJECT_SUFFIX="aws.ec2.docker.java"
+PROJECT_SUFFIX="aws.${ENV_TAG}.ec2.docker.java"
 TAGS_FILE="$SCRIPT_DIR/../aws_tags.txt"
 [ -f "$TAGS_FILE" ] || { echo "[start.sh] ERROR: tags file not found: $TAGS_FILE"; exit 1; }
 # Emit "Key<TAB>Value" lines from TAGS_FILE, placeholders expanded ($1 = resource Name)
