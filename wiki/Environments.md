@@ -27,6 +27,10 @@ through `./tf.sh <env> <command>`.
   `<env>.paths.games` subdomain works without its own certificate. Every non-production
   environment looks it up read-only (`data "aws_acm_certificate"`, most recent `ISSUED` cert
   for that domain) instead of requesting its own.
+- **API certificates**: an API Gateway custom domain needs a certificate in the API's own
+  region. The `test` API (us-east-2, `api-test.paths.games`) uses a certificate made by hand in
+  the console, not in Terraform, passed as `AWS_DOMAIN_CERTIFICATE_ARN_TEST`; the stage APIs
+  (`alpha-api`, `beta-api`, production, all us-east-1) are covered by the wildcard above.
 - **CSP allowlists** live in 5 SSM `StringList` parameters under `/paths-games/csp/`
   (`script-src`, `style-src`, `font-src`, `img-src`, `connect-src`), created once by
   `production` and read by every other environment; an environment can extend them locally
@@ -89,12 +93,12 @@ and comments:
 helpers) — `.env`/`.env.example` files are optional convenience for local/CI runs, never a
 requirement for the code to start.
 
-## 5. Test ACM certificate — analysis planned in step 0.41
+## 5. Test ACM certificate — moved to V1 step 41
 
-Today `test` shares production's ACM certificate (§2) by lookup rather than owning one. Once
-the per-version stage model (§3) is real, each stage will need its own reachable HTTPS
-domain; whether that still means "one shared wildcard certificate looked up by every stage"
-or "one certificate per stage" is an open question, deferred to step 0.41.
+Certificates stay as described in §2: the websites and the stage APIs share the wildcard
+owned by the production website state, the test API uses its hand-made us-east-2 certificate.
+Known limit: the shared certificate's life is tied to the production website state. Whether
+every stage keeps sharing one wildcard or gets its own certificate is decided in V1 step 41.
 
 ## 6. Environment variables refactor — planned in V1
 
@@ -103,13 +107,14 @@ per-server `_EC2`/`_EC2_PY` suffixes) and are due a naming/structure pass once V
 its own environment needs (SSO credentials, additional backends). Deferred, not scoped yet.
 
 # Version Control
-- **Document Version**: 0.40.0
+- **Document Version**: 0.41.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First shared map of where each version runs | September 25, 2026 |
+  | 0.41.0 | Documented today's certificates; the harder decision waits for V1 | September 27, 2026 |
 
-- **Last Updated**: September 25, 2026 (v0.40.0)
+- **Last Updated**: September 27, 2026 (v0.41.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

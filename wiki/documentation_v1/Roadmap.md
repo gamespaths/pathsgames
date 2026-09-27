@@ -96,7 +96,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Preference saved in the profile (backend, frontend)
     - Unit tests (tests)
 13. **Environment variables refactor — backends** — one naming convention, defaults in code.
-    - Apply the analysis of step 0.41 ([Environments](../Environments.md)) (docs)
+    - Analyse the variable naming and stages ([Environments](../Environments.md) §6) and apply it; no longer planned in step 0.41 (docs)
     - Common naming of variables across Java, Python and AWS (backend)
     - Every parameter has a code default: env files become optional (backend)
     - Update `application.yml`, `config.py` and SAM parameters (backend)
@@ -253,6 +253,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Privacy check: policy, consent, stored data (all)
     - Verify migrated data with Robot suites (tests)
     - Rollback plan (docs)
+    - Certificates: analysis in [Environments](../Environments.md) (who owns the ACM certificates, regions, stages, future-proof) and the chosen change; moved from step 0.41, where they stayed as they were (infra, docs)
 42. **Beta launch** — recurring.
     - New stage `beta`: own AWS stack, bucket and site; `beta.paths.games`, `beta-api.paths.games` (infra)
     - Content license check (docs)

@@ -7,7 +7,7 @@ step N is released as `0.N.0`. The map of all versions is the
 
 - **Steps 1-13**: start the project, define scope and technology stack, create prototypes, guest login and sessions.
 - **Steps 14-39**: single-player game system with guest login: stories, match creation, game engine, mechanics, frontends.
-- **Steps 40-41**: alpha preparation: tutorial and UX polish, logging and snapshots, security, admin protection, guest limits, KPI report, test certificate.
+- **Steps 40-41**: alpha preparation: tutorial and UX polish, logging and snapshots, security, admin protection, guest limits, KPI report.
 - **Step 42**: **launch of the alpha** single-player version on the AWS backend, released like a production environment.
 
 Until v0.39 this file listed 101 steps; the old steps 43-101 moved to later versions as described
@@ -57,8 +57,8 @@ in the [Global Roadmap](../Roadmap.md) §3.
 | 37 | [Mission system](./Step37_MissionSystem.md) | ✅ | Missions are a projection of the registry: `condition_value`/`condition_values` (PIPE AND), AVAILABLE→ACTIVE→COMPLETED/FAILED, `/api/match/{uuid}/missions` and `missions[]` on `/info` |
 | 38 | [Experience system](./Step38_ExperienceSystem.md) | ✅ | `use-exp` spends `gaming_character_instance.exp` to raise DEX/INT/COS by one at a difficulty-priced cost; `is_safe`→`secure_param`, `cost_max_characteristics`→`exp_cost_base`/`max_stat_value` |
 | 39 | [Random events](./Step39_RandomEvents.md) | ✅ | At most one `list_global_random_events` row fires at time-start, after the weather; absolute-percentage pick, party-wide reach, `RANDOM_EVENT` trigger in `counterZero[]` |
-| 40 | Alpha UX polish | | Tutorial tips on card pages, weather display fix, environment badge, resource logs check, match list restyle, roadmap book |
-| 41 | Alpha preparation | | Logging and snapshots, security, admin IP protection, guest cleanup and limits, KPI report, test certificate |
+| 40 | [Alpha UX polish](./Step40_AlphaUxPolish.md) | ✅ | Tutorial tips on card pages, weather display fix, environment badge, resource logs check, match list restyle, roadmap book |
+| 41 | [Alpha preparation](./Step41_AlphaPreparation.md) | | Logging and snapshots, security, admin IP protection, guest cleanup and limits, KPI report |
 | 42 | **Alpha launch** | | Backup and alarms, privacy check, alpha stage on AWS, alpha story, license, launch |
 
 
@@ -72,22 +72,13 @@ Each step is analysed and developed with the project agents (workflow in
 
 ## Steps 40-42 — Alpha preparation and launch
 
-40. Alpha UX polish
-    - Tips and tutorial on card pages: first-time hints explaining each card type and action (frontend)
-    - Counter-zero events hide the new weather: when a counter-zero event fires at time-start, the new weather card must still be shown (backend, frontend)
-    - Environment badge in the header: show dev, test, alpha, beta, … or nothing in prod, from a build/runtime parameter (frontend)
-    - Verify that gaining items, food, coins and magic is written in the match logs, on every backend; fix the gaps (backend)
-    - Restyle the match list in the user's book: clearer status, story, dates and actions (frontend)
-    - Roadmap book in react-game, like the cookie-policy and footer-link books, showing the versions and their themes (frontend)
-    - Write unit tests and Robot checks for the weather display, the logs and the new books (tests)
 41. Alpha preparation — logging, security, protection, KPI
     - Logging gaps: log every remaining player action and automatic effect with match, character, clock and details; keep a check on log size (AWS `LOG#` rows) (backend)
     - Match snapshots: light snapshot at each time-end, admin list and restore endpoints, integrity check before restore (backend, frontend)
-    - Residual security: security headers, dependency vulnerability scan, secrets review, CORS and `WebConfig` check (backend, frontend)
+    - Residual security: security headers, dependency vulnerability scan, secrets review, CORS and `WebConfig` check, stricter website CSP on test (backend, frontend, infra)
     - Admin IP allow-list on AWS: new parameter deciding whether an empty list means "everybody" or "nobody", default "nobody", on dev and test too; deploy scripts detect the caller's public IP (backend, infra)
     - Guests: periodic cleanup job for guests without matches, with a parametrised age (EventBridge on AWS, `@Scheduled` in Java, APScheduler in Python); guests with at least one match are never deleted; per-IP and per-guest creation limits from parameters with code defaults, blocking creation only (backend)
     - Basic KPI report without big changes: daily UTC counters per story (matches started and finished, completion rate, average duration, coma count every time a character falls, choice distribution, visited locations, mission status), light on DynamoDB; current state of active matches (location, life, players) through `/api/admin/matches` and `/info`; react-admin report page aggregating by day, month or total (backend, frontend)
-    - Test ACM certificate: analysis written in [Environments](../Environments.md) (certificates, stages, env variables, future-proof) and implementation of the chosen solution (infra, docs)
     - Write unit tests and Robot suites for snapshots, allow-list parameter, cleanup job, limits and KPI endpoints (tests)
 42. Alpha launch — single-player on AWS
     - Backup and alarms: DynamoDB point-in-time recovery, CloudWatch alarms (Lambda errors, throttling), AWS budget alert with notification (infra)
@@ -112,15 +103,16 @@ Each step is analysed and developed with the project agents (workflow in
     > ciao, read all "documentation_v0" for context, i wanna change my roadmap file, now I've 42 step, 13 already done and i started to work to step 14,  I wanna change my roadmap to be 101 step, 14 step should be stories management, from 14 to 42 should be single-player game system with only guess login, I would 42 step be "launch beta version with guess and single player game". since 43 to 84 "multiplayer game with credential login" with all multiplayer systems and game engine. since 85 to 101 test and launch system. all step with 7 subpoint , subpoint for backend and frontend too, add unit test into frontend and backend. 
 
 
-- **Document Version**: 0.40.0
+- **Document Version**: 0.41.0
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.1.0 | first version of this document | February 3, 2026 |
 	| 0.1.1 | added licence and version control sections, file renamed from "todolist" to "roadmap" | February 5, 2026 |
     | 0.1.2 | update "2. Define the V1 scope" and "3. Define the technology stack" sections | February 10, 2026 |
     | 0.40.0 | Roadmap rewritten: 42 steps per version, alpha launch | September 25, 2026 |
+    | 0.41.0 | Step 40 done; step 41 analysis closed, no certificate | September 27, 2026 |
 
-- **Last Updated**: September 25, 2026 (v0.40.0)
+- **Last Updated**: September 27, 2026 (v0.41.0)
 - **Status**: In progress
 
 

@@ -1,7 +1,7 @@
 # Step 40 — Alpha UX polish
 
-**Status: developed (v0.40.0), refined in a second pass (§8, decisions 20-31) — the new Robot
-suite has NOT run against a real backend yet (§6.6, §7).** Roadmap line: *tutorial tips on card
+**Status: developed (v0.40.0), refined in a second pass (§8, decisions 20-31) — Robot suite
+`40_alpha_ux` green on AWS, Java, Java + PostgreSQL and Python on September 26, 2026 (§6.6, §7).** Roadmap line: *tutorial tips on card
 pages, weather display fix, environment badge, resource logs check, match list restyle, roadmap
 book* ([Roadmap](./Roadmap.md) step 40). Mostly react-game; the weather fix and the resource
 logs also touch the three backends.
@@ -376,9 +376,9 @@ New suite `code/tests/robot/tests/40_alpha_ux/`, same pattern as `39_random_even
 8. regression: execute-event `EVENT` row gains and `ITEM_*` rows unchanged.
 9. the admin logs endpoint (port 8044) answers the same `CHOICE` row.
 
-**Run status**: the suite has been replayed in-process against the Python backend only (19/19
-green); it has **not** yet been run against a real Java, Python or AWS deployment. None of the
-existing suites listed below have been re-run for this step.
+**Run status**: the owner ran the full Robot collection on September 26, 2026 against AWS, Java,
+Java + PostgreSQL and Python (785 tests each, 0 failed), `40_alpha_ux` and the existing suites
+listed below included.
 
 **Existing suites to re-run and adapt if needed** (only after asking the owner, as for every
 existing Robot test): `28_movement/match_logs*.robot` (row counts), `29_events/resource_costs.robot`
@@ -432,10 +432,10 @@ Tips, badge, match list and books are UI-only: covered by vitest, not Robot.
   `Footer` (alpha line built/dropped from `envBadgeLabel`, server row with fixed name / dot).
 - **react-admin** (vitest): `EnvBadge`, `MatchLogsCard` `CHOICE`.
 - **Robot**: `40_alpha_ux/` (10 time-end cases + 9 log cases, §6.6) written and replayed
-  in-process on Python only (19/19 green) — **not yet run against a real Java, Python or AWS
-  deployment**; none of the potentially-exposed existing suites (`27_weather`, `28_movement`,
-  `32_choice_resolution`, `33_location_events`, `34_inventory`, `39_random_events`) have been
-  re-run for this step.
+  in-process on Python first (19/19 green), then run by the owner with the full collection on
+  September 26, 2026 on all four targets (785 tests, 0 failed), the potentially-exposed suites
+  (`27_weather`, `28_movement`, `32_choice_resolution`, `33_location_events`, `34_inventory`,
+  `39_random_events`) included.
 
 ## 8. Decisions (all doubts resolved)
 
@@ -479,7 +479,7 @@ Tips, badge, match list and books are UI-only: covered by vitest, not Robot.
   | 0.40.0 | First analysis of the alpha polish step, refined after development | September 25, 2026 |
 
 - **Last Updated**: September 25, 2026 (v0.40.0)
-- **Status**: Developed; Robot suite `40_alpha_ux` not yet run against a real backend
+- **Status**: Developed; Robot suite `40_alpha_ux` green on all four targets (September 26, 2026)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

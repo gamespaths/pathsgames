@@ -26,7 +26,8 @@ Shared references: [Architecture](../Architecture.md),
     - List of doubts for the owner (docs)
 2. **Docker images** — old step 98.
     - Multi-stage images for Java and Python (infra)
-    - Vulnerability scanning in the build pipeline (infra)
+    - Vulnerability scanning in the build pipeline (infra) — dependency/manifest scanning
+      already brought forward to V0 step 0.41; this step covers container images
     - Image tags aligned with versions (infra)
     - Registry push (Docker Hub already used for Java) (infra)
     - Image smoke tests (tests)
@@ -162,13 +163,14 @@ Shared references: [Architecture](../Architecture.md),
     - Launch, smoke test and load test at 50% of target capacity (all)
 
 # Version Control
-- **Document Version**: 0.40.0
+- **Document Version**: 0.41.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First draft of the infrastructure version plan | September 25, 2026 |
+  | 0.41.0 | Noted image scanning overlap with the new step 0.41 | September 27, 2026 |
 
-- **Last Updated**: September 25, 2026 (v0.40.0)
+- **Last Updated**: September 27, 2026 (v0.41.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
