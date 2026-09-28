@@ -163,16 +163,54 @@ class GuestPersistenceAdapterTest {
         }
 
         @Test
-        @DisplayName("Should delegate cleanup to repositories and return deleted user count")
+        @DisplayName("Should delete only the unreferenced expired guests, tokens first")
         void deleteExpiredGuests_logic() {
-            when(userTokenRepository.deleteTokensOfExpiredGuests(anyInt(), anyString())).thenReturn(5);
-            when(userRepository.deleteExpiredGuests(anyInt(), anyString())).thenReturn(3);
+            // v0.41.0 — the ids come from the guarded native query (Integer on SQLite)
+            when(userRepository.findExpiredGuestIdsWithoutReferences(eq(6), anyString()))
+                    .thenReturn(java.util.List.of(1, 2L, 3));
+            when(userRepository.deleteGuestsByIds(6, java.util.List.of(1L, 2L, 3L))).thenReturn(3);
 
             int deleted = adapter.deleteExpiredGuests();
 
             assertEquals(3, deleted);
-            verify(userTokenRepository).deleteTokensOfExpiredGuests(eq(6), anyString());
-            verify(userRepository).deleteExpiredGuests(eq(6), anyString());
+            org.mockito.InOrder order = inOrder(userTokenRepository, userRepository);
+            order.verify(userTokenRepository).deleteTokensOfUsers(java.util.List.of(1L, 2L, 3L));
+            order.verify(userRepository).deleteGuestsByIds(6, java.util.List.of(1L, 2L, 3L));
+        }
+
+        @Test
+        @DisplayName("Nothing expired and unreferenced: no delete is issued")
+        void deleteExpiredGuests_noneLeft() {
+            when(userRepository.findExpiredGuestIdsWithoutReferences(eq(6), anyString()))
+                    .thenReturn(java.util.List.of());
+
+            assertEquals(0, adapter.deleteExpiredGuests());
+            verifyNoInteractions(userTokenRepository);
+            verify(userRepository, never()).deleteGuestsByIds(anyInt(), any());
+        }
+
+        @Test
+        @DisplayName("More than 500 ids are deleted in chunks of 500")
+        void deleteExpiredGuests_chunks() {
+            java.util.List<Number> ids = new java.util.ArrayList<>();
+            for (long i = 1; i <= 1201; i++) {
+                ids.add(i);
+            }
+            when(userRepository.findExpiredGuestIdsWithoutReferences(eq(6), anyString())).thenReturn(ids);
+            when(userRepository.deleteGuestsByIds(eq(6), any())).thenAnswer(inv ->
+                    ((java.util.List<?>) inv.getArgument(1)).size());
+
+            assertEquals(1201, adapter.deleteExpiredGuests());
+            verify(userTokenRepository, times(3)).deleteTokensOfUsers(any());
+            verify(userRepository, times(3)).deleteGuestsByIds(eq(6), any());
+        }
+
+        @Test
+        @DisplayName("v0.41.0 — backdating a guest is one native update")
+        void backdateGuest_delegates() {
+            adapter.backdateGuest(9L, "2025-01-01T00:00:00Z");
+
+            verify(userRepository).backdateGuest(9L, "2025-01-01T00:00:00Z");
         }
     }
 }

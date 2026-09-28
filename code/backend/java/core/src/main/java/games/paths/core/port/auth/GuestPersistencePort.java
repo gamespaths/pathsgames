@@ -44,9 +44,12 @@ public interface GuestPersistencePort {
     void updateLastAccess(long userId);
 
     /**
-     * Deletes expired guest users and their associated tokens.
+     * Deletes expired guest users and their associated tokens (v0.41.0: referenced guests are kept).
      *
      * @return the number of guest users removed
      */
     int deleteExpiredGuests();
+
+    /** v0.41.0 — dev/test only: registration and last access moved back to this ISO-8601 instant. */
+    void backdateGuest(long userId, String instant);
 }

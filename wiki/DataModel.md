@@ -44,7 +44,7 @@ is omitted below since it applies uniformly within each tier.
 
 | Table | Purpose / key columns |
 |---|---|
-| `users` | Account: `username`, `password_hash`, `email_address`, `google_id_sso`, role (`ADMIN`/`PLAYER`), `state` (§6.3), `language`, `guest_cookie_token`, `guest_expires_at`, `theme_selected`. |
+| `users` | Account: `username`, `password_hash`, `email_address`, `google_id_sso`, role (`ADMIN`/`PLAYER`), `state` (§6.3), `language`, `guest_cookie_token`, `guest_expires_at`, `theme_selected`; index `(state, ts_last_access)` for the guest-cleanup query (`V0.41.0`; Python's column is `last_access`, same index). |
 | `users_tokens` | Refresh tokens: `id_user`, `refresh_token`, `expires_at`, `revoked`. |
 
 ### 2.3 Story Content — reference (23)
@@ -251,13 +251,14 @@ addition — its per-entity column lists (§1.3) still mention the old columns. 
 directly; Step09 remains the source for full rationale and history.
 
 # Version Control
-- **Document Version**: 0.40.0
+- **Document Version**: 0.41.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First version of the shared data model reference | September 25, 2026 |
+  | 0.41.0 | New guest-cleanup index on the users table | September 28, 2026 |
 
-- **Last Updated**: September 25, 2026 (v0.40.0)
+- **Last Updated**: September 28, 2026 (v0.41.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

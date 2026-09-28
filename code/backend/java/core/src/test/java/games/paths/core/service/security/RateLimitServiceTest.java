@@ -110,6 +110,39 @@ class RateLimitServiceTest {
     }
 
     @Test
+    @DisplayName("v0.41.0 - a counter keeps its own window: 24 h survives the 1 h sweep")
+    void perCounterWindowSurvivesTheSweep() {
+        TestClock clock = new TestClock();
+        RateLimitService svc = new RateLimitService(3600, clock);
+        assertTrue(svc.tryAcquire("match-guest", "user-1", 1, 86400).allowed());
+        RateLimitService.Verdict refused = svc.tryAcquire("match-guest", "user-1", 1, 86400);
+        assertFalse(refused.allowed());
+        assertEquals(86400, refused.retryAfterSeconds());
+        // Two hours and a full sweep later the daily window is still shut.
+        clock.now += 7_200_000L;
+        for (int i = 0; i < 2100; i++) {
+            svc.tryAcquire("match", "ip-" + i, 1);
+        }
+        RateLimitService.Verdict still = svc.tryAcquire("match-guest", "user-1", 1, 86400);
+        assertFalse(still.allowed());
+        assertEquals(79200, still.retryAfterSeconds());
+        clock.now += 79_200_000L;
+        assertTrue(svc.tryAcquire("match-guest", "user-1", 1, 86400).allowed());
+    }
+
+    @Test
+    @DisplayName("v0.41.0 - a non-positive per-counter window is clamped to one second")
+    void perCounterWindowClamped() {
+        TestClock clock = new TestClock();
+        RateLimitService svc = new RateLimitService(3600, clock);
+        svc.tryAcquire("match-guest", "u", 1, 0);
+        assertFalse(svc.tryAcquire("match-guest", "u", 1, 0).allowed());
+        clock.now += 1_000;
+        assertTrue(svc.tryAcquire("match-guest", "u", 1, -5).allowed());
+        assertTrue(svc.tryAcquire("match-guest", "u", 0, 10).allowed());
+    }
+
+    @Test
     @DisplayName("A non-positive window is clamped to one second")
     void windowClamped() {
         TestClock clock = new TestClock();

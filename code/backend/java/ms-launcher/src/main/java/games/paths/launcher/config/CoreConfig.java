@@ -83,6 +83,10 @@ public class CoreConfig {
     @Value("${game.auth.max-tokens-per-user:5}")
     private int maxTokensPerUser;
 
+    // v0.41.0 — cap of one match-less guest purge (the daily job and withoutMatches=true)
+    @Value("${game.admin.auth.guest.cleanup.max-per-run:500}")
+    private int guestCleanupMaxPerRun = GuestAdminService.DEFAULT_MAX_PER_RUN;
+
     // v0.37.6 — languages written by POST /api/admin/stories/catalog.
     @Value("${game.catalog.langs:en,it}")
     private List<String> catalogLangs;
@@ -92,9 +96,6 @@ public class CoreConfig {
 
     @Value("${game.turnstile.bypass-token:}")
     private String turnstileBypassToken;
-
-    @Value("${game.env:dev}")
-    private String gameEnv;
 
     // v0.37.7 — Step 41 security: rate-limit window and the CSRF secret/switch.
     @Value("${game.security.rate-limit.window-seconds:3600}")
@@ -126,7 +127,9 @@ public class CoreConfig {
     public GuestAdminPort guestAdminPort(GuestAdminPersistencePort persistencePort,
                                          games.paths.core.port.match.MatchPersistencePort matchPersistencePort) {
         // v0.36.2 — the stale purge takes a guest's matches with it, so it needs both ports.
-        return new GuestAdminService(persistencePort, matchPersistencePort);
+        GuestAdminService service = new GuestAdminService(persistencePort, matchPersistencePort);
+        service.setMaxPerRun(guestCleanupMaxPerRun);
+        return service;
     }
 
     @Bean
@@ -191,8 +194,9 @@ public class CoreConfig {
 
     @Bean
     public TurnstileVerificationPort turnstileVerificationPort(RestTemplate restTemplate) {
+        // v0.41.0 — the profile's game.server.env, not game.env (no script ever set APP_ENV)
         return new TurnstileVerificationAdapter(
-                turnstileSecretKey, turnstileBypassToken, gameEnv, restTemplate);
+                turnstileSecretKey, turnstileBypassToken, serverEnv, restTemplate);
     }
 
     // ───── Step 36: Registry (reads, writes and comparisons of gaming_state_registry) ─────

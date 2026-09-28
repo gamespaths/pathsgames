@@ -28,6 +28,7 @@ Parameters:
     Description: "Id of the IP-allow-list Lambda authorizer on the admin HTTP API."
   JwtSecret:
     Type: String
+    NoEcho: true
     Default: PathsGamesDevSecret2026_MustBeAtLeast32Chars!
   TurnstileSecretKey:
     Type: String
@@ -40,20 +41,30 @@ Parameters:
     Description: "Optional Robot-test bypass token. When non-empty, an incoming turnstileToken equal to this value skips Cloudflare verification. Leave empty in prod."
   AllowMockAccess:
     Type: String
-    Default: "true"
+    Default: "false"
   AdminIpWhitelist:
     Type: String
     Default: ""
+    Description: "Comma-separated allowed IPs for /api/admin/**. Empty = what AdminIpEmptyMeans says."
+  AdminIpEmptyMeans:
+    Type: String
+    Default: nobody
+    AllowedValues: [nobody, everybody]
   RateLimitMatchPerIp:
     Type: String
-    Default: "0"
+    Default: "20"
   RateLimitWindowSeconds:
     Type: String
     Default: "3600"
+  RateLimitMatchPerGuest:
+    Type: String
+    Default: "10"
+  RateLimitMatchPerGuestWindowSeconds:
+    Type: String
+    Default: "86400"
   CsrfEnforced:
     Type: String
     Default: "true"
-    Description: "Comma-separated allowed IPs for /api/admin/**. Empty = no restriction."
   RobotTestDataTtlHours:
     Type: String
     Default: "0"
@@ -115,8 +126,11 @@ Resources:
           STORY_CACHE_TTL_SECONDS: !Ref StoryCacheTtlSeconds
           ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
           ADMIN_IP_WHITELIST: !Ref AdminIpWhitelist
+          ADMIN_IP_EMPTY_MEANS: !Ref AdminIpEmptyMeans
           RATE_LIMIT_MATCH_PER_IP: !Ref RateLimitMatchPerIp
           RATE_LIMIT_WINDOW_SECONDS: !Ref RateLimitWindowSeconds
+          RATE_LIMIT_MATCH_PER_GUEST: !Ref RateLimitMatchPerGuest
+          RATE_LIMIT_MATCH_PER_GUEST_WINDOW_SECONDS: !Ref RateLimitMatchPerGuestWindowSeconds
           CSRF_ENFORCED: !Ref CsrfEnforced
           ROBOT_TEST_DATA_TTL_HOURS: !Ref RobotTestDataTtlHours
       Policies:

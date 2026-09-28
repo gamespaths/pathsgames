@@ -98,7 +98,9 @@ def test_create_guest_with_test_marker_uses_marker_prefix():
 
 
 def test_create_guest_ignores_test_marker_when_not_dev():
+    # v0.41.0 — a prod stack with the committed secret answers 500, so this one has its own
     with patch('auth.handler.db_utils.put_item', return_value=True), \
+         patch('common.jwt_utils.JWT_SECRET', 'a-private-prod-secret-of-at-least-32-chars'), \
          patch.dict(os.environ, {'ENV': 'prod'}):
         from auth.handler import lambda_handler
         event = make_event('POST', '/api/auth/guest', headers={'x-test-marker': 'robottest'})
@@ -108,7 +110,9 @@ def test_create_guest_ignores_test_marker_when_not_dev():
 
 def _create_guest_row(env, headers, ttl_hours='1'):
     """v0.39.1 — the USER# row create_guest writes, under the given ENV and TTL setting."""
+    # v0.41.0 — a private secret, so a prod ENV is not refused as misconfigured
     with patch('auth.handler.db_utils.put_item', return_value=True) as put, \
+         patch('common.jwt_utils.JWT_SECRET', 'a-private-prod-secret-of-at-least-32-chars'), \
          patch.dict(os.environ, {'ENV': env, 'ROBOT_TEST_DATA_TTL_HOURS': ttl_hours}):
         from auth.handler import lambda_handler
         result = lambda_handler(make_event('POST', '/api/auth/guest', headers=headers), {})

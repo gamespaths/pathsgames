@@ -26,7 +26,8 @@ The infrastructure is built entirely on managed AWS services:
 | Lambda Content | `pathsgames-<env>-ContentFunction` | Content detail: cards, texts, creators (3 routes) |
 | Lambda Seed | `pathsgames-<env>-SeedFunction` | Dev-only: inserts test data (stories, cards) |
 | Lambda AdminIpAuthorizer | `pathsgames-<env>-AdminIpAuthorizer` | REQUEST authorizer (no caching) gating the admin HTTP API by source IP |
-| Log Groups ×7 | `/aws/lambda/pathsgames-<env>-*` | One per Lambda above, deleted with the stack |
+| Lambda GuestCleanup | `pathsgames-<env>-GuestCleanupFunction` | v0.41.0: daily (00:42 UTC default) deletion of match-less guests idle past `GuestCleanupAgeDays`, on an EventBridge `ScheduleV2` in a tagged `AWS::Scheduler::ScheduleGroup` |
+| Log Groups ×8 | `/aws/lambda/pathsgames-<env>-*` | One per Lambda above, deleted with the stack |
 
 ### Tagging
 
@@ -258,6 +259,40 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 ---
 
 ## 📝 Changelog
+
+### v0.41.0 — Alpha preparation patch 1: security, admin allow-list, guest cleanup
+
+- **Secrets/env rule**: `test_data_ttl.TEST_ENVS` gained `development`; the Turnstile bypass and
+  the dev-only `X-Test-Guest-Age-Days` header are honoured only when `ENV` is in that set;
+  `jwt_utils.misconfigured()` answers 500 `MISCONFIGURED` outside dev/test when the JWT secret
+  is still the committed default; `AllowMockAccess` default flipped to `"false"` (the test
+  deploy script passes `"true"`). New `JwtSecret` wiring to `StoryModule` and `SeedModule` (they
+  verify/sign tokens too, previously missed by the JWT rotation).
+- **Security headers**: `common/response.py` `HEADERS` + `finalize(resp, path)` add
+  `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Content-Security-Policy`,
+  `Strict-Transport-Security` to every response, and `Cache-Control: no-store` on
+  `/api/auth/**`/`/api/admin/**`; `Retry-After` stays exposed by CORS.
+- **Admin allow-list**: new parameter `AdminIpEmptyMeans` (`nobody` default, `everybody`),
+  read by the authorizer and every Lambda with admin routes through one shared
+  `common/http_utils.admin_ip_allowed`/`check_admin_ip` — the three private per-handler copies
+  are gone.
+- **Guest cleanup**: `cleanup_expired` (`DELETE /api/admin/guests/expired`) now skips guests
+  owning a match (one GSI1 `USER_MATCHES#` query, `Limit 1`) instead of orphaning it — bug fix.
+  New `GuestCleanupFunction` (`template/auth.yaml`), an EventBridge `ScheduleV2` inside a tagged
+  `AWS::Scheduler::ScheduleGroup` (a plain `Schedule` event cannot carry tags), running the same
+  code as `DELETE /api/admin/guests/stale?withoutMatches=true`; new parameters
+  `GuestCleanupEnabled`/`GuestCleanupAgeDays`(60)/`GuestCleanupMaxPerRun`(500)/
+  `GuestCleanupSchedule` (default `cron(42 0 * * ? *)`).
+- **Rate limits**: code defaults raised to `RateLimitGuestPerIp`/`RateLimitMatchPerIp` `"20"`
+  (was `"0"`); new per-guest bucket `RateLimitMatchPerGuest` (`"10"`, window
+  `RateLimitMatchPerGuestWindowSeconds` `"86400"`), checked in `_create_match`
+  (`security_utils.match_per_guest()`); the window is now stored per counter.
+- **Dev-only header**: `X-Test-Guest-Age-Days: N` (1–3650) on `POST /api/auth/guest`, honoured
+  only alongside a valid `X-Test-Marker` and only when `ENV` is in `TEST_ENVS` — ages a fresh
+  guest for the Robot cleanup suite.
+- No DynamoDB item-shape or GSI change. Unit tests: 1202 pass (`tests/test_step41_alpha_prep.py`
+  new; `test_authorizer_handler.py`/`test_auth_handler_admin.py` extended for the allow-list
+  default).
 
 ### v0.39.1 — Robot test-data bugfix + DynamoDB TTL
 

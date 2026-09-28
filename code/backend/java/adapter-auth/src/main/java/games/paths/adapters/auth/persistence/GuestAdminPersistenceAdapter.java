@@ -65,9 +65,10 @@ public class GuestAdminPersistenceAdapter implements GuestAdminPersistencePort {
 
     @Override
     public int deleteExpiredGuests() {
-        String now = Instant.now().toString();
-        userTokenRepository.deleteTokensOfExpiredGuests(GUEST_STATE, now);
-        return userRepository.deleteExpiredGuests(GUEST_STATE, now);
+        // v0.41.0 — only the expired guests nothing references; tokens first, in chunks
+        List<Long> ids = GuestBatchDelete.toLongs(userRepository.findExpiredGuestIdsWithoutReferences(
+                GUEST_STATE, Instant.now().toString()));
+        return GuestBatchDelete.deleteGuests(ids, userRepository, userTokenRepository);
     }
 
     @Override
@@ -121,11 +122,17 @@ public class GuestAdminPersistenceAdapter implements GuestAdminPersistencePort {
 
     @Override
     public int deleteGuestsByIds(List<Long> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return 0;
+        return GuestBatchDelete.deleteGuests(ids, userRepository, userTokenRepository);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Long> findStaleGuestIdsWithoutReferences(String lastAccessBefore, int limit) {
+        if (lastAccessBefore == null || limit <= 0) {
+            return List.of();
         }
-        userTokenRepository.deleteTokensOfUsers(ids);
-        return userRepository.deleteGuestsByIds(GUEST_STATE, ids);
+        return GuestBatchDelete.toLongs(userRepository.findStaleGuestIdsWithoutReferences(
+                GUEST_STATE, lastAccessBefore, limit));
     }
 
     /** The page rows carry the numeric id too: the keyset cursor is built from it. */

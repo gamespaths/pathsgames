@@ -74,7 +74,7 @@ variable "csp_mode" {
 }
 
 variable "csp_extra_domains" {
-  description = "Extra CSP base domains per directive (script, style, font, img, connect), added to the shared SSM lists; e.g. the API and Turnstile hosts of a react-game environment"
+  description = "Extra CSP base domains per directive (script, style, font, img, connect), added to the shared SSM lists; e.g. the API and Turnstile hosts of a react-game environment. The key frame (no SSM list) adds a frame-src directive only when non-empty (v0.41.0, the Turnstile iframe)"
   type        = map(list(string))
   default     = {}
 }

@@ -38,6 +38,10 @@ class GuestAdminPersistencePort(ABC):
     def find_guest_ids_with_last_access_before(self, before: str) -> List[int]:
         """The ids of every guest last seen before the bound — what a stale purge takes."""
 
+    def find_stale_guest_ids_without_references(self, before: str, limit: int) -> List[int]:
+        """v0.41.0 — at most ``limit`` stale guests nothing references (nobody by default)."""
+        return []
+
     @abstractmethod
     def delete_guests_by_ids(self, ids: List[int]) -> int:
         """Delete these guests and their tokens. Returns how many guest rows went."""

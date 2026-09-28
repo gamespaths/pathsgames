@@ -64,6 +64,15 @@ if [ "$AWS_REGION_TEST" != "us-east-2" ]; then
     exit 1
 fi
 
+# v0.41.0 — the stack signs and verifies with the .env secret, the same one Robot and mint_admin_token.sh use.
+if [ -z "${JWT_SECRET:-}" ]; then
+    echo "Error: JWT_SECRET is empty — set it in the root .env (openssl rand -base64 48) before deploying."
+    exit 1
+fi
+if [ "$JWT_SECRET" = "PathsGamesDevSecret2026_MustBeAtLeast32Chars!" ]; then
+    echo "  WARNING: JWT_SECRET is the committed dev default — rotate it (decision 32) before the 0.41.0 Robot runs."
+fi
+
 # Stack-level tags: CloudFormation propagates them to every taggable resource (nested stacks too).
 # Must match the in-template tags; Environment tag = env name (dev / test; prod maps to production).
 # Name = the stack itself: the root stack has no Tags property, every resource keeps its own Name.
@@ -104,31 +113,11 @@ if [ -z "$_TURNSTILE_SAM_KEY" ]; then
     echo "  WARNING: TURNSTILE_SECRET_KEY is empty — Turnstile validation is OFF on this stack."
 fi
 
-# Admin IP whitelist: combine ADMIN_IP_WHITELIST from .env with the current
-# machine's public IP (so the deployer always has access after deploy).
-echo "Detecting current public IP for admin whitelist…"
-_CURRENT_IP="$(curl -sf https://checkip.amazonaws.com || curl -sf https://api.ipify.org || echo '')"
-if [ -n "$_CURRENT_IP" ]; then
-    echo "  Current public IP: $_CURRENT_IP"
-else
-    echo "  WARNING: could not detect public IP — admin IP whitelist will only use ADMIN_IP_WHITELIST from .env"
-fi
-# Merge: env list (may be empty) + current IP, deduplicated, comma-separated
-_BASE_WHITELIST="${ADMIN_IP_WHITELIST:-}"
-if [ -n "$_BASE_WHITELIST" ] && [ -n "$_CURRENT_IP" ]; then
-    _ADMIN_IP_WHITELIST="$_BASE_WHITELIST,$_CURRENT_IP"
-elif [ -n "$_CURRENT_IP" ]; then
-    _ADMIN_IP_WHITELIST="$_CURRENT_IP"
-else
-    _ADMIN_IP_WHITELIST="$_BASE_WHITELIST"
-fi
-# Remove duplicate IPs (preserving order)
-if [ -n "$_ADMIN_IP_WHITELIST" ]; then
-    _ADMIN_IP_WHITELIST="$(echo "$_ADMIN_IP_WHITELIST" | tr ',' '\n' | awk '!seen[$0]++' | tr '\n' ',' | sed 's/,$//')"
-    echo "  Admin IP whitelist: $_ADMIN_IP_WHITELIST"
-else
-    echo "  WARNING: ADMIN_IP_WHITELIST is empty — admin endpoints will be accessible from ANY IP!"
-fi
+# Admin IP allow-list: ADMIN_IP_WHITELIST from .env plus this machine's public IP (code/scripts/lib/admin_ip.sh).
+# shellcheck source=../../lib/admin_ip.sh
+. "$PROJECT_ROOT/code/scripts/lib/admin_ip.sh"
+_ADMIN_IP_EMPTY_MEANS="${AWS_ADMIN_IP_EMPTY_MEANS_TEST:-nobody}"
+_ADMIN_IP_WHITELIST="$(admin_ip_whitelist "${ADMIN_IP_WHITELIST:-}" "$_ADMIN_IP_EMPTY_MEANS")"
 
 # deploy with SAM ($_STACK_TAGS is unquoted on purpose: one Key=Value argument per tag)
 # shellcheck disable=SC2086
@@ -147,10 +136,18 @@ sam deploy \
         CorsAllowOrigins="${AWS_CORS_ORIGINS_TEST:-http://localhost:1234}" \
         TurnstileSecretKey="${_TURNSTILE_SAM_KEY}" \
         TurnstileBypassToken="${_TURNSTILE_BYPASS}" \
+        JwtSecret="${JWT_SECRET}" \
+        AllowMockAccess=true \
         AdminIpWhitelist="${_ADMIN_IP_WHITELIST}" \
+        AdminIpEmptyMeans="${_ADMIN_IP_EMPTY_MEANS}" \
         RateLimitGuestPerIp="${AWS_RATE_LIMIT_GUEST_PER_IP_TEST:-0}" \
         RateLimitMatchPerIp="${AWS_RATE_LIMIT_MATCH_PER_IP_TEST:-0}" \
         RateLimitWindowSeconds="${AWS_RATE_LIMIT_WINDOW_SECONDS_TEST:-3600}" \
+        RateLimitMatchPerGuest="${AWS_RATE_LIMIT_MATCH_PER_GUEST_TEST:-0}" \
+        RateLimitMatchPerGuestWindowSeconds="${AWS_RATE_LIMIT_MATCH_PER_GUEST_WINDOW_SECONDS_TEST:-86400}" \
+        GuestCleanupEnabled="${AWS_GUEST_CLEANUP_ENABLED_TEST:-true}" \
+        GuestCleanupAgeDays="${AWS_GUEST_CLEANUP_AGE_DAYS_TEST:-60}" \
+        GuestCleanupMaxPerRun="${AWS_GUEST_CLEANUP_MAX_PER_RUN_TEST:-500}" \
         CsrfEnforced="${AWS_CSRF_ENFORCED_TEST:-true}" \
         RobotTestDataTtlHours="${AWS_ROBOT_TEST_DATA_TTL_HOURS_TEST:-1}" \
         WebsiteBucket="${AWS_S3_BUCKET_WEBSITE_TEST:-}" \

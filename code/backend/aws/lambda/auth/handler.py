@@ -13,10 +13,12 @@ Routes (API contracts match Java OpenAPI specs):
   GET    /api/admin/guests           → list_guests         (ADMIN)
   GET    /api/admin/guests/stats     → guest_stats         (ADMIN)
   DELETE /api/admin/guests/expired   → cleanup_expired     (ADMIN)
-  GET    /api/admin/guests/stale     → preview_stale_guests (ADMIN)
-  DELETE /api/admin/guests/stale     → delete_stale_guests  (ADMIN)
+  GET    /api/admin/guests/stale     → preview_stale_guests (ADMIN; v0.41.0 withoutMatches)
+  DELETE /api/admin/guests/stale     → delete_stale_guests  (ADMIN; v0.41.0 withoutMatches)
   GET    /api/admin/guests/{uuid}    → get_guest_by_uuid   (ADMIN)
   DELETE /api/admin/guests/{uuid}    → delete_guest        (ADMIN)
+
+Scheduled (v0.41.0, GuestCleanupFunction): scheduled_cleanup — the idle-guest job.
 
 Response shapes follow:
   GuestLoginResponse      (v0.12.0-guest-auth-api.yaml)
@@ -40,10 +42,14 @@ from common import log_utils
 from common import jwt_utils
 from common import security_utils
 from common import test_data_ttl
-from common.response import dumps as _dumps, ok as _ok, HEADERS
+from botocore.exceptions import ClientError
+from boto3.dynamodb.conditions import Key
+
+from common.response import dumps as _dumps, ok as _ok, HEADERS, finalize as _finalize
 from common.http_utils import (normalize_path as _normalize_path,
                                get_source_ip as _get_source_ip,
-                               bearer_token as _bearer_token)
+                               bearer_token as _bearer_token,
+                               check_admin_ip as _check_admin_ip_common)
 
 # v0.38.1 — botocore "Found credentials in environment variables" at INFO is noise on every cold start.
 log_utils.quiet_botocore()
@@ -92,17 +98,8 @@ def _err(status, code, message):
     }
 
 def _check_admin_ip(event):
-    """Return error response if caller IP not in ADMIN_IP_WHITELIST, else None."""
-    whitelist_raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()
-    if not whitelist_raw:
-        return None
-    allowed = [ip.strip() for ip in whitelist_raw.split(',') if ip.strip()]
-    if not allowed:
-        return None
-    source_ip = _get_source_ip(event)
-    if source_ip not in allowed:
-        return _err(403, 'FORBIDDEN', 'Source IP not authorized for admin access')
-    return None
+    """The shared allow-list rule (v0.41.0, ADMIN_IP_EMPTY_MEANS), in this handler's error shape."""
+    return _check_admin_ip_common(event, _err)
 
 def _get_cookie(event, name):
     for c in event.get('cookies', []):
@@ -206,6 +203,14 @@ def _clear_cookies():
 # ─── router ──────────────────────────────────────────────────────────────────
 
 def lambda_handler(event, context):
+    """v0.41.0 — 500 MISCONFIGURED on a non dev/test stack with the committed secret; finalize always."""
+    path = _normalize_path(event.get('rawPath', event.get('path', '')))
+    if jwt_utils.misconfigured():
+        return _finalize(jwt_utils.misconfigured_response(), path)
+    return _finalize(_route(event, context), path)
+
+
+def _route(event, context):
     path   = _normalize_path(event.get('rawPath', event.get('path', '')))
     method = (event.get('requestContext', {})
                    .get('http', {})
@@ -269,6 +274,22 @@ def _test_marker(event):
     return sanitized[:ROBOT_TEST_MARKER_MAX_LEN] or None
 
 
+MAX_AGE_DAYS = 3650
+
+
+def _test_age_days(event, marker):
+    """v0.41.0 — X-Test-Guest-Age-Days, only with a valid marker (dev/test); 1..3650 else ignored."""
+    if not marker:
+        return None
+    headers = event.get('headers') or {}
+    raw = headers.get('x-test-guest-age-days') or headers.get('X-Test-Guest-Age-Days')
+    try:
+        days = int(str(raw).strip())
+    except (TypeError, ValueError):
+        return None
+    return days if 1 <= days <= MAX_AGE_DAYS else None
+
+
 def create_guest(event):
     # Step 41 — at most RATE_LIMIT_GUEST_PER_IP new guests per source address and window
     limit = security_utils.guest_per_ip()
@@ -281,6 +302,8 @@ def create_guest(event):
     guest_tok = str(uuid.uuid4())
     marker    = _test_marker(event)
     username  = (f'{marker}_' if marker else 'guest_') + user_uuid[:8]
+    age_days  = _test_age_days(event, marker)
+    born      = now - age_days * 86_400_000 if age_days else now
 
     guest = {
         'PK':              f'USER#{user_uuid}',
@@ -291,9 +314,9 @@ def create_guest(event):
         'state':           6,
         'is_guest':        True,
         'guest_token':     guest_tok,
-        'guest_expires_at': now + COOKIE_MAX_GUEST * 1000,
-        'ts_registration': now,
-        'ts_last_access':  now,
+        'guest_expires_at': born + COOKIE_MAX_GUEST * 1000,
+        'ts_registration': born,
+        'ts_last_access':  born,
         'token_version':   0,
         # GSI1: lookup by guest token (resume); GSI2: the guest list (admin, purge, stats)
         'GSI1_PK':         f'GUEST_TOKEN#{guest_tok}',
@@ -547,15 +570,31 @@ def _decode_cursor(cursor):
         return None
 
 
+def _without_matches(event):
+    """v0.41.0 — (flag, error): withoutMatches is optional; present, only true/false."""
+    raw = (event.get('queryStringParameters') or {}).get('withoutMatches')
+    if raw is None:
+        return False, None
+    if raw not in ('true', 'false'):
+        return None, _err(400, 'INVALID_INPUT', 'withoutMatches must be true or false')
+    return raw == 'true', None
+
+
 def preview_stale_guests(event):
     """GET /api/admin/guests/stale?olderThanDays=N — the dry run: how many guests, and how
-    many of their matches, the deletion below would take."""
+    many of their matches, the deletion below would take (v0.41.0: withoutMatches)."""
     _, err = _require_admin(event)
     if err:
         return err
     bound = _bound_ms(((event.get('queryStringParameters') or {}).get('olderThanDays')))
     if bound is None:
         return _err(400, 'INVALID_INPUT', 'olderThanDays is required and must be >= 0')
+    without, err = _without_matches(event)
+    if err:
+        return err
+    if without:
+        idle = _idle_guests(bound, _max_per_run(), _request_deadline())
+        return _ok({'guests': len(idle), 'matches': 0})
     stale = _stale_guests(bound)
     return _ok({'guests': len(stale), 'matches': len(_matches_of(stale))})
 
@@ -571,6 +610,12 @@ def delete_stale_guests(event):
     bound = _bound_ms(((event.get('queryStringParameters') or {}).get('olderThanDays')))
     if bound is None:
         return _err(400, 'INVALID_INPUT', 'olderThanDays is required and must be >= 0')
+    without, err = _without_matches(event)
+    if err:
+        return err
+    if without:
+        removed = _cleanup_idle_guests(bound, _max_per_run(), _request_deadline())
+        return _ok({'guests': removed, 'matches': 0, 'status': 'CLEANUP_COMPLETE'})
     stale = _stale_guests(bound)
     matches = _matches_of(stale)
     for match in matches:
@@ -604,6 +649,87 @@ def _matches_of(guests):
             if m.get('SK', 'METADATA') == 'METADATA' and m.get('userCreatorUuid') in stale]
 
 
+# ─── v0.41.0: guests with matches are kept; the idle-guest job ────────────────
+
+#: GUEST_LIST rows read per page, and the time left over when a run stops paging.
+_CLEANUP_PAGE = 100
+_REQUEST_BUDGET_MS = 25_000
+_SCHEDULED_MARGIN_MS = 15_000
+
+
+def _env_int(name, default):
+    try:
+        return int(os.environ.get(name, str(default)) or default)
+    except ValueError:
+        return default
+
+
+def _max_per_run():
+    return max(1, _env_int('GUEST_CLEANUP_MAX_PER_RUN', 500))
+
+
+def _request_deadline():
+    """An API call stops paging before API Gateway's 30 s integration timeout."""
+    stop_at = _now_ms() + _REQUEST_BUDGET_MS
+    return lambda: _now_ms() >= stop_at
+
+
+def _has_match(user_uuid):
+    """One GSI1 Query (Limit 1) on USER_MATCHES#<uuid>; on a read error the guest is kept."""
+    if not user_uuid:
+        return False
+    try:
+        response = db_utils._get_table().query(
+            IndexName='GSI1', KeyConditionExpression=Key('GSI1_PK').eq(f'USER_MATCHES#{user_uuid}'),
+            Limit=1)
+        return bool(response.get('Items'))
+    except ClientError as exc:
+        print(f'Guest cleanup: match check failed for {user_uuid}: {exc}')
+        return True
+
+
+def _idle_guests(bound_ms, cap, deadline):
+    """Pages GUEST_LIST: match-less guests seen before the bound, at most ``cap``, until ``deadline()``."""
+    picked, start_key = [], None
+    while len(picked) < cap and not deadline():
+        items, start_key = db_utils.query_index_page('GSI2', 'GSI2_PK', GUEST_LIST_PK,
+                                                     limit=_CLEANUP_PAGE, start_key=start_key,
+                                                     ascending=True)
+        for guest in map(_lift_guest, items):
+            if len(picked) >= cap:
+                break
+            if _seen_at(guest) < bound_ms and not _has_match(guest.get('uuid')):
+                picked.append(guest)
+        if not start_key:
+            break
+    return picked
+
+
+def _cleanup_idle_guests(bound_ms, cap, deadline):
+    """Deletes what _idle_guests found; returns how many went. No match is ever touched."""
+    idle = _idle_guests(bound_ms, cap, deadline)
+    for guest in idle:
+        db_utils.delete_item(guest['PK'], guest.get('SK', 'METADATA'))
+    return len(idle)
+
+
+def scheduled_cleanup(event, context):
+    """GuestCleanupFunction (Scheduler, 00:42 UTC): DELETE /stale?withoutMatches=true with AGE_DAYS."""
+    if os.environ.get('GUEST_CLEANUP_ENABLED', 'true').strip().lower() in ('false', '0', 'no'):
+        return {'status': 'DISABLED', 'guests': 0}
+    age_days = _env_int('GUEST_CLEANUP_AGE_DAYS', 60)
+    bound = _bound_ms(age_days)
+    if bound is None:
+        return {'status': 'DISABLED', 'guests': 0}
+    remaining = getattr(context, 'get_remaining_time_in_millis', None)
+    deadline = ((lambda: remaining() < _SCHEDULED_MARGIN_MS) if callable(remaining)
+                else _request_deadline())
+    removed = _cleanup_idle_guests(bound, _max_per_run(), deadline)
+    print(_dumps({'event': 'GUEST_CLEANUP', 'guests': removed, 'ageDays': age_days,
+                  'maxPerRun': _max_per_run()}))
+    return {'status': 'CLEANUP_COMPLETE', 'guests': removed}
+
+
 def guest_stats(event):
     _, err = _require_admin(event)
     if err:
@@ -627,7 +753,8 @@ def cleanup_expired(event):
     guests = _guest_rows()
     count  = 0
     for g in guests:
-        if now > g.get('guest_expires_at', now + 1):
+        # v0.41.0 — an expired guest that still owns a match is kept (no orphan matches)
+        if now > g.get('guest_expires_at', now + 1) and not _has_match(g.get('uuid')):
             db_utils.delete_item(g['PK'], g.get('SK', 'METADATA'))
             count += 1
     return _ok({'status': 'CLEANUP_COMPLETE', 'deletedCount': count})

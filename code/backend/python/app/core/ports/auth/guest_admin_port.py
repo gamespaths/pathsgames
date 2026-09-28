@@ -30,11 +30,11 @@ class GuestAdminPort(ABC):
         whole table before this, which on a real dataset is a scan and a timeout."""
 
     @abstractmethod
-    def preview_stale_guests(self, older_than_days: int):
+    def preview_stale_guests(self, older_than_days: int, without_matches: bool = False):
         """How many guests, and how many of their matches, a purge at this bound would take."""
 
     @abstractmethod
-    def delete_stale_guests(self, older_than_days: int):
+    def delete_stale_guests(self, older_than_days: int, without_matches: bool = False):
         """Delete every guest last seen more than N days ago, AND every match they created —
         whatever its status. Matches go first: a match references its creator by foreign key."""
 

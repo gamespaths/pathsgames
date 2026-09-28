@@ -68,7 +68,8 @@ def test_env_readers(monkeypatch):
     monkeypatch.setenv('RATE_LIMIT_MATCH_PER_IP', 'junk')
     monkeypatch.setenv('RATE_LIMIT_WINDOW_SECONDS', '0')
     assert security_utils.guest_per_ip() == 7
-    assert security_utils.match_per_ip() == 0
+    # v0.41.0 — an unreadable value falls back to the new code default, 20
+    assert security_utils.match_per_ip() == 20
     assert security_utils.window_seconds() == 1
     monkeypatch.setenv('RATE_LIMIT_WINDOW_SECONDS', '')
     assert security_utils.window_seconds() == 3600

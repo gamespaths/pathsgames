@@ -15,6 +15,7 @@ import { withComingSoonStories } from '../utils/comingSoonStories'
 import { withoutHiddenStories } from '../utils/hiddenStories'
 import LoadingCard from '@/components/layout/LoadingCard'
 import { useHomeStatus } from '@/context/HomeStatusContext'
+import { RATE_LIMITED } from '@/utils/rateLimit'
 
 const HERO_IMG = {
   url: 'https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?auto=format&fit=crop&w=1400&q=80',
@@ -119,9 +120,11 @@ export default function HomePage() {
       : matchesStatus === 'error' ? 'error' : 'ready'
 
   // Tell the Navbar (outside this route) which load failed, so it offers a refresh.
+  // v0.41.0 — a guest refused with 429 is 'rateLimited', not a matches failure.
   useEffect(() => {
-    setHomeError(storiesError ? 'stories' : footerState === 'blocked' ? 'antibot' : footerState === 'error' ? 'matches' : null)
-  }, [storiesError, footerState, setHomeError])
+    const listError = guestError === RATE_LIMITED ? 'rateLimited' : 'matches'
+    setHomeError(storiesError ? 'stories' : footerState === 'blocked' ? 'antibot' : footerState === 'error' ? listError : null)
+  }, [storiesError, footerState, guestError, setHomeError])
   useEffect(() => () => setHomeError(null), [setHomeError])
 
   // Back from start-match: reopen the start book on that story with its loadout, then drop

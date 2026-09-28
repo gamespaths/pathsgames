@@ -10,7 +10,8 @@
     "error": {
       "antibot": "Verifica antibot fallita",
       "matches": "Partite non caricate",
-      "stories": "Avventure non caricate"
+      "stories": "Avventure non caricate",
+      "rateLimited": "Troppi accessi ospite da questa connessione, riprova tra {time}"
     }
   },
   "home": {
@@ -139,6 +140,7 @@
     "created": "Partita creata, il libro della storia si sta caricando…",
     "error": "Impossibile creare la partita.",
     "errorActiveMatch": "Hai già una partita in corso per questa storia. Riprendila dalle tue partite.",
+    "errorRateLimited": "Troppe nuove partite in poco tempo. Riprova tra {time}.",
     "retry": "Riprova",
     "acceptTermsFirst": "Accetta prima i termini",
     "phaseStarting": "Avvio",
@@ -564,7 +566,8 @@
   "errors": {
     "title": "Errore Match",
     "matchNotRunning": "Impossibile caricare il match.",
-    "matchEnded": "Perché la storia è già conclusa."
+    "matchEnded": "Perché la storia è già conclusa.",
+    "rateLimitSoon": "qualche minuto"
   },
   "modals": {
     "close": "Chiudi",

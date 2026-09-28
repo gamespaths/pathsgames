@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.config import settings
+from app.config import settings, check_secrets
+from app.adapters.rest.middleware.security_headers_middleware import SecurityHeadersMiddleware
+from app.adapters.scheduler.guest_cleanup_scheduler import start_guest_cleanup
 from app.adapters.persistence.database import init_db, SessionLocal
 from app.adapters.persistence.auth.guest_persistence_adapter import GuestPersistenceAdapter
 from app.adapters.auth.jwt_adapter import JwtAdapter
@@ -119,7 +121,8 @@ story_catalog_export_service = StoryCatalogExportService(
 # Step 19 — match adapters and services
 match_persistence_adapter = MatchPersistenceAdapter(SessionLocal)
 # v0.36.2 — the stale purge takes a guest's matches with it, so it needs both ports.
-guest_admin_service = GuestAdminService(persistence_adapter, match_persistence_adapter)
+guest_admin_service = GuestAdminService(persistence_adapter, match_persistence_adapter,
+                                        settings.guest_cleanup_max_per_run)
 story_match_read_adapter = StoryMatchReadAdapter(SessionLocal)
 user_access_adapter = UserAccessAdapter(SessionLocal)
 system_mode_service = PropertySystemModeService(server_status="OK")
@@ -207,7 +210,9 @@ story_crud_admin_controller = StoryCrudAdminController(story_crud_service)
 match_logs_service = MatchLogsService(SessionLocal, content_query_service)
 match_controller = MatchController(match_command_service, match_query_service,
                                    match_logs_service, rate_limit_service,
-                                   settings.rate_limit_match_per_ip, csrf_token_service)
+                                   settings.rate_limit_match_per_ip, csrf_token_service,
+                                   settings.rate_limit_match_per_guest,
+                                   settings.rate_limit_match_per_guest_window_seconds)
 character_controller = CharacterController(character_command_service, character_query_service)
 
 # Step 27 — weather selection engine (shared by turn-start, time-advancement and queries).
@@ -336,31 +341,47 @@ public_paths = [
     "/api/auth/refresh",
     "/api/dev/**"
 ]
+# v0.41.0 — decision 34: the FastAPI docs exist only on dev/test, and there they are public.
+DOCS_PUBLIC_PATHS = ["/docs", "/docs/**", "/redoc", "/openapi.json"]
+if settings.is_dev_or_test:
+    public_paths += DOCS_PUBLIC_PATHS
 
 
 def _cors_params():
+    # v0.41.0 — Retry-After is exposed, so the browser can read it on a 429
     if settings.cors_allowed_origins == "*":
         return {
             "allow_origin_regex": r".*",
             "allow_credentials": True,
             "allow_methods": ["*"],
             "allow_headers": ["*"],
+            "expose_headers": ["Retry-After"],
         }
     return {
         "allow_origins": settings.cors_origins_list,
         "allow_credentials": True,
         "allow_methods": ["*"],
         "allow_headers": ["*"],
+        "expose_headers": ["Retry-After"],
     }
+
+
+def _docs_params():
+    """v0.41.0 — /docs, /redoc and /openapi.json only on dev/test (decision 34)."""
+    if settings.is_dev_or_test:
+        return {}
+    return {"docs_url": None, "redoc_url": None, "openapi_url": None}
 
 
 def _build_app(routers) -> FastAPI:
     """Build a FastAPI app with the shared error handlers, JWT + CORS middleware and the
     given routers. ``routers`` items are either a router or a ``(router, kwargs)`` tuple."""
-    application = FastAPI(title=settings.app_name, version=settings.version)
+    application = FastAPI(title=settings.app_name, version=settings.version, **_docs_params())
     application.add_exception_handler(StarletteHTTPException, _http_exception_handler)
     application.add_exception_handler(RequestValidationError, _validation_exception_handler)
     application.add_middleware(JwtMiddleware, session_service=session_service, public_paths=public_paths)
+    # v0.41.0 — security headers outside the JWT check, so its refusals carry them too
+    application.add_middleware(SecurityHeadersMiddleware)
     # CORS added LAST so it is OUTERMOST (per S8414).
     application.add_middleware(CORSMiddleware, **_cors_params())
     for entry in routers:
@@ -402,13 +423,19 @@ app_admin = _build_app([
 ])
 
 
-if __name__ == "__main__":
+async def _serve():
+    """Both servers in one process; v0.41.0: secrets check and cleanup job here, never at import."""
     import asyncio
     import uvicorn
 
-    async def _serve():
-        public = uvicorn.Server(uvicorn.Config(app, host=settings.host, port=settings.port))
-        admin = uvicorn.Server(uvicorn.Config(app_admin, host=settings.host, port=settings.admin_port))
-        await asyncio.gather(public.serve(), admin.serve())
+    check_secrets()
+    start_guest_cleanup(guest_admin_service, settings)
+    public = uvicorn.Server(uvicorn.Config(app, host=settings.host, port=settings.port))
+    admin = uvicorn.Server(uvicorn.Config(app_admin, host=settings.host, port=settings.admin_port))
+    await asyncio.gather(public.serve(), admin.serve())
+
+
+if __name__ == "__main__":
+    import asyncio
 
     asyncio.run(_serve())

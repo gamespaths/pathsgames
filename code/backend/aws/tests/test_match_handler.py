@@ -463,7 +463,9 @@ def _create_named_match(create_env, name, env, ttl_hours='1'):
     from match.handler import lambda_handler
     event = _player_event('POST', '/api/matches', body={
         'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1', 'name': name})
+    # v0.41.0 — a private secret, so a prod ENV is not refused as misconfigured
     with patch.dict(os.environ, {'ENV': env, 'ROBOT_TEST_DATA_TTL_HOURS': ttl_hours}), \
+         patch('common.jwt_utils.JWT_SECRET', 'a-private-prod-secret-of-at-least-32-chars'), \
          patch('common.test_data_ttl.time.time', return_value=1_000):
         assert lambda_handler(event, {})['statusCode'] == 201
     return helpers.SINK.saved()

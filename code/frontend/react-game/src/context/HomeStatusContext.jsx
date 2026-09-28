@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useMemo } from 'react'
 /**
  * v0.37.6 — HomeStatusContext: the home page's load failures, read by the Navbar
  * so it can show the error and a refresh button. `error` is null or one of
- * 'antibot' | 'matches' | 'stories'.
+ * 'antibot' | 'matches' | 'stories' | 'rateLimited' (v0.41.0).
  */
 const HomeStatusContext = createContext({ error: null, setError: () => {} })
 

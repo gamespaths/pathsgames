@@ -52,6 +52,8 @@ target/
 
 .alnao/
 
+osv-scanner.toml
+
 #AWS
 .aws-sam/
 .aws-sam-cli-managed-default/
@@ -66,6 +68,7 @@ code/backend/aws/samconfig.toml
 
 # Backend python!
 database.sqlite
+database.sqlite.bak
 .pytest_cache
 **/__pycache__/
 **/*.pyc
@@ -90,6 +93,7 @@ code/tests/robot/reports-local-php
 code/backend/php/build/logs/junit.xml
 code/backend/php/.phpunit.result.cache
 run_robot_results/
+code/scripts/dev/dependency_scan_results/
 
 # Sonar
 code/backend/aws/.scannerwork

@@ -33,6 +33,7 @@ public interface GuestAdminPort {
 
     /**
      * Deletes all expired guest sessions and their tokens.
+     * v0.41.0: a guest still referenced by a match, character, session or chat row is kept.
      * Returns the number of deleted guest users.
      */
     int deleteExpiredGuests();
@@ -44,13 +45,23 @@ public interface GuestAdminPort {
     GuestInfoPage listGuestsPage(GuestListFilter filter);
 
     /** How many guests, and how many of their matches, a purge at this bound would take. */
-    StaleGuestsSummary previewStaleGuests(int olderThanDays);
+    default StaleGuestsSummary previewStaleGuests(int olderThanDays) {
+        return previewStaleGuests(olderThanDays, false);
+    }
 
     /**
      * Delete every guest last seen more than N days ago, AND every match they created —
      * whatever its status. Matches go first: a match references its creator by foreign key.
      */
-    StaleGuestsSummary deleteStaleGuests(int olderThanDays);
+    default StaleGuestsSummary deleteStaleGuests(int olderThanDays) {
+        return deleteStaleGuests(olderThanDays, false);
+    }
+
+    /** v0.41.0 — withoutMatches: only unreferenced guests, at most max-per-run, matches untouched. */
+    StaleGuestsSummary previewStaleGuests(int olderThanDays, boolean withoutMatches);
+
+    /** v0.41.0 — the purge above; {@code withoutMatches} is what the daily cleanup job runs. */
+    StaleGuestsSummary deleteStaleGuests(int olderThanDays, boolean withoutMatches);
 
     /**
      * Returns aggregate statistics about guest users.

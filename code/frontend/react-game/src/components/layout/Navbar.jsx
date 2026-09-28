@@ -3,14 +3,19 @@ import { useTranslation } from '../../i18n/context'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import { useHomeStatus } from '@/context/HomeStatusContext'
 import EnvBadge from './EnvBadge'
+import { rateLimitMessage } from '@/utils/rateLimit'
 
 export default function Navbar() {
   const { lang, setLang, t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
-  const { user: guestUser, loading: guestLoading, openGuestModal } = useGuestUser()
+  const { user: guestUser, loading: guestLoading, openGuestModal, errorRetryAfter } = useGuestUser()
   // v0.37.6 — a failed home load (antibot / matches / stories) shows here with a refresh.
   const { error: homeError } = useHomeStatus()
+  // v0.41.0 — the rate-limit sentence carries the wait the backend sent.
+  const homeErrorText = homeError === 'rateLimited'
+    ? rateLimitMessage(t, 'nav.error.rateLimited', errorRetryAfter)
+    : homeError && t(`nav.error.${homeError}`)
 
   const isGamePage = location.pathname.startsWith('/play/')
 
@@ -36,7 +41,7 @@ export default function Navbar() {
       {homeError && (
         <div className="navbar-error" role="alert">
           <i className="fas fa-exclamation-triangle me-1" />
-          <span className="navbar-error__text">{t(`nav.error.${homeError}`)}</span>
+          <span className="navbar-error__text">{homeErrorText}</span>
           <button className="navbar-error__btn" onClick={() => window.location.reload()}>
             <i className="fas fa-sync-alt me-1" />{t('nav.refresh')}
           </button>

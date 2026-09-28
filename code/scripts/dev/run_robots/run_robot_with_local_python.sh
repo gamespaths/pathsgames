@@ -14,6 +14,9 @@ fi
 
 # Override Turnstile key to empty so local Python server uses dev bypass (empty secret_key)
 export TURNSTILE_SECRET_KEY=""
+# v0.41.0 — real exports: they beat the root .env the server reads itself; Robot runs with the limits off.
+if [ -n "${JWT_SECRET:-}" ]; then export JWT_SECRET; fi
+export RATE_LIMIT_GUEST_PER_IP=0 RATE_LIMIT_MATCH_PER_IP=0 RATE_LIMIT_MATCH_PER_GUEST=0
 
 # If not present in .env, ROBOT_VAR_ADMIN_TOKEN must be set in the environment before running the script
 if [ -z "${ROBOT_VAR_ADMIN_TOKEN:-}" ]; then

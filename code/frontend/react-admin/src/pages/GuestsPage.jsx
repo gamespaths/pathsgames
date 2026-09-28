@@ -31,6 +31,7 @@ export default function GuestsPage() {
   const [nextCursor,   setNextCursor]   = useState(null)
   const [loadingMore,  setLoadingMore]  = useState(false)
   const [stale,        setStale]        = useState(null)  // { guests, matches } dry run
+  const [withoutMatches, setWithoutMatches] = useState(false) // v0.41.0 — purge only match-less guests
   const [modal,        setModal]        = useState(null) // { type: 'single'|'cleanup', uuid? }
   const [guestDetail,  setGuestDetail]  = useState(null) // guest object
   const [userMatches,  setUserMatches]  = useState({ loading: false, list: [], error: '' })
@@ -78,7 +79,7 @@ export default function GuestsPage() {
   // The dry run first: the console shows what it is about to destroy before asking.
   const previewStale = () => {
     setError('')
-    previewStaleGuests(Number(olderThanDays))
+    previewStaleGuests(Number(olderThanDays), withoutMatches)
       .then(setStale)
       .catch(e => setError(e.message || 'Failed to count stale guests'))
   }
@@ -147,8 +148,10 @@ export default function GuestsPage() {
         await deleteGuest(m.uuid)
         setSuccess(`Guest ${m.uuid.slice(0, 8)}… deleted.`)
       } else if (m.type === 'stale') {
-        const res = await deleteStaleGuests(Number(olderThanDays))
-        setSuccess(`Purge done: ${res.guests} guests and ${res.matches} matches removed.`)
+        const res = await deleteStaleGuests(Number(olderThanDays), withoutMatches)
+        setSuccess(withoutMatches
+          ? `Purge done: ${res.guests} guests without matches removed.`
+          : `Purge done: ${res.guests} guests and ${res.matches} matches removed.`)
       } else {
         const res = await deleteExpiredGuests()
         setSuccess(`Cleanup done: ${res.deletedCount} expired sessions removed.`)
@@ -213,7 +216,8 @@ export default function GuestsPage() {
       </div>
 
       {/* v0.36.2 — the stale purge. Unlike "Cleanup Expired" this also deletes the
-          guests' matches, started or not, so it always shows the count first. */}
+          guests' matches, started or not, so it always shows the count first.
+          v0.41.0 — "Without matches only" limits it to the guests that created none. */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <label htmlFor="olderThanDays" style={{ color: 'var(--color-ash)', fontSize: '0.85rem' }}>
           Not seen for
@@ -228,6 +232,15 @@ export default function GuestsPage() {
           value={olderThanDays}
           onChange={e => { setOlderThanDays(e.target.value); setStale(null) }}
         />
+        <label htmlFor="withoutMatches" className="flex items-center gap-1" style={{ color: 'var(--color-ash)', fontSize: '0.85rem' }}>
+          <input
+            id="withoutMatches"
+            type="checkbox"
+            checked={withoutMatches}
+            onChange={e => { setWithoutMatches(e.target.checked); setStale(null) }}
+          />
+          Without matches only
+        </label>
         <button className="pg-btn pg-btn-ghost" onClick={load} disabled={olderThanDays === ''}>
           <i className="fas fa-filter" /> Apply filter
         </button>
@@ -237,7 +250,7 @@ export default function GuestsPage() {
         {stale && (
           <>
             <span style={{ color: 'var(--color-ash)', fontSize: '0.85rem' }}>
-              {stale.guests} guests · {stale.matches} matches
+              {withoutMatches ? `${stale.guests} guests without matches` : `${stale.guests} guests · ${stale.matches} matches`}
             </span>
             <button className="pg-btn pg-btn-danger" onClick={confirmStale} disabled={!stale.guests}>
               <i className="fas fa-user-slash" /> Purge stale
@@ -346,7 +359,9 @@ export default function GuestsPage() {
       {modal?.type === 'stale' && (
         <ConfirmModal
           title="Purge Stale Guests"
-          message={`This will delete ${stale?.guests} guests not seen for ${olderThanDays} days AND their ${stale?.matches} matches, started or not. This cannot be undone. Continue?`}
+          message={withoutMatches
+            ? `This will delete ${stale?.guests} guests not seen for ${olderThanDays} days that created no match (at most 500 per run; no match is touched). This cannot be undone. Continue?`
+            : `This will delete ${stale?.guests} guests not seen for ${olderThanDays} days AND their ${stale?.matches} matches, started or not. This cannot be undone. Continue?`}
           onConfirm={handleConfirm}
           onCancel={() => setModal(null)}
         />

@@ -8,6 +8,7 @@ import Card from '@/components/layout/Card'
 import TurnstileWidget from '@/components/ui/TurnstileWidget'
 import useAntibot from '@/hooks/useAntibot'
 import { TURNSTILE_APPEARANCE } from '@/utils/turnstile'
+import { isRateLimited, rateLimitMessage, retryAfterSeconds } from '@/utils/rateLimit'
 import { buildCharacterAttributesCard, buildGameTypeCard, buildLoginCard, buildPhaseCard, buildStatisticsCard, buildTermsCard } from '@/utils/loadoutCards'
 import { createMatch, joinMatch, startMatch } from '@/api/matches'
 import CardPreviewModal from '@/components/modals/CardPreviewModal'
@@ -159,9 +160,12 @@ export default function StartMatchFlow({ story, config, storyId }) {
       // v0.32.1 — the backend refuses a second match on a story the player is
       // already playing. It is a rule, not a failure: say it in plain words
       // instead of showing the raw error code.
+      // v0.41.0 — a 429 (per-IP or per-guest limit) reads as a sentence with the wait.
       setErrorMsg(apiError === 'ACTIVE_MATCH_ALREADY_EXISTS'
         ? t('startMatch.errorActiveMatch')
-        : (apiError || e?.message || ''))
+        : isRateLimited(e)
+          ? rateLimitMessage(t, 'startMatch.errorRateLimited', retryAfterSeconds(e))
+          : (apiError || e?.message || ''))
       setFailedPhase(step)
       setPhase('error')
     }

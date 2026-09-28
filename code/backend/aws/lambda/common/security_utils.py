@@ -5,7 +5,7 @@
 * ``rate_limit(bucket, ip, limit)`` counts one attempt in a fixed wall-clock window on a
   DynamoDB item ``RATELIMIT#<bucket>#<ip>`` / ``WINDOW#<start>`` with a ``ttl`` so the table
   cleans up after itself. Lambdas share no memory, which is why the counter lives there.
-  A limit of zero or less disables a bucket (the dev / Robot default).
+  A limit of zero or less disables a bucket; code defaults 20/20/10 since v0.41.0 (Robot: 0).
 """
 import base64
 import hashlib
@@ -39,15 +39,24 @@ def csrf_enforced():
 
 
 def guest_per_ip():
-    return _int_env('RATE_LIMIT_GUEST_PER_IP', 0)
+    return _int_env('RATE_LIMIT_GUEST_PER_IP', 20)
 
 
 def match_per_ip():
-    return _int_env('RATE_LIMIT_MATCH_PER_IP', 0)
+    return _int_env('RATE_LIMIT_MATCH_PER_IP', 20)
 
 
 def window_seconds():
     return max(1, _int_env('RATE_LIMIT_WINDOW_SECONDS', 3600))
+
+
+def match_per_guest():
+    """v0.41.0 — matches one user may create per window (the match-guest bucket)."""
+    return _int_env('RATE_LIMIT_MATCH_PER_GUEST', 10)
+
+
+def match_per_guest_window():
+    return max(1, _int_env('RATE_LIMIT_MATCH_PER_GUEST_WINDOW_SECONDS', 86400))
 
 
 def _secret_bytes():
@@ -85,12 +94,13 @@ class Verdict:
     retry_after_seconds: int
 
 
-def rate_limit(bucket, ip, limit, now=None):
+def rate_limit(bucket, ip, limit, now=None, window=None):
     """Count one attempt of ``ip`` in ``bucket``; refused attempts count too. A DynamoDB error
     never blocks a player: the counter is a guard, not a gate the game depends on."""
+    # v0.41.0 — ``ip`` may be a user uuid and ``window`` overrides the per-IP length
     if limit <= 0 or not ip or not str(ip).strip():
         return Verdict(True, 0, 2**31 - 1, 0)
-    window = window_seconds()
+    window = window_seconds() if window is None else max(1, int(window))
     now = int(time.time()) if now is None else int(now)
     start = now - (now % window)
     retry_after = max(1, start + window - now)

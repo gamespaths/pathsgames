@@ -77,6 +77,21 @@ class TurnstileVerificationAdapterTest {
     }
 
     @Test
+    void bypassTokenIgnoredOnAlphaBetaAndUnknownEnv_v0410() {
+        RestTemplate restTemplate = mock(RestTemplate.class);
+        when(restTemplate.postForObject(any(String.class), any(HttpEntity.class), eq(Map.class)))
+                .thenReturn(Map.of("success", false));
+        for (String env : new String[]{"alpha", "beta", "production", null}) {
+            TurnstileVerificationAdapter adapter =
+                    new TurnstileVerificationAdapter("real-secret", "0xROBOT", env, restTemplate);
+            assertFalse(adapter.verify("0xROBOT", null), "bypass honoured on " + env);
+        }
+        TurnstileVerificationAdapter dev =
+                new TurnstileVerificationAdapter("real-secret", "0xROBOT", "development", restTemplate);
+        assertTrue(dev.verify("0xROBOT", null));
+    }
+
+    @Test
     void validToken_returnsTrueOnSuccess() {
         RestTemplate restTemplate = mock(RestTemplate.class);
         when(restTemplate.postForObject(any(String.class), any(HttpEntity.class), eq(Map.class)))

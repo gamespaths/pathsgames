@@ -1,6 +1,6 @@
 // Loads the Google Tag Manager container.
 //
-// Google Consent Mode v2 defaults are set inline in index.html *before* this
+// Google Consent Mode v2 defaults are set by public/consent-defaults.js *before* this
 // runs, so Google tags (GA4, Ads) stay in the 'denied' state and set no
 // tracking cookies until the user grants the analytics category via the cookie
 // banner (see cookieConsent.js → gtag('consent','update', …)).

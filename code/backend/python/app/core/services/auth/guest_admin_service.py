@@ -9,15 +9,18 @@ from app.core.ports.auth.guest_admin_persistence_port import GuestAdminPersisten
 #: Page size when the caller names none, and the ceiling whatever it names.
 DEFAULT_PAGE_LIMIT = 50
 MAX_PAGE_LIMIT = 200
+#: v0.41.0 — default cap of one match-less purge (GUEST_CLEANUP_MAX_PER_RUN).
+DEFAULT_MAX_PER_RUN = 500
 
 
 class GuestAdminService(GuestAdminPort):
     def __init__(self, persistence_port: GuestAdminPersistencePort,
-                 match_persistence_port=None):
+                 match_persistence_port=None, max_per_run: int = DEFAULT_MAX_PER_RUN):
         self.persistence_port = persistence_port
         # None on the bare constructor: the stale purge then refuses rather than
         # orphaning matches behind a deleted creator.
         self.match_persistence_port = match_persistence_port
+        self.max_per_run = max_per_run if max_per_run and max_per_run > 0 else DEFAULT_MAX_PER_RUN
 
     def list_guests_page(self, older_than_days=None, cursor=None, limit=None):
         page_limit = _clamp_limit(limit)
@@ -40,7 +43,17 @@ class GuestAdminService(GuestAdminPort):
             "limit": page_limit,
         }
 
-    def preview_stale_guests(self, older_than_days: int):
+    def _unreferenced_stale_ids(self, older_than_days):
+        """v0.41.0 — at most max_per_run stale guests nothing references; the rest waits."""
+        bound = _bound_of(older_than_days)
+        if bound is None:
+            return []
+        return self.persistence_port.find_stale_guest_ids_without_references(
+            bound, self.max_per_run) or []
+
+    def preview_stale_guests(self, older_than_days: int, without_matches: bool = False):
+        if without_matches:
+            return {"guests": len(self._unreferenced_stale_ids(older_than_days)), "matches": 0}
         ids = self.persistence_port.find_guest_ids_with_last_access_before(
             _bound_of(older_than_days))
         if not ids or self.match_persistence_port is None:
@@ -48,7 +61,11 @@ class GuestAdminService(GuestAdminPort):
         return {"guests": len(ids),
                 "matches": self.match_persistence_port.count_matches_by_user_creator_ids(ids)}
 
-    def delete_stale_guests(self, older_than_days: int):
+    def delete_stale_guests(self, older_than_days: int, without_matches: bool = False):
+        if without_matches:
+            ids = self._unreferenced_stale_ids(older_than_days)
+            return {"guests": self.persistence_port.delete_guests_by_ids(ids) if ids else 0,
+                    "matches": 0}
         ids = self.persistence_port.find_guest_ids_with_last_access_before(
             _bound_of(older_than_days))
         if not ids:

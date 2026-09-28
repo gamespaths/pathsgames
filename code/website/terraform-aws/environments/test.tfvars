@@ -3,10 +3,12 @@ bucket_name          = "pathsgames-com-test"
 aliases              = ["test.paths.games"]
 bucket_force_destroy = true
 enable_waf           = false
-csp_mode             = "open"
+csp_mode             = "restricted"
 
-# Only used when csp_mode = "restricted": react-game calls the test APIs and Cloudflare Turnstile.
+# react-game on test: the test APIs, Cloudflare Turnstile (script + iframe) and the Unsplash hero image (v0.41.0).
 csp_extra_domains = {
-  connect = ["api-test.paths.games", "api-test-server2.paths.games", "api-test-server3.paths.games"]
+  connect = ["api-test.paths.games", "api-test-server2.paths.games", "api-test-server3.paths.games", "cdn.jsdelivr.net"]
   script  = ["challenges.cloudflare.com"]
+  img     = ["unsplash.com"]
+  frame   = ["challenges.cloudflare.com"]
 }

@@ -27,14 +27,18 @@ Parameters:
     Type: String
   AllowMockAccess:
     Type: String
-    Default: "true"
+    Default: "false"
   AdminIpWhitelist:
     Type: String
     Default: ""
-    Description: "Comma-separated allowed IPs for /api/admin/**. Empty = no restriction."
+    Description: "Comma-separated allowed IPs for /api/admin/**. Empty = what AdminIpEmptyMeans says."
+  AdminIpEmptyMeans:
+    Type: String
+    Default: nobody
+    AllowedValues: [nobody, everybody]
   RateLimitGuestPerIp:
     Type: String
-    Default: "0"
+    Default: "20"
   RateLimitWindowSeconds:
     Type: String
     Default: "3600"
@@ -44,6 +48,23 @@ Parameters:
   RobotTestDataTtlHours:
     Type: String
     Default: "0"
+  # v0.41.0 — the daily idle-guest cleanup (decisions 9, 10, 37)
+  GuestCleanupEnabled:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+  GuestCleanupAgeDays:
+    Type: String
+    Default: "60"
+  GuestCleanupMaxPerRun:
+    Type: String
+    Default: "500"
+  GuestCleanupSchedule:
+    Type: String
+    Default: "cron(42 0 * * ? *)"
+
+Conditions:
+  IsGuestCleanupEnabled: !Equals [!Ref GuestCleanupEnabled, "true"]
 
 Resources:
   AuthLogGroup:
@@ -98,6 +119,8 @@ Resources:
           JWT_SECRET: !Ref JwtSecret
           ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
           ADMIN_IP_WHITELIST: !Ref AdminIpWhitelist
+          ADMIN_IP_EMPTY_MEANS: !Ref AdminIpEmptyMeans
+          GUEST_CLEANUP_MAX_PER_RUN: !Ref GuestCleanupMaxPerRun
           RATE_LIMIT_GUEST_PER_IP: !Ref RateLimitGuestPerIp
           RATE_LIMIT_WINDOW_SECONDS: !Ref RateLimitWindowSeconds
           CSRF_ENFORCED: !Ref CsrfEnforced
@@ -105,6 +128,99 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName
+
+  # v0.41.0 — the daily idle-guest cleanup: same code as DELETE /stale?withoutMatches=true.
+  GuestCleanupLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-GuestCleanupFunction"
+      RetentionInDays: 14
+      Tags:
+        - Key: Name
+          Value: !Sub "/aws/lambda/pathsgames-${Environment}-GuestCleanupFunction"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
+
+  # A Scheduler schedule takes no tags; its group does (decision 22).
+  GuestCleanupScheduleGroup:
+    Type: AWS::Scheduler::ScheduleGroup
+    Properties:
+      Name: !Sub "pathsgames-${Environment}-guest-cleanup"
+      Tags:
+        - Key: Name
+          Value: !Sub "pathsgames-${Environment}-guest-cleanup"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
+
+  GuestCleanupFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: GuestCleanupLogGroup
+    Properties:
+      FunctionName: !Sub "pathsgames-${Environment}-GuestCleanupFunction"
+      Runtime: python3.13
+      Architectures: [arm64]
+      LoggingConfig:
+        LogFormat: JSON
+        SystemLogLevel: !Ref LambdaSystemLogLevel
+        ApplicationLogLevel: INFO
+      Handler: auth.handler.scheduled_cleanup
+      Timeout: 300
+      MemorySize: 256
+      CodeUri: ../lambda/
+      # the Scheduler role SAM generates for the event gets these tags too
+      PropagateTags: true
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-GuestCleanupFunction"
+        CostCenter: Paths.games
+        Environment: !Ref EnvironmentTag
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        version: !Ref Version
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableName
+          ENV: !Ref Environment
+          JWT_SECRET: !Ref JwtSecret
+          GUEST_CLEANUP_ENABLED: !Ref GuestCleanupEnabled
+          GUEST_CLEANUP_AGE_DAYS: !Ref GuestCleanupAgeDays
+          GUEST_CLEANUP_MAX_PER_RUN: !Ref GuestCleanupMaxPerRun
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Events:
+        DailyGuestCleanup:
+          Type: ScheduleV2
+          Properties:
+            Name: !Sub "pathsgames-${Environment}-guest-cleanup-daily"
+            GroupName: !Ref GuestCleanupScheduleGroup
+            ScheduleExpression: !Ref GuestCleanupSchedule
+            ScheduleExpressionTimezone: UTC
+            Description: "Deletes the guests idle for GuestCleanupAgeDays that created no match"
+            State: !If [IsGuestCleanupEnabled, ENABLED, DISABLED]
+            FlexibleTimeWindow:
+              Mode: "OFF"
 
   AuthIntegration:
     Type: AWS::ApiGatewayV2::Integration

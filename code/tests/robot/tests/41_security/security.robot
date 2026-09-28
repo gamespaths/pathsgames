@@ -18,7 +18,9 @@
 # (--variable RATE_LIMIT_GUEST_PER_IP:10 --variable RATE_LIMIT_MATCH_PER_IP:10): once
 # tripped, the window stays shut for every suite after them.
 #
-# Tags: security, step41, csrf, rate-limit
+# v0.41.0 — security headers, no-store on auth/admin, per-guest limit (SKIP unless RATE_LIMIT_MATCH_PER_GUEST).
+#
+# Tags: security, step41, csrf, rate-limit, headers
 # ---------------------------------------------------------------------------
 Library    RequestsLibrary
 Library    Collections
@@ -33,6 +35,7 @@ Suite Setup    Suite Setup Security
 ${CSRF_ENFORCED}              ${True}
 ${RATE_LIMIT_GUEST_PER_IP}    0
 ${RATE_LIMIT_MATCH_PER_IP}    0
+${RATE_LIMIT_MATCH_PER_GUEST}    0
 
 
 *** Test Cases ***
@@ -111,6 +114,56 @@ Creating A Match With The Issued Token Succeeds
     Status Should Be    ${resp}    201
     [Teardown]    Run Keyword And Ignore Error    Admin Delete Match    ${ADMIN_TOKEN}    ${resp.json()}[uuid]
 
+Every Answer Carries The Security Headers On Both Endpoints
+    [Documentation]    v0.41.0 — the public and the admin health check answer with the five
+    ...                API security headers every other response carries.
+    [Tags]    security    step41    headers
+    ${public}=    GET On Session    public_session    /api/echo/status
+    Security Headers Should Be Present    ${public}
+    ${admin}=    GET On Session    admin_session    /api/echo/status
+    Security Headers Should Be Present    ${admin}
+
+Auth And Admin Answers Are Never Stored, Story Reads Are
+    [Documentation]    v0.41.0 — Cache-Control: no-store on /api/auth/** and /api/admin/**,
+    ...                never on the public story list.
+    [Tags]    security    step41    headers
+    ${login}=    POST On Session    public_session    /api/auth/guest
+    Status Should Be    ${login}    201
+    Should Be Equal    ${login.headers}[Cache-Control]    no-store
+    Security Headers Should Be Present    ${login}
+    ${admin}=    GET On Session    admin_session    /api/admin/guests    params=limit=1
+    Status Should Be    ${admin}    200
+    Should Be Equal    ${admin.headers}[Cache-Control]    no-store
+    ${stories}=    GET On Session    public_session    /api/stories
+    Status Should Be    ${stories}    200
+    ${cache}=    Evaluate    $stories.headers.get('Cache-Control', '')
+    Should Not Contain    ${cache}    no-store
+
+Match Creation Is Rate Limited Per Guest
+    [Documentation]    v0.41.0 — the match-guest bucket: ONE guest creates matches (each one
+    ...                stopped and deleted before the next) until the limit+1-th answers 429
+    ...                RATE_LIMITED from the per-guest bucket. Run it ALONE with
+    ...                --variable RATE_LIMIT_MATCH_PER_GUEST:N and a server started with that N.
+    [Tags]    security    step41    rate-limit
+    Skip If    ${RATE_LIMIT_MATCH_PER_GUEST} <= 0    RATE_LIMIT_MATCH_PER_GUEST is not set for this run
+    ${token}=    New Guest Token
+    ${refused}=    Set Variable    ${None}
+    FOR    ${i}    IN RANGE    ${{ int($RATE_LIMIT_MATCH_PER_GUEST) + 1 }}
+        ${resp}=    Create Match    ${token}    ${STORY_UUID}    ${DIFFICULTY_UUID}    robottest_ratelimit_guest
+        IF    ${resp.status_code} == 429
+            ${refused}=    Set Variable    ${resp}
+            BREAK
+        END
+        Status Should Be    ${resp}    201
+        Admin Stop Match      ${ADMIN_TOKEN}    ${resp.json()}[uuid]
+        Admin Delete Match    ${ADMIN_TOKEN}    ${resp.json()}[uuid]
+    END
+    Should Not Be Equal    ${refused}    ${None}
+    ...    msg=${RATE_LIMIT_MATCH_PER_GUEST}+1 match creations of one guest were all accepted
+    Should Be Equal    ${refused.json()}[error]    RATE_LIMITED
+    Should Contain    ${refused.json()}[message]    by this player
+    Should Be True    int('${refused.headers}[Retry-After]') >= 1
+
 Match Creation Is Rate Limited Per Source Address
     [Documentation]    Same contract on POST /api/matches. ONE guest for every attempt — the
     ...                match it created is stopped and deleted before the next one, so the
@@ -165,6 +218,15 @@ Suite Setup Security
     ${story}    ${difficulty}=    Pick First Public Story With Difficulty
     Set Suite Variable    ${STORY_UUID}    ${story}
     Set Suite Variable    ${DIFFICULTY_UUID}    ${difficulty}
+
+Security Headers Should Be Present
+    [Documentation]    v0.41.0 — the five API security headers of Step 41 C.
+    [Arguments]    ${resp}
+    Should Be Equal    ${resp.headers}[X-Content-Type-Options]    nosniff
+    Should Be Equal    ${resp.headers}[X-Frame-Options]    DENY
+    Should Be Equal    ${resp.headers}[Referrer-Policy]    no-referrer
+    Should Be Equal    ${resp.headers}[Content-Security-Policy]    default-src 'none'; frame-ancestors 'none'
+    Should Be Equal    ${resp.headers}[Strict-Transport-Security]    max-age=31536000
 
 Guest Login Body
     [Documentation]    A fresh guest's whole login body, remembered for the creation keyword.

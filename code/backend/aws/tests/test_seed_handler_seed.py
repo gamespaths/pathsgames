@@ -121,7 +121,9 @@ def test_seed_effect_uuids_are_stable_and_respect_authored_ones():
 
 def test_seed_route_blocked_outside_dev():
     from seed.handler import lambda_handler
-    with patch.dict(os.environ, {'ENV': 'prod'}):
+    # v0.41.0 — a prod stack with the committed secret answers 500, so this one has its own
+    with patch('common.jwt_utils.JWT_SECRET', 'a-private-prod-secret-of-at-least-32-chars'), \
+         patch.dict(os.environ, {'ENV': 'prod'}):
         result = lambda_handler(make_event('POST', '/api/dev/seed'), {})
     assert result['statusCode'] == 403
 

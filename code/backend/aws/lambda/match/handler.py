@@ -44,21 +44,19 @@ from common import story_cache
 from common import test_data_ttl
 from match import logbook as _logbook
 from match import repo as _repo
-from common.response import dumps as _dumps, ok as _ok, HEADERS
+from common.response import dumps as _dumps, ok as _ok, HEADERS, finalize as _finalize
 from common.http_utils import (normalize_path as _normalize_path,
                                get_source_ip as _get_source_ip,
                                bearer_token as _bearer_token,
-                               bearer_token_error as _bearer_token_error)
+                               bearer_token_error as _bearer_token_error,
+                               check_admin_ip as _check_admin_ip_common)
 from common.data_utils import safe_int as _safe_int, resolve_raw_text as _resolve_raw_text
 
 # v0.38.1 — botocore "Found credentials in environment variables" at INFO is noise on every cold start.
 log_utils.quiet_botocore()
 
 _TURNSTILE_SECRET = os.environ.get('TURNSTILE_SECRET_KEY', '')
-# Optional Robot-test bypass token: when the current ENV is not "prod", the token
-# is non-empty AND the incoming token equals this value, Turnstile verification
-# is skipped. The env != prod guard is defense-in-depth on top of the deploy
-# script that already refuses to inject this var in prod.
+# Optional Robot-test bypass token, honoured only on a dev/test ENV (v0.41.0 env rule).
 _TURNSTILE_BYPASS_TOKEN = os.environ.get('TURNSTILE_BYPASS_TOKEN', '')
 _ENV = os.environ.get('ENV', 'dev')
 _SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
@@ -108,17 +106,8 @@ def _err(status, code, message):
 
 
 def _check_admin_ip(event):
-    """Return error response if caller IP not in ADMIN_IP_WHITELIST, else None."""
-    whitelist_raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()
-    if not whitelist_raw:
-        return None
-    allowed = [ip.strip() for ip in whitelist_raw.split(',') if ip.strip()]
-    if not allowed:
-        return None
-    source_ip = _get_source_ip(event)
-    if source_ip not in allowed:
-        return _err(403, 'FORBIDDEN', f'IP {source_ip} not authorized for admin access')
-    return None
+    """The shared allow-list rule (v0.41.0, ADMIN_IP_EMPTY_MEANS), in this handler's error shape."""
+    return _check_admin_ip_common(event, _err)
 
 
 def _resolve_user(event):
@@ -162,12 +151,13 @@ def _is_maintenance():
 
 def _verify_turnstile(token, remote_ip=None):
     """Verify a Cloudflare Turnstile token. Returns True when the secret key is
-    not configured (dev bypass), when the environment is non-prod AND the token
+    not configured (dev bypass), when the environment is dev/test AND the token
     matches the Robot-test bypass token, or when the token passes verification
     against Cloudflare."""
     if not _TURNSTILE_SECRET:
         return True
-    if _ENV != 'prod' and _TURNSTILE_BYPASS_TOKEN and token == _TURNSTILE_BYPASS_TOKEN:
+    if (test_data_ttl.is_test_env(_ENV) and _TURNSTILE_BYPASS_TOKEN
+            and token == _TURNSTILE_BYPASS_TOKEN):
         return True
     if not token:
         print('Turnstile refused: no turnstileToken in the request body')
@@ -782,6 +772,13 @@ def _has_active_match_for_story(user, story_uuid):
 
 
 def _create_match(user, body):
+    # v0.41.0 — at most RATE_LIMIT_MATCH_PER_GUEST new matches per user and (daily) window
+    per_guest = security_utils.match_per_guest()
+    if per_guest > 0:
+        verdict = security_utils.rate_limit('match-guest', user.get('uuid'), per_guest,
+                                            window=security_utils.match_per_guest_window())
+        if not verdict.allowed:
+            return security_utils.rate_limited(verdict, 'Too many matches created by this player')
     story_uuid = (body or {}).get('storyUuid')
     difficulty_uuid = (body or {}).get('difficultyUuid')
     if not story_uuid or not difficulty_uuid:
@@ -4633,6 +4630,14 @@ def _get_admin_locations(match_uuid, lang='en'):
 # ─── router ──────────────────────────────────────────────────────────────────
 
 def lambda_handler(event, context):
+    """v0.41.0 — 500 MISCONFIGURED on a non dev/test stack with the committed secret; finalize always."""
+    path = _normalize_path(event.get('rawPath') or event.get('path') or '')
+    if jwt_utils.misconfigured():
+        return _finalize(jwt_utils.misconfigured_response(), path)
+    return _finalize(_route(event, context), path)
+
+
+def _route(event, context):
     """Every write of the request is queued on ``repo`` and lands in one batch at the end."""
     story_cache.begin_request()  # v0.37.5 — one stamp read per invocation
     _repo.begin()

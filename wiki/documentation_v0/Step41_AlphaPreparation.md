@@ -1,11 +1,57 @@
 # Step 41 — Alpha preparation
 
-**Status: analysis closed (written at v0.40.0, updated at v0.41.0) — 44 decisions of the owner
-on September 27, 2026 (§8.1), no open point; nothing developed yet.**
+**Status: patch 1 of 3 developed (v0.41.0, September 28, 2026) — security (C), AWS admin
+allow-list (D) and guest cleanup/limits (E), plus the CI dependency scan and the test CSP.
+Logging (A), snapshots (B) and KPI (F) are still planned for 0.41.1/0.41.2 (§8.1 decision 15).**
 Roadmap line: *logging and snapshots, security, admin IP protection, guest cleanup and limits,
 KPI report* ([Roadmap](./Roadmap.md) step 41; the test certificate moved to V1 step 41). Touches the three backends,
-react-admin (two new views), react-game (new log rows, limit message), scripts, a CI workflow,
-Terraform, docs. Developed in three patches (§8.1 decision 15).
+react-admin (guest-list toggle), react-game (rate-limit message, CSP-safe consent script),
+scripts, a CI workflow, Terraform, docs.
+
+## Development notes 0.41.0
+
+Unit tests green (Java 1259, Python 1836, AWS 1202, react-admin 872, react-game 1487); Robot
+green on AWS, Java, Java+PostgreSQL, Python on September 28, 2026 (791 tests, 0 failed, skips
+are the rate-limit cases that need an explicit variable). Deltas against §6 below, found during
+development:
+
+- **Migration naming.** `V0.41.0__guest_cleanup_index.sql` (postgres + sqlite) only adds the
+  `users(state, ts_last_access)` index — `system_snapshot`/`system_kpi_daily` were not touched
+  in this patch. Flyway version `V0.41.0` is now taken, so §5's `V0.41.0__snapshots_and_kpi.sql`
+  must NOT be used: 0.41.1 uses `V0.41.1__snapshots.sql`, 0.41.2 uses `V0.41.2__kpi.sql`.
+- **Python guest guard.** `delete_expired_guests` (and the new idle cleanup) guard only the two
+  tables Python actually persists (`gaming_match.id_user_creator`,
+  `gaming_character_instance.id_user` — Python has no `gaming_user_sessions`/`chat_messages`
+  tables); tokens are deleted first, then the guests, in chunks. The new index is on
+  `users(state, last_access)` — Python's column is `last_access`, not `ts_last_access`.
+  Java's `GuestBatchDelete` chunks both the four-table guard and the delete at 500 ids.
+- **AWS schedule.** `GuestCleanupFunction` (`template/auth.yaml`) uses `ScheduleV2` inside a
+  tagged `AWS::Scheduler::ScheduleGroup` rather than a plain `Schedule` event, because a plain
+  `Schedule` event cannot carry its own tags (decision 22's fallback).
+- **Dev-only header.** `X-Test-Guest-Age-Days: N` (1–3650) on `POST /api/auth/guest` "ages" a
+  fresh guest for Robot's cleanup tests; honoured only alongside a valid `X-Test-Marker` and
+  only where that marker is already honoured (Java/Python `test-endpoints-enabled`, AWS `ENV`
+  in `TEST_ENVS`); out-of-range values are ignored.
+- **Java daily job scope.** `GuestSessionCleanupScheduler` (00:42 UTC) now runs *only* the new
+  idle-guest cleanup; the pre-existing expired-guest bug fix runs through
+  `UserRepository.findExpiredGuestIdsWithoutReferences` + `GuestBatchDelete`, called by both the
+  scheduler's old path and `DELETE /api/admin/guests/expired`, not as a second scheduled job.
+- **AWS JWT reach.** `JwtSecret` is now passed to the Story and Seed nested stacks too
+  (`template/story.yaml`, `template/seed.yaml`), not only Auth/Match/authorizer — otherwise the
+  admin story/seed routes would 401 after the JWT rotation.
+- **Rate-limit window storage.** `RateLimitService` (all three backends) now stores the window
+  start per counter instead of a single shared window, so the periodic sweep no longer resets
+  every bucket's clock to the same moment.
+- **CSP fixes shipped with 0.41.0** (owner approval, September 27): the inline consent script
+  moved to `public/consent-defaults.js` (react-game), and `test.tfvars`'
+  `csp_extra_domains` gained `img = ["unsplash.com"]` and `frame = ["challenges.cloudflare.com"]`
+  so `csp_mode = "restricted"` on test does not break the Unsplash location art or the Turnstile
+  iframe; `cloudfront.tf` only emits a `frame-src` directive when that list is non-empty.
+- Two Java security-service unit-test files were added under `core/src/test/java/games/paths/core/port/auth/` alongside the guest-cleanup fixture changes; not otherwise part of the design surface above.
+
+The next two patches (owner decisions 15, 16, 21): **0.41.1** — logging gaps (A) and match
+snapshots (B), its own `system_snapshot`/migration; **0.41.2** — KPI report (F) and the
+production website CSP switch to `restricted` (§6.7).
 
 ## 1. Scope
 
@@ -179,7 +225,8 @@ Changed:
 
 ## 5. Database Tables
 
-**SQLite / PostgreSQL** — `V0.41.0__snapshots_and_kpi.sql` in both `adapter-*/…/db/migration/v0/`:
+**SQLite / PostgreSQL** — in both `adapter-*/…/db/migration/v0/` (0.41.0 took `V0.41.0` for the
+guest index: snapshot columns go in `V0.41.1__snapshots.sql`, `system_kpi_daily` in `V0.41.2__kpi.sql`):
 
 - `system_snapshot`: add `clock INTEGER`, `checksum VARCHAR(64)`; index `(id_match, clock)`.
 - new `system_kpi_daily`: `id`, `uuid`, `story_uuid VARCHAR(36) NOT NULL`, `day VARCHAR(10) NOT
@@ -531,10 +578,10 @@ None: the analysis is closed and the step is ready for development (three patche
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First analysis of the alpha preparation step, owner answers | September 27, 2026 |
-  | 0.41.0 | Owner decisions completed, last open points listed | September 27, 2026 |
+  | 0.41.0 | Owner decisions completed; patch 1 (security, guests, CI) developed | September 28, 2026 |
 
-- **Last Updated**: September 27, 2026 (v0.41.0)
-- **Status**: Analysis closed, 44 decisions (§8.1); ready for development
+- **Last Updated**: September 28, 2026 (v0.41.0)
+- **Status**: Patch 1 of 3 developed (security, allow-list, guests, CI scan, test CSP); logging, snapshots and KPI pending (0.41.1/0.41.2)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

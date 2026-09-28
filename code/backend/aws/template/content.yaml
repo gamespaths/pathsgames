@@ -22,7 +22,7 @@ Parameters:
     Type: String
   AllowMockAccess:
     Type: String
-    Default: "true"
+    Default: "false"
 
 Resources:
   ContentLogGroup:

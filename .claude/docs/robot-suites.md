@@ -37,7 +37,8 @@ Loaded on demand. Read only when working on E2E tests.
 | `38_experience` | Step 38 use-exp: `exp`/`expCosts` on `/info`, the purchase, its `EXP_USE` row, every refusal, the missions→rewards→purchase scenario, and the import/export/CRUD contract of `expCostBase`/`maxStatValue` (see breakdown below) |
 | `39_random_events` | Step 39 global random events: fire at time-start after the weather (100% always, 0% never), `RANDOM_EVENT` in `counterZero[]` and in the timeline, ONCE, the registry operator, the `R11_RANDOM_EVENT` import refusals, the `warnings[]` on validate, and the CRUD of `registryValueOperatorCondition` (see breakdown below) |
 | `40_alpha_ux` | Step 40 alpha UX: the news of an early time-end (`counterZero[]` + `weather` with `changed`) on execute-event, select-choice and movement answers, and the resource gains in the timeline (new `CHOICE` row, party-run and automatic-event gains) (see breakdown below) |
-| `41_security` | v0.37.7 Step 41: the `csrfToken` on login/resume/`/me` and the `X-CSRF-TOKEN` refusals on `POST /api/matches`; two rate-limit cases that SKIP unless `RATE_LIMIT_GUEST_PER_IP` / `RATE_LIMIT_MATCH_PER_IP` are passed (see breakdown below) |
+| `41_alpha_prep` | v0.41.0 Step 41 patch 1: `guest_cleanup.robot` — aged guests via `X-Test-Guest-Age-Days`, the `withoutMatches` idle purge, and the `DELETE /expired` PostgreSQL FK regression (see breakdown below) |
+| `41_security` | v0.37.7 Step 41: the `csrfToken` on login/resume/`/me` and the `X-CSRF-TOKEN` refusals on `POST /api/matches`; rate-limit cases that SKIP unless `RATE_LIMIT_GUEST_PER_IP` / `RATE_LIMIT_MATCH_PER_IP` / `RATE_LIMIT_MATCH_PER_GUEST` are passed; **v0.41.0**: API security headers and `Cache-Control: no-store` on every response (see breakdown below) |
 
 ### `19_match` breakdown
 
@@ -398,9 +399,9 @@ list, so a leaner seed does not fail the suite.
 
 ### `41_security` breakdown
 
-`security.robot` (v0.37.7, 8 tests) — Step 41. CSRF: guest login issues a `csrfToken`
-bound to the bearer (two guests, two tokens), `GET /api/auth/me` answers the same one,
-resume follows the new bearer (skips when the client keeps no cookie), and `POST
+`security.robot` (v0.37.7, 8 tests; **+3 in v0.41.0**, 11 tests) — Step 41. CSRF: guest login
+issues a `csrfToken` bound to the bearer (two guests, two tokens), `GET /api/auth/me` answers
+the same one, resume follows the new bearer (skips when the client keeps no cookie), and `POST
 /api/matches` answers 403 `CSRF_TOKEN_MISSING` without the header and `CSRF_TOKEN_INVALID`
 with another guest's token or a garbled one — creating nothing — while the shared `Create
 Match` keyword still gets 201. `${CSRF_ENFORCED}` (default true) skips the two refusals
@@ -414,6 +415,29 @@ The CSRF plumbing lives in `resources/CsrfHelper.py` + `Get Match Creation Heade
 (`auth.resource`): the login keywords remember each bearer's `csrfToken`, every
 `Create Match*` keyword echoes it, and a guest minted by a direct `POST /api/auth/guest`
 is looked up once through `GET /api/auth/me`. Suites need no change.
+
+**v0.41.0** adds three cases: "Every Answer Carries The Security Headers On Both Endpoints"
+(the five API headers on the public and the admin echo); "Auth And Admin Answers Are Never
+Stored, Story Reads Are" (`Cache-Control: no-store` on `/api/auth/guest` and
+`/api/admin/guests`, absent on `GET /api/stories`); "Match Creation Is Rate Limited Per Guest"
+(the new `match-guest` bucket, one guest, each match stopped/deleted before the next, 429
+`RATE_LIMITED` with `Retry-After`) — SKIP unless `--variable RATE_LIMIT_MATCH_PER_GUEST:N`
+matches the server's env, run ALONE like the other two limit cases. New keyword `Security
+Headers Should Be Present`.
+
+### `41_alpha_prep` breakdown
+
+New suite (v0.41.0 Step 41 patch 1), own story-free fixtures — reuses the default seed story
+and guest/match keywords, no dedicated story import. `guest_cleanup.robot` (3 tests):
+"The Match-Less Purge Takes The Idle Guest And Keeps The One With A Match" (two guests aged via
+the dev-only `X-Test-Guest-Age-Days` header, one with a match; `GET/DELETE
+/api/admin/guests/stale?olderThanDays=N&withoutMatches=true` counts and deletes only the
+match-less one, `matches` stays 0); "Any Other WithoutMatches Value Is Refused" (anything but
+`true`/`false` on that query param is 400 `INVALID_INPUT`, nothing deleted); "The Expired
+Cleanup Keeps The Expired Guest That Owns A Match" (the PostgreSQL FK regression: `DELETE
+/api/admin/guests/expired` with one expired guest owning a match and one without answers 200
+and keeps the guest with the match) — run on Java + PostgreSQL as well as SQLite/Python/AWS.
+Suite Setup/Teardown mint and admin-delete every guest and match the tests create.
 
 ### `35_import_integrity` breakdown
 
@@ -460,3 +484,11 @@ the renamed-column case accepts either spelling. Entities are addressed by their
 
 When a suite is added or a seed changes, keep all four backends in sync — the Robot suites
 validate any backend interchangeably via `variables/dev.yaml`.
+
+**v0.41.0 — JWT and rate limits.** All four `run_robot_with_*.sh` scripts export `JWT_SECRET`
+(read from `.env`) so `JwtHelper.py`'s generated admin tokens match whatever secret the target
+server was started with; the three local scripts (Java, Java+PostgreSQL, Python) also force
+`RATE_LIMIT_GUEST_PER_IP`/`RATE_LIMIT_MATCH_PER_IP`/`RATE_LIMIT_MATCH_PER_GUEST` to `0` before
+starting the server, overriding `.env`, so a normal Robot run never trips the new non-zero code
+defaults; the AWS test stack keeps passing its own `:-0` defaults at deploy time. A suite that
+needs to exercise a limit passes it explicitly as a `--variable` and must run alone (§ above).

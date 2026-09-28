@@ -33,6 +33,8 @@ import java.util.Map;
 public class GuestAuthController {
 
     static final String RATE_BUCKET = "guest";
+    /** v0.41.0 — dev/test only, honoured with a valid X-Test-Marker: creates an N-days-old guest. */
+    static final String AGE_HEADER = "X-Test-Guest-Age-Days";
 
     private final GuestAuthPort guestAuthPort;
     private final boolean testEndpointsEnabled;
@@ -50,7 +52,7 @@ public class GuestAuthController {
     public GuestAuthController(GuestAuthPort guestAuthPort,
                                @Value("${game.dev.test-endpoints-enabled:false}") boolean testEndpointsEnabled,
                                RateLimitService rateLimitService,
-                               @Value("${game.security.rate-limit.guest-per-ip:0}") int guestPerIp,
+                               @Value("${game.security.rate-limit.guest-per-ip:20}") int guestPerIp,
                                CsrfTokenService csrfTokenService) {
         this.guestAuthPort = guestAuthPort;
         this.testEndpointsEnabled = testEndpointsEnabled;
@@ -68,10 +70,12 @@ public class GuestAuthController {
      * <p>The optional {@code X-Test-Marker} header tags the generated guest so
      * it can later be removed by {@code POST /api/dev/cleanup}. It is honoured
      * only when dev test endpoints are enabled, and ignored in production.</p>
+     * <p>v0.41.0 — {@code X-Test-Guest-Age-Days}, same switch plus a valid marker: an N-days-old guest.</p>
      */
     @PostMapping("/guest")
     public ResponseEntity<Object> createGuestSession(
             @RequestHeader(value = "X-Test-Marker", required = false) String testMarker,
+            @RequestHeader(value = AGE_HEADER, required = false) String ageDays,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
         // Step 41 — at most guest-per-ip new guests per source address and window
@@ -84,7 +88,9 @@ public class GuestAuthController {
             }
         }
         String marker = testEndpointsEnabled ? testMarker : null;
-        GuestSession session = guestAuthPort.createGuestSession(marker);
+        Integer age = testEndpointsEnabled ? parseAge(ageDays) : null;
+        GuestSession session = age == null ? guestAuthPort.createGuestSession(marker)
+                : guestAuthPort.createGuestSession(marker, age);
 
         // Set tokens in HttpOnly cookies (invisible to JavaScript)
         CookieHelper.setRefreshTokenCookie(httpResponse, session.getRefreshToken());
@@ -142,6 +148,18 @@ public class GuestAuthController {
         response.setCsrfToken(csrfTokenFor(session.getAccessToken()));
 
         return ResponseEntity.ok(response);
+    }
+
+    /** A number or nothing: a malformed header is ignored, never an error. */
+    static Integer parseAge(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(raw.trim());
+        } catch (NumberFormatException notANumber) {
+            return null;
+        }
     }
 
     private String csrfTokenFor(String accessToken) {

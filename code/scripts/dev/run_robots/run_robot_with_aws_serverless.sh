@@ -57,6 +57,9 @@ if [ -z "$ADMIN_API_URL" ] || [ "$ADMIN_API_URL" = "None" ]; then
 fi
 echo "ADMIN API URL: $ADMIN_API_URL"
 
+# v0.41.0 — JwtHelper.py signs admin tokens with the stack secret, deployed from the same .env.
+if [ -n "${JWT_SECRET:-}" ]; then export JWT_SECRET; fi
+
 # quick health check
 if ! curl -s --fail "$API_URL/api/echo/status" > /dev/null; then
     echo "Server $API_URL did not respond to /api/echo/status. Aborting tests." >&2
@@ -64,6 +67,15 @@ if ! curl -s --fail "$API_URL/api/echo/status" > /dev/null; then
 fi
 
 echo "Server $API_URL is up and running."
+
+# v0.41.0 — a 403 on the admin echo means this IP is not in the stack allow-list (AdminIpEmptyMeans=nobody).
+ADMIN_ECHO_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$ADMIN_API_URL/api/echo/status" || true)
+if [ "$ADMIN_ECHO_CODE" = "403" ]; then
+    echo "WARNING: the admin API answered 403 — this IP is not in the stack admin allow-list, every admin test will fail." >&2
+    echo "  Redeploy with code/scripts/test/aws/aws_backend_deploy.sh (adds the current IP) or add it to ADMIN_IP_WHITELIST." >&2
+elif [ "$ADMIN_ECHO_CODE" != "200" ]; then
+    echo "WARNING: the admin echo answered HTTP $ADMIN_ECHO_CODE." >&2
+fi
 
 # Seed dev data (test users + seed stories) — idempotent, safe to re-run.
 # Dev endpoints are on the IP-restricted admin API now.

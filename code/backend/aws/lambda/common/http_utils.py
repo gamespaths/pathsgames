@@ -39,15 +39,18 @@ def bearer_token_error(event):
     return 'EMPTY_TOKEN', 'Bearer token is empty'
 
 
-def check_admin_ip(event):
-    """Return error response if caller IP not in ADMIN_IP_WHITELIST, else None."""
-    whitelist_raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()
-    if not whitelist_raw:
-        return None
-    allowed = [ip.strip() for ip in whitelist_raw.split(',') if ip.strip()]
+def admin_ip_allowed(source_ip):
+    """v0.41.0 — the one allow-list rule; empty list = ADMIN_IP_EMPTY_MEANS (nobody|everybody)."""
+    raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()
+    allowed = [ip.strip() for ip in raw.split(',') if ip.strip()]
     if not allowed:
-        return None
+        return os.environ.get('ADMIN_IP_EMPTY_MEANS', 'nobody').strip().lower() == 'everybody'
+    return source_ip in allowed
+
+
+def check_admin_ip(event, err_fn=None):
+    """A 403 (in the caller's ``err_fn`` shape) when the caller IP may not reach the admin API."""
     source_ip = get_source_ip(event)
-    if source_ip not in allowed:
-        return err(403, 'FORBIDDEN', 'Source IP not authorized for admin access')
-    return None
+    if admin_ip_allowed(source_ip):
+        return None
+    return (err_fn or err)(403, 'FORBIDDEN', f'IP {source_ip} not authorized for admin access')

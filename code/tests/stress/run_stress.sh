@@ -11,6 +11,10 @@ BASE_URL="${BASE_URL:-http://localhost:8042}"
 ADMIN_BASE_URL="${ADMIN_BASE_URL:-http://localhost:8044}"
 ADMIN_TOKEN="${ADMIN_TOKEN:-}"
 JWT_SECRET="${JWT_SECRET:-}"
+# v0.41.0 — an unset JWT_SECRET is read from the root .env (the k6 scripts fall back to the dev secret).
+if [[ -z "$JWT_SECRET" && -f "$DIR/../../../.env" ]]; then
+  JWT_SECRET="$(set +u; . "$DIR/../../../.env" >/dev/null 2>&1; printf '%s' "${JWT_SECRET:-}")"
+fi
 # Series parameters: empty = not given (flag or env), asked on the console before the run
 # with the DEF_* default (overridable from the env: run_stress_aws.sh ships its own);
 # -y (or a non-tty stdin) takes the defaults without asking.
@@ -36,7 +40,7 @@ usage() {
 Usage: $(basename "$0") [options] [-- extra k6 args]
   -b URL     public backend base URL       (default $BASE_URL)
   -a URL     admin backend base URL        (default $ADMIN_BASE_URL)
-  -t TOKEN   admin JWT (default: minted from JWT_SECRET / dev secret)
+  -t TOKEN   admin JWT (default: minted from JWT_SECRET, env or root .env, else the dev secret)
   -k TOKEN   Turnstile bypass token sent as turnstileToken (env TURNSTILE_TOKEN)
   -l "N N"   VU levels run in series       (default "$DEF_LEVELS")
   -m N       movements per flow            (default $DEF_MOVES)

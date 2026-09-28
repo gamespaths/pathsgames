@@ -32,22 +32,36 @@ class GuestAdminController:
             "limit": page["limit"],
         }
 
-    def preview_stale_guests(self, olderThanDays: Optional[int] = None):
+    def preview_stale_guests(self, olderThanDays: Optional[int] = None,
+                             withoutMatches: Optional[str] = None):
         """GET /api/admin/guests/stale?olderThanDays=N — the dry run: how many guests, and how
-        many of their matches, the deletion below would take."""
+        many of their matches, the deletion below would take (v0.41.0: withoutMatches)."""
         if olderThanDays is None or olderThanDays < 0:
             return _bad_older_than_days()
-        return JSONResponse(status_code=200,
-                            content=self.guest_admin_port.preview_stale_guests(olderThanDays))
+        if withoutMatches not in _FLAGS:
+            return _bad_without_matches()
+        if withoutMatches is None:
+            summary = self.guest_admin_port.preview_stale_guests(olderThanDays)
+        else:
+            summary = self.guest_admin_port.preview_stale_guests(
+                olderThanDays, withoutMatches == "true")
+        return JSONResponse(status_code=200, content=summary)
 
-    def delete_stale_guests(self, olderThanDays: Optional[int] = None):
+    def delete_stale_guests(self, olderThanDays: Optional[int] = None,
+                            withoutMatches: Optional[str] = None):
         """DELETE /api/admin/guests/stale?olderThanDays=N — remove every guest not seen for N
         days AND every match they created, whatever its status. Matches go first: a match
         references its creator by foreign key. Distinct from DELETE /expired, which only ever
         removes sessions whose own expiry has passed and never touches a match."""
         if olderThanDays is None or olderThanDays < 0:
             return _bad_older_than_days()
-        summary = dict(self.guest_admin_port.delete_stale_guests(olderThanDays))
+        if withoutMatches not in _FLAGS:
+            return _bad_without_matches()
+        if withoutMatches is None:
+            summary = dict(self.guest_admin_port.delete_stale_guests(olderThanDays))
+        else:
+            summary = dict(self.guest_admin_port.delete_stale_guests(
+                olderThanDays, withoutMatches == "true"))
         summary["status"] = "CLEANUP_COMPLETE"
         return JSONResponse(status_code=200, content=summary)
 
@@ -85,6 +99,17 @@ class GuestAdminController:
             "status": "CLEANUP_COMPLETE",
             "deletedCount": deleted_count
         }
+
+
+#: v0.41.0 — withoutMatches is optional; when present only "true" or "false" is accepted.
+_FLAGS = (None, "true", "false")
+
+
+def _bad_without_matches():
+    return JSONResponse(status_code=400, content={
+        "error": "INVALID_INPUT",
+        "message": "withoutMatches must be true or false",
+    })
 
 
 def _bad_older_than_days():

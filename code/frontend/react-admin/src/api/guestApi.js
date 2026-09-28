@@ -22,12 +22,16 @@ export const deleteGuest = (uuid) =>
 export const deleteExpiredGuests = () =>
   apiClient().delete('/api/admin/guests/expired').then(r => r.data)
 
-// GET /api/admin/guests/stale?olderThanDays=N — the dry run: how many guests,
-// and how many of their matches, the purge below would take. { guests, matches }
-export const previewStaleGuests = (olderThanDays) =>
-  apiClient().get('/api/admin/guests/stale', { params: { olderThanDays } }).then(r => r.data)
+// v0.41.0 — withoutMatches is sent only when true: omitted = the purge with matches.
+const staleParams = (olderThanDays, withoutMatches) =>
+  (withoutMatches ? { olderThanDays, withoutMatches: true } : { olderThanDays })
 
-// DELETE /api/admin/guests/stale?olderThanDays=N — remove every guest not seen
-// for N days AND every match they created, whatever its status.
-export const deleteStaleGuests = (olderThanDays) =>
-  apiClient().delete('/api/admin/guests/stale', { params: { olderThanDays } }).then(r => r.data)
+// GET /api/admin/guests/stale?olderThanDays=N[&withoutMatches=true] — the dry run: how many
+// guests, and how many of their matches, the purge below would take. { guests, matches }
+export const previewStaleGuests = (olderThanDays, withoutMatches = false) =>
+  apiClient().get('/api/admin/guests/stale', { params: staleParams(olderThanDays, withoutMatches) }).then(r => r.data)
+
+// DELETE /api/admin/guests/stale?olderThanDays=N — remove every guest not seen for N days
+// AND every match they created; withoutMatches=true only the guests with no match (max 500).
+export const deleteStaleGuests = (olderThanDays, withoutMatches = false) =>
+  apiClient().delete('/api/admin/guests/stale', { params: staleParams(olderThanDays, withoutMatches) }).then(r => r.data)

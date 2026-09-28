@@ -5,6 +5,7 @@ from typing import Optional
 import httpx
 
 from app.core.ports.match.match_ports import TurnstileVerificationPort
+from app.core.services.security.env_rule import is_dev_or_test
 
 _SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
@@ -16,9 +17,9 @@ class TurnstileVerificationAdapter(TurnstileVerificationPort):
 
     Bypasses verification when:
       - secret_key is empty (local dev / CI default), or
-      - env is not "prod" AND bypass_token is non-empty AND the incoming token
-        matches bypass_token (used by Robot tests against environments that run
-        with a real Turnstile secret key).
+      - env is dev/test (v0.41.0 rule: dev, development, test) AND bypass_token is
+        non-empty AND the incoming token matches it (used by Robot tests against
+        environments that run with a real Turnstile secret key).
     """
 
     def __init__(
@@ -35,7 +36,7 @@ class TurnstileVerificationAdapter(TurnstileVerificationPort):
         if not self._secret_key:
             return True
         if (
-            self._env != "prod"
+            is_dev_or_test(self._env)
             and self._bypass_token
             and token == self._bypass_token
         ):

@@ -21,3 +21,6 @@ class GuestPersistencePort(ABC):
     @abstractmethod
     def delete_expired_guests(self) -> int:
         pass
+
+    def backdate_guest(self, user_id: int, instant: str) -> None:
+        """v0.41.0 — dev/test only: registration and last access moved back (no-op by default)."""

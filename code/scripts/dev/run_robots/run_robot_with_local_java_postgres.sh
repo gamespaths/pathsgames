@@ -5,6 +5,8 @@
 # Required env vars (or set in .env):
 #   ROBOT_VAR_ADMIN_TOKEN   — admin JWT token for robot tests
 #
+#   JWT_SECRET              — not the committed default (the prod profile refuses it)
+#
 # Optional env vars (defaults match application-prod.yml):
 #   DB_HOST         (default: localhost)
 #   DB_PORT         (default: 5432)
@@ -26,6 +28,18 @@ if [ -z "${ROBOT_VAR_ADMIN_TOKEN:-}" ]; then
 	echo "Error: ROBOT_VAR_ADMIN_TOKEN must be set in the environment or .env file."
 	exit 1
 fi
+
+# v0.41.0 — the prod profile refuses the committed JWT secrets at startup: stop here with the fix.
+case "${JWT_SECRET:-}" in
+	""|"PathsGamesDevSecret2026_MustBeAtLeast32Chars!"|"0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF")
+		echo "Error: JWT_SECRET is missing or the committed default, which the Java prod profile refuses."
+		echo "  Set a new one in the root .env (openssl rand -base64 48), then mint ROBOT_VAR_ADMIN_TOKEN"
+		echo "  with code/scripts/dev/mint_admin_token.sh and put it in .env too."
+		exit 1
+		;;
+esac
+export JWT_SECRET
+export RATE_LIMIT_GUEST_PER_IP=0 RATE_LIMIT_MATCH_PER_IP=0 RATE_LIMIT_MATCH_PER_GUEST=0
 
 echo "Kill all process using 8042 and 8044 ports"
 fuser -k 8042/tcp || true
@@ -91,11 +105,8 @@ source .venv/bin/activate
 # (POST /api/dev/cleanup) return 403. Re-enable it via a -D override for this local
 # test run only, so the cleanup works while the server is still up.
 echo "Starting Java server with prod profile (PostgreSQL)..."
-DB_HOST="$DB_HOST" \
-DB_PORT="$DB_PORT" \
-DB_NAME="$DB_NAME" \
-DB_USERNAME="$DB_USERNAME" \
-DB_PASSWORD="$DB_PASSWORD" \
+# v0.41.0 — real exports: the old backslash chain ended on a comment and never reached java.
+export DB_HOST DB_PORT DB_NAME DB_USERNAME DB_PASSWORD
 # v0.37.6 — static catalog export (POST /api/admin/stories/catalog) writes here; the
 # Robot suite 14_admin/story_catalog.robot reads the files back through the same variable.
 export CATALOG_EXPORT_DIR="${CATALOG_EXPORT_DIR:-/tmp/pathsgames-catalog-robot}"

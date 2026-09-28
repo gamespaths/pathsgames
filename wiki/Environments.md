@@ -82,16 +82,25 @@ and comments:
 | SonarQube | `SONAR_LOGIN_TOKEN_JAVA`, `SONAR_LOGIN_TOKEN` |
 | Website deploy (AWS) | `AWS_S3_BUCKET_WEBSITE*`, `AWS_CLOUDFRONT_DISTRIBUTION_ID*` |
 | AWS backend stack (test) | `AWS_ENVIRONMENT_NAME_TEST`, `AWS_STACK_NAME_TEST`, `AWS_REGION_TEST`, `AWS_REGION_PROD`, `AWS_CUSTOM_DOMAIN_TEST`, `AWS_DOMAIN_CERTIFICATE_ARN_TEST`, `AWS_DOMAIN_HOSTED_ZONE_TEST`, `AWS_CORS_ORIGINS_TEST` |
-| Turnstile | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `TURNSTILE_BYPASS_TOKEN_TEST` |
-| Rate limit / CSRF (v0.37.7) | `RATE_LIMIT_GUEST_PER_IP`, `RATE_LIMIT_MATCH_PER_IP`, `RATE_LIMIT_WINDOW_SECONDS`, `CSRF_ENFORCED` (+ `AWS_*_TEST` mirrors) |
+| Turnstile | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `TURNSTILE_BYPASS_TOKEN_TEST`, `TURNSTILE_BYPASS_TOKEN_ROBOT` |
+| Rate limit / CSRF (v0.37.7; per-IP/per-guest defaults raised in v0.41.0) | `RATE_LIMIT_GUEST_PER_IP`, `RATE_LIMIT_MATCH_PER_IP`, `RATE_LIMIT_WINDOW_SECONDS`, `RATE_LIMIT_MATCH_PER_GUEST`, `RATE_LIMIT_MATCH_PER_GUEST_WINDOW_SECONDS`, `CSRF_ENFORCED` (+ `AWS_*_TEST` mirrors) |
+| Guest idle cleanup (v0.41.0) | `GUEST_CLEANUP_ENABLED`, `GUEST_CLEANUP_AGE_DAYS`, `GUEST_CLEANUP_MAX_PER_RUN`, `GUEST_CLEANUP_HOUR`, `GUEST_CLEANUP_MINUTE` (+ `AWS_*_TEST` mirrors) |
+| AWS admin allow-list (v0.41.0) | `ADMIN_IP_WHITELIST`, `AWS_ADMIN_IP_EMPTY_MEANS_TEST`, `AWS_ADMIN_API_URL_TEST` |
 | Test-data lifecycle | `AWS_ROBOT_TEST_DATA_TTL_HOURS_TEST` |
 | Docker Hub | `DOCKERHUB_USERNAME_TEST`, `DOCKERHUB_IMAGE_TEST`, `DOCKERHUB_IMAGE_TAG_TEST`, `DOCKERHUB_TOKEN_TEST` |
 | EC2 test servers (Java, Python) | `EC2_KEY_NAME_TEST_EC2*`, `DB_NAME_TEST_EC2*`, `PUBLIC_PORT_TEST_EC2*`, `ADMIN_PORT_TEST_EC2*`, `ROUTE53_RECORD_NAME_TEST_EC2*`, `ENABLE_CLOUDFRONT_TEST_EC2*`, and their `_PY` counterparts |
+| Stage deploy (v0.41.0, alpha/beta/prod) | `AWS_JWT_SECRET_<S>`, `AWS_TURNSTILE_SECRET_KEY_<S>`, `AWS_CUSTOM_DOMAIN_<S>`, `AWS_DOMAIN_CERTIFICATE_ARN_<S>`, `AWS_DOMAIN_HOSTED_ZONE_<S>`, `AWS_CORS_ORIGINS_<S>`, `AWS_ADMIN_IP_WHITELIST_<S>` — `<S>` = `ALPHA`/`BETA`/`PROD`, read by `aws_backend_deploy_stage.sh` |
 
 **Rule:** every parameter has a code default (Spring `${VAR:default}` placeholders in
 `application.yml`, equivalent defaults in Python `config.py` and the AWS Lambda `os.environ`
 helpers) — `.env`/`.env.example` files are optional convenience for local/CI runs, never a
 requirement for the code to start.
+
+**Env rule (v0.41.0, all backends):** only `dev`, `development` and `test` count as
+dev/test — anything else (`prod`, `production`, `alpha`, `beta`, unset) is treated as
+production, gating the Turnstile bypass, the committed JWT default and (Python) the CORS
+default and `/docs`/`/redoc`/`/openapi.json`. Java reads `game.server.env` (set by the Spring
+profile), not the former `game.env`/`APP_ENV`.
 
 ## 5. Test ACM certificate — moved to V1 step 41
 
@@ -112,9 +121,9 @@ its own environment needs (SSO credentials, additional backends). Deferred, not 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First shared map of where each version runs | September 25, 2026 |
-  | 0.41.0 | Documented today's certificates; the harder decision waits for V1 | September 27, 2026 |
+  | 0.41.0 | Documented today's certificates; the harder decision waits for V1; new security/guest keys | September 28, 2026 |
 
-- **Last Updated**: September 27, 2026 (v0.41.0)
+- **Last Updated**: September 28, 2026 (v0.41.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

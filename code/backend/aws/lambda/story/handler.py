@@ -38,9 +38,8 @@ from common import log_utils
 from common import jwt_utils
 from common import story_cache
 from common import story_index
-from common.response import dumps as _dumps, ok as _ok, err as _err, HEADERS
+from common.response import dumps as _dumps, ok as _ok, err as _err, HEADERS, finalize as _finalize
 from common.http_utils import (normalize_path as _normalize_path,
-                               get_source_ip as _get_source_ip,
                                bearer_token as _bearer_token,
                                check_admin_ip as _check_admin_ip_common)
 from common.data_utils import (safe_int as _safe_int,
@@ -58,17 +57,8 @@ except ImportError:  # when handler is imported as a top-level module in tests
 # ─── shared helpers ───────────────────────────────────────────────────────────
 
 def _check_admin_ip(event):
-    """Return error response if caller IP not in ADMIN_IP_WHITELIST, else None."""
-    whitelist_raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()
-    if not whitelist_raw:
-        return None
-    allowed = [ip.strip() for ip in whitelist_raw.split(',') if ip.strip()]
-    if not allowed:
-        return None
-    source_ip = _get_source_ip(event)
-    if source_ip not in allowed:
-        return _err(403, 'FORBIDDEN', f'IP {source_ip} not authorized for admin access')
-    return None
+    """The shared allow-list rule (v0.41.0, ADMIN_IP_EMPTY_MEANS), in this handler's error shape."""
+    return _check_admin_ip_common(event, _err)
 
 def _validation_400(errors):
     """400 body for a failed story validation, carrying the errors[] array."""
@@ -340,6 +330,14 @@ def _story_detail(item, lang):
 # ─── router ───────────────────────────────────────────────────────────────────
 
 def lambda_handler(event, context):
+    """v0.41.0 — 500 MISCONFIGURED on a non dev/test stack with the committed secret; finalize always."""
+    path = _normalize_path(event.get('rawPath', event.get('path', '')))
+    if jwt_utils.misconfigured():
+        return _finalize(jwt_utils.misconfigured_response(), path)
+    return _finalize(_route(event, context), path)
+
+
+def _route(event, context):
     story_cache.begin_request()  # v0.37.5 — one stamp read per invocation
     path   = _normalize_path(event.get('rawPath', event.get('path', '')))
     method = (event.get('requestContext', {})

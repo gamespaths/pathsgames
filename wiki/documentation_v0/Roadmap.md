@@ -58,7 +58,7 @@ in the [Global Roadmap](../Roadmap.md) §3.
 | 38 | [Experience system](./Step38_ExperienceSystem.md) | ✅ | `use-exp` spends `gaming_character_instance.exp` to raise DEX/INT/COS by one at a difficulty-priced cost; `is_safe`→`secure_param`, `cost_max_characteristics`→`exp_cost_base`/`max_stat_value` |
 | 39 | [Random events](./Step39_RandomEvents.md) | ✅ | At most one `list_global_random_events` row fires at time-start, after the weather; absolute-percentage pick, party-wide reach, `RANDOM_EVENT` trigger in `counterZero[]` |
 | 40 | [Alpha UX polish](./Step40_AlphaUxPolish.md) | ✅ | Tutorial tips on card pages, weather display fix, environment badge, resource logs check, match list restyle, roadmap book |
-| 41 | [Alpha preparation](./Step41_AlphaPreparation.md) | | Logging and snapshots, security, admin IP protection, guest cleanup and limits, KPI report |
+| 41 | [Alpha preparation](./Step41_AlphaPreparation.md) | | Logging and snapshots, security, admin IP protection, guest cleanup and limits, KPI report — 0.41.0 done: security, allow-list, guests, CI scan, test CSP; 0.41.1/0.41.2 pending |
 | 42 | **Alpha launch** | | Backup and alarms, privacy check, alpha stage on AWS, alpha story, license, launch |
 
 
@@ -110,9 +110,9 @@ Each step is analysed and developed with the project agents (workflow in
 	| 0.1.1 | added licence and version control sections, file renamed from "todolist" to "roadmap" | February 5, 2026 |
     | 0.1.2 | update "2. Define the V1 scope" and "3. Define the technology stack" sections | February 10, 2026 |
     | 0.40.0 | Roadmap rewritten: 42 steps per version, alpha launch | September 25, 2026 |
-    | 0.41.0 | Step 40 done; step 41 analysis closed, no certificate | September 27, 2026 |
+    | 0.41.0 | Step 40 done; step 41 analysis closed, no certificate; patch 1 developed | September 28, 2026 |
 
-- **Last Updated**: September 27, 2026 (v0.41.0)
+- **Last Updated**: September 28, 2026 (v0.41.0)
 - **Status**: In progress
 
 

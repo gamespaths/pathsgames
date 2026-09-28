@@ -16,7 +16,7 @@ Parameters:
     Type: String
     NoEcho: true
     Default: PathsGamesDevSecret2026_MustBeAtLeast32Chars!
-    Description: "Secret key for JWT verification"
+    Description: "Secret key for JWT signing and verification. v0.41.0: outside dev/test the committed default makes every handler answer 500 MISCONFIGURED."
   TurnstileSecretKey:
     Type: String
     NoEcho: true
@@ -29,23 +29,49 @@ Parameters:
     Description: "Optional Robot-test bypass token. When non-empty, an incoming turnstileToken equal to this value skips Cloudflare verification. Leave empty in prod."
   AllowMockAccess:
     Type: String
-    Default: "true"
+    Default: "false"
     AllowedValues: ["true", "false"]
-    Description: "Enable MOCK_ACCESS_/MOCK_REFRESH_ tokens (dev convenience). Set to 'false' in production."
-  # v0.37.7 — Step 41. Fixed-window limits per source IP on POST /api/auth/guest and
-  # POST /api/matches; "0" disables a bucket (dev / Robot default), prod sets "10".
+    Description: "Enable MOCK_ACCESS_/MOCK_REFRESH_ tokens (dev convenience). v0.41.0: default false; the dev/test deploy script passes true."
+  # Step 41 — fixed-window limits per source IP on POST /api/auth/guest and POST /api/matches,
+  # plus (v0.41.0) matches per guest per day; "0" disables a bucket (Robot and stress runs).
   RateLimitGuestPerIp:
     Type: String
-    Default: "0"
+    Default: "20"
     Description: "Max new guest sessions per source IP per window. 0 = disabled."
   RateLimitMatchPerIp:
     Type: String
-    Default: "0"
+    Default: "20"
     Description: "Max new matches per source IP per window. 0 = disabled."
   RateLimitWindowSeconds:
     Type: String
     Default: "3600"
     Description: "Length of the rate-limit window, in seconds."
+  RateLimitMatchPerGuest:
+    Type: String
+    Default: "10"
+    Description: "v0.41.0 - max new matches per guest (user uuid) per guest window. 0 = disabled."
+  RateLimitMatchPerGuestWindowSeconds:
+    Type: String
+    Default: "86400"
+    Description: "v0.41.0 - length of the per-guest window, in seconds."
+  # v0.41.0 — the daily job deleting the guests idle for N days that created no match.
+  GuestCleanupEnabled:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: "v0.41.0 - run the daily idle-guest cleanup (GuestCleanupFunction)."
+  GuestCleanupAgeDays:
+    Type: String
+    Default: "60"
+    Description: "v0.41.0 - days since the last access after which a match-less guest is deleted."
+  GuestCleanupMaxPerRun:
+    Type: String
+    Default: "500"
+    Description: "v0.41.0 - at most this many guests per run (and per withoutMatches=true admin call); the rest goes the next day."
+  GuestCleanupSchedule:
+    Type: String
+    Default: "cron(42 0 * * ? *)"
+    Description: "v0.41.0 - EventBridge Scheduler expression of the cleanup, evaluated in UTC."
   # v0.39.1 — robottest guests/matches get a DynamoDB ttl, honoured only on dev/test stacks.
   RobotTestDataTtlHours:
     Type: String
@@ -80,7 +106,12 @@ Parameters:
   AdminIpWhitelist:
     Type: String
     Default: ""
-    Description: "Comma-separated list of IPs allowed to call /api/admin/** endpoints. Empty = no IP restriction (insecure, dev only). Example: 1.2.3.4,5.6.7.8"
+    Description: "Comma-separated list of IPs allowed to call /api/admin/** endpoints. Empty = what AdminIpEmptyMeans says (default: nobody). Example: 1.2.3.4,5.6.7.8"
+  AdminIpEmptyMeans:
+    Type: String
+    Default: nobody
+    AllowedValues: [nobody, everybody]
+    Description: "v0.41.0 - meaning of an empty AdminIpWhitelist on the authorizer and every admin handler: nobody (admin API closed) or everybody."
   StoryCacheTtlSeconds:
     Type: String
     Default: "3600"
@@ -399,6 +430,7 @@ Resources:
       Environment:
         Variables:
           ADMIN_IP_WHITELIST: !Ref AdminIpWhitelist
+          ADMIN_IP_EMPTY_MEANS: !Ref AdminIpEmptyMeans
 
   # REQUEST authorizer (simple responses). No IdentitySource + TTL 0 → invoked on every
   # request so a changed allow-list takes effect immediately and per-IP caching can't leak.
@@ -513,10 +545,15 @@ Resources:
         JwtSecret: !Ref JwtSecret
         AllowMockAccess: !Ref AllowMockAccess
         AdminIpWhitelist: !Ref AdminIpWhitelist
+        AdminIpEmptyMeans: !Ref AdminIpEmptyMeans
         RateLimitGuestPerIp: !Ref RateLimitGuestPerIp
         RateLimitWindowSeconds: !Ref RateLimitWindowSeconds
         CsrfEnforced: !Ref CsrfEnforced
         RobotTestDataTtlHours: !Ref RobotTestDataTtlHours
+        GuestCleanupEnabled: !Ref GuestCleanupEnabled
+        GuestCleanupAgeDays: !Ref GuestCleanupAgeDays
+        GuestCleanupMaxPerRun: !Ref GuestCleanupMaxPerRun
+        GuestCleanupSchedule: !Ref GuestCleanupSchedule
 
   StoryModule:
     Type: AWS::Serverless::Application
@@ -541,8 +578,11 @@ Resources:
         ApiId: !Ref PathsGamesApi
         AdminApiId: !Ref PathsGamesAdminApi
         AdminAuthorizerId: !Ref AdminIpAuthorizer
+        # v0.41.0 — the story admin API verifies tokens: it needs the same secret as Auth
+        JwtSecret: !Ref JwtSecret
         AllowMockAccess: !Ref AllowMockAccess
         AdminIpWhitelist: !Ref AdminIpWhitelist
+        AdminIpEmptyMeans: !Ref AdminIpEmptyMeans
         WebsiteBucket: !Ref WebsiteBucket
         WebsiteCloudFrontId: !Ref WebsiteCloudFrontId
         CatalogLangs: !Ref CatalogLangs
@@ -576,8 +616,11 @@ Resources:
         TurnstileBypassToken: !Ref TurnstileBypassToken
         AllowMockAccess: !Ref AllowMockAccess
         AdminIpWhitelist: !Ref AdminIpWhitelist
+        AdminIpEmptyMeans: !Ref AdminIpEmptyMeans
         RateLimitMatchPerIp: !Ref RateLimitMatchPerIp
         RateLimitWindowSeconds: !Ref RateLimitWindowSeconds
+        RateLimitMatchPerGuest: !Ref RateLimitMatchPerGuest
+        RateLimitMatchPerGuestWindowSeconds: !Ref RateLimitMatchPerGuestWindowSeconds
         CsrfEnforced: !Ref CsrfEnforced
         RobotTestDataTtlHours: !Ref RobotTestDataTtlHours
 
@@ -626,6 +669,8 @@ Resources:
         AdminApiId: !Ref PathsGamesAdminApi
         AdminAuthorizerId: !Ref AdminIpAuthorizer
         SeedBcryptHash: !Ref SeedBcryptHash
+        # v0.41.0 — the seed signs the tokens it hands out: same secret as Auth
+        JwtSecret: !Ref JwtSecret
         AllowMockAccess: !Ref AllowMockAccess
 
 Outputs:

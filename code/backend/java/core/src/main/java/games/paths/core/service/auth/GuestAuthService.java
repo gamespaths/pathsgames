@@ -22,6 +22,8 @@ public class GuestAuthService implements GuestAuthPort {
     private static final int GUEST_SESSION_DAYS = 180;
     /** Maximum length of a sanitized test marker used as a username prefix. */
     private static final int MAX_MARKER_LENGTH = 30;
+    /** v0.41.0 — the accepted range of X-Test-Guest-Age-Days. */
+    static final int MAX_AGE_DAYS = 3650;
 
     private final JwtPort jwtPort;
     private final GuestPersistencePort persistencePort;
@@ -33,13 +35,26 @@ public class GuestAuthService implements GuestAuthPort {
 
     @Override
     public GuestSession createGuestSession(String testMarker) {
+        return createGuestSession(testMarker, null);
+    }
+
+    @Override
+    public GuestSession createGuestSession(String testMarker, Integer ageDays) {
         // 1. Generate anonymous UUID identity
         String userUuid = UUID.randomUUID().toString();
-        String username = resolveUsernamePrefix(testMarker) + userUuid.substring(0, 8);
+        String prefix = resolveUsernamePrefix(testMarker);
+        String username = prefix + userUuid.substring(0, 8);
         String guestCookieToken = UUID.randomUUID().toString();
+        // v0.41.0 — an aged guest needs a valid marker too, so it is always test data
+        Instant bornAt = Instant.now();
+        boolean aged = !GUEST_USERNAME_PREFIX.equals(prefix)
+                && ageDays != null && ageDays >= 1 && ageDays <= MAX_AGE_DAYS;
+        if (aged) {
+            bornAt = bornAt.minus(ageDays, ChronoUnit.DAYS);
+        }
 
         // 2. Calculate guest session expiration (6 months / 180 days)
-        Instant expiresAt = Instant.now().plus(GUEST_SESSION_DAYS, ChronoUnit.DAYS);
+        Instant expiresAt = bornAt.plus(GUEST_SESSION_DAYS, ChronoUnit.DAYS);
         String expiresAtIso = expiresAt.toString();
 
         // 3. Persist guest user in database (state=6 for guest)
@@ -56,6 +71,9 @@ public class GuestAuthService implements GuestAuthPort {
 
         // 6. Update last access
         persistencePort.updateLastAccess(userId);
+        if (aged) {
+            persistencePort.backdateGuest(userId, bornAt.toString());
+        }
 
         return GuestSession.builder()
                 .userUuid(userUuid)

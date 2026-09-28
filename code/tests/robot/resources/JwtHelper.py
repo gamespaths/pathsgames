@@ -7,6 +7,7 @@
 #
 #   ${token}=    Generate Admin Token
 # ---------------------------------------------------------------------------
+import os
 import uuid
 import time
 import jwt  # PyJWT
@@ -15,7 +16,7 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
-# Dev secret from application.yml (default when JWT_SECRET env var is not set)
+# Dev secret from application.yml; v0.41.0: only the fallback when JWT_SECRET is not exported
 _DEV_SECRET = "PathsGamesDevSecret2026_MustBeAtLeast32Chars!"
 _ALGORITHM = "HS256"
 _ACCESS_TOKEN_MINUTES = 30
@@ -25,10 +26,12 @@ def generate_admin_token(
     user_uuid=None,
     username="test_admin",
     role="ADMIN",
-    secret=_DEV_SECRET,
+    secret=None,
     minutes=_ACCESS_TOKEN_MINUTES,
 ):
     """Return a signed HS256 JWT access token with the given claims.
+
+    v0.41.0 — no ``secret``: env JWT_SECRET read at call time (scripts export it), else the dev one.
 
     The token mirrors the claims produced by ``JwtTokenProvider.generateAccessToken``
     in the Java backend:
@@ -51,4 +54,5 @@ def generate_admin_token(
         "iat": now,
         "exp": now + minutes * 60,
     }
-    return jwt.encode(payload, secret, algorithm=_ALGORITHM)
+    key = secret or os.environ.get("JWT_SECRET") or _DEV_SECRET
+    return jwt.encode(payload, key, algorithm=_ALGORITHM)

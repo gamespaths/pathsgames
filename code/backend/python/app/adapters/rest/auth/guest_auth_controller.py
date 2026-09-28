@@ -9,6 +9,8 @@ from fastapi.responses import JSONResponse
 from app.core.services.security import rate_limit_service as _rl
 
 RATE_BUCKET = "guest"
+#: v0.41.0 — dev/test only, honoured with a valid X-Test-Marker: an N-days-old guest.
+AGE_HEADER = "X-Test-Guest-Age-Days"
 
 class GuestResumeRequest(BaseModel):
     guestCookieToken: Optional[str] = None
@@ -92,7 +94,11 @@ class GuestAuthController:
             if not verdict.allowed:
                 return _rate_limited(verdict, "Too many guest sessions from this address")
         marker = x_test_marker if self.test_endpoints_enabled else None
-        session = self.guest_auth_port.create_guest_session(marker)
+        age = _parse_age(request.headers.get(AGE_HEADER)) if self.test_endpoints_enabled else None
+        if age is None:
+            session = self.guest_auth_port.create_guest_session(marker)
+        else:
+            session = self.guest_auth_port.create_guest_session(marker, age)
         response = self._process_session_response(session)
         response.status_code = status.HTTP_201_CREATED
         return response
@@ -118,6 +124,16 @@ class GuestAuthController:
                 }
             )
         return self._process_session_response(session)
+
+
+def _parse_age(raw: Optional[str]) -> Optional[int]:
+    """A number or nothing: a malformed header is ignored, never an error."""
+    if raw is None or not raw.strip():
+        return None
+    try:
+        return int(raw.strip())
+    except ValueError:
+        return None
 
 
 def _rate_limited(verdict, what: str) -> JSONResponse:

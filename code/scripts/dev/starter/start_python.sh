@@ -14,6 +14,10 @@ if [ -f "$ENV_FILE" ]; then
 fi
 echo "Env file loaded: ${ENV_FILE:-None}"   
 
+# v0.41.0 — same secret as Robot and the stress tools; limits at 0 so local stress runs are never limited.
+if [ -n "${JWT_SECRET:-}" ]; then export JWT_SECRET; fi
+export RATE_LIMIT_GUEST_PER_IP=0 RATE_LIMIT_MATCH_PER_IP=0 RATE_LIMIT_MATCH_PER_GUEST=0
+
 echo "Kill all process using 8042 port"
 fuser -k 8042/tcp || true
 

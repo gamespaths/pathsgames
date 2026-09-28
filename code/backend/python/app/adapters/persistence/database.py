@@ -76,6 +76,10 @@ _DROPPED_COLUMNS = {
     # Step 38 — replaced by exp_cost_base / max_stat_value.
     "list_stories_difficulty": ["cost_max_characteristics"],
 }
+# v0.41.0 — indexes create_all makes only on a new table: (table, name, columns).
+_INDEXES = [
+    ("users", "idx_users_state_last_access", "state, last_access"),
+]
 # Added columns are integers unless named here: the Step 36 operator holds "=", ">", "<", "!=".
 _TEXT_COLUMNS = {"registry_value_operator_condition",
                  "key_to_add", "key_value_to_add",
@@ -112,6 +116,11 @@ def align_schema(bind=None):
         for column in drops:
             if column in columns:
                 statements.append(f"ALTER TABLE {table} DROP COLUMN {column}")
+    for table, name, columns in _INDEXES:
+        if not inspector.has_table(table):
+            continue
+        if name not in {i["name"] for i in inspector.get_indexes(table)}:
+            statements.append(f"CREATE INDEX IF NOT EXISTS {name} ON {table} ({columns})")
     if not statements:
         return []
     with bind.begin() as connection:

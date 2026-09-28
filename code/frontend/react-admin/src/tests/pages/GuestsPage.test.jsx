@@ -397,7 +397,7 @@ describe('GuestsPage', () => {
     await userEvent.click(screen.getByText(/Count stale/i))
 
     expect(await screen.findByText(/4 guests · 6 matches/)).toBeInTheDocument()
-    expect(previewStaleGuests).toHaveBeenCalledWith(90)
+    expect(previewStaleGuests).toHaveBeenCalledWith(90, false)
     expect(deleteStaleGuests).not.toHaveBeenCalled()
   })
 
@@ -414,7 +414,7 @@ describe('GuestsPage', () => {
     // from "Cleanup Expired", which never touches a match.
     expect(await screen.findByText(/6 matches, started or not/i)).toBeInTheDocument()
     await userEvent.click(screen.getByText('Confirm'))
-    await waitFor(() => expect(deleteStaleGuests).toHaveBeenCalledWith(90))
+    await waitFor(() => expect(deleteStaleGuests).toHaveBeenCalledWith(90, false))
     expect(await screen.findByText(/4 guests and 6 matches removed/i)).toBeInTheDocument()
   })
 
@@ -472,6 +472,52 @@ describe('GuestsPage', () => {
     await userEvent.click(screen.getByText('No more pages'))
 
     expect(listGuests).not.toHaveBeenCalled()
+  })
+
+  // ── v0.41.0: "Without matches only" on the stale purge ─────────────────────
+  it('counts only the guests without matches when the toggle is on', async () => {
+    previewStaleGuests.mockResolvedValue({ guests: 3, matches: 0 })
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+
+    await userEvent.type(screen.getByLabelText(/Not seen for/i), '400')
+    await userEvent.click(screen.getByLabelText(/Without matches only/i))
+    await userEvent.click(screen.getByText(/Count stale/i))
+
+    expect(await screen.findByText('3 guests without matches')).toBeInTheDocument()
+    expect(previewStaleGuests).toHaveBeenCalledWith(400, true)
+  })
+
+  it('toggling "without matches" drops the previous count', async () => {
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    await userEvent.type(screen.getByLabelText(/Not seen for/i), '90')
+    await userEvent.click(screen.getByText(/Count stale/i))
+    await screen.findByText(/4 guests · 6 matches/)
+
+    await userEvent.click(screen.getByLabelText(/Without matches only/i))
+
+    expect(screen.queryByText(/4 guests · 6 matches/)).toBeNull()
+    expect(screen.queryByText(/Purge stale/i)).toBeNull()
+    expect(screen.getByLabelText(/Without matches only/i)).toBeChecked()
+  })
+
+  it('says no match is touched and purges with withoutMatches on confirm', async () => {
+    previewStaleGuests.mockResolvedValue({ guests: 2, matches: 0 })
+    deleteStaleGuests.mockResolvedValue({ guests: 2, matches: 0 })
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    await userEvent.type(screen.getByLabelText(/Not seen for/i), '400')
+    await userEvent.click(screen.getByLabelText(/Without matches only/i))
+    await userEvent.click(screen.getByText(/Count stale/i))
+    await screen.findByText('2 guests without matches')
+
+    await userEvent.click(screen.getByText(/Purge stale/i))
+
+    expect(await screen.findByText(/created no match \(at most 500 per run; no match is touched\)/i)).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Confirm'))
+    await waitFor(() => expect(deleteStaleGuests).toHaveBeenCalledWith(400, true))
+    expect(await screen.findByText('Purge done: 2 guests without matches removed.')).toBeInTheDocument()
   })
 
   it('a failing stale count with no message shows the generic error', async () => {

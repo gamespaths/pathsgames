@@ -119,16 +119,39 @@ class GuestAdminPersistenceAdapterTest {
         }
 
         @Test
-        @DisplayName("Should delegate cleanup and return total deleted guests")
+        @DisplayName("Should delete only the unreferenced expired guests and return the count")
         void deleteExpiredGuests_logic() {
-            when(userTokenRepository.deleteTokensOfExpiredGuests(eq(6), anyString())).thenReturn(2);
-            when(userRepository.deleteExpiredGuests(eq(6), anyString())).thenReturn(5);
+            // v0.41.0 — a guest a match still points at never reaches the delete
+            when(userRepository.findExpiredGuestIdsWithoutReferences(eq(6), anyString()))
+                    .thenReturn(List.of(4L, 5L));
+            when(userRepository.deleteGuestsByIds(6, List.of(4L, 5L))).thenReturn(2);
 
             int deleted = adapter.deleteExpiredGuests();
 
-            assertEquals(5, deleted);
-            verify(userTokenRepository).deleteTokensOfExpiredGuests(eq(6), anyString());
-            verify(userRepository).deleteExpiredGuests(eq(6), anyString());
+            assertEquals(2, deleted);
+            verify(userTokenRepository).deleteTokensOfUsers(List.of(4L, 5L));
+            verify(userRepository).deleteGuestsByIds(6, List.of(4L, 5L));
+        }
+
+        @Test
+        @DisplayName("v0.41.0 — the match-less stale ids come from the guarded query, capped")
+        void findStaleGuestIdsWithoutReferences_logic() {
+            when(userRepository.findStaleGuestIdsWithoutReferences(6, "2026-01-01T00:00:00Z", 500))
+                    .thenReturn(List.of(7, 8L));
+
+            assertEquals(List.of(7L, 8L),
+                    adapter.findStaleGuestIdsWithoutReferences("2026-01-01T00:00:00Z", 500));
+            assertEquals(List.of(), adapter.findStaleGuestIdsWithoutReferences(null, 500));
+            assertEquals(List.of(), adapter.findStaleGuestIdsWithoutReferences("2026-01-01T00:00:00Z", 0));
+        }
+
+        @Test
+        @DisplayName("v0.41.0 — a null id list from the query reads as none")
+        void findStaleGuestIdsWithoutReferences_nullRows() {
+            when(userRepository.findStaleGuestIdsWithoutReferences(6, "2026-01-01T00:00:00Z", 10))
+                    .thenReturn(null);
+
+            assertEquals(List.of(), adapter.findStaleGuestIdsWithoutReferences("2026-01-01T00:00:00Z", 10));
         }
 
         @Test

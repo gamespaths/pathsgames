@@ -38,7 +38,8 @@ from common import jwt_utils
 from common import story_cache
 from common import story_index
 from common import test_data_ttl
-from common.response import HEADERS
+from common.response import HEADERS, finalize as _finalize
+from common.http_utils import normalize_path as _normalize_path
 from common.data_utils import (safe_int as _safe_int,
                                resolve_raw_text as _resolve_raw_text,
                                resolve_card_from_raw as _resolve_card_from_raw)
@@ -1601,8 +1602,16 @@ def _handle_cleanup():
 # ─── handler ─────────────────────────────────────────────────────────────────
 
 def lambda_handler(event, context):
-    env = os.environ.get("ENV", "dev")
-    if env not in ("dev", "test"):
+    """v0.41.0 — 500 MISCONFIGURED on a non dev/test stack with the committed secret; finalize always."""
+    path = _normalize_path((event or {}).get("rawPath") or (event or {}).get("path") or "")
+    if jwt_utils.misconfigured():
+        return _finalize(jwt_utils.misconfigured_response(), path)
+    return _finalize(_route(event, context), path)
+
+
+def _route(event, context):
+    # v0.41.0 — the env rule of every backend: dev, development, test
+    if not test_data_ttl.is_test_env():
         return {
             "statusCode": 403,
             "headers": HEADERS,

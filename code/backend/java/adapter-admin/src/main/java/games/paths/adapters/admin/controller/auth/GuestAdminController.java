@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
  * GET /api/admin/guests → one page of guest users (v0.36.2)
  * GET /api/admin/guests/stats → guest statistics
  * GET|DELETE /api/admin/guests/stale → preview / purge guests not seen for N days, matches included
+ *   (v0.41.0: withoutMatches=true keeps every guest a match references, at most max-per-run)
  * GET /api/admin/guests/{uuid} → get a single guest
  * DELETE /api/admin/guests/{uuid} → delete a single guest
  * DELETE /api/admin/guests/expired → cleanup expired guests
@@ -69,11 +70,18 @@ public class GuestAdminController {
      */
     @GetMapping("/stale")
     public ResponseEntity<Object> previewStaleGuests(
-            @RequestParam(required = false) Integer olderThanDays) {
+            @RequestParam(required = false) Integer olderThanDays,
+            @RequestParam(required = false) String withoutMatches) {
         if (olderThanDays == null || olderThanDays < 0) {
             return badOlderThanDays();
         }
-        return ResponseEntity.ok(staleBody(guestAdminPort.previewStaleGuests(olderThanDays)));
+        if (!validFlag(withoutMatches)) {
+            return badWithoutMatches();
+        }
+        StaleGuestsSummary summary = withoutMatches == null
+                ? guestAdminPort.previewStaleGuests(olderThanDays)
+                : guestAdminPort.previewStaleGuests(olderThanDays, Boolean.parseBoolean(withoutMatches));
+        return ResponseEntity.ok(staleBody(summary));
     }
 
     /**
@@ -84,11 +92,17 @@ public class GuestAdminController {
      */
     @DeleteMapping("/stale")
     public ResponseEntity<Object> deleteStaleGuests(
-            @RequestParam(required = false) Integer olderThanDays) {
+            @RequestParam(required = false) Integer olderThanDays,
+            @RequestParam(required = false) String withoutMatches) {
         if (olderThanDays == null || olderThanDays < 0) {
             return badOlderThanDays();
         }
-        StaleGuestsSummary summary = guestAdminPort.deleteStaleGuests(olderThanDays);
+        if (!validFlag(withoutMatches)) {
+            return badWithoutMatches();
+        }
+        StaleGuestsSummary summary = withoutMatches == null
+                ? guestAdminPort.deleteStaleGuests(olderThanDays)
+                : guestAdminPort.deleteStaleGuests(olderThanDays, Boolean.parseBoolean(withoutMatches));
         Map<String, Object> body = staleBody(summary);
         body.put(AdminConstant.KEY_STATUS, "CLEANUP_COMPLETE");
         return ResponseEntity.ok(body);
@@ -99,6 +113,18 @@ public class GuestAdminController {
         body.put("guests", summary.guests());
         body.put("matches", summary.matches());
         return body;
+    }
+
+    /** v0.41.0 — withoutMatches is optional; when present only "true" or "false" is accepted. */
+    private static boolean validFlag(String value) {
+        return value == null || "true".equals(value) || "false".equals(value);
+    }
+
+    private static ResponseEntity<Object> badWithoutMatches() {
+        Map<String, Object> error = new LinkedHashMap<>();
+        error.put(AdminConstant.KEY_ERROR, "INVALID_INPUT");
+        error.put(AdminConstant.KEY_MESSAGE, "withoutMatches must be true or false");
+        return ResponseEntity.badRequest().body(error);
     }
 
     private static ResponseEntity<Object> badOlderThanDays() {

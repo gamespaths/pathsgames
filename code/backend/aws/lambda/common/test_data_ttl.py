@@ -5,7 +5,13 @@ import time
 
 ROBOT_TEST_MARKER = 'robottest'
 TTL_ATTRIBUTE = 'ttl'
-TEST_ENVS = ('dev', 'test')
+TEST_ENVS = ('dev', 'development', 'test')  # v0.41.0 — the env rule of every backend
+
+
+def is_test_env(env=None):
+    """True on dev/test, anything else is production; an unset ENV reads 'dev' as elsewhere."""
+    value = os.environ.get('ENV', 'dev') if env is None else env
+    return str(value or '').strip().lower() in TEST_ENVS
 
 
 def hours():

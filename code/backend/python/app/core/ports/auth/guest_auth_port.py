@@ -4,7 +4,8 @@ from typing import Optional
 
 class GuestAuthPort(ABC):
     @abstractmethod
-    def create_guest_session(self, test_marker: Optional[str] = None) -> GuestSession:
+    def create_guest_session(self, test_marker: Optional[str] = None,
+                             age_days: Optional[int] = None) -> GuestSession:
         """Creates a new anonymous guest user and returns JWT tokens.
 
         When ``test_marker`` is provided (and non-blank) the generated username

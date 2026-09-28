@@ -40,26 +40,41 @@ public class MatchController {
     private final MatchQueryPort matchQueryPort;
 
     static final String RATE_BUCKET = "match";
+    /** v0.41.0 — second bucket, keyed by the user uuid, with its own (daily) window. */
+    static final String GUEST_RATE_BUCKET = "match-guest";
 
     private final RateLimitService rateLimitService;
     private final int matchPerIp;
     private final CsrfTokenService csrfTokenService;
+    private int matchPerGuest;
+    private int matchPerGuestWindowSeconds = 86400;
 
     public MatchController(MatchCommandPort matchCommandPort, MatchQueryPort matchQueryPort) {
         this(matchCommandPort, matchQueryPort, null, 0, null);
     }
 
     /** v0.37.7 — Step 41: the match bucket of the rate limiter and the CSRF check on creation. */
-    @org.springframework.beans.factory.annotation.Autowired
     public MatchController(MatchCommandPort matchCommandPort, MatchQueryPort matchQueryPort,
-                           RateLimitService rateLimitService,
-                           @org.springframework.beans.factory.annotation.Value("${game.security.rate-limit.match-per-ip:0}") int matchPerIp,
+                           RateLimitService rateLimitService, int matchPerIp,
                            CsrfTokenService csrfTokenService) {
         this.matchCommandPort = matchCommandPort;
         this.matchQueryPort = matchQueryPort;
         this.rateLimitService = rateLimitService;
         this.matchPerIp = matchPerIp;
         this.csrfTokenService = csrfTokenService;
+    }
+
+    /** v0.41.0 — adds the per-guest bucket: at most matchPerGuest creations per user and window. */
+    @org.springframework.beans.factory.annotation.Autowired
+    public MatchController(MatchCommandPort matchCommandPort, MatchQueryPort matchQueryPort,
+                           RateLimitService rateLimitService,
+                           @org.springframework.beans.factory.annotation.Value("${game.security.rate-limit.match-per-ip:20}") int matchPerIp,
+                           CsrfTokenService csrfTokenService,
+                           @org.springframework.beans.factory.annotation.Value("${game.security.rate-limit.match-per-guest:10}") int matchPerGuest,
+                           @org.springframework.beans.factory.annotation.Value("${game.security.rate-limit.match-per-guest-window-seconds:86400}") int matchPerGuestWindowSeconds) {
+        this(matchCommandPort, matchQueryPort, rateLimitService, matchPerIp, csrfTokenService);
+        this.matchPerGuest = matchPerGuest;
+        this.matchPerGuestWindowSeconds = matchPerGuestWindowSeconds;
     }
 
     @PostMapping("/api/matches")
@@ -88,10 +103,15 @@ public class MatchController {
                     request.getRemoteAddr());
             RateLimitService.Verdict verdict = rateLimitService.tryAcquire(RATE_BUCKET, ip, matchPerIp);
             if (!verdict.allowed()) {
-                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                        .header("Retry-After", String.valueOf(verdict.retryAfterSeconds()))
-                        .body(errorBody("RATE_LIMITED", "Too many matches created from this address, retry in "
-                                + verdict.retryAfterSeconds() + " seconds", verdict.retryAfterSeconds()));
+                return rateLimited(verdict, "Too many matches created from this address");
+            }
+        }
+        // v0.41.0 — at most match-per-guest new matches per user and (daily) window
+        if (rateLimitService != null && matchPerGuest > 0) {
+            RateLimitService.Verdict verdict = rateLimitService.tryAcquire(GUEST_RATE_BUCKET, userUuid,
+                    matchPerGuest, matchPerGuestWindowSeconds);
+            if (!verdict.allowed()) {
+                return rateLimited(verdict, "Too many matches created by this player");
             }
         }
         if (body == null || isBlank(body.getStoryUuid()) || isBlank(body.getDifficultyUuid())) {
@@ -192,6 +212,14 @@ public class MatchController {
                 return error(HttpStatus.NOT_FOUND, "MATCH_NOT_FOUND",
                         "Match not found or not accessible");
         }
+    }
+
+    /** The one 429 both buckets answer: same body, Retry-After in seconds. */
+    private static ResponseEntity<Object> rateLimited(RateLimitService.Verdict verdict, String what) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(verdict.retryAfterSeconds()))
+                .body(errorBody("RATE_LIMITED", what + ", retry in "
+                        + verdict.retryAfterSeconds() + " seconds", verdict.retryAfterSeconds()));
     }
 
     private static boolean isBlank(String s) {

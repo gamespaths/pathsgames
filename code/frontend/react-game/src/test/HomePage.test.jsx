@@ -262,6 +262,16 @@ describe('HomePage — story click with active match check', () => {
     expect(listMatches).not.toHaveBeenCalled()
   })
 
+  it('reports "rateLimited" when the guest login answered 429 (v0.41.0)', async () => {
+    guest.user = null
+    guest.error = 'RATE_LIMITED'
+    wrap(<HomePage />)
+    await screen.findByText('Forest Path')
+    await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('error'))
+    expect(screen.getByTestId('home-error').textContent).toBe('rateLimited')
+    expect(listMatches).not.toHaveBeenCalled()
+  })
+
   it('fetches the catalog once under StrictMode double mount, and again on a language change (v0.37.6)', async () => {
     const { StrictMode } = await import('react')
     listMatches.mockResolvedValue([])

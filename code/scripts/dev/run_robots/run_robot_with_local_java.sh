@@ -13,6 +13,10 @@ if [ -f "$ENV_FILE" ]; then
 	. "$ENV_FILE"
 fi
 
+# v0.41.0 — server and JwtHelper.py sign with the .env secret; Robot always runs with the limits off.
+if [ -n "${JWT_SECRET:-}" ]; then export JWT_SECRET; fi
+export RATE_LIMIT_GUEST_PER_IP=0 RATE_LIMIT_MATCH_PER_IP=0 RATE_LIMIT_MATCH_PER_GUEST=0
+
 cd $PROJECT_ROOT && \
 python3 -m venv .venv && \
 source .venv/bin/activate

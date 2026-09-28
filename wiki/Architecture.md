@@ -63,6 +63,13 @@ FastAPI, same hexagonal split as Java: `app/core/` (domain, framework-free), `ap
 Java release by release; where a naming drift exists between the two (e.g. `is_safe` vs
 `secure_param`) it is called out in the relevant `documentation_vN` step file.
 
+- `app/adapters/rest/middleware/security_headers_middleware.py`: the same security headers as
+  Java's `SecurityHeadersFilter` (see [Security §8](./Security.md)), skipping `/docs`,
+  `/redoc` and `/openapi.json`.
+- `app/adapters/scheduler/`: an APScheduler `AsyncIOScheduler`, started once in `_serve()`
+  (not per app), runs the daily guest idle-cleanup job at 00:42 UTC by default — the Java
+  equivalent is `GuestSessionCleanupScheduler` (see [Security §4](./Security.md)).
+
 ## 4. AWS serverless backend (mirror)
 
 API Gateway (HTTP v2) → Lambda (Python 3.13) → DynamoDB single-table design with GSIs,
@@ -71,7 +78,7 @@ a key-prefix design instead (`GSI1`, `GSI2` for secondary access patterns).
 
 ```
 code/backend/aws/lambda/
-  auth/          guest login, session/token endpoints
+  auth/          guest login, session/token endpoints, daily guest idle-cleanup (GuestCleanupFunction)
   authorizer/    IP allow-list Lambda authorizer, gates /api/admin/** at the API Gateway level
   content/       story content read APIs (cards, texts, creators)
   echo/          unversioned health check
@@ -80,6 +87,11 @@ code/backend/aws/lambda/
   story/         story catalog and admin story CRUD
   common/        shared helpers (db_utils, jwt_utils, security_utils, http_utils, log_utils)
 ```
+
+`GuestCleanupFunction` (v0.41.0, `template/auth.yaml`) runs on an EventBridge `ScheduleV2`
+inside a tagged `AWS::Scheduler::ScheduleGroup` (a plain `Schedule` event cannot carry its own
+tags), daily at 00:42 UTC by default; see [Security §4](./Security.md) for the guest cleanup
+rules it applies.
 
 SAM templates: `code/backend/aws/template.yaml` (root stack) plus one nested template per
 module under `code/backend/aws/template/` (`auth.yaml`, `match.yaml`, `story.yaml`,
@@ -139,13 +151,14 @@ Python, AWS) plus the shared OpenAPI spec and the Robot suite that exercises all
 [ApiConventions §5](./ApiConventions.md) and CLAUDE.md's "When you change code" section.
 
 # Version Control
-- **Document Version**: 0.40.0
+- **Document Version**: 0.41.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First shared write-up of how the whole system fits together | September 25, 2026 |
+  | 0.41.0 | Python scheduler and AWS guest-cleanup job added | September 28, 2026 |
 
-- **Last Updated**: September 25, 2026 (v0.40.0)
+- **Last Updated**: September 28, 2026 (v0.41.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

@@ -38,25 +38,28 @@ class RateLimitService:
         self._window = max(1, int(window_seconds))
         self._clock = clock
         self._lock = threading.Lock()
-        self._windows: Dict[str, Tuple[float, int]] = {}
+        # v0.41.0 — each counter keeps its own window length: (start, count, length)
+        self._windows: Dict[str, Tuple[float, int, int]] = {}
         self._calls = 0
 
-    def try_acquire(self, bucket: str, key: Optional[str], limit: int) -> Verdict:
+    def try_acquire(self, bucket: str, key: Optional[str], limit: int,
+                    window_seconds: Optional[int] = None) -> Verdict:
         if limit <= 0 or not key or not key.strip():
             return Verdict.unlimited()
+        requested = self._window if window_seconds is None else max(1, int(window_seconds))
         now = self._clock()
         with self._lock:
             self._calls += 1
             if self._calls % _SWEEP_EVERY == 0:
                 self._windows = {k: v for k, v in self._windows.items()
-                                 if now - v[0] < self._window}
+                                 if now - v[0] < v[2]}
             k = f"{bucket}|{key.strip()}"
-            start, count = self._windows.get(k, (None, 0))
-            if start is None or now - start >= self._window:
-                start, count = now, 0
+            start, count, length = self._windows.get(k, (None, 0, requested))
+            if start is None or now - start >= length:
+                start, count, length = now, 0, requested
             count += 1
-            self._windows[k] = (start, count)
-        retry_after = max(1, int(-(-(start + self._window - now) // 1)))
+            self._windows[k] = (start, count, length)
+        retry_after = max(1, int(-(-(start + length - now) // 1)))
         return Verdict(count <= limit, limit, max(0, limit - count), retry_after)
 
     def reset(self) -> None:

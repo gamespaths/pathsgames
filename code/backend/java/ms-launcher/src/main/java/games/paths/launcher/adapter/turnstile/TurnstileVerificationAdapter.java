@@ -1,6 +1,7 @@
 package games.paths.launcher.adapter.turnstile;
 
 import games.paths.core.port.turnstile.TurnstileVerificationPort;
+import games.paths.core.service.security.EnvironmentRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
@@ -16,8 +17,8 @@ import java.util.Map;
  * TurnstileVerificationAdapter - Calls the Cloudflare Turnstile siteverify API.
  * Bypasses verification when:
  *   - no secret key is configured (empty/null) — dev default, or
- *   - env is not "prod" AND a bypass token is configured AND the incoming
- *     token matches it (used by Robot tests against an env with a real key).
+ *   - env is dev/test (v0.41.0 rule: dev, development, test) AND a bypass token is
+ *     configured AND the incoming token matches it (Robot tests against a real key).
  */
 public class TurnstileVerificationAdapter implements TurnstileVerificationPort {
 
@@ -41,7 +42,7 @@ public class TurnstileVerificationAdapter implements TurnstileVerificationPort {
                                         RestTemplate restTemplate) {
         this.secretKey = secretKey;
         this.bypassToken = bypassToken == null ? "" : bypassToken;
-        this.env = env == null ? "dev" : env;
+        this.env = env;
         this.restTemplate = restTemplate;
     }
 
@@ -50,7 +51,7 @@ public class TurnstileVerificationAdapter implements TurnstileVerificationPort {
         if (secretKey == null || secretKey.isBlank()) {
             return true;
         }
-        if (!"prod".equals(env) && !bypassToken.isEmpty() && bypassToken.equals(token)) {
+        if (EnvironmentRule.isDevOrTest(env) && !bypassToken.isEmpty() && bypassToken.equals(token)) {
             return true;
         }
         if (token == null || token.isBlank()) {

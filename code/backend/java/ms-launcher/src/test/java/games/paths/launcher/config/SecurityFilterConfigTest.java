@@ -63,4 +63,15 @@ class SecurityFilterConfigTest {
         assertEquals(0, bean.getOrder());
         assertTrue(bean.getUrlPatterns().contains("/*"));
     }
+
+    @Test
+    @DisplayName("v0.41.0 - SecurityHeadersFilter runs first (order -1) on every path")
+    void securityHeadersFilterRegistration_createsBean() {
+        FilterRegistrationBean<games.paths.launcher.filter.SecurityHeadersFilter> bean =
+                new SecurityFilterConfig().securityHeadersFilterRegistration();
+
+        assertNotNull(bean.getFilter());
+        assertEquals(-1, bean.getOrder());
+        assertTrue(bean.getUrlPatterns().contains("/*"));
+    }
 }

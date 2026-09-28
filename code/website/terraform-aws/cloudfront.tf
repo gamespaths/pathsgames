@@ -127,15 +127,18 @@ locals {
   csp_font_src    = concat(["'self'"], local._expand["font"])
   csp_img_src     = concat(["'self'", "data:"], local._expand["img"])
   csp_connect_src = concat(["'self'"], local._expand["connect"])
+  # v0.41.0 — frame-src comes only from var.csp_extra_domains["frame"] (no SSM list), e.g. the Turnstile iframe.
+  csp_frame_domains = [for d in lookup(var.csp_extra_domains, "frame", []) : trimspace(d)]
+  csp_frame_src     = concat(["'self'"], flatten([for d in local.csp_frame_domains : ["https://${d}", "https://*.${d}"]]))
 
-  csp_header_restricted = join("; ", [
+  csp_header_restricted = join("; ", concat([
     "default-src 'self'",
     "script-src ${join(" ", local.csp_script_src)}",
     "style-src ${join(" ", local.csp_style_src)}",
     "font-src ${join(" ", local.csp_font_src)}",
     "img-src ${join(" ", local.csp_img_src)}",
     "connect-src ${join(" ", local.csp_connect_src)}",
-  ])
+  ], length(local.csp_frame_domains) > 0 ? ["frame-src ${join(" ", local.csp_frame_src)}"] : []))
 
   csp_header_open = "default-src *; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; font-src *; img-src * data:; connect-src *"
 

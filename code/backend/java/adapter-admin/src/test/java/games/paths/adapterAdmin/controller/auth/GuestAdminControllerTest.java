@@ -97,6 +97,59 @@ class GuestAdminControllerTest {
                                 .andExpect(jsonPath("$.error").value("INVALID_INPUT"));
         }
 
+        // ─── v0.41.0: withoutMatches ───
+
+        @Test
+        void previewStaleGuests_withoutMatchesCountsOnlyTheMatchLessGuests() throws Exception {
+                when(guestAdminPort.previewStaleGuests(365, true)).thenReturn(
+                                new games.paths.core.model.auth.StaleGuestsSummary(3, 0));
+
+                mockMvc.perform(get("/api/admin/guests/stale?olderThanDays=365&withoutMatches=true"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.guests").value(3))
+                                .andExpect(jsonPath("$.matches").value(0));
+                verify(guestAdminPort, never()).previewStaleGuests(365);
+        }
+
+        @Test
+        void deleteStaleGuests_withoutMatchesRunsTheJobPurge() throws Exception {
+                when(guestAdminPort.deleteStaleGuests(60, true)).thenReturn(
+                                new games.paths.core.model.auth.StaleGuestsSummary(2, 0));
+
+                mockMvc.perform(delete("/api/admin/guests/stale?olderThanDays=60&withoutMatches=true"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.guests").value(2))
+                                .andExpect(jsonPath("$.status").value("CLEANUP_COMPLETE"));
+        }
+
+        @Test
+        void staleGuests_withoutMatchesFalseKeepsTodaysPurge() throws Exception {
+                when(guestAdminPort.previewStaleGuests(90, false)).thenReturn(
+                                new games.paths.core.model.auth.StaleGuestsSummary(5, 4));
+                when(guestAdminPort.deleteStaleGuests(90, false)).thenReturn(
+                                new games.paths.core.model.auth.StaleGuestsSummary(5, 4));
+
+                mockMvc.perform(get("/api/admin/guests/stale?olderThanDays=90&withoutMatches=false"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.matches").value(4));
+                mockMvc.perform(delete("/api/admin/guests/stale?olderThanDays=90&withoutMatches=false"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.matches").value(4));
+        }
+
+        @Test
+        void staleGuests_refuseAnyOtherWithoutMatchesValue() throws Exception {
+                mockMvc.perform(get("/api/admin/guests/stale?olderThanDays=1&withoutMatches=maybe"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.error").value("INVALID_INPUT"))
+                                .andExpect(jsonPath("$.message").value("withoutMatches must be true or false"));
+                mockMvc.perform(delete("/api/admin/guests/stale?olderThanDays=1&withoutMatches=TRUE"))
+                                .andExpect(status().isBadRequest());
+                mockMvc.perform(get("/api/admin/guests/stale?withoutMatches=true"))
+                                .andExpect(status().isBadRequest());
+                verifyNoInteractions(guestAdminPort);
+        }
+
         // ─── GET /api/admin/guests/stats ───
 
         @Test

@@ -16,7 +16,9 @@ from helpers import make_event
 
 def test_cleanup_returns_403_when_not_dev():
     from seed.handler import lambda_handler
-    with patch.dict(os.environ, {'ENV': 'prod'}):
+    # v0.41.0 — a prod stack with the committed secret answers 500, so this one has its own
+    with patch('common.jwt_utils.JWT_SECRET', 'a-private-prod-secret-of-at-least-32-chars'), \
+         patch.dict(os.environ, {'ENV': 'prod'}):
         result = lambda_handler(make_event('POST', '/api/dev/cleanup'), {})
     assert result['statusCode'] == 403
 

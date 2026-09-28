@@ -3,6 +3,7 @@ package games.paths.launcher.config;
 import games.paths.adapters.rest.filter.JwtAuthenticationFilter;
 import games.paths.core.port.auth.SessionPort;
 import games.paths.launcher.filter.AdminPortFilter;
+import games.paths.launcher.filter.SecurityHeadersFilter;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -26,6 +27,17 @@ public class SecurityFilterConfig {
 
     @Value("${game.admin.port:8044}")
     private int adminPort;
+
+    /** v0.41.0 — {@link SecurityHeadersFilter} at order -1: even the refusals carry the headers. */
+    @Bean
+    public FilterRegistrationBean<SecurityHeadersFilter> securityHeadersFilterRegistration() {
+        FilterRegistrationBean<SecurityHeadersFilter> registrationBean = new FilterRegistrationBean<>();
+        registrationBean.setFilter(new SecurityHeadersFilter());
+        registrationBean.addUrlPatterns("/*");
+        registrationBean.setOrder(-1);
+        registrationBean.setName("securityHeadersFilter");
+        return registrationBean;
+    }
 
     /**
      * Registers {@link AdminPortFilter} first (order 0) so the strict public/admin port

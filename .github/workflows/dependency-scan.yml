@@ -1,0 +1,50 @@
+# v0.41.0 — OSV-Scanner over the code/ dependency manifests; SARIF in the Security tab, fails on a known vulnerability.
+# Accepted findings go in osv-scanner.toml with a reason; the same file drives code/scripts/dev/run_dependency_scan.sh.
+name: Dependency Scan
+
+on:
+  push:
+    branches: [ develop ]
+    paths:
+      - "code/backend/java/**/pom.xml"
+      - "code/backend/python/requirements.txt"
+      - "code/backend/aws/requirements*.txt"
+      - "code/frontend/react-admin/package-lock.json"
+      - "code/frontend/react-game/package-lock.json"
+      - "osv-scanner.toml"
+      - ".github/workflows/dependency-scan.yml"
+  # Weekly, Monday 05:42 UTC; GitHub runs schedules on the default branch (main) only.
+  schedule:
+    - cron: "42 5 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  osv-scan:
+    name: OSV-Scanner
+    # Pinned release of the official reusable workflow (OSV-Scanner v2).
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.6.0
+    with:
+      upload-sarif: true
+      fail-on-vuln: true
+      # Only the code/ manifests; a new Java module adds its pom here (the local script finds the poms by itself).
+      scan-args: |-
+        --config=osv-scanner.toml
+        --lockfile=code/backend/java/pom.xml
+        --lockfile=code/backend/java/core/pom.xml
+        --lockfile=code/backend/java/adapter-admin/pom.xml
+        --lockfile=code/backend/java/adapter-auth/pom.xml
+        --lockfile=code/backend/java/adapter-kafka/pom.xml
+        --lockfile=code/backend/java/adapter-mongo/pom.xml
+        --lockfile=code/backend/java/adapter-postgres/pom.xml
+        --lockfile=code/backend/java/adapter-rest/pom.xml
+        --lockfile=code/backend/java/adapter-sqlite/pom.xml
+        --lockfile=code/backend/java/adapter-websocket/pom.xml
+        --lockfile=code/backend/java/ms-launcher/pom.xml
+        --lockfile=code/backend/python/requirements.txt
+        --lockfile=code/backend/aws/requirements-test.txt
+        --lockfile=code/frontend/react-admin/package-lock.json
+        --lockfile=code/frontend/react-game/package-lock.json

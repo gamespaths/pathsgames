@@ -5,6 +5,11 @@ set -uo pipefail
 
 ADMIN_BASE_URL="${ADMIN_BASE_URL:-http://localhost:8044}"
 ADMIN_TOKEN="${ADMIN_TOKEN:-}"
+# v0.41.0 — an unset JWT_SECRET is read from the root .env; the dev secret stays the last fallback.
+ENV_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/.env"
+if [[ -z "${JWT_SECRET:-}" && -f "$ENV_FILE" ]]; then
+  JWT_SECRET="$(set +u; . "$ENV_FILE" >/dev/null 2>&1; printf '%s' "${JWT_SECRET:-}")"
+fi
 JWT_SECRET="${JWT_SECRET:-PathsGamesDevSecret2026_MustBeAtLeast32Chars!}"
 PREFIX="${TEST_MARKER:-robottest}"
 DRY_RUN=0
@@ -15,7 +20,7 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") [options]
   -a URL     admin backend base URL   (default $ADMIN_BASE_URL)
-  -t TOKEN   admin JWT (default: minted from JWT_SECRET / dev secret)
+  -t TOKEN   admin JWT (default: minted from JWT_SECRET, env or root .env, else the dev secret)
   -p PREFIX  guest username / match name prefix to remove (default $PREFIX)
   -n         dry run: list what would be deleted
   -f         skip /api/dev/cleanup, sweep via admin API only

@@ -10,7 +10,8 @@
     "error": {
       "antibot": "Antibot check failed",
       "matches": "Your matches could not be loaded",
-      "stories": "The adventures could not be loaded"
+      "stories": "The adventures could not be loaded",
+      "rateLimited": "Too many guest logins from this connection, try again in {time}"
     }
   },
   "home": {
@@ -143,6 +144,7 @@
     "created": "Match is loading…",
     "error": "The match could not be created.",
     "errorActiveMatch": "You already have a match in progress for this story. Resume it from your matches.",
+    "errorRateLimited": "Too many new matches in a short time. Try again in {time}.",
     "retry": "Try again",
     "acceptTermsFirst": "Accept the terms first",
     "phaseStarting": "Starting",
@@ -575,7 +577,8 @@
   "errors": {
     "title": "Match Error",
     "matchNotRunning": "Cannot load the match.",
-    "matchEnded": "Because the story has already ended."
+    "matchEnded": "Because the story has already ended.",
+    "rateLimitSoon": "a few minutes"
   },
   "modals": {
     "close": "Close",

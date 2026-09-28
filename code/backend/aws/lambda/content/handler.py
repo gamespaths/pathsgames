@@ -22,7 +22,7 @@ import re
 from common import db_utils
 from common import log_utils
 from common import story_cache
-from common.response import ok as _ok, err as _err, dumps as _dumps
+from common.response import ok as _ok, err as _err, dumps as _dumps, finalize as _finalize
 from common.http_utils import normalize_path as _normalize_path
 from common.data_utils import safe_int as _safe_int
 
@@ -108,6 +108,12 @@ _CREATOR_PATTERN = re.compile(r'^/api/content/([^/]+)/creators/([^/]+)$')
 
 
 def lambda_handler(event, context):
+    """v0.41.0 — every answer leaves through finalize (security headers)."""
+    path = _normalize_path(event.get('rawPath', event.get('path', '')))
+    return _finalize(_route(event, context), path)
+
+
+def _route(event, context):
     story_cache.begin_request()  # v0.37.5 — one stamp read per invocation
     path = _normalize_path(event.get('rawPath', event.get('path', '')))
     method = (event.get('requestContext', {})

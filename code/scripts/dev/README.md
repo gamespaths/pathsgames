@@ -94,14 +94,21 @@ volumes — so without GC configuration it silently grew to ~22 GB on the dev ma
 code/scripts/dev/
 ├── aws/                  # AWS test-data helpers (not deploy — see test/aws/ for that)
 ├── bump-version.sh       # interactive project-wide version bump
+├── dependency_scan_results/  # OSV-Scanner reports (git-ignored, v0.41.0)
 ├── image-finder/         # two standalone image-search mini-tools (content authoring)
+├── mint_admin_token.sh   # v0.41.0 — prints an admin JWT signed with .env's JWT_SECRET
 ├── run_all_unit_tests.sh # every backend + frontend unit suite, one aggregate report
+├── run_dependency_scan.sh # v0.41.0 — OSV-Scanner over every manifest, local run of the CI job
 ├── run_robot_everywhere.sh # runs all 4 run_robots/*.sh in sequence, one summary
 ├── run_robot_results/    # generated logs only (UNIT_*, per-env robot run logs)
 ├── run_robots/           # per-backend Robot E2E launcher scripts
 ├── sonar/                # SonarQube scan scripts
 └── starter/              # start/stop scripts for local dev servers
 ```
+
+`code/scripts/lib/admin_ip.sh` (v0.41.0, sibling of `dev/`) holds the caller-public-IP
+detection shared by `test/aws/aws_backend_deploy.sh` and the new
+`prod/aws_backend_deploy_stage.sh`.
 
 ### `aws/`
 
@@ -155,6 +162,25 @@ code/scripts/dev/run_all_unit_tests.sh                # all suites
 code/scripts/dev/run_all_unit_tests.sh --only java,python
 ```
 
+### `mint_admin_token.sh` and `run_dependency_scan.sh` (v0.41.0)
+
+`mint_admin_token.sh [--days 365]` signs a long-lived admin JWT with the `.env` `JWT_SECRET`
+(HMAC via the Python stdlib, same approach as `code/tests/stress/cleanup.sh`) and prints only
+the token — used to refresh `ROBOT_VAR_ADMIN_TOKEN` after rotating the secret (see
+[Security §8](../../../wiki/Security.md)).
+
+`run_dependency_scan.sh [--only java,python,aws,react-admin,react-game]` runs OSV-Scanner
+locally with the same `osv-scanner.toml` as the CI job
+(`.github/workflows/dependency-scan.yml`), in the style of `run_all_unit_tests.sh`. It checks
+`osv-scanner` is on the `PATH` first; if not, it prints the install commands (release binary or
+the `ghcr.io/google/osv-scanner` Docker image) and exits `2`. Report in
+`dependency_scan_results/` (git-ignored).
+
+```bash
+code/scripts/dev/mint_admin_token.sh --days 30
+code/scripts/dev/run_dependency_scan.sh --only java
+```
+
 ### `run_robot_everywhere.sh`
 
 Runs all four `run_robots/*.sh` scripts below in sequence (AWS, local Java+Postgres, local
@@ -189,6 +215,12 @@ suite, clean up, tear down). Already documented in full in `.claude/docs/command
 All four seed dev data first, run `robot` against `code/tests/robot/tests/`, then call
 `POST /api/dev/cleanup` (and, for AWS, `aws/purge_robot_test_data.py --orphans` as a
 second-pass sweep) so `robottest*` rows don't accumulate — win or lose.
+
+**v0.41.0**: all four scripts export `JWT_SECRET` from `.env` so Robot's admin tokens match the
+server's signing secret; the three local scripts (Java, Java+PostgreSQL, Python) also export
+`RATE_LIMIT_GUEST_PER_IP`/`RATE_LIMIT_MATCH_PER_IP`/`RATE_LIMIT_MATCH_PER_GUEST=0` before
+starting the server, overriding `.env`'s non-zero code defaults, so a normal Robot run is never
+rate-limited; the AWS test deploy keeps passing its own `:-0` defaults.
 
 ### `sonar/`
 
@@ -230,7 +262,10 @@ together) and kill whatever is holding their ports first.
 
 None of these start the admin connector (8044) explicitly — it comes up automatically as
 part of the same Java/Python process (see `.claude/docs/commands.md`). `kill_all.sh` does
-not free 8044.
+not free 8044. **v0.41.0**: `start_java_sqlite.sh` and `start_python.sh` export
+`JWT_SECRET` and the three `RATE_LIMIT_*` variables at `0`, so stress tests and manual local
+runs are never limited; `start_all_java_sqlite.sh` also had its call to `start_java_sqlite.sh`
+fixed (it used to call a non-existent `start_java.sh`).
 
 ```bash
 code/scripts/dev/starter/start_all_java_sqlite.sh   # Java + both React frontends

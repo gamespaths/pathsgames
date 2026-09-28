@@ -59,6 +59,15 @@ class WebConfigTest {
         assertTrue(cors.getAllowedOriginPatterns().contains("https://test.paths.games"));
     }
 
+    @Test
+    @DisplayName("v0.41.0 - Retry-After is exposed, so the browser can read it on a 429")
+    void corsConfigurer_exposesRetryAfter() {
+        CapturingCorsRegistry registry = new CapturingCorsRegistry();
+        new WebConfig().corsConfigurer().addCorsMappings(registry);
+
+        assertEquals(List.of("Retry-After"), registry.capture().get("/api/**").getExposedHeaders());
+    }
+
     /** Exposes the protected CorsRegistry#getCorsConfigurations() for assertions. */
     private static final class CapturingCorsRegistry extends CorsRegistry {
         Map<String, CorsConfiguration> capture() {

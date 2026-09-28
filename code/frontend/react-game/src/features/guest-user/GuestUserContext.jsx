@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { useServer } from '@/context/ServerContext'
 import { createGuestSession, resumeGuestSession } from '@/api/auth'
+import { RATE_LIMITED, isRateLimited, retryAfterSeconds } from '@/utils/rateLimit'
 
 /**
  * GuestUserContext — owns the guest identity used by the navbar/modal.
@@ -18,6 +19,13 @@ import { createGuestSession, resumeGuestSession } from '@/api/auth'
  */
 
 const GuestUserContext = createContext(null)
+
+// v0.41.0 — a 429 keeps its code and wait (seconds): the navbar turns them into a sentence.
+function failure(e) {
+  return isRateLimited(e)
+    ? { error: RATE_LIMITED, retryAfter: retryAfterSeconds(e) }
+    : { error: e?.message || 'guest-init-failed', retryAfter: 0 }
+}
 
 function toIdentity(payload) {
   if (!payload) return null
@@ -37,6 +45,7 @@ export function GuestUserProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [errorRetryAfter, setErrorRetryAfter] = useState(0)
   const [guestModalOpen, setGuestModalOpen] = useState(false)
   // Matches the guest modal will show. When the Home already fetched them (to
   // decide whether a story has an active match) it hands them over here, so
@@ -76,7 +85,9 @@ export function GuestUserProvider({ children }) {
         }
         if (identity) setUser(identity)
       } catch (e) {
-        setError(e?.message || 'guest-init-failed')
+        const f = failure(e)
+        setError(f.error)
+        setErrorRetryAfter(f.retryAfter)
       } finally {
         setLoading(false)
       }
@@ -90,7 +101,9 @@ export function GuestUserProvider({ children }) {
       const created = toIdentity(await createGuestSession(server))
       if (created) setUser(created)
     } catch (e) {
-      setError(e?.message || 'guest-init-failed')
+      const f = failure(e)
+      setError(f.error)
+      setErrorRetryAfter(f.retryAfter)
     } finally {
       setLoading(false)
     }
@@ -101,7 +114,7 @@ export function GuestUserProvider({ children }) {
   }, [])
 
   return (
-    <GuestUserContext.Provider value={{ user, loading, error, refreshGuest, clearGuest, guestModalOpen, openGuestModal, closeGuestModal, matches, setMatches }}>
+    <GuestUserContext.Provider value={{ user, loading, error, errorRetryAfter, refreshGuest, clearGuest, guestModalOpen, openGuestModal, closeGuestModal, matches, setMatches }}>
       {children}
     </GuestUserContext.Provider>
   )

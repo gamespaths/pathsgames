@@ -47,6 +47,7 @@ NEVER run these without explicit user confirmation.
 ```bash
 code/scripts/test/aws/aws_backend_deploy.sh [dev|test] [--auto-confirm]  # also selects stack pathsgames-<env>
 code/scripts/test/aws/aws_backend_remove.sh [dev|test]                  # also selects stack pathsgames-<env>
+code/scripts/prod/aws_backend_deploy_stage.sh <alpha|beta|prod>         # v0.41.0, stage deploy: caller-IP detection, explicit parameters, refuses a missing/default-secret stage JWT
 ```
 
 Both dev and test live in `us-east-2` (Ohio); prod has its own region/bucket and is deployed
@@ -90,6 +91,16 @@ npm run test:coverage
 ```bash
 code/scripts/dev/sonar/run_sonar_scanner_java.sh
 ```
+
+## JWT admin token and dependency scan (v0.41.0) — `code/scripts/dev/`
+
+```bash
+code/scripts/dev/mint_admin_token.sh [--days 365]     # prints a long-lived admin JWT signed with .env's JWT_SECRET
+code/scripts/dev/run_dependency_scan.sh [--only java,python,aws,react-admin,react-game]  # OSV-Scanner; exits 2 with install instructions if osv-scanner is missing
+```
+
+Report under `code/scripts/dev/dependency_scan_results/` (git-ignored). Same `osv-scanner.toml`
+config as the CI job `.github/workflows/dependency-scan.yml`.
 
 ## Stress tests (k6) — `code/tests/stress/`
 

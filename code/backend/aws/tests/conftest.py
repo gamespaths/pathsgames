@@ -70,5 +70,10 @@ def _csrf_off_by_default(monkeypatch):
     """v0.37.7 — Step 41 enforces X-CSRF-TOKEN on POST /api/matches. The suites written before
     it create matches bare, so the check is off here; test_security_utils turns it on itself."""
     monkeypatch.setenv('CSRF_ENFORCED', 'false')
-    monkeypatch.delenv('RATE_LIMIT_GUEST_PER_IP', raising=False)
-    monkeypatch.delenv('RATE_LIMIT_MATCH_PER_IP', raising=False)
+    # v0.41.0 — the code defaults are 20/20/10 now; the suites written before run unlimited,
+    # as Robot does, and test_step41_alpha_prep turns the buckets on itself.
+    monkeypatch.setenv('RATE_LIMIT_GUEST_PER_IP', '0')
+    monkeypatch.setenv('RATE_LIMIT_MATCH_PER_IP', '0')
+    monkeypatch.setenv('RATE_LIMIT_MATCH_PER_GUEST', '0')
+    # v0.41.0 — an empty allow-list now means nobody; those suites predate it and mean everybody
+    monkeypatch.setenv('ADMIN_IP_EMPTY_MEANS', 'everybody')

@@ -25,9 +25,14 @@ Parameters:
     Type: String
     NoEcho: true
     Description: 'BCrypt hash of the seed users password (dev-only). Never hardcode in source code.'
+  JwtSecret:
+    Type: String
+    NoEcho: true
+    Default: PathsGamesDevSecret2026_MustBeAtLeast32Chars!
+    Description: "v0.41.0 - the Auth secret: the seed signs the tokens it hands out with it."
   AllowMockAccess:
     Type: String
-    Default: "true"
+    Default: "false"
 
 Resources:
   SeedLogGroup:
@@ -80,6 +85,7 @@ Resources:
           TABLE_NAME: !Ref TableName
           ENV: !Ref Environment
           SEED_BCRYPT_HASH: !Ref SeedBcryptHash
+          JWT_SECRET: !Ref JwtSecret
           ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
       Policies:
         - DynamoDBCrudPolicy:

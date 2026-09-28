@@ -1,28 +1,52 @@
 package games.paths.adapters.auth.scheduler;
 
-import games.paths.core.port.auth.GuestAuthPort;
+import games.paths.core.model.auth.StaleGuestsSummary;
+import games.paths.core.port.auth.GuestAdminPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 class GuestSessionCleanupSchedulerTest {
 
-    private GuestAuthPort guestAuthPort;
+    private GuestAdminPort guestAdminPort;
     private GuestSessionCleanupScheduler scheduler;
 
     @BeforeEach
     void setup() {
-        guestAuthPort = mock(GuestAuthPort.class);
-        scheduler = new GuestSessionCleanupScheduler(guestAuthPort);
+        guestAdminPort = mock(GuestAdminPort.class);
+        scheduler = new GuestSessionCleanupScheduler(guestAdminPort, true, 60);
     }
 
     @Test
     void cleanupExpiredSessions_callsPort() {
-        when(guestAuthPort.cleanupExpiredGuestSessions()).thenReturn(2);
+        // v0.41.0 — the job runs the match-less idle cleanup, nothing else
+        when(guestAdminPort.deleteStaleGuests(60, true)).thenReturn(new StaleGuestsSummary(2, 0));
 
-        scheduler.cleanupExpiredSessions();
+        assertEquals(2, scheduler.cleanupExpiredSessions());
 
-        verify(guestAuthPort).cleanupExpiredGuestSessions();
+        verify(guestAdminPort).deleteStaleGuests(60, true);
+        verifyNoMoreInteractions(guestAdminPort);
+    }
+
+    @Test
+    void cleanupExpiredSessions_disabledDoesNothing() {
+        scheduler = new GuestSessionCleanupScheduler(guestAdminPort, false, 60);
+
+        assertEquals(0, scheduler.cleanupExpiredSessions());
+
+        verify(guestAdminPort, never()).deleteStaleGuests(anyInt(), anyBoolean());
+    }
+
+    @Test
+    void cleanupExpiredSessions_negativeAgeDoesNothing() {
+        scheduler = new GuestSessionCleanupScheduler(guestAdminPort, true, -1);
+
+        assertEquals(0, scheduler.cleanupExpiredSessions());
+
+        verifyNoInteractions(guestAdminPort);
     }
 }

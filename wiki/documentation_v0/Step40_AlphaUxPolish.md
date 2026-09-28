@@ -472,13 +472,14 @@ Tips, badge, match list and books are UI-only: covered by vitest, not Robot.
 31. Roadmap book's intro text and the six version cards (title, image, status) follow the owner's final edit of `src/data/roadmap.json`, not the step's original draft.
 
 # Version Control
-- **Document Version**: 0.40.0
+- **Document Version**: 0.41.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First analysis of the alpha polish step, refined after development | September 25, 2026 |
+  | 0.41.0 | Robot suite confirmed green on every backend | September 27, 2026 |
 
-- **Last Updated**: September 25, 2026 (v0.40.0)
+- **Last Updated**: September 27, 2026 (v0.41.0)
 - **Status**: Developed; Robot suite `40_alpha_ux` green on all four targets (September 26, 2026)
 
 # &lt; Paths Games /&gt;

@@ -40,15 +40,24 @@ public class RateLimitService {
      * window keeps it closed; a blank key (no client address) is never limited.
      */
     public Verdict tryAcquire(String bucket, String key, int limit) {
+        return acquire(bucket, key, limit, windowMillis);
+    }
+
+    /** v0.41.0 — the same count in a window of its own length (the per-guest bucket is 24 h). */
+    public Verdict tryAcquire(String bucket, String key, int limit, int windowSeconds) {
+        return acquire(bucket, key, limit, Math.max(1, windowSeconds) * 1000L);
+    }
+
+    private Verdict acquire(String bucket, String key, int limit, long lengthMillis) {
         if (limit <= 0 || key == null || key.isBlank()) {
             return Verdict.unlimited();
         }
         long now = clock.millis();
         sweepOccasionally(now);
         Window w = windows.compute(bucket + "|" + key.trim(), (k, current) ->
-                current == null || current.expired(now) ? new Window(now) : current);
+                current == null || current.expired(now) ? new Window(now, lengthMillis) : current);
         int count = w.count.incrementAndGet();
-        long retryAfter = Math.max(1, (w.start + windowMillis - now + 999) / 1000);
+        long retryAfter = Math.max(1, (w.start + w.length - now + 999) / 1000);
         return new Verdict(count <= limit, limit, Math.max(0, limit - count), retryAfter);
     }
 
@@ -74,16 +83,19 @@ public class RateLimitService {
         }
     }
 
-    private final class Window {
+    /** One counter; it keeps its own length, so the sweep never cuts a longer window short. */
+    private static final class Window {
         private final long start;
+        private final long length;
         private final AtomicInteger count = new AtomicInteger();
 
-        private Window(long start) {
+        private Window(long start, long length) {
             this.start = start;
+            this.length = length;
         }
 
         private boolean expired(long now) {
-            return now - start >= windowMillis;
+            return now - start >= length;
         }
     }
 }

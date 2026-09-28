@@ -393,4 +393,80 @@ class GuestAdminServiceTest {
             assertEquals(3, summary.matches());
         }
     }
+
+    @Nested
+    @DisplayName("v0.41.0 - the match-less purge of the daily cleanup")
+    class WithoutMatches {
+
+        private final games.paths.core.port.match.MatchPersistencePort matches =
+                mock(games.paths.core.port.match.MatchPersistencePort.class);
+
+        @Test
+        @DisplayName("the preview counts only unreferenced guests, capped, and never a match")
+        void previewCountsOnlyUnreferencedGuests() {
+            when(persistence.findStaleGuestIdsWithoutReferences(anyString(), eq(2))).thenReturn(List.of(1L, 2L));
+
+            GuestAdminService svc = new GuestAdminService(persistence, matches);
+            svc.setMaxPerRun(2);
+            var summary = svc.previewStaleGuests(60, true);
+
+            assertEquals(2, summary.guests());
+            assertEquals(0, summary.matches());
+            verifyNoInteractions(matches);
+            verify(persistence, never()).findGuestIdsWithLastAccessBefore(any());
+        }
+
+        @Test
+        @DisplayName("the delete removes those guests only and leaves every match alone")
+        void deleteRemovesOnlyUnreferencedGuests() {
+            when(persistence.findStaleGuestIdsWithoutReferences(anyString(), eq(500))).thenReturn(List.of(7L));
+            when(persistence.deleteGuestsByIds(List.of(7L))).thenReturn(1);
+
+            var summary = new GuestAdminService(persistence, matches).deleteStaleGuests(60, true);
+
+            assertEquals(1, summary.guests());
+            assertEquals(0, summary.matches());
+            verifyNoInteractions(matches);
+        }
+
+        @Test
+        @DisplayName("nobody to purge: nothing is deleted")
+        void nobodyToPurge() {
+            when(persistence.findStaleGuestIdsWithoutReferences(anyString(), anyInt())).thenReturn(List.of());
+
+            GuestAdminService svc = new GuestAdminService(persistence, matches);
+            svc.setMaxPerRun(0);
+            var summary = svc.deleteStaleGuests(60, true);
+
+            assertEquals(0, summary.guests());
+            verify(persistence).findStaleGuestIdsWithoutReferences(anyString(), eq(GuestAdminService.DEFAULT_MAX_PER_RUN));
+            verify(persistence, never()).deleteGuestsByIds(any());
+        }
+
+        @Test
+        @DisplayName("a negative age or a null id list reads as nobody")
+        void negativeAgeOrNullRows() {
+            assertEquals(0, new GuestAdminService(persistence, matches).previewStaleGuests(-1, true).guests());
+            when(persistence.findStaleGuestIdsWithoutReferences(anyString(), anyInt())).thenReturn(null);
+            assertEquals(0, new GuestAdminService(persistence, matches).deleteStaleGuests(1, true).guests());
+            verify(persistence, never()).deleteGuestsByIds(any());
+        }
+
+        @Test
+        @DisplayName("withoutMatches=false is exactly today's purge, matches first")
+        void falseKeepsTodaysPurge() {
+            when(persistence.findGuestIdsWithLastAccessBefore(any())).thenReturn(List.of(1L));
+            when(matches.countMatchesByUserCreatorIds(List.of(1L))).thenReturn(2L);
+            when(matches.deleteMatchesByUserCreatorIds(List.of(1L))).thenReturn(2);
+            when(persistence.deleteGuestsByIds(List.of(1L))).thenReturn(1);
+            GuestAdminService svc = new GuestAdminService(persistence, matches);
+
+            assertEquals(2, svc.previewStaleGuests(90, false).matches());
+            var summary = svc.deleteStaleGuests(90, false);
+
+            assertEquals(1, summary.guests());
+            assertEquals(2, summary.matches());
+            verify(persistence, never()).findStaleGuestIdsWithoutReferences(any(), anyInt());
+        }
+    }
 }

@@ -1,0 +1,279 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Step 41 alpha preparation (patch 0.41.0)
+  description: |
+    v0.41.0 — security, admin allow-list and guests. 0.41.1 (logging, snapshots) and
+    0.41.2 (KPI report) extend this file.
+
+    **Security headers.** Every API response of every backend (both ports / both HTTP APIs)
+    carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+    `Referrer-Policy: no-referrer`,
+    `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'` and
+    `Strict-Transport-Security: max-age=31536000`. Answers under `/api/auth/**` and
+    `/api/admin/**` also carry `Cache-Control: no-store`; public story reads stay cacheable.
+    CORS exposes `Retry-After` on all three backends. The Python `/docs`, `/redoc` and
+    `/openapi.json` exist only on dev/test and are served without these headers.
+
+    **Environments.** Only `dev`, `development` and `test` count as dev/test; anything else
+    (prod, production, alpha, beta, unknown) is production. Java reads `game.server.env`
+    (set by the Spring profile), Python `ENV`, AWS `ENV` (the SAM `Environment`).
+    Outside dev/test the committed JWT secret is refused: Java and Python do not start,
+    AWS Lambdas answer 500 `MISCONFIGURED`. The Turnstile bypass token and the dev/test
+    headers below are honoured on dev/test only.
+
+    **Admin allow-list (AWS).** An empty `AdminIpWhitelist` means what `AdminIpEmptyMeans`
+    says: `nobody` (default, admin API closed to everybody) or `everybody`. The authorizer
+    and every admin handler apply the same rule; a refused caller gets 403 `FORBIDDEN`.
+
+    **Limits.** Code defaults: 20 guest and 20 match creations per source IP per hour, and
+    10 match creations per guest (user uuid) per day — `RATE_LIMIT_GUEST_PER_IP`,
+    `RATE_LIMIT_MATCH_PER_IP`, `RATE_LIMIT_WINDOW_SECONDS` (3600),
+    `RATE_LIMIT_MATCH_PER_GUEST` (10), `RATE_LIMIT_MATCH_PER_GUEST_WINDOW_SECONDS` (86400);
+    0 disables a bucket (Robot and stress runs). Each counter keeps its own window.
+
+    **Guests.** `DELETE /api/admin/guests/expired` no longer deletes a guest that a match,
+    a character, a session or a chat message still references (AWS: that created a match).
+    A daily job (00:42 UTC, `GUEST_CLEANUP_ENABLED` / `GUEST_CLEANUP_AGE_DAYS` 60 /
+    `GUEST_CLEANUP_MAX_PER_RUN` 500) deletes the guests idle for N days that nothing
+    references — the same call as `DELETE /api/admin/guests/stale?withoutMatches=true`.
+  version: 0.41.0
+servers:
+  - url: /
+paths:
+  /api/echo/status:
+    get:
+      tags: [echo]
+      summary: Health check (public port and admin port) — now with the security headers
+      operationId: echoStatusV0410
+      responses:
+        '200':
+          description: Server up; the security headers are on this and every other answer.
+          headers:
+            X-Content-Type-Options:
+              $ref: '#/components/headers/XContentTypeOptions'
+            X-Frame-Options:
+              $ref: '#/components/headers/XFrameOptions'
+            Referrer-Policy:
+              $ref: '#/components/headers/ReferrerPolicy'
+            Content-Security-Policy:
+              $ref: '#/components/headers/ContentSecurityPolicy'
+            Strict-Transport-Security:
+              $ref: '#/components/headers/StrictTransportSecurity'
+  /api/auth/guest:
+    post:
+      tags: [auth]
+      summary: Create a guest session (dev/test can backdate it)
+      operationId: createGuestSessionV0410
+      parameters:
+        - in: header
+          name: X-Test-Marker
+          required: false
+          schema:
+            type: string
+          description: Dev/test only — tags the guest as test data (username prefix).
+        - in: header
+          name: X-Test-Guest-Age-Days
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 3650
+          description: |
+            Dev/test only, honoured only together with a valid `X-Test-Marker` and only where
+            the marker is honoured (Java/Python `test-endpoints-enabled`, AWS `ENV` dev/test).
+            The guest is registered and last seen N days ago and expires 180 days after that.
+            Out of range, not a number or elsewhere: ignored, never an error.
+      responses:
+        '201':
+          description: Session created (unchanged body, see v0.37.7-security-api.yaml).
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /api/matches:
+    post:
+      tags: [matches]
+      summary: Create a match — second, per-guest rate limit
+      operationId: createMatchV0410
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Match created (unchanged, see v0.19.0-match-creation-api.yaml).
+        '429':
+          description: |
+            Per source IP (`Too many matches created from this address…`, checked first) or
+            per guest (`Too many matches created by this player…`, bucket `match-guest`
+            keyed by the user uuid, daily window). Same body and `Retry-After` header.
+          headers:
+            Retry-After:
+              description: Seconds until the window of the bucket that refused reopens.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitedResponse'
+  /api/admin/guests/stale:
+    get:
+      tags: [admin-guests]
+      summary: Dry run of the stale purge
+      operationId: previewStaleGuestsV0410
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OlderThanDays'
+        - $ref: '#/components/parameters/WithoutMatches'
+      responses:
+        '200':
+          description: How many guests (and, without the flag, how many of their matches) the purge would take.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaleGuestsSummary'
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      tags: [admin-guests]
+      summary: Purge guests not seen for N days
+      operationId: deleteStaleGuestsV0410
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OlderThanDays'
+        - $ref: '#/components/parameters/WithoutMatches'
+      responses:
+        '200':
+          description: What was deleted; `matches` is always 0 with `withoutMatches=true`.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StaleGuestsSummary'
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        enum: [CLEANUP_COMPLETE]
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/admin/guests/expired:
+    delete:
+      tags: [admin-guests]
+      summary: Delete expired guests — referenced guests are now kept
+      operationId: deleteExpiredGuestsV0410
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: |
+            Expired guests (`guestExpiresAt` in the past) that nothing references, tokens
+            first. A guest still referenced by a match, character, session or chat row
+            (AWS: that created a match) is kept, so the call never fails on a foreign key.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [CLEANUP_COMPLETE]
+                  deletedCount:
+                    type: integer
+        '403':
+          $ref: '#/components/responses/Forbidden'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    OlderThanDays:
+      in: query
+      name: olderThanDays
+      required: true
+      schema:
+        type: integer
+        minimum: 0
+      description: Guests whose last access (or registration, if never back) is older than N days.
+    WithoutMatches:
+      in: query
+      name: withoutMatches
+      required: false
+      schema:
+        type: string
+        enum: ['true', 'false']
+      description: |
+        v0.41.0 — `true`: only guests nothing references, matches untouched, at most
+        `GUEST_CLEANUP_MAX_PER_RUN` (500) per call — the daily job's own call. `false` or
+        omitted: the v0.36.2 purge (guests and every match they created). Any other value: 400.
+  headers:
+    XContentTypeOptions:
+      schema: { type: string, enum: [nosniff] }
+    XFrameOptions:
+      schema: { type: string, enum: [DENY] }
+    ReferrerPolicy:
+      schema: { type: string, enum: [no-referrer] }
+    ContentSecurityPolicy:
+      schema: { type: string, enum: ["default-src 'none'; frame-ancestors 'none'"] }
+    StrictTransportSecurity:
+      schema: { type: string, enum: [max-age=31536000] }
+    NoStore:
+      description: On every answer under /api/auth/** and /api/admin/**.
+      schema: { type: string, enum: [no-store] }
+  responses:
+    RateLimited:
+      description: Too many attempts in the current window.
+      headers:
+        Retry-After:
+          description: Seconds until the window reopens.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RateLimitedResponse'
+    InvalidInput:
+      description: '`olderThanDays` missing or negative, or `withoutMatches` not `true`/`false`.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Not an admin, or (AWS) a source IP the allow-list refuses.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    StaleGuestsSummary:
+      type: object
+      required: [guests, matches]
+      properties:
+        guests: { type: integer, format: int64 }
+        matches: { type: integer, format: int64 }
+    RateLimitedResponse:
+      type: object
+      required: [error, message, retryAfterSeconds, timestamp]
+      properties:
+        error:
+          type: string
+          enum: [RATE_LIMITED]
+        message: { type: string }
+        retryAfterSeconds: { type: integer }
+        timestamp: { type: integer, format: int64 }
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: e.g. INVALID_INPUT, FORBIDDEN, MISCONFIGURED (AWS, 500)
+        message: { type: string }
+        timestamp: { type: integer, format: int64 }

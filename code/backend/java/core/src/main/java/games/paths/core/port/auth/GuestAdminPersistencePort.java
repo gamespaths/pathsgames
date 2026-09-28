@@ -31,6 +31,7 @@ public interface GuestAdminPersistencePort {
 
     /**
      * Deletes all expired guest sessions (guestExpiresAt < now) and their tokens.
+     * v0.41.0: a guest still referenced by a match, character, session or chat row is kept.
      * Returns the number of deleted guest users.
      */
     int deleteExpiredGuests();
@@ -60,6 +61,9 @@ public interface GuestAdminPersistencePort {
 
     /** Delete these guests and their tokens. Returns how many guest rows went. */
     int deleteGuestsByIds(List<Long> ids);
+
+    /** v0.41.0 — at most {@code limit} ids of guests seen before the bound that nothing references. */
+    List<Long> findStaleGuestIdsWithoutReferences(String lastAccessBefore, int limit);
 
     /**
      * Counts total guest users (state=6).

@@ -126,8 +126,10 @@ def test_guest_stats_counts_expired():
 
 def test_cleanup_expired_deletes_expired_guests():
     deleted = []
+    # v0.41.0 — none of these guests owns a match (the GSI1 check is covered in step41 tests)
     with patch('auth.handler.db_utils.get_item', return_value=ADMIN_USER), \
          patch('auth.handler.db_utils.query_gsi', side_effect=_guest_index(GUESTS)), \
+         patch('auth.handler._has_match', return_value=False), \
          patch('auth.handler.db_utils.delete_item', side_effect=lambda pk, sk: deleted.append(pk)):
         result = _call(admin_event('DELETE', '/api/admin/guests/expired'))
     assert result['statusCode'] == 200

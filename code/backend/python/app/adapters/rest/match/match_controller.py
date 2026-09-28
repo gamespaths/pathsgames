@@ -275,7 +275,8 @@ def _detail_to_camel(detail):
 class MatchController:
     def __init__(self, command_port: MatchCommandPort, query_port: MatchQueryPort,
                  match_logs_service=None, rate_limit_service=None, match_per_ip: int = 0,
-                 csrf_token_service=None):
+                 csrf_token_service=None, match_per_guest: int = 0,
+                 match_per_guest_window_seconds: int = 86400):
         self.command_port = command_port
         self.query_port = query_port
         self.match_logs_service = match_logs_service
@@ -283,6 +284,9 @@ class MatchController:
         self.rate_limit_service = rate_limit_service
         self.match_per_ip = match_per_ip
         self.csrf_token_service = csrf_token_service
+        # v0.41.0 — second bucket keyed by the user uuid, with its own (daily) window
+        self.match_per_guest = match_per_guest
+        self.match_per_guest_window_seconds = match_per_guest_window_seconds
         self.router = APIRouter()
         self.router.add_api_route(
             "/api/matches", self.create_match, methods=["POST"]
@@ -360,14 +364,14 @@ class MatchController:
                                request.client.host if request.client else None)
             verdict = self.rate_limit_service.try_acquire("match", ip, self.match_per_ip)
             if not verdict.allowed:
-                return JSONResponse(
-                    status_code=429,
-                    headers={"Retry-After": str(verdict.retry_after_seconds)},
-                    content={"error": "RATE_LIMITED",
-                             "message": "Too many matches created from this address, retry in "
-                                        f"{verdict.retry_after_seconds} seconds",
-                             "retryAfterSeconds": verdict.retry_after_seconds,
-                             "timestamp": int(time.time() * 1000)})
+                return _rate_limited(verdict, "Too many matches created from this address")
+        # v0.41.0 — at most match_per_guest new matches per user and (daily) window
+        if self.rate_limit_service is not None and self.match_per_guest > 0:
+            verdict = self.rate_limit_service.try_acquire(
+                "match-guest", user_uuid, self.match_per_guest,
+                self.match_per_guest_window_seconds)
+            if not verdict.allowed:
+                return _rate_limited(verdict, "Too many matches created by this player")
         if body is None or not body.storyUuid or not body.difficultyUuid:
             return _error("INVALID_INPUT", "storyUuid and difficultyUuid are required", 400)
         command = MatchCreateCommand(
@@ -454,3 +458,14 @@ class MatchController:
         if result is None:
             return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
         return JSONResponse(status_code=200, content=result)
+
+
+def _rate_limited(verdict, what: str) -> JSONResponse:
+    """The one 429 both match buckets answer: same body, Retry-After in seconds."""
+    return JSONResponse(
+        status_code=429,
+        headers={"Retry-After": str(verdict.retry_after_seconds)},
+        content={"error": "RATE_LIMITED",
+                 "message": f"{what}, retry in {verdict.retry_after_seconds} seconds",
+                 "retryAfterSeconds": verdict.retry_after_seconds,
+                 "timestamp": int(time.time() * 1000)})
