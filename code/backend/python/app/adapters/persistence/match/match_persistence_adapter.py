@@ -9,12 +9,25 @@ from app.adapters.persistence.match.models import (
     GamingBackpackResourcesEntity,
     GamingCharacterInstanceEntity,
     GamingCharacterTraitsEntity,
+    GamingInventoryItemsEntity,
     GamingMatchEntity,
     GamingStateLocationEntity,
     GamingStateRegistryEntity,
+    GamingStoryProgressEntity,
+    GamingTurnQueueEntity,
+    LogChoicesExecutedEntity,
+    LogClockHistoryEntity,
     LogEventsEntity,
+    LogItemUsageEntity,
     LogMovementEntity,
+    LogWeatherEntity,
+    SystemSnapshotEntity,
 )
+
+# v0.41.1 — every other match-scoped table: SQLite reuses a deleted match id, so leftovers join the next match.
+_MATCH_SCOPED = (GamingInventoryItemsEntity, GamingTurnQueueEntity, LogItemUsageEntity,
+                 LogWeatherEntity, LogClockHistoryEntity, LogChoicesExecutedEntity,
+                 GamingStoryProgressEntity)
 from app.core.ports.match.match_ports import MatchPersistencePort
 
 
@@ -288,6 +301,13 @@ class MatchPersistenceAdapter(MatchPersistencePort):
         ).delete(synchronize_session=False)
         session.query(LogMovementEntity).filter(
             LogMovementEntity.id_match.in_(match_ids)
+        ).delete(synchronize_session=False)
+        for entity in _MATCH_SCOPED:
+            session.query(entity).filter(entity.id_match.in_(match_ids)).delete(
+                synchronize_session=False)
+        # v0.41.1 — the time-end snapshots: SQLite does not enforce the ON DELETE CASCADE.
+        session.query(SystemSnapshotEntity).filter(
+            SystemSnapshotEntity.id_match.in_(match_ids)
         ).delete(synchronize_session=False)
         session.query(GamingCharacterInstanceEntity).filter(
             GamingCharacterInstanceEntity.id_match.in_(match_ids)

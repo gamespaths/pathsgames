@@ -9,6 +9,7 @@ from app.core.models.match.turn_models import (
     TurnEntry,
     TurnSequenceResult,
 )
+from app.core.ports.match import log_writer_ports as lw
 from app.core.ports.match.turn_ports import TurnCyclePort, TurnCycleStorePort
 
 
@@ -20,6 +21,11 @@ class TurnCycleService(TurnCyclePort):
         self.weather_service = weather_service
         # v0.37.1 — the start location's own registry pair; None in the older tests.
         self.registry_service = registry_service
+        # v0.41.1 — MATCH_STARTED and ACTION_PASS rows; None in the older tests.
+        self.log_writer = None
+
+    def set_log_writer(self, log_writer) -> None:
+        self.log_writer = log_writer
 
     # ── public API ──────────────────────────────────────────────────────────
 
@@ -49,6 +55,10 @@ class TurnCycleService(TurnCyclePort):
         self.store.replace_queue(match["id"], rows)
         top_id = rows[0]["id_character_match"]
         self.store.update_match_status_and_turn(match["id"], match_statuses.RUNNING, top_id)
+        # v0.41.1 — before the weather, so the timeline opens with the start.
+        if self.log_writer is not None:
+            self.log_writer.write(match["id"], None, None, match["current_clock"],
+                                  lw.lifecycle(lw.LIFECYCLE_STARTED))
 
         # Step 27: select the initial weather for clock 0 when the match starts.
         if self.weather_service is not None:
@@ -91,6 +101,9 @@ class TurnCycleService(TurnCyclePort):
         active["timestamp_start"] = None
         active["timestamp_end"] = None
         self.store.save_queue_row(match["id"], active)
+        if self.log_writer is not None:
+            self.log_writer.write(match["id"], active["id_character_match"], None,
+                                  match["current_clock"], lw.MSG_PASS)
 
         # Next WAITING; if none, start a new round (reset all to WAITING).
         nxt = self._highest_waiting(rows)

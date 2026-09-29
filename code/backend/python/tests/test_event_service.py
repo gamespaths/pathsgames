@@ -386,6 +386,28 @@ def test_a_removed_trait_takes_back_exactly_what_it_gave(service, store):
     assert (written["life"], written["energy"], written["dexterity"]) == (30, 20, 10)
 
 
+def test_v0411_trait_rows_on_the_timeline(service, store):
+    """v0.41.1 — each trait moved writes TRAIT_ADD / TRAIT_REMOVE naming its uuid (its id without one)."""
+    writer = MagicMock()
+    service.set_log_writer(writer)
+    store.find_effects_by_event_id.return_value = {
+        1: [_effect(traits_to_add="7,9", traits_to_remove="7")]}
+    run(service)
+    calls = [c.args for c in writer.write.call_args_list]
+    assert calls == [(MATCH_ID, CHAR_ID, 1, 7, "TRAIT_ADD trait-uuid"),
+                     (MATCH_ID, CHAR_ID, 1, 7, "TRAIT_ADD 9"),
+                     (MATCH_ID, CHAR_ID, 1, 7, "TRAIT_REMOVE trait-uuid")]
+
+
+def test_v0411_a_trait_already_held_writes_no_row(service, store):
+    writer = MagicMock()
+    service.set_log_writer(writer)
+    store.add_trait.return_value = False
+    store.find_effects_by_event_id.return_value = {1: [_effect(traits_to_add="7")]}
+    run(service)
+    writer.write.assert_not_called()
+
+
 def test_a_trait_no_story_row_matches_is_authored_noise(service, store):
     store.find_trait_stats_by_id.return_value = {}
     store.find_effects_by_event_id.return_value = {1: [_effect(traits_to_add="7")]}

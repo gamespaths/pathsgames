@@ -3,7 +3,7 @@
 Schema is intentionally aligned with the Java Flyway migrations
 ``V0.10.6__create_gaming_core.sql`` and ``V0.10.7__create_gaming_state.sql``.
 """
-from sqlalchemy import BigInteger, Column, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, Column, ForeignKey, Index, Integer, String, Text
 
 from app.adapters.persistence.auth.models import Base
 
@@ -357,3 +357,25 @@ class GamingStoryProgressEntity(Base):
     id_choise = Column(Integer)
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
+
+
+class SystemSnapshotEntity(Base):
+    """v0.41.1 Step 41 B — one LIGHT snapshot per time-end (canonical JSON + SHA-256), as V0.41.1."""
+
+    __tablename__ = "system_snapshot"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    id_story = Column(Integer, nullable=False)
+    id_match = Column(Integer, ForeignKey("gaming_match.id", ondelete="CASCADE"), nullable=False)
+    timestamp = Column(String(50))
+    type = Column(String(20), default="LIGHT", nullable=False)
+    jsonb_data = Column(Text)
+    file_path = Column(Text)
+    description = Column(Text)
+    clock = Column(Integer)
+    checksum = Column(String(64))
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)
+
+    __table_args__ = (Index("idx_snapshot_match_clock", "id_match", "clock"),)

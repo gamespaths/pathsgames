@@ -89,3 +89,16 @@ export const updateMatchRegistry = (uuid, body) =>
 export const deleteMatchRegistry = (uuid, key, value) =>
   apiClient().delete(`/api/admin/matches/${uuid}/registry`, { params: { key, value } })
     .then(r => r.data)
+
+// v0.41.1 Step 41 B — the time-end snapshots of a match.
+// GET /api/admin/matches/:uuid/snapshots — [{ uuid, clock, type, timestamp, description, sizeBytes }], newest first.
+export const listMatchSnapshots = (uuid) =>
+  apiClient().get(`/api/admin/matches/${uuid}/snapshots`).then(r => r.data)
+
+// GET /api/admin/matches/:uuid/snapshots/:snapshotUuid/check — { valid, errors: [{ code, message }] }; writes nothing.
+export const checkMatchSnapshot = (uuid, snapshotUuid) =>
+  apiClient().get(`/api/admin/matches/${uuid}/snapshots/${snapshotUuid}/check`).then(r => r.data)
+
+// POST .../restore — { status, uuidSnapshot, clock, matchStatus, logsRemoved }; 409 carries errors[].
+export const restoreMatchSnapshot = (uuid, snapshotUuid) =>
+  apiClient().post(`/api/admin/matches/${uuid}/snapshots/${snapshotUuid}/restore`).then(r => r.data)

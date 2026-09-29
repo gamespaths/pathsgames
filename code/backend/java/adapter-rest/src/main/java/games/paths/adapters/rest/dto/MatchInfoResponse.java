@@ -1,5 +1,6 @@
 package games.paths.adapters.rest.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import games.paths.core.model.match.CharacterInstanceInfo;
 import games.paths.core.model.match.EventInfo;
 import games.paths.core.model.match.LocationInfo;
@@ -28,6 +29,9 @@ public class MatchInfoResponse {
     private List<EventOptionDto> choices = new ArrayList<>();
     private List<CharacterSummaryResponse> players = new ArrayList<>();
     private List<LocationInfoDto> locationsActive = new ArrayList<>();
+    /** v0.41.1 - admin info only: rows of the match in every log table. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Long logCount;
 
     public MatchInfoResponse() {
     }
@@ -89,6 +93,9 @@ public class MatchInfoResponse {
 
     public List<LocationInfoDto> getLocationsActive() { return locationsActive; }
     public void setLocationsActive(List<LocationInfoDto> locationsActive) { this.locationsActive = locationsActive; }
+
+    public Long getLogCount() { return logCount; }
+    public void setLogCount(Long logCount) { this.logCount = logCount; }
 
     public static class LocationStateDto {
         private Long idLocation;

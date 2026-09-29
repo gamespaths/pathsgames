@@ -43,6 +43,9 @@ public interface MatchCommandPort {
      */
     UpdateOutcome updateMatch(String uuidMatch, String status, String name);
 
+    /** v0.41.1 - the same update, logged as ADMIN_ACTION {@code adminAction} (PAUSE/RESUME/STOP; null = STATUS). */
+    UpdateOutcome updateMatch(String uuidMatch, String status, String name, String adminAction);
+
     /**
      * Outcome of an admin match deletion.
      */

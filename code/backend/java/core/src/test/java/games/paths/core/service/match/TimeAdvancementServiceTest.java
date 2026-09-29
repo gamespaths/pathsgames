@@ -6,6 +6,7 @@ import games.paths.core.model.match.event.TimeAdvanced;
 import games.paths.core.port.event.DomainEventPublisher;
 import games.paths.core.port.match.EventExecutionPort;
 import games.paths.core.port.match.LocationEntryPort;
+import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.TimeAdvancementPort;
 import games.paths.core.port.match.TurnCyclePort.TurnCycleException;
 import games.paths.core.port.match.TurnCycleStorePort;
@@ -129,6 +130,23 @@ class TimeAdvancementServiceTest {
             verify(store).wakeAllCharacters(MATCH_ID);
             verify(store).replaceQueue(eq(MATCH_ID), anyList());
             verify(publisher, times(1)).publish(any(TimeAdvanced.class));
+        }
+
+        @Test
+        @DisplayName("v0.41.1: every time-end runs the log-size check, a sleep without one does not")
+        void timeEndChecksTheLogSize() {
+            MatchLogWriterPort writer = mock(MatchLogWriterPort.class);
+            service.setLogWriter(writer);
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match(MatchStatuses.RUNNING, 3)));
+            when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID))
+                    .thenReturn(Optional.of(character(CHAR_ID, CHAR_UUID, 50, false)));
+            when(store.findCharactersByMatchId(MATCH_ID))
+                    .thenReturn(List.of(character(CHAR_ID, CHAR_UUID, 50, true)));
+            when(store.incrementMatchClock(MATCH_ID)).thenReturn(4);
+
+            service.sleep(MATCH, USER);
+
+            verify(writer, times(1)).countRows(MATCH_ID);
         }
 
         @Test
@@ -448,6 +466,77 @@ class TimeAdvancementServiceTest {
             service.sleep(MATCH, USER);
 
             verify(random, never()).pickAtTimeStart(anyLong());
+        }
+    }
+
+    // ── v0.41.1 snapshots ────────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("v0.41.1 time-end snapshot")
+    class Snapshots {
+
+        private games.paths.core.port.match.SnapshotPort.TimeEndWriter writer;
+
+        @BeforeEach
+        void wire() {
+            writer = mock(games.paths.core.port.match.SnapshotPort.TimeEndWriter.class);
+            service.setSnapshotWriter(writer);
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match(MatchStatuses.RUNNING, 3)));
+            when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID))
+                    .thenReturn(Optional.of(character(CHAR_ID, CHAR_UUID, 50, false)));
+            when(store.findCharactersByMatchId(MATCH_ID))
+                    .thenReturn(List.of(character(CHAR_ID, CHAR_UUID, 50, true)));
+            when(store.incrementMatchClock(MATCH_ID)).thenReturn(4);
+        }
+
+        @Test
+        @DisplayName("the last sleep writes the snapshot first, before the clock moves")
+        void sleepSnapshotsBeforeTheClockMoves() {
+            service.sleep(MATCH, USER);
+
+            org.mockito.InOrder order = inOrder(writer, store);
+            order.verify(writer).writeAtTimeEnd(MATCH_ID);
+            order.verify(store).incrementMatchClock(MATCH_ID);
+        }
+
+        @Test
+        @DisplayName("a forced time-end writes it after the party is put to sleep")
+        void forcedTimeEndSnapshots() {
+            service.forceTimeEnd(MATCH);
+
+            org.mockito.InOrder order = inOrder(writer, store);
+            order.verify(store).setAllCharactersSleeping(MATCH_ID);
+            order.verify(writer).writeAtTimeEnd(MATCH_ID);
+            order.verify(store).incrementMatchClock(MATCH_ID);
+        }
+
+        @Test
+        @DisplayName("a sleep that ends nothing writes no snapshot")
+        void noTimeEndNoSnapshot() {
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(
+                    character(CHAR_ID, CHAR_UUID, 50, true), character(11L, "char-b", 50, false)));
+
+            service.sleep(MATCH, USER);
+
+            verify(writer, never()).writeAtTimeEnd(anyLong());
+        }
+
+        @Test
+        @DisplayName("the time-start after a restore moves the clock without a new snapshot")
+        void restoreTimeStartWritesNoSnapshot() {
+            assertEquals(4, service.startTimeAfterRestore(MATCH));
+
+            verify(writer, never()).writeAtTimeEnd(anyLong());
+            verify(store).incrementMatchClock(MATCH_ID);
+            verify(store).replaceQueue(eq(MATCH_ID), anyList());
+            verify(publisher).publish(any(TimeAdvanced.class));
+        }
+
+        @Test
+        @DisplayName("the restore time-start of an unknown match is MATCH_NOT_FOUND")
+        void restoreTimeStartUnknownMatch() {
+            when(store.findMatchByUuid("nope")).thenReturn(Optional.empty());
+            assertCode(TurnCycleException.Code.MATCH_NOT_FOUND, () -> service.startTimeAfterRestore("nope"));
         }
     }
 

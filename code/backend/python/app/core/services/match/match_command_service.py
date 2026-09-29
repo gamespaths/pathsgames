@@ -17,6 +17,7 @@ from app.core.ports.match.match_ports import (
     TurnstileVerificationPort,
     UserAccessPort,
 )
+from app.core.ports.match import log_writer_ports as lw
 from app.core.services.match import trait_selection_validator
 
 
@@ -46,9 +47,22 @@ class MatchCommandService(MatchCommandPort):
         self.registry_service = registry_service
         # Step 37 - set after construction; a story that ends fails whatever is still open.
         self.mission_service = None
+        # v0.41.1 — MATCH_* lifecycle and ADMIN_* rows; None in the older tests.
+        self.log_writer = None
 
     def set_mission_service(self, mission_service) -> None:
         self.mission_service = mission_service
+
+    def set_log_writer(self, log_writer) -> None:
+        self.log_writer = log_writer
+
+    def _log_match_row(self, uuid_match: str, message: Optional[str]) -> None:
+        """v0.41.1 — one match-level row at the current clock; a rename alone writes nothing."""
+        if self.log_writer is None or message is None:
+            return
+        match = self.match_persistence_port.find_match_by_uuid(uuid_match)
+        if match is not None:
+            self.log_writer.write(match["id"], None, None, match.get("current_clock") or 0, message)
 
     def create_match(self, command: MatchCreateCommand) -> MatchSummary:
         if (
@@ -143,6 +157,8 @@ class MatchCommandService(MatchCommandPort):
             "rng_seed": command.rng_seed if command.rng_seed is not None
             else secrets.randbits(63),
         })
+        if self.log_writer is not None:
+            self.log_writer.write(saved["id"], None, None, 0, lw.lifecycle(lw.LIFECYCLE_CREATED))
 
         location_rows: List[Dict[str, Any]] = []
         for loc in locations:
@@ -192,10 +208,15 @@ class MatchCommandService(MatchCommandPort):
         except trait_selection_validator.TraitSelectionError as exc:
             raise MatchCreationError(exc.code, exc.message) from exc
 
-    def update_match(self, uuid_match: str, status: Optional[str], name: Optional[str]) -> str:
+    def update_match(self, uuid_match: str, status: Optional[str], name: Optional[str],
+                     admin_action: Optional[str] = None) -> str:
         if status is not None and not match_statuses.is_valid(status):
             return "INVALID_STATUS"
         found = self.match_persistence_port.update_match_fields(uuid_match, status, name)
+        if found:
+            detail = (lw.admin(admin_action) if admin_action is not None
+                      else lw.admin_status(status) if status is not None else None)
+            self._log_match_row(uuid_match, detail)
         return "UPDATED" if found else "NOT_FOUND"
 
     def delete_match(self, uuid_match: str) -> str:
@@ -236,5 +257,6 @@ class MatchCommandService(MatchCommandPort):
         # is simply ignored, as it was never the player's business.
         if getattr(self, "mission_service", None) is not None:
             self.mission_service.on_story_end(match["id"])
+        self._log_match_row(uuid_match, lw.lifecycle(lw.LIFECYCLE_ENDED))
         return "COMPLETED"
 

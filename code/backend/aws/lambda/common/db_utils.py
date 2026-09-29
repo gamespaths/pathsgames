@@ -218,6 +218,19 @@ def query_sk_prefix(pk, sk_prefix, consistent=True, filter_expr=None):
         print(f"Error querying PK {pk} SK prefix {sk_prefix}: {e}")
         return []
 
+def query_sk_prefix_keys(pk, sk_prefix):
+    """v0.41.1 — the PK/SK alone of every item under the prefix (snapshot prune, restore log cut)."""
+    kwargs = {
+        'KeyConditionExpression': Key('PK').eq(pk) & Key('SK').begins_with(sk_prefix),
+        'ProjectionExpression': 'PK, SK',
+        'ConsistentRead': True,
+    }
+    try:
+        return _paginate(_get_table().query, **kwargs)
+    except ClientError as e:
+        print(f"Error querying keys of PK {pk} SK prefix {sk_prefix}: {e}")
+        return []
+
 def query_sk_prefix_page(pk, sk_prefix, limit, start_key=None, ascending=True, consistent=False):
     """v0.37.5 — ONE page of a partition's SK-prefix range, ``(items, last_evaluated_key)``.
 

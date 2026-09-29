@@ -44,6 +44,7 @@ from common import story_cache
 from common import test_data_ttl
 from match import logbook as _logbook
 from match import repo as _repo
+from match import snapshots as _snapshots
 from common.response import dumps as _dumps, ok as _ok, HEADERS, finalize as _finalize
 from common.http_utils import (normalize_path as _normalize_path,
                                get_source_ip as _get_source_ip,
@@ -87,6 +88,17 @@ _API_GAMEPLAY_PATH = "/api/gameplay/"
 # ENDED or GAMEOVER; only stopped matches may be deleted by an admin.
 MATCH_STATUSES = ["CREATED", "RUNNING", "PAUSED", "ENDED", "GAMEOVER"]
 TERMINAL_STATUSES = {"ENDED", "GAMEOVER"}
+# v0.41.1 — Step 41 A timeline types and messages, the same the java/python timelines answer.
+TYPE_PASS = 'PASS'
+TYPE_EDGE_STATE = 'EDGE_STATE'
+TYPE_TRAIT_CHANGE = 'TRAIT_CHANGE'
+TYPE_MATCH_LIFECYCLE = 'MATCH_LIFECYCLE'
+TYPE_ADMIN_ACTION = 'ADMIN_ACTION'
+LIFECYCLE_CREATED, LIFECYCLE_STARTED, LIFECYCLE_ENDED = 'CREATED', 'STARTED', 'ENDED'
+ADMIN_PAUSE, ADMIN_RESUME, ADMIN_STOP = 'PAUSE', 'RESUME', 'STOP'
+ADMIN_STATUS, ADMIN_STATS = 'STATUS', 'STATS'
+# Reserved for the snapshot restore: SNAPSHOT_RESTORED clock=<n>.
+ADMIN_SNAPSHOT_RESTORED = 'SNAPSHOT_RESTORED'
 # v0.32.1 — active (non-terminal) statuses. A match in one of these still occupies
 # its creator's slot on the story, so a second one cannot be created. PAUSED counts:
 # an admin-paused match is not over, it is suspended.
@@ -904,6 +916,9 @@ def _create_match(user, body):
     expires_at = test_data_ttl.expiry() if test_data_ttl.is_robot_name(item['name']) else None
     if expires_at:
         item[test_data_ttl.TTL_ATTRIBUTE] = expires_at
+    # v0.41.1 — Step 41 A: the first row of every match timeline.
+    _logbook.append(item, TYPE_MATCH_LIFECYCLE, 0, timestamp_ms=now_ms,
+                    message=LIFECYCLE_CREATED)
     _logbook.persist(item)
     return _ok(_summary_from_item(item), status=201)
 
@@ -1063,6 +1078,8 @@ def _end_match(user, match_uuid, event_uuid):
     # Step 37 — a mission that opened and never closed has now failed; one never reached is
     # simply ignored, as it was never the player's business.
     _missions.on_story_end(item, story)
+    _logbook.append(item, TYPE_MATCH_LIFECYCLE, _nz(item.get('currentClock')),
+                    message=LIFECYCLE_ENDED)
     _logbook.persist(item)
     return _ok({'status': 'ENDED', 'uuid': match_uuid})
 
@@ -1360,9 +1377,34 @@ def _change_statistics(match_uuid, player_uuid, body):
     if updates:
         updated = dict(item)
         updated.update(updates)
-        _logbook.persist(updated)
+        _repo.save(updated)
+        match = _repo.match(match_uuid)
+        if match is not None:
+            _logbook.append(match, TYPE_ADMIN_ACTION, _nz(match.get('currentClock')),
+                            characterUuid=item.get('uuid'), message=_stats_message(updates))
+            _logbook.persist(match)
 
     return _ok({'status': 'UPDATED', 'matchUuid': match_uuid, 'playerUuid': player_uuid})
+
+
+# v0.41.1 — the STATS row lists the applied fields in the java/python order, with their API names.
+_STATS_FIELDS = (('dex', 'dexterity'), ('intel', 'intelligence'), ('con', 'constitution'),
+                 ('energy', 'energy'), ('life', 'life'), ('sad', 'sad'), ('coin', 'coin'),
+                 ('food', 'food'), ('magic', 'magic'), ('exp', 'exp'),
+                 ('sleeping', 'isSleeping'), ('coma', 'isComa'))
+
+
+def _stats_message(updates):
+    """``STATS field=value ...`` over the applied updates (flags as true/false)."""
+    parts = []
+    for name, key in _STATS_FIELDS:
+        if key not in updates:
+            continue
+        value = updates[key]
+        if key in ('isSleeping', 'isComa'):
+            value = 'true' if value else 'false'
+        parts.append(f'{name}={value}')
+    return f'{ADMIN_STATS} ' + ' '.join(parts)
 
 
 # ─── admin match control ─────────────────────────────────────────────────────
@@ -1375,7 +1417,10 @@ def _get_admin_match_info(match_uuid):
     item = _repo.match(match_uuid, consistent=False)
     if item is None:
         return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
-    return _ok(_detail_from_item(item, _match_characters(match_uuid, consistent=False), all_locations=True))
+    body = _detail_from_item(item, _match_characters(match_uuid, consistent=False), all_locations=True)
+    # v0.41.1 — the log-size check of Step 41 A: a count, never a cap.
+    body['logCount'] = _nz(item.get('logCount'))
+    return _ok(body)
 
 
 def _upsert_admin_registry(match_uuid, body):
@@ -1426,8 +1471,8 @@ def _list_match_statuses():
     ])
 
 
-def _update_match(match_uuid, status, name):
-    """Admin update of a match's status and/or name."""
+def _update_match(match_uuid, status, name, admin_action=None):
+    """Admin update of a match's status and/or name; v0.41.1 logs it as ADMIN_ACTION."""
     if status is not None and status not in MATCH_STATUSES:
         return _err(400, 'INVALID_STATUS', f'status must be one of {MATCH_STATUSES}')
     item = _repo.match(match_uuid)
@@ -1437,8 +1482,68 @@ def _update_match(match_uuid, status, name):
         item['status'] = status
     if name is not None:
         item['name'] = name
+    detail = admin_action or (f'{ADMIN_STATUS} {status}' if status is not None else None)
+    if detail:
+        _logbook.append(item, TYPE_ADMIN_ACTION, _nz(item.get('currentClock')), message=detail)
     _logbook.persist(item)
     return _ok({'status': 'UPDATED', 'uuid': match_uuid})
+
+
+# ─── v0.41.1 snapshots (Step 41 B) ──────────────────────────────────────────
+
+def _snapshot_target(match_uuid, uuid_snapshot):
+    """``(match, snapshot_item, error_response)``: 404 MATCH_NOT_FOUND / SNAPSHOT_NOT_FOUND."""
+    match = _repo.match(match_uuid) if match_uuid else None
+    if match is None:
+        return None, None, _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
+    item = _snapshots.find(match_uuid, uuid_snapshot) if uuid_snapshot else None
+    if item is None:
+        return match, None, _err(404, 'SNAPSHOT_NOT_FOUND', f'Snapshot not found: {uuid_snapshot}')
+    return match, item, None
+
+
+def _verify_snapshot(match, match_uuid, item):
+    return _snapshots.verify(match, match_uuid, item, _load_story(match.get('storyUuid')),
+                             lambda u: db_utils.get_item(f'USER#{u}', consistent=False) is not None)
+
+
+def _admin_list_snapshots(match_uuid):
+    """GET /api/admin/matches/{uuid}/snapshots — the time-end snapshots, newest first."""
+    if _repo.match(match_uuid, consistent=False) is None:
+        return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
+    return _ok([_snapshots.summary(i) for i in _snapshots.items(match_uuid)])
+
+
+def _admin_check_snapshot(match_uuid, uuid_snapshot):
+    """GET /api/admin/matches/{uuid}/snapshots/{uuid}/check — writes nothing."""
+    match, item, err = _snapshot_target(match_uuid, uuid_snapshot)
+    if err:
+        return err
+    errors = _verify_snapshot(match, match_uuid, item)
+    return _ok({'valid': not errors, 'errors': errors})
+
+
+def _admin_restore_snapshot(match_uuid, uuid_snapshot):
+    """POST .../restore — rows back, log cut, ADMIN_ACTION, time-start (no snapshot), PAUSED."""
+    match, item, err = _snapshot_target(match_uuid, uuid_snapshot)
+    if err:
+        return err
+    errors = _verify_snapshot(match, match_uuid, item)
+    if errors:
+        response = _err(409, 'SNAPSHOT_INTEGRITY_FAILED', 'The snapshot failed its integrity check')
+        body = json.loads(response['body'])
+        body['errors'] = errors
+        response['body'] = _dumps(body)
+        return response
+    removed = _snapshots.restore_state(match, match_uuid, item, _snapshots.payload_of(item))
+    clock = _nz(item.get('clock'))
+    _logbook.append(match, TYPE_ADMIN_ACTION, clock, message=f'{ADMIN_SNAPSHOT_RESTORED} clock={clock}')
+    # Decision 18: the time-start at once (clock N+1, weather and random event again), then PAUSED.
+    _advance_time(match, match_uuid, snapshot=False)
+    match['status'] = 'PAUSED'
+    _logbook.persist(match)
+    return _ok({'status': 'RESTORED', 'uuidSnapshot': uuid_snapshot, 'clock': clock,
+                'matchStatus': 'PAUSED', 'logsRemoved': removed})
 
 
 def _delete_match(match_uuid):
@@ -1546,6 +1651,8 @@ def _start_match(user, match_uuid):
 
     match['status'] = 'RUNNING'
     match['activeCharacterUuid'] = top['characterUuid']
+    # v0.41.1 — before the weather, so the timeline opens with the start.
+    _logbook.append(match, TYPE_MATCH_LIFECYCLE, clock, message=LIFECYCLE_STARTED)
 
     # Step 27: select the initial weather for clock 0 when the match starts.
     story = _load_story(match.get("storyUuid")) or {}
@@ -1612,6 +1719,8 @@ def _pass_turn(user, match_uuid):
     active['status'] = TURN_COMPLETED
     active['passCounter'] = _nz(active.get('passCounter')) + 1
     _repo.save(active)
+    _logbook.append(match, TYPE_PASS, _nz(match.get('currentClock')),
+                    characterUuid=active.get('characterUuid'))
 
     # Find the next WAITING character; if none, start a new round (reset all to WAITING).
     waiting = [r for r in rows if r.get('status') == TURN_WAITING]
@@ -1743,6 +1852,13 @@ def _apply_time_start_recovery(match, match_uuid, story):
             "lifeDelta": verdict['lifeAfter'] - _nz(c.get('life')),
             "sadDelta": verdict['sadAfter'] - _nz(c.get('sad')),
         })
+        # v0.41.1 — the RECOVERY row java and python have always written, same message.
+        last = recaps[-1]
+        _logbook.append(match, 'RECOVERY', _nz(match.get('currentClock')),
+                        characterUuid=c.get('uuid'),
+                        message=f"recovery safe={'true' if safe else 'false'} p={p}"
+                                f" dEnergy={last['energyDelta']} dLife={last['lifeDelta']}"
+                                f" dSad={last['sadDelta']}")
         c['energy'] = energy
         c['life'] = verdict['lifeAfter']
         c['sad'] = verdict['sadAfter']
@@ -2239,8 +2355,11 @@ def _get_admin_match_weather(match_uuid):
     })
 
 
-def _advance_time(match, match_uuid):
+def _advance_time(match, match_uuid, snapshot=True):
     """Advance the clock: log the advance, wake characters, rebuild the queue."""
+    # v0.41.1 — decision 3: the end of clock N, first, before anything moves the clock.
+    if snapshot:
+        _snapshots.write_at_time_end(match, match_uuid)
     new_clock = _nz(match.get('currentClock')) + 1
     match['currentClock'] = new_clock
 
@@ -2639,6 +2758,20 @@ def _start_movement(user, match_uuid, body):
 
 # ── Step 29 — normal (player-triggered) events ─────────────────────────────
 
+def _trait_uuids(story):
+    """Story trait id → uuid, the map ``apply_traits`` resolves a CSV of ids through."""
+    return {_events._nz(t.get('id')): t.get('uuid') for t in (story.get('traits') or [])}
+
+
+def _log_trait_changes(match, changes, id_event):
+    """v0.41.1 — one TRAIT_CHANGE row per trait an effect moved: ``ADD|REMOVE <traitUuid>``."""
+    for change in changes:
+        _logbook.append(match, TYPE_TRAIT_CHANGE, _nz(match.get('currentClock')),
+                        characterUuid=change.get('characterUuid'),
+                        idEvent=_nz(id_event) if id_event is not None else None,
+                        message=f"{change.get('action')} {change.get('traitUuid')}")
+
+
 def _log_edge_state(match, character, id_event, message):
     """A Step 30 audit row on the match event log.
 
@@ -2648,6 +2781,10 @@ def _log_edge_state(match, character, id_event, message):
     _logbook.audit(match, 'EDGE_STATE', _nz(match.get('currentClock')),
                    characterUuid=character.get('uuid') if character else None,
                    idEvent=id_event, message=message)
+    # v0.41.1 — and a timeline row naming the kind only (COMA_RECOVERED is not COMA).
+    _logbook.append(match, TYPE_EDGE_STATE, _nz(match.get('currentClock')),
+                    characterUuid=character.get('uuid') if character else None,
+                    idEvent=id_event, message=str(message).split(' ', 1)[0])
 
 
 def _resolve_all_player_coma(match, match_uuid, caller, touched, edge_state, events_by_id,
@@ -2824,8 +2961,10 @@ def _execute_event(user, match_uuid, body, lang='en'):
                 _log_item_effect(match, target_char, effect, added, removed, current)
                 flags['itemAdded'] = flags['itemAdded'] or added
                 flags['itemRemoved'] = flags['itemRemoved'] or removed
+                mark = len(trait_changes)
                 _events.apply_traits(target_char, effect, trait_uuids, trait_changes,
                                      _traits_by_id(story), stat_changes)
+                _log_trait_changes(match, trait_changes[mark:], event_id)
                 _events.apply_characteristics(target_char, effect, characteristic_changes)
                 moved = _events.apply_location(match, target_char, effect, location_uuids,
                                                location_changes, _ts_ms())
@@ -3317,8 +3456,10 @@ def _use_item(user, match_uuid, body, lang='en'):
 
     for effect in _inventory.standalone_effects(story, item):
         _events.apply_stat(caller, effect, acc['statChanges'])
+        mark = len(acc['traitChanges'])
         _events.apply_traits(caller, effect, trait_uuids, acc['traitChanges'],
                              _traits_by_id(story), acc['statChanges'])
+        _log_trait_changes(match, acc['traitChanges'][mark:], None)
         applied_effects.append({
             "eventUuid": None,
             "effectUuid": effect.get('uuid'),
@@ -4082,8 +4223,11 @@ def _run_event_chain(match, story, first, caller, characters, ctx, events_by_id,
                 _log_item_effect(match, target_char, effect, added, removed, current)
                 acc['flags']['itemAdded'] = acc['flags']['itemAdded'] or added
                 acc['flags']['itemRemoved'] = acc['flags']['itemRemoved'] or removed
-                _events.apply_traits(target_char, effect, {}, acc['traitChanges'],
+                # v0.41.1 — the story's trait uuids: with {} no trait of a chained event ever landed.
+                mark = len(acc['traitChanges'])
+                _events.apply_traits(target_char, effect, _trait_uuids(story), acc['traitChanges'],
                                      _traits_by_id(story), acc['statChanges'])
+                _log_trait_changes(match, acc['traitChanges'][mark:], event_id)
                 _events.apply_characteristics(target_char, effect,
                                               acc['characteristicChanges'])
                 moved = _events.apply_location(match, target_char, effect, location_uuids,
@@ -4681,6 +4825,17 @@ def _dispatch(event):
             segments = path.split('/')
             match_uuid = segments[4] if len(segments) > 4 else ''
 
+        # v0.41.1 — /api/admin/matches/{uuid}/snapshots[/{uuidSnapshot}/check|restore]
+        if '/snapshots' in path:
+            segments = path.split('/')
+            uuid_snapshot = params.get('uuidSnapshot') or (segments[6] if len(segments) > 6 else '')
+            if path.endswith('/snapshots') and method == 'GET':
+                return _admin_list_snapshots(match_uuid)
+            if path.endswith('/check') and method == 'GET':
+                return _admin_check_snapshot(match_uuid, uuid_snapshot)
+            if path.endswith('/restore') and method == 'POST':
+                return _admin_restore_snapshot(match_uuid, uuid_snapshot)
+            return _err(404, 'NOT_FOUND', f'Unknown route {method} {path}')
         if path.endswith('/info') and method == 'GET':
             return _get_admin_match_info(match_uuid)
         if path.endswith('/weather') and method == 'GET':
@@ -4702,11 +4857,11 @@ def _dispatch(event):
             qs = (event.get('queryStringParameters') or {})
             return _delete_admin_registry(match_uuid, qs.get('key'), qs.get('value'))
         if path.endswith('/stop') and method == 'POST':
-            return _update_match(match_uuid, 'ENDED', None)
+            return _update_match(match_uuid, 'ENDED', None, ADMIN_STOP)
         if path.endswith('/pause') and method == 'POST':
-            return _update_match(match_uuid, 'PAUSED', None)
+            return _update_match(match_uuid, 'PAUSED', None, ADMIN_PAUSE)
         if path.endswith('/resume') and method == 'POST':
-            return _update_match(match_uuid, 'RUNNING', None)
+            return _update_match(match_uuid, 'RUNNING', None, ADMIN_RESUME)
         # POST /api/admin/matches/{uuidMatch}/player/{uuidPlayer}/changeStatistics
         if '/player/' in path and path.endswith('/changeStatistics') and method == 'POST':
             segments = path.split('/')

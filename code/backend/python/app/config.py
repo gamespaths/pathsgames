@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     # the public app on `port` does not register the admin routers. Lock this port to the
     # owner IP at the network layer (firewall / security group).
     admin_port: int = 8044
-    version: str = "0.41.0"
+    version: str = "0.41.1"
 
 
     # >0.12.5 change version here
@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     guest_cleanup_max_per_run: int = 500
     guest_cleanup_hour: int = 0
     guest_cleanup_minute: int = 42
+    # v0.41.1 — WARN once per match when its log rows reach this count (check only, 0 = off).
+    log_warn_rows: int = 5000
+    # v0.41.1 — LIGHT snapshots kept per match, one per time-end (0 = no snapshots).
+    snapshot_keep_per_match: int = 10
     # The csrfToken issued with every access token must come back as X-CSRF-TOKEN on
     # POST /api/matches. Same secret as the JWT unless CSRF_SECRET says otherwise.
     csrf_enforced: bool = True

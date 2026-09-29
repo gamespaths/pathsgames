@@ -112,6 +112,15 @@ def save(item):
     return True
 
 
+def discard(pk, sk):
+    """v0.41.1 — forget one row of the request: a snapshot restore deletes it at once."""
+    _DIRTY.pop((pk, sk), None)
+    _ITEMS.pop((pk, sk), None)
+    for (p, _prefix), rows in _LISTS.items():
+        if p == pk:
+            rows[:] = [r for r in rows if r.get('SK') != sk]
+
+
 def delete_partition(pk):
     """Cascading delete of a match, effective at once; nothing queued for it survives."""
     for key in [k for k in _DIRTY if k[0] == pk]:

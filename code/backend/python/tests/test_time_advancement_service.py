@@ -159,6 +159,17 @@ def test_sleep_triggers_time_end_and_advances_clock():
     assert publisher.events[0].new_clock == 4
 
 
+def test_v0411_every_time_end_runs_the_log_size_check():
+    from unittest.mock import MagicMock
+    store = FakeTimeStore(match=_match(current_clock=3),
+                          characters=[_char(10, "char-a", energy=50)])
+    service = _service(store)
+    writer = MagicMock()
+    service.set_log_writer(writer)
+    service.sleep(MATCH_UUID, "user-uuid")
+    writer.count_rows.assert_called_once_with(MATCH_ID)
+
+
 def test_step33_the_events_a_time_start_collected_are_run_and_told_to_the_sleeper():
     """The caller is the only recipient with an open request; the rest learn about it over
     the WebSocket once Steps 49-54 land, through this very path called once per player."""

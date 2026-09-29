@@ -31,6 +31,7 @@ from app.core.models.match.event_models import (
     ChoiceResolutionResult, EdgeStateOutcome, EntityChange, EventCheckContext, EventError,
     EventExecutionResult, LocationChange, RegistryChange, StatChange,
 )
+from app.core.ports.match import log_writer_ports as lw
 from app.core.ports.match.edge_state_ports import MSG_ALL_PLAYER_COMA, EdgeStateStorePort
 from app.core.ports.match.event_ports import (
     ITEM_ACTION_ADD, ITEM_ACTION_REMOVE,
@@ -178,6 +179,20 @@ class EventService(EventPort):
         """The second cycle, closed by a setter: a mission completion runs an event, and an
         event moves the registry that decides the mission."""
         self.mission_service = mission_service
+
+    def set_log_writer(self, log_writer) -> None:
+        """v0.41.1 — the TRAIT_ADD / TRAIT_REMOVE rows; unset in the older tests."""
+        self.log_writer = log_writer
+
+    def _log_trait(self, x: "_Exec", recipient: Dict[str, Any], id_trait: int, id_event,
+                   prefix: str) -> None:
+        """v0.41.1 — ``TRAIT_ADD|TRAIT_REMOVE <traitUuid>``, the id when the story row has no uuid."""
+        writer = getattr(self, "log_writer", None)
+        if writer is None:
+            return
+        uuid = x.trait_uuids().get(id_trait)
+        writer.write(x.match["id"], recipient["id"], id_event, x.current_clock,
+                     f"{prefix} {uuid if uuid else id_trait}")
 
     def _missions_begin(self) -> None:
         if getattr(self, "mission_service", None) is not None:
@@ -365,10 +380,10 @@ class EventService(EventPort):
             self._run_linked_event(x, choice.get("id_event_torun"))
 
         self._resolve_all_player_coma(x)
+        # v0.41.1 — decision 19: the markers first, at clock N, so the time-end snapshot holds them.
+        self._write_resolution_markers(x, choice, event_id, choice_id)
         if x.end_time and not x.coma_triggered:
             self._force_time_end(x)
-
-        self._write_resolution_markers(x, choice, event_id, choice_id)
 
         # Step 33 — a forced move inside an option's effects is an arrival like any other.
         self._drain_arrivals(x, x.automatic_events)
@@ -901,11 +916,13 @@ class EventService(EventPort):
             if self.store.add_trait(x.match["id"], recipient["id"], id_trait, event.get("id")):
                 x.trait_changes.append(EntityChange(
                     recipient.get("uuid"), x.trait_uuids().get(id_trait), ADD))
+                self._log_trait(x, recipient, id_trait, event.get("id"), lw.MSG_TRAIT_ADD)
                 self._apply_trait_stats(x, recipient, id_trait, 1)
         for id_trait in _csv_ids(effect.get("traits_to_remove")):
             if self.store.remove_trait(x.match["id"], recipient["id"], id_trait):
                 x.trait_changes.append(EntityChange(
                     recipient.get("uuid"), x.trait_uuids().get(id_trait), REMOVE))
+                self._log_trait(x, recipient, id_trait, event.get("id"), lw.MSG_TRAIT_REMOVE)
                 self._apply_trait_stats(x, recipient, id_trait, -1)
 
     def _apply_trait_stats(self, x: "_Exec", recipient: Dict[str, Any],

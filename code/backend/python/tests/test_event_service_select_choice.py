@@ -558,6 +558,30 @@ def test_flag_end_time_ends_the_time_unit(store):
     assert r.execution.current_clock == CLOCK + 1
 
 
+def test_v0411_decision_19_markers_land_at_clock_n_before_the_forced_time_end(store):
+    calls = MagicMock()
+    time_service = MagicMock()
+    time_service.force_time_end.side_effect = lambda *a, **k: calls.time_end() or TimeEndOutcome(
+        CLOCK + 1, [], [], EdgeStateOutcome.none())
+    store.log_event_executed.side_effect = lambda *a, **k: calls.event_marker(*a)
+    store.log_choice_executed.side_effect = lambda *a, **k: calls.choice_marker(*a)
+    svc = EventService(store, edge_store=MagicMock(), content_read_port=None,
+                       time_service=time_service,
+                       registry_service_instance=MagicMock())
+    ender = _event(id=4, uuid="ender-uuid", flag_end_time=1)
+    store.find_events_by_id.return_value = {EVENT_ID: _event(), 4: ender}
+    store.find_choice_by_story_and_uuid.return_value = _choice(id_event_torun=4)
+
+    svc.select_choice(MATCH_UUID, USER_UUID, CHOICE_UUID, "en")
+
+    names = [c[0] for c in calls.mock_calls]
+    selected = [c for c in calls.mock_calls if c[0] == "event_marker"
+                and c.args[4] == f"{MSG_CHOICE_SELECTED} {EVENT_ID}"]
+    assert selected and selected[0].args[3] == CLOCK
+    assert names.index("choice_marker") < names.index("time_end")
+    assert calls.choice_marker.call_args.args[3] == CLOCK
+
+
 # ── the shared shape ────────────────────────────────────────────────────────
 
 def test_the_execution_block_is_the_execute_event_payload(service):

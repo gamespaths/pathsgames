@@ -42,8 +42,8 @@ const PAGE_LIMIT = 50
 /** The prefix the backends write in front of a registry change; stripped off in the row. */
 const MSG_REGISTRY_CHANGE = 'REGISTRY_CHANGE'
 
-/** Entries of these types are never shown in the timeline. */
-const HIDDEN_TYPES = new Set(['CLOCK_ADVANCE'])
+/** Entries of these types are never shown in the timeline; v0.41.1 adds the lifecycle and admin rows. */
+const HIDDEN_TYPES = new Set(['CLOCK_ADVANCE', 'MATCH_LIFECYCLE', 'ADMIN_ACTION'])
 
 // Icon per entry type; mirrors the admin console's TYPE_META.
 const TYPE_ICON = {
@@ -67,6 +67,10 @@ const TYPE_ICON = {
   EXP_USE:         'fa-star',
   // Step 40 — an option picked, with what its own effects gave.
   CHOICE:          'fa-code-branch',
+  // v0.41.1 — a pass, an edge state (coma, sadness) and a trait moved by an effect.
+  PASS:            'fa-forward',
+  EDGE_STATE:      'fa-heartbeat',
+  TRAIT_CHANGE:    'fa-user-tag',
 }
 
 /**
@@ -92,6 +96,9 @@ const TYPE_COLOR = {
   ITEM_DROP:       '#9ca3af',
   EXP_USE:         '#c4b5fd',
   CHOICE:          '#f472b6',
+  PASS:            '#94a3b8',
+  EDGE_STATE:      '#ef4444',
+  TRAIT_CHANGE:    '#a3e635',
 }
 
 /**
@@ -166,6 +173,15 @@ export function registryDetail(entry, t) {
   return detail || t(`matchLog.types.${entry?.type}`)
 }
 
+/** v0.41.1 — what a PASS / EDGE_STATE / TRAIT_CHANGE row says; null for every other type. */
+export function step41Detail(entry, t) {
+  const message = String(entry?.message ?? '').trim()
+  if (entry?.type === 'EDGE_STATE' && message) return t(`matchLog.edgeStates.${message.split(' ')[0]}`)
+  if (entry?.type === 'TRAIT_CHANGE' && message) return t(`matchLog.traitActions.${message.split(' ')[0]}`)
+  if (entry?.type === 'PASS') return t('matchLog.types.PASS')
+  return null
+}
+
 /**
  * v0.37.2 — one timeline entry as a ROW, not a tile: a history is read down a column, and a
  * grid of pictures made the reader hunt for the order things happened in. What the entry WAS
@@ -180,7 +196,7 @@ export function LogEntryRow({ entry, lang, t, onPreview }) {
   const registry = entry.type === 'REGISTRY_CHANGE'
   const card = registry ? null : resolveEntryCard(entry, t)
   // An entry with no card of its own (RECOVERY) is named by what it was.
-  const title = registry ? registryDetail(entry, t) : (card?.title ?? typeLabel)
+  const title = registry ? registryDetail(entry, t) : (card?.title ?? step41Detail(entry, t) ?? typeLabel)
   const color = TYPE_COLOR[entry.type]
 
   return (

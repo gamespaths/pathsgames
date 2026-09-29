@@ -36,6 +36,7 @@ from app.adapters.rest.story.story_crud_admin_controller import StoryCrudAdminCo
 # Step 19 — single-player match creation
 from app.adapters.persistence.match.location_entry_store_adapter import LocationEntryStoreAdapter
 from app.adapters.persistence.match.match_persistence_adapter import MatchPersistenceAdapter
+from app.adapters.persistence.match.match_log_writer_adapter import MatchLogWriterAdapter
 from app.adapters.persistence.match.story_match_read_adapter import StoryMatchReadAdapter
 from app.adapters.persistence.match.user_access_adapter import UserAccessAdapter
 from app.adapters.persistence.match.character_persistence_adapter import CharacterPersistenceAdapter
@@ -55,6 +56,8 @@ from app.core.services.match.turn_cycle_service import TurnCycleService
 from app.adapters.rest.match.turn_cycle_controller import TurnCycleController
 from app.adapters.persistence.match.time_store_adapter import TimeStoreAdapter
 from app.core.services.match.time_advancement_service import TimeAdvancementService
+from app.core.services.match.snapshot_service import SnapshotService
+from app.adapters.persistence.match.snapshot_store_adapter import SnapshotStoreAdapter
 from app.core.services.event.in_process_event_publisher import InProcessDomainEventPublisher
 from app.adapters.rest.match.time_clock_controller import TimeClockController
 from app.adapters.persistence.match.movement_store_adapter import MovementStoreAdapter
@@ -151,6 +154,9 @@ match_command_service = MatchCommandService(
     registry_service,
 )
 match_command_service.set_mission_service(mission_service)
+# v0.41.1 — Step 41 A: pass, trait, lifecycle and admin rows, and the log-size check.
+match_log_writer_adapter = MatchLogWriterAdapter(SessionLocal, settings.log_warn_rows)
+match_command_service.set_log_writer(match_log_writer_adapter)
 # Step 21 — character join adapters and services
 character_persistence_adapter = CharacterPersistenceAdapter(SessionLocal)
 character_command_service = CharacterCommandService(
@@ -160,6 +166,7 @@ character_command_service = CharacterCommandService(
     character_persistence_adapter,
     character_persistence_adapter,  # also implements CharacterReadPort
 )
+character_command_service.set_log_writer(match_log_writer_adapter)
 character_query_service = CharacterQueryService(
     match_persistence_adapter,
     character_persistence_adapter,
@@ -207,7 +214,8 @@ content_controller = ContentController(content_query_service)
 story_crud_admin_controller = StoryCrudAdminController(story_crud_service)
 # Step 28.7 — consolidated match logs timeline (player + admin endpoints).
 # content_query_service resolves the weather / location / character cards on the page.
-match_logs_service = MatchLogsService(SessionLocal, content_query_service)
+match_logs_service = MatchLogsService(SessionLocal, content_query_service,
+                                     log_writer=match_log_writer_adapter)
 match_controller = MatchController(match_command_service, match_query_service,
                                    match_logs_service, rate_limit_service,
                                    settings.rate_limit_match_per_ip, csrf_token_service,
@@ -239,6 +247,7 @@ match_admin_controller = MatchAdminController(match_command_service, match_query
 turn_cycle_store_adapter = TurnCycleStoreAdapter(SessionLocal)
 turn_cycle_service = TurnCycleService(turn_cycle_store_adapter, weather_selection_service,
                                       registry_service)
+turn_cycle_service.set_log_writer(match_log_writer_adapter)
 turn_cycle_controller = TurnCycleController(turn_cycle_service)
 
 # Step 25 — time advancement & clock cycle.
@@ -253,6 +262,13 @@ time_advancement_service = TimeAdvancementService(time_store_adapter, domain_eve
                                                   weather_service=weather_selection_service,
                                                   edge_store=edge_state_store_adapter,
                                                   random_event_service=random_event_selection_service)
+time_advancement_service.set_log_writer(match_log_writer_adapter)
+# v0.41.1 — Step 41 B snapshots; the time engine and the restore know each other through setters.
+snapshot_service = SnapshotService(SnapshotStoreAdapter(SessionLocal), settings.snapshot_keep_per_match)
+snapshot_service.set_time_service(time_advancement_service)
+snapshot_service.set_log_writer(match_log_writer_adapter)
+time_advancement_service.set_snapshot_writer(snapshot_service)
+match_admin_controller.snapshot_service = snapshot_service
 time_clock_controller = TimeClockController(time_advancement_service)
 
 # Step 28 — movement system (single-player). The controller is mounted on the
@@ -272,6 +288,7 @@ event_service = EventService(event_store_adapter,
 # Step 37 — the second cycle, closed the same way: a mission completion runs an event, and
 # an event moves the registry that decides the mission.
 event_service.set_mission_service(mission_service)
+event_service.set_log_writer(match_log_writer_adapter)
 mission_service.event_port = event_service
 event_controller = EventController(event_service)
 

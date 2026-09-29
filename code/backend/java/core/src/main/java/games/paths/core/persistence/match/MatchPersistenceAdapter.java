@@ -3,6 +3,7 @@ package games.paths.core.persistence.match;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
 import games.paths.core.port.match.MatchPersistencePort;
+import games.paths.core.port.match.SnapshotStorePort;
 import games.paths.core.repository.match.GamingBackpackResourcesRepository;
 import games.paths.core.repository.match.GamingCharacterInstanceRepository;
 import games.paths.core.repository.match.GamingCharacterTraitsRepository;
@@ -45,6 +46,7 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
     private final LogChoicesExecutedRepository logChoicesRepository;
     private final LogItemUsageRepository logItemUsageRepository;
     private final GamingStoryProgressRepository storyProgressRepository;
+    private final SnapshotStorePort snapshotStorePort;
 
     @SuppressWarnings("java:S107") // one collaborator per table a match delete has to clear
     public MatchPersistenceAdapter(GamingMatchRepository matchRepository,
@@ -58,7 +60,8 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
                                    LogMovementRepository logMovementRepository,
                                    LogChoicesExecutedRepository logChoicesRepository,
                                    LogItemUsageRepository logItemUsageRepository,
-                                   GamingStoryProgressRepository storyProgressRepository) {
+                                   GamingStoryProgressRepository storyProgressRepository,
+                                   SnapshotStorePort snapshotStorePort) {
         this.matchRepository = matchRepository;
         this.locationsRepository = locationsRepository;
         this.registryStorePort = registryStorePort;
@@ -71,6 +74,7 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
         this.logChoicesRepository = logChoicesRepository;
         this.logItemUsageRepository = logItemUsageRepository;
         this.storyProgressRepository = storyProgressRepository;
+        this.snapshotStorePort = snapshotStorePort;
     }
 
     /** Removes the per-match character rows (traits, inventory, backpack, instance) for the given match ids. */
@@ -89,6 +93,8 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
         // delete that skipped them would leave orphans behind on the dev database.
         logChoicesRepository.deleteByMatchIdIn(matchIds);
         storyProgressRepository.deleteByMatchIdIn(matchIds);
+        // v0.41.1 - the time-end snapshots, for the same SQLite reason.
+        snapshotStorePort.deleteByMatchIds(matchIds);
         characterRepository.deleteByMatchIdIn(matchIds);
     }
 

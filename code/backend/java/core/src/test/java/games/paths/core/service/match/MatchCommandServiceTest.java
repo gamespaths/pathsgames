@@ -13,6 +13,7 @@ import games.paths.core.model.match.MatchCreateCommand;
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.MatchSummary;
 import games.paths.core.port.match.MatchCommandPort;
+import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.MatchPersistencePort;
 import games.paths.core.port.match.SystemModePort;
 import games.paths.core.port.match.UserAccessPort;
@@ -31,6 +32,9 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -259,6 +263,31 @@ class MatchCommandServiceTest {
             MatchSummary result = service.createMatch(cmd("u", "s", "d"));
             assertNotNull(result);
             assertEquals("match-uuid", result.getUuid());
+        }
+
+        @Test
+        @DisplayName("v0.41.1 - a created match writes MATCH_CREATED at clock 0")
+        void createdWritesTheLifecycleRow() {
+            MatchLogWriterPort writer = mock(MatchLogWriterPort.class);
+            service.setLogWriter(writer);
+            when(systemModePort.isMaintenance()).thenReturn(false);
+            when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(activeUser()));
+            when(storyReadPort.findStoryByUuid("s")).thenReturn(Optional.of(story(2L, "s")));
+            when(storyReadPort.findDifficultyByStoryIdAndUuid(2L, "d"))
+                    .thenReturn(Optional.of(difficulty(3L, "d", 5)));
+            when(storyReadPort.findLocationsByStoryId(2L))
+                    .thenReturn(List.of(location(10L, "loc-uuid", 0)));
+            when(storyReadPort.findKeysByStoryId(2L)).thenReturn(List.of());
+            when(persistencePort.saveMatch(any())).thenAnswer(inv -> {
+                GamingMatchEntity m = inv.getArgument(0);
+                m.setId(99L);
+                m.setUuid("match-uuid");
+                return m;
+            });
+
+            service.createMatch(cmd("u", "s", "d"));
+
+            verify(writer).write(99L, null, null, 0, "MATCH_CREATED");
         }
 
         @Test
@@ -736,6 +765,54 @@ class MatchCommandServiceTest {
                     service.updateMatch("m1", null, "n"));
         }
 
+        private GamingMatchEntity atClock(Integer clock) {
+            GamingMatchEntity m = matchWithStatus("RUNNING");
+            m.setId(5L);
+            m.setCurrentClock(clock);
+            return m;
+        }
+
+        @Test
+        @DisplayName("v0.41.1 - a named admin action writes ADMIN_<action> at the current clock")
+        void adminActionWritesItsRow() {
+            MatchLogWriterPort writer = mock(MatchLogWriterPort.class);
+            service.setLogWriter(writer);
+            when(persistencePort.updateMatchFields("m1", "PAUSED", null)).thenReturn(true);
+            when(persistencePort.findMatchByUuid("m1")).thenReturn(Optional.of(atClock(4)));
+
+            assertEquals(MatchCommandPort.UpdateOutcome.UPDATED,
+                    service.updateMatch("m1", "PAUSED", null, MatchLogWriterPort.ADMIN_PAUSE));
+            verify(writer).write(5L, null, null, 4, "ADMIN_PAUSE");
+        }
+
+        @Test
+        @DisplayName("v0.41.1 - a PUT with a status writes ADMIN_STATUS <status>, a rename writes nothing")
+        void statusRowAndSilentRename() {
+            MatchLogWriterPort writer = mock(MatchLogWriterPort.class);
+            service.setLogWriter(writer);
+            when(persistencePort.updateMatchFields(eq("m1"), any(), any())).thenReturn(true);
+            when(persistencePort.findMatchByUuid("m1")).thenReturn(Optional.of(atClock(null)));
+
+            service.updateMatch("m1", "ENDED", "n");
+            service.updateMatch("m1", null, "only a name");
+
+            verify(writer).write(5L, null, null, 0, "ADMIN_STATUS ENDED");
+            verify(writer, times(1)).write(anyLong(), any(), any(), anyInt(), anyString());
+        }
+
+        @Test
+        @DisplayName("v0.41.1 - an unknown or invalid update writes no row")
+        void noRowWhenNothingChanged() {
+            MatchLogWriterPort writer = mock(MatchLogWriterPort.class);
+            service.setLogWriter(writer);
+            when(persistencePort.updateMatchFields(any(), any(), any())).thenReturn(false);
+
+            service.updateMatch("m1", "PAUSED", null, MatchLogWriterPort.ADMIN_PAUSE);
+            service.updateMatch("m1", "BOGUS", null, null);
+
+            verifyNoInteractions(writer);
+        }
+
         @Test
         @DisplayName("deleteMatch deletes a match in a terminal status")
         void deleteMatch_terminalStatus_deletes() {
@@ -877,6 +954,25 @@ class MatchCommandServiceTest {
             assertEquals(MatchCommandPort.EndMatchOutcome.COMPLETED,
                     service.endMatch("m1", "ev", "u"));
             verify(persistencePort).updateMatchFields("m1", "ENDED", null);
+        }
+
+        @Test
+        @DisplayName("v0.41.1 - the story end writes MATCH_ENDED")
+        void completesWithTheLifecycleRow() {
+            MatchLogWriterPort writer = mock(MatchLogWriterPort.class);
+            service.setLogWriter(writer);
+            GamingMatchEntity match = ownedMatch(2L);
+            match.setId(8L);
+            match.setCurrentClock(3);
+            when(persistencePort.findMatchByUuid("m1")).thenReturn(Optional.of(match));
+            when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(activeUser()));
+            when(storyReadPort.findStoryById(2L)).thenReturn(Optional.of(storyWithEndEvent(2L, 50)));
+            when(storyReadPort.findEventByStoryIdAndUuid(2L, "ev"))
+                    .thenReturn(Optional.of(event(50L, "ev")));
+
+            service.endMatch("m1", "ev", "u");
+
+            verify(writer).write(8L, null, null, 3, "MATCH_ENDED");
         }
     }
 

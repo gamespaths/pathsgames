@@ -15,6 +15,7 @@ import LocationStateCard from '../components/match/detail/LocationStateCard'
 import RegistryCard from '../components/match/detail/RegistryCard'
 import MissionsCard from '../components/match/detail/MissionsCard'
 import MatchLogsCard from '../components/match/detail/MatchLogsCard'
+import SnapshotsCard from '../components/match/detail/SnapshotsCard'
 import EditStatsModal from '../components/match/detail/EditStatsModal'
 import { TERMINAL, STATUS_COLOR, findByUuid, resolveEntityName, name20 } from '../components/match/detail/matchDetailShared'
 
@@ -39,6 +40,7 @@ const DETAIL_TABS = [
   { id: 'registry',  label: 'Registry',            icon: 'fa-list' },
   { id: 'missions',  label: 'Missions',            icon: 'fa-flag-checkered' },
   { id: 'turn',      label: 'Turn order',          icon: 'fa-list-ol' },
+  { id: 'snapshots', label: 'Snapshots',           icon: 'fa-camera' },
 ]
 
 export default function MatchDetailPage() {
@@ -63,6 +65,7 @@ export default function MatchDetailPage() {
   const [confirm, setConfirm]             = useState(null) // { title, message, onConfirm }
   const [statsModal, setStatsModal]       = useState(null) // player object being edited
   const [tab, setTab]                     = useState('config')
+  const [snapshotNotice, setSnapshotNotice] = useState('') // v0.41.1 - survives the reload after a restore
 
   const loadInfo = useCallback(() => {
     setLoading(true)
@@ -250,6 +253,7 @@ export default function MatchDetailPage() {
               loadingMore={logsLoadingMore}
               onLoadMore={loadMoreLogs}
               error={logsError}
+              logCount={info?.logCount}
             />
           )}
 
@@ -290,6 +294,14 @@ export default function MatchDetailPage() {
             <div className="mb-4">
               <TurnOrderPanel players={players} nameOf={templateName} />
             </div>
+          )}
+
+          {tab === 'snapshots' && (
+            <SnapshotsCard
+              matchUuid={uuid}
+              notice={snapshotNotice}
+              onRestored={(text) => { setSnapshotNotice(text); loadInfo() }}
+            />
           )}
         </>
       )}

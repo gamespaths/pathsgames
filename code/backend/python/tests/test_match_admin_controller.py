@@ -183,7 +183,7 @@ def test_update_match_returns_200(env):
     resp = client.put("/api/admin/matches/m1", json={"status": "ENDED", "name": "x"})
     assert resp.status_code == 200
     assert resp.json() == {"status": "UPDATED", "uuid": "m1"}
-    command_port.update_match.assert_called_once_with("m1", "ENDED", "x")
+    command_port.update_match.assert_called_once_with("m1", "ENDED", "x", None)
 
 
 def test_update_match_empty_body_returns_400(env):
@@ -213,7 +213,7 @@ def test_stop_match_sets_ended(env):
     command_port.update_match.return_value = "UPDATED"
     resp = client.post("/api/admin/matches/m1/stop")
     assert resp.status_code == 200
-    command_port.update_match.assert_called_once_with("m1", "ENDED", None)
+    command_port.update_match.assert_called_once_with("m1", "ENDED", None, "STOP")
 
 
 def test_pause_and_resume(env):
@@ -221,8 +221,8 @@ def test_pause_and_resume(env):
     command_port.update_match.return_value = "UPDATED"
     client.post("/api/admin/matches/m1/pause")
     client.post("/api/admin/matches/m1/resume")
-    command_port.update_match.assert_any_call("m1", "PAUSED", None)
-    command_port.update_match.assert_any_call("m1", "RUNNING", None)
+    command_port.update_match.assert_any_call("m1", "PAUSED", None, "PAUSE")
+    command_port.update_match.assert_any_call("m1", "RUNNING", None, "RESUME")
 
 
 def test_delete_match_returns_200(env):
@@ -255,6 +255,22 @@ def test_get_admin_match_info_returns_200(env):
     assert resp.status_code == 200
     assert resp.json()['match']['uuid'] == 'match-uuid'
     query_port.get_match_info_for_admin.assert_called_once_with('m1')
+
+
+def test_get_admin_match_info_carries_the_log_count():
+    """v0.41.1 — the admin info answers logCount when the logs service can count."""
+    query_port = MagicMock()
+    query_port.get_match_info_for_admin.return_value = _detail()
+    logs_service = MagicMock()
+    logs_service.count_logs_for_admin.return_value = 12
+    controller = MatchAdminController(MagicMock(), query_port, match_logs_service=logs_service)
+    app = FastAPI()
+    app.include_router(controller.router)
+    resp = TestClient(app).get('/api/admin/matches/m1/info')
+    assert resp.status_code == 200
+    assert resp.json()['logCount'] == 12
+    logs_service.count_logs_for_admin.return_value = None
+    assert 'logCount' not in TestClient(app).get('/api/admin/matches/m1/info').json()
 
 
 def test_get_admin_match_info_returns_404(env):

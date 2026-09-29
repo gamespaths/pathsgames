@@ -2,7 +2,8 @@
 
 **Status: patch 1 of 3 developed (v0.41.0, September 28, 2026) — security (C), AWS admin
 allow-list (D) and guest cleanup/limits (E), plus the CI dependency scan and the test CSP.
-Logging (A), snapshots (B) and KPI (F) are still planned for 0.41.1/0.41.2 (§8.1 decision 15).**
+Patch 2 (v0.41.1) developed: logging (A) and snapshots (B), unit tests green, Robot only
+dry-run (the owner runs the targets); KPI (F, 0.41.2) still planned (§8.1 decision 15).**
 Roadmap line: *logging and snapshots, security, admin IP protection, guest cleanup and limits,
 KPI report* ([Roadmap](./Roadmap.md) step 41; the test certificate moved to V1 step 41). Touches the three backends,
 react-admin (guest-list toggle), react-game (rate-limit message, CSP-safe consent script),

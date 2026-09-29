@@ -27,9 +27,9 @@ Suite Setup    Suite Setup Logs
 *** Test Cases ***
 
 Logs Endpoint Returns 200 With Empty List On Created Match
-    [Documentation]    A CREATED (not yet started) match returns 200 with an
-    ...                empty logs list — no weather, movements, or sleep events yet.
-    ...                The pagination envelope is present even when the timeline is empty.
+    [Documentation]    A CREATED (not yet started) match returns 200 with no weather,
+    ...                movements or sleep entries yet. v0.41.1 — the timeline holds exactly
+    ...                one row, the MATCH_LIFECYCLE CREATED; the pagination envelope is present.
     [Tags]    match-logs    step28-7
     ${match}=    New Logs Match
     ${response}=    Get Match Logs    ${TOKEN}    ${match}    200
@@ -41,7 +41,9 @@ Logs Endpoint Returns 200 With Empty List On Created Match
     Dictionary Should Contain Key    ${body}    limit
     Dictionary Should Contain Key    ${body}    total
     Should Be Equal As Strings    ${body}[matchUuid]    ${match}
-    Should Be Equal As Integers    ${body}[total]    0
+    Should Be Equal As Integers    ${body}[total]    1
+    Should Be Equal As Strings    ${body}[logs][0][type]    MATCH_LIFECYCLE
+    Should Be Equal As Strings    ${body}[logs][0][message]    CREATED
     Should Be Equal    ${body}[nextCursor]    ${None}
 
 Logs Contains Weather Entry After Start

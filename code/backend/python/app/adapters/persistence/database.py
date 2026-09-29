@@ -68,6 +68,8 @@ _ADDED_COLUMNS = {
     "list_stories_difficulty": ["exp_cost_base", "max_stat_value"],
     # Step 39 — random events get the registry operator the other conditions have.
     "list_global_random_events": ["registry_value_operator_condition"],
+    # v0.41.1 — the snapshot clock and checksum (a table made before V0.41.1).
+    "system_snapshot": ["clock", "checksum"],
 }
 # Step 37 — the from/to pair is gone: a mission has no operator, so a range meant nothing.
 _DROPPED_COLUMNS = {
@@ -79,12 +81,13 @@ _DROPPED_COLUMNS = {
 # v0.41.0 — indexes create_all makes only on a new table: (table, name, columns).
 _INDEXES = [
     ("users", "idx_users_state_last_access", "state, last_access"),
+    ("system_snapshot", "idx_snapshot_match_clock", "id_match, clock"),
 ]
 # Added columns are integers unless named here: the Step 36 operator holds "=", ">", "<", "!=".
 _TEXT_COLUMNS = {"registry_value_operator_condition",
                  "key_to_add", "key_value_to_add",
                  "key_to_add_not_first", "key_value_to_add_not_first",
-                 "condition_value", "condition_values", "uuid"}
+                 "condition_value", "condition_values", "uuid", "checksum"}
 
 
 def align_schema(bind=None):

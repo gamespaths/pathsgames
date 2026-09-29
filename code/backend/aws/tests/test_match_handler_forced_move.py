@@ -83,7 +83,9 @@ def _run(story):
         from match.handler import lambda_handler
         result = lambda_handler(event, {})
     assert result['statusCode'] == 200, result
-    assert roster.call_count == 1, 'the roster must be read once per request'
+    # v0.41.1 — the time-end snapshot reads the TURN# queue too; the roster is still read once.
+    reads = [c for c in roster.call_args_list if c.args[1:2] == ('CHARACTER#',)]
+    assert len(reads) == 1, 'the roster must be read once per request'
     return json.loads(result['body']), written_rows().items()
 
 

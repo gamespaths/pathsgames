@@ -6,6 +6,7 @@ import games.paths.core.port.match.CharacterCommandPort.ChangeStatsCommand;
 import games.paths.core.port.match.CharacterCommandPort.ChangeStatsOutcome;
 import games.paths.core.port.match.CharacterPersistencePort;
 import games.paths.core.port.match.CharacterReadPort;
+import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.MatchReadPort;
 import games.paths.core.port.match.UserAccessPort;
 import games.paths.core.port.story.StoryReadPort;
@@ -271,5 +272,37 @@ class CharacterCommandServiceChangeStatsTest {
         service.changeStatistics("match-uuid", "player-uuid", new ChangeStatsCommand());
 
         verify(persistencePort, never()).updateCharacterExp(anyLong(), anyLong(), anyInt());
+    }
+
+    @Test
+    void v0411_theAppliedFieldsWriteOneAdminStatsRow() {
+        MatchLogWriterPort writer = mock(MatchLogWriterPort.class);
+        service.setLogWriter(writer);
+        GamingMatchEntity m = match();
+        m.setCurrentClock(6);
+        when(matchReadPort.findMatchByUuid("match-uuid")).thenReturn(Optional.of(m));
+        when(characterReadPort.findCharacterByMatchIdAndUuid(1L, "player-uuid"))
+                .thenReturn(Optional.of(character()));
+        ChangeStatsCommand cmd = new ChangeStatsCommand();
+        cmd.setEnergy(500);
+        cmd.setCoin(3);
+        cmd.setComa(false);
+
+        service.changeStatistics("match-uuid", "player-uuid", cmd);
+
+        // Energy capped, life lifted to 1 and sleep cleared by the coma rule: what was applied.
+        verify(writer).write(1L, 2L, null, 6,
+                "ADMIN_STATS energy=100 life=1 coin=3 sleeping=false coma=false");
+    }
+
+    @Test
+    void v0411_anEmptyChangeWritesNoRow() {
+        MatchLogWriterPort writer = mock(MatchLogWriterPort.class);
+        service.setLogWriter(writer);
+        wireMatchAndCharacter();
+
+        service.changeStatistics("match-uuid", "player-uuid", new ChangeStatsCommand());
+
+        verifyNoInteractions(writer);
     }
 }

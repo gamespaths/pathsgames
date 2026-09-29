@@ -146,4 +146,16 @@ describe('matchApi', () => {
       params: { order: 'asc' },
     })
   })
+
+  it('v0.41.1 snapshot calls hit the admin snapshot routes', async () => {
+    mockGet.mockResolvedValueOnce({ data: [{ uuid: 's1' }] })
+    expect(await matchApi.listMatchSnapshots('m1')).toEqual([{ uuid: 's1' }])
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/matches/m1/snapshots')
+    mockGet.mockResolvedValueOnce({ data: { valid: true, errors: [] } })
+    expect(await matchApi.checkMatchSnapshot('m1', 's1')).toEqual({ valid: true, errors: [] })
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/matches/m1/snapshots/s1/check')
+    mockPost.mockResolvedValueOnce({ data: { status: 'RESTORED' } })
+    expect(await matchApi.restoreMatchSnapshot('m1', 's1')).toEqual({ status: 'RESTORED' })
+    expect(mockPost).toHaveBeenCalledWith('/api/admin/matches/m1/snapshots/s1/restore')
+  })
 })

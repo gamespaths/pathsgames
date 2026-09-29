@@ -231,8 +231,7 @@ def test_executed_event_is_reported_as_event(session_factory):
 
 
 def test_edge_state_messages_are_skipped_not_shown_as_event(session_factory):
-    """v0.30.3 regression — SADNESS_OVERFLOW/COMA (Step 30 edge-state audit rows) share
-    the log_events table with executed events but must not surface as EVENT entries."""
+    """v0.30.3 regression — SADNESS_OVERFLOW/COMA never surface as EVENT; v0.41.1 shows them as EDGE_STATE."""
     _seed_match(session_factory)
     with session_factory() as s:
         s.add(LogEventsEntity(id=12, id_match=MATCH_ID, uuid="e12", id_character_match=10,
@@ -243,7 +242,8 @@ def test_edge_state_messages_are_skipped_not_shown_as_event(session_factory):
                               ts_insert=_NOW, ts_update=_NOW))
         s.commit()
     logs = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"]
-    assert logs == []
+    assert [e["type"] for e in logs] == ["EDGE_STATE", "EDGE_STATE"]
+    assert [e["message"] for e in logs] == ["SADNESS_OVERFLOW", "COMA"]
 
 
 def test_admin_variant_skips_the_ownership_check(session_factory):

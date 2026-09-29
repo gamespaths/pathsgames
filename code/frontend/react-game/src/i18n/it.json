@@ -203,7 +203,22 @@
       "ITEM_DROP": "Oggetto lasciato",
       "REGISTRY_CHANGE": "Registro",
       "MISSION_CHANGE": "Missione",
-      "CHOICE": "Scelta"
+      "CHOICE": "Scelta",
+      "PASS": "Turno passato",
+      "EDGE_STATE": "Condizione",
+      "TRAIT_CHANGE": "Tratto",
+      "MATCH_LIFECYCLE": "Partita",
+      "ADMIN_ACTION": "Amministrazione"
+    },
+    "edgeStates": {
+      "COMA": "In coma",
+      "SADNESS_OVERFLOW": "Sopraffatto dalla tristezza",
+      "COMA_RECOVERED": "Risvegliato dal coma",
+      "ALL_PLAYER_COMA": "Tutto il gruppo è crollato"
+    },
+    "traitActions": {
+      "ADD": "Tratto acquisito",
+      "REMOVE": "Tratto perso"
     },
     "statusTile": "Stato",
     "creation": "Creazione"

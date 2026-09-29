@@ -207,7 +207,22 @@
       "ITEM_DROP": "Item left behind",
       "REGISTRY_CHANGE": "Registry",
       "MISSION_CHANGE": "Mission",
-      "CHOICE": "Choice"
+      "CHOICE": "Choice",
+      "PASS": "Turn passed",
+      "EDGE_STATE": "Condition",
+      "TRAIT_CHANGE": "Trait",
+      "MATCH_LIFECYCLE": "Match",
+      "ADMIN_ACTION": "Admin"
+    },
+    "edgeStates": {
+      "COMA": "Fell into a coma",
+      "SADNESS_OVERFLOW": "Overwhelmed by sadness",
+      "COMA_RECOVERED": "Woke from the coma",
+      "ALL_PLAYER_COMA": "The whole party fell"
+    },
+    "traitActions": {
+      "ADD": "Trait gained",
+      "REMOVE": "Trait lost"
     },
     "statusTile": "Status",
     "creation": "Creation"

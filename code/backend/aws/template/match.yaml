@@ -133,6 +133,11 @@ Resources:
           RATE_LIMIT_MATCH_PER_GUEST_WINDOW_SECONDS: !Ref RateLimitMatchPerGuestWindowSeconds
           CSRF_ENFORCED: !Ref CsrfEnforced
           ROBOT_TEST_DATA_TTL_HOURS: !Ref RobotTestDataTtlHours
+          # v0.41.1 — log-size check (WARN lines only, 0 = off)
+          LOG_WARN_ROWS: "5000"
+          LOG_WARN_METADATA_KB: "300"
+          # v0.41.1 — LIGHT snapshots kept per match, one per time-end (0 = off)
+          SNAPSHOT_KEEP_PER_MATCH: "10"
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName
@@ -496,6 +501,34 @@ Resources:
     Properties:
       ApiId: !Ref AdminApiId
       RouteKey: "POST /api/admin/matches/{uuidMatch}/player/{uuidPlayer}/changeStatistics"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  # v0.41.1 — Step 41 B snapshots: list, check (writes nothing), restore
+  AdminMatchSnapshotsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "GET /api/admin/matches/{uuidMatch}/snapshots"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  AdminMatchSnapshotCheckRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "GET /api/admin/matches/{uuidMatch}/snapshots/{uuidSnapshot}/check"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  AdminMatchSnapshotRestoreRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/admin/matches/{uuidMatch}/snapshots/{uuidSnapshot}/restore"
       Target: !Sub "integrations/${MatchAdminIntegration}"
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId

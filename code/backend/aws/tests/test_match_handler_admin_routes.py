@@ -140,7 +140,11 @@ def test_change_statistics_updates_character(mock_get, mock_put, _jwt):
     ))
     assert result['statusCode'] == 200
     assert _body(result)['status'] == 'UPDATED'
-    assert len(helpers.SINK.items()) == 1
+    # v0.41.1 — the character, plus the METADATA that counts the new ADMIN_ACTION row.
+    assert len(helpers.SINK.items('CHARACTER#')) == 1
+    assert len(helpers.SINK.items('METADATA')) == 1
+    assert [(r['type'], r['message']) for r in helpers.SINK.logs()] == [
+        ('ADMIN_ACTION', 'STATS dex=12 energy=30 life=50')]
 
 
 @patch('match.handler.jwt_utils.verify_access_token',
@@ -161,7 +165,7 @@ def test_change_statistics_skips_minus_one_whatever_type_it_arrives_as(mock_get,
     ))
 
     assert result['statusCode'] == 200
-    updated = helpers.SINK.items()[-1]
+    updated = helpers.SINK.items('CHARACTER#')[-1]
     assert updated['energy'] != -1
     assert updated['life'] != -1
     assert updated['food'] == 7
@@ -181,7 +185,7 @@ def test_change_statistics_writes_exp_floored_at_zero(mock_get, mock_put, _jwt):
         body={'exp': 42}
     ))
     assert result['statusCode'] == 200
-    assert helpers.SINK.items()[-1]['exp'] == 42
+    assert helpers.SINK.items('CHARACTER#')[-1]['exp'] == 42
 
     _call(_admin_event(
         'POST',
@@ -189,7 +193,7 @@ def test_change_statistics_writes_exp_floored_at_zero(mock_get, mock_put, _jwt):
         path_params={'uuidMatch': 'm1', 'uuidPlayer': 'char-uuid-1'},
         body={'exp': -9}
     ))
-    assert helpers.SINK.items()[-1]['exp'] == 0
+    assert helpers.SINK.items('CHARACTER#')[-1]['exp'] == 0
 
 
 @patch('match.handler.jwt_utils.verify_access_token',
@@ -206,7 +210,7 @@ def test_change_statistics_caps_energy_at_max(mock_get, mock_put, _jwt):
     ))
     assert result['statusCode'] == 200
     # energy should be capped at energyMax=100, life at lifeMax=120, sad at sadMax=8
-    updated = helpers.SINK.items()[-1]
+    updated = helpers.SINK.items('CHARACTER#')[-1]
     assert updated['energy'] == 100
     assert updated['life'] == 120
     assert updated['sad'] == 8
@@ -299,7 +303,7 @@ def test_clearing_coma_wakes_the_character_and_gives_it_a_life_to_act_with(mock_
     mock_get.side_effect = _admin_side_with_char(char_item=char)
     result = _call(event)
     assert result['statusCode'] == 200
-    updated = helpers.SINK.items()[-1]
+    updated = helpers.SINK.items('CHARACTER#')[-1]
     assert updated['isComa'] == 0
     assert updated['isSleeping'] == 0
     assert updated['life'] == 1
@@ -313,7 +317,7 @@ def test_clearing_coma_keeps_the_life_the_admin_asked(mock_get, mock_put, _jwt):
     event, char = _change_stats({'coma': False, 'life': 9}, COMATOSE)
     mock_get.side_effect = _admin_side_with_char(char_item=char)
     _call(event)
-    updated = helpers.SINK.items()[-1]
+    updated = helpers.SINK.items('CHARACTER#')[-1]
     assert updated['life'] == 9
     assert updated['isComa'] == 0
 
@@ -326,7 +330,7 @@ def test_sleeping_flag_is_set_on_its_own_and_coma_is_left_alone(mock_get, mock_p
     event, char = _change_stats({'sleeping': True})
     mock_get.side_effect = _admin_side_with_char(char_item=char)
     _call(event)
-    updated = helpers.SINK.items()[-1]
+    updated = helpers.SINK.items('CHARACTER#')[-1]
     assert updated['isSleeping'] == 1
     assert 'isComa' not in updated
 
@@ -339,7 +343,7 @@ def test_flags_untouched_when_the_body_carries_none(mock_get, mock_put, _jwt):
     event, char = _change_stats({'life': 5})
     mock_get.side_effect = _admin_side_with_char(char_item=char)
     _call(event)
-    updated = helpers.SINK.items()[-1]
+    updated = helpers.SINK.items('CHARACTER#')[-1]
     assert 'isSleeping' not in updated and 'isComa' not in updated
 
 

@@ -2,6 +2,7 @@ package games.paths.core.service.match;
 
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.TurnStatuses;
+import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.TurnCyclePort;
 import games.paths.core.port.match.TurnCycleStorePort;
 import games.paths.core.port.match.TurnCycleStorePort.CharacterTurnView;
@@ -29,6 +30,8 @@ public class TurnCycleService implements TurnCyclePort {
     private final WeatherSelectionService weatherService;
     /** v0.37.1 — the start location's own registry pair; null in the older tests. */
     private final RegistryService registryService;
+    /** v0.41.1 - MATCH_STARTED and ACTION_PASS rows; null in the older tests. */
+    private MatchLogWriterPort logWriter;
 
     public TurnCycleService(TurnCycleStorePort store, UserAccessPort userAccessPort) {
         this(store, userAccessPort, null);
@@ -48,6 +51,10 @@ public class TurnCycleService implements TurnCyclePort {
         this.userAccessPort = userAccessPort;
         this.weatherService = weatherService;
         this.registryService = registryService;
+    }
+
+    public void setLogWriter(MatchLogWriterPort logWriter) {
+        this.logWriter = logWriter;
     }
 
     @Override
@@ -82,6 +89,11 @@ public class TurnCycleService implements TurnCyclePort {
 
         store.replaceQueue(match.id(), rows);
         store.updateMatchStatusAndTurn(match.id(), MatchStatuses.RUNNING, top.idCharacterMatch());
+        // v0.41.1 - before the weather, so the timeline opens with the start.
+        if (logWriter != null) {
+            logWriter.write(match.id(), null, null, match.currentClock(),
+                    MatchLogWriterPort.lifecycle(MatchLogWriterPort.LIFECYCLE_STARTED));
+        }
 
         // Step 27: select the initial weather for clock 0 when the match starts.
         if (weatherService != null) {
@@ -140,6 +152,10 @@ public class TurnCycleService implements TurnCyclePort {
                 null, null);
         store.saveQueueRow(match.id(), completed);
         replaceInList(rows, completed);
+        if (logWriter != null) {
+            logWriter.write(match.id(), active.idCharacterMatch(), null, match.currentClock(),
+                    MatchLogWriterPort.MSG_PASS);
+        }
 
         // Find the next WAITING character; if none, start a new round (reset all to WAITING).
         QueueRow next = highestWaiting(rows);

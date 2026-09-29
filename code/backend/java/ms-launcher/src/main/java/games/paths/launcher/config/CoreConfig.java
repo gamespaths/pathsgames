@@ -230,16 +230,19 @@ public class CoreConfig {
     }
 
     @Bean
+    @SuppressWarnings("java:S107")
     public MatchCommandPort matchCommandPort(StoryReadPort storyReadPort,
                                              MatchPersistencePort matchPersistencePort,
                                              UserAccessPort userAccessPort,
                                              SystemModePort systemModePort,
                                              TurnstileVerificationPort turnstileVerificationPort,
                                              games.paths.core.service.match.RegistryService registryService,
-                                             games.paths.core.service.match.MissionService missionService) {
+                                             games.paths.core.service.match.MissionService missionService,
+                                             games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort) {
         MatchCommandService service = new MatchCommandService(storyReadPort, matchPersistencePort,
                 userAccessPort, systemModePort, turnstileVerificationPort, registryService);
         service.setMissionService(missionService);
+        service.setLogWriter(matchLogWriterPort);
         return service;
     }
 
@@ -286,9 +289,13 @@ public class CoreConfig {
             games.paths.core.port.match.TurnCycleStorePort turnCycleStorePort,
             UserAccessPort userAccessPort,
             games.paths.core.service.match.WeatherSelectionService weatherSelectionService,
-            games.paths.core.service.match.RegistryService registryService) {
-        return new games.paths.core.service.match.TurnCycleService(
-                turnCycleStorePort, userAccessPort, weatherSelectionService, registryService);
+            games.paths.core.service.match.RegistryService registryService,
+            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort) {
+        games.paths.core.service.match.TurnCycleService service =
+                new games.paths.core.service.match.TurnCycleService(
+                        turnCycleStorePort, userAccessPort, weatherSelectionService, registryService);
+        service.setLogWriter(matchLogWriterPort);
+        return service;
     }
 
     // ───── Step 25: Time advancement & clock cycle (single-player) ─────
@@ -318,10 +325,35 @@ public class CoreConfig {
             games.paths.core.port.event.DomainEventPublisher domainEventPublisher,
             games.paths.core.service.match.TimeStartRecoveryService timeStartRecoveryService,
             games.paths.core.service.match.WeatherSelectionService weatherSelectionService,
-            games.paths.core.service.match.RandomEventSelectionService randomEventSelectionService) {
-        return new games.paths.core.service.match.TimeAdvancementService(
-                turnCycleStorePort, userAccessPort, domainEventPublisher,
-                timeStartRecoveryService, weatherSelectionService, randomEventSelectionService);
+            games.paths.core.service.match.RandomEventSelectionService randomEventSelectionService,
+            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort) {
+        games.paths.core.service.match.TimeAdvancementService service =
+                new games.paths.core.service.match.TimeAdvancementService(
+                        turnCycleStorePort, userAccessPort, domainEventPublisher,
+                        timeStartRecoveryService, weatherSelectionService, randomEventSelectionService);
+        service.setLogWriter(matchLogWriterPort);
+        return service;
+    }
+
+    /** v0.41.1 - Step 41 B snapshots; the time engine and the restore know each other through setters. */
+    @Bean
+    public games.paths.core.service.match.SnapshotService snapshotService(
+            games.paths.core.port.match.SnapshotStorePort snapshotStorePort,
+            games.paths.core.service.match.TimeAdvancementService timeAdvancementService,
+            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort,
+            @Value("${game.snapshot.keep-per-match:10}") int keepPerMatch) {
+        games.paths.core.service.match.SnapshotService service =
+                new games.paths.core.service.match.SnapshotService(snapshotStorePort, keepPerMatch);
+        service.setTimeService(timeAdvancementService);
+        service.setLogWriter(matchLogWriterPort);
+        timeAdvancementService.setSnapshotWriter(service);
+        return service;
+    }
+
+    @Bean
+    public games.paths.core.port.match.SnapshotPort snapshotPort(
+            games.paths.core.service.match.SnapshotService snapshotService) {
+        return snapshotService;
     }
 
     @Bean
@@ -365,12 +397,14 @@ public class CoreConfig {
             games.paths.core.service.match.TimeAdvancementService timeAdvancementService,
             games.paths.core.port.match.LocationEntryStorePort locationEntryStorePort,
             games.paths.core.service.match.RegistryService registryService,
-            games.paths.core.service.match.MissionService missionService) {
+            games.paths.core.service.match.MissionService missionService,
+            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort) {
         games.paths.core.service.match.EventExecutionService service =
                 new games.paths.core.service.match.EventExecutionService(
                         eventExecutionStorePort, edgeStateStorePort, userAccessPort,
                         contentQueryPort, timeAdvancementService, locationEntryStorePort,
                         registryService);
+        service.setLogWriter(matchLogWriterPort);
         // Closes the one cycle in the graph: the event engine needs the time engine for
         // flag_end_time, and the time engine needs the event engine to run what a time-start
         // set off. Constructor injection either way is impossible; this setter is called once,
@@ -431,9 +465,12 @@ public class CoreConfig {
                                                      MatchReadPort matchReadPort,
                                                      UserAccessPort userAccessPort,
                                                      CharacterPersistencePort characterPersistencePort,
-                                                     CharacterReadPort characterReadPort) {
-        return new CharacterCommandService(storyReadPort, matchReadPort,
+                                                     CharacterReadPort characterReadPort,
+                                                     games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort) {
+        CharacterCommandService service = new CharacterCommandService(storyReadPort, matchReadPort,
                 userAccessPort, characterPersistencePort, characterReadPort);
+        service.setLogWriter(matchLogWriterPort);
+        return service;
     }
 
     @Bean
@@ -452,9 +489,13 @@ public class CoreConfig {
     public games.paths.core.port.match.MatchLogsPort matchLogsPort(
             games.paths.core.port.match.MatchLogsStorePort matchLogsStorePort,
             UserAccessPort userAccessPort,
-            games.paths.core.port.story.ContentQueryPort contentQueryPort) {
-        return new games.paths.core.service.match.MatchLogsService(
-                matchLogsStorePort, userAccessPort, contentQueryPort);
+            games.paths.core.port.story.ContentQueryPort contentQueryPort,
+            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort) {
+        games.paths.core.service.match.MatchLogsService service =
+                new games.paths.core.service.match.MatchLogsService(
+                        matchLogsStorePort, userAccessPort, contentQueryPort);
+        service.setLogWriter(matchLogWriterPort);
+        return service;
     }
 
     // ───── Dev-only test-data cleanup ─────

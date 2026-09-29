@@ -68,6 +68,9 @@ class FakeTable:
             rows = [r for r in rows if r.get('type') == wanted]
         return rows
 
+    def query_sk_prefix_keys(self, pk, sk_prefix):
+        return [{'PK': r['PK'], 'SK': r['SK']} for r in self.query_sk_prefix(pk, sk_prefix)]
+
     def query_sk_prefix_page(self, pk, sk_prefix, limit, start_key=None, ascending=True,
                              consistent=False):
         rows = self.query_sk_prefix(pk, sk_prefix)
@@ -93,7 +96,7 @@ class FakeTable:
 
 
 DB_FUNCTIONS = ('get_item', 'put_item', 'batch_put_items', 'delete_item', 'delete_all_by_pk',
-                'query_by_pk', 'query_sk_prefix', 'query_sk_prefix_page')
+                'query_by_pk', 'query_sk_prefix', 'query_sk_prefix_page', 'query_sk_prefix_keys')
 
 
 def patch_table(table, module='match.handler'):

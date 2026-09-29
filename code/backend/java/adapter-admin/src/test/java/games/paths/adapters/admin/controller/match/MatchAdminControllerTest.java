@@ -43,6 +43,7 @@ class MatchAdminControllerTest {
     private MovementPort movementPort;
     private games.paths.core.port.match.MatchLogsPort matchLogsPort;
     private games.paths.core.service.match.RegistryService registryService;
+    private games.paths.core.port.match.SnapshotPort snapshotPort;
 
     @BeforeEach
     void setUp() {
@@ -54,10 +55,11 @@ class MatchAdminControllerTest {
         movementPort = mock(MovementPort.class);
         matchLogsPort = mock(games.paths.core.port.match.MatchLogsPort.class);
         registryService = mock(games.paths.core.service.match.RegistryService.class);
+        snapshotPort = mock(games.paths.core.port.match.SnapshotPort.class);
         mockMvc = MockMvcBuilders.standaloneSetup(
                 new MatchAdminController(commandPort, queryPort, timeAdvancementPort,
                         characterCommandPort, weatherService, movementPort, matchLogsPort,
-                        registryService)).build();
+                        registryService, snapshotPort)).build();
     }
 
     @Test
@@ -227,7 +229,7 @@ class MatchAdminControllerTest {
 
     @Test
     void updateMatch_returns200WhenUpdated() throws Exception {
-        when(commandPort.updateMatch("m1", "ENDED", "new name"))
+        when(commandPort.updateMatch("m1", "ENDED", "new name", null))
                 .thenReturn(MatchCommandPort.UpdateOutcome.UPDATED);
         mockMvc.perform(put("/api/admin/matches/m1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -248,7 +250,7 @@ class MatchAdminControllerTest {
 
     @Test
     void updateMatch_returns400ForInvalidStatus() throws Exception {
-        when(commandPort.updateMatch(any(), any(), any()))
+        when(commandPort.updateMatch(any(), any(), any(), any()))
                 .thenReturn(MatchCommandPort.UpdateOutcome.INVALID_STATUS);
         mockMvc.perform(put("/api/admin/matches/m1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -259,7 +261,7 @@ class MatchAdminControllerTest {
 
     @Test
     void updateMatch_returns404WhenNotFound() throws Exception {
-        when(commandPort.updateMatch(any(), any(), any()))
+        when(commandPort.updateMatch(any(), any(), any(), any()))
                 .thenReturn(MatchCommandPort.UpdateOutcome.NOT_FOUND);
         mockMvc.perform(put("/api/admin/matches/m1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -270,22 +272,22 @@ class MatchAdminControllerTest {
 
     @Test
     void stopMatch_setsStatusToEnded() throws Exception {
-        when(commandPort.updateMatch("m1", "ENDED", null))
+        when(commandPort.updateMatch("m1", "ENDED", null, "STOP"))
                 .thenReturn(MatchCommandPort.UpdateOutcome.UPDATED);
         mockMvc.perform(post("/api/admin/matches/m1/stop"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("UPDATED"));
-        verify(commandPort).updateMatch("m1", "ENDED", null);
+        verify(commandPort).updateMatch("m1", "ENDED", null, "STOP");
     }
 
     @Test
     void pauseAndResume_setExpectedStatuses() throws Exception {
-        when(commandPort.updateMatch(any(), any(), any()))
+        when(commandPort.updateMatch(any(), any(), any(), any()))
                 .thenReturn(MatchCommandPort.UpdateOutcome.UPDATED);
         mockMvc.perform(post("/api/admin/matches/m1/pause")).andExpect(status().isOk());
         mockMvc.perform(post("/api/admin/matches/m1/resume")).andExpect(status().isOk());
-        verify(commandPort).updateMatch("m1", "PAUSED", null);
-        verify(commandPort).updateMatch("m1", "RUNNING", null);
+        verify(commandPort).updateMatch("m1", "PAUSED", null, "PAUSE");
+        verify(commandPort).updateMatch("m1", "RUNNING", null, "RESUME");
     }
 
     @Test
@@ -325,6 +327,18 @@ class MatchAdminControllerTest {
         mockMvc.perform(get("/api/admin/matches/m1/info"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.match.uuid").value("match-uuid"));
+    }
+
+    @Test
+    void getAdminMatchInfo_carriesTheLogCount() throws Exception {
+        MatchDetail detail = new MatchDetail();
+        detail.setMatch(summary());
+        when(queryPort.getMatchInfoForAdmin("m1")).thenReturn(detail);
+        when(matchLogsPort.countLogsForAdmin("m1")).thenReturn(12L);
+
+        mockMvc.perform(get("/api/admin/matches/m1/info"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.logCount").value(12));
     }
 
     @Test
@@ -701,5 +715,86 @@ class MatchAdminControllerTest {
         assertEquals(7, r.getMagic());
         assertEquals(Boolean.TRUE, r.getSleeping());
         assertEquals(Boolean.FALSE, r.getComa());
+    }
+
+    // ── v0.41.1 snapshots ────────────────────────────────────────────────────
+
+    @Test
+    void listSnapshots_answersTheSummariesNewestFirst() throws Exception {
+        when(snapshotPort.list("m1")).thenReturn(List.of(
+                new games.paths.core.port.match.SnapshotPort.SnapshotSummary("s2", 3, "LIGHT",
+                        "2026-09-28T10:00:00Z", "Time-end of clock 3", 1200L),
+                new games.paths.core.port.match.SnapshotPort.SnapshotSummary("s1", 2, "LIGHT",
+                        "2026-09-28T09:00:00Z", "Time-end of clock 2", 1100L)));
+
+        mockMvc.perform(get("/api/admin/matches/m1/snapshots"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].uuid").value("s2"))
+                .andExpect(jsonPath("$[0].clock").value(3))
+                .andExpect(jsonPath("$[0].type").value("LIGHT"))
+                .andExpect(jsonPath("$[0].timestamp").value("2026-09-28T10:00:00Z"))
+                .andExpect(jsonPath("$[0].description").value("Time-end of clock 3"))
+                .andExpect(jsonPath("$[0].sizeBytes").value(1200))
+                .andExpect(jsonPath("$[1].uuid").value("s1"));
+    }
+
+    @Test
+    void listSnapshots_answers404ForAnUnknownMatch() throws Exception {
+        when(snapshotPort.list("nope")).thenThrow(new games.paths.core.port.match.SnapshotPort.SnapshotException(
+                games.paths.core.port.match.SnapshotPort.SnapshotException.Code.MATCH_NOT_FOUND, "Match not found: nope"));
+
+        mockMvc.perform(get("/api/admin/matches/nope/snapshots"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("MATCH_NOT_FOUND"));
+    }
+
+    @Test
+    void checkSnapshot_answersValidityAndErrors() throws Exception {
+        when(snapshotPort.check("m1", "s1")).thenReturn(new games.paths.core.port.match.SnapshotPort.SnapshotCheck(
+                false, List.of(new games.paths.core.port.match.SnapshotPort.CheckError(
+                        "STORY_ENTITY_MISSING", "trait 1 is no longer in the story"))));
+
+        mockMvc.perform(get("/api/admin/matches/m1/snapshots/s1/check"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.valid").value(false))
+                .andExpect(jsonPath("$.errors[0].code").value("STORY_ENTITY_MISSING"))
+                .andExpect(jsonPath("$.errors[0].message").value("trait 1 is no longer in the story"));
+    }
+
+    @Test
+    void checkSnapshot_answers404ForAnUnknownSnapshot() throws Exception {
+        when(snapshotPort.check("m1", "zz")).thenThrow(new games.paths.core.port.match.SnapshotPort.SnapshotException(
+                games.paths.core.port.match.SnapshotPort.SnapshotException.Code.SNAPSHOT_NOT_FOUND, "Snapshot not found: zz"));
+
+        mockMvc.perform(get("/api/admin/matches/m1/snapshots/zz/check"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("SNAPSHOT_NOT_FOUND"));
+    }
+
+    @Test
+    void restoreSnapshot_answersTheRestoreSummary() throws Exception {
+        when(snapshotPort.restore("m1", "s1")).thenReturn(new games.paths.core.port.match.SnapshotPort.RestoreResult(
+                "RESTORED", "s1", 2, "PAUSED", 7L));
+
+        mockMvc.perform(post("/api/admin/matches/m1/snapshots/s1/restore"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("RESTORED"))
+                .andExpect(jsonPath("$.uuidSnapshot").value("s1"))
+                .andExpect(jsonPath("$.clock").value(2))
+                .andExpect(jsonPath("$.matchStatus").value("PAUSED"))
+                .andExpect(jsonPath("$.logsRemoved").value(7));
+    }
+
+    @Test
+    void restoreSnapshot_answers409WithTheErrorsOfAFailedCheck() throws Exception {
+        when(snapshotPort.restore("m1", "s1")).thenThrow(new games.paths.core.port.match.SnapshotPort.SnapshotException(
+                games.paths.core.port.match.SnapshotPort.SnapshotException.Code.SNAPSHOT_INTEGRITY_FAILED,
+                "The snapshot failed its integrity check",
+                List.of(new games.paths.core.port.match.SnapshotPort.CheckError("USER_MISSING", "user 4 no longer exists"))));
+
+        mockMvc.perform(post("/api/admin/matches/m1/snapshots/s1/restore"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("SNAPSHOT_INTEGRITY_FAILED"))
+                .andExpect(jsonPath("$.errors[0].code").value("USER_MISSING"));
     }
 }

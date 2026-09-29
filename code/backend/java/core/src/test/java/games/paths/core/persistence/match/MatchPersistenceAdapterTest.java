@@ -39,6 +39,7 @@ class MatchPersistenceAdapterTest {
     private LogChoicesExecutedRepository logChoicesRepository;
     private LogItemUsageRepository logItemUsageRepository;
     private GamingStoryProgressRepository storyProgressRepository;
+    private games.paths.core.port.match.SnapshotStorePort snapshotStorePort;
     private MatchPersistenceAdapter adapter;
     private MatchReadAdapter readAdapter;
 
@@ -56,10 +57,11 @@ class MatchPersistenceAdapterTest {
         logChoicesRepository = mock(LogChoicesExecutedRepository.class);
         logItemUsageRepository = mock(LogItemUsageRepository.class);
         storyProgressRepository = mock(GamingStoryProgressRepository.class);
+        snapshotStorePort = mock(games.paths.core.port.match.SnapshotStorePort.class);
         adapter = new MatchPersistenceAdapter(matchRepository, locationsRepository, registryStorePort,
                 characterRepository, backpackRepository, characterTraitsRepository, inventoryRepository,
                 logEventsRepository, logMovementRepository, logChoicesRepository, logItemUsageRepository,
-                storyProgressRepository);
+                storyProgressRepository, snapshotStorePort);
         readAdapter = new MatchReadAdapter(matchRepository, locationsRepository);
     }
 
@@ -145,6 +147,7 @@ class MatchPersistenceAdapterTest {
         // Step 32 — SQLite ignores the schema's ON DELETE CASCADE, so these go explicitly
         verify(logChoicesRepository).deleteByMatchIdIn(ids);
         verify(storyProgressRepository).deleteByMatchIdIn(ids);
+        verify(snapshotStorePort).deleteByMatchIds(ids);
         verify(characterRepository).deleteByMatchIdIn(ids);
         verify(locationsRepository).deleteByMatchIdIn(ids);
         verify(registryStorePort).deleteByMatchIdIn(ids);
@@ -201,6 +204,7 @@ class MatchPersistenceAdapterTest {
         verify(backpackRepository).deleteByMatchIdIn(List.of(5L));
         verify(logChoicesRepository).deleteByMatchIdIn(List.of(5L));
         verify(storyProgressRepository).deleteByMatchIdIn(List.of(5L));
+        verify(snapshotStorePort).deleteByMatchIds(List.of(5L));
         verify(characterRepository).deleteByMatchIdIn(List.of(5L));
         verify(locationsRepository).deleteByMatchIdIn(List.of(5L));
         verify(registryStorePort).deleteByMatchIdIn(List.of(5L));

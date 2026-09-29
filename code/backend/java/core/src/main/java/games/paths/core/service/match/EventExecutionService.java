@@ -12,6 +12,7 @@ import games.paths.core.port.match.EventExecutionPort;
 import games.paths.core.port.match.EventExecutionStorePort;
 import games.paths.core.port.match.LocationEntryPort;
 import games.paths.core.port.match.LocationEntryStorePort;
+import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.LocationEntryStorePort.LocationTriggerView;
 import games.paths.core.port.match.TimeAdvancementPort;
 import games.paths.core.port.match.EventExecutionStorePort.BackpackStats;
@@ -117,6 +118,13 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
 
     public void setMissionService(MissionService missionService) {
         this.missionService = missionService;
+    }
+
+    /** v0.41.1 - the TRAIT_ADD / TRAIT_REMOVE rows; null in the older tests. */
+    private MatchLogWriterPort logWriter;
+
+    public void setLogWriter(MatchLogWriterPort logWriter) {
+        this.logWriter = logWriter;
     }
 
     /** Hold mission completion events until this execution has written everything it touched. */
@@ -540,11 +548,11 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         }
 
         resolveAllPlayerComa(x);
+        // v0.41.1 - decision 19: the markers first, at clock N, so the time-end snapshot holds them.
+        writeResolutionMarkers(x, choice, eventId, choiceId);
         if (x.endTime && !x.comaTriggered) {
             forceTimeEnd(x);
         }
-
-        writeResolutionMarkers(x, choice, eventId, choiceId);
 
         // Step 33 — a forced move inside an option's effects is an arrival like any other.
         drainArrivals(x, x.automaticEvents);
@@ -1062,15 +1070,27 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         for (long idTrait : csvIds(traitsToAdd)) {
             if (store.addTrait(x.match.id(), recipient.id(), idTrait, idEvent)) {
                 x.traitChanges.add(new TraitChange(recipient.uuid(), x.traitUuids().get(idTrait), ADD));
+                logTrait(x, recipient, idTrait, idEvent, MatchLogWriterPort.MSG_TRAIT_ADD);
                 applyTraitStats(x, recipient, idTrait, 1);
             }
         }
         for (long idTrait : csvIds(traitsToRemove)) {
             if (store.removeTrait(x.match.id(), recipient.id(), idTrait)) {
                 x.traitChanges.add(new TraitChange(recipient.uuid(), x.traitUuids().get(idTrait), REMOVE));
+                logTrait(x, recipient, idTrait, idEvent, MatchLogWriterPort.MSG_TRAIT_REMOVE);
                 applyTraitStats(x, recipient, idTrait, -1);
             }
         }
+    }
+
+    /** v0.41.1 - {@code TRAIT_ADD|TRAIT_REMOVE <traitUuid>}, the id when the story row has no uuid. */
+    private void logTrait(Exec x, EventActorView recipient, long idTrait, Long idEvent, String prefix) {
+        if (logWriter == null) {
+            return;
+        }
+        String uuid = x.traitUuids().get(idTrait);
+        logWriter.write(x.match.id(), recipient.id(), idEvent, x.currentClock,
+                prefix + " " + (uuid != null ? uuid : String.valueOf(idTrait)));
     }
 
     /**

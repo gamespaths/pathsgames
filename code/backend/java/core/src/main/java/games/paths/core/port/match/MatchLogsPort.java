@@ -49,6 +49,9 @@ public interface MatchLogsPort {
     MatchLogsResult getMatchLogsForAdmin(String uuidMatch, String lang,
                                          Integer limit, String cursor, String order);
 
+    /** v0.41.1 - rows of the match in every log_* table (admin info logCount); null when unwired. */
+    Long countLogsForAdmin(String uuidMatch);
+
     /**
      * One page of the consolidated log.
      *
@@ -77,6 +80,7 @@ public interface MatchLogsPort {
      *   <li>CHOICE        — idEvent, idCharacterMatch, message, *Cost/*Gain, card (Step 40)</li>
      *   <li>ITEM_ADD / ITEM_USE / ITEM_DROP — idItem, itemAction, counter, idEvent (the
      *                       effect that moved it), idCharacterMatch, idCard, card (v0.35.4)</li>
+     *   <li>PASS / EDGE_STATE / TRAIT_CHANGE / MATCH_LIFECYCLE / ADMIN_ACTION — clock, message (v0.41.1)</li>
      * </ul>
      */
     record LogEntry(

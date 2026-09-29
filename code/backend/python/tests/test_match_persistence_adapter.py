@@ -332,6 +332,34 @@ def test_delete_match_by_uuid_removes_match_and_children(session_factory):
     assert registry.find_by_match(saved["id"]) == []
 
 
+def test_delete_match_by_uuid_leaves_no_row_for_a_reused_id(session_factory):
+    """v0.41.1 — SQLite hands a deleted match's id to the next match: no log row may survive it."""
+    from app.adapters.persistence.match.models import (
+        GamingTurnQueueEntity, LogClockHistoryEntity, LogWeatherEntity)
+    adapter = MatchPersistenceAdapter(session_factory)
+    saved = adapter.save_match({"id_story": 1, "id_difficulty": 1, "id_user_creator": 1,
+                                "name": "m", "status": "ENDED"})
+    now = "2026-09-29T00:00:00+00:00"
+    with session_factory() as s:
+        s.add(LogWeatherEntity(id=1, id_match=saved["id"], uuid="w", clock=0, id_weather=1,
+                               timestamp_start=now, ts_insert=now, ts_update=now))
+        s.add(LogClockHistoryEntity(id=1, id_match=saved["id"], uuid="c", clock=1,
+                                    timestamp_start=now, ts_insert=now, ts_update=now))
+        s.add(GamingTurnQueueEntity(id_match=saved["id"], id_character_match=1, uuid="q",
+                                    priority=1, clock=0, status="ACTIVE", pass_counter=0,
+                                    ts_insert=now, ts_update=now))
+        s.commit()
+
+    assert adapter.delete_match_by_uuid(saved["uuid"]) is True
+    reused = adapter.save_match({"id_story": 1, "id_difficulty": 1, "id_user_creator": 1,
+                                 "name": "next", "status": "CREATED"})
+
+    assert reused["id"] == saved["id"]
+    with session_factory() as s:
+        for entity in (LogWeatherEntity, LogClockHistoryEntity, GamingTurnQueueEntity):
+            assert s.query(entity).filter(entity.id_match == reused["id"]).count() == 0
+
+
 def test_delete_match_by_uuid_unknown(session_factory):
     adapter = MatchPersistenceAdapter(session_factory)
     assert adapter.delete_match_by_uuid("nope") is False

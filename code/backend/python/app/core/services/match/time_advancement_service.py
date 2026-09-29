@@ -51,6 +51,18 @@ class TimeAdvancementService(TimeAdvancementPort):
         """Step 33 — see ``automatic_event_runner``. Called once, from the wiring."""
         self.automatic_event_runner = runner
 
+    def set_log_writer(self, log_writer) -> None:
+        """v0.41.1 — the log-size check run at every time-end; unset in the older tests."""
+        self.log_writer = log_writer
+
+    def set_snapshot_writer(self, snapshot_writer) -> None:
+        """v0.41.1 — the LIGHT snapshot of every time-end; unset in the older tests."""
+        self.snapshot_writer = snapshot_writer
+
+    def start_time_after_restore(self, match_uuid: str) -> int:
+        """v0.41.1 — decision 18: the time-start a snapshot restore runs at once, without a new snapshot."""
+        return self._advance_time(self._require_match(match_uuid), snapshot=False)[0]
+
     # ── public API ──────────────────────────────────────────────────────────
 
     def sleep(self, match_uuid: str, user_uuid: str) -> SleepResult:
@@ -157,7 +169,10 @@ class TimeAdvancementService(TimeAdvancementPort):
                                 after.get("cost_move_safe_location"),
                                 after.get("cost_move_not_safe_location"), changed)
 
-    def _advance_time(self, match: Dict[str, Any]):
+    def _advance_time(self, match: Dict[str, Any], snapshot: bool = True):
+        # v0.41.1 — decision 3: the end of clock N, first, before anything moves the clock.
+        if snapshot and getattr(self, "snapshot_writer", None) is not None:
+            self.snapshot_writer.write_at_time_end(match["id"])
         weather_before = self._current_weather(match["id"])
         new_clock = self.store.increment_match_clock(match["id"])
         self.store.insert_clock_history(match["id"], new_clock)
@@ -183,6 +198,8 @@ class TimeAdvancementService(TimeAdvancementPort):
                     match["id"], new_clock, pick["id_event"], DEFAULT_LANG)
         self._rebuild_queue(match["id"], new_clock)
         self.event_publisher.publish(TimeAdvanced(match["uuid"], new_clock))
+        if getattr(self, "log_writer", None) is not None:
+            self.log_writer.count_rows(match["id"])
         # The recovery's own verdict first, then whatever its events did: one edge state.
         parts = [outcome.edge_state] + [f.edge_state for f in fired]
         weather = self.weather_view(weather_before, self._current_weather(match["id"]))

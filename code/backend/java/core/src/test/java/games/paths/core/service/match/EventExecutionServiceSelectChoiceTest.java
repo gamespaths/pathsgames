@@ -869,6 +869,30 @@ class EventExecutionServiceSelectChoiceTest {
         assertEquals(CLOCK + 1, r.execution().currentClock());
     }
 
+    @Test
+    @DisplayName("v0.41.1 decision 19 - the markers land at clock N, before the forced time-end")
+    void markersBeforeTheForcedTimeEnd() {
+        EventEntity ender = new EventEntity();
+        ender.setId(4L);
+        ender.setUuid("ender-uuid");
+        ender.setType("NORMAL");
+        ender.setFlagEndTime(1);
+        when(store.findEventsById(STORY_ID)).thenReturn(Map.of(EVENT_ID, event(), 4L, ender));
+        when(timeAdvancementService.forceTimeEnd(eq(MATCH_UUID), any()))
+                .thenReturn(new TimeAdvancementService.TimeEndOutcome(CLOCK + 1, List.of(), List.of()));
+        ChoiceEntity c = choice();
+        c.setIdEventTorun(4);
+        when(store.findChoiceByStoryAndUuid(STORY_ID, CHOICE_UUID)).thenReturn(Optional.of(c));
+
+        resolve();
+
+        org.mockito.InOrder order = inOrder(store, timeAdvancementService);
+        order.verify(store).logEventExecuted(eq(MATCH_ID), eq(CHAR_ID), eq(EVENT_ID), eq(CLOCK),
+                eq(EventExecutionStorePort.MSG_CHOICE_SELECTED + " " + EVENT_ID), any(), any());
+        order.verify(store).logChoiceExecuted(eq(MATCH_ID), eq(EVENT_ID), eq(CHOICE_ID), eq(CLOCK), anyString());
+        order.verify(timeAdvancementService).forceTimeEnd(eq(MATCH_UUID), any());
+    }
+
     // ── the shared shape ────────────────────────────────────────────────────
 
     @Test

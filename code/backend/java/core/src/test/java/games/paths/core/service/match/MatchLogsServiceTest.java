@@ -275,12 +275,14 @@ class MatchLogsServiceTest {
         }
 
         @Test
-        @DisplayName("SADNESS_OVERFLOW / COMA edge-state rows are skipped, not shown as EVENT")
+        @DisplayName("v0.41.1 - SADNESS_OVERFLOW / COMA rows surface as EDGE_STATE, never as EVENT")
         void edgeStateMessagesSkipped() {
             when(store.findEventLog(MATCH_ID)).thenReturn(List.of(
                     new EventLogEntry(1L, 2L, null, "2026-01-01T00:00:00Z", "SADNESS_OVERFLOW char-1", null, null),
                     new EventLogEntry(2L, 2L, null, "2026-01-01T00:00:01Z", "COMA char-1", null, null)));
-            assertEquals(0, admin().logs().size());
+            List<LogEntry> logs = admin().logs();
+            assertEquals(List.of("EDGE_STATE", "EDGE_STATE"), logs.stream().map(LogEntry::type).toList());
+            assertEquals(List.of("SADNESS_OVERFLOW", "COMA"), logs.stream().map(LogEntry::message).toList());
         }
 
         @Test
@@ -927,6 +929,87 @@ class MatchLogsServiceTest {
                     .logs().get(0);
 
             assertEquals("The bell", e.card().title());
+        }
+    }
+
+    @Nested
+    @DisplayName("v0.41.1 - Step 41 rows")
+    class Step41Rows {
+
+        private LogEntry only(String message, Long idCharacter, Long idEvent) {
+            when(store.findEventLog(MATCH_ID)).thenReturn(List.of(
+                    new EventLogEntry(1L, idCharacter, 4, "2026-01-01T00:00:00Z", message, idEvent, null)));
+            List<LogEntry> logs = admin().logs();
+            assertEquals(1, logs.size(), "expected one entry for " + message);
+            return logs.get(0);
+        }
+
+        @Test
+        @DisplayName("ACTION_PASS is a PASS with the character and the clock, no detail")
+        void pass() {
+            LogEntry e = only("ACTION_PASS", 2L, null);
+            assertEquals("PASS", e.type());
+            assertEquals(4, e.clock());
+            assertEquals(2L, e.idCharacterMatch());
+            assertNull(e.message());
+        }
+
+        @Test
+        @DisplayName("each edge state is matched on its first word, never on a prefix")
+        void edgeStates() {
+            assertEquals("COMA", only("COMA 2", 2L, 9L).message());
+            assertEquals("COMA_RECOVERED", only("COMA_RECOVERED 2", 2L, null).message());
+            assertEquals("ALL_PLAYER_COMA", only("ALL_PLAYER_COMA 1", null, null).message());
+            LogEntry overflow = only("SADNESS_OVERFLOW 2", 2L, 9L);
+            assertEquals("EDGE_STATE", overflow.type());
+            assertEquals("SADNESS_OVERFLOW", overflow.message());
+            assertEquals(9L, overflow.idEvent());
+        }
+
+        @Test
+        @DisplayName("TRAIT_ADD / TRAIT_REMOVE become TRAIT_CHANGE ADD / REMOVE <uuid> with the event")
+        void traits() {
+            LogEntry add = only("TRAIT_ADD trait-uuid", 2L, 9L);
+            assertEquals("TRAIT_CHANGE", add.type());
+            assertEquals("ADD trait-uuid", add.message());
+            assertEquals(9L, add.idEvent());
+            assertEquals("REMOVE trait-uuid", only("TRAIT_REMOVE trait-uuid", 2L, 9L).message());
+        }
+
+        @Test
+        @DisplayName("MATCH_* and ADMIN_* lose their prefix")
+        void lifecycleAndAdmin() {
+            LogEntry created = only("MATCH_CREATED", null, null);
+            assertEquals("MATCH_LIFECYCLE", created.type());
+            assertEquals("CREATED", created.message());
+            LogEntry status = only("ADMIN_STATUS PAUSED", null, null);
+            assertEquals("ADMIN_ACTION", status.type());
+            assertEquals("STATUS PAUSED", status.message());
+            assertEquals("SNAPSHOT_RESTORED clock=3",
+                    only(games.paths.core.port.match.MatchLogWriterPort.snapshotRestored(3), null, null).message());
+            assertEquals("STATS life=3", only("ADMIN_STATS life=3", 2L, null).message());
+        }
+
+        @Test
+        @DisplayName("a TRAIT_ word without a uuid and a COMATOSE word are not Step 41 rows")
+        void lookalikesAreDropped() {
+            when(store.findEventLog(MATCH_ID)).thenReturn(List.of(
+                    new EventLogEntry(1L, 2L, 4, "2026-01-01T00:00:00Z", "TRAIT_ADD", null, null),
+                    new EventLogEntry(2L, 2L, 4, "2026-01-01T00:00:01Z", "COMATOSE 2", null, null)));
+            assertTrue(admin().logs().isEmpty());
+        }
+
+        @Test
+        @DisplayName("countLogsForAdmin: null unwired, the writer's count otherwise, 404 on an unknown match")
+        void countLogs() {
+            assertNull(service.countLogsForAdmin(MATCH_UUID));
+            games.paths.core.port.match.MatchLogWriterPort writer =
+                    mock(games.paths.core.port.match.MatchLogWriterPort.class);
+            when(writer.countRows(MATCH_ID)).thenReturn(17L);
+            service.setLogWriter(writer);
+            assertEquals(17L, service.countLogsForAdmin(MATCH_UUID));
+            when(store.findMatchByUuid("unknown")).thenReturn(Optional.empty());
+            assertThrows(TurnCycleException.class, () -> service.countLogsForAdmin("unknown"));
         }
     }
 }

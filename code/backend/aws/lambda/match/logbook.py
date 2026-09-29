@@ -1,11 +1,14 @@
 """v0.37.5 — match logs as their own DynamoDB rows (``MATCH#<uuid>`` / ``LOG#<ts>#<seq>``).
 Until v0.37.4 seven lists grew on the match METADATA item, rewritten whole at every action."""
 import datetime
+import json
+import os
 import time
 
 from boto3.dynamodb.conditions import Attr
 
 from common import db_utils
+from common import test_data_ttl
 from common.data_utils import safe_int as _nz
 from match import repo
 
@@ -19,6 +22,8 @@ LEGACY_LISTS = ('weatherLog', 'movementLog', 'sleepLog', 'eventLog', 'itemUsageL
                 'choiceLog', 'storyProgress')
 # Row bookkeeping that never reaches the API.
 _PRIVATE_KEYS = ('PK', 'SK', 'ts_insert', 'ts_update', 'timestampMs', 'weatherUuid', 'kind')
+# v0.41.1 — the log-size check (Step 41 A): WARN lines only, never a cap.
+_METADATA_WARNED = set()
 
 
 def ts_ms():
@@ -106,19 +111,51 @@ def persist(match):
     for key in LEGACY_LISTS:
         match.pop(key, None)
     pk = match.get('PK') or f"MATCH#{match.get('uuid')}"
+    # v0.41.1 — a brand-new match has no stored METADATA for repo to inherit the ttl from.
+    ttl = match.get(test_data_ttl.TTL_ATTRIBUTE)
+    extra = {test_data_ttl.TTL_ATTRIBUTE: ttl} if ttl is not None else {}
     seq = _nz(match.get('logSeq'))
     for entry in logs:
         seq += 1
-        repo.save({'PK': pk, 'SK': _sort_key(LOG_PREFIX, entry, seq), **entry})
+        repo.save({'PK': pk, 'SK': _sort_key(LOG_PREFIX, entry, seq), **entry, **extra})
     if audits:
         seq += 1
         first = audits[0]
         repo.save({'PK': pk, 'SK': _sort_key(AUDIT_PREFIX, first, seq),
                    'clock': first.get('clock'), 'timestamp': first.get('timestamp'),
-                   'timestampMs': first.get('timestampMs'), 'rows': audits})
+                   'timestampMs': first.get('timestampMs'), 'rows': audits, **extra})
+    before = _nz(match.get('logCount'))
     match['logSeq'] = seq
-    match['logCount'] = _nz(match.get('logCount')) + len(logs)
+    match['logCount'] = before + len(logs)
+    _check_size(match, before)
     return repo.save(match)
+
+
+def _env_int(name, default):
+    try:
+        return int(os.environ.get(name, str(default)) or default)
+    except ValueError:
+        return default
+
+
+def _warn(event, match, **fields):
+    print(json.dumps({'level': 'WARN', 'event': event, 'matchUuid': match.get('uuid'), **fields}))
+
+
+def _check_size(match, count_before):
+    """WARN when logCount crosses LOG_WARN_ROWS, and once per container past LOG_WARN_METADATA_KB (0 = off)."""
+    rows = _env_int('LOG_WARN_ROWS', 5000)
+    count = _nz(match.get('logCount'))
+    if 0 < rows and count_before < rows <= count:
+        _warn('LOG_SIZE', match, logCount=count, threshold=rows)
+    limit_kb = _env_int('LOG_WARN_METADATA_KB', 300)
+    uuid = match.get('uuid')
+    if limit_kb <= 0 or uuid in _METADATA_WARNED:
+        return
+    size = len(json.dumps(match, default=str).encode('utf-8'))
+    if size > limit_kb * 1024:
+        _METADATA_WARNED.add(uuid)
+        _warn('METADATA_SIZE', match, sizeBytes=size, thresholdKb=limit_kb)
 
 
 def _sort_key(prefix, row, seq):

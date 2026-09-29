@@ -20,9 +20,11 @@ class MatchCommandPort(ABC):
         :class:`MatchCreationError` for validation failures."""
 
     @abstractmethod
-    def update_match(self, uuid_match: str, status: Optional[str], name: Optional[str]) -> str:
+    def update_match(self, uuid_match: str, status: Optional[str], name: Optional[str],
+                     admin_action: Optional[str] = None) -> str:
         """Update a match's status and/or name (admin operation).
 
+        v0.41.1 — logged as ADMIN_ACTION ``admin_action`` (PAUSE/RESUME/STOP; None = STATUS).
         Returns one of ``'UPDATED'``, ``'NOT_FOUND'`` or ``'INVALID_STATUS'``."""
 
     @abstractmethod

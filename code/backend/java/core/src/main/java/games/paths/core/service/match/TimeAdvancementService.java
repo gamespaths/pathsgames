@@ -6,6 +6,8 @@ import games.paths.core.model.match.event.TimeAdvanced;
 import games.paths.core.port.event.DomainEventPublisher;
 import games.paths.core.port.match.EventExecutionPort.EdgeStateOutcome;
 import games.paths.core.port.match.LocationEntryPort;
+import games.paths.core.port.match.MatchLogWriterPort;
+import games.paths.core.port.match.SnapshotPort;
 import games.paths.core.port.match.TimeAdvancementPort;
 import games.paths.core.port.match.TurnCyclePort.TurnCycleException;
 import games.paths.core.port.match.TurnCycleStorePort;
@@ -87,6 +89,25 @@ public class TimeAdvancementService implements TimeAdvancementPort {
     /** Step 33 — see {@link #automaticEventRunner}. Called once, from the bean wiring. */
     public void setAutomaticEventRunner(LocationEntryPort automaticEventRunner) {
         this.automaticEventRunner = automaticEventRunner;
+    }
+
+    /** v0.41.1 - the log-size check run at every time-end; null in the older tests. */
+    private MatchLogWriterPort logWriter;
+
+    public void setLogWriter(MatchLogWriterPort logWriter) {
+        this.logWriter = logWriter;
+    }
+
+    /** v0.41.1 - the LIGHT snapshot of every time-end; null in the older tests. */
+    private SnapshotPort.TimeEndWriter snapshotWriter;
+
+    public void setSnapshotWriter(SnapshotPort.TimeEndWriter snapshotWriter) {
+        this.snapshotWriter = snapshotWriter;
+    }
+
+    /** v0.41.1 - decision 18: the time-start a snapshot restore runs at once, without a new snapshot. */
+    public int startTimeAfterRestore(String matchUuid) {
+        return advanceTime(requireMatch(matchUuid), false).newClock();
     }
 
     @Override
@@ -256,6 +277,14 @@ public class TimeAdvancementService implements TimeAdvancementPort {
     }
 
     private AdvanceResult advanceTime(MatchView match) {
+        return advanceTime(match, true);
+    }
+
+    private AdvanceResult advanceTime(MatchView match, boolean snapshot) {
+        // v0.41.1 - decision 3: the end of clock N, first, before anything moves the clock.
+        if (snapshot && snapshotWriter != null) {
+            snapshotWriter.writeAtTimeEnd(match.id());
+        }
         WeatherStorePort.CurrentWeatherView weatherBefore = currentWeather(match.id());
         int newClock = store.incrementMatchClock(match.id());
         store.insertClockHistory(match.id(), newClock);
@@ -282,6 +311,9 @@ public class TimeAdvancementService implements TimeAdvancementPort {
         }
         rebuildQueue(match.id(), newClock);
         eventPublisher.publish(new TimeAdvanced(match.uuid(), newClock));
+        if (logWriter != null) {
+            logWriter.countRows(match.id());
+        }
         List<RecoveryItem> recovery = new ArrayList<>();
         for (TimeStartRecoveryService.RecoveryRecap r : outcome.recovery()) {
             recovery.add(new RecoveryItem(r.characterUuid(), r.energyDelta(), r.lifeDelta(), r.sadDelta()));

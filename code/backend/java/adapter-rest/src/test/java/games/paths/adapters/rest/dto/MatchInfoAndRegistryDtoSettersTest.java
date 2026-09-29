@@ -194,4 +194,13 @@ class MatchInfoAndRegistryDtoSettersTest {
     void fromModelNull() {
         assertTrue(MatchRegistryResponse.fromModel(null).getGroups().isEmpty());
     }
+
+    @Test
+    @DisplayName("v0.41.1 - MatchInfoResponse.logCount round-trips, absent until the admin sets it")
+    void logCount() {
+        MatchInfoResponse r = new MatchInfoResponse();
+        assertEquals(null, r.getLogCount());
+        r.setLogCount(12L);
+        assertEquals(12L, r.getLogCount());
+    }
 }

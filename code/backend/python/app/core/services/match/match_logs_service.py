@@ -14,8 +14,9 @@ location's card, and every character-scoped entry names the character that acted
 
 v0.30.3 — EVENT entries (Step 29 player-triggered events) carry `idEvent` and the
 triggered event's own card, resolved the same way as WEATHER/MOVEMENT. log_events rows
-the service does not classify (e.g. the Step 30 edge-state audit messages
-`SADNESS_OVERFLOW`/`COMA`) are dropped, not shown as garbage.
+the service does not classify are dropped, not shown as garbage.
+
+v0.41.1 — PASS, EDGE_STATE, TRAIT_CHANGE, MATCH_LIFECYCLE and ADMIN_ACTION (Step 41 A).
 """
 import base64
 from dataclasses import asdict
@@ -42,6 +43,10 @@ from app.adapters.persistence.story.models import (
 from app.core.ports.match.event_ports import (
     ITEM_ACTION_ADD, ITEM_ACTION_DROP, ITEM_ACTION_REMOVE, ITEM_ACTION_USE,
     MSG_CHOICE_SELECTED, MSG_EVENT_EXECUTED,
+)
+from app.core.ports.match import log_writer_ports as lw
+from app.core.ports.match.edge_state_ports import (
+    MSG_ALL_PLAYER_COMA, MSG_COMA, MSG_COMA_RECOVERED, MSG_SADNESS_OVERFLOW,
 )
 from app.core.services.match import experience_service, mission_service, registry_service
 
@@ -93,6 +98,41 @@ _TYPE_RANDOM_EVENT = "RANDOM_EVENT"
 _TYPE_REGISTRY_CHANGE = "REGISTRY_CHANGE"
 # v0.37.2 — a mission opened, advanced, completed or failed.
 _TYPE_MISSION_CHANGE = "MISSION_CHANGE"
+
+
+# v0.41.1 — the Step 41 rows: a pass, an edge state, a trait, the lifecycle, an admin action.
+_TYPE_PASS = "PASS"
+_TYPE_EDGE_STATE = "EDGE_STATE"
+_TYPE_TRAIT_CHANGE = "TRAIT_CHANGE"
+_TYPE_MATCH_LIFECYCLE = "MATCH_LIFECYCLE"
+_TYPE_ADMIN_ACTION = "ADMIN_ACTION"
+# Matched on the first word: COMA_RECOVERED and ALL_PLAYER_COMA contain COMA.
+_EDGE_STATES = frozenset((MSG_COMA, MSG_SADNESS_OVERFLOW, MSG_COMA_RECOVERED, MSG_ALL_PLAYER_COMA))
+
+
+def step41_entry(e, msg: str) -> Optional[Dict[str, Any]]:
+    """v0.41.1 — a Step 41 row with the storage prefix stripped from its message; None otherwise."""
+    first_word = msg.split(" ", 1)[0]
+    if msg == lw.MSG_PASS:
+        entry_type, detail = _TYPE_PASS, None
+    elif first_word in _EDGE_STATES:
+        entry_type, detail = _TYPE_EDGE_STATE, first_word
+    elif msg.startswith(lw.MSG_TRAIT_ADD + " ") or msg.startswith(lw.MSG_TRAIT_REMOVE + " "):
+        entry_type, detail = _TYPE_TRAIT_CHANGE, msg[len(lw.PREFIX_TRAIT):]
+    elif msg.startswith(lw.PREFIX_MATCH):
+        entry_type, detail = _TYPE_MATCH_LIFECYCLE, msg[len(lw.PREFIX_MATCH):]
+    elif msg.startswith(lw.PREFIX_ADMIN):
+        entry_type, detail = _TYPE_ADMIN_ACTION, msg[len(lw.PREFIX_ADMIN):]
+    else:
+        return None
+    return {
+        "type": entry_type,
+        "clock": e.clock,
+        "timestamp": e.timestamp,
+        "idCharacterMatch": e.id_character_match,
+        "message": detail,
+        "idEvent": e.id_event,
+    }
 
 
 def _step_number_of(message: Optional[str]) -> Optional[int]:
@@ -165,10 +205,22 @@ def decode_cursor(cursor: Optional[str]) -> int:
 
 
 class MatchLogsService:
-    def __init__(self, session_factory, content_query_service=None) -> None:
+    def __init__(self, session_factory, content_query_service=None, log_writer=None) -> None:
         self.session_factory = session_factory
         # Optional: without it the entries keep their ids but carry no cards.
         self.content_query_service = content_query_service
+        # v0.41.1 — counts the rows for the admin logCount; None in the older tests.
+        self.log_writer = log_writer
+
+    def count_logs_for_admin(self, uuid_match: str) -> Optional[int]:
+        """v0.41.1 — rows of the match in every log_* table; None unwired or when the match is unknown."""
+        if self.log_writer is None:
+            return None
+        with self.session_factory() as session:
+            match = (session.query(GamingMatchEntity)
+                     .filter(GamingMatchEntity.uuid == uuid_match).first())
+            match_id = match.id if match is not None else None
+        return None if match_id is None else self.log_writer.count_rows(match_id)
 
     def get_match_logs(self, uuid_match: str, user_uuid: str, lang: str = "en",
                        limit: Optional[int] = None, cursor: Optional[str] = None,
@@ -264,6 +316,27 @@ class MatchLogsService:
                 "clock": c.clock,
                 "timestamp": c.timestamp_start,
             })
+
+        # v0.35.4 — the item log: the action column says what happened, no message parsing.
+        # v0.41.1 — read before log_events, the Java order a stable sort keeps on equal timestamps.
+        for i in (session.query(LogItemUsageEntity)
+                  .filter(LogItemUsageEntity.id_match == match.id)
+                  .order_by(LogItemUsageEntity.id.asc()).all()):
+            entry_type = _item_type(i.action)
+            if entry_type is None:
+                continue
+            entry = {
+                "type": entry_type,
+                "clock": None,
+                "timestamp": i.timestamp,
+                "idCharacterMatch": i.id_character_match,
+                "idItem": i.id_item,
+                "itemAction": i.action,
+                "counter": i.counter,
+                "idEvent": i.id_event,
+            }
+            _split_delta(entry, i)
+            entries.append(entry)
 
         for e in (session.query(LogEventsEntity)
                   .filter(LogEventsEntity.id_match == match.id)
@@ -363,27 +436,10 @@ class MatchLogsService:
                     "idCharacterMatch": e.id_character_match,
                     "message": msg,
                 })
-
-        # v0.35.4 — the item log. Unlike log_events this table needs no message parsing:
-        # the action column says what happened, and an unknown one is dropped the same way.
-        for i in (session.query(LogItemUsageEntity)
-                  .filter(LogItemUsageEntity.id_match == match.id)
-                  .order_by(LogItemUsageEntity.id.asc()).all()):
-            entry_type = _item_type(i.action)
-            if entry_type is None:
-                continue
-            entry = {
-                "type": entry_type,
-                "clock": None,
-                "timestamp": i.timestamp,
-                "idCharacterMatch": i.id_character_match,
-                "idItem": i.id_item,
-                "itemAction": i.action,
-                "counter": i.counter,
-                "idEvent": i.id_event,
-            }
-            _split_delta(entry, i)
-            entries.append(entry)
+            else:
+                step41 = step41_entry(e, msg)
+                if step41 is not None:
+                    entries.append(step41)
 
         # v0.35.4 — every entry carries the eight resource fields, whatever its type, so a
         # client can sum a column without null checks. The Java reference has always
@@ -394,7 +450,7 @@ class MatchLogsService:
                 entry.setdefault(f"{name}Cost", 0)
                 entry.setdefault(f"{name}Gain", 0)
 
-        # Sort by timestamp ascending; None timestamps sort last
+        # Sort by timestamp ascending, stable (equal timestamps keep the read order); None last.
         entries.sort(key=lambda x: x.get("timestamp") or "9999")
         return entries
 

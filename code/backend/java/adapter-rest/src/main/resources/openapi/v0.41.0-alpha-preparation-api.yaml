@@ -1,9 +1,39 @@
 openapi: 3.0.3
 info:
-  title: Paths Games — Step 41 alpha preparation (patch 0.41.0)
+  title: Paths Games — Step 41 alpha preparation (patches 0.41.0, 0.41.1)
   description: |
     v0.41.0 — security, admin allow-list and guests. 0.41.1 (logging, snapshots) and
     0.41.2 (KPI report) extend this file.
+
+    **Logging (0.41.1).** The match timeline (`GET /api/matches/{uuid}/logs` and the admin
+    twin) gains five entry types, the detail in `message` (no new field): `PASS` (character,
+    clock, no message); `EDGE_STATE` (character, clock, `idEvent`, message `COMA`,
+    `SADNESS_OVERFLOW`, `COMA_RECOVERED` or `ALL_PLAYER_COMA` — the kind only);
+    `TRAIT_CHANGE` (character, `idEvent`, `ADD <traitUuid>` / `REMOVE <traitUuid>`);
+    `MATCH_LIFECYCLE` (`CREATED` / `STARTED` / `ENDED`; the admin stop is an `ADMIN_ACTION`);
+    `ADMIN_ACTION` (`PAUSE`, `RESUME`, `STOP`, `STATUS <status>`, `STATS <field>=<value> ...`,
+    and `SNAPSHOT_RESTORED clock=<n>` from the snapshot restore). react-game hides
+    `MATCH_LIFECYCLE` and `ADMIN_ACTION`; the API answers them to both. AWS now also writes
+    the time-start `RECOVERY` rows. `GET /api/admin/matches/{uuid}/info` answers `logCount`;
+    a WARN log line (never a cap) marks a match crossing `LOG_WARN_ROWS` (5000) and, on AWS,
+    a METADATA item past `LOG_WARN_METADATA_KB` (300).
+
+    **Snapshots (0.41.1).** At every time-end, before the clock moves, each backend writes one
+    LIGHT snapshot of the clock that ends (the last sleep and a `flag_end_time` event alike; the
+    choice markers of a time-ending option are written first, so they are inside it) and keeps the
+    newest `SNAPSHOT_KEEP_PER_MATCH` (10; 0 = off) per match. The payload is canonical JSON
+    (`v: 1`, keys sorted) with its SHA-256 `checksum`: every match-state row (Java/Python:
+    `gaming_match`, characters, backpack, inventory, traits, registry, location states, turn queue,
+    active choices, story progress, plus `logMarks` = the highest id per `log_*` table; AWS: METADATA
+    without keys/indexes, the `CHARACTER#` and `TURN#` rows, `logSeq`/`logCount`, stored as a
+    `SNAPSHOT#{clock:06d}#{tsMs:013d}` row with the gzipped payload). A restore checks the
+    snapshot, puts the rows back (match and characters updated in place), deletes the log rows
+    written after it (Java/Python: ids above `logMarks`; AWS: `LOG#`/`AUDIT#` rows whose `#seq`
+    suffix is above `logSeq`, `logCount` back to the snapshot value, `logSeq` never lowered) and
+    the newer snapshots, writes `ADMIN_ACTION SNAPSHOT_RESTORED clock=<n>`, runs the time-start at
+    once (clock n+1, weather and random event rolled again, no new snapshot) and leaves the match
+    `PAUSED` — ENDED and GAMEOVER matches too. `POST /api/admin/matches/{uuid}/resume` puts it
+    back to RUNNING. KPI counters are not rolled back.
 
     **Security headers.** Every API response of every backend (both ports / both HTTP APIs)
     carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
@@ -36,7 +66,7 @@ info:
     A daily job (00:42 UTC, `GUEST_CLEANUP_ENABLED` / `GUEST_CLEANUP_AGE_DAYS` 60 /
     `GUEST_CLEANUP_MAX_PER_RUN` 500) deletes the guests idle for N days that nothing
     references — the same call as `DELETE /api/admin/guests/stale?withoutMatches=true`.
-  version: 0.41.0
+  version: 0.41.1
 servers:
   - url: /
 paths:
@@ -187,6 +217,182 @@ paths:
                     type: integer
         '403':
           $ref: '#/components/responses/Forbidden'
+  /api/matches/{uuidMatch}/logs:
+    get:
+      tags: [matches]
+      summary: Match timeline — v0.41.1 adds five entry types
+      operationId: getMatchLogsV0411
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: Same envelope as v0.28.7 (`logs`, `nextCursor`, `limit`, `total`, `order`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Step41LogEntry'
+  /api/admin/matches/{uuidMatch}/logs:
+    get:
+      tags: [admin-matches]
+      summary: Admin match timeline — same five new entry types
+      operationId: getAdminMatchLogsV0411
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: Same answer as the player endpoint, without the ownership check.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Step41LogEntry'
+  /api/admin/matches/{uuidMatch}/info:
+    get:
+      tags: [admin-matches]
+      summary: Admin match detail — v0.41.1 adds logCount
+      operationId: getAdminMatchInfoV0411
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: The v0.21 detail plus `logCount`.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logCount:
+                    type: integer
+                    format: int64
+                    description: |
+                      Rows of the match log: every `log_*` row on Java/Python, the `LOG#`
+                      rows (METADATA `logCount`) on AWS. A check only, never a cap.
+        '404':
+          description: MATCH_NOT_FOUND.
+  /api/admin/matches/{uuidMatch}/pause:
+    post:
+      tags: [admin-matches]
+      summary: Pause — same answer, now writes ADMIN_ACTION `PAUSE`
+      operationId: pauseMatchV0411
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: '`{status: UPDATED, uuid}`; `RESUME` and `STOP` rows likewise for /resume and /stop.'
+  /api/admin/matches/{uuidMatch}/player/{uuidPlayer}/changeStatistics:
+    post:
+      tags: [admin-matches]
+      summary: Change statistics — same answer, now writes ADMIN_ACTION `STATS ...`
+      operationId: changeStatisticsV0411
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - in: path
+          name: uuidPlayer
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: |
+            One row naming the applied fields in the order dex, intel, con, energy, life, sad,
+            coin, food, magic, exp, sleeping, coma (values after the caps; flags true/false),
+            e.g. `STATS energy=7 coma=false`. Nothing applied: no row. `PUT /api/admin/matches/{uuid}`
+            with a status writes `STATUS <status>`; a rename alone writes nothing.
+  /api/admin/matches/{uuidMatch}/snapshots:
+    get:
+      tags: [admin-matches]
+      summary: The time-end snapshots of a match, newest first (v0.41.1)
+      operationId: listMatchSnapshotsV0411
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: One entry per kept snapshot (at most SNAPSHOT_KEEP_PER_MATCH).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SnapshotSummary'
+        '404':
+          description: MATCH_NOT_FOUND.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/matches/{uuidMatch}/snapshots/{uuidSnapshot}/check:
+    get:
+      tags: [admin-matches]
+      summary: Integrity check of one snapshot; writes nothing (v0.41.1)
+      operationId: checkMatchSnapshotV0411
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - $ref: '#/components/parameters/UuidSnapshot'
+      responses:
+        '200':
+          description: '`valid` true with no errors, or the list of what fails.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotCheck'
+        '404':
+          description: MATCH_NOT_FOUND or SNAPSHOT_NOT_FOUND.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/matches/{uuidMatch}/snapshots/{uuidSnapshot}/restore:
+    post:
+      tags: [admin-matches]
+      summary: Restore a snapshot, run the time-start, leave the match PAUSED (v0.41.1)
+      operationId: restoreMatchSnapshotV0411
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - $ref: '#/components/parameters/UuidSnapshot'
+      responses:
+        '200':
+          description: Restored; the match is now at clock + 1 and PAUSED.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotRestoreResponse'
+        '404':
+          description: MATCH_NOT_FOUND or SNAPSHOT_NOT_FOUND.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: SNAPSHOT_INTEGRITY_FAILED — the check failed; nothing was written.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotIntegrityFailed'
 components:
   securitySchemes:
     bearerAuth:
@@ -194,6 +400,18 @@ components:
       scheme: bearer
       bearerFormat: JWT
   parameters:
+    UuidMatch:
+      in: path
+      name: uuidMatch
+      required: true
+      schema:
+        type: string
+    UuidSnapshot:
+      in: path
+      name: uuidSnapshot
+      required: true
+      schema:
+        type: string
     OlderThanDays:
       in: query
       name: olderThanDays
@@ -252,6 +470,92 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
   schemas:
+    Step41LogEntry:
+      type: object
+      description: The v0.28.7 log entry; only the new `type` values and their `message` are listed.
+      properties:
+        type:
+          type: string
+          enum: [PASS, EDGE_STATE, TRAIT_CHANGE, MATCH_LIFECYCLE, ADMIN_ACTION, RECOVERY]
+        clock: { type: integer, nullable: true }
+        timestamp: { type: string }
+        characterUuid: { type: string, nullable: true }
+        characterName: { type: string, nullable: true }
+        idEvent: { type: integer, format: int64, nullable: true }
+        message:
+          type: string
+          nullable: true
+          example: ADD 5a1c2e7e-0000-4000-8000-000000000001
+    SnapshotSummary:
+      type: object
+      required: [uuid, clock, type, timestamp, sizeBytes]
+      properties:
+        uuid: { type: string }
+        clock:
+          type: integer
+          description: The clock that ended when the snapshot was taken.
+        type:
+          type: string
+          enum: [LIGHT]
+        timestamp: { type: string, description: ISO-8601 UTC. }
+        description: { type: string, nullable: true, example: Time-end of clock 3 }
+        sizeBytes: { type: integer, format: int64, description: Size of the stored payload. }
+    SnapshotCheckError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [SNAPSHOT_CHECKSUM_MISMATCH, SNAPSHOT_VERSION_UNKNOWN, STORY_ENTITY_MISSING,
+                 USER_MISSING, MATCH_MISMATCH]
+          description: |
+            SNAPSHOT_CHECKSUM_MISMATCH — the payload is unreadable or does not match its SHA-256;
+            SNAPSHOT_VERSION_UNKNOWN — the payload `v` is not 1 (the check stops there);
+            STORY_ENTITY_MISSING — a location, item, trait, event, choice, weather, class,
+            template or mission the snapshot points at is no longer in the story;
+            USER_MISSING — the creator or a character's user no longer exists;
+            MATCH_MISMATCH — the payload names another match or story.
+        message: { type: string, example: trait 1 is no longer in the story }
+    SnapshotCheck:
+      type: object
+      required: [valid, errors]
+      properties:
+        valid: { type: boolean }
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotCheckError'
+    SnapshotRestoreResponse:
+      type: object
+      required: [status, uuidSnapshot, clock, matchStatus, logsRemoved]
+      properties:
+        status:
+          type: string
+          enum: [RESTORED]
+        uuidSnapshot: { type: string }
+        clock:
+          type: integer
+          description: The snapshot clock; the time-start has already moved the match to clock + 1.
+        matchStatus:
+          type: string
+          enum: [PAUSED]
+        logsRemoved:
+          type: integer
+          format: int64
+          description: Log rows deleted by the restore (every `log_*` row on Java/Python, the `LOG#` rows on AWS).
+    SnapshotIntegrityFailed:
+      type: object
+      required: [error, message, errors]
+      properties:
+        error:
+          type: string
+          enum: [SNAPSHOT_INTEGRITY_FAILED]
+        message: { type: string }
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotCheckError'
+        timestamp: { type: integer, format: int64 }
     StaleGuestsSummary:
       type: object
       required: [guests, matches]

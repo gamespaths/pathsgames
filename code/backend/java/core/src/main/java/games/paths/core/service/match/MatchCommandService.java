@@ -13,6 +13,7 @@ import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.MatchSummary;
 import games.paths.core.model.match.MatchTraitCodec;
 import games.paths.core.port.match.MatchCommandPort;
+import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.MatchPersistencePort;
 import games.paths.core.port.match.SystemModePort;
 import games.paths.core.port.match.UserAccessPort;
@@ -41,9 +42,15 @@ public class MatchCommandService implements MatchCommandPort {
     private final RegistryService registryService;
     /** Step 37 - set after construction; a story that ends fails whatever is still open. */
     private MissionService missionService;
+    /** v0.41.1 - MATCH_* lifecycle and ADMIN_* rows; null in the older tests. */
+    private MatchLogWriterPort logWriter;
 
     public void setMissionService(MissionService missionService) {
         this.missionService = missionService;
+    }
+
+    public void setLogWriter(MatchLogWriterPort logWriter) {
+        this.logWriter = logWriter;
     }
 
     public MatchCommandService(StoryReadPort storyReadPort,
@@ -149,6 +156,10 @@ public class MatchCommandService implements MatchCommandPort {
                 : SECURE_RNG.nextLong());
 
         GamingMatchEntity saved = persistencePort.saveMatch(match);
+        if (logWriter != null) {
+            logWriter.write(saved.getId(), null, null, 0,
+                    MatchLogWriterPort.lifecycle(MatchLogWriterPort.LIFECYCLE_CREATED));
+        }
 
         List<GamingStateLocationsEntity> stateLocations = new ArrayList<>();
         for (LocationEntity loc : locations) {
@@ -176,11 +187,30 @@ public class MatchCommandService implements MatchCommandPort {
 
     @Override
     public UpdateOutcome updateMatch(String uuidMatch, String status, String name) {
+        return updateMatch(uuidMatch, status, name, null);
+    }
+
+    @Override
+    public UpdateOutcome updateMatch(String uuidMatch, String status, String name, String adminAction) {
         if (status != null && !MatchStatuses.isValid(status)) {
             return UpdateOutcome.INVALID_STATUS;
         }
         boolean found = persistencePort.updateMatchFields(uuidMatch, status, name);
+        if (found) {
+            String detail = adminAction != null ? MatchLogWriterPort.admin(adminAction)
+                    : status != null ? MatchLogWriterPort.adminStatus(status) : null;
+            logMatchRow(uuidMatch, detail);
+        }
         return found ? UpdateOutcome.UPDATED : UpdateOutcome.NOT_FOUND;
+    }
+
+    /** v0.41.1 - one match-level row at the current clock; a rename alone writes nothing. */
+    private void logMatchRow(String uuidMatch, String message) {
+        if (logWriter == null || message == null) {
+            return;
+        }
+        persistencePort.findMatchByUuid(uuidMatch).ifPresent(m -> logWriter.write(m.getId(), null, null,
+                m.getCurrentClock() == null ? 0 : m.getCurrentClock(), message));
     }
 
     @Override
@@ -235,6 +265,7 @@ public class MatchCommandService implements MatchCommandPort {
         if (missionService != null) {
             missionService.onStoryEnd(match.getId());
         }
+        logMatchRow(uuidMatch, MatchLogWriterPort.lifecycle(MatchLogWriterPort.LIFECYCLE_ENDED));
         return EndMatchOutcome.COMPLETED;
     }
 

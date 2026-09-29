@@ -1,8 +1,10 @@
 package games.paths.core.service.match;
 
 import games.paths.core.model.story.CardInfo;
+import games.paths.core.port.match.EdgeStateStorePort;
 import games.paths.core.port.match.EventExecutionStorePort;
 import games.paths.core.port.match.LocationEntryStorePort;
+import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.MatchLogsPort;
 import games.paths.core.port.match.MatchLogsStorePort;
 import games.paths.core.port.match.MatchLogsStorePort.CharacterLogView;
@@ -22,6 +24,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * MatchLogsService - assembles the consolidated match log from the five append-only
@@ -42,6 +45,7 @@ import java.util.Map;
  *   <li>RANDOM_EVENT — from log_events WHERE log_message LIKE 'random event%' (Step 39)</li>
  *   <li>CHOICE — from log_events WHERE log_message LIKE 'CHOICE_SELECTED%' (Step 40)</li>
  *   <li>ITEM_ADD / ITEM_USE / ITEM_DROP — from log_item_usage, one per action (v0.35.4)</li>
+ *   <li>PASS, EDGE_STATE, TRAIT_CHANGE, MATCH_LIFECYCLE, ADMIN_ACTION — from log_events (v0.41.1)</li>
  * </ul>
  * </p>
  *
@@ -82,6 +86,16 @@ public class MatchLogsService implements MatchLogsPort {
     private static final String TYPE_ITEM_DROP = "ITEM_DROP";
     /** Step 38 — experience spent on a stat. */
     static final String TYPE_EXP_USE = "EXP_USE";
+    /** v0.41.1 - the Step 41 rows: a pass, an edge state, a trait, the lifecycle, an admin action. */
+    static final String TYPE_PASS = "PASS";
+    static final String TYPE_EDGE_STATE = "EDGE_STATE";
+    static final String TYPE_TRAIT_CHANGE = "TRAIT_CHANGE";
+    static final String TYPE_MATCH_LIFECYCLE = "MATCH_LIFECYCLE";
+    static final String TYPE_ADMIN_ACTION = "ADMIN_ACTION";
+    /** Edge-state rows are matched on their first word: COMA_RECOVERED and ALL_PLAYER_COMA contain COMA. */
+    private static final Set<String> EDGE_STATES = Set.of(EdgeStateStorePort.MSG_COMA,
+            EdgeStateStorePort.MSG_SADNESS_OVERFLOW, EdgeStateStorePort.MSG_COMA_RECOVERED,
+            EdgeStateStorePort.MSG_ALL_PLAYER_COMA);
     private static final String MSG_SLEEP = "ACTION_SLEEP";
     private static final String MSG_COUNTER = "counter";
     private static final String DEFAULT_LANG = "en";
@@ -90,6 +104,8 @@ public class MatchLogsService implements MatchLogsPort {
     private final MatchLogsStorePort store;
     private final UserAccessPort userAccessPort;
     private final ContentQueryPort contentQueryPort;
+    /** v0.41.1 - counts the rows for the admin logCount; null in the older tests. */
+    private MatchLogWriterPort logWriter;
 
     public MatchLogsService(MatchLogsStorePort store, UserAccessPort userAccessPort,
                             ContentQueryPort contentQueryPort) {
@@ -115,6 +131,18 @@ public class MatchLogsService implements MatchLogsPort {
     public MatchLogsResult getMatchLogsForAdmin(String uuidMatch, String lang,
                                                 Integer limit, String cursor, String order) {
         return buildResult(requireMatch(uuidMatch), lang, limit, cursor, order);
+    }
+
+    public void setLogWriter(MatchLogWriterPort logWriter) {
+        this.logWriter = logWriter;
+    }
+
+    @Override
+    public Long countLogsForAdmin(String uuidMatch) {
+        if (logWriter == null) {
+            return null;
+        }
+        return logWriter.countRows(requireMatch(uuidMatch).id());
     }
 
     // ── internal ─────────────────────────────────────────────────────────────
@@ -260,12 +288,46 @@ public class MatchLogsService implements MatchLogsPort {
             } else if (msg.startsWith("recovery")) {
                 entries.add(LogEntry.builder(TYPE_RECOVERY, e.timestamp())
                         .clock(e.clock()).character(e.idCharacterMatch()).message(msg).build());
+            } else {
+                LogEntry step41 = step41Entry(e, msg);
+                if (step41 != null) {
+                    entries.add(step41);
+                }
             }
         }
 
         // ISO timestamps are lexicographically comparable; nulls sort first.
         entries.sort((a, b) -> nz(a.timestamp()).compareTo(nz(b.timestamp())));
         return entries;
+    }
+
+    /** v0.41.1 - the Step 41 rows, with the storage prefix stripped from the message; null otherwise. */
+    static LogEntry step41Entry(EventLogEntry e, String msg) {
+        String firstWord = msg.split(" ", 2)[0];
+        String type;
+        String detail;
+        if (MatchLogWriterPort.MSG_PASS.equals(msg)) {
+            type = TYPE_PASS;
+            detail = null;
+        } else if (EDGE_STATES.contains(firstWord)) {
+            type = TYPE_EDGE_STATE;
+            detail = firstWord;
+        } else if (msg.startsWith(MatchLogWriterPort.MSG_TRAIT_ADD + " ")
+                || msg.startsWith(MatchLogWriterPort.MSG_TRAIT_REMOVE + " ")) {
+            type = TYPE_TRAIT_CHANGE;
+            detail = msg.substring(MatchLogWriterPort.PREFIX_TRAIT.length());
+        } else if (msg.startsWith(MatchLogWriterPort.PREFIX_MATCH)) {
+            type = TYPE_MATCH_LIFECYCLE;
+            detail = msg.substring(MatchLogWriterPort.PREFIX_MATCH.length());
+        } else if (msg.startsWith(MatchLogWriterPort.PREFIX_ADMIN)) {
+            type = TYPE_ADMIN_ACTION;
+            detail = msg.substring(MatchLogWriterPort.PREFIX_ADMIN.length());
+        } else {
+            return null;
+        }
+        return LogEntry.builder(type, e.timestamp())
+                .clock(e.clock()).character(e.idCharacterMatch())
+                .message(detail).idEvent(e.idEvent()).build();
     }
 
     /**
