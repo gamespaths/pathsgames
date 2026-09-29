@@ -210,6 +210,13 @@ public class CoreConfig {
                 storyReadPort, contentQueryPort);
     }
 
+    // ───── v0.41.2 Step 41 F: KPI counters (best effort) and the admin report ─────
+
+    @Bean
+    public games.paths.core.port.match.KpiPort kpiPort(games.paths.core.port.match.KpiStorePort kpiStorePort) {
+        return new games.paths.core.service.match.KpiService(kpiStorePort);
+    }
+
     // ───── Step 37: Missions (a projection of the registry, with its own status machine) ─────
 
     /**
@@ -221,11 +228,13 @@ public class CoreConfig {
             games.paths.core.port.match.RegistryStorePort registryStorePort,
             StoryReadPort storyReadPort,
             ContentQueryPort contentQueryPort,
-            games.paths.core.service.match.RegistryService registryService) {
+            games.paths.core.service.match.RegistryService registryService,
+            games.paths.core.port.match.KpiPort kpiPort) {
         games.paths.core.service.match.MissionService service =
                 new games.paths.core.service.match.MissionService(registryStorePort,
                         storyReadPort, contentQueryPort);
         registryService.setMissionService(service);
+        service.setKpi(kpiPort);
         return service;
     }
 
@@ -238,11 +247,13 @@ public class CoreConfig {
                                              TurnstileVerificationPort turnstileVerificationPort,
                                              games.paths.core.service.match.RegistryService registryService,
                                              games.paths.core.service.match.MissionService missionService,
-                                             games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort) {
+                                             games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort,
+                                             games.paths.core.port.match.KpiPort kpiPort) {
         MatchCommandService service = new MatchCommandService(storyReadPort, matchPersistencePort,
                 userAccessPort, systemModePort, turnstileVerificationPort, registryService);
         service.setMissionService(missionService);
         service.setLogWriter(matchLogWriterPort);
+        service.setKpi(kpiPort);
         return service;
     }
 
@@ -290,11 +301,13 @@ public class CoreConfig {
             UserAccessPort userAccessPort,
             games.paths.core.service.match.WeatherSelectionService weatherSelectionService,
             games.paths.core.service.match.RegistryService registryService,
-            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort) {
+            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort,
+            games.paths.core.port.match.KpiPort kpiPort) {
         games.paths.core.service.match.TurnCycleService service =
                 new games.paths.core.service.match.TurnCycleService(
                         turnCycleStorePort, userAccessPort, weatherSelectionService, registryService);
         service.setLogWriter(matchLogWriterPort);
+        service.setKpi(kpiPort);
         return service;
     }
 
@@ -308,9 +321,12 @@ public class CoreConfig {
     @Bean
     public games.paths.core.service.match.TimeStartRecoveryService timeStartRecoveryService(
             games.paths.core.port.match.RecoveryStorePort recoveryStorePort,
-            games.paths.core.port.match.EdgeStateStorePort edgeStateStorePort) {
-        return new games.paths.core.service.match.TimeStartRecoveryService(
-                recoveryStorePort, edgeStateStorePort);
+            games.paths.core.port.match.EdgeStateStorePort edgeStateStorePort,
+            games.paths.core.port.match.KpiPort kpiPort) {
+        games.paths.core.service.match.TimeStartRecoveryService service =
+                new games.paths.core.service.match.TimeStartRecoveryService(recoveryStorePort, edgeStateStorePort);
+        service.setKpi(kpiPort);
+        return service;
     }
 
     /**
@@ -398,13 +414,15 @@ public class CoreConfig {
             games.paths.core.port.match.LocationEntryStorePort locationEntryStorePort,
             games.paths.core.service.match.RegistryService registryService,
             games.paths.core.service.match.MissionService missionService,
-            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort) {
+            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort,
+            games.paths.core.port.match.KpiPort kpiPort) {
         games.paths.core.service.match.EventExecutionService service =
                 new games.paths.core.service.match.EventExecutionService(
                         eventExecutionStorePort, edgeStateStorePort, userAccessPort,
                         contentQueryPort, timeAdvancementService, locationEntryStorePort,
                         registryService);
         service.setLogWriter(matchLogWriterPort);
+        service.setKpi(kpiPort);
         // Closes the one cycle in the graph: the event engine needs the time engine for
         // flag_end_time, and the time engine needs the event engine to run what a time-start
         // set off. Constructor injection either way is impossible; this setter is called once,

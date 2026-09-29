@@ -12,6 +12,7 @@ import FastNewEventPage    from './pages/story/FastNewEventPage'
 import MatchesPage         from './pages/MatchesPage'
 import MatchDetailPage from './pages/MatchDetailPage'
 import EchoPage        from './pages/EchoPage'
+import ReportsPage     from './pages/ReportsPage'
 
 function ProtectedRoutes() {
   const { isLoggedIn } = useAuth()
@@ -28,6 +29,7 @@ function ProtectedRoutes() {
         <Route path="/stories/:uuid/fast-new-event"   element={<FastNewEventPage />}   />
         <Route path="/matches"        element={<MatchesPage />}     />
         <Route path="/matches/:uuid"  element={<MatchDetailPage />} />
+        <Route path="/reports"        element={<ReportsPage />}     />
         <Route path="/echo"           element={<EchoPage />}        />
         <Route path="*"               element={<Navigate to="/" />} />
       </Routes>

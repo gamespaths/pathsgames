@@ -54,6 +54,13 @@ adapter-mongo/      Document registries     adapter-kafka/   Async messaging
   to run a dev instance.
 - Flyway migrations: `adapter-{postgres,sqlite}/src/main/resources/db/migration/`, one file
   per schema change, numbered against the project's step/version (e.g. Step 10 → `V0.10.x`).
+- `MatchLogWriterPort`/`SnapshotPort` (v0.41.1, `core/port`): the match timeline writer and the
+  LIGHT-snapshot-per-time-end service used by every command service; `SnapshotService`'s store
+  is a `JdbcTemplate` adapter, not a JPA entity, because of the `jsonb_data` restore path.
+- `KpiPort`/`KpiService` (v0.41.2, `core/port`, `core/service`): best-effort daily counters
+  (`system_kpi_daily`) written from match start/end, coma, choice resolution, first location
+  visit and mission transitions; a write failure is logged, never fails the action.
+  `KpiAdminController` (`adapter-admin`) answers `GET /api/admin/reports/kpi`.
 
 ## 3. Python backend (mirror)
 
@@ -69,6 +76,9 @@ Java release by release; where a naming drift exists between the two (e.g. `is_s
 - `app/adapters/scheduler/`: an APScheduler `AsyncIOScheduler`, started once in `_serve()`
   (not per app), runs the daily guest idle-cleanup job at 00:42 UTC by default — the Java
   equivalent is `GuestSessionCleanupScheduler` (see [Security §4](./Security.md)).
+- `log_writer_ports`/`match_log_writer_adapter.py` and `snapshot_service.py` (v0.41.1) mirror
+  Java's match timeline writer and LIGHT-snapshot service; the snapshot payload has no
+  active-choices section, since Python never persists a dedicated table for them.
 
 ## 4. AWS serverless backend (mirror)
 
@@ -92,6 +102,17 @@ code/backend/aws/lambda/
 inside a tagged `AWS::Scheduler::ScheduleGroup` (a plain `Schedule` event cannot carry its own
 tags), daily at 00:42 UTC by default; see [Security §4](./Security.md) for the guest cleanup
 rules it applies.
+
+`lambda/match/snapshots.py` (v0.41.1) writes a gzipped `SNAPSHOT#` item at every time-end and
+serves the admin list/check/restore routes; restore cuts `LOG#`/`AUDIT#` rows by the stored
+`logSeq`, not the composite `logSk`, since a request can get an earlier timestamp than one
+already written under clock skew.
+
+`common/kpi.py` (v0.41.2) accumulates KPI deltas per request and flushes them with one
+`UpdateItem ADD` on a `KPI#<storyUuid>`/`DAY#YYYY-MM-DD` item, best effort; "all stories"
+reports sum one Query per `STORY_LIST` entry, so a deleted story's counters drop out (Java and
+Python keep summing them, since their rows have no FK) — see
+[DataModel §8](./DataModel.md).
 
 SAM templates: `code/backend/aws/template.yaml` (root stack) plus one nested template per
 module under `code/backend/aws/template/` (`auth.yaml`, `match.yaml`, `story.yaml`,
@@ -151,14 +172,16 @@ Python, AWS) plus the shared OpenAPI spec and the Robot suite that exercises all
 [ApiConventions §5](./ApiConventions.md) and CLAUDE.md's "When you change code" section.
 
 # Version Control
-- **Document Version**: 0.41.0
+- **Document Version**: 0.41.2
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First shared write-up of how the whole system fits together | September 25, 2026 |
   | 0.41.0 | Python scheduler and AWS guest-cleanup job added | September 28, 2026 |
+  | 0.41.1 | Match log writer and snapshot service added | September 29, 2026 |
+  | 0.41.2 | KPI service and AWS KPI accumulator added | September 29, 2026 |
 
-- **Last Updated**: September 28, 2026 (v0.41.0)
+- **Last Updated**: September 29, 2026 (v0.41.2)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

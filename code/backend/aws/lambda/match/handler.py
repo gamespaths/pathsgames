@@ -37,6 +37,7 @@ import urllib.parse
 import urllib.error
 
 from common import db_utils
+from common import kpi as _kpi
 from common import log_utils
 from common import jwt_utils
 from common import security_utils
@@ -1074,6 +1075,9 @@ def _end_match(user, match_uuid, event_uuid):
         return _err(406, 'EVENT_NOT_END_GAME',
                     'The supplied event is not the end-game event for this match')
 
+    # v0.41.2 — completion and durations once: a match already over counts nothing more.
+    if item.get('status') not in TERMINAL_STATUSES:
+        _kpi.completed(item.get('storyUuid'), item)
     item['status'] = 'ENDED'
     # Step 37 — a mission that opened and never closed has now failed; one never reached is
     # simply ignored, as it was never the player's business.
@@ -1651,6 +1655,10 @@ def _start_match(user, match_uuid):
 
     match['status'] = 'RUNNING'
     match['activeCharacterUuid'] = top['characterUuid']
+    # v0.41.2 — the start stamp the KPI duration reads, and one MATCH_STARTED.
+    if not match.get('timestampStartMs'):
+        match['timestampStartMs'] = int(time.time() * 1000)
+    _kpi.add(match.get('storyUuid'), _kpi.MATCHES_STARTED)
     # v0.41.1 — before the weather, so the timeline opens with the start.
     _logbook.append(match, TYPE_MATCH_LIFECYCLE, clock, message=LIFECYCLE_STARTED)
 
@@ -2782,9 +2790,13 @@ def _log_edge_state(match, character, id_event, message):
                    characterUuid=character.get('uuid') if character else None,
                    idEvent=id_event, message=message)
     # v0.41.1 — and a timeline row naming the kind only (COMA_RECOVERED is not COMA).
+    kind = str(message).split(' ', 1)[0]
     _logbook.append(match, TYPE_EDGE_STATE, _nz(match.get('currentClock')),
                     characterUuid=character.get('uuid') if character else None,
-                    idEvent=id_event, message=str(message).split(' ', 1)[0])
+                    idEvent=id_event, message=kind)
+    # v0.41.2 — one COMA KPI per character falling into coma.
+    if kind == _events.MSG_COMA:
+        _kpi.add(match.get('storyUuid'), _kpi.COMA)
 
 
 def _resolve_all_player_coma(match, match_uuid, caller, touched, edge_state, events_by_id,
@@ -3832,6 +3844,7 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
     progress_recorded = _events._nz(choice.get('isProgress')) == 1
     if progress_recorded:
         _logbook.audit(match, 'STORY_PROGRESS', clock, idEvent=event_id, idChoise=choice_id)
+    _kpi.choice(match.get('storyUuid'), choice.get('uuid'))
 
     current_clock = clock
     time_ended = False
@@ -4323,13 +4336,15 @@ def _flag_visited(match, id_location):
 
 def _mark_location_visited(match, id_location):
     """Latch the location as visited by the party. Idempotent; a location without a row
-    (sparse state, v0.37.5) gets one."""
+    (sparse state, v0.37.5) gets one. v0.41.2: True when this call flipped it 0 to 1."""
     for ls in (match.get('locations') or []):
         if _nz(ls.get('idLocation')) == id_location:
+            flipped = _nz(ls.get('flagVisited')) != 1
             ls['flagVisited'] = 1
-            return
+            return flipped
     match.setdefault('locations', []).append(
         _location_state(match.get('uuid'), _nz(id_location), 1, 0))
+    return True
 
 
 def _location_state(match_uuid, id_location, visited=0, counter=0):
@@ -4427,7 +4442,11 @@ def _resolve_arrival(match, match_uuid, story, actor_uuid, id_location, lang, de
                                  depth, out, epilogue)
         actor = next((c for c in characters if c.get('uuid') == actor_uuid), None)
         _write_arrival_registry(match, story, actor, triggers, visited)
-    _mark_location_visited(match, id_location)
+    # v0.41.2 — the first latch of the match is the LOCATION_VISIT KPI.
+    if _mark_location_visited(match, id_location):
+        location = next((loc for loc in (story.get('locations') or [])
+                         if _nz(loc.get('id')) == _nz(id_location)), None)
+        _kpi.location_visit(match.get('storyUuid'), (location or {}).get('uuid'))
 
 
 def _write_arrival_registry(match, story, actor, triggers, visited):
@@ -4773,6 +4792,14 @@ def _get_admin_locations(match_uuid, lang='en'):
 
 # ─── router ──────────────────────────────────────────────────────────────────
 
+def _admin_kpi_report(qs):
+    """v0.41.2 — the KpiReport of Java/Python; 400 INVALID_INPUT on a bad date, range or groupBy."""
+    try:
+        return _ok(_kpi.report(qs.get('storyUuid'), qs.get('from'), qs.get('to'), qs.get('groupBy')))
+    except _kpi.KpiError as exc:
+        return _err(400, 'INVALID_INPUT', str(exc))
+
+
 def lambda_handler(event, context):
     """v0.41.0 — 500 MISCONFIGURED on a non dev/test stack with the committed secret; finalize always."""
     path = _normalize_path(event.get('rawPath') or event.get('path') or '')
@@ -4785,10 +4812,13 @@ def _route(event, context):
     """Every write of the request is queued on ``repo`` and lands in one batch at the end."""
     story_cache.begin_request()  # v0.37.5 — one stamp read per invocation
     _repo.begin()
+    _kpi.begin()
     try:
         return _dispatch(event)
     finally:
         _repo.flush()
+        # v0.41.2 — the request's KPI deltas, one UpdateItem ADD, after the state landed.
+        _kpi.flush()
 
 
 def _dispatch(event):
@@ -4804,6 +4834,17 @@ def _dispatch(event):
     user, err = _resolve_user(event)
     if err is not None:
         return err
+
+    # v0.41.2 — GET /api/admin/reports/kpi, admin only like every /api/admin/** route.
+    if path == '/api/admin/reports/kpi':
+        ip_err = _check_admin_ip(event)
+        if ip_err:
+            return ip_err
+        if str(user.get('role', '')).upper() != 'ADMIN':
+            return _err(403, 'FORBIDDEN', 'Admin access required')
+        if method != 'GET':
+            return _err(404, 'NOT_FOUND', f'Unknown route {method} {path}')
+        return _admin_kpi_report(event.get('queryStringParameters') or {})
 
     # ── admin match routes (all require the ADMIN role) ──
     if path.startswith('/api/admin/matches'):

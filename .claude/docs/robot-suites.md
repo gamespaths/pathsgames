@@ -37,7 +37,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `38_experience` | Step 38 use-exp: `exp`/`expCosts` on `/info`, the purchase, its `EXP_USE` row, every refusal, the missions→rewards→purchase scenario, and the import/export/CRUD contract of `expCostBase`/`maxStatValue` (see breakdown below) |
 | `39_random_events` | Step 39 global random events: fire at time-start after the weather (100% always, 0% never), `RANDOM_EVENT` in `counterZero[]` and in the timeline, ONCE, the registry operator, the `R11_RANDOM_EVENT` import refusals, the `warnings[]` on validate, and the CRUD of `registryValueOperatorCondition` (see breakdown below) |
 | `40_alpha_ux` | Step 40 alpha UX: the news of an early time-end (`counterZero[]` + `weather` with `changed`) on execute-event, select-choice and movement answers, and the resource gains in the timeline (new `CHOICE` row, party-run and automatic-event gains) (see breakdown below) |
-| `41_alpha_prep` | v0.41.0 Step 41 patch 1: `guest_cleanup.robot` — aged guests via `X-Test-Guest-Age-Days`, the `withoutMatches` idle purge, and the `DELETE /expired` PostgreSQL FK regression (see breakdown below) |
+| `41_alpha_prep` | Step 41: `guest_cleanup.robot` (v0.41.0 patch 1) — aged guests via `X-Test-Guest-Age-Days`, the `withoutMatches` idle purge, and the `DELETE /expired` PostgreSQL FK regression; **v0.41.1 patch 2** adds `logging_gaps.robot` (11) and `snapshots.robot` (6); **v0.41.2 patch 3** adds `kpi.robot` (6), own `story_alpha_prep.json` + `alpha_prep_common.resource` (see breakdown below) |
 | `41_security` | v0.37.7 Step 41: the `csrfToken` on login/resume/`/me` and the `X-CSRF-TOKEN` refusals on `POST /api/matches`; rate-limit cases that SKIP unless `RATE_LIMIT_GUEST_PER_IP` / `RATE_LIMIT_MATCH_PER_IP` / `RATE_LIMIT_MATCH_PER_GUEST` are passed; **v0.41.0**: API security headers and `Cache-Control: no-store` on every response (see breakdown below) |
 
 ### `19_match` breakdown
@@ -88,8 +88,8 @@ Adjacency validation, energy cost formula, visited locations, admin locations. P
 - `neighbor_card_back.robot` — neighbor return card `idCardBack`
 - `neighbor_edge_orientation.robot` (v0.33.3, 5 tests) — `idLocationFrom`/`idLocationTo` on the `/locations` neighbor entries. A two-way edge is listed from both endpoints with the SAME authored `(from, to, direction)` triple; the return entry must NOT swap A and B into the traversal order, and `/locations`, its admin view and `/info` must all agree. Without the endpoints a map guesses an edge's orientation from the payload's listing order and mirrors half of them
 - `event_location.robot` — event-to-location binding `idSpecificLocation`; guards the AWS stale-alias and Python column-name bugs
-- `match_logs.robot` — consolidated match log timeline (`GET /api/matches/{uuid}/logs`): WEATHER / MOVEMENT / SLEEP / CLOCK_ADVANCE / RECOVERY / EVENT entries, cursor pagination, card enrichment
-- `match_logs_order.robot` (v0.30.3) — `?order=asc|desc` on both logs endpoints: asc default, desc as the exact reverse of asc, case-insensitive, junk values fall back to asc, desc cursor walking towards the older entries
+- `match_logs.robot` — consolidated match log timeline (`GET /api/matches/{uuid}/logs`): WEATHER / MOVEMENT / SLEEP / CLOCK_ADVANCE / RECOVERY / EVENT entries, cursor pagination, card enrichment; a freshly created match now starts with one `MATCH_LIFECYCLE CREATED` row (v0.41.1: total assertion moved from 0 to 1 on an unplayed match)
+- `match_logs_order.robot` (v0.30.3) — `?order=asc|desc` on both logs endpoints: asc default, desc as the exact reverse of asc, case-insensitive, junk values fall back to asc, desc cursor walking towards the older entries; the desc-cursor case checks entry **positions**, not distinct timestamps (v0.41.1: same-millisecond rows are now common with the new timeline types)
 
 **There is no `29_match_logs` directory.** `match_logs.robot`, `match_logs_order.robot`,
 `neighbor_card_back.robot` and `event_location.robot` all live inside `tests/28_movement/`.
@@ -427,8 +427,8 @@ Headers Should Be Present`.
 
 ### `41_alpha_prep` breakdown
 
-New suite (v0.41.0 Step 41 patch 1), own story-free fixtures — reuses the default seed story
-and guest/match keywords, no dedicated story import. `guest_cleanup.robot` (3 tests):
+Step 41 patch 1 (v0.41.0), own story-free fixtures — reuses the default seed story and
+guest/match keywords, no dedicated story import. `guest_cleanup.robot` (3 tests):
 "The Match-Less Purge Takes The Idle Guest And Keeps The One With A Match" (two guests aged via
 the dev-only `X-Test-Guest-Age-Days` header, one with a match; `GET/DELETE
 /api/admin/guests/stale?olderThanDays=N&withoutMatches=true` counts and deletes only the
@@ -438,6 +438,28 @@ Cleanup Keeps The Expired Guest That Owns A Match" (the PostgreSQL FK regression
 /api/admin/guests/expired` with one expired guest owning a match and one without answers 200
 and keeps the guest with the match) — run on Java + PostgreSQL as well as SQLite/Python/AWS.
 Suite Setup/Teardown mint and admin-delete every guest and match the tests create.
+
+**v0.41.1 patch 2** adds its own story, `story_alpha_prep.json`, imported once and shared by
+both new suites through `alpha_prep_common.resource`:
+
+- `logging_gaps.robot` (11 tests) — the five new timeline types on `GET /api/matches/{uuid}/logs`:
+  `PASS` on a pass action, `EDGE_STATE` for coma/overflow/recovery/all-coma, `TRAIT_CHANGE`
+  `ADD`/`REMOVE <uuid>` from a granting/removing event, `MATCH_LIFECYCLE` `CREATED`/`STARTED`/
+  `ENDED` (an admin stop logs `ADMIN_ACTION STOP`, not `ENDED`), `ADMIN_ACTION` for
+  pause/resume/stop/status/stats; `logCount` on `GET /api/admin/matches/{uuid}/info`;
+  `MATCH_LIFECYCLE`/`ADMIN_ACTION` hidden from the player-facing log endpoint.
+- `snapshots.robot` (6 tests) — a LIGHT snapshot appears after every time-end,
+  `GET .../snapshots` newest first, `.../check` on a valid one, restore (`PAUSED`, `logsRemoved`,
+  later snapshots gone, the time-start re-run at the new clock), restore of a bad
+  checksum/missing snapshot (404/409), the pruning window at `SNAPSHOT_KEEP_PER_MATCH`.
+
+**v0.41.2 patch 3** adds `kpi.robot` (6 tests): a played match (start, choice, move, mission)
+moves every counter of its story on `GET /api/admin/reports/kpi`; a coma is counted once per
+character; a restored match that ends again counts again (KPI is not rolled back by a
+restore); `month`/`total` grouping agrees with the `day` rows; the all-stories total is at
+least the single story's; bad dates/range/`groupBy` answer 400.
+
+Run on all four targets (AWS, Java, Java+PostgreSQL, Python).
 
 ### `35_import_integrity` breakdown
 

@@ -73,17 +73,17 @@ def test_find_location_triggers_of_an_unknown_location_is_none(adapter):
 
 def test_flag_visited_starts_at_zero_and_latches(adapter):
     assert adapter.find_flag_visited(MATCH_ID, LOC_A) == 0
-    adapter.mark_state_location_visited(MATCH_ID, LOC_A)
+    assert adapter.mark_state_location_visited(MATCH_ID, LOC_A) is True
     assert adapter.find_flag_visited(MATCH_ID, LOC_A) == 1
-    # Idempotent: latching again changes nothing.
-    adapter.mark_state_location_visited(MATCH_ID, LOC_A)
+    # Idempotent: latching again changes nothing (v0.41.2: and says so).
+    assert adapter.mark_state_location_visited(MATCH_ID, LOC_A) is False
     assert adapter.find_flag_visited(MATCH_ID, LOC_A) == 1
 
 
 def test_flag_visited_of_a_location_with_no_state_row_reads_as_never_visited(adapter):
     assert adapter.find_flag_visited(MATCH_ID, LOC_B) == 0
     # And latching it is a no-op rather than an error.
-    adapter.mark_state_location_visited(MATCH_ID, LOC_B)
+    assert adapter.mark_state_location_visited(MATCH_ID, LOC_B) is False
 
 
 def test_count_other_characters_excludes_the_arriving_one(adapter, session_factory):

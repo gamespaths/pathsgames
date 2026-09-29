@@ -218,6 +218,21 @@ class EventExecutionServiceAutomaticTest {
         }
 
         @Test
+        @DisplayName("v0.41.2 - the first latch of flag_visited counts one LOCATION_VISIT, a later one none")
+        void firstVisitKpi() {
+            games.paths.core.port.match.KpiPort kpi = mock(games.paths.core.port.match.KpiPort.class);
+            service.setKpi(kpi);
+            when(store.findEventsById(STORY_ID)).thenReturn(Map.of());
+            when(locationStore.findLocationTriggers(STORY_ID, LOCATION)).thenReturn(Optional.empty());
+            when(locationStore.markStateLocationVisited(MATCH_ID, LOCATION)).thenReturn(true, false);
+
+            service.onArrival(arrival());
+            service.onArrival(arrival());
+
+            verify(kpi, times(1)).recordLocationVisit(MATCH_ID, STORY_ID, LOCATION);
+        }
+
+        @Test
         @DisplayName("an unknown location resolves to nothing")
         void unknownLocation() {
             when(locationStore.findLocationTriggers(STORY_ID, LOCATION)).thenReturn(Optional.empty());

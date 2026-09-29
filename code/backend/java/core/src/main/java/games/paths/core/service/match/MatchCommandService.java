@@ -12,6 +12,7 @@ import games.paths.core.model.match.MatchCreateCommand;
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.MatchSummary;
 import games.paths.core.model.match.MatchTraitCodec;
+import games.paths.core.port.match.KpiPort;
 import games.paths.core.port.match.MatchCommandPort;
 import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.MatchPersistencePort;
@@ -42,8 +43,14 @@ public class MatchCommandService implements MatchCommandPort {
     private final RegistryService registryService;
     /** Step 37 - set after construction; a story that ends fails whatever is still open. */
     private MissionService missionService;
+    /** v0.41.2 - MATCH_COMPLETED and the durations; null in the older tests. */
+    private KpiPort kpi;
     /** v0.41.1 - MATCH_* lifecycle and ADMIN_* rows; null in the older tests. */
     private MatchLogWriterPort logWriter;
+
+    public void setKpi(KpiPort kpi) {
+        this.kpi = kpi;
+    }
 
     public void setMissionService(MissionService missionService) {
         this.missionService = missionService;
@@ -204,6 +211,33 @@ public class MatchCommandService implements MatchCommandPort {
         return found ? UpdateOutcome.UPDATED : UpdateOutcome.NOT_FOUND;
     }
 
+    /** v0.41.2 - MATCH_COMPLETED plus the durations, from the start stamp (else the creation). */
+    private void recordCompletion(String storyUuid, GamingMatchEntity match) {
+        if (kpi == null) {
+            return;
+        }
+        kpi.record(storyUuid, KpiPort.Metric.MATCH_COMPLETED, null, 1);
+        Long durationMs = millisSince(match.getTimestampStart() != null && !match.getTimestampStart().isBlank()
+                ? match.getTimestampStart() : match.getTsInsert());
+        if (durationMs != null) {
+            kpi.record(storyUuid, KpiPort.Metric.DURATION_MS, null, durationMs);
+        }
+        int clocks = match.getCurrentClock() == null ? 0 : match.getCurrentClock();
+        kpi.record(storyUuid, KpiPort.Metric.DURATION_CLOCKS, null, clocks);
+    }
+
+    static Long millisSince(String isoInstant) {
+        if (isoInstant == null || isoInstant.isBlank()) {
+            return null;
+        }
+        try {
+            return Math.max(0L, java.time.Instant.now().toEpochMilli()
+                    - java.time.Instant.parse(isoInstant.trim()).toEpochMilli());
+        } catch (java.time.format.DateTimeParseException ex) {
+            return null;
+        }
+    }
+
     /** v0.41.1 - one match-level row at the current clock; a rename alone writes nothing. */
     private void logMatchRow(String uuidMatch, String message) {
         if (logWriter == null || message == null) {
@@ -259,7 +293,11 @@ public class MatchCommandService implements MatchCommandPort {
             return EndMatchOutcome.NOT_ACCEPTABLE;
         }
 
+        boolean alreadyOver = MatchStatuses.isTerminal(match.getStatus());
         persistencePort.updateMatchFields(uuidMatch, MatchStatuses.ENDED, null);
+        if (!alreadyOver) {
+            recordCompletion(story.getUuid(), match);
+        }
         // Step 37 - a mission that opened and never closed has now failed; one never reached
         // is simply ignored, as it was never the player's business.
         if (missionService != null) {

@@ -179,6 +179,22 @@
       "lang": "en",
       "shortText": "Lucky charm",
       "longText": "Lucky charm"
+    },
+    {
+      "id": 18,
+      "idCreator": 1,
+      "idText": 18,
+      "lang": "en",
+      "shortText": "A fork",
+      "longText": "A fork"
+    },
+    {
+      "id": 19,
+      "idCreator": 1,
+      "idText": 19,
+      "lang": "en",
+      "shortText": "Take the left path",
+      "longText": "Take the left path"
     }
   ],
   "cards": [
@@ -307,6 +323,13 @@
       "idTextTitle": 92,
       "idTextDescription": 92,
       "urlImage": "https://example.invalid/card-92.jpg"
+    },
+    {
+      "id": 18,
+      "idCreator": 1,
+      "idTextTitle": 18,
+      "idTextDescription": 18,
+      "urlImage": "https://example.invalid/card-18.jpg"
     }
   ],
   "keys": [
@@ -492,6 +515,15 @@
       "costCoin": 0
     },
     {
+      "id": 18,
+      "idCard": 18,
+      "idTextName": 18,
+      "idTextDescription": 18,
+      "type": "NORMAL",
+      "costEnery": 0,
+      "costCoin": 0
+    },
+    {
       "id": 40,
       "idCard": 40,
       "idTextName": 40,
@@ -571,8 +603,27 @@
       "value": 99
     }
   ],
-  "choices": [],
-  "choiceEffects": [],
+  "choices": [
+    {
+      "id": 1,
+      "idEvent": 18,
+      "idCard": 18,
+      "idTextName": 19,
+      "idTextNarrative": 19,
+      "priority": 1,
+      "logicOperator": "AND"
+    }
+  ],
+  "choiceEffects": [
+    {
+      "id": 1,
+      "idChoices": 1,
+      "idCard": 18,
+      "idTextName": 19,
+      "statistics": "food",
+      "value": 1
+    }
+  ],
   "choiceConditions": [],
   "items": [],
   "itemEffects": [],

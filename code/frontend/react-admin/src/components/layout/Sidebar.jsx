@@ -10,6 +10,7 @@ const MENU = [
   { to: '/stories/import', icon: 'fas fa-file-import', label: 'Import Story' },
   { section: 'Matches' },
   { to: '/matches',   icon: 'fas fa-gamepad',        label: 'Matches'      },
+  { to: '/reports',   icon: 'fas fa-chart-line',     label: 'Reports'      },
   { section: 'System' },
   { to: '/echo',      icon: 'fas fa-heartbeat',      label: 'Server Status'},
 ]

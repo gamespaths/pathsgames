@@ -145,7 +145,7 @@ class LocationEntryStoreAdapterTest {
         GamingStateLocationsEntity s = state(1L, 2L, 0);
         when(stateLocationsRepository.findById(any())).thenReturn(Optional.of(s));
 
-        adapter.markStateLocationVisited(1L, 2L);
+        assertTrue(adapter.markStateLocationVisited(1L, 2L));
 
         assertEquals(1, s.getFlagVisited());
         verify(stateLocationsRepository).save(s);
@@ -155,7 +155,7 @@ class LocationEntryStoreAdapterTest {
     void markStateLocationVisitedIsIdempotent() {
         when(stateLocationsRepository.findById(any())).thenReturn(Optional.of(state(1L, 2L, 1)));
 
-        adapter.markStateLocationVisited(1L, 2L);
+        assertFalse(adapter.markStateLocationVisited(1L, 2L));
 
         verify(stateLocationsRepository, never()).save(any());
     }
@@ -164,7 +164,7 @@ class LocationEntryStoreAdapterTest {
     void markStateLocationVisitedDoesNothingWithoutARow() {
         when(stateLocationsRepository.findById(any())).thenReturn(Optional.empty());
 
-        adapter.markStateLocationVisited(1L, 2L);
+        assertFalse(adapter.markStateLocationVisited(1L, 2L));
 
         verify(stateLocationsRepository, never()).save(any());
     }

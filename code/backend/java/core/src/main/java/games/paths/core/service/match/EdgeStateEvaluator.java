@@ -1,6 +1,7 @@
 package games.paths.core.service.match;
 
 import games.paths.core.port.match.EdgeStateStorePort;
+import games.paths.core.port.match.KpiPort;
 
 import java.util.Collection;
 
@@ -119,6 +120,12 @@ public final class EdgeStateEvaluator {
      * and knows when to issue it; duplicating it would mean two UPDATEs per character.</p>
      */
     static void persist(EdgeStateStorePort store, long idMatch, Verdict v, int clock, Long idEvent) {
+        persist(store, null, idMatch, v, clock, idEvent);
+    }
+
+    /** v0.41.2 - the same, plus one COMA KPI per character falling into coma (kpi may be null). */
+    static void persist(EdgeStateStorePort store, KpiPort kpi, long idMatch, Verdict v, int clock,
+                        Long idEvent) {
         if (v.sadnessOverflow()) {
             store.logEdgeState(idMatch, v.idCharacter(), idEvent, clock,
                     EdgeStateStorePort.MSG_SADNESS_OVERFLOW + " " + v.idCharacter());
@@ -127,6 +134,9 @@ public final class EdgeStateEvaluator {
             store.setComa(idMatch, v.idCharacter(), clock);
             store.logEdgeState(idMatch, v.idCharacter(), idEvent, clock,
                     EdgeStateStorePort.MSG_COMA + " " + v.idCharacter());
+            if (kpi != null) {
+                kpi.recordForMatch(idMatch, KpiPort.Metric.COMA, null, 1);
+            }
         } else if (v.forcedSleep()) {
             // Coma already implies sleep, so this is the overflow-without-coma case only.
             store.setSleeping(idMatch, v.idCharacter());

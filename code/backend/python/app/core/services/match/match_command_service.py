@@ -1,5 +1,6 @@
 """Step 19 — single-player match creation service."""
 import random
+from datetime import datetime, timezone
 import secrets
 from typing import Any, Dict, List, Optional
 
@@ -17,6 +18,7 @@ from app.core.ports.match.match_ports import (
     TurnstileVerificationPort,
     UserAccessPort,
 )
+from app.core.ports.match import kpi_ports
 from app.core.ports.match import log_writer_ports as lw
 from app.core.services.match import trait_selection_validator
 
@@ -49,9 +51,14 @@ class MatchCommandService(MatchCommandPort):
         self.mission_service = None
         # v0.41.1 — MATCH_* lifecycle and ADMIN_* rows; None in the older tests.
         self.log_writer = None
+        # v0.41.2 — MATCH_COMPLETED and the durations; None in the older tests.
+        self.kpi = None
 
     def set_mission_service(self, mission_service) -> None:
         self.mission_service = mission_service
+
+    def set_kpi(self, kpi) -> None:
+        self.kpi = kpi
 
     def set_log_writer(self, log_writer) -> None:
         self.log_writer = log_writer
@@ -229,6 +236,17 @@ class MatchCommandService(MatchCommandPort):
         self.match_persistence_port.delete_match_by_uuid(uuid_match)
         return "DELETED"
 
+    def _record_completion(self, story_uuid, match) -> None:
+        """v0.41.2 — MATCH_COMPLETED plus the durations, from the start stamp (else the creation)."""
+        kpi = getattr(self, "kpi", None)
+        if kpi is None:
+            return
+        kpi.record(story_uuid, kpi_ports.MATCH_COMPLETED, None, 1)
+        duration_ms = millis_since(match.get("timestamp_start") or match.get("ts_insert"))
+        if duration_ms is not None:
+            kpi.record(story_uuid, kpi_ports.DURATION_MS, None, duration_ms)
+        kpi.record(story_uuid, kpi_ports.DURATION_CLOCKS, None, int(match.get("current_clock") or 0))
+
     def end_match(self, uuid_match: str, uuid_event: str, user_uuid: str) -> str:
         if not uuid_match or not uuid_event or not user_uuid:
             return "NOT_FOUND"
@@ -252,7 +270,10 @@ class MatchCommandService(MatchCommandPort):
         if event is None or event.get("id") != end_event_id:
             return "NOT_ACCEPTABLE"
 
+        already_over = match_statuses.is_terminal(match.get("status"))
         self.match_persistence_port.update_match_fields(uuid_match, match_statuses.ENDED, None)
+        if not already_over:
+            self._record_completion(story.get("uuid"), match)
         # Step 37 — a mission that opened and never closed has now failed; one never reached
         # is simply ignored, as it was never the player's business.
         if getattr(self, "mission_service", None) is not None:
@@ -260,3 +281,15 @@ class MatchCommandService(MatchCommandPort):
         self._log_match_row(uuid_match, lw.lifecycle(lw.LIFECYCLE_ENDED))
         return "COMPLETED"
 
+
+def millis_since(iso_instant) -> Optional[int]:
+    """v0.41.2 — milliseconds from an ISO instant to now (never negative); None when unreadable."""
+    if not iso_instant or not str(iso_instant).strip():
+        return None
+    try:
+        start = datetime.fromisoformat(str(iso_instant).strip().replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=timezone.utc)
+    return max(0, int((datetime.now(timezone.utc) - start).total_seconds() * 1000))

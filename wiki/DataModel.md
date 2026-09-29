@@ -33,12 +33,13 @@ One line per table: purpose plus the columns that matter for understanding it, n
 column. `id_story` scoping on story-content tables and `id_match` scoping on runtime tables
 is omitted below since it applies uniformly within each tier.
 
-### 2.1 System (2)
+### 2.1 System (3)
 
 | Table | Purpose / key columns |
 |---|---|
 | `global_game_version` | Known game versions: `version`, `description`. |
 | `global_runtime_variables` | Feature flags / tunables: `type`, `key`, `string_value`, `int_value`, `min_value`/`max_value`, `min_version`/`max_version`. |
+| `system_kpi_daily` | Daily UTC counter (v0.41.2): `story_uuid`, `day` (`YYYY-MM-DD`), `metric`, `ref_uuid` (default `''`), `value`; `UNIQUE (story_uuid, day, metric, ref_uuid)`, no FK. Written best effort at event time (`MATCH_STARTED`/`_COMPLETED`, `DURATION_MS`/`_CLOCKS`, `COMA`, `CHOICE`, `LOCATION_VISIT`, `MISSION_ACTIVE`/`_COMPLETED`/`_FAILED`); not rolled back by a snapshot restore. |
 
 ### 2.2 Identity (2)
 
@@ -82,7 +83,7 @@ gameplay.
 
 | Table | Purpose / key columns |
 |---|---|
-| `gaming_match` | Match instance: `id_story`, `status` (§6.1), `current_clock`, `id_current_weather`, `id_character_current_turn`, `single_player`, `character_template_uuid`/`class_uuid`/`trait_uuids` (v0.19.9), `rng_seed` (v0.27.0). |
+| `gaming_match` | Match instance: `id_story`, `status` (§6.1), `current_clock`, `id_current_weather`, `id_character_current_turn`, `single_player`, `character_template_uuid`/`class_uuid`/`trait_uuids` (v0.19.9), `rng_seed` (v0.27.0), `timestamp_start` (v0.41.2, stamped on `RUNNING`; older matches fall back to `ts_insert` for KPI durations). |
 | `gaming_character_instance` | Player character: `id_user`, `id_character_template`, `dexterity`/`intelligence`/`constitution`/`energy`/`life`/`sad`, `id_location`, `is_sleeping`/`is_coma`, `exp`, `characteristics` (CSV, v0.29.0), `life_max`/`energy_max`/`sad_max`/`weight_max` (v0.25.0), `id_class` (v0.26.0). |
 | `gaming_character_traits` | Trait assigned to a character: `id_character_match`, `id_traits`, `id_event` (grantor). |
 | `gaming_backpack_resources` | Per-character resources: `id_character_match`, `food`, `magic`, `coin`. |
@@ -94,7 +95,7 @@ gameplay.
 | `gaming_active_choices` | Pending choice prompt: `clock`, `id_event`, `id_choise`. |
 | `log_choices_executed` | History of resolved choices: `clock`, `id_event`, `id_choise`, `log_message`. |
 | `gaming_story_progress` | Milestone tracker, written only when a resolved choice has `is_progress=1`: `clock`, `id_event`, `id_choise`. |
-| `log_events` | Event execution audit: `id_character_match`, `timestamp`, `id_event`, `id_choise`, `log_message`, cost columns `energy`/`food`/`magic`/`coin` and gain columns `energy_gain`/`food_gain`/`magic_gain`/`coin_gain` (v0.35.3/v0.35.4), `clock` (v0.28.7). |
+| `log_events` | Event execution audit: `id_character_match`, `timestamp`, `id_event`, `id_choise`, `log_message`, cost columns `energy`/`food`/`magic`/`coin` and gain columns `energy_gain`/`food_gain`/`magic_gain`/`coin_gain` (v0.35.3/v0.35.4), `clock` (v0.28.7). New `log_message` prefixes (v0.41.1): `ACTION_PASS`, `TRAIT_ADD`/`TRAIT_REMOVE`, `MATCH_CREATED`/`MATCH_STARTED`/`MATCH_ENDED`, `ADMIN_*` (pause/resume/stop/status/stats/snapshot-restored). |
 | `log_movements` | Movement audit: `id_location_from`/`id_location_to`, `id_event`/`id_choise`, `log_message`, `energy`, `food`/`magic`/`coin` (v0.35.3). |
 | `log_item_usage` | Item action audit: `id_character_match`, `id_item`, `counter`, `effects_json`, `action` (ADD/USE/DROP/REMOVE, v0.35.4), `id_event`, `energy`/`food`/`magic`/`coin` deltas. |
 | `log_weather` | Weather history: `clock`, `id_weatcher`, `timestamp_start`/`timestamp_end`. |
@@ -105,7 +106,7 @@ gameplay.
 | `gaming_trades` | Trade proposal: `id_character_match_sender`/`id_character_match_dest`, `id_item`/`id_inventory_items`, `status` (§6.4), `timeout`, `resource`, `amount`. |
 | `gaming_notification_queue` | Server push queue: `id_chat`, `flag_system_push`, `timestamp`, `type`, `priority`. |
 | `gaming_movement_invites` | Group-follow invitation: `id_character_match_sender`/`id_character_match_friend`, `state` (§6.5), `timestamp_send`/`timestamp_timeout`/`timestamp_answer`, `energy_cost`. |
-| `system_snapshot` | Match snapshot: `id_story`, `timestamp`, `type` (FULL/LIGHT), `jsonb_data`, `file_path`, `description`. |
+| `system_snapshot` | Match snapshot: `id_story`, `id_match`, `timestamp`, `type` (FULL/LIGHT), `jsonb_data`, `file_path`, `description`, `clock`, `checksum` (v0.41.1); index `(id_match, clock)`. One LIGHT snapshot written per time-end, last `SNAPSHOT_KEEP_PER_MATCH` kept. |
 | `gaming_temp_variables` | Per-character scratch variable: `id_character_match`, `key`, `value`, `type` (CLOCK/EVENT/LOCATION/RESOURCES/TRAITS/…), `timestamp`. |
 
 ## 3. Main Relationships
@@ -217,6 +218,8 @@ Key (PK) / Sort Key (SK), plus two sparse GSIs. Source: `code/backend/aws/README
 | Turn | `MATCH#<uuid>` | `TURN#<characterUuid>` | — | — |
 | Log entry | `MATCH#<uuid>` | `LOG#{ts_ms:013d}#{seq:06d}` | — | — |
 | Audit row (one per request) | `MATCH#<uuid>` | `AUDIT#{ts_ms:013d}#{seq:06d}` | — | — |
+| Snapshot (v0.41.1) | `MATCH#<uuid>` | `SNAPSHOT#{clock:06d}#{ts_ms:013d}` | — | — |
+| KPI day (v0.41.2) | `KPI#<storyUuid>` | `DAY#YYYY-MM-DD` | — | — |
 | Cache stamp | `SYSTEM#cache` | `METADATA` | — | — |
 
 Design notes (v0.28.1 / v0.37.5):
@@ -236,6 +239,15 @@ Design notes (v0.28.1 / v0.37.5):
 - Dev/test rows tagged by the Robot suites (`robottest…` guests/matches) carry a DynamoDB
   `ttl` attribute (v0.39.1, `ROBOT_TEST_DATA_TTL_HOURS`) so they self-expire without a manual
   purge, on top of the existing `purge_robot_test_data.py` script.
+- Snapshot items (v0.41.1) hold a gzipped payload, `checksum` and `logSk`/`logSeq` (last log
+  sort key/sequence at write time); last `SNAPSHOT_KEEP_PER_MATCH` kept per match. Restore cuts
+  `LOG#`/`AUDIT#` rows by `logSeq` (monotonic; `logSk` alone can tie under clock skew), deletes
+  snapshots newer than the restored one, and re-runs the time-start at once.
+- KPI day items (v0.41.2) hold flat counters (`matchesStarted`, `matchesCompleted`,
+  `durationMsSum`, `durationClocksSum`, `coma`, `c#<choiceUuid>`, `l#<locationUuid>`,
+  `m#<missionUuid>#<STATUS>`), one `UpdateItem ADD` per request, best effort; "all stories"
+  reports sum one Query per `STORY_LIST` entry, so a deleted story's counters drop out (unlike
+  Java/Python, which keep summing them).
 
 Full cost/design writeup and every changelog entry:
 [code/backend/aws/README.md](../code/backend/aws/README.md).
@@ -251,14 +263,16 @@ addition — its per-entity column lists (§1.3) still mention the old columns. 
 directly; Step09 remains the source for full rationale and history.
 
 # Version Control
-- **Document Version**: 0.41.0
+- **Document Version**: 0.41.2
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First version of the shared data model reference | September 25, 2026 |
   | 0.41.0 | New guest-cleanup index on the users table | September 28, 2026 |
+  | 0.41.1 | Match snapshot columns and new log types added | September 29, 2026 |
+  | 0.41.2 | KPI daily counters table and match start timestamp added | September 29, 2026 |
 
-- **Last Updated**: September 28, 2026 (v0.41.0)
+- **Last Updated**: September 29, 2026 (v0.41.2)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

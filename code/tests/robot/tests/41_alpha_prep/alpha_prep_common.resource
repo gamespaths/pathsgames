@@ -1,5 +1,5 @@
 *** Settings ***
-# alpha_prep_common.resource — v0.41.1 fixture of the 41_alpha_prep story suites (logging_gaps, snapshots):
+# alpha_prep_common.resource — v0.41.1 fixture of the 41_alpha_prep story suites (logging_gaps, snapshots, kpi):
 # story_alpha_prep.json, imported in Suite Setup and deleted with its matches in Suite Teardown.
 Library    RequestsLibrary
 Library    Collections
@@ -25,7 +25,8 @@ Suite Setup Alpha Prep
     ...                (+trait 1), 11 Lose the charm (-trait 1), 12 Poisoned well (life -99),
     ...                13 Old gate (ONCE, exp +1), 14 Take the quest (quest=done opens mission 1,
     ...                whose reward 15 gives +1 magic), 16 A long day (ends the time, +1 coin),
-    ...                17 Grief (sad +99), 40 The end (END). Weather 1 Clear (100%).
+    ...                17 Grief (sad +99), 18 A fork (v0.41.2: choice 1, food +1), 40 The end (END).
+    ...                Weather 1 Clear (100%).
     Create Admin Session
     Create Public Session
     Run Keyword And Ignore Error    Delete Admin Story    ${STORY_UUID}

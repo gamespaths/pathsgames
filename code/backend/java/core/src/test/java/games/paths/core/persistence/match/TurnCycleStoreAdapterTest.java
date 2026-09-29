@@ -157,6 +157,25 @@ class TurnCycleStoreAdapterTest {
     }
 
     @Test
+    void stampMatchStart_writesOnceAndSkipsAMissingMatch() {
+        GamingMatchEntity m = match();
+        when(matchRepository.findById(1L)).thenReturn(Optional.of(m));
+        adapter.stampMatchStart(1L);
+        String first = m.getTimestampStart();
+        assertNotNull(first);
+        adapter.stampMatchStart(1L);
+        assertEquals(first, m.getTimestampStart());
+        verify(matchRepository, times(1)).save(m);
+
+        m.setTimestampStart(" ");
+        adapter.stampMatchStart(1L);
+        assertNotEquals(" ", m.getTimestampStart());
+
+        when(matchRepository.findById(2L)).thenReturn(Optional.empty());
+        adapter.stampMatchStart(2L);
+    }
+
+    @Test
     void findCharacterByMatchAndUser_maps() {
         when(characterRepository.findByIdMatchAndIdUser(1L, 7L)).thenReturn(Optional.of(character()));
         assertTrue(adapter.findCharacterByMatchAndUser(1L, 7L).isPresent());

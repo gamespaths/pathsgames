@@ -85,6 +85,7 @@ and comments:
 | Turnstile | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `TURNSTILE_BYPASS_TOKEN_TEST`, `TURNSTILE_BYPASS_TOKEN_ROBOT` |
 | Rate limit / CSRF (v0.37.7; per-IP/per-guest defaults raised in v0.41.0) | `RATE_LIMIT_GUEST_PER_IP`, `RATE_LIMIT_MATCH_PER_IP`, `RATE_LIMIT_WINDOW_SECONDS`, `RATE_LIMIT_MATCH_PER_GUEST`, `RATE_LIMIT_MATCH_PER_GUEST_WINDOW_SECONDS`, `CSRF_ENFORCED` (+ `AWS_*_TEST` mirrors) |
 | Guest idle cleanup (v0.41.0) | `GUEST_CLEANUP_ENABLED`, `GUEST_CLEANUP_AGE_DAYS`, `GUEST_CLEANUP_MAX_PER_RUN`, `GUEST_CLEANUP_HOUR`, `GUEST_CLEANUP_MINUTE` (+ `AWS_*_TEST` mirrors) |
+| Logging & snapshots (v0.41.1) | `LOG_WARN_ROWS` (default 5000), AWS `LOG_WARN_METADATA_KB` (default 300) — WARN-only size check; `SNAPSHOT_KEEP_PER_MATCH` (default 10, 0 = off) |
 | AWS admin allow-list (v0.41.0) | `ADMIN_IP_WHITELIST`, `AWS_ADMIN_IP_EMPTY_MEANS_TEST`, `AWS_ADMIN_API_URL_TEST` |
 | Test-data lifecycle | `AWS_ROBOT_TEST_DATA_TTL_HOURS_TEST` |
 | Docker Hub | `DOCKERHUB_USERNAME_TEST`, `DOCKERHUB_IMAGE_TEST`, `DOCKERHUB_IMAGE_TAG_TEST`, `DOCKERHUB_TOKEN_TEST` |
@@ -116,14 +117,15 @@ per-server `_EC2`/`_EC2_PY` suffixes) and are due a naming/structure pass once V
 its own environment needs (SSO credentials, additional backends). Deferred, not scoped yet.
 
 # Version Control
-- **Document Version**: 0.41.0
+- **Document Version**: 0.41.1
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First shared map of where each version runs | September 25, 2026 |
   | 0.41.0 | Documented today's certificates; the harder decision waits for V1; new security/guest keys | September 28, 2026 |
+  | 0.41.1 | New logging and snapshot size keys | September 29, 2026 |
 
-- **Last Updated**: September 28, 2026 (v0.41.0)
+- **Last Updated**: September 29, 2026 (v0.41.1)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

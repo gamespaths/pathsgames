@@ -221,6 +221,19 @@ class EdgeStateEvaluatorTest {
         }
 
         @Test
+        @DisplayName("v0.41.2 - a coma counts one COMA KPI; an overflow alone counts none")
+        void comaCountsTheKpi() {
+            EdgeStateStorePort store = mock(EdgeStateStorePort.class);
+            games.paths.core.port.match.KpiPort kpi = mock(games.paths.core.port.match.KpiPort.class);
+
+            EdgeStateEvaluator.persist(store, kpi, 1L, EdgeStateEvaluator.evaluate(state(0, 0, 50, 10, false)), 9, 42L);
+            EdgeStateEvaluator.persist(store, kpi, 1L, EdgeStateEvaluator.evaluate(state(30, 50, 50, 10, false)), 9, null);
+
+            org.mockito.Mockito.verify(kpi, org.mockito.Mockito.times(1))
+                    .recordForMatch(1L, games.paths.core.port.match.KpiPort.Metric.COMA, null, 1);
+        }
+
+        @Test
         @DisplayName("A quiet verdict writes nothing at all")
         void quietWritesNothing() {
             EdgeStateStorePort store = mock(EdgeStateStorePort.class);

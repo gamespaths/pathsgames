@@ -17,12 +17,15 @@ from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, List, Optional
 
 from app.core.models.match import location_entry_models as lem
+from app.core.ports.match import kpi_ports
 from app.core.services.match import registry_service as registry
 
 STATUS_AVAILABLE = "AVAILABLE"
 STATUS_ACTIVE = "ACTIVE"
 STATUS_COMPLETED = "COMPLETED"
 STATUS_FAILED = "FAILED"
+_KPI_METRICS = {STATUS_ACTIVE: kpi_ports.MISSION_ACTIVE, STATUS_COMPLETED: kpi_ports.MISSION_COMPLETED,
+                STATUS_FAILED: kpi_ports.MISSION_FAILED}
 
 # The reserved key prefix of a bookkeeping row. Never declared in list_keys.
 KEY_PREFIX = "mission:"
@@ -78,6 +81,8 @@ class MissionService:
         self._depth = 0
         self._deferrals = 0
         self._pending: List[tuple] = []
+        # v0.41.2 — MISSION_ACTIVE / _COMPLETED / _FAILED counters; None in the older tests.
+        self.kpi = None
 
     # ── deferral ─────────────────────────────────────────────────────────────
 
@@ -133,6 +138,8 @@ class MissionService:
                     id_match, None, None, None, None,
                     f"{MSG_MISSION_CHANGE} {uuids.get(id_mission, id_mission)} "
                     f"{state.get('status')} -> {STATUS_FAILED}")
+                self._record_transition(id_match, str(uuids.get(id_mission, id_mission)),
+                                        state.get("status"), STATUS_FAILED)
 
     def _mission_uuids(self, id_story: Optional[int]) -> Dict[Any, str]:
         """Mission id to uuid for one story. Empty when the story cannot be read."""
@@ -197,6 +204,16 @@ class MissionService:
                 # The step number the author wrote, not the row id: a person reads this.
                 detail = f"{detail} step {step}"
             self.store.log_change(id_match, None, None, None, clock, detail)
+        self._record_transition(id_match, str(_uuid_of(mission)), previous, status)
+
+    def _record_transition(self, id_match: int, mission_uuid: str, previous: Optional[str],
+                           status: str) -> None:
+        """v0.41.2 — one counter per status change into ACTIVE, COMPLETED or FAILED (decision 13)."""
+        metric = _KPI_METRICS.get(status)
+        kpi = getattr(self, "kpi", None)
+        if kpi is None or metric is None or status == previous:
+            return
+        kpi.record_for_match(id_match, metric, mission_uuid, 1)
 
     def _queue(self, id_match: int, id_event: Optional[int]) -> None:
         if id_event is not None and int(id_event) > 0:

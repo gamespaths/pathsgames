@@ -579,3 +579,16 @@ def test_step39_helpers():
     assert is_party_trigger(lem.TRIGGER_RANDOM_EVENT)
     assert is_party_trigger("mission completed")
     assert not is_party_trigger(lem.TRIGGER_COUNTER_ZERO)
+
+
+def test_v0412_the_first_latch_counts_one_location_visit(service, store, location_store):
+    kpi = MagicMock()
+    service.set_kpi(kpi)
+    store.find_events_by_id.return_value = {}
+    location_store.find_location_triggers.return_value = None
+    location_store.mark_state_location_visited.side_effect = [True, False]
+
+    service.on_arrival(_arrival())
+    service.on_arrival(_arrival())
+
+    kpi.record_location_visit.assert_called_once_with(MATCH_ID, STORY_ID, LOCATION)

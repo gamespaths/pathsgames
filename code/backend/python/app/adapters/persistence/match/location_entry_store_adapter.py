@@ -51,14 +51,15 @@ class LocationEntryStoreAdapter(LocationEntryStorePort):
             s = self._state_row(session, id_match, id_location)
             return (s.flag_visited or 0) if s is not None else 0
 
-    def mark_state_location_visited(self, id_match: int, id_location: int) -> None:
+    def mark_state_location_visited(self, id_match: int, id_location: int) -> bool:
         with self.session_factory() as session:
             s = self._state_row(session, id_match, id_location)
             if s is None or (s.flag_visited or 0) == 1:
-                return
+                return False
             s.flag_visited = 1
             s.ts_update = _now_iso()
             session.commit()
+            return True
 
     def count_other_characters_at_location(self, id_match: int, id_location: int,
                                            except_id_character: int) -> int:

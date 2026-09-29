@@ -142,6 +142,16 @@ public class TurnCycleStoreAdapter implements TurnCycleStorePort {
         matchRepository.save(m);
     }
 
+    @Override
+    public void stampMatchStart(long idMatch) {
+        matchRepository.findById(idMatch).ifPresent(m -> {
+            if (m.getTimestampStart() == null || m.getTimestampStart().isBlank()) {
+                m.setTimestampStart(java.time.Instant.now().toString());
+                matchRepository.save(m);
+            }
+        });
+    }
+
     // ── Step 25: time advancement & clock cycle ─────────────────────────────
 
     @Override

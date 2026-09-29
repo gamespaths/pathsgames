@@ -11,6 +11,7 @@ import games.paths.core.port.match.EdgeStateStorePort;
 import games.paths.core.port.match.EventExecutionPort;
 import games.paths.core.port.match.EventExecutionStorePort;
 import games.paths.core.port.match.LocationEntryPort;
+import games.paths.core.port.match.KpiPort;
 import games.paths.core.port.match.LocationEntryStorePort;
 import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.LocationEntryStorePort.LocationTriggerView;
@@ -125,6 +126,13 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
 
     public void setLogWriter(MatchLogWriterPort logWriter) {
         this.logWriter = logWriter;
+    }
+
+    /** v0.41.2 - COMA, CHOICE and LOCATION_VISIT counters; null in the older tests. */
+    private KpiPort kpi;
+
+    public void setKpi(KpiPort kpi) {
+        this.kpi = kpi;
     }
 
     /** Hold mission completion events until this execution has written everything it touched. */
@@ -775,6 +783,9 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             store.insertStoryProgress(x.match.id(), eventId, choiceId, x.currentClock);
             x.progressRecorded = true;
         }
+        if (kpi != null) {
+            kpi.recordForMatch(x.match.id(), KpiPort.Metric.CHOICE, choice.getUuid(), 1);
+        }
     }
 
     // ── the chain ───────────────────────────────────────────────────────────
@@ -1259,7 +1270,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             if (v.forcedSleep() && x.isActor(c.id)) {
                 x.forcedSleep = true;
             }
-            EdgeStateEvaluator.persist(edgeStore, x.match.id(), v, x.currentClock, idEvent);
+            EdgeStateEvaluator.persist(edgeStore, kpi, x.match.id(), v, x.currentClock, idEvent);
         }
     }
 
@@ -1506,7 +1517,9 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             }
             writeArrivalRegistry(idMatch, idStory, idCharacter, triggers, visited, currentClock);
         }
-        locationStore.markStateLocationVisited(idMatch, idLocation);
+        if (locationStore.markStateLocationVisited(idMatch, idLocation) && kpi != null) {
+            kpi.recordLocationVisit(idMatch, idStory, idLocation);
+        }
     }
 
     /**

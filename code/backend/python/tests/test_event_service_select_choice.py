@@ -623,3 +623,12 @@ def test_the_same_link_named_twice_runs_once(service, store):
 
     assert r.execution.executed_event_uuids.count("linked-uuid") == 1
     assert len(r.execution.stat_changes) == 1
+
+
+def test_v0412_a_resolved_choice_counts_one_choice_kpi(service):
+    kpi = MagicMock()
+    service.set_kpi(kpi)
+
+    _resolve(service)
+
+    kpi.record_for_match.assert_called_once_with(MATCH_ID, "CHOICE", CHOICE_UUID, 1)

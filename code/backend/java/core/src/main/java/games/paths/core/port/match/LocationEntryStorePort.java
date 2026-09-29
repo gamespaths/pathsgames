@@ -27,8 +27,8 @@ public interface LocationEntryStorePort {
      */
     int findFlagVisited(long idMatch, long idLocation);
 
-    /** Latch the location as visited by the party. Idempotent. */
-    void markStateLocationVisited(long idMatch, long idLocation);
+    /** Latch the location as visited by the party. Idempotent; v0.41.2 true when it flipped 0 to 1. */
+    boolean markStateLocationVisited(long idMatch, long idLocation);
 
     /**
      * How many characters stand in {@code idLocation} other than

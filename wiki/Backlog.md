@@ -17,7 +17,7 @@ version's roadmap; items marked "Not planned" wait for a decision. The original 
 | Timed missions | Missions that expire after some time | V2 | |
 | Campaigns | Several stories connected in a path | V2 | Built together with the global registry |
 | Global registry | Registry keys shared across stories | V2 | |
-| Analytics (advanced) | Undiscovered content, abandonment timing, death analysis | V2 | Basic KPI report in V0 step 41 |
+| Analytics (advanced) | Undiscovered content, abandonment timing, death analysis | V2 | Basic KPI report done in V0 step 41 |
 | NPC system | Static and wandering characters, interactions | V2 | No combat |
 | Entities | Non-player world elements with their own state | V2 | |
 | Open world | Exploration beyond a single linear story map | V2 | May overflow to V3 |
@@ -46,13 +46,14 @@ version's roadmap; items marked "Not planned" wait for a decision. The original 
 | Distributed lock for scheduled jobs on several instances | V6 | e.g. ShedLock for Java |
 
 # Version Control
-- **Document Version**: 0.40.0
+- **Document Version**: 0.41.2
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First backlog with every feature and its version | September 25, 2026 |
+  | 0.41.2 | Basic KPI report marked done | September 29, 2026 |
 
-- **Last Updated**: September 25, 2026 (v0.40.0)
+- **Last Updated**: September 29, 2026 (v0.41.2)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

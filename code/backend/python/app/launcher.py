@@ -80,6 +80,9 @@ from app.adapters.persistence.match.random_event_store_adapter import RandomEven
 from app.core.services.match.random_event_selection_service import RandomEventSelectionService
 from app.adapters.rest.match.weather_controller import WeatherController
 from app.adapters.turnstile.turnstile_adapter import TurnstileVerificationAdapter
+from app.adapters.persistence.match.kpi_store_adapter import KpiStoreAdapter
+from app.core.services.match.kpi_service import KpiService
+from app.adapters.rest.match.kpi_admin_controller import KpiAdminController
 import app.adapters.persistence.match.models  # noqa: F401  - registers ORM tables
 
 # Dev-only test-data cleanup
@@ -144,6 +147,9 @@ registry_service = RegistryService(registry_store_adapter, story_match_read_adap
 # texts through the same generic story reader the admin CRUD uses.
 mission_service = MissionService(registry_store_adapter, story_read_adapter,
                                  content_query_service)
+# v0.41.2 — Step 41 F: KPI counters at event time (best effort) and the admin report.
+kpi_service = KpiService(KpiStoreAdapter(SessionLocal))
+mission_service.kpi = kpi_service
 registry_service.mission_service = mission_service
 match_command_service = MatchCommandService(
     story_match_read_adapter,
@@ -157,6 +163,7 @@ match_command_service.set_mission_service(mission_service)
 # v0.41.1 — Step 41 A: pass, trait, lifecycle and admin rows, and the log-size check.
 match_log_writer_adapter = MatchLogWriterAdapter(SessionLocal, settings.log_warn_rows)
 match_command_service.set_log_writer(match_log_writer_adapter)
+match_command_service.set_kpi(kpi_service)
 # Step 21 — character join adapters and services
 character_persistence_adapter = CharacterPersistenceAdapter(SessionLocal)
 character_command_service = CharacterCommandService(
@@ -248,6 +255,7 @@ turn_cycle_store_adapter = TurnCycleStoreAdapter(SessionLocal)
 turn_cycle_service = TurnCycleService(turn_cycle_store_adapter, weather_selection_service,
                                       registry_service)
 turn_cycle_service.set_log_writer(match_log_writer_adapter)
+turn_cycle_service.set_kpi(kpi_service)
 turn_cycle_controller = TurnCycleController(turn_cycle_service)
 
 # Step 25 — time advancement & clock cycle.
@@ -263,6 +271,7 @@ time_advancement_service = TimeAdvancementService(time_store_adapter, domain_eve
                                                   edge_store=edge_state_store_adapter,
                                                   random_event_service=random_event_selection_service)
 time_advancement_service.set_log_writer(match_log_writer_adapter)
+time_advancement_service.recovery_service.kpi = kpi_service
 # v0.41.1 — Step 41 B snapshots; the time engine and the restore know each other through setters.
 snapshot_service = SnapshotService(SnapshotStoreAdapter(SessionLocal), settings.snapshot_keep_per_match)
 snapshot_service.set_time_service(time_advancement_service)
@@ -289,6 +298,7 @@ event_service = EventService(event_store_adapter,
 # an event moves the registry that decides the mission.
 event_service.set_mission_service(mission_service)
 event_service.set_log_writer(match_log_writer_adapter)
+event_service.set_kpi(kpi_service)
 mission_service.event_port = event_service
 event_controller = EventController(event_service)
 
@@ -436,6 +446,7 @@ app_admin = _build_app([
     story_admin_controller.router,
     story_crud_admin_controller.router,
     match_admin_controller.router,
+    KpiAdminController(kpi_service).router,
     dev_controller.router,
 ])
 

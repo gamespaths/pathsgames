@@ -136,6 +136,14 @@ class TurnCycleStoreAdapter(TurnCycleStorePort):
             m.ts_update = _now_iso()
             session.commit()
 
+    def stamp_match_start(self, id_match: int) -> None:
+        with self.session_factory() as session:
+            m = session.query(GamingMatchEntity).filter(GamingMatchEntity.id == id_match).first()
+            if m is None or (m.timestamp_start or "").strip():
+                return
+            m.timestamp_start = _now_iso()
+            session.commit()
+
     def find_user_id_by_uuid(self, user_uuid: str) -> Optional[int]:
         if not user_uuid:
             return None

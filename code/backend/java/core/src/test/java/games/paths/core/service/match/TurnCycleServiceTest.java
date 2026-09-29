@@ -111,6 +111,20 @@ class TurnCycleServiceTest {
         }
 
         @Test
+        @DisplayName("v0.41.2 - the start stamps timestamp_start and counts one MATCH_STARTED")
+        void startCountsTheKpi() {
+            games.paths.core.port.match.KpiPort kpi = mock(games.paths.core.port.match.KpiPort.class);
+            service.setKpi(kpi);
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match(MatchStatuses.CREATED, null)));
+            when(store.findCharactersByMatchId(1L)).thenReturn(List.of(character(10L, "c", 1, 1, 1, 5)));
+
+            service.startMatch(MATCH, USER);
+
+            verify(store).stampMatchStart(1L);
+            verify(kpi).recordForMatch(1L, games.paths.core.port.match.KpiPort.Metric.MATCH_STARTED, null, 1);
+        }
+
+        @Test
         @DisplayName("MATCH_NOT_FOUND when caller is not the creator")
         void notOwner() {
             when(store.findMatchByUuid(MATCH)).thenReturn(

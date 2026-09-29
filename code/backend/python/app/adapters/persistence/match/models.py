@@ -3,7 +3,7 @@
 Schema is intentionally aligned with the Java Flyway migrations
 ``V0.10.6__create_gaming_core.sql`` and ``V0.10.7__create_gaming_state.sql``.
 """
-from sqlalchemy import BigInteger, Column, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import BigInteger, Column, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 
 from app.adapters.persistence.auth.models import Base
 
@@ -379,3 +379,24 @@ class SystemSnapshotEntity(Base):
     ts_update = Column(String(50), nullable=False)
 
     __table_args__ = (Index("idx_snapshot_match_clock", "id_match", "clock"),)
+
+
+class SystemKpiDailyEntity(Base):
+    """v0.41.2 Step 41 F — daily UTC KPI counters per story, keyed by uuids with no FK, as V0.41.2."""
+
+    __tablename__ = "system_kpi_daily"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    story_uuid = Column(String(36), nullable=False)
+    day = Column(String(10), nullable=False)
+    metric = Column(String(40), nullable=False)
+    ref_uuid = Column(String(36), nullable=False, default="", server_default="")
+    value = Column(BigInteger, nullable=False, default=0, server_default="0")
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("story_uuid", "day", "metric", "ref_uuid", name="uq_kpi_daily"),
+        Index("idx_kpi_daily_day", "day"),
+    )

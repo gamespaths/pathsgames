@@ -328,6 +328,8 @@ class MatchPersistenceAdapter(MatchPersistencePort):
             "rng_seed": entity.rng_seed,
             "ts_insert": entity.ts_insert,
             "ts_update": entity.ts_update,
+            # v0.41.2 — the start stamp the KPI duration reads.
+            "timestamp_start": entity.timestamp_start,
             "single_player": entity.single_player,
             "character_template_uuid": entity.character_template_uuid,
             "class_uuid": entity.class_uuid,

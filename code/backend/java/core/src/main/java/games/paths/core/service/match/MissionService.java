@@ -8,6 +8,7 @@ import games.paths.core.model.match.MatchMission;
 import games.paths.core.model.match.MatchMissionStep;
 import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.story.ContentQueryPort;
+import games.paths.core.port.match.KpiPort;
 import games.paths.core.port.match.MissionEventPort;
 import games.paths.core.port.match.RegistryStorePort;
 import games.paths.core.port.match.RegistryStorePort.MissionStateRow;
@@ -85,6 +86,29 @@ public class MissionService {
 
     public void setEventPort(MissionEventPort eventPort) {
         this.eventPort = eventPort;
+    }
+
+    /** v0.41.2 - MISSION_ACTIVE / _COMPLETED / _FAILED counters; null in the older tests. */
+    private KpiPort kpi;
+
+    public void setKpi(KpiPort kpi) {
+        this.kpi = kpi;
+    }
+
+    /** One counter per status change into ACTIVE, COMPLETED or FAILED (decision 13). */
+    private void recordTransition(long idMatch, String missionUuid, String previous, String status) {
+        if (kpi == null || status == null || status.equals(previous)) {
+            return;
+        }
+        KpiPort.Metric metric = switch (status) {
+            case STATUS_ACTIVE -> KpiPort.Metric.MISSION_ACTIVE;
+            case STATUS_COMPLETED -> KpiPort.Metric.MISSION_COMPLETED;
+            case STATUS_FAILED -> KpiPort.Metric.MISSION_FAILED;
+            default -> null;
+        };
+        if (metric != null) {
+            kpi.recordForMatch(idMatch, metric, missionUuid, 1);
+        }
     }
 
     /**
@@ -211,6 +235,8 @@ public class MissionService {
                         MSG_MISSION_CHANGE + " "
                                 + uuids.getOrDefault(state.idMission(), String.valueOf(state.idMission()))
                                 + " " + state.status() + " -> " + STATUS_FAILED);
+                recordTransition(idMatch, uuids.getOrDefault(state.idMission(), String.valueOf(state.idMission())),
+                        state.status(), STATUS_FAILED);
             }
         }
     }
@@ -293,6 +319,7 @@ public class MissionService {
         for (Integer step : rowsOf(closedSteps, status, fresh)) {
             log(idMatch, mission, previous, status, step, clock);
         }
+        recordTransition(idMatch, uuidOf(mission), previous, status);
     }
 
     /**

@@ -25,6 +25,7 @@ from app.core.ports.match.edge_state_ports import (
     MSG_ALL_PLAYER_COMA, MSG_COMA, MSG_COMA_RECOVERED, MSG_SADNESS_OVERFLOW,
     EdgeStateStorePort,
 )
+from app.core.ports.match.kpi_ports import COMA as COMA_METRIC
 
 
 def _clamp(value: int, low: int, high: int) -> int:
@@ -109,7 +110,7 @@ def all_in_coma(coma_flags: Optional[Iterable[bool]]) -> bool:
 
 
 def persist(store: EdgeStateStorePort, id_match: int, v: Verdict, clock: int,
-            id_event: Optional[int]) -> None:
+            id_event: Optional[int], kpi=None) -> None:
     """Persist one verdict: the state flags plus the ``log_events`` rows.
 
     Stat values are NOT written here. Each service already owns a stats write of its own and
@@ -122,6 +123,9 @@ def persist(store: EdgeStateStorePort, id_match: int, v: Verdict, clock: int,
         store.set_coma(id_match, v.id_character, clock)
         store.log_edge_state(id_match, v.id_character, id_event, clock,
                              f"{MSG_COMA} {v.id_character}")
+        # v0.41.2 — one COMA KPI per character falling into coma.
+        if kpi is not None:
+            kpi.record_for_match(id_match, COMA_METRIC, None, 1)
     elif v.forced_sleep:
         # Coma already implies sleep, so this is the overflow-without-coma case only.
         store.set_sleeping(id_match, v.id_character)

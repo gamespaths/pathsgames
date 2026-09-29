@@ -91,7 +91,7 @@ google-analytics.com  →  https://google-analytics.com  +  https://*.google-ana
 | `/paths-games/csp/img-src` | `img-src` | `googletagmanager.com`, `google-analytics.com` |
 | `/paths-games/csp/connect-src` | `connect-src` | `google-analytics.com`, `analytics.google.com`, `g.doubleclick.net` |
 
-**To add a domain for one environment only**, set `csp_extra_domains` in that environment's `environments/<env>.tfvars` (map of directive → base domains, merged into the lists above). `test.tfvars` (running `csp_mode = "restricted"` since v0.41.0) adds the test API hosts on `connect` (`api-test.paths.games`, `api-test-server2.paths.games`, `api-test-server3.paths.games`), `challenges.cloudflare.com` on `script`, `unsplash.com` on `img` (v0.41.0 — react-game's location art) and `challenges.cloudflare.com` on `frame` (v0.41.0 — the Turnstile iframe). The `frame` key has no shared SSM list: `cloudfront.tf` emits a `frame-src` directive only when it is non-empty.
+**To add a domain for one environment only**, set `csp_extra_domains` in that environment's `environments/<env>.tfvars` (map of directive → base domains, merged into the lists above). `test.tfvars` (running `csp_mode = "restricted"` since v0.41.0) adds the test API hosts and `cdn.jsdelivr.net` on `connect` (`api-test.paths.games`, `api-test-server2.paths.games`, `api-test-server3.paths.games`, `cdn.jsdelivr.net` — Bootstrap source maps), `challenges.cloudflare.com` on `script`, `unsplash.com` on `img` (v0.41.0 — react-game's location art) and `challenges.cloudflare.com` on `frame` (v0.41.0 — the Turnstile iframe). The `frame` key has no shared SSM list: `cloudfront.tf` emits a `frame-src` directive only when it is non-empty. `production.tfvars` (running `csp_mode = "restricted"` since v0.41.2, static site `code/website/html/`) adds `cdn.jsdelivr.net` on `connect` and `unsplash.com` on `img` (the landing page hero); it has no inline scripts, so no other directive was needed.
 
 > Special values (`'self'`, `'unsafe-inline'`, `data:`) are hardcoded in `cloudfront.tf` because they are not domains.
 
@@ -200,9 +200,10 @@ csp_mode = "restricted"
 | `open` *(default)* | `default-src *` — no restrictions, useful for dev/debug |
 | `restricted` | Per-directive allowlist from SSM Parameter Store + `csp_extra_domains` |
 
-`open` is the variable's default, but `test.tfvars` already overrides it to `restricted`
-(v0.41.0). `production.tfvars` stays `open` until 0.41.2, once test shows no CSP error in the
-browser console.
+`open` is the variable's default, but `test.tfvars` (v0.41.0) and `production.tfvars` (v0.41.2)
+both override it to `restricted` — production adds `connect = ["cdn.jsdelivr.net"]` (Bootstrap
+source maps) and `img = ["unsplash.com"]` (the landing page hero) to `csp_extra_domains`,
+checked by the owner in the browser after applying.
 
 ### After `./tf.sh <env> apply`:
 
@@ -314,7 +315,7 @@ aws s3 rm s3://pathsgames-production --recursive && aws s3 rb s3://pathsgames-pr
 
 # Version Control
 - First version created with AI prompts
-- **Document Version**: 0.41.0
+- **Document Version**: 0.41.2
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.7.0 | Website creation and domains configuration | March 26, 2026 |
@@ -322,7 +323,8 @@ aws s3 rm s3://pathsgames-production --recursive && aws s3 rb s3://pathsgames-pr
     | 0.20.3 | Removed `cdn-cookieyes.com` / `cookieyes.com` from CSP allowlists (self-hosted consent, same-origin) | May 28, 2026 |
     | 0.38.1 | One module, one state per environment (production/test); shared ACM + CSP SSM; `tf.sh` wrapper; standardized tags | September 18, 2026 |
     | 0.41.0 | Test site CSP switched to restricted; frame-src for Turnstile | September 28, 2026 |
-- **Last Updated**: September 28, 2026
+    | 0.41.2 | Production site CSP switched to restricted | September 29, 2026 |
+- **Last Updated**: September 29, 2026
 - **Status**: Complete ✅
 
 

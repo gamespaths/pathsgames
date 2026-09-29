@@ -1,12 +1,12 @@
 # Step 41 — Alpha preparation
 
-**Status: patch 1 of 3 developed (v0.41.0, September 28, 2026) — security (C), AWS admin
-allow-list (D) and guest cleanup/limits (E), plus the CI dependency scan and the test CSP.
-Patch 2 (v0.41.1) developed: logging (A) and snapshots (B), unit tests green, Robot only
-dry-run (the owner runs the targets); KPI (F, 0.41.2) still planned (§8.1 decision 15).**
+**Status: DEVELOPED — all three patches shipped (v0.41.0, v0.41.1, v0.41.2, September 29,
+2026): security (C), AWS admin allow-list (D), guest cleanup/limits (E), logging gaps (A),
+match snapshots (B), KPI report (F) and the production website CSP switch. Unit tests and
+Robot green on all four targets (AWS, Java, Java+PostgreSQL, Python — 814 Robot tests).**
 Roadmap line: *logging and snapshots, security, admin IP protection, guest cleanup and limits,
 KPI report* ([Roadmap](./Roadmap.md) step 41; the test certificate moved to V1 step 41). Touches the three backends,
-react-admin (guest-list toggle), react-game (rate-limit message, CSP-safe consent script),
+react-admin (guest-list toggle, Reports page), react-game (rate-limit message, CSP-safe consent script),
 scripts, a CI workflow, Terraform, docs.
 
 ## Development notes 0.41.0
@@ -53,6 +53,73 @@ development:
 The next two patches (owner decisions 15, 16, 21): **0.41.1** — logging gaps (A) and match
 snapshots (B), its own `system_snapshot`/migration; **0.41.2** — KPI report (F) and the
 production website CSP switch to `restricted` (§6.7).
+
+## Development notes 0.41.1
+
+Unit tests green (Java 1312, Python 1908, AWS 1232, react-admin 887, react-game 1491); Robot
+green on all four targets (AWS, Java, Java+PostgreSQL, Python), 808 tests, 0 failed. Deltas
+against §2/§3/§6 below, found during development:
+
+- **AWS log cut by seq, not `logSk`.** §6.3 describes the restore cut as "delete `LOG#`/`AUDIT#`
+  rows above `logSk`"; the shipped code compares the stored `logSeq` integer instead — `logSk`
+  is a composite sort key (`ts_ms#seq`) and a later request can get an earlier timestamp under
+  clock skew, so the numeric sequence is the only monotonic field. `logSeq` is never lowered by
+  a restore, so a second restore to an earlier snapshot still cuts correctly.
+- **Restore deletes later snapshots too**, on all three backends (not only the log rows above
+  the mark): restoring to clock N removes every `SNAPSHOT#` row/`system_snapshot` record with a
+  higher clock, so the pruning window (`SNAPSHOT_KEEP_PER_MATCH`) stays meaningful after a
+  restore instead of counting branches that no longer exist.
+- **Python snapshot payload has no active-choices section.** Python never persisted
+  `gaming_active_choices` as a distinct table (choices live inside the character/registry rows
+  it does keep), so its payload omits the `activeChoices` block Java/AWS write; restore rebuilds
+  the same match state without it, confirmed by the parity Robot cases.
+- **`logCount` semantics differ per backend.** Java/Python count all `log_*` table rows for the
+  match (every audit table, not only the ones the timeline renders); AWS counts the timeline
+  total already exposed by `logbook` (`LOG#` rows), because `AUDIT#` items are not
+  individually addressable. Admins comparing the number across backends should expect Java/Python
+  to read higher for the same match.
+- **AWS may write two `AUDIT#` rows per time-end request.** One `_advance_time` call can now
+  produce both an `EDGE_STATE` audit entry (coma/overflow) and the pre-existing time-end audit
+  entry in the same request when a character crosses into coma exactly at time-end; both share
+  the request's timestamp prefix but get distinct sequence numbers.
+- **Java snapshot store uses `JdbcTemplate`**, not a JPA entity/repository as §3/§6.1 said: the
+  `jsonb_data` column and the restore's bulk child-row replace read more naturally as hand-written
+  SQL than as a mapped entity graph; `SnapshotService` still sits behind `SnapshotPort` like every
+  other port.
+
+## Development notes 0.41.2
+
+Unit tests green (Java 1329, Python 1947, AWS 1249, react-admin 899, react-game 1491); Robot
+green on AWS, Java, Java+PostgreSQL, Python on September 29, 2026 (814 tests, 0 failed).
+Production CSP (`paths.games/?stay`) checked by the owner in the browser after `terraform
+apply`. Deltas against §2/§3/§5/§6 below, found during development:
+
+- **First visit reads the `flag_visited` transition, not a logbook helper.** §6.3 said
+  `LOCATION_VISIT` hooks `logbook._visit`; the shipped code counts a `LOCATION_VISIT` KPI on the
+  same 0→1 `flag_visited` edge that `LocationEntryStoreAdapter`/`_event_location` already gate on
+  Java/Python/AWS — the start location, seeded `flag_visited=1`, is never counted, on all three
+  backends alike.
+- **`gaming_match.timestamp_start`** (AWS `timestampStartMs`) is a new column/attribute stamped
+  when a match moves to `RUNNING`, used only for `avgDurationMinutes`/`avgDurationClocks`; a
+  match created before this patch has no value, so its duration falls back to the row's creation
+  timestamp — durations for those older matches are therefore approximate.
+- **AWS "all stories" scope differs from Java/Python.** With no `storyUuid`, AWS sums one Query
+  per entry of the `STORY_LIST` GSI2 partition, so a deleted story's counters drop out of the
+  total; Java/Python sum every `system_kpi_daily` row regardless of whether `list_stories` still
+  has that uuid, so counters of a deleted story keep counting there. The Reports page help text
+  does not call this out; flagged, not fixed.
+- **Mission counting**: `MissionService`/`missions.py` write `MISSION_ACTIVE`/`_COMPLETED`/
+  `_FAILED` once per transition only; `AVAILABLE` is never counted (matches §1 finding F); a
+  mission with no steps skips `ACTIVE` and goes straight to `MISSION_COMPLETED`.
+- **Production CSP extras beyond §8.1 decision 21's plan**: `production.tfvars` needed
+  `connect = ["cdn.jsdelivr.net"]` (Bootstrap's source-map fetch, harmless but logged by the
+  browser as a CSP violation without it) and `img = ["unsplash.com"]` (the landing page hero),
+  the same two additions `test.tfvars` already carried for react-game's location art; the static
+  site itself (`code/website/html/`) has no inline scripts, so no other change was needed there.
+- KPI counters are best effort (a write failure is logged, never fails the action) and are not
+  rolled back by a snapshot restore (§8.1 decision 44): a restored match that reaches the end a
+  second time counts a second `MATCH_COMPLETED`/duration/etc.; an admin stop never counts. The
+  Reports page help text says so.
 
 ## 1. Scope
 
@@ -574,15 +641,17 @@ local server started by hand gets the new non-zero defaults unless `.env` sets t
 None: the analysis is closed and the step is ready for development (three patches, decision 15).
 
 # Version Control
-- **Document Version**: 0.41.0
+- **Document Version**: 0.41.2
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First analysis of the alpha preparation step, owner answers | September 27, 2026 |
   | 0.41.0 | Owner decisions completed; patch 1 (security, guests, CI) developed | September 28, 2026 |
+  | 0.41.1 | Patch 2 developed: logging and match snapshots | September 29, 2026 |
+  | 0.41.2 | Patch 3 developed: KPI report, production CSP restricted | September 29, 2026 |
 
-- **Last Updated**: September 28, 2026 (v0.41.0)
-- **Status**: Patch 1 of 3 developed (security, allow-list, guests, CI scan, test CSP); logging, snapshots and KPI pending (0.41.1/0.41.2)
+- **Last Updated**: September 29, 2026 (v0.41.2)
+- **Status**: DEVELOPED — all three patches shipped (security, allow-list, guests, CI scan, test CSP, logging, snapshots, KPI report, production CSP)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

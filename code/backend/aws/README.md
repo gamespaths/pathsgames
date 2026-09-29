@@ -22,7 +22,7 @@ The infrastructure is built entirely on managed AWS services:
 | Lambda Echo | `pathsgames-<env>-EchoFunction` | Health check (`GET /api/echo/status`) |
 | Lambda Auth | `pathsgames-<env>-AuthFunction` | Guest + admin authentication (11 routes) |
 | Lambda Story | `pathsgames-<env>-StoryFunction` | Story catalog + admin + content (9 routes); story detail includes resolved `card` objects on difficulties, classes, character templates and traits |
-| Lambda Match | `pathsgames-<env>-MatchFunction` | Match creation and listing (`POST /api/matches`, `GET /api/matches`, `GET /api/match/{uuid}/info`, `GET /api/admin/matches` with pagination & filters) |
+| Lambda Match | `pathsgames-<env>-MatchFunction` | Match creation and listing (`POST /api/matches`, `GET /api/matches`, `GET /api/match/{uuid}/info`, `GET /api/admin/matches` with pagination & filters); v0.41.1 admin snapshot routes (list, check, restore); v0.41.2 `GET /api/admin/reports/kpi` |
 | Lambda Content | `pathsgames-<env>-ContentFunction` | Content detail: cards, texts, creators (3 routes) |
 | Lambda Seed | `pathsgames-<env>-SeedFunction` | Dev-only: inserts test data (stories, cards) |
 | Lambda AdminIpAuthorizer | `pathsgames-<env>-AdminIpAuthorizer` | REQUEST authorizer (no caching) gating the admin HTTP API by source IP |
@@ -135,6 +135,8 @@ All entities coexist in the same table using a prefix for differentiation:
 | **Turn** | `MATCH#<uuid>` | `TURN#<characterUuid>` | — | — | — |
 | **Log entry** | `MATCH#<uuid>` | `LOG#{ts_ms:013d}#{seq:06d}` | — | — | — |
 | **Audit row** | `MATCH#<uuid>` | `AUDIT#{ts_ms:013d}#{seq:06d}` (one per request, entries in `rows`) | — | — | — |
+| **Snapshot** (v0.41.1) | `MATCH#<uuid>` | `SNAPSHOT#{clock:06d}#{ts_ms:013d}` (gzipped payload, `checksum`, `logSk`, `logSeq`) | — | — | — |
+| **KPI day** (v0.41.2) | `KPI#<storyUuid>` | `DAY#YYYY-MM-DD` (flat counters, one `UpdateItem ADD` per request) | — | — | — |
 | **Cache stamp** | `SYSTEM#cache` | `METADATA` | — | — | — |
 
 ### v0.37.5 — cost layout: log rows, gzipped stories, one write per request, INCLUDE indexes
@@ -259,6 +261,60 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 ---
 
 ## 📝 Changelog
+
+### v0.41.2 — Alpha preparation patch 3: KPI report, production CSP
+
+- **KPI counters**: `common/kpi.py` accumulates deltas per request and flushes them with one
+  `UpdateItem ADD` on a `KPI#<storyUuid>`/`DAY#YYYY-MM-DD` item (best effort, a failure is
+  logged and never fails the action); hooked into `_start_match`, `_end_match`, the coma
+  `EDGE_STATE`, `_resolve_choice`, the `flag_visited` 0→1 transition (never the start location)
+  and `missions.py` transitions (`AVAILABLE` not counted; a mission without steps goes straight
+  to `MISSION_COMPLETED`). Counters are not rolled back by a snapshot restore: a restored match
+  that ends again counts again, an admin stop never counts.
+- **Report route**: `GET /api/admin/reports/kpi?storyUuid&from&to&groupBy` (`day` default /
+  `month` / `total`, UTC dates, default last 30 days, max 366) in `match/handler.py` — one Query
+  on `KPI#<story>` between two `DAY#` keys, or one Query per `STORY_LIST` entry when no
+  `storyUuid` is given (so a deleted story's counters drop out of the "all stories" total, unlike
+  Java/Python which keep summing them). Half-up rounding (completion rate 4 decimals, averages
+  2 decimals).
+- **New column**: `gaming_match.timestamp_start` (`timestampStartMs` on AWS) stamped when a
+  match starts, used for `avgDurationMinutes`/`avgDurationClocks`; older matches fall back to
+  their creation timestamp.
+- **Production CSP**: `code/website/terraform-aws/environments/production.tfvars` switched to
+  `csp_mode = "restricted"`, adding `connect = ["cdn.jsdelivr.net"]` and
+  `img = ["unsplash.com"]` to its `csp_extra_domains` — checked by the owner in the browser
+  after `terraform apply`.
+- No DynamoDB GSI or attribute-definition change. Unit tests: 1249 pass
+  (`tests/test_step41_kpi.py` new).
+
+### v0.41.1 — Alpha preparation patch 2: logging gaps, match snapshots
+
+- **Logging gaps**: `_pass_turn` writes `PASS`; edge states get an `EDGE_STATE` `LOG#` row
+  beside the existing audit entry; RECOVERY rows now also written at time-start (parity with
+  Java/Python); trait grant/remove writes `TRAIT_CHANGE`; `MATCH_LIFECYCLE`
+  `CREATED`/`STARTED`/`ENDED` in `_create_match`/`_start_match`/`_end_match`; `ADMIN_ACTION` in
+  every admin route (an admin stop logs `STOP`, not `ENDED`). Admin match info exposes
+  `logCount` (the timeline total, since `AUDIT#` items are not individually addressable — Java
+  and Python count every `log_*` row instead, so the same match reads higher there). A WARN
+  JSON line fires when `logCount` crosses `LOG_WARN_ROWS` or the METADATA item passes
+  `LOG_WARN_METADATA_KB` — check only, no cap. Bug fix: `traitsToAdd` of a chained/automatic/
+  choice-linked event is now applied (it used to be silently dropped).
+- **Match snapshots**: `lambda/match/snapshots.py` builds a gzipped `SNAPSHOT#` item at the
+  start of `_advance_time`, before the clock moves (sleep path and `_force_time_end_news`; the
+  choice markers were already set before this point), saved through `repo.save` in the same
+  flush, pruned beyond `SNAPSHOT_KEEP_PER_MATCH` (default 10, 0 = off). Three new admin routes
+  in `template/match.yaml`: list, check (`SnapshotCheck`), restore. Restore checks the payload,
+  overwrites METADATA/`CHARACTER#`/`TURN#` rows, deletes `LOG#`/`AUDIT#` rows **above the
+  stored `logSeq`** (not the composite `logSk`, which can tie under clock skew — a later
+  request can get an earlier timestamp than one already written), deletes snapshots newer than
+  the restored one, writes `ADMIN_ACTION SNAPSHOT_RESTORED`, re-runs the time-start at once
+  (new clock, no new snapshot), and leaves the match `PAUSED`. A single request can now write
+  two `AUDIT#` rows (an `EDGE_STATE` entry plus the existing time-end entry) when a character
+  falls into coma exactly at time-end. A failed snapshot write is logged as a WARN only, never
+  fails the request.
+- No DynamoDB GSI or attribute-definition change. New env keys `LOG_WARN_ROWS` (default 5000),
+  `LOG_WARN_METADATA_KB` (default 300), `SNAPSHOT_KEEP_PER_MATCH` (default 10). Unit tests:
+  1232 pass (`test_step41_alpha_prep.py` extended for snapshots and the new log types).
 
 ### v0.41.0 — Alpha preparation patch 1: security, admin allow-list, guest cleanup
 

@@ -193,6 +193,9 @@ class _TurnStore:
     def update_match_status_and_turn(self, id_match, status, current):
         pass
 
+    def stamp_match_start(self, id_match):
+        pass
+
     def find_user_id_by_uuid(self, user_uuid):
         return USER_ID
 

@@ -2,6 +2,7 @@ package games.paths.core.service.match;
 
 import games.paths.core.port.match.EdgeStateStorePort;
 import games.paths.core.port.match.EventExecutionPort.EdgeStateOutcome;
+import games.paths.core.port.match.KpiPort;
 import games.paths.core.port.match.LocationEntryPort;
 import games.paths.core.port.match.LocationEntryPort.PendingAutomaticEvent;
 import games.paths.core.port.match.RecoveryStorePort;
@@ -51,10 +52,16 @@ public class TimeStartRecoveryService {
 
     private final RecoveryStorePort store;
     private final EdgeStateStorePort edgeStore;
+    /** v0.41.2 - COMA counter; null in the older tests. */
+    private KpiPort kpi;
 
     public TimeStartRecoveryService(RecoveryStorePort store, EdgeStateStorePort edgeStore) {
         this.store = store;
         this.edgeStore = edgeStore;
+    }
+
+    public void setKpi(KpiPort kpi) {
+        this.kpi = kpi;
     }
 
     /**
@@ -163,7 +170,7 @@ public class TimeStartRecoveryService {
             store.logRecovery(idMatch, c.id(),
                     "recovery safe=" + safe + " p=" + p
                             + " dEnergy=" + energyDelta + " dLife=" + lifeDelta + " dSad=" + sadDelta);
-            EdgeStateEvaluator.persist(edgeStore, idMatch, verdict, ctx.currentClock(), null);
+            EdgeStateEvaluator.persist(edgeStore, kpi, idMatch, verdict, ctx.currentClock(), null);
             recaps.add(new RecoveryRecap(c.uuid(), energyDelta, lifeDelta, sadDelta));
             if (verdict.sadnessOverflow()) {
                 overflowed.add(c.uuid());

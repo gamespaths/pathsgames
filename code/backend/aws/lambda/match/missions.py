@@ -16,6 +16,7 @@ import uuid as _uuid
 
 from common.data_utils import resolve_card_from_raw as _card, resolve_raw_text as _text
 from common.data_utils import safe_int as _int
+from common import kpi as _kpi
 from match import registry as _registry
 from match import logbook as _logbook
 
@@ -104,6 +105,7 @@ def on_story_end(match, story=None):
             id_mission = _int(row.get('idMission'))
             _log(match, uuids.get(id_mission, id_mission), previous, STATUS_FAILED, None,
                  row.get('clock'))
+            _kpi.mission(match.get('storyUuid'), uuids.get(id_mission, id_mission), previous, STATUS_FAILED)
 
 
 def _advance(match, mission, steps, values, state, clock):
@@ -169,6 +171,8 @@ def _write(match, mission, state, previous, status, reached, closed_steps, fresh
     state['clock'] = clock
     for step in _rows_of(closed_steps, status, fresh):
         _log(match, mission.get('uuid') or mission.get('id'), previous, status, step, clock)
+    # v0.41.2 — one KPI per status change into ACTIVE, COMPLETED or FAILED.
+    _kpi.mission(match.get('storyUuid'), mission.get('uuid') or mission.get('id'), previous, status)
 
 
 def _log(match, name, previous, status, step, clock):

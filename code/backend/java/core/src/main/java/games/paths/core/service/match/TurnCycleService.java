@@ -2,6 +2,7 @@ package games.paths.core.service.match;
 
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.TurnStatuses;
+import games.paths.core.port.match.KpiPort;
 import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.TurnCyclePort;
 import games.paths.core.port.match.TurnCycleStorePort;
@@ -32,6 +33,8 @@ public class TurnCycleService implements TurnCyclePort {
     private final RegistryService registryService;
     /** v0.41.1 - MATCH_STARTED and ACTION_PASS rows; null in the older tests. */
     private MatchLogWriterPort logWriter;
+    /** v0.41.2 - MATCH_STARTED counter; null in the older tests. */
+    private KpiPort kpi;
 
     public TurnCycleService(TurnCycleStorePort store, UserAccessPort userAccessPort) {
         this(store, userAccessPort, null);
@@ -55,6 +58,10 @@ public class TurnCycleService implements TurnCyclePort {
 
     public void setLogWriter(MatchLogWriterPort logWriter) {
         this.logWriter = logWriter;
+    }
+
+    public void setKpi(KpiPort kpi) {
+        this.kpi = kpi;
     }
 
     @Override
@@ -89,6 +96,10 @@ public class TurnCycleService implements TurnCyclePort {
 
         store.replaceQueue(match.id(), rows);
         store.updateMatchStatusAndTurn(match.id(), MatchStatuses.RUNNING, top.idCharacterMatch());
+        store.stampMatchStart(match.id());
+        if (kpi != null) {
+            kpi.recordForMatch(match.id(), KpiPort.Metric.MATCH_STARTED, null, 1);
+        }
         // v0.41.1 - before the weather, so the timeline opens with the start.
         if (logWriter != null) {
             logWriter.write(match.id(), null, null, match.currentClock(),

@@ -37,6 +37,8 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.longThat;
 import static org.mockito.Mockito.*;
 
 /**
@@ -973,6 +975,63 @@ class MatchCommandServiceTest {
             service.endMatch("m1", "ev", "u");
 
             verify(writer).write(8L, null, null, 3, "MATCH_ENDED");
+        }
+
+        private games.paths.core.port.match.KpiPort endWithKpi(GamingMatchEntity match) {
+            games.paths.core.port.match.KpiPort kpi = mock(games.paths.core.port.match.KpiPort.class);
+            service.setKpi(kpi);
+            StoryEntity story = storyWithEndEvent(2L, 50);
+            story.setUuid("story-uuid");
+            when(persistencePort.findMatchByUuid("m1")).thenReturn(Optional.of(match));
+            when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(activeUser()));
+            when(storyReadPort.findStoryById(2L)).thenReturn(Optional.of(story));
+            when(storyReadPort.findEventByStoryIdAndUuid(2L, "ev")).thenReturn(Optional.of(event(50L, "ev")));
+            service.endMatch("m1", "ev", "u");
+            return kpi;
+        }
+
+        @Test
+        @DisplayName("v0.41.2 - the story end counts MATCH_COMPLETED and both durations")
+        void completionKpi() {
+            GamingMatchEntity match = ownedMatch(2L);
+            match.setCurrentClock(4);
+            match.setTimestampStart(java.time.Instant.now().minusSeconds(120).toString());
+
+            games.paths.core.port.match.KpiPort kpi = endWithKpi(match);
+
+            verify(kpi).record("story-uuid", games.paths.core.port.match.KpiPort.Metric.MATCH_COMPLETED, null, 1);
+            verify(kpi).record(eq("story-uuid"), eq(games.paths.core.port.match.KpiPort.Metric.DURATION_MS), isNull(),
+                    longThat(ms -> ms >= 120_000L && ms < 180_000L));
+            verify(kpi).record("story-uuid", games.paths.core.port.match.KpiPort.Metric.DURATION_CLOCKS, null, 4);
+        }
+
+        @Test
+        @DisplayName("v0.41.2 - without a start stamp the duration runs from the creation; a bad stamp skips it")
+        void completionKpiFallbacks() {
+            GamingMatchEntity match = ownedMatch(2L);
+            match.setTsInsert(java.time.Instant.now().minusSeconds(60).toString());
+            games.paths.core.port.match.KpiPort kpi = endWithKpi(match);
+            verify(kpi).record(eq("story-uuid"), eq(games.paths.core.port.match.KpiPort.Metric.DURATION_MS), isNull(),
+                    longThat(ms -> ms >= 60_000L));
+
+            GamingMatchEntity bad = ownedMatch(2L);
+            bad.setTimestampStart("not-a-date");
+            games.paths.core.port.match.KpiPort other = endWithKpi(bad);
+            verify(other, never()).record(any(), eq(games.paths.core.port.match.KpiPort.Metric.DURATION_MS), any(),
+                    anyLong());
+            assertNull(MatchCommandService.millisSince(null));
+            assertNull(MatchCommandService.millisSince(" "));
+        }
+
+        @Test
+        @DisplayName("v0.41.2 - ending a match already over counts nothing")
+        void completionKpiOnlyOnce() {
+            GamingMatchEntity match = ownedMatch(2L);
+            match.setStatus("ENDED");
+
+            games.paths.core.port.match.KpiPort kpi = endWithKpi(match);
+
+            verifyNoInteractions(kpi);
         }
     }
 

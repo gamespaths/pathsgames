@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Paths Games — Step 41 alpha preparation (patches 0.41.0, 0.41.1)
+  title: Paths Games — Step 41 alpha preparation (patches 0.41.0, 0.41.1, 0.41.2)
   description: |
     v0.41.0 — security, admin allow-list and guests. 0.41.1 (logging, snapshots) and
     0.41.2 (KPI report) extend this file.
@@ -66,7 +66,20 @@ info:
     A daily job (00:42 UTC, `GUEST_CLEANUP_ENABLED` / `GUEST_CLEANUP_AGE_DAYS` 60 /
     `GUEST_CLEANUP_MAX_PER_RUN` 500) deletes the guests idle for N days that nothing
     references — the same call as `DELETE /api/admin/guests/stale?withoutMatches=true`.
-  version: 0.41.1
+
+    **KPI (0.41.2).** Daily UTC counters per story, written when the event happens, keyed by
+    uuids with no foreign key, best effort (a failed counter is logged and never fails the
+    action): `MATCH_STARTED` (`POST /api/matches/{uuid}/start`), `MATCH_COMPLETED` with the
+    duration in ms (from the start stamp, else the creation) and in clocks (story end reached,
+    once per match status: the admin stop is an `ADMIN_ACTION STOP`, not a completion), `COMA`
+    (each character falling into coma), `CHOICE` (per choice uuid), `LOCATION_VISIT` (first
+    visit of a location in a match, per location uuid; the start location is never counted) and
+    `MISSION_ACTIVE` / `MISSION_COMPLETED` / `MISSION_FAILED` (every status change into it, per
+    mission uuid). Java/Python: table `system_kpi_daily` (`INSERT … ON CONFLICT … DO UPDATE SET
+    value = value + delta`); AWS: item `KPI#<storyUuid>` / `DAY#YYYY-MM-DD` with flat counters,
+    one `UpdateItem ADD` per request. A snapshot restore does not roll counters back: a restored
+    match that ends again counts again.
+  version: 0.41.2
 servers:
   - url: /
 paths:
@@ -393,6 +406,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SnapshotIntegrityFailed'
+  /api/admin/reports/kpi:
+    get:
+      tags: [admin-reports]
+      summary: KPI report per story, grouped by day, month or total (v0.41.2)
+      description: |
+        UTC dates `YYYY-MM-DD`; `to` defaults to today, `from` to 29 days before `to`; at most
+        366 days. Without `storyUuid` every story is summed (AWS: the stories of the STORY_LIST
+        index). `rows` has one entry per period of the range, zeros included; `choices`,
+        `locations` and `missions` cover the whole range, named by uuid (the console resolves
+        the names from the story).
+      operationId: getKpiReportV0412
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: storyUuid
+          required: false
+          schema: { type: string }
+        - in: query
+          name: from
+          required: false
+          schema: { type: string, format: date, example: '2026-09-01' }
+        - in: query
+          name: to
+          required: false
+          schema: { type: string, format: date, example: '2026-09-29' }
+        - in: query
+          name: groupBy
+          required: false
+          schema:
+            type: string
+            enum: [day, month, total]
+            default: day
+      responses:
+        '200':
+          description: The report.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KpiReport'
+        '400':
+          description: INVALID_INPUT — a bad date, `from` after `to`, more than 366 days or a bad `groupBy`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 components:
   securitySchemes:
     bearerAuth:
@@ -556,6 +617,65 @@ components:
           items:
             $ref: '#/components/schemas/SnapshotCheckError'
         timestamp: { type: integer, format: int64 }
+    KpiRow:
+      type: object
+      required: [period, matchesStarted, matchesCompleted, comaCount]
+      properties:
+        period:
+          type: string
+          description: '`YYYY-MM-DD` (day), `YYYY-MM` (month) or `total`.'
+        matchesStarted: { type: integer, format: int64 }
+        matchesCompleted: { type: integer, format: int64 }
+        completionRate:
+          type: number
+          nullable: true
+          description: completed / started, 4 decimals (HALF_UP); null when nothing started.
+        avgDurationMinutes:
+          type: number
+          nullable: true
+          description: 2 decimals; null when nothing completed.
+        avgDurationClocks:
+          type: number
+          nullable: true
+          description: 2 decimals; null when nothing completed.
+        comaCount: { type: integer, format: int64 }
+    KpiCount:
+      type: object
+      required: [uuid, count]
+      properties:
+        uuid: { type: string }
+        count: { type: integer, format: int64 }
+    KpiMission:
+      type: object
+      required: [uuid, activated, completed, failed]
+      properties:
+        uuid: { type: string }
+        activated: { type: integer, format: int64, description: Transitions into ACTIVE. }
+        completed: { type: integer, format: int64 }
+        failed: { type: integer, format: int64 }
+    KpiReport:
+      type: object
+      required: [from, to, groupBy, rows, choices, locations, missions]
+      properties:
+        storyUuid: { type: string, nullable: true, description: null = every story summed. }
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        groupBy: { type: string, enum: [day, month, total] }
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/KpiRow' }
+        choices:
+          type: array
+          description: Most chosen first, then by uuid.
+          items: { $ref: '#/components/schemas/KpiCount' }
+        locations:
+          type: array
+          description: Most visited first, then by uuid.
+          items: { $ref: '#/components/schemas/KpiCount' }
+        missions:
+          type: array
+          description: Ordered by uuid.
+          items: { $ref: '#/components/schemas/KpiMission' }
     StaleGuestsSummary:
       type: object
       required: [guests, matches]

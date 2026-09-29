@@ -761,4 +761,60 @@ class MissionServiceTest {
             assertDoesNotThrow(() -> service.onRegistryChange(MATCH, STORY, null));
         }
     }
+
+    // ── v0.41.2 KPI ────────────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("v0.41.2 - the mission KPI counters")
+    class Kpi {
+
+        private final games.paths.core.port.match.KpiPort kpi = mock(games.paths.core.port.match.KpiPort.class);
+
+        @BeforeEach
+        void wire() {
+            service.setKpi(kpi);
+        }
+
+        @Test
+        @DisplayName("a status change into ACTIVE counts; a step inside ACTIVE does not")
+        void activeOnce() {
+            story(List.of(mission(1, "k", "1", null)),
+                    List.of(step(10, 1, 1, "k", "1", null), step(11, 1, 2, "s2", "1", null),
+                            step(12, 1, 3, "s3", "1", null)));
+            registry("k", "1");
+            service.onRegistryChange(MATCH, STORY, 1);
+            verify(kpi).recordForMatch(MATCH, games.paths.core.port.match.KpiPort.Metric.MISSION_ACTIVE, "m-1", 1);
+
+            registry("k", "1", "s2", "1");
+            states(new MissionStateRow(1L, 10L, MissionService.STATUS_ACTIVE));
+            service.onRegistryChange(MATCH, STORY, 2);
+            verifyNoMoreInteractions(kpi);
+        }
+
+        @Test
+        @DisplayName("a mission without steps goes straight to COMPLETED; AVAILABLE counts nothing")
+        void completedAndAvailable() {
+            story(List.of(mission(1, "k", "1", null), mission(2, "q", "1", null)),
+                    List.of(step(20, 2, 1, "never", "1", null)));
+            registry("k", "1", "q", "1");
+
+            service.onRegistryChange(MATCH, STORY, 1);
+
+            verify(kpi).recordForMatch(MATCH, games.paths.core.port.match.KpiPort.Metric.MISSION_COMPLETED, "m-1", 1);
+            verify(kpi, never()).recordForMatch(eq(MATCH), any(), eq("m-2"), anyLong());
+        }
+
+        @Test
+        @DisplayName("the story end counts one MISSION_FAILED per mission still open")
+        void failedAtTheEnd() {
+            story(List.of(mission(1, "k", "1", null)), List.of());
+            states(new MissionStateRow(1L, null, MissionService.STATUS_ACTIVE),
+                    new MissionStateRow(3L, 30L, MissionService.STATUS_COMPLETED));
+
+            service.onStoryEnd(MATCH);
+
+            verify(kpi).recordForMatch(MATCH, games.paths.core.port.match.KpiPort.Metric.MISSION_FAILED, "m-1", 1);
+            verifyNoMoreInteractions(kpi);
+        }
+    }
 }

@@ -130,10 +130,14 @@ dynamically per `csp_mode`:
   environment's own `csp_extra_domains` |
 
 **Since v0.41.0**, `test.paths.games` runs `csp_mode = "restricted"` (`environments/test.tfvars`),
-with `csp_extra_domains` extending `img` (Unsplash location art) and `frame` (the Cloudflare
-Turnstile widget) — `cloudfront.tf` only emits a `frame-src` directive when that list is
-non-empty. `production.tfvars` stays `open` until 0.41.2, once test shows no CSP error in the
-browser console.
+with `csp_extra_domains` extending `connect` (test API hosts, `cdn.jsdelivr.net`), `script`
+(Cloudflare Turnstile), `img` (Unsplash location art) and `frame` (the Turnstile widget) —
+`cloudfront.tf` only emits a `frame-src` directive when that list is non-empty. **Since v0.41.2**,
+`paths.games` (`environments/production.tfvars`) also runs `csp_mode = "restricted"`, with
+`csp_extra_domains` adding `connect = ["cdn.jsdelivr.net"]` (Bootstrap source maps) and
+`img = ["unsplash.com"]` (the landing page hero); the static site has no inline scripts, so no
+other change was needed. Checked by the owner in the browser (`paths.games/?stay`) after
+`terraform apply`.
 
 An optional **WAF v2** (`enable_waf`, off by default to save cost) adds rate limiting (1000
 req/5min per IP) and AWS Managed Rules (OWASP Top 10, known bad inputs). See
@@ -172,14 +176,15 @@ across environments.
   `PATH` and exits 2 with install instructions if not).
 
 # Version Control
-- **Document Version**: 0.41.0
+- **Document Version**: 0.41.2
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First shared write-up of every security control in one place | September 25, 2026 |
   | 0.41.0 | API headers, allow-list default, guest limits, dependency scan | September 28, 2026 |
+  | 0.41.2 | Production website CSP switched to restricted | September 29, 2026 |
 
-- **Last Updated**: September 28, 2026 (v0.41.0)
+- **Last Updated**: September 29, 2026 (v0.41.2)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

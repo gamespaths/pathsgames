@@ -31,6 +31,7 @@ from app.core.models.match.event_models import (
     ChoiceResolutionResult, EdgeStateOutcome, EntityChange, EventCheckContext, EventError,
     EventExecutionResult, LocationChange, RegistryChange, StatChange,
 )
+from app.core.ports.match import kpi_ports
 from app.core.ports.match import log_writer_ports as lw
 from app.core.ports.match.edge_state_ports import MSG_ALL_PLAYER_COMA, EdgeStateStorePort
 from app.core.ports.match.event_ports import (
@@ -183,6 +184,10 @@ class EventService(EventPort):
     def set_log_writer(self, log_writer) -> None:
         """v0.41.1 — the TRAIT_ADD / TRAIT_REMOVE rows; unset in the older tests."""
         self.log_writer = log_writer
+
+    def set_kpi(self, kpi) -> None:
+        """v0.41.2 — COMA, CHOICE and LOCATION_VISIT counters; unset in the older tests."""
+        self.kpi = kpi
 
     def _log_trait(self, x: "_Exec", recipient: Dict[str, Any], id_trait: int, id_event,
                    prefix: str) -> None:
@@ -578,6 +583,8 @@ class EventService(EventPort):
         if (choice.get("is_progress") or 0) == 1:
             self.store.insert_story_progress(x.match["id"], event_id, choice_id, x.current_clock)
             x.progress_recorded = True
+        if getattr(self, "kpi", None) is not None:
+            self.kpi.record_for_match(x.match["id"], kpi_ports.CHOICE, choice.get("uuid"), 1)
 
     def _build_pending_choices(self, x: "_Exec",
                                choices: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -1064,7 +1071,7 @@ class EventService(EventPort):
             if v.forced_sleep and x.is_actor(live.id):
                 x.forced_sleep = True
             edge_state_evaluator.persist(self.edge_store, x.match["id"], v, x.current_clock,
-                                         id_event)
+                                         id_event, getattr(self, "kpi", None))
 
     def _resolve_all_player_coma(self, x: "_Exec") -> None:
         """The all-players-in-coma epilogue: run the story's id_event_all_player_coma so the
@@ -1296,7 +1303,9 @@ class EventService(EventPort):
                     lem.TRIGGER_MOVE_INTO_EMPTY_LOCATION, current_clock, lang, True, depth, out)
             self._write_arrival_registry(id_match, id_story, id_character, triggers, visited,
                                          current_clock)
-        self.location_store.mark_state_location_visited(id_match, id_location)
+        latched = self.location_store.mark_state_location_visited(id_match, id_location)
+        if latched is True and getattr(self, "kpi", None) is not None:
+            self.kpi.record_location_visit(id_match, id_story, id_location)
 
     def _write_arrival_registry(self, id_match, id_story, id_character, triggers, visited,
                                 current_clock) -> None:

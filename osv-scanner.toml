@@ -1,0 +1,12 @@
+# USED BY GITHUB ACTIONS OSV-Scanner 
+# "Security and quality" > "Dependabot" > "Code security and analysis"/"Advanced Security"
+
+
+
+# v0.41.0 — OSV-Scanner config shared by .github/workflows/dependency-scan.yml and code/scripts/dev/run_dependency_scan.sh.
+# Every accepted vulnerability needs its own [[IgnoredVulns]] entry with a reason and an expiry date.
+
+# [[IgnoredVulns]]
+# id = "GHSA-xxxx-xxxx-xxxx"              # OSV / GHSA / CVE id from the scan report
+# ignoreUntil = 2026-12-31                # TOML date: the finding comes back after this day
+# reason = "Dev-only dependency, not shipped in any image; fix planned in 0.42"

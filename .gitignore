@@ -52,8 +52,6 @@ target/
 
 .alnao/
 
-osv-scanner.toml
-
 #AWS
 .aws-sam/
 .aws-sam-cli-managed-default/

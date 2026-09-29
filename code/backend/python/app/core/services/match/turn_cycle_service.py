@@ -9,6 +9,7 @@ from app.core.models.match.turn_models import (
     TurnEntry,
     TurnSequenceResult,
 )
+from app.core.ports.match import kpi_ports
 from app.core.ports.match import log_writer_ports as lw
 from app.core.ports.match.turn_ports import TurnCyclePort, TurnCycleStorePort
 
@@ -23,9 +24,14 @@ class TurnCycleService(TurnCyclePort):
         self.registry_service = registry_service
         # v0.41.1 — MATCH_STARTED and ACTION_PASS rows; None in the older tests.
         self.log_writer = None
+        # v0.41.2 — MATCH_STARTED counter; None in the older tests.
+        self.kpi = None
 
     def set_log_writer(self, log_writer) -> None:
         self.log_writer = log_writer
+
+    def set_kpi(self, kpi) -> None:
+        self.kpi = kpi
 
     # ── public API ──────────────────────────────────────────────────────────
 
@@ -55,6 +61,9 @@ class TurnCycleService(TurnCyclePort):
         self.store.replace_queue(match["id"], rows)
         top_id = rows[0]["id_character_match"]
         self.store.update_match_status_and_turn(match["id"], match_statuses.RUNNING, top_id)
+        self.store.stamp_match_start(match["id"])
+        if self.kpi is not None:
+            self.kpi.record_for_match(match["id"], kpi_ports.MATCH_STARTED, None, 1)
         # v0.41.1 — before the weather, so the timeline opens with the start.
         if self.log_writer is not None:
             self.log_writer.write(match["id"], None, None, match["current_clock"],

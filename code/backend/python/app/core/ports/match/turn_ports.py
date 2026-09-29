@@ -45,6 +45,10 @@ class TurnCycleStorePort(ABC):
                                      id_character_current_turn: Optional[int]) -> None:
         """Update gaming_match.status and gaming_match.id_character_current_turn."""
 
+    def stamp_match_start(self, id_match: int) -> None:
+        """v0.41.2 — gaming_match.timestamp_start when still empty; the KPI duration reads it."""
+        return None
+
     @abstractmethod
     def find_user_id_by_uuid(self, user_uuid: str) -> Optional[int]:
         """Resolve a user uuid to the internal users.id, or None."""

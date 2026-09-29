@@ -83,15 +83,16 @@ public class LocationEntryStoreAdapter implements LocationEntryStorePort {
     }
 
     @Override
-    public void markStateLocationVisited(long idMatch, long idLocation) {
-        stateLocationsRepository.findById(new GamingStateLocationsEntityId(idMatch, idLocation))
-                .ifPresent(s -> {
+    public boolean markStateLocationVisited(long idMatch, long idLocation) {
+        return stateLocationsRepository.findById(new GamingStateLocationsEntityId(idMatch, idLocation))
+                .map(s -> {
                     if (nz(s.getFlagVisited()) == 1) {
-                        return;
+                        return false;
                     }
                     s.setFlagVisited(1);
                     stateLocationsRepository.save(s);
-                });
+                    return true;
+                }).orElse(false);
     }
 
     @Override

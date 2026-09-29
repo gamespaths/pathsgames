@@ -32,6 +32,8 @@ class TimeStartRecoveryService:
     def __init__(self, store: TimeStorePort, edge_store: EdgeStateStorePort = None) -> None:
         self.store = store
         self.edge_store = edge_store
+        # v0.41.2 — COMA counter; None in the older tests.
+        self.kpi = None
 
     def apply_at_time_start(self, id_match: int) -> TimeStartOutcome:
         ctx = self.store.load_recovery_context(id_match)
@@ -120,7 +122,7 @@ class TimeStartRecoveryService:
                 id_match, c["id"],
                 f"recovery safe={safe} p={p} dEnergy={energy_delta} dLife={life_delta} dSad={sad_delta}",
             )
-            edge_state_evaluator.persist(self.edge_store, id_match, v, current_clock, None)
+            edge_state_evaluator.persist(self.edge_store, id_match, v, current_clock, None, self.kpi)
             recaps.append(RecoveryItem(c["uuid"], energy_delta, life_delta, sad_delta))
             # v0.35.6 — who the recovery pushed over an edge, so the sleep response can say so.
             if v.sadness_overflow:

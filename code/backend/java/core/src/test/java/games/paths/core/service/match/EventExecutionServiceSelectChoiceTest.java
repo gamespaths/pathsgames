@@ -983,4 +983,15 @@ class EventExecutionServiceSelectChoiceTest {
     void noTimeEndNoNews() {
         assertNull(resolve().execution().timeEnd());
     }
+
+    @Test
+    @DisplayName("v0.41.2 - a resolved choice counts one CHOICE KPI named by its uuid")
+    void choiceKpi() {
+        games.paths.core.port.match.KpiPort kpi = mock(games.paths.core.port.match.KpiPort.class);
+        service.setKpi(kpi);
+
+        resolve();
+
+        verify(kpi).recordForMatch(MATCH_ID, games.paths.core.port.match.KpiPort.Metric.CHOICE, CHOICE_UUID, 1);
+    }
 }
