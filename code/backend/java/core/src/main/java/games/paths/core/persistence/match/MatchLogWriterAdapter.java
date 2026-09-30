@@ -28,10 +28,13 @@ public class MatchLogWriterAdapter implements MatchLogWriterPort {
 
     private static final Logger log = LoggerFactory.getLogger(MatchLogWriterAdapter.class);
     private static final Pattern SAFE_IDENTIFIER = Pattern.compile("[a-z_][a-z0-9_]*");
-    // One COUNT per log table, summed by the database in a single round trip.
-    static final String COUNT_SQL = "SELECT " + Arrays.stream(LogTable.values())
-            .map(t -> "(SELECT COUNT(*) FROM " + quoteIdentifier(t.tableName()) + " WHERE id_match = :idMatch)")
-            .collect(Collectors.joining(" + "));
+    static final String COUNT_SQL = buildCountQuery();
+
+    private static String buildCountQuery() {
+        return "SELECT " + Arrays.stream(LogTable.values())
+                .map(t -> "(SELECT COUNT(*) FROM " + quoteIdentifier(t.tableName()) + " WHERE id_match = :idMatch)")
+                .collect(Collectors.joining(" + "));
+    }
 
     private final LogEventsRepository logEventsRepository;
     private final LogIdPort logIds;

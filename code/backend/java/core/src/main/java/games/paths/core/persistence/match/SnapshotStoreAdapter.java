@@ -34,13 +34,30 @@ import java.util.stream.Collectors;
 @Transactional
 public class SnapshotStoreAdapter implements SnapshotStorePort {
 
+    enum Table {
+        GAMING_MATCH("gaming_match"),
+        GAMING_CHARACTER_INSTANCE("gaming_character_instance"),
+        GAMING_TURN_QUEUE("gaming_turn_queue"),
+        GAMING_ACTIVE_CHOICES("gaming_active_choices"),
+        GAMING_STORY_PROGRESS("gaming_story_progress"),
+        GAMING_STATE_REGISTRY("gaming_state_registry"),
+        GAMING_STATE_LOCATIONS("gaming_state_locations"),
+        GAMING_CHARACTER_TRAITS("gaming_character_traits"),
+        GAMING_INVENTORY_ITEMS("gaming_inventory_items"),
+        GAMING_BACKPACK_RESOURCES("gaming_backpack_resources"),
+        SYSTEM_SNAPSHOT("system_snapshot"),
+        USERS("users");
+
+        final String name;
+        Table(String name) { this.name = name; }
+        String quoted() { return '"' + name + '"'; }
+    }
+
     static final String MATCH_TABLE = "gaming_match";
     static final String CHARACTER_TABLE = "gaming_character_instance";
-    // Child rows replaced by a restore, in delete order; none is referenced by another of the list.
     static final List<String> CHILD_TABLES = List.of("gaming_turn_queue", "gaming_active_choices",
             "gaming_story_progress", "gaming_state_registry", "gaming_state_locations",
             "gaming_character_traits", "gaming_inventory_items", "gaming_backpack_resources");
-    // The match columns a restore writes back: story, creator, loadout, seed and name never change.
     static final List<String> MATCH_COLUMNS = List.of("status", "current_clock", "id_current_weather",
             "id_character_current_turn", "counter_consecutive_pass", "timestamp_end", "timestamp_gameover",
             "timestamp_lock_expiration");
@@ -77,11 +94,16 @@ public class SnapshotStoreAdapter implements SnapshotStorePort {
     @Transactional(readOnly = true)
     public Map<String, List<Map<String, Object>>> readState(long idMatch) {
         Map<String, List<Map<String, Object>>> state = new LinkedHashMap<>();
-        state.put(MATCH_TABLE, rows("SELECT * FROM " + identifier(MATCH_TABLE) + " WHERE id = ?", idMatch));
-        state.put(CHARACTER_TABLE, rows("SELECT * FROM " + identifier(CHARACTER_TABLE) + " WHERE id_match = ? ORDER BY id", idMatch));
-        for (String table : CHILD_TABLES) {
-            state.put(table, rows("SELECT * FROM " + identifier(table) + " WHERE id_match = ? ORDER BY uuid", idMatch));
-        }
+        state.put(MATCH_TABLE, rows("SELECT * FROM \"" + Table.GAMING_MATCH.name + "\" WHERE id = ?", idMatch));
+        state.put(CHARACTER_TABLE, rows("SELECT * FROM \"" + Table.GAMING_CHARACTER_INSTANCE.name + "\" WHERE id_match = ? ORDER BY id", idMatch));
+        state.put("gaming_turn_queue", rows("SELECT * FROM \"gaming_turn_queue\" WHERE id_match = ? ORDER BY uuid", idMatch));
+        state.put("gaming_active_choices", rows("SELECT * FROM \"gaming_active_choices\" WHERE id_match = ? ORDER BY uuid", idMatch));
+        state.put("gaming_story_progress", rows("SELECT * FROM \"gaming_story_progress\" WHERE id_match = ? ORDER BY uuid", idMatch));
+        state.put("gaming_state_registry", rows("SELECT * FROM \"gaming_state_registry\" WHERE id_match = ? ORDER BY uuid", idMatch));
+        state.put("gaming_state_locations", rows("SELECT * FROM \"gaming_state_locations\" WHERE id_match = ? ORDER BY uuid", idMatch));
+        state.put("gaming_character_traits", rows("SELECT * FROM \"gaming_character_traits\" WHERE id_match = ? ORDER BY uuid", idMatch));
+        state.put("gaming_inventory_items", rows("SELECT * FROM \"gaming_inventory_items\" WHERE id_match = ? ORDER BY uuid", idMatch));
+        state.put("gaming_backpack_resources", rows("SELECT * FROM \"gaming_backpack_resources\" WHERE id_match = ? ORDER BY uuid", idMatch));
         return state;
     }
 
@@ -147,8 +169,8 @@ public class SnapshotStoreAdapter implements SnapshotStorePort {
 
     @Override
     public int prune(long idMatch, int keep) {
-        return jdbc.update("DELETE FROM system_snapshot WHERE id_match = ? AND id NOT IN (SELECT id FROM"
-                + " system_snapshot WHERE id_match = ? ORDER BY id DESC LIMIT ?)", idMatch, idMatch, keep);
+        return jdbc.update("DELETE FROM \"" + Table.SYSTEM_SNAPSHOT.name + "\" WHERE id_match = ? AND id NOT IN (SELECT id FROM"
+                + " \"" + Table.SYSTEM_SNAPSHOT.name + "\" WHERE id_match = ? ORDER BY id DESC LIMIT ?)", idMatch, idMatch, keep);
     }
 
     @Override
@@ -182,12 +204,16 @@ public class SnapshotStoreAdapter implements SnapshotStorePort {
             removed += jdbc.update("DELETE FROM " + identifier(table.tableName()) + " WHERE id_match = ? AND id > ?",
                     idMatch, logMarks.getOrDefault(table.tableName(), 0L));
         }
-        for (String table : CHILD_TABLES) {
-            jdbc.update("DELETE FROM " + identifier(table) + " WHERE id_match = ?", idMatch);
-        }
-        // Characters in place: their ids are the FK targets of the log rows that stay.
+        jdbc.update("DELETE FROM \"gaming_turn_queue\" WHERE id_match = ?", idMatch);
+        jdbc.update("DELETE FROM \"gaming_active_choices\" WHERE id_match = ?", idMatch);
+        jdbc.update("DELETE FROM \"gaming_story_progress\" WHERE id_match = ?", idMatch);
+        jdbc.update("DELETE FROM \"gaming_state_registry\" WHERE id_match = ?", idMatch);
+        jdbc.update("DELETE FROM \"gaming_state_locations\" WHERE id_match = ?", idMatch);
+        jdbc.update("DELETE FROM \"gaming_character_traits\" WHERE id_match = ?", idMatch);
+        jdbc.update("DELETE FROM \"gaming_inventory_items\" WHERE id_match = ?", idMatch);
+        jdbc.update("DELETE FROM \"gaming_backpack_resources\" WHERE id_match = ?", idMatch);
         Set<Long> current = new HashSet<>(jdbc.queryForList(
-                "SELECT id FROM " + CHARACTER_TABLE + " WHERE id_match = ?", Long.class, idMatch));
+                "SELECT id FROM \"" + Table.GAMING_CHARACTER_INSTANCE.name + "\" WHERE id_match = ?", Long.class, idMatch));
         Set<Long> kept = new HashSet<>();
         for (Map<String, Object> row : state.getOrDefault(CHARACTER_TABLE, List.of())) {
             Long id = row.get("id") instanceof Number n ? n.longValue() : null;
@@ -204,7 +230,7 @@ public class SnapshotStoreAdapter implements SnapshotStorePort {
         restoreMatchRow(idMatch, state.getOrDefault(MATCH_TABLE, List.of()));
         for (Long id : current) {
             if (!kept.contains(id)) {
-                jdbc.update("DELETE FROM " + CHARACTER_TABLE + " WHERE id_match = ? AND id = ?", idMatch, id);
+                jdbc.update("DELETE FROM \"" + Table.GAMING_CHARACTER_INSTANCE.name + "\" WHERE id_match = ? AND id = ?", idMatch, id);
             }
         }
         for (String table : CHILD_TABLES) {
@@ -212,7 +238,7 @@ public class SnapshotStoreAdapter implements SnapshotStorePort {
                 insert(table, withMatch(row, idMatch));
             }
         }
-        jdbc.update("DELETE FROM system_snapshot WHERE id_match = ? AND id > ?", idMatch, idSnapshot);
+        jdbc.update("DELETE FROM \"" + Table.SYSTEM_SNAPSHOT.name + "\" WHERE id_match = ? AND id > ?", idMatch, idSnapshot);
         return removed;
     }
 
@@ -232,7 +258,7 @@ public class SnapshotStoreAdapter implements SnapshotStorePort {
 
     @Override
     public void setStatus(long idMatch, String status) {
-        jdbc.update("UPDATE " + identifier(MATCH_TABLE) + " SET status = ?, ts_update = ? WHERE id = ?",
+        jdbc.update("UPDATE \"" + Table.GAMING_MATCH.name + "\" SET status = ?, ts_update = ? WHERE id = ?",
                 status, Instant.now().toString(), idMatch);
     }
 
