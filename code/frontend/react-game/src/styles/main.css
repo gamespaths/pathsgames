@@ -3311,3 +3311,6 @@ html, body {
   text-transform: uppercase;
   white-space: nowrap;
 }
+.navbar-medieval .env-badge{
+  font-size: 1.25rem;
+}

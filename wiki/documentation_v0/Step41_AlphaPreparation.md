@@ -1,6 +1,6 @@
 # Step 41 — Alpha preparation
 
-**Status: DEVELOPED — all three patches shipped (v0.41.0, v0.41.1, v0.41.2, September 29,
+**Status: patches 0.41.0-0.41.2 DEVELOPED; patch 0.41.3 (H, match export/import) ANALYSED, doubts 45-53 open. Shipped (v0.41.0, v0.41.1, v0.41.2, September 29,
 2026): security (C), AWS admin allow-list (D), guest cleanup/limits (E), logging gaps (A),
 match snapshots (B), KPI report (F) and the production website CSP switch. Unit tests and
 Robot green on all four targets (AWS, Java, Java+PostgreSQL, Python — 814 Robot tests).**
@@ -132,6 +132,7 @@ apply`. Deltas against §2/§3/§5/§6 below, found during development:
 | E | Guest cleanup and limits | backend | Fix of today's expired-guest delete (Java/PostgreSQL, Python, AWS); daily job deleting match-less guests idle for N days (default 60); per-guest match limit; non-zero code defaults |
 | F | KPI report | backend, frontend | Daily UTC counters per story, `GET /api/admin/reports/kpi`, react-admin Reports page with the active matches |
 | G | Tests | tests | Unit tests > 96% of new code; Robot `41_alpha_prep/` plus additions to `41_security/` |
+| H | Match export and import between servers (patch 0.41.3, analysed, not developed) | backend, frontend | Admin exports a time-end snapshot plus logs as one JSON file and imports it on another server of the same backend family: dry-run check, user mapping, `PAUSED` after import; see §9 |
 
 **Out of scope**: backups, PITR, CloudWatch alarms and budget (step 42 — A's WARN line is only
 their input); privacy policy and retention text (42, it will quote E's age); the alpha stack,
@@ -638,7 +639,120 @@ local server started by hand gets the new non-zero defaults unless `.env` sets t
 
 ### 8.2 Open points
 
-None: the analysis is closed and the step is ready for development (three patches, decision 15).
+Patches 0.41.0-0.41.2 (A-F): none, analysis closed and developed (decision 15). Patch 0.41.3 (H): see §8.3.
+
+### 8.3 Open doubts — sub-point H (open — proposed answer)
+
+Owner has not answered yet; each line ends with the proposed answer.
+
+45. **Export moment:** only existing time-end snapshots (default the latest), no manual "pause and snapshot now". *Proposed: yes — a mid-clock snapshot breaks decision 18; admin pauses the match on S.*
+46. **Backend families:** same family only (A) with a neutral envelope for a later B in V1 step 41 / V3 step 19. *Proposed: yes; cross-family → `BACKEND_MISMATCH`.*
+47. **Story prerequisite:** story not bundled (no story export before V1 step 16); admin imports the source story JSON on T first. *Proposed: yes; fingerprint mismatch is a warning.*
+48. **Import rollback point:** one LIGHT snapshot "Imported at clock N" before the time-start. *Proposed: yes.*
+49. **Users:** map by uuid when present on T, otherwise to an admin-chosen existing user; never create users or guests. *Proposed: yes; guests lose access, fine for alpha moves.*
+50. **Uuid conflict:** 409 `MATCH_EXISTS` by default, `replace=true` deletes and re-imports. *Proposed: yes; source match on S untouched, admin stops it by hand.*
+51. **Java SQLite ↔ PostgreSQL:** one family, proven by a Robot or unit case (SQLite text timestamps into PostgreSQL `TIMESTAMP`). *Proposed: yes; if casts fail, restrict to the same engine and note it.*
+52. **Size cap:** `MATCH_EXPORT_MAX_BYTES` 5 MB default, 413 above. *Proposed: yes; S3 hand-off out of scope.*
+53. **Patch number:** 0.41.3 (owner bumps the version; no Flyway migration needed). *Proposed: yes.*
+
+## 9. Sub-point H — Match export and import between servers (patch 0.41.3, analysed, not developed)
+
+Analysed against the code on September 29, 2026. Not developed: the doubts 45-53 of §8.3 are open. (The letter H avoids the clash with the Tests row G of §1.)
+
+### H.1 Scope
+
+**Goal.** An admin downloads a finished time-end snapshot of a match as one JSON file on server S, then imports it on server T (same story already imported there). The match continues on T. Use case: moving alpha matches (test → alpha, dev → test) and reproducing a player's bug locally.
+
+**In scope:** export of an existing time-end snapshot together with the log rows up to that snapshot's mark; import as a new match on T with a dry-run check first; user mapping, uuid conflict handling, `PAUSED` state after import, an `ADMIN_ACTION` log row; an "Export" button in the react-admin `SnapshotsCard` and a new import page.
+
+**Out of scope:** story export (V1 step 16, `documentation_v1/Roadmap.md` l.117-118 — the story is a prerequisite the owner re-imports from its source JSON); moving users or guest tokens (V1 step 41, l.250-254); full system backup (V3 step 19, `documentation_v3/Roadmap.md` l.129-133); import across backend families (Java ↔ Python ↔ AWS, see H.2); copying the snapshot history; manual "snapshot now" (doubt 45).
+
+**Findings (code is the truth):**
+- **Java payload** (`SnapshotService.java` l.103-115, `SnapshotStoreAdapter.java` l.40-42, l.78-86, l.104-114): raw `SELECT *` rows of `gaming_match`, `gaming_character_instance` and 8 `CHILD_TABLES`; numeric `idStory`, internal `id`/`id_match`/`id_character`/`id_user`; `logMarks` = `MAX(id)` for each of the 6 `LogTable` tables. No log rows are included.
+- **Java restore** (`SnapshotStoreAdapter.java` l.177-200) updates and inserts on the same match ids. `verify` (`SnapshotService.java` l.160-183) returns `MATCH_MISMATCH` on a different uuid or `idStory`, so a snapshot cannot be restored into another match or server.
+- **Python** mirrors Java but has no `gaming_active_choices` table (`snapshot_store_adapter.py` l.22-26); its log tables are in `LOG_ENTITIES` (`match_log_writer_adapter.py` l.19-20).
+- **AWS payload** (`snapshots.py` l.115-124) holds `metadata`, `characters`, `turns`, `storyUuid`, `logSeq`, `logCount`. `_META_SKIP` (l.29-30) removes `PK/SK/GSI*`, so an import must rebuild `GSI1_PK=USER_MATCHES#{userUuid}` and `GSI2_PK=MATCH` (`handler.py` l.908-913). The snapshot item is gzip-packed (l.103). Derived state (`executedEventIds`, `eventMarkers`, `visitedLocationIds`) lives on `METADATA` (`logbook.py` l.68/91/99); `LOG#`/`AUDIT#` items are history only.
+- **Java/Python derive game state from log rows:** ONCE gating from `EVENT_EXECUTED` rows on `log_events`; choice cycles from `EVENT_EXECUTED` vs `CHOICE_SELECTED` counts (`EventExecutionStorePort.java` l.31-51, `countLogMarkers` l.251-255; Python `random_event_store_adapter.py` l.52-54). **Consequence:** a Java/Python import without the log rows up to the mark replays ONCE events and reopens closed choices, so the logs must be exported.
+- **Log ids are globally unique** (`LogTable.java`, `UNIQUE(id)` in `V0.10.9__create_log_tables.sql` l.18-31, handed out by `LogIdPort`). Imported log rows get new ids from `LogIdPort`, never the source ids. They carry a `(id_character_match, id_match)` FK to the character instance, so characters are inserted first.
+- **Story-local ids are portable.** `StoryImportService.resolveStoryScopedId` (l.949-974) keeps the JSON `id` of events, choices, locations, items and the other lists; `list_events` PK is `(id, id_story)`. The numeric `id_story` is server-local (l.65-69), so the export uses `storyUuid`.
+- **Re-importing a story deletes its matches.** `POST /api/admin/stories/import` with the same uuid is a full replace (l.57-60) and `StoryPersistenceAdapter.java` l.123-124 deletes every `gaming_match` of that story. Order is always story first, matches second; a later story re-import on T wipes the imported matches (UI and docs must say so; AWS to be verified by the dev agent).
+- **Users:** Java `users.uuid` is unique. Guest tokens are server-local.
+
+### H.2 Option A vs option B — recommendation: A, inside a neutral envelope
+
+| | A — same backend family | B — neutral "match export v1" |
+|---|---|---|
+| Content | Native snapshot state + log rows ≤ mark, internal ids replaced by uuids and story-local ids; T remaps to new ids | One API-level model of the full state; each backend maps it to and from its storage |
+| Work | Small: reuse `readState`/`restore` code, add a column id-remap table | Large: AWS keeps registry, locations and items inside `METADATA`/`CHARACTER#` with uuids for classes and traits, Java/Python use rows and numeric ids; B must also rebuild `EVENT_EXECUTED`/`CHOICE_SELECTED` log rows from AWS `executedEventIds`/`eventMarkers` and the reverse |
+| Risk | Low: same schema, existing check codes still apply | High: silent state drift across families, only partly caught by Robot |
+| Fits | Alpha need (test → alpha on AWS, dev → test on Java) | V3 step 19 (system export) and V1 step 41 migration |
+
+Recommendation: A. The file keeps a family-neutral envelope (header fields below) so B can be added later without a second file format. Families are `java`, `python`, `aws`; Java SQLite ↔ Java PostgreSQL is one family (doubt 51). Import into another family → 422 `BACKEND_MISMATCH`.
+
+### H.3 Endpoint APIs
+
+Spec in the existing `v0.41.0-alpha-preparation-api.yaml`. Admin only (port 8044 / `PathsGamesAdminApi`). AWS: two new routes in `template/match.yaml` next to l.513-531.
+
+| Method | Path | Answer |
+|---|---|---|
+| GET | `/api/admin/matches/{uuidMatch}/snapshots/{uuidSnapshot}/export` | 200 `MatchExport` (download, `Content-Disposition: attachment; filename=match-<uuid>-clock-<N>.json`); 404 `MATCH_NOT_FOUND` / `SNAPSHOT_NOT_FOUND`; 409 `SNAPSHOT_INTEGRITY_FAILED`; 413 `EXPORT_TOO_LARGE`. Writes nothing |
+| POST | `/api/admin/matches/import` | Body `MatchImportRequest`. `dryRun=true`: 200 `MatchImportCheck`, writes nothing. Import: 201 `MatchImportResponse`; 409 `MATCH_EXISTS` (uuid present, `replace=false`); 422 `IMPORT_INVALID` + `errors[]`; 413 `IMPORT_TOO_LARGE` |
+
+`POST /api/admin/matches/import` does not clash with `POST /api/admin/matches/{uuidMatch}/pause` (different segment count) and mirrors `/api/admin/stories/import`.
+
+### H.4 Payload and DTOs
+
+`MatchExport` (canonical JSON, keys sorted, SHA-256 like `SnapshotService.canonical`/`sha256`):
+
+```
+{ "format": "paths-games-match-export", "formatVersion": 1,
+  "backend": "java|python|aws", "appVersion": "0.41.3", "exportedAt": "...", "sourceServer": "<SERVER_NAME or host>",
+  "story": { "uuid", "title", "fingerprint" },
+  "match": { "uuid", "name", "status", "clock", "snapshotUuid", "snapshotClock" },
+  "users": [ { "uuid", "username", "guest": bool, "role": "creator|player" } ],
+  "body": { ...family payload... },
+  "checksum": "<sha256 of canonical(body)>" }
+```
+
+- **`body` Java/Python:** snapshot `state` with internal ids rewritten — `id`/`id_match` dropped; `id_story` → `storyUuid`; character columns (`id_character`, `id_character_current_turn`, `id_character_match`, …) → character `uuid`; `id_user`/`id_user_creator` → user `uuid`; story-local ids (`id_event`, `id_choise`, `id_location`, `id_item`, …) unchanged. Plus `logs`: `{table: [rows with id ≤ logMarks[table]]}`, remapped the same way, in id order. A static column-role map per table sits next to `STORY_REFS` (`SnapshotService.java` l.52-67).
+- **`body` AWS:** the snapshot payload as it is (uuid-based) plus `logs` = `LOG#`/`AUDIT#` items with `seq ≤ logSeq`, keys kept.
+- **Story `fingerprint`:** SHA-256 over the sorted story-local ids of the lists `STORY_REFS` / `_story_refs` point at (weather, locations, classes, templates, items, traits, events, choices, missions), same on every backend. Mismatch = warning; per-reference `STORY_ENTITY_MISSING` stays blocking; missing story → `STORY_MISSING` ("import the story JSON first").
+- **`MatchImportRequest`:** `{ export, dryRun, replace, userMapping: { "<sourceUserUuid>": "<targetUserUuid>" }, defaultUserUuid }`. A source user whose uuid exists on T maps to itself.
+- **`MatchImportCheck`:** `{ valid, errors[], warnings[], users: [{ sourceUuid, username, targetUuid|null }], matchExists }`. Errors: `CHECKSUM_MISMATCH`, `VERSION_UNKNOWN`, `BACKEND_MISMATCH`, `STORY_MISSING`, `STORY_ENTITY_MISSING`, `USER_UNMAPPED`, `MATCH_EXISTS`. Warnings: `STORY_FINGERPRINT_DIFFERS`, `APP_VERSION_DIFFERS`.
+- **`MatchImportResponse`:** `{ status: "IMPORTED", uuidMatch, clock, matchStatus: "PAUSED", logsImported }`.
+- **Timeline:** `ADMIN_ACTION` gains `IMPORTED <sourceServer> clock <N>` via `MatchLogWriterPort.admin(...)`. Export writes nothing.
+
+### H.5 Import semantics (all backends)
+
+1. Full check first; refused if any error remains. No partial write: Java/Python one transaction; AWS delete-on-failure rollback of the items it wrote.
+2. `replace=true` on an existing uuid: the match is deleted through the admin `DELETE /api/admin/matches/{uuid}` path.
+3. Java/Python order: match row (new id, `id_story` of T, creator mapped) → characters (new ids, uuid → id map) → child rows (remapped) → log rows (new ids from `LogIdPort`, `id_character_match` remapped, timestamps kept).
+4. AWS order: `METADATA` with rebuilt `PK/SK/GSI1/GSI2` (`userUuid` mapped, `logSeq`/`logCount` kept) → `CHARACTER#`/`TURN#` (`userUuid` mapped) → `LOG#`/`AUDIT#` with the same sort keys.
+5. No snapshot history is copied; one LIGHT snapshot "Imported at clock N" is written from the imported state as a rollback point (doubt 48).
+6. As for a restore (decision 18): `startTimeAfterRestore` runs (clock N+1), `ADMIN_ACTION IMPORTED` is written, status `PAUSED`; the admin resumes from the match page.
+7. KPI not counted (no `MATCH_STARTED`, no `LOCATION_VISIT`); `timestamp_start` / `timestampStartMs` kept from the source.
+
+### H.6 Size limits and config
+
+- AWS: Lambda sync request/response 6 MB each (stricter than API Gateway's 10 MB); DynamoDB item 400 KB — imported items have their source shape, so they fit.
+- `MATCH_EXPORT_MAX_BYTES`, default `5000000` (canonical JSON size), all backends: Java `game.match.export.max-bytes`, Python `config.py`, AWS env in `template/match.yaml`. Over the cap → 413 `EXPORT_TOO_LARGE` / `IMPORT_TOO_LARGE`. Dev agent lists the `.env` key (decision 17).
+- Estimate: at the 5000-row log warning (sub-point A), 5000 × ~300 B ≈ 1.5 MB.
+
+### H.7 Components
+
+- **Java:** `core` `MatchExportPort` + `MatchExportService` (export, check, import; reuses `SnapshotService.verify`/`canonical`/`sha256` and `STORY_REFS`, adds `COLUMN_ROLES`); `MatchExportStorePort` + `MatchExportStoreAdapter` (`JdbcTemplate`: log rows ≤ mark, user lookups, story by uuid, fingerprint ids, remapped insert in one `@Transactional`). `adapter-admin`: two endpoints in `MatchAdminController` or a small `MatchExportAdminController`. `ms-launcher` wiring like `SnapshotService` (l.79-86).
+- **Python:** `match_export_service.py`, `match_export_store_adapter.py`; no active-choices section; `LOG_ENTITIES` for logs; routes in `match_admin_controller.py` next to l.130-138; config key in `config.py`.
+- **AWS:** `lambda/match/match_export.py` reusing `snapshots.payload_of`/`verify`/`canonical`, the `logbook` query (seq ≤ `logSeq`) and the key builders of `handler.py` l.908-913; two routes and the env var in `template/match.yaml`.
+- **react-admin:** `api/matchApi.js` `exportMatchSnapshot(uuid, snapshotUuid)` (blob download) and `importMatch(body)`; "Export" button per row in `SnapshotsCard.jsx` (409 shows `errors[]`); new `pages/MatchImportPage.jsx` (`/matches/import`): file picker → automatic dry-run (errors, warnings, users table) → target-user select per unmapped user with a "reassign all to" default → `replace` checkbox (only when `matchExists`) → Import → link to the match; help text "import the story first; re-importing the story later deletes its matches". Entry in the matches list and in `Navbar.jsx`.
+- **OpenAPI:** two paths, five schemas in `v0.41.0-alpha-preparation-api.yaml`.
+- **Docs (via /doc-update):** `DataModel.md` short "match export file" paragraph, `Security.md` line for the admin-only import, `Environments.md` procedure (story first, then match).
+
+### H.8 Tests
+
+- **Unit (> 96% new code), each backend:** canonical/checksum round trip and id remap (characters, users, current turn, log FKs); logs cut at the mark; new log ids from `LogIdPort`; every error and warning code; `replace` path; rollback on a failing insert; `PAUSED` + time-start + `ADMIN_ACTION`; no KPI rows; size cap; AWS GSI keys rebuilt, `seq` cut, rollback of written items.
+- **react-admin:** export button (download, 409 errors); import page (dry-run render, user mapping, replace toggle, success link).
+- **Robot:** `code/tests/robot/tests/41_alpha_prep/match_export_import.robot`, four targets, single server: export M, import with `replace=false` (409), import as a copy under a new uuid (a small Python helper rewrites the match uuid and recomputes the checksum), then: ONCE event executed before the snapshot is not offered again; timeline shows rows up to the mark then `IMPORTED`; status `PAUSED` and resume works; KPI unchanged; dry-run with missing story → `STORY_MISSING`; tampered checksum → `CHECKSUM_MISMATCH`; a user-mapping case.
+
 
 # Version Control
 - **Document Version**: 0.41.2
@@ -648,10 +762,10 @@ None: the analysis is closed and the step is ready for development (three patche
   | 0.40.0 | First analysis of the alpha preparation step, owner answers | September 27, 2026 |
   | 0.41.0 | Owner decisions completed; patch 1 (security, guests, CI) developed | September 28, 2026 |
   | 0.41.1 | Patch 2 developed: logging and match snapshots | September 29, 2026 |
-  | 0.41.2 | Patch 3 developed: KPI report, production CSP restricted | September 29, 2026 |
+  | 0.41.2 | Patch 3 developed: KPI report, production CSP; match export analysed | September 29, 2026 |
 
 - **Last Updated**: September 29, 2026 (v0.41.2)
-- **Status**: DEVELOPED — all three patches shipped (security, allow-list, guests, CI scan, test CSP, logging, snapshots, KPI report, production CSP)
+- **Status**: patches 0.41.0-0.41.2 developed; 0.41.3 (H, match export and import) analysed, doubts open (shipped: security, allow-list, guests, CI scan, test CSP, logging, snapshots, KPI report, production CSP)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

@@ -61,6 +61,14 @@ describe('Navbar', () => {
     expect(screen.getByText('Server Status')).toBeInTheDocument()
   })
 
+  it('lists Reports right after Matches with a link to /reports', () => {
+    renderNavbar()
+    fireEvent.click(screen.getByRole('button', { name: /navigation menu/i }))
+    const labels = screen.getAllByRole('menuitem').map(a => a.textContent.trim())
+    expect(labels.indexOf('Reports')).toBe(labels.indexOf('Matches') + 1)
+    expect(screen.getByRole('menuitem', { name: /reports/i })).toHaveAttribute('href', '/reports')
+  })
+
   it('closes dropdown after clicking a menu item', () => {
     renderNavbar()
     fireEvent.click(screen.getByRole('button', { name: /navigation menu/i }))

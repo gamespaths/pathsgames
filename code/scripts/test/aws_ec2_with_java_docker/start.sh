@@ -174,15 +174,24 @@ ADMIN_CIDRS="$(echo "$MY_IP/32 ${ADMIN_EXTRA_CIDRS//,/ }" \
 
 # ── Find latest Ubuntu 24.04 LTS AMI ─────────────────────────────────────────
 echo "[start.sh] Finding latest Ubuntu 24.04 LTS AMI in $AWS_REGION…"
+case "$EC2_INSTANCE_TYPE" in
+    t4g.*|a1.*|m6g.*|m7g.*|c7g.*)
+        AMI_ARCH="arm64"
+        ;;
+    *)
+        AMI_ARCH="amd64"
+        ;;
+esac
+
 AMI_ID="$(aws ec2 describe-images \
     --region "$AWS_REGION" \
     --owners 099720109477 \
     --filters \
-        "Name=name,Values=ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*" \
+        "Name=name,Values=ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-${AMI_ARCH}-server-*" \
         "Name=state,Values=available" \
     --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
     --output text)"
-echo "[start.sh] AMI: $AMI_ID"
+echo "[start.sh] AMI: $AMI_ID for $AMI_ARCH"
 
 # ── Get or create security group ─────────────────────────────────────────────
 echo "[start.sh] Looking up security group '$SG_NAME'…"
