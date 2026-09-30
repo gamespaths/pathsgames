@@ -24,7 +24,7 @@ in the [Global Roadmap](../Roadmap.md) §3.
 | 4 | [Technology stack](./Step04_TechnologyStack.md) | ✅ | Select backend language, backend framework, primary database, frontend technology and deployment system |
 | 5 | [Backend structure](./Step05_BackendStructure.md) | ✅ | Separate domain from infrastructure, define API and persistence modules, create backend project and first build |
 | 6 | [Naming conventions](./Step06_NamingConventions.md) | ✅ | Define REST endpoint naming, WebSocket event naming, table and column naming and DTO and payload naming |
-| 7 | [Configure website](./Step07_ConfigureWebsite.md) | ✅ | Buy domains [paths.games](http://paths.games/) & [pathsgames.com](http://pathsgames.com/), terraform template and deploy first version of website |
+| 7 | [Configure website](./Step07_ConfigureWebsite.md) | ✅ | Buy domains [paths.games](https://paths.games/) & [pathsgames.com](https://pathsgames.com/), terraform template and deploy first version of website |
 | 8 | [Configure CI](./Step08_ConfigureMinimalCI.md) | ✅ | Define environment-specific configurations with secrets, define pipelines (GitHub Actions) with master branch |
 | 9 | [Design data model](./Step09_DesignCoreDataModel.md) | ✅ | Identify main entities, relationships between entities, persistent vs transient data |
 | 10 | [Create DB schema](./Step10_CreateDBschema.md) | ✅ | Translate the data model into tables, define primary keys, define foreign keys, version the schema |

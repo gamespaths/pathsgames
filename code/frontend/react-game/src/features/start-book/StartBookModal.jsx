@@ -45,12 +45,16 @@ export default function StartBookModal({ story, onClose, initialConfig = null })
   useEffect(() => {
     if (!story?.uuid) return
     setLoadingDetail(true)
-    getStoryDetail(story.uuid, lang)
+    void getStoryDetail(story.uuid, lang)
       .then(data => {
         setDetail(data)
         const reopen = reopenRef.current
         reopenRef.current = null
         setConfig(reopen ?? buildInitialConfig(data ?? story))
+      })
+      .catch(() => {
+        setDetail(story)
+        setConfig(reopenRef.current ?? buildInitialConfig(story))
       })
       .finally(() => setLoadingDetail(false))
   }, [story?.uuid, lang])

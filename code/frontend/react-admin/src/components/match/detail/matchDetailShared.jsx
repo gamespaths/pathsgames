@@ -42,11 +42,15 @@ export function UuidCopy({ uuid, children }) {
   function handleClick(e) {
     e.stopPropagation()
     if (!uuid) return
-    navigator.clipboard?.writeText(uuid).then?.(() => {
-      setCopied(true)
-      clearTimeout(timerRef.current)
-      timerRef.current = setTimeout(() => setCopied(false), 1200)
-    })
+    void navigator.clipboard?.writeText(uuid)
+      .then(() => {
+        setCopied(true)
+        clearTimeout(timerRef.current)
+        timerRef.current = setTimeout(() => setCopied(false), 1200)
+      })
+      .catch(() => {
+        setCopied(false)
+      })
   }
 
   function handleKeyDown(e) {

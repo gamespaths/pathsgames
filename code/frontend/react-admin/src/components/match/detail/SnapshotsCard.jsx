@@ -42,7 +42,7 @@ export default function SnapshotsCard({ matchUuid, onRestored, notice }) {
       })
   }, [matchUuid])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { void load() }, [load])
 
   async function check(row) {
     setBusy(true)
@@ -86,7 +86,7 @@ export default function SnapshotsCard({ matchUuid, onRestored, notice }) {
         <ConfirmModal
           title="Restore snapshot"
           message={`Roll the match back to the end of clock ${confirm.clock}? The log rows written after it are deleted, the time-start runs again and the match is left PAUSED (resume it from the configuration tab).`}
-          onConfirm={() => restore(confirm)}
+          onConfirm={() => { void restore(confirm) }}
           onCancel={() => setConfirm(null)}
           danger
         />
@@ -126,7 +126,7 @@ export default function SnapshotsCard({ matchUuid, onRestored, notice }) {
                 <td><CheckResult result={checks[row.uuid]} /></td>
                 <td style={{ whiteSpace: 'nowrap' }}>
                   <button className="pg-btn pg-btn-sm pg-btn-ghost me-1" disabled={busy}
-                          onClick={() => check(row)} aria-label={`Check snapshot of clock ${row.clock}`}>
+                          onClick={() => { void check(row) }} aria-label={`Check snapshot of clock ${row.clock}`}>
                     <i className="fas fa-stethoscope me-1" />Check
                   </button>
                   <button className="pg-btn pg-btn-sm pg-btn-danger" disabled={busy}

@@ -71,7 +71,7 @@ export function GuestUserProvider({ children }) {
 
     setLoading(true)
     setError(null)
-    ;(async () => {
+    void (async () => {
       try {
         let identity = null
         try {

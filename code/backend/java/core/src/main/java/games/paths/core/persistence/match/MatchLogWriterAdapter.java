@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -26,9 +27,10 @@ import java.util.stream.Collectors;
 public class MatchLogWriterAdapter implements MatchLogWriterPort {
 
     private static final Logger log = LoggerFactory.getLogger(MatchLogWriterAdapter.class);
+    private static final Pattern SAFE_IDENTIFIER = Pattern.compile("[a-z_][a-z0-9_]*");
     // One COUNT per log table, summed by the database in a single round trip.
     static final String COUNT_SQL = "SELECT " + Arrays.stream(LogTable.values())
-            .map(t -> "(SELECT COUNT(*) FROM " + t.tableName() + " WHERE id_match = :idMatch)")
+            .map(t -> "(SELECT COUNT(*) FROM " + quoteIdentifier(t.tableName()) + " WHERE id_match = :idMatch)")
             .collect(Collectors.joining(" + "));
 
     private final LogEventsRepository logEventsRepository;
@@ -44,6 +46,13 @@ public class MatchLogWriterAdapter implements MatchLogWriterPort {
         this.logIds = logIds;
         this.entityManager = entityManager;
         this.warnRows = warnRows;
+    }
+
+    private static String quoteIdentifier(String name) {
+        if (name == null || !SAFE_IDENTIFIER.matcher(name).matches()) {
+            throw new IllegalArgumentException("Not a plain identifier: " + name);
+        }
+        return name;
     }
 
     @Override

@@ -69,7 +69,7 @@ export function ServerProvider({ children }) {
     probeStarted.current = true
     setProbing(true)
 
-    ;(async () => {
+    void (async () => {
       for (const srv of SERVERS) {
         if (!mounted.current) break
         // The same request the status effect below makes for the current server.

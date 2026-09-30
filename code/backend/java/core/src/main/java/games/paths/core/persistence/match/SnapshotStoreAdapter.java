@@ -77,10 +77,10 @@ public class SnapshotStoreAdapter implements SnapshotStorePort {
     @Transactional(readOnly = true)
     public Map<String, List<Map<String, Object>>> readState(long idMatch) {
         Map<String, List<Map<String, Object>>> state = new LinkedHashMap<>();
-        state.put(MATCH_TABLE, rows("SELECT * FROM " + MATCH_TABLE + " WHERE id = ?", idMatch));
-        state.put(CHARACTER_TABLE, rows("SELECT * FROM " + CHARACTER_TABLE + " WHERE id_match = ? ORDER BY id", idMatch));
+        state.put(MATCH_TABLE, rows("SELECT * FROM " + identifier(MATCH_TABLE) + " WHERE id = ?", idMatch));
+        state.put(CHARACTER_TABLE, rows("SELECT * FROM " + identifier(CHARACTER_TABLE) + " WHERE id_match = ? ORDER BY id", idMatch));
         for (String table : CHILD_TABLES) {
-            state.put(table, rows("SELECT * FROM " + table + " WHERE id_match = ? ORDER BY uuid", idMatch));
+            state.put(table, rows("SELECT * FROM " + identifier(table) + " WHERE id_match = ? ORDER BY uuid", idMatch));
         }
         return state;
     }
@@ -106,7 +106,7 @@ public class SnapshotStoreAdapter implements SnapshotStorePort {
     public Map<String, Long> logMarks(long idMatch) {
         Map<String, Long> marks = new LinkedHashMap<>();
         for (LogTable table : LogTable.values()) {
-            Long max = jdbc.queryForObject("SELECT COALESCE(MAX(id), 0) FROM " + table.tableName()
+            Long max = jdbc.queryForObject("SELECT COALESCE(MAX(id), 0) FROM " + identifier(table.tableName())
                     + " WHERE id_match = ?", Long.class, idMatch);
             marks.put(table.tableName(), max == null ? 0L : max);
         }
@@ -179,11 +179,11 @@ public class SnapshotStoreAdapter implements SnapshotStorePort {
                         Map<String, Long> logMarks) {
         long removed = 0;
         for (LogTable table : LogTable.values()) {
-            removed += jdbc.update("DELETE FROM " + table.tableName() + " WHERE id_match = ? AND id > ?",
+            removed += jdbc.update("DELETE FROM " + identifier(table.tableName()) + " WHERE id_match = ? AND id > ?",
                     idMatch, logMarks.getOrDefault(table.tableName(), 0L));
         }
         for (String table : CHILD_TABLES) {
-            jdbc.update("DELETE FROM " + table + " WHERE id_match = ?", idMatch);
+            jdbc.update("DELETE FROM " + identifier(table) + " WHERE id_match = ?", idMatch);
         }
         // Characters in place: their ids are the FK targets of the log rows that stay.
         Set<Long> current = new HashSet<>(jdbc.queryForList(
@@ -232,7 +232,7 @@ public class SnapshotStoreAdapter implements SnapshotStorePort {
 
     @Override
     public void setStatus(long idMatch, String status) {
-        jdbc.update("UPDATE " + MATCH_TABLE + " SET status = ?, ts_update = ? WHERE id = ?",
+        jdbc.update("UPDATE " + identifier(MATCH_TABLE) + " SET status = ?, ts_update = ? WHERE id = ?",
                 status, Instant.now().toString(), idMatch);
     }
 
@@ -254,14 +254,14 @@ public class SnapshotStoreAdapter implements SnapshotStorePort {
         List<Object> args = new ArrayList<>();
         columns.forEach(c -> args.add(values.get(c)));
         Collections.addAll(args, keys);
-        jdbc.update("UPDATE " + table + " SET " + set + " WHERE " + where, args.toArray());
+        jdbc.update("UPDATE " + identifier(table) + " SET " + set + " WHERE " + where, args.toArray());
     }
 
     private void insert(String table, Map<String, Object> row) {
         List<String> columns = new ArrayList<>(row.keySet());
         List<Object> args = new ArrayList<>();
         columns.forEach(c -> args.add(row.get(c)));
-        jdbc.update("INSERT INTO " + table + " (" + columns.stream().map(SnapshotStoreAdapter::quote)
+        jdbc.update("INSERT INTO " + identifier(table) + " (" + columns.stream().map(SnapshotStoreAdapter::quote)
                 .collect(Collectors.joining(", ")) + ") VALUES (" + marks(columns.size()) + ")", args.toArray());
     }
 

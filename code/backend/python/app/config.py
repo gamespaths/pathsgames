@@ -11,8 +11,8 @@ DEV_JWT_SECRET = "PathsGamesDevSecret2026_MustBeAtLeast32Chars!"
 DEV_CORS_ORIGINS = ",".join([
     "http://localhost:3000", "http://localhost:8042", "http://127.0.0.1:5500",
     "http://localhost:5500", "http://localhost:5172", "http://localhost:5173",
-    "http://localhost:5174", "http://localhost:8080", "http://pathsgames.com",
-    "http://www.pathsgames.com", "https://pathsgames.com", "https://www.pathsgames.com",
+    "http://localhost:5174", "http://localhost:8080", "https://pathsgames.com",
+    "https://www.pathsgames.com", "https://pathsgames.com", "https://www.pathsgames.com",
     "null",
 ])
 
