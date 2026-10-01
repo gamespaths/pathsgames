@@ -70,6 +70,8 @@ _ADDED_COLUMNS = {
     "list_global_random_events": ["registry_value_operator_condition"],
     # v0.41.1 — the snapshot clock and checksum (a table made before V0.41.1).
     "system_snapshot": ["clock", "checksum"],
+    # v0.41.4 — decision 56: the e-mail of a user, copied and matched by the match import.
+    "users": ["email_address"],
 }
 # Step 37 — the from/to pair is gone: a mission has no operator, so a range meant nothing.
 _DROPPED_COLUMNS = {
@@ -82,12 +84,13 @@ _DROPPED_COLUMNS = {
 _INDEXES = [
     ("users", "idx_users_state_last_access", "state, last_access"),
     ("system_snapshot", "idx_snapshot_match_clock", "id_match, clock"),
+    ("users", "idx_users_email", "email_address"),
 ]
 # Added columns are integers unless named here: the Step 36 operator holds "=", ">", "<", "!=".
 _TEXT_COLUMNS = {"registry_value_operator_condition",
                  "key_to_add", "key_value_to_add",
                  "key_to_add_not_first", "key_value_to_add_not_first",
-                 "condition_value", "condition_values", "uuid", "checksum"}
+                 "condition_value", "condition_values", "uuid", "checksum", "email_address"}
 
 
 def align_schema(bind=None):

@@ -32,6 +32,10 @@ public interface MatchLogWriterPort {
     /** Reserved for the snapshot restore: {@code SNAPSHOT_RESTORED clock=<n>}. */
     String ADMIN_SNAPSHOT_RESTORED = "SNAPSHOT_RESTORED";
 
+    /** v0.41.4 - the match export ({@code EXPORTED clock=<n>}) and import ({@code IMPORTED <server> clock=<n>}). */
+    String ADMIN_EXPORTED = "EXPORTED";
+    String ADMIN_IMPORTED = "IMPORTED";
+
     /** One log_events row; character and event are null when the row belongs to the match. */
     void write(long idMatch, Long idCharacter, Long idEvent, int clock, String message);
 
@@ -52,5 +56,13 @@ public interface MatchLogWriterPort {
 
     static String snapshotRestored(int clock) {
         return admin(ADMIN_SNAPSHOT_RESTORED + " clock=" + clock);
+    }
+
+    static String exported(int clock) {
+        return admin(ADMIN_EXPORTED + " clock=" + clock);
+    }
+
+    static String imported(String server, int clock) {
+        return admin(ADMIN_IMPORTED + " " + server + " clock=" + clock);
     }
 }

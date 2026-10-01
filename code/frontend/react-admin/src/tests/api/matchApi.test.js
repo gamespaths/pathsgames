@@ -158,4 +158,36 @@ describe('matchApi', () => {
     expect(await matchApi.restoreMatchSnapshot('m1', 's1')).toEqual({ status: 'RESTORED' })
     expect(mockPost).toHaveBeenCalledWith('/api/admin/matches/m1/snapshots/s1/restore')
   })
+
+  // v0.41.4 Step 41 H — export and import of a match.
+  it('exportMatch posts and answers the text with the attachment name', async () => {
+    mockPost.mockResolvedValue({ data: '{"a":1}', headers: { 'content-disposition': 'attachment; filename=match-m1-clock-3.json' } })
+    expect(await matchApi.exportMatch('m1')).toEqual({ text: '{"a":1}', fileName: 'match-m1-clock-3.json' })
+    expect(mockPost).toHaveBeenCalledWith('/api/admin/matches/m1/export', null,
+      expect.objectContaining({ responseType: 'text', timeout: 120000 }))
+    const options = mockPost.mock.calls[0][2]
+    expect(options.transformResponse('raw')).toBe('raw')
+  })
+
+  it('exportFileName falls back to the snapshot clock of the file', () => {
+    expect(matchApi.exportFileName('attachment; filename="x.json"', 'u', '')).toBe('x.json')
+    expect(matchApi.exportFileName(undefined, '0a0a0a0a-1111', '{"source":{"snapshotClock":7}}'))
+      .toBe('match-0a0a0a0a-clock-7.json')
+    expect(matchApi.exportFileName('', 'abc', 'not json')).toBe('match-abc-clock-x.json')
+    expect(matchApi.exportFileName('', 'abc', '{}')).toBe('match-abc-clock-x.json')
+  })
+
+  it('importMatch posts the request body', async () => {
+    mockPost.mockResolvedValue({ data: { valid: true } })
+    expect(await matchApi.importMatch({ dryRun: true })).toEqual({ valid: true })
+    expect(mockPost).toHaveBeenCalledWith('/api/admin/matches/import', { dryRun: true }, { timeout: 120000 })
+  })
+
+  it('errorBody reads JSON objects, JSON text and plain text', () => {
+    expect(matchApi.errorBody({ response: { data: { error: 'X' } } })).toEqual({ error: 'X' })
+    expect(matchApi.errorBody({ response: { data: '{"error":"Y"}' } })).toEqual({ error: 'Y' })
+    expect(matchApi.errorBody({ response: { data: 'oops' } })).toEqual({ message: 'oops' })
+    expect(matchApi.errorBody({})).toEqual({})
+    expect(matchApi.errorBody(undefined)).toEqual({})
+  })
 })

@@ -556,7 +556,11 @@ def import_story(event):
 
     if not data:
         return _err(400, 'EMPTY_IMPORT_DATA', 'storyData must not be null or empty')
+    return import_story_data(data)
 
+
+def import_story_data(data):
+    """v0.41.4 — the story import body, shared by the story route and the match import (story/importer.py)."""
     # Step 22: validate referential integrity before persisting anything (hard-fail).
     validation_errors = story_validator.validate_story_dict(data)
     if validation_errors:
@@ -1270,7 +1274,8 @@ def list_entities(event, story_uuid, entity_type):
     # Ensure each entity has a sequential numeric id and correct idStory
     for i, e in enumerate(entities):
         if 'id' not in e or e['id'] is None:
-            e['id'] = i + 1
+            # v0.41.4 — a character template keeps its story-local id (id_tipo) in the export.
+            e['id'] = _safe_int(e['id_tipo']) if e.get('id_tipo') is not None else i + 1
         e['idStory'] = item.get('id', story_uuid)
 
     return _ok([_normalize_entity_output(entity_type, e) for e in entities])

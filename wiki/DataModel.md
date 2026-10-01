@@ -109,6 +109,14 @@ gameplay.
 | `system_snapshot` | Match snapshot: `id_story`, `id_match`, `timestamp`, `type` (FULL/LIGHT), `jsonb_data`, `file_path`, `description`, `clock`, `checksum` (v0.41.1); index `(id_match, clock)`. One LIGHT snapshot written per time-end, last `SNAPSHOT_KEEP_PER_MATCH` kept. |
 | `gaming_temp_variables` | Per-character scratch variable: `id_character_match`, `key`, `value`, `type` (CLOCK/EVENT/LOCATION/RESOURCES/TRAITS/…), `timestamp`. |
 
+**Match export file (v0.41.4).** Not a table: a neutral JSON document "match export v1" (canonical
+JSON, SHA-256 checksum, schema `match-export-v1.schema.json`) built from the latest time-end
+snapshot, with the story bundled. Any backend (Java SQLite/PostgreSQL, Python, AWS) imports a file
+exported by any other; the importer writes the match rows (or `MATCH#` items) of the target. Users
+are copied without passwords or tokens, matched by uuid, then by e-mail (`users.email_address`,
+AWS `USER#` attribute `email`). Python gained `users.email_address` plus index `idx_users_email`
+through `align_schema`; there is no Flyway migration. Details: [Step 41 §9](./documentation_v0/Step41_AlphaPreparation.md).
+
 ## 3. Main Relationships
 
 - `list_stories` is the root of the story tier: 1:N to every other `list_*` table via
@@ -263,7 +271,7 @@ addition — its per-entity column lists (§1.3) still mention the old columns. 
 directly; Step09 remains the source for full rationale and history.
 
 # Version Control
-- **Document Version**: 0.41.2
+- **Document Version**: 0.41.4
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -271,8 +279,9 @@ directly; Step09 remains the source for full rationale and history.
   | 0.41.0 | New guest-cleanup index on the users table | September 28, 2026 |
   | 0.41.1 | Match snapshot columns and new log types added | September 29, 2026 |
   | 0.41.2 | KPI daily counters table and match start timestamp added | September 29, 2026 |
+  | 0.41.4 | Match export file described; user email column added | October 1, 2026 |
 
-- **Last Updated**: September 29, 2026 (v0.41.2)
+- **Last Updated**: October 1, 2026 (v0.41.4)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

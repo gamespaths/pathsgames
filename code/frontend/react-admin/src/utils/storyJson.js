@@ -30,3 +30,17 @@ export function normalizeImportJson(data) {
   const { story, ...rest } = data
   return { ...story, ...rest }
 }
+
+// One admin CRUD row as the story export writes it: stamps and idStory out, text ids fixed, and
+// v0.41.4 the template id (idTipo) as id — the bundled-story format of the match export.
+export function exportEntity(jsonKey, item) {
+  // eslint-disable-next-line no-unused-vars
+  const { tsInsert, tsUpdate, idStory, ...rest } = item
+  if (jsonKey === 'texts' && item.idText) {
+    rest.id = Number(item.idText)
+    rest.idText = Number(item.idText)
+  } else if (rest.id == null && item.idTipo != null) {
+    rest.id = item.idTipo
+  }
+  return rest
+}

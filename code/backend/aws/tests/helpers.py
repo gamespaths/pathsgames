@@ -83,6 +83,12 @@ class FakeTable:
         last = {'PK': page[-1]['PK'], 'SK': page[-1]['SK']} if len(rows) > len(page) else None
         return page, last
 
+    def find_user_by_email(self, email):
+        wanted = str(email or '').strip().lower()
+        found = [dict(v) for (p, s), v in sorted(self.store.items()) if p.startswith('USER#')
+                 and s == 'METADATA' and wanted and str(v.get('email') or '').strip().lower() == wanted]
+        return found[0] if found else None
+
     # ── inspection helpers ──
     def rows(self, pk, prefix):
         return [v for (p, s), v in sorted(self.store.items()) if p == pk and s.startswith(prefix)]
@@ -96,7 +102,8 @@ class FakeTable:
 
 
 DB_FUNCTIONS = ('get_item', 'put_item', 'batch_put_items', 'delete_item', 'delete_all_by_pk',
-                'query_by_pk', 'query_sk_prefix', 'query_sk_prefix_page', 'query_sk_prefix_keys')
+                'query_by_pk', 'query_sk_prefix', 'query_sk_prefix_page', 'query_sk_prefix_keys',
+                'find_user_by_email')
 
 
 def patch_table(table, module='match.handler'):

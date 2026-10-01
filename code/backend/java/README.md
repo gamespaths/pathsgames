@@ -123,6 +123,8 @@ replacing a per-writer `MAX(id)+1` read that could collide under concurrent requ
     | GET | `/api/matches` | List matches owned by the authenticated user |
     | GET | `/api/match/{uuid}/info` | Match runtime state (summary, location/registry state) |
     | GET | `/api/admin/matches` | List all matches on the platform (ADMIN only) — paged envelope `{items, nextCursor, limit}`; query params: `limit`, `cursor`, `status`, `userUuid`, `storyUuid`, `sinceDays` |
+    | GET | `/api/admin/matches/{uuidMatch}/export` | Export a match from its latest time-end snapshot as a neutral "match export v1" file (ADMIN only, admin port; v0.41.4) |
+    | POST | `/api/admin/matches/import` | Dry-run or import a match export file; story `storyMode`, `replace`, `startPaused`; 413 above `MATCH_EXPORT_MAX_BYTES` (default 5000000, `game.match.export.max-bytes`) (ADMIN only; v0.41.4) |
 
 ## Recent Fixes (Step 17 CRUD)
 

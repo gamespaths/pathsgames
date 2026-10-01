@@ -83,6 +83,11 @@ from app.adapters.turnstile.turnstile_adapter import TurnstileVerificationAdapte
 from app.adapters.persistence.match.kpi_store_adapter import KpiStoreAdapter
 from app.core.services.match.kpi_service import KpiService
 from app.adapters.rest.match.kpi_admin_controller import KpiAdminController
+from app.adapters.rest.match.match_export_admin_controller import MatchExportAdminController
+from app.adapters.persistence.match.match_export_store_adapter import MatchExportStoreAdapter
+from app.core.services.match.match_export_service import MatchExportService
+from app.core.services.match.match_import_service import MatchImportService
+from app.core.services.story.story_export_service import StoryExportService
 import app.adapters.persistence.match.models  # noqa: F401  - registers ORM tables
 
 # Dev-only test-data cleanup
@@ -278,6 +283,20 @@ snapshot_service.set_time_service(time_advancement_service)
 snapshot_service.set_log_writer(match_log_writer_adapter)
 time_advancement_service.set_snapshot_writer(snapshot_service)
 match_admin_controller.snapshot_service = snapshot_service
+# v0.41.4 — Step 41 H: match export and import in the neutral format (decisions 45-66).
+story_export_service = StoryExportService(story_crud_service)
+match_export_store_adapter = MatchExportStoreAdapter(SessionLocal)
+snapshot_store_adapter = snapshot_service.store
+match_import_service = MatchImportService(match_export_store_adapter, snapshot_store_adapter, story_export_service,
+                                          story_import_service, story_validator_service, settings.version,
+                                          settings.match_export_max_bytes)
+match_import_service.set_engine(snapshot_service, time_advancement_service, match_log_writer_adapter,
+                                match_command_service)
+match_export_service = MatchExportService(snapshot_store_adapter, snapshot_service, match_export_store_adapter,
+                                         story_export_service, match_import_service, settings.version,
+                                         settings.env, settings.match_export_max_bytes)
+match_export_service.log_writer = match_log_writer_adapter
+match_export_service.match_commands = match_command_service
 time_clock_controller = TimeClockController(time_advancement_service)
 
 # Step 28 — movement system (single-player). The controller is mounted on the
@@ -447,6 +466,7 @@ app_admin = _build_app([
     story_crud_admin_controller.router,
     match_admin_controller.router,
     KpiAdminController(kpi_service).router,
+    MatchExportAdminController(match_export_service, settings.match_export_max_bytes).router,
     dev_controller.router,
 ])
 

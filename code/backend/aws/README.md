@@ -262,6 +262,16 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 ## 📝 Changelog
 
+### v0.41.4 — Match export and import between servers
+
+- **Admin routes** (behind the allow-list): match export from the latest time-end snapshot and
+  `POST /api/admin/matches/import` (dry-run + import), neutral "match export v1" file shared with
+  Java and Python; `story/importer.py` is the story facade. Limit `MATCH_EXPORT_MAX_BYTES`
+  (default 5000000, 413 above) and `APP_VERSION` are set in `template/match.yaml`.
+- **Users**: `EXISTING` (uuid), `MAPPED_BY_EMAIL` or `NEW` (never renamed); `USER#` items now carry
+  `email`, found by the new `db_utils.find_user_by_email` (Scan). `storyMode=REPLACE` keeps the
+  story's matches. No GSI or attribute-definition change.
+
 ### v0.41.2 — Alpha preparation patch 3: KPI report, production CSP
 
 - **KPI counters**: `common/kpi.py` accumulates deltas per request and flushes them with one

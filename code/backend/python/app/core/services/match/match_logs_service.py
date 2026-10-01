@@ -42,13 +42,8 @@ from app.adapters.persistence.story.models import (
 )
 from app.core.ports.match.event_ports import (
     ITEM_ACTION_ADD, ITEM_ACTION_DROP, ITEM_ACTION_REMOVE, ITEM_ACTION_USE,
-    MSG_CHOICE_SELECTED, MSG_EVENT_EXECUTED,
 )
-from app.core.ports.match import log_writer_ports as lw
-from app.core.ports.match.edge_state_ports import (
-    MSG_ALL_PLAYER_COMA, MSG_COMA, MSG_COMA_RECOVERED, MSG_SADNESS_OVERFLOW,
-)
-from app.core.services.match import experience_service, mission_service, registry_service
+from app.core.services.match import log_type_mapper as ltm
 
 
 def _item_type(action: Optional[str]) -> Optional[str]:
@@ -106,33 +101,56 @@ _TYPE_EDGE_STATE = "EDGE_STATE"
 _TYPE_TRAIT_CHANGE = "TRAIT_CHANGE"
 _TYPE_MATCH_LIFECYCLE = "MATCH_LIFECYCLE"
 _TYPE_ADMIN_ACTION = "ADMIN_ACTION"
-# Matched on the first word: COMA_RECOVERED and ALL_PLAYER_COMA contain COMA.
-_EDGE_STATES = frozenset((MSG_COMA, MSG_SADNESS_OVERFLOW, MSG_COMA_RECOVERED, MSG_ALL_PLAYER_COMA))
 
 
 def step41_entry(e, msg: str) -> Optional[Dict[str, Any]]:
     """v0.41.1 — a Step 41 row with the storage prefix stripped from its message; None otherwise."""
-    first_word = msg.split(" ", 1)[0]
-    if msg == lw.MSG_PASS:
-        entry_type, detail = _TYPE_PASS, None
-    elif first_word in _EDGE_STATES:
-        entry_type, detail = _TYPE_EDGE_STATE, first_word
-    elif msg.startswith(lw.MSG_TRAIT_ADD + " ") or msg.startswith(lw.MSG_TRAIT_REMOVE + " "):
-        entry_type, detail = _TYPE_TRAIT_CHANGE, msg[len(lw.PREFIX_TRAIT):]
-    elif msg.startswith(lw.PREFIX_MATCH):
-        entry_type, detail = _TYPE_MATCH_LIFECYCLE, msg[len(lw.PREFIX_MATCH):]
-    elif msg.startswith(lw.PREFIX_ADMIN):
-        entry_type, detail = _TYPE_ADMIN_ACTION, msg[len(lw.PREFIX_ADMIN):]
-    else:
+    type_ = ltm.event_type(msg)
+    if type_ not in (_TYPE_PASS, _TYPE_EDGE_STATE, _TYPE_TRAIT_CHANGE, _TYPE_MATCH_LIFECYCLE,
+                     _TYPE_ADMIN_ACTION):
         return None
     return {
-        "type": entry_type,
+        "type": type_,
         "clock": e.clock,
         "timestamp": e.timestamp,
         "idCharacterMatch": e.id_character_match,
-        "message": detail,
+        "message": ltm.timeline_message(type_, msg),
         "idEvent": e.id_event,
     }
+
+
+def event_entry(e) -> Optional[Dict[str, Any]]:
+    """One log_events row as a timeline entry; v0.41.4 the type comes from ``log_type_mapper`` (shared
+    with the match export). An unrecognised message is dropped rather than shown as garbage."""
+    msg = e.log_message
+    type_ = ltm.event_type(msg)
+    if type_ is None or type_ == ltm.OTHER:
+        return None
+    base = {"type": type_, "clock": e.clock, "timestamp": e.timestamp}
+    if type_ == ltm.SLEEP:
+        base["idCharacterMatch"] = e.id_character_match
+    elif type_ in (ltm.EVENT, ltm.CHOICE):
+        # v0.35.3/v0.35.4 — the price paid and what the event or the option gave back.
+        base.update({"idCharacterMatch": e.id_character_match, "message": msg, "idEvent": e.id_event,
+                     "energyCost": e.energy_cost or 0, "foodCost": e.food_cost or 0,
+                     "magicCost": e.magic_cost or 0, "coinCost": e.coin_cost or 0,
+                     "energyGain": e.energy_gain or 0, "foodGain": e.food_gain or 0,
+                     "magicGain": e.magic_gain or 0, "coinGain": e.coin_gain or 0})
+    elif type_ in (ltm.COUNTER_ZERO, ltm.AUTOMATIC_EVENT):
+        # Step 33 — the location rides in idLocationTo so it enriches like a MOVEMENT does.
+        base.update({"idCharacterMatch": e.id_character_match, "idLocationTo": e.id_location,
+                     "message": msg, "idEvent": e.id_event})
+    elif type_ == ltm.RANDOM_EVENT:
+        base.update({"message": msg, "idEvent": e.id_event})
+    elif type_ == ltm.REGISTRY_CHANGE:
+        base.update({"idCharacterMatch": e.id_character_match, "message": msg, "idEvent": e.id_event})
+    elif type_ == ltm.MISSION_CHANGE:
+        base["message"] = msg
+    elif type_ in (ltm.EXP_USE, ltm.RECOVERY):
+        base.update({"idCharacterMatch": e.id_character_match, "message": msg})
+    else:
+        return step41_entry(e, msg)
+    return base
 
 
 def _step_number_of(message: Optional[str]) -> Optional[int]:
@@ -158,10 +176,6 @@ _TYPE_ITEM_USE = "ITEM_USE"
 _TYPE_ITEM_DROP = "ITEM_DROP"
 # Step 38 — experience spent on a stat.
 _TYPE_EXP_USE = "EXP_USE"
-_MSG_SLEEP = "ACTION_SLEEP"
-_MSG_COUNTER = "counter"
-_MSG_AUTOMATIC_EVENT = "automatic event"
-_MSG_RANDOM_EVENT = "random event"
 
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 200
@@ -341,105 +355,9 @@ class MatchLogsService:
         for e in (session.query(LogEventsEntity)
                   .filter(LogEventsEntity.id_match == match.id)
                   .order_by(LogEventsEntity.id.asc()).all()):
-            msg = e.log_message
-            if msg is None:
-                continue
-            if msg == _MSG_SLEEP:
-                entries.append({
-                    "type": _TYPE_SLEEP,
-                    "clock": e.clock,
-                    "timestamp": e.timestamp,
-                    "idCharacterMatch": e.id_character_match,
-                })
-            elif msg.startswith(MSG_EVENT_EXECUTED) or msg.startswith(MSG_CHOICE_SELECTED):
-                entries.append({
-                    "type": _TYPE_EVENT if msg.startswith(MSG_EVENT_EXECUTED) else _TYPE_CHOICE,
-                    "clock": e.clock,
-                    "timestamp": e.timestamp,
-                    "idCharacterMatch": e.id_character_match,
-                    "message": msg,
-                    "idEvent": e.id_event,
-                    # v0.35.3 — the price the actor paid to open this event. Zero on the rows
-                    # the engine writes for itself: chained, automatic and resolution rows.
-                    "energyCost": e.energy_cost or 0,
-                    "foodCost": e.food_cost or 0,
-                    "magicCost": e.magic_cost or 0,
-                    "coinCost": e.coin_cost or 0,
-                    # v0.35.4 — and what the event gave back, on the gain half of the row.
-                    "energyGain": e.energy_gain or 0,
-                    "foodGain": e.food_gain or 0,
-                    "magicGain": e.magic_gain or 0,
-                    "coinGain": e.coin_gain or 0,
-                })
-            elif msg.startswith(_MSG_COUNTER):
-                # Step 33 split this out of RECOVERY: a counter running out and a character
-                # healing are unrelated events, and the frontend has to tell them apart.
-                # The location rides in idLocationTo so it enriches like a MOVEMENT does.
-                entries.append({
-                    "type": _TYPE_COUNTER_ZERO,
-                    "clock": e.clock,
-                    "timestamp": e.timestamp,
-                    "idCharacterMatch": e.id_character_match,
-                    "idLocationTo": e.id_location,
-                    "message": msg,
-                    "idEvent": e.id_event,
-                })
-            elif msg.startswith(_MSG_AUTOMATIC_EVENT):
-                entries.append({
-                    "type": _TYPE_AUTOMATIC_EVENT,
-                    "clock": e.clock,
-                    "timestamp": e.timestamp,
-                    "idCharacterMatch": e.id_character_match,
-                    "idLocationTo": e.id_location,
-                    "message": msg,
-                    "idEvent": e.id_event,
-                })
-            elif msg.startswith(_MSG_RANDOM_EVENT):
-                # Step 39 — it happens nowhere in particular: no location rides on it.
-                entries.append({
-                    "type": _TYPE_RANDOM_EVENT,
-                    "clock": e.clock,
-                    "timestamp": e.timestamp,
-                    "message": msg,
-                    "idEvent": e.id_event,
-                })
-            elif msg.startswith(registry_service.MSG_REGISTRY_CHANGE):
-                entries.append({
-                    "type": _TYPE_REGISTRY_CHANGE,
-                    "clock": e.clock,
-                    "timestamp": e.timestamp,
-                    "idCharacterMatch": e.id_character_match,
-                    "message": msg,
-                    "idEvent": e.id_event,
-                })
-            elif msg.startswith(mission_service.MSG_MISSION_CHANGE):
-                # v0.37.2 — nobody in the fiction moves a mission: no character rides on it.
-                entries.append({
-                    "type": _TYPE_MISSION_CHANGE,
-                    "clock": e.clock,
-                    "timestamp": e.timestamp,
-                    "message": msg,
-                })
-            elif msg.startswith(experience_service.MSG_EXP_USE):
-                entries.append({
-                    "type": _TYPE_EXP_USE,
-                    "clock": e.clock,
-                    "timestamp": e.timestamp,
-                    "idCharacterMatch": e.id_character_match,
-                    "message": msg,
-                })
-            elif msg.startswith("recovery"):
-                entries.append({
-                    "type": _TYPE_RECOVERY,
-                    "clock": e.clock,
-                    "timestamp": e.timestamp,
-                    "idCharacterMatch": e.id_character_match,
-                    "message": msg,
-                })
-            else:
-                step41 = step41_entry(e, msg)
-                if step41 is not None:
-                    entries.append(step41)
+            entry = event_entry(e)
+            if entry is not None:
+                entries.append(entry)
 
         # v0.35.4 — every entry carries the eight resource fields, whatever its type, so a
         # client can sum a column without null checks. The Java reference has always

@@ -201,6 +201,24 @@ def query_by_pk(pk):
         print(f"Error querying PK {pk}: {e}")
         return []
 
+def find_user_by_email(email):
+    """v0.41.4 — the USER# item whose ``email`` matches (case-insensitive), or None.
+    No email index exists: a paginated Scan, used only by the match import."""
+    wanted = str(email or '').strip().lower()
+    if not wanted:
+        return None
+    try:
+        items = _paginate(
+            _get_table().scan,
+            FilterExpression=Attr('SK').eq('METADATA') & Attr('PK').begins_with('USER#')
+            & Attr('email').exists(),
+        )
+    except ClientError as e:
+        print(f"Error scanning users by email: {e}")
+        return None
+    found = [i for i in items if str(i.get('email') or '').strip().lower() == wanted]
+    return min(found, key=lambda i: str(i.get('PK'))) if found else None
+
 def query_sk_prefix(pk, sk_prefix, consistent=True, filter_expr=None):
     """v0.37.5 — every item of a partition whose SK starts with the prefix (paginated).
 

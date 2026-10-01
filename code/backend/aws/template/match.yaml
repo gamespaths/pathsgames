@@ -138,6 +138,9 @@ Resources:
           LOG_WARN_METADATA_KB: "300"
           # v0.41.1 — LIGHT snapshots kept per match, one per time-end (0 = off)
           SNAPSHOT_KEEP_PER_MATCH: "10"
+          # v0.41.4 — match export/import: size cap in bytes (413 above it) and the version the file names
+          MATCH_EXPORT_MAX_BYTES: "5000000"
+          APP_VERSION: !Ref Version
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName
@@ -529,6 +532,25 @@ Resources:
     Properties:
       ApiId: !Ref AdminApiId
       RouteKey: "POST /api/admin/matches/{uuidMatch}/snapshots/{uuidSnapshot}/restore"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  # v0.41.4 — Step 41 H match export (neutral file) and import (dry-run or write)
+  AdminMatchExportRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/admin/matches/{uuidMatch}/export"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  AdminMatchImportRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/admin/matches/import"
       Target: !Sub "integrations/${MatchAdminIntegration}"
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId

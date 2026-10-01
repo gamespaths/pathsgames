@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { stripNulls, normalizeImportJson } from '../../utils/storyJson'
+import { stripNulls, normalizeImportJson, exportEntity } from '../../utils/storyJson'
 
 describe('storyJson', () => {
   describe('stripNulls', () => {
@@ -50,5 +50,16 @@ describe('storyJson', () => {
       expect(normalizeImportJson(null)).toBeNull()
       expect(normalizeImportJson([1])).toEqual([1])
     })
+  })
+})
+
+describe('exportEntity (v0.41.4)', () => {
+  it('drops the stamps, fixes text ids and keeps the template id', () => {
+    expect(exportEntity('texts', { idText: '4', lang: 'en', tsInsert: 't', idStory: 9 }))
+      .toEqual({ idText: 4, id: 4, lang: 'en' })
+    expect(exportEntity('characterTemplates', { idTipo: 2, uuid: 'u', tsUpdate: 'x' }))
+      .toEqual({ idTipo: 2, id: 2, uuid: 'u' })
+    expect(exportEntity('locations', { id: 3, uuid: 'l' })).toEqual({ id: 3, uuid: 'l' })
+    expect(exportEntity('texts', { lang: 'en' })).toEqual({ lang: 'en' })
   })
 })

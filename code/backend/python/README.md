@@ -155,6 +155,8 @@ docker rmi pathsgames-backend-python
 | GET | `/api/matches` | List matches owned by the authenticated user |
 | GET | `/api/match/{uuid}/info` | Match runtime state (summary, location/registry state) |
 | GET | `/api/admin/matches` | List all matches on the platform (ADMIN only) — paged envelope `{items, nextCursor, limit}`; query params: `limit`, `cursor`, `status`, `userUuid`, `storyUuid`, `sinceDays` |
+| GET | `/api/admin/matches/{uuidMatch}/export` | Export a match from its latest time-end snapshot as a neutral "match export v1" file (ADMIN only; v0.41.4) |
+| POST | `/api/admin/matches/import` | Dry-run or import a match export file; 413 above `MATCH_EXPORT_MAX_BYTES` (default 5000000, `config.py`). Users matched by uuid then e-mail; new column `users.email_address` + index `idx_users_email` added by `align_schema` (v0.41.4) |
 
 ## Architecture
 

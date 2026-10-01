@@ -1,9 +1,7 @@
 package games.paths.core.service.match;
 
+import games.paths.core.model.match.export.LogTypeMapper;
 import games.paths.core.model.story.CardInfo;
-import games.paths.core.port.match.EdgeStateStorePort;
-import games.paths.core.port.match.EventExecutionStorePort;
-import games.paths.core.port.match.LocationEntryStorePort;
 import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.MatchLogsPort;
 import games.paths.core.port.match.MatchLogsStorePort;
@@ -24,7 +22,6 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * MatchLogsService - assembles the consolidated match log from the five append-only
@@ -63,9 +60,7 @@ public class MatchLogsService implements MatchLogsPort {
 
     private static final String TYPE_WEATHER = "WEATHER";
     private static final String TYPE_MOVEMENT = "MOVEMENT";
-    private static final String TYPE_SLEEP = "SLEEP";
     private static final String TYPE_CLOCK_ADVANCE = "CLOCK_ADVANCE";
-    private static final String TYPE_RECOVERY = "RECOVERY";
     /** Step 29 — an event the player triggered. */
     private static final String TYPE_EVENT = "EVENT";
     /** Step 40 — an option the player picked, with what its own effect rows gave. */
@@ -76,14 +71,8 @@ public class MatchLogsService implements MatchLogsPort {
     private static final String TYPE_AUTOMATIC_EVENT = "AUTOMATIC_EVENT";
     /** Step 39 — a global random event fired at time-start. */
     static final String TYPE_RANDOM_EVENT = "RANDOM_EVENT";
-    /** Step 36 — a registry key was written by an event, a choice or the engine. */
-    private static final String TYPE_REGISTRY_CHANGE = "REGISTRY_CHANGE";
     /** v0.37.2 — a mission opened, advanced, completed or failed. */
     private static final String TYPE_MISSION_CHANGE = "MISSION_CHANGE";
-    /** v0.35.4 — the three item actions, read off {@code log_item_usage.action}. */
-    private static final String TYPE_ITEM_ADD = "ITEM_ADD";
-    private static final String TYPE_ITEM_USE = "ITEM_USE";
-    private static final String TYPE_ITEM_DROP = "ITEM_DROP";
     /** Step 38 — experience spent on a stat. */
     static final String TYPE_EXP_USE = "EXP_USE";
     /** v0.41.1 - the Step 41 rows: a pass, an edge state, a trait, the lifecycle, an admin action. */
@@ -92,12 +81,6 @@ public class MatchLogsService implements MatchLogsPort {
     static final String TYPE_TRAIT_CHANGE = "TRAIT_CHANGE";
     static final String TYPE_MATCH_LIFECYCLE = "MATCH_LIFECYCLE";
     static final String TYPE_ADMIN_ACTION = "ADMIN_ACTION";
-    /** Edge-state rows are matched on their first word: COMA_RECOVERED and ALL_PLAYER_COMA contain COMA. */
-    private static final Set<String> EDGE_STATES = Set.of(EdgeStateStorePort.MSG_COMA,
-            EdgeStateStorePort.MSG_SADNESS_OVERFLOW, EdgeStateStorePort.MSG_COMA_RECOVERED,
-            EdgeStateStorePort.MSG_ALL_PLAYER_COMA);
-    private static final String MSG_SLEEP = "ACTION_SLEEP";
-    private static final String MSG_COUNTER = "counter";
     private static final String DEFAULT_LANG = "en";
     private static final String CURSOR_PREFIX = "offset:";
 
@@ -181,17 +164,7 @@ public class MatchLogsService implements MatchLogsPort {
      * they share one type. An unknown action is dropped, like an unknown log message.
      */
     private static String itemType(String action) {
-        if (action == null) {
-            // Pre-v0.35.4 rows predate the column: back then the table only logged usages.
-            return TYPE_ITEM_USE;
-        }
-        return switch (action.trim().toUpperCase()) {
-            case EventExecutionStorePort.ITEM_ACTION_ADD -> TYPE_ITEM_ADD;
-            case EventExecutionStorePort.ITEM_ACTION_USE -> TYPE_ITEM_USE;
-            case EventExecutionStorePort.ITEM_ACTION_DROP,
-                 EventExecutionStorePort.ITEM_ACTION_REMOVE -> TYPE_ITEM_DROP;
-            default -> null;
-        };
+        return LogTypeMapper.itemType(action);
     }
 
     /** The whole timeline, sorted by timestamp ascending, with no enrichment yet. */
@@ -235,64 +208,9 @@ public class MatchLogsService implements MatchLogsPort {
         // unrecognised message is dropped rather than shown as garbage. A new writer therefore
         // needs a branch here or its rows never reach the timeline.
         for (EventLogEntry e : store.findEventLog(match.id())) {
-            String msg = e.logMessage();
-            if (msg == null) {
-                continue;
-            }
-            if (MSG_SLEEP.equals(msg)) {
-                entries.add(LogEntry.builder(TYPE_SLEEP, e.timestamp())
-                        .clock(e.clock()).character(e.idCharacterMatch()).build());
-            } else if (msg.startsWith(EventExecutionStorePort.MSG_EVENT_EXECUTED)) {
-                // v0.35.3 — the price the actor paid rides on the EVENT row: energy in the
-                // slot movement already uses, the three resources in the new ones.
-                // v0.35.4 — and what the event gave back, on the gain half of the same row.
-                entries.add(LogEntry.builder(TYPE_EVENT, e.timestamp())
-                        .clock(e.clock()).character(e.idCharacterMatch())
-                        .message(msg).idEvent(e.idEvent())
-                        .cost(e.energyCost(), e.foodCost(), e.magicCost(), e.coinCost())
-                        .gain(e.energyGain(), e.foodGain(), e.magicGain(), e.coinGain())
-                        .build());
-            } else if (msg.startsWith(EventExecutionStorePort.MSG_CHOICE_SELECTED)) {
-                entries.add(LogEntry.builder(TYPE_CHOICE, e.timestamp())
-                        .clock(e.clock()).character(e.idCharacterMatch())
-                        .message(msg).idEvent(e.idEvent())
-                        .cost(e.energyCost(), e.foodCost(), e.magicCost(), e.coinCost())
-                        .gain(e.energyGain(), e.foodGain(), e.magicGain(), e.coinGain())
-                        .build());
-            } else if (msg.startsWith(MSG_COUNTER)) {
-                // Step 33 split this out of RECOVERY: a counter running out and a character
-                // healing are unrelated events, and the frontend has to tell them apart.
-                // The location rides in idLocationTo so it enriches like a MOVEMENT does.
-                entries.add(LogEntry.builder(TYPE_COUNTER_ZERO, e.timestamp())
-                        .clock(e.clock()).character(e.idCharacterMatch())
-                        .locationTo(e.idLocation()).message(msg).idEvent(e.idEvent()).build());
-            } else if (msg.startsWith(LocationEntryStorePort.MSG_AUTOMATIC_EVENT)) {
-                entries.add(LogEntry.builder(TYPE_AUTOMATIC_EVENT, e.timestamp())
-                        .clock(e.clock()).character(e.idCharacterMatch())
-                        .locationTo(e.idLocation()).message(msg).idEvent(e.idEvent()).build());
-            } else if (msg.startsWith(LocationEntryStorePort.MSG_RANDOM_EVENT)) {
-                // Step 39 — it happens nowhere in particular: no location rides on it.
-                entries.add(LogEntry.builder(TYPE_RANDOM_EVENT, e.timestamp())
-                        .clock(e.clock()).message(msg).idEvent(e.idEvent()).build());
-            } else if (msg.startsWith(RegistryService.MSG_REGISTRY_CHANGE)) {
-                entries.add(LogEntry.builder(TYPE_REGISTRY_CHANGE, e.timestamp())
-                        .clock(e.clock()).character(e.idCharacterMatch())
-                        .message(msg).idEvent(e.idEvent()).build());
-            } else if (msg.startsWith(MissionService.MSG_MISSION_CHANGE)) {
-                // v0.37.2 — nobody in the fiction moves a mission: no character rides on it.
-                entries.add(LogEntry.builder(TYPE_MISSION_CHANGE, e.timestamp())
-                        .clock(e.clock()).message(msg).build());
-            } else if (msg.startsWith(ExperienceService.MSG_EXP_USE)) {
-                entries.add(LogEntry.builder(TYPE_EXP_USE, e.timestamp())
-                        .clock(e.clock()).character(e.idCharacterMatch()).message(msg).build());
-            } else if (msg.startsWith("recovery")) {
-                entries.add(LogEntry.builder(TYPE_RECOVERY, e.timestamp())
-                        .clock(e.clock()).character(e.idCharacterMatch()).message(msg).build());
-            } else {
-                LogEntry step41 = step41Entry(e, msg);
-                if (step41 != null) {
-                    entries.add(step41);
-                }
+            LogEntry entry = eventEntry(e);
+            if (entry != null) {
+                entries.add(entry);
             }
         }
 
@@ -301,33 +219,38 @@ public class MatchLogsService implements MatchLogsPort {
         return entries;
     }
 
-    /** v0.41.1 - the Step 41 rows, with the storage prefix stripped from the message; null otherwise. */
-    static LogEntry step41Entry(EventLogEntry e, String msg) {
-        String firstWord = msg.split(" ", 2)[0];
-        String type;
-        String detail;
-        if (MatchLogWriterPort.MSG_PASS.equals(msg)) {
-            type = TYPE_PASS;
-            detail = null;
-        } else if (EDGE_STATES.contains(firstWord)) {
-            type = TYPE_EDGE_STATE;
-            detail = firstWord;
-        } else if (msg.startsWith(MatchLogWriterPort.MSG_TRAIT_ADD + " ")
-                || msg.startsWith(MatchLogWriterPort.MSG_TRAIT_REMOVE + " ")) {
-            type = TYPE_TRAIT_CHANGE;
-            detail = msg.substring(MatchLogWriterPort.PREFIX_TRAIT.length());
-        } else if (msg.startsWith(MatchLogWriterPort.PREFIX_MATCH)) {
-            type = TYPE_MATCH_LIFECYCLE;
-            detail = msg.substring(MatchLogWriterPort.PREFIX_MATCH.length());
-        } else if (msg.startsWith(MatchLogWriterPort.PREFIX_ADMIN)) {
-            type = TYPE_ADMIN_ACTION;
-            detail = msg.substring(MatchLogWriterPort.PREFIX_ADMIN.length());
-        } else {
+    /**
+     * One log_events row as a timeline entry; v0.41.4 the type comes from {@link LogTypeMapper} (shared
+     * with the match export). An unrecognised message is dropped rather than shown as garbage.
+     */
+    static LogEntry eventEntry(EventLogEntry e) {
+        String msg = e.logMessage();
+        String type = LogTypeMapper.eventType(msg);
+        if (type == null || LogTypeMapper.OTHER.equals(type)) {
             return null;
         }
-        return LogEntry.builder(type, e.timestamp())
-                .clock(e.clock()).character(e.idCharacterMatch())
-                .message(detail).idEvent(e.idEvent()).build();
+        LogEntry.Builder b = LogEntry.builder(type, e.timestamp()).clock(e.clock());
+        switch (type) {
+            case LogTypeMapper.SLEEP -> b.character(e.idCharacterMatch());
+            // v0.35.3/v0.35.4 — the price paid and what the event or the option gave back.
+            case LogTypeMapper.EVENT, LogTypeMapper.CHOICE -> b.character(e.idCharacterMatch())
+                    .message(msg).idEvent(e.idEvent())
+                    .cost(e.energyCost(), e.foodCost(), e.magicCost(), e.coinCost())
+                    .gain(e.energyGain(), e.foodGain(), e.magicGain(), e.coinGain());
+            // Step 33 — the location rides in idLocationTo so it enriches like a MOVEMENT does.
+            case LogTypeMapper.COUNTER_ZERO, LogTypeMapper.AUTOMATIC_EVENT -> b.character(e.idCharacterMatch())
+                    .locationTo(e.idLocation()).message(msg).idEvent(e.idEvent());
+            // Step 39 — it happens nowhere in particular: no location rides on it.
+            case LogTypeMapper.RANDOM_EVENT -> b.message(msg).idEvent(e.idEvent());
+            case LogTypeMapper.REGISTRY_CHANGE -> b.character(e.idCharacterMatch()).message(msg).idEvent(e.idEvent());
+            // v0.37.2 — nobody in the fiction moves a mission: no character rides on it.
+            case LogTypeMapper.MISSION_CHANGE -> b.message(msg);
+            case LogTypeMapper.EXP_USE, LogTypeMapper.RECOVERY -> b.character(e.idCharacterMatch()).message(msg);
+            // v0.41.1 — the Step 41 rows, with the storage prefix stripped from the message.
+            default -> b.character(e.idCharacterMatch())
+                    .message(LogTypeMapper.timelineMessage(type, msg)).idEvent(e.idEvent());
+        }
+        return b.build();
     }
 
     /**

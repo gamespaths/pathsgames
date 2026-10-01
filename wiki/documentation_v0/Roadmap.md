@@ -58,7 +58,7 @@ in the [Global Roadmap](../Roadmap.md) §3.
 | 38 | [Experience system](./Step38_ExperienceSystem.md) | ✅ | `use-exp` spends `gaming_character_instance.exp` to raise DEX/INT/COS by one at a difficulty-priced cost; `is_safe`→`secure_param`, `cost_max_characteristics`→`exp_cost_base`/`max_stat_value` |
 | 39 | [Random events](./Step39_RandomEvents.md) | ✅ | At most one `list_global_random_events` row fires at time-start, after the weather; absolute-percentage pick, party-wide reach, `RANDOM_EVENT` trigger in `counterZero[]` |
 | 40 | [Alpha UX polish](./Step40_AlphaUxPolish.md) | ✅ | Tutorial tips on card pages, weather display fix, environment badge, resource logs check, match list restyle, roadmap book |
-| 41 | [Alpha preparation](./Step41_AlphaPreparation.md) | ✅ | Logging and snapshots, security, admin IP protection, guest cleanup and limits, KPI report (`GET /api/admin/reports/kpi`, react-admin Reports page), production CSP restricted |
+| 41 | [Alpha preparation](./Step41_AlphaPreparation.md) | ✅ | Logging and snapshots, security, admin IP protection, guest cleanup and limits, KPI report (`GET /api/admin/reports/kpi`, react-admin Reports page), production CSP restricted; v0.41.4 admin match export/import between servers (neutral format) |
 | 42 | **Alpha launch** | | Backup and alarms, privacy check, alpha stage on AWS, alpha story, license, launch |
 
 
@@ -103,7 +103,7 @@ Each step is analysed and developed with the project agents (workflow in
     > ciao, read all "documentation_v0" for context, i wanna change my roadmap file, now I've 42 step, 13 already done and i started to work to step 14,  I wanna change my roadmap to be 101 step, 14 step should be stories management, from 14 to 42 should be single-player game system with only guess login, I would 42 step be "launch beta version with guess and single player game". since 43 to 84 "multiplayer game with credential login" with all multiplayer systems and game engine. since 85 to 101 test and launch system. all step with 7 subpoint , subpoint for backend and frontend too, add unit test into frontend and backend. 
 
 
-- **Document Version**: 0.41.2
+- **Document Version**: 0.41.4
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.1.0 | first version of this document | February 3, 2026 |
@@ -113,8 +113,9 @@ Each step is analysed and developed with the project agents (workflow in
     | 0.41.0 | Step 40 done; step 41 analysis closed, no certificate; patch 1 developed | September 28, 2026 |
     | 0.41.1 | Step 41 patch 2 developed: logging and snapshots | September 29, 2026 |
     | 0.41.2 | Step 41 closed: KPI report and production CSP done | September 29, 2026 |
+    | 0.41.4 | Step 41 patch: match export and import between servers | October 1, 2026 |
 
-- **Last Updated**: September 29, 2026 (v0.41.2)
+- **Last Updated**: October 1, 2026 (v0.41.4)
 - **Status**: In progress
 
 

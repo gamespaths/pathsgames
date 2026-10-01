@@ -21,6 +21,9 @@ ADMIN_STATUS = "STATUS"
 ADMIN_STATS = "STATS"
 # Reserved for the snapshot restore: SNAPSHOT_RESTORED clock=<n>.
 ADMIN_SNAPSHOT_RESTORED = "SNAPSHOT_RESTORED"
+# v0.41.4 — the match export (EXPORTED clock=<n>) and import (IMPORTED <server> clock=<n>).
+ADMIN_EXPORTED = "EXPORTED"
+ADMIN_IMPORTED = "IMPORTED"
 
 # The admin change-statistics fields, in the order the STATS row lists them.
 STATS_FIELDS = ("dex", "intel", "con", "energy", "life", "sad", "coin", "food", "magic",
@@ -41,6 +44,14 @@ def admin_status(status: str) -> str:
 
 def snapshot_restored(clock: int) -> str:
     return admin(f"{ADMIN_SNAPSHOT_RESTORED} clock={int(clock)}")
+
+
+def exported(clock: int) -> str:
+    return admin(f"{ADMIN_EXPORTED} clock={int(clock)}")
+
+
+def imported(server: str, clock: int) -> str:
+    return admin(f"{ADMIN_IMPORTED} {server} clock={int(clock)}")
 
 
 def stats_message(applied: dict) -> Optional[str]:

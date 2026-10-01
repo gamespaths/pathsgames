@@ -33,6 +33,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Issue the existing JWT access and refresh tokens after SSO (backend)
     - OpenAPI spec for the SSO endpoints (backend)
     - Error cases: invalid token, disabled user, provider unavailable (backend)
+    - Users copied by a match import (step 0.41, patch 0.41.4): link them to their Google identity at the first SSO login (backend)
     - Unit tests with provider mocks, coverage > 95% (tests)
 3. **Google SSO — react-game login** — sign-in button and session handling.
     - Google sign-in button and callback page (frontend)
@@ -253,6 +254,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Privacy check: policy, consent, stored data (all)
     - Verify migrated data with Robot suites (tests)
     - Rollback plan (docs)
+    - Analyse the export and import of large match snapshots (above the 5 MB cap of step 0.41, e.g. S3 hand-off) (backend, infra)
     - Certificates: analysis in [Environments](../Environments.md) (who owns the ACM certificates, regions, stages, future-proof) and the chosen change; moved from step 0.41, where they stayed as they were (infra, docs)
 42. **Beta launch** — recurring.
     - New stage `beta`: own AWS stack, bucket and site; `beta.paths.games`, `beta-api.paths.games` (infra)

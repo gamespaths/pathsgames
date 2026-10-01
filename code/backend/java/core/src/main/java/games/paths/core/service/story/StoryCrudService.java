@@ -978,6 +978,8 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("weight", d.getWeight());
         } else if (e instanceof CharacterTemplateEntity) {
             CharacterTemplateEntity ct = (CharacterTemplateEntity) e;
+            // v0.41.4 — the story-local id (id_tipo), so an exported story keeps its template ids.
+            m.put("id", ct.getIdTipo());
             m.put("lifeMax", ct.getLifeMax());
             m.put("energyMax", ct.getEnergyMax());
             m.put("sadMax", ct.getSadMax());

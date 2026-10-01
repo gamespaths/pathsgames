@@ -102,3 +102,31 @@ export const checkMatchSnapshot = (uuid, snapshotUuid) =>
 // POST .../restore — { status, uuidSnapshot, clock, matchStatus, logsRemoved }; 409 carries errors[].
 export const restoreMatchSnapshot = (uuid, snapshotUuid) =>
   apiClient().post(`/api/admin/matches/${uuid}/snapshots/${snapshotUuid}/restore`).then(r => r.data)
+
+// v0.41.4 Step 41 H — the neutral match export file. POST because it pauses the match, exports
+// its latest time-end snapshot, restores it and restarts it. Resolves { text, fileName }.
+export const exportMatch = (uuid) =>
+  apiClient().post(`/api/admin/matches/${uuid}/export`, null,
+    { responseType: 'text', transformResponse: r => r, timeout: 120000 })
+    .then(r => ({ text: r.data, fileName: exportFileName(r.headers?.['content-disposition'], uuid, r.data) }))
+
+// POST /api/admin/matches/import — { export, dryRun, replace, storyMode, startPaused }: the check
+// (dryRun) or the import; 409/422 carry errors[].
+export const importMatch = (body) =>
+  apiClient().post('/api/admin/matches/import', body, { timeout: 120000 }).then(r => r.data)
+
+// The attachment name, else match-<uuid8>-clock-<N>.json built from the file (no exposed header cross-origin).
+export function exportFileName(disposition, uuid, text) {
+  const match = /filename="?([^";]+)"?/.exec(disposition || '')
+  if (match) return match[1]
+  let clock = 'x'
+  try { clock = JSON.parse(text)?.source?.snapshotClock ?? 'x' } catch { /* not JSON: keep x */ }
+  return `match-${String(uuid).slice(0, 8)}-clock-${clock}.json`
+}
+
+// An axios error body as an object, whether it arrived as JSON or as text (responseType text).
+export function errorBody(e) {
+  const data = e?.response?.data
+  if (typeof data !== 'string') return data ?? {}
+  try { return JSON.parse(data) } catch { return { message: data } }
+}

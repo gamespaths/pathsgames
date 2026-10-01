@@ -149,6 +149,10 @@ export default function MatchesPage() {
       {/* Title + compact counters on a single row */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h2 className="pg-page-title" style={{ margin: 0 }}><i className="fas fa-gamepad" />Matches</h2>
+        {/* v0.41.4 — a match export file from any server */}
+        <button className="pg-btn pg-btn-ghost pg-btn-sm" onClick={() => navigate('/matches/import')}>
+          <i className="fas fa-file-import me-1" />Import
+        </button>
         <div className="flex items-center gap-2">
           {[
             { label: 'Loaded',  value: counts.total,   icon: 'fas fa-gamepad',         cls: '' },

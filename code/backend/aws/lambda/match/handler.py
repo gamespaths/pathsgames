@@ -46,6 +46,7 @@ from common import test_data_ttl
 from match import logbook as _logbook
 from match import repo as _repo
 from match import snapshots as _snapshots
+from match import match_export as _match_export
 from common.response import dumps as _dumps, ok as _ok, HEADERS, finalize as _finalize
 from common.http_utils import (normalize_path as _normalize_path,
                                get_source_ip as _get_source_ip,
@@ -1539,6 +1540,13 @@ def _admin_restore_snapshot(match_uuid, uuid_snapshot):
         body['errors'] = errors
         response['body'] = _dumps(body)
         return response
+    removed = _restore_to(match, match_uuid, item)
+    return _ok({'status': 'RESTORED', 'uuidSnapshot': uuid_snapshot, 'clock': _nz(item.get('clock')),
+                'matchStatus': 'PAUSED', 'logsRemoved': removed})
+
+
+def _restore_to(match, match_uuid, item):
+    """v0.41.4 — the restore body (shared with the match export): rows back, ADMIN_ACTION, time-start, PAUSED."""
     removed = _snapshots.restore_state(match, match_uuid, item, _snapshots.payload_of(item))
     clock = _nz(item.get('clock'))
     _logbook.append(match, TYPE_ADMIN_ACTION, clock, message=f'{ADMIN_SNAPSHOT_RESTORED} clock={clock}')
@@ -1546,8 +1554,7 @@ def _admin_restore_snapshot(match_uuid, uuid_snapshot):
     _advance_time(match, match_uuid, snapshot=False)
     match['status'] = 'PAUSED'
     _logbook.persist(match)
-    return _ok({'status': 'RESTORED', 'uuidSnapshot': uuid_snapshot, 'clock': clock,
-                'matchStatus': 'PAUSED', 'logsRemoved': removed})
+    return removed
 
 
 def _delete_match(match_uuid):
@@ -4858,6 +4865,15 @@ def _dispatch(event):
             return _list_all_matches(event)
         if path == '/api/admin/matches/statuses' and method == 'GET':
             return _list_match_statuses()
+        # v0.41.4 — Step 41 H: import of a neutral match export (dry-run or write).
+        if path == '/api/admin/matches/import' and method == 'POST':
+            try:
+                body = json.loads(event.get('body') or '')
+            except (TypeError, ValueError):
+                return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
+            if not isinstance(body, dict):
+                return _err(400, 'INVALID_INPUT', 'Body must be a MatchImportRequest')
+            return _match_export.import_match(body)
 
         # Parameterised routes: /api/admin/matches/{uuid}[/action]
         params = event.get('pathParameters') or {}
@@ -4866,6 +4882,9 @@ def _dispatch(event):
             segments = path.split('/')
             match_uuid = segments[4] if len(segments) > 4 else ''
 
+        # v0.41.4 — Step 41 H: the neutral export file (pause, latest snapshot, restore, resume).
+        if path.endswith('/export') and method == 'POST':
+            return _match_export.export_match(match_uuid)
         # v0.41.1 — /api/admin/matches/{uuid}/snapshots[/{uuidSnapshot}/check|restore]
         if '/snapshots' in path:
             segments = path.split('/')

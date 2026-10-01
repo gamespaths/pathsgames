@@ -46,6 +46,8 @@ From OpenAPI specs in `code/backend/java/adapter-rest/src/main/resources/openapi
 | Delete story                     | `DELETE /api/admin/stories/:uuid`|
 | List all matches (admin-wide, paged) | `GET /api/admin/matches` — envelope `{items, nextCursor, limit}`; query params `limit`, `cursor`, `status`, `sinceDays` |
 | Match detail / state             | `GET /api/admin/matches/:uuid/info` |
+| Export a match (v0.41.4)         | `GET /api/admin/matches/:uuid/export` — Export button in `SnapshotsCard` |
+| Import a match (v0.41.4)         | `POST /api/admin/matches/import` — page `/matches/import` (`MatchImportPage`, Navbar entry, Import button on Matches) |
 | Server status / echo             | `GET /api/echo/status`          |
 
 Note: `GET /api/admin/matches` (added in v0.19.10, paged envelope from v0.28.1) returns all matches regardless of creator. The user-scoped `GET /api/matches` is used by the player-facing `react-game` frontend only.

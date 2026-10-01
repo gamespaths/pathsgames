@@ -520,3 +520,28 @@ class TestUpdateTsLastAccessSummary:
         assert db.update_ts_last_access('USER#g1', 5, in_summary=True) is True
         expr = mock_table.update_item.call_args.kwargs['UpdateExpression']
         assert expr == 'SET ts_last_access = :t, summary.ts_last_access = :t'
+
+
+@patch.object(db, '_table')
+class TestFindUserByEmail:
+    """v0.41.4 — paginated Scan on USER# metadata, case-insensitive match."""
+
+    def test_blank_email_never_scans(self, mock_table):
+        assert db.find_user_by_email(None) is None
+        assert db.find_user_by_email('  ') is None
+        mock_table.scan.assert_not_called()
+
+    def test_match_ignores_case_and_follows_pages(self, mock_table):
+        mock_table.scan.side_effect = [
+            {'Items': [{'PK': 'USER#b', 'email': 'other@x.org'}], 'LastEvaluatedKey': {'PK': 'USER#b'}},
+            {'Items': [{'PK': 'USER#z', 'email': 'Boss@X.org'}, {'PK': 'USER#a', 'email': 'boss@x.org '}]},
+        ]
+        assert db.find_user_by_email(' BOSS@x.org')['PK'] == 'USER#a'
+        assert mock_table.scan.call_count == 2
+        assert 'FilterExpression' in mock_table.scan.call_args.kwargs
+
+    def test_no_match_and_errors_give_none(self, mock_table):
+        mock_table.scan.return_value = {'Items': [{'PK': 'USER#b', 'email': 'other@x.org'}]}
+        assert db.find_user_by_email('boss@x.org') is None
+        mock_table.scan.side_effect = ClientError({'Error': {'Code': 'X', 'Message': 'boom'}}, 'Scan')
+        assert db.find_user_by_email('boss@x.org') is None

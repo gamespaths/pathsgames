@@ -175,16 +175,29 @@ across environments.
   run: `code/scripts/dev/run_dependency_scan.sh` (same config, checks `osv-scanner` is on the
   `PATH` and exits 2 with install instructions if not).
 
+## 9. Match export and import (v0.41.4)
+
+- **Admin only**: `GET /api/admin/matches/{uuidMatch}/export` and `POST /api/admin/matches/import`
+  live on the admin port 8044 (AWS: admin routes behind the allow-list). No export in react-game or
+  the public API.
+- **Nothing secret travels**: users are copied with role forced to `PLAYER`, no password hash, no
+  tokens, so copied guests cannot resume and SSO users log in again. The file carries a SHA-256
+  checksum and is validated against a JSON Schema before any write.
+- **Size cap**: `MATCH_EXPORT_MAX_BYTES` (default 5000000), above it the import answers 413.
+- A story with the same id but another fingerprint is refused with 409 `STORY_DIFFERS` unless the
+  admin chooses `storyMode`. Details: [Step 41 §9](./documentation_v0/Step41_AlphaPreparation.md).
+
 # Version Control
-- **Document Version**: 0.41.2
+- **Document Version**: 0.41.4
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First shared write-up of every security control in one place | September 25, 2026 |
   | 0.41.0 | API headers, allow-list default, guest limits, dependency scan | September 28, 2026 |
   | 0.41.2 | Production website CSP switched to restricted | September 29, 2026 |
+  | 0.41.4 | Admin-only match export and import, no secrets copied | October 1, 2026 |
 
-- **Last Updated**: September 29, 2026 (v0.41.2)
+- **Last Updated**: October 1, 2026 (v0.41.4)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

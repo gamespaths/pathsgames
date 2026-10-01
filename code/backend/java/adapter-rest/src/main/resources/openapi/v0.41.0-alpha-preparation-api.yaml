@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Paths Games — Step 41 alpha preparation (patches 0.41.0, 0.41.1, 0.41.2)
+  title: Paths Games — Step 41 alpha preparation (patches 0.41.0, 0.41.1, 0.41.2, 0.41.4)
   description: |
     v0.41.0 — security, admin allow-list and guests. 0.41.1 (logging, snapshots) and
     0.41.2 (KPI report) extend this file.
@@ -79,7 +79,21 @@ info:
     value = value + delta`); AWS: item `KPI#<storyUuid>` / `DAY#YYYY-MM-DD` with flat counters,
     one `UpdateItem ADD` per request. A snapshot restore does not roll counters back: a restored
     match that ends again counts again.
-  version: 0.41.2
+
+    **Match export and import (0.41.4).** `POST /api/admin/matches/{uuid}/export` answers the
+    neutral "match export v1" file (`match-export-v1.schema.json`, next to this file): the latest
+    time-end snapshot of the match in a backend-neutral form (story bundled, users, logs up to the
+    snapshot, engine markers), canonical JSON with a SHA-256 checksum. A RUNNING match is paused,
+    restored to that snapshot (the actions since are lost, decision 45) and resumed; a PAUSED one
+    stays paused; ENDED/GAMEOVER are not touched. `POST /api/admin/matches/import` checks
+    (`dryRun=true`) or imports the file on any backend (Java, Python, AWS): story ABSENT/SAME/
+    DIFFERENT with `storyMode` AUTO|KEEP|REPLACE, users copied as PLAYER without password, token or
+    Google id, `replace=true` for an existing match uuid, an `IMPORTED <server> clock=N` timeline
+    row, an "Imported at clock N" LIGHT snapshot, the time-start (clock N + 1) and RUNNING (or
+    PAUSED with `startPaused`). The importing user's other CREATED/RUNNING matches on that story
+    are set to PAUSED (decision 60). Size cap `MATCH_EXPORT_MAX_BYTES` (5000000). Admin port only;
+    no export in react-game nor on the public API (decision 62).
+  version: 0.41.4
 servers:
   - url: /
 paths:
@@ -406,6 +420,107 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SnapshotIntegrityFailed'
+  /api/admin/matches/{uuidMatch}/export:
+    post:
+      tags: [admin-matches]
+      summary: Export a match as the neutral file; pause, restore and restart the source (v0.41.4)
+      description: |
+        POST because it pauses the source, restores it to its latest time-end snapshot (log cut,
+        `SNAPSHOT_RESTORED`, time-start), writes `ADMIN_ACTION EXPORTED clock=N` and resumes a
+        RUNNING source. The body is the canonical text of the file.
+      operationId: exportMatchV0414
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: The file, as an attachment `match-<uuid8>-clock-<N>.json`.
+          headers:
+            Content-Disposition:
+              schema: { type: string, example: 'attachment; filename=match-0a0a0a0a-clock-3.json' }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchExport'
+        '404':
+          description: MATCH_NOT_FOUND.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: |
+            NO_SNAPSHOT (CREATED, no time-end yet, or snapshots off) — nothing touched;
+            SNAPSHOT_INTEGRITY_FAILED with `errors[]` — the status is put back.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchExportError'
+        '413':
+          description: EXPORT_TOO_LARGE — above `MATCH_EXPORT_MAX_BYTES`; the status is put back.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/matches/import:
+    post:
+      tags: [admin-matches]
+      summary: Check (dryRun) or import a neutral match export file (v0.41.4)
+      operationId: importMatchV0414
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchImportRequest'
+      responses:
+        '200':
+          description: dryRun=true — the check; nothing is written.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchImportCheck'
+        '201':
+          description: Imported; the match is at clock N + 1 and RUNNING (or PAUSED with startPaused).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchImportResponse'
+        '400':
+          description: INVALID_INPUT — the body is not a JSON object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: MATCH_EXISTS (replace=false), STORY_DIFFERS (storyMode AUTO), CHARACTER_EXISTS (java/python).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchExportError'
+        '413':
+          description: IMPORT_TOO_LARGE — above `MATCH_EXPORT_MAX_BYTES`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: |
+            IMPORT_INVALID with `errors[]`: FORMAT_UNKNOWN, SCHEMA_INVALID, CHECKSUM_MISMATCH,
+            REFERENCE_INVALID, STORY_INVALID, STORY_ENTITY_MISSING (and any conflict alongside them).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchExportError'
+        '500':
+          description: IMPORT_TIME_START_FAILED — imported and left PAUSED with its imported snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/admin/reports/kpi:
     get:
       tags: [admin-reports]
@@ -676,6 +791,120 @@ components:
           type: array
           description: Ordered by uuid.
           items: { $ref: '#/components/schemas/KpiMission' }
+    MatchExport:
+      description: The neutral match export v1 (JSON Schema draft 2020-12 in the file next to this one).
+      externalDocs:
+        url: ./match-export-v1.schema.json
+      type: object
+      required: [format, formatVersion, source, story, users, match, characters, state, engine, logs, checksum]
+      properties:
+        format: { type: string, enum: [paths-games-match-export] }
+        formatVersion: { type: integer, enum: [1] }
+        source:
+          type: object
+          properties:
+            backend: { type: string, enum: [java, python, aws] }
+            dialect: { type: string, enum: [sqlite, postgresql, dynamodb] }
+            appVersion: { type: string }
+            server: { type: string }
+            exportedAt: { type: string }
+            snapshotUuid: { type: string }
+            snapshotClock: { type: integer }
+        story: { type: object }
+        users: { type: array, items: { type: object } }
+        match: { type: object }
+        characters: { type: array, items: { type: object } }
+        state: { type: object }
+        engine: { type: object }
+        logs: { type: array, items: { type: object } }
+        checksum: { type: string, description: SHA-256 hex of the canonical document without checksum. }
+    MatchImportRequest:
+      type: object
+      required: [export]
+      properties:
+        export: { $ref: '#/components/schemas/MatchExport' }
+        dryRun: { type: boolean, default: false }
+        replace: { type: boolean, default: false, description: Delete and re-import an existing match uuid. }
+        storyMode:
+          type: string
+          enum: [AUTO, KEEP, REPLACE]
+          default: AUTO
+          description: When the story exists with other content (DIFFERENT) — AUTO refuses, KEEP uses the target's, REPLACE re-imports the bundled one.
+        startPaused: { type: boolean, default: false }
+    ImportIssue:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: |
+            Errors: CHECKSUM_MISMATCH, FORMAT_UNKNOWN, SCHEMA_INVALID, REFERENCE_INVALID, STORY_INVALID,
+            STORY_DIFFERS, STORY_ENTITY_MISSING, MATCH_EXISTS, CHARACTER_EXISTS. Warnings:
+            APP_VERSION_DIFFERS, CROSS_FAMILY, USERNAME_RENAMED, USER_MAPPED_BY_EMAIL, ROLE_DOWNGRADED,
+            USER_HAS_ACTIVE_MATCH, STORY_MATCHES_DELETED, MARKERS_RECONCILED, VISITED_LOCATIONS_DIFFER, ACTIVE_CHOICES_IGNORED.
+        message: { type: string }
+    MatchImportCheck:
+      type: object
+      required: [valid, errors, warnings, source, matchExists, story, users]
+      properties:
+        valid: { type: boolean }
+        errors: { type: array, items: { $ref: '#/components/schemas/ImportIssue' } }
+        warnings: { type: array, items: { $ref: '#/components/schemas/ImportIssue' } }
+        source:
+          type: object
+          properties:
+            backend: { type: string }
+            dialect: { type: string }
+            appVersion: { type: string }
+            server: { type: string }
+            snapshotClock: { type: integer }
+        matchExists: { type: boolean }
+        story:
+          type: object
+          properties:
+            uuid: { type: string }
+            status: { type: string, enum: [ABSENT, SAME, DIFFERENT], nullable: true }
+            action: { type: string, enum: [IMPORT, USE_EXISTING, KEEP, REPLACE, AUTO], nullable: true }
+            matchesDeleted: { type: integer, description: Matches a REPLACE deletes (java/python; 0 on AWS). }
+        users:
+          type: array
+          items:
+            type: object
+            properties:
+              uuid: { type: string }
+              username: { type: string }
+              targetUsername: { type: string }
+              targetUuid: { type: string, description: The user the references point to on this server. }
+              status:
+                type: string
+                enum: [NEW, EXISTING, RENAMED, MAPPED_BY_EMAIL]
+                description: |
+                  Resolution order: uuid on this server (EXISTING), then same e-mail, case-insensitive
+                  (MAPPED_BY_EMAIL, target user unchanged), then NEW (RENAMED on a username clash; never on AWS).
+    MatchImportResponse:
+      type: object
+      required: [status, uuidMatch, snapshotClock, clock, matchStatus]
+      properties:
+        status: { type: string, enum: [IMPORTED] }
+        uuidMatch: { type: string }
+        snapshotClock: { type: integer, description: N, the clock of the imported snapshot. }
+        clock: { type: integer, description: N + 1 after the time-start. }
+        matchStatus: { type: string, enum: [RUNNING, PAUSED] }
+        uuidSnapshot: { type: string, nullable: true, description: The "Imported at clock N" snapshot. }
+        storyAction: { type: string, enum: [IMPORT, USE_EXISTING, KEEP, REPLACE] }
+        usersCreated: { type: integer }
+        logsImported: { type: integer }
+        warnings: { type: array, items: { $ref: '#/components/schemas/ImportIssue' } }
+    MatchExportError:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: NO_SNAPSHOT, SNAPSHOT_INTEGRITY_FAILED, MATCH_EXISTS, STORY_DIFFERS, CHARACTER_EXISTS, IMPORT_INVALID
+        message: { type: string }
+        errors: { type: array, items: { $ref: '#/components/schemas/ImportIssue' } }
+        timestamp: { type: integer, format: int64 }
     StaleGuestsSummary:
       type: object
       required: [guests, matches]

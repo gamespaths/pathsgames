@@ -127,7 +127,16 @@ class SnapshotService(SnapshotPort):
         except Exception as exc:  # noqa: BLE001 — never break the time-end
             logger.warning("SNAPSHOT match %s not written: %s", id_match, exc)
 
-    def _write(self, match: Dict[str, Any]) -> None:
+    def write_now(self, id_match: int, description: str) -> Optional[str]:
+        """v0.41.4 — a LIGHT snapshot now (the "Imported at clock N" rollback point); answers its uuid."""
+        match = self.store.find_match_by_id(id_match)
+        if match is None:
+            raise SnapshotError(sp.MATCH_NOT_FOUND, f"Match not found: {id_match}")
+        self._write(match, description, prune=self.keep_per_match > 0)
+        rows = self.store.list(match["id"])
+        return rows[0]["uuid"] if rows else None
+
+    def _write(self, match: Dict[str, Any], description: Optional[str] = None, prune: bool = True) -> None:
         clock = int(match.get("current_clock") or 0)
         payload = {
             "v": PAYLOAD_VERSION,
@@ -139,8 +148,9 @@ class SnapshotService(SnapshotPort):
         }
         text = canonical(payload)
         self.store.insert(match["id"], match["id_story"], clock, sp.TYPE_LIGHT, text, sha256(text),
-                          f"Time-end of clock {clock}")
-        self.store.prune(match["id"], self.keep_per_match)
+                          description or f"Time-end of clock {clock}")
+        if prune:
+            self.store.prune(match["id"], self.keep_per_match)
 
     # ── admin ─────────────────────────────────────────────────────────────────
 

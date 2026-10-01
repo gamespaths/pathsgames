@@ -1,13 +1,27 @@
 import { useCallback, useEffect, useState } from 'react'
-import { listMatchSnapshots, checkMatchSnapshot, restoreMatchSnapshot } from '../../../api/matchApi'
+import {
+  listMatchSnapshots, checkMatchSnapshot, restoreMatchSnapshot, exportMatch, errorBody,
+} from '../../../api/matchApi'
 import ConfirmModal from '../../common/ConfirmModal'
 
 /**
  * SnapshotsCard — v0.41.1 Step 41 B: the time-end snapshots of a match, newest first; "Check"
- * lists what fails, "Restore" (confirmed) rolls the match back, runs the time-start and pauses it.
+ * lists what fails, "Restore" (confirmed) rolls the match back; v0.41.4 "Export" downloads the file.
  */
 
 const errorText = (e, fallback) => e?.response?.data?.message || e?.message || fallback
+
+// Saves a text as a JSON file through a temporary link.
+function download(text, fileName) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
 
 const sizeText = (bytes) => (bytes >= 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${bytes ?? 0} B`)
 
@@ -31,6 +45,9 @@ export default function SnapshotsCard({ matchUuid, onRestored, notice }) {
   const [busy, setBusy]       = useState(false)
   const [checks, setChecks]   = useState({})     // snapshot uuid -> { valid, errors }
   const [confirm, setConfirm] = useState(null)   // the snapshot row waiting for confirmation
+  const [exporting, setExporting] = useState(null) // the latest row, waiting for the export confirmation
+  const [exportErrors, setExportErrors] = useState([])
+  const [exported, setExported] = useState('')
 
   const load = useCallback(() => {
     setError('')
@@ -78,6 +95,27 @@ export default function SnapshotsCard({ matchUuid, onRestored, notice }) {
     }
   }
 
+  async function exportFile(row) {
+    setExporting(null)
+    setBusy(true)
+    setError('')
+    setExportErrors([])
+    setExported('')
+    try {
+      const { text, fileName } = await exportMatch(matchUuid)
+      download(text, fileName)
+      setExported(`Exported the end of clock ${row.clock} as ${fileName}.`)
+      await load()
+      if (onRestored) onRestored('')
+    } catch (e) {
+      const body = errorBody(e)
+      setExportErrors(Array.isArray(body.errors) ? body.errors : [])
+      setError(body.message || errorText(e, 'The export failed'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const list = rows ?? []
 
   return (
@@ -91,9 +129,24 @@ export default function SnapshotsCard({ matchUuid, onRestored, notice }) {
           danger
         />
       )}
-      <p className="pg-card-title" style={{ padding: '0.75rem 1rem 0' }}>
-        <i className="fas fa-camera me-1" />Snapshots ({list.length})
-      </p>
+      {exporting && (
+        <ConfirmModal
+          title="Export match"
+          message={`Export the match as a file? This pauses the match, rolls it back to the snapshot of clock ${exporting.clock} (the actions since are lost), then restarts it.`}
+          onConfirm={() => { void exportFile(exporting) }}
+          onCancel={() => setExporting(null)}
+          danger
+        />
+      )}
+      <div className="d-flex justify-content-between align-items-center" style={{ padding: '0.75rem 1rem 0' }}>
+        <p className="pg-card-title m-0">
+          <i className="fas fa-camera me-1" />Snapshots ({list.length})
+        </p>
+        <button className="pg-btn pg-btn-sm pg-btn-ghost" disabled={busy || list.length === 0}
+                onClick={() => setExporting(list[0])} aria-label="Export match">
+          <i className="fas fa-file-export me-1" />Export
+        </button>
+      </div>
       <p style={{ padding: '0 1rem', fontSize: '0.78rem', color: 'var(--color-ash)' }}>
         One snapshot at every time-end, before the clock moves; the newest ones are kept.
       </p>
@@ -102,8 +155,16 @@ export default function SnapshotsCard({ matchUuid, onRestored, notice }) {
           {notice}
         </p>
       )}
+      {exported && (
+        <p className="pg-badge pg-badge-success" style={{ margin: '0 1rem 0.5rem' }} data-testid="export-notice">
+          {exported}
+        </p>
+      )}
       {error && (
         <p className="pg-error" style={{ padding: '0 1rem', fontSize: '0.8rem' }}>{error}</p>
+      )}
+      {exportErrors.length > 0 && (
+        <div style={{ padding: '0 1rem 0.5rem' }}><CheckResult result={{ valid: false, errors: exportErrors }} /></div>
       )}
       <div style={{ overflowX: 'auto' }}>
         <table className="pg-table" style={{ fontSize: '0.78rem' }}>

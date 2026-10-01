@@ -6,7 +6,7 @@ spring:
 
 game:
   server:
-    version: 0.41.3
+    version: 0.41.4
     # manually change this version if needed >0.13.0
   database:
     # Configurable SQLite path — override with -Dgame.database.path=/your/path
@@ -69,6 +69,10 @@ game:
   snapshot:
     # v0.41.1 — LIGHT snapshots kept per match, one per time-end (0 = no snapshots).
     keep-per-match: ${SNAPSHOT_KEEP_PER_MATCH:10}
+  match:
+    export:
+      # v0.41.4 — size cap of a match export / import file in bytes (413 above it).
+      max-bytes: ${MATCH_EXPORT_MAX_BYTES:5000000}
   dev:
     # Enables dev-only endpoints (POST /api/dev/cleanup) and the optional
     # X-Test-Marker header on POST /api/auth/guest. Disabled by the prod profile.

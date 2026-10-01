@@ -101,6 +101,23 @@ public class SnapshotService implements SnapshotPort, SnapshotPort.TimeEndWriter
     }
 
     private void write(MatchRef match) {
+        write(match, "Time-end of clock " + match.currentClock());
+        store.prune(match.id(), keepPerMatch);
+    }
+
+    /** v0.41.4 - a LIGHT snapshot now (the "Imported at clock N" rollback point); answers its uuid. */
+    public String writeNow(long idMatch, String description) {
+        MatchRef match = store.findMatchById(idMatch).orElseThrow(() -> new SnapshotException(
+                SnapshotException.Code.MATCH_NOT_FOUND, "Match not found: " + idMatch));
+        write(match, description);
+        if (keepPerMatch > 0) {
+            store.prune(match.id(), keepPerMatch);
+        }
+        List<StoredSnapshot> rows = store.list(match.id());
+        return rows.isEmpty() ? null : rows.get(0).uuid();
+    }
+
+    private void write(MatchRef match, String description) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put(K_VERSION, PAYLOAD_VERSION);
         payload.put(K_MATCH_UUID, match.uuid());
@@ -110,8 +127,7 @@ public class SnapshotService implements SnapshotPort, SnapshotPort.TimeEndWriter
         payload.put(K_LOG_MARKS, store.logMarks(match.id()));
         String json = canonical(payload);
         store.insert(new NewSnapshot(match.id(), match.idStory(), match.currentClock(), TYPE_LIGHT,
-                json, sha256(json), "Time-end of clock " + match.currentClock()));
-        store.prune(match.id(), keepPerMatch);
+                json, sha256(json), description));
     }
 
     // ── admin ───────────────────────────────────────────────────────────────

@@ -366,6 +366,37 @@ public class CoreConfig {
         return service;
     }
 
+    /** v0.41.4 - Step 41 H: the internal story exporter (admin only, decision 62). */
+    @Bean
+    public games.paths.core.port.story.StoryExportPort storyExportPort(StoryCrudPort storyCrudPort) {
+        return new games.paths.core.service.story.StoryExportService(storyCrudPort);
+    }
+
+    /** v0.41.4 - Step 41 H: match export and import in the neutral format (decisions 45-66). */
+    @Bean
+    @SuppressWarnings("java:S107")
+    public games.paths.core.port.match.MatchExportPort matchExportPort(
+            games.paths.core.port.match.MatchExportStorePort matchExportStorePort,
+            games.paths.core.port.match.SnapshotStorePort snapshotStorePort,
+            games.paths.core.service.match.SnapshotService snapshotService,
+            games.paths.core.service.match.TimeAdvancementService timeAdvancementService,
+            games.paths.core.port.story.StoryExportPort storyExportPort,
+            StoryImportPort storyImportPort, StoryValidatorPort storyValidatorPort,
+            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort,
+            MatchCommandPort matchCommandPort,
+            @Value("${game.match.export.max-bytes:5000000}") long maxBytes) {
+        games.paths.core.service.match.MatchImportService importer =
+                new games.paths.core.service.match.MatchImportService(matchExportStorePort, snapshotStorePort,
+                        storyExportPort, storyImportPort, storyValidatorPort, serverVersion, maxBytes);
+        importer.setEngine(snapshotService, timeAdvancementService, matchLogWriterPort, matchCommandPort);
+        games.paths.core.service.match.MatchExportService service =
+                new games.paths.core.service.match.MatchExportService(snapshotStorePort, snapshotService,
+                        matchExportStorePort, storyExportPort, importer, serverVersion, serverEnv, maxBytes);
+        service.setLogWriter(matchLogWriterPort);
+        service.setMatchCommands(matchCommandPort);
+        return service;
+    }
+
     @Bean
     public games.paths.core.port.match.SnapshotPort snapshotPort(
             games.paths.core.service.match.SnapshotService snapshotService) {

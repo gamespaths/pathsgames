@@ -241,10 +241,23 @@ def test_port_defaults_are_harmless():
 def test_align_schema_adds_the_cleanup_index_once():
     engine = create_engine("sqlite:///:memory:")
     with engine.begin() as c:
-        c.execute(text("CREATE TABLE users (id INTEGER, state INTEGER, last_access TEXT)"))
+        c.execute(text("CREATE TABLE users (id INTEGER, state INTEGER, last_access TEXT, email_address TEXT)"))
+        c.execute(text("CREATE INDEX idx_users_email ON users (email_address)"))
     applied = database.align_schema(engine)
     assert applied == ["CREATE INDEX IF NOT EXISTS idx_users_state_last_access ON users (state, last_access)"]
     assert "idx_users_state_last_access" in {i["name"] for i in inspect(engine).get_indexes("users")}
+    assert database.align_schema(engine) == []
+
+
+def test_align_schema_adds_the_email_column_and_index_once():
+    engine = create_engine("sqlite:///:memory:")
+    with engine.begin() as c:
+        c.execute(text("CREATE TABLE users (id INTEGER, state INTEGER, last_access TEXT)"))
+    applied = database.align_schema(engine)
+    assert "ALTER TABLE users ADD COLUMN email_address TEXT" in applied
+    assert "CREATE INDEX IF NOT EXISTS idx_users_email ON users (email_address)" in applied
+    assert "email_address" in {c["name"] for c in inspect(engine).get_columns("users")}
+    assert "idx_users_email" in {i["name"] for i in inspect(engine).get_indexes("users")}
     assert database.align_schema(engine) == []
 
 

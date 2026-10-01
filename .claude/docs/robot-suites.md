@@ -459,6 +459,12 @@ character; a restored match that ends again counts again (KPI is not rolled back
 restore); `month`/`total` grouping agrees with the `day` rows; the all-stories total is at
 least the single story's; bad dates/range/`groupBy` answer 400.
 
+**v0.41.4 patch** adds `match_export_import.robot` (written, not yet run by the owner): admin export
+of a match and import (dry-run, import, replace, story modes, user resolution) through
+`resources/MatchExportHelper.py`, schema check with `jsonschema` (in `requirements.txt`), fixtures in
+`41_alpha_prep/fixtures/`. The cross-backend matrix test reads golden exports from
+`fixtures/golden/` (produced by the owner) and skips until they are present.
+
 Run on all four targets (AWS, Java, Java+PostgreSQL, Python).
 
 ### `35_import_integrity` breakdown

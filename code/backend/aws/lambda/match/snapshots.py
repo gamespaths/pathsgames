@@ -83,10 +83,11 @@ def _seq_of(sk):
 
 # ── time-end ──────────────────────────────────────────────────────────────────
 
-def write_at_time_end(match, match_uuid):
-    """Start of ``_advance_time``: best effort, a WARN line when it cannot be written."""
+def write_at_time_end(match, match_uuid, description=None, force=False):
+    """Start of ``_advance_time``: best effort, a WARN line when it cannot be written.
+    v0.41.4 — ``force`` writes even with snapshots off (the "Imported at clock N" point)."""
     keep = keep_per_match()
-    if keep <= 0:
+    if keep <= 0 and not force:
         return None
     try:
         # The rows this request queued belong to clock N: they get their sort keys first.
@@ -100,11 +101,12 @@ def write_at_time_end(match, match_uuid):
             'uuid': str(uuid_lib.uuid4()), 'type': TYPE_LIGHT, 'clock': clock,
             'checksum': sha256(text), 'logSeq': payload['logSeq'], 'logCount': payload['logCount'],
             'timestampMs': ts, 'timestamp': logbook.ms_to_iso(ts),
-            'description': f'Time-end of clock {clock}', 'sizeBytes': len(text.encode('utf-8')),
+            'description': description or f'Time-end of clock {clock}', 'sizeBytes': len(text.encode('utf-8')),
             PACKED: gzip.compress(('{"payload":' + text + '}').encode('utf-8'), 6),
         }
         repo.save(item)
-        _prune(match_uuid, keep)
+        if keep > 0:
+            _prune(match_uuid, keep)
         return item
     except Exception as exc:  # noqa: BLE001 — a snapshot never breaks the time-end
         print(json.dumps({'level': 'WARN', 'event': 'SNAPSHOT', 'matchUuid': match_uuid,

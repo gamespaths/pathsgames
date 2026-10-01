@@ -4,7 +4,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner'
 import ErrorAlert from '../../components/common/ErrorAlert'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import { Link, useNavigate } from 'react-router-dom'
-import { stripNulls } from '../../utils/storyJson'
+import { stripNulls, exportEntity } from '../../utils/storyJson'
 
 // Recursively sort object keys alphabetically; array order is preserved.
 function sortKeysDeep(value) {
@@ -107,17 +107,7 @@ export default function StoriesPage() {
       const results = await Promise.all(entityTypes.map(et => listEntities(story.uuid, et.apiType)))
 
       entityTypes.forEach((et, index) => {
-        exportData[et.jsonKey] = results[index].map(item => {
-          // eslint-disable-next-line no-unused-vars
-          const { tsInsert, tsUpdate, idStory, ...rest } = item
-          if (et.jsonKey === 'texts' && item.idText) {
-            rest.id = Number(item.idText)
-            rest.idText = Number(item.idText)
-          } else if (!rest.id && item.id) {
-            rest.id = item.id
-          }
-          return rest
-        })
+        exportData[et.jsonKey] = results[index].map(item => exportEntity(et.jsonKey, item))
       })
       
       // eslint-disable-next-line no-unused-vars

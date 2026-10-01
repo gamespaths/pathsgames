@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     # the public app on `port` does not register the admin routers. Lock this port to the
     # owner IP at the network layer (firewall / security group).
     admin_port: int = 8044
-    version: str = "0.41.3"
+    version: str = "0.41.4"
 
 
     # >0.12.5 change version here
@@ -64,6 +64,8 @@ class Settings(BaseSettings):
     log_warn_rows: int = 5000
     # v0.41.1 — LIGHT snapshots kept per match, one per time-end (0 = no snapshots).
     snapshot_keep_per_match: int = 10
+    # v0.41.4 — size cap of a match export / import file in bytes (413 above it).
+    match_export_max_bytes: int = 5000000
     # The csrfToken issued with every access token must come back as X-CSRF-TOKEN on
     # POST /api/matches. Same secret as the JWT unless CSRF_SECRET says otherwise.
     csrf_enforced: bool = True

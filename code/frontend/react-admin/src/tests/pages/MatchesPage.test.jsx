@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import MatchesPage from '../../pages/MatchesPage'
 
 vi.mock('../../api/matchApi', () => ({
@@ -313,5 +313,22 @@ describe('MatchesPage', () => {
     await screen.findByText('Saturday run')
     const expandBtns = screen.getAllByTitle('Open details page (players & characters)')
     expect(expandBtns.length).toBe(2)
+  })
+
+  // v0.41.4 Step 41 H — the Import button opens the match import page.
+  it('Import opens the match import page', async () => {
+    listMatches.mockResolvedValue(env(MOCK_MATCHES))
+    listMatchStatuses.mockResolvedValue(MOCK_STATUSES)
+    render(
+      <MemoryRouter initialEntries={['/matches']}>
+        <Routes>
+          <Route path="/matches" element={<MatchesPage />} />
+          <Route path="/matches/import" element={<p>import page</p>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    await screen.findByText('Saturday run')
+    await userEvent.click(screen.getByRole('button', { name: /^Import$/ }))
+    expect(await screen.findByText('import page')).toBeInTheDocument()
   })
 })
