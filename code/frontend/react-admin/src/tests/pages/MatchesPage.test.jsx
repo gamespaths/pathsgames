@@ -13,6 +13,9 @@ vi.mock('../../api/matchApi', () => ({
   pauseMatch:        vi.fn(),
   resumeMatch:       vi.fn(),
   deleteMatch:       vi.fn(),
+  listMatchSnapshots: vi.fn(() => Promise.resolve([])),
+  exportMatch:       vi.fn(),
+  errorBody:         (e) => e?.response?.data ?? {},
 }))
 vi.mock('../../api/storyApi', () => ({
   getStory:     vi.fn(),

@@ -26,6 +26,7 @@ def test_find_difficulties_for_story(session_factory, adapter):
     diffs = adapter.find_difficulties_for_story(1)
     assert len(diffs) == 1
     assert diffs[0]["uuid"] == "d1"
+    assert diffs[0]["id"] == 1
 
 def test_counts_for_story(session_factory, adapter):
     with session_factory() as session:

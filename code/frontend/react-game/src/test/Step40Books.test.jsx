@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { LanguageProvider } from '../i18n/context'
 import { PolicyBookProvider, usePolicyBook } from '../context/PolicyBookContext'
-import PolicyBook from '../components/modals/PolicyBook'
+import PolicyBook, { REPO_URL } from '../components/modals/PolicyBook'
 import Footer from '../components/layout/Footer'
 import en from '../i18n/en.json'
 import itDict from '../i18n/it.json'
@@ -31,16 +31,30 @@ describe('roadmap book', () => {
     const intro = left.querySelector('.book-page-desc')
     expect(intro.textContent).toContain('open-source project')
     expect(intro.textContent).toContain('GNU GPL v3')
-    expect(intro.textContent).toContain('CC BY-NC-ND 4.0')
-    // Its two blank lines read half a line high.
-    expect(intro.querySelectorAll('.book-page-gap')).toHaveLength(2)
+    // The intro links the repository (with the GitHub glyph) and the credits page, one text.
+    const repo = intro.querySelector(`a[href="${REPO_URL}"]`)
+    expect(repo.textContent).toContain(en.modals.roadmap.introRepo)
+    expect(repo.querySelector('i.fa-github')).toBeTruthy()
+    // Two <br /> pairs, so the three sentences read as three paragraphs: no leftover markup.
+    expect(intro.querySelectorAll('br')).toHaveLength(4)
+    expect(intro.textContent).not.toContain('<br')
     expect(container.querySelectorAll('.book-page-right .roadmap-cards .pg-card').length).toBe(6)
     expect(container.querySelectorAll('.book-page-right [data-testid="roadmap-current"]').length).toBe(1)
+    // The credits link swaps this book for the credits one, from inside the intro.
+    fireEvent.click(within(left).getByRole('button', { name: en.modals.roadmap.introCredits }))
+    expect(seen[seen.length - 1]).toBe('credits')
+    expect(container.querySelector('.book-page-right .credits-cards')).toBeTruthy()
   })
 
   it('EN and IT carry every Step 40 key', () => {
     for (const d of [en, itDict]) {
       expect(d.modals.roadmap.intro).toBeTruthy()
+      expect(d.modals.roadmap.introRepo).toBeTruthy()
+      expect(d.modals.roadmap.introCredits).toBeTruthy()
+      // The intro carries the two placeholders the links fill.
+      expect(d.modals.roadmap.intro).toContain('{repo}')
+      expect(d.modals.roadmap.intro).toContain('{credits}')
+      expect(d.modals.roadmap.intro.split('<br /><br />')).toHaveLength(3)
       expect(d.modals.roadmap.current).toBeTruthy()
       expect(d.envBadge.dev).toBeTruthy()
       expect(d.matchLog.types.CHOICE).toBeTruthy()

@@ -84,9 +84,20 @@ code/tests/robot/output.xml
 code/tests/robot/report.html
 code/tests/robot/reports/
 code/tests/robot/reports-aws/
+code/tests/robot/reports-aws-local/
+code/scripts/dev/aws_run_local/logs/
 code/tests/robot/reports-local-java-postgres/
 code/tests/robot/reports-local-java/
 code/tests/robot/reports-local-python/
+code/tests/robot/reports-local-python-limited/
+code/tests/robot/reports-local-java-postgres-limited/
+code/tests/robot/reports-local-java-limited/
+code/tests/robot/reports-aws-local-limited/
+code/tests/robot/reports-aws-limited/
+code/tests/robot/reports-local-java-golden/
+code/tests/robot/reports-local-python-golden/
+code/tests/robot/reports-aws-local-golden/
+code/scripts/dev/run_robot_results/aws_special_env_backup/
 code/tests/robot/reports-local-php
 code/backend/php/build/logs/junit.xml
 code/backend/php/.phpunit.result.cache
@@ -157,3 +168,6 @@ code/frontend/python-flask-game/.pytest_cache
 
 code/tests/stress/reports/*
 !code/tests/stress/reports/.gitkeep
+#code/tests/robot/tests/41_alpha_prep/fixtures/golden/export_aws.json
+#code/tests/robot/tests/41_alpha_prep/fixtures/golden/export_java.json
+#code/tests/robot/tests/41_alpha_prep/fixtures/golden/export_python.json

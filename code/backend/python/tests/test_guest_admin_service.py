@@ -63,6 +63,13 @@ def test_get_guest_by_uuid_found(mock_persistence_port):
     assert guest.user_uuid == "uuid1"
 
 
+def test_get_guest_by_uuid_without_token(mock_persistence_port):
+    # v0.41.4: a guest copied by a match import has no cookie token.
+    mock_persistence_port.find_guest_by_uuid.return_value = {"uuid": "uuid2", "username": "user2", "state": 6}
+    guest = GuestAdminService(mock_persistence_port).get_guest_by_uuid("uuid2")
+    assert guest.guest_cookie_token is None
+
+
 def test_get_guest_by_uuid_not_found(mock_persistence_port):
     mock_persistence_port.find_guest_by_uuid.return_value = None
     service = GuestAdminService(mock_persistence_port)

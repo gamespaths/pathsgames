@@ -1,9 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, renderHook, act } from '@testing-library/react'
+import { render, screen, fireEvent, renderHook, act, waitFor } from '@testing-library/react'
 import { LanguageProvider } from '../i18n/context'
 import { PolicyBookProvider, usePolicyBook, POLICY_KINDS } from '../context/PolicyBookContext'
-import PolicyBook, { creditCard } from '../components/modals/PolicyBook'
+import PolicyBook from '../components/modals/PolicyBook'
+import { creditCard } from '../utils/credits'
 import images from '../data/images.json'
+import shipped from '../data/stories.json'
+import en from '../i18n/en.json'
+
+// The credits book lists the catalog stories too; the API answers with the shipped teasers.
+vi.mock('../api/stories', () => ({ getStoriesCatalog: vi.fn(async () => shipped) }))
 
 vi.mock('@/consent/cookieConsent', () => ({ openCookiePreferences: vi.fn() }))
 import { openCookiePreferences } from '@/consent/cookieConsent'
@@ -89,28 +95,62 @@ describe('PolicyBook', () => {
     expect(screen.queryByText('Cookie settings')).toBeNull()
   })
 
-  it('credits: the right page is the grid of image cards, (i) opens the image page, arrow goes back', () => {
+  it('credits: the stories first, then every image, each with its type and credit badges', async () => {
     const { container } = renderBook('credits')
     const right = container.querySelector('.book-page-right')
     // no page card wrapping the grid: the grid IS the page
     expect(right.querySelector('.book-page-content')).toBeNull()
-    expect(right.querySelectorAll('.credits-cards .pg-card--grid').length).toBe(images.length)
-    // (i) of the privacy home card, wherever it sits in images.json
-    const idx = images.findIndex(x => x.id === 'home-privacy-policy')
-    fireEvent.click(right.querySelectorAll('.credits-cards .gc-footer__btn')[idx])
-    expect(right.querySelector('.credits-cards')).toBeNull()
-    expect(right.querySelector('.book-page-title').textContent).toContain(titleOf('home-privacy-policy'))
-    fireEvent.click(right.querySelector('.book-page-nav--back'))
-    expect(right.querySelector('.credits-cards')).toBeTruthy()
+    const cards = await waitFor(() => {
+      const found = right.querySelectorAll('.credits-cards .pg-card--grid')
+      expect(found.length).toBe(images.length + shipped.length)
+      return found
+    })
+    // The stories open the book: their type badge, then the images'.
+    expect(cards[0].querySelector('[data-testid="credit-type-story"]').textContent).toBe('Story')
+    expect(cards[0].querySelector('[data-testid="credit-copy"]').textContent).toBe('PathsGames')
+    expect(cards[shipped.length].querySelector('[data-testid="credit-type-image"]').textContent).toBe('Image')
+    // Both badges wear the shared stat-badge pill, never a credits-only look.
+    for (const card of cards) {
+      for (const testId of ['credit-type-story', 'credit-type-image']) {
+        const badge = card.querySelector(`[data-testid="${testId}"]`)
+        if (badge) expect(badge.className).toContain('stat-badge bonus-badge')
+      }
+      const copy = card.querySelector('[data-testid="credit-copy"]')
+      if (copy) expect(copy.className).toContain('stat-badge bonus-badge')
+    }
   })
 
-  it('close resets the credits preview', () => {
+  it('credits: the credit button opens the source in a new tab, and there is no (i) any more', async () => {
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null)
     const { container } = renderBook('credits')
-    fireEvent.click(container.querySelectorAll('.credits-cards .gc-footer__btn')[0])
-    fireEvent.click(container.querySelector('.book-close-btn'))
-    expect(container.querySelector('.book-overlay')).toBeNull()
-    fireEvent.click(screen.getByText('open-credits'))
-    expect(container.querySelector('.book-page-right .credits-cards')).toBeTruthy()
+    const right = container.querySelector('.book-page-right')
+    await waitFor(() => expect(right.querySelectorAll('.credits-cards .pg-card--grid').length).toBeGreaterThan(0))
+    const idx = images.findIndex(x => x.id === 'home-privacy-policy')
+    const card = right.querySelectorAll('.credits-cards .pg-card--grid')[shipped.length + idx]
+    const btn = card.querySelector('.gc-footer__btn')
+    expect(btn.querySelector('i.fa-external-link-alt')).toBeTruthy()
+    expect(btn.textContent).toContain(en.modals.credits.openCredit)
+    fireEvent.click(btn)
+    expect(open).toHaveBeenCalledWith(images[idx].linkCopyright, '_blank', 'noopener,noreferrer')
+    // No preview lens left, so the big-image page is gone too.
+    expect(card.querySelector('.card-info-btn')).toBeNull()
+    expect(right.querySelector('.book-page-nav--back')).toBeNull()
+    open.mockRestore()
+  })
+
+  it('credits: an item with no source link gets no button, and keeps its credit badge', async () => {
+    const idx = images.findIndex(x => !creditCard(x).linkCopyright)
+    expect(idx).toBeGreaterThanOrEqual(0)
+    const { container } = renderBook('credits')
+    const right = container.querySelector('.book-page-right')
+    await waitFor(() => expect(right.querySelectorAll('.credits-cards .pg-card--grid').length).toBeGreaterThan(0))
+    const card = right.querySelectorAll('.credits-cards .pg-card--grid')[shipped.length + idx]
+    expect(card.querySelector('.gc-footer__btn')).toBeNull()
+    // It still shows its type badge, and its credit when it has one.
+    expect(card.querySelector('[data-testid="credit-type-image"]')).toBeTruthy()
+    const credit = card.querySelector('[data-testid="credit-copy"]')
+    credit ? expect(credit.textContent).toBe(creditCard(images[idx]).copyrightText)
+           : expect(creditCard(images[idx]).copyrightText).toBeNull()
   })
 })
 

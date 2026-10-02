@@ -368,6 +368,7 @@ def test_a_copy_is_imported_with_its_keys_logs_and_snapshot(monkeypatch):
     assert {'CHOICE_SELECTED', 'CHOICE_HISTORY', 'STORY_PROGRESS', 'OTHER'} <= {a['kind'] for a in audits}
     assert snaps[0]['description'] == 'Imported at clock 3' and body['uuidSnapshot'] == snaps[0]['uuid']
     assert {c['characterTemplateUuid'] for c in chars} == {'tpl-9'} and chars[0]['ttl']
+    assert all(c['clockInComa'] == 0 for c in chars)  # /info casts it with int()
 
 
 def test_replace_start_paused_and_cross_family_users(monkeypatch):

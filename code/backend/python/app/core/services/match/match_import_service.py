@@ -325,7 +325,7 @@ class MatchImportService:
                                   f"Match {match_uuid} already exists on this server: use replace=true"))
         for c in nc.items(a.doc.get("characters")):
             owner = self.store.match_of_character(c.get("uuid"))
-            if owner is not None and not (replace and owner == match_uuid):
+            if owner is not None and owner != match_uuid:
                 a.errors.append(Issue(mp.CHARACTER_EXISTS, f"Character {c.get('uuid')} belongs to match {owner}"))
 
     @staticmethod

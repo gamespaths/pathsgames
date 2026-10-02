@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import {
   listMatches, getMatchInfo, listMatchStatuses,
   updateMatch, stopMatch, deleteMatch,
+  listMatchSnapshots, exportMatch, errorBody,
 } from '../api/matchApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import ErrorAlert from '../components/common/ErrorAlert'
 import ConfirmModal from '../components/common/ConfirmModal'
 import useEscapeKey from '../hooks/useEscapeKey'
+import { downloadJson } from '../utils/download'
 import MatchDetailModal, { fmtDate, shortUuid, StatusBadge, fetchStoryCtx } from '../components/match/MatchDetailModal'
 
 /**
@@ -16,6 +18,7 @@ import MatchDetailModal, { fmtDate, shortUuid, StatusBadge, fetchStoryCtx } from
  * Lists every match (GET /api/admin/matches) and lets an admin:
  *   - inspect the runtime state (GET /api/match/{uuid}/info);
  *   - edit a match — status and name (PUT /api/admin/matches/{uuid});
+ *   - export the latest snapshot as a file (POST /api/admin/matches/{uuid}/export, v0.41.4);
  *   - stop a running match (POST /api/admin/matches/{uuid}/stop);
  *   - delete a stopped match (DELETE /api/admin/matches/{uuid}).
  */
@@ -52,6 +55,8 @@ export default function MatchesPage() {
   const [detail,       setDetail]       = useState(null) // { uuid, loading, info, error, storyCtx }
   const [editing,      setEditing]      = useState(null) // match being edited
   const [confirm,      setConfirm]      = useState(null) // { action, match }
+  const [snapshots,    setSnapshots]    = useState({})   // match uuid -> latest snapshot row | null
+  const [notice,       setNotice]       = useState('')
 
   const navigate = useNavigate()
   const terminalStatuses = new Set(statuses.filter(s => s.terminal).map(s => s.value))
@@ -95,6 +100,19 @@ export default function MatchesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load() }, [statusFilter, period])
 
+  // v0.41.4 — the latest snapshot of every loaded row, which enables its Export button.
+  const loadSnapshots = (uuids) => Promise.all(uuids.map(uuid =>
+    listMatchSnapshots(uuid)
+      .then(rows => [uuid, Array.isArray(rows) && rows.length ? rows[0] : null])
+      .catch(() => [uuid, null])))
+    .then(pairs => setSnapshots(prev => ({ ...prev, ...Object.fromEntries(pairs) })))
+
+  useEffect(() => {
+    const missing = matches.map(m => m.uuid).filter(uuid => !(uuid in snapshots))
+    if (missing.length) void loadSnapshots(missing)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matches])
+
   useEffect(() => {
     listMatchStatuses()
       .then(data => { if (Array.isArray(data) && data.length) setStatuses(data) })
@@ -114,16 +132,27 @@ export default function MatchesPage() {
     }
   }
 
+  const exportLatest = async (match) => {
+    const { text, fileName } = await exportMatch(match.uuid)
+    downloadJson(text, fileName)
+    setNotice(`Exported the end of clock ${snapshots[match.uuid]?.clock ?? '?'} as ${fileName}.`)
+    await loadSnapshots([match.uuid])
+  }
+
   const runConfirm = async () => {
     const { action, match } = confirm
     setConfirm(null)
     setError('')
+    setNotice('')
     try {
+      if (action === 'export') { await exportLatest(match); load(); return }
       if (action === 'stop')   await stopMatch(match.uuid)
       if (action === 'delete') await deleteMatch(match.uuid)
       load()
     } catch (e) {
-      setError(e.response?.data?.message || e.message || `Failed to ${action} match`)
+      const body = errorBody(e)
+      const codes = Array.isArray(body.errors) ? body.errors.map(x => x.code).join(', ') : ''
+      setError((body.message || e.message || `Failed to ${action} match`) + (codes ? ` (${codes})` : ''))
     }
   }
 
@@ -174,6 +203,7 @@ export default function MatchesPage() {
       </div>
 
       <ErrorAlert message={error} onClose={() => setError('')} />
+      {notice && <div className="pg-alert pg-alert-success mb-3" role="status">{notice}</div>}
 
       {/* Toolbar — search grows, selects + button stay on the same row */}
       <div className="flex items-center gap-3 mb-4">
@@ -273,6 +303,16 @@ export default function MatchesPage() {
                       >
                         <i className="fas fa-pen" />
                       </button>
+                      {snapshots[m.uuid] && (
+                        <button
+                          className="pg-btn pg-btn-ghost pg-btn-sm"
+                          title={`Export the latest snapshot (end of clock ${snapshots[m.uuid].clock})`}
+                          aria-label="Export match"
+                          onClick={() => setConfirm({ action: 'export', match: m })}
+                        >
+                          <i className="fas fa-file-export" />
+                        </button>
+                      )}
                       {!isTerminal(m.status) && (
                         <button
                           className="pg-btn pg-btn-ghost pg-btn-sm"
@@ -331,12 +371,12 @@ export default function MatchesPage() {
 
       {confirm && (
         <ConfirmModal
-          title={confirm.action === 'stop' ? 'Stop match' : 'Delete match'}
-          message={
-            confirm.action === 'stop'
-              ? `Set "${confirm.match.name || confirm.match.uuid}" to ENDED?`
-              : `Permanently delete "${confirm.match.name || confirm.match.uuid}" and its runtime state? This cannot be undone.`
-          }
+          title={{ stop: 'Stop match', delete: 'Delete match', export: 'Export match' }[confirm.action]}
+          message={{
+            stop: `Set "${confirm.match.name || confirm.match.uuid}" to ENDED?`,
+            delete: `Permanently delete "${confirm.match.name || confirm.match.uuid}" and its runtime state? This cannot be undone.`,
+            export: `Export "${confirm.match.name || confirm.match.uuid}" as a file? This pauses the match, rolls it back to the snapshot of clock ${snapshots[confirm.match.uuid]?.clock ?? '?'} (the actions since are lost), then restarts it.`,
+          }[confirm.action]}
           onConfirm={runConfirm}
           onCancel={() => setConfirm(null)}
         />

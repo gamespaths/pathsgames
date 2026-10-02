@@ -217,7 +217,8 @@ A Cross-Family File Keeps ONCE, The Open Choice, Registry, Mission And Visited L
     ${guest_uuid}=    Guest Of Fixture    ${doc}
     ${guest}=    GET On Session    admin_session    /api/admin/guests/${guest_uuid}
     ...    headers=${{ {'Authorization': 'Bearer ' + $ADMIN_TOKEN} }}    expected_status=200
-    ${tokenless}=    Evaluate    not any($guest.json().get(k) for k in ('guestCookieToken', 'guestToken', 'guest_token', 'guest_cookie_token'))
+    ${body}=    Set Variable    ${guest.json()}
+    ${tokenless}=    Evaluate    not any(map($body.get, ('guestCookieToken', 'guestToken', 'guest_token', 'guest_cookie_token')))
     Should Be True    ${tokenless}    msg=the copied guest carries a token: ${guest.text}
 
 The Bundled Story Is Imported, Or Refused When It Differs, Or Kept
@@ -384,8 +385,8 @@ Guest Uuid
     [Documentation]    The user uuid behind a guest token (GET /api/auth/me).
     [Arguments]    ${token}
     ${me}=    Call Me Endpoint    ${token}
-    Status Should Be    200    ${me}
-    RETURN    ${me.json()}[uuid]
+    Status Should Be    ${me}    200
+    RETURN    ${me.json()}[userUuid]
 
 Snapshot Descriptions
     [Documentation]    The descriptions of the snapshots of a match, newest first.

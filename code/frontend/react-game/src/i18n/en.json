@@ -673,7 +673,9 @@
     },
     "credits": {
       "title": "Image Credits",
-      "body": "Every image used by Paths Games — Unsplash photographs and SVG icons from game-icons.net — is credited below. Click an image card to open the original source on the author's page."
+      "body": "Every image used by Paths Games — Unsplash photographs and SVG icons from game-icons.net — is credited below. Click an image card to open the original source on the author's page.",
+      "types": { "story": "Story", "image": "Image", "audio": "Audio" },
+      "openCredit": "Credit"
     },
     "policyBook": {
       "title": "paths.games",
@@ -696,7 +698,9 @@
     },
     "roadmap": {
       "title": "Devlog",
-      "intro": "paths.games is an open-source project: anyone can read, study and improve it.<br /><br />The code is released under the GNU GPL v3 license, while the stories are under CC BY-NC-ND 4.0.<br /><br />Above all, it is a project made to have fun: playing, writing and building it together.",
+      "intro": "The paths.games is an open-source project, all code is available in a {repo}, the code is released under the GNU GPL v3 license.<br /><br />All images, contents and stories are under a specific license, check the {credits}.<br /><br />Above all, it is a project made to have fun: playing, writing and building it together.",
+      "introRepo": "GitHub repository",
+      "introCredits": "credits page",
       "current": "In progress",
       "button": "Roadmap"
     }

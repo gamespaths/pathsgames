@@ -1172,6 +1172,50 @@ html, body {
   color: var(--color-gold-light);
   text-decoration-color: var(--color-gold);
 }
+/* Step 40 — a link that opens another book (the Devlog intro → credits) reads like the `a` above. */
+.book-page-desc button {
+  font: inherit;
+  color: var(--color-gold-shine);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(232,184,48,0.35);
+}
+.book-page-desc button:hover { color: var(--color-gold-light); text-decoration-color: var(--color-gold); }
+/* Step 40 — the Devlog intro: its own <br /> pairs make the empty lines, so no extra margin. */
+.roadmap-intro { margin: 0; }
+/* Step 40 — the credits cards: `.story-card-status` pins the badges on the picture and
+   `.stat-badge.bonus-badge` draws them — the same brown pill every other stat badge of the
+   game wears (BonusBadgeList puts both classes on each of its badges). This adds only the
+   stack and the cut-off of a long credit; the look itself is the shared one, untouched.
+   `.story-card-status` leaves the `top`/`left` 8px; `right` closes the box there, which is
+   the far edge a credit too long for the card is cut at. */
+.credit-card-badges {
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  pointer-events: none;
+}
+.credit-card-badges .credit-card-badge {
+  max-width: 100%;
+  /* The pill is sized for a full-size stat row; on a grid card it has to sit small. */
+  font-size: 0.62rem;
+  padding: 2px 6px;
+}
+/* `.stat-badge` is a flex row, so `text-overflow` on the badge itself would do nothing: the
+   text sits in an anonymous flex item. It goes in a span of its own, which `min-width: 0`
+   lets shrink below its content — the standard flexbox ellipsis. */
+.credit-card-badge__text {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 
 /* BookPageContent desc: badges inline, large as text */
 .book-page-desc .bonus-badge {
@@ -3296,9 +3340,11 @@ html, body {
 .match-log-row--status .match-log-row__type,
 .match-log-row--creation .match-log-row__type { color: var(--color-gold); }
 
-/* Step 40 — the environment badge beside the brand (VITE_ENV_BADGE) */
+/* Step 40 — the environment badge beside the brand (VITE_ENV_BADGE); it opens the Devlog book. */
 .env-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-left: 8px;
   padding: 1px 8px;
   border: 1px solid var(--color-gold);
@@ -3308,9 +3354,20 @@ html, body {
   font-family: var(--font-heading);
   font-size: 0.7rem;
   letter-spacing: 0.5px;
+  line-height: 1.2;
   text-transform: uppercase;
   white-space: nowrap;
+  appearance: none;
+  cursor: pointer;
+}
+.env-badge__icon { font-size: 0.75em; }
+.env-badge:hover, .env-badge:focus-visible {
+  background: rgba(200, 150, 10, 0.32);
+  border-color: var(--color-gold-shine);
 }
 .navbar-medieval .env-badge{
   font-size: 1.25rem;
 }
+
+.roadmap-intro A{ color: var(--color-gold); text-decoration: underline; text-decoration-color: rgba(232,184,48,0.35); }
+.roadmap-intro button{ color: var(--color-gold); text-decoration: underline; text-decoration-color: rgba(232,184,48,0.35); }

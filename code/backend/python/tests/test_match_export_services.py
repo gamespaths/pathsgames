@@ -295,7 +295,7 @@ def test_conflicts_on_match_and_characters(im):
     im.store.match_exists.return_value = True
     owners = {"c4c4c4c4-0000-4000-8000-000000000001": MATCH, "c4c4c4c4-0000-4000-8000-000000000002": "other"}
     im.store.match_of_character.side_effect = owners.get
-    assert _codes(im.check({"export": doc})) == ["MATCH_EXISTS", "CHARACTER_EXISTS", "CHARACTER_EXISTS"]
+    assert _codes(im.check({"export": doc})) == ["MATCH_EXISTS", "CHARACTER_EXISTS"]
     assert _codes(im.check({"export": doc, "replace": True})) == ["CHARACTER_EXISTS"]
     with pytest.raises(MatchExportError) as e:
         im.import_match({"export": doc})

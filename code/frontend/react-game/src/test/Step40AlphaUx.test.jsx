@@ -20,6 +20,7 @@ import MatchStatusBadge from '../features/matches/MatchStatusBadge'
 import MatchLogCard, { LogEntryRow } from '../features/matches/MatchLogCard'
 import UserMatchesList from '../features/guest-user/UserMatchesList'
 import { RoadmapCards } from '../components/modals/PolicyBook'
+import { PolicyBookProvider, usePolicyBook } from '../context/PolicyBookContext'
 import { isTutorialStory, TUTORIAL_CATEGORY, ENV_BADGE } from '../constants/features'
 import { formatDate, toEpochMs } from '../utils/dates'
 import { MATCH_STATUS_BADGE, matchStatusGroup, sortMatchesForList } from '../utils/matchStatus'
@@ -38,6 +39,9 @@ beforeEach(() => {
 })
 
 const LOC = { uuid: 'l1', title: 'Square', description: 'A quiet square.' }
+
+// The env badge spy: records which book the context holds after every render.
+function PolicyBookSpy({ seen }) { const { policyBook } = usePolicyBook(); seen.push(policyBook); return null }
 
 // ── A — tips ──────────────────────────────────────────────────────────────
 
@@ -146,6 +150,27 @@ describe('EnvBadge', () => {
     const env = String(ENV_BADGE).trim().toLowerCase()
     if (!env || env === 'prod') expect(container.firstChild).toBeNull()
     else expect(screen.getByTestId('env-badge').className).toContain(`env-badge--${env}`)
+  })
+
+  it('is a button carrying the (i) lens, and the whole badge opens the Devlog book', () => {
+    tr.dict = { 'envBadge.dev': 'Local', 'footer.devlog': 'Devlog' }
+    const seen = []
+    render(<PolicyBookProvider>
+      <EnvBadge code="dev" /><PolicyBookSpy seen={seen} />
+    </PolicyBookProvider>)
+    const badge = screen.getByTestId('env-badge')
+    expect(badge.tagName).toBe('BUTTON')
+    expect(badge.querySelector('i.fa-info-circle')).toBeTruthy()
+    expect(badge.getAttribute('aria-label')).toBe('Local — Devlog')
+    expect(seen[seen.length - 1]).toBeNull()
+    fireEvent.click(badge)
+    expect(seen[seen.length - 1]).toBe('roadmap')
+  })
+
+  it('opens nothing when it is clicked outside a policy book provider', () => {
+    tr.dict = { 'envBadge.dev': 'Local' }
+    render(<EnvBadge code="dev" />)
+    expect(() => fireEvent.click(screen.getByTestId('env-badge'))).not.toThrow()
   })
 })
 

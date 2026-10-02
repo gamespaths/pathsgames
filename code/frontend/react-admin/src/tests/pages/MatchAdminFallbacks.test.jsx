@@ -13,6 +13,8 @@ vi.mock('../../api/matchApi', () => ({
   resumeMatch: vi.fn(), deleteMatch: vi.fn(),
   getMatchClock: vi.fn(), getMatchWeather: vi.fn(), getMatchLocations: vi.fn(),
   getMatchLogs: vi.fn(), changePlayerStatistics: vi.fn(),
+  listMatchSnapshots: vi.fn(() => Promise.resolve([])), exportMatch: vi.fn(),
+  errorBody: (e) => e?.response?.data ?? {},
 }))
 vi.mock('../../api/storyApi', () => ({ getStory: vi.fn(), listEntities: vi.fn() }))
 vi.mock('../../api/guestApi', () => ({

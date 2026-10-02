@@ -39,7 +39,16 @@ case "${JWT_SECRET:-}" in
 		;;
 esac
 export JWT_SECRET
-export RATE_LIMIT_GUEST_PER_IP=0 RATE_LIMIT_MATCH_PER_IP=0 RATE_LIMIT_MATCH_PER_GUEST=0
+# v0.41.4 - ROBOT_RATE_LIMITS=1 (run_robot_everywhere *_LIMITED): limits on, only the rate-limit tests.
+# Per guest < per-IP matches, so that case meets its own bucket; 10 guests leave room for the setups.
+if [ "${ROBOT_RATE_LIMITS:-0}" = "1" ]; then
+	export RATE_LIMIT_GUEST_PER_IP=10 RATE_LIMIT_MATCH_PER_IP=5 RATE_LIMIT_MATCH_PER_GUEST=3
+	ROBOT_SCOPE=(--include rate-limit --variable RATE_LIMIT_GUEST_PER_IP:10 --variable RATE_LIMIT_MATCH_PER_IP:5
+		--variable RATE_LIMIT_MATCH_PER_GUEST:3 --outputdir reports-local-java-postgres-limited/)
+else
+	export RATE_LIMIT_GUEST_PER_IP=0 RATE_LIMIT_MATCH_PER_IP=0 RATE_LIMIT_MATCH_PER_GUEST=0
+	ROBOT_SCOPE=(--outputdir reports-local-java-postgres/)
+fi
 
 echo "Kill all process using 8042 and 8044 ports"
 fuser -k 8042/tcp || true
@@ -145,7 +154,7 @@ echo "Running Robot tests!"
 cd "$PROJECT_ROOT/code/tests/robot" && pip install -r requirements.txt
 ROBOT_EXIT=0
 ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" \
-	robot --variablefile variables/dev.yaml --outputdir reports-local-java-postgres/ tests/ || ROBOT_EXIT=$?
+	robot --variablefile variables/dev.yaml "${ROBOT_SCOPE[@]}" tests/ || ROBOT_EXIT=$?
 
 # Remove the rows created by this Robot run (guests + matches tagged "robottest"),
 # preserving every other row. Runs whether the tests passed or failed.

@@ -3,6 +3,7 @@ import {
   listMatchSnapshots, checkMatchSnapshot, restoreMatchSnapshot, exportMatch, errorBody,
 } from '../../../api/matchApi'
 import ConfirmModal from '../../common/ConfirmModal'
+import { downloadJson } from '../../../utils/download'
 
 /**
  * SnapshotsCard — v0.41.1 Step 41 B: the time-end snapshots of a match, newest first; "Check"
@@ -10,18 +11,6 @@ import ConfirmModal from '../../common/ConfirmModal'
  */
 
 const errorText = (e, fallback) => e?.response?.data?.message || e?.message || fallback
-
-// Saves a text as a JSON file through a temporary link.
-function download(text, fileName) {
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
-  const link = document.createElement('a')
-  link.href = url
-  link.download = fileName
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
-}
 
 const sizeText = (bytes) => (bytes >= 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${bytes ?? 0} B`)
 
@@ -103,7 +92,7 @@ export default function SnapshotsCard({ matchUuid, onRestored, notice }) {
     setExported('')
     try {
       const { text, fileName } = await exportMatch(matchUuid)
-      download(text, fileName)
+      downloadJson(text, fileName)
       setExported(`Exported the end of clock ${row.clock} as ${fileName}.`)
       await load()
       if (onRestored) onRestored('')

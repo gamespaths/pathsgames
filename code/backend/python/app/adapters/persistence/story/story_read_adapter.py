@@ -46,6 +46,7 @@ class StoryReadAdapter(StoryReadPort):
             diffs = session.query(StoryDifficultyEntity).filter(StoryDifficultyEntity.id_story == story_id).all()
             return [
                 {
+                    "id": d.id,
                     "uuid": d.uuid,
                     "id_card": d.id_card,
                     "id_text_description": d.id_text_description,

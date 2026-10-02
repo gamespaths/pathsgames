@@ -1,18 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from '@/i18n/context'
 import { usePolicyBook } from '@/context/PolicyBookContext'
 import { openCookiePreferences } from '@/consent/cookieConsent'
 import Book from '@/components/book/Book'
 import Card from '@/components/layout/Card'
 import { buildImageCard } from '@/utils/loadoutCards'
-import images from '@/data/images.json'
+import { creditsEntries } from '@/utils/credits'
+import { getStoriesCatalog } from '@/api/stories'
 import roadmap from '@/data/roadmap.json'
 import { roadmapCard, roadmapStatus, sortRoadmap } from '@/utils/roadmap'
 
 /**
  * PolicyBook — the Privacy / Terms / Cookies / Credits book opened from the footer links.
  * Left page: the matching `home-*` card of images.json; right page: the policy title and text,
- * or (credits) the grid of image cards.
+ * or (credits) the grid of story and image cards, or (roadmap) the version cards.
  */
 const POLICIES = {
   privacy: {
@@ -46,17 +47,8 @@ const POLICIES = {
   roadmap: { imgId: 'home', ns: 'modals.roadmap' },
 }
 
-// images.json mixes {urlImage, copyrightText, linkCopyright, description} and {url, author, authorLink}.
-export function creditCard(img) {
-  return {
-    urlImage: img.urlImage ?? img.url ?? null,
-    title: img.title ?? img.id,
-    copyrightText: img.copyrightText ?? img.author ?? null,
-    linkCopyright: img.linkCopyright ?? img.authorLink ?? null,
-    description: img.description ?? (img.author ? `Photo by ${img.author}` : null),
-    styleImageLarge: img.styleImageLarge ?? '',
-  }
-}
+/** Step 40 — the repository the Devlog intro links to. */
+export const REPO_URL = 'https://github.com/gamespaths/pathsgames'
 
 function PolicyText({ policy, t }) {
   const { ns, sections, copyright } = policy
@@ -75,17 +67,63 @@ function PolicyText({ policy, t }) {
   )
 }
 
-// The credits page: the grid of image cards, laid out as MissionStepsCards lays out the steps.
-function CreditsCards({ onPreview }) {
+/**
+ * The credits page: one small card per credited work, the stories first. Each carries its
+ * type badge and its credit over the picture, and the credit button opens the original source.
+ * The badges are the shared `.stat-badge.bonus-badge` pill every other stat badge wears —
+ * `BonusBadgeList` puts both classes on each of its badges, and the credits carry no value,
+ * so they are written as plain spans instead of going through that component (whose numeric
+ * zero-filter would drop a credit name like "PathsGames"). `.credit-card-badge__text` is the
+ * span the long credit is cut in: `.stat-badge` is a flex row, and an ellipsis needs a block
+ * box of its own to work in.
+ */
+function CreditsCards({ entries, t }) {
+  const badge = (testId, label, title) => (
+    <span className="stat-badge bonus-badge credit-card-badge" data-testid={testId} title={title}>
+      <span className="credit-card-badge__text">{label}</span>
+    </span>
+  )
   return (
     <div className="config-view-wrap config-view--config">
       <div className="config-cards-area selection-list credits-cards">
-        {images.map(img => (
-          <Card key={img.id} card={creditCard(img)} name={img.title ?? img.id} imageAlt={img.id}
-             flagInformationCard onPreview={() => onPreview(img)} />
+        {entries.map(({ key, kind, card }) => (
+          <Card key={key} card={card} imageAlt={card.title} hidePreview
+            childrenIntoImage={
+              <div className="story-card-status credit-card-badges">
+                {badge(`credit-type-${kind}`, t(`modals.credits.types.${kind}`))}
+                {card.copyrightText && badge('credit-copy', card.copyrightText, card.copyrightText)}
+              </div>
+            }
+            onAction={card.linkCopyright
+              ? () => window.open(card.linkCopyright, '_blank', 'noopener,noreferrer') : undefined}
+            actionLabel={t('modals.credits.openCredit')} actionIcon="fa-external-link-alt" />
         ))}
       </div>
     </div>
+  )
+}
+
+/**
+ * Step 40 — the Devlog left page: the intro text, with `{repo}` replaced by the repository
+ * link (GitHub glyph), `{credits}` by the link that opens the credits book and each
+ * `<br />` by a real line break, so a `<br /><br />` pair reads as an empty line.
+ */
+const INTRO_TOKEN = /(\{repo\}|\{credits\}|<br\s*\/?>)/i
+
+export function RoadmapIntro({ intro, repoLabel, creditsLabel, onCredits }) {
+  const parts = String(intro ?? '').split(INTRO_TOKEN).filter(part => part.trim() !== '')
+  return (
+    <p className="roadmap-intro">
+      {parts.map((part, i) => {
+        if (/^<br\s*\/?>$/i.test(part)) return <br key={i} />
+        if (/^\{repo\}$/i.test(part))
+          return <a key={i} href={REPO_URL} target="_blank" rel="noopener noreferrer">
+            <i className="fab fa-github me-1" aria-hidden="true" />{repoLabel}
+          </a>
+        if (/^\{credits\}$/i.test(part)) return <button key={i} type="button" onClick={onCredits}>{creditsLabel}</button>
+        return part
+      })}
+    </p>
   )
 }
 
@@ -111,10 +149,19 @@ export function RoadmapCards({ entries = roadmap, t }) {
 }
 
 export default function PolicyBook() {
-  const { t } = useTranslation()
-  const { policyBook, closePolicyBook } = usePolicyBook()
-  // Credits only: the image whose (i) was pressed reads on the right page, the arrow turns back.
-  const [preview, setPreview] = useState(null)
+  const { t, lang } = useTranslation()
+  const { policyBook, openPolicyBook, closePolicyBook } = usePolicyBook()
+  // Credits only: the catalog stories join the shipped ones. getStoriesCatalog is memoised,
+  // so the home's answer is reused; a failure leaves the teasers alone, no error shown.
+  const [serviceStories, setServiceStories] = useState([])
+  useEffect(() => {
+    if (policyBook !== 'credits') return undefined
+    let cancelled = false
+    getStoriesCatalog(lang)
+      .then(list => { if (!cancelled) setServiceStories(Array.isArray(list) ? list : []) })
+      .catch(() => { if (!cancelled) setServiceStories([]) })
+    return () => { cancelled = true }
+  }, [policyBook, lang])
 
   const policy = POLICIES[policyBook]
   if (!policy) return null
@@ -127,12 +174,12 @@ export default function PolicyBook() {
   let rightPage
   if (policyBook === 'roadmap') {
     leftPage = <Card variant="page" loading={false}
-      card={buildImageCard('home', 'paths.games', t('modals.roadmap.intro'))} />
+      card={buildImageCard('home', 'paths.games',
+        <RoadmapIntro intro={t('modals.roadmap.intro')} repoLabel={t('modals.roadmap.introRepo')}
+          creditsLabel={t('modals.roadmap.introCredits')} onCredits={() => openPolicyBook('credits')} />)} />
     rightPage = <RoadmapCards t={t} />
   } else if (policyBook === 'credits') {
-    rightPage = preview
-      ? <Card variant="page" card={creditCard(preview)} loading={false} onClose={() => setPreview(null)} />
-      : <CreditsCards onPreview={setPreview} />
+    rightPage = <CreditsCards entries={creditsEntries({ stories: serviceStories, lang })} t={t} />
   } else {
     const manage = policyBook === 'cookies'
       ? { onAction: openCookiePreferences, actionLabel: t('modals.cookies.manage'), actionIcon: 'fa-cog' }
@@ -141,7 +188,7 @@ export default function PolicyBook() {
       loading={false} {...manage} />
   }
 
-  function close() { setPreview(null); closePolicyBook() }
+  function close() { closePolicyBook() }
 
   return (
     <Book

@@ -352,7 +352,7 @@ def character_item(pk, match_uuid, c, story):
     item.update({
         'idLocation': lng(c.get('locationId')), 'locationUuid': location_uuids.get(lng(c.get('locationId'))),
         'isSleeping': 1 if boolean(c.get('isSleeping')) else 0, 'isComa': 1 if boolean(c.get('isComa')) else 0,
-        'clockInComa': lng(c.get('clockInComa')), 'characteristics': [str(v) for v in items(c.get('characteristics'))],
+        'clockInComa': nz(c.get('clockInComa')), 'characteristics': [str(v) for v in items(c.get('characteristics'))],
         'traitUuids': [trait_uuids[lng(t.get('traitId'))] for t in items(c.get('traits'))
                        if lng(mapping(t).get('traitId')) in trait_uuids],
         'items': [{'uuid': str(uuid_lib.uuid4()), 'idItem': lng(i.get('itemId')),

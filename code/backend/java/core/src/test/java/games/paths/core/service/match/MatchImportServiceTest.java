@@ -275,7 +275,7 @@ class MatchImportServiceTest {
         when(store.matchOfCharacter("c4c4c4c4-0000-4000-8000-000000000001")).thenReturn(Optional.of(MATCH));
         when(store.matchOfCharacter("c4c4c4c4-0000-4000-8000-000000000002")).thenReturn(Optional.of("other"));
         Map<String, Object> check = service.check(request(doc));
-        assertEquals(List.of("MATCH_EXISTS", "CHARACTER_EXISTS", "CHARACTER_EXISTS"), codes(check, "errors"));
+        assertEquals(List.of("MATCH_EXISTS", "CHARACTER_EXISTS"), codes(check, "errors"));
         Map<String, Object> replace = service.check(request(doc, "replace", true));
         assertEquals(List.of("CHARACTER_EXISTS"), codes(replace, "errors"));
         assertEquals(MatchExportException.Code.MATCH_EXISTS,

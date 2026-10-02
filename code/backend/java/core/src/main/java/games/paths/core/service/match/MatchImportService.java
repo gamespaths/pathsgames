@@ -136,7 +136,8 @@ public class MatchImportService {
 
     Analysis analyze(Map<String, Object> request) {
         Analysis a = new Analysis();
-        Object export = request == null ? null : request.get("export");
+        Map<String, Object> req = request == null ? Map.of() : request;
+        Object export = req.get("export");
         if (!(export instanceof Map<?, ?>)) {
             a.errors.add(new Issue(MatchExportPort.SCHEMA_INVALID, "export must be a match export object"));
             return a;
@@ -149,7 +150,7 @@ public class MatchImportService {
         if (!readable(a)) {
             return a;
         }
-        String mode = storyMode(request);
+        String mode = storyMode(req);
         if (mode == null) {
             a.errors.add(new Issue(MatchExportPort.SCHEMA_INVALID, "storyMode must be AUTO, KEEP or REPLACE"));
             return a;
@@ -165,7 +166,7 @@ public class MatchImportService {
         }
         Optional<Long> storyId = story(a, mode);
         users(a, storyId);
-        matchAndCharacters(a, Boolean.TRUE.equals(request.get("replace")));
+        matchAndCharacters(a, Boolean.TRUE.equals(req.get("replace")));
         engine(a);
         return a;
     }
@@ -429,7 +430,7 @@ public class MatchImportService {
         for (Object o : list(a.doc.get("characters"))) {
             String uuid = str(map(o).get("uuid"));
             Optional<String> owner = store.matchOfCharacter(uuid);
-            if (owner.isPresent() && !(replace && owner.get().equals(uuidMatch))) {
+            if (owner.isPresent() && !owner.get().equals(uuidMatch)) {
                 a.errors.add(new Issue(MatchExportPort.CHARACTER_EXISTS,
                         "Character " + uuid + " belongs to match " + owner.get()));
             }
@@ -612,7 +613,7 @@ public class MatchImportService {
         }
         for (Object o : list(doc.get("characters"))) {
             Map<String, Object> c = map(o);
-            long ordinal = lng(c.get("ordinal"));
+            long ordinal = NeutralColumnCodec.nz(lng(c.get("ordinal")));
             Map<String, Object> row = NeutralColumnCodec.characterRow(c, 0L, now);
             row.put("id_user", userUuid.getOrDefault(str(c.get("userUuid")), str(c.get("userUuid"))));
             characters.add(row);

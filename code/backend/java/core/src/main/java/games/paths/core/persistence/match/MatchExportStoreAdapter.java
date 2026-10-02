@@ -79,6 +79,7 @@ public class MatchExportStoreAdapter implements MatchExportStorePort {
 
     @Override
     @Transactional(readOnly = true)
+    @SuppressWarnings("java:S2077") // table checked by identifier(), values bound as ? parameters
     public List<Map<String, Object>> logRows(long idMatch, String table, long mark) {
         String sql = "SELECT * FROM " + identifier(table) + " WHERE id_match = ? AND id <= ? ORDER BY id";
         return plainRows(jdbc.queryForList(sql, idMatch, mark));
@@ -86,6 +87,7 @@ public class MatchExportStoreAdapter implements MatchExportStorePort {
 
     @Override
     @Transactional(readOnly = true)
+    @SuppressWarnings("java:S2077") // only "?" placeholders are concatenated, ids are bound
     public Map<Long, Map<String, Object>> usersByIds(Collection<Long> ids) {
         Map<Long, Map<String, Object>> out = new LinkedHashMap<>();
         if (ids == null || ids.isEmpty()) {
@@ -181,6 +183,7 @@ public class MatchExportStoreAdapter implements MatchExportStorePort {
 
     @Override
     @Transactional(readOnly = true)
+    @SuppressWarnings("java:S2077") // only "?" placeholders are concatenated, uuids are bound
     public List<Map<String, Object>> activeMatchesOf(Collection<String> userUuids, long idStory,
                                                      String excludeMatchUuid) {
         if (userUuids == null || userUuids.isEmpty()) {
@@ -210,6 +213,7 @@ public class MatchExportStoreAdapter implements MatchExportStorePort {
     }
 
     @Override
+    @SuppressWarnings("java:S2077") // tables come from the constant DELETE_ORDER, checked by identifier()
     public void deleteMatchFully(String uuidMatch) {
         List<Long> ids = jdbc.queryForList(SELECT_MATCH_ID, Long.class, uuidMatch);
         if (ids.isEmpty()) {
@@ -276,6 +280,7 @@ public class MatchExportStoreAdapter implements MatchExportStorePort {
                 .orElseThrow(() -> new IllegalArgumentException("Not a log table: " + table));
     }
 
+    @SuppressWarnings("java:S2077") // table and columns checked by identifier()/quote(), values bound
     private void insert(String table, Map<String, Object> row) {
         List<String> columns = new ArrayList<>(row.keySet());
         List<Object> args = new ArrayList<>();
