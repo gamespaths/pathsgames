@@ -305,8 +305,8 @@ public class MatchImportService {
     /** A deep copy of the bundled story without the source server's story id (the target assigns one). */
     @SuppressWarnings("unchecked")
     static Map<String, Object> storyForImport(Map<String, Object> data) {
-        Map<String, Object> copy = (Map<String, Object>) StoryExportService.stripNulls(
-                CanonicalJson.parse(CanonicalJson.write(data)));
+        Object clean = StoryExportService.stripNulls(CanonicalJson.parse(CanonicalJson.write(data)));
+        Map<String, Object> copy = clean instanceof Map<?, ?> ? (Map<String, Object>) clean : new LinkedHashMap<>();
         copy.remove("id");
         return copy;
     }
@@ -366,7 +366,7 @@ public class MatchImportService {
 
     private static void need(Map<String, Set<Long>> index, Set<String> missing, String label, Object value) {
         Long id = lng(value);
-        if (id != null && !index.get(label).contains(id)) {
+        if (id != null && !index.getOrDefault(label, Set.of()).contains(id)) {
             missing.add(label + " " + id);
         }
     }
@@ -394,7 +394,8 @@ public class MatchImportService {
                 continue;
             }
             if (store.usernameTaken(username) || planned.contains(username)) {
-                String target = username + "_" + uuid.substring(0, Math.min(6, uuid.length()));
+                String suffix = Objects.toString(uuid, "");
+                String target = username + "_" + suffix.substring(0, Math.min(6, suffix.length()));
                 a.users.add(new UserPlan(u, USER_RENAMED, target, uuid));
                 planned.add(target);
                 a.warnings.add(new Issue(MatchExportPort.USERNAME_RENAMED,

@@ -376,4 +376,14 @@ class MatchImportServiceTest {
         assertEquals("99999999-0000-4000-8000-000000000099", rows.getValue().characters().get(1).get("id_user"));
         assertEquals("00000000-0000-4000-8000-0000000000a1", rows.getValue().match().get("id_user_creator"));
     }
+
+    @Test
+    void storyForImportDropsTheIdAndToleratesNoStory() {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("id", 9);
+        data.put("uuid", STORY);
+        data.put("author", null);
+        assertEquals(Map.of("uuid", STORY), MatchImportService.storyForImport(data));
+        assertEquals(Map.of(), MatchImportService.storyForImport(null));
+    }
 }

@@ -168,6 +168,6 @@ code/frontend/python-flask-game/.pytest_cache
 
 code/tests/stress/reports/*
 !code/tests/stress/reports/.gitkeep
-#code/tests/robot/tests/41_alpha_prep/fixtures/golden/export_aws.json
-#code/tests/robot/tests/41_alpha_prep/fixtures/golden/export_java.json
-#code/tests/robot/tests/41_alpha_prep/fixtures/golden/export_python.json
+code/tests/robot/tests/41_alpha_prep/fixtures/golden/export_aws.json
+code/tests/robot/tests/41_alpha_prep/fixtures/golden/export_java.json
+code/tests/robot/tests/41_alpha_prep/fixtures/golden/export_python.json
