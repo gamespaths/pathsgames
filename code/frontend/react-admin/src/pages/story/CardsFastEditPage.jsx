@@ -273,7 +273,7 @@ export default function CardsFastEditPage() {
     }
   }
 
-  useEffect(() => { load() }, [uuid])
+  useEffect(() => { void load() }, [uuid])
 
   const updateRow = (cardUuid, field, value) =>
     setRows(prev => prev.map(r => r.uuid === cardUuid ? { ...r, [field]: value } : r))

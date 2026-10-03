@@ -239,8 +239,7 @@ export default function GuestsPage() {
             type="checkbox"
             checked={withoutMatches}
             onChange={e => { setWithoutMatches(e.target.checked); setStale(null) }}
-          />
-          Without matches only
+          />Without matches only
         </label>
         <button className="pg-btn pg-btn-ghost" onClick={load} disabled={olderThanDays === ''}>
           <i className="fas fa-filter" /> Apply filter

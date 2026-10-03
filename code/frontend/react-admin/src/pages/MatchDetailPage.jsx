@@ -164,8 +164,8 @@ export default function MatchDetailPage() {
     }
   }
 
-  function handlePause()  { runAction(() => pauseMatch(uuid),  false) }
-  function handleResume() { runAction(() => resumeMatch(uuid), false) }
+  function handlePause()  { void runAction(() => pauseMatch(uuid),  false) }
+  function handleResume() { void runAction(() => resumeMatch(uuid), false) }
 
   function handleStop() {
     setConfirm({

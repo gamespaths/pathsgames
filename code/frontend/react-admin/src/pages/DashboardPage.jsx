@@ -106,16 +106,13 @@ export default function DashboardPage() {
             Manage Guests
           </a>
           <a href="/stories" className="pg-btn pg-btn-gold">
-            <i className="fas fa-book-open" />
-            Manage Stories
+            <i className="fas fa-book-open" />Manage Stories
           </a>
           <a href="/stories/import" className="pg-btn pg-btn-ghost">
-            <i className="fas fa-file-import" />
-            Import Story
+            <i className="fas fa-file-import" />Import Story
           </a>
           <a href="/echo" className="pg-btn pg-btn-ghost">
-            <i className="fas fa-heartbeat" />
-            Server Status
+            <i className="fas fa-heartbeat" />Server Status
           </a>
         </div>
       </div>

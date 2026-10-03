@@ -158,8 +158,8 @@ export default function StoryEditorPage() {
     }
   }
 
-  useEffect(() => { loadStory() }, [uuid])
-  useEffect(() => { loadEntities() }, [activeTab])
+  useEffect(() => { void loadStory() }, [uuid])
+  useEffect(() => { void loadEntities() }, [activeTab])
 
   const handleUpdateStory = async (e) => {
     e.preventDefault()
@@ -191,7 +191,7 @@ export default function StoryEditorPage() {
     try {
       await deleteEntity(uuid, entityTab, entity.uuid)
       setSuccess(`${entityTab} entity deleted`)
-      loadEntities()
+      void loadEntities()
       if (entityTab === 'texts') {
         await refreshTexts(uuid)
       }
@@ -220,7 +220,7 @@ export default function StoryEditorPage() {
       }
       setSuccess(`${entityTab} saved`)
       setModal(null)
-      loadEntities()
+      void loadEntities()
       if (entityTab === 'texts') {
         await refreshTexts(uuid)
       }

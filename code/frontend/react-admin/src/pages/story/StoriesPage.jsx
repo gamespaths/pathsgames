@@ -300,7 +300,7 @@ export default function StoriesPage() {
               </div>
             )}
             <div className="flex justify-end mt-3 gap-2">
-              <button className="pg-btn pg-btn-ghost" onClick={() => { handleExport(detail); setDetail(null) }} title="Export JSON">
+              <button className="pg-btn pg-btn-ghost" onClick={() => { void handleExport(detail); setDetail(null) }} title="Export JSON">
                 <i className="fas fa-file-export me-1" />Export JSON
               </button>
               <button className="pg-btn pg-btn-ghost" onClick={() => setDetail(null)}>Close</button>

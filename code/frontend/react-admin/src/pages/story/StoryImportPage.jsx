@@ -66,8 +66,7 @@ export default function StoryImportPage() {
 
       <div className="pg-card mb-4">
         <p style={{ color: 'var(--color-ash)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-          <i className="fas fa-info-circle me-1" style={{ color: 'var(--color-gold-dark)' }} />
-          Paste a complete story JSON here. If the UUID already exists it will be
+          <i className="fas fa-info-circle me-1" style={{ color: 'var(--color-gold-dark)' }} />Paste a complete story JSON here. If the UUID already exists it will be
           <strong style={{ color: 'var(--color-gold-light)' }}> completely replaced</strong>.
           Leave <code style={{ color: 'var(--color-gold-dark)' }}>uuid: null</code> to auto-generate a new UUID.
           Fields left out of the JSON are imported as null or their default value.
@@ -100,8 +99,7 @@ export default function StoryImportPage() {
 
       <div className="mb-3">
         <label className="pg-label" htmlFor="story-import-json">
-          <i className="fas fa-code me-1" />
-          Story JSON
+          <i className="fas fa-code me-1" />Story JSON
         </label>
         <textarea
           id="story-import-json"

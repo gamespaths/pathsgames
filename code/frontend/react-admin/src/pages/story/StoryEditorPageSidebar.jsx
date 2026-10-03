@@ -31,8 +31,7 @@ export default function StoryEditorPageSidebar({ tabs, activeTab, onSelectTab, o
               onClick={onOpenCardsFastEdit}
               className="flex items-center gap-1 px-1 py-1 rounded transition-all text-sm text-ash hover:bg-white/5"
             >
-              <i className="fas fa-id-card w-5 text-center" />
-              Cards fast edit
+              <i className="fas fa-id-card w-5 text-center" />Cards fast edit
             </button>
           )}
           {onOpenFastNewEvent && (
@@ -40,8 +39,7 @@ export default function StoryEditorPageSidebar({ tabs, activeTab, onSelectTab, o
               onClick={onOpenFastNewEvent}
               className="flex items-center gap-1 px-1 py-1 rounded transition-all text-sm text-ash hover:bg-white/5"
             >
-              <i className="fas fa-bolt w-5 text-center" />
-              Fast new event
+              <i className="fas fa-bolt w-5 text-center" />Fast new event
             </button>
           )}
         </nav>

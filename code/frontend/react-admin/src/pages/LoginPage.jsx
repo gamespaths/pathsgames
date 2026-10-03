@@ -53,8 +53,7 @@ export default function LoginPage() {
           {/* Server selector */}
           <div className="mb-4">
             <label className="pg-label" htmlFor="login-server">
-              <i className="fas fa-server me-1" />
-              Backend Server
+              <i className="fas fa-server me-1" />Backend Server
             </label>
             <select
               id="login-server"
@@ -72,8 +71,7 @@ export default function LoginPage() {
           {/* Token field */}
           <div className="mb-4">
             <label className="pg-label" htmlFor="login-token">
-              <i className="fas fa-key me-1" />
-              JWT Access Token
+              <i className="fas fa-key me-1" />JWT Access Token
             </label>
             <textarea
               id="login-token"
@@ -86,8 +84,7 @@ export default function LoginPage() {
               spellCheck={false}
             />
             <p style={{ color: 'var(--color-ash)', fontSize: '0.78rem', marginTop: '0.3rem' }}>
-              <i className="fas fa-info-circle me-1" />
-              Get a token by calling <code style={{ color: 'var(--color-gold-dark)' }}>POST /api/auth/guest</code> with an admin account.
+              <i className="fas fa-info-circle me-1" />Get a token by calling <code style={{ color: 'var(--color-gold-dark)' }}>POST /api/auth/guest</code> with an admin account.
             </p>
           </div>
 
@@ -100,14 +97,12 @@ export default function LoginPage() {
           )}
 
           <button type="submit" className="pg-btn pg-btn-gold w-full justify-center" style={{ width: '100%', justifyContent: 'center' }}>
-            <i className="fas fa-unlock-alt" />
-            Enter Admin Panel
+            <i className="fas fa-unlock-alt" />Enter Admin Panel
           </button>
         </form>
 
         <p style={{ textAlign: 'center', marginTop: '1.2rem', fontSize: '0.75rem', color: 'var(--color-stone)' }}>
-          <i className="fas fa-shield-alt me-1" />
-          Token is saved in localStorage — clear it to logout.
+          <i className="fas fa-shield-alt me-1" />Token is saved in localStorage — clear it to logout.
         </p>
       </div>
     </div>

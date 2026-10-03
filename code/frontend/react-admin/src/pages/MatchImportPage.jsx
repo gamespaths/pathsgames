@@ -149,8 +149,7 @@ export default function MatchImportPage() {
             {check.matchExists && (
               <label>
                 <input type="checkbox" checked={replace} className="me-1"
-                       onChange={(e) => change({ replace: e.target.checked })} />
-                Replace the match already on this server
+                       onChange={(e) => change({ replace: e.target.checked })} />Replace the match already on this server
               </label>
             )}
             {story.status === 'DIFFERENT' && (
@@ -171,8 +170,7 @@ export default function MatchImportPage() {
             )}
             <label>
               <input type="checkbox" checked={startPaused} className="me-1"
-                     onChange={(e) => change({ startPaused: e.target.checked })} />
-              Start paused
+                     onChange={(e) => change({ startPaused: e.target.checked })} />Start paused
             </label>
             <button className="pg-btn pg-btn-gold" disabled={busy || !check.valid}
                     onClick={() => { void doImport() }}>
