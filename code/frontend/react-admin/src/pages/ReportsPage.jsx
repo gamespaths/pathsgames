@@ -172,6 +172,13 @@ export default function ReportsPage() {
         a match restored from a snapshot that reaches the end again is counted again
         (completion, durations, choices, visits and missions alike). An admin stop is not a completion.
       </p>
+      {!storyUuid && (
+        <p style={{ color: 'var(--color-ash)', fontSize: '0.8rem' }} data-testid="kpi-all-stories-note">
+          <i className="fas fa-info-circle me-1" />
+          With "All stories" the totals may differ by backend: the counters of deleted stories
+          are included on Java and Python, excluded on AWS.
+        </p>
+      )}
 
       <ErrorAlert message={error} onClose={() => setError('')} />
       {loading && <LoadingSpinner text="Loading the report…" />}

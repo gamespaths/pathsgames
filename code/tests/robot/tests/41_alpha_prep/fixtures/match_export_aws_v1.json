@@ -21,7 +21,7 @@
      "characterTemplateId": 1, "classId": 1, "dexterity": 2, "intelligence": 2, "constitution": 2,
      "energy": 15, "life": 10, "sad": 0, "lifeMax": 10, "energyMax": 20, "sadMax": 5, "weightMax": 10, "exp": 1,
      "locationId": 2, "isSleeping": false, "isComa": false, "clockInComa": 0, "characteristics": [],
-     "resources": {"food": 0, "magic": 1, "coin": 0}, "traits": [], "items": []}
+     "resources": {"food": 0, "magic": 1, "coin": 0}, "traits": [], "items": [{"itemId": 1, "amount": 1}]}
   ],
   "state": {
     "registry": [

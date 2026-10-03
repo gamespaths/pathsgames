@@ -1,6 +1,6 @@
 # Step 41 — Alpha preparation
 
-**Status: patches 0.41.0-0.41.2 DEVELOPED; patch 0.41.4 (H, match export/import, neutral format, §9) DEVELOPED on October 1, 2026 (H1-H4, unit tests green; Robot suite written, waiting for the owner's runs and the golden exports of decision 66). Shipped (v0.41.0, v0.41.1, v0.41.2, September 29,
+**Status: STEP 41 CLOSED (code complete). Patches 0.41.0-0.41.6 shipped; 0.41.4 (H, match export/import, neutral format, §9), 0.41.5 (story uuid check, H.9) and 0.41.6 (admin match owner move, H.10) came after 0.41.2. Golden exports are committed; Robot runs of October 3, 2026 were green on every backend (838 tests, 0 failed: AWS, local AWS, Java, Java+PostgreSQL, Python; limited runs also 0 failed). First shipped (v0.41.0, v0.41.1, v0.41.2, September 29,
 2026): security (C), AWS admin allow-list (D), guest cleanup/limits (E), logging gaps (A),
 match snapshots (B), KPI report (F) and the production website CSP switch. Unit tests and
 Robot green on all four targets (AWS, Java, Java+PostgreSQL, Python — 814 Robot tests).**
@@ -186,7 +186,7 @@ card. Robot suite `41_alpha_prep/match_export_import.robot` written, not run (de
 | E | Guest cleanup and limits | backend | Fix of today's expired-guest delete (Java/PostgreSQL, Python, AWS); daily job deleting match-less guests idle for N days (default 60); per-guest match limit; non-zero code defaults |
 | F | KPI report | backend, frontend | Daily UTC counters per story, `GET /api/admin/reports/kpi`, react-admin Reports page with the active matches |
 | G | Tests | tests | Unit tests > 96% of new code; Robot `41_alpha_prep/` plus additions to `41_security/` |
-| H | Match export and import between servers (patch 0.41.4, analysed, not developed) | backend, frontend | Admin exports the latest time-end snapshot, logs, users and story as one neutral JSON file (source rolled back and restarted) and imports it on any backend: dry-run, story modes, user copy, restart; see §9 |
+| H | Match export and import between servers (patch 0.41.4, developed) | backend, frontend | Admin exports the latest time-end snapshot, logs, users and story as one neutral JSON file (source rolled back and restarted) and imports it on any backend: dry-run, story modes, user copy, restart; see §9 |
 
 **Out of scope**: backups, PITR, CloudWatch alarms and budget (step 42 — A's WARN line is only
 their input); privacy policy and retention text (42, it will quote E's age); the alpha stack,
@@ -1495,8 +1495,19 @@ Existing suites are not changed; `snapshots.robot` keeps its six tests.
 - Robot: 4 cases in `22_story_validation/story_validation.robot` (tag `story-uuid`). Dev tutorial story uuid is now `bd02e05f-654d-4589-bfae-846a04dc9d3c`; stress `tutorial_story.json` is `2ba49457-e312-4f3b-94bb-5b7c3be4db4c`. OpenAPI `v0.22.0-story-validation-api.yaml` description updated.
 - Script `code/scripts/dev/run_robot_everywhere.sh`: with `--aws=remote|all` the AWS_LIMITED pass runs `run_robot_with_aws_serverless_special.sh` (rate limits on in the test stack, then restored); reports in `reports-aws-limited/`.
 
+### H.10 Match owner move after import (0.41.6)
+
+After a match import (or for a guest that lost its account) the admin moves the match to another user. Admin port 8044 only; AWS routes sit behind the allow-list. Spec: `v0.41.0-alpha-preparation-api.yaml`.
+- `GET /api/admin/matches/{uuidMatch}/owner`: the current creator as a user view (404 `MATCH_NOT_FOUND` / `USER_NOT_FOUND` when the owner no longer exists).
+- `PUT /api/admin/matches/{uuidMatch}/owner` body `{user}`: moves the creator and the characters. `user` is a uuid, an e-mail (case-insensitive) or a username. Check order: 400 `INVALID_INPUT`, 404 `MATCH_NOT_FOUND`, 404 `USER_NOT_FOUND`, 409 `USER_AMBIGUOUS`, 409 `MATCH_TERMINATED` (ENDED/GAMEOVER), 200 `UNCHANGED` (nothing written), 409 `MATCH_MULTI_CHARACTER`, 409 `USER_NOT_ALLOWED` (ADMIN role or state not active/guest), 409 `USER_EXPIRED`, 409 `ACTIVE_MATCH_ALREADY_EXISTS` (target has a CREATED/RUNNING/PAUSED match on the same story). Statuses are kept, the old user is never deleted, no snapshot is written; the match log gets an `OWNER_CHANGED from=<username>/<uuid> to=<username>/<uuid>` admin line.
+- `GET /api/admin/users/{identifier}`: one user by uuid, e-mail or username, used as the preview (404, 409 `USER_AMBIGUOUS`).
+- Snapshots follow the move: restore, check and export apply the current creator and character owners after the checksum, and a restore keeps the owner (`SnapshotStorePort.characterUsers`, `MatchRef.idUserCreator`; AWS `snapshots.with_current_owner`, `userCreatorUuid` kept by restore).
+- Java: `MatchOwnerService`, `MatchOwnerPort`, `UserDirectoryPort` + `UserDirectoryAdapter`, `MatchOwnerAdminController`, `UserAdminController`, `AdminUserView`, `MatchOwnerMoveResult`, `MatchLogWriterPort.ownerChanged`. Python: `match_owner_service.py`, `match_owner_admin_controller.py`, `user_admin_controller.py`, `user_directory_adapter.py`. AWS: `common/user_lookup.py`, `match/handler.py`, `auth/handler.py`, `db_utils`, routes in `template/match.yaml` and `auth.yaml`.
+- react-admin: `MoveOwnerModal.jsx` (preview, then confirm), `UserCard.jsx`, `MatchDetailPage` User tab, `matchApi` / `userApi`.
+- Tests: unit tests on all three backends and react-admin; Robot `41_alpha_prep/match_owner_move.robot`.
+
 # Version Control
-- **Document Version**: 0.41.5
+- **Document Version**: 0.41.6
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -1506,9 +1517,10 @@ Existing suites are not changed; `snapshots.robot` keeps its six tests.
   | 0.41.2 | Patch 3 developed: KPI report, production CSP; match export analysed | September 29, 2026 |
   | 0.41.4 | Match export and import re-analysed for every backend | October 1, 2026 |
   | 0.41.5 | Story import checks the story identifier format | October 3, 2026 |
+  | 0.41.6 | Admin can move a match to another user | October 3, 2026 |
 
-- **Last Updated**: October 3, 2026 (v0.41.5)
-- **Status**: patches 0.41.0-0.41.2 developed; 0.41.4 (H, match export and import, neutral format) re-analysed, decisions 54-66 taken (shipped: security, allow-list, guests, CI scan, test CSP, logging, snapshots, KPI report, production CSP)
+- **Last Updated**: October 3, 2026 (v0.41.6)
+- **Status**: step 41 closed, code complete: patches 0.41.0-0.41.6 shipped (security, allow-list, guests, CI scan, logging, snapshots, KPI report, CSP, match export/import, story uuid check, owner move); Robot green on all backends
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

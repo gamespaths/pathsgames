@@ -262,6 +262,19 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 ## 📝 Changelog
 
+### v0.41.6 — Match owner move after import
+
+- **Admin routes** (behind the allow-list, `template/match.yaml` and `auth.yaml`): `GET`/`PUT /api/admin/matches/{uuid}/owner`
+  moves the creator and the characters to another user; `GET /api/admin/users/{identifier}` is the preview. Users are
+  found by uuid, e-mail or username (`common/user_lookup.py`, `db_utils`). Terminal, multi-character, not-eligible and
+  duplicate-active targets answer 409; the match log gets `OWNER_CHANGED`. Snapshots check, restore and export use the
+  current owners (`snapshots.with_current_owner`).
+
+### v0.41.5 — Story uuid validation
+
+- `story_validator.validate_story_uuid` / `normalize_story_uuid` (lowercase canonical shape, else 400 `INVALID_STORY`,
+  rule `R0_STORY_UUID`) run in `story/handler.py` on import and in `match/match_export.py` for the bundled story.
+
 ### v0.41.4 — Match export and import between servers
 
 - **Admin routes** (behind the allow-list): match export from the latest time-end snapshot and

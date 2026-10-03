@@ -25,7 +25,8 @@ Suite Setup Alpha Prep
     ...                (+trait 1), 11 Lose the charm (-trait 1), 12 Poisoned well (life -99),
     ...                13 Old gate (ONCE, exp +1), 14 Take the quest (quest=done opens mission 1,
     ...                whose reward 15 gives +1 magic), 16 A long day (ends the time, +1 coin),
-    ...                17 Grief (sad +99), 18 A fork (v0.41.2: choice 1, food +1), 40 The end (END).
+    ...                17 Grief (sad +99), 18 A fork (v0.41.2: choice 1, food +1), 40 The end (END),
+    ...                20 Find a lantern (v0.41.6: adds item 1 Lantern; item 2 Rope is never given).
     ...                Weather 1 Clear (100%).
     Create Admin Session
     Create Public Session

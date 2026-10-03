@@ -117,6 +117,31 @@ A Copy Is Imported Running At The Next Clock With The Same State
     ${copy_weather}=    Current Weather    ${new}
     Should Be Equal    ${copy_weather}    ${source_weather}
 
+An Item Obtained Before The Export Travels With The Copy, An Unobtained One Does Not
+    [Documentation]    v0.41.6: event 20 hands item 1 (Lantern) over before the sleep; item 2 (Rope) is
+    ...                defined but never obtained. The file carries itemId 1 only on the character; the
+    ...                source after its restore and the imported copy both hold the Lantern alone.
+    [Tags]    step41    alpha-prep    match-export    inventory
+    ${token}    ${match}=    Fresh Prep Match
+    Run Prep Event    ${token}    ${match}    20
+    Run Prep Event    ${token}    ${match}    14
+    Sleep Action    ${token}    ${match}    200
+    ${doc}=    Exported Document    ${match}
+    ${exported}=    Evaluate    sorted(int(i['itemId']) for i in $doc['characters'][0].get('items') or [])
+    Should Be Equal    ${exported}    ${{ [1] }}    msg=the export does not carry the Lantern alone
+    ${amount}=    Evaluate    int($doc['characters'][0]['items'][0].get('amount') or 0)
+    Should Be Equal As Integers    ${amount}    1
+    ${source}=    Inventory Item Uuids    ${token}    ${match}
+    Should Be Equal    ${source}    ${{ [$ITEMS['1']] }}
+    ${copy}=    Rewrite Export Uuids    ${doc}
+    ${new}=    Set Variable    ${copy}[match][uuid]
+    Append To List    ${CREATED_MATCHES}    ${new}
+    ${request}=    Import Request    ${copy}
+    Import Match Response    ${request}    201
+    ${held}=    Inventory Item Uuids    ${token}    ${new}
+    Should Be Equal    ${held}    ${{ [$ITEMS['1']] }}    msg=the imported inventory is not the Lantern alone
+    Should Not Contain    ${held}    ${ITEMS}[2]
+
 Replace Re-Imports The Copy And Its Imported Snapshot Restores
     [Documentation]    The same copy again: 409 MATCH_EXISTS, then 201 with replace=true; the
     ...                "Imported at clock 0" snapshot of the copy restores (200, PAUSED).
@@ -180,8 +205,8 @@ A Cross-Family File Keeps ONCE, The Open Choice, Registry, Mission And Visited L
     ...                it, its creator mapped to a fresh robot guest and a second, tokenless guest copied:
     ...                event 13 (ONCE) is not offered, event 18's open choice is served again without
     ...                charge, quest=done, mission 1 COMPLETED, both locations visited, the copied guest
-    ...                exists without token; CROSS_FAMILY on every target but AWS. (The fixture story has
-    ...                no items: the inventory part of H.8 case 6 is not exercised.)
+    ...                exists without token; CROSS_FAMILY on every target but AWS. Inventory (v0.41.6):
+    ...                the character carries item 1 (Lantern) only, item 2 (Rope) is defined but never held.
     [Tags]    step41    alpha-prep    match-export    cross-family
     ${token}=    New Guest Token
     ${creator}=    Guest Uuid    ${token}
@@ -214,6 +239,8 @@ A Cross-Family File Keeps ONCE, The Open Choice, Registry, Mission And Visited L
     ${visited}=    Admin Get Locations    ${ADMIN_TOKEN}    ${new}    200
     Should Contain    ${visited.text}    ${LOCATIONS}[1]
     Should Contain    ${visited.text}    ${LOCATIONS}[2]
+    ${held}=    Inventory Item Uuids    ${token}    ${new}
+    Should Be Equal    ${held}    ${{ [$ITEMS['1']] }}    msg=the imported inventory is not the Lantern alone
     ${guest_uuid}=    Guest Of Fixture    ${doc}
     ${guest}=    GET On Session    admin_session    /api/admin/guests/${guest_uuid}
     ...    headers=${{ {'Authorization': 'Bearer ' + $ADMIN_TOKEN} }}    expected_status=200
@@ -286,10 +313,11 @@ Export And Import Leave The KPI Report Unchanged
 
 Write Golden Export
     [Documentation]    Owner only (decision 66): with -v WRITE_GOLDEN:1 saves fixtures/golden/export_<backend>.json
-    ...                from a scripted match (quest, ONCE, move, open choice, sleep). Skipped otherwise.
+    ...                from a scripted match (item, quest, ONCE, move, open choice, sleep). Skipped otherwise.
     [Tags]    step41    alpha-prep    match-export    golden
     Skip If    '${WRITE_GOLDEN}' == '${EMPTY}'    WRITE_GOLDEN is not set
     ${token}    ${match}=    Fresh Prep Match
+    Run Prep Event    ${token}    ${match}    20
     Run Prep Event    ${token}    ${match}    14
     Run Prep Event    ${token}    ${match}    13
     Start Movement    ${token}    ${match}    ${LOCATIONS}[2]    200
@@ -303,7 +331,8 @@ Golden Exports Import On This Target
     [Documentation]    Every committed fixtures/golden/export_<backend>.json imports here (copy uuids, the
     ...                creator mapped to a fresh guest, storyMode KEEP) with the observable state of the
     ...                cross-family case: ONCE spent, open choice served without charge, quest=done,
-    ...                mission 1 COMPLETED. Java SQLite golden on Java + PostgreSQL proves decision 51.
+    ...                mission 1 COMPLETED, the inventory equal to the golden character's items.
+    ...                Java SQLite golden on Java + PostgreSQL proves decision 51.
     ...                Skipped while no golden file is committed.
     [Tags]    step41    alpha-prep    match-export    golden
     ${files}=    Golden Files    ${GOLDEN_DIR}
@@ -329,6 +358,9 @@ Golden Exports Import On This Target
         Should Contain    ${quest}    done    msg=${file}
         ${missions}=    Mission Statuses    ${token}    ${new}
         Should Be Equal    ${missions}[${MISSION}]    COMPLETED    msg=${file}
+        ${expected}=    Evaluate    sorted($ITEMS[str(i['itemId'])] for i in $golden['characters'][0].get('items') or [])
+        ${held}=    Inventory Item Uuids    ${token}    ${new}
+        Should Be Equal    ${held}    ${expected}    msg=${file}: the inventory differs from the golden items
     END
 
 
@@ -340,6 +372,8 @@ Suite Setup Match Export
     Suite Setup Alpha Prep
     ${missions}=    Prep Rows    missions
     Set Suite Variable    ${MISSION}    ${missions}[1]
+    ${items}=    Prep Rows    items
+    Set Suite Variable    ${ITEMS}    ${items}
     ${token}    ${probe}=    Played Match With A Snapshot
     ${doc}=    Exported Document    ${probe}
     Set Suite Variable    ${THIS_BACKEND}    ${doc}[source][backend]
@@ -422,6 +456,13 @@ Mission Statuses
     ${resp}=    Get Missions    ${token}    ${match}    200
     ${all}=    Evaluate    {str(m.get('uuid')): m.get('status') for m in ($resp.json() if isinstance($resp.json(), list) else ($resp.json().get('missions') or [])) if isinstance(m, dict)}
     RETURN    ${all}
+
+Inventory Item Uuids
+    [Documentation]    The story item uuids the caller's character holds in a match, sorted.
+    [Arguments]    ${token}    ${match}
+    ${resp}=    Get Inventory    ${token}    ${match}    200
+    ${uuids}=    Evaluate    sorted(str(r.get('itemUuid')) for r in $resp.json().get('items') or [])
+    RETURN    ${uuids}
 
 Current Weather
     [Documentation]    The uuid (else the id) of the current weather, off the admin weather view.

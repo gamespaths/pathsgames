@@ -123,7 +123,10 @@ replacing a per-writer `MAX(id)+1` read that could collide under concurrent requ
     | GET | `/api/matches` | List matches owned by the authenticated user |
     | GET | `/api/match/{uuid}/info` | Match runtime state (summary, location/registry state) |
     | GET | `/api/admin/matches` | List all matches on the platform (ADMIN only) — paged envelope `{items, nextCursor, limit}`; query params: `limit`, `cursor`, `status`, `userUuid`, `storyUuid`, `sinceDays` |
+    | POST | `/api/admin/stories/import` | Imports a story tree; top-level `uuid` is trimmed, lowercased and checked by `StoryUuid` (rule `R0_STORY_UUID`, 400 `INVALID_STORY`); match import uses the same check (v0.41.5) |
     | GET | `/api/admin/matches/{uuidMatch}/export` | Export a match from its latest time-end snapshot as a neutral "match export v1" file (ADMIN only, admin port; v0.41.4) |
+    | GET / PUT | `/api/admin/matches/{uuidMatch}/owner` | Read the owner / move the creator and the characters to another user (uuid, e-mail or username; 409 on terminal, multi-character, not-eligible or duplicate-active target; ADMIN, admin port; v0.41.6) |
+    | GET | `/api/admin/users/{identifier}` | One user by uuid, e-mail or username, the owner-move preview (ADMIN, admin port; v0.41.6) |
     | POST | `/api/admin/matches/import` | Dry-run or import a match export file; story `storyMode`, `replace`, `startPaused`; 413 above `MATCH_EXPORT_MAX_BYTES` (default 5000000, `game.match.export.max-bytes`) (ADMIN only; v0.41.4) |
 
 ## Recent Fixes (Step 17 CRUD)
@@ -182,7 +185,7 @@ replacing a per-writer `MAX(id)+1` read that could collide under concurrent requ
 - Starting from 0.5.0 version, code is created with AI prompt:
     > Paths Games V1 - Step 05: Define backend module structure
 
-- **Document Version**: 0.28.6
+- **Document Version**: 0.41.6
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.5.0 | Step 05: Define backend module structure | Feb 26, 2026 |
@@ -199,7 +202,8 @@ replacing a per-writer `MAX(id)+1` read that could collide under concurrent requ
     | 0.28.5 | `GET /api/match/{uuid}/locations` and `GET /api/admin/matches/{uuid}/locations` now resolve a full `card` object (CardInfoResponse shape) for every visited location and every neighbor, plus an optional `?lang=` param (default `en`). `MovementPort`/`MovementService` gained a `ContentQueryPort` dependency and a `resolveCard(storyId, idCard, lang)` helper (legacy 2-arg constructor preserved); `MatchLocationsResponse` builds `card` via `CardInfoResponse.fromModel`; `MovementController`/`MatchAdminController` accept `@RequestParam lang`; `CoreConfig` wires `ContentQueryPort` into the movement bean; OpenAPI `v0.28.0-movement-api.yaml` gained the `CardInfo` schema plus `card`/`lang`. No change to location/neighbor lookup logic. `mvn clean test` BUILD SUCCESS | Jul 11, 2026 |
     | 0.28.6 | Bugfix — fog-of-war leak on neighbor location cards: v0.28.5's card enrichment exposed the card of locations never visited by the match. `MovementService.buildLocations` now nulls a neighbor's `idCard`/`card` when its destination is outside `findVisitedLocationIds`. `MatchQueryService` gained an optional 6th constructor arg `MovementStorePort` (legacy 5-arg constructor preserved, delegates with `null` = no gating); `buildLocationsActive` gained a `visitedLocIds` param and only nulls the **fallback** to the destination location's card, never an authored `idCard` link card set on the neighbor edge itself. `CoreConfig` wires `MovementStorePort` into the `matchQueryPort` bean. OpenAPI `v0.28.0-movement-api.yaml` + `v0.19.0-match-creation-api.yaml` document the nullability. New Robot suite `28_movement/location_fog_of_war.robot` (4 tests). `mvn clean test` BUILD SUCCESS (+1 `MovementServiceTest`, +3 `MatchQueryServiceLocationsActiveTest`) | Jul 11, 2026 |
     | 0.29.0 | (still v0.29.0, no version bump) Movement availability verdict on `/info`: `locationsActive[].neighbors[]` gains `available`/`reason`, the movement twin of the event verdict added in Step 29 (`EventAvailabilityChecker`). New `core/service/match/MovementAvailabilityChecker.java` — pure static function, no ports, no I/O, same 8-code order as `movements/start` (§ Validation Order: `CHARACTER_CANNOT_ACT` → `MATCH_NOT_RUNNING` → `COMA` → `SLEEPING` → `NOT_A_NEIGHBOR` → `MOVEMENT_CONDITION_NOT_MET` → `OVERWEIGHT` → `INSUFFICIENT_ENERGY` → `LOCATION_FULL`). `MovementService.startMovement` refactored to call the checker instead of its own if-chain. `MatchQueryService` loads the check context once per request and loops the checker over neighbors, no port call inside the loop. `LocationNeighborInfo`/`MatchInfoResponse` gain `available`/`reason`. OpenAPI `v0.19.0-match-creation-api.yaml` updated. No Flyway migration | Jul 13, 2026 |
-- **Last Updated**: Jul 13, 2026
+    | 0.41.6 | Admin match owner move (`MatchOwnerService`, owner and user lookup endpoints) and story uuid check (`StoryUuid`) | Oct 3, 2026 |
+- **Last Updated**: Oct 3, 2026
 - **Status**: In progress
 
 

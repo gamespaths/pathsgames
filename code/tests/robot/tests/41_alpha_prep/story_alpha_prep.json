@@ -195,6 +195,30 @@
       "lang": "en",
       "shortText": "Take the left path",
       "longText": "Take the left path"
+    },
+    {
+      "id": 93,
+      "idCreator": 1,
+      "idText": 93,
+      "lang": "en",
+      "shortText": "Lantern",
+      "longText": "Lantern"
+    },
+    {
+      "id": 94,
+      "idCreator": 1,
+      "idText": 94,
+      "lang": "en",
+      "shortText": "Rope",
+      "longText": "Rope"
+    },
+    {
+      "id": 95,
+      "idCreator": 1,
+      "idText": 95,
+      "lang": "en",
+      "shortText": "Find a lantern",
+      "longText": "Find a lantern"
     }
   ],
   "cards": [
@@ -330,6 +354,27 @@
       "idTextTitle": 18,
       "idTextDescription": 18,
       "urlImage": "https://example.invalid/card-18.jpg"
+    },
+    {
+      "id": 93,
+      "idCreator": 1,
+      "idTextTitle": 93,
+      "idTextDescription": 93,
+      "urlImage": "https://example.invalid/card-93.jpg"
+    },
+    {
+      "id": 94,
+      "idCreator": 1,
+      "idTextTitle": 94,
+      "idTextDescription": 94,
+      "urlImage": "https://example.invalid/card-94.jpg"
+    },
+    {
+      "id": 95,
+      "idCreator": 1,
+      "idTextTitle": 95,
+      "idTextDescription": 95,
+      "urlImage": "https://example.invalid/card-95.jpg"
     }
   ],
   "keys": [
@@ -524,6 +569,15 @@
       "costCoin": 0
     },
     {
+      "id": 20,
+      "idCard": 95,
+      "idTextName": 95,
+      "idTextDescription": 95,
+      "type": "NORMAL",
+      "costEnery": 0,
+      "costCoin": 0
+    },
+    {
       "id": 40,
       "idCard": 40,
       "idTextName": 40,
@@ -601,6 +655,15 @@
       "target": "ONLY_ONE",
       "statistics": "sad",
       "value": 99
+    },
+    {
+      "id": 9,
+      "idEvent": 20,
+      "idCard": 95,
+      "idTextName": 95,
+      "target": "ONLY_ONE",
+      "idItemTarget": 1,
+      "itemAction": "ADD"
     }
   ],
   "choices": [
@@ -625,7 +688,24 @@
     }
   ],
   "choiceConditions": [],
-  "items": [],
+  "items": [
+    {
+      "id": 1,
+      "idCard": 93,
+      "idTextName": 93,
+      "idTextDescription": 93,
+      "weight": 1,
+      "maxPerCharacter": 1
+    },
+    {
+      "id": 2,
+      "idCard": 94,
+      "idTextName": 94,
+      "idTextDescription": 94,
+      "weight": 1,
+      "maxPerCharacter": 1
+    }
+  ],
   "itemEffects": [],
   "missions": [
     {

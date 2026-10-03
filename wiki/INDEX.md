@@ -38,13 +38,13 @@ section → read only that line range. Never read a Step file whole; never open
 | [`documentation_v6/`](documentation_v6/INDEX.md) | V6 eta — draft | Infrastructure: Kubernetes, Azure, Cloudflare, DR, monitoring |
 
 # Version Control
-- **Document Version**: 0.40.0
+- **Document Version**: 0.41.6
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First single index for all documentation | September 25, 2026 |
 
-- **Last Updated**: September 25, 2026 (v0.40.0)
+- **Last Updated**: October 3, 2026 (v0.41.6)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
