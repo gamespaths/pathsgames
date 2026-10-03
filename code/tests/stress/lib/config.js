@@ -18,7 +18,7 @@ export const config = {
   adminBaseUrl: env('ADMIN_BASE_URL', 'http://localhost:8044').replace(/\/+$/, ''),
   adminToken: env('ADMIN_TOKEN', ''),
   jwtSecret: env('JWT_SECRET', 'PathsGamesDevSecret2026_MustBeAtLeast32Chars!'),
-  tutorialUuid: env('TUTORIAL_UUID', 'story-001'),
+  tutorialUuid: env('TUTORIAL_UUID', '2ba49457-e312-4f3b-94bb-5b7c3be4db4c'),
   tutorialFile: env('TUTORIAL_FILE', '../data/tutorial_story.json'),
   lang: env('STORY_LANG', 'en'),
   moves: intEnv('MOVES', 5),

@@ -9,6 +9,7 @@ Field access is key-agnostic (camelCase or snake_case) so DB rows and JSON both 
 """
 from typing import Any, Dict, List, Optional, Set
 
+from app.core.models.story.story_uuid import is_valid_story_uuid, normalize_story_uuid
 from app.core.ports.story.story_read_port import StoryReadPort
 from app.core.ports.story.story_validator_port import (
     StoryValidationReport,
@@ -133,6 +134,11 @@ class StoryValidatorService(StoryValidatorPort):
         if not story_data:
             report.add("R0_EMPTY", "story", None, None, "story data is null or empty")
             return report
+        # v0.41.5 — import only: a story already stored with a legacy uuid must still validate.
+        story_uuid = normalize_story_uuid(story_data.get("uuid"))
+        if story_uuid is not None and not is_valid_story_uuid(story_uuid):
+            report.add("R0_STORY_UUID", "story", None, "uuid",
+                       f"story uuid '{story_data.get('uuid')}' is not a valid UUID (8-4-4-4-12 hex)")
         self._run_rules(self._build_from_map(story_data), report)
         return report
 

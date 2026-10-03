@@ -1,5 +1,6 @@
 import uuid
 from typing import Dict, Any, Optional
+from app.core.models.story.story_uuid import normalize_story_uuid
 from app.core.models.story.story_import_result import StoryImportResult
 from app.core.ports.story.story_import_port import StoryImportPort
 from app.core.ports.story.story_persistence_port import StoryPersistencePort
@@ -64,10 +65,9 @@ class StoryImportService(StoryImportPort):
         self._id_cache.clear()
         try:
             # 1. Provide UUID if missing
-            story_uuid = data.get("uuid")
-            if not story_uuid or not str(story_uuid).strip():
-                story_uuid = str(uuid.uuid4())
-                data["uuid"] = story_uuid
+            # v0.41.5 — trimmed and lowercased, so "ABC…" and "abc…" are the same story.
+            story_uuid = normalize_story_uuid(data.get("uuid")) or str(uuid.uuid4())
+            data["uuid"] = story_uuid
 
             # 2. Delete existing if any (Replace-on-conflict)
             self.delete_story(story_uuid)

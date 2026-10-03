@@ -107,7 +107,7 @@ One row per entity: table it maps to and its main authoring fields (not every co
 
 ## 5. Import Flow
 
-1. Extract `uuid` (auto-generate if absent).
+1. Extract `uuid`: absent, null or blank is auto-generated; otherwise trimmed, lowercased and checked against the canonical UUID shape (`R0_STORY_UUID`, §6).
 2. If a story with that `uuid` already exists, **cascade-delete** it first (all sub-tables in
    reverse FK order, then matches played on it, then the story row) — import is
    replace-on-conflict, not merge.
@@ -138,6 +138,7 @@ three entry points with different strictness:
 
 | Rule | Meaning | Import | CRUD |
 |---|---|---|---|
+| `R0_STORY_UUID` | Top-level story `uuid`, when present and not blank, must match `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$` after trim and lowercase (shape only, no version check). Import-only: stored legacy stories and nested entity uuids are not checked; a match import's bundled story goes through it too (`STORY_INVALID`). | blocking | — |
 | `R_LOCATION_REF` / `R_EVENT_REF` / `R_ITEM_REF` / `R_CHOICE_REF` / `R_CLASS_REF` / `R_MISSION_REF` | Every positive reference resolves to an existing entity of the right type in the story. | blocking | not checked |
 | `R2_NEIGHBOR_SELF` | A neighbor edge links a location to itself. | blocking | — |
 | `R2_NEIGHBOR_DIR` | A neighbor edge has a blank/missing `direction`. | blocking | — |

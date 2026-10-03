@@ -31,6 +31,16 @@ export function normalizeImportJson(data) {
   return { ...story, ...rest }
 }
 
+// v0.41.5 — same shape every backend accepts on import; case and spaces are normalized there.
+const STORY_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+
+// True when the story uuid is absent or blank (the backend mints one) or a valid 8-4-4-4-12 UUID.
+export function isValidStoryUuid(raw) {
+  if (raw === null || raw === undefined) return true
+  const value = String(raw).trim().toLowerCase()
+  return value === '' || STORY_UUID.test(value)
+}
+
 // One admin CRUD row as the story export writes it: stamps and idStory out, text ids fixed, and
 // v0.41.4 the template id (idTipo) as id — the bundled-story format of the match export.
 export function exportEntity(jsonKey, item) {

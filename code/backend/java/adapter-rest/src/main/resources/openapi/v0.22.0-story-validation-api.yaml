@@ -48,7 +48,9 @@ paths:
       description: >
         Unchanged contract from Step 14, with one addition - if the import map fails
         validation the endpoint returns 400 INVALID_STORY with an errors[] array and
-        nothing is persisted.
+        nothing is persisted. v0.41.5 - the story uuid, when present and not blank, is
+        trimmed and lowercased and must be 8-4-4-4-12 hex, otherwise rule R0_STORY_UUID
+        (field uuid); absent, null or blank still generates a new uuid.
       operationId: importStoryValidated
       requestBody:
         required: true

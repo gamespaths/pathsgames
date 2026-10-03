@@ -1,6 +1,6 @@
 # Paths Games V2 - Roadmap
 
-**V2 — gamma: a living world.** Draft plan of the third version: 42 steps released as `2.N.0`.
+**V2 — gamma: an open world.** Draft plan of the third version: 42 steps released as `2.N.0`.
 Rules in [Version Template](../VersionTemplate.md), all versions in the
 [Global Roadmap](../Roadmap.md), ideas in the [Backlog](../Backlog.md).
 If the work exceeds 42 steps, the last feature steps move to V3.
@@ -9,7 +9,7 @@ Shared references: [Game Rules](../GameRules.md) (no combat, also with NPCs),
 [Data Model](../DataModel.md), [Story Format](../StoryFormat.md),
 [Security](../Security.md).
 
-- **Steps 1-2**: Steam SSO. **Steps 3-7**: campaigns with the global registry.
+- **Step 1**: version 2 launch. **Step 2**: reserved (Steam SSO moved to V3). **Steps 3-7**: campaigns with the global registry.
 - **Steps 8-12**: timed missions, silent events, warehouse. **Steps 13-16**: advanced analytics and replay.
 - **Steps 17-27**: NPCs, entities, open world. **Steps 28-31**: noise and stealth, user progression.
 - **Steps 32-34**: advanced inventory, temporary effects, location fatigue (if space).
@@ -18,18 +18,12 @@ Shared references: [Game Rules](../GameRules.md) (no combat, also with NPCs),
 
 # Steps
 
-1. **Steam SSO — backend** — login with Steam on all three backends.
-    - Steam OpenID 2.0 flow (different from Google OAuth) (backend)
-    - New provider in the identity table prepared in V1 (backend)
-    - Link Steam to an existing logged user; two accounts that are already separate stay separate (backend)
-    - OpenAPI spec (backend)
-    - Unit tests with provider mocks (tests)
-2. **Steam SSO — frontend and E2E** — sign in with Steam.
-    - Steam sign-in button and callback (frontend)
-    - "Link Steam" action in the profile (frontend)
-    - Privacy check for the new provider (docs)
-    - Robot suite with a mocked provider (tests)
-    - Unit tests (tests)
+1. **Version 2 launch** — V2 starts on top of the launched beta.
+    - Version bump to `2.x` on every component (pom, pyproject, package.json, SAM) (all)
+    - V1 documents frozen; `documentation_v2` becomes the current version in [INDEX](../INDEX.md) (docs)
+    - Beta urgent fixes keep the `1.42.z` line, noted in V1 `Hotfixes.md` (docs)
+    - Robot suites green on all three backends with the new version (tests)
+2. **Reserved**
 3. **Campaigns — analysis** — stories connected in a path.
     - Define a campaign: ordered or branching list of stories (docs)
     - What carries over between stories: characters, items, registry keys (docs)
@@ -228,7 +222,7 @@ Shared references: [Game Rules](../GameRules.md) (no combat, also with NPCs),
 38. **Reserved**
 39. **Reserved**
 40. **Security and hardening check** — recurring.
-    - Security review of Steam SSO, campaigns, analytics and new mechanics (all)
+    - Security review of campaigns, analytics and new mechanics (all)
     - Dependency scan and secrets review (all)
     - KPI report updated with the new mechanics (backend, frontend)
     - Performance check of open world endpoints (backend)
@@ -248,13 +242,14 @@ Shared references: [Game Rules](../GameRules.md) (no combat, also with NPCs),
     - Launch and smoke test (all)
 
 # Version Control
-- **Document Version**: 0.40.0
+- **Document Version**: 0.41.5
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First draft of the gamma version plan | September 25, 2026 |
+  | 0.41.5 | Version launch first, Steam login moved to delta, open world | October 3, 2026 |
 
-- **Last Updated**: September 25, 2026 (v0.40.0)
+- **Last Updated**: October 3, 2026 (v0.41.5)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

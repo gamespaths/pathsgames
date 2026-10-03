@@ -111,11 +111,11 @@ def test_import_writes_the_index_attributes_on_the_story():
          patch('story.handler.db_utils.put_item', side_effect=saved.append), \
          patch('story.handler.story_cache.bump'):
         result = lambda_handler(admin_event('POST', '/api/admin/stories/import', body={
-            'uuid': 'imp-1', 'idTextTitle': 1,
+            'uuid': '5e000000-0000-4000-8000-000000000002', 'idTextTitle': 1,
             'texts': [{'idText': 1, 'lang': 'en', 'shortText': 'Imported'}]}), {})
     assert result['statusCode'] in (200, 201), result
     story = saved[-1]
-    assert story['GSI2_PK'] == 'STORY_LIST' and story['GSI2_SK'] == 'STORY#imp-1'
+    assert story['GSI2_PK'] == 'STORY_LIST' and story['GSI2_SK'] == 'STORY#5e000000-0000-4000-8000-000000000002'
     assert story['summary']['langs']['en']['title'] == 'Imported'
     assert story['summary']['meta']['id'] == story['id']
 

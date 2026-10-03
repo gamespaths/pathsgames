@@ -2,6 +2,7 @@ package games.paths.core.service.story;
 
 import games.paths.core.entity.story.*;
 import games.paths.core.model.story.StoryImportResult;
+import games.paths.core.model.story.StoryUuid;
 import games.paths.core.model.story.StoryValidationReport;
 import games.paths.core.port.story.StoryImportPort;
 import games.paths.core.port.story.StoryPersistencePort;
@@ -49,8 +50,9 @@ public class StoryImportService implements StoryImportPort {
         }
 
         // Extract story header
-        String uuid = getString(storyData, "uuid");
-        if (uuid == null || uuid.isBlank()) {
+        // v0.41.5 — trimmed and lowercased, so "ABC…" and "abc…" are the same story.
+        String uuid = StoryUuid.normalize(storyData.get("uuid"));
+        if (uuid == null) {
             uuid = UUID.randomUUID().toString();
         }
 

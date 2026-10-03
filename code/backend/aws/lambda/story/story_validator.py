@@ -7,10 +7,17 @@ validated (null / absent / <= 0 means "none"). Field access is key-agnostic.
 
 Public API:
     validate_story_dict(data)            -> list[dict]   (full-graph rules)
+    validate_story_uuid(data)            -> list[dict]   (v0.41.5 import-only uuid shape)
+    normalize_story_uuid(raw)            -> str | None
     validate_entity(entity_type, data)   -> list[dict]   (entity-local rules)
     random_event_warnings(data)          -> list[dict]   (Step 39 advisory findings)
     summary(errors)                      -> str
 """
+
+import re
+
+# v0.41.5 — same shape as $defs.uuid in match-export-v1.schema.json; no RFC 4122 version check.
+_STORY_UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 
 _LOCATION, _EVENT, _ITEM, _CHOICE, _CLASS, _MISSION = (
     "location", "event", "item", "choice", "class", "mission")
@@ -80,6 +87,23 @@ def _truthy(value):
 
 def _err(rule, etype, eid, field, message):
     return {"rule": rule, "entityType": etype, "entityId": eid, "field": field, "message": message}
+
+
+def normalize_story_uuid(raw):
+    """Trimmed and lowercased story uuid, or None when absent or blank (the import mints one)."""
+    if raw is None:
+        return None
+    value = str(raw).strip()
+    return value.lower() if value else None
+
+
+def validate_story_uuid(data):
+    """Import only: a story already stored with a legacy uuid must still validate."""
+    story_uuid = normalize_story_uuid((data or {}).get("uuid"))
+    if story_uuid is None or _STORY_UUID.fullmatch(story_uuid):
+        return []
+    return [_err("R0_STORY_UUID", "story", None, "uuid",
+                 "story uuid '{}' is not a valid UUID (8-4-4-4-12 hex)".format(data.get("uuid")))]
 
 
 def summary(errors):

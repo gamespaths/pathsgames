@@ -49,7 +49,7 @@ class StoryValidatorServiceTest {
     /** Minimal valid story: one location, one event, one item, one class. */
     private static Map<String, Object> validStory() {
         Map<String, Object> s = new LinkedHashMap<>();
-        s.put("uuid", "story-valid");
+        s.put("uuid", "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d");
         s.put("idLocationStart", 1);
         s.put("locations", rows(entity("id", 1), entity("id", 2)));
         s.put("events", rows(entity("id", 1), entity("id", 2, "idEventNext", 1)));
@@ -76,6 +76,35 @@ class StoryValidatorServiceTest {
         void emptyReported() {
             assertFalse(validator().validateImportData(null).isValid());
             assertFalse(validator().validateImportData(Map.of()).isValid());
+        }
+    }
+
+    @Nested
+    @DisplayName("R0_STORY_UUID story uuid shape (v0.41.5)")
+    class StoryUuidRule {
+        private boolean refused(Object uuid) {
+            Map<String, Object> s = validStory();
+            s.put("uuid", uuid);
+            return validator().validateImportData(s).getErrors().stream()
+                    .anyMatch(e -> "R0_STORY_UUID".equals(e.rule()) && "uuid".equals(e.field()));
+        }
+
+        @Test
+        void malformedUuidsAreRefused() {
+            assertTrue(refused("not-a-uuid"));
+            assertTrue(refused("story-001"));
+            assertTrue(refused("0a1b2c3d4e5f4a6b8c7d9e0f1a2b3c4d"));
+            assertTrue(refused("1-1-1-1-1"));
+            assertTrue(refused("0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4g"));
+            assertTrue(refused(123));
+        }
+
+        @Test
+        void uppercaseSpacedAndMissingUuidsPass() {
+            assertFalse(refused("0A1B2C3D-4E5F-4A6B-8C7D-9E0F1A2B3C4D"));
+            assertFalse(refused("  0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d  "));
+            assertFalse(refused(null));
+            assertFalse(refused("   "));
         }
     }
 

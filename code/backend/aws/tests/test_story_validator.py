@@ -343,3 +343,27 @@ def test_r11_warning_only_above_100():
     s["globalRandomEvents"] = [{"id": 1, "idEvent": 2, "probability": 60},
                                {"id": 2, "idEvent": 2, "probability": 40}]
     assert sv.random_event_warnings(s) == []
+
+
+# ─── v0.41.5: R0_STORY_UUID (import only) ───────────────────────────────────
+
+def test_story_uuid_malformed_refused():
+    for value in ("not-a-uuid", "story-001", "0a1b2c3d4e5f4a6b8c7d9e0f1a2b3c4d", "1-1-1-1-1", 123):
+        errors = sv.validate_story_uuid({"uuid": value})
+        assert [e["rule"] for e in errors] == ["R0_STORY_UUID"] and errors[0]["field"] == "uuid"
+
+
+def test_story_uuid_uppercase_spaced_and_missing_pass():
+    for value in ("0A1B2C3D-4E5F-4A6B-8C7D-9E0F1A2B3C4D", " 0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d ", None, "  "):
+        assert sv.validate_story_uuid({"uuid": value}) == []
+    assert sv.validate_story_uuid({}) == [] and sv.validate_story_uuid(None) == []
+
+
+def test_normalize_story_uuid():
+    assert sv.normalize_story_uuid(" 0A1B2C3D-4E5F-4A6B-8C7D-9E0F1A2B3C4D ") == "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d"
+    assert sv.normalize_story_uuid(None) is None and sv.normalize_story_uuid("   ") is None
+
+
+def test_validate_story_dict_ignores_a_legacy_uuid():
+    # Stored stories keep validating: the uuid rule lives only in the import path.
+    assert "R0_STORY_UUID" not in rules(sv.validate_story_dict({**valid_story(), "uuid": "story-001"}))

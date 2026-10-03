@@ -234,6 +234,16 @@ def test_story_modes_on_a_different_story(im):
     assert _codes(invalid) == ["STORY_INVALID"] and "R_01" in invalid["errors"][0]["message"]
 
 
+def test_a_bundled_story_with_a_malformed_uuid_is_refused_by_the_real_validator(im):
+    # v0.41.5 — the same R0_STORY_UUID rule as the story import.
+    from app.core.services.story.story_validator_service import StoryValidatorService
+    im.story_validator = StoryValidatorService(MagicMock())
+    doc = document()
+    doc["story"]["data"]["uuid"] = "story-001"
+    check = im.check({"export": with_checksum(doc)})
+    assert "STORY_INVALID" in _codes(check) and "R0_STORY_UUID" in str(check["errors"])
+
+
 def test_the_same_story_is_used_and_its_missing_entities_reported(im):
     doc = document()
     target = doc["story"]["data"]

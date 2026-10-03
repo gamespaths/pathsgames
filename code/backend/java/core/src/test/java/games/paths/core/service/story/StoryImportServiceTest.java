@@ -3,6 +3,8 @@ package games.paths.core.service.story;
 import games.paths.core.entity.story.*;
 import games.paths.core.model.story.StoryImportResult;
 import games.paths.core.port.story.StoryPersistencePort;
+import games.paths.core.port.story.StoryReadPort;
+import games.paths.core.port.story.StoryValidatorPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -360,6 +362,40 @@ class StoryImportServiceTest {
 
             assertNotNull(result.storyUuid());
             assertFalse(result.storyUuid().isBlank());
+        }
+
+        @Test
+        @DisplayName("v0.41.5 — an uppercase, spaced uuid is stored trimmed and lowercased")
+        void importStory_uuidNormalized() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", " 0A1B2C3D-4E5F-4A6B-8C7D-9E0F1A2B3C4D ");
+            data.put("author", "Author");
+            String expected = "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";
+
+            when(persistencePort.findStoryByUuid(expected)).thenReturn(Optional.empty());
+            when(persistencePort.saveStory(any(StoryEntity.class))).thenAnswer(inv -> {
+                StoryEntity e = inv.getArgument(0);
+                e.setId(1L);
+                return e;
+            });
+
+            assertEquals(expected, storyImportService.importStory(data).storyUuid());
+        }
+
+        @Test
+        @DisplayName("v0.41.5 — with the real validator a malformed uuid is refused before any write")
+        void importStory_malformedUuidRefused() {
+            StoryImportService withValidator = new StoryImportService(persistencePort,
+                    new StoryValidatorService(mock(StoryReadPort.class)));
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "story-001");
+            data.put("author", "Author");
+
+            StoryValidatorPort.StoryValidationException ex = assertThrows(
+                    StoryValidatorPort.StoryValidationException.class, () -> withValidator.importStory(data));
+            assertTrue(ex.getReport().getErrors().stream().anyMatch(e -> "R0_STORY_UUID".equals(e.rule())));
+            verify(persistencePort, never()).saveStory(any(StoryEntity.class));
+            verify(persistencePort, never()).findStoryByUuid(anyString());
         }
 
         @Test

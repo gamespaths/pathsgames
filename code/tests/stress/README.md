@@ -18,7 +18,7 @@ character ping-pongs around the tutorial's first room; when the location marks a
 `POST .../action/sleep` (once per flow) and a retry of that move; a second refusal after
 the sleep ends the flow's walk quietly (remaining moves counted as skipped, flow still
 counted completed). Before the load, `scenarios/setup_tutorial.js` checks that the tutorial
-story (`story-001`) is published and imports `data/tutorial_story.json` through
+story (`2ba49457-e312-4f3b-94bb-5b7c3be4db4c`) is published and imports `data/tutorial_story.json` through
 `POST {ADMIN}/api/admin/stories/import` when it is missing.
 
 ## Layout
@@ -108,7 +108,7 @@ docker run --rm -i --network host -v "$PWD:/scripts" -w /scripts grafana/k6 run 
 | `-s` | — | off | Skip the tutorial check/import step |
 | — | `JWT_SECRET` | dev secret | Secret used to mint the admin JWT when `ADMIN_TOKEN` is empty |
 | — | `MAX_P95_MS` | `2000` | `http_req_duration p(95)` threshold |
-| — | `TUTORIAL_UUID` | `story-001` | Story uuid to check / play |
+| — | `TUTORIAL_UUID` | `2ba49457-e312-4f3b-94bb-5b7c3be4db4c` | Story uuid to check / play |
 | — | `STORY_LANG` | `en` | `?lang=` query |
 | — | `K6_BIN`, `K6_IMAGE` | `k6`, `grafana/k6:latest` | Local binary / docker image |
 
@@ -237,7 +237,7 @@ Reference runs (v0.37.4):
 | `lookup api-dev.paths.games: no such host` | Custom domain not deployed; use the `https://<id>.execute-api.<region>.amazonaws.com/<env>` public URL |
 | `TURNSTILE_VALIDATION_FAILED` on create match | Backend has a real Turnstile secret: pass `-k <bypass token>` |
 | `import 201` failed with `400 INVALID_STORY` | JSON has dangling references; `data/tutorial_story.json` is already sanitized, check you did not overwrite it |
-| Import `500` then "already present" but flows fail with `no neighbors` | Half-imported story (no rollback on the backend): `DELETE {ADMIN}/api/admin/stories/story-001` and rerun |
+| Import `500` then "already present" but flows fail with `no neighbors` | Half-imported story (no rollback on the backend): `DELETE {ADMIN}/api/admin/stories/2ba49457-e312-4f3b-94bb-5b7c3be4db4c` and rerun |
 | `cleanup skipped: HTTP 404 ... admin port only` | `/api/dev/cleanup` is served on the admin port: check `-a` |
 | `SQLITE_BUSY database is locked` | Expected on SQLite above a few VU; switch to PostgreSQL |
 | `docker: permission denied` on `reports/` | Runner mounts the folder with `--user $(id -u)`; make sure `reports/` is writable |

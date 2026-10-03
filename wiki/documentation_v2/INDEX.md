@@ -1,6 +1,6 @@
 # Documentation index — V2
 
-Map of `documentation_v2/`: only the documents of version V2 (gamma, a living world). Shared
+Map of `documentation_v2/`: only the documents of version V2 (gamma, an open world). Shared
 documents and the other versions are listed in the global index
 [wiki/INDEX.md](../INDEX.md).
 

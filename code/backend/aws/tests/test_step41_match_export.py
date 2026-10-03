@@ -548,3 +548,11 @@ def test_refusal_and_batches_at_the_cap():
     # The biggest file the cap lets in: LOG# rows of ~400 bytes each, 25 per BatchWriteItem.
     rows_at_cap = 5_000_000 // 400
     assert -(-rows_at_cap // mx.BATCH) == 500
+
+
+def test_a_bundled_story_with_a_malformed_uuid_is_refused():
+    # v0.41.5 — the same R0_STORY_UUID rule as the story import.
+    from types import SimpleNamespace
+    a = SimpleNamespace(bundled={'uuid': 'story-001'}, errors=[])
+    mx._validate_bundled(a)
+    assert a.errors[0]['code'] == 'STORY_INVALID' and 'R0_STORY_UUID' in a.errors[0]['message']

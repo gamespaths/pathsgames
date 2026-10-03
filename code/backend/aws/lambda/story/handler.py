@@ -562,13 +562,12 @@ def import_story(event):
 def import_story_data(data):
     """v0.41.4 — the story import body, shared by the story route and the match import (story/importer.py)."""
     # Step 22: validate referential integrity before persisting anything (hard-fail).
-    validation_errors = story_validator.validate_story_dict(data)
+    validation_errors = story_validator.validate_story_uuid(data) + story_validator.validate_story_dict(data)
     if validation_errors:
         return _validation_400(validation_errors)
 
-    story_uuid = data.get('uuid')
-    if not story_uuid:
-        story_uuid = str(uuid_lib.uuid4())
+    # v0.41.5 — trimmed and lowercased (as Java/Python); absent or blank mints a new one.
+    story_uuid = story_validator.normalize_story_uuid(data.get('uuid')) or str(uuid_lib.uuid4())
 
     # If story already exists by UUID → delete it first (replace-on-conflict)
     # Must happen before id collision check to avoid self-collision on re-import

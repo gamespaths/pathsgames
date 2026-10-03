@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { importStory } from '../../api/storyApi'
 import ErrorAlert from '../../components/common/ErrorAlert'
-import { normalizeImportJson } from '../../utils/storyJson'
+import { isValidStoryUuid, normalizeImportJson } from '../../utils/storyJson'
 
 const EXAMPLE = JSON.stringify({
   uuid: null,
@@ -47,9 +47,14 @@ export default function StoryImportPage() {
       setError('Invalid JSON — please check your input.')
       return
     }
+    const data = normalizeImportJson(parsed)
+    if (!isValidStoryUuid(data?.uuid)) {
+      setError(`Invalid story uuid "${data.uuid}" — use a UUID like 8-4-4-4-12 hex, or null to auto-generate one.`)
+      return
+    }
     setLoading(true)
     try {
-      const res = await importStory(normalizeImportJson(parsed))
+      const res = await importStory(data)
       setResult(res)
     } catch (e) {
       setError(e.message)
@@ -68,7 +73,8 @@ export default function StoryImportPage() {
         <p style={{ color: 'var(--color-ash)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
           <i className="fas fa-info-circle me-1" style={{ color: 'var(--color-gold-dark)' }} />Paste a complete story JSON here. If the UUID already exists it will be
           <strong style={{ color: 'var(--color-gold-light)' }}> completely replaced</strong>.
-          Leave <code style={{ color: 'var(--color-gold-dark)' }}>uuid: null</code> to auto-generate a new UUID.
+          Leave <code style={{ color: 'var(--color-gold-dark)' }}>uuid: null</code> to auto-generate a new UUID;
+          otherwise it must be a valid UUID (8-4-4-4-12 hex, stored lowercase).
           Fields left out of the JSON are imported as null or their default value.
         </p>
         <button className="pg-btn pg-btn-ghost pg-btn-sm" onClick={loadExample}>

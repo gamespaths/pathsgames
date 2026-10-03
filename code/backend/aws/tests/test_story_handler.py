@@ -371,14 +371,14 @@ def test_import_story_id_collision():
          patch('story.handler.db_utils.query_gsi', return_value=[existing]):
         from story.handler import lambda_handler
         event = admin_event('POST', '/api/admin/stories/import',
-                            body={'uuid': 's-new', 'id': 7})
+                            body={'uuid': '5e000000-0000-4000-8000-000000000001', 'id': 7})
         result = lambda_handler(event, {})
     assert result['statusCode'] == 400
     assert _body(result)['error'] == 'INVALID_IMPORT_DATA'
 
 def test_import_story_success_full_payload():
     payload = {
-        'uuid': 'imp-1',
+        'uuid': '5e000000-0000-4000-8000-000000000002',
         'idTextTitle': 1, 'idTextDescription': 2,
         'texts': [
             {'idText': 1, 'lang': 'en', 'shortText': 'Title'},
@@ -406,13 +406,13 @@ def test_import_story_success_full_payload():
     assert result['statusCode'] == 201
     body = _body(result)
     assert body['status'] == 'IMPORTED'
-    assert body['storyUuid'] == 'imp-1'
+    assert body['storyUuid'] == '5e000000-0000-4000-8000-000000000002'
     assert body['textsImported'] == 2
 
 # Step 23 — the trait budgets were dropped on import, so every imported difficulty had no limit.
 def test_import_story_keeps_difficulty_trait_budgets():
     payload = {
-        'uuid': 'imp-budget',
+        'uuid': '5e000000-0000-4000-8000-000000000003',
         'difficulties': [
             {'id': 1, 'traitCostPositiveBudget': 4, 'traitCostNegativeBudget': 2},
             {'id': 2, 'traitCostPositiveBudget': '3'},
@@ -435,7 +435,7 @@ def test_import_story_keeps_difficulty_trait_budgets():
 # select-choice and the admin CRUD address rows by uuid, so such a choice could never be picked.
 def test_import_story_gives_every_row_a_uuid_and_keeps_authored_ones():
     payload = {
-        'uuid': 'imp-uuids',
+        'uuid': '5e000000-0000-4000-8000-000000000004',
         'texts': [{'idText': 1, 'lang': 'en', 'shortText': 'T'}],
         # Step 39 - R11: the random event names event 2, which owns no choices.
         'events': [{'id': 1, 'idTextName': 1}, {'id': 2}],
@@ -469,7 +469,7 @@ def test_import_story_gives_every_row_a_uuid_and_keeps_authored_ones():
 
 def test_import_story_persists_character_template_class_fields():
     payload = {
-        'uuid': 'imp-ct-1',
+        'uuid': '5e000000-0000-4000-8000-000000000005',
         'texts': [],
         'classes': [{'id': 1}, {'id': 5}],
         'characterTemplates': [
@@ -499,7 +499,7 @@ def test_import_story_persists_the_step38_difficulty_columns_and_drops_the_old_o
     """Step 38 — expCostBase / maxStatValue are stored (default 0); costMaxCharacteristics
     and isSafe are legacy keys the import ignores."""
     payload = {
-        'uuid': 'imp-d38',
+        'uuid': '5e000000-0000-4000-8000-000000000006',
         'texts': [],
         'difficulties': [{'id': 1, 'expCost': 2, 'expCostBase': 3, 'maxStatValue': 12,
                           'costMaxCharacteristics': 9},
@@ -535,7 +535,7 @@ def test_import_story_resolves_inline_cards_for_gameplay():
     # pre-resolved `card` (and gameplay-friendly keys) so the match handler can
     # render the active location card — exactly like the seed item.
     payload = {
-        'uuid': 'imp-cards-1',
+        'uuid': '5e000000-0000-4000-8000-000000000007',
         'texts': [
             {'idText': 50, 'lang': 'en', 'shortText': 'Hall'},
             {'idText': 51, 'lang': 'en', 'shortText': 'A bright hall.'},
@@ -582,7 +582,7 @@ def test_import_story_replaces_existing():
          patch('story.handler.db_utils.put_item', return_value=True):
         from story.handler import lambda_handler
         event = admin_event('POST', '/api/admin/stories/import',
-                            body={'uuid': 'story-uuid-1', 'texts': []})
+                            body={'uuid': '5e000000-0000-4000-8000-000000000010', 'texts': []})
         result = lambda_handler(event, {})
     assert result['statusCode'] == 201
 
@@ -855,7 +855,7 @@ def test_delete_entity_success():
 
 def test_import_story_with_card_resolution():
     payload = {
-        'uuid': 'imp-card',
+        'uuid': '5e000000-0000-4000-8000-000000000008',
         'idCard': 50,
         'idTextTitle': 1,
         'texts': [
@@ -878,7 +878,7 @@ def test_import_story_with_card_resolution():
         event = admin_event('POST', '/api/admin/stories/import', body=payload)
         result = lambda_handler(event, {})
     assert result['statusCode'] == 201
-    assert _body(result)['storyUuid'] == 'imp-card'
+    assert _body(result)['storyUuid'] == '5e000000-0000-4000-8000-000000000008'
 
 def test_import_story_auto_generates_uuid_and_id():
     payload = {'texts': []}
@@ -1077,6 +1077,41 @@ def test_public_story_reads_go_through_the_cache_and_writes_bump_it():
          patch('story.handler.db_utils.put_item'), \
          patch('story.handler.story_cache.bump') as bump:
         result = lambda_handler(admin_event('POST', '/api/admin/stories/import',
-                                            body={'uuid': 'imp-2', 'texts': []}), {})
+                                            body={'uuid': '5e000000-0000-4000-8000-000000000009', 'texts': []}), {})
     assert result['statusCode'] in (200, 201), result
-    bump.assert_called_once_with('imp-2')
+    bump.assert_called_once_with('5e000000-0000-4000-8000-000000000009')
+
+
+# ─── v0.41.5: story uuid shape on import ────────────────────────────────────
+
+def test_import_story_malformed_uuid_returns_400_and_writes_nothing():
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, None]), \
+         patch('story.handler.db_utils.query_gsi', return_value=[]), \
+         patch('story.handler.db_utils.put_item', return_value=True) as put:
+        from story.handler import lambda_handler
+        event = admin_event('POST', '/api/admin/stories/import', body={'uuid': 'story-001', 'texts': []})
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 400
+    body = _body(result)
+    assert body['error'] == 'INVALID_STORY'
+    assert any(e['rule'] == 'R0_STORY_UUID' for e in body['errors'])
+    put.assert_not_called()
+
+
+@pytest.mark.parametrize('raw, expected', [
+    (' 0A1B2C3D-4E5F-4A6B-8C7D-9E0F1A2B3C4D ', '0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d'),
+    ('   ', None),
+])
+def test_import_story_uuid_trimmed_lowercased_or_generated(raw, expected):
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, None]) as get, \
+         patch('story.handler.db_utils.query_gsi', return_value=[]), \
+         patch('story.handler.db_utils.put_item', return_value=True):
+        from story.handler import lambda_handler
+        event = admin_event('POST', '/api/admin/stories/import', body={'uuid': raw, 'texts': []})
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 201
+    story_uuid = _body(result)['storyUuid']
+    assert story_uuid.strip() and story_uuid == story_uuid.lower()
+    if expected:
+        assert story_uuid == expected
+    assert get.call_args_list[1][0][0] == f'STORY#{story_uuid}'

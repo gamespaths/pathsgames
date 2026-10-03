@@ -12,7 +12,7 @@ def validator():
 
 def valid_story():
     return {
-        "uuid": "story-valid",
+        "uuid": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
         "idLocationStart": 1,
         "locations": [{"id": 1}, {"id": 2}],
         "events": [{"id": 1}, {"id": 2, "idEventNext": 1}],
@@ -35,6 +35,26 @@ def test_valid_story_passes():
 def test_empty_reported():
     assert not validator().validate_import_data(None).is_valid()
     assert not validator().validate_import_data({}).is_valid()
+
+
+def _uuid_refused(value):
+    s = valid_story()
+    s["uuid"] = value
+    report = validator().validate_import_data(s)
+    return any(e.rule == "R0_STORY_UUID" and e.field_name == "uuid" for e in report.errors)
+
+
+@pytest.mark.parametrize("value", ["not-a-uuid", "story-001", "0a1b2c3d4e5f4a6b8c7d9e0f1a2b3c4d",
+                                   "1-1-1-1-1", "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4g", 123])
+def test_story_uuid_malformed_refused(value):
+    # v0.41.5 — R0_STORY_UUID, import only.
+    assert _uuid_refused(value)
+
+
+@pytest.mark.parametrize("value", ["0A1B2C3D-4E5F-4A6B-8C7D-9E0F1A2B3C4D",
+                                   "  0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d  ", None, "   "])
+def test_story_uuid_uppercase_spaced_and_missing_pass(value):
+    assert not _uuid_refused(value)
 
 
 def test_dangling_location_start():

@@ -310,7 +310,8 @@ def _references(a):
 
 def _validate_bundled(a):
     from story import story_validator
-    errors = story_validator.validate_story_dict(_story_for_import(a.bundled))
+    bundled = _story_for_import(a.bundled)
+    errors = story_validator.validate_story_uuid(bundled) + story_validator.validate_story_dict(bundled)
     if errors:
         rules = ', '.join(dict.fromkeys(str(e.get('rule') or e.get('code')) for e in errors))
         a.errors.append(_issue('STORY_INVALID', f'The bundled story is refused: {rules}'))

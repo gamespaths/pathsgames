@@ -244,7 +244,7 @@ Mirror of 6.1: `time_advancement_service.py`, `event_service.py` (`_force_time_e
     |----|-------|--------|-------|------|
     | v0 | Star project | current | `phase-creating` | `…/wiki/documentation_v0/Roadmap.md` |
     | v1 | Single-player | planned | `person` | `…/wiki/documentation_v1/Roadmap.md` |
-    | v2 | A living world | planned | `map-alternative-2` | `…/wiki/documentation_v2/Roadmap.md` |
+    | v2 | An open world | planned | `map-alternative-2` | `…/wiki/documentation_v2/Roadmap.md` |
     | v3 | App and desktop | planned | `phase-running` | `…/wiki/documentation_v3/Roadmap.md` |
     | v4 | Multiplayer | planned | `phase-joining` | `…/wiki/documentation_v4/Roadmap.md` |
     | v5 | To Infinity | planned | `phase-created` | `…/wiki/documentation_v5/Roadmap.md` |

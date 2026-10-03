@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { stripNulls, normalizeImportJson, exportEntity } from '../../utils/storyJson'
+import { stripNulls, normalizeImportJson, exportEntity, isValidStoryUuid } from '../../utils/storyJson'
 
 describe('storyJson', () => {
   describe('stripNulls', () => {
@@ -61,5 +61,22 @@ describe('exportEntity (v0.41.4)', () => {
       .toEqual({ idTipo: 2, id: 2, uuid: 'u' })
     expect(exportEntity('locations', { id: 3, uuid: 'l' })).toEqual({ id: 3, uuid: 'l' })
     expect(exportEntity('texts', { lang: 'en' })).toEqual({ lang: 'en' })
+  })
+})
+
+describe('isValidStoryUuid (v0.41.5)', () => {
+  it('accepts absent, blank, lowercase, uppercase and spaced uuids', () => {
+    expect(isValidStoryUuid(null)).toBe(true)
+    expect(isValidStoryUuid(undefined)).toBe(true)
+    expect(isValidStoryUuid('   ')).toBe(true)
+    expect(isValidStoryUuid('0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d')).toBe(true)
+    expect(isValidStoryUuid(' 0A1B2C3D-4E5F-4A6B-8C7D-9E0F1A2B3C4D ')).toBe(true)
+  })
+
+  it('refuses malformed uuids', () => {
+    expect(isValidStoryUuid('story-001')).toBe(false)
+    expect(isValidStoryUuid('0a1b2c3d4e5f4a6b8c7d9e0f1a2b3c4d')).toBe(false)
+    expect(isValidStoryUuid('1-1-1-1-1')).toBe(false)
+    expect(isValidStoryUuid(123)).toBe(false)
   })
 })

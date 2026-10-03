@@ -668,7 +668,7 @@ Import Story and Verify All Header Fields
     [Documentation]    Imports a story and verifies all header fields are persisted.
     [Tags]    admin    step14
     ${payload}=    Get File    ${TUTORIAL_FILE}
-    ${uuid}=       Set Variable    tutorial-uuid-001
+    ${uuid}=       Set Variable    bd02e05f-654d-4589-bfae-846a04dc9d3c
     
     # Clean up before import
     ${headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
@@ -738,8 +738,8 @@ Import Two Stories With Colliding Entity IDs
 Import Story And Verify Sub Entity Collections
     [Documentation]    After import, difficulties / events / locations collections are populated.
     [Tags]    admin    step14
-    [Teardown]    Run Keyword And Ignore Error    Delete Admin Story    tutorial-uuid-001
-    ${uuid}=    Set Variable    tutorial-uuid-001
+    [Teardown]    Run Keyword And Ignore Error    Delete Admin Story    bd02e05f-654d-4589-bfae-846a04dc9d3c
+    ${uuid}=    Set Variable    bd02e05f-654d-4589-bfae-846a04dc9d3c
     ${headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
 
     # Clean up before

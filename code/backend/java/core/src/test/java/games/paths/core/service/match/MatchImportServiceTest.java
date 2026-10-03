@@ -386,4 +386,17 @@ class MatchImportServiceTest {
         assertEquals(Map.of("uuid", STORY), MatchImportService.storyForImport(data));
         assertEquals(Map.of(), MatchImportService.storyForImport(null));
     }
+
+    @Test
+    void aBundledStoryWithAMalformedUuidIsRefusedByTheRealValidator() {
+        // v0.41.5 — the same R0_STORY_UUID rule as the story import, through validateBundled.
+        MatchImportService real = new MatchImportService(store, snapshotStore, storyExport, storyImport,
+                new games.paths.core.service.story.StoryValidatorService(
+                        mock(games.paths.core.port.story.StoryReadPort.class)), "0.41.4", 5_000_000);
+        Map<String, Object> doc = MatchExportSamples.document();
+        storyOf(doc).put("uuid", "story-001");
+        Map<String, Object> check = real.check(request(MatchExportSamples.withChecksum(doc)));
+        assertTrue(codes(check, "errors").contains("STORY_INVALID"), check.toString());
+        assertTrue(check.get("errors").toString().contains("R0_STORY_UUID"));
+    }
 }

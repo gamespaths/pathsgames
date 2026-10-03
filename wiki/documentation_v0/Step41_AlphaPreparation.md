@@ -699,9 +699,9 @@ Patches 0.41.0-0.41.2 (A-F): none, analysis closed and developed (decision 15). 
 
 45. **Export moment:** always the latest time-end snapshot. The source match is paused, the snapshot is exported, then the source is restored to that snapshot and restarts; the destination restarts from the same point.
 46. **Backend families:** option B — a neutral "match export v1" format; every export can be imported on any backend (Java, Python, AWS). §9 H.2-H.8 must be re-analysed (they describe option A).
-47. **Story:** bundled in the export file (story export is needed now, not only in V1 step 16).
+47. **Story:** bundled in the export file (story export is needed now, not only in V1 step 17).
 48. **Import rollback point:** the "Imported at clock N" LIGHT snapshot is written together with the restart of the match on the destination.
-49. **Users:** the export copies the match users, guests included; a user already present on the destination is left as it is. Google SSO users log in again; their reconciliation is planned in V1 step 2.
+49. **Users:** the export copies the match users, guests included; a user already present on the destination is left as it is. Google SSO users log in again; their reconciliation is planned in V1 step 3.
 50. **Uuid conflict:** 409 `MATCH_EXISTS` by default; `replace=true` deletes and re-imports.
 51. **Java SQLite ↔ PostgreSQL:** as proposed (one family, proven by a test; if casts fail, same engine only).
 52. **Size cap:** large exports out of scope; analysis added to V1 step 41.
@@ -749,10 +749,10 @@ time-start, restart); `ADMIN_ACTION` rows; react-admin export button and import 
 unit tests; a Robot suite with a cross-family strategy (§H.8).
 
 **Out of scope:** exports above the size cap and any S3 hand-off (V1 step 41,
-`documentation_v1/Roadmap.md` l.257); a public story-export endpoint (V1 step 16, doubt 62);
+`documentation_v1/Roadmap.md` l.261); a public story-export endpoint (V1 step 17, doubt 62);
 copying passwords, refresh tokens, guest tokens or the Google id (decision 49); Google identity
-linking of copied users (V1 step 2, `documentation_v1/Roadmap.md` l.36); copying the snapshot
-history or the KPI counters; a manual "snapshot now"; full system backup (V3 step 19).
+linking of copied users (V1 step 3, `documentation_v1/Roadmap.md` l.41); copying the snapshot
+history or the KPI counters; a manual "snapshot now"; full system backup (V3 step 21).
 
 **Sub-patches** — all inside version 0.41.4 (no bump between them); each ends with the unit tests
 of the three backends green; the dev agent stops after H4 for the owner's Robot runs (doubt 65):
@@ -1485,8 +1485,18 @@ in `41_alpha_prep/fixtures/`. Cases:
 
 Existing suites are not changed; `snapshots.robot` keeps its six tests.
 
+### H.9 Story uuid validation on import (0.41.5)
+
+`POST /api/admin/stories/import` (port 8044) trims and lowercases the story's top-level `uuid` when present and not blank, then requires the canonical shape `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$` (no RFC 4122 version check). Otherwise `400 INVALID_STORY` with rule `R0_STORY_UUID` (entityType `story`, field `uuid`), nothing persisted. Absent, null or blank (AWS now also whitespace-only) still auto-generates a uuid.
+- Import-only: `GET /api/admin/stories/{uuid}/validate` does not report it, so legacy non-UUID stories stay valid and playable. Nested entity uuids are not checked.
+- Match import (H.5): the bundled story uses the same validator; a malformed uuid gives `STORY_INVALID`.
+- Java `core/model/story/StoryUuid.java` (normalize, isValid), rule in `StoryValidatorService.validateImportData`, normalization in `StoryImportService`. Python `app/core/models/story/story_uuid.py`, `story_validator_service.validate_import_data`, `story_import_service`. AWS `story_validator.validate_story_uuid` / `normalize_story_uuid`, called in `story/handler.py` `import_story_data` and `match/match_export.py` `_validate_bundled`.
+- react-admin: `utils/storyJson.js` `isValidStoryUuid`; `StoryImportPage` blocks a malformed uuid before the API call (uppercase accepted, backend normalizes).
+- Robot: 4 cases in `22_story_validation/story_validation.robot` (tag `story-uuid`). Dev tutorial story uuid is now `bd02e05f-654d-4589-bfae-846a04dc9d3c`; stress `tutorial_story.json` is `2ba49457-e312-4f3b-94bb-5b7c3be4db4c`. OpenAPI `v0.22.0-story-validation-api.yaml` description updated.
+- Script `code/scripts/dev/run_robot_everywhere.sh`: with `--aws=remote|all` the AWS_LIMITED pass runs `run_robot_with_aws_serverless_special.sh` (rate limits on in the test stack, then restored); reports in `reports-aws-limited/`.
+
 # Version Control
-- **Document Version**: 0.41.4
+- **Document Version**: 0.41.5
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -1495,8 +1505,9 @@ Existing suites are not changed; `snapshots.robot` keeps its six tests.
   | 0.41.1 | Patch 2 developed: logging and match snapshots | September 29, 2026 |
   | 0.41.2 | Patch 3 developed: KPI report, production CSP; match export analysed | September 29, 2026 |
   | 0.41.4 | Match export and import re-analysed for every backend | October 1, 2026 |
+  | 0.41.5 | Story import checks the story identifier format | October 3, 2026 |
 
-- **Last Updated**: October 1, 2026 (v0.41.4)
+- **Last Updated**: October 3, 2026 (v0.41.5)
 - **Status**: patches 0.41.0-0.41.2 developed; 0.41.4 (H, match export and import, neutral format) re-analysed, decisions 54-66 taken (shipped: security, allow-list, guests, CI scan, test CSP, logging, snapshots, KPI report, production CSP)
 
 # &lt; Paths Games /&gt;

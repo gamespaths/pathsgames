@@ -31,7 +31,7 @@ section → read only that line range. Never read a Step file whole; never open
 |---|---|---|
 | [`documentation_v0/`](documentation_v0/INDEX.md) | V0 alpha — current | Steps 1-39 done, alpha preparation and launch (40-42), historical step files, hotfixes |
 | [`documentation_v1/`](documentation_v1/INDEX.md) | V1 beta — draft | Accounts and depth: SSO, profile, i18n, permadeath, admin tool |
-| [`documentation_v2/`](documentation_v2/INDEX.md) | V2 gamma — draft | A living world: campaigns, NPCs, open world, analytics |
+| [`documentation_v2/`](documentation_v2/INDEX.md) | V2 gamma — draft | An open world: campaigns, NPCs, open world, analytics |
 | [`documentation_v3/`](documentation_v3/INDEX.md) | V3 delta — draft | Everywhere: Android, Steam, Debian, offline and sync |
 | [`documentation_v4/`](documentation_v4/INDEX.md) | V4 epsilon — draft | Multiplayer: realtime, lobby, turns, group movement |
 | [`documentation_v5/`](documentation_v5/INDEX.md) | V5 zeta — draft | Advanced multiplayer: trade, chat, signals, voting, rituals, spectators |

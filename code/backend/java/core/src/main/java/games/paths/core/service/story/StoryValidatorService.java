@@ -1,6 +1,7 @@
 package games.paths.core.service.story;
 
 import games.paths.core.entity.story.*;
+import games.paths.core.model.story.StoryUuid;
 import games.paths.core.model.story.StoryValidationReport;
 import games.paths.core.port.story.StoryReadPort;
 import games.paths.core.port.story.StoryValidatorPort;
@@ -56,6 +57,12 @@ public class StoryValidatorService implements StoryValidatorPort {
         if (storyData == null || storyData.isEmpty()) {
             report.add("R0_EMPTY", "story", null, null, "story data is null or empty");
             return report;
+        }
+        // v0.41.5 — import only: a story already stored with a legacy uuid must still validate.
+        String uuid = StoryUuid.normalize(storyData.get("uuid"));
+        if (uuid != null && !StoryUuid.isValid(uuid)) {
+            report.add("R0_STORY_UUID", "story", null, "uuid",
+                    "story uuid '" + storyData.get("uuid") + "' is not a valid UUID (8-4-4-4-12 hex)");
         }
         StoryGraph g = buildFromMap(storyData);
         runRules(g, report);

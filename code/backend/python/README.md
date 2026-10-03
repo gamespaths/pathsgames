@@ -149,7 +149,7 @@ docker rmi pathsgames-backend-python
 | GET | `/api/stories` | List stories (can filter by language `?lang=en`) |
 | GET | `/api/stories/{uuid}` | Get story details |
 | GET | `/api/admin/stories` | List all stories (including non-public) |
-| POST | `/api/admin/stories/import` | Import a JSON story tree |
+| POST | `/api/admin/stories/import` | Import a JSON story tree; top-level `uuid` normalized and validated (`R0_STORY_UUID`, 400 `INVALID_STORY`; v0.41.5) |
 | DELETE | `/api/admin/stories/{uuid}` | Delete story by UUID |
 | POST | `/api/matches` | Create a new single-player match |
 | GET | `/api/matches` | List matches owned by the authenticated user |

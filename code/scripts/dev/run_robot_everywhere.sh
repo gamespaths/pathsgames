@@ -62,7 +62,7 @@ ENVS+=("LOCAL_JAVA_LIMITED|$WORKDIR/code/scripts/dev/run_robots/run_robot_with_l
 ENVS+=("LOCAL_PYTHON_LIMITED|$WORKDIR/code/scripts/dev/run_robots/run_robot_with_local_python.sh|reports-local-python-limited|ROBOT_RATE_LIMITS=1")
 # On the deployed test stack the limits are switched on in the Lambda env for the run, then put back.
 case "$AWS_MODE" in
-    remote|all) ENVS+=("LOCAL_AWS_LIMITED|$WORKDIR/code/scripts/dev/run_robots/run_robot_with_aws_local.sh|reports-aws-local-limited|ROBOT_RATE_LIMITS=1") ;;
+    remote|all) ENVS+=("AWS_LIMITED|$WORKDIR/code/scripts/dev/run_robots/run_robot_with_aws_serverless_special.sh|reports-aws-limited") ;;
 esac
 
 # Results arrays
