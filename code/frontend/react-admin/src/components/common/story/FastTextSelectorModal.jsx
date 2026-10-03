@@ -167,7 +167,7 @@ export default function FastTextSelectorModal({
                   if (e.key !== 'Enter') return
                   e.preventDefault()
                   if (generatorSaving || !generatedText.trim()) return
-                  handleSaveGeneratedText()
+                  void handleSaveGeneratedText()
                 }}
               />
               <TextLengthHint value={generatedText} />

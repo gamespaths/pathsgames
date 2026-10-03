@@ -201,6 +201,23 @@ describe('GuestsPage', () => {
     expect((await screen.findAllByText(/Tavern/)).length).toBeGreaterThan(0)
   })
 
+  it('Escape closes the stacked match detail first, then the guest modal', async () => {
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    await userEvent.click(screen.getAllByTitle('View detail')[0])
+    await screen.findByText('Dragon Run')
+    await userEvent.click(screen.getByTitle('View match detail'))
+    await waitFor(() => expect(document.querySelectorAll('.pg-modal')).toHaveLength(2))
+
+    // Focus sits inside the guest modal (the eye button): the key still reaches document.
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => expect(document.querySelectorAll('.pg-modal')).toHaveLength(1))
+    expect(screen.getByText('Dragon Run')).toBeInTheDocument()
+
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => expect(document.querySelectorAll('.pg-modal')).toHaveLength(0))
+  })
+
   it('shows stop button for active match and calls stopMatch', async () => {
     renderPage()
     await screen.findByText('guest_aaa111aa')

@@ -76,7 +76,7 @@ describe('Footer policy links', () => {
     function Spy() { const { policyBook } = usePolicyBook(); seen.push(policyBook); return null }
     render(<PolicyBookProvider><Footer /><Spy /></PolicyBookProvider>)
     for (const [label, kind] of [['footer.privacy', 'privacy'], ['footer.terms', 'terms'], ['footer.cookies', 'cookies'], ['footer.credits', 'credits']]) {
-      fireEvent.click(screen.getByText(label).closest('a'))
+      fireEvent.click(screen.getByText(label).closest('button'))
       expect(seen.at(-1)).toBe(kind)
     }
   })

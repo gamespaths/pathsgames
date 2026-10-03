@@ -138,7 +138,7 @@ export function initCookieConsent(lang = 'en') {
   if (started) return
   started = true
 
-  CookieConsent.run({
+  void CookieConsent.run({
     cookie: { name: 'pathsgames.cookiesConsent' },
     revision: REVISION,
     guiOptions: {
@@ -174,5 +174,5 @@ export function openCookiePreferences() {
 }
 
 export function setConsentLanguage(lang) {
-  if (started && lang && lang in TRANSLATIONS) CookieConsent.setLanguage(lang)
+  if (started && lang && lang in TRANSLATIONS) void CookieConsent.setLanguage(lang)
 }

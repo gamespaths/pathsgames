@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { updateMatchRegistry, deleteMatchRegistry } from '../../../api/matchApi'
 
 /**
@@ -14,6 +14,9 @@ export default function RegistryCard({ registry, matchUuid, onChanged }) {
   const [editing, setEditing] = useState(null)   // { key, value } — the row being written
   const [busy,    setBusy]    = useState(false)
   const [error,   setError]   = useState('')
+  const valueRef = useRef(null)
+  // The value box takes focus when a row opens for writing (no autoFocus: Sonar a11y rule).
+  useEffect(() => { if (editing) valueRef.current?.focus() }, [editing?.key])
 
   const editable = Boolean(matchUuid)
   // A key the story does not mark PUBLIC — the board never shows it to a player, and neither
@@ -96,10 +99,10 @@ export default function RegistryCard({ registry, matchUuid, onChanged }) {
                           className="pg-input"
                           style={{ fontSize: '0.78rem', flex: '1 1 8rem', minWidth: '6rem' }}
                           value={editing.value}
-                          autoFocus
+                          ref={valueRef}
                           aria-label={`New value for ${r.key}`}
                           onChange={e => setEditing({ ...editing, value: e.target.value })}
-                          onKeyDown={e => { if (e.key === 'Enter') save() }}
+                          onKeyDown={e => { if (e.key === 'Enter') void save() }}
                         />
                         <button className="pg-btn pg-btn-sm" disabled={busy} onClick={save}
                                 title={r.multiValue ? 'add this member' : 'replace the value'}>

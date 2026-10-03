@@ -24,7 +24,7 @@ describe('roadmap book', () => {
       <LanguageProvider><PolicyBookProvider>
         <Footer /><PolicyBook /><Spy seen={seen} />
       </PolicyBookProvider></LanguageProvider>)
-    fireEvent.click(screen.getByText(en.footer.devlog).closest('a'))
+    fireEvent.click(screen.getByText(en.footer.devlog).closest('button'))
     expect(seen[seen.length - 1]).toBe('roadmap')
     const left = container.querySelector('.book-page-left')
     expect(left.querySelector('.book-page-title').textContent).toContain('paths.games')

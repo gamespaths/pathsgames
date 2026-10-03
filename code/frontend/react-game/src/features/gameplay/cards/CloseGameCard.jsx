@@ -33,10 +33,13 @@ function CloseGameCard({ story, onExit, onDismiss, onBack = null }) {
     )
   }
 
-  const handleOverlayKey = e => { if (e.key === 'Escape') onDismiss() }
-  
-  return <div className="close-prompt-overlay" role="presentation" onClick={onDismiss} onKeyDown={handleOverlayKey}>
-    <div className="close-prompt-modal" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+  // Only events on the backdrop itself dismiss: the dialog needs no listeners of its own.
+  const onBackdrop = e => e.target === e.currentTarget
+  const handleOverlayClick = e => { if (onBackdrop(e)) onDismiss() }
+  const handleOverlayKey = e => { if (e.key === 'Escape' && onBackdrop(e)) onDismiss() }
+
+  return <div className="close-prompt-overlay" role="presentation" onClick={handleOverlayClick} onKeyDown={handleOverlayKey}>
+    <div className="close-prompt-modal" role="dialog" aria-modal="true">
       <Card
         variant="big"
         card={card}

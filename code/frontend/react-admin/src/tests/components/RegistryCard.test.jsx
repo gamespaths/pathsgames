@@ -166,6 +166,12 @@ describe('RegistryCard', () => {
     await waitFor(() => expect(updateMatchRegistry).toHaveBeenCalledWith('m1', { key: 'signal', value: 'red' }))
   })
 
+  it('focuses the value box when a row opens for writing', async () => {
+    render(<RegistryCard registry={[SINGLE]} matchUuid="m1" />)
+    await userEvent.click(screen.getByLabelText('Edit signal'))
+    expect(screen.getByLabelText('New value for signal')).toHaveFocus()
+  })
+
   it('any other key in the value box writes nothing', async () => {
     render(<RegistryCard registry={[SINGLE]} matchUuid="m1" />)
     await userEvent.click(screen.getByLabelText('Edit signal'))

@@ -398,6 +398,8 @@ html, body {
   margin-left:0.5rem;
 }
 .footer-icon-link:hover { color: var(--color-gold-light); }
+/* Footer actions are buttons (they open books, not URLs): strip native button look */
+.footer-link-btn { background: none; border: 0; padding: 0; cursor: pointer; }
 
 /* Step 40 — the server row reads as the rest of the footer: no box, same font and size */
 .footer-server-row { margin-left: 0.4rem; white-space: nowrap; }

@@ -26,7 +26,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setLoading(true)
-    Promise.allSettled([
+    void Promise.allSettled([
       getServerStatus(),
       getGuestStats(),
       listAllStories(),

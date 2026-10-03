@@ -9,7 +9,7 @@ export default function Footer() {
   // v0.41.4 — status and version come from ServerContext (one request per server).
   const { server, servers, probing, status, version, changeServer } = useServer()
   const { openPolicyBook } = usePolicyBook()
-  const policyLink = kind => e => { e.preventDefault(); openPolicyBook(kind) }
+  const policyLink = kind => () => openPolicyBook(kind)
 
   return (
     <footer className="medieval-footer">
@@ -58,9 +58,9 @@ export default function Footer() {
             <i className="fab fa-github" /><span>{t('footer.github')}</span>
           </a>
           {/* Step 40 — the Devlog opens the roadmap book (data/roadmap.json). */}
-          <a href="#" className="footer-icon-link d-none d-md-inline-flex" onClick={policyLink('roadmap')}>
+          <button type="button" className="footer-icon-link d-none d-md-inline-flex footer-link-btn" onClick={policyLink('roadmap')}>
             <i className="fas fa-newspaper" /><span>{t('footer.devlog')}</span>
-          </a>
+          </button>
           <a href="https://www.instagram.com/pathsgames/" target="_blank" rel="noopener" className="footer-icon-link footer-social-link">
             <i className="fab fa-instagram" /><span>{t('footer.instagram')}</span>
           </a>
@@ -69,18 +69,18 @@ export default function Footer() {
           </a>
         </div>
         <div className="footer-copy footer-links-row">
-          <a href="#" className="footer-icon-link" onClick={policyLink('privacy')}>
+          <button type="button" className="footer-icon-link footer-link-btn" onClick={policyLink('privacy')}>
             <i className="fas fa-shield-alt " /><span>{t('footer.privacy')}</span>
-          </a>
-          <a href="#" className="footer-icon-link" onClick={policyLink('terms')}>
+          </button>
+          <button type="button" className="footer-icon-link footer-link-btn" onClick={policyLink('terms')}>
             <i className="fas fa-file-contract" /><span>{t('footer.terms')}</span>
-          </a>
-          <a href="#" className="footer-icon-link" onClick={policyLink('cookies')}>
+          </button>
+          <button type="button" className="footer-icon-link footer-link-btn" onClick={policyLink('cookies')}>
             <i className="fas fa-cookie-bite" /><span>{t('footer.cookies')}</span>
-          </a>
-          <a href="#" className="footer-icon-link" onClick={policyLink('credits')}>
+          </button>
+          <button type="button" className="footer-icon-link footer-link-btn" onClick={policyLink('credits')}>
             <i className="fas fa-users" /><span>{t('footer.credits')}</span>
-          </a>
+          </button>
         </div>
 
 

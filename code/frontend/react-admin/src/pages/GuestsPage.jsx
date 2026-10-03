@@ -49,7 +49,7 @@ export default function GuestsPage() {
     setLoading(true)
     setError('')
     setStale(null)
-    Promise.allSettled([listGuests(queryParams()), getGuestStats()])
+    void Promise.allSettled([listGuests(queryParams()), getGuestStats()])
       .then(([g, s]) => {
         if (g.status === 'fulfilled') {
           setGuests(g.value?.items ?? [])
@@ -107,7 +107,8 @@ export default function GuestsPage() {
     setMatchError('')
   }
 
-  useEscapeKey(closeGuestDetail, !!guestDetail)
+  // The match detail stacked on top takes Escape first; the guest modal closes on the next one.
+  useEscapeKey(closeGuestDetail, !!guestDetail && !matchDetail)
 
   const openMatchDetail = async (m) => {
     setMatchDetail({ uuid: m.uuid, loading: true, info: null, error: '', storyCtx: null })
@@ -378,7 +379,7 @@ export default function GuestsPage() {
       {/* Guest detail modal */}
       {guestDetail && (
         <div className="pg-modal-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) closeGuestDetail() }}>
-          <div className="pg-modal" style={{ maxWidth: 680 }} onClick={e => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+          <div className="pg-modal" style={{ maxWidth: 680 }}>
             <p className="pg-modal-title">
               <i className="fas fa-user-secret me-2" />
               {guestDetail.username}
