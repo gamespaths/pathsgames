@@ -121,7 +121,7 @@ describe('MatchImportPage', () => {
     fireEvent.change(screen.getByLabelText('Match export file'), { target: { files: [file('{"format":"x"}')] } })
     expect(await screen.findByTestId('import-check')).toBeInTheDocument()
     expect(matchApi.importMatch).toHaveBeenCalledWith({ export: { format: 'x' }, dryRun: true, replace: false,
-      storyMode: 'AUTO', startPaused: false })
+      storyMode: 'KEEP', startPaused: false })
     expect(screen.getByTestId('import-source')).toHaveTextContent('aws (dynamodb) 0.41.4 on test')
     expect(screen.getByTestId('import-story')).toHaveTextContent('DIFFERENT → KEEP')
     expect(screen.getByText('guest_1_u1')).toBeInTheDocument()

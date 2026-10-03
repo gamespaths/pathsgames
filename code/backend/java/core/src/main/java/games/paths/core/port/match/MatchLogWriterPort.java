@@ -35,6 +35,8 @@ public interface MatchLogWriterPort {
     /** v0.41.4 - the match export ({@code EXPORTED clock=<n>}) and import ({@code IMPORTED <server> clock=<n>}). */
     String ADMIN_EXPORTED = "EXPORTED";
     String ADMIN_IMPORTED = "IMPORTED";
+    /** v0.41.6 - the admin owner move: {@code OWNER_CHANGED from=<username>/<uuid> to=<username>/<uuid>}. */
+    String ADMIN_OWNER_CHANGED = "OWNER_CHANGED";
 
     /** One log_events row; character and event are null when the row belongs to the match. */
     void write(long idMatch, Long idCharacter, Long idEvent, int clock, String message);
@@ -64,5 +66,9 @@ public interface MatchLogWriterPort {
 
     static String imported(String server, int clock) {
         return admin(ADMIN_IMPORTED + " " + server + " clock=" + clock);
+    }
+
+    static String ownerChanged(String from, String to) {
+        return admin(ADMIN_OWNER_CHANGED + " from=" + from + " to=" + to);
     }
 }

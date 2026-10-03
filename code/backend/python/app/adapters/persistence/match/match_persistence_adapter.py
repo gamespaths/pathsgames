@@ -223,6 +223,23 @@ class MatchPersistenceAdapter(MatchPersistencePort):
             session.commit()
             return deleted_count
 
+    def change_owner(self, id_match: int, id_user: int) -> int:
+        now = _now_iso()
+        with self.session_factory() as session:
+            session.query(GamingMatchEntity).filter(GamingMatchEntity.id == id_match).update(
+                {GamingMatchEntity.id_user_creator: id_user, GamingMatchEntity.ts_update: now},
+                synchronize_session=False)
+            moved = session.query(GamingCharacterInstanceEntity).filter(
+                GamingCharacterInstanceEntity.id_match == id_match).update(
+                {GamingCharacterInstanceEntity.id_user: id_user, GamingCharacterInstanceEntity.ts_update: now},
+                synchronize_session=False)
+            session.commit()
+            return int(moved or 0)
+
+    def count_matches_by_user_creator(self, id_user: int) -> int:
+        with self.session_factory() as session:
+            return session.query(GamingMatchEntity).filter(GamingMatchEntity.id_user_creator == id_user).count()
+
     def count_matches_by_user_creator_ids(self, user_ids) -> int:
         if not user_ids:
             return 0

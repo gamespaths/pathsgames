@@ -89,6 +89,21 @@ class FakeTable:
                  and s == 'METADATA' and wanted and str(v.get('email') or '').strip().lower() == wanted]
         return found[0] if found else None
 
+    def _users(self, attribute, condition):
+        return [dict(v) for (p, s), v in sorted(self.store.items()) if p.startswith('USER#')
+                and s == 'METADATA' and attribute in v and condition(v.get(attribute))]
+
+    def find_users_by_email(self, email):
+        wanted = str(email or '').strip().lower()
+        return self._users('email', lambda v: wanted and str(v or '').strip().lower() == wanted)
+
+    def find_users_by_username(self, username):
+        wanted = str(username or '').strip()
+        return self._users('username', lambda v: wanted and str(v or '') == wanted)
+
+    def count_gsi(self, gsi_name, pk_val):
+        return len([v for v in self.store.values() if v.get(f'{gsi_name}_PK') == pk_val])
+
     # ── inspection helpers ──
     def rows(self, pk, prefix):
         return [v for (p, s), v in sorted(self.store.items()) if p == pk and s.startswith(prefix)]
@@ -103,7 +118,7 @@ class FakeTable:
 
 DB_FUNCTIONS = ('get_item', 'put_item', 'batch_put_items', 'delete_item', 'delete_all_by_pk',
                 'query_by_pk', 'query_sk_prefix', 'query_sk_prefix_page', 'query_sk_prefix_keys',
-                'find_user_by_email')
+                'find_user_by_email', 'find_users_by_email', 'find_users_by_username', 'count_gsi')
 
 
 def patch_table(table, module='match.handler'):

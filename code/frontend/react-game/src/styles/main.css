@@ -3129,6 +3129,12 @@ html, body {
 .match-log-extra {
   width: 100%;
 }
+/* v0.41.6 — the history fills the page from the top, so the page keeps its full size. */
+.book-page-extra.match-log-extra {
+  margin-top: 0;
+  flex: 1 1 auto;
+  background: var(--color-parchment-light);
+}
 
 .match-log-wrap {
   display: flex;
@@ -3151,6 +3157,34 @@ html, body {
 /* The entry tiles reuse the same grid the other card lists use. */
 /* v0.37.2 — the timeline is a LIST: a badge for what happened, the card's title, when it
    happened, and the lens that opens that card as a page. */
+/* v0.41.6 — type chips above the timeline, as in the admin log tab. */
+.match-log-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  background: rgba(20, 12, 6, 0.85);
+  border-radius: 8px;
+}
+.match-log-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-gold-light);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0.55;
+}
+.match-log-filter--active {
+  opacity: 1;
+  box-shadow: 0 0 0 1px currentColor inset;
+}
 .match-log-list {
   width: 100%;
   list-style: none;

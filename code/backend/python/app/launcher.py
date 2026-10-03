@@ -84,6 +84,10 @@ from app.adapters.persistence.match.kpi_store_adapter import KpiStoreAdapter
 from app.core.services.match.kpi_service import KpiService
 from app.adapters.rest.match.kpi_admin_controller import KpiAdminController
 from app.adapters.rest.match.match_export_admin_controller import MatchExportAdminController
+from app.adapters.rest.match.match_owner_admin_controller import MatchOwnerAdminController
+from app.adapters.rest.auth.user_admin_controller import UserAdminController
+from app.adapters.persistence.auth.user_directory_adapter import UserDirectoryAdapter
+from app.core.services.match.match_owner_service import MatchOwnerService
 from app.adapters.persistence.match.match_export_store_adapter import MatchExportStoreAdapter
 from app.core.services.match.match_export_service import MatchExportService
 from app.core.services.match.match_import_service import MatchImportService
@@ -297,6 +301,9 @@ match_export_service = MatchExportService(snapshot_store_adapter, snapshot_servi
                                          settings.env, settings.match_export_max_bytes)
 match_export_service.log_writer = match_log_writer_adapter
 match_export_service.match_commands = match_command_service
+# v0.41.6 — the admin User tab: owner view, user preview and owner move.
+match_owner_service = MatchOwnerService(match_persistence_adapter, character_persistence_adapter,
+                                        UserDirectoryAdapter(SessionLocal), match_log_writer_adapter)
 time_clock_controller = TimeClockController(time_advancement_service)
 
 # Step 28 — movement system (single-player). The controller is mounted on the
@@ -467,6 +474,8 @@ app_admin = _build_app([
     match_admin_controller.router,
     KpiAdminController(kpi_service).router,
     MatchExportAdminController(match_export_service, settings.match_export_max_bytes).router,
+    MatchOwnerAdminController(match_owner_service).router,
+    UserAdminController(match_owner_service).router,
     dev_controller.router,
 ])
 

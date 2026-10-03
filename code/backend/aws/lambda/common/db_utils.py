@@ -219,6 +219,53 @@ def find_user_by_email(email):
     found = [i for i in items if str(i.get('email') or '').strip().lower() == wanted]
     return min(found, key=lambda i: str(i.get('PK'))) if found else None
 
+def _scan_users(attribute, condition):
+    """v0.41.6 — every USER# METADATA item with ``attribute`` whose value passes ``condition`` (paginated Scan)."""
+    try:
+        items = _paginate(
+            _get_table().scan,
+            FilterExpression=Attr('SK').eq('METADATA') & Attr('PK').begins_with('USER#')
+            & Attr(attribute).exists(),
+        )
+    except ClientError as e:
+        print(f"Error scanning users by {attribute}: {e}")
+        return []
+    return sorted([i for i in items if condition(i.get(attribute))], key=lambda i: str(i.get('PK')))
+
+
+def find_users_by_email(email):
+    """v0.41.6 — every USER# item whose ``email`` matches (case-insensitive); admin owner move only."""
+    wanted = str(email or '').strip().lower()
+    if not wanted:
+        return []
+    return _scan_users('email', lambda v: str(v or '').strip().lower() == wanted)
+
+
+def find_users_by_username(username):
+    """v0.41.6 — every USER# item with this ``username`` (not unique on AWS); admin owner move only."""
+    wanted = str(username or '').strip()
+    if not wanted:
+        return []
+    return _scan_users('username', lambda v: str(v or '') == wanted)
+
+
+def count_gsi(gsi_name, pk_val):
+    """v0.41.6 — how many items a secondary index holds under one key (Select=COUNT, paginated)."""
+    pk_attr, _sk_attr = _GSI_KEYS.get(gsi_name, _GSI_KEYS['GSI1'])
+    kwargs = {'IndexName': gsi_name, 'KeyConditionExpression': Key(pk_attr).eq(pk_val), 'Select': 'COUNT'}
+    total = 0
+    try:
+        while True:
+            response = _get_table().query(**kwargs)
+            total += int(response.get('Count', 0))
+            if not response.get('LastEvaluatedKey'):
+                return total
+            kwargs['ExclusiveStartKey'] = response['LastEvaluatedKey']
+    except ClientError as e:
+        print(f"Error counting GSI {gsi_name}: {e}")
+        return 0
+
+
 def query_sk_prefix(pk, sk_prefix, consistent=True, filter_expr=None):
     """v0.37.5 — every item of a partition whose SK starts with the prefix (paginated).
 

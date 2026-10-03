@@ -221,7 +221,9 @@
       "REMOVE": "Tratto perso"
     },
     "statusTile": "Stato",
-    "creation": "Creazione"
+    "creation": "Creazione",
+    "filters": "Filtra per tipo",
+    "filterAll": "Tutti"
   },
   "card": {
     "info": "Info",

@@ -158,7 +158,8 @@ public class SnapshotService implements SnapshotPort, SnapshotPort.TimeEndWriter
                     "The snapshot failed its integrity check", errors);
         }
         Map<String, Object> payload = parse(snapshot.payload());
-        long removed = store.restore(match.id(), snapshot.id(), state(payload), logMarks(payload));
+        long removed = store.restore(match.id(), snapshot.id(), withCurrentOwner(match, state(payload)),
+                logMarks(payload));
         int clock = snapshot.clock();
         if (logWriter != null) {
             logWriter.write(match.id(), null, null, clock, MatchLogWriterPort.snapshotRestored(clock));
@@ -192,10 +193,34 @@ public class SnapshotService implements SnapshotPort, SnapshotPort.TimeEndWriter
         if (!match.uuid().equals(payload.get(K_MATCH_UUID)) || idStory == null || idStory != match.idStory()) {
             errors.add(new CheckError(MATCH_MISMATCH, "The snapshot belongs to another match or story"));
         }
-        Map<String, List<Map<String, Object>>> state = state(payload);
+        Map<String, List<Map<String, Object>>> state = withCurrentOwner(match, state(payload));
         errors.addAll(missingStoryEntities(match.idStory(), state));
         errors.addAll(missingUsers(state));
         return errors;
+    }
+
+    /**
+     * v0.41.6 decision 1: the creator and every character's user become the current owners (after the
+     * checksum); a character the match no longer has goes to the current creator.
+     */
+    Map<String, List<Map<String, Object>>> withCurrentOwner(MatchRef match,
+                                                            Map<String, List<Map<String, Object>>> state) {
+        return applyOwner(state, match.idUserCreator(),
+                match.idUserCreator() == null ? Map.of() : store.characterUsers(match.id()));
+    }
+
+    /** Rewrites the owner columns of a parsed state in place; a null creator leaves it untouched. */
+    static Map<String, List<Map<String, Object>>> applyOwner(Map<String, List<Map<String, Object>>> state,
+                                                             Long idUserCreator, Map<Long, Long> characterUsers) {
+        if (idUserCreator == null) {
+            return state;
+        }
+        state.getOrDefault(MATCH_TABLE, List.of()).forEach(r -> r.put("id_user_creator", idUserCreator));
+        for (Map<String, Object> row : state.getOrDefault(CHARACTER_TABLE, List.of())) {
+            Long current = characterUsers.get(asLong(row.get("id")));
+            row.put("id_user", current == null ? idUserCreator : current);
+        }
+        return state;
     }
 
     private record Target(String storyTable, String storyColumn, String label) {

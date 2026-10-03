@@ -130,3 +130,11 @@ export function errorBody(e) {
   if (typeof data !== 'string') return data ?? {}
   try { return JSON.parse(data) } catch { return { message: data } }
 }
+
+// v0.41.6 — the admin User tab. GET /api/admin/matches/:uuid/owner — the owner as AdminUserResponse.
+export const getMatchOwner = (uuid) =>
+  apiClient().get(`/api/admin/matches/${uuid}/owner`).then(r => r.data)
+
+// PUT /api/admin/matches/:uuid/owner { user } — { status: MOVED|UNCHANGED, previousOwner, owner, charactersMoved }.
+export const moveMatchOwner = (uuid, user) =>
+  apiClient().put(`/api/admin/matches/${uuid}/owner`, { user }).then(r => r.data)

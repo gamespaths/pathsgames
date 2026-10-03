@@ -401,6 +401,54 @@ class SnapshotServiceTest {
         verify(store, never()).setStatus(anyLong(), anyString());
     }
 
+    // ── v0.41.6 current owner ───────────────────────────────────────────────
+
+    private static final MatchRef MOVED = new MatchRef(MATCH_ID, MATCH_UUID, STORY_ID, "RUNNING", 3, 77L);
+
+    @Test
+    @DisplayName("v0.41.6 restore after a move keeps the current creator and character owner")
+    void restoreKeepsCurrentOwner() {
+        when(store.findMatchByUuid(MATCH_UUID)).thenReturn(Optional.of(MOVED));
+        when(store.characterUsers(MATCH_ID)).thenReturn(Map.of(1L, 77L));
+        givenValidSnapshot();
+
+        service.restore(MATCH_UUID, "snap-uuid");
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, List<Map<String, Object>>>> state = ArgumentCaptor.forClass(Map.class);
+        verify(store).restore(eq(MATCH_ID), eq(70L), state.capture(), anyMap());
+        assertEquals(77L, state.getValue().get("gaming_match").get(0).get("id_user_creator"));
+        assertEquals(77L, state.getValue().get("gaming_character_instance").get(0).get("id_user"));
+    }
+
+    @Test
+    @DisplayName("v0.41.6 check after a move: the deleted old owner is no USER_MISSING, a gone character goes to the creator")
+    void checkUsesCurrentOwner() {
+        when(store.findMatchByUuid(MATCH_UUID)).thenReturn(Optional.of(MOVED));
+        when(store.characterUsers(MATCH_ID)).thenReturn(Map.of());
+        when(store.existingUserIds(anyCollection())).thenAnswer(inv -> {
+            Set<Long> found = new HashSet<>(inv.<java.util.Collection<Long>>getArgument(0));
+            found.remove(42L);
+            return found;
+        });
+        givenValidSnapshot();
+
+        assertTrue(service.check(MATCH_UUID, "snap-uuid").valid());
+        verify(store).existingUserIds(Set.of(77L));
+    }
+
+    @Test
+    @DisplayName("v0.41.6 applyOwner leaves the state untouched without a known creator")
+    void applyOwnerWithoutCreator() {
+        Map<String, List<Map<String, Object>>> state = new LinkedHashMap<>();
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id_user_creator", 42);
+        state.put("gaming_match", List.of(row));
+        assertSame(state, SnapshotService.applyOwner(state, null, Map.of()));
+        assertEquals(42, row.get("id_user_creator"));
+        verify(store, never()).characterUsers(anyLong());
+    }
+
     // ── helpers ─────────────────────────────────────────────────────────────
 
     @Test

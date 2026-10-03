@@ -225,7 +225,9 @@
       "REMOVE": "Trait lost"
     },
     "statusTile": "Status",
-    "creation": "Creation"
+    "creation": "Creation",
+    "filters": "Filter by type",
+    "filterAll": "All"
   },
   "card": {
     "info": "Info",

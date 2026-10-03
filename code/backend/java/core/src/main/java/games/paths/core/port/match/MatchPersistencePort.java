@@ -42,6 +42,12 @@ public interface MatchPersistencePort {
      */
     int deleteMatchesByNameLike(String nameLikePattern);
 
+    /** v0.41.6 - moves the match and all its characters to {@code idUser} in one transaction; answers the characters moved. */
+    int changeOwner(long idMatch, long idUser);
+
+    /** v0.41.6 - how many matches the user created, whatever the status. */
+    long countMatchesByUserCreator(long idUser);
+
     /** v0.36.2 — how many matches these users created, whatever the status. */
     long countMatchesByUserCreatorIds(java.util.List<Long> userIds);
 

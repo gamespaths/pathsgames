@@ -536,6 +536,25 @@ Resources:
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId
 
+  # v0.41.6 — admin User tab: the owner of a match and its move to another user
+  AdminMatchOwnerGetRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "GET /api/admin/matches/{uuidMatch}/owner"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  AdminMatchOwnerPutRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "PUT /api/admin/matches/{uuidMatch}/owner"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
   # v0.41.4 — Step 41 H match export (neutral file) and import (dry-run or write)
   AdminMatchExportRoute:
     Type: AWS::ApiGatewayV2::Route

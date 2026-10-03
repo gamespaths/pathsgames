@@ -6,7 +6,7 @@ import EnvBadge, { envBadgeLabel } from './EnvBadge'
 
 export default function Footer() {
   const { t } = useTranslation()
-  // v0.41.5 — status and version come from ServerContext (one request per server).
+  // v0.41.6 — status and version come from ServerContext (one request per server).
   const { server, servers, probing, status, version, changeServer } = useServer()
   const { openPolicyBook } = usePolicyBook()
   const policyLink = kind => () => openPolicyBook(kind)
@@ -20,7 +20,7 @@ export default function Footer() {
           <i className="fas fa-flask" style={{ marginRight: '0.4rem', color: 'var(--color-gold, #c8960a)' }} />
           {/* Step 40 — the build's env badge names the version; no badge (prod) → no sentence. */}
           {envBadgeLabel(ENV_BADGE, t) && <>{t('footer.alphaPrefix')}<EnvBadge /><br /></>}
-          v0.41.5 &nbsp;
+          v0.41.6 &nbsp;
           {t('footer.madeWith').toUpperCase()} <i className="fas fa-heart" /> {t('footer.byTeam').toUpperCase()}
           <br />
           {t('footer.serversWarning')}

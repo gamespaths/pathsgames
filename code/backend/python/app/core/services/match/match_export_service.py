@@ -8,7 +8,7 @@ from app.core.ports.match import log_writer_ports as lw
 from app.core.ports.match import match_export_ports as mp
 from app.core.ports.match.match_export_ports import ExportResult, Issue, MatchExportError
 from app.core.services.match import canonical_json, neutral_codec as nc
-from app.core.services.match.snapshot_service import log_marks_of, parse, state_of
+from app.core.services.match.snapshot_service import apply_owner, log_marks_of, parse, state_of
 from app.core.services.story import story_fingerprint
 
 BACKEND = "python"
@@ -126,7 +126,9 @@ class MatchExportService:
     def build(self, match: Dict[str, Any], snapshot: Dict[str, Any]) -> Dict[str, Any]:
         """The neutral document of one snapshot: payload state, logs up to its marks, users, story, engine."""
         payload = parse(snapshot.get("payload"))
-        state = state_of(payload)
+        creator = match.get("id_user_creator")
+        state = apply_owner(state_of(payload), creator,
+                            self.snapshots.character_users(match["id"]) if creator is not None else {})
         marks = log_marks_of(payload)
         match_row = (state.get(MATCH_TABLE) or [{}])[0]
         characters = sorted(state.get(CHARACTER_TABLE, []), key=lambda c: nc.nz(nc.lng(c.get("id"))))

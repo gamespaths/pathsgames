@@ -353,6 +353,16 @@ Resources:
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId
 
+  # v0.41.6 — the owner-move preview: one user by uuid, email or username
+  GetAdminUserRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "GET /api/admin/users/{identifier}"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
   DeleteGuestRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:

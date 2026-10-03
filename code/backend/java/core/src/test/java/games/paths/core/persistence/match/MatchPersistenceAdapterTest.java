@@ -23,6 +23,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class MatchPersistenceAdapterTest {
@@ -289,6 +291,20 @@ class MatchPersistenceAdapterTest {
     }
 
     // ── the guest purge deletes by creator, not by name ─────────────────────
+
+    @Test
+    void changeOwner_updatesMatchAndCharacters() {
+        when(characterRepository.updateOwner(eq(5L), eq(9L), anyString())).thenReturn(1);
+        assertEquals(1, adapter.changeOwner(5L, 9L));
+        verify(matchRepository).updateOwner(eq(5L), eq(9L), anyString());
+        verify(characterRepository).updateOwner(eq(5L), eq(9L), anyString());
+    }
+
+    @Test
+    void countMatchesByUserCreator_delegates() {
+        when(matchRepository.countByIdUserCreator(9L)).thenReturn(4L);
+        assertEquals(4L, adapter.countMatchesByUserCreator(9L));
+    }
 
     @Test
     void countMatchesByUserCreatorIds_withoutCreatorsIsZero() {

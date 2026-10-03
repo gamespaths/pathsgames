@@ -128,6 +128,14 @@ class MatchPersistencePort(ABC):
         ...
 
 
+    def change_owner(self, id_match: int, id_user: int) -> int:
+        """v0.41.6 — the match and all its characters move to ``id_user`` in one commit; answers the characters moved."""
+        raise NotImplementedError
+
+    def count_matches_by_user_creator(self, id_user: int) -> int:
+        """v0.41.6 — every match the user created, whatever the status."""
+        raise NotImplementedError
+
     @abstractmethod
     def count_matches_by_user_creator_ids(self, user_ids) -> int:
         """v0.36.2 — how many matches these users created, whatever the status."""

@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Paths Games — Step 41 alpha preparation (patches 0.41.0, 0.41.1, 0.41.2, 0.41.4)
+  title: Paths Games — Step 41 alpha preparation (patches 0.41.0, 0.41.1, 0.41.2, 0.41.4, 0.41.6)
   description: |
     v0.41.0 — security, admin allow-list and guests. 0.41.1 (logging, snapshots) and
     0.41.2 (KPI report) extend this file.
@@ -93,7 +93,14 @@ info:
     PAUSED with `startPaused`). The importing user's other CREATED/RUNNING matches on that story
     are set to PAUSED (decision 60). Size cap `MATCH_EXPORT_MAX_BYTES` (5000000). Admin port only;
     no export in react-game nor on the public API (decision 62).
-  version: 0.41.4
+
+    **Match owner move (0.41.6).** The react-admin User tab reads the owner with
+    `GET /api/admin/matches/{uuid}/owner`, previews a user with `GET /api/admin/users/{identifier}`
+    (uuid, then email, then username) and moves the match with `PUT /api/admin/matches/{uuid}/owner`:
+    the creator and the character change owner, a new `ADMIN_ACTION` row
+    `OWNER_CHANGED from=<username>/<uuid> to=<username>/<uuid>` is written. Snapshots are not
+    rewritten: check, restore and export always apply the current owner. Admin port only.
+  version: 0.41.6
 servers:
   - url: /
 paths:
@@ -420,6 +427,114 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SnapshotIntegrityFailed'
+  /api/admin/matches/{uuidMatch}/owner:
+    get:
+      tags: [admin-matches]
+      summary: The owner (creator) of a match, for the react-admin User tab (v0.41.6)
+      operationId: getMatchOwnerV0416
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: The owner; `eligible` false (with `reason`) for an ADMIN, a non-active or an expired user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+        '400':
+          description: INVALID_INPUT — blank match uuid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: MATCH_NOT_FOUND, or USER_NOT_FOUND when the creator no longer exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [admin-matches]
+      summary: Move a match (creator and characters) to another user (v0.41.6)
+      operationId: moveMatchOwnerV0416
+      description: |
+        Checks in this order: 400 INVALID_INPUT, 404 MATCH_NOT_FOUND, 404 USER_NOT_FOUND,
+        409 USER_AMBIGUOUS, 409 MATCH_TERMINATED (ENDED/GAMEOVER), 200 UNCHANGED (the target already
+        owns the match and every character; nothing written), 409 MATCH_MULTI_CHARACTER (more than one
+        character), 409 USER_NOT_ALLOWED (ADMIN role, or state other than active/guest), 409 USER_EXPIRED
+        (guest past its expiry; a guest without expiry is valid), 409 ACTIVE_MATCH_ALREADY_EXISTS (the
+        target owns a CREATED/RUNNING/PAUSED match on the same story). RUNNING and PAUSED matches keep
+        their status. The old user is never deleted and no snapshot is written.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchOwnerMoveRequest'
+      responses:
+        '200':
+          description: MOVED, or UNCHANGED when the target already owns the match.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchOwnerMoveResponse'
+        '400':
+          description: INVALID_INPUT — missing or blank `user`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: MATCH_NOT_FOUND or USER_NOT_FOUND.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: USER_AMBIGUOUS, MATCH_TERMINATED, MATCH_MULTI_CHARACTER, USER_NOT_ALLOWED, USER_EXPIRED or ACTIVE_MATCH_ALREADY_EXISTS.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/users/{identifier}:
+    get:
+      tags: [admin-users]
+      summary: One user by uuid, email or username — the owner-move preview (v0.41.6)
+      operationId: getAdminUserV0416
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: identifier
+          required: true
+          description: A user uuid, an email (case-insensitive) or a username, URL-encoded.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The user; a non-eligible one is still answered, with `eligible` false and `reason`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+        '404':
+          description: USER_NOT_FOUND.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: USER_AMBIGUOUS — the email (or, on AWS, the username) matches more than one user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/admin/matches/{uuidMatch}/export:
     post:
       tags: [admin-matches]
@@ -921,6 +1036,46 @@ components:
         message: { type: string }
         retryAfterSeconds: { type: integer }
         timestamp: { type: integer, format: int64 }
+    AdminUser:
+      type: object
+      description: v0.41.6 — one user as the admin User tab and the owner-move preview show it.
+      properties:
+        uuid: { type: string }
+        username: { type: string }
+        nickname: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        role: { type: string, enum: [ADMIN, PLAYER] }
+        state:
+          type: integer
+          description: 1 registration, 2 active, 3 blocked, 4 banned, 5 password_reset, 6 guest.
+        guest: { type: boolean }
+        guestExpiresAt: { type: string, nullable: true, description: 'null for an imported guest (no expiry, no cookie)' }
+        expired: { type: boolean }
+        tsRegistration: { type: string, nullable: true }
+        tsLastAccess: { type: string, nullable: true }
+        matchCount: { type: integer, format: int64, description: Every match the user created, any status. }
+        eligible: { type: boolean, description: true when the user may receive a match. }
+        reason: { type: string, nullable: true, enum: [USER_NOT_ALLOWED, USER_EXPIRED] }
+    MatchOwnerMoveRequest:
+      type: object
+      required: [user]
+      properties:
+        user:
+          type: string
+          description: The target user's uuid, email or username.
+    MatchOwnerRef:
+      type: object
+      properties:
+        uuid: { type: string, nullable: true }
+        username: { type: string, nullable: true }
+    MatchOwnerMoveResponse:
+      type: object
+      properties:
+        status: { type: string, enum: [MOVED, UNCHANGED] }
+        matchUuid: { type: string }
+        previousOwner: { $ref: '#/components/schemas/MatchOwnerRef' }
+        owner: { $ref: '#/components/schemas/MatchOwnerRef' }
+        charactersMoved: { type: integer }
     ErrorResponse:
       type: object
       required: [error, message]

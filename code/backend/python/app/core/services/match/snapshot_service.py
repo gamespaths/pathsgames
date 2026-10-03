@@ -99,6 +99,23 @@ def log_marks_of(payload: Optional[Dict[str, Any]]) -> Dict[str, int]:
     return out
 
 
+def apply_owner(state: Dict[str, List[Dict[str, Any]]], id_user_creator: Optional[int],
+                character_users: Dict[int, Optional[int]]) -> Dict[str, List[Dict[str, Any]]]:
+    """v0.41.6 decision 1 — a copy of the state with the current creator and character owners
+    (a character the match no longer has goes to the creator); a None creator leaves it as it is."""
+    if id_user_creator is None:
+        return state
+    out = dict(state)
+    if MATCH_TABLE in state:
+        out[MATCH_TABLE] = [{**r, "id_user_creator": id_user_creator} for r in state[MATCH_TABLE]]
+    if CHARACTER_TABLE in state:
+        out[CHARACTER_TABLE] = []
+        for r in state[CHARACTER_TABLE]:
+            current = character_users.get(as_int(r.get("id")))
+            out[CHARACTER_TABLE].append({**r, "id_user": id_user_creator if current is None else current})
+    return out
+
+
 class SnapshotService(SnapshotPort):
 
     def __init__(self, store: SnapshotStorePort, keep_per_match: int = 10) -> None:
@@ -173,7 +190,7 @@ class SnapshotService(SnapshotPort):
             raise SnapshotError(sp.SNAPSHOT_INTEGRITY_FAILED, "The snapshot failed its integrity check",
                                 errors)
         payload = parse(snapshot.get("payload"))
-        removed = self.store.restore(match["id"], snapshot["id"], state_of(payload),
+        removed = self.store.restore(match["id"], snapshot["id"], self.with_current_owner(match, state_of(payload)),
                                      log_marks_of(payload))
         clock = int(snapshot.get("clock") or 0)
         if self.log_writer is not None:
@@ -199,10 +216,15 @@ class SnapshotService(SnapshotPort):
             return errors
         if payload.get("matchUuid") != match["uuid"] or as_int(payload.get("idStory")) != match["id_story"]:
             errors.append(CheckError(sp.MATCH_MISMATCH, "The snapshot belongs to another match or story"))
-        state = state_of(payload)
+        state = self.with_current_owner(match, state_of(payload))
         errors.extend(self._missing_story_entities(match["id_story"], state))
         errors.extend(self._missing_users(state))
         return errors
+
+    def with_current_owner(self, match: Dict[str, Any], state):
+        """The state with the current owners, applied after the checksum (check, restore, export)."""
+        creator = match.get("id_user_creator")
+        return apply_owner(state, creator, self.store.character_users(match["id"]) if creator is not None else {})
 
     def _missing_story_entities(self, id_story: int, state) -> List[CheckError]:
         wanted: Dict[tuple, set] = {}

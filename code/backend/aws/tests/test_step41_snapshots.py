@@ -238,8 +238,9 @@ def test_every_check_code():
         assert codes(lambda i: i.update({snap.PACKED: b'junk'})) == ['SNAPSHOT_CHECKSUM_MISMATCH']
         assert codes(lambda i: _repack(i, lambda p: p.update(v=2))) == ['SNAPSHOT_VERSION_UNKNOWN']
         assert codes(lambda i: _repack(i, lambda p: p.update(matchUuid='x'))) == ['MATCH_MISMATCH']
+        # v0.41.6 — the check reads the current owner, not the one the snapshot recorded.
         assert codes(lambda i: _repack(i, lambda p: p['characters'][0].update(
-            userUuid='gone-user'))) == ['USER_MISSING']
+            userUuid='gone-user'))) == []
         assert codes(lambda i: None) == []
         story = table.get_item(f'STORY#{STORY_UUID}')
         story['traits'] = []

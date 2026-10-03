@@ -24,6 +24,8 @@ ADMIN_SNAPSHOT_RESTORED = "SNAPSHOT_RESTORED"
 # v0.41.4 — the match export (EXPORTED clock=<n>) and import (IMPORTED <server> clock=<n>).
 ADMIN_EXPORTED = "EXPORTED"
 ADMIN_IMPORTED = "IMPORTED"
+# v0.41.6 — the admin owner move: OWNER_CHANGED from=<username>/<uuid> to=<username>/<uuid>.
+ADMIN_OWNER_CHANGED = "OWNER_CHANGED"
 
 # The admin change-statistics fields, in the order the STATS row lists them.
 STATS_FIELDS = ("dex", "intel", "con", "energy", "life", "sad", "coin", "food", "magic",
@@ -52,6 +54,10 @@ def exported(clock: int) -> str:
 
 def imported(server: str, clock: int) -> str:
     return admin(f"{ADMIN_IMPORTED} {server} clock={int(clock)}")
+
+
+def owner_changed(from_: str, to: str) -> str:
+    return admin(f"{ADMIN_OWNER_CHANGED} from={from_} to={to}")
 
 
 def stats_message(applied: dict) -> Optional[str]:

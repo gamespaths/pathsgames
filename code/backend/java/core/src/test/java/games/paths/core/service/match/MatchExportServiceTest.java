@@ -173,4 +173,15 @@ class MatchExportServiceTest {
         var result = service.exportMatch(UUID);
         assertTrue(result.canonical().contains("\"data\":{}"));
     }
+
+    @Test
+    void v0416TheExportCarriesTheCurrentOwner() {
+        match("ENDED", true);
+        when(snapshots.findMatchByUuid(UUID)).thenReturn(Optional.of(new MatchRef(1L, UUID, 9L, "ENDED", 3, 77L)));
+        when(snapshots.characterUsers(1L)).thenReturn(Map.of());
+        when(store.usersByIds(any())).thenReturn(Map.of(77L, Map.of("uuid", "u-77", "username", "b", "state", 6)));
+        var result = service.exportMatch(UUID);
+        verify(store).usersByIds(java.util.Set.of(77L));
+        assertTrue(result.canonical().contains("\"creatorUserUuid\":\"u-77\""));
+    }
 }

@@ -146,7 +146,8 @@ public class MatchExportService implements MatchExportPort {
     /** The neutral document of one snapshot: payload state, logs up to its marks, users, story, engine. */
     Map<String, Object> build(MatchRef match, StoredSnapshot snapshot) {
         Map<String, Object> payload = SnapshotService.parse(snapshot.payload());
-        Map<String, List<Map<String, Object>>> state = SnapshotService.state(payload);
+        Map<String, List<Map<String, Object>>> state = SnapshotService.applyOwner(SnapshotService.state(payload),
+                match.idUserCreator(), match.idUserCreator() == null ? Map.of() : snapshots.characterUsers(match.id()));
         Map<String, Long> marks = SnapshotService.logMarks(payload);
         Map<String, Object> matchRow = state.getOrDefault(SnapshotService.MATCH_TABLE, List.of()).stream()
                 .findFirst().orElse(Map.of());

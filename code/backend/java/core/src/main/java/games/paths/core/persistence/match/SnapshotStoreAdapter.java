@@ -51,12 +51,13 @@ public class SnapshotStoreAdapter implements SnapshotStorePort {
     private static final Set<String> ROW_KEYS = Set.of("id", "id_match");
     private static final Pattern IDENTIFIER = Pattern.compile("[a-z_][a-z0-9_]*");
 
-    private static final String FIND_MATCH = "SELECT id, uuid, id_story, status, current_clock FROM gaming_match WHERE ";
+    private static final String FIND_MATCH = "SELECT id, uuid, id_story, status, current_clock, id_user_creator FROM gaming_match WHERE ";
     private static final String FIND_MATCH_BY_UUID = FIND_MATCH + "uuid = ?";
     private static final String FIND_MATCH_BY_ID = FIND_MATCH + "id = ?";
     private static final String SELECT_MATCH_ROW = "SELECT * FROM gaming_match WHERE id = ?";
     private static final String SELECT_CHARACTERS = "SELECT * FROM gaming_character_instance WHERE id_match = ? ORDER BY id";
     private static final String SELECT_CHARACTER_IDS = "SELECT id FROM gaming_character_instance WHERE id_match = ?";
+    private static final String SELECT_CHARACTER_USERS = "SELECT id, id_user FROM gaming_character_instance WHERE id_match = ?";
     private static final String DELETE_CHARACTER = "DELETE FROM gaming_character_instance WHERE id_match = ? AND id = ?";
     private static final String UPDATE_MATCH_STATUS = "UPDATE gaming_match SET status = ?, ts_update = ? WHERE id = ?";
     private static final String SELECT_USER_IDS = "SELECT id FROM users WHERE id IN (";
@@ -101,7 +102,8 @@ public class SnapshotStoreAdapter implements SnapshotStorePort {
     private Optional<MatchRef> firstMatch(String sql, Object arg) {
         return jdbc.query(sql,
                 (rs, i) -> new MatchRef(rs.getLong("id"), rs.getString("uuid"), rs.getLong("id_story"),
-                        rs.getString("status"), rs.getInt("current_clock")), arg).stream().findFirst();
+                        rs.getString("status"), rs.getInt("current_clock"), nullableLong(rs, "id_user_creator")),
+                arg).stream().findFirst();
     }
 
     @Override
@@ -196,6 +198,21 @@ public class SnapshotStoreAdapter implements SnapshotStorePort {
         }
         String sql = inClause(SELECT_USER_IDS, ids.size());
         return new HashSet<>(jdbc.queryForList(sql, Long.class, ids.toArray()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, Long> characterUsers(long idMatch) {
+        Map<Long, Long> out = new LinkedHashMap<>();
+        jdbc.query(SELECT_CHARACTER_USERS, rs -> {
+            out.put(rs.getLong("id"), nullableLong(rs, "id_user"));
+        }, idMatch);
+        return out;
+    }
+
+    private static Long nullableLong(ResultSet rs, String column) throws SQLException {
+        long value = rs.getLong(column);
+        return rs.wasNull() ? null : value;
     }
 
     @Override

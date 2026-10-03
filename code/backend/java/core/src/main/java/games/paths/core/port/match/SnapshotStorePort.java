@@ -38,6 +38,9 @@ public interface SnapshotStorePort {
 
     Set<Long> existingUserIds(Collection<Long> ids);
 
+    /** v0.41.6 - the current owner of every character of the match: character id to user id. */
+    Map<Long, Long> characterUsers(long idMatch);
+
     /** One transaction: log cut above the marks, rows put back, newer snapshots dropped; answers the log rows removed. */
     long restore(long idMatch, long idSnapshot, Map<String, List<Map<String, Object>>> state,
                  Map<String, Long> logMarks);
@@ -47,7 +50,11 @@ public interface SnapshotStorePort {
     /** The snapshots of deleted matches: SQLite does not enforce the ON DELETE CASCADE. */
     int deleteByMatchIds(Collection<Long> matchIds);
 
-    record MatchRef(long id, String uuid, long idStory, String status, int currentClock) {
+    /** {@code idUserCreator} is the current owner (v0.41.6), null when unknown. */
+    record MatchRef(long id, String uuid, long idStory, String status, int currentClock, Long idUserCreator) {
+        public MatchRef(long id, String uuid, long idStory, String status, int currentClock) {
+            this(id, uuid, idStory, status, currentClock, null);
+        }
     }
 
     record NewSnapshot(long idMatch, long idStory, int clock, String type, String payload,

@@ -28,9 +28,9 @@ MATCH_MISMATCH = 'MATCH_MISMATCH'
 # METADATA attributes a snapshot never carries: keys, indexes, ttl, stamps and the log counters.
 _META_SKIP = ('PK', 'SK', 'GSI1_PK', 'GSI1_SK', 'GSI2_PK', 'GSI2_SK', 'ttl', 'ts_insert',
               'ts_update', 'logSeq', 'logCount', logbook.PENDING_LOGS, logbook.PENDING_AUDIT)
-# METADATA attributes a restore keeps as they are (the name is not game state).
+# METADATA attributes a restore keeps as they are (the name is not game state; v0.41.6 the owner).
 _META_KEEP = ('PK', 'SK', 'GSI1_PK', 'GSI1_SK', 'GSI2_PK', 'GSI2_SK', 'ttl', 'ts_insert',
-              'logSeq', 'name')
+              'logSeq', 'name', 'userCreatorUuid')
 _ROW_SKIP = ('PK', 'ttl', 'ts_insert', 'ts_update')
 
 
@@ -168,6 +168,23 @@ def payload_of(item):
         else None
 
 
+def with_current_owner(match, match_uuid, payload):
+    """v0.41.6 decision 1 — a copy of the payload with the current creator and character owners, applied
+    after the checksum (check, restore, export); a character the match no longer has goes to the creator."""
+    creator = (match or {}).get('userCreatorUuid')
+    if not isinstance(payload, dict) or not creator:
+        return payload
+    out = copy.deepcopy(payload)
+    if isinstance(out.get('metadata'), dict):
+        out['metadata']['userCreatorUuid'] = creator
+    rows = [c for c in (out.get('characters') or []) if isinstance(c, dict)]
+    if rows:
+        current = {c.get('SK'): c.get('userUuid') for c in repo.characters(match_uuid)}
+        for row in rows:
+            row['userUuid'] = current.get(row.get('SK')) or creator
+    return out
+
+
 def _story_refs(payload):
     """(label, story list, key, value) of every story entity the payload points at."""
     meta = payload.get('metadata') if isinstance(payload.get('metadata'), dict) else {}
@@ -221,8 +238,9 @@ def verify(match, match_uuid, item, story, user_exists):
         if wanted not in pool:
             errors.append({'code': STORY_ENTITY_MISSING,
                            'message': f'{label} {value} is no longer in the story'})
-    meta = payload.get('metadata') if isinstance(payload.get('metadata'), dict) else {}
-    users = [meta.get('userCreatorUuid')] + [c.get('userUuid') for c in (payload.get('characters') or [])
+    owned = with_current_owner(match, match_uuid, payload)
+    meta = owned.get('metadata') if isinstance(owned.get('metadata'), dict) else {}
+    users = [meta.get('userCreatorUuid')] + [c.get('userUuid') for c in (owned.get('characters') or [])
                                              if isinstance(c, dict)]
     for user in sorted({u for u in users if u}):
         if not user_exists(user):
@@ -238,6 +256,7 @@ def restore_state(match, match_uuid, item, payload):
     # Cached first, so the rows deleted and saved below are what the time-start reads next.
     repo.characters(match_uuid)
     repo.turns(match_uuid)
+    payload = with_current_owner(match, match_uuid, payload)
     for prefix in (logbook.LOG_PREFIX, logbook.AUDIT_PREFIX):
         for key in db_utils.query_sk_prefix_keys(pk, prefix):
             if _seq_of(key['SK']) > seq:

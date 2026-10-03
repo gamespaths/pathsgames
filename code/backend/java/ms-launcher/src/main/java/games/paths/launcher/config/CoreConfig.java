@@ -397,6 +397,16 @@ public class CoreConfig {
         return service;
     }
 
+    /** v0.41.6 - the admin User tab: owner view, user preview and owner move. */
+    @Bean
+    public games.paths.core.port.match.MatchOwnerPort matchOwnerPort(MatchPersistencePort matchPersistencePort,
+            CharacterReadPort characterReadPort,
+            games.paths.core.port.match.UserDirectoryPort userDirectoryPort,
+            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort) {
+        return new games.paths.core.service.match.MatchOwnerService(matchPersistencePort, characterReadPort,
+                userDirectoryPort, matchLogWriterPort);
+    }
+
     @Bean
     public games.paths.core.port.match.SnapshotPort snapshotPort(
             games.paths.core.service.match.SnapshotService snapshotService) {

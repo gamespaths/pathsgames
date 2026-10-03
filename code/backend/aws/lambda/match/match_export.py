@@ -78,7 +78,7 @@ def export_match(match_uuid):
     if errors:
         match['status'] = original
         return _error(409, 'SNAPSHOT_INTEGRITY_FAILED', 'The snapshot failed its integrity check', errors)
-    document = build(match_uuid, latest, snapshots.payload_of(latest))
+    document = build(match_uuid, latest, snapshots.with_current_owner(match, match_uuid, snapshots.payload_of(latest)))
     text = neutral.canonical(document)
     if len(text.encode('utf-8')) > max_bytes():
         match['status'] = original

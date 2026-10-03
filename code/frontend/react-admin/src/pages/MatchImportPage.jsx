@@ -28,7 +28,7 @@ export default function MatchImportPage() {
   const [file, setFile]           = useState(null)   // { name, doc }
   const [check, setCheck]         = useState(null)
   const [replace, setReplace]     = useState(false)
-  const [storyMode, setStoryMode] = useState('AUTO')
+  const [storyMode, setStoryMode] = useState('KEEP')
   const [startPaused, setStartPaused] = useState(false)
   const [busy, setBusy]           = useState(false)
   const [error, setError]         = useState('')

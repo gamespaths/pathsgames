@@ -85,3 +85,44 @@ export function StateBadges({ player }) {
   if (player.isComa) return <span className="pg-badge pg-badge-danger">coma</span>
   return <span className="pg-badge pg-badge-success">active</span>
 }
+
+// v0.41.6 — the owner of a match (User tab and owner-move preview).
+const REASON_TEXT = {
+  USER_NOT_ALLOWED: 'Not allowed: an admin or a user that is not active cannot own a match.',
+  USER_EXPIRED: 'Expired guest: the match cannot be moved to it.',
+}
+
+export const reasonText = (reason) => REASON_TEXT[reason] || reason
+
+/** The fields of one AdminUserResponse, shared by the card and the move preview. */
+export function UserFields({ user }) {
+  const expiry = user.guest
+    ? (user.guestExpiresAt ?? 'no expiry / no cookie')
+    : '—'
+  const rows = [
+    ['UUID', <UuidCopy key="uuid" uuid={user.uuid} />],
+    ['Username', user.username ?? '—'],
+    ['Nickname', user.nickname ?? '—'],
+    ['Email', user.email ?? '—'],
+    ['Role', user.role ?? '—'],
+    ['Guest', user.guest ? 'yes' : 'no'],
+    ['Guest expiry', (
+      <span key="exp">
+        {expiry}
+        {user.expired && <span className="pg-badge pg-badge-danger ms-2">expired</span>}
+      </span>
+    )],
+    ['Last access', user.tsLastAccess ?? '—'],
+    ['Registration', user.tsRegistration ?? '—'],
+    ['Matches', user.matchCount ?? 0],
+  ]
+  return (
+    <table className="pg-table" style={{ fontSize: '0.8rem' }} data-testid="user-fields">
+      <tbody>
+        {rows.map(([label, value]) => (
+          <tr key={label}><th style={{ width: '9rem' }}>{label}</th><td>{value}</td></tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}

@@ -190,4 +190,13 @@ describe('matchApi', () => {
     expect(matchApi.errorBody({})).toEqual({})
     expect(matchApi.errorBody(undefined)).toEqual({})
   })
+
+  it('v0.41.6 getMatchOwner and moveMatchOwner call the owner endpoint', async () => {
+    mockGet.mockResolvedValue({ data: { uuid: 'u1' } })
+    expect(await matchApi.getMatchOwner('m1')).toEqual({ uuid: 'u1' })
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/matches/m1/owner')
+    mockPut.mockResolvedValue({ data: { status: 'MOVED' } })
+    expect(await matchApi.moveMatchOwner('m1', 'bob')).toEqual({ status: 'MOVED' })
+    expect(mockPut).toHaveBeenCalledWith('/api/admin/matches/m1/owner', { user: 'bob' })
+  })
 })

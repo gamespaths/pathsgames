@@ -43,6 +43,7 @@ from common import jwt_utils
 from common import security_utils
 from common import story_cache
 from common import test_data_ttl
+from common import user_lookup as _user_lookup
 from match import logbook as _logbook
 from match import repo as _repo
 from match import snapshots as _snapshots
@@ -1492,6 +1493,69 @@ def _update_match(match_uuid, status, name, admin_action=None):
         _logbook.append(item, TYPE_ADMIN_ACTION, _nz(item.get('currentClock')), message=detail)
     _logbook.persist(item)
     return _ok({'status': 'UPDATED', 'uuid': match_uuid})
+
+
+# ─── v0.41.6 match owner move (admin User tab) ───────────────────────────────
+
+ADMIN_OWNER_CHANGED = 'OWNER_CHANGED'
+
+
+def _admin_get_owner(match_uuid):
+    """GET /api/admin/matches/{uuid}/owner — the creator as AdminUserResponse."""
+    match = _repo.match(match_uuid, consistent=False) if match_uuid else None
+    if match is None:
+        return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
+    owner = _user_lookup.by_uuid(match.get('userCreatorUuid'))
+    if owner is None:
+        return _err(404, 'USER_NOT_FOUND', 'The owner of the match no longer exists')
+    return _ok(_user_lookup.view(owner))
+
+
+def _admin_move_owner(match_uuid, body):
+    """PUT /api/admin/matches/{uuid}/owner — METADATA creator + GSI1_PK and every character move to the
+    target; ADMIN_ACTION OWNER_CHANGED. Not atomic (accepted): a re-run repairs a half-written move."""
+    target_id = body.get('user') if isinstance(body, dict) else None
+    if not isinstance(target_id, str) or not target_id.strip():
+        return _err(400, 'INVALID_INPUT', "Field 'user' is required")
+    match = _repo.match(match_uuid) if match_uuid else None
+    if match is None:
+        return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
+    try:
+        target = _user_lookup.resolve(target_id)
+    except _user_lookup.UserLookupError as exc:
+        return _err(exc.status, exc.code, exc.message)
+    if match.get('status') in TERMINAL_STATUSES:
+        return _err(409, 'MATCH_TERMINATED', 'A terminated match cannot be moved')
+    chars = _repo.characters(match_uuid)
+    to_uuid = target.get('uuid')
+    from_uuid = match.get('userCreatorUuid')
+    previous = _user_lookup.by_uuid(from_uuid) or {}
+    before = {'uuid': from_uuid, 'username': previous.get('username')}
+    after = {'uuid': to_uuid, 'username': target.get('username')}
+    body_of = lambda status, moved: _ok({'status': status, 'matchUuid': match_uuid, 'previousOwner': before,
+                                         'owner': after, 'charactersMoved': moved})
+    if from_uuid == to_uuid and match.get('GSI1_PK') == f'USER_MATCHES#{to_uuid}' \
+            and all(c.get('userUuid') == to_uuid for c in chars):
+        return body_of('UNCHANGED', 0)
+    # With one character, a target that already holds it can only be a half-written move: repaired.
+    if len(chars) > 1:
+        return _err(409, 'MATCH_MULTI_CHARACTER', 'A match with more than one character cannot be moved')
+    why = _user_lookup.reason(target)
+    if why is not None:
+        return _err(409, why, 'The target guest has expired' if why == _user_lookup.USER_EXPIRED
+                    else 'The target user cannot own a match')
+    if from_uuid != to_uuid and _has_active_match_for_story(target, match.get('storyUuid')):
+        return _err(409, 'ACTIVE_MATCH_ALREADY_EXISTS', 'The target user already has an active match on this story')
+    match['userCreatorUuid'] = to_uuid
+    match['GSI1_PK'] = f'USER_MATCHES#{to_uuid}'
+    for c in chars:
+        c['userUuid'] = to_uuid
+        _repo.save(c)
+    _logbook.append(match, TYPE_ADMIN_ACTION, _nz(match.get('currentClock')),
+                    message=f"{ADMIN_OWNER_CHANGED} from={before['username']}/{from_uuid} "
+                            f"to={after['username']}/{to_uuid}")
+    _logbook.persist(match)
+    return body_of('MOVED', len(chars))
 
 
 # ─── v0.41.1 snapshots (Step 41 B) ──────────────────────────────────────────
@@ -4896,6 +4960,15 @@ def _dispatch(event):
             if path.endswith('/restore') and method == 'POST':
                 return _admin_restore_snapshot(match_uuid, uuid_snapshot)
             return _err(404, 'NOT_FOUND', f'Unknown route {method} {path}')
+        # v0.41.6 — the admin User tab: before the PUT catch-all below.
+        if path.endswith('/owner') and method == 'GET':
+            return _admin_get_owner(match_uuid)
+        if path.endswith('/owner') and method == 'PUT':
+            try:
+                body = json.loads(event.get('body') or '{}')
+            except (TypeError, ValueError):
+                return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
+            return _admin_move_owner(match_uuid, body)
         if path.endswith('/info') and method == 'GET':
             return _get_admin_match_info(match_uuid)
         if path.endswith('/weather') and method == 'GET':

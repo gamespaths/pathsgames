@@ -84,9 +84,22 @@ class SnapshotStoreAdapterTest {
     @Test
     @DisplayName("the match is found by uuid and by id, an unknown one is empty")
     void findMatch() {
-        assertEquals(new MatchRef(1L, "m-1", 9L, "RUNNING", 3), adapter.findMatchByUuid("m-1").orElseThrow());
+        assertEquals(new MatchRef(1L, "m-1", 9L, "RUNNING", 3, 42L), adapter.findMatchByUuid("m-1").orElseThrow());
         assertEquals("m-1", adapter.findMatchById(1L).orElseThrow().uuid());
         assertTrue(adapter.findMatchByUuid("nope").isEmpty());
+    }
+
+    @Test
+    @DisplayName("v0.41.6 characterUsers maps character id to its user; a null creator reads as null")
+    void characterUsers() {
+        jdbc.update("INSERT INTO gaming_character_instance VALUES (2, 1, 'c-2', NULL, 20, 10, 1, 0)");
+        Map<Long, Long> owners = adapter.characterUsers(1L);
+        assertEquals(42L, owners.get(1L));
+        assertTrue(owners.containsKey(2L));
+        assertNull(owners.get(2L));
+        assertTrue(adapter.characterUsers(99L).isEmpty());
+        jdbc.update("UPDATE gaming_match SET id_user_creator = NULL WHERE id = 1");
+        assertNull(adapter.findMatchById(1L).orElseThrow().idUserCreator());
     }
 
     @Test

@@ -16,6 +16,7 @@ import RegistryCard from '../components/match/detail/RegistryCard'
 import MissionsCard from '../components/match/detail/MissionsCard'
 import MatchLogsCard from '../components/match/detail/MatchLogsCard'
 import SnapshotsCard from '../components/match/detail/SnapshotsCard'
+import UserCard from '../components/match/detail/UserCard'
 import EditStatsModal from '../components/match/detail/EditStatsModal'
 import { TERMINAL, STATUS_COLOR, findByUuid, resolveEntityName, name20 } from '../components/match/detail/matchDetailShared'
 
@@ -41,6 +42,7 @@ const DETAIL_TABS = [
   { id: 'missions',  label: 'Missions',            icon: 'fa-flag-checkered' },
   { id: 'turn',      label: 'Turn order',          icon: 'fa-list-ol' },
   { id: 'snapshots', label: 'Snapshots',           icon: 'fa-camera' },
+  { id: 'user',      label: 'User',                icon: 'fa-user' },
 ]
 
 export default function MatchDetailPage() {
@@ -66,6 +68,7 @@ export default function MatchDetailPage() {
   const [statsModal, setStatsModal]       = useState(null) // player object being edited
   const [tab, setTab]                     = useState('config')
   const [snapshotNotice, setSnapshotNotice] = useState('') // v0.41.1 - survives the reload after a restore
+  const [ownerNotice, setOwnerNotice] = useState('') // v0.41.6 - survives the reload after a move
 
   const loadInfo = useCallback(() => {
     setLoading(true)
@@ -301,6 +304,16 @@ export default function MatchDetailPage() {
               matchUuid={uuid}
               notice={snapshotNotice}
               onRestored={(text) => { setSnapshotNotice(text); loadInfo() }}
+            />
+          )}
+
+          {tab === 'user' && (
+            <UserCard
+              matchUuid={uuid}
+              terminal={isTerminalStatus}
+              status={status}
+              notice={ownerNotice}
+              onMoved={(text) => { setOwnerNotice(text); loadInfo() }}
             />
           )}
         </>

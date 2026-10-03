@@ -32,6 +32,9 @@ import MatchStatusBadge from './MatchStatusBadge'
  * Step 40 — `match` (the match summary, no extra call) adds two client-side tiles: the current
  * status first, and "Creation" with its date last, once the last page is loaded.
  *
+ * v0.41.6 — a row of type chips heads the list, as in the admin console: each shows its count
+ * over the loaded entries and filters the list client-side; "All" clears the filter.
+ *
  * Used on the book's RIGHT page, next to the story card on the left:
  *   - GuestUserModal — when (i) is clicked on a MatchCard;
  *   - GameBook       — when (i) is clicked on the story card in PlayerCards.
@@ -99,6 +102,29 @@ const TYPE_COLOR = {
   PASS:            '#94a3b8',
   EDGE_STATE:      '#ef4444',
   TRAIT_CHANGE:    '#a3e635',
+}
+
+/** Sentinel for "no type filter". */
+const ALL = '__ALL__'
+
+/** v0.41.6 — one type chip: icon, count and the type's colour; the active one stands out. */
+export function LogFilterChip({ type, label, count, active, onClick }) {
+  const color = type === ALL ? undefined : TYPE_COLOR[type]
+  const icon = type === ALL ? 'fa-layer-group' : (TYPE_ICON[type] || 'fa-circle')
+  return (
+    <button type="button" className={`match-log-filter${active ? ' match-log-filter--active' : ''}`}
+      style={color ? { color, borderColor: color } : undefined}
+      title={label} aria-label={`${label} (${count})`} aria-pressed={active} onClick={onClick}>
+      <i className={`fas ${icon}`} />{count}
+    </button>
+  )
+}
+
+/** Count of the visible entries per type, in the order the types first appear. */
+export function typeCounts(entries) {
+  const counts = {}
+  for (const e of entries) counts[e.type] = (counts[e.type] || 0) + 1
+  return counts
 }
 
 /**
@@ -248,6 +274,8 @@ export default function MatchLogCard({ matchUuid, accessToken, story = null, onB
   // (i) on an entry tile: that entry's card takes over this page. The back arrow
   // returns to the timeline, which stays loaded underneath.
   const [preview, setPreview]   = useState(null)
+  // v0.41.6 — type filter over the loaded entries; it never refetches.
+  const [filter, setFilter]     = useState(ALL)
 
   useEffect(() => {
     let cancelled = false
@@ -285,9 +313,14 @@ export default function MatchLogCard({ matchUuid, accessToken, story = null, onB
 
   // Clock advances carry no card and no actor: they would render as empty tiles.
   const visibleEntries = entries.filter(e => !HIDDEN_TYPES.has(e.type))
-  const statusTile = match?.status ? <StatusTile status={match.status} t={t} /> : null
+  const counts = typeCounts(visibleEntries)
+  // A filter on a type no longer loaded (e.g. after a refetch) falls back to all.
+  const activeFilter = filter !== ALL && counts[filter] ? filter : ALL
+  const shownEntries = activeFilter === ALL ? visibleEntries : visibleEntries.filter(e => e.type === activeFilter)
+  // The status and creation tiles are not entry types: they show only on the unfiltered list.
+  const statusTile = match?.status && activeFilter === ALL ? <StatusTile status={match.status} t={t} /> : null
   const creationDate = formatDate(match?.tsInsert, lang)
-  const creationTile = creationDate && !cursor ? <CreationTile date={creationDate} t={t} /> : null
+  const creationTile = creationDate && !cursor && activeFilter === ALL ? <CreationTile date={creationDate} t={t} /> : null
 
   if (loading) return <LoadingCard story={story} />
   const body = (
@@ -305,9 +338,19 @@ export default function MatchLogCard({ matchUuid, accessToken, story = null, onB
         <p className="match-log-state">{t('matchLog.empty')}</p>
       ) : (
         <>
+          {visibleEntries.length > 0 && (
+            <div className="match-log-filters" role="group" aria-label={t('matchLog.filters')} data-testid="match-log-filters">
+              <LogFilterChip type={ALL} label={t('matchLog.filterAll')} count={visibleEntries.length}
+                active={activeFilter === ALL} onClick={() => setFilter(ALL)} />
+              {Object.keys(counts).map(type => (
+                <LogFilterChip key={type} type={type} label={t(`matchLog.types.${type}`)} count={counts[type]}
+                  active={activeFilter === type} onClick={() => setFilter(activeFilter === type ? ALL : type)} />
+              ))}
+            </div>
+          )}
           <ul className="match-log-list">
             {statusTile}
-            {visibleEntries.map((entry, idx) => (
+            {shownEntries.map((entry, idx) => (
               <LogEntryRow
                 key={`${entry.type}-${entry.timestamp}-${idx}`}
                 entry={entry} lang={lang} t={t}

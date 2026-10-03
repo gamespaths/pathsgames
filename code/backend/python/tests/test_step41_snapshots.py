@@ -273,7 +273,8 @@ def _insert(adapter, clock):
 def test_store_match_state_and_marks(factory):
     adapter = SnapshotStoreAdapter(factory)
     assert adapter.find_match_by_uuid("m-1") == {"id": 1, "uuid": "m-1", "id_story": STORY_ID,
-                                                 "status": "RUNNING", "current_clock": 3}
+                                                 "status": "RUNNING", "current_clock": 3,
+                                                 "id_user_creator": USER_ID}
     assert adapter.find_match_by_id(1)["uuid"] == "m-1"
     assert adapter.find_match_by_uuid("nope") is None
     state = adapter.read_state(1)

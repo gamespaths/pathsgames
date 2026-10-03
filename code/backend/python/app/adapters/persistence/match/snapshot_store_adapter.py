@@ -62,11 +62,17 @@ class SnapshotStoreAdapter(SnapshotStorePort):
     def _match(self, where) -> Optional[Dict[str, Any]]:
         with self.session_factory() as session:
             row = session.execute(select(MATCH.c.id, MATCH.c.uuid, MATCH.c.id_story, MATCH.c.status,
-                                         MATCH.c.current_clock).where(where)).first()
+                                         MATCH.c.current_clock, MATCH.c.id_user_creator).where(where)).first()
         if row is None:
             return None
         return {"id": row.id, "uuid": row.uuid, "id_story": row.id_story, "status": row.status,
-                "current_clock": row.current_clock or 0}
+                "current_clock": row.current_clock or 0, "id_user_creator": row.id_user_creator}
+
+    def character_users(self, id_match: int) -> Dict[int, Optional[int]]:
+        with self.session_factory() as session:
+            rows = session.execute(select(CHARACTERS.c.id, CHARACTERS.c.id_user)
+                                   .where(CHARACTERS.c.id_match == id_match)).all()
+        return {r.id: r.id_user for r in rows}
 
     def read_state(self, id_match: int) -> Dict[str, List[Dict[str, Any]]]:
         with self.session_factory() as session:

@@ -35,6 +35,7 @@ import os
 import re
 import uuid
 import time
+import urllib.parse
 from datetime import datetime, timezone
 
 from common import db_utils
@@ -42,6 +43,7 @@ from common import log_utils
 from common import jwt_utils
 from common import security_utils
 from common import test_data_ttl
+from common import user_lookup
 from botocore.exceptions import ClientError
 from boto3.dynamodb.conditions import Key
 
@@ -242,6 +244,9 @@ def _route(event, context):
         return delete_stale_guests(event)
     if path == '/api/admin/guests/expired' and method == 'DELETE':
         return cleanup_expired(event)
+    # v0.41.6 — the owner-move preview: one user by uuid, email or username
+    if path.startswith('/api/admin/users/') and method == 'GET':
+        return get_admin_user(event, params.get('identifier') or path.split('/')[-1])
     # parameterised
     if path.startswith('/api/admin/guests/') and method == 'GET':
         uid = params.get('uuid') or path.split('/')[-1]
@@ -779,3 +784,15 @@ def delete_guest(event, uid):
         return _err(404, 'GUEST_NOT_FOUND', f'No guest user found with UUID: {uid}')
     db_utils.delete_item(f'USER#{uid}')
     return _ok({'status': 'DELETED', 'uuid': uid})
+
+
+def get_admin_user(event, identifier):
+    """GET /api/admin/users/{identifier} — v0.41.6, the user view with its eligibility; 404 / 409."""
+    _, err = _require_admin(event)
+    if err:
+        return err
+    try:
+        user = user_lookup.resolve(urllib.parse.unquote(identifier or ''))
+    except user_lookup.UserLookupError as exc:
+        return _err(exc.status, exc.code, exc.message)
+    return _ok(user_lookup.view(user))

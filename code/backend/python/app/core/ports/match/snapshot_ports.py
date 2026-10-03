@@ -63,7 +63,7 @@ class SnapshotStorePort(ABC):
 
     @abstractmethod
     def find_match_by_uuid(self, uuid_match: str) -> Optional[Dict[str, Any]]:
-        """``{id, uuid, id_story, status, current_clock}`` or None."""
+        """``{id, uuid, id_story, status, current_clock, id_user_creator}`` or None."""
 
     @abstractmethod
     def find_match_by_id(self, id_match: int) -> Optional[Dict[str, Any]]:
@@ -102,6 +102,10 @@ class SnapshotStorePort(ABC):
     @abstractmethod
     def existing_user_ids(self, ids: Iterable[int]) -> Set[int]:
         """Which of ``ids`` are still users."""
+
+    @abstractmethod
+    def character_users(self, id_match: int) -> Dict[int, Optional[int]]:
+        """v0.41.6 — the current owner of every character of the match: character id to user id."""
 
     @abstractmethod
     def restore(self, id_match: int, id_snapshot: int, state: Dict[str, List[Dict[str, Any]]],

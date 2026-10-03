@@ -145,6 +145,19 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
     }
 
     @Override
+    public int changeOwner(long idMatch, long idUser) {
+        String now = java.time.Instant.now().toString();
+        matchRepository.updateOwner(idMatch, idUser, now);
+        return characterRepository.updateOwner(idMatch, idUser, now);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countMatchesByUserCreator(long idUser) {
+        return matchRepository.countByIdUserCreator(idUser);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public long countMatchesByUserCreatorIds(List<Long> userIds) {
         if (userIds == null || userIds.isEmpty()) {

@@ -121,4 +121,11 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
      * Find any user by UUID (any state).
      */
     Optional<UserEntity> findByUuid(String uuid);
+
+    // === v0.41.6: admin owner move lookups ===
+
+    List<UserEntity> findByUsernameOrderByIdAsc(String username);
+
+    @Query("SELECT u FROM UserEntity u WHERE LOWER(u.emailAddress) = LOWER(:email) ORDER BY u.id")
+    List<UserEntity> findByEmailIgnoreCase(@Param("email") String email);
 }
