@@ -58,7 +58,7 @@ in the [Global Roadmap](../Roadmap.md) §3.
 | 38 | [Experience system](./Step38_ExperienceSystem.md) | ✅ | `use-exp` spends `gaming_character_instance.exp` to raise DEX/INT/COS by one at a difficulty-priced cost; `is_safe`→`secure_param`, `cost_max_characteristics`→`exp_cost_base`/`max_stat_value` |
 | 39 | [Random events](./Step39_RandomEvents.md) | ✅ | At most one `list_global_random_events` row fires at time-start, after the weather; absolute-percentage pick, party-wide reach, `RANDOM_EVENT` trigger in `counterZero[]` |
 | 40 | [Alpha UX polish](./Step40_AlphaUxPolish.md) | ✅ | Tutorial tips on card pages, weather display fix, environment badge, resource logs check, match list restyle, roadmap book |
-| 41 | [Alpha preparation](./Step41_AlphaPreparation.md) | ✅ | Logging and snapshots, security, admin IP protection, guest cleanup and limits, KPI report (`GET /api/admin/reports/kpi`, react-admin Reports page), production CSP restricted; v0.41.4 admin match export/import between servers (neutral format); v0.41.5 story uuid check; v0.41.6 admin match owner move |
+| 41 | [Alpha preparation](./Step41_AlphaPreparation.md) | ✅ | Logging and snapshots, security, admin IP protection, guest cleanup and limits, KPI report |
 | 42 | **Alpha launch** | | Backup and alarms, privacy check, alpha stage on AWS, alpha story, license, launch |
 
 
@@ -72,20 +72,13 @@ Each step is analysed and developed with the project agents (workflow in
 
 ## Steps 40-42 — Alpha preparation and launch
 
-41. Alpha preparation — logging, security, protection, KPI
-    - Logging gaps: log every remaining player action and automatic effect with match, character, clock and details; keep a check on log size (AWS `LOG#` rows) (backend)
-    - Match snapshots: light snapshot at each time-end, admin list and restore endpoints, integrity check before restore (backend, frontend)
-    - Residual security: security headers, dependency vulnerability scan, secrets review, CORS and `WebConfig` check, stricter website CSP on test (backend, frontend, infra)
-    - Admin IP allow-list on AWS: new parameter deciding whether an empty list means "everybody" or "nobody", default "nobody", on dev and test too; deploy scripts detect the caller's public IP (backend, infra)
-    - Guests: periodic cleanup job for guests without matches, with a parametrised age (EventBridge on AWS, `@Scheduled` in Java, APScheduler in Python); guests with at least one match are never deleted; per-IP and per-guest creation limits from parameters with code defaults, blocking creation only (backend)
-    - Basic KPI report without big changes: daily UTC counters per story (matches started and finished, completion rate, average duration, coma count every time a character falls, choice distribution, visited locations, mission status), light on DynamoDB; current state of active matches (location, life, players) through `/api/admin/matches` and `/info`; react-admin report page aggregating by day, month or total (backend, frontend)
-    - Write unit tests and Robot suites for snapshots, allow-list parameter, cleanup job, limits and KPI endpoints (tests)
 42. Alpha launch — single-player on AWS
-    - Backup and alarms: DynamoDB point-in-time recovery, CloudWatch alarms (Lambda errors, throttling), AWS budget alert with notification (infra)
+    - Backup and alarms: DynamoDB point-in-time recovery, CloudWatch alarms (Lambda errors, throttling),  AWS budget alert with notification (infra), AWS lambda usage report, AWS API gateway usage report
     - Privacy check: privacy policy, cookie consent, analytics consent, what guest data is stored and for how long (all)
     - New stage `alpha`: own AWS stack, bucket and site; domains `alpha.paths.games` and `alpha-api.paths.games`; admin API without paths.games DNS (infra)
     - Alpha story: the owner's complete story imported, validated and played from start to end; blocking bugs fixed (all)
     - Content license: CC BY-NC-ND 4.0 notice on story content, credits and license page (frontend, docs)
+        
     - i18n check (EN, IT) and Robot suites green on all three backends; regression fixes (tests)
     - Release notes with features, known limitations and the social link used for feedback (docs)
     - Launch: deploy, smoke test (guest login, story choice, match creation, full gameplay cycle), announce (all)

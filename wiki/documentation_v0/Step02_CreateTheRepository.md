@@ -12,24 +12,41 @@ This document defines the **create the repository** steps to build a **Paths Gam
         > Repository created [github.com/gamespaths/pathsgames](https://github.com/gamespaths/pathsgames)  
     - ✅ Set the main branch
         > Created main branch `master` used in production deployments  
-        > Developers and agent will create `developer` and `feature` branch!  
-        > Continue integration system will crate `release` and `hotfix` branch!  
+        > Developers and agent will create `develop` and `feature` branch!  
+        > Continuous integration system will create `release` and `hotfix` branch!  
         > Development steps is defined by schema:  
             <img src="./Step02_CreateTheRepository_git.webp" />
+
+        > Versions are `x.y.z`; the suffix tells the branch, so the same number on two branches is not the same build.  
+        >
+        > | Branch | Version | Rule |
+        > | --- | --- | --- |
+        > | `develop` | `x.y.z-dev` | `z` +1 on every merge into develop (0.1.0 → 0.1.1 → 0.1.2); `y` can be bumped to start a new cycle (0.2.0) |
+        > | `feature/*` | from develop | starts from develop, merges back into develop; the merge is a new develop `z` (feature starts at 0.2.0, merges back as 0.2.3) |
+        > | `release/*` | `x.y.z-rc` | cut from develop with frozen `x.y.z` (release/0.1.2 from develop 0.1.2); `z` is never incremented; goes to production; never merges back into develop |
+        > | `hotfix/*` | `x.y.z-hc` | starts from the production version (0.1.2), `z` +1 (0.1.3), goes to production and is always merged back into develop |
+        > | `master` | `x.y.z` | production; every production version is tagged `vx.y.z` (v0.1.2, v0.1.3, v0.3.0) |
+        >
+        > - Tags exist only on `master`.  
+        > - A release can be superseded by a later release: release/0.2.4 (from develop 0.2.4) does not go to production, it flows into release/0.3.0 (from develop 0.3.0), which is released as v0.3.0.  
+        > - The hotfix back-merge increments the own `z` of develop (develop 0.2.1 → 0.2.2).  
+        > - Develop and production numbers are independent: `y` and `z` may differ (production 0.1.3, develop 0.2.2).  
     - ✅ Define basic access rules
         > The project is public with GNU GPL V3 license
 
 
 # Version Control
 - First version not created with AI.
-- **Document Version**: 0.7
+- **Document Version**: 0.8
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.2 | first version of file with points list | February 2, 2026 |
     | 0.3 | added licence and version control sections | February 3, 2026 |
     | 0.4 | added branches image and definition | February 5, 2026 |
     | 0.7 | repository changend [github.com/gamespaths/pathsgames](https://github.com/gamespaths/pathsgames) | February 26, 2026 |
-- **Last Updated**: February 26, 2026
+    | 0.42.0 | branching and versioning model description added | October 4, 2026 |
+    
+- **Last Updated**: October 4, 2026
 - **Status**: Complete ✅
 
 
