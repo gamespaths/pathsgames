@@ -59,7 +59,7 @@ in the [Global Roadmap](../Roadmap.md) §3.
 | 39 | [Random events](./Step39_RandomEvents.md) | ✅ | At most one `list_global_random_events` row fires at time-start, after the weather; absolute-percentage pick, party-wide reach, `RANDOM_EVENT` trigger in `counterZero[]` |
 | 40 | [Alpha UX polish](./Step40_AlphaUxPolish.md) | ✅ | Tutorial tips on card pages, weather display fix, environment badge, resource logs check, match list restyle, roadmap book |
 | 41 | [Alpha preparation](./Step41_AlphaPreparation.md) | ✅ | Logging and snapshots, security, admin IP protection, guest cleanup and limits, KPI report |
-| 42 | **Alpha launch** | | Backup and alarms, privacy check, alpha stage on AWS, alpha story, license, launch |
+| 42 | [Alpha launch](./Step42_AlphaLaunch.md) | | Website infra, stack hardening, alpha scripts and workflows, react-game polish, story, launch |
 
 
 # Next steps
@@ -72,16 +72,15 @@ Each step is analysed and developed with the project agents (workflow in
 
 ## Steps 40-42 — Alpha preparation and launch
 
-42. Alpha launch — single-player on AWS
-    - Backup and alarms: DynamoDB point-in-time recovery, CloudWatch alarms (Lambda errors, throttling),  AWS budget alert with notification (infra), AWS lambda usage report, AWS API gateway usage report
-    - Privacy check: privacy policy, cookie consent, analytics consent, what guest data is stored and for how long (all)
-    - New stage `alpha`: own AWS stack, bucket and site; domains `alpha.paths.games` and `alpha-api.paths.games`; admin API without paths.games DNS (infra)
-    - Alpha story: the owner's complete story imported, validated and played from start to end; blocking bugs fixed (all)
-    - Content license: CC BY-NC-ND 4.0 notice on story content, credits and license page (frontend, docs)
-        
-    - i18n check (EN, IT) and Robot suites green on all three backends; regression fixes (tests)
-    - Release notes with features, known limitations and the social link used for feedback (docs)
-    - Launch: deploy, smoke test (guest login, story choice, match creation, full gameplay cycle), announce (all)
+42. Alpha launch — single-player on AWS (details in [Step 42](./Step42_AlphaLaunch.md))
+    - Website infra: landing retired, react-game at the bucket root, redirect from the old domain, production CSP (infra)
+    - Stack hardening on public stages: point-in-time recovery, deletion protection, API throttling, dashboard, alarms, budget, restore runbook (infra)
+    - Alpha scripts, two GitHub workflows (website, backend) and alpha README with IAM and GitHub Environment setup (infra, scripts)
+    - react-game launch polish: `.env.alpha`, privacy text, i18n gaps, favicon and `robots.txt`, `?policy=` deep link, license check (frontend)
+    - Alpha story: the owner imports it and publishes the catalog (content)
+    - Docs: `master` → `main`, renamed workflows, landing retirement notes, release notes (docs)
+    - Tests: unit tests, Robot green on dev/test, one AWS run on the test stack (tests)
+    - Launch in the first-deploy order, manual smoke test, announce; rollback = previous tag (all)
 
 
 
@@ -107,8 +106,9 @@ Each step is analysed and developed with the project agents (workflow in
     | 0.41.1 | Step 41 patch 2 developed: logging and snapshots | September 29, 2026 |
     | 0.41.2 | Step 41 KPI report and production CSP done | September 29, 2026 |
     | 0.41.4 | Step 41 closed: export, import, uuid check, owner move | October 3, 2026 |
+    | 0.42.0 | Step 42 alpha launch analysed | October 6, 2026 |
 
-- **Last Updated**: October 3, 2026 (v0.41.6)
+- **Last Updated**: October 6, 2026 (v0.42.0)
 - **Status**: In progress
 
 

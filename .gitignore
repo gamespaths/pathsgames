@@ -48,6 +48,8 @@ target/
 .env.local
 .env.development
 .env.test
+.env.alpha
+.env.beta
 .env.production
 
 .alnao/

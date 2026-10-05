@@ -25,6 +25,8 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - V0 documents frozen; `documentation_v1` becomes the current version in [INDEX](../INDEX.md) (docs)
     - Alpha urgent fixes keep the `0.42.z` line, noted in V0 `Hotfixes.md` (docs)
     - Robot suites green on all three backends with the new version (tests)
+    - Daily alpha smoke test: a small, fast scheduled check on the cloud (guest login, stories, match creation), with failure notified; tooling decided in that step (GitHub Actions schedule vs EventBridge Lambda) (tests, infra)
+    - Versioning model: `-SNAPSHOT` on develop, `-RC` on the release branch, no suffix on `main`, written in `wiki/VersionTemplate.md`; align `bump-version.sh` l.23/59, `aws_backend_deploy_stage.sh` l.80 (strips only `-SNAPSHOT`), the Python version (`-RC` → PEP 440 `rc`) and the two `package.json` (infra, docs)
 2. **Google SSO — identity model** — one user with one or more login providers.
     - New identity table (user, provider, provider subject, timestamps), ready for Steam in V3 (backend)
     - Flyway migrations for SQLite and PostgreSQL, DynamoDB item layout on AWS (backend)
@@ -269,14 +271,15 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Launch and smoke test (all)
 
 # Version Control
-- **Document Version**: 0.41.5
+- **Document Version**: 0.42.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First draft of the beta version plan, with docs alignment step | September 25, 2026 |
   | 0.41.5 | Version launch is now the first step | October 3, 2026 |
+  | 0.42.0 | Version launch gains smoke test and versioning model | October 6, 2026 |
 
-- **Last Updated**: October 3, 2026 (v0.41.5)
+- **Last Updated**: October 6, 2026 (v0.42.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
