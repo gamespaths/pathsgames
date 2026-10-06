@@ -615,7 +615,7 @@
       "transfersTitle": "6. International data transfers",
       "transfersBody": "Some providers (such as Google) may process data outside the European Economic Area, including in the United States. Such transfers are protected by the European Commission's Standard Contractual Clauses or an equivalent safeguard.",
       "retentionTitle": "7. Data retention",
-      "retentionBody": "Session cookies last up to 7 days (refresh token) and 30 days (guest identifier); your cookie choice is kept for 6 months; analytics data is retained for up to 2 years. Anonymous guest data is removed after prolonged inactivity.",
+      "retentionBody": "Session cookies last up to 7 days (refresh token) and 30 days (guest identifier); your cookie choice is kept for 6 months; analytics data is retained for up to 2 years. An anonymous guest profile that has played at least one match is kept, so you can resume your adventures; a guest profile that never started a match is deleted after 60 days without access. Our server logs are kept for 14 days, and the anti-abuse counters linked to your IP address are deleted automatically after a short time.",
       "rightsTitle": "8. Your rights",
       "rightsBody": "If you are in the EU/EEA you may access, rectify, erase, restrict or port your data, object to processing, and withdraw consent at any time, and you may lodge a complaint with your local data protection authority. If you are a California resident you have the right to know, delete and correct your data and to opt out of sale or sharing (we do not sell or share), free from discrimination for exercising your rights. Because play is anonymous, we may be unable to identify your data without additional information from you.",
       "childrenTitle": "9. Children",
@@ -624,7 +624,7 @@
       "securityBody": "We use measures such as HTTPS/TLS, HttpOnly session cookies and access controls to protect data. No method of transmission or storage is completely secure, and the game is currently in an alpha development phase.",
       "changesTitle": "11. Changes to this policy",
       "changesBody": "We may update this policy as the game evolves; material changes will be reflected by the 'last updated' date below and, where required, by a renewed consent request.",
-      "updated": "Last updated: June 2026"
+      "updated": "Last updated: October 2026"
     },
     "terms": {
       "title": "Terms of Service",

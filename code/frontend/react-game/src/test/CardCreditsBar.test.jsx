@@ -80,11 +80,23 @@ describe('CardCreditsBar', () => {
     const { container } = render(<CardCreditsBar card={{ copyrightText: 'A very long photographer name' }}
       story={{ author: 'Alice', card: {} }} typeBadgeLabel="Location" tip={{ label: 'tip', onOpen: () => {} }} />)
     const text = container.querySelector('.gc-credits__text')
-    expect(text.getAttribute('title')).toBe('story by Alice - image by A very long photographer name')
+    expect(text.getAttribute('title')).toBe('story by Alice (CC BY-NC-ND 4.0) - image by A very long photographer name')
     expect(text.querySelector('.credit-author')).toBeTruthy()
     expect(text.querySelector('.credit-image')).toBeTruthy()
     expect(text.querySelector('.gc-type-badge-credits')).toBeNull()
     expect(text.querySelector('.gc-credits__tip')).toBeNull()
+  })
+
+  it('adds the CC BY-NC-ND 4.0 licence link to every story credit (Step 42)', () => {
+    render(<CardCreditsBar card={{}} story={{ author: 'Alice', card: {} }} />)
+    const link = screen.getByRole('link', { name: 'CC BY-NC-ND 4.0' })
+    expect(link).toHaveAttribute('href', 'https://creativecommons.org/licenses/by-nc-nd/4.0/')
+    expect(link.getAttribute('rel')).toContain('license')
+  })
+
+  it('shows no licence when only the image is credited', () => {
+    render(<CardCreditsBar card={{ copyrightText: 'Bob' }} story={{}} />)
+    expect(screen.queryByRole('link', { name: 'CC BY-NC-ND 4.0' })).toBeNull()
   })
 
   it('renders no text box when there is only a tip', () => {

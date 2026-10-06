@@ -153,7 +153,8 @@ GitHub Actions, `.github/workflows/`:
 | `sonarqube-aws-lambda.yml` | SonarQube analysis, AWS Lambda backend |
 | `sonarqube-react-admin.yml` | SonarQube analysis, react-admin |
 | `sonarqube-react-game.yaml` | SonarQube analysis, react-game |
-| `website-deploy.yml` | Deploys the static website to production |
+| `alpha-deploy-website.yml` | v0.42.0 — tests and deploys react-game to the production site `paths.games` (alpha), push on `main` |
+| `alpha-deploy-backend-aws.yml` | v0.42.0 — tests and deploys the AWS backend stage `alpha`, push on `main` |
 
 The Java application image is published to
 [Docker Hub](https://hub.docker.com/r/pathsgames/pathsgames).
@@ -172,7 +173,7 @@ Python, AWS) plus the shared OpenAPI spec and the Robot suite that exercises all
 [ApiConventions §5](./ApiConventions.md) and CLAUDE.md's "When you change code" section.
 
 # Version Control
-- **Document Version**: 0.41.2
+- **Document Version**: 0.42.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -180,8 +181,9 @@ Python, AWS) plus the shared OpenAPI spec and the Robot suite that exercises all
   | 0.41.0 | Python scheduler and AWS guest-cleanup job added | September 28, 2026 |
   | 0.41.1 | Match log writer and snapshot service added | September 29, 2026 |
   | 0.41.2 | KPI service and AWS KPI accumulator added | September 29, 2026 |
+  | 0.42.0 | Two alpha deploy workflows replace the website one | October 6, 2026 |
 
-- **Last Updated**: September 29, 2026 (v0.41.2)
+- **Last Updated**: October 6, 2026 (v0.42.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

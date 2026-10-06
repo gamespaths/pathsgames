@@ -93,7 +93,7 @@ All secrets are stored in **GitHub Actions Secrets** (repository level). No cred
 | `DOCKERHUB_TOKEN` | DockerHub access token (not password) | Backend pipeline |
 | `AWS_ACCESS_KEY_ID` | AWS IAM access key for S3/CloudFront | Website pipeline |
 | `AWS_SECRET_ACCESS_KEY` | AWS IAM secret key | Website pipeline |
-| `AWS_REGION_TEST` | AWS region (`us-east-1`) | Website pipeline |
+| `AWS_TEST_REGION` | AWS region (`us-east-1`) | Website pipeline |
 | `AWS_S3_BUCKET_WEBSITE` | S3 bucket name for website (`pathsgames-com`) | Website pipeline |
 | `AWS_CLOUDFRONT_DISTRIBUTION_ID` | CloudFront distribution ID for cache invalidation | Website pipeline |
 | `SONAR_TOKEN` | SonarCloud authentication token | SonarQube pipeline |
@@ -123,7 +123,7 @@ All secrets are stored in **GitHub Actions Secrets** (repository level). No cred
 | Workflow file | Trigger | Purpose |
 |---------------|---------|---------|
 | `backend-ci.yml` | Push/PR on `code/backend/java/**` | Build, test, and publish Docker image |
-| `website-deploy.yml` | Push on `code/website/html/**` | Deploy static website to S3 + invalidate CloudFront |
+| `website-deploy.yml` | Push on `code/website/html/**` | Deploy static website to S3 + invalidate CloudFront. **Retired in 0.42** with the landing: replaced by `alpha-deploy-website.yml` and `alpha-deploy-backend-aws.yml` ([alpha README](../../code/scripts/alpha/README.md)) |
 | `sonarqube.yml` | Push/PR on `code/backend/java/**` | Code quality analysis, coverage, and security scan |
 | `frontend-deploy.yml` | *(future)* Push on `code/frontend/**` | Build React app and deploy to S3 |
 
@@ -131,7 +131,7 @@ All secrets are stored in **GitHub Actions Secrets** (repository level). No cred
 
 | Branch | Backend CI | Website Deploy | SonarQube | Notes |
 |--------|-----------|----------------|-----------|-------|
-| `master` | Build + Test + Docker push (`:latest` + `:x.y.z`) | Deploy to production S3 | ✅ Full scan | Production releases |
+| `main` | Build + Test + Docker push (`:latest` + `:x.y.z`) | Deploy to production S3 | ✅ Full scan | Production releases |
 | `develop` | Build + Test + Docker push (`:dev`) | — | ✅ Full scan | Development builds |
 | `release/*` | Build + Test + Docker push (`:rc`) | — | — | Release candidates |
 | `feature/*` | Build + Test only | — | — | No artifact publishing |
@@ -160,11 +160,14 @@ All secrets are stored in **GitHub Actions Secrets** (repository level). No cred
 
 | Branch | Tag |
 |--------|-----|
-| `master` | `latest`, `0.8.0` (from POM version, without `-SNAPSHOT`) |
+| `main` | `latest`, `0.8.0` (from POM version, without `-SNAPSHOT`) |
 | `develop` | `dev` |
 | `release/*` | `rc` |
 
-### 4.2 Website Pipeline (`website-deploy.yml`)
+### 4.2 Website Pipeline (`website-deploy.yml`, retired in 0.42)
+
+> v0.42.0 — replaced by `alpha-deploy-website.yml` (react-game to `paths.games`) and
+> `alpha-deploy-backend-aws.yml` (AWS stage `alpha`); the history below is kept as built in 0.8.
 
 ```
 ┌──────────┐    ┌──────────┐    ┌───────────────┐
@@ -176,7 +179,7 @@ All secrets are stored in **GitHub Actions Secrets** (repository level). No cred
 **Steps:**
 1. **Checkout** — clone the repository
 2. **Configure AWS credentials** — using GitHub secrets
-3. **S3 Sync** — `aws s3 sync code/website/html/ s3://$AWS_S3_BUCKET_WEBSITE --delete`
+3. **S3 Sync** — `aws s3 sync code/website/html/ s3://$AWS_S3_BUCKET_WEBSITE --delete` (the landing `code/website/html/` was retired in 0.42)
 4. **CloudFront Invalidation** — `aws cloudfront create-invalidation --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID --paths "/*"`
 
 ### 4.3 Frontend Pipeline (future — `frontend-deploy.yml`)
@@ -207,7 +210,7 @@ All secrets are stored in **GitHub Actions Secrets** (repository level). No cred
 
 ### 5.2 SonarQube / SonarCloud
 - **SonarCloud** is used for code quality analysis (free for open-source projects)
-- Runs on push to `master`/`develop` and on pull requests to both branches
+- Runs on push to `main`/`develop` and on pull requests to both branches
 - Uses **JaCoCo** for test coverage reports (`jacoco.xml`)
 - Quality gate is enforced: pipeline **fails** if quality gate is not passed (`-Dsonar.qualitygate.wait=true`)
 - Project key: `pathsgames-backend`
@@ -236,7 +239,8 @@ All pipelines are configured to **fail fast** on errors:
 Add to the repository `README.md`:
 ```markdown
 ![Backend CI](https://github.com/gamespaths/pathsgames/actions/workflows/backend-ci.yml/badge.svg)
-![Website Deploy](https://github.com/gamespaths/pathsgames/actions/workflows/website-deploy.yml/badge.svg)
+![Alpha Deploy - Website](https://github.com/gamespaths/pathsgames/actions/workflows/alpha-deploy-website.yml/badge.svg)
+![Alpha Deploy - Backend AWS](https://github.com/gamespaths/pathsgames/actions/workflows/alpha-deploy-backend-aws.yml/badge.svg)
 ![SonarQube](https://github.com/gamespaths/pathsgames/actions/workflows/sonarqube.yml/badge.svg)
 ```
 
@@ -245,7 +249,7 @@ Add to the repository `README.md`:
 
 ### 7.1 Branch Protection Rules (recommended)
 
-For the `master` branch on GitHub:
+For the `main` branch on GitHub:
 - ✅ Require pull request reviews before merging
 - ✅ Require status checks to pass before merging
   - Required check: `build-and-test` (from `backend-ci.yml`)
@@ -257,11 +261,11 @@ For the `master` branch on GitHub:
 
 | Event | Backend CI | Website Deploy | SonarQube |
 |-------|-----------|----------------|----------|
-| Push to `master` | ✅ Build + Test + Docker | ✅ Deploy to S3 | ✅ Full scan |
+| Push to `main` | ✅ Build + Test + Docker | ✅ Deploy to S3 | ✅ Full scan |
 | Push to `develop` | ✅ Build + Test + Docker (`:dev`) | ❌ | ✅ Full scan |
 | Push to `release/*` | ✅ Build + Test + Docker (`:rc`) | ❌ | ❌ |
 | Push to `feature/*` | ✅ Build + Test | ❌ | ❌ |
-| Pull request to `master` | ✅ Build + Test | ❌ | ✅ PR analysis |
+| Pull request to `main` | ✅ Build + Test | ❌ | ✅ PR analysis |
 | Pull request to `develop` | ✅ Build + Test | ❌ | ✅ PR analysis |
 
 
@@ -323,7 +327,7 @@ After this step, the following files are added to the repository:
 .github/
 └── workflows/
     ├── backend-ci.yml           ← Backend build, test, and Docker publish
-    ├── website-deploy.yml       ← Website S3 sync and CloudFront invalidation
+    ├── website-deploy.yml       ← Website S3 sync and CloudFront invalidation (0.42: alpha-deploy-website.yml + alpha-deploy-backend-aws.yml)
     └── sonarqube.yml            ← SonarCloud code quality and coverage analysis
 code/
 └── backend/java
@@ -336,13 +340,14 @@ code/
     > check repository files, i wanna create documentation_v0/Step08_ConfigureMinimalCI. I use GitHub and i wanna create gitHub actions. website deployed on s3 bucket and backend i wanna create jar will be deployed on dockerhub image repository. in future we'll create a react project "frontend" will be deployed on another S3 bucket  
     
     > added SonarQube workflow and updated secrets/triggers
-- **Document Version**: 0.14.1
+- **Document Version**: 0.42.0
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.8 | first version of document | March 5, 2026 |
     | 0.8.3 | added SonarQube workflow and updated secrets/triggers | March 5, 2026 |
     | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
-- **Last Updated**: March 5, 2026
+    | 0.42.0 | Main branch renamed, website workflow replaced for alpha | October 6, 2026 |
+- **Last Updated**: October 6, 2026
 - **Status**: Complete ✅
 
 

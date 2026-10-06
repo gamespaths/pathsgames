@@ -1,6 +1,6 @@
 # Step 42 — Alpha launch
 
-**Status: ANALYSED, all doubts closed (owner, October 6, 2026), ready for development.**
+**Status: DEVELOPED (0.42.0, October 6, 2026); owner steps of §9 (Terraform apply, first deploys, Robot runs) pending.**
 Roadmap line: *website infra, stack hardening, alpha scripts and workflows, react-game launch
 polish, alpha story and catalog, docs, tests, launch* ([Roadmap](./Roadmap.md) step 42).
 Developed on `develop` as `0.42.X` (the patch number may grow during the step; the owner bumps
@@ -124,12 +124,12 @@ New folder `code/scripts/alpha/`:
 
 `code/scripts/prod/aws_backend_deploy_stage.sh`:
 - in CI it must NOT pass `AdminIpWhitelist`, so `sam deploy` keeps the previous value (verify at
-  the first deploy); locally it keeps the current behaviour (optional `AWS_ADMIN_IP_WHITELIST_ALPHA`);
+  the first deploy); locally it keeps the current behaviour (optional `AWS_ALPHA_APIGW_ADMIN_IP_WHITELIST`);
 - the allow-list starts EMPTY with `AdminIpEmptyMeans=nobody` (admin closed to everybody until
   script (c) runs);
 - CI always uses `--auto-confirm` (no prompt);
-- passes the new parameters: throttles, `AlarmEmail` (`AWS_ALARM_EMAIL_ALPHA`), `CreateBudget`
-  (`true` for alpha only), `BudgetLimit` (`AWS_BUDGET_LIMIT_ALPHA`), `BudgetEmail`;
+- passes the new parameters: throttles, `AlarmEmail` (`AWS_ALPHA_SNS_ALARM_EMAIL`), `CreateBudget`
+  (`true` for alpha only), `BudgetLimit` (`AWS_ALPHA_BUDGETS_LIMIT`), `BudgetEmail`;
 - version handling stays (strips `-SNAPSHOT`, l.80; the alignment is V1 step 1).
 
 **GitHub workflows** (`.github/workflows/`): delete `website-deploy.yml`; add two:
@@ -142,9 +142,8 @@ New folder `code/scripts/alpha/`:
 Each has its own `concurrency` group (no cancel of an in-flight deploy), uses the GitHub
 Environment `alpha`, and the order between them does not matter. Credentials: the existing
 dedicated IAM user (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`); one single `AWS_REGION`
-(`us-east-1`), no new region variables. The workflow maps `S3_BUCKET_WEBSITE` →
-`AWS_S3_BUCKET_WEBSITE_ALPHA` and `CLOUDFRONT_DISTRIBUTION_ID` →
-`AWS_CLOUDFRONT_DISTRIBUTION_ID_ALPHA` so the shared script logic reads one key set.
+(`us-east-1`), no new region variables. Bucket and distribution are the secrets
+`AWS_ALPHA_S3_BUCKET_WEBSITE` and `AWS_ALPHA_CLOUDFRONT_DISTRIBUTION_ID`, the same names the scripts read.
 
 **README** `code/scripts/alpha/README.md` (written during development; **this section is its
 full content specification; the Step 42 file links to it and does not duplicate it**):
@@ -229,12 +228,12 @@ None changed. DynamoDB gains PITR and deletion protection on public stages only.
 
 ### 6.9 Local `.env` keys (the owner adds them by hand; the dev agent only updates `.env.example`)
 
-`AWS_ALARM_EMAIL_ALPHA`, `AWS_BUDGET_LIMIT_ALPHA`, `AWS_API_THROTTLE_RATE_ALPHA`,
-`AWS_API_THROTTLE_BURST_ALPHA`, `AWS_ADMIN_API_THROTTLE_RATE_ALPHA`,
-`AWS_ADMIN_API_THROTTLE_BURST_ALPHA`. `AWS_ADMIN_IP_WHITELIST_ALPHA` stays an optional local key
-for the manual script only. The existing stage keys (Step 41 §6.9: `AWS_JWT_SECRET_ALPHA`,
-`AWS_TURNSTILE_SECRET_KEY_ALPHA`, `AWS_CUSTOM_DOMAIN_ALPHA`, `AWS_DOMAIN_CERTIFICATE_ARN_ALPHA`,
-`AWS_DOMAIN_HOSTED_ZONE_ALPHA`, `AWS_CORS_ORIGINS_ALPHA`) stay. At the end of each patch the dev
+`AWS_ALPHA_SNS_ALARM_EMAIL`, `AWS_ALPHA_BUDGETS_LIMIT`, `AWS_ALPHA_APIGW_THROTTLE_RATE`,
+`AWS_ALPHA_APIGW_THROTTLE_BURST`, `AWS_ALPHA_APIGW_ADMIN_THROTTLE_RATE`,
+`AWS_ALPHA_APIGW_ADMIN_THROTTLE_BURST`. `AWS_ALPHA_APIGW_ADMIN_IP_WHITELIST` stays an optional local key
+for the manual script only. The existing stage keys (Step 41 §6.9: `AWS_ALPHA_LAMBDA_JWT_SECRET`,
+`AWS_ALPHA_LAMBDA_TURNSTILE_SECRET_KEY`, `AWS_ALPHA_APIGW_CUSTOM_DOMAIN`, `AWS_ALPHA_ACM_DOMAIN_CERTIFICATE_ARN`,
+`AWS_ALPHA_ROUTE53_DOMAIN_HOSTED_ZONE`, `AWS_ALPHA_APIGW_CORS_ORIGINS`) stay. At the end of each patch the dev
 agent gives the owner an explicit "add to `.env`: KEY=value — why" list.
 
 ### 6.10 IAM (document in the README; replace `ACCOUNT_ID` and `HOSTED_ZONE_ID`)
@@ -277,20 +276,20 @@ on the same user (the Story Lambda writes the catalog with its own role, so it i
 
 **ADD secrets**
 - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` (existing IAM user)
-- `AWS_JWT_SECRET_ALPHA` (`openssl rand -base64 48`)
-- `AWS_TURNSTILE_SECRET_KEY_ALPHA`
-- `AWS_ALARM_EMAIL_ALPHA`
-- `S3_BUCKET_WEBSITE` (`pathsgames-com`; the workflow maps it to `AWS_S3_BUCKET_WEBSITE_ALPHA`)
-- `CLOUDFRONT_DISTRIBUTION_ID` (mapped to `AWS_CLOUDFRONT_DISTRIBUTION_ID_ALPHA`)
+- `AWS_ALPHA_LAMBDA_JWT_SECRET` (`openssl rand -base64 48`)
+- `AWS_ALPHA_LAMBDA_TURNSTILE_SECRET_KEY`
+- `AWS_ALPHA_SNS_ALARM_EMAIL`
+- `AWS_ALPHA_S3_BUCKET_WEBSITE` (`pathsgames-com`)
+- `AWS_ALPHA_CLOUDFRONT_DISTRIBUTION_ID` (production distribution)
 
 **ADD variables**
 - `AWS_REGION=us-east-1`
-- `AWS_CORS_ORIGINS_ALPHA=https://paths.games,https://www.paths.games`
-- `AWS_CUSTOM_DOMAIN_ALPHA=alpha-api.paths.games`
-- `AWS_DOMAIN_CERTIFICATE_ARN_ALPHA`, `AWS_DOMAIN_HOSTED_ZONE_ALPHA`
-- `AWS_BUDGET_LIMIT_ALPHA`
-- `AWS_API_THROTTLE_RATE_ALPHA=50`, `AWS_API_THROTTLE_BURST_ALPHA=100`,
-  `AWS_ADMIN_API_THROTTLE_RATE_ALPHA=5`, `AWS_ADMIN_API_THROTTLE_BURST_ALPHA=10`
+- `AWS_ALPHA_APIGW_CORS_ORIGINS=https://paths.games,https://www.paths.games`
+- `AWS_ALPHA_APIGW_CUSTOM_DOMAIN=alpha-api.paths.games`
+- `AWS_ALPHA_ACM_DOMAIN_CERTIFICATE_ARN`, `AWS_ALPHA_ROUTE53_DOMAIN_HOSTED_ZONE`
+- `AWS_ALPHA_BUDGETS_LIMIT`
+- `AWS_ALPHA_APIGW_THROTTLE_RATE=50`, `AWS_ALPHA_APIGW_THROTTLE_BURST=100`,
+  `AWS_ALPHA_APIGW_ADMIN_THROTTLE_RATE=5`, `AWS_ALPHA_APIGW_ADMIN_THROTTLE_BURST=10`
 - `VITE_API_URL=https://alpha-api.paths.games`
 - `VITE_DEFAULT_SERVERS=[{"label":"Alpha","url":"https://alpha-api.paths.games"}]`
 - `VITE_CF_TURNSTILE_KEY`, `VITE_GTM_ID`, `VITE_ENV_BADGE=alpha`
@@ -299,8 +298,9 @@ on the same user (the Story Lambda writes the catalog with its own role, so it i
 - `VITE_RESUME_WITHOUT_MODAL`, `VITE_ADD_COMING_SOON_STORIES`, `VITE_HIDE_STORIES`, `VITE_TUTORIAL_CATEGORY`
 
 **REMOVE / do NOT create**
-- `AWS_ADMIN_IP_WHITELIST_ALPHA` in GitHub (it stays only as an optional local `.env` key for the manual script);
+- `AWS_ALPHA_APIGW_ADMIN_IP_WHITELIST` in GitHub (it stays only as an optional local `.env` key for the manual script);
 - no `AWS_REGION_WEBSITE` / `AWS_REGION_ALPHA`;
+- the old repository-level secrets `S3_BUCKET_WEBSITE` and `CLOUDFRONT_DISTRIBUTION_ID` (replaced by the `AWS_ALPHA_*` ones);
 - the old repo-level `AWS_REGION` secret becomes the environment variable above (remove the old one after the first successful run);
 - `website-deploy.yml` is deleted.
 
@@ -372,10 +372,10 @@ Data recovery: restore runbook of §3.2.
 
   | Version | Description | Date |
   |---------|-------------|------|
-  | 0.42.0 | Alpha launch analysed, all doubts closed | October 6, 2026 |
+  | 0.42.0 | Alpha launch analysed, all doubts closed; developed | October 6, 2026 |
 
 - **Last Updated**: October 6, 2026 (v0.42.0)
-- **Status**: analysed, ready for development
+- **Status**: developed; owner launch steps pending
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

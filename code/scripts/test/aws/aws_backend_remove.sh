@@ -13,50 +13,50 @@ fi
 # CLI: aws_backend_remove.sh [dev|test]
 # An explicit environment also picks its stack (pathsgames-<env>), same rule as the deploy script.
 for _arg in "$@"; do
-    AWS_ENVIRONMENT_NAME_TEST="$_arg"
-    AWS_STACK_NAME_TEST="pathsgames-$_arg"
+    AWS_TEST_SAM_ENVIRONMENT_NAME="$_arg"
+    AWS_TEST_SAM_STACK_NAME="pathsgames-$_arg"
 done
 
 # Required inputs (from environment or .env)
-# - AWS_ENVIRONMENT_NAME_TEST: environment name used by the SAM template (dev or test)
-# - AWS_STACK_NAME_TEST: CloudFormation stack name to delete
+# - AWS_TEST_SAM_ENVIRONMENT_NAME: environment name used by the SAM template (dev or test)
+# - AWS_TEST_SAM_STACK_NAME: CloudFormation stack name to delete
 # Optional:
-# - AWS_REGION_TEST: AWS region (default us-east-2; dev and test live in Ohio)
+# - AWS_TEST_REGION: AWS region (default us-east-2; dev and test live in Ohio)
 
-if [ -z "${AWS_ENVIRONMENT_NAME_TEST:-}" ] || [ -z "${AWS_STACK_NAME_TEST:-}" ]; then
-    echo "Error: AWS_ENVIRONMENT_NAME_TEST and AWS_STACK_NAME_TEST must be set in the environment or .env file."
+if [ -z "${AWS_TEST_SAM_ENVIRONMENT_NAME:-}" ] || [ -z "${AWS_TEST_SAM_STACK_NAME:-}" ]; then
+    echo "Error: AWS_TEST_SAM_ENVIRONMENT_NAME and AWS_TEST_SAM_STACK_NAME must be set in the environment or .env file."
     exit 1
 fi
 
 # Only dev and test go through here: production is never deleted by script.
-case "$AWS_ENVIRONMENT_NAME_TEST" in
+case "$AWS_TEST_SAM_ENVIRONMENT_NAME" in
     dev|test) ;;
     *)
-        echo "Error: AWS_ENVIRONMENT_NAME_TEST must be 'dev' or 'test' (got '$AWS_ENVIRONMENT_NAME_TEST')."
+        echo "Error: AWS_TEST_SAM_ENVIRONMENT_NAME must be 'dev' or 'test' (got '$AWS_TEST_SAM_ENVIRONMENT_NAME')."
         exit 1
         ;;
 esac
 
 # Stack name must end with -<env>: refuses to delete another environment's stack by mistake.
-case "$AWS_STACK_NAME_TEST" in
-    *-"$AWS_ENVIRONMENT_NAME_TEST") ;;
+case "$AWS_TEST_SAM_STACK_NAME" in
+    *-"$AWS_TEST_SAM_ENVIRONMENT_NAME") ;;
     *)
-        echo "Error: stack '$AWS_STACK_NAME_TEST' does not match environment '$AWS_ENVIRONMENT_NAME_TEST' (expected suffix -$AWS_ENVIRONMENT_NAME_TEST)."
+        echo "Error: stack '$AWS_TEST_SAM_STACK_NAME' does not match environment '$AWS_TEST_SAM_ENVIRONMENT_NAME' (expected suffix -$AWS_TEST_SAM_ENVIRONMENT_NAME)."
         exit 1
         ;;
 esac
 
-AWS_REGION_TEST="${AWS_REGION_TEST:-us-east-2}"
-if [ "$AWS_REGION_TEST" != "us-east-2" ]; then
-    echo "Error: dev and test stacks live in us-east-2 (Ohio), got AWS_REGION_TEST=$AWS_REGION_TEST."
+AWS_TEST_REGION="${AWS_TEST_REGION:-us-east-2}"
+if [ "$AWS_TEST_REGION" != "us-east-2" ]; then
+    echo "Error: dev and test stacks live in us-east-2 (Ohio), got AWS_TEST_REGION=$AWS_TEST_REGION."
     exit 1
 fi
 
-echo "Removing stack '$AWS_STACK_NAME_TEST' from region '$AWS_REGION_TEST' (Environment: $AWS_ENVIRONMENT_NAME_TEST)"
+echo "Removing stack '$AWS_TEST_SAM_STACK_NAME' from region '$AWS_TEST_REGION' (Environment: $AWS_TEST_SAM_ENVIRONMENT_NAME)"
 
-echo "Deleting CloudFormation stack '$AWS_STACK_NAME_TEST'..."
-aws cloudformation delete-stack --stack-name "$AWS_STACK_NAME_TEST" --region "$AWS_REGION_TEST"
-echo "Waiting for stack '$AWS_STACK_NAME_TEST' to be deleted..."
-aws cloudformation wait stack-delete-complete --stack-name "$AWS_STACK_NAME_TEST" --region "$AWS_REGION_TEST"
+echo "Deleting CloudFormation stack '$AWS_TEST_SAM_STACK_NAME'..."
+aws cloudformation delete-stack --stack-name "$AWS_TEST_SAM_STACK_NAME" --region "$AWS_TEST_REGION"
+echo "Waiting for stack '$AWS_TEST_SAM_STACK_NAME' to be deleted..."
+aws cloudformation wait stack-delete-complete --stack-name "$AWS_TEST_SAM_STACK_NAME" --region "$AWS_TEST_REGION"
 
-echo "CloudFormation stack '$AWS_STACK_NAME_TEST' removed successfully."
+echo "CloudFormation stack '$AWS_TEST_SAM_STACK_NAME' removed successfully."

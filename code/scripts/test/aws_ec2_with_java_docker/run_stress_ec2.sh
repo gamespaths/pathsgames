@@ -27,13 +27,13 @@ fi
 # shellcheck disable=SC1090
 . "$STATE_FILE"
 
-INSTANCE_NAME="${INSTANCE_NAME:-${INSTANCE_NAME_TEST_EC2:-api-test-server2}}"
+INSTANCE_NAME="${INSTANCE_NAME:-${AWS_TEST_EC2_INSTANCE_NAME:-api-test-server2}}"
 PUBLIC_IP="${PUBLIC_IP:-}"
 SG_ID="${SG_ID:-<sg-id>}"
 ROUTE53_RECORD_NAME="${ROUTE53_RECORD_NAME:-}"
 CLOUDFRONT_DOMAIN="${CLOUDFRONT_DOMAIN:-}"
-PUBLIC_PORT="${PUBLIC_PORT_TEST_EC2:-8042}"
-ADMIN_PORT="${ADMIN_PORT_TEST_EC2:-8044}"
+PUBLIC_PORT="${AWS_TEST_EC2_PUBLIC_PORT:-8042}"
+ADMIN_PORT="${AWS_TEST_EC2_ADMIN_PORT:-8044}"
 
 # EC2 defaults offered by run_stress.sh's questions (or taken with -y): one instance with
 # postgres beside it, so the series climbs to 1000 VU and stops by itself past the error rate.

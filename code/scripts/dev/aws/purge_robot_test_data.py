@@ -30,7 +30,7 @@ Usage
     # delete, after showing the plan
     ./purge_robot_test_data.py --table PathsGamesBackend-test
 
-    # the table name can also come from --env, or from AWS_ENVIRONMENT_NAME_TEST in .env
+    # the table name can also come from --env, or from AWS_TEST_SAM_ENVIRONMENT_NAME in .env
     ./purge_robot_test_data.py --env test
 
     # look, change nothing
@@ -89,17 +89,17 @@ def resolve_table(args):
     """The table to work on: --table, then --env, then TABLE_NAME, then the .env default."""
     if args.table:
         return args.table
-    env = args.env or os.environ.get("AWS_ENVIRONMENT_NAME_TEST")
+    env = args.env or os.environ.get("AWS_TEST_SAM_ENVIRONMENT_NAME")
     if env:
         return f"{TABLE_PREFIX}-{env}"
     if os.environ.get("TABLE_NAME"):
         return os.environ["TABLE_NAME"]
-    sys.exit("no table to work on: pass --table or --env, or set AWS_ENVIRONMENT_NAME_TEST")
+    sys.exit("no table to work on: pass --table or --env, or set AWS_TEST_SAM_ENVIRONMENT_NAME")
 
 
 def resolve_region(args):
     return (args.region
-            or os.environ.get("AWS_REGION_TEST")
+            or os.environ.get("AWS_TEST_REGION")
             or os.environ.get("AWS_DEFAULT_REGION")
             or os.environ.get("AWS_REGION")
             or "us-east-2")
@@ -241,7 +241,7 @@ def main():
                     "touched. Shows the plan and deletes; --dry prints it and stops.")
     parser.add_argument("--table", help="table name; wins over --env")
     parser.add_argument("--env", help=f"environment suffix, i.e. {TABLE_PREFIX}-<env>")
-    parser.add_argument("--region", help="AWS region (default: AWS_REGION_TEST from .env)")
+    parser.add_argument("--region", help="AWS region (default: AWS_TEST_REGION from .env)")
     parser.add_argument("--profile", help="AWS credentials profile")
     parser.add_argument("--dry", action="store_true",
                         help="print the plan only; nothing is written")

@@ -358,7 +358,7 @@ Golden Exports Import On This Target
         Should Contain    ${quest}    done    msg=${file}
         ${missions}=    Mission Statuses    ${token}    ${new}
         Should Be Equal    ${missions}[${MISSION}]    COMPLETED    msg=${file}
-        ${expected}=    Evaluate    sorted($ITEMS[str(i['itemId'])] for i in $golden['characters'][0].get('items') or [])
+        ${expected}=    Evaluate    sorted(map(lambda i, m=$ITEMS: m[str(i['itemId'])], $golden['characters'][0].get('items') or []))
         ${held}=    Inventory Item Uuids    ${token}    ${new}
         Should Be Equal    ${held}    ${expected}    msg=${file}: the inventory differs from the golden items
     END

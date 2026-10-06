@@ -66,7 +66,7 @@ AWS, through the wrapper (reads stack name/region/admin JWT/Turnstile token from
 [`run_stress_aws.sh`](#run_stress_awssh--running-against-a-deployed-stack) below):
 
 ```bash
-./run_stress_aws.sh                     # AWS_STACK_NAME_TEST from .env, asks the series parameters
+./run_stress_aws.sh                     # AWS_TEST_SAM_STACK_NAME from .env, asks the series parameters
 ./run_stress_aws.sh -y                  # same, AWS defaults (levels "10 100 1000 2000", 3 iter, 500ms think)
 ./run_stress_aws.sh -b https://api-test.paths.games -l "50" -m 20 -i 3 -w 0   # custom domain, skip the lookup
 ```
@@ -123,15 +123,15 @@ Arguments after `--` are appended to `k6 run`.
 
 Wrapper around `run_stress.sh` for a deployed AWS stack: resolves the public/admin URLs and
 forwards everything else. Reads the repo root `.env` for the stack name
-(`AWS_STACK_NAME_TEST`), region (`AWS_REGION_TEST`, default `us-east-2`), admin JWT
+(`AWS_TEST_SAM_STACK_NAME`), region (`AWS_TEST_REGION`, default `us-east-2`), admin JWT
 (`ROBOT_VAR_ADMIN_TOKEN`) and Turnstile bypass token (`TURNSTILE_BYPASS_TOKEN_ROBOT`), then
 resolves `ApiUrl` / `AdminApiUrl` via `aws cloudformation describe-stacks` (needs the AWS
 CLI, credentials, and the caller's IP in the admin whitelist).
 
 | Flag | Meaning |
 |---|---|
-| `-n STACK` | CloudFormation stack name (default `.env` `AWS_STACK_NAME_TEST`) |
-| `-r REGION` | AWS region (default `.env` `AWS_REGION_TEST`, else `us-east-2`) |
+| `-n STACK` | CloudFormation stack name (default `.env` `AWS_TEST_SAM_STACK_NAME`) |
+| `-r REGION` | AWS region (default `.env` `AWS_TEST_REGION`, else `us-east-2`) |
 | `-b URL` / `-a URL` | Public / admin base URL — skips the stack-outputs lookup |
 | `-t TOKEN` | Admin JWT (default `.env` `ROBOT_VAR_ADMIN_TOKEN`) |
 | `-k TOKEN` | Turnstile bypass token (default `.env` `TURNSTILE_BYPASS_TOKEN_ROBOT`) |

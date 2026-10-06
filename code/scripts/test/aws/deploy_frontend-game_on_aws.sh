@@ -10,8 +10,8 @@ if [ -f "$ENV_FILE" ]; then
   echo "Loaded test environment variables from $ENV_FILE"
 fi
 
-if [ -z "${AWS_S3_BUCKET_WEBSITE_TEST:-}" ]; then
-  echo "Error: AWS_S3_BUCKET_WEBSITE_TEST must be set in the environment or .env file."
+if [ -z "${AWS_TEST_S3_BUCKET_WEBSITE:-}" ]; then
+  echo "Error: AWS_TEST_S3_BUCKET_WEBSITE must be set in the environment or .env file."
   exit 1
 fi
 
@@ -26,17 +26,17 @@ echo "=== Build react-game ==="
 cd "$REACT_GAME_DIR"
 npm run build -- --mode test
 
-echo "=== Sync to s3://$AWS_S3_BUCKET_WEBSITE_TEST ==="
+echo "=== Sync to s3://$AWS_TEST_S3_BUCKET_WEBSITE ==="
 cd "$PROJECT_ROOT"
 # v0.37.6 — data/ holds the static catalog written by POST /api/admin/stories/catalog:
 # never let --delete wipe it, it is not part of the build.
-aws s3 sync "$REACT_GAME_DIR/dist/" "s3://$AWS_S3_BUCKET_WEBSITE_TEST" --delete --exclude "data/*"
+aws s3 sync "$REACT_GAME_DIR/dist/" "s3://$AWS_TEST_S3_BUCKET_WEBSITE" --delete --exclude "data/*"
 
-if [ -n "${AWS_CLOUDFRONT_DISTRIBUTION_ID_TEST:-}" ]; then
-  echo "=== Invalidate CloudFront $AWS_CLOUDFRONT_DISTRIBUTION_ID_TEST ==="
-  aws cloudfront create-invalidation --distribution-id "$AWS_CLOUDFRONT_DISTRIBUTION_ID_TEST" --paths "/*"
+if [ -n "${AWS_TEST_CLOUDFRONT_DISTRIBUTION_ID:-}" ]; then
+  echo "=== Invalidate CloudFront $AWS_TEST_CLOUDFRONT_DISTRIBUTION_ID ==="
+  aws cloudfront create-invalidation --distribution-id "$AWS_TEST_CLOUDFRONT_DISTRIBUTION_ID" --paths "/*"
 else
-  echo "AWS_CLOUDFRONT_DISTRIBUTION_ID_TEST not set — skipping invalidation."
+  echo "AWS_TEST_CLOUDFRONT_DISTRIBUTION_ID not set — skipping invalidation."
 fi
 
 echo "=== Deploy test complete: https://test.paths.games ==="

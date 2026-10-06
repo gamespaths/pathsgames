@@ -5,6 +5,10 @@
  * Step 40 — `tip` ({ label, onOpen }) adds a "tip" link right after the type label; the credits
  * stay on ONE line, cut with an ellipsis on the right (full text in the tooltip).
  */
+// Step 42 — every story is CC BY-NC-ND 4.0: the notice rides with the story credit.
+export const STORY_LICENSE = 'CC BY-NC-ND 4.0'
+export const STORY_LICENSE_URL = 'https://creativecommons.org/licenses/by-nc-nd/4.0/'
+
 export default function CardCreditsBar({ card, story, typeBadgeLabel = null, tip = null }) {
   const author   = story?.author ?? null
   const storyUrl = story?.card?.linkCopyright ?? null
@@ -21,6 +25,10 @@ export default function CardCreditsBar({ card, story, typeBadgeLabel = null, tip
         {storyUrl
           ? <a href={storyUrl} target="_blank" rel="noopener noreferrer" className="gc-credits__link" onClick={e => e.stopPropagation()}>{author}</a>
           : <span>{author}</span>}
+        {' ('}
+        <a href={STORY_LICENSE_URL} target="_blank" rel="noopener noreferrer license"
+          className="gc-credits__link credit-license" onClick={e => e.stopPropagation()}>{STORY_LICENSE}</a>
+        {')'}
       </span>
     )
   }
@@ -35,7 +43,7 @@ export default function CardCreditsBar({ card, story, typeBadgeLabel = null, tip
     )
   }
 
-  const fullText = [author && `story by ${author}`, imgName && `image by ${imgName}`]
+  const fullText = [author && `story by ${author} (${STORY_LICENSE})`, imgName && `image by ${imgName}`]
     .filter(Boolean).join(' - ')
 
   return (

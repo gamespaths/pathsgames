@@ -81,13 +81,6 @@ sed -i "s|version: str = \"${CURRENT}\"|version: str = \"${NEW}\"|" "$CONFIG_PY"
 # aggiorna i commenti >X.Y.Z se presenti
 sed -i "s|# >${CURRENT}|# >${NEW}|g" "$CONFIG_PY"
 
-# ────────────────────────────────────────────
-# 6. HTML - index.html (footer)
-# ────────────────────────────────────────────
-echo "  [6/6] index.html (website footer)"
-HTML="$ROOT/code/website/html/index.html"
-sed -i "s|<span>${CURRENT}</span>|<span>${NEW}</span>|g" "$HTML"
-
 
 # ────────────────────────────────────────────
 # 7. AWS - handler.py (versione in-code)

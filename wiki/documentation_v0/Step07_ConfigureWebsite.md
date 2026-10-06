@@ -256,6 +256,8 @@ Cookie consent is managed **in-project** with the self-hosted [vanilla-cookiecon
 
 **Behavior:** GTM loads on every visit, but Google tags write no cookies until the user accepts the **analytics** category; until then Consent Mode keeps them `denied`. The choice is stored in a first-party `pathsgames.cookiesConsent` cookie (6-month lifetime, `revision`-based re-prompt). The `necessary` table also documents the game's session cookies (`pathsgames.guestcookie`, `pathsgames.refreshToken`).
 
+> **Retired in 0.42**: the static landing `code/website/html/` (and `cookies.html`) was removed; react-game now serves `paths.games` ([Step 42](./Step42_AlphaLaunch.md)).
+
 **Cookie policy page:** the footer **Cookies Policy** link opens a dedicated [`cookies.html`](../../code/website/html/cookies.html) page with the full GDPR cookie policy (categories, legal basis, third parties/transfers, data-subject rights). A separate footer **Cookie settings** link (`#pg-cookie-settings`) reopens the consent preferences so the choice is always reversible (the same control is repeated on `cookies.html`).
 
 
@@ -279,14 +281,15 @@ Cookie consent is managed **in-project** with the self-hosted [vanilla-cookiecon
     - remove background2 image and use "background: linear-gradient(135deg, #1e0f04 0%, #5c3317 40%, #2e1508 100%);"
     - i wanna make responsive page, on tablet show only 2 location, on mobile only montains, on top bar the nav-link should be centered on new line 
     - i wanna rotate logo-dice like as it bounces on the floor
-- **Document Version**: 0.20.3
+- **Document Version**: 0.42.0
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.7 | first version of document | February 27, 2026 |
     | 0.10.12 | created social network profiles | March 18, 2026 |
     | 0.10.13 | in terraform dynamic CSP via SSM and csp_mode variable, website CookieYes modal | March 20, 2026 |
     | 0.20.3 | Self-hosted cookie consent, removed CookieYes; CSP allowlist cleanup | May 28, 2026 |
-- **Last Updated**: May 28, 2026
+    | 0.42.0 | Landing website retired, the game takes its place | October 6, 2026 |
+- **Last Updated**: October 6, 2026
 - **Status**: Complete ✅
 
 

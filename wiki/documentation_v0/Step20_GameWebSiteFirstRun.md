@@ -96,7 +96,7 @@ Cookie consent was previously handled by the third-party **CookieYes** SaaS, loa
 | [src/components/modals/CookiesModal.jsx](code/frontend/react-game/src/components/modals/CookiesModal.jsx) | Added "Cookie settings" button that opens consent preferences |
 | [package.json](code/frontend/react-game/package.json) | Added `vanilla-cookieconsent ^3.1.0` |
 
-**website** (`code/website/html/`, static, deployed via `aws s3 sync`):
+**website** (`code/website/html/`, static, deployed via `aws s3 sync`; **retired in 0.42**, the files below no longer exist):
 
 | File | Change |
 |------|--------|
@@ -131,7 +131,7 @@ The consent banner/modal is themed with the site design tokens (dark background 
 The list of cookies/storage keys shown to users is maintained in **two places** — keep them in sync:
 
 1. **react-game** — `src/consent/cookieConsent.js`, in `TRANSLATIONS.en` / `TRANSLATIONS.it` → `preferencesModal.sections[].cookieTable.body`. Necessary items go under `linkedCategory: 'necessary'`; analytics items under `linkedCategory: 'analytics'`. **Bump `REVISION`** whenever the policy changes materially so returning users are re-prompted.
-2. **website** — `code/website/html/assets/cookieconsent-config.js`, same `cookieTable.body` structure.
+2. **website** — `code/website/html/assets/cookieconsent-config.js`, same `cookieTable.body` structure (retired in 0.42 with the landing: react-game is now the only list).
 
 Currently disclosed items in the `necessary` category (react-game):
 
@@ -194,7 +194,7 @@ The only Turnstile-related cookie we set is the first-party `pathsgames.turnstil
 The cookie list shown to users lives in **two** places — edit both to keep website and game in sync:
 
 1. **react-game** — [src/consent/cookieConsent.js](code/frontend/react-game/src/consent/cookieConsent.js), in `TRANSLATIONS.en` / `TRANSLATIONS.it` → `preferencesModal.sections[].cookieTable.body`. Add/edit rows there (`{ name, description, expiration }`). Necessary cookies go under the section with `linkedCategory: 'necessary'`; analytics under `linkedCategory: 'analytics'`. **Bump `REVISION`** at the top of the file whenever the policy materially changes so returning users are re-prompted.
-2. **website** — [code/website/html/assets/cookieconsent-config.js](code/website/html/assets/cookieconsent-config.js), same `cookieTable.body` structure.
+2. **website** — `code/website/html/assets/cookieconsent-config.js`, same `cookieTable.body` structure (retired in 0.42 with the landing: react-game is now the only list).
 
 The long-form GDPR policy text is separately in the react-game `CookiesModal` (`modals.cookies.*` i18n keys) and the website `cookies.html` page.
 
@@ -848,7 +848,7 @@ the same IP boundary (no admin JWT required; the network/IP gate is the protecti
   with the IP authorizer; the `SeedEndpoint` output points at the admin API.
 
 Run scripts call cleanup on the admin endpoint: local `POST http://localhost:8044/api/dev/cleanup`;
-AWS seeds/cleans via `AdminApiUrl` (env `AWS_ADMIN_API_URL_TEST` or the stack output).
+AWS seeds/cleans via `AdminApiUrl` (env `AWS_TEST_APIGW_ADMIN_API_URL` or the stack output).
 
 **AWS Robot test-data marking, bugfix + TTL (v0.39.1):** `POST /api/auth/guest`'s `X-Test-Marker`
 header (tags the guest `robottest_…` for cleanup) was honoured only on `ENV=dev` in
@@ -1009,16 +1009,16 @@ Key variables:
 | `DOCKERHUB_IMAGE_TEST` | Image repository name (default: `pathsgames-backend`) |
 | `DOCKERHUB_IMAGE_TAG_TEST` | Image tag (default: `test`) |
 | `DOCKERHUB_TOKEN_TEST` | Docker Hub access token — used only by `build_docker_test_and_push.sh` on the local machine |
-| `EC2_KEY_NAME_TEST_EC2` | EC2 SSH key pair name |
-| `EC2_INSTANCE_TYPE_TEST_EC2` | Instance type (default: `t3.small`) |
-| `DB_PASSWORD_TEST_EC2` | PostgreSQL password injected into the backend env-file |
+| `AWS_TEST_EC2_KEY_NAME` | EC2 SSH key pair name |
+| `AWS_TEST_EC2_INSTANCE_TYPE` | Instance type (default: `t3.small`) |
+| `AWS_TEST_EC2_DB_PASSWORD` | PostgreSQL password injected into the backend env-file |
 | `JWT_SECRET` | JWT secret shared with the SAM deploy |
-| `AWS_REGION_TEST` | AWS region (reused) |
-| `AWS_ENVIRONMENT_NAME_TEST` | Value passed as `ENVIRONMENT` to the container; appears in `/api/echo/status` as the `env` field (reused from SAM deploy) |
-| `ROUTE53_RECORD_NAME_TEST_EC2` | DNS record name for the API (e.g. `api-test-server2.paths.games`) |
-| `AWS_DOMAIN_HOSTED_ZONE_TEST` | Route53 hosted zone ID (reused; leave empty to skip DNS) |
-| `ENABLE_CLOUDFRONT_TEST_EC2` | `true` to front the public API (8042) with CloudFront; default `false` |
-| `CLOUDFRONT_DOMAIN_CERTIFICATE_ARN_TEST_EC2` | ACM cert ARN — **must be in `us-east-1`** |
+| `AWS_TEST_REGION` | AWS region (reused) |
+| `AWS_TEST_SAM_ENVIRONMENT_NAME` | Value passed as `ENVIRONMENT` to the container; appears in `/api/echo/status` as the `env` field (reused from SAM deploy) |
+| `AWS_TEST_EC2_ROUTE53_RECORD_NAME` | DNS record name for the API (e.g. `api-test-server2.paths.games`) |
+| `AWS_TEST_ROUTE53_DOMAIN_HOSTED_ZONE` | Route53 hosted zone ID (reused; leave empty to skip DNS) |
+| `AWS_TEST_EC2_ENABLE_CLOUDFRONT` | `true` to front the public API (8042) with CloudFront; default `false` |
+| `AWS_TEST_EC2_CLOUDFRONT_DOMAIN_CERTIFICATE_ARN` | ACM cert ARN — **must be in `us-east-1`** |
 
 ---
 
@@ -1126,8 +1126,8 @@ Destroys all resources created by `start.sh`, reading state from `.state`:
 
 ## DNS and CloudFront
 
-`ROUTE53_RECORD_NAME_TEST_EC2` is the single user-facing hostname. Its type depends on
-`ENABLE_CLOUDFRONT_TEST_EC2`:
+`AWS_TEST_EC2_ROUTE53_RECORD_NAME` is the single user-facing hostname. Its type depends on
+`AWS_TEST_EC2_ENABLE_CLOUDFRONT`:
 
 | `ENABLE_CLOUDFRONT` | Route53 record type | Target |
 |---------------------|--------------------|--------|
@@ -1162,12 +1162,12 @@ The backend container runs with `SPRING_PROFILES_ACTIVE=test`, loading
 
 ```
 SPRING_PROFILES_ACTIVE=test
-ENVIRONMENT=<AWS_ENVIRONMENT_NAME_TEST>
+ENVIRONMENT=<AWS_TEST_SAM_ENVIRONMENT_NAME>
 DB_HOST=pathsgames-postgres
 DB_PORT=5432
-DB_NAME=<DB_NAME_TEST_EC2>
-DB_USERNAME=<DB_USERNAME_TEST_EC2>
-DB_PASSWORD=<DB_PASSWORD_TEST_EC2>
+DB_NAME=<AWS_TEST_EC2_DB_NAME>
+DB_USERNAME=<AWS_TEST_EC2_DB_USERNAME>
+DB_PASSWORD=<AWS_TEST_EC2_DB_PASSWORD>
 JWT_SECRET=<JWT_SECRET>
 ADMIN_PORT=8044
 ```
@@ -1214,7 +1214,7 @@ game:
 ```
 
 The value is overridden by the `ENVIRONMENT` environment variable, which `start.sh` /
-`redeploy.sh` derive from `AWS_ENVIRONMENT_NAME_TEST` — the same variable used by the
+`redeploy.sh` derive from `AWS_TEST_SAM_ENVIRONMENT_NAME` — the same variable used by the
 SAM deploy as its `Environment` parameter, keeping both environments in sync.
 
 **AWS Lambda** (`code/backend/aws/lambda/echo/handler.py`):
@@ -1313,15 +1313,15 @@ New root `.env` variables (suffixed `_PY`) for the Python deployment:
 | Variable | Description |
 |----------|-------------|
 | `DOCKERHUB_IMAGE_TAG_PYTHON_TEST` | Image tag (default: `test-python`) |
-| `INSTANCE_NAME_TEST_EC2_PY` | EC2 instance name tag (default: `api-test-server3`) |
-| `ROUTE53_RECORD_NAME_TEST_EC2_PY` | DNS record (default: `api-test-server3.paths.games`) |
-| `ENABLE_CLOUDFRONT_TEST_EC2_PY` | `true` to front the public API with CloudFront (default: `false`) |
+| `AWS_TEST_EC2_PY_INSTANCE_NAME` | EC2 instance name tag (default: `api-test-server3`) |
+| `AWS_TEST_EC2_PY_ROUTE53_RECORD_NAME` | DNS record (default: `api-test-server3.paths.games`) |
+| `AWS_TEST_EC2_PY_ENABLE_CLOUDFRONT` | `true` to front the public API with CloudFront (default: `false`) |
 | `SEED_ON_START_PY` | `true` to auto-seed Tutorial + Demo stories after boot (default: `true`) |
 
 Shared variables reused from other scripts (no `_PY` suffix): `DOCKERHUB_USERNAME_TEST`,
-`DOCKERHUB_IMAGE_TEST`, `DOCKERHUB_TOKEN_TEST`, `AWS_REGION_TEST`, `EC2_KEY_NAME_TEST_EC2`,
-`EC2_INSTANCE_TYPE_TEST_EC2`, `DB_*_TEST_EC2`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`,
-`AWS_DOMAIN_HOSTED_ZONE_TEST`.
+`DOCKERHUB_IMAGE_TEST`, `DOCKERHUB_TOKEN_TEST`, `AWS_TEST_REGION`, `AWS_TEST_EC2_KEY_NAME`,
+`AWS_TEST_EC2_INSTANCE_TYPE`, `DB_*_TEST_EC2`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`,
+`AWS_TEST_ROUTE53_DOMAIN_HOSTED_ZONE`.
 
 ## Python env-file keys vs Java
 
@@ -1423,7 +1423,7 @@ curl http://<EC2-IP>:8044/api/admin/matches
 
 
 
-- **Document Version**: 0.39.1
+- **Document Version**: 0.42.0
 
     | Version | Description | Date |
     |---------|-------------|------|
@@ -1443,8 +1443,9 @@ curl http://<EC2-IP>:8044/api/admin/matches
     | 0.37.3 | Turnstile refusals now logged with a reason on all 3 backends (verdict unchanged); react-game bugfix — the widget no longer unmounts once passed, so a stale token can't reach `POST /api/matches`; Retry now offered on `TURNSTILE_VALIDATION_FAILED`; `20_website/turnstile.robot` is mode-aware (`CF_TURNSTILE_TOKEN` set = enforced), `aws_backend_deploy.sh` bypass-token selection reworked. | September 10, 2026 |
     | 0.38.1 | EC2 test scripts: standard tags moved to shared `aws_ec2_tags.txt` (replacing hardcoded `env`/`createdBy`/`project`); new `run_stress_ec2.sh` wrapper added to both `aws_ec2_with_java_docker/` and `aws_ec2_with_python_docker/` for k6 stress runs against the EC2 instances. | September 19, 2026 |
     | 0.39.1 | AWS-only bugfix: `X-Test-Marker` now honoured on `ENV=test` too (was `dev`-only), fixing ~416 untracked Robot guests/run; new DynamoDB `ttl` on robot-tagged guests/matches (`ROBOT_TEST_DATA_TTL_HOURS`, dev/test only) so `/api/dev/cleanup` can leave expiry to DynamoDB instead of a paid delete. | September 24, 2026 |
+    | 0.42.0 | Landing website retired, its cookie list removed | October 6, 2026 |
 
-- **Last Updated**: September 24, 2026
+- **Last Updated**: October 6, 2026
 - **Status**: Complete
 
 # &lt; Paths Games /&gt;

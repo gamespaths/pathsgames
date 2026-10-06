@@ -41,6 +41,26 @@ resource "aws_cloudfront_origin_access_control" "website" {
 }
 
 # ==================================================
+# CloudFront Function – 301 from the old domain (v0.42.0)
+# ==================================================
+# pathsgames.com and www.pathsgames.com → https://<redirect_target_host>, path and query kept.
+# Empty redirect_target_host (test) = no function, nothing associated. Test: node --test functions/redirect.test.mjs
+
+resource "aws_cloudfront_function" "redirect" {
+  count = var.redirect_target_host == "" ? 0 : 1
+
+  name    = "${local.name_prefix}-redirect-old-domain"
+  runtime = "cloudfront-js-2.0"
+  comment = "301 ${var.second_domain_name} to https://${var.redirect_target_host}"
+  publish = true
+
+  code = templatefile("${path.module}/functions/redirect.js", {
+    target_host = var.redirect_target_host
+    old_domain  = var.second_domain_name
+  })
+}
+
+# ==================================================
 # CloudFront Distribution
 # ==================================================
 
@@ -72,6 +92,15 @@ resource "aws_cloudfront_distribution" "website" {
 
     # Security headers policy
     response_headers_policy_id = aws_cloudfront_response_headers_policy.security.id
+
+    # v0.42.0 — old-domain redirect, only where redirect_target_host is set
+    dynamic "function_association" {
+      for_each = aws_cloudfront_function.redirect
+      content {
+        event_type   = "viewer-request"
+        function_arn = function_association.value.arn
+      }
+    }
   }
 
   # SPA fallback – serve index.html for 404s

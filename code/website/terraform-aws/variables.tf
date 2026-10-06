@@ -78,3 +78,9 @@ variable "csp_extra_domains" {
   type        = map(list(string))
   default     = {}
 }
+
+variable "redirect_target_host" {
+  description = "v0.42.0 - host the old domain (second_domain_name and its www) is 301-redirected to by a CloudFront Function; empty = no function"
+  type        = string
+  default     = ""
+}

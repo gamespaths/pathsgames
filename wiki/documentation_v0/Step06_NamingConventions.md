@@ -566,7 +566,7 @@ Branches follow a tiered naming scheme established in Step 02:
 
 | Branch | Owner | Purpose |
 |---|---|---|
-| `master` | CI/CD | Production deployments |
+| `main` | CI/CD | Production deployments |
 | `developer` | DevTeam / Agent | Main integration branch |
 | `feature/{kebab-name}` | DevTeam / Agent | New feature work |
 | `release/{semver}` | CI | Release candidates (e.g., `release/1.0.0`) |
@@ -637,13 +637,14 @@ JWT_SECRET=...
     > hi, read all files into documentation_v0 and complete the step06 file with naming convention you find in others documents and complete with your suggestions  
     
     > add api and websocket endpoint the software versione "v1" / "v2" / "v1beta1"..., change reference table from italian language to english language (example "lista" to "list")
-- **Document Version**: 0.14.1
+- **Document Version**: 0.42.0
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.6 | first version of document | February 26, 2026 |
     | 0.6.1 | added API versioning (v1/v2/v1beta1), renamed tables to list_, gaming_, match_, ... | February 26, 2026 |
     | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
-- **Last Updated**: April 09, 2026
+    | 0.42.0 | Production branch is now called main | October 6, 2026 |
+- **Last Updated**: October 6, 2026
 - **Status**: Complete ✅
 
 

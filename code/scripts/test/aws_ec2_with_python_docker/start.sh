@@ -56,42 +56,42 @@ else
 fi
 
 # ── Config — bound from the ROOT .env ────────────────────────────────────────
-AWS_REGION="${AWS_REGION_TEST:-us-east-2}"
-EC2_KEY_NAME="${EC2_KEY_NAME_TEST_EC2:-paths-games-ohio}"
-EC2_INSTANCE_TYPE="${EC2_INSTANCE_TYPE_TEST_EC2:-t3.small}"
+AWS_REGION="${AWS_TEST_REGION:-us-east-2}"
+EC2_KEY_NAME="${AWS_TEST_EC2_KEY_NAME:-paths-games-ohio}"
+EC2_INSTANCE_TYPE="${AWS_TEST_EC2_INSTANCE_TYPE:-t3.small}"
 # Docker Hub image pulled on the instance (public repo → no login needed on EC2).
 # Build & push it with code/scripts/test/build_docker_python_test_and_push.sh
 DOCKERHUB_USERNAME="${DOCKERHUB_USERNAME_TEST:?DOCKERHUB_USERNAME_TEST must be set in the root .env}"
 DOCKERHUB_IMAGE="${DOCKERHUB_IMAGE_TEST:-pathsgames-backend}"
 IMAGE_TAG="${DOCKERHUB_IMAGE_TAG_PYTHON_TEST:-test-python}"
 BACKEND_IMAGE="${DOCKERHUB_USERNAME}/${DOCKERHUB_IMAGE}:${IMAGE_TAG}"
-DB_NAME="${DB_NAME_TEST_EC2:-pathsgames}"
-DB_USERNAME="${DB_USERNAME_TEST_EC2:-pathsgames}"
-DB_PASSWORD="${DB_PASSWORD_TEST_EC2:?DB_PASSWORD_TEST_EC2 must be set in the root .env}"
+DB_NAME="${AWS_TEST_EC2_DB_NAME:-pathsgames}"
+DB_USERNAME="${AWS_TEST_EC2_DB_USERNAME:-pathsgames}"
+DB_PASSWORD="${AWS_TEST_EC2_DB_PASSWORD:?AWS_TEST_EC2_DB_PASSWORD must be set in the root .env}"
 JWT_SECRET="${JWT_SECRET:?JWT_SECRET must be set in the root .env}"
 # Deployment environment reported by /api/echo/status. For the Python backend ANY
 # value other than "development" selects PostgreSQL (see app/adapters/persistence/database.py).
-SERVER_ENVIRONMENT="${AWS_ENVIRONMENT_NAME_TEST:-test}"
+SERVER_ENVIRONMENT="${AWS_TEST_SAM_ENVIRONMENT_NAME:-test}"
 # Seed the Tutorial + Demo stories after boot (true|false)
 SEED_ON_START="${SEED_ON_START_PY:-true}"
 # Host ports published by the backend container
-PUBLIC_PORT="${PUBLIC_PORT_TEST_EC2:-8042}"   # public API — open to all
-ADMIN_PORT="${ADMIN_PORT_TEST_EC2:-8044}"     # admin API  — owner IP only
+PUBLIC_PORT="${AWS_TEST_EC2_PUBLIC_PORT:-8042}"   # public API — open to all
+ADMIN_PORT="${AWS_TEST_EC2_ADMIN_PORT:-8044}"     # admin API  — owner IP only
 # Public API source CIDRs (default: everyone)
-PUBLIC_CIDRS="${PUBLIC_CIDRS_TEST_EC2:-0.0.0.0/0}"
+PUBLIC_CIDRS="${AWS_TEST_EC2_PUBLIC_CIDRS:-0.0.0.0/0}"
 # Extra source CIDRs allowed on the admin port (comma OR space separated, optional).
 # The current public IP is ALWAYS added automatically.
-ADMIN_EXTRA_CIDRS="${ADMIN_EXTRA_CIDRS_TEST_EC2:-}"
-# Route53 (optional — leave AWS_DOMAIN_HOSTED_ZONE_TEST empty to skip DNS)
-ROUTE53_HOSTED_ZONE_ID="${AWS_DOMAIN_HOSTED_ZONE_TEST:-}"
-ROUTE53_RECORD_NAME="${ROUTE53_RECORD_NAME_TEST_EC2_PY:-api-test-server3.paths.games}"
-EC2_KEY_PATH=${EC2_KEY_PATH_TEST_EC2:-~/.ssh/${EC2_KEY_NAME}.pem}
+ADMIN_EXTRA_CIDRS="${AWS_TEST_EC2_ADMIN_EXTRA_CIDRS:-}"
+# Route53 (optional — leave AWS_TEST_ROUTE53_DOMAIN_HOSTED_ZONE empty to skip DNS)
+ROUTE53_HOSTED_ZONE_ID="${AWS_TEST_ROUTE53_DOMAIN_HOSTED_ZONE:-}"
+ROUTE53_RECORD_NAME="${AWS_TEST_EC2_PY_ROUTE53_RECORD_NAME:-api-test-server3.paths.games}"
+EC2_KEY_PATH=${AWS_TEST_EC2_KEY_PATH:-~/.ssh/${EC2_KEY_NAME}.pem}
 
 # CloudFront — optional HTTPS front for the PUBLIC API (8042) ONLY.
 # Admin (8044) stays SG-locked to your IP; reach it over SSH tunnel.
-ENABLE_CLOUDFRONT="${ENABLE_CLOUDFRONT_TEST_EC2_PY:-false}"
-ACM_CERT_ARN="${CLOUDFRONT_DOMAIN_CERTIFICATE_ARN_TEST_EC2_PY:-}"     # MUST be a us-east-1 cert covering ROUTE53_RECORD_NAME
-CLOUDFRONT_PRICE_CLASS="${CLOUDFRONT_PRICE_CLASS_TEST_EC2_PY:-PriceClass_100}"
+ENABLE_CLOUDFRONT="${AWS_TEST_EC2_PY_ENABLE_CLOUDFRONT:-false}"
+ACM_CERT_ARN="${AWS_TEST_EC2_PY_CLOUDFRONT_DOMAIN_CERTIFICATE_ARN:-}"     # MUST be a us-east-1 cert covering ROUTE53_RECORD_NAME
+CLOUDFRONT_PRICE_CLASS="${AWS_TEST_EC2_PY_CLOUDFRONT_PRICE_CLASS:-PriceClass_100}"
 # AWS-managed policies: CachingDisabled + AllViewer (stable global IDs)
 CF_CACHE_POLICY_ID="4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
 CF_ORIGIN_REQ_POLICY_ID="216adef6-5c7f-47e4-b989-5492eafa07d3"
@@ -104,7 +104,7 @@ if [ "$ENABLE_CLOUDFRONT" = "true" ]; then
 fi
 
 # Fixed names — idempotent (not timestamp-based)
-INSTANCE_NAME=${INSTANCE_NAME_TEST_EC2_PY:-"api-test-server3"}
+INSTANCE_NAME=${AWS_TEST_EC2_PY_INSTANCE_NAME:-"api-test-server3"}
 SG_NAME="${INSTANCE_NAME}-sg"
 
 # Tags applied to every taggable resource we create (SG, instance, volume, CloudFront).
@@ -329,9 +329,9 @@ DB_NAME=${DB_NAME}
 DB_USER=${DB_USERNAME}
 DB_PASSWORD=${DB_PASSWORD}
 JWT_SECRET=${JWT_SECRET}
-RATE_LIMIT_GUEST_PER_IP=${AWS_RATE_LIMIT_GUEST_PER_IP_TEST:-0}
-RATE_LIMIT_MATCH_PER_IP=${AWS_RATE_LIMIT_MATCH_PER_IP_TEST:-0}
-RATE_LIMIT_MATCH_PER_GUEST=${AWS_RATE_LIMIT_MATCH_PER_GUEST_TEST:-0}
+RATE_LIMIT_GUEST_PER_IP=${AWS_TEST_LAMBDA_RATE_LIMIT_GUEST_PER_IP:-0}
+RATE_LIMIT_MATCH_PER_IP=${AWS_TEST_LAMBDA_RATE_LIMIT_MATCH_PER_IP:-0}
+RATE_LIMIT_MATCH_PER_GUEST=${AWS_TEST_LAMBDA_RATE_LIMIT_MATCH_PER_GUEST:-0}
 CORS_ALLOWED_ORIGINS=*
 DEV_TEST_ENDPOINTS_ENABLED=true
 ENVEOF

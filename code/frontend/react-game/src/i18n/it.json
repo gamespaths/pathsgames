@@ -49,6 +49,7 @@
     "singlePlayer": "Bloccato",
     "singleDesc": "Intraprendi un viaggio in solitaria attraverso le nostre storie immersive. Compi scelte, affronta sfide e plasma il tuo destino in un mondo di infinite possibilità.<br /><br /><p align='center'>Modalità multigiocatore in arrivo!</p>",
     "multiplayer": "Multigiocatore",
+    "multiplayerDesc": "Unisci le forze con gli amici o sfida altri giocatori in avvincenti avventure multigiocatore. Collabora, studia una strategia e vivi l'emozione di una storia condivisa.",
     "competitive": "Competitivo",
     "guest": "Ospite",
     "guestLock": "Bloccato",
@@ -90,8 +91,11 @@
     "freeToPlay": "Gioca Gratis",
     "freeToPlayDesc": "Paths Games è gratuito: nessun costo, nessun account richiesto. Inizia subito a giocare.",
     "selectTitle": "Seleziona",
+    "bonuses": "Bonus",
+    "statistics": "Statistiche del personaggio",
     "stats": {
       "title": "Bonus",
+      "statisticsDesc": "Questi sono i bonus che la selezione attuale di classe, personaggio e tratti ti darà all'inizio dell'avventura. Influenzeranno le tue statistiche e le tue abilità nel gioco. <br > <br > <p align='center'>Cambia la selezione per vedere bonus diversi.</p>",
       "lifeMax": "Vita",
       "energyMax": "Energia",
       "sadMax": "Tristezza",
@@ -279,8 +283,14 @@
     "closeBook": "Chiudi il libro della partita",
     "closePrompt": "Hai chiuso il libro del gioco senza concluderla, puoi riprendere dal punto in cui ti sei fermato quando vuoi entrando nella lista delle tue partite cliccando nell'icona del tuo utente.",
     "endGame": "Termina Partita",
+    "endGameShort": "Finale",
+    "endGameComplete": "Completata",
     "endGameTitle": "Avventura Conclusa",
     "endGameClose": "Chiudi",
+    "endGameCard": {
+      "title": "Avventura Conclusa",
+      "description": "La tua avventura è giunta al termine. Grazie per aver giocato! Speriamo che la storia e il viaggio ti siano piaciuti. Resta sintonizzato per nuove avventure e nuove funzionalità in arrivo!"
+    },
     "turn": {
       "title": "Ordine dei turni",
       "status": "Stato",
@@ -375,6 +385,7 @@
       "action": "Muovi",
       "cost": "Costo",
       "noEnergy": "Energia",
+      "notNeighbor": "Non confinante",
       "moveCost": "Movimento",
       "blocked": "Bloccato",
       "blockedFull": "Ora non puoi andare lì.",
@@ -604,7 +615,7 @@
       "transfersTitle": "6. Trasferimenti internazionali dei dati",
       "transfersBody": "Alcuni fornitori (come Google) potrebbero trattare i dati al di fuori dello Spazio Economico Europeo, anche negli Stati Uniti. Tali trasferimenti sono protetti dalle Clausole Contrattuali Standard della Commissione Europea o da garanzie equivalenti.",
       "retentionTitle": "7. Conservazione dei dati",
-      "retentionBody": "I cookie di sessione durano fino a 7 giorni (token di refresh) e 30 giorni (identificativo ospite); la tua scelta sui cookie è conservata per 6 mesi; i dati analytics sono conservati fino a 2 anni. I dati ospite anonimi vengono rimossi dopo un'inattività prolungata.",
+      "retentionBody": "I cookie di sessione durano fino a 7 giorni (token di refresh) e 30 giorni (identificativo ospite); la tua scelta sui cookie è conservata per 6 mesi; i dati analytics sono conservati fino a 2 anni. Il profilo ospite anonimo che ha giocato almeno una partita viene conservato, così puoi riprendere le tue avventure; il profilo ospite che non ha mai iniziato una partita viene cancellato dopo 60 giorni senza accessi. I log dei nostri server sono conservati per 14 giorni e i contatori anti-abuso legati al tuo indirizzo IP vengono cancellati automaticamente dopo breve tempo.",
       "rightsTitle": "8. I tuoi diritti",
       "rightsBody": "Se ti trovi nell'UE/SEE puoi accedere, rettificare, cancellare, limitare o portare i tuoi dati, opporti al trattamento e revocare il consenso in qualsiasi momento, e puoi presentare reclamo all'autorità di controllo competente. Se sei residente in California hai il diritto di conoscere, cancellare e correggere i tuoi dati e di opporti alla vendita o condivisione (noi non vendiamo né condividiamo), senza discriminazioni per l'esercizio dei tuoi diritti. Poiché il gioco è anonimo, potremmo non essere in grado di identificare i tuoi dati senza ulteriori informazioni da parte tua.",
       "childrenTitle": "9. Minori",
@@ -613,7 +624,7 @@
       "securityBody": "Adottiamo misure come HTTPS/TLS, cookie di sessione HttpOnly e controlli di accesso per proteggere i dati. Nessun metodo di trasmissione o archiviazione è completamente sicuro e il gioco è attualmente in fase di sviluppo alpha.",
       "changesTitle": "11. Modifiche a questa informativa",
       "changesBody": "Potremmo aggiornare questa informativa con l'evoluzione del gioco; le modifiche rilevanti saranno indicate dalla data di 'ultimo aggiornamento' qui sotto e, ove richiesto, da una nuova richiesta di consenso.",
-      "updated": "Ultimo aggiornamento: Giugno 2026"
+      "updated": "Ultimo aggiornamento: Ottobre 2026"
     },
     "terms": {
       "title": "Termini di Servizio",
@@ -718,9 +729,9 @@
     "difficulty": "La difficoltà decide con quanta energia, vita e tempo inizi."
   },
   "envBadge": {
-    "dev": "Locale version",
-    "test": "Test version",
-    "alpha": "Alpha version",
-    "beta": "Beta version"
+    "dev": "Versione locale",
+    "test": "Versione di test",
+    "alpha": "Versione alpha",
+    "beta": "Versione beta"
   }
 }

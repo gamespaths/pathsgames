@@ -12,7 +12,7 @@ const TRANSLATIONS = {
       description:
         'We use cookies that are strictly necessary to keep your game session active, and — only with your consent — analytics cookies to understand how the game is used.',
       acceptAllBtn: 'Accept all',
-      //acceptNecessaryBtn: 'Reject all',
+      acceptNecessaryBtn: 'Reject all',
       showPreferencesBtn: 'Manage preferences',
     },
     preferencesModal: {

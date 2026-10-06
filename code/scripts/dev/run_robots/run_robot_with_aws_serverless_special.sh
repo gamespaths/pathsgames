@@ -2,8 +2,8 @@
 # run_robot_with_aws_serverless_special.sh - v0.41.4 the rate-limit Robot tests on the deployed AWS test stack:
 # the limits are switched on in the Auth/Match Lambda env for the run, the saved env is always put back.
 #
-# Reads the root .env like run_robot_with_aws_serverless.sh (AWS_ENVIRONMENT_NAME_TEST, AWS_REGION_TEST,
-# AWS_CUSTOM_DOMAIN_TEST, AWS_ADMIN_API_URL_TEST, AWS_STACK_NAME_TEST). Reports in reports-aws-limited/.
+# Reads the root .env like run_robot_with_aws_serverless.sh (AWS_TEST_SAM_ENVIRONMENT_NAME, AWS_TEST_REGION,
+# AWS_TEST_APIGW_CUSTOM_DOMAIN, AWS_TEST_APIGW_ADMIN_API_URL, AWS_TEST_SAM_STACK_NAME). Reports in reports-aws-limited/.
 # While it runs (about 1-2 minutes) the limits apply to everybody using the test stack.
 set -uo pipefail
 
@@ -22,10 +22,10 @@ MATCH_PER_IP=5
 MATCH_PER_GUEST=3
 WINDOW_SECONDS=180
 
-ENV_NAME="${AWS_ENVIRONMENT_NAME_TEST:-}"
-REGION="${AWS_REGION_TEST:-us-east-2}"
-if [ -z "$ENV_NAME" ] || [ -z "${AWS_STACK_NAME_TEST:-}" ]; then
-    echo "Error: AWS_ENVIRONMENT_NAME_TEST and AWS_STACK_NAME_TEST must be set in the environment or .env file." >&2
+ENV_NAME="${AWS_TEST_SAM_ENVIRONMENT_NAME:-}"
+REGION="${AWS_TEST_REGION:-us-east-2}"
+if [ -z "$ENV_NAME" ] || [ -z "${AWS_TEST_SAM_STACK_NAME:-}" ]; then
+    echo "Error: AWS_TEST_SAM_ENVIRONMENT_NAME and AWS_TEST_SAM_STACK_NAME must be set in the environment or .env file." >&2
     exit 1
 fi
 command -v aws > /dev/null || { echo "Error: the aws CLI is not installed." >&2; exit 1; }
@@ -33,15 +33,15 @@ FUNCTIONS=("pathsgames-$ENV_NAME-AuthFunction" "pathsgames-$ENV_NAME-MatchFuncti
 BACKUP_DIR="$PROJECT_ROOT/code/scripts/dev/run_robot_results/aws_special_env_backup"
 mkdir -p "$BACKUP_DIR"
 
-API_URL="https://${AWS_CUSTOM_DOMAIN_TEST:-}"
-ADMIN_API_URL="${AWS_ADMIN_API_URL_TEST:-}"
+API_URL="https://${AWS_TEST_APIGW_CUSTOM_DOMAIN:-}"
+ADMIN_API_URL="${AWS_TEST_APIGW_ADMIN_API_URL:-}"
 if [ -z "$ADMIN_API_URL" ]; then
-    ADMIN_API_URL=$(aws cloudformation describe-stacks --stack-name "$AWS_STACK_NAME_TEST" --region "$REGION" \
+    ADMIN_API_URL=$(aws cloudformation describe-stacks --stack-name "$AWS_TEST_SAM_STACK_NAME" --region "$REGION" \
         --query "Stacks[0].Outputs[?OutputKey=='AdminApiUrl'].OutputValue" --output text 2> /dev/null || echo "")
 fi
 ADMIN_API_URL="${ADMIN_API_URL%/}"
 if [ "$API_URL" = "https://" ] || [ -z "$ADMIN_API_URL" ] || [ "$ADMIN_API_URL" = "None" ]; then
-    echo "Error: API URL ($API_URL) or admin API URL ($ADMIN_API_URL) unknown, see AWS_CUSTOM_DOMAIN_TEST / AWS_ADMIN_API_URL_TEST." >&2
+    echo "Error: API URL ($API_URL) or admin API URL ($ADMIN_API_URL) unknown, see AWS_TEST_APIGW_CUSTOM_DOMAIN / AWS_TEST_APIGW_ADMIN_API_URL." >&2
     exit 1
 fi
 

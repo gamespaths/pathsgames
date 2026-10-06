@@ -13,16 +13,16 @@ if [ -f "$ENV_FILE" ]; then
     # shellcheck disable=SC1090
     . "$ENV_FILE"
 fi
-if [ -z "${AWS_REGION_TEST:-}" ]; then
-    echo "Error: AWS_REGION_TEST must be set in the environment or .env file."
+if [ -z "${AWS_TEST_REGION:-}" ]; then
+    echo "Error: AWS_TEST_REGION must be set in the environment or .env file."
     exit 1
 fi
 
-if [ -z "${AWS_STACK_NAME_TEST:-}" ]; then
-    echo "Error: AWS_STACK_NAME_TEST must be set in the environment or .env file."
+if [ -z "${AWS_TEST_SAM_STACK_NAME:-}" ]; then
+    echo "Error: AWS_TEST_SAM_STACK_NAME must be set in the environment or .env file."
     exit 1
 fi  
-API_URL=$(aws cloudformation describe-stacks --region "$AWS_REGION_TEST" --stack-name "$AWS_STACK_NAME_TEST" --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)
+API_URL=$(aws cloudformation describe-stacks --region "$AWS_TEST_REGION" --stack-name "$AWS_TEST_SAM_STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)
 if [ -z "$API_URL" ]; then
     echo "Error: ApiUrl output not found in CloudFormation stack."
     exit 1

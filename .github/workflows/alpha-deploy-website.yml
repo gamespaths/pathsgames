@@ -1,0 +1,83 @@
+# v0.42.0 — Step 42: tests, builds and publishes react-game on the production site paths.games (alpha stage).
+# Setup (GitHub Environment "alpha", IAM, first deploy): code/scripts/alpha/README.md.
+name: Alpha Deploy - Website
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'code/frontend/react-game/**'
+  workflow_dispatch:
+
+# One website deploy at a time; an in-flight deploy is never cancelled.
+concurrency:
+  group: alpha-deploy-website
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Test and deploy react-game (alpha)
+    runs-on: ubuntu-latest
+    environment: alpha
+    defaults:
+      run:
+        working-directory: code/frontend/react-game
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: code/frontend/react-game/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests (gate)
+        run: npx vitest run
+
+      # Only non-empty variables are written: a missing one makes the deploy script refuse to build.
+      - name: Write .env.alpha from the alpha variables
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_DEFAULT_SERVERS: ${{ vars.VITE_DEFAULT_SERVERS }}
+          VITE_CF_TURNSTILE_KEY: ${{ vars.VITE_CF_TURNSTILE_KEY }}
+          VITE_GTM_ID: ${{ vars.VITE_GTM_ID }}
+          VITE_ENV_BADGE: ${{ vars.VITE_ENV_BADGE }}
+          VITE_MATCH_START_DELAY: ${{ vars.VITE_MATCH_START_DELAY }}
+          VITE_TURNSTILE_DELAY_BEFORE_START: ${{ vars.VITE_TURNSTILE_DELAY_BEFORE_START }}
+          VITE_TURNSTILE_PASS_TTL_MINUTES: ${{ vars.VITE_TURNSTILE_PASS_TTL_MINUTES }}
+          VITE_TURNSTILE_APPEARANCE_HOME: ${{ vars.VITE_TURNSTILE_APPEARANCE_HOME }}
+          VITE_TURNSTILE_APPEARANCE_START: ${{ vars.VITE_TURNSTILE_APPEARANCE_START }}
+          VITE_TURNSTILE_APPEARANCE_GUEST: ${{ vars.VITE_TURNSTILE_APPEARANCE_GUEST }}
+          VITE_RESUME_WITHOUT_MODAL: ${{ vars.VITE_RESUME_WITHOUT_MODAL }}
+          VITE_ADD_COMING_SOON_STORIES: ${{ vars.VITE_ADD_COMING_SOON_STORIES }}
+          VITE_HIDE_STORIES: ${{ vars.VITE_HIDE_STORIES }}
+          VITE_TUTORIAL_CATEGORY: ${{ vars.VITE_TUTORIAL_CATEGORY }}
+        run: |
+          : > .env.alpha
+          for key in $(sed -n 's/^\(VITE_[A-Za-z0-9_]*\)=.*/\1/p' .env.example | sort -u); do
+            value="${!key:-}"
+            if [ -n "$value" ]; then printf "%s='%s'\n" "$key" "$value" >> .env.alpha; fi
+          done
+          ../../scripts/alpha/deploy_website.sh --check-only
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Build and deploy (two-pass sync, data/* untouched, invalidation)
+        env:
+          AWS_ALPHA_S3_BUCKET_WEBSITE: ${{ secrets.AWS_ALPHA_S3_BUCKET_WEBSITE }}
+          AWS_ALPHA_CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.AWS_ALPHA_CLOUDFRONT_DISTRIBUTION_ID }}
+        run: ../../scripts/alpha/deploy_website.sh

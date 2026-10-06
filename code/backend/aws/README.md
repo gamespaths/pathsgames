@@ -391,7 +391,7 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
   only saves cost the rest of the time.
 - New template parameter `RobotTestDataTtlHours` (default `"0"`, i.e. disabled unless overridden)
   passed to `AuthModule`/`MatchModule` as `ROBOT_TEST_DATA_TTL_HOURS`.
-  `code/scripts/test/aws/aws_backend_deploy.sh` passes `AWS_ROBOT_TEST_DATA_TTL_HOURS_TEST`
+  `code/scripts/test/aws/aws_backend_deploy.sh` passes `AWS_TEST_DYNAMODB_ROBOT_TEST_DATA_TTL_HOURS`
   (default `1`); `samconfig.toml`'s `dev`/`test`/`prod` config-envs don't override it, so a plain
   `sam deploy --config-env ...` leaves it disabled.
 
@@ -429,7 +429,7 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 - **Root-stack `Name` tag** (follow-up): the root stack has no `Tags` property in the template,
   so it had no `Name` tag until now; `samconfig.toml` stack-level `tags` gain a leading
   `Name=pathsgames-<env>` in every config-env, and `aws_backend_deploy.sh`'s `--tags` gain
-  `Name=$AWS_STACK_NAME_TEST`. Resource-level `Name` in the template still overrides it for
+  `Name=$AWS_TEST_SAM_STACK_NAME`. Resource-level `Name` in the template still overrides it for
   every other resource.
 - No API contract or DynamoDB item-shape change.
 

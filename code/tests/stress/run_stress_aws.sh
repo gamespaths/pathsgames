@@ -23,8 +23,8 @@ export DEF_THINK_MS="${DEF_THINK_MS:-500}"
 export DEF_MAX_ERR="${DEF_MAX_ERR:-0.05}"
 export DEF_MAX_DURATION="${DEF_MAX_DURATION:-10m}"
 
-STACK="${AWS_STACK_NAME_TEST:-}"
-REGION="${AWS_REGION_TEST:-us-east-2}"
+STACK="${AWS_TEST_SAM_STACK_NAME:-}"
+REGION="${AWS_TEST_REGION:-us-east-2}"
 BASE_URL=""
 ADMIN_BASE_URL=""
 ADMIN_TOKEN="${ADMIN_TOKEN:-${ROBOT_VAR_ADMIN_TOKEN:-}}"
@@ -33,8 +33,8 @@ TURNSTILE_TOKEN="${TURNSTILE_TOKEN:-${TURNSTILE_BYPASS_TOKEN_ROBOT:-}}"
 usage() {
   cat <<USAGE
 Usage: $(basename "$0") [options] [run_stress.sh options] [-- extra k6 args]
-  -n STACK   CloudFormation stack name      (default .env AWS_STACK_NAME_TEST: ${STACK:-<unset>})
-  -r REGION  AWS region of the stack        (default .env AWS_REGION_TEST: $REGION)
+  -n STACK   CloudFormation stack name      (default .env AWS_TEST_SAM_STACK_NAME: ${STACK:-<unset>})
+  -r REGION  AWS region of the stack        (default .env AWS_TEST_REGION: $REGION)
   -b URL     public base URL   — skips the ApiUrl lookup
   -a URL     admin base URL    — skips the AdminApiUrl lookup
   -t TOKEN   admin JWT                      (default .env ROBOT_VAR_ADMIN_TOKEN)
@@ -78,7 +78,7 @@ stack_output() {
 
 if [[ -z "$BASE_URL" || -z "$ADMIN_BASE_URL" ]]; then
   if [[ -z "$STACK" ]]; then
-    echo "!! no stack name: set AWS_STACK_NAME_TEST in $ENV_FILE or pass -n STACK (or both -b and -a)" >&2
+    echo "!! no stack name: set AWS_TEST_SAM_STACK_NAME in $ENV_FILE or pass -n STACK (or both -b and -a)" >&2
     exit 2
   fi
   if ! command -v aws >/dev/null 2>&1; then
@@ -119,11 +119,11 @@ keep_data() {
   done
   return 1
 }
-PURGE_ENV="${PURGE_ENV:-${AWS_ENVIRONMENT_NAME_TEST:-}}"
+PURGE_ENV="${PURGE_ENV:-${AWS_TEST_SAM_ENVIRONMENT_NAME:-}}"
 if keep_data; then
   echo "== Data kept (-c no): skipping purge_robot_test_data.sh"
 elif [[ -z "$PURGE_ENV" ]]; then
-  echo "   warning: AWS_ENVIRONMENT_NAME_TEST unset, skipping purge_robot_test_data.sh (run it by hand with --table)" >&2
+  echo "   warning: AWS_TEST_SAM_ENVIRONMENT_NAME unset, skipping purge_robot_test_data.sh (run it by hand with --table)" >&2
 else
   echo "== Sweeping leftovers from DynamoDB (purge_robot_test_data.sh --env $PURGE_ENV --orphans)"
   "$PROJECT_ROOT/code/scripts/dev/aws/purge_robot_test_data.sh" --env "$PURGE_ENV" --region "$REGION" --orphans \

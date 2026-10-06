@@ -7,8 +7,8 @@ full CI pipeline. This file documents two things:
    (not in `dev/`), and the buildx/BuildKit disk-usage fix applied to them.
 2. **Part 2** — every script and folder under `code/scripts/dev/` itself.
 
-`code/scripts/` also has a `prod/` sibling (`deploy_website_on_aws.sh`, production website
-deploy — not covered here) and the rest of `test/` (AWS SAM deploy, EC2 lifecycle — covered
+`code/scripts/` also has `prod/` (`aws_backend_deploy_stage.sh`, public-stage backend deploy) and
+`alpha/` (v0.42.0 alpha deploy scripts, see `code/scripts/alpha/README.md`) — not covered here — and the rest of `test/` (AWS SAM deploy, EC2 lifecycle — covered
 briefly in Part 1, in depth in `.claude/docs/commands.md`).
 
 ## Part 1 — Docker test-image builds (`code/scripts/test/`)

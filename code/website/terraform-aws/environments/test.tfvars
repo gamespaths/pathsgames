@@ -12,3 +12,6 @@ csp_extra_domains = {
   img     = ["unsplash.com"]
   frame   = ["challenges.cloudflare.com"]
 }
+
+# v0.42.0 — no old-domain redirect on test.
+redirect_target_host = ""

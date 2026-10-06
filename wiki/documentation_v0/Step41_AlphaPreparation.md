@@ -115,7 +115,8 @@ apply`. Deltas against §2/§3/§5/§6 below, found during development:
   `connect = ["cdn.jsdelivr.net"]` (Bootstrap's source-map fetch, harmless but logged by the
   browser as a CSP violation without it) and `img = ["unsplash.com"]` (the landing page hero),
   the same two additions `test.tfvars` already carried for react-game's location art; the static
-  site itself (`code/website/html/`) has no inline scripts, so no other change was needed there.
+  site itself (`code/website/html/`) has no inline scripts, so no other change was needed there
+  (that landing was retired in 0.42: [Step 42](./Step42_AlphaLaunch.md) sets the react-game CSP).
 - KPI counters are best effort (a write failure is logged, never fails the action) and are not
   rolled back by a snapshot restore (§8.1 decision 44): a restored match that reaches the end a
   second time counts a second `MATCH_COMPLETED`/duration/etc.; an admin stop never counts. The
@@ -242,7 +243,8 @@ Found now:
   Turnstile bypass is honoured when env `!= "prod"`, so also on `alpha`/`beta`; Python
   `dev_test_endpoints_enabled` defaults to true; no `.env` is tracked by git;
 - no dependency scan anywhere (SonarQube only); `.github/workflows/` has `backend-ci.yml`
-  (push on `main`), five `sonarqube-*.yml` (push on `develop`) and `website-deploy.yml`; no
+  (push on `main`), five `sonarqube-*.yml` (push on `develop`) and `website-deploy.yml` (0.42: replaced by
+  `alpha-deploy-website.yml` and `alpha-deploy-backend-aws.yml`); no
   `.github/dependabot.yml`. The V6 roadmap line "vulnerability scanning in the build pipeline"
   is brought forward to this step (owner, decision 7);
 - website CSP (`code/website/terraform-aws/cloudfront.tf`): the CloudFront response-headers
@@ -546,7 +548,7 @@ alerts → Enable); after the first OSV run, read the Security tab. Version bump
 0.41.1, 0.41.2) are the owner's (decision 31).
 
 - `code/scripts/test/aws/aws_backend_deploy.sh`: passes `AdminIpEmptyMeans`
-  (`AWS_ADMIN_IP_EMPTY_MEANS_TEST`, default `nobody`), `AllowMockAccess=true` and the new
+  (`AWS_TEST_APIGW_ADMIN_IP_EMPTY_MEANS`, default `nobody`), `AllowMockAccess=true` and the new
   parameters; the empty-list warning reads "admin API closed to everybody".
 - New `code/scripts/prod/aws_backend_deploy_stage.sh <alpha|beta|prod>` (decision 6): same IP
   detection (shared function), `--config-env <stage>`, every parameter passed explicitly;
@@ -607,14 +609,14 @@ for `code/frontend/react-game/.env.test` if touched); expected for the root `.en
 - `JWT_SECRET=<new random value>` (`openssl rand -base64 48`) and
   `ROBOT_VAR_ADMIN_TOKEN=<output of mint_admin_token.sh>` — after the 0.41.0 development,
   before its Robot runs (decision 32);
-- `AWS_ADMIN_IP_EMPTY_MEANS_TEST=nobody` — optional, the script default is `nobody`;
-- `AWS_GUEST_CLEANUP_AGE_DAYS_TEST`, `AWS_GUEST_CLEANUP_ENABLED_TEST`,
-  `AWS_RATE_LIMIT_MATCH_PER_GUEST_TEST` — optional, script defaults `60`, `true`, `0`;
+- `AWS_TEST_APIGW_ADMIN_IP_EMPTY_MEANS=nobody` — optional, the script default is `nobody`;
+- `AWS_TEST_LAMBDA_GUEST_CLEANUP_AGE_DAYS`, `AWS_TEST_LAMBDA_GUEST_CLEANUP_ENABLED`,
+  `AWS_TEST_LAMBDA_RATE_LIMIT_MATCH_PER_GUEST` — optional, script defaults `60`, `true`, `0`;
 - the per-stage keys of the new stage script (decisions 23 and 28), needed only to deploy
-  alpha/beta/prod, `<S>` = `ALPHA`, `BETA`, `PROD`: `AWS_JWT_SECRET_<S>` (own value per stage),
-  `AWS_TURNSTILE_SECRET_KEY_<S>`, `AWS_CUSTOM_DOMAIN_<S>`, `AWS_DOMAIN_CERTIFICATE_ARN_<S>` (today
-  the production wildcard in us-east-1), `AWS_DOMAIN_HOSTED_ZONE_<S>`, `AWS_CORS_ORIGINS_<S>`,
-  `AWS_ADMIN_IP_WHITELIST_<S>`; the rest stays in `samconfig.toml`; the dev agent confirms the
+  alpha/beta/prod, `<S>` = `ALPHA`, `BETA`, `PROD`: `AWS_<S>_LAMBDA_JWT_SECRET` (own value per stage),
+  `AWS_<S>_LAMBDA_TURNSTILE_SECRET_KEY`, `AWS_<S>_APIGW_CUSTOM_DOMAIN`, `AWS_<S>_ACM_DOMAIN_CERTIFICATE_ARN` (today
+  the production wildcard in us-east-1), `AWS_<S>_ROUTE53_DOMAIN_HOSTED_ZONE`, `AWS_<S>_APIGW_CORS_ORIGINS`,
+  `AWS_<S>_APIGW_ADMIN_IP_WHITELIST`; the rest stays in `samconfig.toml`; the dev agent confirms the
   final list;
 - nothing is needed for local Robot runs: the scripts force the limits to `0`.
 Existing `RATE_LIMIT_*` values in `.env` are then ignored by the Robot scripts; any other
@@ -1507,7 +1509,7 @@ After a match import (or for a guest that lost its account) the admin moves the 
 - Tests: unit tests on all three backends and react-admin; Robot `41_alpha_prep/match_owner_move.robot`.
 
 # Version Control
-- **Document Version**: 0.41.6
+- **Document Version**: 0.42.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -1518,8 +1520,9 @@ After a match import (or for a guest that lost its account) the admin moves the 
   | 0.41.4 | Match export and import re-analysed for every backend | October 1, 2026 |
   | 0.41.5 | Story import checks the story identifier format | October 3, 2026 |
   | 0.41.6 | Admin can move a match to another user | October 3, 2026 |
+  | 0.42.0 | Notes on the retired landing and deploy workflow | October 6, 2026 |
 
-- **Last Updated**: October 3, 2026 (v0.41.6)
+- **Last Updated**: October 6, 2026 (v0.42.0)
 - **Status**: step 41 closed, code complete: patches 0.41.0-0.41.6 shipped (security, allow-list, guests, CI scan, logging, snapshots, KPI report, CSP, match export/import, story uuid check, owner move); Robot green on all backends
 
 # &lt; Paths Games /&gt;

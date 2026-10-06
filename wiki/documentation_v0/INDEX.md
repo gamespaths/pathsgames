@@ -18,6 +18,7 @@ Every Step file follows the same skeleton, so grep for these headings:
 |---|---|---|
 | `Roadmap.md` | V0 plan: steps 1-39 done, alpha preparation (40-41), alpha launch (42) | roadmap, alpha, steps, next steps |
 | `Hotfixes.md` | Urgent fixes released after the alpha launch as 0.42.z | hotfixes, alpha, patches |
+| `ReleaseNotes.md` | Alpha release notes: features, known limitations, feedback link | release notes, alpha, limitations, feedback |
 | `Step01_StartProject.md` | Main game-design concept and rules | game rules, concept, design |
 | `Step02_CreateTheRepository.md` | Repo creation | git |
 | `Step03_DefineScope.md` | V1 mandatory vs excluded features, complexity limit, definition of done | scope, V1, out of scope |
@@ -61,7 +62,7 @@ Every Step file follows the same skeleton, so grep for these headings:
 | `Step39_RandomEvents.md` | At every time-start, after the weather, at most one `list_global_random_events` row fires: absolute-percentage pick, party-wide, no actor, trigger `RANDOM_EVENT`. Rides the sleep answer's `counterZero[]`; new `R11_RANDOM_EVENT` validation rule plus a `warnings[]` report array. | random events, RANDOM_EVENT, counterZero, probability, R11_RANDOM_EVENT, warnings, partyRun, registryValueOperatorCondition |
 | `Step40_AlphaUxPolish.md` | Card tips, early time-end news, env badge, resource logs, match list, missions, roadmap book, footer | tips, tutorial, time-end weather, counterZero, VITE_ENV_BADGE, CHOICE log, MatchStatusBadge, roadmap book |
 | `Step41_AlphaPreparation.md` | Closed (v0.41.0-0.41.6): security headers, CI scan, allow-list, guest cleanup, logging, snapshots, KPI report, CSP; neutral match export/import (0.41.4); story uuid check (0.41.5); admin match owner move (0.41.6) | snapshots, restore, KPI, allow-list, guest cleanup, headers, CSP, export |
-| `Step42_AlphaLaunch.md` | Analysed: website infra, stack hardening, alpha scripts and workflows, react-game polish, IAM, launch order | alpha, IsPublicStage, PITR, workflows, IAM, GitHub Environment, first deploy |
+| `Step42_AlphaLaunch.md` | Developed: website infra, stack hardening, alpha scripts and workflows, react-game polish, IAM, launch order | alpha, IsPublicStage, PITR, workflows, IAM, GitHub Environment, first deploy |
 
 Note: there is no `Step20_AdminEndpoint.md` despite older references — the admin-port split
 (8044) is described in `Step19_SinglePlayerMatchUtils.md` and `Step20_GameWebSiteFirstRun.md`.

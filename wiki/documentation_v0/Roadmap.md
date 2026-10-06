@@ -25,7 +25,7 @@ in the [Global Roadmap](../Roadmap.md) §3.
 | 5 | [Backend structure](./Step05_BackendStructure.md) | ✅ | Separate domain from infrastructure, define API and persistence modules, create backend project and first build |
 | 6 | [Naming conventions](./Step06_NamingConventions.md) | ✅ | Define REST endpoint naming, WebSocket event naming, table and column naming and DTO and payload naming |
 | 7 | [Configure website](./Step07_ConfigureWebsite.md) | ✅ | Buy domains [paths.games](https://paths.games/) & [pathsgames.com](https://pathsgames.com/), terraform template and deploy first version of website |
-| 8 | [Configure CI](./Step08_ConfigureMinimalCI.md) | ✅ | Define environment-specific configurations with secrets, define pipelines (GitHub Actions) with master branch |
+| 8 | [Configure CI](./Step08_ConfigureMinimalCI.md) | ✅ | Define environment-specific configurations with secrets, define pipelines (GitHub Actions) with main branch |
 | 9 | [Design data model](./Step09_DesignCoreDataModel.md) | ✅ | Identify main entities, relationships between entities, persistent vs transient data |
 | 10 | [Create DB schema](./Step10_CreateDBschema.md) | ✅ | Translate the data model into tables, define primary keys, define foreign keys, version the schema |
 | 11 | [Define API versioning](./Step11_DefineAPIVersioning.md) | ✅ | Establish the API versioning scheme, Decide backward compatibility policy, Prepare structure for future versions |
@@ -106,7 +106,7 @@ Each step is analysed and developed with the project agents (workflow in
     | 0.41.1 | Step 41 patch 2 developed: logging and snapshots | September 29, 2026 |
     | 0.41.2 | Step 41 KPI report and production CSP done | September 29, 2026 |
     | 0.41.4 | Step 41 closed: export, import, uuid check, owner move | October 3, 2026 |
-    | 0.42.0 | Step 42 alpha launch analysed | October 6, 2026 |
+    | 0.42.0 | Step 42 alpha launch analysed and developed | October 6, 2026 |
 
 - **Last Updated**: October 6, 2026 (v0.42.0)
 - **Status**: In progress

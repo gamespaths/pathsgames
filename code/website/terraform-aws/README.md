@@ -44,6 +44,7 @@ One module, one state per environment. The ACM certificate and the 5 CSP SSM par
 - **Compression:** Enabled (gzip/brotli)
 - **Aliases:** from `var.aliases` — production: `paths.games`, `www.paths.games`, `pathsgames.com`, `www.pathsgames.com`; test: `test.paths.games`
 - **WAF:** attached only when `enable_waf = true` for that environment
+- **Old-domain redirect (v0.42.0):** CloudFront Function `<name_prefix>-redirect-old-domain` (`cloudfront-js-2.0`, viewer request, default behaviour) answers 301 from `pathsgames.com` and `www.pathsgames.com` to `https://<redirect_target_host>`, keeping path and query. Source `functions/redirect.js` (rendered with `templatefile`), test `node --test functions/redirect.test.mjs`. `redirect_target_host` is `paths.games` in production and empty on test (empty = no function associated)
 
 ### ACM Certificate (`cloudfront.tf`) — shared, owned by production
 - **Domain:** `paths.games` with SANs `*.paths.games`, `pathsgames.com`, `*.pathsgames.com`
@@ -91,7 +92,7 @@ google-analytics.com  →  https://google-analytics.com  +  https://*.google-ana
 | `/paths-games/csp/img-src` | `img-src` | `googletagmanager.com`, `google-analytics.com` |
 | `/paths-games/csp/connect-src` | `connect-src` | `google-analytics.com`, `analytics.google.com`, `g.doubleclick.net` |
 
-**To add a domain for one environment only**, set `csp_extra_domains` in that environment's `environments/<env>.tfvars` (map of directive → base domains, merged into the lists above). `test.tfvars` (running `csp_mode = "restricted"` since v0.41.0) adds the test API hosts and `cdn.jsdelivr.net` on `connect` (`api-test.paths.games`, `api-test-server2.paths.games`, `api-test-server3.paths.games`, `cdn.jsdelivr.net` — Bootstrap source maps), `challenges.cloudflare.com` on `script`, `unsplash.com` on `img` (v0.41.0 — react-game's location art) and `challenges.cloudflare.com` on `frame` (v0.41.0 — the Turnstile iframe). The `frame` key has no shared SSM list: `cloudfront.tf` emits a `frame-src` directive only when it is non-empty. `production.tfvars` (running `csp_mode = "restricted"` since v0.41.2, static site `code/website/html/`) adds `cdn.jsdelivr.net` on `connect` and `unsplash.com` on `img` (the landing page hero); it has no inline scripts, so no other directive was needed.
+**To add a domain for one environment only**, set `csp_extra_domains` in that environment's `environments/<env>.tfvars` (map of directive → base domains, merged into the lists above). `test.tfvars` (running `csp_mode = "restricted"` since v0.41.0) adds the test API hosts and `cdn.jsdelivr.net` on `connect` (`api-test.paths.games`, `api-test-server2.paths.games`, `api-test-server3.paths.games`, `cdn.jsdelivr.net` — Bootstrap source maps), `challenges.cloudflare.com` on `script`, `unsplash.com` on `img` (v0.41.0 — react-game's location art) and `challenges.cloudflare.com` on `frame` (v0.41.0 — the Turnstile iframe). The `frame` key has no shared SSM list: `cloudfront.tf` emits a `frame-src` directive only when it is non-empty. `production.tfvars` (running `csp_mode = "restricted"` since v0.41.2) serves react-game since v0.42.0 (the static landing `code/website/html/` was retired): it adds `alpha-api.paths.games` and `cdn.jsdelivr.net` on `connect`, `challenges.cloudflare.com` on `script` and `frame` (Turnstile) and `unsplash.com` on `img`. `game-icons.net` is not needed: its icons are embedded as `data:` URIs.
 
 > Special values (`'self'`, `'unsafe-inline'`, `data:`) are hardcoded in `cloudfront.tf` because they are not domains.
 
@@ -201,9 +202,9 @@ csp_mode = "restricted"
 | `restricted` | Per-directive allowlist from SSM Parameter Store + `csp_extra_domains` |
 
 `open` is the variable's default, but `test.tfvars` (v0.41.0) and `production.tfvars` (v0.41.2)
-both override it to `restricted` — production adds `connect = ["cdn.jsdelivr.net"]` (Bootstrap
-source maps) and `img = ["unsplash.com"]` (the landing page hero) to `csp_extra_domains`,
-checked by the owner in the browser after applying.
+both override it to `restricted` — since v0.42.0 production adds `connect = ["alpha-api.paths.games",
+"cdn.jsdelivr.net"]`, `script` and `frame = ["challenges.cloudflare.com"]` and `img = ["unsplash.com"]`
+to `csp_extra_domains`, checked by the owner in the browser after applying.
 
 ### After `./tf.sh <env> apply`:
 
@@ -212,8 +213,8 @@ checked by the owner in the browser after applying.
 2. **Configure DNS:** Point each environment's aliases to its CloudFront distribution domain name (shown in the outputs) — e.g. `paths.games`/`www.paths.games`/`pathsgames.com`/`www.pathsgames.com` for production, `test.paths.games` for test.
 
 3. **Deploy website content** — this is *not* done by Terraform:
-   - **production:** the GitHub workflow `.github/workflows/website-deploy.yml`, which runs `code/scripts/prod/deploy_website_on_aws.sh`
-   - **test:** `code/scripts/test/aws/deploy_frontend-game_on_aws.sh`, which builds and syncs react-game to the bucket named by `AWS_S3_BUCKET_WEBSITE_TEST` in `.env`
+   - **production (alpha, v0.42.0):** the GitHub workflow `.github/workflows/alpha-deploy-website.yml` (push on `main`), or by hand `code/scripts/alpha/deploy_website.sh`: react-game at the bucket root, `data/*` untouched (see `code/scripts/alpha/README.md`); the backend has its own workflow `alpha-deploy-backend-aws.yml`
+   - **test:** `code/scripts/test/aws/deploy_frontend-game_on_aws.sh`, which builds and syncs react-game to the bucket named by `AWS_TEST_S3_BUCKET_WEBSITE` in `.env`
    - either way, `POST /api/admin/stories/catalog` on that environment's admin API regenerates `data/stories-<lang>.json` under the bucket's `data/` prefix
 
 4. **Invalidate CloudFront cache** (after updating content):
@@ -248,6 +249,9 @@ terraform-aws/
 ├── cloudfront.tf                 # CloudFront distribution, ACM certificate (shared), security headers, dynamic CSP
 ├── ssm.tf                        # SSM Parameter Store – CSP domain allowlists, owned by production, read elsewhere
 ├── waf.tf                        # WAF v2 rules (rate limit, OWASP, bad inputs), one per environment
+├── functions/
+│   ├── redirect.js               # v0.42.0 CloudFront Function: 301 from the old domain
+│   └── redirect.test.mjs         # node --test of the function
 ├── outputs.tf                    # Terraform outputs
 ├── tf.sh                         # Wrapper: picks backend/tfvars/data dir per environment, injects the version tag
 ├── backend-production.hcl        # Backend S3 configuration for production
@@ -294,7 +298,7 @@ OAC_ID=$(aws cloudfront list-origin-access-controls --query "OriginAccessControl
 ./tf.sh test import aws_cloudfront_distribution.website E8WIS9RLXJVR9
 ./tf.sh test plan          # expected: 6 to add (bucket pathsgames-com-test + 4 children, headers policy -test), 2 in-place updates (OAC name, distribution origin/policy/tags), 0 to destroy
 ./tf.sh test apply         # test.paths.games serves errors until the content is uploaded (step 3)
-# 3. test content (outside Terraform): set AWS_S3_BUCKET_WEBSITE_TEST=pathsgames-com-test in .env, then
+# 3. test content (outside Terraform): set AWS_TEST_S3_BUCKET_WEBSITE=pathsgames-com-test in .env, then
 code/scripts/test/aws/aws_backend_deploy.sh test           # backend IAM now targets the new bucket
 code/scripts/test/aws/deploy_frontend-game_on_aws.sh       # build + sync + CloudFront invalidation
 # POST /api/admin/stories/catalog on the test admin API to regenerate data/stories-*.json
@@ -315,7 +319,7 @@ aws s3 rm s3://pathsgames-production --recursive && aws s3 rb s3://pathsgames-pr
 
 # Version Control
 - First version created with AI prompts
-- **Document Version**: 0.41.2
+- **Document Version**: 0.42.0
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.7.0 | Website creation and domains configuration | March 26, 2026 |
@@ -324,7 +328,8 @@ aws s3 rm s3://pathsgames-production --recursive && aws s3 rb s3://pathsgames-pr
     | 0.38.1 | One module, one state per environment (production/test); shared ACM + CSP SSM; `tf.sh` wrapper; standardized tags | September 18, 2026 |
     | 0.41.0 | Test site CSP switched to restricted; frame-src for Turnstile | September 28, 2026 |
     | 0.41.2 | Production site CSP switched to restricted | September 29, 2026 |
-- **Last Updated**: September 29, 2026
+    | 0.42.0 | Game replaces the landing; old domain redirects to the new one | October 6, 2026 |
+- **Last Updated**: October 6, 2026
 - **Status**: Complete ✅
 
 
