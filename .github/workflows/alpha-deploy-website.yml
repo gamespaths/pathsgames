@@ -48,8 +48,9 @@ jobs:
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
           VITE_DEFAULT_SERVERS: ${{ vars.VITE_DEFAULT_SERVERS }}
-          VITE_CF_TURNSTILE_KEY: ${{ vars.VITE_CF_TURNSTILE_KEY }}
-          VITE_GTM_ID: ${{ vars.VITE_GTM_ID }}
+          # Public values (they end up in the bundle): an Environment variable or, if preferred, a secret.
+          VITE_CF_TURNSTILE_KEY: ${{ vars.VITE_CF_TURNSTILE_KEY || secrets.VITE_CF_TURNSTILE_KEY }}
+          VITE_GTM_ID: ${{ vars.VITE_GTM_ID || secrets.VITE_GTM_ID }}
           VITE_ENV_BADGE: ${{ vars.VITE_ENV_BADGE }}
           VITE_MATCH_START_DELAY: ${{ vars.VITE_MATCH_START_DELAY }}
           VITE_TURNSTILE_DELAY_BEFORE_START: ${{ vars.VITE_TURNSTILE_DELAY_BEFORE_START }}
