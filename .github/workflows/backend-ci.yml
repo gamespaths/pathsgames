@@ -82,7 +82,9 @@ jobs:
         if: success()
         id: version
         run: |
-          VERSION=$(grep -oP "version:\s*\K[^\"]*" app/config.py | head -1)
+          # `version: str = "0.42.0"` → 0.42.0 (the old pattern returned `str = `).
+          VERSION=$(grep -oP '^\s*version\s*(:\s*str)?\s*=\s*"\K[^"]+' app/config.py | head -1)
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then echo "Error: no version in app/config.py (got '$VERSION')." >&2; exit 1; fi
           echo "pom_version=$VERSION" >> $GITHUB_OUTPUT
           echo "release_version=${VERSION%-SNAPSHOT}" >> $GITHUB_OUTPUT
 
