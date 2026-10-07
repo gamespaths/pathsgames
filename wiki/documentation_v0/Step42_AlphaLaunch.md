@@ -256,10 +256,10 @@ policy `pathsgames-alpha-sam-deploy`:
 {"Sid":"PassRoleToLambda","Effect":"Allow","Action":"iam:PassRole","Resource":"arn:aws:iam::ACCOUNT_ID:role/pathsgames-alpha-*","Condition":{"StringEquals":{"iam:PassedToService":"lambda.amazonaws.com"}}},
 {"Sid":"Logs","Effect":"Allow","Action":"logs:*","Resource":"arn:aws:logs:us-east-1:ACCOUNT_ID:log-group:/aws/lambda/pathsgames-alpha-*"},
 {"Sid":"EventBridge","Effect":"Allow","Action":"events:*","Resource":"arn:aws:events:us-east-1:ACCOUNT_ID:rule/pathsgames-alpha-*"},
-{"Sid":"CloudWatch","Effect":"Allow","Action":["cloudwatch:PutDashboard","cloudwatch:GetDashboard","cloudwatch:DeleteDashboards","cloudwatch:PutMetricAlarm","cloudwatch:DeleteAlarms","cloudwatch:DescribeAlarms","cloudwatch:TagResource"],"Resource":"*"},
+{"Sid":"CloudWatch","Effect":"Allow","Action":["cloudwatch:PutDashboard","cloudwatch:GetDashboard","cloudwatch:DeleteDashboards","cloudwatch:ListDashboards","cloudwatch:PutMetricAlarm","cloudwatch:DeleteAlarms","cloudwatch:DescribeAlarms","cloudwatch:TagResource"],"Resource":"*"},
 {"Sid":"Sns","Effect":"Allow","Action":"sns:*","Resource":"arn:aws:sns:us-east-1:ACCOUNT_ID:pathsgames-alpha-*"},
 {"Sid":"Budgets","Effect":"Allow","Action":["budgets:ViewBudget","budgets:ModifyBudget","budgets:TagResource","budgets:UntagResource","budgets:ListTagsForResource"],"Resource":"arn:aws:budgets::ACCOUNT_ID:budget/pathsgames-alpha*"},
-{"Sid":"Route53","Effect":"Allow","Action":["route53:ChangeResourceRecordSets","route53:ListResourceRecordSets"],"Resource":"arn:aws:route53:::hostedzone/HOSTED_ZONE_ID"},
+{"Sid":"Route53","Effect":"Allow","Action":["route53:GetHostedZone","route53:ChangeResourceRecordSets","route53:ListResourceRecordSets"],"Resource":"arn:aws:route53:::hostedzone/HOSTED_ZONE_ID"},
 {"Sid":"Route53Read","Effect":"Allow","Action":["route53:GetChange","acm:DescribeCertificate"],"Resource":"*"}]}
 ```
 
@@ -295,7 +295,7 @@ on the same user (the Story Lambda writes the catalog with its own role, so it i
   `AWS_ALPHA_APIGW_ADMIN_THROTTLE_RATE=5`, `AWS_ALPHA_APIGW_ADMIN_THROTTLE_BURST=10`
 - `VITE_API_URL=https://api-alpha.paths.games`
 - `VITE_DEFAULT_SERVERS=[{"label":"Alpha","url":"https://api-alpha.paths.games"}]`
-- `VITE_CF_TURNSTILE_KEY`, `VITE_GTM_ID`, `VITE_ENV_BADGE=alpha`
+- `VITE_CF_TURNSTILE_KEY`, `VITE_GTM_ID` (variable or secret, same name), `VITE_ENV_BADGE=alpha`
 - `VITE_MATCH_START_DELAY`, `VITE_TURNSTILE_DELAY_BEFORE_START`, `VITE_TURNSTILE_PASS_TTL_MINUTES`
 - `VITE_TURNSTILE_APPEARANCE_HOME`, `VITE_TURNSTILE_APPEARANCE_START`, `VITE_TURNSTILE_APPEARANCE_GUEST`
 - `VITE_RESUME_WITHOUT_MODAL`, `VITE_ADD_COMING_SOON_STORIES`, `VITE_HIDE_STORIES`, `VITE_TUTORIAL_CATEGORY`

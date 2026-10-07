@@ -76,10 +76,10 @@ The deploy user keeps `AmazonS3FullAccess` and `CloudFrontFullAccess`. **Add** t
 {"Sid":"PassRoleToLambda","Effect":"Allow","Action":"iam:PassRole","Resource":"arn:aws:iam::ACCOUNT_ID:role/pathsgames-alpha-*","Condition":{"StringEquals":{"iam:PassedToService":"lambda.amazonaws.com"}}},
 {"Sid":"Logs","Effect":"Allow","Action":"logs:*","Resource":"arn:aws:logs:us-east-1:ACCOUNT_ID:log-group:/aws/lambda/pathsgames-alpha-*"},
 {"Sid":"EventBridge","Effect":"Allow","Action":"events:*","Resource":"arn:aws:events:us-east-1:ACCOUNT_ID:rule/pathsgames-alpha-*"},
-{"Sid":"CloudWatch","Effect":"Allow","Action":["cloudwatch:PutDashboard","cloudwatch:GetDashboard","cloudwatch:DeleteDashboards","cloudwatch:PutMetricAlarm","cloudwatch:DeleteAlarms","cloudwatch:DescribeAlarms","cloudwatch:TagResource"],"Resource":"*"},
+{"Sid":"CloudWatch","Effect":"Allow","Action":["cloudwatch:PutDashboard","cloudwatch:GetDashboard","cloudwatch:DeleteDashboards","cloudwatch:ListDashboards","cloudwatch:PutMetricAlarm","cloudwatch:DeleteAlarms","cloudwatch:DescribeAlarms","cloudwatch:TagResource"],"Resource":"*"},
 {"Sid":"Sns","Effect":"Allow","Action":"sns:*","Resource":"arn:aws:sns:us-east-1:ACCOUNT_ID:pathsgames-alpha-*"},
 {"Sid":"Budgets","Effect":"Allow","Action":["budgets:ViewBudget","budgets:ModifyBudget","budgets:TagResource","budgets:UntagResource","budgets:ListTagsForResource"],"Resource":"arn:aws:budgets::ACCOUNT_ID:budget/pathsgames-alpha*"},
-{"Sid":"Route53","Effect":"Allow","Action":["route53:ChangeResourceRecordSets","route53:ListResourceRecordSets"],"Resource":"arn:aws:route53:::hostedzone/HOSTED_ZONE_ID"},
+{"Sid":"Route53","Effect":"Allow","Action":["route53:GetHostedZone","route53:ChangeResourceRecordSets","route53:ListResourceRecordSets"],"Resource":"arn:aws:route53:::hostedzone/HOSTED_ZONE_ID"},
 {"Sid":"Route53Read","Effect":"Allow","Action":["route53:GetChange","acm:DescribeCertificate"],"Resource":"*"}]}
 ```
 
@@ -104,10 +104,8 @@ Lambda writes the catalog with its own role, so it is unaffected):
 - `AWS_ALPHA_LAMBDA_JWT_SECRET` (`openssl rand -base64 48`), `AWS_ALPHA_LAMBDA_TURNSTILE_SECRET_KEY`, `AWS_ALPHA_SNS_ALARM_EMAIL`
 - `AWS_ALPHA_S3_BUCKET_WEBSITE` (`pathsgames-com`)
 - `AWS_ALPHA_CLOUDFRONT_DISTRIBUTION_ID` (production distribution)
-- `AWS_ALPHA_ACM_DOMAIN_CERTIFICATE_ARN` 
-- `AWS_ALPHA_ROUTE53_DOMAIN_HOSTED_ZONE`
-- `VITE_CF_TURNSTILE_KEY`
-- `VITE_GTM_ID`
+- `AWS_ALPHA_ACM_DOMAIN_CERTIFICATE_ARN`, `AWS_ALPHA_ROUTE53_DOMAIN_HOSTED_ZONE`: a secret **or** a variable with the same name (the workflow reads `vars` first, then `secrets`)
+- `VITE_CF_TURNSTILE_KEY`, `VITE_GTM_ID`: a variable **or** a secret with the same name (the workflow reads `vars` first, then `secrets`)
 
 **ADD variables**
 - `AWS_REGION=us-east-1`
