@@ -7,6 +7,7 @@ from app.core.models.match.match_models import (
     CharacterJoinError,
     JoinMatchCommand,
 )
+from app.core.ports.match import log_writer_ports as lw
 from app.core.ports.match.match_ports import (
     CharacterCommandPort,
     CharacterPersistencePort,
@@ -240,7 +241,8 @@ class CharacterCommandService(CharacterCommandPort):
                           coin: Optional[int], food: Optional[int],
                           magic: Optional[int],
                           sleeping: Optional[bool] = None,
-                          coma: Optional[bool] = None) -> str:
+                          coma: Optional[bool] = None,
+                          exp: Optional[int] = None) -> str:
         match = self.match_persistence_port.find_match_by_uuid(match_uuid)
         if match is None:
             return "MATCH_NOT_FOUND"
@@ -283,7 +285,21 @@ class CharacterCommandService(CharacterCommandPort):
             self.character_persistence_port.update_backpack_stats(
                 match["id"], character["id"], food, magic, coin,
             )
+        if exp is not None:
+            self.character_persistence_port.update_character_exp(match["id"], character["id"], exp)
+        stats = lw.stats_message({
+            "dex": dex, "intel": intel, "con": con, "energy": eff_energy, "life": eff_life,
+            "sad": eff_sad, "coin": coin, "food": food, "magic": magic, "exp": exp,
+            "sleeping": sleeping, "coma": coma,
+        })
+        if getattr(self, "log_writer", None) is not None and stats is not None:
+            self.log_writer.write(match["id"], character["id"], None,
+                                  match.get("current_clock") or 0, stats)
         return "UPDATED"
+
+    def set_log_writer(self, log_writer) -> None:
+        """v0.41.1 — the ADMIN_STATS row of change_statistics; unset in the older tests."""
+        self.log_writer = log_writer
 
 
 def _nz(value) -> int:

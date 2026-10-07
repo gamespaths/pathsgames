@@ -1,0 +1,67 @@
+{
+  "format": "paths-games-match-export",
+  "formatVersion": 1,
+  "source": {"backend": "aws", "dialect": "dynamodb", "appVersion": "0.41.4", "server": "robot-fixture",
+             "exportedAt": "2026-10-01T10:00:00.000Z", "snapshotUuid": "5a5a5a5a-0000-4000-8000-0000000004a1",
+             "snapshotClock": 1},
+  "story": {"uuid": "f0410001-0000-4000-8000-000000000410", "title": "Alpha prep", "fingerprint": "", "data": {}},
+  "users": [
+    {"uuid": "{{CREATOR}}", "username": "robottest_fixture_creator", "state": 6, "guest": true, "role": "PLAYER"},
+    {"uuid": "{{GUEST}}", "username": "robottest_export_guest", "state": 6, "guest": true, "role": "PLAYER",
+     "language": "en"}
+  ],
+  "match": {"uuid": "0a0a0a0a-0000-4000-8000-0000000004a1", "name": "robottest_alpha_prep_fixture",
+            "difficultyId": 1, "expCost": 1, "rngSeed": 42, "singlePlayer": true,
+            "loadout": {"characterTemplateId": 1, "classId": 1, "traitIds": []},
+            "creatorUserUuid": "{{CREATOR}}", "clock": 1, "status": "RUNNING", "currentWeatherId": 1,
+            "activeCharacterUuid": "c4c4c4c4-0000-4000-8000-0000000004a1", "partyLocationId": 2,
+            "timestampStart": "2026-10-01T09:00:00.000Z", "createdAt": "2026-10-01T08:59:00.000Z"},
+  "characters": [
+    {"uuid": "c4c4c4c4-0000-4000-8000-0000000004a1", "ordinal": 1, "userUuid": "{{CREATOR}}",
+     "characterTemplateId": 1, "classId": 1, "dexterity": 2, "intelligence": 2, "constitution": 2,
+     "energy": 15, "life": 10, "sad": 0, "lifeMax": 10, "energyMax": 20, "sadMax": 5, "weightMax": 10, "exp": 1,
+     "locationId": 2, "isSleeping": false, "isComa": false, "clockInComa": 0, "characteristics": [],
+     "resources": {"food": 0, "magic": 1, "coin": 0}, "traits": [], "items": [{"itemId": 1, "amount": 1}]}
+  ],
+  "state": {
+    "registry": [
+      {"key": "quest", "stringValue": "done", "eventId": 14, "clock": 0, "multiValue": false},
+      {"key": "mission:alpha-prep-1", "stringValue": "COMPLETED", "missionId": 1, "clock": 0}
+    ],
+    "locations": [{"locationId": 1, "flagAlreadyActivated": false, "flagVisited": true, "clockCounter": 0},
+                  {"locationId": 2, "flagAlreadyActivated": false, "flagVisited": true, "clockCounter": 0}],
+    "turns": [{"characterUuid": "c4c4c4c4-0000-4000-8000-0000000004a1", "clock": 1, "status": "ACTIVE",
+               "priority": 12101, "passCounter": 0}],
+    "storyProgress": [],
+    "choiceHistory": []
+  },
+  "engine": {"eventMarkers": [{"eventId": 13, "executed": 1, "selected": 0},
+                              {"eventId": 14, "executed": 1, "selected": 0},
+                              {"eventId": 18, "executed": 1, "selected": 0}],
+             "visitedLocationIds": [1, 2]},
+  "logs": [
+    {"seq": 1, "type": "MATCH_LIFECYCLE", "clock": 0, "timestamp": "2026-10-01T08:59:00.000Z", "message": "CREATED"},
+    {"seq": 2, "type": "MATCH_LIFECYCLE", "clock": 0, "timestamp": "2026-10-01T09:00:00.000Z", "message": "STARTED"},
+    {"seq": 3, "type": "WEATHER", "clock": 0, "timestamp": "2026-10-01T09:00:00.100Z", "weatherId": 1},
+    {"seq": 4, "type": "EVENT", "clock": 0, "timestamp": "2026-10-01T09:01:00.000Z",
+     "characterUuid": "c4c4c4c4-0000-4000-8000-0000000004a1", "eventId": 14, "message": "EVENT_EXECUTED 14"},
+    {"seq": 5, "type": "REGISTRY_CHANGE", "clock": 0, "timestamp": "2026-10-01T09:01:00.100Z",
+     "characterUuid": "c4c4c4c4-0000-4000-8000-0000000004a1", "eventId": 14,
+     "message": "REGISTRY_CHANGE quest null -> done"},
+    {"seq": 6, "type": "MISSION_CHANGE", "clock": 0, "timestamp": "2026-10-01T09:01:00.200Z",
+     "message": "MISSION_CHANGE alpha-prep-1 COMPLETED"},
+    {"seq": 7, "type": "EVENT", "clock": 0, "timestamp": "2026-10-01T09:02:00.000Z",
+     "characterUuid": "c4c4c4c4-0000-4000-8000-0000000004a1", "eventId": 13, "message": "EVENT_EXECUTED 13",
+     "gain": {"energy": 0, "food": 0, "magic": 0, "coin": 0}},
+    {"seq": 8, "type": "MOVEMENT", "timestamp": "2026-10-01T09:03:00.000Z",
+     "characterUuid": "c4c4c4c4-0000-4000-8000-0000000004a1", "locationFromId": 1, "locationToId": 2,
+     "cost": {"energy": 0, "food": 0, "magic": 0, "coin": 0}},
+    {"seq": 9, "type": "EVENT", "clock": 0, "timestamp": "2026-10-01T09:04:00.000Z",
+     "characterUuid": "c4c4c4c4-0000-4000-8000-0000000004a1", "eventId": 18, "message": "EVENT_EXECUTED 18"},
+    {"seq": 10, "type": "SLEEP", "clock": 0, "timestamp": "2026-10-01T09:05:00.000Z",
+     "characterUuid": "c4c4c4c4-0000-4000-8000-0000000004a1"},
+    {"seq": 11, "type": "CLOCK_ADVANCE", "clock": 1, "timestamp": "2026-10-01T09:05:00.100Z"},
+    {"seq": 12, "type": "WEATHER", "clock": 1, "timestamp": "2026-10-01T09:05:00.200Z", "weatherId": 1}
+  ],
+  "checksum": ""
+}

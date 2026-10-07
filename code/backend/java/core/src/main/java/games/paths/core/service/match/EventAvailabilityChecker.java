@@ -5,6 +5,7 @@ import games.paths.core.port.match.EventExecutionPort.EventAvailability;
 import games.paths.core.port.match.EventExecutionPort.EventExecutionException.Code;
 import games.paths.core.port.match.EventExecutionStorePort.EventCheckContext;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -29,7 +30,7 @@ import java.util.Set;
  * cheapest / most explanatory reasons come first (a sleeping character is told they cannot
  * act, not that they lack energy).</p>
  *
- * <p>See {@code documentation_v0/Step29_NormalEvents.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step29_NormalEvents.md}.</p>
  */
 public final class EventAvailabilityChecker {
 
@@ -108,16 +109,16 @@ public final class EventAvailabilityChecker {
     }
 
     /**
-     * A key with no expected value is never met — a condition that can never be satisfied
-     * would otherwise read as "no condition". Mirrors {@code MovementService.conditionMet}.
+     * Step 36 — the comparison itself is {@link RegistryService#evaluate}, shared with
+     * choices, movement and weather, and the operator column widens it beyond equality.
      */
     private static boolean registryMet(EventEntity event, EventCheckContext ctx) {
         String key = event.getRegistryKeyCondition();
-        if (key == null || key.isBlank()) {
+        if (RegistryService.noCondition(key)) {
             return true;
         }
-        String expected = event.getRegistryValueCondition();
-        return expected != null && expected.equals(ctx.registry().get(key));
+        return RegistryService.evaluate(event.getRegistryValueOperatorCondition(),
+                event.getRegistryValueCondition(), ctx.registry().getOrDefault(key, List.of()));
     }
 
     private static String type(EventEntity event) {

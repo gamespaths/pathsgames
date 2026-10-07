@@ -8,6 +8,8 @@ import { apiClient } from './client'
  *   POST  /api/matches                              — create a match for the current user
  *   GET   /api/matches                              — list the current user's matches
  *   GET   /api/match/{uuid}/info                    — runtime state of a single match
+ *   GET   /api/match/{uuid}/missions                — Step 37, the missions reached so far
+ *   GET   /api/match/{uuid}/missions/{uuidMission}  — Step 37, one mission and all its steps
  *   PATCH /api/match/{uuidMatch}/end/{uuidEvent}    — player-driven completion
  *
  * All endpoints are protected by the JWT bearer token issued by the guest
@@ -23,22 +25,50 @@ function authConfig(accessToken) {
 
 /**
  * Create a single-player match. Throws on a backend error so the caller can
- * surface it.
+ * surface it. v0.37.7 — the `csrfToken` issued with the bearer at login travels
+ * back as `X-CSRF-TOKEN`; the backend refuses the creation without it (Step 41).
  */
-export async function createMatch(payload, accessToken) {
-  const res = await apiClient().post('/api/matches', payload, authConfig(accessToken))
+export async function createMatch(payload, accessToken, csrfToken) {
+  const config = authConfig(accessToken)
+  if (csrfToken) {
+    config.headers = { ...(config.headers ?? {}), 'X-CSRF-TOKEN': csrfToken }
+  }
+  const res = await apiClient().post('/api/matches', payload, config)
   return res.data
 }
 
+/** v0.37.5 — a cold Lambda plus a long match history can exceed the 5 s client default. */
+const LIST_MATCHES_TIMEOUT_MS = 15000
+
 /** List the matches owned by the authenticated user (newest first). */
 export async function listMatches(accessToken) {
-  const res = await apiClient().get('/api/matches', authConfig(accessToken))
+  const res = await apiClient().get('/api/matches',
+    { ...authConfig(accessToken), timeout: LIST_MATCHES_TIMEOUT_MS })
   return res.data
 }
 
 /** Retrieve the full runtime info of one match owned by the current user. */
 export async function getMatchInfo(uuid, accessToken, lang) {
   const res = await apiClient().get(`/api/match/${uuid}/info?lang=${lang ?? 'en'}`, authConfig(accessToken))
+  return res.data
+}
+
+/**
+ * Step 37 — the missions this match has reached, optionally filtered by status. The board
+ * itself reads them off `/info`; this is for a panel that wants them on their own.
+ */
+export async function getMatchMissions(uuid, accessToken, { lang, status } = {}) {
+  const query = new URLSearchParams({ lang: lang ?? 'en' })
+  if (status) query.set('status', status)
+  const res = await apiClient().get(`/api/match/${uuid}/missions?${query}`,
+    authConfig(accessToken))
+  return res.data
+}
+
+/** Step 37 — one mission with all its steps. 404 when this match has not reached it. */
+export async function getMatchMission(uuid, uuidMission, accessToken, lang) {
+  const res = await apiClient().get(
+    `/api/match/${uuid}/missions/${uuidMission}?lang=${lang ?? 'en'}`, authConfig(accessToken))
   return res.data
 }
 
@@ -347,6 +377,26 @@ export async function useItem(uuidMatch, itemInstanceUuid, accessToken, lang) {
     `/api/gameplay/${uuidMatch}/inventory/use-item`,
     { itemInstanceUuid },
     config,
+  )
+  return res.data
+}
+
+/**
+ * Step 38 — spend experience on a +1 of `stat` (POST /api/gameplay/{uuid}/action/use-exp).
+ *
+ * `stat` is `dex`, `int` or `cos`. Zero energy, the turn does not pass. Resolves to the
+ * purchase: `stat`, `statBefore/After`, `expBefore/After`, `expCost`, the refreshed
+ * `expCosts` and two `statChanges` rows (the stat, then the exp) in the execute-event shape.
+ *
+ * Throws on a backend error: 409 `NOT_ENOUGH_EXP` / `LOCATION_NOT_SAFE` / `MAX_STAT_VALUE` /
+ * `SLEEPING` / `COMA` / `NOT_YOUR_TURN` / `MATCH_NOT_RUNNING`, 400 `INVALID_STAT`, 404
+ * `MATCH_NOT_FOUND`.
+ */
+export async function useExp(uuidMatch, stat, accessToken) {
+  const res = await apiClient().post(
+    `/api/gameplay/${uuidMatch}/action/use-exp`,
+    { stat },
+    authConfig(accessToken),
   )
   return res.data
 }

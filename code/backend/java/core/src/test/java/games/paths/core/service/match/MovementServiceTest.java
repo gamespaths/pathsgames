@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.EventExecutionPort;
 import games.paths.core.port.match.LocationEntryPort;
 import games.paths.core.port.match.MovementPort.MovementException;
 import games.paths.core.port.match.MovementPort.MovementResult;
@@ -41,6 +42,7 @@ class MovementServiceTest {
     private static final long STORY_ID = 9001L;
 
     private MovementStorePort store;
+    private RegistryService registryService;
     private UserAccessPort userAccessPort;
     private ContentQueryPort contentQueryPort;
     private MovementService service;
@@ -48,9 +50,10 @@ class MovementServiceTest {
     @BeforeEach
     void setUp() {
         store = mock(MovementStorePort.class);
+        registryService = mock(RegistryService.class);
         userAccessPort = mock(UserAccessPort.class);
         contentQueryPort = mock(ContentQueryPort.class);
-        service = new MovementService(store, userAccessPort, contentQueryPort);
+        service = new MovementService(store, userAccessPort, contentQueryPort, registryService);
         when(userAccessPort.findByUuid(USER))
                 .thenReturn(Optional.of(new UserView(USER_ID, USER, "name", "GUEST", 2)));
     }
@@ -119,7 +122,7 @@ class MovementServiceTest {
             when(store.findLocationByStoryAndUuid(STORY_ID, "loc-2"))
                     .thenReturn(Optional.of(location(2L, "loc-2", 1, 0, 100)));
             when(store.findNeighborsOfLocation(STORY_ID, 1L)).thenReturn(List.of(
-                    new NeighborEdge(1L, 2L, "NORTH", 2, null, null, 1, 2, 1, 3)));
+                    new NeighborEdge(1L, 2L, "NORTH", 2, null, null, null, 1, 2, 1, 3)));
             when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
 
             MovementResult r = service.startMovement(MATCH, USER, "loc-2");
@@ -155,7 +158,7 @@ class MovementServiceTest {
             when(store.findLocationByStoryAndUuid(STORY_ID, "loc-2"))
                     .thenReturn(Optional.of(location(2L, "loc-2", 1, 0, 100)));
             when(store.findNeighborsOfLocation(STORY_ID, 1L)).thenReturn(List.of(
-                    new NeighborEdge(1L, 2L, "NORTH", 0, null, null, 1, 0, 0, 2)));
+                    new NeighborEdge(1L, 2L, "NORTH", 0, null, null, null, 1, 0, 0, 2)));
             when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
 
             MovementException ex = assertThrows(MovementException.class,
@@ -171,6 +174,71 @@ class MovementServiceTest {
         }
 
         @Test
+        @DisplayName("v0.35.6: the arrival's Step 30 verdict is folded into one edge state")
+        void theArrivalsEdgeStateRidesOnTheMove() {
+            LocationEntryPort entry = mock(LocationEntryPort.class);
+            EventExecutionPort.EdgeStateOutcome downed = new EventExecutionPort.EdgeStateOutcome(
+                    List.of(), List.of("char-uuid"), true, "coma-uuid", null,
+                    List.of("coma-uuid"), List.of());
+            LocationEntryPort.AutomaticEventFired quiet = new LocationEntryPort.AutomaticEventFired(
+                    LocationEntryPort.TRIGGER_FIRST_ENTRY, 2L, "evt-welcome", null,
+                    List.of(), List.of(), List.of(), false);
+            LocationEntryPort.AutomaticEventFired lethal = new LocationEntryPort.AutomaticEventFired(
+                    LocationEntryPort.TRIGGER_MOVE_INTO_EMPTY_LOCATION, 2L, "evt-trap", null,
+                    List.of(), List.of(), List.of(), false, downed);
+            when(entry.onArrival(any())).thenReturn(List.of(quiet, lethal));
+            MovementService withEntry =
+                    new MovementService(store, userAccessPort, contentQueryPort, entry, registryService);
+            wireHappyPath(10, 2, 1, 1, 3, 99, 100, 0);
+
+            MovementResult r = withEntry.startMovement(MATCH, USER, "loc-2");
+
+            // One verdict for the whole arrival, whichever of its events did the killing.
+            assertEquals(List.of("char-uuid"), r.edgeState().comaUuids());
+            assertTrue(r.edgeState().allPlayersInComa());
+            assertEquals("coma-uuid", r.edgeState().comaEventUuid());
+        }
+
+        @Test
+        @DisplayName("Step 40: an arrival that ended the time carries its news and the new clock")
+        void anArrivalThatEndsTheTimeCarriesItsNews() {
+            LocationEntryPort entry = mock(LocationEntryPort.class);
+            games.paths.core.port.match.TimeAdvancementPort.TimeEndNews news =
+                    new games.paths.core.port.match.TimeAdvancementPort.TimeEndNews(9, List.of(), null);
+            LocationEntryPort.AutomaticEventFired quiet = new LocationEntryPort.AutomaticEventFired(
+                    LocationEntryPort.TRIGGER_FIRST_ENTRY, 2L, "evt-welcome", null,
+                    List.of(), List.of(), List.of(), false);
+            LocationEntryPort.AutomaticEventFired ender = new LocationEntryPort.AutomaticEventFired(
+                    LocationEntryPort.TRIGGER_FIRST_ENTRY, 2L, "evt-night", null,
+                    List.of(), List.of(), List.of(), false,
+                    EventExecutionPort.EdgeStateOutcome.none(), news);
+            when(entry.onArrival(any())).thenReturn(List.of(quiet, ender));
+            MovementService withEntry =
+                    new MovementService(store, userAccessPort, contentQueryPort, entry, registryService);
+            wireHappyPath(10, 2, 1, 1, 3, 99, 100, 0);
+
+            MovementResult r = withEntry.startMovement(MATCH, USER, "loc-2");
+
+            assertSame(news, r.timeEnd());
+            assertEquals(9, r.currentClock());
+        }
+
+        @Test
+        @DisplayName("v0.35.6: an ordinary arrival answers an empty edge state, never null")
+        void aQuietArrivalAnswersAnEmptyEdgeState() {
+            LocationEntryPort entry = mock(LocationEntryPort.class);
+            when(entry.onArrival(any())).thenReturn(List.of());
+            MovementService withEntry =
+                    new MovementService(store, userAccessPort, contentQueryPort, entry, registryService);
+            wireHappyPath(10, 2, 1, 1, 3, 99, 100, 0);
+
+            MovementResult r = withEntry.startMovement(MATCH, USER, "loc-2");
+
+            assertNotNull(r.edgeState());
+            assertFalse(r.edgeState().anything());
+        }
+
+        @Test
         @DisplayName("Step 33: the destination's arrival triggers run once the move is committed")
         void arrivalTriggersRunAfterTheMoveIsCommitted() {
             LocationEntryPort entry = mock(LocationEntryPort.class);
@@ -179,7 +247,7 @@ class MovementServiceTest {
                     List.of(), List.of(), List.of(), false);
             when(entry.onArrival(any())).thenReturn(List.of(fired));
             MovementService withEntry =
-                    new MovementService(store, userAccessPort, contentQueryPort, entry);
+                    new MovementService(store, userAccessPort, contentQueryPort, entry, registryService);
             wireHappyPath(10, 2, 1, 1, 3, 99, 100, 0);
 
             MovementResult r = withEntry.startMovement(MATCH, USER, "loc-2");
@@ -212,7 +280,7 @@ class MovementServiceTest {
         void refusedMoveFiresNothing() {
             LocationEntryPort entry = mock(LocationEntryPort.class);
             MovementService withEntry =
-                    new MovementService(store, userAccessPort, contentQueryPort, entry);
+                    new MovementService(store, userAccessPort, contentQueryPort, entry, registryService);
             // energy 1 against a cost of 6.
             wireHappyPath(1, 2, 1, 1, 3, 99, 100, 0);
 
@@ -378,7 +446,7 @@ class MovementServiceTest {
                     .thenReturn(Optional.of(location(2L, "loc-2", 1, 0, 100)));
             when(store.findNeighborsOfLocation(STORY_ID, 1L))
                     .thenReturn(List.of(new NeighborEdge(1L, 2L, "N", 1, "DOOR", "OPEN", 1)));
-            when(store.findRegistryValue(MATCH_ID, "DOOR")).thenReturn(Optional.of("CLOSED"));
+            when(registryService.find(MATCH_ID, "DOOR")).thenReturn(List.of("CLOSED"));
             MovementException ex = assertThrows(MovementException.class,
                     () -> service.startMovement(MATCH, USER, "loc-2"));
             assertEquals(MovementException.Code.MOVEMENT_CONDITION_NOT_MET, ex.getCode());
@@ -394,7 +462,7 @@ class MovementServiceTest {
                     .thenReturn(Optional.of(location(2L, "loc-2", 1, 0, 100)));
             when(store.findNeighborsOfLocation(STORY_ID, 1L))
                     .thenReturn(List.of(new NeighborEdge(1L, 2L, "N", 1, "DOOR", "OPEN", 1)));
-            when(store.findRegistryValue(MATCH_ID, "DOOR")).thenReturn(Optional.of("OPEN"));
+            when(registryService.find(MATCH_ID, "DOOR")).thenReturn(List.of("OPEN"));
             when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
             when(store.countCharactersAtLocation(MATCH_ID, 2L)).thenReturn(0);
             MovementResult r = service.startMovement(MATCH, USER, "loc-2");
@@ -605,7 +673,7 @@ class MovementServiceTest {
         @Test
         @DisplayName("legacy 2-arg constructor (no content port) → null cards")
         void legacyConstructorNullCards() {
-            MovementService legacy = new MovementService(store, userAccessPort);
+            MovementService legacy = new MovementService(store, userAccessPort, registryService);
             when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
             when(store.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(1L));
             when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of());

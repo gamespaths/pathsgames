@@ -9,14 +9,14 @@ Loaded on demand. Read only when working on E2E tests.
 | `01_smoke` | Basic connectivity |
 | `12_auth` | Guest login, session management |
 | `13_session_token` | Session token validation |
-| `14_admin` | Admin guest management |
+| `14_admin` | Admin guest management, story import; `story_catalog.robot` (v0.37.6) static catalog export — skips when the backend has no `CATALOG_EXPORT_DIR` / `WEBSITE_BUCKET` |
 | `14_stories` | Story catalog |
 | `15_story_content` | Story content APIs |
 | `16_content_detail` | Content detail APIs |
 | `17_admin_crud` | Admin CRUD for all story entities |
 | `19_match` | Match creation and end flow; `duplicate_match_guard.robot` (v0.32.1, see below) |
 | `20_admin_match` | Admin match control (stop/pause/resume) |
-| `20_website` | Website/Turnstile captcha flow |
+| `20_website` | Website/Turnstile captcha flow; mode-aware since v0.37.3 (see below) |
 | `21_character_selection` | Character join, stat formula, backpack/traits |
 | `22_story_validation` | Story import validation rules |
 | `23_trait_selection` | Trait selection with class/cost/compatibility checks, and the v0.35.2 hidden traits |
@@ -31,6 +31,14 @@ Loaded on demand. Read only when working on E2E tests.
 | `32_choice_resolution` | Step 32 choice resolution (see breakdown below) |
 | `33_location_events` | Step 33 automatic location events (see breakdown below) |
 | `34_inventory` | Steps 34/35 inventory, resources, use/drop, effects preview, quantities, v0.35.4 item logs (see breakdown below) |
+| `35_import_integrity` | v0.35.8 import/schema/admin-CRUD regressions — ships its own story, no seed (see breakdown below) |
+| `36_registry` | Step 36 registry read API, v0.36.1 multi-valued keys, v0.36.3 `forced_move.robot` + v0.36.4 `registry_repeated_writes.robot` (see breakdown below) |
+| `37_missions` | Step 37 mission read API, the status machine, the condition semantics, the v0.37.1 match-start trigger fix, and the v0.37.2 `MISSION_CHANGE` log entry (see breakdown below) |
+| `38_experience` | Step 38 use-exp: `exp`/`expCosts` on `/info`, the purchase, its `EXP_USE` row, every refusal, the missions→rewards→purchase scenario, and the import/export/CRUD contract of `expCostBase`/`maxStatValue` (see breakdown below) |
+| `39_random_events` | Step 39 global random events: fire at time-start after the weather (100% always, 0% never), `RANDOM_EVENT` in `counterZero[]` and in the timeline, ONCE, the registry operator, the `R11_RANDOM_EVENT` import refusals, the `warnings[]` on validate, and the CRUD of `registryValueOperatorCondition` (see breakdown below) |
+| `40_alpha_ux` | Step 40 alpha UX: the news of an early time-end (`counterZero[]` + `weather` with `changed`) on execute-event, select-choice and movement answers, and the resource gains in the timeline (new `CHOICE` row, party-run and automatic-event gains) (see breakdown below) |
+| `41_alpha_prep` | Step 41: `guest_cleanup.robot` (v0.41.0 patch 1) — aged guests via `X-Test-Guest-Age-Days`, the `withoutMatches` idle purge, and the `DELETE /expired` PostgreSQL FK regression; **v0.41.1 patch 2** adds `logging_gaps.robot` (11) and `snapshots.robot` (6); **v0.41.2 patch 3** adds `kpi.robot` (6), own `story_alpha_prep.json` + `alpha_prep_common.resource` (see breakdown below) |
+| `41_security` | v0.37.7 Step 41: the `csrfToken` on login/resume/`/me` and the `X-CSRF-TOKEN` refusals on `POST /api/matches`; rate-limit cases that SKIP unless `RATE_LIMIT_GUEST_PER_IP` / `RATE_LIMIT_MATCH_PER_IP` / `RATE_LIMIT_MATCH_PER_GUEST` are passed; **v0.41.0**: API security headers and `Cache-Control: no-store` on every response (see breakdown below) |
 
 ### `19_match` breakdown
 
@@ -47,6 +55,18 @@ Because of that guard, any suite creating two matches for one guest on the same 
 now mints a guest per match via `Use A Fresh Guest Token` (`resources/auth.resource`;
 rebinds `${TOKEN}`, test-scoped in a test and suite-scoped in a Suite Setup). Already
 applied to 19_match, 20_website, 21, 23, 24, 25, 26, 27 and 28.
+
+### `20_website` breakdown
+
+`turnstile.robot` (v0.37.3) is mode-aware: `Suite Setup Turnstile` reads
+`${CF_TURNSTILE_TOKEN}` (`variables/aws.yaml`) into suite variable
+`${TURNSTILE_ENFORCED}` — set means the server enforces Turnstile (a
+null/arbitrary/foreign token must get 400 `TURNSTILE_VALIDATION_FAILED`), empty means
+dev bypass (201), asserted by the shared keyword `Match Creation Should Follow
+Turnstile Mode`. New case "Create Match With The Deployed Bypass Token Succeeds When
+Enforced" (skips itself under dev bypass) checks the token deployed as
+`TURNSTILE_BYPASS_TOKEN` still gets through. `run_robot_with_aws_serverless.sh` no
+longer passes `--exclude bypass`, so these cases run against the AWS stack.
 
 ### `23_trait_selection` breakdown
 
@@ -68,8 +88,8 @@ Adjacency validation, energy cost formula, visited locations, admin locations. P
 - `neighbor_card_back.robot` — neighbor return card `idCardBack`
 - `neighbor_edge_orientation.robot` (v0.33.3, 5 tests) — `idLocationFrom`/`idLocationTo` on the `/locations` neighbor entries. A two-way edge is listed from both endpoints with the SAME authored `(from, to, direction)` triple; the return entry must NOT swap A and B into the traversal order, and `/locations`, its admin view and `/info` must all agree. Without the endpoints a map guesses an edge's orientation from the payload's listing order and mirrors half of them
 - `event_location.robot` — event-to-location binding `idSpecificLocation`; guards the AWS stale-alias and Python column-name bugs
-- `match_logs.robot` — consolidated match log timeline (`GET /api/matches/{uuid}/logs`): WEATHER / MOVEMENT / SLEEP / CLOCK_ADVANCE / RECOVERY / EVENT entries, cursor pagination, card enrichment
-- `match_logs_order.robot` (v0.30.3) — `?order=asc|desc` on both logs endpoints: asc default, desc as the exact reverse of asc, case-insensitive, junk values fall back to asc, desc cursor walking towards the older entries
+- `match_logs.robot` — consolidated match log timeline (`GET /api/matches/{uuid}/logs`): WEATHER / MOVEMENT / SLEEP / CLOCK_ADVANCE / RECOVERY / EVENT entries, cursor pagination, card enrichment; a freshly created match now starts with one `MATCH_LIFECYCLE CREATED` row (v0.41.1: total assertion moved from 0 to 1 on an unplayed match)
+- `match_logs_order.robot` (v0.30.3) — `?order=asc|desc` on both logs endpoints: asc default, desc as the exact reverse of asc, case-insensitive, junk values fall back to asc, desc cursor walking towards the older entries; the desc-cursor case checks entry **positions**, not distinct timestamps (v0.41.1: same-millisecond rows are now common with the new timeline types)
 
 **There is no `29_match_logs` directory.** `match_logs.robot`, `match_logs_order.robot`,
 `neighbor_card_back.robot` and `event_location.robot` all live inside `tests/28_movement/`.
@@ -194,6 +214,293 @@ eight resource fields — `{energy,food,magic,coin}Cost` and `…Gain` — prese
 and never both moving at once on one usage. The item entries are asserted to sort in among
 the others rather than trail them.
 
+### `36_registry` breakdown
+
+`registry.robot` (12 tests) — `GET /api/match/{uuid}/registry`: the visible keys grouped by
+their `list_keys` category, `?includeHidden=true` as an owner-only superset, the same entries
+riding on `/info`, and exactly one `REGISTRY_CHANGE` row per write. Since v0.36.1 every entry
+answers with `values` (a list of rendered strings) and `multiValue`, so two cases guard the
+shape itself: a key the story did not declare multi holds at most one member, and no set ever
+carries a duplicate or breaks the backend's ordering (numbers numerically first, then the rest
+alphabetically).
+v0.36.3 added the admin half: the registry on `GET /api/admin/matches/{uuid}/info` is a
+superset of the player's, every entry carries `visible`, and no key marked hidden reaches
+the player view.
+
+`registry_multi_value.robot` (v0.36.1, 11 tests) — the SET semantics end to end. A multi key
+with no default starts EMPTY (the entry is there, `values` is `[]` — an empty set is the
+absence of rows, not a row holding nothing); two writes of two values leave BOTH where a
+single key would have kept the last; writing a member the set already holds adds nothing and
+reports nothing, not even a `REGISTRY_CHANGE`; `=` quantifies EXISTENTIALLY, so an event gated
+on one member stays blocked while the set holds only another and opens when that one joins;
+`value_to_remove` takes THAT member away and leaves the rest; emptying the key leaves it with
+an empty set rather than making it vanish; and the execute-event response reports the whole
+set as `newValue`, which `/info` and `/registry` both agree with. The last two cases are the
+choice-condition half: an option gated on `!=` over the key is offered while the set does not
+hold the value and refused (`CONDITION_KEYS_NOT_MET`) as soon as it does — the AWS choice check
+kept a private copy of the comparison and matched the expected value against the whole LIST, so
+every `!=` passed whatever the set held.
+
+The four seeds ship the test-bed on the tutorial story: the multi key `evidence_found` (no
+default, so no seeded row), two FREE events adding one member each, one event gated on a
+member, and a choice-event carrying two options: one `otherwise` that removes a member, one
+gated on `!=` over the key (with an effect of its own, which R4_CHOICE_EMPTY requires of any
+option that is not the fallback). Every one of those events costs
+ZERO energy on purpose — the Step 31/32 finders only ever pick a choice-event with a positive
+cost, so this pack can never become the fixture those suites address by behaviour. Nothing is
+addressed by seeded id: the key is the one the story declares multi, the adders are the events
+whose effects write it. Each writing case runs on its own guest and its own match, since a set
+latches.
+
+`registry_repeated_writes.robot` (v0.36.4, 7 tests) — the registry under a write said twice.
+Java and Python keep a multi key honest with a partial UNIQUE index; AWS holds the registry as
+an embedded list and has no index at all, so what the three must AGREE on is pinned from
+outside: the same member written twice leaves ONE member and exactly one `REGISTRY_CHANGE`,
+five repeats never grow the set, add/remove/add leaves the member held once, and a single key
+rewritten with its own value still holds one value. The last two cases are the v0.36.4 admin
+guard: `PUT` refuses a key the story does not declare (400 `UNKNOWN_KEY`, and nothing lands in
+the registry), while `DELETE` still accepts one — cleaning an orphan row up is the point of it.
+Both fixture keys are found by behaviour (the first multi and the first single key the match
+answers with), and each case runs on its own guest and match since a key latches.
+
+### `36_registry/registry_gates.robot` breakdown
+
+`registry_gates.robot` (v0.37.7, 17 tests) — every READER and WRITER of the registry the
+earlier suites left untested: the movement-edge gate (`/info` neighbors `available`/`reason`
+= `MOVEMENT_CONDITION_NOT_MET` and the 409 on `movements/start`), the weather-rule gate
+(two rules on one key, `!=` vs `=`, so exactly one qualifies at every time-start and the
+admin `rules[].registryMet` flips), the numeric operators `>`/`<` (never over an empty set,
+a non-number meets neither), an operator column left UNSET reading as `=` on both an event
+and an edge, `!=` met by an absent key, a `target=ALL` effect row writing once, and the two
+choice-effect columns: `valueToAdd` wins over `valueToRemove` on one row, a compare-and-clear
+against another value leaves the key alone (and logs nothing), against the held value empties
+it, on an empty key does nothing. Like `35_import_integrity` it **ships its own story**
+(`story_registry_gates.json`, PRIVATE, category `robottest`): imported in Suite Setup,
+deleted in Suite Teardown after every match it created is stopped and deleted; entities are
+addressed by story-local `id` through the admin CRUD lists (`character-templates` echoes no
+`id`, so the loadout rows are taken by position). Each case runs on its own guest and match.
+Writing it surfaced two import bugs, fixed in v0.37.7: Java never imported
+`choices[].idEvent`/`idEventTorun`/limits, and Python's `save_keys` only knew its private
+`keyName`/`keyValue`/`keyGroup`/`isVisible` spelling (plus its validator read stored
+`id_choice` as missing, so every stored choice failed R4); AWS import gave no uuid to
+choices, keys, weather rules, missions, neighbors, conditions, effects, bonuses or steps,
+so an authored-without-uuid choice could never be selected.
+
+### `36_registry/forced_move.robot` breakdown
+
+`forced_move.robot` (5 tests) — v0.36.3, the two things that happen AROUND a forced move.
+An event that moves the actor AND ends the time unit used to put them back where they
+started (the time start re-read the roster and wrote the pre-move row on top, which on AWS
+is what an eventually consistent read hands back), so the case reads the position from
+match-info rather than believing `movementApplied`, and the timeline must carry the cost-0
+MOVEMENT row. The other half is Step 33: being pushed into a place is arriving there, so
+the destination's `FIRST_ENTRY` trigger fires and rides on the response as
+`automaticEvents` — a key AWS execute-event never sent and the python mapper dropped; one
+case asserts it is present even when empty. The fixture is the seeded "bell", found by
+BEHAVIOUR (the only event that both ends the time unit and carries an effect with an
+idLocation), never by uuid; it sits in the Records Vault rather than at the start location
+so no suite picking "any available event" can trip over it. Every case runs on its own
+guest and its own match — the move strands the character and the arrival latches
+flagVisited.
+
+### `39_random_events` breakdown
+
+Ships its own story (`story_random_events.json`, PRIVATE, category `robottest`): four random
+rows (100% on `scenario=always`, 0%, 100% ONCE on `scenario=once`, 100% on `level > 2`) whose
+scenarios are switched through the admin registry, so at most one row is ever eligible — Java
+and Python/AWS roll different generators on the same seed. Matches use `rngSeed=42`.
+`random_events.robot` (6): the story validates with one R11 warning (sum 300), nothing fires
+with no eligible row, a 100% row fires party-wide (`counterZero[]` entry `RANDOM_EVENT`, FULL,
+`idLocation` null, +1 exp), its `RANDOM_EVENT` timeline row, a ONCE event fires once in two
+days, and the `>` operator. `random_events_admin.robot` (9): the six `R11_RANDOM_EVENT` import
+refusals, the imported operator, the CRUD round trip of the operator, a legacy payload without it.
+
+### `40_alpha_ux` breakdown
+
+Ships its own story (`story_alpha_ux.json`, PRIVATE, category `robottest`, imported in Suite
+Setup and deleted in Suite Teardown): the Camp (start, counter 1 → +1 food and Rain), the Tower
+(first arrival ends the time, start-time event), the Swamp (start-time life -99), Sun/Rain
+weather on `scenario=sun|rain`, a 100% random event (+1 coin) on `scenario=random`, a FREE
+time-ending event (+1 coin), choice-events (one option ends the time, one with food/coin gains,
+one with none, a ONCE one) and a stepless mission (+1 magic). Matches use `rngSeed=42`; keywords
+in `alpha_ux_common.resource`. `time_end_news.robot` (10): counter-zero, weather and `changed`
+on the three doors, the random event in `counterZero[]`, empty news when the time does not end,
+the unchanged sleep answer, the roll overwriting the counter-zero weather (known behaviour),
+the coma edge state. `resource_logs.robot` (9): one `CHOICE` row per pick with its gains and
+card, zeros, two cycles, the ONCE accounting, the random-event and mission sums on their `EVENT`
+rows, the counter-zero food, execute-event/item rows unchanged, the admin logs.
+
+### `38_experience` breakdown
+
+Ships its own story (`story_experience.json`, PRIVATE, category `robottest`, imported in Suite
+Setup and deleted in Suite Teardown after stopping/deleting every match): one template with
+DEX/INT/COS at 2, one difficulty `expCost 1 / expCostBase 0 / maxStatValue 4`, the safe Hall
+and the unsafe Wilds, events granting +1 / +50 exp, and three single-step missions whose
+completion events grant +1 exp each. Shared keywords live in `experience_common.resource`.
+`experience.robot` (14 tests): the price list on `/info`, the purchase and its repricing, the
+`EXP_USE` row, zero energy / no turn change, and every refusal (`MAX_STAT_VALUE`,
+`NOT_ENOUGH_EXP`, `INVALID_STAT`, `LOCATION_NOT_SAFE`, `SLEEPING`, `COMA`, `MATCH_NOT_RUNNING`,
+`MATCH_NOT_FOUND`); sleep and coma are forced through the admin override, which now also
+writes `exp`. `experience_missions.robot` (2): three completed missions pay for one DEX point;
+v0.38.3 — three `use-exp` purchases write `use-exp`/`use-exp-DEX` and move two missions waiting
+on them, leaving no row for the undeclared `use-exp-INT`.
+`experience_admin.robot` (6): import, export and CRUD of `expCostBase` / `maxStatValue`, a
+location echoing `secureParam` and no `isSafe`, and a legacy payload whose dropped keys are
+ignored.
+
+### `37_missions` breakdown
+
+Three files, 24 tests, sharing `resources/missions.resource` (plus `mission_from_start.robot`
+and `mission_log.robot` below, v0.37.1/v0.37.2):
+
+- `missions.robot` (10) — the read API. A mission the match has never reached is ABSENT, not
+  LOCKED: the list of a fresh match is empty, and asking for such a mission by uuid is 404
+  `MATCH_NOT_FOUND`, the same answer an unknown match and a foreign one get. `?status=` is
+  read case-insensitively, `/info` carries the same missions the endpoint answers, and the
+  engine's bookkeeping rows never appear on `/registry` even with `includeHidden`.
+- `missions_progression.robot` (7) — the status machine: mission condition → `AVAILABLE`,
+  first step → `ACTIVE`, last step → `COMPLETED`, and an INTERMEDIATE step moving
+  `stepReached` while the status stays `ACTIVE`. Also the two rules that are easy to get
+  wrong: a later step satisfied first closes nothing until the ones before it do (and then
+  one write closes both), and emptying the key that opened a mission never takes its status
+  back.
+- `missions_conditions.robot` (7) — `conditionValues` as an AND over a set key (part of the
+  list is not enough; all of it completes a step-less mission in one write), case- and
+  padding-blindness, and the fixture guard that no seeded mission ships a blank
+  `conditionKey` — which the engine ignores and story validation reports as
+  `R10_MISSION_CONDITION`.
+
+Fixtures are found by BEHAVIOUR throughout: the missions and their steps are read from the
+story through the admin CRUD, and the event that satisfies a condition is the one whose
+effect writes that key (`Key Writing Event Uuids`). No seeded id or uuid is named. Every
+case runs on its own guest and its own match, because a mission latches and cannot be
+re-opened. The `conditionValues` cases `Skip` themselves when the story declares no PIPE
+list, so a leaner seed does not fail the suite.
+
+- `mission_from_start.robot` (v0.37.1, 5 cases) — the start-location registry-write bugfix:
+  (1) creating a match does not yet write the key; (2) starting it does; (3) exactly once,
+  with exactly one `REGISTRY_CHANGE` row; (4) the mission gated on that key is reached the
+  instant the match starts, before any event runs or any movement happens; (5) a mission with
+  an unsatisfied step stays `AVAILABLE`. The fixture is found by BEHAVIOUR — the first public
+  story whose start location's `keyToAdd` a mission reads — and the whole suite `Skip`s if no
+  seed has one. `--dryrun` passes; not yet run against a live backend.
+
+- `mission_log.robot` (v0.37.2, **8** cases, grew from 5 in a second pass) — the new
+  `MISSION_CHANGE` match-log entry: a match that never moves a mission writes none; opening
+  one writes exactly one row naming the mission and its two states; that row names no
+  character; closing a step writes another row with the author's own step number, not the row
+  id; a `MISSION_CHANGE` always follows the `REGISTRY_CHANGE` that caused it (state first, log
+  second); a mission row carries the mission's own `idCard`/title; a step row carries its own
+  card, not the card of the event that opened it; and "Closing The Last Step Says So Twice"
+  plays a mission to completion and checks the row count (`len(steps) + 2`), that the
+  penultimate row names the last step, and the last names none. Fixtures found by BEHAVIOUR
+  through `resources/missions.resource`, no seeded uuid; the three new cases `Skip` when the
+  story gives no mission a card.
+
+### `41_security` breakdown
+
+`security.robot` (v0.37.7, 8 tests; **+3 in v0.41.0**, 11 tests) — Step 41. CSRF: guest login
+issues a `csrfToken` bound to the bearer (two guests, two tokens), `GET /api/auth/me` answers
+the same one, resume follows the new bearer (skips when the client keeps no cookie), and `POST
+/api/matches` answers 403 `CSRF_TOKEN_MISSING` without the header and `CSRF_TOKEN_INVALID`
+with another guest's token or a garbled one — creating nothing — while the shared `Create
+Match` keyword still gets 201. `${CSRF_ENFORCED}` (default true) skips the two refusals
+on a server started with `CSRF_ENFORCED=false`. Rate limits: the match case (one guest,
+each match stopped and deleted before the next) and the guest case expect a 429
+`RATE_LIMITED` with `Retry-After` within limit+1 attempts; both SKIP unless
+`--variable RATE_LIMIT_MATCH_PER_IP:N --variable RATE_LIMIT_GUEST_PER_IP:N` match the
+server's env, and must then run ALONE — the window stays shut for every suite after them.
+
+The CSRF plumbing lives in `resources/CsrfHelper.py` + `Get Match Creation Headers`
+(`auth.resource`): the login keywords remember each bearer's `csrfToken`, every
+`Create Match*` keyword echoes it, and a guest minted by a direct `POST /api/auth/guest`
+is looked up once through `GET /api/auth/me`. Suites need no change.
+
+**v0.41.0** adds three cases: "Every Answer Carries The Security Headers On Both Endpoints"
+(the five API headers on the public and the admin echo); "Auth And Admin Answers Are Never
+Stored, Story Reads Are" (`Cache-Control: no-store` on `/api/auth/guest` and
+`/api/admin/guests`, absent on `GET /api/stories`); "Match Creation Is Rate Limited Per Guest"
+(the new `match-guest` bucket, one guest, each match stopped/deleted before the next, 429
+`RATE_LIMITED` with `Retry-After`) — SKIP unless `--variable RATE_LIMIT_MATCH_PER_GUEST:N`
+matches the server's env, run ALONE like the other two limit cases. New keyword `Security
+Headers Should Be Present`.
+
+### `41_alpha_prep` breakdown
+
+Step 41 patch 1 (v0.41.0), own story-free fixtures — reuses the default seed story and
+guest/match keywords, no dedicated story import. `guest_cleanup.robot` (3 tests):
+"The Match-Less Purge Takes The Idle Guest And Keeps The One With A Match" (two guests aged via
+the dev-only `X-Test-Guest-Age-Days` header, one with a match; `GET/DELETE
+/api/admin/guests/stale?olderThanDays=N&withoutMatches=true` counts and deletes only the
+match-less one, `matches` stays 0); "Any Other WithoutMatches Value Is Refused" (anything but
+`true`/`false` on that query param is 400 `INVALID_INPUT`, nothing deleted); "The Expired
+Cleanup Keeps The Expired Guest That Owns A Match" (the PostgreSQL FK regression: `DELETE
+/api/admin/guests/expired` with one expired guest owning a match and one without answers 200
+and keeps the guest with the match) — run on Java + PostgreSQL as well as SQLite/Python/AWS.
+Suite Setup/Teardown mint and admin-delete every guest and match the tests create.
+
+**v0.41.1 patch 2** adds its own story, `story_alpha_prep.json`, imported once and shared by
+both new suites through `alpha_prep_common.resource`:
+
+- `logging_gaps.robot` (11 tests) — the five new timeline types on `GET /api/matches/{uuid}/logs`:
+  `PASS` on a pass action, `EDGE_STATE` for coma/overflow/recovery/all-coma, `TRAIT_CHANGE`
+  `ADD`/`REMOVE <uuid>` from a granting/removing event, `MATCH_LIFECYCLE` `CREATED`/`STARTED`/
+  `ENDED` (an admin stop logs `ADMIN_ACTION STOP`, not `ENDED`), `ADMIN_ACTION` for
+  pause/resume/stop/status/stats; `logCount` on `GET /api/admin/matches/{uuid}/info`;
+  `MATCH_LIFECYCLE`/`ADMIN_ACTION` hidden from the player-facing log endpoint.
+- `snapshots.robot` (6 tests) — a LIGHT snapshot appears after every time-end,
+  `GET .../snapshots` newest first, `.../check` on a valid one, restore (`PAUSED`, `logsRemoved`,
+  later snapshots gone, the time-start re-run at the new clock), restore of a bad
+  checksum/missing snapshot (404/409), the pruning window at `SNAPSHOT_KEEP_PER_MATCH`.
+
+**v0.41.2 patch 3** adds `kpi.robot` (6 tests): a played match (start, choice, move, mission)
+moves every counter of its story on `GET /api/admin/reports/kpi`; a coma is counted once per
+character; a restored match that ends again counts again (KPI is not rolled back by a
+restore); `month`/`total` grouping agrees with the `day` rows; the all-stories total is at
+least the single story's; bad dates/range/`groupBy` answer 400.
+
+**v0.41.4 patch** adds `match_export_import.robot` (written, not yet run by the owner): admin export
+of a match and import (dry-run, import, replace, story modes, user resolution) through
+`resources/MatchExportHelper.py`, schema check with `jsonschema` (in `requirements.txt`), fixtures in
+`41_alpha_prep/fixtures/`. The cross-backend matrix test reads golden exports from
+`fixtures/golden/` (produced by the owner) and skips until they are present.
+
+Run on all four targets (AWS, Java, Java+PostgreSQL, Python).
+
+### `35_import_integrity` breakdown
+
+`import_integrity.robot` (17 tests) — the v0.35.8 round of import, schema and admin-CRUD
+fixes. Every case failed against a real PostgreSQL deployment while passing on a local
+SQLite one, or imported "successfully" and silently dropped what it was given.
+
+The suite is the only one that **ships its own story**: `story_import_integrity.json`, next
+to the .robot file, imported in Suite Setup and deleted by the last test. Nothing is added
+to the four seeds — the fixture is authored to carry, all at once, every reference and value
+that used to break: a 608-character `shortText` (the column was VARCHAR(500) on PostgreSQL),
+an event chained to an event further down the list, an event handing over an item imported
+after it, an event gated on a weather rule (which must go in first) and a rule pointing back
+at an event (the cycle), a location naming four trigger events plus one using the
+pre-V0.33.2 `idEventIfCharacterEnterFirstTime` spelling, an `""` in a numeric field, the
+canonical top-level `locationNeighbors[]` with its three edge costs and both direction
+labels, and two items — one declaring no flags (the schema default decides) and one
+declaring them false (what is authored wins). The last two cases leave the import: a PUT
+carrying real JSON booleans (the update path set them raw, which PostgreSQL refuses), and
+the delete, which has to clear the story's own forward references and remove the creator
+last.
+
+v0.36.3 added three cases and the rows they read: an option carrying all five v0.32.0
+effect targets (`idEvent`, `idLocation`, `idWeather`, `idItemTarget`, `itemAction`)
+plus its uuid and card, none of which the java import ever mapped; and the two halves
+of the consumable default — an imported item that declares no `isConsumabile`, and one
+created from the console without the flag (the admin form sends a checkbox only once
+touched), both of which must read as carried-only rather than usable.
+
+Backend-agnostic by construction: a SQL backend answers with the column (0/1, the default
+where nothing was authored) while AWS answers with the attribute as authored and omits what
+was never set, so the flag cases assert the MEANING (`Should Read As Set` / `As Clear`) and
+the renamed-column case accepts either spelling. Entities are addressed by their story-local
+`id` through the `Entity With Id` keyword, never by uuid — the uuids are generated per import.
+
 ## Seed data and reports per backend
 
 | Backend | Seed file | Run script | Report |
@@ -205,3 +512,11 @@ the others rather than trail them.
 
 When a suite is added or a seed changes, keep all four backends in sync — the Robot suites
 validate any backend interchangeably via `variables/dev.yaml`.
+
+**v0.41.0 — JWT and rate limits.** All four `run_robot_with_*.sh` scripts export `JWT_SECRET`
+(read from `.env`) so `JwtHelper.py`'s generated admin tokens match whatever secret the target
+server was started with; the three local scripts (Java, Java+PostgreSQL, Python) also force
+`RATE_LIMIT_GUEST_PER_IP`/`RATE_LIMIT_MATCH_PER_IP`/`RATE_LIMIT_MATCH_PER_GUEST` to `0` before
+starting the server, overriding `.env`, so a normal Robot run never trips the new non-zero code
+defaults; the AWS test stack keeps passing its own `:-0` defaults at deploy time. A suite that
+needs to exercise a limit passes it explicitly as a `--variable` and must run alone (§ above).

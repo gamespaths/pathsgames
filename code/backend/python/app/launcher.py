@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.config import settings
+from app.config import settings, check_secrets
+from app.adapters.rest.middleware.security_headers_middleware import SecurityHeadersMiddleware
+from app.adapters.scheduler.guest_cleanup_scheduler import start_guest_cleanup
 from app.adapters.persistence.database import init_db, SessionLocal
 from app.adapters.persistence.auth.guest_persistence_adapter import GuestPersistenceAdapter
 from app.adapters.auth.jwt_adapter import JwtAdapter
@@ -22,6 +24,8 @@ from app.core.services.story.story_import_service import StoryImportService
 from app.core.services.story.story_validator_service import StoryValidatorService
 from app.adapters.rest.story.story_controller import StoryController
 from app.adapters.rest.story.story_admin_controller import StoryAdminController
+from app.adapters.catalog.file_catalog_writer import FileCatalogWriter
+from app.core.services.story.story_catalog_export_service import StoryCatalogExportService
 
 from app.core.services.story.content_query_service import ContentQueryService
 from app.adapters.rest.story.content_controller import ContentController
@@ -32,10 +36,14 @@ from app.adapters.rest.story.story_crud_admin_controller import StoryCrudAdminCo
 # Step 19 — single-player match creation
 from app.adapters.persistence.match.location_entry_store_adapter import LocationEntryStoreAdapter
 from app.adapters.persistence.match.match_persistence_adapter import MatchPersistenceAdapter
+from app.adapters.persistence.match.match_log_writer_adapter import MatchLogWriterAdapter
 from app.adapters.persistence.match.story_match_read_adapter import StoryMatchReadAdapter
 from app.adapters.persistence.match.user_access_adapter import UserAccessAdapter
 from app.adapters.persistence.match.character_persistence_adapter import CharacterPersistenceAdapter
 from app.core.services.match.match_command_service import MatchCommandService
+from app.core.services.match.mission_service import MissionService
+from app.core.services.match.registry_service import RegistryService
+from app.adapters.persistence.match.registry_store_adapter import RegistryStoreAdapter
 from app.core.services.match.match_query_service import MatchQueryService
 from app.core.services.match.character_command_service import CharacterCommandService
 from app.core.services.match.character_query_service import CharacterQueryService
@@ -48,6 +56,8 @@ from app.core.services.match.turn_cycle_service import TurnCycleService
 from app.adapters.rest.match.turn_cycle_controller import TurnCycleController
 from app.adapters.persistence.match.time_store_adapter import TimeStoreAdapter
 from app.core.services.match.time_advancement_service import TimeAdvancementService
+from app.core.services.match.snapshot_service import SnapshotService
+from app.adapters.persistence.match.snapshot_store_adapter import SnapshotStoreAdapter
 from app.core.services.event.in_process_event_publisher import InProcessDomainEventPublisher
 from app.adapters.rest.match.time_clock_controller import TimeClockController
 from app.adapters.persistence.match.movement_store_adapter import MovementStoreAdapter
@@ -56,15 +66,32 @@ from app.adapters.rest.match.movement_controller import MovementController
 from app.adapters.persistence.match.edge_state_store_adapter import EdgeStateStoreAdapter
 from app.adapters.persistence.match.event_store_adapter import EventStoreAdapter
 from app.adapters.persistence.match.inventory_store_adapter import InventoryStoreAdapter
+from app.adapters.persistence.match.experience_store_adapter import ExperienceStoreAdapter
 from app.core.services.match.event_service import EventService
 from app.core.services.match.inventory_service import InventoryService
+from app.core.services.match.experience_service import ExperienceService
 from app.adapters.rest.match.event_controller import EventController
 from app.adapters.rest.match.inventory_controller import InventoryController
+from app.adapters.rest.match.experience_controller import ExperienceController
 from app.adapters.persistence.match.weather_store_adapter import WeatherStoreAdapter
 from app.core.services.match.match_logs_service import MatchLogsService
 from app.core.services.match.weather_selection_service import WeatherSelectionService
+from app.adapters.persistence.match.random_event_store_adapter import RandomEventStoreAdapter
+from app.core.services.match.random_event_selection_service import RandomEventSelectionService
 from app.adapters.rest.match.weather_controller import WeatherController
 from app.adapters.turnstile.turnstile_adapter import TurnstileVerificationAdapter
+from app.adapters.persistence.match.kpi_store_adapter import KpiStoreAdapter
+from app.core.services.match.kpi_service import KpiService
+from app.adapters.rest.match.kpi_admin_controller import KpiAdminController
+from app.adapters.rest.match.match_export_admin_controller import MatchExportAdminController
+from app.adapters.rest.match.match_owner_admin_controller import MatchOwnerAdminController
+from app.adapters.rest.auth.user_admin_controller import UserAdminController
+from app.adapters.persistence.auth.user_directory_adapter import UserDirectoryAdapter
+from app.core.services.match.match_owner_service import MatchOwnerService
+from app.adapters.persistence.match.match_export_store_adapter import MatchExportStoreAdapter
+from app.core.services.match.match_export_service import MatchExportService
+from app.core.services.match.match_import_service import MatchImportService
+from app.core.services.story.story_export_service import StoryExportService
 import app.adapters.persistence.match.models  # noqa: F401  - registers ORM tables
 
 # Dev-only test-data cleanup
@@ -97,15 +124,20 @@ echo_service = EchoService(
 )
 session_service = SessionService(jwt_adapter, token_persistence, 5)
 guest_auth_service = GuestAuthService(jwt_adapter, persistence_adapter)
-guest_admin_service = GuestAdminService(persistence_adapter)
 story_query_service = StoryQueryService(story_read_adapter)
 story_validator_service = StoryValidatorService(story_read_adapter)
 story_import_service = StoryImportService(story_persistence_adapter, story_validator_service)
 content_query_service = ContentQueryService(story_read_adapter)
 story_crud_service = StoryCrudService(story_read_adapter, story_persistence_adapter, story_validator_service)
+# v0.37.6 — static catalog export (POST /api/admin/stories/catalog)
+story_catalog_export_service = StoryCatalogExportService(
+    story_query_service, FileCatalogWriter(settings.catalog_export_dir), settings.catalog_langs_list)
 
 # Step 19 — match adapters and services
 match_persistence_adapter = MatchPersistenceAdapter(SessionLocal)
+# v0.36.2 — the stale purge takes a guest's matches with it, so it needs both ports.
+guest_admin_service = GuestAdminService(persistence_adapter, match_persistence_adapter,
+                                        settings.guest_cleanup_max_per_run)
 story_match_read_adapter = StoryMatchReadAdapter(SessionLocal)
 user_access_adapter = UserAccessAdapter(SessionLocal)
 system_mode_service = PropertySystemModeService(server_status="OK")
@@ -114,13 +146,33 @@ turnstile_adapter = TurnstileVerificationAdapter(
     bypass_token=settings.turnstile_bypass_token,
     env=settings.env,
 )
+# Step 36 — one service owns every read, write and comparison of gaming_state_registry.
+registry_store_adapter = RegistryStoreAdapter(SessionLocal)
+registry_service = RegistryService(registry_store_adapter, story_match_read_adapter,
+                                   content_query_service)
+# Step 37 — the mission engine and the registry know each other in a circle: the registry
+# tells it a value moved, and it reads the registry back to decide what that means.
+# The STORY read adapter, not the match one: the engine reads the mission rows and their
+# texts through the same generic story reader the admin CRUD uses.
+mission_service = MissionService(registry_store_adapter, story_read_adapter,
+                                 content_query_service)
+# v0.41.2 — Step 41 F: KPI counters at event time (best effort) and the admin report.
+kpi_service = KpiService(KpiStoreAdapter(SessionLocal))
+mission_service.kpi = kpi_service
+registry_service.mission_service = mission_service
 match_command_service = MatchCommandService(
     story_match_read_adapter,
     match_persistence_adapter,
     user_access_adapter,
     system_mode_service,
     turnstile_adapter,
+    registry_service,
 )
+match_command_service.set_mission_service(mission_service)
+# v0.41.1 — Step 41 A: pass, trait, lifecycle and admin rows, and the log-size check.
+match_log_writer_adapter = MatchLogWriterAdapter(SessionLocal, settings.log_warn_rows)
+match_command_service.set_log_writer(match_log_writer_adapter)
+match_command_service.set_kpi(kpi_service)
 # Step 21 — character join adapters and services
 character_persistence_adapter = CharacterPersistenceAdapter(SessionLocal)
 character_command_service = CharacterCommandService(
@@ -130,6 +182,7 @@ character_command_service = CharacterCommandService(
     character_persistence_adapter,
     character_persistence_adapter,  # also implements CharacterReadPort
 )
+character_command_service.set_log_writer(match_log_writer_adapter)
 character_query_service = CharacterQueryService(
     match_persistence_adapter,
     character_persistence_adapter,
@@ -149,30 +202,46 @@ match_query_service = MatchQueryService(
     character_persistence_adapter,
     movement_store_adapter,
     event_store_adapter,
+    registry_service,
 )
+match_query_service.set_mission_service(mission_service)
 
 # Dev-only test-data cleanup service
 test_data_cleanup_service = TestDataCleanupService(persistence_adapter, match_persistence_adapter)
 
 # 4. Initialize Controllers
 echo_controller = EchoController(echo_service)
-guest_auth_controller = GuestAuthController(guest_auth_service, jwt_adapter, token_persistence, settings.dev_test_endpoints_enabled)
+# v0.37.7 — Step 41 security: the rate limiter and the CSRF token issuer shared by the controllers.
+from app.core.services.security.rate_limit_service import RateLimitService
+from app.core.services.security.csrf_token_service import CsrfTokenService
+rate_limit_service = RateLimitService(settings.rate_limit_window_seconds)
+csrf_token_service = CsrfTokenService(settings.csrf_secret or settings.jwt_secret, settings.csrf_enforced)
+
+guest_auth_controller = GuestAuthController(guest_auth_service, jwt_adapter, token_persistence,
+                                            settings.dev_test_endpoints_enabled,
+                                            rate_limit_service, settings.rate_limit_guest_per_ip,
+                                            csrf_token_service)
 guest_admin_controller = GuestAdminController(guest_admin_service)
-session_controller = SessionController(session_service)
+session_controller = SessionController(session_service, csrf_token_service)
 story_controller = StoryController(story_query_service)
-story_admin_controller = StoryAdminController(story_query_service, story_import_service, story_validator_service)
+story_admin_controller = StoryAdminController(story_query_service, story_import_service, story_validator_service,
+                                              story_catalog_export_service)
 content_controller = ContentController(content_query_service)
 story_crud_admin_controller = StoryCrudAdminController(story_crud_service)
 # Step 28.7 — consolidated match logs timeline (player + admin endpoints).
 # content_query_service resolves the weather / location / character cards on the page.
-match_logs_service = MatchLogsService(SessionLocal, content_query_service)
+match_logs_service = MatchLogsService(SessionLocal, content_query_service,
+                                     log_writer=match_log_writer_adapter)
 match_controller = MatchController(match_command_service, match_query_service,
-                                   match_logs_service)
+                                   match_logs_service, rate_limit_service,
+                                   settings.rate_limit_match_per_ip, csrf_token_service,
+                                   settings.rate_limit_match_per_guest,
+                                   settings.rate_limit_match_per_guest_window_seconds)
 character_controller = CharacterController(character_command_service, character_query_service)
 
 # Step 27 — weather selection engine (shared by turn-start, time-advancement and queries).
 weather_store_adapter = WeatherStoreAdapter(SessionLocal)
-weather_selection_service = WeatherSelectionService(weather_store_adapter)
+weather_selection_service = WeatherSelectionService(weather_store_adapter, registry_service)
 weather_controller = WeatherController(weather_selection_service, content_query_service)
 
 # Step 28 — movement system service (shared by player and admin controllers).
@@ -182,15 +251,20 @@ weather_controller = WeatherController(weather_selection_service, content_query_
 location_entry_store_adapter = LocationEntryStoreAdapter(SessionLocal)
 # The MovementService is built AFTER the event service below, because the arrival hook is
 # the event service itself; a placeholder here keeps the admin controller wiring readable.
-movement_service = MovementService(movement_store_adapter, story_match_read_adapter)
+movement_service = MovementService(movement_store_adapter, story_match_read_adapter,
+                                  registry_service_instance=registry_service)
 
 match_admin_controller = MatchAdminController(match_command_service, match_query_service,
                                                character_command_service,
                                                weather_selection_service,
                                                movement_service,
-                                               match_logs_service)
+                                               match_logs_service,
+                                               registry_service)
 turn_cycle_store_adapter = TurnCycleStoreAdapter(SessionLocal)
-turn_cycle_service = TurnCycleService(turn_cycle_store_adapter, weather_selection_service)
+turn_cycle_service = TurnCycleService(turn_cycle_store_adapter, weather_selection_service,
+                                      registry_service)
+turn_cycle_service.set_log_writer(match_log_writer_adapter)
+turn_cycle_service.set_kpi(kpi_service)
 turn_cycle_controller = TurnCycleController(turn_cycle_service)
 
 # Step 25 — time advancement & clock cycle.
@@ -198,9 +272,38 @@ time_store_adapter = TimeStoreAdapter(SessionLocal)
 domain_event_publisher = InProcessDomainEventPublisher()
 # Step 30 — the edge-state store is shared by the recovery and the event engine.
 edge_state_store_adapter = EdgeStateStoreAdapter(SessionLocal)
+# Step 39 — the day's random event, picked after the weather.
+random_event_selection_service = RandomEventSelectionService(
+    RandomEventStoreAdapter(SessionLocal), registry_service)
 time_advancement_service = TimeAdvancementService(time_store_adapter, domain_event_publisher,
                                                   weather_service=weather_selection_service,
-                                                  edge_store=edge_state_store_adapter)
+                                                  edge_store=edge_state_store_adapter,
+                                                  random_event_service=random_event_selection_service)
+time_advancement_service.set_log_writer(match_log_writer_adapter)
+time_advancement_service.recovery_service.kpi = kpi_service
+# v0.41.1 — Step 41 B snapshots; the time engine and the restore know each other through setters.
+snapshot_service = SnapshotService(SnapshotStoreAdapter(SessionLocal), settings.snapshot_keep_per_match)
+snapshot_service.set_time_service(time_advancement_service)
+snapshot_service.set_log_writer(match_log_writer_adapter)
+time_advancement_service.set_snapshot_writer(snapshot_service)
+match_admin_controller.snapshot_service = snapshot_service
+# v0.41.4 — Step 41 H: match export and import in the neutral format (decisions 45-66).
+story_export_service = StoryExportService(story_crud_service)
+match_export_store_adapter = MatchExportStoreAdapter(SessionLocal)
+snapshot_store_adapter = snapshot_service.store
+match_import_service = MatchImportService(match_export_store_adapter, snapshot_store_adapter, story_export_service,
+                                          story_import_service, story_validator_service, settings.version,
+                                          settings.match_export_max_bytes)
+match_import_service.set_engine(snapshot_service, time_advancement_service, match_log_writer_adapter,
+                                match_command_service)
+match_export_service = MatchExportService(snapshot_store_adapter, snapshot_service, match_export_store_adapter,
+                                         story_export_service, match_import_service, settings.version,
+                                         settings.env, settings.match_export_max_bytes)
+match_export_service.log_writer = match_log_writer_adapter
+match_export_service.match_commands = match_command_service
+# v0.41.6 — the admin User tab: owner view, user preview and owner move.
+match_owner_service = MatchOwnerService(match_persistence_adapter, character_persistence_adapter,
+                                        UserDirectoryAdapter(SessionLocal), match_log_writer_adapter)
 time_clock_controller = TimeClockController(time_advancement_service)
 
 # Step 28 — movement system (single-player). The controller is mounted on the
@@ -215,7 +318,14 @@ event_service = EventService(event_store_adapter,
                              edge_store=edge_state_store_adapter,
                              content_read_port=story_match_read_adapter,
                              time_service=time_advancement_service,
-                             location_store=location_entry_store_adapter)
+                             location_store=location_entry_store_adapter,
+                             registry_service_instance=registry_service)
+# Step 37 — the second cycle, closed the same way: a mission completion runs an event, and
+# an event moves the registry that decides the mission.
+event_service.set_mission_service(mission_service)
+event_service.set_log_writer(match_log_writer_adapter)
+event_service.set_kpi(kpi_service)
+mission_service.event_port = event_service
 event_controller = EventController(event_service)
 
 # Steps 34 & 35 — inventory and resources. Depends on the CONCRETE EventService, not on
@@ -227,6 +337,13 @@ inventory_service = InventoryService(inventory_store_adapter,
                                      story_read_port=story_match_read_adapter,
                                      effect_engine=event_service)
 inventory_controller = InventoryController(inventory_service)
+
+# Step 38 — experience spent on a stat; prices with the difficulty row, logs EXP_USE.
+# v0.38.3 — writes the declared use-exp keys on the registry, so a mission can wait for it.
+experience_store_adapter = ExperienceStoreAdapter(SessionLocal)
+experience_service = ExperienceService(experience_store_adapter, user_access_port=user_access_adapter,
+                                       registry_service=registry_service)
+experience_controller = ExperienceController(experience_service)
 
 # Step 33 — one service, two roles. EventService implements the location engine as well,
 # because a forced-movement effect is an arrival and splitting the two apart would only
@@ -277,31 +394,47 @@ public_paths = [
     "/api/auth/refresh",
     "/api/dev/**"
 ]
+# v0.41.0 — decision 34: the FastAPI docs exist only on dev/test, and there they are public.
+DOCS_PUBLIC_PATHS = ["/docs", "/docs/**", "/redoc", "/openapi.json"]
+if settings.is_dev_or_test:
+    public_paths += DOCS_PUBLIC_PATHS
 
 
 def _cors_params():
+    # v0.41.0 — Retry-After is exposed, so the browser can read it on a 429
     if settings.cors_allowed_origins == "*":
         return {
             "allow_origin_regex": r".*",
             "allow_credentials": True,
             "allow_methods": ["*"],
             "allow_headers": ["*"],
+            "expose_headers": ["Retry-After"],
         }
     return {
         "allow_origins": settings.cors_origins_list,
         "allow_credentials": True,
         "allow_methods": ["*"],
         "allow_headers": ["*"],
+        "expose_headers": ["Retry-After"],
     }
+
+
+def _docs_params():
+    """v0.41.0 — /docs, /redoc and /openapi.json only on dev/test (decision 34)."""
+    if settings.is_dev_or_test:
+        return {}
+    return {"docs_url": None, "redoc_url": None, "openapi_url": None}
 
 
 def _build_app(routers) -> FastAPI:
     """Build a FastAPI app with the shared error handlers, JWT + CORS middleware and the
     given routers. ``routers`` items are either a router or a ``(router, kwargs)`` tuple."""
-    application = FastAPI(title=settings.app_name, version=settings.version)
+    application = FastAPI(title=settings.app_name, version=settings.version, **_docs_params())
     application.add_exception_handler(StarletteHTTPException, _http_exception_handler)
     application.add_exception_handler(RequestValidationError, _validation_exception_handler)
     application.add_middleware(JwtMiddleware, session_service=session_service, public_paths=public_paths)
+    # v0.41.0 — security headers outside the JWT check, so its refusals carry them too
+    application.add_middleware(SecurityHeadersMiddleware)
     # CORS added LAST so it is OUTERMOST (per S8414).
     application.add_middleware(CORSMiddleware, **_cors_params())
     for entry in routers:
@@ -326,6 +459,7 @@ app = _build_app([
     movement_controller.router,
     event_controller.router,
     inventory_controller.router,
+    experience_controller.router,
     weather_controller.router,
 ])
 
@@ -338,17 +472,27 @@ app_admin = _build_app([
     story_admin_controller.router,
     story_crud_admin_controller.router,
     match_admin_controller.router,
+    KpiAdminController(kpi_service).router,
+    MatchExportAdminController(match_export_service, settings.match_export_max_bytes).router,
+    MatchOwnerAdminController(match_owner_service).router,
+    UserAdminController(match_owner_service).router,
     dev_controller.router,
 ])
 
 
-if __name__ == "__main__":
+async def _serve():
+    """Both servers in one process; v0.41.0: secrets check and cleanup job here, never at import."""
     import asyncio
     import uvicorn
 
-    async def _serve():
-        public = uvicorn.Server(uvicorn.Config(app, host=settings.host, port=settings.port))
-        admin = uvicorn.Server(uvicorn.Config(app_admin, host=settings.host, port=settings.admin_port))
-        await asyncio.gather(public.serve(), admin.serve())
+    check_secrets()
+    start_guest_cleanup(guest_admin_service, settings)
+    public = uvicorn.Server(uvicorn.Config(app, host=settings.host, port=settings.port))
+    admin = uvicorn.Server(uvicorn.Config(app_admin, host=settings.host, port=settings.admin_port))
+    await asyncio.gather(public.serve(), admin.serve())
+
+
+if __name__ == "__main__":
+    import asyncio
 
     asyncio.run(_serve())

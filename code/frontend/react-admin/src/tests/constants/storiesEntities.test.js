@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { STORIES_ENTITIES_FIELDS, STORIES_ENTITIES_COLUMNS } from '../../constants/story/storiesEntities'
-import { ITEM_EFFECT_CODE_OPTIONS } from '../../constants/story/storyFieldOptions'
+import {
+  ITEM_EFFECT_CODE_OPTIONS, CHOICE_CONDITION_OPERATOR_OPTIONS, KEY_VISIBILITY_OPTIONS,
+} from '../../constants/story/storyFieldOptions'
 
 describe('event-effects entity config', () => {
   it('opens the form with card, name, description and event, in this order', () => {
@@ -47,6 +49,50 @@ describe('choice-effects entity config (Step 32)', () => {
     expect(byKey.key.type).toBe('text')
     expect(byKey.valueToAdd.type).toBe('text')
     expect(byKey.valueToRemove.type).toBe('text')
+  })
+})
+
+describe('locations entity config (Step 36.2)', () => {
+  const fields = () => STORIES_ENTITIES_FIELDS.locations
+
+  it('exposes both registry pairs a location writes on arrival', () => {
+    const keys = fields().map(field => field.key)
+    expect(keys).toEqual(expect.arrayContaining([
+      'keyToAdd', 'keyValueToAdd', 'keyToAddNotFirst', 'keyValueToAddNotFirst',
+    ]))
+  })
+
+  it('types them as text, like every other registry key and value', () => {
+    const byKey = Object.fromEntries(fields().map(f => [f.key, f]))
+    for (const key of ['keyToAdd', 'keyValueToAdd', 'keyToAddNotFirst', 'keyValueToAddNotFirst']) {
+      expect(byKey[key].type).toBe('text')
+    }
+  })
+
+  it('keeps the first-entry pair next to the trigger events it belongs with', () => {
+    const keys = fields().map(field => field.key)
+    expect(keys.indexOf('keyToAdd')).toBeGreaterThan(keys.indexOf('idEventIfFirstTime'))
+    expect(keys.indexOf('keyToAdd')).toBeLessThan(keys.indexOf('priorityAutomaticEvent'))
+  })
+})
+
+describe('difficulties entity config (Step 38)', () => {
+  it('replaces costMaxCharacteristics with the use-exp price columns, in form and table', () => {
+    const formKeys = STORIES_ENTITIES_FIELDS.difficulties.map(f => f.key)
+    const columnKeys = STORIES_ENTITIES_COLUMNS.difficulties.map(c => c.key)
+    for (const keys of [formKeys, columnKeys]) {
+      expect(keys).toEqual(expect.arrayContaining(['expCostBase', 'maxStatValue']))
+      expect(keys).not.toContain('costMaxCharacteristics')
+    }
+    const byKey = Object.fromEntries(STORIES_ENTITIES_FIELDS.difficulties.map(f => [f.key, f]))
+    expect(byKey.expCostBase.type).toBe('number')
+    expect(byKey.maxStatValue.type).toBe('number')
+  })
+
+  it('drops isSafe from the locations: secureParam is the one "safe" the engine reads', () => {
+    expect(STORIES_ENTITIES_FIELDS.locations.map(f => f.key)).not.toContain('isSafe')
+    expect(STORIES_ENTITIES_COLUMNS.locations.map(c => c.key)).toContain('secureParam')
+    expect(STORIES_ENTITIES_COLUMNS.locations.map(c => c.key)).not.toContain('isSafe')
   })
 })
 
@@ -128,5 +174,77 @@ describe('traits entity config (v0.35.2)', () => {
   it('keeps it next to the costs, which are the other rules of picking a trait', () => {
     const keys = STORIES_ENTITIES_FIELDS.traits.map(f => f.key)
     expect(keys.indexOf('hideOnStartMatch')).toBe(keys.indexOf('costNegative') + 1)
+  })
+})
+
+describe('registry condition operator (Step 36)', () => {
+  const OPERATOR_ENTITIES = ['events', 'location-neighbors', 'weather-rules', 'global-random-events']
+
+  it('is offered on every entity that gates on a registry key', () => {
+    for (const entity of OPERATOR_ENTITIES) {
+      const field = STORIES_ENTITIES_FIELDS[entity]
+        .find(f => f.key === 'registryValueOperatorCondition')
+      expect(field, `missing on ${entity}`).toBeTruthy()
+      expect(field.type).toBe('select')
+    }
+  })
+
+  it('reuses the choice-condition vocabulary: one operator list, not four', () => {
+    for (const entity of OPERATOR_ENTITIES) {
+      const field = STORIES_ENTITIES_FIELDS[entity]
+        .find(f => f.key === 'registryValueOperatorCondition')
+      expect(field.options).toBe(CHOICE_CONDITION_OPERATOR_OPTIONS)
+    }
+    expect(CHOICE_CONDITION_OPERATOR_OPTIONS.map(o => o.value)).toEqual(['=', '>', '<', '!='])
+  })
+
+  it('sits right after the value it compares, so the pair reads together', () => {
+    const after = {
+      events: 'registryValueCondition',
+      'location-neighbors': 'conditionRegistryValue',
+      'weather-rules': 'conditionKeyValue',
+      'global-random-events': 'conditionValue',
+    }
+    for (const [entity, valueKey] of Object.entries(after)) {
+      const keys = STORIES_ENTITIES_FIELDS[entity].map(f => f.key)
+      expect(keys[keys.indexOf(valueKey) + 1]).toBe('registryValueOperatorCondition')
+    }
+  })
+
+  it('stores a string: an operator must not be coerced to a number', () => {
+    for (const entity of OPERATOR_ENTITIES) {
+      const field = STORIES_ENTITIES_FIELDS[entity]
+        .find(f => f.key === 'registryValueOperatorCondition')
+      expect(field.valueType).toBeUndefined()
+    }
+  })
+})
+
+describe('registry key visibility (Step 36)', () => {
+  it('is a select, so a key cannot be left in an ambiguous state by hand', () => {
+    const field = STORIES_ENTITIES_FIELDS.keys.find(f => f.key === 'visibility')
+    expect(field).toMatchObject({ key: 'visibility', type: 'select' })
+    expect(field.options).toBe(KEY_VISIBILITY_OPTIONS)
+  })
+
+  it('offers exactly the two states the engine distinguishes', () => {
+    // The backend shows a key only when visibility is exactly PUBLIC; everything else hides
+    // it. Offering a third word here would invent a state the engine does not have.
+    expect(KEY_VISIBILITY_OPTIONS.map(o => o.value)).toEqual(['PUBLIC', 'HIDDEN'])
+  })
+})
+
+describe('global random events (Step 39)', () => {
+  const fields = STORIES_ENTITIES_FIELDS['global-random-events']
+  const field = (key) => fields.find(f => f.key === key)
+
+  it('requires a 0..100 probability and an event', () => {
+    expect(field('probability')).toMatchObject({ type: 'number', required: true, min: 0, max: 100 })
+    expect(field('idEvent').required).toBe(true)
+  })
+
+  it('shows the operator column in the table', () => {
+    const columns = STORIES_ENTITIES_COLUMNS['global-random-events'].map(c => c.key)
+    expect(columns).toContain('registryValueOperatorCondition')
   })
 })

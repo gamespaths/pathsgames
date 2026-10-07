@@ -26,5 +26,18 @@
       "Bash(python3 -m pytest tests -q --cov=match.events --cov-report=term-missing)",
       "Bash(grep -n \"characteristics\\\\|exp INTEGER\\\\|exp\\\\`\\\\|gaming_character_instance\" /mnt/Dati4/Workspace/pathsgames/documentation_v0/Step09_DesignCoreDataModel.md)"
     ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat \"$CLAUDE_PROJECT_DIR/.claude/hooks/caveman-rules.md\" 2>/dev/null || true",
+            "statusMessage": "Loading caveman mode"
+          }
+        ]
+      }
+    ]
   }
 }

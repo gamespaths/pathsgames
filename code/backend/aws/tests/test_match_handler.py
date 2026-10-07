@@ -5,6 +5,7 @@ The DynamoDB layer (``common.db_utils``) and the JWT layer
 external state.
 """
 import json
+import io
 from unittest.mock import patch
 
 import pytest
@@ -13,6 +14,7 @@ import pytest
 # decorators below can resolve the module path at decoration time.
 from match import handler as _match_handler  # noqa: F401
 
+import helpers
 from helpers import make_event
 
 
@@ -83,6 +85,17 @@ def test_create_match_no_auth_returns_401():
     event = make_event('POST', '/api/matches', body={'storyUuid': 's', 'difficultyUuid': 'd'})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 401
+    # v0.37.1 — the Java filter's code, so the shared Robot suites can pin it on any backend.
+    assert json.loads(result['body'])['error'] == 'MISSING_TOKEN'
+
+
+def test_an_empty_bearer_is_told_apart_from_a_missing_one():
+    from match.handler import lambda_handler
+    event = make_event('POST', '/api/matches', headers={'Authorization': 'Bearer '},
+                       body={'storyUuid': 's', 'difficultyUuid': 'd'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 401
+    assert json.loads(result['body'])['error'] == 'EMPTY_TOKEN'
 
 
 @patch('match.handler.db_utils.get_item')
@@ -94,6 +107,8 @@ def test_invalid_token_returns_401(mock_jwt, mock_get):
                        body={'storyUuid': 's', 'difficultyUuid': 'd'})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 401
+    # A token that does not verify is INVALID_TOKEN, not the same word as no token at all.
+    assert json.loads(result['body'])['error'] == 'INVALID_TOKEN'
 
 
 @patch('match.handler.db_utils.get_item')
@@ -117,7 +132,7 @@ def test_jwt_user_not_in_db_uses_synthetic_user(mock_jwt, mock_get, mock_put, mo
     # before creating: unpatched it would reach the real DynamoDB client.
     mock_jwt.return_value = {'uuid': 'jwt-uuid', 'source': 'jwt', 'role': 'PLAYER', 'username': 'j'}
 
-    def get_side(pk, sk='METADATA'):
+    def get_side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#jwt-uuid':
             return None
         if pk == 'STORY#story-uuid-1':
@@ -167,7 +182,7 @@ def create_env():
             state['maintenance'] = maintenance
             mock_query.return_value = user_matches or []
 
-        def get_side(pk, sk='METADATA'):
+        def get_side(pk, sk='METADATA', consistent=True):
             if pk == 'USER#player-uuid-001':
                 return state['user']
             if pk.startswith('STORY#'):
@@ -235,6 +250,55 @@ def test_verify_turnstile_bypass_token_disabled_in_prod(create_env):
         mock_resp.read.return_value = b'{"success": false}'
         assert h._verify_turnstile('0xROBOT') is False
         mock_urlopen.assert_called_once()
+
+
+def test_verify_turnstile_logs_cloudflare_error_codes(create_env, capsys):
+    """The error-codes are the only way to tell a wrong secret from a reused or
+    expired token, so they must reach CloudWatch."""
+    from match import handler as h
+    with patch.object(h, '_TURNSTILE_SECRET', 'real-secret'), \
+         patch.object(h, '_TURNSTILE_BYPASS_TOKEN', ''), \
+         patch.object(h, '_ENV', 'test'), \
+         patch('match.handler.urllib.request.urlopen') as mock_urlopen:
+        mock_resp = mock_urlopen.return_value.__enter__.return_value
+        mock_resp.read.return_value = b'{"success": false, "error-codes": ["timeout-or-duplicate"]}'
+        assert h._verify_turnstile('burnt-token') is False
+    assert 'timeout-or-duplicate' in capsys.readouterr().out
+
+
+def test_verify_turnstile_logs_a_missing_token(create_env, capsys):
+    from match import handler as h
+    with patch.object(h, '_TURNSTILE_SECRET', 'real-secret'), \
+         patch.object(h, '_TURNSTILE_BYPASS_TOKEN', ''), \
+         patch.object(h, '_ENV', 'test'):
+        assert h._verify_turnstile(None) is False
+    assert 'no turnstileToken' in capsys.readouterr().out
+
+
+def test_verify_turnstile_logs_the_cloudflare_http_error_body(create_env, capsys):
+    """A malformed secret (e.g. the site key pasted in its place) makes Cloudflare
+    answer 400; the body is the only hint, so it must be logged."""
+    import urllib.error
+    from match import handler as h
+    err = urllib.error.HTTPError(h._SITEVERIFY_URL, 400, 'Bad Request', {},
+                                 io.BytesIO(b'invalid secret'))
+    with patch.object(h, '_TURNSTILE_SECRET', 'real-secret'), \
+         patch.object(h, '_TURNSTILE_BYPASS_TOKEN', ''), \
+         patch.object(h, '_ENV', 'test'), \
+         patch('match.handler.urllib.request.urlopen', side_effect=err):
+        assert h._verify_turnstile('some-token') is False
+    out = capsys.readouterr().out
+    assert 'HTTP 400' in out and 'invalid secret' in out
+
+
+def test_verify_turnstile_logs_a_transport_failure(create_env, capsys):
+    from match import handler as h
+    with patch.object(h, '_TURNSTILE_SECRET', 'real-secret'), \
+         patch.object(h, '_TURNSTILE_BYPASS_TOKEN', ''), \
+         patch.object(h, '_ENV', 'test'), \
+         patch('match.handler.urllib.request.urlopen', side_effect=RuntimeError('boom')):
+        assert h._verify_turnstile('some-token') is False
+    assert 'boom' in capsys.readouterr().out
 
 
 def test_create_match_with_bypass_token_returns_201(create_env):
@@ -326,7 +390,7 @@ def test_create_match_active_match_exists_returns_409(create_env):
     result = lambda_handler(event, {})
     assert result['statusCode'] == 409
     assert _body(result)['error'] == 'ACTIVE_MATCH_ALREADY_EXISTS'
-    create_env['put'].assert_not_called()
+    assert helpers.SINK.rows == []
 
 
 def test_create_match_paused_match_also_blocks(create_env):
@@ -379,7 +443,7 @@ def test_create_match_happy_path(create_env):
     assert body['storyUuid'] == 'story-uuid-1'
     assert body['userCreatorUuid'] == 'player-uuid-001'
 
-    persisted = create_env['put'].call_args.args[0]
+    persisted = helpers.SINK.saved()
     assert persisted['PK'].startswith('MATCH#')
     assert persisted['GSI1_PK'] == 'USER_MATCHES#player-uuid-001'
     assert len(persisted['locations']) == 2
@@ -390,6 +454,31 @@ def test_create_match_happy_path(create_env):
     assert persisted['registry'][2]['stringValue'] == ''
     assert persisted['registry'][3]['stringValue'] is None
     assert persisted['registry'][3]['intValue'] is None
+
+
+def _create_named_match(create_env, name, env, ttl_hours='1'):
+    """v0.39.1 — the METADATA row a creation persists, under the given ENV and TTL setting."""
+    import os
+    create_env['configure'](story=STORY_ITEM)
+    from match.handler import lambda_handler
+    event = _player_event('POST', '/api/matches', body={
+        'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1', 'name': name})
+    # v0.41.0 — a private secret, so a prod ENV is not refused as misconfigured
+    with patch.dict(os.environ, {'ENV': env, 'ROBOT_TEST_DATA_TTL_HOURS': ttl_hours}), \
+         patch('common.jwt_utils.JWT_SECRET', 'a-private-prod-secret-of-at-least-32-chars'), \
+         patch('common.test_data_ttl.time.time', return_value=1_000):
+        assert lambda_handler(event, {})['statusCode'] == 201
+    return helpers.SINK.saved()
+
+
+def test_create_match_robot_name_gets_a_ttl(create_env):
+    assert _create_named_match(create_env, 'robottest_match', 'test')['ttl'] == 1_000 + 3600
+
+
+def test_create_match_real_name_or_ttl_off_gets_no_ttl(create_env):
+    assert 'ttl' not in _create_named_match(create_env, 'My run', 'test')
+    assert 'ttl' not in _create_named_match(create_env, 'robottest_match', 'test', '0')
+    assert 'ttl' not in _create_named_match(create_env, 'robottest_match', 'prod')
 
 
 def test_create_match_persists_creator_loadout(create_env):
@@ -408,11 +497,31 @@ def test_create_match_persists_creator_loadout(create_env):
     assert body['classUuid'] == 'cl'
     assert body['traitUuids'] == ['t1', 't2']
 
-    persisted = create_env['put'].call_args.args[0]
+    persisted = helpers.SINK.saved()
     assert persisted['singlePlayer'] == 0
     assert persisted['characterTemplateUuid'] == 'ct'
     assert persisted['classUuid'] == 'cl'
     assert persisted['traitUuids'] == ['t1', 't2']
+
+
+def test_create_match_with_blank_class_columns_on_a_trait(create_env):
+    """v0.37.1 — a story authored through the admin form keeps "" where a field was left
+    empty, and DynamoDB stores it verbatim. int("") raised, and every match creation on such
+    a story answered 500."""
+    import copy
+    story = copy.deepcopy(STORY_ITEM)
+    story['traits'][0]['idClassPermitted'] = ''
+    story['traits'][0]['idClassProhibited'] = ''
+    story['difficulties'][0]['traitCostPositiveBudget'] = ''
+    story['difficulties'][0]['traitCostNegativeBudget'] = ''
+    create_env['configure'](story=story)
+    from match.handler import lambda_handler
+    event = _player_event('POST', '/api/matches', body={
+        'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1',
+        'characterTemplateUuid': 'ct', 'classUuid': 'cl', 'traitUuids': ['t1'],
+    })
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 201, _body(result)
 
 
 def test_create_match_single_player_defaults_to_1(create_env):
@@ -423,7 +532,7 @@ def test_create_match_single_player_defaults_to_1(create_env):
     })
     result = lambda_handler(event, {})
     assert result['statusCode'] == 201
-    persisted = create_env['put'].call_args.args[0]
+    persisted = helpers.SINK.saved()
     assert persisted['singlePlayer'] == 1
     assert persisted['traitUuids'] == []
 
@@ -436,7 +545,7 @@ def test_create_match_no_difficulty_exp_defaults_to_5(create_env):
     event = _player_event('POST', '/api/matches', body={'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1'})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 201
-    persisted = create_env['put'].call_args.args[0]
+    persisted = helpers.SINK.saved()
     assert persisted['expCost'] == 5
 
 
@@ -448,7 +557,7 @@ def test_create_match_no_keys_seeds_empty_registry(create_env):
     event = _player_event('POST', '/api/matches', body={'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1'})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 201
-    persisted = create_env['put'].call_args.args[0]
+    persisted = helpers.SINK.saved()
     assert persisted['registry'] == []
 
 
@@ -460,7 +569,7 @@ def test_create_match_no_start_location_in_locations(create_env):
     event = _player_event('POST', '/api/matches', body={'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1'})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 201
-    persisted = create_env['put'].call_args.args[0]
+    persisted = helpers.SINK.saved()
     assert persisted['currentLocationUuid'] is None
 
 
@@ -478,7 +587,7 @@ def test_create_match_legacy_field_names_supported(create_env):
     event = _player_event('POST', '/api/matches', body={'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1'})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 201
-    persisted = create_env['put'].call_args.args[0]
+    persisted = helpers.SINK.saved()
     assert persisted['locations'][0]['clockCounter'] == 8
     assert persisted['registry'][0]['key'] == 'foo'
     assert persisted['registry'][0]['stringValue'] == 'bar'
@@ -510,6 +619,22 @@ def test_list_user_matches_returns_summaries(mock_jwt, mock_get, mock_query):
     assert result['statusCode'] == 200
     body = _body(result)
     assert [m['uuid'] for m in body] == ['m2', 'm1']  # newest first
+    # v0.37.5 — the list reads the summary-only projection, never the full GSI1 items.
+    mock_query.assert_called_once_with('GSI1', 'USER_MATCHES#player-uuid-001')
+
+
+@patch('match.handler.db_utils.query_gsi', return_value=[
+    {'uuid': 'm-open', 'storyUuid': 'story-uuid-001', 'status': 'RUNNING'},
+])
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_duplicate_guard_reads_summary_index(mock_jwt, mock_get, mock_query):
+    # v0.37.5 — the duplicate-match guard only needs storyUuid/status: summary index too.
+    from match.handler import _has_active_match_for_story
+    assert _has_active_match_for_story({'uuid': 'player-uuid-001'}, 'story-uuid-001') is True
+    assert _has_active_match_for_story({'uuid': 'player-uuid-001'}, 'other-story') is False
+    for call in mock_query.call_args_list:
+        assert call.args[0] == 'GSI1'
 
 
 @patch('match.handler.db_utils.get_item')
@@ -517,7 +642,7 @@ def test_list_user_matches_returns_summaries(mock_jwt, mock_get, mock_query):
 def test_get_match_info_not_found(mock_jwt, mock_get):
     mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
 
-    def get_side(pk, sk='METADATA'):
+    def get_side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#player-uuid-001':
             return PLAYER_USER
         return None
@@ -534,7 +659,7 @@ def test_get_match_info_not_found(mock_jwt, mock_get):
 def test_get_match_info_other_owner_returns_404(mock_jwt, mock_get):
     mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
 
-    def get_side(pk, sk='METADATA'):
+    def get_side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#player-uuid-001':
             return PLAYER_USER
         if pk == 'MATCH#m1':
@@ -548,13 +673,13 @@ def test_get_match_info_other_owner_returns_404(mock_jwt, mock_get):
     assert result['statusCode'] == 404
 
 
-@patch('match.handler.db_utils.query_by_pk', return_value=[])
+@patch('match.handler.db_utils.query_sk_prefix', return_value=[])
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_get_match_info_success(mock_jwt, mock_get, mock_query):
     mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
 
-    def get_side(pk, sk='METADATA'):
+    def get_side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#player-uuid-001':
             return PLAYER_USER
         if pk == 'MATCH#m1':
@@ -567,6 +692,11 @@ def test_get_match_info_success(mock_jwt, mock_get, mock_query):
                 'locations': [{'idLocation': 1, 'uuid': 'l', 'flagAlreadyActived': 0, 'clockCounter': 0}],
                 'registry': [{'uuid': 'r', 'key': 'k', 'stringValue': None, 'intValue': 1}],
             }
+        if pk == 'STORY#s':
+            # Step 36 — /info joins the registry with the story's key definitions, so a key
+            # the story does not declare reads as hidden and is filtered out.
+            return {'uuid': 's', 'keys': [{'keyName': 'k', 'keyGroup': 'tutorial',
+                                           'visibility': 'PUBLIC', 'priority': 1}]}
         return None
 
     mock_get.side_effect = get_side
@@ -637,7 +767,7 @@ def test_get_match_info_locations_active(mock_jwt):
         'userUuid': 'player-uuid-001', 'idLocation': 1, 'locationName': 'Hall',
     }
 
-    def get_side(pk, sk='METADATA'):
+    def get_side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#player-uuid-001':
             return PLAYER_USER
         if pk == 'MATCH#m1':
@@ -649,7 +779,7 @@ def test_get_match_info_locations_active(mock_jwt):
     from match.handler import lambda_handler
     event = _player_event('GET', '/api/match/m1/info', path_params={'uuidMatch': 'm1'})
     with patch('match.handler.db_utils.get_item', side_effect=get_side), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[character]):
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[character]):
         result = lambda_handler(event, {})
 
     assert result['statusCode'] == 200
@@ -720,7 +850,7 @@ def test_match_info_hides_location_card_fallback_for_unvisited_neighbor(mock_jwt
         'userUuid': 'player-uuid-001', 'idLocation': 1, 'locationName': 'Hall',
     }
 
-    def get_side(pk, sk='METADATA'):
+    def get_side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#player-uuid-001':
             return PLAYER_USER
         if pk == 'MATCH#m1':
@@ -732,7 +862,7 @@ def test_match_info_hides_location_card_fallback_for_unvisited_neighbor(mock_jwt
     from match.handler import lambda_handler
     event = _player_event('GET', '/api/match/m1/info', path_params={'uuidMatch': 'm1'})
     with patch('match.handler.db_utils.get_item', side_effect=get_side), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[character]):
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[character]):
         result = lambda_handler(event, {})
 
     assert result['statusCode'] == 200
@@ -770,7 +900,7 @@ def test_match_info_one_way_neighbor_hidden_on_destination(mock_jwt):
         'userUuid': 'player-uuid-001', 'idLocation': 2, 'locationName': 'Yard',
     }
 
-    def get_side(pk, sk='METADATA'):
+    def get_side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#player-uuid-001':
             return PLAYER_USER
         if pk == 'MATCH#m1':
@@ -782,7 +912,7 @@ def test_match_info_one_way_neighbor_hidden_on_destination(mock_jwt):
     from match.handler import lambda_handler
     event = _player_event('GET', '/api/match/m1/info', path_params={'uuidMatch': 'm1'})
     with patch('match.handler.db_utils.get_item', side_effect=get_side), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[character]):
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[character]):
         result = lambda_handler(event, {})
 
     assert result['statusCode'] == 200
@@ -821,7 +951,7 @@ def test_get_match_info_resolves_cards_in_requested_lang(mock_jwt):
         'userUuid': 'player-uuid-001', 'idLocation': 1, 'locationName': 'Hall',
     }
 
-    def get_side(pk, sk='METADATA'):
+    def get_side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#player-uuid-001':
             return PLAYER_USER
         if pk == 'MATCH#m1':
@@ -834,7 +964,7 @@ def test_get_match_info_resolves_cards_in_requested_lang(mock_jwt):
     event = _player_event('GET', '/api/match/m1/info',
                           path_params={'uuidMatch': 'm1'}, qs={'lang': 'it'})
     with patch('match.handler.db_utils.get_item', side_effect=get_side), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[character]):
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[character]):
         result = lambda_handler(event, {})
 
     assert result['statusCode'] == 200
@@ -883,7 +1013,7 @@ def test_match_info_neighbor_cardback_reads_admin_edited_location_neighbors(mock
         'userUuid': 'player-uuid-001', 'idLocation': 1, 'locationName': 'Hall',
     }
 
-    def get_side(pk, sk='METADATA'):
+    def get_side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#player-uuid-001':
             return PLAYER_USER
         if pk == 'MATCH#m1':
@@ -895,7 +1025,7 @@ def test_match_info_neighbor_cardback_reads_admin_edited_location_neighbors(mock
     from match.handler import lambda_handler
     event = _player_event('GET', '/api/match/m1/info', path_params={'uuidMatch': 'm1'})
     with patch('match.handler.db_utils.get_item', side_effect=get_side), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[character]):
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[character]):
         result = lambda_handler(event, {})
 
     assert result['statusCode'] == 200
@@ -936,7 +1066,7 @@ def test_match_info_event_placed_by_idspecificlocation_not_stale_idlocation(mock
         'userUuid': 'player-uuid-001', 'idLocation': 2, 'locationName': 'B',
     }
 
-    def get_side(pk, sk='METADATA'):
+    def get_side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#player-uuid-001':
             return PLAYER_USER
         if pk == 'MATCH#m1':
@@ -948,7 +1078,7 @@ def test_match_info_event_placed_by_idspecificlocation_not_stale_idlocation(mock
     from match.handler import lambda_handler
     event = _player_event('GET', '/api/match/m1/info', path_params={'uuidMatch': 'm1'})
     with patch('match.handler.db_utils.get_item', side_effect=get_side), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[character]):
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[character]):
         result = lambda_handler(event, {})
 
     assert result['statusCode'] == 200
@@ -963,7 +1093,7 @@ def test_match_info_event_placed_by_idspecificlocation_not_stale_idlocation(mock
 def test_get_match_info_missing_uuid_param_falls_back_to_path_segment(mock_jwt, mock_get):
     mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
 
-    def get_side(pk, sk='METADATA'):
+    def get_side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#player-uuid-001':
             return PLAYER_USER
         return None
@@ -1131,7 +1261,7 @@ def test_list_all_matches_clamps_and_defaults_limit(mock_jwt, mock_get, mock_pag
 
 def _admin_get_side(match_item):
     """get_item side-effect: USER# -> admin user, MATCH# -> the given item."""
-    def _side(pk, sk='METADATA'):
+    def _side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#admin-uuid-001':
             return ADMIN_USER
         if pk.startswith('MATCH#'):
@@ -1169,7 +1299,7 @@ def test_update_match_returns_200(mock_jwt, mock_get, mock_put):
     result = lambda_handler(event, {})
     assert result['statusCode'] == 200
     assert _body(result)['status'] == 'UPDATED'
-    saved = mock_put.call_args[0][0]
+    saved = helpers.SINK.saved()
     assert saved['status'] == 'ENDED'
     assert saved['name'] == 'x'
 
@@ -1228,10 +1358,10 @@ def test_stop_match_sets_ended(mock_jwt, mock_get, mock_put):
                        path_params={'uuidMatch': 'm1'})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 200
-    assert mock_put.call_args[0][0]['status'] == 'ENDED'
+    assert helpers.SINK.saved()['status'] == 'ENDED'
 
 
-@patch('match.handler.db_utils.delete_item')
+@patch('match.handler.db_utils.delete_all_by_pk')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_delete_match_terminal_returns_200(mock_jwt, mock_get, mock_del):
@@ -1245,7 +1375,8 @@ def test_delete_match_terminal_returns_200(mock_jwt, mock_get, mock_del):
     result = lambda_handler(event, {})
     assert result['statusCode'] == 200
     assert _body(result)['status'] == 'DELETED'
-    mock_del.assert_called_once_with('MATCH#m1', 'METADATA')
+    # v0.37.5 — the whole partition goes: CHARACTER#, TURN#, LOG# rows included.
+    mock_del.assert_called_once_with('MATCH#m1')
 
 
 @patch('match.handler.db_utils.delete_item')
@@ -1291,7 +1422,7 @@ def test_admin_match_route_rejects_non_admin(mock_jwt, mock_get):
     assert result['statusCode'] == 403
 
 
-@patch('match.handler.db_utils.query_by_pk', return_value=[])
+@patch('match.handler.db_utils.query_sk_prefix', return_value=[])
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_get_admin_match_info_returns_200_for_any_owner(mock_jwt, mock_get, mock_query):
@@ -1325,7 +1456,7 @@ def test_get_admin_match_info_not_found_returns_404(mock_jwt, mock_get):
 # ── Step 20.1 — PATCH /api/match/{uuidMatch}/end/{uuidEvent} ───────────────────
 
 def _end_match_get_side(*, match=None, story=None):
-    def _side(pk, sk='METADATA'):
+    def _side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#player-uuid-001':
             return PLAYER_USER
         if pk.startswith('MATCH#'):
@@ -1415,7 +1546,7 @@ def test_end_match_completes_and_sets_ended(mock_jwt, mock_get, mock_put):
     body = _body(result)
     assert body['status'] == 'ENDED'
     assert body['uuid'] == 'm1'
-    saved = mock_put.call_args[0][0]
+    saved = helpers.SINK.saved()
     assert saved['status'] == 'ENDED'
     # Ensure idEventEndGame is never exposed in the response payload
     assert 'idEventEndGame' not in body
@@ -1460,7 +1591,7 @@ _V287_STORY = {
 }
 
 
-def _v287_match(movement_log=None):
+def _v287_match(visited=None):
     """A match whose stored locations[] still carries the legacy `name` key, to
     prove the read path strips it even for matches created before v0.28.6."""
     return {
@@ -1474,12 +1605,12 @@ def _v287_match(movement_log=None):
             {'idLocation': 3, 'uuid': 'ls-3', 'flagAlreadyActived': 0, 'clockCounter': 0, 'name': 'Attic'},
         ],
         'registry': [],
-        'movementLog': movement_log or [],
+        'visitedLocationIds': visited or [],
     }
 
 
 def _v287_get_side(match_item):
-    def get_side(pk, sk='METADATA'):
+    def get_side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#player-uuid-001':
             return PLAYER_USER
         if pk == 'MATCH#m1':
@@ -1500,7 +1631,7 @@ def test_match_info_locations_only_visited_and_name_stripped(mock_jwt):
     from match.handler import lambda_handler
     event = _player_event('GET', '/api/match/m1/info', path_params={'uuidMatch': 'm1'})
     with patch('match.handler.db_utils.get_item', side_effect=_v287_get_side(match_item)), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[character]):
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[character]):
         result = lambda_handler(event, {})
 
     body = _body(result)
@@ -1516,14 +1647,14 @@ def test_match_info_locations_only_visited_and_name_stripped(mock_jwt):
 def test_match_info_movement_log_reveals_location_and_its_card(mock_jwt):
     mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
     # The character moved 1 -> 2, so BOTH endpoints are visited.
-    match_item = _v287_match(movement_log=[{'idLocationFrom': 1, 'idLocationTo': 2}])
+    match_item = _v287_match(visited=[1, 2])
     character = {'PK': 'MATCH#m1', 'SK': 'CHARACTER#c1', 'uuid': 'c1',
                  'userUuid': 'player-uuid-001', 'idLocation': 2}
 
     from match.handler import lambda_handler
     event = _player_event('GET', '/api/match/m1/info', path_params={'uuidMatch': 'm1'})
     with patch('match.handler.db_utils.get_item', side_effect=_v287_get_side(match_item)), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[character]):
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[character]):
         result = lambda_handler(event, {})
 
     body = _body(result)
@@ -1540,7 +1671,7 @@ def test_admin_match_info_keeps_all_locations_but_same_fog(mock_jwt):
     character = {'PK': 'MATCH#m1', 'SK': 'CHARACTER#c1', 'uuid': 'c1',
                  'userUuid': 'player-uuid-001', 'idLocation': 1}
 
-    def get_side(pk, sk='METADATA'):
+    def get_side(pk, sk='METADATA', consistent=True):
         if pk == 'USER#admin-uuid-001':
             return ADMIN_USER
         return _v287_get_side(match_item)(pk, sk)
@@ -1550,7 +1681,7 @@ def test_admin_match_info_keeps_all_locations_but_same_fog(mock_jwt):
                        headers={'Authorization': 'Bearer MOCK_ACCESS_admin'},
                        path_params={'uuidMatch': 'm1'})
     with patch('match.handler.db_utils.get_item', side_effect=get_side), \
-         patch('match.handler.db_utils.query_by_pk', return_value=[character]):
+         patch('match.handler.db_utils.query_sk_prefix', return_value=[character]):
         result = lambda_handler(event, {})
 
     assert result['statusCode'] == 200
@@ -1562,3 +1693,70 @@ def test_admin_match_info_keeps_all_locations_but_same_fog(mock_jwt):
     nb = body['locationsActive'][0]['neighbors'][0]
     assert nb['cardLocationFrom']['title'] == 'Hall'
     assert nb['cardLocationTo'] is None
+
+
+# ── v0.36.3 — the admin match-info registry carries the hidden keys ────────────
+
+_HIDDEN_KEY_MATCH = {
+    'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'status': 'RUNNING',
+    'userCreatorUuid': 'player-uuid-001', 'storyUuid': 's1',
+    'registry': [{'uuid': 'r-1', 'key': 'signal', 'stringValue': 'green'},
+                 {'uuid': 'r-2', 'key': 'secret_plan', 'stringValue': 'ready'}],
+}
+
+_HIDDEN_KEY_STORY = {
+    'PK': 'STORY#s1', 'SK': 'METADATA', 'uuid': 's1',
+    'keys': [{'id': 1, 'keyName': 'signal', 'visibility': 'PUBLIC'},
+             {'id': 2, 'keyName': 'secret_plan', 'visibility': 'PRIVATE'}],
+}
+
+
+def _hidden_key_get_side(pk, sk='METADATA', consistent=True):
+    if pk == 'USER#admin-uuid-001':
+        return ADMIN_USER
+    if pk == 'USER#player-uuid-001':
+        return PLAYER_USER
+    if pk.startswith('MATCH#'):
+        return dict(_HIDDEN_KEY_MATCH)
+    if pk.startswith('STORY#'):
+        return _HIDDEN_KEY_STORY
+    return None
+
+
+def _registry_keys(body):
+    return {e['key']: e for e in body['registry']}
+
+
+@patch('match.handler.db_utils.query_sk_prefix', return_value=[])
+@patch('match.handler.db_utils.get_item', side_effect=_hidden_key_get_side)
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
+def test_admin_match_info_carries_the_hidden_keys_and_says_which(_jwt, _get, _query):
+    """The console is the one reader that must see the whole state, labelled."""
+    from match.handler import lambda_handler
+    event = make_event('GET', '/api/admin/matches/m1/info',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_admin'},
+                       path_params={'uuidMatch': 'm1'})
+    result = lambda_handler(event, {})
+
+    assert result['statusCode'] == 200
+    entries = _registry_keys(_body(result))
+    assert set(entries) == {'signal', 'secret_plan'}
+    assert entries['signal']['visible'] is True
+    assert entries['secret_plan']['visible'] is False
+
+
+@patch('match.handler.db_utils.query_sk_prefix', return_value=[])
+@patch('match.handler.db_utils.get_item', side_effect=_hidden_key_get_side)
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'})
+def test_player_match_info_still_hides_them(_jwt, _get, _query):
+    """The player door does not move: /info has never carried a hidden key."""
+    from match.handler import lambda_handler
+    event = make_event('GET', '/api/match/m1/info',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_player'},
+                       path_params={'uuidMatch': 'm1'})
+    result = lambda_handler(event, {})
+
+    assert result['statusCode'] == 200
+    assert list(_registry_keys(_body(result))) == ['signal']

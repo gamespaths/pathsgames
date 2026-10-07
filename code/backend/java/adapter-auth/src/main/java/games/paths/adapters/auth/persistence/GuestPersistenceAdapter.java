@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -87,12 +88,14 @@ public class GuestPersistenceAdapter implements GuestPersistencePort {
 
     @Override
     public int deleteExpiredGuests() {
-        String now = Instant.now().toString();
+        // v0.41.0 — only the expired guests nothing references; tokens first, in chunks
+        List<Long> ids = GuestBatchDelete.toLongs(userRepository.findExpiredGuestIdsWithoutReferences(
+                GUEST_STATE, Instant.now().toString()));
+        return GuestBatchDelete.deleteGuests(ids, userRepository, userTokenRepository);
+    }
 
-        // First delete tokens for expired guests
-        userTokenRepository.deleteTokensOfExpiredGuests(GUEST_STATE, now);
-
-        // Then delete the expired guest users
-        return userRepository.deleteExpiredGuests(GUEST_STATE, now);
+    @Override
+    public void backdateGuest(long userId, String instant) {
+        userRepository.backdateGuest(userId, instant);
     }
 }

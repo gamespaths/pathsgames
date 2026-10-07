@@ -8,6 +8,7 @@ import {
   startMovement, getMatchLocations, getMatchLogs,
   executeEvent, selectChoice,
   getInventory, useItem, dropItem, getResources,
+  getMatchMissions, getMatchMission,
 } from '../api/matches'
 
 vi.mock('../api/client', () => ({ apiClient: vi.fn() }))
@@ -21,6 +22,30 @@ describe('matches api', () => {
     const patch = vi.fn()
     beforeEach(() => apiClient.mockReturnValue({ post, get, patch }))
 
+    // Step 37 — the board reads missions off /info; these back a panel that wants them alone.
+    it('getMatchMissions asks for the missions of one match', async () => {
+      get.mockResolvedValue({ data: { missions: [] } })
+      const res = await getMatchMissions('m1', 'tok', { lang: 'it', status: 'ACTIVE' })
+      expect(get).toHaveBeenCalledWith(
+        '/api/match/m1/missions?lang=it&status=ACTIVE',
+        expect.objectContaining({ headers: { Authorization: 'Bearer tok' } }))
+      expect(res).toEqual({ missions: [] })
+    })
+
+    it('getMatchMissions defaults the language and omits an absent status', async () => {
+      get.mockResolvedValue({ data: { missions: [] } })
+      await getMatchMissions('m1', 'tok')
+      expect(get).toHaveBeenCalledWith('/api/match/m1/missions?lang=en', expect.anything())
+    })
+
+    it('getMatchMission asks for one mission and all its steps', async () => {
+      get.mockResolvedValue({ data: { uuid: 'mis-1' } })
+      const res = await getMatchMission('m1', 'mis-1', 'tok')
+      expect(get).toHaveBeenCalledWith('/api/match/m1/missions/mis-1?lang=en',
+        expect.anything())
+      expect(res).toEqual({ uuid: 'mis-1' })
+    })
+
     it('createMatch posts to /api/matches with the bearer token', async () => {
       post.mockResolvedValue({ data: { uuid: 'm1' } })
       const res = await createMatch({ storyUuid: 's1' }, 'tok-123')
@@ -30,6 +55,24 @@ describe('matches api', () => {
         expect.objectContaining({ headers: { Authorization: 'Bearer tok-123' } }),
       )
       expect(res).toEqual({ uuid: 'm1' })
+    })
+
+    it('createMatch sends the csrfToken back as X-CSRF-TOKEN (v0.37.7)', async () => {
+      post.mockResolvedValue({ data: { uuid: 'm1' } })
+      await createMatch({ storyUuid: 's1' }, 'tok-123', 'csrf-abc')
+      expect(post).toHaveBeenCalledWith(
+        '/api/matches',
+        { storyUuid: 's1' },
+        expect.objectContaining({
+          headers: { Authorization: 'Bearer tok-123', 'X-CSRF-TOKEN': 'csrf-abc' },
+        }),
+      )
+    })
+
+    it('createMatch adds no X-CSRF-TOKEN header when the identity carries none', async () => {
+      post.mockResolvedValue({ data: { uuid: 'm1' } })
+      await createMatch({ storyUuid: 's1' }, 'tok-123', null)
+      expect(post.mock.calls[0][2].headers).toEqual({ Authorization: 'Bearer tok-123' })
     })
 
     it('createMatch posts without an Authorization header when no token', async () => {
@@ -49,6 +92,10 @@ describe('matches api', () => {
       get.mockResolvedValue({ data: [{ uuid: 'm1' }] })
       expect(await listMatches('tok')).toEqual([{ uuid: 'm1' }])
       expect(get).toHaveBeenCalledWith('/api/matches', expect.any(Object))
+      // v0.37.5 — the list waits longer than the 5 s client default.
+      const cfg = get.mock.calls[0][1]
+      expect(cfg.timeout).toBe(15000)
+      expect(cfg.headers.Authorization).toBe('Bearer tok')
     })
 
     it('getMatchInfo gets /api/match/{uuid}/info with default lang', async () => {

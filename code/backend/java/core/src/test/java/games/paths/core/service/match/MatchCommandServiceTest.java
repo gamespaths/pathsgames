@@ -2,7 +2,6 @@ package games.paths.core.service.match;
 
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
-import games.paths.core.entity.match.GamingStateRegistryEntity;
 import games.paths.core.entity.story.ClassEntity;
 import games.paths.core.entity.story.EventEntity;
 import games.paths.core.entity.story.KeyEntity;
@@ -14,6 +13,7 @@ import games.paths.core.model.match.MatchCreateCommand;
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.MatchSummary;
 import games.paths.core.port.match.MatchCommandPort;
+import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.MatchPersistencePort;
 import games.paths.core.port.match.SystemModePort;
 import games.paths.core.port.match.UserAccessPort;
@@ -32,8 +32,13 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.longThat;
 import static org.mockito.Mockito.*;
 
 /**
@@ -46,6 +51,8 @@ class MatchCommandServiceTest {
     private MatchPersistencePort persistencePort;
     private UserAccessPort userAccessPort;
     private SystemModePort systemModePort;
+    private games.paths.core.port.match.RegistryStorePort registryStorePort;
+    private RegistryService registryService;
     private MatchCommandService service;
 
     @BeforeEach
@@ -54,7 +61,11 @@ class MatchCommandServiceTest {
         persistencePort = mock(MatchPersistencePort.class);
         userAccessPort = mock(UserAccessPort.class);
         systemModePort = mock(SystemModePort.class);
-        service = new MatchCommandService(storyReadPort, persistencePort, userAccessPort, systemModePort);
+        registryStorePort = mock(games.paths.core.port.match.RegistryStorePort.class);
+        // A real service over a mocked store: the seeding codec is the thing under test here.
+        registryService = new RegistryService(registryStorePort);
+        service = new MatchCommandService(storyReadPort, persistencePort, userAccessPort,
+                systemModePort, registryService);
     }
 
     private MatchCreateCommand cmd(String userUuid, String storyUuid, String diffUuid) {
@@ -178,7 +189,8 @@ class MatchCommandServiceTest {
         void turnstileRejected() {
             TurnstileVerificationPort rejectAll = (token, ip) -> false;
             MatchCommandService strictService = new MatchCommandService(
-                    storyReadPort, persistencePort, userAccessPort, systemModePort, rejectAll);
+                    storyReadPort, persistencePort, userAccessPort, systemModePort, rejectAll,
+                    registryService);
             MatchCommandPort.MatchCreationException ex = assertThrows(
                     MatchCommandPort.MatchCreationException.class,
                     () -> strictService.createMatch(new MatchCreateCommand("u", "s", "d",
@@ -253,6 +265,31 @@ class MatchCommandServiceTest {
             MatchSummary result = service.createMatch(cmd("u", "s", "d"));
             assertNotNull(result);
             assertEquals("match-uuid", result.getUuid());
+        }
+
+        @Test
+        @DisplayName("v0.41.1 - a created match writes MATCH_CREATED at clock 0")
+        void createdWritesTheLifecycleRow() {
+            MatchLogWriterPort writer = mock(MatchLogWriterPort.class);
+            service.setLogWriter(writer);
+            when(systemModePort.isMaintenance()).thenReturn(false);
+            when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(activeUser()));
+            when(storyReadPort.findStoryByUuid("s")).thenReturn(Optional.of(story(2L, "s")));
+            when(storyReadPort.findDifficultyByStoryIdAndUuid(2L, "d"))
+                    .thenReturn(Optional.of(difficulty(3L, "d", 5)));
+            when(storyReadPort.findLocationsByStoryId(2L))
+                    .thenReturn(List.of(location(10L, "loc-uuid", 0)));
+            when(storyReadPort.findKeysByStoryId(2L)).thenReturn(List.of());
+            when(persistencePort.saveMatch(any())).thenAnswer(inv -> {
+                GamingMatchEntity m = inv.getArgument(0);
+                m.setId(99L);
+                m.setUuid("match-uuid");
+                return m;
+            });
+
+            service.createMatch(cmd("u", "s", "d"));
+
+            verify(writer).write(99L, null, null, 0, "MATCH_CREATED");
         }
 
         @Test
@@ -414,7 +451,7 @@ class MatchCommandServiceTest {
                             && firstLocation(list).getClockCounter() == 5
             ));
 
-            verify(persistencePort).saveRegistry(argThat(list ->
+            verify(registryStorePort).insertAll(anyLong(), argThat(list ->
                     list != null && list.size() == 4
             ));
         }
@@ -523,7 +560,7 @@ class MatchCommandServiceTest {
 
             MatchSummary result = service.createMatch(cmd("user-uuid", "story-uuid", "diff-uuid"));
             assertNotNull(result);
-            verify(persistencePort).saveRegistry(argThat(list -> list != null && list.isEmpty()));
+            verify(registryStorePort).insertAll(anyLong(), argThat(list -> list != null && list.isEmpty()));
         }
 
         @Test
@@ -618,7 +655,7 @@ class MatchCommandServiceTest {
 
         verify(persistencePort).saveMatch(any(GamingMatchEntity.class));
         verify(persistencePort).saveLocations(anyList());
-        verify(persistencePort).saveRegistry(anyList());
+        verify(registryStorePort).insertAll(anyLong(), anyList());
     }
 
     @Nested
@@ -644,10 +681,10 @@ class MatchCommandServiceTest {
         }
 
         @SuppressWarnings("unchecked")
-        private List<GamingStateRegistryEntity> capturedRegistry() {
-            org.mockito.ArgumentCaptor<List<GamingStateRegistryEntity>> captor =
+        private List<games.paths.core.port.match.RegistryStorePort.RegistryRow> capturedRegistry() {
+            org.mockito.ArgumentCaptor<List<games.paths.core.port.match.RegistryStorePort.RegistryRow>> captor =
                     org.mockito.ArgumentCaptor.forClass(List.class);
-            verify(persistencePort).saveRegistry(captor.capture());
+            verify(registryStorePort).insertAll(anyLong(), captor.capture());
             return captor.getValue();
         }
 
@@ -657,10 +694,10 @@ class MatchCommandServiceTest {
             when(storyReadPort.findKeysByStoryId(2L))
                     .thenReturn(List.of(key(20L, "n", "42")));
             service.createMatch(cmd("u", "s", "d"));
-            List<GamingStateRegistryEntity> saved = capturedRegistry();
+            List<games.paths.core.port.match.RegistryStorePort.RegistryRow> saved = capturedRegistry();
             assertEquals(1, saved.size());
-            assertEquals(42, saved.get(0).getIntValue());
-            assertNull(saved.get(0).getStringValue());
+            assertEquals(42, saved.get(0).intValue());
+            assertNull(saved.get(0).stringValue());
         }
 
         @Test
@@ -669,9 +706,9 @@ class MatchCommandServiceTest {
             when(storyReadPort.findKeysByStoryId(2L))
                     .thenReturn(List.of(key(20L, "name", "hi")));
             service.createMatch(cmd("u", "s", "d"));
-            List<GamingStateRegistryEntity> saved = capturedRegistry();
-            assertEquals("hi", saved.get(0).getStringValue());
-            assertNull(saved.get(0).getIntValue());
+            List<games.paths.core.port.match.RegistryStorePort.RegistryRow> saved = capturedRegistry();
+            assertEquals("hi", saved.get(0).stringValue());
+            assertNull(saved.get(0).intValue());
         }
 
         @Test
@@ -680,8 +717,8 @@ class MatchCommandServiceTest {
             when(storyReadPort.findKeysByStoryId(2L))
                     .thenReturn(List.of(key(20L, "n", "   ")));
             service.createMatch(cmd("u", "s", "d"));
-            List<GamingStateRegistryEntity> saved = capturedRegistry();
-            assertEquals("", saved.get(0).getStringValue());
+            List<games.paths.core.port.match.RegistryStorePort.RegistryRow> saved = capturedRegistry();
+            assertEquals("", saved.get(0).stringValue());
         }
 
         @Test
@@ -690,9 +727,9 @@ class MatchCommandServiceTest {
             when(storyReadPort.findKeysByStoryId(2L))
                     .thenReturn(List.of(key(20L, "n", null)));
             service.createMatch(cmd("u", "s", "d"));
-            List<GamingStateRegistryEntity> saved = capturedRegistry();
-            assertNull(saved.get(0).getStringValue());
-            assertNull(saved.get(0).getIntValue());
+            List<games.paths.core.port.match.RegistryStorePort.RegistryRow> saved = capturedRegistry();
+            assertNull(saved.get(0).stringValue());
+            assertNull(saved.get(0).intValue());
         }
     }
 
@@ -728,6 +765,54 @@ class MatchCommandServiceTest {
             when(persistencePort.updateMatchFields(any(), any(), any())).thenReturn(false);
             assertEquals(MatchCommandPort.UpdateOutcome.NOT_FOUND,
                     service.updateMatch("m1", null, "n"));
+        }
+
+        private GamingMatchEntity atClock(Integer clock) {
+            GamingMatchEntity m = matchWithStatus("RUNNING");
+            m.setId(5L);
+            m.setCurrentClock(clock);
+            return m;
+        }
+
+        @Test
+        @DisplayName("v0.41.1 - a named admin action writes ADMIN_<action> at the current clock")
+        void adminActionWritesItsRow() {
+            MatchLogWriterPort writer = mock(MatchLogWriterPort.class);
+            service.setLogWriter(writer);
+            when(persistencePort.updateMatchFields("m1", "PAUSED", null)).thenReturn(true);
+            when(persistencePort.findMatchByUuid("m1")).thenReturn(Optional.of(atClock(4)));
+
+            assertEquals(MatchCommandPort.UpdateOutcome.UPDATED,
+                    service.updateMatch("m1", "PAUSED", null, MatchLogWriterPort.ADMIN_PAUSE));
+            verify(writer).write(5L, null, null, 4, "ADMIN_PAUSE");
+        }
+
+        @Test
+        @DisplayName("v0.41.1 - a PUT with a status writes ADMIN_STATUS <status>, a rename writes nothing")
+        void statusRowAndSilentRename() {
+            MatchLogWriterPort writer = mock(MatchLogWriterPort.class);
+            service.setLogWriter(writer);
+            when(persistencePort.updateMatchFields(eq("m1"), any(), any())).thenReturn(true);
+            when(persistencePort.findMatchByUuid("m1")).thenReturn(Optional.of(atClock(null)));
+
+            service.updateMatch("m1", "ENDED", "n");
+            service.updateMatch("m1", null, "only a name");
+
+            verify(writer).write(5L, null, null, 0, "ADMIN_STATUS ENDED");
+            verify(writer, times(1)).write(anyLong(), any(), any(), anyInt(), anyString());
+        }
+
+        @Test
+        @DisplayName("v0.41.1 - an unknown or invalid update writes no row")
+        void noRowWhenNothingChanged() {
+            MatchLogWriterPort writer = mock(MatchLogWriterPort.class);
+            service.setLogWriter(writer);
+            when(persistencePort.updateMatchFields(any(), any(), any())).thenReturn(false);
+
+            service.updateMatch("m1", "PAUSED", null, MatchLogWriterPort.ADMIN_PAUSE);
+            service.updateMatch("m1", "BOGUS", null, null);
+
+            verifyNoInteractions(writer);
         }
 
         @Test
@@ -871,6 +956,82 @@ class MatchCommandServiceTest {
             assertEquals(MatchCommandPort.EndMatchOutcome.COMPLETED,
                     service.endMatch("m1", "ev", "u"));
             verify(persistencePort).updateMatchFields("m1", "ENDED", null);
+        }
+
+        @Test
+        @DisplayName("v0.41.1 - the story end writes MATCH_ENDED")
+        void completesWithTheLifecycleRow() {
+            MatchLogWriterPort writer = mock(MatchLogWriterPort.class);
+            service.setLogWriter(writer);
+            GamingMatchEntity match = ownedMatch(2L);
+            match.setId(8L);
+            match.setCurrentClock(3);
+            when(persistencePort.findMatchByUuid("m1")).thenReturn(Optional.of(match));
+            when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(activeUser()));
+            when(storyReadPort.findStoryById(2L)).thenReturn(Optional.of(storyWithEndEvent(2L, 50)));
+            when(storyReadPort.findEventByStoryIdAndUuid(2L, "ev"))
+                    .thenReturn(Optional.of(event(50L, "ev")));
+
+            service.endMatch("m1", "ev", "u");
+
+            verify(writer).write(8L, null, null, 3, "MATCH_ENDED");
+        }
+
+        private games.paths.core.port.match.KpiPort endWithKpi(GamingMatchEntity match) {
+            games.paths.core.port.match.KpiPort kpi = mock(games.paths.core.port.match.KpiPort.class);
+            service.setKpi(kpi);
+            StoryEntity story = storyWithEndEvent(2L, 50);
+            story.setUuid("story-uuid");
+            when(persistencePort.findMatchByUuid("m1")).thenReturn(Optional.of(match));
+            when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(activeUser()));
+            when(storyReadPort.findStoryById(2L)).thenReturn(Optional.of(story));
+            when(storyReadPort.findEventByStoryIdAndUuid(2L, "ev")).thenReturn(Optional.of(event(50L, "ev")));
+            service.endMatch("m1", "ev", "u");
+            return kpi;
+        }
+
+        @Test
+        @DisplayName("v0.41.2 - the story end counts MATCH_COMPLETED and both durations")
+        void completionKpi() {
+            GamingMatchEntity match = ownedMatch(2L);
+            match.setCurrentClock(4);
+            match.setTimestampStart(java.time.Instant.now().minusSeconds(120).toString());
+
+            games.paths.core.port.match.KpiPort kpi = endWithKpi(match);
+
+            verify(kpi).record("story-uuid", games.paths.core.port.match.KpiPort.Metric.MATCH_COMPLETED, null, 1);
+            verify(kpi).record(eq("story-uuid"), eq(games.paths.core.port.match.KpiPort.Metric.DURATION_MS), isNull(),
+                    longThat(ms -> ms >= 120_000L && ms < 180_000L));
+            verify(kpi).record("story-uuid", games.paths.core.port.match.KpiPort.Metric.DURATION_CLOCKS, null, 4);
+        }
+
+        @Test
+        @DisplayName("v0.41.2 - without a start stamp the duration runs from the creation; a bad stamp skips it")
+        void completionKpiFallbacks() {
+            GamingMatchEntity match = ownedMatch(2L);
+            match.setTsInsert(java.time.Instant.now().minusSeconds(60).toString());
+            games.paths.core.port.match.KpiPort kpi = endWithKpi(match);
+            verify(kpi).record(eq("story-uuid"), eq(games.paths.core.port.match.KpiPort.Metric.DURATION_MS), isNull(),
+                    longThat(ms -> ms >= 60_000L));
+
+            GamingMatchEntity bad = ownedMatch(2L);
+            bad.setTimestampStart("not-a-date");
+            games.paths.core.port.match.KpiPort other = endWithKpi(bad);
+            verify(other, never()).record(any(), eq(games.paths.core.port.match.KpiPort.Metric.DURATION_MS), any(),
+                    anyLong());
+            assertNull(MatchCommandService.millisSince(null));
+            assertNull(MatchCommandService.millisSince(" "));
+        }
+
+        @Test
+        @DisplayName("v0.41.2 - ending a match already over counts nothing")
+        void completionKpiOnlyOnce() {
+            GamingMatchEntity match = ownedMatch(2L);
+            match.setStatus("ENDED");
+
+            games.paths.core.port.match.KpiPort kpi = endWithKpi(match);
+
+            verifyNoInteractions(kpi);
         }
     }
 

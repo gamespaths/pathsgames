@@ -53,6 +53,16 @@ def test_character_round_trip(session_factory):
     assert by_user["uuid"] == saved["uuid"]
 
 
+def test_update_character_exp_floors_at_zero_and_ignores_a_missing_row(session_factory):
+    adapter = CharacterPersistenceAdapter(session_factory)
+    saved = adapter.save_character(_char_row())
+    adapter.update_character_exp(500, 1, 42)
+    assert adapter.find_character_by_match_and_uuid(500, saved["uuid"])["exp"] == 42
+    adapter.update_character_exp(500, 1, -7)
+    assert adapter.find_character_by_match_and_uuid(500, saved["uuid"])["exp"] == 0
+    adapter.update_character_exp(500, 999, 5)  # no such character: nothing happens
+
+
 def test_backpack_and_traits(session_factory):
     adapter = CharacterPersistenceAdapter(session_factory)
     adapter.save_character(_char_row())

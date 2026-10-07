@@ -77,3 +77,64 @@ export const changePlayerStatistics = (matchUuid, playerUuid, body) =>
 export const getMatchLogs = (uuid, params = {}) =>
   apiClient().get(`/api/admin/matches/${uuid}/logs`, { params: { order: 'desc', ...params } })
     .then(r => r.data)
+
+// PUT /api/admin/matches/:uuid/registry — v0.36.2, correct one registry key.
+// Body { key, value }. A single key is replaced, a multi key gains a member;
+// either way the match log gains a REGISTRY_CHANGE row. Returns { key, values }.
+export const updateMatchRegistry = (uuid, body) =>
+  apiClient().put(`/api/admin/matches/${uuid}/registry`, body).then(r => r.data)
+
+// DELETE /api/admin/matches/:uuid/registry?key=K[&value=V] — take one member
+// away, or empty the key outright when no value is named.
+export const deleteMatchRegistry = (uuid, key, value) =>
+  apiClient().delete(`/api/admin/matches/${uuid}/registry`, { params: { key, value } })
+    .then(r => r.data)
+
+// v0.41.1 Step 41 B — the time-end snapshots of a match.
+// GET /api/admin/matches/:uuid/snapshots — [{ uuid, clock, type, timestamp, description, sizeBytes }], newest first.
+export const listMatchSnapshots = (uuid) =>
+  apiClient().get(`/api/admin/matches/${uuid}/snapshots`).then(r => r.data)
+
+// GET /api/admin/matches/:uuid/snapshots/:snapshotUuid/check — { valid, errors: [{ code, message }] }; writes nothing.
+export const checkMatchSnapshot = (uuid, snapshotUuid) =>
+  apiClient().get(`/api/admin/matches/${uuid}/snapshots/${snapshotUuid}/check`).then(r => r.data)
+
+// POST .../restore — { status, uuidSnapshot, clock, matchStatus, logsRemoved }; 409 carries errors[].
+export const restoreMatchSnapshot = (uuid, snapshotUuid) =>
+  apiClient().post(`/api/admin/matches/${uuid}/snapshots/${snapshotUuid}/restore`).then(r => r.data)
+
+// v0.41.4 Step 41 H — the neutral match export file. POST because it pauses the match, exports
+// its latest time-end snapshot, restores it and restarts it. Resolves { text, fileName }.
+export const exportMatch = (uuid) =>
+  apiClient().post(`/api/admin/matches/${uuid}/export`, null,
+    { responseType: 'text', transformResponse: r => r, timeout: 120000 })
+    .then(r => ({ text: r.data, fileName: exportFileName(r.headers?.['content-disposition'], uuid, r.data) }))
+
+// POST /api/admin/matches/import — { export, dryRun, replace, storyMode, startPaused }: the check
+// (dryRun) or the import; 409/422 carry errors[].
+export const importMatch = (body) =>
+  apiClient().post('/api/admin/matches/import', body, { timeout: 120000 }).then(r => r.data)
+
+// The attachment name, else match-<uuid8>-clock-<N>.json built from the file (no exposed header cross-origin).
+export function exportFileName(disposition, uuid, text) {
+  const match = /filename="?([^";]+)"?/.exec(disposition || '')
+  if (match) return match[1]
+  let clock = 'x'
+  try { clock = JSON.parse(text)?.source?.snapshotClock ?? 'x' } catch { /* not JSON: keep x */ }
+  return `match-${String(uuid).slice(0, 8)}-clock-${clock}.json`
+}
+
+// An axios error body as an object, whether it arrived as JSON or as text (responseType text).
+export function errorBody(e) {
+  const data = e?.response?.data
+  if (typeof data !== 'string') return data ?? {}
+  try { return JSON.parse(data) } catch { return { message: data } }
+}
+
+// v0.41.6 — the admin User tab. GET /api/admin/matches/:uuid/owner — the owner as AdminUserResponse.
+export const getMatchOwner = (uuid) =>
+  apiClient().get(`/api/admin/matches/${uuid}/owner`).then(r => r.data)
+
+// PUT /api/admin/matches/:uuid/owner { user } — { status: MOVED|UNCHANGED, previousOwner, owner, charactersMoved }.
+export const moveMatchOwner = (uuid, user) =>
+  apiClient().put(`/api/admin/matches/${uuid}/owner`, { user }).then(r => r.data)

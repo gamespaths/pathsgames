@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
-import MatchesPage from '../../pages/MatchesPage'
+import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import MatchesPage, { creatorLabel } from '../../pages/MatchesPage'
 
 vi.mock('../../api/matchApi', () => ({
   listMatches:       vi.fn(),
@@ -13,6 +13,9 @@ vi.mock('../../api/matchApi', () => ({
   pauseMatch:        vi.fn(),
   resumeMatch:       vi.fn(),
   deleteMatch:       vi.fn(),
+  listMatchSnapshots: vi.fn(() => Promise.resolve([])),
+  exportMatch:       vi.fn(),
+  errorBody:         (e) => e?.response?.data ?? {},
 }))
 vi.mock('../../api/storyApi', () => ({
   getStory:     vi.fn(),
@@ -29,12 +32,12 @@ const MOCK_MATCHES = [
   {
     uuid: 'm1-uuid-aaaa', name: 'Saturday run', storyUuid: 'story-1-uuid',
     difficultyUuid: 'd1', status: 'CREATED', singlePlayer: 1,
-    currentClock: 0, expCost: 5, tsInsert: '2026-05-20T10:00:00Z',
+    currentClock: 0, expCost: 5, tsInsert: '2026-05-20T10:00:00Z', userCreatorUuid: '9ef419d2-1111-2222-3333-444455556666',
   },
   {
     uuid: 'm2-uuid-bbbb', name: 'Night raid', storyUuid: 'story-2-uuid',
     difficultyUuid: 'd2', status: 'RUNNING', singlePlayer: 0,
-    currentClock: 12, expCost: 8, tsInsert: '2026-05-19T10:00:00Z',
+    currentClock: 12, expCost: 8, tsInsert: '2026-05-19T10:00:00Z', userCreatorUuid: 'abcd0000-1111-2222-3333-444455556666',
   },
 ]
 
@@ -50,7 +53,7 @@ const MOCK_INFO = {
   match: MOCK_MATCHES[0],
   currentLocationId: 10, currentLocationUuid: 'loc-1',
   locations: [{ idLocation: 10, uuid: 'loc-1', flagAlreadyActived: 0, clockCounter: 3 }],
-  registry: [{ uuid: 'r1', key: 'act_1_done', intValue: 0, stringValue: null }],
+  registry: [{ uuid: 'r1', key: 'act_1_done', values: ['0'], multiValue: false }],
   events: [], choices: [],
 }
 
@@ -285,10 +288,33 @@ describe('MatchesPage', () => {
     expect(await screen.findByText('untitled')).toBeInTheDocument()
   })
 
-  it('renders Multiplayer badge for singlePlayer=0 match', async () => {
-    listMatches.mockResolvedValue(env([{ ...MOCK_MATCHES[0], singlePlayer: 0 }]))
+  it('shows the creator as guest_<8 chars> (full UUID in the title) instead of Mode and XP Cost', async () => {
     renderPage()
-    expect(await screen.findByText('Multiplayer')).toBeInTheDocument()
+    const cell = await screen.findByText('guest_9ef419d2')
+    expect(cell.getAttribute('title')).toBe('9ef419d2-1111-2222-3333-444455556666')
+    const headers = [...document.querySelectorAll('thead th')].map(th => th.textContent)
+    expect(headers).toContain('User')
+    expect(headers).not.toContain('Mode')
+    expect(headers).not.toContain('XP Cost')
+    expect(screen.queryByText('Multiplayer')).toBeNull()
+  })
+
+  it('filters by user, as guest_… or by UUID, like the story filter', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    const box = screen.getByPlaceholderText(/Filter by name/i)
+    await userEvent.type(box, 'guest_abcd')
+    expect(screen.queryByText('Saturday run')).toBeNull()
+    expect(screen.getByText('Night raid')).toBeInTheDocument()
+    await userEvent.clear(box)
+    await userEvent.type(box, '9ef419d2-1111')
+    expect(screen.getByText('Saturday run')).toBeInTheDocument()
+    expect(screen.queryByText('Night raid')).toBeNull()
+  })
+
+  it('creatorLabel is empty without a creator', () => {
+    expect(creatorLabel(null)).toBe('')
+    expect(creatorLabel('9ef419d2-x')).toBe('guest_9ef419d2')
   })
 
   it('shows error in detail modal when getMatchInfo fails', async () => {
@@ -313,5 +339,22 @@ describe('MatchesPage', () => {
     await screen.findByText('Saturday run')
     const expandBtns = screen.getAllByTitle('Open details page (players & characters)')
     expect(expandBtns.length).toBe(2)
+  })
+
+  // v0.41.4 Step 41 H — the Import button opens the match import page.
+  it('Import opens the match import page', async () => {
+    listMatches.mockResolvedValue(env(MOCK_MATCHES))
+    listMatchStatuses.mockResolvedValue(MOCK_STATUSES)
+    render(
+      <MemoryRouter initialEntries={['/matches']}>
+        <Routes>
+          <Route path="/matches" element={<MatchesPage />} />
+          <Route path="/matches/import" element={<p>import page</p>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    await screen.findByText('Saturday run')
+    await userEvent.click(screen.getByRole('button', { name: /^Import$/ }))
+    expect(await screen.findByText('import page')).toBeInTheDocument()
   })
 })

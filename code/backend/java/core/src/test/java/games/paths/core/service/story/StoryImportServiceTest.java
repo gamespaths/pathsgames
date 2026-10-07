@@ -3,6 +3,8 @@ package games.paths.core.service.story;
 import games.paths.core.entity.story.*;
 import games.paths.core.model.story.StoryImportResult;
 import games.paths.core.port.story.StoryPersistencePort;
+import games.paths.core.port.story.StoryReadPort;
+import games.paths.core.port.story.StoryValidatorPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -18,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 
 /**
  * Unit tests for {@link StoryImportService}.
@@ -130,6 +133,35 @@ class StoryImportServiceTest {
             ArgumentCaptor<StoryEntity> captor = ArgumentCaptor.forClass(StoryEntity.class);
             verify(persistencePort, atLeastOnce()).saveStory(captor.capture());
             assertEquals(77L, captor.getAllValues().get(0).getId());
+        }
+
+        @Test
+        @DisplayName("Should import the difficulty trait budgets, absent staying null")
+        @SuppressWarnings("unchecked")
+        void importStory_difficultyTraitBudgets() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "budget-uuid");
+            data.put("difficulties", List.of(
+                    Map.of("traitCostPositiveBudget", 4, "traitCostNegativeBudget", 2),
+                    Map.of("traitCostPositiveBudget", "3")));
+
+            when(persistencePort.findStoryByUuid("budget-uuid")).thenReturn(Optional.empty());
+            when(persistencePort.saveStory(any(StoryEntity.class))).thenAnswer(inv -> {
+                StoryEntity e = inv.getArgument(0);
+                e.setId(1L);
+                return e;
+            });
+            when(persistencePort.saveDifficulties(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<List<StoryDifficultyEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveDifficulties(captor.capture());
+            List<StoryDifficultyEntity> saved = captor.getValue();
+            assertEquals(4, saved.get(0).getTraitCostPositiveBudget());
+            assertEquals(2, saved.get(0).getTraitCostNegativeBudget());
+            assertEquals(3, saved.get(1).getTraitCostPositiveBudget());
+            assertNull(saved.get(1).getTraitCostNegativeBudget());
         }
 
         @Test
@@ -330,6 +362,40 @@ class StoryImportServiceTest {
 
             assertNotNull(result.storyUuid());
             assertFalse(result.storyUuid().isBlank());
+        }
+
+        @Test
+        @DisplayName("v0.41.5 — an uppercase, spaced uuid is stored trimmed and lowercased")
+        void importStory_uuidNormalized() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", " 0A1B2C3D-4E5F-4A6B-8C7D-9E0F1A2B3C4D ");
+            data.put("author", "Author");
+            String expected = "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";
+
+            when(persistencePort.findStoryByUuid(expected)).thenReturn(Optional.empty());
+            when(persistencePort.saveStory(any(StoryEntity.class))).thenAnswer(inv -> {
+                StoryEntity e = inv.getArgument(0);
+                e.setId(1L);
+                return e;
+            });
+
+            assertEquals(expected, storyImportService.importStory(data).storyUuid());
+        }
+
+        @Test
+        @DisplayName("v0.41.5 — with the real validator a malformed uuid is refused before any write")
+        void importStory_malformedUuidRefused() {
+            StoryImportService withValidator = new StoryImportService(persistencePort,
+                    new StoryValidatorService(mock(StoryReadPort.class)));
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "story-001");
+            data.put("author", "Author");
+
+            StoryValidatorPort.StoryValidationException ex = assertThrows(
+                    StoryValidatorPort.StoryValidationException.class, () -> withValidator.importStory(data));
+            assertTrue(ex.getReport().getErrors().stream().anyMatch(e -> "R0_STORY_UUID".equals(e.rule())));
+            verify(persistencePort, never()).saveStory(any(StoryEntity.class));
+            verify(persistencePort, never()).findStoryByUuid(anyString());
         }
 
         @Test
@@ -612,6 +678,48 @@ class StoryImportServiceTest {
         }
 
         @Test
+        @DisplayName("Should import the v0.32.0 effect targets of a choiceEffect")
+        void importStory_withChoiceEffectTargets() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "cet-uuid");
+            data.put("choiceEffects", List.of(Map.of("idChoices", 4, "uuid", "eff-1", "idCard", 7,
+                    "idEvent", 11, "idLocation", 12, "idWeather", 13,
+                    "idItemTarget", 14, "itemAction", "ADD")));
+            setupStory("cet-uuid");
+            when(persistencePort.saveChoiceEffects(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            verify(persistencePort).saveChoiceEffects(argThat(list -> {
+                ChoiceEffectEntity e = (ChoiceEffectEntity) list.get(0);
+                return list.size() == 1
+                        && "eff-1".equals(e.getUuid())
+                        && e.getIdCard() == 7
+                        && e.getIdEvent() == 11
+                        && e.getIdLocation() == 12
+                        && e.getIdWeather() == 13
+                        && e.getIdItemTarget() == 14
+                        && "ADD".equals(e.getItemAction());
+            }));
+        }
+
+        @Test
+        @DisplayName("A choiceEffect without a uuid still gets one")
+        void importStory_withChoiceEffectWithoutUuid() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "ceu-uuid");
+            data.put("choiceEffects", List.of(Map.of("idChoices", 4, "statistics", "life", "value", 1)));
+            setupStory("ceu-uuid");
+            when(persistencePort.saveChoiceEffects(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            verify(persistencePort).saveChoiceEffects(argThat(list ->
+                    ((ChoiceEffectEntity) list.get(0)).getUuid() != null
+                            && !((ChoiceEffectEntity) list.get(0)).getUuid().isBlank()));
+        }
+
+        @Test
         @DisplayName("Should import classBonuses")
         void importStory_withClassBonuses() {
             Map<String, Object> data = new HashMap<>();
@@ -711,6 +819,424 @@ class StoryImportServiceTest {
 
             StoryImportResult result = storyImportService.importStory(data);
             assertNotNull(result);
+        }
+    }
+
+    // === SECTION: NOT NULL DEFAULTS ===
+
+    @Nested
+    @DisplayName("NOT NULL column defaults")
+    class NotNullDefaults {
+
+        private void stubMinimalStory(String uuid) {
+            when(persistencePort.findStoryByUuid(uuid)).thenReturn(Optional.empty());
+            when(persistencePort.saveStory(any(StoryEntity.class))).thenAnswer(inv -> {
+                StoryEntity e = inv.getArgument(0);
+                e.setId(1L);
+                return e;
+            });
+        }
+
+        @Test
+        @DisplayName("An item effect without effectCode/effectValue keeps the columns non-null")
+        void itemEffect_missingCodeAndValue() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "eff-uuid");
+            // A trait-only effect (v0.34.0) carries no statistic at all.
+            Map<String, Object> effect = new HashMap<>();
+            effect.put("id", 4);
+            effect.put("idItem", 3);
+            effect.put("traitsToAdd", "7");
+            data.put("itemEffects", List.of(effect));
+
+            stubMinimalStory("eff-uuid");
+            when(persistencePort.saveItemEffects(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<List<ItemEffectEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveItemEffects(captor.capture());
+            ItemEffectEntity saved = captor.getValue().get(0);
+            assertEquals("", saved.getEffectCode());
+            assertEquals(0, saved.getEffectValue());
+        }
+
+        @Test
+        @DisplayName("An item effect with an unparseable effectValue falls back to 0")
+        void itemEffect_blankValue() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "eff2-uuid");
+            Map<String, Object> effect = new HashMap<>();
+            effect.put("id", 5);
+            effect.put("idItem", 2);
+            effect.put("effectCode", "");
+            effect.put("effectValue", "");
+            data.put("itemEffects", List.of(effect));
+
+            stubMinimalStory("eff2-uuid");
+            when(persistencePort.saveItemEffects(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<List<ItemEffectEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveItemEffects(captor.capture());
+            assertEquals(0, captor.getValue().get(0).getEffectValue());
+        }
+
+        @Test
+        @DisplayName("A choice effect without flagGroup defaults to 0, the actor alone")
+        void choiceEffect_missingFlagGroup() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "ce-uuid");
+            data.put("choiceEffects", List.of(Map.of("id", 1, "idChoices", 1, "statistics", "LIFE")));
+
+            stubMinimalStory("ce-uuid");
+            when(persistencePort.saveChoiceEffects(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<List<ChoiceEffectEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveChoiceEffects(captor.capture());
+            assertEquals(0, captor.getValue().get(0).getFlagGroup());
+        }
+
+        @Test
+        @DisplayName("A weather rule without active defaults to 0, the value findActiveWeatherRules skips")
+        void weatherRule_missingActive() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "wr-uuid");
+            data.put("weatherRules", List.of(Map.of("id", 1, "probability", 50)));
+
+            stubMinimalStory("wr-uuid");
+            when(persistencePort.saveWeatherRules(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<List<WeatherRuleEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveWeatherRules(captor.capture());
+            assertEquals(0, captor.getValue().get(0).getActive());
+        }
+
+        @Test
+        @DisplayName("Step 39: a random event keeps idEvent, idText and its operator; legacy rows read null")
+        void globalRandomEvent_keepsEventAndOperator() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "gr-uuid");
+            data.put("globalRandomEvents", List.of(
+                    Map.of("id", 1, "idEvent", 7, "idText", 3, "probability", 40,
+                            "conditionKey", "storm", "conditionValue", "yes",
+                            "registryValueOperatorCondition", "!="),
+                    Map.of("id", 2, "idEvent", 0, "probability", 5)));
+
+            stubMinimalStory("gr-uuid");
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<List<GlobalRandomEventEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveGlobalRandomEvents(captor.capture());
+            GlobalRandomEventEntity first = captor.getValue().get(0);
+            assertEquals(7, first.getIdEvent());
+            assertEquals(3, first.getIdText());
+            assertEquals("!=", first.getRegistryValueOperatorCondition());
+            assertEquals(40, first.getProbability());
+            GlobalRandomEventEntity legacy = captor.getValue().get(1);
+            assertNull(legacy.getIdEvent());
+            assertNull(legacy.getRegistryValueOperatorCondition());
+        }
+
+        @Test
+        @DisplayName("Values present in the JSON are kept, not overwritten by the defaults")
+        void presentValues_areKept() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "keep-uuid");
+            data.put("itemEffects", List.of(Map.of("id", 1, "idItem", 2, "effectCode", "LIFE", "effectValue", 3)));
+            data.put("choiceEffects", List.of(Map.of("id", 1, "idChoices", 1, "flagGroup", 1)));
+            data.put("weatherRules", List.of(Map.of("id", 1, "active", 1)));
+
+            stubMinimalStory("keep-uuid");
+            when(persistencePort.saveItemEffects(anyList())).thenAnswer(inv -> inv.getArgument(0));
+            when(persistencePort.saveChoiceEffects(anyList())).thenAnswer(inv -> inv.getArgument(0));
+            when(persistencePort.saveWeatherRules(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<List<ItemEffectEntity>> items = ArgumentCaptor.forClass(List.class);
+            ArgumentCaptor<List<ChoiceEffectEntity>> choices = ArgumentCaptor.forClass(List.class);
+            ArgumentCaptor<List<WeatherRuleEntity>> weather = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveItemEffects(items.capture());
+            verify(persistencePort).saveChoiceEffects(choices.capture());
+            verify(persistencePort).saveWeatherRules(weather.capture());
+
+            assertAll("explicit values survive",
+                () -> assertEquals("LIFE", items.getValue().get(0).getEffectCode()),
+                () -> assertEquals(3, items.getValue().get(0).getEffectValue()),
+                () -> assertEquals(1, choices.getValue().get(0).getFlagGroup()),
+                () -> assertEquals(1, weather.getValue().get(0).getActive())
+            );
+        }
+
+        // v0.37.7 — a choice's owning event, linked event and stat limits were never imported.
+        @Test
+        @DisplayName("Choices keep idEvent, idEventTorun and the four limits")
+        void choices_keepEventAndLimits() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "choice-uuid");
+            data.put("choices", List.of(
+                Map.of("id", 1, "idEvent", 30, "idEventTorun", 31,
+                       "limitSad", 1, "limitDex", 2, "limitInt", 3, "limitCos", 4),
+                Map.of("id", 2, "idEvent", 0)));
+
+            stubMinimalStory("choice-uuid");
+            when(persistencePort.saveChoices(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<List<ChoiceEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveChoices(captor.capture());
+            ChoiceEntity first = captor.getValue().get(0);
+            ChoiceEntity second = captor.getValue().get(1);
+            assertAll("choice references survive the import",
+                () -> assertEquals(30, first.getIdEvent()),
+                () -> assertEquals(31, first.getIdEventTorun()),
+                () -> assertEquals(1, first.getLimitSad()),
+                () -> assertEquals(2, first.getLimitDex()),
+                () -> assertEquals(3, first.getLimitInt()),
+                () -> assertEquals(4, first.getLimitCos()),
+                () -> assertNull(second.getIdEvent()),
+                () -> assertNull(second.getIdEventTorun())
+            );
+        }
+
+        // v0.35.8 — list_events.id_weather and list_weather_rules.id_event reference each
+        // other: the rules go in first, and the back-reference is written afterwards.
+        @Test
+        @DisplayName("Weather rules are saved BEFORE the events that are gated on them")
+        void weatherRules_savedBeforeEvents() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "order-uuid");
+            data.put("weatherRules", List.of(Map.of("id", 1, "probability", 50)));
+            data.put("events", List.of(Map.of("id", 1, "idWeather", 1)));
+
+            stubMinimalStory("order-uuid");
+            when(persistencePort.saveWeatherRules(anyList())).thenAnswer(inv -> inv.getArgument(0));
+            when(persistencePort.saveEvents(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            InOrder order = inOrder(persistencePort);
+            order.verify(persistencePort).saveWeatherRules(anyList());
+            order.verify(persistencePort).saveEvents(anyList());
+        }
+
+        @Test
+        @DisplayName("A weather rule keeps its own label and hours (idText / timeFrom / timeTo)")
+        void weatherRule_textAndHours() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "wr-text-uuid");
+            data.put("weatherRules", List.of(
+                Map.of("id", 1, "idText", 135, "timeFrom", 6, "timeTo", 20)));
+
+            stubMinimalStory("wr-text-uuid");
+            when(persistencePort.saveWeatherRules(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<List<WeatherRuleEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveWeatherRules(captor.capture());
+            WeatherRuleEntity rule = captor.getValue().get(0);
+            assertAll("the rule's own text and window",
+                () -> assertEquals(135, rule.getIdText()),
+                () -> assertEquals(6, rule.getTimeFrom()),
+                () -> assertEquals(20, rule.getTimeTo())
+            );
+        }
+
+        @Test
+        @DisplayName("idEvent on a weather rule is written in a second pass, after the events")
+        void weatherRule_idEventLinkedAfterEvents() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "wr-link-uuid");
+            data.put("weatherRules", List.of(Map.of("id", 1, "idEvent", 7)));
+            data.put("events", List.of(Map.of("id", 7)));
+
+            stubMinimalStory("wr-link-uuid");
+            when(persistencePort.saveWeatherRules(anyList())).thenAnswer(inv -> inv.getArgument(0));
+            when(persistencePort.saveEvents(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            // the rules go in, then the events, then the rule is merged with the back-reference
+            InOrder order = inOrder(persistencePort);
+            order.verify(persistencePort).saveWeatherRules(anyList());
+            order.verify(persistencePort).saveEvents(anyList());
+            ArgumentCaptor<WeatherRuleEntity> captor = ArgumentCaptor.forClass(WeatherRuleEntity.class);
+            order.verify(persistencePort).saveWeatherRule(captor.capture());
+            assertEquals(7, captor.getValue().getIdEvent());
+        }
+
+        // v0.35.8 — an event chained to an event later in the same list: writing id_event_next
+        // on the first insert breaks list_events_id_event_next_id_story_fkey.
+        @Test
+        @DisplayName("idEventNext is written only in the second pass, when the target exists")
+        void event_idEventNext_deferred() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "next-uuid");
+            data.put("events", List.of(
+                Map.of("id", 5, "idEventNext", 6),
+                Map.of("id", 6)));
+
+            stubMinimalStory("next-uuid");
+            when(persistencePort.saveEvents(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            // first pass: both events inserted together, no chain yet
+            ArgumentCaptor<List<EventEntity>> inserted = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveEvents(inserted.capture());
+            assertEquals(2, inserted.getValue().size());
+            // second pass: only the one that chains, merged with the reference
+            ArgumentCaptor<EventEntity> linked = ArgumentCaptor.forClass(EventEntity.class);
+            verify(persistencePort).saveEvent(linked.capture());
+            assertEquals(6, linked.getValue().getIdEventNext());
+        }
+
+        @Test
+        @DisplayName("idItemToAdd is written in the second pass, after the items are imported")
+        void event_idItemToAdd_deferred() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "give-uuid");
+            data.put("events", List.of(Map.of("id", 1, "idItemToAdd", 2)));
+            data.put("items", List.of(Map.of("id", 2)));
+
+            stubMinimalStory("give-uuid");
+            when(persistencePort.saveEvents(anyList())).thenAnswer(inv -> inv.getArgument(0));
+            when(persistencePort.saveItems(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            InOrder order = inOrder(persistencePort);
+            order.verify(persistencePort).saveEvents(anyList());
+            order.verify(persistencePort).saveItems(anyList());
+            ArgumentCaptor<EventEntity> captor = ArgumentCaptor.forClass(EventEntity.class);
+            order.verify(persistencePort).saveEvent(captor.capture());
+            assertEquals(2, captor.getValue().getIdItemToAdd());
+        }
+
+        // The trigger columns of a location point at events imported after it: they were
+        // never written at all before v0.35.8, so an imported story lost its automatic events.
+        @Test
+        @DisplayName("A location keeps its trigger events, written after the events exist")
+        void location_triggerEvents_deferred() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "trigger-uuid");
+            data.put("locations", List.of(Map.of(
+                "id", 1,
+                "idEventIfCounterZero", 10,
+                "idEventIfCharacterStartTime", 14,
+                "idEventNotFirstTime", 13,
+                "idEventIfFirstTime", 11)));
+            data.put("events", List.of(Map.of("id", 10), Map.of("id", 11),
+                Map.of("id", 13), Map.of("id", 14)));
+
+            stubMinimalStory("trigger-uuid");
+            when(persistencePort.saveLocations(anyList())).thenAnswer(inv -> inv.getArgument(0));
+            when(persistencePort.saveEvents(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            InOrder order = inOrder(persistencePort);
+            order.verify(persistencePort).saveLocations(anyList());
+            order.verify(persistencePort).saveEvents(anyList());
+            ArgumentCaptor<LocationEntity> captor = ArgumentCaptor.forClass(LocationEntity.class);
+            order.verify(persistencePort).saveLocation(captor.capture());
+            LocationEntity loc = captor.getValue();
+            assertAll("the location's automatic events",
+                () -> assertEquals(10, loc.getIdEventIfCounterZero()),
+                () -> assertEquals(14, loc.getIdEventIfCharacterStartTime()),
+                () -> assertEquals(13, loc.getIdEventNotFirstTime()),
+                () -> assertEquals(11, loc.getIdEventIfFirstTime())
+            );
+        }
+
+        @Test
+        @DisplayName("Step 38: secureParam is imported (it never was) and a legacy isSafe is ignored")
+        void location_secureParamImported() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "secure-uuid");
+            data.put("locations", List.of(Map.of("id", 1, "secureParam", 2, "isSafe", 1),
+                                          Map.of("id", 2)));
+
+            stubMinimalStory("secure-uuid");
+            ArgumentCaptor<List<LocationEntity>> captor = ArgumentCaptor.forClass(List.class);
+            when(persistencePort.saveLocations(captor.capture())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            List<LocationEntity> saved = captor.getValue();
+            assertEquals(2, saved.get(0).getSecureParam());
+            assertNull(saved.get(1).getSecureParam(), "left to the @PrePersist default");
+        }
+
+        @Test
+        @DisplayName("The pre-V0.33.2 key still fills the renamed enter-empty-location column")
+        void location_legacyEnterFirstTimeKey() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "legacy-uuid");
+            data.put("locations", List.of(Map.of("id", 1, "idEventIfCharacterEnterFirstTime", 12)));
+            data.put("events", List.of(Map.of("id", 12)));
+
+            stubMinimalStory("legacy-uuid");
+            when(persistencePort.saveLocations(anyList())).thenAnswer(inv -> inv.getArgument(0));
+            when(persistencePort.saveEvents(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<LocationEntity> captor = ArgumentCaptor.forClass(LocationEntity.class);
+            verify(persistencePort).saveLocation(captor.capture());
+            assertEquals(12, captor.getValue().getIdEventIfCharacterEnterEmptyLocation());
+        }
+
+        // v0.35.8 — the admin form writes a flag column as a JSON boolean. Read as null it
+        // was dropped, and the NOT NULL default then said the opposite of what was authored.
+        @Test
+        @DisplayName("A JSON boolean fills an integer flag column, true as 1 and false as 0")
+        void jsonBoolean_readsAsTheFlagItIs() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "bool-uuid");
+            data.put("items", List.of(
+                Map.of("id", 1, "isConsumabile", false, "flagShowEffects", false),
+                Map.of("id", 2, "isConsumabile", true, "flagShowEffects", true)));
+
+            stubMinimalStory("bool-uuid");
+            when(persistencePort.saveItems(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<List<ItemEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveItems(captor.capture());
+            List<ItemEntity> items = captor.getValue();
+            assertAll("a boolean is a flag, not an absence",
+                () -> assertEquals(0, items.get(0).getIsConsumabile()),
+                () -> assertEquals(0, items.get(0).getFlagShowEffects()),
+                () -> assertEquals(1, items.get(1).getIsConsumabile()),
+                () -> assertEquals(1, items.get(1).getFlagShowEffects())
+            );
+        }
+
+        @Test
+        @DisplayName("No second pass when no weather rule points at an event")
+        void weatherRule_noIdEvent_savedOnce() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "wr-once-uuid");
+            data.put("weatherRules", List.of(Map.of("id", 1, "probability", 50)));
+
+            stubMinimalStory("wr-once-uuid");
+            when(persistencePort.saveWeatherRules(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            verify(persistencePort, times(1)).saveWeatherRules(anyList());
+            verify(persistencePort, never()).saveWeatherRule(any());
         }
     }
 }

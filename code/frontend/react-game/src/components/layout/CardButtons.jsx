@@ -9,7 +9,7 @@ import { useTranslation } from '../../i18n/context'
 export default function CardButtons({
   isPage, name,
   locked, lockedReason, lockInfo, lockedIcon,
-  onSelect, selected, selectLabel,
+  onSelect, selected, selectLabel, selectIcon = null,
   onAction, actionLabel, actionIcon, actionOnlyIfPreview, actionLabelChildren=null,
   onPreview, onPreviewClick, previewOpened, hidePreview,
   // Secondary footer buttons, rendered after the main action one, in order:
@@ -66,11 +66,12 @@ export default function CardButtons({
     return (<div className={divStyle}><div className={gcActionClass}>
       {onPreview && !hidePreview && getPreviewButton(false, "mr-1", true)}
       <span
-        className="gc-footer__coming-soon"
+        className="gc-footer__cards-buttons"
         title={lockedReason || undefined}
         aria-label={lockedReason || undefined}
       >
-        <i className={`${lockedIcon} me-1`} />{lockInfo?.className ?? lockInfo ?? name}
+        {/* Lock text: its own label, else the class it names, else the card's own name. */}
+        <i className={`${lockedIcon} me-1`} />{lockInfo?.label ?? lockInfo?.className ?? (typeof lockInfo === 'string' ? lockInfo : null) ?? name}
         {actionLabelChildren} 
       </span>
       {!actionStarted && secondaryButtons()}
@@ -84,14 +85,14 @@ export default function CardButtons({
         className={`gc-footer__btn${selected ? ' gc-footer__btn--selected' : ''}`}
         onClick={onSelect}
       >
-        <i className={`fas ${selected ? 'fa-check' : 'fa-hand-pointer'} me-1`} />
+        <i className={`fas ${selected ? 'fa-check' : (selectIcon ?? 'fa-hand-pointer')} me-1`} />
         <span className="gc-footer__btn-label">{selectLabel}</span>
       </button>
     </div></div>)
   }
   if (onAction && actionStarted){
     return (<div className={divStyle}><div className={gcActionClass}>
-        <span className="gc-footer__coming-soon ">
+        <span className="gc-footer__cards-buttons ">
             <i className={`fas fa-spinner fa-spin me-1`} />{t('card.actionInProgress')}
         </span>
     </div></div>)

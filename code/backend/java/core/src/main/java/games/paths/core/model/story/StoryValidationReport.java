@@ -14,10 +14,22 @@ import java.util.stream.Collectors;
 public class StoryValidationReport {
 
     private final List<StoryValidationError> errors = new ArrayList<>();
+    /** Step 39 - advisory findings: they never make the report invalid. */
+    private final List<StoryValidationError> warnings = new ArrayList<>();
 
     /** Adds an error to the report. */
     public void add(String rule, String entityType, String entityId, String field, String message) {
         errors.add(new StoryValidationError(rule, entityType, entityId, field, message));
+    }
+
+    /** Step 39 - adds a warning, which leaves {@link #isValid()} untouched. */
+    public void warn(String rule, String entityType, String entityId, String field, String message) {
+        warnings.add(new StoryValidationError(rule, entityType, entityId, field, message));
+    }
+
+    /** @return an immutable view of the recorded warnings. */
+    public List<StoryValidationError> getWarnings() {
+        return Collections.unmodifiableList(warnings);
     }
 
     /** @return true when no errors were recorded. */

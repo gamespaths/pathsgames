@@ -56,3 +56,31 @@ def test_require_admin_jwt_branch():
                return_value={'uuid': 'p', 'source': 'jwt', 'role': 'PLAYER'}):
         _, err3 = handler._require_admin(ev)
     assert err3['statusCode'] == 403
+
+
+def test_assign_uuids_and_ids_on_an_empty_list():
+    from story.handler import _assign_ids, _assign_uuids
+    assert _assign_uuids(None) == [] and _assign_uuids([]) == []
+    assert _assign_ids(None, 'id') == [] and _assign_ids([], 'id') == []
+
+
+def test_assign_uuids_keeps_the_uuid_an_entity_already_has():
+    from story.handler import _assign_uuids
+    entities = [{'uuid': 'kept'}, {}]
+    assigned = _assign_uuids(entities)
+    assert assigned[0]['uuid'] == 'kept'
+    assert assigned[1]['uuid']
+
+
+def test_assign_ids_reads_the_fallback_id_fields():
+    from story.handler import _assign_ids
+    assert _assign_ids([{'idText': '7'}], 'id')[0]['id'] == 7
+    assert _assign_ids([{'id_tipo': 3}], 'id')[0]['id'] == 3
+
+
+def test_assign_ids_generates_the_missing_ones():
+    from story.handler import _assign_ids
+    assigned = _assign_ids([{'id': 1}, {}, {}], 'id')
+    ids = [e['id'] for e in assigned]
+    assert ids[0] == 1
+    assert len(set(ids)) == 3

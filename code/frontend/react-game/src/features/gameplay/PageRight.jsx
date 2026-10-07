@@ -7,9 +7,13 @@ import SadnessCard from './cards/SadnessCard'
 import LocationCard from './cards/LocationCard'
 import MovementCard from './cards/MovementCard'
 import ItemsCards from './cards/ItemsCards'
+import ExperienceCards from './cards/ExperienceCards'
+import RegistryCards from './cards/RegistryCards'
+import MissionCards from './cards/MissionCards'
+import MissionStepsCards from './cards/MissionStepsCards'
 import PendingChoicesList from './cards/PendingChoicesList'
-import AutomaticEvents from './cards/AutomaticEvents'
 import MatchLogCard from '@/features/matches/MatchLogCard'
+import AutomaticEvents from './cards/AutomaticEvents'
 import PageRightInfo from './PageRightInfo'
 import PageRightMain from './PageRightMain'
 import { movementCostKey } from '@/utils/gamebook'
@@ -20,19 +24,21 @@ import { movementCostKey } from '@/utils/gamebook'
  * arrow that clears previewRight.
  */
 function RightPreview({ previewRight, story, playerStats, matchUuid, accessToken,
-  activeAction, onBack, onEndGamePreview, onEndGame }) {
+  activeAction, onBack, onEndGamePreview, onEndGame, match = null }) {
   switch (previewRight?.kind) {
     case 'weather':
-      return <WeatherCard weather={previewRight.weather} story={story} onBack={onBack} />
+      return <WeatherCard weather={previewRight.weather} story={story} onBack={onBack}
+        onForward={previewRight.onForward} />
+    // v0.37.7 — the match history, opened from its own card in the (i) view's PlayerCards.
+    case 'matchlog':
+      return <MatchLogCard matchUuid={matchUuid} accessToken={accessToken}
+        story={story} onBack={onBack} match={match} />
     case 'close':
       return <CloseGameCard story={story} onExit={previewRight.onExit} onBack={onBack} />
     case 'endgame':
       return <EndGameCard story={story} action={activeAction}
         handleEndGamePreviewFull={onEndGamePreview}
         handleEndGame={onEndGame} onBack={onBack} variant="page" />
-    case 'matchlog':
-      return <MatchLogCard matchUuid={matchUuid} accessToken={accessToken}
-        story={story} onBack={onBack} />
     case 'coma':
       return <ComaCard story={story} allPlayers={previewRight.allPlayers}
         comaEventCard={previewRight.card} onBack={onBack} onForward={previewRight.onForward} />
@@ -65,17 +71,18 @@ export default function PageRight(props) {
   const {
     view, previewRight, pendingChoices, counterZero, story, storyFull, t, gameData, playerStats,
     playerUuid, weather, clock, actualLocationCard, locations, actions, locationCosts,
-    hereLocationId, mapSelected, matchUuid, accessToken, choiceInFlight, endError,
+    hereLocationId, mapSelected, missionSelected, matchUuid, accessToken, choiceInFlight, endError,
     onPreview, onCloseRight, onCloseChoices, onSelectChoice, onDismissCounterZero,
-    onEnterCurrentLocation, onMoved, onError, onDone, onDropped, onItemUsed, onSlept,
-    onOpenMap, onOpenItems, onOpenInfo, onPreviewMatchLog, onEndGame, onEndGamePreview,
-    onForceSleepCard, sleepCardForced, activeAction, onExit,
+    onEnterCurrentLocation, onMoved, onError, onDone, onDropped, onItemUsed, onExpUsed, onSlept,
+    onOpenMap, onOpenItems, onOpenRegistry, onOpenMissions, onOpenMission, onOpenInfo, onOpenExp,
+    onOpenHistory, onEndGame, onEndGamePreview,
+    sleepCardForced, activeAction, onExit,
   } = props
 
   if (previewRight) {
     return <RightPreview previewRight={{ ...previewRight, weather, onExit }}
       story={story} playerStats={playerStats} matchUuid={matchUuid} accessToken={accessToken}
-      activeAction={activeAction} onBack={onCloseRight}
+      activeAction={activeAction} onBack={onCloseRight} match={gameData?.match ?? null}
       onEndGamePreview={onEndGamePreview} onEndGame={onEndGame} />
   }
   // Step 31 — an open choice-event owns the right page: the options as small cards, plus the
@@ -125,18 +132,43 @@ export default function PageRight(props) {
       matchUuid={matchUuid} accessToken={accessToken}
       onDone={onItemUsed} onDropped={onDropped} onError={onError} />
   }
+  // Step 38 — training: one card per stat, opened from the board's experience card.
+  if (view === 'exp') {
+    return <ExperienceCards playerStats={playerStats} story={story}
+      matchUuid={matchUuid} accessToken={accessToken}
+      onDone={onExpUsed} onError={onError} />
+  }
+  // Step 36 — the registry, opened from the same (i) list as the backpack and replacing it
+  // for exactly the same reason.
+  if (view === 'registry') {
+    return <RegistryCards registry={gameData?.info?.registry} story={story}
+      onPreview={onPreview} previewSide="right" />
+  }
+  // Step 37 — a parallel section, not part of the registry: the two answer different
+  // questions and the board reads them one after the other.
+  if (view === 'missions') {
+    return <MissionCards missions={gameData?.info?.missions} story={story}
+      onPreview={onPreview} onOpenMission={onOpenMission} previewSide="right" />
+  }
+  // v0.37.1 — one mission open: its card reads on the left page, its steps fill this one.
+  if (view === 'missionSteps') {
+    return <MissionStepsCards mission={missionSelected} story={story}
+      onPreview={onPreview} previewSide="right" />
+  }
   if (view === 'info') {
     return <PageRightInfo story={story} storyFull={storyFull} gameData={gameData}
       playerStats={playerStats} weather={weather} matchUuid={matchUuid} accessToken={accessToken}
       onPreview={onPreview} onSlept={onSlept} onOpenMap={onOpenMap} onOpenItems={onOpenItems}
-      onPreviewMatchLog={onPreviewMatchLog} />
+      onOpenRegistry={onOpenRegistry} onOpenMissions={onOpenMissions}
+      onOpenHistory={onOpenHistory} />
   }
   return <PageRightMain story={story} storyFull={storyFull} t={t} gameData={gameData}
     playerStats={playerStats} clock={clock} weather={weather} locations={locations}
     actions={actions} locationCosts={locationCosts} hereLocationId={hereLocationId}
     matchUuid={matchUuid} accessToken={accessToken} endError={endError}
-    sleepCardForced={sleepCardForced} onForceSleepCard={onForceSleepCard}
+    sleepCardForced={sleepCardForced}
     onPreview={onPreview} onOpenMap={onOpenMap} onOpenItems={onOpenItems}
-    onOpenInfo={onOpenInfo} onMoved={onMoved} onDone={onDone} onSlept={onSlept}
+    onOpenMissions={onOpenMissions} onOpenInfo={onOpenInfo} onOpenExp={onOpenExp}
+    onMoved={onMoved} onDone={onDone} onSlept={onSlept}
     onError={onError} onEndGame={onEndGame} onEndGamePreview={onEndGamePreview} />
 }

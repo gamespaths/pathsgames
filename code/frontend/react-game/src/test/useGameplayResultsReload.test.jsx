@@ -1,0 +1,199 @@
+import { describe, it, expect, vi } from 'vitest'
+import { renderHook, act } from '@testing-library/react'
+
+vi.mock('@/api/matches', () => ({ getInventory: vi.fn(), selectChoice: vi.fn() }))
+
+import useGameplayResults from '../features/gameplay/js/useGameplayResults'
+
+function setup(onReload, { clock = null, refreshChrome = vi.fn() } = {}) {
+  const viewActions = {
+    resetForReload: vi.fn(), setPreviewRight: vi.fn(), setPreviewLeft: vi.fn(),
+    openPreview: vi.fn(), setChoices: vi.fn(), closeChoices: vi.fn(), setCounterZero: vi.fn(),
+    openItems: vi.fn(),
+  }
+  const hook = renderHook(() => useGameplayResults({
+    matchUuid: 'm1', accessToken: 'tok', lang: 'en', t: k => k, playerUuid: 'p1',
+    playerStats: {}, gameData: {}, weather: null, clock, view: {}, viewActions,
+    refreshChrome, onReload, onError: vi.fn(),
+  }))
+  return { ...hook, viewActions, refreshChrome }
+}
+
+/** A reload the test resolves by hand. */
+function deferred() {
+  let resolve, reject
+  const promise = new Promise((res, rej) => { resolve = res; reject = rej })
+  return { promise, resolve, reject }
+}
+
+describe('useGameplayResults — reload-driven loading (v0.37.4)', () => {
+  it('keeps the loading page up until the reload has landed, no timer', async () => {
+    const d = deferred()
+    const { result } = setup(() => d.promise)
+
+    let reload
+    act(() => { reload = result.current.reloadBoard() })
+    expect(result.current.loading).toBe(true)
+
+    await act(async () => { d.resolve(); await reload })
+    expect(result.current.loading).toBe(false)
+  })
+
+  it('a failed reload puts the loading page away too, and the handler still settles', async () => {
+    const d = deferred()
+    const { result } = setup(() => d.promise)
+
+    let done
+    act(() => { done = result.current.handleMovementDone({}) })
+    await act(async () => { d.reject(new Error('boom')); await done })
+    expect(result.current.loading).toBe(false)
+  })
+
+  it('only the LATEST reload may put the loading page away', async () => {
+    const first = deferred()
+    const second = deferred()
+    const onReload = vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+    const { result } = setup(onReload)
+
+    let r1, r2
+    act(() => { r1 = result.current.handleSlept({}) })
+    act(() => { r2 = result.current.handleItemDropped() })
+    await act(async () => { first.resolve(); await r1 })
+    // The first landed, but the second is still on its way: the page stays.
+    expect(result.current.loading).toBe(true)
+    await act(async () => { second.resolve(); await r2 })
+    expect(result.current.loading).toBe(false)
+  })
+
+  it('a move with no news keeps the loading page up until the destination has landed', async () => {
+    const d = deferred()
+    const { result } = setup(() => d.promise)
+    let done
+    act(() => { done = result.current.handleMovementDone({ automaticEvents: [], edgeState: null }) })
+    expect(result.current.loading).toBe(true)
+    await act(async () => { d.resolve(); await done })
+    expect(result.current.loading).toBe(false)
+  })
+
+  it('a move whose arrival fired an event shows it at once, over the reload', async () => {
+    const d = deferred()
+    const { result, viewActions } = setup(() => d.promise)
+    act(() => { result.current.handleMovementDone({
+      automaticEvents: [{ card: { title: 'Ambush' } }] }) })
+    expect(result.current.loading).toBe(false)
+    expect(viewActions.setPreviewRight).toHaveBeenCalled()
+  })
+
+  it('a collapse on arrival is news too, and outranks the loading page', async () => {
+    const d = deferred()
+    const { result, viewActions } = setup(() => d.promise)
+    act(() => { result.current.handleMovementDone({ edgeState: { comaUuids: ['p1'] } }) })
+    expect(result.current.loading).toBe(false)
+    expect(viewActions.setPreviewLeft).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'coma' }))
+  })
+
+  it('an event with nothing to narrate keeps the loading page up until the board lands', async () => {
+    const d = deferred()
+    const { result } = setup(() => d.promise)
+    let done
+    act(() => { done = result.current.handleEventExecuted({ status: 'OK', effects: [] }) })
+    expect(result.current.loading).toBe(true)
+    await act(async () => { d.resolve(); await done })
+    expect(result.current.loading).toBe(false)
+  })
+
+  it('an event with a card to narrate puts the loading page away at once', async () => {
+    const d = deferred()
+    const { result, viewActions } = setup(() => d.promise)
+    act(() => { result.current.handleEventExecuted({ status: 'OK',
+      effects: [{ card: { title: 'Boom' } }] }) })
+    expect(result.current.loading).toBe(false)
+    expect(viewActions.openPreview).toHaveBeenCalled()
+  })
+
+  it('narrates a bought point under the "trained" card, with its two stat badges (Step 38)', async () => {
+    const { result, viewActions } = setup(() => Promise.resolve())
+    let reload
+    act(() => { reload = result.current.handleExpUsed({
+      stat: 'dex', statChanges: [
+        { characterUuid: 'p1', statistic: 'dex', before: 10, after: 11, delta: 1 },
+        { characterUuid: 'p1', statistic: 'exp', before: 40, after: 17, delta: -23 },
+      ] }) })
+    await act(async () => { await reload })
+    expect(result.current.loading).toBe(false)
+    const preview = viewActions.openPreview.mock.calls[0][0]
+    expect(preview.side).toBe('right')
+    expect(preview.card.title).toBe('game.exp.trained.title')
+    expect(preview.card.description).toBe('game.exp.trained.description')
+    expect(preview.stats).toEqual([
+      { key: 'dexterity', label: 'game.stats.dexterity', value: '+1' },
+      { key: 'experience', label: 'game.stats.experience', value: '-23' },
+    ])
+  })
+
+  it('works with a caller that wired no reload at all', async () => {
+    const { result } = setup(undefined)
+    let reload
+    act(() => { reload = result.current.handleItemUsed({}) })
+    await act(async () => { await reload })
+    expect(result.current.loading).toBe(false)
+  })
+})
+
+// v0.37.6 — the side payloads are asked again only when the answer says they moved.
+describe('useGameplayResults — scoped chrome refresh (v0.37.6)', () => {
+  const ALL = { clock: true, weather: true, locations: true }
+  const NONE = { clock: false, weather: false, locations: false }
+
+  it('a bare reloadBoard() still refreshes everything', async () => {
+    const { result, refreshChrome } = setup(() => Promise.resolve())
+    await act(async () => { await result.current.reloadBoard() })
+    expect(refreshChrome).toHaveBeenCalledWith(ALL)
+  })
+
+  it('a sleep that did not end the time refreshes nothing of the chrome', async () => {
+    const { result, refreshChrome } = setup(() => Promise.resolve(), { clock: { currentClock: 3 } })
+    await act(async () => { await result.current.handleSlept({ timeEndTriggered: false, currentClock: 3 }) })
+    expect(refreshChrome).toHaveBeenCalledWith(NONE)
+  })
+
+  it('a sleep that ended the time refreshes all three', async () => {
+    const { result, refreshChrome } = setup(() => Promise.resolve(), { clock: { currentClock: 3 } })
+    await act(async () => { await result.current.handleSlept({ timeEndTriggered: true, currentClock: 4 }) })
+    expect(refreshChrome).toHaveBeenCalledWith(ALL)
+  })
+
+  it('a move inside the same time unit refreshes the locations only', async () => {
+    const { result, refreshChrome } = setup(() => Promise.resolve(), { clock: { currentClock: 3 } })
+    await act(async () => {
+      await result.current.handleMovementDone({ toLocationUuid: 'l2', currentClock: 3 })
+    })
+    expect(refreshChrome).toHaveBeenCalledWith({ clock: false, weather: false, locations: true })
+  })
+
+  it('an event that changed nothing but stats asks for no side payload', async () => {
+    const { result, refreshChrome } = setup(() => Promise.resolve(), { clock: { currentClock: 3 } })
+    await act(async () => {
+      await result.current.handleEventExecuted({ timeEnded: false, currentClock: 3, weatherApplied: false })
+    })
+    expect(refreshChrome).toHaveBeenCalledWith(NONE)
+  })
+
+  it('a drop never touches the chrome', async () => {
+    const { result, refreshChrome } = setup(() => Promise.resolve(), { clock: { currentClock: 3 } })
+    await act(async () => { await result.current.handleItemDropped() })
+    expect(refreshChrome).toHaveBeenCalledWith(NONE)
+  })
+
+  it('reads the clock the board knows at answer time, not at mount', async () => {
+    const { result, refreshChrome, rerender } = setup(() => Promise.resolve(), { clock: null })
+    // the clock lands after mount (rerender with the new prop through a fresh hook render)
+    rerender()
+    await act(async () => {
+      await result.current.handleMovementDone({ toLocationUuid: 'l2', currentClock: 5 })
+    })
+    // no known clock and no flag → conservative: everything
+    expect(refreshChrome).toHaveBeenLastCalledWith(ALL)
+  })
+})

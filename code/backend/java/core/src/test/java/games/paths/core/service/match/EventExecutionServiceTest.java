@@ -49,6 +49,7 @@ class EventExecutionServiceTest {
     private static final long LOC = 100L;
 
     private EventExecutionStorePort store;
+    private RegistryService registryService;
     private EdgeStateStorePort edgeStore;
     private UserAccessPort userAccessPort;
     private ContentQueryPort contentQueryPort;
@@ -58,11 +59,13 @@ class EventExecutionServiceTest {
     @BeforeEach
     void setUp() {
         store = mock(EventExecutionStorePort.class);
+        registryService = mock(RegistryService.class);
         edgeStore = mock(EdgeStateStorePort.class);
         userAccessPort = mock(UserAccessPort.class);
         contentQueryPort = mock(ContentQueryPort.class);
         timeAdvancementService = mock(TimeAdvancementService.class);
-        service = new EventExecutionService(store, edgeStore, userAccessPort, contentQueryPort, timeAdvancementService);
+        service = new EventExecutionService(store, edgeStore, userAccessPort, contentQueryPort,
+                timeAdvancementService, registryService);
 
         when(userAccessPort.findByUuid(USER_UUID)).thenReturn(Optional.of(
                 new UserAccessPort.UserView(USER_ID, USER_UUID, "player", "USER", 2)));

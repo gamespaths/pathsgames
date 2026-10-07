@@ -1,7 +1,7 @@
 export default function ConfirmModal({ title, message, onConfirm, onCancel, danger = true }) {
   return (
-    <div className="pg-modal-backdrop" onClick={onCancel}>
-      <div className="pg-modal" onClick={e => e.stopPropagation()}>
+    <div className="pg-modal-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) onCancel() }}>
+      <div className="pg-modal">
         <p className="pg-modal-title">
           {danger ? <i className="fas fa-exclamation-triangle text-red-400 me-2" /> : <i className="fas fa-question-circle me-2" />}
           {title}

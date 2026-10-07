@@ -1,12 +1,21 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n/context'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
+import { useHomeStatus } from '@/context/HomeStatusContext'
+import EnvBadge from './EnvBadge'
+import { rateLimitMessage } from '@/utils/rateLimit'
 
 export default function Navbar() {
   const { lang, setLang, t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
-  const { user: guestUser, loading: guestLoading, openGuestModal } = useGuestUser()
+  const { user: guestUser, loading: guestLoading, openGuestModal, errorRetryAfter } = useGuestUser()
+  // v0.37.6 — a failed home load (antibot / matches / stories) shows here with a refresh.
+  const { error: homeError } = useHomeStatus()
+  // v0.41.0 — the rate-limit sentence carries the wait the backend sent.
+  const homeErrorText = homeError === 'rateLimited'
+    ? rateLimitMessage(t, 'nav.error.rateLimited', errorRetryAfter)
+    : homeError && t(`nav.error.${homeError}`)
 
   const isGamePage = location.pathname.startsWith('/play/')
 
@@ -14,12 +23,30 @@ export default function Navbar() {
     ? '…'
     : /*(guestUser?.username ?? */ t('nav.guest') //)
 
+  // v0.35.7 — same socials as the landing page; CSS hides them when the bar runs out of room.
+  const socials = [
+    { key: 'instagram', href: 'https://www.instagram.com/pathsgames/', icon: 'fab fa-instagram' },
+    { key: 'youtube', href: 'https://www.youtube.com/channel/UCbrfVJJDmX-iBda6WhURPkQ', icon: 'fab fa-youtube' },
+    { key: 'x', href: 'https://x.com/PathsGames', icon: 'fab fa-x-twitter' },
+  ]
+
   return (
     <nav className="navbar-medieval">
       <a className="navbar-brand-pg" href="/">
         <i className="fas fa-dice-d20 navbar-dice" />
         <span className="navbar-brand-text">{t('nav.brand')}</span>
       </a>
+      <EnvBadge />
+
+      {homeError && (
+        <div className="navbar-error" role="alert">
+          <i className="fas fa-exclamation-triangle me-1" />
+          <span className="navbar-error__text">{homeErrorText}</span>
+          <button className="navbar-error__btn" onClick={() => window.location.reload()}>
+            <i className="fas fa-sync-alt me-1" />{t('nav.refresh')}
+          </button>
+        </div>
+      )}
 
       <div className="navbar-right">
         {isGamePage && (
@@ -27,8 +54,21 @@ export default function Navbar() {
             <i className="fas fa-home me-1" />{t('game.exitToHome')}
           </button>
         )}
-
-
+        <div className={`navbar-social${isGamePage ? ' navbar-social--tight' : ''}`}>
+          {socials.map(s => (
+            <a
+              key={s.key}
+              href={s.href}
+              target="_blank"
+              rel="noopener"
+              className="navbar-social-link"
+              aria-label={t(`nav.${s.key}`)}
+              title={t(`nav.${s.key}`)}
+            >
+              <i className={s.icon} />
+            </a>
+          ))}
+        </div>
 
         <button
           className="nav-user-btn"
@@ -36,7 +76,7 @@ export default function Navbar() {
           onClick={openGuestModal}
         >
           <i className="fas fa-user-circle" />
-          <span>{guestLabel}</span>
+          <span className="nav-user-btn__label">{guestLabel}</span>
         </button>
       </div>
     </nav>

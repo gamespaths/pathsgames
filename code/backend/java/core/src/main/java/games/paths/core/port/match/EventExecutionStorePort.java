@@ -169,12 +169,6 @@ public interface EventExecutionStorePort {
     /** False when the trait was not held. */
     boolean removeTrait(long idMatch, long idCharacter, long idTrait);
 
-    /**
-     * Upsert a {@code gaming_state_registry} key of the match. A numeric {@code value}
-     * lands in {@code int_value}, anything else in {@code string_value}.
-     */
-    void upsertRegistry(long idMatch, String key, String value, Long idCharacter, Long idEvent, int clock);
-
     /** Sets {@code gaming_match.id_current_weather} (null clears it). */
     void setCurrentWeather(long idMatch, Long idWeather);
 
@@ -377,14 +371,14 @@ public interface EventExecutionStorePort {
                              Set<Long> ownedItemIds,
                              Long currentWeatherId,
                              Set<Long> consumedEventIds,
-                             Map<String, String> registry) {
+                             Map<String, List<String>> registry) {
 
         /** Pre-v0.35.3 shape: a character whose backpack holds no food and no magic. */
         @SuppressWarnings("java:S107")
         public EventCheckContext(Long idCharacter, Long idLocation, boolean sleeping, boolean coma,
                                  int energy, int coin, Long idClass, Set<Long> ownedItemIds,
                                  Long currentWeatherId, Set<Long> consumedEventIds,
-                                 Map<String, String> registry) {
+                                 Map<String, List<String>> registry) {
             this(idCharacter, idLocation, sleeping, coma, energy, coin, 0, 0, idClass,
                     ownedItemIds, currentWeatherId, consumedEventIds, registry);
         }

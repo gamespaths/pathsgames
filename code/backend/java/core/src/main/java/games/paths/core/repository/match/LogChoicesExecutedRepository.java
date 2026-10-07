@@ -20,9 +20,6 @@ public interface LogChoicesExecutedRepository
 
     List<LogChoicesExecutedEntity> findByIdMatchOrderByIdAsc(Long idMatch);
 
-    /** Highest {@code id} across the whole table (ids are globally unique). */
-    @Query("SELECT COALESCE(MAX(l.id), 0) FROM LogChoicesExecutedEntity l")
-    long findMaxId();
 
     /**
      * Deletes every choice-history row of the given matches. Called by the match delete

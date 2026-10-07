@@ -2,7 +2,17 @@
   "nav": {
     "brand": "Paths Games",
     "guest": "Guest",
-    "login": "Login"
+    "login": "Login",
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "x": "X",
+    "refresh": "Refresh",
+    "error": {
+      "antibot": "Antibot check failed",
+      "matches": "Your matches could not be loaded",
+      "stories": "The adventures could not be loaded",
+      "rateLimited": "Too many guest logins from this connection, try again in {time}"
+    }
   },
   "home": {
     "heroTitle": "Epic Adventures Await",
@@ -11,9 +21,17 @@
     "loading": "Loading stories…",
     "noStories": "No stories available.",
     "badgeResume": "Resume",
+    "badgePlay": "Play",
+    "loadingMatches": "Loading…",
+    "badgeReplay": "Replay",
     "badgeCompleted": "Completed",
     "badgePaused": "Paused",
-    "matchesError": "Your matches could not be loaded, so a new adventure cannot be started right now."
+    "matchesError": "Your matches could not be loaded, so a new adventure cannot be started right now.",
+    "storiesError": "The adventures could not be loaded. Check your connection and try again.",
+    "footerBlocked": "Blocked",
+    "footerError": "Error",
+    "playTutorial": "Play the tutorial",
+    "resumeTutorial": "Resume the tutorial"
   },
   "antibot": {
     "blocked": "Antibot activated — these adventures are only for humans!",
@@ -25,15 +43,18 @@
     "character": "Character",
     "class": "Class",
     "trait": "Trait",
+    "phase": "Phase",
     "difficulty": "Difficulty",
     "gameType": "Type",
     "login": "Login",
-    "single": "Single",
+    "single": "Single player",
+    "singlePlayer": "Locked",
     "singleDesc": "Embark on a solo journey through our immersive stories. Make choices, face challenges, and shape your own destiny in a world of endless possibilities. <br /><br /><p align='center'>Multiplayer mode coming soon!</p>",
     "multiplayer": "Multiplayer",
     "multiplayerDesc": "Join forces with friends or compete against others in thrilling multiplayer adventures. Collaborate, strategize, and experience the excitement of shared storytelling.",
     "competitive": "Competitive",
-    "guest": "Guest",
+    "guest": "Guest user",
+    "guestLock": "Locked",
     "guestDesc": "Play as a guest and dive into our captivating stories without the need for an account. Experience the thrill of adventure with just a click.<br /><br /> <p align='center'>Login coming soon for a personalized experience!</p>",
     "register": "Register",
     "comingSoon": "Coming Soon",
@@ -41,9 +62,10 @@
     "notAllowedRequires": "Not allowed: requires class {class}",
     "notAllowedProhibited": "Prohibited: can't select with class {class}",
     "notAllowedGeneric": "Not allowed by current selection",
-    "traitBudgetPositive": "Remaining positive budget",
-    "traitBudgetNegative": "Remaining negative budget",
+    "traitBudgetPositive": "Traits",
+    "traitBudgetNegative": "Traits",
     "traitBudgetExceeded": "Not allowed: trait cost budget exceeded",
+    "traitCostLock": "Cost",
     "remove": "Remove",
     "change": "Change",
     "select": "Select",
@@ -56,6 +78,7 @@
     "accept": "Accept",
     "accepted": "Accepted",
     "startGame": "Start Game",
+    "start": "Start",
     "terms": "Terms",
     "termsTitle": "Terms-Conditions",
     "termsDesc": "To play you must accept the Terms & Conditions. Use the lens to read them and the button to accept or decline.",
@@ -65,13 +88,15 @@
     "antibotDesc": "Antibot check completed successfully: you are ready to start the adventure.",
     "noTraitsTitle": "No Traits",
     "noTraitsDesc": "You have not selected any trait. You can proceed without traits or select one to customise your character.",
+    "characterAttributesTitle": "Attributes",
+    "characterAttributesDesc": "Every character brings a unique set of strengths and weaknesses to consider carefully before embarking. <br/><br /> On this page you can view all the attributes of the character you are selecting for your next adventure.",
     "freeToPlay": "Free to Play",
     "freeToPlayDesc": "Paths Games is free: no cost, no account required. Start playing right away.",
     "selectTitle": "Select",
     "bonuses": "Bonuses",
     "statistics": "Character Stats",
     "stats": {
-      "title": "Character Stats",
+      "title": "Character",
       "statisticsDesc": "These are the bonuses that your current selection of class, character and traits will give you at the start of the adventure. They will affect your stats and abilities in the game. <br > <br > <p align='center'>Change your selection to see different bonuses.</p>",
       "lifeMax": "Life",
       "energyMax": "Energy",
@@ -83,14 +108,17 @@
       "dexterityBase": "Speed",
       "intelligenceBase": "Smart",
       "constitutionBase": "Physique",
-      "costPositive": "Positive Cost",
+      "costPositive": "Cost",
       "costNegative": "Negative Cost",
       "expCost": "XP Cost",
       "minCharacter": "Min Players",
       "maxCharacter": "Players",
       "costHelpComa": "Help Coma Cost",
-      "costMaxCharacteristics": "Char. Cost",
+      "expCostBase": "XP Base Cost",
+      "maxStatValue": "Stat Cap",
       "numberMaxFreeAction": "Free Actions",
+      "traitCostPositiveBudget": "Number of traits",
+      "traitCostNegativeBudget": "Negative traits cost",
       "totals": {
         "life": "Life",
         "energy": "Energy",
@@ -104,17 +132,34 @@
     },
     "map": "Map",
     "automatic-event": "Event",
-    "automatic-event-done": "Continue"
+    "automatic-event-done": "Continue",
+    "registry": "Registry",
+    "matchlog": "History",
+    "missions": "Mission",
+    "missionStep": "Mission step"
   },
   "startMatch": {
     "starting": "Starting match…",
     "creating": "Creating the match…",
     "joining": "Joining your character…",
     "running": "Bringing the match to life…",
-    "created": "Match created, book is loading…",
+    "created": "Match is loading…",
     "error": "The match could not be created.",
     "errorActiveMatch": "You already have a match in progress for this story. Resume it from your matches.",
+    "errorRateLimited": "Too many new matches in a short time. Try again in {time}.",
     "retry": "Try again",
+    "acceptTermsFirst": "Accept the terms first",
+    "phaseStarting": "Starting",
+    "phasePending": "Pending",
+    "phaseInProgress": "In progress",
+    "phaseComplete": "Complete",
+    "phaseFailed": "Failed",
+    "phaseTitle": {
+      "creating": "Creating",
+      "joining": "Joining",
+      "running": "Running",
+      "created": "Loading"
+    },
     "home": "Back to home"
   },
   "matches": {
@@ -122,17 +167,21 @@
     "loading": "Loading matches…",
     "noMatches": "No matches yet. Start an adventure!",
     "unknownStory": "Unknown story",
-    "resume": "Play",
+    "resume": "Resume",
     "statusLabel": "Status",
     "created": "Started",
     "clock": "Clock",
     "status": {
-      "CREATED": "Ready",
-      "RUNNING": "In Progress",
+      "CREATED": "In progress",
+      "RUNNING": "In progress",
       "PAUSED": "Paused",
-      "ENDED": "Ended",
-      "GAMEOVER": "Game Over"
-    }
+      "ENDED": "Completed",
+      "GAMEOVER": "Defeat"
+    },
+    "history": "Match History",
+    "historyDescription": "Every step this match has taken, newest first: moves, events, rests and what they changed.",
+    "historyOpen": "History",
+    "logOpen": "Log"
   },
   "matchLog": {
     "title": "Match history",
@@ -153,10 +202,34 @@
       "EVENT": "Event",
       "COUNTER_ZERO": "Time ran out",
       "AUTOMATIC_EVENT": "Event",
+      "RANDOM_EVENT": "Random event",
       "ITEM_ADD": "Item found",
       "ITEM_USE": "Item used",
-      "ITEM_DROP": "Item left behind"
-    }
+      "EXP_USE": "Experience spent",
+      "ITEM_DROP": "Item left behind",
+      "REGISTRY_CHANGE": "Registry",
+      "MISSION_CHANGE": "Mission",
+      "CHOICE": "Choice",
+      "PASS": "Turn passed",
+      "EDGE_STATE": "Condition",
+      "TRAIT_CHANGE": "Trait",
+      "MATCH_LIFECYCLE": "Match",
+      "ADMIN_ACTION": "Admin"
+    },
+    "edgeStates": {
+      "COMA": "Fell into a coma",
+      "SADNESS_OVERFLOW": "Overwhelmed by sadness",
+      "COMA_RECOVERED": "Woke from the coma",
+      "ALL_PLAYER_COMA": "The whole party fell"
+    },
+    "traitActions": {
+      "ADD": "Trait gained",
+      "REMOVE": "Trait lost"
+    },
+    "statusTile": "Status",
+    "creation": "Creation",
+    "filters": "Filter by type",
+    "filterAll": "All"
   },
   "card": {
     "info": "Info",
@@ -164,7 +237,15 @@
     "viewOriginal": "View original",
     "actionInProgress": "Executing",
     "back": "Back",
-    "forward": "Go"
+    "forward": "Go",
+    "tip": "tip",
+    "hideTip": "hide tip",
+    "storyCredit": "story credit",
+    "imageCredit": "image credit",
+    "storyBy": "Story by {name}",
+    "imageBy": "Image by {name}",
+    "withLicense": " with {license} license",
+    "openLink": "open link"
   },
   "game": {
     "currentLocation": "Current Location",
@@ -238,7 +319,7 @@
     },
     "sleep": {
       "action": "Sleep",
-      "confirmTitle": "Go to sleep?",
+      "confirmTitle": "Go to sleep",
       "confirmBody": "Your character will fall asleep. When everyone is asleep or out of energy, time advances to the next clock.",
       "confirm": "Sleep",
       "cancel": "Cancel",
@@ -252,7 +333,7 @@
       "close": "Close"
     },
     "coma": {
-      "title": "You're in a coma",
+      "title": "You're in coma",
       "description": "Your life reached zero. <br /><br />You cannot act and you cannot move until another character rescues you or you get sleeping in a safe location. <br /><br />When all players in a game are in a coma, a special event occurs: could be Game over.",
       "close": "Close"
     },
@@ -279,7 +360,7 @@
         "LIMIT_DEX_NOT_MET": "Dexterity",
         "LIMIT_INT_NOT_MET": "Intelligence",
         "LIMIT_COS_NOT_MET": "Constitution",
-        "CONDITION_KEYS_NOT_MET": "Not yet",
+        "CONDITION_KEYS_NOT_MET": "Locked",
         "CONDITION_ITEM_NOT_MET": "Item",
         "CONDITION_CLASS_NOT_MET": "Class",
         "CONDITION_LOCATION_NOT_MET": "Elsewhere",
@@ -294,7 +375,7 @@
         "LIMIT_DEX_NOT_MET": "Your character's dexterity is too low",
         "LIMIT_INT_NOT_MET": "Your character's intelligence is too low",
         "LIMIT_COS_NOT_MET": "Your character's constitution is too low",
-        "CONDITION_KEYS_NOT_MET": "You are missing some keys",
+        "CONDITION_KEYS_NOT_MET": "You are missing something on the registry",
         "CONDITION_ITEM_NOT_MET": "You are missing an item",
         "CONDITION_CLASS_NOT_MET": "Your class does not meet the requirement",
         "CONDITION_LOCATION_NOT_MET": "You are in the wrong location",
@@ -317,12 +398,12 @@
       "blocked": "Locked",
       "blockedFull": "You cannot go there right now.",
       "reason": {
-        "CHARACTER_CANNOT_ACT": "Blocked",
+        "CHARACTER_CANNOT_ACT": "Locked",
         "MATCH_NOT_RUNNING": "Paused",
         "COMA": "Coma",
         "SLEEPING": "Sleeping",
         "NOT_A_NEIGHBOR": "Far",
-        "MOVEMENT_CONDITION_NOT_MET": "Barred",
+        "MOVEMENT_CONDITION_NOT_MET": "Locked",
         "OVERWEIGHT": "Weight",
         "INSUFFICIENT_ENERGY": "Energy",
         "NOT_ENOUGH_COINS": "Coins",
@@ -336,7 +417,7 @@
         "COMA": "You are in a coma: you cannot move.",
         "SLEEPING": "You are asleep and cannot move.",
         "NOT_A_NEIGHBOR": "This location is not next to the one you are standing on.",
-        "MOVEMENT_CONDITION_NOT_MET": "The way is barred: something is still missing to open it.",
+        "MOVEMENT_CONDITION_NOT_MET": "The way is locked: something is still missing.",
         "OVERWEIGHT": "You are carrying too much to set off.",
         "INSUFFICIENT_ENERGY": "You do not have enough energy for this move.",
         "NOT_ENOUGH_COINS": "You do not have enough coins for this move.",
@@ -351,7 +432,7 @@
       "blocked": "Locked",
       "blockedFull": "This action is not available right now.",
       "reason": {
-        "CHARACTER_CANNOT_ACT": "Blocked",
+        "CHARACTER_CANNOT_ACT": "Locked",
         "SLEEPING": "Sleeping",
         "COMA": "Coma",
         "EVENT_NOT_EXECUTABLE_TYPE": "Type",
@@ -361,7 +442,7 @@
         "NOT_ENOUGH_COINS": "Coins",
         "NOT_ENOUGH_FOOD": "Food",
         "NOT_ENOUGH_MAGIC": "Magic",
-        "REGISTRY_CONDITION_NOT_MET": "Not yet",
+        "REGISTRY_CONDITION_NOT_MET": "Locked",
         "WEATHER_CONDITION_NOT_MET": "Weather",
         "ITEM_CONDITION_NOT_MET": "Item",
         "CLASS_CONDITION_NOT_MET": "Class"
@@ -420,6 +501,39 @@
       "count": "carried",
       "capacity": "Capacity"
     },
+    "exp": {
+      "title": "Training",
+      "description": "Experience earned along the adventure can be spent here, in a safe place, on the character's own qualities: every point bought raises Speed, Smart or Physique by one. The next point always costs more than the last, and each quality has a ceiling the story sets.",
+      "open": "Train",
+      "use": "Improve",
+      "current": "Actual",
+      "held": "Actual",
+      "cost": "Cost",
+      "after": "After",
+      "atMax": "Max",
+      "trained": {
+        "title": "Trained",
+        "description": "Hours of drill in the quiet of a safe place have left their mark: what was learned on the road is now part of who you are. The experience is spent, the quality it bought stays with you for the rest of the journey."
+      },
+      "reason": {
+        "NOT_ENOUGH_EXP": "Not enough",
+        "MAX_STAT_VALUE": "At its max"
+      },
+      "reasonFull": {
+        "NOT_ENOUGH_EXP": "You have not earned enough experience for the next point yet.",
+        "MAX_STAT_VALUE": "This quality has reached the ceiling the story sets for it."
+      }
+    },
+    "registry": {
+      "title": "Registry",
+      "description": "A page preserves the memory of your every step, recording the decisions that have marked your journey. <br /><br />Turning these pages allows you to retrace the footprint left by your passage through the game world. On this page you can see the history of all important events and some relevant choices you made in the game that can influence the story and change the ending.",
+      "open": "Registry",
+      "empty": "",
+      "back": "Back",
+      "count": "recorded",
+      "value": "Value",
+      "category": "Category"
+    },
     "map": {
       "title": "Map",
       "here": "Selected",
@@ -447,12 +561,30 @@
       "map": "Map",
       "backpack": "Backpack",
       "missions": "Missions",
-      "multiplayer": "Multiplayer",
-      "comingSoon": "Missions and registry coming soon"
+      "multiplayer": "Multiplayer"
+    },
+    "missions": {
+      "title": "Missions",
+      "description": "Consulting these notes guides you through the challenges of your journey, pointing the way toward glory. <br /><br />On this page of the book you can see the various quests, the various statuses, and all the phases that allow you to complete the quests.",
+      "openAction": "Missions",
+      "open": "Open",
+      "count": "Missions",
+      "empty": "",
+      "progress": "Steps",
+      "statusLabel": "Status",
+      "stepsEmpty": "",
+      "completed": "Mission completed",
+      "status": {
+        "AVAILABLE": "Available",
+        "ACTIVE": "In progress",
+        "COMPLETED": "Completed",
+        "FAILED": "Failed"
+      }
     }
   },
   "footer": {
-    "alpha": "This is only an Alpha version. Servers may be unavailable or reset at any time. ",
+    "alphaPrefix": "This is only the",
+    "serversWarning": "Servers may be unavailable or reset at any time.",
     "serverSelect": "Server",
     "rights": "All rights reserved",
     "madeWith": "Crafted with",
@@ -470,7 +602,8 @@
   "errors": {
     "title": "Match Error",
     "matchNotRunning": "Cannot load the match.",
-    "matchEnded": "Because the story has already ended."
+    "matchEnded": "Because the story has already ended.",
+    "rateLimitSoon": "a few minutes"
   },
   "modals": {
     "close": "Close",
@@ -490,7 +623,7 @@
       "transfersTitle": "6. International data transfers",
       "transfersBody": "Some providers (such as Google) may process data outside the European Economic Area, including in the United States. Such transfers are protected by the European Commission's Standard Contractual Clauses or an equivalent safeguard.",
       "retentionTitle": "7. Data retention",
-      "retentionBody": "Session cookies last up to 7 days (refresh token) and 30 days (guest identifier); your cookie choice is kept for 6 months; analytics data is retained for up to 2 years. Anonymous guest data is removed after prolonged inactivity.",
+      "retentionBody": "Session cookies last up to 7 days (refresh token) and 30 days (guest identifier); your cookie choice is kept for 6 months; analytics data is retained for up to 2 years. An anonymous guest profile that has played at least one match is kept, so you can resume your adventures; a guest profile that never started a match is deleted after 60 days without access. Our server logs are kept for 14 days, and the anti-abuse counters linked to your IP address are deleted automatically after a short time.",
       "rightsTitle": "8. Your rights",
       "rightsBody": "If you are in the EU/EEA you may access, rectify, erase, restrict or port your data, object to processing, and withdraw consent at any time, and you may lodge a complaint with your local data protection authority. If you are a California resident you have the right to know, delete and correct your data and to opt out of sale or sharing (we do not sell or share), free from discrimination for exercising your rights. Because play is anonymous, we may be unable to identify your data without additional information from you.",
       "childrenTitle": "9. Children",
@@ -499,7 +632,7 @@
       "securityBody": "We use measures such as HTTPS/TLS, HttpOnly session cookies and access controls to protect data. No method of transmission or storage is completely secure, and the game is currently in an alpha development phase.",
       "changesTitle": "11. Changes to this policy",
       "changesBody": "We may update this policy as the game evolves; material changes will be reflected by the 'last updated' date below and, where required, by a renewed consent request.",
-      "updated": "Last updated: June 2026"
+      "updated": "Last updated: October 2026"
     },
     "terms": {
       "title": "Terms of Service",
@@ -513,7 +646,11 @@
       "useTitle": "4. Acceptable use",
       "useBody": "You agree not to misuse the service, including by cheating or manipulating game state, attempting unauthorised access, scraping or automated data collection, reverse-engineering beyond what the software licence permits, disrupting the service, or using it for any unlawful purpose.",
       "ipTitle": "5. Intellectual property",
-      "ipBody": "The Paths Games source code is open source under the GNU GPL v3.0. The narrative content and assets — stories, dialogues, characters, artwork, sound and music — are licensed under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 (CC BY-NC-ND 4.0) and remain the property of their authors. You may not use them beyond what those licences allow.",
+      "ipBody": "Unless stated otherwise, the narrative content and assets (stories, dialogues, characters, artwork, sound and music) are licensed under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 (CC BY-NC-ND 4.0) and remain the property of their authors. You may not use them beyond what those licences allow.",
+      "ipCodeTitle": "5.1 Source code",
+      "ipCodeBody": "The Paths Games source code is open source under the GNU GPL v3.0.",
+      "ipUnsplashTitle": "5.2 Unsplash images",
+      "ipUnsplashBody": "Images from the Unsplash website are covered by the Unsplash License, as stated in their links.",
       "disclaimerTitle": "6. Disclaimer of warranties",
       "disclaimerBody": "To the maximum extent permitted by law, the service is provided without warranties of any kind, whether express or implied, including fitness for a particular purpose and availability. As an alpha product it may contain bugs, lose progress or experience downtime.",
       "liabilityTitle": "7. Limitation of liability",
@@ -528,7 +665,7 @@
       "lawBody": "These Terms are governed by applicable European Union and United States law. Where you are a consumer, you also benefit from any mandatory protections of the law of your country or state of residence, which these Terms do not override.",
       "changesTitle": "12. Changes to these Terms",
       "changesBody": "We may update these Terms as the game evolves; the 'last updated' date below indicates the latest version. Continued use after changes means you accept the updated Terms.",
-      "updated": "Last updated: June 2026"
+      "updated": "Last updated: October 2026"
     },
     "cookies": {
       "title": "Cookies Policy",
@@ -550,7 +687,17 @@
     },
     "credits": {
       "title": "Image Credits",
-      "body": "Every image used by Paths Games — Unsplash photographs and SVG icons from game-icons.net — is credited below. Click an image card to open the original source on the author's page."
+      "body": "Every image used by Paths Games — Unsplash photographs and SVG icons from game-icons.net — is credited below. Click an image card to open the original source on the author's page.",
+      "types": {
+        "story": "Story",
+        "image": "Image",
+        "audio": "Audio"
+      },
+      "openCredit": "Credit"
+    },
+    "policyBook": {
+      "title": "paths.games",
+      "body": "In a spirit of full transparency and appreciation of the digital ecosystem, paths.games stands as an open-architecture resource, firmly committed to collaborative innovation. This open-source vocation goes hand in hand with a rigorous safeguarding of personal data and unconditional compliance with the applicable legal framework. At the same time, the platform reaffirms its ethical commitment to the due protection of intellectual property and to the formal acknowledgement of the artistic and creative heritage of every single author."
     },
     "guestUser": {
       "languageTitle": "Language",
@@ -566,6 +713,48 @@
       "allRights": "All stories, artwork and game content are",
       "copyright": "© paths.games 2026 — All rights reserved",
       "goBack": "Go Back"
+    },
+    "roadmap": {
+      "title": "Devlog",
+      "intro": "The paths.games is an open-source project, all code is available in a {repo}, the code is released under the GNU GPL v3 license.<br /><br />All images, contents and stories are under a specific license, check the {credits}. Some stories are written by the Paths.games team and are covered by the {license} license.<br /><br />Above all, it is a project made to have fun: playing, writing and building it together.",
+      "introRepo": "GitHub repository",
+      "introCredits": "credits page",
+      "current": "In progress",
+      "completed": "Completed",
+      "button": "Roadmap"
+    }
+  },
+  "tips": {
+    "location": "This is where your character stands. Its events and the paths leaving it are on the right page.",
+    "event": "An event is something you can do here. It may cost energy or coins, and its effects change your character.",
+    "action": "An action is something you can do right now. Check its cost before you choose it.",
+    "item": "An item sits in your backpack. Use it to apply its effects, or drop it to free some weight.",
+    "items": "Your backpack: every item you carry, and how much it weighs against what you can carry.",
+    "movement": "A path to a nearby place. Moving costs energy, more when the weather is bad or the place is unsafe.",
+    "class": "Your class gives your character bonuses and decides some of the choices you can make.",
+    "character": "Your character: life, energy and the other statistics every choice reads and changes.",
+    "trait": "A trait changes your statistics for the whole match, for better or for worse.",
+    "missions": "Missions are goals the story sets. Complete their steps to earn the reward.",
+    "missionStep": "A step of the mission: complete it to move on to the next one. Only the next open step is shown, the ones after it stay hidden.",
+    "registry": "The registry remembers what happened in this match: keys written by places, events and choices.",
+    "map": "The map shows the places you have visited. Select one to read it; the unknown ones stay hidden.",
+    "weather": "The weather changes at every new time unit and changes the energy you spend to move.",
+    "sleep": "Sleeping ends the time unit: you recover energy and the world moves on while you rest.",
+    "choice": "A choice: pick one option, its consequences cannot be undone.",
+    "experience": "Experience earned in your adventures can be spent to raise a statistic.",
+    "story": "The story you are playing: its author, its world and its rules.",
+    "difficulty": "The difficulty sets how much energy, life and time you start with."
+  },
+  "envBadge": {
+    "dev": "Local version",
+    "test": "Test version",
+    "alpha": "Alpha version",
+    "beta": "Beta version",
+    "short": {
+      "dev": "Local",
+      "test": "Test",
+      "alpha": "Alpha",
+      "beta": "Beta"
     }
   }
 }

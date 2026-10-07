@@ -15,7 +15,9 @@ public class DifficultyInfo extends AbstractStatInfo {
     private final int minCharacter;
     private final int maxCharacter;
     private final int costHelpComa;
-    private final int costMaxCharacteristics;
+    /** Step 38 — flat addend of the use-exp cost and the DEX/INT/COS cap (0 = none). */
+    private final int expCostBase;
+    private final int maxStatValue;
     private final int numberMaxFreeAction;
     private final Integer idCard;
     private final CardInfo card;
@@ -32,7 +34,8 @@ public class DifficultyInfo extends AbstractStatInfo {
         this.minCharacter = builder.minCharacter;
         this.maxCharacter = builder.maxCharacter;
         this.costHelpComa = builder.costHelpComa;
-        this.costMaxCharacteristics = builder.costMaxCharacteristics;
+        this.expCostBase = builder.expCostBase;
+        this.maxStatValue = builder.maxStatValue;
         this.numberMaxFreeAction = builder.numberMaxFreeAction;
         this.idCard = builder.idCard;
         this.card = builder.card;
@@ -47,7 +50,8 @@ public class DifficultyInfo extends AbstractStatInfo {
     public int getMinCharacter() { return minCharacter; }
     public int getMaxCharacter() { return maxCharacter; }
     public int getCostHelpComa() { return costHelpComa; }
-    public int getCostMaxCharacteristics() { return costMaxCharacteristics; }
+    public int getExpCostBase() { return expCostBase; }
+    public int getMaxStatValue() { return maxStatValue; }
     public int getNumberMaxFreeAction() { return numberMaxFreeAction; }
     public Integer getIdCard() { return idCard; }
     public CardInfo getCard() { return card; }
@@ -64,7 +68,8 @@ public class DifficultyInfo extends AbstractStatInfo {
         private int minCharacter;
         private int maxCharacter;
         private int costHelpComa;
-        private int costMaxCharacteristics;
+        private int expCostBase;
+        private int maxStatValue;
         private int numberMaxFreeAction;
         private Integer idCard;
         private CardInfo card;
@@ -81,7 +86,8 @@ public class DifficultyInfo extends AbstractStatInfo {
         public Builder minCharacter(int minCharacter) { this.minCharacter = minCharacter; return this; }
         public Builder maxCharacter(int maxCharacter) { this.maxCharacter = maxCharacter; return this; }
         public Builder costHelpComa(int costHelpComa) { this.costHelpComa = costHelpComa; return this; }
-        public Builder costMaxCharacteristics(int costMaxCharacteristics) { this.costMaxCharacteristics = costMaxCharacteristics; return this; }
+        public Builder expCostBase(int expCostBase) { this.expCostBase = expCostBase; return this; }
+        public Builder maxStatValue(int maxStatValue) { this.maxStatValue = maxStatValue; return this; }
         public Builder numberMaxFreeAction(int numberMaxFreeAction) { this.numberMaxFreeAction = numberMaxFreeAction; return this; }
         public Builder idCard(Integer idCard) { this.idCard = idCard; return this; }
         public Builder card(CardInfo card) { this.card = card; return this; }

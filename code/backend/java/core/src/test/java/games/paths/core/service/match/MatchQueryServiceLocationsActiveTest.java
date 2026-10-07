@@ -137,7 +137,6 @@ class MatchQueryServiceLocationsActiveTest {
                 location(11L, "loc-11", 110)));
         when(storyReadPort.findDifficultiesByStoryId(STORY_ID)).thenReturn(List.of());
         when(matchReadPort.findLocationsByMatchId(MATCH_ID)).thenReturn(List.of());
-        when(matchReadPort.findRegistryByMatchId(MATCH_ID)).thenReturn(List.of());
         when(storyReadPort.findTraitsByStoryId(STORY_ID)).thenReturn(List.of());
         CharacterTemplateEntity tpl = new CharacterTemplateEntity();
         tpl.setIdTipo(90001L);

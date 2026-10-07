@@ -28,7 +28,7 @@ import java.util.Map;
  * {@code ?order=asc} (the default) starts from the oldest entry, {@code ?order=desc}
  * from the newest one.</p>
  *
- * <p>See {@code documentation_v0/Step28_MovementSystem.md} §8.</p>
+ * <p>See {@code wiki/documentation_v0/Step28_MovementSystem.md} §8.</p>
  */
 @RestController
 public class MatchLogsController {

@@ -6,7 +6,7 @@ spring:
 
 game:
   server:
-    version: 0.35.5
+    version: 0.42.0
     # manually change this version if needed >0.13.0
   database:
     # Configurable SQLite path — override with -Dgame.database.path=/your/path
@@ -14,6 +14,7 @@ game:
   auth:
     jwt:
       # HMAC-SHA256 secret key (min 32 chars). Override in production via env variable or -D option.
+      # v0.41.0 — outside dev/test the committed default is refused at startup (StartupSecretsGuard).
       secret: ${JWT_SECRET:PathsGamesDevSecret2026_MustBeAtLeast32Chars!}
       access-token-minutes: 30
       refresh-token-days: 7
@@ -30,16 +31,48 @@ game:
     auth:
       guest:
         cleanup:
-          cron: 0 42 0 * * ? #runs at 00:42 every day GuestSessionCleanupScheduler
+          cron: 0 42 0 * * ? #runs at 00:42 UTC every day GuestSessionCleanupScheduler
+          # v0.41.0 — deletes the guests idle for age-days that no match references
+          enabled: ${GUEST_CLEANUP_ENABLED:true}
+          age-days: ${GUEST_CLEANUP_AGE_DAYS:60}
+          max-per-run: ${GUEST_CLEANUP_MAX_PER_RUN:500}
+  catalog:
+    # v0.37.6 — POST /api/admin/stories/catalog writes data/stories-{lang}.json here
+    # (e.g. react-game/public/data). Empty = endpoint answers 503.
+    export-dir: ${CATALOG_EXPORT_DIR:}
+    langs: ${CATALOG_LANGS:en,it}
   turnstile:
     # Cloudflare Turnstile secret key. Leave empty to disable validation (dev bypass).
     # Override in production via env variable TURNSTILE_SECRET_KEY.
     secret-key: ${TURNSTILE_SECRET_KEY:}
-    # Optional Robot-test bypass token. When env != "prod" and the incoming
-    # turnstileToken equals this value, Cloudflare verification is skipped.
-    # Leave empty (or run with env=prod) to forbid the bypass entirely.
+    # Optional Robot-test bypass token. Honoured only when game.server.env is dev/test
+    # (dev, development, test — v0.41.0) and the incoming turnstileToken equals it.
+    # Leave empty (or run a production profile) to forbid the bypass entirely.
     bypass-token: ${TURNSTILE_BYPASS_TOKEN:}
-  env: ${APP_ENV:dev}
+  security:
+    # Step 41 — per-IP limits on guest/match creation and (v0.41.0) matches per guest per day;
+    # 0 disables a bucket. Code defaults 20/20/10; the Robot scripts start the server with 0.
+    rate-limit:
+      guest-per-ip: ${RATE_LIMIT_GUEST_PER_IP:20}
+      match-per-ip: ${RATE_LIMIT_MATCH_PER_IP:20}
+      window-seconds: ${RATE_LIMIT_WINDOW_SECONDS:3600}
+      match-per-guest: ${RATE_LIMIT_MATCH_PER_GUEST:10}
+      match-per-guest-window-seconds: ${RATE_LIMIT_MATCH_PER_GUEST_WINDOW_SECONDS:86400}
+    # The csrfToken issued with every access token must come back as X-CSRF-TOKEN on
+    # POST /api/matches. Same secret as the JWT unless CSRF_SECRET says otherwise.
+    csrf:
+      enforced: ${CSRF_ENFORCED:true}
+      secret: ${CSRF_SECRET:${JWT_SECRET:PathsGamesDevSecret2026_MustBeAtLeast32Chars!}}
+  logs:
+    # v0.41.1 — WARN once per match when its log rows reach this count (check only, 0 = off).
+    warn-rows: ${LOG_WARN_ROWS:5000}
+  snapshot:
+    # v0.41.1 — LIGHT snapshots kept per match, one per time-end (0 = no snapshots).
+    keep-per-match: ${SNAPSHOT_KEEP_PER_MATCH:10}
+  match:
+    export:
+      # v0.41.4 — size cap of a match export / import file in bytes (413 above it).
+      max-bytes: ${MATCH_EXPORT_MAX_BYTES:5000000}
   dev:
     # Enables dev-only endpoints (POST /api/dev/cleanup) and the optional
     # X-Test-Marker header on POST /api/auth/guest. Disabled by the prod profile.

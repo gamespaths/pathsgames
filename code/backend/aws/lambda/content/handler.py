@@ -20,9 +20,14 @@ DynamoDB layout — data resides on the story item:
 import re
 
 from common import db_utils
-from common.response import ok as _ok, err as _err, dumps as _dumps
+from common import log_utils
+from common import story_cache
+from common.response import ok as _ok, err as _err, dumps as _dumps, finalize as _finalize
 from common.http_utils import normalize_path as _normalize_path
 from common.data_utils import safe_int as _safe_int
+
+# v0.38.1 — botocore "Found credentials in environment variables" at INFO is noise on every cold start.
+log_utils.quiet_botocore()
 
 # ─── shared helpers ───────────────────────────────────────────────────────────
 
@@ -103,6 +108,13 @@ _CREATOR_PATTERN = re.compile(r'^/api/content/([^/]+)/creators/([^/]+)$')
 
 
 def lambda_handler(event, context):
+    """v0.41.0 — every answer leaves through finalize (security headers)."""
+    path = _normalize_path(event.get('rawPath', event.get('path', '')))
+    return _finalize(_route(event, context), path)
+
+
+def _route(event, context):
+    story_cache.begin_request()  # v0.37.5 — one stamp read per invocation
     path = _normalize_path(event.get('rawPath', event.get('path', '')))
     method = (event.get('requestContext', {})
                    .get('http', {})
@@ -144,7 +156,7 @@ def get_card(event, story_uuid, card_uuid):
     """GET /api/content/{uuidStory}/cards/{uuidCard}"""
     lang = _get_lang(event)
 
-    item = db_utils.get_item(f'STORY#{story_uuid}')
+    item = story_cache.load(story_uuid)
     if not item:
         return _err(404, 'CARD_NOT_FOUND',
                     f'No card found with UUID: {card_uuid} in story: {story_uuid}')
@@ -197,7 +209,7 @@ def get_text(event, story_uuid, id_text_str, lang):
     """GET /api/content/{uuidStory}/texts/{idText}/lang/{lang}"""
     id_text = _safe_int(id_text_str, -1)
 
-    item = db_utils.get_item(f'STORY#{story_uuid}')
+    item = story_cache.load(story_uuid)
     if not item:
         return _err(404, 'TEXT_NOT_FOUND',
                     f'No text found with id_text: {id_text} in story: {story_uuid}')
@@ -238,7 +250,7 @@ def get_creator(event, story_uuid, creator_uuid):
     """GET /api/content/{uuidStory}/creators/{uuidCreator}"""
     lang = _get_lang(event)
 
-    item = db_utils.get_item(f'STORY#{story_uuid}')
+    item = story_cache.load(story_uuid)
     if not item:
         return _err(404, 'CREATOR_NOT_FOUND',
                     f'No creator found with UUID: {creator_uuid} in story: {story_uuid}')

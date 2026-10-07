@@ -6,7 +6,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.core.models.match.event_models import EventCheckContext, EventError
+from app.core.models.match.event_models import (EdgeStateOutcome, EventCheckContext,
+                                                EventError)
+from app.core.models.match.time_models import TimeEndOutcome
 from app.core.services.match.event_service import EventService
 
 MATCH_UUID = "match-uuid"
@@ -42,6 +44,16 @@ def _effect(**over):
                 characteristic_to_remove=None, id_weather=None)
     base.update(over)
     return base
+
+
+@pytest.fixture
+def registry_service():
+    """Step 36 — registry writes leave the event store and go through their own service.
+    Step 36.1 — a write hands back the set it just wrote; the mock stands in for that set."""
+    mock = MagicMock()
+    mock.upsert.side_effect = lambda *a: [] if a[3] is None else [a[3]]
+    mock.remove.side_effect = lambda *a: []
+    return mock
 
 
 @pytest.fixture
@@ -88,14 +100,15 @@ def store():
 @pytest.fixture
 def time_service():
     t = MagicMock()
-    t.force_time_end.return_value = 8
+    t.force_time_end.return_value = TimeEndOutcome(8, [], [], EdgeStateOutcome.none())
     return t
 
 
 @pytest.fixture
-def service(store, edge_store, time_service):
+def service(store, edge_store, time_service, registry_service):
     return EventService(store, edge_store=edge_store, content_read_port=None,
-                        time_service=time_service)
+                        time_service=time_service,
+                        registry_service_instance=registry_service)
 
 
 @pytest.fixture
@@ -373,6 +386,28 @@ def test_a_removed_trait_takes_back_exactly_what_it_gave(service, store):
     assert (written["life"], written["energy"], written["dexterity"]) == (30, 20, 10)
 
 
+def test_v0411_trait_rows_on_the_timeline(service, store):
+    """v0.41.1 — each trait moved writes TRAIT_ADD / TRAIT_REMOVE naming its uuid (its id without one)."""
+    writer = MagicMock()
+    service.set_log_writer(writer)
+    store.find_effects_by_event_id.return_value = {
+        1: [_effect(traits_to_add="7,9", traits_to_remove="7")]}
+    run(service)
+    calls = [c.args for c in writer.write.call_args_list]
+    assert calls == [(MATCH_ID, CHAR_ID, 1, 7, "TRAIT_ADD trait-uuid"),
+                     (MATCH_ID, CHAR_ID, 1, 7, "TRAIT_ADD 9"),
+                     (MATCH_ID, CHAR_ID, 1, 7, "TRAIT_REMOVE trait-uuid")]
+
+
+def test_v0411_a_trait_already_held_writes_no_row(service, store):
+    writer = MagicMock()
+    service.set_log_writer(writer)
+    store.add_trait.return_value = False
+    store.find_effects_by_event_id.return_value = {1: [_effect(traits_to_add="7")]}
+    run(service)
+    writer.write.assert_not_called()
+
+
 def test_a_trait_no_story_row_matches_is_authored_noise(service, store):
     store.find_trait_stats_by_id.return_value = {}
     store.find_effects_by_event_id.return_value = {1: [_effect(traits_to_add="7")]}
@@ -395,7 +430,7 @@ def test_traits_and_characteristics(service, store):
     store.set_character_characteristics.assert_called_once_with(MATCH_ID, CHAR_ID, "BRAVE")
 
 
-def test_registry_is_written_once_and_seen_by_the_next_effect(service, store):
+def test_registry_is_written_once_and_seen_by_the_next_effect(service, store, registry_service):
     store.find_effects_by_event_id.return_value = {1: [
         _effect(key_to_add="GATE", key_value_to_add="OPEN", target="ALL"),
         _effect(id=2, key_to_add="GATE", key_value_to_add="SHUT"),
@@ -403,7 +438,7 @@ def test_registry_is_written_once_and_seen_by_the_next_effect(service, store):
 
     r = run(service)
 
-    assert store.upsert_registry.call_count == 2  # once per row, not once per recipient
+    assert registry_service.upsert.call_count == 2  # once per row, not once per recipient
     assert r.registry_changes[1].old_value == "OPEN"
     assert r.registry_changes[1].new_value == "SHUT"
 
@@ -531,7 +566,7 @@ def test_flag_end_time_advances_the_clock_once_after_the_chain(service, store, t
 
     r = run(service)
 
-    time_service.force_time_end.assert_called_once_with(MATCH_UUID)
+    time_service.force_time_end.assert_called_once_with(MATCH_UUID, CHAR_ID)
     assert r.time_ended is True and r.forced_sleep is True
     assert r.current_clock == 8  # the response carries the NEW clock
 

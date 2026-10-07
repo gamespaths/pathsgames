@@ -1,36 +1,36 @@
 import { useTranslation } from '../../i18n/context'
 import Card from '../../components/layout/Card'
-
-const RESUMABLE = new Set(['CREATED', 'RUNNING'])
+import { ACTIVE_MATCH_STATUSES } from '../../utils/matchStatus'
+import MatchStatusBadge from './MatchStatusBadge'
 
 /**
  * MatchCard — small card for a user's match in the profile book.
  *
- * Active match (CREATED/RUNNING): shows (i) + Resume button.
- * Terminal match (PAUSED/ENDED/GAMEOVER): shows (i) + status badge only.
+ * Step 40 — every card wears its status badge. Active match (CREATED/RUNNING): (i) + Resume;
+ * any other (PAUSED/ENDED/GAMEOVER): a small Missions icon + a wide Log button (the history).
  *
- * onPreviewCard(infoObj) — called when (i) is clicked; parent (GuestUserModal)
- * renders the full card on the book's left page.
+ * onPreviewCard(infoObj) — (i), or Missions with `missionsOnly`; onHistory(infoObj) — Log.
  */
-export default function MatchCard({ match, story, onResume, onPreviewCard }) {
+export default function MatchCard({ match, story, onResume, onPreviewCard, onHistory }) {
   const { t } = useTranslation()
 
   const status    = match?.status ?? ''
-  const resumable = RESUMABLE.has(status)
+  const resumable = ACTIVE_MATCH_STATUSES.has(status)
   const card      = story?.card ?? null
   const name      = story?.title ?? t('matches.unknownStory')
 
   const statusLabel = t(`matches.status.${status}`) || status
+  const info = { card, story, statusLabel, match }
 
-  const handlePreview = () => {
-    if (!onPreviewCard) return
-    onPreviewCard({
-      card,
-      story,
-      statusLabel,
-      match,
-    })
-  }
+  const handlePreview = () => onPreviewCard?.(info)
+  const handleHistory = () => onHistory?.(info)
+
+  // A match that cannot be resumed: the Missions icon takes the (i) slot, Log the wide button.
+  const buttons = !resumable
+    ? { onSelect: handleHistory, selectLabel: t('matches.logOpen'), selectIcon: 'fa-history',
+        onPreview: () => onPreviewCard?.({ ...info, missionsOnly: true }),
+        infoIconClassName: 'fas fa-clipboard-list', infoLabel: t('game.missions.openAction') }
+    : { onSelect: onResume, selectLabel: t('matches.resume'), onPreview: handlePreview }
 
   return (
     <div className="match-card-wrap">
@@ -39,20 +39,9 @@ export default function MatchCard({ match, story, onResume, onPreviewCard }) {
         card={card}
         name={name}
         icon="fas fa-book-open"
-        onSelect={resumable ? onResume : undefined}
-        selectLabel={t('matches.resume')}
-        onPreview={handlePreview}
-        locked={!resumable}
-        lockedIcon="fas fa-check-circle"
-        lockInfo={resumable ? undefined : statusLabel}
-      >
-        {/* status badge on non-resumable cards */}
-        {/*!resumable && (
-          <div className="match-status-overlay">
-            <span className="match-status-label">{statusLabel}</span>
-          </div>
-        )*/}
-      </Card>
+        {...buttons}
+        childrenIntoImage={<MatchStatusBadge status={status} />}
+      />
     </div>
   )
 }

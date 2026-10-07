@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { getServerStatus } from '../../api/echoApi'
+import EnvBadge from './EnvBadge'
 
 const MENU = [
   { section: 'Overview' },
@@ -13,6 +14,8 @@ const MENU = [
   { to: '/stories/import', icon: 'fas fa-file-import',  label: 'Import Story' },
   { section: 'Matches' },
   { to: '/matches',      icon: 'fas fa-gamepad',        label: 'Matches'       },
+  { to: '/reports',      icon: 'fas fa-chart-line',     label: 'Reports'       },
+  { to: '/matches/import', icon: 'fas fa-file-import', label: 'Import match' },
   { section: 'System' },
   { to: '/echo',         icon: 'fas fa-heartbeat',      label: 'Server Status' },
 ]
@@ -89,9 +92,11 @@ export default function Navbar() {
       {/* Brand */}
       <a className="pg-navbar-brand" href="/">
         <i className="fas fa-dice-d20 dice-bounce me-2" />
+        {' '}
         Paths Games
         <span style={{ color: 'var(--color-ember)', marginLeft: '0.4rem' }}>ADMIN</span>
       </a>
+      <EnvBadge />
 
       {/* Server selector */}
       <div className="flex items-center gap-2 flex-1 max-w-xs mx-4">
@@ -129,6 +134,7 @@ export default function Navbar() {
         {token && (
           <span style={{ color: 'var(--color-ash)', fontSize: '0.72rem', fontFamily: 'Cinzel, serif' }}>
             <i className="fas fa-key me-1" style={{ color: 'var(--color-gold-dark)' }} />
+            {' '}
             JWT active
           </span>
         )}

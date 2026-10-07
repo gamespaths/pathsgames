@@ -17,19 +17,46 @@ The infrastructure is built entirely on managed AWS services:
 | Resource | Name | Type |
 | :--- | :--- | :--- |
 | DynamoDB Table | `PathsGamesBackend-<env>` | `AWS::DynamoDB::Table` |
-| HTTP API | — | `AWS::Serverless::HttpApi` |
+| HTTP API (public) | `pathsgames-<env>` | `AWS::ApiGatewayV2::Api` — player/public routes |
+| HTTP API (admin) | `pathsgames-<env>-admin` | `AWS::ApiGatewayV2::Api` — `/api/admin/**` only, gated by `AdminIpAuthorizer` |
 | Lambda Echo | `pathsgames-<env>-EchoFunction` | Health check (`GET /api/echo/status`) |
 | Lambda Auth | `pathsgames-<env>-AuthFunction` | Guest + admin authentication (11 routes) |
 | Lambda Story | `pathsgames-<env>-StoryFunction` | Story catalog + admin + content (9 routes); story detail includes resolved `card` objects on difficulties, classes, character templates and traits |
-| Lambda Match | `pathsgames-<env>-MatchFunction` | Match creation and listing (`POST /api/matches`, `GET /api/matches`, `GET /api/match/{uuid}/info`, `GET /api/admin/matches` with pagination & filters) |
+| Lambda Match | `pathsgames-<env>-MatchFunction` | Match creation and listing (`POST /api/matches`, `GET /api/matches`, `GET /api/match/{uuid}/info`, `GET /api/admin/matches` with pagination & filters); v0.41.1 admin snapshot routes (list, check, restore); v0.41.2 `GET /api/admin/reports/kpi` |
+| Lambda Content | `pathsgames-<env>-ContentFunction` | Content detail: cards, texts, creators (3 routes) |
 | Lambda Seed | `pathsgames-<env>-SeedFunction` | Dev-only: inserts test data (stories, cards) |
-| Log Groups ×5 | `/aws/lambda/pathsgames-<env>-*` | Deleted with the stack |
+| Lambda AdminIpAuthorizer | `pathsgames-<env>-AdminIpAuthorizer` | REQUEST authorizer (no caching) gating the admin HTTP API by source IP |
+| Lambda GuestCleanup | `pathsgames-<env>-GuestCleanupFunction` | v0.41.0: daily (00:42 UTC default) deletion of match-less guests idle past `GuestCleanupAgeDays`, on an EventBridge `ScheduleV2` in a tagged `AWS::Scheduler::ScheduleGroup` |
+| Log Groups ×8 | `/aws/lambda/pathsgames-<env>-*` | One per Lambda above, deleted with the stack |
 
 ### Tagging
 
-All resources are tagged with:
-- `project` = `PathsGames`
-- `env` = `dev` | `prod`
+Every taggable resource (table, both HTTP APIs + stages, all 7 Lambdas, all 7 log groups, the
+custom domain, the nested stacks) carries the same seven tags. The `monitoring.yaml` module (public stages only) tags its alarms, SNS topic and budget (`ResourceTags`); the dashboard and the SNS subscription cannot be tagged in CloudFormation:
+- `CostCenter` = `Paths.games`
+- `Environment` = `dev` | `test` | `production` (mapped from the `Environment` parameter — the
+  parameter keeps `prod`, only the tag says `production`)
+- `ManagedBy` = `CloudFormation`
+- `Owner` = `AlNao`
+- `Project` = `Paths.games.aws.<env>.serverless`
+- `version` = the project version (e.g. `0.38.1`), from the template's `Version` parameter;
+  its default, the `samconfig.toml` `version=` tag value, and `VERSION` in the root `.env` are
+  kept in sync by `code/scripts/dev/bump-version.sh`.
+- `Name` = a per-resource identifier: resources with an explicit name reuse it (table
+  `PathsGamesBackend-<env>`, HTTP APIs `pathsgames-<env>` / `pathsgames-<env>-admin`, Lambdas
+  `pathsgames-<env>-<Fn>`, log groups `/aws/lambda/pathsgames-<env>-<Fn>`); resources without
+  one get `pathsgames-<env>-<service>` (e.g. `pathsgames-<env>-ApiStage`,
+  `pathsgames-<env>-EchoModule`).
+
+`Route`/`Integration`/`Authorizer`/`Permission`/`ApiMapping`/`RecordSet` resources do not support
+tags. Stack-level `tags` in `samconfig.toml` (and `--tags` in `aws_backend_deploy.sh`) propagate
+`CostCenter`/`Environment`/`ManagedBy`/`Owner`/`Project`/`version`/`Name` to every resource, nested
+stacks included. That stack-level `Name=pathsgames-<env>` is what tags the root stack itself (a
+CloudFormation stack has no `Tags` property in the template, so this is the only source for it);
+every resource that sets its own `Name` in the template overrides the propagated value, so the
+per-resource `Name`s above still apply everywhere except the root stack. Worth checking once after
+the first deploy of a new environment, e.g. `aws lambda list-tags --resource <arn>` on one function
+should show its own `Name`, not `pathsgames-<env>`.
 
 
 ### Additional commands
@@ -80,11 +107,14 @@ Verification is centralized in `lambda/common/jwt_utils.py` (pure Python stdlib,
 ```text
 code/backend/aws/
 ├── template.yaml         # Unified AWS SAM template
-├── samconfig.toml        # Environment configurations (dev, prod)
+├── template/             # Nested modules (auth, story, match, content, echo, seed, monitoring)
+├── samconfig.toml        # Environment configurations (dev, test, prod)
 ├── lambda/               # Function source code
 │   ├── common/           # Shared code (db_utils, jwt_utils)
 │   ├── auth/             # Guest login, sessions, admin guests (11 routes)
+│   ├── authorizer/       # AdminIpAuthorizer: REQUEST authorizer for the admin HTTP API
 │   ├── story/            # Catalog, categories, groups, enriched detail, import (9 routes)
+│   ├── content/          # Content detail: cards, texts, creators (3 routes)
 │   ├── match/            # Match creation and listing (POST, GET /api/matches, GET /api/admin/matches with pagination & filters)
 │   ├── seed/             # Dev seed: inserts test users and stories
 │   └── echo/             # Health check and diagnostics
@@ -97,20 +127,73 @@ All entities coexist in the same table using a prefix for differentiation:
 
 | Entity | Partition Key (PK) | Sort Key (SK) | GSI1_PK (Example) | GSI2_PK | GSI2_SK |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **User** | `USER#<uuid>` | `METADATA` | `USER_LIST` | — | — |
-| **Story** | `STORY#<uuid>` | `METADATA` | `STORY_LIST` | — | — |
+| **User** | `USER#<uuid>` | `METADATA` | — | — | — |
+| **Guest** | `USER#<uuid>` | `METADATA` | `GUEST_TOKEN#<token>` | `GUEST_LIST` | `USER#<uuid>` |
+| **Story** | `STORY#<uuid>` | `METADATA` | — | `STORY_LIST` | `STORY#<uuid>` |
 | **Card** | `CARD#<id>` | `METADATA` | — | — | — |
-| **Match** | `MATCH#<uuid>` | `METADATA` | `USER#<uuid>` | `MATCH` | `{tsInsert:020d}#{uuid}` |
+| **Match** | `MATCH#<uuid>` | `METADATA` | `USER_MATCHES#<uuid>` | `MATCH` | `{tsInsert:020d}#{uuid}` |
+| **Character** | `MATCH#<uuid>` | `CHARACTER#<uuid>` | — | — | — |
+| **Turn** | `MATCH#<uuid>` | `TURN#<characterUuid>` | — | — | — |
+| **Log entry** | `MATCH#<uuid>` | `LOG#{ts_ms:013d}#{seq:06d}` | — | — | — |
+| **Audit row** | `MATCH#<uuid>` | `AUDIT#{ts_ms:013d}#{seq:06d}` (one per request, entries in `rows`) | — | — | — |
+| **Snapshot** (v0.41.1) | `MATCH#<uuid>` | `SNAPSHOT#{clock:06d}#{ts_ms:013d}` (gzipped payload, `checksum`, `logSk`, `logSeq`) | — | — | — |
+| **KPI day** (v0.41.2) | `KPI#<storyUuid>` | `DAY#YYYY-MM-DD` (flat counters, one `UpdateItem ADD` per request) | — | — | — |
+| **Cache stamp** | `SYSTEM#cache` | `METADATA` | — | — | — |
 
-**GSI2 — "by type" index** (added v0.28.1): enables a single newest-first **Query** on all match items without scanning the full table. `GSI2_PK` is the constant string `"MATCH"`; `GSI2_SK` is a zero-padded epoch timestamp followed by the UUID, ensuring natural descending order. The `sinceDays` filter uses a range condition on `GSI2_SK`; `status`, `userUuid`, `storyUuid` are applied as FilterExpression. Matches created before v0.28.1 lack GSI2 keys and will not appear in the admin list until their items are rewritten. **After deploying the GSI2 template, run the one-time backfill once per environment** to index existing matches:
+### v0.37.5 — cost layout: log rows, gzipped stories, one write per request, INCLUDE indexes
 
-```bash
-# from code/backend/aws/ (needs AWS creds with DynamoDB scan/update on the table)
-python scripts/backfill_gsi2_matches.py --env dev            # or --table PathsGamesBackend-prod
-python scripts/backfill_gsi2_matches.py --env dev --dry-run  # preview only, no writes
-```
+Until v0.37.4 the match METADATA item embedded seven ever-growing log lists and was rewritten
+whole (and replicated by two `ALL` indexes) at every action, while every action re-read the
+~330 KB story item with a consistent read. The layout now is:
 
-The script is idempotent (rows already carrying `GSI2_PK` are skipped) and reuses `db_utils.backfill_gsi2_matches`, which writes the exact `GSI2_SK` format `_create_match` uses, so backfilled and new rows sort together.
+- **Logs are rows.** `match/logbook.py` queues every timeline entry on the match dict
+  (`_pendingLogs`) and `logbook.persist(match)` — the only writer of the match item — turns
+  them into `LOG#` items already in the shape `GET /api/matches/{uuid}/logs` answers. Rows the
+  timeline never shows (edge states, choice history, story progress) are packed in **one**
+  `AUDIT#` item per request (`rows: [...]`, 1 WRU, never read back). `logCount` on METADATA is
+  the `total` of the logs endpoint, `logSeq` keeps sort keys unique inside one millisecond.
+- **One read, one write per row per request** (`match/repo.py`): `lambda_handler` opens a
+  unit of work, the METADATA item / roster / turn queue are read once and every step works on
+  the same dicts, `repo.save` queues a snapshot and `flush()` batch-writes the dirty set at the
+  end. A request that persists twice (an event that ends the time unit) still writes the match
+  item once. Outside a request `repo` is write-through, so helpers stay unit-testable.
+- **Stories travel gzipped** (`db_utils._pack/_unpack`): every list/map of a `STORY#` item
+  except `summary` is one Binary `_gz` attribute (the tutorial story: 334 KB → 75 KB, 11 ms to
+  pack, 3 ms to unpack). A cold read costs ~10 RRU instead of ~41, a write ~76 WRU instead of
+  ~326, and the 400 KB item limit is far away. Transparent to every handler.
+- **Derived state on METADATA** replaces every scan of the old lists: `executedEventIds` (ONCE
+  gating), `eventMarkers` (`{idEvent: {executed, selected}}`, the open-choice cycle),
+  `visitedLocationIds` (fog of war). The location state is **sparse**: only the start location
+  and the ones with a counter get a row at creation, a visit adds one; the API still answers
+  one entry per story location (all-zero when there is no row, uuid = uuid5(match, location)).
+- **Partition reads by prefix**: characters and turn rows are `Query PK + begins_with(SK)`
+  (`db_utils.query_sk_prefix`), never the whole partition. Read-only routes (info, weather,
+  logs, players, registry, missions, clock, admin GETs, admin story entity GETs) use
+  eventually consistent reads: half the RRU.
+- **Story cache** (`common/story_cache.py`): a warm container serves the story from memory for
+  `STORY_CACHE_TTL_SECONDS` (template parameter `StoryCacheTtlSeconds`, default 3600, `0` = off)
+  and re-reads it when `SYSTEM#cache` (one consistent 1-RRU read per invocation) carries a
+  newer stamp for that story. Every admin story write bumps the story's stamp;
+  `POST /api/admin/cache/flush` bumps the global one so every container drops everything.
+- **Two INCLUDE indexes, no `ALL`**: `GSI1` = "by owner" (`USER_MATCHES#<uuid>` for
+  `GET /api/matches`, `GUEST_TOKEN#<token>` for the guest resume), `GSI2` = "by type" (`MATCH`
+  for the admin list, `STORY_LIST`, `GUEST_LIST`). Stories and guests carry ONE `summary` map
+  with everything their list needs (`common/story_index.py`, `auth/handler.py`
+  `GUEST_SUMMARY_FIELDS`) — DynamoDB projects at most 20 non-key attributes per index. No
+  reader scans the table any more: the admin guest list, the purge, the stats and the Robot
+  cleanup are all index Queries. Matches are deleted whole (`delete_all_by_pk`, keys-only
+  query), so no `LOG#`/`CHARACTER#` orphans are left behind.
+- **Infra**: every function runs on `arm64` (pure Python, −20 % on GB-s);
+  `LambdaSystemLogLevel` (default `WARN`) drops the START/END/REPORT lines of every invocation
+  (set `INFO` to read `Max Memory Used` again); `TableBillingMode` lets a dev table run
+  `PROVISIONED` inside the always-free 25 RCU/WCU (`samconfig.toml` dev: 10/10 on the table,
+  5/5 on each GSI; prod stays `PAY_PER_REQUEST`). Switch dev back to on-demand before a k6 run.
+
+Per gameplay action the estimate goes from ~93 RRU + ~70 WRU (v0.37.4) to ~5 RRU + ~14 WRU
+(story cached, match item ~4 KB written once, one small row per log entry, one audit row,
+two INCLUDE replicas of ~1 KB).
+
+**GSI2 — "by type" index** (added v0.28.1): enables a single newest-first **Query** on all match items without scanning the full table. `GSI2_PK` is the constant string `"MATCH"`; `GSI2_SK` is a zero-padded epoch timestamp followed by the UUID, ensuring natural descending order. The `sinceDays` filter uses a range condition on `GSI2_SK`; `status`, `userUuid`, `storyUuid` are applied as FilterExpression.
 
 Cards are stored as standalone items (`PK=CARD#<id>`) and resolved on-the-fly during story detail requests. The `_build_card()` helper in `story/handler.py` fetches the card from DynamoDB and maps its fields (urlImage, alternativeImage, awesomeIcon, styleMain, styleDetail, styleImageLittle, styleImageMedium, styleImageLarge, cardType, localised title/description/copyrightText, linkCopyright). Sub-entities that reference a card (difficulties, characterTemplates, classes, traits) expose both `idCard` (integer) and the fully resolved `card` object in the API response.
 
@@ -121,7 +204,8 @@ The project uses **AWS SAM** to handle packaging and deployment across different
 ### Prerequisites
 - Install [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html).
 - Configure AWS credentials (`aws configure`).
-- Create an S3 bucket for CloudFormation templates (e.g., `pathsgames-dev`).
+- Create the S3 bucket for CloudFormation artifacts: `pathsgames-test-iac` (dev, test — Ohio) /
+  `pathsgames-production-iac` (prod — N. Virginia).
 
 ### Main Commands
 
@@ -130,6 +214,7 @@ The project uses **AWS SAM** to handle packaging and deployment across different
 | **Validate** | `sam validate --lint` |
 | **Build** | `sam build` |
 | **Deploy (Dev)** | `sam deploy --config-env dev` |
+| **Deploy (Test)** | `sam deploy --config-env test` |
 | **Deploy (Prod)** | `sam deploy --config-env prod` |
 | **Real-time Logs** | `sam logs -f --stack-name pathsgames-dev` |
 | **Delete stack** | `sam delete --config-env dev` |
@@ -138,11 +223,21 @@ The project uses **AWS SAM** to handle packaging and deployment across different
 
 ### Environment Configuration (`samconfig.toml`)
 
-| Parameter | Dev | Prod |
-| :--- | :--- | :--- |
-| Stack name | `pathsgames-dev` | `pathsgames-prod` |
-| S3 bucket | `pathsgames-dev` | `pathsgames-prod` |
-| Region | `us-east-2` | — |
+| Parameter | Dev | Test | Prod |
+| :--- | :--- | :--- | :--- |
+| Stack name | `pathsgames-dev` | `pathsgames-test` | `pathsgames-prod` |
+| S3 bucket | `pathsgames-test-iac` | `pathsgames-test-iac` | `pathsgames-production-iac` |
+| Region | `us-east-2` (Ohio) | `us-east-2` (Ohio) | `us-east-1` (N. Virginia) |
+| `TableBillingMode` | `PROVISIONED` (10/10 table, 5/5 per GSI) | `PAY_PER_REQUEST` | `PAY_PER_REQUEST` |
+| `LambdaSystemLogLevel` | `WARN` | `WARN` | `WARN` |
+| `StoryCacheTtlSeconds` | `3600` | `3600` | `3600` |
+
+`sam deploy` does not merge a config-env with `[default]`: each of `dev`/`test`/`prod` is
+self-contained, including its stack-level `tags`. `test` exists because `dev` alone already
+uses 20 of the region's always-free 25 RCU/WCU, so a second `PROVISIONED` table in the same
+region would not fit; `test` runs `PAY_PER_REQUEST` instead. `code/scripts/test/aws/aws_backend_deploy.sh`
+and `aws_backend_remove.sh` take a `[dev|test]` CLI argument that also selects the matching
+stack (`pathsgames-<env>`); production is only ever deployed via `sam deploy --config-env prod`.
 
 The `deploy` command output will provide the **API Endpoint URL** to be configured in the frontend.
 
@@ -168,6 +263,183 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 ## 📝 Changelog
 
+### v0.42.0 — Alpha launch: monitoring module
+
+- **`template/monitoring.yaml`** (`MonitoringModule` in `template.yaml`, `Condition: IsPublicStage`, so never on `dev`/`test`): CloudWatch dashboard `pathsgames-<env>`, SNS topic + email subscription, 5 alarms, monthly budget. Inner conditions `HasAlarms` (email set), `HasBudget` (`CreateBudget=true`), `HasBudgetEmail`; the root `DashboardUrl` output reads the module. Moved out of the root template.
+- Env keys read by the deploy scripts are named `AWS_<ENV>_<SERVICE>_<DESC>` (see `.env.example`); alpha runbooks and scripts: [code/scripts/alpha/README.md](../../scripts/alpha/README.md).
+- Tests: `tests/test_step42_template_hardening.py` (45).
+
+### v0.41.6 — Match owner move after import
+
+- **Admin routes** (behind the allow-list, `template/match.yaml` and `auth.yaml`): `GET`/`PUT /api/admin/matches/{uuid}/owner`
+  moves the creator and the characters to another user; `GET /api/admin/users/{identifier}` is the preview. Users are
+  found by uuid, e-mail or username (`common/user_lookup.py`, `db_utils`). Terminal, multi-character, not-eligible and
+  duplicate-active targets answer 409; the match log gets `OWNER_CHANGED`. Snapshots check, restore and export use the
+  current owners (`snapshots.with_current_owner`).
+
+### v0.41.5 — Story uuid validation
+
+- `story_validator.validate_story_uuid` / `normalize_story_uuid` (lowercase canonical shape, else 400 `INVALID_STORY`,
+  rule `R0_STORY_UUID`) run in `story/handler.py` on import and in `match/match_export.py` for the bundled story.
+
+### v0.41.4 — Match export and import between servers
+
+- **Admin routes** (behind the allow-list): match export from the latest time-end snapshot and
+  `POST /api/admin/matches/import` (dry-run + import), neutral "match export v1" file shared with
+  Java and Python; `story/importer.py` is the story facade. Limit `MATCH_EXPORT_MAX_BYTES`
+  (default 5000000, 413 above) and `APP_VERSION` are set in `template/match.yaml`.
+- **Users**: `EXISTING` (uuid), `MAPPED_BY_EMAIL` or `NEW` (never renamed); `USER#` items now carry
+  `email`, found by the new `db_utils.find_user_by_email` (Scan). `storyMode=REPLACE` keeps the
+  story's matches. No GSI or attribute-definition change.
+
+### v0.41.2 — Alpha preparation patch 3: KPI report, production CSP
+
+- **KPI counters**: `common/kpi.py` accumulates deltas per request and flushes them with one
+  `UpdateItem ADD` on a `KPI#<storyUuid>`/`DAY#YYYY-MM-DD` item (best effort, a failure is
+  logged and never fails the action); hooked into `_start_match`, `_end_match`, the coma
+  `EDGE_STATE`, `_resolve_choice`, the `flag_visited` 0→1 transition (never the start location)
+  and `missions.py` transitions (`AVAILABLE` not counted; a mission without steps goes straight
+  to `MISSION_COMPLETED`). Counters are not rolled back by a snapshot restore: a restored match
+  that ends again counts again, an admin stop never counts.
+- **Report route**: `GET /api/admin/reports/kpi?storyUuid&from&to&groupBy` (`day` default /
+  `month` / `total`, UTC dates, default last 30 days, max 366) in `match/handler.py` — one Query
+  on `KPI#<story>` between two `DAY#` keys, or one Query per `STORY_LIST` entry when no
+  `storyUuid` is given (so a deleted story's counters drop out of the "all stories" total, unlike
+  Java/Python which keep summing them). Half-up rounding (completion rate 4 decimals, averages
+  2 decimals).
+- **New column**: `gaming_match.timestamp_start` (`timestampStartMs` on AWS) stamped when a
+  match starts, used for `avgDurationMinutes`/`avgDurationClocks`; older matches fall back to
+  their creation timestamp.
+- **Production CSP**: `code/website/terraform-aws/environments/production.tfvars` switched to
+  `csp_mode = "restricted"`, adding `connect = ["cdn.jsdelivr.net"]` and
+  `img = ["unsplash.com"]` to its `csp_extra_domains` — checked by the owner in the browser
+  after `terraform apply`.
+- No DynamoDB GSI or attribute-definition change. Unit tests: 1249 pass
+  (`tests/test_step41_kpi.py` new).
+
+### v0.41.1 — Alpha preparation patch 2: logging gaps, match snapshots
+
+- **Logging gaps**: `_pass_turn` writes `PASS`; edge states get an `EDGE_STATE` `LOG#` row
+  beside the existing audit entry; RECOVERY rows now also written at time-start (parity with
+  Java/Python); trait grant/remove writes `TRAIT_CHANGE`; `MATCH_LIFECYCLE`
+  `CREATED`/`STARTED`/`ENDED` in `_create_match`/`_start_match`/`_end_match`; `ADMIN_ACTION` in
+  every admin route (an admin stop logs `STOP`, not `ENDED`). Admin match info exposes
+  `logCount` (the timeline total, since `AUDIT#` items are not individually addressable — Java
+  and Python count every `log_*` row instead, so the same match reads higher there). A WARN
+  JSON line fires when `logCount` crosses `LOG_WARN_ROWS` or the METADATA item passes
+  `LOG_WARN_METADATA_KB` — check only, no cap. Bug fix: `traitsToAdd` of a chained/automatic/
+  choice-linked event is now applied (it used to be silently dropped).
+- **Match snapshots**: `lambda/match/snapshots.py` builds a gzipped `SNAPSHOT#` item at the
+  start of `_advance_time`, before the clock moves (sleep path and `_force_time_end_news`; the
+  choice markers were already set before this point), saved through `repo.save` in the same
+  flush, pruned beyond `SNAPSHOT_KEEP_PER_MATCH` (default 10, 0 = off). Three new admin routes
+  in `template/match.yaml`: list, check (`SnapshotCheck`), restore. Restore checks the payload,
+  overwrites METADATA/`CHARACTER#`/`TURN#` rows, deletes `LOG#`/`AUDIT#` rows **above the
+  stored `logSeq`** (not the composite `logSk`, which can tie under clock skew — a later
+  request can get an earlier timestamp than one already written), deletes snapshots newer than
+  the restored one, writes `ADMIN_ACTION SNAPSHOT_RESTORED`, re-runs the time-start at once
+  (new clock, no new snapshot), and leaves the match `PAUSED`. A single request can now write
+  two `AUDIT#` rows (an `EDGE_STATE` entry plus the existing time-end entry) when a character
+  falls into coma exactly at time-end. A failed snapshot write is logged as a WARN only, never
+  fails the request.
+- No DynamoDB GSI or attribute-definition change. New env keys `LOG_WARN_ROWS` (default 5000),
+  `LOG_WARN_METADATA_KB` (default 300), `SNAPSHOT_KEEP_PER_MATCH` (default 10). Unit tests:
+  1232 pass (`test_step41_alpha_prep.py` extended for snapshots and the new log types).
+
+### v0.41.0 — Alpha preparation patch 1: security, admin allow-list, guest cleanup
+
+- **Secrets/env rule**: `test_data_ttl.TEST_ENVS` gained `development`; the Turnstile bypass and
+  the dev-only `X-Test-Guest-Age-Days` header are honoured only when `ENV` is in that set;
+  `jwt_utils.misconfigured()` answers 500 `MISCONFIGURED` outside dev/test when the JWT secret
+  is still the committed default; `AllowMockAccess` default flipped to `"false"` (the test
+  deploy script passes `"true"`). New `JwtSecret` wiring to `StoryModule` and `SeedModule` (they
+  verify/sign tokens too, previously missed by the JWT rotation).
+- **Security headers**: `common/response.py` `HEADERS` + `finalize(resp, path)` add
+  `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Content-Security-Policy`,
+  `Strict-Transport-Security` to every response, and `Cache-Control: no-store` on
+  `/api/auth/**`/`/api/admin/**`; `Retry-After` stays exposed by CORS.
+- **Admin allow-list**: new parameter `AdminIpEmptyMeans` (`nobody` default, `everybody`),
+  read by the authorizer and every Lambda with admin routes through one shared
+  `common/http_utils.admin_ip_allowed`/`check_admin_ip` — the three private per-handler copies
+  are gone.
+- **Guest cleanup**: `cleanup_expired` (`DELETE /api/admin/guests/expired`) now skips guests
+  owning a match (one GSI1 `USER_MATCHES#` query, `Limit 1`) instead of orphaning it — bug fix.
+  New `GuestCleanupFunction` (`template/auth.yaml`), an EventBridge `ScheduleV2` inside a tagged
+  `AWS::Scheduler::ScheduleGroup` (a plain `Schedule` event cannot carry tags), running the same
+  code as `DELETE /api/admin/guests/stale?withoutMatches=true`; new parameters
+  `GuestCleanupEnabled`/`GuestCleanupAgeDays`(60)/`GuestCleanupMaxPerRun`(500)/
+  `GuestCleanupSchedule` (default `cron(42 0 * * ? *)`).
+- **Rate limits**: code defaults raised to `RateLimitGuestPerIp`/`RateLimitMatchPerIp` `"20"`
+  (was `"0"`); new per-guest bucket `RateLimitMatchPerGuest` (`"10"`, window
+  `RateLimitMatchPerGuestWindowSeconds` `"86400"`), checked in `_create_match`
+  (`security_utils.match_per_guest()`); the window is now stored per counter.
+- **Dev-only header**: `X-Test-Guest-Age-Days: N` (1–3650) on `POST /api/auth/guest`, honoured
+  only alongside a valid `X-Test-Marker` and only when `ENV` is in `TEST_ENVS` — ages a fresh
+  guest for the Robot cleanup suite.
+- No DynamoDB item-shape or GSI change. Unit tests: 1202 pass (`tests/test_step41_alpha_prep.py`
+  new; `test_authorizer_handler.py`/`test_auth_handler_admin.py` extended for the allow-list
+  default).
+
+### v0.39.1 — Robot test-data bugfix + DynamoDB TTL
+
+- **Bugfix**: `_test_marker()` in `lambda/auth/handler.py` honoured the `X-Test-Marker` header
+  (tags a guest `robottest_…` for cleanup) only on `ENV=dev`; the Robot suites run against the
+  `test` stack, so ~416 tagged guests per run were created as untracked `guest_…` rows instead
+  (the `test` table reached 29,237 items / 18.9 MB, ~28k of them guests). Now accepts `ENV` in
+  `dev`/`test` (prod unchanged).
+- **New DynamoDB TTL**: `lambda/common/test_data_ttl.py` (env `ROBOT_TEST_DATA_TTL_HOURS`,
+  dev/test only, 0/unset = disabled) sets a `ttl` attribute on robot-tagged guests
+  (`auth/handler.py create_guest`) and on `robottest…`-named matches (`match/handler.py
+  _create_match`); `match/repo.py` (`_inherit_ttl`) copies it to the match's
+  `CHARACTER#`/`TURN#`/`LOG#`/`AUDIT#` rows. DynamoDB deletes expired rows for free, "within a
+  few days". `seed/handler.py _handle_cleanup()` now skips rows that already carry a `ttl` (one
+  extra eventually-consistent `get_item`) instead of deleting them; `purge_robot_test_data.py`
+  is unchanged, so running it (e.g. weekly) still deletes robottest rows immediately — the TTL
+  only saves cost the rest of the time.
+- New template parameter `RobotTestDataTtlHours` (default `"0"`, i.e. disabled unless overridden)
+  passed to `AuthModule`/`MatchModule` as `ROBOT_TEST_DATA_TTL_HOURS`.
+  `code/scripts/test/aws/aws_backend_deploy.sh` passes `AWS_TEST_DYNAMODB_ROBOT_TEST_DATA_TTL_HOURS`
+  (default `1`); `samconfig.toml`'s `dev`/`test`/`prod` config-envs don't override it, so a plain
+  `sam deploy --config-env ...` leaves it disabled.
+
+### v0.38.1 — Per-target `Project` tag
+
+- `Project` tag now `Paths.games.aws.<env>.serverless` in `template.yaml`, the 6 nested `template/*.yaml` modules, `samconfig.toml` (all config-envs) and `aws_backend_deploy.sh`.
+
+### v0.38.0 — Resource tagging & `test` deploy environment
+
+- **`template.yaml`** + the 6 nested `template/*.yaml` modules: old `project`/`env` tags
+  replaced everywhere (table, both HTTP APIs + stages, all 7 Lambdas, all 7 log groups, the
+  custom domain, all 6 nested stacks) with `CostCenter=Paths.games`,
+  `Environment=dev|test|production`, `ManagedBy=CloudFormation`, `Owner=AlNao`,
+  `Project=Paths.games`. New `Mappings.EnvironmentTags` maps the `Environment` parameter
+  (`dev`/`test`/`prod`) to its tag value (`prod` → `production`); nested stacks receive a new
+  `EnvironmentTag` parameter.
+- **`samconfig.toml`** rewritten: three config-envs (`dev`, `test`, `prod`) plus `default`=dev,
+  each with stack-level `tags` (CloudFormation propagates them to every resource, nested stacks
+  included). New `test` config-env (`pathsgames-test`, `us-east-2`, `PAY_PER_REQUEST` — `dev`
+  already uses 20 of the region's always-free 25 RCU/WCU). `prod` gains its own bucket/region
+  for the first time (`us-east-1`, `s3://pathsgames-production-iac/production/backend/`).
+- **`code/scripts/test/aws/aws_backend_deploy.sh`** / **`aws_backend_remove.sh`**: accept a
+  `[dev|test]` CLI argument that also selects the matching stack (`pathsgames-<env>`), guarded
+  so a stack name not ending in `-<env>` is refused (a mismatch would rename the DynamoDB
+  table); the deploy script passes `--tags` with the five tags.
+- **`version` tag**: new root parameter `Version` (default kept in sync with `VERSION` in the
+  root `.env` by `bump-version.sh` steps `[10/6]`/`[11/6]`), tagged on every resource and passed
+  to every nested stack; `samconfig.toml` stack-level `tags` gained `version=<VERSION>` in all
+  three config-envs; `aws_backend_deploy.sh` reads `VERSION` from `.env` (falls back to the
+  `pom.xml` version with a WARNING, errors if neither exists) and passes it as both
+  `--tags ... version=$VERSION` and `--parameter-overrides Version=$VERSION`.
+- **`Name` tag**: every taggable resource also gets a per-resource `Name` (explicit-name
+  resources reuse their name; the rest get `pathsgames-<env>-<service>`, e.g. API stages and
+  nested stacks) — template-only, not part of the `samconfig.toml` stack-level tags.
+- **Root-stack `Name` tag** (follow-up): the root stack has no `Tags` property in the template,
+  so it had no `Name` tag until now; `samconfig.toml` stack-level `tags` gain a leading
+  `Name=pathsgames-<env>` in every config-env, and `aws_backend_deploy.sh`'s `--tags` gain
+  `Name=$AWS_TEST_SAM_STACK_NAME`. Resource-level `Name` in the template still overrides it for
+  every other resource.
+- No API contract or DynamoDB item-shape change.
+
 ### v0.29.3 — Forced movement via event effects
 
 - **`lambda/match/events.py`**: new `apply_location(...)` helper. An executed
@@ -188,8 +460,8 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
   (`idLocation: 3`, `target: ONLY_ONE`). The cost is 2 on purpose — the Robot lookup
   "Event Uuid By Cost 1" must keep meaning the plain (non-teleport) event.
 - No DynamoDB item shape change beyond the new `movementLog`/response fields already
-  supported by the existing schema. See `documentation_v0/Step29_NormalEvents.md` —
-  "Forced movement (v0.29.3)" and `documentation_v0/Step28_MovementSystem.md` —
+  supported by the existing schema. See `wiki/documentation_v0/Step29_NormalEvents.md` —
+  "Forced movement (v0.29.3)" and `wiki/documentation_v0/Step28_MovementSystem.md` —
   "Step 0.29.3 (cross-reference)".
 
 ### v0.29.1 — Movement availability verdict on `/info`
@@ -205,7 +477,7 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 - The check context (character state, weather, per-location character counts, registry) is
   loaded once per request; no per-neighbor query.
 - No DynamoDB item shape change. OpenAPI `v0.19.0-match-creation-api.yaml` `LocationNeighborInfo`
-  schema updated. See `documentation_v0/Step28_MovementSystem.md` — "Step 0.29.0 (addendum):
+  schema updated. See `wiki/documentation_v0/Step28_MovementSystem.md` — "Step 0.29.0 (addendum):
   Movement Availability Verdict on /info".
 
 ### v0.28.6 — Bugfix: fog-of-war leak on neighbor location cards
@@ -229,7 +501,7 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
   resolves via `/content`) after moving into that location; `GET /info` never leaks the
   location card ahead of the visit; the admin locations view applies the same gating.
 - No API contract change — nullability only. See
-  `documentation_v0/Step28_MovementSystem.md` §14.
+  `wiki/documentation_v0/Step28_MovementSystem.md` §14.
 
 ### v0.28.5 — Location cards on `GET /locations`
 
@@ -247,7 +519,7 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 - **Frontend**: this enrichment feeds the new interactive world map in react-game
   (`Map.jsx`/`mapGraph.js`/`MapCard.jsx`), which renders a photo for every visited
   location without a second round-trip per node. See
-  `documentation_v0/Step28_MovementSystem.md` §12–13.
+  `wiki/documentation_v0/Step28_MovementSystem.md` §12–13.
 
 ### v0.28.2 — AWS bugfix: neighbor `cardBack` desync
 
@@ -269,7 +541,7 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
   (backend-agnostic): admin sets `idCard`+`idCardBack` on a neighbor touching the start
   location; player reads `GET /api/match/{uuid}/info?lang=en`; asserts distinct
   `card`/`cardBack` UUIDs, both resolving as real catalog cards; teardown restores
-  originals. See `documentation_v0/Step29_NeighborCardBack.md` for full details.
+  originals. See `wiki/documentation_v0/Step29_NeighborCardBack.md` for full details.
 - **Note**: `api-test.paths.games` requires a Lambda redeployment (`sam deploy
   --config-env dev`) to apply this fix.
 
@@ -341,28 +613,27 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 - Story admin CRUD (create, update, delete) via `StoryFunction`.
 - Robot Framework suites `14_admin`, `15_story_content`, `16_content_detail`, `17_admin_crud` verified against AWS endpoint.
 
-
-
-
-
-# < Paths Games />
-
-All source code and information in this repository are the result of careful and patient development work by the developer team, who have made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
+# &lt; Paths Games /&gt;
+All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
 
 Some content and portions of code in this repository were also produced with the support of artificial intelligence tools, whose contribution helped enrich and accelerate the creation of the material. Every piece of information and code fragment has nevertheless been carefully checked and validated with the goal of ensuring the highest quality and reliability of the provided content.
 
-For all details, in-depth information, or requests for clarification, please visit the [Paths.Games](https://paths.games/) website.
+For all details, in-depth information, or requests for clarification, please visit [Paths.Games](https://paths.games/) website
+
+
 
 ## License
-
-Made with ❤️ by the <a href="https://github.com/gamespaths/pathsgames">paths.games dev team</a>
-
-Public projects:
-<a href="https://www.gnu.org/licenses/gpl-3.0" valign="middle"> <img src="https://img.shields.io/badge/License-GPL%20v3-blue?style=plastic" alt="GPL v3" valign="middle" /></a>
+Made with ❤️ by <a href="https://github.com/gamespaths/pathsgames">paths.games dev team</a>
+&bull; 
+Public projects 
+<a href="https://www.gnu.org/licenses/gpl-3.0"  valign="middle"> <img src="https://img.shields.io/badge/License-GPL%20v3-blue?style=plastic" alt="GPL v3" valign="middle" /></a>
 *Free Software!*
+
 
 The software is distributed under the terms of the GNU General Public License v3.0. Use, modification, and redistribution are permitted, provided that any copy or derivative work is released under the same license. The content is provided "as is", without any warranty, express or implied.
 
-Narrative Content & Assets: The story, dialogues, characters, sounds, music, art, and world-building (located in the `/data` folder) are NOT open source. They are licensed under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 (CC BY-NC-ND 4.0).
+
+Narrative Content & Assets: The story, dialogues, characters, sounds, musics, paint, all artist contents and world-building (located on /data folder) are NOT open source. They are licensed under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 (CC BY-NC-ND 4.0).
+
 
 (ITA) Il software è distribuito secondo i termini della GNU General Public License v3.0. L'uso, la modifica e la ridistribuzione sono consentiti, a condizione che ogni copia o lavoro derivato sia rilasciato con la stessa licenza. Il contenuto è fornito "così com'è", senza alcuna garanzia, esplicita o implicita.

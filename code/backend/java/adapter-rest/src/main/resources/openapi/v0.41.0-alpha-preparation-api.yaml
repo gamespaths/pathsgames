@@ -1,0 +1,1087 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Step 41 alpha preparation (patches 0.41.0, 0.41.1, 0.41.2, 0.41.4, 0.41.6)
+  description: |
+    v0.41.0 — security, admin allow-list and guests. 0.41.1 (logging, snapshots) and
+    0.41.2 (KPI report) extend this file.
+
+    **Logging (0.41.1).** The match timeline (`GET /api/matches/{uuid}/logs` and the admin
+    twin) gains five entry types, the detail in `message` (no new field): `PASS` (character,
+    clock, no message); `EDGE_STATE` (character, clock, `idEvent`, message `COMA`,
+    `SADNESS_OVERFLOW`, `COMA_RECOVERED` or `ALL_PLAYER_COMA` — the kind only);
+    `TRAIT_CHANGE` (character, `idEvent`, `ADD <traitUuid>` / `REMOVE <traitUuid>`);
+    `MATCH_LIFECYCLE` (`CREATED` / `STARTED` / `ENDED`; the admin stop is an `ADMIN_ACTION`);
+    `ADMIN_ACTION` (`PAUSE`, `RESUME`, `STOP`, `STATUS <status>`, `STATS <field>=<value> ...`,
+    and `SNAPSHOT_RESTORED clock=<n>` from the snapshot restore). react-game hides
+    `MATCH_LIFECYCLE` and `ADMIN_ACTION`; the API answers them to both. AWS now also writes
+    the time-start `RECOVERY` rows. `GET /api/admin/matches/{uuid}/info` answers `logCount`;
+    a WARN log line (never a cap) marks a match crossing `LOG_WARN_ROWS` (5000) and, on AWS,
+    a METADATA item past `LOG_WARN_METADATA_KB` (300).
+
+    **Snapshots (0.41.1).** At every time-end, before the clock moves, each backend writes one
+    LIGHT snapshot of the clock that ends (the last sleep and a `flag_end_time` event alike; the
+    choice markers of a time-ending option are written first, so they are inside it) and keeps the
+    newest `SNAPSHOT_KEEP_PER_MATCH` (10; 0 = off) per match. The payload is canonical JSON
+    (`v: 1`, keys sorted) with its SHA-256 `checksum`: every match-state row (Java/Python:
+    `gaming_match`, characters, backpack, inventory, traits, registry, location states, turn queue,
+    active choices, story progress, plus `logMarks` = the highest id per `log_*` table; AWS: METADATA
+    without keys/indexes, the `CHARACTER#` and `TURN#` rows, `logSeq`/`logCount`, stored as a
+    `SNAPSHOT#{clock:06d}#{tsMs:013d}` row with the gzipped payload). A restore checks the
+    snapshot, puts the rows back (match and characters updated in place), deletes the log rows
+    written after it (Java/Python: ids above `logMarks`; AWS: `LOG#`/`AUDIT#` rows whose `#seq`
+    suffix is above `logSeq`, `logCount` back to the snapshot value, `logSeq` never lowered) and
+    the newer snapshots, writes `ADMIN_ACTION SNAPSHOT_RESTORED clock=<n>`, runs the time-start at
+    once (clock n+1, weather and random event rolled again, no new snapshot) and leaves the match
+    `PAUSED` — ENDED and GAMEOVER matches too. `POST /api/admin/matches/{uuid}/resume` puts it
+    back to RUNNING. KPI counters are not rolled back.
+
+    **Security headers.** Every API response of every backend (both ports / both HTTP APIs)
+    carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+    `Referrer-Policy: no-referrer`,
+    `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'` and
+    `Strict-Transport-Security: max-age=31536000`. Answers under `/api/auth/**` and
+    `/api/admin/**` also carry `Cache-Control: no-store`; public story reads stay cacheable.
+    CORS exposes `Retry-After` on all three backends. The Python `/docs`, `/redoc` and
+    `/openapi.json` exist only on dev/test and are served without these headers.
+
+    **Environments.** Only `dev`, `development` and `test` count as dev/test; anything else
+    (prod, production, alpha, beta, unknown) is production. Java reads `game.server.env`
+    (set by the Spring profile), Python `ENV`, AWS `ENV` (the SAM `Environment`).
+    Outside dev/test the committed JWT secret is refused: Java and Python do not start,
+    AWS Lambdas answer 500 `MISCONFIGURED`. The Turnstile bypass token and the dev/test
+    headers below are honoured on dev/test only.
+
+    **Admin allow-list (AWS).** An empty `AdminIpWhitelist` means what `AdminIpEmptyMeans`
+    says: `nobody` (default, admin API closed to everybody) or `everybody`. The authorizer
+    and every admin handler apply the same rule; a refused caller gets 403 `FORBIDDEN`.
+
+    **Limits.** Code defaults: 20 guest and 20 match creations per source IP per hour, and
+    10 match creations per guest (user uuid) per day — `RATE_LIMIT_GUEST_PER_IP`,
+    `RATE_LIMIT_MATCH_PER_IP`, `RATE_LIMIT_WINDOW_SECONDS` (3600),
+    `RATE_LIMIT_MATCH_PER_GUEST` (10), `RATE_LIMIT_MATCH_PER_GUEST_WINDOW_SECONDS` (86400);
+    0 disables a bucket (Robot and stress runs). Each counter keeps its own window.
+
+    **Guests.** `DELETE /api/admin/guests/expired` no longer deletes a guest that a match,
+    a character, a session or a chat message still references (AWS: that created a match).
+    A daily job (00:42 UTC, `GUEST_CLEANUP_ENABLED` / `GUEST_CLEANUP_AGE_DAYS` 60 /
+    `GUEST_CLEANUP_MAX_PER_RUN` 500) deletes the guests idle for N days that nothing
+    references — the same call as `DELETE /api/admin/guests/stale?withoutMatches=true`.
+
+    **KPI (0.41.2).** Daily UTC counters per story, written when the event happens, keyed by
+    uuids with no foreign key, best effort (a failed counter is logged and never fails the
+    action): `MATCH_STARTED` (`POST /api/matches/{uuid}/start`), `MATCH_COMPLETED` with the
+    duration in ms (from the start stamp, else the creation) and in clocks (story end reached,
+    once per match status: the admin stop is an `ADMIN_ACTION STOP`, not a completion), `COMA`
+    (each character falling into coma), `CHOICE` (per choice uuid), `LOCATION_VISIT` (first
+    visit of a location in a match, per location uuid; the start location is never counted) and
+    `MISSION_ACTIVE` / `MISSION_COMPLETED` / `MISSION_FAILED` (every status change into it, per
+    mission uuid). Java/Python: table `system_kpi_daily` (`INSERT … ON CONFLICT … DO UPDATE SET
+    value = value + delta`); AWS: item `KPI#<storyUuid>` / `DAY#YYYY-MM-DD` with flat counters,
+    one `UpdateItem ADD` per request. A snapshot restore does not roll counters back: a restored
+    match that ends again counts again.
+
+    **Match export and import (0.41.4).** `POST /api/admin/matches/{uuid}/export` answers the
+    neutral "match export v1" file (`match-export-v1.schema.json`, next to this file): the latest
+    time-end snapshot of the match in a backend-neutral form (story bundled, users, logs up to the
+    snapshot, engine markers), canonical JSON with a SHA-256 checksum. A RUNNING match is paused,
+    restored to that snapshot (the actions since are lost, decision 45) and resumed; a PAUSED one
+    stays paused; ENDED/GAMEOVER are not touched. `POST /api/admin/matches/import` checks
+    (`dryRun=true`) or imports the file on any backend (Java, Python, AWS): story ABSENT/SAME/
+    DIFFERENT with `storyMode` AUTO|KEEP|REPLACE, users copied as PLAYER without password, token or
+    Google id, `replace=true` for an existing match uuid, an `IMPORTED <server> clock=N` timeline
+    row, an "Imported at clock N" LIGHT snapshot, the time-start (clock N + 1) and RUNNING (or
+    PAUSED with `startPaused`). The importing user's other CREATED/RUNNING matches on that story
+    are set to PAUSED (decision 60). Size cap `MATCH_EXPORT_MAX_BYTES` (5000000). Admin port only;
+    no export in react-game nor on the public API (decision 62).
+
+    **Match owner move (0.41.6).** The react-admin User tab reads the owner with
+    `GET /api/admin/matches/{uuid}/owner`, previews a user with `GET /api/admin/users/{identifier}`
+    (uuid, then email, then username) and moves the match with `PUT /api/admin/matches/{uuid}/owner`:
+    the creator and the character change owner, a new `ADMIN_ACTION` row
+    `OWNER_CHANGED from=<username>/<uuid> to=<username>/<uuid>` is written. Snapshots are not
+    rewritten: check, restore and export always apply the current owner. Admin port only.
+  version: 0.41.6
+servers:
+  - url: /
+paths:
+  /api/echo/status:
+    get:
+      tags: [echo]
+      summary: Health check (public port and admin port) — now with the security headers
+      operationId: echoStatusV0410
+      responses:
+        '200':
+          description: Server up; the security headers are on this and every other answer.
+          headers:
+            X-Content-Type-Options:
+              $ref: '#/components/headers/XContentTypeOptions'
+            X-Frame-Options:
+              $ref: '#/components/headers/XFrameOptions'
+            Referrer-Policy:
+              $ref: '#/components/headers/ReferrerPolicy'
+            Content-Security-Policy:
+              $ref: '#/components/headers/ContentSecurityPolicy'
+            Strict-Transport-Security:
+              $ref: '#/components/headers/StrictTransportSecurity'
+  /api/auth/guest:
+    post:
+      tags: [auth]
+      summary: Create a guest session (dev/test can backdate it)
+      operationId: createGuestSessionV0410
+      parameters:
+        - in: header
+          name: X-Test-Marker
+          required: false
+          schema:
+            type: string
+          description: Dev/test only — tags the guest as test data (username prefix).
+        - in: header
+          name: X-Test-Guest-Age-Days
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 3650
+          description: |
+            Dev/test only, honoured only together with a valid `X-Test-Marker` and only where
+            the marker is honoured (Java/Python `test-endpoints-enabled`, AWS `ENV` dev/test).
+            The guest is registered and last seen N days ago and expires 180 days after that.
+            Out of range, not a number or elsewhere: ignored, never an error.
+      responses:
+        '201':
+          description: Session created (unchanged body, see v0.37.7-security-api.yaml).
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /api/matches:
+    post:
+      tags: [matches]
+      summary: Create a match — second, per-guest rate limit
+      operationId: createMatchV0410
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Match created (unchanged, see v0.19.0-match-creation-api.yaml).
+        '429':
+          description: |
+            Per source IP (`Too many matches created from this address…`, checked first) or
+            per guest (`Too many matches created by this player…`, bucket `match-guest`
+            keyed by the user uuid, daily window). Same body and `Retry-After` header.
+          headers:
+            Retry-After:
+              description: Seconds until the window of the bucket that refused reopens.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitedResponse'
+  /api/admin/guests/stale:
+    get:
+      tags: [admin-guests]
+      summary: Dry run of the stale purge
+      operationId: previewStaleGuestsV0410
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OlderThanDays'
+        - $ref: '#/components/parameters/WithoutMatches'
+      responses:
+        '200':
+          description: How many guests (and, without the flag, how many of their matches) the purge would take.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaleGuestsSummary'
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      tags: [admin-guests]
+      summary: Purge guests not seen for N days
+      operationId: deleteStaleGuestsV0410
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OlderThanDays'
+        - $ref: '#/components/parameters/WithoutMatches'
+      responses:
+        '200':
+          description: What was deleted; `matches` is always 0 with `withoutMatches=true`.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StaleGuestsSummary'
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        enum: [CLEANUP_COMPLETE]
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/admin/guests/expired:
+    delete:
+      tags: [admin-guests]
+      summary: Delete expired guests — referenced guests are now kept
+      operationId: deleteExpiredGuestsV0410
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: |
+            Expired guests (`guestExpiresAt` in the past) that nothing references, tokens
+            first. A guest still referenced by a match, character, session or chat row
+            (AWS: that created a match) is kept, so the call never fails on a foreign key.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [CLEANUP_COMPLETE]
+                  deletedCount:
+                    type: integer
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/matches/{uuidMatch}/logs:
+    get:
+      tags: [matches]
+      summary: Match timeline — v0.41.1 adds five entry types
+      operationId: getMatchLogsV0411
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: Same envelope as v0.28.7 (`logs`, `nextCursor`, `limit`, `total`, `order`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Step41LogEntry'
+  /api/admin/matches/{uuidMatch}/logs:
+    get:
+      tags: [admin-matches]
+      summary: Admin match timeline — same five new entry types
+      operationId: getAdminMatchLogsV0411
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: Same answer as the player endpoint, without the ownership check.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Step41LogEntry'
+  /api/admin/matches/{uuidMatch}/info:
+    get:
+      tags: [admin-matches]
+      summary: Admin match detail — v0.41.1 adds logCount
+      operationId: getAdminMatchInfoV0411
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: The v0.21 detail plus `logCount`.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logCount:
+                    type: integer
+                    format: int64
+                    description: |
+                      Rows of the match log: every `log_*` row on Java/Python, the `LOG#`
+                      rows (METADATA `logCount`) on AWS. A check only, never a cap.
+        '404':
+          description: MATCH_NOT_FOUND.
+  /api/admin/matches/{uuidMatch}/pause:
+    post:
+      tags: [admin-matches]
+      summary: Pause — same answer, now writes ADMIN_ACTION `PAUSE`
+      operationId: pauseMatchV0411
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: '`{status: UPDATED, uuid}`; `RESUME` and `STOP` rows likewise for /resume and /stop.'
+  /api/admin/matches/{uuidMatch}/player/{uuidPlayer}/changeStatistics:
+    post:
+      tags: [admin-matches]
+      summary: Change statistics — same answer, now writes ADMIN_ACTION `STATS ...`
+      operationId: changeStatisticsV0411
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - in: path
+          name: uuidPlayer
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: |
+            One row naming the applied fields in the order dex, intel, con, energy, life, sad,
+            coin, food, magic, exp, sleeping, coma (values after the caps; flags true/false),
+            e.g. `STATS energy=7 coma=false`. Nothing applied: no row. `PUT /api/admin/matches/{uuid}`
+            with a status writes `STATUS <status>`; a rename alone writes nothing.
+  /api/admin/matches/{uuidMatch}/snapshots:
+    get:
+      tags: [admin-matches]
+      summary: The time-end snapshots of a match, newest first (v0.41.1)
+      operationId: listMatchSnapshotsV0411
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: One entry per kept snapshot (at most SNAPSHOT_KEEP_PER_MATCH).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SnapshotSummary'
+        '404':
+          description: MATCH_NOT_FOUND.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/matches/{uuidMatch}/snapshots/{uuidSnapshot}/check:
+    get:
+      tags: [admin-matches]
+      summary: Integrity check of one snapshot; writes nothing (v0.41.1)
+      operationId: checkMatchSnapshotV0411
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - $ref: '#/components/parameters/UuidSnapshot'
+      responses:
+        '200':
+          description: '`valid` true with no errors, or the list of what fails.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotCheck'
+        '404':
+          description: MATCH_NOT_FOUND or SNAPSHOT_NOT_FOUND.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/matches/{uuidMatch}/snapshots/{uuidSnapshot}/restore:
+    post:
+      tags: [admin-matches]
+      summary: Restore a snapshot, run the time-start, leave the match PAUSED (v0.41.1)
+      operationId: restoreMatchSnapshotV0411
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - $ref: '#/components/parameters/UuidSnapshot'
+      responses:
+        '200':
+          description: Restored; the match is now at clock + 1 and PAUSED.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotRestoreResponse'
+        '404':
+          description: MATCH_NOT_FOUND or SNAPSHOT_NOT_FOUND.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: SNAPSHOT_INTEGRITY_FAILED — the check failed; nothing was written.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotIntegrityFailed'
+  /api/admin/matches/{uuidMatch}/owner:
+    get:
+      tags: [admin-matches]
+      summary: The owner (creator) of a match, for the react-admin User tab (v0.41.6)
+      operationId: getMatchOwnerV0416
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: The owner; `eligible` false (with `reason`) for an ADMIN, a non-active or an expired user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+        '400':
+          description: INVALID_INPUT — blank match uuid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: MATCH_NOT_FOUND, or USER_NOT_FOUND when the creator no longer exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [admin-matches]
+      summary: Move a match (creator and characters) to another user (v0.41.6)
+      operationId: moveMatchOwnerV0416
+      description: |
+        Checks in this order: 400 INVALID_INPUT, 404 MATCH_NOT_FOUND, 404 USER_NOT_FOUND,
+        409 USER_AMBIGUOUS, 409 MATCH_TERMINATED (ENDED/GAMEOVER), 200 UNCHANGED (the target already
+        owns the match and every character; nothing written), 409 MATCH_MULTI_CHARACTER (more than one
+        character), 409 USER_NOT_ALLOWED (ADMIN role, or state other than active/guest), 409 USER_EXPIRED
+        (guest past its expiry; a guest without expiry is valid), 409 ACTIVE_MATCH_ALREADY_EXISTS (the
+        target owns a CREATED/RUNNING/PAUSED match on the same story). RUNNING and PAUSED matches keep
+        their status. The old user is never deleted and no snapshot is written.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchOwnerMoveRequest'
+      responses:
+        '200':
+          description: MOVED, or UNCHANGED when the target already owns the match.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchOwnerMoveResponse'
+        '400':
+          description: INVALID_INPUT — missing or blank `user`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: MATCH_NOT_FOUND or USER_NOT_FOUND.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: USER_AMBIGUOUS, MATCH_TERMINATED, MATCH_MULTI_CHARACTER, USER_NOT_ALLOWED, USER_EXPIRED or ACTIVE_MATCH_ALREADY_EXISTS.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/users/{identifier}:
+    get:
+      tags: [admin-users]
+      summary: One user by uuid, email or username — the owner-move preview (v0.41.6)
+      operationId: getAdminUserV0416
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: identifier
+          required: true
+          description: A user uuid, an email (case-insensitive) or a username, URL-encoded.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The user; a non-eligible one is still answered, with `eligible` false and `reason`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+        '404':
+          description: USER_NOT_FOUND.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: USER_AMBIGUOUS — the email (or, on AWS, the username) matches more than one user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/matches/{uuidMatch}/export:
+    post:
+      tags: [admin-matches]
+      summary: Export a match as the neutral file; pause, restore and restart the source (v0.41.4)
+      description: |
+        POST because it pauses the source, restores it to its latest time-end snapshot (log cut,
+        `SNAPSHOT_RESTORED`, time-start), writes `ADMIN_ACTION EXPORTED clock=N` and resumes a
+        RUNNING source. The body is the canonical text of the file.
+      operationId: exportMatchV0414
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: The file, as an attachment `match-<uuid8>-clock-<N>.json`.
+          headers:
+            Content-Disposition:
+              schema: { type: string, example: 'attachment; filename=match-0a0a0a0a-clock-3.json' }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchExport'
+        '404':
+          description: MATCH_NOT_FOUND.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: |
+            NO_SNAPSHOT (CREATED, no time-end yet, or snapshots off) — nothing touched;
+            SNAPSHOT_INTEGRITY_FAILED with `errors[]` — the status is put back.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchExportError'
+        '413':
+          description: EXPORT_TOO_LARGE — above `MATCH_EXPORT_MAX_BYTES`; the status is put back.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/matches/import:
+    post:
+      tags: [admin-matches]
+      summary: Check (dryRun) or import a neutral match export file (v0.41.4)
+      operationId: importMatchV0414
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchImportRequest'
+      responses:
+        '200':
+          description: dryRun=true — the check; nothing is written.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchImportCheck'
+        '201':
+          description: Imported; the match is at clock N + 1 and RUNNING (or PAUSED with startPaused).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchImportResponse'
+        '400':
+          description: INVALID_INPUT — the body is not a JSON object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: MATCH_EXISTS (replace=false), STORY_DIFFERS (storyMode AUTO), CHARACTER_EXISTS (java/python).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchExportError'
+        '413':
+          description: IMPORT_TOO_LARGE — above `MATCH_EXPORT_MAX_BYTES`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: |
+            IMPORT_INVALID with `errors[]`: FORMAT_UNKNOWN, SCHEMA_INVALID, CHECKSUM_MISMATCH,
+            REFERENCE_INVALID, STORY_INVALID, STORY_ENTITY_MISSING (and any conflict alongside them).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchExportError'
+        '500':
+          description: IMPORT_TIME_START_FAILED — imported and left PAUSED with its imported snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/reports/kpi:
+    get:
+      tags: [admin-reports]
+      summary: KPI report per story, grouped by day, month or total (v0.41.2)
+      description: |
+        UTC dates `YYYY-MM-DD`; `to` defaults to today, `from` to 29 days before `to`; at most
+        366 days. Without `storyUuid` every story is summed (AWS: the stories of the STORY_LIST
+        index). `rows` has one entry per period of the range, zeros included; `choices`,
+        `locations` and `missions` cover the whole range, named by uuid (the console resolves
+        the names from the story).
+      operationId: getKpiReportV0412
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: storyUuid
+          required: false
+          schema: { type: string }
+        - in: query
+          name: from
+          required: false
+          schema: { type: string, format: date, example: '2026-09-01' }
+        - in: query
+          name: to
+          required: false
+          schema: { type: string, format: date, example: '2026-09-29' }
+        - in: query
+          name: groupBy
+          required: false
+          schema:
+            type: string
+            enum: [day, month, total]
+            default: day
+      responses:
+        '200':
+          description: The report.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KpiReport'
+        '400':
+          description: INVALID_INPUT — a bad date, `from` after `to`, more than 366 days or a bad `groupBy`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    UuidMatch:
+      in: path
+      name: uuidMatch
+      required: true
+      schema:
+        type: string
+    UuidSnapshot:
+      in: path
+      name: uuidSnapshot
+      required: true
+      schema:
+        type: string
+    OlderThanDays:
+      in: query
+      name: olderThanDays
+      required: true
+      schema:
+        type: integer
+        minimum: 0
+      description: Guests whose last access (or registration, if never back) is older than N days.
+    WithoutMatches:
+      in: query
+      name: withoutMatches
+      required: false
+      schema:
+        type: string
+        enum: ['true', 'false']
+      description: |
+        v0.41.0 — `true`: only guests nothing references, matches untouched, at most
+        `GUEST_CLEANUP_MAX_PER_RUN` (500) per call — the daily job's own call. `false` or
+        omitted: the v0.36.2 purge (guests and every match they created). Any other value: 400.
+  headers:
+    XContentTypeOptions:
+      schema: { type: string, enum: [nosniff] }
+    XFrameOptions:
+      schema: { type: string, enum: [DENY] }
+    ReferrerPolicy:
+      schema: { type: string, enum: [no-referrer] }
+    ContentSecurityPolicy:
+      schema: { type: string, enum: ["default-src 'none'; frame-ancestors 'none'"] }
+    StrictTransportSecurity:
+      schema: { type: string, enum: [max-age=31536000] }
+    NoStore:
+      description: On every answer under /api/auth/** and /api/admin/**.
+      schema: { type: string, enum: [no-store] }
+  responses:
+    RateLimited:
+      description: Too many attempts in the current window.
+      headers:
+        Retry-After:
+          description: Seconds until the window reopens.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RateLimitedResponse'
+    InvalidInput:
+      description: '`olderThanDays` missing or negative, or `withoutMatches` not `true`/`false`.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Not an admin, or (AWS) a source IP the allow-list refuses.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    Step41LogEntry:
+      type: object
+      description: The v0.28.7 log entry; only the new `type` values and their `message` are listed.
+      properties:
+        type:
+          type: string
+          enum: [PASS, EDGE_STATE, TRAIT_CHANGE, MATCH_LIFECYCLE, ADMIN_ACTION, RECOVERY]
+        clock: { type: integer, nullable: true }
+        timestamp: { type: string }
+        characterUuid: { type: string, nullable: true }
+        characterName: { type: string, nullable: true }
+        idEvent: { type: integer, format: int64, nullable: true }
+        message:
+          type: string
+          nullable: true
+          example: ADD 5a1c2e7e-0000-4000-8000-000000000001
+    SnapshotSummary:
+      type: object
+      required: [uuid, clock, type, timestamp, sizeBytes]
+      properties:
+        uuid: { type: string }
+        clock:
+          type: integer
+          description: The clock that ended when the snapshot was taken.
+        type:
+          type: string
+          enum: [LIGHT]
+        timestamp: { type: string, description: ISO-8601 UTC. }
+        description: { type: string, nullable: true, example: Time-end of clock 3 }
+        sizeBytes: { type: integer, format: int64, description: Size of the stored payload. }
+    SnapshotCheckError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [SNAPSHOT_CHECKSUM_MISMATCH, SNAPSHOT_VERSION_UNKNOWN, STORY_ENTITY_MISSING,
+                 USER_MISSING, MATCH_MISMATCH]
+          description: |
+            SNAPSHOT_CHECKSUM_MISMATCH — the payload is unreadable or does not match its SHA-256;
+            SNAPSHOT_VERSION_UNKNOWN — the payload `v` is not 1 (the check stops there);
+            STORY_ENTITY_MISSING — a location, item, trait, event, choice, weather, class,
+            template or mission the snapshot points at is no longer in the story;
+            USER_MISSING — the creator or a character's user no longer exists;
+            MATCH_MISMATCH — the payload names another match or story.
+        message: { type: string, example: trait 1 is no longer in the story }
+    SnapshotCheck:
+      type: object
+      required: [valid, errors]
+      properties:
+        valid: { type: boolean }
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotCheckError'
+    SnapshotRestoreResponse:
+      type: object
+      required: [status, uuidSnapshot, clock, matchStatus, logsRemoved]
+      properties:
+        status:
+          type: string
+          enum: [RESTORED]
+        uuidSnapshot: { type: string }
+        clock:
+          type: integer
+          description: The snapshot clock; the time-start has already moved the match to clock + 1.
+        matchStatus:
+          type: string
+          enum: [PAUSED]
+        logsRemoved:
+          type: integer
+          format: int64
+          description: Log rows deleted by the restore (every `log_*` row on Java/Python, the `LOG#` rows on AWS).
+    SnapshotIntegrityFailed:
+      type: object
+      required: [error, message, errors]
+      properties:
+        error:
+          type: string
+          enum: [SNAPSHOT_INTEGRITY_FAILED]
+        message: { type: string }
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotCheckError'
+        timestamp: { type: integer, format: int64 }
+    KpiRow:
+      type: object
+      required: [period, matchesStarted, matchesCompleted, comaCount]
+      properties:
+        period:
+          type: string
+          description: '`YYYY-MM-DD` (day), `YYYY-MM` (month) or `total`.'
+        matchesStarted: { type: integer, format: int64 }
+        matchesCompleted: { type: integer, format: int64 }
+        completionRate:
+          type: number
+          nullable: true
+          description: completed / started, 4 decimals (HALF_UP); null when nothing started.
+        avgDurationMinutes:
+          type: number
+          nullable: true
+          description: 2 decimals; null when nothing completed.
+        avgDurationClocks:
+          type: number
+          nullable: true
+          description: 2 decimals; null when nothing completed.
+        comaCount: { type: integer, format: int64 }
+    KpiCount:
+      type: object
+      required: [uuid, count]
+      properties:
+        uuid: { type: string }
+        count: { type: integer, format: int64 }
+    KpiMission:
+      type: object
+      required: [uuid, activated, completed, failed]
+      properties:
+        uuid: { type: string }
+        activated: { type: integer, format: int64, description: Transitions into ACTIVE. }
+        completed: { type: integer, format: int64 }
+        failed: { type: integer, format: int64 }
+    KpiReport:
+      type: object
+      required: [from, to, groupBy, rows, choices, locations, missions]
+      properties:
+        storyUuid: { type: string, nullable: true, description: null = every story summed. }
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        groupBy: { type: string, enum: [day, month, total] }
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/KpiRow' }
+        choices:
+          type: array
+          description: Most chosen first, then by uuid.
+          items: { $ref: '#/components/schemas/KpiCount' }
+        locations:
+          type: array
+          description: Most visited first, then by uuid.
+          items: { $ref: '#/components/schemas/KpiCount' }
+        missions:
+          type: array
+          description: Ordered by uuid.
+          items: { $ref: '#/components/schemas/KpiMission' }
+    MatchExport:
+      description: The neutral match export v1 (JSON Schema draft 2020-12 in the file next to this one).
+      externalDocs:
+        url: ./match-export-v1.schema.json
+      type: object
+      required: [format, formatVersion, source, story, users, match, characters, state, engine, logs, checksum]
+      properties:
+        format: { type: string, enum: [paths-games-match-export] }
+        formatVersion: { type: integer, enum: [1] }
+        source:
+          type: object
+          properties:
+            backend: { type: string, enum: [java, python, aws] }
+            dialect: { type: string, enum: [sqlite, postgresql, dynamodb] }
+            appVersion: { type: string }
+            server: { type: string }
+            exportedAt: { type: string }
+            snapshotUuid: { type: string }
+            snapshotClock: { type: integer }
+        story: { type: object }
+        users: { type: array, items: { type: object } }
+        match: { type: object }
+        characters: { type: array, items: { type: object } }
+        state: { type: object }
+        engine: { type: object }
+        logs: { type: array, items: { type: object } }
+        checksum: { type: string, description: SHA-256 hex of the canonical document without checksum. }
+    MatchImportRequest:
+      type: object
+      required: [export]
+      properties:
+        export: { $ref: '#/components/schemas/MatchExport' }
+        dryRun: { type: boolean, default: false }
+        replace: { type: boolean, default: false, description: Delete and re-import an existing match uuid. }
+        storyMode:
+          type: string
+          enum: [AUTO, KEEP, REPLACE]
+          default: AUTO
+          description: When the story exists with other content (DIFFERENT) — AUTO refuses, KEEP uses the target's, REPLACE re-imports the bundled one.
+        startPaused: { type: boolean, default: false }
+    ImportIssue:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: |
+            Errors: CHECKSUM_MISMATCH, FORMAT_UNKNOWN, SCHEMA_INVALID, REFERENCE_INVALID, STORY_INVALID,
+            STORY_DIFFERS, STORY_ENTITY_MISSING, MATCH_EXISTS, CHARACTER_EXISTS. Warnings:
+            APP_VERSION_DIFFERS, CROSS_FAMILY, USERNAME_RENAMED, USER_MAPPED_BY_EMAIL, ROLE_DOWNGRADED,
+            USER_HAS_ACTIVE_MATCH, STORY_MATCHES_DELETED, MARKERS_RECONCILED, VISITED_LOCATIONS_DIFFER, ACTIVE_CHOICES_IGNORED.
+        message: { type: string }
+    MatchImportCheck:
+      type: object
+      required: [valid, errors, warnings, source, matchExists, story, users]
+      properties:
+        valid: { type: boolean }
+        errors: { type: array, items: { $ref: '#/components/schemas/ImportIssue' } }
+        warnings: { type: array, items: { $ref: '#/components/schemas/ImportIssue' } }
+        source:
+          type: object
+          properties:
+            backend: { type: string }
+            dialect: { type: string }
+            appVersion: { type: string }
+            server: { type: string }
+            snapshotClock: { type: integer }
+        matchExists: { type: boolean }
+        story:
+          type: object
+          properties:
+            uuid: { type: string }
+            status: { type: string, enum: [ABSENT, SAME, DIFFERENT], nullable: true }
+            action: { type: string, enum: [IMPORT, USE_EXISTING, KEEP, REPLACE, AUTO], nullable: true }
+            matchesDeleted: { type: integer, description: Matches a REPLACE deletes (java/python; 0 on AWS). }
+        users:
+          type: array
+          items:
+            type: object
+            properties:
+              uuid: { type: string }
+              username: { type: string }
+              targetUsername: { type: string }
+              targetUuid: { type: string, description: The user the references point to on this server. }
+              status:
+                type: string
+                enum: [NEW, EXISTING, RENAMED, MAPPED_BY_EMAIL]
+                description: |
+                  Resolution order: uuid on this server (EXISTING), then same e-mail, case-insensitive
+                  (MAPPED_BY_EMAIL, target user unchanged), then NEW (RENAMED on a username clash; never on AWS).
+    MatchImportResponse:
+      type: object
+      required: [status, uuidMatch, snapshotClock, clock, matchStatus]
+      properties:
+        status: { type: string, enum: [IMPORTED] }
+        uuidMatch: { type: string }
+        snapshotClock: { type: integer, description: N, the clock of the imported snapshot. }
+        clock: { type: integer, description: N + 1 after the time-start. }
+        matchStatus: { type: string, enum: [RUNNING, PAUSED] }
+        uuidSnapshot: { type: string, nullable: true, description: The "Imported at clock N" snapshot. }
+        storyAction: { type: string, enum: [IMPORT, USE_EXISTING, KEEP, REPLACE] }
+        usersCreated: { type: integer }
+        logsImported: { type: integer }
+        warnings: { type: array, items: { $ref: '#/components/schemas/ImportIssue' } }
+    MatchExportError:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: NO_SNAPSHOT, SNAPSHOT_INTEGRITY_FAILED, MATCH_EXISTS, STORY_DIFFERS, CHARACTER_EXISTS, IMPORT_INVALID
+        message: { type: string }
+        errors: { type: array, items: { $ref: '#/components/schemas/ImportIssue' } }
+        timestamp: { type: integer, format: int64 }
+    StaleGuestsSummary:
+      type: object
+      required: [guests, matches]
+      properties:
+        guests: { type: integer, format: int64 }
+        matches: { type: integer, format: int64 }
+    RateLimitedResponse:
+      type: object
+      required: [error, message, retryAfterSeconds, timestamp]
+      properties:
+        error:
+          type: string
+          enum: [RATE_LIMITED]
+        message: { type: string }
+        retryAfterSeconds: { type: integer }
+        timestamp: { type: integer, format: int64 }
+    AdminUser:
+      type: object
+      description: v0.41.6 — one user as the admin User tab and the owner-move preview show it.
+      properties:
+        uuid: { type: string }
+        username: { type: string }
+        nickname: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        role: { type: string, enum: [ADMIN, PLAYER] }
+        state:
+          type: integer
+          description: 1 registration, 2 active, 3 blocked, 4 banned, 5 password_reset, 6 guest.
+        guest: { type: boolean }
+        guestExpiresAt: { type: string, nullable: true, description: 'null for an imported guest (no expiry, no cookie)' }
+        expired: { type: boolean }
+        tsRegistration: { type: string, nullable: true }
+        tsLastAccess: { type: string, nullable: true }
+        matchCount: { type: integer, format: int64, description: Every match the user created, any status. }
+        eligible: { type: boolean, description: true when the user may receive a match. }
+        reason: { type: string, nullable: true, enum: [USER_NOT_ALLOWED, USER_EXPIRED] }
+    MatchOwnerMoveRequest:
+      type: object
+      required: [user]
+      properties:
+        user:
+          type: string
+          description: The target user's uuid, email or username.
+    MatchOwnerRef:
+      type: object
+      properties:
+        uuid: { type: string, nullable: true }
+        username: { type: string, nullable: true }
+    MatchOwnerMoveResponse:
+      type: object
+      properties:
+        status: { type: string, enum: [MOVED, UNCHANGED] }
+        matchUuid: { type: string }
+        previousOwner: { $ref: '#/components/schemas/MatchOwnerRef' }
+        owner: { $ref: '#/components/schemas/MatchOwnerRef' }
+        charactersMoved: { type: integer }
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: e.g. INVALID_INPUT, FORBIDDEN, MISCONFIGURED (AWS, 500)
+        message: { type: string }
+        timestamp: { type: integer, format: int64 }

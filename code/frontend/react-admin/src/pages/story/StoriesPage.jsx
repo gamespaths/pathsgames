@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { listAllStories, deleteStory, createStory, getStory, listEntities } from '../../api/storyApi'
+import { listAllStories, deleteStory, createStory, getStory, listEntities, writeStaticCatalog } from '../../api/storyApi'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 import ErrorAlert from '../../components/common/ErrorAlert'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import { Link, useNavigate } from 'react-router-dom'
+import { stripNulls, exportEntity } from '../../utils/storyJson'
 
 // Recursively sort object keys alphabetically; array order is preserved.
 function sortKeysDeep(value) {
@@ -56,6 +57,22 @@ export default function StoriesPage() {
     } catch (e) { setError(e.message) }
   }
 
+  // v0.37.6 — publish the static catalog; a 503 means this backend has no destination.
+  const [catalogBusy, setCatalogBusy] = useState(false)
+  const handleCatalog = async () => {
+    setCatalogBusy(true)
+    setError('')
+    try {
+      const res = await writeStaticCatalog()
+      const files = (res.files ?? []).map(f => `${f.path} (${f.count})`).join(', ')
+      setSuccess(`Static catalog written to ${res.target}: ${files}`)
+    } catch (e) {
+      const detail = e.response?.data
+      const msg = detail?.message ?? detail?.detail?.message ?? e.message
+      setError(e.response?.status === 503 ? `Static catalog not configured on this backend: ${msg}` : msg)
+    } finally { setCatalogBusy(false) }
+  }
+
   const handleExport = async (story) => {
     try {
       setLoading(true)
@@ -90,23 +107,13 @@ export default function StoriesPage() {
       const results = await Promise.all(entityTypes.map(et => listEntities(story.uuid, et.apiType)))
 
       entityTypes.forEach((et, index) => {
-        exportData[et.jsonKey] = results[index].map(item => {
-          // eslint-disable-next-line no-unused-vars
-          const { tsInsert, tsUpdate, idStory, ...rest } = item
-          if (et.jsonKey === 'texts' && item.idText) {
-            rest.id = Number(item.idText)
-            rest.idText = Number(item.idText)
-          } else if (!rest.id && item.id) {
-            rest.id = item.id
-          }
-          return rest
-        })
+        exportData[et.jsonKey] = results[index].map(item => exportEntity(et.jsonKey, item))
       })
       
       // eslint-disable-next-line no-unused-vars
       const { tsInsert, tsUpdate, ...finalJson } = exportData
 
-      const blob = new Blob([JSON.stringify(sortKeysDeep(finalJson), null, 2)], { type: 'application/json' })
+      const blob = new Blob([JSON.stringify(sortKeysDeep(stripNulls(finalJson)), null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -158,10 +165,10 @@ export default function StoriesPage() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <label className="pg-label" style={{ marginBottom: 0, whiteSpace: 'nowrap' }}>
+          <label className="pg-label" htmlFor="stories-lang-filter" style={{ marginBottom: 0, whiteSpace: 'nowrap' }}>
             <i className="fas fa-language me-1" />Lang
           </label>
-          <select className="pg-input" style={{ width: '70px' }} value={lang} onChange={e => setLang(e.target.value)}>
+          <select id="stories-lang-filter" className="pg-input" style={{ width: '70px' }} value={lang} onChange={e => setLang(e.target.value)}>
             {['en','it','de','fr','es','pt'].map(l => <option key={l} value={l}>{l}</option>)}
           </select>
         </div>
@@ -174,6 +181,10 @@ export default function StoriesPage() {
         <Link to="/stories/import" className="pg-btn pg-btn-ghost">
           <i className="fas fa-file-import" /> Import
         </Link>
+        <button className="pg-btn pg-btn-ghost" onClick={handleCatalog} disabled={catalogBusy}
+          title="Write the static data/stories-{lang}.json files read by the game home">
+          <i className={`fas ${catalogBusy ? 'fa-spinner fa-spin' : 'fa-cloud-upload-alt'}`} /> Static catalog
+        </button>
       </div>
 
       {loading ? (
@@ -225,6 +236,9 @@ export default function StoriesPage() {
                       <Link to={`/stories/${s.uuid}/cards-fast-edit`} className="pg-btn pg-btn-ghost pg-btn-sm me-1" title="Cards Fast Edit">
                         <i className="fas fa-id-card" />
                       </Link>
+                      <Link to={`/stories/${s.uuid}/fast-new-event`} className="pg-btn pg-btn-ghost pg-btn-sm me-1" title="Fast New Event">
+                        <i className="fas fa-bolt" />
+                      </Link>
                       <button className="pg-btn pg-btn-ghost pg-btn-sm me-1" onClick={() => handleExport(s)} title="Export JSON">
                         <i className="fas fa-file-export" />
                       </button>
@@ -255,8 +269,8 @@ export default function StoriesPage() {
 
       {/* Detail modal */}
       {detail && (
-        <div className="pg-modal-backdrop" onClick={() => setDetail(null)}>
-          <div className="pg-modal" style={{ maxWidth: 600, maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+        <div className="pg-modal-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) setDetail(null) }}>
+          <div className="pg-modal" style={{ maxWidth: 600, maxHeight: '80vh', overflowY: 'auto' }}>
             <p className="pg-modal-title">
               <i className="fas fa-book-open me-2" />
               {detail.title || 'Story Detail'}
@@ -286,7 +300,7 @@ export default function StoriesPage() {
               </div>
             )}
             <div className="flex justify-end mt-3 gap-2">
-              <button className="pg-btn pg-btn-ghost" onClick={() => { handleExport(detail); setDetail(null) }} title="Export JSON">
+              <button className="pg-btn pg-btn-ghost" onClick={() => { void handleExport(detail); setDetail(null) }} title="Export JSON">
                 <i className="fas fa-file-export me-1" />Export JSON
               </button>
               <button className="pg-btn pg-btn-ghost" onClick={() => setDetail(null)}>Close</button>

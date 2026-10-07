@@ -27,8 +27,7 @@ Create Match
     ...                has a Turnstile key configured, e.g. AWS dev with test key).
     [Arguments]    ${token}    ${story_uuid}    ${difficulty_uuid}
     ...    ${name}=robottest_match    ${expected_status}=any
-    ${headers}=    Get Auth Headers    ${token}
-    Set To Dictionary    ${headers}    Content-Type=application/json
+    ${headers}=    Get Match Creation Headers    ${token}
     &{body}=    Create Dictionary
     ...    storyUuid=${story_uuid}
     ...    difficultyUuid=${difficulty_uuid}
@@ -48,8 +47,7 @@ Create Match With Rng Seed
     ...                selection is deterministic. Robot always passes 42.
     [Arguments]    ${token}    ${story_uuid}    ${difficulty_uuid}
     ...    ${rng_seed}=42    ${name}=robottest_weather    ${expected_status}=any
-    ${headers}=    Get Auth Headers    ${token}
-    Set To Dictionary    ${headers}    Content-Type=application/json
+    ${headers}=    Get Match Creation Headers    ${token}
     &{body}=    Create Dictionary
     ...    storyUuid=${story_uuid}
     ...    difficultyUuid=${difficulty_uuid}
@@ -131,8 +129,7 @@ Create Match With Loadout
     [Arguments]    ${token}    ${story_uuid}    ${difficulty_uuid}
     ...    ${character_uuid}    ${class_uuid}    ${trait_uuids}    ${single_player}
     ...    ${expected_status}=any
-    ${headers}=    Get Auth Headers    ${token}
-    Set To Dictionary    ${headers}    Content-Type=application/json
+    ${headers}=    Get Match Creation Headers    ${token}
     &{body}=    Create Dictionary
     ...    storyUuid=${story_uuid}
     ...    difficultyUuid=${difficulty_uuid}
@@ -209,8 +206,7 @@ Create Match With Turnstile Token
     ...                Cloudflare siteverify API and missing/invalid tokens return 400.
     [Arguments]    ${token}    ${story_uuid}    ${difficulty_uuid}
     ...    ${turnstile_token}=${NONE}    ${name}=robottest_match    ${expected_status}=any
-    ${headers}=    Get Auth Headers    ${token}
-    Set To Dictionary    ${headers}    Content-Type=application/json
+    ${headers}=    Get Match Creation Headers    ${token}
     &{body}=    Create Dictionary
     ...    storyUuid=${story_uuid}
     ...    difficultyUuid=${difficulty_uuid}
@@ -357,10 +353,16 @@ Admin Change Statistics
     ...                otherwise put the string "-1" in the JSON body, and while Java and Python
     ...                coerce it back to a number, the AWS handler compares it to the integer -1,
     ...                fails, and SETS the statistic to -1 instead of leaving it alone.
+    ...
+    ...                Step 38 — ${exp} rides along the same way; ${sleeping} / ${coma} are
+    ...                the state flags, sent only when given (None = leave the flag alone).
     [Arguments]    ${token}    ${match_uuid}    ${player_uuid}    ${expected_status}=any
-    ...    ${food}=${-1}    ${magic}=${-1}    ${coin}=${-1}    ${energy}=${-1}
+    ...    ${food}=${-1}    ${magic}=${-1}    ${coin}=${-1}    ${energy}=${-1}    ${exp}=${-1}
+    ...    ${sleeping}=${None}    ${coma}=${None}
     ${headers}=    Get Auth Headers    ${token}
-    &{body}=    Create Dictionary    food=${food}    magic=${magic}    coin=${coin}    energy=${energy}
+    &{body}=    Create Dictionary    food=${food}    magic=${magic}    coin=${coin}    energy=${energy}    exp=${exp}
+    IF    $sleeping is not None    Set To Dictionary    ${body}    sleeping=${sleeping}
+    IF    $coma is not None    Set To Dictionary    ${body}    coma=${coma}
     ${response}=    POST On Session    admin_session
     ...    /api/admin/matches/${match_uuid}/player/${player_uuid}/changeStatistics
     ...    headers=${headers}    json=${body}
@@ -504,6 +506,90 @@ Execute Event
     ...    headers=${headers}    json=${body}    params=${params}    expected_status=${expected_status}
     RETURN    ${response}
 
+Get Registry
+    [Documentation]    GET /api/match/{uuidMatch}/registry — the match registry grouped by the
+    ...                category of each key's story definition (Step 36). Visible keys only
+    ...                unless ${include_hidden}, which the match owner alone may ask for.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any    ${lang}=${EMPTY}
+    ...            ${include_hidden}=${EMPTY}
+    ${headers}=    Get Auth Headers    ${token}
+    ${params}=    Create Dictionary
+    IF    '${lang}' != '${EMPTY}'
+        Set To Dictionary    ${params}    lang=${lang}
+    END
+    IF    '${include_hidden}' != '${EMPTY}'
+        Set To Dictionary    ${params}    includeHidden=${include_hidden}
+    END
+    ${response}=    GET On Session    public_session    /api/match/${match_uuid}/registry
+    ...    headers=${headers}    params=${params}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Get Missions
+    [Documentation]    GET /api/match/{uuidMatch}/missions — the missions this match has
+    ...                REACHED (Step 37), optionally filtered by ${status}. A mission the
+    ...                match has never reached is absent, not LOCKED: listing it would spoil
+    ...                it. Owner-only and 404-masked exactly as the registry endpoint is.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any    ${status}=${EMPTY}
+    ...            ${lang}=${EMPTY}
+    ${headers}=    Get Auth Headers    ${token}
+    ${params}=    Create Dictionary
+    IF    '${lang}' != '${EMPTY}'
+        Set To Dictionary    ${params}    lang=${lang}
+    END
+    IF    '${status}' != '${EMPTY}'
+        Set To Dictionary    ${params}    status=${status}
+    END
+    ${response}=    GET On Session    public_session    /api/match/${match_uuid}/missions
+    ...    headers=${headers}    params=${params}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Get Mission
+    [Documentation]    GET /api/match/{uuidMatch}/missions/{uuidMission} — one mission with
+    ...                all its steps. A mission this match has not reached reads 404, exactly
+    ...                as the match itself would for anybody who does not own it.
+    [Arguments]    ${token}    ${match_uuid}    ${mission_uuid}    ${expected_status}=any
+    ...            ${lang}=${EMPTY}
+    ${headers}=    Get Auth Headers    ${token}
+    ${params}=    Create Dictionary
+    IF    '${lang}' != '${EMPTY}'
+        Set To Dictionary    ${params}    lang=${lang}
+    END
+    ${response}=    GET On Session    public_session
+    ...    /api/match/${match_uuid}/missions/${mission_uuid}
+    ...    headers=${headers}    params=${params}    expected_status=${expected_status}
+    RETURN    ${response}
+
+# ── v0.36.2 — the admin console correcting one registry key ──
+
+Admin Upsert Registry
+    [Documentation]    PUT /api/admin/matches/{uuidMatch}/registry — write one key by uuid.
+    ...                A single key is replaced, a multi key gains a member; either way the
+    ...                match log gains a REGISTRY_CHANGE row. Answers { key, values }.
+    [Arguments]    ${token}    ${match_uuid}    ${key}    ${value}=${NONE}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    &{body}=    Create Dictionary    key=${key}
+    IF    $value is not None
+        Set To Dictionary    ${body}    value=${value}
+    END
+    ${response}=    PUT On Session    admin_session
+    ...    /api/admin/matches/${match_uuid}/registry
+    ...    headers=${headers}    json=${body}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Admin Delete Registry
+    [Documentation]    DELETE /api/admin/matches/{uuidMatch}/registry?key=K[&value=V] — take
+    ...                one member away, or empty the key outright when no value is named.
+    [Arguments]    ${token}    ${match_uuid}    ${key}    ${value}=${NONE}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${params}=    Create Dictionary    key=${key}
+    IF    $value is not None
+        Set To Dictionary    ${params}    value=${value}
+    END
+    ${response}=    DELETE On Session    admin_session
+    ...    /api/admin/matches/${match_uuid}/registry
+    ...    headers=${headers}    params=${params}    expected_status=${expected_status}
+    RETURN    ${response}
+
 Get Inventory
     [Documentation]    GET /api/gameplay/{uuidMatch}/inventory — the calling character's items
     ...                (Step 34). Readable in any match status; only use-item and drop-item
@@ -533,6 +619,18 @@ Use Item
     END
     ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/inventory/use-item
     ...    headers=${headers}    json=${body}    params=${params}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Use Exp
+    [Documentation]    POST /api/gameplay/{uuidMatch}/action/use-exp — spend experience on a
+    ...                +1 of ${stat} (dex | int | cos), Step 38. Zero energy, the turn does
+    ...                not pass. Answers the purchase (statBefore/After, expBefore/After,
+    ...                expCost, the refreshed expCosts and two statChanges rows).
+    [Arguments]    ${token}    ${match_uuid}    ${stat}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    &{body}=    Create Dictionary    stat=${stat}
+    ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/action/use-exp
+    ...    headers=${headers}    json=${body}    expected_status=${expected_status}
     RETURN    ${response}
 
 Drop Item

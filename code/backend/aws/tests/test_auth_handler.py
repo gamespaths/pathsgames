@@ -98,12 +98,43 @@ def test_create_guest_with_test_marker_uses_marker_prefix():
 
 
 def test_create_guest_ignores_test_marker_when_not_dev():
+    # v0.41.0 — a prod stack with the committed secret answers 500, so this one has its own
     with patch('auth.handler.db_utils.put_item', return_value=True), \
+         patch('common.jwt_utils.JWT_SECRET', 'a-private-prod-secret-of-at-least-32-chars'), \
          patch.dict(os.environ, {'ENV': 'prod'}):
         from auth.handler import lambda_handler
         event = make_event('POST', '/api/auth/guest', headers={'x-test-marker': 'robottest'})
         result = lambda_handler(event, {})
     assert _body(result)['username'].startswith('guest_')
+
+
+def _create_guest_row(env, headers, ttl_hours='1'):
+    """v0.39.1 — the USER# row create_guest writes, under the given ENV and TTL setting."""
+    # v0.41.0 — a private secret, so a prod ENV is not refused as misconfigured
+    with patch('auth.handler.db_utils.put_item', return_value=True) as put, \
+         patch('common.jwt_utils.JWT_SECRET', 'a-private-prod-secret-of-at-least-32-chars'), \
+         patch.dict(os.environ, {'ENV': env, 'ROBOT_TEST_DATA_TTL_HOURS': ttl_hours}):
+        from auth.handler import lambda_handler
+        result = lambda_handler(make_event('POST', '/api/auth/guest', headers=headers), {})
+    assert result['statusCode'] == 201
+    return put.call_args[0][0]
+
+
+def test_create_guest_honours_test_marker_on_the_test_stack():
+    row = _create_guest_row('test', {'x-test-marker': 'robottest'})
+    assert row['username'].startswith('robottest_')
+
+
+def test_create_guest_with_test_marker_gets_a_ttl():
+    with patch('common.test_data_ttl.time.time', return_value=1_000):
+        row = _create_guest_row('test', {'x-test-marker': 'robottest'}, ttl_hours='2')
+    assert row['ttl'] == 1_000 + 2 * 3600
+
+
+def test_create_guest_without_marker_or_with_ttl_off_gets_no_ttl():
+    assert 'ttl' not in _create_guest_row('test', {})
+    assert 'ttl' not in _create_guest_row('test', {'x-test-marker': 'robottest'}, ttl_hours='0')
+    assert 'ttl' not in _create_guest_row('prod', {'x-test-marker': 'robottest'})
 
 
 # ── resume_guest ──────────────────────────────────────────────────────────────
@@ -272,15 +303,16 @@ def test_list_guests_player_forbidden():
     assert result['statusCode'] == 403
 
 def test_list_guests_admin_returns_200():
+    """v0.36.2 — the endpoint answers the paged envelope, not a bare array."""
     with patch('auth.handler.db_utils.get_item', return_value=ADMIN_USER), \
-         patch('auth.handler.db_utils.scan_filter', return_value=[PLAYER_USER]):
+         patch('auth.handler.db_utils.query_index_page', return_value=([PLAYER_USER], None)):
         from auth.handler import lambda_handler
         event = admin_event('GET', '/api/admin/guests')
         result = lambda_handler(event, {})
     assert result['statusCode'] == 200
     body = _body(result)
-    assert isinstance(body, list)
-    assert len(body) == 1
+    assert len(body['items']) == 1
+    assert body['nextCursor'] is None
 
 
 # ── admin: delete_guest ───────────────────────────────────────────────────────
@@ -306,7 +338,7 @@ def test_delete_guest_success_returns_200():
 
 def test_guest_stats_returns_counts():
     with patch('auth.handler.db_utils.get_item', return_value=ADMIN_USER), \
-         patch('auth.handler.db_utils.scan_filter', return_value=[PLAYER_USER, ADMIN_USER]):
+         patch('auth.handler.db_utils.query_gsi', return_value=[PLAYER_USER, ADMIN_USER]):
         from auth.handler import lambda_handler
         event = admin_event('GET', '/api/admin/guests/stats')
         result = lambda_handler(event, {})

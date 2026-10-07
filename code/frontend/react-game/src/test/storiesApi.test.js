@@ -7,10 +7,15 @@ vi.mock('../api/client', () => ({
 }))
 
 import { fetchJson } from '../api/client'
-import { getStories, getStory, getStoryDetail, getTraitsForClass } from '../api/stories'
+import { getStories, getStory, getStoryDetail, getTraitsForClass, clearStoryCache } from '../api/stories'
 
 describe('api/stories', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    clearStoryCache()
+    // v0.37.6 — no static catalog in these tests: getStory falls back to the API.
+    global.fetch = vi.fn().mockRejectedValue(new TypeError('no static file'))
+  })
 
   it('getStories returns the backend list', async () => {
     fetchJson.mockResolvedValueOnce([{ uuid: 's1' }, { uuid: 's2' }])

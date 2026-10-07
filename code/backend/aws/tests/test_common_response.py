@@ -6,7 +6,10 @@ from common.response import DecimalEncoder, dumps, ok, err, HEADERS
 
 
 def test_headers_constant():
-    assert HEADERS == {"Content-Type": "application/json"}
+    # v0.41.0 — the security headers ride on every answer next to the content type
+    assert HEADERS["Content-Type"] == "application/json"
+    assert HEADERS["X-Content-Type-Options"] == "nosniff"
+    assert "Cache-Control" not in HEADERS
 
 
 def test_decimal_encoder_int():

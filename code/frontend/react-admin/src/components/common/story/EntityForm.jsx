@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import ChipListInput from './ChipListInput'
 import PathsSelector from './PathsSelector'
 import FastTextSelectorModal from './FastTextSelectorModal'
 import FastTextCreatorModal from './FastTextCreatorModal'
 import PathsOptionsSelectorModal from './PathsOptionsSelectorModal'
+import TextLengthHint from './TextLengthHint'
 
 /**
  * Generic form for story sub-entities.
@@ -138,6 +140,21 @@ export default function EntityForm({
       setError('Card Back (idCardBack) must differ from Card (idCard).')
       return
     }
+    // Step 37 — a mission or step with no condition key never activates and is ignored by
+    // every backend, so authoring one is blocked here rather than saved and lost.
+    const missing = fields.find(f => f.required && !hasValue(data[f.key]))
+    if (missing) {
+      setError(`${missing.label} is required.`)
+      return
+    }
+    // Step 39 — a number field may declare its bounds (random event probability is 0..100).
+    const outOfRange = fields.find(f => hasValue(data[f.key])
+      && ((f.min !== undefined && Number(data[f.key]) < f.min)
+        || (f.max !== undefined && Number(data[f.key]) > f.max)))
+    if (outOfRange) {
+      setError(`${outOfRange.label} must be between ${outOfRange.min ?? '-∞'} and ${outOfRange.max ?? '∞'}.`)
+      return
+    }
     setError(null)
     onSave(data)
   }
@@ -161,11 +178,10 @@ export default function EntityForm({
   }
 
   return (
-    <div className="pg-modal-backdrop" onClick={onCancel} data-testid="entity-form-backdrop">
+    <div className="pg-modal-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) onCancel() }} data-testid="entity-form-backdrop">
       <div
         className="pg-modal"
         style={{ maxWidth: 720, width: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
-        onClick={e => e.stopPropagation()}
       >
         <h3 className="pg-modal-title" style={{ flexShrink: 0 }}>
           <i className={`fas ${isEditMode ? 'fa-edit' : 'fa-plus'} me-2`} />
@@ -233,12 +249,7 @@ export default function EntityForm({
                       }
                     }}
                     onClear={() => {
-                      const config = pathSelectorOptions?.[field.key] || {}
-                      const valueType = config.valueType || 'number'
-                      setData(prev => ({
-                        ...prev,
-                        [field.key]: valueType === 'string' ? '' : '',
-                      }))
+                      setData(prev => ({ ...prev, [field.key]: '' }))
                     }}
                     showNewButton={field.key === 'idCard' && !!onCreateFastCard}
                     newButtonLabel={isCreatingFastCard ? 'Creating...' : 'New Fast Card'}
@@ -267,25 +278,41 @@ export default function EntityForm({
                     />
                     <label htmlFor={`field-${field.key}`} style={{ fontSize: '0.8rem', cursor: 'pointer' }}>{field.label}</label>
                   </>
+                ) : field.type === 'chips' ? (
+                  <ChipListInput
+                    id={`field-${field.key}`}
+                    value={data[field.key]}
+                    onChange={next => setData({ ...data, [field.key]: next })}
+                  />
                 ) : field.type === 'textarea' ? (
-                  <textarea
-                    id={`field-${field.key}`}
-                    className="pg-textarea"
-                    rows={3}
-                    style={{ fontSize: '0.8rem', padding: '4px 8px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
-                    value={data[field.key] ?? ''}
-                    onChange={e => setFieldValue(field, e.target.value)}
-                  />
+                  <>
+                    <textarea
+                      id={`field-${field.key}`}
+                      className="pg-textarea"
+                      rows={3}
+                      maxLength={field.maxLength}
+                      style={{ fontSize: '0.8rem', padding: '4px 8px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
+                      value={data[field.key] ?? ''}
+                      onChange={e => setFieldValue(field, e.target.value)}
+                    />
+                    {field.maxLength && <TextLengthHint value={data[field.key]} max={field.maxLength} />}
+                  </>
                 ) : (
-                  <input
-                    id={`field-${field.key}`}
-                    type={field.type || 'text'}
-                    size={1}
-                    className="pg-input"
-                    style={{ fontSize: '0.8rem', padding: '4px 8px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
-                    value={data[field.key] ?? ''}
-                    onChange={e => setFieldValue(field, e.target.value)}
-                  />
+                  <>
+                    <input
+                      id={`field-${field.key}`}
+                      type={field.type || 'text'}
+                      size={1}
+                      className="pg-input"
+                      maxLength={field.maxLength}
+                      min={field.min}
+                      max={field.max}
+                      style={{ fontSize: '0.8rem', padding: '4px 8px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
+                      value={data[field.key] ?? ''}
+                      onChange={e => setFieldValue(field, e.target.value)}
+                    />
+                    {field.maxLength && <TextLengthHint value={data[field.key]} max={field.maxLength} />}
+                  </>
                 )}
               </div>
             ))}

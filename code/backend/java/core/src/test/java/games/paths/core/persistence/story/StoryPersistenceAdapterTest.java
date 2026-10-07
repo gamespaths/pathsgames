@@ -520,6 +520,22 @@ class StoryPersistenceAdapterTest {
             assertNull(story.getIdLocationStart());
         }
 
+        // v0.35.8 — three references point INTO a table the delete empties: an event chained
+        // to another event, a weather rule naming one, a location naming one. PostgreSQL
+        // refuses the delete of the referenced row while the pointer still stands.
+        @Test
+        @DisplayName("deleteStoryData clears the event chain and both event pointers first")
+        void deleteStoryData_clearsReferencesIntoEvents() {
+            adapter.deleteStoryData(1L);
+
+            var inOrder = inOrder(eventRepository, weatherRuleRepository, locationRepository);
+            inOrder.verify(eventRepository).clearEventChains(1L);
+            inOrder.verify(weatherRuleRepository).clearRuleEvents(1L);
+            inOrder.verify(locationRepository).clearLocationTriggerEvents(1L);
+            // and only then may the rows they named be removed
+            inOrder.verify(eventRepository).deleteByIdStory(1L);
+        }
+
         @Test
         @DisplayName("existsStoryId delegates to repository.existsById")
         void existsStoryId() {

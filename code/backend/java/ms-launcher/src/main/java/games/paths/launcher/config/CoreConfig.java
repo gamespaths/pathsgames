@@ -9,6 +9,8 @@ import games.paths.core.port.auth.GuestAuthPort;
 import games.paths.core.port.auth.SessionPort;
 import games.paths.core.port.auth.TokenPersistencePort;
 import games.paths.core.port.dev.TestDataCleanupPort;
+import games.paths.core.port.story.CatalogWriterPort;
+import games.paths.core.port.story.StoryCatalogExportPort;
 import games.paths.core.port.story.StoryCrudPort;
 import games.paths.core.port.story.StoryImportPort;
 import games.paths.core.port.story.StoryPersistencePort;
@@ -33,6 +35,7 @@ import games.paths.core.service.auth.GuestAdminService;
 import games.paths.core.service.auth.GuestAuthService;
 import games.paths.core.service.auth.SessionService;
 import games.paths.core.service.dev.TestDataCleanupService;
+import games.paths.core.service.story.StoryCatalogExportService;
 import games.paths.core.service.story.StoryCrudService;
 import games.paths.core.service.story.StoryImportService;
 import games.paths.core.service.story.StoryQueryService;
@@ -51,6 +54,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -79,14 +83,29 @@ public class CoreConfig {
     @Value("${game.auth.max-tokens-per-user:5}")
     private int maxTokensPerUser;
 
+    // v0.41.0 — cap of one match-less guest purge (the daily job and withoutMatches=true)
+    @Value("${game.admin.auth.guest.cleanup.max-per-run:500}")
+    private int guestCleanupMaxPerRun = GuestAdminService.DEFAULT_MAX_PER_RUN;
+
+    // v0.37.6 — languages written by POST /api/admin/stories/catalog.
+    @Value("${game.catalog.langs:en,it}")
+    private List<String> catalogLangs;
+
     @Value("${game.turnstile.secret-key:}")
     private String turnstileSecretKey;
 
     @Value("${game.turnstile.bypass-token:}")
     private String turnstileBypassToken;
 
-    @Value("${game.env:dev}")
-    private String gameEnv;
+    // v0.37.7 — Step 41 security: rate-limit window and the CSRF secret/switch.
+    @Value("${game.security.rate-limit.window-seconds:3600}")
+    private int rateLimitWindowSeconds;
+
+    @Value("${game.security.csrf.secret:${game.auth.jwt.secret}}")
+    private String csrfSecret;
+
+    @Value("${game.security.csrf.enforced:true}")
+    private boolean csrfEnforced;
 
     @Bean
     public EchoPort echoPort() {
@@ -105,8 +124,12 @@ public class CoreConfig {
     }
 
     @Bean
-    public GuestAdminPort guestAdminPort(GuestAdminPersistencePort persistencePort) {
-        return new GuestAdminService(persistencePort);
+    public GuestAdminPort guestAdminPort(GuestAdminPersistencePort persistencePort,
+                                         games.paths.core.port.match.MatchPersistencePort matchPersistencePort) {
+        // v0.36.2 — the stale purge takes a guest's matches with it, so it needs both ports.
+        GuestAdminService service = new GuestAdminService(persistencePort, matchPersistencePort);
+        service.setMaxPerRun(guestCleanupMaxPerRun);
+        return service;
     }
 
     @Bean
@@ -128,6 +151,12 @@ public class CoreConfig {
     public StoryImportPort storyImportPort(StoryPersistencePort storyPersistencePort,
             StoryValidatorPort storyValidatorPort) {
         return new StoryImportService(storyPersistencePort, storyValidatorPort);
+    }
+
+    @Bean
+    public StoryCatalogExportPort storyCatalogExportPort(StoryQueryPort storyQueryPort,
+            CatalogWriterPort catalogWriterPort) {
+        return new StoryCatalogExportService(storyQueryPort, catalogWriterPort, catalogLangs);
     }
 
     @Bean
@@ -154,19 +183,78 @@ public class CoreConfig {
     }
 
     @Bean
-    public TurnstileVerificationPort turnstileVerificationPort(RestTemplate restTemplate) {
-        return new TurnstileVerificationAdapter(
-                turnstileSecretKey, turnstileBypassToken, gameEnv, restTemplate);
+    public games.paths.core.service.security.RateLimitService rateLimitService() {
+        return new games.paths.core.service.security.RateLimitService(rateLimitWindowSeconds);
     }
 
     @Bean
+    public games.paths.core.service.security.CsrfTokenService csrfTokenService() {
+        return new games.paths.core.service.security.CsrfTokenService(csrfSecret, csrfEnforced);
+    }
+
+    @Bean
+    public TurnstileVerificationPort turnstileVerificationPort(RestTemplate restTemplate) {
+        // v0.41.0 — the profile's game.server.env, not game.env (no script ever set APP_ENV)
+        return new TurnstileVerificationAdapter(
+                turnstileSecretKey, turnstileBypassToken, serverEnv, restTemplate);
+    }
+
+    // ───── Step 36: Registry (reads, writes and comparisons of gaming_state_registry) ─────
+
+    @Bean
+    public games.paths.core.service.match.RegistryService registryService(
+            games.paths.core.port.match.RegistryStorePort registryStorePort,
+            StoryReadPort storyReadPort,
+            ContentQueryPort contentQueryPort) {
+        return new games.paths.core.service.match.RegistryService(registryStorePort,
+                storyReadPort, contentQueryPort);
+    }
+
+    // ───── v0.41.2 Step 41 F: KPI counters (best effort) and the admin report ─────
+
+    @Bean
+    public games.paths.core.port.match.KpiPort kpiPort(games.paths.core.port.match.KpiStorePort kpiStorePort) {
+        return new games.paths.core.service.match.KpiService(kpiStorePort);
+    }
+
+    // ───── Step 37: Missions (a projection of the registry, with its own status machine) ─────
+
+    /**
+     * The engine and the registry know each other in a circle: the registry tells it a value
+     * moved, and it reads the registry back to decide what that means. One setter, called here.
+     */
+    @Bean
+    public games.paths.core.service.match.MissionService missionService(
+            games.paths.core.port.match.RegistryStorePort registryStorePort,
+            StoryReadPort storyReadPort,
+            ContentQueryPort contentQueryPort,
+            games.paths.core.service.match.RegistryService registryService,
+            games.paths.core.port.match.KpiPort kpiPort) {
+        games.paths.core.service.match.MissionService service =
+                new games.paths.core.service.match.MissionService(registryStorePort,
+                        storyReadPort, contentQueryPort);
+        registryService.setMissionService(service);
+        service.setKpi(kpiPort);
+        return service;
+    }
+
+    @Bean
+    @SuppressWarnings("java:S107")
     public MatchCommandPort matchCommandPort(StoryReadPort storyReadPort,
                                              MatchPersistencePort matchPersistencePort,
                                              UserAccessPort userAccessPort,
                                              SystemModePort systemModePort,
-                                             TurnstileVerificationPort turnstileVerificationPort) {
-        return new MatchCommandService(storyReadPort, matchPersistencePort,
-                userAccessPort, systemModePort, turnstileVerificationPort);
+                                             TurnstileVerificationPort turnstileVerificationPort,
+                                             games.paths.core.service.match.RegistryService registryService,
+                                             games.paths.core.service.match.MissionService missionService,
+                                             games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort,
+                                             games.paths.core.port.match.KpiPort kpiPort) {
+        MatchCommandService service = new MatchCommandService(storyReadPort, matchPersistencePort,
+                userAccessPort, systemModePort, turnstileVerificationPort, registryService);
+        service.setMissionService(missionService);
+        service.setLogWriter(matchLogWriterPort);
+        service.setKpi(kpiPort);
+        return service;
     }
 
     @Bean
@@ -178,26 +266,49 @@ public class CoreConfig {
             CharacterReadPort characterReadPort,
             ContentQueryPort contentQueryPort,
             games.paths.core.port.match.MovementStorePort movementStorePort,
-            games.paths.core.port.match.EventExecutionStorePort eventExecutionStorePort) {
-        return new MatchQueryService(matchReadPort, storyReadPort, userAccessPort,
-                characterReadPort, contentQueryPort, movementStorePort, eventExecutionStorePort);
+            games.paths.core.port.match.EventExecutionStorePort eventExecutionStorePort,
+            games.paths.core.service.match.RegistryService registryService,
+            games.paths.core.service.match.MissionService missionService) {
+        MatchQueryService service = new MatchQueryService(matchReadPort, storyReadPort,
+                userAccessPort, characterReadPort, contentQueryPort, movementStorePort,
+                eventExecutionStorePort, registryService);
+        service.setMissionService(missionService);
+        return service;
     }
 
     // ───── Step 24: Turn cycle engine (single-player) ─────
 
     @Bean
     public games.paths.core.service.match.WeatherSelectionService weatherSelectionService(
-            games.paths.core.port.match.WeatherStorePort weatherStorePort) {
-        return new games.paths.core.service.match.WeatherSelectionService(weatherStorePort);
+            games.paths.core.port.match.WeatherStorePort weatherStorePort,
+            games.paths.core.service.match.RegistryService registryService) {
+        return new games.paths.core.service.match.WeatherSelectionService(weatherStorePort,
+                registryService);
+    }
+
+    // Step 39 - picks the day's random event after the weather.
+    @Bean
+    public games.paths.core.service.match.RandomEventSelectionService randomEventSelectionService(
+            games.paths.core.port.match.RandomEventStorePort randomEventStorePort,
+            games.paths.core.service.match.RegistryService registryService) {
+        return new games.paths.core.service.match.RandomEventSelectionService(randomEventStorePort,
+                registryService);
     }
 
     @Bean
     public games.paths.core.port.match.TurnCyclePort turnCyclePort(
             games.paths.core.port.match.TurnCycleStorePort turnCycleStorePort,
             UserAccessPort userAccessPort,
-            games.paths.core.service.match.WeatherSelectionService weatherSelectionService) {
-        return new games.paths.core.service.match.TurnCycleService(
-                turnCycleStorePort, userAccessPort, weatherSelectionService);
+            games.paths.core.service.match.WeatherSelectionService weatherSelectionService,
+            games.paths.core.service.match.RegistryService registryService,
+            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort,
+            games.paths.core.port.match.KpiPort kpiPort) {
+        games.paths.core.service.match.TurnCycleService service =
+                new games.paths.core.service.match.TurnCycleService(
+                        turnCycleStorePort, userAccessPort, weatherSelectionService, registryService);
+        service.setLogWriter(matchLogWriterPort);
+        service.setKpi(kpiPort);
+        return service;
     }
 
     // ───── Step 25: Time advancement & clock cycle (single-player) ─────
@@ -210,9 +321,12 @@ public class CoreConfig {
     @Bean
     public games.paths.core.service.match.TimeStartRecoveryService timeStartRecoveryService(
             games.paths.core.port.match.RecoveryStorePort recoveryStorePort,
-            games.paths.core.port.match.EdgeStateStorePort edgeStateStorePort) {
-        return new games.paths.core.service.match.TimeStartRecoveryService(
-                recoveryStorePort, edgeStateStorePort);
+            games.paths.core.port.match.EdgeStateStorePort edgeStateStorePort,
+            games.paths.core.port.match.KpiPort kpiPort) {
+        games.paths.core.service.match.TimeStartRecoveryService service =
+                new games.paths.core.service.match.TimeStartRecoveryService(recoveryStorePort, edgeStateStorePort);
+        service.setKpi(kpiPort);
+        return service;
     }
 
     /**
@@ -226,10 +340,77 @@ public class CoreConfig {
             UserAccessPort userAccessPort,
             games.paths.core.port.event.DomainEventPublisher domainEventPublisher,
             games.paths.core.service.match.TimeStartRecoveryService timeStartRecoveryService,
-            games.paths.core.service.match.WeatherSelectionService weatherSelectionService) {
-        return new games.paths.core.service.match.TimeAdvancementService(
-                turnCycleStorePort, userAccessPort, domainEventPublisher,
-                timeStartRecoveryService, weatherSelectionService);
+            games.paths.core.service.match.WeatherSelectionService weatherSelectionService,
+            games.paths.core.service.match.RandomEventSelectionService randomEventSelectionService,
+            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort) {
+        games.paths.core.service.match.TimeAdvancementService service =
+                new games.paths.core.service.match.TimeAdvancementService(
+                        turnCycleStorePort, userAccessPort, domainEventPublisher,
+                        timeStartRecoveryService, weatherSelectionService, randomEventSelectionService);
+        service.setLogWriter(matchLogWriterPort);
+        return service;
+    }
+
+    /** v0.41.1 - Step 41 B snapshots; the time engine and the restore know each other through setters. */
+    @Bean
+    public games.paths.core.service.match.SnapshotService snapshotService(
+            games.paths.core.port.match.SnapshotStorePort snapshotStorePort,
+            games.paths.core.service.match.TimeAdvancementService timeAdvancementService,
+            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort,
+            @Value("${game.snapshot.keep-per-match:10}") int keepPerMatch) {
+        games.paths.core.service.match.SnapshotService service =
+                new games.paths.core.service.match.SnapshotService(snapshotStorePort, keepPerMatch);
+        service.setTimeService(timeAdvancementService);
+        service.setLogWriter(matchLogWriterPort);
+        timeAdvancementService.setSnapshotWriter(service);
+        return service;
+    }
+
+    /** v0.41.4 - Step 41 H: the internal story exporter (admin only, decision 62). */
+    @Bean
+    public games.paths.core.port.story.StoryExportPort storyExportPort(StoryCrudPort storyCrudPort) {
+        return new games.paths.core.service.story.StoryExportService(storyCrudPort);
+    }
+
+    /** v0.41.4 - Step 41 H: match export and import in the neutral format (decisions 45-66). */
+    @Bean
+    @SuppressWarnings("java:S107")
+    public games.paths.core.port.match.MatchExportPort matchExportPort(
+            games.paths.core.port.match.MatchExportStorePort matchExportStorePort,
+            games.paths.core.port.match.SnapshotStorePort snapshotStorePort,
+            games.paths.core.service.match.SnapshotService snapshotService,
+            games.paths.core.service.match.TimeAdvancementService timeAdvancementService,
+            games.paths.core.port.story.StoryExportPort storyExportPort,
+            StoryImportPort storyImportPort, StoryValidatorPort storyValidatorPort,
+            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort,
+            MatchCommandPort matchCommandPort,
+            @Value("${game.match.export.max-bytes:5000000}") long maxBytes) {
+        games.paths.core.service.match.MatchImportService importer =
+                new games.paths.core.service.match.MatchImportService(matchExportStorePort, snapshotStorePort,
+                        storyExportPort, storyImportPort, storyValidatorPort, serverVersion, maxBytes);
+        importer.setEngine(snapshotService, timeAdvancementService, matchLogWriterPort, matchCommandPort);
+        games.paths.core.service.match.MatchExportService service =
+                new games.paths.core.service.match.MatchExportService(snapshotStorePort, snapshotService,
+                        matchExportStorePort, storyExportPort, importer, serverVersion, serverEnv, maxBytes);
+        service.setLogWriter(matchLogWriterPort);
+        service.setMatchCommands(matchCommandPort);
+        return service;
+    }
+
+    /** v0.41.6 - the admin User tab: owner view, user preview and owner move. */
+    @Bean
+    public games.paths.core.port.match.MatchOwnerPort matchOwnerPort(MatchPersistencePort matchPersistencePort,
+            CharacterReadPort characterReadPort,
+            games.paths.core.port.match.UserDirectoryPort userDirectoryPort,
+            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort) {
+        return new games.paths.core.service.match.MatchOwnerService(matchPersistencePort, characterReadPort,
+                userDirectoryPort, matchLogWriterPort);
+    }
+
+    @Bean
+    public games.paths.core.port.match.SnapshotPort snapshotPort(
+            games.paths.core.service.match.SnapshotService snapshotService) {
+        return snapshotService;
     }
 
     @Bean
@@ -245,9 +426,11 @@ public class CoreConfig {
             games.paths.core.port.match.MovementStorePort movementStorePort,
             UserAccessPort userAccessPort,
             ContentQueryPort contentQueryPort,
-            games.paths.core.port.match.LocationEntryPort locationEntryPort) {
+            games.paths.core.port.match.LocationEntryPort locationEntryPort,
+            games.paths.core.service.match.RegistryService registryService) {
         return new games.paths.core.service.match.MovementService(
-                movementStorePort, userAccessPort, contentQueryPort, locationEntryPort);
+                movementStorePort, userAccessPort, contentQueryPort, locationEntryPort,
+                registryService);
     }
 
     // ───── Step 29: Normal events (player-triggered actions) ─────
@@ -262,22 +445,34 @@ public class CoreConfig {
      * the two apart would only produce a dependency cycle.
      */
     @Bean
+    @SuppressWarnings("java:S107")
     public games.paths.core.service.match.EventExecutionService eventExecutionService(
             games.paths.core.port.match.EventExecutionStorePort eventExecutionStorePort,
             games.paths.core.port.match.EdgeStateStorePort edgeStateStorePort,
             UserAccessPort userAccessPort,
             ContentQueryPort contentQueryPort,
             games.paths.core.service.match.TimeAdvancementService timeAdvancementService,
-            games.paths.core.port.match.LocationEntryStorePort locationEntryStorePort) {
+            games.paths.core.port.match.LocationEntryStorePort locationEntryStorePort,
+            games.paths.core.service.match.RegistryService registryService,
+            games.paths.core.service.match.MissionService missionService,
+            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort,
+            games.paths.core.port.match.KpiPort kpiPort) {
         games.paths.core.service.match.EventExecutionService service =
                 new games.paths.core.service.match.EventExecutionService(
                         eventExecutionStorePort, edgeStateStorePort, userAccessPort,
-                        contentQueryPort, timeAdvancementService, locationEntryStorePort);
+                        contentQueryPort, timeAdvancementService, locationEntryStorePort,
+                        registryService);
+        service.setLogWriter(matchLogWriterPort);
+        service.setKpi(kpiPort);
         // Closes the one cycle in the graph: the event engine needs the time engine for
         // flag_end_time, and the time engine needs the event engine to run what a time-start
         // set off. Constructor injection either way is impossible; this setter is called once,
         // here, and never again.
         timeAdvancementService.setAutomaticEventRunner(service);
+        // Step 37 - the second cycle, closed the same way: a mission completion runs an event,
+        // and an event moves the registry that decides the mission.
+        service.setMissionService(missionService);
+        missionService.setEventPort(service);
         return service;
     }
 
@@ -311,6 +506,17 @@ public class CoreConfig {
                 inventoryStorePort, userAccessPort, contentQueryPort, storyReadPort, eventExecutionService);
     }
 
+    /** Step 38 — experience spent on a stat; prices with the difficulty row, logs EXP_USE.
+     *  v0.38.3 — writes the declared use-exp keys on the registry, so a mission can wait for it. */
+    @Bean
+    public games.paths.core.port.match.ExperiencePort experiencePort(
+            games.paths.core.port.match.ExperienceStorePort experienceStorePort,
+            UserAccessPort userAccessPort,
+            games.paths.core.service.match.RegistryService registryService) {
+        return new games.paths.core.service.match.ExperienceService(experienceStorePort, userAccessPort,
+                registryService);
+    }
+
     // ───── Step 21: Character template & class selection ─────
 
     @Bean
@@ -318,9 +524,12 @@ public class CoreConfig {
                                                      MatchReadPort matchReadPort,
                                                      UserAccessPort userAccessPort,
                                                      CharacterPersistencePort characterPersistencePort,
-                                                     CharacterReadPort characterReadPort) {
-        return new CharacterCommandService(storyReadPort, matchReadPort,
+                                                     CharacterReadPort characterReadPort,
+                                                     games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort) {
+        CharacterCommandService service = new CharacterCommandService(storyReadPort, matchReadPort,
                 userAccessPort, characterPersistencePort, characterReadPort);
+        service.setLogWriter(matchLogWriterPort);
+        return service;
     }
 
     @Bean
@@ -339,9 +548,13 @@ public class CoreConfig {
     public games.paths.core.port.match.MatchLogsPort matchLogsPort(
             games.paths.core.port.match.MatchLogsStorePort matchLogsStorePort,
             UserAccessPort userAccessPort,
-            games.paths.core.port.story.ContentQueryPort contentQueryPort) {
-        return new games.paths.core.service.match.MatchLogsService(
-                matchLogsStorePort, userAccessPort, contentQueryPort);
+            games.paths.core.port.story.ContentQueryPort contentQueryPort,
+            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort) {
+        games.paths.core.service.match.MatchLogsService service =
+                new games.paths.core.service.match.MatchLogsService(
+                        matchLogsStorePort, userAccessPort, contentQueryPort);
+        service.setLogWriter(matchLogWriterPort);
+        return service;
     }
 
     // ───── Dev-only test-data cleanup ─────

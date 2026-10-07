@@ -2,6 +2,7 @@ package games.paths.core.service.match;
 
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.TurnStatuses;
+import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.TurnCyclePort;
 import games.paths.core.port.match.TurnCyclePort.TurnCycleException;
 import games.paths.core.port.match.TurnCycleStorePort;
@@ -76,6 +77,54 @@ class TurnCycleServiceTest {
         }
 
         @Test
+        @DisplayName("v0.37.1 - the start location writes its first-entry key as the match starts")
+        void writesTheStartLocationRegistry() {
+            RegistryService registry = mock(RegistryService.class);
+            TurnCycleService withRegistry =
+                    new TurnCycleService(store, userAccessPort, null, registry);
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match(MatchStatuses.CREATED, null)));
+            when(store.findCharactersByMatchId(1L)).thenReturn(
+                    List.of(character(20L, "char-weak", 1, 1, 1, 5),
+                            character(10L, "char-strong", 10, 10, 10, 50)));
+
+            withRegistry.startMatch(MATCH, USER);
+
+            // The character that got the first turn owns the row, and the clock is still 0.
+            verify(registry).writeStartLocationEntry(1L, 10L, 0);
+        }
+
+        @Test
+        @DisplayName("v0.41.1 - the start writes MATCH_STARTED before the weather is picked")
+        void startWritesTheLifecycleRowFirst() {
+            MatchLogWriterPort writer = mock(MatchLogWriterPort.class);
+            WeatherSelectionService weather = mock(WeatherSelectionService.class);
+            TurnCycleService withWeather = new TurnCycleService(store, userAccessPort, weather);
+            withWeather.setLogWriter(writer);
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match(MatchStatuses.CREATED, null)));
+            when(store.findCharactersByMatchId(1L)).thenReturn(List.of(character(10L, "c", 1, 1, 1, 5)));
+
+            withWeather.startMatch(MATCH, USER);
+
+            org.mockito.InOrder order = inOrder(writer, weather);
+            order.verify(writer).write(1L, null, null, 0, "MATCH_STARTED");
+            order.verify(weather).applyAtTimeStart(1L);
+        }
+
+        @Test
+        @DisplayName("v0.41.2 - the start stamps timestamp_start and counts one MATCH_STARTED")
+        void startCountsTheKpi() {
+            games.paths.core.port.match.KpiPort kpi = mock(games.paths.core.port.match.KpiPort.class);
+            service.setKpi(kpi);
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match(MatchStatuses.CREATED, null)));
+            when(store.findCharactersByMatchId(1L)).thenReturn(List.of(character(10L, "c", 1, 1, 1, 5)));
+
+            service.startMatch(MATCH, USER);
+
+            verify(store).stampMatchStart(1L);
+            verify(kpi).recordForMatch(1L, games.paths.core.port.match.KpiPort.Metric.MATCH_STARTED, null, 1);
+        }
+
+        @Test
         @DisplayName("MATCH_NOT_FOUND when caller is not the creator")
         void notOwner() {
             when(store.findMatchByUuid(MATCH)).thenReturn(
@@ -126,6 +175,24 @@ class TurnCycleServiceTest {
                     .anyMatch(r -> r.idCharacterMatch() == 10L && TurnStatuses.COMPLETED.equals(r.status())
                             && r.passCounter() == 1));
             verify(store).updateMatchStatusAndTurn(1L, MatchStatuses.RUNNING, 20L);
+        }
+
+        @Test
+        @DisplayName("v0.41.1 - a pass writes an ACTION_PASS row for the character that passed")
+        void passWritesTheTimelineRow() {
+            MatchLogWriterPort writer = mock(MatchLogWriterPort.class);
+            service.setLogWriter(writer);
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match(MatchStatuses.RUNNING, 10L)));
+            when(store.findCharactersByMatchId(1L)).thenReturn(List.of(
+                    character(10L, "char-a", 10, 10, 10, 50),
+                    character(20L, "char-b", 5, 5, 5, 20)));
+            when(store.findQueueByMatchId(1L)).thenReturn(List.of(
+                    new QueueRow(10L, "q-a", 0, 73201L, TurnStatuses.ACTIVE, 0, null, null),
+                    new QueueRow(20L, "q-b", 0, 30201L, TurnStatuses.WAITING, 0, null, null)));
+
+            service.passTurn(MATCH, USER);
+
+            verify(writer).write(1L, 10L, null, 0, "ACTION_PASS");
         }
 
         @Test

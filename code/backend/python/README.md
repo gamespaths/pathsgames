@@ -115,7 +115,7 @@ code/scripts/test/build_docker_python_test_and_push.sh --dry-run
 This is the Python counterpart of `build_docker_test_and_push.sh` (Java). After pushing,
 use `code/scripts/test/aws_ec2_with_python_docker/redeploy.sh` to roll the image onto a
 running EC2 instance (server3), or `start.sh` to launch a fresh one. See
-`documentation_v0/Step20_GameWebSiteFirstRun.md` — "EC2 Docker Deploy (Python / server3)"
+`wiki/documentation_v0/Step20_GameWebSiteFirstRun.md` — "EC2 Docker Deploy (Python / server3)"
 for full details.
 
 ### Useful Docker commands
@@ -149,12 +149,16 @@ docker rmi pathsgames-backend-python
 | GET | `/api/stories` | List stories (can filter by language `?lang=en`) |
 | GET | `/api/stories/{uuid}` | Get story details |
 | GET | `/api/admin/stories` | List all stories (including non-public) |
-| POST | `/api/admin/stories/import` | Import a JSON story tree |
+| POST | `/api/admin/stories/import` | Import a JSON story tree; top-level `uuid` normalized and validated (`R0_STORY_UUID`, 400 `INVALID_STORY`; v0.41.5) |
 | DELETE | `/api/admin/stories/{uuid}` | Delete story by UUID |
 | POST | `/api/matches` | Create a new single-player match |
 | GET | `/api/matches` | List matches owned by the authenticated user |
 | GET | `/api/match/{uuid}/info` | Match runtime state (summary, location/registry state) |
 | GET | `/api/admin/matches` | List all matches on the platform (ADMIN only) — paged envelope `{items, nextCursor, limit}`; query params: `limit`, `cursor`, `status`, `userUuid`, `storyUuid`, `sinceDays` |
+| GET | `/api/admin/matches/{uuidMatch}/export` | Export a match from its latest time-end snapshot as a neutral "match export v1" file (ADMIN only; v0.41.4) |
+| POST | `/api/admin/matches/import` | Dry-run or import a match export file; 413 above `MATCH_EXPORT_MAX_BYTES` (default 5000000, `config.py`). Users matched by uuid then e-mail; new column `users.email_address` + index `idx_users_email` added by `align_schema` (v0.41.4) |
+| GET / PUT | `/api/admin/matches/{uuidMatch}/owner` | Read the owner / move the creator and the characters to another user (uuid, e-mail or username; 409 on terminal, multi-character, not-eligible or duplicate-active target; ADMIN, admin port; `match_owner_service.py`, v0.41.6) |
+| GET | `/api/admin/users/{identifier}` | One user by uuid, e-mail or username, the owner-move preview (ADMIN, admin port; `user_admin_controller.py`, `user_directory_adapter`; v0.41.6) |
 
 ## Architecture
 
@@ -213,7 +217,7 @@ PYTHONPATH=. pytest -v tests/
 
 # Version Control
 - Starting from 0.12.2 version, code is created with AI prompt:
-    > Ciao, read all "documentation_v0" and ""code/backend" content, now i wanna create "code/backend/python" project, let's go!
+    > Ciao, read all "wiki/documentation_v0" and ""code/backend" content, now i wanna create "code/backend/python" project, let's go!
 
     > add into readme file a "test" section with all curl calls
 
@@ -263,7 +267,3 @@ Narrative Content & Assets: The story, dialogues, characters, sounds, musics, pa
 
 
 (ITA) Il software è distribuito secondo i termini della GNU General Public License v3.0. L'uso, la modifica e la ridistribuzione sono consentiti, a condizione che ogni copia o lavoro derivato sia rilasciato con la stessa licenza. Il contenuto è fornito "così com'è", senza alcuna garanzia, esplicita o implicita.
-
-
-
-

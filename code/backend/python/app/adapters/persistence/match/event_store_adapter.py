@@ -24,7 +24,9 @@ from app.adapters.persistence.story.models import (
 )
 from app.core.models.match.event_models import EventCheckContext
 from app.core.ports.match.event_ports import MSG_EVENT_EXECUTED, EventStorePort
+from app.core.services.match.registry_service import render as registry_render
 from app.adapters.persistence.auth.models import User
+from app.adapters.persistence.match.log_ids import next_log_id
 
 
 def _now_iso() -> str:
@@ -178,12 +180,16 @@ class EventStoreAdapter(EventStorePort):
                 if i.id_item is not None and (i.amount or 0) > 0
             }
 
-            registry = {
-                r.key: _registry_value(r)
-                for r in session.query(GamingStateRegistryEntity).filter(
-                    GamingStateRegistryEntity.id_match == id_match).all()
-                if r.key
-            }
+            # Step 36.1 — one entry per key holding its whole set. A multi-valued key owns
+            # several rows, and the flat dict this used to build kept only the last one.
+            registry = {}
+            for r in session.query(GamingStateRegistryEntity).filter(
+                    GamingStateRegistryEntity.id_match == id_match).all():
+                if r.key:
+                    value = registry_render(r.string_value, r.int_value)
+                    bucket = registry.setdefault(r.key, [])
+                    if value is not None:
+                        bucket.append(value)
 
             m = session.query(GamingMatchEntity).filter(
                 GamingMatchEntity.id == id_match).first()
@@ -347,29 +353,6 @@ class EventStoreAdapter(EventStorePort):
             session.commit()
             return True
 
-    def upsert_registry(self, id_match: int, key: str, value: Optional[str],
-                        id_character: Optional[int], id_event: Optional[int],
-                        clock: int) -> None:
-        if not key or not str(key).strip():
-            return
-        with self.session_factory() as session:
-            row = session.query(GamingStateRegistryEntity).filter(
-                GamingStateRegistryEntity.id_match == id_match,
-                GamingStateRegistryEntity.key == key).first()
-            now = _now_iso()
-            if not row:
-                row = GamingStateRegistryEntity(
-                    id=_next_id(session, GamingStateRegistryEntity, id_match),
-                    id_match=id_match, uuid=str(uuid_lib.uuid4()), key=key,
-                    ts_insert=now, ts_update=now)
-                session.add(row)
-            _apply_registry_value(row, value)
-            row.id_character = id_character
-            row.id_event = id_event
-            row.clock = clock
-            row.ts_update = now
-            session.commit()
-
     def set_current_weather(self, id_match: int, id_weather: Optional[int]) -> None:
         with self.session_factory() as session:
             m = session.query(GamingMatchEntity).filter(
@@ -395,11 +378,10 @@ class EventStoreAdapter(EventStorePort):
                             energy_cost: int, food_cost: int = 0,
                             magic_cost: int = 0, coin_cost: int = 0) -> None:
         with self.session_factory() as session:
-            max_id = session.query(LogMovementEntity.id).order_by(
-                LogMovementEntity.id.desc()).first()
+            next_id = next_log_id(session, LogMovementEntity)
             now = _now_iso()
             session.add(LogMovementEntity(
-                id=((max_id[0] if max_id else 0) or 0) + 1,
+                id=next_id,
                 id_match=id_match, uuid=str(uuid_lib.uuid4()),
                 id_character_match=id_character,
                 id_location_from=from_location, id_location_to=to_location,
@@ -414,11 +396,10 @@ class EventStoreAdapter(EventStorePort):
                            coin_cost: int = 0, gained=None) -> None:
         g = gained or {}
         with self.session_factory() as session:
-            max_id = session.query(LogEventsEntity.id).order_by(
-                LogEventsEntity.id.desc()).first()
+            next_id = next_log_id(session, LogEventsEntity)
             now = _now_iso()
             session.add(LogEventsEntity(
-                id=((max_id[0] if max_id else 0) or 0) + 1,
+                id=next_id,
                 id_match=id_match, uuid=str(uuid_lib.uuid4()),
                 id_character_match=id_character, id_event=id_event, clock=clock,
                 log_message=message, timestamp=now, ts_insert=now, ts_update=now,
@@ -433,12 +414,10 @@ class EventStoreAdapter(EventStorePort):
                         delta=None, id_event=None) -> None:
         d = delta or {}
         with self.session_factory() as session:
-            # Table-wide max: log_item_usage carries UNIQUE (id), like log_events.
-            max_id = session.query(LogItemUsageEntity.id).order_by(
-                LogItemUsageEntity.id.desc()).first()
+            next_id = next_log_id(session, LogItemUsageEntity)
             now = _now_iso()
             session.add(LogItemUsageEntity(
-                id=((max_id[0] if max_id else 0) or 0) + 1,
+                id=next_id,
                 id_match=id_match, uuid=str(uuid_lib.uuid4()),
                 id_character_match=id_character, id_item=id_item, counter=counter,
                 action=action, id_event=id_event,
@@ -527,11 +506,10 @@ class EventStoreAdapter(EventStorePort):
     def log_choice_executed(self, id_match: int, id_event: int, id_choice: int,
                             clock: int, message: str) -> None:
         with self.session_factory() as session:
-            max_id = session.query(LogChoicesExecutedEntity.id).order_by(
-                LogChoicesExecutedEntity.id.desc()).first()
+            next_id = next_log_id(session, LogChoicesExecutedEntity)
             now = _now_iso()
             session.add(LogChoicesExecutedEntity(
-                id=((max_id[0] if max_id else 0) or 0) + 1,
+                id=next_id,
                 id_match=id_match, uuid=str(uuid_lib.uuid4()),
                 id_event=id_event, id_choise=id_choice, clock=clock,
                 log_message=message, ts_insert=now, ts_update=now))
@@ -618,6 +596,7 @@ def _event_dict(e: EventEntity) -> Dict[str, Any]:
         "id_specific_location": e.id_specific_location, "id_weather": e.id_weather,
         "registry_key_condition": e.registry_key_condition,
         "registry_value_condition": e.registry_value_condition,
+        "registry_value_operator_condition": e.registry_value_operator_condition,
         "id_item_condition": e.id_item_condition,
         "id_class_condition": e.id_class_condition,
     }
@@ -638,22 +617,3 @@ def _effect_dict(ef: EventEffectEntity) -> Dict[str, Any]:
     }
 
 
-def _registry_value(r: GamingStateRegistryEntity) -> Optional[str]:
-    """The string wins, else the int — mirrors the Java reader."""
-    if r.string_value is not None:
-        return r.string_value
-    return None if r.int_value is None else str(r.int_value)
-
-
-def _apply_registry_value(r: GamingStateRegistryEntity, value: Optional[str]) -> None:
-    """A numeric value lands in int_value, anything else in string_value (never both)."""
-    if value is None:
-        r.string_value = None
-        r.int_value = None
-        return
-    try:
-        r.int_value = int(str(value).strip())
-        r.string_value = None
-    except ValueError:
-        r.string_value = value
-        r.int_value = None

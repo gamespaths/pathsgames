@@ -1,33 +1,58 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '@/i18n/context'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
+import { usePolicyBook } from '@/context/PolicyBookContext'
 import Book from '@/components/book/Book'
 import Card from '@/components/layout/Card'
 import TurnstileWidget from '@/components/ui/TurnstileWidget'
 import useAntibot from '@/hooks/useAntibot'
 import { TURNSTILE_APPEARANCE } from '@/utils/turnstile'
-import { buildGameTypeCard, buildLoginCard, buildStatisticsCard, buildTermsCard } from '@/utils/loadoutCards'
+import { isRateLimited, rateLimitMessage, retryAfterSeconds } from '@/utils/rateLimit'
+import { buildCharacterAttributesCard, buildGameTypeCard, buildLoginCard, buildPhaseCard, buildStatisticsCard, buildTermsCard } from '@/utils/loadoutCards'
 import { createMatch, joinMatch, startMatch } from '@/api/matches'
 import CardPreviewModal from '@/components/modals/CardPreviewModal'
-import ConfirmStep from './ConfirmStep'
+// import ConfirmStep from './ConfirmStep' — "Start" moved onto the second bonuses card (v0.38.3).
 import MatchStatus from './MatchStatus'
 import { buildConfigStatistics } from '@/utils/bonusStats'
+import { traitBudgetItems } from '@/utils/traitBudget'
 
 /**
  * StartMatchFlow — the single match-setup surface, reached from the start book's
- * "Start Game". A book (story card left, the fixed gameType / login / terms
- * cards right) with the action area pinned to the page bottom, driving the
+ * "Start". A book (story card left, the fixed gameType / login / terms
+ * cards right) with the status area pinned to the page bottom, driving the
  * setup phases:
  *   1. antibot — Cloudflare Turnstile (fresh token sent to the backend).
- *   2. confirm — accept terms, then Start (ConfirmStep). Single-player only for
- *      now; the future multiplayer JOIN/lobby plugs in here.
- *   3. starting — countdown, then POST /api/matches with the full loadout.
- *   4. created  — countdown, then enter the game.
+ *   2. confirm — accept terms, then Start (the action of the last bonuses card,
+ *      locked until the gate passed). Single-player only for now; the future
+ *      multiplayer JOIN/lobby plugs in here.
+ *   3. starting — countdown, then create / join / start the match (one card each).
+ *   4. created  — no card, no API call: enter the game at once.
+ * Once Start is pressed the six cards give way to the story and the two statistics cards
+ * (checked) and one card per API phase (creating / joining / running), each spinning while it
+ * runs and checked once done; `created` has no card and enters the game at once.
  * Countdown length comes from `VITE_MATCH_START_DELAY` (seconds, default 20).
  */
 
 const DEFAULT_DELAY_SECONDS = 20
+
+/** The phase cards, one per API call, in order; 'starting' counts down on the first one. */
+const PHASES = ['creating', 'joining', 'running']
+
+/** Index of the phase card the flow is on (-1 before Start; past the last once created). */
+function activePhaseIndex(phase) {
+  const i = PHASES.indexOf(phase)
+  if (i >= 0) return i
+  if (phase === 'starting') return 0
+  return phase === 'created' ? PHASES.length : -1
+}
+
+const PHASE_STATUS_ICON = {
+  pending: 'fas fa-hourglass-half',
+  inProgress: 'fas fa-spinner fa-spin',
+  complete: 'fas fa-check',
+  failed: 'fas fa-exclamation-triangle',
+}
 
 /** Resolve the configured wait, falling back to the 20s default. */
 function delaySeconds() {
@@ -38,6 +63,7 @@ function delaySeconds() {
 export default function StartMatchFlow({ story, config, storyId }) {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const { openPolicyBook } = usePolicyBook()
   const { user } = useGuestUser()
   // Always challenge (cookie:false): the backend consumes a fresh single-use
   // token on match creation.
@@ -49,7 +75,14 @@ export default function StartMatchFlow({ story, config, storyId }) {
   const [countdown, setCountdown] = useState(delaySeconds())
   const [match, setMatch] = useState(null)
   const [errorMsg, setErrorMsg] = useState('')
+  // The phase whose call failed: its card reads "failed", the ones before it stay done.
+  const [failedPhase, setFailedPhase] = useState(null)
   const [preview,setPreview] = useState(false)
+  // Retry pending a fresh Turnstile token (the failed one is already burnt).
+  const [retryPending, setRetryPending] = useState(false)
+  // Read through a ref so an auto-refreshed token never restarts the countdown.
+  const tokenRef = useRef(gate.token)
+  useEffect(() => { tokenRef.current = gate.token }, [gate.token])
 
   function handleSelectionPreview(card, entityType , lockedReason , statItemsToPageContent) {
     setPreview(card ? { card, entityType, lockedReason, statItemsToPageContent } : null)
@@ -63,6 +96,10 @@ export default function StartMatchFlow({ story, config, storyId }) {
   }
 
   const goHome = useCallback(() => navigate('/'), [navigate])
+  // Back to the start book, with this loadout still selected (HomePage reopens the modal).
+  const goBackToBook = useCallback(
+    () => navigate('/', { state: { reopenStory: story, reopenConfig: config } }),
+    [navigate, story, config])
 
   // Drive a visible countdown for `seconds`, resolving when it reaches 0. Used
   // to pace the creating → joining → running steps so each phase message is
@@ -81,6 +118,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
   }), [])
 
   const runCreateMatch = useCallback(async () => {
+    let step = 'creating'
     setPhase('creating')
     try {
       // The selected loadout is reused for both create (stored on the match)
@@ -101,18 +139,20 @@ export default function StartMatchFlow({ story, config, storyId }) {
         name: story.title ?? story.name ?? null,
         ...loadout,
         singlePlayer: 1,
-        turnstileToken: gate.token,
+        turnstileToken: tokenRef.current,
       }
-      const created = await createMatch(payload, user?.accessToken)
+      const created = await createMatch(payload, user?.accessToken, user?.csrfToken)
       setMatch(created)
       await waitWithCountdown(delaySeconds())
       // Step 21 — auto-join: materialise the character in the freshly created
       // match before entering the game.
+      step = 'joining'
       setPhase('joining')
       await joinMatch(created.uuid, loadout, user?.accessToken)
       await waitWithCountdown(delaySeconds())
       // Step — transition the match CREATED → RUNNING so gameplay actions
       // (sleep / pass-turn) are accepted; without this they 409 MATCH_NOT_RUNNING.
+      step = 'running'
       setPhase('running')
       await startMatch(created.uuid, user?.accessToken)
       await waitWithCountdown(delaySeconds())
@@ -122,17 +162,24 @@ export default function StartMatchFlow({ story, config, storyId }) {
       // v0.32.1 — the backend refuses a second match on a story the player is
       // already playing. It is a rule, not a failure: say it in plain words
       // instead of showing the raw error code.
+      // v0.41.0 — a 429 (per-IP or per-guest limit) reads as a sentence with the wait.
       setErrorMsg(apiError === 'ACTIVE_MATCH_ALREADY_EXISTS'
         ? t('startMatch.errorActiveMatch')
-        : (apiError || e?.message || ''))
+        : isRateLimited(e)
+          ? rateLimitMessage(t, 'startMatch.errorRateLimited', retryAfterSeconds(e))
+          : (apiError || e?.message || ''))
+      setFailedPhase(step)
       setPhase('error')
     }
-  }, [story, config, user, gate.token, waitWithCountdown, t])
+  }, [story, config, user, waitWithCountdown, t])
 
-  // Timed phases: 'starting' counts down then creates the match; 'created'
-  // counts down then enters the game. Both reuse the same configured delay.
+  // 'starting' counts down then creates the match; 'created' (no card, no API call) enters the game at once.
   useEffect(() => {
-    if (phase !== 'starting' && phase !== 'created') return undefined
+    if (phase === 'created') {
+      navigate(`/play/${storyId}`, { state: { matchUuid: match?.uuid } })
+      return undefined
+    }
+    if (phase !== 'starting') return undefined
     let remaining = delaySeconds()
     setCountdown(remaining)
     const id = setInterval(() => {
@@ -140,43 +187,67 @@ export default function StartMatchFlow({ story, config, storyId }) {
       setCountdown(remaining > 0 ? remaining : 0)
       if (remaining <= 0) {
         clearInterval(id)
-        if (phase === 'starting') runCreateMatch()
-        else navigate(`/play/${storyId}`, { state: { matchUuid: match?.uuid } })
+        runCreateMatch()
       }
     }, 1000)
     return () => clearInterval(id)
   }, [phase, runCreateMatch, navigate, storyId, match])
 
-  // The (i) lens on the terms card opens the shared Terms & Conditions modal.
-  function openTermsModal() {
-    const el = document.getElementById('termsModal')
-    const Modal = window.bootstrap?.Modal
-    if (el && Modal) Modal.getOrCreateInstance(el).show()
+  // A retry never reuses `gate.token`: Turnstile tokens are single-use, so a
+  // second POST with the same one always fails. Re-challenge, then resume.
+  function handleRetry() {
+    setErrorMsg('')
+    setFailedPhase(null)
+    setRetryPending(true)
+    gate.retry()
   }
 
-  //statistics
+  useEffect(() => {
+    if (retryPending && gate.phase === 'ready') {
+      setRetryPending(false)
+      setPhase('starting')
+    }
+  }, [retryPending, gate.phase])
+
+  // The (i) lens on the terms card opens the Terms & Conditions book.
+  const openTermsModal = () => openPolicyBook('terms')
+
+  //statistics — first card: characteristics + carry; second: pools + trait cost used/max.
+  // The (i) of the first opens the attributes page (every non-zero attribute, then that cost).
   const statistics = buildConfigStatistics(config, t);
   const statisticsCard= buildStatisticsCard(t, statistics , story);
-  const statisticCard1 = statistics.filter(cat => ['dexterity', 'intelligence', 'constitution'].includes(cat.key)) ;
-  const statisticCard2 = statistics.filter(cat => ['life', 'energy', 'sad', 'weight'].includes(cat.key)) ;
+  const selectedTraitsForBadges = Array.isArray(config.traits) ? config.traits : (config.trait ? [config.trait] : [])
+  const budgetItems = traitBudgetItems(config.difficulty, selectedTraitsForBadges, t)
+  const statisticCard1 = statistics.filter(cat => ['dexterity', 'intelligence', 'constitution', 'weight'].includes(cat.key)) ;
+  const statisticCard2 = statistics.filter(cat => ['life', 'energy', 'sad'].includes(cat.key)).concat(budgetItems) ;
+  const attributesCard = buildCharacterAttributesCard(t)
+  const attributesStats = statistics.concat(budgetItems)
 
+  // "Start" is the action of the last bonuses card: locked while the antibot gate is still
+  // checking, while the terms are not accepted, and again once the match is being created.
+  const startReady = gate.phase === 'ready' && termsAccepted && phase === 'confirm'
+  const startLockReason = gate.phase !== 'ready' ? t('antibot.verifying')
+    : !termsAccepted ? t('startMatch.acceptTermsFirst')
+    : t('startMatch.starting')
 
   // Fixed cards shown in EVERY phase: game type, login mode and the terms
-  // (the only interactive one — its toggle gates the Start button).
+  // (the only interactive one — its toggle gates the Start action).
   const cardsBlock = (
     <div className="selection-list">
-      <Card card={story.card} entityType="story" label={t('book.story')} story={story} flagInformationCard={true} 
-        onPreview={() => handleSelectionPreview(story.card,"story")} />
-      <Card card={statisticsCard} entityType="bonuses" flagInformationCard={true} 
-        onPreview={() => handleSelectionPreview(statisticsCard,"bonuses", null ,statisticCard1) }       
-        statistics={statisticCard1} flagShowFullStatistics={true}  />
-      <Card card={statisticsCard} entityType="bonuses" 
-        onPreview={() => handleSelectionPreview(statisticsCard,"bonuses", null ,statisticCard2)}  flagInformationCard={true} 
-        statistics={statisticCard2} flagShowFullStatistics={true} />
+      <Card card={story.card} entityType="story" label={t('book.story')} story={story} flagInformationCard={false} 
+        onPreview={() => handleSelectionPreview(story.card,"story")}
+        onAction={goBackToBook} actionLabel={t('book.back')} actionIcon="fa-arrow-left" />
       <Card card={buildGameTypeCard(t)} entityType="gameType" label={t('book.single')} 
-        onPreview={() => handleSelectionPreview(buildGameTypeCard(t),"gameType")} story={story} locked />
+        onPreview={() => handleSelectionPreview(buildGameTypeCard(t),"gameType")} story={story} locked
+        lockInfo={{ kind: 'gameType', label: t('book.singlePlayer') }} />
+      <Card card={statisticsCard} entityType="bonuses" 
+        onPreview={() => handleSelectionPreview(attributesCard,"bonuses", null ,attributesStats) }       
+        flagInformationCard={true}
+        statistics={statisticCard1} flagShowFullStatistics={true} 
+         />
       <Card card={buildLoginCard(t)} entityType="login" label={t('book.login')} 
-        onPreview={() => handleSelectionPreview(buildLoginCard(t),"login")} story={story} locked />
+        onPreview={() => handleSelectionPreview(buildLoginCard(t),"login")} story={story} locked
+        lockInfo={{ kind: 'login', label: t('book.guestLock') }} />
       <Card card={buildTermsCard(t)} entityType="terms" label={t('book.terms')} 
         onPreview={openTermsModal}
         onSelect={() => setTermsAccepted(v => !v)}
@@ -184,14 +255,68 @@ export default function StartMatchFlow({ story, config, storyId }) {
         story={story}
         selected={termsAccepted}
       />
+      <Card card={statisticsCard} entityType="bonuses" 
+        onPreview={() => handleSelectionPreview(statisticsCard,"bonuses", null ,statisticCard2)}  
+        flagInformationCard={false}  hidePreview={true}
+        statistics={statisticCard2} flagShowFullStatistics={true}
+        onAction={startReady ? () => setPhase('starting') : undefined}
+        actionLabel={t('book.start')} actionIcon="fa-play"
+        locked={!startReady} lockInfo={{ kind: 'start', label: t('book.start') }}
+        lockedReason={startLockReason}
+        lockedIcon={gate.phase === 'checking' ? 'fas fa-spinner fa-spin' : 'fas fa-lock'} />
     </div>
   )
 
-  // Bottom action area (pinned to the page bottom): antibot → confirm → status.
-  let bottom
+  // After Start: the story and the two statistics cards (checked, "starting") then one card per
+  // phase, each locked under its own status — pending, spinning with the countdown, complete, or failed.
+  const startedLock = { locked: true, lockedIcon: 'fas fa-check', lockInfo: { kind: 'phase', label: t('startMatch.phaseStarting') },
+    additionalCardClasses: 'pg-card--phase pg-card--phase-complete' }
+  const activeIndex = phase === 'error' ? PHASES.indexOf(failedPhase) : activePhaseIndex(phase)
+  const phaseStatus = (i) => PHASES[i] === failedPhase ? 'failed'
+    : i < activeIndex ? 'complete' : i === activeIndex ? 'inProgress' : 'pending'
+  const phaseLabel = (status) => status === 'inProgress' && countdown > 0
+    ? `${t('startMatch.phaseInProgress')} (${countdown})`
+    : t(`startMatch.phase${status.charAt(0).toUpperCase()}${status.slice(1)}`)
+  const phasesBlock = (
+    <div className="selection-list">
+      <Card card={story.card} entityType="story" label={t('book.story')} story={story} {...startedLock} />
+      <Card card={statisticsCard} entityType="bonuses" flagInformationCard={true}
+        statistics={statisticCard1} flagShowFullStatistics={true} {...startedLock} />
+      <Card card={statisticsCard} entityType="bonuses" flagInformationCard={false} hidePreview={true}
+        statistics={statisticCard2} flagShowFullStatistics={true} {...startedLock} />
+      {PHASES.map((p, i) => {
+        const status = phaseStatus(i)
+        return (
+          <Card key={p} card={buildPhaseCard(p, t(`startMatch.phaseTitle.${p}`))} entityType="phase" story={story}
+            locked lockedIcon={PHASE_STATUS_ICON[status]} lockInfo={{ kind: 'phase', label: phaseLabel(status) }}
+            lockedReason={status === 'failed' ? errorMsg || undefined : undefined}
+            additionalCardClasses={`pg-card--phase pg-card--phase-${status}`} />
+        )
+      })}
+    </div>
+  )
+  const boardBlock = phase === 'confirm' ? cardsBlock : phasesBlock
+
+  // The widget stays mounted for the whole flow (hidden once passed): unmounting
+  // it kills Turnstile's auto-refresh and the 300s token expires before the POST.
+  const antibotWidget = (
+    <div className="start-match-antibot" hidden={gate.phase === 'ready'}>
+      <TurnstileWidget
+        key={gate.attempt}
+        appearance={TURNSTILE_APPEARANCE.config}
+        onSuccess={gate.onSuccess}
+        onError={gate.onError}
+        onExpire={gate.onExpire}
+      />
+    </div>
+  )
+
+  // Bottom status area (pinned to the page bottom): antibot, or the error with its retry.
+  // Nothing while confirming (Start sits on its card) nor while the phase cards run.
+  let bottom = null
   if (gate.phase === 'checking' || gate.phase === 'error') {
-    bottom = <AntibotBlock gate={gate} t={t} onHome={goHome} />
-  } else if (phase === 'confirm') {
+    bottom = <AntibotBlock gate={gate} t={t} />
+  /* } else if (phase === 'confirm') {
     // Single-player for now; future multiplayer JOIN/lobby branches here.
     bottom = (
       <ConfirmStep
@@ -199,15 +324,14 @@ export default function StartMatchFlow({ story, config, storyId }) {
         onStart={() => setPhase('starting')}
         onHome={goHome}
       />
-    )
-  } else {
+    ) */
+  } else if (phase === 'error') {
     bottom = (
       <MatchStatus
         phase={phase}
         countdown={countdown}
         errorMsg={errorMsg}
-        onRetry={() => { setErrorMsg(''); setPhase('starting') }}
-        onHome={goHome}
+        onRetry={handleRetry}
         t={t}
       />
     )
@@ -218,11 +342,12 @@ export default function StartMatchFlow({ story, config, storyId }) {
     <Book
       overlayClass="book-overlay start-match-overlay "
       wrapperClass="book-wrapper start-match-wrapper"
+      onClose={goHome}
       mobile={
         <div className="book-mobile-layout">
           <Card variant="page" card={story.card} story={story} loading={false} />
-          <div className="start-match-cards">{cardsBlock}</div>
-          <div className="start-match-footer">{bottom}</div>
+          <div className="start-match-cards">{boardBlock}</div>
+          <div className="start-match-footer">{antibotWidget}{bottom}</div>
         </div>
       }
       left={ preview 
@@ -235,8 +360,8 @@ export default function StartMatchFlow({ story, config, storyId }) {
         : <Card variant="page" card={story.card} story={story} loading={false} />}
       right={
         <div className="start-match-right">
-          <div className="start-match-cards">{cardsBlock}</div>
-          <div className="start-match-footer">{bottom}</div>
+          <div className="start-match-cards">{boardBlock}</div>
+          <div className="start-match-footer">{antibotWidget}{bottom}</div>
         </div>
       }
     />
@@ -246,8 +371,9 @@ export default function StartMatchFlow({ story, config, storyId }) {
   )
 }
 
-/** Antibot verification block (verifying spinner + widget, or error + actions). */
-function AntibotBlock({ gate, t, onHome }) {
+/** Antibot verification block (verifying spinner, or error + retry); the
+ * Turnstile widget itself lives in the flow so it is never unmounted. */
+function AntibotBlock({ gate, t }) {
   if (gate.phase === 'error') {
     return (
       <div className="start-match-status start-match-status--error">
@@ -256,9 +382,6 @@ function AntibotBlock({ gate, t, onHome }) {
           <button className="btn-start-game" onClick={gate.retry}>
             <i className="fas fa-sync-alt me-2" />{t('startMatch.retry')}
           </button>
-          <button className="btn-start-game" onClick={onHome}>
-            <i className="fas fa-home me-2" />{t('startMatch.home')}
-          </button>
         </div>
       </div>
     )
@@ -266,13 +389,6 @@ function AntibotBlock({ gate, t, onHome }) {
   return (
     <div className="start-match-status">
       <p><i className="fas fa-spinner fa-spin me-2" />{t('antibot.verifying')}</p>
-      <TurnstileWidget
-        key={gate.attempt}
-        appearance={TURNSTILE_APPEARANCE.config}
-        onSuccess={gate.onSuccess}
-        onError={gate.onError}
-        onExpire={gate.onExpire}
-      />
     </div>
   )
 }

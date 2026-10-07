@@ -1,12 +1,13 @@
 # ==================================================
-# S3 Bucket – Static Website Hosting
+# S3 Bucket – Static Website Hosting (one per environment)
 # ==================================================
 
 resource "aws_s3_bucket" "website" {
-  bucket = var.bucket_name
+  bucket        = var.bucket_name
+  force_destroy = var.bucket_force_destroy
 
   tags = {
-    Name = "${var.domain_name} Website"
+    Name = var.bucket_name
   }
 }
 
@@ -48,8 +49,8 @@ resource "aws_s3_bucket_policy" "website" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "AllowCloudFrontOAC"
-        Effect    = "Allow"
+        Sid    = "AllowCloudFrontOAC"
+        Effect = "Allow"
         Principal = {
           Service = "cloudfront.amazonaws.com"
         }

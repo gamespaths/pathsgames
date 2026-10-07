@@ -4,7 +4,10 @@ import games.paths.adapters.admin.AdminConstant;
 import games.paths.adapters.admin.dto.auth.GuestInfoResponse;
 import games.paths.adapters.admin.dto.auth.GuestStatsResponse;
 import games.paths.core.model.auth.GuestInfo;
+import games.paths.core.model.auth.GuestInfoPage;
+import games.paths.core.model.auth.GuestListFilter;
 import games.paths.core.model.auth.GuestStats;
+import games.paths.core.model.auth.StaleGuestsSummary;
 import games.paths.core.port.auth.GuestAdminPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,8 +20,10 @@ import java.util.stream.Collectors;
 
 /**
  * GuestAdminController - REST adapter for guest user administration.
- * GET /api/admin/guests → list all guest users
+ * GET /api/admin/guests → one page of guest users (v0.36.2)
  * GET /api/admin/guests/stats → guest statistics
+ * GET|DELETE /api/admin/guests/stale → preview / purge guests not seen for N days, matches included
+ *   (v0.41.0: withoutMatches=true keeps every guest a match references, at most max-per-run)
  * GET /api/admin/guests/{uuid} → get a single guest
  * DELETE /api/admin/guests/{uuid} → delete a single guest
  * DELETE /api/admin/guests/expired → cleanup expired guests
@@ -34,16 +39,99 @@ public class GuestAdminController {
     }
 
     /**
-     * GET /api/admin/guests
-     * Lists all guest users ordered by registration date.
+     * GET /api/admin/guests — v0.36.2, one page at a time, most recently seen first.
+     *
+     * <p>Answers the {@code {items, nextCursor, limit}} envelope the admin match list already
+     * uses. Before this the endpoint returned the whole table, which on the AWS backend is a
+     * full-table scan and timed out at 15s. All parameters are optional:</p>
+     * <ul>
+     *   <li>{@code limit} — page size (default 50, max 200);</li>
+     *   <li>{@code cursor} — opaque token from a previous {@code nextCursor};</li>
+     *   <li>{@code olderThanDays} — only guests not seen for at least N days.</li>
+     * </ul>
      */
     @GetMapping
-    public ResponseEntity<List<GuestInfoResponse>> listAllGuests() {
-        List<GuestInfo> guests = guestAdminPort.listAllGuests();
-        List<GuestInfoResponse> response = guests.stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(response);
+    public ResponseEntity<Object> listAllGuests(
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) Integer olderThanDays) {
+        GuestInfoPage page = guestAdminPort.listGuestsPage(
+                new GuestListFilter(olderThanDays, cursor, limit));
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("items", page.items().stream().map(this::toResponse).collect(Collectors.toList()));
+        body.put("nextCursor", page.nextCursor());
+        body.put("limit", page.limit());
+        return ResponseEntity.ok(body);
+    }
+
+    /**
+     * GET /api/admin/guests/stale?olderThanDays=N — the dry run: how many guests, and how many
+     * of their matches, the deletion below would take. The console shows this before asking.
+     */
+    @GetMapping("/stale")
+    public ResponseEntity<Object> previewStaleGuests(
+            @RequestParam(required = false) Integer olderThanDays,
+            @RequestParam(required = false) String withoutMatches) {
+        if (olderThanDays == null || olderThanDays < 0) {
+            return badOlderThanDays();
+        }
+        if (!validFlag(withoutMatches)) {
+            return badWithoutMatches();
+        }
+        StaleGuestsSummary summary = withoutMatches == null
+                ? guestAdminPort.previewStaleGuests(olderThanDays)
+                : guestAdminPort.previewStaleGuests(olderThanDays, Boolean.parseBoolean(withoutMatches));
+        return ResponseEntity.ok(staleBody(summary));
+    }
+
+    /**
+     * DELETE /api/admin/guests/stale?olderThanDays=N — remove every guest not seen for N days
+     * AND every match they created, whatever its status. Matches go first: a match references
+     * its creator by foreign key. Distinct from {@code DELETE /expired}, which only ever
+     * removes sessions whose own expiry has passed and never touches a match.
+     */
+    @DeleteMapping("/stale")
+    public ResponseEntity<Object> deleteStaleGuests(
+            @RequestParam(required = false) Integer olderThanDays,
+            @RequestParam(required = false) String withoutMatches) {
+        if (olderThanDays == null || olderThanDays < 0) {
+            return badOlderThanDays();
+        }
+        if (!validFlag(withoutMatches)) {
+            return badWithoutMatches();
+        }
+        StaleGuestsSummary summary = withoutMatches == null
+                ? guestAdminPort.deleteStaleGuests(olderThanDays)
+                : guestAdminPort.deleteStaleGuests(olderThanDays, Boolean.parseBoolean(withoutMatches));
+        Map<String, Object> body = staleBody(summary);
+        body.put(AdminConstant.KEY_STATUS, "CLEANUP_COMPLETE");
+        return ResponseEntity.ok(body);
+    }
+
+    private static Map<String, Object> staleBody(StaleGuestsSummary summary) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("guests", summary.guests());
+        body.put("matches", summary.matches());
+        return body;
+    }
+
+    /** v0.41.0 — withoutMatches is optional; when present only "true" or "false" is accepted. */
+    private static boolean validFlag(String value) {
+        return value == null || "true".equals(value) || "false".equals(value);
+    }
+
+    private static ResponseEntity<Object> badWithoutMatches() {
+        Map<String, Object> error = new LinkedHashMap<>();
+        error.put(AdminConstant.KEY_ERROR, "INVALID_INPUT");
+        error.put(AdminConstant.KEY_MESSAGE, "withoutMatches must be true or false");
+        return ResponseEntity.badRequest().body(error);
+    }
+
+    private static ResponseEntity<Object> badOlderThanDays() {
+        Map<String, Object> error = new LinkedHashMap<>();
+        error.put(AdminConstant.KEY_ERROR, "INVALID_INPUT");
+        error.put(AdminConstant.KEY_MESSAGE, "olderThanDays is required and must be >= 0");
+        return ResponseEntity.badRequest().body(error);
     }
 
     /**

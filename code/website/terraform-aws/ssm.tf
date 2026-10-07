@@ -1,6 +1,7 @@
 # ==================================================
 # CSP Domain Lists – AWS SSM Parameter Store
 # ==================================================
+# Owned by production; every other environment reads them with the data sources below.
 #
 # Add base domains here (no protocol, no wildcard).
 # Terraform will automatically expand each "example.com" into:
@@ -16,6 +17,8 @@
 # ==================================================
 
 resource "aws_ssm_parameter" "csp_script_domains" {
+  count = local.is_production ? 1 : 0
+
   name        = "/paths-games/csp/script-src"
   type        = "StringList"
   description = "CSP script-src – base domains (auto-expanded to https://domain and https://*.domain)"
@@ -25,10 +28,14 @@ resource "aws_ssm_parameter" "csp_script_domains" {
     "googletagmanager.com",  # Google Tag Manager
   ])
 
-  tags = var.tags
+  tags = {
+    Name = "/paths-games/csp/script-src"
+  }
 }
 
 resource "aws_ssm_parameter" "csp_style_domains" {
+  count = local.is_production ? 1 : 0
+
   name        = "/paths-games/csp/style-src"
   type        = "StringList"
   description = "CSP style-src – base domains"
@@ -39,10 +46,14 @@ resource "aws_ssm_parameter" "csp_style_domains" {
     "cloudflare.com",    # Font Awesome
   ])
 
-  tags = var.tags
+  tags = {
+    Name = "/paths-games/csp/style-src"
+  }
 }
 
 resource "aws_ssm_parameter" "csp_font_domains" {
+  count = local.is_production ? 1 : 0
+
   name        = "/paths-games/csp/font-src"
   type        = "StringList"
   description = "CSP font-src – base domains"
@@ -52,10 +63,14 @@ resource "aws_ssm_parameter" "csp_font_domains" {
     "cloudflare.com", # Font Awesome files
   ])
 
-  tags = var.tags
+  tags = {
+    Name = "/paths-games/csp/font-src"
+  }
 }
 
 resource "aws_ssm_parameter" "csp_img_domains" {
+  count = local.is_production ? 1 : 0
+
   name        = "/paths-games/csp/img-src"
   type        = "StringList"
   description = "CSP img-src – base domains (GTM/GA use 1x1 tracking pixels)"
@@ -65,10 +80,14 @@ resource "aws_ssm_parameter" "csp_img_domains" {
     "google-analytics.com",  # GA4 pixel
   ])
 
-  tags = var.tags
+  tags = {
+    Name = "/paths-games/csp/img-src"
+  }
 }
 
 resource "aws_ssm_parameter" "csp_connect_domains" {
+  count = local.is_production ? 1 : 0
+
   name        = "/paths-games/csp/connect-src"
   type        = "StringList"
   description = "CSP connect-src – base domains (fetch/XHR endpoints)"
@@ -79,5 +98,41 @@ resource "aws_ssm_parameter" "csp_connect_domains" {
     "g.doubleclick.net",     # *.g.doubleclick.net covers stats.g.doubleclick.net
   ])
 
-  tags = var.tags
+  tags = {
+    Name = "/paths-games/csp/connect-src"
+  }
+}
+
+# ==================================================
+# Read-only view for the non-production environments
+# ==================================================
+
+data "aws_ssm_parameter" "csp_script_domains" {
+  count = local.is_production ? 0 : 1
+
+  name = "/paths-games/csp/script-src"
+}
+
+data "aws_ssm_parameter" "csp_style_domains" {
+  count = local.is_production ? 0 : 1
+
+  name = "/paths-games/csp/style-src"
+}
+
+data "aws_ssm_parameter" "csp_font_domains" {
+  count = local.is_production ? 0 : 1
+
+  name = "/paths-games/csp/font-src"
+}
+
+data "aws_ssm_parameter" "csp_img_domains" {
+  count = local.is_production ? 0 : 1
+
+  name = "/paths-games/csp/img-src"
+}
+
+data "aws_ssm_parameter" "csp_connect_domains" {
+  count = local.is_production ? 0 : 1
+
+  name = "/paths-games/csp/connect-src"
 }

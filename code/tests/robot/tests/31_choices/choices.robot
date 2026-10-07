@@ -260,14 +260,12 @@ Fresh Choice Match
 
 Admin Choices
     [Documentation]    The story's list_choices rows, from the admin API.
-    ${resp}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/choices
-    Status Should Be    ${resp}    200
-    RETURN    ${resp.json()}
+    ${rows}=    Cached Admin Rows    ${STORY_UUID}    choices
+    RETURN    ${rows}
 
 Admin Events
-    ${resp}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/events
-    Status Should Be    ${resp}    200
-    RETURN    ${resp.json()}
+    ${rows}=    Cached Admin Rows    ${STORY_UUID}    events
+    RETURN    ${rows}
 
 Choice Event Uuid
     [Documentation]    The uuid of the location-bound choice-event of the given type: a NORMAL /

@@ -19,6 +19,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import games.paths.core.model.match.LogTable;
+import games.paths.core.port.match.LogIdPort;
 
 /**
  * LocationEntryStoreAdapter - JPA adapter implementing {@link LocationEntryStorePort}
@@ -33,17 +35,20 @@ public class LocationEntryStoreAdapter implements LocationEntryStorePort {
     private final LogEventsRepository logEventsRepository;
     private final LogMovementRepository logMovementRepository;
     private final StoryReadPort storyReadPort;
+    private final LogIdPort logIds;
 
     public LocationEntryStoreAdapter(GamingStateLocationsRepository stateLocationsRepository,
                                      GamingCharacterInstanceRepository characterRepository,
                                      LogEventsRepository logEventsRepository,
                                      LogMovementRepository logMovementRepository,
-                                     StoryReadPort storyReadPort) {
+                                     StoryReadPort storyReadPort,
+                                     LogIdPort logIds) {
         this.stateLocationsRepository = stateLocationsRepository;
         this.characterRepository = characterRepository;
         this.logEventsRepository = logEventsRepository;
         this.logMovementRepository = logMovementRepository;
         this.storyReadPort = storyReadPort;
+        this.logIds = logIds;
     }
 
     @Override
@@ -59,7 +64,11 @@ public class LocationEntryStoreAdapter implements LocationEntryStorePort {
                         l.getIdEventIfCharacterEnterEmptyLocation(),
                         l.getIdEventIfCharacterStartTime(),
                         l.getIdEventIfCounterZero(),
-                        l.getPriorityAutomaticEvent()));
+                        l.getPriorityAutomaticEvent(),
+                        l.getKeyToAdd(),
+                        l.getKeyValueToAdd(),
+                        l.getKeyToAddNotFirst(),
+                        l.getKeyValueToAddNotFirst()));
             }
         }
         return Optional.empty();
@@ -74,15 +83,16 @@ public class LocationEntryStoreAdapter implements LocationEntryStorePort {
     }
 
     @Override
-    public void markStateLocationVisited(long idMatch, long idLocation) {
-        stateLocationsRepository.findById(new GamingStateLocationsEntityId(idMatch, idLocation))
-                .ifPresent(s -> {
+    public boolean markStateLocationVisited(long idMatch, long idLocation) {
+        return stateLocationsRepository.findById(new GamingStateLocationsEntityId(idMatch, idLocation))
+                .map(s -> {
                     if (nz(s.getFlagVisited()) == 1) {
-                        return;
+                        return false;
                     }
                     s.setFlagVisited(1);
                     stateLocationsRepository.save(s);
-                });
+                    return true;
+                }).orElse(false);
     }
 
     @Override
@@ -122,7 +132,7 @@ public class LocationEntryStoreAdapter implements LocationEntryStorePort {
     public void logAutomaticEvent(long idMatch, Long idCharacter, long idLocation, Long idEvent,
                                   Integer clock, String message) {
         LogEventsEntity e = new LogEventsEntity();
-        e.setId(logEventsRepository.findMaxId() + 1);
+        e.setId(logIds.nextId(LogTable.EVENTS));
         e.setIdMatch(idMatch);
         e.setIdCharacterMatch(idCharacter);
         e.setIdLocation(idLocation);

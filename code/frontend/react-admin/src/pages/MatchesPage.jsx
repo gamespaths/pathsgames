@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import {
   listMatches, getMatchInfo, listMatchStatuses,
   updateMatch, stopMatch, deleteMatch,
+  listMatchSnapshots, exportMatch, errorBody,
 } from '../api/matchApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import ErrorAlert from '../components/common/ErrorAlert'
 import ConfirmModal from '../components/common/ConfirmModal'
+import useEscapeKey from '../hooks/useEscapeKey'
+import { downloadJson } from '../utils/download'
 import MatchDetailModal, { fmtDate, shortUuid, StatusBadge, fetchStoryCtx } from '../components/match/MatchDetailModal'
 
 /**
@@ -15,6 +18,7 @@ import MatchDetailModal, { fmtDate, shortUuid, StatusBadge, fetchStoryCtx } from
  * Lists every match (GET /api/admin/matches) and lets an admin:
  *   - inspect the runtime state (GET /api/match/{uuid}/info);
  *   - edit a match — status and name (PUT /api/admin/matches/{uuid});
+ *   - export the latest snapshot as a file (POST /api/admin/matches/{uuid}/export, v0.41.4);
  *   - stop a running match (POST /api/admin/matches/{uuid}/stop);
  *   - delete a stopped match (DELETE /api/admin/matches/{uuid}).
  */
@@ -38,6 +42,9 @@ const PERIODS = [
 
 const PAGE_LIMIT = 50
 
+/** The creator as the guest username shown in the game (`guest_` + first 8 chars of the user UUID). */
+export const creatorLabel = uuid => (uuid ? `guest_${String(uuid).slice(0, 8)}` : '')
+
 export default function MatchesPage() {
   const [matches,      setMatches]      = useState([])
   const [nextCursor,   setNextCursor]   = useState(null)
@@ -51,6 +58,8 @@ export default function MatchesPage() {
   const [detail,       setDetail]       = useState(null) // { uuid, loading, info, error, storyCtx }
   const [editing,      setEditing]      = useState(null) // match being edited
   const [confirm,      setConfirm]      = useState(null) // { action, match }
+  const [snapshots,    setSnapshots]    = useState({})   // match uuid -> latest snapshot row | null
+  const [notice,       setNotice]       = useState('')
 
   const navigate = useNavigate()
   const terminalStatuses = new Set(statuses.filter(s => s.terminal).map(s => s.value))
@@ -94,6 +103,19 @@ export default function MatchesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load() }, [statusFilter, period])
 
+  // v0.41.4 — the latest snapshot of every loaded row, which enables its Export button.
+  const loadSnapshots = (uuids) => Promise.all(uuids.map(uuid =>
+    listMatchSnapshots(uuid)
+      .then(rows => [uuid, Array.isArray(rows) && rows.length ? rows[0] : null])
+      .catch(() => [uuid, null])))
+    .then(pairs => setSnapshots(prev => ({ ...prev, ...Object.fromEntries(pairs) })))
+
+  useEffect(() => {
+    const missing = matches.map(m => m.uuid).filter(uuid => !(uuid in snapshots))
+    if (missing.length) void loadSnapshots(missing)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matches])
+
   useEffect(() => {
     listMatchStatuses()
       .then(data => { if (Array.isArray(data) && data.length) setStatuses(data) })
@@ -113,16 +135,27 @@ export default function MatchesPage() {
     }
   }
 
+  const exportLatest = async (match) => {
+    const { text, fileName } = await exportMatch(match.uuid)
+    downloadJson(text, fileName)
+    setNotice(`Exported the end of clock ${snapshots[match.uuid]?.clock ?? '?'} as ${fileName}.`)
+    await loadSnapshots([match.uuid])
+  }
+
   const runConfirm = async () => {
     const { action, match } = confirm
     setConfirm(null)
     setError('')
+    setNotice('')
     try {
+      if (action === 'export') { await exportLatest(match); load(); return }
       if (action === 'stop')   await stopMatch(match.uuid)
       if (action === 'delete') await deleteMatch(match.uuid)
       load()
     } catch (e) {
-      setError(e.response?.data?.message || e.message || `Failed to ${action} match`)
+      const body = errorBody(e)
+      const codes = Array.isArray(body.errors) ? body.errors.map(x => x.code).join(', ') : ''
+      setError((body.message || e.message || `Failed to ${action} match`) + (codes ? ` (${codes})` : ''))
     }
   }
 
@@ -132,7 +165,9 @@ export default function MatchesPage() {
     return !text ||
       m.name?.toLowerCase().includes(text) ||
       m.uuid?.toLowerCase().includes(text) ||
-      m.storyUuid?.toLowerCase().includes(text)
+      m.storyUuid?.toLowerCase().includes(text) ||
+      m.userCreatorUuid?.toLowerCase().includes(text) ||
+      (!!m.userCreatorUuid && creatorLabel(m.userCreatorUuid).includes(text))
   })
 
   // Counts reflect the rows loaded so far (load more to fetch additional pages).
@@ -148,6 +183,10 @@ export default function MatchesPage() {
       {/* Title + compact counters on a single row */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h2 className="pg-page-title" style={{ margin: 0 }}><i className="fas fa-gamepad" />Matches</h2>
+        {/* v0.41.4 — a match export file from any server */}
+        <button className="pg-btn pg-btn-ghost pg-btn-sm" onClick={() => navigate('/matches/import')}>
+          <i className="fas fa-file-import me-1" />Import
+        </button>
         <div className="flex items-center gap-2">
           {[
             { label: 'Loaded',  value: counts.total,   icon: 'fas fa-gamepad',         cls: '' },
@@ -169,6 +208,7 @@ export default function MatchesPage() {
       </div>
 
       <ErrorAlert message={error} onClose={() => setError('')} />
+      {notice && <div className="pg-alert pg-alert-success mb-3" role="status">{notice}</div>}
 
       {/* Toolbar — search grows, selects + button stay on the same row */}
       <div className="flex items-center gap-3 mb-4">
@@ -176,7 +216,7 @@ export default function MatchesPage() {
           <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-ash)', fontSize: '0.8rem' }} />
           <input
             className="pg-input pl-8"
-            placeholder="Filter by name, match or story UUID…"
+            placeholder="Filter by name, match, story or user (guest_…)…"
             value={filter}
             onChange={e => setFilter(e.target.value)}
           />
@@ -217,17 +257,16 @@ export default function MatchesPage() {
                   <th>Name</th>
                   <th>Match UUID</th>
                   <th>Story UUID</th>
+                  <th>User</th>
                   <th>Status</th>
-                  <th>Mode</th>
                   <th>Clock</th>
-                  <th>XP Cost</th>
                   <th>Created</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 && (
-                  <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--color-ash)' }}>No matches found.</td></tr>
+                  <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--color-ash)' }}>No matches found.</td></tr>
                 )}
                 {filtered.map(m => (
                   <tr key={m.uuid}>
@@ -237,14 +276,10 @@ export default function MatchesPage() {
                     </td>
                     <td style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--color-ash)' }}>{shortUuid(m.uuid)}</td>
                     <td style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--color-ash)' }}>{shortUuid(m.storyUuid)}</td>
+                    <td style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--color-ash)' }}
+                      title={m.userCreatorUuid || undefined}>{creatorLabel(m.userCreatorUuid) || '—'}</td>
                     <td><StatusBadge status={m.status} /></td>
-                    <td>
-                      {m.singlePlayer === 0
-                        ? <span className="pg-badge pg-badge-gold">Multiplayer</span>
-                        : <span className="pg-badge pg-badge-info">Single</span>}
-                    </td>
                     <td>{m.currentClock ?? 0}</td>
-                    <td>{m.expCost ?? 0}</td>
                     <td style={{ fontSize: '0.8rem' }}>{fmtDate(m.tsInsert)}</td>
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <button
@@ -268,6 +303,16 @@ export default function MatchesPage() {
                       >
                         <i className="fas fa-pen" />
                       </button>
+                      {snapshots[m.uuid] && (
+                        <button
+                          className="pg-btn pg-btn-ghost pg-btn-sm"
+                          title={`Export the latest snapshot (end of clock ${snapshots[m.uuid].clock})`}
+                          aria-label="Export match"
+                          onClick={() => setConfirm({ action: 'export', match: m })}
+                        >
+                          <i className="fas fa-file-export" />
+                        </button>
+                      )}
                       {!isTerminal(m.status) && (
                         <button
                           className="pg-btn pg-btn-ghost pg-btn-sm"
@@ -326,12 +371,12 @@ export default function MatchesPage() {
 
       {confirm && (
         <ConfirmModal
-          title={confirm.action === 'stop' ? 'Stop match' : 'Delete match'}
-          message={
-            confirm.action === 'stop'
-              ? `Set "${confirm.match.name || confirm.match.uuid}" to ENDED?`
-              : `Permanently delete "${confirm.match.name || confirm.match.uuid}" and its runtime state? This cannot be undone.`
-          }
+          title={{ stop: 'Stop match', delete: 'Delete match', export: 'Export match' }[confirm.action]}
+          message={{
+            stop: `Set "${confirm.match.name || confirm.match.uuid}" to ENDED?`,
+            delete: `Permanently delete "${confirm.match.name || confirm.match.uuid}" and its runtime state? This cannot be undone.`,
+            export: `Export "${confirm.match.name || confirm.match.uuid}" as a file? This pauses the match, rolls it back to the snapshot of clock ${snapshots[confirm.match.uuid]?.clock ?? '?'} (the actions since are lost), then restarts it.`,
+          }[confirm.action]}
           onConfirm={runConfirm}
           onCancel={() => setConfirm(null)}
         />
@@ -342,6 +387,7 @@ export default function MatchesPage() {
 
 /** Modal to edit a match — status and name. */
 function MatchEditModal({ match, statuses, onClose, onSaved }) {
+  useEscapeKey(onClose)
   const [name,   setName]   = useState(match.name || '')
   const [status, setStatus] = useState(match.status || '')
   const [saving, setSaving] = useState(false)
@@ -360,8 +406,8 @@ function MatchEditModal({ match, statuses, onClose, onSaved }) {
   }
 
   return (
-    <div className="pg-modal-backdrop" role="button" tabIndex="0" onClick={onClose} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
-      <div className="pg-modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+    <div className="pg-modal-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="pg-modal" style={{ maxWidth: 460 }}>
         <p className="pg-modal-title"><i className="fas fa-pen me-2" />Edit match</p>
 
         <ErrorAlert message={error} />

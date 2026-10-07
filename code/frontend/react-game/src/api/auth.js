@@ -9,7 +9,7 @@ import axios from 'axios'
  * automatically when `withCredentials: true`.
  *
  * Both endpoints return `GuestLoginResponse`:
- *   { userUuid, username, accessToken, accessTokenExpiresAt, refreshTokenExpiresAt }
+ *   { userUuid, username, accessToken, accessTokenExpiresAt, refreshTokenExpiresAt, csrfToken }
  */
 
 export async function createGuestSession(serverUrl) {

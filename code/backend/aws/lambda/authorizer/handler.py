@@ -5,25 +5,19 @@ route by source IP BEFORE the request reaches the domain Lambdas — the API-Gat
 equivalent of the per-port firewall used by the Java/Python/AWS backends.
 
 HTTP API request authorizer with simple responses (payload format 2.0): return
-{"isAuthorized": bool}. The in-Lambda _check_admin_ip in each handler stays as
-defense-in-depth.
+{"isAuthorized": bool}. The same rule (common.http_utils.check_admin_ip) runs again in each
+admin handler as defense-in-depth.
 
-ADMIN_IP_WHITELIST: comma-separated allow-list. Empty = allow all (dev only, insecure).
+ADMIN_IP_WHITELIST: comma-separated allow-list. v0.41.0 — when empty, ADMIN_IP_EMPTY_MEANS
+decides: 'nobody' (default, dev and test included) or 'everybody'.
 """
-import os
-
+from common.http_utils import admin_ip_allowed as _admin_ip_allowed
 from common.http_utils import get_source_ip as _get_source_ip
+from common import log_utils
 
-
-def _allowed_ips():
-    raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()
-    return [ip.strip() for ip in raw.split(',') if ip.strip()]
+# v0.38.1 — botocore "Found credentials in environment variables" at INFO is noise on every cold start.
+log_utils.quiet_botocore()
 
 
 def lambda_handler(event, context):
-    allowed = _allowed_ips()
-    # Empty allow-list = no IP restriction (dev only).
-    if not allowed:
-        return {"isAuthorized": True}
-    source_ip = _get_source_ip(event)
-    return {"isAuthorized": source_ip in allowed}
+    return {"isAuthorized": _admin_ip_allowed(_get_source_ip(event))}

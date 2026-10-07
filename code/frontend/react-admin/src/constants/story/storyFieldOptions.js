@@ -124,3 +124,11 @@ export const CHOICE_CONDITION_OPERATOR_OPTIONS = mapOptions([
   '<',
   '!=',
 ])
+
+// Step 36 — a registry key is shown to the player only when its visibility is exactly
+// PUBLIC; anything else hides it. A free-text field made "" and null reachable by hand, and
+// a key in either state is written by the engine and then never seen.
+export const KEY_VISIBILITY_OPTIONS = mapOptions([
+  'PUBLIC',
+  'HIDDEN',
+])

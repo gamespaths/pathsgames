@@ -121,7 +121,9 @@ def test_seed_effect_uuids_are_stable_and_respect_authored_ones():
 
 def test_seed_route_blocked_outside_dev():
     from seed.handler import lambda_handler
-    with patch.dict(os.environ, {'ENV': 'prod'}):
+    # v0.41.0 — a prod stack with the committed secret answers 500, so this one has its own
+    with patch('common.jwt_utils.JWT_SECRET', 'a-private-prod-secret-of-at-least-32-chars'), \
+         patch.dict(os.environ, {'ENV': 'prod'}):
         result = lambda_handler(make_event('POST', '/api/dev/seed'), {})
     assert result['statusCode'] == 403
 
@@ -194,3 +196,25 @@ def test_seeded_items_are_reachable_by_the_inventory_engine():
         # A bag holding one of each granted item must weigh something.
         char = {'items': [{'uuid': f'r{i}', 'idItem': i, 'amount': 1} for i in granted]}
         assert inventory.carried_weight(char, story) > 0
+
+
+def test_a_mission_never_shares_its_card_with_an_event():
+    """v0.37.2 — the timeline keys a MISSION_CHANGE row's card by the mission. A seed that
+    gave missions the events' card made that lookup unfalsifiable."""
+    from seed.handler import SEED_STORIES
+
+    for story in SEED_STORIES:
+        event_cards = {e.get("idCard") for e in (story.get("events") or [])}
+        card_ids = {c.get("id") for c in (story.get("raw_cards") or [])}
+        for mission in story.get("missions") or []:
+            id_card = mission.get("idCard")
+            if id_card is None:
+                continue
+            assert id_card not in event_cards, story.get("uuid")
+            assert id_card in card_ids, story.get("uuid")
+        for step in story.get("missionSteps") or []:
+            id_card = step.get("idCard")
+            if id_card is None:
+                continue
+            assert id_card not in event_cards, story.get("uuid")
+            assert id_card in card_ids, story.get("uuid")

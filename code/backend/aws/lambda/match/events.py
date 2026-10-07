@@ -13,6 +13,9 @@ carries ``registry`` / ``eventLog`` / ``currentWeatherId``.
 
 import uuid as _uuid
 
+from match import registry as _registry
+from match import logbook as _logbook
+
 # Only these two types are player-executable; AUTOMATIC and FIRST are engine-driven, and
 # authored stories also use END / END_GAME for the end-game event (identified by
 # story.idEventEndGame, not by its type). Anything unknown is simply not executable.
@@ -42,9 +45,15 @@ TRIGGER_MOVE_INTO_EMPTY_LOCATION = "MOVE_INTO_EMPTY_LOCATION"
 TRIGGER_COUNTER_ZERO = "COUNTER_ZERO"
 #: A time unit began with a character standing here.
 TRIGGER_CHARACTER_START_TIME = "CHARACTER_START_TIME"
+#: Step 39 — a global random event fired at time-start; no actor, no location.
+TRIGGER_RANDOM_EVENT = "RANDOM_EVENT"
 
 #: Message prefix of the audit row an automatic event writes to the match eventLog.
 MSG_AUTOMATIC_EVENT = "automatic event"
+#: Step 39 — message prefix of the audit row a random event writes.
+MSG_RANDOM_EVENT = "random event"
+# Step 37/38 — the trigger a completed mission fires its event with: no actor, ALL = the party.
+TRIGGER_MISSION = "mission completed"
 
 #: How many arrivals one request may cascade through before the engine gives up. An
 #: automatic event may move a character, and that move is itself an arrival, so
@@ -109,17 +118,7 @@ def build_context(match, story, caller):
                         if c.get("uuid") == class_uuid), None)
             class_id = cls.get("id") if cls else None
 
-    registry = {}
-    for r in (match.get("registry") or []):
-        key = r.get("key")
-        if not key:
-            continue
-        if r.get("stringValue") is not None:
-            registry[key] = r.get("stringValue")
-        elif r.get("intValue") is not None:
-            registry[key] = str(r.get("intValue"))
-        else:
-            registry[key] = None
+    registry = _registry.load_all(match)
 
     return {
         "idCharacter": (caller.get("id") or caller.get("uuid")) if caller else None,
@@ -146,11 +145,7 @@ def consumed_event_ids(match):
     Other writers stamp an idEvent on log rows for events that were merely REFERENCED,
     never run; trusting idEvent alone would burn a ONCE event the player never triggered.
     """
-    return {
-        _nz(e.get("idEvent")) for e in (match.get("eventLog") or [])
-        if e.get("idEvent") is not None
-        and str(e.get("message") or "").startswith(MSG_EVENT_EXECUTED)
-    }
+    return _logbook.consumed_event_ids(match)
 
 
 def event_cost_coin(event):
@@ -209,10 +204,12 @@ def check(event, ctx):
         return False, "NOT_ENOUGH_MAGIC"
 
     key = event.get("registryKeyCondition")
-    if key and str(key).strip():
-        expected = event.get("registryValueCondition")
-        # A key with no expected value can never be met — it must not read as "no condition".
-        if expected is None or expected != ctx.get("registry", {}).get(key):
+    if not _registry.no_condition(key):
+        # Step 36 — the operator column widens the condition past equality; a key with no
+        # expected value is still never met.
+        if not _registry.evaluate(event.get("registryValueOperatorCondition"),
+                                  event.get("registryValueCondition"),
+                                  ctx.get("registry", {}).get(key)):
             return False, "REGISTRY_CONDITION_NOT_MET"
 
     # On the event, idWeather is a CONDITION; on an effect it is an EFFECT (it SETS it).
@@ -243,16 +240,36 @@ def effects_by_event(story):
     return out
 
 
-def resolve_recipients(effect, actor, characters):
+def is_party_trigger(trigger):
+    """Missions and random events reach the whole party: they have no actor to stand next to."""
+    return trigger in (TRIGGER_MISSION, TRIGGER_RANDOM_EVENT)
+
+
+def automatic_log_message(trigger, id_event, id_location):
+    """Step 39 — a random event gets its own prefix, so the timeline can tell it apart."""
+    if trigger == TRIGGER_RANDOM_EVENT:
+        return f"{MSG_RANDOM_EVENT} {id_event} ({trigger})"
+    return f"{MSG_AUTOMATIC_EVENT} {id_event} ({trigger}) at location {id_location}"
+
+
+def resolve_recipients(effect, actor, characters, party_run=False):
     """INV-27: ALL means every character in the ACTOR's location, not every character of the
-    match. target_class then narrows that set; matching nobody is legal."""
+    match. target_class then narrows that set; matching nobody is legal.
+
+    Step 38 — the one exception is an event a completed MISSION fires (``party_run``):
+    missions are match-scoped, so there is no actor and no location to stand in, and ALL
+    means every character of the match — the reward of a quest goes to the party that won
+    it. ONLY_ONE still names nobody there."""
     target = str(effect.get("target") or "ALL").strip().upper()
+    # Step 39 — a random event is party-wide too.
     # Step 33 — an automatic event may have no actor at all (a counter reaching zero in a
     # location nobody stands in). There is then nobody to be a recipient: the row's
     # match-scoped halves (weather, registry) are applied by the caller regardless.
     if actor is None:
-        return []
-    if target == "ONLY_ONE" or actor.get("idLocation") is None:
+        if not party_run or target == "ONLY_ONE":
+            return []
+        base = list(characters or [])
+    elif target == "ONLY_ONE" or actor.get("idLocation") is None:
         base = [actor]
     else:
         base = [c for c in characters if c.get("idLocation") == actor.get("idLocation")]
@@ -441,13 +458,8 @@ def apply_location(match, char, effect, location_uuids, changes, ts):
         return False  # already there: nothing to move, nothing to log
     char["idLocation"] = target
     char["locationUuid"] = target_uuid
-    match.setdefault("movementLog", []).append({
-        "characterUuid": char.get("uuid"),
-        "idLocationFrom": origin,
-        "idLocationTo": target,
-        "energyCost": 0,
-        "timestampStart": ts,
-    })
+    _logbook.append(match, "MOVEMENT", None, timestamp_ms=ts, characterUuid=char.get("uuid"),
+                    idLocationFrom=origin, idLocationTo=target)
     changes.append({
         "characterUuid": char.get("uuid"),
         "fromLocationUuid": location_uuids.get(_nz(origin)) if origin is not None else None,
@@ -456,27 +468,19 @@ def apply_location(match, char, effect, location_uuids, changes, ts):
     return True
 
 
-def apply_registry(match, key, value, changes):
-    """The registry is match-scoped: written once per effect row, not once per recipient."""
-    registry = match.setdefault("registry", [])
-    row = next((r for r in registry if r.get("key") == key), None)
-    old = None
-    if row:
-        old = row.get("stringValue")
-        if old is None and row.get("intValue") is not None:
-            old = str(row.get("intValue"))
-    else:
-        row = {"key": key}
-        registry.append(row)
+def apply_registry(match, key, value, changes, id_character=None, id_event=None,
+                   id_choice=None, clock=None, character_uuid=None, timestamp=None,
+                   story=None):
+    """Step 36 — kept as the name every caller already uses; the work is the registry's own."""
+    return _registry.upsert(match, key, value, changes, id_character, id_event, id_choice,
+                            clock, character_uuid, timestamp, story)
 
-    try:
-        row["intValue"] = int(str(value).strip())
-        row["stringValue"] = None
-    except (TypeError, ValueError):
-        row["stringValue"] = value
-        row["intValue"] = None
 
-    changes.append({"key": key, "oldValue": old, "newValue": value})
+def remove_registry(match, key, value, changes, id_character=None, id_event=None,
+                    id_choice=None, clock=None, character_uuid=None, timestamp=None):
+    """Step 36.1 — taking a value away is its own call, not a write of None."""
+    return _registry.remove(match, key, value, changes, id_character, id_event, id_choice,
+                            clock, character_uuid, timestamp)
 
 
 def _csv(value):

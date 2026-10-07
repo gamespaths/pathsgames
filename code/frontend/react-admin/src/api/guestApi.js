@@ -1,8 +1,10 @@
 import { apiClient } from './client'
 
-// GET /api/admin/guests
-export const listGuests = () =>
-  apiClient().get('/api/admin/guests').then(r => r.data)
+// GET /api/admin/guests — v0.36.2, paginated. Returns the envelope
+// { items, nextCursor, limit }; `params` may carry { limit, cursor, olderThanDays }.
+// It used to return every guest at once, which timed out against AWS.
+export const listGuests = (params = {}) =>
+  apiClient().get('/api/admin/guests', { params }).then(r => r.data)
 
 // GET /api/admin/guests/stats
 export const getGuestStats = () =>
@@ -19,3 +21,17 @@ export const deleteGuest = (uuid) =>
 // DELETE /api/admin/guests/expired
 export const deleteExpiredGuests = () =>
   apiClient().delete('/api/admin/guests/expired').then(r => r.data)
+
+// v0.41.0 — withoutMatches is sent only when true: omitted = the purge with matches.
+const staleParams = (olderThanDays, withoutMatches) =>
+  (withoutMatches ? { olderThanDays, withoutMatches: true } : { olderThanDays })
+
+// GET /api/admin/guests/stale?olderThanDays=N[&withoutMatches=true] — the dry run: how many
+// guests, and how many of their matches, the purge below would take. { guests, matches }
+export const previewStaleGuests = (olderThanDays, withoutMatches = false) =>
+  apiClient().get('/api/admin/guests/stale', { params: staleParams(olderThanDays, withoutMatches) }).then(r => r.data)
+
+// DELETE /api/admin/guests/stale?olderThanDays=N — remove every guest not seen for N days
+// AND every match they created; withoutMatches=true only the guests with no match (max 500).
+export const deleteStaleGuests = (olderThanDays, withoutMatches = false) =>
+  apiClient().delete('/api/admin/guests/stale', { params: staleParams(olderThanDays, withoutMatches) }).then(r => r.data)

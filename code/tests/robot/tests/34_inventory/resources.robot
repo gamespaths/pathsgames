@@ -149,6 +149,14 @@ Suite Setup Resources
     Set Suite Variable    ${CHARACTER}    ${character}
     Set Suite Variable    ${CLASS}    ${class}
     Set Suite Variable    ${TRAIT}    ${trait}
+    # v0.40 — only the events that move the backpack or the bag are ever run: the rest cost calls and add nothing.
+    ${granters}=    Item Granting Event Uuids    ${story}
+    ${writers}=     Resource Writing Event Uuids    ${story}
+    ${spending}=    Evaluate    $granters + [u for u in $writers if u not in $granters]
+    ${resource_only}=    Evaluate    [u for u in $writers if u not in $granters]
+    Set Suite Variable    ${GRANTING_EVENTS}    ${granters}
+    Set Suite Variable    ${SPENDING_EVENTS}    ${spending}
+    Set Suite Variable    ${RESOURCE_ONLY_EVENTS}    ${resource_only}
 
 Fresh Resources Match
     ${token}=    New Guest Token
@@ -165,7 +173,7 @@ Fresh Resources Match
     RETURN    ${token}    ${uuid}
 
 Spend Every Available Event
-    [Documentation]    Triggers the available events until none is left untried.
+    [Documentation]    Triggers the available events that move food/magic/coin or the bag, until none is left untried.
     ...
     ...                The list is re-read after EVERY execution, and never iterated as a
     ...                snapshot: the seeds contain events that teleport the actor elsewhere or
@@ -174,7 +182,8 @@ Spend Every Available Event
     [Arguments]    ${token}    ${match_uuid}
     ${tried}=    Create List
     FOR    ${attempt}    IN RANGE    30
-        ${event_uuid}=    Next Untried Available Event    ${token}    ${match_uuid}    ${tried}
+        ${event_uuid}=    Next Untried Available Event
+        ...    ${token}    ${match_uuid}    ${tried}    ${SPENDING_EVENTS}
         IF    '${event_uuid}' == ''
             BREAK
         END
@@ -183,14 +192,17 @@ Spend Every Available Event
     END
 
 Next Untried Available Event
-    [Documentation]    The first currently-available event whose uuid is not in ${tried}, or
-    ...                the empty string when there is none left.
-    [Arguments]    ${token}    ${match_uuid}    ${tried}
+    [Documentation]    The first currently-available event of ${allowed} whose uuid is not in
+    ...                ${tried}, or the empty string when there is none left.
+    ...
+    ...                ${excluded} leaves a set of events out of the walk entirely — the ones
+    ...                that end the time unit, for a caller that must not be interrupted.
+    [Arguments]    ${token}    ${match_uuid}    ${tried}    ${allowed}    ${excluded}=${{ [] }}
     ${info}=    Get Match Info    ${token}    ${match_uuid}    200
     FOR    ${location}    IN    @{info.json()}[locationsActive]
         ${events}=    Get From Dictionary    ${location}    events    ${EMPTY}
         FOR    ${event}    IN    @{events}
-            IF    ${event}[available] == ${True} and '${event}[uuid]' not in ${tried}
+            IF    ${event}[available] == ${True} and '${event}[uuid]' in ${allowed} and '${event}[uuid]' not in ${tried} and '${event}[uuid]' not in ${excluded}
                 RETURN    ${event}[uuid]
             END
         END
@@ -198,14 +210,14 @@ Next Untried Available Event
     RETURN    ${EMPTY}
 
 Spend Every Resource Only Event
-    [Documentation]    Triggers available events one at a time, keeping only those that left
-    ...                the inventory untouched — so the weight assertion is about resources.
+    [Documentation]    Triggers the available events that write food/magic/coin and grant no
+    ...                item, one at a time — so the weight assertion is about resources.
     [Arguments]    ${token}    ${match_uuid}
     ${info}=    Get Match Info    ${token}    ${match_uuid}    200
     FOR    ${location}    IN    @{info.json()}[locationsActive]
         ${events}=    Get From Dictionary    ${location}    events    ${EMPTY}
         FOR    ${event}    IN    @{events}
-            IF    ${event}[available] == ${True}
+            IF    ${event}[available] == ${True} and '${event}[uuid]' in ${RESOURCE_ONLY_EVENTS}
                 ${response}=    Execute Event    ${token}    ${match_uuid}    ${event}[uuid]
                 ${granted}=    Run Keyword And Return Status
                 ...    Should Be True    ${response.json()}[itemAdded]
@@ -227,63 +239,71 @@ Drop Everything
 Load Past Capacity
     [Documentation]    True once the carried weight exceeds the capacity.
     ...
-    ...                Finds ONE event that hands an item over, then repeats that same event:
-    ...                a granter can be triggered again and again, and each trigger stacks the
-    ...                row. Repeating one known-good event also sidesteps the events that end
-    ...                the time unit or teleport the actor, which would make every other event
-    ...                of the location refuse.
+    ...                Walks the granting events of the location one at a time: each is
+    ...                repeated while it keeps stacking rows — a granter can be triggered
+    ...                again and again — and when it stops (an item capped per character) the
+    ...                walk moves to the NEXT granter instead of giving up.
     ...
-    ...                False when the story has no repeatable granter, or hands out only
-    ...                things too light to ever overload the character.
+    ...                Events that END THE TIME UNIT are left out from the start, read off the
+    ...                admin API rather than guessed. Meeting one used to abandon the walk,
+    ...                and which event carries the flag differs per seed: on the AWS seed the
+    ...                ender is declared before every granter, so this case skipped there and
+    ...                only there — a fact about the order of a seed, not about the rule.
+    ...
+    ...                False when the story has no granter at all, or hands out only things
+    ...                too light to ever overload the character.
     [Arguments]    ${token}    ${match_uuid}
-    ${granter}=    Find An Item Granting Event    ${token}    ${match_uuid}
-    IF    '${granter}' == ''
-        RETURN    ${False}
+    ${enders}=    Time Ending Event Uuids
+    ${tried}=     Create List
+    FOR    ${candidate}    IN RANGE    12
+        ${overloaded}=    Is Overloaded    ${token}    ${match_uuid}
+        IF    ${overloaded}    RETURN    ${True}
+        ${event_uuid}=    Next Untried Available Event
+        ...    ${token}    ${match_uuid}    ${tried}    ${GRANTING_EVENTS}    ${enders}
+        IF    '${event_uuid}' == ''    BREAK
+        Append To List    ${tried}    ${event_uuid}
+        ${disrupted}=    Stack One Granter    ${token}    ${match_uuid}    ${event_uuid}
+        IF    ${disrupted}    BREAK
     END
-    FOR    ${attempt}    IN RANGE    40
-        ${resources}=    Get Resources    ${token}    ${match_uuid}    200
-        IF    ${resources.json()}[weight] > ${resources.json()}[weightMax]
-            RETURN    ${True}
-        END
-        ${response}=    Execute Event    ${token}    ${match_uuid}    ${granter}
-        ${added}=    Run Keyword And Return Status
-        ...    Should Be True    ${response.json()}[itemAdded]
-        IF    not ${added}
-            BREAK
-        END
-    END
-    ${resources}=    Get Resources    ${token}    ${match_uuid}    200
-    ${overloaded}=    Evaluate    ${resources.json()}[weight] > ${resources.json()}[weightMax]
+    ${overloaded}=    Is Overloaded    ${token}    ${match_uuid}
     RETURN    ${overloaded}
 
-Find An Item Granting Event
-    [Documentation]    The uuid of an available event whose execution reported itemAdded, or
-    ...                the empty string. Events that disrupt the board (time end, forced move,
-    ...                coma) are abandoned rather than pursued.
-    [Arguments]    ${token}    ${match_uuid}
-    ${tried}=    Create List
-    FOR    ${attempt}    IN RANGE    30
-        ${event_uuid}=    Next Untried Available Event    ${token}    ${match_uuid}    ${tried}
-        IF    '${event_uuid}' == ''
-            RETURN    ${EMPTY}
-        END
-        Append To List    ${tried}    ${event_uuid}
+Stack One Granter
+    [Documentation]    Repeats ONE event while it keeps adding rows, until the bag is over
+    ...                capacity. True when the answer disrupted the board — a forced move, a
+    ...                coma, a forced sleep — which ends the whole walk: after one of those
+    ...                every other event of the old location refuses.
+    [Arguments]    ${token}    ${match_uuid}    ${event_uuid}
+    FOR    ${repeat}    IN RANGE    40
         ${response}=    Execute Event    ${token}    ${match_uuid}    ${event_uuid}
         ${ok}=    Run Keyword And Return Status
         ...    Should Be Equal As Integers    ${response.status_code}    200
-        IF    ${ok}
-            ${body}=    Set Variable    ${response.json()}
-            IF    ${body}[itemAdded] == ${True}
-                RETURN    ${event_uuid}
-            END
-            ${disrupted}=    Evaluate
-            ...    bool($body.get('timeEnded') or $body.get('movementApplied') or $body.get('comaTriggered') or $body.get('forcedSleep'))
-            IF    ${disrupted}
-                RETURN    ${EMPTY}
-            END
-        END
+        IF    not ${ok}    RETURN    ${False}
+        ${body}=    Set Variable    ${response.json()}
+        ${disrupted}=    Evaluate
+        ...    bool($body.get('timeEnded') or $body.get('movementApplied') or $body.get('comaTriggered') or $body.get('forcedSleep'))
+        IF    ${disrupted}    RETURN    ${True}
+        IF    not ${body}[itemAdded]    RETURN    ${False}
+        ${overloaded}=    Is Overloaded    ${token}    ${match_uuid}
+        IF    ${overloaded}    RETURN    ${False}
     END
-    RETURN    ${EMPTY}
+    RETURN    ${False}
+
+Is Overloaded
+    [Documentation]    Whether the carried weight is past the character's capacity, as the
+    ...                engine itself reads it on /resources.
+    [Arguments]    ${token}    ${match_uuid}
+    ${resources}=    Get Resources    ${token}    ${match_uuid}    200
+    ${over}=    Evaluate    ${resources.json()}[weight] > ${resources.json()}[weightMax]
+    RETURN    ${over}
+
+Time Ending Event Uuids
+    [Documentation]    The uuids of the events that close the time unit, from the admin API:
+    ...                match-info does not publish flagEndTime, so a walk that must not be
+    ...                interrupted cannot recognise one until it has already run it.
+    ${rows}=     Cached Admin Rows    ${STORY_UUID}    events
+    ${uuids}=    Evaluate    [e['uuid'] for e in $rows if e.get('flagEndTime')]
+    RETURN    ${uuids}
 
 Any Neighbor Uuid
     [Documentation]    A neighbour of the active location, or the empty string.

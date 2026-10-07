@@ -17,6 +17,9 @@
  *                               which is how a caller badges something the shared stat
  *                               vocabulary has no word for (a match-log entry type, say)
  *                               without adding a key to it. Pass `icon: null` for no glyph.
+ *                               `className` is added to that one badge (a green "done", say).
+ *                               `keepZero` keeps that one badge past the zero filter (a trait
+ *                               cost of 0 is still news) without turning `showZeros` on for all.
  * @param {string}  className  - optional extra class on the wrapper
  * @param {boolean} showZeros  - keep items with value 0/missing (default false)
  */
@@ -69,12 +72,15 @@ const STAT_VISUAL = {
   // Trait / difficulty stats
   costPositive:           { icon: 'fas fa-plus-circle',  color: '#27ae60' },
   costNegative:           { icon: 'fas fa-minus-circle', color: '#c0392b' },
+  traitCostPositiveBudget: { icon: 'fas fa-plus-circle',  color: '#27ae60' },
+  traitCostNegativeBudget: { icon: 'fas fa-minus-circle', color: '#c0392b' },
   expCost:                { icon: 'fas fa-star',         color: '#9b59b6' },
   maxWeight:              { icon: 'fas fa-weight-hanging',color: '#95a5a6' },
   minCharacter:           { icon: 'fas fa-users',        color: '#34495e' },
   maxCharacter:           { icon: 'fas fa-users',        color: '#34495e' },
   costHelpComa:           { icon: 'fas fa-hand-holding-medical', color: '#16a085' },
-  costMaxCharacteristics: { icon: 'fas fa-arrow-up',     color: '#2980b9' },
+  expCostBase:            { icon: 'fas fa-arrow-up',     color: '#2980b9' },
+  maxStatValue:           { icon: 'fas fa-arrow-up',     color: '#2980b9' },
   numberMaxFreeAction:    { icon: 'fas fa-running',      color: '#3498db' },
 }
 
@@ -88,6 +94,7 @@ export default function BonusBadgeList({ items, className = '', showZeros = fals
   const visibleItems = showZeros
     ? items
     : items.filter(item => {
+        if (item?.keepZero) return true
         try{
           if (item?.value.includes("/")){
             const parts=item.value.split("/")
@@ -122,7 +129,7 @@ export default function BonusBadgeList({ items, className = '', showZeros = fals
         // stat twice — a match-log entry that both charged and refunded coins reports
         // both halves — and two spans sharing a key is a React bug waiting to happen.
         return (
-          <span key={`${item.key}-${index}`} className={ "stat-badge bonus-badge" + (littleVersion ? " bonus-badge-little-version" : "") } title={item.label} aria-label={item.label}>
+          <span key={`${item.key}-${index}`} className={ "stat-badge bonus-badge" + (littleVersion ? " bonus-badge-little-version" : "") + (item.className ? " " + item.className : "") } title={item.label} aria-label={item.label}>
             {visual.icon && <i className={visual.icon} style={{ color: visual.color }} />}
             {!littleVersion && <span>{item.label}{item.label ? ':' : ''}</span>} 
             <strong>{item.prefix ?? ''}{item.value}</strong>

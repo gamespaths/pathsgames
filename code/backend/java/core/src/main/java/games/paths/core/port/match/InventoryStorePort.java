@@ -43,7 +43,7 @@ public interface InventoryStorePort {
 
     /**
      * Appends one {@code log_item_usage} row. The table carries {@code UNIQUE (id)},
-     * so the id is allocated from the table-wide maximum, not per match.
+     * so the id is table-wide ({@code LogIdPort}), not per match.
      *
      * <p>v0.35.4 — {@code action} is USE or DROP here: the player acted directly, so
      * there is no event to name. {@code delta} is what the usage did to the resources.</p>

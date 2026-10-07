@@ -22,6 +22,7 @@ Mirrors ``EventAvailabilityChecker.java``.
 from typing import Any, Dict, Optional
 
 from app.core.models.match.event_models import EventAvailability, EventCheckContext, EventError
+from app.core.services.match import registry_service
 
 # Only these two types are player-executable; AUTOMATIC and FIRST are engine-driven, and
 # authored stories also use END / END_GAME for the end-game event (identified by
@@ -89,13 +90,11 @@ def check(event: Optional[Dict[str, Any]], ctx: Optional[EventCheckContext]) -> 
 
 
 def _registry_met(event: Dict[str, Any], ctx: EventCheckContext) -> bool:
-    """A key with no expected value is never met.
-
-    A condition that can never be satisfied must not read as "no condition". Mirrors
-    ``MovementService.conditionMet``.
-    """
+    """Step 36 — the comparison is registry_service.evaluate, shared with choices, movement
+    and weather, and the operator column widens it beyond equality."""
     key = event.get("registry_key_condition")
-    if not key or not str(key).strip():
+    if registry_service.no_condition(key):
         return True
-    expected = event.get("registry_value_condition")
-    return expected is not None and expected == ctx.registry.get(key)
+    return registry_service.evaluate(event.get("registry_value_operator_condition"),
+                                     event.get("registry_value_condition"),
+                                     ctx.registry.get(key))

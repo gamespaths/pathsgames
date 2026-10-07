@@ -110,7 +110,7 @@ Create And Delete Location
     [Documentation]    Full CRUD cycle: create a location, verify, then delete it.
     [Tags]    admin    crud    step17
     # Create
-    &{data}=    Create Dictionary    idTextName=${101}    isSafe=${1}
+    &{data}=    Create Dictionary    idTextName=${101}    secureParam=${1}
     ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/locations    json=${data}
     Status Should Be    ${create_resp}    201
     ${created}=    Set Variable    ${create_resp.json()}

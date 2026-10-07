@@ -29,8 +29,8 @@ class LocationEntryStorePort(ABC):
         Returns 0 when no row exists — a location nobody has been to."""
 
     @abstractmethod
-    def mark_state_location_visited(self, id_match: int, id_location: int) -> None:
-        """Latch the location as visited by the party. Idempotent."""
+    def mark_state_location_visited(self, id_match: int, id_location: int) -> bool:
+        """Latch the location as visited by the party. Idempotent; v0.41.2 True when it flipped 0 to 1."""
 
     @abstractmethod
     def count_other_characters_at_location(self, id_match: int, id_location: int,

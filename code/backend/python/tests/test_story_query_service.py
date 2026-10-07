@@ -514,3 +514,67 @@ def test_traits_for_class_filters_by_restrictions(mock_read_port):
     assert [t.uuid for t in traits] == ["tr-unrestricted", "tr-permitted-match", "tr-prohibited-other"]
     assert traits[0].costPositive == 2
     assert traits[0].costNegative == 1
+
+
+# ── list_traits_for_class edges + trait card resolution ──────────────────────
+
+def test_list_traits_for_class_blank_story_uuid(mock_read_port):
+    service = StoryQueryService(mock_read_port)
+    assert service.list_traits_for_class("   ", "class-uuid") == ("STORY_NOT_FOUND", [])
+
+def test_list_traits_for_class_resolves_the_trait_card(mock_read_port):
+    mock_read_port.find_story_by_uuid.return_value = {"id": 1, "uuid": "s1"}
+    mock_read_port.find_classes_for_story.return_value = [{"id": 5, "uuid": "class-uuid"}]
+    mock_read_port.find_texts_for_story.return_value = [
+        {"id_text": 20, "lang": "en", "short_text": "Brave"},
+        {"id_text": 30, "lang": "en", "short_text": "Card title"},
+    ]
+    mock_read_port.find_traits_for_story.return_value = [
+        {"id": 9, "uuid": "trait-1", "id_text_name": 20, "id_card": 3},
+    ]
+    mock_read_port.find_card_for_story.return_value = {
+        "id": 3, "card_type": "TRAIT", "url_image": "https://img.png",
+        "id_text_name": 30, "link_copyright": "https://cc.example",
+    }
+
+    status, traits = StoryQueryService(mock_read_port).list_traits_for_class("s1", "class-uuid")
+    assert status == "OK"
+    assert len(traits) == 1
+    card = traits[0].card
+    assert isinstance(card, CardInfo)
+    assert card.uuid == "3"
+    assert card.cardType == "TRAIT"
+    assert card.title == "Card title"
+    assert card.linkCopyright == "https://cc.example"
+
+def test_list_traits_for_class_card_not_found(mock_read_port):
+    mock_read_port.find_story_by_uuid.return_value = {"id": 1, "uuid": "s1"}
+    mock_read_port.find_classes_for_story.return_value = [{"id": 5, "uuid": "class-uuid"}]
+    mock_read_port.find_traits_for_story.return_value = [
+        {"id": 9, "uuid": "trait-1", "id_card": 404},
+    ]
+    mock_read_port.find_card_for_story.return_value = None
+    status, traits = StoryQueryService(mock_read_port).list_traits_for_class("s1", "class-uuid")
+    assert status == "OK"
+    assert traits[0].card is None
+
+
+# ── class bonuses are attached to their own class ────────────────────────────
+
+def test_story_detail_maps_class_bonuses(mock_read_port):
+    mock_read_port.find_story_by_uuid.return_value = {"id": 1, "uuid": "s1"}
+    mock_read_port.find_classes_for_story.return_value = [
+        {"id": 5, "uuid": "class-5"},
+        {"id": 6, "uuid": "class-6"},
+    ]
+    mock_read_port.find_class_bonuses_for_story.return_value = [
+        {"id": 1, "uuid": "b1", "id_class": 5, "statistic": "FORCE", "value": 3},
+        {"id": 2, "id_class": 5, "bonus_type": "AGILITY", "bonus_value": 2},
+        {"id": 3, "uuid": "b3", "id_class": 6, "statistic": "MIND", "value": 0},
+    ]
+
+    detail = StoryQueryService(mock_read_port).get_story_detail("s1")
+    by_uuid = {c.uuid: c for c in detail.classes}
+    assert [(b.statistic, b.value) for b in by_uuid["class-5"].bonuses] == [("FORCE", 3), ("AGILITY", 2)]
+    assert by_uuid["class-5"].bonuses[1].uuid == "2"
+    assert [(b.statistic, b.value) for b in by_uuid["class-6"].bonuses] == [("MIND", 0)]

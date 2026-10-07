@@ -60,6 +60,16 @@ def _triggers(first=None, not_first=None, alone=None, id_location=LOCATION):
 
 
 @pytest.fixture
+def registry_service():
+    """Step 36 — registry writes leave the event store and go through their own service.
+    Step 36.1 — a write hands back the set it just wrote; the mock stands in for that set."""
+    mock = MagicMock()
+    mock.upsert.side_effect = lambda *a: [] if a[3] is None else [a[3]]
+    mock.remove.side_effect = lambda *a: []
+    return mock
+
+
+@pytest.fixture
 def store():
     s = MagicMock()
     s.find_match_by_id.return_value = {
@@ -92,8 +102,9 @@ def location_store():
 
 
 @pytest.fixture
-def service(store, location_store):
-    return EventService(store, edge_store=MagicMock(), location_store=location_store)
+def service(store, location_store, registry_service):
+    return EventService(store, edge_store=MagicMock(), location_store=location_store,
+                        registry_service_instance=registry_service)
 
 
 def _arrival():
@@ -112,6 +123,33 @@ def test_first_arrival_fires_id_event_if_first_time(service, store, location_sto
     assert fired[0].trigger == lem.TRIGGER_FIRST_ENTRY
     assert fired[0].event_uuid == "evt-first"
     assert fired[0].id_location == LOCATION
+
+
+def test_v0356_a_lethal_arrival_carries_its_edge_state(service, store, location_store):
+    """An arrival kills exactly as an executed event does, epilogue and all."""
+    store.find_events_by_id.return_value = {40: _event(40, "evt-trap"),
+                                            50: _event(50, "evt-coma")}
+    store.find_effects_by_event_id.return_value = {40: [_effect(statistics="life", value=-99)]}
+    store.find_id_event_all_player_coma.return_value = 50
+    location_store.find_location_triggers.return_value = _triggers(first=40)
+
+    fired = service.on_arrival(_arrival())
+
+    edge = fired[0].edge_state
+    assert "char-7" in edge.coma_uuids
+    assert edge.all_players_in_coma is True
+    assert edge.coma_event_uuid == "evt-coma"
+    assert edge.coma_executed_event_uuids == ["evt-coma"]
+
+
+def test_v0356_a_quiet_arrival_carries_an_empty_edge_state(service, store, location_store):
+    store.find_events_by_id.return_value = {40: _event(40, "evt-first")}
+    location_store.find_location_triggers.return_value = _triggers(first=40)
+
+    fired = service.on_arrival(_arrival())
+
+    assert fired[0].edge_state is not None
+    assert fired[0].edge_state.anything() is False
 
 
 def test_a_visited_destination_fires_id_event_not_first_time(service, store, location_store):
@@ -263,7 +301,7 @@ def test_pending_events_run_in_the_order_given(service, store, location_store):
     assert [f.event_uuid for f in fired] == ["evt-a", "evt-b"]
 
 
-def test_a_fuse_in_an_empty_location_still_writes_the_registry(service, store, location_store):
+def test_a_fuse_in_an_empty_location_still_writes_the_registry(service, store, location_store, registry_service):
     store.find_events_by_id.return_value = {50: _event(50, "evt-empty-room")}
     store.find_effects_by_event_id.return_value = {
         50: [_effect(key_to_add="DOOR_OPEN", key_value_to_add="YES")]}
@@ -273,8 +311,36 @@ def test_a_fuse_in_an_empty_location_still_writes_the_registry(service, store, l
 
     assert len(fired) == 1
     # id_character None: the world changed, but around no one.
-    store.upsert_registry.assert_called_once()
-    assert store.upsert_registry.call_args[0][3] is None
+    registry_service.upsert.assert_called_once()
+    assert registry_service.upsert.call_args[0][4] is None
+    store.update_character_stats.assert_not_called()
+
+
+def test_a_mission_reward_reaches_the_whole_party(service, store):
+    """Step 38 — a completed mission fires its event with no actor: ALL is then every
+    character of the match, ONLY_ONE nobody, and target_class still narrows."""
+    other = _character(cid=8, id_location=OTHER_LOCATION)
+    other["exp"] = 2
+    other["id_class"] = 4
+    store.find_characters_for_event.return_value = [_character(), other]
+    store.find_events_by_id.return_value = {60: _event(60, "evt-reward")}
+    store.find_effects_by_event_id.return_value = {60: [
+        _effect(id=1, statistics="exp", value=1, target="ALL"),
+        _effect(id=2, statistics="exp", value=5, target="ONLY_ONE"),
+        _effect(id=3, statistics="exp", value=9, target="ALL", target_class=99),
+    ]}
+
+    service.run_mission_event(MATCH_ID, 60, 1)
+
+    written = {c.args[1]: c.args[2]["exp"] for c in store.update_character_stats.call_args_list}
+    assert written == {CHAR_ID: 1, 8: 3}
+
+
+def test_a_fuse_with_no_actor_still_reaches_nobody_even_with_all(service, store):
+    store.find_events_by_id.return_value = {61: _event(61, "evt-fuse")}
+    store.find_effects_by_event_id.return_value = {61: [_effect(statistics="exp", value=1, target="ALL")]}
+    service.run_pending_automatic_events(MATCH_ID, CLOCK, [
+        PendingAutomaticEvent(lem.TRIGGER_COUNTER_ZERO, LOCATION, 61, None, 0)], "en")
     store.update_character_stats.assert_not_called()
 
 
@@ -288,6 +354,8 @@ def test_an_empty_pending_list_does_nothing(service, store):
 EVENT_CARD = {"title": "The fuse burns out"}
 EFFECT_CARD = {"title": "You feel weaker"}
 LOCATION_CARD = {"title": "The old mill"}
+# v0.35.8 — what the port actually returns: the raw row, which the service maps.
+LOCATION_CARD_ROW = {"uuid": "card-loc", "id_text_title": 501, "url_image": "http://img"}
 
 
 def _fired_at(id_location=LOCATION):
@@ -303,10 +371,12 @@ def _fired_at(id_location=LOCATION):
 def service_with_cards(store, location_store):
     """The location card is authored, so cardLocation actually resolves to something."""
     content = MagicMock()
-    content.find_card_by_story_id_and_card_id.return_value = LOCATION_CARD
+    content.find_card_by_story_id_and_card_id.return_value = LOCATION_CARD_ROW
+    content.find_text_by_story_id_text_and_lang.return_value = {"short_text": "The old mill"}
     location_store.find_location_triggers.return_value = _triggers()
     return EventService(store, edge_store=MagicMock(), location_store=location_store,
-                        content_read_port=content)
+                        content_read_port=content,
+                        registry_service_instance=MagicMock())
 
 
 def test_standing_there_is_full(service_with_cards, location_store):
@@ -319,7 +389,9 @@ def test_standing_there_is_full(service_with_cards, location_store):
     assert told[0].clock == CLOCK
     # v0.33.1: the news is the event and what it did, not the name of the place.
     assert told[0].card == EVENT_CARD
-    assert told[0].card_location == LOCATION_CARD
+    # the raw row is mapped to the API contract, with the title resolved
+    assert told[0].card_location["title"] == "The old mill"
+    assert told[0].card_location["urlImage"] == "http://img"
     assert [e.card for e in told[0].card_effects] == [EFFECT_CARD]
 
 
@@ -331,7 +403,7 @@ def test_having_been_there_before_is_named(service_with_cards, location_store):
 
     assert told[0].visibility == lem.VISIBILITY_NAMED
     assert told[0].card == EVENT_CARD
-    assert told[0].card_location == LOCATION_CARD
+    assert told[0].card_location["title"] == "The old mill"
     assert len(told[0].card_effects) == 1
 
 
@@ -375,7 +447,8 @@ def test_nothing_fired_nothing_told(service):
 # ── the pre-Step-33 engine ───────────────────────────────────────────────────
 
 def test_without_a_location_store_the_engine_is_exactly_as_before(store):
-    legacy = EventService(store, edge_store=MagicMock())
+    legacy = EventService(store, edge_store=MagicMock(),
+                          registry_service_instance=MagicMock())
 
     assert legacy.on_arrival(_arrival()) == []
     assert legacy.run_pending_automatic_events(MATCH_ID, CLOCK, [
@@ -444,3 +517,78 @@ def test_the_counter_zero_card_effects_are_mapped_not_handed_over_raw():
     assert payload['cardLocation'] == LOCATION_CARD
     assert payload['cardEffects'][0]['effectUuid'] == 'eff-1'
     assert payload['cardEffects'][0]['card'] == EFFECT_CARD
+
+
+# ── Step 39: random events ───────────────────────────────────────────────────
+
+def test_step39_a_random_event_reaches_the_whole_party(service, store, location_store):
+    """No actor: ALL is every character of the match, ONLY_ONE nobody, target_class narrows."""
+    other = _character(cid=8, id_location=OTHER_LOCATION)
+    other["exp"] = 2
+    other["id_class"] = 4
+    store.find_characters_for_event.return_value = [_character(), other]
+    store.find_events_by_id.return_value = {70: _event(70, "evt-wolves")}
+    store.find_effects_by_event_id.return_value = {70: [
+        _effect(id=1, statistics="exp", value=1, target="ALL"),
+        _effect(id=2, statistics="exp", value=5, target="ONLY_ONE"),
+        _effect(id=3, statistics="exp", value=9, target="ALL", target_class=99),
+    ]}
+
+    fired = service.run_random_event(MATCH_ID, CLOCK, 70, "en")
+
+    assert [(f.trigger, f.event_uuid) for f in fired] == [(lem.TRIGGER_RANDOM_EVENT, "evt-wolves")]
+    written = {c.args[1]: c.args[2]["exp"] for c in store.update_character_stats.call_args_list}
+    assert written == {CHAR_ID: 1, 8: 3}
+    args = location_store.log_automatic_event.call_args[0]
+    assert args[1] is None and args[2] == 0 and args[3] == 70
+    assert args[5] == "random event 70 (RANDOM_EVENT)"
+
+
+def test_step39_a_random_event_owning_choices_is_skipped(service, store, location_store):
+    store.find_events_by_id.return_value = {71: _event(71, "evt-ask")}
+    store.find_choices_by_event_id.return_value = [{"id": 1}]
+
+    assert service.run_random_event(MATCH_ID, CLOCK, 71, "en") == []
+    assert location_store.log_automatic_event.call_args[0][5].startswith(
+        "automatic event skipped 71")
+
+
+def test_step39_a_random_event_is_told_full_without_a_location(service_with_cards, location_store):
+    from app.core.models.match.event_models import AppliedEffect
+    fired = [lem.AutomaticEventFired(
+        lem.TRIGGER_RANDOM_EVENT, 0, "evt-wolves", EVENT_CARD,
+        effects=[AppliedEffect(event_uuid="evt-wolves", effect_uuid="eff-1", statistic="life",
+                               value=-1, target="ALL", target_class=None,
+                               character_uuids=["char-1"], card=EFFECT_CARD)])]
+
+    for recipient in (CHAR_ID, None):
+        told = service_with_cards.describe_for_recipient(MATCH_ID, recipient, CLOCK, fired, "en")
+        assert told[0].visibility == lem.VISIBILITY_FULL
+        assert told[0].id_location is None
+        assert told[0].card_location is None
+        assert told[0].card == EVENT_CARD
+        assert [e.card for e in told[0].card_effects] == [EFFECT_CARD]
+    location_store.find_location_triggers.assert_not_called()
+
+
+def test_step39_helpers():
+    from app.core.services.match.event_service import automatic_log_message, is_party_trigger
+    assert automatic_log_message(lem.TRIGGER_RANDOM_EVENT, 5, 0) == "random event 5 (RANDOM_EVENT)"
+    assert automatic_log_message(lem.TRIGGER_COUNTER_ZERO, 5, 12) == \
+        "automatic event 5 (COUNTER_ZERO) at location 12"
+    assert is_party_trigger(lem.TRIGGER_RANDOM_EVENT)
+    assert is_party_trigger("mission completed")
+    assert not is_party_trigger(lem.TRIGGER_COUNTER_ZERO)
+
+
+def test_v0412_the_first_latch_counts_one_location_visit(service, store, location_store):
+    kpi = MagicMock()
+    service.set_kpi(kpi)
+    store.find_events_by_id.return_value = {}
+    location_store.find_location_triggers.return_value = None
+    location_store.mark_state_location_visited.side_effect = [True, False]
+
+    service.on_arrival(_arrival())
+    service.on_arrival(_arrival())
+
+    kpi.record_location_visit.assert_called_once_with(MATCH_ID, STORY_ID, LOCATION)

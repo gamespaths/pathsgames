@@ -31,6 +31,11 @@ public interface GuestAuthPort {
      */
     GuestSession createGuestSession(String testMarker);
 
+    /** v0.41.0 — dev/test: valid marker and 1..3650 ageDays backdate the guest; otherwise ignored. */
+    default GuestSession createGuestSession(String testMarker, Integer ageDays) {
+        return createGuestSession(testMarker);
+    }
+
     /**
      * Resumes an existing guest session using the guest cookie token.
      * If the session is still valid, issues new JWT tokens.

@@ -22,10 +22,15 @@ public class KeyEntity extends BaseStoryScopedEntity {
 
     private String visibility;
 
+    /** Step 36.1 - 1 = the key holds a SET, each write adding a member; 0 = one value. */
+    @Column(name = "multi_value")
+    private Integer multiValue;
+
     @PrePersist
     protected void onCreate() {
         if (priority == null) priority = 0;
         if (visibility == null) visibility = "PUBLIC";
+        if (multiValue == null) multiValue = 0;
     }
 
     // === Getters & Setters ===
@@ -43,6 +48,9 @@ public class KeyEntity extends BaseStoryScopedEntity {
     public void setPriority(Integer priority) { this.priority = priority; }
 
     public String getVisibility() { return visibility; }
+
+    public Integer getMultiValue() { return multiValue; }
+    public void setMultiValue(Integer multiValue) { this.multiValue = multiValue; }
     public void setVisibility(String visibility) { this.visibility = visibility; }
 
 }

@@ -61,6 +61,78 @@ def _detail():
     )
 
 
+@pytest.fixture()
+def registry_env():
+    """The same controller, wired with the registry service the two edit routes need."""
+    registry_service = MagicMock()
+    controller = MatchAdminController(MagicMock(), MagicMock(),
+                                      registry_service=registry_service)
+    app = FastAPI()
+    app.include_router(controller.router)
+    return TestClient(app), registry_service
+
+
+def test_upsert_registry_writes_a_declared_key(registry_env):
+    client, registry_service = registry_env
+    registry_service.is_declared_for_match_uuid.return_value = True
+    registry_service.upsert_by_match_uuid.return_value = ["ledger"]
+
+    response = client.put("/api/admin/matches/m1/registry",
+                          json={"key": "clue", "value": "ledger"})
+
+    assert response.status_code == 200
+    assert response.json() == {"key": "clue", "values": ["ledger"]}
+
+
+def test_upsert_registry_refuses_a_key_the_story_does_not_declare(registry_env):
+    # v0.36.4 — a typo would otherwise create an orphan key nobody can tell from a bug.
+    client, registry_service = registry_env
+    registry_service.is_declared_for_match_uuid.return_value = False
+
+    response = client.put("/api/admin/matches/m1/registry", json={"key": "clu", "value": "x"})
+
+    assert response.status_code == 400
+    assert response.json()["error"] == "UNKNOWN_KEY"
+    registry_service.upsert_by_match_uuid.assert_not_called()
+
+
+def test_upsert_registry_unknown_match(registry_env):
+    client, registry_service = registry_env
+    registry_service.is_declared_for_match_uuid.return_value = None
+
+    response = client.put("/api/admin/matches/m1/registry", json={"key": "clue"})
+
+    assert response.status_code == 404
+    assert response.json()["error"] == "MATCH_NOT_FOUND"
+
+
+def test_upsert_registry_needs_a_key(registry_env):
+    client, registry_service = registry_env
+    assert client.put("/api/admin/matches/m1/registry", json={"value": "x"}).status_code == 400
+    registry_service.is_declared_for_match_uuid.assert_not_called()
+
+
+def test_delete_registry_still_takes_an_undeclared_key(registry_env):
+    # The DELETE has no such guard: cleaning an orphan row up is the point of the verb.
+    client, registry_service = registry_env
+    registry_service.remove_by_match_uuid.return_value = []
+
+    response = client.request("DELETE", "/api/admin/matches/m1/registry",
+                              params={"key": "orphan"})
+
+    assert response.status_code == 200
+    assert response.json() == {"key": "orphan", "values": []}
+    registry_service.is_declared_for_match_uuid.assert_not_called()
+
+
+def test_registry_routes_answer_501_when_the_service_is_not_wired(env):
+    client, _, _ = env
+    assert client.put("/api/admin/matches/m1/registry",
+                      json={"key": "clue"}).status_code == 501
+    assert client.request("DELETE", "/api/admin/matches/m1/registry",
+                          params={"key": "clue"}).status_code == 501
+
+
 def test_list_all_matches_returns_envelope(env):
     client, _, query_port = env
     query_port.list_matches_page.return_value = MatchSummaryPage(
@@ -111,7 +183,7 @@ def test_update_match_returns_200(env):
     resp = client.put("/api/admin/matches/m1", json={"status": "ENDED", "name": "x"})
     assert resp.status_code == 200
     assert resp.json() == {"status": "UPDATED", "uuid": "m1"}
-    command_port.update_match.assert_called_once_with("m1", "ENDED", "x")
+    command_port.update_match.assert_called_once_with("m1", "ENDED", "x", None)
 
 
 def test_update_match_empty_body_returns_400(env):
@@ -141,7 +213,7 @@ def test_stop_match_sets_ended(env):
     command_port.update_match.return_value = "UPDATED"
     resp = client.post("/api/admin/matches/m1/stop")
     assert resp.status_code == 200
-    command_port.update_match.assert_called_once_with("m1", "ENDED", None)
+    command_port.update_match.assert_called_once_with("m1", "ENDED", None, "STOP")
 
 
 def test_pause_and_resume(env):
@@ -149,8 +221,8 @@ def test_pause_and_resume(env):
     command_port.update_match.return_value = "UPDATED"
     client.post("/api/admin/matches/m1/pause")
     client.post("/api/admin/matches/m1/resume")
-    command_port.update_match.assert_any_call("m1", "PAUSED", None)
-    command_port.update_match.assert_any_call("m1", "RUNNING", None)
+    command_port.update_match.assert_any_call("m1", "PAUSED", None, "PAUSE")
+    command_port.update_match.assert_any_call("m1", "RUNNING", None, "RESUME")
 
 
 def test_delete_match_returns_200(env):
@@ -183,6 +255,22 @@ def test_get_admin_match_info_returns_200(env):
     assert resp.status_code == 200
     assert resp.json()['match']['uuid'] == 'match-uuid'
     query_port.get_match_info_for_admin.assert_called_once_with('m1')
+
+
+def test_get_admin_match_info_carries_the_log_count():
+    """v0.41.1 — the admin info answers logCount when the logs service can count."""
+    query_port = MagicMock()
+    query_port.get_match_info_for_admin.return_value = _detail()
+    logs_service = MagicMock()
+    logs_service.count_logs_for_admin.return_value = 12
+    controller = MatchAdminController(MagicMock(), query_port, match_logs_service=logs_service)
+    app = FastAPI()
+    app.include_router(controller.router)
+    resp = TestClient(app).get('/api/admin/matches/m1/info')
+    assert resp.status_code == 200
+    assert resp.json()['logCount'] == 12
+    logs_service.count_logs_for_admin.return_value = None
+    assert 'logCount' not in TestClient(app).get('/api/admin/matches/m1/info').json()
 
 
 def test_get_admin_match_info_returns_404(env):
@@ -242,3 +330,21 @@ def test_get_admin_match_logs_without_service_returns_501(env):
     resp = client.get("/api/admin/matches/m1/logs")
     assert resp.status_code == 501
     assert resp.json()["error"] == "NOT_IMPLEMENTED"
+
+
+def test_change_statistics_forwards_exp_and_skips_minus_one():
+    # Step 38 — exp rides the admin override like the other numbers: -1/omitted = untouched.
+    command_port, query_port, character_port = MagicMock(), MagicMock(), MagicMock()
+    character_port.change_statistics.return_value = "UPDATED"
+    controller = MatchAdminController(command_port, query_port, character_command_port=character_port)
+    app = FastAPI()
+    app.include_router(controller.router)
+    client = TestClient(app)
+
+    resp = client.post("/api/admin/matches/m1/player/p1/changeStatistics", json={"exp": 21, "dex": -1})
+    assert resp.status_code == 200
+    assert character_port.change_statistics.call_args.kwargs["exp"] == 21
+    assert character_port.change_statistics.call_args.kwargs["dex"] is None
+
+    client.post("/api/admin/matches/m1/player/p1/changeStatistics", json={"exp": -1})
+    assert character_port.change_statistics.call_args.kwargs["exp"] is None

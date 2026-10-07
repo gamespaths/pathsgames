@@ -70,6 +70,24 @@ describe('PlayerCards', () => {
     expect(screen.getByTestId('overlay-difficulty')).toBeInTheDocument()
   })
 
+  // v0.38.3 — a trait's cost is badged in-game only on the sides the difficulty budgets,
+  // ahead of its stats, and a zero cost is left out as noise.
+  it('badges the trait cost on the budgeted sides only, non-zero, before the stats', () => {
+    const storyFull = {
+      ...STORY_FULL,
+      traits: [
+        { uuid: 't1', costPositive: 2, costNegative: 1, life: 3, card: { title: 'Brave' } },
+        { uuid: 't2', costPositive: 0, dexterity: 1, card: { title: 'Quick' } },
+      ],
+      difficulties: [{ uuid: 'd1', traitCostPositiveBudget: 3, energy: 4, card: { title: 'Hard' } }],
+    }
+    render(<PlayerCards storyFull={storyFull} story={STORY}
+      playerStats={PLAYER_STATS} gameData={GAME_DATA} onPreview={vi.fn()} />)
+    const traitCards = capturedCards.filter(c => c.entityType === 'trait')
+    expect(traitCards[0].statistics.map(i => i.key)).toEqual(['costPositive', 'life'])
+    expect(traitCards[1].statistics.map(i => i.key)).toEqual(['dexterity'])
+  })
+
   it('includes the difficulty energy-per-sleep badge with the difficulty stats', () => {
     renderCards()
     expect(screen.getByTestId('badge-energy').textContent).toBe('4')
@@ -127,26 +145,21 @@ describe('PlayerCards', () => {
   })
 })
 
-// ── Step 28.7 — the story card opens the match history on the right page ──────
+// ── v0.37.4 — the story card is a story card: the match history left the board ──────
 
-describe('PlayerCards — story card and match log', () => {
+describe('PlayerCards — story card', () => {
   beforeEach(() => { capturedCards.length = 0 })
 
-  it('opens the story card on the LEFT and the match log on the RIGHT', () => {
-    const onPreview = vi.fn()
-    const onPreviewMatchLog = vi.fn()
+  it('never badges the story tile as the history any more', () => {
     render(<PlayerCards storyFull={STORY_FULL} story={STORY}
       playerStats={PLAYER_STATS} gameData={GAME_DATA}
-      onPreview={onPreview} previewSide="right" onPreviewMatchLog={onPreviewMatchLog} />)
+      onPreview={vi.fn()} previewSide="right" />)
 
-    fireEvent.click(screen.getByTestId('preview-story'))
-
-    // the story card is forced to the left page (not `previewSide`), no modal
-    expect(onPreview).toHaveBeenCalledWith({ card: STORY.card, type: 'story', modal: false, side: 'left' })
-    expect(onPreviewMatchLog).toHaveBeenCalled()
+    expect(screen.queryByTestId('preview-matchlog')).toBeNull()
+    expect(screen.getByTestId('preview-story')).toBeInTheDocument()
   })
 
-  it('keeps the previous behaviour when no match log handler is passed', () => {
+  it('opens the story card on the side it was given', () => {
     const onPreview = vi.fn()
     render(<PlayerCards storyFull={STORY_FULL} story={STORY}
       playerStats={PLAYER_STATS} gameData={GAME_DATA}
@@ -154,5 +167,33 @@ describe('PlayerCards — story card and match log', () => {
 
     fireEvent.click(screen.getByTestId('preview-story'))
     expect(onPreview).toHaveBeenCalledWith({ card: STORY.card, type: 'story', side: 'right' })
+  })
+})
+
+// v0.37.7 — the match history card sits right before the story card, only when the board
+// hands over a way to open it; its action opens the history on the right page.
+vi.mock('@/features/matches/MatchHistoryCard', () => ({
+  default: ({ onOpen }) => <button data-testid="card-matchlog" onClick={onOpen}>history</button>,
+}))
+
+describe('PlayerCards — match history door', () => {
+  it('lists no history card without an opener', () => {
+    renderCards()
+    expect(screen.queryByTestId('card-matchlog')).toBeNull()
+  })
+
+  it('puts the history card right before the story card and opens it on click', () => {
+    const onOpenHistory = vi.fn()
+    const { container } = render(<PlayerCards storyFull={STORY_FULL} story={STORY}
+      playerStats={PLAYER_STATS} gameData={GAME_DATA} onPreview={vi.fn()}
+      onOpenHistory={onOpenHistory} />)
+    const ids = [...container.querySelectorAll('[data-testid^="card-"]')]
+      .map(el => el.getAttribute('data-testid'))
+    const history = ids.indexOf('card-matchlog')
+    expect(history).toBeGreaterThan(-1)
+    expect(ids[history + 1]).toBe('card-story')
+    expect(ids[history - 1]).toBe('card-difficulty')
+    fireEvent.click(screen.getByTestId('card-matchlog'))
+    expect(onOpenHistory).toHaveBeenCalledTimes(1)
   })
 })

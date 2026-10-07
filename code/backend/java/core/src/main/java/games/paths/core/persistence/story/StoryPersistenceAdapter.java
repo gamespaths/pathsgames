@@ -122,6 +122,13 @@ public class StoryPersistenceAdapter implements StoryPersistencePort {
     public void deleteStoryData(Long storyId) {
         // Phase -1: delete all matches referencing this story (gaming_match → list_stories_difficulty FK)
         gamingMatchRepository.deleteByIdStory(storyId);
+        // v0.35.8 — Phase -0.5: clear every reference INTO a table this delete is about to
+        // empty. An event chained to another event, a weather rule or a location naming one:
+        // the referenced row goes first, so PostgreSQL refuses the delete while the pointer
+        // still stands. Same three references the import writes in its second pass.
+        eventRepository.clearEventChains(storyId);
+        weatherRuleRepository.clearRuleEvents(storyId);
+        locationRepository.clearLocationTriggerEvents(storyId);
         // Phase 0: clear FK references on list_stories to avoid constraint violations on PostgreSQL
         storyRepository.findById(storyId).ifPresent(s -> {
             s.setIdEventEndGame(null);

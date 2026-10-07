@@ -18,12 +18,15 @@ import games.paths.core.model.match.MatchTraitCodec;
 import games.paths.core.port.match.CharacterCommandPort;
 import games.paths.core.port.match.CharacterPersistencePort;
 import games.paths.core.port.match.CharacterReadPort;
+import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.MatchReadPort;
 import games.paths.core.port.match.UserAccessPort;
 import games.paths.core.port.story.StoryReadPort;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -33,7 +36,7 @@ import java.util.Optional;
  * deltas and the selected traits; life and energy start at their computed
  * maximum and the character is placed at the story start location.
  *
- * <p>See {@code documentation_v0/Step21_CharacterSelection.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step21_CharacterSelection.md}.</p>
  */
 public class CharacterCommandService implements CharacterCommandPort {
 
@@ -42,6 +45,8 @@ public class CharacterCommandService implements CharacterCommandPort {
     private final UserAccessPort userAccessPort;
     private final CharacterPersistencePort persistencePort;
     private final CharacterReadPort characterReadPort;
+    /** v0.41.1 - the ADMIN_STATS row of changeStatistics; null in the older tests. */
+    private MatchLogWriterPort logWriter;
 
     public CharacterCommandService(StoryReadPort storyReadPort,
                                    MatchReadPort matchReadPort,
@@ -53,6 +58,10 @@ public class CharacterCommandService implements CharacterCommandPort {
         this.userAccessPort = userAccessPort;
         this.persistencePort = persistencePort;
         this.characterReadPort = characterReadPort;
+    }
+
+    public void setLogWriter(MatchLogWriterPort logWriter) {
+        this.logWriter = logWriter;
     }
 
     @Override
@@ -358,6 +367,10 @@ public class CharacterCommandService implements CharacterCommandPort {
         if (sleeping != null || coma != null) {
             persistencePort.updateCharacterFlags(match.getId(), character.getId(), sleeping, coma);
         }
+        Integer exp = apply(command.getExp(), null);
+        if (exp != null) {
+            persistencePort.updateCharacterExp(match.getId(), character.getId(), exp);
+        }
 
         Integer food  = apply(command.getFood(),  null);
         Integer magic = apply(command.getMagic(), null);
@@ -367,7 +380,38 @@ public class CharacterCommandService implements CharacterCommandPort {
             persistencePort.updateBackpackStats(match.getId(), character.getId(),
                     food, magic, coin);
         }
+
+        Map<String, Object> applied = new LinkedHashMap<>();
+        applied.put("dex", dex);
+        applied.put("intel", intel);
+        applied.put("con", con);
+        applied.put("energy", energy);
+        applied.put("life", life);
+        applied.put("sad", sad);
+        applied.put("coin", coin);
+        applied.put("food", food);
+        applied.put("magic", magic);
+        applied.put("exp", exp);
+        applied.put("sleeping", sleeping);
+        applied.put("coma", coma);
+        String stats = statsMessage(applied);
+        if (logWriter != null && stats != null) {
+            logWriter.write(match.getId(), character.getId(), null,
+                    match.getCurrentClock() == null ? 0 : match.getCurrentClock(), stats);
+        }
         return ChangeStatsOutcome.UPDATED;
+    }
+
+    /** v0.41.1 - {@code ADMIN_STATS field=value ...} over the applied fields, null when none was. */
+    static String statsMessage(Map<String, Object> applied) {
+        StringBuilder sb = new StringBuilder();
+        applied.forEach((k, v) -> {
+            if (v != null) {
+                sb.append(' ').append(k).append('=').append(v);
+            }
+        });
+        return sb.length() == 0 ? null
+                : MatchLogWriterPort.admin(MatchLogWriterPort.ADMIN_STATS + sb);
     }
 
     /** Returns {@code v} when {@code v != null && v != -1}, otherwise {@code fallback}. */

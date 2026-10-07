@@ -25,6 +25,7 @@ public class AdminConstant {
     public static final String EMPTY_IMPORT_DATA = "EMPTY_IMPORT_DATA";
     public static final String EMPTY_IMPORT_DATA_MESSAGE = "Request body must contain story data";
     public static final String STORY_NOT_FOUND_WITH_UUID = "No story found with UUID: ";
+    public static final String CATALOG_TARGET_NOT_CONFIGURED = "CATALOG_TARGET_NOT_CONFIGURED";
 
     public static final String GUEST_NOT_FOUND = "GUEST_NOT_FOUND";
     public static final String GUEST_NOT_FOUND_WITH_UUID = "No guest user found with UUID: ";

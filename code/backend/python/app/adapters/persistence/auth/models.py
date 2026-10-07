@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime, func
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime, Index, func
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, relationship
 from datetime import datetime, timezone
 
@@ -20,8 +20,14 @@ class User(Base):
     language = Column(String(10), default='en')
     ts_registration = Column(String(50))
     last_access = Column(String(50))
+    # v0.41.4 — decision 56: the e-mail a match import copies and matches users by (Java email_address).
+    email_address = Column(String(255))
     
     tokens = relationship("UserToken", back_populates="user", cascade="all, delete-orphan")
+
+    # v0.41.0 — the guest cleanup selects by state and last access (Java V0.41.0 migration)
+    __table_args__ = (Index("idx_users_state_last_access", "state", "last_access"),
+                      Index("idx_users_email", "email_address"))
 
 class UserToken(Base):
     __tablename__ = 'users_tokens'

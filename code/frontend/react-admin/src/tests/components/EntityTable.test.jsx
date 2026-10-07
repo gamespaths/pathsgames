@@ -274,4 +274,16 @@ describe('EntityTable', () => {
     expect(screen.getByText('Direction')).toBeInTheDocument()
     expect(screen.getByText('NORTH')).toBeInTheDocument()
   })
+
+  it('the card-back column appears when a row carries the key, without opting in', () => {
+    render(<EntityTable columns={MOCK_COLS} entities={[{ ...MOCK_ENTITIES[0], idCardBack: 4 }]}
+                        onEdit={() => {}} onDelete={() => {}} />)
+    expect(screen.getByText(/Card Back/i)).toBeInTheDocument()
+  })
+
+  it('a row whose card id is an empty string shows no card button', () => {
+    render(<EntityTable columns={MOCK_COLS} entities={[{ ...MOCK_ENTITIES[0], idCard: '' }]}
+                        onEdit={() => {}} onDelete={() => {}} onOpenIdCardForm={() => {}} />)
+    expect(screen.getByText('Alpha')).toBeInTheDocument()
+  })
 })

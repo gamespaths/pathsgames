@@ -93,7 +93,7 @@ class StoryCrudServiceFieldMappingTest {
     void createsADifficultyWithEveryFieldMapped() {
         assertEveryFieldRoundTrips("difficulties", data(
                 "idTextName", 11, "idTextDescription", 12, "idCard", 13, "expCost", 14, "maxWeight", 15,
-                "minCharacter", 16, "maxCharacter", 17, "costHelpComa", 18, "costMaxCharacteristics", 19,
+                "minCharacter", 16, "maxCharacter", 17, "costHelpComa", 18, "expCostBase", 19, "maxStatValue", 47,
                 "numberMaxFreeAction", 20, "traitCostPositiveBudget", 21, "traitCostNegativeBudget", 22,
                 "life", 23, "energy", 24, "sad", 25, "dexterity", 26, "intelligence", 27, "constitution", 28,
                 "weight", 29));
@@ -103,7 +103,7 @@ class StoryCrudServiceFieldMappingTest {
     void createsALocationWithEveryFieldMapped() {
         assertEveryFieldRoundTrips("locations", data(
                 "idTextName", 30, "idTextDescription", 31, "idCard", 32, "idTextNarrative", 33, "idImage", 34,
-                "isSafe", 35, "costEnergyEnter", 36, "counterTime", 37, "idEventIfCounterZero", 38,
+                "costEnergyEnter", 36, "counterTime", 37, "idEventIfCounterZero", 38,
                 "secureParam", 39, "idEventIfCharacterStartTime", 40, "idEventIfCharacterEnterEmptyLocation", 41,
                 "idEventIfFirstTime", 42, "idEventNotFirstTime", 43, "priorityAutomaticEvent", 44, "idAudio", 45,
                 "maxCharacters", 46));
@@ -218,7 +218,8 @@ class StoryCrudServiceFieldMappingTest {
     void createsAGlobalRandomEventWithEveryFieldMapped() {
         assertEveryFieldRoundTrips("global-random-events", data(
                 "idTextName", 136, "idTextDescription", 137, "idCard", 138, "conditionKey", "conditionKey-v",
-                "conditionValue", "conditionValue-v", "probability", 139, "idText", 140, "idEvent", 141));
+                "conditionValue", "conditionValue-v", "registryValueOperatorCondition", "!=",
+                "probability", 139, "idText", 140, "idEvent", 141));
     }
 
     @Test
@@ -282,7 +283,7 @@ class StoryCrudServiceFieldMappingTest {
     void createsAMissionWithEveryFieldMapped() {
         assertEveryFieldRoundTrips("missions", data(
                 "idTextName", 195, "idTextDescription", 196, "idCard", 197, "conditionKey", "conditionKey-v",
-                "conditionValueFrom", "conditionValueFrom-v", "conditionValueTo", "conditionValueTo-v",
+                "conditionValue", "conditionValue-v", "conditionValues", "conditionValues-v",
                 "idEventCompleted", 198));
     }
 
@@ -290,7 +291,7 @@ class StoryCrudServiceFieldMappingTest {
     void createsAMissionStepWithEveryFieldMapped() {
         assertEveryFieldRoundTrips("mission-steps", data(
                 "idTextName", 199, "idTextDescription", 200, "idCard", 201, "conditionKey", "conditionKey-v",
-                "conditionValueFrom", "conditionValueFrom-v", "conditionValueTo", "conditionValueTo-v",
+                "conditionValue", "conditionValue-v", "conditionValues", "conditionValues-v",
                 "idEventCompleted", 202, "idMission", 203, "step", 204));
     }
 
@@ -353,14 +354,14 @@ class StoryCrudServiceFieldMappingTest {
     void acceptsABooleanForAFlagColumn() {
         // v0.35.0 — the admin form sends every checkbox as a JSON boolean and every flag
         // column is an INTEGER. Until this version a ticked box read as null, so the field
-        // was dropped instead of written: isSafe, isConsumabile and flagShowEffects alike.
-        Map<String, Object> on = service.createEntity("story-uuid", "locations",
-                data("idTextName", 1, "isSafe", true));
-        Map<String, Object> off = service.createEntity("story-uuid", "locations",
-                data("idTextName", 1, "isSafe", false));
+        // was dropped instead of written: isConsumabile and flagShowEffects alike.
+        Map<String, Object> on = service.createEntity("story-uuid", "items",
+                data("idTextName", 1, "isConsumabile", true));
+        Map<String, Object> off = service.createEntity("story-uuid", "items",
+                data("idTextName", 1, "isConsumabile", false));
 
-        assertEquals(1, on.get("isSafe"));
-        assertEquals(0, off.get("isSafe"));
+        assertEquals(1, on.get("isConsumabile"));
+        assertEquals(0, off.get("isConsumabile"));
     }
 
     // === Step 22 validator hook ===

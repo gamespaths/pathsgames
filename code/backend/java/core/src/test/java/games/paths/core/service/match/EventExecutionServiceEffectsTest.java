@@ -9,6 +9,7 @@ import games.paths.core.port.match.EventExecutionPort.LocationChange;
 import games.paths.core.port.match.EventExecutionPort.StatChange;
 import games.paths.core.port.match.EdgeStateStorePort;
 import games.paths.core.port.match.EventExecutionStorePort;
+import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.EventExecutionStorePort.BackpackStats;
 import games.paths.core.port.match.EventExecutionStorePort.CharacterStats;
 import games.paths.core.port.match.EventExecutionStorePort.EventActorView;
@@ -54,6 +55,7 @@ class EventExecutionServiceEffectsTest {
     private static final long FAR_ID = 40L;
 
     private EventExecutionStorePort store;
+    private RegistryService registryService;
     private EdgeStateStorePort edgeStore;
     private TimeAdvancementService timeAdvancementService;
     private EventExecutionService service;
@@ -61,11 +63,13 @@ class EventExecutionServiceEffectsTest {
     @BeforeEach
     void setUp() {
         store = mock(EventExecutionStorePort.class);
+        registryService = mock(RegistryService.class);
         edgeStore = mock(EdgeStateStorePort.class);
         UserAccessPort userAccessPort = mock(UserAccessPort.class);
         ContentQueryPort contentQueryPort = mock(ContentQueryPort.class);
         timeAdvancementService = mock(TimeAdvancementService.class);
-        service = new EventExecutionService(store, edgeStore, userAccessPort, contentQueryPort, timeAdvancementService);
+        service = new EventExecutionService(store, edgeStore, userAccessPort, contentQueryPort,
+                timeAdvancementService, registryService);
 
         when(userAccessPort.findByUuid(USER_UUID)).thenReturn(Optional.of(
                 new UserAccessPort.UserView(USER_ID, USER_UUID, "player", "USER", 2)));
@@ -616,6 +620,39 @@ class EventExecutionServiceEffectsTest {
         }
 
         @Test
+        @DisplayName("v0.41.1 - every trait moved writes a TRAIT_ADD / TRAIT_REMOVE row naming its uuid")
+        void traitRowsOnTheTimeline() {
+            MatchLogWriterPort writer = mock(MatchLogWriterPort.class);
+            service.setLogWriter(writer);
+            EventEffectEntity e = effect();
+            e.setTraitsToAdd("7,9");
+            e.setTraitsToRemove("8");
+            withEffects(e);
+
+            execute();
+
+            verify(writer).write(MATCH_ID, CHAR_ID, 1L, 7, "TRAIT_ADD trait-uuid");
+            // A trait with no uuid on the story row is named by its id.
+            verify(writer).write(MATCH_ID, CHAR_ID, 1L, 7, "TRAIT_ADD 9");
+            verify(writer).write(MATCH_ID, CHAR_ID, 1L, 7, "TRAIT_REMOVE trait-8");
+        }
+
+        @Test
+        @DisplayName("v0.41.1 - a trait already held writes no row")
+        void noRowWhenNothingMoved() {
+            MatchLogWriterPort writer = mock(MatchLogWriterPort.class);
+            service.setLogWriter(writer);
+            when(store.addTrait(anyLong(), anyLong(), anyLong(), any())).thenReturn(false);
+            EventEffectEntity e = effect();
+            e.setTraitsToAdd("7");
+            withEffects(e);
+
+            execute();
+
+            verify(writer, never()).write(anyLong(), any(), any(), anyInt(), anyString());
+        }
+
+        @Test
         @DisplayName("Non-numeric noise in the CSV is skipped, not thrown")
         void csvNoise() {
             EventEffectEntity e = effect();
@@ -664,6 +701,16 @@ class EventExecutionServiceEffectsTest {
     @DisplayName("Registry")
     class Registry {
 
+        /** The service hands back the set it just wrote; the mock stands in for that set. */
+        @org.junit.jupiter.api.BeforeEach
+        void writeEchoesTheValue() {
+            when(registryService.upsert(anyLong(), any(), any(), any(), any(), any(), any(), any()))
+                    .thenAnswer(inv -> {
+                        String written = inv.getArgument(3);
+                        return written == null ? java.util.List.of() : java.util.List.of(written);
+                    });
+        }
+
         @Test
         @DisplayName("A key is upserted once, by the actor, and reported with its old value")
         void upsert() {
@@ -675,7 +722,8 @@ class EventExecutionServiceEffectsTest {
 
             EventExecutionResult r = execute();
 
-            verify(store, times(1)).upsertRegistry(MATCH_ID, "GATE", "OPEN", CHAR_ID, 1L, 7);
+            verify(registryService, times(1)).upsert(eq(MATCH_ID), any(), eq("GATE"), eq("OPEN"),
+                    eq(CHAR_ID), eq(1L), eq(null), eq(7));
             assertEquals(1, r.registryChanges().size());
             assertNull(r.registryChanges().get(0).oldValue());
             assertEquals("OPEN", r.registryChanges().get(0).newValue());
@@ -861,7 +909,7 @@ class EventExecutionServiceEffectsTest {
                     () -> assertEquals(List.of(EVENT_UUID), r.executedEventUuids(),
                             "the chain must stop at the coma"));
             verify(edgeStore).setComa(MATCH_ID, CHAR_ID, 7);
-            verify(timeAdvancementService, never()).forceTimeEnd(anyString());
+            verify(timeAdvancementService, never()).forceTimeEnd(anyString(), any());
         }
 
         @Test

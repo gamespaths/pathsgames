@@ -45,7 +45,8 @@ public class GamingMatchEntity {
     @Column(name = "rng_seed")
     private Long rngSeed;
 
-    @Column(name = "id_user_creator", nullable = false)
+    // v0.41.6 - only the admin owner move (native update) changes it after the insert.
+    @Column(name = "id_user_creator", nullable = false, updatable = false)
     private Long idUserCreator;
 
     @Column(name = "timestamp_start")

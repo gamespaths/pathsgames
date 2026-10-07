@@ -138,6 +138,25 @@ class CharacterPersistenceAdapterTest {
     }
 
     @Test
+    void updateCharacterExp_entityPresent_floorsAtZeroAndSaves() {
+        GamingCharacterInstanceEntity entity = new GamingCharacterInstanceEntity();
+        when(characterRepository.findByIdMatchAndId(1L, 2L)).thenReturn(Optional.of(entity));
+
+        adapter.updateCharacterExp(1L, 2L, 42);
+        assertEquals(42, entity.getExp());
+        adapter.updateCharacterExp(1L, 2L, -7);
+        assertEquals(0, entity.getExp());
+        verify(characterRepository, times(2)).save(entity);
+    }
+
+    @Test
+    void updateCharacterExp_entityAbsent_noSave() {
+        when(characterRepository.findByIdMatchAndId(1L, 2L)).thenReturn(Optional.empty());
+        adapter.updateCharacterExp(1L, 2L, 42);
+        verify(characterRepository, never()).save(any());
+    }
+
+    @Test
     void updateBackpackStats_entityPresent_updatesAndSaves() {
         GamingBackpackResourcesEntity entity = new GamingBackpackResourcesEntity();
         when(backpackRepository.findByIdMatchAndIdCharacterMatch(1L, 2L)).thenReturn(Optional.of(entity));

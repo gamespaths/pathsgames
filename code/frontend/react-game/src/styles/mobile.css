@@ -6,18 +6,18 @@
 }
 @media (max-width: 991px) {
   .book-mobile-layout .selection-list {
-    grid-template-columns: repeat(3, 1fr) !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 }
 @media (max-width: 550px) {
   .book-mobile-layout .selection-list {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
+  .nav-user-btn__label { display: none; }
 }
 @media (max-width: 1120px) {
-  .credit-author, .credit-credit { display:none;}
   .selection-list {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
   .btn-start-game{
     font-size: 1rem !important;
@@ -34,7 +34,7 @@
     font-size: 1rem !important;
   }
   .book-mobile-layout .selection-list {
-    grid-template-columns: repeat(1, 1fr) !important;
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
   }
   .start-match-actions {
     display: grid !important;
@@ -57,8 +57,8 @@
 .book-mobile-layout {
   display: none;
   flex-direction: column;
-  gap: 14px;
-  padding: 18px;
+  gap: 5px;
+  padding: 0px;
   max-width: 500px;
   margin: 0 auto;
   width: 100%;
@@ -134,9 +134,18 @@
   padding: 6px 0 10px;
 }
 .book-mobile-layout .selection-list {
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   overflow: visible;
 }
+/* v0.37.3 — the status card's shortcuts read one per row, icon then name: the mobile stack
+   has no bookmarks, so this row is the only place those four names appear. */
+.book-mobile-layout .card-status .gc-actions {
+  grid-template-columns: 1fr;
+}
+.book-mobile-layout .card-status .gc-footer__btn {
+  justify-content: flex-start;
+}
+
 /* Enlarge the small (little) card titles on mobile for readability; allow them
    to wrap rather than truncate at the bigger size. */
 .book-mobile-layout .selection-list .gc-title__text {
@@ -163,6 +172,9 @@
 
 /* ── Responsive overrides ── */
 @media (max-width: 767px) {
+  .config-view-wrap{
+    overflow-y: unset !important;
+  }
   /* Show mobile layout, hide desktop book */
   .book-wrapper      { display: none !important; }
   .book-mobile-layout { display: flex !important; }
@@ -199,6 +211,30 @@
   .book-mobile-layout * { /* min-width: 0;*/ max-width: 100%; }
   .book-mobile-layout img { height: auto; }
 
+  .book-mobile-left{
+    padding-top:10px;
+    padding-left:10px;
+    padding-right:10px;
+  }
+  .book-mobile-hero-card:has(.book-page-content)  {
+    padding:10px;
+  }
+  .book-mobile-right:has(.book-page-content)  {
+    padding:10px;
+  }
+  .book-mobile-layout:has(.selection-scroll)  {
+    padding:10px;
+  }
+  .book-mobile-layout > DIV > .selection-scroll > .selection-list  {
+    gap:1rem;
+  }
+  .book-mobile-layout > .start-match-cards > .selection-list{
+    gap:1rem;
+  }
+  .start-match-overlay > .book-mobile-layout {
+    padding:10px;
+  }
+
   /* Game page: stack pages vertically */
   .game-book-wrapper {
     flex-direction: column;
@@ -231,6 +267,15 @@
   /* Navbar home button: show only icon */
   .navbar-home-btn span { display: none; }
 
+  /* Navbar socials: no room left beside brand and guest button */
+  .navbar-social.navbar-social { display: none; }
+
+  /* v0.37.6 — error pill drops to its own row under the logo */
+  .navbar-medieval { flex-wrap: wrap; height: auto; min-height: 56px; }
+  .navbar-error { order: 3; flex: 1 0 100%; justify-content: center; margin-top: 12px; 
+    background: rgba(139, 26, 26, 0.9) !important;
+  }
+
   /* Catalog grid: smaller gap on mobile */
   .stories-grid { gap: 10px; padding: 10px 4px 14px; }
 
@@ -238,8 +283,8 @@
   .pg-card--medium { width: 130px; flex: 0 0 130px; }
   .pg-card--home   { width: 180px; flex: 0 0 180px; }
 
-  /* Story card title bigger on mobile for readability */
-  .story-card-title { font-size: 0.92rem; }
+  /* Catalog cards narrower on mobile */
+  .story-netflix-card { width: 180px; flex: 0 0 180px; }
 
   /* Section labels */
   .section-label    { font-size: 0.88rem; }
@@ -252,6 +297,8 @@
   .medieval-footer { margin-top: 30px; padding: 20px 12px 16px; }
   .footer-links-row { gap: 10px; }
   .footer-icon-link { font-size: 0.88rem; gap: 0.5rem; }
+  /* Footer socials: hidden below 768px, as the navbar ones */
+  .footer-social-link.footer-social-link { display: none; }
 
   /* All (i) buttons and badges always visible on touch devices */
   .config-info-btn    { opacity: 1; }
@@ -300,14 +347,19 @@
     font-size: 1rem !important;
   }
 
-  .credit-author, .credit-credit{
-    display:none;
-  }
   .card-preview-modal-content{
     width: 100%;
   }
-  .gc-title .player-stats-bar{
-    display:contents !important;
-  }
 }
 
+/* Navbar socials on a game page: the exit button takes their room first. */
+@media (max-width: 991px) {
+  .navbar-social--tight.navbar-social--tight { display: none; }
+}
+
+
+
+/* Navbar socials on a game page: the exit button takes their room first. */
+@media (max-width: 442px) {
+  .env-badge {display:none !important;}
+}

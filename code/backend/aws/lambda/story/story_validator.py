@@ -7,9 +7,17 @@ validated (null / absent / <= 0 means "none"). Field access is key-agnostic.
 
 Public API:
     validate_story_dict(data)            -> list[dict]   (full-graph rules)
+    validate_story_uuid(data)            -> list[dict]   (v0.41.5 import-only uuid shape)
+    normalize_story_uuid(raw)            -> str | None
     validate_entity(entity_type, data)   -> list[dict]   (entity-local rules)
+    random_event_warnings(data)          -> list[dict]   (Step 39 advisory findings)
     summary(errors)                      -> str
 """
+
+import re
+
+# v0.41.5 — same shape as $defs.uuid in match-export-v1.schema.json; no RFC 4122 version check.
+_STORY_UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 
 _LOCATION, _EVENT, _ITEM, _CHOICE, _CLASS, _MISSION = (
     "location", "event", "item", "choice", "class", "mission")
@@ -32,6 +40,8 @@ _LOCATION_TRIGGER_FIELDS = (
 # The two types a player can execute. Mirrors events.EXECUTABLE_TYPES, duplicated rather
 # than imported because the validator lives in the story lambda.
 _EXECUTABLE_EVENT_TYPES = {"NORMAL", "ONCE"}
+_R11 = "R11_RANDOM_EVENT"
+_RANDOM_TYPE = "global-random-events"
 
 
 def _camel_to_snake(name):
@@ -79,6 +89,23 @@ def _err(rule, etype, eid, field, message):
     return {"rule": rule, "entityType": etype, "entityId": eid, "field": field, "message": message}
 
 
+def normalize_story_uuid(raw):
+    """Trimmed and lowercased story uuid, or None when absent or blank (the import mints one)."""
+    if raw is None:
+        return None
+    value = str(raw).strip()
+    return value.lower() if value else None
+
+
+def validate_story_uuid(data):
+    """Import only: a story already stored with a legacy uuid must still validate."""
+    story_uuid = normalize_story_uuid((data or {}).get("uuid"))
+    if story_uuid is None or _STORY_UUID.fullmatch(story_uuid):
+        return []
+    return [_err("R0_STORY_UUID", "story", None, "uuid",
+                 "story uuid '{}' is not a valid UUID (8-4-4-4-12 hex)".format(data.get("uuid")))]
+
+
 def summary(errors):
     if not errors:
         return "story is valid"
@@ -86,12 +113,32 @@ def summary(errors):
     return head if len(errors) <= 5 else head + "; (+{} more)".format(len(errors) - 5)
 
 
+def _mission_condition(entity_type, row):
+    """Step 37 - a mission whose condition can never be met is silently dead: the engine
+    ignores it, so nothing at runtime will ever tell the author. Only validation can."""
+    eid = str(_field(row, "id"))
+    key = _field(row, "conditionKey")
+    if key is None or not str(key).strip():
+        return [_err("R10_MISSION_CONDITION", entity_type, eid, "conditionKey",
+                     f"{entity_type} has no condition key: it can never activate, progress"
+                     " or complete and is ignored by every backend")]
+    value = _field(row, "conditionValue")
+    values = _field(row, "conditionValues")
+    no_value = value is None or not str(value).strip()
+    no_values = values is None or not [p for p in str(values).split("|") if p.strip()]
+    if no_value and no_values:
+        return [_err("R10_MISSION_CONDITION", entity_type, eid, "conditionValue",
+                     f"{entity_type} condition key '{key}' has no value to compare against,"
+                     " so the condition is never satisfied")]
+    return []
+
+
 def _arr(data, key):
     v = data.get(key)
     return v if isinstance(v, list) else []
 
 
-def validate_story_dict(data):
+def validate_story_dict(data, include_mission_conditions=False):
     """Run all full-graph rules. Returns a list of error dicts (empty == valid)."""
     if not data:
         return [_err("R0_EMPTY", "story", None, None, "story data is null or empty")]
@@ -194,9 +241,14 @@ def validate_story_dict(data):
     for cc in _arr(data, "choiceConditions"):
         ref("choice-conditions", str(_field(cc, "id")), "idChoices", _CHOICE, _field(cc, "idChoices"))
         key_refs.append((str(_field(cc, "id")), _field(cc, "type"), _field(cc, "key")))
+    # Step 39 — events owning an effect row that sets the weather (unfit to be random).
+    weather_effect_events = set()
     for ee in _arr(data, "eventEffects"):
         eid = str(_field(ee, "id"))
         ref("event-effects", eid, "idEvent", _EVENT, _field(ee, "idEvent"))
+        ee_event, ee_weather = _as_int(_field(ee, "idEvent")), _as_int(_field(ee, "idWeather"))
+        if ee_event and ee_event > 0 and ee_weather and ee_weather > 0:
+            weather_effect_events.add(ee_event)
         ref("event-effects", eid, "idItemTarget", _ITEM, _field(ee, "idItemTarget"))
         ref("event-effects", eid, "targetClass", _CLASS, _field(ee, "targetClass"))
         # v0.29.3 — forced movement: the location the effect moves its recipients to.
@@ -207,10 +259,19 @@ def validate_story_dict(data):
         ref("class-bonuses", str(_field(cb, "id")), "idClass", _CLASS, _field(cb, "idClass"))
     for ms in _arr(data, "missionSteps"):
         ref("mission-steps", str(_field(ms, "id")), "idMission", _MISSION, _field(ms, "idMission"))
+    # Step 37 - reported only on the author's own "validate story" pass. Import must not fail
+    # on it: the engine IGNORES such a row rather than refusing it.
+    if include_mission_conditions:
+        for row in _arr(data, "missions"):
+            errors.extend(_mission_condition("missions", row))
+        for row in _arr(data, "missionSteps"):
+            errors.extend(_mission_condition("mission-steps", row))
     for wr in _arr(data, "weatherRules"):
         ref("weather-rules", str(_field(wr, "id")), "idEvent", _EVENT, _field(wr, "idEvent"))
+    random_rows = []
     for gr in _arr(data, "globalRandomEvents"):
         ref("global-random-events", str(_field(gr, "id")), "idEvent", _EVENT, _field(gr, "idEvent"))
+        random_rows.append(gr)
     for n in _arr(data, "locationNeighbors"):
         frm, to = _as_int(_field(n, "idLocationFrom")), _as_int(_field(n, "idLocationTo"))
         nid = str(_field(n, "id"))
@@ -286,6 +347,12 @@ def validate_story_dict(data):
                     " player-executable — use AUTOMATIC (step 33)".format(
                         id_event, field, etype)))
 
+    # Step 39 (R11): a random event runs by itself at time-start, party-wide.
+    if random_rows:
+        owning = {ev for (_cid, ev, _loc) in choice_data if ev is not None and ev > 0}
+        for row in random_rows:
+            errors.extend(_random_event_errors(row, owning, weather_effect_events))
+
     for eid, ctype, key in key_refs:
         # Only KEYS conditions read the registry. On every other type `key` means
         # something else entirely (a stat name for statistics, unused for ITEM), so
@@ -309,6 +376,51 @@ def validate_story_dict(data):
             errors.append(_err("R6_CLASS_CONFLICT", etype, eid, "idClassPermitted",
                                "{} {} has the same class permitted and prohibited ({})".format(etype, eid, permitted)))
     return errors
+
+
+def _random_event_errors(row, owning, weather_effect_events):
+    """Step 39 — R11_RANDOM_EVENT: an event with no choices and no weather effect, a 0..100
+    probability and a complete condition (key and value together)."""
+    out = []
+    eid = str(_field(row, "id"))
+    probability = _as_int(_field(row, "probability"))
+    if probability is not None and (probability < 0 or probability > 100):
+        out.append(_err(_R11, _RANDOM_TYPE, eid, "probability",
+                        "probability={} is outside 0..100 (step 39)".format(probability)))
+    id_event = _as_int(_field(row, "idEvent"))
+    if id_event is None or id_event <= 0:
+        out.append(_err(_R11, _RANDOM_TYPE, eid, "idEvent",
+                        "random event {} has no idEvent (step 39)".format(eid)))
+    else:
+        if id_event in owning:
+            out.append(_err(_R11, _RANDOM_TYPE, eid, "idEvent",
+                            "event {} owns choices — a random event has no one to ask"
+                            " (step 39)".format(id_event)))
+        if id_event in weather_effect_events:
+            out.append(_err(_R11, _RANDOM_TYPE, eid, "idEvent",
+                            "event {} has a weather effect — a random event may not change"
+                            " the weather (step 39)".format(id_event)))
+    key, value = _field(row, "conditionKey"), _field(row, "conditionValue")
+    has_key = key is not None and str(key).strip() != ""
+    has_value = value is not None and str(value).strip() != ""
+    if has_key and not has_value:
+        out.append(_err(_R11, _RANDOM_TYPE, eid, "conditionValue",
+                        "conditionKey={} has no conditionValue (step 39)".format(key)))
+    elif has_value and not has_key:
+        out.append(_err(_R11, _RANDOM_TYPE, eid, "conditionKey",
+                        "conditionValue={} has no conditionKey (step 39)".format(value)))
+    return out
+
+
+def random_event_warnings(data):
+    """Step 39 — advisory only: probabilities summing past 100 are scaled by the engine."""
+    total = sum(max(0, _as_int(_field(r, "probability")) or 0)
+                for r in _arr(data, "globalRandomEvents"))
+    if total <= 100:
+        return []
+    return [_err(_R11, _RANDOM_TYPE, None, "probability",
+                 "random event probabilities sum to {} (> 100): percentages will be scaled"
+                 " (step 39)".format(total))]
 
 
 def _detect_cycles(events, event_next):

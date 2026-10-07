@@ -88,6 +88,77 @@ export function statChangeItems(result, characterUuid, t = (k) => k) {
 }
 
 /**
+ * The badges a write to the REGISTRY earned, one per `registryChanges` row.
+ *
+ * Labelled with the TITLE the story gave that key's card, never with the key itself:
+ * `evidence_found` is a `list_keys` column name, not something to put in front of a player.
+ * The titles come from the registry `/info` already carries, so no second request is needed
+ * and no backend has to enrich the payload.
+ *
+ * That same list is what decides whether a key may be SHOWN at all. `/info` never returns a
+ * key the story hid, so a key missing from it earns no badge — otherwise an event writing a
+ * hidden key would announce on the outcome card exactly the secret the story is keeping. A
+ * visible key whose author wrote no card still gets one, falling back to its name: the news
+ * is real, only the dressing is missing.
+ *
+ * The badge carries the DELTA, not the value: see `registryDelta` below. A row naming no key
+ * earns none, and neither does one that moved nothing.
+ *
+ * The badges belong to the event's OUTCOME as a whole, not to one of its effect rows —
+ * `registryChanges` is flat on the result, exactly as `statChanges` is, and reads the same way.
+ *
+ * No `t` here, unlike its siblings: a card title is authored text the backend already resolved
+ * in the caller's language, so there is nothing left to translate.
+ */
+export function registryChangeItems(result, registry) {
+  const defs = new Map()
+  for (const entry of registry ?? []) {
+    if (entry?.key) defs.set(entry.key, entry)
+  }
+  const badges = []
+  for (const change of result?.registryChanges ?? []) {
+    const def = change?.key ? defs.get(change.key) : null
+    if (!def) continue
+    const delta = registryDelta(change, def.multiValue)
+    if (!delta) continue
+    // The key is namespaced so a story key named "life" cannot steal the heart icon from
+    // STAT_VISUAL, and the glyph is set here because the stat vocabulary has no word for it.
+    // The scroll is what this project already calls the registry everywhere else — the button
+    // that opens it, its own card. An explicit null colour leaves the glyph the shared gold
+    // of `.stat-badge i` instead of the grey DEFAULT_VISUAL falls back to.
+    badges.push({ key: `registry:${change.key}`, label: def.card?.title || change.key,
+      value: delta, icon: 'fas fa-scroll', color: null })
+  }
+  return badges
+}
+
+/**
+ * What CHANGED, as `+member` for what joined and `-member` for what left — never the whole
+ * set. On a key holding three clues "+letter" is the news; reading all three back at the
+ * player buries it, and on a long set the badge stops fitting at all.
+ *
+ * `multiValue` decides how a value is read, and it has to: the backend joins a multi key's
+ * members with a comma, while a SINGLE key's value is opaque and may legitimately contain
+ * one. Splitting blindly would tear "Rome, Italy" into two members that never existed.
+ *
+ * A replacement on a single key therefore reads "+OPEN -SHUT": both halves are the delta.
+ * Nothing added and nothing removed is no news, and earns no badge — the last guard behind
+ * the backend, which since v0.36.1 no longer reports a write that changed nothing at all.
+ */
+function registryDelta(change, multiValue) {
+  const members = value => {
+    if (value == null || value === '') return []
+    return multiValue ? String(value).split(',').filter(v => v !== '') : [String(value)]
+  }
+  const before = members(change?.oldValue)
+  const after = members(change?.newValue)
+  return [
+    ...after.filter(v => !before.includes(v)).map(v => `+${v}`),
+    ...before.filter(v => !after.includes(v)).map(v => `-${v}`),
+  ].join(' ')
+}
+
+/**
  * The same badges read off `AppliedEffect` rows instead — for the payloads that carry the
  * effects but no `statChanges`, which is the case of `counterZero[].cardEffects` (v0.33.1).
  *

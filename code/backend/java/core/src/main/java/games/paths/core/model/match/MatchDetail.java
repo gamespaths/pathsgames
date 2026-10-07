@@ -16,6 +16,8 @@ public class MatchDetail {
     private String currentLocationUuid;
     private List<MatchLocationState> locations = new ArrayList<>();
     private List<MatchRegistryEntry> registry = new ArrayList<>();
+    /** Step 37 - the missions this match has reached, steps included. */
+    private List<MatchMission> missions = new ArrayList<>();
     private List<MatchEventOption> events = new ArrayList<>();
     private List<MatchEventOption> choices = new ArrayList<>();
     private List<CharacterInstanceInfo> players = new ArrayList<>();
@@ -42,6 +44,11 @@ public class MatchDetail {
     public List<MatchRegistryEntry> getRegistry() { return registry; }
     public void setRegistry(List<MatchRegistryEntry> registry) {
         this.registry = registry != null ? registry : new ArrayList<>();
+    }
+
+    public List<MatchMission> getMissions() { return missions; }
+    public void setMissions(List<MatchMission> missions) {
+        this.missions = missions != null ? missions : new ArrayList<>();
     }
 
     public List<MatchEventOption> getEvents() { return events; }

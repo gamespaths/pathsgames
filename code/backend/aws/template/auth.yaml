@@ -4,6 +4,15 @@ Transform: AWS::Serverless-2016-10-31
 Parameters:
   Environment:
     Type: String
+  EnvironmentTag:
+    Type: String
+    Description: "Value of the Environment tag (dev / test / alpha / beta / production), mapped by the root stack."
+  Version:
+    Type: String
+    Description: "Project version, applied as the `version` tag on every resource."
+  LambdaSystemLogLevel:
+    Type: String
+    Default: WARN
   TableName:
     Type: String
   ApiId:
@@ -18,11 +27,44 @@ Parameters:
     Type: String
   AllowMockAccess:
     Type: String
-    Default: "true"
+    Default: "false"
   AdminIpWhitelist:
     Type: String
     Default: ""
-    Description: "Comma-separated allowed IPs for /api/admin/**. Empty = no restriction."
+    Description: "Comma-separated allowed IPs for /api/admin/**. Empty = what AdminIpEmptyMeans says."
+  AdminIpEmptyMeans:
+    Type: String
+    Default: nobody
+    AllowedValues: [nobody, everybody]
+  RateLimitGuestPerIp:
+    Type: String
+    Default: "20"
+  RateLimitWindowSeconds:
+    Type: String
+    Default: "3600"
+  CsrfEnforced:
+    Type: String
+    Default: "true"
+  RobotTestDataTtlHours:
+    Type: String
+    Default: "0"
+  # v0.41.0 — the daily idle-guest cleanup (decisions 9, 10, 37)
+  GuestCleanupEnabled:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+  GuestCleanupAgeDays:
+    Type: String
+    Default: "60"
+  GuestCleanupMaxPerRun:
+    Type: String
+    Default: "500"
+  GuestCleanupSchedule:
+    Type: String
+    Default: "cron(42 0 * * ? *)"
+
+Conditions:
+  IsGuestCleanupEnabled: !Equals [!Ref GuestCleanupEnabled, "true"]
 
 Resources:
   AuthLogGroup:
@@ -32,10 +74,20 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-AuthFunction"
       RetentionInDays: 14
       Tags:
-        - Key: project
-          Value: PathsGames
-        - Key: env
-          Value: !Ref Environment
+        - Key: Name
+          Value: !Sub "/aws/lambda/pathsgames-${Environment}-AuthFunction"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
 
   AuthFunction:
     Type: AWS::Serverless::Function
@@ -43,13 +95,23 @@ Resources:
     Properties:
       FunctionName: !Sub "pathsgames-${Environment}-AuthFunction"
       Runtime: python3.13
+      Architectures: [arm64]
+      LoggingConfig:
+        LogFormat: JSON
+        SystemLogLevel: !Ref LambdaSystemLogLevel
+        ApplicationLogLevel: INFO
       Handler: auth.handler.lambda_handler
-      Timeout: 30
+      Timeout: 102  # v0.38.1 — 1m42s: a 2000-VU burst queues on DynamoDB past the old 30s
       MemorySize: 256
       CodeUri: ../lambda/
       Tags:
-        project: PathsGames
-        env: !Ref Environment
+        Name: !Sub "pathsgames-${Environment}-AuthFunction"
+        CostCenter: Paths.games
+        Environment: !Ref EnvironmentTag
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        version: !Ref Version
       Environment:
         Variables:
           TABLE_NAME: !Ref TableName
@@ -57,9 +119,108 @@ Resources:
           JWT_SECRET: !Ref JwtSecret
           ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
           ADMIN_IP_WHITELIST: !Ref AdminIpWhitelist
+          ADMIN_IP_EMPTY_MEANS: !Ref AdminIpEmptyMeans
+          GUEST_CLEANUP_MAX_PER_RUN: !Ref GuestCleanupMaxPerRun
+          RATE_LIMIT_GUEST_PER_IP: !Ref RateLimitGuestPerIp
+          RATE_LIMIT_WINDOW_SECONDS: !Ref RateLimitWindowSeconds
+          CSRF_ENFORCED: !Ref CsrfEnforced
+          ROBOT_TEST_DATA_TTL_HOURS: !Ref RobotTestDataTtlHours
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName
+
+  # v0.41.0 — the daily idle-guest cleanup: same code as DELETE /stale?withoutMatches=true.
+  GuestCleanupLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-GuestCleanupFunction"
+      RetentionInDays: 14
+      Tags:
+        - Key: Name
+          Value: !Sub "/aws/lambda/pathsgames-${Environment}-GuestCleanupFunction"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
+
+  # A Scheduler schedule takes no tags; its group does (decision 22).
+  GuestCleanupScheduleGroup:
+    Type: AWS::Scheduler::ScheduleGroup
+    Properties:
+      Name: !Sub "pathsgames-${Environment}-guest-cleanup"
+      Tags:
+        - Key: Name
+          Value: !Sub "pathsgames-${Environment}-guest-cleanup"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
+
+  GuestCleanupFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: GuestCleanupLogGroup
+    Properties:
+      FunctionName: !Sub "pathsgames-${Environment}-GuestCleanupFunction"
+      Runtime: python3.13
+      Architectures: [arm64]
+      LoggingConfig:
+        LogFormat: JSON
+        SystemLogLevel: !Ref LambdaSystemLogLevel
+        ApplicationLogLevel: INFO
+      Handler: auth.handler.scheduled_cleanup
+      Timeout: 300
+      MemorySize: 256
+      CodeUri: ../lambda/
+      # the Scheduler role SAM generates for the event gets these tags too
+      PropagateTags: true
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-GuestCleanupFunction"
+        CostCenter: Paths.games
+        Environment: !Ref EnvironmentTag
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        version: !Ref Version
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableName
+          ENV: !Ref Environment
+          JWT_SECRET: !Ref JwtSecret
+          GUEST_CLEANUP_ENABLED: !Ref GuestCleanupEnabled
+          GUEST_CLEANUP_AGE_DAYS: !Ref GuestCleanupAgeDays
+          GUEST_CLEANUP_MAX_PER_RUN: !Ref GuestCleanupMaxPerRun
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+      Events:
+        DailyGuestCleanup:
+          Type: ScheduleV2
+          Properties:
+            Name: !Sub "pathsgames-${Environment}-guest-cleanup-daily"
+            GroupName: !Ref GuestCleanupScheduleGroup
+            ScheduleExpression: !Ref GuestCleanupSchedule
+            ScheduleExpressionTimezone: UTC
+            Description: "Deletes the guests idle for GuestCleanupAgeDays that created no match"
+            State: !If [IsGuestCleanupEnabled, ENABLED, DISABLED]
+            FlexibleTimeWindow:
+              Mode: "OFF"
 
   AuthIntegration:
     Type: AWS::ApiGatewayV2::Integration
@@ -164,11 +325,40 @@ Resources:
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId
 
+  # v0.36.2 — guests not seen for N days, and the matches they leave behind.
+  PreviewStaleGuestsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "GET /api/admin/guests/stale"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  DeleteStaleGuestsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "DELETE /api/admin/guests/stale"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
   GetGuestByUuidRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref AdminApiId
       RouteKey: "GET /api/admin/guests/{uuid}"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  # v0.41.6 — the owner-move preview: one user by uuid, email or username
+  GetAdminUserRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "GET /api/admin/users/{identifier}"
       Target: !Sub "integrations/${AuthAdminIntegration}"
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId

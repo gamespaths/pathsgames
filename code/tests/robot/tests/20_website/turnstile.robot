@@ -10,11 +10,16 @@
 #     - Absent, null or any arbitrary string token all produce 201.
 #     - This is the default behaviour in local dev / CI environments.
 #
-#   REJECTION (TURNSTILE_SECRET_KEY configured):
-#     - A missing or invalid token returns 400 TURNSTILE_VALIDATION_FAILED.
-#     - A valid Cloudflare token (from the widget) produces 201.
-#     - This behaviour CANNOT be exercised here because it requires a live
-#       Cloudflare secret key; it is covered by unit tests in every backend.
+#   ENFORCED (TURNSTILE_SECRET_KEY configured, e.g. the AWS test stack):
+#     - A missing, null or invalid token returns 400 TURNSTILE_VALIDATION_FAILED.
+#     - Only the deployed bypass token (CF_TURNSTILE_TOKEN) produces 201; a real
+#       Cloudflare widget token does too, but no browser runs here.
+#
+# The suite tells the two apart from CF_TURNSTILE_TOKEN: set (variables/aws.yaml)
+# means the server enforces Turnstile, empty means dev bypass. Enforced mode
+# assumes a REAL secret key — Cloudflare's "always passes" test secret
+# (1x0000000000000000000000000000000AA) accepts any string and would keep the
+# arbitrary-token cases at 201.
 #
 # Tags: website, turnstile, step20
 # ---------------------------------------------------------------------------
@@ -37,12 +42,12 @@ ${CF_TEST_TOKEN}    CF_TEST_TOKEN_PLACEHOLDER
 
 *** Test Cases ***
 
-# ── Dev bypass: TURNSTILE_SECRET_KEY not set on the server ───────────────────
+# ── Token validation: the outcome follows the server's Turnstile mode ────────
 
-Create Match Without Turnstile Token Succeeds In Dev Bypass
-    [Documentation]    POST /api/matches without the turnstileToken field returns 201
-    ...                when the server has no secret key configured (dev bypass active).
-    ...                This is the default for local development and CI.
+Create Match Without Explicit Turnstile Token Succeeds
+    [Documentation]    POST /api/matches through the shared Create Match keyword: it
+    ...                sends no turnstileToken under dev bypass, and the deployed
+    ...                bypass token when the server enforces Turnstile. Both give 201.
     [Tags]    website    turnstile    step20    bypass
     ${response}=    Create Match    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}
     Status Should Be    ${response}    201
@@ -50,38 +55,49 @@ Create Match Without Turnstile Token Succeeds In Dev Bypass
     Dictionary Should Contain Key    ${body}    uuid
     Should Be Equal As Strings    ${body}[status]    CREATED
 
-Create Match With Null Turnstile Token Succeeds In Dev Bypass
-    [Documentation]    POST /api/matches with turnstileToken: null returns 201 in dev bypass.
-    ...                The frontend sends null when VITE_CF_TURNSTILE_KEY is not set.
+Create Match With Null Turnstile Token Follows The Server Mode
+    [Documentation]    POST /api/matches with turnstileToken: null — 201 under dev
+    ...                bypass, 400 TURNSTILE_VALIDATION_FAILED when enforced. The
+    ...                frontend sends null when VITE_CF_TURNSTILE_KEY is not set, so
+    ...                this is exactly the "site built without the site key" failure.
     [Tags]    website    turnstile    step20    bypass
     ${response}=    Create Match With Turnstile Token
     ...    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}
     ...    turnstile_token=${NONE}
-    Status Should Be    ${response}    201
-    ${body}=    Set Variable    ${response.json()}
-    Dictionary Should Contain Key    ${body}    uuid
+    Match Creation Should Follow Turnstile Mode    ${response}
 
-Create Match With Arbitrary Turnstile Token Succeeds In Dev Bypass
-    [Documentation]    POST /api/matches with any non-empty string in turnstileToken
-    ...                returns 201 when the server has no secret key (bypass active).
-    ...                In production the same request would be rejected with 400.
+Create Match With Arbitrary Turnstile Token Follows The Server Mode
+    [Documentation]    POST /api/matches with any non-empty string in turnstileToken —
+    ...                201 under dev bypass, 400 when the server verifies the token
+    ...                against the Cloudflare siteverify API.
     [Tags]    website    turnstile    step20    bypass
     ${response}=    Create Match With Turnstile Token
     ...    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}
     ...    turnstile_token=dev-bypass-any-value-is-accepted
-    Status Should Be    ${response}    201
-    ${body}=    Set Variable    ${response.json()}
-    Dictionary Should Contain Key    ${body}    uuid
+    Match Creation Should Follow Turnstile Mode    ${response}
 
-Create Match With Cloudflare Test Token Succeeds In Dev Bypass
-    [Documentation]    POST /api/matches with the Cloudflare "always pass" test token
-    ...                returns 201 in dev bypass. With a properly configured test
-    ...                secret (1x0000000000000000000000000000000AA) this would also
-    ...                pass live validation against the Cloudflare siteverify API.
+Create Match With Cloudflare Test Token Follows The Server Mode
+    [Documentation]    POST /api/matches with the Cloudflare "always pass" test token —
+    ...                201 under dev bypass. When enforced with a real secret key the
+    ...                token belongs to another site and is refused with 400.
     [Tags]    website    turnstile    step20    bypass
     ${response}=    Create Match With Turnstile Token
     ...    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}
     ...    turnstile_token=${CF_TEST_TOKEN}
+    Match Creation Should Follow Turnstile Mode    ${response}
+
+Create Match With The Deployed Bypass Token Succeeds When Enforced
+    [Documentation]    The token deployed as TURNSTILE_BYPASS_TOKEN skips the Cloudflare
+    ...                call on every non-prod environment, which is what lets Robot run
+    ...                against a stack that also serves real users. Skipped in dev bypass,
+    ...                where there is no token to send.
+    [Tags]    website    turnstile    step20
+    IF    not ${TURNSTILE_ENFORCED}
+        Skip    Dev bypass: no CF_TURNSTILE_TOKEN deployed on this server
+    END
+    ${response}=    Create Match With Turnstile Token
+    ...    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}
+    ...    turnstile_token=${CF_TURNSTILE_TOKEN}
     Status Should Be    ${response}    201
 
 # ── API contract: turnstileToken is not echoed in the response ───────────────
@@ -161,9 +177,26 @@ Fresh Guest For This Test
     ...                from its own guest.
     ${token}=    Use A Fresh Guest Token
 
+Match Creation Should Follow Turnstile Mode
+    [Documentation]    Asserts the POST /api/matches outcome for a token the server
+    ...                cannot verify: refused when Turnstile is enforced, accepted
+    ...                when the server runs without a secret key (dev bypass).
+    [Arguments]    ${response}
+    IF    ${TURNSTILE_ENFORCED}
+        Status Should Be    ${response}    400
+        Should Be Equal As Strings    ${response.json()}[error]    TURNSTILE_VALIDATION_FAILED
+    ELSE
+        Status Should Be    ${response}    201
+        Dictionary Should Contain Key    ${response.json()}    uuid
+    END
+
 Suite Setup Turnstile
     [Documentation]    Creates a guest session and picks the first available story
     ...                and difficulty for use across all Turnstile test cases.
+    ...                A deployed CF_TURNSTILE_TOKEN means the server enforces Turnstile.
+    ${cf_token}=    Get Variable Value    ${CF_TURNSTILE_TOKEN}    ${EMPTY}
+    ${enforced}=    Set Variable If    '${cf_token}' != '${EMPTY}'    ${TRUE}    ${FALSE}
+    Set Suite Variable    ${TURNSTILE_ENFORCED}    ${enforced}
     Create Public Session
     ${response}=    POST On Session    public_session    /api/auth/guest
     Status Should Be    ${response}    201

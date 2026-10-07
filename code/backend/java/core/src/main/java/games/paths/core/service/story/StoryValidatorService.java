@@ -1,6 +1,7 @@
 package games.paths.core.service.story;
 
 import games.paths.core.entity.story.*;
+import games.paths.core.model.story.StoryUuid;
 import games.paths.core.model.story.StoryValidationReport;
 import games.paths.core.port.story.StoryReadPort;
 import games.paths.core.port.story.StoryValidatorPort;
@@ -39,6 +40,8 @@ public class StoryValidatorService implements StoryValidatorPort {
      * engine. Kept in sync by {@code StoryValidatorServiceTest}.
      */
     private static final Set<String> EXECUTABLE_EVENT_TYPES = Set.of("NORMAL", "ONCE");
+    private static final String R11 = "R11_RANDOM_EVENT";
+    private static final String RANDOM_TYPE = "global-random-events";
 
     private final StoryReadPort readPort;
 
@@ -55,6 +58,12 @@ public class StoryValidatorService implements StoryValidatorPort {
             report.add("R0_EMPTY", "story", null, null, "story data is null or empty");
             return report;
         }
+        // v0.41.5 — import only: a story already stored with a legacy uuid must still validate.
+        String uuid = StoryUuid.normalize(storyData.get("uuid"));
+        if (uuid != null && !StoryUuid.isValid(uuid)) {
+            report.add("R0_STORY_UUID", "story", null, "uuid",
+                    "story uuid '" + storyData.get("uuid") + "' is not a valid UUID (8-4-4-4-12 hex)");
+        }
         StoryGraph g = buildFromMap(storyData);
         runRules(g, report);
         return report;
@@ -69,6 +78,12 @@ public class StoryValidatorService implements StoryValidatorPort {
         }
         StoryGraph g = buildFromReadPort(storyId);
         runRules(g, report);
+        // Step 37 — reported only here, on the author's own "validate story" pass. Import and
+        // admin-create must not fail on it: every backend IGNORES such a row rather than
+        // refusing it, and a story already carrying one must stay importable.
+        validateMissions(g, report);
+        // Step 39 — advisory only: a total above 100 is legal, the engine scales it.
+        warnRandomEventTotal(g, report);
         return report;
     }
 
@@ -176,13 +191,7 @@ public class StoryValidatorService implements StoryValidatorPort {
         if (g.locationTriggerEvents.isEmpty()) {
             return;
         }
-        Set<Integer> eventsOwningChoices = new HashSet<>();
-        for (Map<String, Object> c : g.choiceData.values()) {
-            Integer idEvent = asInt(c.get("idEvent"));
-            if (idEvent != null) {
-                eventsOwningChoices.add(idEvent);
-            }
-        }
+        Set<Integer> eventsOwningChoices = eventsOwningChoices(g);
         for (Map.Entry<Integer, String> t : g.locationTriggerEvents.entrySet()) {
             int idEvent = t.getKey();
             String field = t.getValue();
@@ -200,6 +209,73 @@ public class StoryValidatorService implements StoryValidatorPort {
                                 + " but its type is " + type + ", which is player-executable"
                                 + " — use AUTOMATIC (step 33)");
             }
+        }
+    }
+
+    /** The events at least one choice belongs to. */
+    private Set<Integer> eventsOwningChoices(StoryGraph g) {
+        Set<Integer> out = new HashSet<>();
+        for (Map<String, Object> c : g.choiceData.values()) {
+            Integer idEvent = asInt(c.get("idEvent"));
+            if (idEvent != null) {
+                out.add(idEvent);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Step 39 — R11_RANDOM_EVENT: a random event runs by itself at time-start, party-wide.
+     * It needs an event with no choices and no weather effect, a 0..100 probability and a
+     * complete condition (key and value together).
+     */
+    private void validateRandomEvents(StoryGraph g, StoryValidationReport report) {
+        if (g.randomEvents.isEmpty()) {
+            return;
+        }
+        Set<Integer> withChoices = eventsOwningChoices(g);
+        for (RandomRow r : g.randomEvents) {
+            if (r.probability() != null && (r.probability() < 0 || r.probability() > 100)) {
+                report.add(R11, RANDOM_TYPE, r.id(), "probability",
+                        "probability=" + r.probability() + " is outside 0..100 (step 39)");
+            }
+            if (r.idEvent() == null || r.idEvent() <= 0) {
+                report.add(R11, RANDOM_TYPE, r.id(), "idEvent",
+                        "random event " + r.id() + " has no idEvent (step 39)");
+            } else {
+                if (withChoices.contains(r.idEvent())) {
+                    report.add(R11, RANDOM_TYPE, r.id(), "idEvent",
+                            "event " + r.idEvent() + " owns choices — a random event has no one"
+                                    + " to ask (step 39)");
+                }
+                if (g.eventsWithWeatherEffect.contains(r.idEvent())) {
+                    report.add(R11, RANDOM_TYPE, r.id(), "idEvent",
+                            "event " + r.idEvent() + " has a weather effect — a random event may"
+                                    + " not change the weather (step 39)");
+                }
+            }
+            boolean hasKey = r.conditionKey() != null && !r.conditionKey().isBlank();
+            boolean hasValue = r.conditionValue() != null && !r.conditionValue().isBlank();
+            if (hasKey && !hasValue) {
+                report.add(R11, RANDOM_TYPE, r.id(), "conditionValue",
+                        "conditionKey=" + r.conditionKey() + " has no conditionValue (step 39)");
+            } else if (hasValue && !hasKey) {
+                report.add(R11, RANDOM_TYPE, r.id(), "conditionKey",
+                        "conditionValue=" + r.conditionValue() + " has no conditionKey (step 39)");
+            }
+        }
+    }
+
+    /** Step 39 — probabilities summing past 100 are scaled down by the engine: warn the author. */
+    private void warnRandomEventTotal(StoryGraph g, StoryValidationReport report) {
+        int total = 0;
+        for (RandomRow r : g.randomEvents) {
+            total += r.probability() == null ? 0 : Math.max(0, r.probability());
+        }
+        if (total > 100) {
+            report.warn(R11, RANDOM_TYPE, null, "probability",
+                    "random event probabilities sum to " + total
+                            + " (> 100): percentages will be scaled (step 39)");
         }
     }
 
@@ -225,6 +301,44 @@ public class StoryValidatorService implements StoryValidatorPort {
         validateEvents(g, report);        // R7 event conditions (Step 29)
         validateChoices(g, report);       // R8 choice-event binding (Step 31)
         validateLocationTriggers(g, report); // R9 automatic location events (Step 33)
+        validateRandomEvents(g, report);  // R11 global random events (Step 39)
+    }
+
+    /**
+     * Step 37 — a mission whose condition can never be met is silently dead: the engine ignores
+     * it, so nothing at runtime will ever tell the author. Only validation can.
+     */
+    private void missionCond(StoryGraph g, String entityType, String entityId,
+                             Map<String, Object> data) {
+        g.missionConds.add(new MissionCond(entityType, entityId, str(data.get("conditionKey")),
+                str(data.get("conditionValue")), str(data.get("conditionValues"))));
+    }
+
+    private void validateMissions(StoryGraph g, StoryValidationReport report) {
+        for (MissionCond mc : g.missionConds) {
+            missionCondition(mc.entityType, mc.entityId, mc.key, mc.value, mc.values, report);
+        }
+    }
+
+    private void missionCondition(String entityType, String entityId, String key, String value,
+                                  String values, StoryValidationReport report) {
+        if (key == null || key.isBlank()) {
+            report.add("R10_MISSION_CONDITION", entityType, entityId, "conditionKey",
+                    entityType + " has no condition key: it can never activate, progress or"
+                            + " complete and is ignored by every backend");
+            return;
+        }
+        if (isBlankBoth(value, values)) {
+            report.add("R10_MISSION_CONDITION", entityType, entityId, "conditionValue",
+                    entityType + " condition key '" + key + "' has no value to compare against,"
+                            + " so the condition is never satisfied");
+        }
+    }
+
+    private static boolean isBlankBoth(String value, String values) {
+        boolean noValue = value == null || value.isBlank();
+        boolean noValues = values == null || values.chars().allMatch(c -> c == '|' || c == ' ');
+        return noValue && noValues;
     }
 
     private void validateReferences(StoryGraph g, StoryValidationReport report) {
@@ -499,6 +613,7 @@ public class StoryValidatorService implements StoryValidatorPort {
             ref(g, "event-effects", id, "targetClass", Target.CLASS, asInt(ee.get("targetClass")));
             // Step 29 — here idWeather is the EFFECT that sets the match weather.
             ref(g, "event-effects", id, "idWeather", Target.WEATHER, asInt(ee.get("idWeather")));
+            recordWeatherEffect(g, asInt(ee.get("idEvent")), asInt(ee.get("idWeather")));
             // v0.29.3 — forced movement: the location the effect moves its recipients to.
             ref(g, "event-effects", id, "idLocation", Target.LOCATION, asInt(ee.get("idLocation")));
         }
@@ -514,12 +629,18 @@ public class StoryValidatorService implements StoryValidatorPort {
         }
         for (Map<String, Object> ms : list(data, "missionSteps")) {
             ref(g, "mission-steps", str(ms.get("id")), "idMission", Target.MISSION, asInt(ms.get("idMission")));
+            missionCond(g, "mission-steps", str(ms.get("id")), ms);
+        }
+        for (Map<String, Object> m : list(data, "missions")) {
+            missionCond(g, "missions", str(m.get("id")), m);
         }
         for (Map<String, Object> wr : list(data, "weatherRules")) {
             ref(g, "weather-rules", str(wr.get("id")), "idEvent", Target.EVENT, asInt(wr.get("idEvent")));
         }
         for (Map<String, Object> gr : list(data, "globalRandomEvents")) {
             ref(g, "global-random-events", str(gr.get("id")), "idEvent", Target.EVENT, asInt(gr.get("idEvent")));
+            g.randomEvents.add(new RandomRow(str(gr.get("id")), asInt(gr.get("idEvent")),
+                    asInt(gr.get("probability")), str(gr.get("conditionKey")), str(gr.get("conditionValue"))));
         }
         for (Map<String, Object> n : list(data, "locationNeighbors")) {
             Integer from = asInt(n.get("idLocationFrom"));
@@ -571,6 +692,8 @@ public class StoryValidatorService implements StoryValidatorPort {
         }
         for (MissionEntity m : missions) {
             addId(g.missions, m.getId());
+            g.missionConds.add(new MissionCond("missions", str(m.getId()), m.getConditionKey(),
+                    m.getConditionValue(), m.getConditionValues()));
         }
         for (KeyEntity k : readPort.findKeysByStoryId(storyId)) {
             if (k.getName() != null) {
@@ -644,6 +767,7 @@ public class StoryValidatorService implements StoryValidatorPort {
             ref(g, "event-effects", id, "targetClass", Target.CLASS, ee.getTargetClass());
             // Step 29 — here idWeather is the EFFECT that sets the match weather.
             ref(g, "event-effects", id, "idWeather", Target.WEATHER, ee.getIdWeather());
+            recordWeatherEffect(g, ee.getIdEvent(), ee.getIdWeather());
             // v0.29.3 — forced movement: the location the effect moves its recipients to.
             ref(g, "event-effects", id, "idLocation", Target.LOCATION, ee.getIdLocation());
         }
@@ -659,6 +783,8 @@ public class StoryValidatorService implements StoryValidatorPort {
         }
         for (MissionStepEntity ms : readPort.findMissionStepsByStoryId(storyId)) {
             ref(g, "mission-steps", str(ms.getId()), "idMission", Target.MISSION, ms.getIdMission());
+            g.missionConds.add(new MissionCond("mission-steps", str(ms.getId()),
+                    ms.getConditionKey(), ms.getConditionValue(), ms.getConditionValues()));
         }
         for (WeatherRuleEntity wr : readPort.findWeatherRulesByStoryId(storyId)) {
             addId(g.weathers, wr.getId());
@@ -666,6 +792,8 @@ public class StoryValidatorService implements StoryValidatorPort {
         }
         for (GlobalRandomEventEntity gr : readPort.findGlobalRandomEventsByStoryId(storyId)) {
             ref(g, "global-random-events", str(gr.getId()), "idEvent", Target.EVENT, gr.getIdEvent());
+            g.randomEvents.add(new RandomRow(str(gr.getId()), gr.getIdEvent(), gr.getProbability(),
+                    gr.getConditionKey(), gr.getConditionValue()));
         }
         for (LocationNeighborEntity n : readPort.findLocationNeighborsByStoryId(storyId)) {
             String nid = str(n.getId());
@@ -812,6 +940,21 @@ public class StoryValidatorService implements StoryValidatorPort {
     private record TemplateStat(String entityId, Integer lifeMax, Integer energyMax,
                                 Integer dexterity, Integer intelligence, Integer constitution, Integer sadMax) {}
 
+    /** Step 37 — one authored mission or mission-step condition as the rule engine reads it. */
+    private record MissionCond(String entityType, String entityId, String key, String value,
+                               String values) { }
+
+    /** Step 39 — one global random event row as the R11 rule reads it. */
+    private record RandomRow(String id, Integer idEvent, Integer probability, String conditionKey,
+                             String conditionValue) { }
+
+    /** Step 39 — an effect row that sets the weather marks its event unfit to be random. */
+    private static void recordWeatherEffect(StoryGraph g, Integer idEvent, Integer idWeather) {
+        if (idEvent != null && idEvent > 0 && idWeather != null && idWeather > 0) {
+            g.eventsWithWeatherEffect.add(idEvent);
+        }
+    }
+
     private static final class StoryGraph {
         final Set<Integer> locations = new HashSet<>();
         final Set<Integer> events = new HashSet<>();
@@ -826,6 +969,8 @@ public class StoryValidatorService implements StoryValidatorPort {
         final List<Ref> refs = new ArrayList<>();
         final List<Neighbor> neighbors = new ArrayList<>();
         final List<KeyRef> keyRefs = new ArrayList<>();
+        /** Step 37 — every authored mission/step condition, for the R10 rule. */
+        final List<MissionCond> missionConds = new ArrayList<>();
         final List<ClassRestriction> restrictions = new ArrayList<>();
         final List<TemplateStat> templates = new ArrayList<>();
         final Map<Integer, Integer> eventNext = new HashMap<>();
@@ -841,5 +986,9 @@ public class StoryValidatorService implements StoryValidatorPort {
          * reported against the last one; the rule is about the event, not the column.
          */
         final Map<Integer, String> locationTriggerEvents = new HashMap<>();
+        /** Step 39 — the global random event rows, for R11. */
+        final List<RandomRow> randomEvents = new ArrayList<>();
+        /** Step 39 — events owning at least one effect row with idWeather. */
+        final Set<Integer> eventsWithWeatherEffect = new HashSet<>();
     }
 }

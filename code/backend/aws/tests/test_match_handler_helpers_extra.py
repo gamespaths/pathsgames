@@ -86,15 +86,27 @@ def test_weather_condition_matches_int_registry_value_as_string():
     assert h._weather_condition_matches(rule, [{'key': 'phase', 'intValue': 3}]) is True
 
 
-def test_weather_condition_missing_key_only_matches_null_expectation():
+def test_weather_condition_with_no_expected_value_is_never_met():
+    """Step 36 — this used to read as "the key must be unset". A condition that names a key
+    but no value is now never met, the reading events and movement always had. Say "unset"
+    with != instead."""
     h = _h()
-    assert h._weather_condition_matches({'conditionKey': 'x', 'conditionValue': None}, []) is True
+    assert h._weather_condition_matches({'conditionKey': 'x', 'conditionValue': None}, []) is False
     assert h._weather_condition_matches({'conditionKey': 'x', 'conditionValue': 'y'}, []) is False
+
+
+def test_weather_condition_unset_key_is_expressed_with_not_equals():
+    h = _h()
+    rule = {'conditionKey': 'x', 'conditionValue': 'y',
+            'registryValueOperatorCondition': '!='}
+    assert h._weather_condition_matches(rule, []) is True
 
 
 def test_weather_condition_registry_none():
     h = _h()
-    assert h._weather_condition_matches({'conditionKey': 'x'}, None) is True
+    # No key at all is still no condition, whatever the registry holds.
+    assert h._weather_condition_matches({}, None) is True
+    assert h._weather_condition_matches({'conditionKey': 'x'}, None) is False
 
 
 # ── weighted pick ────────────────────────────────────────────────────────────
@@ -171,7 +183,7 @@ def test_visited_locations_payload_covers_neighbor_edges(mock_get, mock_chars):
     mock_get.return_value = STORY
     mock_chars.return_value = [{'uuid': 'c1', 'idLocation': 1}]
     match = {'storyUuid': 's1', 'registry': [{'key': 'gate', 'stringValue': 'OPEN'}],
-             'movementLog': [{'idLocationFrom': 1, 'idLocationTo': 999}]}
+             'visitedLocationIds': [1, 999]}
     payload = h._visited_locations_payload(match, 'm1', 'en')
     # location 999 is unknown → skipped (the `loc is None: continue` branch)
     assert [loc['idLocation'] for loc in payload['locations']] == [1]
@@ -208,3 +220,15 @@ def test_get_admin_locations_match_not_found(_get):
     h = _h()
     result = h._get_admin_locations('nope', 'en')
     assert result['statusCode'] == 404
+
+
+def test_visited_location_ids_unions_the_roster_and_the_movement_log():
+    """Where the party stands now, plus both endpoints of every move it has ever made."""
+    from unittest.mock import patch as _patch
+
+    import match.handler as mh
+
+    match = {'visitedLocationIds': [1, 2, 3]}
+    with _patch.object(mh, '_match_characters',
+                       return_value=[{'idLocation': 2}, {'idLocation': None}, {'idLocation': 5}]):
+        assert mh._visited_location_ids(match, 'm1') == [2, 5, 1, 3]

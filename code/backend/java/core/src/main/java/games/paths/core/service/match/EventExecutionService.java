@@ -11,7 +11,9 @@ import games.paths.core.port.match.EdgeStateStorePort;
 import games.paths.core.port.match.EventExecutionPort;
 import games.paths.core.port.match.EventExecutionStorePort;
 import games.paths.core.port.match.LocationEntryPort;
+import games.paths.core.port.match.KpiPort;
 import games.paths.core.port.match.LocationEntryStorePort;
+import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.LocationEntryStorePort.LocationTriggerView;
 import games.paths.core.port.match.TimeAdvancementPort;
 import games.paths.core.port.match.EventExecutionStorePort.BackpackStats;
@@ -66,10 +68,11 @@ import java.util.Set;
  * dependency cycle. Automatic events pay no cost, are never checked against the player-facing
  * availability verdict, and may never own choices.</p>
  *
- * <p>See {@code documentation_v0/Step29_NormalEvents.md} and
- * {@code documentation_v0/Step33_LocationEntryEvents.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step29_NormalEvents.md} and
+ * {@code wiki/documentation_v0/Step33_LocationEntryEvents.md}.</p>
  */
-public class EventExecutionService implements EventExecutionPort, LocationEntryPort {
+public class EventExecutionService implements EventExecutionPort, LocationEntryPort,
+        games.paths.core.port.match.MissionEventPort {
 
     private static final String DEFAULT_LANG = "en";
     private static final String ADD = "ADD";
@@ -107,9 +110,46 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
      * <p>Not creating the loop remains the author's responsibility; this only converts a
      * hung request into a logged abort.</p>
      */
-    private static final int MAX_ENTRY_DEPTH = 8;
+    public static final int MAX_ENTRY_DEPTH = 8;
+
+    private static final String TRIGGER_MISSION = "mission completed";
+
+    /** Step 37 - set after construction; the mission engine and this service need each other. */
+    private MissionService missionService;
+
+    public void setMissionService(MissionService missionService) {
+        this.missionService = missionService;
+    }
+
+    /** v0.41.1 - the TRAIT_ADD / TRAIT_REMOVE rows; null in the older tests. */
+    private MatchLogWriterPort logWriter;
+
+    public void setLogWriter(MatchLogWriterPort logWriter) {
+        this.logWriter = logWriter;
+    }
+
+    /** v0.41.2 - COMA, CHOICE and LOCATION_VISIT counters; null in the older tests. */
+    private KpiPort kpi;
+
+    public void setKpi(KpiPort kpi) {
+        this.kpi = kpi;
+    }
+
+    /** Hold mission completion events until this execution has written everything it touched. */
+    private void missionsBegin() {
+        if (missionService != null) {
+            missionService.beginDeferral();
+        }
+    }
+
+    private void missionsEnd() {
+        if (missionService != null) {
+            missionService.endDeferral();
+        }
+    }
 
     private final EventExecutionStorePort store;
+    private final RegistryService registryService;
     private final EdgeStateStorePort edgeStore;
     private final UserAccessPort userAccessPort;
     private final ContentQueryPort contentQueryPort;
@@ -122,8 +162,10 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                                  EdgeStateStorePort edgeStore,
                                  UserAccessPort userAccessPort,
                                  ContentQueryPort contentQueryPort,
-                                 TimeAdvancementService timeAdvancementService) {
-        this(store, edgeStore, userAccessPort, contentQueryPort, timeAdvancementService, null);
+                                 TimeAdvancementService timeAdvancementService,
+                                 RegistryService registryService) {
+        this(store, edgeStore, userAccessPort, contentQueryPort, timeAdvancementService, null,
+                registryService);
     }
 
     public EventExecutionService(EventExecutionStorePort store,
@@ -131,7 +173,9 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                                  UserAccessPort userAccessPort,
                                  ContentQueryPort contentQueryPort,
                                  TimeAdvancementService timeAdvancementService,
-                                 LocationEntryStorePort locationStore) {
+                                 LocationEntryStorePort locationStore,
+                                 RegistryService registryService) {
+        this.registryService = registryService;
         this.store = store;
         this.edgeStore = edgeStore;
         this.userAccessPort = userAccessPort;
@@ -143,6 +187,16 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
     @Override
     public EventExecutionResult executeEvent(String matchUuid, String userUuid,
                                              String eventUuid, String lang) {
+        missionsBegin();
+        try {
+            return executeEventInternal(matchUuid, userUuid, eventUuid, lang);
+        } finally {
+            missionsEnd();
+        }
+    }
+
+    private EventExecutionResult executeEventInternal(String matchUuid, String userUuid,
+                                                      String eventUuid, String lang) {
         long userId = requireUser(userUuid);
         MatchEventView match = requireMatch(matchUuid);
 
@@ -435,6 +489,16 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
     @Override
     public ChoiceResolutionResult selectChoice(String matchUuid, String userUuid,
                                                String choiceUuid, String lang) {
+        missionsBegin();
+        try {
+            return selectChoiceInternal(matchUuid, userUuid, choiceUuid, lang);
+        } finally {
+            missionsEnd();
+        }
+    }
+
+    private ChoiceResolutionResult selectChoiceInternal(String matchUuid, String userUuid,
+                                               String choiceUuid, String lang) {
         long userId = requireUser(userUuid);
         MatchEventView match = requireMatch(matchUuid);
         EventActorView actor = store.findCharacterByMatchAndUser(match.id(), userId)
@@ -492,11 +556,11 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         }
 
         resolveAllPlayerComa(x);
+        // v0.41.1 - decision 19: the markers first, at clock N, so the time-end snapshot holds them.
+        writeResolutionMarkers(x, choice, eventId, choiceId);
         if (x.endTime && !x.comaTriggered) {
             forceTimeEnd(x);
         }
-
-        writeResolutionMarkers(x, choice, eventId, choiceId);
 
         // Step 33 — a forced move inside an option's effects is an arrival like any other.
         drainArrivals(x, x.automaticEvents);
@@ -542,12 +606,15 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
      */
     private void applyChoiceEffects(Exec x, long choiceId, long eventId, EventEntity event) {
         List<Integer> linked = new ArrayList<>();
+        int[] gainsMark = x.gainsMark();
         for (ChoiceEffectEntity effect : store.findChoiceEffectsByChoiceId(x.match.idStory(), choiceId)) {
             applyChoiceEffect(x, effect, event);
             if (effect.getIdEvent() != null && effect.getIdEvent() > 0) {
                 linked.add(effect.getIdEvent());
             }
         }
+        // Step 40 - the option's own rows only: linked events log their gains on their own rows.
+        x.choiceGains = x.gainsSince(gainsMark);
         // No applyEvent ran for these rows, so the edge pass has to be given here — once,
         // over everyone the rows touched, exactly where applyEvent would have run it.
         checkEdgeStates(x, eventId);
@@ -629,20 +696,29 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         if (blank(key)) {
             return;
         }
-        String old = x.ctx.registry().get(key);
+        List<String> before = x.ctx.registry().getOrDefault(key, List.of());
         String add = effect.getValueToAdd();
         String remove = effect.getValueToRemove();
-        String value;
+
+        List<String> after;
         if (!blank(add)) {
-            value = add;
-        } else if (!blank(remove) && remove.equals(old)) {
-            value = null; // clears both value columns — the key reads as unset afterwards
+            after = registryService.upsert(x.match.id(), x.match.idStory(), key, add, x.actor.id(),
+                    event.getId(), null, x.currentClock);
+        } else if (!blank(remove)) {
+            // Step 36.1 — on a multi key this takes one member away; on a single one it is the
+            // compare-and-clear it has always been, and the service still refuses to wipe a
+            // value some other branch of the story has moved on from.
+            after = registryService.remove(x.match.id(), key, remove, x.actor.id(), event.getId(),
+                    null, x.currentClock);
         } else {
             return;
         }
-        store.upsertRegistry(x.match.id(), key, value, x.actor.id(), event.getId(), x.currentClock);
-        x.ctx.registry().put(key, value);
-        x.registryChanges.add(new RegistryChange(key, old, value));
+        x.ctx.registry().put(key, after);
+        // A write the registry refused — a duplicate member, or a value some other branch has
+        // moved on from — changed nothing, so it reports nothing.
+        if (!after.equals(before)) {
+            x.registryChanges.add(new RegistryChange(key, joined(before), joined(after)));
+        }
     }
 
     /**
@@ -699,12 +775,16 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
     private void writeResolutionMarkers(Exec x, ChoiceEntity choice, long eventId, long choiceId) {
         store.logEventExecuted(x.match.id(), x.actor.id(), eventId, x.currentClock,
                 EventExecutionStorePort.MSG_CHOICE_SELECTED + " " + eventId,
-                EventExecutionStorePort.SpentResources.none(), ResourceDelta.none());
+                EventExecutionStorePort.SpentResources.none(),
+                x.choiceGains == null ? ResourceDelta.none() : x.choiceGains);
         store.logChoiceExecuted(x.match.id(), eventId, choiceId, x.currentClock,
                 EventExecutionStorePort.MSG_CHOICE_SELECTED + " " + choiceId);
         if (nz(choice.getIsProgress()) == 1) {
             store.insertStoryProgress(x.match.id(), eventId, choiceId, x.currentClock);
             x.progressRecorded = true;
+        }
+        if (kpi != null) {
+            kpi.recordForMatch(x.match.id(), KpiPort.Metric.CHOICE, choice.getUuid(), 1);
         }
     }
 
@@ -798,6 +878,11 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
      * INV-27: {@code ALL} means every character standing in the actor's location, not every
      * character of the match. {@code target_class} then narrows that set; matching nobody is
      * legal and simply applies nothing.
+     *
+     * <p>Step 38 — the one exception is an event a completed MISSION fires: missions are
+     * match-scoped, so there is no actor and no location to stand in, and {@code ALL} means
+     * every character of the match — the reward of a quest goes to the party that won it.
+     * {@code ONLY_ONE} still names nobody there.</p>
      */
     private List<EventActorView> resolveRecipients(Exec x, EventEffectEntity effect) {
         String target = effect.getTarget() == null ? "ALL" : effect.getTarget().trim().toUpperCase();
@@ -808,7 +893,11 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         // location nobody stands in). There is then nobody to be a recipient: the row's
         // match-scoped halves (weather, registry) have already been applied by the caller.
         if (x.actor == null) {
-            return List.of();
+            if (!x.partyRun || TARGET_ONLY_ONE.equals(target)) {
+                return List.of();
+            }
+            base.addAll(x.allCharacters());
+            return narrowByClass(base, effect.getTargetClass());
         }
         Long actorLocation = x.locationOf(x.actor);
         if (TARGET_ONLY_ONE.equals(target) || actorLocation == null) {
@@ -820,7 +909,11 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                 }
             }
         }
-        Integer targetClass = effect.getTargetClass();
+        return narrowByClass(base, effect.getTargetClass());
+    }
+
+    /** {@code target_class} narrows the recipients; null or non-positive leaves them as they are. */
+    private static List<EventActorView> narrowByClass(List<EventActorView> base, Integer targetClass) {
         if (targetClass == null || targetClass <= 0) {
             return base;
         }
@@ -906,8 +999,9 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             }
         }
         String normalized = stat.trim().toLowerCase();
-        if (x.isActor(recipient.id())) {
+        if (x.actor == null || x.isActor(recipient.id())) {
             // The log row is character-scoped: only the actor's own resources ride on it.
+            // Step 40 - a party run has no actor: every recipient's gain is summed.
             x.recordGain(normalized, after - before);
         }
         x.statChanges.add(new StatChange(recipient.uuid(), normalized,
@@ -987,15 +1081,27 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         for (long idTrait : csvIds(traitsToAdd)) {
             if (store.addTrait(x.match.id(), recipient.id(), idTrait, idEvent)) {
                 x.traitChanges.add(new TraitChange(recipient.uuid(), x.traitUuids().get(idTrait), ADD));
+                logTrait(x, recipient, idTrait, idEvent, MatchLogWriterPort.MSG_TRAIT_ADD);
                 applyTraitStats(x, recipient, idTrait, 1);
             }
         }
         for (long idTrait : csvIds(traitsToRemove)) {
             if (store.removeTrait(x.match.id(), recipient.id(), idTrait)) {
                 x.traitChanges.add(new TraitChange(recipient.uuid(), x.traitUuids().get(idTrait), REMOVE));
+                logTrait(x, recipient, idTrait, idEvent, MatchLogWriterPort.MSG_TRAIT_REMOVE);
                 applyTraitStats(x, recipient, idTrait, -1);
             }
         }
+    }
+
+    /** v0.41.1 - {@code TRAIT_ADD|TRAIT_REMOVE <traitUuid>}, the id when the story row has no uuid. */
+    private void logTrait(Exec x, EventActorView recipient, long idTrait, Long idEvent, String prefix) {
+        if (logWriter == null) {
+            return;
+        }
+        String uuid = x.traitUuids().get(idTrait);
+        logWriter.write(x.match.id(), recipient.id(), idEvent, x.currentClock,
+                prefix + " " + (uuid != null ? uuid : String.valueOf(idTrait)));
     }
 
     /**
@@ -1082,10 +1188,13 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             return;
         }
         String value = effect.getKeyValueToAdd();
-        String old = x.ctx.registry().get(key);
-        store.upsertRegistry(x.match.id(), key, value, x.actorId(), event.getId(), x.currentClock);
-        x.ctx.registry().put(key, value);
-        x.registryChanges.add(new RegistryChange(key, old, value));
+        List<String> before = x.ctx.registry().getOrDefault(key, List.of());
+        List<String> after = registryService.upsert(x.match.id(), x.match.idStory(), key, value,
+                x.actorId(), event.getId(), null, x.currentClock);
+        x.ctx.registry().put(key, after);
+        if (!after.equals(before)) {
+            x.registryChanges.add(new RegistryChange(key, joined(before), joined(after)));
+        }
     }
 
     /**
@@ -1161,7 +1270,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             if (v.forcedSleep() && x.isActor(c.id)) {
                 x.forcedSleep = true;
             }
-            EdgeStateEvaluator.persist(edgeStore, x.match.id(), v, x.currentClock, idEvent);
+            EdgeStateEvaluator.persist(edgeStore, kpi, x.match.id(), v, x.currentClock, idEvent);
         }
     }
 
@@ -1232,10 +1341,18 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         // now-stale in-memory copy back over what the recovery just computed.
         flush(x);
         TimeAdvancementService.TimeEndOutcome outcome =
-                timeAdvancementService.forceTimeEnd(x.match.uuid());
+                timeAdvancementService.forceTimeEnd(x.match.uuid(), x.actorId());
+        // v0.35.6 — the time-start this event forced runs a recovery, and a recovery can push
+        // somebody over an edge: that verdict belongs in this response, not in the next reload.
+        mergeEdgeState(x, outcome.edgeState());
         x.timeEnded = true;
         x.forcedSleep = true;
         x.currentClock = outcome.newClock();
+        // Step 40 - the time-start's news, told to the actor, travels with this answer.
+        x.timeEndNews = new TimeAdvancementPort.TimeEndNews(outcome.newClock(),
+                outcome.counterZero() == null ? List.of() : List.copyOf(outcome.counterZero()),
+                outcome.weather() == null ? null
+                        : outcome.weather().withCard(resolveCard(x, outcome.weather().idCard())));
         x.refreshActorAfterTimeEnd();
     }
 
@@ -1243,6 +1360,15 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
 
     @Override
     public List<AutomaticEventFired> onArrival(ArrivalContext arrival) {
+        missionsBegin();
+        try {
+            return onArrivalInternal(arrival);
+        } finally {
+            missionsEnd();
+        }
+    }
+
+    private List<AutomaticEventFired> onArrivalInternal(ArrivalContext arrival) {
         List<AutomaticEventFired> fired = new ArrayList<>();
         resolveArrival(arrival.idMatch(), arrival.idStory(), arrival.idCharacter(),
                 arrival.idLocation(), arrival.currentClock(), arrival.lang(), 0, fired);
@@ -1253,6 +1379,31 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
     public List<AutomaticEventFired> runPendingAutomaticEvents(long idMatch, int currentClock,
                                                                List<PendingAutomaticEvent> pending,
                                                                String lang) {
+        missionsBegin();
+        try {
+            return runPendingAutomaticEventsInternal(idMatch, currentClock, pending, lang);
+        } finally {
+            missionsEnd();
+        }
+    }
+
+    @Override
+    public List<AutomaticEventFired> runRandomEvent(long idMatch, int currentClock, long idEvent,
+                                                    String lang) {
+        List<AutomaticEventFired> fired = new ArrayList<>();
+        missionsBegin();
+        try {
+            // allowTimeEnd = false: it runs inside the time-start pass, like the pending ones.
+            runAutomaticEvent(idMatch, null, idEvent, 0L, TRIGGER_RANDOM_EVENT, currentClock, lang,
+                    false, 0, fired);
+        } finally {
+            missionsEnd();
+        }
+        return fired;
+    }
+
+    private List<AutomaticEventFired> runPendingAutomaticEventsInternal(
+            long idMatch, int currentClock, List<PendingAutomaticEvent> pending, String lang) {
         List<AutomaticEventFired> fired = new ArrayList<>();
         if (locationStore == null || pending == null || pending.isEmpty()) {
             return fired;
@@ -1287,6 +1438,13 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                 : new HashSet<>(locationStore.findVisitedLocationIds(idMatch));
 
         for (AutomaticEventFired f : fired) {
+            if (TRIGGER_RANDOM_EVENT.equals(f.trigger())) {
+                // Step 39 - it happened to the whole party, so everyone sees it whole.
+                out.add(new TimeAdvancementPort.CounterZeroItem(f.trigger(), null, f.card(), null,
+                        f.effects() == null ? List.of() : List.copyOf(f.effects()),
+                        f.eventUuid(), clock, TimeAdvancementPort.CounterZeroItem.VISIBILITY_FULL));
+                continue;
+            }
             String visibility;
             if (here != null && here == f.idLocation()) {
                 visibility = TimeAdvancementPort.CounterZeroItem.VISIBILITY_FULL;
@@ -1357,8 +1515,24 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                         triggers.idEventIfCharacterEnterEmptyLocation(), idLocation,
                         TRIGGER_MOVE_INTO_EMPTY_LOCATION, currentClock, lang, true, depth, out);
             }
+            writeArrivalRegistry(idMatch, idStory, idCharacter, triggers, visited, currentClock);
         }
-        locationStore.markStateLocationVisited(idMatch, idLocation);
+        if (locationStore.markStateLocationVisited(idMatch, idLocation) && kpi != null) {
+            kpi.recordLocationVisit(idMatch, idStory, idLocation);
+        }
+    }
+
+    /**
+     * Step 36.2 — the place writes the registry itself. The history branch chooses the pair,
+     * exactly as it chose the event above, so one arrival writes one pair and never both.
+     * A blank key is authored noise, and {@code upsert} already skips it.
+     */
+    private void writeArrivalRegistry(long idMatch, long idStory, long idCharacter,
+                                      LocationTriggerView triggers, boolean visited,
+                                      int currentClock) {
+        String key = visited ? triggers.keyToAddNotFirst() : triggers.keyToAdd();
+        String value = visited ? triggers.keyValueToAddNotFirst() : triggers.keyValueToAdd();
+        registryService.upsert(idMatch, idStory, key, value, idCharacter, null, null, currentClock);
     }
 
     /** Null-tolerant entry: a null or non-positive column is simply not a trigger. */
@@ -1420,6 +1594,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
 
         Exec x = new Exec(match, actor, ctx, resolveLang(lang), event);
         x.entryDepth = depth;
+        x.partyRun = isPartyTrigger(trigger);
         runChain(x, event);
         resolveAllPlayerComa(x);
         if (x.endTime && !x.comaTriggered && allowTimeEnd) {
@@ -1427,15 +1602,30 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         }
         flush(x);
         locationStore.logAutomaticEvent(idMatch, idActorCharacter, idLocation, idEvent,
-                x.currentClock, LocationEntryStorePort.MSG_AUTOMATIC_EVENT + " " + idEvent
-                        + " (" + trigger + ") at location " + idLocation);
+                x.currentClock, automaticLogMessage(trigger, idEvent, idLocation));
+        // v0.35.6 — the epilogue is sliced off the tail here too: what the arrival did and
+        // what the collapse answered are two chains, and the board narrates them apart.
         out.add(new AutomaticEventFired(trigger, idLocation, event.getUuid(),
                 resolveCard(x, event.getIdCard()),
-                new ArrayList<>(x.effects), new ArrayList<>(x.statChanges),
-                new ArrayList<>(x.locationChanges), x.gameOver));
+                new ArrayList<>(chainEffects(x)), new ArrayList<>(x.statChanges),
+                new ArrayList<>(x.locationChanges), x.gameOver, buildEdgeState(x), x.timeEndNews));
 
         // The events this one caused by pushing somebody somewhere.
         drainArrivals(x, out);
+    }
+
+    /** Missions and random events reach the whole party: they have no actor to stand next to. */
+    static boolean isPartyTrigger(String trigger) {
+        return TRIGGER_MISSION.equals(trigger) || TRIGGER_RANDOM_EVENT.equals(trigger);
+    }
+
+    /** Step 39 - a random event gets its own prefix, so the timeline can tell it apart. */
+    static String automaticLogMessage(String trigger, long idEvent, long idLocation) {
+        if (TRIGGER_RANDOM_EVENT.equals(trigger)) {
+            return LocationEntryStorePort.MSG_RANDOM_EVENT + " " + idEvent + " (" + trigger + ")";
+        }
+        return LocationEntryStorePort.MSG_AUTOMATIC_EVENT + " " + idEvent
+                + " (" + trigger + ") at location " + idLocation;
     }
 
     /**
@@ -1505,7 +1695,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                 x.forcedSleep, x.comaTriggered, x.gameOver, changed,
                 x.statChanges, x.registryChanges, x.traitChanges, x.itemChanges,
                 x.characteristicChanges, x.locationChanges, chainEffects(x), x.pendingChoices,
-                edgeState, new ArrayList<>(x.automaticEvents));
+                edgeState, new ArrayList<>(x.automaticEvents), x.timeEndNews);
     }
 
     /** The events the player's own chain ran — the epilogue's are sliced off the tail. */
@@ -1518,6 +1708,24 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         return x.comaEventUuid == null
                 ? x.effects
                 : new ArrayList<>(x.effects.subList(0, x.comaEffectMark));
+    }
+
+    /** Folds an edge state produced elsewhere — a forced time end — into this execution. */
+    private static void mergeEdgeState(Exec x, EdgeStateOutcome other) {
+        if (other == null) {
+            return;
+        }
+        for (String uuid : other.sadnessOverflowUuids()) {
+            if (!x.sadnessOverflowUuids.contains(uuid)) {
+                x.sadnessOverflowUuids.add(uuid);
+            }
+        }
+        for (String uuid : other.comaUuids()) {
+            if (!x.comaUuids.contains(uuid)) {
+                x.comaUuids.add(uuid);
+            }
+        }
+        x.allPlayersInComa = x.allPlayersInComa || other.allPlayersInComa();
     }
 
     private static EdgeStateOutcome buildEdgeState(Exec x) {
@@ -1615,6 +1823,14 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                 "Match not found or not accessible");
     }
 
+    /** A set as one string for the RegistryChange payload: empty reads as null, as it did. */
+    private static String joined(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+        return values.size() == 1 ? values.get(0) : String.join(",", values);
+    }
+
     private static boolean blank(String s) {
         return s == null || s.isBlank();
     }
@@ -1681,6 +1897,12 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         final List<AutomaticEventFired> automaticEvents = new ArrayList<>();
         /** How many arrivals deep this execution already is — the runaway-loop guard. */
         int entryDepth;
+        /**
+         * Step 38 — fired by a completed mission: there is no actor, and {@code ALL} then
+         * means the whole party, because the mission is the party's doing.
+         * Step 39 — a random event is party-wide too.
+         */
+        boolean partyRun;
 
         int currentClock;
         int energySpent;
@@ -1728,6 +1950,10 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         String choiceEventUuid;
         CardInfo choiceEventCard;
         boolean progressRecorded;
+        /** Step 40 - what the option's own effect rows gave, for the CHOICE_SELECTED row. */
+        ResourceDelta choiceGains;
+        /** Step 40 - the news of a forced time-end, null when the time did not end here. */
+        TimeAdvancementPort.TimeEndNews timeEndNews;
         boolean endTime;
         boolean timeEnded;
         boolean itemAdded;
@@ -1952,4 +2178,22 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             this.sad = TimeStartRecoveryService.clamp(raw, 0, sadMax);
         }
     }
+
+    /**
+     * Step 37 - run a mission's {@code id_event_completed}. No actor, no cost, no verdict, and
+     * capped by the same {@link #MAX_ENTRY_DEPTH} that stops an arrival chain running away.
+     */
+    @Override
+    public void runMissionEvent(long idMatch, long idEvent, int depth) {
+        if (depth >= MAX_ENTRY_DEPTH) {
+            return;
+        }
+        MatchEventView match = store.findMatchById(idMatch).orElse(null);
+        if (match == null) {
+            return;
+        }
+        runAutomaticEvent(idMatch, null, idEvent, 0L, TRIGGER_MISSION, match.currentClock(),
+                null, false, depth, new ArrayList<>());
+    }
+
 }

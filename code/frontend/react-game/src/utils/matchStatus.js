@@ -9,11 +9,21 @@ export const ACTIVE_MATCH_STATUSES = new Set(['CREATED', 'RUNNING'])
 // a new run without being resumable, so it needs its own badge, not "resume".
 export const BLOCKING_MATCH_STATUSES = new Set(['CREATED', 'RUNNING', 'PAUSED'])
 
+// v0.36.2 — a run that is over, however it ended. Both mean the player has played
+// this story, so the card offers Replay instead of Play.
+export const FINISHED_MATCH_STATUSES = new Set(['ENDED', 'GAMEOVER'])
+
 /** True when the guest has an active (resumable) match for the given story. */
 export function storyHasActiveMatch(matches, storyUuid) {
   return Array.isArray(matches) && matches.some(
     m => m.storyUuid === storyUuid && ACTIVE_MATCH_STATUSES.has(m.status)
   )
+}
+
+/** The guest's resumable match for a story, or null — what a direct "Resume" jumps into. */
+export function findResumableMatch(matches, storyUuid) {
+  if (!Array.isArray(matches)) return null
+  return matches.find(m => m.storyUuid === storyUuid && ACTIVE_MATCH_STATUSES.has(m.status)) ?? null
 }
 
 /**
@@ -30,7 +40,8 @@ export function storyHasBlockingMatch(matches, storyUuid) {
  * Badge to show on a StoryCard for the guest's matches of that story:
  *   'active'    → at least one resumable match (CREATED/RUNNING)
  *   'paused'    → no resumable match but one paused by an admin (v0.32.1)
- *   'completed' → nothing active or paused but at least one ENDED
+ *   'completed' → nothing active or paused but at least one finished run (v0.36.2:
+ *                 GAMEOVER counts — a lost run is a played one)
  *   null        → nothing to show
  * Active wins over paused, paused over completed.
  */
@@ -39,6 +50,31 @@ export function storyMatchBadge(matches, storyUuid) {
   const mine = matches.filter(m => m.storyUuid === storyUuid)
   if (mine.some(m => ACTIVE_MATCH_STATUSES.has(m.status))) return 'active'
   if (mine.some(m => m.status === 'PAUSED')) return 'paused'
-  if (mine.some(m => m.status === 'ENDED')) return 'completed'
+  if (mine.some(m => FINISHED_MATCH_STATUSES.has(m.status))) return 'completed'
   return null
+}
+
+// Step 40 — each status as the home story-card badge (`story-card-status--<tone>`, stat-badge look) and its glyph.
+export const MATCH_STATUS_BADGE = Object.freeze({
+  CREATED:  { tone: 'active',    icon: 'fas fa-play' },
+  RUNNING:  { tone: 'active',    icon: 'fas fa-play' },
+  PAUSED:   { tone: 'paused',    icon: 'fas fa-pause' },
+  ENDED:    { tone: 'completed', icon: 'fas fa-check-circle story-card-status__check' },
+  GAMEOVER: { tone: 'completed', icon: 'fas fa-skull-crossbones story-card-status__defeat' },
+})
+
+/** Step 40 — list group of a status: active, then paused, then finished, then anything else. */
+export function matchStatusGroup(status) {
+  if (ACTIVE_MATCH_STATUSES.has(status)) return 0
+  if (status === 'PAUSED') return 1
+  if (FINISHED_MATCH_STATUSES.has(status)) return 2
+  return 3
+}
+
+/** Step 40 — a copy of the list ordered by group, newest first inside each group. */
+export function sortMatchesForList(matches, toMs) {
+  if (!Array.isArray(matches)) return []
+  const time = m => (toMs ? toMs(m?.tsInsert) : null) ?? 0
+  return [...matches].sort((a, b) =>
+    matchStatusGroup(a?.status) - matchStatusGroup(b?.status) || time(b) - time(a))
 }

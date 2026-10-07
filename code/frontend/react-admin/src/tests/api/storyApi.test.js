@@ -57,6 +57,13 @@ describe('storyApi', () => {
     expect(res).toEqual({ status: 'imported' })
   })
 
+  it('writeStaticCatalog posts to the catalog endpoint (v0.37.6)', async () => {
+    mockPost.mockResolvedValue({ data: { status: 'WRITTEN', target: 's3://b', files: [] } })
+    const res = await storyApi.writeStaticCatalog()
+    expect(mockPost).toHaveBeenCalledWith('/api/admin/stories/catalog')
+    expect(res.status).toBe('WRITTEN')
+  })
+
   it('deleteStory calls correct endpoint', async () => {
     mockDelete.mockResolvedValue({ data: { status: 'deleted' } })
     const res = await storyApi.deleteStory('123')

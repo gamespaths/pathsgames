@@ -173,12 +173,7 @@ public class StoryController {
     }
 
     private StorySummaryResponse toSummaryResponse(StorySummary s) {
-        CardInfoResponse cardResp = s.card() != null ? toCardInfoResponse(s.card()) : null;
-        return new StorySummaryResponse(
-                s.uuid(), s.title(), s.description(), s.author(),
-                s.category(), s.group(), s.visibility(),
-                s.priority(), s.peghi(), s.difficultyCount(),
-                cardResp);
+        return StorySummaryResponse.fromModel(s);
     }
 
     private StoryDetailResponse toDetailResponse(StoryDetail d) {
@@ -226,7 +221,7 @@ public class StoryController {
         DifficultyResponse r = new DifficultyResponse(
                 di.getUuid(), di.getDescription(), di.getExpCost(), di.getMaxWeight(),
                 di.getMinCharacter(), di.getMaxCharacter(), di.getCostHelpComa(),
-                di.getCostMaxCharacteristics(), di.getNumberMaxFreeAction());
+                di.getExpCostBase(), di.getMaxStatValue(), di.getNumberMaxFreeAction());
         r.setLife(di.getLife());
         r.setEnergy(di.getEnergy());
         r.setSad(di.getSad());

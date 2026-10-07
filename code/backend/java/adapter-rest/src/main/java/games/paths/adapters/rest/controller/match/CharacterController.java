@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  *   <li>GET  /api/match/&#123;uuidMatch&#125;/characters/&#123;uuidCharacter&#125; — character detail</li>
  * </ul>
  *
- * <p>Step 21 — see {@code documentation_v0/Step21_CharacterSelection.md}.</p>
+ * <p>Step 21 — see {@code wiki/documentation_v0/Step21_CharacterSelection.md}.</p>
  */
 @RestController
 public class CharacterController {

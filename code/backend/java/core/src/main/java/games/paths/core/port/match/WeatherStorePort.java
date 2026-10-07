@@ -20,9 +20,6 @@ public interface WeatherStorePort {
     /** Active weather rules (active = 1) for the story. */
     List<WeatherRuleView> findActiveWeatherRules(long idStory);
 
-    /** Current registry value for a key (for condition_key filtering); empty if absent. */
-    Optional<String> findRegistryValue(long idMatch, String key);
-
     /** Per-character energy + cap inputs for the delta application. */
     List<WeatherCharacter> findCharacters(long idMatch);
 
@@ -62,7 +59,12 @@ public interface WeatherStorePort {
                               Integer costMoveSafeLocation,
                               Integer costMoveNotSafeLocation,
                               boolean active,
-                              boolean current) {
+                              boolean current,
+                              /** v0.36.2 - the authored registry condition, and whether it is met. */
+                              String conditionKey,
+                              String conditionValue,
+                              String conditionOperator,
+                              boolean registryMet) {
     }
 
     record WeatherLogView(long id,
@@ -85,6 +87,8 @@ public interface WeatherStorePort {
                            Integer timeTo,
                            String conditionKey,
                            String conditionKeyValue,
+                           /** Step 36 - how conditionKeyValue is compared; null means =. */
+                           String conditionOperator,
                            Integer deltaEnergy,
                            Integer idEvent,
                            Integer costMoveSafeLocation,

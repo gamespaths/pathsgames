@@ -9,6 +9,8 @@ vi.mock('../../api/guestApi', () => ({
   getGuestStats:       vi.fn(),
   deleteGuest:         vi.fn(),
   deleteExpiredGuests: vi.fn(),
+  previewStaleGuests:  vi.fn(),
+  deleteStaleGuests:   vi.fn(),
 }))
 vi.mock('../../api/matchApi', () => ({
   listMatches:  vi.fn(),
@@ -22,7 +24,10 @@ vi.mock('../../api/storyApi', () => ({
   listEntities: vi.fn(),
 }))
 
-import { listGuests, getGuestStats, deleteGuest, deleteExpiredGuests } from '../../api/guestApi'
+import {
+  listGuests, getGuestStats, deleteGuest, deleteExpiredGuests,
+  previewStaleGuests, deleteStaleGuests,
+} from '../../api/guestApi'
 import { listMatches, getMatchInfo, stopMatch, pauseMatch, resumeMatch } from '../../api/matchApi'
 import { getStory, listEntities } from '../../api/storyApi'
 
@@ -78,9 +83,20 @@ function renderPage() {
 describe('GuestsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    listGuests.mockResolvedValue(MOCK_GUESTS)
+    // v0.36.2 — both endpoints answer the paged envelope, not a bare array.
+    listGuests.mockResolvedValue({ items: MOCK_GUESTS, nextCursor: null, limit: 50 })
     getGuestStats.mockResolvedValue(MOCK_STATS)
-    listMatches.mockResolvedValue(MOCK_MATCHES)
+    // userUuid is a server-side filter since v0.28.1, so the mock honours it too —
+    // the page no longer fetches every match and sifts them in the browser.
+    listMatches.mockImplementation((params = {}) => Promise.resolve({
+      items: params.userUuid
+        ? MOCK_MATCHES.filter(m => m.userCreatorUuid === params.userUuid)
+        : MOCK_MATCHES,
+      nextCursor: null,
+      limit: 50,
+    }))
+    previewStaleGuests.mockResolvedValue({ guests: 4, matches: 6 })
+    deleteStaleGuests.mockResolvedValue({ guests: 4, matches: 6 })
     getMatchInfo.mockResolvedValue(MOCK_INFO)
     stopMatch.mockResolvedValue({})
     pauseMatch.mockResolvedValue({})
@@ -185,6 +201,23 @@ describe('GuestsPage', () => {
     expect((await screen.findAllByText(/Tavern/)).length).toBeGreaterThan(0)
   })
 
+  it('Escape closes the stacked match detail first, then the guest modal', async () => {
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    await userEvent.click(screen.getAllByTitle('View detail')[0])
+    await screen.findByText('Dragon Run')
+    await userEvent.click(screen.getByTitle('View match detail'))
+    await waitFor(() => expect(document.querySelectorAll('.pg-modal')).toHaveLength(2))
+
+    // Focus sits inside the guest modal (the eye button): the key still reaches document.
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => expect(document.querySelectorAll('.pg-modal')).toHaveLength(1))
+    expect(screen.getByText('Dragon Run')).toBeInTheDocument()
+
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => expect(document.querySelectorAll('.pg-modal')).toHaveLength(0))
+  })
+
   it('shows stop button for active match and calls stopMatch', async () => {
     renderPage()
     await screen.findByText('guest_aaa111aa')
@@ -203,9 +236,9 @@ describe('GuestsPage', () => {
   })
 
   it('shows resume button for PAUSED match', async () => {
-    listMatches.mockResolvedValue([
-      { ...MOCK_MATCHES[0], status: 'PAUSED' },
-    ])
+    listMatches.mockResolvedValue({
+      items: [{ ...MOCK_MATCHES[0], status: 'PAUSED' }], nextCursor: null, limit: 50,
+    })
     renderPage()
     await screen.findByText('guest_aaa111aa')
     await userEvent.click(screen.getAllByTitle('View detail')[0])
@@ -258,9 +291,9 @@ describe('GuestsPage', () => {
   })
 
   it('calls resumeMatch when resume button is clicked for PAUSED match', async () => {
-    listMatches.mockResolvedValue([
-      { ...MOCK_MATCHES[0], status: 'PAUSED' },
-    ])
+    listMatches.mockResolvedValue({
+      items: [{ ...MOCK_MATCHES[0], status: 'PAUSED' }], nextCursor: null, limit: 50,
+    })
     renderPage()
     await screen.findByText('guest_aaa111aa')
     await userEvent.click(screen.getAllByTitle('View detail')[0])
@@ -296,9 +329,9 @@ describe('GuestsPage', () => {
   })
 
   it('renders untitled match name in the guest detail modal', async () => {
-    listMatches.mockResolvedValue([
-      { ...MOCK_MATCHES[0], name: null },
-    ])
+    listMatches.mockResolvedValue({
+      items: [{ ...MOCK_MATCHES[0], name: null }], nextCursor: null, limit: 50,
+    })
     renderPage()
     await screen.findByText('guest_aaa111aa')
     await userEvent.click(screen.getAllByTitle('View detail')[0])
@@ -329,5 +362,206 @@ describe('GuestsPage', () => {
     const closeButtons = await screen.findAllByText('Close')
     await userEvent.click(closeButtons[closeButtons.length - 1])
     await waitFor(() => expect(screen.queryAllByText('Close').length).toBeLessThan(closeButtons.length))
+  })
+
+  // ── v0.36.2: server-side paging and the stale purge ────────────────────────
+
+  it('asks the server for one page, not the whole table', async () => {
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    expect(listGuests).toHaveBeenCalledWith({ limit: 50 })
+  })
+
+  it('follows the cursor and appends the next page', async () => {
+    listGuests
+      .mockResolvedValueOnce({ items: [MOCK_GUESTS[0]], nextCursor: 'page-2', limit: 50 })
+      .mockResolvedValueOnce({ items: [MOCK_GUESTS[1]], nextCursor: null, limit: 50 })
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+
+    await userEvent.click(screen.getByText(/Load more/i))
+
+    await screen.findByText('guest_bbb222bb')
+    expect(listGuests).toHaveBeenLastCalledWith({ limit: 50, cursor: 'page-2' })
+    expect(screen.getByText(/all loaded/i)).toBeInTheDocument()
+  })
+
+  it('keeps Load more live on an empty page while the cursor points further on', async () => {
+    // A filtered scan applies Limit BEFORE the filter, so a page can come back
+    // empty while more rows still exist: an empty page is not the end of the data.
+    listGuests.mockResolvedValue({ items: [], nextCursor: 'page-2', limit: 50 })
+    renderPage()
+    await screen.findByText(/more available/i)
+    expect(screen.getByText(/Load more/i).closest('button')).not.toBeDisabled()
+  })
+
+  it('sends olderThanDays to the server when the filter is applied', async () => {
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+
+    await userEvent.type(screen.getByLabelText(/Not seen for/i), '90')
+    await userEvent.click(screen.getByText(/Apply filter/i))
+
+    await waitFor(() =>
+      expect(listGuests).toHaveBeenLastCalledWith({ limit: 50, olderThanDays: 90 }))
+  })
+
+  it('counts the stale guests and their matches before offering the purge', async () => {
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+
+    await userEvent.type(screen.getByLabelText(/Not seen for/i), '90')
+    await userEvent.click(screen.getByText(/Count stale/i))
+
+    expect(await screen.findByText(/4 guests · 6 matches/)).toBeInTheDocument()
+    expect(previewStaleGuests).toHaveBeenCalledWith(90, false)
+    expect(deleteStaleGuests).not.toHaveBeenCalled()
+  })
+
+  it('names both counts in the purge confirmation and deletes on confirm', async () => {
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    await userEvent.type(screen.getByLabelText(/Not seen for/i), '90')
+    await userEvent.click(screen.getByText(/Count stale/i))
+    await screen.findByText(/4 guests · 6 matches/)
+
+    await userEvent.click(screen.getByText(/Purge stale/i))
+
+    // The dialog must say the matches go too — that is what makes it different
+    // from "Cleanup Expired", which never touches a match.
+    expect(await screen.findByText(/6 matches, started or not/i)).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Confirm'))
+    await waitFor(() => expect(deleteStaleGuests).toHaveBeenCalledWith(90, false))
+    expect(await screen.findByText(/4 guests and 6 matches removed/i)).toBeInTheDocument()
+  })
+
+  it('asks the server for one guest\'s matches instead of fetching every match', async () => {
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+
+    await userEvent.click(screen.getAllByTitle('View detail')[0])
+
+    await screen.findByText('Dragon Run')
+    expect(listMatches).toHaveBeenCalledWith({ userUuid: 'aaa-111-aaa' })
+  })
+
+  it('a second page is appended to the first', async () => {
+    listGuests.mockResolvedValueOnce({ items: MOCK_GUESTS, nextCursor: 'page-2', limit: 50 })
+    listGuests.mockResolvedValueOnce({ items: [{ ...MOCK_GUESTS[0], userUuid: 'zzz', username: 'guest_zzz' }],
+                                       nextCursor: null, limit: 50 })
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+
+    await userEvent.click(screen.getByText('Load more'))
+
+    expect(await screen.findByText('guest_zzz')).toBeInTheDocument()
+    expect(screen.getByText('guest_aaa111aa')).toBeInTheDocument()
+    expect(screen.getByText('No more pages')).toBeInTheDocument()
+  })
+
+  it('a page that answers nothing appends nothing and keeps the cursor', async () => {
+    listGuests.mockResolvedValueOnce({ items: MOCK_GUESTS, nextCursor: 'page-2', limit: 50 })
+    listGuests.mockResolvedValueOnce(null)
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+
+    await userEvent.click(screen.getByText('Load more'))
+
+    await waitFor(() => expect(screen.getByText('No more pages')).toBeInTheDocument())
+  })
+
+  it('a failing second page with no message shows the generic error', async () => {
+    listGuests.mockResolvedValueOnce({ items: MOCK_GUESTS, nextCursor: 'page-2', limit: 50 })
+    listGuests.mockRejectedValueOnce({})
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+
+    await userEvent.click(screen.getByText('Load more'))
+
+    expect(await screen.findByText('Failed to load more guests')).toBeInTheDocument()
+  })
+
+  it('the load-more button does nothing once there is no cursor', async () => {
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    listGuests.mockClear()
+
+    await userEvent.click(screen.getByText('No more pages'))
+
+    expect(listGuests).not.toHaveBeenCalled()
+  })
+
+  // ── v0.41.0: "Without matches only" on the stale purge ─────────────────────
+  it('counts only the guests without matches when the toggle is on', async () => {
+    previewStaleGuests.mockResolvedValue({ guests: 3, matches: 0 })
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+
+    await userEvent.type(screen.getByLabelText(/Not seen for/i), '400')
+    await userEvent.click(screen.getByLabelText(/Without matches only/i))
+    await userEvent.click(screen.getByText(/Count stale/i))
+
+    expect(await screen.findByText('3 guests without matches')).toBeInTheDocument()
+    expect(previewStaleGuests).toHaveBeenCalledWith(400, true)
+  })
+
+  it('toggling "without matches" drops the previous count', async () => {
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    await userEvent.type(screen.getByLabelText(/Not seen for/i), '90')
+    await userEvent.click(screen.getByText(/Count stale/i))
+    await screen.findByText(/4 guests · 6 matches/)
+
+    await userEvent.click(screen.getByLabelText(/Without matches only/i))
+
+    expect(screen.queryByText(/4 guests · 6 matches/)).toBeNull()
+    expect(screen.queryByText(/Purge stale/i)).toBeNull()
+    expect(screen.getByLabelText(/Without matches only/i)).toBeChecked()
+  })
+
+  it('says no match is touched and purges with withoutMatches on confirm', async () => {
+    previewStaleGuests.mockResolvedValue({ guests: 2, matches: 0 })
+    deleteStaleGuests.mockResolvedValue({ guests: 2, matches: 0 })
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    await userEvent.type(screen.getByLabelText(/Not seen for/i), '400')
+    await userEvent.click(screen.getByLabelText(/Without matches only/i))
+    await userEvent.click(screen.getByText(/Count stale/i))
+    await screen.findByText('2 guests without matches')
+
+    await userEvent.click(screen.getByText(/Purge stale/i))
+
+    expect(await screen.findByText(/created no match \(at most 500 per run; no match is touched\)/i)).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Confirm'))
+    await waitFor(() => expect(deleteStaleGuests).toHaveBeenCalledWith(400, true))
+    expect(await screen.findByText('Purge done: 2 guests without matches removed.')).toBeInTheDocument()
+  })
+
+  it('a failing stale count with no message shows the generic error', async () => {
+    previewStaleGuests.mockRejectedValue({})
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+
+    await userEvent.type(screen.getByLabelText(/Not seen for/i), '90')
+    await userEvent.click(screen.getByText(/Count stale/i))
+
+    expect(await screen.findByText('Failed to count stale guests')).toBeInTheDocument()
+  })
+
+  it('a guest list that answers no items at all renders an empty table', async () => {
+    listGuests.mockResolvedValue(null)
+    renderPage()
+
+    await waitFor(() => expect(screen.queryByText('guest_aaa111aa')).toBeNull())
+  })
+
+  it('a failing match list with no message shows the generic error in the detail', async () => {
+    listMatches.mockRejectedValue({})
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+
+    await userEvent.click(screen.getAllByTitle('View detail')[0])
+
+    expect(await screen.findByText('Failed to load matches')).toBeInTheDocument()
   })
 })

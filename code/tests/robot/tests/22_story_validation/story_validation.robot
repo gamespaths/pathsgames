@@ -4,6 +4,7 @@
 #
 # Endpoints under test:
 #   POST /api/admin/stories/import            → 400 INVALID_STORY on broken refs
+#                                               (v0.41.5: and R0_STORY_UUID on a malformed uuid)
 #   GET  /api/admin/stories/{uuid}/validate   → 200 { valid, count, errors[] }
 #
 # The validator hard-fails import on referential-integrity violations (dangling
@@ -30,8 +31,20 @@ Initialize Validation Suite
     ${token}=    Generate Admin Token
     Set Suite Variable    ${ADMIN_TOKEN}    ${token}
 
+Malformed Story Uuid Should Be Refused
+    [Documentation]    v0.41.5 — imports a story with the given raw JSON uuid value, asserts
+    ...                400 INVALID_STORY with R0_STORY_UUID on field uuid.
+    [Arguments]    ${raw_uuid}
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":${raw_uuid},"author":"val-test","locations":[{"id":1}]}
+    ${body}=    Import Payload Should Fail Validation    ${payload}
+    ${hits}=    Evaluate    [e for e in $body['errors'] if e['rule'] == 'R0_STORY_UUID' and e['field'] == 'uuid']
+    Should Not Be Empty    ${hits}
+
 *** Variables ***
 ${VALID_UUID}    a2222222-2222-4222-8222-222222222222
+${UPPER_UUID}    A3333333-3333-4333-8333-33333333333A
+${UUID_REGEXP}   ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
 
 *** Test Cases ***
 
@@ -272,3 +285,47 @@ Create Event With Forward Location Reference Is Lenient
         Set Test Variable    ${CREATED_EVENT_UUID}    ${response.json()}[uuid]
         Delete Admin Entity    ${DEMO_1_UUID}    events    ${CREATED_EVENT_UUID}
     END
+
+# ── v0.41.5: story uuid shape on import ────────────────────────────────
+
+Import Malformed Story Uuid Returns 400
+    [Documentation]    v0.41.5 — a uuid that is not 8-4-4-4-12 hex is refused with R0_STORY_UUID.
+    [Tags]    admin    validation    story-uuid
+    Malformed Story Uuid Should Be Refused    "not-a-uuid"
+    Malformed Story Uuid Should Be Refused    "story-001"
+    Malformed Story Uuid Should Be Refused    "a4444444444444448444444444444444"
+    Malformed Story Uuid Should Be Refused    "1-1-1-1-1"
+    Malformed Story Uuid Should Be Refused    123
+
+Rejected Story Uuid Import Writes Nothing
+    [Documentation]    v0.41.5 — the refused import stored no story under that uuid.
+    [Tags]    admin    validation    story-uuid
+    Malformed Story Uuid Should Be Refused    "story-001"
+    ${response}=    Get Admin Story By UUID    story-001
+    Should Be Equal As Integers    ${response.status_code}    404
+
+Import Uppercase Spaced Story Uuid Is Stored Lowercase
+    [Documentation]    v0.41.5 — the uuid is trimmed and lowercased: the story lives under the lowercase uuid.
+    [Tags]    admin    validation    story-uuid
+    ${lower}=    Evaluate    $UPPER_UUID.lower()
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"  ${UPPER_UUID}  ","author":"val-test","locations":[{"id":1}]}
+    ${response}=    Post Admin Story Import    ${payload}
+    Should Be Equal As Integers    ${response.status_code}    201
+    Should Be Equal As Strings    ${response.json()}[storyUuid]    ${lower}
+    ${get}=    Get Admin Story By UUID    ${lower}
+    Should Be Equal As Integers    ${get.status_code}    200
+    [Teardown]    Delete Admin Story    ${lower}
+
+Import Null Story Uuid Generates A Valid One
+    [Documentation]    v0.41.5 — uuid null still means "mint a new one", and the minted uuid is valid.
+    [Tags]    admin    validation    story-uuid
+    Set Test Variable    ${GENERATED_UUID}    ${EMPTY}
+    ${payload}=    Set Variable    {"uuid":null,"author":"val-test","locations":[{"id":1}]}
+    ${response}=    Post Admin Story Import    ${payload}
+    Should Be Equal As Integers    ${response.status_code}    201
+    ${generated}=    Set Variable    ${response.json()}[storyUuid]
+    Set Test Variable    ${GENERATED_UUID}    ${generated}
+    Should Match Regexp    ${generated}    ${UUID_REGEXP}
+    [Teardown]    Run Keyword And Ignore Error    Delete Admin Story    ${GENERATED_UUID}
+

@@ -3,7 +3,6 @@ package games.paths.core.service.match;
 import games.paths.core.entity.match.GamingCharacterInstanceEntity;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
-import games.paths.core.entity.match.GamingStateRegistryEntity;
 import games.paths.core.entity.story.EventEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.LocationNeighborEntity;
@@ -16,8 +15,9 @@ import games.paths.core.model.match.LocationNeighborInfo;
 import games.paths.core.model.match.MatchDetail;
 import games.paths.core.model.match.MatchEventOption;
 import games.paths.core.model.match.MatchListFilter;
+import games.paths.core.model.match.MatchMission;
 import games.paths.core.model.match.MatchLocationState;
-import games.paths.core.model.match.MatchRegistryEntry;
+import games.paths.core.model.match.MatchRegistryGroup;
 import games.paths.core.model.match.MatchSummary;
 import games.paths.core.model.match.MatchSummaryPage;
 import games.paths.core.model.match.MatchTraitCodec;
@@ -67,6 +67,9 @@ public class MatchQueryService implements MatchQueryPort {
     private final ContentQueryPort contentQueryPort;
     private final MovementStorePort movementStorePort;
     private final EventExecutionStorePort eventExecutionStorePort;
+    /** Step 36. Null on the legacy constructors: the registry then reads as empty. */
+    private final RegistryService registryService;
+    private MissionService missionService;
 
     public MatchQueryService(MatchReadPort matchReadPort,
                              StoryReadPort storyReadPort,
@@ -114,7 +117,7 @@ public class MatchQueryService implements MatchQueryPort {
                              ContentQueryPort contentQueryPort,
                              MovementStorePort movementStorePort) {
         this(matchReadPort, storyReadPort, userAccessPort, characterReadPort, contentQueryPort,
-                movementStorePort, null);
+                movementStorePort, null, null);
     }
 
     /**
@@ -135,6 +138,21 @@ public class MatchQueryService implements MatchQueryPort {
                              ContentQueryPort contentQueryPort,
                              MovementStorePort movementStorePort,
                              EventExecutionStorePort eventExecutionStorePort) {
+        this(matchReadPort, storyReadPort, userAccessPort, characterReadPort, contentQueryPort,
+                movementStorePort, eventExecutionStorePort, null);
+    }
+
+    /** Step 36 — {@code registryService} serves the /info registry and the move conditions. */
+    @SuppressWarnings("java:S107")
+    public MatchQueryService(MatchReadPort matchReadPort,
+                             StoryReadPort storyReadPort,
+                             UserAccessPort userAccessPort,
+                             CharacterReadPort characterReadPort,
+                             ContentQueryPort contentQueryPort,
+                             MovementStorePort movementStorePort,
+                             EventExecutionStorePort eventExecutionStorePort,
+                             RegistryService registryService) {
+        this.registryService = registryService;
         this.matchReadPort = matchReadPort;
         this.storyReadPort = storyReadPort;
         this.userAccessPort = userAccessPort;
@@ -142,6 +160,46 @@ public class MatchQueryService implements MatchQueryPort {
         this.contentQueryPort = contentQueryPort;
         this.movementStorePort = movementStorePort;
         this.eventExecutionStorePort = eventExecutionStorePort;
+    }
+
+    /** Step 37 - set after construction, so the already-crowded constructor keeps its shape. */
+    public void setMissionService(MissionService missionService) {
+        this.missionService = missionService;
+    }
+
+    /** The match this user owns, or null - which every caller turns into the same 404. */
+    private GamingMatchEntity ownedMatch(String matchUuid, String userUuid) {
+        if (matchUuid == null || matchUuid.isBlank() || userUuid == null || userUuid.isBlank()) {
+            return null;
+        }
+        Optional<UserAccessPort.UserView> userOpt = userAccessPort.findByUuid(userUuid);
+        Optional<GamingMatchEntity> matchOpt = matchReadPort.findMatchByUuid(matchUuid);
+        if (userOpt.isEmpty() || matchOpt.isEmpty()) {
+            return null;
+        }
+        GamingMatchEntity match = matchOpt.get();
+        return match.getIdUserCreator().equals(userOpt.get().id()) ? match : null;
+    }
+
+    @Override
+    public List<MatchMission> getMatchMissions(String matchUuid, String userUuid, String status,
+                                               String lang) {
+        GamingMatchEntity match = ownedMatch(matchUuid, userUuid);
+        if (match == null || missionService == null) {
+            return null;
+        }
+        return missionService.list(match.getId(), match.getIdStory(), status, resolveLang(lang));
+    }
+
+    @Override
+    public MatchMission getMatchMission(String matchUuid, String userUuid, String missionUuid,
+                                        String lang) {
+        GamingMatchEntity match = ownedMatch(matchUuid, userUuid);
+        if (match == null || missionService == null) {
+            return null;
+        }
+        return missionService.detail(match.getId(), match.getIdStory(), missionUuid,
+                resolveLang(lang));
     }
 
     @Override
@@ -327,6 +385,31 @@ public class MatchQueryService implements MatchQueryPort {
     }
 
     @Override
+    public List<MatchRegistryGroup> getMatchRegistry(String matchUuid, String userUuid,
+                                                     boolean includeHidden, String lang) {
+        if (matchUuid == null || matchUuid.isBlank() || userUuid == null || userUuid.isBlank()
+                || registryService == null) {
+            return null;
+        }
+        Optional<UserAccessPort.UserView> userOpt = userAccessPort.findByUuid(userUuid);
+        if (userOpt.isEmpty()) {
+            return null;
+        }
+        Optional<GamingMatchEntity> matchOpt = matchReadPort.findMatchByUuid(matchUuid);
+        if (matchOpt.isEmpty()) {
+            return null;
+        }
+        GamingMatchEntity match = matchOpt.get();
+        // Not the owner reads as not-found, exactly as /info does: a match nobody may see must
+        // not be distinguishable from one that does not exist.
+        if (!match.getIdUserCreator().equals(userOpt.get().id())) {
+            return null;
+        }
+        return registryService.listGroups(match.getId(), match.getIdStory(), includeHidden,
+                resolveLang(lang));
+    }
+
+    @Override
     public MatchDetail getMatchInfoForAdmin(String matchUuid) {
         if (matchUuid == null || matchUuid.isBlank()) {
             return null;
@@ -398,17 +481,17 @@ public class MatchQueryService implements MatchQueryPort {
         }
         detail.setLocations(stateModels);
 
-        List<GamingStateRegistryEntity> regRows = matchReadPort.findRegistryByMatchId(match.getId());
-        List<MatchRegistryEntry> regModels = new ArrayList<>();
-        for (GamingStateRegistryEntity r : regRows) {
-            MatchRegistryEntry e = new MatchRegistryEntry();
-            e.setUuid(r.getUuid());
-            e.setKey(r.getKey());
-            e.setStringValue(r.getStringValue());
-            e.setIntValue(r.getIntValue());
-            regModels.add(e);
-        }
-        detail.setRegistry(regModels);
+        // v0.36.3 — a hidden key never reaches a PLAYER; the ADMIN view gets the whole set,
+        // the same door allLocations already opens, and every entry says which it is.
+        detail.setRegistry(registryService == null
+                ? new ArrayList<>()
+                : registryService.listEntries(match.getId(), match.getIdStory(), allLocations, lang));
+
+        // Step 37 - the same deliberate duplication the registry already gets: the board reads
+        // the missions it must render off /info, and never pays for a second request.
+        detail.setMissions(missionService == null
+                ? new ArrayList<>()
+                : missionService.list(match.getId(), match.getIdStory(), null, lang));
 
         // Step 21 — populate the players/characters of the match (empty when no
         // character read port is wired, e.g. in the legacy 3-arg constructor).
@@ -501,7 +584,7 @@ public class MatchQueryService implements MatchQueryPort {
                              MoveCheckContext ctx,
                              WeatherMoveCost weather,
                              Map<Long, Integer> charactersByLocation,
-                             Map<String, String> registry) {
+                             Map<String, List<String>> registry) {
 
         /** No movement store wired (legacy constructor): every neighbor reads as blocked. */
         static MoveJudge noCharacter(long idMatch) {
@@ -511,11 +594,11 @@ public class MatchQueryService implements MatchQueryPort {
 
         boolean conditionMet(LocationNeighborEntity n) {
             String key = n.getConditionRegistryKey();
-            if (key == null || key.isBlank()) {
+            if (RegistryService.noCondition(key)) {
                 return true;
             }
-            String expected = n.getConditionRegistryValue();
-            return expected != null && expected.equals(registry.get(key));
+            return RegistryService.evaluate(n.getRegistryValueOperatorCondition(),
+                    n.getConditionRegistryValue(), registry.getOrDefault(key, List.of()));
         }
     }
 
@@ -542,14 +625,8 @@ public class MatchQueryService implements MatchQueryPort {
         }
         WeatherMoveCost weather = movementStorePort.findCurrentWeatherMoveCost(match.getId());
 
-        Map<String, String> registry = new HashMap<>();
-        for (GamingStateRegistryEntity r : matchReadPort.findRegistryByMatchId(match.getId())) {
-            if (r.getKey() != null) {
-                registry.put(r.getKey(), r.getStringValue() != null
-                        ? r.getStringValue()
-                        : (r.getIntValue() == null ? null : String.valueOf(r.getIntValue())));
-            }
-        }
+        Map<String, List<String>> registry = registryService == null
+                ? new HashMap<>() : registryService.loadAll(match.getId());
 
         MoveCheckContext ctx = new MoveCheckContext(
                 MatchStatuses.RUNNING.equals(match.getStatus()),

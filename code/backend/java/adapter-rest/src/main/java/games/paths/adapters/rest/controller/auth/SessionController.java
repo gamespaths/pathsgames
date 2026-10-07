@@ -3,6 +3,7 @@ package games.paths.adapters.rest.controller.auth;
 import games.paths.adapters.rest.cookie.CookieHelper;
 import games.paths.adapters.rest.dto.RefreshTokenResponse;
 import games.paths.core.model.auth.RefreshedSession;
+import games.paths.core.service.security.CsrfTokenService;
 import games.paths.core.port.auth.SessionPort;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,9 +37,17 @@ import java.util.Map;
 public class SessionController {
 
     private final SessionPort sessionPort;
+    private final CsrfTokenService csrfTokenService;
 
     public SessionController(SessionPort sessionPort) {
+        this(sessionPort, null);
+    }
+
+    /** v0.37.7 — a refreshed access token comes with the CSRF token that goes with it. */
+    @org.springframework.beans.factory.annotation.Autowired
+    public SessionController(SessionPort sessionPort, CsrfTokenService csrfTokenService) {
         this.sessionPort = sessionPort;
+        this.csrfTokenService = csrfTokenService;
     }
 
     /**
@@ -79,6 +88,9 @@ public class SessionController {
                 session.getAccessToken(),
                 session.getAccessTokenExpiresAt(),
                 session.getRefreshTokenExpiresAt());
+        if (csrfTokenService != null) {
+            response.setCsrfToken(csrfTokenService.tokenFor(session.getAccessToken()));
+        }
 
         return ResponseEntity.ok(response);
     }
@@ -171,6 +183,12 @@ public class SessionController {
         userInfo.put("userUuid", userUuid);
         userInfo.put("username", httpRequest.getAttribute("username"));
         userInfo.put("role", httpRequest.getAttribute("role"));
+        // v0.37.7 — the CSRF token of this bearer, so a client that lost it need not log in again
+        if (csrfTokenService != null) {
+            String header = httpRequest.getHeader("Authorization");
+            String bearer = header != null && header.startsWith("Bearer ") ? header.substring(7).trim() : null;
+            userInfo.put("csrfToken", csrfTokenService.tokenFor(bearer));
+        }
         userInfo.put("timestamp", System.currentTimeMillis());
 
         return ResponseEntity.ok(userInfo);

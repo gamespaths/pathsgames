@@ -149,6 +149,16 @@ describe('CardButtons — secondary actions beside the (i)', () => {
     expect(screen.getByLabelText('drop-it')).toBeInTheDocument()
   })
 
+  // A lock may carry its own label, which wins over the class name and the card name.
+  it('shows the lock label over the class name and the card name', () => {
+    render(<CardButtons locked lockInfo={{ kind: 'budget', label: 'Traits cost', className: 'Mage' }}
+                        name="Greedy" lockedIcon="fas fa-lock" lockedReason="over budget" />)
+    const lock = screen.getByTitle('over budget')
+    expect(lock.textContent).toContain('Traits cost')
+    expect(lock.textContent).not.toContain('Mage')
+    expect(lock.textContent).not.toContain('Greedy')
+  })
+
   it('runs the handler and clears the spinner once it settles', async () => {
     let resolve
     const onAction = vi.fn(() => new Promise(r => { resolve = r }))

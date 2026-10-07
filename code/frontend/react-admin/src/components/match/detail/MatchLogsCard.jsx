@@ -9,7 +9,8 @@ import ErrorAlert from '../../common/ErrorAlert'
  * single table, newest entry first (the API is called with order=desc since
  * v0.30.3). Each entry is colour-coded by type
  * (WEATHER / MOVEMENT / SLEEP / CLOCK_ADVANCE / RECOVERY / EVENT / COUNTER_ZERO /
- * AUTOMATIC_EVENT / ITEM_ADD / ITEM_USE / ITEM_DROP).
+ * AUTOMATIC_EVENT / ITEM_ADD / ITEM_USE / ITEM_DROP; v0.41.1 PASS / EDGE_STATE / TRAIT_CHANGE /
+ * MATCH_LIFECYCLE / ADMIN_ACTION).
  *
  * v0.35.4 — a Resources column shows what each entry took and gave, and the three ITEM_*
  * types carry the item's own card.
@@ -34,9 +35,25 @@ const TYPE_META = {
   // no badge colour and no filter chip of their own.
   COUNTER_ZERO:    { icon: 'fa-hourglass-end',   style: { background: '#3a2a10', color: '#fb923c', border: '1px solid #f97316' } },
   AUTOMATIC_EVENT: { icon: 'fa-wand-magic-sparkles', style: { background: '#2a1a2a', color: '#e879f9', border: '1px solid #d946ef' } },
+  // Step 39 — a global random event fired at time-start.
+  RANDOM_EVENT:    { icon: 'fa-dice',           style: { background: '#1a2a3a', color: '#fbbf24', border: '1px solid #f59e0b' } },
+  // Step 36 / v0.37.2 — both were answered by the API and fell through to DEFAULT_META, so
+  // they had no badge colour and no filter chip of their own.
+  REGISTRY_CHANGE: { icon: 'fa-list',            style: { background: '#0d2a3a', color: '#38bdf8', border: '1px solid #0ea5e9' } },
+  MISSION_CHANGE:  { icon: 'fa-clipboard-list',  style: { background: '#332a10', color: '#d4af37', border: '1px solid #b8860b' } },
   ITEM_ADD:        { icon: 'fa-hand-holding',    style: { background: '#12331f', color: '#4ade80', border: '1px solid #16a34a' } },
   ITEM_USE:        { icon: 'fa-flask',           style: { background: '#241a3a', color: '#a78bfa', border: '1px solid #7c3aed' } },
   ITEM_DROP:       { icon: 'fa-trash',           style: { background: '#2a2a2a', color: '#9ca3af', border: '1px solid #6b7280' } },
+  // Step 38 — experience spent on a stat.
+  EXP_USE:         { icon: 'fa-star',            style: { background: '#2a1a3a', color: '#c4b5fd', border: '1px solid #8b5cf6' } },
+  // Step 40 — an option picked, with what its own effect rows gave.
+  CHOICE:          { icon: 'fa-code-branch',     style: { background: '#3a1a2e', color: '#f472b6', border: '1px solid #ec4899' } },
+  // v0.41.1 — Step 41 A: a pass, an edge state, a trait, the match lifecycle and admin actions.
+  PASS:            { icon: 'fa-forward',         style: { background: '#1f2937', color: '#94a3b8', border: '1px solid #64748b' } },
+  EDGE_STATE:      { icon: 'fa-heart-pulse',     style: { background: '#3a1010', color: '#ef4444', border: '1px solid #dc2626' } },
+  TRAIT_CHANGE:    { icon: 'fa-user-tag',        style: { background: '#1f2e0f', color: '#a3e635', border: '1px solid #65a30d' } },
+  MATCH_LIFECYCLE: { icon: 'fa-flag-checkered',  style: { background: '#10263a', color: '#7dd3fc', border: '1px solid #0284c7' } },
+  ADMIN_ACTION:    { icon: 'fa-user-shield',     style: { background: '#3a2a0a', color: '#fbbf24', border: '1px solid #d97706' } },
 }
 
 /**
@@ -188,14 +205,26 @@ function entryDetail(entry) {
       return '—'
 
     case 'RECOVERY':
+    case 'EXP_USE':
+    case 'EDGE_STATE':
+    case 'TRAIT_CHANGE':
+    case 'MATCH_LIFECYCLE':
+    case 'ADMIN_ACTION':
       return entry.message ? String(entry.message).slice(0, 60) : '—'
+
+    case 'PASS':
+      return 'turn passed'
 
     case 'EVENT':
     case 'AUTOMATIC_EVENT':
+    case 'RANDOM_EVENT':
       return entry.idEvent != null ? `event #${entry.idEvent}` : '—'
 
     case 'COUNTER_ZERO':
       return entry.idLocationTo != null ? `location #${entry.idLocationTo}` : '—'
+
+    case 'CHOICE':
+      return entry.idEvent != null ? `choice of event #${entry.idEvent}` : '—'
 
     case 'ITEM_ADD':
     case 'ITEM_USE':
@@ -220,7 +249,7 @@ function typeCounts(entries) {
 }
 
 export default function MatchLogsCard({
-  entries, currentClock, total, nextCursor, loadingMore, onLoadMore, error,
+  entries, currentClock, total, nextCursor, loadingMore, onLoadMore, error, logCount,
 }) {
   // Clicking a type count filters the table down to that type; ALL clears it.
   // The filter is client-side, over the pages loaded so far — it never refetches.
@@ -245,9 +274,12 @@ export default function MatchLogsCard({
       <div style={{ padding: '0.75rem 1rem 0.5rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
         <p className="pg-card-title" style={{ margin: 0 }}>
           <i className="fas fa-scroll me-1" />
+          {' '}
           Match log
           <span className="pg-muted" style={{ fontWeight: 400, marginLeft: '0.4rem', fontSize: '0.85rem' }}>
-            ({shown} of {total ?? shown} {(total ?? shown) === 1 ? 'entry' : 'entries'} · clock {currentClock})
+            ({shown} of {total ?? shown} {(total ?? shown) === 1 ? 'entry' : 'entries'} · clock {currentClock}
+            {/* v0.41.1 — the stored log rows of admin info, the Step 41 size check. */}
+            {logCount != null && <span data-testid="match-logs-count"> · {logCount} log rows</span>})
           </span>
         </p>
         {/* per-type counts, over the entries loaded so far — each one is also the

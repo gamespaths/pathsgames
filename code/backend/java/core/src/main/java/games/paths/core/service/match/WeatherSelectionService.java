@@ -31,14 +31,16 @@ import java.util.Random;
  * </ol>
  *
  * <p>When no rule is eligible the current weather is cleared. See
- * {@code documentation_v0/Step27_WeatherSystem.md}.</p>
+ * {@code wiki/documentation_v0/Step27_WeatherSystem.md}.</p>
  */
 public class WeatherSelectionService {
 
     private final WeatherStorePort store;
+    private final RegistryService registryService;
 
-    public WeatherSelectionService(WeatherStorePort store) {
+    public WeatherSelectionService(WeatherStorePort store, RegistryService registryService) {
         this.store = store;
+        this.registryService = registryService;
     }
 
     /**
@@ -96,13 +98,45 @@ public class WeatherSelectionService {
         return store.findCurrentWeatherByMatchUuid(matchUuid);
     }
 
+    /** Step 40 - the current weather of a match by id (no side effects). */
+    public Optional<WeatherStorePort.CurrentWeatherView> currentWeather(long idMatch) {
+        return store.findCurrentWeather(idMatch);
+    }
+
     /** Admin weather view: rng seed + current weather + every rule + log history. */
     public WeatherAdminView weatherAdmin(String matchUuid) {
         return new WeatherAdminView(
                 store.findRngSeed(matchUuid).orElse(null),
                 store.findCurrentWeatherByMatchUuid(matchUuid).orElse(null),
-                store.findWeatherRulesForMatch(matchUuid),
+                withRegistryVerdict(matchUuid, store.findWeatherRulesForMatch(matchUuid)),
                 store.findWeatherLog(matchUuid));
+    }
+
+    /**
+     * v0.36.2 — answer each rule with whether the registry lets it through, so the console can
+     * say why a rule never fires. Computed here rather than in the adapter, and by the very
+     * comparison the selection uses, so the two cannot drift apart.
+     */
+    private List<WeatherStorePort.WeatherRuleSummary> withRegistryVerdict(
+            String matchUuid, List<WeatherStorePort.WeatherRuleSummary> rules) {
+        List<WeatherStorePort.WeatherRuleSummary> out = new ArrayList<>();
+        for (WeatherStorePort.WeatherRuleSummary r : rules) {
+            out.add(new WeatherStorePort.WeatherRuleSummary(
+                    r.id(), r.uuid(), r.idTextName(), r.name(), r.probability(), r.deltaEnergy(),
+                    r.costMoveSafeLocation(), r.costMoveNotSafeLocation(), r.active(), r.current(),
+                    r.conditionKey(), r.conditionValue(), r.conditionOperator(),
+                    registryMet(matchUuid, r)));
+        }
+        return out;
+    }
+
+    /** A rule with no condition key is always let through; otherwise the shared comparison. */
+    private boolean registryMet(String matchUuid, WeatherStorePort.WeatherRuleSummary r) {
+        if (RegistryService.noCondition(r.conditionKey())) {
+            return true;
+        }
+        return RegistryService.evaluate(r.conditionOperator(), r.conditionValue(),
+                registryService.findByMatchUuid(matchUuid, r.conditionKey()));
     }
 
     /** Aggregate returned to the admin weather endpoint. */
@@ -138,14 +172,17 @@ public class WeatherSelectionService {
         return r.timeTo() == null || clock <= r.timeTo();
     }
 
-    /** No condition_key → always matches; otherwise the registry value must equal it. */
+    /**
+     * No condition_key → always matches; otherwise {@link RegistryService#evaluate} decides.
+     * Step 36 retired the old reading of a null condition_key_value as "the key must be unset":
+     * a condition with no value is now never met, as it already was for events and movement.
+     */
     private boolean conditionMatches(WeatherRuleView r, long idMatch) {
-        if (r.conditionKey() == null || r.conditionKey().isBlank()) {
+        if (RegistryService.noCondition(r.conditionKey())) {
             return true;
         }
-        String actual = store.findRegistryValue(idMatch, r.conditionKey()).orElse(null);
-        String expected = r.conditionKeyValue();
-        return expected == null ? actual == null : expected.equals(actual);
+        return RegistryService.evaluate(r.conditionOperator(), r.conditionKeyValue(),
+                registryService.find(idMatch, r.conditionKey()));
     }
 
     /**

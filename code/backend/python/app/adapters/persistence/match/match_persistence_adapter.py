@@ -9,12 +9,25 @@ from app.adapters.persistence.match.models import (
     GamingBackpackResourcesEntity,
     GamingCharacterInstanceEntity,
     GamingCharacterTraitsEntity,
+    GamingInventoryItemsEntity,
     GamingMatchEntity,
     GamingStateLocationEntity,
     GamingStateRegistryEntity,
+    GamingStoryProgressEntity,
+    GamingTurnQueueEntity,
+    LogChoicesExecutedEntity,
+    LogClockHistoryEntity,
     LogEventsEntity,
+    LogItemUsageEntity,
     LogMovementEntity,
+    LogWeatherEntity,
+    SystemSnapshotEntity,
 )
+
+# v0.41.1 — every other match-scoped table: SQLite reuses a deleted match id, so leftovers join the next match.
+_MATCH_SCOPED = (GamingInventoryItemsEntity, GamingTurnQueueEntity, LogItemUsageEntity,
+                 LogWeatherEntity, LogClockHistoryEntity, LogChoicesExecutedEntity,
+                 GamingStoryProgressEntity)
 from app.core.ports.match.match_ports import MatchPersistencePort
 
 
@@ -166,25 +179,6 @@ class MatchPersistenceAdapter(MatchPersistencePort):
                 session.add(entity)
             session.commit()
 
-    def save_registry(self, rows: List[Dict[str, Any]]) -> None:
-        if not rows:
-            return
-        with self.session_factory() as session:
-            now = _now_iso()
-            for r in rows:
-                entity = GamingStateRegistryEntity(
-                    id=r["id"],
-                    id_match=r["id_match"],
-                    uuid=_new_uuid(),
-                    key=r.get("key", ""),
-                    string_value=r.get("string_value"),
-                    int_value=r.get("int_value"),
-                    ts_insert=now,
-                    ts_update=now,
-                )
-                session.add(entity)
-            session.commit()
-
     def find_locations_by_match_id(self, match_id: int) -> List[Dict[str, Any]]:
         with self.session_factory() as session:
             rows = (
@@ -200,25 +194,6 @@ class MatchPersistenceAdapter(MatchPersistencePort):
                     "flag_already_actived": r.flag_already_actived,
                     "flag_visited": r.flag_visited or 0,
                     "clock_counter": r.clock_counter or 0,
-                }
-                for r in rows
-            ]
-
-    def find_registry_by_match_id(self, match_id: int) -> List[Dict[str, Any]]:
-        with self.session_factory() as session:
-            rows = (
-                session.query(GamingStateRegistryEntity)
-                .filter(GamingStateRegistryEntity.id_match == match_id)
-                .all()
-            )
-            return [
-                {
-                    "id": r.id,
-                    "id_match": r.id_match,
-                    "uuid": r.uuid,
-                    "key": r.key,
-                    "string_value": r.string_value,
-                    "int_value": r.int_value,
                 }
                 for r in rows
             ]
@@ -245,6 +220,50 @@ class MatchPersistenceAdapter(MatchPersistencePort):
             deleted_count = session.query(GamingMatchEntity).filter(
                 GamingMatchEntity.name.like(name_like_pattern)
             ).delete(synchronize_session=False)
+            session.commit()
+            return deleted_count
+
+    def change_owner(self, id_match: int, id_user: int) -> int:
+        now = _now_iso()
+        with self.session_factory() as session:
+            session.query(GamingMatchEntity).filter(GamingMatchEntity.id == id_match).update(
+                {GamingMatchEntity.id_user_creator: id_user, GamingMatchEntity.ts_update: now},
+                synchronize_session=False)
+            moved = session.query(GamingCharacterInstanceEntity).filter(
+                GamingCharacterInstanceEntity.id_match == id_match).update(
+                {GamingCharacterInstanceEntity.id_user: id_user, GamingCharacterInstanceEntity.ts_update: now},
+                synchronize_session=False)
+            session.commit()
+            return int(moved or 0)
+
+    def count_matches_by_user_creator(self, id_user: int) -> int:
+        with self.session_factory() as session:
+            return session.query(GamingMatchEntity).filter(GamingMatchEntity.id_user_creator == id_user).count()
+
+    def count_matches_by_user_creator_ids(self, user_ids) -> int:
+        if not user_ids:
+            return 0
+        with self.session_factory() as session:
+            return session.query(GamingMatchEntity).filter(
+                GamingMatchEntity.id_user_creator.in_(user_ids)).count()
+
+    def delete_matches_by_user_creator_ids(self, user_ids) -> int:
+        """The same order delete_matches_by_name_like uses: the derived runtime state first,
+        because SQLite does not enforce the foreign-key cascades PostgreSQL does."""
+        if not user_ids:
+            return 0
+        with self.session_factory() as session:
+            ids = [row[0] for row in session.query(GamingMatchEntity.id).filter(
+                GamingMatchEntity.id_user_creator.in_(user_ids)).all()]
+            if not ids:
+                return 0
+            self._delete_character_state(session, ids)
+            session.query(GamingStateLocationEntity).filter(
+                GamingStateLocationEntity.id_match.in_(ids)).delete(synchronize_session=False)
+            session.query(GamingStateRegistryEntity).filter(
+                GamingStateRegistryEntity.id_match.in_(ids)).delete(synchronize_session=False)
+            deleted_count = session.query(GamingMatchEntity).filter(
+                GamingMatchEntity.id.in_(ids)).delete(synchronize_session=False)
             session.commit()
             return deleted_count
 
@@ -300,6 +319,13 @@ class MatchPersistenceAdapter(MatchPersistencePort):
         session.query(LogMovementEntity).filter(
             LogMovementEntity.id_match.in_(match_ids)
         ).delete(synchronize_session=False)
+        for entity in _MATCH_SCOPED:
+            session.query(entity).filter(entity.id_match.in_(match_ids)).delete(
+                synchronize_session=False)
+        # v0.41.1 — the time-end snapshots: SQLite does not enforce the ON DELETE CASCADE.
+        session.query(SystemSnapshotEntity).filter(
+            SystemSnapshotEntity.id_match.in_(match_ids)
+        ).delete(synchronize_session=False)
         session.query(GamingCharacterInstanceEntity).filter(
             GamingCharacterInstanceEntity.id_match.in_(match_ids)
         ).delete(synchronize_session=False)
@@ -319,6 +345,8 @@ class MatchPersistenceAdapter(MatchPersistencePort):
             "rng_seed": entity.rng_seed,
             "ts_insert": entity.ts_insert,
             "ts_update": entity.ts_update,
+            # v0.41.2 — the start stamp the KPI duration reads.
+            "timestamp_start": entity.timestamp_start,
             "single_player": entity.single_player,
             "character_template_uuid": entity.character_template_uuid,
             "class_uuid": entity.class_uuid,

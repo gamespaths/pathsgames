@@ -31,8 +31,6 @@ public interface MatchPersistencePort {
 
     void saveLocations(List<GamingStateLocationsEntity> entities);
 
-    void saveRegistry(List<GamingStateRegistryEntity> entities);
-
     /**
      * Deletes all matches whose name matches the given SQL LIKE pattern,
      * together with their derived runtime state (locations and registry rows).
@@ -43,6 +41,21 @@ public interface MatchPersistencePort {
      * @return the number of matches removed
      */
     int deleteMatchesByNameLike(String nameLikePattern);
+
+    /** v0.41.6 - moves the match and all its characters to {@code idUser} in one transaction; answers the characters moved. */
+    int changeOwner(long idMatch, long idUser);
+
+    /** v0.41.6 - how many matches the user created, whatever the status. */
+    long countMatchesByUserCreator(long idUser);
+
+    /** v0.36.2 — how many matches these users created, whatever the status. */
+    long countMatchesByUserCreatorIds(java.util.List<Long> userIds);
+
+    /**
+     * v0.36.2 — delete every match these users created, whatever the status. Called before the
+     * users themselves go: {@code gaming_match.id_user_creator} is a foreign key.
+     */
+    int deleteMatchesByUserCreatorIds(java.util.List<Long> userIds);
 
     /**
      * Updates the status and/or name of a single match.

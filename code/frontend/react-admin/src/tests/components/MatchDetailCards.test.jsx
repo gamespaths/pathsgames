@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import WeatherCard from '../../components/match/detail/WeatherCard'
 import PlayersCard from '../../components/match/detail/PlayersCard'
@@ -79,6 +79,37 @@ describe('UuidCopy', () => {
     render(<UuidCopy uuid="uuid-2">child</UuidCopy>)
     fireEvent.click(screen.getByRole('button'))
     expect(screen.queryByText('✓')).not.toBeInTheDocument()
+  })
+
+  describe('confirmation tick timer', () => {
+    afterEach(() => vi.useRealTimers())
+
+    it('hides the tick after 1.2s and restarts the timer on a second click', async () => {
+      vi.useFakeTimers()
+      render(<UuidCopy uuid="uuid-3">child</UuidCopy>)
+      const chip = screen.getByRole('button')
+
+      await act(async () => { fireEvent.click(chip) })
+      expect(screen.getByText('✓')).toBeInTheDocument()
+
+      // A second click before expiry resets the 1.2s window.
+      await act(async () => { vi.advanceTimersByTime(1000) })
+      await act(async () => { fireEvent.click(chip) })
+      await act(async () => { vi.advanceTimersByTime(1000) })
+      expect(screen.getByText('✓')).toBeInTheDocument()
+
+      await act(async () => { vi.advanceTimersByTime(200) })
+      expect(screen.queryByText('✓')).not.toBeInTheDocument()
+    })
+
+    it('clears the pending timer on unmount', async () => {
+      vi.useFakeTimers()
+      const { unmount } = render(<UuidCopy uuid="uuid-4">child</UuidCopy>)
+      await act(async () => { fireEvent.click(screen.getByRole('button')) })
+      expect(vi.getTimerCount()).toBe(1)
+      unmount()
+      expect(vi.getTimerCount()).toBe(0)
+    })
   })
 })
 
@@ -161,6 +192,67 @@ describe('WeatherCard', () => {
       />
     )
     expect(screen.getByText('Storm')).toBeInTheDocument()
+  })
+
+  // ── v0.36.2: the Registry column says why a rule never fires ───────────────
+
+  it('shows a dash for a rule with no registry condition', () => {
+    render(
+      <WeatherCard
+        weather={{ rngSeed: 0, rules: [{ id: 1, name: 'Clear', active: true }], log: [] }}
+        match={{}}
+        texts={TEXTS}
+      />
+    )
+    expect(screen.getByRole('columnheader', { name: 'Registry' })).toBeInTheDocument()
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+  })
+
+  it('shows the clause a met condition passed', () => {
+    render(
+      <WeatherCard
+        weather={{ rngSeed: 0, log: [], rules: [{
+          id: 1, name: 'Storm', active: true,
+          conditionKey: 'depth', conditionOperator: '>', conditionValue: '3',
+          registryMet: true,
+        }] }}
+        match={{}}
+        texts={TEXTS}
+      />
+    )
+    const badge = screen.getByText('depth > 3')
+    expect(badge).toHaveClass('pg-badge-success')
+    expect(badge).toHaveAttribute('title', 'the registry lets this rule through')
+  })
+
+  it('flags the clause that is blocking the rule', () => {
+    render(
+      <WeatherCard
+        weather={{ rngSeed: 0, log: [], rules: [{
+          id: 1, name: 'Storm', active: true,
+          conditionKey: 'depth', conditionOperator: '>', conditionValue: '3',
+          registryMet: false,
+        }] }}
+        match={{}}
+        texts={TEXTS}
+      />
+    )
+    const badge = screen.getByText('depth > 3')
+    expect(badge).toHaveClass('pg-badge-danger')
+    expect(badge).toHaveAttribute('title', 'blocked by the registry')
+  })
+
+  it('defaults a missing operator to = and tolerates a missing value', () => {
+    render(
+      <WeatherCard
+        weather={{ rngSeed: 0, log: [], rules: [{
+          id: 1, name: 'Storm', active: true, conditionKey: 'gate', registryMet: false,
+        }] }}
+        match={{}}
+        texts={TEXTS}
+      />
+    )
+    expect(screen.getByText('gate =')).toBeInTheDocument()
   })
 })
 
@@ -266,5 +358,21 @@ describe('PlayersCard', () => {
       />
     )
     expect(screen.getByText('#12')).toBeInTheDocument()
+  })
+})
+
+describe('PlayersCard — the cells the API may leave out', () => {
+  const noop = () => '—'
+
+  it('a character with no weight cap shows its bare weight, or a dash', () => {
+    const { rerender } = render(
+      <PlayersCard players={[{ uuid: 'p1', weight: 7 }]} templateName={noop} className={noop}
+                   traitName={noop} locationName20={noop} onEditStats={vi.fn()} />)
+    expect(screen.getByText('7')).toBeInTheDocument()
+
+    rerender(
+      <PlayersCard players={[{ uuid: 'p2' }]} templateName={noop} className={noop}
+                   traitName={noop} locationName20={noop} onEditStats={vi.fn()} />)
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
   })
 })

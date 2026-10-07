@@ -1,0 +1,77 @@
+[
+  {
+    "uuid": "coming-soon-crown-of-ashes",
+    "title": "Crown of Ashes",
+    "description": "A fallen kingdom, a burnt throne and one heir left to claim it.",
+    "author": "PathsGames",
+    "category": "Adventure",
+    "group": "adventure",
+    "visibility": "PUBLIC",
+    "priority": 90,
+    "peghi": 3,
+    "difficultyCount": 3,
+    "comingSoon": true,
+    "card": {
+      "uuid": "coming-soon-crown-of-ashes-card",
+      "title": "The Crown of Ashes",
+      "urlImage": "https://images.unsplash.com/photo-1735756045961-eaefc57a89e4?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "linkCopyright": "https://unsplash.com/photos/a-gold-and-red-chair-sitting-on-top-of-a-wooden-floor-erbqWfzz1Hk"
+    },
+    "translations": {
+      "it": {
+        "title": "La Corona di Cenere",
+        "description": "Un regno caduto, un trono bruciato e un solo erede a reclamarlo."
+      }
+    }
+  },
+  {
+    "uuid": "coming-soon-whispering-woods",
+    "title": "Whispering Woods",
+    "description": "The forest remembers every promise. Yours is about to come due.",
+    "author": "PathsGames",
+    "category": "Adventure",
+    "group": "adventure",
+    "visibility": "PUBLIC",
+    "priority": 80,
+    "peghi": 2,
+    "difficultyCount": 2,
+    "comingSoon": true,
+    "card": {
+      "uuid": "coming-soon-whispering-woods-card",
+      "title": "The Whispering Woods",
+      "urlImage": "https://images.unsplash.com/photo-1501244686579-97d04b498199?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "linkCopyright": "https://unsplash.com/photos/a-path-through-a-dark-evergreen-forest-near-loch-maree-gIgciC_WKnY"
+    },
+    "translations": {
+      "it": {
+        "title": "I Boschi che Sussurrano",
+        "description": "La foresta ricorda ogni promessa. La tua sta per scadere."
+      }
+    }
+  },
+  {
+    "uuid": "coming-soon-the-last-lantern",
+    "title": "The Last Lantern",
+    "description": "One light left in the valley, and something out there counting the hours.",
+    "author": "PathsGames",
+    "category": "Adventure",
+    "group": "adventure",
+    "visibility": "PUBLIC",
+    "priority": 70,
+    "peghi": 1,
+    "difficultyCount": 2,
+    "comingSoon": true,
+    "card": {
+      "uuid": "coming-soon-the-last-lantern-card",
+      "title": "The Last Lantern",
+      "urlImage": "https://images.unsplash.com/photo-1643785011662-3f1407410f6f?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "linkCopyright": "https://unsplash.com/photos/a-person-holding-a-lit-lantern-in-the-dark-pRQk1Llu2so"
+    },
+    "translations": {
+      "it": {
+        "title": "L'Ultima Lanterna",
+        "description": "Una sola luce nella valle, e qualcosa là fuori che conta le ore."
+      }
+    }
+  }
+]

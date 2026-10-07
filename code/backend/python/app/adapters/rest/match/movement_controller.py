@@ -59,6 +59,12 @@ def _movement_to_camel(r: MovementResult) -> dict:
         # new location for its left page; these belong on the right.
         "automaticEvents": [lem.to_camel_automatic_event(f)
                             for f in (r.automatic_events or [])],
+        # v0.35.6 — an arrival can kill: the Step 30 verdict of the whole move, in the very
+        # shape execute-event answers, so the board reads a collapse the same way always.
+        "edgeState": lem.to_camel_edge_state(r.edge_state),
+        # Step 40 — an arrival event that ended the time: its weather and wake-up list.
+        "timeEnded": r.time_end is not None,
+        **lem.to_camel_time_end(r.time_end),
     }
 
 

@@ -271,7 +271,7 @@ def test_load_check_context_loads_everything(session_factory, adapter):
     assert ctx.owned_item_ids == {60}
     assert ctx.current_weather_id == 42
     assert ctx.consumed_event_ids == {50}
-    assert ctx.registry == {"door": "open", "count": "5", "empty": None}
+    assert ctx.registry == {"door": ["open"], "count": ["5"], "empty": []}
 
 
 def test_load_check_context_without_a_backpack_reports_zero_coin(session_factory, adapter):
@@ -429,34 +429,6 @@ def test_remove_trait(session_factory, adapter):
         assert s.query(GamingCharacterTraitsEntity).count() == 0
 
 
-@pytest.mark.parametrize("key", ["", "   ", None])
-def test_upsert_registry_ignores_a_blank_key(session_factory, adapter, key):
-    adapter.upsert_registry(1, key, "v", 3, 50, 4)
-
-    with session_factory() as s:
-        assert s.query(GamingStateRegistryEntity).count() == 0
-
-
-def test_upsert_registry_inserts_then_updates(session_factory, adapter):
-    adapter.upsert_registry(1, "door", "open", 3, 50, 4)
-
-    with session_factory() as s:
-        r = s.query(GamingStateRegistryEntity).one()
-        assert (r.string_value, r.int_value) == ("open", None)
-        assert (r.id_character, r.id_event, r.clock) == (3, 50, 4)
-
-    # numeric value lands in int_value and clears the string
-    adapter.upsert_registry(1, "door", "12", None, None, 5)
-    with session_factory() as s:
-        r = s.query(GamingStateRegistryEntity).one()
-        assert (r.string_value, r.int_value) == (None, 12)
-        assert r.clock == 5
-
-    # None clears both
-    adapter.upsert_registry(1, "door", None, None, None, 6)
-    with session_factory() as s:
-        r = s.query(GamingStateRegistryEntity).one()
-        assert (r.string_value, r.int_value) == (None, None)
 
 
 def test_set_current_weather(session_factory, adapter):

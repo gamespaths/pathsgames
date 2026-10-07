@@ -1,0 +1,95 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Admin static catalog API
+  description: |
+    v0.37.6 — the game home page reads the story catalog from a static file on the
+    website (`/data/stories-{lang}.json`) before falling back to `GET /api/stories`.
+    This endpoint (re)writes those files, one per configured language, with exactly
+    the body `GET /api/stories?lang={lang}` would return.
+
+    Where the file goes depends on the backend:
+      - Java / Python: a local directory (`CATALOG_EXPORT_DIR`), e.g. the
+        `react-game/public/data` folder in dev or a volume served by the web server.
+      - AWS: the website S3 bucket (`WEBSITE_BUCKET`), key `data/stories-{lang}.json`,
+        `Cache-Control: public, max-age=300`; when `WEBSITE_CLOUDFRONT_ID` is set the
+        `/data/stories-*.json` paths are invalidated too.
+
+    With no destination configured the endpoint answers 503 and writes nothing.
+  version: 0.37.6
+servers:
+  - url: /
+paths:
+  /api/admin/stories/catalog:
+    post:
+      tags: [admin]
+      summary: Write or refresh the static story catalog files
+      operationId: writeStaticCatalog
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Every configured language was written.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogExportResponse'
+        '401':
+          description: Missing or invalid access token.
+        '403':
+          description: ADMIN role required, or caller IP outside the admin allow-list.
+        '503':
+          description: No export destination configured on this backend.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CatalogExportResponse:
+      type: object
+      required: [status, target, files]
+      properties:
+        status:
+          type: string
+          enum: [WRITTEN]
+        target:
+          type: string
+          description: Where the files went — a directory path or `s3://bucket`.
+          example: s3://test.paths.games
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogExportFile'
+    CatalogExportFile:
+      type: object
+      required: [lang, path, count, bytes]
+      properties:
+        lang:
+          type: string
+          example: en
+        path:
+          type: string
+          description: File path (relative to `target`).
+          example: data/stories-en.json
+        count:
+          type: integer
+          description: Number of stories in the file.
+          example: 4
+        bytes:
+          type: integer
+          description: Size of the written file.
+          example: 2231
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          example: CATALOG_TARGET_NOT_CONFIGURED
+        message:
+          type: string

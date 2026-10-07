@@ -37,6 +37,7 @@ public class WebConfig {
                         .allowedOriginPatterns(allowedOrigins.toArray(new String[0]))
                         .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
+                        .exposedHeaders("Retry-After")
                         .allowCredentials(true)
                         .maxAge(3600);
             }

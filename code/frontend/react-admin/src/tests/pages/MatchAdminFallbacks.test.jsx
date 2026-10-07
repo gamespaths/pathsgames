@@ -13,6 +13,8 @@ vi.mock('../../api/matchApi', () => ({
   resumeMatch: vi.fn(), deleteMatch: vi.fn(),
   getMatchClock: vi.fn(), getMatchWeather: vi.fn(), getMatchLocations: vi.fn(),
   getMatchLogs: vi.fn(), changePlayerStatistics: vi.fn(),
+  listMatchSnapshots: vi.fn(() => Promise.resolve([])), exportMatch: vi.fn(),
+  errorBody: (e) => e?.response?.data ?? {},
 }))
 vi.mock('../../api/storyApi', () => ({ getStory: vi.fn(), listEntities: vi.fn() }))
 vi.mock('../../api/guestApi', () => ({
@@ -173,9 +175,16 @@ describe('MatchDetailPage error fallbacks', () => {
 describe('GuestsPage and MatchDetailModal fallbacks', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    listGuests.mockResolvedValue([{ userUuid: 'g1', username: 'guest_a', expired: true }])
+    // v0.36.2 — the endpoint answers the paged envelope, not a bare array.
+    listGuests.mockResolvedValue({
+      items: [{ userUuid: 'g1', username: 'guest_a', expired: true }],
+      nextCursor: null, limit: 50,
+    })
     getGuestStats.mockResolvedValue({ totalGuests: 1, activeGuests: 0, expiredGuests: 1 })
-    matchApi.listMatches.mockResolvedValue([{ uuid: 'm1', name: 'Run', status: 'RUNNING', userCreatorUuid: 'g1' }])
+    matchApi.listMatches.mockResolvedValue({
+      items: [{ uuid: 'm1', name: 'Run', status: 'RUNNING', userCreatorUuid: 'g1' }],
+      nextCursor: null, limit: 50,
+    })
     matchApi.getMatchInfo.mockResolvedValue({ match: {}, locations: [], registry: [] })
     getStory.mockResolvedValue({})
     listEntities.mockResolvedValue([])
@@ -219,13 +228,13 @@ describe('GuestsPage and MatchDetailModal fallbacks', () => {
         info: {
           match: {},
           locations: [{ uuid: 'loc-1', idLocation: 1, flagAlreadyActived: 1, flagVisited: 1, clockCounter: 2 }],
-          registry: [{ uuid: 'r1', key: 'gate', stringValue: 'OPEN', intValue: 3 }],
+          registry: [{ uuid: 'r1', key: 'gate', values: ['OPEN'], multiValue: false }],
         },
       }}
       onClose={vi.fn()} />)
 
     const row = screen.getByText('#1').closest('tr')
     expect(row).toHaveTextContent('yes')
-    expect(screen.getByText('3')).toBeInTheDocument()
+    expect(screen.getByText('OPEN')).toBeInTheDocument()
   })
 })

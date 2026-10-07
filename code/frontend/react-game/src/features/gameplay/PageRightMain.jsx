@@ -2,10 +2,13 @@ import Card from '@/components/layout/Card'
 import PlayerStats from './cards/PlayerStats'
 import ComaCard from './cards/ComaCard'
 import GoToSleepCard from './cards/GoToSleepCard'
+import ExperienceCard from './cards/ExperienceCard'
 import MovementCard from './cards/MovementCard'
 import ActionCard from './cards/ActionCard'
 import EndGameCard from './cards/EndGameCard'
 import { buildCardCharacteristics, checkShowToSleepCard, movementCostKey } from '@/utils/gamebook'
+import { canUseExp } from '@/utils/experience'
+import { expSummaryProps } from './js/boardProps'
 import { SHOW_CARD_CHARACTERISTICS, SHOW_MOBILE_CARD_CHARACTERISTICS, hideWhereClass } from '@/constants/features'
 
 /**
@@ -15,15 +18,20 @@ import { SHOW_CARD_CHARACTERISTICS, SHOW_MOBILE_CARD_CHARACTERISTICS, hideWhereC
 export default function PageRightMain({
   story, storyFull, t, gameData, playerStats, clock, weather, locations, actions,
   locationCosts, hereLocationId, matchUuid, accessToken, endError,
-  sleepCardForced, onForceSleepCard, onPreview, onOpenMap, onOpenItems, onOpenInfo,
+  sleepCardForced, onPreview, onOpenMap, onOpenItems, onOpenMissions,
+  onOpenInfo, onOpenExp,
   onMoved, onDone, onSlept, onError, onEndGame, onEndGamePreview,
 }) {
   const cardCharacteristics = buildCardCharacteristics(story, playerStats, clock, weather)
-  // Show the sleep card only when the player is energy-stuck: every available movement and
-  // action costs more energy than they have — or when the bed button asked for it.
-  const showSleep = checkShowToSleepCard({ playerStats, locations, actions, locationCosts, hereLocationId })
-    || sleepCardForced
-  const comingSoon = () => { alert('Missions and registry coming soon!') }
+  // v0.37.3 — the bed button is gone: the sleep card shows only when the player is
+  // energy-stuck, i.e. every movement and action here costs more energy than they have.
+  // The end-game card, when present, always hides the sleep card: the story is over.
+  const hasEndGame = (actions ?? []).some(action => action.endGame)
+  const showSleep = !hasEndGame && (checkShowToSleepCard({ playerStats, locations, actions, locationCosts, hereLocationId })
+    || sleepCardForced)
+  // Step 38 — training is offered only where it can be bought: a safe location, an awake
+  // character, and enough experience for at least one point.
+  const showExp = canUseExp(gameData, playerStats)
 
   return (
     <>
@@ -32,15 +40,14 @@ export default function PageRightMain({
           {(SHOW_CARD_CHARACTERISTICS || SHOW_MOBILE_CARD_CHARACTERISTICS) &&
             <Card card={cardCharacteristics} entityType="information" story={story}
               flagInformationCard={true} previewSide="right"
-              additionalCardClasses={hideWhereClass(SHOW_CARD_CHARACTERISTICS, SHOW_MOBILE_CARD_CHARACTERISTICS)}
-              infoLabel={''} infoIconClassName="fas fa-info-circle font-size-medium m-1"
-              infoLabelClassName="font-size-medium display-none"
-              actionLabel={''} actionIcon="fa-bed m-1" onAction={onForceSleepCard}
+              additionalCardClasses={`card-status ${hideWhereClass(SHOW_CARD_CHARACTERISTICS, SHOW_MOBILE_CARD_CHARACTERISTICS) ?? ''}`}
+              infoIconClassName="fas fa-info-circle font-size-medium m-1"
+              infoLabelClassName="font-size-medium"
               actionsList={[
-                { label: '', icon: 'fa-map m-1', onAction: onOpenMap },
-                { label: '', icon: 'fa-clipboard-list m-1', onAction: comingSoon },
-                { label: '', icon: 'fa-list m-1', onAction: comingSoon },
-                { label: '', icon: 'fa-suitcase m-1', onAction: onOpenItems },
+                // v0.37.3 — named shortcuts: the mobile stack has no bookmarks to name them
+                { label: t('game.bookmarks.map'), icon: 'fa-map m-1', onAction: onOpenMap },
+                { label: t('game.bookmarks.missions'), icon: 'fa-clipboard-list m-1', onAction: onOpenMissions },
+                { label: t('game.bookmarks.backpack'), icon: 'fa-suitcase m-1', onAction: onOpenItems },
                 //NEVER REMOVE THIS COMMENTS!
                 //{ label: '', icon: 'fa-people-arrows m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
               ]}
@@ -79,6 +86,10 @@ export default function PageRightMain({
               playerStats={playerStats} onPreview={onPreview} previewSide="right"
               matchUuid={matchUuid} accessToken={accessToken} onSlept={onSlept}
               autoPreview={sleepCardForced} />}
+          { /* Step 38 — training closes the board: it reads after resting, because both are
+               what a safe place is for, and it is the one card that spends rather than costs. */ }
+          {showExp &&
+            <ExperienceCard story={story} onOpen={onOpenExp} {...expSummaryProps(playerStats)} />}
           { /* Step 34 — the inventory used to be listed here, next to the actions. It has
                its own page now (ItemsCards on the right, opened by the flask button or by
                ItemsCard in the statistics list), so keeping the list here too would show

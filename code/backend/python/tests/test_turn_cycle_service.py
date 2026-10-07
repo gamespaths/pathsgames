@@ -46,6 +46,9 @@ class FakeStore:
         self.match["status"] = status
         self.match["id_character_current_turn"] = id_character_current_turn
 
+    def stamp_match_start(self, id_match):
+        pass
+
     def find_user_id_by_uuid(self, user_uuid):
         return self.users.get(user_uuid)
 
@@ -215,3 +218,30 @@ def test_get_turn_sequence_other_user_raises_not_found():
     with pytest.raises(TurnCycleError) as exc:
         svc.get_turn_sequence(MATCH_UUID, "other-uuid")
     assert exc.value.code == TurnCycleError.MATCH_NOT_FOUND
+
+
+# ── v0.37.1: the start location's registry pair ──────────────────────────────
+
+class _RecordingRegistry:
+    """Only what start_match asks of it: the one call, and its arguments."""
+
+    def __init__(self):
+        self.calls = []
+
+    def write_start_location_entry(self, id_match, id_character, clock):
+        self.calls.append((id_match, id_character, clock))
+        return []
+
+
+def test_start_match_writes_the_start_location_registry_entry():
+    store = FakeStore(_match(), [_char(1, "c1"), _char(2, "c2", dex=5)])
+    registry = _RecordingRegistry()
+    result = TurnCycleService(store, None, registry).start_match(MATCH_UUID, "user-uuid")
+    # The character that got the first turn owns the row, and the clock is still 0.
+    assert registry.calls == [(MATCH_ID, 2, 0)]
+    assert result.active_character_uuid == "c2"
+
+
+def test_start_match_without_a_registry_service_still_starts():
+    store = FakeStore(_match(), [_char(1, "c1")])
+    assert _service(store).start_match(MATCH_UUID, "user-uuid").status == "RUNNING"

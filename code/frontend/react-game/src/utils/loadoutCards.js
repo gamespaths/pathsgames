@@ -19,10 +19,15 @@ function metaCard(imgId , title=null, description=null) {
     linkCopyright: img.linkCopyright,
     styleImageLarge: img.styleImageLarge,
     styleImageLittle: img.styleImageLittle,
-    title: title ?? null,
+    title: title ?? img.title ?? null,
     description: description ?? null,
     awesomeIcon: img.awesomeIcon ?? null,
   }
+}
+
+/** A data/images.json entry as a page card, titled by its own `title` unless overridden. */
+export function buildImageCard(imgId, title = null, description = null) {
+  return metaCard(imgId, title, description)
 }
 
 /** "Single" game-type card. `t` is the i18n translate function. */
@@ -77,6 +82,39 @@ export function buildMapCard(t) {
 /** Step 34 — backpack card (ItemsCard), the map card's twin in the statistics list. */
 export function buildItemsCard(t) {
   return metaCard('backpack', t('game.items.title'), null)
+}
+
+/** Step 36 — registry card (RegistryCard), the backpack's neighbour in the same list. */
+export function buildRegistryCard(t) {
+  return metaCard('registry', t('game.registry.title'), null)
+}
+
+/** Step 37 — missions card (MissionCard), the registry's neighbour in the same list. */
+export function buildMissionsCard(t) {
+  return metaCard('missions', t('game.missions.title'), null)
+}
+
+/** Step 38 — experience card (ExperienceCard): training, on the board of a safe location. */
+export function buildExperienceCard(t) {
+  return metaCard('experience', t('game.exp.title'), null)
+}
+
+/** Step 38 — the card a purchase narrates under: the `trained` picture with its own two lines. */
+export function buildTrainedCard(t) {
+  return metaCard('trained', t('game.exp.trained.title'), t('game.exp.trained.description'))
+}
+
+/**
+ * Step 38 — one stat of the training page (ExperienceStatCard): the `experience-<stat>` entry
+ * of data/images.json — its own glyph, the shared training picture — titled by the stat.
+ */
+export function buildExperienceStatCard(stat, title, description = null) {
+  return metaCard(`experience-${stat}`, title, description)
+}
+
+/** v0.37.7 — match history card (MatchHistoryCard, MatchLogCard), the missions' neighbour. */
+export function buildHistoryCard(t, description = null) {
+  return metaCard('history', t('matches.history'), description)
 }
 
 /** "Loading…" card shown on the book page while the board reloads (LoadingCard). */
@@ -145,6 +183,16 @@ export function buildAntibotCard(t) {
 /** "Free to play" card revealed once the Turnstile check succeeds. */
 export function buildFreeToPlay(t) {
   return metaCard('freeToPlay', t('book.freeToPlay'), t('book.freeToPlayDesc'));
+}
+
+/** Info page behind the first bonuses card of ConfigView: the character attributes. */
+export function buildCharacterAttributesCard(t) {
+  return metaCard('characterAttributes', t('book.characterAttributesTitle'), t('book.characterAttributesDesc'))
+}
+
+/** One match-setup phase (creating / joining / running / created) as a card, titled by the caller. */
+export function buildPhaseCard(phase, title) {
+  return metaCard(`phase-${phase}`, title)
 }
 
 /** "No traits selected" placeholder card shown in ConfigView when selectedTraits is empty. */

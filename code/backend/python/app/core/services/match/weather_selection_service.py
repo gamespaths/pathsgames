@@ -14,11 +14,13 @@ rng_seed=42 is reproducible and the weather still varies clock-to-clock.
 """
 import random
 from typing import Any, Dict, List, Optional
+from app.core.services.match import registry_service
 
 
 class WeatherSelectionService:
-    def __init__(self, store: "WeatherStorePort") -> None:
+    def __init__(self, store: "WeatherStorePort", registry_service_instance=None) -> None:
         self.store = store
+        self.registry_service = registry_service_instance
 
     # ── selection ────────────────────────────────────────────────────────────
 
@@ -72,13 +74,33 @@ class WeatherSelectionService:
     def current_weather(self, match_uuid: str) -> Optional[Dict[str, Any]]:
         return self.store.find_current_weather_by_uuid(match_uuid)
 
+    def current_weather_by_id(self, id_match: int) -> Optional[Dict[str, Any]]:
+        """Step 40 — the current weather of a match by id (no side effects)."""
+        return self.store.find_current_weather(id_match)
+
     def weather_admin(self, match_uuid: str) -> Dict[str, Any]:
         return {
             "rng_seed": self.store.find_rng_seed(match_uuid),
             "current": self.store.find_current_weather_by_uuid(match_uuid),
-            "rules": self.store.find_weather_rules_for_match(match_uuid),
+            "rules": self._with_registry_verdict(
+                match_uuid, self.store.find_weather_rules_for_match(match_uuid)),
             "log": self.store.find_weather_log(match_uuid),
         }
+
+    def _with_registry_verdict(self, match_uuid: str,
+                               rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """v0.36.2 — answer each rule with whether the registry lets it through, so the console
+        can say why a rule never fires. Computed by the very comparison the selection uses, so
+        the two cannot drift apart."""
+        for rule in rules or []:
+            key = rule.get("condition_key")
+            rule["registry_met"] = bool(
+                registry_service.no_condition(key)
+                or registry_service.evaluate(
+                    rule.get("registry_value_operator_condition"),
+                    rule.get("condition_key_value"),
+                    self.registry_service.find_by_match_uuid(match_uuid, key)))
+        return rules or []
 
     # ── pure helpers ───────────────────────────────────────────────────────────
 
@@ -95,19 +117,21 @@ class WeatherSelectionService:
 
     @staticmethod
     def time_matches(rule: Dict[str, Any], clock: int) -> bool:
-        time_from = rule.get("time_start")
-        time_to = rule.get("time_end")
+        time_from = rule.get("time_from")
+        time_to = rule.get("time_to")
         if time_from is not None and clock < time_from:
             return False
         return time_to is None or clock <= time_to
 
     def _condition_matches(self, rule: Dict[str, Any], id_match: int) -> bool:
+        """Step 36 retired the reading of a null condition_key_value as "the key must be
+        unset": a condition with no value is now never met, as for events and movement."""
         key = rule.get("condition_key")
-        if not key:
+        if registry_service.no_condition(key):
             return True
-        actual = self.store.find_registry_value(id_match, key)
-        expected = rule.get("condition_value")
-        return actual is None if expected is None else expected == actual
+        actual = self.registry_service.find(id_match, key)
+        return registry_service.evaluate(rule.get("registry_value_operator_condition"),
+                                         rule.get("condition_key_value"), actual)
 
     @staticmethod
     def _weighted_pick(eligible: List[Dict[str, Any]], seed: int) -> Dict[str, Any]:

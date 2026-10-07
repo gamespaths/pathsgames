@@ -14,6 +14,7 @@ from app.adapters.persistence.match.models import (
 )
 from app.adapters.persistence.story.models import ItemEffectEntity, ItemEntity
 from app.core.ports.match.inventory_ports import InventoryStorePort
+from app.adapters.persistence.match.log_ids import next_log_id
 
 
 def _now_iso() -> str:
@@ -144,13 +145,10 @@ class InventoryStoreAdapter(InventoryStorePort):
                         delta=None, id_event=None) -> None:
         d = delta or {}
         with self.session_factory() as session:
-            # Table-wide max: log_item_usage carries UNIQUE (id), unlike the per-match
-            # gaming_* tables. Same rule as log_events.
-            max_id = session.query(LogItemUsageEntity.id).order_by(
-                LogItemUsageEntity.id.desc()).first()
+            next_id = next_log_id(session, LogItemUsageEntity)
             now = _now_iso()
             session.add(LogItemUsageEntity(
-                id=((max_id[0] if max_id else 0) or 0) + 1,
+                id=next_id,
                 id_match=id_match, uuid=str(uuid_lib.uuid4()),
                 # v0.35.1 — the units this action actually moved; hardcoded to 1 until then.
                 id_character_match=id_character, id_item=id_item, counter=counter,

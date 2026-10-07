@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from unittest.mock import patch
 
 from match import handler as h
-from helpers import make_event
+from helpers import make_event, FakeTable, patch_table
 
 
 def _body(result):
@@ -47,29 +47,13 @@ def _char(match_uuid, cid, uuid, owner='player-uuid-001', dex=3, life=10,
     }
 
 
-class FakeTable:
-    def __init__(self, items):
-        self.store = {(i['PK'], i.get('SK', 'METADATA')): dict(i) for i in items}
-
-    def get_item(self, pk, sk='METADATA'):
-        it = self.store.get((pk, sk))
-        return dict(it) if it else None
-
-    def put_item(self, item):
-        self.store[(item['PK'], item.get('SK', 'METADATA'))] = dict(item)
-
-    def query_by_pk(self, pk):
-        return [dict(v) for (p, _), v in self.store.items() if p == pk]
-
 
 @contextmanager
 def _env(items):
     table = FakeTable(items)
     with patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'player-uuid-001'}) as mock_jwt, \
-         patch('match.handler.db_utils.get_item', side_effect=table.get_item), \
-         patch('match.handler.db_utils.put_item', side_effect=table.put_item), \
-         patch('match.handler.db_utils.query_by_pk', side_effect=table.query_by_pk):
+         patch_table(table):
         yield table, mock_jwt
 
 
@@ -90,9 +74,10 @@ def test_sleep_triggers_time_end_and_advances_clock():
     assert body['timeEndTriggered'] is True
     assert body['currentClock'] == 4
     assert body['isSleeping'] is False  # woke up at time start
-    # clock-history item appended and queue rebuilt
+    # v0.37.5 — the clock history is a CLOCK_ADVANCE row; the queue is rebuilt
     rows = table.query_by_pk('MATCH#m1')
-    assert any(r.get('SK') == 'CLOCK#4' for r in rows)
+    assert any(r['type'] == 'CLOCK_ADVANCE' and r['clock'] == 4 for r in table.logs('m1'))
+    assert table.get_item('MATCH#m1')['logCount'] >= 2   # SLEEP + CLOCK_ADVANCE
     turns = [r for r in rows if str(r.get('SK', '')).startswith('TURN#')]
     assert len(turns) == 1
     assert turns[0]['status'] == 'ACTIVE'
@@ -108,8 +93,7 @@ def test_sleep_without_trigger_keeps_clock():
     assert body['timeEndTriggered'] is False
     assert body['currentClock'] == 3
     assert body['isSleeping'] is True
-    rows = table.query_by_pk('MATCH#m1')
-    assert not any(str(r.get('SK', '')).startswith('CLOCK#') for r in rows)
+    assert not any(r['type'] == 'CLOCK_ADVANCE' for r in table.logs('m1'))
 
 
 def test_sleep_on_non_running_returns_409():
@@ -238,6 +222,42 @@ def test_sleep_reseeds_zero_counter_for_occupied_location():
 
 # ── clock ─────────────────────────────────────────────────────────────────────
 
+
+def test_sleep_seeds_the_counter_of_an_occupied_location_without_a_row():
+    """v0.37.5 — the state is sparse: a location the story gave a counter AFTER the match
+    was created has no row at all. Occupied, it gets one seeded to counterTime, then
+    immediately decremented."""
+    story = {
+        'PK': 'STORY#s1', 'SK': 'METADATA', 'uuid': 's1',
+        'clockSingularDescription': 'hour', 'clockPluralDescription': 'hours',
+        'difficulties': [],
+        'classes': [],
+        'classBonuses': [],
+        'locations': [
+            {'id': 10, 'secureParam': 0, 'counterTime': 5, 'idEventIfCounterZero': None},
+        ],
+    }
+    match = {
+        'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1',
+        'status': 'RUNNING', 'currentClock': 0, 'userCreatorUuid': 'player-uuid-001',
+        'storyUuid': 's1', 'tsInsert': 1,
+        'locations': [],
+    }
+    char = _char('m1', 1, 'c1', energy=50)
+    char['idLocation'] = 10
+    items = [PLAYER, story, match, char]
+    with _env(items) as (table, _):
+        result = h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None)
+    assert result['statusCode'] == 200
+    assert _body(result)['timeEndTriggered'] is True
+    saved_match = table.get_item('MATCH#m1')
+    loc10 = next(l for l in saved_match['locations'] if l['idLocation'] == 10)
+    # must have been re-seeded to 5 then decremented to 4
+    assert loc10['clockCounter'] == 4
+
+
+# ── clock ─────────────────────────────────────────────────────────────────────
+
 def test_clock_returns_labels_and_character_state():
     items = [PLAYER, _story(), _match(clock=5),
              _char('m1', 1, 'c1', energy=40, sleeping=1)]
@@ -318,9 +338,8 @@ def test_sleep_in_a_safe_location_wakes_from_coma():
     saved = table.get_item('MATCH#m1', 'CHARACTER#c1')
     assert saved['isComa'] == 0
     assert saved['life'] == 5
-    # The wake is audited on the match event log.
-    match = table.get_item('MATCH#m1')
-    messages = [r.get('message', '') for r in (match.get('eventLog') or [])]
+    # The wake is audited as an AUDIT# row of the match partition.
+    messages = [r.get('message', '') for r in table.audits('m1')]
     assert any(m.startswith(h._events.MSG_COMA_RECOVERED) for m in messages)
 
 
@@ -335,3 +354,185 @@ def test_sleep_in_an_unsafe_location_does_not_wake_from_coma():
     saved = table.get_item('MATCH#m1', 'CHARACTER#c1')
     assert saved['isComa'] == 1
     assert saved['life'] == 0
+
+
+# ── v0.35.6 — the recovery runs the full Step 30 evaluator ───────────────────
+#
+# Until v0.35.6 this backend's recovery applied no edge rule but the coma wake: sadness sat
+# at its cap until some event happened to touch the character, and a class bonus that drove
+# life to zero left them standing. Java and Python had always evaluated both rules here.
+
+def _party_rows(table):
+    return [r for r in table.audits('m1')
+            if str(r.get('message') or '').startswith(h._events.MSG_ALL_PLAYER_COMA)]
+
+
+def test_sadness_at_its_cap_discharges_at_the_time_start():
+    # Location 2 is unsafe, so the recovery neither heals nor calms: sadness stays at the
+    # cap and the overflow rule fires — COS life for a cleared bar, and forced sleep.
+    char = _char_recovery('m1', 1, 'c1', idLocation=2, sad=100)
+    items = [PLAYER, _story_recovery(), _match_recovery(clock=0), char]
+    with _env(items) as (table, _):
+        body = _body(h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None))
+
+    saved = table.get_item('MATCH#m1', 'CHARACTER#c1')
+    assert saved['sad'] == 0
+    assert saved['life'] == 16          # 20 - COS(4)
+    assert saved['isSleeping'] == 1
+    assert body['edgeState']['sadnessOverflowUuids'] == ['c1']
+    assert body['edgeState']['comaUuids'] == []
+    # And the deltas the response reports are the ones actually written.
+    assert body['recovery'][0]['lifeDelta'] == -4
+    assert body['recovery'][0]['sadDelta'] == -100
+    messages = [r.get('message', '') for r in table.audits('m1')]
+    assert any(m.startswith(h._events.MSG_SADNESS_OVERFLOW) for m in messages)
+
+
+def test_an_overflow_that_empties_the_life_bar_opens_a_coma():
+    char = _char_recovery('m1', 1, 'c1', idLocation=2, sad=100, life=3)
+    items = [PLAYER, _story_recovery(), _match_recovery(clock=0), char]
+    with _env(items) as (table, _):
+        body = _body(h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None))
+
+    saved = table.get_item('MATCH#m1', 'CHARACTER#c1')
+    assert saved['life'] == 0 and saved['isComa'] == 1
+    assert saved['clockInComa'] == 1          # the clock the time start moved to
+    edge = body['edgeState']
+    assert edge['comaUuids'] == ['c1'] and edge['allPlayersInComa'] is True
+    assert len(_party_rows(table)) == 1
+
+
+def test_a_negative_class_life_bonus_can_open_a_coma_at_the_time_start():
+    story = _story_recovery()
+    story['classBonuses'] = [{'idClass': 1, 'statistic': 'life', 'value': -30}]
+    char = _char_recovery('m1', 1, 'c1')      # safe location 1
+    items = [PLAYER, story, _match_recovery(clock=0), char]
+    with _env(items) as (table, _):
+        body = _body(h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None))
+
+    saved = table.get_item('MATCH#m1', 'CHARACTER#c1')
+    assert saved['life'] == 0 and saved['isComa'] == 1 and saved['isSleeping'] == 1
+    assert body['edgeState']['comaUuids'] == ['c1']
+    # The pass that puts somebody down does not also wake them: the wake reads the flag as
+    # it was BEFORE the pass, and before it this character was standing.
+    messages = [r.get('message', '') for r in table.audits('m1')]
+    assert not any(m.startswith(h._events.MSG_COMA_RECOVERED) for m in messages)
+
+
+def test_an_ordinary_recovery_still_moves_no_edge():
+    items = [PLAYER, _story_recovery(), _match_recovery(clock=0),
+             _char_recovery('m1', 1, 'c1')]
+    with _env(items) as (table, _):
+        body = _body(h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None))
+
+    edge = body['edgeState']
+    assert edge['sadnessOverflowUuids'] == [] and edge['comaUuids'] == []
+    assert edge['allPlayersInComa'] is False
+    assert _party_rows(table) == []
+    saved = table.get_item('MATCH#m1', 'CHARACTER#c1')
+    assert saved.get('isComa', 0) == 0
+
+
+def test_a_collapse_at_the_time_start_still_runs_the_story_epilogue():
+    """The recovery writes the party row; running the ending is the event engine's job, and
+    the event this very time start fires is where it happens."""
+    story = _story_recovery()
+    story['idEventAllPlayerComa'] = 70
+    story['events'] = [
+        {'id': 99, 'uuid': 'evt-fuse', 'type': 'AUTOMATIC', 'costEnery': 0, 'coinCost': 0,
+         'flagEndTime': 0, 'idCard': None},
+        {'id': 70, 'uuid': 'evt-coma', 'type': 'AUTOMATIC', 'costEnery': 0, 'coinCost': 0,
+         'flagEndTime': 0, 'idCard': None},
+    ]
+    story['eventEffects'] = []
+    # Unsafe location 2, sadness at the cap and three life left: the overflow empties the
+    # bar, and the counter on that very location fires on the same time start.
+    char = _char_recovery('m1', 1, 'c1', idLocation=2, sad=100, life=3)
+    items = [PLAYER, story, _match_recovery(clock=0), char]
+    with _env(items) as (table, _):
+        body = _body(h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None))
+
+    edge = body['edgeState']
+    assert edge['comaUuids'] == ['c1'] and edge['allPlayersInComa'] is True
+    assert edge['comaEventUuid'] == 'evt-coma'
+    assert edge['comaExecutedEventUuids'] == ['evt-coma']
+
+
+# ── Step 39: random events ───────────────────────────────────────────────────
+
+def _random_story(probability=100, event_type='AUTOMATIC', **extra):
+    story = _story()
+    story.update({
+        'id': 9,
+        'events': [{'id': 70, 'uuid': 'evt-wolves', 'type': event_type}],
+        'eventEffects': [{'id': 1, 'uuid': 'eff-1', 'idEvent': 70, 'statistics': 'exp',
+                          'value': 1, 'target': 'ALL'}],
+        'globalRandomEvents': [{'id': 1, 'idEvent': 70, 'probability': probability}],
+    })
+    story.update(extra)
+    return story
+
+
+def _two_sleepers(clock=3):
+    other = _char('m1', 2, 'c2', owner='other-uuid-002', sleeping=1)
+    other['idLocation'] = 99
+    mine = _char('m1', 1, 'c1')
+    mine['idLocation'] = 5
+    return [PLAYER, _match(clock=clock), mine, other]
+
+
+def test_step39_sleep_fires_the_random_event_for_the_whole_party():
+    items = [_random_story()] + _two_sleepers()
+    with _env(items) as (table, _):
+        result = h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None)
+    body = _body(result)
+    assert body['timeEndTriggered'] is True
+    told = [c for c in body['counterZero'] if c['trigger'] == 'RANDOM_EVENT']
+    assert len(told) == 1
+    assert told[0]['idLocation'] is None
+    assert told[0]['visibility'] == 'FULL'
+    assert told[0]['eventUuid'] == 'evt-wolves'
+    # ALL with no actor reaches both characters, wherever they stand
+    assert table.get_item('MATCH#m1', 'CHARACTER#c1').get('exp') == 1
+    assert table.get_item('MATCH#m1', 'CHARACTER#c2').get('exp') == 1
+    rows = [r for r in table.logs('m1') if r['type'] == 'RANDOM_EVENT']
+    assert len(rows) == 1
+    assert rows[0]['idEvent'] == 70
+    assert rows[0]['message'] == 'random event 70 (RANDOM_EVENT)'
+
+
+def test_step39_probability_zero_never_fires():
+    items = [_random_story(probability=0)] + _two_sleepers()
+    with _env(items) as (table, _):
+        body = _body(h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None))
+    assert [c for c in body['counterZero'] if c['trigger'] == 'RANDOM_EVENT'] == []
+    assert not any(r['type'] == 'RANDOM_EVENT' for r in table.logs('m1'))
+
+
+def test_step39_a_spent_once_event_does_not_fire_again():
+    items = [_random_story(event_type='ONCE')] + _two_sleepers()
+    items[2]['executedEventIds'] = [70]
+    with _env(items) as (table, _):
+        h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None)
+    assert not any(r['type'] == 'RANDOM_EVENT' for r in table.logs('m1'))
+
+
+def test_step39_a_story_without_random_events_fires_nothing():
+    items = [_random_story(globalRandomEvents=[])] + _two_sleepers()
+    with _env(items) as (table, _):
+        h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None)
+    assert not any(r['type'] == 'RANDOM_EVENT' for r in table.logs('m1'))
+
+
+def test_step39_not_running_or_clock_zero_fires_nothing():
+    assert h._run_random_event_at_time_start({'status': 'PAUSED', 'currentClock': 3}, 'm1',
+                                             _random_story()) == []
+    assert h._run_random_event_at_time_start({'status': 'RUNNING', 'currentClock': 0}, 'm1',
+                                             _random_story()) == []
+
+
+def test_step39_a_random_event_owning_choices_is_not_eligible():
+    items = [_random_story(choices=[{'id': 1, 'idEvent': 70}])] + _two_sleepers()
+    with _env(items) as (table, _):
+        h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None)
+    assert not any(r['type'] == 'RANDOM_EVENT' for r in table.logs('m1'))

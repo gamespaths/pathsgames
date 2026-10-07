@@ -61,17 +61,19 @@ class EventExecutionServiceEdgeStatesTest {
     private static final long COMA_EVENT_ID = 5L;
 
     private EventExecutionStorePort store;
+    private RegistryService registryService;
     private EdgeStateStorePort edgeStore;
     private EventExecutionService service;
 
     @BeforeEach
     void setUp() {
         store = mock(EventExecutionStorePort.class);
+        registryService = mock(RegistryService.class);
         edgeStore = mock(EdgeStateStorePort.class);
         UserAccessPort userAccessPort = mock(UserAccessPort.class);
         ContentQueryPort contentQueryPort = mock(ContentQueryPort.class);
         service = new EventExecutionService(store, edgeStore, userAccessPort, contentQueryPort,
-                mock(TimeAdvancementService.class));
+                mock(TimeAdvancementService.class), registryService);
 
         when(userAccessPort.findByUuid(USER_UUID)).thenReturn(Optional.of(
                 new UserAccessPort.UserView(USER_ID, USER_UUID, "player", "USER", 2)));

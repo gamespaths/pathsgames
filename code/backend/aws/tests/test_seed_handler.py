@@ -16,17 +16,30 @@ from helpers import make_event
 
 def test_cleanup_returns_403_when_not_dev():
     from seed.handler import lambda_handler
-    with patch.dict(os.environ, {'ENV': 'prod'}):
+    # v0.41.0 — a prod stack with the committed secret answers 500, so this one has its own
+    with patch('common.jwt_utils.JWT_SECRET', 'a-private-prod-secret-of-at-least-32-chars'), \
+         patch.dict(os.environ, {'ENV': 'prod'}):
         result = lambda_handler(make_event('POST', '/api/dev/cleanup'), {})
     assert result['statusCode'] == 403
 
 
+def _index(guests, match_rows):
+    """v0.37.5 — query_gsi stand-in: GUEST_LIST answers the guests, MATCH the match
+    METADATA rows (an index never returns CHARACTER# rows: they carry no GSI2 key)."""
+    def query(index, pk, sk_prefix=None):
+        if pk == 'GUEST_LIST':
+            return list(guests)
+        if pk == 'MATCH':
+            return [m for m in match_rows if m.get('SK') == 'METADATA']
+        raise AssertionError(f'unexpected index read {index} {pk}')
+    return query
+
+
 def _run_cleanup(guests, match_rows):
-    """Run the route with the scans stubbed. Returns (body, deleted partition PKs)."""
+    """Run the route with the index reads stubbed. Returns (body, deleted partition PKs)."""
     purged = []
     from seed.handler import lambda_handler
-    with patch('seed.handler.db_utils.scan_filter', return_value=guests), \
-         patch('seed.handler.db_utils.scan_pk_prefix', return_value=match_rows), \
+    with patch('seed.handler.db_utils.query_gsi', side_effect=_index(guests, match_rows)), \
          patch('seed.handler.db_utils.delete_item',
                side_effect=AssertionError('cleanup must delete partitions, not single rows')), \
          patch('seed.handler.db_utils.delete_all_by_pk',
@@ -42,9 +55,9 @@ def test_cleanup_deletes_only_robot_data_and_seed_stories():
     'robottest') plus the seed stories — never the real ("good") data.
     """
     guests = [
-        {'PK': 'USER#real-1', 'SK': 'METADATA', 'username': 'guest_real0001', 'is_guest': True},
-        {'PK': 'USER#rob-1', 'SK': 'METADATA', 'username': 'robottest_aaaa1111', 'is_guest': True},
-        {'PK': 'USER#rob-2', 'SK': 'METADATA', 'username': 'robottest_bbbb2222', 'is_guest': True},
+        {'PK': 'USER#real-1', 'SK': 'METADATA', 'summary': {'username': 'guest_real0001'}},
+        {'PK': 'USER#rob-1', 'SK': 'METADATA', 'summary': {'username': 'robottest_aaaa1111'}},
+        {'PK': 'USER#rob-2', 'SK': 'METADATA', 'username': 'robottest_bbbb2222'},
     ]
     matches = [
         {'PK': 'MATCH#real-m', 'SK': 'METADATA', 'name': 'My epic adventure'},
@@ -90,13 +103,11 @@ def test_a_robot_match_is_removed_whole_characters_and_all():
     assert purged.count('MATCH#rob-m') == 1
 
 
-def test_a_match_partition_with_no_metadata_is_counted_never_deleted():
-    """Residue an older cleanup stranded: without METADATA there is no name to match on.
-
-    It is reported so an operator can see it, and left alone because this route runs
-    unattended after every test run — deleting what it cannot identify is not something
-    to do unattended. `purge_robot_test_data.py --orphans` is the deliberate sweep.
-    """
+def test_a_match_partition_with_no_metadata_is_invisible_to_the_index_read():
+    """v0.37.5 — the cleanup reads GSI2 (PK=MATCH), where only METADATA rows live: a
+    partition stranded without one is neither counted nor touched. Matches are deleted
+    whole now, so such residue cannot be produced any more; ``purge_robot_test_data.py
+    --orphans`` remains the deliberate sweep."""
     matches = [
         {'PK': 'MATCH#orphan', 'SK': 'CHARACTER#c9'},
         {'PK': 'MATCH#real-m', 'SK': 'METADATA', 'name': 'My epic adventure'},
@@ -104,7 +115,7 @@ def test_a_match_partition_with_no_metadata_is_counted_never_deleted():
 
     body, purged = _run_cleanup([], matches)
 
-    assert body['orphanMatches'] == 1
+    assert body['orphanMatches'] == 0
     assert body['deletedMatches'] == 0
     assert 'MATCH#orphan' not in purged
 
@@ -127,10 +138,9 @@ def test_cleanup_with_no_robot_data_returns_zero():
     matches = [{'PK': 'MATCH#real-m', 'SK': 'METADATA', 'name': 'Real match'}]
     deleted = []
     from seed.handler import lambda_handler
-    with patch('seed.handler.db_utils.scan_filter', return_value=guests), \
-         patch('seed.handler.db_utils.scan_pk_prefix', return_value=matches), \
+    with patch('seed.handler.db_utils.query_gsi', side_effect=_index(guests, matches)), \
          patch('seed.handler.db_utils.delete_item',
-               side_effect=lambda pk, sk='METADATA': deleted.append(pk)), \
+               side_effect=lambda pk, sk='METADATA', consistent=True: deleted.append(pk)), \
          patch('seed.handler.db_utils.delete_all_by_pk',
                side_effect=lambda pk: (deleted.append(pk), 0)[1]), \
          patch.dict(os.environ, {'ENV': 'dev'}):
@@ -142,3 +152,29 @@ def test_cleanup_with_no_robot_data_returns_zero():
     # Only the seed stories were attempted, and they held nothing.
     from seed.handler import SEED_STORIES
     assert deleted == [f"STORY#{s['uuid']}" for s in SEED_STORIES]
+
+
+def test_cleanup_leaves_rows_with_a_ttl_to_dynamodb():
+    """v0.39.1 — a robot guest or match carrying a ttl expires on its own (a free TTL
+    delete): the cleanup skips it and deletes only the robot rows without one."""
+    guests = [
+        {'PK': 'USER#rob-ttl', 'SK': 'METADATA', 'username': 'robottest_ttl00001'},
+        {'PK': 'USER#rob-old', 'SK': 'METADATA', 'username': 'robottest_old00001'},
+    ]
+    matches = [
+        {'PK': 'MATCH#rob-ttl', 'SK': 'METADATA', 'name': 'robottest_match'},
+        {'PK': 'MATCH#rob-old', 'SK': 'METADATA', 'name': 'robottest_match'},
+    ]
+    looked_up = []
+
+    def get_item(pk, sk='METADATA', consistent=True):
+        looked_up.append((pk, consistent))
+        return {'PK': pk, 'SK': sk, 'ttl': 123} if pk.endswith('-ttl') else {'PK': pk, 'SK': sk}
+
+    with patch('seed.handler.db_utils.get_item', side_effect=get_item):
+        body, purged = _run_cleanup(guests, matches)
+
+    assert body['deletedGuests'] == 1 and body['deletedMatches'] == 1
+    assert 'USER#rob-ttl' not in purged and 'MATCH#rob-ttl' not in purged
+    assert 'USER#rob-old' in purged and 'MATCH#rob-old' in purged
+    assert all(consistent is False for _, consistent in looked_up)

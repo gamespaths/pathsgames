@@ -1,6 +1,8 @@
 import pytest
 from unittest.mock import MagicMock
 from app.core.services.story.story_import_service import StoryImportService
+from app.core.services.story.story_validator_service import StoryValidatorService
+from app.core.ports.story.story_validator_port import StoryValidationException
 
 @pytest.fixture
 def mock_persistence_port():
@@ -172,3 +174,83 @@ def test_import_story_id_as_string(mock_persistence_port):
     result = service.import_story(data)
     assert result.status == "IMPORTED"
     mock_persistence_port.exists_story_id.assert_called_with(990002)
+
+
+def test_import_story_links_deferred_references_after_every_entity(monkeypatch):
+    # The link pass must run once, after the sub-entities are in — before it, the rows
+    # its references point at do not exist yet.
+    from unittest.mock import MagicMock
+    from app.core.services.story.story_import_service import StoryImportService
+
+    port = MagicMock()
+    port.find_story_id_by_uuid.return_value = None
+    port.save_story.return_value = 1
+    port.exists_entity_id.return_value = False
+    calls = []
+    port.save_events.side_effect = lambda *a, **k: calls.append("events")
+    port.link_deferred_references.side_effect = lambda *a, **k: calls.append("link")
+    port.sync_sequences.side_effect = lambda *a, **k: calls.append("sync")
+
+    StoryImportService(port).import_story({
+        "uuid": "link-uuid",
+        "events": [{"id": 5, "idEventNext": 6}, {"id": 6}],
+    })
+
+    assert calls == ["events", "link", "sync"]
+    port.link_deferred_references.assert_called_once()
+
+
+# ── _get_long accepts the several shapes an export can carry ─────────────────
+
+def test_get_long_reads_ints_floats_and_numeric_strings():
+    from app.core.services.story.story_import_service import _get_long
+    assert _get_long(None, "id") is None
+    assert _get_long({}, "id") is None
+    assert _get_long({"id": 5}, "id") == 5
+    assert _get_long({"id": 5.9}, "id") == 5
+    assert _get_long({"id": "7"}, "id") == 7
+    assert _get_long({"id": None, "idAlt": 3}, "id", "idAlt") == 3
+    assert _get_long({"id": "not-a-number"}, "id") is None
+
+
+def test_import_story_hard_fails_on_an_invalid_payload():
+    from unittest.mock import MagicMock
+    from app.core.services.story.story_import_service import StoryImportService
+    from app.core.ports.story.story_validator_port import (
+        StoryValidationException, StoryValidationReport,
+    )
+
+    report = StoryValidationReport()
+    report.add("DANGLING_REF", "events", "1", "idEventNext", "no such event")
+    validator = MagicMock()
+    validator.validate_import_data.return_value = report
+    persistence = MagicMock()
+
+    with pytest.raises(StoryValidationException):
+        StoryImportService(persistence, validator).import_story({"uuid": "s1"})
+    persistence.save_story.assert_not_called()
+
+
+def test_import_story_uuid_trimmed_and_lowercased(mock_persistence_port):
+    # v0.41.5 — "ABC…" and "abc…" are the same story.
+    mock_persistence_port.find_story_id_by_uuid.return_value = None
+    data = {"uuid": " 0A1B2C3D-4E5F-4A6B-8C7D-9E0F1A2B3C4D ", "title": "x"}
+    result = StoryImportService(mock_persistence_port).import_story(data)
+    assert result.storyUuid == "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d"
+    mock_persistence_port.find_story_id_by_uuid.assert_called_with("0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d")
+
+
+def test_import_story_blank_uuid_generates_one(mock_persistence_port):
+    mock_persistence_port.find_story_id_by_uuid.return_value = None
+    data = {"uuid": "   ", "title": "x"}
+    result = StoryImportService(mock_persistence_port).import_story(data)
+    assert result.storyUuid.strip() and result.storyUuid == data["uuid"]
+
+
+def test_import_story_malformed_uuid_refused_before_any_write(mock_persistence_port):
+    service = StoryImportService(mock_persistence_port, StoryValidatorService(MagicMock()))
+    with pytest.raises(StoryValidationException) as e:
+        service.import_story({"uuid": "story-001", "title": "x"})
+    assert any(err.rule == "R0_STORY_UUID" for err in e.value.report.errors)
+    mock_persistence_port.save_story.assert_not_called()
+    mock_persistence_port.find_story_id_by_uuid.assert_not_called()

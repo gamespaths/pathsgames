@@ -25,7 +25,7 @@ import java.util.Map;
  * </ul>
  *
  * <p>Returns 404 when the match has no weather selected yet (e.g. still in
- * CREATED state). See {@code documentation_v0/Step27_WeatherSystem.md}.</p>
+ * CREATED state). See {@code wiki/documentation_v0/Step27_WeatherSystem.md}.</p>
  */
 @RestController
 public class WeatherController {

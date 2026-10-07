@@ -17,7 +17,7 @@ import java.util.List;
  *       per-user participation check (admin console, port 8044).</li>
  * </ul>
  *
- * <p>See {@code documentation_v0/Step28_MovementSystem.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step28_MovementSystem.md}.</p>
  */
 public interface MovementPort {
 
@@ -55,7 +55,41 @@ public interface MovementPort {
                           int newMagic,
                           int newCoin,
                           int currentClock,
-                          List<LocationEntryPort.AutomaticEventFired> automaticEvents) {
+                          List<LocationEntryPort.AutomaticEventFired> automaticEvents,
+                          /**
+                           * v0.35.6 — the Step 30 verdict of the whole arrival, folded from
+                           * the events above. Same shape execute-event answers, so the board
+                           * reads a collapse the same way whatever caused it.
+                           */
+                          EventExecutionPort.EdgeStateOutcome edgeState,
+                          /** Step 40 - set when an arrival event ended the time, else null. */
+                          TimeAdvancementPort.TimeEndNews timeEnd) {
+
+        /** An arrival that ended no time (pre-Step 40 shape). */
+        public MovementResult(String matchUuid, String characterUuid, Long fromLocationId,
+                              String fromLocationUuid, long toLocationId, String toLocationUuid,
+                              int energySpent, int foodSpent, int magicSpent, int coinSpent,
+                              int newEnergy, int newFood, int newMagic, int newCoin,
+                              int currentClock,
+                              List<LocationEntryPort.AutomaticEventFired> automaticEvents,
+                              EventExecutionPort.EdgeStateOutcome edgeState) {
+            this(matchUuid, characterUuid, fromLocationId, fromLocationUuid, toLocationId,
+                    toLocationUuid, energySpent, foodSpent, magicSpent, coinSpent, newEnergy,
+                    newFood, newMagic, newCoin, currentClock, automaticEvents, edgeState, null);
+        }
+
+        /** An arrival that moved no edge — the ordinary move. */
+        public MovementResult(String matchUuid, String characterUuid, Long fromLocationId,
+                              String fromLocationUuid, long toLocationId, String toLocationUuid,
+                              int energySpent, int foodSpent, int magicSpent, int coinSpent,
+                              int newEnergy, int newFood, int newMagic, int newCoin,
+                              int currentClock,
+                              List<LocationEntryPort.AutomaticEventFired> automaticEvents) {
+            this(matchUuid, characterUuid, fromLocationId, fromLocationUuid, toLocationId,
+                    toLocationUuid, energySpent, foodSpent, magicSpent, coinSpent, newEnergy,
+                    newFood, newMagic, newCoin, currentClock, automaticEvents,
+                    EventExecutionPort.EdgeStateOutcome.none());
+        }
     }
 
     /** A visited location with its current character count and move-cost neighbors. */

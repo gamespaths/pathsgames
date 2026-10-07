@@ -25,8 +25,9 @@ describe('matchInfoToGameData', () => {
     expect(gd.playerStats.food).toBe(4)
     expect(gd.playerStats.magic).toBe(2)
     expect(gd.playerStats.coins).toBe(9)
-    // Still not projected: experience lands with step 38.
-    expect(gd.playerStats.experience).toBe(0)
+    // Step 38 — experience and the per-stat price of the next point (null = at cap).
+    expect(gd.playerStats.experience).toBe(30)
+    expect(gd.playerStats.expCosts).toEqual({ dex: 12, int: null, cos: 8 })
   })
 
   it('defaults the resources to 0 when /info does not project them', () => {
@@ -34,6 +35,8 @@ describe('matchInfoToGameData', () => {
     expect(gd.playerStats.food).toBe(0)
     expect(gd.playerStats.magic).toBe(0)
     expect(gd.playerStats.coins).toBe(0)
+    expect(gd.playerStats.experience).toBe(0)
+    expect(gd.playerStats.expCosts).toBeNull()
   })
 
   it('maps Step 27 max statistics, carried weight and items', () => {

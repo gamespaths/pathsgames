@@ -27,6 +27,9 @@ public interface TurnCycleStorePort {
     /** Update gaming_match.status and gaming_match.id_character_current_turn. */
     void updateMatchStatusAndTurn(long idMatch, String status, Long idCharacterCurrentTurn);
 
+    /** v0.41.2 - gaming_match.timestamp_start (ISO instant) when still empty; the KPI duration reads it. */
+    void stampMatchStart(long idMatch);
+
     // ── Step 25: time advancement & clock cycle ─────────────────────────────
 
     /** The character instance owned by {@code idUser} in {@code idMatch}, if any. */

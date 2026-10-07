@@ -119,16 +119,39 @@ class GuestAdminPersistenceAdapterTest {
         }
 
         @Test
-        @DisplayName("Should delegate cleanup and return total deleted guests")
+        @DisplayName("Should delete only the unreferenced expired guests and return the count")
         void deleteExpiredGuests_logic() {
-            when(userTokenRepository.deleteTokensOfExpiredGuests(eq(6), anyString())).thenReturn(2);
-            when(userRepository.deleteExpiredGuests(eq(6), anyString())).thenReturn(5);
+            // v0.41.0 — a guest a match still points at never reaches the delete
+            when(userRepository.findExpiredGuestIdsWithoutReferences(eq(6), anyString()))
+                    .thenReturn(List.of(4L, 5L));
+            when(userRepository.deleteGuestsByIds(6, List.of(4L, 5L))).thenReturn(2);
 
             int deleted = adapter.deleteExpiredGuests();
 
-            assertEquals(5, deleted);
-            verify(userTokenRepository).deleteTokensOfExpiredGuests(eq(6), anyString());
-            verify(userRepository).deleteExpiredGuests(eq(6), anyString());
+            assertEquals(2, deleted);
+            verify(userTokenRepository).deleteTokensOfUsers(List.of(4L, 5L));
+            verify(userRepository).deleteGuestsByIds(6, List.of(4L, 5L));
+        }
+
+        @Test
+        @DisplayName("v0.41.0 — the match-less stale ids come from the guarded query, capped")
+        void findStaleGuestIdsWithoutReferences_logic() {
+            when(userRepository.findStaleGuestIdsWithoutReferences(6, "2026-01-01T00:00:00Z", 500))
+                    .thenReturn(List.of(7, 8L));
+
+            assertEquals(List.of(7L, 8L),
+                    adapter.findStaleGuestIdsWithoutReferences("2026-01-01T00:00:00Z", 500));
+            assertEquals(List.of(), adapter.findStaleGuestIdsWithoutReferences(null, 500));
+            assertEquals(List.of(), adapter.findStaleGuestIdsWithoutReferences("2026-01-01T00:00:00Z", 0));
+        }
+
+        @Test
+        @DisplayName("v0.41.0 — a null id list from the query reads as none")
+        void findStaleGuestIdsWithoutReferences_nullRows() {
+            when(userRepository.findStaleGuestIdsWithoutReferences(6, "2026-01-01T00:00:00Z", 10))
+                    .thenReturn(null);
+
+            assertEquals(List.of(), adapter.findStaleGuestIdsWithoutReferences("2026-01-01T00:00:00Z", 10));
         }
 
         @Test
@@ -164,6 +187,93 @@ class GuestAdminPersistenceAdapterTest {
 
             verify(userRepository).countByState(6);
             //verify(userRepository, times(2)).countActiveGuests(anyInt(), anyString());
+        }
+    }
+
+    @Nested
+    @DisplayName("Paging and the stale purge (v0.36.2)")
+    class PagingAndPurge {
+
+        @Test
+        @DisplayName("A page row carries the numeric id the keyset cursor is built from")
+        void findGuestsPage_carriesTheId() {
+            UserEntity u = makeUser(10L, "uuid-1", "guest_1", "2030-01-01T00:00:00Z");
+            when(userRepository.findGuestsPage(eq(6), isNull(), isNull(), isNull(), any()))
+                    .thenReturn(List.of(u));
+
+            List<Map<String, Object>> page = adapter.findGuestsPage(null, null, null, 25);
+
+            assertEquals(1, page.size());
+            assertEquals(10L, page.get(0).get("id"));
+            assertEquals("uuid-1", page.get(0).get("uuid"));
+        }
+
+        @Test
+        @DisplayName("An id cursor without its timestamp is dropped, not compared against")
+        void findGuestsPage_ignoresALonelyIdCursor() {
+            when(userRepository.findGuestsPage(eq(6), isNull(), isNull(), isNull(), any()))
+                    .thenReturn(List.of());
+
+            assertTrue(adapter.findGuestsPage(null, null, 99L, 25).isEmpty());
+        }
+
+        @Test
+        @DisplayName("A timestamp cursor with no id resumes from the highest id of that instant")
+        void findGuestsPage_defaultsTheIdCursor() {
+            when(userRepository.findGuestsPage(eq(6), isNull(), eq("2030-01-01T00:00:00Z"),
+                    eq(Long.MAX_VALUE), any())).thenReturn(List.of());
+
+            assertTrue(adapter.findGuestsPage(null, "2030-01-01T00:00:00Z", null, 25).isEmpty());
+        }
+
+        @Test
+        @DisplayName("A limit below one still asks for a page of one, never an empty page")
+        void findGuestsPage_clampsTheLimit() {
+            when(userRepository.findGuestsPage(eq(6), isNull(), isNull(), isNull(), any()))
+                    .thenReturn(List.of());
+
+            adapter.findGuestsPage(null, null, null, 0);
+
+            verify(userRepository).findGuestsPage(eq(6), isNull(), isNull(), isNull(),
+                    eq(org.springframework.data.domain.PageRequest.of(0, 1)));
+        }
+
+        @Test
+        @DisplayName("No bound, no purge: the repository is never asked")
+        void findGuestIds_withoutABoundIsEmpty() {
+            assertEquals(List.of(), adapter.findGuestIdsWithLastAccessBefore(null));
+            verifyNoInteractions(userRepository);
+        }
+
+        @Test
+        @DisplayName("With a bound the ids come straight from the repository")
+        void findGuestIds_delegates() {
+            when(userRepository.findGuestIdsWithLastAccessBefore(6, "2020-01-01T00:00:00Z"))
+                    .thenReturn(List.of(1L, 2L));
+
+            assertEquals(List.of(1L, 2L),
+                    adapter.findGuestIdsWithLastAccessBefore("2020-01-01T00:00:00Z"));
+        }
+
+        @Test
+        @DisplayName("Deleting nobody touches neither table")
+        void deleteGuestsByIds_emptyIsANoOp() {
+            assertEquals(0, adapter.deleteGuestsByIds(null));
+            assertEquals(0, adapter.deleteGuestsByIds(List.of()));
+            verifyNoInteractions(userRepository, userTokenRepository);
+        }
+
+        @Test
+        @DisplayName("The tokens go first, then the guests that owned them")
+        void deleteGuestsByIds_takesTheTokensFirst() {
+            List<Long> ids = List.of(1L, 2L);
+            when(userRepository.deleteGuestsByIds(6, ids)).thenReturn(2);
+
+            assertEquals(2, adapter.deleteGuestsByIds(ids));
+
+            org.mockito.InOrder order = inOrder(userTokenRepository, userRepository);
+            order.verify(userTokenRepository).deleteTokensOfUsers(ids);
+            order.verify(userRepository).deleteGuestsByIds(6, ids);
         }
     }
 }

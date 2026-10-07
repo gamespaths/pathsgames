@@ -61,6 +61,20 @@ body {
   white-space: nowrap;
 }
 .pg-navbar-brand i { margin-right: 0.4rem; color: var(--color-gold-light); }
+/* Step 40 — the environment badge beside the brand (VITE_ENV_BADGE) */
+.pg-env-badge {
+  margin-left: 0.5rem;
+  padding: 1px 8px;
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 10px;
+  background: rgba(200, 150, 10, 0.18);
+  color: var(--color-gold-light);
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
 
 /* ── Sidebar ── */
 .pg-sidebar {
@@ -384,6 +398,8 @@ body {
   color: var(--color-gold-light);
 }
 .pg-btn-sm { padding: 0.3rem 0.6rem; font-size: 0.7rem; }
+/* Disabled buttons look disabled (e.g. delete on a match that is not stopped yet) */
+.pg-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ── Form ── */
 .pg-input {
@@ -405,6 +421,9 @@ body {
    medieval brown so <option>s match the dark theme. */
 .pg-input option,
 .pg-input optgroup,
+select {
+  background-color: var(--color-brown-light);
+}
 select.pg-input option {
   background-color: var(--color-brown-dark);
   color: var(--color-parchment);
@@ -454,6 +473,27 @@ select.pg-input option {
 .pg-badge-warning { background: rgba(255,193,7,0.15); color: #ffc107; border: 1px solid rgba(255,193,7,0.35); }
 .pg-badge-info    { background: rgba(23,162,184,0.15);color: #6edff6; border: 1px solid rgba(23,162,184,0.3); }
 .pg-badge-gold    { background: rgba(200,150,10,0.15); color: var(--color-gold-light); border: 1px solid rgba(200,150,10,0.3); }
+
+/* ── Chips (Step 37) — one member of a PIPE list, removable ── */
+.pg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--color-ash);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: var(--color-parchment-light);
+}
+.pg-chip-remove {
+  background: none;
+  border: none;
+  padding: 0;
+  line-height: 1;
+  color: var(--color-ash);
+  cursor: pointer;
+}
+.pg-chip-remove:hover { color: #ff7b88; }
 
 .pg-badge-resolved {
   background: rgba(200,150,10,0.1);

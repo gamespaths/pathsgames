@@ -86,15 +86,17 @@ def _tables():
         "list_character_templates": [{"idTipo": 1}],
         # No idLocation: since Step 31 (R8) a choice binds to an event only.
         "list_choices": [{"id": 1, "idEvent": 1, "otherwiseFlag": 1}],
-        "list_missions": [{"id": 1}],
+        "list_missions": [{"id": 1, "conditionKey": "k", "conditionValue": "1"}],
         "list_keys": [{"name": "CHAPTER", "value": "1"}],
         "list_choices_effects": [{"id": 1, "idChoices": 1}],
         "list_choices_conditions": [{"id": 1, "idChoices": 1, "type": "KEY", "key": "CHAPTER"}],
         "list_events_effects": [{"id": 1, "idEvent": 1}],
         "list_items_effects": [{"id": 1, "idItem": 1}],
-        "list_missions_steps": [{"id": 1, "idMission": 1}],
+        "list_missions_steps": [{"id": 1, "idMission": 1, "conditionKey": "k",
+                                 "conditionValue": "1"}],
         "list_weather_rules": [{"id": 1, "idEvent": 1}],
-        "list_global_random_events": [{"id": 1, "idEvent": 1}],
+        # Step 39 - R11: a random event names a choice-free event (event 1 owns choice 1).
+        "list_global_random_events": [{"id": 1, "idEvent": 2}],
         "list_locations_neighbors": [{"id": 1, "idLocationFrom": 1, "idLocationTo": 2, "direction": "N"}],
     }
 
@@ -125,3 +127,48 @@ def test_validate_story_by_uuid_validates_known_story():
     svc = StoryValidatorService(_FakeReadPort(_tables()))
     report = svc.validate_story_by_uuid("known")
     assert report is not None
+
+
+# v0.37.7 — a STORED choice effect / condition names its owner `id_choice` (the column),
+# not `idChoices` (the import spelling); the option must still count for R4.
+def test_validate_story_db_path_reads_stored_id_choice_owner():
+    tables = _tables()
+    tables["list_choices"] = [{"id": 1, "idEvent": 1}]                # no otherwise fallback
+    tables["list_choices_effects"] = [{"id": 1, "id_choice": 1, "key": "mood"}]
+    tables["list_choices_conditions"] = [{"id": 1, "id_choice": 1, "type": "KEYS", "key": "CHAPTER"}]
+    svc = StoryValidatorService(_FakeReadPort(tables))
+    report = svc.validate_story(1)
+    assert report.is_valid() is True, report.errors
+
+
+def test_validate_story_db_path_stored_condition_owner_must_exist():
+    tables = _tables()
+    tables["list_choices_conditions"] = [{"id": 1, "id_choice": 99, "type": "KEYS", "key": "CHAPTER"}]
+    svc = StoryValidatorService(_FakeReadPort(tables))
+    report = svc.validate_story(1)
+    assert report.is_valid() is False
+    assert any(e.entity_type == "choice-conditions" for e in report.errors)
+
+
+def test_validate_story_db_path_random_events_r11_and_warning():
+    """Step 39 — choices and weather effects fail R11; a total above 100 only warns."""
+    tables = _tables()
+    tables["list_global_random_events"] = [{"id": 1, "idEvent": 1, "probability": 70},
+                                           {"id": 2, "idEvent": 2, "probability": 60}]
+    tables["list_events_effects"] = [{"id": 1, "idEvent": 2, "idWeather": 1}]
+    report = StoryValidatorService(_FakeReadPort(tables)).validate_story(1)
+    messages = [e.message for e in report.errors if e.rule == "R11_RANDOM_EVENT"]
+    assert len(messages) == 2
+    assert "owns choices" in messages[0]
+    assert "weather effect" in messages[1]
+    assert len(report.warnings) == 1
+    assert "130" in report.warnings[0].message
+
+
+def test_validate_story_db_path_random_events_at_hundred_no_warning():
+    tables = _tables()
+    tables["list_global_random_events"] = [{"id": 1, "idEvent": 2, "probability": 60},
+                                           {"id": 2, "idEvent": 2, "probability": 40}]
+    report = StoryValidatorService(_FakeReadPort(tables)).validate_story(1)
+    assert report.warnings == []
+    assert report.is_valid(), report.errors

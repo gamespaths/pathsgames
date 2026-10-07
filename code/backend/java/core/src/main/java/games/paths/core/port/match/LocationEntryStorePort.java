@@ -15,6 +15,8 @@ public interface LocationEntryStorePort {
 
     /** Message prefix of the audit row an automatic event writes. */
     String MSG_AUTOMATIC_EVENT = "automatic event";
+    /** Step 39 - message prefix of the audit row a random event writes. */
+    String MSG_RANDOM_EVENT = "random event";
 
     /** The trigger columns of one story location; empty when the location is unknown. */
     Optional<LocationTriggerView> findLocationTriggers(long idStory, long idLocation);
@@ -25,8 +27,8 @@ public interface LocationEntryStorePort {
      */
     int findFlagVisited(long idMatch, long idLocation);
 
-    /** Latch the location as visited by the party. Idempotent. */
-    void markStateLocationVisited(long idMatch, long idLocation);
+    /** Latch the location as visited by the party. Idempotent; v0.41.2 true when it flipped 0 to 1. */
+    boolean markStateLocationVisited(long idMatch, long idLocation);
 
     /**
      * How many characters stand in {@code idLocation} other than
@@ -69,6 +71,12 @@ public interface LocationEntryStorePort {
                                Integer idEventIfCharacterEnterEmptyLocation,
                                Integer idEventIfCharacterStartTime,
                                Integer idEventIfCounterZero,
-                               Integer priorityAutomaticEvent) {
+                               Integer priorityAutomaticEvent,
+                               /** Step 36.2 - the registry pair for the first arrival. */
+                               String keyToAdd,
+                               String keyValueToAdd,
+                               /** Step 36.2 - the pair for every later arrival. */
+                               String keyToAddNotFirst,
+                               String keyValueToAddNotFirst) {
     }
 }

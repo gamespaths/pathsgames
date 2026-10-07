@@ -1,0 +1,12 @@
+# Keep the buildx context small and the Maven layers cacheable: Maven builds
+# inside the container, so local build output and dev artefacts must stay out.
+**/target/
+.agents/
+code/
+database.sqlite*
+*.log
+.git/
+.gitignore
+README.md
+Services.md
+run-local.sh

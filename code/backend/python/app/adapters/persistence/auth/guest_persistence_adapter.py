@@ -1,10 +1,23 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import and_, exists, func, or_
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 from app.core.ports.auth.guest_persistence_port import GuestPersistencePort
 from app.core.ports.auth.guest_admin_persistence_port import GuestAdminPersistencePort
 from app.adapters.persistence.auth.models import User, UserToken
+import app.adapters.persistence.story.models  # noqa: F401  - list_stories, target of gaming_match
+from app.adapters.persistence.match.models import GamingCharacterInstanceEntity, GamingMatchEntity
+
+#: v0.41.0 — ids per DELETE statement, so the IN list stays small on SQLite and PostgreSQL.
+DELETE_CHUNK = 500
+
+
+def _not_referenced():
+    """v0.41.0 — no match and no character of the guest (the two user FKs the Python schema has)."""
+    return and_(
+        ~exists().where(GamingMatchEntity.id_user_creator == User.id),
+        ~exists().where(GamingCharacterInstanceEntity.id_user == User.id),
+    )
 
 class GuestPersistenceAdapter(GuestPersistencePort, GuestAdminPersistencePort):
     def __init__(self, session_factory):
@@ -56,14 +69,24 @@ class GuestPersistenceAdapter(GuestPersistencePort, GuestAdminPersistencePort):
                 session.commit()
 
     def delete_expired_guests(self) -> int:
+        # v0.41.0 — only the expired guests nothing references; tokens first, in chunks
         with self.session_factory() as session:
             now = datetime.now(timezone.utc).isoformat()
-            deleted_count = session.query(User).filter(
+            ids = [row[0] for row in session.query(User.id).filter(
                 User.state == 6,
-                User.guest_expires_at < now
-            ).delete(synchronize_session=False)
-            session.commit()
-            return deleted_count
+                User.guest_expires_at < now,
+                _not_referenced(),
+            ).all()]
+        return self.delete_guests_by_ids(ids)
+
+    def backdate_guest(self, user_id: int, instant: str) -> None:
+        """v0.41.0 — dev/test only: registration and last access moved back to one instant."""
+        with self.session_factory() as session:
+            user = session.query(User).filter(User.id == user_id).first()
+            if user:
+                user.ts_registration = instant
+                user.last_access = instant
+                session.commit()
 
     def delete_guests_by_username_like(self, username_like_pattern: str) -> int:
         # Delete the tokens of the matching guests first, then the guests.
@@ -107,6 +130,58 @@ class GuestPersistenceAdapter(GuestPersistencePort, GuestAdminPersistencePort):
             session.delete(user)
             session.commit()
             return True
+
+    # === v0.36.2: paging and the stale purge ===
+
+    @staticmethod
+    def _seen_at():
+        """When a guest was last seen: its last access, or its registration if it never
+        came back. One expression, so the page order and the purge bound agree."""
+        return func.coalesce(User.last_access, User.ts_registration)
+
+    def find_guests_page(self, last_access_before, ts_cursor, id_cursor, limit):
+        seen = self._seen_at()
+        with self.session_factory() as session:
+            q = session.query(User).filter(User.state == 6)
+            if last_access_before is not None:
+                q = q.filter(seen < last_access_before)
+            if ts_cursor is not None:
+                q = q.filter(or_(seen < ts_cursor,
+                                 and_(seen == ts_cursor, User.id < (id_cursor or 0))))
+            users = q.order_by(seen.desc(), User.id.desc()).limit(max(1, limit)).all()
+            return [self._user_to_dict(u) for u in users]
+
+    def find_guest_ids_with_last_access_before(self, before: str) -> List[int]:
+        if before is None:
+            return []
+        with self.session_factory() as session:
+            rows = (session.query(User.id)
+                    .filter(User.state == 6, self._seen_at() < before).all())
+            return [r[0] for r in rows]
+
+    def delete_guests_by_ids(self, ids: List[int]) -> int:
+        if not ids:
+            return 0
+        deleted = 0
+        with self.session_factory() as session:
+            for start in range(0, len(ids), DELETE_CHUNK):
+                chunk = ids[start:start + DELETE_CHUNK]
+                session.query(UserToken).filter(
+                    UserToken.id_user.in_(chunk)).delete(synchronize_session=False)
+                deleted += session.query(User).filter(
+                    User.state == 6, User.id.in_(chunk)).delete(synchronize_session=False)
+            session.commit()
+            return deleted
+
+    def find_stale_guest_ids_without_references(self, before: str, limit: int) -> List[int]:
+        """v0.41.0 — at most ``limit`` guests last seen before the bound that nothing references."""
+        if before is None or limit <= 0:
+            return []
+        with self.session_factory() as session:
+            rows = (session.query(User.id)
+                    .filter(User.state == 6, self._seen_at() < before, _not_referenced())
+                    .order_by(User.id).limit(limit).all())
+            return [r[0] for r in rows]
 
     def count_all_guests(self) -> int:
         with self.session_factory() as session:

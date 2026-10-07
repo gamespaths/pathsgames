@@ -2,15 +2,14 @@ package games.paths.core.persistence.match;
 
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
-import games.paths.core.entity.match.GamingStateRegistryEntity;
 import games.paths.core.port.match.MatchPersistencePort;
+import games.paths.core.port.match.SnapshotStorePort;
 import games.paths.core.repository.match.GamingBackpackResourcesRepository;
 import games.paths.core.repository.match.GamingCharacterInstanceRepository;
 import games.paths.core.repository.match.GamingCharacterTraitsRepository;
 import games.paths.core.repository.match.GamingInventoryItemsRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingStateLocationsRepository;
-import games.paths.core.repository.match.GamingStateRegistryRepository;
 import games.paths.core.repository.match.GamingStoryProgressRepository;
 import games.paths.core.repository.match.LogChoicesExecutedRepository;
 import games.paths.core.repository.match.LogEventsRepository;
@@ -37,7 +36,7 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
 
     private final GamingMatchRepository matchRepository;
     private final GamingStateLocationsRepository locationsRepository;
-    private final GamingStateRegistryRepository registryRepository;
+    private final games.paths.core.port.match.RegistryStorePort registryStorePort;
     private final GamingCharacterInstanceRepository characterRepository;
     private final GamingBackpackResourcesRepository backpackRepository;
     private final GamingCharacterTraitsRepository characterTraitsRepository;
@@ -47,11 +46,12 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
     private final LogChoicesExecutedRepository logChoicesRepository;
     private final LogItemUsageRepository logItemUsageRepository;
     private final GamingStoryProgressRepository storyProgressRepository;
+    private final SnapshotStorePort snapshotStorePort;
 
     @SuppressWarnings("java:S107") // one collaborator per table a match delete has to clear
     public MatchPersistenceAdapter(GamingMatchRepository matchRepository,
                                    GamingStateLocationsRepository locationsRepository,
-                                   GamingStateRegistryRepository registryRepository,
+                                   games.paths.core.port.match.RegistryStorePort registryStorePort,
                                    GamingCharacterInstanceRepository characterRepository,
                                    GamingBackpackResourcesRepository backpackRepository,
                                    GamingCharacterTraitsRepository characterTraitsRepository,
@@ -60,10 +60,11 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
                                    LogMovementRepository logMovementRepository,
                                    LogChoicesExecutedRepository logChoicesRepository,
                                    LogItemUsageRepository logItemUsageRepository,
-                                   GamingStoryProgressRepository storyProgressRepository) {
+                                   GamingStoryProgressRepository storyProgressRepository,
+                                   SnapshotStorePort snapshotStorePort) {
         this.matchRepository = matchRepository;
         this.locationsRepository = locationsRepository;
-        this.registryRepository = registryRepository;
+        this.registryStorePort = registryStorePort;
         this.characterRepository = characterRepository;
         this.backpackRepository = backpackRepository;
         this.characterTraitsRepository = characterTraitsRepository;
@@ -73,6 +74,7 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
         this.logChoicesRepository = logChoicesRepository;
         this.logItemUsageRepository = logItemUsageRepository;
         this.storyProgressRepository = storyProgressRepository;
+        this.snapshotStorePort = snapshotStorePort;
     }
 
     /** Removes the per-match character rows (traits, inventory, backpack, instance) for the given match ids. */
@@ -91,6 +93,8 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
         // delete that skipped them would leave orphans behind on the dev database.
         logChoicesRepository.deleteByMatchIdIn(matchIds);
         storyProgressRepository.deleteByMatchIdIn(matchIds);
+        // v0.41.1 - the time-end snapshots, for the same SQLite reason.
+        snapshotStorePort.deleteByMatchIds(matchIds);
         characterRepository.deleteByMatchIdIn(matchIds);
     }
 
@@ -122,14 +126,6 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
     }
 
     @Override
-    public void saveRegistry(List<GamingStateRegistryEntity> entities) {
-        if (entities == null || entities.isEmpty()) {
-            return;
-        }
-        registryRepository.saveAll(entities);
-    }
-
-    @Override
     public int deleteMatchesByNameLike(String nameLikePattern) {
         // Locate the matching matches, remove their derived runtime state
         // (locations + registry) first, then delete the matches themselves.
@@ -144,8 +140,48 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
         matchRepository.clearCurrentTurnByMatchIdIn(matchIds);
         deleteCharacterState(matchIds);
         locationsRepository.deleteByMatchIdIn(matchIds);
-        registryRepository.deleteByMatchIdIn(matchIds);
+        registryStorePort.deleteByMatchIdIn(matchIds);
         return matchRepository.deleteByNameLike(nameLikePattern);
+    }
+
+    @Override
+    public int changeOwner(long idMatch, long idUser) {
+        String now = java.time.Instant.now().toString();
+        matchRepository.updateOwner(idMatch, idUser, now);
+        return characterRepository.updateOwner(idMatch, idUser, now);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countMatchesByUserCreator(long idUser) {
+        return matchRepository.countByIdUserCreator(idUser);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countMatchesByUserCreatorIds(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return 0;
+        }
+        return matchRepository.findMatchIdsByUserCreatorIds(userIds).size();
+    }
+
+    @Override
+    public int deleteMatchesByUserCreatorIds(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return 0;
+        }
+        // The same order deleteMatchesByNameLike uses: derived runtime state first, because
+        // SQLite does not enforce the foreign-key cascades PostgreSQL does.
+        List<Long> matchIds = matchRepository.findMatchIdsByUserCreatorIds(userIds);
+        if (matchIds.isEmpty()) {
+            return 0;
+        }
+        matchRepository.clearCurrentTurnByMatchIdIn(matchIds);
+        deleteCharacterState(matchIds);
+        locationsRepository.deleteByMatchIdIn(matchIds);
+        registryStorePort.deleteByMatchIdIn(matchIds);
+        return matchRepository.deleteByIdIn(matchIds);
     }
 
     @Override
@@ -178,7 +214,7 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
         matchRepository.clearCurrentTurnByMatchIdIn(matchIds);
         deleteCharacterState(matchIds);
         locationsRepository.deleteByMatchIdIn(matchIds);
-        registryRepository.deleteByMatchIdIn(matchIds);
+        registryStorePort.deleteByMatchIdIn(matchIds);
         matchRepository.delete(opt.get());
         return true;
     }

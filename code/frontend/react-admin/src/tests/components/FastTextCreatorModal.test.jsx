@@ -155,5 +155,16 @@ describe('FastTextCreatorModal', () => {
 
     expect(onSave.mock.calls[0][0].translations.en.shortText).toBe('one line')
   })
-})
 
+  it('clearing the Text ID box leaves it empty rather than turning it into 0', () => {
+    render(<FastTextCreatorModal open mode="create" onClose={onClose} onSave={onSave}
+                                 storyUuid="s1" storyOptions={[]} />)
+    const box = screen.getByLabelText('Text ID')
+
+    fireEvent.change(box, { target: { value: '42' } })
+    expect(box).toHaveValue(42)
+
+    fireEvent.change(box, { target: { value: '' } })
+    expect(box).toHaveValue(null)
+  })
+})

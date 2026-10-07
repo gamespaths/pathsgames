@@ -7,7 +7,6 @@ weather-linked events.
 """
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import func
 
 from app.adapters.persistence.match.models import (
     GamingCharacterInstanceEntity,
@@ -18,6 +17,7 @@ from app.adapters.persistence.match.models import (
 )
 from app.adapters.persistence.match.turn_cycle_store_adapter import _new_uuid, _now_iso
 from app.adapters.persistence.story.models import CardEntity, TextEntity, WeatherRuleEntity
+from app.adapters.persistence.match.log_ids import next_log_id
 
 
 class WeatherStoreAdapter:
@@ -38,23 +38,10 @@ class WeatherStoreAdapter:
                     .filter(WeatherRuleEntity.id_story == id_story).all())
             out = []
             for w in rows:
-                if not w.is_active:
+                if not w.active:
                     continue
                 out.append(self._rule_to_dict(w))
             return out
-
-    def find_registry_value(self, id_match: int, key: str) -> Optional[str]:
-        with self.session_factory() as session:
-            r = (session.query(GamingStateRegistryEntity)
-                 .filter(GamingStateRegistryEntity.id_match == id_match,
-                         GamingStateRegistryEntity.key == key).first())
-            if r is None:
-                return None
-            if r.string_value is not None:
-                return r.string_value
-            if r.int_value is not None:
-                return str(r.int_value)
-            return None
 
     def find_characters(self, id_match: int) -> List[Dict[str, Any]]:
         with self.session_factory() as session:
@@ -84,7 +71,7 @@ class WeatherStoreAdapter:
     def insert_log_weather(self, id_match: int, clock: int, id_weather: Optional[int]) -> None:
         with self.session_factory() as session:
             now = _now_iso()
-            next_id = (session.query(func.coalesce(func.max(LogWeatherEntity.id), 0)).scalar() or 0) + 1
+            next_id = next_log_id(session, LogWeatherEntity)
             session.add(LogWeatherEntity(
                 id=next_id, id_match=id_match, uuid=_new_uuid(), clock=clock,
                 id_weather=id_weather, timestamp_start=now, ts_insert=now, ts_update=now))
@@ -93,7 +80,7 @@ class WeatherStoreAdapter:
     def log_weather_event(self, id_match: int, id_event: Optional[int], message: str) -> None:
         with self.session_factory() as session:
             now = _now_iso()
-            next_id = (session.query(func.coalesce(func.max(LogEventsEntity.id), 0)).scalar() or 0) + 1
+            next_id = next_log_id(session, LogEventsEntity)
             session.add(LogEventsEntity(
                 id=next_id, id_match=id_match, uuid=_new_uuid(), id_event=id_event,
                 log_message=message, ts_insert=now, ts_update=now))
@@ -105,19 +92,28 @@ class WeatherStoreAdapter:
         with self.session_factory() as session:
             m = (session.query(GamingMatchEntity)
                  .filter(GamingMatchEntity.uuid == match_uuid).first())
-            if m is None or m.id_current_weather is None or m.id_story is None:
-                return None
-            w = (session.query(WeatherRuleEntity)
-                 .filter(WeatherRuleEntity.id_story == m.id_story,
-                         WeatherRuleEntity.id == m.id_current_weather).first())
-            if w is None:
-                return None
-            return {"id_weather": w.id, "uuid": w.uuid, "id_story": m.id_story,
-                    "id_card": w.id_card, "id_text_name": w.id_text_name,
-                    "delta_energy": w.delta_energy,
-                    "cost_move_safe_location": w.cost_move_safe_location,
-                    "cost_move_not_safe_location": w.cost_move_not_safe_location,
-                    "current_clock": m.current_clock or 0}
+            return self._current_weather_of(session, m)
+
+    def find_current_weather(self, id_match: int) -> Optional[Dict[str, Any]]:
+        """Step 40 — the same view, by match id."""
+        with self.session_factory() as session:
+            return self._current_weather_of(session, session.get(GamingMatchEntity, id_match))
+
+    @staticmethod
+    def _current_weather_of(session, m) -> Optional[Dict[str, Any]]:
+        if m is None or m.id_current_weather is None or m.id_story is None:
+            return None
+        w = (session.query(WeatherRuleEntity)
+             .filter(WeatherRuleEntity.id_story == m.id_story,
+                     WeatherRuleEntity.id == m.id_current_weather).first())
+        if w is None:
+            return None
+        return {"id_weather": w.id, "uuid": w.uuid, "id_story": m.id_story,
+                "id_card": w.id_card, "id_text_name": w.id_text_name,
+                "delta_energy": w.delta_energy,
+                "cost_move_safe_location": w.cost_move_safe_location,
+                "cost_move_not_safe_location": w.cost_move_not_safe_location,
+                "current_clock": m.current_clock or 0}
 
     def find_weather_rules_for_match(self, match_uuid: str) -> List[Dict[str, Any]]:
         with self.session_factory() as session:
@@ -134,7 +130,11 @@ class WeatherStoreAdapter:
                 "probability": w.probability, "delta_energy": w.delta_energy,
                 "cost_move_safe_location": w.cost_move_safe_location,
                 "cost_move_not_safe_location": w.cost_move_not_safe_location,
-                "active": bool(w.is_active), "current": current is not None and current == w.id,
+                "active": bool(w.active), "current": current is not None and current == w.id,
+                # v0.36.2 — the authored registry condition; the verdict is the service's job.
+                "condition_key": w.condition_key,
+                "condition_key_value": w.condition_key_value,
+                "registry_value_operator_condition": w.registry_value_operator_condition,
             } for w in rows]
 
     def _resolve_weather_name(self, session, id_story, id_text_name, id_card):
@@ -193,8 +193,9 @@ class WeatherStoreAdapter:
     def _rule_to_dict(w: WeatherRuleEntity) -> Dict[str, Any]:
         return {
             "id": w.id, "uuid": w.uuid, "probability": w.probability,
-            "time_start": w.time_start, "time_end": w.time_end,
-            "condition_key": w.condition_key, "condition_value": w.condition_value,
+            "time_from": w.time_from, "time_to": w.time_to,
+            "condition_key": w.condition_key, "condition_key_value": w.condition_key_value,
+            "registry_value_operator_condition": w.registry_value_operator_condition,
             "delta_energy": w.delta_energy, "id_event": w.id_event,
             "id_text_name": w.id_text_name,
         }

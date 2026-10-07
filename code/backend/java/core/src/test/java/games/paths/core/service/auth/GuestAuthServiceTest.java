@@ -111,6 +111,46 @@ class GuestAuthServiceTest {
             // Assert
             assertTrue(session.getUsername().startsWith("guest_"));
         }
+
+        @Test
+        @DisplayName("v0.41.0 - a marked guest aged N days is backdated and expires 180 days after")
+        void createGuestSession_agedWithMarker_backdates() {
+            when(persistencePort.createGuestUser(anyString(), anyString(), anyString(), anyString())).thenReturn(7L);
+            when(jwtPort.generateAccessToken(anyString(), anyString(), anyString())).thenReturn("access-token");
+            when(jwtPort.generateRefreshToken(anyString())).thenReturn("refresh-token");
+            java.time.Instant before = java.time.Instant.now();
+
+            GuestSession session = guestAuthService.createGuestSession("robottest", 400);
+
+            org.mockito.ArgumentCaptor<String> expires = org.mockito.ArgumentCaptor.forClass(String.class);
+            org.mockito.ArgumentCaptor<String> born = org.mockito.ArgumentCaptor.forClass(String.class);
+            verify(persistencePort).createGuestUser(anyString(), anyString(), anyString(), expires.capture());
+            org.mockito.InOrder order = inOrder(persistencePort);
+            order.verify(persistencePort).updateLastAccess(7L);
+            order.verify(persistencePort).backdateGuest(eq(7L), born.capture());
+            java.time.Instant bornAt = java.time.Instant.parse(born.getValue());
+            assertTrue(bornAt.isBefore(before.minus(399, java.time.temporal.ChronoUnit.DAYS)));
+            assertEquals(bornAt.plus(180, java.time.temporal.ChronoUnit.DAYS),
+                    java.time.Instant.parse(expires.getValue()));
+            assertTrue(session.getUsername().startsWith("robottest_"));
+        }
+
+        @Test
+        @DisplayName("v0.41.0 - the age is ignored without a valid marker or outside 1..3650")
+        void createGuestSession_ageIgnoredWhenNotAllowed() {
+            when(persistencePort.createGuestUser(anyString(), anyString(), anyString(), anyString())).thenReturn(8L);
+            when(jwtPort.generateAccessToken(anyString(), anyString(), anyString())).thenReturn("access-token");
+            when(jwtPort.generateRefreshToken(anyString())).thenReturn("refresh-token");
+
+            guestAuthService.createGuestSession(null, 400);
+            guestAuthService.createGuestSession("!!!", 400);
+            guestAuthService.createGuestSession("robottest", 0);
+            guestAuthService.createGuestSession("robottest", 3651);
+            guestAuthService.createGuestSession("robottest", null);
+            guestAuthService.createGuestSession("robottest", 3650);
+
+            verify(persistencePort, times(1)).backdateGuest(eq(8L), anyString());
+        }
     }
 
     // --- SECTION: GUEST SESSION RESUMPTION ---

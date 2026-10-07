@@ -4,7 +4,10 @@ import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.TurnStatuses;
 import games.paths.core.model.match.event.TimeAdvanced;
 import games.paths.core.port.event.DomainEventPublisher;
+import games.paths.core.port.match.EventExecutionPort.EdgeStateOutcome;
 import games.paths.core.port.match.LocationEntryPort;
+import games.paths.core.port.match.MatchLogWriterPort;
+import games.paths.core.port.match.SnapshotPort;
 import games.paths.core.port.match.TimeAdvancementPort;
 import games.paths.core.port.match.TurnCyclePort.TurnCycleException;
 import games.paths.core.port.match.TurnCycleStorePort;
@@ -13,6 +16,7 @@ import games.paths.core.port.match.TurnCycleStorePort.ClockLabels;
 import games.paths.core.port.match.TurnCycleStorePort.MatchView;
 import games.paths.core.port.match.TurnCycleStorePort.QueueRow;
 import games.paths.core.port.match.UserAccessPort;
+import games.paths.core.port.match.WeatherStorePort;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -27,7 +31,7 @@ import java.util.List;
  * characters, rebuilds {@code gaming_turn_queue} reusing the Step 24
  * {@link TurnPriorityCalculator}, and publishes a {@link TimeAdvanced} event.</p>
  *
- * <p>See {@code documentation_v0/Step25_TimeAdvancementClockCycle.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step25_TimeAdvancementClockCycle.md}.</p>
  */
 public class TimeAdvancementService implements TimeAdvancementPort {
 
@@ -38,6 +42,8 @@ public class TimeAdvancementService implements TimeAdvancementPort {
     private final DomainEventPublisher eventPublisher;
     private final TimeStartRecoveryService recoveryService;
     private final WeatherSelectionService weatherService;
+    /** Step 39 - picks the day's random event after the weather (may be null in tests). */
+    private final RandomEventSelectionService randomEventService;
     /**
      * Step 33 — the engine that runs the automatic events a time-start collected.
      *
@@ -62,16 +68,46 @@ public class TimeAdvancementService implements TimeAdvancementPort {
                                   DomainEventPublisher eventPublisher,
                                   TimeStartRecoveryService recoveryService,
                                   WeatherSelectionService weatherService) {
+        this(store, userAccessPort, eventPublisher, recoveryService, weatherService, null);
+    }
+
+    /** Step 39 - overload wiring the random event picker. */
+    public TimeAdvancementService(TurnCycleStorePort store,
+                                  UserAccessPort userAccessPort,
+                                  DomainEventPublisher eventPublisher,
+                                  TimeStartRecoveryService recoveryService,
+                                  WeatherSelectionService weatherService,
+                                  RandomEventSelectionService randomEventService) {
         this.store = store;
         this.userAccessPort = userAccessPort;
         this.eventPublisher = eventPublisher;
         this.recoveryService = recoveryService;
         this.weatherService = weatherService;
+        this.randomEventService = randomEventService;
     }
 
     /** Step 33 — see {@link #automaticEventRunner}. Called once, from the bean wiring. */
     public void setAutomaticEventRunner(LocationEntryPort automaticEventRunner) {
         this.automaticEventRunner = automaticEventRunner;
+    }
+
+    /** v0.41.1 - the log-size check run at every time-end; null in the older tests. */
+    private MatchLogWriterPort logWriter;
+
+    public void setLogWriter(MatchLogWriterPort logWriter) {
+        this.logWriter = logWriter;
+    }
+
+    /** v0.41.1 - the LIGHT snapshot of every time-end; null in the older tests. */
+    private SnapshotPort.TimeEndWriter snapshotWriter;
+
+    public void setSnapshotWriter(SnapshotPort.TimeEndWriter snapshotWriter) {
+        this.snapshotWriter = snapshotWriter;
+    }
+
+    /** v0.41.1 - decision 18: the time-start a snapshot restore runs at once, without a new snapshot. */
+    public int startTimeAfterRestore(String matchUuid) {
+        return advanceTime(requireMatch(matchUuid), false).newClock();
     }
 
     @Override
@@ -100,6 +136,7 @@ public class TimeAdvancementService implements TimeAdvancementPort {
         int currentClock = match.currentClock();
         List<RecoveryItem> recovery = List.of();
         List<CounterZeroItem> counterZero = List.of();
+        EdgeStateOutcome edgeState = EdgeStateOutcome.none();
         if (triggered) {
             AdvanceResult advanced = advanceTime(match);
             currentClock = advanced.newClock();
@@ -109,12 +146,16 @@ public class TimeAdvancementService implements TimeAdvancementPort {
             // once Steps 49-54 land, through this very method called once per player.
             counterZero = describeCounterZero(match.id(), caller.id(),
                     advanced.automaticEvents(), currentClock);
+            // v0.35.6 — a time-start kills too: the recovery itself can empty a life bar, and
+            // so can the events it sets off. Without this the sleeper woke up comatose with
+            // nothing on screen to say why.
+            edgeState = advanced.edgeState();
         }
 
         // After a time-end every character is awake again; otherwise the caller stays asleep.
         boolean finalSleeping = !triggered;
         return new SleepResult(matchUuid, caller.uuid(), finalSleeping, triggered, currentClock,
-                recovery, counterZero);
+                recovery, counterZero, edgeState);
     }
 
     @Override
@@ -175,9 +216,10 @@ public class TimeAdvancementService implements TimeAdvancementPort {
         MatchView match = requireMatch(matchUuid);
         store.setAllCharactersSleeping(match.id());
         AdvanceResult advanced = advanceTime(match);
-        return new TimeEndOutcome(advanced.newClock(), advanced.recovery(),
+        return new TimeEndOutcome(advanced.newClock(), advanced.recovery(), advanced.edgeState(),
                 describeCounterZero(match.id(), idRecipientCharacter,
-                        advanced.automaticEvents(), advanced.newClock()));
+                        advanced.automaticEvents(), advanced.newClock()),
+                advanced.weather());
     }
 
     /**
@@ -198,7 +240,23 @@ public class TimeAdvancementService implements TimeAdvancementPort {
     /** Outcome of {@link #forceTimeEnd(String)}. */
     public record TimeEndOutcome(int newClock,
                                  List<RecoveryItem> recovery,
-                                 List<CounterZeroItem> counterZero) {
+                                 /** v0.35.6 — the edges the time-start pushed anyone over. */
+                                 EdgeStateOutcome edgeState,
+                                 List<CounterZeroItem> counterZero,
+                                 /** Step 40 - the weather after the time-start, null when none. */
+                                 TimeAdvancementPort.TimeStartWeather weather) {
+
+        /** A time end that moved no edge. */
+        public TimeEndOutcome(int newClock, List<RecoveryItem> recovery,
+                              List<CounterZeroItem> counterZero) {
+            this(newClock, recovery, EdgeStateOutcome.none(), counterZero, null);
+        }
+
+        /** A time end with no weather view (pre-Step 40 shape). */
+        public TimeEndOutcome(int newClock, List<RecoveryItem> recovery,
+                              EdgeStateOutcome edgeState, List<CounterZeroItem> counterZero) {
+            this(newClock, recovery, edgeState, counterZero, null);
+        }
     }
 
     /**
@@ -219,6 +277,15 @@ public class TimeAdvancementService implements TimeAdvancementPort {
     }
 
     private AdvanceResult advanceTime(MatchView match) {
+        return advanceTime(match, true);
+    }
+
+    private AdvanceResult advanceTime(MatchView match, boolean snapshot) {
+        // v0.41.1 - decision 3: the end of clock N, first, before anything moves the clock.
+        if (snapshot && snapshotWriter != null) {
+            snapshotWriter.writeAtTimeEnd(match.id());
+        }
+        WeatherStorePort.CurrentWeatherView weatherBefore = currentWeather(match.id());
         int newClock = store.incrementMatchClock(match.id());
         store.insertClockHistory(match.id(), newClock);
         store.wakeAllCharacters(match.id());
@@ -230,25 +297,59 @@ public class TimeAdvancementService implements TimeAdvancementPort {
         // with somebody standing there. Run here rather than inside the recovery service:
         // the event engine sits above it in the wiring, and an event can force a time end.
         List<LocationEntryPort.AutomaticEventFired> fired = automaticEventRunner == null
-                ? List.of()
-                : automaticEventRunner.runPendingAutomaticEvents(
-                        match.id(), newClock, outcome.pending(), DEFAULT_LANG);
+                ? new ArrayList<>()
+                : new ArrayList<>(automaticEventRunner.runPendingAutomaticEvents(
+                        match.id(), newClock, outcome.pending(), DEFAULT_LANG));
         // Step 27: select the weather for the new time unit and apply its energy delta.
         if (weatherService != null) {
             weatherService.applyAtTimeStart(match.id());
         }
+        // Step 39: at most one random event, after the weather.
+        if (randomEventService != null && automaticEventRunner != null) {
+            randomEventService.pickAtTimeStart(match.id()).ifPresent(p -> fired.addAll(
+                    automaticEventRunner.runRandomEvent(match.id(), newClock, p.idEvent(), DEFAULT_LANG)));
+        }
         rebuildQueue(match.id(), newClock);
         eventPublisher.publish(new TimeAdvanced(match.uuid(), newClock));
+        if (logWriter != null) {
+            logWriter.countRows(match.id());
+        }
         List<RecoveryItem> recovery = new ArrayList<>();
         for (TimeStartRecoveryService.RecoveryRecap r : outcome.recovery()) {
             recovery.add(new RecoveryItem(r.characterUuid(), r.energyDelta(), r.lifeDelta(), r.sadDelta()));
         }
-        return new AdvanceResult(newClock, recovery, fired);
+        // The recovery's own verdict first, then whatever its events did: one edge state.
+        List<EdgeStateOutcome> parts = new ArrayList<>();
+        parts.add(outcome.edgeState());
+        for (LocationEntryPort.AutomaticEventFired f : fired) {
+            parts.add(f.edgeState());
+        }
+        return new AdvanceResult(newClock, recovery, fired, EdgeStateOutcome.merge(parts),
+                weatherView(weatherBefore, currentWeather(match.id())));
     }
 
     private record AdvanceResult(int newClock,
                                  List<RecoveryItem> recovery,
-                                 List<LocationEntryPort.AutomaticEventFired> automaticEvents) {
+                                 List<LocationEntryPort.AutomaticEventFired> automaticEvents,
+                                 EdgeStateOutcome edgeState,
+                                 TimeAdvancementPort.TimeStartWeather weather) {
+    }
+
+    /** Step 40 - null when no weather engine is wired or the match has no weather. */
+    private WeatherStorePort.CurrentWeatherView currentWeather(long idMatch) {
+        return weatherService == null ? null : weatherService.currentWeather(idMatch).orElse(null);
+    }
+
+    /** Step 40 - the weather in force after the time-start, flagged when it differs from before. */
+    static TimeAdvancementPort.TimeStartWeather weatherView(WeatherStorePort.CurrentWeatherView before,
+                                                            WeatherStorePort.CurrentWeatherView after) {
+        if (after == null) {
+            return null;
+        }
+        boolean changed = before == null || before.idWeather() != after.idWeather();
+        return new TimeAdvancementPort.TimeStartWeather(after.idWeather(), after.uuid(),
+                after.idCard(), null, after.deltaEnergy(), after.costMoveSafeLocation(),
+                after.costMoveNotSafeLocation(), changed);
     }
 
     /** Rebuild the turn queue for a new clock: all WAITING, highest priority ACTIVE. */

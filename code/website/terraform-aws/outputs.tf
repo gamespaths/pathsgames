@@ -2,6 +2,11 @@
 # Outputs
 # ==================================================
 
+output "environment" {
+  description = "Deployed environment"
+  value       = var.environment
+}
+
 output "s3_bucket_name" {
   description = "Name of the S3 bucket"
   value       = aws_s3_bucket.website.id
@@ -28,8 +33,8 @@ output "cloudfront_distribution_arn" {
 }
 
 output "acm_certificate_arn" {
-  description = "ACM certificate ARN"
-  value       = aws_acm_certificate.website.arn
+  description = "ACM certificate ARN (issued by production, looked up elsewhere)"
+  value       = local.certificate_arn
 }
 
 output "waf_web_acl_arn" {
@@ -39,5 +44,5 @@ output "waf_web_acl_arn" {
 
 output "website_url" {
   description = "Website URL"
-  value       = "https://${var.domain_name}"
+  value       = "https://${var.aliases[0]}"
 }

@@ -39,6 +39,8 @@ public interface LocationEntryPort {
     String TRIGGER_COUNTER_ZERO = "COUNTER_ZERO";
     /** A time unit began with a character standing here. */
     String TRIGGER_CHARACTER_START_TIME = "CHARACTER_START_TIME";
+    /** Step 39 - a global random event fired at time-start; no actor, no location. */
+    String TRIGGER_RANDOM_EVENT = "RANDOM_EVENT";
 
     /**
      * Resolve and run every trigger a successful arrival fires, then mark the
@@ -56,6 +58,9 @@ public interface LocationEntryPort {
     List<AutomaticEventFired> runPendingAutomaticEvents(long idMatch, int currentClock,
                                                         List<PendingAutomaticEvent> pending,
                                                         String lang);
+
+    /** Step 39 - run a picked random event as a party-wide event with no actor. */
+    List<AutomaticEventFired> runRandomEvent(long idMatch, int currentClock, long idEvent, String lang);
 
     /**
      * Describe an already-run list of automatic events <b>to one recipient</b>, applying the
@@ -112,6 +117,37 @@ public interface LocationEntryPort {
                                List<EventExecutionPort.AppliedEffect> effects,
                                List<EventExecutionPort.StatChange> statChanges,
                                List<EventExecutionPort.LocationChange> locationChanges,
-                               boolean gameOver) {
+                               boolean gameOver,
+                               /**
+                                * v0.35.6 — what the Step 30 rules did about it, epilogue
+                                * included. An arrival kills exactly as an executed event
+                                * does; before this the collapse reached the board only on
+                                * the next reload, as a flag with no card and no story.
+                                */
+                               EventExecutionPort.EdgeStateOutcome edgeState,
+                               /** Step 40 - set when this event forced a time-end, else null. */
+                               TimeAdvancementPort.TimeEndNews timeEnd) {
+
+        /** An automatic event that forced no time-end (pre-Step 40 shape). */
+        public AutomaticEventFired(String trigger, long idLocation, String eventUuid,
+                                   CardInfo card,
+                                   List<EventExecutionPort.AppliedEffect> effects,
+                                   List<EventExecutionPort.StatChange> statChanges,
+                                   List<EventExecutionPort.LocationChange> locationChanges,
+                                   boolean gameOver, EventExecutionPort.EdgeStateOutcome edgeState) {
+            this(trigger, idLocation, eventUuid, card, effects, statChanges, locationChanges,
+                    gameOver, edgeState, null);
+        }
+
+        /** An automatic event that moved no edge — the ordinary case. */
+        public AutomaticEventFired(String trigger, long idLocation, String eventUuid,
+                                   CardInfo card,
+                                   List<EventExecutionPort.AppliedEffect> effects,
+                                   List<EventExecutionPort.StatChange> statChanges,
+                                   List<EventExecutionPort.LocationChange> locationChanges,
+                                   boolean gameOver) {
+            this(trigger, idLocation, eventUuid, card, effects, statChanges, locationChanges,
+                    gameOver, EventExecutionPort.EdgeStateOutcome.none());
+        }
     }
 }

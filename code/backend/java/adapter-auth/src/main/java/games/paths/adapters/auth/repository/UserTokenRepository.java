@@ -18,14 +18,6 @@ import java.util.Optional;
 public interface UserTokenRepository extends JpaRepository<UserTokenEntity, Long> {
 
     /**
-     * Delete all tokens belonging to expired guest users.
-     */
-    @Modifying
-    @Query("DELETE FROM UserTokenEntity t WHERE t.idUser IN " +
-           "(SELECT u.id FROM UserEntity u WHERE u.state = :state AND u.guestExpiresAt < :now)")
-    int deleteTokensOfExpiredGuests(@Param("state") Integer state, @Param("now") String now);
-
-    /**
      * Delete all tokens belonging to guest users whose username matches the
      * given SQL LIKE pattern. Used by the dev-only test-data cleanup.
      */
@@ -33,6 +25,11 @@ public interface UserTokenRepository extends JpaRepository<UserTokenEntity, Long
     @Query("DELETE FROM UserTokenEntity t WHERE t.idUser IN " +
            "(SELECT u.id FROM UserEntity u WHERE u.state = :state AND u.username LIKE :pattern)")
     int deleteTokensOfGuestsByUsernameLike(@Param("state") Integer state, @Param("pattern") String pattern);
+
+    /** v0.36.2 — the tokens of the guests a stale purge is about to remove. */
+    @Modifying
+    @Query("DELETE FROM UserTokenEntity t WHERE t.idUser IN :ids")
+    int deleteTokensOfUsers(@Param("ids") java.util.List<Long> ids);
 
     /**
      * Delete all tokens belonging to a specific user.

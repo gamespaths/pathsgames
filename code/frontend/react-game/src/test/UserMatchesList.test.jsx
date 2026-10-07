@@ -73,3 +73,75 @@ describe('UserMatchesList', () => {
     expect(listMatches).not.toHaveBeenCalled()
   })
 })
+
+describe('UserMatchesList — payloads that are not a list, and an early unmount', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getStory.mockResolvedValue(STORY)
+  })
+
+  it('a response that is not an array is read as no match at all', async () => {
+    listMatches.mockResolvedValue({ items: [] })
+    wrap(<UserMatchesList accessToken="tok" />)
+    expect(await screen.findByText('matches.noMatches')).toBeInTheDocument()
+  })
+
+  it('a story that fails to load leaves its match without one', async () => {
+    listMatches.mockResolvedValue(MATCHES)
+    getStory.mockRejectedValue(new Error('boom'))
+    wrap(<UserMatchesList accessToken="tok" />)
+    await waitFor(() => expect(screen.queryByText('game.loadingCard.title')).toBeNull())
+    expect(screen.queryByText('matches.noMatches')).toBeNull()
+  })
+
+  it('a match with no story uuid asks for no story', async () => {
+    listMatches.mockResolvedValue([{ uuid: 'm3', status: 'RUNNING', tsInsert: '2026-05-01T10:00:00Z' }])
+    wrap(<UserMatchesList accessToken="tok" />)
+    await waitFor(() => expect(screen.queryByText('game.loadingCard.title')).toBeNull())
+    expect(getStory).not.toHaveBeenCalled()
+  })
+
+  it('a failing list shows the error it carries', async () => {
+    listMatches.mockRejectedValue(new Error('no network'))
+    wrap(<UserMatchesList accessToken="tok" />)
+    expect(await screen.findByText(/no network/)).toBeInTheDocument()
+  })
+
+  it('a failure with no message falls back to a generic one', async () => {
+    listMatches.mockRejectedValue({})
+    wrap(<UserMatchesList accessToken="tok" />)
+    expect(await screen.findByText(/Failed to load matches/)).toBeInTheDocument()
+  })
+
+  it('unmounting before the list arrives sets no state', async () => {
+    let resolve
+    listMatches.mockReturnValue(new Promise(r => { resolve = r }))
+    const { unmount } = wrap(<UserMatchesList accessToken="tok" />)
+
+    unmount()
+    resolve(MATCHES)
+    await Promise.resolve()
+
+    expect(getStory).not.toHaveBeenCalled()
+  })
+
+  it('unmounting between the list and its stories sets no state', async () => {
+    let resolveStory
+    listMatches.mockResolvedValue(MATCHES)
+    getStory.mockReturnValue(new Promise(r => { resolveStory = r }))
+    const { unmount } = wrap(<UserMatchesList accessToken="tok" />)
+
+    await waitFor(() => expect(getStory).toHaveBeenCalled())
+    unmount()
+    resolveStory(STORY)
+    await Promise.resolve()
+
+    expect(screen.queryByText('matches.title')).toBeNull()
+  })
+
+  it('a preloaded list is used as it is, with no second request', async () => {
+    wrap(<UserMatchesList accessToken="tok" preloadedMatches={MATCHES} />)
+    await screen.findByText('matches.title')
+    expect(listMatches).not.toHaveBeenCalled()
+  })
+})

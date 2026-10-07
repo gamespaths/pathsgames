@@ -41,10 +41,13 @@ vi.mock('../features/matches/MatchLogCard', () => ({
     <div data-testid="match-log-card"><button data-testid="log-back" onClick={onBack}>back</button></div>
   ),
 }))
+// What the sleep answers is set per test: the card owns the call, the board owns the news.
+const sleepAnswer = vi.hoisted(() => ({ result: undefined }))
 vi.mock('../features/gameplay/cards/GoToSleepCard', () => ({
   default: ({ onSlept, onPreview, autoPreview }) => (
     <div data-testid="go-to-sleep-card" data-auto-preview={autoPreview ? '1' : '0'}>
-      <button aria-label="Sleep" data-testid="action-sleep" onClick={() => onSlept?.()}>sleep</button>
+      <button aria-label="Sleep" data-testid="action-sleep"
+        onClick={() => onSlept?.(sleepAnswer.result)}>sleep</button>
       <button data-testid="preview-sleep" onClick={() => onPreview?.(
         { card: { title: 'Sleep page' }, type: 'sleep', side: 'right' })}>i</button>
     </div>
@@ -54,8 +57,9 @@ vi.mock('../features/gameplay/cards/GoToSleepCard', () => ({
 // the branch behind it can be fired from a test.
 vi.mock('../components/layout/Card', () => ({
   default: ({ entityType, card, children, childrenIntoImage, onPreview, onAction, onClose,
-              onForward, actionsList, onSelect, locked, lockInfo, statItemsToPageContent }) => (
-    <div data-testid={entityType ? `cc-${entityType}` : 'game-card'}>
+              onForward, actionsList, onSelect, locked, lockInfo, statItemsToPageContent,
+              additionalCardClasses, infoLabel }) => (
+    <div data-testid={entityType ? `cc-${entityType}` : 'game-card'} className={additionalCardClasses}>
       <span>{card?.title}</span>{children}{childrenIntoImage}
       {/* The badges under the card: key:value pairs, so a test can read WHICH numbers a
           card is describing — the item's own promise or the event's stat changes. */}
@@ -64,12 +68,12 @@ vi.mock('../components/layout/Card', () => ({
       </span>
       {onClose && <button data-testid="page-back" onClick={onClose}>back</button>}
       {onForward && <button data-testid="page-forward" onClick={onForward}>forward</button>}
-      {onPreview && <button data-testid={`preview-${entityType}`} onClick={onPreview}>preview</button>}
+      {onPreview && <button data-testid={`preview-${entityType}`} onClick={onPreview}>{infoLabel ?? 'preview'}</button>}
       {onAction && <button data-testid={`action-${entityType}`} onClick={onAction}>action</button>}
       {onSelect && <button data-testid={`select-${entityType}`} onClick={onSelect}>select</button>}
       {locked && <span data-testid={`locked-${entityType}`}>{lockInfo}</span>}
       {(actionsList ?? []).map((a, i) => (
-        <button key={i} data-testid={`extra-action-${i}`} onClick={a.onAction}>{a.icon}</button>
+        <button key={i} data-testid={`extra-action-${i}`} onClick={a.onAction}>{a.icon}{a.label}</button>
       ))}
     </div>
   ),
@@ -176,6 +180,25 @@ describe('GameBook — edge states after an executed event', () => {
     })
     await executeAction()
     expect(await screen.findByText('All asleep forever')).toBeInTheDocument()
+  })
+
+  // v0.35.6 — a time-start kills too: the recovery, or an event a counter set off. Before
+  // this the sleeper woke up comatose with nothing on screen to say why.
+  it('shows the coma page when the time-start the sleep triggered put the party down', async () => {
+    sleepAnswer.result = {
+      timeEndTriggered: true, counterZero: [],
+      edgeState: {
+        sadnessOverflowUuids: [], comaUuids: ['me'], allPlayersInComa: true,
+        comaEventUuid: 'evt-coma', comaEventCard: { title: 'You do not wake' },
+        comaExecutedEventUuids: ['evt-coma'], comaEffects: [],
+      },
+    }
+    renderBook()
+    fireEvent.click(screen.getAllByTestId('preview-information')[0])
+    fireEvent.click(await screen.findByTestId('action-sleep'))
+
+    expect(await screen.findByText('You do not wake')).toBeInTheDocument()
+    sleepAnswer.result = undefined
   })
 
   // A personal coma (this client's character is listed) shows the generic coma page.
@@ -327,9 +350,9 @@ describe('GameBook — the Step 32 choice resolution', () => {
     edgeState: { comaUuids: [], sadnessOverflowUuids: [] },
   }
 
-  async function openChoices() {
+  async function openChoices(props = {}, overrides = {}) {
     executeEvent.mockResolvedValue(PENDING)
-    renderBook()
+    renderBook(overrides, props)
     fireEvent.click(screen.getByTestId('preview-action'))
     fireEvent.click(screen.getByTestId('action-action'))
     expect(await screen.findByTestId('cc-choice')).toBeInTheDocument()
@@ -347,6 +370,25 @@ describe('GameBook — the Step 32 choice resolution', () => {
     // narrative card, which is the point of the whole exchange.
     await waitFor(() => expect(screen.queryAllByTestId('cc-choice')).toHaveLength(0))
     expect(screen.getByText('A wound')).toBeInTheDocument()
+  })
+
+  // Step 36.1 — an option writes the registry as an event effect does. The badges were wired
+  // into the execute-event path only, so a key written by a CHOICE was silently dropped.
+  it('badges a registry key the resolved option wrote', async () => {
+    await openChoices({}, { info: { ...GAME_DATA.info, registry: [
+      { key: 'evidence_found', visible: true, multiValue: true,
+        card: { title: 'Evidence found' } },
+    ] } })
+    selectChoice.mockResolvedValue({
+      ...RESOLVED,
+      registryChanges: [{ key: 'evidence_found', oldValue: null, newValue: 'ledger' }],
+    })
+
+    fireEvent.click(screen.getByTestId('select-choice'))
+
+    expect(await screen.findByText('A wound')).toBeInTheDocument()
+    const badges = screen.getAllByTestId('cc-stats').map(n => n.textContent).join('|')
+    expect(badges).toContain('registry:evidence_found:+ledger')
   })
 
   it('narrates with the linked event card when an effect ran one', async () => {
@@ -422,6 +464,46 @@ describe('GameBook — the Step 32 choice resolution', () => {
 
     expect(await screen.findByText('All asleep forever')).toBeInTheDocument()
   })
+
+  // v0.35.6 — the epilogue may carry the body somewhere else, so its card is only half the
+  // news: the board is re-read, which is what puts the player in the new location.
+  it('reloads the board when the option ran the party-coma epilogue', async () => {
+    const onReload = vi.fn()
+    await openChoices({ onReload })
+    selectChoice.mockResolvedValue({
+      ...RESOLVED,
+      movementApplied: true,
+      locationChanges: [{ characterUuid: 'me', fromLocationUuid: 'l1', toLocationUuid: 'l9' }],
+      edgeState: {
+        comaUuids: ['me'], sadnessOverflowUuids: [], allPlayersInComa: true,
+        comaEventUuid: 'evt-coma', comaEventCard: { title: 'Carried away' },
+        comaExecutedEventUuids: ['evt-coma'], comaEffects: [],
+      },
+    })
+
+    fireEvent.click(screen.getByTestId('select-choice'))
+
+    expect(await screen.findByText('Carried away')).toBeInTheDocument()
+    await waitFor(() => expect(onReload).toHaveBeenCalled())
+  })
+
+  // A story need not author an epilogue: the party collapse is still the news, and ComaCard
+  // falls back to its own party copy — game.allComa, not the personal game.coma.
+  it('shows the party-coma page after an option even when no epilogue card comes back', async () => {
+    await openChoices()
+    selectChoice.mockResolvedValue({
+      ...RESOLVED,
+      edgeState: {
+        comaUuids: ['me'], sadnessOverflowUuids: [], allPlayersInComa: true,
+        comaEventUuid: null, comaEventCard: null,
+        comaExecutedEventUuids: [], comaEffects: [],
+      },
+    })
+
+    fireEvent.click(screen.getByTestId('select-choice'))
+
+    expect(await screen.findByText('game.allComa.title')).toBeInTheDocument()
+  })
 })
 
 describe('GameBook — map and statistics view', () => {
@@ -458,24 +540,22 @@ describe('GameBook — map and statistics view', () => {
     expect(screen.getByTestId('game-map-canvas')).toBeInTheDocument()
   })
 
-  // The story card in the statistics view opens the match history on the right page.
-  it('opens the match log page from the story card in the statistics view', async () => {
+  // v0.37.4 — the match history left the board: the story card in the statistics view is
+  // a story card, and no page of the book opens the timeline any more.
+  it('offers no match log page from the statistics view', async () => {
     renderBook()
     fireEvent.click(screen.getAllByTestId('preview-information')[0])
-    fireEvent.click(await screen.findByTestId('preview-story'))
-    expect(await screen.findByTestId('match-log-card')).toBeInTheDocument()
+    expect(await screen.findByTestId('preview-story')).toBeInTheDocument()
+    expect(screen.queryByTestId('preview-matchlog')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('match-log-card')).not.toBeInTheDocument()
   })
 
-  // The (i) characteristics card carries a fa-bed shortcut: it reveals the sleep card on
-  // the board and asks it to open its own reading page (autoPreview). It is the card's MAIN
-  // action — fa-map, which used to be, now sits first in actionsList.
-  it('reveals and auto-opens the sleep card from the characteristics fa-bed shortcut', () => {
+  // v0.37.3 — the fa-bed shortcut left the characteristics card: sleeping is offered by the
+  // board itself, when every movement and action here costs more energy than the player has.
+  it('no longer offers the sleep shortcut on the characteristics card', () => {
     renderBook()
+    expect(screen.queryByTestId('action-information')).not.toBeInTheDocument()
     expect(screen.queryByTestId('go-to-sleep-card')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByTestId('action-information'))
-    const card = screen.getByTestId('go-to-sleep-card')
-    expect(card).toBeInTheDocument()
-    expect(card).toHaveAttribute('data-auto-preview', '1')
   })
 
   // A card asking for a reading page reaches it through openPreview, side and all.
@@ -486,13 +566,34 @@ describe('GameBook — map and statistics view', () => {
     expect(await screen.findByText('Sleep page')).toBeInTheDocument()
   })
 
-  // The two registry shortcuts on the characteristics card have no backend yet.
-  it('says the missions and registry shortcuts are still coming', () => {
+  // Step 37 — the missions shortcut on the characteristics card opens the panel now.
+  it('opens the missions panel from the characteristics card shortcut', () => {
     const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
     renderBook()
     fireEvent.click(screen.getByTestId('extra-action-1'))
-    expect(alertSpy).toHaveBeenCalled()
+    expect(alertSpy).not.toHaveBeenCalled()
     alertSpy.mockRestore()
+  })
+
+  // v0.37.3 — the scroll shortcut left the row; the registry is reached from the (i) view.
+  it('no longer offers the registry shortcut on the characteristics card', () => {
+    renderBook()
+    expect(screen.queryAllByText(/fa-scroll/)).toHaveLength(0)
+    expect(screen.getAllByText(/fa-clipboard-list/).length).toBeGreaterThan(0)
+  })
+
+  // v0.37.3 — the mobile stack has no bookmarks, so the status card names its own shortcuts
+  // and carries the marker class the one-per-row mobile rule hangs on.
+  it('names the status card shortcuts and marks the card for the mobile layout rule', () => {
+    renderBook()
+    const statusCard = document.querySelector('.card-status')
+    expect(statusCard).toBeTruthy()
+    expect(statusCard.className).toContain('hide-in-book')
+    // The (i) keeps CardButtons' own short name (card.info = "Info"), covered there; the
+    // three shortcuts carry the bookmark names.
+    for (const key of ['map', 'missions', 'backpack']) {
+      expect(screen.getAllByText(new RegExp(`game\\.bookmarks\\.${key}`)).length).toBeGreaterThan(0)
+    }
   })
 
   // A comatose character gets the coma card among the board cards.
@@ -518,7 +619,7 @@ describe('GameBook — inventory (Step 34)', () => {
       },
     })
     // The bag lives on its own page now: the flask button is the way in.
-    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getAllByTestId('extra-action-2')[0])
 
     expect(screen.getAllByTestId('cc-item')).toHaveLength(2)
     // The non-consumable one renders locked — carried, not usable.
@@ -527,7 +628,7 @@ describe('GameBook — inventory (Step 34)', () => {
 
   it('renders no ItemCard when the player carries nothing', () => {
     renderBook({ playerStats: { life: 10, energy: 10, constitution: 3, items: [] } })
-    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getAllByTestId('extra-action-2')[0])
     expect(screen.queryByTestId('cc-item')).toBeNull()
   })
 
@@ -546,7 +647,7 @@ describe('GameBook — inventory (Step 34)', () => {
       },
     }, { onReload })
 
-    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getAllByTestId('extra-action-2')[0])
     fireEvent.click(screen.getByTestId('preview-item'))
     fireEvent.click(screen.getAllByTestId('extra-action-0').at(-1))
 
@@ -576,14 +677,14 @@ describe('GameBook — the backpack page (Step 34)', () => {
     // Before: the characteristics card, no item cards.
     expect(screen.queryByTestId('cc-item')).toBeNull()
     // The flask is the 4th secondary action of the characteristics card (index 3).
-    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getAllByTestId('extra-action-2')[0])
 
     expect(screen.getAllByTestId('cc-item').length).toBeGreaterThan(0)
   })
 
   it('the backpack lists one card per row, and the left page closes it again', () => {
     renderBook({ playerStats: BAG })
-    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getAllByTestId('extra-action-2')[0])
 
     // Right page: the rows. Left page: the bag card, which owns the way back.
     expect(screen.getAllByTestId('cc-item')).toHaveLength(1)
@@ -633,7 +734,7 @@ describe('GameBook — the backpack page (Step 34)', () => {
       effects: [{ statistic: 'life', card: { title: 'You feel better' } }],
     })
     renderBook({ playerStats: BAG })
-    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getAllByTestId('extra-action-2')[0])
     expect(screen.getAllByTestId('cc-item').length).toBeGreaterThan(0)
 
     // "use" lives on the item's RIGHT preview, as the primary action.
@@ -657,7 +758,7 @@ describe('GameBook — the backpack page (Step 34)', () => {
       effects: [{ statistic: 'life', value: 3 }],
     })
     renderBook({ playerStats: BAG })
-    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getAllByTestId('extra-action-2')[0])
     fireEvent.click(screen.getByTestId('preview-item'))
     fireEvent.click(screen.getAllByTestId('action-item').at(-1))
 
@@ -684,7 +785,7 @@ describe('GameBook — the backpack page (Step 34)', () => {
   it('dropping an item keeps the bag open: the list is what the player is working through', async () => {
     dropItem.mockResolvedValue({})
     renderBook({ playerStats: BAG })
-    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getAllByTestId('extra-action-2')[0])
     fireEvent.click(screen.getByTestId('preview-item'))
     fireEvent.click(screen.getAllByTestId('extra-action-0').at(-1))
 
@@ -733,6 +834,50 @@ describe('GameBook — the backpack page (Step 34)', () => {
     expect(badges).toContain('weight:2')
     expect(badges).not.toContain('amount')
     expect(badges).not.toContain('experience')
+  })
+
+  // Step 36.1 — a key an event wrote belongs to the OUTCOME, beside the stat changes: the
+  // player is told what the world now records, not only what their character gained.
+  it('badges a registry key the event wrote, named by that key card title', async () => {
+    executeEvent.mockResolvedValue({
+      card: { title: 'The Study' },
+      effects: [{ card: { title: 'You pocket the ledger' } }],
+      statChanges: [{ characterUuid: 'me', statistic: 'exp', before: 0, after: 2, delta: 2 }],
+      registryChanges: [{ key: 'evidence_found', oldValue: null, newValue: 'ledger' }],
+    })
+    renderBook({ info: { ...GAME_DATA.info, registry: [
+      { key: 'evidence_found', visible: true, multiValue: true,
+        card: { title: 'Evidence found' } },
+    ] } })
+
+    fireEvent.click(screen.getByTestId('preview-action'))
+    fireEvent.click(screen.getByTestId('action-action'))
+
+    await waitFor(() => expect(screen.getAllByText('You pocket the ledger').length).toBeGreaterThan(0))
+    const badges = screen.getAllByTestId('cc-stats').map(n => n.textContent).join('|')
+    // Namespaced, so a key named after a statistic cannot steal its glyph.
+    expect(badges).toContain('registry:evidence_found:+ledger')
+    // It rides WITH what the character earned, never instead of it.
+    expect(badges).toContain('experience:+2')
+  })
+
+  it('says nothing on the outcome card about a key the story hid', async () => {
+    executeEvent.mockResolvedValue({
+      card: { title: 'The Study' },
+      effects: [{ card: { title: 'Something clicks' } }],
+      registryChanges: [{ key: 'secret_door', oldValue: null, newValue: 'OPEN' }],
+    })
+    // /info never carries a hidden key, so the board holds no title for it — and announcing
+    // it here would give away the very secret the story is keeping.
+    renderBook({ info: { ...GAME_DATA.info, registry: [] } })
+
+    fireEvent.click(screen.getByTestId('preview-action'))
+    fireEvent.click(screen.getByTestId('action-action'))
+
+    await waitFor(() => expect(screen.getAllByText('Something clicks').length).toBeGreaterThan(0))
+    const badges = screen.getAllByTestId('cc-stats').map(n => n.textContent).join('|')
+    expect(badges).not.toContain('secret_door')
+    expect(badges).not.toContain('OPEN')
   })
 
   it('an item whose story hides its effects is received with no badge at all', async () => {

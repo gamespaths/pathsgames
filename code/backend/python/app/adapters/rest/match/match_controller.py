@@ -13,6 +13,8 @@ from app.core.models.match.match_models import (
 )
 from app.adapters.rest.match.inventory_controller import item_to_camel
 from app.core.ports.match.match_ports import MatchCommandPort, MatchQueryPort
+from app.core.services.security import csrf_token_service as _csrf
+from app.core.services.security import rate_limit_service as _rl
 
 
 _STATUS_BY_CODE = {
@@ -46,6 +48,12 @@ class MatchCreateRequestBody(BaseModel):
     turnstileToken: Optional[str] = None
     # Step 27 — optional deterministic RNG seed (Robot tests pass 42).
     rngSeed: Optional[int] = None
+
+
+def _bearer_of(request: Request) -> Optional[str]:
+    """The raw bearer the middleware already validated — the CSRF token is bound to it."""
+    header = request.headers.get("Authorization") or ""
+    return header[7:].strip() if header.startswith("Bearer ") else None
 
 
 def _error(code: str, message: str, http_status: int) -> JSONResponse:
@@ -106,6 +114,9 @@ def _character_summary_to_camel(p):
         "food": p.food,
         "magic": p.magic,
         "coin": p.coin,
+        # Step 38 — experience and the price of the next point per stat (null = at cap).
+        "exp": p.exp,
+        "expCosts": dict(p.exp_costs) if p.exp_costs is not None else None,
         "idLocation": p.id_location,
         "isSleeping": p.is_sleeping,
         "isComa": p.is_coma,
@@ -143,6 +154,8 @@ def _character_full_to_camel(p):
         "food": p.food,
         "magic": p.magic,
         "coin": p.coin,
+        "exp": p.exp,
+        "expCosts": dict(p.exp_costs) if p.exp_costs is not None else None,
     }
 
 
@@ -188,6 +201,34 @@ def _location_info_to_camel(l):
     }
 
 
+def _registry_to_camel(groups):
+    """Step 36 — the grouped registry, in the shape the OpenAPI spec describes."""
+    return {
+        "groups": [
+            {
+                "category": g.get("category"),
+                "entries": [
+                    {
+                        "uuid": e.get("uuid"),
+                        "key": e.get("key"),
+                        # Step 36.1 — the SET of values, ordered by the backend.
+                        "values": e.get("values") or [],
+                        "multiValue": bool(e.get("multi_value")),
+                        "idCharacter": e.get("id_character"),
+                        "category": e.get("category"),
+                        "visible": bool(e.get("visible")),
+                        "priority": e.get("priority"),
+                        "idCard": e.get("id_card"),
+                        "card": e.get("card"),
+                    }
+                    for e in g.get("entries") or []
+                ],
+            }
+            for g in groups or []
+        ]
+    }
+
+
 def _detail_to_camel(detail):
     return {
         "match": _summary_to_camel(detail.match),
@@ -208,11 +249,22 @@ def _detail_to_camel(detail):
             {
                 "uuid": r.uuid,
                 "key": r.key,
-                "stringValue": r.string_value,
-                "intValue": r.int_value,
+                # Step 36.1 — the SET of values, ordered by the backend.
+                "values": r.values,
+                "multiValue": r.multi_value,
+                # Step 36 — the key's own definition rides along so the board can group and
+                # dress it without a second request.
+                "idCharacter": r.id_character,
+                "category": r.category,
+                "visible": bool(r.visible),
+                "priority": r.priority,
+                "idCard": r.id_card,
+                "card": r.card,
             }
             for r in detail.registry
         ],
+        # Step 37 — already camelCase from the engine, so it crosses as it is.
+        "missions": detail.missions,
         "events": [asdict(e) for e in detail.events],
         "choices": [asdict(c) for c in detail.choices],
         "players": [_character_summary_to_camel(p) for p in detail.players],
@@ -222,10 +274,19 @@ def _detail_to_camel(detail):
 
 class MatchController:
     def __init__(self, command_port: MatchCommandPort, query_port: MatchQueryPort,
-                 match_logs_service=None):
+                 match_logs_service=None, rate_limit_service=None, match_per_ip: int = 0,
+                 csrf_token_service=None, match_per_guest: int = 0,
+                 match_per_guest_window_seconds: int = 86400):
         self.command_port = command_port
         self.query_port = query_port
         self.match_logs_service = match_logs_service
+        # v0.37.7 — Step 41: the match bucket of the rate limiter and the CSRF check on creation
+        self.rate_limit_service = rate_limit_service
+        self.match_per_ip = match_per_ip
+        self.csrf_token_service = csrf_token_service
+        # v0.41.0 — second bucket keyed by the user uuid, with its own (daily) window
+        self.match_per_guest = match_per_guest
+        self.match_per_guest_window_seconds = match_per_guest_window_seconds
         self.router = APIRouter()
         self.router.add_api_route(
             "/api/matches", self.create_match, methods=["POST"]
@@ -240,15 +301,77 @@ class MatchController:
             "/api/match/{uuid_match}/info", self.get_match_info, methods=["GET"]
         )
         self.router.add_api_route(
+            "/api/match/{uuid_match}/registry", self.get_match_registry, methods=["GET"]
+        )
+        self.router.add_api_route(
+            "/api/match/{uuid_match}/missions", self.get_match_missions, methods=["GET"]
+        )
+        self.router.add_api_route(
+            "/api/match/{uuid_match}/missions/{uuid_mission}", self.get_match_mission,
+            methods=["GET"]
+        )
+        self.router.add_api_route(
             "/api/match/{uuid_match}/end/{uuid_event}",
             self.end_match,
             methods=["PATCH"],
         )
 
+    def get_match_missions(self, uuid_match: str, request: Request, lang: str = "en",
+                           status: Optional[str] = None):
+        """Step 37 — the missions this match has reached, optionally filtered by status."""
+        user_uuid = getattr(request.state, "user_uuid", None)
+        if not user_uuid:
+            return _error("UNAUTHENTICATED", "User identity is missing", 401)
+        if not uuid_match or not uuid_match.strip():
+            return _error("INVALID_INPUT", "Match uuid is required", 400)
+        missions = self.query_port.get_match_missions(uuid_match, user_uuid, status, lang)
+        if missions is None:
+            return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
+        return JSONResponse(content={"missions": missions})
+
+    def get_match_mission(self, uuid_match: str, uuid_mission: str, request: Request,
+                          lang: str = "en"):
+        """Step 37 — one mission with all its steps. A mission this match has not reached
+        reads as not-found, exactly as the match itself would."""
+        user_uuid = getattr(request.state, "user_uuid", None)
+        if not user_uuid:
+            return _error("UNAUTHENTICATED", "User identity is missing", 401)
+        if not uuid_match or not uuid_match.strip():
+            return _error("INVALID_INPUT", "Match uuid is required", 400)
+        if not uuid_mission or not uuid_mission.strip():
+            return _error("INVALID_INPUT", "Mission uuid is required", 400)
+        mission = self.query_port.get_match_mission(uuid_match, user_uuid, uuid_mission, lang)
+        if mission is None:
+            return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
+        return JSONResponse(content=mission)
+
     def create_match(self, request: Request, body: Optional[MatchCreateRequestBody] = None):
         user_uuid = getattr(request.state, "user_uuid", None)
         if not user_uuid:
             return _error("UNAUTHENTICATED", "User identity is missing", 401)
+        # Step 41 — the CSRF token issued with this access token must come back as a header
+        if self.csrf_token_service is not None and self.csrf_token_service.enforced:
+            presented = request.headers.get(_csrf.HEADER)
+            if not presented or not presented.strip():
+                return _error("CSRF_TOKEN_MISSING",
+                              f"{_csrf.HEADER} header is required to create a match", 403)
+            if not self.csrf_token_service.matches(_bearer_of(request), presented):
+                return _error("CSRF_TOKEN_INVALID",
+                              f"{_csrf.HEADER} does not match the access token", 403)
+        # Step 41 — at most match_per_ip new matches per source address and window
+        if self.rate_limit_service is not None and self.match_per_ip > 0:
+            ip = _rl.client_ip(request.headers.get("X-Forwarded-For"),
+                               request.client.host if request.client else None)
+            verdict = self.rate_limit_service.try_acquire("match", ip, self.match_per_ip)
+            if not verdict.allowed:
+                return _rate_limited(verdict, "Too many matches created from this address")
+        # v0.41.0 — at most match_per_guest new matches per user and (daily) window
+        if self.rate_limit_service is not None and self.match_per_guest > 0:
+            verdict = self.rate_limit_service.try_acquire(
+                "match-guest", user_uuid, self.match_per_guest,
+                self.match_per_guest_window_seconds)
+            if not verdict.allowed:
+                return _rate_limited(verdict, "Too many matches created by this player")
         if body is None or not body.storyUuid or not body.difficultyUuid:
             return _error("INVALID_INPUT", "storyUuid and difficultyUuid are required", 400)
         command = MatchCreateCommand(
@@ -288,6 +411,18 @@ class MatchController:
             return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
         return JSONResponse(status_code=200, content=_detail_to_camel(detail))
 
+    def get_match_registry(self, uuid_match: str, request: Request, lang: str = "en",
+                           includeHidden: bool = False):
+        user_uuid = getattr(request.state, "user_uuid", None)
+        if not user_uuid:
+            return _error("UNAUTHENTICATED", "User identity is missing", 401)
+        if not uuid_match or not uuid_match.strip():
+            return _error("INVALID_INPUT", "Match uuid is required", 400)
+        groups = self.query_port.get_match_registry(uuid_match, user_uuid, includeHidden, lang)
+        if groups is None:
+            return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
+        return JSONResponse(status_code=200, content=_registry_to_camel(groups))
+
     def end_match(self, uuid_match: str, uuid_event: str, request: Request):
         """Step 20.1 — PATCH /api/match/{uuid_match}/end/{uuid_event}.
         Completes a match when ``uuid_event`` matches the story's end-game event.
@@ -323,3 +458,14 @@ class MatchController:
         if result is None:
             return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
         return JSONResponse(status_code=200, content=result)
+
+
+def _rate_limited(verdict, what: str) -> JSONResponse:
+    """The one 429 both match buckets answer: same body, Retry-After in seconds."""
+    return JSONResponse(
+        status_code=429,
+        headers={"Retry-After": str(verdict.retry_after_seconds)},
+        content={"error": "RATE_LIMITED",
+                 "message": f"{what}, retry in {verdict.retry_after_seconds} seconds",
+                 "retryAfterSeconds": verdict.retry_after_seconds,
+                 "timestamp": int(time.time() * 1000)})

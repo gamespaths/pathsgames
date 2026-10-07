@@ -20,9 +20,6 @@ public interface LogMovementRepository
 
     List<LogMovementEntity> findByIdMatch(Long idMatch);
 
-    /** Highest {@code id} across the whole table (ids are globally unique). */
-    @Query("SELECT COALESCE(MAX(l.id), 0) FROM LogMovementEntity l")
-    long findMaxId();
 
     /**
      * Deletes every movement row for the given matches. Used by the test-data cleanup

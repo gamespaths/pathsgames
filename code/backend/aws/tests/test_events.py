@@ -96,7 +96,7 @@ def test_all_conditions_satisfied():
     e = event(idSpecificLocation=LOC, registryKeyCondition="GATE",
               registryValueCondition="OPEN", idWeather=3, idItemCondition=42,
               idClassCondition=50)
-    c = ctx(registry={"GATE": "OPEN"}, currentWeatherId=3, ownedItemIds={42}, idClass=50)
+    c = ctx(registry={"GATE": ["OPEN"]}, currentWeatherId=3, ownedItemIds={42}, idClass=50)
     assert events.check(e, c) == (True, None)
 
 
@@ -161,12 +161,12 @@ def test_not_enough_energy_and_coins():
 def test_registry_key_absent_or_different():
     e = event(registryKeyCondition="GATE", registryValueCondition="OPEN")
     blocked(events.check(e, ctx()), "REGISTRY_CONDITION_NOT_MET")
-    blocked(events.check(e, ctx(registry={"GATE": "SHUT"})), "REGISTRY_CONDITION_NOT_MET")
+    blocked(events.check(e, ctx(registry={"GATE": ["SHUT"]})), "REGISTRY_CONDITION_NOT_MET")
 
 
 def test_registry_key_with_no_expected_value_is_never_met():
     e = event(registryKeyCondition="GATE", registryValueCondition=None)
-    blocked(events.check(e, ctx(registry={"GATE": "OPEN"})), "REGISTRY_CONDITION_NOT_MET")
+    blocked(events.check(e, ctx(registry={"GATE": ["OPEN"]})), "REGISTRY_CONDITION_NOT_MET")
 
 
 def test_weather_item_and_class_conditions():
@@ -193,13 +193,11 @@ def test_location_wins_over_cost_and_energy_over_coins():
 # ── the consumed-ONCE set must ignore merely-referenced events ──────────────
 
 def test_consumed_set_only_counts_executed_rows():
-    match = {"eventLog": [
-        {"idEvent": 5, "message": "EVENT_EXECUTED 5"},
-        # Written by the recovery / weather engine for an event that never ran.
-        {"idEvent": 6, "message": "counter reached zero at location 3; pending event 6"},
-        {"idEvent": 7, "message": "Weather 2 triggered event 7"},
-    ]}
+    # v0.37.5 — the set is the executedEventIds list the logbook keeps on the match item;
+    # a merely referenced event (counter zero, weather) never lands there.
+    match = {"executedEventIds": [5, "5"]}
     assert events.consumed_event_ids(match) == {5}
+    assert events.consumed_event_ids({}) == set()
 
 
 # ── the check context ───────────────────────────────────────────────────────
@@ -215,7 +213,7 @@ def test_build_context_resolves_the_class_id_from_the_class_uuid():
 
     assert c["idClass"] == 42
     assert c["ownedItemIds"] == {9}          # a zero-amount row is not "owned"
-    assert c["registry"] == {"K": "3"}       # the int is stringified, like the other backends
+    assert c["registry"] == {"K": ["3"]}     # the int is stringified, like the other backends
     assert c["currentWeatherId"] == 1
 
 
@@ -277,6 +275,32 @@ def test_only_one_and_target_class():
     assert [c["uuid"] for c in narrowed] == ["b"]
     # A class matching nobody is legal and simply applies nothing.
     assert events.resolve_recipients({"target": "ALL", "targetClass": 9}, actor, everyone) == []
+
+
+def test_a_mission_run_with_no_actor_reaches_the_whole_party():
+    """Step 38 — a completed mission fires its event with no actor: ALL is then every
+    character of the match, ONLY_ONE nobody, and target_class still narrows. Any other
+    actor-less run (a counter-zero fuse) still names nobody."""
+    a = _char(uuid="a", classId=1)
+    b = _char(uuid="b", classId=2, idLocation=999)
+    everyone = [a, b]
+    assert events.resolve_recipients({"target": "ALL"}, None, everyone) == []
+    hit = events.resolve_recipients({"target": "ALL"}, None, everyone, party_run=True)
+    assert [c["uuid"] for c in hit] == ["a", "b"]
+    assert events.resolve_recipients({"target": "ONLY_ONE"}, None, everyone, party_run=True) == []
+    narrowed = events.resolve_recipients({"target": "ALL", "targetClass": 2}, None, everyone, party_run=True)
+    assert [c["uuid"] for c in narrowed] == ["b"]
+    assert events.TRIGGER_MISSION == "mission completed"
+
+
+def test_step39_party_trigger_and_log_message():
+    assert events.is_party_trigger(events.TRIGGER_RANDOM_EVENT)
+    assert events.is_party_trigger(events.TRIGGER_MISSION)
+    assert not events.is_party_trigger(events.TRIGGER_COUNTER_ZERO)
+    assert events.automatic_log_message(events.TRIGGER_RANDOM_EVENT, 5, 0) == \
+        "random event 5 (RANDOM_EVENT)"
+    assert events.automatic_log_message(events.TRIGGER_COUNTER_ZERO, 5, 12) == \
+        "automatic event 5 (COUNTER_ZERO) at location 12"
 
 
 def test_items_are_added_and_removed():
@@ -344,10 +368,11 @@ def test_forced_movement_moves_the_character_and_logs_at_cost_zero():
 
     assert moved is True
     assert c["idLocation"] == 200 and c["locationUuid"] == "loc-target"
-    assert match["movementLog"] == [{
-        "characterUuid": "a", "idLocationFrom": LOC, "idLocationTo": 200,
-        "energyCost": 0, "timestampStart": 123,
-    }]
+    row = match["_pendingLogs"][0]
+    assert row["type"] == "MOVEMENT" and row["timestampMs"] == 123
+    assert (row["characterUuid"], row["idLocationFrom"], row["idLocationTo"]) == ("a", LOC, 200)
+    assert row["energyCost"] == 0
+    assert match["visitedLocationIds"] == [LOC, 200]
     assert changes == [{"characterUuid": "a", "fromLocationUuid": "loc-here",
                         "toLocationUuid": "loc-target"}]
 
@@ -358,7 +383,7 @@ def test_forced_movement_to_an_unknown_location_is_skipped():
     assert events.apply_location(match, c, {"idLocation": 555},
                                  _LOCATION_UUIDS, changes, 123) is False
     assert c["idLocation"] == LOC
-    assert "movementLog" not in match and changes == []
+    assert "_pendingLogs" not in match and changes == []
 
 
 def test_forced_movement_to_the_current_location_is_a_no_op():
@@ -366,7 +391,7 @@ def test_forced_movement_to_the_current_location_is_a_no_op():
     c = _char(uuid="a")
     assert events.apply_location(match, c, {"idLocation": LOC},
                                  _LOCATION_UUIDS, changes, 123) is False
-    assert "movementLog" not in match and changes == []
+    assert "_pendingLogs" not in match and changes == []
 
 
 def test_a_moved_character_resolves_all_at_the_new_location():

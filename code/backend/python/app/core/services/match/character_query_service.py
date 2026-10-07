@@ -10,14 +10,17 @@ from app.core.ports.match.match_ports import (
     StoryMatchReadPort,
     UserAccessPort,
 )
+from app.core.services.match.card_mapper import resolve_card
+from app.core.services.match.experience_cost import ExperienceCost
 
 
 def _resolve_card(story_read_port: StoryMatchReadPort, story_id, id_card,
-                  cache: Dict[int, Any]):
+                  cache: Dict[int, Any], lang: str = "en"):
+    # v0.35.8 — mapped onto the API contract, not the raw row.
     if id_card is None or story_id is None or story_read_port is None:
         return None
     if id_card not in cache:
-        cache[id_card] = story_read_port.find_card_by_story_id_and_card_id(story_id, id_card)
+        cache[id_card] = resolve_card(story_read_port, story_id, id_card, lang)
     return cache[id_card]
 
 
@@ -49,6 +52,11 @@ def build_character_infos(
     if not characters:
         return []
     story_id = match.get("id_story")
+    # Step 38 — the difficulty row prices the next stat point; the match's own copy of
+    # exp_cost is only the fallback when the row is gone.
+    difficulty = (story_read_port.find_difficulty_by_id(story_id, match.get("id_difficulty"))
+                  if story_id is not None and match.get("id_difficulty") is not None else None)
+    pricing = ExperienceCost.of(difficulty, match.get("exp_cost"))
     template_uuid_by_id: Dict[int, str] = {}
     trait_uuid_by_id: Dict[int, str] = {}
     location_by_id: Dict[int, Dict[str, Any]] = {}
@@ -96,7 +104,7 @@ def build_character_infos(
                     info.id_card = item.get("id_card")
                     info.is_consumabile = item.get("is_consumabile") == 1
                     info.card = _resolve_card(story_read_port, story_id,
-                                              item.get("id_card"), card_cache)
+                                              item.get("id_card"), card_cache, lang)
                     info.name = _resolve_name(story_read_port, story_id,
                                               item.get("id_text_name"), lang)
                     info.max_per_character = item.get("max_per_character")
@@ -135,6 +143,9 @@ def build_character_infos(
             food=backpack.get("food", 0),
             magic=backpack.get("magic", 0),
             coin=backpack.get("coin", 0),
+            exp=c.get("exp") or 0,
+            exp_costs=pricing.costs(c.get("dexterity") or 0, c.get("intelligence") or 0,
+                                    c.get("constitution") or 0),
         ))
     return result
 

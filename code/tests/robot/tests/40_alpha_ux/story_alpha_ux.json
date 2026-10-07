@@ -1,0 +1,968 @@
+{
+  "uuid": "f0400001-0000-4000-8000-000000000400",
+  "author": "robottest_alpha_ux",
+  "category": "robottest",
+  "group": "robottest",
+  "visibility": "PRIVATE",
+  "priority": 0,
+  "idCard": 1,
+  "idCreator": 1,
+  "idTextTitle": 1,
+  "idTextDescription": 2,
+  "idLocationStart": 1,
+  "creators": [
+    {
+      "id": 1,
+      "idText": 1,
+      "link": "https://example.invalid",
+      "url": "https://example.invalid"
+    }
+  ],
+  "texts": [
+    {
+      "id": 1,
+      "idCreator": 1,
+      "idText": 1,
+      "lang": "en",
+      "shortText": "Alpha Roads",
+      "longText": "Alpha Roads"
+    },
+    {
+      "id": 2,
+      "idCreator": 1,
+      "idText": 2,
+      "lang": "en",
+      "shortText": "A test-bed for Step 40: the news of an early time-end and the resource logs.",
+      "longText": "A test-bed for Step 40: the news of an early time-end and the resource logs."
+    },
+    {
+      "id": 3,
+      "idCreator": 1,
+      "idText": 3,
+      "lang": "en",
+      "shortText": "Sun",
+      "longText": "Sun"
+    },
+    {
+      "id": 4,
+      "idCreator": 1,
+      "idText": 4,
+      "lang": "en",
+      "shortText": "Rain",
+      "longText": "Rain"
+    },
+    {
+      "id": 50,
+      "idCreator": 1,
+      "idText": 50,
+      "lang": "en",
+      "shortText": "The Camp",
+      "longText": "The Camp"
+    },
+    {
+      "id": 51,
+      "idCreator": 1,
+      "idText": 51,
+      "lang": "en",
+      "shortText": "The Tower",
+      "longText": "The Tower"
+    },
+    {
+      "id": 52,
+      "idCreator": 1,
+      "idText": 52,
+      "lang": "en",
+      "shortText": "The Swamp",
+      "longText": "The Swamp"
+    },
+    {
+      "id": 60,
+      "idCreator": 1,
+      "idText": 60,
+      "lang": "en",
+      "shortText": "Wanderer",
+      "longText": "Wanderer"
+    },
+    {
+      "id": 61,
+      "idCreator": 1,
+      "idText": 61,
+      "lang": "en",
+      "shortText": "Traveller",
+      "longText": "Traveller"
+    },
+    {
+      "id": 62,
+      "idCreator": 1,
+      "idText": 62,
+      "lang": "en",
+      "shortText": "Normal",
+      "longText": "Normal"
+    },
+    {
+      "id": 20,
+      "idCreator": 1,
+      "idText": 20,
+      "lang": "en",
+      "shortText": "Dawn supplies",
+      "longText": "Dawn supplies"
+    },
+    {
+      "id": 21,
+      "idCreator": 1,
+      "idText": 21,
+      "lang": "en",
+      "shortText": "Nightfall at the tower",
+      "longText": "Nightfall at the tower"
+    },
+    {
+      "id": 22,
+      "idCreator": 1,
+      "idText": 22,
+      "lang": "en",
+      "shortText": "Swamp fever",
+      "longText": "Swamp fever"
+    },
+    {
+      "id": 23,
+      "idCreator": 1,
+      "idText": 23,
+      "lang": "en",
+      "shortText": "Coin rain",
+      "longText": "Coin rain"
+    },
+    {
+      "id": 24,
+      "idCreator": 1,
+      "idText": 24,
+      "lang": "en",
+      "shortText": "Quest reward",
+      "longText": "Quest reward"
+    },
+    {
+      "id": 25,
+      "idCreator": 1,
+      "idText": 25,
+      "lang": "en",
+      "shortText": "Tower watch",
+      "longText": "Tower watch"
+    },
+    {
+      "id": 30,
+      "idCreator": 1,
+      "idText": 30,
+      "lang": "en",
+      "shortText": "Rest by the fire",
+      "longText": "Rest by the fire"
+    },
+    {
+      "id": 31,
+      "idCreator": 1,
+      "idText": 31,
+      "lang": "en",
+      "shortText": "Crossroads",
+      "longText": "Crossroads"
+    },
+    {
+      "id": 32,
+      "idCreator": 1,
+      "idText": 32,
+      "lang": "en",
+      "shortText": "Merchant",
+      "longText": "Merchant"
+    },
+    {
+      "id": 33,
+      "idCreator": 1,
+      "idText": 33,
+      "lang": "en",
+      "shortText": "The long wait",
+      "longText": "The long wait"
+    },
+    {
+      "id": 34,
+      "idCreator": 1,
+      "idText": 34,
+      "lang": "en",
+      "shortText": "Broken gate",
+      "longText": "Broken gate"
+    },
+    {
+      "id": 35,
+      "idCreator": 1,
+      "idText": 35,
+      "lang": "en",
+      "shortText": "A quiet walk",
+      "longText": "A quiet walk"
+    },
+    {
+      "id": 36,
+      "idCreator": 1,
+      "idText": 36,
+      "lang": "en",
+      "shortText": "Take the quest",
+      "longText": "Take the quest"
+    },
+    {
+      "id": 37,
+      "idCreator": 1,
+      "idText": 37,
+      "lang": "en",
+      "shortText": "Find a lantern",
+      "longText": "Find a lantern"
+    },
+    {
+      "id": 41,
+      "idCreator": 1,
+      "idText": 41,
+      "lang": "en",
+      "shortText": "Wait for the night",
+      "longText": "Wait for the night"
+    },
+    {
+      "id": 42,
+      "idCreator": 1,
+      "idText": 42,
+      "lang": "en",
+      "shortText": "Buy provisions",
+      "longText": "Buy provisions"
+    },
+    {
+      "id": 43,
+      "idCreator": 1,
+      "idText": 43,
+      "lang": "en",
+      "shortText": "Just chat",
+      "longText": "Just chat"
+    },
+    {
+      "id": 44,
+      "idCreator": 1,
+      "idText": 44,
+      "lang": "en",
+      "shortText": "Mend it",
+      "longText": "Mend it"
+    },
+    {
+      "id": 70,
+      "idCreator": 1,
+      "idText": 70,
+      "lang": "en",
+      "shortText": "The quest",
+      "longText": "The quest"
+    },
+    {
+      "id": 80,
+      "idCreator": 1,
+      "idText": 80,
+      "lang": "en",
+      "shortText": "scenario",
+      "longText": "scenario"
+    },
+    {
+      "id": 81,
+      "idCreator": 1,
+      "idText": 81,
+      "lang": "en",
+      "shortText": "quest",
+      "longText": "quest"
+    },
+    {
+      "id": 90,
+      "idCreator": 1,
+      "idText": 90,
+      "lang": "en",
+      "shortText": "Lantern",
+      "longText": "Lantern"
+    }
+  ],
+  "cards": [
+    {
+      "id": 1,
+      "idCreator": 1,
+      "idTextTitle": 1,
+      "idTextDescription": 1,
+      "urlImage": "https://example.invalid/card-1.jpg"
+    },
+    {
+      "id": 3,
+      "idCreator": 1,
+      "idTextTitle": 3,
+      "idTextDescription": 3,
+      "urlImage": "https://example.invalid/card-3.jpg"
+    },
+    {
+      "id": 4,
+      "idCreator": 1,
+      "idTextTitle": 4,
+      "idTextDescription": 4,
+      "urlImage": "https://example.invalid/card-4.jpg"
+    },
+    {
+      "id": 50,
+      "idCreator": 1,
+      "idTextTitle": 50,
+      "idTextDescription": 50,
+      "urlImage": "https://example.invalid/card-50.jpg"
+    },
+    {
+      "id": 51,
+      "idCreator": 1,
+      "idTextTitle": 51,
+      "idTextDescription": 51,
+      "urlImage": "https://example.invalid/card-51.jpg"
+    },
+    {
+      "id": 52,
+      "idCreator": 1,
+      "idTextTitle": 52,
+      "idTextDescription": 52,
+      "urlImage": "https://example.invalid/card-52.jpg"
+    },
+    {
+      "id": 60,
+      "idCreator": 1,
+      "idTextTitle": 60,
+      "idTextDescription": 60,
+      "urlImage": "https://example.invalid/card-60.jpg"
+    },
+    {
+      "id": 61,
+      "idCreator": 1,
+      "idTextTitle": 61,
+      "idTextDescription": 61,
+      "urlImage": "https://example.invalid/card-61.jpg"
+    },
+    {
+      "id": 62,
+      "idCreator": 1,
+      "idTextTitle": 62,
+      "idTextDescription": 62,
+      "urlImage": "https://example.invalid/card-62.jpg"
+    },
+    {
+      "id": 20,
+      "idCreator": 1,
+      "idTextTitle": 20,
+      "idTextDescription": 20,
+      "urlImage": "https://example.invalid/card-20.jpg"
+    },
+    {
+      "id": 21,
+      "idCreator": 1,
+      "idTextTitle": 21,
+      "idTextDescription": 21,
+      "urlImage": "https://example.invalid/card-21.jpg"
+    },
+    {
+      "id": 22,
+      "idCreator": 1,
+      "idTextTitle": 22,
+      "idTextDescription": 22,
+      "urlImage": "https://example.invalid/card-22.jpg"
+    },
+    {
+      "id": 23,
+      "idCreator": 1,
+      "idTextTitle": 23,
+      "idTextDescription": 23,
+      "urlImage": "https://example.invalid/card-23.jpg"
+    },
+    {
+      "id": 24,
+      "idCreator": 1,
+      "idTextTitle": 24,
+      "idTextDescription": 24,
+      "urlImage": "https://example.invalid/card-24.jpg"
+    },
+    {
+      "id": 25,
+      "idCreator": 1,
+      "idTextTitle": 25,
+      "idTextDescription": 25,
+      "urlImage": "https://example.invalid/card-25.jpg"
+    },
+    {
+      "id": 30,
+      "idCreator": 1,
+      "idTextTitle": 30,
+      "idTextDescription": 30,
+      "urlImage": "https://example.invalid/card-30.jpg"
+    },
+    {
+      "id": 31,
+      "idCreator": 1,
+      "idTextTitle": 31,
+      "idTextDescription": 31,
+      "urlImage": "https://example.invalid/card-31.jpg"
+    },
+    {
+      "id": 32,
+      "idCreator": 1,
+      "idTextTitle": 32,
+      "idTextDescription": 32,
+      "urlImage": "https://example.invalid/card-32.jpg"
+    },
+    {
+      "id": 33,
+      "idCreator": 1,
+      "idTextTitle": 33,
+      "idTextDescription": 33,
+      "urlImage": "https://example.invalid/card-33.jpg"
+    },
+    {
+      "id": 34,
+      "idCreator": 1,
+      "idTextTitle": 34,
+      "idTextDescription": 34,
+      "urlImage": "https://example.invalid/card-34.jpg"
+    },
+    {
+      "id": 35,
+      "idCreator": 1,
+      "idTextTitle": 35,
+      "idTextDescription": 35,
+      "urlImage": "https://example.invalid/card-35.jpg"
+    },
+    {
+      "id": 36,
+      "idCreator": 1,
+      "idTextTitle": 36,
+      "idTextDescription": 36,
+      "urlImage": "https://example.invalid/card-36.jpg"
+    },
+    {
+      "id": 37,
+      "idCreator": 1,
+      "idTextTitle": 37,
+      "idTextDescription": 37,
+      "urlImage": "https://example.invalid/card-37.jpg"
+    },
+    {
+      "id": 41,
+      "idCreator": 1,
+      "idTextTitle": 41,
+      "idTextDescription": 41,
+      "urlImage": "https://example.invalid/card-41.jpg"
+    },
+    {
+      "id": 42,
+      "idCreator": 1,
+      "idTextTitle": 42,
+      "idTextDescription": 42,
+      "urlImage": "https://example.invalid/card-42.jpg"
+    },
+    {
+      "id": 43,
+      "idCreator": 1,
+      "idTextTitle": 43,
+      "idTextDescription": 43,
+      "urlImage": "https://example.invalid/card-43.jpg"
+    },
+    {
+      "id": 44,
+      "idCreator": 1,
+      "idTextTitle": 44,
+      "idTextDescription": 44,
+      "urlImage": "https://example.invalid/card-44.jpg"
+    },
+    {
+      "id": 70,
+      "idCreator": 1,
+      "idTextTitle": 70,
+      "idTextDescription": 70,
+      "urlImage": "https://example.invalid/card-70.jpg"
+    },
+    {
+      "id": 90,
+      "idCreator": 1,
+      "idTextTitle": 90,
+      "idTextDescription": 90,
+      "urlImage": "https://example.invalid/card-90.jpg"
+    }
+  ],
+  "keys": [
+    {
+      "id": 1,
+      "name": "scenario",
+      "idCard": 1,
+      "idTextDescription": 80,
+      "group": "ROBOT",
+      "priority": 1,
+      "visibility": "PUBLIC"
+    },
+    {
+      "id": 2,
+      "name": "quest",
+      "idCard": 1,
+      "idTextDescription": 81,
+      "group": "ROBOT",
+      "priority": 2,
+      "visibility": "PUBLIC"
+    }
+  ],
+  "characterTemplates": [
+    {
+      "id": 1,
+      "idCard": 60,
+      "idTextName": 60,
+      "idTextDescription": 60,
+      "lifeMax": 10,
+      "energyMax": 20,
+      "sadMax": 5,
+      "dexterityStart": 2,
+      "intelligenceStart": 2,
+      "constitutionStart": 2
+    }
+  ],
+  "classes": [
+    {
+      "id": 1,
+      "idCard": 61,
+      "idTextName": 61,
+      "idTextDescription": 61,
+      "dexterityBase": 0,
+      "intelligenceBase": 0,
+      "constitutionBase": 0,
+      "weightMax": 10
+    }
+  ],
+  "difficulties": [
+    {
+      "id": 1,
+      "idCard": 62,
+      "idTextName": 62,
+      "idTextDescription": 62,
+      "energy": 20,
+      "life": 0,
+      "sad": 0,
+      "dexterity": 0,
+      "intelligence": 0,
+      "constitution": 0,
+      "weight": 0,
+      "maxWeight": 0,
+      "expCost": 1,
+      "expCostBase": 0,
+      "maxStatValue": 0,
+      "costHelpComa": 0,
+      "numberMaxFreeAction": 0,
+      "minCharacter": 0,
+      "maxCharacter": 0
+    }
+  ],
+  "traits": [],
+  "locations": [
+    {
+      "id": 1,
+      "idCard": 50,
+      "idTextName": 50,
+      "idTextDescription": 50,
+      "secureParam": 1,
+      "maxCharacters": 10,
+      "costEnergyEnter": 0,
+      "counterTime": 1,
+      "idEventIfCounterZero": 20
+    },
+    {
+      "id": 2,
+      "idCard": 51,
+      "idTextName": 51,
+      "idTextDescription": 51,
+      "secureParam": 1,
+      "maxCharacters": 10,
+      "costEnergyEnter": 0,
+      "idEventIfFirstTime": 21,
+      "idEventIfCharacterStartTime": 25
+    },
+    {
+      "id": 3,
+      "idCard": 52,
+      "idTextName": 52,
+      "idTextDescription": 52,
+      "secureParam": 1,
+      "maxCharacters": 10,
+      "costEnergyEnter": 0,
+      "idEventIfCharacterStartTime": 22
+    }
+  ],
+  "locationNeighbors": [
+    {
+      "id": 1,
+      "idLocationFrom": 1,
+      "idLocationTo": 2,
+      "direction": "NORTH",
+      "flagBack": 1,
+      "energyCost": 0
+    },
+    {
+      "id": 2,
+      "idLocationFrom": 1,
+      "idLocationTo": 3,
+      "direction": "EAST",
+      "flagBack": 1,
+      "energyCost": 0
+    }
+  ],
+  "events": [
+    {
+      "id": 20,
+      "idCard": 20,
+      "idTextName": 20,
+      "idTextDescription": 20,
+      "type": "AUTOMATIC",
+      "costEnery": 0,
+      "costCoin": 0
+    },
+    {
+      "id": 21,
+      "idCard": 21,
+      "idTextName": 21,
+      "idTextDescription": 21,
+      "type": "AUTOMATIC",
+      "costEnery": 0,
+      "costCoin": 0,
+      "flagEndTime": 1
+    },
+    {
+      "id": 22,
+      "idCard": 22,
+      "idTextName": 22,
+      "idTextDescription": 22,
+      "type": "AUTOMATIC",
+      "costEnery": 0,
+      "costCoin": 0
+    },
+    {
+      "id": 23,
+      "idCard": 23,
+      "idTextName": 23,
+      "idTextDescription": 23,
+      "type": "AUTOMATIC",
+      "costEnery": 0,
+      "costCoin": 0
+    },
+    {
+      "id": 24,
+      "idCard": 24,
+      "idTextName": 24,
+      "idTextDescription": 24,
+      "type": "AUTOMATIC",
+      "costEnery": 0,
+      "costCoin": 0
+    },
+    {
+      "id": 25,
+      "idCard": 25,
+      "idTextName": 25,
+      "idTextDescription": 25,
+      "type": "AUTOMATIC",
+      "costEnery": 0,
+      "costCoin": 0
+    },
+    {
+      "id": 30,
+      "idCard": 30,
+      "idTextName": 30,
+      "idTextDescription": 30,
+      "type": "NORMAL",
+      "costEnery": 0,
+      "costCoin": 0,
+      "flagEndTime": 1
+    },
+    {
+      "id": 31,
+      "idCard": 31,
+      "idTextName": 31,
+      "idTextDescription": 31,
+      "type": "NORMAL",
+      "costEnery": 0,
+      "costCoin": 0
+    },
+    {
+      "id": 32,
+      "idCard": 32,
+      "idTextName": 32,
+      "idTextDescription": 32,
+      "type": "NORMAL",
+      "costEnery": 0,
+      "costCoin": 0
+    },
+    {
+      "id": 33,
+      "idCard": 33,
+      "idTextName": 33,
+      "idTextDescription": 33,
+      "type": "AUTOMATIC",
+      "costEnery": 0,
+      "costCoin": 0,
+      "flagEndTime": 1
+    },
+    {
+      "id": 34,
+      "idCard": 34,
+      "idTextName": 34,
+      "idTextDescription": 34,
+      "type": "ONCE",
+      "costEnery": 0,
+      "costCoin": 0
+    },
+    {
+      "id": 35,
+      "idCard": 35,
+      "idTextName": 35,
+      "idTextDescription": 35,
+      "type": "NORMAL",
+      "costEnery": 0,
+      "costCoin": 0
+    },
+    {
+      "id": 36,
+      "idCard": 36,
+      "idTextName": 36,
+      "idTextDescription": 36,
+      "type": "NORMAL",
+      "costEnery": 0,
+      "costCoin": 0
+    },
+    {
+      "id": 37,
+      "idCard": 37,
+      "idTextName": 37,
+      "idTextDescription": 37,
+      "type": "NORMAL",
+      "costEnery": 0,
+      "costCoin": 0
+    }
+  ],
+  "eventEffects": [
+    {
+      "id": 1,
+      "idEvent": 20,
+      "idCard": 20,
+      "idTextName": 20,
+      "target": "ALL",
+      "statistics": "food",
+      "value": 1
+    },
+    {
+      "id": 2,
+      "idEvent": 20,
+      "idCard": 20,
+      "idTextName": 20,
+      "target": "ALL",
+      "idWeather": 2
+    },
+    {
+      "id": 3,
+      "idEvent": 22,
+      "idCard": 22,
+      "idTextName": 22,
+      "target": "ONLY_ONE",
+      "statistics": "life",
+      "value": -99
+    },
+    {
+      "id": 4,
+      "idEvent": 23,
+      "idCard": 23,
+      "idTextName": 23,
+      "target": "ALL",
+      "statistics": "coin",
+      "value": 1
+    },
+    {
+      "id": 5,
+      "idEvent": 24,
+      "idCard": 24,
+      "idTextName": 24,
+      "target": "ALL",
+      "statistics": "magic",
+      "value": 1
+    },
+    {
+      "id": 6,
+      "idEvent": 25,
+      "idCard": 25,
+      "idTextName": 25,
+      "target": "ALL",
+      "statistics": "exp",
+      "value": 1
+    },
+    {
+      "id": 7,
+      "idEvent": 30,
+      "idCard": 30,
+      "idTextName": 30,
+      "target": "ONLY_ONE",
+      "statistics": "coin",
+      "value": 1
+    },
+    {
+      "id": 8,
+      "idEvent": 35,
+      "idCard": 35,
+      "idTextName": 35,
+      "target": "ONLY_ONE",
+      "statistics": "exp",
+      "value": 1
+    },
+    {
+      "id": 9,
+      "idEvent": 36,
+      "idCard": 36,
+      "idTextName": 36,
+      "target": "ALL",
+      "keyToAdd": "quest",
+      "keyValueToAdd": "done"
+    },
+    {
+      "id": 10,
+      "idEvent": 37,
+      "idCard": 37,
+      "idTextName": 37,
+      "target": "ONLY_ONE",
+      "idItemTarget": 1,
+      "itemAction": "ADD"
+    }
+  ],
+  "choices": [
+    {
+      "id": 1,
+      "idEvent": 31,
+      "idCard": 41,
+      "idTextName": 41,
+      "idTextNarrative": 41,
+      "priority": 1,
+      "logicOperator": "AND",
+      "idEventTorun": 33
+    },
+    {
+      "id": 2,
+      "idEvent": 32,
+      "idCard": 42,
+      "idTextName": 42,
+      "idTextNarrative": 42,
+      "priority": 1,
+      "logicOperator": "AND"
+    },
+    {
+      "id": 3,
+      "idEvent": 32,
+      "idCard": 43,
+      "idTextName": 43,
+      "idTextNarrative": 43,
+      "priority": 2,
+      "logicOperator": "AND"
+    },
+    {
+      "id": 4,
+      "idEvent": 34,
+      "idCard": 44,
+      "idTextName": 44,
+      "idTextNarrative": 44,
+      "priority": 1,
+      "logicOperator": "AND"
+    }
+  ],
+  "choiceEffects": [
+    {
+      "id": 1,
+      "idChoices": 1,
+      "idCard": 41,
+      "idTextName": 41,
+      "statistics": "exp",
+      "value": 1
+    },
+    {
+      "id": 2,
+      "idChoices": 2,
+      "idCard": 42,
+      "idTextName": 42,
+      "statistics": "food",
+      "value": 2
+    },
+    {
+      "id": 3,
+      "idChoices": 2,
+      "idCard": 42,
+      "idTextName": 42,
+      "statistics": "coin",
+      "value": 1
+    },
+    {
+      "id": 4,
+      "idChoices": 3,
+      "idCard": 43,
+      "idTextName": 43,
+      "statistics": "exp",
+      "value": 1
+    },
+    {
+      "id": 5,
+      "idChoices": 4,
+      "idCard": 44,
+      "idTextName": 44,
+      "statistics": "exp",
+      "value": 1
+    }
+  ],
+  "choiceConditions": [],
+  "items": [
+    {
+      "id": 1,
+      "idCard": 90,
+      "idTextName": 90,
+      "idTextDescription": 90,
+      "weight": 0,
+      "maxPerCharacter": 1
+    }
+  ],
+  "itemEffects": [],
+  "missions": [
+    {
+      "id": 1,
+      "idCard": 70,
+      "idTextName": 70,
+      "idTextDescription": 70,
+      "conditionKey": "quest",
+      "conditionValue": "done",
+      "idEventCompleted": 24
+    }
+  ],
+  "missionSteps": [],
+  "weatherRules": [
+    {
+      "id": 1,
+      "idCard": 3,
+      "idText": 3,
+      "active": 1,
+      "probability": 100,
+      "deltaEnergy": 0,
+      "costMoveSafeLocation": 0,
+      "costMoveNotSafeLocation": 0,
+      "conditionKey": "scenario",
+      "conditionKeyValue": "sun"
+    },
+    {
+      "id": 2,
+      "idCard": 4,
+      "idText": 4,
+      "active": 1,
+      "probability": 100,
+      "deltaEnergy": -1,
+      "costMoveSafeLocation": 0,
+      "costMoveNotSafeLocation": 0,
+      "conditionKey": "scenario",
+      "conditionKeyValue": "rain"
+    }
+  ],
+  "globalRandomEvents": [
+    {
+      "id": 1,
+      "idEvent": 23,
+      "probability": 100,
+      "conditionKey": "scenario",
+      "conditionValue": "random"
+    }
+  ]
+}

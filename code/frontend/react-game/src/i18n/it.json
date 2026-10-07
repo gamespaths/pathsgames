@@ -2,7 +2,17 @@
   "nav": {
     "brand": "Paths Games",
     "guest": "Ospite",
-    "login": "Accedi"
+    "login": "Accedi",
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "x": "X",
+    "refresh": "Ricarica",
+    "error": {
+      "antibot": "Verifica antibot fallita",
+      "matches": "Partite non caricate",
+      "stories": "Avventure non caricate",
+      "rateLimited": "Troppi accessi ospite da questa connessione, riprova tra {time}"
+    }
   },
   "home": {
     "heroTitle": "Avventure Epiche ti Aspettano",
@@ -11,9 +21,17 @@
     "loading": "Caricamento storie…",
     "noStories": "Nessuna storia disponibile.",
     "badgeResume": "Riprendi",
+    "badgePlay": "Gioca",
+    "loadingMatches": "Caricamento…",
+    "badgeReplay": "Rigioca",
     "badgeCompleted": "Completata",
     "badgePaused": "In pausa",
-    "matchesError": "Non è stato possibile caricare le tue partite, quindi non puoi iniziarne una nuova ora."
+    "matchesError": "Non è stato possibile caricare le tue partite, quindi non puoi iniziarne una nuova ora.",
+    "storiesError": "Non è stato possibile caricare le avventure. Controlla la connessione e riprova.",
+    "footerBlocked": "Bloccato",
+    "footerError": "Errore",
+    "playTutorial": "Gioca il tutorial",
+    "resumeTutorial": "Riprendi il tutorial"
   },
   "antibot": {
     "blocked": "Antibot attivato — queste avventure sono solo per umani!",
@@ -25,14 +43,18 @@
     "character": "Personaggio",
     "class": "Classe",
     "trait": "Tratto",
+    "phase": "Fase",
     "difficulty": "Difficoltà",
     "gameType": "Tipo di Gioco",
     "login": "Accesso",
     "single": "Singolo",
+    "singlePlayer": "Bloccato",
     "singleDesc": "Intraprendi un viaggio in solitaria attraverso le nostre storie immersive. Compi scelte, affronta sfide e plasma il tuo destino in un mondo di infinite possibilità.<br /><br /><p align='center'>Modalità multigiocatore in arrivo!</p>",
     "multiplayer": "Multigiocatore",
+    "multiplayerDesc": "Unisci le forze con gli amici o sfida altri giocatori in avvincenti avventure multigiocatore. Collabora, studia una strategia e vivi l'emozione di una storia condivisa.",
     "competitive": "Competitivo",
     "guest": "Ospite",
+    "guestLock": "Bloccato",
     "guestDesc": "Gioca come ospite e immergiti nelle nostre storie avvincenti senza bisogno di un account. Vivi l'emozione dell'avventura con un solo clic.<br /><br /><p align='center'>Accesso in arrivo per un'esperienza personalizzata!</p>",
     "register": "Registrati",
     "comingSoon": "Prossimamente",
@@ -40,9 +62,10 @@
     "notAllowedRequires": "Non permesso: richiede la classe {class}",
     "notAllowedProhibited": "Non permesso: vietato dalla classe {class}",
     "notAllowedGeneric": "Non permesso dalla selezione corrente",
-    "traitBudgetPositive": "Budget positivo rimanente",
-    "traitBudgetNegative": "Budget negativo rimanente",
+    "traitBudgetPositive": "Tratti",
+    "traitBudgetNegative": "Tratti",
     "traitBudgetExceeded": "Non permesso: budget dei costi dei tratti superato",
+    "traitCostLock": "Costo",
     "remove": "Rimuovi",
     "change": "Cambia",
     "select": "Seleziona",
@@ -55,6 +78,7 @@
     "accept": "Accetta",
     "accepted": "Accettato",
     "startGame": "Inizia Gioco",
+    "start": "Inizia",
     "terms": "Termini",
     "termsTitle": "Termini e Condizioni",
     "termsDesc": "Per giocare devi accettare i Termini e Condizioni. Usa la lente per leggerli e il pulsante per accettarli o rifiutarli.",
@@ -64,11 +88,16 @@
     "antibotDesc": "Controllo antibot completato con successo: sei pronto per iniziare l'avventura.",
     "noTraitsTitle": "Nessun Tratto",
     "noTraitsDesc": "Non hai selezionato nessun tratto. Puoi procedere senza tratti oppure selezionarne uno per personalizzare il tuo personaggio.",
+    "characterAttributesTitle": "Caratteristiche",
+    "characterAttributesDesc": "Ogni eroe porta con sé un bagaglio unico di punti di forza e debolezze da considerare attentamente prima di iniziare il viaggio. In questa pagina puoi vedere tutte le caratteristiche del personaggio che stai scegliendo per la tua prossima avventura.",
     "freeToPlay": "Gioca Gratis",
     "freeToPlayDesc": "Paths Games è gratuito: nessun costo, nessun account richiesto. Inizia subito a giocare.",
     "selectTitle": "Seleziona",
+    "bonuses": "Bonus",
+    "statistics": "Statistiche del personaggio",
     "stats": {
       "title": "Bonus",
+      "statisticsDesc": "Questi sono i bonus che la selezione attuale di classe, personaggio e tratti ti darà all'inizio dell'avventura. Influenzeranno le tue statistiche e le tue abilità nel gioco. <br > <br > <p align='center'>Cambia la selezione per vedere bonus diversi.</p>",
       "lifeMax": "Vita",
       "energyMax": "Energia",
       "sadMax": "Tristezza",
@@ -79,14 +108,17 @@
       "dexterityBase": "Destrezza",
       "intelligenceBase": "Intelligenza",
       "constitutionBase": "Fisico",
-      "costPositive": "Costo Positivo",
+      "costPositive": "Costo",
       "costNegative": "Costo Negativo",
       "expCost": "Costo EXP",
       "minCharacter": "Giocatori Min",
       "maxCharacter": "Giocatori",
       "costHelpComa": "Costo Aiuto Coma",
-      "costMaxCharacteristics": "Costo Carat.",
+      "expCostBase": "Costo Base EXP",
+      "maxStatValue": "Tetto Stat",
       "numberMaxFreeAction": "Azioni Libere",
+      "traitCostPositiveBudget": "Numero di tratti",
+      "traitCostNegativeBudget": "Costo negativo tratti",
       "totals": {
         "life": "Vita",
         "energy": "Energia",
@@ -100,7 +132,11 @@
     },
     "map": "Mappa",
     "automatic-event": "Evento",
-    "automatic-event-done": "Continua"
+    "automatic-event-done": "Continua",
+    "registry": "Registro",
+    "matchlog": "Cronologia",
+    "missions": "Missione",
+    "missionStep": "Passo della missione"
   },
   "startMatch": {
     "starting": "Avvio della partita…",
@@ -110,7 +146,20 @@
     "created": "Partita creata, il libro della storia si sta caricando…",
     "error": "Impossibile creare la partita.",
     "errorActiveMatch": "Hai già una partita in corso per questa storia. Riprendila dalle tue partite.",
+    "errorRateLimited": "Troppe nuove partite in poco tempo. Riprova tra {time}.",
     "retry": "Riprova",
+    "acceptTermsFirst": "Accetta prima i termini",
+    "phaseStarting": "Avvio",
+    "phasePending": "In attesa",
+    "phaseInProgress": "In corso",
+    "phaseComplete": "Completata",
+    "phaseFailed": "Fallita",
+    "phaseTitle": {
+      "creating": "Creazione",
+      "joining": "Ingresso",
+      "running": "Avvio",
+      "created": "Caricamento"
+    },
     "home": "Torna alla home"
   },
   "matches": {
@@ -123,12 +172,16 @@
     "created": "Iniziata",
     "clock": "Orologio",
     "status": {
-      "CREATED": "Pronta",
-      "RUNNING": "In Corso",
-      "PAUSED": "In Pausa",
-      "ENDED": "Finita",
-      "GAMEOVER": "Game Over"
-    }
+      "CREATED": "In corso",
+      "RUNNING": "In corso",
+      "PAUSED": "In pausa",
+      "ENDED": "Completata",
+      "GAMEOVER": "Sconfitta"
+    },
+    "history": "Cronologia Partita",
+    "historyDescription": "Ogni passo di questa partita, dal più recente: spostamenti, eventi, riposi e cosa hanno cambiato.",
+    "historyOpen": "Cronologia",
+    "logOpen": "Log"
   },
   "matchLog": {
     "title": "Storia della partita",
@@ -149,10 +202,34 @@
       "EVENT": "Evento",
       "COUNTER_ZERO": "Tempo scaduto",
       "AUTOMATIC_EVENT": "Evento",
+      "RANDOM_EVENT": "Evento casuale",
       "ITEM_ADD": "Oggetto trovato",
       "ITEM_USE": "Oggetto usato",
-      "ITEM_DROP": "Oggetto lasciato"
-    }
+      "EXP_USE": "Esperienza spesa",
+      "ITEM_DROP": "Oggetto lasciato",
+      "REGISTRY_CHANGE": "Registro",
+      "MISSION_CHANGE": "Missione",
+      "CHOICE": "Scelta",
+      "PASS": "Turno passato",
+      "EDGE_STATE": "Condizione",
+      "TRAIT_CHANGE": "Tratto",
+      "MATCH_LIFECYCLE": "Partita",
+      "ADMIN_ACTION": "Amministrazione"
+    },
+    "edgeStates": {
+      "COMA": "In coma",
+      "SADNESS_OVERFLOW": "Sopraffatto dalla tristezza",
+      "COMA_RECOVERED": "Risvegliato dal coma",
+      "ALL_PLAYER_COMA": "Tutto il gruppo è crollato"
+    },
+    "traitActions": {
+      "ADD": "Tratto acquisito",
+      "REMOVE": "Tratto perso"
+    },
+    "statusTile": "Stato",
+    "creation": "Creazione",
+    "filters": "Filtra per tipo",
+    "filterAll": "Tutti"
   },
   "card": {
     "info": "Info",
@@ -160,7 +237,15 @@
     "viewOriginal": "Vedi originale",
     "actionInProgress": "Esecuzione",
     "back": "Indietro",
-    "forward": "Vai"
+    "forward": "Vai",
+    "tip": "suggerimento",
+    "hideTip": "nascondi suggerimento",
+    "storyCredit": "crediti storia",
+    "imageCredit": "crediti immagine",
+    "storyBy": "Storia di {name}",
+    "imageBy": "Immagine di {name}",
+    "withLicense": " con licenza {license}",
+    "openLink": "apri link"
   },
   "game": {
     "currentLocation": "Posizione Attuale",
@@ -206,8 +291,14 @@
     "closeBook": "Chiudi il libro della partita",
     "closePrompt": "Hai chiuso il libro del gioco senza concluderla, puoi riprendere dal punto in cui ti sei fermato quando vuoi entrando nella lista delle tue partite cliccando nell'icona del tuo utente.",
     "endGame": "Termina Partita",
+    "endGameShort": "Finale",
+    "endGameComplete": "Completata",
     "endGameTitle": "Avventura Conclusa",
     "endGameClose": "Chiudi",
+    "endGameCard": {
+      "title": "Avventura Conclusa",
+      "description": "La tua avventura è giunta al termine. Grazie per aver giocato! Speriamo che la storia e il viaggio ti siano piaciuti. Resta sintonizzato per nuove avventure e nuove funzionalità in arrivo!"
+    },
     "turn": {
       "title": "Ordine dei turni",
       "status": "Stato",
@@ -302,6 +393,7 @@
       "action": "Muovi",
       "cost": "Costo",
       "noEnergy": "Energia",
+      "notNeighbor": "Non confinante",
       "moveCost": "Movimento",
       "blocked": "Bloccato",
       "blockedFull": "Ora non puoi andare lì.",
@@ -409,6 +501,39 @@
       "count": "trasportati",
       "capacity": "Capacità"
     },
+    "exp": {
+      "title": "Allenamento",
+      "description": "L'esperienza guadagnata lungo l'avventura si spende qui, in un luogo sicuro, sulle qualità del personaggio: ogni punto comprato alza di uno Destrezza, Intelligenza o Costituzione. Il punto successivo costa sempre più del precedente e ogni qualità ha un tetto fissato dalla storia.",
+      "open": "Allenati",
+      "use": "Migliora",
+      "current": "Attuale",
+      "held": "Attuale",
+      "cost": "Costo",
+      "after": "Dopo",
+      "atMax": "Max",
+      "trained": {
+        "title": "Allenato",
+        "description": "Ore di esercizio nella quiete di un luogo sicuro hanno lasciato il segno: ciò che hai imparato per strada è ora parte di te. L'esperienza è spesa, la qualità che ha comprato resta con te per tutto il viaggio."
+      },
+      "reason": {
+        "NOT_ENOUGH_EXP": "EXP insufficiente",
+        "MAX_STAT_VALUE": "Al massimo"
+      },
+      "reasonFull": {
+        "NOT_ENOUGH_EXP": "Non hai ancora guadagnato abbastanza esperienza per il prossimo punto.",
+        "MAX_STAT_VALUE": "Questa qualità ha raggiunto il tetto fissato dalla storia."
+      }
+    },
+    "registry": {
+      "title": "Registro",
+      "description": "Quasta pagina conserva la memoria di ogni tuo passo, annotando le decisioni che hanno segnato il tuo cammino. Sfogliare queste pagine ti permette di ripercorrere l'impronta lasciata dal tuo passaggio nel mondo di gioco. <br /><br />In questa pagina puoi vedere lo storico di tutti gli eventi importanti e alcune scelte rilevanti che hai fatto nel gioco che possono condizionare la storia e cambiare il finale.",
+      "open": "Registro",
+      "empty": "",
+      "back": "Indietro",
+      "count": "registrate",
+      "value": "Valore",
+      "category": "Categoria"
+    },
     "map": {
       "title": "Mappa",
       "here": "Selezionata",
@@ -436,12 +561,30 @@
       "map": "Mappa",
       "backpack": "Zaino",
       "missions": "Missioni",
-      "multiplayer": "Multigiocatore",
-      "comingSoon": "Missioni e registro in arrivo"
+      "multiplayer": "Multigiocatore"
+    },
+    "missions": {
+      "title": "Missioni",
+      "description": "Consultare questi appunti ti guida attraverso le sfide del tuo viaggio, indicandoti la strada per completare le missioni. <br /><br />In questa pagina del libro puoi vedere le varie missioni, i vari stati e tutte le fasi che ti permettono di concludere le missioni.",
+      "openAction": "Missioni",
+      "open": "Aperte",
+      "count": "Missioni",
+      "empty": "Nessuna missione è ancora iniziata.",
+      "progress": "Passi",
+      "statusLabel": "Stato",
+      "stepsEmpty": "Questa missione non ha passi.",
+      "completed": "Missione completata",
+      "status": {
+        "AVAILABLE": "Disponibile",
+        "ACTIVE": "In corso",
+        "COMPLETED": "Completata",
+        "FAILED": "Fallita"
+      }
     }
   },
   "footer": {
-    "alpha": "⚠ Versione alpha — i server potrebbero non essere disponibili o essere reimpostati in qualsiasi momento.",
+    "alphaPrefix": "Questa è solo la",
+    "serversWarning": "I server potrebbero non essere disponibili o essere reimpostati in qualsiasi momento.",
     "serverSelect": "Server",
     "rights": "Tutti i diritti riservati",
     "madeWith": "Realizzato con",
@@ -459,7 +602,8 @@
   "errors": {
     "title": "Errore Match",
     "matchNotRunning": "Impossibile caricare il match.",
-    "matchEnded": "Perché la storia è già conclusa."
+    "matchEnded": "Perché la storia è già conclusa.",
+    "rateLimitSoon": "qualche minuto"
   },
   "modals": {
     "close": "Chiudi",
@@ -479,7 +623,7 @@
       "transfersTitle": "6. Trasferimenti internazionali dei dati",
       "transfersBody": "Alcuni fornitori (come Google) potrebbero trattare i dati al di fuori dello Spazio Economico Europeo, anche negli Stati Uniti. Tali trasferimenti sono protetti dalle Clausole Contrattuali Standard della Commissione Europea o da garanzie equivalenti.",
       "retentionTitle": "7. Conservazione dei dati",
-      "retentionBody": "I cookie di sessione durano fino a 7 giorni (token di refresh) e 30 giorni (identificativo ospite); la tua scelta sui cookie è conservata per 6 mesi; i dati analytics sono conservati fino a 2 anni. I dati ospite anonimi vengono rimossi dopo un'inattività prolungata.",
+      "retentionBody": "I cookie di sessione durano fino a 7 giorni (token di refresh) e 30 giorni (identificativo ospite); la tua scelta sui cookie è conservata per 6 mesi; i dati analytics sono conservati fino a 2 anni. Il profilo ospite anonimo che ha giocato almeno una partita viene conservato, così puoi riprendere le tue avventure; il profilo ospite che non ha mai iniziato una partita viene cancellato dopo 60 giorni senza accessi. I log dei nostri server sono conservati per 14 giorni e i contatori anti-abuso legati al tuo indirizzo IP vengono cancellati automaticamente dopo breve tempo.",
       "rightsTitle": "8. I tuoi diritti",
       "rightsBody": "Se ti trovi nell'UE/SEE puoi accedere, rettificare, cancellare, limitare o portare i tuoi dati, opporti al trattamento e revocare il consenso in qualsiasi momento, e puoi presentare reclamo all'autorità di controllo competente. Se sei residente in California hai il diritto di conoscere, cancellare e correggere i tuoi dati e di opporti alla vendita o condivisione (noi non vendiamo né condividiamo), senza discriminazioni per l'esercizio dei tuoi diritti. Poiché il gioco è anonimo, potremmo non essere in grado di identificare i tuoi dati senza ulteriori informazioni da parte tua.",
       "childrenTitle": "9. Minori",
@@ -488,7 +632,7 @@
       "securityBody": "Adottiamo misure come HTTPS/TLS, cookie di sessione HttpOnly e controlli di accesso per proteggere i dati. Nessun metodo di trasmissione o archiviazione è completamente sicuro e il gioco è attualmente in fase di sviluppo alpha.",
       "changesTitle": "11. Modifiche a questa informativa",
       "changesBody": "Potremmo aggiornare questa informativa con l'evoluzione del gioco; le modifiche rilevanti saranno indicate dalla data di 'ultimo aggiornamento' qui sotto e, ove richiesto, da una nuova richiesta di consenso.",
-      "updated": "Ultimo aggiornamento: Giugno 2026"
+      "updated": "Ultimo aggiornamento: Ottobre 2026"
     },
     "terms": {
       "title": "Termini di Servizio",
@@ -502,7 +646,11 @@
       "useTitle": "4. Uso accettabile",
       "useBody": "Accetti di non abusare del servizio, anche tramite imbrogli o manipolazione dello stato di gioco, tentativi di accesso non autorizzato, scraping o raccolta automatizzata di dati, reverse engineering oltre quanto consentito dalla licenza software, interruzione del servizio o utilizzo per scopi illeciti.",
       "ipTitle": "5. Proprietà intellettuale",
-      "ipBody": "Il codice sorgente di Paths Games è open source sotto licenza GNU GPL v3.0. I contenuti narrativi e gli asset — storie, dialoghi, personaggi, artwork, suoni e musiche — sono concessi in licenza Creative Commons Attribuzione-NonCommerciale-NonOpereDerivate 4.0 (CC BY-NC-ND 4.0) e restano di proprietà dei rispettivi autori. Non puoi utilizzarli oltre quanto consentito da tali licenze.",
+      "ipBody": "Se non dichiarato diversamente, i contenuti narrativi e gli asset (storie, dialoghi, personaggi, artwork, suoni e musiche) sono concessi in licenza Creative Commons Attribuzione-NonCommerciale-NonOpereDerivate 4.0 (CC BY-NC-ND 4.0) e restano di proprietà dei rispettivi autori. Non puoi utilizzarli oltre quanto consentito da tali licenze.",
+      "ipCodeTitle": "5.1 Codice sorgente",
+      "ipCodeBody": "Il codice sorgente di Paths Games è open source sotto licenza GNU GPL v3.0.",
+      "ipUnsplashTitle": "5.2 Immagini Unsplash",
+      "ipUnsplashBody": "Per le immagini dal sito Unsplash vale la Unsplash License, come indicato nei link.",
       "disclaimerTitle": "6. Esclusione di garanzie",
       "disclaimerBody": "Nella misura massima consentita dalla legge, il servizio è fornito senza garanzie di alcun tipo, esplicite o implicite, inclusa l'idoneità a uno scopo particolare e la disponibilità. Trattandosi di un prodotto alpha, può contenere bug, perdere progressi o subire interruzioni.",
       "liabilityTitle": "7. Limitazione di responsabilità",
@@ -517,7 +665,7 @@
       "lawBody": "Questi Termini sono regolati dalla normativa applicabile dell'Unione Europea e degli Stati Uniti. Se sei un consumatore, benefici inoltre delle tutele imperative previste dalla legge del tuo Paese o Stato di residenza, che questi Termini non derogano.",
       "changesTitle": "12. Modifiche a questi Termini",
       "changesBody": "Potremmo aggiornare questi Termini con l'evoluzione del gioco; la data di 'ultimo aggiornamento' qui sotto indica la versione più recente. L'uso continuato dopo le modifiche implica l'accettazione dei Termini aggiornati.",
-      "updated": "Ultimo aggiornamento: Giugno 2026"
+      "updated": "Ultimo aggiornamento: Ottobre 2026"
     },
     "cookies": {
       "title": "Cookie Policy",
@@ -539,7 +687,17 @@
     },
     "credits": {
       "title": "Crediti Immagini",
-      "body": "Ogni immagine usata da Paths Games — fotografie di Unsplash e icone SVG di game-icons.net — è accreditata di seguito. Clicca su una card per aprire la pagina originale dell'autore."
+      "body": "Ogni immagine usata da Paths Games — fotografie di Unsplash e icone SVG di game-icons.net — è accreditata di seguito. Clicca su una card per aprire la pagina originale dell'autore.",
+      "types": {
+        "story": "Storia",
+        "image": "Immagine",
+        "audio": "Audio"
+      },
+      "openCredit": "Credito"
+    },
+    "policyBook": {
+      "title": "paths.games",
+      "body": "In un’ottica di piena trasparenza e valorizzazione dell’ecosistema digitale, paths.games si pone come una risorsa ad architettura aperta, fermamente orientata all’innovazione collaborativa. Tale vocazione open source si coniuga inestricabilmente con un rigoroso presidio della tutela dei dati personali e con l'incondizionato rispetto del quadro normativo vigente. Contestualmente, la piattaforma ribadisce il proprio impegno etico volto alla doverosa salvaguardia della proprietà intellettuale e al formale riconoscimento del patrimonio artistico e creativo di ogni singolo autore."
     },
     "guestUser": {
       "languageTitle": "Lingua",
@@ -555,6 +713,48 @@
       "allRights": "Tutte le storie, artwork e contenuti di gioco sono",
       "copyright": "© paths.games 2026 — Tutti i diritti riservati",
       "goBack": "Torna Indietro"
+    },
+    "roadmap": {
+      "title": "Devlog",
+      "intro": "paths.games è un progetto open source: tutto il codice è disponibile in un {repo}, rilasciato con licenza GNU GPL v3.<br /><br />Tutte le immagini, i contenuti e le storie sono sotto una licenza specifica, consulta la {credits}.<br /><br />Alcune storie sono scritte dal team di Paths.games e sono coperte dalla licenza {license}.<br /><br />Soprattutto è un progetto per divertirsi: giocando, scrivendo e costruendolo insieme.",
+      "introRepo": "repository GitHub",
+      "introCredits": "pagina crediti",
+      "current": "In corso",
+      "completed": "Completato",
+      "button": "Roadmap"
+    }
+  },
+  "tips": {
+    "location": "Questo è il luogo dove si trova il tuo personaggio. I suoi eventi e i sentieri che ne partono sono nella pagina di destra.",
+    "event": "Un evento è qualcosa che puoi fare qui. Può costare energia o monete, e i suoi effetti cambiano il tuo personaggio.",
+    "action": "Un'azione è qualcosa che puoi fare adesso. Controlla il costo prima di sceglierla.",
+    "item": "Un oggetto nel tuo zaino. Usalo per applicarne gli effetti, o lascialo per alleggerirti.",
+    "items": "Il tuo zaino: ogni oggetto che porti, e quanto pesa rispetto a quanto puoi portare.",
+    "movement": "Un sentiero verso un luogo vicino. Muoversi costa energia, di più con il brutto tempo o in un luogo insicuro.",
+    "class": "La tua classe dà bonus al personaggio e decide alcune delle scelte che puoi fare.",
+    "character": "Il tuo personaggio: vita, energia e le altre statistiche che ogni scelta legge e cambia.",
+    "trait": "Un tratto cambia le tue statistiche per tutta la partita, nel bene o nel male.",
+    "missions": "Le missioni sono obiettivi che la storia ti dà. Completa i loro passi per ottenere la ricompensa.",
+    "missionStep": "Un passo della missione: completalo per passare al successivo. Si vede solo il prossimo passo aperto, quelli dopo restano nascosti.",
+    "registry": "Il registro ricorda cosa è successo in questa partita: chiavi scritte da luoghi, eventi e scelte.",
+    "map": "La mappa mostra i luoghi che hai visitato. Selezionane uno per leggerlo; quelli sconosciuti restano nascosti.",
+    "weather": "Il meteo cambia a ogni nuova unità di tempo e cambia l'energia che spendi per muoverti.",
+    "sleep": "Dormire chiude l'unità di tempo: recuperi energia e il mondo va avanti mentre riposi.",
+    "choice": "Una scelta: scegli un'opzione, le sue conseguenze non si possono annullare.",
+    "experience": "L'esperienza guadagnata nelle avventure si può spendere per alzare una statistica.",
+    "story": "La storia che stai giocando: il suo autore, il suo mondo e le sue regole.",
+    "difficulty": "La difficoltà decide con quanta energia, vita e tempo inizi."
+  },
+  "envBadge": {
+    "dev": "Versione locale",
+    "test": "Versione di test",
+    "alpha": "Versione alpha",
+    "beta": "Versione beta",
+    "short": {
+      "dev": "Locale",
+      "test": "Test",
+      "alpha": "Alpha",
+      "beta": "Beta"
     }
   }
 }

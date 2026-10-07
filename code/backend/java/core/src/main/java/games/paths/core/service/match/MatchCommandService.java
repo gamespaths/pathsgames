@@ -2,7 +2,6 @@ package games.paths.core.service.match;
 
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
-import games.paths.core.entity.match.GamingStateRegistryEntity;
 import games.paths.core.entity.story.ClassEntity;
 import games.paths.core.entity.story.EventEntity;
 import games.paths.core.entity.story.KeyEntity;
@@ -13,7 +12,9 @@ import games.paths.core.model.match.MatchCreateCommand;
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.MatchSummary;
 import games.paths.core.model.match.MatchTraitCodec;
+import games.paths.core.port.match.KpiPort;
 import games.paths.core.port.match.MatchCommandPort;
+import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.MatchPersistencePort;
 import games.paths.core.port.match.SystemModePort;
 import games.paths.core.port.match.UserAccessPort;
@@ -28,7 +29,7 @@ import java.util.Optional;
  * MatchCommandService - Domain service implementing single-player match
  * creation. Pure-Java implementation: ports are injected via constructor.
  *
- * <p>Step 19 — see {@code documentation_v0/Step19_SinglePlayerMatchCreation.md}.</p>
+ * <p>Step 19 — see {@code wiki/documentation_v0/Step19_SinglePlayerMatchCreation.md}.</p>
  */
 public class MatchCommandService implements MatchCommandPort {
 
@@ -39,19 +40,42 @@ public class MatchCommandService implements MatchCommandPort {
     private final UserAccessPort userAccessPort;
     private final SystemModePort systemModePort;
     private final TurnstileVerificationPort turnstilePort;
+    private final RegistryService registryService;
+    /** Step 37 - set after construction; a story that ends fails whatever is still open. */
+    private MissionService missionService;
+    /** v0.41.2 - MATCH_COMPLETED and the durations; null in the older tests. */
+    private KpiPort kpi;
+    /** v0.41.1 - MATCH_* lifecycle and ADMIN_* rows; null in the older tests. */
+    private MatchLogWriterPort logWriter;
 
-    public MatchCommandService(StoryReadPort storyReadPort,
-                               MatchPersistencePort persistencePort,
-                               UserAccessPort userAccessPort,
-                               SystemModePort systemModePort) {
-        this(storyReadPort, persistencePort, userAccessPort, systemModePort, (token, ip) -> true);
+    public void setKpi(KpiPort kpi) {
+        this.kpi = kpi;
+    }
+
+    public void setMissionService(MissionService missionService) {
+        this.missionService = missionService;
+    }
+
+    public void setLogWriter(MatchLogWriterPort logWriter) {
+        this.logWriter = logWriter;
     }
 
     public MatchCommandService(StoryReadPort storyReadPort,
                                MatchPersistencePort persistencePort,
                                UserAccessPort userAccessPort,
                                SystemModePort systemModePort,
-                               TurnstileVerificationPort turnstilePort) {
+                               RegistryService registryService) {
+        this(storyReadPort, persistencePort, userAccessPort, systemModePort, (token, ip) -> true,
+                registryService);
+    }
+
+    public MatchCommandService(StoryReadPort storyReadPort,
+                               MatchPersistencePort persistencePort,
+                               UserAccessPort userAccessPort,
+                               SystemModePort systemModePort,
+                               TurnstileVerificationPort turnstilePort,
+                               RegistryService registryService) {
+        this.registryService = registryService;
         this.storyReadPort = storyReadPort;
         this.persistencePort = persistencePort;
         this.userAccessPort = userAccessPort;
@@ -139,6 +163,10 @@ public class MatchCommandService implements MatchCommandPort {
                 : SECURE_RNG.nextLong());
 
         GamingMatchEntity saved = persistencePort.saveMatch(match);
+        if (logWriter != null) {
+            logWriter.write(saved.getId(), null, null, 0,
+                    MatchLogWriterPort.lifecycle(MatchLogWriterPort.LIFECYCLE_CREATED));
+        }
 
         List<GamingStateLocationsEntity> stateLocations = new ArrayList<>();
         for (LocationEntity loc : locations) {
@@ -159,30 +187,64 @@ public class MatchCommandService implements MatchCommandPort {
         }
         persistencePort.saveLocations(stateLocations);
 
-        List<GamingStateRegistryEntity> registryRows = new ArrayList<>();
-        long nextId = 1L;
-        if (keys != null) {
-            for (KeyEntity k : keys) {
-                GamingStateRegistryEntity r = new GamingStateRegistryEntity();
-                r.setId(nextId++);
-                r.setIdMatch(saved.getId());
-                r.setKey(k.getName());
-                applyKeyDefaultValue(r, k.getValue());
-                registryRows.add(r);
-            }
-        }
-        persistencePort.saveRegistry(registryRows);
+        registryService.seed(saved.getId(), keys);
 
         return toSummary(saved, story, difficulty, user.uuid());
     }
 
     @Override
     public UpdateOutcome updateMatch(String uuidMatch, String status, String name) {
+        return updateMatch(uuidMatch, status, name, null);
+    }
+
+    @Override
+    public UpdateOutcome updateMatch(String uuidMatch, String status, String name, String adminAction) {
         if (status != null && !MatchStatuses.isValid(status)) {
             return UpdateOutcome.INVALID_STATUS;
         }
         boolean found = persistencePort.updateMatchFields(uuidMatch, status, name);
+        if (found) {
+            String detail = adminAction != null ? MatchLogWriterPort.admin(adminAction)
+                    : status != null ? MatchLogWriterPort.adminStatus(status) : null;
+            logMatchRow(uuidMatch, detail);
+        }
         return found ? UpdateOutcome.UPDATED : UpdateOutcome.NOT_FOUND;
+    }
+
+    /** v0.41.2 - MATCH_COMPLETED plus the durations, from the start stamp (else the creation). */
+    private void recordCompletion(String storyUuid, GamingMatchEntity match) {
+        if (kpi == null) {
+            return;
+        }
+        kpi.record(storyUuid, KpiPort.Metric.MATCH_COMPLETED, null, 1);
+        Long durationMs = millisSince(match.getTimestampStart() != null && !match.getTimestampStart().isBlank()
+                ? match.getTimestampStart() : match.getTsInsert());
+        if (durationMs != null) {
+            kpi.record(storyUuid, KpiPort.Metric.DURATION_MS, null, durationMs);
+        }
+        int clocks = match.getCurrentClock() == null ? 0 : match.getCurrentClock();
+        kpi.record(storyUuid, KpiPort.Metric.DURATION_CLOCKS, null, clocks);
+    }
+
+    static Long millisSince(String isoInstant) {
+        if (isoInstant == null || isoInstant.isBlank()) {
+            return null;
+        }
+        try {
+            return Math.max(0L, java.time.Instant.now().toEpochMilli()
+                    - java.time.Instant.parse(isoInstant.trim()).toEpochMilli());
+        } catch (java.time.format.DateTimeParseException ex) {
+            return null;
+        }
+    }
+
+    /** v0.41.1 - one match-level row at the current clock; a rename alone writes nothing. */
+    private void logMatchRow(String uuidMatch, String message) {
+        if (logWriter == null || message == null) {
+            return;
+        }
+        persistencePort.findMatchByUuid(uuidMatch).ifPresent(m -> logWriter.write(m.getId(), null, null,
+                m.getCurrentClock() == null ? 0 : m.getCurrentClock(), message));
     }
 
     @Override
@@ -231,7 +293,17 @@ public class MatchCommandService implements MatchCommandPort {
             return EndMatchOutcome.NOT_ACCEPTABLE;
         }
 
+        boolean alreadyOver = MatchStatuses.isTerminal(match.getStatus());
         persistencePort.updateMatchFields(uuidMatch, MatchStatuses.ENDED, null);
+        if (!alreadyOver) {
+            recordCompletion(story.getUuid(), match);
+        }
+        // Step 37 - a mission that opened and never closed has now failed; one never reached
+        // is simply ignored, as it was never the player's business.
+        if (missionService != null) {
+            missionService.onStoryEnd(match.getId());
+        }
+        logMatchRow(uuidMatch, MatchLogWriterPort.lifecycle(MatchLogWriterPort.LIFECYCLE_ENDED));
         return EndMatchOutcome.COMPLETED;
     }
 
@@ -255,22 +327,6 @@ public class MatchCommandService implements MatchCommandPort {
         } catch (TraitSelectionValidator.TraitSelectionException ex) {
             throw new MatchCreationException(
                     MatchCreationException.Code.valueOf(ex.getViolation().name()), ex.getMessage());
-        }
-    }
-
-    private void applyKeyDefaultValue(GamingStateRegistryEntity r, String rawValue) {
-        if (rawValue == null) {
-            return;
-        }
-        String trimmed = rawValue.trim();
-        if (trimmed.isEmpty()) {
-            r.setStringValue("");
-            return;
-        }
-        try {
-            r.setIntValue(Integer.parseInt(trimmed));
-        } catch (NumberFormatException ex) {
-            r.setStringValue(trimmed);
         }
     }
 

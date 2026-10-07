@@ -3,7 +3,9 @@ package games.paths.adapters.rest.dto;
 import games.paths.core.model.match.CharacterInstanceInfo;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Shared base for the JSON projections of {@link CharacterInstanceInfo}: the
@@ -37,6 +39,9 @@ public abstract class AbstractCharacterStatsResponse {
     private Integer food;
     private Integer magic;
     private Integer coin;
+    /** Step 38 — experience points and the cost of the next point per stat (null = at cap). */
+    private Integer exp;
+    private Map<String, Integer> expCosts;
     private Long idLocation;
     private Boolean isSleeping;
     private Boolean isComa;
@@ -67,6 +72,8 @@ public abstract class AbstractCharacterStatsResponse {
         this.food = m.getFood();
         this.magic = m.getMagic();
         this.coin = m.getCoin();
+        this.exp = m.getExp();
+        this.expCosts = m.getExpCosts() != null ? new LinkedHashMap<>(m.getExpCosts()) : null;
         this.idLocation = m.getIdLocation();
         this.isSleeping = m.getIsSleeping();
         this.isComa = m.getIsComa();
@@ -86,6 +93,10 @@ public abstract class AbstractCharacterStatsResponse {
     public void setMagic(Integer magic) { this.magic = magic; }
     public Integer getCoin() { return coin; }
     public void setCoin(Integer coin) { this.coin = coin; }
+    public Integer getExp() { return exp; }
+    public void setExp(Integer exp) { this.exp = exp; }
+    public Map<String, Integer> getExpCosts() { return expCosts; }
+    public void setExpCosts(Map<String, Integer> expCosts) { this.expCosts = expCosts; }
 
     public String getUuid() { return uuid; }
     public void setUuid(String uuid) { this.uuid = uuid; }

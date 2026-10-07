@@ -12,7 +12,7 @@ def validator():
 
 def valid_story():
     return {
-        "uuid": "story-valid",
+        "uuid": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
         "idLocationStart": 1,
         "locations": [{"id": 1}, {"id": 2}],
         "events": [{"id": 1}, {"id": 2, "idEventNext": 1}],
@@ -35,6 +35,26 @@ def test_valid_story_passes():
 def test_empty_reported():
     assert not validator().validate_import_data(None).is_valid()
     assert not validator().validate_import_data({}).is_valid()
+
+
+def _uuid_refused(value):
+    s = valid_story()
+    s["uuid"] = value
+    report = validator().validate_import_data(s)
+    return any(e.rule == "R0_STORY_UUID" and e.field_name == "uuid" for e in report.errors)
+
+
+@pytest.mark.parametrize("value", ["not-a-uuid", "story-001", "0a1b2c3d4e5f4a6b8c7d9e0f1a2b3c4d",
+                                   "1-1-1-1-1", "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4g", 123])
+def test_story_uuid_malformed_refused(value):
+    # v0.41.5 — R0_STORY_UUID, import only.
+    assert _uuid_refused(value)
+
+
+@pytest.mark.parametrize("value", ["0A1B2C3D-4E5F-4A6B-8C7D-9E0F1A2B3C4D",
+                                   "  0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d  ", None, "   "])
+def test_story_uuid_uppercase_spaced_and_missing_pass(value):
+    assert not _uuid_refused(value)
 
 
 def test_dangling_location_start():
@@ -335,3 +355,147 @@ def test_real_choice_effect_targets_pass():
                            "idWeather": 1, "idItemTarget": 1, "itemAction": "ADD"}]
     report = validator().validate_import_data(s)
     assert report.is_valid(), f"expected valid, got: {[e.field_name for e in report.errors]}"
+
+
+# ── the collections only the richer payloads carry ───────────────────────────
+
+def test_item_effects_class_bonuses_missions_and_weather_are_checked():
+    s = valid_story()
+    s["missions"] = [{"id": 1, "conditionKey": "k", "conditionValue": "1"}]
+    s["traits"] = [{"id": 1}]
+    s["itemEffects"] = [{"id": 1, "idItem": 1, "traitsToAdd": "1", "traitsToRemove": " 1 , "}]
+    s["classBonuses"] = [{"id": 1, "idClass": 1}]
+    s["missionSteps"] = [{"id": 1, "idMission": 1, "conditionKey": "k", "conditionValue": "1"}]
+    s["weatherRules"] = [{"id": 1, "idEvent": 1}]
+    # Step 39 - R11: event 1 owns choice 1, so the random event names event 2.
+    s["globalRandomEvents"] = [{"id": 1, "idEvent": 2}]
+    assert validator().validate_import_data(s).is_valid()
+
+
+def test_dangling_refs_in_those_collections_are_reported():
+    s = valid_story()
+    s["missions"] = [{"id": 1, "conditionKey": "k", "conditionValue": "1"}]
+    s["traits"] = [{"id": 1}]
+    s["itemEffects"] = [{"id": 1, "idItem": 99, "traitsToAdd": "99"}]
+    s["classBonuses"] = [{"id": 1, "idClass": 99}]
+    s["missionSteps"] = [{"id": 1, "idMission": 99, "conditionKey": "k",
+                          "conditionValue": "1"}]
+    s["weatherRules"] = [{"id": 1, "idEvent": 99}]
+    s["globalRandomEvents"] = [{"id": 1, "idEvent": 99}]
+    report = validator().validate_import_data(s)
+    assert not report.is_valid()
+    fields = {e.field_name for e in report.errors}
+    assert {"idItem", "traitsToAdd", "idClass", "idMission", "idEvent"} <= fields
+
+
+def test_trait_csv_skips_blank_and_non_numeric_entries():
+    s = valid_story()
+    s["traits"] = [{"id": 1}]
+    s["itemEffects"] = [{"id": 1, "idItem": 1, "traitsToAdd": " , 1 ,,", "traitsToRemove": "ALL"}]
+    assert validator().validate_import_data(s).is_valid()
+
+
+def test_trait_csv_absent_or_blank_is_not_a_reference():
+    s = valid_story()
+    s["itemEffects"] = [{"id": 1, "idItem": 1, "traitsToAdd": None, "traitsToRemove": "   "}]
+    assert validator().validate_import_data(s).is_valid()
+
+
+def test_traits_and_items_carry_class_restrictions():
+    s = valid_story()
+    s["traits"] = [{"id": 1, "idClassPermitted": 1, "idClassProhibited": 1}]
+    s["items"] = [{"id": 1, "idClassPermitted": 99}]
+    report = validator().validate_import_data(s)
+    assert not report.is_valid()
+
+
+def test_event_effects_are_checked_on_the_import_payload():
+    s = valid_story()
+    s["traits"] = [{"id": 1}]
+    s["eventEffects"] = [{"id": 1, "idEvent": 1, "traitsToAdd": "1"}]
+    assert validator().validate_import_data(s).is_valid()
+
+    s["eventEffects"] = [{"id": 1, "idEvent": 99, "traitsToAdd": "99"}]
+    report = validator().validate_import_data(s)
+    assert not report.is_valid()
+
+
+# ── Step 37: R10 is a report, not a gate ─────────────────────────────────────
+
+def test_a_mission_with_no_condition_key_is_reported_but_only_on_validate_story():
+    """The author's own validate pass says the mission is dead; import must not fail on it,
+    because every backend IGNORES such a row rather than refusing it."""
+    from unittest.mock import MagicMock
+    from app.core.services.story.story_validator_service import StoryValidatorService
+
+    read_port = MagicMock()
+    read_port.find_story_by_id.return_value = {"id": 1}
+    read_port.find_locations_for_story.return_value = []
+    read_port.find_events_for_story.return_value = []
+    read_port.find_items_for_story.return_value = []
+    read_port.find_classes_for_story.return_value = []
+    read_port.find_class_bonuses_for_story.return_value = []
+    read_port.find_character_templates_for_story.return_value = []
+    read_port.find_entities_for_story.side_effect = (
+        lambda _s, table: [{"id": 1}] if table == "list_missions" else [])
+
+    report = StoryValidatorService(read_port).validate_story(1)
+    assert any(e.rule == "R10_MISSION_CONDITION" for e in report.errors)
+
+    s = valid_story()
+    s["missions"] = [{"id": 1}]
+    imported = validator().validate_import_data(s)
+    assert not any(e.rule == "R10_MISSION_CONDITION" for e in imported.errors)
+
+
+# ── Step 39: R11 global random events ────────────────────────────────────────
+
+def _r11_fields(row, **extra):
+    s = valid_story()
+    s["globalRandomEvents"] = [row]
+    s.update(extra)
+    return [e.field_name for e in validator().validate_import_data(s).errors
+            if e.rule == "R11_RANDOM_EVENT"]
+
+
+def test_r11_complete_row_on_choice_free_event_passes():
+    assert _r11_fields({"id": 1, "idEvent": 2, "probability": 100,
+                        "conditionKey": "CHAPTER", "conditionValue": "1"}) == []
+
+
+def test_r11_probability_outside_range_fails_missing_is_zero():
+    assert _r11_fields({"id": 1, "idEvent": 2, "probability": 101}) == ["probability"]
+    assert _r11_fields({"id": 1, "idEvent": 2, "probability": -1}) == ["probability"]
+    assert _r11_fields({"id": 1, "idEvent": 2}) == []
+
+
+def test_r11_missing_event_fails():
+    assert _r11_fields({"id": 1, "probability": 10}) == ["idEvent"]
+    assert _r11_fields({"id": 1, "idEvent": 0, "probability": 10}) == ["idEvent"]
+
+
+def test_r11_event_owning_choices_fails():
+    assert _r11_fields({"id": 1, "idEvent": 1, "probability": 10}) == ["idEvent"]
+
+
+def test_r11_event_with_weather_effect_fails():
+    assert _r11_fields({"id": 1, "idEvent": 2, "probability": 10},
+                       weatherRules=[{"id": 1}],
+                       eventEffects=[{"id": 1, "idEvent": 2, "idWeather": 1},
+                                     {"id": 2, "idEvent": 1, "idWeather": 0}]) == ["idEvent"]
+
+
+def test_r11_half_condition_fails():
+    assert _r11_fields({"id": 1, "idEvent": 2, "probability": 10,
+                        "conditionKey": "CHAPTER"}) == ["conditionValue"]
+    assert _r11_fields({"id": 1, "idEvent": 2, "probability": 10,
+                        "conditionKey": " ", "conditionValue": "1"}) == ["conditionKey"]
+
+
+def test_r11_import_never_warns():
+    s = valid_story()
+    s["globalRandomEvents"] = [{"id": 1, "idEvent": 2, "probability": 80},
+                               {"id": 2, "idEvent": 2, "probability": 80}]
+    report = validator().validate_import_data(s)
+    assert report.is_valid()
+    assert report.warnings == []

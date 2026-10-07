@@ -58,11 +58,12 @@ describe('startBook/SelectionView lock handling', () => {
     expect(screen.getByTestId('gc').dataset.haspreview).toBe('n')
   })
 
-  it('calls onBack from the header button', () => {
+  // v0.38.3 — no header button left to click: back lives on the left page / mobile column.
+  it('renders an empty header, whatever onBack it is handed', () => {
     getOptionLockInfo.mockReturnValue(null)
-    const onBack = vi.fn()
-    render(<SelectionView type="class" options={[]} config={{}} story={{}} onSelect={vi.fn()} onBack={onBack} />)
-    fireEvent.click(screen.getByRole('button'))
-    expect(onBack).toHaveBeenCalled()
+    const { container } = render(
+      <SelectionView type="class" options={[]} config={{}} story={{}} onSelect={vi.fn()} onBack={vi.fn()} />)
+    expect(container.querySelector('.selection-header').textContent).toBe('')
+    expect(screen.queryByRole('button')).toBeNull()
   })
 })

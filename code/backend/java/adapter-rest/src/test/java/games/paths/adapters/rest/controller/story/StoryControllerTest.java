@@ -112,7 +112,7 @@ class StoryControllerTest {
             DifficultyInfo diff = DifficultyInfo.builder()
                     .uuid("diff-1").description("Easy").expCost(5).maxWeight(10)
                     .minCharacter(1).maxCharacter(4).costHelpComa(3)
-                    .costMaxCharacteristics(3).numberMaxFreeAction(1)
+                    .expCostBase(3).maxStatValue(20).numberMaxFreeAction(1)
                     .build();
 
             CharacterTemplateInfo ct = new CharacterTemplateInfo("ct-1", "Warrior",

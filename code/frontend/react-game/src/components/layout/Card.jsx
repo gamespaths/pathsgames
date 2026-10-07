@@ -6,6 +6,10 @@ import SafeHtml from '../ui/SafeHtml'
 import { getNonZeroStats, STAT_CATEGORY_ORDER } from '../../utils/bonusStats'
 import { useState } from 'react'
 import CardButtons from './CardButtons'
+import TipNote from '../ui/TipNote'
+import { isTutorialStory } from '../../constants/features'
+import { CREDIT_ICONS, creditNotes, creditText } from '../../utils/cardCredits'
+import { usePolicyBook } from '../../context/PolicyBookContext'
 
 /**
  * Card — unified card component (formerly GameCard + GameCardWrapper).
@@ -47,6 +51,7 @@ export default function Card({
   /* actions */
   onSelect,
   selectLabel = 'Select',
+  selectIcon = null, // Step 40 — replaces the default hand glyph of the select button
   onAction,
   actionLabel = 'Change',
   actionIcon = 'fa-sync-alt',
@@ -62,6 +67,8 @@ export default function Card({
   children,
 
   statistics, flagShowFullStatistics=false,
+  /* Badges that ride in the TITLE whatever flagShowFullStatistics does with `statistics`. */
+  titleStatistics=null,
   /* v0.35.2 — keep the badges whose value is zero. Off by default, because a zero stat is
      usually noise; a bag is the exception, where "0 items, 0/30" is the whole news. */
   bonusBadgeShowZeros=false,
@@ -114,7 +121,7 @@ export default function Card({
         littleVersion={bonusBadgeListLittleDesc} showZeros={bonusBadgeShowZeros} />
     : null
 
-  /* ── copyright view link (CreditsModal) ── */
+  /* ── copyright view link (PolicyBook credits) ── */
   const viewLink = linkCopyright && showLinkCopyright && !isDisabled && (
     <a
       href={linkCopyright}
@@ -131,6 +138,26 @@ export default function Card({
   const typeBadgeLabel = entityType
     ? (() => { const k = `book.${entityType}`; const tr = t(k); return tr === k ? entityType : tr })()
     : null
+
+  /* ── Step 40 tip: page cards only, a type without a text shows nothing ── */
+  const tipKey = entityType ? `tips.${entityType}` : null
+  const tipText = isPage && tipKey ? (() => { const tr = t(tipKey); return tr === tipKey ? null : tr })() : null
+  const tipCardKey = `${entityType ?? ''}|${card?.uuid ?? card?.title ?? ''}`
+  const [tipState, setTipState] = useState({ key: tipCardKey, open: null, kind: 'tip', focus: 0 })
+  const tipSameCard = tipState.key === tipCardKey
+  // Step 42 — the tip area also shows the story / image credit the footer link opened.
+  const { openPolicyBook } = usePolicyBook()
+  const notes = isPage ? creditNotes(card, story, t) : {}
+  const noteKind = tipSameCard ? tipState.kind : 'tip'
+  const credit = noteKind === 'tip' ? null : notes[noteKind]
+  const noteText = noteKind === 'tip' ? tipText : credit?.text
+  const tipOpen = !!noteText && (tipSameCard && tipState.open !== null ? tipState.open : isTutorialStory(story))
+  const openNote = kind => setTipState(s => ({ key: tipCardKey, open: true, kind,
+    focus: (s.key === tipCardKey ? s.focus : 0) + 1 }))
+  const openTip = () => openNote('tip')
+  const hideTip = () => setTipState({ key: tipCardKey, open: false, kind: noteKind, focus: 0 })
+  const noteLink = credit?.url ? { href: credit.url, label: creditText(t, 'card.openLink'),
+    onOpen: credit.policy ? () => openPolicyBook(credit.policy) : null } : null
 
   const cardClasses = isPage? " book-page-content " : [
     'pg-card',
@@ -151,6 +178,10 @@ export default function Card({
         <div className="gc-title__text">{name}</div>
         {!flagShowFullStatistics && statistics && statistics.length > 0 &&
           <BonusBadgeList className="mt-0 mb-0 config-total-bonus float-right" items={statistics}
+            littleVersion={bonusBadgeListLittleTitle} showZeros={bonusBadgeShowZeros} />
+        }
+        {titleStatistics && titleStatistics.length > 0 &&
+          <BonusBadgeList className="mt-0 mb-0 config-total-bonus float-right" items={titleStatistics}
             littleVersion={bonusBadgeListLittleTitle} showZeros={bonusBadgeShowZeros} />
         }
         {typeBadgeLabel && <span className="gc-type-badge">{typeBadgeLabel}</span>}
@@ -204,10 +235,13 @@ export default function Card({
       {children}
       
       {/* pageDesc */ }
-      {isPage && (pageDesc || (positionBonusBadge === 'desc' && statItemsReal!=null && statItemsReal.length > 0)) && (
+      {isPage && (pageDesc || tipOpen || (positionBonusBadge === 'desc' && statItemsReal!=null && statItemsReal.length > 0)) && (
         <div className="book-page-desc">
           {positionBonusBadge === 'desc' && bonusBadgeNode}
-          <SafeHtml key={card?.uuid ?? card?.title ?? String(pageDesc ?? '')} value={pageDesc} />
+          <SafeHtml key={card?.uuid ?? card?.title ?? String(pageDesc ?? '')} value={pageDesc} halfBlankLines />
+          {tipOpen && <TipNote text={noteText} hideLabel={t('card.hideTip')} onHide={hideTip}
+            focusKey={tipSameCard ? tipState.focus : 0} icon={CREDIT_ICONS[noteKind]} link={noteLink}
+            singleLine={noteKind !== 'tip'} />}
         </div>
       )}
       
@@ -221,7 +255,7 @@ export default function Card({
 
       <CardButtons isPage={isPage} name={name ?? label} onPreviewClick={onPreviewClick}
             locked={locked} lockedReason={lockedReason} lockInfo={lockInfo} lockedIcon={lockedIcon}
-            onSelect={onSelect} selected={selected} selectLabel={selectLabel}
+            onSelect={onSelect} selected={selected} selectLabel={selectLabel} selectIcon={selectIcon}
             onAction={onAction} actionLabel={actionLabel} actionIcon={actionIcon} actionOnlyIfPreview={actionOnlyIfPreview} actionLabelChildren={actionLabelChildren}
             onPreview={onPreview} previewOpened={previewOpened} hidePreview={hidePreview}
             flagInformationCard={flagInformationCard}
@@ -233,7 +267,8 @@ export default function Card({
 
       {/* The bar decides for itself: it needs an author or an image credit, and a page that
           hides its artwork still credits the story. */}
-      {isPage && <CardCreditsBar card={card} story={story} typeBadgeLabel={typeBadgeLabel} />}
+      {isPage && <CardCreditsBar card={card} story={story} typeBadgeLabel={typeBadgeLabel}
+        tip={tipText ? { label: t('card.tip'), onOpen: openTip } : null} onOpenCredit={openNote} />}
     </div>
   )
 }

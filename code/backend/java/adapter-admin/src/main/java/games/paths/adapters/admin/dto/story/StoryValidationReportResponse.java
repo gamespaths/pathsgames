@@ -13,12 +13,17 @@ import java.util.stream.Collectors;
 public record StoryValidationReportResponse(
         boolean valid,
         int count,
-        List<StoryValidationErrorResponse> errors) {
+        List<StoryValidationErrorResponse> errors,
+        /** Step 39 - advisory findings; they never make the story invalid. */
+        List<StoryValidationErrorResponse> warnings) {
 
     public static StoryValidationReportResponse fromModel(StoryValidationReport report) {
         List<StoryValidationErrorResponse> list = report.getErrors().stream()
                 .map(StoryValidationErrorResponse::fromModel)
                 .collect(Collectors.toList());
-        return new StoryValidationReportResponse(report.isValid(), list.size(), list);
+        List<StoryValidationErrorResponse> warnings = report.getWarnings().stream()
+                .map(StoryValidationErrorResponse::fromModel)
+                .collect(Collectors.toList());
+        return new StoryValidationReportResponse(report.isValid(), list.size(), list, warnings);
     }
 }

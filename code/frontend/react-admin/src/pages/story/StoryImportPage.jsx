@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { importStory } from '../../api/storyApi'
 import ErrorAlert from '../../components/common/ErrorAlert'
+import { isValidStoryUuid, normalizeImportJson } from '../../utils/storyJson'
 
 const EXAMPLE = JSON.stringify({
   uuid: null,
@@ -23,7 +24,7 @@ const EXAMPLE = JSON.stringify({
     { idText: 2, lang: "en", shortText: "A great adventure" },
   ],
   difficulties: [
-    { idTextDescription: 10, expCost: 5, maxWeight: 10, minCharacter: 1, maxCharacter: 4,
+    { idTextDescription: 10, expCost: 5, expCostBase: 0, maxStatValue: 0, maxWeight: 10, minCharacter: 1, maxCharacter: 4,
       life: 100, energy: 100, sad: 0, dexterity: 10, intelligence: 10, constitution: 10, weight: 10 }
   ],
   locations: [],
@@ -46,9 +47,14 @@ export default function StoryImportPage() {
       setError('Invalid JSON — please check your input.')
       return
     }
+    const data = normalizeImportJson(parsed)
+    if (!isValidStoryUuid(data?.uuid)) {
+      setError(`Invalid story uuid "${data.uuid}" — use a UUID like 8-4-4-4-12 hex, or null to auto-generate one.`)
+      return
+    }
     setLoading(true)
     try {
-      const res = await importStory(parsed)
+      const res = await importStory(data)
       setResult(res)
     } catch (e) {
       setError(e.message)
@@ -65,10 +71,11 @@ export default function StoryImportPage() {
 
       <div className="pg-card mb-4">
         <p style={{ color: 'var(--color-ash)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-          <i className="fas fa-info-circle me-1" style={{ color: 'var(--color-gold-dark)' }} />
-          Paste a complete story JSON here. If the UUID already exists it will be
+          <i className="fas fa-info-circle me-1" style={{ color: 'var(--color-gold-dark)' }} />Paste a complete story JSON here. If the UUID already exists it will be
           <strong style={{ color: 'var(--color-gold-light)' }}> completely replaced</strong>.
-          Leave <code style={{ color: 'var(--color-gold-dark)' }}>uuid: null</code> to auto-generate a new UUID.
+          Leave <code style={{ color: 'var(--color-gold-dark)' }}>uuid: null</code> to auto-generate a new UUID;
+          otherwise it must be a valid UUID (8-4-4-4-12 hex, stored lowercase).
+          Fields left out of the JSON are imported as null or their default value.
         </p>
         <button className="pg-btn pg-btn-ghost pg-btn-sm" onClick={loadExample}>
           <i className="fas fa-magic me-1" />Load example JSON
@@ -97,11 +104,11 @@ export default function StoryImportPage() {
       )}
 
       <div className="mb-3">
-        <label className="pg-label">
-          <i className="fas fa-code me-1" />
-          Story JSON
+        <label className="pg-label" htmlFor="story-import-json">
+          <i className="fas fa-code me-1" />Story JSON
         </label>
         <textarea
+          id="story-import-json"
           className="pg-textarea"
           rows={24}
           value={json}

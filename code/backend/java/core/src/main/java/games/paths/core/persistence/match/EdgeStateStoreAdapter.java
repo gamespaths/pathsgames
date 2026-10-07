@@ -7,6 +7,8 @@ import games.paths.core.repository.match.GamingCharacterInstanceRepository;
 import games.paths.core.repository.match.LogEventsRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import games.paths.core.model.match.LogTable;
+import games.paths.core.port.match.LogIdPort;
 
 /**
  * EdgeStateStoreAdapter - JPA adapter implementing {@link EdgeStateStorePort} for the Step 30
@@ -21,11 +23,14 @@ public class EdgeStateStoreAdapter implements EdgeStateStorePort {
 
     private final GamingCharacterInstanceRepository characterRepository;
     private final LogEventsRepository logEventsRepository;
+    private final LogIdPort logIds;
 
     public EdgeStateStoreAdapter(GamingCharacterInstanceRepository characterRepository,
-                                 LogEventsRepository logEventsRepository) {
+                                 LogEventsRepository logEventsRepository,
+                                 LogIdPort logIds) {
         this.characterRepository = characterRepository;
         this.logEventsRepository = logEventsRepository;
+        this.logIds = logIds;
     }
 
     @Override
@@ -60,7 +65,7 @@ public class EdgeStateStoreAdapter implements EdgeStateStorePort {
     @Override
     public void logEdgeState(long idMatch, Long idCharacter, Long idEvent, int clock, String message) {
         LogEventsEntity e = new LogEventsEntity();
-        e.setId(logEventsRepository.findMaxId() + 1);
+        e.setId(logIds.nextId(LogTable.EVENTS));
         e.setIdMatch(idMatch);
         e.setIdCharacterMatch(idCharacter);
         e.setIdEvent(idEvent);

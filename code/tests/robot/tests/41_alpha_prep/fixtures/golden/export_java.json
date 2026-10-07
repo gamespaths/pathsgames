@@ -1,0 +1,1305 @@
+{
+  "characters": [
+    {
+      "characterTemplateId": 1,
+      "characteristics": [],
+      "classId": 1,
+      "clockInComa": 0,
+      "constitution": 2,
+      "counterConsecutivePass": 0,
+      "dexterity": 2,
+      "energy": 40,
+      "energyMax": 40,
+      "exp": 1,
+      "intelligence": 2,
+      "isComa": false,
+      "isSleeping": true,
+      "items": [
+        {
+          "amount": 1,
+          "itemId": 1,
+          "state": "ACTIVE"
+        }
+      ],
+      "life": 10,
+      "lifeMax": 10,
+      "locationId": 2,
+      "ordinal": 1,
+      "resources": {
+        "coin": 0,
+        "food": 0,
+        "magic": 1
+      },
+      "sad": 0,
+      "sadMax": 5,
+      "traits": [],
+      "userUuid": "a572ff93-8f5c-426d-87cd-c08791ba7aed",
+      "uuid": "e81d28da-53fd-41c9-9c5c-e27a28e0a20e",
+      "weightMax": 10
+    }
+  ],
+  "checksum": "19bfa334b577d31bc3e2e74cb5ab39ee63c48416186e87866409b2e671e0a4a8",
+  "engine": {
+    "eventMarkers": [
+      {
+        "eventId": 13,
+        "executed": 1,
+        "selected": 0
+      },
+      {
+        "eventId": 14,
+        "executed": 1,
+        "selected": 0
+      },
+      {
+        "eventId": 15,
+        "executed": 1,
+        "selected": 0
+      },
+      {
+        "eventId": 18,
+        "executed": 1,
+        "selected": 0
+      },
+      {
+        "eventId": 20,
+        "executed": 1,
+        "selected": 0
+      }
+    ],
+    "visitedLocationIds": [
+      2,
+      1
+    ]
+  },
+  "format": "paths-games-match-export",
+  "formatVersion": 1,
+  "logs": [
+    {
+      "clock": 0,
+      "cost": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "gain": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "message": "CREATED",
+      "seq": 1,
+      "timestamp": "2026-10-06T17:29:41.815Z",
+      "type": "MATCH_LIFECYCLE"
+    },
+    {
+      "clock": 0,
+      "cost": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "gain": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "message": "STARTED",
+      "seq": 2,
+      "timestamp": "2026-10-06T17:29:41.912Z",
+      "type": "MATCH_LIFECYCLE"
+    },
+    {
+      "clock": 0,
+      "seq": 3,
+      "timestamp": "2026-10-06T17:29:41.924Z",
+      "type": "WEATHER",
+      "weatherId": 1
+    },
+    {
+      "characterUuid": "e81d28da-53fd-41c9-9c5c-e27a28e0a20e",
+      "cost": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "counter": 1,
+      "eventId": 20,
+      "gain": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "itemAction": "ADD",
+      "itemId": 1,
+      "seq": 4,
+      "timestamp": "2026-10-06T17:29:41.982Z",
+      "type": "ITEM_ADD"
+    },
+    {
+      "characterUuid": "e81d28da-53fd-41c9-9c5c-e27a28e0a20e",
+      "clock": 0,
+      "cost": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "eventId": 20,
+      "gain": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "message": "EVENT_EXECUTED 20",
+      "seq": 5,
+      "timestamp": "2026-10-06T17:29:41.993Z",
+      "type": "EVENT"
+    },
+    {
+      "characterUuid": "e81d28da-53fd-41c9-9c5c-e27a28e0a20e",
+      "clock": 0,
+      "cost": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "eventId": 14,
+      "gain": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "message": "REGISTRY_CHANGE quest null -> done",
+      "seq": 6,
+      "timestamp": "2026-10-06T17:29:42.029Z",
+      "type": "REGISTRY_CHANGE"
+    },
+    {
+      "clock": 0,
+      "cost": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "gain": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "message": "MISSION_CHANGE 041435fd-d5a9-4e5d-a520-98e3cc47e87f none -> COMPLETED",
+      "seq": 7,
+      "timestamp": "2026-10-06T17:29:42.046Z",
+      "type": "MISSION_CHANGE"
+    },
+    {
+      "characterUuid": "e81d28da-53fd-41c9-9c5c-e27a28e0a20e",
+      "clock": 0,
+      "cost": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "eventId": 14,
+      "gain": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "message": "EVENT_EXECUTED 14",
+      "seq": 8,
+      "timestamp": "2026-10-06T17:29:42.082Z",
+      "type": "EVENT"
+    },
+    {
+      "clock": 0,
+      "cost": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "eventId": 15,
+      "gain": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 1
+      },
+      "message": "EVENT_EXECUTED 15",
+      "seq": 9,
+      "timestamp": "2026-10-06T17:29:42.101Z",
+      "type": "EVENT"
+    },
+    {
+      "clock": 0,
+      "cost": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "eventId": 15,
+      "gain": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "message": "automatic event 15 (mission completed) at location 0",
+      "seq": 10,
+      "timestamp": "2026-10-06T17:29:42.112Z",
+      "type": "AUTOMATIC_EVENT"
+    },
+    {
+      "characterUuid": "e81d28da-53fd-41c9-9c5c-e27a28e0a20e",
+      "clock": 0,
+      "cost": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "eventId": 13,
+      "gain": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "message": "EVENT_EXECUTED 13",
+      "seq": 11,
+      "timestamp": "2026-10-06T17:29:42.148Z",
+      "type": "EVENT"
+    },
+    {
+      "characterUuid": "e81d28da-53fd-41c9-9c5c-e27a28e0a20e",
+      "cost": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "locationFromId": 1,
+      "locationToId": 2,
+      "seq": 12,
+      "timestamp": "2026-10-06T17:29:42.205Z",
+      "type": "MOVEMENT"
+    },
+    {
+      "characterUuid": "e81d28da-53fd-41c9-9c5c-e27a28e0a20e",
+      "clock": 0,
+      "cost": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "eventId": 18,
+      "gain": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "message": "EVENT_EXECUTED 18",
+      "seq": 13,
+      "timestamp": "2026-10-06T17:29:42.250Z",
+      "type": "EVENT"
+    },
+    {
+      "characterUuid": "e81d28da-53fd-41c9-9c5c-e27a28e0a20e",
+      "clock": 0,
+      "cost": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "gain": {
+        "coin": 0,
+        "energy": 0,
+        "food": 0,
+        "magic": 0
+      },
+      "seq": 14,
+      "timestamp": "2026-10-06T17:29:42.299Z",
+      "type": "SLEEP"
+    }
+  ],
+  "match": {
+    "activeCharacterUuid": "e81d28da-53fd-41c9-9c5c-e27a28e0a20e",
+    "clock": 0,
+    "counterConsecutivePass": 0,
+    "createdAt": "2026-10-06T17:29:41.809Z",
+    "creatorUserUuid": "a572ff93-8f5c-426d-87cd-c08791ba7aed",
+    "currentWeatherId": 1,
+    "difficultyId": 1,
+    "expCost": 1,
+    "loadout": {
+      "traitIds": []
+    },
+    "name": "robottest_alpha_prep",
+    "partyLocationId": 2,
+    "rngSeed": 42,
+    "secureLocationParam": 0,
+    "singlePlayer": true,
+    "status": "RUNNING",
+    "timestampStart": "2026-10-06T17:29:41.903Z",
+    "uuid": "c9270d9d-78b1-407b-8b9d-948e3fb2fe02"
+  },
+  "source": {
+    "appVersion": "0.42.0",
+    "backend": "java",
+    "dialect": "sqlite",
+    "exportedAt": "2026-10-06T17:29:42.460Z",
+    "server": "development",
+    "snapshotClock": 0,
+    "snapshotUuid": "d0444d74-abde-4cb1-8c8d-48e536d13f2a"
+  },
+  "state": {
+    "choiceHistory": [],
+    "locations": [
+      {
+        "clockCounter": 0,
+        "flagAlreadyActivated": false,
+        "flagVisited": true,
+        "locationId": 1
+      },
+      {
+        "clockCounter": 0,
+        "flagAlreadyActivated": false,
+        "flagVisited": true,
+        "locationId": 2
+      }
+    ],
+    "registry": [
+      {
+        "characterUuid": "e81d28da-53fd-41c9-9c5c-e27a28e0a20e",
+        "clock": 0,
+        "eventId": 14,
+        "key": "quest",
+        "multiValue": false,
+        "stringValue": "done"
+      },
+      {
+        "clock": 0,
+        "key": "mission:041435fd-d5a9-4e5d-a520-98e3cc47e87f",
+        "missionId": 1,
+        "multiValue": false,
+        "stringValue": "COMPLETED"
+      }
+    ],
+    "storyProgress": [],
+    "turns": [
+      {
+        "characterUuid": "e81d28da-53fd-41c9-9c5c-e27a28e0a20e",
+        "clock": 0,
+        "passCounter": 0,
+        "priority": 12101,
+        "status": "ACTIVE"
+      }
+    ]
+  },
+  "story": {
+    "data": {
+      "author": "robottest_alpha_prep",
+      "cards": [
+        {
+          "id": 1,
+          "idCreator": 1,
+          "idTextDescription": 1,
+          "idTextTitle": 1,
+          "urlImage": "https://example.invalid/card-1.jpg",
+          "uuid": "c5afb03e-e968-4bbb-a64e-6efae8421472"
+        },
+        {
+          "id": 3,
+          "idCreator": 1,
+          "idTextDescription": 3,
+          "idTextTitle": 3,
+          "urlImage": "https://example.invalid/card-3.jpg",
+          "uuid": "04498565-3347-45d9-9668-f3399dab5853"
+        },
+        {
+          "id": 50,
+          "idCreator": 1,
+          "idTextDescription": 50,
+          "idTextTitle": 50,
+          "urlImage": "https://example.invalid/card-50.jpg",
+          "uuid": "5d97bc4c-3166-412b-9944-e82ac7e5827e"
+        },
+        {
+          "id": 51,
+          "idCreator": 1,
+          "idTextDescription": 51,
+          "idTextTitle": 51,
+          "urlImage": "https://example.invalid/card-51.jpg",
+          "uuid": "1964b0e8-ad37-4c83-8680-1fa0b4c178de"
+        },
+        {
+          "id": 60,
+          "idCreator": 1,
+          "idTextDescription": 60,
+          "idTextTitle": 60,
+          "urlImage": "https://example.invalid/card-60.jpg",
+          "uuid": "451e9917-8dd3-433e-9a37-29d3208eb0fe"
+        },
+        {
+          "id": 61,
+          "idCreator": 1,
+          "idTextDescription": 61,
+          "idTextTitle": 61,
+          "urlImage": "https://example.invalid/card-61.jpg",
+          "uuid": "ab7af384-2bb3-4f81-bc3a-c21628ab8162"
+        },
+        {
+          "id": 62,
+          "idCreator": 1,
+          "idTextDescription": 62,
+          "idTextTitle": 62,
+          "urlImage": "https://example.invalid/card-62.jpg",
+          "uuid": "9c14a998-6c6b-442b-aaf5-6e34c709185f"
+        },
+        {
+          "id": 10,
+          "idCreator": 1,
+          "idTextDescription": 10,
+          "idTextTitle": 10,
+          "urlImage": "https://example.invalid/card-10.jpg",
+          "uuid": "99082374-786c-4cdb-a198-1d1d99e4c8fa"
+        },
+        {
+          "id": 11,
+          "idCreator": 1,
+          "idTextDescription": 11,
+          "idTextTitle": 11,
+          "urlImage": "https://example.invalid/card-11.jpg",
+          "uuid": "6f52cb36-e333-44a7-becf-399791c0717b"
+        },
+        {
+          "id": 12,
+          "idCreator": 1,
+          "idTextDescription": 12,
+          "idTextTitle": 12,
+          "urlImage": "https://example.invalid/card-12.jpg",
+          "uuid": "2671771d-2553-4151-8fe7-fd1a7cef3493"
+        },
+        {
+          "id": 13,
+          "idCreator": 1,
+          "idTextDescription": 13,
+          "idTextTitle": 13,
+          "urlImage": "https://example.invalid/card-13.jpg",
+          "uuid": "3d3d370b-d4a2-49b8-8e7c-99ae67c090f2"
+        },
+        {
+          "id": 14,
+          "idCreator": 1,
+          "idTextDescription": 14,
+          "idTextTitle": 14,
+          "urlImage": "https://example.invalid/card-14.jpg",
+          "uuid": "9c89b2c6-f286-4a80-ac61-25aa712ccb38"
+        },
+        {
+          "id": 15,
+          "idCreator": 1,
+          "idTextDescription": 15,
+          "idTextTitle": 15,
+          "urlImage": "https://example.invalid/card-15.jpg",
+          "uuid": "6ef06b83-158a-4163-b1e1-3b39806f495b"
+        },
+        {
+          "id": 16,
+          "idCreator": 1,
+          "idTextDescription": 16,
+          "idTextTitle": 16,
+          "urlImage": "https://example.invalid/card-16.jpg",
+          "uuid": "7077131a-b461-4c62-82b7-54d9bc002d4e"
+        },
+        {
+          "id": 17,
+          "idCreator": 1,
+          "idTextDescription": 17,
+          "idTextTitle": 17,
+          "urlImage": "https://example.invalid/card-17.jpg",
+          "uuid": "487cf0bb-2620-468b-abf7-b9a6987a5fac"
+        },
+        {
+          "id": 40,
+          "idCreator": 1,
+          "idTextDescription": 40,
+          "idTextTitle": 40,
+          "urlImage": "https://example.invalid/card-40.jpg",
+          "uuid": "1c6fa44c-1bfc-4421-9d52-a1f2d476afb3"
+        },
+        {
+          "id": 70,
+          "idCreator": 1,
+          "idTextDescription": 70,
+          "idTextTitle": 70,
+          "urlImage": "https://example.invalid/card-70.jpg",
+          "uuid": "643f86c9-990c-49d3-9ddf-6693d5fded0f"
+        },
+        {
+          "id": 92,
+          "idCreator": 1,
+          "idTextDescription": 92,
+          "idTextTitle": 92,
+          "urlImage": "https://example.invalid/card-92.jpg",
+          "uuid": "24c2311f-d0da-4594-94ce-d4b33da310fe"
+        },
+        {
+          "id": 18,
+          "idCreator": 1,
+          "idTextDescription": 18,
+          "idTextTitle": 18,
+          "urlImage": "https://example.invalid/card-18.jpg",
+          "uuid": "761eacdf-8639-4f85-946a-69d1b95847a4"
+        },
+        {
+          "id": 93,
+          "idCreator": 1,
+          "idTextDescription": 93,
+          "idTextTitle": 93,
+          "urlImage": "https://example.invalid/card-93.jpg",
+          "uuid": "83f2bf92-aa6f-4b31-abeb-b25fb16194d2"
+        },
+        {
+          "id": 94,
+          "idCreator": 1,
+          "idTextDescription": 94,
+          "idTextTitle": 94,
+          "urlImage": "https://example.invalid/card-94.jpg",
+          "uuid": "a7933fdf-0efe-496c-8640-7f75dcdb2e2c"
+        },
+        {
+          "id": 95,
+          "idCreator": 1,
+          "idTextDescription": 95,
+          "idTextTitle": 95,
+          "urlImage": "https://example.invalid/card-95.jpg",
+          "uuid": "15efcbd2-8ed7-472c-8755-d3c938ffcbea"
+        }
+      ],
+      "category": "robottest",
+      "characterTemplates": [
+        {
+          "constitutionStart": 2,
+          "dexterityStart": 2,
+          "energyMax": 20,
+          "id": 1,
+          "idCard": 60,
+          "idTextDescription": 60,
+          "idTextName": 60,
+          "intelligenceStart": 2,
+          "lifeMax": 10,
+          "sadMax": 5,
+          "uuid": "6631c52d-d318-466b-91c3-903498d3f921"
+        }
+      ],
+      "choiceConditions": [],
+      "choiceEffects": [
+        {
+          "flagGroup": 0,
+          "id": 1,
+          "idCard": 18,
+          "idChoices": 1,
+          "idTextName": 19,
+          "statistics": "food",
+          "uuid": "410c19b8-833a-4340-b915-9d5629446917",
+          "value": 1
+        }
+      ],
+      "choices": [
+        {
+          "id": 1,
+          "idCard": 18,
+          "idEvent": 18,
+          "idTextName": 19,
+          "idTextNarrative": 19,
+          "isProgress": 0,
+          "logicOperator": "AND",
+          "otherwiseFlag": 0,
+          "priority": 1,
+          "uuid": "c0b7290a-2645-427e-8127-93d0cd37f2ad"
+        }
+      ],
+      "classBonuses": [],
+      "classes": [
+        {
+          "constitutionBase": 0,
+          "dexterityBase": 0,
+          "id": 1,
+          "idCard": 61,
+          "idTextDescription": 61,
+          "idTextName": 61,
+          "intelligenceBase": 0,
+          "uuid": "7eca1f91-efc2-4c50-a0e2-2a1262702673",
+          "weightMax": 10
+        }
+      ],
+      "creators": [
+        {
+          "id": 1,
+          "idText": 1,
+          "link": "https://example.invalid",
+          "url": "https://example.invalid",
+          "uuid": "9e0fc19c-ee46-4d10-8d11-d1c412b26ac5"
+        }
+      ],
+      "difficulties": [
+        {
+          "constitution": 0,
+          "costHelpComa": 0,
+          "dexterity": 0,
+          "energy": 20,
+          "expCost": 1,
+          "expCostBase": 0,
+          "id": 1,
+          "idCard": 62,
+          "idTextDescription": 62,
+          "idTextName": 62,
+          "intelligence": 0,
+          "life": 0,
+          "maxCharacter": 0,
+          "maxStatValue": 0,
+          "maxWeight": 0,
+          "minCharacter": 0,
+          "numberMaxFreeAction": 0,
+          "sad": 0,
+          "uuid": "914a0892-07cf-47de-b1ad-3f0eed8bb59a",
+          "weight": 0
+        }
+      ],
+      "eventEffects": [
+        {
+          "id": 1,
+          "idCard": 10,
+          "idEvent": 10,
+          "idTextName": 10,
+          "target": "ONLY_ONE",
+          "traitsToAdd": "1",
+          "uuid": "ca577a16-2228-4fab-a044-a39ee8f6a2eb",
+          "value": 0
+        },
+        {
+          "id": 2,
+          "idCard": 11,
+          "idEvent": 11,
+          "idTextName": 11,
+          "target": "ONLY_ONE",
+          "traitsToRemove": "1",
+          "uuid": "e0490d91-d9f0-4997-aba1-4c10d82b0cd5",
+          "value": 0
+        },
+        {
+          "id": 3,
+          "idCard": 12,
+          "idEvent": 12,
+          "idTextName": 12,
+          "statistics": "life",
+          "target": "ONLY_ONE",
+          "uuid": "356742f7-6437-48b6-b0d5-79b35e236100",
+          "value": -99
+        },
+        {
+          "id": 4,
+          "idCard": 13,
+          "idEvent": 13,
+          "idTextName": 13,
+          "statistics": "exp",
+          "target": "ONLY_ONE",
+          "uuid": "d8c71a4e-cd4d-41e9-b9bf-15cdbca4c54e",
+          "value": 1
+        },
+        {
+          "id": 5,
+          "idCard": 14,
+          "idEvent": 14,
+          "idTextName": 14,
+          "keyToAdd": "quest",
+          "keyValueToAdd": "done",
+          "target": "ALL",
+          "uuid": "0b62d9a0-e90a-45a9-9e4f-e5d31fa099b5",
+          "value": 0
+        },
+        {
+          "id": 6,
+          "idCard": 15,
+          "idEvent": 15,
+          "idTextName": 15,
+          "statistics": "magic",
+          "target": "ALL",
+          "uuid": "1249c030-7748-4ea7-8aa8-4052e3c1c3f1",
+          "value": 1
+        },
+        {
+          "id": 7,
+          "idCard": 16,
+          "idEvent": 16,
+          "idTextName": 16,
+          "statistics": "coin",
+          "target": "ONLY_ONE",
+          "uuid": "f86898e5-25b9-4f9f-bff8-8890674e1b69",
+          "value": 1
+        },
+        {
+          "id": 8,
+          "idCard": 17,
+          "idEvent": 17,
+          "idTextName": 17,
+          "statistics": "sad",
+          "target": "ONLY_ONE",
+          "uuid": "fe476078-d25e-4b30-abc7-18b1f7e7de30",
+          "value": 99
+        },
+        {
+          "id": 9,
+          "idCard": 95,
+          "idEvent": 20,
+          "idItemTarget": 1,
+          "idTextName": 95,
+          "itemAction": "ADD",
+          "target": "ONLY_ONE",
+          "uuid": "530d28dc-5591-4f6f-8438-c30550c5d54b",
+          "value": 0
+        }
+      ],
+      "events": [
+        {
+          "costCoin": 0,
+          "costEnery": 0,
+          "costFood": 0,
+          "costMagic": 0,
+          "flagEndTime": 0,
+          "id": 10,
+          "idCard": 10,
+          "idTextDescription": 10,
+          "idTextName": 10,
+          "type": "NORMAL",
+          "uuid": "0097fadc-4ff3-449c-aeec-2f2ee0dc87d4"
+        },
+        {
+          "costCoin": 0,
+          "costEnery": 0,
+          "costFood": 0,
+          "costMagic": 0,
+          "flagEndTime": 0,
+          "id": 11,
+          "idCard": 11,
+          "idTextDescription": 11,
+          "idTextName": 11,
+          "type": "NORMAL",
+          "uuid": "0e2ecc6f-490e-496b-815c-dc1c11c39530"
+        },
+        {
+          "costCoin": 0,
+          "costEnery": 0,
+          "costFood": 0,
+          "costMagic": 0,
+          "flagEndTime": 0,
+          "id": 12,
+          "idCard": 12,
+          "idTextDescription": 12,
+          "idTextName": 12,
+          "type": "NORMAL",
+          "uuid": "4088063e-2c99-4301-b279-4ed5796f0983"
+        },
+        {
+          "costCoin": 0,
+          "costEnery": 0,
+          "costFood": 0,
+          "costMagic": 0,
+          "flagEndTime": 0,
+          "id": 13,
+          "idCard": 13,
+          "idTextDescription": 13,
+          "idTextName": 13,
+          "type": "ONCE",
+          "uuid": "abc04238-4b19-49e0-8673-ea2cad2d6cc3"
+        },
+        {
+          "costCoin": 0,
+          "costEnery": 0,
+          "costFood": 0,
+          "costMagic": 0,
+          "flagEndTime": 0,
+          "id": 14,
+          "idCard": 14,
+          "idTextDescription": 14,
+          "idTextName": 14,
+          "type": "NORMAL",
+          "uuid": "2b66fb79-a42c-499d-9fc8-3b226a30b63b"
+        },
+        {
+          "costCoin": 0,
+          "costEnery": 0,
+          "costFood": 0,
+          "costMagic": 0,
+          "flagEndTime": 0,
+          "id": 15,
+          "idCard": 15,
+          "idTextDescription": 15,
+          "idTextName": 15,
+          "type": "AUTOMATIC",
+          "uuid": "e7715c49-541b-4663-bb82-e78afb321513"
+        },
+        {
+          "costCoin": 0,
+          "costEnery": 0,
+          "costFood": 0,
+          "costMagic": 0,
+          "flagEndTime": 1,
+          "id": 16,
+          "idCard": 16,
+          "idTextDescription": 16,
+          "idTextName": 16,
+          "type": "NORMAL",
+          "uuid": "edce3c29-bc53-4288-ac83-b47b80800a12"
+        },
+        {
+          "costCoin": 0,
+          "costEnery": 0,
+          "costFood": 0,
+          "costMagic": 0,
+          "flagEndTime": 0,
+          "id": 17,
+          "idCard": 17,
+          "idTextDescription": 17,
+          "idTextName": 17,
+          "type": "NORMAL",
+          "uuid": "e7542c77-ef14-428c-97aa-499fe7384026"
+        },
+        {
+          "costCoin": 0,
+          "costEnery": 0,
+          "costFood": 0,
+          "costMagic": 0,
+          "flagEndTime": 0,
+          "id": 18,
+          "idCard": 18,
+          "idTextDescription": 18,
+          "idTextName": 18,
+          "type": "NORMAL",
+          "uuid": "7299b562-3a87-4edf-a315-47fdcf747e89"
+        },
+        {
+          "costCoin": 0,
+          "costEnery": 0,
+          "costFood": 0,
+          "costMagic": 0,
+          "flagEndTime": 0,
+          "id": 20,
+          "idCard": 95,
+          "idTextDescription": 95,
+          "idTextName": 95,
+          "type": "NORMAL",
+          "uuid": "64c90963-7afb-44c0-a7ae-d81304c5830b"
+        },
+        {
+          "costCoin": 0,
+          "costEnery": 0,
+          "costFood": 0,
+          "costMagic": 0,
+          "flagEndTime": 0,
+          "id": 40,
+          "idCard": 40,
+          "idTextDescription": 40,
+          "idTextName": 40,
+          "type": "END",
+          "uuid": "198b727c-d01e-439d-9326-c104da648f8a"
+        }
+      ],
+      "globalRandomEvents": [],
+      "group": "robottest",
+      "id": 9003,
+      "idCard": 1,
+      "idCreator": 1,
+      "idEventEndGame": 40,
+      "idLocationStart": 1,
+      "idTextClockPlural": 11,
+      "idTextClockSingular": 10,
+      "idTextDescription": 2,
+      "idTextTitle": 1,
+      "itemEffects": [],
+      "items": [
+        {
+          "id": 1,
+          "idCard": 93,
+          "idTextDescription": 93,
+          "idTextName": 93,
+          "isConsumabile": 0,
+          "maxPerCharacter": 1,
+          "uuid": "537890b2-9781-4e2f-b198-75fef62b014b",
+          "weight": 1
+        },
+        {
+          "id": 2,
+          "idCard": 94,
+          "idTextDescription": 94,
+          "idTextName": 94,
+          "isConsumabile": 0,
+          "maxPerCharacter": 1,
+          "uuid": "11667be8-7735-4c0c-8b86-cdc6c7d3c5f0",
+          "weight": 1
+        }
+      ],
+      "keys": [
+        {
+          "group": "ROBOT",
+          "id": 1,
+          "idCard": 1,
+          "idTextDescription": 80,
+          "multiValue": 0,
+          "name": "quest",
+          "priority": 1,
+          "uuid": "ded05597-9637-46d3-a247-739aaf6bf563",
+          "visibility": "PUBLIC"
+        }
+      ],
+      "locationNeighbors": [
+        {
+          "costCoin": 0,
+          "costFood": 0,
+          "costMagic": 0,
+          "direction": "NORTH",
+          "energyCost": 0,
+          "flagBack": 1,
+          "id": 1,
+          "idLocationFrom": 1,
+          "idLocationTo": 2,
+          "uuid": "ee74f2ea-fd26-4f2b-8e01-462e1c215c90"
+        }
+      ],
+      "locations": [
+        {
+          "costEnergyEnter": 0,
+          "id": 1,
+          "idCard": 50,
+          "idTextDescription": 50,
+          "idTextName": 50,
+          "maxCharacters": 10,
+          "priorityAutomaticEvent": 0,
+          "secureParam": 1,
+          "uuid": "f536b11a-2960-4dae-886c-c7ad9846c1c1"
+        },
+        {
+          "costEnergyEnter": 0,
+          "id": 2,
+          "idCard": 51,
+          "idTextDescription": 51,
+          "idTextName": 51,
+          "maxCharacters": 10,
+          "priorityAutomaticEvent": 0,
+          "secureParam": 0,
+          "uuid": "9fb9836c-42bd-4c2d-9032-cb314dd6c334"
+        }
+      ],
+      "missionSteps": [],
+      "missions": [
+        {
+          "conditionKey": "quest",
+          "conditionValue": "done",
+          "id": 1,
+          "idCard": 70,
+          "idEventCompleted": 15,
+          "idTextDescription": 70,
+          "idTextName": 70,
+          "uuid": "041435fd-d5a9-4e5d-a520-98e3cc47e87f"
+        }
+      ],
+      "peghi": 0,
+      "priority": 0,
+      "texts": [
+        {
+          "id": 1,
+          "idCreator": 1,
+          "idText": 1,
+          "lang": "en",
+          "longText": "Alpha Prep",
+          "shortText": "Alpha Prep",
+          "uuid": "44a954dc-c045-400d-90bd-53ab4e29871c"
+        },
+        {
+          "id": 2,
+          "idCreator": 1,
+          "idText": 2,
+          "lang": "en",
+          "longText": "A test-bed for Step 41: the new timeline rows and the match snapshots.",
+          "shortText": "A test-bed for Step 41: the new timeline rows and the match snapshots.",
+          "uuid": "3bb609f5-cb49-4334-8c82-38586f906192"
+        },
+        {
+          "id": 3,
+          "idCreator": 1,
+          "idText": 3,
+          "lang": "en",
+          "longText": "Clear",
+          "shortText": "Clear",
+          "uuid": "fd90837a-27a8-404f-89e6-e0277239f7f5"
+        },
+        {
+          "id": 50,
+          "idCreator": 1,
+          "idText": 50,
+          "lang": "en",
+          "longText": "The Camp",
+          "shortText": "The Camp",
+          "uuid": "86f63067-cb2d-4792-9a48-735ac9f10145"
+        },
+        {
+          "id": 51,
+          "idCreator": 1,
+          "idText": 51,
+          "lang": "en",
+          "longText": "The Road",
+          "shortText": "The Road",
+          "uuid": "be870aa8-3ee8-4871-90a8-b688a6fd8043"
+        },
+        {
+          "id": 60,
+          "idCreator": 1,
+          "idText": 60,
+          "lang": "en",
+          "longText": "Wanderer",
+          "shortText": "Wanderer",
+          "uuid": "599c6a06-5774-4cb6-a8fb-8cd319bb86f3"
+        },
+        {
+          "id": 61,
+          "idCreator": 1,
+          "idText": 61,
+          "lang": "en",
+          "longText": "Traveller",
+          "shortText": "Traveller",
+          "uuid": "85b5824a-6b52-4cfc-a1d1-18215d9ff13f"
+        },
+        {
+          "id": 62,
+          "idCreator": 1,
+          "idText": 62,
+          "lang": "en",
+          "longText": "Normal",
+          "shortText": "Normal",
+          "uuid": "b75617d6-808a-4212-82d0-9de5e956bab3"
+        },
+        {
+          "id": 10,
+          "idCreator": 1,
+          "idText": 10,
+          "lang": "en",
+          "longText": "Find a charm",
+          "shortText": "Find a charm",
+          "uuid": "298678f6-0f03-4e22-874f-ca4da50848db"
+        },
+        {
+          "id": 11,
+          "idCreator": 1,
+          "idText": 11,
+          "lang": "en",
+          "longText": "Lose the charm",
+          "shortText": "Lose the charm",
+          "uuid": "695daecb-7e9b-41d7-b1e0-12338b9ce8f4"
+        },
+        {
+          "id": 12,
+          "idCreator": 1,
+          "idText": 12,
+          "lang": "en",
+          "longText": "Poisoned well",
+          "shortText": "Poisoned well",
+          "uuid": "74c61a62-be2a-41a5-9f68-6b73f5f318f1"
+        },
+        {
+          "id": 13,
+          "idCreator": 1,
+          "idText": 13,
+          "lang": "en",
+          "longText": "Old gate",
+          "shortText": "Old gate",
+          "uuid": "591518c6-ec36-41c8-aaab-79c2e7106f94"
+        },
+        {
+          "id": 14,
+          "idCreator": 1,
+          "idText": 14,
+          "lang": "en",
+          "longText": "Take the quest",
+          "shortText": "Take the quest",
+          "uuid": "98d4d0ba-df30-4533-ac35-d195c0be48a2"
+        },
+        {
+          "id": 15,
+          "idCreator": 1,
+          "idText": 15,
+          "lang": "en",
+          "longText": "Quest reward",
+          "shortText": "Quest reward",
+          "uuid": "3e4b3fc3-3c44-4f4f-a6a2-34fe5b56d8be"
+        },
+        {
+          "id": 16,
+          "idCreator": 1,
+          "idText": 16,
+          "lang": "en",
+          "longText": "A long day",
+          "shortText": "A long day",
+          "uuid": "99bc4315-1985-487a-809e-214ff0b3c2e5"
+        },
+        {
+          "id": 17,
+          "idCreator": 1,
+          "idText": 17,
+          "lang": "en",
+          "longText": "Grief",
+          "shortText": "Grief",
+          "uuid": "3b1a7ce6-3054-4522-a213-60a6a22a3395"
+        },
+        {
+          "id": 40,
+          "idCreator": 1,
+          "idText": 40,
+          "lang": "en",
+          "longText": "The end",
+          "shortText": "The end",
+          "uuid": "74d42277-15d0-4442-b2e3-36de88fe65fb"
+        },
+        {
+          "id": 70,
+          "idCreator": 1,
+          "idText": 70,
+          "lang": "en",
+          "longText": "The quest",
+          "shortText": "The quest",
+          "uuid": "f6654578-3b36-4ec0-8bf8-a631aa83c1e4"
+        },
+        {
+          "id": 80,
+          "idCreator": 1,
+          "idText": 80,
+          "lang": "en",
+          "longText": "quest",
+          "shortText": "quest",
+          "uuid": "9e801a37-0638-4371-b738-16e7f9500dee"
+        },
+        {
+          "id": 92,
+          "idCreator": 1,
+          "idText": 92,
+          "lang": "en",
+          "longText": "Lucky charm",
+          "shortText": "Lucky charm",
+          "uuid": "a960a077-9fd9-40e1-bfe9-5734aa60803d"
+        },
+        {
+          "id": 18,
+          "idCreator": 1,
+          "idText": 18,
+          "lang": "en",
+          "longText": "A fork",
+          "shortText": "A fork",
+          "uuid": "c6ccad50-7161-4a20-acbc-2e0c8ef9159f"
+        },
+        {
+          "id": 19,
+          "idCreator": 1,
+          "idText": 19,
+          "lang": "en",
+          "longText": "Take the left path",
+          "shortText": "Take the left path",
+          "uuid": "5fd7a2ad-ccae-43be-98ee-a3444fbeef71"
+        },
+        {
+          "id": 93,
+          "idCreator": 1,
+          "idText": 93,
+          "lang": "en",
+          "longText": "Lantern",
+          "shortText": "Lantern",
+          "uuid": "f851d821-c587-4e9f-88ec-eb1dd2b94ae7"
+        },
+        {
+          "id": 94,
+          "idCreator": 1,
+          "idText": 94,
+          "lang": "en",
+          "longText": "Rope",
+          "shortText": "Rope",
+          "uuid": "d07a5323-6c3f-45fd-9b63-4bd7c1f73e5a"
+        },
+        {
+          "id": 95,
+          "idCreator": 1,
+          "idText": 95,
+          "lang": "en",
+          "longText": "Find a lantern",
+          "shortText": "Find a lantern",
+          "uuid": "dbf211c0-ecbd-44cb-b206-59aeac28e028"
+        }
+      ],
+      "traits": [
+        {
+          "constitution": 0,
+          "costNegative": 0,
+          "costPositive": 0,
+          "dexterity": 0,
+          "energy": 0,
+          "hideOnStartMatch": 1,
+          "id": 1,
+          "idCard": 92,
+          "idTextDescription": 92,
+          "idTextName": 92,
+          "intelligence": 0,
+          "life": 0,
+          "sad": 0,
+          "uuid": "b0d4c6d2-a1ab-475f-ba7a-b0b7850e6e0e",
+          "weight": 0
+        }
+      ],
+      "uuid": "f0410001-0000-4000-8000-000000000410",
+      "visibility": "PRIVATE",
+      "weatherRules": [
+        {
+          "active": 1,
+          "costMoveNotSafeLocation": 0,
+          "costMoveSafeLocation": 0,
+          "deltaEnergy": 0,
+          "id": 1,
+          "idCard": 3,
+          "idText": 3,
+          "priority": 0,
+          "probability": 100,
+          "uuid": "97a4ebf4-655e-4a4f-aea5-19d2653a3127"
+        }
+      ]
+    },
+    "fingerprint": "d20eb79e19f14c0f020f2dc34df1666fe97dadcceaed230e88bb9e8bd2714181",
+    "title": "Alpha Prep",
+    "uuid": "f0410001-0000-4000-8000-000000000410"
+  },
+  "users": [
+    {
+      "guest": true,
+      "language": "en",
+      "nickname": "robottest_a572ff93",
+      "role": "PLAYER",
+      "state": 6,
+      "username": "robottest_a572ff93",
+      "uuid": "a572ff93-8f5c-426d-87cd-c08791ba7aed"
+    }
+  ]
+}

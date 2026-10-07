@@ -7,7 +7,7 @@ class GuestInfo(BaseModel):
     nickname: Optional[str] = None
     role: str
     state: int
-    guest_cookie_token: str = Field(..., alias="guestCookieToken")
+    guest_cookie_token: Optional[str] = Field(None, alias="guestCookieToken")
     guest_expires_at: Optional[str] = Field(None, alias="guestExpiresAt")
     language: Optional[str] = None
     ts_registration: Optional[str] = Field(None, alias="tsRegistration")

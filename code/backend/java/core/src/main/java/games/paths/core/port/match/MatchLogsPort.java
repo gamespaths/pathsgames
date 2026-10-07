@@ -49,6 +49,9 @@ public interface MatchLogsPort {
     MatchLogsResult getMatchLogsForAdmin(String uuidMatch, String lang,
                                          Integer limit, String cursor, String order);
 
+    /** v0.41.1 - rows of the match in every log_* table (admin info logCount); null when unwired. */
+    Long countLogsForAdmin(String uuidMatch);
+
     /**
      * One page of the consolidated log.
      *
@@ -74,8 +77,10 @@ public interface MatchLogsPort {
      *   <li>RECOVERY      — idCharacterMatch, characterUuid, characterName, message</li>
      *   <li>EVENT         — idEvent, idCharacterMatch, characterUuid, characterName,
      *                       message, idCard, card (v0.30.3 — of the triggered event itself)</li>
+     *   <li>CHOICE        — idEvent, idCharacterMatch, message, *Cost/*Gain, card (Step 40)</li>
      *   <li>ITEM_ADD / ITEM_USE / ITEM_DROP — idItem, itemAction, counter, idEvent (the
      *                       effect that moved it), idCharacterMatch, idCard, card (v0.35.4)</li>
+     *   <li>PASS / EDGE_STATE / TRAIT_CHANGE / MATCH_LIFECYCLE / ADMIN_ACTION — clock, message (v0.41.1)</li>
      * </ul>
      */
     record LogEntry(
@@ -114,6 +119,9 @@ public interface MatchLogsPort {
             String itemAction,
             Integer counter
     ) {
+
+        /** Step 40 - a picked option: idEvent of the owning event, cost/gain of its own rows. */
+        public static final String TYPE_CHOICE = "CHOICE";
 
         public static Builder builder(String type, String timestamp) {
             return new Builder(type, timestamp);

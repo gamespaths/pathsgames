@@ -11,7 +11,9 @@ class DifficultyInfo:
     minCharacter: int = 1
     maxCharacter: int = 4
     costHelpComa: int = 3
-    costMaxCharacteristics: int = 3
+    # Step 38 — use-exp flat cost addend and DEX/INT/COS cap (0 = no cap)
+    expCostBase: int = 0
+    maxStatValue: int = 0
     numberMaxFreeAction: int = 1
     idCard: int | None = None
     card: CardInfo | None = None

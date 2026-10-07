@@ -49,7 +49,7 @@ class StoryValidatorServiceTest {
     /** Minimal valid story: one location, one event, one item, one class. */
     private static Map<String, Object> validStory() {
         Map<String, Object> s = new LinkedHashMap<>();
-        s.put("uuid", "story-valid");
+        s.put("uuid", "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d");
         s.put("idLocationStart", 1);
         s.put("locations", rows(entity("id", 1), entity("id", 2)));
         s.put("events", rows(entity("id", 1), entity("id", 2, "idEventNext", 1)));
@@ -76,6 +76,35 @@ class StoryValidatorServiceTest {
         void emptyReported() {
             assertFalse(validator().validateImportData(null).isValid());
             assertFalse(validator().validateImportData(Map.of()).isValid());
+        }
+    }
+
+    @Nested
+    @DisplayName("R0_STORY_UUID story uuid shape (v0.41.5)")
+    class StoryUuidRule {
+        private boolean refused(Object uuid) {
+            Map<String, Object> s = validStory();
+            s.put("uuid", uuid);
+            return validator().validateImportData(s).getErrors().stream()
+                    .anyMatch(e -> "R0_STORY_UUID".equals(e.rule()) && "uuid".equals(e.field()));
+        }
+
+        @Test
+        void malformedUuidsAreRefused() {
+            assertTrue(refused("not-a-uuid"));
+            assertTrue(refused("story-001"));
+            assertTrue(refused("0a1b2c3d4e5f4a6b8c7d9e0f1a2b3c4d"));
+            assertTrue(refused("1-1-1-1-1"));
+            assertTrue(refused("0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4g"));
+            assertTrue(refused(123));
+        }
+
+        @Test
+        void uppercaseSpacedAndMissingUuidsPass() {
+            assertFalse(refused("0A1B2C3D-4E5F-4A6B-8C7D-9E0F1A2B3C4D"));
+            assertFalse(refused("  0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d  "));
+            assertFalse(refused(null));
+            assertFalse(refused("   "));
         }
     }
 
@@ -525,6 +554,86 @@ class StoryValidatorServiceTest {
         }
     }
 
+    /** Step 39 — R11: a random event runs by itself, party-wide, at time-start. */
+    @Nested
+    @DisplayName("R11 global random events (Step 39)")
+    class RandomEvents {
+
+        private Map<String, Object> storyWith(Map<String, Object> row) {
+            Map<String, Object> s = validStory();
+            s.put("globalRandomEvents", rows(row));
+            return s;
+        }
+
+        private List<String> r11Fields(Map<String, Object> s) {
+            return validator().validateImportData(s).getErrors().stream()
+                    .filter(e -> "R11_RANDOM_EVENT".equals(e.rule()))
+                    .map(e -> e.field()).toList();
+        }
+
+        @Test
+        @DisplayName("a complete row on a choice-free event passes")
+        void validRowPasses() {
+            StoryValidationReport r = validator().validateImportData(storyWith(entity(
+                    "id", 1, "idEvent", 2, "probability", 100, "conditionKey", "CHAPTER",
+                    "conditionValue", "1")));
+            assertTrue(r.isValid(), r::summary);
+            assertTrue(r.getWarnings().isEmpty());
+        }
+
+        @Test
+        @DisplayName("probability outside 0..100 fails; a missing one is 0")
+        void probabilityRange() {
+            assertEquals(List.of("probability"), r11Fields(storyWith(entity("id", 1, "idEvent", 2, "probability", 101))));
+            assertEquals(List.of("probability"), r11Fields(storyWith(entity("id", 1, "idEvent", 2, "probability", -1))));
+            assertTrue(r11Fields(storyWith(entity("id", 1, "idEvent", 2))).isEmpty());
+        }
+
+        @Test
+        @DisplayName("a missing or zero idEvent fails")
+        void missingEvent() {
+            assertEquals(List.of("idEvent"), r11Fields(storyWith(entity("id", 1, "probability", 10))));
+            assertEquals(List.of("idEvent"), r11Fields(storyWith(entity("id", 1, "idEvent", 0, "probability", 10))));
+        }
+
+        @Test
+        @DisplayName("an event owning choices fails")
+        void eventWithChoices() {
+            // Event 1 owns choice 1 in the fixture.
+            assertEquals(List.of("idEvent"), r11Fields(storyWith(entity("id", 1, "idEvent", 1, "probability", 10))));
+        }
+
+        @Test
+        @DisplayName("an event with a weather-change effect fails")
+        void eventWithWeatherEffect() {
+            Map<String, Object> s = storyWith(entity("id", 1, "idEvent", 2, "probability", 10));
+            s.put("weatherRules", rows(entity("id", 1)));
+            s.put("eventEffects", rows(entity("id", 1, "idEvent", 2, "idWeather", 1),
+                    entity("id", 2, "idEvent", 1, "idWeather", 0)));
+            assertEquals(List.of("idEvent"), r11Fields(s));
+        }
+
+        @Test
+        @DisplayName("a key without a value, or a value without a key, fails")
+        void halfCondition() {
+            assertEquals(List.of("conditionValue"), r11Fields(storyWith(entity(
+                    "id", 1, "idEvent", 2, "probability", 10, "conditionKey", "CHAPTER"))));
+            assertEquals(List.of("conditionKey"), r11Fields(storyWith(entity(
+                    "id", 1, "idEvent", 2, "probability", 10, "conditionValue", "1", "conditionKey", " "))));
+        }
+
+        @Test
+        @DisplayName("import never warns: the >100 total is a validate-story advisory only")
+        void importDoesNotWarn() {
+            Map<String, Object> s = validStory();
+            s.put("globalRandomEvents", rows(entity("id", 1, "idEvent", 2, "probability", 80),
+                    entity("id", 2, "idEvent", 2, "probability", 80)));
+            StoryValidationReport r = validator().validateImportData(s);
+            assertTrue(r.isValid(), r::summary);
+            assertTrue(r.getWarnings().isEmpty());
+        }
+    }
+
     @Nested
     @DisplayName("validateStory (persisted, via StoryReadPort)")
     class PersistedStory {
@@ -567,6 +676,192 @@ class StoryValidatorServiceTest {
             StoryValidationReport r = validator().validateStory(sid);
             assertFalse(r.isValid());
             assertTrue(r.getErrors().stream().anyMatch(e -> "idEvent".equals(e.field())));
+        }
+    }
+
+    @Nested
+    @DisplayName("validateEntity — the single-row rules the admin form asks for")
+    class SingleEntity {
+
+        @Test
+        @DisplayName("no type, no data, or an empty row: nothing to say")
+        void nothingToValidate() {
+            assertTrue(validator().validateEntity(null, entity("id", 1)).isValid());
+            assertTrue(validator().validateEntity("events", null).isValid());
+            assertTrue(validator().validateEntity("events", Map.of()).isValid());
+        }
+
+        @Test
+        @DisplayName("a type the form does not know is left alone")
+        void unknownType() {
+            assertTrue(validator().validateEntity("weather-rules", entity("id", 1)).isValid());
+        }
+
+        @Test
+        @DisplayName("a registry condition with a key and no value can never be met")
+        void registryConditionWithoutAValue() {
+            assertFalse(validator().validateEntity("events",
+                    entity("id", 1, "registryKeyCondition", "CHAPTER")).isValid());
+            assertTrue(validator().validateEntity("events",
+                    entity("id", 1, "registryKeyCondition", "CHAPTER",
+                            "registryValueCondition", "2")).isValid());
+            assertTrue(validator().validateEntity("events", entity("id", 1)).isValid());
+        }
+
+        @Test
+        @DisplayName("an item or a trait permitted and prohibited to the same class is refused")
+        void classRestrictionOnItemsAndTraits() {
+            for (String type : new String[] {"items", "traits"}) {
+                assertFalse(validator().validateEntity(type,
+                        entity("id", 1, "idClassPermitted", 5, "idClassProhibited", 5)).isValid());
+                assertTrue(validator().validateEntity(type,
+                        entity("id", 1, "idClassPermitted", 5, "idClassProhibited", 6)).isValid());
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("the whole-story rules over the collections a rich export carries")
+    class RichStory {
+
+        @Test
+        @DisplayName("a choice that belongs to no event is refused")
+        void choiceWithoutAnEvent() {
+            Map<String, Object> s = validStory();
+            s.put("choices", rows(entity("id", 1), entity("id", 2, "idEvent", 0)));
+            assertFalse(validator().validateImportData(s).isValid());
+        }
+
+        @Test
+        @DisplayName("a neighbour linking a location to itself is refused")
+        void neighborToItself() {
+            Map<String, Object> s = validStory();
+            s.put("locationNeighbors", rows(entity("id", 1, "idLocationFrom", 1,
+                    "idLocationTo", 1, "direction", "N")));
+            assertFalse(validator().validateImportData(s).isValid());
+        }
+
+        @Test
+        @DisplayName("two neighbours of one location in the same direction are refused")
+        void twoNeighborsInOneDirection() {
+            Map<String, Object> s = validStory();
+            s.put("locations", rows(entity("id", 1), entity("id", 2), entity("id", 3)));
+            s.put("locationNeighbors", rows(
+                    entity("id", 1, "idLocationFrom", 1, "idLocationTo", 2, "direction", "n"),
+                    entity("id", 2, "idLocationFrom", 1, "idLocationTo", 3, "direction", " N ")));
+            assertFalse(validator().validateImportData(s).isValid());
+        }
+
+        @Test
+        @DisplayName("the same neighbour authored twice in one direction is not a duplicate")
+        void sameNeighborTwiceIsNotADuplicate() {
+            Map<String, Object> s = validStory();
+            s.put("locationNeighbors", rows(
+                    entity("id", 1, "idLocationFrom", 1, "idLocationTo", 2, "direction", "N"),
+                    entity("id", 2, "idLocationFrom", 1, "idLocationTo", 2, "direction", "N")));
+            assertTrue(validator().validateImportData(s).isValid());
+        }
+
+        @Test
+        @DisplayName("a location trigger pointing at a missing event is a broken reference")
+        void locationTriggerReference() {
+            Map<String, Object> s = validStory();
+            s.put("locations", rows(entity("id", 1, "idEventIfFirstTime", 99), entity("id", 2)));
+            assertFalse(validator().validateImportData(s).isValid());
+        }
+
+        @Test
+        @DisplayName("a mission step, a weather rule and a class bonus are all checked")
+        void theOtherCollections() {
+            Map<String, Object> s = validStory();
+            s.put("missions", rows(entity("id", 1, "conditionKey", "k", "conditionValue", "1")));
+            s.put("missionSteps", rows(entity("id", 1, "idMission", 1,
+                    "conditionKey", "k", "conditionValue", "1")));
+            s.put("weatherRules", rows(entity("id", 1, "idEvent", 1)));
+            s.put("classBonuses", rows(entity("id", 1, "idClass", 1)));
+            assertTrue(validator().validateImportData(s).isValid());
+
+            s.put("missionSteps", rows(entity("id", 1, "idMission", 99,
+                    "conditionKey", "k", "conditionValue", "1")));
+            assertFalse(validator().validateImportData(s).isValid());
+        }
+
+        @Test
+        @DisplayName("a collection that is not a list at all is read as empty")
+        void aCollectionThatIsNotAList() {
+            Map<String, Object> s = validStory();
+            s.put("items", "not a list");
+            assertTrue(validator().validateImportData(s).isValid());
+        }
+
+        @Test
+        @DisplayName("an id given as a string is read as the number it spells")
+        void idsGivenAsStrings() {
+            Map<String, Object> s = validStory();
+            s.put("events", rows(entity("id", "1"), entity("id", "2", "idEventNext", "1")));
+            assertTrue(validator().validateImportData(s).isValid());
+
+            s.put("events", rows(entity("id", "not-a-number")));
+            assertFalse(validator().validateImportData(s).isValid());
+        }
+
+        @Test
+        @DisplayName("a trait CSV skips blank and non-numeric parts, and reports the rest")
+        void traitCsvParts() {
+            Map<String, Object> s = validStory();
+            s.put("traits", rows(entity("id", 1)));
+            s.put("itemEffects", rows(entity("id", 1, "idItem", 1,
+                    "traitsToAdd", " , 1 ,, ", "traitsToRemove", "ALL")));
+            assertTrue(validator().validateImportData(s).isValid());
+
+            s.put("itemEffects", rows(entity("id", 1, "idItem", 1, "traitsToAdd", "99")));
+            assertFalse(validator().validateImportData(s).isValid());
+        }
+
+        @Test
+        @DisplayName("a class restriction of 0 is 'unset', not a reference to class 0")
+        void zeroClassRestrictionIsUnset() {
+            Map<String, Object> s = validStory();
+            s.put("items", rows(entity("id", 1, "idClassPermitted", 0, "idClassProhibited", 0)));
+            assertTrue(validator().validateImportData(s).isValid());
+        }
+    }
+
+    @Nested
+    @DisplayName("validateEntity — the numeric bounds of a template and a difficulty")
+    class SingleEntityBounds {
+
+        @Test
+        @DisplayName("a character template's caps must be positive and its starts non-negative")
+        void templateBounds() {
+            assertFalse(validator().validateEntity("character-templates",
+                    entity("id", 1, "lifeMax", 0)).isValid());
+            assertFalse(validator().validateEntity("character-templates",
+                    entity("id", 1, "energyMax", 0)).isValid());
+            assertFalse(validator().validateEntity("character-templates",
+                    entity("id", 1, "dexterityStart", -1)).isValid());
+            assertFalse(validator().validateEntity("character-templates",
+                    entity("id", 1, "sadMax", -1)).isValid());
+            assertTrue(validator().validateEntity("character-templates",
+                    entity("id", 1, "lifeMax", 10, "energyMax", 10, "dexterityStart", 0,
+                            "intelligenceStart", 0, "constitutionStart", 0, "sadMax", 0)).isValid());
+        }
+
+        @Test
+        @DisplayName("a difficulty cannot admit fewer characters than it requires")
+        void difficultyBounds() {
+            assertFalse(validator().validateEntity("difficulties",
+                    entity("id", 1, "minCharacter", 3, "maxCharacter", 2)).isValid());
+            assertTrue(validator().validateEntity("difficulties",
+                    entity("id", 1, "minCharacter", 1, "maxCharacter", 2)).isValid());
+        }
+
+        @Test
+        @DisplayName("a choice bound to a location is rejected: the binding is deprecated")
+        void choiceLocalRule() {
+            assertFalse(validator().validateEntity("choices",
+                    entity("id", 1, "idLocation", 5)).isValid());
+            assertTrue(validator().validateEntity("choices", entity("id", 1, "priority", 1)).isValid());
         }
     }
 }

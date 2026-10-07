@@ -1,8 +1,8 @@
 package games.paths.core.service.match;
 
+import games.paths.core.model.match.export.LogTypeMapper;
 import games.paths.core.model.story.CardInfo;
-import games.paths.core.port.match.EventExecutionStorePort;
-import games.paths.core.port.match.LocationEntryStorePort;
+import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.MatchLogsPort;
 import games.paths.core.port.match.MatchLogsStorePort;
 import games.paths.core.port.match.MatchLogsStorePort.CharacterLogView;
@@ -39,7 +39,10 @@ import java.util.Map;
  *   <li>COUNTER_ZERO — from log_events WHERE log_message LIKE 'counter%' (Step 33; until
  *       then these rows were folded into RECOVERY, which they never were)</li>
  *   <li>AUTOMATIC_EVENT — from log_events WHERE log_message LIKE 'automatic event%' (Step 33)</li>
+ *   <li>RANDOM_EVENT — from log_events WHERE log_message LIKE 'random event%' (Step 39)</li>
+ *   <li>CHOICE — from log_events WHERE log_message LIKE 'CHOICE_SELECTED%' (Step 40)</li>
  *   <li>ITEM_ADD / ITEM_USE / ITEM_DROP — from log_item_usage, one per action (v0.35.4)</li>
+ *   <li>PASS, EDGE_STATE, TRAIT_CHANGE, MATCH_LIFECYCLE, ADMIN_ACTION — from log_events (v0.41.1)</li>
  * </ul>
  * </p>
  *
@@ -51,33 +54,41 @@ import java.util.Map;
  * character that moved; SLEEP and RECOVERY entries carry their character. v0.30.3 adds
  * the triggered event's own card to EVENT entries.</p>
  *
- * <p>See {@code documentation_v0/Step28_MovementSystem.md} §8.</p>
+ * <p>See {@code wiki/documentation_v0/Step28_MovementSystem.md} §8.</p>
  */
 public class MatchLogsService implements MatchLogsPort {
 
     private static final String TYPE_WEATHER = "WEATHER";
     private static final String TYPE_MOVEMENT = "MOVEMENT";
-    private static final String TYPE_SLEEP = "SLEEP";
     private static final String TYPE_CLOCK_ADVANCE = "CLOCK_ADVANCE";
-    private static final String TYPE_RECOVERY = "RECOVERY";
     /** Step 29 — an event the player triggered. */
     private static final String TYPE_EVENT = "EVENT";
+    /** Step 40 — an option the player picked, with what its own effect rows gave. */
+    private static final String TYPE_CHOICE = MatchLogsPort.LogEntry.TYPE_CHOICE;
     /** Step 33 — a location's counter ran out. Split out of RECOVERY, which it never was. */
     private static final String TYPE_COUNTER_ZERO = "COUNTER_ZERO";
     /** Step 33 — an event the engine fired: an arrival, a counter, a time-start. */
     private static final String TYPE_AUTOMATIC_EVENT = "AUTOMATIC_EVENT";
-    /** v0.35.4 — the three item actions, read off {@code log_item_usage.action}. */
-    private static final String TYPE_ITEM_ADD = "ITEM_ADD";
-    private static final String TYPE_ITEM_USE = "ITEM_USE";
-    private static final String TYPE_ITEM_DROP = "ITEM_DROP";
-    private static final String MSG_SLEEP = "ACTION_SLEEP";
-    private static final String MSG_COUNTER = "counter";
+    /** Step 39 — a global random event fired at time-start. */
+    static final String TYPE_RANDOM_EVENT = "RANDOM_EVENT";
+    /** v0.37.2 — a mission opened, advanced, completed or failed. */
+    private static final String TYPE_MISSION_CHANGE = "MISSION_CHANGE";
+    /** Step 38 — experience spent on a stat. */
+    static final String TYPE_EXP_USE = "EXP_USE";
+    /** v0.41.1 - the Step 41 rows: a pass, an edge state, a trait, the lifecycle, an admin action. */
+    static final String TYPE_PASS = "PASS";
+    static final String TYPE_EDGE_STATE = "EDGE_STATE";
+    static final String TYPE_TRAIT_CHANGE = "TRAIT_CHANGE";
+    static final String TYPE_MATCH_LIFECYCLE = "MATCH_LIFECYCLE";
+    static final String TYPE_ADMIN_ACTION = "ADMIN_ACTION";
     private static final String DEFAULT_LANG = "en";
     private static final String CURSOR_PREFIX = "offset:";
 
     private final MatchLogsStorePort store;
     private final UserAccessPort userAccessPort;
     private final ContentQueryPort contentQueryPort;
+    /** v0.41.1 - counts the rows for the admin logCount; null in the older tests. */
+    private MatchLogWriterPort logWriter;
 
     public MatchLogsService(MatchLogsStorePort store, UserAccessPort userAccessPort,
                             ContentQueryPort contentQueryPort) {
@@ -103,6 +114,18 @@ public class MatchLogsService implements MatchLogsPort {
     public MatchLogsResult getMatchLogsForAdmin(String uuidMatch, String lang,
                                                 Integer limit, String cursor, String order) {
         return buildResult(requireMatch(uuidMatch), lang, limit, cursor, order);
+    }
+
+    public void setLogWriter(MatchLogWriterPort logWriter) {
+        this.logWriter = logWriter;
+    }
+
+    @Override
+    public Long countLogsForAdmin(String uuidMatch) {
+        if (logWriter == null) {
+            return null;
+        }
+        return logWriter.countRows(requireMatch(uuidMatch).id());
     }
 
     // ── internal ─────────────────────────────────────────────────────────────
@@ -141,17 +164,7 @@ public class MatchLogsService implements MatchLogsPort {
      * they share one type. An unknown action is dropped, like an unknown log message.
      */
     private static String itemType(String action) {
-        if (action == null) {
-            // Pre-v0.35.4 rows predate the column: back then the table only logged usages.
-            return TYPE_ITEM_USE;
-        }
-        return switch (action.trim().toUpperCase()) {
-            case EventExecutionStorePort.ITEM_ACTION_ADD -> TYPE_ITEM_ADD;
-            case EventExecutionStorePort.ITEM_ACTION_USE -> TYPE_ITEM_USE;
-            case EventExecutionStorePort.ITEM_ACTION_DROP,
-                 EventExecutionStorePort.ITEM_ACTION_REMOVE -> TYPE_ITEM_DROP;
-            default -> null;
-        };
+        return LogTypeMapper.itemType(action);
     }
 
     /** The whole timeline, sorted by timestamp ascending, with no enrichment yet. */
@@ -195,43 +208,81 @@ public class MatchLogsService implements MatchLogsPort {
         // unrecognised message is dropped rather than shown as garbage. A new writer therefore
         // needs a branch here or its rows never reach the timeline.
         for (EventLogEntry e : store.findEventLog(match.id())) {
-            String msg = e.logMessage();
-            if (msg == null) {
-                continue;
-            }
-            if (MSG_SLEEP.equals(msg)) {
-                entries.add(LogEntry.builder(TYPE_SLEEP, e.timestamp())
-                        .clock(e.clock()).character(e.idCharacterMatch()).build());
-            } else if (msg.startsWith(EventExecutionStorePort.MSG_EVENT_EXECUTED)) {
-                // v0.35.3 — the price the actor paid rides on the EVENT row: energy in the
-                // slot movement already uses, the three resources in the new ones.
-                // v0.35.4 — and what the event gave back, on the gain half of the same row.
-                entries.add(LogEntry.builder(TYPE_EVENT, e.timestamp())
-                        .clock(e.clock()).character(e.idCharacterMatch())
-                        .message(msg).idEvent(e.idEvent())
-                        .cost(e.energyCost(), e.foodCost(), e.magicCost(), e.coinCost())
-                        .gain(e.energyGain(), e.foodGain(), e.magicGain(), e.coinGain())
-                        .build());
-            } else if (msg.startsWith(MSG_COUNTER)) {
-                // Step 33 split this out of RECOVERY: a counter running out and a character
-                // healing are unrelated events, and the frontend has to tell them apart.
-                // The location rides in idLocationTo so it enriches like a MOVEMENT does.
-                entries.add(LogEntry.builder(TYPE_COUNTER_ZERO, e.timestamp())
-                        .clock(e.clock()).character(e.idCharacterMatch())
-                        .locationTo(e.idLocation()).message(msg).idEvent(e.idEvent()).build());
-            } else if (msg.startsWith(LocationEntryStorePort.MSG_AUTOMATIC_EVENT)) {
-                entries.add(LogEntry.builder(TYPE_AUTOMATIC_EVENT, e.timestamp())
-                        .clock(e.clock()).character(e.idCharacterMatch())
-                        .locationTo(e.idLocation()).message(msg).idEvent(e.idEvent()).build());
-            } else if (msg.startsWith("recovery")) {
-                entries.add(LogEntry.builder(TYPE_RECOVERY, e.timestamp())
-                        .clock(e.clock()).character(e.idCharacterMatch()).message(msg).build());
+            LogEntry entry = eventEntry(e);
+            if (entry != null) {
+                entries.add(entry);
             }
         }
 
         // ISO timestamps are lexicographically comparable; nulls sort first.
         entries.sort((a, b) -> nz(a.timestamp()).compareTo(nz(b.timestamp())));
         return entries;
+    }
+
+    /**
+     * One log_events row as a timeline entry; v0.41.4 the type comes from {@link LogTypeMapper} (shared
+     * with the match export). An unrecognised message is dropped rather than shown as garbage.
+     */
+    static LogEntry eventEntry(EventLogEntry e) {
+        String msg = e.logMessage();
+        String type = LogTypeMapper.eventType(msg);
+        if (type == null || LogTypeMapper.OTHER.equals(type)) {
+            return null;
+        }
+        LogEntry.Builder b = LogEntry.builder(type, e.timestamp()).clock(e.clock());
+        switch (type) {
+            case LogTypeMapper.SLEEP -> b.character(e.idCharacterMatch());
+            // v0.35.3/v0.35.4 — the price paid and what the event or the option gave back.
+            case LogTypeMapper.EVENT, LogTypeMapper.CHOICE -> b.character(e.idCharacterMatch())
+                    .message(msg).idEvent(e.idEvent())
+                    .cost(e.energyCost(), e.foodCost(), e.magicCost(), e.coinCost())
+                    .gain(e.energyGain(), e.foodGain(), e.magicGain(), e.coinGain());
+            // Step 33 — the location rides in idLocationTo so it enriches like a MOVEMENT does.
+            case LogTypeMapper.COUNTER_ZERO, LogTypeMapper.AUTOMATIC_EVENT -> b.character(e.idCharacterMatch())
+                    .locationTo(e.idLocation()).message(msg).idEvent(e.idEvent());
+            // Step 39 — it happens nowhere in particular: no location rides on it.
+            case LogTypeMapper.RANDOM_EVENT -> b.message(msg).idEvent(e.idEvent());
+            case LogTypeMapper.REGISTRY_CHANGE -> b.character(e.idCharacterMatch()).message(msg).idEvent(e.idEvent());
+            // v0.37.2 — nobody in the fiction moves a mission: no character rides on it.
+            case LogTypeMapper.MISSION_CHANGE -> b.message(msg);
+            case LogTypeMapper.EXP_USE, LogTypeMapper.RECOVERY -> b.character(e.idCharacterMatch()).message(msg);
+            // v0.41.1 — the Step 41 rows, with the storage prefix stripped from the message.
+            default -> b.character(e.idCharacterMatch())
+                    .message(LogTypeMapper.timelineMessage(type, msg)).idEvent(e.idEvent());
+        }
+        return b.build();
+    }
+
+    /**
+     * The mission a {@code MISSION_CHANGE} message names: the second word, which is where
+     * {@link MissionService#MSG_MISSION_CHANGE} writes the uuid. Null when the shape is not
+     * the one this service wrote.
+     */
+    private static String missionUuidOf(String message) {
+        if (message == null) {
+            return null;
+        }
+        String[] parts = message.trim().split("\\s+");
+        return parts.length < 2 ? null : parts[1];
+    }
+
+    /**
+     * The step a {@code MISSION_CHANGE} message names, as the author numbered it, or null when
+     * the row is about the mission itself.
+     */
+    private static Integer stepNumberOf(String message) {
+        if (message == null) {
+            return null;
+        }
+        int at = message.lastIndexOf(" step ");
+        if (at < 0) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(message.substring(at + 6).trim());
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     /**
@@ -249,6 +300,8 @@ public class MatchLogsService implements MatchLogsPort {
         Map<Long, Integer> templateCards = store.findCharacterTemplateIdCards(match.idStory());
         Map<Long, Integer> eventCards = store.findEventIdCards(match.idStory());
         Map<Long, Integer> itemCards = store.findItemIdCards(match.idStory());
+        Map<String, Integer> missionCards = store.findMissionIdCardsByUuid(match.idStory());
+        Map<String, Integer> stepCards = store.findMissionStepIdCardsByMissionUuid(match.idStory());
         Map<Long, CharacterLogView> characters = store.findCharactersByMatch(match.id());
 
         List<LogEntry> out = new ArrayList<>(page.size());
@@ -258,14 +311,31 @@ public class MatchLogsService implements MatchLogsPort {
                 idCard = weatherCards.get(e.idWeather());
             } else if (TYPE_MOVEMENT.equals(e.type()) && e.idLocationTo() != null) {
                 idCard = locationCards.get(e.idLocationTo());
-            } else if (TYPE_EVENT.equals(e.type()) && e.idEvent() != null) {
+            } else if ((TYPE_EVENT.equals(e.type()) || TYPE_CHOICE.equals(e.type()))
+                    && e.idEvent() != null) {
                 idCard = eventCards.get(e.idEvent());
-            } else if (TYPE_AUTOMATIC_EVENT.equals(e.type()) && e.idEvent() != null) {
+            } else if ((TYPE_AUTOMATIC_EVENT.equals(e.type()) || TYPE_RANDOM_EVENT.equals(e.type()))
+                    && e.idEvent() != null) {
                 // Step 33 — the event's own card, like a player-triggered one.
                 idCard = eventCards.get(e.idEvent());
             } else if (TYPE_COUNTER_ZERO.equals(e.type()) && e.idLocationTo() != null) {
                 // Step 33 — a counter belongs to a place, so the place's card names it.
                 idCard = locationCards.get(e.idLocationTo());
+            } else if (TYPE_MISSION_CHANGE.equals(e.type())) {
+                // v0.37.2 — the uuid in the message is the only handle the row has: the log
+                // table holds no mission column. A row that NAMES A STEP is that step's news,
+                // so it wears the step's card; the mission's own is for its opening and its
+                // end. A message this service did not write names neither, and an immutable
+                // Map throws on a null key, so such a row must not reach the lookup at all.
+                String uuid = missionUuidOf(e.message());
+                Integer step = stepNumberOf(e.message());
+                if (uuid == null) {
+                    idCard = null;
+                } else {
+                    idCard = step == null
+                            ? missionCards.get(uuid)
+                            : stepCards.get(uuid + "/" + step);
+                }
             } else if (e.idItem() != null) {
                 // v0.35.4 — an item entry is narrated by the item's own card, whichever of
                 // the three actions it is.

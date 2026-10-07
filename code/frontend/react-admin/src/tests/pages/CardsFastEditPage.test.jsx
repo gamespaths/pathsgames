@@ -146,6 +146,13 @@ describe('CardsFastEditPage', () => {
     expect(screen.getByText(/Back/i)).toBeInTheDocument()
   })
 
+  it('the Edit story button, next to Save All, opens the story editor', async () => {
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+    fireEvent.click(screen.getByRole('button', { name: /Edit story/i }))
+    expect(await screen.findByText('Editor')).toBeInTheDocument()
+  })
+
   it('shows error alert when load fails and can close it', async () => {
     storyApi.getStory.mockRejectedValue(new Error('Network error'))
     renderPage()

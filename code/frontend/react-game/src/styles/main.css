@@ -231,6 +231,59 @@ html, body {
   gap: 10px;
 }
 
+/* Social links — dropped by the media rules in mobile.css when the bar is too narrow. */
+.navbar-social {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: 4px;
+}
+
+.navbar-social-link {
+  color: var(--color-gold-light);
+  font-size: 1.15rem;
+  line-height: 1;
+  text-decoration: none;
+  opacity: 0.85;
+  transition: color 0.2s, opacity 0.2s, transform 0.2s;
+}
+.navbar-social-link:hover {
+  color: var(--color-gold-shine);
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+/* v0.37.6 — catalog fetch failed: a lone yellow sign, the words are in the navbar. */
+.home-stories-error-icon {
+  font-size: 2.5rem;
+  color: var(--color-gold);
+}
+
+/* v0.37.6 — home load error: inline between brand and the right block on desktop,
+   its own full-width row under the logo on mobile (see mobile.css). */
+.navbar-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 12px;
+  border: 1px solid var(--color-red-blood, #8b1a1a);
+  border-radius: 999px;
+  background: rgba(139, 26, 26, 0.35);
+  color: var(--color-parchment, #f3e6c8);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.navbar-error__btn {
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-gold-light);
+  font-size: 0.75rem;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+.navbar-error__btn:hover { background: rgba(232,184,48,0.15); }
+
 .navbar-home-btn {
   font-size: 0.75rem !important;
   padding: 4px 12px !important;
@@ -282,6 +335,10 @@ html, body {
   transition: background 0.2s, color 0.2s;
 }
 .nav-user-btn:hover { background: rgba(200,150,10,0.15); }
+
+.nav-user-btn i{
+  font-size: 1.25rem;
+}
 
 /* Guest toast notification */
 .navbar-toast {
@@ -345,21 +402,28 @@ html, body {
   margin-left:0.5rem;
 }
 .footer-icon-link:hover { color: var(--color-gold-light); }
+/* Footer actions are buttons (they open books, not URLs): strip native button look */
+.footer-link-btn { background: none; border: 0; padding: 0; cursor: pointer; }
 
-.footer-server-row {
-  /*display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;*/
-  margin-top: 0.75rem;
-  padding: 0.3rem 0.8rem;
-  border-radius: 6px;
-  background: rgba(0,0,0,0.3);
-  border: 1px solid rgba(200,150,10,0.15);
-  width: fit-content;
-  margin-left: auto;
-  margin-right: auto;
+/* Step 40 — the server row reads as the rest of the footer: no box, same font and size */
+.footer-server-row { margin-left: 0.4rem; white-space: nowrap; }
+.footer-server-select {
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
 }
+.footer-server-dot {
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  margin-left: 0.4em;
+}
+.footer-server-muted { opacity: 0.7; }
 
 .footer-alpha-warning {
   font-size: 1rem;
@@ -429,6 +493,24 @@ html, body {
   font-size: 1.05rem;
   text-shadow: 0 1px 6px rgba(0,0,0,0.7);
 }
+/* Step 42 — "Play the tutorial" above the hero title. */
+.home-tutorial-btn { margin-bottom: 14px; }
+
+/* v0.37.6 — antibot strip over the hero picture, above the title. */
+.home-antibot-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: rgba(10,4,0,0.55);
+  backdrop-filter: blur(2px);
+}
+.home-antibot-strip .turnstile-checking {
+  color: var(--color-gold-light);
+  text-shadow: 0 1px 6px rgba(0,0,0,0.7);
+}
 
 .hero-info-btn {
   position: absolute;
@@ -486,27 +568,28 @@ html, body {
 
 }
 /* ═══════════════════════════════════════════
-   STORY CARD (home) — pg-card pg-card--medium
-   Image fills card via absolute, title at bottom
+   STORY CARD (home) — shared Card, variant "little"
    ═══════════════════════════════════════════ */
+/* Fixed catalog size: it must win over the flex:1 of .pg-card--grid. */
 .story-netflix-card {
   scroll-snap-align: start;
   cursor: pointer;
+  width: 225px;
+  flex: 0 0 225px;
+  aspect-ratio: 2 / 3;
   border-color: var(--color-brown-mid);
 }
-/* Image fills the entire card */
-.story-card-img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.5s ease;
-}
-.story-netflix-card:hover .story-card-img { transform: scale(1.08); }
+/* The overlay box only carries the badges here: no darkening gradient. */
+.story-netflix-card .gc-img__overlay { background: none; }
+/* Badge strip: no height of its own, so it hangs over the top of the picture. */
+.story-netflix-card .gc-img-content { height: 0; }
+/* A teaser story has nothing to click: no pointer, and its picture stays faded. */
+.story-card--soon { cursor: default; }
+.story-card--soon .gc-img { filter: grayscale(35%) brightness(0.8); }
 
-/* Category badge top-right */
+/* Category badge top-right — hidden for now: the section label already names the category. */
+.story-netflix-card .story-card-badge { display: none; }
+
 .story-card-badge {
   position: absolute;
   top: 8px; right: 8px;
@@ -521,40 +604,22 @@ html, body {
   font-weight: 700;
 }
 
-/* Match-state badge (top-left, opposite the category badge). */
+/* Match-state badge (top-left, opposite the category badge): placement only, the look is
+   `.stat-badge.bonus-badge` (added in the markup), as every other badge of the game. */
 .story-card-status {
   position: absolute;
   top: 8px; left: 8px;
   z-index: 2;
-  font-size: 1rem;
-  padding: 2px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  font-family: var(--font-heading);
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
 }
-.story-card-status--active {
-  background: var(--color-gold-light);
-  color: var(--color-brown-deep);
-}
-.story-card-status--completed {
-  background: rgba(20, 12, 4, 0.82);
-  color: var(--color-gold-light);
-  border: 1px solid var(--color-gold-dark);
-}
-/* v0.32.1 — an admin-paused match: it blocks a new run but cannot be resumed,
-   so it gets its own badge instead of the "resume" one. */
-.story-card-status--paused {
-  background: rgba(20, 12, 4, 0.82);
-  color: var(--color-parchment-dark);
-  border: 1px solid var(--color-stone);
-}
+.story-card-status .story-card-status__check { color: #4ade80; }
+.story-card-status .story-card-status__defeat { color: #ef4444; }
+/* Step 40 — centred on the picture (match and roadmap cards), or inline in a history row */
+.story-card-status--center { left: 50%; transform: translateX(-50%); white-space: nowrap; }
+.story-card-status.story-card-status--inline { position: static; display: inline-flex; }
 
 /* v0.32.1 — the card is waiting for the match list before it can open */
 .story-card--pending { cursor: progress; }
-.story-card--pending .story-card-img { filter: grayscale(40%) brightness(0.7); }
+.story-card--pending .gc-img { filter: grayscale(40%) brightness(0.7); }
 .story-card-pending-overlay {
   position: absolute;
   inset: 0;
@@ -567,42 +632,7 @@ html, body {
   font-size: 1.6rem;
 }
 
-/* Play icon on hover, centred */
-.story-card-play-icon {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -60%) scale(0);
-  z-index: 2;
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  background: rgba(200,150,10,0.9);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--color-brown-deep);
-  font-size: 1.1rem;
-  transition: transform 0.3s ease;
-}
-.story-netflix-card:hover .story-card-play-icon { transform: translate(-50%, -60%) scale(1); }
-
-/* Title gradient overlay at bottom */
-.story-card-body {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  z-index: 2;
-  background: linear-gradient(transparent, rgba(26,10,2,0.92) 40%);
-  padding: 28px 10px 10px;
-}
-
-.story-card-title {
-  text-align: center;
-  font-family: var(--font-heading);
-  font-size: 1.25rem;
-  color: var(--color-gold-light);
-  margin: 0;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+/* Title bar and footer button come from the shared Card (.gc-title / .gc-footer). */
 
 /* ═══════════════════════════════════════════
    BOOK OVERLAY / WRAPPER
@@ -645,6 +675,10 @@ html, body {
    which of the two copies a card sits out. See hideWhereClass in constants/features.js. */
 .book-wrapper .hide-in-book { display: none !important; }
 .book-mobile-layout .hide-in-mobile { display: none !important; }
+
+/* The status card names its shortcuts for the mobile stack only; inside the book the
+   bookmarks already carry those names, so the labels stay off there. */
+.book-wrapper .card-status .gc-footer__btn-label { display: none; }
 
 /* ═══════════════════════════════════════════
    BOOK BOOKMARKS (v0.35.5)
@@ -718,6 +752,19 @@ html, body {
 }
 .book-bookmark.is-danger .bonus-badge { border-color: #7b1f14; }
 
+/* v0.37.1 — light gold: the page behind this tab has moved since the player last opened it.
+   Quieter than is-danger on purpose — news to read, not something to act on. */
+.book-bookmark.is-alert {
+  border-color: var(--color-gold-light);
+  background: linear-gradient(180deg, #d9b64a 0%, #8a6a12 100%);
+  color: #fff6d5;
+  box-shadow: 0 -3px 10px rgba(212, 175, 55, 0.6);
+}
+.book-bookmark.is-alert.is-active {
+  background: linear-gradient(180deg, #f0d27a 0%, #a8830f 100%);
+  color: #fffdf5;
+}
+
 .book-bookmark.is-disabled { opacity: 0.45; cursor: not-allowed; }
 .book-bookmark.is-disabled:hover { transform: none; }
 .book-bookmark__badges { gap: 4px; flex-wrap: nowrap; }
@@ -781,7 +828,7 @@ html, body {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 20px; /*quiquiqui ex 20px*/
+  padding: 10px; /*quiquiqui ex 20px*/
   overflow: hidden;
 }
 
@@ -795,10 +842,10 @@ html, body {
   opacity: 0.5;
   pointer-events: none;
 }
-.page-corner-tl { top: 10px; left: 10px; border-width: 2px 0 0 2px; border-radius: 2px 0 0 0; }
-.page-corner-tr { top: 10px; right: 10px; border-width: 2px 2px 0 0; border-radius: 0 2px 0 0; }
-.page-corner-bl { bottom: 10px; left: 10px; border-width: 0 0 2px 2px; border-radius: 0 0 0 2px; }
-.page-corner-br { bottom: 10px; right: 10px; border-width: 0 2px 2px 0; border-radius: 0 0 2px 0; }
+.page-corner-tl { top: 5px; left: 5px; border-width: 2px 0 0 2px; border-radius: 2px 0 0 0; }
+.page-corner-tr { top: 5px; right: 5px; border-width: 2px 2px 0 0; border-radius: 0 2px 0 0; }
+.page-corner-bl { bottom: 5px; left: 5px; border-width: 0 0 2px 2px; border-radius: 0 0 0 2px; }
+.page-corner-br { bottom: 5px; right: 5px; border-width: 0 2px 2px 0; border-radius: 0 0 2px 0; }
 
 /* ═══════════════════════════════════════════
    BOOK CLOSE BUTTON
@@ -1099,6 +1146,11 @@ html, body {
   font-size: 0.725rem !important;
   padding: 1px 5px !important;
 }
+/* v0.38.2 — the "mission completed" announcement: green text, green border, green glyph. */
+.bonus-badge--done {
+  color: #1e7d3a;
+  border-color: #1e7d3a;
+}
 
 .bonus-badge__label { 
   line-height: 1; 
@@ -1111,15 +1163,66 @@ html, body {
   color: var(--color-gold-super-deep);
 }
 
+/* Step 40 — a blank line (<br><br>) of a page description, half a line high (halveBlankLines) */
+.book-page-gap {
+  display: block;
+  height: 0.75em;
+  height: 0.5lh;
+}
+
 .book-page-desc a {
   cursor: pointer;
-  color: var(--color-gold-shine);
+  color: var(--color-gold);
   text-decoration: underline;
   text-decoration-color: rgba(232,184,48,0.35);
 }
 .book-page-desc a:hover {
   color: var(--color-gold-light);
   text-decoration-color: var(--color-gold);
+}
+/* Step 40 — a link that opens another book (the Devlog intro → credits) reads like the `a` above. */
+.book-page-desc button {
+  font: inherit;
+  color: var(--color-gold);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(232,184,48,0.35);
+}
+.book-page-desc button:hover { color: var(--color-gold-light); text-decoration-color: var(--color-gold); }
+/* Step 40 — the Devlog intro: its own <br /> pairs make the empty lines, so no extra margin. */
+.roadmap-intro { margin: 0; }
+/* Step 40 — the credits cards: `.story-card-status` pins the badges on the picture and
+   `.stat-badge.bonus-badge` draws them — the same brown pill every other stat badge of the
+   game wears (BonusBadgeList puts both classes on each of its badges). This adds only the
+   stack and the cut-off of a long credit; the look itself is the shared one, untouched.
+   `.story-card-status` leaves the `top`/`left` 8px; `right` closes the box there, which is
+   the far edge a credit too long for the card is cut at. */
+.credit-card-badges {
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  pointer-events: none;
+}
+.credit-card-badges .credit-card-badge {
+  max-width: 100%;
+  /* The pill is sized for a full-size stat row; on a grid card it has to sit small. */
+  font-size: 0.62rem;
+  padding: 2px 6px;
+}
+/* `.stat-badge` is a flex row, so `text-overflow` on the badge itself would do nothing: the
+   text sits in an anonymous flex item. It goes in a span of its own, which `min-width: 0`
+   lets shrink below its content — the standard flexbox ellipsis. */
+.credit-card-badge__text {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* BookPageContent desc: badges inline, large as text */
@@ -1187,7 +1290,24 @@ html, body {
   font-size: 0.7rem !important;
   padding: 1px 3px !important;
 }
+/* Step 36 — a registry badge carries a WORD, not a two-digit number, and at the shared little
+   size it is unreadable. Scoped to the registry card, so no other card changes size. */
+.pg-card--registry .config-total-bonus-little .bonus-badge-little-version{
+  font-size: 0.8rem !important;
+  padding: 3px 6px !important;
+}
 
+/* v0.37.1 — a mission badge carries a LABEL and a word, so it opts out of the little version
+   (which renders no label at all) and is trimmed back down from the full 1rem. */
+.pg-card--mission .config-total-bonus{
+  margin-top: 3px;
+  gap: 4px;
+}
+.pg-card--mission .config-total-bonus .bonus-badge{
+  font-size: 0.82rem;
+  padding: 2px 6px;
+  letter-spacing: 0.5px;
+}
 .config-info-btn {
   position: absolute;
   top: 6px;
@@ -1365,8 +1485,8 @@ html, body {
   flex-direction: column;
   height: 100%;
   gap: 0;
+  
 }
-
 /* scrollable area containing the card grid */
 .config-cards-area {
   flex: 1;
@@ -1374,6 +1494,16 @@ html, body {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 10px 14px 16px;
+}
+
+.config-cards-area > .pg-card--grid{
+  margin: 8px;
+}
+.selection-list > .pg-card--grid {
+  margin: 8px;
+}
+.selection-list > .match-card-wrap {
+  margin: 8px;
 }
 
 .config-title {
@@ -1660,19 +1790,68 @@ html, body {
   /*display: flex;*/
   align-items: center;
   gap: 10px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid var(--color-gold-dark);
+  margin-bottom: 0px;
+  /*border-bottom: 1px solid var(--color-gold-dark);*/
   padding-bottom: 8px;
   flex-shrink: 0;
 }
 
 .selection-title {
+  padding-left: 10px;
+  padding-top: 10px;
   text-align: center;
   font-family: var(--font-heading);
   font-size: 2.0rem;
   color: var(--color-gold-super-deep);
   margin: 0;
 }
+/* Mobile picker: the back arrow the picker itself no longer draws. */
+.book-mobile-back {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--color-gold-light);
+  font-size: 1.5rem;
+  padding: 4px 10px;
+}
+
+/* Trait picker: the cost used/max badges are the whole header now — centred over the list. */
+.trait-budget-info {
+  display: flex;
+  justify-content: center;
+  margin: 0;
+}
+.trait-budget-info .player-stats-bar {
+  margin-bottom: 0;
+}
+.trait-budget-info .bonus-badge-little-version {
+  font-size: 1.15rem !important;
+  padding: 2px 10px !important;
+}
+/* Start-match phase cards: no picture, a big glyph instead, tinted by status —
+   green once complete, bright gold while running, red on failure, dim while pending. */
+.pg-card--phase .gc-placeholder {
+  font-size: clamp(3rem, 8vw, 4.5rem);
+  opacity: 0.85;
+}
+.pg-card--phase .gc-footer__cards-buttons { opacity: 1; }
+.pg-card--phase-pending .gc-placeholder,
+.pg-card--phase-pending .gc-footer__cards-buttons { color: var(--color-ash); opacity: 0.5; }
+/* A finished thing — a completed start phase, a done mission or step — reads green. */
+.pg-card--phase-complete, .pg-card--done { border-color: #2ecc71 !important; }
+.pg-card--phase-complete .gc-placeholder,
+.pg-card--phase-complete .gc-footer__cards-buttons,
+.pg-card--done .gc-placeholder,
+.pg-card--done .gc-footer__cards-buttons { color: #2ecc71; opacity: 1; }
+.pg-card--phase-inProgress {
+  border-color: var(--color-gold-shine) !important;
+  box-shadow: 0 0 18px rgba(255,215,0,0.55), 0 0 6px rgba(255,215,0,0.3);
+}
+.pg-card--phase-inProgress .gc-placeholder,
+.pg-card--phase-inProgress .gc-footer__cards-buttons { color: var(--color-gold-shine); opacity: 1; }
+.pg-card--phase-failed { border-color: #e74c3c !important; }
+.pg-card--phase-failed .gc-placeholder,
+.pg-card--phase-failed .gc-footer__cards-buttons { color: #e74c3c; }
 
 .btn-back {
   background: transparent;
@@ -1697,21 +1876,23 @@ html, body {
 /* legacy 3-col grid (kept for any remaining usages) */
 .selection-list {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-auto-rows: auto;
   align-content: start;
   align-items: start;
-  gap: 1rem;
-  padding: 4px 2px;
+  gap: 1px; /* qui ex 1rem;*/
+  padding: 0; /* ex 4px 2px;*/
   animation: slideInRight 0.3s ease;
   isolation: isolate;
   overflow-y: auto;
 }
+/* v0.37.4 — equal columns for real: a card must be allowed to shrink below its content. */
+.selection-list > *, .card-big-list > *, .matches-list-grid > * { min-width: 0; }
 
 /* ── CardBig — 2-col selection grid ─────────────────────────────── */
 .card-big-list {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.9rem;
   align-content: start;
   padding: 4px 2px;
@@ -1726,7 +1907,7 @@ html, body {
 .gc-title {
   position: relative;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 6px;
   padding: 6px 8px;
   background: linear-gradient(120deg, var(--color-brown-dark) 0%, var(--color-brown-mid) 60%, var(--color-brown-dark) 100%);
@@ -1734,9 +1915,13 @@ html, body {
   flex-shrink: 0;
   border-radius: 8px 8px 0 0;
 }
-
+.stories-grid .gc-title__text{
+  font-size: 1.25rem;
+}
 .gc-title__text {
-  flex: 1;
+  flex: 0 0 auto;      /* v0.38.2 — the title never gives way to the badges */
+  max-width: 100%;     /* ellipsis only when the title alone overflows the bar */
+  min-width: 0;
   white-space: nowrap;
   font-family: var(--font-heading);
   font-size: clamp(0.65rem, 1.5vw, 0.9rem);
@@ -1744,8 +1929,23 @@ html, body {
   font-weight: 700;
   text-shadow: 0 0 8px rgba(232,184,48,0.5);
   line-height: 1.2;
-  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+/* v0.38.2 — the badges take what the title leaves, on ONE row, left-aligned right after it;
+   whatever does not fit fades out at the right edge instead of pushing the title into "…". */
+.gc-title .player-stats-bar {
+  flex: 1 1 0;
+  min-width: 0;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  overflow: hidden;
+  margin: 0;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
+}
+.gc-title .player-stats-bar .stat-badge { flex-shrink: 0; }
 
 .gc-title__btn {
   flex-shrink: 0;
@@ -1881,7 +2081,7 @@ html, body {
   color: var(--color-gold-shine);
 }
 
-.gc-footer__coming-soon {
+.gc-footer__cards-buttons {
   flex: 1;
   font-size: 1rem;
   color: var(--color-parchment);
@@ -1889,13 +2089,16 @@ html, body {
   opacity: 0.6;
   text-align: center;
   padding: 2px 0;
+  text-wrap: nowrap;
 }
 
 /* credits bar — same style as gc-title, smaller */
 .gc-credits {
   flex-shrink: 0;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; /* Step 40 — one line: the credits text is cut on the right, never wrapped */
+  white-space: nowrap;
+  overflow: hidden;
   align-items: center;
   justify-content: center;
   gap: 2px;
@@ -1911,12 +2114,27 @@ html, body {
 .gc-credits__label {
   margin-right: 2px;
 }
+.gc-type-badge-credits, .gc-credits__tip { flex-shrink: 0; }
+.gc-credits__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .gc-credits__link {
   color: var(--color-gold-shine);
   text-decoration: underline;
   text-decoration-color: rgba(232,184,48,0.35);
 }
 .gc-credits__link:hover { color: var(--color-gold-shine); text-decoration-color: var(--color-gold); }
+/* Step 42 — no dashes between footer entries: about three spaces wide, two on narrow screens. */
+.gc-credits { --gc-credits-space: 0.85em; column-gap: var(--gc-credits-space); }
+@media (max-width: 1120px) { .gc-credits { --gc-credits-space: 0.55em; } }
+.gc-credits__text > .gc-credits__tip + .gc-credits__tip { margin-left: var(--gc-credits-space); }
+/* Step 42 — a credit note: one line, the text cut with an ellipsis, the link icon always visible. */
+.pg-tip--single { display: flex; align-items: center; }
+.pg-tip--single .pg-tip__text { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pg-tip--single .pg-tip__icon, .pg-tip--single .pg-tip__link { flex-shrink: 0; }
 
 /* base: pg-card + card-big */
 .card-big {
@@ -2579,6 +2797,7 @@ html, body {
   overflow: hidden;
 }
 .matches-list-title {
+  display:none;
   font-family: var(--font-heading);
   color: var(--color-gold-super-deep);
   font-size: 1.25rem;
@@ -2587,7 +2806,7 @@ html, body {
 }
 .matches-list-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-auto-rows: auto;
   gap: 1rem;
   overflow-y: auto;
@@ -2924,6 +3143,12 @@ html, body {
 .match-log-extra {
   width: 100%;
 }
+/* v0.41.6 — the history fills the page from the top, so the page keeps its full size. */
+.book-page-extra.match-log-extra {
+  margin-top: 0;
+  flex: 1 1 auto;
+  background: var(--color-parchment-light);
+}
 
 .match-log-wrap {
   display: flex;
@@ -2944,8 +3169,100 @@ html, body {
 }
 
 /* The entry tiles reuse the same grid the other card lists use. */
+/* v0.37.2 — the timeline is a LIST: a badge for what happened, the card's title, when it
+   happened, and the lens that opens that card as a page. */
+/* v0.41.6 — type chips above the timeline, as in the admin log tab. */
+.match-log-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  background: rgba(20, 12, 6, 0.85);
+  border-radius: 8px;
+}
+.match-log-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-gold-light);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0.55;
+}
+.match-log-filter--active {
+  opacity: 1;
+  box-shadow: 0 0 0 1px currentColor inset;
+}
 .match-log-list {
   width: 100%;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.match-log-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 4px;
+  background: transparent;
+  transition: background 0.2s, border-color 0.2s;
+}
+.match-log-row:hover {
+  background: rgba(200, 150, 10, 0.75);
+  border-color: var(--color-gold-super-deep); 
+}
+/* The badge of a row is the badge of a page: the same dark pill .stat-badge paints there,
+   keeping the type's own colour on the words so the kind still reads at a glance. */
+.match-log-row__type {
+  flex: 0 0 auto;
+  min-width: 7.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 20px;
+  background: var(--color-brown-mid);
+  color: var(--color-parchment);
+  white-space: nowrap;
+}
+/* The title takes what is left and stops at one line: a long event name must not push the
+   lens off the row. */
+.match-log-row__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.95rem;
+}
+.match-log-row__info {
+  position: static;
+  flex: 0 0 auto;
+  opacity: 1;
+  width: 28px;
+  height: 28px;
+  font-size: 0.8rem;
+}
+@media (max-width: 640px) {
+  /* Narrow: the badge gives up its column so the title keeps a line of its own. */
+  .match-log-row { flex-wrap: wrap; }
+  .match-log-row__type { min-width: 0; }
 }
 
 /* Event type, overlaid on the entry card's image. */
@@ -3011,3 +3328,102 @@ html, body {
   color: var(--color-ash);
   font-size: 0.72rem;
 }
+
+/* PolicyBook — privacy / terms / cookies / credits as a book, above any open book (1050). */
+.policy-book-overlay { z-index: 1060; }
+.policy-book-text {
+  font-size: 0.95rem;
+  font-style: normal;
+  line-height: 1.6;
+  color: var(--color-brown-deep);
+}
+.policy-book-text h6 { color: var(--color-gold-deep); font-weight: 700; margin-top: 1rem; }
+.policy-book-text .policy-book-updated { font-style: italic; font-size: 0.8rem; margin-top: 1rem; }
+
+/* Step 40 — tip link in the credits bar and the gold-glow tip note in the description */
+.gc-credits__tip {
+  background: none;
+  border: 0;
+  padding: 0 4px;
+  font: inherit;
+  color: var(--color-gold-shine);
+  text-decoration: underline;
+  text-decoration-color: rgba(232,184,48,0.35);
+  cursor: pointer;
+}
+.gc-credits__tip:hover { text-decoration-color: var(--color-gold); }
+.pg-tip {
+  position: relative;
+  margin-top: 10px;
+  padding: 8px 30px 8px 10px; /* right: room for the hide icon, which sits on the last line */
+  border: 2px solid var(--color-gold);
+  border-radius: 6px;
+  background: rgba(255, 215, 0, 0.08);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.55), inset 0 0 6px rgba(255, 215, 0, 0.25);
+  font-size: 1.2rem;
+  animation: pg-tip-fade-in 0.35s ease-out;
+}
+.pg-tip:focus { outline: none; box-shadow: 0 0 14px rgba(255, 215, 0, 0.8), inset 0 0 6px rgba(255, 215, 0, 0.3); }
+.pg-tip__icon { color: var(--color-gold); }
+.pg-tip__hide {
+  position: absolute;
+  right: 6px;
+  bottom: 8px; /* = the box's bottom padding: the icon shares the last line of the text */
+  background: none;
+  border: 0;
+  padding: 0 2px;
+  font-size: inherit;
+  line-height: inherit;
+  color: var(--color-gold);
+  cursor: pointer;
+}
+.pg-tip__hide i { font-size: 0.85em; }
+.pg-tip__hide:hover, .pg-tip__hide:focus-visible { color: var(--color-gold-light); }
+@keyframes pg-tip-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pg-tip { animation: none; }
+}
+
+.match-log-row--status .match-log-row__type,
+.match-log-row--creation .match-log-row__type { color: var(--color-gold); }
+
+/* Step 40 — the environment badge beside the brand (VITE_ENV_BADGE); it opens the Devlog book. */
+.env-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border: 1px solid var(--color-gold);
+  border-radius: 10px;
+  background: rgba(200, 150, 10, 0.18);
+  color: var(--color-gold-shine);
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+  appearance: none;
+  cursor: pointer;
+}
+.env-badge__icon { font-size: 0.75em; }
+.env-badge__short { display: none; }
+/* Step 42 — mobile: "Local version" → "Local" (the word "version" goes). */
+@media (max-width: 767px) {
+  .env-badge__full { display: none; }
+  .env-badge__short { display: inline; }
+}
+.env-badge:hover, .env-badge:focus-visible {
+  background: rgba(200, 150, 10, 0.32);
+  border-color: var(--color-gold-shine);
+}
+.navbar-medieval .env-badge{
+  font-size: 1.25rem;
+}
+
+.roadmap-intro A{ color: var(--color-gold); text-decoration: underline; text-decoration-color: rgba(232,184,48,0.35); }
+.roadmap-intro button{ color: var(--color-gold); text-decoration: underline; text-decoration-color: rgba(232,184,48,0.35); }

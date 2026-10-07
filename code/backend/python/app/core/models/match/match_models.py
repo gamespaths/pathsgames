@@ -86,10 +86,21 @@ class MatchLocationState:
 
 @dataclass
 class MatchRegistryEntry:
+    """Step 36 — the row joined with its list_keys definition, so the board reads the category
+    and visibility the author gave the key, not only the value the engine wrote."""
+
     uuid: str
     key: str
-    string_value: Optional[str] = None
-    int_value: Optional[int] = None
+    # Step 36.1 — the SET of values the key holds, ordered for display. A single-valued key
+    # has one member, a multi-valued one may have many, and an emptied key has none.
+    values: List[str] = field(default_factory=list)
+    multi_value: bool = False
+    id_character: Optional[int] = None
+    category: Optional[str] = None
+    visible: bool = False
+    priority: Optional[int] = None
+    id_card: Optional[int] = None
+    card: Optional[Any] = None
 
 
 @dataclass
@@ -174,6 +185,9 @@ class CharacterInstanceInfo:
     food: int = 0
     magic: int = 0
     coin: int = 0
+    # Step 38 — experience points and the cost of the next point per stat (None = at cap).
+    exp: int = 0
+    exp_costs: Dict[str, Optional[int]] = field(default_factory=dict)
 
 
 @dataclass
@@ -263,6 +277,8 @@ class MatchDetail:
     current_location_uuid: Optional[str] = None
     locations: List[MatchLocationState] = field(default_factory=list)
     registry: List[MatchRegistryEntry] = field(default_factory=list)
+    # Step 37 — the missions this match has reached, already camelCase for the payload.
+    missions: List[dict] = field(default_factory=list)
     events: List[MatchEventOption] = field(default_factory=list)
     choices: List[MatchEventOption] = field(default_factory=list)
     players: List[CharacterInstanceInfo] = field(default_factory=list)

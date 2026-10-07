@@ -1,0 +1,83 @@
+package games.paths.core.port.match;
+
+import java.util.List;
+
+/**
+ * RegistryStorePort - the only door to {@code gaming_state_registry}. Step 36 consolidated
+ * five hand-rolled readers and four writers behind it; rows cross as a record, not a JPA entity.
+ */
+public interface RegistryStorePort {
+
+    /**
+     * One row of the match registry — one VALUE of one key. {@code stringValue} and
+     * {@code intValue} are never both set. A single-valued key owns exactly one row; a
+     * multi-valued one owns a row per member, and none at all when its set is empty.
+     */
+    record RegistryRow(Long id, String uuid, String key, String stringValue, Integer intValue,
+                       Long idCharacter, Long idEvent, Long idChoice, Integer clock,
+                       Integer multiValue) {
+
+        public static RegistryRow of(String key, String stringValue, Integer intValue) {
+            return new RegistryRow(null, null, key, stringValue, intValue,
+                    null, null, null, null, 0);
+        }
+
+        public static RegistryRow of(String key, String stringValue, Integer intValue,
+                                     boolean multi) {
+            return new RegistryRow(null, null, key, stringValue, intValue,
+                    null, null, null, null, multi ? 1 : 0);
+        }
+
+        public boolean isMulti() {
+            return multiValue != null && multiValue != 0;
+        }
+    }
+
+    /**
+     * Step 37 — the bookkeeping of one mission: the status it has reached and the last step
+     * it closed. Persisted as a registry row whose {@code idMission} is set, which is exactly
+     * what keeps it out of every player-facing registry read.
+     */
+    record MissionStateRow(Long idMission, Long idMissionSteps, String status) { }
+
+    /**
+     * v0.36.2 — the numeric id and story id behind a match uuid, for the admin edit which
+     * only ever holds the uuid. Empty when no match answers to it.
+     */
+    java.util.Optional<long[]> findMatchAndStoryIdByUuid(String matchUuid);
+
+    /** Step 37 - the story a match plays, for the mission engine which only holds the match. */
+    Long findStoryIdByMatch(long idMatch);
+
+    List<RegistryRow> findByMatch(long idMatch);
+
+    /** Every row of one key: one for a single key, N for a multi-valued one, none when empty. */
+    List<RegistryRow> findByMatchAndKey(long idMatch, String key);
+
+    /** Replace the one row of a SINGLE key. The id and uuid of a new row are minted here. */
+    void upsert(long idMatch, String key, String stringValue, Integer intValue,
+                Long idCharacter, Long idEvent, Long idChoice, Integer clock);
+
+    /** Add one member to a MULTI key. The caller has already ruled out a duplicate. */
+    void insertValue(long idMatch, String key, String stringValue, Integer intValue,
+                     Long idCharacter, Long idEvent, Long idChoice, Integer clock);
+
+    /** Delete the row holding one member of a MULTI key. */
+    void deleteValue(long idMatch, String key, String stringValue, Integer intValue);
+
+    /** Bulk insert used only by match creation, where ids start at 1. */
+    void insertAll(long idMatch, List<RegistryRow> rows);
+
+    void deleteByMatchIdIn(List<Long> matchIds);
+
+    /** Step 37 - every mission of the match that has state, in no particular order. */
+    List<MissionStateRow> findMissionStates(long idMatch);
+
+    /** Step 37 - write the state of one mission, minting the row the first time it is reached. */
+    void upsertMissionState(long idMatch, String key, String status, Long idMission,
+                            Long idMissionSteps, Integer clock);
+
+    /** Audit row on {@code log_events}; the message carries the key and the two values. */
+    void logChange(long idMatch, Long idCharacter, Long idEvent, Long idChoice, Integer clock,
+                   String message);
+}

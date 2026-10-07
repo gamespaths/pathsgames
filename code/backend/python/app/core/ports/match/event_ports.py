@@ -180,11 +180,6 @@ class EventStorePort(ABC):
     def remove_trait(self, id_match: int, id_character: int, id_trait: int) -> bool:
         ...
 
-    @abstractmethod
-    def upsert_registry(self, id_match: int, key: str, value: Optional[str],
-                        id_character: Optional[int], id_event: Optional[int],
-                        clock: int) -> None:
-        ...
 
     @abstractmethod
     def set_current_weather(self, id_match: int, id_weather: Optional[int]) -> None:

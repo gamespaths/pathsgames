@@ -14,8 +14,9 @@ location's card, and every character-scoped entry names the character that acted
 
 v0.30.3 — EVENT entries (Step 29 player-triggered events) carry `idEvent` and the
 triggered event's own card, resolved the same way as WEATHER/MOVEMENT. log_events rows
-the service does not classify (e.g. the Step 30 edge-state audit messages
-`SADNESS_OVERFLOW`/`COMA`) are dropped, not shown as garbage.
+the service does not classify are dropped, not shown as garbage.
+
+v0.41.1 — PASS, EDGE_STATE, TRAIT_CHANGE, MATCH_LIFECYCLE and ADMIN_ACTION (Step 41 A).
 """
 import base64
 from dataclasses import asdict
@@ -35,12 +36,14 @@ from app.adapters.persistence.story.models import (
     EventEntity,
     ItemEntity,
     LocationEntity,
+    MissionEntity,
+    MissionStepEntity,
     WeatherRuleEntity,
 )
 from app.core.ports.match.event_ports import (
     ITEM_ACTION_ADD, ITEM_ACTION_DROP, ITEM_ACTION_REMOVE, ITEM_ACTION_USE,
-    MSG_EVENT_EXECUTED,
 )
+from app.core.services.match import log_type_mapper as ltm
 
 
 def _item_type(action: Optional[str]) -> Optional[str]:
@@ -78,17 +81,101 @@ _TYPE_SLEEP = "SLEEP"
 _TYPE_CLOCK_ADVANCE = "CLOCK_ADVANCE"
 _TYPE_RECOVERY = "RECOVERY"
 _TYPE_EVENT = "EVENT"
+# Step 40 — an option the player picked, with what its own effect rows gave.
+_TYPE_CHOICE = "CHOICE"
 # Step 33 — a location's counter ran out. Split out of RECOVERY, which it never was.
 _TYPE_COUNTER_ZERO = "COUNTER_ZERO"
 # Step 33 — an event the engine fired: an arrival, a counter, a time-start.
 _TYPE_AUTOMATIC_EVENT = "AUTOMATIC_EVENT"
+# Step 39 — a global random event fired at time-start.
+_TYPE_RANDOM_EVENT = "RANDOM_EVENT"
+# Step 36 — a registry key was written by an event, a choice or the engine.
+_TYPE_REGISTRY_CHANGE = "REGISTRY_CHANGE"
+# v0.37.2 — a mission opened, advanced, completed or failed.
+_TYPE_MISSION_CHANGE = "MISSION_CHANGE"
+
+
+# v0.41.1 — the Step 41 rows: a pass, an edge state, a trait, the lifecycle, an admin action.
+_TYPE_PASS = "PASS"
+_TYPE_EDGE_STATE = "EDGE_STATE"
+_TYPE_TRAIT_CHANGE = "TRAIT_CHANGE"
+_TYPE_MATCH_LIFECYCLE = "MATCH_LIFECYCLE"
+_TYPE_ADMIN_ACTION = "ADMIN_ACTION"
+
+
+def step41_entry(e, msg: str) -> Optional[Dict[str, Any]]:
+    """v0.41.1 — a Step 41 row with the storage prefix stripped from its message; None otherwise."""
+    type_ = ltm.event_type(msg)
+    if type_ not in (_TYPE_PASS, _TYPE_EDGE_STATE, _TYPE_TRAIT_CHANGE, _TYPE_MATCH_LIFECYCLE,
+                     _TYPE_ADMIN_ACTION):
+        return None
+    return {
+        "type": type_,
+        "clock": e.clock,
+        "timestamp": e.timestamp,
+        "idCharacterMatch": e.id_character_match,
+        "message": ltm.timeline_message(type_, msg),
+        "idEvent": e.id_event,
+    }
+
+
+def event_entry(e) -> Optional[Dict[str, Any]]:
+    """One log_events row as a timeline entry; v0.41.4 the type comes from ``log_type_mapper`` (shared
+    with the match export). An unrecognised message is dropped rather than shown as garbage."""
+    msg = e.log_message
+    type_ = ltm.event_type(msg)
+    if type_ is None or type_ == ltm.OTHER:
+        return None
+    base = {"type": type_, "clock": e.clock, "timestamp": e.timestamp}
+    if type_ == ltm.SLEEP:
+        base["idCharacterMatch"] = e.id_character_match
+    elif type_ in (ltm.EVENT, ltm.CHOICE):
+        # v0.35.3/v0.35.4 — the price paid and what the event or the option gave back.
+        base.update({"idCharacterMatch": e.id_character_match, "message": msg, "idEvent": e.id_event,
+                     "energyCost": e.energy_cost or 0, "foodCost": e.food_cost or 0,
+                     "magicCost": e.magic_cost or 0, "coinCost": e.coin_cost or 0,
+                     "energyGain": e.energy_gain or 0, "foodGain": e.food_gain or 0,
+                     "magicGain": e.magic_gain or 0, "coinGain": e.coin_gain or 0})
+    elif type_ in (ltm.COUNTER_ZERO, ltm.AUTOMATIC_EVENT):
+        # Step 33 — the location rides in idLocationTo so it enriches like a MOVEMENT does.
+        base.update({"idCharacterMatch": e.id_character_match, "idLocationTo": e.id_location,
+                     "message": msg, "idEvent": e.id_event})
+    elif type_ == ltm.RANDOM_EVENT:
+        base.update({"message": msg, "idEvent": e.id_event})
+    elif type_ == ltm.REGISTRY_CHANGE:
+        base.update({"idCharacterMatch": e.id_character_match, "message": msg, "idEvent": e.id_event})
+    elif type_ == ltm.MISSION_CHANGE:
+        base["message"] = msg
+    elif type_ in (ltm.EXP_USE, ltm.RECOVERY):
+        base.update({"idCharacterMatch": e.id_character_match, "message": msg})
+    else:
+        return step41_entry(e, msg)
+    return base
+
+
+def _step_number_of(message: Optional[str]) -> Optional[int]:
+    """The step a MISSION_CHANGE message names, as the author numbered it, or None when the row
+    is about the mission itself."""
+    parts = (message or "").strip().split()
+    if len(parts) < 2 or parts[-2] != "step":
+        return None
+    try:
+        return int(parts[-1])
+    except ValueError:
+        return None
+
+
+def _mission_uuid_of(message: Optional[str]) -> Optional[str]:
+    """The mission a MISSION_CHANGE message names: the second word, which is where
+    MissionService writes the uuid. None when the shape is not the one it wrote."""
+    parts = (message or "").strip().split()
+    return parts[1] if len(parts) >= 2 else None
 # v0.35.4 — the three item actions, read off log_item_usage.action rather than a message.
 _TYPE_ITEM_ADD = "ITEM_ADD"
 _TYPE_ITEM_USE = "ITEM_USE"
 _TYPE_ITEM_DROP = "ITEM_DROP"
-_MSG_SLEEP = "ACTION_SLEEP"
-_MSG_COUNTER = "counter"
-_MSG_AUTOMATIC_EVENT = "automatic event"
+# Step 38 — experience spent on a stat.
+_TYPE_EXP_USE = "EXP_USE"
 
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 200
@@ -132,10 +219,22 @@ def decode_cursor(cursor: Optional[str]) -> int:
 
 
 class MatchLogsService:
-    def __init__(self, session_factory, content_query_service=None) -> None:
+    def __init__(self, session_factory, content_query_service=None, log_writer=None) -> None:
         self.session_factory = session_factory
         # Optional: without it the entries keep their ids but carry no cards.
         self.content_query_service = content_query_service
+        # v0.41.1 — counts the rows for the admin logCount; None in the older tests.
+        self.log_writer = log_writer
+
+    def count_logs_for_admin(self, uuid_match: str) -> Optional[int]:
+        """v0.41.1 — rows of the match in every log_* table; None unwired or when the match is unknown."""
+        if self.log_writer is None:
+            return None
+        with self.session_factory() as session:
+            match = (session.query(GamingMatchEntity)
+                     .filter(GamingMatchEntity.uuid == uuid_match).first())
+            match_id = match.id if match is not None else None
+        return None if match_id is None else self.log_writer.count_rows(match_id)
 
     def get_match_logs(self, uuid_match: str, user_uuid: str, lang: str = "en",
                        limit: Optional[int] = None, cursor: Optional[str] = None,
@@ -232,73 +331,8 @@ class MatchLogsService:
                 "timestamp": c.timestamp_start,
             })
 
-        for e in (session.query(LogEventsEntity)
-                  .filter(LogEventsEntity.id_match == match.id)
-                  .order_by(LogEventsEntity.id.asc()).all()):
-            msg = e.log_message
-            if msg is None:
-                continue
-            if msg == _MSG_SLEEP:
-                entries.append({
-                    "type": _TYPE_SLEEP,
-                    "clock": e.clock,
-                    "timestamp": e.timestamp,
-                    "idCharacterMatch": e.id_character_match,
-                })
-            elif msg.startswith(MSG_EVENT_EXECUTED):
-                entries.append({
-                    "type": _TYPE_EVENT,
-                    "clock": e.clock,
-                    "timestamp": e.timestamp,
-                    "idCharacterMatch": e.id_character_match,
-                    "message": msg,
-                    "idEvent": e.id_event,
-                    # v0.35.3 — the price the actor paid to open this event. Zero on the rows
-                    # the engine writes for itself: chained, automatic and resolution rows.
-                    "energyCost": e.energy_cost or 0,
-                    "foodCost": e.food_cost or 0,
-                    "magicCost": e.magic_cost or 0,
-                    "coinCost": e.coin_cost or 0,
-                    # v0.35.4 — and what the event gave back, on the gain half of the row.
-                    "energyGain": e.energy_gain or 0,
-                    "foodGain": e.food_gain or 0,
-                    "magicGain": e.magic_gain or 0,
-                    "coinGain": e.coin_gain or 0,
-                })
-            elif msg.startswith(_MSG_COUNTER):
-                # Step 33 split this out of RECOVERY: a counter running out and a character
-                # healing are unrelated events, and the frontend has to tell them apart.
-                # The location rides in idLocationTo so it enriches like a MOVEMENT does.
-                entries.append({
-                    "type": _TYPE_COUNTER_ZERO,
-                    "clock": e.clock,
-                    "timestamp": e.timestamp,
-                    "idCharacterMatch": e.id_character_match,
-                    "idLocationTo": e.id_location,
-                    "message": msg,
-                    "idEvent": e.id_event,
-                })
-            elif msg.startswith(_MSG_AUTOMATIC_EVENT):
-                entries.append({
-                    "type": _TYPE_AUTOMATIC_EVENT,
-                    "clock": e.clock,
-                    "timestamp": e.timestamp,
-                    "idCharacterMatch": e.id_character_match,
-                    "idLocationTo": e.id_location,
-                    "message": msg,
-                    "idEvent": e.id_event,
-                })
-            elif msg.startswith("recovery"):
-                entries.append({
-                    "type": _TYPE_RECOVERY,
-                    "clock": e.clock,
-                    "timestamp": e.timestamp,
-                    "idCharacterMatch": e.id_character_match,
-                    "message": msg,
-                })
-
-        # v0.35.4 — the item log. Unlike log_events this table needs no message parsing:
-        # the action column says what happened, and an unknown one is dropped the same way.
+        # v0.35.4 — the item log: the action column says what happened, no message parsing.
+        # v0.41.1 — read before log_events, the Java order a stable sort keeps on equal timestamps.
         for i in (session.query(LogItemUsageEntity)
                   .filter(LogItemUsageEntity.id_match == match.id)
                   .order_by(LogItemUsageEntity.id.asc()).all()):
@@ -318,6 +352,13 @@ class MatchLogsService:
             _split_delta(entry, i)
             entries.append(entry)
 
+        for e in (session.query(LogEventsEntity)
+                  .filter(LogEventsEntity.id_match == match.id)
+                  .order_by(LogEventsEntity.id.asc()).all()):
+            entry = event_entry(e)
+            if entry is not None:
+                entries.append(entry)
+
         # v0.35.4 — every entry carries the eight resource fields, whatever its type, so a
         # client can sum a column without null checks. The Java reference has always
         # answered this shape; the two backends built per-type dicts and left the keys out
@@ -327,7 +368,7 @@ class MatchLogsService:
                 entry.setdefault(f"{name}Cost", 0)
                 entry.setdefault(f"{name}Gain", 0)
 
-        # Sort by timestamp ascending; None timestamps sort last
+        # Sort by timestamp ascending, stable (equal timestamps keep the read order); None last.
         entries.sort(key=lambda x: x.get("timestamp") or "9999")
         return entries
 
@@ -349,6 +390,19 @@ class MatchLogsService:
                        .filter(EventEntity.id_story == match.id_story).all()}
         item_cards = {it.id: it.id_card for it in session.query(ItemEntity)
                       .filter(ItemEntity.id_story == match.id_story).all()}
+        # v0.37.2 — keyed by UUID, not by id: that is what a MISSION_CHANGE row names.
+        missions = session.query(MissionEntity).filter(
+            MissionEntity.id_story == match.id_story).all()
+        mission_cards = {m.uuid: m.id_card for m in missions if m.uuid}
+        mission_uuids = {m.id: m.uuid for m in missions}
+        # And the steps, keyed "<mission uuid>/<step>": a row that names a step wears the
+        # step's card, an advance being the step's news and not the mission's.
+        step_cards = {}
+        for st in session.query(MissionStepEntity).filter(
+                MissionStepEntity.id_story == match.id_story).all():
+            uuid = mission_uuids.get(st.id_mission)
+            if uuid and st.step is not None:
+                step_cards[f"{uuid}/{st.step}"] = st.id_card
         characters = {c.id: c for c in session.query(GamingCharacterInstanceEntity)
                       .filter(GamingCharacterInstanceEntity.id_match == match.id).all()}
 
@@ -361,14 +415,27 @@ class MatchLogsService:
                 id_card = weather_cards.get(entry["idWeather"])
             elif entry["type"] == _TYPE_MOVEMENT and entry.get("idLocationTo") is not None:
                 id_card = location_cards.get(entry["idLocationTo"])
-            elif entry["type"] == _TYPE_EVENT and entry.get("idEvent") is not None:
+            elif entry["type"] in (_TYPE_EVENT, _TYPE_CHOICE) and entry.get("idEvent") is not None:
                 id_card = event_cards.get(entry["idEvent"])
-            elif entry["type"] == _TYPE_AUTOMATIC_EVENT and entry.get("idEvent") is not None:
+            elif (entry["type"] in (_TYPE_AUTOMATIC_EVENT, _TYPE_RANDOM_EVENT)
+                  and entry.get("idEvent") is not None):
                 # Step 33 — the event's own card, like a player-triggered one.
                 id_card = event_cards.get(entry["idEvent"])
             elif entry["type"] == _TYPE_COUNTER_ZERO and entry.get("idLocationTo") is not None:
                 # Step 33 — a counter belongs to a place, so the place's card names it.
                 id_card = location_cards.get(entry["idLocationTo"])
+            elif entry["type"] == _TYPE_MISSION_CHANGE:
+                # v0.37.2 — the uuid in the message is the only handle the row has, the log
+                # table holding no mission column. A row that NAMES A STEP wears that step's
+                # card; the mission's own is for its opening and its end.
+                uuid = _mission_uuid_of(entry.get("message"))
+                step = _step_number_of(entry.get("message"))
+                if uuid is None:
+                    id_card = None
+                elif step is None:
+                    id_card = mission_cards.get(uuid)
+                else:
+                    id_card = step_cards.get(f"{uuid}/{step}")
             elif entry.get("idItem") is not None:
                 # v0.35.4 — an item entry is narrated by the item's own card, whichever of
                 # the three actions it is.

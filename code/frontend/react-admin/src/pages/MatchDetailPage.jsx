@@ -13,14 +13,17 @@ import PlayersCard from '../components/match/detail/PlayersCard'
 import WeatherCard from '../components/match/detail/WeatherCard'
 import LocationStateCard from '../components/match/detail/LocationStateCard'
 import RegistryCard from '../components/match/detail/RegistryCard'
+import MissionsCard from '../components/match/detail/MissionsCard'
 import MatchLogsCard from '../components/match/detail/MatchLogsCard'
+import SnapshotsCard from '../components/match/detail/SnapshotsCard'
+import UserCard from '../components/match/detail/UserCard'
 import EditStatsModal from '../components/match/detail/EditStatsModal'
 import { TERMINAL, STATUS_COLOR, findByUuid, resolveEntityName, name20 } from '../components/match/detail/matchDetailShared'
 
 /**
  * MatchDetailPage — Step 21 admin match details page (/matches/:uuid).
  *
- * The sections (configuration, players, weather, locations, registry, turn order)
+ * The sections (configuration, players, weather, locations, registry, missions, turn order)
  * are laid out as tabs, defaulting to "Match configuration". Each section is its
  * own component under components/match/detail/. This page is the container: it
  * loads the data, owns the resolvers/handlers, and renders the active tab.
@@ -36,7 +39,10 @@ const DETAIL_TABS = [
   { id: 'weather',   label: 'Weather',             icon: 'fa-cloud-sun-rain' },
   { id: 'locations', label: 'Locations',           icon: 'fa-map' },
   { id: 'registry',  label: 'Registry',            icon: 'fa-list' },
+  { id: 'missions',  label: 'Missions',            icon: 'fa-flag-checkered' },
   { id: 'turn',      label: 'Turn order',          icon: 'fa-list-ol' },
+  { id: 'snapshots', label: 'Snapshots',           icon: 'fa-camera' },
+  { id: 'user',      label: 'User',                icon: 'fa-user' },
 ]
 
 export default function MatchDetailPage() {
@@ -61,6 +67,8 @@ export default function MatchDetailPage() {
   const [confirm, setConfirm]             = useState(null) // { title, message, onConfirm }
   const [statsModal, setStatsModal]       = useState(null) // player object being edited
   const [tab, setTab]                     = useState('config')
+  const [snapshotNotice, setSnapshotNotice] = useState('') // v0.41.1 - survives the reload after a restore
+  const [ownerNotice, setOwnerNotice] = useState('') // v0.41.6 - survives the reload after a move
 
   const loadInfo = useCallback(() => {
     setLoading(true)
@@ -159,8 +167,8 @@ export default function MatchDetailPage() {
     }
   }
 
-  function handlePause()  { runAction(() => pauseMatch(uuid),  false) }
-  function handleResume() { runAction(() => resumeMatch(uuid), false) }
+  function handlePause()  { void runAction(() => pauseMatch(uuid),  false) }
+  function handleResume() { void runAction(() => resumeMatch(uuid), false) }
 
   function handleStop() {
     setConfirm({
@@ -248,6 +256,7 @@ export default function MatchDetailPage() {
               loadingMore={logsLoadingMore}
               onLoadMore={loadMoreLogs}
               error={logsError}
+              logCount={info?.logCount}
             />
           )}
 
@@ -277,13 +286,35 @@ export default function MatchDetailPage() {
           )}
 
           {tab === 'registry' && (
-            <RegistryCard registry={info.registry} />
+            <RegistryCard registry={info.registry} matchUuid={uuid} onChanged={loadInfo} />
+          )}
+
+          {tab === 'missions' && (
+            <MissionsCard missions={info.missions} />
           )}
 
           {tab === 'turn' && (
             <div className="mb-4">
               <TurnOrderPanel players={players} nameOf={templateName} />
             </div>
+          )}
+
+          {tab === 'snapshots' && (
+            <SnapshotsCard
+              matchUuid={uuid}
+              notice={snapshotNotice}
+              onRestored={(text) => { setSnapshotNotice(text); loadInfo() }}
+            />
+          )}
+
+          {tab === 'user' && (
+            <UserCard
+              matchUuid={uuid}
+              terminal={isTerminalStatus}
+              status={status}
+              notice={ownerNotice}
+              onMoved={(text) => { setOwnerNotice(text); loadInfo() }}
+            />
           )}
         </>
       )}

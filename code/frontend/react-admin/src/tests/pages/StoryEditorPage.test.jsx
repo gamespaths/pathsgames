@@ -37,6 +37,8 @@ function renderPage(uuid = 'story-123') {
     <MemoryRouter initialEntries={[`/stories/${uuid}/edit`]}>
       <Routes>
         <Route path="/stories/:uuid/edit" element={<StoryEditorPage />} />
+        <Route path="/stories/:uuid/cards-fast-edit" element={<div>Fast edit page</div>} />
+        <Route path="/stories/:uuid/fast-new-event" element={<div>Fast new event page</div>} />
       </Routes>
     </MemoryRouter>
   )
@@ -58,6 +60,18 @@ describe('StoryEditorPage', () => {
     expect(screen.getByRole('button', { name: /Story Info/i })).toHaveClass(/text-gold-light/i)
   })
 
+  it('the last sidebar entry opens Cards fast edit', async () => {
+    renderPage()
+    await userEvent.click(await screen.findByText('Cards fast edit'))
+    expect(await screen.findByText('Fast edit page')).toBeInTheDocument()
+  })
+
+  it('the Fast new event sidebar entry opens its page', async () => {
+    renderPage()
+    await userEvent.click(await screen.findByText('Fast new event'))
+    expect(await screen.findByText('Fast new event page')).toBeInTheDocument()
+  })
+
   it('updates story metadata', async () => {
     updateStory.mockResolvedValue({ status: 'UPDATED' })
     renderPage()
@@ -73,7 +87,7 @@ describe('StoryEditorPage', () => {
   it('switches tabs and loads entities', async () => {
     listEntities.mockImplementation((uuid, type) => {
         if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
-        if (type === 'locations') return Promise.resolve([{ uuid: 'loc-1', idTextName: 101, idTextDescription: 102, isSafe: 1 }])
+        if (type === 'locations') return Promise.resolve([{ uuid: 'loc-1', idTextName: 101, idTextDescription: 102, secureParam: 1 }])
         return Promise.resolve([])
     })
     renderPage()
@@ -147,6 +161,33 @@ describe('StoryEditorPage', () => {
     
     await waitFor(() => expect(listEntities).toHaveBeenCalledWith('story-123', 'difficulties'))
     await waitFor(() => expect(screen.getByText(/exported successfully/i)).toBeInTheDocument())
+    clickSpy.mockRestore()
+  })
+
+  it('exports a flat header without null values', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    let capturedBlob = null
+    const origCreate = global.URL.createObjectURL
+    const origRevoke = global.URL.revokeObjectURL
+    global.URL.createObjectURL = vi.fn((blob) => { capturedBlob = blob; return 'blob:x' })
+    global.URL.revokeObjectURL = vi.fn()
+    renderPage()
+    await screen.findByDisplayValue('Author')
+
+    await userEvent.click(screen.getByRole('button', { name: /Export JSON/i }))
+    await waitFor(() => expect(capturedBlob).not.toBeNull())
+
+    const text = await capturedBlob.text()
+    const parsed = JSON.parse(text)
+    expect(parsed).not.toHaveProperty('story')
+    expect(parsed.uuid).toBe('story-123')
+    expect(parsed.author).toBe('Author')
+    expect(parsed).not.toHaveProperty('idLocationStart')
+    expect(parsed.texts[0]).toEqual(expect.objectContaining({ id: 101, idText: 101, lang: 'en' }))
+    expect(text).not.toContain('null')
+
+    global.URL.createObjectURL = origCreate
+    global.URL.revokeObjectURL = origRevoke
     clickSpy.mockRestore()
   })
 

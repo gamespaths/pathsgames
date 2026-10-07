@@ -18,14 +18,14 @@ export default function PlayersCard({ players, templateName, className, traitNam
               <th>Character</th><th>User</th>
               <th>Class</th><th>Traits</th>
               <th>DEX</th><th>INT</th><th>CON</th>
-              <th>Energy</th><th>Life</th><th>Sad</th><th>Weight</th>
+              <th>Energy</th><th>Life</th><th>Sad</th><th>Weight</th><th>XP</th>
               <th>Items</th>
               <th>Position</th><th>State</th><th></th>
             </tr>
           </thead>
           <tbody>
             {players.length === 0 && (
-              <tr><td colSpan={15} style={{ textAlign: 'center', color: 'var(--color-ash)' }}>
+              <tr><td colSpan={16} style={{ textAlign: 'center', color: 'var(--color-ash)' }}>
                 No characters have joined this match yet.
               </td></tr>
             )}
@@ -66,6 +66,7 @@ export default function PlayersCard({ players, templateName, className, traitNam
                 <td>{p.lifeMax != null ? `${p.life}/${p.lifeMax}` : p.life}</td>
                 <td>{p.sadMax != null ? `${p.sad}/${p.sadMax}` : p.sad}</td>
                 <td>{p.weightMax != null ? `${p.weight ?? 0}/${p.weightMax}` : (p.weight ?? '—')}</td>
+                <td>{p.exp ?? 0}</td>
                 <td>
                   {(p.items?.length > 0)
                     ? (

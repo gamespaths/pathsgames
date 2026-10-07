@@ -22,7 +22,8 @@ import jakarta.persistence.Table;
 @IdClass(GamingCharacterInstanceEntityId.class)
 public class GamingCharacterInstanceEntity extends AbstractMatchScopedEntity {
 
-    @Column(name = "id_user", nullable = false)
+    // v0.41.6 - only the admin owner move (native update) changes it after the insert.
+    @Column(name = "id_user", nullable = false, updatable = false)
     private Long idUser;
 
     @Column(name = "id_character_template", nullable = false)

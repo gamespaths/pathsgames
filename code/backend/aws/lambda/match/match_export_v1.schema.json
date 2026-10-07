@@ -1,0 +1,718 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://paths.games/schemas/match-export-v1.json",
+  "title": "MatchExport v1",
+  "type": "object",
+  "required": [
+    "format",
+    "formatVersion",
+    "source",
+    "story",
+    "users",
+    "match",
+    "characters",
+    "state",
+    "engine",
+    "logs",
+    "checksum"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "paths-games-match-export"
+    },
+    "formatVersion": {
+      "const": 1
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backend",
+        "appVersion",
+        "server",
+        "exportedAt",
+        "snapshotUuid",
+        "snapshotClock"
+      ],
+      "properties": {
+        "backend": {
+          "enum": [
+            "java",
+            "python",
+            "aws"
+          ]
+        },
+        "dialect": {
+          "enum": [
+            "sqlite",
+            "postgresql",
+            "dynamodb"
+          ]
+        },
+        "appVersion": {
+          "type": "string"
+        },
+        "server": {
+          "type": "string"
+        },
+        "exportedAt": {
+          "$ref": "#/$defs/ts"
+        },
+        "snapshotUuid": {
+          "$ref": "#/$defs/uuid"
+        },
+        "snapshotClock": {
+          "$ref": "#/$defs/int0"
+        }
+      }
+    },
+    "story": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uuid",
+        "fingerprint",
+        "data"
+      ],
+      "properties": {
+        "uuid": {
+          "$ref": "#/$defs/uuid"
+        },
+        "title": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "$ref": "#/$defs/sha"
+        },
+        "data": {
+          "type": "object",
+          "description": "story import JSON, StoryFormat.md §1, no null keys"
+        }
+      }
+    },
+    "users": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/user"
+      }
+    },
+    "match": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uuid",
+        "difficultyId",
+        "clock",
+        "creatorUserUuid",
+        "rngSeed"
+      ],
+      "properties": {
+        "uuid": {
+          "$ref": "#/$defs/uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "difficultyId": {
+          "$ref": "#/$defs/id"
+        },
+        "expCost": {
+          "$ref": "#/$defs/int0"
+        },
+        "rngSeed": {
+          "type": "integer"
+        },
+        "singlePlayer": {
+          "type": "boolean"
+        },
+        "loadout": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "characterTemplateId": {
+              "$ref": "#/$defs/id"
+            },
+            "classId": {
+              "$ref": "#/$defs/id"
+            },
+            "traitIds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/id"
+              }
+            }
+          }
+        },
+        "creatorUserUuid": {
+          "$ref": "#/$defs/uuid"
+        },
+        "clock": {
+          "$ref": "#/$defs/int0"
+        },
+        "status": {
+          "enum": [
+            "CREATED",
+            "RUNNING",
+            "PAUSED",
+            "ENDED",
+            "GAMEOVER"
+          ]
+        },
+        "currentWeatherId": {
+          "$ref": "#/$defs/id"
+        },
+        "activeCharacterUuid": {
+          "$ref": "#/$defs/uuid"
+        },
+        "counterConsecutivePass": {
+          "$ref": "#/$defs/int0"
+        },
+        "secureLocationParam": {
+          "type": "integer"
+        },
+        "partyLocationId": {
+          "$ref": "#/$defs/id"
+        },
+        "timestampStart": {
+          "$ref": "#/$defs/ts"
+        },
+        "timestampEnd": {
+          "$ref": "#/$defs/ts"
+        },
+        "timestampGameover": {
+          "$ref": "#/$defs/ts"
+        },
+        "timestampLockExpiration": {
+          "$ref": "#/$defs/ts"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/ts"
+        }
+      }
+    },
+    "characters": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/character"
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "registry",
+        "locations",
+        "turns"
+      ],
+      "properties": {
+        "registry": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/registryRow"
+          }
+        },
+        "locations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/locationState"
+          }
+        },
+        "turns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/turn"
+          }
+        },
+        "storyProgress": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/progress"
+          }
+        },
+        "choiceHistory": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/choiceRow"
+          }
+        }
+      }
+    },
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eventMarkers",
+        "visitedLocationIds"
+      ],
+      "properties": {
+        "eventMarkers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "eventId",
+              "executed",
+              "selected"
+            ],
+            "properties": {
+              "eventId": {
+                "$ref": "#/$defs/id"
+              },
+              "executed": {
+                "$ref": "#/$defs/int0"
+              },
+              "selected": {
+                "$ref": "#/$defs/int0"
+              }
+            }
+          }
+        },
+        "visitedLocationIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    },
+    "logs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/logEntry"
+      }
+    },
+    "checksum": {
+      "$ref": "#/$defs/sha"
+    }
+  },
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "ts": {
+      "type": "string"
+    },
+    "sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "int0": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "energy": {
+          "type": "integer"
+        },
+        "food": {
+          "type": "integer"
+        },
+        "magic": {
+          "type": "integer"
+        },
+        "coin": {
+          "type": "integer"
+        }
+      }
+    },
+    "user": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uuid",
+        "username",
+        "guest"
+      ],
+      "properties": {
+        "uuid": {
+          "$ref": "#/$defs/uuid"
+        },
+        "username": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "language": {
+          "type": "string"
+        },
+        "state": {
+          "type": "integer"
+        },
+        "guest": {
+          "type": "boolean"
+        },
+        "role": {
+          "type": "string"
+        },
+        "emailAddress": {
+          "type": "string"
+        }
+      }
+    },
+    "character": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uuid",
+        "ordinal",
+        "userUuid",
+        "characterTemplateId",
+        "life",
+        "energy",
+        "sad"
+      ],
+      "properties": {
+        "uuid": {
+          "$ref": "#/$defs/uuid"
+        },
+        "ordinal": {
+          "$ref": "#/$defs/id"
+        },
+        "userUuid": {
+          "$ref": "#/$defs/uuid"
+        },
+        "characterTemplateId": {
+          "$ref": "#/$defs/id"
+        },
+        "classId": {
+          "$ref": "#/$defs/id"
+        },
+        "dexterity": {
+          "type": "integer"
+        },
+        "intelligence": {
+          "type": "integer"
+        },
+        "constitution": {
+          "type": "integer"
+        },
+        "energy": {
+          "type": "integer"
+        },
+        "life": {
+          "type": "integer"
+        },
+        "sad": {
+          "type": "integer"
+        },
+        "lifeMax": {
+          "type": "integer"
+        },
+        "energyMax": {
+          "type": "integer"
+        },
+        "sadMax": {
+          "type": "integer"
+        },
+        "weightMax": {
+          "type": "integer"
+        },
+        "exp": {
+          "type": "integer"
+        },
+        "locationId": {
+          "$ref": "#/$defs/id"
+        },
+        "isSleeping": {
+          "type": "boolean"
+        },
+        "isComa": {
+          "type": "boolean"
+        },
+        "clockInComa": {
+          "type": "integer"
+        },
+        "timestampLastPass": {
+          "$ref": "#/$defs/ts"
+        },
+        "counterConsecutivePass": {
+          "$ref": "#/$defs/int0"
+        },
+        "characteristics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resources": {
+          "$ref": "#/$defs/resources"
+        },
+        "traits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "traitId"
+            ],
+            "properties": {
+              "traitId": {
+                "$ref": "#/$defs/id"
+              },
+              "eventId": {
+                "$ref": "#/$defs/id"
+              }
+            }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "itemId"
+            ],
+            "properties": {
+              "itemId": {
+                "$ref": "#/$defs/id"
+              },
+              "amount": {
+                "type": "integer"
+              },
+              "state": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "registryRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "stringValue": {
+          "type": "string"
+        },
+        "intValue": {
+          "type": "integer"
+        },
+        "multiValue": {
+          "type": "boolean"
+        },
+        "characterUuid": {
+          "$ref": "#/$defs/uuid"
+        },
+        "eventId": {
+          "$ref": "#/$defs/id"
+        },
+        "choiceId": {
+          "$ref": "#/$defs/id"
+        },
+        "clock": {
+          "type": "integer"
+        },
+        "missionId": {
+          "$ref": "#/$defs/id"
+        },
+        "missionStepId": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "locationState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "locationId"
+      ],
+      "properties": {
+        "locationId": {
+          "$ref": "#/$defs/id"
+        },
+        "flagAlreadyActivated": {
+          "type": "boolean"
+        },
+        "flagVisited": {
+          "type": "boolean"
+        },
+        "clockCounter": {
+          "type": "integer"
+        }
+      }
+    },
+    "turn": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "characterUuid",
+        "clock",
+        "status",
+        "priority"
+      ],
+      "properties": {
+        "characterUuid": {
+          "$ref": "#/$defs/uuid"
+        },
+        "clock": {
+          "$ref": "#/$defs/int0"
+        },
+        "status": {
+          "enum": [
+            "WAITING",
+            "ACTIVE",
+            "COMPLETED"
+          ]
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "passCounter": {
+          "$ref": "#/$defs/int0"
+        },
+        "timestampStart": {
+          "$ref": "#/$defs/ts"
+        },
+        "timestampEnd": {
+          "$ref": "#/$defs/ts"
+        }
+      }
+    },
+    "progress": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "clock": {
+          "type": "integer"
+        },
+        "eventId": {
+          "$ref": "#/$defs/id"
+        },
+        "choiceId": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "choiceRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "clock": {
+          "type": "integer"
+        },
+        "eventId": {
+          "$ref": "#/$defs/id"
+        },
+        "choiceId": {
+          "$ref": "#/$defs/id"
+        },
+        "message": {
+          "type": "string"
+        },
+        "timestamp": {
+          "$ref": "#/$defs/ts"
+        }
+      }
+    },
+    "logEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seq",
+        "type"
+      ],
+      "properties": {
+        "seq": {
+          "$ref": "#/$defs/id"
+        },
+        "type": {
+          "enum": [
+            "WEATHER",
+            "MOVEMENT",
+            "SLEEP",
+            "CLOCK_ADVANCE",
+            "RECOVERY",
+            "EVENT",
+            "CHOICE",
+            "COUNTER_ZERO",
+            "AUTOMATIC_EVENT",
+            "RANDOM_EVENT",
+            "REGISTRY_CHANGE",
+            "MISSION_CHANGE",
+            "ITEM_ADD",
+            "ITEM_USE",
+            "ITEM_DROP",
+            "EXP_USE",
+            "PASS",
+            "EDGE_STATE",
+            "TRAIT_CHANGE",
+            "MATCH_LIFECYCLE",
+            "ADMIN_ACTION",
+            "OTHER"
+          ]
+        },
+        "clock": {
+          "type": "integer"
+        },
+        "timestamp": {
+          "$ref": "#/$defs/ts"
+        },
+        "characterUuid": {
+          "$ref": "#/$defs/uuid"
+        },
+        "eventId": {
+          "$ref": "#/$defs/id"
+        },
+        "choiceId": {
+          "$ref": "#/$defs/id"
+        },
+        "locationFromId": {
+          "$ref": "#/$defs/id"
+        },
+        "locationToId": {
+          "$ref": "#/$defs/id"
+        },
+        "weatherId": {
+          "$ref": "#/$defs/id"
+        },
+        "itemId": {
+          "$ref": "#/$defs/id"
+        },
+        "itemAction": {
+          "enum": [
+            "ADD",
+            "USE",
+            "DROP",
+            "REMOVE"
+          ]
+        },
+        "counter": {
+          "type": "integer"
+        },
+        "effects": {
+          "type": "string"
+        },
+        "cost": {
+          "$ref": "#/$defs/resources"
+        },
+        "gain": {
+          "$ref": "#/$defs/resources"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

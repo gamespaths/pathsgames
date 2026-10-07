@@ -13,6 +13,9 @@ vi.mock('../../api/matchApi', () => ({
   pauseMatch:        vi.fn(),
   resumeMatch:       vi.fn(),
   deleteMatch:       vi.fn(),
+  listMatchSnapshots: vi.fn(() => Promise.resolve([])),
+  exportMatch:       vi.fn(),
+  errorBody:         (e) => e?.response?.data ?? {},
 }))
 vi.mock('../../api/storyApi', () => ({
   getStory:     vi.fn(),
@@ -53,11 +56,10 @@ describe('MatchesPage edge cases', () => {
     renderPage()
 
     expect(await screen.findByText('untitled')).toBeInTheDocument()
-    expect(screen.getByText('Single')).toBeInTheDocument()   // singlePlayer undefined
     const row = screen.getByText('untitled').closest('tr')
     const cells = row.querySelectorAll('td')
+    expect(cells[3]).toHaveTextContent('—')                  // no creator
     expect(cells[5]).toHaveTextContent('0')                  // currentClock
-    expect(cells[6]).toHaveTextContent('0')                  // expCost
   })
 
   it('renders the empty state when the API answers with something that is not an envelope', async () => {
@@ -153,6 +155,58 @@ describe('MatchesPage edge cases', () => {
 
     // the modal panel swallows its own clicks and Escape key
     await userEvent.click(screen.getByText('Edit match'))
+    expect(screen.getByLabelText('Name')).toBeInTheDocument()
+  })
+
+  it('clearing the status filter drops it from the query', async () => {
+    renderPage()
+    await screen.findByText(/m1-uuid/)
+
+    await userEvent.selectOptions(screen.getByLabelText('Filter by status'), '')
+
+    await waitFor(() => expect(listMatches).toHaveBeenLastCalledWith(
+      expect.not.objectContaining({ status: expect.anything() })))
+  })
+
+  it('a second page that is not an envelope appends nothing', async () => {
+    listMatches.mockResolvedValueOnce(env([BARE_MATCH], 'page-2'))
+    listMatches.mockResolvedValueOnce(null)
+    renderPage()
+    await screen.findByText(/m1-uuid/)
+
+    await userEvent.click(screen.getByText('Load more'))
+
+    await waitFor(() => expect(screen.getByText('No more pages')).toBeInTheDocument())
+  })
+
+  it('the load-more button does nothing once there is no cursor', async () => {
+    renderPage()
+    await screen.findByText(/m1-uuid/)
+    listMatches.mockClear()
+
+    await userEvent.click(screen.getByText('No more pages'))
+
+    expect(listMatches).not.toHaveBeenCalled()
+  })
+
+  it('the delete dialog names a nameless match by its uuid', async () => {
+    listMatchStatuses.mockResolvedValue([{ value: 'ENDED', terminal: true }])
+    listMatches.mockResolvedValue(env([{ ...BARE_MATCH, status: 'ENDED' }]))
+    renderPage()
+    await screen.findByText(/m1-uuid/)
+
+    await userEvent.click(screen.getByTitle('Delete match'))
+
+    expect(await screen.findByText(/m1-uuid-aaaa.*runtime state/)).toBeInTheDocument()
+  })
+
+  it('a click inside the edit panel does not close it', async () => {
+    renderPage()
+    await screen.findByText(/m1-uuid/)
+    await userEvent.click(screen.getByTitle('Edit match'))
+
+    await userEvent.click(document.querySelector('.pg-modal'))
+
     expect(screen.getByLabelText('Name')).toBeInTheDocument()
   })
 })

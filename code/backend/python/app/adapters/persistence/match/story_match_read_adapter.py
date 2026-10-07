@@ -67,8 +67,10 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "uuid": r.uuid,
                     "counter_time": r.counter_time,
                     "id_card": r.id_card,
-                    # Python schema: is_safe doubles as secure_param (no dedicated column).
-                    "secure_param": r.is_safe or 0,
+                    "secure_param": r.secure_param or 0,
+                    # v0.37.1: the start location's own registry pair, written when the match starts.
+                    "key_to_add": r.key_to_add,
+                    "key_value_to_add": r.key_value_to_add,
                 }
                 for r in rows
             ]
@@ -86,6 +88,14 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "uuid": r.uuid,
                     "key_name": r.key_name,
                     "key_value": r.key_value,
+                    # Step 36 — the definition the registry joins against. Python stores the
+                    # visibility as a flag where Java stores the word; the port speaks Java's
+                    # vocabulary so both backends answer the same JSON.
+                    "key_group": r.key_group,
+                    "priority": r.priority,
+                    "id_card": r.id_card,
+                    "visibility": "PUBLIC" if r.is_visible else "HIDDEN",
+                    "multi_value": r.multi_value,
                 }
                 for r in rows
             ]
@@ -118,6 +128,18 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "energy_cost": r.energy_cost,
                     "id_card": r.id_card,
                     "id_card_back": r.id_card_back,
+                    # v0.35.3 — the EDGE's resource price. Missing here, match-info reported
+                    # every edge as free and judged it affordable: the board offered a move
+                    # that POST /move then refused.
+                    "cost_food": r.cost_food,
+                    "cost_magic": r.cost_magic,
+                    "cost_coin": r.cost_coin,
+                    # The registry gate, for the same reason: absent, every gated edge read
+                    # as open.
+                    "condition_registry_key": r.condition_registry_key,
+                    "condition_registry_value": r.condition_registry_value,
+                    "registry_value_operator_condition":
+                        r.registry_value_operator_condition,
                 }
                 for r in rows
             ]
@@ -151,6 +173,8 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "id_weather": r.id_weather,
                     "registry_key_condition": r.registry_key_condition,
                     "registry_value_condition": r.registry_value_condition,
+                    "registry_value_operator_condition":
+                        r.registry_value_operator_condition,
                     "id_item_condition": r.id_item_condition,
                     "id_class_condition": r.id_class_condition,
                 }
@@ -372,6 +396,9 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
             "id": entity.id,
             "uuid": entity.uuid,
             "exp_cost": entity.exp_cost,
+            # Step 38 — the use-exp price list
+            "exp_cost_base": entity.exp_cost_base,
+            "max_stat_value": entity.max_stat_value,
             "max_weight": entity.max_weight,
             "min_character": entity.min_character,
             "max_character": entity.max_character,

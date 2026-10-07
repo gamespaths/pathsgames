@@ -46,6 +46,7 @@ class StoryReadAdapter(StoryReadPort):
             diffs = session.query(StoryDifficultyEntity).filter(StoryDifficultyEntity.id_story == story_id).all()
             return [
                 {
+                    "id": d.id,
                     "uuid": d.uuid,
                     "id_card": d.id_card,
                     "id_text_description": d.id_text_description,
@@ -54,7 +55,8 @@ class StoryReadAdapter(StoryReadPort):
                     "min_character": d.min_character,
                     "max_character": d.max_character,
                     "cost_help_coma": d.cost_help_coma,
-                    "cost_max_characteristics": d.cost_max_characteristics,
+                    "exp_cost_base": d.exp_cost_base,
+                    "max_stat_value": d.max_stat_value,
                     "number_max_free_action": d.number_max_free_action,
                     "trait_cost_positive_budget": d.trait_cost_positive_budget,
                     "trait_cost_negative_budget": d.trait_cost_negative_budget,

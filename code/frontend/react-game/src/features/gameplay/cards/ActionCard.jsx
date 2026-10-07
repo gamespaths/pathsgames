@@ -47,7 +47,8 @@ export default function ActionCard({
     setRunning(true)
     try {
       const result = await executeEvent(matchUuid, action.uuid, accessToken)
-      onDone?.(result)
+      // v0.37.4 — stays on Executing until the reloaded board has landed, not just the answer.
+      await onDone?.(result)
     } catch (e) {
       console.error('execute-event failed', e?.response?.data?.error || e?.message)
       onError?.(e)

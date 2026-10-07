@@ -7,20 +7,36 @@ player match endpoints stay in ``MatchController`` on the public app/port.
 The camelCase presenters (``_summary_to_camel`` / ``_detail_to_camel``) and ``_error`` are
 reused from ``match_controller`` so admin and player responses keep an identical shape.
 """
-from typing import Optional
+import time
+from typing import Any, Dict, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.core.models.match import match_statuses
+from app.core.ports.match import log_writer_ports as lw
 from app.core.models.match.match_models import MatchListFilter
 from app.core.ports.match.match_ports import CharacterCommandPort, MatchCommandPort, MatchQueryPort
+from app.core.ports.match.snapshot_ports import SNAPSHOT_INTEGRITY_FAILED, SnapshotError
 from app.adapters.rest.match.match_controller import (
     _error,
     _summary_to_camel,
     _detail_to_camel,
 )
+
+
+def _errors_to_list(errors):
+    return [{"code": e.code, "message": e.message} for e in errors]
+
+
+def _snapshot_error(exc: SnapshotError):
+    """409 with the check errors for a failed integrity check, 404 otherwise."""
+    if exc.code != SNAPSHOT_INTEGRITY_FAILED:
+        return _error(exc.code, exc.message, 404)
+    return JSONResponse(status_code=409, content={
+        "error": exc.code, "message": exc.message, "errors": _errors_to_list(exc.errors),
+        "timestamp": int(time.time() * 1000)})
 
 
 class MatchUpdateRequestBody(BaseModel):
@@ -41,6 +57,8 @@ class ChangeStatisticsRequestBody(BaseModel):
     coin:   Optional[int] = None
     food:   Optional[int] = None
     magic:  Optional[int] = None
+    # Step 38 — experience points; -1/omitted leaves them untouched.
+    exp:    Optional[int] = None
     # State flags: omitted (null) means "leave as it is" — the -1 of the numeric fields.
     sleeping: Optional[bool] = None
     coma:     Optional[bool] = None
@@ -49,7 +67,8 @@ class ChangeStatisticsRequestBody(BaseModel):
 class MatchAdminController:
     def __init__(self, command_port: MatchCommandPort, query_port: MatchQueryPort,
                  character_command_port: Optional[CharacterCommandPort] = None,
-                 weather_service=None, movement_service=None, match_logs_service=None):
+                 weather_service=None, movement_service=None, match_logs_service=None,
+                 registry_service=None, snapshot_service=None):
         self.command_port = command_port
         self.query_port = query_port
         self.character_command_port = character_command_port
@@ -59,6 +78,10 @@ class MatchAdminController:
         self.movement_service = movement_service
         # Step 28.7 — match logs timeline.
         self.match_logs_service = match_logs_service
+        # v0.36.2 — the console correcting one registry key.
+        self.registry_service = registry_service
+        # v0.41.1 — the time-end snapshots: list, check, restore.
+        self.snapshot_service = snapshot_service
         self.router = APIRouter()
         self.router.add_api_route(
             "/api/admin/matches", self.list_all_matches, methods=["GET"]
@@ -94,9 +117,103 @@ class MatchAdminController:
             "/api/admin/matches/{uuid_match}", self.delete_match, methods=["DELETE"]
         )
         self.router.add_api_route(
+            "/api/admin/matches/{uuid_match}/registry", self.upsert_registry, methods=["PUT"]
+        )
+        self.router.add_api_route(
+            "/api/admin/matches/{uuid_match}/registry", self.delete_registry, methods=["DELETE"]
+        )
+        self.router.add_api_route(
             "/api/admin/matches/{uuid_match}/player/{uuid_player}/changeStatistics",
             self.change_statistics, methods=["POST"],
         )
+        self.router.add_api_route(
+            "/api/admin/matches/{uuid_match}/snapshots", self.list_snapshots, methods=["GET"]
+        )
+        self.router.add_api_route(
+            "/api/admin/matches/{uuid_match}/snapshots/{uuid_snapshot}/check",
+            self.check_snapshot, methods=["GET"],
+        )
+        self.router.add_api_route(
+            "/api/admin/matches/{uuid_match}/snapshots/{uuid_snapshot}/restore",
+            self.restore_snapshot, methods=["POST"],
+        )
+
+    # ── v0.41.1 snapshots ─────────────────────────────────────────────────────
+
+    def list_snapshots(self, uuid_match: str):
+        """GET /api/admin/matches/{uuid}/snapshots — the time-end snapshots, newest first."""
+        if self.snapshot_service is None:
+            return _error("NOT_IMPLEMENTED", "Snapshot service not wired", 501)
+        try:
+            rows = self.snapshot_service.list(uuid_match)
+        except SnapshotError as exc:
+            return _snapshot_error(exc)
+        return JSONResponse(status_code=200, content=[{
+            "uuid": r.uuid, "clock": r.clock, "type": r.type, "timestamp": r.timestamp,
+            "description": r.description, "sizeBytes": r.size_bytes} for r in rows])
+
+    def check_snapshot(self, uuid_match: str, uuid_snapshot: str):
+        """GET /api/admin/matches/{uuid}/snapshots/{uuid}/check — writes nothing."""
+        if self.snapshot_service is None:
+            return _error("NOT_IMPLEMENTED", "Snapshot service not wired", 501)
+        try:
+            check = self.snapshot_service.check(uuid_match, uuid_snapshot)
+        except SnapshotError as exc:
+            return _snapshot_error(exc)
+        return JSONResponse(status_code=200, content={
+            "valid": check.valid, "errors": _errors_to_list(check.errors)})
+
+    def restore_snapshot(self, uuid_match: str, uuid_snapshot: str):
+        """POST /api/admin/matches/{uuid}/snapshots/{uuid}/restore — rollback, time-start, PAUSED."""
+        if self.snapshot_service is None:
+            return _error("NOT_IMPLEMENTED", "Snapshot service not wired", 501)
+        try:
+            result = self.snapshot_service.restore(uuid_match, uuid_snapshot)
+        except SnapshotError as exc:
+            return _snapshot_error(exc)
+        return JSONResponse(status_code=200, content={
+            "status": result.status, "uuidSnapshot": result.uuid_snapshot, "clock": result.clock,
+            "matchStatus": result.match_status, "logsRemoved": result.logs_removed})
+
+    def upsert_registry(self, uuid_match: str, body: Optional[Dict[str, Any]] = Body(None)):
+        """PUT /api/admin/matches/{uuid}/registry — v0.36.2, the console correcting one key.
+        The write goes through the ordinary RegistryService, so a single key is replaced, a
+        multi key gains a member, and either way the log carries a REGISTRY_CHANGE row.
+        v0.36.4 — a key the story does not declare is refused: a typo here would create an
+        orphan key the player never sees and the console cannot tell from an engine bug."""
+        key = (body or {}).get("key")
+        if not uuid_match or not str(uuid_match).strip() or not key or not str(key).strip():
+            return _error("INVALID_INPUT", "Match uuid and a registry key are required", 400)
+        if self.registry_service is None:
+            return _error("NOT_IMPLEMENTED", "Registry service not wired", 501)
+        declared = self.registry_service.is_declared_for_match_uuid(uuid_match, key)
+        if declared is None:
+            return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
+        if not declared:
+            return _error("UNKNOWN_KEY",
+                          f"The story does not declare a registry key named: {key}", 400)
+        values = self.registry_service.upsert_by_match_uuid(uuid_match, key,
+                                                            (body or {}).get("value"))
+        return self._registry_body(uuid_match, key, values)
+
+    def delete_registry(self, uuid_match: str, key: Optional[str] = None,
+                        value: Optional[str] = None):
+        """DELETE /api/admin/matches/{uuid}/registry?key=K[&value=V] — take one member away,
+        or empty the key outright when no value is named. Unlike the PUT above, an undeclared
+        key is allowed here: cleaning an orphan row up is the whole point of the verb."""
+        if not uuid_match or not str(uuid_match).strip() or not key or not str(key).strip():
+            return _error("INVALID_INPUT", "Match uuid and a registry key are required", 400)
+        if self.registry_service is None:
+            return _error("NOT_IMPLEMENTED", "Registry service not wired", 501)
+        values = self.registry_service.remove_by_match_uuid(uuid_match, key, value)
+        return self._registry_body(uuid_match, key, values)
+
+    @staticmethod
+    def _registry_body(uuid_match: str, key: str, values):
+        """The one answer shape both registry edits give; None values means no such match."""
+        if values is None:
+            return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
+        return JSONResponse(status_code=200, content={"key": key, "values": values})
 
     def list_all_matches(self, limit: Optional[int] = None, cursor: Optional[str] = None,
                          status: Optional[str] = None, userUuid: Optional[str] = None,
@@ -135,13 +252,13 @@ class MatchAdminController:
         return self._apply_update(uuid_match, status_val, name_val)
 
     def stop_match(self, uuid_match: str):
-        return self._apply_update(uuid_match, match_statuses.ENDED, None)
+        return self._apply_update(uuid_match, match_statuses.ENDED, None, lw.ADMIN_STOP)
 
     def pause_match(self, uuid_match: str):
-        return self._apply_update(uuid_match, match_statuses.PAUSED, None)
+        return self._apply_update(uuid_match, match_statuses.PAUSED, None, lw.ADMIN_PAUSE)
 
     def resume_match(self, uuid_match: str):
-        return self._apply_update(uuid_match, match_statuses.RUNNING, None)
+        return self._apply_update(uuid_match, match_statuses.RUNNING, None, lw.ADMIN_RESUME)
 
     def delete_match(self, uuid_match: str):
         """DELETE /api/admin/matches/{uuid} — delete a stopped match."""
@@ -215,6 +332,12 @@ class MatchAdminController:
                     "costMoveSafeLocation": r.get("cost_move_safe_location"),
                     "costMoveNotSafeLocation": r.get("cost_move_not_safe_location"),
                     "active": r.get("active"), "current": r.get("current"),
+                    # v0.36.2 — the authored registry condition and whether it lets the
+                    # rule through, so the console can say why a rule never fires.
+                    "conditionKey": r.get("condition_key"),
+                    "conditionValue": r.get("condition_key_value"),
+                    "conditionOperator": r.get("registry_value_operator_condition"),
+                    "registryMet": r.get("registry_met"),
                 }
                 for r in view.get("rules", [])
             ],
@@ -235,7 +358,13 @@ class MatchAdminController:
         detail = self.query_port.get_match_info_for_admin(uuid_match)
         if detail is None:
             return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
-        return JSONResponse(status_code=200, content=_detail_to_camel(detail))
+        body = _detail_to_camel(detail)
+        # v0.41.1 — the log-size check of Step 41 A: a count, never a cap.
+        count = (self.match_logs_service.count_logs_for_admin(uuid_match)
+                 if self.match_logs_service is not None else None)
+        if count is not None:
+            body["logCount"] = count
+        return JSONResponse(status_code=200, content=body)
 
     def change_statistics(self, uuid_match: str, uuid_player: str,
                           body: Optional[ChangeStatisticsRequestBody] = None):
@@ -258,6 +387,7 @@ class MatchAdminController:
             coin=_skip(body.coin if body else None),
             food=_skip(body.food if body else None),
             magic=_skip(body.magic if body else None),
+            exp=_skip(body.exp if body else None),
             sleeping=(body.sleeping if body else None),
             coma=(body.coma if body else None),
         )
@@ -270,8 +400,8 @@ class MatchAdminController:
         return _error("PLAYER_NOT_FOUND",
                       f"Character instance not found: {uuid_player}", 404)
 
-    def _apply_update(self, uuid_match: str, status_val, name_val):
-        outcome = self.command_port.update_match(uuid_match, status_val, name_val)
+    def _apply_update(self, uuid_match: str, status_val, name_val, admin_action=None):
+        outcome = self.command_port.update_match(uuid_match, status_val, name_val, admin_action)
         if outcome == "UPDATED":
             return JSONResponse(status_code=200, content={"status": "UPDATED", "uuid": uuid_match})
         if outcome == "INVALID_STATUS":

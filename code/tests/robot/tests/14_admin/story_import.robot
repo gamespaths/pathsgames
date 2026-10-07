@@ -219,7 +219,7 @@ Import Multiple Stories With All Internal IDs Shared
     ...    "idTextTitle":1,"idTextDescription":2,
     ...    "texts":[{"id":1,"idText":1,"lang":"en","shortText":"Title"},{"id":2,"idText":2,"lang":"en","shortText":"Desc"}],
     ...    "difficulties":[{"id":1,"expCost":1}],"classes":[{"id":1,"weightMax":10}],"traits":[{"id":1,"costPositive":0}],
-    ...    "characterTemplates":[{"id":1,"lifeMax":10}],"locations":[{"id":1,"isSafe":1}],"events":[{"id":1,"type":"NORMAL"}],
+    ...    "characterTemplates":[{"id":1,"lifeMax":10}],"locations":[{"id":1,"secureParam":1}],"events":[{"id":1,"type":"NORMAL"}],
     ...    "items":[{"id":1,"weight":1}],"keys":[{"id":1,"name":"K"}],"choices":[{"id":1,"idEvent":1,"otherwiseFlag":1}],
     ...    "weatherRules":[{"id":1,"probability":0.5}],"missions":[{"id":1,"name":"M"}]}
 
@@ -232,7 +232,7 @@ Import Multiple Stories With All Internal IDs Shared
     ...    "idTextTitle":1,"idTextDescription":2,
     ...    "texts":[{"id":1,"idText":1,"lang":"en","shortText":"Title"},{"id":2,"idText":2,"lang":"en","shortText":"Desc"}],
     ...    "difficulties":[{"id":1,"expCost":1}],"classes":[{"id":1,"weightMax":10}],"traits":[{"id":1,"costPositive":0}],
-    ...    "characterTemplates":[{"id":1,"lifeMax":10}],"locations":[{"id":1,"isSafe":1}],"events":[{"id":1,"type":"NORMAL"}],
+    ...    "characterTemplates":[{"id":1,"lifeMax":10}],"locations":[{"id":1,"secureParam":1}],"events":[{"id":1,"type":"NORMAL"}],
     ...    "items":[{"id":1,"weight":1}],"keys":[{"id":1,"name":"K"}],"choices":[{"id":1,"idEvent":1,"otherwiseFlag":1}],
     ...    "weatherRules":[{"id":1,"probability":0.5}],"missions":[{"id":1,"name":"M"}]}
 
@@ -265,7 +265,7 @@ Import Explicit ID For list_stories_difficulty Returns 201
     Import With Explicit List Entity Id
     ...    62222222-2222-4222-8222-222222222222
     ...    difficulties
-    ...    {"id":971002,"expCost":5,"maxWeight":10,"minCharacter":1,"maxCharacter":4,"costHelpComa":3,"costMaxCharacteristics":3,"numberMaxFreeAction":1}
+    ...    {"id":971002,"expCost":5,"maxWeight":10,"minCharacter":1,"maxCharacter":4,"costHelpComa":3,"expCostBase":3,"maxStatValue":0,"numberMaxFreeAction":1}
 
 Import Explicit ID For list_creator Returns 201
     [Documentation]    Import accepts explicit id for list_creator rows.
@@ -400,7 +400,7 @@ Import Explicit ID For list_locations Returns 201
     Import With Explicit List Entity Id
     ...    69999999-9999-4999-8999-999999999999
     ...    locations
-    ...    {"id":971009,"isSafe":0,"costEnergyEnter":1}
+    ...    {"id":971009,"secureParam":0,"costEnergyEnter":1}
 
 Import Explicit ID For list_events Returns 201
     [Documentation]    Import accepts explicit id for list_events rows.
@@ -438,12 +438,15 @@ Import Explicit ID For list_weather_rules Returns 201
     ...    {"id":971013,"probability":1,"active":1}
 
 Import Explicit ID For list_global_random_events Returns 201
-    [Documentation]    Import accepts explicit id for list_global_random_events rows.
+    [Documentation]    Import accepts explicit id for list_global_random_events rows. Step 39:
+    ...                a random event must name an event (R11), so the payload carries one.
     [Tags]    admin    step14
-    Import With Explicit List Entity Id
-    ...    6eeeeeee-eeee-4eee-8eee-eeeeeeeeeeee
-    ...    globalRandomEvents
-    ...    {"id":971014,"probability":1}
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"6eeeeeee-eeee-4eee-8eee-eeeeeeeeeeee","author":"robot-explicit-id",
+    ...    "events":[{"id":1,"type":"AUTOMATIC"}],
+    ...    "globalRandomEvents":[{"id":971014,"idEvent":1,"probability":1}]}
+    Import Payload Should Return 201 And Cleanup
+    ...    ${payload}    6eeeeeee-eeee-4eee-8eee-eeeeeeeeeeee
 
 Import Explicit ID For list_missions Returns 201
     [Documentation]    Import accepts explicit id for list_missions rows.
@@ -665,7 +668,7 @@ Import Story and Verify All Header Fields
     [Documentation]    Imports a story and verifies all header fields are persisted.
     [Tags]    admin    step14
     ${payload}=    Get File    ${TUTORIAL_FILE}
-    ${uuid}=       Set Variable    tutorial-uuid-001
+    ${uuid}=       Set Variable    bd02e05f-654d-4589-bfae-846a04dc9d3c
     
     # Clean up before import
     ${headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
@@ -735,8 +738,8 @@ Import Two Stories With Colliding Entity IDs
 Import Story And Verify Sub Entity Collections
     [Documentation]    After import, difficulties / events / locations collections are populated.
     [Tags]    admin    step14
-    [Teardown]    Run Keyword And Ignore Error    Delete Admin Story    tutorial-uuid-001
-    ${uuid}=    Set Variable    tutorial-uuid-001
+    [Teardown]    Run Keyword And Ignore Error    Delete Admin Story    bd02e05f-654d-4589-bfae-846a04dc9d3c
+    ${uuid}=    Set Variable    bd02e05f-654d-4589-bfae-846a04dc9d3c
     ${headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
 
     # Clean up before

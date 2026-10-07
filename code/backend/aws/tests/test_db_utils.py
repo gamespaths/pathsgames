@@ -4,6 +4,8 @@ We patch `common.db_utils._table` (the lazy-initialized DynamoDB Table object)
 so no real AWS calls are made and boto3 is never contacted at import time.
 """
 from decimal import Decimal
+
+import pytest
 from unittest.mock import MagicMock, patch
 from botocore.exceptions import ClientError
 import common.db_utils as db
@@ -39,7 +41,8 @@ class TestGetItem:
         mock_table.get_item.return_value = {'Item': {'PK': 'USER#1', 'uuid': '1'}}
         result = db.get_item('USER#1')
         assert result['uuid'] == '1'
-        mock_table.get_item.assert_called_once_with(Key={'PK': 'USER#1', 'SK': 'METADATA'})
+        mock_table.get_item.assert_called_once_with(
+            Key={'PK': 'USER#1', 'SK': 'METADATA'}, ConsistentRead=True)
 
     def test_miss(self, mock_table):
         mock_table.get_item.return_value = {}
@@ -48,7 +51,8 @@ class TestGetItem:
     def test_custom_sk(self, mock_table):
         mock_table.get_item.return_value = {}
         db.get_item('X', sk='CUSTOM')
-        mock_table.get_item.assert_called_once_with(Key={'PK': 'X', 'SK': 'CUSTOM'})
+        mock_table.get_item.assert_called_once_with(
+            Key={'PK': 'X', 'SK': 'CUSTOM'}, ConsistentRead=True)
 
 
 @patch.object(db, '_table')
@@ -97,6 +101,13 @@ class TestQueryByPk:
         mock_table.query.return_value = {'Items': []}
         assert db.query_by_pk('MISSING') == []
 
+    def test_reads_strongly_consistent(self, mock_table):
+        """v0.36.3 — a match partition is read back inside the very request that wrote it,
+        so an eventually consistent answer would hand back rows the caller has replaced."""
+        mock_table.query.return_value = {'Items': []}
+        db.query_by_pk('MATCH#m1')
+        assert mock_table.query.call_args.kwargs['ConsistentRead'] is True
+
 
 @patch.object(db, '_table')
 class TestDeleteAllByPk:
@@ -108,14 +119,12 @@ class TestDeleteAllByPk:
         count = db.delete_all_by_pk('S#1')
         assert count == 2
         assert mock_table.delete_item.call_count == 2
+        assert mock_table.query.call_args.kwargs['ProjectionExpression'] == 'PK, SK'
 
-
-@patch.object(db, '_table')
-class TestScanFilter:
-    def test_returns_matching_items(self, mock_table):
-        mock_table.scan.return_value = {'Items': [{'PK': 'USER#1', 'is_guest': True}]}
-        result = db.scan_filter('is_guest', True)
-        assert len(result) == 1
+    def test_query_error_deletes_nothing(self, mock_table):
+        mock_table.query.side_effect = ClientError({'Error': {'Code': 'X'}}, 'Query')
+        assert db.delete_all_by_pk('S#1') == 0
+        mock_table.delete_item.assert_not_called()
 
 
 @patch.object(db, '_table')
@@ -128,6 +137,11 @@ class TestUpdateTsLastAccess:
 
 
 class TestGetTable:
+    @pytest.fixture(autouse=True)
+    def _real_get_table(self, monkeypatch):
+        """The conftest guard stands aside: these tests are about the lazy boto3 binding."""
+        monkeypatch.setattr(db, '_OFFLINE_BYPASS', True, raising=False)
+
     def test_lazy_initialization_uses_env_values(self):
         fake_table = MagicMock()
         fake_resource = MagicMock()
@@ -212,13 +226,6 @@ class TestDbUtilsErrorBranches:
         )
         assert db.query_gsi('GSI1', 'X') == []
 
-    def test_scan_filter_client_error_returns_empty(self, mock_table):
-        mock_table.scan.side_effect = ClientError(
-            {'Error': {'Code': 'InternalServerError', 'Message': 'boom'}},
-            'Scan'
-        )
-        assert db.scan_filter('is_guest', True) == []
-
     def test_update_ts_last_access_client_error_returns_false(self, mock_table):
         mock_table.update_item.side_effect = ClientError(
             {'Error': {'Code': 'InternalServerError', 'Message': 'boom'}},
@@ -230,16 +237,6 @@ class TestDbUtilsErrorBranches:
 @patch.object(db, '_table')
 class TestPagination:
     """scan/query helpers must follow LastEvaluatedKey so large tables are fully read."""
-
-    def test_scan_pk_prefix_follows_last_evaluated_key(self, mock_table):
-        mock_table.scan.side_effect = [
-            {'Items': [{'PK': 'MATCH#1'}], 'LastEvaluatedKey': {'PK': 'MATCH#1'}},
-            {'Items': [{'PK': 'MATCH#2'}]},
-        ]
-        result = db.scan_pk_prefix('MATCH#')
-        assert [i['PK'] for i in result] == ['MATCH#1', 'MATCH#2']
-        assert mock_table.scan.call_count == 2
-        assert mock_table.scan.call_args_list[1].kwargs['ExclusiveStartKey'] == {'PK': 'MATCH#1'}
 
     def test_query_by_pk_follows_last_evaluated_key(self, mock_table):
         mock_table.query.side_effect = [
@@ -305,68 +302,246 @@ class TestQueryIndexPage:
         assert db.query_index_page('GSI2', 'GSI2_PK', 'MATCH') == ([], None)
 
 
+# ── v0.37.5 — eventual reads, SK-prefix queries, batch writes, cache stamps ───
+
 @patch.object(db, '_table')
-class TestBackfillGsi2Matches:
-    """v0.28.1 migration — add GSI2 keys to matches that predate the index."""
+class TestEventualGetItem:
+    def test_consistent_false_is_forwarded(self, mock_table):
+        mock_table.get_item.return_value = {'Item': {'PK': 'STORY#1'}}
+        assert db.get_item('STORY#1', consistent=False) == {'PK': 'STORY#1'}
+        mock_table.get_item.assert_called_once_with(
+            Key={'PK': 'STORY#1', 'SK': 'METADATA'}, ConsistentRead=False)
 
-    def test_backfills_only_rows_missing_keys(self, mock_table):
-        mock_table.scan.return_value = {'Items': [
-            {'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'tsInsert': 100},
-            {'PK': 'MATCH#m2', 'SK': 'METADATA', 'uuid': 'm2', 'tsInsert': 200,
-             'GSI2_PK': 'MATCH', 'GSI2_SK': '00000000000000000200#m2'},
-        ]}
-        stats = db.backfill_gsi2_matches()
-        assert stats == {'scanned': 2, 'updated': 1, 'skipped': 1}
-        # only m1 is written, with the same SK format as _create_match
-        mock_table.update_item.assert_called_once()
-        kwargs = mock_table.update_item.call_args.kwargs
-        assert kwargs['Key'] == {'PK': 'MATCH#m1', 'SK': 'METADATA'}
-        assert kwargs['ExpressionAttributeValues'][':p'] == 'MATCH'
-        assert kwargs['ExpressionAttributeValues'][':s'] == '00000000000000000100#m1'
 
-    def test_dry_run_writes_nothing(self, mock_table):
-        mock_table.scan.return_value = {'Items': [
-            {'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'tsInsert': 100},
-        ]}
-        stats = db.backfill_gsi2_matches(dry_run=True)
-        assert stats == {'scanned': 1, 'updated': 1, 'skipped': 0}
-        mock_table.update_item.assert_not_called()
-
-    def test_follows_last_evaluated_key(self, mock_table):
-        mock_table.scan.side_effect = [
-            {'Items': [{'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'tsInsert': 1}],
-             'LastEvaluatedKey': {'PK': 'MATCH#m1'}},
-            {'Items': [{'PK': 'MATCH#m2', 'SK': 'METADATA', 'uuid': 'm2', 'tsInsert': 2}]},
+@patch.object(db, '_table')
+class TestQuerySkPrefix:
+    def test_all_pages_consistent_by_default(self, mock_table):
+        mock_table.query.side_effect = [
+            {'Items': [{'SK': 'CHARACTER#a'}], 'LastEvaluatedKey': {'x': 1}},
+            {'Items': [{'SK': 'CHARACTER#b'}]},
         ]
-        stats = db.backfill_gsi2_matches()
-        assert stats['updated'] == 2
+        rows = db.query_sk_prefix('MATCH#m1', 'CHARACTER#')
+        assert [r['SK'] for r in rows] == ['CHARACTER#a', 'CHARACTER#b']
+        first = mock_table.query.call_args_list[0][1]
+        assert first['ConsistentRead'] is True and 'FilterExpression' not in first
+        assert mock_table.query.call_args_list[1][1]['ExclusiveStartKey'] == {'x': 1}
+
+    def test_filter_and_eventual(self, mock_table):
+        from boto3.dynamodb.conditions import Attr
+        mock_table.query.return_value = {'Items': []}
+        db.query_sk_prefix('MATCH#m1', 'LOG#', consistent=False,
+                           filter_expr=Attr('type').eq('WEATHER'))
+        kwargs = mock_table.query.call_args[1]
+        assert kwargs['ConsistentRead'] is False and 'FilterExpression' in kwargs
+
+    def test_client_error_returns_empty(self, mock_table):
+        mock_table.query.side_effect = ClientError({'Error': {'Code': 'X'}}, 'Query')
+        assert db.query_sk_prefix('MATCH#m1', 'LOG#') == []
+
+
+@patch.object(db, '_table')
+class TestQuerySkPrefixPage:
+    def test_one_page_with_limit_order_and_start_key(self, mock_table):
+        mock_table.query.return_value = {'Items': [{'SK': 'LOG#1'}],
+                                         'LastEvaluatedKey': {'SK': 'LOG#1'}}
+        items, last = db.query_sk_prefix_page('MATCH#m1', 'LOG#', 3, start_key={'SK': 'LOG#0'},
+                                              ascending=False)
+        assert items == [{'SK': 'LOG#1'}] and last == {'SK': 'LOG#1'}
+        kwargs = mock_table.query.call_args[1]
+        assert kwargs['Limit'] == 3 and kwargs['ScanIndexForward'] is False
+        assert kwargs['ConsistentRead'] is False
+        assert kwargs['ExclusiveStartKey'] == {'SK': 'LOG#0'}
+
+    def test_no_start_key_and_error(self, mock_table):
+        mock_table.query.return_value = {'Items': []}
+        assert db.query_sk_prefix_page('MATCH#m1', 'LOG#', 3) == ([], None)
+        assert 'ExclusiveStartKey' not in mock_table.query.call_args[1]
+        mock_table.query.side_effect = ClientError({'Error': {'Code': 'X'}}, 'Query')
+        assert db.query_sk_prefix_page('MATCH#m1', 'LOG#', 3) == ([], None)
+
+
+@patch.object(db, '_table')
+class TestBatchPutItems:
+    def test_empty_is_a_no_op(self, mock_table):
+        import helpers
+        assert helpers.REAL_BATCH_PUT([]) is True
+        mock_table.batch_writer.assert_not_called()
+
+    def test_rows_are_stamped_and_written_through_the_batch_writer(self, mock_table):
+        writer = MagicMock()
+        mock_table.batch_writer.return_value.__enter__.return_value = writer
+        import helpers
+        rows = [{'PK': 'A', 'SK': 'LOG#1', 'score': 1.5}, {'PK': 'A', 'SK': 'LOG#2', 'ts_insert': 5}]
+        assert helpers.REAL_BATCH_PUT(rows) is True
+        assert writer.put_item.call_count == 2
+        first = writer.put_item.call_args_list[0][1]['Item']
+        assert first['score'] == Decimal('1.5') and first['ts_insert'] > 0 and first['ts_update'] > 0
+        assert writer.put_item.call_args_list[1][1]['Item']['ts_insert'] == 5
+
+    def test_errors_return_false(self, mock_table):
+        import helpers
+        mock_table.batch_writer.side_effect = ClientError({'Error': {'Code': 'X'}}, 'Batch')
+        assert helpers.REAL_BATCH_PUT([{'PK': 'A', 'SK': 'B'}]) is False
+        mock_table.batch_writer.side_effect = RuntimeError('boom')
+        assert helpers.REAL_BATCH_PUT([{'PK': 'A', 'SK': 'B'}]) is False
+
+
+@patch.object(db, '_table')
+class TestQueryGsiKeyMap:
+    def test_gsi2_uses_its_own_attributes(self, mock_table):
+        mock_table.query.return_value = {'Items': []}
+        db.query_gsi('GSI2', 'MATCH', sk_prefix='0')
+        kwargs = mock_table.query.call_args[1]
+        assert kwargs['IndexName'] == 'GSI2'
+        assert kwargs['KeyConditionExpression'] == 'GSI2_PK = :pk AND begins_with(GSI2_SK, :sk)'
+
+    def test_unknown_index_falls_back_to_gsi1_attributes(self, mock_table):
+        mock_table.query.return_value = {'Items': []}
+        db.query_gsi('Whatever', 'X')
+        assert mock_table.query.call_args[1]['KeyConditionExpression'] == 'GSI1_PK = :pk'
+
+
+class TestCacheVersions:
+    def test_get_defaults_when_the_item_is_missing(self):
+        with patch.object(db, 'get_item', return_value=None) as get:
+            assert db.get_cache_versions() == {'storyVersions': {}, 'globalVersion': 0}
+        get.assert_called_once_with('SYSTEM#cache')
+
+    def test_get_reads_the_stored_stamps(self):
+        with patch.object(db, 'get_item', return_value={'storyVersions': {'s1': Decimal(5)},
+                                                        'globalVersion': Decimal(9)}):
+            out = db.get_cache_versions()
+        assert out == {'storyVersions': {'s1': Decimal(5)}, 'globalVersion': 9}
+
+    def test_bump_story_creates_the_item_and_stamps_the_story(self):
+        saved = {}
+        with patch.object(db, 'get_item', return_value=None), \
+             patch.object(db, 'put_item', side_effect=lambda item: saved.update(item)):
+            ts = db.bump_story_version('s1')
+        assert saved['PK'] == 'SYSTEM#cache' and saved['SK'] == 'METADATA'
+        assert saved['storyVersions'] == {'s1': ts} and ts > 0
+
+    def test_bump_global_resets_the_per_story_stamps(self):
+        saved = {}
+        with patch.object(db, 'get_item', return_value={'PK': 'SYSTEM#cache', 'SK': 'METADATA',
+                                                        'storyVersions': {'s1': 1}}), \
+             patch.object(db, 'put_item', side_effect=lambda item: saved.update(item)):
+            ts = db.bump_global_version()
+        assert saved['globalVersion'] == ts and saved['storyVersions'] == {}
+
+
+# ── v0.37.5 — story items travel gzipped ─────────────────────────────────────
+
+def _story(**extra):
+    return {'PK': 'STORY#s1', 'SK': 'METADATA', 'uuid': 's1', 'status': 'ACTIVE',
+            'summary': {'meta': {'id': 1}}, 'raw_texts': [{'id': 1, 'lang': 'en', 'text': 'x' * 500}],
+            'locations': [{'id': 1, 'weight': Decimal('1.5'), 'n': Decimal('7')}], **extra}
+
+
+class TestStoryPacking:
+    def test_pack_moves_nested_values_into_one_binary_attribute(self):
+        packed = db._pack(db._to_dynamodb_value(_story()))
+        assert set(packed) == {'PK', 'SK', 'uuid', 'status', 'summary', db.PACKED_ATTR}
+        assert isinstance(packed[db.PACKED_ATTR], bytes)
+        assert len(packed[db.PACKED_ATTR]) < 200  # 500 x's gzip to almost nothing
+
+    def test_unpack_restores_the_item_with_decimals(self):
+        item = _story()
+        restored = db._unpack(db._pack(db._to_dynamodb_value(item)))
+        assert db.PACKED_ATTR not in restored
+        assert restored['raw_texts'] == item['raw_texts']
+        assert restored['locations'][0]['weight'] == Decimal('1.5')
+        assert restored['locations'][0]['n'] == 7
+        assert restored['summary'] == {'meta': {'id': 1}}
+
+    def test_unpack_accepts_the_boto3_binary_wrapper(self):
+        from boto3.dynamodb.types import Binary
+        packed = db._pack(db._to_dynamodb_value(_story()))
+        packed[db.PACKED_ATTR] = Binary(packed[db.PACKED_ATTR])
+        assert db._unpack(packed)['locations'][0]['id'] == 1
+
+    def test_non_story_items_are_left_alone(self):
+        match = {'PK': 'MATCH#m1', 'SK': 'METADATA', 'locations': [{'idLocation': 1}]}
+        assert db._pack(dict(match)) == match
+        char = {'PK': 'STORY#s1', 'SK': 'OTHER', 'rows': [1]}
+        assert db._pack(dict(char)) == char
+        assert db._unpack({'PK': 'X'}) == {'PK': 'X'}
+        assert db._unpack(None) is None
+
+    def test_story_without_nested_values_is_not_packed(self):
+        flat = {'PK': 'STORY#s1', 'SK': 'METADATA', 'uuid': 's1'}
+        assert db._pack(dict(flat)) == flat
+
+    def test_json_default_handles_decimals_and_bytes(self):
+        assert db._json_default(Decimal('2')) == 2
+        assert db._json_default(Decimal('2.5')) == 2.5
+        assert db._json_default(b'ab') == 'YWI='
+        with pytest.raises(TypeError):
+            db._json_default(object())
+
+    @patch.object(db, '_table')
+    def test_put_and_get_round_trip(self, mock_table):
+        stored = {}
+        mock_table.put_item.side_effect = lambda Item: stored.update(Item)
+        mock_table.get_item.side_effect = lambda **_k: {'Item': dict(stored)}
+        item = _story()
+        assert db.put_item(dict(item)) is True
+        assert db.PACKED_ATTR in stored and 'raw_texts' not in stored
+        got = db.get_item('STORY#s1', consistent=False)
+        assert got['raw_texts'] == item['raw_texts']
+        assert got['summary'] == item['summary']
+
+    @patch.object(db, '_table')
+    def test_queries_unpack_every_row(self, mock_table):
+        packed = db._pack(db._to_dynamodb_value(_story()))
+        mock_table.query.return_value = {'Items': [dict(packed)], 'LastEvaluatedKey': None}
+        assert db.query_by_pk('STORY#s1')[0]['locations'][0]['id'] == 1
+        rows, _ = db.query_sk_prefix_page('STORY#s1', 'META', 5)
+        assert rows[0]['raw_texts']
+        rows, _ = db.query_index_page('GSI2', 'GSI2_PK', 'STORY_LIST')
+        assert rows[0]['raw_texts']
+
+    @patch.object(db, '_table')
+    def test_batch_put_packs_stories_too(self, mock_table):
+        import helpers
+        writes = []
+        batch = MagicMock()
+        batch.put_item.side_effect = lambda Item: writes.append(Item)
+        mock_table.batch_writer.return_value.__enter__.return_value = batch
+        assert helpers.REAL_BATCH_PUT([_story(), {'PK': 'MATCH#1', 'SK': 'LOG#1', 'type': 'X'}]) is True
+        assert db.PACKED_ATTR in writes[0] and db.PACKED_ATTR not in writes[1]
+        assert mock_table.batch_writer.call_args.kwargs['overwrite_by_pkeys'] == ['PK', 'SK']
+
+
+@patch.object(db, '_table')
+class TestUpdateTsLastAccessSummary:
+    def test_in_summary_stamps_the_projected_copy_too(self, mock_table):
+        mock_table.update_item.return_value = {}
+        assert db.update_ts_last_access('USER#g1', 5, in_summary=True) is True
+        expr = mock_table.update_item.call_args.kwargs['UpdateExpression']
+        assert expr == 'SET ts_last_access = :t, summary.ts_last_access = :t'
+
+
+@patch.object(db, '_table')
+class TestFindUserByEmail:
+    """v0.41.4 — paginated Scan on USER# metadata, case-insensitive match."""
+
+    def test_blank_email_never_scans(self, mock_table):
+        assert db.find_user_by_email(None) is None
+        assert db.find_user_by_email('  ') is None
+        mock_table.scan.assert_not_called()
+
+    def test_match_ignores_case_and_follows_pages(self, mock_table):
+        mock_table.scan.side_effect = [
+            {'Items': [{'PK': 'USER#b', 'email': 'other@x.org'}], 'LastEvaluatedKey': {'PK': 'USER#b'}},
+            {'Items': [{'PK': 'USER#z', 'email': 'Boss@X.org'}, {'PK': 'USER#a', 'email': 'boss@x.org '}]},
+        ]
+        assert db.find_user_by_email(' BOSS@x.org')['PK'] == 'USER#a'
         assert mock_table.scan.call_count == 2
+        assert 'FilterExpression' in mock_table.scan.call_args.kwargs
 
-    def test_derives_uuid_from_pk_and_defaults_missing_ts(self, mock_table):
-        # No 'uuid'/'tsInsert' attributes → derive uuid from PK, ts → 0.
-        mock_table.scan.return_value = {'Items': [{'PK': 'MATCH#abc', 'SK': 'METADATA'}]}
-        db.backfill_gsi2_matches()
-        kwargs = mock_table.update_item.call_args.kwargs
-        assert kwargs['ExpressionAttributeValues'][':s'] == '00000000000000000000#abc'
-
-
-class TestCursorCodec:
-    """Opaque base64 cursor round-trips a DynamoDB LastEvaluatedKey."""
-
-    def test_round_trip(self):
-        key = {'PK': 'MATCH#m1', 'SK': 'METADATA', 'GSI2_SK': '00000000000000000100#m1'}
-        token = db.encode_cursor(key)
-        assert isinstance(token, str)
-        assert db.decode_cursor(token) == key
-
-    def test_encode_none_or_empty_is_none(self):
-        assert db.encode_cursor(None) is None
-        assert db.encode_cursor({}) is None
-
-    def test_decode_none_or_blank_is_none(self):
-        assert db.decode_cursor(None) is None
-        assert db.decode_cursor('') is None
-
-    def test_decode_malformed_token_is_none(self):
-        assert db.decode_cursor('!!!not-base64!!!') is None
-        assert db.decode_cursor('bm90LWpzb24=') is None  # base64 of "not-json"
+    def test_no_match_and_errors_give_none(self, mock_table):
+        mock_table.scan.return_value = {'Items': [{'PK': 'USER#b', 'email': 'other@x.org'}]}
+        assert db.find_user_by_email('boss@x.org') is None
+        mock_table.scan.side_effect = ClientError({'Error': {'Code': 'X', 'Message': 'boom'}}, 'Scan')
+        assert db.find_user_by_email('boss@x.org') is None

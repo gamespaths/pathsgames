@@ -1,0 +1,440 @@
+"""Step 36 — the one place that reads, writes and compares the match registry.
+
+Mirrors the Java RegistryService exactly: `render` and `parse` are inverses, and `evaluate` is
+the single comparison behind every registry condition — events, edges, weather and choices.
+"""
+from dataclasses import asdict, is_dataclass
+from typing import Any, Dict, Iterable, List, Optional
+
+OP_EQ = "="
+OP_NE = "!="
+OP_GT = ">"
+OP_LT = "<"
+
+#: Prefix of the log_events row every write leaves behind; read by the match-logs service.
+MSG_REGISTRY_CHANGE = "REGISTRY_CHANGE"
+
+#: A key hidden from the player: anything its definition does not mark PUBLIC.
+VISIBILITY_PUBLIC = "PUBLIC"
+
+
+def render(string_value: Optional[str], int_value: Optional[int]) -> Optional[str]:
+    """A row as one comparable string: the string wins, else the int, else None."""
+    if string_value is not None:
+        return string_value
+    return None if int_value is None else str(int_value)
+
+
+def render_row(row: Optional[Dict[str, Any]]) -> Optional[str]:
+    if not row:
+        return None
+    return render(row.get("string_value"), row.get("int_value"))
+
+
+def _values(rows: Optional[List[Dict[str, Any]]]) -> List[str]:
+    """The rendered members of a key's rows, skipping a row that holds no value at all."""
+    out = []
+    for row in rows or []:
+        value = render_row(row)
+        if value is not None:
+            out.append(value)
+    return out
+
+
+def parse(value: Optional[str]) -> Dict[str, Any]:
+    """A value as the pair of columns: numeric to int_value, anything else to string_value,
+    never both. Trimmed in both branches, so what an author types is what a condition reads."""
+    if value is None:
+        return {"string_value": None, "int_value": None}
+    trimmed = str(value).strip()
+    try:
+        return {"string_value": None, "int_value": int(trimmed)}
+    except ValueError:
+        return {"string_value": trimmed, "int_value": None}
+
+
+def _numeric(value: Optional[str]) -> Optional[int]:
+    if value is None:
+        return None
+    try:
+        return int(str(value).strip())
+    except ValueError:
+        return None
+
+
+def norm(value: Optional[str]) -> Optional[str]:
+    """v0.36.2 — the form a value is COMPARED in: trimmed and case-folded, never stored."""
+    return None if value is None else str(value).strip().lower()
+
+
+def eq(a: Optional[str], b: Optional[str]) -> bool:
+    """Equality as every registry comparison means it: blind to case and to padding."""
+    return norm(a) == norm(b)
+
+
+def _first_matching(rows, value):
+    """The row a value names, whatever case the author wrote it in. None when none does."""
+    return next((r for r in rows if eq(render_row(r), value)), None)
+
+
+def _logged(value: Optional[str]) -> str:
+    """v0.36.4 — a value as the audit row spells it. "null" and not "None": one REGISTRY_CHANGE
+    text on all three backends, whichever language wrote the row."""
+    return "null" if value is None else str(value)
+
+
+def no_condition(key: Optional[str]) -> bool:
+    """True when the condition is absent altogether — a blank key means "no condition"."""
+    return key is None or not str(key).strip()
+
+
+def evaluate(operator: Optional[str], expected: Optional[str],
+             actual: Optional[Iterable[str]]) -> bool:
+    """The one registry comparison, over the SET of values a key holds.
+
+    Step 36.1 generalised it; on a one-element set every reading below is the equality or
+    comparison it always was, which is why no authored story had to change.
+
+    * ``=``  — ∃: at least one member equals the value
+    * ``!=`` — ∄: no member equals it (so an absent key satisfies it, as before)
+    * ``>`` ``<`` — ∀: EVERY member compares that way, and an empty set never does.
+      Vacuous truth would open a door, and the doctrine is that a typo closes one.
+
+    A None expected value, an unparseable operand or an unknown operator is NOT met.
+    """
+    if expected is None:
+        return False
+    values = list(actual or [])
+    op = OP_EQ if operator is None or not str(operator).strip() else str(operator).strip()
+    if op == OP_EQ:
+        return any(eq(v, expected) for v in values)
+    if op == OP_NE:
+        return not any(eq(v, expected) for v in values)
+    if op in (OP_GT, OP_LT):
+        # ∀ over an empty set is vacuously true in logic and wrong here.
+        if not values:
+            return False
+        e = _numeric(expected)
+        if e is None:
+            return False
+        numbers = [_numeric(v) for v in values]
+        if any(n is None for n in numbers):
+            return False
+        return all(n > e for n in numbers) if op == OP_GT else all(n < e for n in numbers)
+    return False
+
+
+def _order_key(value: Optional[str]):
+    """Numbers sort numerically and first; everything else alphabetically behind them."""
+    number = _numeric(value)
+    return (0, number, "") if number is not None else (1, 0, value or "")
+
+
+def ordered(values: Optional[Iterable[str]]) -> List[str]:
+    """Members ordered for display: numbers numerically first, then the rest alphabetically.
+    Computed here so both payloads and all three backends agree."""
+    out = list(values or [])
+    out.sort(key=_order_key)
+    return out
+
+
+def is_multi(definition: Optional[Dict[str, Any]]) -> bool:
+    """The story's own declaration, which decides how a write behaves for a key with no row."""
+    return bool(definition) and bool(definition.get("multi_value"))
+
+
+class RegistryService:
+    """Every read, write and comparison of gaming_state_registry."""
+
+    def __init__(self, store, story_read_port=None, content_query_port=None):
+        # story_read_port/content_query_port are None in the values-only wiring: entries then
+        # carry no category, card or visibility.
+        self.store = store
+        self.story_read_port = story_read_port
+        self.content_query_port = content_query_port
+        # Step 37 - set after construction: the mission engine reads the registry it listens to.
+        self.mission_service = None
+
+    # ── reads ────────────────────────────────────────────────────────────────
+
+    def load_all(self, id_match: int) -> Dict[str, List[str]]:
+        """Every key of the match, each with the SET of values it holds. A key with no value
+        at all maps to an empty list — never to None, so a caller never has to guard."""
+        out: Dict[str, List[str]] = {}
+        for row in self.store.find_by_match(id_match) or []:
+            key = row.get("key")
+            if key:
+                value = render_row(row)
+                bucket = out.setdefault(key, [])
+                if value is not None:
+                    bucket.append(value)
+        return out
+
+    def find(self, id_match: int, key: str) -> List[str]:
+        """The values of one key. Empty when the key is absent, or present with an empty set."""
+        return _values(self.store.find_by_match_and_key(id_match, key))
+
+    def has(self, id_match: int, key: str) -> bool:
+        return bool(self.store.find_by_match_and_key(id_match, key))
+
+    def list_entries(self, id_match: int, id_story: Optional[int] = None,
+                     include_hidden: bool = False, lang: str = "en") -> List[Dict[str, Any]]:
+        """The rows joined with their list_keys definition. A row whose key the story no longer
+        declares is kept but reads as hidden: it is state the engine wrote, and dropping it
+        silently would hide a bug rather than a key."""
+        defs = self._key_definitions(id_story)
+
+        # Step 36.1 — one entry per KEY, holding its whole set. The keys are the union of what
+        # the story declares and what the match holds: a key whose members were all removed,
+        # or one added to the story after this match began, still has an entry with an empty
+        # set, and a row whose key the story no longer declares is kept but reads as hidden.
+        by_key: Dict[str, List[Dict[str, Any]]] = {name: [] for name in defs}
+        for row in self.store.find_by_match(id_match) or []:
+            if row.get("key"):
+                by_key.setdefault(row["key"], []).append(row)
+
+        out: List[Dict[str, Any]] = []
+        for name, rows in by_key.items():
+            entry = {
+                "uuid": rows[-1].get("uuid") if rows else None,
+                "key": name,
+                "values": ordered(_values(rows)),
+                "multi_value": any(row.get("multi_value") for row in rows),
+                "id_character": rows[-1].get("id_character") if rows else None,
+                "category": None,
+                "visible": False,
+                "priority": None,
+                "id_card": None,
+                "card": None,
+            }
+            definition = defs.get(name)
+            if definition is not None:
+                entry["category"] = definition.get("key_group")
+                entry["priority"] = definition.get("priority")
+                entry["visible"] = (definition.get("visibility") or "").strip().upper() \
+                    == VISIBILITY_PUBLIC
+                entry["id_card"] = definition.get("id_card")
+                entry["card"] = self._card(id_story, definition.get("id_card"), lang)
+                entry["multi_value"] = is_multi(definition)
+            if entry["visible"] or include_hidden:
+                out.append(entry)
+        out.sort(key=lambda e: (e["category"] or "", e["priority"] or 0, e["key"] or ""))
+        return out
+
+    def list_groups(self, id_match: int, id_story: Optional[int] = None,
+                    include_hidden: bool = False, lang: str = "en") -> List[Dict[str, Any]]:
+        """The same entries bucketed by category, keeping the order above inside each bucket."""
+        groups: List[Dict[str, Any]] = []
+        by_category: Dict[Any, Dict[str, Any]] = {}
+        for entry in self.list_entries(id_match, id_story, include_hidden, lang):
+            category = entry["category"]
+            if category not in by_category:
+                group = {"category": category, "entries": []}
+                by_category[category] = group
+                groups.append(group)
+            by_category[category]["entries"].append(entry)
+        return groups
+
+    def _key_definitions(self, id_story: Optional[int]) -> Dict[str, Dict[str, Any]]:
+        if self.story_read_port is None or id_story is None:
+            return {}
+        keys = self.story_read_port.find_keys_by_story_id(id_story) or []
+        out = {}
+        for k in keys:
+            name = k.get("key_name") or k.get("name")
+            if name:
+                out[name] = k
+        return out
+
+    def _card(self, id_story: Optional[int], id_card: Optional[int], lang: str):
+        # v0.37.2 — the port answers a CardInfo; the API answers JSON, so flatten it here.
+        if self.content_query_port is None or id_story is None or id_card is None:
+            return None
+        card = self.content_query_port.get_card_by_story_id_and_card_id(id_story, id_card, lang)
+        return asdict(card) if is_dataclass(card) and not isinstance(card, type) else card
+
+    # ── writes ───────────────────────────────────────────────────────────────
+
+    def upsert(self, id_match: int, id_story: Optional[int], key: Optional[str],
+               value: Optional[str], id_character: Optional[int] = None,
+               id_event: Optional[int] = None, id_choice: Optional[int] = None,
+               clock: Optional[int] = None) -> List[str]:
+        """Write one key. A blank key is authored noise and is skipped, not an error.
+
+        Whether the value REPLACES the key or JOINS it is decided by the rows already there —
+        their multi_value mirror — and only by the story's declaration when the key has no row
+        yet. That is what lets an author flip the flag without disturbing a match already in
+        progress: a running match keeps the behaviour it was born with.
+        """
+        if no_condition(key):
+            return []
+        rows = self.store.find_by_match_and_key(id_match, key) or []
+        # The rows decide; the story is consulted only for a key this match has never written.
+        multi = self._declared_multi(id_story, key) if not rows \
+            else bool(rows[0].get("multi_value"))
+        parsed = parse(value)
+        rendered = render(parsed["string_value"], parsed["int_value"])
+
+        if not multi:
+            previous = render_row(rows[0]) if rows else None
+            self.store.upsert(id_match, key, parsed["string_value"], parsed["int_value"],
+                              id_character, id_event, id_choice, clock)
+            # v0.36.4 — what was STORED, not the raw string the author typed.
+            self._log(id_match, id_character, id_event, id_choice, clock,
+                      f"{key} {_logged(previous)} -> {_logged(rendered)}")
+            return [] if rendered is None else [rendered]
+
+        # A set: adding a member it already holds changes nothing, so it says nothing either.
+        current = _values(rows)
+        if rendered is None or any(eq(v, rendered) for v in current):
+            return ordered(current)
+        self.store.insert_value(id_match, key, parsed["string_value"], parsed["int_value"],
+                                id_character, id_event, id_choice, clock)
+        self._log(id_match, id_character, id_event, id_choice, clock, f"{key} +{rendered}")
+        return ordered(current + [rendered])
+
+    def remove(self, id_match: int, key: Optional[str], value: Optional[str],
+               id_character: Optional[int] = None, id_event: Optional[int] = None,
+               id_choice: Optional[int] = None, clock: Optional[int] = None) -> List[str]:
+        """Take one value away. On a single key this is the compare-and-clear it has always
+        been; on a multi key it removes that one member and leaves the rest. Removing the last
+        member leaves the key with an empty set — the row goes, the key does not."""
+        if no_condition(key):
+            return []
+        rows = self.store.find_by_match_and_key(id_match, key) or []
+        current = _values(rows)
+        if not rows:
+            return current
+        parsed = parse(value)
+        rendered = render(parsed["string_value"], parsed["int_value"])
+
+        if not rows[0].get("multi_value"):
+            if rendered is None or not eq(rendered, render_row(rows[0])):
+                return current  # a value the story has since moved on from: leave it alone
+            self.store.upsert(id_match, key, None, None,
+                              id_character, id_event, id_choice, clock)
+            self._log(id_match, id_character, id_event, id_choice, clock,
+                      f"{key} {rendered} -> null")
+            return []
+
+        # The member is named case-blind but deleted as stored, or the delete matches nothing.
+        stored = None if rendered is None else _first_matching(rows, rendered)
+        if stored is None:
+            return ordered(current)
+        stored_value = render_row(stored)
+        self.store.delete_value(id_match, key, stored.get("string_value"),
+                                stored.get("int_value"))
+        self._log(id_match, id_character, id_event, id_choice, clock,
+                  f"{key} -{stored_value}")
+        after = list(current)
+        after.remove(stored_value)
+        return ordered(after)
+
+    def write_start_location_entry(self, id_match: int, id_character: Optional[int],
+                                   clock: Optional[int]) -> List[str]:
+        """v0.37.1 — the start location writes its FIRST-ENTRY pair when the match starts.
+
+        The party begins standing in id_location_start, so it never arrives there: the state row
+        is seeded flag_visited = 1 on purpose (Step 33), which keeps the place the story opened
+        in from announcing itself as a discovery. That reasoning holds for the narrative triggers
+        and not for the registry, which is state other rules read — so without this the
+        key_to_add of the starting location would be the one authored field that can never be
+        written, at any point of any match.
+
+        Called from the CREATED to RUNNING transition rather than from match creation: there the
+        clock exists, a character is active to own the row, and the write goes through upsert, so
+        a Step 37 mission waiting on that key opens at once."""
+        id_story = self.store.find_story_id_by_match(id_match)
+        if id_story is None or self.story_read_port is None:
+            return []
+        story = self.story_read_port.find_story_by_id(id_story) or {}
+        id_location_start = story.get("id_location_start")
+        if id_location_start is None:
+            return []
+        for loc in self.story_read_port.find_locations_by_story_id(id_story) or []:
+            if loc.get("id") == id_location_start:
+                return self.upsert(id_match, id_story, loc.get("key_to_add"),
+                                   loc.get("key_value_to_add"), id_character, None, None, clock)
+        return []
+
+    # ── admin edit (v0.36.2) ─────────────────────────────────────────────────
+
+    def find_by_match_uuid(self, match_uuid: str, key: Optional[str]) -> List[str]:
+        """The values of one key, by match uuid. Empty when the match or the key is unknown."""
+        ids = self.store.find_match_and_story_id_by_uuid(match_uuid)
+        return [] if ids is None else self.find(ids[0], key)
+
+    def is_declared_for_match_uuid(self, match_uuid: str,
+                                   key: Optional[str]) -> Optional[bool]:
+        """v0.36.4 — whether the story behind a match DECLARES this key. None when no match
+        answers to the uuid. The console asks before writing, so a typo cannot leave behind an
+        orphan key that reads as hidden and is indistinguishable from an engine bug."""
+        ids = self.store.find_match_and_story_id_by_uuid(match_uuid)
+        if ids is None:
+            return None
+        return self.is_declared(ids[1], key)
+
+    def is_declared(self, id_story: Optional[int], key: Optional[str]) -> bool:
+        """v0.38.3 — whether the story declares this key in list_keys; False on a None story."""
+        return bool(key) and key.strip() in self._key_definitions(id_story)
+
+    def upsert_by_match_uuid(self, match_uuid: str, key: Optional[str],
+                             value: Optional[str]) -> Optional[List[str]]:
+        """The admin console writing a key by match uuid. Nobody in the fiction did this, so
+        the character, event and choice columns stay None — but the audit row is the ordinary
+        one, because a correction the log does not mention is one nobody can trace.
+        None when no match answers to the uuid."""
+        ids = self.store.find_match_and_story_id_by_uuid(match_uuid)
+        if ids is None:
+            return None
+        return self.upsert(ids[0], ids[1], key, value)
+
+    def remove_by_match_uuid(self, match_uuid: str, key: Optional[str],
+                             value: Optional[str]) -> Optional[List[str]]:
+        """The admin console taking a value away. A None value empties the key outright rather
+        than comparing first: the console is correcting the row, not playing the story."""
+        ids = self.store.find_match_and_story_id_by_uuid(match_uuid)
+        if ids is None:
+            return None
+        if value is None:
+            return self._clear(ids[0], key)
+        return self.remove(ids[0], key, value)
+
+    def _clear(self, id_match: int, key: Optional[str]) -> List[str]:
+        """Empty a key whatever it holds: every member of a set, or a single key's value."""
+        if no_condition(key):
+            return []
+        for member in _values(self.store.find_by_match_and_key(id_match, key) or []):
+            self.remove(id_match, key, member)
+        return []
+
+    def _log(self, id_match: int, id_character: Optional[int], id_event: Optional[int],
+             id_choice: Optional[int], clock: Optional[int], detail: str) -> None:
+        """One writer, one audit row: a registry change can neither be missed nor doubled."""
+        self.store.log_change(id_match, id_character, id_event, id_choice, clock,
+                              f"{MSG_REGISTRY_CHANGE} {detail}")
+        # Step 37 - the audit row and the mission pass share one choke point on purpose: a
+        # write that is worth logging is exactly a write that may move a mission.
+        if self.mission_service is not None:
+            self.mission_service.on_registry_change(id_match, clock)
+
+    def _declared_multi(self, id_story: Optional[int], key: str) -> bool:
+        """What the story says about a key the match has never written."""
+        return is_multi(self._key_definitions(id_story).get(key))
+
+    def seed(self, id_match: int, keys: Optional[List[Dict[str, Any]]]) -> None:
+        """Match creation: one row per story key, holding the default from list_keys.value.
+        A MULTI key with no default seeds no row at all — its set starts empty, and an empty
+        set is the absence of rows, not a row holding nothing."""
+        rows = []
+        for k in keys or []:
+            multi = bool(k.get("multi_value"))
+            parsed = parse(k.get("key_value") if "key_value" in k else k.get("value"))
+            if multi and render(parsed["string_value"], parsed["int_value"]) is None:
+                continue
+            rows.append({"key": k.get("key_name") or k.get("name") or "",
+                         "multi_value": 1 if multi else 0, **parsed})
+        self.store.insert_all(id_match, rows)
+
+    def delete_by_match(self, match_ids: List[int]) -> None:
+        self.store.delete_by_match_ids(match_ids)

@@ -34,6 +34,9 @@ class CharacterDtosTest {
         i.setFood(1);
         i.setMagic(2);
         i.setCoin(3);
+        i.setExp(40);
+        i.setExpCosts(new java.util.LinkedHashMap<>(java.util.Map.of("dex", 5)));
+        i.getExpCosts().put("int", null);
         return i;
     }
 
@@ -64,6 +67,10 @@ class CharacterDtosTest {
         assertEquals(1, r.getFood());
         assertEquals(2, r.getMagic());
         assertEquals(3, r.getCoin());
+        assertEquals(40, r.getExp());
+        assertEquals(5, r.getExpCosts().get("dex"));
+        assertTrue(r.getExpCosts().containsKey("int"));
+        assertNull(r.getExpCosts().get("int"));
     }
 
     @Test
@@ -88,6 +95,10 @@ class CharacterDtosTest {
         r.setFood(8);
         r.setMagic(9);
         r.setCoin(10);
+        r.setExp(11);
+        r.setExpCosts(java.util.Map.of("cos", 12));
+        assertEquals(11, r.getExp());
+        assertEquals(12, r.getExpCosts().get("cos"));
         assertEquals("u", r.getUuid());
         assertEquals("m", r.getMatchUuid());
         assertEquals("usr", r.getUserUuid());

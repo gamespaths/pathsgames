@@ -96,13 +96,16 @@
       ],
       "food": 4,
       "magic": 2,
-      "coin": 9
+      "coin": 9,
+      "exp": 30,
+      "expCosts": { "dex": 12, "int": null, "cos": 8 }
     }
   ],
   "locationsActive": [
     {
       "idLocation": 1001,
       "uuid": "loc-001",
+      "secureParam": 1,
       "card": {
         "title": "The Old Tavern",
         "description": "A warm hearth and the smell of stew. Travellers trade rumours here.",

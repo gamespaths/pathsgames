@@ -19,9 +19,6 @@ public interface LogEventsRepository extends JpaRepository<LogEventsEntity, LogE
 
     List<LogEventsEntity> findByIdMatchOrderByIdAsc(Long idMatch);
 
-    /** Highest {@code id} across the whole table (ids are globally unique). */
-    @Query("SELECT COALESCE(MAX(l.id), 0) FROM LogEventsEntity l")
-    long findMaxId();
 
     /**
      * Deletes every log row for the given matches. Used by the test-data cleanup

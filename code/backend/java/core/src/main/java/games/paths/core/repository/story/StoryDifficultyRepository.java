@@ -25,6 +25,9 @@ public interface StoryDifficultyRepository extends JpaRepository<StoryDifficulty
 
     Optional<StoryDifficultyEntity> findByIdStoryAndUuid(Long idStory, String uuid);
 
+    /** Step 38 — the difficulty a match was created on, by its story-local id. */
+    Optional<StoryDifficultyEntity> findByIdStoryAndId(Long idStory, Long id);
+
     @Modifying
     @Transactional
     void deleteByUuid(String uuid);

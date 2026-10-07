@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from match import handler as h
 from match import events as _events
-from helpers import make_event
+from helpers import make_event, FakeTable, patch_table
 
 MATCH_UUID, STORY_UUID = 'm1', 's1'
 LOC_A, LOC_B = 90001, 90002
@@ -37,7 +37,7 @@ def _match(clock=2, locations=None, status='RUNNING'):
             {'idLocation': LOC_B, 'uuid': 'sl-b', 'flagAlreadyActived': 0,
              'flagVisited': 0, 'clockCounter': 0},
         ],
-        'registry': [], 'eventLog': [], 'movementLog': [],
+        'registry': [],
     }
 
 
@@ -78,29 +78,13 @@ def _event(eid, uuid, **over):
     return base
 
 
-class FakeTable:
-    def __init__(self, items):
-        self.store = {(i['PK'], i.get('SK', 'METADATA')): dict(i) for i in items}
-
-    def get_item(self, pk, sk='METADATA'):
-        it = self.store.get((pk, sk))
-        return dict(it) if it else None
-
-    def put_item(self, item):
-        self.store[(item['PK'], item.get('SK', 'METADATA'))] = dict(item)
-
-    def query_by_pk(self, pk):
-        return [dict(v) for (p, _), v in self.store.items() if p == pk]
-
 
 @contextmanager
 def _env(items):
     table = FakeTable(items)
     with patch('match.handler.jwt_utils.verify_access_token',
                return_value={'uuid': 'player-uuid-001'}), \
-         patch('match.handler.db_utils.get_item', side_effect=table.get_item), \
-         patch('match.handler.db_utils.put_item', side_effect=table.put_item), \
-         patch('match.handler.db_utils.query_by_pk', side_effect=table.query_by_pk):
+         patch_table(table):
         yield table
 
 
@@ -224,11 +208,11 @@ def test_a_choice_owning_event_is_refused_and_logged():
         fired = _body(h.lambda_handler(_move_event(), None))['automaticEvents']
 
     assert fired == []
-    log = table.get_item(f'MATCH#{MATCH_UUID}')['eventLog']
+    log = table.logs(MATCH_UUID)
     # No EVENT_EXECUTED marker: writing one would open a cycle that no select-choice call
     # could ever close, and the match would carry it for ever.
-    assert not any(str(r['message']).startswith(_events.MSG_EVENT_EXECUTED) for r in log)
-    assert any('may not own choices' in str(r['message']) for r in log)
+    assert not any(str(r.get('message')).startswith(_events.MSG_EVENT_EXECUTED) for r in log)
+    assert any('may not own choices' in str(r.get('message')) for r in log)
 
 
 def test_nobody_pays_for_an_automatic_event():
@@ -243,15 +227,37 @@ def test_nobody_pays_for_an_automatic_event():
     assert stored['energy'] == 50
 
 
+def test_a_completed_mission_rewards_the_whole_party():
+    """Step 38 — the mission's completion event has no actor; its exp effect (target ALL)
+    reaches every character of the match, wherever each one stands."""
+    story = _locations_with()
+    story['events'] = [_event(60, 'evt-reward', type='NORMAL')]
+    story['eventEffects'] = [{'id': 1, 'idEvent': 60, 'statistics': 'exp', 'value': 1, 'target': 'ALL'}]
+    story['missions'] = [{'id': 1, 'uuid': 'mis-1', 'conditionKey': 'quest', 'conditionValue': 'done',
+                          'idEventCompleted': 60}]
+    story['missionSteps'] = []
+    far = _char(uuid='c2', cid=2, id_location=LOC_B, owner='someone-else')
+    far['exp'] = 4
+    with _env([PLAYER, story, _match(), _char(), far]) as table:
+        from match import registry as _registry
+        h._repo.begin()
+        match = h._repo.match(MATCH_UUID)
+        _registry.upsert(match, 'quest', 'done')
+        h._repo.flush()
+
+    assert table.get_item(f'MATCH#{MATCH_UUID}', 'CHARACTER#c1')['exp'] == 1
+    assert table.get_item(f'MATCH#{MATCH_UUID}', 'CHARACTER#c2')['exp'] == 5
+
+
 def test_the_audit_row_carries_the_trigger_the_location_and_the_clock():
     story = _locations_with(idEventIfFirstTime=40)
     story['events'] = [_event(40, 'evt-first')]
     with _env([PLAYER, story, _match(clock=5), _char()]) as table:
         h.lambda_handler(_move_event(), None)
 
-    row = next(r for r in table.get_item(f'MATCH#{MATCH_UUID}')['eventLog']
-               if str(r['message']).startswith(_events.MSG_AUTOMATIC_EVENT))
-    assert row['idLocation'] == LOC_B
+    row = next(r for r in table.logs(MATCH_UUID)
+               if str(r.get('message')).startswith(_events.MSG_AUTOMATIC_EVENT))
+    assert row['type'] == 'AUTOMATIC_EVENT' and row['idLocationTo'] == LOC_B
     assert row['idEvent'] == 40
     assert row['clock'] == 5
     assert _events.TRIGGER_FIRST_ENTRY in row['message']
@@ -276,9 +282,8 @@ def test_a_counter_reaching_zero_runs_its_event_and_reports_it_on_the_sleep():
     # Standing there is FULL, so the place may be named.
     assert body['counterZero'][0]['visibility'] == _events.VISIBILITY_FULL
 
-    stored = table.get_item(f'MATCH#{MATCH_UUID}')
     # Step 33 — the row the AWS backend never used to write at all.
-    assert any(str(r['message']).startswith('counter') for r in stored['eventLog'])
+    assert any(r['type'] == 'COUNTER_ZERO' for r in table.logs(MATCH_UUID))
 
 
 def test_a_full_counter_zero_tells_the_event_its_effects_and_the_place():
@@ -367,9 +372,7 @@ def test_the_starting_location_is_seeded_as_already_visited():
     story = _story()
     items = [PLAYER, story]
     table = FakeTable(items)
-    with patch('match.handler.db_utils.get_item', side_effect=table.get_item), \
-         patch('match.handler.db_utils.put_item', side_effect=table.put_item), \
-         patch('match.handler.db_utils.query_by_pk', side_effect=table.query_by_pk):
+    with patch_table(table):
         states = []
         for loc in story['locations']:
             loc_id = int(loc.get('id', 0))
@@ -381,3 +384,95 @@ def test_the_starting_location_is_seeded_as_already_visited():
 
     by_location = {s['idLocation']: s['flagVisited'] for s in states}
     assert by_location == {LOC_A: 1, LOC_B: 0}
+
+
+# ── v0.35.6: the Step 30 verdict travels with the move and with the sleep ─────
+#
+# An arrival kills exactly as an executed event does, and so can a time-start. Until
+# v0.35.6 neither answer carried an edgeState at all: the flag landed on the character and
+# the player learned of it on the next reload, with no card and no story.
+
+def _lethal(event_id):
+    return {'id': 1, 'idEvent': event_id, 'idCard': None, 'statistics': 'life',
+            'value': -999, 'target': 'ONLY_ONE'}
+
+
+def test_a_lethal_arrival_reports_the_edge_state_on_the_move():
+    story = _locations_with(idEventIfFirstTime=40)
+    story['events'] = [_event(40, 'evt-first')]
+    story['eventEffects'] = [_lethal(40)]
+    with _env([PLAYER, story, _match(), _char()]):
+        body = _body(h.lambda_handler(_move_event(), None))
+
+    edge = body['edgeState']
+    assert edge['comaUuids'] == ['c1']
+    assert edge['allPlayersInComa'] is True
+    # The event that did it says so too: the move's verdict is the fold of these.
+    assert body['automaticEvents'][0]['edgeState']['comaUuids'] == ['c1']
+
+
+def test_a_lethal_arrival_runs_the_epilogue_and_keeps_it_apart():
+    story = _locations_with(idEventIfFirstTime=40)
+    story['events'] = [_event(40, 'evt-first'), _event(50, 'evt-coma')]
+    story['eventEffects'] = [_lethal(40)]
+    story['idEventAllPlayerComa'] = 50
+    with _env([PLAYER, story, _match(), _char()]):
+        body = _body(h.lambda_handler(_move_event(), None))
+
+    edge = body['edgeState']
+    assert edge['comaEventUuid'] == 'evt-coma'
+    assert edge['comaExecutedEventUuids'] == ['evt-coma']
+    # Two chains: the epilogue is not part of what the arrival itself applied.
+    assert [e['eventUuid'] for e in body['automaticEvents'][0]['effects']] == ['evt-first']
+
+
+def test_a_quiet_arrival_answers_an_empty_edge_state():
+    story = _locations_with(idEventIfFirstTime=40)
+    story['events'] = [_event(40, 'evt-first')]
+    with _env([PLAYER, story, _match(), _char()]):
+        edge = _body(h.lambda_handler(_move_event(), None))['edgeState']
+
+    assert edge['comaUuids'] == [] and edge['sadnessOverflowUuids'] == []
+    assert edge['allPlayersInComa'] is False and edge['comaEventUuid'] is None
+
+
+def test_a_lethal_time_start_event_reports_the_edge_state_on_the_sleep():
+    story = _locations_with()
+    story['locations'][0]['idEventIfCounterZero'] = 777   # LOC_A, where the player stands
+    story['events'] = [_event(777, 'evt-fuse')]
+    story['eventEffects'] = [_lethal(777)]
+    match = _match(clock=3)
+    for ls in match['locations']:
+        if ls['idLocation'] == LOC_A:
+            ls['clockCounter'] = 1
+    with _env([PLAYER, story, match, _char()]):
+        body = _body(h.lambda_handler(_sleep_event(), None))
+
+    assert body['timeEndTriggered'] is True
+    assert body['edgeState']['comaUuids'] == ['c1']
+    assert body['edgeState']['allPlayersInComa'] is True
+
+
+def test_an_ordinary_sleep_answers_an_empty_edge_state():
+    with _env([PLAYER, _story(), _match(clock=3), _char()]):
+        body = _body(h.lambda_handler(_sleep_event(), None))
+
+    assert body['edgeState']['comaUuids'] == []
+    assert body['edgeState']['allPlayersInComa'] is False
+
+
+def test_v0356_one_arrival_answers_the_collapse_once_even_with_two_triggers():
+    """Both triggers of an arrival run their own pass; the party's collapse is answered by
+    the first that sees it, or the epilogue would fire twice on one entry."""
+    story = _locations_with(idEventIfFirstTime=40, idEventIfCharacterEnterEmptyLocation=42)
+    story['events'] = [_event(40, 'evt-trap'), _event(42, 'evt-alone'), _event(50, 'evt-coma')]
+    story['eventEffects'] = [_lethal(40)]
+    story['idEventAllPlayerComa'] = 50
+    with _env([PLAYER, story, _match(), _char()]) as table:
+        body = _body(h.lambda_handler(_move_event(), None))
+
+    assert body['edgeState']['comaEventUuid'] == 'evt-coma'
+    # v0.37.5 — edge-state rows are AUDIT# items: never on the timeline, never in total.
+    party = [r for r in table.audits(MATCH_UUID)
+             if str(r.get('message') or '').startswith(_events.MSG_ALL_PLAYER_COMA)]
+    assert len(party) == 1

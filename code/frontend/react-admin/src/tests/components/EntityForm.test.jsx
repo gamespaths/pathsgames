@@ -121,4 +121,101 @@ describe('EntityForm', () => {
     await userEvent.click(screen.getByText('Save'))
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ idTextName: 999 }))
   })
+
+  const PATH_FIELDS = [{ key: 'idCard', label: 'Card ID', type: 'path-selector' }]
+
+  it('a path selector of string type keeps the value as a string, empty for nothing', async () => {
+    render(<EntityForm fields={PATH_FIELDS} onSave={onSave} onCancel={onCancel}
+                       pathSelectorOptions={{ idCard: { valueType: 'string', options: [{ value: 'val1' }] } }} />)
+
+    await userEvent.click(screen.getByTitle('Select Card ID'))
+    await userEvent.click(screen.getByText('Select val1'))
+    await userEvent.click(screen.getByText('Save'))
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ idCard: 'val1' }))
+  })
+
+  it('a path selector with no config at all falls back to the numeric reading', async () => {
+    render(<EntityForm fields={PATH_FIELDS} onSave={onSave} onCancel={onCancel}
+                       pathSelectorOptions={{ idCard: {} }} />)
+
+    await userEvent.click(screen.getByTitle('Select Card ID'))
+    await userEvent.click(screen.getByText('Select val1'))
+    await userEvent.click(screen.getByText('Save'))
+
+    // 'val1' is not a number, so the numeric reading empties the field.
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ idCard: '' }))
+  })
+
+  it('the New Fast Card button does nothing without a handler', async () => {
+    render(<EntityForm fields={PATH_FIELDS} onSave={onSave} onCancel={onCancel}
+                       pathSelectorOptions={{ idCard: {} }} />)
+    expect(screen.queryByTitle('New Card ID')).toBeNull()
+  })
+
+  it('a text field with a value opens the creator on the row it already names', async () => {
+    const texts = [{ idText: 5, lang: 'en', shortText: 'Hello' }]
+    render(<EntityForm fields={[{ key: 'idTextName', label: 'Text Name' }]}
+                       entity={{ idTextName: 5 }} texts={texts}
+                       storyUuid="s1" onSaveFastText={vi.fn()}
+                       onSave={onSave} onCancel={onCancel} />)
+
+    await userEvent.click(screen.getByTitle('Select Text Name'))
+    // The creator opens on the existing row rather than the plain selector list.
+    expect(screen.queryByTestId('fast-text-modal')).toBeNull()
+  })
+
+  it('a text field with no value at all opens the selector list', async () => {
+    render(<EntityForm fields={[{ key: 'idTextName', label: 'Text Name' }]}
+                       storyUuid="s1" onSaveFastText={vi.fn()}
+                       onSave={onSave} onCancel={onCancel} />)
+
+    await userEvent.click(screen.getByTitle('Select Text Name'))
+    expect(screen.getByTestId('fast-text-modal')).toBeInTheDocument()
+  })
+
+  // Step 39 — a number field may declare min/max; out-of-range values are refused.
+  describe('min / max bounds', () => {
+    const BOUNDED = [{ key: 'probability', label: 'Probability (%)', type: 'number', min: 0, max: 100 }]
+    // The browser's own constraint check would stop a click first: submit the form directly.
+    const submit = () => fireEvent.submit(screen.getByText('Save').closest('form'))
+
+    it('refuses a value above max and one below min', () => {
+      const { unmount } = render(<EntityForm entity={{ uuid: '1', probability: 101 }} fields={BOUNDED} onSave={onSave} onCancel={onCancel} />)
+      submit()
+      expect(screen.getByText('Probability (%) must be between 0 and 100.')).toBeInTheDocument()
+      unmount()
+      render(<EntityForm entity={{ uuid: '2', probability: -1 }} fields={BOUNDED} onSave={onSave} onCancel={onCancel} />)
+      submit()
+      expect(screen.getByText('Probability (%) must be between 0 and 100.')).toBeInTheDocument()
+      expect(onSave).not.toHaveBeenCalled()
+    })
+
+    it('accepts a value inside the bounds, and an empty one', async () => {
+      render(<EntityForm entity={{ uuid: '1', probability: 100 }} fields={BOUNDED} onSave={onSave} onCancel={onCancel} />)
+      await userEvent.click(screen.getByText('Save'))
+      expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ probability: 100 }))
+    })
+
+    it('names an open bound when only one side is declared', () => {
+      const MIN_ONLY = [{ key: 'n', label: 'N', type: 'number', min: 5 }]
+      render(<EntityForm entity={{ uuid: '1', n: 1 }} fields={MIN_ONLY} onSave={onSave} onCancel={onCancel} />)
+      submit()
+      expect(screen.getByText('N must be between 5 and ∞.')).toBeInTheDocument()
+    })
+
+    it('names an open lower bound too', () => {
+      const MAX_ONLY = [{ key: 'n', label: 'N', type: 'number', max: 5 }]
+      render(<EntityForm entity={{ uuid: '1', n: 9 }} fields={MAX_ONLY} onSave={onSave} onCancel={onCancel} />)
+      submit()
+      expect(screen.getByText('N must be between -∞ and 5.')).toBeInTheDocument()
+    })
+
+    it('passes the bounds to the number input', () => {
+      render(<EntityForm fields={BOUNDED} onSave={onSave} onCancel={onCancel} />)
+      const input = screen.getByLabelText('Probability (%)')
+      expect(input).toHaveAttribute('min', '0')
+      expect(input).toHaveAttribute('max', '100')
+    })
+  })
 })

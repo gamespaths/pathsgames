@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "paths-games-backend-python"
-version = "0.35.5"
+version = "0.42.0"
 description = "FastAPI Hexagonal Backend for Paths Games"
 authors = ["Paths Games Dev Team <dev@paths.games>"]
 license = "GPL-3.0"
@@ -16,6 +16,7 @@ pydantic-settings = "^2.7.0"
 pyjwt = "^2.8.0"
 psycopg2-binary = "^2.9.10"
 python-multipart = "^0.0.9"
+apscheduler = "~3.11.3"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

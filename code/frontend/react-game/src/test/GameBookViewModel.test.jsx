@@ -15,9 +15,15 @@ import { bagSummaryProps } from '../features/gameplay/js/boardProps'
 import PageLeft from '../features/gameplay/PageLeft'
 import PageRight from '../features/gameplay/PageRight'
 
+let matchLogProps = null
+vi.mock('@/features/matches/MatchLogCard', () => ({
+  default: (props) => { matchLogProps = props; return <div data-testid="match-log-card" /> },
+}))
+
 const BASE = {
   view: 'board', previewLeft: null, previewRight: null, previewModal: null,
-  pendingChoices: null, counterZero: null, mapSelected: null, sleepCardForced: false,
+  pendingChoices: null, counterZero: null, mapSelected: null, missionSelected: null,
+  sleepCardForced: false,
 }
 
 describe('bookViewReducer', () => {
@@ -44,6 +50,27 @@ describe('bookViewReducer', () => {
     expect(info).toMatchObject({ view: 'info', previewLeft: preview })
     expect(bookViewReducer(info, { type: 'openItems' })).toMatchObject({ view: 'items', previewLeft: null })
     expect(bookViewReducer(info, { type: 'openMap' })).toMatchObject({ view: 'map', previewLeft: null })
+    // Step 36 — the registry joined the same set, so opening it puts every other page away.
+    expect(bookViewReducer(info, { type: 'openRegistry' }))
+      .toMatchObject({ view: 'registry', previewLeft: null })
+    expect(bookViewReducer({ ...BASE, view: 'registry' }, { type: 'openItems' }))
+      .toMatchObject({ view: 'items' })
+    // Step 38 — training joined the same set.
+    expect(bookViewReducer(info, { type: 'openExp' })).toMatchObject({ view: 'exp', previewLeft: null })
+    expect(bookViewReducer({ ...BASE, view: 'exp' }, { type: 'closeAll' })).toMatchObject({ view: 'board' })
+  })
+
+  it('opens one mission on the left page and remembers whose steps the right one shows', () => {
+    const preview = { card: { title: 'The Journey' }, type: 'missions' }
+    const mission = { uuid: 'm-1', steps: [{ done: true }] }
+    const open = bookViewReducer({ ...BASE, view: 'missions' },
+      { type: 'openMission', preview, mission })
+
+    expect(open).toMatchObject({ view: 'missionSteps', previewLeft: preview })
+    expect(open.missionSelected).toBe(mission)
+    // Going back to the grid forgets it, so no stale mission can outlive the page.
+    expect(bookViewReducer(open, { type: 'openMissions' }))
+      .toMatchObject({ view: 'missions', previewLeft: null, missionSelected: null })
   })
 
   it('accepts an updater for the right page, so the weather can decorate what is there', () => {
@@ -104,6 +131,17 @@ describe('useBookView — openPreview', () => {
     expect(result.current[0].previewRight).toBeNull()
   })
 
+  it('turns a mission card into a left page and keeps the mission for the right one', () => {
+    const { result } = renderHook(() => useBookView())
+    const mission = { uuid: 'm-1', steps: [] }
+    act(() => result.current[1].openMission({ mission, card: { title: 'The Journey' } }))
+
+    expect(result.current[0].view).toBe('missionSteps')
+    expect(result.current[0].previewLeft).toMatchObject({ type: 'missions' })
+    expect(result.current[0].previewLeft.statItemsToPageContent).toEqual([])
+    expect(result.current[0].missionSelected).toBe(mission)
+  })
+
   it('hides the (i) modal instance when the board reloads', () => {
     const hide = vi.fn()
     window.bootstrap = { Modal: { getOrCreateInstance: () => ({ show: vi.fn(), hide }) } }
@@ -131,6 +169,17 @@ describe('bookmarks', () => {
       playerStats: { weight: 12, weightMax: 10, life: 0 } })
     expect(items.find(b => b.key === 'items')).toMatchObject({ active: true, danger: true })
     expect(items.find(b => b.key === 'information').danger).toBe(true)
+    // Step 37 — the missions tab is a tab like any other now, active with its own view.
+    const missions = buildBookmarksLeft({ t, view: 'missions', previewLeft: null,
+      playerStats: {}, missionsChanged: true })
+    expect(missions.find(b => b.key === 'missions').active).toBe(true)
+    expect(missions.find(b => b.key === 'missions').disabled).toBeUndefined()
+    // v0.37.1 — no count on this tab: one bit, whether the missions moved.
+    expect(missions.find(b => b.key === 'missions').badges).toBeUndefined()
+    expect(missions.find(b => b.key === 'missions').alert).toBe(true)
+    expect(buildBookmarksLeft({ t, view: 'board', previewLeft: null, playerStats: {} })
+      .find(b => b.key === 'missions').alert).toBe(false)
+
     expect(buildBookmarksLeft({ t, view: 'map', previewLeft: null, playerStats: {} })
       .find(b => b.key === 'map').active).toBe(true)
     expect(buildBookmarksLeft({ t, view: 'board', previewLeft: { type: 'information' }, playerStats: {} })
@@ -160,6 +209,18 @@ describe('PageLeft', () => {
     expect(screen.getByText('game.sad.title')).toBeInTheDocument()
   })
 
+  it('shows the mission page with its status badge, word value and all', () => {
+    const preview = { card: { title: 'The Journey' }, type: 'missions',
+      statItemsToPageContent: [{ key: 'missionStatus', value: 'Completed', label: 'Status' }] }
+    render(<PageLeft view="missionSteps" previewLeft={preview} t={k => k} story={{}}
+      onCloseMission={vi.fn()} />)
+
+    expect(screen.getByText('The Journey')).toBeInTheDocument()
+    // v0.37.1 — a status is a WORD, and BonusBadgeList drops non-numeric values unless the
+    // page asks for zeros: without that the Done badge never reached this page.
+    expect(screen.getByText('Completed')).toBeInTheDocument()
+  })
+
   it('renders nothing when there is no location and no story card', () => {
     const { container } = render(<PageLeft view="board" t={k => k} story={{}} />)
     expect(container).toBeEmptyDOMElement()
@@ -184,6 +245,17 @@ describe('PageRight', () => {
       activeAction={{ uuid: 'a1', card: { title: 'The End' } }}
       onEndGame={vi.fn()} onEndGamePreview={vi.fn()} />)
     expect(screen.getByText('The End')).toBeInTheDocument()
+  })
+
+  // v0.37.7 — the match history opened from the PlayerCards door: the log component gets
+  // the match it must read and the back arrow that clears the preview.
+  it('renders the match history on the right and hands it the match', () => {
+    const onCloseRight = vi.fn()
+    render(<PageRight {...base} previewRight={{ kind: 'matchlog' }}
+      matchUuid="m-1" accessToken="tok" onCloseRight={onCloseRight} />)
+    expect(matchLogProps).toMatchObject({ matchUuid: 'm-1', accessToken: 'tok' })
+    matchLogProps.onBack()
+    expect(onCloseRight).toHaveBeenCalledTimes(1)
   })
 
   it('renders nothing for a preview kind it does not know', () => {

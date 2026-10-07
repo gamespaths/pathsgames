@@ -19,6 +19,7 @@ from app.adapters.persistence.story.models import (
 )
 from app.adapters.persistence.auth.models import User
 import app.adapters.persistence.match.models  # noqa: F401  registers gaming_* tables
+from app.adapters.persistence.match.registry_store_adapter import RegistryStoreAdapter
 
 
 @pytest.fixture()
@@ -210,15 +211,6 @@ def test_find_matches_page_limit_and_empty(session_factory):
     assert adapter.find_matches_page("GAMEOVER", None, None, None, None, None, 50) == []
 
 
-def test_save_locations_and_registry_no_op_when_empty(session_factory):
-    adapter = MatchPersistenceAdapter(session_factory)
-    adapter.save_locations([])
-    adapter.save_registry([])
-    adapter.save_locations(None)
-    adapter.save_registry(None)
-    assert adapter.find_locations_by_match_id(99) == []
-    assert adapter.find_registry_by_match_id(99) == []
-
 
 def test_save_and_find_locations_and_registry(session_factory):
     adapter = MatchPersistenceAdapter(session_factory)
@@ -226,11 +218,11 @@ def test_save_and_find_locations_and_registry(session_factory):
     adapter.save_locations([
         {"id_match": saved["id"], "id_location": 10, "flag_already_actived": 0, "clock_counter": 5},
     ])
-    adapter.save_registry([
-        {"id": 1, "id_match": saved["id"], "key": "k", "string_value": "v", "int_value": None},
-    ])
+    # Step 36 — the registry has its own store; this asserts the two live side by side.
+    registry = RegistryStoreAdapter(session_factory)
+    registry.insert_all(saved["id"], [{"key": "k", "string_value": "v", "int_value": None}])
     locs = adapter.find_locations_by_match_id(saved["id"])
-    regs = adapter.find_registry_by_match_id(saved["id"])
+    regs = registry.find_by_match(saved["id"])
     assert len(locs) == 1 and locs[0]["id_location"] == 10
     assert locs[0]["clock_counter"] == 5
     assert len(regs) == 1 and regs[0]["string_value"] == "v"
@@ -243,7 +235,8 @@ def test_story_match_read_adapter(session_factory):
         session.flush()
         story_id = story.id
 
-        diff = StoryDifficultyEntity(id=1, id_story=story_id, uuid="diff-uuid", exp_cost=5)
+        diff = StoryDifficultyEntity(id=1, id_story=story_id, uuid="diff-uuid", exp_cost=5,
+                                     exp_cost_base=3, max_stat_value=12)
         location = LocationEntity(id=10, id_story=story_id, uuid="loc-uuid", counter_time=3)
         key = KeyEntity(id=20, id_story=story_id, uuid="key-uuid", key_name="k", key_value="1")
         session.add_all([diff, location, key])
@@ -262,6 +255,9 @@ def test_story_match_read_adapter(session_factory):
     assert read.find_difficulty_by_uuid(s_by_uuid["id"], "x") is None
     d_by_id = read.find_difficulty_by_id(s_by_uuid["id"], 1)
     assert d_by_id["uuid"] == "diff-uuid"
+    # Step 38 — the use-exp price list rides the match-side projection too (it did not,
+    # so /info priced every point without base and without cap).
+    assert (d_by_id["exp_cost_base"], d_by_id["max_stat_value"]) == (3, 12)
     assert read.find_difficulty_by_id(s_by_uuid["id"], 99) is None
 
     locs = read.find_locations_by_story_id(s_by_uuid["id"])
@@ -326,15 +322,71 @@ def test_delete_match_by_uuid_removes_match_and_children(session_factory):
     saved = adapter.save_match({"id_story": 1, "id_difficulty": 1, "id_user_creator": 1,
                                 "name": "m", "status": "ENDED"})
     adapter.save_locations([{"id_match": saved["id"], "id_location": 1}])
-    adapter.save_registry([{"id": 1, "id_match": saved["id"], "key": "k"}])
+    registry = RegistryStoreAdapter(session_factory)
+    registry.insert_all(saved["id"], [{"key": "k"}])
 
     assert adapter.delete_match_by_uuid(saved["uuid"]) is True
 
     assert adapter.find_match_by_uuid(saved["uuid"]) is None
     assert adapter.find_locations_by_match_id(saved["id"]) == []
-    assert adapter.find_registry_by_match_id(saved["id"]) == []
+    assert registry.find_by_match(saved["id"]) == []
+
+
+def test_delete_match_by_uuid_leaves_no_row_for_a_reused_id(session_factory):
+    """v0.41.1 — SQLite hands a deleted match's id to the next match: no log row may survive it."""
+    from app.adapters.persistence.match.models import (
+        GamingTurnQueueEntity, LogClockHistoryEntity, LogWeatherEntity)
+    adapter = MatchPersistenceAdapter(session_factory)
+    saved = adapter.save_match({"id_story": 1, "id_difficulty": 1, "id_user_creator": 1,
+                                "name": "m", "status": "ENDED"})
+    now = "2026-09-29T00:00:00+00:00"
+    with session_factory() as s:
+        s.add(LogWeatherEntity(id=1, id_match=saved["id"], uuid="w", clock=0, id_weather=1,
+                               timestamp_start=now, ts_insert=now, ts_update=now))
+        s.add(LogClockHistoryEntity(id=1, id_match=saved["id"], uuid="c", clock=1,
+                                    timestamp_start=now, ts_insert=now, ts_update=now))
+        s.add(GamingTurnQueueEntity(id_match=saved["id"], id_character_match=1, uuid="q",
+                                    priority=1, clock=0, status="ACTIVE", pass_counter=0,
+                                    ts_insert=now, ts_update=now))
+        s.commit()
+
+    assert adapter.delete_match_by_uuid(saved["uuid"]) is True
+    reused = adapter.save_match({"id_story": 1, "id_difficulty": 1, "id_user_creator": 1,
+                                 "name": "next", "status": "CREATED"})
+
+    assert reused["id"] == saved["id"]
+    with session_factory() as s:
+        for entity in (LogWeatherEntity, LogClockHistoryEntity, GamingTurnQueueEntity):
+            assert s.query(entity).filter(entity.id_match == reused["id"]).count() == 0
 
 
 def test_delete_match_by_uuid_unknown(session_factory):
     adapter = MatchPersistenceAdapter(session_factory)
     assert adapter.delete_match_by_uuid("nope") is False
+
+
+def test_find_location_neighbors_carries_the_edge_price_and_gate(session_factory):
+    """v0.35.8 — match-info judges and reports each edge from THIS dict. Without the
+    resource costs it called every edge free (and affordable), and without the registry
+    keys it called every gated edge open: the board offered a move POST /move refuses."""
+    from app.adapters.persistence.story.models import LocationNeighborEntity
+
+    with session_factory() as session:
+        session.add(StoryEntity(id=7, uuid="story-edges", author="A"))
+        session.add(LocationNeighborEntity(
+            id=1, id_story=7, uuid="edge-1", id_location_from=1, id_location_to=2,
+            direction="WEST", flag_back=0, energy_cost=1,
+            cost_food=2, cost_magic=3, cost_coin=4,
+            condition_registry_key="door", condition_registry_value="open"))
+        session.commit()
+
+    edges = StoryMatchReadAdapter(session_factory).find_location_neighbors_by_story_id(7)
+
+    assert len(edges) == 1
+    edge = edges[0]
+    assert (edge["cost_food"], edge["cost_magic"], edge["cost_coin"]) == (2, 3, 4)
+    assert edge["condition_registry_key"] == "door"
+    assert edge["condition_registry_value"] == "open"
+    # and what was already there stays there
+    assert (edge["id_location_from"], edge["id_location_to"]) == (1, 2)
+    assert edge["energy_cost"] == 1

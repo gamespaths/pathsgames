@@ -48,7 +48,8 @@ class StoryQueryServiceDefaultsTest {
         d.setMinCharacter(everyStat);
         d.setMaxCharacter(everyStat);
         d.setCostHelpComa(everyStat);
-        d.setCostMaxCharacteristics(everyStat);
+        d.setExpCostBase(everyStat);
+        d.setMaxStatValue(everyStat);
         d.setNumberMaxFreeAction(everyStat);
         d.setLife(everyStat);
         d.setEnergy(everyStat);
@@ -106,7 +107,8 @@ class StoryQueryServiceDefaultsTest {
         assertEquals(1, d.getMinCharacter());
         assertEquals(4, d.getMaxCharacter());
         assertEquals(3, d.getCostHelpComa());
-        assertEquals(3, d.getCostMaxCharacteristics());
+        assertEquals(0, d.getExpCostBase());
+        assertEquals(0, d.getMaxStatValue());
         assertEquals(1, d.getNumberMaxFreeAction());
         assertEquals(100, d.getLife());
         assertEquals(100, d.getEnergy());

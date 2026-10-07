@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   effectStatItems, itemCap, itemCarryBadges, itemDescriptionBadges, itemPromiseBadges,
-  unitsPerUse, unitsPerDrop,
+  registryChangeItems, unitsPerUse, unitsPerDrop,
 } from '../utils/statBadges'
 
 const t = (k) => k
@@ -185,5 +185,93 @@ describe('the cap and the cost of a usage (v0.35.1)', () => {
     // One unit per usage is what every pre-v0.35.1 item did: saying so would be noise.
     expect(itemDescriptionBadges({ amount: 4, weight: 1, isConsumabile: true }, k => k)
       .find(b => b.key === 'perUse')).toBeUndefined()
+  })
+})
+
+describe('registryChangeItems (Step 36.1)', () => {
+  const registry = [
+    { key: 'evidence_found', multiValue: true, card: { title: 'Evidence found' } },
+    { key: 'door', multiValue: false, card: { title: 'The door' } },
+    { key: 'no_card', multiValue: false, card: null },
+  ]
+  const result = changes => ({ registryChanges: changes })
+
+  it('names the badge with the key card title, never with the key itself', () => {
+    const badges = registryChangeItems(
+      result([{ key: 'evidence_found', oldValue: null, newValue: 'ledger' }]), registry)
+
+    expect(badges).toEqual([{ key: 'registry:evidence_found', label: 'Evidence found',
+      value: '+ledger', icon: 'fas fa-scroll', color: null }])
+  })
+
+  it('falls back to the key name when the author wrote no card for it', () => {
+    const badges = registryChangeItems(result([{ key: 'no_card', newValue: 'x' }]), registry)
+    expect(badges[0].label).toBe('no_card')
+  })
+
+  it('says nothing about a key the story hid', () => {
+    // /info never carries a hidden key, so it is not in the registry the board holds — and a
+    // badge would announce on the outcome card the very secret the story is keeping.
+    expect(registryChangeItems(result([{ key: 'secret_door', newValue: 'OPEN' }]), registry))
+      .toEqual([])
+  })
+
+  it('says nothing when there is no key, and nothing when nothing moved', () => {
+    expect(registryChangeItems(result([
+      { key: null, newValue: 'orphan' },
+      { key: 'evidence_found', oldValue: 'ledger', newValue: 'ledger' },
+      { key: 'evidence_found', oldValue: null, newValue: '' },
+    ]), registry)).toEqual([])
+  })
+
+  it('survives a payload with no changes and a board with no registry', () => {
+    expect(registryChangeItems({}, registry)).toEqual([])
+    expect(registryChangeItems(result([{ key: 'evidence_found', newValue: 'ledger' }]), null))
+      .toEqual([])
+  })
+
+  it('shows only what JOINED a multi key, not the set it joined', () => {
+    // The whole point: on a key already holding three clues, the fourth is the news.
+    const badges = registryChangeItems(
+      result([{ key: 'evidence_found', oldValue: 'ledger,seal', newValue: 'ledger,letter,seal' }]),
+      registry)
+    expect(badges[0].value).toBe('+letter')
+  })
+
+  it('shows what LEFT a multi key, emptying it included', () => {
+    expect(registryChangeItems(
+      result([{ key: 'evidence_found', oldValue: 'ledger,letter', newValue: 'letter' }]),
+      registry)[0].value).toBe('-ledger')
+
+    // The last member going is news too — the old "no value, no badge" reading lost it.
+    expect(registryChangeItems(
+      result([{ key: 'evidence_found', oldValue: 'ledger', newValue: null }]),
+      registry)[0].value).toBe('-ledger')
+  })
+
+  it('reads a replacement on a single key as both halves of the move', () => {
+    expect(registryChangeItems(
+      result([{ key: 'door', oldValue: 'SHUT', newValue: 'OPEN' }]), registry)[0].value)
+      .toBe('+OPEN -SHUT')
+    // Nothing there before: only the arrival is the delta.
+    expect(registryChangeItems(
+      result([{ key: 'door', oldValue: null, newValue: 'OPEN' }]), registry)[0].value)
+      .toBe('+OPEN')
+  })
+
+  it('never splits a SINGLE key value on its commas', () => {
+    // A multi key's members are comma-joined by the backend; a single key's value is opaque
+    // and may hold one. Splitting blindly would invent members that never existed.
+    expect(registryChangeItems(
+      result([{ key: 'door', oldValue: null, newValue: 'Rome, Italy' }]), registry)[0].value)
+      .toBe('+Rome, Italy')
+  })
+
+  it('namespaces the key so a story key cannot steal a statistic glyph', () => {
+    const badges = registryChangeItems(result([{ key: 'life', newValue: 'cursed' }]),
+      [{ key: 'life', card: { title: 'The Curse' } }])
+    // Left bare, STAT_VISUAL['life'] would hand this badge the red heart of the life stat.
+    expect(badges[0].key).toBe('registry:life')
+    expect(badges[0].icon).toBe('fas fa-scroll')
   })
 })

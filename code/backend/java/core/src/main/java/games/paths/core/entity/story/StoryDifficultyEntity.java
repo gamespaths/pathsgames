@@ -27,8 +27,13 @@ public class StoryDifficultyEntity extends StatStoryEntity {
     @Column(name = "cost_help_coma", nullable = false)
     private Integer costHelpComa;
 
-    @Column(name = "cost_max_characteristics", nullable = false)
-    private Integer costMaxCharacteristics;
+    /** Step 38 — flat addend of the use-exp cost; <= 0 reads as 0. */
+    @Column(name = "exp_cost_base", nullable = false)
+    private Integer expCostBase;
+
+    /** Step 38 — cap on DEX/INT/COS reachable through use-exp; <= 0 = no cap. */
+    @Column(name = "max_stat_value", nullable = false)
+    private Integer maxStatValue;
 
     @Column(name = "number_max_free_action", nullable = false)
     private Integer numberMaxFreeAction;
@@ -48,7 +53,8 @@ public class StoryDifficultyEntity extends StatStoryEntity {
         if (minCharacter == null) minCharacter = 1;
         if (maxCharacter == null) maxCharacter = 4;
         if (costHelpComa == null) costHelpComa = 3;
-        if (costMaxCharacteristics == null) costMaxCharacteristics = 3;
+        if (expCostBase == null) expCostBase = 0;
+        if (maxStatValue == null) maxStatValue = 0;
         if (numberMaxFreeAction == null) numberMaxFreeAction = 1;
         initStatDefaults();
     }
@@ -68,8 +74,11 @@ public class StoryDifficultyEntity extends StatStoryEntity {
     public Integer getCostHelpComa() { return costHelpComa; }
     public void setCostHelpComa(Integer costHelpComa) { this.costHelpComa = costHelpComa; }
 
-    public Integer getCostMaxCharacteristics() { return costMaxCharacteristics; }
-    public void setCostMaxCharacteristics(Integer costMaxCharacteristics) { this.costMaxCharacteristics = costMaxCharacteristics; }
+    public Integer getExpCostBase() { return expCostBase; }
+    public void setExpCostBase(Integer expCostBase) { this.expCostBase = expCostBase; }
+
+    public Integer getMaxStatValue() { return maxStatValue; }
+    public void setMaxStatValue(Integer maxStatValue) { this.maxStatValue = maxStatValue; }
 
     public Integer getNumberMaxFreeAction() { return numberMaxFreeAction; }
     public void setNumberMaxFreeAction(Integer numberMaxFreeAction) { this.numberMaxFreeAction = numberMaxFreeAction; }

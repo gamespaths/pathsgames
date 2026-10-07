@@ -126,7 +126,6 @@ class MatchQueryServiceEventAvailabilityTest {
         when(storyReadPort.findLocationNeighborsByStoryId(STORY_ID)).thenReturn(List.of());
         when(storyReadPort.findEventsByStoryId(STORY_ID)).thenReturn(events);
         when(matchReadPort.findLocationsByMatchId(MATCH_ID)).thenReturn(List.of());
-        when(matchReadPort.findRegistryByMatchId(MATCH_ID)).thenReturn(List.of());
         when(characterReadPort.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(c));
     }
 

@@ -9,6 +9,7 @@ Field access is key-agnostic (camelCase or snake_case) so DB rows and JSON both 
 """
 from typing import Any, Dict, List, Optional, Set
 
+from app.core.models.story.story_uuid import is_valid_story_uuid, normalize_story_uuid
 from app.core.ports.story.story_read_port import StoryReadPort
 from app.core.ports.story.story_validator_port import (
     StoryValidationReport,
@@ -44,6 +45,8 @@ _LOCATION_TRIGGER_FIELDS = (
 #: duplicated rather than imported because the validator lives in the story package and
 #: must not depend on the match engine.
 _EXECUTABLE_EVENT_TYPES = {"NORMAL", "ONCE"}
+_R11 = "R11_RANDOM_EVENT"
+_RANDOM_TYPE = "global-random-events"
 
 
 def _camel_to_snake(name: str) -> str:
@@ -100,6 +103,8 @@ class _Graph:
         self.refs: List[tuple] = []          # (rule, entity_type, entity_id, field, target, value)
         self.neighbors: List[tuple] = []     # (entity_id, frm, to, direction)
         self.key_refs: List[tuple] = []      # (entity_id, type, key)
+        # Step 37 — (entity_type, entity_id, key, value, values) for the R10 rule.
+        self.mission_conds: List[tuple] = []
         # Step 31 — choice id to its raw (idEvent, idLocation), for the R8 binding rule.
         self.choice_data: Dict[str, tuple] = {}
         self.restrictions: List[tuple] = []  # (entity_type, entity_id, permitted, prohibited)
@@ -112,6 +117,10 @@ class _Graph:
         self.location_trigger_events: Dict[int, str] = {}
         self.event_types: Dict[int, str] = {}
         self.events_owning_choices: Set[int] = set()
+        # Step 39 — (entity_id, idEvent, probability, conditionKey, conditionValue) for R11,
+        # and the events owning an effect row that sets the weather.
+        self.random_events: List[tuple] = []
+        self.events_with_weather_effect: Set[int] = set()
 
 
 class StoryValidatorService(StoryValidatorPort):
@@ -125,6 +134,11 @@ class StoryValidatorService(StoryValidatorPort):
         if not story_data:
             report.add("R0_EMPTY", "story", None, None, "story data is null or empty")
             return report
+        # v0.41.5 — import only: a story already stored with a legacy uuid must still validate.
+        story_uuid = normalize_story_uuid(story_data.get("uuid"))
+        if story_uuid is not None and not is_valid_story_uuid(story_uuid):
+            report.add("R0_STORY_UUID", "story", None, "uuid",
+                       f"story uuid '{story_data.get('uuid')}' is not a valid UUID (8-4-4-4-12 hex)")
         self._run_rules(self._build_from_map(story_data), report)
         return report
 
@@ -133,7 +147,14 @@ class StoryValidatorService(StoryValidatorPort):
         if story_id is None:
             report.add("R0_EMPTY", "story", None, None, "storyId is null")
             return report
-        self._run_rules(self._build_from_db(story_id), report)
+        g = self._build_from_db(story_id)
+        self._run_rules(g, report)
+        # Step 37 — reported only here, on the author's own "validate story" pass. Import and
+        # admin-create must not fail on it: every backend IGNORES such a row rather than
+        # refusing it, and a story already carrying one must stay importable.
+        self._validate_missions(g, report)
+        # Step 39 — advisory only: a total above 100 is legal, the engine scales it.
+        self._warn_random_event_total(g, report)
         return report
 
     def validate_story_by_uuid(self, uuid: str) -> Optional[StoryValidationReport]:
@@ -186,6 +207,73 @@ class StoryValidatorService(StoryValidatorPort):
         self._validate_restrictions(g, report)
         self._validate_choices(g, report)  # R8 choice-event binding (Step 31)
         self._validate_location_triggers(g, report)  # R9 automatic events (Step 33)
+        self._validate_random_events(g, report)  # R11 global random events (Step 39)
+
+    def _validate_random_events(self, g: _Graph, report: StoryValidationReport) -> None:
+        """Step 39 — R11_RANDOM_EVENT: a random event runs by itself at time-start, party-wide.
+        It needs an event with no choices and no weather effect, a 0..100 probability and a
+        complete condition (key and value together)."""
+        if not g.random_events:
+            return
+        owning = {id_event for (id_event, _loc) in g.choice_data.values()
+                  if id_event is not None and id_event > 0}
+        for eid, id_event, probability, key, value in g.random_events:
+            if probability is not None and (probability < 0 or probability > 100):
+                report.add(_R11, _RANDOM_TYPE, eid, "probability",
+                           f"probability={probability} is outside 0..100 (step 39)")
+            if id_event is None or id_event <= 0:
+                report.add(_R11, _RANDOM_TYPE, eid, "idEvent",
+                           f"random event {eid} has no idEvent (step 39)")
+            else:
+                if id_event in owning:
+                    report.add(_R11, _RANDOM_TYPE, eid, "idEvent",
+                               f"event {id_event} owns choices — a random event has no one"
+                               " to ask (step 39)")
+                if id_event in g.events_with_weather_effect:
+                    report.add(_R11, _RANDOM_TYPE, eid, "idEvent",
+                               f"event {id_event} has a weather effect — a random event may"
+                               " not change the weather (step 39)")
+            has_key = key is not None and str(key).strip() != ""
+            has_value = value is not None and str(value).strip() != ""
+            if has_key and not has_value:
+                report.add(_R11, _RANDOM_TYPE, eid, "conditionValue",
+                           f"conditionKey={key} has no conditionValue (step 39)")
+            elif has_value and not has_key:
+                report.add(_R11, _RANDOM_TYPE, eid, "conditionKey",
+                           f"conditionValue={value} has no conditionKey (step 39)")
+
+    def _warn_random_event_total(self, g: _Graph, report: StoryValidationReport) -> None:
+        """Step 39 — probabilities summing past 100 are scaled down by the engine: warn."""
+        total = sum(max(0, p or 0) for (_e, _i, p, _k, _v) in g.random_events)
+        if total > 100:
+            report.warn(_R11, _RANDOM_TYPE, None, "probability",
+                        f"random event probabilities sum to {total} (> 100):"
+                        " percentages will be scaled (step 39)")
+
+    def _validate_missions(self, g: _Graph, report: StoryValidationReport) -> None:
+        """Step 37 — a mission whose condition can never be met is silently dead: the engine
+        ignores it, so nothing at runtime will ever tell the author. Only validation can."""
+        for entity_type, eid, key, value, values in g.mission_conds:
+            self._mission_condition(entity_type, eid, key, value, values, report)
+
+    def _mission_condition(self, entity_type: str, eid, key, value, values,
+                           report: StoryValidationReport) -> None:
+        if key is None or not str(key).strip():
+            report.add("R10_MISSION_CONDITION", entity_type, eid, "conditionKey",
+                       f"{entity_type} has no condition key: it can never activate, progress"
+                       " or complete and is ignored by every backend")
+            return
+        no_value = value is None or not str(value).strip()
+        no_values = values is None or not [p for p in str(values).split("|") if p.strip()]
+        if no_value and no_values:
+            report.add("R10_MISSION_CONDITION", entity_type, eid, "conditionValue",
+                       f"{entity_type} condition key '{key}' has no value to compare against,"
+                       " so the condition is never satisfied")
+
+    def _mission_cond(self, g: _Graph, entity_type: str, row: Dict[str, Any]) -> None:
+        g.mission_conds.append((entity_type, self._str(_get(row, "id")),
+                                _get(row, "conditionKey"), _get(row, "conditionValue"),
+                                _get(row, "conditionValues")))
 
     def _validate_choices(self, g: _Graph, report: StoryValidationReport) -> None:
         """Step 31 — story-wide: every choice belongs to an event, and only to an event."""
@@ -388,7 +476,10 @@ class StoryValidatorService(StoryValidatorPort):
         for ce in data.get("choiceEffects") or []:
             self._collect_choice_effect(g, ce)
         for cc in data.get("choiceConditions") or []:
-            self._ref(g, "choice-conditions", self._str(_get(cc, "id")), "idChoices", _CHOICE, _as_int(_get(cc, "idChoices")))
+            cc_owner = _as_int(_get(cc, "idChoices"))
+            if cc_owner is None:
+                cc_owner = _as_int(_get(cc, "idChoice"))
+            self._ref(g, "choice-conditions", self._str(_get(cc, "id")), "idChoices", _CHOICE, cc_owner)
             ctype = _get(cc, "type")
             ckey = _get(cc, "key")
             g.key_refs.append((self._str(_get(cc, "id")),
@@ -406,10 +497,13 @@ class StoryValidatorService(StoryValidatorPort):
             self._ref(g, "class-bonuses", self._str(_get(cb, "id")), "idClass", _CLASS, _as_int(_get(cb, "idClass")))
         for ms in data.get("missionSteps") or []:
             self._ref(g, "mission-steps", self._str(_get(ms, "id")), "idMission", _MISSION, _as_int(_get(ms, "idMission")))
+            self._mission_cond(g, "mission-steps", ms)
+        for m in data.get("missions") or []:
+            self._mission_cond(g, "missions", m)
         for wr in data.get("weatherRules") or []:
             self._ref(g, "weather-rules", self._str(_get(wr, "id")), "idEvent", _EVENT, _as_int(_get(wr, "idEvent")))
         for gr in data.get("globalRandomEvents") or []:
-            self._ref(g, "global-random-events", self._str(_get(gr, "id")), "idEvent", _EVENT, _as_int(_get(gr, "idEvent")))
+            self._collect_random_event(g, gr)
         for n in data.get("locationNeighbors") or []:
             self._collect_neighbor(g, n)
         for it in data.get("items") or []:
@@ -443,6 +537,7 @@ class StoryValidatorService(StoryValidatorPort):
             self._add_id(g.classes, _get(row, "id"))
         for row in missions:
             self._add_id(g.missions, _get(row, "id"))
+            self._mission_cond(g, "missions", row)
         for k in rp.find_entities_for_story(story_id, "list_keys"):
             name = _get(k, "name")
             if name:
@@ -457,7 +552,10 @@ class StoryValidatorService(StoryValidatorPort):
         for ce in rp.find_entities_for_story(story_id, "list_choices_effects"):
             self._collect_choice_effect(g, ce)
         for cc in rp.find_entities_for_story(story_id, "list_choices_conditions"):
-            self._ref(g, "choice-conditions", self._str(_get(cc, "id")), "idChoices", _CHOICE, _as_int(_get(cc, "idChoices")))
+            cc_owner = _as_int(_get(cc, "idChoices"))
+            if cc_owner is None:
+                cc_owner = _as_int(_get(cc, "idChoice"))
+            self._ref(g, "choice-conditions", self._str(_get(cc, "id")), "idChoices", _CHOICE, cc_owner)
             ctype = _get(cc, "type")
             ckey = _get(cc, "key")
             g.key_refs.append((self._str(_get(cc, "id")),
@@ -475,10 +573,11 @@ class StoryValidatorService(StoryValidatorPort):
             self._ref(g, "class-bonuses", self._str(_get(cb, "id")), "idClass", _CLASS, _as_int(_get(cb, "idClass")))
         for ms in rp.find_entities_for_story(story_id, "list_missions_steps"):
             self._ref(g, "mission-steps", self._str(_get(ms, "id")), "idMission", _MISSION, _as_int(_get(ms, "idMission")))
+            self._mission_cond(g, "mission-steps", ms)
         for wr in rp.find_entities_for_story(story_id, "list_weather_rules"):
             self._ref(g, "weather-rules", self._str(_get(wr, "id")), "idEvent", _EVENT, _as_int(_get(wr, "idEvent")))
         for gr in rp.find_entities_for_story(story_id, "list_global_random_events"):
-            self._ref(g, "global-random-events", self._str(_get(gr, "id")), "idEvent", _EVENT, _as_int(_get(gr, "idEvent")))
+            self._collect_random_event(g, gr)
         for n in rp.find_entities_for_story(story_id, "list_locations_neighbors"):
             self._collect_neighbor(g, n)
         for it in items:
@@ -532,7 +631,10 @@ class StoryValidatorService(StoryValidatorPort):
         """v0.32.0 — a choice effect names the option it belongs to and, since Step 32, the
         things a resolution can reach. idWeather is deliberately unchecked: this validator
         has no weather target, exactly as for the event effects."""
+        # v0.37.7 — a stored row spells the owner `id_choice`, the import JSON `idChoices`
         cid = _as_int(_get(ce, "idChoices"))
+        if cid is None:
+            cid = _as_int(_get(ce, "idChoice"))
         if cid is not None:
             g.choices_with_option.add(cid)
         eid = self._str(_get(ce, "id"))
@@ -548,6 +650,18 @@ class StoryValidatorService(StoryValidatorPort):
         self._ref(g, "event-effects", eid, "targetClass", _CLASS, _as_int(_get(ee, "targetClass")))
         # v0.29.3 — forced movement: the location the effect moves its recipients to.
         self._ref(g, "event-effects", eid, "idLocation", _LOCATION, _as_int(_get(ee, "idLocation")))
+        # Step 39 — an effect row that sets the weather marks its event unfit to be random.
+        id_event = _as_int(_get(ee, "idEvent"))
+        id_weather = _as_int(_get(ee, "idWeather"))
+        if id_event and id_event > 0 and id_weather and id_weather > 0:
+            g.events_with_weather_effect.add(id_event)
+
+    def _collect_random_event(self, g, gr):
+        eid = self._str(_get(gr, "id"))
+        id_event = _as_int(_get(gr, "idEvent"))
+        self._ref(g, "global-random-events", eid, "idEvent", _EVENT, id_event)
+        g.random_events.append((eid, id_event, _as_int(_get(gr, "probability")),
+                                _get(gr, "conditionKey"), _get(gr, "conditionValue")))
 
     def _collect_neighbor(self, g, n):
         frm = _as_int(_get(n, "idLocationFrom"))

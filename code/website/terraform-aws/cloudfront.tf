@@ -1,10 +1,14 @@
 # ==================================================
 # ACM Certificate – SSL/TLS for paths.games
 # ==================================================
+# Owned by production (covers *.paths.games, so every <env>.paths.games);
+# the other environments look it up instead of issuing their own.
 
 resource "aws_acm_certificate" "website" {
+  count = local.is_production ? 1 : 0
+
   domain_name               = var.domain_name
-  subject_alternative_names = ["*.${var.domain_name}", "*.${var.second_domain_name}" , var.second_domain_name ]
+  subject_alternative_names = ["*.${var.domain_name}", "*.${var.second_domain_name}", var.second_domain_name]
   validation_method         = "DNS"
 
   lifecycle {
@@ -12,8 +16,16 @@ resource "aws_acm_certificate" "website" {
   }
 
   tags = {
-    Name = "${var.domain_name} SSL Certificate"
+    Name = "${local.name_prefix}-Certificate"
   }
+}
+
+data "aws_acm_certificate" "website" {
+  count = local.is_production ? 0 : 1
+
+  domain      = var.domain_name
+  statuses    = ["ISSUED"]
+  most_recent = true
 }
 
 # ==================================================
@@ -22,10 +34,30 @@ resource "aws_acm_certificate" "website" {
 
 resource "aws_cloudfront_origin_access_control" "website" {
   name                              = "${var.bucket_name}-oac"
-  description                       = "OAC for ${var.domain_name} S3 bucket"
+  description                       = "OAC for ${var.aliases[0]} S3 bucket"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
+}
+
+# ==================================================
+# CloudFront Function – 301 from the old domain (v0.42.0)
+# ==================================================
+# pathsgames.com and www.pathsgames.com → https://<redirect_target_host>, path and query kept.
+# Empty redirect_target_host (test) = no function, nothing associated. Test: node --test functions/redirect.test.mjs
+
+resource "aws_cloudfront_function" "redirect" {
+  count = var.redirect_target_host == "" ? 0 : 1
+
+  name    = "${local.name_prefix}-redirect-old-domain"
+  runtime = "cloudfront-js-2.0"
+  comment = "301 ${var.second_domain_name} to https://${var.redirect_target_host}"
+  publish = true
+
+  code = templatefile("${path.module}/functions/redirect.js", {
+    target_host = var.redirect_target_host
+    old_domain  = var.second_domain_name
+  })
 }
 
 # ==================================================
@@ -35,9 +67,9 @@ resource "aws_cloudfront_origin_access_control" "website" {
 resource "aws_cloudfront_distribution" "website" {
   enabled             = true
   is_ipv6_enabled     = true
-  comment             = "Paths Games Website – ${var.domain_name}"
+  comment             = "Paths Games Website – ${var.aliases[0]}"
   default_root_object = "index.html"
-  aliases             = [var.domain_name, "www.${var.domain_name}", var.second_domain_name, "www.${var.second_domain_name}" ]
+  aliases             = var.aliases
   price_class         = "PriceClass_100" # US + Europe
   http_version        = "http2and3"
   web_acl_id          = var.enable_waf ? aws_wafv2_web_acl.website[0].arn : null
@@ -60,6 +92,15 @@ resource "aws_cloudfront_distribution" "website" {
 
     # Security headers policy
     response_headers_policy_id = aws_cloudfront_response_headers_policy.security.id
+
+    # v0.42.0 — old-domain redirect, only where redirect_target_host is set
+    dynamic "function_association" {
+      for_each = aws_cloudfront_function.redirect
+      content {
+        event_type   = "viewer-request"
+        function_arn = function_association.value.arn
+      }
+    }
   }
 
   # SPA fallback – serve index.html for 404s
@@ -85,13 +126,13 @@ resource "aws_cloudfront_distribution" "website" {
   }
 
   viewer_certificate {
-    acm_certificate_arn      = aws_acm_certificate.website.arn
+    acm_certificate_arn      = local.certificate_arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
   }
 
   tags = {
-    Name = "${var.domain_name} Distribution"
+    Name = "${local.name_prefix}-Distribution"
   }
 }
 
@@ -99,36 +140,34 @@ resource "aws_cloudfront_distribution" "website" {
 # Content Security Policy – domain expansion from SSM
 # ==================================================
 #
-# Each base domain read from SSM is expanded into two origins:
+# Each base domain (shared SSM lists + var.csp_extra_domains) is expanded into two origins:
 #   "example.com" → "https://example.com" + "https://*.example.com"
 # Special values ('self', 'unsafe-inline', data:) are hardcoded
 # below because they are not domains and do not belong in SSM.
 # ==================================================
 
 locals {
-  # Helper: split CSV StringList SSM → expand each base domain into https://domain + https://*.domain
-  _expand = { for k, v in {
-    script  = aws_ssm_parameter.csp_script_domains.value
-    style   = aws_ssm_parameter.csp_style_domains.value
-    font    = aws_ssm_parameter.csp_font_domains.value
-    img     = aws_ssm_parameter.csp_img_domains.value
-    connect = aws_ssm_parameter.csp_connect_domains.value
-  } : k => flatten([for d in split(",", v) : ["https://${trimspace(d)}", "https://*.${trimspace(d)}"]]) }
+  _expand = { for k, v in local.csp_ssm :
+    k => flatten([for d in concat(split(",", v), lookup(var.csp_extra_domains, k, [])) : ["https://${trimspace(d)}", "https://*.${trimspace(d)}"]])
+  }
 
   csp_script_src  = concat(["'self'"], local._expand["script"])
   csp_style_src   = concat(["'self'", "'unsafe-inline'"], local._expand["style"])
   csp_font_src    = concat(["'self'"], local._expand["font"])
   csp_img_src     = concat(["'self'", "data:"], local._expand["img"])
   csp_connect_src = concat(["'self'"], local._expand["connect"])
+  # v0.41.0 — frame-src comes only from var.csp_extra_domains["frame"] (no SSM list), e.g. the Turnstile iframe.
+  csp_frame_domains = [for d in lookup(var.csp_extra_domains, "frame", []) : trimspace(d)]
+  csp_frame_src     = concat(["'self'"], flatten([for d in local.csp_frame_domains : ["https://${d}", "https://*.${d}"]]))
 
-  csp_header_restricted = join("; ", [
+  csp_header_restricted = join("; ", concat([
     "default-src 'self'",
     "script-src ${join(" ", local.csp_script_src)}",
     "style-src ${join(" ", local.csp_style_src)}",
     "font-src ${join(" ", local.csp_font_src)}",
     "img-src ${join(" ", local.csp_img_src)}",
     "connect-src ${join(" ", local.csp_connect_src)}",
-  ])
+  ], length(local.csp_frame_domains) > 0 ? ["frame-src ${join(" ", local.csp_frame_src)}"] : []))
 
   csp_header_open = "default-src *; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; font-src *; img-src * data:; connect-src *"
 
@@ -136,12 +175,13 @@ locals {
 }
 
 # ==================================================
-# CloudFront Security Headers Policy
+# CloudFront Security Headers Policy (one per environment)
 # ==================================================
 
 resource "aws_cloudfront_response_headers_policy" "security" {
-  name    = "paths-games-security-headers"
-  comment = "Security headers for ${var.domain_name}"
+  # production keeps the historical name; every other environment gets a suffix.
+  name    = local.is_production ? "paths-games-security-headers" : "paths-games-security-headers-${var.environment}"
+  comment = "Security headers for ${var.aliases[0]}"
 
   security_headers_config {
     strict_transport_security {

@@ -10,13 +10,14 @@ import { isMobileViewport, scrollMobileIntoView } from './mobileView'
  * the board owes the player and survive a reload on purpose.
  */
 const INITIAL = {
-  view: 'board',        // 'board' | 'info' | 'items' | 'map'
+  view: 'board',        // 'board' | 'info' | 'items' | 'registry' | 'missions' | 'missionSteps' | 'map' | 'exp'
   previewLeft: null,    // { card, type, ... } | { kind: 'coma' | 'sad' } | null
   previewRight: null,   // { kind, ... } | null
   previewModal: null,   // the mobile (i) modal payload | null
   pendingChoices: null, // { card, choices } | null
   counterZero: null,    // CounterZeroItem[] | null
   mapSelected: null,    // the node clicked on the map | null
+  missionSelected: null,// the mission whose steps fill the right page | null
   sleepCardForced: false,
 }
 
@@ -24,7 +25,7 @@ const INITIAL = {
 // mobile (i) modal are deliberately left alone — see `resetForReload` for the wider sweep.
 function closeAll(state) {
   return { ...state, view: 'board', previewLeft: null, previewRight: null,
-    mapSelected: null, sleepCardForced: false }
+    mapSelected: null, missionSelected: null, sleepCardForced: false }
 }
 
 export function bookViewReducer(state, action) {
@@ -39,8 +40,20 @@ export function bookViewReducer(state, action) {
       return { ...closeAll(state), view: 'info', previewLeft: action.preview }
     case 'openItems':
       return { ...closeAll(state), view: 'items' }
+    case 'openRegistry':
+      return { ...closeAll(state), view: 'registry' }
+    case 'openMissions':
+      return { ...closeAll(state), view: 'missions' }
+    // v0.37.1 — one mission opened from the grid: its card takes the LEFT page and its steps
+    // the right one, the way the bag and the registry already split the book.
+    case 'openMission':
+      return { ...closeAll(state), view: 'missionSteps',
+        previewLeft: action.preview, missionSelected: action.mission }
     case 'openMap':
       return { ...closeAll(state), view: 'map' }
+    // Step 38 — training: the experience card takes the LEFT page, one card per stat the right.
+    case 'openExp':
+      return { ...closeAll(state), view: 'exp' }
     case 'clearPreview':
       return { ...state, previewLeft: null, previewRight: null, previewModal: null }
     case 'previewLeft':
@@ -127,8 +140,17 @@ export default function useBookView() {
           statItemsToPageContent: [], additionalProps: {} } })
       document.querySelector('.book-page-left .page-inner')?.scrollTo?.({ top: 0, behavior: 'smooth' })
     },
+    openMission: ({ mission, card, stats = [] }) => {
+      dispatch({ type: 'openMission', mission,
+        preview: { card, type: 'missions', lockedReason: null,
+          statItemsToPageContent: stats, additionalProps: {} } })
+      scrollMobileIntoView('.book-mobile-right')
+    },
     openItems: () => { dispatch({ type: 'openItems' }); scrollMobileIntoView('.book-mobile-right') },
+    openRegistry: () => { dispatch({ type: 'openRegistry' }); scrollMobileIntoView('.book-mobile-right') },
+    openMissions: () => { dispatch({ type: 'openMissions' }); scrollMobileIntoView('.book-mobile-right') },
     openMap: () => { dispatch({ type: 'openMap' }); scrollMobileIntoView('.book-mobile-left') },
+    openExp: () => { dispatch({ type: 'openExp' }); scrollMobileIntoView('.book-mobile-right') },
     setPreviewLeft: value => dispatch({ type: 'previewLeft', value }),
     setPreviewRight: value => dispatch({ type: 'previewRight', value }),
     setChoices: value => dispatch({ type: 'setChoices', value }),

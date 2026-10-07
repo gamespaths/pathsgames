@@ -85,6 +85,8 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 (90017, 9001, 106, 'en', 'Mission Board', 'A large board covered with quest notices. Each mission has steps that update the State Registry. "Complete missions to progress the story. Check your registry to track progress!"'),
 (90018, 9001, 106, 'it', 'Bacheca Missioni', 'Una grande bacheca coperta di avvisi di missioni. Ogni missione ha passaggi che aggiornano il Registro di Stato. "Completa le missioni per progredire nella storia. Controlla il tuo registro per tracciare i progressi!"'),
 (90019, 9001, 107, 'en', 'Multiplayer Courtyard', 'An open courtyard where training dummies represent other players. Signs explain: "Players take turns based on a formula using DEX, INT, and COS. When ALL players sleep, a new Time Unit begins."'),
+(91110, 9001, 109, 'en', 'Records Vault', 'A cold room of ledgers and letters. The archivist writes down every visitor — the first arrival and each one after it are recorded differently.'),
+(91111, 9001, 109, 'it', 'Sala degli Archivi', 'Una stanza fredda di registri e lettere. L''archivista annota ogni visitatore: il primo arrivo e quelli successivi sono registrati in modo diverso.'),
 (90020, 9001, 107, 'it', 'Cortile Multigiocatore', 'Un cortile aperto dove manichini da allenamento rappresentano altri giocatori. Cartelli spiegano: "I giocatori agiscono in turno secondo una formula basata su DES, INT e COS. Quando TUTTI dormono, inizia una nuova Unità di Tempo."'),
 (90021, 9001, 108, 'en', 'Graduation Hall', 'A grand hall with a golden trophy at the center. "Congratulations! You have completed the tutorial. You now know the fundamentals of Paths Games. Go forth and play a real story!"'),
 (90022, 9001, 108, 'it', 'Sala della Laurea', 'Una sala maestosa con un trofeo dorato al centro. "Congratulazioni! Hai completato il tutorial. Ora conosci le basi di Paths Games. Vai e gioca una storia vera!"'),
@@ -156,6 +158,8 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 (90086, 9001, 901, 'it', 'Raccogli Oggetti di Addestramento', 'Raccogli e usa una pozione di addestramento e uno spuntino energetico per imparare gli oggetti.'),
 (90087, 9001, 902, 'en', 'Make Your First Choice', 'Enter the Choice Arena and pick a door to experience the choice system.'),
 (90088, 9001, 902, 'it', 'Fai la Tua Prima Scelta', 'Entra nell''Arena delle Scelte e scegli una porta per sperimentare il sistema di scelte.'),
+(90204, 9001, 903, 'en', 'Gather the Evidence', 'Find both the ledger and the letter. The set must hold them together, not one or the other.'),
+(90205, 9001, 903, 'it', 'Raccogli le Prove', 'Trova sia il registro sia la lettera. L''insieme deve contenerle entrambe, non una o l''altra.'),
 -- Mission step texts
 (90089, 9001, 910, 'en', 'Visit the Movement Room', 'Go to the Movement Training Room to learn about navigation.'),
 (90090, 9001, 911, 'en', 'Visit the Energy Classroom', 'Go to the Energy & Life Classroom to understand stats.'),
@@ -186,9 +190,9 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 
 -- ── Difficulties ────────────────────────────────────────────────
 -- Step 23: difficulty 90001 caps trait costs (positive 2 / negative 3); 90002 has no limits (NULL)
-INSERT INTO list_stories_difficulty (id, id_story, id_card, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight, trait_cost_positive_budget, trait_cost_negative_budget) VALUES
-(90001, 9001, 90001, 300, 1, 20, 1, 4, 1, 1, 3, 120, 110,  0, 12, 12, 12, 12, 2, 3),
-(90002, 9001, 90001, 301, 1, 20, 1, 4, 1, 1, 3, 100, 100, 10, 10, 10, 10, 10, NULL, NULL);
+INSERT INTO list_stories_difficulty (id, id_story, id_card, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, exp_cost_base, max_stat_value, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight, trait_cost_positive_budget, trait_cost_negative_budget) VALUES
+(90001, 9001, 90001, 300, 1, 20, 1, 4, 1, 0, 0, 3, 120, 110,  0, 12, 12, 12, 12, 2, 3),
+(90002, 9001, 90001, 301, 1, 20, 1, 4, 1, 0, 0, 3, 100, 100, 10, 10, 10, 10, 10, NULL, NULL);
 
 -- ── Classes ─────────────────────────────────────────────────────
 INSERT INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES
@@ -229,10 +233,29 @@ INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_d
 (90003, 9001, 212, 212, 11, 14, 7, 5, 2, 4, NULL,  90001);
 
 -- ── Keys ────────────────────────────────────────────────────────
-INSERT INTO list_keys (id, id_story, name, value, id_text_description, "group", priority, visibility) VALUES
-(90001, 9001, 'tutorial_progress', '0',     950, 'tutorial', 1, 'PUBLIC'),
-(90002, 9001, 'items_collected',   'false', 951, 'tutorial', 2, 'PUBLIC'),
-(90003, 9001, 'choice_made',       'false', 952, 'tutorial', 3, 'PUBLIC');
+-- Step 36.1: multi_value = 1 makes a key hold a SET — each write adds a member instead of
+-- replacing the value. 'evidence_found' has no default, so its set starts EMPTY: no row.
+INSERT INTO list_keys (id, id_story, name, value, id_text_description, "group", priority, visibility, multi_value) VALUES
+(90001, 9001, 'tutorial_progress', '0',     950, 'tutorial', 1, 'PUBLIC', 0),
+(90002, 9001, 'items_collected',   '0',     951, 'tutorial', 2, 'PUBLIC', 0),
+(90003, 9001, 'choice_made',       '0',     952, 'tutorial', 3, 'PUBLIC', 0),
+(90004, 9001, 'evidence_found',    NULL,    950, 'evidence', 1, 'PUBLIC', 1),
+-- Step 36.2: the case/padding test-bed. 'case_notes' is written with padding and capitals
+-- while every condition on it is authored lowercase and bare; 'signal' is the mirror, its
+-- lowercase default read by a padded, upper-case condition. 'vault_seen' is written by no
+-- event and no choice at all: only a LOCATION writes it, by being entered.
+(90005, 9001, 'case_notes',        NULL,    950, 'evidence', 2, 'PUBLIC', 1),
+(90006, 9001, 'signal',            'green', 950, 'evidence', 3, 'PUBLIC', 0),
+(90007, 9001, 'vault_seen',        NULL,    950, 'evidence', 4, 'PUBLIC', 0),
+-- Step 37: the keys the tutorial missions and their steps read. No default value at all, so
+-- every one of them starts absent and a mission opens only once something has written it.
+(90008, 9001, 'visited_movement',   NULL,   950, 'missions', 1, 'PUBLIC', 0),
+(90009, 9001, 'visited_energy',     NULL,   950, 'missions', 2, 'PUBLIC', 0),
+(90010, 9001, 'visited_graduation', NULL,   950, 'missions', 3, 'PUBLIC', 0),
+(90011, 9001, 'potion_collected',   NULL,   950, 'missions', 4, 'PUBLIC', 0),
+(90012, 9001, 'snack_used',         NULL,   950, 'missions', 5, 'PUBLIC', 0),
+(90013, 9001, 'entered_arena',      NULL,   950, 'missions', 6, 'PUBLIC', 0),
+(90014, 9001, 'door_chosen',        NULL,   950, 'missions', 7, 'PUBLIC', 0);
 
 -- ── Locations (8 training rooms) ────────────────────────────────
 -- Step 26: secure_param > 0 marks a SAFE location (full energy/life recovery and
@@ -241,15 +264,21 @@ INSERT INTO list_keys (id, id_story, name, value, id_text_description, "group", 
 -- player actually stands. The Choice Arena (90005) is UNSAFE (secure_param 0).
 -- Step 27.x: each location carries an id_card (logical FK to list_cards) so
 -- GET /api/match/{uuid}/info returns locationsActive[].idCard + its resolved card.
-INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, cost_energy_enter, max_characters, secure_param, counter_time, id_event_if_counter_zero) VALUES
-(90001, 9001, 90001, 100, 100, 1, 0, 10, 1, 2, NULL),   -- Welcome Hall (start, safe, counter)
-(90002, 9001, 90002, 101, 101, 1, 1, 10, 1, NULL, NULL),-- Movement Training Room (safe)
-(90003, 9001, 90003, 102, 102, 1, 0, 10, 1, NULL, NULL),-- Energy & Life Classroom (safe)
-(90004, 9001, 90002, 103, 103, 1, 0, 10, 1, NULL, NULL),-- Item Workshop (safe)
-(90005, 9001, 90003, 104, 104, 1, 1, 10, 0, NULL, NULL),-- Choice Arena (unsafe)
-(90006, 9001, 90003, 105, 105, 1, 0, 10, 1, NULL, NULL),-- Weather Observatory (safe)
-(90007, 9001, 90002, 106, 106, 1, 0, 10, 1, NULL, NULL),-- Mission Board (safe)
-(90008, 9001, 90001, 107, 107, 1, 0, 10, 1, NULL, NULL);-- Multiplayer Courtyard (safe)
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, cost_energy_enter, max_characters, secure_param, counter_time, id_event_if_counter_zero) VALUES
+(90001, 9001, 90001, 100, 100, 0, 10, 1, 2, NULL),   -- Welcome Hall (start, safe, counter)
+(90002, 9001, 90002, 101, 101, 1, 10, 1, NULL, NULL),-- Movement Training Room (safe)
+(90003, 9001, 90003, 102, 102, 0, 10, 1, NULL, NULL),-- Energy & Life Classroom (safe)
+(90004, 9001, 90002, 103, 103, 0, 10, 1, NULL, NULL),-- Item Workshop (safe)
+(90005, 9001, 90003, 104, 104, 1, 10, 0, NULL, NULL),-- Choice Arena (unsafe)
+(90006, 9001, 90003, 105, 105, 0, 10, 1, NULL, NULL),-- Weather Observatory (safe)
+(90007, 9001, 90002, 106, 106, 0, 10, 1, NULL, NULL),-- Mission Board (safe)
+(90008, 9001, 90001, 107, 107, 0, 10, 1, NULL, NULL);-- Multiplayer Courtyard (safe)
+
+-- Step 36.2 — the Records Vault writes the registry by being entered. Two pairs: the first
+-- arrival and every later one take different branches, never both, and no event is involved.
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, cost_energy_enter, max_characters, secure_param, counter_time, id_event_if_counter_zero,
+                            key_to_add, key_value_to_add, key_to_add_not_first, key_value_to_add_not_first) VALUES
+(90009, 9001, 90001, 109, 109, 0, 10, 1, NULL, NULL, 'vault_seen', 'first', 'vault_seen', 'again');
 
 -- ── Location Neighbors ──────────────────────────────────────────
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
@@ -260,7 +289,8 @@ INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_locatio
 (90005, 9001, 90005, 90006, 'NORTH', 1, 1),   -- Choice ↔ Weather Observatory
 (90006, 9001, 90006, 90007, 'EAST',  1, 0),   -- Weather ↔ Mission Board
 (90007, 9001, 90007, 90008, 'NORTH', 1, 0),   -- Mission ↔ Multiplayer Courtyard
-(90008, 9001, 90001, 90008, 'EAST',  1, 1);   -- Welcome ↔ Multiplayer (shortcut)
+(90008, 9001, 90001, 90008, 'EAST',  1, 1),   -- Welcome ↔ Multiplayer (shortcut)
+(90009, 9001, 90001, 90009, 'SOUTH', 1, 0);   -- Welcome ↔ Records Vault (Step 36.2, free)
 
 -- Step 0.28.2 — optional return card: when the player stands on locationTo (90002)
 -- the Welcome↔Movement edge shows id_card_back (catalog card 90003) instead of card.
@@ -339,6 +369,7 @@ INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_descriptio
 (90026, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- resources: food/magic/coin
 (90027, 9001, 90001, 503, 503, 90001, 'AUTOMATIC', 0, 0, 0, NULL, NULL, NULL,           NULL,   NULL,  NULL),   -- EVENT_NOT_EXECUTABLE_TYPE
 (90028, 9001, 90001, 503, 503, 90001, 'NORMAL',    2, 0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- v0.29.3 teleporter: its effect moves the actor to 90006
+(90060, 9001, 90001, 503, 503, 90009, 'NORMAL',    0, 0, 1, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- v0.36.3 bell: ends the time unit AND moves the actor to 90002
 -- v0.34.0 inventory pair: 90029 is gated by item 90003, which 90030 grants. Because 90003
 -- is CONSUMABLE, using it must close 90029 again — that is the step-34 acceptance test.
 (90050, 9001, 90001, 503, 503, 90001, 'NORMAL',    0, 0, 0, NULL,  NULL, NULL,           NULL,  90003,  NULL),   -- ITEM_CONDITION_NOT_MET until 90051 grants item 90003
@@ -407,6 +438,12 @@ INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, va
 INSERT INTO list_events_effects (id, id_story, id_event, id_card, value, target, id_location) VALUES
 (90023, 9001, 90028, 90001, 0, 'ONLY_ONE', 90006);
 
+-- v0.36.3 — the bell (90060) moves the actor to the Movement Training Room (90002) AND ends
+-- the time unit. The two together used to cancel each other out on AWS, and 90002 is where
+-- a first arrival fires an automatic event, so one execution reads both fixes at once.
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, value, target, id_location) VALUES
+(90060, 9001, 90060, 90001, 0, 'ONLY_ONE', 90002);
+
 -- ── Step 33 Events — the ones nobody asks for ───────────────────
 -- Bound to no location of their own: an automatic event is named BY the location, through
 -- list_locations.id_event_*, so id_specific_location stays NULL and /info never offers them
@@ -463,8 +500,8 @@ INSERT INTO list_choices_conditions (id, id_story, id_choices, type, key, value,
 INSERT INTO list_choices_effects (id, id_story, id_choices, statistics, value, key, value_to_add) VALUES
 (90001, 9001, 90001, 'exp',     5,  'choice_made', 'gold'),
 (90002, 9001, 90002, 'life',   -1,  'choice_made', 'red'),
-(90003, 9001, 90003, 'exp',     3,  'items_collected', 'true'),
-(90004, 9001, 90004, 'exp',    10,  'tutorial_complete', 'true');
+(90003, 9001, 90003, 'exp',     3,  'items_collected', '1'),
+(90004, 9001, 90004, 'exp',    10,  'tutorial_complete', '1');
 
 -- ── Step 31 Choice pack — the choice-engine test-bed ────────────
 -- Two choice-events at the START location (90001): executing them answers
@@ -566,25 +603,139 @@ INSERT INTO list_choices_effects (id, id_story, id_choices, id_card, statistics,
 -- Grove (90003, which no neighbor edge reaches), and the inactive Arcane Storm (90004).
 (90021, 9001, 90021, 90001, NULL, 0, 'STEP32_GATE', 'OPEN', 90001, 'ADD', 90003, 90004, NULL);
 
+-- ── Step 36.1 multi-value pack — the SET test-bed ───────────────
+-- Four events at the START hall (90001), every one of them FREE. A zero cost is what keeps
+-- them invisible to the Step 31/32 finders, which only ever pick a choice-event that costs
+-- something: this pack must not become the fixture those suites address by behaviour.
+--   90360 / 90361  add one member each to the multi key, and are repeatable — running one
+--                  twice must leave the set unchanged, which is the whole point of a SET.
+--   90362          is gated on evidence_found = letter, so it stays blocked until 90361 has
+--                  run: it proves = quantifies EXISTENTIALLY over the members.
+--   90363          is a choice-event whose only option TAKES ONE MEMBER AWAY — value_to_remove
+--                  on a multi key removes that member and leaves the rest, where on a single
+--                  key it still clears the value.
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location,
+                         type, cost_enery, cost_coin, flag_end_time, id_event_next,
+                         id_weather, registry_key_condition, registry_value_condition,
+                         id_item_condition, id_class_condition) VALUES
+(90360, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL,             NULL,     NULL, NULL),
+(90361, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL,             NULL,     NULL, NULL),
+(90362, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, 'evidence_found', 'letter', NULL, NULL),
+(90363, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL,             NULL,     NULL, NULL);
+
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES
+(90360, 9001, 90360, 90001, 'ONLY_ONE', 'evidence_found', 'ledger'),
+(90361, 9001, 90361, 90001, 'ONLY_ONE', 'evidence_found', 'letter');
+
+-- otherwise_flag 1 and no narrative: always selectable, and never the option the Step 32
+-- suite is looking for (it wants a narrated one).
+INSERT INTO list_choices (id, id_story, id_card, id_event, priority, id_text_name, id_text_description,
+                          id_text_narrative, id_event_torun,
+                          otherwise_flag, is_progress, logic_operator, limit_dex) VALUES
+(90360, 9001, 90001, 90363, 1, 500, 500, NULL, NULL, 1, 0, 'AND', NULL);
+
+INSERT INTO list_choices_effects (id, id_story, id_choices, id_card, key, value_to_remove) VALUES
+(90360, 9001, 90360, 90001, 'evidence_found', 'ledger');
+
+-- v0.36.1 — the same event carries a SECOND option, gated on the multi key with !=, so one
+-- open shows both readings at once: the option is offered while the set does not hold the
+-- value and refused once it does. otherwise_flag 0 (a real verdict) and an effect of its own,
+-- which R4_CHOICE_EMPTY requires of any option that is not the fallback.
+INSERT INTO list_choices (id, id_story, id_card, id_event, priority, id_text_name, id_text_description,
+                          id_text_narrative, id_event_torun,
+                          otherwise_flag, is_progress, logic_operator, limit_dex) VALUES
+(90361, 9001, 90001, 90363, 2, 500, 500, NULL, NULL, 0, 0, 'AND', NULL);
+
+INSERT INTO list_choices_conditions (id, id_story, id_choices, type, key, value, operator) VALUES
+(90360, 9001, 90361, 'KEYS', 'evidence_found', 'ledger', '!=');
+
+INSERT INTO list_choices_effects (id, id_story, id_choices, id_card, statistics, value) VALUES
+(90361, 9001, 90361, 90001, 'exp', 1);
+
+-- ── Step 36.2 case-and-padding pack — spelling must not decide a gate ───
+-- Four more FREE events at the START hall (90001), for the same reason as the 36.1 pack:
+-- a zero cost keeps them invisible to the Step 31/32 finders.
+--   90370  WRITES ' Ledger ' — padded and capitalised, exactly as a careless author writes.
+--   90371  READS  'ledger'   — bare and lowercase. It must open once 90370 has run, which
+--                              is the whole claim of v0.36.2 in one pair of rows.
+--   90372  WRITES 'LEDGER'   — a third spelling of the member the set already holds. The set
+--                              must stay at one member: a duplicate is not a new value.
+--   90373  READS  '  GREEN ' — the mirror direction: a padded, upper-case condition against
+--                              the lowercase default 'signal' carries from list_keys. Open
+--                              from the very first turn, with nothing written at all.
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location,
+                         type, cost_enery, cost_coin, flag_end_time, id_event_next,
+                         id_weather, registry_key_condition, registry_value_condition,
+                         registry_value_operator_condition,
+                         id_item_condition, id_class_condition) VALUES
+(90370, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL,         NULL,        '=', NULL, NULL),
+(90371, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, 'case_notes', 'ledger',    '=', NULL, NULL),
+(90372, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL,         NULL,        '=', NULL, NULL),
+(90373, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, 'signal',     '  GREEN  ', '=', NULL, NULL);
+
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES
+(90370, 9001, 90370, 90001, 'ONLY_ONE', 'case_notes', ' Ledger '),
+(90372, 9001, 90372, 90001, 'ONLY_ONE', 'case_notes', 'LEDGER');
+
+-- ── Step 37 mission pack — a writer for every mission condition ────────
+-- Until now the seven mission-step keys were read by the steps and written by nothing at all,
+-- so no tutorial mission could ever move. These are FREE NORMAL events at the start hall, the
+-- same shape as the 36.1 and 36.2 packs: a zero cost keeps them invisible to the Step 31/32
+-- finders while giving each condition exactly one thing that can satisfy it.
+--   90380-90382  open the three missions (tutorial_progress, items_collected, choice_made)
+--   90383-90389  close their steps, in the order the steps declare them
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location,
+                         type, cost_enery, cost_coin, flag_end_time, id_event_next,
+                         id_weather, registry_key_condition, registry_value_condition,
+                         id_item_condition, id_class_condition) VALUES
+(90380, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL),
+(90381, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL),
+(90382, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL),
+(90383, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL),
+(90384, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL),
+(90385, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL),
+(90386, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL),
+(90387, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL),
+(90388, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL),
+(90389, 9001, 90001, 500, 500, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES
+(90380, 9001, 90380, 90001, 'ONLY_ONE', 'tutorial_progress',  '1'),
+(90381, 9001, 90381, 90001, 'ONLY_ONE', 'items_collected',    '1'),
+(90382, 9001, 90382, 90001, 'ONLY_ONE', 'choice_made',        'gold'),
+(90383, 9001, 90383, 90001, 'ONLY_ONE', 'visited_movement',   '1'),
+(90384, 9001, 90384, 90001, 'ONLY_ONE', 'visited_energy',     '1'),
+(90385, 9001, 90385, 90001, 'ONLY_ONE', 'visited_graduation', '1'),
+(90386, 9001, 90386, 90001, 'ONLY_ONE', 'potion_collected',   '1'),
+(90387, 9001, 90387, 90001, 'ONLY_ONE', 'snack_used',         '1'),
+(90388, 9001, 90388, 90001, 'ONLY_ONE', 'entered_arena',      '1'),
+(90389, 9001, 90389, 90001, 'ONLY_ONE', 'door_chosen',        '1');
+
 -- ── Global Random Events ────────────────────────────────────────
 INSERT INTO list_global_random_events (id, id_story, condition_key, condition_value, probability) VALUES
 (90001, 9001, NULL, NULL, 10);
 
 -- ── Missions ────────────────────────────────────────────────────
-INSERT INTO list_missions (id, id_story, condition_key, condition_value_from, condition_value_to, id_text_name, id_text_description) VALUES
-(90001, 9001, 'tutorial_progress',  '0', '3', 900, 900),
-(90002, 9001, 'items_collected',    NULL, 'true', 901, 901),
-(90003, 9001, 'choice_made',        NULL, 'gold', 902, 902);
+-- Step 37: condition_value replaces the from/to pair, and condition_values is a PIPE list
+-- read as an AND. Mission 90004 has NO steps and reads a multi key: both members must be in
+-- the set, so it goes AVAILABLE and COMPLETED in the same write once they are.
+-- v0.37.2: every mission carries a CARD. The board renders a mission as a card and the match
+-- log narrates a MISSION_CHANGE row with it, so a mission without one reads as a bare title.
+INSERT INTO list_missions (id, id_story, id_card, condition_key, condition_value, condition_values, id_text_name, id_text_description) VALUES
+(90001, 9001, 90002, 'tutorial_progress', '1',    NULL,            900, 900),
+(90002, 9001, 90003, 'items_collected',   '1',    NULL,            901, 901),
+(90003, 9001, 90001, 'choice_made',       'gold', NULL,            902, 902),
+(90004, 9001, 90002, 'evidence_found',    NULL,   'ledger|letter', 903, 903);
 
 -- ── Mission Steps ───────────────────────────────────────────────
-INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_from, condition_value_to, id_text_name, id_text_description) VALUES
-(90001, 9001, 90001, 1, 'visited_movement',  NULL, 'true', 910, 910),
-(90002, 9001, 90001, 2, 'visited_energy',    NULL, 'true', 911, 911),
-(90003, 9001, 90001, 3, 'visited_graduation', NULL, 'true', 912, 912),
-(90004, 9001, 90002, 1, 'potion_collected',  NULL, 'true', 920, 920),
-(90005, 9001, 90002, 2, 'snack_used',        NULL, 'true', 921, 921),
-(90006, 9001, 90003, 1, 'entered_arena',     NULL, 'true', 930, 930),
-(90007, 9001, 90003, 2, 'door_chosen',       NULL, 'true', 931, 931);
+INSERT INTO list_missions_steps (id, id_story, id_mission, id_card, step, condition_key, condition_value, condition_values, id_text_name, id_text_description) VALUES
+(90001, 9001, 90001, 90003, 1, 'visited_movement',   '1', NULL, 910, 910),
+(90002, 9001, 90001, 90003, 2, 'visited_energy',     '1', NULL, 911, 911),
+(90003, 9001, 90001, 90002, 3, 'visited_graduation', '1', NULL, 912, 912),
+(90004, 9001, 90002, 90003, 1, 'potion_collected',   '1', NULL, 920, 920),
+(90005, 9001, 90002, 90002, 2, 'snack_used',         '1', NULL, 921, 921),
+(90006, 9001, 90003, 90001, 1, 'entered_arena',      '1', NULL, 930, 930),
+(90007, 9001, 90003, 90003, 2, 'door_chosen',        '1', NULL, 931, 931);
 
 -- ── Creator ─────────────────────────────────────────────────────
 INSERT INTO list_creator (id, id_story, link, url, url_image) VALUES
@@ -745,10 +896,10 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 (91107, 9002, 11, 'en', 'hours', 'hours');
 
 -- ── Difficulties ────────────────────────────────────────────────
-INSERT INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
-(91001, 9002, 300, 3, 20, 1, 4, 2, 2, 3, 130, 120,  0, 12, 12, 14, 14),
-(91002, 9002, 301, 5, 12, 1, 4, 3, 3, 1, 100, 100, 10, 10, 10, 10, 10),
-(91003, 9002, 302, 8, 8,  2, 3, 5, 5, 0,  80,  90, 20,  8,  8,  8,  8);
+INSERT INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, exp_cost_base, max_stat_value, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(91001, 9002, 300, 3, 20, 1, 4, 2, 0, 0, 3, 130, 120,  0, 12, 12, 14, 14),
+(91002, 9002, 301, 5, 12, 1, 4, 3, 0, 0, 1, 100, 100, 10, 10, 10, 10, 10),
+(91003, 9002, 302, 8, 8,  2, 3, 5, 0, 0, 0,  80,  90, 20,  8,  8,  8,  8);
 
 -- ── Classes ─────────────────────────────────────────────────────
 INSERT INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES
@@ -786,24 +937,32 @@ INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_d
 
 -- ── Keys ────────────────────────────────────────────────────────
 INSERT INTO list_keys (id, id_story, name, value, id_text_description, "group", priority, visibility) VALUES
-(91001, 9002, 'monastery_records', 'false', 950, 'evidence',  1, 'PUBLIC'),
-(91002, 9002, 'monk_testimony',    'false', 951, 'evidence',  2, 'PUBLIC'),
-(91003, 9002, 'countess_letter',   'false', 952, 'diplomacy', 3, 'PUBLIC');
+(91001, 9002, 'monastery_records', '0',     950, 'evidence',  1, 'PUBLIC'),
+(91002, 9002, 'monk_testimony',    '0',     951, 'evidence',  2, 'PUBLIC'),
+(91003, 9002, 'countess_letter',   '0',     952, 'diplomacy', 3, 'PUBLIC'),
+-- v0.37.1: written by nothing but the START LOCATION, and only as the match starts. The party
+-- never ENTERS the place it opens in, so this is the one key no arrival could ever write.
+(91004, 9002, 'journey_begun',     NULL,    950, 'missions',  4, 'PUBLIC');
 
 -- ── Locations (12) ─────────────────────────────────────────────
-INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, cost_energy_enter, max_characters) VALUES
-(91001, 9002, 91001, 100, 100, 1, 0, 10),   -- Castelfranco Veneto (start)
-(91002, 9002, 91002, 101, 101, 1, 1, 15),   -- Treviso
-(91003, 9002, 91003, 102, 102, 1, 1, 20),   -- Padova
-(91004, 9002, 91002, 103, 103, 0, 2, 8),    -- Bassano del Grappa
-(91005, 9002, 91001, 104, 104, 1, 1, 6),    -- Asolo
-(91006, 9002, 91002, 105, 105, 1, 1, 10),   -- Cittadella
-(91007, 9002, 91003, 106, 106, 0, 2, 4),    -- Monastero di Campese
-(91008, 9002, 91002, 107, 107, 0, 2, 6),    -- Marostica
-(91009, 9002, 91003, 108, 108, 0, 2, 4),    -- Paludi del Sile
-(91010, 9002, 91001, 109, 109, 0, 2, 12),   -- Vicenza
-(91011, 9002, 91002, 110, 110, 0, 2, 6),    -- Bosco del Montello
-(91012, 9002, 91003, 111, 111, 1, 0, 8);    -- Ponte di Piave
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, cost_energy_enter, max_characters) VALUES
+(91001, 9002, 91001, 100, 100, 0, 10),   -- Castelfranco Veneto (start)
+(91002, 9002, 91002, 101, 101, 1, 15),   -- Treviso
+(91003, 9002, 91003, 102, 102, 1, 20),   -- Padova
+(91004, 9002, 91002, 103, 103, 2, 8),    -- Bassano del Grappa
+(91005, 9002, 91001, 104, 104, 1, 6),    -- Asolo
+(91006, 9002, 91002, 105, 105, 1, 10),   -- Cittadella
+(91007, 9002, 91003, 106, 106, 2, 4),    -- Monastero di Campese
+(91008, 9002, 91002, 107, 107, 2, 6),    -- Marostica
+(91009, 9002, 91003, 108, 108, 2, 4),    -- Paludi del Sile
+(91010, 9002, 91001, 109, 109, 2, 12),   -- Vicenza
+(91011, 9002, 91002, 110, 110, 2, 6),    -- Bosco del Montello
+(91012, 9002, 91003, 111, 111, 0, 8);    -- Ponte di Piave
+
+-- v0.37.1: the starting location writes its FIRST-ENTRY pair when the match starts, since the
+-- party begins standing in it and no arrival will ever fire there. Mission 91001 reads this key.
+UPDATE list_locations SET key_to_add = 'journey_begun', key_value_to_add = 'yes'
+ WHERE id = 91001 AND id_story = 9002;
 
 -- ── Location Neighbors ──────────────────────────────────────────
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
@@ -873,8 +1032,8 @@ INSERT INTO list_choices (id, id_story, id_event, priority, id_text_name, id_tex
 -- ── Choice Conditions ───────────────────────────────────────────
 INSERT INTO list_choices_conditions (id, id_story, id_choices, type, key, value, operator) VALUES
 (91001, 9002, 91001, 'statistics', 'dex',               '3', '>'),    -- Fight: needs DEX > 3
-(91002, 9002, 91003, 'KEYS',       'monastery_records', 'true', '='), -- Present records: must have them
-(91003, 9002, 91004, 'KEYS',       'monk_testimony',    'true', '='); -- Call monk: must have testimony
+(91002, 9002, 91003, 'KEYS',       'monastery_records', '1', '='), -- Present records: must have them
+(91003, 9002, 91004, 'KEYS',       'monk_testimony',    '1', '='); -- Call monk: must have testimony
 
 -- ── Choice Effects ──────────────────────────────────────────────
 INSERT INTO list_choices_effects (id, id_story, id_choices, statistics, value, key, value_to_add) VALUES
@@ -887,24 +1046,31 @@ INSERT INTO list_choices_effects (id, id_story, id_choices, statistics, value, k
 -- ── Global Random Events ────────────────────────────────────────
 INSERT INTO list_global_random_events (id, id_story, condition_key, condition_value, probability) VALUES
 (91001, 9002, NULL,              NULL,    15),   -- Random bandits anywhere
-(91002, 9002, 'monk_testimony', 'false',  20),   -- Spy events while monk not found
+(91002, 9002, 'monk_testimony', '0',  20),   -- Spy events while monk not found
 (91003, 9002, NULL,              NULL,    10);   -- Minor random encounters
 
 -- ── Missions ────────────────────────────────────────────────────
-INSERT INTO list_missions (id, id_story, condition_key, condition_value_from, condition_value_to, id_text_name, id_text_description) VALUES
-(91001, 9002, 'trial_result',      NULL, 'records_presented', 900, 900),
-(91002, 9002, 'monastery_records', NULL, 'true',              901, 901),
-(91003, 9002, 'escort_secured',    NULL, 'true',              902, 902);
+INSERT INTO list_missions (id, id_story, condition_key, condition_value, id_text_name, id_text_description) VALUES
+(91001, 9002, 'trial_result',      'records_presented', 900, 900),
+(91002, 9002, 'monastery_records', '1',                 901, 901),
+(91003, 9002, 'escort_secured',    '1',                 902, 902),
+-- v0.37.1: the one mission only the START location can open. The party never enters the place
+-- the story opens in, so this key is written as the match starts and by nothing else.
+(91004, 9002, 'journey_begun',     'yes',               900, 900);
+UPDATE list_missions       SET id_card = 91002 WHERE id = 91004 AND id_story = 9002;
 
 -- ── Mission Steps ───────────────────────────────────────────────
-INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_from, condition_value_to, id_text_name, id_text_description) VALUES
-(91001, 9002, 91001, 1, 'visited_monastery', NULL,  'true',              910, 910),
-(91002, 9002, 91001, 2, 'monk_found',        NULL,  'true',              911, 911),
-(91003, 9002, 91001, 3, 'trial_result',      NULL,  'records_presented', 912, 912),
-(91004, 9002, 91002, 1, 'met_anselmo',       NULL,  'true',              920, 920),
-(91005, 9002, 91002, 2, 'monk_testimony',    NULL,  'true',              921, 921),
-(91006, 9002, 91003, 1, 'soldiers_recruited', NULL, 'true',              930, 930),
-(91007, 9002, 91003, 2, 'road_cleared',      NULL,  'true',              931, 931);
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value, id_text_name, id_text_description) VALUES
+(91001, 9002, 91001, 1, 'visited_monastery',  '1',                 910, 910),
+(91002, 9002, 91001, 2, 'monk_found',         '1',                 911, 911),
+(91003, 9002, 91001, 3, 'trial_result',       'records_presented', 912, 912),
+(91004, 9002, 91002, 1, 'met_anselmo',        '1',                 920, 920),
+(91005, 9002, 91002, 2, 'monk_testimony',     '1',                 921, 921),
+(91006, 9002, 91003, 1, 'soldiers_recruited', '1',                 930, 930),
+(91007, 9002, 91003, 2, 'road_cleared',       '1',                 931, 931),
+-- v0.37.1: a step nothing satisfies, so mission 91004 opens AVAILABLE and stays there.
+(91008, 9002, 91004, 1, 'monastery_records',  '1',                 910, 910);
+UPDATE list_missions_steps SET id_card = 91003 WHERE id = 91008 AND id_story = 9002;
 
 -- ── Creator ─────────────────────────────────────────────────────
 INSERT INTO list_creator (id, id_story, link, url, url_image) VALUES

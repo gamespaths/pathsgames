@@ -5,7 +5,6 @@ import games.paths.core.entity.match.GamingCharacterInstanceEntity;
 import games.paths.core.entity.match.GamingCharacterInstanceEntityId;
 import games.paths.core.entity.match.GamingCharacterTraitsEntity;
 import games.paths.core.entity.match.GamingInventoryItemsEntity;
-import games.paths.core.entity.match.GamingStateRegistryEntity;
 import games.paths.core.entity.match.GamingStoryProgressEntity;
 import games.paths.core.entity.match.LogChoicesExecutedEntity;
 import games.paths.core.entity.match.LogEventsEntity;
@@ -28,7 +27,6 @@ import games.paths.core.repository.match.GamingCharacterInstanceRepository;
 import games.paths.core.repository.match.GamingCharacterTraitsRepository;
 import games.paths.core.repository.match.GamingInventoryItemsRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
-import games.paths.core.repository.match.GamingStateRegistryRepository;
 import games.paths.core.repository.match.GamingStoryProgressRepository;
 import games.paths.core.repository.match.LogChoicesExecutedRepository;
 import games.paths.core.repository.match.LogEventsRepository;
@@ -45,6 +43,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import games.paths.core.model.match.LogTable;
+import games.paths.core.port.match.LogIdPort;
 
 /**
  * EventExecutionStoreAdapter - JPA adapter implementing {@link EventExecutionStorePort}
@@ -67,7 +67,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     private final GamingBackpackResourcesRepository backpackRepository;
     private final GamingInventoryItemsRepository inventoryRepository;
     private final GamingCharacterTraitsRepository traitsRepository;
-    private final GamingStateRegistryRepository registryRepository;
+    private final games.paths.core.port.match.RegistryStorePort registryStorePort;
     private final LogEventsRepository logEventsRepository;
     private final LogItemUsageRepository logItemUsageRepository;
     private final LogMovementRepository logMovementRepository;
@@ -75,6 +75,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     private final GamingStoryProgressRepository storyProgressRepository;
     private final StoryReadPort storyReadPort;
     private final WeatherStorePort weatherStorePort;
+    private final LogIdPort logIds;
 
     @SuppressWarnings("java:S107") // one collaborator per table the event engine touches
     public EventExecutionStoreAdapter(GamingMatchRepository matchRepository,
@@ -82,20 +83,21 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
                                       GamingBackpackResourcesRepository backpackRepository,
                                       GamingInventoryItemsRepository inventoryRepository,
                                       GamingCharacterTraitsRepository traitsRepository,
-                                      GamingStateRegistryRepository registryRepository,
+                                      games.paths.core.port.match.RegistryStorePort registryStorePort,
                                       LogEventsRepository logEventsRepository,
                                       LogItemUsageRepository logItemUsageRepository,
                                       LogMovementRepository logMovementRepository,
                                       LogChoicesExecutedRepository logChoicesRepository,
                                       GamingStoryProgressRepository storyProgressRepository,
                                       StoryReadPort storyReadPort,
-                                      WeatherStorePort weatherStorePort) {
+                                      WeatherStorePort weatherStorePort,
+                                      LogIdPort logIds) {
         this.matchRepository = matchRepository;
         this.characterRepository = characterRepository;
         this.backpackRepository = backpackRepository;
         this.inventoryRepository = inventoryRepository;
         this.traitsRepository = traitsRepository;
-        this.registryRepository = registryRepository;
+        this.registryStorePort = registryStorePort;
         this.logEventsRepository = logEventsRepository;
         this.logItemUsageRepository = logItemUsageRepository;
         this.logMovementRepository = logMovementRepository;
@@ -103,6 +105,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
         this.storyProgressRepository = storyProgressRepository;
         this.storyReadPort = storyReadPort;
         this.weatherStorePort = weatherStorePort;
+        this.logIds = logIds;
     }
 
     // ── resolve ─────────────────────────────────────────────────────────────
@@ -294,10 +297,17 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
             }
         }
 
-        Map<String, String> registry = new HashMap<>();
-        for (GamingStateRegistryEntity r : registryRepository.findByIdMatch(idMatch)) {
-            if (r.getKey() != null) {
-                registry.put(r.getKey(), registryValue(r));
+        // Step 36.1 — one entry per key holding its whole set. A multi-valued key owns several
+        // rows, and the flat map this used to build collapsed them to the last one silently.
+        Map<String, List<String>> registry = new HashMap<>();
+        for (games.paths.core.port.match.RegistryStorePort.RegistryRow r
+                : registryStorePort.findByMatch(idMatch)) {
+            if (r.key() != null) {
+                String value = games.paths.core.service.match.RegistryService.render(r);
+                List<String> values = registry.computeIfAbsent(r.key(), k -> new ArrayList<>());
+                if (value != null) {
+                    values.add(value);
+                }
             }
         }
 
@@ -321,6 +331,11 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
      * is anchored on the {@link #MSG_EVENT_EXECUTED} marker.</p>
      */
     private Set<Long> consumedEventIds(long idMatch) {
+        return consumedEventIds(logEventsRepository, idMatch);
+    }
+
+    /** Step 39 - shared with {@link RandomEventStoreAdapter}. */
+    static Set<Long> consumedEventIds(LogEventsRepository logEventsRepository, long idMatch) {
         Set<Long> consumed = new HashSet<>();
         for (LogEventsEntity l : logEventsRepository.findByIdMatchOrderByIdAsc(idMatch)) {
             String msg = l.getLogMessage();
@@ -473,34 +488,6 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     }
 
     @Override
-    public void upsertRegistry(long idMatch, String key, String value,
-                               Long idCharacter, Long idEvent, int clock) {
-        if (key == null || key.isBlank()) {
-            return;
-        }
-        List<GamingStateRegistryEntity> rows = registryRepository.findByIdMatch(idMatch);
-        for (GamingStateRegistryEntity r : rows) {
-            if (key.equals(r.getKey())) {
-                applyValue(r, value);
-                r.setIdCharacter(idCharacter);
-                r.setIdEvent(idEvent);
-                r.setClock(clock);
-                registryRepository.save(r);
-                return;
-            }
-        }
-        GamingStateRegistryEntity e = new GamingStateRegistryEntity();
-        e.setId(nextId(rows.stream().map(GamingStateRegistryEntity::getId)));
-        e.setIdMatch(idMatch);
-        e.setKey(key);
-        applyValue(e, value);
-        e.setIdCharacter(idCharacter);
-        e.setIdEvent(idEvent);
-        e.setClock(clock);
-        registryRepository.save(e);
-    }
-
-    @Override
     public void setCurrentWeather(long idMatch, Long idWeather) {
         weatherStorePort.setCurrentWeather(idMatch, idWeather);
     }
@@ -518,7 +505,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     public void insertMovementLog(long idMatch, long idCharacter, Long fromLocation, long toLocation,
                                   int energyCost, int foodCost, int magicCost, int coinCost) {
         LogMovementEntity e = new LogMovementEntity();
-        e.setId(logMovementRepository.findMaxId() + 1);
+        e.setId(logIds.nextId(LogTable.MOVEMENTS));
         e.setIdMatch(idMatch);
         e.setIdCharacterMatch(idCharacter);
         e.setIdLocationFrom(fromLocation);
@@ -534,7 +521,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     public void logEventExecuted(long idMatch, Long idCharacter, long idEvent, int clock, String message,
                                  SpentResources spent, ResourceDelta gained) {
         LogEventsEntity e = new LogEventsEntity();
-        e.setId(logEventsRepository.findMaxId() + 1);
+        e.setId(logIds.nextId(LogTable.EVENTS));
         e.setIdMatch(idMatch);
         e.setIdCharacterMatch(idCharacter);
         e.setIdEvent(idEvent);
@@ -556,7 +543,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     @Override
     public void logItemAction(long idMatch, long idCharacter, long idItem, String action,
                               int counter, Long idEvent, String effectsJson, ResourceDelta delta) {
-        ItemLogRows.append(logItemUsageRepository, idMatch, idCharacter, idItem, action,
+        ItemLogRows.append(logItemUsageRepository, logIds, idMatch, idCharacter, idItem, action,
                 counter, idEvent, effectsJson, delta);
     }
 
@@ -668,7 +655,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     @Override
     public void logChoiceExecuted(long idMatch, long idEvent, long idChoice, int clock, String message) {
         LogChoicesExecutedEntity e = new LogChoicesExecutedEntity();
-        e.setId(logChoicesRepository.findMaxId() + 1);
+        e.setId(logIds.nextId(LogTable.CHOICES_EXECUTED));
         e.setIdMatch(idMatch);
         e.setIdEvent(idEvent);
         e.setIdChoise(idChoice);
@@ -690,30 +677,6 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────
-
-    /** A numeric value lands in int_value, anything else in string_value (never both). */
-    private static void applyValue(GamingStateRegistryEntity r, String value) {
-        if (value == null) {
-            r.setStringValue(null);
-            r.setIntValue(null);
-            return;
-        }
-        try {
-            r.setIntValue(Integer.valueOf(value.trim()));
-            r.setStringValue(null);
-        } catch (NumberFormatException notNumeric) {
-            r.setStringValue(value);
-            r.setIntValue(null);
-        }
-    }
-
-    /** Mirrors WeatherStoreAdapter.findRegistryValue: the string wins, else the int. */
-    private static String registryValue(GamingStateRegistryEntity r) {
-        if (r.getStringValue() != null) {
-            return r.getStringValue();
-        }
-        return r.getIntValue() == null ? null : String.valueOf(r.getIntValue());
-    }
 
     private long nextInventoryId(long idMatch) {
         return nextId(inventoryRepository.findByIdMatch(idMatch).stream()

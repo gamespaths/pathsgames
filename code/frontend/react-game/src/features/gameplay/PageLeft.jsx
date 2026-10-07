@@ -4,8 +4,11 @@ import LocationCard from './cards/LocationCard'
 import ComaCard from './cards/ComaCard'
 import SadnessCard from './cards/SadnessCard'
 import ItemsCard from './cards/ItemsCard'
+import ExperienceCard from './cards/ExperienceCard'
+import RegistryCard from './cards/RegistryCard'
+import MissionCard from './cards/MissionCard'
 import InformationCard from './cards/InformationCard'
-import { bagSummaryProps } from './js/boardProps'
+import { bagSummaryProps, expSummaryProps, missionsSummaryProps, registrySummaryProps } from './js/boardProps'
 
 /**
  * PageLeft — the LEFT reading page, in priority order: an open choice-event, an edge
@@ -15,7 +18,8 @@ import { bagSummaryProps } from './js/boardProps'
 export default function PageLeft({
   view, pendingChoices, previewLeft, story, t, playerStats, clock, gameData, matchLocations,
   mapSelected, actualLocationCard, storyCard, loading,
-  onCloseChoices, onCloseLeft, onCloseItems, onSelectMapNode, onBack,
+  onCloseChoices, onCloseLeft, onCloseItems, onCloseRegistry, onCloseMissions, onCloseMission,
+  onCloseExp, onSelectMapNode, onBack,
 }) {
   // Step 31 — an open choice-event: the event card sits here, without an execute button;
   // its back arrow ends the event (and clears the options on the right).
@@ -40,6 +44,32 @@ export default function PageLeft({
   if (view === 'items') {
     return <ItemsCard variant="page" story={story} onClose={onCloseItems}
       {...bagSummaryProps(playerStats)} />
+  }
+  // Step 38 — training owns the left page the same way the bag does: the experience held and
+  // the price list live here, one card per stat fills the right page.
+  if (view === 'exp') {
+    return <ExperienceCard variant="page" story={story} onClose={onCloseExp}
+      {...expSummaryProps(playerStats)} />
+  }
+  // Step 36 — the registry owns the left page the same way the bag does: the title and the
+  // way back live here, the keys themselves fill the right page.
+  if (view === 'registry') {
+    return <RegistryCard variant="page" story={story} onClose={onCloseRegistry}
+      {...registrySummaryProps(gameData)} />
+  }
+  // Step 37 — the missions own the left page the same way the registry does.
+  if (view === 'missions') {
+    return <MissionCard variant="page" story={story} onClose={onCloseMissions}
+      {...missionsSummaryProps(gameData)} />
+  }
+  // v0.37.1 — one mission opened from the grid reads here while its steps fill the right page;
+  // the back arrow returns to the grid, not to the board.
+  if (view === 'missionSteps' && previewLeft) {
+    // showZeros is not optional: the status badge carries a WORD, and BonusBadgeList drops
+    // anything whose value is not a non-zero number — which is why Done never appeared here.
+    return <Card variant="page" card={previewLeft.card} entityType="missions" loading={false}
+      story={story} onClose={onCloseMission} bonusBadgeShowZeros
+      statItemsToPageContent={previewLeft.statItemsToPageContent} hidePreview />
   }
   // Step 0.28.5 — the world map takes over the left page; its back arrow returns to the board.
   if (view === 'map') {
@@ -68,5 +98,5 @@ export default function PageLeft({
     return <LocationCard locationsActive={gameData?.info?.locationsActive}
       location={actualLocationCard} card={actualLocationCard} story={story} loading={loading} />
   }
-  return storyCard ? <Card variant="page" card={storyCard} loading={false} story={story} /> : null
+  return storyCard ? <Card variant="page" card={storyCard} loading={false} story={story} entityType="story" /> : null
 }

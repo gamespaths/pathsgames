@@ -6,6 +6,9 @@ need to build, run, or test a specific component.
 Python and Robot Framework commands ALWAYS run inside the virtualenv: `source .venv/bin/activate`.
 All commands run from the working directory named in each section.
 
+Full reference for every script under `code/scripts/dev/` and the Docker test-image builds
+under `code/scripts/test/`: `code/scripts/dev/README.md`.
+
 ## Java backend (primary) — `code/backend/java/`
 
 ```bash
@@ -42,18 +45,25 @@ pytest tests --cov=app --cov-report=term-missing
 NEVER run these without explicit user confirmation.
 
 ```bash
-/code/script/dev/aws_backend_deploy.sh
-/code/script/dev/aws_backend_remove.sh
+code/scripts/test/aws/aws_backend_deploy.sh [dev|test] [--auto-confirm]  # also selects stack pathsgames-<env>
+code/scripts/test/aws/aws_backend_remove.sh [dev|test]                  # also selects stack pathsgames-<env>
+code/scripts/test/aws/aws_set_admin_ip.sh [dev|test] [--dry-run]       # admin allow-list = caller IP (no redeploy)
+code/scripts/prod/aws_backend_deploy_stage.sh <alpha|beta|prod>         # v0.41.0, stage deploy: caller-IP detection, explicit parameters, refuses a missing/default-secret stage JWT
+code/scripts/prod/aws_terraform_deploy.sh <test|production> <cmd>   # v0.42.0, terraform wrapper (was terraform-aws/tf.sh)
+code/scripts/prod/aws_create_policy_github_actions.sh [--dry-run] [--account-id ID] [--attach-user U [--detach-full]]  # IAM policy paths-games-deployer
 ```
+
+Both dev and test live in `us-east-2` (Ohio); prod has its own region/bucket and is deployed
+only via `sam deploy --config-env prod` from `code/backend/aws/` (not through these scripts).
 
 ## Robot E2E tests — `code/tests/robot/`
 
 ```bash
 # via scripts (from repo root)
-code/script/dev/run_robots/run_robot_with_local_java.sh          # Java + SQLite
-code/script/dev/run_robots/run_robot_with_local_java_postgres.sh # Java + PostgreSQL
-code/script/dev/run_robots/run_robot_with_local_python.sh
-code/script/dev/run_robots/run_robot_with_aws_serverless.sh
+code/scripts/dev/run_robots/run_robot_with_local_java.sh          # Java + SQLite
+code/scripts/dev/run_robots/run_robot_with_local_java_postgres.sh # Java + PostgreSQL
+code/scripts/dev/run_robots/run_robot_with_local_python.sh
+code/scripts/dev/run_robots/run_robot_with_aws_serverless.sh
 
 # manually (from code/tests/robot/)
 robot --variablefile variables/dev.yaml --outputdir reports/ tests/
@@ -70,30 +80,36 @@ npm run dev    # http://localhost:5172, proxies /api/* -> http://localhost:8044 
 npm run test
 ```
 
-## Flask admin console (alternative) — `code/frontend/python-flask-admin/`
+## React game frontend — `code/frontend/react-game/`
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python run.py                                        # http://localhost:5098 (admin port 8044)
-ADMIN_BASE_URL=http://localhost:8044 python run.py   # explicit backend URL
-pytest                                               # 35 unit tests (backend mocked)
-pytest --cov=app --cov-report=term-missing
-```
-
-## Flask game frontend (alternative) — `code/frontend/python-flask-game/`
-
-```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python run.py                                   # http://localhost:5099 (mock data)
-BASE_URL=http://localhost:8042 python run.py    # live backend mode
-pytest                                          # 35 unit tests
-pytest --cov=app --cov-report=term-missing
+npm install
+npm run dev    # http://localhost:5174, proxies /api/* -> http://localhost:8042 (public port)
+npm run test
+npm run test:coverage
 ```
 
 ## SonarQube
 
 ```bash
-code/script/dev/run_sonar_scanner_java.sh
+code/scripts/dev/sonar/run_sonar_scanner_java.sh
+```
+
+## JWT admin token and dependency scan (v0.41.0) — `code/scripts/dev/`
+
+```bash
+code/scripts/dev/mint_admin_token.sh [--days 365]     # prints a long-lived admin JWT signed with .env's JWT_SECRET
+code/scripts/dev/run_dependency_scan.sh [--only java,python,aws,react-admin,react-game]  # OSV-Scanner; exits 2 with install instructions if osv-scanner is missing
+```
+
+Report under `code/scripts/dev/dependency_scan_results/` (git-ignored). Same `osv-scanner.toml`
+config as the CI job `.github/workflows/dependency-scan.yml`.
+
+## Stress tests (k6) — `code/tests/stress/`
+
+```bash
+./run_stress.sh -l "1 10" -c          # VU levels in series, cleanup robottest* after each (needs docker or k6)
+./run_stress.sh -b http://localhost:8080 -a http://localhost:8044 -l "10 100"   # other backend URLs
+./cleanup.sh [-n] [-f]               # remove leftover robottest* data (dry run / admin-API sweep)
+./run_stress.sh -h                    # options; README.md in the folder for details
 ```

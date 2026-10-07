@@ -45,7 +45,21 @@ public interface TimeAdvancementPort {
                         * <b>list</b>, because several counters can expire on one time-start,
                         * and empty in the ordinary case.
                         */
-                       List<CounterZeroItem> counterZero) {
+                       List<CounterZeroItem> counterZero,
+                       /**
+                        * v0.35.6 — the Step 30 verdict of the time-start the sleep set off:
+                        * the recovery's own, folded with the events it fired. Same shape
+                        * execute-event answers, and none() when nothing was triggered.
+                        */
+                       EventExecutionPort.EdgeStateOutcome edgeState) {
+
+        /** A sleep that moved no edge. */
+        public SleepResult(String matchUuid, String characterUuid, boolean isSleeping,
+                           boolean timeEndTriggered, int currentClock,
+                           List<RecoveryItem> recovery, List<CounterZeroItem> counterZero) {
+            this(matchUuid, characterUuid, isSleeping, timeEndTriggered, currentClock,
+                    recovery, counterZero, EventExecutionPort.EdgeStateOutcome.none());
+        }
     }
 
     /**
@@ -71,7 +85,8 @@ public interface TimeAdvancementPort {
      * a name string (v0.28.6 removed the synthetic {@code locationName} fields).</p>
      */
     record CounterZeroItem(String trigger,
-                           long idLocation,
+                           /** Step 39 - null for a RANDOM_EVENT. */
+                           Long idLocation,
                            games.paths.core.model.story.CardInfo card,
                            games.paths.core.model.story.CardInfo cardLocation,
                            List<EventExecutionPort.AppliedEffect> cardEffects,
@@ -82,6 +97,28 @@ public interface TimeAdvancementPort {
         public static final String VISIBILITY_FULL = "FULL";
         public static final String VISIBILITY_NAMED = "NAMED";
         public static final String VISIBILITY_ANONYMOUS = "ANONYMOUS";
+    }
+
+    /** Step 40 - the weather in force after a forced time-start; {@code changed} vs before it. */
+    record TimeStartWeather(long idWeather,
+                            String uuid,
+                            Integer idCard,
+                            games.paths.core.model.story.CardInfo card,
+                            Integer deltaEnergy,
+                            Integer costMoveSafeLocation,
+                            Integer costMoveNotSafeLocation,
+                            boolean changed) {
+
+        public TimeStartWeather withCard(games.paths.core.model.story.CardInfo resolved) {
+            return new TimeStartWeather(idWeather, uuid, idCard, resolved, deltaEnergy,
+                    costMoveSafeLocation, costMoveNotSafeLocation, changed);
+        }
+    }
+
+    /** Step 40 - what an action that ended the time early tells its caller. */
+    record TimeEndNews(int newClock,
+                       List<CounterZeroItem> counterZero,
+                       TimeStartWeather weather) {
     }
 
     /**

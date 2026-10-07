@@ -6,12 +6,17 @@ Parameters:
   Environment:
     Type: String
     Default: dev
-    Description: "Ambiente di deploy (dev, prod, ecc.)"
+    AllowedValues: [dev, test, alpha, beta, prod]
+    Description: "Deploy environment. Suffix of every resource name, API stage and Lambda ENV; the Environment tag is mapped from it (prod -> production)."
+  Version:
+    Type: String
+    Default: "0.38.1"
+    Description: "Project version, applied as the `version` tag on every resource. Source: VERSION in the root .env; code/scripts/dev/bump-version.sh keeps this default in sync."
   JwtSecret:
     Type: String
     NoEcho: true
     Default: PathsGamesDevSecret2026_MustBeAtLeast32Chars!
-    Description: "Secret key for JWT verification"
+    Description: "Secret key for JWT signing and verification. v0.41.0: outside dev/test the committed default makes every handler answer 500 MISCONFIGURED."
   TurnstileSecretKey:
     Type: String
     NoEcho: true
@@ -24,9 +29,59 @@ Parameters:
     Description: "Optional Robot-test bypass token. When non-empty, an incoming turnstileToken equal to this value skips Cloudflare verification. Leave empty in prod."
   AllowMockAccess:
     Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: "Enable MOCK_ACCESS_/MOCK_REFRESH_ tokens (dev convenience). v0.41.0: default false; the dev/test deploy script passes true."
+  # Step 41 — fixed-window limits per source IP on POST /api/auth/guest and POST /api/matches,
+  # plus (v0.41.0) matches per guest per day; "0" disables a bucket (Robot and stress runs).
+  RateLimitGuestPerIp:
+    Type: String
+    Default: "20"
+    Description: "Max new guest sessions per source IP per window. 0 = disabled."
+  RateLimitMatchPerIp:
+    Type: String
+    Default: "20"
+    Description: "Max new matches per source IP per window. 0 = disabled."
+  RateLimitWindowSeconds:
+    Type: String
+    Default: "3600"
+    Description: "Length of the rate-limit window, in seconds."
+  RateLimitMatchPerGuest:
+    Type: String
+    Default: "10"
+    Description: "v0.41.0 - max new matches per guest (user uuid) per guest window. 0 = disabled."
+  RateLimitMatchPerGuestWindowSeconds:
+    Type: String
+    Default: "86400"
+    Description: "v0.41.0 - length of the per-guest window, in seconds."
+  # v0.41.0 — the daily job deleting the guests idle for N days that created no match.
+  GuestCleanupEnabled:
+    Type: String
     Default: "true"
     AllowedValues: ["true", "false"]
-    Description: "Enable MOCK_ACCESS_/MOCK_REFRESH_ tokens (dev convenience). Set to 'false' in production."
+    Description: "v0.41.0 - run the daily idle-guest cleanup (GuestCleanupFunction)."
+  GuestCleanupAgeDays:
+    Type: String
+    Default: "60"
+    Description: "v0.41.0 - days since the last access after which a match-less guest is deleted."
+  GuestCleanupMaxPerRun:
+    Type: String
+    Default: "500"
+    Description: "v0.41.0 - at most this many guests per run (and per withoutMatches=true admin call); the rest goes the next day."
+  GuestCleanupSchedule:
+    Type: String
+    Default: "cron(42 0 * * ? *)"
+    Description: "v0.41.0 - EventBridge Scheduler expression of the cleanup, evaluated in UTC."
+  # v0.39.1 — robottest guests/matches get a DynamoDB ttl, honoured only on dev/test stacks.
+  RobotTestDataTtlHours:
+    Type: String
+    Default: "0"
+    Description: "Hours after which Robot test guests and matches expire via TTL. 0 = disabled."
+  CsrfEnforced:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: "Require the csrfToken issued at login back as X-CSRF-TOKEN on POST /api/matches."
   SeedBcryptHash:
     Type: String
     NoEcho: true
@@ -51,13 +106,121 @@ Parameters:
   AdminIpWhitelist:
     Type: String
     Default: ""
-    Description: "Comma-separated list of IPs allowed to call /api/admin/** endpoints. Empty = no IP restriction (insecure, dev only). Example: 1.2.3.4,5.6.7.8"
+    Description: "Comma-separated list of IPs allowed to call /api/admin/** endpoints. Empty = what AdminIpEmptyMeans says (default: nobody). Example: 1.2.3.4,5.6.7.8"
+  AdminIpEmptyMeans:
+    Type: String
+    Default: nobody
+    AllowedValues: [nobody, everybody]
+    Description: "v0.41.0 - meaning of an empty AdminIpWhitelist on the authorizer and every admin handler: nobody (admin API closed) or everybody."
+  StoryCacheTtlSeconds:
+    Type: String
+    Default: "3600"
+    Description: "v0.37.5 - seconds a Lambda container keeps a STORY item in memory (0 = no cache). A SYSTEM#cache stamp already invalidates on every write; POST /api/admin/cache/flush invalidates everywhere."
+  WebsiteBucket:
+    Type: String
+    Default: ""
+    Description: "v0.37.6 - S3 bucket of the game website (test.paths.games). POST /api/admin/stories/catalog writes data/stories-{lang}.json there; empty = endpoint answers 503."
+  WebsiteCloudFrontId:
+    Type: String
+    Default: ""
+    Description: "v0.37.6 - CloudFront distribution id of the website, invalidated (/data/stories-*.json only) after a catalog write. Empty = no invalidation."
+  CatalogLangs:
+    Type: String
+    Default: "en,it"
+    Description: "v0.37.6 - languages written by the static catalog export."
+  TableBillingMode:
+    Type: String
+    Default: PAY_PER_REQUEST
+    AllowedValues: [PAY_PER_REQUEST, PROVISIONED]
+    Description: "v0.37.5 - PROVISIONED keeps a dev table inside the always-free 25 RCU/WCU (table + GSIs share them); prod stays PAY_PER_REQUEST."
+  TableReadCapacity:
+    Type: Number
+    Default: 10
+    Description: "Table RCU when PROVISIONED (ignored otherwise)."
+  TableWriteCapacity:
+    Type: Number
+    Default: 10
+    Description: "Table WCU when PROVISIONED (ignored otherwise)."
+  GsiReadCapacity:
+    Type: Number
+    Default: 5
+    Description: "RCU of each GSI when PROVISIONED (ignored otherwise)."
+  GsiWriteCapacity:
+    Type: Number
+    Default: 5
+    Description: "WCU of each GSI when PROVISIONED (ignored otherwise)."
+  LambdaSystemLogLevel:
+    Type: String
+    Default: WARN
+    AllowedValues: [DEBUG, INFO, WARN]
+    Description: "v0.37.5 - WARN drops the START/END/REPORT lines of every invocation (CloudWatch ingestion); INFO brings the REPORT back for memory tuning."
+  # v0.42.0 — public stages (alpha, beta, prod) only: API throttling, alarms and the monthly budget.
+  ApiThrottleRate:
+    Type: Number
+    Default: 50
+    Description: "v0.42.0 - steady requests per second of the public API stage (public stages only)."
+  ApiThrottleBurst:
+    Type: Number
+    Default: 100
+    Description: "v0.42.0 - burst requests of the public API stage (public stages only)."
+  AdminApiThrottleRate:
+    Type: Number
+    Default: 5
+    Description: "v0.42.0 - steady requests per second of the admin API stage (public stages only)."
+  AdminApiThrottleBurst:
+    Type: Number
+    Default: 10
+    Description: "v0.42.0 - burst requests of the admin API stage (public stages only)."
+  AlarmEmail:
+    Type: String
+    Default: ""
+    Description: "v0.42.0 - email of the SNS alarm topic. Empty = no topic, no subscription, no alarm."
+  CreateBudget:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: "v0.42.0 - create the monthly AWS budget filtered on the Project tag (true only for alpha)."
+  BudgetLimit:
+    Type: Number
+    Default: 10
+    Description: "v0.42.0 - monthly budget limit, in USD."
+  BudgetEmail:
+    Type: String
+    Default: ""
+    Description: "v0.42.0 - email warned at 80% actual and 100% forecast of the budget. Empty = no notification."
+
+Mappings:
+  # Environment tag value per deploy environment. The parameter keeps `prod` because resource
+  # names, the API stage and the Lambda ENV guards key on it; only the tag says `production`.
+  # Project tag = Paths.games.aws.<Name>.serverless.
+  EnvironmentTags:
+    dev:
+      Name: dev
+      Project: Paths.games.aws.dev.serverless
+    test:
+      Name: test
+      Project: Paths.games.aws.test.serverless
+    alpha:
+      Name: alpha
+      Project: Paths.games.aws.alpha.serverless
+    beta:
+      Name: beta
+      Project: Paths.games.aws.beta.serverless
+    prod:
+      Name: production
+      Project: Paths.games.aws.production.serverless
 
 Conditions:
+  IsProvisioned: !Equals [!Ref TableBillingMode, PROVISIONED]
   HasCustomDomain: !Not [!Equals [!Ref CustomDomainName, ""]]
   HasCustomDomainAndHostedZone: !And
     - !Not [!Equals [!Ref CustomDomainName, ""]]
     - !Not [!Equals [!Ref CustomDomainHostedZoneId, ""]]
+  # v0.42.0 — hardening of the public stages; dev and test never get any of it.
+  IsPublicStage: !Or
+    - !Equals [!Ref Environment, alpha]
+    - !Equals [!Ref Environment, beta]
+    - !Equals [!Ref Environment, prod]
 
 Resources:
   # DynamoDB Table (Single Table Design)
@@ -65,11 +228,27 @@ Resources:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: !Sub "PathsGamesBackend-${Environment}"
+      # v0.42.0 — public stages: point-in-time recovery and deletion protection (restore runbook: code/scripts/alpha/README.md).
+      PointInTimeRecoverySpecification: !If
+        - IsPublicStage
+        - PointInTimeRecoveryEnabled: true
+        - !Ref AWS::NoValue
+      DeletionProtectionEnabled: !If [IsPublicStage, true, false]
       Tags:
-        - Key: project
-          Value: PathsGames
-        - Key: env
-          Value: !Ref Environment
+        - Key: Name
+          Value: !Sub "PathsGamesBackend-${Environment}"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !FindInMap [EnvironmentTags, !Ref Environment, Project]
+        - Key: version
+          Value: !Ref Version
       AttributeDefinitions:
         - AttributeName: PK
           AttributeType: S
@@ -88,8 +267,21 @@ Resources:
           KeyType: HASH
         - AttributeName: SK
           KeyType: RANGE
-      BillingMode: PAY_PER_REQUEST
+      # v0.37.5 — PROVISIONED (dev) stays inside the always-free 25 RCU/WCU; prod is on-demand.
+      BillingMode: !Ref TableBillingMode
+      # v0.37.7 — the rate-limit counters (RATELIMIT#…) carry a `ttl` so they expire on their own.
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      ProvisionedThroughput: !If
+        - IsProvisioned
+        - ReadCapacityUnits: !Ref TableReadCapacity
+          WriteCapacityUnits: !Ref TableWriteCapacity
+        - !Ref AWS::NoValue
       GlobalSecondaryIndexes:
+        # v0.37.5 — both indexes are INCLUDE projections: a match's state and a story's
+        # 300 KB of texts are never replicated. GSI1 = "by owner" (USER_MATCHES#<uuid>,
+        # GUEST_TOKEN#<token>), GSI2 = "by type" (MATCH, STORY_LIST, GUEST_LIST).
         - IndexName: GSI1
           KeySchema:
             - AttributeName: GSI1_PK
@@ -97,11 +289,36 @@ Resources:
             - AttributeName: GSI1_SK
               KeyType: RANGE
           Projection:
-            ProjectionType: ALL
-        # v0.28.1 — "by type" index. Every match METADATA item carries
-        # GSI2_PK="MATCH" and GSI2_SK="{tsInsert:020d}#{uuid}". The admin list
-        # (GET /api/admin/matches) becomes a single paginated Query on this index
-        # (newest-first, sinceDays as an SK range) instead of a full-table Scan.
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              # match summary (_summary_from_item)
+              - uuid
+              - storyUuid
+              - difficultyUuid
+              - name
+              - status
+              - currentClock
+              - expCost
+              - rngSeed
+              - userCreatorUuid
+              - tsInsert
+              - singlePlayer
+              - characterTemplateUuid
+              - classUuid
+              - traitUuids
+              # guest resume (auth/handler.py resume_guest)
+              - username
+              - role
+              - token_version
+              - guest_token
+          ProvisionedThroughput: !If
+            - IsProvisioned
+            - ReadCapacityUnits: !Ref GsiReadCapacity
+              WriteCapacityUnits: !Ref GsiWriteCapacity
+            - !Ref AWS::NoValue
+        # GSI2_SK="{tsInsert:020d}#{uuid}" on matches: the admin list is one newest-first
+        # Query (sinceDays = SK range). Stories and guests carry ONE ``summary`` map with
+        # everything their list needs — DynamoDB caps NonKeyAttributes at 20 per index.
         - IndexName: GSI2
           KeySchema:
             - AttributeName: GSI2_PK
@@ -109,38 +326,118 @@ Resources:
             - AttributeName: GSI2_SK
               KeyType: RANGE
           Projection:
-            ProjectionType: ALL
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              - uuid
+              - storyUuid
+              - difficultyUuid
+              - name
+              - status
+              - currentClock
+              - expCost
+              - rngSeed
+              - userCreatorUuid
+              - tsInsert
+              - singlePlayer
+              - characterTemplateUuid
+              - classUuid
+              - traitUuids
+              - summary
+          ProvisionedThroughput: !If
+            - IsProvisioned
+            - ReadCapacityUnits: !Ref GsiReadCapacity
+              WriteCapacityUnits: !Ref GsiWriteCapacity
+            - !Ref AWS::NoValue
 
-  # HTTP API (API Gateway v2) — public/player surface
+  # HTTP API (API Gateway v2) — public/player surface.
+  # v0.37.7 — a plain AWS::ApiGatewayV2::Api, NOT AWS::Serverless::HttpApi: SAM renders the
+  # latter as an Api with an OpenAPI `Body` (paths: {}), and every update of that body
+  # (a CORS or tag change) re-imports the definition and DELETES the routes the nested
+  # modules created — the stage then keeps serving its last snapshot, silently stale.
   PathsGamesApi:
-    Type: AWS::Serverless::HttpApi
+    Type: AWS::ApiGatewayV2::Api
     Properties:
       Name: !Sub "pathsgames-${Environment}"
-      StageName: !Ref Environment
+      ProtocolType: HTTP
       Tags:
-        project: PathsGames
-        env: !Ref Environment
+        Name: !Sub "pathsgames-${Environment}"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
+        version: !Ref Version
       CorsConfiguration:
         AllowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
         AllowOrigins: !Ref CorsAllowOrigins
-        AllowHeaders: [Content-Type, Authorization, Cookie]
+        # X-CSRF-TOKEN rides on POST /api/matches; without it here the browser's preflight
+        # fails and the game never reaches the API. Retry-After is read on a 429.
+        AllowHeaders: [Content-Type, Authorization, Cookie, X-CSRF-TOKEN]
+        ExposeHeaders: [Retry-After]
         AllowCredentials: true
+
+  PathsGamesApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref PathsGamesApi
+      StageName: !Ref Environment
+      AutoDeploy: true
+      # v0.42.0 — throttling on public stages only.
+      DefaultRouteSettings: !If
+        - IsPublicStage
+        - ThrottlingRateLimit: !Ref ApiThrottleRate
+          ThrottlingBurstLimit: !Ref ApiThrottleBurst
+        - !Ref AWS::NoValue
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-ApiStage"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
+        version: !Ref Version
 
   # Dedicated ADMIN HTTP API — serves ONLY /api/admin/** routes and is gated by an
   # IP-allow-list Lambda authorizer (the AWS-side equivalent of the 8044 admin port).
   PathsGamesAdminApi:
-    Type: AWS::Serverless::HttpApi
+    Type: AWS::ApiGatewayV2::Api
     Properties:
       Name: !Sub "pathsgames-${Environment}-admin"
-      StageName: !Ref Environment
+      ProtocolType: HTTP
       Tags:
-        project: PathsGames
-        env: !Ref Environment
+        Name: !Sub "pathsgames-${Environment}-admin"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
+        version: !Ref Version
       CorsConfiguration:
         AllowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
         AllowOrigins: !Ref CorsAllowOrigins
         AllowHeaders: [Content-Type, Authorization, Cookie]
         AllowCredentials: true
+
+  PathsGamesAdminApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref PathsGamesAdminApi
+      StageName: !Ref Environment
+      AutoDeploy: true
+      # v0.42.0 — throttling on public stages only.
+      DefaultRouteSettings: !If
+        - IsPublicStage
+        - ThrottlingRateLimit: !Ref AdminApiThrottleRate
+          ThrottlingBurstLimit: !Ref AdminApiThrottleBurst
+        - !Ref AWS::NoValue
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-AdminApiStage"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
+        version: !Ref Version
 
   AdminIpAuthorizerLogGroup:
     Type: AWS::Logs::LogGroup
@@ -148,6 +445,21 @@ Resources:
     Properties:
       LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-AdminIpAuthorizer"
       RetentionInDays: 14
+      Tags:
+        - Key: Name
+          Value: !Sub "/aws/lambda/pathsgames-${Environment}-AdminIpAuthorizer"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !FindInMap [EnvironmentTags, !Ref Environment, Project]
+        - Key: version
+          Value: !Ref Version
 
   AdminIpAuthorizerFunction:
     Type: AWS::Serverless::Function
@@ -156,15 +468,26 @@ Resources:
       FunctionName: !Sub "pathsgames-${Environment}-AdminIpAuthorizer"
       Runtime: python3.13
       Handler: authorizer.handler.lambda_handler
+      Architectures: [arm64]
+      LoggingConfig:
+        LogFormat: JSON
+        SystemLogLevel: !Ref LambdaSystemLogLevel
+        ApplicationLogLevel: INFO
       Timeout: 10
       MemorySize: 128
       CodeUri: lambda/
       Tags:
-        project: PathsGames
-        env: !Ref Environment
+        Name: !Sub "pathsgames-${Environment}-AdminIpAuthorizer"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
+        version: !Ref Version
       Environment:
         Variables:
           ADMIN_IP_WHITELIST: !Ref AdminIpWhitelist
+          ADMIN_IP_EMPTY_MEANS: !Ref AdminIpEmptyMeans
 
   # REQUEST authorizer (simple responses). No IdentitySource + TTL 0 → invoked on every
   # request so a changed allow-list takes effect immediately and per-IP caching can't leak.
@@ -197,6 +520,14 @@ Resources:
       DomainNameConfigurations:
         - CertificateArn: !Ref CustomDomainCertificateArn
           EndpointType: REGIONAL
+      Tags:
+        Name: !Ref CustomDomainName
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
+        version: !Ref Version
 
   PathsGamesApiMapping:
     Type: AWS::ApiGatewayV2::ApiMapping
@@ -221,6 +552,32 @@ Resources:
         HostedZoneId: !GetAtt PathsGamesApiCustomDomain.RegionalHostedZoneId
         DNSName: !GetAtt PathsGamesApiCustomDomain.RegionalDomainName
 
+  # v0.42.0 — monitoring of the public stages (dashboard, SNS alarms, budget) in its own nested stack.
+  MonitoringModule:
+    Type: AWS::Serverless::Application
+    Condition: IsPublicStage
+    Properties:
+      Location: template/monitoring.yaml
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-MonitoringModule"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
+        version: !Ref Version
+      Parameters:
+        Environment: !Ref Environment
+        EnvironmentTag: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        Version: !Ref Version
+        ApiId: !Ref PathsGamesApi
+        AdminApiId: !Ref PathsGamesAdminApi
+        TableName: !Ref PathsGamesTable
+        AlarmEmail: !Ref AlarmEmail
+        CreateBudget: !Ref CreateBudget
+        BudgetLimit: !Ref BudgetLimit
+        BudgetEmail: !Ref BudgetEmail
+
   # Nested Stacks (Modules)
 
   EchoModule:
@@ -228,8 +585,19 @@ Resources:
     DependsOn: [PathsGamesApi, PathsGamesAdminApi, AdminIpAuthorizer]
     Properties:
       Location: template/echo.yaml
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-EchoModule"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
+        version: !Ref Version
       Parameters:
         Environment: !Ref Environment
+        EnvironmentTag: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        Version: !Ref Version
+        LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
         AdminApiId: !Ref PathsGamesAdminApi
@@ -240,8 +608,19 @@ Resources:
     DependsOn: [PathsGamesApi, PathsGamesAdminApi, AdminIpAuthorizer]
     Properties:
       Location: template/auth.yaml
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-AuthModule"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
+        version: !Ref Version
       Parameters:
         Environment: !Ref Environment
+        EnvironmentTag: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        Version: !Ref Version
+        LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
         AdminApiId: !Ref PathsGamesAdminApi
@@ -249,20 +628,47 @@ Resources:
         JwtSecret: !Ref JwtSecret
         AllowMockAccess: !Ref AllowMockAccess
         AdminIpWhitelist: !Ref AdminIpWhitelist
+        AdminIpEmptyMeans: !Ref AdminIpEmptyMeans
+        RateLimitGuestPerIp: !Ref RateLimitGuestPerIp
+        RateLimitWindowSeconds: !Ref RateLimitWindowSeconds
+        CsrfEnforced: !Ref CsrfEnforced
+        RobotTestDataTtlHours: !Ref RobotTestDataTtlHours
+        GuestCleanupEnabled: !Ref GuestCleanupEnabled
+        GuestCleanupAgeDays: !Ref GuestCleanupAgeDays
+        GuestCleanupMaxPerRun: !Ref GuestCleanupMaxPerRun
+        GuestCleanupSchedule: !Ref GuestCleanupSchedule
 
   StoryModule:
     Type: AWS::Serverless::Application
     DependsOn: [PathsGamesApi, PathsGamesAdminApi, AdminIpAuthorizer]
     Properties:
       Location: template/story.yaml
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-StoryModule"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
+        version: !Ref Version
       Parameters:
         Environment: !Ref Environment
+        EnvironmentTag: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        Version: !Ref Version
+        LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
+        StoryCacheTtlSeconds: !Ref StoryCacheTtlSeconds
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
         AdminApiId: !Ref PathsGamesAdminApi
         AdminAuthorizerId: !Ref AdminIpAuthorizer
+        # v0.41.0 — the story admin API verifies tokens: it needs the same secret as Auth
+        JwtSecret: !Ref JwtSecret
         AllowMockAccess: !Ref AllowMockAccess
         AdminIpWhitelist: !Ref AdminIpWhitelist
+        AdminIpEmptyMeans: !Ref AdminIpEmptyMeans
+        WebsiteBucket: !Ref WebsiteBucket
+        WebsiteCloudFrontId: !Ref WebsiteCloudFrontId
+        CatalogLangs: !Ref CatalogLangs
 
   # Step 19 — single-player match creation
   MatchModule:
@@ -270,8 +676,20 @@ Resources:
     DependsOn: [PathsGamesApi, PathsGamesAdminApi, AdminIpAuthorizer]
     Properties:
       Location: template/match.yaml
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-MatchModule"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
+        version: !Ref Version
       Parameters:
         Environment: !Ref Environment
+        EnvironmentTag: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        Version: !Ref Version
+        LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
+        StoryCacheTtlSeconds: !Ref StoryCacheTtlSeconds
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
         AdminApiId: !Ref PathsGamesAdminApi
@@ -281,14 +699,33 @@ Resources:
         TurnstileBypassToken: !Ref TurnstileBypassToken
         AllowMockAccess: !Ref AllowMockAccess
         AdminIpWhitelist: !Ref AdminIpWhitelist
+        AdminIpEmptyMeans: !Ref AdminIpEmptyMeans
+        RateLimitMatchPerIp: !Ref RateLimitMatchPerIp
+        RateLimitWindowSeconds: !Ref RateLimitWindowSeconds
+        RateLimitMatchPerGuest: !Ref RateLimitMatchPerGuest
+        RateLimitMatchPerGuestWindowSeconds: !Ref RateLimitMatchPerGuestWindowSeconds
+        CsrfEnforced: !Ref CsrfEnforced
+        RobotTestDataTtlHours: !Ref RobotTestDataTtlHours
 
   ContentModule:
     Type: AWS::Serverless::Application
     DependsOn: PathsGamesApi
     Properties:
       Location: template/content.yaml
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-ContentModule"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
+        version: !Ref Version
       Parameters:
         Environment: !Ref Environment
+        EnvironmentTag: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        Version: !Ref Version
+        LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
+        StoryCacheTtlSeconds: !Ref StoryCacheTtlSeconds
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
         AllowMockAccess: !Ref AllowMockAccess
@@ -298,12 +735,25 @@ Resources:
     DependsOn: [PathsGamesApi, PathsGamesAdminApi, AdminIpAuthorizer]
     Properties:
       Location: template/seed.yaml
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-SeedModule"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
+        version: !Ref Version
       Parameters:
         Environment: !Ref Environment
+        EnvironmentTag: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        Version: !Ref Version
+        LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
         TableName: !Ref PathsGamesTable
         AdminApiId: !Ref PathsGamesAdminApi
         AdminAuthorizerId: !Ref AdminIpAuthorizer
         SeedBcryptHash: !Ref SeedBcryptHash
+        # v0.41.0 — the seed signs the tokens it hands out: same secret as Auth
+        JwtSecret: !Ref JwtSecret
         AllowMockAccess: !Ref AllowMockAccess
 
 Outputs:
@@ -316,6 +766,10 @@ Outputs:
   TableName:
     Description: "DynamoDB Table Name"
     Value: !Ref PathsGamesTable
+  DashboardUrl:
+    Condition: IsPublicStage
+    Description: "v0.42.0 - CloudWatch dashboard of the stage"
+    Value: !GetAtt MonitoringModule.Outputs.DashboardUrl
   SeedEndpoint:
     Description: "Dev seed endpoint (on the IP-restricted admin API)"
     Value: !Sub "https://${PathsGamesAdminApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/api/dev/seed"

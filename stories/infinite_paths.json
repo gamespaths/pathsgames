@@ -1,0 +1,2378 @@
+{
+  "author": "Paths.Games",
+  "card": {
+    "cardType": "story",
+    "copyrightText": "Curated Lifestyle",
+    "description": "Uncharted horizons stretch out in every direction, boundless and indifferent to the fate you choose to carve. Every crossroads invites a new destiny, with no boundaries to restrain your journey.<br />\n<br />\nThis game features an open-world setting where you can freely choose your actions. Explore the environment and forge your path without fixed progression limits.",
+    "linkCopyright": "https://unsplash.com/photos/abstract-geometric-texture-exx3FsrKPXQ",
+    "title": "Infinite Paths",
+    "urlImage": "https://plus.unsplash.com/premium_photo-1778439626524-a14764acbf19?q=80&w=1469&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "uuid": "00d5c1f7-9e25-47ea-bd4b-ad67c86b981f"
+  },
+  "cards": [
+    {
+      "cardType": "story",
+      "id": 1,
+      "idCard": 1,
+      "idTextCopyright": 14,
+      "idTextDescription": 65,
+      "idTextTitle": 1,
+      "linkCopyright": "https://unsplash.com/photos/abstract-geometric-texture-exx3FsrKPXQ",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1778439626524-a14764acbf19?q=80&w=1469&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "00d5c1f7-9e25-47ea-bd4b-ad67c86b981f"
+    },
+    {
+      "id": 2,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 2,
+      "idTextTitle": 2,
+      "linkCopyright": "paths.games",
+      "uuid": "df07f753-b7c8-4ed6-ade3-ddac1515376e"
+    },
+    {
+      "id": 3,
+      "idCard": 3,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 32,
+      "idTextTitle": 4,
+      "linkCopyright": "https://unsplash.com/photos/gray-concrete-road-in-between-green-trees-during-daytime-KyCzR06ypjI",
+      "urlImage": "https://images.unsplash.com/photo-1604582703892-ae39b465fedc?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "7b876dde-3346-454e-ac78-37b6b899bb94"
+    },
+    {
+      "id": 4,
+      "idCard": 4,
+      "idCreator": 1,
+      "idTextCopyright": 21,
+      "idTextDescription": 33,
+      "idTextTitle": 5,
+      "linkCopyright": "https://unsplash.com/photos/white-brick-wall-with-black-and-white-graffiti-BjQTmNKlawg",
+      "styleImageLarge": "ob-b",
+      "urlImage": "https://images.unsplash.com/photo-1582148818753-2b63c7785867?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "d311a594-ec2e-4abb-b6c3-df8221dc452e"
+    },
+    {
+      "id": 5,
+      "idCreator": 1,
+      "idTextCopyright": 18,
+      "idTextDescription": 8,
+      "idTextTitle": 8,
+      "linkCopyright": "https://unsplash.com/photos/a-lion-standing-in-a-field-of-tall-grass-XTFJh5rrLLs",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1664304310991-b43610000fc2?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "27971100-5fa9-4ec6-91dd-536560a1b1ba"
+    },
+    {
+      "id": 6,
+      "idCreator": 1,
+      "idTextCopyright": 20,
+      "idTextDescription": 9,
+      "idTextTitle": 9,
+      "linkCopyright": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=1443&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "urlImage": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=1443&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "5e8316ad-db4c-4467-ba38-65189d967e31"
+    },
+    {
+      "id": 7,
+      "idCreator": 1,
+      "idTextCopyright": 19,
+      "idTextDescription": 10,
+      "idTextTitle": 10,
+      "linkCopyright": "https://unsplash.com/photos/orange-tabby-kitten-in-grasses-RCfi7vgJjUY",
+      "urlImage": "https://images.unsplash.com/photo-1560114928-40f1f1eb26a0?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "d620d32a-2f80-4f2f-b09a-1691e1795954"
+    },
+    {
+      "id": 8,
+      "idCreator": 1,
+      "idTextCopyright": 17,
+      "idTextDescription": 11,
+      "idTextTitle": 11,
+      "linkCopyright": "https://unsplash.com/photos/marble-statue-of-a-man-holding-a-spear--RKuvCizV_U",
+      "styleImageLarge": "ob-c-20 mah",
+      "urlImage": "https://images.unsplash.com/photo-1763336137673-3af11450cd97?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "f6f9ae3e-0240-463c-ac17-b5f0241e9b78"
+    },
+    {
+      "id": 9,
+      "idCreator": 1,
+      "idTextCopyright": 15,
+      "idTextDescription": 12,
+      "idTextTitle": 12,
+      "linkCopyright": "https://unsplash.com/photos/man-holding-archer-statue-Bc5LK1XqbCc",
+      "urlImage": "https://images.unsplash.com/photo-1562008752-2459495a0c05?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "7ec9c6bf-27e7-4f01-9bfd-18014b7b6938"
+    },
+    {
+      "id": 10,
+      "idCreator": 1,
+      "idTextCopyright": 16,
+      "idTextDescription": 13,
+      "idTextTitle": 13,
+      "linkCopyright": "https://unsplash.com/photos/a-stone-statue-of-a-nobleman-q7KrtE02MsU",
+      "styleImageLarge": "ob-c-20 mah",
+      "urlImage": "https://images.unsplash.com/photo-1743956863805-aa1032858456?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "c83b60d8-72be-4b5c-9ab8-6bff234f3df6"
+    },
+    {
+      "id": 11,
+      "idCard": 11,
+      "idCreator": 1,
+      "idTextCopyright": 56,
+      "idTextDescription": 57,
+      "idTextTitle": 22,
+      "linkCopyright": "https://unsplash.com/photos/a-body-of-water-surrounded-by-trees-and-clouds-LBOcrcRZZ2s",
+      "urlImage": "https://images.unsplash.com/photo-1722529844846-eb18e88c3f9d?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "b5939c37-8689-44de-b643-3f0259e97472"
+    },
+    {
+      "id": 12,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 23,
+      "idTextTitle": 23,
+      "uuid": "10fe5020-f3b3-4a29-ac18-8581cda3df59"
+    },
+    {
+      "id": 13,
+      "idCard": 13,
+      "idCreator": 1,
+      "idTextCopyright": 35,
+      "idTextDescription": 34,
+      "idTextTitle": 24,
+      "linkCopyright": "https://unsplash.com/photos/a-dock-with-boats-and-a-building-on-it-5S0VFmYp5tI",
+      "urlImage": "https://images.unsplash.com/photo-1655815856474-56b5cae93b91?q=80&w=1457&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "82487c32-92f6-4181-a448-e265a188ddfa"
+    },
+    {
+      "id": 14,
+      "idCard": 14,
+      "idCreator": 1,
+      "idTextCopyright": 52,
+      "idTextDescription": 53,
+      "idTextTitle": 25,
+      "linkCopyright": "https://unsplash.com/photos/brown-wooden-table-with-chairs-YdKhL_Wnpg4",
+      "urlImage": "https://images.unsplash.com/photo-1621618658133-5c496b2fe4b0?q=80&w=1472&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "8f0e0f64-c8f9-45d6-9ce4-9a060ba7812c"
+    },
+    {
+      "id": 15,
+      "idCard": 15,
+      "idCreator": 1,
+      "idTextCopyright": 54,
+      "idTextDescription": 55,
+      "idTextTitle": 26,
+      "linkCopyright": "https://unsplash.com/photos/blurred-figure-wearing-a-colorful-hooded-sweatshirt-d_eakpGWQRM",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1754772566659-991434507ec1?q=80&w=1471&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "9c9df7b4-53bb-4dd2-8750-16c69e470d18"
+    },
+    {
+      "id": 16,
+      "idCard": 16,
+      "idCreator": 1,
+      "idTextCopyright": 36,
+      "idTextDescription": 37,
+      "idTextTitle": 27,
+      "linkCopyright": "https://unsplash.com/photos/wooden-boats-docked-by-a-lush-green-landscape-and-mountains-bqZopEAMEyg",
+      "urlImage": "https://images.unsplash.com/photo-1759853927406-ab9d017808bf?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "d4f20551-19f3-4045-b5d3-4ccbddc1664a"
+    },
+    {
+      "id": 17,
+      "idCard": 17,
+      "idCreator": 1,
+      "idTextCopyright": 41,
+      "idTextDescription": 38,
+      "idTextTitle": 28,
+      "linkCopyright": "https://unsplash.com/photos/a-malaysian-fisherman-checks-his-tacklecatch-after-a-night-at-sea-ROV5HedazdA",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1769958062688-26315df64c79?q=80&w=1343&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "21a60f0d-6d5c-4444-9d6f-6fca3f8d4a4b"
+    },
+    {
+      "id": 18,
+      "idCard": 18,
+      "idCreator": 1,
+      "idTextCopyright": 40,
+      "idTextDescription": 39,
+      "idTextTitle": 29,
+      "linkCopyright": "https://unsplash.com/photos/rusted-anchor-in-wooden-rowboat-t-DpJhR8Gsw",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1786995060956-b8a7fd7167f1?q=80&w=1475&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "2398d5ad-77ab-4a38-8ab0-f64cf37bc805"
+    },
+    {
+      "id": 19,
+      "idCard": 19,
+      "idCreator": 1,
+      "idTextCopyright": 45,
+      "idTextDescription": 43,
+      "idTextTitle": 30,
+      "linkCopyright": "https://unsplash.com/photos/a-couple-of-people-standing-on-top-of-a-boat-in-the-water-3g1VRT7AwQU",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1661892604074-3907341857b6?q=80&w=1472&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "e6a138f7-e76b-4d45-a413-fbe9b0f26a47"
+    },
+    {
+      "id": 20,
+      "idCard": 20,
+      "idCreator": 1,
+      "idTextCopyright": 44,
+      "idTextDescription": 42,
+      "idTextTitle": 31,
+      "linkCopyright": "https://unsplash.com/photos/a-fisherman-is-working-on-his-nets-z4k1S86z97E",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1742240055116-8123710e5812?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "c69e2fb8-b81f-4c9e-8e37-a9baa195da3a"
+    },
+    {
+      "id": 21,
+      "idCard": 21,
+      "idCreator": 1,
+      "idTextCopyright": 51,
+      "idTextDescription": 50,
+      "idTextName": 48,
+      "idTextTitle": 48,
+      "linkCopyright": "https://unsplash.com/photos/retro-video-game-controller-joystick-and-cartridges-spxFE2JVuuE",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1774404554602-4880b2aaf200?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "a91d3c28-9b47-4df9-86d2-e99d4201369c"
+    },
+    {
+      "id": 22,
+      "idCard": 22,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 49,
+      "idTextName": 49,
+      "idTextTitle": 49,
+      "uuid": "79baa3a6-b568-4912-923c-0d276f77ec6e"
+    },
+    {
+      "id": 23,
+      "idCard": 23,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 58,
+      "idTextName": 58,
+      "idTextTitle": 58,
+      "uuid": "5fb112f5-71a9-4575-9ae7-5fcbc284cf15"
+    },
+    {
+      "id": 24,
+      "idCard": 24,
+      "idCreator": 1,
+      "idTextCopyright": 61,
+      "idTextDescription": 62,
+      "idTextName": 59,
+      "idTextTitle": 59,
+      "linkCopyright": "https://unsplash.com/photos/a-dark-cave-with-dramatic-lighting-on-rock-formations-haJPdw3EaOU",
+      "urlImage": "https://images.unsplash.com/photo-1771690288831-385afcdd6b7a?q=80&w=1332&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "01d58750-8834-4900-9cbc-19a753e836fa"
+    },
+    {
+      "id": 25,
+      "idCard": 25,
+      "idCreator": 1,
+      "idTextCopyright": 64,
+      "idTextDescription": 63,
+      "idTextName": 60,
+      "idTextTitle": 60,
+      "linkCopyright": "https://unsplash.com/photos/a-small-boat-sits-in-a-dry-muddy-riverbed-SnXQ2fvNMew",
+      "urlImage": "https://images.unsplash.com/photo-1759929549150-630ef273d747?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "c1690f9d-80eb-454d-86f6-71a57b436446"
+    },
+    {
+      "id": 26,
+      "idCard": 26,
+      "idCreator": 1,
+      "idTextCopyright": 69,
+      "idTextDescription": 68,
+      "idTextName": 67,
+      "idTextTitle": 67,
+      "linkCopyright": "https://unsplash.com/photos/a-very-tall-building-with-a-bunch-of-vines-growing-out-of-it--j_Hff-r_Os",
+      "urlImage": "https://images.unsplash.com/photo-1650293375771-6a6adc2ea0e5?q=80&w=686&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "67dd53c5-0524-44b8-b3da-af140acf2d2e"
+    },
+    {
+      "id": 27,
+      "idCard": 27,
+      "idCreator": 1,
+      "idTextCopyright": 72,
+      "idTextDescription": 71,
+      "idTextName": 70,
+      "idTextTitle": 70,
+      "linkCopyright": "https://unsplash.com/photos/a-small-animal-in-the-grass-qBj7yGTNQDg",
+      "urlImage": "https://images.unsplash.com/photo-1667504888877-3cf46ba26ecc?q=80&w=1458&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "f594657c-af75-431c-bbc5-ba4c24e9ad40"
+    },
+    {
+      "id": 28,
+      "idCard": 28,
+      "idCreator": 1,
+      "idTextCopyright": 75,
+      "idTextDescription": 74,
+      "idTextName": 73,
+      "idTextTitle": 73,
+      "linkCopyright": "https://unsplash.com/photos/a-wooden-carriage-with-wheels-WHx_LYTRDLY",
+      "urlImage": "https://images.unsplash.com/photo-1668998909680-7de5ab598be2?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "2ffde0b6-d718-4540-95ce-a34607e85aae"
+    },
+    {
+      "id": 29,
+      "idCard": 29,
+      "idCreator": 1,
+      "idTextCopyright": 78,
+      "idTextDescription": 77,
+      "idTextName": 76,
+      "idTextTitle": 76,
+      "linkCopyright": "https://unsplash.com/photos/scattered-playing-cards-9SewS6lowEU",
+      "urlImage": "https://images.unsplash.com/photo-1501003878151-d3cb87799705?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "c5c376e1-c611-49a4-bafd-0bfddca0567c"
+    },
+    {
+      "id": 30,
+      "idCard": 30,
+      "idCreator": 1,
+      "idTextCopyright": 81,
+      "idTextDescription": 80,
+      "idTextName": 79,
+      "idTextTitle": 79,
+      "linkCopyright": "https://unsplash.com/photos/scattered-playing-cards-9SewS6lowEU",
+      "urlImage": "https://images.unsplash.com/photo-1501003878151-d3cb87799705?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "19734b42-83d2-4f2c-85b8-268b818e69bd"
+    },
+    {
+      "id": 31,
+      "idCard": 31,
+      "idCreator": 1,
+      "idTextCopyright": 84,
+      "idTextDescription": 83,
+      "idTextName": 82,
+      "idTextTitle": 82,
+      "linkCopyright": "https://unsplash.com/photos/geographical-map-sketch-HA0Rgl-ISko",
+      "urlImage": "https://images.unsplash.com/photo-1567910640027-4029c4d8e9e0?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "faae6985-e146-4b22-af1f-906818479a7b"
+    },
+    {
+      "id": 32,
+      "idCard": 32,
+      "idCreator": 1,
+      "idTextCopyright": 87,
+      "idTextDescription": 86,
+      "idTextName": 85,
+      "idTextTitle": 85,
+      "linkCopyright": "https://unsplash.com/photos/antique-map-showing-bodensee-and-surrounding-mountains-Si3RnI6z_js",
+      "urlImage": "https://images.unsplash.com/photo-1730314737143-b2c82d2877f2?q=80&w=695&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "0467b91c-45ca-4191-b150-474b452c9f8e"
+    },
+    {
+      "id": 33,
+      "idCard": 33,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 82,
+      "idTextName": 82,
+      "idTextTitle": 82,
+      "uuid": "038b9636-ffab-40de-9623-7cb06b0d27c2"
+    },
+    {
+      "id": 34,
+      "idCard": 34,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 82,
+      "idTextName": 82,
+      "idTextTitle": 82,
+      "uuid": "1e20589e-5f07-478e-af38-7d69e65122cf"
+    }
+  ],
+  "category": "Adventure",
+  "characterTemplateCount": 1,
+  "characterTemplates": [
+    {
+      "constitutionStart": 1,
+      "dexterityStart": 1,
+      "energyMax": 1,
+      "id": 1,
+      "idCard": 10,
+      "idTextDescription": 13,
+      "idTextName": 13,
+      "id_tipo": 1,
+      "intelligenceStart": 1,
+      "lifeMax": 1,
+      "sadMax": 1,
+      "texts": {
+        "en": {
+          "description": "Male",
+          "name": "Male"
+        }
+      },
+      "uuid": "049b500e-2641-4c77-a827-d7424c673370"
+    }
+  ],
+  "choiceConditions": [
+    {
+      "id": 1,
+      "idChoices": 2,
+      "key": "HELPER",
+      "operator": "!=",
+      "type": "KEYS",
+      "uuid": "1aca0d7f-1cdd-4211-8c51-2bed3d900164",
+      "value": "REPAIR_SHIP"
+    },
+    {
+      "id": 2,
+      "idChoices": 3,
+      "key": "STORY",
+      "operator": "=",
+      "type": "KEYS",
+      "uuid": "4d85028d-5897-49c4-8a5e-52ce78975687",
+      "value": "STARTED"
+    }
+  ],
+  "choiceEffects": [
+    {
+      "id": 1,
+      "idCard": 19,
+      "idChoices": 1,
+      "idScelta": 1,
+      "idTextName": 30,
+      "id_card": 19,
+      "statistics": "LIFE",
+      "uuid": "cbb8b151-43b7-482c-bb1e-450bb85f4e9f",
+      "value": -1
+    },
+    {
+      "id": 2,
+      "idCard": 20,
+      "idChoices": 2,
+      "idScelta": 2,
+      "idTextName": 31,
+      "id_card": 20,
+      "key": "HELPER",
+      "statistics": "COIN",
+      "uuid": "aa343489-b194-436a-958d-48b6f37768d7",
+      "value": 1,
+      "valueToAdd": "REPAIR_SHIP"
+    },
+    {
+      "id": 3,
+      "idCard": 30,
+      "idChoices": 3,
+      "idScelta": 3,
+      "idText": 80,
+      "idTextName": 79,
+      "key": "HELPER",
+      "statistics": "COIN",
+      "uuid": "adc94349-5e29-4f88-a000-a731422e1c52",
+      "value": 1,
+      "valueToAdd": "POKER"
+    },
+    {
+      "id": 4,
+      "idCard": 32,
+      "idChoices": 4,
+      "idItemTarget": 1,
+      "idScelta": 4,
+      "idTextName": 82,
+      "id_card": 32,
+      "itemAction": "ADD",
+      "statistics": "",
+      "uuid": "efa0f303-b703-4595-8a4f-0f921cd8c7c8",
+      "value": ""
+    }
+  ],
+  "choices": [
+    {
+      "id": 1,
+      "idCard": 17,
+      "idEvent": 3,
+      "idTextName": 28,
+      "id_card": 17,
+      "priority": 1,
+      "uuid": "bc038bbd-e999-4e06-bbbc-207adaf679c4"
+    },
+    {
+      "id": 2,
+      "idCard": 18,
+      "idEvent": 3,
+      "idTextName": 29,
+      "id_card": 18,
+      "priority": 2,
+      "uuid": "eca16560-972f-4285-9b54-51d71ba1c4e1"
+    },
+    {
+      "id": 3,
+      "idCard": 29,
+      "idEvent": 7,
+      "idTextName": 76,
+      "idTextNarrative": 76,
+      "id_card": 29,
+      "priority": 1,
+      "uuid": "2eac7d05-6f12-4479-9523-b4a2fb3146e7"
+    },
+    {
+      "id": 4,
+      "idCard": 31,
+      "idEvent": 7,
+      "idTextName": 82,
+      "idTextNarrative": 82,
+      "id_card": 31,
+      "priority": 2,
+      "uuid": "8e21ca66-fbdd-42b4-8d50-4beed84220c8"
+    }
+  ],
+  "classBonuses": [],
+  "classCount": 1,
+  "classes": [
+    {
+      "constitutionBase": 1,
+      "dexterityBase": 1,
+      "id": 1,
+      "idCard": 9,
+      "idTextDescription": 12,
+      "idTextName": 12,
+      "intelligenceBase": 1,
+      "texts": {
+        "en": {
+          "description": "Hunt",
+          "name": "Hunt"
+        }
+      },
+      "uuid": "08b56f32-b6df-44e8-abc7-e2672981f941",
+      "weightMax": 1
+    }
+  ],
+  "clockPluralDescription": "Clocks",
+  "clockSingularDescription": "Clock",
+  "creators": [
+    {
+      "id": 1,
+      "idText": 2,
+      "link": "paths.games",
+      "url": "paths.games",
+      "uuid": "54833481-c1e1-4f19-b924-3e2c7bdf1fb3"
+    }
+  ],
+  "difficulties": [
+    {
+      "constitution": 0,
+      "costHelpComa": 0,
+      "dexterity": 0,
+      "energy": 5,
+      "expCost": 3,
+      "expCostBase": 0,
+      "id": 1,
+      "idCard": 5,
+      "idTextDescription": 8,
+      "idTextName": 8,
+      "id_card": 5,
+      "intelligence": 0,
+      "life": 0,
+      "maxCharacter": 0,
+      "maxStatValue": 0,
+      "maxWeight": 0,
+      "minCharacter": 0,
+      "numberMaxFreeAction": 0,
+      "sad": 0,
+      "texts": {
+        "en": {
+          "title": "Hard"
+        }
+      },
+      "traitCostPositiveBudget": 1,
+      "uuid": "3658bf5a-6a84-4289-8347-7d4259a1436b",
+      "weight": 7
+    },
+    {
+      "constitution": 0,
+      "costHelpComa": 0,
+      "dexterity": 0,
+      "energy": 7,
+      "expCost": 2,
+      "expCostBase": 0,
+      "id": 2,
+      "idCard": 6,
+      "idTextDescription": 9,
+      "idTextName": 9,
+      "id_card": 6,
+      "intelligence": 0,
+      "life": 0,
+      "maxCharacter": 0,
+      "maxStatValue": 0,
+      "maxWeight": 0,
+      "minCharacter": 0,
+      "numberMaxFreeAction": 0,
+      "sad": 0,
+      "texts": {
+        "en": {
+          "title": "Medium"
+        }
+      },
+      "traitCostPositiveBudget": 2,
+      "uuid": "63f5febc-4543-489b-b194-1e84e6fdc268",
+      "weight": 7
+    },
+    {
+      "constitution": 0,
+      "costHelpComa": 0,
+      "dexterity": 0,
+      "energy": 10,
+      "expCost": 1,
+      "expCostBase": 0,
+      "id": 3,
+      "idCard": 7,
+      "idTextDescription": 10,
+      "idTextName": 10,
+      "id_card": 7,
+      "intelligence": 0,
+      "life": 0,
+      "maxCharacter": 0,
+      "maxStatValue": 0,
+      "maxWeight": 0,
+      "minCharacter": 0,
+      "numberMaxFreeAction": 0,
+      "sad": 0,
+      "texts": {
+        "en": {
+          "title": "Easy"
+        }
+      },
+      "traitCostPositiveBudget": 3,
+      "uuid": "7c499cf8-645c-4934-9257-22caf17f15dc",
+      "weight": 10
+    }
+  ],
+  "eventCount": 3,
+  "eventEffects": [
+    {
+      "id": 1,
+      "idCard": 15,
+      "idEvent": 2,
+      "idTextDescription": 26,
+      "idTextName": 26,
+      "id_card": 15,
+      "statistics": "SAD",
+      "target": "ALL",
+      "uuid": "883778e2-060b-436b-a414-232933c2f45c",
+      "value": -1
+    },
+    {
+      "id": 2,
+      "idEvent": 4,
+      "idLocation": 3,
+      "idTextDescription": 48,
+      "idTextName": 48,
+      "idWeather": 1,
+      "keyToAdd": "STORY",
+      "keyValueToAdd": "GAMEOVER",
+      "statistics": "",
+      "target": "ALL",
+      "uuid": "1aece381-7a8c-4abe-a999-835491c467df",
+      "value": ""
+    },
+    {
+      "id": 3,
+      "idCard": 25,
+      "idEvent": 5,
+      "idTextDescription": 60,
+      "idTextName": 60,
+      "id_card": 25,
+      "statistics": "SAD",
+      "target": "ONLY_ONE",
+      "uuid": "9cd1f20b-b29f-4a1d-adb8-9e2e6064964f",
+      "value": 1
+    },
+    {
+      "id": 4,
+      "idCard": 27,
+      "idEvent": 6,
+      "idTextDescription": 71,
+      "idTextName": 70,
+      "statistics": "EXP",
+      "target": "ALL",
+      "uuid": "1c19aa48-ba69-4772-a27a-e5a33e96d003",
+      "value": 1
+    }
+  ],
+  "events": [
+    {
+      "card": {
+        "copyrightText": "Crawford Jolly",
+        "description": "Complete the Paths",
+        "linkCopyright": "https://unsplash.com/photos/white-brick-wall-with-black-and-white-graffiti-BjQTmNKlawg",
+        "styleImageLarge": "ob-b",
+        "title": "Complete the Paths",
+        "urlImage": "https://images.unsplash.com/photo-1582148818753-2b63c7785867?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "uuid": "d311a594-ec2e-4abb-b6c3-df8221dc452e"
+      },
+      "costEnery": 1,
+      "id": 1,
+      "idCard": 4,
+      "idLocation": 1,
+      "idSpecificLocation": 3,
+      "idTextDescription": 5,
+      "idTextName": 5,
+      "id_card": 4,
+      "type": "NORMAL",
+      "uuid": "88bad083-5aaf-459c-8ce6-d80790452539"
+    },
+    {
+      "card": {
+        "copyrightText": "Damian Siodłak",
+        "description": "Ronini tavern",
+        "title": "Ronini tavern",
+        "uuid": "8f0e0f64-c8f9-45d6-9ce4-9a060ba7812c"
+      },
+      "costCoin": 1,
+      "costEnery": "",
+      "id": 2,
+      "idCard": 14,
+      "idLocation": 2,
+      "idSpecificLocation": 2,
+      "idTextDescription": 25,
+      "idTextName": 25,
+      "id_card": 14,
+      "type": "NORMAL",
+      "uuid": "7f78ac39-6dbf-407f-8799-df874834c383"
+    },
+    {
+      "card": {
+        "copyrightText": "Damian Siodłak",
+        "description": "Help Fishermen",
+        "title": "Help Fishermen",
+        "uuid": "d4f20551-19f3-4045-b5d3-4ccbddc1664a"
+      },
+      "costEnery": 1,
+      "id": 3,
+      "idCard": 16,
+      "idLocation": 2,
+      "idSpecificLocation": 2,
+      "idTextDescription": 27,
+      "idTextName": 27,
+      "id_card": 16,
+      "type": "NORMAL",
+      "uuid": "45af070a-87a1-4212-8dca-93769b44c9ea"
+    },
+    {
+      "id": 4,
+      "idCard": 21,
+      "idTextDescription": 48,
+      "idTextName": 48,
+      "id_card": 21,
+      "type": "",
+      "uuid": "6cd09901-cb10-4a84-869a-5f40e7138669"
+    },
+    {
+      "costEnery": 3,
+      "id": 5,
+      "idCard": 24,
+      "idSpecificLocation": 2,
+      "idTextDescription": 59,
+      "idTextName": 59,
+      "id_card": 24,
+      "type": "ONCE",
+      "uuid": "64f19eaf-776c-466f-bfb3-f3a533cb7f3b"
+    },
+    {
+      "costEnery": 1,
+      "id": 6,
+      "idCard": 26,
+      "idSpecificLocation": 2,
+      "idTextDescription": 68,
+      "idTextName": 67,
+      "type": "ONCE",
+      "uuid": "eeaa3e25-8749-4ef1-9fff-c56e72c08dea"
+    },
+    {
+      "costCoin": 1,
+      "costEnery": "",
+      "id": 7,
+      "idCard": 28,
+      "idSpecificLocation": 2,
+      "idTextDescription": 74,
+      "idTextName": 73,
+      "id_card": 28,
+      "type": "NORMAL",
+      "uuid": "4f784bae-44f2-4192-ad1f-c05cafb1758a"
+    }
+  ],
+  "globalRandomEvents": [],
+  "group": "Infinite Choices",
+  "id": 0,
+  "idCard": 1,
+  "idCreator": 1,
+  "idEventAllPlayerComa": 4,
+  "idEventEndGame": 1,
+  "idImage": 0,
+  "idLocationAllPlayerComa": 1,
+  "idLocationStart": 1,
+  "idTextClockPlural": 7,
+  "idTextClockSingular": 6,
+  "idTextCopyright": 3,
+  "idTextDescription": 0,
+  "idTextTitle": 1,
+  "itemCount": 0,
+  "itemEffects": [],
+  "items": [
+    {
+      "flagShowEffects": 1,
+      "id": 1,
+      "idCard": 32,
+      "idTextDescription": 85,
+      "idTextName": 85,
+      "id_card": 32,
+      "maxPerCharacter": 1,
+      "uuid": "2c4073d8-2616-440d-b0f8-63aab033c229",
+      "weight": 0
+    }
+  ],
+  "keys": [
+    {
+      "id": 1,
+      "idCard": 1,
+      "idTextDescription": 49,
+      "id_card": 1,
+      "name": "STORY",
+      "uuid": "2b0150cf-e7be-416f-91f5-64211ca67e38",
+      "value": "STARTED",
+      "visibility": "PUBLIC"
+    },
+    {
+      "id": 2,
+      "idCard": 23,
+      "idTextDescription": 58,
+      "id_card": 23,
+      "multiValue": true,
+      "name": "HELPER",
+      "uuid": "1e64454b-6f5d-457f-8905-670c469084bd",
+      "visibility": "PUBLIC"
+    },
+    {
+      "id": 3,
+      "idTextDescription": 66,
+      "name": "use-exp",
+      "uuid": "4507cca5-f3bf-400d-9ae0-73283e249d3e",
+      "visibility": "HIDDEN"
+    }
+  ],
+  "linkCopyright": "https://paths.games/?policy=roadmap",
+  "locationCount": 2,
+  "locationNeighbors": [
+    {
+      "direction": "NORTH",
+      "flagBack": 1,
+      "id": 1,
+      "idLocationFrom": 1,
+      "idLocationTo": 2,
+      "uuid": "f65ea772-e8d5-4be0-8388-6c9af303db89"
+    }
+  ],
+  "locations": [
+    {
+      "card": {
+        "copyrightText": "Damian Siodłak",
+        "description": "Location start",
+        "linkCopyright": "https://unsplash.com/photos/gray-concrete-road-in-between-green-trees-during-daytime-KyCzR06ypjI",
+        "title": "Location start",
+        "urlImage": "https://images.unsplash.com/photo-1604582703892-ae39b465fedc?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "uuid": "7b876dde-3346-454e-ac78-37b6b899bb94"
+      },
+      "costEnergyEnter": 0,
+      "id": 1,
+      "idCard": 3,
+      "idTextDescription": 4,
+      "idTextName": 4,
+      "id_card": 3,
+      "uuid": "0133d731-3f7b-4a95-9b25-2d79a08da86e"
+    },
+    {
+      "card": {
+        "copyrightText": "Damian Siodłak",
+        "description": "Ronini Village",
+        "title": "Ronini Village",
+        "uuid": "82487c32-92f6-4181-a448-e265a188ddfa"
+      },
+      "costEnergyEnter": 0,
+      "id": 2,
+      "idCard": 13,
+      "idTextDescription": 24,
+      "idTextName": 24,
+      "id_card": 13,
+      "uuid": "3881db50-3dbb-460e-84c9-2997218b0e2a"
+    },
+    {
+      "id": 3,
+      "idCard": 21,
+      "idTextDescription": 46,
+      "idTextName": 46,
+      "id_card": 21,
+      "uuid": "d10d460d-fb41-4ffe-8abe-57e21583f0f5"
+    }
+  ],
+  "missionSteps": [],
+  "missions": [],
+  "peghi": 0,
+  "priority": 4,
+  "texts": [
+    {
+      "id": 1,
+      "idCreator": 0,
+      "idText": 1,
+      "idTextCopyright": 0,
+      "lang": "en",
+      "longText": "Infinite Paths",
+      "shortText": "Infinite Paths",
+      "uuid": "c4e59569-a3c6-47bd-a237-f1fb17f42bea"
+    },
+    {
+      "id": 2,
+      "idCreator": 0,
+      "idText": 2,
+      "idTextCopyright": 0,
+      "lang": "en",
+      "longText": "Paths.games",
+      "shortText": "Paths.games",
+      "uuid": "e97d6add-b788-48ba-8460-cd0fec1004a9"
+    },
+    {
+      "id": 3,
+      "idCreator": 1,
+      "idText": 3,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Damian Siodłak",
+      "shortText": "Damian Siodłak",
+      "uuid": "235c4377-8e4c-42eb-9ff1-61451cb6deee"
+    },
+    {
+      "id": 4,
+      "idCreator": 1,
+      "idText": 4,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "A new journey",
+      "shortText": "A new journey",
+      "uuid": "1d1137ce-f5e7-4d8b-ac5a-1e1f61d3179d"
+    },
+    {
+      "id": 5,
+      "idCreator": 1,
+      "idText": 5,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Complete Story",
+      "shortText": "Complete Story",
+      "uuid": "78b8988d-b900-4916-b2dd-f778548513bf"
+    },
+    {
+      "id": 6,
+      "idCreator": 1,
+      "idText": 6,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Clock",
+      "shortText": "Clock",
+      "uuid": "4fc41078-d064-40ea-92e0-ef553c07207b"
+    },
+    {
+      "id": 7,
+      "idCreator": 1,
+      "idText": 7,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Clocks",
+      "shortText": "Clocks",
+      "uuid": "8b3c31e4-a9b4-44c5-a6c7-140fd0b14681"
+    },
+    {
+      "id": 8,
+      "idCreator": 1,
+      "idText": 8,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Hard",
+      "shortText": "Hard",
+      "uuid": "94c08587-122b-4e76-b5f0-c3d2c9240429"
+    },
+    {
+      "id": 9,
+      "idCreator": 1,
+      "idText": 9,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Medium",
+      "shortText": "Medium",
+      "uuid": "a40a4761-4f7e-48b2-8ca5-d848e7d9dfa6"
+    },
+    {
+      "id": 10,
+      "idCreator": 1,
+      "idText": 10,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Easy",
+      "shortText": "Easy",
+      "uuid": "ff0f5621-d8c3-4ded-8867-73e4a0be770b"
+    },
+    {
+      "id": 11,
+      "idCreator": 1,
+      "idText": 11,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Hero",
+      "shortText": "Hero",
+      "uuid": "eb530c3d-7794-455c-b7fc-ca43f9894778"
+    },
+    {
+      "id": 12,
+      "idCreator": 1,
+      "idText": 12,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Hunt",
+      "shortText": "Hunt",
+      "uuid": "390d337f-3681-4bf1-9a92-bf8d62083ada"
+    },
+    {
+      "id": 13,
+      "idCreator": 1,
+      "idText": 13,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Male",
+      "shortText": "Male",
+      "uuid": "399a1c36-c931-4006-8ec6-fe87166d7d5c"
+    },
+    {
+      "id": 14,
+      "idCreator": 1,
+      "idText": 14,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Curated Lifestyle",
+      "shortText": "Curated Lifestyle",
+      "uuid": "5bb8e22a-839c-4175-a94d-7eae7ccde65d"
+    },
+    {
+      "id": 14,
+      "idCreator": 1,
+      "idText": 14,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "58b675d5-b2ab-4bac-b711-5afe84d970ef"
+    },
+    {
+      "id": 15,
+      "idCreator": 1,
+      "idText": 15,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Alireza Sahebi",
+      "shortText": "Alireza Sahebi",
+      "uuid": "39538f13-5ef8-4b8d-9305-f059c6d2e916"
+    },
+    {
+      "id": 15,
+      "idCreator": 1,
+      "idText": 15,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "02765300-3fed-4bf5-86e6-79ea5daeadf9"
+    },
+    {
+      "id": 16,
+      "idCreator": 1,
+      "idText": 16,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Humans Made This",
+      "shortText": "Humans Made This",
+      "uuid": "df3a917a-f5ba-49ff-9bd8-e54a846ba228"
+    },
+    {
+      "id": 16,
+      "idCreator": 1,
+      "idText": 16,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "d6abaa4f-a51a-480f-babd-435706b96c7d"
+    },
+    {
+      "id": 17,
+      "idCreator": 1,
+      "idText": 17,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Nick Castelli",
+      "shortText": "Nick Castelli",
+      "uuid": "a1c902fb-2fbc-4cb3-8f7b-e56c88a0ce01"
+    },
+    {
+      "id": 17,
+      "idCreator": 1,
+      "idText": 17,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "e9022024-0783-45a0-b98f-62421c72cd2f"
+    },
+    {
+      "id": 18,
+      "idCreator": 1,
+      "idText": 18,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Getty Images",
+      "shortText": "Getty Images",
+      "uuid": "0bb3092c-7f64-431e-aef9-e1460cf0d966"
+    },
+    {
+      "id": 18,
+      "idCreator": 1,
+      "idText": 18,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "936c8cd3-1151-45ab-8cd8-9c110f0e5e3e"
+    },
+    {
+      "id": 19,
+      "idCreator": 1,
+      "idText": 19,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Andriyko Podilnyk",
+      "shortText": "Andriyko Podilnyk",
+      "uuid": "6a612b8e-b540-4d25-b86d-e54ce9e3af82"
+    },
+    {
+      "id": 19,
+      "idCreator": 1,
+      "idText": 19,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "503de7ea-75ed-46c8-8b6c-0ddddf5b3d23"
+    },
+    {
+      "id": 20,
+      "idCreator": 1,
+      "idText": 20,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Manja Vitolic",
+      "shortText": "Manja Vitolic",
+      "uuid": "41be82fd-bf0b-4d66-96a2-2cc09a0d403e"
+    },
+    {
+      "id": 20,
+      "idCreator": 1,
+      "idText": 20,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "5560ca42-8a27-49db-80d8-bf76b9db61a9"
+    },
+    {
+      "id": 3,
+      "idCreator": 1,
+      "idText": 3,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "37d6152f-58af-42fe-956c-c23d6bb2ef7a"
+    },
+    {
+      "id": 21,
+      "idCreator": 1,
+      "idText": 21,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Crawford Jolly",
+      "shortText": "Crawford Jolly",
+      "uuid": "6a1e53ec-c863-4008-9856-8fca71db88a2"
+    },
+    {
+      "id": 21,
+      "idCreator": 1,
+      "idText": 21,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "ec718a07-c27e-4303-9774-f0a09cc50617"
+    },
+    {
+      "id": 22,
+      "idCreator": 1,
+      "idText": 22,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Beautiful Day",
+      "shortText": "Beautiful Day",
+      "uuid": "96e53ba9-bb07-4e72-9297-fd7b2eaa1480"
+    },
+    {
+      "id": 23,
+      "idCreator": 1,
+      "idText": 23,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Darkness",
+      "shortText": "Darkness",
+      "uuid": "b6c1ddc9-0114-4187-a2b0-ad018437f71c"
+    },
+    {
+      "id": 5,
+      "idCreator": 1,
+      "idText": 5,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Completa Storia",
+      "shortText": "Completa Storia",
+      "uuid": "3508a78c-d47c-4ec3-b1ed-4cc1e015b6f7"
+    },
+    {
+      "id": 24,
+      "idCreator": 1,
+      "idText": 24,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Fishermen's Village",
+      "shortText": "Fishermen's Village",
+      "uuid": "1303c876-b8aa-45ce-ae88-e81b3a1c8b39"
+    },
+    {
+      "id": 24,
+      "idCreator": 1,
+      "idText": 24,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Villaggio dei Pescatori",
+      "shortText": "Villaggio dei Pescatori",
+      "uuid": "0d4c8e23-d9b0-41aa-823d-80b347013e16"
+    },
+    {
+      "id": 25,
+      "idCreator": 1,
+      "idText": 25,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Ronini tavern",
+      "shortText": "Ronini tavern",
+      "uuid": "6067eb50-5415-4c93-98ba-dbc1412bde05"
+    },
+    {
+      "id": 26,
+      "idCreator": 1,
+      "idText": 26,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "You are Drunk",
+      "shortText": "You are Drunk",
+      "uuid": "26c429f7-c41f-4401-9db6-2170f089f5ed"
+    },
+    {
+      "id": 27,
+      "idCreator": 1,
+      "idText": 27,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Helping fishermen",
+      "shortText": "Helping fishermen",
+      "uuid": "df4d9991-5fd9-4916-88ff-92686459ed71"
+    },
+    {
+      "id": 27,
+      "idCreator": 1,
+      "idText": 27,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Una Mano per la Pesca",
+      "shortText": "Una Mano per la Pesca",
+      "uuid": "1ca02907-c99f-47e6-8266-148b45caf0c3"
+    },
+    {
+      "id": 28,
+      "idCreator": 1,
+      "idText": 28,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Go Fishing",
+      "shortText": "Go Fishing",
+      "uuid": "61cabf13-71e9-4a2e-acef-9e9c07995589"
+    },
+    {
+      "id": 29,
+      "idCreator": 1,
+      "idText": 29,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Look at the Ship",
+      "shortText": "Look at the Ship",
+      "uuid": "83954df7-49f6-42a8-b8d9-e9ddee938a67"
+    },
+    {
+      "id": 30,
+      "idCreator": 1,
+      "idText": 30,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Go Fishing",
+      "shortText": "Go Fishing",
+      "uuid": "04931537-fa47-47ba-b6c4-d8495d540fde"
+    },
+    {
+      "id": 31,
+      "idCreator": 1,
+      "idText": 31,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Repair the Ship",
+      "shortText": "Repair the Ship",
+      "uuid": "63ebfee0-923f-4e65-9b73-4c659d13a51b"
+    },
+    {
+      "id": 4,
+      "idCreator": 1,
+      "idText": 4,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Un nuovo viaggio",
+      "shortText": "Un nuovo viaggio",
+      "uuid": "b72247f7-fca5-46c3-97fb-0bc1ac5289fb"
+    },
+    {
+      "id": 32,
+      "idCreator": 1,
+      "idText": 32,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The wind carries the scent of distant lands as you take your first step into the unknown. Boundless horizons stretch out before you, waiting to be shaped by your deeds.<br />\n<br />\nThis is your starting point, where your adventure across this endless world begins.",
+      "shortText": "The wind carries the scent of distant lands as you take your first step into the unknown. Boundless horizons stretch out before you, waiting to be shaped by your deeds.<br />\n<br />\nThis is your starting point, where your adventure across this endless world begins.",
+      "uuid": "ff331d4f-4625-46c5-bdc4-fdda6915d405"
+    },
+    {
+      "id": 32,
+      "idCreator": 1,
+      "idText": 32,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Il vento porta con sé il profumo di terre lontane mentre compi il primo passo verso l'ignoto. Orizzonti sconfinati si stendono davanti a te, pronti a essere plasmati dalle tue gesta.<br />\n<br />\nQuesto è il tuo punto di partenza, da cui ha inizio la tua avventura in questo mondo sconfinato.",
+      "shortText": "Il vento porta con sé il profumo di terre lontane mentre compi il primo passo verso l'ignoto. Orizzonti sconfinati si stendono davanti a te, pronti a essere plasmati dalle tue gesta.<br />\n<br />\nQuesto è il tuo punto di partenza, da cui ha inizio la tua avventura in questo mondo sconfinato.",
+      "uuid": "ec96f1ac-2a6c-4288-8c8d-f20a48ec9d2c"
+    },
+    {
+      "id": 33,
+      "idCreator": 1,
+      "idText": 33,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The ink dries upon the final page, closing the book on this grand tale.<br />\n<br />\nUse this action only when you wish to conclude your current story and begin a new one. All progress for this journey will be saved and archived.",
+      "shortText": "The ink dries upon the final page, closing the book on this grand tale.<br />\n<br />\nUse this action only when you wish to conclude your current story and begin a new one. All progress for this journey will be saved and archived.",
+      "uuid": "9be46fd1-3fd2-4c42-8407-6c0bbe3ddfeb"
+    },
+    {
+      "id": 33,
+      "idCreator": 1,
+      "idText": 33,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "L'inchiostro si asciuga sull'ultima pagina, chiudendo il libro su questa grande storia.<br />\n<br />\nUsa questa azione solo se desideri terminare la storia attuale e iniziarne una nuova. Tutti i progressi di questo viaggio verranno salvati e archiviati.",
+      "shortText": "L'inchiostro si asciuga sull'ultima pagina, chiudendo il libro su questa grande storia.<br />\n<br />\nUsa questa azione solo se desideri terminare la storia attuale e iniziarne una nuova. Tutti i progressi di questo viaggio verranno salvati e archiviati.",
+      "uuid": "2dd99c94-9d1a-4d88-ad34-f81d3e048f89"
+    },
+    {
+      "id": 34,
+      "idCreator": 1,
+      "idText": 34,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The salty sea breeze carries the creak of wooden docks and the gentle lull of waves against resting boats. Simple homes line the shore, where seasoned sailors share tall tales of the deep.<br />\n<br />\nYou have arrived at a quiet fishing village. Explore the docks and talk to locals to uncover rumors, side quests, and trade opportunities.",
+      "shortText": "The salty sea breeze carries the creak of wooden docks and the gentle lull of waves against resting boats. Simple homes line the shore, where seasoned sailors share tall tales of the deep.<br />\n<br />\nYou have arrived at a quiet fishing village. Explore the docks and talk to locals to uncover rumors, side quests, and trade opportunities.",
+      "uuid": "7ab55159-b4c9-4915-a61d-c3c94fe7a49b"
+    },
+    {
+      "id": 34,
+      "idCreator": 1,
+      "idText": 34,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "La brezza marina salmastra porta con sé il cigolio dei moli di legno e il dolce sciacquio delle onde sulle barche a riposo. Semplici case allineano la costa, dove marinai esperti si scambiano storie di creature degli abissi.<br />\n<br />\nSei arrivato in un tranquillo villaggio di pescatori. Esplora i moli e parla con gli abitanti per scoprire dicerie, quest secondarie e opportunità di scambio.",
+      "shortText": "La brezza marina salmastra porta con sé il cigolio dei moli di legno e il dolce sciacquio delle onde sulle barche a riposo. Semplici case allineano la costa, dove marinai esperti si scambiano storie di creature degli abissi.<br />\n<br />\nSei arrivato in un tranquillo villaggio di pescatori. Esplora i moli e parla con gli abitanti per scoprire dicerie, quest secondarie e opportunità di scambio.",
+      "uuid": "a6b31bc7-bf21-49a0-9cd0-b1b9b938bb98"
+    },
+    {
+      "id": 35,
+      "idCreator": 1,
+      "idText": 35,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Yada Pongsirirushakun",
+      "shortText": "Yada Pongsirirushakun",
+      "uuid": "5fe18e45-a7de-4da4-abb3-766d561a4119"
+    },
+    {
+      "id": 35,
+      "idCreator": 1,
+      "idText": 35,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "eeaebb8e-72c2-4329-8566-04b1222ef904"
+    },
+    {
+      "id": 36,
+      "idCreator": 1,
+      "idText": 36,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Ama Journey",
+      "shortText": "Ama Journey",
+      "uuid": "7f28db5b-91d4-4512-8087-56f45cca6d1b"
+    },
+    {
+      "id": 36,
+      "idCreator": 1,
+      "idText": 36,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "46f5d23d-5b0f-4ba5-8669-beacc5cb582d"
+    },
+    {
+      "id": 37,
+      "idCreator": 1,
+      "idText": 37,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Worn-out nets lie tangled on the docks as the local fishermen cast weary glances toward the horizon.<br />\n<br />\nou have encountered fishermen in need of assistance.",
+      "shortText": "Worn-out nets lie tangled on the docks as the local fishermen cast weary glances toward the horizon.<br />\n<br />\nou have encountered fishermen in need of assistance.",
+      "uuid": "0c3dd04b-5e4f-432f-b250-e473df167398"
+    },
+    {
+      "id": 37,
+      "idCreator": 1,
+      "idText": 37,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Reti logore giacciono aggrovigliate sui moli mentre i pescatori locali rivolgono sguardi stanchi all'orizzonte.<br />\n<br />\nHai incontrato dei pescatori che richiedono aiuto.",
+      "shortText": "Reti logore giacciono aggrovigliate sui moli mentre i pescatori locali rivolgono sguardi stanchi all'orizzonte.<br />\n<br />\nHai incontrato dei pescatori che richiedono aiuto.",
+      "uuid": "e9dad3f2-75f5-4f54-bc93-7dfe1d59ea04"
+    },
+    {
+      "id": 28,
+      "idCreator": 1,
+      "idText": 28,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Esci a pescare",
+      "shortText": "Esci a pescare",
+      "uuid": "0a58aa8f-a76c-48a0-84f3-f2d7fa1fe43c"
+    },
+    {
+      "id": 38,
+      "idCreator": 1,
+      "idText": 38,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Weathered hands signal you from the wooden docks, their voices carrying over the creak of timber and the gulls' cries.<br />\n<br />\nA group of fishermen asks for your help with a fishing trip by boat.",
+      "shortText": "Weathered hands signal you from the wooden docks, their voices carrying over the creak of timber and the gulls' cries.<br />\n<br />\nA group of fishermen asks for your help with a fishing trip by boat.",
+      "uuid": "91446cd0-ec16-4514-9031-b86e5fbfe0f7"
+    },
+    {
+      "id": 38,
+      "idCreator": 1,
+      "idText": 38,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Mani segnate dal sale ti fanno cenno dal molo, mentre le loro voci si confondono con il cigolio del legno e il grido dei gabbiani.<br />\n<br />\nAlcuni pescatori ti chiedono aiuto per un'uscita di pesca in barca.",
+      "shortText": "Mani segnate dal sale ti fanno cenno dal molo, mentre le loro voci si confondono con il cigolio del legno e il grido dei gabbiani.<br />\n<br />\nAlcuni pescatori ti chiedono aiuto per un'uscita di pesca in barca.",
+      "uuid": "f7f33205-296f-443d-863b-11dc7f2e53b7"
+    },
+    {
+      "id": 29,
+      "idCreator": 1,
+      "idText": 29,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Analizzare la nave",
+      "shortText": "Analizzare la nave",
+      "uuid": "ab71aae3-9612-4418-84c9-06ecbdb55c0a"
+    },
+    {
+      "id": 39,
+      "idCreator": 1,
+      "idText": 39,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Weathered planks and creaking timbers tell tales of forgotten voyages and brutal storms. Beneath the grime and rot, however, the vessel's sturdy frame still begs for a second chance at sea.<br />\n<br />\nThese ships appear old and damaged. You can assist in repairing them to restore their condition.",
+      "shortText": "Weathered planks and creaking timbers tell tales of forgotten voyages and brutal storms. Beneath the grime and rot, however, the vessel's sturdy frame still begs for a second chance at sea.<br />\n<br />\nThese ships appear old and damaged. You can assist in repairing them to restore their condition.",
+      "uuid": "70f0e6fb-47c0-40f7-a2b7-e7fee6ededfc"
+    },
+    {
+      "id": 39,
+      "idCreator": 1,
+      "idText": 39,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Assi logore e legni cigolanti raccontano di rotte dimenticate e furiose tempeste. Sotto la salsedine e il degrado, tuttavia, la solida struttura dello scafo attende solo mani esperte per tornare a solcare le onde.<br />\n<br />\nQueste navi sembrano vecchie e danneggiate. Puoi offrire il tuo aiuto per ripararle.",
+      "shortText": "Assi logore e legni cigolanti raccontano di rotte dimenticate e furiose tempeste. Sotto la salsedine e il degrado, tuttavia, la solida struttura dello scafo attende solo mani esperte per tornare a solcare le onde.<br />\n<br />\nQueste navi sembrano vecchie e danneggiate. Puoi offrire il tuo aiuto per ripararle.",
+      "uuid": "0b52121e-2fe7-4bd8-8f3f-5424b05a69cd"
+    },
+    {
+      "id": 40,
+      "idCreator": 1,
+      "idText": 40,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Barney Goodman",
+      "shortText": "Barney Goodman",
+      "uuid": "37109009-c1c8-4c99-94a8-a9a2d5fdedc0"
+    },
+    {
+      "id": 40,
+      "idCreator": 1,
+      "idText": 40,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "dd59b2e7-e25c-4960-afb3-8360d60b21d6"
+    },
+    {
+      "id": 41,
+      "idCreator": 1,
+      "idText": 41,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Curated Lifestyle",
+      "shortText": "Curated Lifestyle",
+      "uuid": "79400fc0-f3de-4654-a40a-7e4f0cbcf095"
+    },
+    {
+      "id": 41,
+      "idCreator": 1,
+      "idText": 41,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "6c6b450a-51eb-4807-b8a0-bc0d2ed2cf61"
+    },
+    {
+      "id": 31,
+      "idCreator": 1,
+      "idText": 31,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Ripari le navi",
+      "shortText": "Ripari le navi",
+      "uuid": "e3a0a45a-0068-43cb-84e2-9220f9413ed1"
+    },
+    {
+      "id": 42,
+      "idCreator": 1,
+      "idText": 42,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Sawdust and warm tar fill the air as you mend cracks and replace rotted timber long neglected by time. Grateful for your hard labor, the captain presses a cold piece of metal into your palm.<br />\n<br />\nYou find numerous issues on a ship and assist in repairing it. The owner rewards you with 1 coin.",
+      "shortText": "Sawdust and warm tar fill the air as you mend cracks and replace rotted timber long neglected by time. Grateful for your hard labor, the captain presses a cold piece of metal into your palm.<br />\n<br />\nYou find numerous issues on a ship and assist in repairing it. The owner rewards you with 1 coin.",
+      "uuid": "ffd4b322-1636-4357-a4c5-7719e469553b"
+    },
+    {
+      "id": 42,
+      "idCreator": 1,
+      "idText": 42,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Segatura e catrame caldo riempiono l'aria mentre risani spaccature e sostituisci legni morsi dal tempo. Riconoscente per il tuo duro lavoro, il capitano ti stringe in mano un freddo pezzo di metallo.<br />\n<br />\nRiscontri diversi problemi su una nave e aiuti a sistemarla. Il proprietario ti ricompensa con 1 moneta.",
+      "shortText": "Segatura e catrame caldo riempiono l'aria mentre risani spaccature e sostituisci legni morsi dal tempo. Riconoscente per il tuo duro lavoro, il capitano ti stringe in mano un freddo pezzo di metallo.<br />\n<br />\nRiscontri diversi problemi su una nave e aiuti a sistemarla. Il proprietario ti ricompensa con 1 moneta.",
+      "uuid": "309a7cd7-940a-401c-9501-10c746f59923"
+    },
+    {
+      "id": 30,
+      "idCreator": 1,
+      "idText": 30,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Esci a pescare",
+      "shortText": "Esci a pescare",
+      "uuid": "f3a29aa2-f979-4e02-a8e4-6b2c6686391c"
+    },
+    {
+      "id": 43,
+      "idCreator": 1,
+      "idText": 43,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "As the dark waters swell, your vessel gives way beneath you, leaving you to fight the relentless tide back to shore. Every desperate stroke against the current drains the last bit of your strength.<br />\n<br />\nYour boat begins to sink while fishing, forcing you to swim back to shore. You lose 1 Health Point.",
+      "shortText": "As the dark waters swell, your vessel gives way beneath you, leaving you to fight the relentless tide back to shore. Every desperate stroke against the current drains the last bit of your strength.<br />\n<br />\nYour boat begins to sink while fishing, forcing you to swim back to shore. You lose 1 Health Point.",
+      "uuid": "09109a7b-fb68-4786-9bff-f274721bbf28"
+    },
+    {
+      "id": 43,
+      "idCreator": 1,
+      "idText": 43,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Mentr'era in mare aperto, le acque scure penetrano nello scafo e ti costringono a una lotta disperata contro la corrente per guadagnare la riva. Ogni bracciata contro il mare in subbuglio prostra le tue ultime forze.<br />\n<br />\nDurante la pesca la tua barca inizia ad affondare e sei costretto a tornare a nuoto a riva. Perdi 1 Punto Vita.",
+      "shortText": "Mentr'era in mare aperto, le acque scure penetrano nello scafo e ti costringono a una lotta disperata contro la corrente per guadagnare la riva. Ogni bracciata contro il mare in subbuglio prostra le tue ultime forze.<br />\n<br />\nDurante la pesca la tua barca inizia ad affondare e sei costretto a tornare a nuoto a riva. Perdi 1 Punto Vita.",
+      "uuid": "445de062-1391-4886-8587-79112930a599"
+    },
+    {
+      "id": 44,
+      "idCreator": 1,
+      "idText": 44,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Roberta Sant'Anna",
+      "shortText": "Roberta Sant'Anna",
+      "uuid": "ea7f6cfb-b76c-4cc2-94d0-66825a9fd6a7"
+    },
+    {
+      "id": 44,
+      "idCreator": 1,
+      "idText": 44,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "e10395a3-521a-4082-b355-c728e42076ac"
+    },
+    {
+      "id": 45,
+      "idCreator": 1,
+      "idText": 45,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Getty Images",
+      "shortText": "Getty Images",
+      "uuid": "7daaf5b6-d4ca-4c22-9192-4ccaf4f133b2"
+    },
+    {
+      "id": 45,
+      "idCreator": 1,
+      "idText": 45,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "fabd8cd1-5bb7-4939-99d1-78ae098b2d98"
+    },
+    {
+      "id": 46,
+      "idCreator": 1,
+      "idText": 46,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Game over",
+      "shortText": "Game over",
+      "uuid": "4654ac39-14fb-46bb-8f03-4f03de818a40"
+    },
+    {
+      "id": 47,
+      "idCreator": 1,
+      "idText": 47,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Game over",
+      "shortText": "Game over",
+      "uuid": "a6931e61-f817-4b29-8fa6-10c91f3ba772"
+    },
+    {
+      "id": 48,
+      "idCreator": 1,
+      "idText": 48,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Game over",
+      "shortText": "Game over",
+      "uuid": "17e22f6f-b1f3-4c5b-8603-937bb173d30b"
+    },
+    {
+      "id": 48,
+      "idCreator": 1,
+      "idText": 48,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Game over",
+      "shortText": "Game over",
+      "uuid": "52c1dfd0-5ac7-4960-953f-adf3ca3b1436"
+    },
+    {
+      "id": 49,
+      "idCreator": 1,
+      "idText": 49,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "STORY",
+      "shortText": "STORY",
+      "uuid": "55e38705-d76c-4e45-adfa-de06a36f2621"
+    },
+    {
+      "id": 50,
+      "idCreator": 1,
+      "idText": 50,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The realm fades into shadow as your strength wanes, leaving behind only the quiet echo of a journey ended. Darkness claims the realm, sealing your fate and drawing the curtain on your legend.<br />\n<br />\nYour journey has ended and your health is depleted. You may restart the game.",
+      "shortText": "The realm fades into shadow as your strength wanes, leaving behind only the quiet echo of a journey ended. Darkness claims the realm, sealing your fate and drawing the curtain on your legend.<br />\n<br />\nYour journey has ended and your health is depleted. You may restart the game.",
+      "uuid": "3b37c0f0-fd66-48bd-8670-2c8438c3c312"
+    },
+    {
+      "id": 50,
+      "idCreator": 1,
+      "idText": 50,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Il mondo sfuma nell'ombra mentre le tue forze svaniscono, lasciando soltanto il silenzioso eco di un viaggio giunto al termine. L'oscurità avvolge ogni cosa, calando il sipario sulla tua leggenda.<br />\n<br />\nLa tua avventura è finita e le tue risorse sono esaurite. Ricomincia la partita se vuoi,",
+      "shortText": "Il mondo sfuma nell'ombra mentre le tue forze svaniscono, lasciando soltanto il silenzioso eco di un viaggio giunto al termine. L'oscurità avvolge ogni cosa, calando il sipario sulla tua leggenda.<br />\n<br />\nLa tua avventura è finita e le tue risorse sono esaurite. Ricomincia la partita se vuoi,",
+      "uuid": "e9b3a0bc-ec3a-4949-a675-fedb220b3c83"
+    },
+    {
+      "id": 51,
+      "idCreator": 1,
+      "idText": 51,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Pablo Merchán Montes",
+      "shortText": "Pablo Merchán Montes",
+      "uuid": "b4e558ba-7e24-4e9e-9843-0a5daeec3063"
+    },
+    {
+      "id": 51,
+      "idCreator": 1,
+      "idText": 51,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "8ee506b4-2a59-4b11-b399-8074d9306c0d"
+    },
+    {
+      "id": 52,
+      "idCreator": 1,
+      "idText": 52,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Peter Herrmann",
+      "shortText": "Peter Herrmann",
+      "uuid": "21f0c20f-6b4f-41b0-a913-72a027116f3b"
+    },
+    {
+      "id": 52,
+      "idCreator": 1,
+      "idText": 52,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "5c9a7a99-8b2b-4b2c-9213-a34adaa8db9c"
+    },
+    {
+      "id": 53,
+      "idCreator": 1,
+      "idText": 53,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Faint hearthlight pours through grease-stained windows, welcoming you with the warm aroma of roasted meats and spiced ale. Amidst the low hum of chatter, a quiet corner offers a moment of rest.<br />\n<br />\nYou find a small tavern where you can drink something.",
+      "shortText": "Faint hearthlight pours through grease-stained windows, welcoming you with the warm aroma of roasted meats and spiced ale. Amidst the low hum of chatter, a quiet corner offers a moment of rest.<br />\n<br />\nYou find a small tavern where you can drink something.",
+      "uuid": "1d643f39-0127-4a3b-bbf8-c659550efd01"
+    },
+    {
+      "id": 53,
+      "idCreator": 1,
+      "idText": 53,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "a luce fioca del focolare filtra dalle finestre, accogliendoti con il caldo profumo di arrosti e birra speziata. Tra il mormorio dei avventori, un angolo tranquillo promette un attimo di ristoro.<br />\n<br />\nTrovi una piccola taverna dove puoi bere qualcosa.",
+      "shortText": "a luce fioca del focolare filtra dalle finestre, accogliendoti con il caldo profumo di arrosti e birra speziata. Tra il mormorio dei avventori, un angolo tranquillo promette un attimo di ristoro.<br />\n<br />\nTrovi una piccola taverna dove puoi bere qualcosa.",
+      "uuid": "8dacabcf-cda9-47c6-a57a-420406c9a019"
+    },
+    {
+      "id": 54,
+      "idCreator": 1,
+      "idText": 54,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Jonathan Castañeda",
+      "shortText": "Jonathan Castañeda",
+      "uuid": "1cc51d4c-b0eb-449a-b89b-f6db71376472"
+    },
+    {
+      "id": 54,
+      "idCreator": 1,
+      "idText": 54,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "5f87b74d-43b7-4a12-8d83-4331170925bf"
+    },
+    {
+      "id": 55,
+      "idCreator": 1,
+      "idText": 55,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The room tilts gently as a cozy, heavy warmth creeps into your chest, blurring the sharp edges of your memories. The heavy burden on your mind lightens, if only for a fleeting night.<br />\n<br />\nYou are drunk. You recover 1 Sadness point.",
+      "shortText": "The room tilts gently as a cozy, heavy warmth creeps into your chest, blurring the sharp edges of your memories. The heavy burden on your mind lightens, if only for a fleeting night.<br />\n<br />\nYou are drunk. You recover 1 Sadness point.",
+      "uuid": "b3a2aa8c-e0f4-480b-b875-69903eb6e404"
+    },
+    {
+      "id": 55,
+      "idCreator": 1,
+      "idText": 55,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "La stanza oscilla lievemente mentre un tepore pesante ti avvolge, sfocando i contorni dei ricordi più amari. Il peso che ti opprimeva il cuore si fa più leggero, almeno per una notte.<br />\n<br />\nSei ubriaco. Recuperi 1 punto Tristezza.",
+      "shortText": "La stanza oscilla lievemente mentre un tepore pesante ti avvolge, sfocando i contorni dei ricordi più amari. Il peso che ti opprimeva il cuore si fa più leggero, almeno per una notte.<br />\n<br />\nSei ubriaco. Recuperi 1 punto Tristezza.",
+      "uuid": "175d4048-28b9-4978-9493-0342df8c0b4b"
+    },
+    {
+      "id": 56,
+      "idCreator": 1,
+      "idText": 56,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Tatiana Zhukova",
+      "shortText": "Tatiana Zhukova",
+      "uuid": "65495c69-9a64-4522-b4ca-f95447578c0f"
+    },
+    {
+      "id": 56,
+      "idCreator": 1,
+      "idText": 56,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "12ed157b-a32b-473f-b24c-097c3749fe7e"
+    },
+    {
+      "id": 22,
+      "idCreator": 1,
+      "idText": 22,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Bella giornata",
+      "shortText": "Bella giornata",
+      "uuid": "4d85e63f-8c44-4dee-864b-f1c6f33d5831"
+    },
+    {
+      "id": 57,
+      "idCreator": 1,
+      "idText": 57,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Golden sunlight bathes the horizon and a gentle breeze carries the promise of untrodden paths. Everything feels alive today, whispering that a grand journey is waiting just beyond the horizon.<br />\n<br />\nIt is a perfect day to start a new adventure. Begin your journey to explore the realm and undertake new quests.",
+      "shortText": "Golden sunlight bathes the horizon and a gentle breeze carries the promise of untrodden paths. Everything feels alive today, whispering that a grand journey is waiting just beyond the horizon.<br />\n<br />\nIt is a perfect day to start a new adventure. Begin your journey to explore the realm and undertake new quests.",
+      "uuid": "16380d5f-2e2e-453a-bec2-9b262d397198"
+    },
+    {
+      "id": 57,
+      "idCreator": 1,
+      "idText": 57,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Atmosfera: Una luce dorata inonda l'orizzonte e una brezza leggera porta con sé il profumo di sentieri inesplorati. Oggi ogni cosa appare carica di possibilità, pronta ad accogliere i tuoi primi passi verso l'ignoto.<br />\n<br />\nÈ una giornata perfetta per iniziare una nuova avventura. Intraprendi il tuo viaggio per esplorare il mondo e affrontare nuove missioni.",
+      "shortText": "Atmosfera: Una luce dorata inonda l'orizzonte e una brezza leggera porta con sé il profumo di sentieri inesplorati. Oggi ogni cosa appare carica di possibilità, pronta ad accogliere i tuoi primi passi verso l'ignoto.<br />\n<br />\nÈ una giornata perfetta per iniziare una nuova avventura. Intraprendi il tuo viaggio per esplorare il mondo e affrontare nuove missioni.",
+      "uuid": "a1e64a25-8911-45e8-8e7b-bd8243a3f406"
+    },
+    {
+      "id": 58,
+      "idCreator": 1,
+      "idText": 58,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Helper",
+      "shortText": "Helper",
+      "uuid": "eecece3c-f79c-49d1-b49d-01a7bd562423"
+    },
+    {
+      "id": 59,
+      "idCreator": 1,
+      "idText": 59,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Monster's Lair",
+      "shortText": "Monster's Lair",
+      "uuid": "fb20f402-043e-4667-b8f8-fe8a3fa63e46"
+    },
+    {
+      "id": 60,
+      "idCreator": 1,
+      "idText": 60,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "You Find Nothing",
+      "shortText": "You Find Nothing",
+      "uuid": "77cf67d1-bd46-49d9-9e9f-d87f29bea076"
+    },
+    {
+      "id": 61,
+      "idCreator": 1,
+      "idText": 61,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Youssef Mubarak",
+      "shortText": "Youssef Mubarak",
+      "uuid": "befbed98-b06d-4515-9f25-b19a15127d64"
+    },
+    {
+      "id": 61,
+      "idCreator": 1,
+      "idText": 61,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "cbfbced1-5462-446c-9ca2-dca773cf4aaa"
+    },
+    {
+      "id": 62,
+      "idCreator": 1,
+      "idText": 62,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Foul winds seep from the damp earth, bringing the stench of decay from the abyss below. Whispers among the locals warn of a terrifying creature lurking in the dark subterranean depths.<br />\n<br />\nIt is rumored that a monster lives in this area, having built its lair underground. Explore the subterranean location to face the creature.",
+      "shortText": "Foul winds seep from the damp earth, bringing the stench of decay from the abyss below. Whispers among the locals warn of a terrifying creature lurking in the dark subterranean depths.<br />\n<br />\nIt is rumored that a monster lives in this area, having built its lair underground. Explore the subterranean location to face the creature.",
+      "uuid": "86eadc09-9efe-4089-9278-6a6c5a335b9b"
+    },
+    {
+      "id": 62,
+      "idCreator": 1,
+      "idText": 62,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Venti insalubri trasudano dalla terra umida, portando con sé il lezzo di decomposizione che sale dall'abisso. Le voci del luogo mettono in guardia da un'orribile creatura annidata nelle profondità sotterranee.<br />\n<br />\nSi dice che in questa zona viva un mostro che ha scavato una tana sottoterra. Esplora l'area sotterranea per affrontare la creatura.",
+      "shortText": "Venti insalubri trasudano dalla terra umida, portando con sé il lezzo di decomposizione che sale dall'abisso. Le voci del luogo mettono in guardia da un'orribile creatura annidata nelle profondità sotterranee.<br />\n<br />\nSi dice che in questa zona viva un mostro che ha scavato una tana sottoterra. Esplora l'area sotterranea per affrontare la creatura.",
+      "uuid": "47eda29a-6be1-4cf1-9485-4c28449c56f0"
+    },
+    {
+      "id": 63,
+      "idCreator": 1,
+      "idText": 63,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Muddy water laps against rotting timbers in what turns out to be merely an old, forgotten quarry. Floating debris and damp silence are all that remain of the rumored beast's lair.<br />\n<br />\nThe alleged lair is just a small abandoned quarry filled with river debris. You have wasted a significant amount of time searching this area.",
+      "shortText": "Muddy water laps against rotting timbers in what turns out to be merely an old, forgotten quarry. Floating debris and damp silence are all that remain of the rumored beast's lair.<br />\n<br />\nThe alleged lair is just a small abandoned quarry filled with river debris. You have wasted a significant amount of time searching this area.",
+      "uuid": "bf89c746-00ba-434b-9fc5-190cba7c684f"
+    },
+    {
+      "id": 63,
+      "idCreator": 1,
+      "idText": 63,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Acque fangose sferzano vecchi legni marci in quella che si rivela essere solo una cava abbandonata. Detriti galleggianti e un umido silenzio sono tutto ciò che resta della presunta tana del mostro.<br />\n<br />\nLa presunta tana è solo una piccola antica cava abbandonata dove il fiume accumula detriti. Hai sprecato molto tempo a perlustrare la zona.",
+      "shortText": "Acque fangose sferzano vecchi legni marci in quella che si rivela essere solo una cava abbandonata. Detriti galleggianti e un umido silenzio sono tutto ciò che resta della presunta tana del mostro.<br />\n<br />\nLa presunta tana è solo una piccola antica cava abbandonata dove il fiume accumula detriti. Hai sprecato molto tempo a perlustrare la zona.",
+      "uuid": "35157715-b7f3-4c2b-a02e-4b9236507884"
+    },
+    {
+      "id": 64,
+      "idCreator": 1,
+      "idText": 64,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Zolly Unsell",
+      "shortText": "Zolly Unsell",
+      "uuid": "04fef081-daa5-47b4-b28c-a1bde9d45878"
+    },
+    {
+      "id": 64,
+      "idCreator": 1,
+      "idText": 64,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "ebdc1a3a-6457-4d92-9c62-1b70e753a7cc"
+    },
+    {
+      "id": 65,
+      "idCreator": 1,
+      "idText": 65,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Uncharted horizons stretch out in every direction, boundless and indifferent to the fate you choose to carve. Every crossroads invites a new destiny, with no boundaries to restrain your journey.<br />\n<br />\nThis game features an open-world setting where you can freely choose your actions. Explore the environment and forge your path without fixed progression limits.",
+      "shortText": "Uncharted horizons stretch out in every direction, boundless and indifferent to the fate you choose to carve. Every crossroads invites a new destiny, with no boundaries to restrain your journey.<br />\n<br />\nThis game features an open-world setting where you can freely choose your actions. Explore the environment and forge your path without fixed progression limits.",
+      "uuid": "f817290c-1ef8-45f0-9b7c-2a73a49596e6"
+    },
+    {
+      "id": 65,
+      "idCreator": 1,
+      "idText": 65,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Orizzonti inesplorati si stendono in ogni direzione, sconfinati e pronti ad accogliere qualunque destino sceglierai di scolpire. Ogni bivio ti invita a tracciare una nuova rotta, senza alcun limite a guidare i tuoi passi.<br />\n<br />\nQuesta storia è ambientata in un mondo open-world in cui puoi agire in totale libertà. Esplora l'ambiente e intraprendi le attività che preferisci senza vincoli di trama.",
+      "shortText": "Orizzonti inesplorati si stendono in ogni direzione, sconfinati e pronti ad accogliere qualunque destino sceglierai di scolpire. Ogni bivio ti invita a tracciare una nuova rotta, senza alcun limite a guidare i tuoi passi.<br />\n<br />\nQuesta storia è ambientata in un mondo open-world in cui puoi agire in totale libertà. Esplora l'ambiente e intraprendi le attività che preferisci senza vincoli di trama.",
+      "uuid": "b33e96fb-01dc-465d-bace-3e424579c3bd"
+    },
+    {
+      "id": 66,
+      "idCreator": 1,
+      "idText": 66,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "use-exp",
+      "shortText": "use-exp",
+      "uuid": "d90c862c-414a-45cd-af30-a0b7e01b7f5a"
+    },
+    {
+      "id": 67,
+      "idCreator": 1,
+      "idText": 67,
+      "lang": "en",
+      "shortText": "Haunted Warehouse",
+      "uuid": "13404c6b-912d-4225-9569-3d4c5338309e"
+    },
+    {
+      "id": 67,
+      "idCreator": 1,
+      "idText": 67,
+      "lang": "it",
+      "shortText": "Magazzino infestato",
+      "uuid": "01bf60d8-aaed-46ab-bed7-cb8e6844a745"
+    },
+    {
+      "id": 68,
+      "idCreator": 1,
+      "idText": 68,
+      "lang": "en",
+      "shortText": "An icy chill grips the air as saltwater trickles from the floorboards, defying the dry heat outside. Mournful whispers echo from the shadows, where lost sailors still cling to the cargo they died to deliver.<br />\n<br />\nA local warehouse is rumored to be haunted by the spirits of drowned sailors. You are requested to cleanse the area of spectral threats.",
+      "uuid": "92ac5656-442c-45f5-94dc-1681fc3f5599"
+    },
+    {
+      "id": 68,
+      "idCreator": 1,
+      "idText": 68,
+      "lang": "it",
+      "shortText": "Un freddo gelido avvolge l'ambiente mentre gocce di acqua salmastra trasudano dal pavimento in legno. Sussurri lamentosi e spettrali echi risuonano nell'ombra, dove i fantasmi dei marinai sorvegliano ancora il loro carico.<br />\n<br />\nSi dice che un magazzino sia infestato dagli spiriti di marinai annegati. Ti viene chiesto di disinfestare l'area dalle presenze spettrali.",
+      "uuid": "90d086ca-8af4-4305-9098-01a194f71511"
+    },
+    {
+      "id": 69,
+      "idCreator": 1,
+      "idText": 69,
+      "lang": "en",
+      "shortText": "Natalia Marcelewicz",
+      "uuid": "70c77205-785e-4474-aeda-f062977b8983"
+    },
+    {
+      "id": 70,
+      "idCreator": 1,
+      "idText": 70,
+      "lang": "en",
+      "shortText": "Groundhogs",
+      "uuid": "41fa883f-9086-4dbd-8654-ff77dfc3d1a5"
+    },
+    {
+      "id": 70,
+      "idCreator": 1,
+      "idText": 70,
+      "lang": "it",
+      "shortText": "Marmotte",
+      "uuid": "6081e96f-df01-4f74-b0ed-74422bd67377"
+    },
+    {
+      "id": 71,
+      "idCreator": 1,
+      "idText": 71,
+      "lang": "en",
+      "shortText": "Squeaks and scurrying paws replace the ghost stories, revealing nothing more than a nest of bloated vermin amidst ruined crates. Gnawed ropes and ruined cargo are all that remain in the quiet, damp gloom.<br />\n<br />\nThe warehouse was only infested by small rodents, not ghosts or monsters. The goods are destroyed and the owners cannot pay you for your work.",
+      "uuid": "edc7308d-7003-48b9-94bd-e9190dc8dc0d"
+    },
+    {
+      "id": 71,
+      "idCreator": 1,
+      "idText": 71,
+      "lang": "it",
+      "shortText": "Squittii e uno zampettare frenetico prendono il posto dei racconti del terrore, svelando soltanto una nidiata di roditori tra casse devastate. Corde rosicchiate e merce distrutta sono tutto ciò che rimane nel buio umido del magazzino.<br />\n<br />\nL'edificio era infestato solo da piccoli roditori, senza alcun fantasma o mostro. Le merci sono purtroppo irrecuperabili e i proprietari non dispongono di denaro per pagarti.",
+      "uuid": "6e248f48-db79-4d12-aea6-cde8e5f1c025"
+    },
+    {
+      "id": 72,
+      "idCreator": 1,
+      "idText": 72,
+      "lang": "en",
+      "shortText": "Camerauthor Photos",
+      "uuid": "4f24d140-00bd-438f-a257-198c472c1e5a"
+    },
+    {
+      "id": 73,
+      "idCreator": 1,
+      "idText": 73,
+      "lang": "en",
+      "shortText": "Merchant",
+      "uuid": "d87bdb84-4f3f-4bd7-8162-7ecec20d76f3"
+    },
+    {
+      "id": 73,
+      "idCreator": 1,
+      "idText": 73,
+      "lang": "it",
+      "shortText": "Mercante",
+      "uuid": "5e55d449-8609-4727-ad00-4984363fb73d"
+    },
+    {
+      "id": 74,
+      "idCreator": 1,
+      "idText": 74,
+      "lang": "en",
+      "shortText": "Behind a counter stacked with exotic wares, a keen-eyed trader pauses to study you with a knowing smile. Years of traveling these roads have left him with a treasure trove of secrets, provided you have the patience to listen.<br />\n<br />\nYou meet a merchant who possesses extensive knowledge of the area. Speak with him to obtain useful information and navigation tips.",
+      "uuid": "4a3ec3f0-a34e-43a5-b466-218f75fc86e2"
+    },
+    {
+      "id": 74,
+      "idCreator": 1,
+      "idText": 74,
+      "lang": "it",
+      "shortText": "Dietro un banco straripante di merce insolita, un mercante dallo sguardo vispo si ferma a osservarti con un sorriso d'intesa. Anni trascorsi a percorrere queste vie gli hanno donato una conoscenza profonda di ogni segreto del territorio.<br />\n<br />\nIncontri un mercante che conosce molto bene la zona. Interagisci con lui per ottenere informazioni utili sulla regione.",
+      "uuid": "7f871114-7c45-41fd-9328-6e8584e37d1d"
+    },
+    {
+      "id": 75,
+      "idCreator": 1,
+      "idText": 75,
+      "lang": "en",
+      "shortText": "Stefanos Nt",
+      "uuid": "b4baa55e-e792-4a57-a8c0-f9579a68b4e9"
+    },
+    {
+      "id": 76,
+      "idCreator": 1,
+      "idText": 76,
+      "lang": "en",
+      "shortText": "Play Poker",
+      "uuid": "e8f60780-c21e-41d7-8648-30abb7fa23ab"
+    },
+    {
+      "id": 76,
+      "idCreator": 1,
+      "idText": 76,
+      "lang": "it",
+      "shortText": "Gioca a poker",
+      "uuid": "ad9bc69e-8875-41b6-8e73-49506f1febc5"
+    },
+    {
+      "id": 77,
+      "idCreator": 1,
+      "idText": 77,
+      "lang": "en",
+      "shortText": "Cards click rhythmically against the worn felt table as smoky air hangs thick above the players' guarded faces. A few coins glint in the center, inviting you to risk your luck and skill for an evening's distraction.<br />\n<br />\nYou join a game of poker for recreation. Engage in the minigame to gamble your currency and boost your mood.",
+      "uuid": "2702030e-9c24-4907-bbf1-66f2e70970ea"
+    },
+    {
+      "id": 77,
+      "idCreator": 1,
+      "idText": 77,
+      "lang": "it",
+      "shortText": "Le carte scivolano con un ritmo ipnotico sul panno consumato del tavolo, mentre un'aria densa di fumo avvolge i volti impassibili dei giocatori. Qualche moneta luccica al centro, invitandoti a sfidare la fortuna per un momento di svago.<br />\n<br />\nPartecipi a una partita a poker per divertirti un po'. Gioca al minigioco per scommettere denaro e migliorare il tuo stato d'animo.",
+      "uuid": "11a0e213-aaed-48bf-ba7e-3dc054e87622"
+    },
+    {
+      "id": 78,
+      "idCreator": 1,
+      "idText": 78,
+      "lang": "en",
+      "shortText": "Jack Hamilton",
+      "uuid": "831da8e9-0fb3-45b2-82d2-a699a99a21f5"
+    },
+    {
+      "id": 79,
+      "idCreator": 1,
+      "idText": 79,
+      "lang": "en",
+      "shortText": "Win at Poker",
+      "uuid": "ebb6c49e-2034-418d-a61e-2ccc03f3c794"
+    },
+    {
+      "id": 79,
+      "idCreator": 1,
+      "idText": 79,
+      "lang": "it",
+      "shortText": "Vinci a poker",
+      "uuid": "bf491eb8-7a24-4ba1-9f33-68ea0e1ce7fc"
+    },
+    {
+      "id": 80,
+      "idCreator": 1,
+      "idText": 80,
+      "lang": "en",
+      "shortText": "The final card settles on the table, securing your triumph over the crestfallen players around you. With a satisfied smile, you rake the pile of glittering coins toward yourself under their envious gaze.<br />\n<br />\nYou win the poker match. You gain gold coins and improve your character's mood.",
+      "uuid": "633a886b-b888-4186-b64e-c5368aa753f0"
+    },
+    {
+      "id": 80,
+      "idCreator": 1,
+      "idText": 80,
+      "lang": "it",
+      "shortText": "L'ultima carta cala sul tavolo, suggellando il tuo trionfo sui giocatori ormai sconfortati intorno a te. Con un sorriso di soddisfazione, raccogli il gruzzolo di monete lucenti sotto i loro sguardi invidiosi.<br />\n<br />\nVinci la partita a poker. Guadagni monete d'oro e migliori lo stato d'animo del tuo personaggio.",
+      "uuid": "1400e124-f930-4615-9753-a0e84643ede3"
+    },
+    {
+      "id": 81,
+      "idCreator": 1,
+      "idText": 81,
+      "lang": "en",
+      "shortText": "Jack Hamilton",
+      "uuid": "a862d8ea-37b5-4189-946f-a6eab21ca039"
+    },
+    {
+      "id": 82,
+      "idCreator": 1,
+      "idText": 82,
+      "lang": "en",
+      "shortText": "Ask for the Map",
+      "uuid": "0a83d05e-94f0-40a5-af02-749056594df4"
+    },
+    {
+      "id": 82,
+      "idCreator": 1,
+      "idText": 82,
+      "lang": "it",
+      "shortText": "Chiedi la mappa",
+      "uuid": "8169fa4c-4eb9-4ed7-861a-95e477bc6ac3"
+    },
+    {
+      "id": 83,
+      "idCreator": 1,
+      "idText": 83,
+      "lang": "en",
+      "shortText": "Faded ink and weathered parchment lie rolled tightly on the desk, hinting at uncharted lands and hidden passages. With a polite gesture, you request a glance at the drawn borders that could guide your journey.<br />\n<br />\nAsk to provide a regional map.",
+      "uuid": "e7402199-bb17-4270-b594-d205e732238a"
+    },
+    {
+      "id": 83,
+      "idCreator": 1,
+      "idText": 83,
+      "lang": "it",
+      "shortText": "Inchiostro sbiadito e pergamena invecchiata giacciono arrotolati sul tavolo, custodendo i dettagli di terre e passaggi segreti. Con un gesto cortese chiedi di poter consultare i confini tracciati che guidino il tuo cammino.<br />\n<br />\nChiedi di fornirti la mappa della regione.",
+      "uuid": "a2464681-71f2-4b57-945d-552dab2a8206"
+    },
+    {
+      "id": 84,
+      "idCreator": 1,
+      "idText": 84,
+      "lang": "en",
+      "shortText": "Alex Boyd",
+      "uuid": "0be75903-f5d1-46c7-8626-38ba874c869b"
+    },
+    {
+      "id": 85,
+      "idCreator": 1,
+      "idText": 85,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Ronini Map",
+      "shortText": "Ronini Map",
+      "uuid": "f24b384c-bfe7-4970-82f9-12ae339e2a64"
+    },
+    {
+      "id": 86,
+      "idCreator": 1,
+      "idText": 86,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Carefully drawn lines and intricate seals mark every ridge, river, and hidden path across the parchment. Holding this masterwork in your hands, the surrounding wilderness feels far less daunting.<br />\n<br />\nA valuable map that allows you to navigate this region.",
+      "shortText": "Carefully drawn lines and intricate seals mark every ridge, river, and hidden path across the parchment. Holding this masterwork in your hands, the surrounding wilderness feels far less daunting.<br />\n<br />\nA valuable map that allows you to navigate this region.",
+      "uuid": "eaea8db9-7455-4051-825c-93f3a17b33d1"
+    },
+    {
+      "id": 86,
+      "idCreator": 1,
+      "idText": 86,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Tratti finemente dettagliati e antichi sigilli tracciano ogni rilievo, fiume e passaggio nascosto sulla pergamena. Custodire questo prezioso documento rende le insidie del territorio molto più decifrabili.<br />\n<br />\nUna mappa molto preziosa utilizzabile per orientarsi nella zona.",
+      "shortText": "Tratti finemente dettagliati e antichi sigilli tracciano ogni rilievo, fiume e passaggio nascosto sulla pergamena. Custodire questo prezioso documento rende le insidie del territorio molto più decifrabili.<br />\n<br />\nUna mappa molto preziosa utilizzabile per orientarsi nella zona.",
+      "uuid": "c1428092-71ee-4d83-a687-f1151550decb"
+    },
+    {
+      "id": 87,
+      "idCreator": 1,
+      "idText": 87,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The New York Public Library",
+      "shortText": "The New York Public Library",
+      "uuid": "d76a2c2a-a778-410e-98cf-5d42eda893ab"
+    },
+    {
+      "id": 87,
+      "idCreator": 1,
+      "idText": 87,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "4047455a-fffb-4584-9358-da6192bb7998"
+    }
+  ],
+  "title": "Infinite Paths",
+  "traitCount": 1,
+  "traits": [
+    {
+      "constitution": 1,
+      "costNegative": 0,
+      "costPositive": 1,
+      "dexterity": 1,
+      "energy": 1,
+      "id": 1,
+      "idCard": 8,
+      "idTextDescription": 11,
+      "idTextName": 11,
+      "id_card": 8,
+      "intelligence": 1,
+      "life": 1,
+      "sad": 1,
+      "texts": {
+        "en": {
+          "description": "Hero",
+          "name": "Hero"
+        }
+      },
+      "uuid": "b6bd28a5-b0ca-4ef4-ab88-afce994a7cca",
+      "weight": 1
+    }
+  ],
+  "uuid": "8415eb87-93c4-4b3b-95ed-d22f2fca8dc0",
+  "versionMin": "0.37.6",
+  "visibility": "PUBLIC",
+  "weatherRules": [
+    {
+      "costMoveNotSafeLocation": 1,
+      "costMoveSafeLocation": 0,
+      "id": 1,
+      "idCard": 11,
+      "idText": 22,
+      "id_card": 11,
+      "probability": 100,
+      "uuid": "864fbf3a-7ee4-48c9-bbb4-d30a3978563d"
+    },
+    {
+      "costMoveNotSafeLocation": 2,
+      "costMoveSafeLocation": 1,
+      "id": 2,
+      "idCard": 12,
+      "idText": 23,
+      "id_card": 12,
+      "probability": 0,
+      "uuid": "41b484a4-5761-4e20-86fe-6b04525fdac4"
+    }
+  ]
+}

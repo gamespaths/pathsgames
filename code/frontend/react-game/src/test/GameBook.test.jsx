@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
@@ -12,6 +12,7 @@ vi.mock('../api/matches', () => ({
   getMatchClock: vi.fn(() => Promise.resolve(null)),
   getMatchWeather: vi.fn(() => Promise.resolve(null)),
   getMatchLocations: vi.fn(() => Promise.resolve({ matchUuid: 'm1', locations: [] })),
+  getInventory: vi.fn(() => Promise.resolve({ items: [] })),
   sleepCharacter: vi.fn(),
   startMovement: vi.fn(),
   executeEvent: vi.fn(),
@@ -62,7 +63,7 @@ vi.mock('../features/gameplay/cards/GoToSleepCard', () => ({
 }))
 
 import GameBook, { lastEffectCard, statChangeItems, grantedItemUuids, itemCardForUuid } from '../features/gameplay/GameBook'
-import { endMatch, sleepCharacter, startMovement, executeEvent, getMatchWeather } from '../api/matches'
+import { endMatch, sleepCharacter, startMovement, executeEvent, getMatchWeather, getInventory } from '../api/matches'
 
 const GAME_DATA = {
   actualLocationCard: { name: 'Entrance', title: 'Entrance' },
@@ -84,6 +85,27 @@ describe('GameBook', () => {
   it('renders the Book component', () => {
     render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
     expect(screen.getByTestId('book')).toBeInTheDocument()
+  })
+
+  it('offers training on the board only in a safe place with an affordable point, and opens its page (Step 38)', () => {
+    const rich = { ...GAME_DATA, playerStats: { life: 10, experience: 30, dexterity: 10,
+      intelligence: 12, constitution: 4, expCosts: { dex: 12, int: null, cos: 8 } } }
+    const { unmount } = render(<GameBook gameData={rich} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
+    const open = screen.getByText('game.exp.open')
+    expect(open).toBeInTheDocument()
+    fireEvent.click(open)
+    // the LEFT page now reads the training card, the RIGHT one lists a card per stat
+    expect(screen.getByText('game.stats.dexterity')).toBeInTheDocument()
+    expect(screen.getByText('game.stats.constitution')).toBeInTheDocument()
+    expect(screen.queryByText('game.exp.open')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('page-back'))
+    expect(screen.queryByText('game.stats.constitution')).not.toBeInTheDocument()
+    expect(screen.getByText('game.exp.open')).toBeInTheDocument()
+    unmount()
+
+    const poor = { ...rich, playerStats: { ...rich.playerStats, experience: 3 } }
+    render(<GameBook gameData={poor} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
+    expect(screen.queryByText('game.exp.open')).not.toBeInTheDocument()
   })
 
   it('renders PlayerStats and action ConfigCards', () => {
@@ -258,6 +280,42 @@ describe('GameBook', () => {
     })
   })
 
+  // v0.35.6 — an arrival kills as an event does: the move answers an edgeState and the
+  // board must narrate it, epilogue card and all, instead of leaving the player to notice
+  // on the next reload that they are comatose.
+  it('map: a move whose arrival put the party down opens the coma page', async () => {
+    const mapGameData = {
+      ...GAME_DATA,
+      playerStats: { life: 10, energy: 10 },
+      actions: [],
+      locations: [{ uuid: 'lb', idLocation: 6, name: 'Into the dark', energyCost: 2,
+        card: { title: 'Into the dark' } }],
+      info: {
+        players: [{ idLocation: 1 }],
+        locations: [{ idLocation: 1, flagAlreadyActived: 1, clockCounter: 0 }],
+        locationsActive: [{
+          idLocation: 1, uuid: 'l1', card: { title: 'Start location' },
+          neighbors: [{ uuid: 'lb', idLocation: 6, idLocationFrom: 1, idLocationTo: 6,
+            direction: 'WEST', flagBack: 0, card: { title: 'Into the dark' } }],
+        }],
+      },
+    }
+    startMovement.mockResolvedValue({
+      automaticEvents: [],
+      edgeState: {
+        sadnessOverflowUuids: [], comaUuids: [], allPlayersInComa: true,
+        comaEventUuid: 'evt-coma', comaEventCard: { title: 'The dark closes in' },
+        comaExecutedEventUuids: ['evt-coma'], comaEffects: [],
+      },
+    })
+    render(<GameBook gameData={mapGameData} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
+    fireEvent.click(screen.getByTestId('extra-action-0'))
+    fireEvent.click(screen.getByTestId('map-node-6'))
+    fireEvent.click(screen.getByTestId('action-movement'))
+
+    expect(await screen.findByText('The dark closes in')).toBeInTheDocument()
+  })
+
   it('renders gracefully when gameData is null', () => {
     render(<GameBook gameData={null} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
     expect(screen.getByTestId('book')).toBeInTheDocument()
@@ -349,6 +407,89 @@ describe('GameBook', () => {
     expect(screen.queryByTestId('page-forward')).not.toBeInTheDocument()
   })
 
+  // v0.38.2 — a mission the reload just closed reads on the right page, with a back arrow.
+  it('shows a just-completed mission as a right-page card with a back arrow', async () => {
+    const open = { ...GAME_DATA, info: { ...GAME_DATA.info,
+      missions: [{ uuid: 'q1', name: 'Find the key', status: 'ACTIVE', steps: [{ done: false }] }] } }
+    const done = { ...open, info: { ...open.info,
+      missions: [{ uuid: 'q1', name: 'Find the key', status: 'COMPLETED', steps: [{ done: true }] }] } }
+    const { rerender } = render(<GameBook gameData={open} matchUuid="m1" story={STORY}
+      onReload={vi.fn()} onClose={vi.fn()} />)
+    // The baseline: nothing to announce on the first payload.
+    expect(screen.queryByText('Find the key')).not.toBeInTheDocument()
+
+    rerender(<GameBook gameData={done} matchUuid="m1" story={STORY} onReload={vi.fn()} onClose={vi.fn()} />)
+    expect(screen.getByText('Find the key')).toBeInTheDocument()
+    expect(screen.queryByTestId('page-forward')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('page-back'))
+    expect(screen.queryByText('Find the key')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('page-back')).not.toBeInTheDocument()
+  })
+
+  // v0.38.2 — the effect narrative is read first: the mission waits behind its forward arrow.
+  it('event with effect + mission completed shows the effect first, then the mission via the forward arrow', async () => {
+    getMatchWeather.mockResolvedValue({ uuid: 'w1', card: { title: 'Sunny' }, costMoveSafeLocation: 0 })
+    executeEvent.mockResolvedValue({ effects: [{ card: { title: 'EffectNarrative' } }] })
+    const open = { ...GAME_DATA,
+      actions: [{ uuid: 'a2', name: 'Explore', available: true, card: { title: 'Explore' } }],
+      info: { ...GAME_DATA.info,
+        missions: [{ uuid: 'q1', name: 'Find the key', status: 'ACTIVE', steps: [] }] } }
+    const done = { ...open, info: { ...open.info,
+      missions: [{ uuid: 'q1', name: 'Find the key', status: 'COMPLETED', steps: [] }] } }
+    const { rerender } = render(<GameBook gameData={open} matchUuid="m1" story={STORY}
+      onReload={vi.fn()} onClose={vi.fn()} />)
+    fireEvent.click(screen.getByTestId('preview-action'))
+    fireEvent.click(screen.getByTestId('action-action'))
+    await waitFor(() => expect(screen.getByText('EffectNarrative')).toBeInTheDocument(), { timeout: 4000 })
+
+    // The reloaded board lands with the mission closed.
+    rerender(<GameBook gameData={done} matchUuid="m1" story={STORY} onReload={vi.fn()} onClose={vi.fn()} />)
+    expect(screen.getByText('EffectNarrative')).toBeInTheDocument()
+    expect(screen.queryByText('Find the key')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('page-back')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('page-forward'))
+    expect(screen.getByText('Find the key')).toBeInTheDocument()
+    expect(screen.queryByTestId('page-forward')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('page-back'))
+    expect(screen.queryByText('Find the key')).not.toBeInTheDocument()
+  })
+
+  // v0.38.2 — an event that hands over an item AND closes a mission reads in series: the item
+  // first, the mission behind its forward arrow — whichever of the two payloads lands first.
+  it('event granting an item + mission completed shows the item first, then the mission', async () => {
+    getMatchWeather.mockResolvedValue({ uuid: 'w1', card: { title: 'Sunny' }, costMoveSafeLocation: 0 })
+    executeEvent.mockResolvedValue({ status: 'APPLIED', effects: [],
+      itemChanges: [{ characterUuid: 'p1', itemUuid: 'item-9', action: 'ADD' }] })
+    // The inventory answers only when the test says so: the board lands first.
+    let answerInventory
+    getInventory.mockReturnValue(new Promise(res => { answerInventory = res }))
+    const open = { ...GAME_DATA,
+      actions: [{ uuid: 'a2', name: 'Explore', available: true, card: { title: 'Explore' } }],
+      info: { ...GAME_DATA.info,
+        missions: [{ uuid: 'q1', name: 'Find the key', status: 'ACTIVE', steps: [] }] } }
+    const done = { ...open, info: { ...open.info,
+      missions: [{ uuid: 'q1', name: 'Find the key', status: 'COMPLETED', steps: [] }] } }
+    const { rerender } = render(<GameBook gameData={open} matchUuid="m1" story={STORY}
+      onReload={vi.fn()} onClose={vi.fn()} />)
+    fireEvent.click(screen.getByTestId('preview-action'))
+    fireEvent.click(screen.getByTestId('action-action'))
+    await waitFor(() => expect(getInventory).toHaveBeenCalled())
+
+    rerender(<GameBook gameData={done} matchUuid="m1" story={STORY} onReload={vi.fn()} onClose={vi.fn()} />)
+    await waitFor(() => expect(screen.getByText('Find the key')).toBeInTheDocument())
+
+    await act(async () => { answerInventory({ items: [{ uuid: 'row-9', itemUuid: 'item-9',
+      card: { title: 'A golden key' }, weight: 1, effects: [] }] }) })
+    expect(screen.getByText('A golden key')).toBeInTheDocument()
+    expect(screen.queryByText('Find the key')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('page-back')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('page-forward'))
+    expect(screen.getByText('Find the key')).toBeInTheDocument()
+    expect(screen.queryByText('A golden key')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('page-back'))
+    expect(screen.queryByText('Find the key')).not.toBeInTheDocument()
+  })
+
   it('enters statistics view and shows entity cards when characteristics preview is clicked', async () => {
     render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
     // The characteristics card has entityType="information" and onPreview that also sets statisticsCards=true
@@ -365,12 +506,23 @@ describe('GameBook', () => {
     const stuckData = {
       ...GAME_DATA,
       playerStats: { life: 10, energy: 1, energyMax: 10 },
-      // The only neighbor costs 5 and the only action is an end-game escape hatch
-      // (ignored) → nothing affordable → checkShowToSleepCard is true.
+      // The only neighbor costs 5 and there is no action → nothing affordable →
+      // checkShowToSleepCard is true.
       locations: [{ uuid: 'l1', name: 'Cave', energyCost: 5 }],
+      actions: [],
     }
     render(<GameBook gameData={stuckData} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
     expect(screen.getByTestId('go-to-sleep-card')).toBeInTheDocument()
+  })
+
+  it('never shows the sleep card next to the end-game card, even when energy-stuck', () => {
+    const stuckData = {
+      ...GAME_DATA,
+      playerStats: { life: 10, energy: 1, energyMax: 10 },
+      locations: [{ uuid: 'l1', name: 'Cave', energyCost: 5 }],
+    }
+    render(<GameBook gameData={stuckData} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
+    expect(screen.queryByTestId('go-to-sleep-card')).not.toBeInTheDocument()
   })
 
   it('hides the sleep card in the normal view when a movement is still affordable', () => {

@@ -2,11 +2,12 @@ package games.paths.core.service.match;
 
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
-import games.paths.core.entity.match.GamingStateRegistryEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.StoryDifficultyEntity;
 import games.paths.core.entity.story.StoryEntity;
 import games.paths.core.model.match.MatchDetail;
+import games.paths.core.model.match.MatchMission;
+import games.paths.core.model.match.MatchRegistryEntry;
 import games.paths.core.model.match.MatchSummary;
 import games.paths.core.port.match.MatchReadPort;
 import games.paths.core.port.match.MovementStorePort;
@@ -32,6 +33,7 @@ class MatchQueryServiceTest {
     private MatchReadPort matchReadPort;
     private StoryReadPort storyReadPort;
     private UserAccessPort userAccessPort;
+    private RegistryService registryService;
     private MatchQueryService service;
 
     @BeforeEach
@@ -39,7 +41,9 @@ class MatchQueryServiceTest {
         matchReadPort = mock(MatchReadPort.class);
         storyReadPort = mock(StoryReadPort.class);
         userAccessPort = mock(UserAccessPort.class);
-        service = new MatchQueryService(matchReadPort, storyReadPort, userAccessPort);
+        registryService = mock(RegistryService.class);
+        service = new MatchQueryService(matchReadPort, storyReadPort, userAccessPort,
+                null, null, null, null, registryService);
     }
 
     private UserAccessPort.UserView user(long id, String uuid) {
@@ -97,13 +101,11 @@ class MatchQueryServiceTest {
         return e;
     }
 
-    private GamingStateRegistryEntity regEntry(Long id, Long matchId, String key) {
-        GamingStateRegistryEntity e = new GamingStateRegistryEntity();
-        e.setId(id);
-        e.setIdMatch(matchId);
-        e.setUuid("reg-" + id);
+    private MatchRegistryEntry regEntry(String key) {
+        MatchRegistryEntry e = new MatchRegistryEntry();
+        e.setUuid("reg-" + key);
         e.setKey(key);
-        e.setIntValue(1);
+        e.setValues(java.util.List.of("1"));
         return e;
     }
 
@@ -448,8 +450,8 @@ class MatchQueryServiceTest {
                     .thenReturn(List.of(difficulty(3L, "diff-uuid"), difficulty(99L, "other")));
             when(matchReadPort.findLocationsByMatchId(1L))
                     .thenReturn(List.of(locState(1L, 10L), locState(1L, 11L)));
-            when(matchReadPort.findRegistryByMatchId(1L))
-                    .thenReturn(List.of(regEntry(20L, 1L, "k")));
+            when(registryService.listEntries(eq(1L), any(), eq(false), any()))
+                    .thenReturn(List.of(regEntry("k")));
 
             MatchDetail detail = service.getMatchInfo("m", "u", "en");
             assertNotNull(detail);
@@ -477,7 +479,8 @@ class MatchQueryServiceTest {
             when(storyReadPort.findDifficultiesByStoryId(2L)).thenReturn(List.of());
             when(matchReadPort.findLocationsByMatchId(1L))
                     .thenReturn(List.of(locState(1L, 10L), locState(1L, 11L)));
-            when(matchReadPort.findRegistryByMatchId(1L)).thenReturn(List.of());
+            when(registryService.listEntries(eq(1L), any(), eq(false), any()))
+                    .thenReturn(List.of());
 
             // Only location 10 has been visited.
             MovementStorePort movementStorePort = mock(MovementStorePort.class);
@@ -495,6 +498,25 @@ class MatchQueryServiceTest {
         }
 
         @Test
+        @DisplayName("v0.36.3 — the admin registry carries the hidden keys, the player's does not")
+        void hiddenKeysReachTheAdminOnly() {
+            when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(user(7L, "u")));
+            GamingMatchEntity m = match(1L, "m", 7L, 2L, 3L);
+            when(matchReadPort.findMatchByUuid("m")).thenReturn(Optional.of(m));
+            when(storyReadPort.findAllStories()).thenReturn(List.of(story(2L, "story-uuid", 10)));
+            when(storyReadPort.findLocationsByStoryId(2L)).thenReturn(List.of(location(10L, "loc-10")));
+            when(storyReadPort.findDifficultiesByStoryId(2L)).thenReturn(List.of());
+            when(matchReadPort.findLocationsByMatchId(1L)).thenReturn(List.of(locState(1L, 10L)));
+            when(registryService.listEntries(eq(1L), any(), eq(false), any()))
+                    .thenReturn(List.of(regEntry("signal")));
+            when(registryService.listEntries(eq(1L), any(), eq(true), any()))
+                    .thenReturn(List.of(regEntry("signal"), regEntry("secret_plan")));
+
+            assertEquals(1, service.getMatchInfo("m", "u", "en").getRegistry().size());
+            assertEquals(2, service.getMatchInfoForAdmin("m").getRegistry().size());
+        }
+
+        @Test
         @DisplayName("story without start location")
         void noStartLocation() {
             when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(user(7L, "u")));
@@ -504,7 +526,8 @@ class MatchQueryServiceTest {
             when(storyReadPort.findLocationsByStoryId(2L)).thenReturn(List.of());
             when(storyReadPort.findDifficultiesByStoryId(2L)).thenReturn(List.of());
             when(matchReadPort.findLocationsByMatchId(1L)).thenReturn(List.of());
-            when(matchReadPort.findRegistryByMatchId(1L)).thenReturn(List.of());
+            when(registryService.listEntries(eq(1L), any(), eq(false), any()))
+                    .thenReturn(List.of());
 
             MatchDetail detail = service.getMatchInfo("m", "u", "en");
             assertNotNull(detail);
@@ -522,7 +545,8 @@ class MatchQueryServiceTest {
             when(storyReadPort.findLocationsByStoryId(2L)).thenReturn(List.of());
             when(storyReadPort.findDifficultiesByStoryId(2L)).thenReturn(List.of());
             when(matchReadPort.findLocationsByMatchId(1L)).thenReturn(List.of());
-            when(matchReadPort.findRegistryByMatchId(1L)).thenReturn(List.of());
+            when(registryService.listEntries(eq(1L), any(), eq(false), any()))
+                    .thenReturn(List.of());
 
             MatchDetail detail = service.getMatchInfo("m", "u", "en");
             assertNotNull(detail);
@@ -538,7 +562,8 @@ class MatchQueryServiceTest {
             when(matchReadPort.findMatchByUuid("m")).thenReturn(Optional.of(m));
             when(storyReadPort.findAllStories()).thenReturn(List.of());
             when(matchReadPort.findLocationsByMatchId(1L)).thenReturn(List.of());
-            when(matchReadPort.findRegistryByMatchId(1L)).thenReturn(List.of());
+            when(registryService.listEntries(eq(1L), any(), eq(false), any()))
+                    .thenReturn(List.of());
 
             MatchDetail detail = service.getMatchInfo("m", "u", "en");
             assertNotNull(detail);
@@ -572,13 +597,69 @@ class MatchQueryServiceTest {
             when(storyReadPort.findDifficultiesByStoryId(2L))
                     .thenReturn(List.of(difficulty(3L, "diff-uuid")));
             when(matchReadPort.findLocationsByMatchId(1L)).thenReturn(List.of(locState(1L, 10L)));
-            when(matchReadPort.findRegistryByMatchId(1L)).thenReturn(List.of(regEntry(20L, 1L, "k")));
+            // v0.36.3 — the admin view asks for the hidden keys too; the stub answers either way.
+            when(registryService.listEntries(eq(1L), any(), anyBoolean(), any()))
+                    .thenReturn(List.of(regEntry("k")));
 
             MatchDetail detail = service.getMatchInfoForAdmin("m");
             assertNotNull(detail);
             assertEquals("m", detail.getMatch().getUuid());
             assertEquals("story-uuid", detail.getMatch().getStoryUuid());
             assertEquals(1, detail.getRegistry().size());
+        }
+    }
+
+    @Nested
+    @DisplayName("Step 37 - missions")
+    class Missions {
+
+        private MissionService missionService;
+
+        @BeforeEach
+        void wire() {
+            missionService = mock(MissionService.class);
+            service.setMissionService(missionService);
+        }
+
+        @Test
+        @DisplayName("the owner reads the missions of the match, status filter and all")
+        void owner() {
+            GamingMatchEntity m = match(1L, "mu", 7L, 3L, null);
+            when(userAccessPort.findByUuid("uu")).thenReturn(Optional.of(user(7L, "uu")));
+            when(matchReadPort.findMatchByUuid("mu")).thenReturn(Optional.of(m));
+            when(missionService.list(1L, 3L, "ACTIVE", "en")).thenReturn(List.of(new MatchMission()));
+            when(missionService.detail(1L, 3L, "m-1", "en")).thenReturn(new MatchMission());
+
+            assertEquals(1, service.getMatchMissions("mu", "uu", "ACTIVE", null).size());
+            assertNotNull(service.getMatchMission("mu", "uu", "m-1", "en"));
+        }
+
+        @Test
+        @DisplayName("anyone else, any unknown uuid and a blank argument all read as not-found")
+        void masked() {
+            GamingMatchEntity m = match(1L, "mu", 7L, 3L, null);
+            when(userAccessPort.findByUuid("other")).thenReturn(Optional.of(user(8L, "other")));
+            when(userAccessPort.findByUuid("ghost")).thenReturn(Optional.empty());
+            when(matchReadPort.findMatchByUuid("mu")).thenReturn(Optional.of(m));
+            when(matchReadPort.findMatchByUuid("nope")).thenReturn(Optional.empty());
+
+            assertNull(service.getMatchMissions("mu", "other", null, "en"));
+            assertNull(service.getMatchMissions("mu", "ghost", null, "en"));
+            assertNull(service.getMatchMissions("nope", "other", null, "en"));
+            assertNull(service.getMatchMissions("", "other", null, "en"));
+            assertNull(service.getMatchMission("mu", "  ", "m-1", "en"));
+        }
+
+        @Test
+        @DisplayName("with no engine wired the endpoints answer not-found rather than empty")
+        void noEngine() {
+            service.setMissionService(null);
+            GamingMatchEntity m = match(1L, "mu", 7L, 3L, null);
+            when(userAccessPort.findByUuid("uu")).thenReturn(Optional.of(user(7L, "uu")));
+            when(matchReadPort.findMatchByUuid("mu")).thenReturn(Optional.of(m));
+
+            assertNull(service.getMatchMissions("mu", "uu", null, "en"));
+            assertNull(service.getMatchMission("mu", "uu", "m-1", "en"));
         }
     }
 }

@@ -9,7 +9,9 @@ import {
   buildCardToSleep,
   buildEndGameCard,
   buildWeatherCard,
-} from '../utils/loadoutCards'
+  buildHistoryCard,
+  buildExperienceCard, buildExperienceStatCard, buildTrainedCard,
+  buildCharacterAttributesCard, buildPhaseCard } from '../utils/loadoutCards'
 
 // Identity translate fn so we can assert on the i18n keys directly.
 const t = (k) => k
@@ -38,6 +40,23 @@ describe('utils/loadoutCards weather (Step 27)', () => {
 })
 
 describe('utils/loadoutCards', () => {
+  it('buildCharacterAttributesCard carries the attributes texts and its own image', () => {
+    const c = buildCharacterAttributesCard(t)
+    expect(c.title).toBe('book.characterAttributesTitle')
+    expect(c.description).toBe('book.characterAttributesDesc')
+    expect(c.urlImage).toBeTruthy()
+    expect(c.awesomeIcon).toBe('fas fa-chart-bar')
+  })
+
+  it('buildPhaseCard titles a phase entry of images.json, with its picture and glyph', () => {
+    const c = buildPhaseCard('joining', 'Joining')
+    expect(c.title).toBe('Joining')
+    expect(c.awesomeIcon).toBe('fas fa-user-plus')
+    // v0.39.0 — the phase entries of images.json carry an SVG picture.
+    expect(c.urlImage).toMatch(/^data:image\/svg\+xml;base64,/)
+    expect(buildPhaseCard('nope', 'x')).toEqual({})
+  })
+
   it('buildGameTypeCard maps the single game-type labels and a person image', () => {
     const c = buildGameTypeCard(t)
     expect(c.title).toBe('book.single')
@@ -95,5 +114,47 @@ describe('utils/loadoutCards', () => {
       { key: 'dexterity', label: 'book.stats.totals.dexterity', value: 3 },
       { key: 'intelligence', label: 'book.stats.totals.intelligence', value: 5 },
     ])
+  })
+})
+
+describe('utils/loadoutCards history (v0.37.7)', () => {
+  it('buildHistoryCard reads the history image, titled by matches.history', () => {
+    const c = buildHistoryCard(t)
+    expect(c.title).toBe('matches.history')
+    expect(c.description).toBeNull()
+    expect(c.awesomeIcon).toBe('fas fa-history')
+    expect(c.urlImage).toBeTruthy()
+    expect(c.copyrightText).toBeTruthy()
+  })
+
+  it('buildHistoryCard takes an optional description', () => {
+    expect(buildHistoryCard(t, 'why').description).toBe('why')
+  })
+
+  it('buildExperienceCard maps the training card (Step 38)', () => {
+    const c = buildExperienceCard(t)
+    expect(c.title).toBe('game.exp.title')
+    expect(c.awesomeIcon).toBe('fas fa-star')
+    expect(c.urlImage).toBeTruthy()
+  })
+
+  it('buildTrainedCard carries the after-purchase title and its two lines', () => {
+    const c = buildTrainedCard(t)
+    expect(c.title).toBe('game.exp.trained.title')
+    expect(c.description).toBe('game.exp.trained.description')
+    expect(c.awesomeIcon).toBe('fas fa-medal')
+    expect(c).toHaveProperty('urlImage')
+  })
+
+  it('buildExperienceStatCard maps one stat onto its own picture and glyph', () => {
+    const dex = buildExperienceStatCard('dex', 'Speed', 'agility')
+    expect(dex.title).toBe('Speed')
+    expect(dex.description).toBe('agility')
+    expect(dex.awesomeIcon).toBe('fas fa-running')
+    expect(dex).toHaveProperty('urlImage')
+    expect(buildExperienceStatCard('int', 'Smart').awesomeIcon).toBe('fas fa-brain')
+    expect(buildExperienceStatCard('cos', 'Physique').awesomeIcon).toBe('fas fa-shield-alt')
+    // an unknown stat has no picture: an empty card, never a crash
+    expect(buildExperienceStatCard('luck', 'Luck')).toEqual({})
   })
 })

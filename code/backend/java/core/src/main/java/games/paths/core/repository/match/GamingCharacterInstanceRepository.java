@@ -30,6 +30,12 @@ public interface GamingCharacterInstanceRepository
 
     long countByIdMatch(Long idMatch);
 
+    /** v0.41.6 - the admin owner move of every character of the match; answers the rows moved. */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "UPDATE gaming_character_instance SET id_user = :idUser, ts_update = :ts WHERE id_match = :idMatch",
+            nativeQuery = true)
+    int updateOwner(@Param("idMatch") Long idMatch, @Param("idUser") Long idUser, @Param("ts") String ts);
+
     /** Deletes every character row belonging to the given match ids (cleanup / cascade). */
     @Modifying
     @Query("DELETE FROM GamingCharacterInstanceEntity c WHERE c.idMatch IN :matchIds")

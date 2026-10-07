@@ -3,7 +3,9 @@ import { useTranslation } from '@/i18n/context'
 import Card from '@/components/layout/Card'
 import LoadingCard from '@/components/layout/LoadingCard'
 import { getMatchLogs } from '@/api/matches'
-import { buildCardToSleep } from '@/utils/loadoutCards'
+import { buildCardToSleep, buildHistoryCard } from '@/utils/loadoutCards'
+import { formatDate } from '@/utils/dates'
+import MatchStatusBadge from './MatchStatusBadge'
 
 /**
  * MatchLogCard — the match history, rendered as a full book reading page.
@@ -27,6 +29,12 @@ import { buildCardToSleep } from '@/utils/loadoutCards'
  * v0.30.3 the timeline arrives newest-first (order=desc), so the most recent entry
  * opens the page and "load more" walks back into the past.
  *
+ * Step 40 — `match` (the match summary, no extra call) adds two client-side tiles: the current
+ * status first, and "Creation" with its date last, once the last page is loaded.
+ *
+ * v0.41.6 — a row of type chips heads the list, as in the admin console: each shows its count
+ * over the loaded entries and filters the list client-side; "All" clears the filter.
+ *
  * Used on the book's RIGHT page, next to the story card on the left:
  *   - GuestUserModal — when (i) is clicked on a MatchCard;
  *   - GameBook       — when (i) is clicked on the story card in PlayerCards.
@@ -34,22 +42,38 @@ import { buildCardToSleep } from '@/utils/loadoutCards'
 
 const PAGE_LIMIT = 50
 
-/** Entries of these types are never shown in the timeline. */
-const HIDDEN_TYPES = new Set(['CLOCK_ADVANCE'])
+/** The prefix the backends write in front of a registry change; stripped off in the row. */
+const MSG_REGISTRY_CHANGE = 'REGISTRY_CHANGE'
+
+/** Entries of these types are never shown in the timeline; v0.41.1 adds the lifecycle and admin rows. */
+const HIDDEN_TYPES = new Set(['CLOCK_ADVANCE', 'MATCH_LIFECYCLE', 'ADMIN_ACTION'])
 
 // Icon per entry type; mirrors the admin console's TYPE_META.
 const TYPE_ICON = {
   WEATHER:         'fa-cloud-sun-rain',
-  MOVEMENT:        'fa-person-walking',
+  MOVEMENT:        'fa-walking',
   SLEEP:           'fa-bed',
   CLOCK_ADVANCE:   'fa-clock',
   RECOVERY:        'fa-heart',
   EVENT:           'fa-scroll',
   COUNTER_ZERO:    'fa-hourglass-end',
-  AUTOMATIC_EVENT: 'fa-wand-magic-sparkles',
+  AUTOMATIC_EVENT: 'fa-magic',
+  // Step 39 — a global random event fired at time-start.
+  RANDOM_EVENT:    'fa-dice',
+  // Step 36 / v0.37.2 — both were answered by the API and fell back to the grey default.
+  REGISTRY_CHANGE: 'fa-list',
+  MISSION_CHANGE:  'fa-clipboard-list',
   ITEM_ADD:        'fa-hand-holding',
   ITEM_USE:        'fa-flask',
   ITEM_DROP:       'fa-trash',
+  // Step 38 — experience spent on a stat.
+  EXP_USE:         'fa-star',
+  // Step 40 — an option picked, with what its own effects gave.
+  CHOICE:          'fa-code-branch',
+  // v0.41.1 — a pass, an edge state (coma, sadness) and a trait moved by an effect.
+  PASS:            'fa-forward',
+  EDGE_STATE:      'fa-heartbeat',
+  TRAIT_CHANGE:    'fa-user-tag',
 }
 
 /**
@@ -67,9 +91,40 @@ const TYPE_COLOR = {
   EVENT:           '#f87171',
   COUNTER_ZERO:    '#fb923c',
   AUTOMATIC_EVENT: '#e879f9',
+  RANDOM_EVENT:    '#fbbf24',
+  REGISTRY_CHANGE: '#38bdf8',
+  MISSION_CHANGE:  '#d4af37',
   ITEM_ADD:        '#4ade80',
   ITEM_USE:        '#a78bfa',
   ITEM_DROP:       '#9ca3af',
+  EXP_USE:         '#c4b5fd',
+  CHOICE:          '#f472b6',
+  PASS:            '#94a3b8',
+  EDGE_STATE:      '#ef4444',
+  TRAIT_CHANGE:    '#a3e635',
+}
+
+/** Sentinel for "no type filter". */
+const ALL = '__ALL__'
+
+/** v0.41.6 — one type chip: icon, count and the type's colour; the active one stands out. */
+export function LogFilterChip({ type, label, count, active, onClick }) {
+  const color = type === ALL ? undefined : TYPE_COLOR[type]
+  const icon = type === ALL ? 'fa-layer-group' : (TYPE_ICON[type] || 'fa-circle')
+  return (
+    <button type="button" className={`match-log-filter${active ? ' match-log-filter--active' : ''}`}
+      style={color ? { color, borderColor: color } : undefined}
+      title={label} aria-label={`${label} (${count})`} aria-pressed={active} onClick={onClick}>
+      <i className={`fas ${icon}`} />{count}
+    </button>
+  )
+}
+
+/** Count of the visible entries per type, in the order the types first appear. */
+export function typeCounts(entries) {
+  const counts = {}
+  for (const e of entries) counts[e.type] = (counts[e.type] || 0) + 1
+  return counts
 }
 
 /**
@@ -107,37 +162,6 @@ export function resourceBadges(entry, t) {
 }
 
 /**
- * The same, with what the entry WAS and who did it in front — the little tile has no room
- * to spell either of them out, so there they are badges too. The page does have the room
- * and says both in words instead, so it asks for the resources alone.
- */
-export function entryBadges(entry, actor, t) {
-  const items = []
-  if (entry?.type) {
-    // The type leads: it is what the entry IS, and it carries its own glyph rather than a
-    // stat one — BonusBadgeList takes the icon off the item when the shared vocabulary has
-    // no word for it. `label: null` keeps the page variant from printing it twice, once as
-    // the label and once as the value.
-    const badge = {
-      key: `type-${entry.type}`,
-      label: null,
-      value: t(`matchLog.types.${entry.type}`),
-      icon: `fas ${TYPE_ICON[entry.type] || 'fa-circle'}`,
-    }
-    // Left off entirely rather than set to null when the type is unknown: BonusBadgeList
-    // reads the key's PRESENCE, so a null would mean "no colour" instead of "use yours".
-    if (TYPE_COLOR[entry.type]) {
-      badge.color = TYPE_COLOR[entry.type]
-    }
-    items.push(badge)
-  }
-  if (actor) {
-    items.push({ key: 'actor', label: t('matchLog.character'), value: actor })
-  }
-  return [...items, ...resourceBadges(entry, t)]
-}
-
-/**
  * Date + time in the reader's locale, so the day/month order follows the
  * language (e.g. 12/07 in it, 7/12 in en) instead of being hardcoded.
  */
@@ -166,37 +190,80 @@ function resolveEntryCard(entry, t) {
   return entry.card ?? null
 }
 
+/** What a REGISTRY_CHANGE row says: the key and the two values, without the prefix. */
+export function registryDetail(entry, t) {
+  const message = (entry?.message ?? '').trim()
+  const detail = message.startsWith(MSG_REGISTRY_CHANGE)
+    ? message.slice(MSG_REGISTRY_CHANGE.length).trim()
+    : message
+  return detail || t(`matchLog.types.${entry?.type}`)
+}
+
+/** v0.41.1 — what a PASS / EDGE_STATE / TRAIT_CHANGE row says; null for every other type. */
+export function step41Detail(entry, t) {
+  const message = String(entry?.message ?? '').trim()
+  if (entry?.type === 'EDGE_STATE' && message) return t(`matchLog.edgeStates.${message.split(' ')[0]}`)
+  if (entry?.type === 'TRAIT_CHANGE' && message) return t(`matchLog.traitActions.${message.split(' ')[0]}`)
+  if (entry?.type === 'PASS') return t('matchLog.types.PASS')
+  return null
+}
+
 /**
- * One timeline entry as a little Card: the entry's card gives title + image, the type
- * and the resources it moved are stat badges overlaid on that image (v0.35.4) and the
- * date goes underneath. Entries with no card of their own (RECOVERY) fall back to the
- * type label and its icon.
+ * v0.37.2 — one timeline entry as a ROW, not a tile: a history is read down a column, and a
+ * grid of pictures made the reader hunt for the order things happened in. What the entry WAS
+ * leads as a badge, its card's title names it, and the (i) opens that card as a page — the
+ * picture is one click away rather than in the way.
+ *
+ * A registry write is the exception: it owns no card, so the row says WHAT was written and
+ * carries no lens at all — the page behind it would have nothing the row does not already say.
  */
-// showActor: add the character that acted as one more badge (off by default)
-export function LogEntryCard({ entry, lang, t, onPreview, showActor = false }) {
+export function LogEntryRow({ entry, lang, t, onPreview }) {
   const typeLabel = t(`matchLog.types.${entry.type}`)
-  const actor = entry.characterName || entry.characterUuid
-  const card = resolveEntryCard(entry, t)
+  const registry = entry.type === 'REGISTRY_CHANGE'
+  const card = registry ? null : resolveEntryCard(entry, t)
+  // An entry with no card of its own (RECOVERY) is named by what it was.
+  const title = registry ? registryDetail(entry, t) : (card?.title ?? step41Detail(entry, t) ?? typeLabel)
+  const color = TYPE_COLOR[entry.type]
 
   return (
-    <Card
-      variant="little"
-      card={card}
-      name={card?.title ?? typeLabel}
-      icon={`fas ${TYPE_ICON[entry.type] || 'fa-circle'}`}
-      entityType={undefined}
-      onPreview={() => onPreview(entry)}
-      statistics={entryBadges(entry, showActor ? actor : null, t)}
-      flagShowFullStatistics
-      bonusBadgeListLittleIntoImage
-      bonusBadgeShowZeros
-      locked={true} lockedIcon=""
-      lockInfo={formatLogDate(entry.timestamp, lang)}
-    />
+    <li className="match-log-row" data-testid="match-log-row">
+      <span className="match-log-row__type" style={color ? { color } : undefined}>
+        <i className={`fas ${TYPE_ICON[entry.type] || 'fa-circle'} me-1`} />
+        {typeLabel}
+      </span>
+      <span className="match-log-row__title" title={title}>{title}</span>
+      {!registry && (
+        <button type="button" className="card-info-btn match-log-row__info"
+          onClick={() => onPreview(entry)}
+          title={t('card.info')} aria-label={`${t('card.info')} ${title}`}>
+          <i className="fas fa-info" />
+        </button>
+      )}
+    </li>
   )
 }
 
-export default function MatchLogCard({ matchUuid, accessToken, story = null, onBack = null }) {
+/** Step 40 — the first tile: the match's current status. */
+export function StatusTile({ status, t }) {
+  return (
+    <li className="match-log-row match-log-row--status" data-testid="match-log-status">
+      <span className="match-log-row__type"><i className="fas fa-flag me-1" />{t('matchLog.statusTile')}</span>
+      <span className="match-log-row__title"><MatchStatusBadge status={status} inline /></span>
+    </li>
+  )
+}
+
+/** Step 40 — the last tile: when the match was created. */
+export function CreationTile({ date, t }) {
+  return (
+    <li className="match-log-row match-log-row--creation" data-testid="match-log-creation">
+      <span className="match-log-row__type"><i className="fas fa-feather-alt me-1" />{t('matchLog.creation')}</span>
+      <span className="match-log-row__title">{date}</span>
+    </li>
+  )
+}
+
+export default function MatchLogCard({ matchUuid, accessToken, story = null, onBack = null, match = null }) {
   const { t, lang } = useTranslation()
 
   const [entries, setEntries]   = useState([])
@@ -207,6 +274,8 @@ export default function MatchLogCard({ matchUuid, accessToken, story = null, onB
   // (i) on an entry tile: that entry's card takes over this page. The back arrow
   // returns to the timeline, which stays loaded underneath.
   const [preview, setPreview]   = useState(null)
+  // v0.41.6 — type filter over the loaded entries; it never refetches.
+  const [filter, setFilter]     = useState(ALL)
 
   useEffect(() => {
     let cancelled = false
@@ -244,6 +313,14 @@ export default function MatchLogCard({ matchUuid, accessToken, story = null, onB
 
   // Clock advances carry no card and no actor: they would render as empty tiles.
   const visibleEntries = entries.filter(e => !HIDDEN_TYPES.has(e.type))
+  const counts = typeCounts(visibleEntries)
+  // A filter on a type no longer loaded (e.g. after a refetch) falls back to all.
+  const activeFilter = filter !== ALL && counts[filter] ? filter : ALL
+  const shownEntries = activeFilter === ALL ? visibleEntries : visibleEntries.filter(e => e.type === activeFilter)
+  // The status and creation tiles are not entry types: they show only on the unfiltered list.
+  const statusTile = match?.status && activeFilter === ALL ? <StatusTile status={match.status} t={t} /> : null
+  const creationDate = formatDate(match?.tsInsert, lang)
+  const creationTile = creationDate && !cursor && activeFilter === ALL ? <CreationTile date={creationDate} t={t} /> : null
 
   if (loading) return <LoadingCard story={story} />
   const body = (
@@ -257,20 +334,31 @@ export default function MatchLogCard({ matchUuid, accessToken, story = null, onB
           <i className="fas fa-exclamation-circle me-2" />
           {typeof error === 'string' ? error : t('matchLog.error')}
         </p>
-      ) : visibleEntries.length === 0 ? (
+      ) : visibleEntries.length === 0 && !statusTile && !creationTile ? (
         <p className="match-log-state">{t('matchLog.empty')}</p>
       ) : (
         <>
-          <div className="match-log-list selection-list">
-            {visibleEntries.map((entry, idx) => (
-              <LogEntryCard
+          {visibleEntries.length > 0 && (
+            <div className="match-log-filters" role="group" aria-label={t('matchLog.filters')} data-testid="match-log-filters">
+              <LogFilterChip type={ALL} label={t('matchLog.filterAll')} count={visibleEntries.length}
+                active={activeFilter === ALL} onClick={() => setFilter(ALL)} />
+              {Object.keys(counts).map(type => (
+                <LogFilterChip key={type} type={type} label={t(`matchLog.types.${type}`)} count={counts[type]}
+                  active={activeFilter === type} onClick={() => setFilter(activeFilter === type ? ALL : type)} />
+              ))}
+            </div>
+          )}
+          <ul className="match-log-list">
+            {statusTile}
+            {shownEntries.map((entry, idx) => (
+              <LogEntryRow
                 key={`${entry.type}-${entry.timestamp}-${idx}`}
                 entry={entry} lang={lang} t={t}
                 onPreview={setPreview}
-                showActor
               />
             ))}
-          </div>
+            {creationTile}
+          </ul>
 
           {/* Load more sits at the end of the list, big and centered. It borrows
               CardButtons' look (gc-footer__btn) so it reads as the same control,
@@ -348,7 +436,8 @@ export default function MatchLogCard({ matchUuid, accessToken, story = null, onB
   return (
     <Card
       variant="page"
-      card={{ title: t('matchLog.title'), description: null, urlImage: null }}
+      // The history image belongs to the little door card; the reading page is the list itself.
+      card={{ ...buildHistoryCard(t), title: t('matchLog.title'), urlImage: null }}
       entityType="matchlog"
       story={story}
       loading={false}

@@ -261,7 +261,7 @@ class MatchControllerTest {
         MatchRegistryEntry r = new MatchRegistryEntry();
         r.setUuid("r");
         r.setKey("k");
-        r.setIntValue(1);
+        r.setValues(List.of("1"));
         detail.setRegistry(List.of(r));
         detail.setEvents(List.of(new MatchEventOption("ev", "n", "EVENT")));
         detail.setChoices(List.of(new MatchEventOption("ch", "n", "CHOICE")));

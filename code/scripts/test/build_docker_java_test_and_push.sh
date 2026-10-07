@@ -1,92 +1,180 @@
 #!/usr/bin/env bash
-# build_docker_test_and_push.sh — Build the Paths Games Java backend image LOCALLY
-#   from the current working tree and PUSH it to Docker Hub tagged as the TEST image.
+# build_docker_java_test_and_push.sh — Build and push the Paths Games Java backend
+# as a multi-architecture Docker image for linux/amd64 and linux/arm64.
 #
-# The image is built for linux/amd64 (the EC2 t3 instances are amd64) so it runs
-# regardless of your host architecture (e.g. Apple Silicon). It reuses the existing
-# multi-stage Dockerfile (code/backend/java/Dockerfile) which compiles with Maven
-# inside the build container.
+# Compatible with:
+#   - EC2 t3.medium      -> x86_64 / amd64
+#   - EC2 t4g.medium     -> ARM64 / Graviton
 #
-# Config is read from the SHARED .env in aws_ec2_with_java_docker/.env (same file
-# used by start.sh / stop.sh / redeploy.sh).
+# The image is built from:
+#   code/backend/java/Dockerfile
 #
-# After pushing, run aws_ec2_with_java_docker/redeploy.sh to roll the new image
-# onto a running EC2 instance, or start.sh to launch a fresh one.
+# Docker Hub receives one manifest containing both architecture variants.
+# Docker automatically selects the correct image during docker pull.
 #
 # Usage:
-#   ./build_docker_test_and_push.sh            # build + push :test
-#   ./build_docker_test_and_push.sh --dry-run  # print the docker commands only
+#   ./build_docker_java_test_and_push.sh
+#   ./build_docker_java_test_and_push.sh --dry-run
 
 set -euo pipefail
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# ── Load the project ROOT .env ──────────────────────────────────────────────
+# ── Load project root .env ────────────────────────────────────────────────────
 ENV_FILE="$(cd "$SCRIPT_DIR/../../.." && pwd)/.env"
+
 if [ -f "$ENV_FILE" ]; then
-    set -a; . "$ENV_FILE"; set +a
-    echo "[build] Loaded $ENV_FILE"
+    set -a
+    . "$ENV_FILE"
+    set +a
+    echo "[build-java] Loaded $ENV_FILE"
 else
-    echo "[build] WARNING: $ENV_FILE not found — relying on environment / defaults."
+    echo "[build-java] WARNING: $ENV_FILE not found — using environment/defaults."
 fi
 
-# ── Config (root .env *_TEST_EC2 vars) ──────────────────────────────────────────
-DOCKERHUB_USERNAME="${DOCKERHUB_USERNAME_TEST:?DOCKERHUB_USERNAME_TEST must be set in the root .env}"
+# ── Configuration ─────────────────────────────────────────────────────────────
+DOCKERHUB_USERNAME="${DOCKERHUB_USERNAME_TEST:?DOCKERHUB_USERNAME_TEST must be set}"
 DOCKERHUB_IMAGE="${DOCKERHUB_IMAGE_TEST:-pathsgames-backend}"
+
+# Java keeps the existing :test tag.
 IMAGE_TAG="${DOCKERHUB_IMAGE_TAG_TEST:-test}"
-BUILD_PLATFORM="${BUILD_PLATFORM:-linux/amd64}"
-BUILDX_BUILDER="${BUILDX_BUILDER:-pathsgames-builder}"
+
+# Can be overridden, for example:
+# BUILD_PLATFORMS=linux/arm64 ./build_docker_java_test_and_push.sh
+BUILD_PLATFORMS="${BUILD_PLATFORMS:-linux/amd64,linux/arm64}"
+
+BUILDX_BUILDER="${BUILDX_BUILDER:-pathsgames-java-builder}"
+BUILDKITD_CONFIG="$SCRIPT_DIR/buildkitd.toml"
+
 BACKEND_IMAGE="${DOCKERHUB_USERNAME}/${DOCKERHUB_IMAGE}:${IMAGE_TAG}"
 
-# Build context = the Java backend module (Dockerfile + all poms live here).
-# From code/scripts/test/ go up to code/ then into backend/java.
+# Build context = code/backend/java
 JAVA_DIR="$(cd "$SCRIPT_DIR/../../backend/java" && pwd)"
+DOCKERFILE="$JAVA_DIR/Dockerfile"
 
-if [ ! -f "$JAVA_DIR/Dockerfile" ]; then
-    echo "[build] ERROR: Dockerfile not found at $JAVA_DIR/Dockerfile"
+if [ ! -f "$DOCKERFILE" ]; then
+    echo "[build-java] ERROR: Dockerfile not found at $DOCKERFILE"
     exit 1
 fi
 
-echo "[build] Image    : $BACKEND_IMAGE"
-echo "[build] Platform : $BUILD_PLATFORM"
-echo "[build] Context  : $JAVA_DIR"
+echo "[build-java] Image     : $BACKEND_IMAGE"
+echo "[build-java] Platforms : $BUILD_PLATFORMS"
+echo "[build-java] Context   : $JAVA_DIR"
+echo ""
 
-# ── Dry-run ─────────────────────────────────────────────────────────────────────
+# ── Dry run ───────────────────────────────────────────────────────────────────
 if [ "${1:-}" = "--dry-run" ]; then
-    echo ""
     echo "=== DRY RUN — commands that would run ==="
-    echo "echo \$DOCKERHUB_TOKEN | docker login -u $DOCKERHUB_USERNAME --password-stdin"
-    echo "docker buildx use $BUILDX_BUILDER  ||  docker buildx create --use --name $BUILDX_BUILDER"
-    echo "docker buildx build --platform $BUILD_PLATFORM -t $BACKEND_IMAGE -f $JAVA_DIR/Dockerfile $JAVA_DIR --push"
+    echo ""
+    echo "1. Docker Hub login:"
+    echo "   echo \$DOCKERHUB_TOKEN | docker login -u $DOCKERHUB_USERNAME --password-stdin"
+    echo ""
+    echo "2. Buildx builder:"
+    echo "   docker buildx use $BUILDX_BUILDER"
+    echo "   docker buildx create --use --name $BUILDX_BUILDER"
+    echo ""
+    echo "3. Multi-architecture build and push:"
+    echo "   docker buildx build \\"
+    echo "     --platform $BUILD_PLATFORMS \\"
+    echo "     --tag $BACKEND_IMAGE \\"
+    echo "     --file $DOCKERFILE \\"
+    echo "     $JAVA_DIR \\"
+    echo "     --push"
+    echo ""
+    echo "4. Manifest verification:"
+    echo "   docker buildx imagetools inspect $BACKEND_IMAGE"
+    echo ""
     echo "=== END DRY RUN ==="
     exit 0
 fi
 
-# ── Docker Hub login (local machine only) ──────────────────────────────────────
-DOCKERHUB_TOKEN="${DOCKERHUB_TOKEN_TEST:?DOCKERHUB_TOKEN_TEST must be set in the root .env (a Docker Hub access token)}"
-echo "[build] Logging in to Docker Hub as $DOCKERHUB_USERNAME…"
-echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+# ── Validate Docker and Buildx ────────────────────────────────────────────────
+if ! command -v docker >/dev/null 2>&1; then
+    echo "[build-java] ERROR: docker command not found."
+    exit 1
+fi
 
-# ── Ensure a buildx builder exists (needed for --platform cross-build) ─────────
-docker buildx use "$BUILDX_BUILDER" 2>/dev/null \
-    || docker buildx create --use --name "$BUILDX_BUILDER"
+if ! docker buildx version >/dev/null 2>&1; then
+    echo "[build-java] ERROR: docker buildx is not available."
+    exit 1
+fi
 
-# ── Build for amd64 and push in one step ────────────────────────────────────────
-echo "[build] Building + pushing $BACKEND_IMAGE …"
+# ── Docker Hub login ──────────────────────────────────────────────────────────
+DOCKERHUB_TOKEN="${DOCKERHUB_TOKEN_TEST:?DOCKERHUB_TOKEN_TEST must be set}"
+
+echo "[build-java] Logging in to Docker Hub as $DOCKERHUB_USERNAME..."
+echo "$DOCKERHUB_TOKEN" | docker login \
+    --username "$DOCKERHUB_USERNAME" \
+    --password-stdin
+
+echo "[build-java] Docker Hub login successful."
+echo ""
+
+# ── Ensure Buildx builder exists ──────────────────────────────────────────────
+BUILDER_CREATED=false
+
+if docker buildx inspect "$BUILDX_BUILDER" >/dev/null 2>&1; then
+    echo "[build-java] Using existing builder: $BUILDX_BUILDER"
+    docker buildx use "$BUILDX_BUILDER"
+else
+    echo "[build-java] Creating builder: $BUILDX_BUILDER"
+
+    if [ -f "$BUILDKITD_CONFIG" ]; then
+        docker buildx create \
+            --name "$BUILDX_BUILDER" \
+            --driver docker-container \
+            --buildkitd-config "$BUILDKITD_CONFIG" \
+            --use
+    else
+        docker buildx create \
+            --name "$BUILDX_BUILDER" \
+            --driver docker-container \
+            --use
+    fi
+
+    BUILDER_CREATED=true
+fi
+
+# Remove only the builder created by this execution.
+cleanup_builder() {
+    if [ "$BUILDER_CREATED" = true ]; then
+        echo ""
+        echo "[build-java] Removing temporary builder: $BUILDX_BUILDER"
+        docker buildx rm --force "$BUILDX_BUILDER" >/dev/null 2>&1 || true
+    fi
+}
+
+trap cleanup_builder EXIT
+
+# ── Build and push multi-architecture image ───────────────────────────────────
+echo ""
+echo "[build-java] Building Java image..."
+echo "[build-java] Platforms: $BUILD_PLATFORMS"
+echo ""
+
 docker buildx build \
-    --platform "$BUILD_PLATFORM" \
-    -t "$BACKEND_IMAGE" \
-    -f "$JAVA_DIR/Dockerfile" \
+    --platform "$BUILD_PLATFORMS" \
+    --tag "$BACKEND_IMAGE" \
+    --file "$DOCKERFILE" \
     "$JAVA_DIR" \
     --push
 
+# ── Verify manifest ──────────────────────────────────────────────────────────
 echo ""
-echo "╔══════════════════════════════════════════════════════════╗"
-echo "║  Test image built and pushed to Docker Hub               ║"
-echo "╠══════════════════════════════════════════════════════════╣"
-printf "║  Image    : %-46s║\n" "$BACKEND_IMAGE"
-printf "║  Platform : %-46s║\n" "$BUILD_PLATFORM"
-echo   "╠══════════════════════════════════════════════════════════╣"
-echo   "║  Next:                                                   ║"
-echo   "║   • new instance      → aws_ec2_with_java_docker/start.sh ║"
-echo   "║   • update running EC2 → aws_ec2_with_java_docker/redeploy.sh ║"
-echo   "╚══════════════════════════════════════════════════════════╝"
+echo "[build-java] Verifying published manifest..."
+docker buildx imagetools inspect "$BACKEND_IMAGE"
+
+echo ""
+echo "╔════════════════════════════════════════════════════════════╗"
+echo "║  Java multi-arch image built and pushed                    ║"
+echo "╠════════════════════════════════════════════════════════════╣"
+printf "║  Image     : %-47s║\n" "$BACKEND_IMAGE"
+printf "║  Platforms : %-47s║\n" "$BUILD_PLATFORMS"
+echo "╠════════════════════════════════════════════════════════════╣"
+echo "║  t3.medium  -> linux/amd64                                ║"
+echo "║  t4g.medium -> linux/arm64                                ║"
+echo "╠════════════════════════════════════════════════════════════╣"
+echo "║  Next steps:                                               ║"
+echo "║  New EC2      -> aws_ec2_with_java_docker/start.sh         ║"
+echo "║  Running EC2  -> aws_ec2_with_java_docker/redeploy.sh      ║"
+echo "╚════════════════════════════════════════════════════════════╝"

@@ -38,7 +38,7 @@ function mockInfo(status = 'RUNNING', extra = {}) {
     },
     currentLocationId: 90001, currentLocationUuid: 'loc-1-story',
     locations: [{ idLocation: 90001, uuid: 'loc-1', flagAlreadyActived: 1, clockCounter: 3 }],
-    registry: [{ uuid: 'r1', key: 'act_1_done', intValue: 0, stringValue: null }],
+    registry: [{ uuid: 'r1', key: 'act_1_done', values: ['0'], multiValue: false }],
     events: [], choices: [],
     players: [PLAYER],
     ...extra,

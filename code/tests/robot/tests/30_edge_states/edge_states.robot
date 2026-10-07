@@ -231,9 +231,8 @@ Admin Events
     [Documentation]    The story's event rows. match-info publishes only uuid/available/reason,
     ...                so the shape of an event (its cost, type and conditions) has to come
     ...                from here — same approach as the Step 29 suite.
-    ${resp}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/events
-    Status Should Be    ${resp}    200
-    RETURN    ${resp.json()}
+    ${rows}=    Cached Admin Rows    ${STORY_UUID}    events
+    RETURN    ${rows}
 
 Plain Event Uuid
     [Documentation]    The seeded plain NORMAL event (90010): 1 energy, +5 exp to the actor

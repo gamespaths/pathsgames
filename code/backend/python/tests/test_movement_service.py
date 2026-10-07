@@ -64,8 +64,6 @@ class FakeMovementStore:
                     out.append(dict(e))
         return out
 
-    def find_registry_value(self, id_match, key):
-        return self.registry.get(key)
 
     def find_current_weather_move_cost(self, id_match):
         return self.weather
@@ -93,9 +91,20 @@ def store():
     return FakeMovementStore()
 
 
+class _FakeRegistry:
+    """Only `find` is reached from a move condition."""
+
+    def __init__(self, registry):
+        self.registry = registry
+
+    def find(self, id_match, key):
+        return self.registry.get(key) or []
+
+
 @pytest.fixture()
 def service(store):
-    return MovementService(store)
+    # Step 36 — the registry is read through its own service, not the move store.
+    return MovementService(store, registry_service_instance=_FakeRegistry(store.registry))
 
 
 # ─── start_movement ────────────────────────────────────────────────────────────
@@ -166,6 +175,43 @@ def test_step33_arrival_triggers_run_after_the_move_is_committed(store):
     assert store.logged == (50, 1, 2, 6)
     arrival = entry.on_arrival.call_args[0][0]
     assert (arrival.id_character, arrival.id_location) == (50, 2)
+
+
+def test_v0356_the_arrivals_edge_state_is_folded_into_one_verdict(store):
+    """An arrival kills exactly as an executed event does, and several of its events can:
+    the move answers ONE edge state, whichever of them did it."""
+    from unittest.mock import MagicMock
+    from app.core.models.match import location_entry_models as lem
+    from app.core.models.match.event_models import EdgeStateOutcome
+
+    downed = EdgeStateOutcome([], ["char-uuid"], True, "coma-uuid", None, ["coma-uuid"], [])
+    entry = MagicMock()
+    entry.on_arrival.return_value = [
+        lem.AutomaticEventFired(lem.TRIGGER_FIRST_ENTRY, 2, "evt-welcome"),
+        lem.AutomaticEventFired(lem.TRIGGER_MOVE_INTO_EMPTY_LOCATION, 2, "evt-trap",
+                                edge_state=downed),
+    ]
+    service = MovementService(store, location_entry=entry)
+
+    r = service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
+
+    assert r.edge_state.coma_uuids == ["char-uuid"]
+    assert r.edge_state.all_players_in_coma is True
+    assert r.edge_state.coma_event_uuid == "coma-uuid"
+
+
+def test_v0356_a_quiet_arrival_answers_an_empty_edge_state(store):
+    from unittest.mock import MagicMock
+    from app.core.models.match import location_entry_models as lem
+
+    entry = MagicMock()
+    entry.on_arrival.return_value = [
+        lem.AutomaticEventFired(lem.TRIGGER_FIRST_ENTRY, 2, "evt-welcome")]
+
+    r = MovementService(store, location_entry=entry).start_movement(
+        MATCH_UUID, "user-uuid", "loc-2")
+
+    assert r.edge_state is not None and r.edge_state.anything() is False
 
 
 def test_step33_without_the_location_engine_a_move_behaves_as_before(service):
@@ -281,7 +327,7 @@ def test_not_adjacent(service, store):
 def test_condition_unmet(service, store):
     store.neighbors[1][0]["condition_key"] = "DOOR"
     store.neighbors[1][0]["condition_value"] = "OPEN"
-    store.registry["DOOR"] = "CLOSED"
+    store.registry["DOOR"] = ["CLOSED"]
     with pytest.raises(MovementError) as e:
         service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
     assert e.value.code == MovementError.MOVEMENT_CONDITION_NOT_MET
@@ -290,7 +336,7 @@ def test_condition_unmet(service, store):
 def test_condition_met(service, store):
     store.neighbors[1][0]["condition_key"] = "DOOR"
     store.neighbors[1][0]["condition_value"] = "OPEN"
-    store.registry["DOOR"] = "OPEN"
+    store.registry["DOOR"] = ["OPEN"]
     r = service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
     assert r.to_location_id == 2
 

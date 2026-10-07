@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 
 vi.mock('@/i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k }),
@@ -28,7 +28,8 @@ describe('LoadingCard', () => {
   it('credits the photo author from data/images.json', () => {
     const loadingImg = images.find(x => x.id === 'loading')
     render(<LoadingCard />)
-    expect(screen.getByText(new RegExp(loadingImg.copyrightText))).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('credit-image'))
+    expect(screen.getByTestId('tip-note').textContent).toContain(loadingImg.copyrightText)
   })
 
   it('takes the picture, credits and description from the story card when given', () => {
@@ -44,7 +45,8 @@ describe('LoadingCard', () => {
     expect(screen.getByText('A tale of paths')).toBeInTheDocument()
     expect(container.querySelector('img').src).toBe('http://story/cover.jpg')
     // the credits follow the image: the story author, not the fixed photo's one
-    expect(screen.getByText(/Story Author/)).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('credit-image'))
+    expect(screen.getByTestId('tip-note').textContent).toContain('Story Author')
     const loadingImg = images.find(x => x.id === 'loading')
     expect(screen.queryByText(new RegExp(loadingImg.copyrightText))).toBeNull()
   })

@@ -23,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,6 +33,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -65,6 +67,7 @@ class EventExecutionServiceAutomaticTest {
     private static final int CLOCK = 4;
 
     private EventExecutionStorePort store;
+    private RegistryService registryService;
     private EdgeStateStorePort edgeStore;
     private LocationEntryStorePort locationStore;
     private ContentQueryPort contentQueryPort;
@@ -73,11 +76,12 @@ class EventExecutionServiceAutomaticTest {
     @BeforeEach
     void setUp() {
         store = mock(EventExecutionStorePort.class);
+        registryService = mock(RegistryService.class);
         edgeStore = mock(EdgeStateStorePort.class);
         locationStore = mock(LocationEntryStorePort.class);
         contentQueryPort = mock(ContentQueryPort.class);
         service = new EventExecutionService(store, edgeStore, mock(UserAccessPort.class),
-                contentQueryPort, null, locationStore);
+                contentQueryPort, null, locationStore, registryService);
 
         when(store.findMatchById(MATCH_ID)).thenReturn(Optional.of(
                 new MatchEventView(MATCH_ID, "m1", "RUNNING", CLOCK, STORY_ID, 3L, null)));
@@ -214,6 +218,21 @@ class EventExecutionServiceAutomaticTest {
         }
 
         @Test
+        @DisplayName("v0.41.2 - the first latch of flag_visited counts one LOCATION_VISIT, a later one none")
+        void firstVisitKpi() {
+            games.paths.core.port.match.KpiPort kpi = mock(games.paths.core.port.match.KpiPort.class);
+            service.setKpi(kpi);
+            when(store.findEventsById(STORY_ID)).thenReturn(Map.of());
+            when(locationStore.findLocationTriggers(STORY_ID, LOCATION)).thenReturn(Optional.empty());
+            when(locationStore.markStateLocationVisited(MATCH_ID, LOCATION)).thenReturn(true, false);
+
+            service.onArrival(arrival());
+            service.onArrival(arrival());
+
+            verify(kpi, times(1)).recordLocationVisit(MATCH_ID, STORY_ID, LOCATION);
+        }
+
+        @Test
         @DisplayName("an unknown location resolves to nothing")
         void unknownLocation() {
             when(locationStore.findLocationTriggers(STORY_ID, LOCATION)).thenReturn(Optional.empty());
@@ -260,6 +279,41 @@ class EventExecutionServiceAutomaticTest {
         }
 
         @Test
+        @DisplayName("v0.35.6: a lethal arrival reports its Step 30 verdict, epilogue and all")
+        void aLethalArrivalCarriesItsEdgeState() {
+            when(store.findEventsById(STORY_ID)).thenReturn(Map.of(
+                    40L, event(40L, "evt-trap"), 50L, event(50L, "evt-coma")));
+            when(store.findEffectsByEventId(STORY_ID)).thenReturn(Map.of(
+                    40L, List.of(lethalEffect())));
+            when(store.findIdEventAllPlayerComa(STORY_ID)).thenReturn(Optional.of(50L));
+            when(locationStore.findLocationTriggers(STORY_ID, LOCATION))
+                    .thenReturn(Optional.of(triggers(40, null, null)));
+            when(locationStore.findFlagVisited(MATCH_ID, LOCATION)).thenReturn(0);
+
+            List<AutomaticEventFired> fired = service.onArrival(arrival());
+
+            EventExecutionPort.EdgeStateOutcome edge = fired.get(0).edgeState();
+            assertTrue(edge.comaUuids().contains("char-1"));
+            assertTrue(edge.allPlayersInComa());
+            assertEquals("evt-coma", edge.comaEventUuid());
+            assertEquals(List.of("evt-coma"), edge.comaExecutedEventUuids());
+        }
+
+        @Test
+        @DisplayName("v0.35.6: an ordinary arrival answers an empty edge state, never null")
+        void aQuietArrivalCarriesAnEmptyEdgeState() {
+            when(store.findEventsById(STORY_ID)).thenReturn(Map.of(40L, event(40L, "evt-first")));
+            when(locationStore.findLocationTriggers(STORY_ID, LOCATION))
+                    .thenReturn(Optional.of(triggers(40, null, null)));
+            when(locationStore.findFlagVisited(MATCH_ID, LOCATION)).thenReturn(0);
+
+            List<AutomaticEventFired> fired = service.onArrival(arrival());
+
+            assertNotNull(fired.get(0).edgeState());
+            assertFalse(fired.get(0).edgeState().anything());
+        }
+
+        @Test
         @DisplayName("a forced-movement loop aborts at the depth cap instead of hanging")
         void forcedMovementLoopAborts() {
             // The story an author can write in two admin form fields: 40 pushes you to 90003,
@@ -282,7 +336,7 @@ class EventExecutionServiceAutomaticTest {
                     .thenReturn(Optional.of(triggers(40, 40, null)));
             when(locationStore.findLocationTriggers(STORY_ID, 90003L))
                     .thenReturn(Optional.of(new LocationTriggerView(90003L, null, 41, 41,
-                            null, null, null, 0)));
+                            null, null, null, 0, null, null, null, null)));
 
             List<AutomaticEventFired> fired = service.onArrival(arrival());
 
@@ -334,8 +388,60 @@ class EventExecutionServiceAutomaticTest {
 
             assertEquals(1, fired.size());
             // idCharacter null: the world changed, but around no one.
-            verify(store).upsertRegistry(eq(MATCH_ID), eq("DOOR_OPEN"), eq("YES"), eq(null),
-                    any(), anyInt());
+            verify(registryService).upsert(eq(MATCH_ID), any(), eq("DOOR_OPEN"), eq("YES"), eq(null),
+                    any(), eq(null), any());
+            verify(store, never()).updateCharacterStats(anyLong(), anyLong(), any());
+        }
+
+        @Test
+        @DisplayName("Step 38: a mission's reward reaches the whole party — ALL with no actor is every character")
+        void missionRewardReachesEveryCharacter() {
+            EventEntity e = event(60L, "evt-reward");
+            EventEffectEntity reward = new EventEffectEntity();
+            reward.setStatistics("exp");
+            reward.setValue(1);
+            reward.setTarget("ALL");
+            EventEffectEntity lonely = new EventEffectEntity();
+            lonely.setStatistics("exp");
+            lonely.setValue(5);
+            lonely.setTarget("ONLY_ONE");
+            EventEffectEntity otherClass = new EventEffectEntity();
+            otherClass.setStatistics("exp");
+            otherClass.setValue(9);
+            otherClass.setTarget("ALL");
+            otherClass.setTargetClass(99);
+            EventActorView second = new EventActorView(8L, "char-2", 4L, null, 90003L,
+                    5, 5, 5, 10, 10, 0, 2, 20, 20, 50, 30, false, false, null);
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(actor(), second));
+            when(store.findEventsById(STORY_ID)).thenReturn(Map.of(60L, e));
+            when(store.findEffectsByEventId(STORY_ID)).thenReturn(Map.of(60L, List.of(reward, lonely, otherClass)));
+
+            service.runMissionEvent(MATCH_ID, 60L, 1);
+
+            // both characters, wherever they stand, gained the one point — and only that one
+            ArgumentCaptor<EventExecutionStorePort.CharacterStats> stats =
+                    ArgumentCaptor.forClass(EventExecutionStorePort.CharacterStats.class);
+            verify(store).updateCharacterStats(eq(MATCH_ID), eq(CHAR_ID), stats.capture());
+            assertEquals(1, stats.getValue().exp());
+            verify(store).updateCharacterStats(eq(MATCH_ID), eq(8L), stats.capture());
+            assertEquals(3, stats.getValue().exp());
+        }
+
+        @Test
+        @DisplayName("Step 38: a counter-zero fuse with no actor still names nobody, ALL or not")
+        void counterZeroStillReachesNobody() {
+            EventEntity e = event(61L, "evt-fuse");
+            EventEffectEntity reward = new EventEffectEntity();
+            reward.setStatistics("exp");
+            reward.setValue(1);
+            reward.setTarget("ALL");
+            when(store.findEventsById(STORY_ID)).thenReturn(Map.of(61L, e));
+            when(store.findEffectsByEventId(STORY_ID)).thenReturn(Map.of(61L, List.of(reward)));
+
+            service.runPendingAutomaticEvents(MATCH_ID, CLOCK,
+                    List.of(new PendingAutomaticEvent(LocationEntryPort.TRIGGER_COUNTER_ZERO,
+                            LOCATION, 61L, null, 0)), "en");
+
             verify(store, never()).updateCharacterStats(anyLong(), anyLong(), any());
         }
 
@@ -344,6 +450,108 @@ class EventExecutionServiceAutomaticTest {
         void emptyPendingList() {
             assertTrue(service.runPendingAutomaticEvents(MATCH_ID, CLOCK, List.of(), "en").isEmpty());
             verify(store, never()).findMatchById(anyLong());
+        }
+    }
+
+    // ── Step 39: random events ──────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("Step 39 runRandomEvent — a party-wide event with no actor")
+    class RandomEvents {
+
+        @Test
+        @DisplayName("ALL reaches every character, ONLY_ONE nobody, targetClass narrows")
+        void reachesTheWholeParty() {
+            EventEntity e = event(70L, "evt-wolves");
+            EventEffectEntity all = new EventEffectEntity();
+            all.setStatistics("exp");
+            all.setValue(1);
+            all.setTarget("ALL");
+            EventEffectEntity lonely = new EventEffectEntity();
+            lonely.setStatistics("exp");
+            lonely.setValue(5);
+            lonely.setTarget("ONLY_ONE");
+            EventEffectEntity otherClass = new EventEffectEntity();
+            otherClass.setStatistics("exp");
+            otherClass.setValue(9);
+            otherClass.setTarget("ALL");
+            otherClass.setTargetClass(99);
+            EventActorView second = new EventActorView(8L, "char-2", 4L, null, 90003L,
+                    5, 5, 5, 10, 10, 0, 2, 20, 20, 50, 30, false, false, null);
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(actor(), second));
+            when(store.findEventsById(STORY_ID)).thenReturn(Map.of(70L, e));
+            when(store.findEffectsByEventId(STORY_ID)).thenReturn(Map.of(70L, List.of(all, lonely, otherClass)));
+
+            List<AutomaticEventFired> fired = service.runRandomEvent(MATCH_ID, CLOCK, 70L, "en");
+
+            assertEquals(1, fired.size());
+            assertEquals(LocationEntryPort.TRIGGER_RANDOM_EVENT, fired.get(0).trigger());
+            assertEquals("evt-wolves", fired.get(0).eventUuid());
+            ArgumentCaptor<EventExecutionStorePort.CharacterStats> stats =
+                    ArgumentCaptor.forClass(EventExecutionStorePort.CharacterStats.class);
+            verify(store).updateCharacterStats(eq(MATCH_ID), eq(CHAR_ID), stats.capture());
+            assertEquals(1, stats.getValue().exp());
+            verify(store).updateCharacterStats(eq(MATCH_ID), eq(8L), stats.capture());
+            assertEquals(3, stats.getValue().exp());
+            // its own log prefix, no actor, no location
+            verify(locationStore).logAutomaticEvent(eq(MATCH_ID), eq(null), eq(0L), eq(70L), anyInt(),
+                    eq("random event 70 (RANDOM_EVENT)"));
+        }
+
+        @Test
+        @DisplayName("an event owning choices is skipped and logged, nothing fires")
+        void choicesAreSkipped() {
+            when(store.findEventsById(STORY_ID)).thenReturn(Map.of(71L, event(71L, "evt-ask")));
+            when(store.findChoicesByEventId(STORY_ID, 71L)).thenReturn(List.of(new ChoiceEntity()));
+
+            assertTrue(service.runRandomEvent(MATCH_ID, CLOCK, 71L, "en").isEmpty());
+            verify(locationStore).logAutomaticEvent(eq(MATCH_ID), eq(null), eq(0L), eq(71L), eq(CLOCK),
+                    org.mockito.ArgumentMatchers.startsWith("automatic event skipped 71"));
+        }
+
+        @Test
+        @DisplayName("told FULL to anyone, with no location and no location lookup")
+        void toldFullWithoutLocation() {
+            CardInfo eventCard = card("card-wolves", "Wolves");
+            CardInfo effectCard = card("card-bite", "A bite");
+            List<AutomaticEventFired> fired = List.of(new AutomaticEventFired(
+                    LocationEntryPort.TRIGGER_RANDOM_EVENT, 0L, "evt-wolves", eventCard,
+                    List.of(new EventExecutionPort.AppliedEffect("evt-wolves", "eff-a", "LIFE",
+                            -1, "ALL", null, List.of("char-1"), effectCard)),
+                    List.of(), List.of(), false));
+
+            for (Long recipient : new Long[]{CHAR_ID, null}) {
+                List<CounterZeroItem> told =
+                        service.describeForRecipient(MATCH_ID, recipient, CLOCK, fired, "en");
+                assertEquals(CounterZeroItem.VISIBILITY_FULL, told.get(0).visibility());
+                assertNull(told.get(0).idLocation());
+                assertNull(told.get(0).cardLocation());
+                assertEquals(eventCard, told.get(0).card());
+                assertEquals(effectCard, told.get(0).cardEffects().get(0).card());
+            }
+            verify(locationStore, never()).findLocationTriggers(anyLong(), anyLong());
+        }
+
+        @Test
+        @DisplayName("a fired event with null effects is told with an empty list")
+        void nullEffects() {
+            List<AutomaticEventFired> fired = List.of(new AutomaticEventFired(
+                    LocationEntryPort.TRIGGER_RANDOM_EVENT, 0L, "evt-quiet", null,
+                    null, List.of(), List.of(), false));
+            assertTrue(service.describeForRecipient(MATCH_ID, CHAR_ID, CLOCK, fired, "en")
+                    .get(0).cardEffects().isEmpty());
+        }
+
+        @Test
+        @DisplayName("the log message and the party flag")
+        void helpers() {
+            assertEquals("random event 5 (RANDOM_EVENT)",
+                    EventExecutionService.automaticLogMessage(LocationEntryPort.TRIGGER_RANDOM_EVENT, 5, 0));
+            assertEquals("automatic event 5 (COUNTER_ZERO) at location 12",
+                    EventExecutionService.automaticLogMessage(LocationEntryPort.TRIGGER_COUNTER_ZERO, 5, 12));
+            assertTrue(EventExecutionService.isPartyTrigger(LocationEntryPort.TRIGGER_RANDOM_EVENT));
+            assertTrue(EventExecutionService.isPartyTrigger("mission completed"));
+            assertFalse(EventExecutionService.isPartyTrigger(LocationEntryPort.TRIGGER_COUNTER_ZERO));
         }
     }
 
@@ -483,7 +691,7 @@ class EventExecutionServiceAutomaticTest {
     @DisplayName("without a location store the engine is exactly as it was before Step 33")
     void noLocationStoreIsAPreStep33Engine() {
         EventExecutionService legacy = new EventExecutionService(store, edgeStore,
-                mock(UserAccessPort.class), mock(ContentQueryPort.class), null);
+                mock(UserAccessPort.class), mock(ContentQueryPort.class), null, registryService);
 
         assertTrue(legacy.onArrival(arrival()).isEmpty());
         assertTrue(legacy.runPendingAutomaticEvents(MATCH_ID, CLOCK,
@@ -524,7 +732,8 @@ class EventExecutionServiceAutomaticTest {
     }
 
     private static LocationTriggerView triggers(Integer first, Integer notFirst, Integer alone) {
-        return new LocationTriggerView(LOCATION, 500, first, notFirst, alone, null, null, 0);
+        return new LocationTriggerView(LOCATION, 500, first, notFirst, alone, null, null, 0,
+                null, null, null, null);
     }
 
     /** A card with just the two fields the assertions care about. */
@@ -538,6 +747,14 @@ class EventExecutionServiceAutomaticTest {
         e.setId(id);
         e.setUuid(uuid);
         e.setType("AUTOMATIC");
+        return e;
+    }
+
+    private static EventEffectEntity lethalEffect() {
+        EventEffectEntity e = new EventEffectEntity();
+        e.setStatistics("life");
+        e.setValue(-99);
+        e.setTarget("ONLY_ONE");
         return e;
     }
 

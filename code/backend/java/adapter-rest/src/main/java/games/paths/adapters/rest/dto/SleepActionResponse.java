@@ -16,6 +16,10 @@ import java.util.List;
  * <p>v0.33.1 widened each entry from one card to three: the event's card, the cards of the
  * effects it applied, and the location's card. Until then only the location travelled, so the
  * player woke to the name of a place instead of the news of what had happened in it.</p>
+ *
+ * <p>v0.35.6 added {@code edgeState}: the recovery — and the events the time-start fires —
+ * can empty a life bar, and that verdict now travels with the answer instead of surfacing as
+ * a bare flag on the next reload.</p>
  */
 public class SleepActionResponse {
 
@@ -26,6 +30,7 @@ public class SleepActionResponse {
     private int currentClock;
     private List<RecoveryItem> recovery = new ArrayList<>();
     private List<CounterZeroItem> counterZero = new ArrayList<>();
+    private ExecuteEventResponse.EdgeStateOutcomeDto edgeState;
 
     public static SleepActionResponse fromModel(TimeAdvancementPort.SleepResult m) {
         SleepActionResponse r = new SleepActionResponse();
@@ -40,19 +45,8 @@ public class SleepActionResponse {
                         item.energyDelta(), item.lifeDelta(), item.sadDelta()));
             }
         }
-        if (m.counterZero() != null) {
-            for (TimeAdvancementPort.CounterZeroItem item : m.counterZero()) {
-                List<ExecuteEventResponse.AppliedEffectDto> effects = new ArrayList<>();
-                if (item.cardEffects() != null) {
-                    item.cardEffects().forEach(e ->
-                            effects.add(ExecuteEventResponse.AppliedEffectDto.fromModel(e)));
-                }
-                r.counterZero.add(new CounterZeroItem(item.trigger(), item.idLocation(),
-                        CardInfoResponse.fromModel(item.card()),
-                        CardInfoResponse.fromModel(item.cardLocation()), effects,
-                        item.eventUuid(), item.clock(), item.visibility()));
-            }
-        }
+        r.counterZero = CounterZeroItem.fromModels(m.counterZero());
+        r.edgeState = ExecuteEventResponse.EdgeStateOutcomeDto.fromModel(m.edgeState());
         return r;
     }
 
@@ -63,6 +57,7 @@ public class SleepActionResponse {
     public int getCurrentClock() { return currentClock; }
     public List<RecoveryItem> getRecovery() { return recovery; }
     public List<CounterZeroItem> getCounterZero() { return counterZero; }
+    public ExecuteEventResponse.EdgeStateOutcomeDto getEdgeState() { return edgeState; }
 
     /**
      * One automatic event a time-start fired, as this caller is allowed to hear it (Step 33).
@@ -79,7 +74,7 @@ public class SleepActionResponse {
      */
     public static class CounterZeroItem {
         private final String trigger;
-        private final long idLocation;
+        private final Long idLocation;
         private final CardInfoResponse card;
         private final CardInfoResponse cardLocation;
         private final List<ExecuteEventResponse.AppliedEffectDto> cardEffects;
@@ -87,7 +82,7 @@ public class SleepActionResponse {
         private final int clock;
         private final String visibility;
 
-        public CounterZeroItem(String trigger, long idLocation, CardInfoResponse card,
+        public CounterZeroItem(String trigger, Long idLocation, CardInfoResponse card,
                                CardInfoResponse cardLocation,
                                List<ExecuteEventResponse.AppliedEffectDto> cardEffects,
                                String eventUuid, int clock, String visibility) {
@@ -101,8 +96,29 @@ public class SleepActionResponse {
             this.visibility = visibility;
         }
 
+        /** Step 40 - shared with the answers of an action that ended the time early. */
+        public static List<CounterZeroItem> fromModels(List<TimeAdvancementPort.CounterZeroItem> items) {
+            List<CounterZeroItem> out = new ArrayList<>();
+            if (items == null) {
+                return out;
+            }
+            for (TimeAdvancementPort.CounterZeroItem item : items) {
+                List<ExecuteEventResponse.AppliedEffectDto> effects = new ArrayList<>();
+                if (item.cardEffects() != null) {
+                    item.cardEffects().forEach(e ->
+                            effects.add(ExecuteEventResponse.AppliedEffectDto.fromModel(e)));
+                }
+                out.add(new CounterZeroItem(item.trigger(), item.idLocation(),
+                        CardInfoResponse.fromModel(item.card()),
+                        CardInfoResponse.fromModel(item.cardLocation()), effects,
+                        item.eventUuid(), item.clock(), item.visibility()));
+            }
+            return out;
+        }
+
         public String getTrigger() { return trigger; }
-        public long getIdLocation() { return idLocation; }
+        /** Step 39 - null for a RANDOM_EVENT, which happens nowhere in particular. */
+        public Long getIdLocation() { return idLocation; }
         public CardInfoResponse getCard() { return card; }
         public CardInfoResponse getCardLocation() { return cardLocation; }
         public List<ExecuteEventResponse.AppliedEffectDto> getCardEffects() { return cardEffects; }

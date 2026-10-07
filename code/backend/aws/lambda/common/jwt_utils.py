@@ -4,7 +4,7 @@ common/jwt_utils.py — Paths Games JWT verification
 Verifies and generates HS256 JWT tokens using only the Python standard library
 (no PyJWT dependency required on Lambda).
 
-ALLOW_MOCK_ACCESS env var (default "true"):
+ALLOW_MOCK_ACCESS env var (code default "true"; the SAM default is "false" since v0.41.0):
   "true"  → accept/generate MOCK_ACCESS_{uuid} and MOCK_REFRESH_{uuid} tokens (dev convenience)
   "false" → only real HS256 JWTs accepted and generated (production-safe)
 
@@ -23,12 +23,24 @@ import json
 import time
 import os
 
-JWT_SECRET = os.environ.get(
-    'JWT_SECRET',
-    'PathsGamesDevSecret2026_MustBeAtLeast32Chars!'
-)
+DEV_JWT_SECRET = 'PathsGamesDevSecret2026_MustBeAtLeast32Chars!'
+JWT_SECRET = os.environ.get('JWT_SECRET', DEV_JWT_SECRET)
 
 ALLOW_MOCK_ACCESS = os.environ.get('ALLOW_MOCK_ACCESS', 'true').lower() not in ('false', '0', 'no')
+
+
+def misconfigured():
+    """v0.41.0 — True on a non dev/test stack with the committed (or blank) JWT secret."""
+    from common import test_data_ttl
+    if test_data_ttl.is_test_env():
+        return False
+    return not (JWT_SECRET or '').strip() or JWT_SECRET == DEV_JWT_SECRET
+
+
+def misconfigured_response():
+    """The 500 every guarded handler answers; the message never names the secret."""
+    from common.response import err
+    return err(500, 'MISCONFIGURED', 'Server misconfigured: JWT secret not set for this environment')
 
 
 def _b64url_decode(s):

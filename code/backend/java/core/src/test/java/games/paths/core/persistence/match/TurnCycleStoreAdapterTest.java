@@ -31,6 +31,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
+import games.paths.core.port.match.LogIdPort;
+import games.paths.core.model.match.LogTable;
 
 class TurnCycleStoreAdapterTest {
 
@@ -41,6 +43,7 @@ class TurnCycleStoreAdapterTest {
     private LogEventsRepository logEventsRepository;
     private StoryRepository storyRepository;
     private TextRepository textRepository;
+    private LogIdPort logIds;
     private TurnCycleStoreAdapter adapter;
 
     @BeforeEach
@@ -52,8 +55,9 @@ class TurnCycleStoreAdapterTest {
         logEventsRepository = mock(LogEventsRepository.class);
         storyRepository = mock(StoryRepository.class);
         textRepository = mock(TextRepository.class);
+        logIds = mock(LogIdPort.class);
         adapter = new TurnCycleStoreAdapter(matchRepository, characterRepository, turnQueueRepository,
-                logClockHistoryRepository, logEventsRepository, storyRepository, textRepository);
+                logClockHistoryRepository, logEventsRepository, storyRepository, textRepository, logIds);
     }
 
     private GamingMatchEntity match() {
@@ -153,6 +157,25 @@ class TurnCycleStoreAdapterTest {
     }
 
     @Test
+    void stampMatchStart_writesOnceAndSkipsAMissingMatch() {
+        GamingMatchEntity m = match();
+        when(matchRepository.findById(1L)).thenReturn(Optional.of(m));
+        adapter.stampMatchStart(1L);
+        String first = m.getTimestampStart();
+        assertNotNull(first);
+        adapter.stampMatchStart(1L);
+        assertEquals(first, m.getTimestampStart());
+        verify(matchRepository, times(1)).save(m);
+
+        m.setTimestampStart(" ");
+        adapter.stampMatchStart(1L);
+        assertNotEquals(" ", m.getTimestampStart());
+
+        when(matchRepository.findById(2L)).thenReturn(Optional.empty());
+        adapter.stampMatchStart(2L);
+    }
+
+    @Test
     void findCharacterByMatchAndUser_maps() {
         when(characterRepository.findByIdMatchAndIdUser(1L, 7L)).thenReturn(Optional.of(character()));
         assertTrue(adapter.findCharacterByMatchAndUser(1L, 7L).isPresent());
@@ -189,14 +212,14 @@ class TurnCycleStoreAdapterTest {
 
     @Test
     void insertClockHistory_savesWithNextId() {
-        when(logClockHistoryRepository.findMaxId()).thenReturn(4L);
+        when(logIds.nextId(LogTable.CLOCK_HISTORY)).thenReturn(5L);
         adapter.insertClockHistory(1L, 5);
         verify(logClockHistoryRepository).save(any(LogClockHistoryEntity.class));
     }
 
     @Test
     void logSleep_savesEventWithNextIdAndClock() {
-        when(logEventsRepository.findMaxId()).thenReturn(7L);
+        when(logIds.nextId(LogTable.EVENTS)).thenReturn(8L);
         adapter.logSleep(1L, 10L, 3);
 
         ArgumentCaptor<LogEventsEntity> captor = ArgumentCaptor.forClass(LogEventsEntity.class);

@@ -14,6 +14,22 @@ fi
 
 # Override Turnstile key to empty so local Python server uses dev bypass (empty secret_key)
 export TURNSTILE_SECRET_KEY=""
+# v0.41.0 — real exports: they beat the root .env the server reads itself; Robot runs with the limits off.
+if [ -n "${JWT_SECRET:-}" ]; then export JWT_SECRET; fi
+# v0.41.4 - ROBOT_RATE_LIMITS=1 (run_robot_everywhere *_LIMITED): limits on, only the rate-limit tests.
+# Per guest < per-IP matches, so that case meets its own bucket; 10 guests leave room for the setups.
+if [ "${ROBOT_RATE_LIMITS:-0}" = "1" ]; then
+	export RATE_LIMIT_GUEST_PER_IP=10 RATE_LIMIT_MATCH_PER_IP=5 RATE_LIMIT_MATCH_PER_GUEST=3
+	ROBOT_SCOPE=(--include rate-limit --variable RATE_LIMIT_GUEST_PER_IP:10 --variable RATE_LIMIT_MATCH_PER_IP:5
+		--variable RATE_LIMIT_MATCH_PER_GUEST:3 --outputdir reports-local-python-limited/)
+elif [ "${ROBOT_GOLDEN:-0}" = "1" ]; then
+	# v0.41.4 - ROBOT_GOLDEN=1 (export_golden_files.sh): writes this backend's golden export, imports every golden.
+	export RATE_LIMIT_GUEST_PER_IP=0 RATE_LIMIT_MATCH_PER_IP=0 RATE_LIMIT_MATCH_PER_GUEST=0
+	ROBOT_SCOPE=(--include golden --variable WRITE_GOLDEN:1 --outputdir reports-local-python-golden/)
+else
+	export RATE_LIMIT_GUEST_PER_IP=0 RATE_LIMIT_MATCH_PER_IP=0 RATE_LIMIT_MATCH_PER_GUEST=0
+	ROBOT_SCOPE=(--outputdir reports-local-python/)
+fi
 
 # If not present in .env, ROBOT_VAR_ADMIN_TOKEN must be set in the environment before running the script
 if [ -z "${ROBOT_VAR_ADMIN_TOKEN:-}" ]; then
@@ -37,6 +53,11 @@ echo "Execute script to seed stories in database"
 .venv/bin/python scripts/seed_stories.py
 
 # start local server
+# v0.37.6 — static catalog export (POST /api/admin/stories/catalog) writes here; the
+# Robot suite 14_admin/story_catalog.robot reads the files back through the same variable.
+export CATALOG_EXPORT_DIR="${CATALOG_EXPORT_DIR:-/tmp/pathsgames-catalog-robot}"
+rm -rf "$CATALOG_EXPORT_DIR"
+
 .venv/bin/python -m app.launcher &
 SERVER_PID=$!
 
@@ -68,7 +89,7 @@ cd "$PROJECT_ROOT" && python3 -m venv .venv
 
 cd "$PROJECT_ROOT/code/tests/robot" && "$PROJECT_ROOT/.venv/bin/pip" install -q -r requirements.txt
 ROBOT_EXIT=0
-ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" "$PROJECT_ROOT/.venv/bin/robot" --variablefile variables/dev.yaml --outputdir reports-local-python/ tests/ || ROBOT_EXIT=$?
+ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" "$PROJECT_ROOT/.venv/bin/robot" --variablefile variables/dev.yaml "${ROBOT_SCOPE[@]}" tests/ || ROBOT_EXIT=$?
 
 # Remove the rows created by this Robot run (guests + matches tagged "robottest"),
 # preserving every other row. Runs whether the tests passed or failed.

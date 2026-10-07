@@ -5,7 +5,11 @@ import { useTranslation } from "@/i18n/context";
 function EndGameCard({ story, action, handleEndGamePreviewFull, handleEndGame , 
         variant="little", onBack=null , actionLabel=null, actionIcon=null }) {
     const { t } = useTranslation()
+    // The board's little card says "End Game" instead of "Info"; it still opens the page first.
+    const little = variant === 'little'
     return (<Card key={action.uuid} card={action.card} entityType="action" variant={variant} onClose={onBack}
+        infoLabel={little ? t('game.endGame') : undefined}
+        infoIconClassName={little ? 'fas fa-flag-checkered' : undefined}
         onPreview={() => handleEndGamePreviewFull({
             card: action.card,
             stats: [],

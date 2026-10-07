@@ -47,8 +47,11 @@ def _build(user=None, match=None, matches=None, story=None, difficulty=None, loc
     story_read.find_difficulty_by_id.return_value = difficulty
     story_read.find_locations_by_story_id.return_value = locations or []
     persistence.find_locations_by_match_id.return_value = state_locations or []
-    persistence.find_registry_by_match_id.return_value = registry or []
-    return MatchQueryService(persistence, story_read, user_access), {
+    registry_service = MagicMock()
+    registry_service.list_entries.return_value = registry or []
+    registry_service.load_all.return_value = {}
+    return MatchQueryService(persistence, story_read, user_access,
+                             registry_service_instance=registry_service), {
         "persistence": persistence,
         "story_read": story_read,
         "user_access": user_access,
@@ -382,6 +385,22 @@ def test_get_match_info_for_admin_returns_detail_of_any_owner():
     assert len(detail.registry) == 1
 
 
+def test_the_admin_asks_for_the_hidden_keys_and_the_player_does_not():
+    """v0.36.3 — the console is the one reader that gets the whole registry."""
+    service, _ = _build(
+        user=_user(), match=_match(),
+        story={"id": 2, "uuid": "story-uuid", "id_location_start": None},
+        difficulty={"id": 3, "uuid": "diff-uuid"},
+    )
+    registry_service = service.registry_service
+
+    service.get_match_info("m", "u")
+    assert registry_service.list_entries.call_args.kwargs["include_hidden"] is False
+
+    service.get_match_info_for_admin("m")
+    assert registry_service.list_entries.call_args.kwargs["include_hidden"] is True
+
+
 # ── Step 27.x — locations_active enrichment ───────────────────────────────────
 
 def _character(loc=10):
@@ -447,7 +466,11 @@ def _build_enriched(player_loc=10):
         lambda sid, tid, lang: {"short_text": texts.get(tid)} if tid in texts else None
     )
 
-    service = MatchQueryService(persistence, story_read, user_access, character_read)
+    registry_service = MagicMock()
+    registry_service.list_entries.return_value = []
+    registry_service.load_all.return_value = {}
+    service = MatchQueryService(persistence, story_read, user_access, character_read,
+                                registry_service_instance=registry_service)
     return service
 
 
@@ -683,3 +706,50 @@ def test_neighbor_location_card_when_standing_on_to_endpoint():
     n = next(x for x in detail.locations_active[0].neighbors if x.id_location == 10)
     assert n.card_location_from is None            # destination still under fog
     assert n.card_location_to["title"] == "Cellar"  # where the player stands
+
+
+# ── Step 37: missions ────────────────────────────────────────────────────────
+
+def _mission_service_env(creator=7):
+    persistence = MagicMock()
+    story_read = MagicMock()
+    user_access = MagicMock()
+    user_access.find_by_uuid.side_effect = (
+        lambda uuid: _user(uuid=uuid) if uuid == "user-uuid" else
+        ({"id": 8, "uuid": uuid, "username": "o", "role": "PLAYER", "state": 2}
+         if uuid == "other" else None))
+    persistence.find_match_by_uuid.side_effect = (
+        lambda mu: _match(creator=creator) if mu == "match-uuid" else None)
+    service = MatchQueryService(persistence, story_read, user_access)
+    mission_service = MagicMock()
+    service.set_mission_service(mission_service)
+    return service, mission_service
+
+
+def test_the_owner_reads_the_missions_of_the_match():
+    service, missions = _mission_service_env()
+    missions.list.return_value = [{"uuid": "m-1"}]
+    missions.detail.return_value = {"uuid": "m-1"}
+
+    assert service.get_match_missions("match-uuid", "user-uuid", "ACTIVE", None) == [{"uuid": "m-1"}]
+    missions.list.assert_called_once_with(99, 2, "ACTIVE", "en")
+    assert service.get_match_mission("match-uuid", "user-uuid", "m-1", "it") == {"uuid": "m-1"}
+    missions.detail.assert_called_once_with(99, 2, "m-1", "it")
+
+
+def test_anyone_else_and_every_unknown_uuid_read_as_not_found():
+    service, _ = _mission_service_env()
+
+    assert service.get_match_missions("match-uuid", "other", None, "en") is None
+    assert service.get_match_missions("match-uuid", "ghost", None, "en") is None
+    assert service.get_match_missions("nope", "user-uuid", None, "en") is None
+    assert service.get_match_missions("", "user-uuid", None, "en") is None
+    assert service.get_match_mission("match-uuid", "  ", "m-1", "en") is None
+
+
+def test_with_no_engine_wired_the_endpoints_answer_not_found_rather_than_empty():
+    service, _ = _mission_service_env()
+    service.set_mission_service(None)
+
+    assert service.get_match_missions("match-uuid", "user-uuid", None, "en") is None
+    assert service.get_match_mission("match-uuid", "user-uuid", "m-1", "en") is None

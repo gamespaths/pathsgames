@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import Footer from '../components/layout/Footer'
 
 vi.mock('../i18n/context', () => ({
@@ -15,11 +15,11 @@ vi.mock('../context/ServerContext', () => ({
     server: 'http://localhost:8042',
     servers: [{ label: 'Local', url: 'http://localhost:8042' }],
     probing: false,
+    status: 'online',
+    version: '',
     changeServer: vi.fn(),
   }),
 }))
-
-vi.mock('../api/echoApi', () => ({ getServerStatus: vi.fn().mockResolvedValue({}) }))
 
 describe('Footer', () => {
   it('renders Paths Games brand', () => {
@@ -47,5 +47,37 @@ describe('Footer', () => {
     const links = screen.getAllByRole('link')
     const yt = links.find((l) => l.href.includes('youtube'))
     expect(yt).toBeDefined()
+  })
+
+  it('shows the only server as a fixed name, with no drop-down', () => {
+    const { container } = render(<Footer />)
+    expect(screen.queryByRole('combobox')).toBeNull()
+    expect(container.querySelector('.footer-server-row .footer-server-name').textContent).toBe('Local')
+    // The row opens with its own label and draws the status dot as a sized-with-text class.
+    expect(container.querySelector('.footer-server-row .footer-server-label').textContent).toBe('footer.serverSelect: ')
+    expect(container.querySelector('.footer-server-row .footer-server-dot')).toBeTruthy()
+  })
+
+  it('marks Instagram and YouTube as social links (hidden on mobile by mobile.css), not GitHub', () => {
+    render(<Footer />)
+    const links = screen.getAllByRole('link')
+    const byHost = host => links.find((l) => l.href.includes(host))
+    for (const host of ['instagram', 'youtube']) {
+      expect(byHost(host).classList.contains('footer-social-link')).toBe(true)
+    }
+    expect(byHost('github.com').classList.contains('footer-social-link')).toBe(false)
+  })
+})
+
+describe('Footer policy links', () => {
+  it('open the policy book instead of a Bootstrap modal', async () => {
+    const { PolicyBookProvider, usePolicyBook } = await import('../context/PolicyBookContext')
+    const seen = []
+    function Spy() { const { policyBook } = usePolicyBook(); seen.push(policyBook); return null }
+    render(<PolicyBookProvider><Footer /><Spy /></PolicyBookProvider>)
+    for (const [label, kind] of [['footer.privacy', 'privacy'], ['footer.terms', 'terms'], ['footer.cookies', 'cookies'], ['footer.credits', 'credits']]) {
+      fireEvent.click(screen.getByText(label).closest('button'))
+      expect(seen.at(-1)).toBe(kind)
+    }
   })
 })

@@ -24,6 +24,15 @@ public interface GamingMatchRepository extends JpaRepository<GamingMatchEntity, 
 
     List<GamingMatchEntity> findAllByOrderByTsInsertDesc();
 
+    /** v0.41.6 - every match the user created, whatever the status (admin User tab). */
+    long countByIdUserCreator(Long idUserCreator);
+
+    /** v0.41.6 - the admin owner move; native because the JPA column is not updatable. */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "UPDATE gaming_match SET id_user_creator = :idUser, ts_update = :ts WHERE id = :idMatch",
+            nativeQuery = true)
+    int updateOwner(@Param("idMatch") Long idMatch, @Param("idUser") Long idUser, @Param("ts") String ts);
+
     long countByIdUserCreatorAndStatusIn(Long idUserCreator, List<String> statuses);
 
     /**
@@ -73,6 +82,14 @@ public interface GamingMatchRepository extends JpaRepository<GamingMatchEntity, 
      */
     @Query("SELECT m.id FROM GamingMatchEntity m WHERE m.name LIKE :pattern")
     List<Long> findMatchIdsByNameLike(@Param("pattern") String pattern);
+
+    /** v0.36.2 — the matches these users created, whatever the status. */
+    @Query("SELECT m.id FROM GamingMatchEntity m WHERE m.idUserCreator IN :userIds")
+    List<Long> findMatchIdsByUserCreatorIds(@Param("userIds") List<Long> userIds);
+
+    @Modifying
+    @Query("DELETE FROM GamingMatchEntity m WHERE m.id IN :ids")
+    int deleteByIdIn(@Param("ids") List<Long> ids);
 
     /**
      * Clears the current-turn character pointer for the given matches. Must run

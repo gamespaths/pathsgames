@@ -16,9 +16,6 @@ public class LocationEntity extends BaseStoryScopedEntity {
     @Column(name = "id_image")
     private Integer idImage;
 
-    @Column(name = "is_safe", nullable = false)
-    private Integer isSafe;
-
     @Column(name = "cost_energy_enter", nullable = false)
     private Integer costEnergyEnter;
 
@@ -52,9 +49,22 @@ public class LocationEntity extends BaseStoryScopedEntity {
     @Column(name = "max_characters")
     private Integer maxCharacters;
 
+    // Step 36.2 - the registry pair written on the party's first arrival here.
+    @Column(name = "key_to_add")
+    private String keyToAdd;
+
+    @Column(name = "key_value_to_add")
+    private String keyValueToAdd;
+
+    // Step 36.2 - the pair written on every later arrival; an arrival takes one branch.
+    @Column(name = "key_to_add_not_first")
+    private String keyToAddNotFirst;
+
+    @Column(name = "key_value_to_add_not_first")
+    private String keyValueToAddNotFirst;
+
     @PrePersist
     protected void onCreate() {
-        if (isSafe == null) isSafe = 0;
         if (costEnergyEnter == null) costEnergyEnter = 1;
         if (secureParam == null) secureParam = 0;
         if (priorityAutomaticEvent == null) priorityAutomaticEvent = 0;
@@ -68,9 +78,6 @@ public class LocationEntity extends BaseStoryScopedEntity {
 
     public Integer getIdImage() { return idImage; }
     public void setIdImage(Integer idImage) { this.idImage = idImage; }
-
-    public Integer getIsSafe() { return isSafe; }
-    public void setIsSafe(Integer isSafe) { this.isSafe = isSafe; }
 
     public Integer getCostEnergyEnter() { return costEnergyEnter; }
     public void setCostEnergyEnter(Integer costEnergyEnter) { this.costEnergyEnter = costEnergyEnter; }
@@ -104,5 +111,17 @@ public class LocationEntity extends BaseStoryScopedEntity {
 
     public Integer getMaxCharacters() { return maxCharacters; }
     public void setMaxCharacters(Integer maxCharacters) { this.maxCharacters = maxCharacters; }
+
+    public String getKeyToAdd() { return keyToAdd; }
+    public void setKeyToAdd(String keyToAdd) { this.keyToAdd = keyToAdd; }
+
+    public String getKeyValueToAdd() { return keyValueToAdd; }
+    public void setKeyValueToAdd(String keyValueToAdd) { this.keyValueToAdd = keyValueToAdd; }
+
+    public String getKeyToAddNotFirst() { return keyToAddNotFirst; }
+    public void setKeyToAddNotFirst(String keyToAddNotFirst) { this.keyToAddNotFirst = keyToAddNotFirst; }
+
+    public String getKeyValueToAddNotFirst() { return keyValueToAddNotFirst; }
+    public void setKeyValueToAddNotFirst(String v) { this.keyValueToAddNotFirst = v; }
 
 }

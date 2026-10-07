@@ -25,17 +25,21 @@ Rules worth stating, because they are easy to get wrong:
 from typing import Any, Dict, List, Optional
 
 from app.core.models.match import location_entry_models as lem
+from app.core.models.match.time_models import TimeEndNews
 from app.core.models.match.event_models import (
     STATUS_APPLIED, STATUS_CHOICES_PENDING, AppliedEffect, ChoiceCheckContext,
     ChoiceResolutionResult, EdgeStateOutcome, EntityChange, EventCheckContext, EventError,
     EventExecutionResult, LocationChange, RegistryChange, StatChange,
 )
+from app.core.ports.match import kpi_ports
+from app.core.ports.match import log_writer_ports as lw
 from app.core.ports.match.edge_state_ports import MSG_ALL_PLAYER_COMA, EdgeStateStorePort
 from app.core.ports.match.event_ports import (
     ITEM_ACTION_ADD, ITEM_ACTION_REMOVE,
     MSG_CHOICE_SELECTED, MSG_EVENT_EXECUTED, EventPort, EventStorePort,
 )
 from app.core.services.match import choice_availability, edge_state_evaluator, event_availability
+from app.core.services.match.card_mapper import resolve_card
 
 ADD = "ADD"
 REMOVE = "REMOVE"
@@ -45,6 +49,22 @@ REMOVE = "REMOVE"
 #: "you already carry as many as you can" — or, as react-game does today, to say nothing.
 NOT_ADDED = "NOT_ADDED"
 TARGET_ONLY_ONE = "ONLY_ONE"
+# Step 37/38 — the trigger a completed mission fires its event with: no actor, ALL = the party.
+TRIGGER_MISSION = "mission completed"
+
+
+
+def is_party_trigger(trigger) -> bool:
+    """Missions and random events reach the whole party: they have no actor to stand next to."""
+    return trigger in (TRIGGER_MISSION, lem.TRIGGER_RANDOM_EVENT)
+
+
+def automatic_log_message(trigger, id_event, id_location) -> str:
+    """Step 39 — a random event gets its own prefix, so the timeline can tell it apart."""
+    if trigger == lem.TRIGGER_RANDOM_EVENT:
+        return f"{lem.MSG_RANDOM_EVENT} {id_event} ({trigger})"
+    return f"{lem.MSG_AUTOMATIC_EVENT} {id_event} ({trigger}) at location {id_location}"
+
 
 # A chain longer than this is treated as broken and simply stops. The Step 22 validator
 # rejects cycles at import, but the admin CRUD path is lenient and never sees the whole
@@ -57,6 +77,20 @@ _CHARACTER_STATS = {"life", "energy", "sad", "exp", "dex", "int", "cos"}
 _BACKPACK_STATS = {"food", "magic", "coin"}
 _CLAMPED = {"life": "life_max", "energy": "energy_max", "sad": "sad_max"}
 _FIELD = {"dex": "dexterity", "int": "intelligence", "cos": "constitution"}
+
+
+def _joined(values: Optional[List[str]]) -> Optional[str]:
+    """A set as one string for the RegistryChange payload: empty reads as None, as it did."""
+    if not values:
+        return None
+    return values[0] if len(values) == 1 else ",".join(values)
+
+
+def _narrow_by_class(base: List[Dict[str, Any]], target_class) -> List[Dict[str, Any]]:
+    """target_class narrows the recipients; None or non-positive leaves them as they are."""
+    if not target_class or target_class <= 0:
+        return base
+    return [c for c in base if c.get("id_class") == target_class]
 
 
 def _clamp(value: int, low: int, high: int) -> int:
@@ -120,23 +154,80 @@ class _Live:
 class EventService(EventPort):
 
     def __init__(self, store: EventStorePort, edge_store: EdgeStateStorePort = None,
-                 content_read_port=None, time_service=None, location_store=None) -> None:
+                 content_read_port=None, time_service=None, location_store=None,
+                 registry_service_instance=None) -> None:
         self.store = store
         self.edge_store = edge_store
         # Step 33 — the location engine's own store. None keeps the pre-33 behaviour:
         # no automatic events at all.
         self.location_store = location_store
+        # Step 37 - set after construction; None until the launcher wires it.
+        self.mission_service = None
         # Resolves the localized cards (nullable: the cards are then left None).
         self.content_read_port = content_read_port
         # TimeAdvancementService, for an event carrying flag_end_time (nullable: time then
         # never ends). Held as the concrete class, not the port: force_time_end is
         # deliberately absent from TimeAdvancementPort so REST cannot reach it.
         self.time_service = time_service
+        # Step 36 — every registry write of an effect goes through it.
+        self.registry_service = registry_service_instance
 
     # ── the public flow ─────────────────────────────────────────────────────
 
+    # ── Step 37: missions ────────────────────────────────────────────────────
+
+    def set_mission_service(self, mission_service) -> None:
+        """The second cycle, closed by a setter: a mission completion runs an event, and an
+        event moves the registry that decides the mission."""
+        self.mission_service = mission_service
+
+    def set_log_writer(self, log_writer) -> None:
+        """v0.41.1 — the TRAIT_ADD / TRAIT_REMOVE rows; unset in the older tests."""
+        self.log_writer = log_writer
+
+    def set_kpi(self, kpi) -> None:
+        """v0.41.2 — COMA, CHOICE and LOCATION_VISIT counters; unset in the older tests."""
+        self.kpi = kpi
+
+    def _log_trait(self, x: "_Exec", recipient: Dict[str, Any], id_trait: int, id_event,
+                   prefix: str) -> None:
+        """v0.41.1 — ``TRAIT_ADD|TRAIT_REMOVE <traitUuid>``, the id when the story row has no uuid."""
+        writer = getattr(self, "log_writer", None)
+        if writer is None:
+            return
+        uuid = x.trait_uuids().get(id_trait)
+        writer.write(x.match["id"], recipient["id"], id_event, x.current_clock,
+                     f"{prefix} {uuid if uuid else id_trait}")
+
+    def _missions_begin(self) -> None:
+        if getattr(self, "mission_service", None) is not None:
+            self.mission_service.begin_deferral()
+
+    def _missions_end(self) -> None:
+        if getattr(self, "mission_service", None) is not None:
+            self.mission_service.end_deferral()
+
+    def run_mission_event(self, id_match: int, id_event: int, depth: int) -> None:
+        """Run a mission's id_event_completed. No actor, no cost, no verdict, and capped by
+        the same MAX_ENTRY_DEPTH that stops an arrival chain running away."""
+        if depth >= lem.MAX_ENTRY_DEPTH:
+            return
+        match = self.store.find_match_by_id(id_match)
+        if not match:
+            return
+        self._run_automatic_event(id_match, None, id_event, 0, TRIGGER_MISSION,
+                                  match.get("current_clock") or 0, None, False, depth, [])
+
     def execute_event(self, match_uuid: str, user_uuid: str, event_uuid: str,
                       lang: str = "en") -> EventExecutionResult:
+        self._missions_begin()
+        try:
+            return self._execute_event(match_uuid, user_uuid, event_uuid, lang)
+        finally:
+            self._missions_end()
+
+    def _execute_event(self, match_uuid: str, user_uuid: str, event_uuid: str,
+                       lang: str = "en") -> EventExecutionResult:
         user_id = self.store.find_user_id_by_uuid(user_uuid)
         if user_id is None:
             raise self._not_found()
@@ -226,6 +317,14 @@ class EventService(EventPort):
 
     def select_choice(self, match_uuid: str, user_uuid: str, choice_uuid: str,
                       lang: str = "en") -> ChoiceResolutionResult:
+        self._missions_begin()
+        try:
+            return self._select_choice(match_uuid, user_uuid, choice_uuid, lang)
+        finally:
+            self._missions_end()
+
+    def _select_choice(self, match_uuid: str, user_uuid: str, choice_uuid: str,
+                       lang: str = "en") -> ChoiceResolutionResult:
         """Resolve one option of an open choice-event: apply its list_choices_effects, run
         the events they and id_event_torun point at, record the milestone, close the cycle.
 
@@ -286,10 +385,10 @@ class EventService(EventPort):
             self._run_linked_event(x, choice.get("id_event_torun"))
 
         self._resolve_all_player_coma(x)
+        # v0.41.1 — decision 19: the markers first, at clock N, so the time-end snapshot holds them.
+        self._write_resolution_markers(x, choice, event_id, choice_id)
         if x.end_time and not x.coma_triggered:
             self._force_time_end(x)
-
-        self._write_resolution_markers(x, choice, event_id, choice_id)
 
         # Step 33 — a forced move inside an option's effects is an arrival like any other.
         self._drain_arrivals(x, x.automatic_events)
@@ -334,10 +433,13 @@ class EventService(EventPort):
         authored to read a key the option writes must find it already written.
         """
         linked: List[int] = []
+        mark = x.gains_mark()
         for effect in self.store.find_choice_effects_by_choice_id(x.match["id_story"], choice_id):
             self._apply_choice_effect(x, effect, event)
             if effect.get("id_event"):
                 linked.append(effect["id_event"])
+        # Step 40 — the option's own rows only: linked events log their gains on their own rows.
+        x.choice_gains = x.gains_since(mark)
         # No _apply_event ran for these rows, so the edge pass has to be given here — once,
         # over everyone the rows touched, exactly where _apply_event would have run it.
         self._check_edge_states(x, event_id)
@@ -406,19 +508,26 @@ class EventService(EventPort):
         key = effect.get("key")
         if not key:
             return
-        old = x.ctx.registry.get(key)
+        before = x.ctx.registry.get(key) or []
         add = effect.get("value_to_add")
         remove = effect.get("value_to_remove")
         if add:
-            value = add
-        elif remove and remove == old:
-            value = None  # clears both value columns — the key reads as unset afterwards
+            after = self.registry_service.upsert(
+                x.match["id"], x.match.get("id_story"), key, add, x.actor["id"],
+                event.get("id"), None, x.current_clock)
+        elif remove:
+            # Step 36.1 — on a multi key this takes one member away; on a single one it is
+            # the compare-and-clear it has always been.
+            after = self.registry_service.remove(
+                x.match["id"], key, remove, x.actor["id"], event.get("id"), None,
+                x.current_clock)
         else:
             return
-        self.store.upsert_registry(x.match["id"], key, value, x.actor["id"],
-                                   event.get("id"), x.current_clock)
-        x.ctx.registry[key] = value
-        x.registry_changes.append(RegistryChange(key, old, value))
+        x.ctx.registry[key] = after
+        # A write the registry refused — a duplicate member, or a value some other branch has
+        # moved on from — changed nothing, so it reports nothing.
+        if after != before:
+            x.registry_changes.append(RegistryChange(key, _joined(before), _joined(after)))
 
     def _run_linked_event(self, x: "_Exec", id_event: Optional[int]) -> None:
         """Run an event a choice points at — ``id_event_torun`` on the option, or
@@ -468,12 +577,14 @@ class EventService(EventPort):
         # A resolution is not something the player pays for: the open already did.
         self.store.log_event_executed(x.match["id"], x.actor["id"], event_id,
                                       x.current_clock, f"{MSG_CHOICE_SELECTED} {event_id}",
-                                      0, 0, 0, 0)
+                                      0, 0, 0, 0, x.choice_gains or {})
         self.store.log_choice_executed(x.match["id"], event_id, choice_id, x.current_clock,
                                        f"{MSG_CHOICE_SELECTED} {choice_id}")
         if (choice.get("is_progress") or 0) == 1:
             self.store.insert_story_progress(x.match["id"], event_id, choice_id, x.current_clock)
             x.progress_recorded = True
+        if getattr(self, "kpi", None) is not None:
+            self.kpi.record_for_match(x.match["id"], kpi_ports.CHOICE, choice.get("uuid"), 1)
 
     def _build_pending_choices(self, x: "_Exec",
                                choices: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -711,13 +822,20 @@ class EventService(EventPort):
     def _resolve_recipients(self, x: "_Exec", effect: Dict[str, Any]) -> List[Dict[str, Any]]:
         """INV-27: ALL means every character standing in the ACTOR's location, not every
         character of the match. target_class then narrows that set; matching nobody is legal
-        and simply applies nothing."""
+        and simply applies nothing.
+
+        Step 38 — the one exception is an event a completed MISSION fires: missions are
+        match-scoped, so there is no actor and no location to stand in, and ALL means every
+        character of the match — the reward of a quest goes to the party that won it.
+        ONLY_ONE still names nobody there."""
         target = (effect.get("target") or "ALL").strip().upper()
         # Step 33 — an automatic event may have no actor at all (a counter reaching zero in
         # a location nobody stands in). There is then nobody to be a recipient: the row's
         # match-scoped halves (weather, registry) have already been applied by the caller.
         if x.actor is None:
-            return []
+            if not x.party_run or target == TARGET_ONLY_ONE:
+                return []
+            return _narrow_by_class(list(x.all_characters()), effect.get("target_class"))
         # Locations come from the tracked map, not the raw views: a forced movement earlier
         # in the chain must be seen by the effects that follow it.
         actor_location = x.location_of(x.actor)
@@ -727,10 +845,7 @@ class EventService(EventPort):
             base = [c for c in x.all_characters()
                     if x.location_of(c) == actor_location]
 
-        target_class = effect.get("target_class")
-        if not target_class or target_class <= 0:
-            return base
-        return [c for c in base if c.get("id_class") == target_class]
+        return _narrow_by_class(base, effect.get("target_class"))
 
     def _apply_stat(self, x: "_Exec", recipient: Dict[str, Any],
                     effect: Dict[str, Any]) -> None:
@@ -753,8 +868,9 @@ class EventService(EventPort):
         else:
             return  # an unknown statistic is authored noise, not an error
 
-        if x.is_actor(recipient["id"]):
+        if x.actor is None or x.is_actor(recipient["id"]):
             # The log row is character-scoped: only the actor's own resources ride on it.
+            # Step 40 — a party run has no actor: every recipient's gain is summed.
             x.record_gain(stat, after - before)
         x.stat_changes.append(StatChange(recipient.get("uuid"), stat, before, after, after - before))
 
@@ -807,11 +923,13 @@ class EventService(EventPort):
             if self.store.add_trait(x.match["id"], recipient["id"], id_trait, event.get("id")):
                 x.trait_changes.append(EntityChange(
                     recipient.get("uuid"), x.trait_uuids().get(id_trait), ADD))
+                self._log_trait(x, recipient, id_trait, event.get("id"), lw.MSG_TRAIT_ADD)
                 self._apply_trait_stats(x, recipient, id_trait, 1)
         for id_trait in _csv_ids(effect.get("traits_to_remove")):
             if self.store.remove_trait(x.match["id"], recipient["id"], id_trait):
                 x.trait_changes.append(EntityChange(
                     recipient.get("uuid"), x.trait_uuids().get(id_trait), REMOVE))
+                self._log_trait(x, recipient, id_trait, event.get("id"), lw.MSG_TRAIT_REMOVE)
                 self._apply_trait_stats(x, recipient, id_trait, -1)
 
     def _apply_trait_stats(self, x: "_Exec", recipient: Dict[str, Any],
@@ -878,11 +996,15 @@ class EventService(EventPort):
         if not key:
             return
         value = effect.get("key_value_to_add")
-        old = x.ctx.registry.get(key)
-        self.store.upsert_registry(x.match["id"], key, value, x.actor_id(),
-                                   event.get("id"), x.current_clock)
-        x.ctx.registry[key] = value
-        x.registry_changes.append(RegistryChange(key, old, value))
+        before = x.ctx.registry.get(key) or []
+        after = self.registry_service.upsert(
+            x.match["id"], x.match.get("id_story"), key, value, x.actor_id(),
+            event.get("id"), None, x.current_clock)
+        x.ctx.registry[key] = after
+        # A write the registry refused — a duplicate member, or a value some other branch has
+        # moved on from — changed nothing, so it reports nothing.
+        if after != before:
+            x.registry_changes.append(RegistryChange(key, _joined(before), _joined(after)))
 
     def _apply_movement(self, x: "_Exec", recipient: Dict[str, Any],
                         effect: Dict[str, Any]) -> None:
@@ -949,7 +1071,7 @@ class EventService(EventPort):
             if v.forced_sleep and x.is_actor(live.id):
                 x.forced_sleep = True
             edge_state_evaluator.persist(self.edge_store, x.match["id"], v, x.current_clock,
-                                         id_event)
+                                         id_event, getattr(self, "kpi", None))
 
     def _resolve_all_player_coma(self, x: "_Exec") -> None:
         """The all-players-in-coma epilogue: run the story's id_event_all_player_coma so the
@@ -1008,7 +1130,16 @@ class EventService(EventPort):
         # disk. _flush also latches x.flushed, which stops _build_result from writing the
         # now-stale in-memory copy back over what the recovery just computed.
         self._flush(x)
-        new_clock = self.time_service.force_time_end(x.match["uuid"])
+        outcome = self.time_service.force_time_end(x.match["uuid"], x.actor_id())
+        new_clock = outcome.new_clock
+        # Step 40 — the time-start's news, told to the actor, travels with this answer.
+        weather = outcome.weather
+        if weather is not None:
+            weather.card = x.resolve_card(weather.id_card)
+        x.time_end = TimeEndNews(new_clock, list(outcome.counter_zero or []), weather)
+        # v0.35.6 — the time-start this event forced runs a recovery, and a recovery can push
+        # somebody over an edge: that verdict belongs in this response, not the next reload.
+        self._merge_edge_state(x, outcome.edge_state)
         x.time_ended = True
         x.forced_sleep = True
         x.current_clock = new_clock
@@ -1023,6 +1154,13 @@ class EventService(EventPort):
     # ── Step 33: automatic location events ──────────────────────────────────
 
     def on_arrival(self, arrival) -> List[Any]:
+        self._missions_begin()
+        try:
+            return self._on_arrival(arrival)
+        finally:
+            self._missions_end()
+
+    def _on_arrival(self, arrival) -> List[Any]:
         """Resolve and run every trigger a successful arrival fires, then mark the location
         visited.
 
@@ -1038,6 +1176,27 @@ class EventService(EventPort):
 
     def run_pending_automatic_events(self, id_match: int, current_clock: int,
                                      pending: List[Any], lang: str = "en") -> List[Any]:
+        self._missions_begin()
+        try:
+            return self._run_pending_automatic_events(id_match, current_clock, pending, lang)
+        finally:
+            self._missions_end()
+
+    def run_random_event(self, id_match: int, current_clock: int, id_event: int,
+                         lang: str = "en") -> List[Any]:
+        """Step 39 — run a picked random event as a party-wide event with no actor."""
+        fired: List[Any] = []
+        self._missions_begin()
+        try:
+            # allow_time_end = False: it runs inside the time-start pass, like the pending ones.
+            self._run_automatic_event(id_match, None, id_event, 0, lem.TRIGGER_RANDOM_EVENT,
+                                      current_clock, lang, False, 0, fired)
+        finally:
+            self._missions_end()
+        return fired
+
+    def _run_pending_automatic_events(self, id_match: int, current_clock: int,
+                                      pending: List[Any], lang: str = "en") -> List[Any]:
         """Run the events a time-start collected — counter-zero fuses and
         ``id_event_if_character_start_time`` — in the order the recovery pass produced."""
         fired: List[Any] = []
@@ -1075,6 +1234,12 @@ class EventService(EventPort):
             if id_recipient_character is not None else set()
 
         for f in fired:
+            if f.trigger == lem.TRIGGER_RANDOM_EVENT:
+                # Step 39 — it happened to the whole party, so everyone sees it whole.
+                out.append(lem.CounterZeroItem(f.trigger, None, f.card, None,
+                                               list(f.effects or []), f.event_uuid, clock,
+                                               lem.VISIBILITY_FULL))
+                continue
             if here is not None and here == f.id_location:
                 visibility = lem.VISIBILITY_FULL
             elif f.id_location in visited:
@@ -1136,7 +1301,23 @@ class EventService(EventPort):
                     id_match, id_character,
                     triggers.get("id_event_if_character_enter_empty_location"), id_location,
                     lem.TRIGGER_MOVE_INTO_EMPTY_LOCATION, current_clock, lang, True, depth, out)
-        self.location_store.mark_state_location_visited(id_match, id_location)
+            self._write_arrival_registry(id_match, id_story, id_character, triggers, visited,
+                                         current_clock)
+        latched = self.location_store.mark_state_location_visited(id_match, id_location)
+        if latched is True and getattr(self, "kpi", None) is not None:
+            self.kpi.record_location_visit(id_match, id_story, id_location)
+
+    def _write_arrival_registry(self, id_match, id_story, id_character, triggers, visited,
+                                current_clock) -> None:
+        """Step 36.2 — the place writes the registry itself. The history branch chooses the
+        pair, exactly as it chose the event above, so one arrival writes one pair and never
+        both. A blank key is authored noise, and upsert already skips it."""
+        key = (triggers.get("key_to_add_not_first") if visited
+               else triggers.get("key_to_add"))
+        value = (triggers.get("key_value_to_add_not_first") if visited
+                 else triggers.get("key_value_to_add"))
+        self.registry_service.upsert(id_match, id_story, key, value, id_character, None, None,
+                                     current_clock)
 
     def _run_automatic_event_if_set(self, id_match, id_actor_character, id_event, id_location,
                                     trigger, current_clock, lang, allow_time_end, depth,
@@ -1186,6 +1367,7 @@ class EventService(EventPort):
 
         x = _Exec(self, match, actor, ctx, lang or "en", event)
         x.entry_depth = depth
+        x.party_run = is_party_trigger(trigger)
         self._run_chain(x, event)
         self._resolve_all_player_coma(x)
         if x.end_time and not x.coma_triggered and allow_time_end:
@@ -1193,10 +1375,13 @@ class EventService(EventPort):
         self._flush(x)
         self.location_store.log_automatic_event(
             id_match, id_actor_character, id_location, id_event, x.current_clock,
-            f"{lem.MSG_AUTOMATIC_EVENT} {id_event} ({trigger}) at location {id_location}")
+            automatic_log_message(trigger, id_event, id_location))
+        # v0.35.6 — the epilogue is sliced off the tail here too: what the arrival did and
+        # what the collapse answered are two chains, and the board narrates them apart.
         out.append(lem.AutomaticEventFired(
             trigger, id_location, event.get("uuid"), x.resolve_card(event.get("id_card")),
-            list(x.effects), list(x.stat_changes), list(x.location_changes), x.game_over))
+            list(self._chain_effects(x)), list(x.stat_changes), list(x.location_changes),
+            x.game_over, self._build_edge_state(x), x.time_end))
 
         # The events this one caused by pushing somebody somewhere.
         self._drain_arrivals(x, out)
@@ -1215,11 +1400,13 @@ class EventService(EventPort):
                                   x.entry_depth + 1, out)
 
     def _resolve_card_for(self, id_story: int, id_card, lang: str):
-        # The Python card reader takes no lang yet (unlike the Java one) — same as
-        # _Exec.resolve_card and GET /locations on this backend.
         if id_card is None or self.content_read_port is None:
             return None
-        return self.content_read_port.find_card_by_story_id_and_card_id(id_story, id_card)
+        # v0.35.8 — mapped onto the API contract (camelCase, id_text_* resolved): the raw
+        # row went out as-is, so a client reading card.title / .description / .urlImage
+        # rendered an empty card.
+        return resolve_card(self.content_read_port, id_story, id_card, lang)
+
 
     # ── persistence & result ────────────────────────────────────────────────
 
@@ -1294,7 +1481,21 @@ class EventService(EventPort):
             pending_choices=x.pending_choices,
             edge_state=edge_state,
             automatic_events=list(x.automatic_events),
+            time_end=x.time_end,
         )
+
+    @staticmethod
+    def _merge_edge_state(x: "_Exec", other) -> None:
+        """Folds an edge state produced elsewhere — a forced time end — into this execution."""
+        if other is None:
+            return
+        for uuid in other.sadness_overflow_uuids:
+            if uuid not in x.sadness_overflow_uuids:
+                x.sadness_overflow_uuids.append(uuid)
+        for uuid in other.coma_uuids:
+            if uuid not in x.coma_uuids:
+                x.coma_uuids.append(uuid)
+        x.all_players_in_coma = x.all_players_in_coma or other.all_players_in_coma
 
     @staticmethod
     def _chain_event_uuids(x: "_Exec") -> List[str]:
@@ -1429,6 +1630,9 @@ class _Exec:
         self.automatic_events: List[Any] = []
         #: How many arrivals deep this execution already is — the runaway-loop guard.
         self.entry_depth: int = 0
+        # Step 38 — fired by a completed mission: no actor, and ALL means the whole party.
+        # Step 38/39 — a mission or a random event: no actor, ALL = the whole party.
+        self.party_run: bool = False
 
         self.current_clock = match.get("current_clock") or 0
         self.energy_spent = 0
@@ -1448,6 +1652,9 @@ class _Exec:
         self.choice_event_uuid: Optional[str] = None
         self.choice_event_card: Optional[Dict[str, Any]] = None
         self.progress_recorded = False
+        # Step 40 — the option's own gains, and the news of a forced time-end.
+        self.choice_gains: Optional[Dict[str, int]] = None
+        self.time_end: Optional[TimeEndNews] = None
         self.end_time = False
         self.time_ended = False
         self.item_added = False
@@ -1578,17 +1785,13 @@ class _Exec:
         return self.living[key]
 
     def resolve_card(self, id_card: Optional[int]) -> Optional[Dict[str, Any]]:
-        """Memoized: an effect's card is reachable from several rows of the same chain.
-
-        The Python card reader takes no lang yet (unlike the Java one), so `lang` is carried
-        on the request but not honoured here — same as GET /locations on this backend.
-        """
+        """Memoized: an effect's card is reachable from several rows of the same chain."""
         port = self._service.content_read_port
         if port is None or not id_card:
             return None
         if id_card not in self._card_cache:
-            self._card_cache[id_card] = port.find_card_by_story_id_and_card_id(
-                self.match["id_story"], id_card)
+            self._card_cache[id_card] = self._service._resolve_card_for(
+                self.match["id_story"], id_card, self.lang)
         return self._card_cache[id_card]
 
 

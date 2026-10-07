@@ -5,16 +5,20 @@ from app.core.ports.story.story_import_port import StoryImportPort
 from app.core.ports.story.story_validator_port import StoryValidationException
 from app.core.models.story.story_summary import StorySummary
 from app.core.models.story.story_import_result import StoryImportResult
+from app.core.ports.story.story_catalog_export_port import CatalogNotConfiguredError
 
 class StoryAdminController:
-    def __init__(self, query_port: StoryQueryPort, import_port: StoryImportPort, validator_port=None):
+    def __init__(self, query_port: StoryQueryPort, import_port: StoryImportPort, validator_port=None,
+                 catalog_export_port=None):
         self.query_port = query_port
         self.import_port = import_port
         self.validator_port = validator_port
+        self.catalog_export_port = catalog_export_port
         self.router = APIRouter(prefix="/api/admin/stories", tags=["Story Admin"])
 
         self.router.add_api_route("", self.list_all_stories, methods=["GET"], response_model=List[StorySummary])
         self.router.add_api_route("/import", self.import_story, methods=["POST"], response_model=StoryImportResult, status_code=201)
+        self.router.add_api_route("/catalog", self.write_catalog, methods=["POST"])
         self.router.add_api_route("/{uuid}/validate", self.validate_story, methods=["GET"])
         self.router.add_api_route("/{uuid}", self.delete_story, methods=["DELETE"])
 
@@ -42,6 +46,24 @@ class StoryAdminController:
                 "error": "INVALID_IMPORT_DATA",
                 "message": str(e)
             })
+
+    async def write_catalog(self, req: Request):
+        # v0.37.6 — (re)writes data/stories-{lang}.json for the game home page.
+        self._require_admin(req)
+        try:
+            if self.catalog_export_port is None:
+                raise CatalogNotConfiguredError()
+            result = self.catalog_export_port.export_catalog()
+        except CatalogNotConfiguredError as e:
+            raise HTTPException(status_code=503, detail={
+                "error": "CATALOG_TARGET_NOT_CONFIGURED",
+                "message": str(e)
+            })
+        return {
+            "status": "WRITTEN",
+            "target": result.target,
+            "files": [{"lang": f.lang, "path": f.path, "count": f.count, "bytes": f.bytes} for f in result.files],
+        }
 
     async def validate_story(self, req: Request, uuid: str = Path(...)):
         # Step 22: read-only integrity report for a persisted story.

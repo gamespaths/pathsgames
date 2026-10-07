@@ -107,6 +107,25 @@ class TimeStartRecoveryServiceTest {
             return new TimeStartRecoveryService(store, edgeStore).applyAtTimeStart(1L).recovery();
         }
 
+        @Test
+        @DisplayName("v0.41.2 - a coma at the time-start counts one COMA KPI")
+        void comaCountsTheKpi() {
+            store = mock(RecoveryStorePort.class);
+            edgeStore = mock(EdgeStateStorePort.class);
+            games.paths.core.port.match.KpiPort kpi = mock(games.paths.core.port.match.KpiPort.class);
+            when(store.loadContext(1L)).thenReturn(Optional.of(new RecoveryMatchContext(9L, 0, 4)));
+            when(store.findCharacters(1L)).thenReturn(List.of(frail(8, false)));
+            when(store.findLocationSafety(9L)).thenReturn(List.of(new LocationSafety(100L, 0, null, null, null, null)));
+            when(store.findClassBonuses(9L)).thenReturn(List.of(new ClassBonusView(5L, "sad", 60)));
+            when(store.findStateLocations(1L)).thenReturn(List.of());
+            TimeStartRecoveryService service = new TimeStartRecoveryService(store, edgeStore);
+            service.setKpi(kpi);
+
+            service.applyAtTimeStart(1L);
+
+            verify(kpi).recordForMatch(1L, games.paths.core.port.match.KpiPort.Metric.COMA, null, 1);
+        }
+
         /** cos 10, sad 0/50, at an UNSAFE location so nothing heals. */
         private RecoveryCharacter frail(int life, boolean coma) {
             return new RecoveryCharacter(10L, "char-a", 5L, 100L,

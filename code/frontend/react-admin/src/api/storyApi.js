@@ -33,6 +33,11 @@ export const getStory = (uuid) =>
 export const importStory = (storyJson) =>
   apiClient().post('/api/admin/stories/import', storyJson).then(r => r.data)
 
+// POST /api/admin/stories/catalog — v0.37.6 (re)writes the static data/stories-{lang}.json
+// files the game home reads before falling back to GET /api/stories.
+export const writeStaticCatalog = () =>
+  apiClient().post('/api/admin/stories/catalog').then(r => r.data)
+
 // DELETE /api/admin/stories/:uuid
 export const deleteStory = (uuid) =>
   apiClient().delete(`/api/admin/stories/${seg(uuid)}`).then(r => r.data)

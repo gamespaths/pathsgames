@@ -33,7 +33,7 @@ DEFAULT_LANG: "en"
 
 # Cloudflare Turnstile bypass token sent with POST /api/matches.
 # Must match the TURNSTILE_BYPASS_TOKEN env var deployed to the Lambda
-# (set from TURNSTILE_BYPASS_TOKEN_TEST in the repository .env). When the
+# (set from TURNSTILE_BYPASS_TOKEN_ROBOT in the repository .env). When the
 # incoming turnstileToken equals this value the handler skips Cloudflare
 # verification — used so Robot tests can hit an environment that runs with
 # a real Turnstile secret key.

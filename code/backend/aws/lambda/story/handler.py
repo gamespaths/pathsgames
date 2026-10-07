@@ -13,6 +13,7 @@ Routes (API contracts match Java OpenAPI specs):
   GET    /api/admin/stories               → list_all_stories       (ADMIN)
   GET    /api/admin/stories/{uuid}        → get_admin_story        (ADMIN)
   DELETE /api/admin/stories/{uuid}        → delete_story           (ADMIN)
+  POST   /api/admin/stories/catalog       → export_catalog         (ADMIN)  [v0.37.6]
 
 Response shapes follow:
   StorySummaryResponse  (v0.15.0-story-content-api.yaml)
@@ -25,7 +26,7 @@ DynamoDB layout for stories
   PK = STORY#{uuid}, SK = METADATA
     All story fields + texts dict + difficulties list + GSI keys.
     Step 15: + characterTemplates, classes, traits, card (inline).
-  GSI: GSI1_PK = STORY_LIST, GSI1_SK = STORY#{uuid}
+  GSI2: GSI2_PK = STORY_LIST, GSI2_SK = STORY#{uuid} (+ ``summary``, see common/story_index.py)
 """
 
 import json
@@ -33,15 +34,20 @@ import os
 import uuid as uuid_lib
 
 from common import db_utils
+from common import log_utils
 from common import jwt_utils
-from common.response import dumps as _dumps, ok as _ok, err as _err, HEADERS
+from common import story_cache
+from common import story_index
+from common.response import dumps as _dumps, ok as _ok, err as _err, HEADERS, finalize as _finalize
 from common.http_utils import (normalize_path as _normalize_path,
-                               get_source_ip as _get_source_ip,
                                bearer_token as _bearer_token,
                                check_admin_ip as _check_admin_ip_common)
 from common.data_utils import (safe_int as _safe_int,
                                resolve_raw_text as _resolve_raw_text,
                                resolve_card_from_raw as _find_card_from_raw)
+
+# v0.38.1 — botocore "Found credentials in environment variables" at INFO is noise on every cold start.
+log_utils.quiet_botocore()
 
 try:
     from story import story_validator
@@ -51,17 +57,8 @@ except ImportError:  # when handler is imported as a top-level module in tests
 # ─── shared helpers ───────────────────────────────────────────────────────────
 
 def _check_admin_ip(event):
-    """Return error response if caller IP not in ADMIN_IP_WHITELIST, else None."""
-    whitelist_raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()
-    if not whitelist_raw:
-        return None
-    allowed = [ip.strip() for ip in whitelist_raw.split(',') if ip.strip()]
-    if not allowed:
-        return None
-    source_ip = _get_source_ip(event)
-    if source_ip not in allowed:
-        return _err(403, 'FORBIDDEN', f'IP {source_ip} not authorized for admin access')
-    return None
+    """The shared allow-list rule (v0.41.0, ADMIN_IP_EMPTY_MEANS), in this handler's error shape."""
+    return _check_admin_ip_common(event, _err)
 
 def _validation_400(errors):
     """400 body for a failed story validation, carrying the errors[] array."""
@@ -146,30 +143,36 @@ def _resolve_story_text(item, lang, field, id_text):
 # ─── response builders ────────────────────────────────────────────────────────
 
 def _story_summary(item, lang):
-    """Build StorySummaryResponse from a DynamoDB story item."""
-    texts = item.get('texts', {})
+    """Build StorySummaryResponse from a DynamoDB story item.
 
-    # Card resolution — cards are stored inline in raw_cards on the story item
-    raw_cards = item.get('raw_cards', [])
-    raw_texts_list = item.get('raw_texts', [])
-    idCard = item.get('idCard')
-    card = _find_card_from_raw(raw_cards, raw_texts_list, idCard, lang)
+    v0.37.5 — a GSI2 index row carries the precomputed ``summary`` map instead of
+    raw_cards/raw_texts; a full item without it is resolved the way it always was."""
+    if item.get('summary'):
+        picked = story_index.texts_for(item, lang)
+        title, description, card = picked.get('title'), picked.get('description'), picked.get('card')
+    else:
+        raw_cards = item.get('raw_cards', [])
+        raw_texts_list = item.get('raw_texts', [])
+        card = _find_card_from_raw(raw_cards, raw_texts_list, item.get('idCard'), lang)
+        title = _resolve_story_text(item, lang, 'title', item.get('idTextTitle'))
+        description = _resolve_story_text(item, lang, 'description', item.get('idTextDescription'))
 
+    meta = lambda name: story_index.field(item, name)  # noqa: E731 — index row or full item
     return {
         'uuid':            item.get('uuid'),
-        'id':              _safe_int(item.get('id')),
-        'title':           _resolve_story_text(item, lang, 'title', item.get('idTextTitle')),
-        'description':     _resolve_story_text(item, lang, 'description', item.get('idTextDescription')),
-        'author':          item.get('author'),
-        'category':        item.get('category'),
-        'group':           item.get('group'),
-        'visibility':      item.get('visibility'),
-        'priority':        _safe_int(item.get('priority')),
-        'peghi':           _safe_int(item.get('peghi')),
-        'difficultyCount': _safe_int(item.get('difficulty_count')),
+        'id':              _safe_int(meta('id')),
+        'title':           title,
+        'description':     description,
+        'author':          meta('author'),
+        'category':        meta('category'),
+        'group':           meta('group'),
+        'visibility':      meta('visibility'),
+        'priority':        _safe_int(meta('priority')),
+        'peghi':           _safe_int(meta('peghi')),
+        'difficultyCount': _safe_int(meta('difficulty_count')),
         'card':            card,
-        'idTextClockSingular': _safe_int(item.get('idTextClockSingular')),
-        'idTextClockPlural':   _safe_int(item.get('idTextClockPlural')),
+        'idTextClockSingular': _safe_int(meta('idTextClockSingular')),
+        'idTextClockPlural':   _safe_int(meta('idTextClockPlural')),
     }
 
 def _story_detail(item, lang):
@@ -201,7 +204,9 @@ def _story_detail(item, lang):
             'minCharacter':          _safe_int(d.get('minCharacter')),
             'maxCharacter':          _safe_int(d.get('maxCharacter')),
             'costHelpComa':          _safe_int(d.get('costHelpComa')),
-            'costMaxCharacteristics':_safe_int(d.get('costMaxCharacteristics')),
+            # Step 38 — use-exp flat cost addend and DEX/INT/COS cap (0 = no cap)
+            'expCostBase':           _safe_int(d.get('expCostBase', 0)),
+            'maxStatValue':          _safe_int(d.get('maxStatValue', 0)),
             'numberMaxFreeAction':   _safe_int(d.get('numberMaxFreeAction')),
             'life':                  _safe_int(d.get('life', 0)),
             'energy':                _safe_int(d.get('energy', 0)),
@@ -325,6 +330,15 @@ def _story_detail(item, lang):
 # ─── router ───────────────────────────────────────────────────────────────────
 
 def lambda_handler(event, context):
+    """v0.41.0 — 500 MISCONFIGURED on a non dev/test stack with the committed secret; finalize always."""
+    path = _normalize_path(event.get('rawPath', event.get('path', '')))
+    if jwt_utils.misconfigured():
+        return _finalize(jwt_utils.misconfigured_response(), path)
+    return _finalize(_route(event, context), path)
+
+
+def _route(event, context):
+    story_cache.begin_request()  # v0.37.5 — one stamp read per invocation
     path   = _normalize_path(event.get('rawPath', event.get('path', '')))
     method = (event.get('requestContext', {})
                    .get('http', {})
@@ -360,6 +374,10 @@ def lambda_handler(event, context):
     # admin — static routes before parameterised
     if path == '/api/admin/stories/import' and method == 'POST':
         return import_story(event)
+    if path == '/api/admin/cache/flush' and method == 'POST':
+        return flush_cache(event)
+    if path == '/api/admin/stories/catalog' and method == 'POST':
+        return export_catalog(event)
     if method == 'GET' and path.endswith('/validate') and path.startswith('/api/admin/stories/'):
         v_uuid = params.get('uuid') or path.split('/')[-2]
         return validate_story(event, v_uuid)
@@ -398,19 +416,21 @@ def lambda_handler(event, context):
 
 # ─── endpoint handlers ────────────────────────────────────────────────────────
 
+def _story_list():
+    """Every story row from the STORY_LIST index (GSI2, INCLUDE), its ``summary.meta``
+    scalars lifted to the top level so the filters below read an index row and a full item
+    the same way."""
+    items = db_utils.query_gsi('GSI2', story_index.STORY_LIST_PK)
+    return [story_index.lift(i) for i in (items or [])]
+
+
 def list_stories(event):
-    lang  = _get_lang(event)
-    items = db_utils.query_gsi('GSI1', 'STORY_LIST')
-    # only PUBLIC stories
-    public = [i for i in items if i.get('visibility') == 'PUBLIC']
-    # sort by priority descending
-    public.sort(key=lambda x: _safe_int(x.get('priority')), reverse=True)
-    return _ok([_story_summary(i, lang) for i in public])
+    return _ok(_public_summaries(_get_lang(event)))
 
 
 def get_story(event, story_uuid):
     lang = _get_lang(event)
-    item = db_utils.get_item(f'STORY#{story_uuid}')
+    item = story_cache.load(story_uuid)
     if not item:
         return _err(404, 'STORY_NOT_FOUND',
                     f'No story found with UUID: {story_uuid}')
@@ -454,7 +474,7 @@ def list_traits_for_class(event, story_uuid, class_uuid):
     and idClassProhibited is null or differs from the class.
     """
     lang = _get_lang(event)
-    item = db_utils.get_item(f'STORY#{story_uuid}')
+    item = story_cache.load(story_uuid)
     if not item:
         return _err(404, 'STORY_NOT_FOUND', f'No story found with UUID: {story_uuid}')
     clazz = next((c for c in (item.get('classes') or []) if c.get('uuid') == class_uuid), None)
@@ -477,7 +497,7 @@ def list_traits_for_class(event, story_uuid, class_uuid):
 
 def list_categories(event):
     """GET /api/stories/categories — distinct categories from PUBLIC stories."""
-    items = db_utils.query_gsi('GSI1', 'STORY_LIST')
+    items = _story_list()
     public = [i for i in items if i.get('visibility') == 'PUBLIC']
     categories = set()
     for i in public:
@@ -490,7 +510,7 @@ def list_categories(event):
 def list_stories_by_category(event, category):
     """GET /api/stories/category/{category} — PUBLIC stories matching category."""
     lang = _get_lang(event)
-    items = db_utils.query_gsi('GSI1', 'STORY_LIST')
+    items = _story_list()
     matches = [i for i in items
                if i.get('visibility') == 'PUBLIC' and i.get('category') == category]
     matches.sort(key=lambda x: _safe_int(x.get('priority')), reverse=True)
@@ -499,7 +519,7 @@ def list_stories_by_category(event, category):
 
 def list_groups(event):
     """GET /api/stories/groups — distinct groups from PUBLIC stories."""
-    items = db_utils.query_gsi('GSI1', 'STORY_LIST')
+    items = _story_list()
     public = [i for i in items if i.get('visibility') == 'PUBLIC']
     groups = set()
     for i in public:
@@ -512,7 +532,7 @@ def list_groups(event):
 def list_stories_by_group(event, group):
     """GET /api/stories/group/{group} — PUBLIC stories matching group."""
     lang = _get_lang(event)
-    items = db_utils.query_gsi('GSI1', 'STORY_LIST')
+    items = _story_list()
     matches = [i for i in items
                if i.get('visibility') == 'PUBLIC' and i.get('group') == group]
     matches.sort(key=lambda x: _safe_int(x.get('priority')), reverse=True)
@@ -536,24 +556,27 @@ def import_story(event):
 
     if not data:
         return _err(400, 'EMPTY_IMPORT_DATA', 'storyData must not be null or empty')
+    return import_story_data(data)
 
+
+def import_story_data(data):
+    """v0.41.4 — the story import body, shared by the story route and the match import (story/importer.py)."""
     # Step 22: validate referential integrity before persisting anything (hard-fail).
-    validation_errors = story_validator.validate_story_dict(data)
+    validation_errors = story_validator.validate_story_uuid(data) + story_validator.validate_story_dict(data)
     if validation_errors:
         return _validation_400(validation_errors)
 
-    story_uuid = data.get('uuid')
-    if not story_uuid:
-        story_uuid = str(uuid_lib.uuid4())
+    # v0.41.5 — trimmed and lowercased (as Java/Python); absent or blank mints a new one.
+    story_uuid = story_validator.normalize_story_uuid(data.get('uuid')) or str(uuid_lib.uuid4())
 
     # If story already exists by UUID → delete it first (replace-on-conflict)
     # Must happen before id collision check to avoid self-collision on re-import
-    existing = db_utils.get_item(f'STORY#{story_uuid}')
+    existing = db_utils.get_item(f'STORY#{story_uuid}', consistent=False)
     if existing:
         db_utils.delete_all_by_pk(f'STORY#{story_uuid}')
 
     # ID validation and generation for stories
-    all_stories = db_utils.query_gsi('GSI1', 'STORY_LIST')
+    all_stories = _story_list()
     # Filter out the just-deleted story in case GSI is eventually consistent
     all_stories = [s for s in all_stories if s.get('uuid') != story_uuid]
     input_id = data.get('id')
@@ -615,8 +638,12 @@ def import_story(event):
             'minCharacter':           d.get('minCharacter', 0),
             'maxCharacter':           d.get('maxCharacter', 0),
             'costHelpComa':           d.get('costHelpComa', 0),
-            'costMaxCharacteristics': d.get('costMaxCharacteristics', 0),
+            'expCostBase':            d.get('expCostBase', 0),
+            'maxStatValue':           d.get('maxStatValue', 0),
             'numberMaxFreeAction':    d.get('numberMaxFreeAction', 0),
+            # Step 23 budgets — absent/null stays None, which the match reads as "no limit".
+            'traitCostPositiveBudget': _safe_int(d.get('traitCostPositiveBudget'), None),
+            'traitCostNegativeBudget': _safe_int(d.get('traitCostNegativeBudget'), None),
             'life':                   d.get('life', 100),
             'energy':                 d.get('energy', 100),
             'sad':                    d.get('sad', 0),
@@ -800,6 +827,8 @@ def import_story(event):
     locations_enriched = []
     for loc in _assign_uuids(_assign_ids(data.get('locations', []), 'id')):
         loc = dict(loc)
+        # Step 38 — isSafe is gone everywhere; a legacy export still carrying it is not stored.
+        loc.pop('isSafe', None)
         loc['card'] = _resolve_inline_card(loc.get('idCard'))
         locations_enriched.append(loc)
 
@@ -879,27 +908,28 @@ def import_story(event):
         'raw_texts':              _assign_ids(data.get('texts', []), 'id'),
         'raw_cards':              stored_cards,
         'raw_creators':           stored_creators,
-        'keys':                   _assign_ids(data.get('keys', []), 'id'),
-        'choices':                _assign_ids(data.get('choices', []), 'id'),
-        'weatherRules':           _assign_ids(data.get('weatherRules', []), 'id'),
-        'globalRandomEvents':    _assign_ids(data.get('globalRandomEvents', []), 'id'),
-        'missions':               _assign_ids(data.get('missions', []), 'id'),
-        'locationNeighbors':      _assign_ids(data.get('locationNeighbors', []), 'id'),
+        # v0.37.7 — every row gets a uuid, as on Java and Python: select-choice addresses an
+        # option by it and the admin CRUD addresses every entity by it (a story authored
+        # without uuids used to land with choices nobody could pick).
+        'keys':                   _assign_uuids(_assign_ids(data.get('keys', []), 'id')),
+        'choices':                _assign_uuids(_assign_ids(data.get('choices', []), 'id')),
+        'weatherRules':           _assign_uuids(_assign_ids(data.get('weatherRules', []), 'id')),
+        'globalRandomEvents':    _assign_uuids(_assign_ids(data.get('globalRandomEvents', []), 'id')),
+        'missions':               _assign_uuids(_assign_ids(data.get('missions', []), 'id')),
+        'locationNeighbors':      _assign_uuids(_assign_ids(data.get('locationNeighbors', []), 'id')),
         # v0.29.0 — effects need a uuid: the execute-event response addresses each applied
         # effect by it, and its own idCard is the narrative card the board renders.
         'eventEffects':           _assign_uuids(_assign_ids(data.get('eventEffects', []), 'id')),
         # v0.34.0 — same reason as the event effects above: the use-item response
         # addresses each applied effect by uuid.
         'itemEffects':            _assign_uuids(_assign_ids(data.get('itemEffects', []), 'id')),
-        'choiceConditions':       _assign_ids(data.get('choiceConditions', []), 'id'),
-        'choiceEffects':          _assign_ids(data.get('choiceEffects', []), 'id'),
-        'classBonuses':           _assign_ids(data.get('classBonuses', []), 'id'),
-        'missionSteps':           _assign_ids(data.get('missionSteps', []), 'id'),
-        # GSI for story listing
-        'GSI1_PK':                'STORY_LIST',
-        'GSI1_SK':                f'STORY#{story_uuid}',
+        'choiceConditions':       _assign_uuids(_assign_ids(data.get('choiceConditions', []), 'id')),
+        'choiceEffects':          _assign_uuids(_assign_ids(data.get('choiceEffects', []), 'id')),
+        'classBonuses':           _assign_uuids(_assign_ids(data.get('classBonuses', []), 'id')),
+        'missionSteps':           _assign_uuids(_assign_ids(data.get('missionSteps', []), 'id')),
     }
-    db_utils.put_item(story_item)
+    db_utils.put_item(story_index.stamp(story_item))
+    story_cache.bump(story_uuid)
 
     return _ok({
         'storyUuid':           story_uuid,
@@ -980,12 +1010,73 @@ def _assign_ids(entities, id_field):
     return entities
 
 
+def flush_cache(event):
+    """v0.37.5 — POST /api/admin/cache/flush: every Lambda container refetches every story."""
+    _user, denied = _require_admin(event)
+    if denied:
+        return denied
+    return _ok({'status': 'FLUSHED', 'globalVersion': story_cache.flush()})
+
+
+# ─── v0.37.6 static catalog ──────────────────────────────────────────────────
+
+CATALOG_CACHE_CONTROL = 'public, max-age=300'
+CATALOG_CONNECT_TIMEOUT = 5   # seconds; the function itself is capped at 30s
+CATALOG_READ_TIMEOUT = 10
+
+
+def _catalog_path(lang):
+    return f'data/stories-{lang}.json'
+
+
+def _public_summaries(lang):
+    """The exact body of GET /api/stories?lang=… (PUBLIC only, priority desc)."""
+    public = [i for i in _story_list() if i.get('visibility') == 'PUBLIC']
+    public.sort(key=lambda x: _safe_int(x.get('priority')), reverse=True)
+    return [_story_summary(i, lang) for i in public]
+
+
+def export_catalog(event):
+    """POST /api/admin/stories/catalog — writes data/stories-{lang}.json to the website
+    bucket (WEBSITE_BUCKET) and, when WEBSITE_CLOUDFRONT_ID is set, invalidates them."""
+    _user, denied = _require_admin(event)
+    if denied:
+        return denied
+    bucket = os.environ.get('WEBSITE_BUCKET', '').strip()
+    owner = os.environ.get('WEBSITE_BUCKET_OWNER', '').strip()  # account id: guards against bucket sniping
+    if not bucket or not owner:
+        return _err(503, 'CATALOG_TARGET_NOT_CONFIGURED',
+                    'No static catalog destination configured (WEBSITE_BUCKET, WEBSITE_BUCKET_OWNER)')
+    langs = [l.strip() for l in os.environ.get('CATALOG_LANGS', 'en,it').split(',') if l.strip()] or ['en']
+    import boto3  # lazy: only this admin route needs S3/CloudFront clients
+    from botocore.config import Config
+    cfg = Config(connect_timeout=CATALOG_CONNECT_TIMEOUT, read_timeout=CATALOG_READ_TIMEOUT, retries={'max_attempts': 2})
+    s3 = boto3.client('s3', config=cfg)
+    files = []
+    for lang in langs:
+        summaries = _public_summaries(lang)
+        key = _catalog_path(lang)
+        data = _dumps(summaries).encode('utf-8')
+        s3.put_object(Bucket=bucket, Key=key, Body=data, ExpectedBucketOwner=owner,
+                      ContentType='application/json', CacheControl=CATALOG_CACHE_CONTROL)
+        files.append({'lang': lang, 'path': key, 'count': len(summaries), 'bytes': len(data)})
+    dist = os.environ.get('WEBSITE_CLOUDFRONT_ID', '').strip()
+    if dist:
+        boto3.client('cloudfront', config=cfg).create_invalidation(
+            DistributionId=dist,
+            InvalidationBatch={
+                'Paths': {'Quantity': len(files), 'Items': ['/' + f['path'] for f in files]},
+                'CallerReference': f'catalog-{uuid_lib.uuid4()}',
+            })
+    return _ok({'status': 'WRITTEN', 'target': f's3://{bucket}', 'files': files})
+
+
 def list_all_stories(event):
     _, err = _require_admin(event)
     if err:
         return err
     lang  = _get_lang(event)
-    items = db_utils.query_gsi('GSI1', 'STORY_LIST')
+    items = _story_list()
     items.sort(key=lambda x: _safe_int(x.get('priority')), reverse=True)
     return _ok([_story_summary(i, lang) for i in items])
 
@@ -995,7 +1086,7 @@ def get_admin_story(event, story_uuid):
     if err:
         return err
     lang = _get_lang(event)
-    item = db_utils.get_item(f'STORY#{story_uuid}')
+    item = db_utils.get_item(f'STORY#{story_uuid}', consistent=False)
     if not item:
         return _err(404, 'STORY_NOT_FOUND',
                     f'No story found with UUID: {story_uuid}')
@@ -1007,12 +1098,14 @@ def validate_story(event, story_uuid):
     _, err = _require_admin(event)
     if err:
         return err
-    item = db_utils.get_item(f'STORY#{story_uuid}')
+    item = db_utils.get_item(f'STORY#{story_uuid}', consistent=False)
     if not item:
         return _err(404, 'STORY_NOT_FOUND',
                     f'No story found with UUID: {story_uuid}')
-    errors = story_validator.validate_story_dict(item)
-    return _ok({"valid": len(errors) == 0, "count": len(errors), "errors": errors})
+    errors = story_validator.validate_story_dict(item, include_mission_conditions=True)
+    # Step 39 — warnings never make the story invalid.
+    return _ok({"valid": len(errors) == 0, "count": len(errors), "errors": errors,
+                "warnings": story_validator.random_event_warnings(item)})
 
 
 def delete_story(event, story_uuid):
@@ -1024,6 +1117,7 @@ def delete_story(event, story_uuid):
         return _err(404, 'STORY_NOT_FOUND',
                     f'No story found with UUID: {story_uuid}')
     db_utils.delete_all_by_pk(f'STORY#{story_uuid}')
+    story_cache.bump(story_uuid)
     return _ok({'status': 'DELETED', 'uuid': story_uuid})
 
 
@@ -1131,10 +1225,9 @@ def create_story(event):
         'idCreator':                 _safe_int(data.get('idCreator')),
         'idCard':                    _safe_int(data.get('idCard')),
         'texts':      {},
-        'GSI1_PK':    'STORY_LIST',
-        'GSI1_SK':    f'STORY#{story_uuid}',
     }
-    db_utils.put_item(story_item)
+    db_utils.put_item(story_index.stamp(story_item))
+    story_cache.bump(story_uuid)
     return _ok({'uuid': story_uuid}, status=201)
 
 def update_story(event, story_uuid):
@@ -1160,14 +1253,15 @@ def update_story(event, story_uuid):
         if f in data:
             item[f] = data[f]
 
-    db_utils.put_item(item)
+    db_utils.put_item(story_index.stamp(item))
+    story_cache.bump(story_uuid)
     return _ok({'uuid': story_uuid, 'status': 'UPDATED', 'item': item})
 
 def list_entities(event, story_uuid, entity_type):
     _, err = _require_admin(event)
     if err: return err
 
-    item = db_utils.get_item(f'STORY#{story_uuid}')
+    item = db_utils.get_item(f'STORY#{story_uuid}', consistent=False)
     if not item:
         return _err(404, 'STORY_NOT_FOUND', f'Story {story_uuid} not found')
 
@@ -1179,7 +1273,8 @@ def list_entities(event, story_uuid, entity_type):
     # Ensure each entity has a sequential numeric id and correct idStory
     for i, e in enumerate(entities):
         if 'id' not in e or e['id'] is None:
-            e['id'] = i + 1
+            # v0.41.4 — a character template keeps its story-local id (id_tipo) in the export.
+            e['id'] = _safe_int(e['id_tipo']) if e.get('id_tipo') is not None else i + 1
         e['idStory'] = item.get('id', story_uuid)
 
     return _ok([_normalize_entity_output(entity_type, e) for e in entities])
@@ -1221,14 +1316,15 @@ def create_entity(event, story_uuid, entity_type):
     _normalize_entity_input(entity_type, data)
     item[field].append(data)
 
-    db_utils.put_item(item)
+    db_utils.put_item(story_index.stamp(item))
+    story_cache.bump(story_uuid)
     return _ok(_normalize_entity_output(entity_type, data), status=201)
 
 def get_entity(event, story_uuid, entity_type, entity_uuid):
     _, err = _require_admin(event)
     if err: return err
 
-    item = db_utils.get_item(f'STORY#{story_uuid}')
+    item = db_utils.get_item(f'STORY#{story_uuid}', consistent=False)
     if not item:
         return _err(404, 'STORY_NOT_FOUND', f'Story {story_uuid} not found')
 
@@ -1284,7 +1380,8 @@ def update_entity(event, story_uuid, entity_type, entity_uuid):
     if entity_type=='cards':
         entities[found_idx]['idCard']=entities[found_idx]['id']
 
-    db_utils.put_item(item)
+    db_utils.put_item(story_index.stamp(item))
+    story_cache.bump(story_uuid)
     updated_entity = _normalize_entity_output(entity_type, entities[found_idx])
     updated_entity['status'] = 'UPDATED'
     return _ok(updated_entity)
@@ -1308,5 +1405,6 @@ def delete_entity(event, story_uuid, entity_type, entity_uuid):
         return _err(404, 'ENTITY_NOT_FOUND', f'Entity {entity_uuid} not found')
 
     item[field] = new_entities
-    db_utils.put_item(item)
+    db_utils.put_item(story_index.stamp(item))
+    story_cache.bump(story_uuid)
     return _ok({'status': 'DELETED', 'uuid': entity_uuid, 'entityType': entity_type})

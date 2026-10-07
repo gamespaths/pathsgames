@@ -255,7 +255,8 @@ paths:
                     minCharacter: 1
                     maxCharacter: 4
                     costHelpComa: 3
-                    costMaxCharacteristics: 3
+                    expCostBase: 0
+                    maxStatValue: 0
                     numberMaxFreeAction: 1
                 characterTemplates:
                   - uuid: "ct-warrior-uuid"
@@ -498,9 +499,12 @@ components:
         costHelpComa:
           type: integer
           example: 3
-        costMaxCharacteristics:
+        expCostBase:
           type: integer
-          example: 3
+          example: 0
+        maxStatValue:
+          type: integer
+          example: 0
         numberMaxFreeAction:
           type: integer
           example: 1

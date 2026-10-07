@@ -18,6 +18,9 @@ class CoreConfigTest {
     @Autowired
     private StoryCrudPort storyCrudPort;
 
+    @Autowired
+    private games.paths.core.port.match.MatchOwnerPort matchOwnerPort;
+
     @Test
     void echoPort_shouldBeCreatedBySpringContext() {
         assertNotNull(echoPort);
@@ -50,5 +53,10 @@ class CoreConfigTest {
     @Test
     void storyCrudPort_shouldBeCreatedBySpringContext() {
         assertNotNull(storyCrudPort);
+    }
+
+    @Test
+    void matchOwnerPort_shouldBeWiredV0416() {
+        assertInstanceOf(games.paths.core.service.match.MatchOwnerService.class, matchOwnerPort);
     }
 }

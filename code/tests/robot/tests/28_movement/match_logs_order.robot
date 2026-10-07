@@ -90,15 +90,19 @@ Order Value Is Case Insensitive
 Desc Cursor Walks Towards The Older Entries
     [Documentation]    v0.30.3 — the timeline is reversed before the page is cut, so
     ...                page 2 of a desc read is older than page 1 and never repeats it.
+    ...                v0.41.1 — rows of one request can share a millisecond (AWS), so the
+    ...                pages are matched by position in the full desc timeline, not by timestamp.
     [Tags]    match-logs    match-logs-order    step28-7
     ${match}=    New Ordered Logs Match
     ${page1}=    Get Match Logs    ${TOKEN}    ${match}    200    limit=1    order=desc
     Should Not Be Equal    ${page1.json()}[nextCursor]    ${None}
     ${cursor}=    Set Variable    ${page1.json()}[nextCursor]
     ${page2}=    Get Match Logs    ${TOKEN}    ${match}    200    limit=1    cursor=${cursor}    order=desc
+    ${full}=     Get Match Logs    ${TOKEN}    ${match}    200    limit=${page1.json()}[total]    order=desc
     ${newest}=    Set Variable    ${page1.json()}[logs][0]
     ${older}=     Set Variable    ${page2.json()}[logs][0]
-    Should Not Be Equal    ${newest}[timestamp]    ${older}[timestamp]
+    Should Be Equal    ${newest}    ${full.json()}[logs][0]    msg=page 1 is not the newest entry
+    Should Be Equal    ${older}     ${full.json()}[logs][1]    msg=page 2 is not the next older entry
     Should Be True    '${older}[timestamp]' <= '${newest}[timestamp]'
 
 Desc First Page Holds The Newest Entry Of The Whole Timeline

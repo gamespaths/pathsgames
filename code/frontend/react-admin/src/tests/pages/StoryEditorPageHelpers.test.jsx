@@ -182,6 +182,11 @@ describe('StoryEditorPageHelpers', () => {
       // item created from the form would be born secret.
       expect(getNewEntityDefaults('items')).toMatchObject({ flagShowEffects: 1 })
     })
+    it('a new registry key is born visible (Step 36)', () => {
+      // The backend shows a key only when visibility is exactly PUBLIC, so a key created
+      // with the field untouched would be written by the engine and then never seen.
+      expect(getNewEntityDefaults('keys')).toMatchObject({ visibility: 'PUBLIC' })
+    })
     it('returns null for other tabs', () => {
       expect(getNewEntityDefaults('difficulties')).toBeNull()
     })

@@ -1,5 +1,6 @@
 """Step 19 — single-player match creation service."""
 import random
+from datetime import datetime, timezone
 import secrets
 from typing import Any, Dict, List, Optional
 
@@ -17,6 +18,8 @@ from app.core.ports.match.match_ports import (
     TurnstileVerificationPort,
     UserAccessPort,
 )
+from app.core.ports.match import kpi_ports
+from app.core.ports.match import log_writer_ports as lw
 from app.core.services.match import trait_selection_validator
 
 
@@ -36,12 +39,37 @@ class MatchCommandService(MatchCommandPort):
         user_access_port: UserAccessPort,
         system_mode_port: SystemModePort,
         turnstile_port: Optional[TurnstileVerificationPort] = None,
+        registry_service=None,
     ) -> None:
         self.story_read_port = story_read_port
         self.match_persistence_port = match_persistence_port
         self.user_access_port = user_access_port
         self.system_mode_port = system_mode_port
         self.turnstile_port = turnstile_port or _PassthroughTurnstile()
+        self.registry_service = registry_service
+        # Step 37 - set after construction; a story that ends fails whatever is still open.
+        self.mission_service = None
+        # v0.41.1 — MATCH_* lifecycle and ADMIN_* rows; None in the older tests.
+        self.log_writer = None
+        # v0.41.2 — MATCH_COMPLETED and the durations; None in the older tests.
+        self.kpi = None
+
+    def set_mission_service(self, mission_service) -> None:
+        self.mission_service = mission_service
+
+    def set_kpi(self, kpi) -> None:
+        self.kpi = kpi
+
+    def set_log_writer(self, log_writer) -> None:
+        self.log_writer = log_writer
+
+    def _log_match_row(self, uuid_match: str, message: Optional[str]) -> None:
+        """v0.41.1 — one match-level row at the current clock; a rename alone writes nothing."""
+        if self.log_writer is None or message is None:
+            return
+        match = self.match_persistence_port.find_match_by_uuid(uuid_match)
+        if match is not None:
+            self.log_writer.write(match["id"], None, None, match.get("current_clock") or 0, message)
 
     def create_match(self, command: MatchCreateCommand) -> MatchSummary:
         if (
@@ -136,6 +164,8 @@ class MatchCommandService(MatchCommandPort):
             "rng_seed": command.rng_seed if command.rng_seed is not None
             else secrets.randbits(63),
         })
+        if self.log_writer is not None:
+            self.log_writer.write(saved["id"], None, None, 0, lw.lifecycle(lw.LIFECYCLE_CREATED))
 
         location_rows: List[Dict[str, Any]] = []
         for loc in locations:
@@ -154,20 +184,7 @@ class MatchCommandService(MatchCommandPort):
             })
         self.match_persistence_port.save_locations(location_rows)
 
-        registry_rows: List[Dict[str, Any]] = []
-        next_id = 1
-        for k in keys:
-            row = {
-                "id": next_id,
-                "id_match": saved["id"],
-                "key": k.get("key_name") or k.get("name") or "",
-                "string_value": None,
-                "int_value": None,
-            }
-            self._apply_default(row, k.get("key_value") or k.get("value"))
-            registry_rows.append(row)
-            next_id += 1
-        self.match_persistence_port.save_registry(registry_rows)
+        self.registry_service.seed(saved["id"], keys)
 
         return MatchSummary(
             uuid=saved["uuid"],
@@ -198,10 +215,15 @@ class MatchCommandService(MatchCommandPort):
         except trait_selection_validator.TraitSelectionError as exc:
             raise MatchCreationError(exc.code, exc.message) from exc
 
-    def update_match(self, uuid_match: str, status: Optional[str], name: Optional[str]) -> str:
+    def update_match(self, uuid_match: str, status: Optional[str], name: Optional[str],
+                     admin_action: Optional[str] = None) -> str:
         if status is not None and not match_statuses.is_valid(status):
             return "INVALID_STATUS"
         found = self.match_persistence_port.update_match_fields(uuid_match, status, name)
+        if found:
+            detail = (lw.admin(admin_action) if admin_action is not None
+                      else lw.admin_status(status) if status is not None else None)
+            self._log_match_row(uuid_match, detail)
         return "UPDATED" if found else "NOT_FOUND"
 
     def delete_match(self, uuid_match: str) -> str:
@@ -213,6 +235,17 @@ class MatchCommandService(MatchCommandPort):
             return "NOT_STOPPED"
         self.match_persistence_port.delete_match_by_uuid(uuid_match)
         return "DELETED"
+
+    def _record_completion(self, story_uuid, match) -> None:
+        """v0.41.2 — MATCH_COMPLETED plus the durations, from the start stamp (else the creation)."""
+        kpi = getattr(self, "kpi", None)
+        if kpi is None:
+            return
+        kpi.record(story_uuid, kpi_ports.MATCH_COMPLETED, None, 1)
+        duration_ms = millis_since(match.get("timestamp_start") or match.get("ts_insert"))
+        if duration_ms is not None:
+            kpi.record(story_uuid, kpi_ports.DURATION_MS, None, duration_ms)
+        kpi.record(story_uuid, kpi_ports.DURATION_CLOCKS, None, int(match.get("current_clock") or 0))
 
     def end_match(self, uuid_match: str, uuid_event: str, user_uuid: str) -> str:
         if not uuid_match or not uuid_event or not user_uuid:
@@ -237,24 +270,26 @@ class MatchCommandService(MatchCommandPort):
         if event is None or event.get("id") != end_event_id:
             return "NOT_ACCEPTABLE"
 
+        already_over = match_statuses.is_terminal(match.get("status"))
         self.match_persistence_port.update_match_fields(uuid_match, match_statuses.ENDED, None)
+        if not already_over:
+            self._record_completion(story.get("uuid"), match)
+        # Step 37 — a mission that opened and never closed has now failed; one never reached
+        # is simply ignored, as it was never the player's business.
+        if getattr(self, "mission_service", None) is not None:
+            self.mission_service.on_story_end(match["id"])
+        self._log_match_row(uuid_match, lw.lifecycle(lw.LIFECYCLE_ENDED))
         return "COMPLETED"
 
-    @staticmethod
-    def _apply_default(row: Dict[str, Any], raw_value):
-        if raw_value is None:
-            return
-        if not isinstance(raw_value, str):
-            try:
-                row["int_value"] = int(raw_value)
-            except (TypeError, ValueError):
-                row["string_value"] = str(raw_value)
-            return
-        trimmed = raw_value.strip()
-        if trimmed == "":
-            row["string_value"] = ""
-            return
-        try:
-            row["int_value"] = int(trimmed)
-        except ValueError:
-            row["string_value"] = trimmed
+
+def millis_since(iso_instant) -> Optional[int]:
+    """v0.41.2 — milliseconds from an ISO instant to now (never negative); None when unreadable."""
+    if not iso_instant or not str(iso_instant).strip():
+        return None
+    try:
+        start = datetime.fromisoformat(str(iso_instant).strip().replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=timezone.utc)
+    return max(0, int((datetime.now(timezone.utc) - start).total_seconds() * 1000))

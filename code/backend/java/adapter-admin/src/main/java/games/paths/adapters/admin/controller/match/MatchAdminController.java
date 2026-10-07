@@ -15,8 +15,10 @@ import games.paths.core.port.match.CharacterCommandPort;
 import games.paths.core.port.match.MatchCommandPort;
 import games.paths.core.port.match.MatchQueryPort;
 import games.paths.adapters.rest.dto.MatchLogsResponse;
+import games.paths.core.port.match.MatchLogWriterPort;
 import games.paths.core.port.match.MatchLogsPort;
 import games.paths.core.port.match.MovementPort;
+import games.paths.core.port.match.SnapshotPort;
 import games.paths.core.port.match.TimeAdvancementPort;
 import games.paths.core.port.match.TurnCyclePort;
 
@@ -52,14 +54,19 @@ public class MatchAdminController {
     private final games.paths.core.service.match.WeatherSelectionService weatherService;
     private final MovementPort movementPort;
     private final MatchLogsPort matchLogsPort;
+    private final games.paths.core.service.match.RegistryService registryService;
+    private final SnapshotPort snapshotPort;
 
+    @SuppressWarnings("java:S107")
     public MatchAdminController(MatchCommandPort matchCommandPort,
                                 MatchQueryPort matchQueryPort,
                                 TimeAdvancementPort timeAdvancementPort,
                                 CharacterCommandPort characterCommandPort,
                                 games.paths.core.service.match.WeatherSelectionService weatherService,
                                 MovementPort movementPort,
-                                MatchLogsPort matchLogsPort) {
+                                MatchLogsPort matchLogsPort,
+                                games.paths.core.service.match.RegistryService registryService,
+                                SnapshotPort snapshotPort) {
         this.matchCommandPort = matchCommandPort;
         this.matchQueryPort = matchQueryPort;
         this.timeAdvancementPort = timeAdvancementPort;
@@ -67,6 +74,8 @@ public class MatchAdminController {
         this.weatherService = weatherService;
         this.movementPort = movementPort;
         this.matchLogsPort = matchLogsPort;
+        this.registryService = registryService;
+        this.snapshotPort = snapshotPort;
     }
 
     /**
@@ -131,7 +140,10 @@ public class MatchAdminController {
         if (detail == null) {
             return error(HttpStatus.NOT_FOUND, "MATCH_NOT_FOUND", "Match not found: " + uuidMatch);
         }
-        return ResponseEntity.ok(MatchInfoResponse.fromModel(detail));
+        MatchInfoResponse body = MatchInfoResponse.fromModel(detail);
+        // v0.41.1 - the log-size check of Step 41 A: a count, never a cap.
+        body.setLogCount(matchLogsPort == null ? null : matchLogsPort.countLogsForAdmin(uuidMatch));
+        return ResponseEntity.ok(body);
     }
 
     /**
@@ -179,6 +191,12 @@ public class MatchAdminController {
             row.put("costMoveNotSafeLocation", r.costMoveNotSafeLocation());
             row.put("active", r.active());
             row.put("current", r.current());
+            // v0.36.2 — the authored registry condition and whether it currently lets the
+            // rule through, so the console can say why a rule never fires.
+            row.put("conditionKey", r.conditionKey());
+            row.put("conditionValue", r.conditionValue());
+            row.put("conditionOperator", r.conditionOperator());
+            row.put("registryMet", r.registryMet());
             return row;
         }).collect(Collectors.toList());
         body.put("rules", rules);
@@ -267,25 +285,25 @@ public class MatchAdminController {
             return error(HttpStatus.BAD_REQUEST, "INVALID_INPUT",
                     "At least one of status or name must be provided");
         }
-        return applyMatchUpdate(uuidMatch, status, name);
+        return applyMatchUpdate(uuidMatch, status, name, null);
     }
 
     /** POST /api/admin/matches/{uuidMatch}/stop — sets the match status to ENDED. */
     @PostMapping("/{uuidMatch}/stop")
     public ResponseEntity<Object> stopMatch(@PathVariable String uuidMatch) {
-        return applyMatchUpdate(uuidMatch, MatchStatuses.ENDED, null);
+        return applyMatchUpdate(uuidMatch, MatchStatuses.ENDED, null, MatchLogWriterPort.ADMIN_STOP);
     }
 
     /** POST /api/admin/matches/{uuidMatch}/pause — sets the match status to PAUSED. */
     @PostMapping("/{uuidMatch}/pause")
     public ResponseEntity<Object> pauseMatch(@PathVariable String uuidMatch) {
-        return applyMatchUpdate(uuidMatch, MatchStatuses.PAUSED, null);
+        return applyMatchUpdate(uuidMatch, MatchStatuses.PAUSED, null, MatchLogWriterPort.ADMIN_PAUSE);
     }
 
     /** POST /api/admin/matches/{uuidMatch}/resume — sets the match status to RUNNING. */
     @PostMapping("/{uuidMatch}/resume")
     public ResponseEntity<Object> resumeMatch(@PathVariable String uuidMatch) {
-        return applyMatchUpdate(uuidMatch, MatchStatuses.RUNNING, null);
+        return applyMatchUpdate(uuidMatch, MatchStatuses.RUNNING, null, MatchLogWriterPort.ADMIN_RESUME);
     }
 
     /**
@@ -335,6 +353,7 @@ public class MatchAdminController {
             if (body.getCoin()  != null && body.getCoin()  != -1) command.setCoin(body.getCoin());
             if (body.getFood()  != null && body.getFood()  != -1) command.setFood(body.getFood());
             if (body.getMagic() != null && body.getMagic() != -1) command.setMagic(body.getMagic());
+            if (body.getExp()   != null && body.getExp()   != -1) command.setExp(body.getExp());
             // The state flags: omitted (null) means "leave as it is", the -1 of the numbers.
             command.setSleeping(body.getSleeping());
             command.setComa(body.getComa());
@@ -368,6 +387,8 @@ public class MatchAdminController {
         private Integer coin;
         private Integer food;
         private Integer magic;
+        /** Step 38 — experience points; -1/omitted leaves them untouched. */
+        private Integer exp;
         private Boolean sleeping;
         private Boolean coma;
 
@@ -389,6 +410,8 @@ public class MatchAdminController {
         public void setFood(Integer food) { this.food = food; }
         public Integer getMagic() { return magic; }
         public void setMagic(Integer magic) { this.magic = magic; }
+        public Integer getExp() { return exp; }
+        public void setExp(Integer exp) { this.exp = exp; }
         /** Null = leave the flag untouched. Clearing coma also wakes the character up. */
         public Boolean getSleeping() { return sleeping; }
         public void setSleeping(Boolean sleeping) { this.sleeping = sleeping; }
@@ -396,8 +419,10 @@ public class MatchAdminController {
         public void setComa(Boolean coma) { this.coma = coma; }
     }
 
-    private ResponseEntity<Object> applyMatchUpdate(String uuidMatch, String status, String name) {
-        MatchCommandPort.UpdateOutcome outcome = matchCommandPort.updateMatch(uuidMatch, status, name);
+    private ResponseEntity<Object> applyMatchUpdate(String uuidMatch, String status, String name,
+                                                    String adminAction) {
+        MatchCommandPort.UpdateOutcome outcome =
+                matchCommandPort.updateMatch(uuidMatch, status, name, adminAction);
         switch (outcome) {
             case UPDATED:
                 Map<String, Object> body = new LinkedHashMap<>();
@@ -416,6 +441,138 @@ public class MatchAdminController {
 
     private static boolean isBlank(String s) {
         return s == null || s.isBlank();
+    }
+
+    /**
+     * PUT /api/admin/matches/{uuidMatch}/registry — v0.36.2, the console correcting one key.
+     * The write goes through the ordinary RegistryService, so a single key is replaced, a
+     * multi key gains a member, and either way the match log carries a REGISTRY_CHANGE row.
+     * v0.36.4 - a key the story does not declare is refused: a typo here would create an
+     * orphan key the player never sees and the console cannot tell from an engine bug.
+     */
+    @PutMapping("/{uuidMatch}/registry")
+    public ResponseEntity<Object> upsertRegistry(@PathVariable String uuidMatch,
+                                                 @RequestBody(required = false) Map<String, Object> body) {
+        String key = body == null ? null : str(body.get("key"));
+        if (isBlank(uuidMatch) || isBlank(key)) {
+            return error(HttpStatus.BAD_REQUEST, "INVALID_INPUT",
+                    "Match uuid and a registry key are required");
+        }
+        Boolean declared = registryService.isDeclaredForMatchUuid(uuidMatch, key);
+        if (declared == null) {
+            return error(HttpStatus.NOT_FOUND, "MATCH_NOT_FOUND", "Match not found: " + uuidMatch);
+        }
+        if (!declared) {
+            return error(HttpStatus.BAD_REQUEST, "UNKNOWN_KEY",
+                    "The story does not declare a registry key named: " + key);
+        }
+        List<String> values = registryService.upsertByMatchUuid(uuidMatch, key,
+                str(body.get("value")));
+        return registryBody(uuidMatch, key, values);
+    }
+
+    /**
+     * DELETE /api/admin/matches/{uuidMatch}/registry?key=K[&value=V] — take one member away,
+     * or empty the key outright when no value is named. Unlike the PUT above, an undeclared
+     * key is allowed here: cleaning an orphan row up is the whole point of the verb.
+     */
+    @DeleteMapping("/{uuidMatch}/registry")
+    public ResponseEntity<Object> deleteRegistry(@PathVariable String uuidMatch,
+                                                 @RequestParam(required = false) String key,
+                                                 @RequestParam(required = false) String value) {
+        if (isBlank(uuidMatch) || isBlank(key)) {
+            return error(HttpStatus.BAD_REQUEST, "INVALID_INPUT",
+                    "Match uuid and a registry key are required");
+        }
+        return registryBody(uuidMatch, key, registryService.removeByMatchUuid(uuidMatch, key, value));
+    }
+
+    /** The one answer shape both registry edits give; a null values list means no such match. */
+    private ResponseEntity<Object> registryBody(String uuidMatch, String key, List<String> values) {
+        if (values == null) {
+            return error(HttpStatus.NOT_FOUND, "MATCH_NOT_FOUND", "Match not found: " + uuidMatch);
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("key", key);
+        out.put("values", values);
+        return ResponseEntity.ok(out);
+    }
+
+    /** GET /api/admin/matches/{uuidMatch}/snapshots — v0.41.1, the time-end snapshots, newest first. */
+    @GetMapping("/{uuidMatch}/snapshots")
+    public ResponseEntity<Object> listSnapshots(@PathVariable String uuidMatch) {
+        try {
+            List<Map<String, Object>> body = snapshotPort.list(uuidMatch).stream().map(s -> {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("uuid", s.uuid());
+                row.put("clock", s.clock());
+                row.put("type", s.type());
+                row.put("timestamp", s.timestamp());
+                row.put("description", s.description());
+                row.put("sizeBytes", s.sizeBytes());
+                return row;
+            }).collect(Collectors.toList());
+            return ResponseEntity.ok(body);
+        } catch (SnapshotPort.SnapshotException ex) {
+            return snapshotError(ex);
+        }
+    }
+
+    /** GET /api/admin/matches/{uuidMatch}/snapshots/{uuidSnapshot}/check — writes nothing. */
+    @GetMapping("/{uuidMatch}/snapshots/{uuidSnapshot}/check")
+    public ResponseEntity<Object> checkSnapshot(@PathVariable String uuidMatch, @PathVariable String uuidSnapshot) {
+        try {
+            SnapshotPort.SnapshotCheck check = snapshotPort.check(uuidMatch, uuidSnapshot);
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("valid", check.valid());
+            body.put("errors", errorsToList(check.errors()));
+            return ResponseEntity.ok(body);
+        } catch (SnapshotPort.SnapshotException ex) {
+            return snapshotError(ex);
+        }
+    }
+
+    /** POST /api/admin/matches/{uuidMatch}/snapshots/{uuidSnapshot}/restore — rollback, time-start, PAUSED. */
+    @PostMapping("/{uuidMatch}/snapshots/{uuidSnapshot}/restore")
+    public ResponseEntity<Object> restoreSnapshot(@PathVariable String uuidMatch, @PathVariable String uuidSnapshot) {
+        try {
+            SnapshotPort.RestoreResult result = snapshotPort.restore(uuidMatch, uuidSnapshot);
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("status", result.status());
+            body.put("uuidSnapshot", result.uuidSnapshot());
+            body.put("clock", result.clock());
+            body.put("matchStatus", result.matchStatus());
+            body.put("logsRemoved", result.logsRemoved());
+            return ResponseEntity.ok(body);
+        } catch (SnapshotPort.SnapshotException ex) {
+            return snapshotError(ex);
+        }
+    }
+
+    private static List<Map<String, Object>> errorsToList(List<SnapshotPort.CheckError> errors) {
+        return errors.stream().map(e -> {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("code", e.code());
+            row.put("message", e.message());
+            return row;
+        }).collect(Collectors.toList());
+    }
+
+    /** 409 with the check errors for a failed integrity check, 404 otherwise. */
+    private static ResponseEntity<Object> snapshotError(SnapshotPort.SnapshotException ex) {
+        if (ex.getCode() != SnapshotPort.SnapshotException.Code.SNAPSHOT_INTEGRITY_FAILED) {
+            return error(HttpStatus.NOT_FOUND, ex.getCode().name(), ex.getMessage());
+        }
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", ex.getCode().name());
+        body.put("message", ex.getMessage());
+        body.put("errors", errorsToList(ex.getErrors()));
+        body.put("timestamp", System.currentTimeMillis());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    private static String str(Object value) {
+        return value == null ? null : value.toString();
     }
 
     private static ResponseEntity<Object> error(HttpStatus status, String code, String message) {

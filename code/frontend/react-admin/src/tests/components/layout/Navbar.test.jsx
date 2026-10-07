@@ -61,6 +61,14 @@ describe('Navbar', () => {
     expect(screen.getByText('Server Status')).toBeInTheDocument()
   })
 
+  it('lists Reports right after Matches with a link to /reports', () => {
+    renderNavbar()
+    fireEvent.click(screen.getByRole('button', { name: /navigation menu/i }))
+    const labels = screen.getAllByRole('menuitem').map(a => a.textContent.trim())
+    expect(labels.indexOf('Reports')).toBe(labels.indexOf('Matches') + 1)
+    expect(screen.getByRole('menuitem', { name: /reports/i })).toHaveAttribute('href', '/reports')
+  })
+
   it('closes dropdown after clicking a menu item', () => {
     renderNavbar()
     fireEvent.click(screen.getByRole('button', { name: /navigation menu/i }))
@@ -83,5 +91,46 @@ describe('Navbar', () => {
     fireEvent.change(select, { target: { value: 'http://localhost:8044' } })
     // just checking no error thrown — AuthContext changeServer is a no-op in test
     expect(select).toBeInTheDocument()
+  })
+
+  it('unmounting before the ping answers sets no state', async () => {
+    let resolve
+    getServerStatus.mockReturnValue(new Promise(r => { resolve = r }))
+    const { unmount } = renderNavbar()
+
+    unmount()
+    resolve({ properties: { version: '9.9.9' } })
+    await Promise.resolve()
+
+    expect(screen.queryByText('9.9.9')).toBeNull()
+  })
+
+  it('unmounting before a failing ping answers sets no state', async () => {
+    let reject
+    getServerStatus.mockReturnValue(new Promise((_, r) => { reject = r }))
+    const { unmount } = renderNavbar()
+
+    unmount()
+    reject(new Error('down'))
+    await Promise.resolve()
+
+    expect(screen.queryByText(/offline/i)).toBeNull()
+  })
+
+  it('a server that answers with no version at all reads as online with a blank one', async () => {
+    getServerStatus.mockResolvedValue({})
+    renderNavbar()
+    await waitFor(() => expect(screen.queryByText('1.2.3')).toBeNull())
+  })
+
+  it('a mousedown outside the open menu closes it', async () => {
+    renderNavbar()
+    const toggle = document.querySelector('.pg-navbar-server')
+      ?? screen.getAllByRole('button')[0]
+    fireEvent.click(toggle)
+
+    fireEvent.mouseDown(document.body)
+
+    await waitFor(() => expect(document.querySelector('.pg-dropdown-menu')).toBeNull())
   })
 })

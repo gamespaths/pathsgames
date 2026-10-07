@@ -2,11 +2,9 @@ package games.paths.core.persistence.match;
 
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
-import games.paths.core.entity.match.GamingStateRegistryEntity;
 import games.paths.core.port.match.MatchReadPort;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingStateLocationsRepository;
-import games.paths.core.repository.match.GamingStateRegistryRepository;
 
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,14 +22,11 @@ public class MatchReadAdapter implements MatchReadPort {
 
     private final GamingMatchRepository matchRepository;
     private final GamingStateLocationsRepository locationsRepository;
-    private final GamingStateRegistryRepository registryRepository;
 
     public MatchReadAdapter(GamingMatchRepository matchRepository,
-                            GamingStateLocationsRepository locationsRepository,
-                            GamingStateRegistryRepository registryRepository) {
+                            GamingStateLocationsRepository locationsRepository) {
         this.matchRepository = matchRepository;
         this.locationsRepository = locationsRepository;
-        this.registryRepository = registryRepository;
     }
 
     @Override
@@ -67,13 +62,5 @@ public class MatchReadAdapter implements MatchReadPort {
             return List.of();
         }
         return locationsRepository.findByIdMatch(matchId);
-    }
-
-    @Override
-    public List<GamingStateRegistryEntity> findRegistryByMatchId(Long matchId) {
-        if (matchId == null) {
-            return List.of();
-        }
-        return registryRepository.findByIdMatch(matchId);
     }
 }

@@ -31,6 +31,7 @@ public interface GuestAdminPersistencePort {
 
     /**
      * Deletes all expired guest sessions (guestExpiresAt < now) and their tokens.
+     * v0.41.0: a guest still referenced by a match, character, session or chat row is kept.
      * Returns the number of deleted guest users.
      */
     int deleteExpiredGuests();
@@ -44,6 +45,25 @@ public interface GuestAdminPersistencePort {
      * @return the number of guest users removed
      */
     int deleteGuestsByUsernameLike(String usernameLikePattern);
+
+    // === v0.36.2: paging and the stale purge ===
+
+    /**
+     * One keyset page of guests, most recently seen first. {@code lastAccessBefore} is an
+     * optional ISO-8601 upper bound; {@code tsCursor}/{@code idCursor} continue a previous
+     * page. A guest that has never been back is ordered by its registration date.
+     */
+    List<Map<String, Object>> findGuestsPage(String lastAccessBefore, String tsCursor,
+                                             Long idCursor, int limit);
+
+    /** The ids of every guest last seen before the bound — what a stale purge is about to take. */
+    List<Long> findGuestIdsWithLastAccessBefore(String lastAccessBefore);
+
+    /** Delete these guests and their tokens. Returns how many guest rows went. */
+    int deleteGuestsByIds(List<Long> ids);
+
+    /** v0.41.0 — at most {@code limit} ids of guests seen before the bound that nothing references. */
+    List<Long> findStaleGuestIdsWithoutReferences(String lastAccessBefore, int limit);
 
     /**
      * Counts total guest users (state=6).

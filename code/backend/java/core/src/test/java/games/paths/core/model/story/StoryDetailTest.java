@@ -52,7 +52,7 @@ class StoryDetailTest {
                     .minCharacter(1)
                     .maxCharacter(4)
                     .costHelpComa(3)
-                    .costMaxCharacteristics(3)
+                    .expCostBase(3)
                     .numberMaxFreeAction(1)
                     .build();
 

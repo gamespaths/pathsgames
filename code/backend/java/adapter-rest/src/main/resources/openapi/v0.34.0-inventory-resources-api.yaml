@@ -120,7 +120,7 @@ info:
       added in `V0.19.7`. The seed parameter `DefaultInventoryCapacity` is genuinely dead and
       is deliberately left in place.
 
-    See `documentation_v0/Roadmap.md`, steps 34 and 35.
+    See `wiki/documentation_v0/Roadmap.md`, steps 34 and 35.
   version: 0.34.0
 
 servers:

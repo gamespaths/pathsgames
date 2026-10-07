@@ -121,8 +121,8 @@ class MatchDtosTest {
         MatchRegistryEntry e = new MatchRegistryEntry();
         e.setUuid("r");
         e.setKey("k");
-        e.setStringValue("v");
-        e.setIntValue(7);
+        e.setValues(List.of("v", "7"));
+        e.setMultiValue(true);
         d.setRegistry(List.of(e));
         d.setEvents(List.of(new MatchEventOption("ev", "n", "EVENT")));
         d.setChoices(List.of(new MatchEventOption("ch", "n", "CHOICE")));
@@ -141,8 +141,8 @@ class MatchDtosTest {
         MatchInfoResponse.RegistryEntryDto re = r.getRegistry().get(0);
         assertEquals("r", re.getUuid());
         assertEquals("k", re.getKey());
-        assertEquals("v", re.getStringValue());
-        assertEquals(7, re.getIntValue());
+        assertEquals(List.of("v", "7"), re.getValues());
+        assertTrue(re.isMultiValue());
 
         MatchInfoResponse.EventOptionDto ev = r.getEvents().get(0);
         assertEquals("ev", ev.getUuid());
@@ -240,12 +240,12 @@ class MatchDtosTest {
         MatchInfoResponse.RegistryEntryDto re = new MatchInfoResponse.RegistryEntryDto();
         re.setUuid("u");
         re.setKey("k");
-        re.setStringValue("v");
-        re.setIntValue(7);
+        re.setValues(List.of("v"));
+        re.setMultiValue(true);
         assertEquals("u", re.getUuid());
         assertEquals("k", re.getKey());
-        assertEquals("v", re.getStringValue());
-        assertEquals(7, re.getIntValue());
+        assertEquals(List.of("v"), re.getValues());
+        assertTrue(re.isMultiValue());
 
         MatchInfoResponse.EventOptionDto ev = new MatchInfoResponse.EventOptionDto();
         ev.setUuid("u");

@@ -9,7 +9,6 @@ import games.paths.core.repository.match.GamingCharacterTraitsRepository;
 import games.paths.core.repository.match.GamingInventoryItemsRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingStateLocationsRepository;
-import games.paths.core.repository.match.GamingStateRegistryRepository;
 import games.paths.core.repository.match.GamingStoryProgressRepository;
 import games.paths.core.repository.match.LogChoicesExecutedRepository;
 import games.paths.core.repository.match.LogEventsRepository;
@@ -24,13 +23,15 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class MatchPersistenceAdapterTest {
 
     private GamingMatchRepository matchRepository;
     private GamingStateLocationsRepository locationsRepository;
-    private GamingStateRegistryRepository registryRepository;
+    private games.paths.core.port.match.RegistryStorePort registryStorePort;
     private GamingCharacterInstanceRepository characterRepository;
     private GamingBackpackResourcesRepository backpackRepository;
     private GamingCharacterTraitsRepository characterTraitsRepository;
@@ -40,6 +41,7 @@ class MatchPersistenceAdapterTest {
     private LogChoicesExecutedRepository logChoicesRepository;
     private LogItemUsageRepository logItemUsageRepository;
     private GamingStoryProgressRepository storyProgressRepository;
+    private games.paths.core.port.match.SnapshotStorePort snapshotStorePort;
     private MatchPersistenceAdapter adapter;
     private MatchReadAdapter readAdapter;
 
@@ -47,7 +49,7 @@ class MatchPersistenceAdapterTest {
     void setUp() {
         matchRepository = mock(GamingMatchRepository.class);
         locationsRepository = mock(GamingStateLocationsRepository.class);
-        registryRepository = mock(GamingStateRegistryRepository.class);
+        registryStorePort = mock(games.paths.core.port.match.RegistryStorePort.class);
         characterRepository = mock(GamingCharacterInstanceRepository.class);
         backpackRepository = mock(GamingBackpackResourcesRepository.class);
         characterTraitsRepository = mock(GamingCharacterTraitsRepository.class);
@@ -57,11 +59,12 @@ class MatchPersistenceAdapterTest {
         logChoicesRepository = mock(LogChoicesExecutedRepository.class);
         logItemUsageRepository = mock(LogItemUsageRepository.class);
         storyProgressRepository = mock(GamingStoryProgressRepository.class);
-        adapter = new MatchPersistenceAdapter(matchRepository, locationsRepository, registryRepository,
+        snapshotStorePort = mock(games.paths.core.port.match.SnapshotStorePort.class);
+        adapter = new MatchPersistenceAdapter(matchRepository, locationsRepository, registryStorePort,
                 characterRepository, backpackRepository, characterTraitsRepository, inventoryRepository,
                 logEventsRepository, logMovementRepository, logChoicesRepository, logItemUsageRepository,
-                storyProgressRepository);
-        readAdapter = new MatchReadAdapter(matchRepository, locationsRepository, registryRepository);
+                storyProgressRepository, snapshotStorePort);
+        readAdapter = new MatchReadAdapter(matchRepository, locationsRepository);
     }
 
     @Test
@@ -110,19 +113,7 @@ class MatchPersistenceAdapterTest {
         verify(locationsRepository).saveAll(list);
     }
 
-    @Test
-    void saveRegistry_skipsWhenNullOrEmpty() {
-        adapter.saveRegistry(null);
-        adapter.saveRegistry(List.of());
-        verify(registryRepository, never()).saveAll(any());
-    }
 
-    @Test
-    void saveRegistry_savesAll() {
-        List<GamingStateRegistryEntity> list = List.of(new GamingStateRegistryEntity());
-        adapter.saveRegistry(list);
-        verify(registryRepository).saveAll(list);
-    }
 
     @Test
     void deleteMatchesByNameLike_noMatches_returnsZeroAndSkipsChildren() {
@@ -132,7 +123,7 @@ class MatchPersistenceAdapterTest {
 
         assertEquals(0, deleted);
         verify(locationsRepository, never()).deleteByMatchIdIn(any());
-        verify(registryRepository, never()).deleteByMatchIdIn(any());
+        verify(registryStorePort, never()).deleteByMatchIdIn(any());
         verify(characterRepository, never()).deleteByMatchIdIn(any());
         verify(matchRepository, never()).deleteByNameLike(any());
     }
@@ -158,9 +149,10 @@ class MatchPersistenceAdapterTest {
         // Step 32 — SQLite ignores the schema's ON DELETE CASCADE, so these go explicitly
         verify(logChoicesRepository).deleteByMatchIdIn(ids);
         verify(storyProgressRepository).deleteByMatchIdIn(ids);
+        verify(snapshotStorePort).deleteByMatchIds(ids);
         verify(characterRepository).deleteByMatchIdIn(ids);
         verify(locationsRepository).deleteByMatchIdIn(ids);
-        verify(registryRepository).deleteByMatchIdIn(ids);
+        verify(registryStorePort).deleteByMatchIdIn(ids);
         verify(matchRepository).deleteByNameLike("robottest%");
     }
 
@@ -214,9 +206,10 @@ class MatchPersistenceAdapterTest {
         verify(backpackRepository).deleteByMatchIdIn(List.of(5L));
         verify(logChoicesRepository).deleteByMatchIdIn(List.of(5L));
         verify(storyProgressRepository).deleteByMatchIdIn(List.of(5L));
+        verify(snapshotStorePort).deleteByMatchIds(List.of(5L));
         verify(characterRepository).deleteByMatchIdIn(List.of(5L));
         verify(locationsRepository).deleteByMatchIdIn(List.of(5L));
-        verify(registryRepository).deleteByMatchIdIn(List.of(5L));
+        verify(registryStorePort).deleteByMatchIdIn(List.of(5L));
         verify(matchRepository).delete(m);
     }
 
@@ -265,17 +258,7 @@ class MatchPersistenceAdapterTest {
         assertEquals(1, readAdapter.findLocationsByMatchId(1L).size());
     }
 
-    @Test
-    void readAdapter_findRegistryByMatchId_nullReturnsEmpty() {
-        assertTrue(readAdapter.findRegistryByMatchId(null).isEmpty());
-    }
 
-    @Test
-    void readAdapter_findRegistryByMatchId_delegates() {
-        when(registryRepository.findByIdMatch(1L))
-                .thenReturn(List.of(new GamingStateRegistryEntity()));
-        assertEquals(1, readAdapter.findRegistryByMatchId(1L).size());
-    }
 
     @Test
     void readAdapter_findMatchesPage_delegatesWithLimitAndCriteria() {
@@ -305,5 +288,67 @@ class MatchPersistenceAdapterTest {
         var pageCaptor = org.mockito.ArgumentCaptor.forClass(org.springframework.data.domain.Pageable.class);
         verify(matchRepository).findMatchesPage(any(), any(), any(), any(), any(), any(), pageCaptor.capture());
         assertEquals(1, pageCaptor.getValue().getPageSize()); // PageRequest rejects size < 1
+    }
+
+    // ── the guest purge deletes by creator, not by name ─────────────────────
+
+    @Test
+    void changeOwner_updatesMatchAndCharacters() {
+        when(characterRepository.updateOwner(eq(5L), eq(9L), anyString())).thenReturn(1);
+        assertEquals(1, adapter.changeOwner(5L, 9L));
+        verify(matchRepository).updateOwner(eq(5L), eq(9L), anyString());
+        verify(characterRepository).updateOwner(eq(5L), eq(9L), anyString());
+    }
+
+    @Test
+    void countMatchesByUserCreator_delegates() {
+        when(matchRepository.countByIdUserCreator(9L)).thenReturn(4L);
+        assertEquals(4L, adapter.countMatchesByUserCreator(9L));
+    }
+
+    @Test
+    void countMatchesByUserCreatorIds_withoutCreatorsIsZero() {
+        assertEquals(0, adapter.countMatchesByUserCreatorIds(null));
+        assertEquals(0, adapter.countMatchesByUserCreatorIds(List.of()));
+        verify(matchRepository, never()).findMatchIdsByUserCreatorIds(any());
+    }
+
+    @Test
+    void countMatchesByUserCreatorIds_countsWhatTheCreatorsOwn() {
+        when(matchRepository.findMatchIdsByUserCreatorIds(List.of(1L))).thenReturn(List.of(5L, 6L));
+
+        assertEquals(2, adapter.countMatchesByUserCreatorIds(List.of(1L)));
+    }
+
+    @Test
+    void deleteMatchesByUserCreatorIds_withoutCreatorsIsANoOp() {
+        assertEquals(0, adapter.deleteMatchesByUserCreatorIds(null));
+        assertEquals(0, adapter.deleteMatchesByUserCreatorIds(List.of()));
+        verify(matchRepository, never()).findMatchIdsByUserCreatorIds(any());
+    }
+
+    @Test
+    void deleteMatchesByUserCreatorIds_creatorsWithNoMatchTouchNothing() {
+        when(matchRepository.findMatchIdsByUserCreatorIds(List.of(1L))).thenReturn(List.of());
+
+        assertEquals(0, adapter.deleteMatchesByUserCreatorIds(List.of(1L)));
+        verify(matchRepository, never()).clearCurrentTurnByMatchIdIn(any());
+        verify(locationsRepository, never()).deleteByMatchIdIn(any());
+        verify(registryStorePort, never()).deleteByMatchIdIn(any());
+    }
+
+    @Test
+    void deleteMatchesByUserCreatorIds_deletesTheRuntimeStateFirst() {
+        List<Long> ids = List.of(5L);
+        when(matchRepository.findMatchIdsByUserCreatorIds(List.of(1L))).thenReturn(ids);
+        when(matchRepository.deleteByIdIn(ids)).thenReturn(1);
+
+        assertEquals(1, adapter.deleteMatchesByUserCreatorIds(List.of(1L)));
+
+        verify(matchRepository).clearCurrentTurnByMatchIdIn(ids);
+        verify(characterRepository).deleteByMatchIdIn(ids);
+        verify(locationsRepository).deleteByMatchIdIn(ids);
+        verify(registryStorePort).deleteByMatchIdIn(ids);
+        verify(matchRepository).deleteByIdIn(ids);
     }
 }

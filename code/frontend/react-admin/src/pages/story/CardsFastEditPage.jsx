@@ -22,6 +22,8 @@ const CARD_REF_TYPES = [
   'difficulties', 'locations', 'location-neighbors', 'events', 'event-effects', 'items',
   'item-effects', 'character-templates', 'classes', 'traits', 'creators', 'keys',
   'choices', 'choice-effects', 'weather-rules', 'global-random-events', 'missions',
+  // v0.37.1: a mission STEP carries a card of its own — the game reads the steps as cards.
+  'mission-steps',
 ]
 
 // ─── Desc-Text alignment ─────────────────────────────────────────────────────
@@ -34,7 +36,7 @@ const CARD_REF_TYPES = [
 // mismatch are reported as warnings rather than silently updated.
 const DESC_ALIGN_TYPES = [
   'difficulties', 'locations', 'events', 'event-effects', 'items',
-  'character-templates', 'classes', 'traits', 'keys', 'missions',
+  'character-templates', 'classes', 'traits', 'keys', 'missions', 'mission-steps',
 ]
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -271,7 +273,7 @@ export default function CardsFastEditPage() {
     }
   }
 
-  useEffect(() => { load() }, [uuid])
+  useEffect(() => { void load() }, [uuid])
 
   const updateRow = (cardUuid, field, value) =>
     setRows(prev => prev.map(r => r.uuid === cardUuid ? { ...r, [field]: value } : r))
@@ -554,6 +556,13 @@ export default function CardsFastEditPage() {
         >
           <i className={`fas ${savingAll ? 'fa-spinner fa-spin' : 'fa-save'} me-1`} />
           {savingAll ? 'Saving…' : `Save All${dirtyCount > 0 ? ` (${dirtyCount})` : ''}`}
+        </button>
+        <button
+          type="button"
+          className="pg-btn pg-btn-ghost"
+          onClick={() => navigate(`/stories/${uuid}/edit`)}
+        >
+          <i className="fas fa-pen me-1" /> Edit story
         </button>
       </div>
 

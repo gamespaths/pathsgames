@@ -2,7 +2,9 @@ package games.paths.core.service.match;
 
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.story.CardInfo;
+import games.paths.core.port.match.EventExecutionPort;
 import games.paths.core.port.match.LocationEntryPort;
+import games.paths.core.port.match.TimeAdvancementPort;
 import games.paths.core.port.match.MovementPort;
 import games.paths.core.port.match.MovementPort.MovementAvailability;
 import games.paths.core.port.match.MovementStorePort;
@@ -52,33 +54,37 @@ import java.util.Set;
  * concurrent locking are Step 67; the full weight/capacity formula is Step 34 (carried weight
  * is 0 until inventory lands).</p>
  *
- * <p>See {@code documentation_v0/Step28_MovementSystem.md} and
- * {@code documentation_v0/Step33_LocationEntryEvents.md}.</p>
+ * <p>See {@code wiki/documentation_v0/Step28_MovementSystem.md} and
+ * {@code wiki/documentation_v0/Step33_LocationEntryEvents.md}.</p>
  */
 public class MovementService implements MovementPort {
 
     private static final String DEFAULT_LANG = "en";
 
     private final MovementStorePort store;
+    private final RegistryService registryService;
     private final UserAccessPort userAccessPort;
     private final ContentQueryPort contentQueryPort;
     /** Step 33. Null keeps the pre-33 behaviour: a move fires nothing. */
     private final LocationEntryPort locationEntryPort;
 
-    public MovementService(MovementStorePort store, UserAccessPort userAccessPort) {
-        this(store, userAccessPort, null, null);
+    public MovementService(MovementStorePort store, UserAccessPort userAccessPort,
+                           RegistryService registryService) {
+        this(store, userAccessPort, null, null, registryService);
     }
 
     /** {@code contentQueryPort} resolves the location cards (nullable). */
     public MovementService(MovementStorePort store, UserAccessPort userAccessPort,
-                           ContentQueryPort contentQueryPort) {
-        this(store, userAccessPort, contentQueryPort, null);
+                           ContentQueryPort contentQueryPort, RegistryService registryService) {
+        this(store, userAccessPort, contentQueryPort, null, registryService);
     }
 
     /** Full constructor: {@code locationEntryPort} runs the Step 33 arrival triggers. */
     public MovementService(MovementStorePort store, UserAccessPort userAccessPort,
                            ContentQueryPort contentQueryPort,
-                           LocationEntryPort locationEntryPort) {
+                           LocationEntryPort locationEntryPort,
+                           RegistryService registryService) {
+        this.registryService = registryService;
         this.store = store;
         this.userAccessPort = userAccessPort;
         this.contentQueryPort = contentQueryPort;
@@ -153,12 +159,41 @@ public class MovementService implements MovementPort {
                         match.id(), match.idStory(), caller.id(), target.id(),
                         match.currentClock(), null));
 
+        TimeAdvancementPort.TimeEndNews timeEnd = timeEndOf(automaticEvents);
         return new MovementResult(matchUuid, caller.uuid(),
                 caller.idLocation(), null,
                 target.id(), target.uuid(),
                 totalCost, edge.costFood(), edge.costMagic(), edge.costCoin(),
                 newEnergy, newFood, newMagic, newCoin,
-                match.currentClock(), automaticEvents);
+                timeEnd == null ? match.currentClock() : timeEnd.newClock(),
+                automaticEvents, edgeStateOf(automaticEvents), timeEnd);
+    }
+
+    /** Step 40 - the first arrival event that ended the time carries its news; null otherwise. */
+    static TimeAdvancementPort.TimeEndNews timeEndOf(
+            List<LocationEntryPort.AutomaticEventFired> automaticEvents) {
+        for (LocationEntryPort.AutomaticEventFired fired : automaticEvents) {
+            if (fired.timeEnd() != null) {
+                return fired.timeEnd();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * v0.35.6 — one Step 30 verdict for the whole arrival.
+     *
+     * <p>Several automatic events can fire on one entry and any of them can kill; the move
+     * answers a single edge state, the same shape execute-event does, so the board has one
+     * code path for a collapse however it was caused.</p>
+     */
+    private static EventExecutionPort.EdgeStateOutcome edgeStateOf(
+            List<LocationEntryPort.AutomaticEventFired> automaticEvents) {
+        List<EventExecutionPort.EdgeStateOutcome> parts = new ArrayList<>();
+        for (LocationEntryPort.AutomaticEventFired fired : automaticEvents) {
+            parts.add(fired.edgeState());
+        }
+        return EventExecutionPort.EdgeStateOutcome.merge(parts);
     }
 
     @Override
@@ -309,11 +344,11 @@ public class MovementService implements MovementPort {
 
     private boolean conditionMet(long idMatch, NeighborEdge edge) {
         String key = edge.conditionKey();
-        if (key == null || key.isBlank()) {
+        if (RegistryService.noCondition(key)) {
             return true;
         }
-        String value = store.findRegistryValue(idMatch, key).orElse(null);
-        return edge.conditionValue() != null && edge.conditionValue().equals(value);
+        return RegistryService.evaluate(edge.conditionOperator(), edge.conditionValue(),
+                registryService.find(idMatch, key));
     }
 
     private long requireUser(String userUuid) {

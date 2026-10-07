@@ -213,3 +213,91 @@ describe('StoryEditorPage — metadata form', () => {
     await waitFor(() => expect(screen.queryByText(/validator-down/i)).not.toBeInTheDocument())
   })
 })
+
+describe('StoryEditorPage — the option selectors on the metadata form', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getStory.mockResolvedValue({ ...FULL_STORY })
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'creators') return Promise.resolve(MOCK_CREATORS)
+      if (type === 'cards') return Promise.resolve(MOCK_CARDS)
+      if (type === 'locations') return Promise.resolve(MOCK_LOCATIONS)
+      if (type === 'events') return Promise.resolve(MOCK_EVENTS)
+      return Promise.resolve([])
+    })
+  })
+
+  const SELECTORS = [
+    ['Select Card ID', 'idCard', '1'],
+    ['Select Start Location ID', 'idLocationStart', '7'],
+    ['Select All-Player Coma Location ID', 'idLocationAllPlayerComa', '7'],
+    ['Select All-Player Coma Event ID', 'idEventAllPlayerComa', '5'],
+    ['Select End Game Event ID', 'idEventEndGame', '5'],
+    ['Select Creator ID', 'idCreator', '3'],
+  ]
+
+  it.each(SELECTORS)('%s picks a value and closes the modal', async (title, fieldName, expected) => {
+    renderPage()
+    await screen.findByDisplayValue('Author')
+
+    fireEvent.click(screen.getByTitle(title))
+    // The row is already the selected one, so its button reads "Selected".
+    fireEvent.click(await screen.findByRole('button', { name: /^Selected$/ }))
+
+    await waitFor(() => {
+      expect(document.querySelector(`input[name="${fieldName}"]`)).toHaveValue(expected)
+    })
+    expect(screen.queryByTestId('modal-backdrop')).not.toBeInTheDocument()
+  })
+
+  it('a selector closed without a choice leaves the field alone', async () => {
+    renderPage()
+    await screen.findByDisplayValue('Author')
+
+    fireEvent.click(screen.getByTitle('Select Card ID'))
+    fireEvent.click(await screen.findByRole('button', { name: /^Close$/ }))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('modal-backdrop')).not.toBeInTheDocument()
+    })
+    expect(document.querySelector('input[name="idCard"]')).toHaveValue('1')
+  })
+})
+
+describe('StoryEditorPage — a story with no selector field set', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getStory.mockResolvedValue({ uuid: 'story-123', title: 'Bare Story' })
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'creators') return Promise.resolve(MOCK_CREATORS)
+      if (type === 'cards') return Promise.resolve(MOCK_CARDS)
+      if (type === 'locations') return Promise.resolve(MOCK_LOCATIONS)
+      if (type === 'events') return Promise.resolve(MOCK_EVENTS)
+      return Promise.resolve([])
+    })
+  })
+
+  it('every selector renders empty rather than undefined', async () => {
+    renderPage()
+    await waitFor(() => expect(document.querySelector('input[name="idCard"]')).toBeInTheDocument())
+
+    for (const name of ['idCard', 'idLocationStart', 'idLocationAllPlayerComa',
+      'idEventAllPlayerComa', 'idEventEndGame', 'idCreator']) {
+      expect(document.querySelector(`input[name="${name}"]`)).toHaveValue('')
+    }
+  })
+
+  it('picking a value on a bare story fills the field', async () => {
+    renderPage()
+    await waitFor(() => expect(document.querySelector('input[name="idCard"]')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByTitle('Select End Game Event ID'))
+    fireEvent.click(await screen.findByRole('button', { name: /^Select$/ }))
+
+    await waitFor(() => {
+      expect(document.querySelector('input[name="idEventEndGame"]')).toHaveValue('5')
+    })
+  })
+})

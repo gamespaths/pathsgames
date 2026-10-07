@@ -14,8 +14,9 @@ from unittest.mock import MagicMock
 import pytest
 
 from app.core.models.match.event_models import (
-    STATUS_APPLIED, STATUS_CHOICES_PENDING, EventCheckContext, EventError,
+    STATUS_APPLIED, STATUS_CHOICES_PENDING, EdgeStateOutcome, EventCheckContext, EventError,
 )
+from app.core.models.match.time_models import TimeEndOutcome
 from app.core.ports.match.event_ports import MSG_CHOICE_SELECTED, MSG_EVENT_EXECUTED
 from app.core.services.match import choice_availability as ca
 from app.core.services.match.event_service import EventService
@@ -86,6 +87,16 @@ def _ctx(**over):
 
 
 @pytest.fixture
+def registry_service():
+    """Step 36 — registry writes leave the event store and go through their own service.
+    Step 36.1 — a write hands back the set it just wrote; the mock stands in for that set."""
+    mock = MagicMock()
+    mock.upsert.side_effect = lambda *a: [] if a[3] is None else [a[3]]
+    mock.remove.side_effect = lambda *a: []
+    return mock
+
+
+@pytest.fixture
 def store():
     s = MagicMock()
     s.find_user_id_by_uuid.return_value = USER_ID
@@ -122,9 +133,10 @@ def store():
 
 
 @pytest.fixture
-def service(store):
+def service(store, registry_service):
     return EventService(store, edge_store=MagicMock(), content_read_port=None,
-                        time_service=MagicMock())
+                        time_service=MagicMock(),
+                        registry_service_instance=registry_service)
 
 
 def _resolve(service):
@@ -220,7 +232,8 @@ def test_choice_selected_marker_carries_the_owning_event_id(service, store):
     _resolve(service)
 
     store.log_event_executed.assert_called_once_with(
-        MATCH_ID, CHAR_ID, EVENT_ID, CLOCK, f"{MSG_CHOICE_SELECTED} {EVENT_ID}", 0, 0, 0, 0)
+        MATCH_ID, CHAR_ID, EVENT_ID, CLOCK, f"{MSG_CHOICE_SELECTED} {EVENT_ID}", 0, 0, 0, 0,
+        {"energy": 0, "food": 0, "magic": 0, "coin": 0})
 
 
 def test_choice_history_records_both_the_event_and_the_option(service, store):
@@ -299,38 +312,41 @@ def test_flag_group_one_is_location_scoped(service, store):
     assert r.execution.effects[0].character_uuids == ["char-uuid", "other-uuid"]
 
 
-def test_key_and_value_to_add_write_the_registry(service, store):
+def test_key_and_value_to_add_write_the_registry(service, store, registry_service):
     store.find_choice_effects_by_choice_id.return_value = [
         _effect(1, key="DOOR", value_to_add="OPEN")]
 
     r = _resolve(service)
 
-    store.upsert_registry.assert_called_once_with(
-        MATCH_ID, "DOOR", "OPEN", CHAR_ID, EVENT_ID, CLOCK)
+    registry_service.upsert.assert_called_once_with(
+        MATCH_ID, STORY_ID, "DOOR", "OPEN", CHAR_ID, EVENT_ID, None, CLOCK)
     assert r.execution.registry_changes[0].new_value == "OPEN"
 
 
-def test_value_to_remove_clears_the_key_when_the_value_matches(service, store):
-    store.load_check_context.return_value = _ctx(registry={"DOOR": "OPEN"})
+def test_value_to_remove_clears_the_key_when_the_value_matches(service, store, registry_service):
+    store.load_check_context.return_value = _ctx(registry={"DOOR": ["OPEN"]})
     store.find_choice_effects_by_choice_id.return_value = [
         _effect(1, key="DOOR", value_to_remove="OPEN")]
 
     r = _resolve(service)
 
-    store.upsert_registry.assert_called_once_with(
-        MATCH_ID, "DOOR", None, CHAR_ID, EVENT_ID, CLOCK)
+    # Step 36.1 — taking a value away is its own call, not a write of None.
+    registry_service.remove.assert_called_once_with(
+        MATCH_ID, "DOOR", "OPEN", CHAR_ID, EVENT_ID, None, CLOCK)
     assert r.execution.registry_changes[0].new_value is None
 
 
-def test_value_to_remove_leaves_a_key_the_story_moved_on(service, store):
-    store.load_check_context.return_value = _ctx(registry={"DOOR": "SEALED"})
+def test_value_to_remove_leaves_a_key_the_story_moved_on(service, store, registry_service):
+    store.load_check_context.return_value = _ctx(registry={"DOOR": ["SEALED"]})
     store.find_choice_effects_by_choice_id.return_value = [
         _effect(1, key="DOOR", value_to_remove="OPEN")]
 
-    r = _resolve(service)
+    _resolve(service)
 
-    store.upsert_registry.assert_not_called()
-    assert r.execution.registry_changes == []
+    # The service itself refuses a value the story has moved on from, so the effect still
+    # calls it; what must not happen is a WRITE.
+    registry_service.remove.assert_called_once()
+    registry_service.upsert.assert_not_called()
 
 
 def test_item_effect_grants_the_item(service, store):
@@ -465,6 +481,42 @@ def test_a_lethal_choice_effect_triggers_the_coma_rules(service, store):
     assert "char-uuid" in r.execution.edge_state.coma_uuids
 
 
+def test_a_lethal_option_runs_the_all_player_coma_epilogue(service, store):
+    """The epilogue is owed after an OPTION too, and it may carry the body elsewhere."""
+    epilogue = _event(id=9, uuid="coma-uuid")
+    store.find_events_by_id.return_value = {EVENT_ID: _event(), 9: epilogue}
+    store.find_id_event_all_player_coma.return_value = 9
+    carry = {**_event_effect(9, None, 0), "id_location": FAR_LOC}
+    store.find_effects_by_event_id.return_value = {9: [carry]}
+    store.find_choice_effects_by_choice_id.return_value = [
+        _effect(1, statistics="life", value=-99)]
+
+    r = _resolve(service)
+
+    edge = r.execution.edge_state
+    assert edge.all_players_in_coma is True
+    assert edge.coma_event_uuid == "coma-uuid"
+    assert edge.coma_executed_event_uuids == ["coma-uuid"]
+    # Two chains, two lists: what the option caused is not what the collapse caused.
+    assert "coma-uuid" not in r.execution.executed_event_uuids
+    assert any(c.to_location_uuid == "loc-far" for c in r.execution.location_changes)
+
+
+def test_a_surviving_party_gets_no_epilogue(service, store):
+    companion = _character(33, "other-uuid", 99, 50, LOC)
+    store.find_characters_for_event.return_value = [
+        store.find_character_by_match_and_user.return_value, companion]
+    store.find_id_event_all_player_coma.return_value = 9
+    store.find_choice_effects_by_choice_id.return_value = [
+        _effect(1, statistics="life", value=-99)]
+
+    r = _resolve(service)
+
+    assert "char-uuid" in r.execution.edge_state.coma_uuids
+    assert r.execution.edge_state.all_players_in_coma is False
+    assert r.execution.edge_state.coma_event_uuid is None
+
+
 def test_a_lethal_row_does_not_silence_its_siblings(service, store):
     """Same rule as an event: all rows land, then the Step 30 pass."""
     store.find_choice_effects_by_choice_id.return_value = [
@@ -491,9 +543,11 @@ def test_a_coma_stops_the_consequences(service, store):
 
 def test_flag_end_time_ends_the_time_unit(store):
     time_service = MagicMock()
-    time_service.force_time_end.return_value = CLOCK + 1
+    time_service.force_time_end.return_value = TimeEndOutcome(CLOCK + 1, [], [],
+                                                             EdgeStateOutcome.none())
     svc = EventService(store, edge_store=MagicMock(), content_read_port=None,
-                       time_service=time_service)
+                       time_service=time_service,
+                       registry_service_instance=MagicMock())
     ender = _event(id=4, uuid="ender-uuid", flag_end_time=1)
     store.find_events_by_id.return_value = {EVENT_ID: _event(), 4: ender}
     store.find_choice_by_story_and_uuid.return_value = _choice(id_event_torun=4)
@@ -502,6 +556,30 @@ def test_flag_end_time_ends_the_time_unit(store):
 
     assert r.execution.time_ended is True
     assert r.execution.current_clock == CLOCK + 1
+
+
+def test_v0411_decision_19_markers_land_at_clock_n_before_the_forced_time_end(store):
+    calls = MagicMock()
+    time_service = MagicMock()
+    time_service.force_time_end.side_effect = lambda *a, **k: calls.time_end() or TimeEndOutcome(
+        CLOCK + 1, [], [], EdgeStateOutcome.none())
+    store.log_event_executed.side_effect = lambda *a, **k: calls.event_marker(*a)
+    store.log_choice_executed.side_effect = lambda *a, **k: calls.choice_marker(*a)
+    svc = EventService(store, edge_store=MagicMock(), content_read_port=None,
+                       time_service=time_service,
+                       registry_service_instance=MagicMock())
+    ender = _event(id=4, uuid="ender-uuid", flag_end_time=1)
+    store.find_events_by_id.return_value = {EVENT_ID: _event(), 4: ender}
+    store.find_choice_by_story_and_uuid.return_value = _choice(id_event_torun=4)
+
+    svc.select_choice(MATCH_UUID, USER_UUID, CHOICE_UUID, "en")
+
+    names = [c[0] for c in calls.mock_calls]
+    selected = [c for c in calls.mock_calls if c[0] == "event_marker"
+                and c.args[4] == f"{MSG_CHOICE_SELECTED} {EVENT_ID}"]
+    assert selected and selected[0].args[3] == CLOCK
+    assert names.index("choice_marker") < names.index("time_end")
+    assert calls.choice_marker.call_args.args[3] == CLOCK
 
 
 # ── the shared shape ────────────────────────────────────────────────────────
@@ -545,3 +623,12 @@ def test_the_same_link_named_twice_runs_once(service, store):
 
     assert r.execution.executed_event_uuids.count("linked-uuid") == 1
     assert len(r.execution.stat_changes) == 1
+
+
+def test_v0412_a_resolved_choice_counts_one_choice_kpi(service):
+    kpi = MagicMock()
+    service.set_kpi(kpi)
+
+    _resolve(service)
+
+    kpi.record_for_match.assert_called_once_with(MATCH_ID, "CHOICE", CHOICE_UUID, 1)

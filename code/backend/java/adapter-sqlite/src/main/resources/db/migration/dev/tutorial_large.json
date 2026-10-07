@@ -1,5 +1,5 @@
 {
-  "uuid": "tutorial-uuid-001",
+  "uuid": "bd02e05f-654d-4589-bfae-846a04dc9d3c",
   "id": 1001,
   "author": "Antigravity",
   "category": "tutorial",
@@ -29,7 +29,7 @@
     { "idText": 514, "lang": "en", "shortText": "Image", "longText": "Image Description" }
   ],
   "locations": [
-    { "id": 1, "idTextName": 1, "idTextDescription": 1, "isSafe": 1 }
+    { "id": 1, "idTextName": 1, "idTextDescription": 1}
   ],
   "events": [
     { "id": 1, "idTextName": 1, "idTextDescription": 1, "type": "NORMAL" },

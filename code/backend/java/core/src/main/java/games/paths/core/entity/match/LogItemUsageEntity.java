@@ -11,7 +11,7 @@ import jakarta.persistence.*;
  * The {@code id} is part of the composite primary key {@code (id, id_match)}
  * but the table also carries a
  * {@code UNIQUE (id)} constraint, so ids are <b>globally</b> unique and must be
- * allocated from the table-wide maximum — never per match, the way
+ * allocated table-wide by {@code LogIdPort} — never per match, the way
  * {@code gaming_inventory_items} does it. Same rule, same reason, as
  * {@link LogEventsEntity}.</p>
  *

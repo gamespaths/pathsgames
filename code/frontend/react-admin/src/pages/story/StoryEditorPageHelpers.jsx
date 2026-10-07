@@ -154,13 +154,20 @@ export function getNewEntityDefaults(activeTab) {
   if (activeTab === 'items') {
     return { flagShowEffects: 1 }
   }
+  // Step 36 — a new registry key is born visible. The backend shows a key only when its
+  // visibility is exactly PUBLIC, so a key created with the field untouched would be written
+  // by the engine and then never seen. Only NEW keys are defaulted: an existing row is left
+  // exactly as it is, whatever it holds.
+  if (activeTab === 'keys') {
+    return { visibility: 'PUBLIC' }
+  }
   return null
 }
 
 /**
  * Projects an entity list onto the field set declared in FIELDS[entityType],
  * defaulting missing fields to null and preserving the `id` reference.
- * Used by the story-export feature.
+ * Used by the story-export feature, which then drops the nulls (see stripNulls).
  */
 export function mapEntityList(list, entityType) {
   const fieldKeys = (FIELDS[entityType] ?? []).map(f => f.key)

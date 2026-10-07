@@ -56,42 +56,42 @@ else
 fi
 
 # ── Config — bound from the ROOT .env ────────────────────────────────────────
-AWS_REGION="${AWS_REGION_TEST:-us-east-2}"
-EC2_KEY_NAME="${EC2_KEY_NAME_TEST_EC2:-paths-games-ohio}"
-EC2_INSTANCE_TYPE="${EC2_INSTANCE_TYPE_TEST_EC2:-t3.small}"
+AWS_REGION="${AWS_TEST_REGION:-us-east-2}"
+EC2_KEY_NAME="${AWS_TEST_EC2_KEY_NAME:-paths-games-ohio}"
+EC2_INSTANCE_TYPE="${AWS_TEST_EC2_INSTANCE_TYPE:-t3.small}"
 # Docker Hub image pulled on the instance (public repo → no login needed on EC2).
 # Build & push it with code/scripts/test/build_docker_python_test_and_push.sh
 DOCKERHUB_USERNAME="${DOCKERHUB_USERNAME_TEST:?DOCKERHUB_USERNAME_TEST must be set in the root .env}"
 DOCKERHUB_IMAGE="${DOCKERHUB_IMAGE_TEST:-pathsgames-backend}"
 IMAGE_TAG="${DOCKERHUB_IMAGE_TAG_PYTHON_TEST:-test-python}"
 BACKEND_IMAGE="${DOCKERHUB_USERNAME}/${DOCKERHUB_IMAGE}:${IMAGE_TAG}"
-DB_NAME="${DB_NAME_TEST_EC2:-pathsgames}"
-DB_USERNAME="${DB_USERNAME_TEST_EC2:-pathsgames}"
-DB_PASSWORD="${DB_PASSWORD_TEST_EC2:?DB_PASSWORD_TEST_EC2 must be set in the root .env}"
+DB_NAME="${AWS_TEST_EC2_DB_NAME:-pathsgames}"
+DB_USERNAME="${AWS_TEST_EC2_DB_USERNAME:-pathsgames}"
+DB_PASSWORD="${AWS_TEST_EC2_DB_PASSWORD:?AWS_TEST_EC2_DB_PASSWORD must be set in the root .env}"
 JWT_SECRET="${JWT_SECRET:?JWT_SECRET must be set in the root .env}"
 # Deployment environment reported by /api/echo/status. For the Python backend ANY
 # value other than "development" selects PostgreSQL (see app/adapters/persistence/database.py).
-SERVER_ENVIRONMENT="${AWS_ENVIRONMENT_NAME_TEST:-test}"
+SERVER_ENVIRONMENT="${AWS_TEST_SAM_ENVIRONMENT_NAME:-test}"
 # Seed the Tutorial + Demo stories after boot (true|false)
 SEED_ON_START="${SEED_ON_START_PY:-true}"
 # Host ports published by the backend container
-PUBLIC_PORT="${PUBLIC_PORT_TEST_EC2:-8042}"   # public API — open to all
-ADMIN_PORT="${ADMIN_PORT_TEST_EC2:-8044}"     # admin API  — owner IP only
+PUBLIC_PORT="${AWS_TEST_EC2_PUBLIC_PORT:-8042}"   # public API — open to all
+ADMIN_PORT="${AWS_TEST_EC2_ADMIN_PORT:-8044}"     # admin API  — owner IP only
 # Public API source CIDRs (default: everyone)
-PUBLIC_CIDRS="${PUBLIC_CIDRS_TEST_EC2:-0.0.0.0/0}"
+PUBLIC_CIDRS="${AWS_TEST_EC2_PUBLIC_CIDRS:-0.0.0.0/0}"
 # Extra source CIDRs allowed on the admin port (comma OR space separated, optional).
 # The current public IP is ALWAYS added automatically.
-ADMIN_EXTRA_CIDRS="${ADMIN_EXTRA_CIDRS_TEST_EC2:-}"
-# Route53 (optional — leave AWS_DOMAIN_HOSTED_ZONE_TEST empty to skip DNS)
-ROUTE53_HOSTED_ZONE_ID="${AWS_DOMAIN_HOSTED_ZONE_TEST:-}"
-ROUTE53_RECORD_NAME="${ROUTE53_RECORD_NAME_TEST_EC2_PY:-api-test-server3.paths.games}"
-EC2_KEY_PATH=${EC2_KEY_PATH_TEST_EC2:-~/.ssh/${EC2_KEY_NAME}.pem}
+ADMIN_EXTRA_CIDRS="${AWS_TEST_EC2_ADMIN_EXTRA_CIDRS:-}"
+# Route53 (optional — leave AWS_TEST_ROUTE53_DOMAIN_HOSTED_ZONE empty to skip DNS)
+ROUTE53_HOSTED_ZONE_ID="${AWS_TEST_ROUTE53_DOMAIN_HOSTED_ZONE:-}"
+ROUTE53_RECORD_NAME="${AWS_TEST_EC2_PY_ROUTE53_RECORD_NAME:-api-test-server3.paths.games}"
+EC2_KEY_PATH=${AWS_TEST_EC2_KEY_PATH:-~/.ssh/${EC2_KEY_NAME}.pem}
 
 # CloudFront — optional HTTPS front for the PUBLIC API (8042) ONLY.
 # Admin (8044) stays SG-locked to your IP; reach it over SSH tunnel.
-ENABLE_CLOUDFRONT="${ENABLE_CLOUDFRONT_TEST_EC2_PY:-false}"
-ACM_CERT_ARN="${CLOUDFRONT_DOMAIN_CERTIFICATE_ARN_TEST_EC2_PY:-}"     # MUST be a us-east-1 cert covering ROUTE53_RECORD_NAME
-CLOUDFRONT_PRICE_CLASS="${CLOUDFRONT_PRICE_CLASS_TEST_EC2_PY:-PriceClass_100}"
+ENABLE_CLOUDFRONT="${AWS_TEST_EC2_PY_ENABLE_CLOUDFRONT:-false}"
+ACM_CERT_ARN="${AWS_TEST_EC2_PY_CLOUDFRONT_DOMAIN_CERTIFICATE_ARN:-}"     # MUST be a us-east-1 cert covering ROUTE53_RECORD_NAME
+CLOUDFRONT_PRICE_CLASS="${AWS_TEST_EC2_PY_CLOUDFRONT_PRICE_CLASS:-PriceClass_100}"
 # AWS-managed policies: CachingDisabled + AllViewer (stable global IDs)
 CF_CACHE_POLICY_ID="4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
 CF_ORIGIN_REQ_POLICY_ID="216adef6-5c7f-47e4-b989-5492eafa07d3"
@@ -104,14 +104,32 @@ if [ "$ENABLE_CLOUDFRONT" = "true" ]; then
 fi
 
 # Fixed names — idempotent (not timestamp-based)
-INSTANCE_NAME=${INSTANCE_NAME_TEST_EC2_PY:-"api-test-server3"}
+INSTANCE_NAME=${AWS_TEST_EC2_PY_INSTANCE_NAME:-"api-test-server3"}
 SG_NAME="${INSTANCE_NAME}-sg"
 
-# Tags applied to every taggable resource we create (SG, instance, volume).
+# Tags applied to every taggable resource we create (SG, instance, volume, CloudFront).
+# Tag list lives in ../aws_tags.txt; ${NAME}/${ENV_TAG}/${LANGUAGE}/${PROJECT_SUFFIX} are expanded here.
 ENV_TAG="${ENV_TAG:-test}"
-PROJECT_TAG="PathsGames"
-COMMON_TAGS="Key=env,Value=$ENV_TAG Key=createdBy,Value=SH Key=project,Value=$PROJECT_TAG"
-COMMON_TAGSPEC="{Key=env,Value=$ENV_TAG},{Key=createdBy,Value=SH},{Key=project,Value=$PROJECT_TAG}"
+LANGUAGE="Python"
+PROJECT_SUFFIX="aws.${ENV_TAG}.ec2.docker.python"
+TAGS_FILE="$SCRIPT_DIR/../aws_tags.txt"
+[ -f "$TAGS_FILE" ] || { echo "[start.sh] ERROR: tags file not found: $TAGS_FILE"; exit 1; }
+# Emit "Key<TAB>Value" lines from TAGS_FILE, placeholders expanded ($1 = resource Name)
+_tag_pairs() {
+    local NAME="$1" line k v
+    while IFS= read -r line || [ -n "$line" ]; do
+        case "$line" in ''|'#'*) continue ;; esac
+        k="${line%%=*}"; v="${line#*=}"
+        v="${v//'${NAME}'/"$NAME"}"; v="${v//'${ENV_TAG}'/"$ENV_TAG"}"; v="${v//'${LANGUAGE}'/"$LANGUAGE"}"; v="${v//'${PROJECT_SUFFIX}'/"$PROJECT_SUFFIX"}"
+        printf '%s\t%s\n' "$k" "$v"
+    done < "$TAGS_FILE"
+}
+# create-tags syntax: "Key=..,Value=.. Key=..,Value=.."
+_tags_cli()  { _tag_pairs "$1" | awk -F'\t' '{printf "%sKey=%s,Value=%s", (NR>1?" ":""), $1, $2}'; }
+# run-instances --tag-specifications syntax: "{Key=..,Value=..},{Key=..,Value=..}"
+_tags_spec() { _tag_pairs "$1" | awk -F'\t' '{printf "%s{Key=%s,Value=%s}", (NR>1?",":""), $1, $2}'; }
+# CloudFront Tags.Items JSON entries
+_tags_json() { _tag_pairs "$1" | awk -F'\t' '{printf "%s      { \"Key\": \"%s\", \"Value\": \"%s\" }", (NR>1?",\n":""), $1, $2}'; }
 
 # ── Short-circuit: if the instance already exists, do NOTHING ─────────────────
 INSTANCE_ID="None"
@@ -163,15 +181,24 @@ ADMIN_CIDRS="$(echo "$MY_IP/32 ${ADMIN_EXTRA_CIDRS//,/ }" \
 
 # ── Find latest Ubuntu 24.04 LTS AMI ─────────────────────────────────────────
 echo "[start.sh] Finding latest Ubuntu 24.04 LTS AMI in $AWS_REGION…"
+case "$EC2_INSTANCE_TYPE" in
+    t4g.*|a1.*|m6g.*|m7g.*|c7g.*)
+        AMI_ARCH="arm64"
+        ;;
+    *)
+        AMI_ARCH="amd64"
+        ;;
+esac
+
 AMI_ID="$(aws ec2 describe-images \
     --region "$AWS_REGION" \
     --owners 099720109477 \
     --filters \
-        "Name=name,Values=ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*" \
+        "Name=name,Values=ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-${AMI_ARCH}-server-*" \
         "Name=state,Values=available" \
     --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
     --output text)"
-echo "[start.sh] AMI: $AMI_ID"
+echo "[start.sh] AMI: $AMI_ID for $AMI_ARCH"
 
 # ── Get or create security group ─────────────────────────────────────────────
 echo "[start.sh] Looking up security group '$SG_NAME'…"
@@ -206,7 +233,7 @@ fi
 aws ec2 create-tags \
     --region "$AWS_REGION" \
     --resources "$SG_ID" \
-    --tags "Key=Name,Value=$SG_NAME" $COMMON_TAGS 2>/dev/null \
+    --tags $(_tags_cli "$SG_NAME") 2>/dev/null \
     || echo "[start.sh] WARNING: could not tag SG (continuing)"
 
 # Helper: add ingress rule, ignore DuplicatePermission
@@ -302,6 +329,9 @@ DB_NAME=${DB_NAME}
 DB_USER=${DB_USERNAME}
 DB_PASSWORD=${DB_PASSWORD}
 JWT_SECRET=${JWT_SECRET}
+RATE_LIMIT_GUEST_PER_IP=${AWS_TEST_LAMBDA_RATE_LIMIT_GUEST_PER_IP:-0}
+RATE_LIMIT_MATCH_PER_IP=${AWS_TEST_LAMBDA_RATE_LIMIT_MATCH_PER_IP:-0}
+RATE_LIMIT_MATCH_PER_GUEST=${AWS_TEST_LAMBDA_RATE_LIMIT_MATCH_PER_GUEST:-0}
 CORS_ALLOWED_ORIGINS=*
 DEV_TEST_ENDPOINTS_ENABLED=true
 ENVEOF
@@ -357,8 +387,8 @@ INSTANCE_ID="$(aws ec2 run-instances \
     --security-group-ids "$SG_ID" \
     --user-data "$USER_DATA" \
     --tag-specifications \
-        "ResourceType=instance,Tags=[{Key=Name,Value=$INSTANCE_NAME},$COMMON_TAGSPEC]" \
-        "ResourceType=volume,Tags=[{Key=Name,Value=${INSTANCE_NAME}-vol},$COMMON_TAGSPEC]" \
+        "ResourceType=instance,Tags=[$(_tags_spec "$INSTANCE_NAME")]" \
+        "ResourceType=volume,Tags=[$(_tags_spec "${INSTANCE_NAME}-vol")]" \
     --query 'Instances[0].InstanceId' \
     --output text)"
 echo "[start.sh] Instance launched: $INSTANCE_ID"
@@ -367,7 +397,7 @@ echo "[start.sh] Instance launched: $INSTANCE_ID"
 aws ec2 create-tags \
     --region "$AWS_REGION" \
     --resources "$INSTANCE_ID" \
-    --tags "Key=Name,Value=$INSTANCE_NAME" $COMMON_TAGS 2>/dev/null \
+    --tags $(_tags_cli "$INSTANCE_NAME") 2>/dev/null \
     || echo "[start.sh] WARNING: could not tag instance (continuing)"
 
 # ── Save state ────────────────────────────────────────────────────────────────
@@ -496,10 +526,7 @@ if [ "$ENABLE_CLOUDFRONT" = "true" ]; then
   },
   "Tags": {
     "Items": [
-      { "Key": "Name",      "Value": "${INSTANCE_NAME}-cf" },
-      { "Key": "env",       "Value": "$ENV_TAG" },
-      { "Key": "createdBy", "Value": "SH" },
-      { "Key": "project",   "Value": "$PROJECT_TAG" }
+$(_tags_json "${INSTANCE_NAME}-cf")
     ]
   }
 }
@@ -577,7 +604,7 @@ echo   "╠═══════════════════════
 printf "║  SSH: ssh -i %s ubuntu@%s\n" "$EC2_KEY_PATH" "$PUBLIC_IP"
 printf "║  Admin tunnel: ssh -i %s -L %s:localhost:%s ubuntu@%s\n" "$EC2_KEY_PATH" "$ADMIN_PORT" "$ADMIN_PORT" "$PUBLIC_IP"
 echo   "╠══════════════════════════════════════════════════════════╣"
-printf "║  Tags: env=%s  createdBy=SH  project=PathsGames\n" "$ENV_TAG"
+printf "║  Tags: %s\n" "$(_tag_pairs "$INSTANCE_NAME" | awk -F'\t' '{printf "%s%s=%s", (NR>1?"  ":""), $1, $2}')"
 echo   "║  Init log: /var/log/pathsgames-init.log (on instance)    ║"
 echo   "║  Redeploy: ./redeploy.sh   (pull latest test-python img) ║"
 echo   "║  Stop:     ./stop.sh                                     ║"

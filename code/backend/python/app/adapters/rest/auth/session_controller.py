@@ -4,9 +4,11 @@ from app.core.ports.auth.session_port import SessionPort
 import time
 
 class SessionController:
-    def __init__(self, session_service: SessionPort):
+    def __init__(self, session_service: SessionPort, csrf_token_service=None):
         self.router = APIRouter()
         self.session_service = session_service
+        # v0.37.7 — a refreshed access token comes with the CSRF token that goes with it
+        self.csrf_token_service = csrf_token_service
         self._setup_routes()
 
     def _setup_routes(self):
@@ -24,12 +26,18 @@ class SessionController:
         if not user_uuid:
             raise HTTPException(status_code=401, detail="Not authenticated")
 
-        return {
+        body = {
             "userUuid": user_uuid,
             "username": username,
             "role": role,
             "timestamp": int(time.time() * 1000)
         }
+        # v0.37.7 — the CSRF token of this bearer, so a client that lost it need not log in again
+        if self.csrf_token_service is not None:
+            header = request.headers.get("Authorization") or ""
+            bearer = header[7:].strip() if header.startswith("Bearer ") else None
+            body["csrfToken"] = self.csrf_token_service.token_for(bearer)
+        return body
 
     def refresh(self, request: Request):
         # 1. Get refresh token from HttpOnly cookie
@@ -52,6 +60,8 @@ class SessionController:
 
         # 3. Create JSON response
         data = refreshed.model_dump(by_alias=True, exclude={"refresh_token"})
+        if self.csrf_token_service is not None:
+            data["csrfToken"] = self.csrf_token_service.token_for(refreshed.access_token)
         response = JSONResponse(content=data)
 
         # 4. Set new HttpOnly rotated refresh token

@@ -1,0 +1,176 @@
+"""v0.35.8 — the startup schema alignment.
+
+The Python side has no Flyway: ``create_all`` never alters an existing table, so a
+model whose columns changed leaves the live database behind. ``align_schema`` replays
+the known drifts and is a no-op once they are applied.
+"""
+from sqlalchemy import create_engine, inspect, text
+
+from app.adapters.persistence.database import align_schema
+
+
+def _legacy_engine():
+    """A database shaped like the pre-v0.35.8 models."""
+    engine = create_engine("sqlite:///:memory:")
+    with engine.begin() as connection:
+        connection.execute(text("""
+            CREATE TABLE list_locations_neighbors (
+                id INTEGER, id_story INTEGER, uuid TEXT,
+                id_location_from INTEGER, id_location_to INTEGER, direction TEXT,
+                condition_key TEXT, condition_value TEXT
+            )
+        """))
+    return engine
+
+
+def test_align_schema_renames_and_adds_the_neighbor_columns():
+    engine = _legacy_engine()
+
+    applied = align_schema(engine)
+
+    columns = {c["name"] for c in inspect(engine).get_columns("list_locations_neighbors")}
+    assert "condition_registry_key" in columns and "condition_key" not in columns
+    assert "condition_registry_value" in columns and "condition_value" not in columns
+    assert {"id_text_go", "id_text_back"} <= columns
+    # Step 36 added the registry operator to the same table, as TEXT and not as an integer.
+    assert "registry_value_operator_condition" in columns
+    assert any("registry_value_operator_condition TEXT" in a for a in applied)
+    assert len(applied) == 5
+
+
+def test_align_schema_is_idempotent():
+    engine = _legacy_engine()
+    align_schema(engine)
+
+    # a second run has nothing left to do — and must not raise on the already-renamed table
+    assert align_schema(engine) == []
+
+
+def test_align_schema_skips_a_database_without_the_table():
+    engine = create_engine("sqlite:///:memory:")
+    assert align_schema(engine) == []
+
+
+def test_align_schema_keeps_the_rows_it_renames():
+    engine = _legacy_engine()
+    with engine.begin() as connection:
+        connection.execute(text(
+            "INSERT INTO list_locations_neighbors (id, id_story, uuid, condition_key,"
+            " condition_value) VALUES (1, 9, 'n-1', 'door', 'open')"))
+
+    align_schema(engine)
+
+    with engine.begin() as connection:
+        row = connection.execute(text(
+            "SELECT condition_registry_key, condition_registry_value"
+            " FROM list_locations_neighbors WHERE id = 1")).one()
+    assert tuple(row) == ("door", "open")
+
+
+def _legacy_mission_engine():
+    """A database shaped like the pre-Step-37 mission tables: the from/to pair, step_order,
+    and none of the columns the step row shares with every other story entity."""
+    engine = create_engine("sqlite:///:memory:")
+    with engine.begin() as connection:
+        connection.execute(text("""
+            CREATE TABLE list_missions (
+                id INTEGER, id_story INTEGER, uuid TEXT, condition_key TEXT,
+                condition_value_from TEXT, condition_value_to TEXT
+            )
+        """))
+        connection.execute(text("""
+            CREATE TABLE list_missions_steps (
+                id INTEGER, id_story INTEGER, id_mission INTEGER, step_order INTEGER,
+                condition_key TEXT, condition_value TEXT,
+                condition_value_from TEXT, condition_value_to TEXT
+            )
+        """))
+    return engine
+
+
+def test_align_schema_moves_the_mission_tables_onto_the_step_37_shape():
+    engine = _legacy_mission_engine()
+
+    align_schema(engine)
+
+    missions = {c["name"] for c in inspect(engine).get_columns("list_missions")}
+    assert {"condition_value", "condition_values"} <= missions
+    assert not {"condition_value_from", "condition_value_to"} & missions
+
+    steps = {c["name"] for c in inspect(engine).get_columns("list_missions_steps")}
+    assert "step" in steps and "step_order" not in steps
+    assert {"condition_value", "condition_values", "uuid", "id_card", "id_text_name"} <= steps
+    assert not {"condition_value_from", "condition_value_to"} & steps
+
+
+def test_align_schema_is_idempotent_on_the_mission_tables():
+    engine = _legacy_mission_engine()
+    align_schema(engine)
+
+    assert align_schema(engine) == []
+
+
+def test_the_mission_text_columns_are_not_created_as_integers():
+    engine = _legacy_mission_engine()
+
+    applied = align_schema(engine)
+
+    assert any("list_missions ADD COLUMN condition_values TEXT" in a for a in applied)
+
+
+def _pre_step38_engine():
+    """A database shaped like the v0.37 models: is_safe on locations, cost_max on difficulty."""
+    engine = create_engine("sqlite:///:memory:")
+    with engine.begin() as connection:
+        connection.execute(text("""
+            CREATE TABLE list_locations (
+                id INTEGER, id_story INTEGER, uuid TEXT, is_safe INTEGER, max_characters INTEGER,
+                key_to_add TEXT, key_value_to_add TEXT, key_to_add_not_first TEXT,
+                key_value_to_add_not_first TEXT
+            )
+        """))
+        connection.execute(text("""
+            CREATE TABLE list_stories_difficulty (
+                id INTEGER, id_story INTEGER, uuid TEXT, exp_cost INTEGER,
+                cost_max_characteristics INTEGER
+            )
+        """))
+        connection.execute(text(
+            "INSERT INTO list_locations (id, id_story, uuid, is_safe) VALUES (1, 9, 'l-1', 1)"))
+    return engine
+
+
+def test_align_schema_step38_renames_is_safe_and_swaps_the_difficulty_columns():
+    engine = _pre_step38_engine()
+
+    applied = align_schema(engine)
+
+    locations = {c["name"] for c in inspect(engine).get_columns("list_locations")}
+    assert "secure_param" in locations and "is_safe" not in locations
+    difficulty = {c["name"] for c in inspect(engine).get_columns("list_stories_difficulty")}
+    assert {"exp_cost_base", "max_stat_value"} <= difficulty
+    assert "cost_max_characteristics" not in difficulty
+    assert len(applied) == 4
+    # the 0/1 that meant "safe" keeps meaning it under the new name
+    with engine.connect() as connection:
+        assert connection.execute(text("SELECT secure_param FROM list_locations")).scalar() == 1
+    assert align_schema(engine) == []
+
+
+def test_align_schema_step39_adds_the_random_event_operator_as_text():
+    engine = create_engine("sqlite:///:memory:")
+    with engine.begin() as connection:
+        connection.execute(text("""
+            CREATE TABLE list_global_random_events (
+                id INTEGER, id_story INTEGER, uuid TEXT, id_event INTEGER, probability REAL,
+                condition_key TEXT, condition_value TEXT
+            )
+        """))
+
+    applied = align_schema(engine)
+
+    columns = {c["name"] for c in inspect(engine).get_columns("list_global_random_events")}
+    assert "registry_value_operator_condition" in columns
+    assert any("list_global_random_events ADD COLUMN registry_value_operator_condition TEXT" in a
+               for a in applied)
+    assert align_schema(engine) == []

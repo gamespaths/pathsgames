@@ -10,12 +10,15 @@ from typing import Any, Dict, List
 
 from app.core.models.match import match_statuses
 from app.core.models.match import turn_models as tm
+from app.core.models.match.event_models import EdgeStateOutcome
 from app.core.models.match.time_models import (
     ClockCharacter,
     ClockResult,
     RecoveryItem,
     SleepResult,
     TimeAdvanced,
+    TimeEndOutcome,
+    TimeStartWeather,
 )
 from app.core.models.match.turn_models import TurnCycleError
 from app.core.ports.event.event_ports import DomainEventPublisher
@@ -28,12 +31,14 @@ DEFAULT_LANG = "en"
 class TimeAdvancementService(TimeAdvancementPort):
     def __init__(self, store: TimeStorePort, event_publisher: DomainEventPublisher,
                  recovery_service: "TimeStartRecoveryService | None" = None,
-                 weather_service=None, edge_store=None) -> None:
+                 weather_service=None, edge_store=None, random_event_service=None) -> None:
         self.store = store
         self.event_publisher = event_publisher
         self.recovery_service = recovery_service or TimeStartRecoveryService(store, edge_store)
         # Step 27 — optional weather selection engine (may be None in tests).
         self.weather_service = weather_service
+        # Step 39 — picks the day's random event after the weather (may be None in tests).
+        self.random_event_service = random_event_service
         # Step 33 — the engine that runs the automatic events a time-start collected.
         # Injected through a setter rather than the constructor, and deliberately so: the
         # runner is EventService, which already depends on this service for
@@ -45,6 +50,18 @@ class TimeAdvancementService(TimeAdvancementPort):
     def set_automatic_event_runner(self, runner) -> None:
         """Step 33 — see ``automatic_event_runner``. Called once, from the wiring."""
         self.automatic_event_runner = runner
+
+    def set_log_writer(self, log_writer) -> None:
+        """v0.41.1 — the log-size check run at every time-end; unset in the older tests."""
+        self.log_writer = log_writer
+
+    def set_snapshot_writer(self, snapshot_writer) -> None:
+        """v0.41.1 — the LIGHT snapshot of every time-end; unset in the older tests."""
+        self.snapshot_writer = snapshot_writer
+
+    def start_time_after_restore(self, match_uuid: str) -> int:
+        """v0.41.1 — decision 18: the time-start a snapshot restore runs at once, without a new snapshot."""
+        return self._advance_time(self._require_match(match_uuid), snapshot=False)[0]
 
     # ── public API ──────────────────────────────────────────────────────────
 
@@ -72,8 +89,9 @@ class TimeAdvancementService(TimeAdvancementPort):
         current_clock = match["current_clock"]
         recovery: List[RecoveryItem] = []
         counter_zero: List[Any] = []
+        edge_state = EdgeStateOutcome.none()
         if triggered:
-            current_clock, recovery, fired = self._advance_time(match)
+            current_clock, recovery, fired, edge_state, _weather = self._advance_time(match)
             # Step 33 — the same events, told to THIS player. The caller is the only
             # recipient with an open request; the rest learn about it over the WebSocket
             # once Steps 49-54 land, through this very method called once per player.
@@ -81,8 +99,11 @@ class TimeAdvancementService(TimeAdvancementPort):
                                                        current_clock)
 
         # After a time-end every character is awake again; otherwise the caller stays asleep.
+        # v0.35.6 — a time-start kills too: the recovery itself can empty a life bar, and so
+        # can the events it sets off. Without this the sleeper woke up comatose with nothing
+        # on screen to say why.
         return SleepResult(match_uuid, caller["uuid"], not triggered, triggered,
-                           current_clock, recovery, counter_zero)
+                           current_clock, recovery, counter_zero, edge_state)
 
     def clock(self, match_uuid: str, user_uuid: str) -> ClockResult:
         user_id = self._require_user(user_uuid)
@@ -114,20 +135,45 @@ class TimeAdvancementService(TimeAdvancementPort):
                 return False
         return True
 
-    def force_time_end(self, match_uuid: str) -> int:
+    def force_time_end(self, match_uuid: str, id_recipient_character=None) -> TimeEndOutcome:
         """Step 29 — force a time end: put every character to sleep, then advance.
 
         Exposed on the class and deliberately NOT on TimeAdvancementPort: nothing over REST
         should be able to skip a time unit, only the engine. Note that _advance_time wakes
         everybody right after, so the net observable state is "awake at clock+1"; the
         forced_sleep flag the event returns records the transition.
+
+        Step 40 — the time-start's news is told to ``id_recipient_character`` (the actor).
         """
         match = self._require_match(match_uuid)
         self.store.set_all_characters_sleeping(match["id"])
-        new_clock, _recovery, _fired = self._advance_time(match)
-        return new_clock
+        new_clock, recovery, fired, edge_state, weather = self._advance_time(match)
+        counter_zero = self._describe_counter_zero(match["id"], id_recipient_character, fired,
+                                                   new_clock)
+        return TimeEndOutcome(new_clock, recovery, counter_zero, edge_state, weather)
 
-    def _advance_time(self, match: Dict[str, Any]):
+    def _current_weather(self, id_match: int):
+        """Step 40 — None when no weather engine is wired or the match has no weather."""
+        if self.weather_service is None:
+            return None
+        return self.weather_service.current_weather_by_id(id_match)
+
+    @staticmethod
+    def weather_view(before, after):
+        """Step 40 — the weather after the time-start, flagged when it differs from before."""
+        if not after:
+            return None
+        changed = not before or before.get("id_weather") != after.get("id_weather")
+        return TimeStartWeather(after.get("id_weather"), after.get("uuid"), after.get("id_card"),
+                                None, after.get("delta_energy"),
+                                after.get("cost_move_safe_location"),
+                                after.get("cost_move_not_safe_location"), changed)
+
+    def _advance_time(self, match: Dict[str, Any], snapshot: bool = True):
+        # v0.41.1 — decision 3: the end of clock N, first, before anything moves the clock.
+        if snapshot and getattr(self, "snapshot_writer", None) is not None:
+            self.snapshot_writer.write_at_time_end(match["id"])
+        weather_before = self._current_weather(match["id"])
         new_clock = self.store.increment_match_clock(match["id"])
         self.store.insert_clock_history(match["id"], new_clock)
         self.store.wake_all_characters(match["id"])
@@ -139,14 +185,25 @@ class TimeAdvancementService(TimeAdvancementPort):
         # the event engine sits above it in the wiring, and an event can force a time end.
         fired: List[Any] = []
         if self.automatic_event_runner is not None and outcome.pending:
-            fired = self.automatic_event_runner.run_pending_automatic_events(
-                match["id"], new_clock, outcome.pending, DEFAULT_LANG)
+            fired = list(self.automatic_event_runner.run_pending_automatic_events(
+                match["id"], new_clock, outcome.pending, DEFAULT_LANG))
         # Step 27: select the weather for the new time unit and apply its delta.
         if self.weather_service is not None:
             self.weather_service.apply_at_time_start(match["id"])
+        # Step 39: at most one random event, after the weather.
+        if self.random_event_service is not None and self.automatic_event_runner is not None:
+            pick = self.random_event_service.pick_at_time_start(match["id"])
+            if pick is not None:
+                fired += self.automatic_event_runner.run_random_event(
+                    match["id"], new_clock, pick["id_event"], DEFAULT_LANG)
         self._rebuild_queue(match["id"], new_clock)
         self.event_publisher.publish(TimeAdvanced(match["uuid"], new_clock))
-        return new_clock, outcome.recovery, fired
+        if getattr(self, "log_writer", None) is not None:
+            self.log_writer.count_rows(match["id"])
+        # The recovery's own verdict first, then whatever its events did: one edge state.
+        parts = [outcome.edge_state] + [f.edge_state for f in fired]
+        weather = self.weather_view(weather_before, self._current_weather(match["id"]))
+        return new_clock, outcome.recovery, fired, EdgeStateOutcome.merge(parts), weather
 
     def _describe_counter_zero(self, id_match: int, id_recipient_character,
                                fired: List[Any], clock: int) -> List[Any]:

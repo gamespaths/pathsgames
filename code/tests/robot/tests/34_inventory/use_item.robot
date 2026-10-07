@@ -160,6 +160,35 @@ Neither Action Works On A Match That Is Not Running
     Response Field Should Equal    ${used}       error    MATCH_NOT_RUNNING
     Response Field Should Equal    ${dropped}    error    MATCH_NOT_RUNNING
 
+Neither Action Works While The Character Is In A Coma
+    [Documentation]    Step 30 — a comatose character is refused BOTH actions, before the row
+    ...                is ever read: the state of the character is checked first, so the
+    ...                answer is COMA whatever the row happens to be.
+    [Tags]    inventory    step34    coma
+    ${token}    ${match}    ${row}=    Character Holding Anything
+    Force Coma    ${token}    ${match}
+
+    ${used}=     Use Item     ${token}    ${match}    ${row}[uuid]    409
+    ${dropped}=  Drop Item    ${token}    ${match}    ${row}[uuid]    409
+
+    Response Field Should Equal    ${used}       error    COMA
+    Response Field Should Equal    ${dropped}    error    COMA
+
+A Comatose Character Still Reads What They Carry, And Keeps It
+    [Documentation]    Reading is not an action, so the bag stays visible while the character
+    ...                is down — and the row is still there afterwards, which is what proves
+    ...                the two refusals above changed nothing.
+    [Tags]    inventory    step34    coma
+    ${token}    ${match}    ${row}=    Character Holding Anything
+    Force Coma    ${token}    ${match}
+    Use Item     ${token}    ${match}    ${row}[uuid]    409
+    Drop Item    ${token}    ${match}    ${row}[uuid]    409
+
+    ${response}=    Get Inventory    ${token}    ${match}    200
+    ${rows}=    Inventory Row Uuids    ${token}    ${match}
+    Response Should Contain Field    ${response}    items
+    Should Contain    ${rows}    ${row}[uuid]
+
 
 *** Keywords ***
 
@@ -176,6 +205,9 @@ Suite Setup Use Item
     Set Suite Variable    ${CHARACTER}    ${character}
     Set Suite Variable    ${CLASS}    ${class}
     Set Suite Variable    ${TRAIT}    ${trait}
+    # v0.40 — only the item-granting events fill a bag: the rest of the location costs calls and adds nothing.
+    ${granters}=    Item Granting Event Uuids    ${story}
+    Set Suite Variable    ${GRANTING_EVENTS}    ${granters}
 
 Fresh Use Item Match
     [Documentation]    A fresh running single-player match on its own guest: an inventory is
@@ -254,14 +286,14 @@ Match With A Filled Bag
     RETURN    ${token}    ${match}    ${rows}
 
 Next Untried Available Event
-    [Documentation]    The first currently-available event whose uuid is not in ${tried}, or
-    ...                the empty string when there is none left.
+    [Documentation]    The first currently-available ITEM-GRANTING event whose uuid is not in
+    ...                ${tried}, or the empty string when there is none left.
     [Arguments]    ${token}    ${match_uuid}    ${tried}
     ${info}=    Get Match Info    ${token}    ${match_uuid}    200
     FOR    ${location}    IN    @{info.json()}[locationsActive]
         ${events}=    Get From Dictionary    ${location}    events    ${EMPTY}
         FOR    ${event}    IN    @{events}
-            ${skip}=    Evaluate    '${event}[uuid]' in ${tried} or '${event}[uuid]' in ${DISRUPTIVE_EVENTS}
+            ${skip}=    Evaluate    '${event}[uuid]' in ${tried} or '${event}[uuid]' in ${DISRUPTIVE_EVENTS} or '${event}[uuid]' not in ${GRANTING_EVENTS}
             IF    ${event}[available] == ${True} and not ${skip}
                 RETURN    ${event}[uuid]
             END
@@ -308,6 +340,24 @@ Inventory Rows
     [Arguments]    ${token}    ${match_uuid}
     ${response}=    Get Inventory    ${token}    ${match_uuid}    200
     RETURN    ${response.json()}[items]
+
+Force Coma
+    [Documentation]    Drives life to zero and raises the coma flag straight through the
+    ...                admin endpoint, the same god-mode setup the Step 30 suite uses —
+    ...                playing towards a coma would spend the very bag under test.
+    ...
+    ...                `sleeping` is explicitly cleared: the engine checks COMA before
+    ...                SLEEPING, and a character left asleep would hide which gate answered.
+    [Arguments]    ${token}    ${match_uuid}
+    ${info}=    Get Match Info    ${token}    ${match_uuid}    200
+    ${player}=    Set Variable    ${info.json()}[players][0][uuid]
+    ${body}=    Create Dictionary    life=${0}    coma=${True}    sleeping=${False}
+    POST On Session    admin_session
+    ...    /api/admin/matches/${match_uuid}/player/${player}/changeStatistics
+    ...    json=${body}    expected_status=200
+    ${state}=    Get Character Detail    ${token}    ${match_uuid}    ${player}    200
+    Should Be True    ${state.json()}[isComa]
+    ...    msg=setup failed: the character is not comatose
 
 Inventory Row Uuids
     [Arguments]    ${token}    ${match_uuid}

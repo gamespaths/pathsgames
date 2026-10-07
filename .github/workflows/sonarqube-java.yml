@@ -42,7 +42,15 @@ jobs:
           restore-keys: ${{ runner.os }}-sonar
 
       - name: Build and run tests with coverage
-        run: mvn clean verify -B
+        # Maven Central answers 403 (not 404) when it throttles a shared runner
+        # IP; Maven treats that as a missing artifact, so retry the whole build.
+        run: |
+          for attempt in 1 2 3; do
+            mvn clean verify -B -ntp && exit 0
+            echo "mvn attempt $attempt failed, retrying in $((attempt * 30))s"
+            sleep $((attempt * 30))
+          done
+          exit 1
 
       - name: SonarQube Scan
         env:

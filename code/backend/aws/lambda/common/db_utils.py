@@ -1,10 +1,12 @@
 import base64
 import boto3
+import gzip
 import json
 import os
 import time
 from decimal import Decimal
 from boto3.dynamodb.conditions import Attr, Key
+from boto3.dynamodb.types import Binary
 from botocore.exceptions import ClientError
 
 TABLE_NAME = os.environ.get('TABLE_NAME', 'PathsGamesBackend')
@@ -39,11 +41,70 @@ def _to_dynamodb_value(value):
         return Decimal(str(value))
     return value
 
-def get_item(pk, sk='METADATA'):
-    """Fetch a single item from DynamoDB."""
+
+# v0.37.5 — a STORY item is ~330 KB of JSON (texts alone 2/3 of it) and gzips 4x: every
+# list/map of the item except ``summary`` (projected on GSI2) travels as ONE Binary ``_gz``.
+PACKED_ATTR = '_gz'
+_UNPACKED_KEYS = frozenset({'summary'})
+
+
+def _is_story(item):
+    return (str(item.get('PK', '')).startswith('STORY#')
+            and item.get('SK', 'METADATA') == 'METADATA')
+
+
+def _json_default(value):
+    if isinstance(value, Decimal):
+        return int(value) if value == value.to_integral_value() else float(value)
+    if isinstance(value, (bytes, Binary)):
+        return base64.b64encode(bytes(value)).decode('ascii')
+    raise TypeError(f'not JSON serialisable: {type(value).__name__}')
+
+
+def _pack(item):
+    """The item with its nested values gzipped into ``_gz`` (stories only; others untouched)."""
+    if not _is_story(item):
+        return item
+    heavy = {k: v for k, v in item.items()
+             if isinstance(v, (list, dict, tuple)) and k not in _UNPACKED_KEYS}
+    if not heavy:
+        return item
+    packed = {k: v for k, v in item.items() if k not in heavy}
+    raw = json.dumps(heavy, separators=(',', ':'), default=_json_default).encode('utf-8')
+    packed[PACKED_ATTR] = gzip.compress(raw, 6)
+    return packed
+
+
+def _unpack(item):
+    """The item as it was before ``_pack`` (numbers come back as Decimal, like DynamoDB)."""
+    if not item or PACKED_ATTR not in item:
+        return item
+    blob = item.pop(PACKED_ATTR)
+    if isinstance(blob, Binary):
+        blob = blob.value
+    heavy = json.loads(gzip.decompress(blob).decode('utf-8'), parse_float=Decimal)
+    for key, value in heavy.items():
+        item.setdefault(key, value)
+    return item
+
+
+def _unpack_all(items):
+    for item in items:
+        _unpack(item)
+    return items
+
+def get_item(pk, sk='METADATA', consistent=True):
+    """Fetch a single item from DynamoDB, STRONGLY consistent by default.
+
+    v0.36.3 — one Lambda invocation writes an item and reads it back (an event moves a
+    character, then the time-start pass reads the roster): an eventually consistent read
+    returns the row as it was and the caller writes that stale row back, undoing the move.
+    v0.37.5 — ``consistent=False`` halves the read cost for rows the caller never writes
+    back in the same request (stories, users, system config).
+    """
     try:
-        response = _get_table().get_item(Key={'PK': pk, 'SK': sk})
-        return response.get('Item')
+        response = _get_table().get_item(Key={'PK': pk, 'SK': sk}, ConsistentRead=bool(consistent))
+        return _unpack(response.get('Item'))
     except ClientError as e:
         print(f"Error fetching item {pk}/{sk}: {e}")
         return None
@@ -55,7 +116,7 @@ def put_item(item):
         if 'ts_insert' not in item:
             item['ts_insert'] = now
         item['ts_update'] = now
-        sanitized = _to_dynamodb_value(item)
+        sanitized = _pack(_to_dynamodb_value(item))
         _get_table().put_item(Item=sanitized)
         return True
     except ClientError as e:
@@ -63,6 +124,27 @@ def put_item(item):
         return False
     except Exception as e:
         print(f"Unexpected error putting item: {e}")
+        return False
+
+def batch_put_items(items):
+    """v0.37.5 — write many items in one batch (log rows, a request's dirty set), stamping
+    ts_* like put_item; a key repeated in the list keeps its last occurrence."""
+    if not items:
+        return True
+    try:
+        now = int(time.time() * 1000)
+        with _get_table().batch_writer(overwrite_by_pkeys=['PK', 'SK']) as batch:
+            for item in items:
+                if 'ts_insert' not in item:
+                    item['ts_insert'] = now
+                item['ts_update'] = now
+                batch.put_item(Item=_pack(_to_dynamodb_value(item)))
+        return True
+    except ClientError as e:
+        print(f"Error batch putting {len(items)} items: {e}")
+        return False
+    except Exception as e:
+        print(f"Unexpected error batch putting items: {e}")
         return False
 
 def delete_item(pk, sk='METADATA'):
@@ -76,9 +158,14 @@ def delete_item(pk, sk='METADATA'):
 
 def delete_all_by_pk(pk):
     """Delete ALL items sharing the same Partition Key (cascading delete)."""
-    items = query_by_pk(pk)
+    try:
+        keys = _paginate(_get_table().query, KeyConditionExpression=Key('PK').eq(pk),
+                         ProjectionExpression='PK, SK', ConsistentRead=True)
+    except ClientError as e:
+        print(f"Error querying keys of PK {pk}: {e}")
+        return 0
     count = 0
-    for item in items:
+    for item in keys:
         delete_item(item['PK'], item['SK'])
         count += 1
     return count
@@ -98,27 +185,150 @@ def _paginate(operation, **kwargs):
         if not last_key:
             break
         kwargs['ExclusiveStartKey'] = last_key
-    return items
+    return _unpack_all(items)
 
 def query_by_pk(pk):
-    """Query all items with the same Partition Key (paginated)."""
+    """Query all items with the same Partition Key (paginated), STRONGLY consistent.
+    Same reason as get_item: a match partition is read back after being written."""
     try:
         return _paginate(
             _get_table().query,
             KeyConditionExpression='PK = :pk',
             ExpressionAttributeValues={':pk': pk},
+            ConsistentRead=True,
         )
     except ClientError as e:
         print(f"Error querying PK {pk}: {e}")
         return []
 
+def find_user_by_email(email):
+    """v0.41.4 — the USER# item whose ``email`` matches (case-insensitive), or None.
+    No email index exists: a paginated Scan, used only by the match import."""
+    wanted = str(email or '').strip().lower()
+    if not wanted:
+        return None
+    try:
+        items = _paginate(
+            _get_table().scan,
+            FilterExpression=Attr('SK').eq('METADATA') & Attr('PK').begins_with('USER#')
+            & Attr('email').exists(),
+        )
+    except ClientError as e:
+        print(f"Error scanning users by email: {e}")
+        return None
+    found = [i for i in items if str(i.get('email') or '').strip().lower() == wanted]
+    return min(found, key=lambda i: str(i.get('PK'))) if found else None
+
+def _scan_users(attribute, condition):
+    """v0.41.6 — every USER# METADATA item with ``attribute`` whose value passes ``condition`` (paginated Scan)."""
+    try:
+        items = _paginate(
+            _get_table().scan,
+            FilterExpression=Attr('SK').eq('METADATA') & Attr('PK').begins_with('USER#')
+            & Attr(attribute).exists(),
+        )
+    except ClientError as e:
+        print(f"Error scanning users by {attribute}: {e}")
+        return []
+    return sorted([i for i in items if condition(i.get(attribute))], key=lambda i: str(i.get('PK')))
+
+
+def find_users_by_email(email):
+    """v0.41.6 — every USER# item whose ``email`` matches (case-insensitive); admin owner move only."""
+    wanted = str(email or '').strip().lower()
+    if not wanted:
+        return []
+    return _scan_users('email', lambda v: str(v or '').strip().lower() == wanted)
+
+
+def find_users_by_username(username):
+    """v0.41.6 — every USER# item with this ``username`` (not unique on AWS); admin owner move only."""
+    wanted = str(username or '').strip()
+    if not wanted:
+        return []
+    return _scan_users('username', lambda v: str(v or '') == wanted)
+
+
+def count_gsi(gsi_name, pk_val):
+    """v0.41.6 — how many items a secondary index holds under one key (Select=COUNT, paginated)."""
+    pk_attr, _sk_attr = _GSI_KEYS.get(gsi_name, _GSI_KEYS['GSI1'])
+    kwargs = {'IndexName': gsi_name, 'KeyConditionExpression': Key(pk_attr).eq(pk_val), 'Select': 'COUNT'}
+    total = 0
+    try:
+        while True:
+            response = _get_table().query(**kwargs)
+            total += int(response.get('Count', 0))
+            if not response.get('LastEvaluatedKey'):
+                return total
+            kwargs['ExclusiveStartKey'] = response['LastEvaluatedKey']
+    except ClientError as e:
+        print(f"Error counting GSI {gsi_name}: {e}")
+        return 0
+
+
+def query_sk_prefix(pk, sk_prefix, consistent=True, filter_expr=None):
+    """v0.37.5 — every item of a partition whose SK starts with the prefix (paginated).
+
+    Replaces the whole-partition ``query_by_pk`` where the caller only wants one item
+    kind (CHARACTER#, TURN#, LOG#): the METADATA row and the log rows never travel."""
+    kwargs = {
+        'KeyConditionExpression': Key('PK').eq(pk) & Key('SK').begins_with(sk_prefix),
+        'ConsistentRead': bool(consistent),
+    }
+    if filter_expr is not None:
+        kwargs['FilterExpression'] = filter_expr
+    try:
+        return _paginate(_get_table().query, **kwargs)
+    except ClientError as e:
+        print(f"Error querying PK {pk} SK prefix {sk_prefix}: {e}")
+        return []
+
+def query_sk_prefix_keys(pk, sk_prefix):
+    """v0.41.1 — the PK/SK alone of every item under the prefix (snapshot prune, restore log cut)."""
+    kwargs = {
+        'KeyConditionExpression': Key('PK').eq(pk) & Key('SK').begins_with(sk_prefix),
+        'ProjectionExpression': 'PK, SK',
+        'ConsistentRead': True,
+    }
+    try:
+        return _paginate(_get_table().query, **kwargs)
+    except ClientError as e:
+        print(f"Error querying keys of PK {pk} SK prefix {sk_prefix}: {e}")
+        return []
+
+def query_sk_prefix_page(pk, sk_prefix, limit, start_key=None, ascending=True, consistent=False):
+    """v0.37.5 — ONE page of a partition's SK-prefix range, ``(items, last_evaluated_key)``.
+
+    Same shape as :func:`query_index_page`; ``ascending`` drives ``ScanIndexForward``."""
+    kwargs = {
+        'KeyConditionExpression': Key('PK').eq(pk) & Key('SK').begins_with(sk_prefix),
+        'Limit': int(limit),
+        'ScanIndexForward': bool(ascending),
+        'ConsistentRead': bool(consistent),
+    }
+    if start_key:
+        kwargs['ExclusiveStartKey'] = start_key
+    try:
+        response = _get_table().query(**kwargs)
+        return _unpack_all(response.get('Items', [])), response.get('LastEvaluatedKey')
+    except ClientError as e:
+        print(f"Error querying page PK {pk} SK prefix {sk_prefix}: {e}")
+        return [], None
+
+# Key attribute pair of every index (both are INCLUDE projections, see template.yaml).
+_GSI_KEYS = {
+    'GSI1': ('GSI1_PK', 'GSI1_SK'),
+    'GSI2': ('GSI2_PK', 'GSI2_SK'),
+}
+
 def query_gsi(gsi_name, pk_val, sk_prefix=None):
     """Query a secondary index (paginated)."""
     try:
-        condition  = 'GSI1_PK = :pk'
+        pk_attr, sk_attr = _GSI_KEYS.get(gsi_name, _GSI_KEYS['GSI1'])
+        condition  = f'{pk_attr} = :pk'
         attr_vals  = {':pk': pk_val}
         if sk_prefix:
-            condition += ' AND begins_with(GSI1_SK, :sk)'
+            condition += f' AND begins_with({sk_attr}, :sk)'
             attr_vals[':sk'] = sk_prefix
         return _paginate(
             _get_table().query,
@@ -170,7 +380,7 @@ def query_index_page(index_name, pk_name, pk_val, sk_name=None, sk_from=None,
         if start_key:
             kwargs['ExclusiveStartKey'] = start_key
         response = _get_table().query(**kwargs)
-        return response.get('Items', []), response.get('LastEvaluatedKey')
+        return _unpack_all(response.get('Items', [])), response.get('LastEvaluatedKey')
     except ClientError as e:
         print(f"Error querying index page {index_name}/{pk_val}: {e}")
         return [], None
@@ -199,73 +409,51 @@ def decode_cursor(cursor):
         return None
 
 
-def scan_filter(attr_name, attr_value):
-    """Scan the table filtering on a single attribute value (paginated)."""
-    try:
-        return _paginate(_get_table().scan, FilterExpression=Attr(attr_name).eq(attr_value))
-    except ClientError as e:
-        print(f"Error scanning filter {attr_name}={attr_value}: {e}")
-        return []
+CACHE_VERSIONS_PK = 'SYSTEM#cache'
 
-def scan_pk_prefix(prefix):
-    """Scan the table returning every item whose PK starts with the prefix (paginated)."""
-    try:
-        return _paginate(_get_table().scan, FilterExpression=Attr('PK').begins_with(prefix))
-    except ClientError as e:
-        print(f"Error scanning PK prefix {prefix}: {e}")
-        return []
+def get_cache_versions():
+    """v0.37.5 — ``{storyVersions: {uuid: ts_ms}, globalVersion: ts_ms}``.
 
-def backfill_gsi2_matches(dry_run=False):
-    """One-time migration (v0.28.1): add the GSI2 "by type" keys to every match
-    METADATA item that predates the index.
+    A consistent read (1 RRU, the item is tiny): an admin write on one Lambda must be
+    seen by the next request on another, not after replication catches up."""
+    item = get_item(CACHE_VERSIONS_PK) or {}
+    return {
+        'storyVersions': dict(item.get('storyVersions') or {}),
+        'globalVersion': int(item.get('globalVersion') or 0),
+    }
 
-    The admin list (GET /api/admin/matches) is a Query on GSI2; matches created
-    before v0.28.1 have no ``GSI2_PK``/``GSI2_SK`` attributes, so they are absent
-    from the index and never appear in the list even though they exist in the
-    table. This scans the match METADATA items and sets, for each one missing the
-    keys, ``GSI2_PK='MATCH'`` and ``GSI2_SK='{tsInsert:020d}#{uuid}'`` — the exact
-    format ``_create_match`` writes, so backfilled and new rows sort together.
+def _put_cache_versions(mutate):
+    item = get_item(CACHE_VERSIONS_PK) or {'PK': CACHE_VERSIONS_PK, 'SK': 'METADATA'}
+    item.setdefault('storyVersions', {})
+    now = int(time.time() * 1000)
+    mutate(item, now)
+    put_item(item)
+    return now
 
-    Idempotent: items that already carry ``GSI2_PK`` are left untouched, so it is
-    safe to run repeatedly. Returns ``{'scanned', 'updated', 'skipped'}``.
-    """
-    table = _get_table()
-    stats = {'scanned': 0, 'updated': 0, 'skipped': 0}
-    # Only the match METADATA row carries the summary (sub-items like CHARACTER#
-    # share the PK but must NOT be indexed) — filter on SK == 'METADATA'.
-    kwargs = {'FilterExpression': Attr('PK').begins_with('MATCH#') & Attr('SK').eq('METADATA')}
-    while True:
-        response = table.scan(**kwargs)
-        for item in response.get('Items', []):
-            stats['scanned'] += 1
-            if 'GSI2_PK' in item:
-                stats['skipped'] += 1
-                continue
-            uuid = item.get('uuid') or item['PK'].split('#', 1)[-1]
-            try:
-                ts_ms = int(item.get('tsInsert') or 0)
-            except (TypeError, ValueError):
-                ts_ms = 0
-            if not dry_run:
-                table.update_item(
-                    Key={'PK': item['PK'], 'SK': item['SK']},
-                    UpdateExpression='SET GSI2_PK = :p, GSI2_SK = :s',
-                    ExpressionAttributeValues={':p': 'MATCH', ':s': f'{ts_ms:020d}#{uuid}'},
-                )
-            stats['updated'] += 1
-        last_key = response.get('LastEvaluatedKey')
-        if not last_key:
-            break
-        kwargs['ExclusiveStartKey'] = last_key
-    return stats
+def bump_story_version(story_uuid):
+    """v0.37.5 — a story was written: every warm Lambda drops its cached copy."""
+    def mutate(item, now):
+        item['storyVersions'][str(story_uuid)] = now
+    return _put_cache_versions(mutate)
+
+def bump_global_version():
+    """v0.37.5 — POST /api/admin/cache/flush: invalidate every cached story everywhere."""
+    def mutate(item, now):
+        item['globalVersion'] = now
+        item['storyVersions'] = {}
+    return _put_cache_versions(mutate)
 
 
-def update_ts_last_access(pk, now_ms, sk='METADATA'):
-    """Update the ts_last_access timestamp of an item."""
+def update_ts_last_access(pk, now_ms, sk='METADATA', in_summary=False):
+    """Update the ts_last_access timestamp of an item.
+    ``in_summary`` also stamps ``summary.ts_last_access`` — the copy GSI2 projects for guests."""
+    expression = 'SET ts_last_access = :t'
+    if in_summary:
+        expression += ', summary.ts_last_access = :t'
     try:
         _get_table().update_item(
             Key={'PK': pk, 'SK': sk},
-            UpdateExpression='SET ts_last_access = :t',
+            UpdateExpression=expression,
             ExpressionAttributeValues={':t': now_ms}
         )
         return True

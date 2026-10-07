@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import FastTextCreatorModal from './FastTextCreatorModal'
+import TextLengthHint from './TextLengthHint'
+import { TEXT_MAX_LENGTH } from '../../../constants/story/textLimits'
 
 function groupTextsById(texts) {
   const grouped = new Map()
@@ -144,8 +146,8 @@ export default function FastTextSelectorModal({
 
   return (
     <>
-      <div className="pg-modal-backdrop" onClick={onClose}>
-        <div className="pg-modal" style={{ maxWidth: 920, width: '95vw' }} onClick={e => e.stopPropagation()}>
+      <div className="pg-modal-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+        <div className="pg-modal" style={{ maxWidth: 920, width: '95vw' }}>
           <h3 className="pg-modal-title"><i className="fas fa-search me-2" /> Fast Text Selector</h3>
 
           {viewMode === 'input-generator' ? (
@@ -158,15 +160,17 @@ export default function FastTextSelectorModal({
                 ref={generatorInputRef}
                 className="pg-input"
                 placeholder="Insert text value"
+                maxLength={TEXT_MAX_LENGTH}
                 value={generatedText}
                 onChange={e => setGeneratedText(e.target.value)}
                 onKeyDown={e => {
                   if (e.key !== 'Enter') return
                   e.preventDefault()
                   if (generatorSaving || !generatedText.trim()) return
-                  handleSaveGeneratedText()
+                  void handleSaveGeneratedText()
                 }}
               />
+              <TextLengthHint value={generatedText} />
               {generatorError && (
                 <div className="pg-alert pg-alert-danger mt-3">
                   <i className="fas fa-exclamation-triangle" /> {generatorError}

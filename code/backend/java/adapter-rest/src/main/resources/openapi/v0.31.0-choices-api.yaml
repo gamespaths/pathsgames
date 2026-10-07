@@ -101,7 +101,7 @@ info:
     exist since V0.10.4. (V0.32.0 later widens `list_choices_effects` with the targets a
     resolution can reach.)
 
-    See `documentation_v0/Roadmap.md` (step 31).
+    See `wiki/documentation_v0/Roadmap.md` (step 31).
   version: 0.31.0
 
 servers:

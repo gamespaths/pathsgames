@@ -428,14 +428,12 @@ Should Be Blocked
 # rows tell us which seeded event is which, and the uuids are generated per database.
 
 Admin Events
-    ${resp}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/events
-    Status Should Be    ${resp}    200
-    RETURN    ${resp.json()}
+    ${rows}=    Cached Admin Rows    ${STORY_UUID}    events
+    RETURN    ${rows}
 
 Admin Event Effects
-    ${resp}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/event-effects
-    Status Should Be    ${resp}    200
-    RETURN    ${resp.json()}
+    ${rows}=    Cached Admin Rows    ${STORY_UUID}    event-effects
+    RETURN    ${rows}
 
 Find Event
     [Documentation]    The first admin event row satisfying a python expression over `e`.
@@ -573,10 +571,9 @@ Neighbor Location Ids Of
     ...                admin story rows (both edge directions, the reverse one only with
     ...                flagBack).
     [Arguments]    ${id_location}
-    ${resp}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/location-neighbors
-    Status Should Be    ${resp}    200
+    ${rows}=    Cached Admin Rows    ${STORY_UUID}    location-neighbors
     ${ids}=    Create List
-    FOR    ${n}    IN    @{resp.json()}
+    FOR    ${n}    IN    @{rows}
         IF    $n.get('idLocationFrom') == $id_location
             Append To List    ${ids}    ${n}[idLocationTo]
         END

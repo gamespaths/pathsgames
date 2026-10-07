@@ -183,6 +183,27 @@ Create Admin Entity
     ...    headers=${headers}    expected_status=any
     RETURN    ${response}
 
+List Admin Entities
+    [Documentation]    GET /api/admin/stories/{uuidStory}/{entityType}. Returns the response.
+    [Arguments]    ${uuid}    ${entity_type}
+    &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
+    ${response}=    GET On Session    admin_session
+    ...    /api/admin/stories/${uuid}/${entity_type}
+    ...    headers=${headers}    expected_status=any
+    RETURN    ${response}
+
+Update Admin Entity
+    [Documentation]    PUT /api/admin/stories/{uuidStory}/{entityType}/{entityUuid} with a
+    ...                JSON body. Returns the response (any status).
+    [Arguments]    ${uuid}    ${entity_type}    ${entity_uuid}    ${json_body}
+    &{headers}=    Create Dictionary
+    ...    Authorization=Bearer ${ADMIN_TOKEN}
+    ...    Content-Type=application/json
+    ${response}=    PUT On Session    admin_session
+    ...    /api/admin/stories/${uuid}/${entity_type}/${entity_uuid}    json=${json_body}
+    ...    headers=${headers}    expected_status=any
+    RETURN    ${response}
+
 Delete Admin Entity
     [Documentation]    DELETE /api/admin/stories/{uuid}/{entityType}/{entityUuid}.
     [Arguments]    ${uuid}    ${entity_type}    ${entity_uuid}
@@ -191,6 +212,54 @@ Delete Admin Entity
     ...    /api/admin/stories/${uuid}/${entity_type}/${entity_uuid}
     ...    headers=${headers}    expected_status=any
     RETURN    ${response}
+
+# ── v0.40 — admin rows read once per suite, to cut the calls of a run ──
+
+Cached Admin Rows
+    [Documentation]    GET /api/admin/stories/{uuid}/{entityType}, read once per suite and then
+    ...                served from memory. Only for rows the suite never edits; callers must not mutate them.
+    [Arguments]    ${uuid}    ${entity_type}
+    ${cache}=    Get Variable Value    ${ADMIN_ROWS_CACHE}    ${NONE}
+    IF    $cache is None
+        ${cache}=    Create Dictionary
+        Set Suite Variable    ${ADMIN_ROWS_CACHE}    ${cache}
+    END
+    ${key}=    Set Variable    ${uuid}/${entity_type}
+    IF    $key not in $cache
+        ${response}=    GET On Session    admin_session    /api/admin/stories/${key}
+        Status Should Be    ${response}    200
+        Set To Dictionary    ${cache}    ${key}    ${response.json()}
+    END
+    RETURN    ${cache}[${key}]
+
+Event Uuids Of Ids
+    [Documentation]    The uuids of the story's events whose story-local id is in ${ids}.
+    [Arguments]    ${uuid}    ${ids}
+    ${events}=    Cached Admin Rows    ${uuid}    events
+    ${uuids}=    Create List
+    FOR    ${event}    IN    @{events}
+        IF    $event.get('id') in $ids    Append To List    ${uuids}    ${event}[uuid]
+    END
+    RETURN    ${uuids}
+
+Item Granting Event Uuids
+    [Documentation]    The story's events owning an effect that ADDs an item: a suite filling a bag
+    ...                runs only these, instead of every event the location offers.
+    [Arguments]    ${uuid}
+    ${effects}=    Cached Admin Rows    ${uuid}    event-effects
+    ${ids}=    Evaluate
+    ...    {f.get('idEvent') for f in $effects if f.get('idItemTarget') and str(f.get('itemAction') or '').strip().upper() == 'ADD'}
+    ${uuids}=    Event Uuids Of Ids    ${uuid}    ${ids}
+    RETURN    ${uuids}
+
+Resource Writing Event Uuids
+    [Documentation]    The story's events owning an effect on food, magic or coin.
+    [Arguments]    ${uuid}
+    ${effects}=    Cached Admin Rows    ${uuid}    event-effects
+    ${ids}=    Evaluate
+    ...    {f.get('idEvent') for f in $effects if str(f.get('statistics') or '').strip().lower() in ('food', 'magic', 'coin')}
+    ${uuids}=    Event Uuids Of Ids    ${uuid}    ${ids}
+    RETURN    ${uuids}
 
 # ── Step 16: Content Info Keywords ────────────────────────────────────
 

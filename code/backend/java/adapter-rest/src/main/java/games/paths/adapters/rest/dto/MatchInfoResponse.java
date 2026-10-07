@@ -1,5 +1,6 @@
 package games.paths.adapters.rest.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import games.paths.core.model.match.CharacterInstanceInfo;
 import games.paths.core.model.match.EventInfo;
 import games.paths.core.model.match.LocationInfo;
@@ -23,10 +24,14 @@ public class MatchInfoResponse {
     private String currentLocationUuid;
     private List<LocationStateDto> locations = new ArrayList<>();
     private List<RegistryEntryDto> registry = new ArrayList<>();
+    private List<MatchMissionResponse> missions = new ArrayList<>();
     private List<EventOptionDto> events = new ArrayList<>();
     private List<EventOptionDto> choices = new ArrayList<>();
     private List<CharacterSummaryResponse> players = new ArrayList<>();
     private List<LocationInfoDto> locationsActive = new ArrayList<>();
+    /** v0.41.1 - admin info only: rows of the match in every log table. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Long logCount;
 
     public MatchInfoResponse() {
     }
@@ -43,6 +48,7 @@ public class MatchInfoResponse {
         for (MatchRegistryEntry e : d.getRegistry()) {
             r.registry.add(RegistryEntryDto.fromModel(e));
         }
+        r.missions = MatchMissionResponse.fromModel(d.getMissions());
         for (MatchEventOption e : d.getEvents()) {
             r.events.add(EventOptionDto.fromModel(e));
         }
@@ -73,6 +79,9 @@ public class MatchInfoResponse {
     public List<RegistryEntryDto> getRegistry() { return registry; }
     public void setRegistry(List<RegistryEntryDto> registry) { this.registry = registry; }
 
+    public List<MatchMissionResponse> getMissions() { return missions; }
+    public void setMissions(List<MatchMissionResponse> missions) { this.missions = missions; }
+
     public List<EventOptionDto> getEvents() { return events; }
     public void setEvents(List<EventOptionDto> events) { this.events = events; }
 
@@ -84,6 +93,9 @@ public class MatchInfoResponse {
 
     public List<LocationInfoDto> getLocationsActive() { return locationsActive; }
     public void setLocationsActive(List<LocationInfoDto> locationsActive) { this.locationsActive = locationsActive; }
+
+    public Long getLogCount() { return logCount; }
+    public void setLogCount(Long logCount) { this.logCount = logCount; }
 
     public static class LocationStateDto {
         private Long idLocation;
@@ -118,15 +130,30 @@ public class MatchInfoResponse {
     public static class RegistryEntryDto {
         private String uuid;
         private String key;
-        private String stringValue;
-        private Integer intValue;
+        // Step 36.1 — the SET of values, ordered by the backend so every client agrees.
+        private List<String> values = new ArrayList<>();
+        private boolean multiValue;
+        // Step 36 — the key's own definition rides along so the board can group and dress it
+        // without a second request; the duplication with /registry is deliberate.
+        private Long idCharacter;
+        private String category;
+        private boolean visible;
+        private Integer priority;
+        private Integer idCard;
+        private CardInfoResponse card;
 
         public static RegistryEntryDto fromModel(MatchRegistryEntry e) {
             RegistryEntryDto d = new RegistryEntryDto();
             d.uuid = e.getUuid();
             d.key = e.getKey();
-            d.stringValue = e.getStringValue();
-            d.intValue = e.getIntValue();
+            d.values = e.getValues();
+            d.multiValue = e.isMultiValue();
+            d.idCharacter = e.getIdCharacter();
+            d.category = e.getCategory();
+            d.visible = e.isVisible();
+            d.priority = e.getPriority();
+            d.idCard = e.getIdCard();
+            d.card = CardInfoResponse.fromModel(e.getCard());
             return d;
         }
 
@@ -134,10 +161,22 @@ public class MatchInfoResponse {
         public void setUuid(String uuid) { this.uuid = uuid; }
         public String getKey() { return key; }
         public void setKey(String key) { this.key = key; }
-        public String getStringValue() { return stringValue; }
-        public void setStringValue(String stringValue) { this.stringValue = stringValue; }
-        public Integer getIntValue() { return intValue; }
-        public void setIntValue(Integer intValue) { this.intValue = intValue; }
+        public List<String> getValues() { return values; }
+        public void setValues(List<String> values) { this.values = values; }
+        public boolean isMultiValue() { return multiValue; }
+        public void setMultiValue(boolean multiValue) { this.multiValue = multiValue; }
+        public Long getIdCharacter() { return idCharacter; }
+        public void setIdCharacter(Long idCharacter) { this.idCharacter = idCharacter; }
+        public String getCategory() { return category; }
+        public void setCategory(String category) { this.category = category; }
+        public boolean isVisible() { return visible; }
+        public void setVisible(boolean visible) { this.visible = visible; }
+        public Integer getPriority() { return priority; }
+        public void setPriority(Integer priority) { this.priority = priority; }
+        public Integer getIdCard() { return idCard; }
+        public void setIdCard(Integer idCard) { this.idCard = idCard; }
+        public CardInfoResponse getCard() { return card; }
+        public void setCard(CardInfoResponse card) { this.card = card; }
     }
 
     public static class EventOptionDto extends AbstractUuidNameDto {

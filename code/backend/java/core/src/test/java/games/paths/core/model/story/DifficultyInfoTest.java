@@ -24,7 +24,7 @@ class DifficultyInfoTest {
                 .minCharacter(1)
                 .maxCharacter(4)
                 .costHelpComa(3)
-                .costMaxCharacteristics(3)
+                .expCostBase(3).maxStatValue(20)
                 .numberMaxFreeAction(1)
                 .life(120)
                 .energy(110)
@@ -52,7 +52,8 @@ class DifficultyInfoTest {
                 () -> assertEquals(1, di.getMinCharacter()),
                 () -> assertEquals(4, di.getMaxCharacter()),
                 () -> assertEquals(3, di.getCostHelpComa()),
-                () -> assertEquals(3, di.getCostMaxCharacteristics()),
+                () -> assertEquals(3, di.getExpCostBase()),
+                () -> assertEquals(20, di.getMaxStatValue()),
                 () -> assertEquals(1, di.getNumberMaxFreeAction()),
                 () -> assertEquals(120, di.getLife()),
                 () -> assertEquals(110, di.getEnergy()),
@@ -91,7 +92,8 @@ class DifficultyInfoTest {
                 () -> assertEquals(0, di.getMinCharacter()),
                 () -> assertEquals(0, di.getMaxCharacter()),
                 () -> assertEquals(0, di.getCostHelpComa()),
-                () -> assertEquals(0, di.getCostMaxCharacteristics()),
+                () -> assertEquals(0, di.getExpCostBase()),
+                () -> assertEquals(0, di.getMaxStatValue()),
                 () -> assertEquals(0, di.getNumberMaxFreeAction()),
                 () -> assertEquals(0, di.getLife()),
                 () -> assertEquals(0, di.getEnergy()),

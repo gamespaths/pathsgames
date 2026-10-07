@@ -1,0 +1,430 @@
+{
+  "uuid": "f0390001-0000-4000-8000-000000000390",
+  "author": "robottest_random_events",
+  "category": "robottest",
+  "group": "robottest",
+  "visibility": "PRIVATE",
+  "priority": 0,
+  "idCard": 1,
+  "idCreator": 1,
+  "idTextTitle": 1,
+  "idTextDescription": 2,
+  "idLocationStart": 1,
+  "creators": [
+    {
+      "id": 1,
+      "idText": 1,
+      "link": "https://example.invalid",
+      "url": "https://example.invalid"
+    }
+  ],
+  "texts": [
+    {
+      "id": 1,
+      "idCreator": 1,
+      "idText": 1,
+      "lang": "en",
+      "shortText": "Random Roads",
+      "longText": "Random Roads"
+    },
+    {
+      "id": 2,
+      "idCreator": 1,
+      "idText": 2,
+      "lang": "en",
+      "shortText": "A test-bed for Step 39: global random events fired at time-start, after the weather.",
+      "longText": "A test-bed for Step 39: global random events fired at time-start, after the weather."
+    },
+    {
+      "id": 3,
+      "idCreator": 1,
+      "idText": 3,
+      "lang": "en",
+      "shortText": "Clear sky",
+      "longText": "Clear sky"
+    },
+    {
+      "id": 50,
+      "idCreator": 1,
+      "idText": 50,
+      "lang": "en",
+      "shortText": "The Camp",
+      "longText": "The Camp"
+    },
+    {
+      "id": 51,
+      "idCreator": 1,
+      "idText": 51,
+      "lang": "en",
+      "shortText": "The Road",
+      "longText": "The Road"
+    },
+    {
+      "id": 60,
+      "idCreator": 1,
+      "idText": 60,
+      "lang": "en",
+      "shortText": "Wanderer",
+      "longText": "Wanderer"
+    },
+    {
+      "id": 61,
+      "idCreator": 1,
+      "idText": 61,
+      "lang": "en",
+      "shortText": "Traveller",
+      "longText": "Traveller"
+    },
+    {
+      "id": 62,
+      "idCreator": 1,
+      "idText": 62,
+      "lang": "en",
+      "shortText": "Normal",
+      "longText": "Normal"
+    },
+    {
+      "id": 20,
+      "idCreator": 1,
+      "idText": 20,
+      "lang": "en",
+      "shortText": "Wolves at dawn",
+      "longText": "Wolves at dawn"
+    },
+    {
+      "id": 21,
+      "idCreator": 1,
+      "idText": 21,
+      "lang": "en",
+      "shortText": "The event that never comes",
+      "longText": "The event that never comes"
+    },
+    {
+      "id": 22,
+      "idCreator": 1,
+      "idText": 22,
+      "lang": "en",
+      "shortText": "A comet crosses the sky",
+      "longText": "A comet crosses the sky"
+    },
+    {
+      "id": 23,
+      "idCreator": 1,
+      "idText": 23,
+      "lang": "en",
+      "shortText": "The river rises",
+      "longText": "The river rises"
+    },
+    {
+      "id": 80,
+      "idCreator": 1,
+      "idText": 80,
+      "lang": "en",
+      "shortText": "scenario",
+      "longText": "scenario"
+    },
+    {
+      "id": 81,
+      "idCreator": 1,
+      "idText": 81,
+      "lang": "en",
+      "shortText": "level",
+      "longText": "level"
+    }
+  ],
+  "cards": [
+    {
+      "id": 1,
+      "idCreator": 1,
+      "idTextTitle": 1,
+      "idTextDescription": 1,
+      "urlImage": "https://example.invalid/card-1.jpg"
+    },
+    {
+      "id": 3,
+      "idCreator": 1,
+      "idTextTitle": 3,
+      "idTextDescription": 3,
+      "urlImage": "https://example.invalid/card-3.jpg"
+    },
+    {
+      "id": 20,
+      "idCreator": 1,
+      "idTextTitle": 20,
+      "idTextDescription": 20,
+      "urlImage": "https://example.invalid/card-20.jpg"
+    },
+    {
+      "id": 21,
+      "idCreator": 1,
+      "idTextTitle": 21,
+      "idTextDescription": 21,
+      "urlImage": "https://example.invalid/card-21.jpg"
+    },
+    {
+      "id": 22,
+      "idCreator": 1,
+      "idTextTitle": 22,
+      "idTextDescription": 22,
+      "urlImage": "https://example.invalid/card-22.jpg"
+    },
+    {
+      "id": 23,
+      "idCreator": 1,
+      "idTextTitle": 23,
+      "idTextDescription": 23,
+      "urlImage": "https://example.invalid/card-23.jpg"
+    },
+    {
+      "id": 50,
+      "idCreator": 1,
+      "idTextTitle": 50,
+      "idTextDescription": 50,
+      "urlImage": "https://example.invalid/card-50.jpg"
+    },
+    {
+      "id": 51,
+      "idCreator": 1,
+      "idTextTitle": 51,
+      "idTextDescription": 51,
+      "urlImage": "https://example.invalid/card-51.jpg"
+    },
+    {
+      "id": 60,
+      "idCreator": 1,
+      "idTextTitle": 60,
+      "idTextDescription": 60,
+      "urlImage": "https://example.invalid/card-60.jpg"
+    },
+    {
+      "id": 61,
+      "idCreator": 1,
+      "idTextTitle": 61,
+      "idTextDescription": 61,
+      "urlImage": "https://example.invalid/card-61.jpg"
+    },
+    {
+      "id": 62,
+      "idCreator": 1,
+      "idTextTitle": 62,
+      "idTextDescription": 62,
+      "urlImage": "https://example.invalid/card-62.jpg"
+    }
+  ],
+  "keys": [
+    {
+      "id": 1,
+      "name": "scenario",
+      "idCard": 1,
+      "idTextDescription": 80,
+      "group": "ROBOT",
+      "priority": 1,
+      "visibility": "PUBLIC"
+    },
+    {
+      "id": 2,
+      "name": "level",
+      "idCard": 1,
+      "idTextDescription": 81,
+      "group": "ROBOT",
+      "priority": 2,
+      "visibility": "PUBLIC"
+    }
+  ],
+  "characterTemplates": [
+    {
+      "id": 1,
+      "idCard": 60,
+      "idTextName": 60,
+      "idTextDescription": 60,
+      "lifeMax": 10,
+      "energyMax": 20,
+      "sadMax": 5,
+      "dexterityStart": 2,
+      "intelligenceStart": 2,
+      "constitutionStart": 2
+    }
+  ],
+  "classes": [
+    {
+      "id": 1,
+      "idCard": 61,
+      "idTextName": 61,
+      "idTextDescription": 61,
+      "dexterityBase": 0,
+      "intelligenceBase": 0,
+      "constitutionBase": 0,
+      "weightMax": 10
+    }
+  ],
+  "difficulties": [
+    {
+      "id": 1,
+      "idCard": 62,
+      "idTextName": 62,
+      "idTextDescription": 62,
+      "energy": 20,
+      "life": 0,
+      "sad": 0,
+      "dexterity": 0,
+      "intelligence": 0,
+      "constitution": 0,
+      "weight": 0,
+      "maxWeight": 0,
+      "expCost": 1,
+      "expCostBase": 0,
+      "maxStatValue": 0,
+      "costHelpComa": 0,
+      "numberMaxFreeAction": 0,
+      "minCharacter": 0,
+      "maxCharacter": 0
+    }
+  ],
+  "traits": [],
+  "locations": [
+    {
+      "id": 1,
+      "idCard": 50,
+      "idTextName": 50,
+      "idTextDescription": 50,
+      "secureParam": 1,
+      "maxCharacters": 10,
+      "costEnergyEnter": 0
+    },
+    {
+      "id": 2,
+      "idCard": 51,
+      "idTextName": 51,
+      "idTextDescription": 51,
+      "secureParam": 0,
+      "maxCharacters": 10,
+      "costEnergyEnter": 0
+    }
+  ],
+  "locationNeighbors": [
+    {
+      "id": 1,
+      "idLocationFrom": 1,
+      "idLocationTo": 2,
+      "direction": "NORTH",
+      "flagBack": 1,
+      "energyCost": 0
+    }
+  ],
+  "events": [
+    {
+      "id": 20,
+      "idCard": 20,
+      "idTextName": 20,
+      "idTextDescription": 20,
+      "type": "AUTOMATIC",
+      "costEnery": 0,
+      "costCoin": 0
+    },
+    {
+      "id": 21,
+      "idCard": 21,
+      "idTextName": 21,
+      "idTextDescription": 21,
+      "type": "AUTOMATIC",
+      "costEnery": 0,
+      "costCoin": 0
+    },
+    {
+      "id": 22,
+      "idCard": 22,
+      "idTextName": 22,
+      "idTextDescription": 22,
+      "type": "ONCE",
+      "costEnery": 0,
+      "costCoin": 0
+    },
+    {
+      "id": 23,
+      "idCard": 23,
+      "idTextName": 23,
+      "idTextDescription": 23,
+      "type": "AUTOMATIC",
+      "costEnery": 0,
+      "costCoin": 0
+    }
+  ],
+  "eventEffects": [
+    {
+      "id": 1,
+      "idEvent": 20,
+      "idCard": 20,
+      "idTextName": 20,
+      "statistics": "exp",
+      "value": 1,
+      "target": "ALL"
+    },
+    {
+      "id": 2,
+      "idEvent": 21,
+      "idCard": 21,
+      "idTextName": 21,
+      "statistics": "exp",
+      "value": 50,
+      "target": "ALL"
+    },
+    {
+      "id": 3,
+      "idEvent": 22,
+      "idCard": 22,
+      "idTextName": 22,
+      "statistics": "exp",
+      "value": 10,
+      "target": "ALL"
+    },
+    {
+      "id": 4,
+      "idEvent": 23,
+      "idCard": 23,
+      "idTextName": 23,
+      "statistics": "exp",
+      "value": 100,
+      "target": "ALL"
+    }
+  ],
+  "weatherRules": [
+    {
+      "id": 1,
+      "idCard": 3,
+      "idText": 3,
+      "active": 1,
+      "probability": 100,
+      "costMoveSafeLocation": 0,
+      "costMoveNotSafeLocation": 0
+    }
+  ],
+  "globalRandomEvents": [
+    {
+      "id": 1,
+      "idEvent": 20,
+      "probability": 100,
+      "conditionKey": "scenario",
+      "conditionValue": "always"
+    },
+    {
+      "id": 2,
+      "idEvent": 21,
+      "probability": 0
+    },
+    {
+      "id": 3,
+      "idEvent": 22,
+      "probability": 100,
+      "conditionKey": "scenario",
+      "conditionValue": "once"
+    },
+    {
+      "id": 4,
+      "idEvent": 23,
+      "probability": 100,
+      "conditionKey": "level",
+      "conditionValue": "2",
+      "registryValueOperatorCondition": ">"
+    }
+  ]
+}

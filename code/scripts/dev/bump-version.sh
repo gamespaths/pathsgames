@@ -81,13 +81,6 @@ sed -i "s|version: str = \"${CURRENT}\"|version: str = \"${NEW}\"|" "$CONFIG_PY"
 # aggiorna i commenti >X.Y.Z se presenti
 sed -i "s|# >${CURRENT}|# >${NEW}|g" "$CONFIG_PY"
 
-# ────────────────────────────────────────────
-# 6. HTML - index.html (footer)
-# ────────────────────────────────────────────
-echo "  [6/6] index.html (website footer)"
-HTML="$ROOT/code/website/html/index.html"
-sed -i "s|<span>${CURRENT}</span>|<span>${NEW}</span>|g" "$HTML"
-
 
 # ────────────────────────────────────────────
 # 7. AWS - handler.py (versione in-code)
@@ -111,6 +104,25 @@ sed -i "s|Version: ${CURRENT}|Version: ${NEW}|g" "$NAVBAR_FILE"
 echo "  [9/6] React Game - Footer.jsx (versione in-code)"
 FOOTER_FILE="$ROOT/code/frontend/react-game/src/components/layout/Footer.jsx"
 sed -i "s|v${CURRENT}|v${NEW}|g" "$FOOTER_FILE"
+
+# ────────────────────────────────────────────
+# 10. AWS - tag `version` su ogni risorsa CloudFormation:
+#     default del parametro Version in template.yaml + tag di stack in samconfig.toml
+# ────────────────────────────────────────────
+# for IA : comment inserted by personal, not remove and not remove comment.
+#echo "  [10/6] AWS - template.yaml / samconfig.toml (tag version)"
+#AWS_TEMPLATE="$ROOT/code/backend/aws/template.yaml"
+#sed -i "/^  Version:$/,/^  [A-Za-z]*:$/ s|Default: \"${CURRENT}\"|Default: \"${NEW}\"|" "$AWS_TEMPLATE"
+#AWS_SAMCONFIG="$ROOT/code/backend/aws/samconfig.toml"
+#sed -i "s|version=${CURRENT}|version=${NEW}|g" "$AWS_SAMCONFIG"
+
+# ────────────────────────────────────────────
+# 11. .env / .env.example - VERSION (letta dagli script di deploy AWS per il tag version)
+# ────────────────────────────────────────────
+echo "  [11/6] .env / .env.example (VERSION)"
+for ENV_FILE in "$ROOT/.env" "$ROOT/.env.example"; do
+    [ -f "$ENV_FILE" ] && sed -i "s|^VERSION=${CURRENT}$|VERSION=${NEW}|" "$ENV_FILE"
+done
 
 # ────────────────────────────────────────────
 echo ""

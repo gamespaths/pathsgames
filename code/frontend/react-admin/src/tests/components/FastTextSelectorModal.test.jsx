@@ -192,4 +192,58 @@ describe('FastTextSelectorModal', () => {
     fireEvent.change(screen.getByPlaceholderText(/Search by text id/i), { target: { value: 'zzz' } })
     expect(screen.getByText('No text found')).toBeInTheDocument()
   })
+
+  it('renders with no text list at all', () => {
+    render(<FastTextSelectorModal open onClose={onClose} onSelect={onSelect} />)
+    expect(screen.getByText('No text found')).toBeInTheDocument()
+  })
+
+  it('editing a row that has only English fills the Italian side with empty strings', () => {
+    render(<FastTextSelectorModal open onClose={onClose} texts={MOCK_TEXTS}
+                                  onSelect={onSelect} onSaveFastText={onSaveFastText} />)
+    // Row #2 carries no Italian translation at all.
+    fireEvent.click(document.querySelectorAll('.fa-pen')[1].closest('button'))
+    expect(screen.getByText(/Fast Text Creator/i)).toBeInTheDocument()
+  })
+
+  it('closing the creator without a result selects nothing', () => {
+    render(<FastTextSelectorModal open onClose={onClose} texts={MOCK_TEXTS}
+                                  onSelect={onSelect} onSaveFastText={onSaveFastText} />)
+    fireEvent.click(document.querySelectorAll('.fa-pen')[0].closest('button'))
+    fireEvent.click(screen.getByText('Cancel'))
+
+    expect(onSelect).not.toHaveBeenCalled()
+  })
+
+  it('the generator refuses to save a blank text', async () => {
+    render(<FastTextSelectorModal open startMode="input-generator" onClose={onClose}
+                                  texts={MOCK_TEXTS} onSelect={onSelect}
+                                  onSaveFastText={onSaveFastText} />)
+    fireEvent.click(screen.getByText('Save'))
+
+    await waitFor(() => expect(onSaveFastText).not.toHaveBeenCalled())
+  })
+
+  it('the generator falls back to the id it proposed when the answer names none', async () => {
+    onSaveFastText.mockResolvedValue({})
+    render(<FastTextSelectorModal open startMode="input-generator" onClose={onClose}
+                                  texts={MOCK_TEXTS} onSelect={onSelect}
+                                  onSaveFastText={onSaveFastText} />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'A new line' } })
+    fireEvent.click(screen.getByText('Save'))
+
+    await waitFor(() => expect(onSelect).toHaveBeenCalledWith(3))
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('a failing save with no message shows the generic error', async () => {
+    onSaveFastText.mockRejectedValue({})
+    render(<FastTextSelectorModal open startMode="input-generator" onClose={onClose}
+                                  texts={MOCK_TEXTS} onSelect={onSelect}
+                                  onSaveFastText={onSaveFastText} />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'A new line' } })
+    fireEvent.click(screen.getByText('Save'))
+
+    expect(await screen.findByText('Cannot save generated text')).toBeInTheDocument()
+  })
 })

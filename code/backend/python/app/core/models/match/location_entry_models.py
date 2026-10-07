@@ -24,9 +24,13 @@ TRIGGER_MOVE_INTO_EMPTY_LOCATION = "MOVE_INTO_EMPTY_LOCATION"
 TRIGGER_COUNTER_ZERO = "COUNTER_ZERO"
 #: A time unit began with a character standing here.
 TRIGGER_CHARACTER_START_TIME = "CHARACTER_START_TIME"
+#: Step 39 — a global random event fired at time-start; no actor, no location.
+TRIGGER_RANDOM_EVENT = "RANDOM_EVENT"
 
 #: Message prefix of the audit row an automatic event writes to ``log_events``.
 MSG_AUTOMATIC_EVENT = "automatic event"
+#: Step 39 — message prefix of the audit row a random event writes.
+MSG_RANDOM_EVENT = "random event"
 
 #: How many arrivals one request may cascade through before the engine gives up.
 #: An automatic event may move a character, and that move is itself an arrival, so
@@ -77,6 +81,12 @@ class AutomaticEventFired:
     stat_changes: List[Any] = field(default_factory=list)
     location_changes: List[Any] = field(default_factory=list)
     game_over: bool = False
+    #: v0.35.6 — what the Step 30 rules did about it, epilogue included. An arrival kills
+    #: exactly as an executed event does; before this the collapse reached the board only on
+    #: the next reload, as a flag with no card and no story.
+    edge_state: Any = None
+    #: Step 40 — set (TimeEndNews) when this event forced a time-end, else None.
+    time_end: Any = None
 
 
 @dataclass
@@ -94,7 +104,7 @@ class CounterZeroItem:
     ``card_location`` is the place. Until v0.33.1 only the place travelled.
     """
     trigger: str
-    id_location: int
+    id_location: Optional[int]  # Step 39: None for a RANDOM_EVENT
     card: Optional[dict]
     card_location: Optional[dict]
     card_effects: List[Any]
@@ -120,6 +130,22 @@ def to_camel_automatic_event(f: AutomaticEventFired) -> Dict[str, Any]:
         "statChanges": [_stat_to_camel(c) for c in (f.stat_changes or [])],
         "locationChanges": [_location_to_camel(c) for c in (f.location_changes or [])],
         "gameOver": bool(f.game_over),
+    }
+
+
+def to_camel_edge_state(e) -> Dict[str, Any]:
+    """v0.35.6 — REST shape of a Step 30 verdict, for the responses that are not
+    execute-event: a movement and a sleep answer the very same object."""
+    if e is None:
+        return None
+    return {
+        "sadnessOverflowUuids": list(e.sadness_overflow_uuids),
+        "comaUuids": list(e.coma_uuids),
+        "allPlayersInComa": e.all_players_in_coma,
+        "comaEventUuid": e.coma_event_uuid,
+        "comaEventCard": e.coma_event_card,
+        "comaExecutedEventUuids": list(e.coma_executed_event_uuids),
+        "comaEffects": [_effect_to_camel(x) for x in (e.coma_effects or [])],
     }
 
 
@@ -168,4 +194,23 @@ def to_camel_counter_zero(i: CounterZeroItem) -> Dict[str, Any]:
         "eventUuid": i.event_uuid,
         "clock": i.clock,
         "visibility": i.visibility,
+    }
+
+
+def to_camel_time_end(news) -> Dict[str, Any]:
+    """Step 40 — the ``weather`` and ``counterZero`` keys of an answer that may have ended the
+    time early. Both always present: ``None`` and ``[]`` when the time did not end."""
+    weather = getattr(news, "weather", None) if news is not None else None
+    return {
+        "weather": None if weather is None else {
+            "idWeather": weather.id_weather,
+            "uuid": weather.uuid,
+            "card": weather.card,
+            "deltaEnergy": weather.delta_energy,
+            "costMoveSafeLocation": weather.cost_move_safe_location,
+            "costMoveNotSafeLocation": weather.cost_move_not_safe_location,
+            "changed": bool(weather.changed),
+        },
+        "counterZero": [to_camel_counter_zero(i)
+                        for i in ((news.counter_zero or []) if news is not None else [])],
     }

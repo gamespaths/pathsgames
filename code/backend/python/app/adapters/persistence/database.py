@@ -1,6 +1,7 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
 from app.adapters.persistence.auth.models import Base
+from app.adapters.persistence.match.log_ids import align_log_sequences
 from app.config import settings
 import os
 
@@ -16,8 +17,129 @@ def get_engine():
 engine = get_engine()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
+# v0.35.8 — the Python side has no Flyway: `create_all` creates missing TABLES and
+# never touches an existing one, so a model whose columns changed leaves the database
+# behind for ever ("column ... does not exist" on the next insert). These are the known
+# drifts, replayed at every startup and each one a no-op once applied.
+#
+#   list_locations_neighbors: the columns were named condition_key/_value, while the
+#   Java schema (V0.10.3) calls them condition_registry_key/_value, and id_text_go /
+#   id_text_back — the label of the edge in each direction — were missing entirely.
+#   list_weather_rules: the columns were named condition_value / time_start / time_end /
+#   is_active, none of which exist in the Java schema, and id_text — the rule's own label —
+#   was missing altogether.
+_RENAMED_COLUMNS = {
+    "list_locations_neighbors": [
+        ("condition_key", "condition_registry_key"),
+        ("condition_value", "condition_registry_value"),
+    ],
+    # Step 37 - the mission step column was named step_order here and `step` everywhere else.
+    "list_missions_steps": [
+        ("step_order", "step"),
+    ],
+    "list_weather_rules": [
+        ("condition_value", "condition_key_value"),
+        ("time_start", "time_from"),
+        ("time_end", "time_to"),
+        ("is_active", "active"),
+    ],
+    # Step 38 — is_safe stood in for the secure_param every other backend reads; the data
+    # (0/1) keeps its meaning, only the name changes.
+    "list_locations": [
+        ("is_safe", "secure_param"),
+    ],
+}
+_ADDED_COLUMNS = {
+    "list_locations_neighbors": ["id_text_go", "id_text_back",
+                                 "registry_value_operator_condition"],
+    "list_weather_rules": ["id_text", "registry_value_operator_condition"],
+    # Step 36 — the operator on events, and the ordering column list_keys never had.
+    "list_events": ["registry_value_operator_condition"],
+    "list_keys": ["priority"],
+    # Step 36.2 — the two registry pairs a location writes on arrival.
+    "list_locations": ["key_to_add", "key_value_to_add",
+                       "key_to_add_not_first", "key_value_to_add_not_first"],
+    # Step 37 — one value or a PIPE list of them, and the columns the step row never had.
+    "list_missions": ["condition_value", "condition_values"],
+    "list_missions_steps": ["condition_value", "condition_values", "uuid", "id_card",
+                           "id_text_name"],
+    # Step 38 — the use-exp price list: flat addend and DEX/INT/COS cap.
+    "list_stories_difficulty": ["exp_cost_base", "max_stat_value"],
+    # Step 39 — random events get the registry operator the other conditions have.
+    "list_global_random_events": ["registry_value_operator_condition"],
+    # v0.41.1 — the snapshot clock and checksum (a table made before V0.41.1).
+    "system_snapshot": ["clock", "checksum"],
+    # v0.41.4 — decision 56: the e-mail of a user, copied and matched by the match import.
+    "users": ["email_address"],
+}
+# Step 37 — the from/to pair is gone: a mission has no operator, so a range meant nothing.
+_DROPPED_COLUMNS = {
+    "list_missions": ["condition_value_from", "condition_value_to"],
+    "list_missions_steps": ["condition_value_from", "condition_value_to"],
+    # Step 38 — replaced by exp_cost_base / max_stat_value.
+    "list_stories_difficulty": ["cost_max_characteristics"],
+}
+# v0.41.0 — indexes create_all makes only on a new table: (table, name, columns).
+_INDEXES = [
+    ("users", "idx_users_state_last_access", "state, last_access"),
+    ("system_snapshot", "idx_snapshot_match_clock", "id_match, clock"),
+    ("users", "idx_users_email", "email_address"),
+]
+# Added columns are integers unless named here: the Step 36 operator holds "=", ">", "<", "!=".
+_TEXT_COLUMNS = {"registry_value_operator_condition",
+                 "key_to_add", "key_value_to_add",
+                 "key_to_add_not_first", "key_value_to_add_not_first",
+                 "condition_value", "condition_values", "uuid", "checksum", "email_address"}
+
+
+def align_schema(bind=None):
+    """Bring an existing database in line with the models. Idempotent: it inspects the
+    live columns and only issues what is actually missing."""
+    bind = bind or engine
+    inspector = inspect(bind)
+    int_type = "BIGINT" if bind.dialect.name == "postgresql" else "INTEGER"
+    statements = []
+    for table, renames in _RENAMED_COLUMNS.items():
+        if not inspector.has_table(table):
+            continue
+        columns = {c["name"] for c in inspector.get_columns(table)}
+        for old, new in renames:
+            if old in columns and new not in columns:
+                statements.append(f"ALTER TABLE {table} RENAME COLUMN {old} TO {new}")
+    for table, additions in _ADDED_COLUMNS.items():
+        if not inspector.has_table(table):
+            continue
+        columns = {c["name"] for c in inspector.get_columns(table)}
+        for column in additions:
+            if column not in columns:
+                column_type = "TEXT" if column in _TEXT_COLUMNS else int_type
+                statements.append(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
+    for table, drops in _DROPPED_COLUMNS.items():
+        if not inspector.has_table(table):
+            continue
+        columns = {c["name"] for c in inspector.get_columns(table)}
+        for column in drops:
+            if column in columns:
+                statements.append(f"ALTER TABLE {table} DROP COLUMN {column}")
+    for table, name, columns in _INDEXES:
+        if not inspector.has_table(table):
+            continue
+        if name not in {i["name"] for i in inspector.get_indexes(table)}:
+            statements.append(f"CREATE INDEX IF NOT EXISTS {name} ON {table} ({columns})")
+    if not statements:
+        return []
+    with bind.begin() as connection:
+        for statement in statements:
+            connection.execute(text(statement))
+    return statements
+
+
 def init_db():
     Base.metadata.create_all(bind=engine)
+    align_schema(engine)
+    # v0.38.1 — PostgreSQL hands out the log_* ids from sequences create_all never made.
+    align_log_sequences(engine)
     #if settings.env == "development":
     #    from app.adapters.persistence.seed_dev_data import seed_dev_data
     #    seed_dev_data(engine)

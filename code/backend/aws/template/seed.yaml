@@ -4,6 +4,15 @@ Transform: AWS::Serverless-2016-10-31
 Parameters:
   Environment:
     Type: String
+  EnvironmentTag:
+    Type: String
+    Description: "Value of the Environment tag (dev / test / alpha / beta / production), mapped by the root stack."
+  Version:
+    Type: String
+    Description: "Project version, applied as the `version` tag on every resource."
+  LambdaSystemLogLevel:
+    Type: String
+    Default: WARN
   TableName:
     Type: String
   AdminApiId:
@@ -16,9 +25,14 @@ Parameters:
     Type: String
     NoEcho: true
     Description: 'BCrypt hash of the seed users password (dev-only). Never hardcode in source code.'
+  JwtSecret:
+    Type: String
+    NoEcho: true
+    Default: PathsGamesDevSecret2026_MustBeAtLeast32Chars!
+    Description: "v0.41.0 - the Auth secret: the seed signs the tokens it hands out with it."
   AllowMockAccess:
     Type: String
-    Default: "true"
+    Default: "false"
 
 Resources:
   SeedLogGroup:
@@ -28,10 +42,20 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-SeedFunction"
       RetentionInDays: 14
       Tags:
-        - Key: project
-          Value: PathsGames
-        - Key: env
-          Value: !Ref Environment
+        - Key: Name
+          Value: !Sub "/aws/lambda/pathsgames-${Environment}-SeedFunction"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
 
   SeedFunction:
     Type: AWS::Serverless::Function
@@ -39,18 +63,29 @@ Resources:
     Properties:
       FunctionName: !Sub "pathsgames-${Environment}-SeedFunction"
       Runtime: python3.13
+      Architectures: [arm64]
+      LoggingConfig:
+        LogFormat: JSON
+        SystemLogLevel: !Ref LambdaSystemLogLevel
+        ApplicationLogLevel: INFO
       Handler: seed.handler.lambda_handler
       Timeout: 30
       MemorySize: 256
       CodeUri: ../lambda/
       Tags:
-        project: PathsGames
-        env: !Ref Environment
+        Name: !Sub "pathsgames-${Environment}-SeedFunction"
+        CostCenter: Paths.games
+        Environment: !Ref EnvironmentTag
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        version: !Ref Version
       Environment:
         Variables:
           TABLE_NAME: !Ref TableName
           ENV: !Ref Environment
           SEED_BCRYPT_HASH: !Ref SeedBcryptHash
+          JWT_SECRET: !Ref JwtSecret
           ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
       Policies:
         - DynamoDBCrudPolicy:

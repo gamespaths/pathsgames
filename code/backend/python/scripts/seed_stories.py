@@ -48,6 +48,22 @@ def seed():
             {"idText": 11, "lang": "it", "shortText": "turni"},
             {"idText": 2, "lang": "en", "shortText": "A short training adventure."},
             {"idText": 2, "lang": "it", "shortText": "Una breve avventura di addestramento."},
+            # Step 37 - the mission and mission-step texts.
+            {"idText": 900, "lang": "en", "shortText": 'Complete the Tutorial', "longText": 'Visit all the training rooms and learn every game mechanic.'},
+            {"idText": 900, "lang": "it", "shortText": 'Completa il Tutorial', "longText": 'Visita tutte le stanze di addestramento.'},
+            {"idText": 901, "lang": "en", "shortText": 'Collect Training Items', "longText": 'Pick up and use a training potion and an energy snack.'},
+            {"idText": 901, "lang": "it", "shortText": 'Raccogli Oggetti di Addestramento', "longText": 'Raccogli e usa una pozione e uno spuntino.'},
+            {"idText": 902, "lang": "en", "shortText": 'Make Your First Choice', "longText": 'Enter the Choice Arena and pick a door.'},
+            {"idText": 902, "lang": "it", "shortText": 'Fai la Tua Prima Scelta', "longText": "Entra nell'Arena delle Scelte e scegli una porta."},
+            {"idText": 903, "lang": "en", "shortText": 'Gather the Evidence', "longText": 'Find both the ledger and the letter, not one or the other.'},
+            {"idText": 903, "lang": "it", "shortText": 'Raccogli le Prove', "longText": "Trova sia il registro sia la lettera, non una o l'altra."},
+            {"idText": 910, "lang": "en", "shortText": 'Visit the Movement Room', "longText": 'Go to the Movement Training Room.'},
+            {"idText": 911, "lang": "en", "shortText": 'Visit the Energy Classroom', "longText": 'Go to the Energy & Life Classroom.'},
+            {"idText": 912, "lang": "en", "shortText": 'Reach the Graduation Hall', "longText": 'Complete the tutorial by reaching the final room.'},
+            {"idText": 920, "lang": "en", "shortText": 'Pick Up Training Potion', "longText": 'Collect the training potion from the Item Workshop.'},
+            {"idText": 921, "lang": "en", "shortText": 'Use the Energy Snack', "longText": 'Consume the energy snack.'},
+            {"idText": 930, "lang": "en", "shortText": 'Enter the Choice Arena', "longText": 'Go to the Choice Arena to face your first choice.'},
+            {"idText": 931, "lang": "en", "shortText": 'Pick a Door', "longText": 'Choose either the gold or red door.'},
             {"idText": 100, "lang": "en", "shortText": "Welcome Hall"},
             {"idText": 100, "lang": "it", "shortText": "Sala di Benvenuto"},
             {"idText": 200, "lang": "en", "shortText": "Warrior"},
@@ -100,43 +116,95 @@ def seed():
              # Step 23 — trait cost budgets (None/missing = no limit)
              "traitCostPositiveBudget": 2, "traitCostNegativeBudget": 3}
         ],
+        # Step 36 — the registry keys the match seeds from. Without them a Python match had
+        # an empty registry and the step-36 suite exercised nothing here.
+        "keys": [
+            {"id": 1, "keyName": "tutorial_progress", "keyValue": "0",
+             "keyGroup": "tutorial", "isVisible": 1, "priority": 1},
+            {"id": 2, "keyName": "items_collected", "keyValue": "0",
+             "keyGroup": "tutorial", "isVisible": 1, "priority": 2},
+            {"id": 3, "keyName": "choice_made", "keyValue": "0",
+             "keyGroup": "tutorial", "isVisible": 1, "priority": 3},
+            # A hidden one, so includeHidden has something to reveal.
+            {"id": 4, "keyName": "secret_door", "keyValue": "0",
+             "keyGroup": "secrets", "isVisible": 0, "priority": 1},
+            # Step 36.1 — multiValue = 1 makes a key hold a SET: each write adds a member
+            # instead of replacing the value. No default, so its set starts EMPTY: no row.
+            {"id": 5, "keyName": "evidence_found", "keyValue": None,
+             "keyGroup": "evidence", "isVisible": 1, "priority": 1, "multiValue": 1},
+            # Step 36.2 — the case/padding test-bed. 'case_notes' is written with padding and
+            # capitals while every condition on it is authored lowercase and bare; 'signal' is
+            # the mirror, its lowercase default read by a padded, upper-case condition.
+            # 'vault_seen' is written by no event and no choice: only a LOCATION writes it.
+            {"id": 6, "keyName": "case_notes", "keyValue": None,
+             "keyGroup": "evidence", "isVisible": 1, "priority": 2, "multiValue": 1},
+            {"id": 7, "keyName": "signal", "keyValue": "green",
+             "keyGroup": "evidence", "isVisible": 1, "priority": 3},
+            {"id": 8, "keyName": "vault_seen", "keyValue": None,
+             "keyGroup": "evidence", "isVisible": 1, "priority": 4},
+            # Step 37 — the keys the tutorial missions and their steps read. No default at
+            # all, so each starts absent and a mission opens only once something writes it.
+            {"id": 9, "keyName": "visited_movement", "keyValue": None,
+             "keyGroup": "missions", "isVisible": 1, "priority": 1},
+            {"id": 10, "keyName": "visited_energy", "keyValue": None,
+             "keyGroup": "missions", "isVisible": 1, "priority": 2},
+            {"id": 11, "keyName": "visited_graduation", "keyValue": None,
+             "keyGroup": "missions", "isVisible": 1, "priority": 3},
+            {"id": 12, "keyName": "potion_collected", "keyValue": None,
+             "keyGroup": "missions", "isVisible": 1, "priority": 4},
+            {"id": 13, "keyName": "snack_used", "keyValue": None,
+             "keyGroup": "missions", "isVisible": 1, "priority": 5},
+            {"id": 14, "keyName": "entered_arena", "keyValue": None,
+             "keyGroup": "missions", "isVisible": 1, "priority": 6},
+            {"id": 15, "keyName": "door_chosen", "keyValue": None,
+             "keyGroup": "missions", "isVisible": 1, "priority": 7},
+        ],
         "locations": [
-            # Step 26: safe location (isSafe=1 -> secure recovery) carrying a time
+            # Step 26: safe location (secureParam=1 -> secure recovery) carrying a time
             # counter so the location-counter decrement/zero path is exercised.
             # Step 28: neighbor edge (cost 2) to location 2 so movement is testable.
             # Step 33 — the fuse now points at an AUTOMATIC event that actually does
             # something: Step 26 only ever logged it as pending.
-            {"id": 1, "idTextName": 100, "idTextDescription": 100, "isSafe": 1,
+            {"id": 1, "idTextName": 100, "idTextDescription": 100, "secureParam": 1,
              "idCard": 1, "counterTime": 2, "idEventIfCounterZero": 43,
              "priorityAutomaticEvent": 1,
              # flagBack 1 — a two-way door. Without it the edge is one-way and the party
              # can never walk back, which makes every re-entry behaviour untestable.
              "neighbors": [{"idLocationTo": 2, "direction": "NORTH", "energyCost": 2,
+                            "idCardBack": 1, "flagBack": 1},
+                           # Step 36.2 — free both ways, so a test can walk in and out again.
+                           {"idLocationTo": 6, "direction": "SOUTH", "energyCost": 0,
                             "idCardBack": 1, "flagBack": 1}]},
             # Step 28: a second location to move into.
             # Step 0.28.5: both locations carry idCard so GET /locations resolves
             # a full `card` for each location and neighbor (as Java/AWS seeds do).
             # Step 33 — the first arrival here and every later one fire different events.
-            {"id": 2, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
+            {"id": 2, "idTextName": 100, "idTextDescription": 100, "secureParam": 1, "idCard": 1,
              "idEventIfFirstTime": 40, "idEventNotFirstTime": 41,
              "neighbors": [{"idLocationTo": 4, "direction": "EAST", "energyCost": 0,
                             "idCardBack": 1, "flagBack": 1}]},
             # v0.29.3 — deliberately has NO neighbor edge: only the teleport effect (event 28)
             # can bring a character here, proving the forced movement skips every Step 28 check.
-            {"id": 3, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1},
+            {"id": 3, "idTextName": 100, "idTextDescription": 100, "secureParam": 1, "idCard": 1},
             # v0.33.2 — the two triggers that are NOT history-based, each on a location the
             # party can actually walk to. Location 3 cannot host them: no edge reaches it,
             # and a trigger nobody can walk into is a trigger no end-to-end test can read.
             #   4 — fires when the arriving character finds the room empty (OCCUPANCY, which
             #       in single-player is every arrival).
-            {"id": 4, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
+            {"id": 4, "idTextName": 100, "idTextDescription": 100, "secureParam": 1, "idCard": 1,
              "idEventIfCharacterEnterEmptyLocation": 42,
              "neighbors": [{"idLocationTo": 5, "direction": "NORTH", "energyCost": 0,
                             "idCardBack": 1, "flagBack": 1}]},
             #   5 — fires when a time unit BEGINS with somebody standing here, so it is
             #       reported on the sleep that advanced the clock, not on a movement.
-            {"id": 5, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
+            {"id": 5, "idTextName": 100, "idTextDescription": 100, "secureParam": 1, "idCard": 1,
              "idEventIfCharacterStartTime": 44, "priorityAutomaticEvent": 2},
+            # Step 36.2 — the Records Vault writes the registry by being entered. Two pairs:
+            # the first arrival and every later one take different branches, never both, and
+            # no event is involved at all.
+            {"id": 6, "idTextName": 100, "idTextDescription": 100, "secureParam": 1, "idCard": 1,
+             "keyToAdd": "vault_seen", "keyValueToAdd": "first",
+             "keyToAddNotFirst": "vault_seen", "keyValueToAddNotFirst": "again"},
         ],
         "events": [
             {"id": 1, "idTextName": 500, "idTextDescription": 500, "type": "FIRST",
@@ -240,6 +308,15 @@ def seed():
             {"id": 28, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
              "idSpecificLocation": 1, "costEnery": 2, "idCard": 1,
              "effects": [{"idCard": 1, "target": "ONLY_ONE", "idLocation": 3}]},
+            # v0.36.3 — the bell BOTH moves the actor and ends the time unit, the pair that
+            # used to cancel each other out (the time-start pass wrote the roster back as it
+            # was, undoing the move). It moves into location 2, whose first arrival fires an
+            # automatic event, so one execution exercises the arrival it produced too. It
+            # lives in the Records Vault (6), not at the start: no suite picking "any
+            # available event" can trip over it.
+            {"id": 60, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 6, "costEnery": 0, "flagEndTime": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE", "idLocation": 2}]},
             # Step 31 — the choice-engine test-bed: executing these answers CHOICES_PENDING
             # (cost paid, marker written, effects withheld). Event 30 even carries an effect
             # that must NEVER run while pending; 31 is ONCE. Cost 2 on 30 keeps the "cost 1"
@@ -287,6 +364,124 @@ def seed():
              "idCard": 1,
              "effects": [{"idCard": 1, "statistics": "exp", "value": 14, "target": "ONLY_ONE",
                           "keyToAdd": "STEP33_STARTTIME", "keyValueToAdd": "YES"}]},
+            # Step 36.1 — the SET test-bed, four FREE events at the start location. A zero
+            # cost is what keeps them invisible to the Step 31/32 finders, which only ever
+            # pick a choice-event that costs something.
+            #   360 / 361  add one member each, and are repeatable — running one twice must
+            #              leave the set unchanged, which is the whole point of a SET.
+            #   362        gated on evidence_found = letter, so it stays blocked until 361
+            #              has run: = quantifies EXISTENTIALLY over the members.
+            #   363        a choice-event whose only option TAKES ONE MEMBER AWAY.
+            {"id": 360, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "evidence_found", "keyValueToAdd": "ledger"}]},
+            {"id": 361, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "evidence_found", "keyValueToAdd": "letter"}]},
+            {"id": 362, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "registryKeyCondition": "evidence_found", "registryValueCondition": "letter"},
+            {"id": 363, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1},
+            # Step 36.2 — spelling must not decide a gate. Four more FREE events at the start
+            # location, for the same reason as the 36.1 pack above.
+            #   370  WRITES ' Ledger ' — padded and capitalised, as a careless author writes.
+            #   371  READS  'ledger'   — bare and lowercase. It must open once 370 has run,
+            #                            which is the whole claim of v0.36.2 in two rows.
+            #   372  WRITES 'LEDGER'   — a third spelling of the member the set already holds;
+            #                            the set must stay at one member.
+            #   373  READS  '  GREEN ' — the mirror: a padded, upper-case condition against
+            #                            the lowercase default 'signal' carries from the key.
+            {"id": 370, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "case_notes", "keyValueToAdd": " Ledger "}]},
+            {"id": 371, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "registryKeyCondition": "case_notes", "registryValueCondition": "ledger",
+             "registryValueOperatorCondition": "="},
+            {"id": 372, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "case_notes", "keyValueToAdd": "LEDGER"}]},
+            {"id": 373, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "registryKeyCondition": "signal", "registryValueCondition": "  GREEN  ",
+             "registryValueOperatorCondition": "="},
+            # Step 37 mission pack — a writer for every mission condition. Free NORMAL events
+            # at the start location, the same shape as the 36.1 and 36.2 packs: a zero cost
+            # keeps them invisible to the Step 31/32 finders.
+            {"id": 380, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "tutorial_progress", "keyValueToAdd": "1"}]},
+            {"id": 381, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "items_collected", "keyValueToAdd": "1"}]},
+            {"id": 382, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "choice_made", "keyValueToAdd": "gold"}]},
+            {"id": 383, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "visited_movement", "keyValueToAdd": "1"}]},
+            {"id": 384, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "visited_energy", "keyValueToAdd": "1"}]},
+            {"id": 385, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "visited_graduation", "keyValueToAdd": "1"}]},
+            {"id": 386, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "potion_collected", "keyValueToAdd": "1"}]},
+            {"id": 387, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "snack_used", "keyValueToAdd": "1"}]},
+            {"id": 388, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "entered_arena", "keyValueToAdd": "1"}]},
+            {"id": 389, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "door_chosen", "keyValueToAdd": "1"}]},
+        ],
+        # Step 37 — condition_value replaces the from/to pair, and conditionValues is a PIPE
+        # list read as an AND. Mission 4 has NO steps and reads a multi key: both members
+        # must be in the set, so it goes AVAILABLE and COMPLETED in the same write.
+        "missions": [
+            {"id": 1, "conditionKey": "tutorial_progress", "conditionValue": "1", "idCard": 7,
+             "idTextName": 900, "idTextDescription": 900},
+            {"id": 2, "conditionKey": "items_collected", "conditionValue": "1", "idCard": 7,
+             "idTextName": 901, "idTextDescription": 901},
+            {"id": 3, "conditionKey": "choice_made", "conditionValue": "gold", "idCard": 7,
+             "idTextName": 902, "idTextDescription": 902},
+            {"id": 4, "conditionKey": "evidence_found", "conditionValues": "ledger|letter", "idCard": 7,
+             "idTextName": 903, "idTextDescription": 903},
+        ],
+        "missionSteps": [
+            {"id": 1, "idMission": 1, "step": 1, "conditionKey": "visited_movement",
+             "conditionValue": "1", "idCard": 8, "idTextName": 910, "idTextDescription": 910},
+            {"id": 2, "idMission": 1, "step": 2, "conditionKey": "visited_energy",
+             "conditionValue": "1", "idCard": 8, "idTextName": 911, "idTextDescription": 911},
+            {"id": 3, "idMission": 1, "step": 3, "conditionKey": "visited_graduation",
+             "conditionValue": "1", "idCard": 8, "idTextName": 912, "idTextDescription": 912},
+            {"id": 4, "idMission": 2, "step": 1, "conditionKey": "potion_collected",
+             "conditionValue": "1", "idCard": 8, "idTextName": 920, "idTextDescription": 920},
+            {"id": 5, "idMission": 2, "step": 2, "conditionKey": "snack_used",
+             "conditionValue": "1", "idCard": 8, "idTextName": 921, "idTextDescription": 921},
+            {"id": 6, "idMission": 3, "step": 1, "conditionKey": "entered_arena",
+             "conditionValue": "1", "idCard": 8, "idTextName": 930, "idTextDescription": 930},
+            {"id": 7, "idMission": 3, "step": 2, "conditionKey": "door_chosen",
+             "conditionValue": "1", "idCard": 8, "idTextName": 931, "idTextDescription": 931},
         ],
         # Step 31 — the options of the two choice-events above (canonical top-level arrays
         # keyed by idChoices). Event 30: one always-available option, one gated on INT > 99
@@ -316,8 +511,22 @@ def seed():
             {"id": 22, "idEvent": 32, "idCard": 1, "idTextName": 613, "idTextDescription": 613,
              "priority": 3, "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "AND",
              "limitDex": 99},
+            # Step 36.1 — otherwiseFlag 1 and no narrative: always selectable, and never the
+            # option the Step 32 suite looks for (that one wants a narrated option).
+            {"id": 360, "idEvent": 363, "idCard": 1, "idTextName": 612,
+             "idTextDescription": 612, "priority": 1, "otherwiseFlag": 1, "isProgress": 0,
+             "logicOperator": "AND"},
+            # v0.36.1 — the same event's SECOND option, gated on the multi key with !=: it is
+            # offered while the set does not hold the value and refused once it does.
+            {"id": 361, "idEvent": 363, "idCard": 1, "idTextName": 612,
+             "idTextDescription": 612, "priority": 2, "otherwiseFlag": 0, "isProgress": 0,
+             "logicOperator": "AND"},
         ],
         "choiceConditions": [
+            # v0.36.1 — != over a SET: met while no member equals the value, refused as soon
+            # as one does. R4_CHOICE_EMPTY is why option 361 also carries an effect below.
+            {"id": 360, "idChoices": 361, "type": "KEYS", "key": "evidence_found",
+             "value": "ledger", "operator": "!="},
             {"id": 2, "idChoices": 11, "type": "statistics", "key": "int", "value": "99", "operator": ">"},
             {"id": 3, "idChoices": 12, "type": "statistics", "key": "int", "value": "99", "operator": ">"},
             {"id": 4, "idChoices": 12, "type": "statistics", "key": "life", "value": "0", "operator": ">"},
@@ -338,6 +547,11 @@ def seed():
             {"id": 21, "idChoices": 21, "idCard": 1, "key": "STEP32_GATE",
              "valueToAdd": "OPEN", "idItemTarget": 1, "itemAction": "ADD",
              "idLocation": 3, "idWeather": 3},
+            # Step 36.1 — valueToRemove on a MULTI key takes that one member away and leaves
+            # the rest, where on a single key it still clears the value.
+            {"id": 360, "idChoices": 360, "idCard": 1, "key": "evidence_found",
+             "valueToRemove": "ledger"},
+            {"id": 361, "idChoices": 361, "idCard": 1, "statistics": "exp", "value": 1},
         ],
         # v0.34.0 — the inventory test-bed. Item 1 is CARRIED ONLY (it gates event 15 and
         # must stay in the bag), item 2 is the consumable that gates event 50, item 3 is
@@ -430,6 +644,13 @@ def seed():
              "idTextDescription": 200, "awesomeIcon": "fa-sun", "styleMain": "card-weather"},
             {"id": 6, "uuid": "card-tutorial-weather-storm", "idTextTitle": 201,
              "idTextDescription": 201, "awesomeIcon": "fa-cloud-bolt", "styleMain": "card-weather"},
+            # v0.37.2 — missions and their steps wear cards of their own, as the SQL seeds do:
+            # sharing the events' card hid a timeline lookup reading the wrong table.
+            {"id": 7, "uuid": "card-tutorial-mission", "idTextTitle": 911,
+             "idTextDescription": 911, "awesomeIcon": "fas fa-scroll", "styleMain": "card-mission"},
+            {"id": 8, "uuid": "card-tutorial-mission-step", "idTextTitle": 912,
+             "idTextDescription": 912, "awesomeIcon": "fas fa-list-check",
+             "styleMain": "card-mission"},
         ]
     }
     
@@ -466,6 +687,10 @@ def seed():
             {"idText": 100, "lang": "it", "shortText": "Castelfranco"},
             {"idText": 101, "lang": "en", "shortText": "Treviso"},
             {"idText": 101, "lang": "it", "shortText": "Treviso"},
+            {"idText": 900, "lang": "en", "shortText": "The Journey Begins"},
+            {"idText": 910, "lang": "en", "shortText": "Obtain the Records"},
+            {"idText": 950, "lang": "en", "shortText": "Journey begun"},
+            {"idText": 951, "lang": "en", "shortText": "Monastery records"},
         ],
         "difficulties": [
             {"uuid": "demo2-diff-1", "idTextDescription": 300, "expCost": 3, "maxWeight": 20,
@@ -481,10 +706,29 @@ def seed():
         # AWS seeds ship a real map here; two walkable places are enough to make the same
         # case runnable without transcribing the whole Veneto.
         "locations": [
-            {"id": 1, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
+            # v0.37.1 — the START location writes its first-entry pair when the match starts:
+            # the party begins standing here, so no arrival will ever fire in this place.
+            {"id": 1, "idTextName": 100, "idTextDescription": 100, "secureParam": 1, "idCard": 1,
+             "keyToAdd": "journey_begun", "keyValueToAdd": "yes",
              "neighbors": [{"idLocationTo": 2, "direction": "EAST", "energyCost": 1,
                             "idCardBack": 1, "flagBack": 1}]},
-            {"id": 2, "idTextName": 101, "idTextDescription": 101, "isSafe": 0, "idCard": 1},
+            {"id": 2, "idTextName": 101, "idTextDescription": 101, "secureParam": 0, "idCard": 1},
+        ],
+        # v0.37.1 — the mission that only the start location can open, held at AVAILABLE by a
+        # step nothing here satisfies. Fixture of tests/37_missions/mission_from_start.robot.
+        "keys": [
+            {"id": 1, "keyName": "journey_begun", "keyValue": None,
+             "keyGroup": "missions", "isVisible": 1, "priority": 1},
+            {"id": 2, "keyName": "monastery_records", "keyValue": "0",
+             "keyGroup": "evidence", "isVisible": 1, "priority": 2},
+        ],
+        "missions": [
+            {"id": 1, "conditionKey": "journey_begun", "conditionValue": "yes", "idCard": 1,
+             "idTextName": 900, "idTextDescription": 900},
+        ],
+        "missionSteps": [
+            {"id": 1, "idMission": 1, "step": 1, "conditionKey": "monastery_records",
+             "conditionValue": "1", "idCard": 1, "idTextName": 910, "idTextDescription": 910},
         ],
         "events": [],
         "items": [],

@@ -84,9 +84,13 @@ def edge_store():
 
 @pytest.fixture
 def content_port():
+    # v0.35.8 — the port returns the RAW card row; the service maps it to the
+    # CardInfoResponse shape and resolves id_text_title into `title`.
     p = MagicMock()
     p.find_card_by_story_id_and_card_id.side_effect = \
-        lambda id_story, id_card: {"title": f"card-{id_card}"}
+        lambda id_story, id_card: {"uuid": f"card-uuid-{id_card}", "id_text_title": id_card}
+    p.find_text_by_story_id_text_and_lang.side_effect = \
+        lambda id_story, id_text, lang: {"short_text": f"card-{id_text}"}
     return p
 
 
@@ -118,7 +122,8 @@ def test_everyone_down_runs_the_epilogue_and_keeps_it_separate(service, store, e
     assert r.edge_state.all_players_in_coma is True
     assert r.edge_state.coma_uuids == ["char-uuid"]
     assert r.edge_state.coma_event_uuid == "coma-event-uuid"
-    assert r.edge_state.coma_event_card == {"title": "card-77"}
+    assert r.edge_state.coma_event_card["title"] == "card-77"
+    assert r.edge_state.coma_event_card["uuid"] == "card-uuid-77"
     assert r.edge_state.coma_executed_event_uuids == ["coma-event-uuid"]
     # The player's own chain must not contain the epilogue.
     assert r.executed_event_uuids == ["event-1"]
@@ -251,3 +256,54 @@ def test_sadness_never_rests_at_its_cap(service, store, edge_store):
     edge_store.set_sleeping.assert_called_once_with(MATCH_ID, CHAR_ID)
     stats = store.update_character_stats.call_args[0][2]
     assert stats["sad"] == 0 and stats["life"] == 20
+
+
+def test_the_card_goes_out_in_the_api_contract_not_as_a_raw_row(content_port):
+    """v0.35.8 — execute-event shipped the raw DB row: snake_case keys and the
+    id_text_* references unresolved, so a client reading card.title / card.description /
+    card.urlImage rendered an empty card."""
+    from unittest.mock import MagicMock
+    from app.core.services.match.event_service import EventService
+
+    content_port.find_card_by_story_id_and_card_id.side_effect = lambda id_story, id_card: {
+        "uuid": "card-uuid", "card_type": None,
+        "url_image": "http://img", "alternative_image": None, "awesome_icon": None,
+        "style_main": None, "style_detail": None, "style_image_little": None,
+        "style_image_medium": None, "style_image_large": "ob-c-20",
+        "id_text_title": 362, "id_text_name": 362,
+        "id_text_description": 366, "id_text_copyright": 365,
+        "link_copyright": "http://unsplash",
+    }
+    content_port.find_text_by_story_id_text_and_lang.side_effect = \
+        lambda id_story, id_text, lang: {"short_text": f"text-{id_text}-{lang}"}
+
+    service = EventService(MagicMock(), content_read_port=content_port)
+    card = service._resolve_card_for(101, 125, "it")
+
+    assert card["urlImage"] == "http://img"
+    assert card["styleImageLarge"] == "ob-c-20"
+    assert card["linkCopyright"] == "http://unsplash"
+    # the three texts the board renders, resolved in the requested language
+    assert card["title"] == "text-362-it"
+    assert card["description"] == "text-366-it"
+    assert card["copyrightText"] == "text-365-it"
+    # not a single snake_case key survives
+    assert not [k for k in card if "_" in k]
+
+
+def test_card_text_falls_back_to_english(content_port):
+    from unittest.mock import MagicMock
+    from app.core.services.match.event_service import EventService
+
+    content_port.find_card_by_story_id_and_card_id.side_effect = \
+        lambda id_story, id_card: {"uuid": "c", "id_text_name": 7}
+    content_port.find_text_by_story_id_text_and_lang.side_effect = \
+        lambda id_story, id_text, lang: {"short_text": "English"} if lang == "en" else None
+
+    service = EventService(MagicMock(), content_read_port=content_port)
+    # id_text_title is absent: id_text_name is the fallback, exactly as elsewhere
+    assert service._resolve_card_for(101, 1, "it")["title"] == "English"
+    # no card, no crash
+    content_port.find_card_by_story_id_and_card_id.side_effect = lambda *a: None
+    assert service._resolve_card_for(101, 1, "en") is None
+    assert service._resolve_card_for(101, None, "en") is None

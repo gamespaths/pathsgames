@@ -2,7 +2,8 @@
 import os
 from unittest.mock import patch
 
-from common.http_utils import normalize_path, get_source_ip, bearer_token, check_admin_ip
+from common.http_utils import (normalize_path, get_source_ip, bearer_token,
+                               bearer_token_error, check_admin_ip)
 
 
 def test_normalize_path_already_api():
@@ -70,3 +71,25 @@ def test_check_admin_ip_blocked():
         resp = check_admin_ip(ev)
         assert resp is not None
         assert resp['statusCode'] == 403
+
+
+# ── bearer_token_error (v0.37.1) ─────────────────────────────────────────────
+# The vocabulary is the Java filter's, so a Robot suite can pin the code on any backend.
+
+def test_no_authorization_header_is_a_missing_token():
+    code, message = bearer_token_error({})
+    assert code == 'MISSING_TOKEN'
+    assert 'Bearer' in message
+    assert bearer_token_error({'headers': {}})[0] == 'MISSING_TOKEN'
+
+
+def test_a_header_that_is_not_a_bearer_is_a_missing_token_too():
+    assert bearer_token_error({'headers': {'Authorization': 'Basic abc'}})[0] == 'MISSING_TOKEN'
+
+
+def test_a_bearer_carrying_nothing_is_an_empty_token():
+    code, message = bearer_token_error({'headers': {'Authorization': 'Bearer   '}})
+    assert code == 'EMPTY_TOKEN'
+    assert message == 'Bearer token is empty'
+    # The header name is read case-insensitively here as it is in bearer_token.
+    assert bearer_token_error({'headers': {'authorization': 'bearer '}})[0] == 'EMPTY_TOKEN'

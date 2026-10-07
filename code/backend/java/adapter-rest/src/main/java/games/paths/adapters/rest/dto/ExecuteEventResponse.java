@@ -70,6 +70,10 @@ public class ExecuteEventResponse {
      * somewhere. A forced-movement effect is an arrival, and arriving is a trigger.
      */
     private List<AutomaticEventResponse> automaticEvents = new ArrayList<>();
+    /** Step 40 - when the time ended here: the weather after the time-start, else null. */
+    private TimeStartWeatherResponse weather;
+    /** Step 40 - what the forced time-start fired, sleep-answer shape; empty otherwise. */
+    private List<SleepActionResponse.CounterZeroItem> counterZero = new ArrayList<>();
 
     public static ExecuteEventResponse fromModel(EventExecutionResult m) {
         ExecuteEventResponse d = new ExecuteEventResponse();
@@ -133,7 +137,16 @@ public class ExecuteEventResponse {
         }
         d.edgeState = EdgeStateOutcomeDto.fromModel(m.edgeState());
         d.automaticEvents = AutomaticEventResponse.fromModels(m.automaticEvents());
+        d.weather = m.timeEnd() == null ? null : TimeStartWeatherResponse.fromModel(m.timeEnd().weather());
+        d.counterZero = TimeStartWeatherResponse.counterZeroOf(m.timeEnd());
         return d;
+    }
+
+    public TimeStartWeatherResponse getWeather() { return weather; }
+    public void setWeather(TimeStartWeatherResponse weather) { this.weather = weather; }
+    public List<SleepActionResponse.CounterZeroItem> getCounterZero() { return counterZero; }
+    public void setCounterZero(List<SleepActionResponse.CounterZeroItem> counterZero) {
+        this.counterZero = counterZero;
     }
 
     public String getMatchUuid() { return matchUuid; }

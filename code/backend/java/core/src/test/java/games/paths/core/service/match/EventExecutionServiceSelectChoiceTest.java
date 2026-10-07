@@ -17,6 +17,7 @@ import games.paths.core.port.match.EventExecutionStorePort.CharacterStats;
 import games.paths.core.port.match.EventExecutionStorePort.EventActorView;
 import games.paths.core.port.match.EventExecutionStorePort.EventCheckContext;
 import games.paths.core.port.match.EventExecutionStorePort.MatchEventView;
+import games.paths.core.port.match.TimeAdvancementPort;
 import games.paths.core.port.match.UserAccessPort;
 import games.paths.core.port.story.ContentQueryPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -68,6 +69,7 @@ class EventExecutionServiceSelectChoiceTest {
     private static final int CLOCK = 7;
 
     private EventExecutionStorePort store;
+    private RegistryService registryService;
     private EdgeStateStorePort edgeStore;
     private UserAccessPort userAccessPort;
     private ContentQueryPort contentQueryPort;
@@ -77,12 +79,13 @@ class EventExecutionServiceSelectChoiceTest {
     @BeforeEach
     void setUp() {
         store = mock(EventExecutionStorePort.class);
+        registryService = mock(RegistryService.class);
         edgeStore = mock(EdgeStateStorePort.class);
         userAccessPort = mock(UserAccessPort.class);
         contentQueryPort = mock(ContentQueryPort.class);
         timeAdvancementService = mock(TimeAdvancementService.class);
         service = new EventExecutionService(store, edgeStore, userAccessPort, contentQueryPort,
-                timeAdvancementService);
+                timeAdvancementService, registryService);
 
         when(userAccessPort.findByUuid(USER_UUID)).thenReturn(Optional.of(
                 new UserAccessPort.UserView(USER_ID, USER_UUID, "player", "USER", 2)));
@@ -415,6 +418,16 @@ class EventExecutionServiceSelectChoiceTest {
                     "the character in another location is not part of the group");
         }
 
+        /** The service hands back the set it just wrote; the mock stands in for that set. */
+        @org.junit.jupiter.api.BeforeEach
+        void writeEchoesTheValue() {
+            when(registryService.upsert(anyLong(), any(), any(), any(), any(), any(), any(), any()))
+                    .thenAnswer(inv -> {
+                        String written = inv.getArgument(3);
+                        return written == null ? List.of() : List.of(written);
+                    });
+        }
+
         @Test
         @DisplayName("key + value_to_add writes the registry key")
         void registryAdd() {
@@ -425,16 +438,16 @@ class EventExecutionServiceSelectChoiceTest {
 
             ChoiceResolutionResult r = resolve();
 
-            verify(store).upsertRegistry(MATCH_ID, "DOOR", "OPEN", CHAR_ID, EVENT_ID, CLOCK);
+            verify(registryService).upsert(eq(MATCH_ID), any(), eq("DOOR"), eq("OPEN"),
+                    eq(CHAR_ID), eq(EVENT_ID), eq(null), eq(CLOCK));
             assertEquals(1, r.execution().registryChanges().size());
-            assertEquals("OPEN", r.execution().registryChanges().get(0).newValue());
         }
 
         @Test
         @DisplayName("value_to_remove clears the key when the stored value matches")
         void registryRemoveOnMatch() {
-            Map<String, String> registry = new HashMap<>();
-            registry.put("DOOR", "OPEN");
+            Map<String, List<String>> registry = new HashMap<>();
+            registry.put("DOOR", List.of("OPEN"));
             when(store.loadCheckContext(MATCH_ID, CHAR_ID)).thenReturn(new EventCheckContext(
                     CHAR_ID, LOC, false, false, 20, 10, 50L, new HashSet<>(), null,
                     new HashSet<>(Set.of(EVENT_ID)), registry));
@@ -445,15 +458,15 @@ class EventExecutionServiceSelectChoiceTest {
 
             ChoiceResolutionResult r = resolve();
 
-            verify(store).upsertRegistry(MATCH_ID, "DOOR", null, CHAR_ID, EVENT_ID, CLOCK);
-            assertNull(r.execution().registryChanges().get(0).newValue());
+            // Step 36.1 — taking a value away is its own call, not a write of null.
+            verify(registryService).remove(MATCH_ID, "DOOR", "OPEN", CHAR_ID, EVENT_ID, null, CLOCK);
         }
 
         @Test
         @DisplayName("value_to_remove leaves a key some other branch has since moved on")
         void registryRemoveOnMismatch() {
-            Map<String, String> registry = new HashMap<>();
-            registry.put("DOOR", "SEALED");
+            Map<String, List<String>> registry = new HashMap<>();
+            registry.put("DOOR", List.of("SEALED"));
             when(store.loadCheckContext(MATCH_ID, CHAR_ID)).thenReturn(new EventCheckContext(
                     CHAR_ID, LOC, false, false, 20, 10, 50L, new HashSet<>(), null,
                     new HashSet<>(Set.of(EVENT_ID)), registry));
@@ -464,8 +477,10 @@ class EventExecutionServiceSelectChoiceTest {
 
             ChoiceResolutionResult r = resolve();
 
-            verify(store, never()).upsertRegistry(anyLong(), anyString(), any(), any(), any(), anyInt());
-            assertTrue(r.execution().registryChanges().isEmpty());
+            // The service itself refuses a value the story has moved on from, so the effect
+            // still calls it; what must not happen is a WRITE.
+            verify(registryService, never()).upsert(anyLong(), any(), anyString(), any(), any(),
+                    any(), any(), anyInt());
         }
 
         @Test
@@ -743,6 +758,56 @@ class EventExecutionServiceSelectChoiceTest {
     }
 
     @Test
+    @DisplayName("a lethal option runs the all-players-in-coma epilogue, and can be carried away by it")
+    void lethalOptionRunsTheEpilogue() {
+        EventEntity epilogue = new EventEntity();
+        epilogue.setId(9L);
+        epilogue.setUuid("coma-uuid");
+        epilogue.setType("NORMAL");
+        epilogue.setFlagEndTime(0);
+        when(store.findEventsById(STORY_ID)).thenReturn(Map.of(EVENT_ID, event(), 9L, epilogue));
+        when(store.findIdEventAllPlayerComa(STORY_ID)).thenReturn(Optional.of(9L));
+        // Carrying the body elsewhere is the reason an author writes an epilogue at all.
+        EventEffectEntity carry = new EventEffectEntity();
+        carry.setIdEvent(9);
+        carry.setIdLocation((int) FAR_LOC);
+        carry.setTarget("ONLY_ONE");
+        when(store.findEffectsByEventId(STORY_ID)).thenReturn(Map.of(9L, List.of(carry)));
+        ChoiceEffectEntity lethal = effect(1);
+        lethal.setStatistics("life");
+        lethal.setValue(-99);
+        givenEffects(lethal);
+
+        ChoiceResolutionResult r = resolve();
+
+        EventExecutionPort.EdgeStateOutcome edge = r.execution().edgeState();
+        assertTrue(edge.allPlayersInComa());
+        assertEquals("coma-uuid", edge.comaEventUuid());
+        assertEquals(List.of("coma-uuid"), edge.comaExecutedEventUuids());
+        // Two chains, two lists: what the option caused is not what the collapse caused.
+        assertFalse(r.execution().executedEventUuids().contains("coma-uuid"));
+        assertTrue(r.execution().locationChanges().stream()
+                .anyMatch(c -> "loc-far".equals(c.toLocationUuid())));
+    }
+
+    @Test
+    @DisplayName("a party still standing gets no epilogue, however lethal the option was")
+    void aSurvivingPartyGetsNoEpilogue() {
+        when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(actor(), companion()));
+        when(store.findIdEventAllPlayerComa(STORY_ID)).thenReturn(Optional.of(9L));
+        ChoiceEffectEntity lethal = effect(1);
+        lethal.setStatistics("life");
+        lethal.setValue(-99);
+        givenEffects(lethal);
+
+        ChoiceResolutionResult r = resolve();
+
+        assertTrue(r.execution().edgeState().comaUuids().contains("char-uuid"));
+        assertFalse(r.execution().edgeState().allPlayersInComa());
+        assertNull(r.execution().edgeState().comaEventUuid());
+    }
+
+    @Test
     @DisplayName("a lethal row does not silence its siblings — the edge pass comes after them all")
     void lethalRowDoesNotStopItsSiblings() {
         ChoiceEffectEntity lethal = effect(1);
@@ -792,7 +857,7 @@ class EventExecutionServiceSelectChoiceTest {
         ender.setType("NORMAL");
         ender.setFlagEndTime(1);
         when(store.findEventsById(STORY_ID)).thenReturn(Map.of(EVENT_ID, event(), 4L, ender));
-        when(timeAdvancementService.forceTimeEnd(MATCH_UUID))
+        when(timeAdvancementService.forceTimeEnd(eq(MATCH_UUID), any()))
                 .thenReturn(new TimeAdvancementService.TimeEndOutcome(CLOCK + 1, List.of(), List.of()));
         ChoiceEntity c = choice();
         c.setIdEventTorun(4);
@@ -802,6 +867,30 @@ class EventExecutionServiceSelectChoiceTest {
 
         assertTrue(r.execution().timeEnded());
         assertEquals(CLOCK + 1, r.execution().currentClock());
+    }
+
+    @Test
+    @DisplayName("v0.41.1 decision 19 - the markers land at clock N, before the forced time-end")
+    void markersBeforeTheForcedTimeEnd() {
+        EventEntity ender = new EventEntity();
+        ender.setId(4L);
+        ender.setUuid("ender-uuid");
+        ender.setType("NORMAL");
+        ender.setFlagEndTime(1);
+        when(store.findEventsById(STORY_ID)).thenReturn(Map.of(EVENT_ID, event(), 4L, ender));
+        when(timeAdvancementService.forceTimeEnd(eq(MATCH_UUID), any()))
+                .thenReturn(new TimeAdvancementService.TimeEndOutcome(CLOCK + 1, List.of(), List.of()));
+        ChoiceEntity c = choice();
+        c.setIdEventTorun(4);
+        when(store.findChoiceByStoryAndUuid(STORY_ID, CHOICE_UUID)).thenReturn(Optional.of(c));
+
+        resolve();
+
+        org.mockito.InOrder order = inOrder(store, timeAdvancementService);
+        order.verify(store).logEventExecuted(eq(MATCH_ID), eq(CHAR_ID), eq(EVENT_ID), eq(CLOCK),
+                eq(EventExecutionStorePort.MSG_CHOICE_SELECTED + " " + EVENT_ID), any(), any());
+        order.verify(store).logChoiceExecuted(eq(MATCH_ID), eq(EVENT_ID), eq(CHOICE_ID), eq(CLOCK), anyString());
+        order.verify(timeAdvancementService).forceTimeEnd(eq(MATCH_UUID), any());
     }
 
     // ── the shared shape ────────────────────────────────────────────────────
@@ -817,5 +906,92 @@ class EventExecutionServiceSelectChoiceTest {
         assertEquals(EventExecutionPort.STATUS_APPLIED, r.execution().status());
         assertFalse(r.execution().turnConsumed(), "turns are Step 61, for every action at once");
         assertEquals(List.of(), r.execution().pendingChoices());
+    }
+    // ── Step 40 ─────────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("Step 40 - the CHOICE_SELECTED row carries the gains of the option's own rows only")
+    void choiceGainsOnTheMarker() {
+        ChoiceEffectEntity food = effect(1L);
+        food.setStatistics("food");
+        food.setValue(3);
+        ChoiceEffectEntity coin = effect(2L);
+        coin.setStatistics("coin");
+        coin.setValue(2);
+        coin.setIdEvent(5);
+        ChoiceEffectEntity drain = effect(3L);
+        drain.setStatistics("energy");
+        drain.setValue(-4);
+        givenEffects(food, coin, drain);
+        EventEntity linked = new EventEntity();
+        linked.setId(5L);
+        linked.setUuid("linked-uuid");
+        linked.setType("NORMAL");
+        EventEffectEntity magic = new EventEffectEntity();
+        magic.setId(50L);
+        magic.setIdEvent(5);
+        magic.setStatistics("magic");
+        magic.setValue(1);
+        magic.setTarget("ONLY_ONE");
+        when(store.findEventsById(STORY_ID)).thenReturn(Map.of(EVENT_ID, event(), 5L, linked));
+        when(store.findEffectsByEventId(STORY_ID)).thenReturn(Map.of(5L, List.of(magic)));
+
+        resolve();
+
+        verify(store).logEventExecuted(MATCH_ID, CHAR_ID, EVENT_ID, CLOCK,
+                EventExecutionStorePort.MSG_CHOICE_SELECTED + " " + EVENT_ID,
+                EventExecutionStorePort.SpentResources.none(),
+                new EventExecutionStorePort.ResourceDelta(0, 3, 0, 2));
+        verify(store).logEventExecuted(eq(MATCH_ID), eq(CHAR_ID), eq(5L), anyInt(),
+                eq(EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + 5L),
+                any(), eq(new EventExecutionStorePort.ResourceDelta(0, 0, 1, 0)));
+    }
+
+    @Test
+    @DisplayName("Step 40 - an option that ends the time answers counterZero[] and the weather card")
+    void timeEndNewsOnSelectChoice() {
+        EventEntity ender = new EventEntity();
+        ender.setId(4L);
+        ender.setUuid("ender-uuid");
+        ender.setType("NORMAL");
+        ender.setFlagEndTime(1);
+        when(store.findEventsById(STORY_ID)).thenReturn(Map.of(EVENT_ID, event(), 4L, ender));
+        TimeAdvancementPort.CounterZeroItem item = new TimeAdvancementPort.CounterZeroItem(
+                "COUNTER_ZERO", LOC, null, null, List.of(), "cz-uuid", CLOCK + 1, "FULL");
+        TimeAdvancementPort.TimeStartWeather w = new TimeAdvancementPort.TimeStartWeather(
+                9L, "rain", 77, null, -1, 2, 3, true);
+        when(timeAdvancementService.forceTimeEnd(MATCH_UUID, CHAR_ID))
+                .thenReturn(new TimeAdvancementService.TimeEndOutcome(CLOCK + 1, List.of(),
+                        EventExecutionPort.EdgeStateOutcome.none(), List.of(item), w));
+        when(contentQueryPort.getCardByStoryIdAndCardId(STORY_ID, 77, "en")).thenReturn(card("rain-card"));
+        ChoiceEntity c = choice();
+        c.setIdEventTorun(4);
+        when(store.findChoiceByStoryAndUuid(STORY_ID, CHOICE_UUID)).thenReturn(Optional.of(c));
+
+        ChoiceResolutionResult r = resolve();
+
+        TimeAdvancementPort.TimeEndNews news = r.execution().timeEnd();
+        assertNotNull(news);
+        assertEquals(CLOCK + 1, news.newClock());
+        assertEquals(List.of(item), news.counterZero());
+        assertEquals("rain-card", news.weather().card().uuid());
+        assertTrue(news.weather().changed());
+    }
+
+    @Test
+    @DisplayName("Step 40 - a resolution that does not end the time carries no news")
+    void noTimeEndNoNews() {
+        assertNull(resolve().execution().timeEnd());
+    }
+
+    @Test
+    @DisplayName("v0.41.2 - a resolved choice counts one CHOICE KPI named by its uuid")
+    void choiceKpi() {
+        games.paths.core.port.match.KpiPort kpi = mock(games.paths.core.port.match.KpiPort.class);
+        service.setKpi(kpi);
+
+        resolve();
+
+        verify(kpi).recordForMatch(MATCH_ID, games.paths.core.port.match.KpiPort.Metric.CHOICE, CHOICE_UUID, 1);
     }
 }

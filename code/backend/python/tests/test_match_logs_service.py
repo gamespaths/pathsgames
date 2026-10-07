@@ -23,6 +23,8 @@ from app.adapters.persistence.story.models import (
     EventEntity,
     ItemEntity,
     LocationEntity,
+    MissionEntity,
+    MissionStepEntity,
     WeatherRuleEntity,
 )
 from app.core.models.story.card_info import CardInfo
@@ -160,6 +162,21 @@ def test_sleep_and_recovery_entries_carry_their_detail_fields(session_factory):
     assert recovery["message"].startswith("recovery")
 
 
+def test_exp_use_row_is_its_own_type_with_the_character_attached(session_factory):
+    """Step 38 — one EXP_USE row per purchase, the message kept verbatim."""
+    _seed_match(session_factory)
+    with session_factory() as s:
+        s.add(LogEventsEntity(id=9, id_match=MATCH_ID, uuid="e9", id_character_match=10,
+                              timestamp=_NOW, clock=3, log_message="EXP_USE dex 10->11 cost 23",
+                              ts_insert=_NOW, ts_update=_NOW))
+        s.commit()
+    logs = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"]
+    assert [e["type"] for e in logs] == ["EXP_USE"]
+    assert logs[0]["clock"] == 3
+    assert logs[0]["idCharacterMatch"] == 10
+    assert logs[0]["message"] == "EXP_USE dex 10->11 cost 23"
+
+
 def test_counter_zero_event_is_its_own_type(session_factory):
     """Step 33 — a counter running out and a character healing are unrelated events, so
     COUNTER_ZERO was split out of RECOVERY. The row also carries the clock (it used to be
@@ -214,8 +231,7 @@ def test_executed_event_is_reported_as_event(session_factory):
 
 
 def test_edge_state_messages_are_skipped_not_shown_as_event(session_factory):
-    """v0.30.3 regression — SADNESS_OVERFLOW/COMA (Step 30 edge-state audit rows) share
-    the log_events table with executed events but must not surface as EVENT entries."""
+    """v0.30.3 regression — SADNESS_OVERFLOW/COMA never surface as EVENT; v0.41.1 shows them as EDGE_STATE."""
     _seed_match(session_factory)
     with session_factory() as s:
         s.add(LogEventsEntity(id=12, id_match=MATCH_ID, uuid="e12", id_character_match=10,
@@ -226,7 +242,8 @@ def test_edge_state_messages_are_skipped_not_shown_as_event(session_factory):
                               ts_insert=_NOW, ts_update=_NOW))
         s.commit()
     logs = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"]
-    assert logs == []
+    assert [e["type"] for e in logs] == ["EDGE_STATE", "EDGE_STATE"]
+    assert [e["message"] for e in logs] == ["SADNESS_OVERFLOW", "COMA"]
 
 
 def test_admin_variant_skips_the_ownership_check(session_factory):
@@ -607,3 +624,114 @@ def test_v0354_every_entry_carries_the_eight_resource_fields_whatever_its_type(s
             assert entry[f"{name}Gain"] is not None, f"{name}Gain missing on {entry['type']}"
     weather = next(e for e in logs if e["type"] == "WEATHER")
     assert (weather["energyCost"], weather["coinGain"]) == (0, 0)
+
+
+# ── v0.37.2 — a mission row is narrated by the mission's own card ─────────────
+
+def _seed_mission_row(session_factory, message, row_id=21):
+    with session_factory() as s:
+        s.add(LogEventsEntity(id=row_id, id_match=MATCH_ID, uuid=f"e{row_id}", timestamp=_NOW,
+                              clock=4, log_message=message, ts_insert=_NOW, ts_update=_NOW))
+        s.commit()
+
+
+def _seed_mission_and_step(session_factory):
+    with session_factory() as s:
+        s.add(MissionEntity(id=1, id_story=STORY_ID, uuid="m-1", condition_key="k",
+                            condition_value="1", id_card=70))
+        s.add(MissionStepEntity(id=10, id_story=STORY_ID, id_mission=1, step=7,
+                                condition_key="s1", condition_value="1", id_card=71))
+        s.commit()
+
+
+def test_v0372_a_row_about_the_mission_itself_carries_the_missions_card(session_factory):
+    _seed_match(session_factory)
+    _seed_mission_and_step(session_factory)
+    # No step named: the mission opening, or the row that says it is over.
+    _seed_mission_row(session_factory, "MISSION_CHANGE m-1 none -> AVAILABLE")
+    content = _FakeContentQueryService({70: "The Journey", 71: "Reach the hills"})
+
+    entry = MatchLogsService(session_factory, content).get_match_logs_for_admin(MATCH_UUID)["logs"][0]
+
+    assert entry["type"] == "MISSION_CHANGE"
+    # The uuid in the message is the only handle the row has: no mission column exists.
+    assert entry["idCard"] == 70
+    assert entry["card"]["title"] == "The Journey"
+
+
+def test_v0372_a_row_that_names_a_step_carries_the_steps_card(session_factory):
+    _seed_match(session_factory)
+    _seed_mission_and_step(session_factory)
+    _seed_mission_row(session_factory, "MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 7")
+    content = _FakeContentQueryService({70: "The Journey", 71: "Reach the hills"})
+
+    entry = MatchLogsService(session_factory, content).get_match_logs_for_admin(MATCH_UUID)["logs"][0]
+
+    # An advance is the STEP's news; the mission's card is for its opening and its end.
+    assert entry["idCard"] == 71
+    assert entry["card"]["title"] == "Reach the hills"
+
+
+def test_v0372_a_step_the_story_does_not_declare_leaves_the_row_without_a_card(session_factory):
+    _seed_match(session_factory)
+    _seed_mission_and_step(session_factory)
+    _seed_mission_row(session_factory, "MISSION_CHANGE m-1 AVAILABLE -> ACTIVE step 9")
+    content = _FakeContentQueryService({70: "The Journey", 71: "Reach the hills"})
+
+    entry = MatchLogsService(session_factory, content).get_match_logs_for_admin(MATCH_UUID)["logs"][0]
+
+    # It does NOT fall back to the mission's card: that would narrate an advance with the
+    # wrong picture.
+    assert entry["card"] is None
+
+
+def test_v0372_an_unknown_mission_and_a_shapeless_message_carry_no_card(session_factory):
+    _seed_match(session_factory)
+    with session_factory() as s:
+        s.add(MissionEntity(id=1, id_story=STORY_ID, uuid="m-1", condition_key="k",
+                            condition_value="1", id_card=70))
+        s.commit()
+    _seed_mission_row(session_factory, "MISSION_CHANGE m-9 none -> AVAILABLE")
+    logs = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"]
+    assert logs[0]["card"] is None
+
+    _seed_mission_row(session_factory, "MISSION_CHANGE", row_id=22)
+    logs = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"]
+    assert all(e["card"] is None for e in logs)
+
+
+def test_step39_random_event_has_no_location_and_wears_the_event_card(session_factory):
+    """Step 39 — its own prefix, its own type; it happens nowhere in particular."""
+    _seed_match(session_factory)
+    _seed_story_content(session_factory)
+    with session_factory() as s:
+        s.add(LogEventsEntity(id=12, id_match=MATCH_ID, uuid="e12", id_character_match=None,
+                              clock=4, timestamp=_NOW, id_event=90010, id_location=0,
+                              log_message="random event 90010 (RANDOM_EVENT)",
+                              ts_insert=_NOW, ts_update=_NOW))
+        s.commit()
+    content = _FakeContentQueryService({600: "Wolves"})
+
+    logs = MatchLogsService(session_factory, content).get_match_logs_for_admin(MATCH_UUID)["logs"]
+    random_row = next(e for e in logs if e["type"] == "RANDOM_EVENT")
+    assert random_row["clock"] == 4
+    assert random_row["idEvent"] == 90010
+    assert random_row.get("idLocationTo") is None
+    assert random_row["card"]["title"] == "Wolves"
+
+
+def test_step40_choice_selected_is_a_choice_entry_with_gains_and_the_event_card(session_factory):
+    _seed_match(session_factory)
+    with session_factory() as s:
+        s.add(EventEntity(id=90011, id_story=STORY_ID, uuid="ev-90011", id_card=610))
+        s.add(LogEventsEntity(id=14, id_match=MATCH_ID, uuid="e14", id_character_match=10,
+                              clock=4, timestamp=_NOW, id_event=90011,
+                              log_message="CHOICE_SELECTED 90011", food_gain=2, coin_gain=1,
+                              ts_insert=_NOW, ts_update=_NOW))
+        s.commit()
+    content = _FakeContentQueryService({610: "The Crossroads"})
+    logs = MatchLogsService(session_factory, content).get_match_logs_for_admin(MATCH_UUID)["logs"]
+    assert [e["type"] for e in logs] == ["CHOICE"]
+    assert logs[0]["idEvent"] == 90011
+    assert logs[0]["foodGain"] == 2 and logs[0]["coinGain"] == 1
+    assert logs[0]["card"]["title"] == "The Crossroads"

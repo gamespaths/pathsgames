@@ -4,8 +4,7 @@ Subclasses :class:`TurnCycleStoreAdapter` to reuse ``find_user_id_by_uuid`` and
 adds the movement reads/writes over gaming_character_instance / list_locations /
 list_locations_neighbors / gaming_state_registry / log_movements. The Python
 location schema has no ``cost_energy_enter`` column, so the location entry cost
-is treated as 0; ``is_safe`` plays the role of ``secure_param`` (safe when > 0),
-mirroring the Step 26 recovery adapter.
+is treated as 0; ``secure_param`` (safe when > 0) mirrors the Step 26 recovery adapter.
 """
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -31,6 +30,7 @@ from app.adapters.persistence.story.models import (
     WeatherRuleEntity,
 )
 from app.core.ports.match.movement_ports import MovementStorePort
+from app.adapters.persistence.match.log_ids import next_log_id
 
 
 class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
@@ -97,8 +97,10 @@ class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
                         "id_to": n.id_location_to,
                         "direction": n.direction,
                         "energy_cost": n.energy_cost or 0,
-                        "condition_key": n.condition_key,
-                        "condition_value": n.condition_value,
+                        "condition_key": n.condition_registry_key,
+                        "condition_value": n.condition_registry_value,
+                        "registry_value_operator_condition":
+                            n.registry_value_operator_condition,
                         "flag_back": n.flag_back or 0,
                         # v0.35.3 — the edge's resource price; edge-only, no entry/weather term.
                         "cost_food": n.cost_food or 0,
@@ -106,18 +108,6 @@ class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
                         "cost_coin": n.cost_coin or 0,
                     })
             return out
-
-    def find_registry_value(self, id_match: int, key: str) -> Optional[str]:
-        with self.session_factory() as session:
-            for r in (session.query(GamingStateRegistryEntity)
-                      .filter(GamingStateRegistryEntity.id_match == id_match).all()):
-                if r.key == key:
-                    if r.string_value is not None:
-                        return r.string_value
-                    if r.int_value is not None:
-                        return str(r.int_value)
-                    return None
-            return None
 
     def find_current_weather_move_cost(self, id_match: int) -> Tuple[int, int]:
         with self.session_factory() as session:
@@ -175,10 +165,10 @@ class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
                             energy_cost: int, food_cost: int = 0,
                             magic_cost: int = 0, coin_cost: int = 0) -> None:
         with self.session_factory() as session:
-            max_id = session.query(func.max(LogMovementEntity.id)).scalar() or 0
+            next_id = next_log_id(session, LogMovementEntity)
             now = _now_iso()
             session.add(LogMovementEntity(
-                id=max_id + 1,
+                id=next_id,
                 id_match=id_match,
                 uuid=_new_uuid(),
                 id_character_match=id_character,
@@ -280,8 +270,7 @@ class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
             "id": l.id,
             "uuid": l.uuid,
             "id_card": l.id_card,
-            # Python schema: is_safe doubles as secure_param; no cost_energy_enter column.
-            "secure_param": l.is_safe or 0,
+            "secure_param": l.secure_param or 0,
             "cost_energy_enter": 0,
             "max_characters": l.max_characters,
         }

@@ -34,7 +34,12 @@
 hs_err_pid*
 replay_pid*
 
+# Terraform (code/website/terraform-aws): one data dir per environment, never a local state
 .terraform
+.terraform-*/
+*.tfstate
+*.tfstate.backup
+code/website/terraform-aws/backups/
 
 target/
 .vscode/
@@ -43,6 +48,8 @@ target/
 .env.local
 .env.development
 .env.test
+.env.alpha
+.env.beta
 .env.production
 
 .alnao/
@@ -61,11 +68,13 @@ code/backend/aws/samconfig.toml
 
 # Backend python!
 database.sqlite
+database.sqlite.bak
 .pytest_cache
 **/__pycache__/
 **/*.pyc
 .venv
 code/backend/python/coverage.xml
+code/backend/python/.coverage
 
 # Backend php
 code/backend/php/vendor
@@ -77,13 +86,25 @@ code/tests/robot/output.xml
 code/tests/robot/report.html
 code/tests/robot/reports/
 code/tests/robot/reports-aws/
+code/tests/robot/reports-aws-local/
+code/scripts/dev/aws_run_local/logs/
 code/tests/robot/reports-local-java-postgres/
 code/tests/robot/reports-local-java/
 code/tests/robot/reports-local-python/
+code/tests/robot/reports-local-python-limited/
+code/tests/robot/reports-local-java-postgres-limited/
+code/tests/robot/reports-local-java-limited/
+code/tests/robot/reports-aws-local-limited/
+code/tests/robot/reports-aws-limited/
+code/tests/robot/reports-local-java-golden/
+code/tests/robot/reports-local-python-golden/
+code/tests/robot/reports-aws-local-golden/
+code/scripts/dev/run_robot_results/aws_special_env_backup/
 code/tests/robot/reports-local-php
 code/backend/php/build/logs/junit.xml
 code/backend/php/.phpunit.result.cache
 run_robot_results/
+code/scripts/dev/dependency_scan_results/
 
 # Sonar
 code/backend/aws/.scannerwork
@@ -111,6 +132,8 @@ code/frontend/react-admin/jest-test-results.json
 
 code/frontend/react-game/node_modules/
 code/frontend/react-game/build/
+# v0.37.6 local static catalog (CATALOG_EXPORT_DIR)
+code/frontend/react-game/public/data/
 code/frontend/react-game/.env
 code/frontend/react-game/.env.local
 code/frontend/react-game/.env.development
@@ -125,6 +148,7 @@ code/backend/php/debug_sql.php
 code/backend/php/converted.sql
 code/scripts/test/aws_ec2_with_java_postgres_docker_compose/.state
 code/scripts/test/aws_ec2_with_java_docker/.state
+code/scripts/test/aws_ec2_with_python_docker/.state
 # test units
 code/frontend/react-admin/test-results.junit.xml
 code/backend/aws/.unit-junit.xml
@@ -143,3 +167,9 @@ code/frontend/python-flask-game/.venv
 code/frontend/python-flask-admin/.pytest_cache
 code/frontend/python-flask-game/.pytest_cache
 
+
+code/tests/stress/reports/*
+!code/tests/stress/reports/.gitkeep
+code/tests/robot/tests/41_alpha_prep/fixtures/golden/export_aws.json
+code/tests/robot/tests/41_alpha_prep/fixtures/golden/export_java.json
+code/tests/robot/tests/41_alpha_prep/fixtures/golden/export_python.json

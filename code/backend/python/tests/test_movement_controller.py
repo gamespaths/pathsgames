@@ -59,6 +59,25 @@ def test_start_success(env):
     assert body["newEnergy"] == 4
 
 
+def test_start_carries_the_arrivals_edge_state(env):
+    """v0.35.6 — an arrival can kill, and the board reads that verdict the same way it reads
+    execute-event's: same object, same field names."""
+    from app.core.models.match.event_models import EdgeStateOutcome
+
+    client, port = env
+    port.start_movement.return_value = MovementResult(
+        "m1", "char-1", 1, None, 2, "loc-2", 6, 4, 3,
+        edge_state=EdgeStateOutcome([], ["char-1"], True, "coma-uuid", None,
+                                    ["coma-uuid"], []))
+    r = client.post("/api/gameplay/m1/movements/start", headers=AUTH,
+                    json={"targetLocationUuid": "loc-2"})
+
+    edge = r.json()["edgeState"]
+    assert edge["comaUuids"] == ["char-1"]
+    assert edge["allPlayersInComa"] is True
+    assert edge["comaEventUuid"] == "coma-uuid"
+
+
 def test_start_not_found(env):
     client, port = env
     port.start_movement.side_effect = MovementError(MovementError.MATCH_NOT_FOUND, "no")

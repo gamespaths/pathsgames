@@ -1,0 +1,21 @@
+# Keep the buildx context small: only app/, scripts/ and requirements.txt are
+# COPYed, everything else (venv, caches, secrets, DBs) must never reach the builder.
+.venv/
+venv/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.scannerwork/
+.coverage
+coverage.xml
+.unit-junit.xml
+tests/
+database.sqlite*
+.env
+.env.*
+*.log
+.git/
+.gitignore
+README.md
+sonar-project.properties
+pyproject.toml

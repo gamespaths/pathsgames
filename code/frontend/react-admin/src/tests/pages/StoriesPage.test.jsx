@@ -11,8 +11,9 @@ vi.mock('../../api/storyApi', () => ({
   createStory:    vi.fn(),
   getStory:       vi.fn(),
   listEntities:   vi.fn(),
+  writeStaticCatalog: vi.fn(),
 }))
-import { listAllStories, deleteStory, createStory, getStory, listEntities } from '../../api/storyApi'
+import { listAllStories, deleteStory, createStory, getStory, listEntities, writeStaticCatalog } from '../../api/storyApi'
 
 // Mock URL APIs used by export
 const mockObjectURL = 'blob:http://localhost/test-uuid'
@@ -82,6 +83,14 @@ describe('StoriesPage', () => {
     renderPage()
     expect(await screen.findByText('The Lost Kingdom')).toBeInTheDocument()
     expect(screen.getByText('Dark Secrets')).toBeInTheDocument()
+  })
+
+  it('links every story to its Fast New Event page', async () => {
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    const links = screen.getAllByTitle('Fast New Event')
+    expect(links).toHaveLength(2)
+    expect(links[0]).toHaveAttribute('href', '/stories/aaa-111/fast-new-event')
   })
 
   it('renders visibility badges', async () => {
@@ -209,6 +218,51 @@ describe('StoriesPage', () => {
     expect(parsed.weatherRules[0].probability).toBe(70)
     expect(parsed.globalRandomEvents).toHaveLength(1)
     expect(parsed.globalRandomEvents[0].idEvent).toBe(5)
+
+    clickSpy.mockRestore()
+  })
+
+  it('exports the falsy item flags instead of dropping them', async () => {
+    // v0.35.8 — isConsumabile / flagShowEffects are 0 for an item that is NOT consumable
+    // and hides its promise. Dropping a falsy value here would make the re-import fall
+    // back to the schema default (1) and quietly flip both.
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    let capturedBlob = null
+    global.URL.createObjectURL = vi.fn((blob) => { capturedBlob = blob; return mockObjectURL })
+
+    listEntities.mockImplementation((_uuid, apiType) =>
+      apiType === 'items'
+        ? Promise.resolve([
+            // Java and Python answer with the INTEGER column…
+            {
+              id: 1, uuid: 'it-1', isConsumabile: 0, flagShowEffects: 0, weight: 0,
+              maxPerCharacter: null, idStory: 9, tsInsert: 'x', tsUpdate: 'y',
+            },
+            // …while a story authored (or stored on DynamoDB) as JSON carries the BOOLEAN.
+            { id: 2, uuid: 'it-2', isConsumabile: false, flagShowEffects: false },
+          ])
+        : Promise.resolve([])
+    )
+
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getAllByTitle('Export JSON')[0])
+    await waitFor(() => expect(capturedBlob).not.toBeNull())
+
+    const [item, boolItem] = JSON.parse(await capturedBlob.text()).items
+    expect(item.isConsumabile).toBe(0)
+    expect(item.flagShowEffects).toBe(0)
+    expect(item.weight).toBe(0)
+    // a literal false is written as false — never omitted, never turned into null
+    expect(boolItem).toHaveProperty('isConsumabile', false)
+    expect(boolItem).toHaveProperty('flagShowEffects', false)
+    expect(await capturedBlob.text()).toContain('"isConsumabile": false')
+    // a null is omitted — every backend import reads the absent key as null/default
+    expect(item).not.toHaveProperty('maxPerCharacter')
+    expect(await capturedBlob.text()).not.toContain('null')
+    // only the bookkeeping columns are stripped
+    expect(item).not.toHaveProperty('tsInsert')
+    expect(item).not.toHaveProperty('idStory')
 
     clickSpy.mockRestore()
   })
@@ -397,5 +451,108 @@ describe('StoriesPage', () => {
     const createBtn = screen.getByText(/New Story/i)
     await userEvent.click(createBtn)
     await waitFor(() => expect(screen.getByText(/Create failed/i)).toBeInTheDocument())
+  })
+
+  it('an entity row with no id of its own keeps the numeric id the backend gave it', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    let capturedBlob = null
+    global.URL.createObjectURL = vi.fn((blob) => { capturedBlob = blob; return mockObjectURL })
+
+    listEntities.mockImplementation((_uuid, apiType) => {
+      if (apiType === 'locations') return Promise.resolve([{ id: 4, uuid: 'l1', tsInsert: 'x' }])
+      // A row with neither `id` nor `idText` is exported as it stands.
+      if (apiType === 'items') return Promise.resolve([{ uuid: 'i1' }])
+      return Promise.resolve([])
+    })
+
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getAllByTitle('Export JSON')[0])
+    await waitFor(() => expect(capturedBlob).not.toBeNull())
+
+    const parsed = JSON.parse(await capturedBlob.text())
+    expect(parsed.locations[0].id).toBe(4)
+    expect(parsed.locations[0].tsInsert).toBeUndefined()
+    expect(parsed.items[0].id).toBeUndefined()
+
+    clickSpy.mockRestore()
+  })
+
+  it('an exported story sorts nested object keys so two exports diff cleanly', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    let capturedBlob = null
+    global.URL.createObjectURL = vi.fn((blob) => { capturedBlob = blob; return mockObjectURL })
+
+    listEntities.mockImplementation((_uuid, apiType) => (
+      apiType === 'locations'
+        ? Promise.resolve([{ id: 1, meta: { zeta: 1, alpha: 2 }, tags: [{ b: 1, a: 2 }] }])
+        : Promise.resolve([])
+    ))
+
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getAllByTitle('Export JSON')[0])
+    await waitFor(() => expect(capturedBlob).not.toBeNull())
+
+    const text = await capturedBlob.text()
+    expect(text.indexOf('"alpha"')).toBeLessThan(text.indexOf('"zeta"'))
+    expect(text.indexOf('"a"')).toBeLessThan(text.indexOf('"b"'))
+
+    clickSpy.mockRestore()
+  })
+
+  it('a detail modal for a story with no title falls back to a generic heading', async () => {
+    listAllStories.mockResolvedValue([{ uuid: 'aaa-111', author: 'Nobody' }])
+    renderPage()
+    await screen.findByText('Nobody')
+
+    await userEvent.click(screen.getAllByTitle('View Info')[0])
+
+    expect(await screen.findByText('Story Detail')).toBeInTheDocument()
+  })
+})
+
+// ── v0.37.6 static catalog button ──────────────────────────────
+describe('StoriesPage — static catalog', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    listAllStories.mockResolvedValue(MOCK_STORIES)
+  })
+
+  it('writes the catalog and reports the files', async () => {
+    writeStaticCatalog.mockResolvedValue({
+      status: 'WRITTEN', target: 's3://site',
+      files: [{ lang: 'en', path: 'data/stories-en.json', count: 2, bytes: 10 }],
+    })
+    render(<MemoryRouter><StoriesPage /></MemoryRouter>)
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getByRole('button', { name: /static catalog/i }))
+    expect(await screen.findByText(/Static catalog written to s3:\/\/site: data\/stories-en.json \(2\)/)).toBeInTheDocument()
+    expect(writeStaticCatalog).toHaveBeenCalledOnce()
+  })
+
+  it('explains a 503 (no destination configured)', async () => {
+    writeStaticCatalog.mockRejectedValue({
+      response: { status: 503, data: { error: 'CATALOG_TARGET_NOT_CONFIGURED', message: 'No destination' } },
+      message: 'Request failed',
+    })
+    render(<MemoryRouter><StoriesPage /></MemoryRouter>)
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getByRole('button', { name: /static catalog/i }))
+    expect(await screen.findByText(/Static catalog not configured on this backend: No destination/)).toBeInTheDocument()
+  })
+
+  it('shows a plain error otherwise (FastAPI detail shape and bare message)', async () => {
+    writeStaticCatalog.mockRejectedValueOnce({
+      response: { status: 500, data: { detail: { message: 'boom' } } }, message: 'x',
+    })
+    render(<MemoryRouter><StoriesPage /></MemoryRouter>)
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getByRole('button', { name: /static catalog/i }))
+    expect(await screen.findByText('boom')).toBeInTheDocument()
+
+    writeStaticCatalog.mockRejectedValueOnce(new Error('offline'))
+    await userEvent.click(screen.getByRole('button', { name: /static catalog/i }))
+    expect(await screen.findByText('offline')).toBeInTheDocument()
   })
 })

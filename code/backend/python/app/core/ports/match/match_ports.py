@@ -20,9 +20,11 @@ class MatchCommandPort(ABC):
         :class:`MatchCreationError` for validation failures."""
 
     @abstractmethod
-    def update_match(self, uuid_match: str, status: Optional[str], name: Optional[str]) -> str:
+    def update_match(self, uuid_match: str, status: Optional[str], name: Optional[str],
+                     admin_action: Optional[str] = None) -> str:
         """Update a match's status and/or name (admin operation).
 
+        v0.41.1 — logged as ADMIN_ACTION ``admin_action`` (PAUSE/RESUME/STOP; None = STATUS).
         Returns one of ``'UPDATED'``, ``'NOT_FOUND'`` or ``'INVALID_STATUS'``."""
 
     @abstractmethod
@@ -61,6 +63,18 @@ class MatchQueryPort(ABC):
     @abstractmethod
     def get_match_info(self, match_uuid: str, user_uuid: str, lang: str = "en") -> Optional[MatchDetail]:
         ...
+
+    @abstractmethod
+    def get_match_missions(self, uuid_match: str, user_uuid: str, status: Optional[str] = None,
+                           lang: str = "en"):
+        """Step 37 - the missions this match has reached, optionally filtered by status.
+        None when the match is unknown or the caller does not own it: the same masking
+        /info applies, so the two are indistinguishable."""
+
+    @abstractmethod
+    def get_match_mission(self, uuid_match: str, user_uuid: str, mission_uuid: str,
+                          lang: str = "en"):
+        """Step 37 - one mission with all its steps, None-masked exactly the same way."""
 
     @abstractmethod
     def get_match_info_for_admin(self, match_uuid: str) -> Optional[MatchDetail]:
@@ -108,17 +122,28 @@ class MatchPersistencePort(ABC):
     def save_locations(self, rows: List[Dict[str, Any]]) -> None:
         ...
 
-    @abstractmethod
-    def save_registry(self, rows: List[Dict[str, Any]]) -> None:
-        ...
 
     @abstractmethod
     def find_locations_by_match_id(self, match_id: int) -> List[Dict[str, Any]]:
         ...
 
+
+    def change_owner(self, id_match: int, id_user: int) -> int:
+        """v0.41.6 — the match and all its characters move to ``id_user`` in one commit; answers the characters moved."""
+        raise NotImplementedError
+
+    def count_matches_by_user_creator(self, id_user: int) -> int:
+        """v0.41.6 — every match the user created, whatever the status."""
+        raise NotImplementedError
+
     @abstractmethod
-    def find_registry_by_match_id(self, match_id: int) -> List[Dict[str, Any]]:
-        ...
+    def count_matches_by_user_creator_ids(self, user_ids) -> int:
+        """v0.36.2 — how many matches these users created, whatever the status."""
+
+    @abstractmethod
+    def delete_matches_by_user_creator_ids(self, user_ids) -> int:
+        """v0.36.2 — delete every match these users created, whatever the status. Called
+        before the users themselves go: gaming_match.id_user_creator is a foreign key."""
 
     @abstractmethod
     def delete_matches_by_name_like(self, name_like_pattern: str) -> int:
@@ -258,7 +283,7 @@ class CharacterCommandPort(ABC):
                           dex: Optional[int], intel: Optional[int], con: Optional[int],
                           energy: Optional[int], life: Optional[int], sad: Optional[int],
                           coin: Optional[int], food: Optional[int],
-                          magic: Optional[int]) -> str:
+                          magic: Optional[int], exp: Optional[int] = None) -> str:
         """Admin — override current statistics of a character instance.
         Pass None to skip a field. For energy/life/sad the value is capped at max.
 
@@ -303,6 +328,10 @@ class CharacterPersistencePort(ABC):
                                energy: Optional[int], life: Optional[int],
                                sad: Optional[int]) -> None:
         """Admin: persist updated base stats on the character instance. None = skip."""
+
+    @abstractmethod
+    def update_character_exp(self, match_id: int, character_id: int, exp: int) -> None:
+        """Admin, Step 38: persist the character's experience points (floored at 0)."""
 
     @abstractmethod
     def update_character_flags(self, match_id: int, character_id: int,

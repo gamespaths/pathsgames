@@ -63,6 +63,25 @@ def test_sleep_success():
     assert body["isSleeping"] is True and body["currentClock"] == 3
 
 
+def test_sleep_carries_the_edge_state_of_the_time_start():
+    """v0.35.6 — the recovery and the events a time-start fires can empty a life bar; the
+    sleeper is told in the answer instead of finding out on the next reload."""
+    from app.core.models.match.event_models import EdgeStateOutcome
+
+    sr = SleepResult(match_uuid="m1", character_uuid="c1", is_sleeping=False,
+                     time_end_triggered=True, current_clock=4,
+                     edge_state=EdgeStateOutcome(["c1"], ["c1"], True, "coma-uuid", None,
+                                                 ["coma-uuid"], []))
+    ctrl = TimeClockController(_TimePort(sleep_result=sr))
+
+    body = _body(ctrl.sleep("m1", _req()))
+
+    assert body["edgeState"]["sadnessOverflowUuids"] == ["c1"]
+    assert body["edgeState"]["comaUuids"] == ["c1"]
+    assert body["edgeState"]["allPlayersInComa"] is True
+    assert body["edgeState"]["comaEventUuid"] == "coma-uuid"
+
+
 def test_sleep_maps_turn_cycle_error_to_409():
     err = TurnCycleError(TurnCycleError.MATCH_NOT_RUNNING, "not running")
     ctrl = TimeClockController(_TimePort(raise_exc=err))

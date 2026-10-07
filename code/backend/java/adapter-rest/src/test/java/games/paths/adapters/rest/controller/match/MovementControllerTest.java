@@ -52,6 +52,25 @@ class MovementControllerTest {
     }
 
     @Test
+    void startMovement_carriesTheArrivalsEdgeState() throws Exception {
+        // v0.35.6 — an arrival can kill, and the board reads that verdict the same way it
+        // reads execute-event's: same object, same field names.
+        when(movementPort.startMovement("m1", "user-uuid", "loc-2")).thenReturn(
+                new MovementResult("m1", "char-1", 1L, null, 2L, "loc-2", 6, 1, 0, 2,
+                        4, 3, 5, 7, 3, List.of(),
+                        new games.paths.core.port.match.EventExecutionPort.EdgeStateOutcome(
+                                List.of(), List.of("char-1"), true, "coma-uuid", null,
+                                List.of("coma-uuid"), List.of())));
+        mockMvc.perform(authed(post("/api/gameplay/m1/movements/start"))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"targetLocationUuid\":\"loc-2\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.edgeState.comaUuids[0]").value("char-1"))
+                .andExpect(jsonPath("$.edgeState.allPlayersInComa").value(true))
+                .andExpect(jsonPath("$.edgeState.comaEventUuid").value("coma-uuid"));
+    }
+
+    @Test
     void startMovement_unauthenticated() throws Exception {
         mockMvc.perform(post("/api/gameplay/m1/movements/start")
                         .contentType(APPLICATION_JSON).content("{\"targetLocationUuid\":\"loc-2\"}"))

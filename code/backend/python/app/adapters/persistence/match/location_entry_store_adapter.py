@@ -12,6 +12,7 @@ from app.adapters.persistence.match.models import (
 from app.adapters.persistence.story.models import LocationEntity
 from app.adapters.persistence.match.turn_cycle_store_adapter import _new_uuid, _now_iso
 from app.core.ports.match.location_entry_ports import LocationEntryStorePort
+from app.adapters.persistence.match.log_ids import next_log_id
 
 
 class LocationEntryStoreAdapter(LocationEntryStorePort):
@@ -39,6 +40,10 @@ class LocationEntryStoreAdapter(LocationEntryStorePort):
                 "id_event_if_character_start_time": l.id_event_if_character_start_time,
                 "id_event_if_counter_zero": l.id_event_if_counter_zero,
                 "priority_automatic_event": l.priority_automatic_event,
+                "key_to_add": l.key_to_add,
+                "key_value_to_add": l.key_value_to_add,
+                "key_to_add_not_first": l.key_to_add_not_first,
+                "key_value_to_add_not_first": l.key_value_to_add_not_first,
             }
 
     def find_flag_visited(self, id_match: int, id_location: int) -> int:
@@ -46,14 +51,15 @@ class LocationEntryStoreAdapter(LocationEntryStorePort):
             s = self._state_row(session, id_match, id_location)
             return (s.flag_visited or 0) if s is not None else 0
 
-    def mark_state_location_visited(self, id_match: int, id_location: int) -> None:
+    def mark_state_location_visited(self, id_match: int, id_location: int) -> bool:
         with self.session_factory() as session:
             s = self._state_row(session, id_match, id_location)
             if s is None or (s.flag_visited or 0) == 1:
-                return
+                return False
             s.flag_visited = 1
             s.ts_update = _now_iso()
             session.commit()
+            return True
 
     def count_other_characters_at_location(self, id_match: int, id_location: int,
                                            except_id_character: int) -> int:
@@ -80,10 +86,10 @@ class LocationEntryStoreAdapter(LocationEntryStorePort):
                             id_location: int, id_event: Optional[int],
                             clock: Optional[int], message: str) -> None:
         with self.session_factory() as session:
-            max_id = session.query(func.max(LogEventsEntity.id)).scalar() or 0
+            next_id = next_log_id(session, LogEventsEntity)
             now = _now_iso()
             session.add(LogEventsEntity(
-                id=max_id + 1,
+                id=next_id,
                 id_match=id_match,
                 uuid=_new_uuid(),
                 id_character_match=id_character,

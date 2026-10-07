@@ -12,9 +12,11 @@ import {
   EVENT_EFFECT_STATISTICS_OPTIONS,
   ITEM_ACTION_OPTIONS,
   ITEM_EFFECT_CODE_OPTIONS,
+  KEY_VISIBILITY_OPTIONS,
   LOGIC_OPERATOR_OPTIONS,
   POSSIBLE_STATISTICS_OPTIONS,
 } from './storyFieldOptions'
+import { TEXT_MAX_LENGTH } from './textLimits'
 
 export const STORIES_ENTITIES_TABS = [
   { id: 'metadata', label: 'Story Info', icon: 'fa-info-circle' },
@@ -48,11 +50,12 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idTextName', label: 'Name Text ID', type: 'number' },
       { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
       { key: 'expCost', label: 'EXP Cost', type: 'number' },
-      { key: 'maxWeight', label: 'Max Weight', type: 'number' },
       { key: 'minCharacter', label: 'Min Characters', type: 'number' },
       { key: 'maxCharacter', label: 'Max Characters', type: 'number' },
       { key: 'costHelpComa', label: 'Cost Help Coma', type: 'number' },
-      { key: 'costMaxCharacteristics', label: 'Cost Max Characteristics', type: 'number' },
+      // Step 38 — use-exp: cost = max(1, expCost × stat + expCostBase); maxStatValue caps DEX/INT/COS (0 = none)
+      { key: 'expCostBase', label: 'EXP Base Cost', type: 'number' },
+      { key: 'maxStatValue', label: 'Max Stat Value (use-exp cap)', type: 'number' },
       { key: 'numberMaxFreeAction', label: 'Max Free Actions', type: 'number' },
       // Step 23 — trait cost budgets (empty = no limit)
       { key: 'traitCostPositiveBudget', label: 'Trait Cost Budget (+)', type: 'number' },
@@ -71,7 +74,6 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
       { key: 'idTextNarrative', label: 'Narrative Text ID', type: 'number' },
       { key: 'idImage', label: 'Image ID', type: 'number' },
-      { key: 'isSafe', label: 'Safe Location', type: 'checkbox' },
       { key: 'costEnergyEnter', label: 'Energy Cost to Enter', type: 'number' },
       { key: 'counterTime', label: 'Counter Time', type: 'number' },
       { key: 'idEventIfCounterZero', label: 'Event if Counter = 0', type: 'number' },
@@ -80,6 +82,15 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idEventNotFirstTime', label: 'Event if Not First Time', type: 'number' },
       { key: 'idEventIfCharacterEnterEmptyLocation', label: 'Event if enters an empty location', type: 'number' },
       { key: 'idEventIfFirstTime', label: 'Event if First Time, no trigger back', type: 'number' },
+      // Step 36.2 (v0.36.2) — the place writes the registry by being entered, with no event
+      // involved. The history branch picks ONE pair: the first arrival writes the first, every
+      // later one the second.
+      // v0.37.1 — the party never ENTERS the start location, so there its first pair is written
+      // when the match starts instead; hence the label, which is why the field is not dead there.
+      { key: 'keyToAdd', label: 'Registry Key to Write (first entry)', type: 'text' },
+      { key: 'keyValueToAdd', label: 'Registry Value to Write (first entry)', type: 'text' },
+      { key: 'keyToAddNotFirst', label: 'Registry Key to Write (later entries)', type: 'text' },
+      { key: 'keyValueToAddNotFirst', label: 'Registry Value to Write (later entries)', type: 'text' },
       { key: 'priorityAutomaticEvent', label: 'Auto Event Priority', type: 'number' },
       { key: 'idAudio', label: 'Audio ID', type: 'number' },
       { key: 'maxCharacters', label: 'Max Characters', type: 'number' },
@@ -92,6 +103,9 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'direction', label: 'Direction', type: 'select', options: LOCATION_NEIGHBOR_DIRECTION_OPTIONS },
       { key: 'conditionRegistryKey', label: 'Condition Registry Key', type: 'text' },
       { key: 'conditionRegistryValue', label: 'Condition Registry Value', type: 'text' },
+      // Step 36 — how the value above is compared. Blank means '=', which is what every edge
+      // authored before v0.36.0 did.
+      { key: 'registryValueOperatorCondition', label: 'Registry Operator (condition)', type: 'select', options: CHOICE_CONDITION_OPERATOR_OPTIONS },
       { key: 'idTextGo', label: 'Text Go ID', type: 'number' },
       { key: 'idTextBack', label: 'Text Back ID', type: 'number' },
       { key: 'energyCost', label: 'Energy Cost', type: 'number' },
@@ -124,6 +138,8 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idWeather', label: 'Weather (condition)', type: 'number' },
       { key: 'registryKeyCondition', label: 'Registry Key (condition)', type: 'text' },
       { key: 'registryValueCondition', label: 'Registry Value (condition)', type: 'text' },
+      // Step 36 — blank means '=', so every event authored before v0.36.0 keeps its behaviour.
+      { key: 'registryValueOperatorCondition', label: 'Registry Operator (condition)', type: 'select', options: CHOICE_CONDITION_OPERATOR_OPTIONS },
       { key: 'idItemCondition', label: 'Item Owned (condition)', type: 'number' },
       { key: 'idClassCondition', label: 'Class (condition)', type: 'number' },
     ],
@@ -265,8 +281,8 @@ export const STORIES_ENTITIES_FIELDS = {
     texts: [
       { key: 'idText', label: 'Text ID', type: 'number' },
       { key: 'lang', label: 'Language', type: 'text' },
-      { key: 'shortText', label: 'Short Text', type: 'text' },
-      { key: 'longText', label: 'Long Text', type: 'textarea' },
+      { key: 'shortText', label: 'Short Text', type: 'text', maxLength: TEXT_MAX_LENGTH },
+      { key: 'longText', label: 'Long Text', type: 'textarea', maxLength: TEXT_MAX_LENGTH },
       { key: 'idTextCopyright', label: 'Copyright Text ID', type: 'number' },
       { key: 'linkCopyright', label: 'Copyright Link', type: 'text' },
       { key: 'idCreator', label: 'Creator ID', type: 'number' },
@@ -278,7 +294,9 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'value', label: 'Value', type: 'text' },
       { key: 'group', label: 'Group', type: 'text' },
       { key: 'priority', label: 'Priority', type: 'number' },
-      { key: 'visibility', label: 'Visibility', type: 'text' },
+      { key: 'visibility', label: 'Visibility', type: 'select', options: KEY_VISIBILITY_OPTIONS },
+      // Step 36.1 — a multi key ACCUMULATES: each write adds a value instead of replacing it.
+      { key: 'multiValue', label: 'Multi Value', type: 'checkbox' },
     ],
     choices: [
       { key: 'idCard', label: 'Card ID', type: 'number' },
@@ -334,6 +352,9 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'costMoveNotSafeLocation', label: 'Cost Move Not Safe', type: 'number' },
       { key: 'conditionKey', label: 'Condition Key', type: 'text' },
       { key: 'conditionKeyValue', label: 'Condition Key Value', type: 'text' },
+      // Step 36 — blank means '='. A key with no value is now never met, where before v0.36.0
+      // it meant "the key must be unset"; say that with != instead.
+      { key: 'registryValueOperatorCondition', label: 'Registry Operator (condition)', type: 'select', options: CHOICE_CONDITION_OPERATOR_OPTIONS },
       { key: 'timeFrom', label: 'Time From', type: 'number' },
       { key: 'timeTo', label: 'Time To', type: 'number' },
       { key: 'active', label: 'Active', type: 'number' },
@@ -341,31 +362,36 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'deltaEnergy', label: 'Delta Energy', type: 'number' },
       { key: 'idEvent', label: 'Event ID', type: 'number' },
     ],
+    // Step 39 — probability is an absolute % (0..100); the event runs party-wide at time-start.
     'global-random-events': [
       { key: 'idCard', label: 'Card ID', type: 'number' },
       { key: 'conditionKey', label: 'Condition Key', type: 'text' },
       { key: 'conditionValue', label: 'Condition Value', type: 'text' },
-      { key: 'probability', label: 'Probability', type: 'number' },
+      { key: 'registryValueOperatorCondition', label: 'Registry Operator (condition)', type: 'select', options: CHOICE_CONDITION_OPERATOR_OPTIONS },
+      { key: 'probability', label: 'Probability (%)', type: 'number', required: true, min: 0, max: 100 },
       { key: 'idText', label: 'Text ID', type: 'number' },
-      { key: 'idEvent', label: 'Event ID', type: 'number' },
+      { key: 'idEvent', label: 'Event ID', type: 'number', required: true },
     ],
+    // Step 37: the from/to pair is gone. conditionValue holds one value; conditionValues is
+    // a PIPE list read as an AND, edited as chips so a pipe is never typed by hand.
     missions: [
       { key: 'idCard', label: 'Card ID', type: 'number' },
       { key: 'idTextName', label: 'Name Text ID', type: 'number' },
       { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
-      { key: 'conditionKey', label: 'Condition Key', type: 'text' },
-      { key: 'conditionValueFrom', label: 'Condition Value From', type: 'number' },
-      { key: 'conditionValueTo', label: 'Condition Value To', type: 'number' },
+      { key: 'conditionKey', label: 'Condition Key', type: 'text', required: true },
+      { key: 'conditionValue', label: 'Condition Value', type: 'text' },
+      { key: 'conditionValues', label: 'Condition Values (all of)', type: 'chips' },
       { key: 'idEventCompleted', label: 'Completed Event ID', type: 'number' },
     ],
     'mission-steps': [
       { key: 'idMission', label: 'Mission ID', type: 'number' },
       { key: 'step', label: 'Step Number', type: 'number' },
+      { key: 'idCard', label: 'Card ID', type: 'number' },
       { key: 'idTextName', label: 'Name Text ID', type: 'number' },
       { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
-      { key: 'conditionKey', label: 'Condition Key', type: 'text' },
-      { key: 'conditionValueFrom', label: 'Condition Value From', type: 'number' },
-      { key: 'conditionValueTo', label: 'Condition Value To', type: 'number' },
+      { key: 'conditionKey', label: 'Condition Key', type: 'text', required: true },
+      { key: 'conditionValue', label: 'Condition Value', type: 'text' },
+      { key: 'conditionValues', label: 'Condition Values (all of)', type: 'chips' },
       { key: 'idEventCompleted', label: 'Completed Event ID', type: 'number' },
     ],
   }
@@ -375,11 +401,11 @@ export const STORIES_ENTITIES_COLUMNS = {
     difficulties: [
       { key: 'idTextName', label: 'Name', type: 'idTextName' },
       { key: 'expCost', label: 'EXP Cost' },
-      { key: 'maxWeight', label: 'Max Weight' },
       { key: 'minCharacter', label: 'Min Chars' },
       { key: 'maxCharacter', label: 'Max Chars' },
       { key: 'costHelpComa', label: 'Help COMA' },
-      { key: 'costMaxCharacteristics', label: 'Max Char Cost' },
+      { key: 'expCostBase', label: 'EXP Base' },
+      { key: 'maxStatValue', label: 'Max Stat' },
       { key: 'numberMaxFreeAction', label: 'Max Free Actions' },
       { key: 'life', label: 'Life' },
       { key: 'energy', label: 'Energy' },
@@ -392,7 +418,7 @@ export const STORIES_ENTITIES_COLUMNS = {
     locations: [
       { key: 'idTextName', label: 'Name', type: 'idTextName' },
       { key: 'idTextDescription', label: 'Desc', type: 'idTextDescription' },
-      { key: 'isSafe', label: 'Safe', type: 'boolean' },
+      { key: 'secureParam', label: 'Secure' },
       { key: 'idImage', label: 'Image' },
       { key: 'maxCharacters', label: 'Max Chars' },
     ],
@@ -494,6 +520,7 @@ export const STORIES_ENTITIES_COLUMNS = {
       { key: 'group', label: 'Group' },
       { key: 'priority', label: 'Priority' },
       { key: 'visibility', label: 'Visibility' },
+      { key: 'multiValue', label: 'Multi', type: 'boolean' },
     ],
     choices: [
       { key: 'idTextName', label: 'Name', type: 'idTextName' },
@@ -527,18 +554,23 @@ export const STORIES_ENTITIES_COLUMNS = {
     'global-random-events': [
       { key: 'conditionKey', label: 'Condition Key' },
       { key: 'conditionValue', label: 'Condition Value' },
+      { key: 'registryValueOperatorCondition', label: 'Operator' },
       { key: 'probability', label: 'Probability' },
       { key: 'idEvent', label: 'Event ID' },
     ],
     missions: [
       { key: 'idTextName', label: 'Name', type: 'idTextName' },
       { key: 'conditionKey', label: 'Condition Key' },
+      { key: 'conditionValue', label: 'Condition Value' },
+      { key: 'conditionValues', label: 'All Of' },
       { key: 'idEventCompleted', label: 'Completed Event' },
     ],
     'mission-steps': [
       { key: 'idMission', label: 'Mission ID' },
       { key: 'step', label: 'Step' },
       { key: 'conditionKey', label: 'Condition Key' },
+      { key: 'conditionValue', label: 'Condition Value' },
+      { key: 'conditionValues', label: 'All Of' },
       { key: 'idEventCompleted', label: 'Completed Event' },
     ],
   }

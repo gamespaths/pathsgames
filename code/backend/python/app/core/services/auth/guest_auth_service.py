@@ -12,6 +12,8 @@ class GuestAuthService(GuestAuthPort):
     GUEST_USERNAME_PREFIX = "guest_"
     GUEST_SESSION_DAYS = 180
     MAX_MARKER_LENGTH = 30
+    #: v0.41.0 — the accepted range of X-Test-Guest-Age-Days.
+    MAX_AGE_DAYS = 3650
 
     def __init__(self, jwt_port: JwtPort, persistence_port: GuestPersistencePort):
         self.jwt_port = jwt_port
@@ -28,14 +30,22 @@ class GuestAuthService(GuestAuthPort):
             return self.GUEST_USERNAME_PREFIX
         return sanitized[: self.MAX_MARKER_LENGTH] + "_"
 
-    def create_guest_session(self, test_marker: Optional[str] = None) -> GuestSession:
+    def create_guest_session(self, test_marker: Optional[str] = None,
+                             age_days: Optional[int] = None) -> GuestSession:
         # 1. Generate anonymous UUID identity
         user_uuid = str(uuid.uuid4())
-        username = self._resolve_username_prefix(test_marker) + user_uuid[:8]
+        prefix = self._resolve_username_prefix(test_marker)
+        username = prefix + user_uuid[:8]
         guest_cookie_token = str(uuid.uuid4())
+        # v0.41.0 — an aged guest needs a valid marker too, so it is always test data
+        born_at = datetime.now(timezone.utc)
+        aged = (prefix != self.GUEST_USERNAME_PREFIX and age_days is not None
+                and 1 <= age_days <= self.MAX_AGE_DAYS)
+        if aged:
+            born_at -= timedelta(days=age_days)
 
         # 2. Calculate guest session expiration
-        expires_at = datetime.now(timezone.utc) + timedelta(days=self.GUEST_SESSION_DAYS)
+        expires_at = born_at + timedelta(days=self.GUEST_SESSION_DAYS)
         expires_at_iso = expires_at.isoformat()
 
         # 3. Persist guest user
@@ -52,6 +62,8 @@ class GuestAuthService(GuestAuthPort):
 
         # 6. Update last access
         self.persistence_port.update_last_access(user_id)
+        if aged:
+            self.persistence_port.backdate_guest(user_id, born_at.isoformat())
 
         return GuestSession(
             userUuid=user_uuid,

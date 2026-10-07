@@ -49,6 +49,24 @@ describe('useAntibot', () => {
     expect(result.current.phase).toBe('ready')
   })
 
+  it('drops the stored token on retry (single-use server-side)', () => {
+    const { result } = renderHook(() => useAntibot({ cookie: false }))
+    act(() => result.current.onSuccess('burnt-token'))
+    expect(result.current.token).toBe('burnt-token')
+    act(() => result.current.retry())
+    expect(result.current.token).toBeNull()
+    expect(result.current.phase).toBe('checking')
+  })
+
+  it('stays ready on retry when no site key is configured (no widget to remount)', () => {
+    tu.key = ''
+    const { result } = renderHook(() => useAntibot({ cookie: false }))
+    const prevAttempt = result.current.attempt
+    act(() => result.current.retry())
+    expect(result.current.phase).toBe('ready')
+    expect(result.current.attempt).toBe(prevAttempt)
+  })
+
   it('goes to error on widget failure and retry restarts checking (new attempt)', () => {
     const { result } = renderHook(() => useAntibot({ cookie: false }))
     act(() => result.current.onError())

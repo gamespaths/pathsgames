@@ -7,6 +7,7 @@ import json
 from unittest.mock import patch
 
 from match import handler as _match_handler  # noqa: F401
+import helpers
 from helpers import make_event
 
 
@@ -67,7 +68,7 @@ def _store(user=PLAYER, match=None, story=STORY, character=None):
     if character is not None:
         items[('MATCH#m1', 'CHARACTER#c1')] = character
 
-    def _get(pk, sk='METADATA'):
+    def _get(pk, sk='METADATA', consistent=True):
         return items.get((pk, sk))
     return _get
 
@@ -89,7 +90,7 @@ def test_join_no_auth():
 
 
 @patch('match.handler.db_utils.put_item')
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_join_success(mock_jwt, mock_get, mock_query, mock_put):
@@ -115,8 +116,8 @@ def test_join_success(mock_jwt, mock_get, mock_query, mock_put):
     assert b['idLocation'] == 1
     assert b['traitUuids'] == ['trait-1', 'trait-2']
     assert b['food'] == 0
-    mock_put.assert_called_once()
-    saved = mock_put.call_args[0][0]
+    assert len(helpers.SINK.items()) == 1
+    saved = helpers.SINK.items()[0]
     assert saved['SK'].startswith('CHARACTER#')
     assert saved['userUuid'] == 'player-uuid-001'
     # max values are persisted on the DynamoDB character item
@@ -126,7 +127,7 @@ def test_join_success(mock_jwt, mock_get, mock_query, mock_put):
     assert saved['weightMax'] == 12
 
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_join_match_not_found(mock_jwt, mock_get, mock_query):
@@ -137,7 +138,7 @@ def test_join_match_not_found(mock_jwt, mock_get, mock_query):
     assert lambda_handler(_event('POST', '/api/matches/m1/join', body={}), {})['statusCode'] == 404
 
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_join_terminal(mock_jwt, mock_get, mock_query):
@@ -148,7 +149,7 @@ def test_join_terminal(mock_jwt, mock_get, mock_query):
     assert lambda_handler(_event('POST', '/api/matches/m1/join', body={}), {})['statusCode'] == 409
 
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_join_banned(mock_jwt, mock_get, mock_query):
@@ -159,7 +160,7 @@ def test_join_banned(mock_jwt, mock_get, mock_query):
     assert lambda_handler(_event('POST', '/api/matches/m1/join', body={}), {})['statusCode'] == 403
 
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_join_already_joined(mock_jwt, mock_get, mock_query):
@@ -170,7 +171,7 @@ def test_join_already_joined(mock_jwt, mock_get, mock_query):
     assert lambda_handler(_event('POST', '/api/matches/m1/join', body={}), {})['statusCode'] == 409
 
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_join_template_not_found(mock_jwt, mock_get, mock_query):
@@ -183,7 +184,7 @@ def test_join_template_not_found(mock_jwt, mock_get, mock_query):
     assert _body(r)['error'] == 'TEMPLATE_NOT_FOUND'
 
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_join_class_not_found(mock_jwt, mock_get, mock_query):
@@ -196,7 +197,7 @@ def test_join_class_not_found(mock_jwt, mock_get, mock_query):
     assert _body(r)['error'] == 'CLASS_NOT_FOUND'
 
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_join_class_not_compatible(mock_jwt, mock_get, mock_query):
@@ -211,7 +212,7 @@ def test_join_class_not_compatible(mock_jwt, mock_get, mock_query):
     assert _body(r)['error'] == 'CLASS_NOT_COMPATIBLE'
 
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_join_no_template(mock_jwt, mock_get, mock_query):
@@ -226,7 +227,7 @@ def test_join_no_template(mock_jwt, mock_get, mock_query):
 
 # ── players ────────────────────────────────────────────────────────────────────
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_list_players_ok(mock_jwt, mock_get, mock_query):
@@ -239,7 +240,7 @@ def test_list_players_ok(mock_jwt, mock_get, mock_query):
     assert _body(r)[0]['uuid'] == 'c1'
 
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_list_players_no_access(mock_jwt, mock_get, mock_query):
@@ -252,7 +253,7 @@ def test_list_players_no_access(mock_jwt, mock_get, mock_query):
 
 # ── character detail ────────────────────────────────────────────────────────────
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_get_character_ok(mock_jwt, mock_get, mock_query):
@@ -265,7 +266,7 @@ def test_get_character_ok(mock_jwt, mock_get, mock_query):
     assert _body(r)['traitUuids'] == ['trait-1']
 
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_get_character_not_found(mock_jwt, mock_get, mock_query):
@@ -277,7 +278,7 @@ def test_get_character_not_found(mock_jwt, mock_get, mock_query):
     assert r['statusCode'] == 404
 
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_match_info_includes_players(mock_jwt, mock_get, mock_query):
@@ -303,7 +304,7 @@ def _story_with(traits=None, difficulties=None):
     return story
 
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_join_unknown_trait_not_found(mock_jwt, mock_get, mock_query):
@@ -317,7 +318,7 @@ def test_join_unknown_trait_not_found(mock_jwt, mock_get, mock_query):
     assert _body(result)['error'] == 'TRAIT_NOT_FOUND'
 
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_join_duplicated_trait(mock_jwt, mock_get, mock_query):
@@ -331,7 +332,7 @@ def test_join_duplicated_trait(mock_jwt, mock_get, mock_query):
     assert _body(result)['error'] == 'TRAIT_DUPLICATED'
 
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_join_hidden_trait_is_not_selectable(mock_jwt, mock_get, mock_query):
@@ -350,7 +351,7 @@ def test_join_hidden_trait_is_not_selectable(mock_jwt, mock_get, mock_query):
     assert _body(result)['error'] == 'TRAIT_NOT_SELECTABLE'
 
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_join_trait_without_the_flag_stays_selectable(mock_jwt, mock_get, mock_query):
@@ -367,7 +368,7 @@ def test_join_trait_without_the_flag_stays_selectable(mock_jwt, mock_get, mock_q
     assert result['statusCode'] == 201
 
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_join_trait_not_compatible_permitted(mock_jwt, mock_get, mock_query):
@@ -384,7 +385,43 @@ def test_join_trait_not_compatible_permitted(mock_jwt, mock_get, mock_query):
     assert _body(result)['error'] == 'TRAIT_NOT_COMPATIBLE'
 
 
-@patch('match.handler.db_utils.query_by_pk')
+# v0.37.1 — a story authored through the admin form keeps "" where a field was left empty,
+# and DynamoDB stores that verbatim. int("") used to raise a 500 on every match creation, and
+# the same blank on a character template silently refused every class.
+
+@patch('match.handler.db_utils.query_sk_prefix')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_join_trait_with_blank_class_columns_is_no_restriction(mock_jwt, mock_get, mock_query):
+    story = _story_with(traits=[
+        {'uuid': 'trait-1', 'id': 1, 'costPositive': 1, 'costNegative': 0,
+         'idClassPermitted': '', 'idClassProhibited': '', 'hideOnStartMatch': 0}])
+    mock_jwt.return_value = _claims()
+    mock_get.side_effect = _store(match=_match(), story=story)
+    mock_query.return_value = []
+    from match.handler import lambda_handler
+    result = lambda_handler(_event('POST', '/api/matches/m1/join',
+                                   body={'traitUuids': ['trait-1']}), {})
+    assert result['statusCode'] == 201
+
+
+@patch('match.handler.db_utils.query_sk_prefix')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_join_trait_with_unparseable_class_column_is_no_restriction(mock_jwt, mock_get, mock_query):
+    story = _story_with(traits=[
+        {'uuid': 'trait-1', 'id': 1, 'costPositive': 1, 'costNegative': 0,
+         'idClassPermitted': 'none', 'idClassProhibited': None, 'hideOnStartMatch': 0}])
+    mock_jwt.return_value = _claims()
+    mock_get.side_effect = _store(match=_match(), story=story)
+    mock_query.return_value = []
+    from match.handler import lambda_handler
+    result = lambda_handler(_event('POST', '/api/matches/m1/join',
+                                   body={'traitUuids': ['trait-1']}), {})
+    assert result['statusCode'] == 201
+
+
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_join_trait_not_compatible_prohibited(mock_jwt, mock_get, mock_query):
@@ -401,7 +438,7 @@ def test_join_trait_not_compatible_prohibited(mock_jwt, mock_get, mock_query):
     assert _body(result)['error'] == 'TRAIT_NOT_COMPATIBLE'
 
 
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_join_positive_budget_exceeded(mock_jwt, mock_get, mock_query):
@@ -423,7 +460,7 @@ def test_join_positive_budget_exceeded(mock_jwt, mock_get, mock_query):
 
 
 @patch('match.handler.db_utils.put_item')
-@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.query_sk_prefix')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_join_exact_budget_ok(mock_jwt, mock_get, mock_query, mock_put):

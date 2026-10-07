@@ -26,6 +26,37 @@ describe('BonusBadgeList', () => {
     expect(container.querySelector('.extra')).toBeTruthy()
   })
 
+  // A per-item `keepZero` survives the zero filter without switching showZeros on for all.
+  it('keeps a keepZero item at zero (or "0/3") while still hiding the other zeros', () => {
+    const { container } = render(
+      <BonusBadgeList
+        items={[
+          { key: 'costPositive', label: 'Cost +', value: 0, keepZero: true },
+          { key: 'costNegative', label: 'Cost -', value: '0/3', keepZero: true },
+          { key: 'energy', label: 'Energy', value: 0 },
+        ]}
+      />
+    )
+    const badges = container.querySelectorAll('.stat-badge')
+    expect(badges.length).toBe(2)
+    expect(badges[1].textContent).toContain('0/3')
+  })
+
+  it('adds an item\'s own className to that badge only, and paints its glyph in its colour', () => {
+    const { container } = render(
+      <BonusBadgeList showZeros items={[
+        { key: 'missionCompleted', label: null, value: 'Done', icon: 'fas fa-check-circle',
+          color: '#1e7d3a', className: 'bonus-badge--done' },
+        { key: 'life', label: 'Life', value: 5 },
+      ]} />
+    )
+    const done = container.querySelectorAll('.bonus-badge--done')
+    expect(done.length).toBe(1)
+    expect(done[0].querySelector('.fa-check-circle').style.color).toBe('rgb(30, 125, 58)')
+    expect(done[0].textContent).toBe('Done')
+    expect(done[0].hasAttribute('title')).toBe(false)
+  })
+
   it('keeps zero values when showZeros is set', () => {
     const { container } = render(
       <BonusBadgeList

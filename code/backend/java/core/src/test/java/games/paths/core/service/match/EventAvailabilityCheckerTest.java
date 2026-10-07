@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+import java.util.List;
 
 /**
  * EventAvailabilityChecker (Step 29) — the check procedure.
@@ -65,7 +66,7 @@ class EventAvailabilityCheckerTest {
         Set<Long> items = new HashSet<>();
         Long weather = null;
         Set<Long> consumed = new HashSet<>();
-        Map<String, String> registry = new HashMap<>();
+        Map<String, List<String>> registry = new HashMap<>();
 
         EventCheckContext build() {
             return new EventCheckContext(idCharacter, idLocation, sleeping, coma, energy, coin,
@@ -151,7 +152,7 @@ class EventAvailabilityCheckerTest {
             e.setIdClassCondition(50);
 
             EventAvailability a = EventAvailabilityChecker.check(e, ctx(b -> {
-                b.registry.put("GATE", "OPEN");
+                b.registry.put("GATE", List.of("OPEN"));
                 b.weather = 3L;
                 b.items.add(42L);
                 b.idClass = 50L;
@@ -358,8 +359,31 @@ class EventAvailabilityCheckerTest {
             EventEntity e = event();
             e.setRegistryKeyCondition("GATE");
             e.setRegistryValueCondition("OPEN");
-            assertUnavailable(EventAvailabilityChecker.check(e, ctx(b -> b.registry.put("GATE", "SHUT"))),
+            assertUnavailable(EventAvailabilityChecker.check(e, ctx(b -> b.registry.put("GATE", List.of("SHUT")))),
                     Code.REGISTRY_CONDITION_NOT_MET);
+        }
+
+        @Test
+        @DisplayName("Step 36: the operator column widens the condition past equality")
+        void registryOperatorGreaterThan() {
+            EventEntity e = event();
+            e.setRegistryKeyCondition("REP");
+            e.setRegistryValueCondition("3");
+            e.setRegistryValueOperatorCondition(">");
+            assertUnavailable(EventAvailabilityChecker.check(e, ctx(b -> b.registry.put("REP", List.of("3")))),
+                    Code.REGISTRY_CONDITION_NOT_MET);
+            assertTrue(EventAvailabilityChecker.check(e, ctx(b -> b.registry.put("REP", List.of("4"))))
+                    .available());
+        }
+
+        @Test
+        @DisplayName("Step 36: != is met by a key that was never set")
+        void registryOperatorNotEqualsOnAbsentKey() {
+            EventEntity e = event();
+            e.setRegistryKeyCondition("GATE");
+            e.setRegistryValueCondition("OPEN");
+            e.setRegistryValueOperatorCondition("!=");
+            assertTrue(EventAvailabilityChecker.check(e, ctx()).available());
         }
 
         @Test
@@ -368,7 +392,7 @@ class EventAvailabilityCheckerTest {
             EventEntity e = event();
             e.setRegistryKeyCondition("GATE");
             e.setRegistryValueCondition(null);
-            assertUnavailable(EventAvailabilityChecker.check(e, ctx(b -> b.registry.put("GATE", "OPEN"))),
+            assertUnavailable(EventAvailabilityChecker.check(e, ctx(b -> b.registry.put("GATE", List.of("OPEN")))),
                     Code.REGISTRY_CONDITION_NOT_MET);
         }
 

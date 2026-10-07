@@ -40,7 +40,7 @@ import java.util.Set;
  * <p>The reasons are plain strings, not {@code EventExecutionException.Code} values: they
  * ride on each option of a 200 response, they are never thrown.</p>
  *
- * <p>See {@code documentation_v0/Roadmap.md} (step 31); the condition vocabulary is the
+ * <p>See {@code wiki/documentation_v0/Roadmap.md} (step 31); the condition vocabulary is the
  * {@code list_choices_conditions} schema comment (V0.10.4).</p>
  */
 public final class ChoiceAvailabilityChecker {
@@ -83,7 +83,7 @@ public final class ChoiceAvailabilityChecker {
                                      Long idLocation,
                                      Set<Long> ownedItemIds,
                                      Set<Long> traitIds,
-                                     Map<String, String> registry,
+                                     Map<String, List<String>> registry,
                                      List<Long> partyLocations,
                                      Map<String, Integer> partyStatSums) {
     }
@@ -173,20 +173,11 @@ public final class ChoiceAvailabilityChecker {
      */
     private static boolean keysMet(ChoiceConditionEntity row, ChoiceCheckContext ctx) {
         String key = trim(row.getKey());
-        String expected = row.getValue();
-        if (key.isEmpty() || expected == null) {
+        if (key.isEmpty()) {
             return false;
         }
-        String actual = ctx.registry().get(key);
-        return switch (operator(row)) {
-            case "=" -> expected.equals(actual);
-            case "!=" -> !expected.equals(actual);
-            case ">" -> numeric(actual) != null && numeric(expected) != null
-                    && numeric(actual) > numeric(expected);
-            case "<" -> numeric(actual) != null && numeric(expected) != null
-                    && numeric(actual) < numeric(expected);
-            default -> false;
-        };
+        return RegistryService.evaluate(operator(row), row.getValue(),
+                ctx.registry().getOrDefault(key, List.of()));
     }
 
     /** ITEM / traits: the story-local id sits in {@code value} ({@code key} as fallback). */

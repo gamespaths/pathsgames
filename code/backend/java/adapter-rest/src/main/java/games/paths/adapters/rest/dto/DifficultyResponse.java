@@ -10,7 +10,9 @@ public class DifficultyResponse extends AbstractStatBlockUuidDescriptionDto {
     private int minCharacter;
     private int maxCharacter;
     private int costHelpComa;
-    private int costMaxCharacteristics;
+    /** Step 38 — use-exp flat cost addend and DEX/INT/COS cap (0 = none). */
+    private int expCostBase;
+    private int maxStatValue;
     private int numberMaxFreeAction;
     private Integer idCard;
     private CardInfoResponse card;
@@ -22,14 +24,15 @@ public class DifficultyResponse extends AbstractStatBlockUuidDescriptionDto {
 
     public DifficultyResponse(String uuid, String description, int expCost, int maxWeight,
                               int minCharacter, int maxCharacter, int costHelpComa,
-                              int costMaxCharacteristics, int numberMaxFreeAction) {
+                              int expCostBase, int maxStatValue, int numberMaxFreeAction) {
         super(uuid, description);
         this.expCost = expCost;
         this.maxWeight = maxWeight;
         this.minCharacter = minCharacter;
         this.maxCharacter = maxCharacter;
         this.costHelpComa = costHelpComa;
-        this.costMaxCharacteristics = costMaxCharacteristics;
+        this.expCostBase = expCostBase;
+        this.maxStatValue = maxStatValue;
         this.numberMaxFreeAction = numberMaxFreeAction;
     }
 
@@ -48,8 +51,11 @@ public class DifficultyResponse extends AbstractStatBlockUuidDescriptionDto {
     public int getCostHelpComa() { return costHelpComa; }
     public void setCostHelpComa(int costHelpComa) { this.costHelpComa = costHelpComa; }
 
-    public int getCostMaxCharacteristics() { return costMaxCharacteristics; }
-    public void setCostMaxCharacteristics(int costMaxCharacteristics) { this.costMaxCharacteristics = costMaxCharacteristics; }
+    public int getExpCostBase() { return expCostBase; }
+    public void setExpCostBase(int expCostBase) { this.expCostBase = expCostBase; }
+
+    public int getMaxStatValue() { return maxStatValue; }
+    public void setMaxStatValue(int maxStatValue) { this.maxStatValue = maxStatValue; }
 
     public int getNumberMaxFreeAction() { return numberMaxFreeAction; }
     public void setNumberMaxFreeAction(int numberMaxFreeAction) { this.numberMaxFreeAction = numberMaxFreeAction; }

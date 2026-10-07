@@ -38,4 +38,31 @@ describe('StoryEditorPageSidebar', () => {
     expect(container.querySelector('.fa-info-circle')).toBeInTheDocument()
     expect(container.querySelector('.fa-layer-group')).toBeInTheDocument()
   })
+
+  it('adds Cards fast edit as the LAST entry when a handler is given', async () => {
+    const onOpenCardsFastEdit = vi.fn()
+    render(<StoryEditorPageSidebar tabs={TABS} activeTab="metadata" onSelectTab={() => {}}
+      onOpenCardsFastEdit={onOpenCardsFastEdit} />)
+    const buttons = screen.getAllByRole('button')
+    expect(buttons.at(-1)).toHaveTextContent('Cards fast edit')
+    await userEvent.click(buttons.at(-1))
+    expect(onOpenCardsFastEdit).toHaveBeenCalled()
+  })
+
+  it('has no Cards fast edit entry without a handler', () => {
+    render(<StoryEditorPageSidebar tabs={TABS} activeTab="metadata" onSelectTab={() => {}} />)
+    expect(screen.queryByText('Cards fast edit')).not.toBeInTheDocument()
+    expect(screen.queryByText('Fast new event')).not.toBeInTheDocument()
+  })
+
+  it('adds Fast new event after Cards fast edit as the LAST entry', async () => {
+    const onOpenFastNewEvent = vi.fn()
+    render(<StoryEditorPageSidebar tabs={TABS} activeTab="metadata" onSelectTab={() => {}}
+      onOpenCardsFastEdit={() => {}} onOpenFastNewEvent={onOpenFastNewEvent} />)
+    const buttons = screen.getAllByRole('button')
+    expect(buttons.at(-2)).toHaveTextContent('Cards fast edit')
+    expect(buttons.at(-1)).toHaveTextContent('Fast new event')
+    await userEvent.click(buttons.at(-1))
+    expect(onOpenFastNewEvent).toHaveBeenCalled()
+  })
 })

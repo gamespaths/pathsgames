@@ -49,7 +49,9 @@ class StoryDifficultyEntity(Base):
     min_character = Column(Integer)
     max_character = Column(Integer)
     cost_help_coma = Column(Integer)
-    cost_max_characteristics = Column(Integer)
+    # Step 38 — use-exp: flat cost addend and the DEX/INT/COS cap (0 = no cap)
+    exp_cost_base = Column(Integer, default=0)
+    max_stat_value = Column(Integer, default=0)
     number_max_free_action = Column(Integer)
     # Step 23 — trait cost budgets; NULL = no limit
     trait_cost_positive_budget = Column(Integer)
@@ -74,7 +76,7 @@ class TextEntity(Base):
     id_text_description = Column(Integer)
     id_text = Column(Integer, nullable=False)
     lang = Column(String(10), default="en")
-    short_text = Column(String(1000))
+    short_text = Column(String(2000))
     long_text = Column(Text)
     id_text_copyright = Column(Integer)
     link_copyright = Column(Text)
@@ -93,6 +95,10 @@ class KeyEntity(Base):
     key_value = Column(String(255))
     key_group = Column(String(100))
     is_visible = Column(Integer, default=0)
+    # Step 36 — orders the keys inside their category, as list_keys.priority does on Java.
+    priority = Column(Integer, default=0)
+    # Step 36.1 — 1 = the key holds a set, each write adding a member; 0 = one value.
+    multi_value = Column(Integer, default=0)
 
 
 class ClassEntity(Base):
@@ -174,7 +180,7 @@ class LocationEntity(Base):
     uuid = Column(String(36))
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
-    is_safe = Column(Integer, default=0)
+    secure_param = Column(Integer, default=0)
     max_characters = Column(Integer)
     id_event_on_enter = Column(Integer)
     id_event_if_counter_zero = Column(Integer)
@@ -188,6 +194,12 @@ class LocationEntity(Base):
     id_event_if_character_enter_empty_location = Column(Integer)
     id_event_if_character_start_time = Column(Integer)
     priority_automatic_event = Column(Integer, default=0)
+    # Step 36.2 — the registry pair for the first arrival, and the one for every later
+    # arrival. An arrival takes one branch, never both.
+    key_to_add = Column(String(200))
+    key_value_to_add = Column(String(500))
+    key_to_add_not_first = Column(String(200))
+    key_value_to_add_not_first = Column(String(500))
 
 
 class LocationNeighborEntity(Base):
@@ -210,8 +222,14 @@ class LocationNeighborEntity(Base):
     cost_food = Column(Integer, default=0)
     cost_magic = Column(Integer, default=0)
     cost_coin = Column(Integer, default=0)
-    condition_key = Column(String(255))
-    condition_value = Column(String(255))
+    # v0.35.8 — realigned onto the Java schema (V0.10.3): the columns are
+    # condition_registry_key/_value, so the old condition_key/_value never existed.
+    condition_registry_key = Column(String(200))
+    condition_registry_value = Column(String(200))
+    registry_value_operator_condition = Column(String(10))  # = != > < ; None means =
+    # The label of the edge in each direction: "Go to the end" / "Back from end".
+    id_text_go = Column(Integer)
+    id_text_back = Column(Integer)
 
 
 class ItemEntity(Base):
@@ -231,9 +249,14 @@ class ItemEntity(Base):
     id_card = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
-    weight = Column(Integer, default=0)
+    # v0.35.8 — 1, like the Java schema (V0.10.3: weight INTEGER NOT NULL DEFAULT 1) and
+    # its @PrePersist: an item that does not declare a weight still weighs something.
+    weight = Column(Integer, default=1)
     # 1 = can be consumed with use-item; 0 = carried only (weight + item conditions).
-    is_consumabile = Column(Integer, default=1)
+    # v0.36.3 — an item nobody declared consumable can only be carried: the default is 0,
+    # so what the admin form shows unticked is what use-item refuses. The SQL column still
+    # defaults to 1 for a raw INSERT; every writer here sends an explicit value.
+    is_consumabile = Column(Integer, default=0)
     # v0.35.0 — 1/None report the effects[] promise before the item is used, 0 keeps the
     # secret. Nullable: a story authored before the column existed already shipped the
     # promise, so an absence must read as "shown", never as a refusal.
@@ -283,11 +306,16 @@ class WeatherRuleEntity(Base):
     cost_move_safe_location = Column(Integer, default=0)
     cost_move_not_safe_location = Column(Integer, default=0)
     id_event = Column(Integer)
-    condition_key = Column(String(255))
-    condition_value = Column(String(255))
-    time_start = Column(Integer)
-    time_end = Column(Integer)
-    is_active = Column(Integer, default=1)
+    # v0.35.8 — realigned onto the Java schema (V0.10.3). The old condition_value /
+    # time_start / time_end / is_active names are columns that do not exist there, and
+    # id_text — the rule's own label — was missing altogether.
+    condition_key = Column(String(200))
+    condition_key_value = Column(String(200))
+    registry_value_operator_condition = Column(String(10))  # = != > < ; None means =
+    time_from = Column(Integer)
+    time_to = Column(Integer)
+    id_text = Column(Integer)
+    active = Column(Integer, default=1)
 
 
 class EventEntity(Base):
@@ -329,6 +357,7 @@ class EventEntity(Base):
     id_weather = Column(Integer)
     registry_key_condition = Column(String(200))
     registry_value_condition = Column(String(500))
+    registry_value_operator_condition = Column(String(10))  # = != > < ; None means =
     id_item_condition = Column(Integer)
     id_class_condition = Column(Integer)
     # DEPRECATED v0.29.0: ignored by the engine. Items are granted through effects.
@@ -481,9 +510,12 @@ class GlobalRandomEventEntity(Base):
     probability = Column(Float)
     condition_key = Column(String(255))
     condition_value = Column(String(255))
+    registry_value_operator_condition = Column(String(10))  # Step 39: = != > < ; None means =
 
 
 class MissionEntity(Base):
+    """Step 37 - condition_value replaces the from/to pair; condition_values is a PIPE list."""
+
     __tablename__ = "list_missions"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
@@ -493,21 +525,27 @@ class MissionEntity(Base):
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     condition_key = Column(String(255))
-    condition_value_from = Column(String(255))
-    condition_value_to = Column(String(255))
+    condition_value = Column(String(500))
+    condition_values = Column(String(2000))
     id_event_completed = Column(Integer)
 
 
 class MissionStepEntity(Base):
+    """Step 37 - aligned to the Java schema: `step` (not step_order), uuid, card and texts."""
+
     __tablename__ = "list_missions_steps"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
     id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
+    uuid = Column(String(36))
+    id_card = Column(Integer)
     id_mission = Column(Integer)
-    step_order = Column(Integer)
+    step = Column(Integer)
+    id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     condition_key = Column(String(255))
-    condition_value = Column(String(255))
+    condition_value = Column(String(500))
+    condition_values = Column(String(2000))
     id_event_completed = Column(Integer)
 
 

@@ -17,6 +17,7 @@ weight is 0 until inventory lands).
 from typing import Any, Dict, List, Optional
 
 from app.core.models.match import match_statuses
+from app.core.models.match.event_models import EdgeStateOutcome
 from app.core.models.match.location_entry_models import ArrivalContext
 from app.core.models.match.movement_models import (
     MovementError,
@@ -27,6 +28,7 @@ from app.core.models.match.movement_models import (
 from app.core.ports.match.movement_ports import MovementPort, MovementStorePort
 from app.core.services.match import movement_availability
 from app.core.services.match.movement_availability import MoveCheckContext, MoveEdgeCheck
+from app.core.services.match import registry_service
 
 
 def move_check_context(match: Dict[str, Any],
@@ -71,9 +73,17 @@ def _reason_message(code: str) -> str:
     return _REASON_MESSAGES.get(code, "Movement refused")
 
 
+
+def time_end_of(automatic_events):
+    """Step 40 — the first arrival event that ended the time carries its news; None otherwise."""
+    for fired in automatic_events or []:
+        if getattr(fired, "time_end", None) is not None:
+            return fired.time_end
+    return None
+
 class MovementService(MovementPort):
     def __init__(self, store: MovementStorePort, story_read_port=None,
-                 location_entry=None) -> None:
+                 location_entry=None, registry_service_instance=None) -> None:
         # ``story_read_port`` (StoryMatchReadPort) resolves the location cards;
         # optional so legacy wiring keeps working (cards stay None without it).
         self.store = store
@@ -81,6 +91,8 @@ class MovementService(MovementPort):
         # Step 33 — the location engine. None keeps the pre-33 behaviour: a move fires
         # nothing.
         self.location_entry = location_entry
+        # Step 36 — every registry read of a move condition goes through it.
+        self.registry_service = registry_service_instance
 
     # ── public API ──────────────────────────────────────────────────────────
 
@@ -164,13 +176,18 @@ class MovementService(MovementPort):
                 lang=None,
             ))
 
+        # v0.35.6 — one Step 30 verdict for the whole arrival: several automatic events can
+        # fire on one entry and any of them can kill, so the move answers a single edge state.
+        edge_state = EdgeStateOutcome.merge([f.edge_state for f in automatic_events])
+        time_end = time_end_of(automatic_events)
         return MovementResult(match_uuid, caller["uuid"], caller["id_location"], None,
                               target["id"], target.get("uuid"), total_cost, new_energy,
-                              match["current_clock"],
+                              time_end.new_clock if time_end else match["current_clock"],
                               automatic_events=automatic_events,
                               food_spent=cost_food, magic_spent=cost_magic,
                               coin_spent=cost_coin, new_food=new_food,
-                              new_magic=new_magic, new_coin=new_coin)
+                              new_magic=new_magic, new_coin=new_coin,
+                              edge_state=edge_state, time_end=time_end)
 
     def list_locations(self, match_uuid: str, user_uuid: str,
                        lang: str = "en") -> List[VisitedLocation]:
@@ -313,10 +330,11 @@ class MovementService(MovementPort):
 
     def _condition_met(self, id_match: int, edge: Dict[str, Any]) -> bool:
         key = edge.get("condition_key")
-        if not key:
+        if registry_service.no_condition(key):
             return True
-        value = self.store.find_registry_value(id_match, key)
-        return edge.get("condition_value") is not None and edge["condition_value"] == value
+        value = self.registry_service.find(id_match, key)
+        return registry_service.evaluate(edge.get("registry_value_operator_condition"),
+                                         edge.get("condition_value"), value)
 
     def _require_user(self, user_uuid: str) -> int:
         user_id = self.store.find_user_id_by_uuid(user_uuid)

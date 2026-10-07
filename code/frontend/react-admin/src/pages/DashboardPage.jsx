@@ -26,7 +26,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setLoading(true)
-    Promise.allSettled([
+    void Promise.allSettled([
       getServerStatus(),
       getGuestStats(),
       listAllStories(),
@@ -96,24 +96,23 @@ export default function DashboardPage() {
       <div className="pg-card">
         <div className="pg-card-title mb-3">
           <i className="fas fa-bolt me-1" />
+          {' '}
           Quick Actions
         </div>
         <div className="flex flex-wrap gap-3">
           <a href="/guests" className="pg-btn pg-btn-gold">
             <i className="fas fa-user-secret" />
+            {' '}
             Manage Guests
           </a>
           <a href="/stories" className="pg-btn pg-btn-gold">
-            <i className="fas fa-book-open" />
-            Manage Stories
+            <i className="fas fa-book-open" />Manage Stories
           </a>
           <a href="/stories/import" className="pg-btn pg-btn-ghost">
-            <i className="fas fa-file-import" />
-            Import Story
+            <i className="fas fa-file-import" />Import Story
           </a>
           <a href="/echo" className="pg-btn pg-btn-ghost">
-            <i className="fas fa-heartbeat" />
-            Server Status
+            <i className="fas fa-heartbeat" />Server Status
           </a>
         </div>
       </div>

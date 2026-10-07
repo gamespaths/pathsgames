@@ -2,9 +2,11 @@ name: Backend CI
 
 on:
   push:
-    branches: [ main ] #, develop, 'release/*', 'feature/*' ]
+    branches: [ main , develop , release/* ] #, develop, 'release/*', 'feature/*' ]
     paths:
       - 'code/backend/java/**'
+      - 'code/backend/python/**'
+      - '.github/workflows/backend-ci.yml'
 #  pull_request:
 #    branches: [ main ]
 #    paths:
@@ -15,8 +17,8 @@ env:
   DOCKER_IMAGE: pathsgames/pathsgames
 
 jobs:
-  build-and-test:
-    name: Build & Test
+  build-and-test-java:
+    name: Build & Test Java
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -51,9 +53,46 @@ jobs:
       pom_version: ${{ steps.version.outputs.pom_version }}
       release_version: ${{ steps.version.outputs.release_version }}
 
-  docker-publish:
-    name: Docker Build & Push
-    needs: build-and-test
+  build-and-test-python:
+    name: Build & Test Python
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: code/backend/python
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest tests/ --cov=app --cov-report=term-missing
+
+      - name: Extract version from config
+        if: success()
+        id: version
+        run: |
+          VERSION=$(grep -oP "version:\s*\K[^\"]*" app/config.py | head -1)
+          echo "pom_version=$VERSION" >> $GITHUB_OUTPUT
+          echo "release_version=${VERSION%-SNAPSHOT}" >> $GITHUB_OUTPUT
+
+    outputs:
+      pom_version: ${{ steps.version.outputs.pom_version }}
+      release_version: ${{ steps.version.outputs.release_version }}
+
+  docker-publish-java:
+    name: Docker Build & Push Java (Multi-Arch)
+    needs: build-and-test-java
     if: >
       success() &&
       github.event_name == 'push' &&
@@ -64,8 +103,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
+      - name: Set up Docker Buildx (multi-arch support)
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-options: |
+            image=moby/buildkit:latest
+            network=host
 
       - name: Login to DockerHub
         uses: docker/login-action@v3
@@ -73,23 +116,73 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Determine Docker tags
+      - name: Determine Docker tags for Java
         id: tags
         run: |
-          RELEASE_VERSION="${{ needs.build-and-test.outputs.release_version }}"
+          RELEASE_VERSION="${{ needs.build-and-test-java.outputs.release_version }}"
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             echo "tags=${{ env.DOCKER_IMAGE }}:latest,${{ env.DOCKER_IMAGE }}:${RELEASE_VERSION}" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
-            echo "tags=${{ env.DOCKER_IMAGE }}:dev" >> $GITHUB_OUTPUT
+            echo "tags=${{ env.DOCKER_IMAGE }}:test" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref }}" == refs/heads/release/* ]]; then
             echo "tags=${{ env.DOCKER_IMAGE }}:rc" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build and push Docker image
+      - name: Build and push Docker image (Java, linux/amd64 + linux/arm64)
         uses: docker/build-push-action@v5
         with:
           context: code/backend/java
           file: code/backend/java/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  docker-publish-python:
+    name: Docker Build & Push Python (Multi-Arch)
+    needs: build-and-test-python
+    if: >
+      success() &&
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release/'))
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx (multi-arch support)
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-options: |
+            image=moby/buildkit:latest
+            network=host
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Determine Docker tags for Python
+        id: tags
+        run: |
+          RELEASE_VERSION="${{ needs.build-and-test-python.outputs.release_version }}"
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "tags=${{ env.DOCKER_IMAGE }}:latest-python,${{ env.DOCKER_IMAGE }}:${RELEASE_VERSION}-python" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "tags=${{ env.DOCKER_IMAGE }}:test-python" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/heads/release/* ]]; then
+            echo "tags=${{ env.DOCKER_IMAGE }}:rc-python" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push Docker image (Python, linux/amd64 + linux/arm64)
+        uses: docker/build-push-action@v5
+        with:
+          context: code/backend/python
+          file: code/backend/python/Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.tags.outputs.tags }}
           cache-from: type=gha

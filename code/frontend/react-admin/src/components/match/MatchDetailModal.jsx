@@ -1,4 +1,5 @@
 import { getStory, listEntities } from '../../api/storyApi'
+import useEscapeKey from '../../hooks/useEscapeKey'
 import LoadingSpinner from '../common/LoadingSpinner'
 import ErrorAlert from '../common/ErrorAlert'
 
@@ -55,6 +56,7 @@ export async function fetchStoryCtx(storyUuid) {
 }
 
 export default function MatchDetailModal({ detail, onClose }) {
+  useEscapeKey(onClose)
   const { uuid, loading, info, error, storyCtx } = detail
   const match = info?.match
 
@@ -74,8 +76,8 @@ export default function MatchDetailModal({ detail, onClose }) {
   }
 
   return (
-    <div className="pg-modal-backdrop" role="button" tabIndex="0" onClick={onClose} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
-      <div className="pg-modal" style={{ maxWidth: 680 }} onClick={e => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+    <div className="pg-modal-backdrop" role="presentation" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="pg-modal" style={{ maxWidth: 680 }}>
         <p className="pg-modal-title">
           <i className="fas fa-gamepad me-2" />
           {match?.name || `Match ${shortUuid(uuid)}`}
@@ -207,7 +209,7 @@ export default function MatchDetailModal({ detail, onClose }) {
             <p className="pg-card-title mb-1"><i className="fas fa-list me-1" />Registry ({info.registry?.length ?? 0})</p>
             <table className="pg-table" style={{ fontSize: '0.78rem' }}>
               <thead>
-                <tr><th>Key</th><th>String value</th><th>Int value</th></tr>
+                <tr><th>Key</th><th>Values</th><th>Multi</th></tr>
               </thead>
               <tbody>
                 {(info.registry ?? []).length === 0 && (
@@ -216,8 +218,10 @@ export default function MatchDetailModal({ detail, onClose }) {
                 {(info.registry ?? []).map(r => (
                   <tr key={r.uuid ?? r.key}>
                     <td>{r.key}</td>
-                    <td style={{ wordBreak: 'break-all' }}>{r.stringValue ?? '—'}</td>
-                    <td>{r.intValue ?? '—'}</td>
+                    <td style={{ wordBreak: 'break-all' }}>
+                      {(r.values ?? []).length === 0 ? '—' : (r.values ?? []).join(', ')}
+                    </td>
+                    <td>{r.multiValue ? 'yes' : 'no'}</td>
                   </tr>
                 ))}
               </tbody>

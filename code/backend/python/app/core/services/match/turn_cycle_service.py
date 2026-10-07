@@ -9,14 +9,29 @@ from app.core.models.match.turn_models import (
     TurnEntry,
     TurnSequenceResult,
 )
+from app.core.ports.match import kpi_ports
+from app.core.ports.match import log_writer_ports as lw
 from app.core.ports.match.turn_ports import TurnCyclePort, TurnCycleStorePort
 
 
 class TurnCycleService(TurnCyclePort):
-    def __init__(self, store: TurnCycleStorePort, weather_service=None) -> None:
+    def __init__(self, store: TurnCycleStorePort, weather_service=None,
+                 registry_service=None) -> None:
         self.store = store
         # Step 27 — optional weather selection engine (may be None in tests).
         self.weather_service = weather_service
+        # v0.37.1 — the start location's own registry pair; None in the older tests.
+        self.registry_service = registry_service
+        # v0.41.1 — MATCH_STARTED and ACTION_PASS rows; None in the older tests.
+        self.log_writer = None
+        # v0.41.2 — MATCH_STARTED counter; None in the older tests.
+        self.kpi = None
+
+    def set_log_writer(self, log_writer) -> None:
+        self.log_writer = log_writer
+
+    def set_kpi(self, kpi) -> None:
+        self.kpi = kpi
 
     # ── public API ──────────────────────────────────────────────────────────
 
@@ -46,10 +61,24 @@ class TurnCycleService(TurnCyclePort):
         self.store.replace_queue(match["id"], rows)
         top_id = rows[0]["id_character_match"]
         self.store.update_match_status_and_turn(match["id"], match_statuses.RUNNING, top_id)
+        self.store.stamp_match_start(match["id"])
+        if self.kpi is not None:
+            self.kpi.record_for_match(match["id"], kpi_ports.MATCH_STARTED, None, 1)
+        # v0.41.1 — before the weather, so the timeline opens with the start.
+        if self.log_writer is not None:
+            self.log_writer.write(match["id"], None, None, match["current_clock"],
+                                  lw.lifecycle(lw.LIFECYCLE_STARTED))
 
         # Step 27: select the initial weather for clock 0 when the match starts.
         if self.weather_service is not None:
             self.weather_service.apply_at_time_start(match["id"])
+
+        # v0.37.1: the party never ARRIVES in the starting location, so no arrival ever writes
+        # its first-entry key. The match starting is that moment, and the active character owns
+        # the row — a mission waiting on that key opens here.
+        if self.registry_service is not None:
+            self.registry_service.write_start_location_entry(match["id"], top_id,
+                                                             match["current_clock"])
 
         return self._build_sequence(match_uuid, match["current_clock"],
                                     match_statuses.RUNNING, top_id, rows, characters)
@@ -81,6 +110,9 @@ class TurnCycleService(TurnCyclePort):
         active["timestamp_start"] = None
         active["timestamp_end"] = None
         self.store.save_queue_row(match["id"], active)
+        if self.log_writer is not None:
+            self.log_writer.write(match["id"], active["id_character_match"], None,
+                                  match["current_clock"], lw.MSG_PASS)
 
         # Next WAITING; if none, start a new round (reset all to WAITING).
         nxt = self._highest_waiting(rows)
