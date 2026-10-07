@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# tf.sh <test|production> <terraform command> [args] — one state, data dir and tfvars per environment.
-# Examples: ./tf.sh test init | ./tf.sh production plan | ./tf.sh test import aws_cloudfront_distribution.website E8WIS9RLXJVR9
+# aws_terraform_deploy.sh <test|production> <terraform command> [args] — website terraform (code/website/terraform-aws), one state per env.
+# Examples: aws_terraform_deploy.sh test init | aws_terraform_deploy.sh production plan | aws_terraform_deploy.sh test import aws_cloudfront_distribution.website E8WIS9RLXJVR9
 set -euo pipefail
 
-DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(cd "$DIR/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+DIR="$PROJECT_ROOT/code/website/terraform-aws"
+[ -d "$DIR" ] || { echo "Error: $DIR not found."; exit 1; }
 
 ENV="${1:-}"
 case "$ENV" in
@@ -33,7 +34,7 @@ CMD="${1:-}"
 shift
 
 cd "$DIR"
-echo "[tf.sh] env=$ENV version=$PROJECT_VERSION data_dir=$TF_DATA_DIR"
+echo "[aws_terraform_deploy.sh] env=$ENV version=$PROJECT_VERSION data_dir=$TF_DATA_DIR"
 case "$CMD" in
     init)
         exec terraform init -backend-config="$BACKEND" "$@"

@@ -7,7 +7,7 @@ csp_mode             = "restricted"
 
 # v0.42.0 — react-game at the bucket root (landing retired): alpha API, Turnstile (script + iframe), Unsplash art, jsDelivr source maps.
 csp_extra_domains = {
-  connect = ["alpha-api.paths.games", "cdn.jsdelivr.net"]
+  connect = ["api-alpha.paths.games", "cdn.jsdelivr.net"]
   script  = ["challenges.cloudflare.com"]
   img     = ["unsplash.com"]
   frame   = ["challenges.cloudflare.com"]

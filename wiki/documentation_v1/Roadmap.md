@@ -263,7 +263,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Analyse the export and import of large match snapshots (above the 5 MB cap of step 0.41, e.g. S3 hand-off) (backend, infra)
     - Certificates: analysis in [Environments](../Environments.md) (who owns the ACM certificates, regions, stages, future-proof) and the chosen change; moved from step 0.41, where they stayed as they were (infra, docs)
 42. **Beta launch** — recurring.
-    - New stage `beta`: own AWS stack, bucket and site; `beta.paths.games`, `beta-api.paths.games` (infra)
+    - New stage `beta`: own AWS stack, bucket and site; `beta.paths.games`, `api-beta.paths.games` (infra)
     - Content license check (docs)
     - i18n check (EN, IT) (frontend)
     - Robot suites green on all three backends (tests)

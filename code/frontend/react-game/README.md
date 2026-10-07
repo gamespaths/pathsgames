@@ -29,7 +29,7 @@ cp .env.example .env
 ```
 | Variable | Default | Description |
 |---|---|---|
-| `VITE_GTM_ID` | `GTM-T52SH6JQ` | Google Tag Manager ID |
+| `VITE_GTM_ID` | `GTM-xxxx` | Google Tag Manager ID |
 | `VITE_API_URL` | (empty, uses vite proxy) | Backend base URL |
 | `VITE_MATCH_START_DELAY` | `20` | Seconds to wait before/after calling `POST /api/matches` on the StartMatchPage |
 

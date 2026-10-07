@@ -11,7 +11,7 @@ production + test setup.
 | **Local dev** | Java/Python on public `8042`, admin `8044`; SQLite at `~/.paths.games/database.sqlite` | `npm run dev` (Vite) for react-admin/react-game | Default profile for every backend; see [Architecture §2-3](./Architecture.md) |
 | **AWS `dev`** | SAM stack, `code/scripts/test/aws/aws_backend_deploy.sh dev` | — | Developer-owned scratch stack |
 | **AWS `test`** | SAM stack, `code/scripts/test/aws/aws_backend_deploy.sh test`; custom domain `api-test.paths.games` | react-game synced to `test.paths.games` via `code/scripts/test/aws/deploy_frontend-game_on_aws.sh` | Robot Framework's AWS target (`run_robot_with_aws_serverless.sh`); also reachable at `https://<api-id>.execute-api.us-east-2.amazonaws.com/test/...` |
-| **AWS `alpha`** (v0.42.0) | stack `pathsgames-alpha` (us-east-1), `code/scripts/alpha/deploy_backend.sh` or workflow `alpha-deploy-backend-aws.yml`; API `alpha-api.paths.games` | react-game at the root of the production website `paths.games` (bucket `pathsgames-com`), `code/scripts/alpha/deploy_website.sh` or workflow `alpha-deploy-website.yml` | V0 alpha release, hardened (PITR, deletion protection, throttling, dashboard, alarms, budget); setup and runbooks in [code/scripts/alpha/README.md](../code/scripts/alpha/README.md) |
+| **AWS `alpha`** (v0.42.0) | stack `pathsgames-alpha` (us-east-1), `code/scripts/alpha/deploy_backend.sh` or workflow `alpha-deploy-backend-aws.yml`; API `api-alpha.paths.games` | react-game at the root of the production website `paths.games` (bucket `pathsgames-com`), `code/scripts/alpha/deploy_website.sh` or workflow `alpha-deploy-website.yml` | V0 alpha release, hardened (PITR, deletion protection, throttling, dashboard, alarms, budget); setup and runbooks in [code/scripts/alpha/README.md](../code/scripts/alpha/README.md) |
 | **AWS `prod`** | `sam deploy --config-env prod` from `code/backend/aws/` | — (the production website `paths.games` serves the alpha stage; the static landing `code/website/html` was retired in 0.42) | Live production |
 
 `code/scripts/test/aws/aws_backend_remove.sh [dev|test]` tears down a non-prod stack;
@@ -21,7 +21,7 @@ production + test setup.
 
 From [code/website/terraform-aws/README.md](../code/website/terraform-aws/README.md):
 one Terraform module, one state per website environment (`production`, `test`), applied
-through `./tf.sh <env> <command>`.
+through `code/scripts/prod/aws_terraform_deploy.sh <env> <command>`.
 
 - **ACM certificate** is issued **once**, owned by `production`: domain `paths.games` with
   SANs `*.paths.games`, `pathsgames.com`, `*.pathsgames.com` — the wildcard is why every
@@ -31,7 +31,7 @@ through `./tf.sh <env> <command>`.
 - **API certificates**: an API Gateway custom domain needs a certificate in the API's own
   region. The `test` API (us-east-2, `api-test.paths.games`) uses a certificate made by hand in
   the console, not in Terraform, passed as `AWS_TEST_ACM_DOMAIN_CERTIFICATE_ARN`; the stage APIs
-  (`alpha-api`, `beta-api`, production, all us-east-1) are covered by the wildcard above.
+  (`api-alpha`, `api-beta`, production, all us-east-1) are covered by the wildcard above.
 - **CSP allowlists** live in 5 SSM `StringList` parameters under `/paths-games/csp/`
   (`script-src`, `style-src`, `font-src`, `img-src`, `connect-src`), created once by
   `production` and read by every other environment; an environment can extend them locally
@@ -68,7 +68,7 @@ provides (e.g. a direct host:port, not a DNS alias). Older stages are kept runni
 down entirely at the owner's discretion — there is no automatic retirement policy.
 
 `alpha` (v0.42.0, V0 launch) is the first stage this model produces: stack `pathsgames-alpha`,
-`alpha-api.paths.games`, react-game at the root of `paths.games`; the static landing is retired.
+`api-alpha.paths.games`, react-game at the root of `paths.games`; the static landing is retired.
 The older `dev`/`test`/`prod` AWS environments (§1) predate the model and are not stage-named.
 
 ## 4. Environment variables

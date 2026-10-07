@@ -107,6 +107,7 @@ Verification is centralized in `lambda/common/jwt_utils.py` (pure Python stdlib,
 ```text
 code/backend/aws/
 ├── template.yaml         # Unified AWS SAM template
+├── template/             # Nested modules (auth, story, match, content, echo, seed, monitoring)
 ├── samconfig.toml        # Environment configurations (dev, test, prod)
 ├── lambda/               # Function source code
 │   ├── common/           # Shared code (db_utils, jwt_utils)

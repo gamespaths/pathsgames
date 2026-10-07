@@ -35,7 +35,7 @@ model (both V1 step 1, [V1 Roadmap](../documentation_v1/Roadmap.md)).
 - Current version `0.42.0-SNAPSHOT`. The owner cuts a release branch by hand and merges it to
   `main`. `main` = production; the branch `master` must not exist.
 - The alpha backend is the SAM stage `alpha`: stack `pathsgames-alpha`, `us-east-1`,
-  `alpha-api.paths.games`. The alpha website is the **production** site: bucket `pathsgames-com`,
+  `api-alpha.paths.games`. The alpha website is the **production** site: bucket `pathsgames-com`,
   domain `paths.games`, CloudFront, also `us-east-1`. There is no `alpha.paths.games` site.
 - The owner adds stories by hand: no data migration.
 - Hotfixes after launch are incremental `0.42.z` (V0 `Hotfixes.md`).
@@ -62,15 +62,18 @@ expire by DynamoDB TTL; CloudWatch Lambda logs last 14 days.
   associated. The JS is its own file under `terraform-aws/functions/` with a small Node test
   (`node --test`) covering: apex, `www`, path and query kept, `paths.games` untouched, other hosts
   untouched.
-- **CSP** in `environments/production.tfvars`: `connect-src` += `alpha-api.paths.games`;
+- **CSP** in `environments/production.tfvars`: `connect-src` += `api-alpha.paths.games`;
   `script-src` and `frame-src` += `challenges.cloudflare.com` (Turnstile); verify whether
   `game-icons.net` needs adding to `img-src` (grep the react-game card/icon usage; add only if
   used).
 - **No OIDC. No tag changes.**
-- The owner runs `tf.sh production apply` (§9 step 1). The agent runs `terraform fmt`-style
+- The owner runs `code/scripts/prod/aws_terraform_deploy.sh production apply` (§9 step 1). The agent runs `terraform fmt`-style
   checks by reading only; never `terraform` itself.
 
-### 3.2 Stack hardening (only `code/backend/aws/template.yaml`)
+### 3.2 Stack hardening (`code/backend/aws/template.yaml` + nested `template/monitoring.yaml`)
+
+Dashboard, SNS alarms and budget live in the nested stack `template/monitoring.yaml` (module
+`MonitoringModule`, created only when `IsPublicStage`); every taggable resource carries the 7 project tags.
 
 New **condition `IsPublicStage`** (true for `alpha`, `beta`, `prod`; false for `dev`, `test`).
 It drives:
@@ -154,7 +157,7 @@ full content specification; the Step 42 file links to it and does not duplicate 
 4. IAM configuration: the inline policy of §6.10 and the optional Deny policy.
 5. GitHub Environment `alpha`: the ADD / REMOVE list of §6.11.
 6. The three scripts (usage, parameters, what each does and prints) and the two workflows.
-7. One-time manual steps: `terraform apply` by the owner, Route53 records (alpha-api alias, apex
+7. One-time manual steps: `terraform apply` by the owner, Route53 records (api-alpha alias, apex
    and `www` to CloudFront), Turnstile hostname `paths.games` in the Cloudflare dashboard,
    activation of the `Project` cost-allocation tag, SNS email confirmation click.
 8. The first-deploy order (§9).
@@ -255,7 +258,7 @@ policy `pathsgames-alpha-sam-deploy`:
 {"Sid":"EventBridge","Effect":"Allow","Action":"events:*","Resource":"arn:aws:events:us-east-1:ACCOUNT_ID:rule/pathsgames-alpha-*"},
 {"Sid":"CloudWatch","Effect":"Allow","Action":["cloudwatch:PutDashboard","cloudwatch:GetDashboard","cloudwatch:DeleteDashboards","cloudwatch:PutMetricAlarm","cloudwatch:DeleteAlarms","cloudwatch:DescribeAlarms","cloudwatch:TagResource"],"Resource":"*"},
 {"Sid":"Sns","Effect":"Allow","Action":"sns:*","Resource":"arn:aws:sns:us-east-1:ACCOUNT_ID:pathsgames-alpha-*"},
-{"Sid":"Budgets","Effect":"Allow","Action":["budgets:ViewBudget","budgets:ModifyBudget"],"Resource":"arn:aws:budgets::ACCOUNT_ID:budget/pathsgames-alpha*"},
+{"Sid":"Budgets","Effect":"Allow","Action":["budgets:ViewBudget","budgets:ModifyBudget","budgets:TagResource","budgets:UntagResource","budgets:ListTagsForResource"],"Resource":"arn:aws:budgets::ACCOUNT_ID:budget/pathsgames-alpha*"},
 {"Sid":"Route53","Effect":"Allow","Action":["route53:ChangeResourceRecordSets","route53:ListResourceRecordSets"],"Resource":"arn:aws:route53:::hostedzone/HOSTED_ZONE_ID"},
 {"Sid":"Route53Read","Effect":"Allow","Action":["route53:GetChange","acm:DescribeCertificate"],"Resource":"*"}]}
 ```
@@ -285,13 +288,13 @@ on the same user (the Story Lambda writes the catalog with its own role, so it i
 **ADD variables**
 - `AWS_REGION=us-east-1`
 - `AWS_ALPHA_APIGW_CORS_ORIGINS=https://paths.games,https://www.paths.games`
-- `AWS_ALPHA_APIGW_CUSTOM_DOMAIN=alpha-api.paths.games`
+- `AWS_ALPHA_APIGW_CUSTOM_DOMAIN=api-alpha.paths.games`
 - `AWS_ALPHA_ACM_DOMAIN_CERTIFICATE_ARN`, `AWS_ALPHA_ROUTE53_DOMAIN_HOSTED_ZONE`
 - `AWS_ALPHA_BUDGETS_LIMIT`
 - `AWS_ALPHA_APIGW_THROTTLE_RATE=50`, `AWS_ALPHA_APIGW_THROTTLE_BURST=100`,
   `AWS_ALPHA_APIGW_ADMIN_THROTTLE_RATE=5`, `AWS_ALPHA_APIGW_ADMIN_THROTTLE_BURST=10`
-- `VITE_API_URL=https://alpha-api.paths.games`
-- `VITE_DEFAULT_SERVERS=[{"label":"Alpha","url":"https://alpha-api.paths.games"}]`
+- `VITE_API_URL=https://api-alpha.paths.games`
+- `VITE_DEFAULT_SERVERS=[{"label":"Alpha","url":"https://api-alpha.paths.games"}]`
 - `VITE_CF_TURNSTILE_KEY`, `VITE_GTM_ID`, `VITE_ENV_BADGE=alpha`
 - `VITE_MATCH_START_DELAY`, `VITE_TURNSTILE_DELAY_BEFORE_START`, `VITE_TURNSTILE_PASS_TTL_MINUTES`
 - `VITE_TURNSTILE_APPEARANCE_HOME`, `VITE_TURNSTILE_APPEARANCE_START`, `VITE_TURNSTILE_APPEARANCE_GUEST`
@@ -321,11 +324,11 @@ on the same user (the Story Lambda writes the catalog with its own role, so it i
 
 All CLOSED (owner, October 6, 2026); listed as decisions.
 
-1. **Alpha shape**: backend = stage `alpha` (`pathsgames-alpha`, `us-east-1`, `alpha-api.paths.games`); website = the production site `paths.games` (bucket `pathsgames-com`).
+1. **Alpha shape**: backend = stage `alpha` (`pathsgames-alpha`, `us-east-1`, `api-alpha.paths.games`); website = the production site `paths.games` (bucket `pathsgames-com`).
 2. **Landing**: retired; `code/website/html` and `deploy_website_on_aws.sh` deleted; `terraform-aws` kept; `bump-version.sh` website block removed.
 3. **Website layout**: react-game at the bucket root; `data/*` never touched by deploys.
 4. **Old domain**: CloudFront Function 301 `pathsgames.com`/`www.*` → `https://paths.games`, variable empty on test, own JS file with a Node test.
-5. **CSP**: connect += `alpha-api.paths.games`; script and frame += `challenges.cloudflare.com`; check `game-icons.net`.
+5. **CSP**: connect += `api-alpha.paths.games`; script and frame += `challenges.cloudflare.com`; check `game-icons.net`.
 6. **No OIDC, no tag changes.**
 7. **Hardening scope**: one `IsPublicStage` condition (alpha/beta/prod) for PITR, deletion protection, throttling, dashboard and alarms; never on dev/test.
 8. **Throttling**: both API stages; public 50/100 and admin 5/10 as modifiable stack parameters.
@@ -352,7 +355,7 @@ None.
 
 ## 9. First-deploy order (launch)
 
-1. The owner runs `tf.sh production apply` (landing gone, CSP, redirect function).
+1. The owner runs `code/scripts/prod/aws_terraform_deploy.sh production apply` (landing gone, CSP, redirect function).
 2. The owner runs the manual alpha backend script (`code/scripts/alpha/`) and confirms the SNS
    subscription email.
 3. The owner runs the set-admin-IP script (admin API opens for the caller IP only).

@@ -1,5 +1,5 @@
-"""v0.42.0 — Step 42 stack hardening: template.yaml parsed (CloudFormation tags tolerated) and its
-IsPublicStage condition evaluated per stage: PITR, deletion protection, throttling, dashboard, alarms, budget."""
+"""v0.42.0 — Step 42 stack hardening: template.yaml and template/monitoring.yaml parsed (CloudFormation tags
+tolerated), IsPublicStage evaluated per stage: PITR, deletion protection, throttling, monitoring module, tags."""
 import json
 import re
 from pathlib import Path
@@ -147,55 +147,94 @@ def test_both_api_stages_throttle_only_on_public_stages(tpl, stage, rate, burst)
         assert _resolve_if(tpl, settings, _params(tpl, Environment=env)) is None
 
 
-# ── dashboard, alarms, budget ────────────────────────────────────────────
+# ── monitoring nested stack (template/monitoring.yaml) ───────────────────
 
 MONITORING = ['MonitoringDashboard', 'AlarmTopic', 'AlarmEmailSubscription', 'LambdaErrorsAlarm',
               'LambdaThrottlesAlarm', 'PublicApi5xxAlarm', 'AdminApi5xxAlarm', 'DynamoDbThrottlesAlarm',
               'MonthlyBudget']
+ALARMS = ['LambdaErrorsAlarm', 'LambdaThrottlesAlarm', 'PublicApi5xxAlarm', 'AdminApi5xxAlarm',
+          'DynamoDbThrottlesAlarm']
+TAG_KEYS = ['Name', 'CostCenter', 'Environment', 'ManagedBy', 'Owner', 'Project', 'version']
+
+
+@pytest.fixture(scope='module')
+def mon():
+    return _load(AWS_DIR / 'template' / 'monitoring.yaml')
+
+
+def _mon_params(mon, **overrides):
+    return _params(mon, Environment='alpha', EnvironmentTag='alpha', Version='0.42.0', ApiId='a', AdminApiId='b',
+                   TableName='t', **overrides)
+
+
+def test_root_holds_no_monitoring_resource_only_the_module(tpl):
+    assert [r for r in MONITORING if r in tpl['Resources']] == []
+    module = tpl['Resources']['MonitoringModule']
+    assert module['Type'] == 'AWS::Serverless::Application'
+    assert module['Properties']['Location'] == 'template/monitoring.yaml'
+    assert module['Condition'] == 'IsPublicStage'
+    for name in ('HasAlarms', 'HasBudget', 'HasBudgetEmail'):
+        assert name not in tpl['Conditions']
+
+
+def test_module_receives_ids_and_monitoring_parameters(tpl, mon):
+    params = tpl['Resources']['MonitoringModule']['Properties']['Parameters']
+    assert params['ApiId'] == {'Ref': 'PathsGamesApi'}
+    assert params['AdminApiId'] == {'Ref': 'PathsGamesAdminApi'}
+    assert params['TableName'] == {'Ref': 'PathsGamesTable'}
+    for name in ('AlarmEmail', 'CreateBudget', 'BudgetLimit', 'BudgetEmail', 'Version', 'Environment'):
+        assert params[name] == {'Ref': name}
+    assert set(params) == set(mon['Parameters'])
 
 
 @pytest.mark.parametrize('env', PRIVATE)
 def test_dev_and_test_get_no_monitoring_even_with_every_parameter_set(tpl, env):
     params = _full_params(tpl, env)
-    assert [r for r in MONITORING if _created(tpl, r, params)] == []
+    assert not _created(tpl, 'MonitoringModule', params)
     assert not _cond(tpl, tpl['Outputs']['DashboardUrl']['Condition'], params)
 
 
 @pytest.mark.parametrize('env', PUBLIC)
-def test_public_stages_get_everything_with_email_and_budget(tpl, env):
-    params = _full_params(tpl, env)
-    assert [r for r in MONITORING if not _created(tpl, r, params)] == []
+def test_public_stages_get_everything_with_email_and_budget(tpl, mon, env):
+    assert _created(tpl, 'MonitoringModule', _full_params(tpl, env))
+    params = _mon_params(mon, AlarmEmail='ops@example.com', CreateBudget='true', BudgetEmail='ops@example.com')
+    assert [r for r in MONITORING if not _created(mon, r, params)] == []
 
 
-def test_alarms_need_the_email_dashboard_does_not(tpl):
-    params = _params(tpl, Environment='alpha')
-    assert _created(tpl, 'MonitoringDashboard', params)
-    assert tpl['Resources']['MonitoringDashboard']['Condition'] == 'IsPublicStage'
+def test_alarms_need_the_email_dashboard_does_not(mon):
+    params = _mon_params(mon)
+    assert _created(mon, 'MonitoringDashboard', params)
+    assert 'Condition' not in mon['Resources']['MonitoringDashboard']
     for logical_id in MONITORING[1:-1]:
-        assert tpl['Resources'][logical_id]['Condition'] == 'HasAlarms'
-        assert not _created(tpl, logical_id, params)
+        assert mon['Resources'][logical_id]['Condition'] == 'HasAlarms'
+        assert not _created(mon, logical_id, params)
 
 
-def test_budget_only_when_create_budget_is_true(tpl):
-    assert not _created(tpl, 'MonthlyBudget', _params(tpl, Environment='alpha'))
-    assert _created(tpl, 'MonthlyBudget', _params(tpl, Environment='alpha', CreateBudget='true'))
-    assert tpl['Resources']['MonthlyBudget']['Condition'] == 'HasBudget'
+def test_budget_only_when_create_budget_is_true(mon):
+    assert not _created(mon, 'MonthlyBudget', _mon_params(mon))
+    assert _created(mon, 'MonthlyBudget', _mon_params(mon, CreateBudget='true'))
+    assert mon['Resources']['MonthlyBudget']['Condition'] == 'HasBudget'
 
 
-def test_budget_filters_on_the_project_tag_of_stack_and_websites(tpl):
-    budget = tpl['Resources']['MonthlyBudget']['Properties']['Budget']
+def test_budget_filters_on_the_project_tag_of_stack_and_websites(tpl, mon):
+    budget = mon['Resources']['MonthlyBudget']['Properties']['Budget']
     assert budget['BudgetName'] == {'Fn::Sub': 'pathsgames-${Environment}-monthly'}
     assert budget['BudgetLimit']['Amount'] == {'Ref': 'BudgetLimit'}
     stack_tag, websites_tag = budget['CostFilters']['TagKeyValue']
     prefix, project = stack_tag['Fn::Join'][1]
     assert prefix == 'user:Project$'
-    assert project['Fn::FindInMap'][2] == 'Project'
+    assert project == {'Fn::Sub': 'Paths.games.aws.${EnvironmentTag}.serverless'}
     assert tpl['Mappings']['EnvironmentTags']['alpha']['Project'] == 'Paths.games.aws.alpha.serverless'
     assert websites_tag == 'user:Project$Paths.games.aws.websites'
-    notes = tpl['Resources']['MonthlyBudget']['Properties']['NotificationsWithSubscribers']
-    assert _resolve_if(tpl, notes, _params(tpl, Environment='alpha')) is None
-    picked = _resolve_if(tpl, notes, _params(tpl, Environment='alpha', BudgetEmail='a@b.c'))
+    notes = mon['Resources']['MonthlyBudget']['Properties']['NotificationsWithSubscribers']
+    assert _resolve_if(mon, notes, _mon_params(mon)) is None
+    picked = _resolve_if(mon, notes, _mon_params(mon, BudgetEmail='a@b.c'))
     assert [n['Subscribers'][0]['Address'] for n in picked] == [{'Ref': 'BudgetEmail'}] * 2
+
+
+def test_project_tag_of_the_module_matches_the_root_mapping(tpl):
+    for env, row in tpl['Mappings']['EnvironmentTags'].items():
+        assert row['Project'] == f"Paths.games.aws.{row['Name']}.serverless", env
 
 
 def _nested_function_names():
@@ -208,9 +247,9 @@ def _nested_function_names():
 
 
 @pytest.mark.parametrize('logical_id, metric', [('LambdaErrorsAlarm', 'Errors'), ('LambdaThrottlesAlarm', 'Throttles')])
-def test_lambda_alarms_sum_the_metric_over_all_eight_functions(tpl, logical_id, metric):
+def test_lambda_alarms_sum_the_metric_over_all_eight_functions(mon, logical_id, metric):
     assert sorted(_nested_function_names()) == sorted(FUNCTIONS)
-    metrics = tpl['Resources'][logical_id]['Properties']['Metrics']
+    metrics = mon['Resources'][logical_id]['Properties']['Metrics']
     expression = [m for m in metrics if 'Expression' in m]
     assert len(expression) == 1 and expression[0]['Expression'] == 'SUM(METRICS())'
     stats = [m['MetricStat']['Metric'] for m in metrics if 'MetricStat' in m]
@@ -219,28 +258,28 @@ def test_lambda_alarms_sum_the_metric_over_all_eight_functions(tpl, logical_id, 
     assert names == sorted(f'pathsgames-${{Environment}}-{f}' for f in FUNCTIONS)
 
 
-@pytest.mark.parametrize('logical_id, api', [('PublicApi5xxAlarm', 'PathsGamesApi'), ('AdminApi5xxAlarm', 'PathsGamesAdminApi')])
-def test_api_5xx_alarm_per_api(tpl, logical_id, api):
-    props = tpl['Resources'][logical_id]['Properties']
+@pytest.mark.parametrize('logical_id, api', [('PublicApi5xxAlarm', 'ApiId'), ('AdminApi5xxAlarm', 'AdminApiId')])
+def test_api_5xx_alarm_per_api(mon, logical_id, api):
+    props = mon['Resources'][logical_id]['Properties']
     assert (props['Namespace'], props['MetricName']) == ('AWS/ApiGateway', '5xx')
     assert props['Dimensions'][0] == {'Name': 'ApiId', 'Value': {'Ref': api}}
     assert props['AlarmActions'] == [{'Ref': 'AlarmTopic'}]
 
 
-def test_dynamodb_throttle_alarm_reads_the_table(tpl):
-    metrics = tpl['Resources']['DynamoDbThrottlesAlarm']['Properties']['Metrics']
+def test_dynamodb_throttle_alarm_reads_the_table(mon):
+    metrics = mon['Resources']['DynamoDbThrottlesAlarm']['Properties']['Metrics']
     stats = [m['MetricStat']['Metric'] for m in metrics if 'MetricStat' in m]
     assert {s['MetricName'] for s in stats} == {'ReadThrottleEvents', 'WriteThrottleEvents'}
-    assert all(s['Dimensions'][0]['Value'] == {'Ref': 'PathsGamesTable'} for s in stats)
+    assert all(s['Dimensions'][0]['Value'] == {'Ref': 'TableName'} for s in stats)
 
 
-def test_subscription_uses_the_alarm_email(tpl):
-    props = tpl['Resources']['AlarmEmailSubscription']['Properties']
+def test_subscription_uses_the_alarm_email(mon):
+    props = mon['Resources']['AlarmEmailSubscription']['Properties']
     assert props == {'TopicArn': {'Ref': 'AlarmTopic'}, 'Protocol': 'email', 'Endpoint': {'Ref': 'AlarmEmail'}}
 
 
-def test_dashboard_body_is_json_with_lambda_api_and_dynamodb_widgets(tpl):
-    body = tpl['Resources']['MonitoringDashboard']['Properties']['DashboardBody']['Fn::Sub']
+def test_dashboard_body_is_json_with_lambda_api_and_dynamodb_widgets(mon):
+    body = mon['Resources']['MonitoringDashboard']['Properties']['DashboardBody']['Fn::Sub']
     rendered = re.sub(r'\$\{[^}]+\}', 'X', body)
     widgets = json.loads(rendered)['widgets']
     text = json.dumps(widgets)
@@ -248,9 +287,53 @@ def test_dashboard_body_is_json_with_lambda_api_and_dynamodb_widgets(tpl):
                    '5xx', 'Latency', 'ConsumedReadCapacityUnits', 'ConsumedWriteCapacityUnits',
                    'ReadThrottleEvents', 'WriteThrottleEvents', 'SystemErrors']:
         assert f'"{metric}' in text or f'\\"{metric}\\"' in text, metric
-    assert '${PathsGamesApi}' in body and '${PathsGamesAdminApi}' in body
+    assert '${ApiId}' in body and '${AdminApiId}' in body and '${TableName}' in body
     for fn in FUNCTIONS:
         assert body.count(f'pathsgames-${{Environment}}-{fn}"') == 5
+
+
+def test_dashboard_url_output_comes_from_the_module(tpl, mon):
+    assert tpl['Outputs']['DashboardUrl']['Value'] == {'Fn::GetAtt': ['MonitoringModule', 'Outputs.DashboardUrl']}
+    assert 'pathsgames-${Environment}' in mon['Outputs']['DashboardUrl']['Value']['Fn::Sub']
+
+
+# ── tags: every taggable monitoring resource carries the project tag set ─
+
+def _tag_keys(rows):
+    return [row['Key'] for row in rows]
+
+
+@pytest.mark.parametrize('logical_id', ['AlarmTopic'] + ALARMS)
+def test_topic_and_alarms_carry_every_tag(mon, logical_id):
+    rows = mon['Resources'][logical_id]['Properties']['Tags']
+    assert _tag_keys(rows) == TAG_KEYS
+    values = {row['Key']: row['Value'] for row in rows}
+    assert values['Environment'] == {'Ref': 'EnvironmentTag'}
+    assert values['Project'] == {'Fn::Sub': 'Paths.games.aws.${EnvironmentTag}.serverless'}
+    assert values['version'] == {'Ref': 'Version'}
+    name = mon['Resources'][logical_id]['Properties'].get('AlarmName') or mon['Resources'][logical_id]['Properties']['TopicName']
+    assert values['Name'] == name
+
+
+def test_budget_carries_every_tag_as_resource_tags(mon):
+    rows = mon['Resources']['MonthlyBudget']['Properties']['ResourceTags']
+    assert _tag_keys(rows) == TAG_KEYS
+    assert rows[0]['Value'] == mon['Resources']['MonthlyBudget']['Properties']['Budget']['BudgetName']
+
+
+def test_module_itself_is_tagged(tpl):
+    tags = tpl['Resources']['MonitoringModule']['Properties']['Tags']
+    assert sorted(tags) == sorted(TAG_KEYS)
+    assert tags['Project'] == {'Fn::FindInMap': ['EnvironmentTags', {'Ref': 'Environment'}, 'Project']}
+
+
+def test_untaggable_types_are_the_only_ones_without_tags(mon):
+    untaggable = {'AWS::CloudWatch::Dashboard', 'AWS::SNS::Subscription'}
+    for logical_id, res in mon['Resources'].items():
+        props = res.get('Properties') or {}
+        if res['Type'] in untaggable:
+            continue
+        assert 'Tags' in props or 'ResourceTags' in props, logical_id
 
 
 # ── naming (IAM policy pathsgames-alpha*) ────────────────────────────────
@@ -260,8 +343,8 @@ def test_dashboard_body_is_json_with_lambda_api_and_dynamodb_widgets(tpl):
     ('LambdaErrorsAlarm', ['AlarmName']), ('LambdaThrottlesAlarm', ['AlarmName']),
     ('PublicApi5xxAlarm', ['AlarmName']), ('AdminApi5xxAlarm', ['AlarmName']),
     ('DynamoDbThrottlesAlarm', ['AlarmName']), ('MonthlyBudget', ['Budget', 'BudgetName'])])
-def test_names_start_with_the_stack_prefix(tpl, logical_id, path):
-    value = tpl['Resources'][logical_id]['Properties']
+def test_names_start_with_the_stack_prefix(mon, logical_id, path):
+    value = mon['Resources'][logical_id]['Properties']
     for key in path:
         value = value[key]
     assert value['Fn::Sub'].startswith('pathsgames-${Environment}')

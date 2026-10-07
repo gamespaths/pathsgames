@@ -1,0 +1,509 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Paths Games - monitoring of a public stage: dashboard, SNS alarms, monthly budget (v0.42.0)"
+
+Parameters:
+  Environment:
+    Type: String
+  EnvironmentTag:
+    Type: String
+    Description: "Value of the Environment tag (alpha / beta / production), mapped by the root stack."
+  Version:
+    Type: String
+    Description: "Project version, applied as the `version` tag on every resource."
+  ApiId:
+    Type: String
+    Description: "Id of the public HTTP API."
+  AdminApiId:
+    Type: String
+    Description: "Id of the admin HTTP API."
+  TableName:
+    Type: String
+  AlarmEmail:
+    Type: String
+    Default: ""
+    Description: "Email of the SNS alarm topic. Empty = no topic, no subscription, no alarm."
+  CreateBudget:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+  BudgetLimit:
+    Type: Number
+    Default: 10
+  BudgetEmail:
+    Type: String
+    Default: ""
+
+Conditions:
+  HasAlarms: !Not [!Equals [!Ref AlarmEmail, ""]]
+  HasBudget: !Equals [!Ref CreateBudget, "true"]
+  HasBudgetEmail: !Not [!Equals [!Ref BudgetEmail, ""]]
+
+Resources:
+  # Names start with pathsgames-${Environment} to match the deploy user's IAM policy (alpha README).
+  MonitoringDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub "pathsgames-${Environment}"
+      DashboardBody: !Sub |
+          {"widgets": [
+            {"type": "metric", "x": 0, "y": 0, "width": 8, "height": 6, "properties": {"title": "Lambda Invocations", "region": "${AWS::Region}", "stat": "Sum", "period": 300, "view": "timeSeries", "metrics": [["AWS/Lambda", "Invocations", "FunctionName", "pathsgames-${Environment}-AdminIpAuthorizer"], [".", ".", ".", "pathsgames-${Environment}-AuthFunction"], [".", ".", ".", "pathsgames-${Environment}-GuestCleanupFunction"], [".", ".", ".", "pathsgames-${Environment}-EchoFunction"], [".", ".", ".", "pathsgames-${Environment}-ContentFunction"], [".", ".", ".", "pathsgames-${Environment}-MatchFunction"], [".", ".", ".", "pathsgames-${Environment}-StoryFunction"], [".", ".", ".", "pathsgames-${Environment}-SeedFunction"]]}},
+            {"type": "metric", "x": 8, "y": 0, "width": 8, "height": 6, "properties": {"title": "Lambda Errors", "region": "${AWS::Region}", "stat": "Sum", "period": 300, "view": "timeSeries", "metrics": [["AWS/Lambda", "Errors", "FunctionName", "pathsgames-${Environment}-AdminIpAuthorizer"], [".", ".", ".", "pathsgames-${Environment}-AuthFunction"], [".", ".", ".", "pathsgames-${Environment}-GuestCleanupFunction"], [".", ".", ".", "pathsgames-${Environment}-EchoFunction"], [".", ".", ".", "pathsgames-${Environment}-ContentFunction"], [".", ".", ".", "pathsgames-${Environment}-MatchFunction"], [".", ".", ".", "pathsgames-${Environment}-StoryFunction"], [".", ".", ".", "pathsgames-${Environment}-SeedFunction"]]}},
+            {"type": "metric", "x": 16, "y": 0, "width": 8, "height": 6, "properties": {"title": "Lambda Throttles", "region": "${AWS::Region}", "stat": "Sum", "period": 300, "view": "timeSeries", "metrics": [["AWS/Lambda", "Throttles", "FunctionName", "pathsgames-${Environment}-AdminIpAuthorizer"], [".", ".", ".", "pathsgames-${Environment}-AuthFunction"], [".", ".", ".", "pathsgames-${Environment}-GuestCleanupFunction"], [".", ".", ".", "pathsgames-${Environment}-EchoFunction"], [".", ".", ".", "pathsgames-${Environment}-ContentFunction"], [".", ".", ".", "pathsgames-${Environment}-MatchFunction"], [".", ".", ".", "pathsgames-${Environment}-StoryFunction"], [".", ".", ".", "pathsgames-${Environment}-SeedFunction"]]}},
+            {"type": "metric", "x": 0, "y": 6, "width": 8, "height": 6, "properties": {"title": "Lambda Duration p95", "region": "${AWS::Region}", "stat": "p95", "period": 300, "view": "timeSeries", "metrics": [["AWS/Lambda", "Duration", "FunctionName", "pathsgames-${Environment}-AdminIpAuthorizer"], [".", ".", ".", "pathsgames-${Environment}-AuthFunction"], [".", ".", ".", "pathsgames-${Environment}-GuestCleanupFunction"], [".", ".", ".", "pathsgames-${Environment}-EchoFunction"], [".", ".", ".", "pathsgames-${Environment}-ContentFunction"], [".", ".", ".", "pathsgames-${Environment}-MatchFunction"], [".", ".", ".", "pathsgames-${Environment}-StoryFunction"], [".", ".", ".", "pathsgames-${Environment}-SeedFunction"]]}},
+            {"type": "metric", "x": 8, "y": 6, "width": 8, "height": 6, "properties": {"title": "Lambda ConcurrentExecutions", "region": "${AWS::Region}", "stat": "Maximum", "period": 300, "view": "timeSeries", "metrics": [["AWS/Lambda", "ConcurrentExecutions", "FunctionName", "pathsgames-${Environment}-AdminIpAuthorizer"], [".", ".", ".", "pathsgames-${Environment}-AuthFunction"], [".", ".", ".", "pathsgames-${Environment}-GuestCleanupFunction"], [".", ".", ".", "pathsgames-${Environment}-EchoFunction"], [".", ".", ".", "pathsgames-${Environment}-ContentFunction"], [".", ".", ".", "pathsgames-${Environment}-MatchFunction"], [".", ".", ".", "pathsgames-${Environment}-StoryFunction"], [".", ".", ".", "pathsgames-${Environment}-SeedFunction"]]}},
+            {"type": "metric", "x": 16, "y": 6, "width": 8, "height": 6, "properties": {"title": "Public API: Count, 4xx, 5xx, Latency p95", "region": "${AWS::Region}", "period": 300, "view": "timeSeries", "metrics": [["AWS/ApiGateway", "Count", "ApiId", "${ApiId}", "Stage", "${Environment}", {"stat": "Sum"}], [".", "4xx", ".", ".", ".", ".", {"stat": "Sum"}], [".", "5xx", ".", ".", ".", ".", {"stat": "Sum"}], [".", "Latency", ".", ".", ".", ".", {"stat": "p95", "yAxis": "right"}]]}},
+            {"type": "metric", "x": 0, "y": 12, "width": 8, "height": 6, "properties": {"title": "Admin API: Count, 4xx, 5xx, Latency p95", "region": "${AWS::Region}", "period": 300, "view": "timeSeries", "metrics": [["AWS/ApiGateway", "Count", "ApiId", "${AdminApiId}", "Stage", "${Environment}", {"stat": "Sum"}], [".", "4xx", ".", ".", ".", ".", {"stat": "Sum"}], [".", "5xx", ".", ".", ".", ".", {"stat": "Sum"}], [".", "Latency", ".", ".", ".", ".", {"stat": "p95", "yAxis": "right"}]]}},
+            {"type": "metric", "x": 8, "y": 12, "width": 8, "height": 6, "properties": {"title": "DynamoDB RCU, WCU, Throttles", "region": "${AWS::Region}", "period": 300, "view": "timeSeries", "metrics": [["AWS/DynamoDB", "ConsumedReadCapacityUnits", "TableName", "${TableName}", {"stat": "Sum"}], [".", "ConsumedWriteCapacityUnits", ".", ".", {"stat": "Sum"}], [".", "ReadThrottleEvents", ".", ".", {"stat": "Sum"}], [".", "WriteThrottleEvents", ".", ".", {"stat": "Sum"}]]}},
+            {"type": "metric", "x": 16, "y": 12, "width": 8, "height": 6, "properties": {"title": "DynamoDB SystemErrors", "region": "${AWS::Region}", "period": 300, "view": "timeSeries", "stat": "Sum", "metrics": [[{"expression": "SEARCH('{AWS/DynamoDB,Operation,TableName} MetricName=\"SystemErrors\" TableName=\"${TableName}\"', 'Sum', 300)", "id": "e1", "label": "SystemErrors"}]]}}
+          ]}
+
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Condition: HasAlarms
+    Properties:
+      TopicName: !Sub "pathsgames-${Environment}-alarms"
+      Tags:
+        - Key: Name
+          Value: !Sub "pathsgames-${Environment}-alarms"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
+
+  AlarmEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlarms
+    Properties:
+      TopicArn: !Ref AlarmTopic
+      Protocol: email
+      Endpoint: !Ref AlarmEmail
+
+  LambdaErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasAlarms
+    Properties:
+      AlarmName: !Sub "pathsgames-${Environment}-lambda-errors"
+      AlarmDescription: "v0.42.0 - at least 5 Lambda errors in 5 minutes, summed over the 8 functions."
+      Tags:
+        - Key: Name
+          Value: !Sub "pathsgames-${Environment}-lambda-errors"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Threshold: 5
+      EvaluationPeriods: 1
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+      Metrics:
+        - Id: total
+          Expression: "SUM(METRICS())"
+          Label: "Errors of the 8 functions"
+          ReturnData: true
+        - Id: f1
+          ReturnData: false
+          MetricStat:
+            Stat: Sum
+            Period: 300
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Errors
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Sub "pathsgames-${Environment}-AdminIpAuthorizer"
+        - Id: f2
+          ReturnData: false
+          MetricStat:
+            Stat: Sum
+            Period: 300
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Errors
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Sub "pathsgames-${Environment}-AuthFunction"
+        - Id: f3
+          ReturnData: false
+          MetricStat:
+            Stat: Sum
+            Period: 300
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Errors
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Sub "pathsgames-${Environment}-GuestCleanupFunction"
+        - Id: f4
+          ReturnData: false
+          MetricStat:
+            Stat: Sum
+            Period: 300
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Errors
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Sub "pathsgames-${Environment}-EchoFunction"
+        - Id: f5
+          ReturnData: false
+          MetricStat:
+            Stat: Sum
+            Period: 300
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Errors
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Sub "pathsgames-${Environment}-ContentFunction"
+        - Id: f6
+          ReturnData: false
+          MetricStat:
+            Stat: Sum
+            Period: 300
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Errors
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Sub "pathsgames-${Environment}-MatchFunction"
+        - Id: f7
+          ReturnData: false
+          MetricStat:
+            Stat: Sum
+            Period: 300
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Errors
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Sub "pathsgames-${Environment}-StoryFunction"
+        - Id: f8
+          ReturnData: false
+          MetricStat:
+            Stat: Sum
+            Period: 300
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Errors
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Sub "pathsgames-${Environment}-SeedFunction"
+
+  LambdaThrottlesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasAlarms
+    Properties:
+      AlarmName: !Sub "pathsgames-${Environment}-lambda-throttles"
+      AlarmDescription: "v0.42.0 - at least 1 Lambda throttle in 5 minutes, summed over the 8 functions."
+      Tags:
+        - Key: Name
+          Value: !Sub "pathsgames-${Environment}-lambda-throttles"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Threshold: 1
+      EvaluationPeriods: 1
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+      Metrics:
+        - Id: total
+          Expression: "SUM(METRICS())"
+          Label: "Throttles of the 8 functions"
+          ReturnData: true
+        - Id: f1
+          ReturnData: false
+          MetricStat:
+            Stat: Sum
+            Period: 300
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Throttles
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Sub "pathsgames-${Environment}-AdminIpAuthorizer"
+        - Id: f2
+          ReturnData: false
+          MetricStat:
+            Stat: Sum
+            Period: 300
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Throttles
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Sub "pathsgames-${Environment}-AuthFunction"
+        - Id: f3
+          ReturnData: false
+          MetricStat:
+            Stat: Sum
+            Period: 300
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Throttles
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Sub "pathsgames-${Environment}-GuestCleanupFunction"
+        - Id: f4
+          ReturnData: false
+          MetricStat:
+            Stat: Sum
+            Period: 300
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Throttles
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Sub "pathsgames-${Environment}-EchoFunction"
+        - Id: f5
+          ReturnData: false
+          MetricStat:
+            Stat: Sum
+            Period: 300
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Throttles
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Sub "pathsgames-${Environment}-ContentFunction"
+        - Id: f6
+          ReturnData: false
+          MetricStat:
+            Stat: Sum
+            Period: 300
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Throttles
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Sub "pathsgames-${Environment}-MatchFunction"
+        - Id: f7
+          ReturnData: false
+          MetricStat:
+            Stat: Sum
+            Period: 300
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Throttles
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Sub "pathsgames-${Environment}-StoryFunction"
+        - Id: f8
+          ReturnData: false
+          MetricStat:
+            Stat: Sum
+            Period: 300
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Throttles
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Sub "pathsgames-${Environment}-SeedFunction"
+
+  PublicApi5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasAlarms
+    Properties:
+      AlarmName: !Sub "pathsgames-${Environment}-public-api-5xx"
+      AlarmDescription: "v0.42.0 - at least 5 server errors in 5 minutes on the public API."
+      Tags:
+        - Key: Name
+          Value: !Sub "pathsgames-${Environment}-public-api-5xx"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
+      Namespace: AWS/ApiGateway
+      MetricName: 5xx
+      Dimensions:
+        - Name: ApiId
+          Value: !Ref ApiId
+        - Name: Stage
+          Value: !Ref Environment
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  AdminApi5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasAlarms
+    Properties:
+      AlarmName: !Sub "pathsgames-${Environment}-admin-api-5xx"
+      AlarmDescription: "v0.42.0 - at least 5 server errors in 5 minutes on the admin API."
+      Tags:
+        - Key: Name
+          Value: !Sub "pathsgames-${Environment}-admin-api-5xx"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
+      Namespace: AWS/ApiGateway
+      MetricName: 5xx
+      Dimensions:
+        - Name: ApiId
+          Value: !Ref AdminApiId
+        - Name: Stage
+          Value: !Ref Environment
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  DynamoDbThrottlesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasAlarms
+    Properties:
+      AlarmName: !Sub "pathsgames-${Environment}-dynamodb-throttles"
+      AlarmDescription: "v0.42.0 - at least 1 throttled read or write on the table in 5 minutes."
+      Tags:
+        - Key: Name
+          Value: !Sub "pathsgames-${Environment}-dynamodb-throttles"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Threshold: 1
+      EvaluationPeriods: 1
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+      Metrics:
+        - Id: total
+          Expression: "SUM(METRICS())"
+          Label: "Read and write throttle events"
+          ReturnData: true
+        - Id: reads
+          ReturnData: false
+          MetricStat:
+            Stat: Sum
+            Period: 300
+            Metric:
+              Namespace: AWS/DynamoDB
+              MetricName: ReadThrottleEvents
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref TableName
+        - Id: writes
+          ReturnData: false
+          MetricStat:
+            Stat: Sum
+            Period: 300
+            Metric:
+              Namespace: AWS/DynamoDB
+              MetricName: WriteThrottleEvents
+              Dimensions:
+                - Name: TableName
+                  Value: !Ref TableName
+
+  # Monthly cost budget on the Project tag (this stack + the websites); tag activated by hand in Billing.
+  MonthlyBudget:
+    Type: AWS::Budgets::Budget
+    Condition: HasBudget
+    Properties:
+      Budget:
+        BudgetName: !Sub "pathsgames-${Environment}-monthly"
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: !Ref BudgetLimit
+          Unit: USD
+        CostFilters:
+          TagKeyValue:
+            - !Join ["", ["user:Project$", !Sub "Paths.games.aws.${EnvironmentTag}.serverless"]]
+            - "user:Project$Paths.games.aws.websites"
+      ResourceTags:
+        - Key: Name
+          Value: !Sub "pathsgames-${Environment}-monthly"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
+      NotificationsWithSubscribers: !If
+        - HasBudgetEmail
+        - - Notification:
+              NotificationType: ACTUAL
+              ComparisonOperator: GREATER_THAN
+              Threshold: 80
+              ThresholdType: PERCENTAGE
+            Subscribers:
+              - SubscriptionType: EMAIL
+                Address: !Ref BudgetEmail
+          - Notification:
+              NotificationType: FORECASTED
+              ComparisonOperator: GREATER_THAN
+              Threshold: 100
+              ThresholdType: PERCENTAGE
+            Subscribers:
+              - SubscriptionType: EMAIL
+                Address: !Ref BudgetEmail
+        - !Ref AWS::NoValue
+
+Outputs:
+  DashboardUrl:
+    Description: "CloudWatch dashboard of the stage"
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=pathsgames-${Environment}"

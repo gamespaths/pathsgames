@@ -9,7 +9,7 @@ variable "environment" {
 }
 
 variable "project_version" {
-  description = "Project version, applied as the `version` tag (VERSION in the root .env, passed by tf.sh)"
+  description = "Project version, applied as the `version` tag (VERSION in the root .env, passed by aws_terraform_deploy.sh)"
   type        = string
 }
 

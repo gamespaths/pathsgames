@@ -7,7 +7,7 @@ step 42). Design and decisions: [Step 42](../../../wiki/documentation_v0/Step42_
 
 | Piece | Where | Name |
 |-------|-------|------|
-| Backend | SAM stage `alpha`, region `us-east-1` | stack `pathsgames-alpha`, table `PathsGamesBackend-alpha`, public API `https://alpha-api.paths.games`, admin API on its raw `execute-api` URL (IP allow-list) |
+| Backend | SAM stage `alpha`, region `us-east-1` | stack `pathsgames-alpha`, table `PathsGamesBackend-alpha`, public API `https://api-alpha.paths.games`, admin API on its raw `execute-api` URL (IP allow-list) |
 | Website | the **production** site, CloudFront + S3 in `us-east-1` | bucket `pathsgames-com`, domain `https://paths.games` (also `www.paths.games`); `pathsgames.com` and `www.pathsgames.com` answer 301 to `https://paths.games` |
 
 There is no `alpha.paths.games` site. The old landing (`code/website/html`) is retired in 0.42:
@@ -19,7 +19,7 @@ Story Lambda (`POST /api/admin/stories/catalog`): no deploy ever touches it.
 - AWS CLI v2 and AWS SAM CLI; Node.js 20+ and npm; Python 3.13 (3.11+ for the deploy script).
 - The existing dedicated IAM deploy user (access keys) with the policies of §4.
 - The Route 53 hosted zone of `paths.games` and an **issued ACM certificate in `us-east-1`**
-  covering `alpha-api.paths.games` (the production certificate covers `*.paths.games`).
+  covering `api-alpha.paths.games` (the production certificate covers `*.paths.games`).
 - The website infrastructure applied with Terraform (`code/website/terraform-aws`, §7).
 
 ## 3. Local configuration (not versioned)
@@ -31,7 +31,7 @@ Story Lambda (`POST /api/admin/stories/catalog`): no deploy ever touches it.
 |-----|---------|
 | `AWS_ALPHA_LAMBDA_JWT_SECRET` | Required, own value (`openssl rand -base64 48`), never a committed default |
 | `AWS_ALPHA_LAMBDA_TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret of `paths.games` |
-| `AWS_ALPHA_APIGW_CUSTOM_DOMAIN` | `alpha-api.paths.games` |
+| `AWS_ALPHA_APIGW_CUSTOM_DOMAIN` | `api-alpha.paths.games` |
 | `AWS_ALPHA_ACM_DOMAIN_CERTIFICATE_ARN`, `AWS_ALPHA_ROUTE53_DOMAIN_HOSTED_ZONE` | ACM certificate (us-east-1) and hosted zone id |
 | `AWS_ALPHA_APIGW_CORS_ORIGINS` | `https://paths.games,https://www.paths.games` |
 | `AWS_ALPHA_S3_BUCKET_WEBSITE`, `AWS_ALPHA_CLOUDFRONT_DISTRIBUTION_ID` | `pathsgames-com` and its distribution id (catalog export + website deploy) |
@@ -44,13 +44,22 @@ Story Lambda (`POST /api/admin/stories/catalog`): no deploy ever touches it.
 **`code/frontend/react-game/.env.alpha`** — git-ignored; it must set **every** `VITE_*` key of
 `code/frontend/react-game/.env.example`, because Vite loads `.env` first and any missing key would
 ship its dev value. `deploy_website.sh` refuses to build when a key is missing or still `CHANGE_ME`.
-Alpha values: `VITE_API_URL=https://alpha-api.paths.games`,
-`VITE_DEFAULT_SERVERS='[{"label":"Alpha","url":"https://alpha-api.paths.games"}]'`,
+Alpha values: `VITE_API_URL=https://api-alpha.paths.games`,
+`VITE_DEFAULT_SERVERS='[{"label":"Alpha","url":"https://api-alpha.paths.games"}]'`,
 `VITE_ENV_BADGE=alpha` (the header badge), the production `VITE_CF_TURNSTILE_KEY` and `VITE_GTM_ID`,
 and the game options (`VITE_MATCH_START_DELAY`, `VITE_TURNSTILE_*`, `VITE_RESUME_WITHOUT_MODAL`,
 `VITE_ADD_COMING_SOON_STORIES`, `VITE_HIDE_STORIES`, `VITE_TUTORIAL_CATEGORY`).
 
 ## 4. IAM configuration
+
+**Script (recommended):** `code/scripts/prod/aws_create_policy_github_actions.sh` creates (or updates, as a new
+default version) the managed policy `paths-games-deployer`: everything below **plus** least-privilege S3
+(SAM artifacts prefix, website bucket) and CloudFront (invalidation of the one distribution), so the
+`AmazonS3FullAccess` / `CloudFrontFullAccess` policies can go. Values come from `samconfig.toml [alpha]` and
+`.env` (`AWS_ALPHA_S3_BUCKET_WEBSITE`, `AWS_ALPHA_CLOUDFRONT_DISTRIBUTION_ID`, `AWS_ALPHA_ROUTE53_DOMAIN_HOSTED_ZONE`).
+`--dry-run` prints the JSON only; `--attach-user <user>` attaches it; `--detach-full` also removes the two FullAccess policies.
+
+Manual alternative:
 
 The deploy user keeps `AmazonS3FullAccess` and `CloudFrontFullAccess`. **Add** the inline policy
 `pathsgames-alpha-sam-deploy` (replace `ACCOUNT_ID` and `HOSTED_ZONE_ID`):
@@ -69,12 +78,12 @@ The deploy user keeps `AmazonS3FullAccess` and `CloudFrontFullAccess`. **Add** t
 {"Sid":"EventBridge","Effect":"Allow","Action":"events:*","Resource":"arn:aws:events:us-east-1:ACCOUNT_ID:rule/pathsgames-alpha-*"},
 {"Sid":"CloudWatch","Effect":"Allow","Action":["cloudwatch:PutDashboard","cloudwatch:GetDashboard","cloudwatch:DeleteDashboards","cloudwatch:PutMetricAlarm","cloudwatch:DeleteAlarms","cloudwatch:DescribeAlarms","cloudwatch:TagResource"],"Resource":"*"},
 {"Sid":"Sns","Effect":"Allow","Action":"sns:*","Resource":"arn:aws:sns:us-east-1:ACCOUNT_ID:pathsgames-alpha-*"},
-{"Sid":"Budgets","Effect":"Allow","Action":["budgets:ViewBudget","budgets:ModifyBudget"],"Resource":"arn:aws:budgets::ACCOUNT_ID:budget/pathsgames-alpha*"},
+{"Sid":"Budgets","Effect":"Allow","Action":["budgets:ViewBudget","budgets:ModifyBudget","budgets:TagResource","budgets:UntagResource","budgets:ListTagsForResource"],"Resource":"arn:aws:budgets::ACCOUNT_ID:budget/pathsgames-alpha*"},
 {"Sid":"Route53","Effect":"Allow","Action":["route53:ChangeResourceRecordSets","route53:ListResourceRecordSets"],"Resource":"arn:aws:route53:::hostedzone/HOSTED_ZONE_ID"},
 {"Sid":"Route53Read","Effect":"Allow","Action":["route53:GetChange","acm:DescribeCertificate"],"Resource":"*"}]}
 ```
 
-Every resource the template creates on a public stage is named `pathsgames-<stage>…` (dashboard
+Every resource the monitoring stack (`template/monitoring.yaml`) creates on a public stage is named `pathsgames-<stage>…` (dashboard
 `pathsgames-alpha`, topic `pathsgames-alpha-alarms`, alarms `pathsgames-alpha-*`, budget
 `pathsgames-alpha-monthly`) so it matches this policy. If the first deploy fails on a missing
 action, CloudFormation names it in the stack events: add it and redeploy.
@@ -95,16 +104,20 @@ Lambda writes the catalog with its own role, so it is unaffected):
 - `AWS_ALPHA_LAMBDA_JWT_SECRET` (`openssl rand -base64 48`), `AWS_ALPHA_LAMBDA_TURNSTILE_SECRET_KEY`, `AWS_ALPHA_SNS_ALARM_EMAIL`
 - `AWS_ALPHA_S3_BUCKET_WEBSITE` (`pathsgames-com`)
 - `AWS_ALPHA_CLOUDFRONT_DISTRIBUTION_ID` (production distribution)
+- `AWS_ALPHA_ACM_DOMAIN_CERTIFICATE_ARN` 
+- `AWS_ALPHA_ROUTE53_DOMAIN_HOSTED_ZONE`
+- `VITE_CF_TURNSTILE_KEY`
+- `VITE_GTM_ID`
 
 **ADD variables**
 - `AWS_REGION=us-east-1`
 - `AWS_ALPHA_APIGW_CORS_ORIGINS=https://paths.games,https://www.paths.games`
-- `AWS_ALPHA_APIGW_CUSTOM_DOMAIN=alpha-api.paths.games`, `AWS_ALPHA_ACM_DOMAIN_CERTIFICATE_ARN`, `AWS_ALPHA_ROUTE53_DOMAIN_HOSTED_ZONE`
+- `AWS_ALPHA_APIGW_CUSTOM_DOMAIN=api-alpha.paths.games`
 - `AWS_ALPHA_BUDGETS_LIMIT`
 - `AWS_ALPHA_APIGW_THROTTLE_RATE=50`, `AWS_ALPHA_APIGW_THROTTLE_BURST=100`, `AWS_ALPHA_APIGW_ADMIN_THROTTLE_RATE=5`, `AWS_ALPHA_APIGW_ADMIN_THROTTLE_BURST=10`
-- `VITE_API_URL=https://alpha-api.paths.games`
-- `VITE_DEFAULT_SERVERS=[{"label":"Alpha","url":"https://alpha-api.paths.games"}]`
-- `VITE_CF_TURNSTILE_KEY`, `VITE_GTM_ID`, `VITE_ENV_BADGE=alpha`
+- `VITE_API_URL=https://api-alpha.paths.games`
+- `VITE_DEFAULT_SERVERS=[{"label":"Alpha","url":"https://api-alpha.paths.games"}]`
+- `VITE_ENV_BADGE=alpha`
 - `VITE_MATCH_START_DELAY`, `VITE_TURNSTILE_DELAY_BEFORE_START`, `VITE_TURNSTILE_PASS_TTL_MINUTES`
 - `VITE_TURNSTILE_APPEARANCE_HOME`, `VITE_TURNSTILE_APPEARANCE_START`, `VITE_TURNSTILE_APPEARANCE_GUEST`
 - `VITE_RESUME_WITHOUT_MODAL`, `VITE_ADD_COMING_SOON_STORIES`, `VITE_HIDE_STORIES`, `VITE_TUTORIAL_CATEGORY`
@@ -138,9 +151,9 @@ not matter.
 
 ## 7. One-time manual steps
 
-1. `cd code/website/terraform-aws && ./tf.sh production plan` then `./tf.sh production apply`:
+1. `code/scripts/prod/aws_terraform_deploy.sh production plan` then `code/scripts/prod/aws_terraform_deploy.sh production apply`:
    production CSP (alpha API, Turnstile), the `pathsgames.com` redirect function.
-2. Route 53: `alpha-api.paths.games` alias is created by the stack (custom domain + hosted zone);
+2. Route 53: `api-alpha.paths.games` alias is created by the stack (custom domain + hosted zone);
    `paths.games`, `www.paths.games`, `pathsgames.com`, `www.pathsgames.com` must be aliases of the
    CloudFront distribution (`terraform output`).
 3. Cloudflare dashboard → Turnstile → the alpha widget: add the hostname `paths.games`.

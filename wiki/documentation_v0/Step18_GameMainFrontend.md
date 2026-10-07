@@ -515,7 +515,7 @@ Mobile CSS lives in `src/styles/mobile.css` and is imported at the top of `main.
 
 ## 10. Google Tag Manager & Consent Mode
 
-Google **Consent Mode v2** defaults (all `denied`) are set inline at the top of `index.html`, before any tag logic. The GTM container is then loaded by `loadGtm()` in `src/consent/gtm.js` (called from `main.jsx`) using the `VITE_GTM_ID` environment variable (default `GTM-T52SH6JQ`; see `.env.example`). GTM loads on every visit, but analytics tags write no cookies until the user accepts the `analytics` category — handled by the in-project cookie-consent layer in `src/consent/` (see Step 20). The previous inline GTM snippet in `index.html` was removed in v0.20.3.
+Google **Consent Mode v2** defaults (all `denied`) are set inline at the top of `index.html`, before any tag logic. The GTM container is then loaded by `loadGtm()` in `src/consent/gtm.js` (called from `main.jsx`) using the `VITE_GTM_ID` environment variable (default `GTM-xxxx`; see `.env.example`). GTM loads on every visit, but analytics tags write no cookies until the user accepts the `analytics` category — handled by the in-project cookie-consent layer in `src/consent/` (see Step 20). The previous inline GTM snippet in `index.html` was removed in v0.20.3.
 
 ---
 

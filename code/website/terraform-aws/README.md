@@ -2,7 +2,7 @@
 
 This Terraform project provisions the complete AWS infrastructure to host the **Paths Games** static website on the `paths.games` and `pathsgames.com` domain.
 
-The module is environment-parameterized: the same Terraform code manages an independent **production** and **test** deployment, each with its own remote state, applied through the `tf.sh` wrapper (see [Terraform State](#terraform-state) and [Deployment](#deployment)).
+The module is environment-parameterized: the same Terraform code manages an independent **production** and **test** deployment, each with its own remote state, applied through the `code/scripts/prod/aws_terraform_deploy.sh` wrapper (see [Terraform State](#terraform-state) and [Deployment](#deployment)).
 
 ## Architecture Overview
 
@@ -82,7 +82,7 @@ For each base domain (SSM lists + `csp_extra_domains`), Terraform expands it int
 google-analytics.com  →  https://google-analytics.com  +  https://*.google-analytics.com
 ```
 
-**To add a domain shared by every environment**, edit the relevant list in `ssm.tf` and run `./tf.sh production apply` — no other file needs to change:
+**To add a domain shared by every environment**, edit the relevant list in `ssm.tf` and run `code/scripts/prod/aws_terraform_deploy.sh production apply` — no other file needs to change:
 
 | SSM Parameter | CSP Directive | Current domains |
 |---|---|---|
@@ -92,7 +92,7 @@ google-analytics.com  →  https://google-analytics.com  +  https://*.google-ana
 | `/paths-games/csp/img-src` | `img-src` | `googletagmanager.com`, `google-analytics.com` |
 | `/paths-games/csp/connect-src` | `connect-src` | `google-analytics.com`, `analytics.google.com`, `g.doubleclick.net` |
 
-**To add a domain for one environment only**, set `csp_extra_domains` in that environment's `environments/<env>.tfvars` (map of directive → base domains, merged into the lists above). `test.tfvars` (running `csp_mode = "restricted"` since v0.41.0) adds the test API hosts and `cdn.jsdelivr.net` on `connect` (`api-test.paths.games`, `api-test-server2.paths.games`, `api-test-server3.paths.games`, `cdn.jsdelivr.net` — Bootstrap source maps), `challenges.cloudflare.com` on `script`, `unsplash.com` on `img` (v0.41.0 — react-game's location art) and `challenges.cloudflare.com` on `frame` (v0.41.0 — the Turnstile iframe). The `frame` key has no shared SSM list: `cloudfront.tf` emits a `frame-src` directive only when it is non-empty. `production.tfvars` (running `csp_mode = "restricted"` since v0.41.2) serves react-game since v0.42.0 (the static landing `code/website/html/` was retired): it adds `alpha-api.paths.games` and `cdn.jsdelivr.net` on `connect`, `challenges.cloudflare.com` on `script` and `frame` (Turnstile) and `unsplash.com` on `img`. `game-icons.net` is not needed: its icons are embedded as `data:` URIs.
+**To add a domain for one environment only**, set `csp_extra_domains` in that environment's `environments/<env>.tfvars` (map of directive → base domains, merged into the lists above). `test.tfvars` (running `csp_mode = "restricted"` since v0.41.0) adds the test API hosts and `cdn.jsdelivr.net` on `connect` (`api-test.paths.games`, `api-test-server2.paths.games`, `api-test-server3.paths.games`, `cdn.jsdelivr.net` — Bootstrap source maps), `challenges.cloudflare.com` on `script`, `unsplash.com` on `img` (v0.41.0 — react-game's location art) and `challenges.cloudflare.com` on `frame` (v0.41.0 — the Turnstile iframe). The `frame` key has no shared SSM list: `cloudfront.tf` emits a `frame-src` directive only when it is non-empty. `production.tfvars` (running `csp_mode = "restricted"` since v0.41.2) serves react-game since v0.42.0 (the static landing `code/website/html/` was retired): it adds `api-alpha.paths.games` and `cdn.jsdelivr.net` on `connect`, `challenges.cloudflare.com` on `script` and `frame` (Turnstile) and `unsplash.com` on `img`. `game-icons.net` is not needed: its icons are embedded as `data:` URIs.
 
 > Special values (`'self'`, `'unsafe-inline'`, `data:`) are hardcoded in `cloudfront.tf` because they are not domains.
 
@@ -121,7 +121,7 @@ Every resource is tagged through the provider's `default_tags` (`main.tf`), the 
 | `ManagedBy` | `Terraform` |
 | `Owner` | `AlNao` |
 | `Project` | `Paths.games` |
-| `version` | `VERSION` from the root `.env`, passed by `tf.sh` as `TF_VAR_project_version` |
+| `version` | `VERSION` from the root `.env`, passed by `aws_terraform_deploy.sh` as `TF_VAR_project_version` |
 
 `Name` is set per resource: resources with a meaningful name of their own reuse it (S3 bucket → bucket name, WAF → its `paths-games-waf[-<env>]` name, SSM parameters → parameter path). Everything else uses `pathsgames-<env>-<service>` (e.g. `pathsgames-production-Certificate`, `pathsgames-<env>-Distribution`). The CloudFront Origin Access Control and the response headers policy are not taggable in the AWS provider.
 
@@ -134,9 +134,9 @@ One state per environment, each in its own state bucket:
 | `production` | `pathsgames-production-iac` | `production/website/terraform.tfstate` | `us-east-1` |
 | `test` | `pathsgames-test-iac` | `test/website/terraform.tfstate` | `us-east-2` |
 
-Both backends use `encrypt = true` and `use_lockfile = true` (S3 native state locking — no DynamoDB lock table), which requires **Terraform >= 1.10**. The backend is selected with `-backend-config=backend-<env>.hcl`, passed automatically by `tf.sh` (see [Deployment](#deployment)).
+Both backends use `encrypt = true` and `use_lockfile = true` (S3 native state locking — no DynamoDB lock table), which requires **Terraform >= 1.10**. The backend is selected with `-backend-config=backend-<env>.hcl`, passed automatically by `aws_terraform_deploy.sh` (see [Deployment](#deployment)).
 
-> **Note:** Both `-iac` buckets must already exist before running `./tf.sh <env> init`. Their region can differ from the resources region (`us-east-1`, required for CloudFront/ACM).
+> **Note:** Both `-iac` buckets must already exist before running `code/scripts/prod/aws_terraform_deploy.sh <env> init`. Their region can differ from the resources region (`us-east-1`, required for CloudFront/ACM).
 
 To add a new environment (e.g. `dev`), copy `backend-test.hcl` and `environments/test.tfvars`, adjust the bucket name / state key / aliases, and add the new name to the `environment` variable validation in `variables.tf`.
 
@@ -145,30 +145,29 @@ To add a new environment (e.g. `dev`), copy `backend-test.hcl` and `environments
 1. **AWS CLI** configured with appropriate credentials
 2. **Terraform** >= 1.10 installed (required for `use_lockfile`)
 3. **Both remote-state buckets** already created: `pathsgames-production-iac` (us-east-1) and `pathsgames-test-iac` (us-east-2)
-4. **`VERSION`** set in the root `.env` — read by `tf.sh` and applied as the `version` tag on every resource
+4. **`VERSION`** set in the root `.env` — read by `aws_terraform_deploy.sh` and applied as the `version` tag on every resource
 5. **Domain** `paths.games` / `pathsgames.com` registered and accessible via Route 53 or external DNS
 
 ## Deployment
 
 ```bash
-cd code/website/terraform-aws
-
+# From the repository root
 # Initialize Terraform (downloads providers, configures the per-environment backend)
-./tf.sh test init
-./tf.sh production init
+code/scripts/prod/aws_terraform_deploy.sh test init
+code/scripts/prod/aws_terraform_deploy.sh production init
 
 # Preview the changes
-./tf.sh test plan
-./tf.sh production plan
+code/scripts/prod/aws_terraform_deploy.sh test plan
+code/scripts/prod/aws_terraform_deploy.sh production plan
 
 # Apply the infrastructure
-./tf.sh test apply
-./tf.sh production apply
+code/scripts/prod/aws_terraform_deploy.sh test apply
+code/scripts/prod/aws_terraform_deploy.sh production apply
 ```
 
-`tf.sh <test|production> <terraform command> [args]` wraps every invocation: it sets `TF_DATA_DIR=.terraform-<env>` (provider + backend cache, one per environment, git-ignored), reads `VERSION` from the root `.env` into `TF_VAR_project_version`, and passes `-backend-config=backend-<env>.hcl` to `init` and `-var-file=environments/<env>.tfvars` to `plan`/`apply`/`destroy`/`import`/`refresh`/`console`. Any other command (`state`, `output`, …) passes straight through to `terraform`. Example: `./tf.sh test import aws_cloudfront_distribution.website E8WIS9RLXJVR9`.
+`aws_terraform_deploy.sh <test|production> <terraform command> [args]` wraps every invocation: it sets `TF_DATA_DIR=.terraform-<env>` (provider + backend cache, one per environment, git-ignored), reads `VERSION` from the root `.env` into `TF_VAR_project_version`, and passes `-backend-config=backend-<env>.hcl` to `init` and `-var-file=environments/<env>.tfvars` to `plan`/`apply`/`destroy`/`import`/`refresh`/`console`. Any other command (`state`, `output`, …) passes straight through to `terraform`. Example: `code/scripts/prod/aws_terraform_deploy.sh test import aws_cloudfront_distribution.website E8WIS9RLXJVR9`.
 
-There is no `terraform.tfvars` and no `import.sh` anymore — variables live in `environments/<env>.tfvars`, and one-off imports are run directly with `tf.sh <env> import ...`.
+There is no `terraform.tfvars` and no `import.sh` anymore — variables live in `environments/<env>.tfvars`, and one-off imports are run directly with `aws_terraform_deploy.sh <env> import ...`.
 
 ### Enable WAF
 
@@ -179,7 +178,7 @@ enable_waf = true
 ```
 
 ```bash
-./tf.sh <env> apply
+code/scripts/prod/aws_terraform_deploy.sh <env> apply
 ```
 
 When enabled, WAF adds ~$6/month base cost plus $1 per million requests.
@@ -193,7 +192,7 @@ csp_mode = "restricted"
 ```
 
 ```bash
-./tf.sh <env> apply
+code/scripts/prod/aws_terraform_deploy.sh <env> apply
 ```
 
 | Value | Behaviour |
@@ -202,11 +201,11 @@ csp_mode = "restricted"
 | `restricted` | Per-directive allowlist from SSM Parameter Store + `csp_extra_domains` |
 
 `open` is the variable's default, but `test.tfvars` (v0.41.0) and `production.tfvars` (v0.41.2)
-both override it to `restricted` — since v0.42.0 production adds `connect = ["alpha-api.paths.games",
+both override it to `restricted` — since v0.42.0 production adds `connect = ["api-alpha.paths.games",
 "cdn.jsdelivr.net"]`, `script` and `frame = ["challenges.cloudflare.com"]` and `img = ["unsplash.com"]`
 to `csp_extra_domains`, checked by the owner in the browser after applying.
 
-### After `./tf.sh <env> apply`:
+### After `code/scripts/prod/aws_terraform_deploy.sh <env> apply`:
 
 1. **Validate the ACM certificate** (production only, once): Terraform outputs the DNS CNAME records needed for certificate validation. Add them to your domain's DNS (Route 53 or your registrar's DNS panel).
 
@@ -253,7 +252,6 @@ terraform-aws/
 │   ├── redirect.js               # v0.42.0 CloudFront Function: 301 from the old domain
 │   └── redirect.test.mjs         # node --test of the function
 ├── outputs.tf                    # Terraform outputs
-├── tf.sh                         # Wrapper: picks backend/tfvars/data dir per environment, injects the version tag
 ├── backend-production.hcl        # Backend S3 configuration for production
 ├── backend-test.hcl              # Backend S3 configuration for test
 ├── environments/
@@ -285,25 +283,25 @@ cd code/website/terraform-aws && mkdir -p backups
 # 0. backup of the current (old-backend) state
 aws s3 cp s3://pathsgames-production/PathsGamesWebsite/terraform.tfstate backups/website-prod-$(date +%Y%m%d).tfstate --region us-east-1
 # 1. production: new backend, same state, drop the test resources from it (no destroy)
-./tf.sh production init
-./tf.sh production state push backups/website-prod-<date>.tfstate
-./tf.sh production state list
-./tf.sh production state rm aws_s3_bucket.website_test aws_s3_bucket_public_access_block.website_test aws_s3_bucket_server_side_encryption_configuration.website_test aws_s3_bucket_versioning.website_test aws_s3_bucket_policy.website_test aws_cloudfront_origin_access_control.website_test aws_cloudfront_distribution.website_test
-./tf.sh production plan    # expected: 6 moved, tag-only in-place updates, 0 to add, 0 to destroy
-./tf.sh production apply
+../../scripts/prod/aws_terraform_deploy.sh production init
+../../scripts/prod/aws_terraform_deploy.sh production state push backups/website-prod-<date>.tfstate
+../../scripts/prod/aws_terraform_deploy.sh production state list
+../../scripts/prod/aws_terraform_deploy.sh production state rm aws_s3_bucket.website_test aws_s3_bucket_public_access_block.website_test aws_s3_bucket_server_side_encryption_configuration.website_test aws_s3_bucket_versioning.website_test aws_s3_bucket_policy.website_test aws_cloudfront_origin_access_control.website_test aws_cloudfront_distribution.website_test
+../../scripts/prod/aws_terraform_deploy.sh production plan    # expected: 6 moved, tag-only in-place updates, 0 to add, 0 to destroy
+../../scripts/prod/aws_terraform_deploy.sh production apply
 # 2. test: fresh state, keep the existing distribution + OAC, create the new bucket
-./tf.sh test init
+../../scripts/prod/aws_terraform_deploy.sh test init
 OAC_ID=$(aws cloudfront list-origin-access-controls --query "OriginAccessControlList.Items[?Name=='pathsgames-test-oac'].Id" --output text)
-./tf.sh test import aws_cloudfront_origin_access_control.website "$OAC_ID"
-./tf.sh test import aws_cloudfront_distribution.website E8WIS9RLXJVR9
-./tf.sh test plan          # expected: 6 to add (bucket pathsgames-com-test + 4 children, headers policy -test), 2 in-place updates (OAC name, distribution origin/policy/tags), 0 to destroy
-./tf.sh test apply         # test.paths.games serves errors until the content is uploaded (step 3)
+../../scripts/prod/aws_terraform_deploy.sh test import aws_cloudfront_origin_access_control.website "$OAC_ID"
+../../scripts/prod/aws_terraform_deploy.sh test import aws_cloudfront_distribution.website E8WIS9RLXJVR9
+../../scripts/prod/aws_terraform_deploy.sh test plan          # expected: 6 to add (bucket pathsgames-com-test + 4 children, headers policy -test), 2 in-place updates (OAC name, distribution origin/policy/tags), 0 to destroy
+../../scripts/prod/aws_terraform_deploy.sh test apply         # test.paths.games serves errors until the content is uploaded (step 3)
 # 3. test content (outside Terraform): set AWS_TEST_S3_BUCKET_WEBSITE=pathsgames-com-test in .env, then
 code/scripts/test/aws/aws_backend_deploy.sh test           # backend IAM now targets the new bucket
 code/scripts/test/aws/deploy_frontend-game_on_aws.sh       # build + sync + CloudFront invalidation
 # POST /api/admin/stories/catalog on the test admin API to regenerate data/stories-*.json
 # 4. verify, then clean up
-./tf.sh production plan && ./tf.sh test plan               # both: No changes
+../../scripts/prod/aws_terraform_deploy.sh production plan && ../../scripts/prod/aws_terraform_deploy.sh test plan               # both: No changes
 rm -rf .terraform                                          # old data dir (old backend)
 # old website bucket (versioned): delete every version, then the bucket
 aws s3api delete-objects --bucket pathsgames-test --delete "$(aws s3api list-object-versions --bucket pathsgames-test --output json --query '{Objects: [Versions[].{Key:Key,VersionId:VersionId}, DeleteMarkers[].{Key:Key,VersionId:VersionId}][]}')"
@@ -312,7 +310,7 @@ aws s3 rb s3://pathsgames-test
 aws s3 rm s3://pathsgames-production --recursive && aws s3 rb s3://pathsgames-production
 ```
 
-`moved.tf` covers the address changes for the production state (the shared resources gained a `count`) and can be deleted once `./tf.sh production plan` reports no changes after the migration.
+`moved.tf` covers the address changes for the production state (the shared resources gained a `count`) and can be deleted once `code/scripts/prod/aws_terraform_deploy.sh production plan` reports no changes after the migration.
 
 
 

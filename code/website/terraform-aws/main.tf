@@ -8,7 +8,7 @@ terraform {
     }
   }
 
-  # One state per environment: terraform init -backend-config=backend-<env>.hcl (see tf.sh)
+  # One state per environment: terraform init -backend-config=backend-<env>.hcl (see code/scripts/prod/aws_terraform_deploy.sh)
   backend "s3" {}
 }
 
