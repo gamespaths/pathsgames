@@ -26,23 +26,25 @@ import { traitBudgetItems } from '@/utils/traitBudget'
  *   2. confirm — accept terms, then Start (the action of the last bonuses card,
  *      locked until the gate passed). Single-player only for now; the future
  *      multiplayer JOIN/lobby plugs in here.
- *   3. starting — countdown, then POST /api/matches with the full loadout.
- *   4. created  — countdown, then enter the game.
- * Once Start is pressed the six cards give way to one card per phase (story first,
- * then creating / joining / running / created), each spinning while it runs and
- * checked once done. Countdown length comes from `VITE_MATCH_START_DELAY`
- * (seconds, default 20).
+ *   3. starting — countdown, then create / join / start the match (one card each).
+ *   4. created  — no card, no API call: enter the game at once.
+ * Once Start is pressed the six cards give way to the story and the two statistics cards
+ * (checked) and one card per API phase (creating / joining / running), each spinning while it
+ * runs and checked once done; `created` has no card and enters the game at once.
+ * Countdown length comes from `VITE_MATCH_START_DELAY` (seconds, default 20).
  */
 
 const DEFAULT_DELAY_SECONDS = 20
 
-/** The phase cards, in order; 'starting' counts down on the first one. */
-const PHASES = ['creating', 'joining', 'running', 'created']
+/** The phase cards, one per API call, in order; 'starting' counts down on the first one. */
+const PHASES = ['creating', 'joining', 'running']
 
-/** Index of the phase card the flow is on (-1 before Start). */
+/** Index of the phase card the flow is on (-1 before Start; past the last once created). */
 function activePhaseIndex(phase) {
   const i = PHASES.indexOf(phase)
-  return i >= 0 ? i : (phase === 'starting' ? 0 : -1)
+  if (i >= 0) return i
+  if (phase === 'starting') return 0
+  return phase === 'created' ? PHASES.length : -1
 }
 
 const PHASE_STATUS_ICON = {
@@ -171,10 +173,13 @@ export default function StartMatchFlow({ story, config, storyId }) {
     }
   }, [story, config, user, waitWithCountdown, t])
 
-  // Timed phases: 'starting' counts down then creates the match; 'created'
-  // counts down then enters the game. Both reuse the same configured delay.
+  // 'starting' counts down then creates the match; 'created' (no card, no API call) enters the game at once.
   useEffect(() => {
-    if (phase !== 'starting' && phase !== 'created') return undefined
+    if (phase === 'created') {
+      navigate(`/play/${storyId}`, { state: { matchUuid: match?.uuid } })
+      return undefined
+    }
+    if (phase !== 'starting') return undefined
     let remaining = delaySeconds()
     setCountdown(remaining)
     const id = setInterval(() => {
@@ -182,8 +187,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
       setCountdown(remaining > 0 ? remaining : 0)
       if (remaining <= 0) {
         clearInterval(id)
-        if (phase === 'starting') runCreateMatch()
-        else navigate(`/play/${storyId}`, { state: { matchUuid: match?.uuid } })
+        runCreateMatch()
       }
     }, 1000)
     return () => clearInterval(id)
@@ -263,8 +267,10 @@ export default function StartMatchFlow({ story, config, storyId }) {
     </div>
   )
 
-  // After Start: the story card (checked, "starting") then one card per phase, each locked
-  // under its own status — pending, spinning with the countdown, complete, or failed.
+  // After Start: the story and the two statistics cards (checked, "starting") then one card per
+  // phase, each locked under its own status — pending, spinning with the countdown, complete, or failed.
+  const startedLock = { locked: true, lockedIcon: 'fas fa-check', lockInfo: { kind: 'phase', label: t('startMatch.phaseStarting') },
+    additionalCardClasses: 'pg-card--phase pg-card--phase-complete' }
   const activeIndex = phase === 'error' ? PHASES.indexOf(failedPhase) : activePhaseIndex(phase)
   const phaseStatus = (i) => PHASES[i] === failedPhase ? 'failed'
     : i < activeIndex ? 'complete' : i === activeIndex ? 'inProgress' : 'pending'
@@ -273,9 +279,11 @@ export default function StartMatchFlow({ story, config, storyId }) {
     : t(`startMatch.phase${status.charAt(0).toUpperCase()}${status.slice(1)}`)
   const phasesBlock = (
     <div className="selection-list">
-      <Card card={story.card} entityType="story" label={t('book.story')} story={story}
-        locked lockedIcon="fas fa-check" lockInfo={{ kind: 'phase', label: t('startMatch.phaseStarting') }}
-        additionalCardClasses="pg-card--phase pg-card--phase-complete" />
+      <Card card={story.card} entityType="story" label={t('book.story')} story={story} {...startedLock} />
+      <Card card={statisticsCard} entityType="bonuses" flagInformationCard={true}
+        statistics={statisticCard1} flagShowFullStatistics={true} {...startedLock} />
+      <Card card={statisticsCard} entityType="bonuses" flagInformationCard={false} hidePreview={true}
+        statistics={statisticCard2} flagShowFullStatistics={true} {...startedLock} />
       {PHASES.map((p, i) => {
         const status = phaseStatus(i)
         return (

@@ -116,7 +116,8 @@ Python keep summing them, since their rows have no FK) — see
 
 SAM templates: `code/backend/aws/template.yaml` (root stack) plus one nested template per
 module under `code/backend/aws/template/` (`auth.yaml`, `match.yaml`, `story.yaml`,
-`content.yaml`, `echo.yaml`, `seed.yaml`). Environments are `dev` and `test` (deployed with
+`content.yaml`, `echo.yaml`, `seed.yaml`, and `monitoring.yaml`: dashboard, alarms, budget, created
+only on public stages through the `IsPublicStage` condition). Environments are `dev` and `test` (deployed with
 `code/scripts/test/aws/aws_backend_deploy.sh [dev|test]`) and `prod` (`sam deploy
 --config-env prod`) — details in [Environments](./Environments.md).
 

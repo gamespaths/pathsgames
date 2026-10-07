@@ -98,5 +98,5 @@ export default function PageLeft({
     return <LocationCard locationsActive={gameData?.info?.locationsActive}
       location={actualLocationCard} card={actualLocationCard} story={story} loading={loading} />
   }
-  return storyCard ? <Card variant="page" card={storyCard} loading={false} story={story} /> : null
+  return storyCard ? <Card variant="page" card={storyCard} loading={false} story={story} entityType="story" /> : null
 }

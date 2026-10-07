@@ -70,6 +70,10 @@ down entirely at the owner's discretion — there is no automatic retirement pol
 `alpha` (v0.42.0, V0 launch) is the first stage this model produces: stack `pathsgames-alpha`,
 `api-alpha.paths.games`, react-game at the root of `paths.games`; the static landing is retired.
 The older `dev`/`test`/`prod` AWS environments (§1) predate the model and are not stage-named.
+GitHub secrets of the `alpha` Environment follow the same rule (`AWS_ALPHA_S3_BUCKET_WEBSITE`,
+`AWS_ALPHA_CLOUDFRONT_DISTRIBUTION_ID`). The admin allow-list is replaced with the caller IP by
+`code/scripts/alpha/set_admin_ip.sh` (alpha) or `code/scripts/test/aws/aws_set_admin_ip.sh` (dev/test); the least-privilege
+deploy policy comes from `code/scripts/prod/aws_create_policy_github_actions.sh`.
 
 ## 4. Environment variables
 
@@ -80,9 +84,10 @@ and comments:
 | Group | Example variable names |
 |---|---|
 | Project | `VERSION` |
+| Naming rule (v0.42.0) | every AWS/EC2 key is `AWS_<ENV>_<SERVICE>_<DESC>` (e.g. `AWS_ALPHA_APIGW_CORS_ORIGINS`, `AWS_TEST_SAM_STACK_NAME`); EC2 test servers `AWS_TEST_EC2_<X>` / `AWS_TEST_EC2_PY_<X>`; `.env.example` is the reference; `aws_backend_deploy_stage.sh` builds `AWS_<STAGE>_<SERVICE>_<KEY>` |
 | Admin / JWT | `ADMIN_IP_WHITELIST`, `JWT_SECRET`, `ROBOT_VAR_ADMIN_TOKEN` |
 | SonarQube | `SONAR_LOGIN_TOKEN_JAVA`, `SONAR_LOGIN_TOKEN` |
-| Website deploy (AWS) | `AWS_S3_BUCKET_WEBSITE*`, `AWS_CLOUDFRONT_DISTRIBUTION_ID*` |
+| Website deploy (AWS) | `AWS_<ENV>_S3_BUCKET_WEBSITE`, `AWS_<ENV>_CLOUDFRONT_DISTRIBUTION_ID` (`<ENV>` = `TEST`, `ALPHA`, `BETA`, `PROD`) |
 | AWS backend stack (test) | `AWS_TEST_SAM_ENVIRONMENT_NAME`, `AWS_TEST_SAM_STACK_NAME`, `AWS_TEST_REGION`, `AWS_PROD_REGION`, `AWS_TEST_APIGW_CUSTOM_DOMAIN`, `AWS_TEST_ACM_DOMAIN_CERTIFICATE_ARN`, `AWS_TEST_ROUTE53_DOMAIN_HOSTED_ZONE`, `AWS_TEST_APIGW_CORS_ORIGINS` |
 | Turnstile | `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `TURNSTILE_BYPASS_TOKEN_TEST`, `TURNSTILE_BYPASS_TOKEN_ROBOT` |
 | Rate limit / CSRF (v0.37.7; per-IP/per-guest defaults raised in v0.41.0) | `RATE_LIMIT_GUEST_PER_IP`, `RATE_LIMIT_MATCH_PER_IP`, `RATE_LIMIT_WINDOW_SECONDS`, `RATE_LIMIT_MATCH_PER_GUEST`, `RATE_LIMIT_MATCH_PER_GUEST_WINDOW_SECONDS`, `CSRF_ENFORCED` (+ `AWS_*_TEST` mirrors) |
@@ -92,7 +97,7 @@ and comments:
 | AWS admin allow-list (v0.41.0) | `ADMIN_IP_WHITELIST`, `AWS_TEST_APIGW_ADMIN_IP_EMPTY_MEANS`, `AWS_TEST_APIGW_ADMIN_API_URL` |
 | Test-data lifecycle | `AWS_TEST_DYNAMODB_ROBOT_TEST_DATA_TTL_HOURS` |
 | Docker Hub | `DOCKERHUB_USERNAME_TEST`, `DOCKERHUB_IMAGE_TEST`, `DOCKERHUB_IMAGE_TAG_TEST`, `DOCKERHUB_TOKEN_TEST` |
-| EC2 test servers (Java, Python) | `AWS_TEST_EC2_KEY_NAME*`, `AWS_TEST_EC2_DB_NAME*`, `AWS_TEST_EC2_PUBLIC_PORT*`, `AWS_TEST_EC2_ADMIN_PORT*`, `AWS_TEST_EC2_ROUTE53_RECORD_NAME*`, `AWS_TEST_EC2_ENABLE_CLOUDFRONT*`, and their `_PY` counterparts |
+| EC2 test servers (Java, Python) | `AWS_TEST_EC2_KEY_NAME`, `AWS_TEST_EC2_DB_NAME`, `AWS_TEST_EC2_DB_PASSWORD`, `AWS_TEST_EC2_PUBLIC_PORT`, `AWS_TEST_EC2_ADMIN_PORT`, `AWS_TEST_EC2_ROUTE53_RECORD_NAME`, `AWS_TEST_EC2_ENABLE_CLOUDFRONT`, …; the Python server overrides with `AWS_TEST_EC2_PY_<X>` (e.g. `AWS_TEST_EC2_PY_INSTANCE_NAME`) |
 | Stage deploy (v0.41.0, alpha/beta/prod) | `AWS_<S>_LAMBDA_JWT_SECRET`, `AWS_<S>_LAMBDA_TURNSTILE_SECRET_KEY`, `AWS_<S>_APIGW_CUSTOM_DOMAIN`, `AWS_<S>_ACM_DOMAIN_CERTIFICATE_ARN`, `AWS_<S>_ROUTE53_DOMAIN_HOSTED_ZONE`, `AWS_<S>_APIGW_CORS_ORIGINS`, `AWS_<S>_APIGW_ADMIN_IP_WHITELIST`; v0.42.0: `AWS_<S>_SNS_ALARM_EMAIL`, `AWS_<S>_BUDGETS_LIMIT`, `AWS_<S>_APIGW_THROTTLE_RATE`, `AWS_<S>_APIGW_THROTTLE_BURST`, `AWS_<S>_APIGW_ADMIN_THROTTLE_RATE`, `AWS_<S>_APIGW_ADMIN_THROTTLE_BURST` — `<S>` = `ALPHA`/`BETA`/`PROD`, read by `aws_backend_deploy_stage.sh` |
 
 **Rule:** every parameter has a code default (Spring `${VAR:default}` placeholders in

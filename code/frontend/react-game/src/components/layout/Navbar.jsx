@@ -76,7 +76,7 @@ export default function Navbar() {
           onClick={openGuestModal}
         >
           <i className="fas fa-user-circle" />
-          <span>{guestLabel}</span>
+          <span className="nav-user-btn__label">{guestLabel}</span>
         </button>
       </div>
     </nav>

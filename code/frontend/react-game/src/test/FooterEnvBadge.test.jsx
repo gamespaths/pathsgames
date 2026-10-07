@@ -16,7 +16,7 @@ vi.mock('../context/ServerContext', () => ({
 }))
 
 import Footer from '../components/layout/Footer'
-import { envBadgeLabel } from '../components/layout/EnvBadge'
+import { envBadgeLabel, envBadgeShortLabel } from '../components/layout/EnvBadge'
 
 describe('Footer env badge (Step 40)', () => {
   beforeEach(() => { env.code = 'alpha' })
@@ -55,5 +55,12 @@ describe('Footer env badge (Step 40)', () => {
     expect(envBadgeLabel('', t)).toBeNull()
     expect(envBadgeLabel(' PROD ', t)).toBeNull()
     expect(envBadgeLabel(undefined, t)).toBeNull()
+  })
+
+  it('envBadgeShortLabel: the short key, else the full label', () => {
+    const t = (k) => ({ 'envBadge.dev': 'Local version', 'envBadge.short.dev': 'Local', 'envBadge.test': 'Test version' })[k] ?? k
+    expect(envBadgeShortLabel('dev', t)).toBe('Local')
+    expect(envBadgeShortLabel('test', t)).toBe('Test version')
+    expect(envBadgeShortLabel('prod', t)).toBeNull()
   })
 })

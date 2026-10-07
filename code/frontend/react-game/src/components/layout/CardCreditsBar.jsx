@@ -1,67 +1,43 @@
+import { useTranslation } from '@/i18n/context'
+import { CREDIT_ICONS, creditNotes, creditText } from '@/utils/cardCredits'
+
 /**
- * CardCreditsBar — slim footer row, same style as gc-title.
- * Shows "Credits: story by <author>, image by <copyright>" with links.
- * Returns null when neither story author, card copyright nor a tip is available.
- * Step 40 — `tip` ({ label, onOpen }) adds a "tip" link right after the type label; the credits
- * stay on ONE line, cut with an ellipsis on the right (full text in the tooltip).
+ * CardCreditsBar — slim footer row, same style as gc-title: TYPE, tip, story credit, image credit.
+ * Each entry opens its note in the card's tip area (`onOpen(kind)`); null when nothing to show.
+ * No separators: the entries are spaced by CSS (wider on large screens).
  */
-// Step 42 — every story is CC BY-NC-ND 4.0: the notice rides with the story credit.
-export const STORY_LICENSE = 'CC BY-NC-ND 4.0'
-export const STORY_LICENSE_URL = 'https://creativecommons.org/licenses/by-nc-nd/4.0/'
+export { STORY_LICENSE } from '@/utils/cardCredits'
 
-export default function CardCreditsBar({ card, story, typeBadgeLabel = null, tip = null }) {
-  const author   = story?.author ?? null
-  const storyUrl = story?.card?.linkCopyright ?? null
-  const imgName  = card?.copyrightText ?? null
-  const imgUrl   = card?.linkCopyright ?? null
+export default function CardCreditsBar({ card, story, typeBadgeLabel = null, tip = null, onOpenCredit = () => {} }) {
+  const t = useTranslation()?.t
+  const notes = creditNotes(card, story, t)
+  if (!notes.story && !notes.image && !tip) return null
 
-  if (!author && !imgName && !tip) return null
+  const entry = (kind, className, onOpen, label) => (
+    <button key={kind} type="button" className={`gc-credits__tip ${className}`} data-testid={`credit-${kind}`}
+      onClick={e => { e.stopPropagation(); onOpen() }}>
+      <i className={`fas ${CREDIT_ICONS[kind]} me-1`} aria-hidden="true" />{label}
+    </button>
+  )
 
-  const parts = []
-  if (author) {
-    parts.push(
-      <span key="story" className="credit-author">
-        story by{' '}
-        {storyUrl
-          ? <a href={storyUrl} target="_blank" rel="noopener noreferrer" className="gc-credits__link" onClick={e => e.stopPropagation()}>{author}</a>
-          : <span>{author}</span>}
-        {' ('}
-        <a href={STORY_LICENSE_URL} target="_blank" rel="noopener noreferrer license"
-          className="gc-credits__link credit-license" onClick={e => e.stopPropagation()}>{STORY_LICENSE}</a>
-        {')'}
+  const credits = []
+  if (notes.story) credits.push(entry('story', 'credit-author', () => onOpenCredit('story'), creditText(t, 'card.storyCredit')))
+  if (notes.image) credits.push(entry('image', 'credit-image', () => onOpenCredit('image'), creditText(t, 'card.imageCredit')))
+
+  const items = []
+  if (typeBadgeLabel) items.push(<span key="type" className="gc-type-badge-credits">{typeBadgeLabel}</span>)
+  if (tip) items.push(entry('tip', '', tip.onOpen, tip.label))
+  if (credits.length > 0) {
+    items.push(
+      <span key="credits" className="gc-credits__text">
+        {credits}
       </span>
     )
   }
-  if (imgName) {
-    parts.push(
-      <span key="image" className="credit-image">
-        image by{' '}
-        {imgUrl
-          ? <a href={imgUrl} target="_blank" rel="noopener noreferrer" className="gc-credits__link" onClick={e => e.stopPropagation()}>{imgName}</a>
-          : <span>{imgName}</span>}
-      </span>
-    )
-  }
-
-  const fullText = [author && `story by ${author} (${STORY_LICENSE})`, imgName && `image by ${imgName}`]
-    .filter(Boolean).join(' - ')
 
   return (
     <div className="gc-credits">
-      {typeBadgeLabel && <span className="gc-type-badge-credits">{typeBadgeLabel}</span>} 
-      {tip && (
-        <button type="button" className="gc-credits__tip" onClick={e => { e.stopPropagation(); tip.onOpen() }}>
-          <i className="fas fa-lightbulb me-1" aria-hidden="true" />{tip.label}
-        </button>
-      )}
-      {parts.length > 0 && (
-        <span className="gc-credits__text" title={fullText}>
-          {typeBadgeLabel && <span className="gc-credits__label credit-credit"> - </span>}
-          {parts.map((p, i) => (
-            <span key={i}>{i > 0 ? ' - ' : ' '}{p}</span>
-          ))}
-        </span>
-      )}
+      {items}
     </div>
   )
 }

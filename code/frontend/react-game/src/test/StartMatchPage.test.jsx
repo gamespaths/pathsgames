@@ -78,7 +78,7 @@ const startLocks = () => document.querySelectorAll('.gc-footer__cards-buttons[ti
 function clickStart() {
   fireEvent.click(startButtons()[0])
 }
-/** The lock label of the phase card at `index` (0 = story, then creating/joining/running/created), desktop copy. */
+/** The lock label of the phase card at `index` (0 = story, 1-2 = statistics, then creating/joining/running), desktop copy. */
 function phaseLabel(index) {
   return document.querySelectorAll('.pg-card--phase .gc-footer__cards-buttons')[index].textContent
 }
@@ -142,13 +142,16 @@ describe('StartMatchPage', () => {
     await act(async () => { clickStart() })
     expect(startButtons().length).toBe(0)
     expect(screen.queryAllByRole('button', { name: 'card.info' }).length).toBe(0)
-    expect(document.querySelectorAll('.pg-card--phase').length).toBe(10) // 5 cards, desktop + mobile
-    expect(phaseLabel(0)).toContain('startMatch.phaseStarting')
-    expect(document.querySelector('.pg-card--phase .fa-check')).not.toBeNull()
-    expect(phaseLabel(1)).toBe('startMatch.phaseInProgress (3)')
+    expect(document.querySelectorAll('.pg-card--phase').length).toBe(12) // 6 cards, desktop + mobile
+    // story + the two statistics cards: checked under the same "starting" lock
+    for (const i of [0, 1, 2]) expect(phaseLabel(i)).toContain('startMatch.phaseStarting')
+    expect(document.querySelectorAll('.pg-card--phase-complete').length).toBe(6)
+    expect(phaseLabel(3)).toBe('startMatch.phaseInProgress (3)')
     expect(document.querySelector('.pg-card--phase-inProgress .fa-spinner')).not.toBeNull()
-    expect(phaseLabel(2)).toBe('startMatch.phasePending')
     expect(phaseLabel(4)).toBe('startMatch.phasePending')
+    expect(phaseLabel(5)).toBe('startMatch.phasePending')
+    // no "Loading" card any more: the created step has no API call
+    expect(screen.queryAllByText('startMatch.phaseTitle.created')).toHaveLength(0)
     expect(screen.getAllByText('startMatch.phaseTitle.creating').length).toBeGreaterThan(0)
   })
 
@@ -179,8 +182,8 @@ describe('StartMatchPage', () => {
     renderPage({ story: STORY, config: CONFIG })
     clickStart()
 
-    // starting(3) → create → creating(3) → join → joining(3) → start → running(3) → created
-    await act(async () => { await vi.advanceTimersByTimeAsync(12000) })
+    // starting(3) → create → creating(3) → join → joining(3) → start → running (1 s left)
+    await act(async () => { await vi.advanceTimersByTimeAsync(11000) })
 
     expect(createMatch).toHaveBeenCalledTimes(1)
     const [payload, token] = createMatch.mock.calls[0]
@@ -202,11 +205,10 @@ describe('StartMatchPage', () => {
     // After join the match is started (CREATED → RUNNING) so gameplay is accepted.
     expect(startMatch).toHaveBeenCalledTimes(1)
     expect(startMatch).toHaveBeenCalledWith('m1', 'tok-1')
-    // creating / joining / running are done, the created card spins through its countdown.
-    expect(phaseLabel(1)).toBe('startMatch.phaseComplete')
-    expect(phaseLabel(2)).toBe('startMatch.phaseComplete')
+    // creating / joining are done, running spins through its last second.
     expect(phaseLabel(3)).toBe('startMatch.phaseComplete')
-    expect(phaseLabel(4)).toBe('startMatch.phaseInProgress (3)')
+    expect(phaseLabel(4)).toBe('startMatch.phaseComplete')
+    expect(phaseLabel(5)).toBe('startMatch.phaseInProgress (1)')
   })
 
   it('surfaces an error when the auto-join fails', async () => {
@@ -222,20 +224,19 @@ describe('StartMatchPage', () => {
     expect(screen.getAllByText(/startMatch\.error/).length).toBeGreaterThan(0)
     expect(screen.getAllByText('ALREADY_JOINED').length).toBeGreaterThan(0)
     // The joining card reads "failed" (the error as its tooltip); creating stays done.
-    expect(phaseLabel(1)).toBe('startMatch.phaseComplete')
-    expect(phaseLabel(2)).toBe('startMatch.phaseFailed')
+    expect(phaseLabel(3)).toBe('startMatch.phaseComplete')
+    expect(phaseLabel(4)).toBe('startMatch.phaseFailed')
     expect(document.querySelector('.pg-card--phase-failed .gc-footer__cards-buttons').getAttribute('title')).toBe('ALREADY_JOINED')
-    expect(phaseLabel(3)).toBe('startMatch.phasePending')
+    expect(phaseLabel(5)).toBe('startMatch.phasePending')
   })
 
-  it('jumps to the game page after the created delay', async () => {
+  it('enters the game as soon as the running step is done (no extra created wait)', async () => {
     createMatch.mockResolvedValue({ uuid: 'm1', status: 'CREATED' })
     renderPage({ story: STORY, config: CONFIG })
     clickStart()
 
-    // starting → create → creating → join → joining → start → running → created
+    // starting → create → creating → join → joining → start → running → created → game
     await act(async () => { await vi.advanceTimersByTimeAsync(12000) })
-    await act(async () => { await vi.advanceTimersByTimeAsync(3000) }) // created → game
 
     expect(screen.getByText('game-page')).toBeInTheDocument()
   })
@@ -290,13 +291,13 @@ describe('StartMatchPage', () => {
     // The error state offers Retry only: no Home button any more.
     expect(screen.queryByText('startMatch.home')).not.toBeInTheDocument()
     await act(async () => { fireEvent.click(screen.getAllByText(/startMatch\.retry/)[0]) })
-    // starting → create → creating → join → joining → start → running → created
-    await act(async () => { await vi.advanceTimersByTimeAsync(12000) })
+    // starting → create → creating → join → joining → start → running (1 s left)
+    await act(async () => { await vi.advanceTimersByTimeAsync(11000) })
 
     expect(createMatch).toHaveBeenCalledTimes(2)
     // The retry cleared the failed mark: every phase but the last is done again.
-    expect(phaseLabel(1)).toBe('startMatch.phaseComplete')
-    expect(phaseLabel(4)).toBe('startMatch.phaseInProgress (3)')
+    expect(phaseLabel(3)).toBe('startMatch.phaseComplete')
+    expect(phaseLabel(5)).toBe('startMatch.phaseInProgress (1)')
     expect(document.querySelector('.pg-card--phase-failed')).toBeNull()
   })
 })

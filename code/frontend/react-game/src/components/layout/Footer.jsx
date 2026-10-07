@@ -54,7 +54,7 @@ export default function Footer() {
         </div>
 
         <div className="footer-links-row">
-          <a href="https://github.com/gamespaths/pathsgames" target="_blank" rel="noopener" className="footer-icon-link">
+          <a href="https://github.com/gamespaths/pathsgames" target="_blank" rel="noopener" className="footer-icon-link  d-none d-md-inline-flex ">
             <i className="fab fa-github" /><span>{t('footer.github')}</span>
           </a>
           {/* Step 40 — the Devlog opens the roadmap book (data/roadmap.json). */}

@@ -179,7 +179,7 @@ full content specification; the Step 42 file links to it and does not duplicate 
   `game.endGameCard.description`, `game.endGameComplete`, `game.endGameShort`,
   `game.movement.notNeighbor`. An EN/IT key-parity vitest (or script check) must pass.
 - **Favicon and `robots.txt`** in `public/` (allow all; no sitemap).
-- **Deep link** `?policy=privacy` (also `cookies`, `terms`) opens the matching policy modal on
+- **Deep link** `?policy=privacy` (also `cookies`, `terms`, `roadmap`) opens the matching policy modal on
   load; unknown values are ignored; the parameter is removed from the URL when the modal closes.
   Vitest at > 96% coverage of the new code.
 - **License check per story**: the CC BY-NC-ND 4.0 notice is already shown; verify it appears on
@@ -370,14 +370,53 @@ None.
 **Rollback**: redeploy the previous tag (backend with script (a), website with script (b)).
 Data recovery: restore runbook of §3.2.
 
+## 10. Follow-ups after development (October 7, 2026, still 0.42.0)
+
+**AWS and infra**
+- **Monitoring module**: dashboard, SNS topic + email subscription, 5 alarms and the monthly budget moved from the root
+  template into the nested stack `code/backend/aws/template/monitoring.yaml` (`MonitoringModule`, `Condition: IsPublicStage`).
+  Inner conditions `HasAlarms`, `HasBudget`, `HasBudgetEmail`; the `DashboardUrl` output comes from the module. Every taggable
+  resource carries the 7 project tags (the budget through `ResourceTags`); the dashboard and the SNS subscription cannot be tagged
+  in CloudFormation. Tests: `code/backend/aws/tests/test_step42_template_hardening.py` (45).
+- **Env-key naming**: every AWS/EC2 key of the root `.env` is `AWS_<ENV>_<SERVICE>_<DESC>` (`.env.example` is the reference; see
+  [Environments](../Environments.md)). GitHub secrets are `AWS_ALPHA_S3_BUCKET_WEBSITE` and `AWS_ALPHA_CLOUDFRONT_DISTRIBUTION_ID`;
+  the old repository-level `S3_BUCKET_WEBSITE` / `CLOUDFRONT_DISTRIBUTION_ID` are gone.
+- **Scripts**: `code/website/terraform-aws/tf.sh` became `code/scripts/prod/aws_terraform_deploy.sh <test|production> <cmd>`;
+  new `code/scripts/prod/aws_create_policy_github_actions.sh` (managed policy `paths-games-deployer`, §6.10, README §4);
+  new `code/scripts/test/aws/aws_set_admin_ip.sh [dev|test]`, sharing `admin_ip_set_on_stack` (`code/scripts/lib/admin_ip.sh`)
+  with `code/scripts/alpha/set_admin_ip.sh`.
+- **Domain**: the alpha API is `api-alpha.paths.games` (the V1 beta will be `api-beta.paths.games`); CSP in `production.tfvars` updated.
+
+**react-game**
+- Favicon `public/favicon.svg` (navbar `dice-d20`, gold, rotated 20 degrees, transparent).
+- Card footer `CardCreditsBar`: "TYPE tip story-credit image-credit", no dashes, full labels. A click shows the note in the card's
+  tip area (`TipNote`, one line): "Story by X with CC BY-NC-ND 4.0 license" / "Image by Y with Unsplash license" (licence only when
+  known). A trailing icon opens the link in a new tab; a `?policy=` link of paths.games opens the policy book in place. Helpers in
+  `src/utils/cardCredits.js`; story link = `story.linkCopyright`, else `story.card.linkCopyright`.
+- Terms of Service point 5 (stories CC BY-NC-ND 4.0), new 5.1 source code (GPL v3), new 5.2 Unsplash images; `?policy=` also accepts
+  `roadmap` (`policyKindFromHref`). Roadmap intro mentions the team stories licence; completed versions show a "Completed" badge.
+- EnvBadge short label under 767px; navbar guest name hidden under 550px; story cards pass `entityType="story"` (STORY type + tip) in
+  start book, game left page, end game and guest modal.
+- Home `TutorialButton` ("Play"/"Resume the tutorial"): same click as the first tutorial story's card; hidden once the match is
+  finished, disabled with a spinner while matches load.
+- `StartMatchFlow`: story + two statistics cards + one card per API phase (creating, joining, running); the "Loading" card is gone,
+  the game opens right after the running step.
+- Catalog order follows the backend priority, highest first (`tutorial_story.json` 1 before Adventure 0).
+
+**react-admin**: Matches page drops the Mode and XP Cost columns and gains a User column (`guest_` + first 8 chars of `userCreatorUuid`,
+full UUID as title); the text filter also matches it.
+
+**Robot**: `41_alpha_prep/match_export_import.robot` uses `map(lambda i, m=$ITEMS: ...)` instead of a generator expression, fixing
+"variable '$ITEMS' is used in a scope where it cannot be seen" once the golden fixtures had a non-empty inventory.
+
 # Version Control
 - **Document Version**: 0.42.0
 
   | Version | Description | Date |
   |---------|-------------|------|
-  | 0.42.0 | Alpha launch analysed, all doubts closed; developed | October 6, 2026 |
+  | 0.42.0 | Alpha launch analysed, all doubts closed; developed; follow-ups added | October 6, 2026 |
 
-- **Last Updated**: October 6, 2026 (v0.42.0)
+- **Last Updated**: October 7, 2026 (v0.42.0)
 - **Status**: developed; owner launch steps pending
 
 # &lt; Paths Games /&gt;

@@ -92,7 +92,7 @@ export default function GuestUserModal() {
           statItemsToPageContent={selected.stats} hidePreview />
       : <Card variant="page"
           card={previewInfo.card ?? { title: story?.title ?? t('matches.unknownStory'), description: previewInfo.statusLabel }}
-          story={story}
+          story={story} entityType="story"
           loading={false}
           onClose={closePreview}
         ></Card>

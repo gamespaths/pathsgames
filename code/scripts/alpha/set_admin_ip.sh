@@ -27,36 +27,4 @@ done
 if [ -z "$IP" ]; then
 	IP="$(admin_ip_detect)"
 fi
-if ! [[ "$IP" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]]; then
-	echo "Error: no valid public IPv4 (detected or --ip): '$IP'." >&2
-	exit 1
-fi
-
-# The authorizer compares plain addresses, so the /32 host is written as the bare IP.
-echo "Stack $STACK ($REGION): admin allow-list -> $IP/32 (replaces the previous list)."
-if [ "$DRY_RUN" = "true" ]; then
-	echo "Dry run: aws cloudformation update-stack --stack-name $STACK --use-previous-template" \
-		"--capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --parameters <every other key>,UsePreviousValue=true" \
-		"ParameterKey=AdminIpWhitelist,ParameterValue=$IP"
-	exit 0
-fi
-
-PARAMS=()
-for key in $(aws cloudformation describe-stacks --region "$REGION" --stack-name "$STACK" \
-	--query 'Stacks[0].Parameters[].ParameterKey' --output text); do
-	if [ "$key" != "AdminIpWhitelist" ]; then PARAMS+=("ParameterKey=$key,UsePreviousValue=true"); fi
-done
-PARAMS+=("ParameterKey=AdminIpWhitelist,ParameterValue=$IP")
-
-_OUT="$(aws cloudformation update-stack --region "$REGION" --stack-name "$STACK" --use-previous-template \
-	--capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --parameters "${PARAMS[@]}" 2>&1)" || {
-	if printf '%s' "$_OUT" | grep -q "No updates are to be performed"; then
-		echo "Nothing to update: the allow-list already is $IP."
-		exit 0
-	fi
-	echo "$_OUT" >&2
-	exit 1
-}
-echo "Waiting for stack-update-complete..."
-aws cloudformation wait stack-update-complete --region "$REGION" --stack-name "$STACK"
-echo "Admin API open for $IP/32 only (the authorizer has no cache: effective now)."
+admin_ip_set_on_stack "$STACK" "$REGION" "$IP" "$DRY_RUN"

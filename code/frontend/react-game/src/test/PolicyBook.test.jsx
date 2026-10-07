@@ -68,7 +68,7 @@ describe('PolicyBook', () => {
 
   it.each([
     ['privacy', 'home-privacy-policy', 11],
-    ['terms', 'home-terms-conditions', 12],
+    ['terms', 'home-terms-conditions', 14],
     ['cookies', 'home-cookies-policy', 6],
   ])('%s: same title on both pages and every section', (kind, imgId, sections) => {
     const { container } = renderBook(kind)

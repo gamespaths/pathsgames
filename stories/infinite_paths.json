@@ -1,5 +1,5 @@
 {
-  "author": "Paths.games",
+  "author": "Paths.Games",
   "card": {
     "cardType": "story",
     "copyrightText": "Curated Lifestyle",
@@ -782,12 +782,14 @@
       "uuid": "eeaa3e25-8749-4ef1-9fff-c56e72c08dea"
     },
     {
-      "costEnery": 1,
+      "costCoin": 1,
+      "costEnery": "",
       "id": 7,
       "idCard": 28,
       "idSpecificLocation": 2,
       "idTextDescription": 74,
       "idTextName": 73,
+      "id_card": 28,
       "type": "NORMAL",
       "uuid": "4f784bae-44f2-4192-ad1f-c05cafb1758a"
     }
@@ -851,7 +853,7 @@
       "visibility": "HIDDEN"
     }
   ],
-  "linkCopyright": "paths.games",
+  "linkCopyright": "https://paths.games/?policy=roadmap",
   "locationCount": 2,
   "locationNeighbors": [
     {
@@ -908,7 +910,7 @@
   "missionSteps": [],
   "missions": [],
   "peghi": 0,
-  "priority": 0,
+  "priority": 4,
   "texts": [
     {
       "id": 1,

@@ -103,7 +103,9 @@ describe('CardCreditsBar and TipNote', () => {
       tip={{ label: 'tip', onOpen }} />)
     fireEvent.click(screen.getByText('tip'))
     expect(onOpen).toHaveBeenCalled()
+    // TYPE and tip, no separators, no credit entries
     expect(screen.queryByText('-')).toBeNull()
+    expect(screen.queryByTestId('credit-story')).toBeNull()
   })
 
   it('still renders nothing with no author, no credit and no tip', () => {
@@ -134,6 +136,14 @@ describe('EnvBadge', () => {
     tr.dict = { 'envBadge.dev': 'Locale' }
     rerender(<EnvBadge code="DEV" />)
     expect(screen.getByTestId('env-badge').textContent).toBe('Locale')
+  })
+
+  it('Step 42 — full label for desktop and short label for mobile, both in the badge', () => {
+    tr.dict = { 'envBadge.dev': 'Local version', 'envBadge.short.dev': 'Local' }
+    render(<EnvBadge code="dev" />)
+    const badge = screen.getByTestId('env-badge')
+    expect(badge.querySelector('.env-badge__full').textContent).toBe('Local version')
+    expect(badge.querySelector('.env-badge__short').textContent).toBe('Local')
   })
 
   it('shows an unknown code upper-cased, and nothing when empty or prod', () => {

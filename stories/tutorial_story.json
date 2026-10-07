@@ -1,9 +1,9 @@
 {
-  "author": "Paths Games Team",
+  "author": "Paths.Games",
   "card": {
     "awesomeIcon": "fas fa-chess-rook",
     "copyrightText": "Lili Popper on Unsplash",
-    "description": "Welcome to the Paths.games single-player tutorial. <br /><br /> This short adventure is designed to teach you the core mechanics of Paths Games while you explore a cursed fortress rising from the mist. <br />You will learn how to manage your Energy, navigate between adjacent locations, and use your character's Traits and Stats to overcome narrative challenges.",
+    "description": "Welcome to the Paths.games single-player tutorial. <br /> This short adventure is designed to teach you the core mechanics of Paths Games. <br />\n<br />\nYou will learn how to manage your Energy, navigate between adjacent locations, and use your character's Traits and Stats to overcome narrative challenges.",
     "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM",
     "title": "Paths Tutorial",
     "urlImage": "https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?auto=format&fit=crop&w=1400&q=80",
@@ -1318,11 +1318,9 @@
     },
     {
       "id": 153,
-      "idCard": 153,
       "idCreator": 1,
       "idTextCopyright": 449,
       "idTextDescription": 448,
-      "idTextName": 447,
       "idTextTitle": 447,
       "linkCopyright": "https://unsplash.com/photos/gold-round-coin-on-brown-wooden-table-tTHcfeHoznY",
       "urlImage": "https://images.unsplash.com/photo-1616958396245-1bd867b6dbe4?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -2020,7 +2018,7 @@
       "weight": 0
     }
   ],
-  "eventCount": 27,
+  "eventCount": 28,
   "eventEffects": [
     {
       "id": 1,
@@ -2876,6 +2874,14 @@
       "uuid": "8f5fcab2-289d-4bc8-9d9c-ef8dfd00520e"
     },
     {
+      "card": {
+        "copyrightText": "Jakob Rosen",
+        "description": "A sudden metallic glint among the cobblestones catches your eye amidst the gloom. Rolling it between your fingers, you wonder whose hands held this currency before it was lost to the road.<br />\n<br />\nYou found 1 Coin. Random world events like this can trigger at any moment during your journey.",
+        "linkCopyright": "https://unsplash.com/photos/gold-round-coin-on-brown-wooden-table-tTHcfeHoznY",
+        "title": "A Fortunate Find",
+        "urlImage": "https://images.unsplash.com/photo-1616958396245-1bd867b6dbe4?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "uuid": "74a10032-4ebb-45b1-b9b0-1ac3ea687eb5"
+      },
       "costEnery": 0,
       "id": 28,
       "idCard": 153,
@@ -3089,7 +3095,7 @@
       "visibility": "HIDDEN"
     }
   ],
-  "linkCopyright": "https://paths.games",
+  "linkCopyright": "https://paths.games/?policy=roadmap",
   "locationCount": 17,
   "locationNeighbors": [
     {
@@ -3895,7 +3901,7 @@
     }
   ],
   "peghi": 3,
-  "priority": 1,
+  "priority": 3,
   "texts": [
     {
       "id": 1,
@@ -3919,8 +3925,8 @@
       "id": 3,
       "idText": 3,
       "lang": "en",
-      "longText": "Paths Games Team",
-      "shortText": "Paths Games Team",
+      "longText": "Paths.Games",
+      "shortText": "Paths.Games",
       "uuid": "0ab33d5c-b11c-492b-b8e8-987e8f98ecee"
     },
     {
@@ -3945,8 +3951,8 @@
       "idText": 6,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Welcome to the Paths.games single-player tutorial. <br /><br /> This short adventure is designed to teach you the core mechanics of Paths Games while you explore a cursed fortress rising from the mist. <br />You will learn how to manage your Energy, navigate between adjacent locations, and use your character's Traits and Stats to overcome narrative challenges.",
-      "shortText": "Welcome to the Paths.games single-player tutorial. <br /><br /> This short adventure is designed to teach you the core mechanics of Paths Games while you explore a cursed fortress rising from the mist. <br />You will learn how to manage your Energy, navigate between adjacent locations, and use your character's Traits and Stats to overcome narrative challenges.",
+      "longText": "Welcome to the Paths.games single-player tutorial. <br /> This short adventure is designed to teach you the core mechanics of Paths Games. <br />\n<br />\nYou will learn how to manage your Energy, navigate between adjacent locations, and use your character's Traits and Stats to overcome narrative challenges.",
+      "shortText": "Welcome to the Paths.games single-player tutorial. <br /> This short adventure is designed to teach you the core mechanics of Paths Games. <br />\n<br />\nYou will learn how to manage your Energy, navigate between adjacent locations, and use your character's Traits and Stats to overcome narrative challenges.",
       "uuid": "e5113cb2-0d4e-4bac-816d-289d214e07b9"
     },
     {
@@ -4213,8 +4219,8 @@
       "idText": 38,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "A smooth path for those who wish to explore the story without too much struggle. <br />You will recover 4 energy points every time you rest.",
-      "shortText": "A smooth path for those who wish to explore the story without too much struggle. <br />You will recover 4 energy points every time you rest.",
+      "longText": "A smooth path for those who wish to explore the story without too much struggle. You will recover 16 energy points every time you rest.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "A smooth path for those who wish to explore the story without too much struggle. You will recover 16 energy points every time you rest.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "d13e01a2-365b-4772-8cab-c2db25e9f01a"
     },
     {
@@ -4241,8 +4247,8 @@
       "idText": 41,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "The classic challenge for every adventurer, where every resource counts and danger is real. <br />You will recover 3 energy points every time you rest.",
-      "shortText": "The classic challenge for every adventurer, where every resource counts and danger is real. <br />You will recover 3 energy points every time you rest.",
+      "longText": "The classic challenge for every adventurer, where every resource counts and danger is real. You will recover 12 energy points every time you rest.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "The classic challenge for every adventurer, where every resource counts and danger is real. You will recover 12 energy points every time you rest.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "7462ab83-f33b-473d-9443-0f8823f336af"
     },
     {
@@ -4267,8 +4273,8 @@
       "idText": 44,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "A rugged path that will severely test your determination and skills. <br />You will recover 2 energy points every time you rest.",
-      "shortText": "A rugged path that will severely test your determination and skills. <br />You will recover 2 energy points every time you rest.",
+      "longText": "A rugged path that will severely test your determination and skills. You will recover 8 energy points every time you rest.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "A rugged path that will severely test your determination and skills. You will recover 8 energy points every time you rest.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "90edd528-2671-4eee-9133-e10ea678da85"
     },
     {
@@ -4295,8 +4301,8 @@
       "idText": 47,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Only true heroes or fools dare to challenge such an adverse fate. <br />You will recover only 1 energy point every time you rest.",
-      "shortText": "Only true heroes or fools dare to challenge such an adverse fate. <br />You will recover only 1 energy point every time you rest.",
+      "longText": "Only true heroes or fools dare to challenge such an adverse fate. You will recover only 4 energy point every time you rest.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "Only true heroes or fools dare to challenge such an adverse fate. You will recover only 4 energy point every time you rest.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "c22e3a90-2c2b-499b-8013-9882402ae124"
     },
     {
@@ -5015,8 +5021,8 @@
       "idText": 6,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Il tuo cammino inizia qui.\" <br /><br /> Questa breve avventura è pensata per insegnarti le meccaniche principali di Paths Games mentre esplori una fortezza maledetta che sorge dalla nebbia <br /> Imparerai a gestire la tua Energia, a navigare tra i luoghi adiacenti e a usare i Tratti e le Statistiche del tuo personaggio per superare le sfide narrative.",
-      "shortText": "Il tuo cammino inizia qui.\" <br /><br /> Questa breve avventura è pensata per insegnarti le meccaniche principali di Paths Games mentre esplori una fortezza maledetta che sorge dalla nebbia <br /> Imparerai a gestire la tua Energia, a navigare tra i luoghi adiacenti e a usare i Tratti e le Statistiche del tuo personaggio per superare le sfide narrative.",
+      "longText": "Il tuo cammino inizia qui.\" <br /><br /> Questa breve avventura è pensata per insegnarti le meccaniche principali di Paths Games.<br />\n<br />\nImparerai a gestire la tua Energia, a navigare tra i luoghi adiacenti e a usare i Tratti e le Statistiche del tuo personaggio per superare le sfide narrative.",
+      "shortText": "Il tuo cammino inizia qui.\" <br /><br /> Questa breve avventura è pensata per insegnarti le meccaniche principali di Paths Games.<br />\n<br />\nImparerai a gestire la tua Energia, a navigare tra i luoghi adiacenti e a usare i Tratti e le Statistiche del tuo personaggio per superare le sfide narrative.",
       "uuid": "4597694d-920b-4cb2-992f-cff6280ec86c"
     },
     {
@@ -5095,8 +5101,8 @@
       "idText": 114,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "An armored warrior focusing on defense and physical vigor. The party's shield against any threat. <br /><br />Tip: check the stats on this card that will influence the gameplay; you can analyze other classes using the (i) button and select them with specif buttons.",
-      "shortText": "An armored warrior focusing on defense and physical vigor. The party's shield against any threat. <br /><br />Tip: check the stats on this card that will influence the gameplay; you can analyze other classes using the (i) button and select them with specif buttons.",
+      "longText": "An armored warrior focusing on defense and physical vigor. The party's shield against any threat. <br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "An armored warrior focusing on defense and physical vigor. The party's shield against any threat. <br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "01f189b7-7def-40ab-a234-7529560e3d7b"
     },
     {
@@ -5105,8 +5111,8 @@
       "idText": 114,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Guerriero corazzato che punta sulla difesa e sul vigore fisico. <br />\n<br />\nSuggerimento: osserva le statistiche che influenzeranno il gioco, puoi analizzare altre classi con il bottone (i) e selezionarle.",
-      "shortText": "Guerriero corazzato che punta sulla difesa e sul vigore fisico. <br />\n<br />\nSuggerimento: osserva le statistiche che influenzeranno il gioco, puoi analizzare altre classi con il bottone (i) e selezionarle.",
+      "longText": "Guerriero corazzato che punta sulla difesa e sul vigore fisico. ",
+      "shortText": "Guerriero corazzato che punta sulla difesa e sul vigore fisico. ",
       "uuid": "b2699a40-e7d0-434f-8f75-5e407496d446"
     },
     {
@@ -5115,8 +5121,8 @@
       "idText": 115,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "A sharpshooter combining agility and lethal precision. Strikes enemies before they can even get close. <br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.\n",
-      "shortText": "A sharpshooter combining agility and lethal precision. Strikes enemies before they can even get close. <br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.\n",
+      "longText": "A sharpshooter combining agility and lethal precision. Strikes enemies before they can even get close. <br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "A sharpshooter combining agility and lethal precision. Strikes enemies before they can even get close. <br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "19b6b5bf-3c44-42d6-b945-ae7099ba7790"
     },
     {
@@ -5135,8 +5141,8 @@
       "idText": 116,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Master of the arcane arts, capable of casting devastating spells. Their intelligence is their sharpest weapon. <br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
-      "shortText": "Master of the arcane arts, capable of casting devastating spells. Their intelligence is their sharpest weapon. <br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
+      "longText": "Master of the arcane arts, capable of casting devastating spells. Their intelligence is their sharpest weapon. <br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "Master of the arcane arts, capable of casting devastating spells. Their intelligence is their sharpest weapon. <br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "6b80ccd4-25d2-412e-8efa-feb917be3530"
     },
     {
@@ -5155,8 +5161,8 @@
       "idText": 117,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "specializzato nel colpire nell'ombra e superare ostacoli con l'ingegno.\nA master of stealth and speed, specialized in striking from the shadows and overcoming obstacles with wit. <br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
-      "shortText": "specializzato nel colpire nell'ombra e superare ostacoli con l'ingegno.\nA master of stealth and speed, specialized in striking from the shadows and overcoming obstacles with wit. <br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
+      "longText": "A master of stealth and speed, specialized in striking from the shadows and overcoming obstacles with wit. <br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "A master of stealth and speed, specialized in striking from the shadows and overcoming obstacles with wit. <br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "86fc8a3f-76a1-4396-8b00-bb15bf1536c1"
     },
     {
@@ -5175,8 +5181,8 @@
       "idText": 118,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "A holy champion combining martial strength and unwavering faith. Protects the weak with blessings and steel. <br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
-      "shortText": "A holy champion combining martial strength and unwavering faith. Protects the weak with blessings and steel. <br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
+      "longText": "A holy champion combining martial strength and unwavering faith. Protects the weak with blessings and steel. <br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "A holy champion combining martial strength and unwavering faith. Protects the weak with blessings and steel. <br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "7cea56d9-bda9-44b9-b54f-851771d70ce5"
     },
     {
@@ -5195,8 +5201,8 @@
       "idText": 119,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "A traveler using music and stories to inspire companions. Their voice can heal wounds or confuse minds. <br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
-      "shortText": "A traveler using music and stories to inspire companions. Their voice can heal wounds or confuse minds. <br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
+      "longText": "A traveler using music and stories to inspire companions. Their voice can heal wounds or confuse minds. <br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "A traveler using music and stories to inspire companions. Their voice can heal wounds or confuse minds. <br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "2de1e467-3c62-45e3-ba2f-32aa136a9880"
     },
     {
@@ -5215,8 +5221,8 @@
       "idText": 120,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "A trained veteran in melee combat, master of weapons and shields, capable of withstanding the toughest trials.<br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
-      "shortText": "A trained veteran in melee combat, master of weapons and shields, capable of withstanding the toughest trials.<br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
+      "longText": "A trained veteran in melee combat, master of weapons and shields, capable of withstanding the toughest trials.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "A trained veteran in melee combat, master of weapons and shields, capable of withstanding the toughest trials.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "42f93f0c-9fad-4706-a5c9-6322dbef406c"
     },
     {
@@ -5235,8 +5241,8 @@
       "idText": 121,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "An agile woodland creature using keen senses and natural grace to move unseen among the trees.<br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
-      "shortText": "An agile woodland creature using keen senses and natural grace to move unseen among the trees.<br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
+      "longText": "An agile woodland creature using keen senses and natural grace to move unseen among the trees.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "An agile woodland creature using keen senses and natural grace to move unseen among the trees.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "e0ad7c25-7f8c-4c5d-82ef-faa95efea9da"
     },
     {
@@ -5255,8 +5261,8 @@
       "idText": 122,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Tough and resilient as rock, an untiring warrior who never backs down in the face of danger.<br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
-      "shortText": "Tough and resilient as rock, an untiring warrior who never backs down in the face of danger.<br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
+      "longText": "Tough and resilient as rock, an untiring warrior who never backs down in the face of danger.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "Tough and resilient as rock, an untiring warrior who never backs down in the face of danger.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "35dcc656-780f-4209-bc71-79353454c3eb"
     },
     {
@@ -5275,8 +5281,8 @@
       "idText": 123,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "A mass of raw brute strength and wild instinct, dominating the battlefield with sheer ferocity.<br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
-      "shortText": "A mass of raw brute strength and wild instinct, dominating the battlefield with sheer ferocity.<br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
+      "longText": "A mass of raw brute strength and wild instinct, dominating the battlefield with sheer ferocity.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "A mass of raw brute strength and wild instinct, dominating the battlefield with sheer ferocity.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "3e1b2490-e201-4d45-b24c-78d89e45e11f"
     },
     {
@@ -5295,8 +5301,8 @@
       "idText": 124,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Nimble and resourceful, relying on legendary luck to overcome obstacles and adversity.<br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
-      "shortText": "Nimble and resourceful, relying on legendary luck to overcome obstacles and adversity.<br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
+      "longText": "Nimble and resourceful, relying on legendary luck to overcome obstacles and adversity.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "Nimble and resourceful, relying on legendary luck to overcome obstacles and adversity.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "ca1af737-2bcb-49a9-b359-e8e7eb21d679"
     },
     {
@@ -5315,8 +5321,8 @@
       "idText": 125,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "A scholar manipulating the arcane threads, capable of bending reality to their will with the power of the mind.<br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
-      "shortText": "A scholar manipulating the arcane threads, capable of bending reality to their will with the power of the mind.<br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
+      "longText": "A scholar manipulating the arcane threads, capable of bending reality to their will with the power of the mind.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "A scholar manipulating the arcane threads, capable of bending reality to their will with the power of the mind.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "5bf78e49-f499-4009-b049-3868cd44995b"
     },
     {
@@ -5335,8 +5341,8 @@
       "idText": 126,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Unwavering courage that fears no danger. An iron will that inspires steadiness even in the most desperate situations.",
-      "shortText": "Unwavering courage that fears no danger. An iron will that inspires steadiness even in the most desperate situations.",
+      "longText": "Unwavering courage that fears no danger. An iron will that inspires steadiness even in the most desperate situations.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "Unwavering courage that fears no danger. An iron will that inspires steadiness even in the most desperate situations.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "1893a031-e39f-4591-8638-4019c4720ce5"
     },
     {
@@ -5355,8 +5361,8 @@
       "idText": 127,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "An agile mind and quick reflexes. The ability to turn every situation to your advantage with wit and speed.",
-      "shortText": "An agile mind and quick reflexes. The ability to turn every situation to your advantage with wit and speed.",
+      "longText": "An agile mind and quick reflexes. The ability to turn every situation to your advantage with wit and speed.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "An agile mind and quick reflexes. The ability to turn every situation to your advantage with wit and speed.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "c8ae5b40-d3d8-48cc-b37b-76188c35c2c2"
     },
     {
@@ -5375,8 +5381,8 @@
       "idText": 128,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Marked by a dark fate, this burden weighs on the soul but can awaken latent powers at a terrible price.",
-      "shortText": "Marked by a dark fate, this burden weighs on the soul but can awaken latent powers at a terrible price.",
+      "longText": "Marked by a dark fate, this burden weighs on the soul but can awaken latent powers at a terrible price.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "Marked by a dark fate, this burden weighs on the soul but can awaken latent powers at a terrible price.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "6ca77bd5-bbac-475e-ac91-1d053b010fb9"
     },
     {
@@ -5415,8 +5421,8 @@
       "idText": 129,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Touched by divine grace, you walk under a protective light that mitigates adversity and instills hope.",
-      "shortText": "Touched by divine grace, you walk under a protective light that mitigates adversity and instills hope.",
+      "longText": "Touched by divine grace, you walk under a protective light that mitigates adversity and instills hope.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "Touched by divine grace, you walk under a protective light that mitigates adversity and instills hope.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "3f93d309-3280-4838-8651-9fa2f7f9a496"
     },
     {
@@ -5435,8 +5441,8 @@
       "idText": 130,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Survival above all else. The readiness to flee allows you to avoid blows that would strike down the boldest.",
-      "shortText": "Survival above all else. The readiness to flee allows you to avoid blows that would strike down the boldest.",
+      "longText": "Survival above all else. The readiness to flee allows you to avoid blows that would strike down the boldest.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "Survival above all else. The readiness to flee allows you to avoid blows that would strike down the boldest.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "bc5dc32d-bd0d-4706-b2d7-e1b4abce83c5"
     },
     {
@@ -5455,8 +5461,8 @@
       "idText": 131,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "The blood of a forgotten era flows through your veins, awakening lost knowledge and legendary resilience.",
-      "shortText": "The blood of a forgotten era flows through your veins, awakening lost knowledge and legendary resilience.",
+      "longText": "The blood of a forgotten era flows through your veins, awakening lost knowledge and legendary resilience.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "The blood of a forgotten era flows through your veins, awakening lost knowledge and legendary resilience.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "cbf05aa9-fb47-4e82-a63a-9e626dbd3d18"
     },
     {
@@ -5465,8 +5471,8 @@
       "idText": 131,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Il sangue di un'epoca dimenticata scorre nelle vene, risvegliando conoscenze perdute e una tempra leggendaria\n",
-      "shortText": "Il sangue di un'epoca dimenticata scorre nelle vene, risvegliando conoscenze perdute e una tempra leggendaria\n",
+      "longText": "Il sangue di un'epoca dimenticata scorre nelle vene, risvegliando conoscenze perdute e una tempra leggendaria<br />\n",
+      "shortText": "Il sangue di un'epoca dimenticata scorre nelle vene, risvegliando conoscenze perdute e una tempra leggendaria<br />\n",
       "uuid": "051085e8-54fd-4589-aa62-1e522676b9ad"
     },
     {
@@ -5475,8 +5481,8 @@
       "idText": 38,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Un cammino agevole per chi desidera esplorare la storia senza troppi affanni. <br />Recupererai 4 punti energia ogni volta che riposerai.",
-      "shortText": "Un cammino agevole per chi desidera esplorare la storia senza troppi affanni. <br />Recupererai 4 punti energia ogni volta che riposerai.",
+      "longText": "Un cammino agevole per chi desidera esplorare la storia senza troppi affanni. <br />Recupererai 16 punti energia ogni volta che riposerai.",
+      "shortText": "Un cammino agevole per chi desidera esplorare la storia senza troppi affanni. <br />Recupererai 16 punti energia ogni volta che riposerai.",
       "uuid": "3193be89-545c-477d-82f8-cb5cc1713aa9"
     },
     {
@@ -5485,8 +5491,8 @@
       "idText": 41,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "La sfida classica per ogni avventuriero, dove ogni risorsa conta e il pericolo è reale. <br />Recupererai 3 punti energia ogni volta che riposerai.",
-      "shortText": "La sfida classica per ogni avventuriero, dove ogni risorsa conta e il pericolo è reale. <br />Recupererai 3 punti energia ogni volta che riposerai.",
+      "longText": "La sfida classica per ogni avventuriero, dove ogni risorsa conta e il pericolo è reale. <br />Recupererai 12 punti energia ogni volta che riposerai.",
+      "shortText": "La sfida classica per ogni avventuriero, dove ogni risorsa conta e il pericolo è reale. <br />Recupererai 12 punti energia ogni volta che riposerai.",
       "uuid": "f1b5a822-4389-4484-9f23-ace4d9d09d9d"
     },
     {
@@ -5495,8 +5501,8 @@
       "idText": 44,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Un sentiero impervio che metterà a dura prova la tua determinazione e le tue abilità. <br />Recupererai 2 punti energia ogni volta che riposerai.",
-      "shortText": "Un sentiero impervio che metterà a dura prova la tua determinazione e le tue abilità. <br />Recupererai 2 punti energia ogni volta che riposerai.",
+      "longText": "Un sentiero impervio che metterà a dura prova la tua determinazione e le tue abilità. <br />Recupererai 8 punti energia ogni volta che riposerai.",
+      "shortText": "Un sentiero impervio che metterà a dura prova la tua determinazione e le tue abilità. <br />Recupererai 8 punti energia ogni volta che riposerai.",
       "uuid": "a7e19a25-2555-4a65-81aa-89274fec3b4a"
     },
     {
@@ -5505,8 +5511,8 @@
       "idText": 47,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Solo i veri eroi o i folli osano sfidare un destino così avverso. <br />Recupererai solo 1 punto energia ogni volta che riposerai.",
-      "shortText": "Solo i veri eroi o i folli osano sfidare un destino così avverso. <br />Recupererai solo 1 punto energia ogni volta che riposerai.",
+      "longText": "Solo i veri eroi o i folli osano sfidare un destino così avverso. <br />Recupererai solo 4 punto energia ogni volta che riposerai.",
+      "shortText": "Solo i veri eroi o i folli osano sfidare un destino così avverso. <br />Recupererai solo 4 punto energia ogni volta che riposerai.",
       "uuid": "ae01db91-3773-40a3-82d4-e6eb65455f5c"
     },
     {
@@ -9325,8 +9331,8 @@
       "idText": 348,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "A creeping numbness spreads swiftly through your veins, clouding your vision and weakening every step. The toxic heat slowly consumes your remaining strength, leaving a constant burn. <br />\n<br />\nThis trait is added during the game and remains until you remove it somehow (find a way); this trait also gives you some debuffs.",
-      "shortText": "A creeping numbness spreads swiftly through your veins, clouding your vision and weakening every step. The toxic heat slowly consumes your remaining strength, leaving a constant burn. <br />\n<br />\nThis trait is added during the game and remains until you remove it somehow (find a way); this trait also gives you some debuffs.",
+      "longText": "This trait is added during the game and remains until you remove it somehow (find a way); this trait also gives you some debuffs.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
+      "shortText": "This trait is added during the game and remains until you remove it somehow (find a way); this trait also gives you some debuffs.<br />\n<br />\nTutorial Note: the data and numbers displayed in this adventure are provided for example purposes.",
       "uuid": "2cd2005a-0259-47e7-a3c8-ad64c5be514a"
     },
     {
@@ -11274,7 +11280,7 @@
       "hideOnStartMatch": true,
       "id": 7,
       "idCard": 117,
-      "idTextDescription": 339,
+      "idTextDescription": 348,
       "idTextName": 339,
       "intelligence": 0,
       "life": -1,

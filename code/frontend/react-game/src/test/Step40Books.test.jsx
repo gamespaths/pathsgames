@@ -4,6 +4,7 @@ import { LanguageProvider } from '../i18n/context'
 import { PolicyBookProvider, usePolicyBook } from '../context/PolicyBookContext'
 import PolicyBook, { REPO_URL } from '../components/modals/PolicyBook'
 import Footer from '../components/layout/Footer'
+import roadmap from '../data/roadmap.json'
 import en from '../i18n/en.json'
 import itDict from '../i18n/it.json'
 
@@ -35,11 +36,22 @@ describe('roadmap book', () => {
     const repo = intro.querySelector(`a[href="${REPO_URL}"]`)
     expect(repo.textContent).toContain(en.modals.roadmap.introRepo)
     expect(repo.querySelector('i.fa-github')).toBeTruthy()
-    // Two <br /> pairs, so the three sentences read as three paragraphs: no leftover markup.
-    expect(intro.querySelectorAll('br')).toHaveLength(4)
+    // Each <br /> pair of the text becomes two real line breaks: no leftover markup.
+    const pairs = en.modals.roadmap.intro.split('<br /><br />').length - 1
+    expect(intro.querySelectorAll('br')).toHaveLength(pairs * 2)
+    // Step 42 — the team stories' licence links the CC BY-NC-ND 4.0 deed.
+    const licence = intro.querySelector('a[href="https://creativecommons.org/licenses/by-nc-nd/4.0/"]')
+    expect(licence.textContent).toBe('CC BY-NC-ND 4.0')
+    expect(licence.getAttribute('target')).toBe('_blank')
+    expect(intro.textContent).not.toContain('{license}')
     expect(intro.textContent).not.toContain('<br')
     expect(container.querySelectorAll('.book-page-right .roadmap-cards .pg-card').length).toBe(6)
     expect(container.querySelectorAll('.book-page-right [data-testid="roadmap-current"]').length).toBe(1)
+    // Step 42 — each completed version carries the green "completed" badge.
+    const done = container.querySelectorAll('.book-page-right [data-testid="roadmap-completed"]')
+    expect(done.length).toBe(roadmap.filter(e => e.status === 'completed').length)
+    expect(done[0].querySelector('i.fa-check-circle.story-card-status__check')).toBeTruthy()
+    expect(done[0].textContent).toBe(en.modals.roadmap.completed)
     // The credits link swaps this book for the credits one, from inside the intro.
     fireEvent.click(within(left).getByRole('button', { name: en.modals.roadmap.introCredits }))
     expect(seen[seen.length - 1]).toBe('credits')
@@ -54,8 +66,10 @@ describe('roadmap book', () => {
       // The intro carries the two placeholders the links fill.
       expect(d.modals.roadmap.intro).toContain('{repo}')
       expect(d.modals.roadmap.intro).toContain('{credits}')
-      expect(d.modals.roadmap.intro.split('<br /><br />')).toHaveLength(3)
+      expect(d.modals.roadmap.intro).toContain('{license}')
+      expect(d.modals.roadmap.intro.split('<br /><br />').length).toBeGreaterThanOrEqual(3)
       expect(d.modals.roadmap.current).toBeTruthy()
+      expect(d.modals.roadmap.completed).toBeTruthy()
       expect(d.envBadge.dev).toBeTruthy()
       expect(d.matchLog.types.CHOICE).toBeTruthy()
       expect(d.card.tip && d.card.hideTip).toBeTruthy()

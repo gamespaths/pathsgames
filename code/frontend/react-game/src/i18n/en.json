@@ -29,7 +29,9 @@
     "matchesError": "Your matches could not be loaded, so a new adventure cannot be started right now.",
     "storiesError": "The adventures could not be loaded. Check your connection and try again.",
     "footerBlocked": "Blocked",
-    "footerError": "Error"
+    "footerError": "Error",
+    "playTutorial": "Play the tutorial",
+    "resumeTutorial": "Resume the tutorial"
   },
   "antibot": {
     "blocked": "Antibot activated — these adventures are only for humans!",
@@ -237,7 +239,13 @@
     "back": "Back",
     "forward": "Go",
     "tip": "tip",
-    "hideTip": "hide tip"
+    "hideTip": "hide tip",
+    "storyCredit": "story credit",
+    "imageCredit": "image credit",
+    "storyBy": "Story by {name}",
+    "imageBy": "Image by {name}",
+    "withLicense": " with {license} license",
+    "openLink": "open link"
   },
   "game": {
     "currentLocation": "Current Location",
@@ -638,7 +646,11 @@
       "useTitle": "4. Acceptable use",
       "useBody": "You agree not to misuse the service, including by cheating or manipulating game state, attempting unauthorised access, scraping or automated data collection, reverse-engineering beyond what the software licence permits, disrupting the service, or using it for any unlawful purpose.",
       "ipTitle": "5. Intellectual property",
-      "ipBody": "The Paths Games source code is open source under the GNU GPL v3.0. The narrative content and assets — stories, dialogues, characters, artwork, sound and music — are licensed under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 (CC BY-NC-ND 4.0) and remain the property of their authors. You may not use them beyond what those licences allow.",
+      "ipBody": "Unless stated otherwise, the narrative content and assets (stories, dialogues, characters, artwork, sound and music) are licensed under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 (CC BY-NC-ND 4.0) and remain the property of their authors. You may not use them beyond what those licences allow.",
+      "ipCodeTitle": "5.1 Source code",
+      "ipCodeBody": "The Paths Games source code is open source under the GNU GPL v3.0.",
+      "ipUnsplashTitle": "5.2 Unsplash images",
+      "ipUnsplashBody": "Images from the Unsplash website are covered by the Unsplash License, as stated in their links.",
       "disclaimerTitle": "6. Disclaimer of warranties",
       "disclaimerBody": "To the maximum extent permitted by law, the service is provided without warranties of any kind, whether express or implied, including fitness for a particular purpose and availability. As an alpha product it may contain bugs, lose progress or experience downtime.",
       "liabilityTitle": "7. Limitation of liability",
@@ -653,7 +665,7 @@
       "lawBody": "These Terms are governed by applicable European Union and United States law. Where you are a consumer, you also benefit from any mandatory protections of the law of your country or state of residence, which these Terms do not override.",
       "changesTitle": "12. Changes to these Terms",
       "changesBody": "We may update these Terms as the game evolves; the 'last updated' date below indicates the latest version. Continued use after changes means you accept the updated Terms.",
-      "updated": "Last updated: June 2026"
+      "updated": "Last updated: October 2026"
     },
     "cookies": {
       "title": "Cookies Policy",
@@ -676,7 +688,11 @@
     "credits": {
       "title": "Image Credits",
       "body": "Every image used by Paths Games — Unsplash photographs and SVG icons from game-icons.net — is credited below. Click an image card to open the original source on the author's page.",
-      "types": { "story": "Story", "image": "Image", "audio": "Audio" },
+      "types": {
+        "story": "Story",
+        "image": "Image",
+        "audio": "Audio"
+      },
       "openCredit": "Credit"
     },
     "policyBook": {
@@ -700,10 +716,11 @@
     },
     "roadmap": {
       "title": "Devlog",
-      "intro": "The paths.games is an open-source project, all code is available in a {repo}, the code is released under the GNU GPL v3 license.<br /><br />All images, contents and stories are under a specific license, check the {credits}.<br /><br />Above all, it is a project made to have fun: playing, writing and building it together.",
+      "intro": "The paths.games is an open-source project, all code is available in a {repo}, the code is released under the GNU GPL v3 license.<br /><br />All images, contents and stories are under a specific license, check the {credits}. Some stories are written by the Paths.games team and are covered by the {license} license.<br /><br />Above all, it is a project made to have fun: playing, writing and building it together.",
       "introRepo": "GitHub repository",
       "introCredits": "credits page",
       "current": "In progress",
+      "completed": "Completed",
       "button": "Roadmap"
     }
   },
@@ -732,6 +749,12 @@
     "dev": "Local version",
     "test": "Test version",
     "alpha": "Alpha version",
-    "beta": "Beta version"
+    "beta": "Beta version",
+    "short": {
+      "dev": "Local",
+      "test": "Test",
+      "alpha": "Alpha",
+      "beta": "Beta"
+    }
   }
 }

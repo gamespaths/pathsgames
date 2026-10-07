@@ -107,7 +107,7 @@ export default function EndGameBook({ story, endGameCard, onClose, missions = []
     )
   }
 
-  const leftPage = <Card variant="page" card={storyCard} loading={storyCard===undefined} story={story} />
+  const leftPage = <Card variant="page" card={storyCard} loading={storyCard===undefined} story={story} entityType="story" />
   const rightPage = <Card variant="page" card={endGameCard} loading={endGameCard===undefined} story={story} 
     onAction={() => goToHome()} actionLabel={t('game.endGameClose')} actionIcon='fa-home'  entityType="exit"
   />
@@ -117,7 +117,7 @@ export default function EndGameBook({ story, endGameCard, onClose, missions = []
     <div className="book-mobile-layout end-game-mobile">
       {endGameCard && <Card variant="page" card={endGameCard} story={story} entityType="exit" />}
       {closeBtn}
-      {storyCard && <Card variant="page" card={storyCard} story={story} />}            
+      {storyCard && <Card variant="page" card={storyCard} story={story} entityType="story" />}            
     </div>
   )
 

@@ -336,6 +336,10 @@ html, body {
 }
 .nav-user-btn:hover { background: rgba(200,150,10,0.15); }
 
+.nav-user-btn i{
+  font-size: 1.25rem;
+}
+
 /* Guest toast notification */
 .navbar-toast {
   position: fixed;
@@ -489,6 +493,8 @@ html, body {
   font-size: 1.05rem;
   text-shadow: 0 1px 6px rgba(0,0,0,0.7);
 }
+/* Step 42 — "Play the tutorial" above the hero title. */
+.home-tutorial-btn { margin-bottom: 14px; }
 
 /* v0.37.6 — antibot strip over the hero picture, above the title. */
 .home-antibot-strip {
@@ -1166,7 +1172,7 @@ html, body {
 
 .book-page-desc a {
   cursor: pointer;
-  color: var(--color-gold-shine);
+  color: var(--color-gold);
   text-decoration: underline;
   text-decoration-color: rgba(232,184,48,0.35);
 }
@@ -1177,7 +1183,7 @@ html, body {
 /* Step 40 — a link that opens another book (the Devlog intro → credits) reads like the `a` above. */
 .book-page-desc button {
   font: inherit;
-  color: var(--color-gold-shine);
+  color: var(--color-gold);
   background: none;
   border: 0;
   padding: 0;
@@ -2121,6 +2127,14 @@ html, body {
   text-decoration-color: rgba(232,184,48,0.35);
 }
 .gc-credits__link:hover { color: var(--color-gold-shine); text-decoration-color: var(--color-gold); }
+/* Step 42 — no dashes between footer entries: about three spaces wide, two on narrow screens. */
+.gc-credits { --gc-credits-space: 0.85em; column-gap: var(--gc-credits-space); }
+@media (max-width: 1120px) { .gc-credits { --gc-credits-space: 0.55em; } }
+.gc-credits__text > .gc-credits__tip + .gc-credits__tip { margin-left: var(--gc-credits-space); }
+/* Step 42 — a credit note: one line, the text cut with an ellipsis, the link icon always visible. */
+.pg-tip--single { display: flex; align-items: center; }
+.pg-tip--single .pg-tip__text { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pg-tip--single .pg-tip__icon, .pg-tip--single .pg-tip__link { flex-shrink: 0; }
 
 /* base: pg-card + card-big */
 .card-big {
@@ -3360,11 +3374,11 @@ html, body {
   padding: 0 2px;
   font-size: inherit;
   line-height: inherit;
-  color: var(--color-gold-dark);
+  color: var(--color-gold);
   cursor: pointer;
 }
 .pg-tip__hide i { font-size: 0.85em; }
-.pg-tip__hide:hover, .pg-tip__hide:focus-visible { color: var(--color-gold); }
+.pg-tip__hide:hover, .pg-tip__hide:focus-visible { color: var(--color-gold-light); }
 @keyframes pg-tip-fade-in {
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: none; }
@@ -3397,6 +3411,12 @@ html, body {
   cursor: pointer;
 }
 .env-badge__icon { font-size: 0.75em; }
+.env-badge__short { display: none; }
+/* Step 42 — mobile: "Local version" → "Local" (the word "version" goes). */
+@media (max-width: 767px) {
+  .env-badge__full { display: none; }
+  .env-badge__short { display: inline; }
+}
 .env-badge:hover, .env-badge:focus-visible {
   background: rgba(200, 150, 10, 0.32);
   border-color: var(--color-gold-shine);

@@ -32,7 +32,7 @@ The infrastructure is built entirely on managed AWS services:
 ### Tagging
 
 Every taggable resource (table, both HTTP APIs + stages, all 7 Lambdas, all 7 log groups, the
-custom domain, the 6 nested stacks) carries the same seven tags:
+custom domain, the nested stacks) carries the same seven tags. The `monitoring.yaml` module (public stages only) tags its alarms, SNS topic and budget (`ResourceTags`); the dashboard and the SNS subscription cannot be tagged in CloudFormation:
 - `CostCenter` = `Paths.games`
 - `Environment` = `dev` | `test` | `production` (mapped from the `Environment` parameter — the
   parameter keeps `prod`, only the tag says `production`)
@@ -262,6 +262,12 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 ---
 
 ## 📝 Changelog
+
+### v0.42.0 — Alpha launch: monitoring module
+
+- **`template/monitoring.yaml`** (`MonitoringModule` in `template.yaml`, `Condition: IsPublicStage`, so never on `dev`/`test`): CloudWatch dashboard `pathsgames-<env>`, SNS topic + email subscription, 5 alarms, monthly budget. Inner conditions `HasAlarms` (email set), `HasBudget` (`CreateBudget=true`), `HasBudgetEmail`; the root `DashboardUrl` output reads the module. Moved out of the root template.
+- Env keys read by the deploy scripts are named `AWS_<ENV>_<SERVICE>_<DESC>` (see `.env.example`); alpha runbooks and scripts: [code/scripts/alpha/README.md](../../scripts/alpha/README.md).
+- Tests: `tests/test_step42_template_hardening.py` (45).
 
 ### v0.41.6 — Match owner move after import
 

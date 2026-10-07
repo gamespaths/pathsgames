@@ -13,9 +13,9 @@
   .book-mobile-layout .selection-list {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
+  .nav-user-btn__label { display: none; }
 }
 @media (max-width: 1120px) {
-  .credit-author, .credit-credit { display:none;}
   .selection-list {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
@@ -347,9 +347,6 @@
     font-size: 1rem !important;
   }
 
-  .credit-author, .credit-credit{
-    display:none;
-  }
   .card-preview-modal-content{
     width: 100%;
   }

@@ -56,11 +56,10 @@ describe('MatchesPage edge cases', () => {
     renderPage()
 
     expect(await screen.findByText('untitled')).toBeInTheDocument()
-    expect(screen.getByText('Single')).toBeInTheDocument()   // singlePlayer undefined
     const row = screen.getByText('untitled').closest('tr')
     const cells = row.querySelectorAll('td')
+    expect(cells[3]).toHaveTextContent('—')                  // no creator
     expect(cells[5]).toHaveTextContent('0')                  // currentClock
-    expect(cells[6]).toHaveTextContent('0')                  // expCost
   })
 
   it('renders the empty state when the API answers with something that is not an envelope', async () => {

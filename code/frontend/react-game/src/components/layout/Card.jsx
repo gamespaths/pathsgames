@@ -8,6 +8,8 @@ import { useState } from 'react'
 import CardButtons from './CardButtons'
 import TipNote from '../ui/TipNote'
 import { isTutorialStory } from '../../constants/features'
+import { CREDIT_ICONS, creditNotes, creditText } from '../../utils/cardCredits'
+import { usePolicyBook } from '../../context/PolicyBookContext'
 
 /**
  * Card — unified card component (formerly GameCard + GameCardWrapper).
@@ -141,12 +143,21 @@ export default function Card({
   const tipKey = entityType ? `tips.${entityType}` : null
   const tipText = isPage && tipKey ? (() => { const tr = t(tipKey); return tr === tipKey ? null : tr })() : null
   const tipCardKey = `${entityType ?? ''}|${card?.uuid ?? card?.title ?? ''}`
-  const [tipState, setTipState] = useState({ key: tipCardKey, open: null, focus: 0 })
+  const [tipState, setTipState] = useState({ key: tipCardKey, open: null, kind: 'tip', focus: 0 })
   const tipSameCard = tipState.key === tipCardKey
-  const tipOpen = !!tipText && (tipSameCard && tipState.open !== null ? tipState.open : isTutorialStory(story))
-  const openTip = () => setTipState(s => ({ key: tipCardKey, open: true,
+  // Step 42 — the tip area also shows the story / image credit the footer link opened.
+  const { openPolicyBook } = usePolicyBook()
+  const notes = isPage ? creditNotes(card, story, t) : {}
+  const noteKind = tipSameCard ? tipState.kind : 'tip'
+  const credit = noteKind === 'tip' ? null : notes[noteKind]
+  const noteText = noteKind === 'tip' ? tipText : credit?.text
+  const tipOpen = !!noteText && (tipSameCard && tipState.open !== null ? tipState.open : isTutorialStory(story))
+  const openNote = kind => setTipState(s => ({ key: tipCardKey, open: true, kind,
     focus: (s.key === tipCardKey ? s.focus : 0) + 1 }))
-  const hideTip = () => setTipState({ key: tipCardKey, open: false, focus: 0 })
+  const openTip = () => openNote('tip')
+  const hideTip = () => setTipState({ key: tipCardKey, open: false, kind: noteKind, focus: 0 })
+  const noteLink = credit?.url ? { href: credit.url, label: creditText(t, 'card.openLink'),
+    onOpen: credit.policy ? () => openPolicyBook(credit.policy) : null } : null
 
   const cardClasses = isPage? " book-page-content " : [
     'pg-card',
@@ -228,8 +239,9 @@ export default function Card({
         <div className="book-page-desc">
           {positionBonusBadge === 'desc' && bonusBadgeNode}
           <SafeHtml key={card?.uuid ?? card?.title ?? String(pageDesc ?? '')} value={pageDesc} halfBlankLines />
-          {tipOpen && <TipNote text={tipText} hideLabel={t('card.hideTip')} onHide={hideTip}
-            focusKey={tipSameCard ? tipState.focus : 0} />}
+          {tipOpen && <TipNote text={noteText} hideLabel={t('card.hideTip')} onHide={hideTip}
+            focusKey={tipSameCard ? tipState.focus : 0} icon={CREDIT_ICONS[noteKind]} link={noteLink}
+            singleLine={noteKind !== 'tip'} />}
         </div>
       )}
       
@@ -256,7 +268,7 @@ export default function Card({
       {/* The bar decides for itself: it needs an author or an image credit, and a page that
           hides its artwork still credits the story. */}
       {isPage && <CardCreditsBar card={card} story={story} typeBadgeLabel={typeBadgeLabel}
-        tip={tipText ? { label: t('card.tip'), onOpen: openTip } : null} />}
+        tip={tipText ? { label: t('card.tip'), onOpen: openTip } : null} onOpenCredit={openNote} />}
     </div>
   )
 }

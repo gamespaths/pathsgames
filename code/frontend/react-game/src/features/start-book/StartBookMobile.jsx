@@ -60,7 +60,7 @@ export default function StartBookMobile({
       ) : (
         <>
           <div className="book-mobile-hero-card">
-            <Card variant="page" card={activeStory.card} loading={loadingDetail} story={activeStory} />
+            <Card variant="page" card={activeStory.card} loading={loadingDetail} story={activeStory} entityType="story" />
           </div>
 
           {loadingDetail ? (

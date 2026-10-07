@@ -104,18 +104,21 @@ describe('StartMatchFlow — the fixed cards block', () => {
     expect(last.dataset.stats).toBe('life=10,costPositive=1/2')
   })
 
-  // Start swaps the six cards for the phase cards: the story, then creating / joining /
-  // running / created, all locked under their status.
+  // Start swaps the six cards for the phase cards: the story and the two statistics cards
+  // (locked like the story), then creating / joining / running, all locked under their status.
   it('Start on the card swaps the board for the phase cards', () => {
     renderFlow()
     fireEvent.click(screen.getByTestId('action-bonuses'))
     expect(screen.queryByTestId('action-bonuses')).toBeNull()
-    expect(screen.queryAllByTestId('cc-bonuses')).toHaveLength(0)
     const order = Array.from(document.querySelectorAll('[data-testid^="cc-"]')).map(el => el.dataset.testid)
-    expect(order).toEqual(['cc-story', 'cc-phase', 'cc-phase', 'cc-phase', 'cc-phase'])
+    expect(order).toEqual(['cc-story', 'cc-bonuses', 'cc-bonuses', 'cc-phase', 'cc-phase', 'cc-phase'])
     expect(screen.getByTestId('cc-story').dataset.locked).toBe('true')
+    const [first, last] = screen.getAllByTestId('cc-bonuses')
+    expect([first.dataset.locked, last.dataset.locked]).toEqual(['true', 'true'])
+    expect(first.dataset.stats).toBe('weight=4')
+    expect(last.dataset.stats).toBe('life=10,costPositive=1/2')
     expect(screen.getAllByTestId('cc-phase').map(el => el.textContent))
-      .toEqual(['startMatch.phaseTitle.creating', 'startMatch.phaseTitle.joining', 'startMatch.phaseTitle.running', 'startMatch.phaseTitle.created'])
+      .toEqual(['startMatch.phaseTitle.creating', 'startMatch.phaseTitle.joining', 'startMatch.phaseTitle.running'])
   })
 
   // The story lens puts the story card on the reading page; its action is "Back".

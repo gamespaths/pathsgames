@@ -47,7 +47,10 @@ NEVER run these without explicit user confirmation.
 ```bash
 code/scripts/test/aws/aws_backend_deploy.sh [dev|test] [--auto-confirm]  # also selects stack pathsgames-<env>
 code/scripts/test/aws/aws_backend_remove.sh [dev|test]                  # also selects stack pathsgames-<env>
+code/scripts/test/aws/aws_set_admin_ip.sh [dev|test] [--dry-run]       # admin allow-list = caller IP (no redeploy)
 code/scripts/prod/aws_backend_deploy_stage.sh <alpha|beta|prod>         # v0.41.0, stage deploy: caller-IP detection, explicit parameters, refuses a missing/default-secret stage JWT
+code/scripts/prod/aws_terraform_deploy.sh <test|production> <cmd>   # v0.42.0, terraform wrapper (was terraform-aws/tf.sh)
+code/scripts/prod/aws_create_policy_github_actions.sh [--dry-run] [--account-id ID] [--attach-user U [--detach-full]]  # IAM policy paths-games-deployer
 ```
 
 Both dev and test live in `us-east-2` (Ohio); prod has its own region/bucket and is deployed

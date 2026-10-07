@@ -29,7 +29,8 @@ afterEach(() => setUrl('/'))
 
 describe('readPolicyDeepLink', () => {
   it('returns each supported kind, case and blanks tolerated', () => {
-    expect(DEEP_LINK_KINDS).toEqual(['privacy', 'cookies', 'terms'])
+    expect(DEEP_LINK_KINDS).toEqual(['privacy', 'cookies', 'terms', 'roadmap'])
+    expect(readPolicyDeepLink('?policy=roadmap')).toBe('roadmap')
     expect(readPolicyDeepLink('?policy=privacy')).toBe('privacy')
     expect(readPolicyDeepLink('?policy=cookies')).toBe('cookies')
     expect(readPolicyDeepLink('?x=1&policy=%20TERMS%20')).toBe('terms')

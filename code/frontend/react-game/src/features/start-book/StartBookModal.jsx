@@ -186,7 +186,7 @@ export default function StartBookModal({ story, onClose, initialConfig = null })
   ) : (
     // The picker's own back arrow is gone: while a list is open the left page carries it,
     // even with nothing previewed (a trait picker opened on an empty selection).
-    <Card variant="page" card={activeStory.card} loading={loadingDetail} story={activeStory}
+    <Card variant="page" card={activeStory.card} loading={loadingDetail} story={activeStory} entityType="story"
       onClose={selectionType ? handleBackOrClose : undefined} />
   )
 

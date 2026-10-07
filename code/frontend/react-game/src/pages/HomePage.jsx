@@ -5,6 +5,7 @@ import { getStoriesCatalog } from '../api/stories'
 import { listMatches } from '../api/matches'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import StoryCatalog from '../features/catalog/StoryCatalog'
+import TutorialButton from '../features/catalog/TutorialButton'
 import StartBookModal from '../features/start-book/StartBookModal'
 import TurnstileWidget from '../components/ui/TurnstileWidget'
 import { TURNSTILE_APPEARANCE } from '../utils/turnstile'
@@ -190,6 +191,10 @@ export default function HomePage() {
                 />
               </div>
             </div>
+          )}
+          {!loading && !storiesError && (
+            <TutorialButton stories={stories} matches={matches} footerState={footerState}
+              pendingStoryUuid={pendingStoryUuid} onStoryClick={handleStoryClick} />
           )}
           <h1 className="hero-title">{t('home.heroTitle')}</h1>
           <p className="hero-sub">{t('home.heroSub')}</p>

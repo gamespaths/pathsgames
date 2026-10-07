@@ -88,6 +88,15 @@ src/
 7. **Guest identity** — `GuestUserProvider` (v0.19.8) wraps the entire app and manages guest session state. Identity lives in React state only — no frontend cookie is written. On mount it tries `POST /api/auth/guest/resume` first (the browser sends the backend HttpOnly cookie `pathsgames.guestcookie` automatically via `withCredentials: true`); on 401/error it falls back to `POST /api/auth/guest` to mint a new guest. The Navbar user-icon button displays the cached `username` and opens `GuestUserModal` (`#guestUserModal`) via Bootstrap `data-bs-toggle`. `GuestUserModal` renders a `BookPageContent` card showing the username as title and the session UUID under a divider. Backend HttpOnly session cookies (`pathsgames.guestcookie` 30 days, `pathsgames.refreshToken` 7 days) are set by the server and are consent-exempt.
 8. **Cookie consent** (v0.20.3) — Self-hosted [vanilla-cookieconsent](https://github.com/orestbida/cookieconsent) v3.1.0 (MIT) gated to **Google Consent Mode v2**. Consent Mode defaults are all `denied`; the GTM container loads on every visit but Google tags write no cookies until the user accepts the `analytics` category. Categories: `necessary` (read-only) + `analytics` (off by default), bilingual en/it. Consent choice is stored in `pathsgames.cookiesConsent` (first-party, 6-month, revision-based re-prompt). The banner is themed via `src/consent/cookieconsent-theme.css` (dark `--bg-card` background + `--color-gold` text). The full GDPR cookie policy (6 sections: strictly-necessary, analytics, legal basis, managing preferences, third parties, data-subject rights) is rendered by `CookiesModal` in both languages. Modules: `src/consent/gtm.js` (loads GTM from `VITE_GTM_ID`), `src/consent/cookieConsent.js` (`initCookieConsent(lang)`, `openCookiePreferences()`, `setConsentLanguage(lang)`), `src/consent/cookieconsent-theme.css`, `src/components/CookieConsentManager.jsx` (headless; boots consent once, syncs on lang switch; mounted in `App.jsx`). The `pathsgames.lang` localStorage key is listed in the **strictly-necessary / functional** section of the cookie table (en + it) in `src/consent/cookieConsent.js` with expiration "Persistent (until cleared)"; it does not require blocking consent because it is a functional preference set on an explicit user action.
 
+**Alpha launch UI (v0.42.0, [Step 42](../../../wiki/documentation_v0/Step42_AlphaLaunch.md) §10)**
+- `public/favicon.svg`: navbar `dice-d20`, gold `#daa520`, rotated 20 degrees, transparent.
+- `CardCreditsBar` (`components/layout/`) is the card footer "TYPE, tip, story credit, image credit" (icons lightbulb / book / image, no dashes, spacing by CSS). A click shows the note in the card's tip area (`TipNote`, one line, ellipsis): "Story by X with CC BY-NC-ND 4.0 license" / "Image by Y with Unsplash license" (licence only when known: `license` field or an unsplash.com link). A trailing icon opens the url in a new tab; a paths.games `?policy=` link opens the policy book in place. Helpers in `src/utils/cardCredits.js` (story link = `story.linkCopyright`, else `story.card.linkCopyright`; a bare host gets https).
+- Story page cards pass `entityType="story"` (STORY type + story tip): start book (desktop, mobile), game left page, end game, guest modal.
+- Terms of Service point 5: CC BY-NC-ND 4.0 for stories and dialogues, 5.1 source code (GPL v3), 5.2 Unsplash images. Deep link `?policy=privacy|cookies|terms|roadmap` (`policyKindFromHref` in `utils/policyDeepLink.js`). The Roadmap (Devlog) intro states the team stories licence; completed versions show a "Completed" badge.
+- `EnvBadge` shows `envBadge.short.*` under 767px; the navbar guest name is hidden under 550px.
+- Home `features/catalog/TutorialButton.jsx`: "Play the tutorial" / "Resume the tutorial" above the hero title; clicks the first playable tutorial story like its card; hidden once its match is ENDED/GAMEOVER; disabled with a spinner while matches load. Catalog order = backend `priority` descending.
+- `StartMatchFlow`: story + two statistics cards + one card per API phase (creating `POST /api/matches`, joining `POST .../join`, running `POST .../start`); the game opens right after the running step.
+
 ## Card System
 
 All card size variants enforce `aspect-ratio: 2/3` (updated from `1/1.4`):
@@ -146,7 +155,7 @@ All Unsplash images and SVG icons documented in [`src/data/images.json`](src/dat
 
 ---
 
-- **Document Version**: 0.37.3
+- **Document Version**: 0.42.0
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.18.0 | React game frontend initial implementation | May 04, 2026 |
@@ -179,7 +188,8 @@ All Unsplash images and SVG icons documented in [`src/data/images.json`](src/dat
     | 0.37.0 | Missions bookmark (greyed since 0.35.5) goes live: new `MissionCard`/`MissionCards`/`MissionStepCard` and `utils/missions.js` ride the `missions[]` array already on `/info`, no extra request. A closed mission shows LOCKED with the reason in `lockInfo`, never `label`. | Sep 08, 2026 |
     | 0.37.1 | Mission steps become readable: `MissionStepCard`'s status badge shows only on a closed mission, badges switch to full-size (labelled) via new `.pg-card--mission` CSS; new `useBookView` view `missionSteps` + `openMission` action open the mission on the left page and a new `MissionStepsCards.jsx` (one card per step, only the next open one shown, spoiler-safe) on the right; new i18n key `game.missions.stepsEmpty`. | Sep 09, 2026 |
     | 0.37.3 | Turnstile token bugfix: `StartMatchFlow`'s widget stays mounted (hidden) for the whole flow instead of unmounting on pass, token read via ref, `useAntibot.retry()` drops the stale token; Retry now offered on `TURNSTILE_VALIDATION_FAILED` too. Status card drops its force-sleep/registry shortcuts, remaining ones (Info/Map/Missions/Backpack) are named. `missionStatusBadge` drops its `label` ("Completed" not "Status: Completed"). | Sep 10, 2026 |
-- **Last Updated**: Sep 10, 2026
+    | 0.42.0 | Alpha launch polish: card credits, favicon, tutorial button, terms, start-match phases | October 7, 2026 |
+- **Last Updated**: Oct 7, 2026
 - **Status**: Active development
 
 ---

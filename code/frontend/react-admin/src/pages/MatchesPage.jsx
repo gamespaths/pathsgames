@@ -42,6 +42,9 @@ const PERIODS = [
 
 const PAGE_LIMIT = 50
 
+/** The creator as the guest username shown in the game (`guest_` + first 8 chars of the user UUID). */
+export const creatorLabel = uuid => (uuid ? `guest_${String(uuid).slice(0, 8)}` : '')
+
 export default function MatchesPage() {
   const [matches,      setMatches]      = useState([])
   const [nextCursor,   setNextCursor]   = useState(null)
@@ -162,7 +165,9 @@ export default function MatchesPage() {
     return !text ||
       m.name?.toLowerCase().includes(text) ||
       m.uuid?.toLowerCase().includes(text) ||
-      m.storyUuid?.toLowerCase().includes(text)
+      m.storyUuid?.toLowerCase().includes(text) ||
+      m.userCreatorUuid?.toLowerCase().includes(text) ||
+      (!!m.userCreatorUuid && creatorLabel(m.userCreatorUuid).includes(text))
   })
 
   // Counts reflect the rows loaded so far (load more to fetch additional pages).
@@ -211,7 +216,7 @@ export default function MatchesPage() {
           <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-ash)', fontSize: '0.8rem' }} />
           <input
             className="pg-input pl-8"
-            placeholder="Filter by name, match or story UUID…"
+            placeholder="Filter by name, match, story or user (guest_…)…"
             value={filter}
             onChange={e => setFilter(e.target.value)}
           />
@@ -252,17 +257,16 @@ export default function MatchesPage() {
                   <th>Name</th>
                   <th>Match UUID</th>
                   <th>Story UUID</th>
+                  <th>User</th>
                   <th>Status</th>
-                  <th>Mode</th>
                   <th>Clock</th>
-                  <th>XP Cost</th>
                   <th>Created</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 && (
-                  <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--color-ash)' }}>No matches found.</td></tr>
+                  <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--color-ash)' }}>No matches found.</td></tr>
                 )}
                 {filtered.map(m => (
                   <tr key={m.uuid}>
@@ -272,14 +276,10 @@ export default function MatchesPage() {
                     </td>
                     <td style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--color-ash)' }}>{shortUuid(m.uuid)}</td>
                     <td style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--color-ash)' }}>{shortUuid(m.storyUuid)}</td>
+                    <td style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--color-ash)' }}
+                      title={m.userCreatorUuid || undefined}>{creatorLabel(m.userCreatorUuid) || '—'}</td>
                     <td><StatusBadge status={m.status} /></td>
-                    <td>
-                      {m.singlePlayer === 0
-                        ? <span className="pg-badge pg-badge-gold">Multiplayer</span>
-                        : <span className="pg-badge pg-badge-info">Single</span>}
-                    </td>
                     <td>{m.currentClock ?? 0}</td>
-                    <td>{m.expCost ?? 0}</td>
                     <td style={{ fontSize: '0.8rem' }}>{fmtDate(m.tsInsert)}</td>
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <button

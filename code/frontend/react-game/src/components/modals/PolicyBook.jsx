@@ -9,6 +9,7 @@ import { creditsEntries } from '@/utils/credits'
 import { getStoriesCatalog } from '@/api/stories'
 import roadmap from '@/data/roadmap.json'
 import { roadmapCard, roadmapStatus, sortRoadmap } from '@/utils/roadmap'
+import { STORY_LICENSE, STORY_LICENSE_URL } from '@/utils/cardCredits'
 
 /**
  * PolicyBook — the Privacy / Terms / Cookies / Credits book opened from the footer links.
@@ -29,7 +30,8 @@ const POLICIES = {
     imgId: 'home-terms-conditions', ns: 'modals.terms', copyright: '© paths.games',
     sections: [
       ['acceptanceTitle', 'acceptanceBody'], ['serviceTitle', 'serviceBody'], ['guestTitle', 'guestBody'],
-      ['useTitle', 'useBody'], ['ipTitle', 'ipBody'], ['disclaimerTitle', 'disclaimerBody'],
+      ['useTitle', 'useBody'], ['ipTitle', 'ipBody'], ['ipCodeTitle', 'ipCodeBody'],
+      ['ipUnsplashTitle', 'ipUnsplashBody'], ['disclaimerTitle', 'disclaimerBody'],
       ['liabilityTitle', 'liabilityBody'], ['availabilityTitle', 'availabilityBody'],
       ['thirdPartyTitle', 'thirdPartyBody'], ['privacyRefTitle', 'privacyRefBody'],
       ['lawTitle', 'lawBody'], ['changesTitle', 'changesBody'],
@@ -105,10 +107,10 @@ function CreditsCards({ entries, t }) {
 
 /**
  * Step 40 — the Devlog left page: the intro text, with `{repo}` replaced by the repository
- * link (GitHub glyph), `{credits}` by the link that opens the credits book and each
- * `<br />` by a real line break, so a `<br /><br />` pair reads as an empty line.
+ * link (GitHub glyph), `{credits}` by the link that opens the credits book, `{license}` by the
+ * CC BY-NC-ND 4.0 link and each `<br />` by a real line break (a `<br /><br />` pair = an empty line).
  */
-const INTRO_TOKEN = /(\{repo\}|\{credits\}|<br\s*\/?>)/i
+const INTRO_TOKEN = /(\{repo\}|\{credits\}|\{license\}|<br\s*\/?>)/i
 
 export function RoadmapIntro({ intro, repoLabel, creditsLabel, onCredits }) {
   const parts = String(intro ?? '').split(INTRO_TOKEN).filter(part => part.trim() !== '')
@@ -121,6 +123,8 @@ export function RoadmapIntro({ intro, repoLabel, creditsLabel, onCredits }) {
             <i className="fab fa-github me-1" aria-hidden="true" />{repoLabel}
           </a>
         if (/^\{credits\}$/i.test(part)) return <button key={i} type="button" onClick={onCredits}>{creditsLabel}</button>
+        if (/^\{license\}$/i.test(part))
+          return <a key={i} href={STORY_LICENSE_URL} target="_blank" rel="noopener noreferrer license">{STORY_LICENSE}</a>
         return part
       })}
     </p>
@@ -139,7 +143,12 @@ export function RoadmapCards({ entries = roadmap, t }) {
               ? <span className="story-card-status story-card-status--active story-card-status--center stat-badge bonus-badge"
                   data-testid="roadmap-current">
                   <i className="fas fa-play me-1" />{t('modals.roadmap.current')}</span>
-              : null}
+              : roadmapStatus(entry) === 'completed'
+                // Step 42 — a finished version: the green check of a completed match (guest matches list).
+                ? <span className="story-card-status story-card-status--completed story-card-status--center stat-badge bonus-badge"
+                    data-testid="roadmap-completed">
+                    <i className="fas fa-check-circle story-card-status__check me-1" />{t('modals.roadmap.completed')}</span>
+                : null}
             onAction={() => window.open(entry.link, '_blank', 'noopener,noreferrer')}
             actionLabel={t('modals.roadmap.button')} actionIcon="fa-map-signs" />
         ))}
