@@ -247,15 +247,19 @@ def _nested_function_names():
 
 
 @pytest.mark.parametrize('logical_id, metric', [('LambdaErrorsAlarm', 'Errors'), ('LambdaThrottlesAlarm', 'Throttles')])
-def test_lambda_alarms_sum_the_metric_over_all_eight_functions(mon, logical_id, metric):
-    assert sorted(_nested_function_names()) == sorted(FUNCTIONS)
-    metrics = mon['Resources'][logical_id]['Properties']['Metrics']
-    expression = [m for m in metrics if 'Expression' in m]
-    assert len(expression) == 1 and expression[0]['Expression'] == 'SUM(METRICS())'
-    stats = [m['MetricStat']['Metric'] for m in metrics if 'MetricStat' in m]
-    assert {s['MetricName'] for s in stats} == {metric}
-    names = sorted(s['Dimensions'][0]['Value']['Fn::Sub'] for s in stats)
-    assert names == sorted(f'pathsgames-${{Environment}}-{f}' for f in FUNCTIONS)
+def test_lambda_alarms_use_the_account_level_metric(mon, logical_id, metric):
+    props = mon['Resources'][logical_id]['Properties']
+    assert (props['Namespace'], props['MetricName'], props['Statistic']) == ('AWS/Lambda', metric, 'Sum')
+    assert 'Dimensions' not in props and 'Metrics' not in props
+    assert props['AlarmActions'] == [{'Ref': 'AlarmTopic'}]
+
+
+def _alarm_metric_count(props):
+    return len([m for m in props['Metrics'] if 'MetricStat' in m]) if 'Metrics' in props else 1
+
+
+def test_alarms_stay_inside_the_ten_free_alarm_metrics(mon):
+    assert sum(_alarm_metric_count(mon['Resources'][a]['Properties']) for a in ALARMS) <= 10
 
 
 @pytest.mark.parametrize('logical_id, api', [('PublicApi5xxAlarm', 'ApiId'), ('AdminApi5xxAlarm', 'AdminApiId')])
@@ -283,13 +287,39 @@ def test_dashboard_body_is_json_with_lambda_api_and_dynamodb_widgets(mon):
     rendered = re.sub(r'\$\{[^}]+\}', 'X', body)
     widgets = json.loads(rendered)['widgets']
     text = json.dumps(widgets)
-    for metric in ['Invocations', 'Errors', 'Throttles', 'Duration', 'ConcurrentExecutions', 'Count', '4xx',
+    for metric in ['Invocations', 'Errors', 'Duration', 'Count', '4xx',
                    '5xx', 'Latency', 'ConsumedReadCapacityUnits', 'ConsumedWriteCapacityUnits',
                    'ReadThrottleEvents', 'WriteThrottleEvents', 'SystemErrors']:
         assert f'"{metric}' in text or f'\\"{metric}\\"' in text, metric
     assert '${ApiId}' in body and '${AdminApiId}' in body and '${TableName}' in body
+    assert sorted(_nested_function_names()) == sorted(FUNCTIONS)
     for fn in FUNCTIONS:
-        assert body.count(f'pathsgames-${{Environment}}-{fn}"') == 5
+        assert body.count(f'pathsgames-${{Environment}}-{fn}"') == 3
+
+
+def _dashboard_widgets(mon):
+    body = mon['Resources']['MonitoringDashboard']['Properties']['DashboardBody']['Fn::Sub']
+    return json.loads(re.sub(r'\$\{[^}]+\}', 'X', body))['widgets']
+
+
+def test_dashboard_stays_inside_the_free_fifty_metrics(mon):
+    widgets = _dashboard_widgets(mon)
+    assert sum(len(w['properties']['metrics']) for w in widgets) <= 50
+    assert 'SEARCH(' not in json.dumps(widgets)
+    titles = [w['properties']['title'] for w in widgets]
+    assert 'Lambda Throttles' not in titles and 'Lambda ConcurrentExecutions' not in titles
+
+
+def test_dashboard_system_errors_lists_one_fixed_metric_per_operation(mon):
+    widget, = [w for w in _dashboard_widgets(mon) if w['properties']['title'] == 'DynamoDB SystemErrors']
+    metrics = widget['properties']['metrics']
+    assert metrics[0][:5] == ['AWS/DynamoDB', 'SystemErrors', 'TableName', 'X', 'Operation']
+    assert [m[-1] for m in metrics] == ['GetItem', 'PutItem', 'DeleteItem', 'Query', 'UpdateItem', 'BatchWriteItem']
+
+
+def test_dashboard_widgets_do_not_overlap(mon):
+    cells = [(w['x'], w['y']) for w in _dashboard_widgets(mon)]
+    assert len(cells) == len(set(cells))
 
 
 def test_dashboard_url_output_comes_from_the_module(tpl, mon):

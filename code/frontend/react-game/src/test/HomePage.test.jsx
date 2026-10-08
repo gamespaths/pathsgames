@@ -171,7 +171,7 @@ describe('HomePage — story click with active match check', () => {
     wrap(<HomePage />)
     await screen.findByText('Forest Path')
     await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('error'))
-    expect(screen.getByTestId('home-error').textContent).toBe('matches')
+    await waitFor(() => expect(screen.getByTestId('home-error').textContent).toBe('matches'))
     fireEvent.click(screen.getByText('Forest Path'))
     expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
     expect(mockOpenGuestModal).not.toHaveBeenCalled()
@@ -207,7 +207,7 @@ describe('HomePage — story click with active match check', () => {
     wrap(<HomePage />)
     expect(await screen.findByText('Forest Path')).toBeInTheDocument()
     await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('blocked'))
-    expect(screen.getByTestId('home-error').textContent).toBe('antibot')
+    await waitFor(() => expect(screen.getByTestId('home-error').textContent).toBe('antibot'))
     expect(getStories).toHaveBeenCalledTimes(1)
     fireEvent.click(screen.getByText('Forest Path'))
     expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
@@ -258,7 +258,7 @@ describe('HomePage — story click with active match check', () => {
     wrap(<HomePage />)
     await screen.findByText('Forest Path')
     await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('error'))
-    expect(screen.getByTestId('home-error').textContent).toBe('matches')
+    await waitFor(() => expect(screen.getByTestId('home-error').textContent).toBe('matches'))
     expect(listMatches).not.toHaveBeenCalled()
   })
 
@@ -268,7 +268,7 @@ describe('HomePage — story click with active match check', () => {
     wrap(<HomePage />)
     await screen.findByText('Forest Path')
     await waitFor(() => expect(screen.getByTestId('footer-state').textContent).toBe('error'))
-    expect(screen.getByTestId('home-error').textContent).toBe('rateLimited')
+    await waitFor(() => expect(screen.getByTestId('home-error').textContent).toBe('rateLimited'))
     expect(listMatches).not.toHaveBeenCalled()
   })
 
@@ -331,7 +331,9 @@ describe('HomePage — the catalog fetch fails', () => {
     expect(screen.queryByText('home.storiesError')).not.toBeInTheDocument()
     expect(screen.queryByText('startMatch.retry')).not.toBeInTheDocument()
     expect(screen.queryByText('home.loading')).not.toBeInTheDocument()
-    expect(screen.getByTestId('home-error').textContent).toBe('stories')
+    // The navbar code is set by an effect after the render that shows the sign: wait for it
+    // (on a slow CI runner the alert can be found one render before the effect lands).
+    await waitFor(() => expect(screen.getByTestId('home-error').textContent).toBe('stories'))
     expect(getStories).toHaveBeenCalledTimes(1)
   })
 

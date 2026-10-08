@@ -265,9 +265,9 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 ### v0.42.0 — Alpha launch: monitoring module
 
-- **`template/monitoring.yaml`** (`MonitoringModule` in `template.yaml`, `Condition: IsPublicStage`, so never on `dev`/`test`): CloudWatch dashboard `pathsgames-<env>`, SNS topic + email subscription, 5 alarms, monthly budget. Inner conditions `HasAlarms` (email set), `HasBudget` (`CreateBudget=true`), `HasBudgetEmail`; the root `DashboardUrl` output reads the module. Moved out of the root template.
+- **`template/monitoring.yaml`** (`MonitoringModule` in `template.yaml`, `Condition: IsPublicStage`, so never on `dev`/`test`): CloudWatch dashboard `pathsgames-<env>` (42 metrics, at most 50 to stay free), SNS topic + email subscription, 5 alarms (Lambda alarms use account-level Errors/Throttles, 6 alarm metrics per stage), monthly budget. Inner conditions `HasAlarms` (email set), `HasBudget` (`CreateBudget=true`), `HasBudgetEmail`; the root `DashboardUrl` output reads the module. Moved out of the root template.
 - Env keys read by the deploy scripts are named `AWS_<ENV>_<SERVICE>_<DESC>` (see `.env.example`); alpha runbooks and scripts: [code/scripts/alpha/README.md](../../scripts/alpha/README.md).
-- Tests: `tests/test_step42_template_hardening.py` (45).
+- Tests: `tests/test_step42_template_hardening.py` (49).
 
 ### v0.41.6 — Match owner move after import
 

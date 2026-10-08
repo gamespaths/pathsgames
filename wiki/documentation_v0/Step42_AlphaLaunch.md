@@ -1,6 +1,6 @@
 # Step 42 — Alpha launch
 
-**Status: DEVELOPED (0.42.0, October 6, 2026); owner steps of §9 (Terraform apply, first deploys, Robot runs) pending.**
+**Status: DONE (0.42.0 launched, October 8, 2026); development closed October 7, all owner steps of §9 completed October 8.**
 Roadmap line: *website infra, stack hardening, alpha scripts and workflows, react-game launch
 polish, alpha story and catalog, docs, tests, launch* ([Roadmap](./Roadmap.md) step 42).
 Developed on `develop` as `0.42.X` (the patch number may grow during the step; the owner bumps
@@ -82,8 +82,8 @@ It drives:
 |----------|-------------------------------|
 | DynamoDB table | `PointInTimeRecoverySpecification` on; `DeletionProtectionEnabled: true` |
 | API throttling | `DefaultRouteSettings` rate/burst on **both** API stages (public and admin), values from stack parameters: public 50 rate / 100 burst, admin 5 / 10. Never on `dev` / `test` |
-| CloudWatch Dashboard `pathsgames-${Environment}` | Lambda Invocations, Errors, Throttles, Duration p95, ConcurrentExecutions; API Gateway v2 Count, 4xx, 5xx, Latency for public and admin; DynamoDB RCU, WCU, Throttles, SystemErrors |
-| Alarms | SNS topic plus email subscription; email is a parameter; topic, subscription and alarms are created only when the email is non-empty. Alarms: metric-math SUM of Errors over the 8 functions, metric-math SUM of Throttles over the 8 functions, 5xx per API (public, admin), DynamoDB throttles |
+| CloudWatch Dashboard `pathsgames-${Environment}` | 7 widgets on a 3x3 grid, 42 metrics (CloudWatch free tier: at most 50 metrics per dashboard, 3 dashboards): Lambda Invocations, Errors, Duration p95; API Gateway v2 Count, 4xx, 5xx, Latency for public and admin; DynamoDB RCU, WCU, Throttles; DynamoDB SystemErrors as 6 fixed metrics per operation (GetItem, PutItem, DeleteItem, Query, UpdateItem, BatchWriteItem), no SEARCH expression |
+| Alarms | SNS topic plus email subscription; email is a parameter; topic, subscription and alarms are created only when the email is non-empty. Alarms: account-level `AWS/Lambda` Errors (threshold 5) and Throttles (threshold 1), Sum over 300 s, no dimensions (the email does not name the function and counts every Lambda in the region), 5xx per API (public, admin), DynamoDB throttles; 6 alarm metrics per stage, inside the 10 free alarm metrics |
 
 - New parameters: `ApiThrottleRate`, `ApiThrottleBurst`, `AdminApiThrottleRate`,
   `AdminApiThrottleBurst` (defaults 50/100/5/10), `AlarmEmail` (default empty).
@@ -198,8 +198,7 @@ patches. The agent only documents; it does not import.
 
 - **`master` → `main`** at: `Step02_CreateTheRepository.md` l.14/28/30, `Roadmap.md` l.28,
   `Step06_NamingConventions.md` l.569, `Step08_ConfigureMinimalCI.md` l.134/163/210/248/260/264.
-  Redraw `Step02_CreateTheRepository_git.webp` with `main` (owner or design task; the agent lists
-  it if it cannot produce images).
+  `Step02_CreateTheRepository_git.webp` is left as is (owner decision, October 8, 2026): not redrawn.
 - **Rename the `website-deploy` references** to the two new workflows: root `README.md` l.91,
   `code/website/terraform-aws/README.md` l.215, `wiki/Architecture.md` l.156,
   `wiki/Environments.md` l.14, `Step08` l.126/167/239 (badge URL)/326, `Step41` l.245.
@@ -208,10 +207,10 @@ patches. The agent only documents; it does not import.
   l.99-107/134/197, Step41 l.118.
 - **`Environments.md` §1 and §3**: alpha uses the production site; the landing is retired.
 - **Known minor items**:
-  - `samconfig.toml` alpha `tags` still carry `version=0.38.1` (overridden by the script); the
-    script's error message wrongly says `samconfig.toml` is git-ignored: fix the message.
-  - `Environments.md` §1 still calls the AWS `prod` stack "Live production"; the owner checks in
-    the console whether it is deployed, then the text is corrected.
+  - `samconfig.toml` `version=0.38.1` tag: fixed by the owner (October 8, 2026). The script's
+    error message now says `samconfig.toml` is versioned in the repository: fixed.
+  - `Environments.md` §1 still calls the AWS `prod` stack "Live production": left as is by owner
+    decision (October 8, 2026).
 - **Release notes**: a wiki file (name decided in development, linked from `wiki/INDEX.md`)
   with features, known limitations and the social link used for feedback, mirrored in the
   in-game roadmap book (Step 40).
@@ -315,10 +314,10 @@ on the same user (the Story Lambda writes the catalog with its own role, so it i
 - **Terraform function**: Node test of the redirect function (§3.1); no `terraform` command.
 - **react-game** (vitest, > 96% of new code): `?policy=` deep link (valid, invalid, closing),
   EN/IT key parity, privacy retention text, cookie consent label.
-- **Workflows**: YAML read-checked; first real run is the owner's (§9 step 6).
+- **Workflows**: YAML read-checked; first real run done by the owner (§9 step 6, October 8, 2026).
 - **Robot**: stays green on dev/test across the three backends (no API change); one AWS Robot run
   on the test stack after the template change, where every new condition is off (owner runs it).
-- **Alpha smoke test**: manual for the launch (§9 step 7); the daily automatic one is V1 step 1.
+- **Alpha smoke test**: manual for the launch (§9 step 7, done October 8, 2026); the daily automatic one is V1 step 1.
 
 ## 8. Doubts
 
@@ -332,7 +331,7 @@ All CLOSED (owner, October 6, 2026); listed as decisions.
 6. **No OIDC, no tag changes.**
 7. **Hardening scope**: one `IsPublicStage` condition (alpha/beta/prod) for PITR, deletion protection, throttling, dashboard and alarms; never on dev/test.
 8. **Throttling**: both API stages; public 50/100 and admin 5/10 as modifiable stack parameters.
-9. **Alarms**: SNS plus email parameter, created only when the email is non-empty; SUM of errors and throttles over the 8 functions, 5xx per API, DynamoDB throttles.
+9. **Alarms**: SNS plus email parameter, created only when the email is non-empty; account-level Lambda errors and throttles (free-tier metric budget), 5xx per API, DynamoDB throttles.
 10. **Retain**: `UpdateReplacePolicy: Retain` may stay unconditional.
 11. **Budget**: `CreateBudget` parameter true only for alpha; limit and email are parameters; filter on the `Project` tag (stack and websites values); the owner activates the tag by hand.
 12. **Restore**: PITR restore makes a new table, the table name is fixed: runbook in the README.
@@ -355,17 +354,19 @@ None.
 
 ## 9. First-deploy order (launch)
 
-1. The owner runs `code/scripts/prod/aws_terraform_deploy.sh production apply` (landing gone, CSP, redirect function).
-2. The owner runs the manual alpha backend script (`code/scripts/alpha/`) and confirms the SNS
-   subscription email.
-3. The owner runs the set-admin-IP script (admin API opens for the caller IP only).
-4. Story import and catalog publish (§3.5).
-5. The owner runs the manual frontend deploy (removes the landing files, keeps `data/*`).
-6. Enable and verify the two GitHub workflows (Environment `alpha` complete; first run succeeds;
-   then remove the old repo-level `AWS_REGION` secret).
-7. Manual smoke test: guest login, story choice, match creation, full gameplay cycle; plus
+All steps DONE by the owner (October 8, 2026). The backend and website deploys went through the
+GitHub Actions workflows `alpha-deploy-backend-aws.yml` and `alpha-deploy-website.yml`.
+
+1. DONE: `code/scripts/prod/aws_terraform_deploy.sh production apply` (landing gone, CSP, redirect function).
+2. DONE: alpha backend deployed (workflow `alpha-deploy-backend-aws.yml`); SNS subscription email confirmed.
+3. DONE: set-admin-IP script (admin API opens for the caller IP only).
+4. DONE: story import and catalog publish (§3.5).
+5. DONE: frontend deployed (workflow `alpha-deploy-website.yml`; landing files removed, `data/*` kept).
+6. DONE: both GitHub workflows enabled and verified (Environment `alpha` complete; first run succeeds;
+   old repo-level `AWS_REGION` secret removed).
+7. DONE: manual smoke test: guest login, story choice, match creation, full gameplay cycle; plus
    `?policy=privacy`, the redirect from `pathsgames.com`, dashboard and alarms visible.
-8. Announce.
+8. DONE: announce.
 
 **Rollback**: redeploy the previous tag (backend with script (a), website with script (b)).
 Data recovery: restore runbook of §3.2.
@@ -377,7 +378,7 @@ Data recovery: restore runbook of §3.2.
   template into the nested stack `code/backend/aws/template/monitoring.yaml` (`MonitoringModule`, `Condition: IsPublicStage`).
   Inner conditions `HasAlarms`, `HasBudget`, `HasBudgetEmail`; the `DashboardUrl` output comes from the module. Every taggable
   resource carries the 7 project tags (the budget through `ResourceTags`); the dashboard and the SNS subscription cannot be tagged
-  in CloudFormation. Tests: `code/backend/aws/tests/test_step42_template_hardening.py` (45).
+  in CloudFormation. Tests: `code/backend/aws/tests/test_step42_template_hardening.py` (49).
 - **Env-key naming**: every AWS/EC2 key of the root `.env` is `AWS_<ENV>_<SERVICE>_<DESC>` (`.env.example` is the reference; see
   [Environments](../Environments.md)). GitHub secrets are `AWS_ALPHA_S3_BUCKET_WEBSITE` and `AWS_ALPHA_CLOUDFRONT_DISTRIBUTION_ID`;
   the old repository-level `S3_BUCKET_WEBSITE` / `CLOUDFRONT_DISTRIBUTION_ID` are gone.
@@ -409,15 +410,21 @@ full UUID as title); the text filter also matches it.
 **Robot**: `41_alpha_prep/match_export_import.robot` uses `map(lambda i, m=$ITEMS: ...)` instead of a generator expression, fixing
 "variable '$ITEMS' is used in a scope where it cannot be seen" once the golden fixtures had a non-empty inventory.
 
+**CloudWatch cost (October 8, 2026)**: the dashboard went from 53 to 42 metrics (Lambda Throttles and ConcurrentExecutions
+widgets removed; DynamoDB SystemErrors as 6 fixed per-operation metrics instead of a SEARCH expression) to stay in the free tier
+of 50 metrics per dashboard (it was billed $3/month as DashboardsUsageHour). The Lambda Errors/Throttles alarms use the
+account-level AWS/Lambda metric: alarm metrics 20 → 6, inside the 10 free. Expected CloudWatch cost of the alpha: about $0.
+§3.2 and decision 9 were updated for it. Deployed.
+
 # Version Control
 - **Document Version**: 0.42.0
 
   | Version | Description | Date |
   |---------|-------------|------|
-  | 0.42.0 | Alpha launch analysed, all doubts closed; developed; follow-ups added | October 6, 2026 |
+  | 0.42.0 | Alpha launch analysed, developed, follow-ups added, launched | October 6, 2026 |
 
-- **Last Updated**: October 7, 2026 (v0.42.0)
-- **Status**: developed; owner launch steps pending
+- **Last Updated**: October 8, 2026 (v0.42.0)
+- **Status**: done; 0.42.0 launched
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

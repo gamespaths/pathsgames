@@ -40,6 +40,7 @@ Conditions:
 
 Resources:
   # Names start with pathsgames-${Environment} to match the deploy user's IAM policy (alpha README).
+  # Keep at most 50 metrics: above that the dashboard leaves the free tier ($3/month).
   MonitoringDashboard:
     Type: AWS::CloudWatch::Dashboard
     Properties:
@@ -48,13 +49,11 @@ Resources:
           {"widgets": [
             {"type": "metric", "x": 0, "y": 0, "width": 8, "height": 6, "properties": {"title": "Lambda Invocations", "region": "${AWS::Region}", "stat": "Sum", "period": 300, "view": "timeSeries", "metrics": [["AWS/Lambda", "Invocations", "FunctionName", "pathsgames-${Environment}-AdminIpAuthorizer"], [".", ".", ".", "pathsgames-${Environment}-AuthFunction"], [".", ".", ".", "pathsgames-${Environment}-GuestCleanupFunction"], [".", ".", ".", "pathsgames-${Environment}-EchoFunction"], [".", ".", ".", "pathsgames-${Environment}-ContentFunction"], [".", ".", ".", "pathsgames-${Environment}-MatchFunction"], [".", ".", ".", "pathsgames-${Environment}-StoryFunction"], [".", ".", ".", "pathsgames-${Environment}-SeedFunction"]]}},
             {"type": "metric", "x": 8, "y": 0, "width": 8, "height": 6, "properties": {"title": "Lambda Errors", "region": "${AWS::Region}", "stat": "Sum", "period": 300, "view": "timeSeries", "metrics": [["AWS/Lambda", "Errors", "FunctionName", "pathsgames-${Environment}-AdminIpAuthorizer"], [".", ".", ".", "pathsgames-${Environment}-AuthFunction"], [".", ".", ".", "pathsgames-${Environment}-GuestCleanupFunction"], [".", ".", ".", "pathsgames-${Environment}-EchoFunction"], [".", ".", ".", "pathsgames-${Environment}-ContentFunction"], [".", ".", ".", "pathsgames-${Environment}-MatchFunction"], [".", ".", ".", "pathsgames-${Environment}-StoryFunction"], [".", ".", ".", "pathsgames-${Environment}-SeedFunction"]]}},
-            {"type": "metric", "x": 16, "y": 0, "width": 8, "height": 6, "properties": {"title": "Lambda Throttles", "region": "${AWS::Region}", "stat": "Sum", "period": 300, "view": "timeSeries", "metrics": [["AWS/Lambda", "Throttles", "FunctionName", "pathsgames-${Environment}-AdminIpAuthorizer"], [".", ".", ".", "pathsgames-${Environment}-AuthFunction"], [".", ".", ".", "pathsgames-${Environment}-GuestCleanupFunction"], [".", ".", ".", "pathsgames-${Environment}-EchoFunction"], [".", ".", ".", "pathsgames-${Environment}-ContentFunction"], [".", ".", ".", "pathsgames-${Environment}-MatchFunction"], [".", ".", ".", "pathsgames-${Environment}-StoryFunction"], [".", ".", ".", "pathsgames-${Environment}-SeedFunction"]]}},
-            {"type": "metric", "x": 0, "y": 6, "width": 8, "height": 6, "properties": {"title": "Lambda Duration p95", "region": "${AWS::Region}", "stat": "p95", "period": 300, "view": "timeSeries", "metrics": [["AWS/Lambda", "Duration", "FunctionName", "pathsgames-${Environment}-AdminIpAuthorizer"], [".", ".", ".", "pathsgames-${Environment}-AuthFunction"], [".", ".", ".", "pathsgames-${Environment}-GuestCleanupFunction"], [".", ".", ".", "pathsgames-${Environment}-EchoFunction"], [".", ".", ".", "pathsgames-${Environment}-ContentFunction"], [".", ".", ".", "pathsgames-${Environment}-MatchFunction"], [".", ".", ".", "pathsgames-${Environment}-StoryFunction"], [".", ".", ".", "pathsgames-${Environment}-SeedFunction"]]}},
-            {"type": "metric", "x": 8, "y": 6, "width": 8, "height": 6, "properties": {"title": "Lambda ConcurrentExecutions", "region": "${AWS::Region}", "stat": "Maximum", "period": 300, "view": "timeSeries", "metrics": [["AWS/Lambda", "ConcurrentExecutions", "FunctionName", "pathsgames-${Environment}-AdminIpAuthorizer"], [".", ".", ".", "pathsgames-${Environment}-AuthFunction"], [".", ".", ".", "pathsgames-${Environment}-GuestCleanupFunction"], [".", ".", ".", "pathsgames-${Environment}-EchoFunction"], [".", ".", ".", "pathsgames-${Environment}-ContentFunction"], [".", ".", ".", "pathsgames-${Environment}-MatchFunction"], [".", ".", ".", "pathsgames-${Environment}-StoryFunction"], [".", ".", ".", "pathsgames-${Environment}-SeedFunction"]]}},
-            {"type": "metric", "x": 16, "y": 6, "width": 8, "height": 6, "properties": {"title": "Public API: Count, 4xx, 5xx, Latency p95", "region": "${AWS::Region}", "period": 300, "view": "timeSeries", "metrics": [["AWS/ApiGateway", "Count", "ApiId", "${ApiId}", "Stage", "${Environment}", {"stat": "Sum"}], [".", "4xx", ".", ".", ".", ".", {"stat": "Sum"}], [".", "5xx", ".", ".", ".", ".", {"stat": "Sum"}], [".", "Latency", ".", ".", ".", ".", {"stat": "p95", "yAxis": "right"}]]}},
-            {"type": "metric", "x": 0, "y": 12, "width": 8, "height": 6, "properties": {"title": "Admin API: Count, 4xx, 5xx, Latency p95", "region": "${AWS::Region}", "period": 300, "view": "timeSeries", "metrics": [["AWS/ApiGateway", "Count", "ApiId", "${AdminApiId}", "Stage", "${Environment}", {"stat": "Sum"}], [".", "4xx", ".", ".", ".", ".", {"stat": "Sum"}], [".", "5xx", ".", ".", ".", ".", {"stat": "Sum"}], [".", "Latency", ".", ".", ".", ".", {"stat": "p95", "yAxis": "right"}]]}},
-            {"type": "metric", "x": 8, "y": 12, "width": 8, "height": 6, "properties": {"title": "DynamoDB RCU, WCU, Throttles", "region": "${AWS::Region}", "period": 300, "view": "timeSeries", "metrics": [["AWS/DynamoDB", "ConsumedReadCapacityUnits", "TableName", "${TableName}", {"stat": "Sum"}], [".", "ConsumedWriteCapacityUnits", ".", ".", {"stat": "Sum"}], [".", "ReadThrottleEvents", ".", ".", {"stat": "Sum"}], [".", "WriteThrottleEvents", ".", ".", {"stat": "Sum"}]]}},
-            {"type": "metric", "x": 16, "y": 12, "width": 8, "height": 6, "properties": {"title": "DynamoDB SystemErrors", "region": "${AWS::Region}", "period": 300, "view": "timeSeries", "stat": "Sum", "metrics": [[{"expression": "SEARCH('{AWS/DynamoDB,Operation,TableName} MetricName=\"SystemErrors\" TableName=\"${TableName}\"', 'Sum', 300)", "id": "e1", "label": "SystemErrors"}]]}}
+            {"type": "metric", "x": 16, "y": 0, "width": 8, "height": 6, "properties": {"title": "Lambda Duration p95", "region": "${AWS::Region}", "stat": "p95", "period": 300, "view": "timeSeries", "metrics": [["AWS/Lambda", "Duration", "FunctionName", "pathsgames-${Environment}-AdminIpAuthorizer"], [".", ".", ".", "pathsgames-${Environment}-AuthFunction"], [".", ".", ".", "pathsgames-${Environment}-GuestCleanupFunction"], [".", ".", ".", "pathsgames-${Environment}-EchoFunction"], [".", ".", ".", "pathsgames-${Environment}-ContentFunction"], [".", ".", ".", "pathsgames-${Environment}-MatchFunction"], [".", ".", ".", "pathsgames-${Environment}-StoryFunction"], [".", ".", ".", "pathsgames-${Environment}-SeedFunction"]]}},
+            {"type": "metric", "x": 0, "y": 6, "width": 8, "height": 6, "properties": {"title": "Public API: Count, 4xx, 5xx, Latency p95", "region": "${AWS::Region}", "period": 300, "view": "timeSeries", "metrics": [["AWS/ApiGateway", "Count", "ApiId", "${ApiId}", "Stage", "${Environment}", {"stat": "Sum"}], [".", "4xx", ".", ".", ".", ".", {"stat": "Sum"}], [".", "5xx", ".", ".", ".", ".", {"stat": "Sum"}], [".", "Latency", ".", ".", ".", ".", {"stat": "p95", "yAxis": "right"}]]}},
+            {"type": "metric", "x": 8, "y": 6, "width": 8, "height": 6, "properties": {"title": "Admin API: Count, 4xx, 5xx, Latency p95", "region": "${AWS::Region}", "period": 300, "view": "timeSeries", "metrics": [["AWS/ApiGateway", "Count", "ApiId", "${AdminApiId}", "Stage", "${Environment}", {"stat": "Sum"}], [".", "4xx", ".", ".", ".", ".", {"stat": "Sum"}], [".", "5xx", ".", ".", ".", ".", {"stat": "Sum"}], [".", "Latency", ".", ".", ".", ".", {"stat": "p95", "yAxis": "right"}]]}},
+            {"type": "metric", "x": 16, "y": 6, "width": 8, "height": 6, "properties": {"title": "DynamoDB RCU, WCU, Throttles", "region": "${AWS::Region}", "period": 300, "view": "timeSeries", "metrics": [["AWS/DynamoDB", "ConsumedReadCapacityUnits", "TableName", "${TableName}", {"stat": "Sum"}], [".", "ConsumedWriteCapacityUnits", ".", ".", {"stat": "Sum"}], [".", "ReadThrottleEvents", ".", ".", {"stat": "Sum"}], [".", "WriteThrottleEvents", ".", ".", {"stat": "Sum"}]]}},
+            {"type": "metric", "x": 0, "y": 12, "width": 8, "height": 6, "properties": {"title": "DynamoDB SystemErrors", "region": "${AWS::Region}", "period": 300, "view": "timeSeries", "stat": "Sum", "metrics": [["AWS/DynamoDB", "SystemErrors", "TableName", "${TableName}", "Operation", "GetItem"], [".", ".", ".", ".", ".", "PutItem"], [".", ".", ".", ".", ".", "DeleteItem"], [".", ".", ".", ".", ".", "Query"], [".", ".", ".", ".", ".", "UpdateItem"], [".", ".", ".", ".", ".", "BatchWriteItem"]]}}
           ]}
 
   AlarmTopic:
@@ -91,7 +90,7 @@ Resources:
     Condition: HasAlarms
     Properties:
       AlarmName: !Sub "pathsgames-${Environment}-lambda-errors"
-      AlarmDescription: "v0.42.0 - at least 5 Lambda errors in 5 minutes, summed over the 8 functions."
+      AlarmDescription: "v0.42.0 - at least 5 Lambda errors in 5 minutes, account-level metric (no per-function cost)."
       Tags:
         - Key: Name
           Value: !Sub "pathsgames-${Environment}-lambda-errors"
@@ -112,106 +111,17 @@ Resources:
       EvaluationPeriods: 1
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
-      Metrics:
-        - Id: total
-          Expression: "SUM(METRICS())"
-          Label: "Errors of the 8 functions"
-          ReturnData: true
-        - Id: f1
-          ReturnData: false
-          MetricStat:
-            Stat: Sum
-            Period: 300
-            Metric:
-              Namespace: AWS/Lambda
-              MetricName: Errors
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Sub "pathsgames-${Environment}-AdminIpAuthorizer"
-        - Id: f2
-          ReturnData: false
-          MetricStat:
-            Stat: Sum
-            Period: 300
-            Metric:
-              Namespace: AWS/Lambda
-              MetricName: Errors
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Sub "pathsgames-${Environment}-AuthFunction"
-        - Id: f3
-          ReturnData: false
-          MetricStat:
-            Stat: Sum
-            Period: 300
-            Metric:
-              Namespace: AWS/Lambda
-              MetricName: Errors
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Sub "pathsgames-${Environment}-GuestCleanupFunction"
-        - Id: f4
-          ReturnData: false
-          MetricStat:
-            Stat: Sum
-            Period: 300
-            Metric:
-              Namespace: AWS/Lambda
-              MetricName: Errors
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Sub "pathsgames-${Environment}-EchoFunction"
-        - Id: f5
-          ReturnData: false
-          MetricStat:
-            Stat: Sum
-            Period: 300
-            Metric:
-              Namespace: AWS/Lambda
-              MetricName: Errors
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Sub "pathsgames-${Environment}-ContentFunction"
-        - Id: f6
-          ReturnData: false
-          MetricStat:
-            Stat: Sum
-            Period: 300
-            Metric:
-              Namespace: AWS/Lambda
-              MetricName: Errors
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Sub "pathsgames-${Environment}-MatchFunction"
-        - Id: f7
-          ReturnData: false
-          MetricStat:
-            Stat: Sum
-            Period: 300
-            Metric:
-              Namespace: AWS/Lambda
-              MetricName: Errors
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Sub "pathsgames-${Environment}-StoryFunction"
-        - Id: f8
-          ReturnData: false
-          MetricStat:
-            Stat: Sum
-            Period: 300
-            Metric:
-              Namespace: AWS/Lambda
-              MetricName: Errors
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Sub "pathsgames-${Environment}-SeedFunction"
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Statistic: Sum
+      Period: 300
 
   LambdaThrottlesAlarm:
     Type: AWS::CloudWatch::Alarm
     Condition: HasAlarms
     Properties:
       AlarmName: !Sub "pathsgames-${Environment}-lambda-throttles"
-      AlarmDescription: "v0.42.0 - at least 1 Lambda throttle in 5 minutes, summed over the 8 functions."
+      AlarmDescription: "v0.42.0 - at least 1 Lambda throttle in 5 minutes, account-level metric (no per-function cost)."
       Tags:
         - Key: Name
           Value: !Sub "pathsgames-${Environment}-lambda-throttles"
@@ -232,99 +142,10 @@ Resources:
       EvaluationPeriods: 1
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
-      Metrics:
-        - Id: total
-          Expression: "SUM(METRICS())"
-          Label: "Throttles of the 8 functions"
-          ReturnData: true
-        - Id: f1
-          ReturnData: false
-          MetricStat:
-            Stat: Sum
-            Period: 300
-            Metric:
-              Namespace: AWS/Lambda
-              MetricName: Throttles
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Sub "pathsgames-${Environment}-AdminIpAuthorizer"
-        - Id: f2
-          ReturnData: false
-          MetricStat:
-            Stat: Sum
-            Period: 300
-            Metric:
-              Namespace: AWS/Lambda
-              MetricName: Throttles
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Sub "pathsgames-${Environment}-AuthFunction"
-        - Id: f3
-          ReturnData: false
-          MetricStat:
-            Stat: Sum
-            Period: 300
-            Metric:
-              Namespace: AWS/Lambda
-              MetricName: Throttles
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Sub "pathsgames-${Environment}-GuestCleanupFunction"
-        - Id: f4
-          ReturnData: false
-          MetricStat:
-            Stat: Sum
-            Period: 300
-            Metric:
-              Namespace: AWS/Lambda
-              MetricName: Throttles
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Sub "pathsgames-${Environment}-EchoFunction"
-        - Id: f5
-          ReturnData: false
-          MetricStat:
-            Stat: Sum
-            Period: 300
-            Metric:
-              Namespace: AWS/Lambda
-              MetricName: Throttles
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Sub "pathsgames-${Environment}-ContentFunction"
-        - Id: f6
-          ReturnData: false
-          MetricStat:
-            Stat: Sum
-            Period: 300
-            Metric:
-              Namespace: AWS/Lambda
-              MetricName: Throttles
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Sub "pathsgames-${Environment}-MatchFunction"
-        - Id: f7
-          ReturnData: false
-          MetricStat:
-            Stat: Sum
-            Period: 300
-            Metric:
-              Namespace: AWS/Lambda
-              MetricName: Throttles
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Sub "pathsgames-${Environment}-StoryFunction"
-        - Id: f8
-          ReturnData: false
-          MetricStat:
-            Stat: Sum
-            Period: 300
-            Metric:
-              Namespace: AWS/Lambda
-              MetricName: Throttles
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Sub "pathsgames-${Environment}-SeedFunction"
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Statistic: Sum
+      Period: 300
 
   PublicApi5xxAlarm:
     Type: AWS::CloudWatch::Alarm

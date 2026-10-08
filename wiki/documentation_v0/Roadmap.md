@@ -84,10 +84,10 @@ in the [Global Roadmap](../Roadmap.md) §3.
     | 0.41.1 | Step 41 patch 2 developed: logging and snapshots | September 29, 2026 |
     | 0.41.2 | Step 41 KPI report and production CSP done | September 29, 2026 |
     | 0.41.4 | Step 41 closed: export, import, uuid check, owner move | October 3, 2026 |
-    | 0.42.0 | Step 42 alpha launch analysed and developed | October 7, 2026 |
+    | 0.42.0 | Step 42 alpha launch analysed, developed and launched | October 8, 2026 |
 
-- **Last Updated**: October 6, 2026 (v0.42.0)
-- **Status**: In progress
+- **Last Updated**: October 8, 2026 (v0.42.0)
+- **Status**: Launched
 
 
 # &lt; Paths Games /&gt;
