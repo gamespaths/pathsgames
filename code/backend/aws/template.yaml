@@ -375,6 +375,8 @@ Resources:
         AllowHeaders: [Content-Type, Authorization, Cookie, X-CSRF-TOKEN]
         ExposeHeaders: [Retry-After]
         AllowCredentials: true
+        # Browser caches each preflight 10 min: fewer OPTIONS hitting the stage throttle.
+        MaxAge: 600
 
   PathsGamesApiStage:
     Type: AWS::ApiGatewayV2::Stage
@@ -417,6 +419,8 @@ Resources:
         AllowOrigins: !Ref CorsAllowOrigins
         AllowHeaders: [Content-Type, Authorization, Cookie]
         AllowCredentials: true
+        # Browser caches each preflight 10 min: fewer OPTIONS hitting the admin throttle.
+        MaxAge: 600
 
   PathsGamesAdminApiStage:
     Type: AWS::ApiGatewayV2::Stage

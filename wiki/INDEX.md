@@ -24,6 +24,7 @@ section → read only that line range. Never read a Step file whole; never open
 | `Security.md` | Guest login, JWT, admin port and IP allow-list, rate limits, CSRF, sanitisation, CSP | security, JWT, admin, CSRF, rate limit |
 | `Environments.md` | Environments, stages per version, domains, certificates, env variables | environments, stages, ACM, domains, env |
 | `Glossary.md` | Domain terms with one-line meanings | glossary, terms |
+| `Replit.md` | Demo on Replit: Python backend plus react-game, setup, publish, caveats | replit, demo, publish, vite, secrets |
 
 ## 2. Versions
 

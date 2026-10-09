@@ -13,7 +13,6 @@
     {
       "cardType": "story",
       "id": 1,
-      "idCard": 1,
       "idTextCopyright": 14,
       "idTextDescription": 65,
       "idTextTitle": 1,
@@ -32,7 +31,6 @@
     },
     {
       "id": 3,
-      "idCard": 3,
       "idCreator": 1,
       "idTextCopyright": 3,
       "idTextDescription": 32,
@@ -43,7 +41,6 @@
     },
     {
       "id": 4,
-      "idCard": 4,
       "idCreator": 1,
       "idTextCopyright": 21,
       "idTextDescription": 33,
@@ -55,9 +52,10 @@
     },
     {
       "id": 5,
+      "idCard": 5,
       "idCreator": 1,
       "idTextCopyright": 18,
-      "idTextDescription": 8,
+      "idTextDescription": 105,
       "idTextTitle": 8,
       "linkCopyright": "https://unsplash.com/photos/a-lion-standing-in-a-field-of-tall-grass-XTFJh5rrLLs",
       "urlImage": "https://plus.unsplash.com/premium_photo-1664304310991-b43610000fc2?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -65,9 +63,10 @@
     },
     {
       "id": 6,
+      "idCard": 6,
       "idCreator": 1,
       "idTextCopyright": 20,
-      "idTextDescription": 9,
+      "idTextDescription": 106,
       "idTextTitle": 9,
       "linkCopyright": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=1443&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "urlImage": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=1443&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -75,9 +74,10 @@
     },
     {
       "id": 7,
+      "idCard": 7,
       "idCreator": 1,
       "idTextCopyright": 19,
-      "idTextDescription": 10,
+      "idTextDescription": 107,
       "idTextTitle": 10,
       "linkCopyright": "https://unsplash.com/photos/orange-tabby-kitten-in-grasses-RCfi7vgJjUY",
       "urlImage": "https://images.unsplash.com/photo-1560114928-40f1f1eb26a0?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -85,20 +85,22 @@
     },
     {
       "id": 8,
+      "idCard": 8,
       "idCreator": 1,
-      "idTextCopyright": 17,
-      "idTextDescription": 11,
+      "idTextCopyright": 100,
+      "idTextDescription": 99,
       "idTextTitle": 11,
-      "linkCopyright": "https://unsplash.com/photos/marble-statue-of-a-man-holding-a-spear--RKuvCizV_U",
+      "linkCopyright": "https://unsplash.com/photos/person-jumping-on-big-rock-under-gray-and-white-sky-during-daytime-Zdf3zn5XXtU",
       "styleImageLarge": "ob-c-20 mah",
-      "urlImage": "https://images.unsplash.com/photo-1763336137673-3af11450cd97?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "urlImage": "https://images.unsplash.com/photo-1517984922331-8dbaa8ffa9c1?q=80&w=688&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "f6f9ae3e-0240-463c-ac17-b5f0241e9b78"
     },
     {
       "id": 9,
+      "idCard": 9,
       "idCreator": 1,
       "idTextCopyright": 15,
-      "idTextDescription": 12,
+      "idTextDescription": 88,
       "idTextTitle": 12,
       "linkCopyright": "https://unsplash.com/photos/man-holding-archer-statue-Bc5LK1XqbCc",
       "urlImage": "https://images.unsplash.com/photo-1562008752-2459495a0c05?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -106,18 +108,18 @@
     },
     {
       "id": 10,
+      "idCard": 10,
       "idCreator": 1,
-      "idTextCopyright": 16,
-      "idTextDescription": 13,
+      "idTextCopyright": 90,
+      "idTextDescription": 89,
       "idTextTitle": 13,
-      "linkCopyright": "https://unsplash.com/photos/a-stone-statue-of-a-nobleman-q7KrtE02MsU",
+      "linkCopyright": "https://unsplash.com/photos/pensive-young-man-with-long-hair-against-a-blurred-background-QHb_X2tKcQs",
       "styleImageLarge": "ob-c-20 mah",
-      "urlImage": "https://images.unsplash.com/photo-1743956863805-aa1032858456?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "urlImage": "https://images.unsplash.com/photo-1783008242014-bec469c4ee89?q=80&w=1437&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "c83b60d8-72be-4b5c-9ab8-6bff234f3df6"
     },
     {
       "id": 11,
-      "idCard": 11,
       "idCreator": 1,
       "idTextCopyright": 56,
       "idTextDescription": 57,
@@ -136,7 +138,6 @@
     },
     {
       "id": 13,
-      "idCard": 13,
       "idCreator": 1,
       "idTextCopyright": 35,
       "idTextDescription": 34,
@@ -147,7 +148,6 @@
     },
     {
       "id": 14,
-      "idCard": 14,
       "idCreator": 1,
       "idTextCopyright": 52,
       "idTextDescription": 53,
@@ -158,7 +158,6 @@
     },
     {
       "id": 15,
-      "idCard": 15,
       "idCreator": 1,
       "idTextCopyright": 54,
       "idTextDescription": 55,
@@ -169,7 +168,6 @@
     },
     {
       "id": 16,
-      "idCard": 16,
       "idCreator": 1,
       "idTextCopyright": 36,
       "idTextDescription": 37,
@@ -180,7 +178,6 @@
     },
     {
       "id": 17,
-      "idCard": 17,
       "idCreator": 1,
       "idTextCopyright": 41,
       "idTextDescription": 38,
@@ -191,7 +188,6 @@
     },
     {
       "id": 18,
-      "idCard": 18,
       "idCreator": 1,
       "idTextCopyright": 40,
       "idTextDescription": 39,
@@ -202,7 +198,6 @@
     },
     {
       "id": 19,
-      "idCard": 19,
       "idCreator": 1,
       "idTextCopyright": 45,
       "idTextDescription": 43,
@@ -213,7 +208,6 @@
     },
     {
       "id": 20,
-      "idCard": 20,
       "idCreator": 1,
       "idTextCopyright": 44,
       "idTextDescription": 42,
@@ -224,11 +218,9 @@
     },
     {
       "id": 21,
-      "idCard": 21,
       "idCreator": 1,
       "idTextCopyright": 51,
       "idTextDescription": 50,
-      "idTextName": 48,
       "idTextTitle": 48,
       "linkCopyright": "https://unsplash.com/photos/retro-video-game-controller-joystick-and-cartridges-spxFE2JVuuE",
       "urlImage": "https://plus.unsplash.com/premium_photo-1774404554602-4880b2aaf200?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -236,31 +228,25 @@
     },
     {
       "id": 22,
-      "idCard": 22,
       "idCreator": 1,
       "idTextCopyright": 3,
       "idTextDescription": 49,
-      "idTextName": 49,
       "idTextTitle": 49,
       "uuid": "79baa3a6-b568-4912-923c-0d276f77ec6e"
     },
     {
       "id": 23,
-      "idCard": 23,
       "idCreator": 1,
       "idTextCopyright": 3,
       "idTextDescription": 58,
-      "idTextName": 58,
       "idTextTitle": 58,
       "uuid": "5fb112f5-71a9-4575-9ae7-5fcbc284cf15"
     },
     {
       "id": 24,
-      "idCard": 24,
       "idCreator": 1,
       "idTextCopyright": 61,
       "idTextDescription": 62,
-      "idTextName": 59,
       "idTextTitle": 59,
       "linkCopyright": "https://unsplash.com/photos/a-dark-cave-with-dramatic-lighting-on-rock-formations-haJPdw3EaOU",
       "urlImage": "https://images.unsplash.com/photo-1771690288831-385afcdd6b7a?q=80&w=1332&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -268,11 +254,9 @@
     },
     {
       "id": 25,
-      "idCard": 25,
       "idCreator": 1,
       "idTextCopyright": 64,
       "idTextDescription": 63,
-      "idTextName": 60,
       "idTextTitle": 60,
       "linkCopyright": "https://unsplash.com/photos/a-small-boat-sits-in-a-dry-muddy-riverbed-SnXQ2fvNMew",
       "urlImage": "https://images.unsplash.com/photo-1759929549150-630ef273d747?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -280,11 +264,9 @@
     },
     {
       "id": 26,
-      "idCard": 26,
       "idCreator": 1,
       "idTextCopyright": 69,
       "idTextDescription": 68,
-      "idTextName": 67,
       "idTextTitle": 67,
       "linkCopyright": "https://unsplash.com/photos/a-very-tall-building-with-a-bunch-of-vines-growing-out-of-it--j_Hff-r_Os",
       "urlImage": "https://images.unsplash.com/photo-1650293375771-6a6adc2ea0e5?q=80&w=686&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -292,11 +274,9 @@
     },
     {
       "id": 27,
-      "idCard": 27,
       "idCreator": 1,
       "idTextCopyright": 72,
       "idTextDescription": 71,
-      "idTextName": 70,
       "idTextTitle": 70,
       "linkCopyright": "https://unsplash.com/photos/a-small-animal-in-the-grass-qBj7yGTNQDg",
       "urlImage": "https://images.unsplash.com/photo-1667504888877-3cf46ba26ecc?q=80&w=1458&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -304,11 +284,9 @@
     },
     {
       "id": 28,
-      "idCard": 28,
       "idCreator": 1,
       "idTextCopyright": 75,
       "idTextDescription": 74,
-      "idTextName": 73,
       "idTextTitle": 73,
       "linkCopyright": "https://unsplash.com/photos/a-wooden-carriage-with-wheels-WHx_LYTRDLY",
       "urlImage": "https://images.unsplash.com/photo-1668998909680-7de5ab598be2?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -316,11 +294,9 @@
     },
     {
       "id": 29,
-      "idCard": 29,
       "idCreator": 1,
       "idTextCopyright": 78,
       "idTextDescription": 77,
-      "idTextName": 76,
       "idTextTitle": 76,
       "linkCopyright": "https://unsplash.com/photos/scattered-playing-cards-9SewS6lowEU",
       "urlImage": "https://images.unsplash.com/photo-1501003878151-d3cb87799705?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -328,11 +304,9 @@
     },
     {
       "id": 30,
-      "idCard": 30,
       "idCreator": 1,
       "idTextCopyright": 81,
       "idTextDescription": 80,
-      "idTextName": 79,
       "idTextTitle": 79,
       "linkCopyright": "https://unsplash.com/photos/scattered-playing-cards-9SewS6lowEU",
       "urlImage": "https://images.unsplash.com/photo-1501003878151-d3cb87799705?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -340,11 +314,9 @@
     },
     {
       "id": 31,
-      "idCard": 31,
       "idCreator": 1,
       "idTextCopyright": 84,
       "idTextDescription": 83,
-      "idTextName": 82,
       "idTextTitle": 82,
       "linkCopyright": "https://unsplash.com/photos/geographical-map-sketch-HA0Rgl-ISko",
       "urlImage": "https://images.unsplash.com/photo-1567910640027-4029c4d8e9e0?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -352,11 +324,9 @@
     },
     {
       "id": 32,
-      "idCard": 32,
       "idCreator": 1,
       "idTextCopyright": 87,
       "idTextDescription": 86,
-      "idTextName": 85,
       "idTextTitle": 85,
       "linkCopyright": "https://unsplash.com/photos/antique-map-showing-bodensee-and-surrounding-mountains-Si3RnI6z_js",
       "urlImage": "https://images.unsplash.com/photo-1730314737143-b2c82d2877f2?q=80&w=695&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
@@ -364,40 +334,157 @@
     },
     {
       "id": 33,
-      "idCard": 33,
       "idCreator": 1,
       "idTextCopyright": 3,
       "idTextDescription": 82,
-      "idTextName": 82,
       "idTextTitle": 82,
       "uuid": "038b9636-ffab-40de-9623-7cb06b0d27c2"
     },
     {
       "id": 34,
-      "idCard": 34,
       "idCreator": 1,
       "idTextCopyright": 3,
       "idTextDescription": 82,
-      "idTextName": 82,
       "idTextTitle": 82,
       "uuid": "1e20589e-5f07-478e-af38-7d69e65122cf"
+    },
+    {
+      "id": 35,
+      "idCard": 35,
+      "idCreator": 1,
+      "idTextCopyright": 94,
+      "idTextDescription": 93,
+      "idTextName": 91,
+      "idTextTitle": 91,
+      "linkCopyright": "https://unsplash.com/photos/a-woman-with-red-hair-sitting-on-a-tree-branch-SEZztBBI_VY",
+      "urlImage": "https://images.unsplash.com/photo-1709428654359-7f86a9f44b7c?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "4769c817-5d90-44f4-a9f7-95db1da215d0"
+    },
+    {
+      "id": 36,
+      "idCard": 36,
+      "idCreator": 1,
+      "idTextCopyright": 96,
+      "idTextDescription": 95,
+      "idTextName": 92,
+      "idTextTitle": 92,
+      "linkCopyright": "https://unsplash.com/photos/a-man-with-a-bow-and-arrow-standing-in-front-of-a-wooden-fence-YzBgfEwBF6U",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1698168910066-744b6737b714?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "41759c49-ba81-426a-af9f-4236260f5c8b"
+    },
+    {
+      "id": 37,
+      "idCard": 37,
+      "idCreator": 1,
+      "idTextCopyright": 102,
+      "idTextDescription": 101,
+      "idTextName": 97,
+      "idTextTitle": 97,
+      "linkCopyright": "https://unsplash.com/photos/red-fox-Yu-qayee34c",
+      "urlImage": "https://images.unsplash.com/photo-1480472684115-4966367dde1d?q=80&w=1472&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "39d3c270-386d-46de-9e91-3af8334f9594"
+    },
+    {
+      "id": 38,
+      "idCard": 38,
+      "idCreator": 1,
+      "idTextCopyright": 104,
+      "idTextDescription": 103,
+      "idTextName": 98,
+      "idTextTitle": 98,
+      "linkCopyright": "https://unsplash.com/photos/woman-appears-to-hold-the-sun-above-the-clouds-NLRTAt4ui7w",
+      "urlImage": "https://images.unsplash.com/photo-1741714296684-b6deb20e9a0e?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "c49d3bf0-0d2d-4826-95b1-f753a1fed1fe"
+    },
+    {
+      "id": 39,
+      "idCard": 39,
+      "idCreator": 1,
+      "idTextCopyright": 124,
+      "idTextDescription": 123,
+      "idTextName": 108,
+      "idTextTitle": 108,
+      "linkCopyright": "https://unsplash.com/photos/winding-dirt-path-in-mountain-landscape-gAnK6dctRJg",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1790445728443-b143a62f0eca?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "a010d59d-83dc-4b56-b88b-4d1f010cb7fe"
+    },
+    {
+      "id": 40,
+      "idCard": 40,
+      "idCreator": 1,
+      "idTextCopyright": 111,
+      "idTextDescription": 110,
+      "idTextName": 109,
+      "idTextTitle": 109,
+      "linkCopyright": "https://unsplash.com/photos/brown-bear-on-tree-branch-during-daytime-WvwH82-uX_Q",
+      "urlImage": "https://images.unsplash.com/photo-1604429860647-58a940b46855?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "d76742b1-83b3-414e-be3e-0f102d5a5cdd"
+    },
+    {
+      "id": 41,
+      "idCard": 41,
+      "idCreator": 1,
+      "idTextCopyright": 114,
+      "idTextDescription": 113,
+      "idTextName": 112,
+      "idTextTitle": 112,
+      "linkCopyright": "https://unsplash.com/photos/a-black-yak-grazes-in-a-forest-with-ferns-FHnG-V1jCD8",
+      "urlImage": "https://images.unsplash.com/photo-1769897718017-2a93353a46a2?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "0bd3e300-cb8d-4636-a9bd-e01f2cc8d4a4"
+    },
+    {
+      "id": 42,
+      "idCard": 42,
+      "idCreator": 1,
+      "idTextCopyright": 117,
+      "idTextDescription": 116,
+      "idTextName": 115,
+      "idTextTitle": 115,
+      "linkCopyright": "https://unsplash.com/photos/a-group-of-brown-bears-walking-through-a-forest-yHeZk93WnCI",
+      "urlImage": "https://images.unsplash.com/photo-1677729293210-80899dc9823a?q=80&w=1469&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "3254e758-49be-4845-a683-8c7bb31b6bbd"
+    },
+    {
+      "id": 43,
+      "idCard": 43,
+      "idCreator": 1,
+      "idTextCopyright": 126,
+      "idTextDescription": 121,
+      "idTextName": 119,
+      "idTextTitle": 119,
+      "linkCopyright": "https://unsplash.com/photos/a-black-yak-grazes-in-a-forest-with-ferns-FHnG-V1jCD8",
+      "urlImage": "https://images.unsplash.com/photo-1769897718017-2a93353a46a2?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "740439a0-5a44-477c-b223-02bfc77b51c2"
+    },
+    {
+      "id": 44,
+      "idCard": 44,
+      "idCreator": 1,
+      "idTextCopyright": 125,
+      "idTextDescription": 122,
+      "idTextName": 120,
+      "idTextTitle": 120,
+      "linkCopyright": "https://unsplash.com/photos/mother-bear-protects-her-three-little-puppies-in-the-finnish-taiga-iYFeRDgGzwI",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1661878515974-9455f7e283de?q=80&w=1332&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "caea4317-ffc8-44ed-bb3f-4102e0391088"
     }
   ],
   "category": "Adventure",
   "characterTemplateCount": 1,
   "characterTemplates": [
     {
-      "constitutionStart": 1,
-      "dexterityStart": 1,
-      "energyMax": 1,
+      "constitutionStart": "",
+      "dexterityStart": "",
+      "energyMax": 12,
       "id": 1,
       "idCard": 10,
-      "idTextDescription": 13,
+      "idTextDescription": 89,
       "idTextName": 13,
+      "id_card": 10,
       "id_tipo": 1,
       "intelligenceStart": 1,
-      "lifeMax": 1,
-      "sadMax": 1,
+      "lifeMax": 9,
+      "sadMax": 9,
       "texts": {
         "en": {
           "description": "Male",
@@ -405,6 +492,30 @@
         }
       },
       "uuid": "049b500e-2641-4c77-a827-d7424c673370"
+    },
+    {
+      "dexterityStart": 1,
+      "energyMax": 9,
+      "id": 2,
+      "idCard": 35,
+      "idTextDescription": 93,
+      "idTextName": 91,
+      "id_card": 35,
+      "lifeMax": 9,
+      "sadMax": 12,
+      "uuid": "4f5e1e11-f1da-494d-ab77-a9f1f311920e"
+    },
+    {
+      "constitutionStart": 1,
+      "energyMax": 9,
+      "id": 3,
+      "idCard": 36,
+      "idTextDescription": 95,
+      "idTextName": 92,
+      "id_card": 36,
+      "lifeMax": 12,
+      "sadMax": 9,
+      "uuid": "0a36cf5e-4078-430a-a6ce-1768ed92c04d"
     }
   ],
   "choiceConditions": [
@@ -477,6 +588,28 @@
       "statistics": "",
       "uuid": "efa0f303-b703-4595-8a4f-0f921cd8c7c8",
       "value": ""
+    },
+    {
+      "id": 5,
+      "idCard": 43,
+      "idChoices": 5,
+      "idScelta": 5,
+      "idTextName": 119,
+      "id_card": 43,
+      "statistics": "SAD",
+      "uuid": "b288bf2c-79c0-4e98-bda2-84726b9cdd0d",
+      "value": 2
+    },
+    {
+      "id": 6,
+      "idCard": 44,
+      "idChoices": 6,
+      "idScelta": 6,
+      "idTextName": 120,
+      "id_card": 44,
+      "statistics": "SAD",
+      "uuid": "257afb57-533e-491c-bc81-e2cd9dfeabff",
+      "value": -1
     }
   ],
   "choices": [
@@ -517,19 +650,38 @@
       "id_card": 31,
       "priority": 2,
       "uuid": "8e21ca66-fbdd-42b4-8d50-4beed84220c8"
+    },
+    {
+      "id": 5,
+      "idCard": 41,
+      "idEvent": 8,
+      "idTextName": 112,
+      "idTextNarrative": 112,
+      "priority": 1,
+      "uuid": "e23197c9-ef5a-4223-9bd1-2c9a0676a4e2"
+    },
+    {
+      "id": 6,
+      "idCard": 42,
+      "idEvent": 8,
+      "idTextName": 115,
+      "idTextNarrative": 115,
+      "priority": 2,
+      "uuid": "98999e10-0479-4ab4-9217-cc1554481150"
     }
   ],
   "classBonuses": [],
   "classCount": 1,
   "classes": [
     {
-      "constitutionBase": 1,
-      "dexterityBase": 1,
+      "constitutionBase": 10,
+      "dexterityBase": 10,
       "id": 1,
       "idCard": 9,
-      "idTextDescription": 12,
+      "idTextDescription": 88,
       "idTextName": 12,
-      "intelligenceBase": 1,
+      "id_card": 9,
+      "intelligenceBase": 10,
       "texts": {
         "en": {
           "description": "Hunt",
@@ -537,7 +689,7 @@
         }
       },
       "uuid": "08b56f32-b6df-44e8-abc7-e2672981f941",
-      "weightMax": 1
+      "weightMax": 10
     }
   ],
   "clockPluralDescription": "Clocks",
@@ -561,9 +713,8 @@
       "expCostBase": 0,
       "id": 1,
       "idCard": 5,
-      "idTextDescription": 8,
+      "idTextDescription": 105,
       "idTextName": 8,
-      "id_card": 5,
       "intelligence": 0,
       "life": 0,
       "maxCharacter": 0,
@@ -590,9 +741,8 @@
       "expCostBase": 0,
       "id": 2,
       "idCard": 6,
-      "idTextDescription": 9,
+      "idTextDescription": 106,
       "idTextName": 9,
-      "id_card": 6,
       "intelligence": 0,
       "life": 0,
       "maxCharacter": 0,
@@ -619,9 +769,8 @@
       "expCostBase": 0,
       "id": 3,
       "idCard": 7,
-      "idTextDescription": 10,
+      "idTextDescription": 107,
       "idTextName": 10,
-      "id_card": 7,
       "intelligence": 0,
       "life": 0,
       "maxCharacter": 0,
@@ -640,7 +789,7 @@
       "weight": 10
     }
   ],
-  "eventCount": 3,
+  "eventCount": 7,
   "eventEffects": [
     {
       "id": 1,
@@ -696,10 +845,10 @@
     {
       "card": {
         "copyrightText": "Crawford Jolly",
-        "description": "Complete the Paths",
+        "description": "The ink dries upon the final page, closing the book on this grand tale.<br />\n<br />\nUse this action only when you wish to conclude your current story and begin a new one. All progress for this journey will be saved and archived.",
         "linkCopyright": "https://unsplash.com/photos/white-brick-wall-with-black-and-white-graffiti-BjQTmNKlawg",
         "styleImageLarge": "ob-b",
-        "title": "Complete the Paths",
+        "title": "Complete Story",
         "urlImage": "https://images.unsplash.com/photo-1582148818753-2b63c7785867?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         "uuid": "d311a594-ec2e-4abb-b6c3-df8221dc452e"
       },
@@ -716,9 +865,11 @@
     },
     {
       "card": {
-        "copyrightText": "Damian Siodłak",
-        "description": "Ronini tavern",
+        "copyrightText": "Peter Herrmann",
+        "description": "Faint hearthlight pours through grease-stained windows, welcoming you with the warm aroma of roasted meats and spiced ale. Amidst the low hum of chatter, a quiet corner offers a moment of rest.<br />\n<br />\nYou find a small tavern where you can drink something.",
+        "linkCopyright": "https://unsplash.com/photos/brown-wooden-table-with-chairs-YdKhL_Wnpg4",
         "title": "Ronini tavern",
+        "urlImage": "https://images.unsplash.com/photo-1621618658133-5c496b2fe4b0?q=80&w=1472&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         "uuid": "8f0e0f64-c8f9-45d6-9ce4-9a060ba7812c"
       },
       "costCoin": 1,
@@ -735,9 +886,11 @@
     },
     {
       "card": {
-        "copyrightText": "Damian Siodłak",
-        "description": "Help Fishermen",
-        "title": "Help Fishermen",
+        "copyrightText": "Ama Journey",
+        "description": "Worn-out nets lie tangled on the docks as the local fishermen cast weary glances toward the horizon.<br />\n<br />\nou have encountered fishermen in need of assistance.",
+        "linkCopyright": "https://unsplash.com/photos/wooden-boats-docked-by-a-lush-green-landscape-and-mountains-bqZopEAMEyg",
+        "title": "Helping fishermen",
+        "urlImage": "https://images.unsplash.com/photo-1759853927406-ab9d017808bf?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         "uuid": "d4f20551-19f3-4045-b5d3-4ccbddc1664a"
       },
       "costEnery": 1,
@@ -752,6 +905,14 @@
       "uuid": "45af070a-87a1-4212-8dca-93769b44c9ea"
     },
     {
+      "card": {
+        "copyrightText": "Pablo Merchán Montes",
+        "description": "The realm fades into shadow as your strength wanes, leaving behind only the quiet echo of a journey ended. Darkness claims the realm, sealing your fate and drawing the curtain on your legend.<br />\n<br />\nYour journey has ended and your health is depleted. You may restart the game.",
+        "linkCopyright": "https://unsplash.com/photos/retro-video-game-controller-joystick-and-cartridges-spxFE2JVuuE",
+        "title": "Game over",
+        "urlImage": "https://plus.unsplash.com/premium_photo-1774404554602-4880b2aaf200?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "uuid": "a91d3c28-9b47-4df9-86d2-e99d4201369c"
+      },
       "id": 4,
       "idCard": 21,
       "idTextDescription": 48,
@@ -761,9 +922,18 @@
       "uuid": "6cd09901-cb10-4a84-869a-5f40e7138669"
     },
     {
+      "card": {
+        "copyrightText": "Youssef Mubarak",
+        "description": "Foul winds seep from the damp earth, bringing the stench of decay from the abyss below. Whispers among the locals warn of a terrifying creature lurking in the dark subterranean depths.<br />\n<br />\nIt is rumored that a monster lives in this area, having built its lair underground. Explore the subterranean location to face the creature.",
+        "linkCopyright": "https://unsplash.com/photos/a-dark-cave-with-dramatic-lighting-on-rock-formations-haJPdw3EaOU",
+        "title": "Monster's Lair",
+        "urlImage": "https://images.unsplash.com/photo-1771690288831-385afcdd6b7a?q=80&w=1332&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "uuid": "01d58750-8834-4900-9cbc-19a753e836fa"
+      },
       "costEnery": 3,
       "id": 5,
       "idCard": 24,
+      "idLocation": 2,
       "idSpecificLocation": 2,
       "idTextDescription": 59,
       "idTextName": 59,
@@ -772,9 +942,18 @@
       "uuid": "64f19eaf-776c-466f-bfb3-f3a533cb7f3b"
     },
     {
+      "card": {
+        "copyrightText": "Natalia Marcelewicz",
+        "description": "An icy chill grips the air as saltwater trickles from the floorboards, defying the dry heat outside. Mournful whispers echo from the shadows, where lost sailors still cling to the cargo they died to deliver.<br />\n<br />\nA local warehouse is rumored to be haunted by the spirits of drowned sailors. You are requested to cleanse the area of spectral threats.",
+        "linkCopyright": "https://unsplash.com/photos/a-very-tall-building-with-a-bunch-of-vines-growing-out-of-it--j_Hff-r_Os",
+        "title": "Haunted Warehouse",
+        "urlImage": "https://images.unsplash.com/photo-1650293375771-6a6adc2ea0e5?q=80&w=686&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "uuid": "67dd53c5-0524-44b8-b3da-af140acf2d2e"
+      },
       "costEnery": 1,
       "id": 6,
       "idCard": 26,
+      "idLocation": 2,
       "idSpecificLocation": 2,
       "idTextDescription": 68,
       "idTextName": 67,
@@ -782,16 +961,36 @@
       "uuid": "eeaa3e25-8749-4ef1-9fff-c56e72c08dea"
     },
     {
+      "card": {
+        "copyrightText": "Stefanos Nt",
+        "description": "Behind a counter stacked with exotic wares, a keen-eyed trader pauses to study you with a knowing smile. Years of traveling these roads have left him with a treasure trove of secrets, provided you have the patience to listen.<br />\n<br />\nYou meet a merchant who possesses extensive knowledge of the area. Speak with him to obtain useful information and navigation tips.",
+        "linkCopyright": "https://unsplash.com/photos/a-wooden-carriage-with-wheels-WHx_LYTRDLY",
+        "title": "Merchant",
+        "urlImage": "https://images.unsplash.com/photo-1668998909680-7de5ab598be2?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "uuid": "2ffde0b6-d718-4540-95ce-a34607e85aae"
+      },
       "costCoin": 1,
       "costEnery": "",
       "id": 7,
       "idCard": 28,
+      "idLocation": 2,
       "idSpecificLocation": 2,
       "idTextDescription": 74,
       "idTextName": 73,
       "id_card": 28,
       "type": "NORMAL",
       "uuid": "4f784bae-44f2-4192-ad1f-c05cafb1758a"
+    },
+    {
+      "costEnery": 1,
+      "id": 8,
+      "idCard": 40,
+      "idSpecificLocation": 4,
+      "idTextDescription": 110,
+      "idTextName": 109,
+      "id_card": 40,
+      "type": "ONCE",
+      "uuid": "9a6469e0-8d25-4fcb-8140-ef121d2e7a87"
     }
   ],
   "globalRandomEvents": [],
@@ -809,14 +1008,14 @@
   "idTextCopyright": 3,
   "idTextDescription": 0,
   "idTextTitle": 1,
-  "itemCount": 0,
+  "itemCount": 1,
   "itemEffects": [],
   "items": [
     {
       "flagShowEffects": 1,
       "id": 1,
       "idCard": 32,
-      "idTextDescription": 85,
+      "idTextDescription": 86,
       "idTextName": 85,
       "id_card": 32,
       "maxPerCharacter": 1,
@@ -854,7 +1053,7 @@
     }
   ],
   "linkCopyright": "https://paths.games/?policy=roadmap",
-  "locationCount": 2,
+  "locationCount": 3,
   "locationNeighbors": [
     {
       "direction": "NORTH",
@@ -863,15 +1062,23 @@
       "idLocationFrom": 1,
       "idLocationTo": 2,
       "uuid": "f65ea772-e8d5-4be0-8388-6c9af303db89"
+    },
+    {
+      "direction": "SOUTH",
+      "flagBack": 1,
+      "id": 2,
+      "idLocationFrom": 1,
+      "idLocationTo": 4,
+      "uuid": "431862fe-4596-43d8-8c88-c405863d5596"
     }
   ],
   "locations": [
     {
       "card": {
         "copyrightText": "Damian Siodłak",
-        "description": "Location start",
+        "description": "The wind carries the scent of distant lands as you take your first step into the unknown. Boundless horizons stretch out before you, waiting to be shaped by your deeds.<br />\n<br />\nThis is your starting point, where your adventure across this endless world begins.",
         "linkCopyright": "https://unsplash.com/photos/gray-concrete-road-in-between-green-trees-during-daytime-KyCzR06ypjI",
-        "title": "Location start",
+        "title": "A new journey",
         "urlImage": "https://images.unsplash.com/photo-1604582703892-ae39b465fedc?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         "uuid": "7b876dde-3346-454e-ac78-37b6b899bb94"
       },
@@ -885,9 +1092,11 @@
     },
     {
       "card": {
-        "copyrightText": "Damian Siodłak",
-        "description": "Ronini Village",
-        "title": "Ronini Village",
+        "copyrightText": "Yada Pongsirirushakun",
+        "description": "The salty sea breeze carries the creak of wooden docks and the gentle lull of waves against resting boats. Simple homes line the shore, where seasoned sailors share tall tales of the deep.<br />\n<br />\nYou have arrived at a quiet fishing village. Explore the docks and talk to locals to uncover rumors, side quests, and trade opportunities.",
+        "linkCopyright": "https://unsplash.com/photos/a-dock-with-boats-and-a-building-on-it-5S0VFmYp5tI",
+        "title": "Fishermen's Village",
+        "urlImage": "https://images.unsplash.com/photo-1655815856474-56b5cae93b91?q=80&w=1457&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         "uuid": "82487c32-92f6-4181-a448-e265a188ddfa"
       },
       "costEnergyEnter": 0,
@@ -899,12 +1108,29 @@
       "uuid": "3881db50-3dbb-460e-84c9-2997218b0e2a"
     },
     {
+      "card": {
+        "copyrightText": "Pablo Merchán Montes",
+        "description": "The realm fades into shadow as your strength wanes, leaving behind only the quiet echo of a journey ended. Darkness claims the realm, sealing your fate and drawing the curtain on your legend.<br />\n<br />\nYour journey has ended and your health is depleted. You may restart the game.",
+        "linkCopyright": "https://unsplash.com/photos/retro-video-game-controller-joystick-and-cartridges-spxFE2JVuuE",
+        "title": "Game over",
+        "urlImage": "https://plus.unsplash.com/premium_photo-1774404554602-4880b2aaf200?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "uuid": "a91d3c28-9b47-4df9-86d2-e99d4201369c"
+      },
       "id": 3,
       "idCard": 21,
       "idTextDescription": 46,
       "idTextName": 46,
       "id_card": 21,
       "uuid": "d10d460d-fb41-4ffe-8abe-57e21583f0f5"
+    },
+    {
+      "costEnergyEnter": 2,
+      "id": 4,
+      "idCard": 39,
+      "idTextDescription": 108,
+      "idTextName": 108,
+      "id_card": 39,
+      "uuid": "648c395c-6a2d-46c8-a3e4-52a97a9d5fc0"
     }
   ],
   "missionSteps": [],
@@ -1018,8 +1244,8 @@
       "idText": 11,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Hero",
-      "shortText": "Hero",
+      "longText": "Brave",
+      "shortText": "Brave",
       "uuid": "eb530c3d-7794-455c-b7fc-ca43f9894778"
     },
     {
@@ -1028,8 +1254,8 @@
       "idText": 12,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Hunt",
-      "shortText": "Hunt",
+      "longText": "Hunter",
+      "shortText": "Hunter",
       "uuid": "390d337f-3681-4bf1-9a92-bf8d62083ada"
     },
     {
@@ -1038,8 +1264,8 @@
       "idText": 13,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Male",
-      "shortText": "Male",
+      "longText": "Young",
+      "shortText": "Young",
       "uuid": "399a1c36-c931-4006-8ec6-fe87166d7d5c"
     },
     {
@@ -2321,25 +2547,705 @@
       "longText": "",
       "shortText": "",
       "uuid": "4047455a-fffb-4584-9358-da6192bb7998"
+    },
+    {
+      "id": 12,
+      "idCreator": 1,
+      "idText": 12,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Cacciatore",
+      "shortText": "Cacciatore",
+      "uuid": "3e19bcdf-016e-44eb-86a0-1f0c0120ce4f"
+    },
+    {
+      "id": 88,
+      "idCreator": 1,
+      "idText": 88,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "A solitary stalker of the wilds, you rely on sharp instincts and unwavering patience to survive. The wilderness shows no mercy, but in its shadows, you reign supreme.<br />\n<br />\nThis adventure features the Hunter class exclusively. However, you can fully customize your character using various traits and features.",
+      "shortText": "A solitary stalker of the wilds, you rely on sharp instincts and unwavering patience to survive. The wilderness shows no mercy, but in its shadows, you reign supreme.<br />\n<br />\nThis adventure features the Hunter class exclusively. However, you can fully customize your character using various traits and features.",
+      "uuid": "22612f39-06a3-44a9-acee-fb5757a1a528"
+    },
+    {
+      "id": 88,
+      "idCreator": 1,
+      "idText": 88,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Cacciatore solitario delle terre selvagge, ti affidi a un istinto acuto e a una pazienza incrollabile per sopravvivere. La natura non mostra alcuna clemenza, ma nelle sue ombre sei tu a dominare.<br />\n<br />\nQuesta avventura prevede esclusivamente la classe Cacciatore. È comunque possibile personalizzare il personaggio selezionando diversi tratti e caratteristiche.",
+      "shortText": "Cacciatore solitario delle terre selvagge, ti affidi a un istinto acuto e a una pazienza incrollabile per sopravvivere. La natura non mostra alcuna clemenza, ma nelle sue ombre sei tu a dominare.<br />\n<br />\nQuesta avventura prevede esclusivamente la classe Cacciatore. È comunque possibile personalizzare il personaggio selezionando diversi tratti e caratteristiche.",
+      "uuid": "3d43dbe1-1205-4be7-85af-9d47ccf9d2a6"
+    },
+    {
+      "id": 13,
+      "idCreator": 1,
+      "idText": 13,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Giovane",
+      "shortText": "Giovane",
+      "uuid": "74f95859-4215-4f83-944a-3fdb55a61440"
+    },
+    {
+      "id": 89,
+      "idCreator": 1,
+      "idText": 89,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The fire of youth burns bright in your chest, unburdened by the scars of past defeats. What you lack in hard-earned wisdom, you more than make up for with relentless drive.<br />\n<br />\nYou are a young and inexperienced hunter, but full of vitality and resourcefulness.",
+      "shortText": "The fire of youth burns bright in your chest, unburdened by the scars of past defeats. What you lack in hard-earned wisdom, you more than make up for with relentless drive.<br />\n<br />\nYou are a young and inexperienced hunter, but full of vitality and resourcefulness.",
+      "uuid": "ac084070-7b7b-4a19-addc-1b52d619d8c0"
+    },
+    {
+      "id": 89,
+      "idCreator": 1,
+      "idText": 89,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Il fuoco della giovinezza brucia ardente nel tuo petto, privo del peso delle sconfitte passate. Ciò che ti manca in saggia esperienza lo compensi con una determinazione incrollabile.<br />\n<br />\nSei un cacciatore giovane e inesperto, ma dotato di grande vitalità e intraprendenza.",
+      "shortText": "Il fuoco della giovinezza brucia ardente nel tuo petto, privo del peso delle sconfitte passate. Ciò che ti manca in saggia esperienza lo compensi con una determinazione incrollabile.<br />\n<br />\nSei un cacciatore giovane e inesperto, ma dotato di grande vitalità e intraprendenza.",
+      "uuid": "5beca9f4-ffaa-4811-90b1-817f0830215f"
+    },
+    {
+      "id": 90,
+      "idCreator": 1,
+      "idText": 90,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Anastasia Pivnenko",
+      "shortText": "Anastasia Pivnenko",
+      "uuid": "84098ebe-d223-4a90-ad7b-42525d550792"
+    },
+    {
+      "id": 90,
+      "idCreator": 1,
+      "idText": 90,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "6f7075ac-1884-4e72-acef-a7ee7dc889bb"
+    },
+    {
+      "id": 91,
+      "idCreator": 1,
+      "idText": 91,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Woman",
+      "shortText": "Woman",
+      "uuid": "65b4a283-0c83-4c0e-bdd8-8cafc9cd35d6"
+    },
+    {
+      "id": 92,
+      "idCreator": 1,
+      "idText": 92,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Man",
+      "shortText": "Man",
+      "uuid": "ea1a99ae-ea48-4746-9f85-c18fd9df2e6f"
+    },
+    {
+      "id": 93,
+      "idCreator": 1,
+      "idText": 93,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "You are a female hunter.<br />\n<br />\nMoving through the undergrowth with silent grace, you perceive the secrets of the woods where others see only danger. Your sharp gaze and steady hands ensure that no prey ever escapes your grasp.",
+      "shortText": "You are a female hunter.<br />\n<br />\nMoving through the undergrowth with silent grace, you perceive the secrets of the woods where others see only danger. Your sharp gaze and steady hands ensure that no prey ever escapes your grasp.",
+      "uuid": "42dabb07-ebe7-49e7-86fe-384db4345046"
+    },
+    {
+      "id": 93,
+      "idCreator": 1,
+      "idText": 93,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Sei una donna cacciatrice.<br />\n<br />\nMuovendoti nel sottobosco con silenziosa grazia, percepisci i segreti della foresta laddove altri vedono solo pericolo. Il tuo sguardo affilato e le tue mani ferme garantiscono che nessuna preda sfugga alla tua presa.",
+      "shortText": "Sei una donna cacciatrice.<br />\n<br />\nMuovendoti nel sottobosco con silenziosa grazia, percepisci i segreti della foresta laddove altri vedono solo pericolo. Il tuo sguardo affilato e le tue mani ferme garantiscono che nessuna preda sfugga alla tua presa.",
+      "uuid": "84389e72-9b52-4eeb-b6f2-d0f0b8ac9961"
+    },
+    {
+      "id": 94,
+      "idCreator": 1,
+      "idText": 94,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Alexander Mass",
+      "shortText": "Alexander Mass",
+      "uuid": "e9f348e6-4b29-4b82-9bd2-c0f68deb3e40"
+    },
+    {
+      "id": 94,
+      "idCreator": 1,
+      "idText": 94,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "523070ce-937a-49d0-a65a-a331cfabbbd5"
+    },
+    {
+      "id": 95,
+      "idCreator": 1,
+      "idText": 95,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "You are a male hunter.<br />\n<br />\nA silent presence in the shadow of the ancient trees, your steps are light and your focus unbreakable. You read the forest like an open book, knowing that every sound could mean survival or danger.",
+      "shortText": "You are a male hunter.<br />\n<br />\nA silent presence in the shadow of the ancient trees, your steps are light and your focus unbreakable. You read the forest like an open book, knowing that every sound could mean survival or danger.",
+      "uuid": "9f05b55d-7385-488d-ac69-f738ffb7b1c9"
+    },
+    {
+      "id": 95,
+      "idCreator": 1,
+      "idText": 95,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Sei un uomo cacciatore.<br />\n<br />\nUna presenza silenziosa all'ombra degli alberi secolari, hai il passo leggero e una concentrazione che nulla può spezzare. Leggi la foresta come un libro aperto, consapevole che ogni minimo rumore può significare la sopravvivenza o il pericolo.",
+      "shortText": "Sei un uomo cacciatore.<br />\n<br />\nUna presenza silenziosa all'ombra degli alberi secolari, hai il passo leggero e una concentrazione che nulla può spezzare. Leggi la foresta come un libro aperto, consapevole che ogni minimo rumore può significare la sopravvivenza o il pericolo.",
+      "uuid": "0ff9e01d-b3bd-4558-a633-2fd169b1346e"
+    },
+    {
+      "id": 96,
+      "idCreator": 1,
+      "idText": 96,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Andrej Lišakov",
+      "shortText": "Andrej Lišakov",
+      "uuid": "56282951-1dd8-4bb4-9464-fafd591481cc"
+    },
+    {
+      "id": 96,
+      "idCreator": 1,
+      "idText": 96,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "d9ad59ad-5fa2-405d-95a3-48b83494cb2b"
+    },
+    {
+      "id": 11,
+      "idCreator": 1,
+      "idText": 11,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Coraggioso",
+      "shortText": "Coraggioso",
+      "uuid": "fac4f615-e711-4f1d-a406-cfb050b0c283"
+    },
+    {
+      "id": 97,
+      "idCreator": 1,
+      "idText": 97,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Cunning",
+      "shortText": "Cunning",
+      "uuid": "63897607-36ab-4325-908c-45375677bed1"
+    },
+    {
+      "id": 98,
+      "idCreator": 1,
+      "idText": 98,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Blessed",
+      "shortText": "Blessed",
+      "uuid": "ed6e8a28-dfd0-406e-93a7-a5490e9e1b1a"
+    },
+    {
+      "id": 99,
+      "idCreator": 1,
+      "idText": 99,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Unwavering courage that fears no danger. An iron will that inspires steadiness even in the most desperate situations.",
+      "shortText": "Unwavering courage that fears no danger. An iron will that inspires steadiness even in the most desperate situations.",
+      "uuid": "7fc04e91-9318-4dd1-996a-79b044934536"
+    },
+    {
+      "id": 99,
+      "idCreator": 1,
+      "idText": 99,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Coraggioso",
+      "shortText": "Coraggioso",
+      "uuid": "8d4ebb33-993f-4988-b222-ec1bb9419464"
+    },
+    {
+      "id": 100,
+      "idCreator": 1,
+      "idText": 100,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Micah & Sammie Chaffin",
+      "shortText": "Micah & Sammie Chaffin",
+      "uuid": "0bbc7557-7d6e-456b-9cae-e2054e62b1d8"
+    },
+    {
+      "id": 100,
+      "idCreator": 1,
+      "idText": 100,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "7bf4fefa-e779-4cc8-be19-5b6ffc1e3874"
+    },
+    {
+      "id": 101,
+      "idCreator": 1,
+      "idText": 101,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "An agile mind and quick reflexes. The ability to turn every situation to your advantage with wit and speed.",
+      "shortText": "An agile mind and quick reflexes. The ability to turn every situation to your advantage with wit and speed.",
+      "uuid": "c5867822-45b6-480f-9665-f16c733e833a"
+    },
+    {
+      "id": 101,
+      "idCreator": 1,
+      "idText": 101,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "df7e8eb1-7cb9-4d2c-8a70-fd47e9433aaa"
+    },
+    {
+      "id": 102,
+      "idCreator": 1,
+      "idText": 102,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Gary Bendig",
+      "shortText": "Gary Bendig",
+      "uuid": "c930208d-bf99-445d-9467-a194213afc33"
+    },
+    {
+      "id": 102,
+      "idCreator": 1,
+      "idText": 102,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "666002c1-54e3-4444-bc8c-c7e9af8c13ca"
+    },
+    {
+      "id": 103,
+      "idCreator": 1,
+      "idText": 103,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Touched by divine grace, you walk under a protective light that mitigates adversity and instills hope.",
+      "shortText": "Touched by divine grace, you walk under a protective light that mitigates adversity and instills hope.",
+      "uuid": "0fbd9cd3-4c89-4221-bd9c-f1183195328c"
+    },
+    {
+      "id": 103,
+      "idCreator": 1,
+      "idText": 103,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "eb4209d4-9599-4916-9d7c-6cd2e6026f91"
+    },
+    {
+      "id": 104,
+      "idCreator": 1,
+      "idText": 104,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Jyothisha R",
+      "shortText": "Jyothisha R",
+      "uuid": "cdb01365-f09f-4fe3-920b-bc54b0703652"
+    },
+    {
+      "id": 104,
+      "idCreator": 1,
+      "idText": 104,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "0bf69d1e-9aa9-48f2-8b02-47688090afb2"
+    },
+    {
+      "id": 105,
+      "idCreator": 1,
+      "idText": 105,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Hard difficulty.<br />\n<br />\nEvery step is a ruthless test of endurance, where even the slightest mistake brings swift demise. Only the most seasoned and unrelenting survivors will endure the unforgiving trials that lie ahead.",
+      "shortText": "Hard difficulty.<br />\n<br />\nEvery step is a ruthless test of endurance, where even the slightest mistake brings swift demise. Only the most seasoned and unrelenting survivors will endure the unforgiving trials that lie ahead.",
+      "uuid": "e4e8331c-7d7f-43ad-9756-48d6a61f01d3"
+    },
+    {
+      "id": 105,
+      "idCreator": 1,
+      "idText": 105,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Difficoltà difficile.<br />\n<br />\nOgni passo è una spietata prova di resistenza, dove anche il minimo errore porta a una rapida fine. Solo i sopravvissuti più esperti e implacabili riusciranno a superare le impervie sfide che li attendono.",
+      "shortText": "Difficoltà difficile.<br />\n<br />\nOgni passo è una spietata prova di resistenza, dove anche il minimo errore porta a una rapida fine. Solo i sopravvissuti più esperti e implacabili riusciranno a superare le impervie sfide che li attendono.",
+      "uuid": "62b111e6-9670-4387-a578-2ec61068fe1f"
+    },
+    {
+      "id": 106,
+      "idCreator": 1,
+      "idText": 106,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Medium difficulty.<br />\n<br />\nA balanced path where every encounter tests your skills without sealing your fate in an instant. Triumph requires careful planning and a steady hand, yet leaves room to learn from your mistakes.",
+      "shortText": "Medium difficulty.<br />\n<br />\nA balanced path where every encounter tests your skills without sealing your fate in an instant. Triumph requires careful planning and a steady hand, yet leaves room to learn from your mistakes.",
+      "uuid": "97fd814f-4d00-47cc-960d-e2c054a2b2de"
+    },
+    {
+      "id": 106,
+      "idCreator": 1,
+      "idText": 106,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Difficoltà media.<br />\n<br />\nUn cammino equilibrato in cui ogni scontro mette alla prova le tue abilità senza condannarti all'istante. Il trionfo richiede un'attenta pianificazione e una mano ferma, lasciando comunque spazio per imparare dai propri errori.",
+      "shortText": "Difficoltà media.<br />\n<br />\nUn cammino equilibrato in cui ogni scontro mette alla prova le tue abilità senza condannarti all'istante. Il trionfo richiede un'attenta pianificazione e una mano ferma, lasciando comunque spazio per imparare dai propri errori.",
+      "uuid": "9bc9a7d8-8020-47c4-9962-9891404c31f6"
+    },
+    {
+      "id": 107,
+      "idCreator": 1,
+      "idText": 107,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Easy difficulty.<br />\n<br />\nA gentle path where the perils of the wilds feel distant, allowing you to find your footing and explore without fear. Your journey is forgiving, offering plenty of room to learn the ways of the hunt.",
+      "shortText": "Easy difficulty.<br />\n<br />\nA gentle path where the perils of the wilds feel distant, allowing you to find your footing and explore without fear. Your journey is forgiving, offering plenty of room to learn the ways of the hunt.",
+      "uuid": "d4a1f65e-04a1-4b33-a6e2-3606be693612"
+    },
+    {
+      "id": 107,
+      "idCreator": 1,
+      "idText": 107,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Difficoltà facile.<br />\n<br />\nUn cammino indulgente dove i pericoli delle terre selvagge sembrano lontani, permettendoti di trovare il tuo passo ed esplorare senza timore. Il tuo viaggio è clemente, offrendoti ampio spazio per apprendere l'arte della caccia.",
+      "shortText": "Difficoltà facile.<br />\n<br />\nUn cammino indulgente dove i pericoli delle terre selvagge sembrano lontani, permettendoti di trovare il tuo passo ed esplorare senza timore. Il tuo viaggio è clemente, offrendoti ampio spazio per apprendere l'arte della caccia.",
+      "uuid": "705b7bab-dca0-4792-843c-01d8775940e0"
+    },
+    {
+      "id": 108,
+      "idCreator": 1,
+      "idText": 108,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Mountain Landscape",
+      "shortText": "Mountain Landscape",
+      "uuid": "5a54ae0f-9fdf-49fd-9f43-5e03af13d508"
+    },
+    {
+      "id": 109,
+      "idCreator": 1,
+      "idText": 109,
+      "lang": "en",
+      "shortText": "Bear Hunt",
+      "uuid": "a73c65f3-0dad-4bae-b25a-b0794cb58f86"
+    },
+    {
+      "id": 109,
+      "idCreator": 1,
+      "idText": 109,
+      "lang": "it",
+      "shortText": "Caccia all'Orso",
+      "uuid": "63b15928-a2f0-4cc2-a0f3-597d3932d8b2"
+    },
+    {
+      "id": 110,
+      "idCreator": 1,
+      "idText": 110,
+      "lang": "en",
+      "shortText": "Whispers of dread ripple through the village as word of your arrival spreads, carrying desperate pleas for aid. A fearsome bear stalks the surrounding lands, leaving a trail of terror among both villagers and livestock.",
+      "uuid": "99a33046-7032-4c9c-aa79-3e811d3753a1"
+    },
+    {
+      "id": 110,
+      "idCreator": 1,
+      "idText": 110,
+      "lang": "it",
+      "shortText": "Un sussurro di timore si diffonde nel villaggio non appena si sparge la voce del tuo arrivo, accompagnato da disperate richieste d'aiuto. Un orso feroce s'aggira nei dintorni, seminando il terrore tra gli abitanti e il bestiame.",
+      "uuid": "7570f3ca-2e14-4c9c-93d8-13fca33afe2f"
+    },
+    {
+      "id": 111,
+      "idCreator": 1,
+      "idText": 111,
+      "lang": "en",
+      "shortText": "Federico Di Dio",
+      "uuid": "b52a3db6-197a-4aee-8c13-36f8ebfc0bd4"
+    },
+    {
+      "id": 112,
+      "idCreator": 1,
+      "idText": 112,
+      "lang": "en",
+      "shortText": "Slay the Bear",
+      "uuid": "e974614b-4762-412b-9f06-1b60677c4c40"
+    },
+    {
+      "id": 112,
+      "idCreator": 1,
+      "idText": 112,
+      "lang": "it",
+      "shortText": "Uccidi l'Orso",
+      "uuid": "91b02230-dd98-43bb-b49d-52d0818418c6"
+    },
+    {
+      "id": 113,
+      "idCreator": 1,
+      "idText": 113,
+      "lang": "en",
+      "shortText": "Guided by instinct and silence, you track the creature to its dark lair, striking while it is bound in slumber. With a single decisive act, the shadow lifting over the valley marks the end of its reign of terror.",
+      "uuid": "6051de66-4e02-4fcc-86d5-b5cda3a12887"
+    },
+    {
+      "id": 113,
+      "idCreator": 1,
+      "idText": 113,
+      "lang": "it",
+      "shortText": "Guidato dall'istinto e dal silenzio, rintracci la creatura fino alla sua cupa tana, colpendola mentre è ancora immersa nel sonno. Con un unico gesto risolutivo, l'ombra che gravava sulla vallata svanisce per sempre.",
+      "uuid": "918a5ad6-5819-481d-8c84-7bec865a7943"
+    },
+    {
+      "id": 114,
+      "idCreator": 1,
+      "idText": 114,
+      "lang": "en",
+      "shortText": "Tom Nazaret",
+      "uuid": "097d0d96-4595-45a3-876d-5c9f355f5d6c"
+    },
+    {
+      "id": 115,
+      "idCreator": 1,
+      "idText": 115,
+      "lang": "en",
+      "shortText": "Conceal the Beast",
+      "uuid": "381820ef-d66f-4d4b-89fb-5874b776ae12"
+    },
+    {
+      "id": 115,
+      "idCreator": 1,
+      "idText": 115,
+      "lang": "it",
+      "shortText": "Nascondi la Bestia",
+      "uuid": "d354ecf9-8d76-471e-bb63-12b9c6205d72"
+    },
+    {
+      "id": 116,
+      "idCreator": 1,
+      "idText": 116,
+      "lang": "en",
+      "shortText": "The deed is done in the dark, silent depths of the earth, where the beast's final breath marks the end of its terror. But as the echoes fade, a faint, heartbreaking sound from the shadows reveals the tragic cost of your victory.",
+      "uuid": "76237ab4-f20a-4175-845c-bf01511c943c"
+    },
+    {
+      "id": 116,
+      "idCreator": 1,
+      "idText": 116,
+      "lang": "it",
+      "shortText": "L'atto si compie nell'oscurità silenziosa della terra, dove l'ultimo respiro della fiera segna la fine del terrore. Ma mentre gli echi si spengono, un debole e straziante richiamo dalle ombre rivela il tragico prezzo della tua vittoria.",
+      "uuid": "bc2d2e32-63ee-4b0f-8a6b-d14caf0ecd1c"
+    },
+    {
+      "id": 117,
+      "idCreator": 1,
+      "idText": 117,
+      "lang": "en",
+      "shortText": "Suzanne Rushton",
+      "uuid": "f7671fd7-4022-48b0-bc82-532fd597a722"
+    },
+    {
+      "id": 118,
+      "idCreator": 1,
+      "idText": 118,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Slay the Bear",
+      "shortText": "Slay the Bear",
+      "uuid": "f1216b62-54f8-4590-b9a1-0ee211f41d2c"
+    },
+    {
+      "id": 119,
+      "idCreator": 1,
+      "idText": 119,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Slay the Bear",
+      "shortText": "Slay the Bear",
+      "uuid": "0922c29c-46be-475f-84e2-ffedbd9e36b0"
+    },
+    {
+      "id": 120,
+      "idCreator": 1,
+      "idText": 120,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Conceal Beast",
+      "shortText": "Conceal Beast",
+      "uuid": "ef5e2b7f-b9cc-43ce-9997-f6d260e888d7"
+    },
+    {
+      "id": 121,
+      "idCreator": 1,
+      "idText": 121,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "You manage to find the beast's lair and catch it sleeping, but only after completing the job do you discover the presence of two cubs.<br />\n<br />\nYou lose two sadness points due to the tragedy you caused.",
+      "shortText": "You manage to find the beast's lair and catch it sleeping, but only after completing the job do you discover the presence of two cubs.<br />\n<br />\nYou lose two sadness points due to the tragedy you caused.",
+      "uuid": "bcddc8ea-9a7b-40cb-8f54-25ba579dbe0e"
+    },
+    {
+      "id": 121,
+      "idCreator": 1,
+      "idText": 121,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Riesci a trovare la tana della bestia e la sorprendi mentre dorme; solo una volta completato il lavoro, scopri la presenza di due cuccioli.<br />\n<br />\nPerdi due punti tristezza a causa della tragedia che hai scatenato.",
+      "shortText": "Riesci a trovare la tana della bestia e la sorprendi mentre dorme; solo una volta completato il lavoro, scopri la presenza di due cuccioli.<br />\n<br />\nPerdi due punti tristezza a causa della tragedia che hai scatenato.",
+      "uuid": "e1c301b4-e525-4155-a259-ab97e155794c"
+    },
+    {
+      "id": 122,
+      "idCreator": 1,
+      "idText": 122,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "You find the bear, but you choose not to kill her upon discovering she is a mother to two cubs.<br />\n<br />\nYou gain one sadness point because you avoided a slaughter.",
+      "shortText": "You find the bear, but you choose not to kill her upon discovering she is a mother to two cubs.<br />\n<br />\nYou gain one sadness point because you avoided a slaughter.",
+      "uuid": "8a6be511-fbad-48bc-b62b-47077c345b32"
+    },
+    {
+      "id": 122,
+      "idCreator": 1,
+      "idText": 122,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Trovi l'orso, ma decidi di non ucciderlo dopo aver scoperto che si tratta di una madre con due cuccioli.<br />\n<br />\nRecuperi un punto tristezza perché hai evitato una strage.",
+      "shortText": "Trovi l'orso, ma decidi di non ucciderlo dopo aver scoperto che si tratta di una madre con due cuccioli.<br />\n<br />\nRecuperi un punto tristezza perché hai evitato una strage.",
+      "uuid": "2e1c40fb-3391-40d3-9568-668de708e340"
+    },
+    {
+      "id": 108,
+      "idCreator": 1,
+      "idText": 108,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Paesaggio Montano",
+      "shortText": "Paesaggio Montano",
+      "uuid": "3be82de9-9945-49e1-91d0-709a5efe3b13"
+    },
+    {
+      "id": 123,
+      "idCreator": 1,
+      "idText": 123,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Mighty peaks rise to meet the heavens, their snow-dusted crests whispering of uncharted paths and ancient secrets. Ahead lies a vast, untamed world, challenging you to test your mettle against the sky.",
+      "shortText": "Mighty peaks rise to meet the heavens, their snow-dusted crests whispering of uncharted paths and ancient secrets. Ahead lies a vast, untamed world, challenging you to test your mettle against the sky.",
+      "uuid": "14648ee5-b45e-4bce-8859-77f9d4f7205c"
+    },
+    {
+      "id": 123,
+      "idCreator": 1,
+      "idText": 123,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Vette maestose si innalzano fino a toccare il cielo, con le loro creste innevate che sussurrano di sentieri inesplorati e antichi segreti. Dinanzi a te si estende un mondo vasto e selvaggio, che ti sfida a metterti alla prova contro l'orizzonte.",
+      "shortText": "Vette maestose si innalzano fino a toccare il cielo, con le loro creste innevate che sussurrano di sentieri inesplorati e antichi segreti. Dinanzi a te si estende un mondo vasto e selvaggio, che ti sfida a metterti alla prova contro l'orizzonte.",
+      "uuid": "db16bfda-1334-47a0-8558-622c868ea747"
+    },
+    {
+      "id": 124,
+      "idCreator": 1,
+      "idText": 124,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Daniel J. Schwarz",
+      "shortText": "Daniel J. Schwarz",
+      "uuid": "bbd75ed3-25ea-4f91-95d2-de513e7ec2ff"
+    },
+    {
+      "id": 124,
+      "idCreator": 1,
+      "idText": 124,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "b762457f-e5bf-4dbd-b273-03f50f384d41"
+    },
+    {
+      "id": 125,
+      "idCreator": 1,
+      "idText": 125,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Getty Images",
+      "shortText": "Getty Images",
+      "uuid": "f74292d9-fd80-428b-95bf-3ef8bbc06035"
+    },
+    {
+      "id": 125,
+      "idCreator": 1,
+      "idText": 125,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "cfc09175-22b2-452c-9775-5998f92533ad"
+    },
+    {
+      "id": 126,
+      "idCreator": 1,
+      "idText": 126,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Tom Nazaret",
+      "shortText": "Tom Nazaret",
+      "uuid": "0d01f618-b2e3-4b90-a040-36067ba180c4"
+    },
+    {
+      "id": 126,
+      "idCreator": 1,
+      "idText": 126,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "a4ce5e7b-c037-4849-bc30-86cdb15ddeab"
     }
   ],
   "title": "Infinite Paths",
   "traitCount": 1,
   "traits": [
     {
-      "constitution": 1,
+      "constitution": 0,
       "costNegative": 0,
       "costPositive": 1,
       "dexterity": 1,
       "energy": 1,
       "id": 1,
       "idCard": 8,
-      "idTextDescription": 11,
+      "idTextDescription": 99,
       "idTextName": 11,
       "id_card": 8,
-      "intelligence": 1,
-      "life": 1,
-      "sad": 1,
+      "intelligence": 0,
+      "life": 0,
+      "sad": 0,
       "texts": {
         "en": {
           "description": "Hero",
@@ -2347,6 +3253,29 @@
         }
       },
       "uuid": "b6bd28a5-b0ca-4ef4-ab88-afce994a7cca",
+      "weight": 0
+    },
+    {
+      "costPositive": 1,
+      "id": 2,
+      "idCard": 37,
+      "idTextDescription": 101,
+      "idTextName": 97,
+      "id_card": 37,
+      "intelligence": 1,
+      "sad": 1,
+      "uuid": "d04cec0d-f937-4c2b-b6f2-dced32cb68ea",
+      "weight": ""
+    },
+    {
+      "costPositive": 1,
+      "id": 3,
+      "idCard": 38,
+      "idTextDescription": 103,
+      "idTextName": 98,
+      "id_card": 38,
+      "life": 1,
+      "uuid": "74b7c483-af38-4f23-a003-4b9c4fe98dd1",
       "weight": 1
     }
   ],
