@@ -158,6 +158,8 @@ sam deploy \
         GsiReadCapacity="${AWS_TEST_DYNAMODB_GSI_READ_CAPACITY:-5}" \
         GsiWriteCapacity="${AWS_TEST_DYNAMODB_GSI_WRITE_CAPACITY:-5}" \
         LambdaSystemLogLevel="${AWS_TEST_LAMBDA_SYSTEM_LOG_LEVEL:-WARN}" \
+        SmokeTestEnabled="${AWS_TEST_LAMBDA_SMOKE_TEST_ENABLED:-true}" \
+        SmokeTestWebsiteUrl="${AWS_TEST_LAMBDA_SMOKE_WEBSITE_URL:-}" \
     $CONFIRM \
     --no-fail-on-empty-changeset 2>&1
 
@@ -167,3 +169,17 @@ echo "sam deploy succeeded"
 #popd >/dev/null
 
 echo "CloudFormation stack '$AWS_TEST_SAM_STACK_NAME' deployed successfully."
+
+# v1.1.0 — V1 step 1: smoke test right after the deploy, test only (dev has no smoke function).
+if [ "$AWS_TEST_SAM_ENVIRONMENT_NAME" != "test" ]; then
+    echo "Smoke test skipped: no smoke function on '$AWS_TEST_SAM_ENVIRONMENT_NAME'."
+elif [ "${AWS_TEST_LAMBDA_SMOKE_TEST_ENABLED:-true}" = "false" ]; then
+    echo "Smoke test skipped: AWS_TEST_LAMBDA_SMOKE_TEST_ENABLED=false."
+else
+    # shellcheck source=../../lib/smoke_test.sh
+    . "$PROJECT_ROOT/code/scripts/lib/smoke_test.sh"
+    if ! smoke_test_invoke "pathsgames-test-SmokeTestFunction" "$AWS_TEST_REGION"; then
+        echo "Error: smoke test of stage 'test' failed (log group /aws/lambda/pathsgames-test-SmokeTestFunction)."
+        exit 1
+    fi
+fi

@@ -20,12 +20,12 @@ Shared references for this version: [Game Rules](../GameRules.md),
 
 # Steps
 
-1. **Version 1 launch** — V1 starts on top of the launched alpha.
+1. **Version 1 launch** — V1 starts on top of the launched alpha. Status: developed.
     - Version bump to `1.0.0` on every component (pom, pyproject, package.json, SAM) (all)
     - V0 documents frozen; `documentation_v1` becomes the current version in [INDEX](../INDEX.md) (docs)
     - Alpha urgent fixes keep the `0.42.z` line, noted in V0 `Hotfixes.md` (docs)
     - Robot suites green on all three backends with the new version (tests)
-    - Daily alpha smoke test: a small, fast scheduled check on the cloud (guest login, stories, match creation), with failure notified; tooling decided in that step (GitHub Actions schedule vs EventBridge Lambda) (tests, infra)
+    - Daily alpha smoke test: EventBridge Scheduler + Lambda (AWS only), same on test and alpha, 04:42 UTC; guest login, stories, match, movement, with SNS notice and two alarms; also run after every deploy ([Step 1](./Step01_Version1Launch.md)) (tests, infra)
     - Versioning: plain `X.Y.Z` everywhere (no `-SNAPSHOT`/`-RC`); `bump-version.sh` aligns every component (pom, yml, pyproject, config, echo, SAM default, footers, `package.json`, root `.env`), checks before writing, `--check` lists files left behind (infra, docs)
 2. **Google SSO — identity model** — one user with one or more login providers.
     - New identity table (user, provider, provider subject, timestamps), ready for Steam in V3 (backend)
@@ -271,15 +271,16 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Launch and smoke test (all)
 
 # Version Control
-- **Document Version**: 0.42.0
+- **Document Version**: 1.0.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First draft of the beta version plan, with docs alignment step | September 25, 2026 |
   | 0.41.5 | Version launch is now the first step | October 3, 2026 |
   | 0.42.0 | Version launch gains smoke test and versioning model | October 6, 2026 |
+  | 1.0.0 | Version launch step developed, daily smoke test added | October 13, 2026 |
 
-- **Last Updated**: October 6, 2026 (v0.42.0)
+- **Last Updated**: October 13, 2026 (v1.0.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

@@ -9,7 +9,7 @@ Features not yet placed in a step are in the [Backlog](./Backlog.md).
 | Version | Stage | Theme | Main content | Status | Roadmap |
 |---------|-------|-------|--------------|--------|---------|
 | V0 | alpha | Single-player alpha | Guest login, stories, full single-player engine (steps 1-39), alpha preparation (40-41), alpha launch on AWS (42) | Launched | [V0](documentation_v0/Roadmap.md) |
-| V1 | beta | Accounts and depth | Google SSO, profile, guest linking, EN/IT and accessibility, optional audio, env refactor, story frontend data, permadeath and game over, admin tool and admin messages, crowdfunding and licenses, AWS logs table | Draft | [V1](documentation_v1/Roadmap.md) |
+| V1 | beta | Accounts and depth | Google SSO, profile, guest linking, EN/IT and accessibility, optional audio, env refactor, story frontend data, permadeath and game over, admin tool and admin messages, crowdfunding and licenses, AWS logs table | Current (step 1 developed) | [V1](documentation_v1/Roadmap.md) |
 | V2 | gamma | An open world | Campaigns and global registry, advanced analytics, timed missions, silent events and warehouse, NPCs, entities, open world, noise and stealth, user progression | Draft | [V2](documentation_v2/Roadmap.md) |
 | V3 | delta | Everywhere | Steam SSO, Android app (online only), Steam app, Debian package, offline backend, sync, performance, free actions | Draft | [V3](documentation_v3/Roadmap.md) |
 | V4 | epsilon | Multiplayer | Realtime channel, lobby, multiplayer turns, timeouts, anti-stall, group movement, multiplayer UI | Draft | [V4](documentation_v4/Roadmap.md) |
@@ -27,13 +27,14 @@ Features not yet placed in a step are in the [Backlog](./Backlog.md).
 
 
 # Version Control
-- **Document Version**: 0.40.0
+- **Document Version**: 1.0.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First global roadmap with all planned versions | September 25, 2026 |
+  | 1.0.0 | Version 1 marked as the current version | October 13, 2026 |
 
-- **Last Updated**: September 25, 2026 (v0.40.0)
+- **Last Updated**: October 13, 2026 (v1.0.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

@@ -11,7 +11,8 @@ AWS_DIR = Path(__file__).resolve().parent.parent
 PUBLIC = ['alpha', 'beta', 'prod']
 PRIVATE = ['dev', 'test']
 FUNCTIONS = ['AdminIpAuthorizer', 'AuthFunction', 'GuestCleanupFunction', 'EchoFunction',
-             'ContentFunction', 'MatchFunction', 'StoryFunction', 'SeedFunction']
+             'ContentFunction', 'MatchFunction', 'StoryFunction', 'SeedFunction',
+             'SmokeTestFunction']  # v1.1.0 — V1 step 1
 
 
 class _CfnLoader(yaml.SafeLoader):

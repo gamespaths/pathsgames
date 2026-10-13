@@ -27,11 +27,12 @@ The infrastructure is built entirely on managed AWS services:
 | Lambda Seed | `pathsgames-<env>-SeedFunction` | Dev-only: inserts test data (stories, cards) |
 | Lambda AdminIpAuthorizer | `pathsgames-<env>-AdminIpAuthorizer` | REQUEST authorizer (no caching) gating the admin HTTP API by source IP |
 | Lambda GuestCleanup | `pathsgames-<env>-GuestCleanupFunction` | v0.41.0: daily (00:42 UTC default) deletion of match-less guests idle past `GuestCleanupAgeDays`, on an EventBridge `ScheduleV2` in a tagged `AWS::Scheduler::ScheduleGroup` |
-| Log Groups ×8 | `/aws/lambda/pathsgames-<env>-*` | One per Lambda above, deleted with the stack |
+| Lambda SmokeTest | `pathsgames-<env>-SmokeTestFunction` | v1.0.0: daily smoke test (`template/smoke.yaml`, `test` and public stages only); EventBridge Scheduler `cron(42 4 * * ? *)` UTC in schedule group `pathsgames-<env>-smoke-test`; not behind API Gateway; alarms `smoke-failed` / `smoke-missing` on public stages with `AlarmEmail` |
+| Log Groups ×9 | `/aws/lambda/pathsgames-<env>-*` | One per Lambda above, deleted with the stack |
 
 ### Tagging
 
-Every taggable resource (table, both HTTP APIs + stages, all 7 Lambdas, all 7 log groups, the
+Every taggable resource (table, both HTTP APIs + stages, all Lambdas, all log groups, the
 custom domain, the nested stacks) carries the same seven tags. The `monitoring.yaml` module (public stages only) tags its alarms, SNS topic and budget (`ResourceTags`); the dashboard and the SNS subscription cannot be tagged in CloudFormation:
 - `CostCenter` = `Paths.games`
 - `Environment` = `dev` | `test` | `production` (mapped from the `Environment` parameter — the
@@ -107,7 +108,7 @@ Verification is centralized in `lambda/common/jwt_utils.py` (pure Python stdlib,
 ```text
 code/backend/aws/
 ├── template.yaml         # Unified AWS SAM template
-├── template/             # Nested modules (auth, story, match, content, echo, seed, monitoring)
+├── template/             # Nested modules (auth, story, match, content, echo, seed, monitoring, smoke)
 ├── samconfig.toml        # Environment configurations (dev, test, prod)
 ├── lambda/               # Function source code
 │   ├── common/           # Shared code (db_utils, jwt_utils)
@@ -116,6 +117,7 @@ code/backend/aws/
 │   ├── story/            # Catalog, categories, groups, enriched detail, import (9 routes)
 │   ├── content/          # Content detail: cards, texts, creators (3 routes)
 │   ├── match/            # Match creation and listing (POST, GET /api/matches, GET /api/admin/matches with pagination & filters)
+│   ├── smoke/            # Daily smoke test Lambda (handler, client, inprocess, ttl, notify), AWS ops tool
 │   ├── seed/             # Dev seed: inserts test users and stories
 │   └── echo/             # Health check and diagnostics
 └── README.md             # This file
@@ -262,6 +264,14 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 ---
 
 ## 📝 Changelog
+
+### v1.0.0 — V1 step 1: daily smoke test
+
+- **`lambda/smoke/`** + nested stack **`template/smoke.yaml`** (`SmokeModule`, `Condition: HasSmokeTest` = `test` or public stage): `SmokeTestFunction` (python3.13, arm64, 180 s, no retry), schedule group + `ScheduleV2` `cron(42 4 * * ? *)` UTC, log group (14 days), all with the seven tags. Parameters `SmokeTestEnabled`, `SmokeTestSchedule`, `SmokeTestTtlDays` (7), `SmokeTestWebsiteUrl`, `SmokeTestLatencyWarnMs` (5000); `samconfig.toml [alpha]` sets the website URL.
+- Flow: optional website, echo, stories, guest, match created **in-process** through `match.handler` (synthetic event, no Turnstile: the function has no secret), join, start, info, locations, movement, pass, sleep + clock check (`clock not advanced by sleep: c0 -> c1` is a failure); the rest goes through the public API. Rows of the run get a `ttl` of 7 days (`finally`). No movable neighbour is only a `WARNING`; movement 500/404 is a failure, 400/409 tries the next neighbour. `SMOKE_HTTP_TIMEOUT_S` (default 20) is read by the code, not set in the template.
+- Failure: the invocation ends in error (`SmokeTestFailed`, metric `Errors`); SNS only when the alarms topic exists (`monitoring.yaml` output `AlarmTopicArn`, `""` when `AlarmEmail` is empty; `test` logs only). Alarms `smoke-failed` (Errors >= 1) and `smoke-missing` (no invocation in a day): 8 alarm metrics on the account, dashboard 45 metrics.
+- Post-deploy run: `code/scripts/lib/smoke_test.sh` sourced by `aws_backend_deploy.sh` (test) and `aws_backend_deploy_stage.sh`. IAM policy script gains `scheduler:*` and PassRole to `scheduler.amazonaws.com`. Env keys `AWS_<ENV>_LAMBDA_SMOKE_TEST_ENABLED` / `_SMOKE_WEBSITE_URL` (`.env.example`). Runbook: [code/scripts/alpha/README.md](../../scripts/alpha/README.md) §10. Spec: `wiki/documentation_v1/Step01_Version1Launch.md`.
+- Tests: `tests/test_smoke_{handler,client,ttl,notify,inprocess}.py`, `test_v1_step01_smoke_{template,scripts}.py`; full suite 1475 passed, `lambda/smoke/` 100% lines / 99% branches.
 
 ### v0.42.0 — Alpha launch: monitoring module
 

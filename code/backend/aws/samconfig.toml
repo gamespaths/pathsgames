@@ -57,7 +57,8 @@ confirm_changeset = false
 fail_on_empty_changeset = false
 capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
 # JwtSecret, TurnstileSecretKey, AdminIpWhitelist, CorsAllowOrigins, custom domain: pass at deploy time.
-parameter_overrides = "Environment=alpha AllowMockAccess=false RateLimitGuestPerIp=10 RateLimitMatchPerIp=10"
+# v1.1.0 — SmokeTestWebsiteUrl: the site the daily smoke test checks (beta/prod empty until their sites exist).
+parameter_overrides = "Environment=alpha AllowMockAccess=false RateLimitGuestPerIp=10 RateLimitMatchPerIp=10 SmokeTestWebsiteUrl=https://paths.games"
 tags = "Name=pathsgames-alpha CostCenter=Paths.games Environment=alpha ManagedBy=CloudFormation Owner=AlNao Project=Paths.games.aws.alpha.serverless"
 
 [beta.deploy.parameters]

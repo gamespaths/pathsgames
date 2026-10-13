@@ -1,4 +1,5 @@
 # v0.42.0 — Step 42: tests and deploys the AWS backend stage alpha (stack pathsgames-alpha, us-east-1).
+# v1.1.0 — V1 step 1: the deploy script then runs the smoke-test Lambda once; a failed smoke test fails the job.
 # Setup (GitHub Environment "alpha", IAM, first deploy): code/scripts/alpha/README.md.
 name: Alpha Deploy - Backend AWS
 
@@ -61,8 +62,8 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      # CI=true: no prompt and no AdminIpWhitelist (the stack keeps the list set by set_admin_ip.sh).
-      - name: Deploy stage alpha
+      # CI=true: no prompt and no AdminIpWhitelist (the stack keeps the list set by set_admin_ip.sh); smoke test inside the script.
+      - name: Deploy stage alpha and run the smoke test
         env:
           AWS_ALPHA_LAMBDA_JWT_SECRET: ${{ secrets.AWS_ALPHA_LAMBDA_JWT_SECRET }}
           AWS_ALPHA_LAMBDA_TURNSTILE_SECRET_KEY: ${{ secrets.AWS_ALPHA_LAMBDA_TURNSTILE_SECRET_KEY }}

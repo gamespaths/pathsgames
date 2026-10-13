@@ -30,8 +30,8 @@ section → read only that line range. Never read a Step file whole; never open
 
 | Folder | Version | What is in it |
 |---|---|---|
-| [`documentation_v0/`](documentation_v0/INDEX.md) | V0 alpha — launched | Steps 1-42 done, alpha preparation and launch (40-42), [release notes](documentation_v0/ReleaseNotes.md), hotfixes |
-| [`documentation_v1/`](documentation_v1/INDEX.md) | V1 beta — draft | Accounts and depth: SSO, profile, i18n, permadeath, admin tool |
+| [`documentation_v0/`](documentation_v0/INDEX.md) | V0 alpha — launched, frozen | Steps 1-42 done, alpha preparation and launch (40-42), [release notes](documentation_v0/ReleaseNotes.md), hotfixes |
+| [`documentation_v1/`](documentation_v1/INDEX.md) | V1 beta — current version | Accounts and depth: SSO, profile, i18n, permadeath, admin tool; step 1 smoke test |
 | [`documentation_v2/`](documentation_v2/INDEX.md) | V2 gamma — draft | An open world: campaigns, NPCs, open world, analytics |
 | [`documentation_v3/`](documentation_v3/INDEX.md) | V3 delta — draft | Everywhere: Android, Steam, Debian, offline and sync |
 | [`documentation_v4/`](documentation_v4/INDEX.md) | V4 epsilon — draft | Multiplayer: realtime, lobby, turns, group movement |
@@ -39,14 +39,15 @@ section → read only that line range. Never read a Step file whole; never open
 | [`documentation_v6/`](documentation_v6/INDEX.md) | V6 eta — draft | Infrastructure: Kubernetes, Azure, Cloudflare, DR, monitoring |
 
 # Version Control
-- **Document Version**: 0.42.0
+- **Document Version**: 1.0.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First single index for all documentation | September 25, 2026 |
   | 0.42.0 | Alpha release notes linked, alpha launched | October 6, 2026 |
+  | 1.0.0 | Version 1 is now the current version | October 13, 2026 |
 
-- **Last Updated**: October 8, 2026 (v0.42.0)
+- **Last Updated**: October 13, 2026 (v1.0.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

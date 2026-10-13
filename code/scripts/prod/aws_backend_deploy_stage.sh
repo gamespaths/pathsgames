@@ -133,6 +133,8 @@ _PARAMS_TXT="$(
 	PGSTAGE_OV_AlarmEmail="$(stage_key SNS_ALARM_EMAIL)" \
 	PGSTAGE_OV_BudgetLimit="$(stage_key BUDGETS_LIMIT)" \
 	PGSTAGE_OV_BudgetEmail="$(stage_key SNS_ALARM_EMAIL)" \
+	PGSTAGE_OV_SmokeTestEnabled="$(stage_key LAMBDA_SMOKE_TEST_ENABLED)" \
+	PGSTAGE_OV_SmokeTestWebsiteUrl="$(stage_key LAMBDA_SMOKE_WEBSITE_URL)" \
 	PGSTAGE_FORCE_Environment="$STAGE" \
 	PGSTAGE_FORCE_Version="$_VERSION" \
 	PGSTAGE_FORCE_AllowMockAccess="false" \
@@ -188,3 +190,19 @@ sam deploy \
 	--no-fail-on-empty-changeset 2>&1
 
 echo "Stage '$STAGE' deployed (stack $_STACK_NAME)."
+
+# v1.1.0 — V1 step 1: the smoke test runs right after the deploy; a failure fails the script (and the CI job).
+_SMOKE_ENABLED="true"
+for _p in "${_PARAMS[@]}"; do
+	if [ "${_p%%=*}" = "SmokeTestEnabled" ]; then _SMOKE_ENABLED="${_p#*=}"; fi
+done
+if [ "$_SMOKE_ENABLED" = "false" ]; then
+	echo "Smoke test skipped: SmokeTestEnabled=false (AWS_${SUFFIX}_LAMBDA_SMOKE_TEST_ENABLED)."
+else
+	# shellcheck source=../lib/smoke_test.sh
+	. "$PROJECT_ROOT/code/scripts/lib/smoke_test.sh"
+	if ! smoke_test_invoke "pathsgames-${STAGE}-SmokeTestFunction" "$(samconfig_get region)"; then
+		echo "Error: smoke test of stage '$STAGE' failed (log group /aws/lambda/pathsgames-${STAGE}-SmokeTestFunction)." >&2
+		exit 1
+	fi
+fi

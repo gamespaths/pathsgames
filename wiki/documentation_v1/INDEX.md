@@ -7,15 +7,17 @@ documents and the other versions are listed in the global index
 | File | What is in it | Keywords |
 |---|---|---|
 | `Roadmap.md` | Draft plan of the 42 steps of V1 | roadmap, steps, beta, draft |
+| `Step01_Version1Launch.md` | V1 launch: daily AWS smoke test Lambda, schedule, alarms, TTL | smoke test, scheduler, alarms, SNS, TTL, deploy |
 
 # Version Control
-- **Document Version**: 0.40.0
+- **Document Version**: 1.0.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First index of this version's documents | September 25, 2026 |
+  | 1.0.0 | Version launch step added | October 13, 2026 |
 
-- **Last Updated**: September 25, 2026 (v0.40.0)
+- **Last Updated**: October 13, 2026 (v1.0.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
