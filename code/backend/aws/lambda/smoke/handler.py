@@ -171,20 +171,20 @@ class _Run:
         stories = resp.body if isinstance(resp.body, list) else []
         if not stories:
             self.fail('no story in GET /api/stories', resp.status)
-        story = pick_story(stories)
-        if story is None:
+        story_uuid = (pick_story(stories) or {}).get('uuid')
+        if not story_uuid:
             self.fail('only robottest stories in GET /api/stories', resp.status)
-        quoted = urllib.parse.quote(str(story['uuid']), safe='')
+        quoted = urllib.parse.quote(str(story_uuid), safe='')
         resp = self.call('story-detail', 'GET', self.api(f'/api/stories/{quoted}?lang=en'))
         detail = resp.body if isinstance(resp.body, dict) else {}
         difficulties = detail.get('difficulties') or []
         if not difficulties:
-            self.fail(f"story {story['uuid']} has no difficulty", resp.status)
+            self.fail(f"story {story_uuid} has no difficulty", resp.status)
         templates = detail.get('characterTemplates') or []
         template = templates[0] if templates else None
         clazz = pick_class(template, detail.get('classes'))
         return {
-            'storyUuid': story['uuid'],
+            'storyUuid': story_uuid,
             'difficultyUuid': difficulties[0].get('uuid'),
             'characterTemplateUuid': (template or {}).get('uuid'),
             'classUuid': (clazz or {}).get('uuid'),
