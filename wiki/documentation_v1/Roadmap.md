@@ -21,7 +21,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
 # Steps
 
 1. **Version 1 launch** — V1 starts on top of the launched alpha.
-    - Version bump to `1.x` on every component (pom, pyproject, package.json, SAM) (all)
+    - Version bump to `1.0.0` on every component (pom, pyproject, package.json, SAM) (all)
     - V0 documents frozen; `documentation_v1` becomes the current version in [INDEX](../INDEX.md) (docs)
     - Alpha urgent fixes keep the `0.42.z` line, noted in V0 `Hotfixes.md` (docs)
     - Robot suites green on all three backends with the new version (tests)
