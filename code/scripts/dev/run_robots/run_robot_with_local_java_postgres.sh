@@ -124,7 +124,7 @@ rm -rf "$CATALOG_EXPORT_DIR"
 java \
 	-Dspring.profiles.active=prod \
 	-Dgame.dev.test-endpoints-enabled=true \
-	-jar "$PROJECT_ROOT/code/backend/java/ms-launcher/target/ms-launcher-"*-SNAPSHOT.jar &
+	-jar "$PROJECT_ROOT/code/backend/java/ms-launcher/target/ms-launcher-"*.jar &
 SERVER_PID=$!
 
 cleanup() {

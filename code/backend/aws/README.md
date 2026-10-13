@@ -39,9 +39,9 @@ custom domain, the nested stacks) carries the same seven tags. The `monitoring.y
 - `ManagedBy` = `CloudFormation`
 - `Owner` = `AlNao`
 - `Project` = `Paths.games.aws.<env>.serverless`
-- `version` = the project version (e.g. `0.38.1`), from the template's `Version` parameter;
-  its default, the `samconfig.toml` `version=` tag value, and `VERSION` in the root `.env` are
-  kept in sync by `code/scripts/dev/bump-version.sh`.
+- `version` = the project version (plain `X.Y.Z`, e.g. `0.42.0`), from the template's `Version`
+  parameter; the deploy scripts pass `VERSION` from the root `.env` (else the Java parent pom);
+  the parameter default and `VERSION` are kept in sync by `code/scripts/dev/bump-version.sh`.
 - `Name` = a per-resource identifier: resources with an explicit name reuse it (table
   `PathsGamesBackend-<env>`, HTTP APIs `pathsgames-<env>` / `pathsgames-<env>-admin`, Lambdas
   `pathsgames-<env>-<Fn>`, log groups `/aws/lambda/pathsgames-<env>-<Fn>`); resources without

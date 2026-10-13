@@ -10,7 +10,7 @@ Parameters:
     Description: "Deploy environment. Suffix of every resource name, API stage and Lambda ENV; the Environment tag is mapped from it (prod -> production)."
   Version:
     Type: String
-    Default: "0.38.1"
+    Default: "0.42.0"
     Description: "Project version, applied as the `version` tag on every resource. Source: VERSION in the root .env; code/scripts/dev/bump-version.sh keeps this default in sync."
   JwtSecret:
     Type: String

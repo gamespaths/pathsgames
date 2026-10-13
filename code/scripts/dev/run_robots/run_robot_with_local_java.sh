@@ -61,7 +61,7 @@ echo "Build completed."
 export CATALOG_EXPORT_DIR="${CATALOG_EXPORT_DIR:-/tmp/pathsgames-catalog-robot}"
 rm -rf "$CATALOG_EXPORT_DIR"
 
-java -jar "$PROJECT_ROOT/code/backend/java/ms-launcher/target/ms-launcher-"*-SNAPSHOT.jar &
+java -jar "$PROJECT_ROOT/code/backend/java/ms-launcher/target/ms-launcher-"*.jar &
 SERVER_PID=$!
 
 # Function to terminate the application in case of error

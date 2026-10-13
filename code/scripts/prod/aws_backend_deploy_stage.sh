@@ -83,7 +83,7 @@ fi
 # Version tag: VERSION from .env, else the Java parent pom (the bump script's source of truth).
 _VERSION="${VERSION:-}"
 if [ -z "$_VERSION" ]; then
-	_VERSION="$(grep -m1 '<version>' "$PROJECT_ROOT/code/backend/java/pom.xml" 2>/dev/null | sed 's|.*<version>\(.*\)-SNAPSHOT</version>.*|\1|' || true)"
+	_VERSION="$(grep -m1 '<version>' "$PROJECT_ROOT/code/backend/java/pom.xml" 2>/dev/null | sed -n 's|.*<version>\([0-9.]*\).*</version>.*|\1|p' || true)"
 fi
 if [ -z "$_VERSION" ]; then
 	echo "Error: VERSION not set in .env and no version found in code/backend/java/pom.xml." >&2

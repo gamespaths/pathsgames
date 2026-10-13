@@ -108,7 +108,7 @@ replacing a per-writer `MAX(id)+1` read that could collide under concurrent requ
             "timestamp": 1740049200000,
             "properties": {
                 "env": "development",
-                "version": "X.Y.Z-SNAPSHOT",
+                "version": "X.Y.Z",
                 "applicationName": "paths-game-backend",
                 "port": "8042",
                 "javaVersion": "21.0.x"

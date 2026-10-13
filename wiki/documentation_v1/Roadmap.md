@@ -26,7 +26,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Alpha urgent fixes keep the `0.42.z` line, noted in V0 `Hotfixes.md` (docs)
     - Robot suites green on all three backends with the new version (tests)
     - Daily alpha smoke test: a small, fast scheduled check on the cloud (guest login, stories, match creation), with failure notified; tooling decided in that step (GitHub Actions schedule vs EventBridge Lambda) (tests, infra)
-    - Versioning model: `-SNAPSHOT` on develop, `-RC` on the release branch, no suffix on `main`, written in `wiki/VersionTemplate.md`; align `bump-version.sh` l.23/59, `aws_backend_deploy_stage.sh` l.80 (strips only `-SNAPSHOT`), the Python version (`-RC` → PEP 440 `rc`) and the two `package.json` (infra, docs)
+    - Versioning: plain `X.Y.Z` everywhere (no `-SNAPSHOT`/`-RC`); `bump-version.sh` aligns every component (pom, yml, pyproject, config, echo, SAM default, footers, `package.json`, root `.env`), checks before writing, `--check` lists files left behind (infra, docs)
 2. **Google SSO — identity model** — one user with one or more login providers.
     - New identity table (user, provider, provider subject, timestamps), ready for Steam in V3 (backend)
     - Flyway migrations for SQLite and PostgreSQL, DynamoDB item layout on AWS (backend)

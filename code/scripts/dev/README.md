@@ -122,14 +122,23 @@ Test-data maintenance for the AWS backend — not deployment (that's `code/scrip
 
 ### `bump-version.sh`
 
-Interactive script (prompts for the new version) that rewrites the project version across
-`pom.xml` files, Spring `application*.yml`, `pyproject.toml`, `app/config.py`, the website
-footer `index.html`, the AWS `echo` Lambda handler, and the two frontend footer components.
+Rewrites the project version across the `pom.xml` files (parent and every module's
+`<parent>`), Spring `application.yml`, `pyproject.toml`, `app/config.py`, the AWS `echo`
+Lambda handler, the `Version` default in the SAM `template.yaml`, the two frontend footer
+components, both frontends' `package.json` / `package-lock.json`, and `VERSION` in the root
+`.env` / `.env.example` (`VERSION` is appended if missing; agents never edit `.env` directly).
+Before changing anything it runs the same check as `--check`: a missing file stops it, a
+misaligned one asks for confirmation. Each file is rewritten by pattern, so a file left behind
+is realigned too; at the end the script lists every file's version and fails if one differs.
+Versions are plain `X.Y.Z` (no `-SNAPSHOT`/`-RC`); git tags only label some versions, see
+[VersionTemplate](../../../wiki/VersionTemplate.md) §1.
 Per this repo's hard rule, run it **only when explicitly asked** — never as a side effect of
-another task.
+another task (`--check` changes nothing and is always safe).
 
 ```bash
-code/scripts/dev/bump-version.sh
+code/scripts/dev/bump-version.sh            # prompts for the new version
+code/scripts/dev/bump-version.sh 1.0.0      # new version as argument
+code/scripts/dev/bump-version.sh --check    # only lists the versions, exit 1 on mismatch
 ```
 
 ### `image-finder/`
