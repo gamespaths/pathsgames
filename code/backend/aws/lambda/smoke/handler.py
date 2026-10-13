@@ -177,15 +177,15 @@ class _Run:
         quoted = urllib.parse.quote(str(story_uuid), safe='')
         resp = self.call('story-detail', 'GET', self.api(f'/api/stories/{quoted}?lang=en'))
         detail = resp.body if isinstance(resp.body, dict) else {}
-        difficulties = detail.get('difficulties') or []
-        if not difficulties:
+        difficulty_uuid = (next(iter(detail.get('difficulties') or []), None) or {}).get('uuid')
+        if not difficulty_uuid:
             self.fail(f"story {story_uuid} has no difficulty", resp.status)
         templates = detail.get('characterTemplates') or []
         template = templates[0] if templates else None
         clazz = pick_class(template, detail.get('classes'))
         return {
             'storyUuid': story_uuid,
-            'difficultyUuid': difficulties[0].get('uuid'),
+            'difficultyUuid': difficulty_uuid,
             'characterTemplateUuid': (template or {}).get('uuid'),
             'classUuid': (clazz or {}).get('uuid'),
         }
