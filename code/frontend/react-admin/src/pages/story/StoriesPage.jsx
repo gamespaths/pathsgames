@@ -239,6 +239,9 @@ export default function StoriesPage() {
                       <Link to={`/stories/${s.uuid}/fast-new-event`} className="pg-btn pg-btn-ghost pg-btn-sm me-1" title="Fast New Event">
                         <i className="fas fa-bolt" />
                       </Link>
+                      <Link to={`/stories/${s.uuid}/fast-new-locations`} className="pg-btn pg-btn-ghost pg-btn-sm me-1" title="Fast New Locations">
+                        <i className="fas fa-map-marked-alt" />
+                      </Link>
                       <button className="pg-btn pg-btn-ghost pg-btn-sm me-1" onClick={() => handleExport(s)} title="Export JSON">
                         <i className="fas fa-file-export" />
                       </button>

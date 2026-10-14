@@ -15,18 +15,23 @@ Shared references for this version: [Game Rules](../GameRules.md),
 - **Steps 16-22**: story frontend data, permadeath and game over, location-forced weather.
 - **Steps 23-31**: admin tool, admin messages, negative conditions (to evaluate).
 - **Steps 32-35**: AWS logs table, single-table analysis, crowdfunding, content licenses.
-- **Step 36**: documentation alignment. **Steps 37-39**: reserved. **Steps 40-42**: recurring hardening, migration from alpha, beta launch.
+- **Step 36**: documentation alignment. 
+- **Steps 37-39**: reserved for bug fixes or new features. 
+- **Steps 40-42**: recurring hardening, migration from alpha, beta launch.
 
 
-# Steps
 
-1. **Version 1 launch** — V1 starts on top of the launched alpha. Status: done (October 14, 2026; Robot green on all backends, deploy and smoke verified by the owner).
-    - Version bump to `1.0.0` on every component (pom, pyproject, package.json, SAM) (all)
-    - V0 documents frozen; `documentation_v1` becomes the current version in [INDEX](../INDEX.md) (docs)
-    - Alpha urgent fixes keep the `0.42.z` line, noted in V0 `Hotfixes.md` (docs)
-    - Robot suites green on all three backends with the new version (tests)
-    - Daily alpha smoke test: EventBridge Scheduler + Lambda (AWS only), same on test and alpha, 04:42 UTC; checks website, echo/version, stories, guest login, match (in-process creation), movement + sleep with clock check and Turnstile; smoke data deleted after 7 days; SNS notice + two alarms; also run after every deploy ([Step 1](./Step01_Version1Launch.md)) (tests, infra)
-    - Versioning: plain `X.Y.Z` everywhere (no `-SNAPSHOT`/`-RC`); `bump-version.sh` aligns every component (pom, yml, pyproject, config, echo, SAM default, footers, `package.json`, root `.env`), checks before writing, `--check` lists files left behind (infra, docs)
+# Roadmap
+
+|  | Step |  | Main goals |
+| ---- | -- | ----- | ---------- |
+| 1 | [Version 1 launch](./Step01_Version1Launch.md) | ✅ | Version 1 launch with daily smoke test. |
+
+
+
+
+# Next steps
+
 2. **Google SSO — identity model** — one user with one or more login providers.
     - New identity table (user, provider, provider subject, timestamps), ready for Steam in V3 (backend)
     - Flyway migrations for SQLite and PostgreSQL, DynamoDB item layout on AWS (backend)

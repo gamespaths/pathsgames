@@ -969,7 +969,8 @@ export default function StoryEditorPage() {
       {/* Sidebar Tabs */}
       <StoryEditorPageSidebar tabs={TABS} activeTab={activeTab} onSelectTab={setActiveTab}
         onOpenCardsFastEdit={() => navigate(`/stories/${uuid}/cards-fast-edit`)}
-        onOpenFastNewEvent={() => navigate(`/stories/${uuid}/fast-new-event`)} />
+        onOpenFastNewEvent={() => navigate(`/stories/${uuid}/fast-new-event`)}
+        onOpenFastNewLocations={() => navigate(`/stories/${uuid}/fast-new-locations`)} />
 
       {/* Main Content */}
       <div className="flex-grow min-w-0">

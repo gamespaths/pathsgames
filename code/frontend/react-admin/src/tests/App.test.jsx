@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from '../context/AuthContext'
 vi.mock('../pages/LoginPage', () => ({ default: () => <div data-testid="login-page">Login Page</div> }))
 vi.mock('../pages/DashboardPage', () => ({ default: () => <div data-testid="dashboard-page">Dashboard Page</div> }))
 vi.mock('../api/echoApi', () => ({ getServerStatus: vi.fn().mockResolvedValue({}) }))
+vi.mock('../pages/story/FastNewLocationsPage', () => ({ default: () => <div data-testid="fast-locations-page">Fast Locations</div> }))
 
 describe('App', () => {
   it('redirects to login when not logged in', () => {
@@ -33,5 +34,15 @@ describe('App', () => {
     )
     
     expect(await screen.findByTestId('dashboard-page')).toBeInTheDocument()
+  })
+
+  it('routes /stories/:uuid/fast-new-locations to the Fast New Locations page', async () => {
+    localStorage.setItem('pg_admin_token', 'mock-token')
+    render(
+      <MemoryRouter initialEntries={['/stories/abc/fast-new-locations']}>
+        <App />
+      </MemoryRouter>
+    )
+    expect(await screen.findByTestId('fast-locations-page')).toBeInTheDocument()
   })
 })

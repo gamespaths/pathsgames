@@ -1,10 +1,11 @@
 # Step 1 — Version 1 launch (daily smoke test)
 
-**Status: DONE (October 14, 2026).** Developed October 13: AWS pytest 1475 passed; `lambda/smoke/` 100% lines, 99% branches. Owner confirmed Robot suites green on all three backends and the real deploy (test + alpha) with working smoke test.
+**Status: DONE (October 14, 2026); sub-point 7 developed, react-admin vitest green.** Developed October 13: AWS pytest 1475 passed; `lambda/smoke/` 100% lines, 99% branches. Owner confirmed Robot suites green on all three backends and the real deploy (test + alpha) with working smoke test.
 Roadmap line: *V1 starts on top of the launched alpha* ([Roadmap](./Roadmap.md) step 1).
 Step 1 is released as `1.1.0` (bumped by the owner, never by an agent).
 Touches only the **AWS backend** (`code/backend/aws/`), `code/scripts/` and docs. **No API, OpenAPI,
-schema, Java, Python, react-game, react-admin or Robot change.**
+schema, Java, Python, react-game or Robot change.** Sub-point 7 (added October 14) touches only
+**react-admin** (§6.7).
 
 Hard rules for the developing agent: change no `.env` / `.env.test` (new keys go in `.env.example`
 only, the owner adds them by hand); never run `sam`, `aws`, `gh`, `terraform` or Robot commands;
@@ -20,6 +21,7 @@ never commit, push or bump the version.
 | 4 | Alpha urgent fixes stay on `0.42.z` (V0 `Hotfixes.md`) | docs | DONE |
 | 5 | Robot green on all three backends with `1.0.0` | tests | DONE (owner) |
 | 6 | **Daily smoke test on AWS** (guest, stories, match, gameplay, Turnstile), failure notified | tests, infra | DONE |
+| 7 | **Fast New Locations** admin page: many locations + their neighbors in one save | react-admin | DONE |
 
 **In**: one new Lambda `pathsgames-<env>-SmokeTestFunction` in a new nested stack
 `template/smoke.yaml`, scheduled daily by EventBridge Scheduler and invoked after every deploy;
@@ -227,9 +229,47 @@ No Flyway migration (SQLite, PostgreSQL untouched), no new DynamoDB item type.
   6144-character guard stays. The owner re-runs the script.
 - `.env.example`: the new keys of this section, commented.
 
-### 6.5 Java, Python, react-game, react-admin, Robot
+### 6.5 Java, Python, react-game, Robot
 
-No change.
+No change (sub-point 7 reuses the existing admin CRUD endpoints of every backend).
+
+### 6.7 react-admin — Fast New Locations page (sub-point 7)
+
+Same pattern as Fast New Event (`pages/story/FastNewEventPage.jsx` + `FastNewEventHelpers.js`):
+frontend only, existing `createEntity` / `listEntities` / `deleteEntity`, rollback on failure.
+
+- **Files**: `pages/story/FastNewLocationsPage.jsx` and `pages/story/FastNewLocationsHelpers.js`
+  (new); route `/stories/:uuid/fast-new-locations` in `App.jsx`; a sidebar entry in
+  `StoryEditorPageSidebar.jsx` (prop `onOpenFastNewLocations`, wired in `StoryEditorPage.jsx`) and
+  a ghost button in `StoriesPage.jsx`, next to the Fast New Event ones. Shared form widgets and
+  text/card helpers are reused or extracted, not copied.
+- **Locations list** (dynamic rows, "+ Add location", remove row; one empty row at start). Each row:
+  title EN/IT, description EN/IT, copyright, link, image URL (same text block as Fast Event) and
+  **energy** → `costEnergyEnter`. Save creates title/description/copyright texts and one card
+  (same rules: max+1 ids, `<br />` on descriptions, card id from the response), then the location
+  with `idCard`, `idTextName` = title, `idTextDescription` = description, **`idTextNarrative` =
+  description** (same text id), `costEnergyEnter`. Location id read from the response
+  (`id` / `idLocation`); missing id aborts the save.
+- **Neighbors list** (dynamic rows, "+ Add neighbor", remove row; **no card, no texts**:
+  `idCard`, `idTextName`, `idTextGo`, `idTextBack`, `idCardBack` never sent). Each row:
+  - **From / To**: selects with the new locations of the form first (label `New N: <title EN>`,
+    resolved to the real id at save time), then the existing story locations in **descending id
+    order** (`#id <name>`, from `buildLocationOptions`).
+  - **Direction** (required, `LOCATION_NEIGHBOR_DIRECTION_OPTIONS`).
+  - Optional: `conditionRegistryKey`, `conditionRegistryValue`, `registryValueOperatorCondition`
+    (`CHOICE_CONDITION_OPERATOR_OPTIONS`).
+  - `energyCost` (additional energy cost of the edge) and, as small fields on the same line,
+    `costFood`, `costMagic`, `costCoin`.
+  - `flagBack` (YES = 1 / NO = 0, default NO). One row only: with YES the engine already allows
+    the way back (`traversableFrom`), so no reverse row is created.
+- **Save order**: all locations (texts, card, location), then all neighbors with resolved ids.
+  Any failure → rollback in reverse order and the same report box as Fast Event (green report
+  auto-hides after `SUMMARY_HIDE_MS`).
+- **Validation** (blocks the save): every location row has a title EN (a fully empty row is
+  ignored); at least one location or one neighbor; every neighbor has From, To, Direction;
+  From ≠ To; a referenced new location row must have a title; no two neighbors with the same From
+  and Direction, in the form or against the neighbors already saved (`R2_NEIGHBOR_DUP` of the
+  validator).
 
 ### 6.6 Docs (doc agent, through `/doc-update`)
 
@@ -271,6 +311,11 @@ Unit tests (pytest, `code/backend/aws/tests/`, `PYTHONPATH=lambda`), coverage > 
 - Scripts: `bash -n` on the changed scripts; the helper tested with a stub `aws` on `PATH`
   (PASS, `FunctionError`, FAIL summary).
 - Robot: none (no API change); the owner keeps the suites green on all backends.
+- Sub-point 7 (vitest, `code/frontend/react-admin/src/tests/`), coverage > 96% of the new code:
+  helpers (empty forms, validation branches, option list order, id resolution of new locations,
+  save order and payloads, no card on neighbors, narrative = description, rollback and orphans);
+  page (add/remove rows, selects, save success / failure report); sidebar and StoriesPage entries;
+  route in `App.jsx`.
 
 ## 8. Deviations from the analysis (development)
 
@@ -279,8 +324,15 @@ Unit tests (pytest, `code/backend/aws/tests/`, `PYTHONPATH=lambda`), coverage > 
 - Flow extended after approval: after `pass` the run calls `sleep` and re-reads the clock (f8, f9).
 - `SMOKE_HTTP_TIMEOUT_S` (default 20) is read by the code but not set in `template/smoke.yaml`.
 - First-deploy check: the monitoring output `AlarmTopicArn` is `""` when `AlarmEmail` is empty (no smoke alarms then).
+- Sub-point 7: shared pieces extracted to `FastFormHelpers.js` / `FastFormFields.jsx`, used by both fast pages.
+- Sub-point 7: neighbors start with no row; the registry key is a free text field (no picker).
+- Sub-point 7: after a green save the page reloads texts, locations and neighbors (new ids in From/To and duplicate check).
+- Sub-point 7: same From + Direction is always blocked, stricter than `R2_NEIGHBOR_DUP` (flags it only when To differs).
 
 ## 9. Doubts
+
+Sub-point 7 decided by the owner (October 14): narrative text = description; From/To list new
+locations and existing ones (descending id); neighbor also has food, magic and coin costs.
 
 No open doubt. Decided (owner flow start → movement → pass → sleep): `pass` only ends the turn, so the clock is checked after `sleep`, which triggers the time-end.
 
@@ -289,10 +341,10 @@ No open doubt. Decided (owner flow start → movement → pass → sleep): `pass
 
   | Version | Description | Date |
   |---------|-------------|------|
-  | 1.1.0 | Daily automatic check of the online game, developed and verified | October 14, 2026 |
+  | 1.1.0 | Daily online game check, fast location creation page | October 14, 2026 |
 
 - **Last Updated**: October 14, 2026 (v1.1.0)
-- **Status**: done (Robot green on all backends, deploy and smoke verified by the owner, October 14, 2026); no open doubt
+- **Status**: done, sub-point 7 included (Robot green on all backends, deploy and smoke verified by the owner, October 14, 2026); no open doubt
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

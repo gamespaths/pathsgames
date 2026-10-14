@@ -39,6 +39,7 @@ function renderPage(uuid = 'story-123') {
         <Route path="/stories/:uuid/edit" element={<StoryEditorPage />} />
         <Route path="/stories/:uuid/cards-fast-edit" element={<div>Fast edit page</div>} />
         <Route path="/stories/:uuid/fast-new-event" element={<div>Fast new event page</div>} />
+        <Route path="/stories/:uuid/fast-new-locations" element={<div>Fast new locations page</div>} />
       </Routes>
     </MemoryRouter>
   )
@@ -72,6 +73,12 @@ describe('StoryEditorPage', () => {
     expect(await screen.findByText('Fast new event page')).toBeInTheDocument()
   })
 
+  it('the Fast new locations sidebar entry opens its page', async () => {
+    renderPage()
+    await userEvent.click(await screen.findByText('Fast new locations'))
+    expect(await screen.findByText('Fast new locations page')).toBeInTheDocument()
+  })
+
   it('updates story metadata', async () => {
     updateStory.mockResolvedValue({ status: 'UPDATED' })
     renderPage()
@@ -92,7 +99,7 @@ describe('StoryEditorPage', () => {
     })
     renderPage()
     await screen.findByDisplayValue('Author')
-    await userEvent.click(screen.getByRole('button', { name: /Locations/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^Locations$/i }))
     expect(await screen.findByText(/Location Name/i)).toBeInTheDocument()
     expect(listEntities).toHaveBeenCalledWith('story-123', 'locations')
   })
@@ -106,7 +113,7 @@ describe('StoryEditorPage', () => {
     deleteEntity.mockResolvedValue({ status: 'DELETED' })
     renderPage()
     await screen.findByDisplayValue('Author')
-    await userEvent.click(screen.getByRole('button', { name: /Locations/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^Locations$/i }))
     
     const trashBtn = await waitFor(() => {
         const buttons = screen.getAllByRole('button')
@@ -123,7 +130,7 @@ describe('StoryEditorPage', () => {
     createEntity.mockResolvedValue({ uuid: 'new-loc' })
     renderPage()
     await screen.findByDisplayValue('Author')
-    await userEvent.click(screen.getByRole('button', { name: /Locations/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^Locations$/i }))
     await userEvent.click(screen.getByRole('button', { name: /Add Location/i }))
     
     expect(screen.getByText('Create Entity')).toBeInTheDocument()
@@ -248,7 +255,7 @@ describe('StoryEditorPage', () => {
     updateEntity.mockResolvedValue({ status: 'UPDATED' })
     renderPage()
     await screen.findByDisplayValue('Author')
-    await userEvent.click(screen.getByRole('button', { name: /Locations/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^Locations$/i }))
     
     const editBtn = await waitFor(() => {
         const buttons = screen.getAllByRole('button')
@@ -476,7 +483,7 @@ describe('StoryEditorPage', () => {
   it('shows an error when creating a fast card without any text id', async () => {
     renderPage()
     await screen.findByDisplayValue('Author')
-    await userEvent.click(screen.getByRole('button', { name: /Locations/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^Locations$/i }))
     await userEvent.click(screen.getByRole('button', { name: /Add Location/i }))
     expect(screen.getByText('Create Entity')).toBeInTheDocument()
 
@@ -494,7 +501,7 @@ describe('StoryEditorPage', () => {
     })
     renderPage()
     await screen.findByDisplayValue('Author')
-    await userEvent.click(screen.getByRole('button', { name: /Locations/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^Locations$/i }))
     const cardLink = await screen.findByText('#5')
     await userEvent.click(cardLink)
     expect(await screen.findByText(/Edit Entity|Create Entity/i)).toBeInTheDocument()
@@ -510,7 +517,7 @@ describe('StoryEditorPage', () => {
     })
     renderPage()
     await screen.findByDisplayValue('Author')
-    await userEvent.click(screen.getByRole('button', { name: /Locations/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^Locations$/i }))
     await userEvent.click(await screen.findByText('#77'))
     expect(await screen.findByText(/Card #77 not found/i)).toBeInTheDocument()
   })
@@ -610,7 +617,7 @@ describe('StoryEditorPage', () => {
     })
     renderPage()
     await screen.findByDisplayValue('Author')
-    await userEvent.click(screen.getByRole('button', { name: /Locations/i }))
+    await userEvent.click(screen.getByRole('button', { name: /^Locations$/i }))
     const trashBtn = await waitFor(() => {
       const buttons = screen.getAllByRole('button')
       return buttons.find(b => b.querySelector('.fa-trash'))

@@ -8,8 +8,8 @@ version's roadmap; items marked "Not planned" wait for a decision. The original 
 
 | Feature | Short description | Version | Notes |
 |---------|-------------------|---------|-------|
-| Tutorial and first-time hints | Tips on card pages, first-time guidance | V0 (step 40) | |
-| Multi-value registry | Several values per registry key | Done (v0.36.1) | |
+| Tutorial and first-time hints | Tips on card pages, first-time guidance | ✅ Done (v0.40.0) | Card tips, open by default in tutorial stories |
+| Multi-value registry | Several values per registry key | ✅ Done (v0.36.1) | |
 | Reproducible randomness | Per-match seed for all random draws, replay | V4 (step 2) | `rng_seed` already drives weather and random events since v0.27 |
 | Permanent death and game over | Individual character death | V1 | Death KPI added with it |
 | Silent events | Events with effects only, no narrative text | V2 | |
@@ -41,19 +41,20 @@ version's roadmap; items marked "Not planned" wait for a decision. The original 
 
 | Topic | Version | Notes |
 |-------|---------|-------|
-| Test ACM certificate and environment variables | V0 step 41 (analysis), V1 (env refactor) | Result goes in [Environments](./Environments.md) |
+| Test ACM certificate and environment variables | V1 step 41 (analysis, moved from V0), V1 steps 14-15 (env refactor) | Result goes in [Environments](./Environments.md) |
 | DynamoDB single-table split (users, stories, matches, logs) | V1 | Logs table first, the rest only analysed |
 | Distributed lock for scheduled jobs on several instances | V6 | e.g. ShedLock for Java |
 
 # Version Control
-- **Document Version**: 0.41.2
+- **Document Version**: 1.1.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First backlog with every feature and its version | September 25, 2026 |
   | 0.41.2 | Basic KPI report marked done | September 29, 2026 |
+  | 1.1.0 | V0 items marked done or moved to V1 | October 14, 2026 |
 
-- **Last Updated**: September 29, 2026 (v0.41.2)
+- **Last Updated**: October 14, 2026 (v1.1.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
