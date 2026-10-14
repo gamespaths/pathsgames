@@ -151,7 +151,7 @@ per-server `_EC2`/`_EC2_PY` suffixes) and are due a naming/structure pass once V
 its own environment needs (SSO credentials, additional backends). Deferred, not scoped yet.
 
 # Version Control
-- **Document Version**: 1.0.0
+- **Document Version**: 1.1.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -160,9 +160,9 @@ its own environment needs (SSO credentials, additional backends). Deferred, not 
   | 0.41.1 | New logging and snapshot size keys | September 29, 2026 |
   | 0.41.4 | Match move between servers, export size key | October 1, 2026 |
   | 0.42.0 | Alpha stage live on the main website | October 6, 2026 |
-  | 1.0.0 | Daily smoke test and its keys added | October 13, 2026 |
+  | 1.1.0 | Daily smoke test and its keys added | October 13, 2026 |
 
-- **Last Updated**: October 13, 2026 (v1.0.0)
+- **Last Updated**: October 13, 2026 (v1.1.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

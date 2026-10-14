@@ -56,7 +56,7 @@ robot --variablefile variables/aws.yaml \
     --variable ADMIN_TOKEN:"${ROBOT_VAR_ADMIN_TOKEN:-}" \
     --variable CF_TURNSTILE_TOKEN: \
     --prerunmodifier "$LOCAL_DIR/skip_local_differences.py" \
-    "${ROBOT_SCOPE[@]}" tests/ || ROBOT_EXIT=$?
+    "${ROBOT_SCOPE[@]}" tests_v*/ || ROBOT_EXIT=$?
 
 echo "Test Robot completed. Report available in $PROJECT_ROOT/code/tests/robot/${ROBOT_SCOPE[-1]}"
 exit $ROBOT_EXIT

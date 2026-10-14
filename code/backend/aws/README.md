@@ -27,7 +27,7 @@ The infrastructure is built entirely on managed AWS services:
 | Lambda Seed | `pathsgames-<env>-SeedFunction` | Dev-only: inserts test data (stories, cards) |
 | Lambda AdminIpAuthorizer | `pathsgames-<env>-AdminIpAuthorizer` | REQUEST authorizer (no caching) gating the admin HTTP API by source IP |
 | Lambda GuestCleanup | `pathsgames-<env>-GuestCleanupFunction` | v0.41.0: daily (00:42 UTC default) deletion of match-less guests idle past `GuestCleanupAgeDays`, on an EventBridge `ScheduleV2` in a tagged `AWS::Scheduler::ScheduleGroup` |
-| Lambda SmokeTest | `pathsgames-<env>-SmokeTestFunction` | v1.0.0: daily smoke test (`template/smoke.yaml`, `test` and public stages only); EventBridge Scheduler `cron(42 4 * * ? *)` UTC in schedule group `pathsgames-<env>-smoke-test`; not behind API Gateway; alarms `smoke-failed` / `smoke-missing` on public stages with `AlarmEmail` |
+| Lambda SmokeTest | `pathsgames-<env>-SmokeTestFunction` | v1.1.0: daily smoke test (`template/smoke.yaml`, `test` and public stages only); EventBridge Scheduler `cron(42 4 * * ? *)` UTC in schedule group `pathsgames-<env>-smoke-test`; not behind API Gateway; alarms `smoke-failed` / `smoke-missing` on public stages with `AlarmEmail` |
 | Log Groups ×9 | `/aws/lambda/pathsgames-<env>-*` | One per Lambda above, deleted with the stack |
 
 ### Tagging
@@ -265,7 +265,7 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 ## 📝 Changelog
 
-### v1.0.0 — V1 step 1: daily smoke test
+### v1.1.0 — V1 step 1: daily smoke test
 
 - **`lambda/smoke/`** + nested stack **`template/smoke.yaml`** (`SmokeModule`, `Condition: HasSmokeTest` = `test` or public stage): `SmokeTestFunction` (python3.13, arm64, 180 s, no retry), schedule group + `ScheduleV2` `cron(42 4 * * ? *)` UTC, log group (14 days), all with the seven tags. Parameters `SmokeTestEnabled`, `SmokeTestSchedule`, `SmokeTestTtlDays` (7), `SmokeTestWebsiteUrl`, `SmokeTestLatencyWarnMs` (5000); `samconfig.toml [alpha]` sets the website URL.
 - Flow: optional website, echo, stories, guest, match created **in-process** through `match.handler` (synthetic event, no Turnstile: the function has no secret), join, start, info, locations, movement, pass, sleep + clock check (`clock not advanced by sleep: c0 -> c1` is a failure); the rest goes through the public API. Rows of the run get a `ttl` of 7 days (`finally`). No movable neighbour is only a `WARNING`; movement 500/404 is a failure, 400/409 tries the next neighbour. `SMOKE_HTTP_TIMEOUT_S` (default 20) is read by the code, not set in the template.
@@ -506,7 +506,7 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
   regression tests for both the hide-when-unvisited and keep-authored-link-card cases.
   416 Lambda unit tests pass.
 - **Robot**: new backend-agnostic test file
-  `code/tests/robot/tests/28_movement/location_fog_of_war.robot` (4 tests): hides
+  `code/tests/robot/tests_v0/28_movement/location_fog_of_war.robot` (4 tests): hides
   `card`/`idCard` on unvisited neighbors in `GET /locations`; the card reappears (and
   resolves via `/content`) after moving into that location; `GET /info` never leaks the
   location card ahead of the visit; the admin locations view applies the same gating.
@@ -523,7 +523,7 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
   parameter (default `en`) and pass it through. No change to the visited-locations/neighbor
   lookup logic itself.
 - **Unit tests**: 414 Lambda unit tests pass.
-- **Robot**: new test file `code/tests/robot/tests/28_movement/location_cards.robot`
+- **Robot**: new test file `code/tests/robot/tests_v0/28_movement/location_cards.robot`
   (backend-agnostic, 5 tests: card per location, card per neighbor, full `CardInfo`
   fields, `?lang=` param, admin view matches player view).
 - **Frontend**: this enrichment feeds the new interactive world map in react-game
@@ -547,7 +547,7 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
   `test_match_info_neighbor_cardback_reads_admin_edited_location_neighbors` — asserts
   that a stale `neighbors` copy does not shadow the `locationNeighbors` admin edit.
 - **Unit tests**: 407 Lambda unit tests pass.
-- **Robot**: New suite `code/tests/robot/tests/29_neighbor_card_back/neighbor_card_back.robot`
+- **Robot**: New suite `code/tests/robot/tests_v0/29_neighbor_card_back/neighbor_card_back.robot`
   (backend-agnostic): admin sets `idCard`+`idCardBack` on a neighbor touching the start
   location; player reads `GET /api/match/{uuid}/info?lang=en`; asserts distinct
   `card`/`cardBack` UUIDs, both resolving as real catalog cards; teardown restores
@@ -569,19 +569,19 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 - **`lambda/match/handler.py`**: New `_list_all_matches` handler implements `GET /api/admin/matches`. Requires ADMIN role (checked explicitly from the decoded JWT claims). Uses `db_utils.scan_pk_prefix` to scan all `MATCH#` items in DynamoDB, returning them newest-first. Returns the same `MatchSummary` shape as `GET /api/matches` but covers all players.
 - **`template/match.yaml`**: New `ListAllMatchesRoute` event registered on the Lambda.
 - **Unit tests**: 160 Lambda unit tests pass.
-- **Robot**: `code/tests/robot/tests/19_match/match_creation.robot` — new tests for admin 200 and non-admin 403. New `List All Matches` keyword in `resources/matches.resource`.
+- **Robot**: `code/tests/robot/tests_v0/19_match/match_creation.robot` — new tests for admin 200 and non-admin 403. New `List All Matches` keyword in `resources/matches.resource`.
 
 ### v0.19.9 — Match creation loadout fields
 
 - **`lambda/match/handler.py`** (or the relevant Lambda function): `POST /api/matches` now accepts and persists `characterTemplateUuid`, `classUuid`, `traitUuids` (stored comma-separated in DynamoDB item attribute `trait_uuids`), and `singlePlayer` (integer flag, defaults to `1`). Previously `characterTemplateUuid` was accepted but discarded; the other three fields are new. All four are echoed back on `MatchSummary` / `GET /api/match/{uuid}/info`.
 - **Unit tests**: 27 Lambda unit tests pass.
-- **Robot**: `code/tests/robot/tests/19_match/match_creation.robot` — new `Create Match With Loadout` keyword in `matches.resource`; new test verifies the complete loadout round-trips through `GET /api/match/{uuid}/info`.
+- **Robot**: `code/tests/robot/tests_v0/19_match/match_creation.robot` — new `Create Match With Loadout` keyword in `matches.resource`; new test verifies the complete loadout round-trips through `GET /api/match/{uuid}/info`.
 
 ### v0.19.7 — Seven stat fields on difficulties
 
 - **`lambda/story/handler.py`**: `DifficultyResponse` build path extended to include the 7 new stat fields (`life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`) in the story detail response. Import path (`import_story`) persists the same 7 fields from the request payload, defaulting to `life=100, energy=100, sad=0, dexterity=10, intelligence=10, constitution=10, weight=10` when absent.
 - **`lambda/seed/handler.py`**: All 3 demo stories in the seed dataset now include the 7 stat fields on each difficulty entry so Robot suite `14_stories/difficulty_stat_fields.robot` passes against the AWS endpoint.
-- **Robot**: New suite `code/tests/robot/tests/14_stories/difficulty_stat_fields.robot` — 4 tests covering presence/type, expected seed values for the tutorial, and sign constraints; all pass (4/4).
+- **Robot**: New suite `code/tests/robot/tests_v0/14_stories/difficulty_stat_fields.robot` — 4 tests covering presence/type, expected seed values for the tutorial, and sign constraints; all pass (4/4).
 
 ### v0.19.4 — difficulties/classes/traits idTextName/idTextDescription cross-backend consistency
 

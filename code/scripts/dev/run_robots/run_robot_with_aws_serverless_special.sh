@@ -134,4 +134,4 @@ robot --variablefile variables/aws.yaml \
     --variable "RATE_LIMIT_GUEST_PER_IP:$GUEST_PER_IP" \
     --variable "RATE_LIMIT_MATCH_PER_IP:$MATCH_PER_IP" \
     --variable "RATE_LIMIT_MATCH_PER_GUEST:$MATCH_PER_GUEST" \
-    --outputdir reports-aws-limited/ tests/ || ROBOT_EXIT=$?
+    --outputdir reports-aws-limited/ tests_v*/ || ROBOT_EXIT=$?

@@ -444,7 +444,7 @@ cd /mnt/Dati4/Workspace/pathsgames/code/tests/robot && source /mnt/Dati4/Workspa
     | 0.37.5 | AWS-only cost pass, round 2: new `POST /api/admin/cache/flush`; cache TTL default raised to 3600s; story items gzipped (`_gz`); admin GETs eventually consistent; listing reads `summary` via `GSI2`. No Java/Python change. | September 15, 2026 |
 
 - **Last Updated**: September 15, 2026
-- **Status**: In progress
+- **Status**: Complete
 
 
 

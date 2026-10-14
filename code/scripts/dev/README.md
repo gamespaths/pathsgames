@@ -8,7 +8,7 @@ full CI pipeline. This file documents two things:
 2. **Part 2** — every script and folder under `code/scripts/dev/` itself.
 
 `code/scripts/` also has `prod/` (`aws_backend_deploy_stage.sh`, public-stage backend deploy) and
-`alpha/` (v0.42.0 alpha deploy scripts, see `code/scripts/alpha/README.md`; from v1.0.0 `aws_backend_deploy.sh test` and the stage script invoke the smoke test through `code/scripts/lib/smoke_test.sh`) — not covered here — and the rest of `test/` (AWS SAM deploy, EC2 lifecycle — covered
+`alpha/` (v0.42.0 alpha deploy scripts, see `code/scripts/alpha/README.md`; from v1.1.0 `aws_backend_deploy.sh test` and the stage script invoke the smoke test through `code/scripts/lib/smoke_test.sh`) — not covered here — and the rest of `test/` (AWS SAM deploy, EC2 lifecycle — covered
 briefly in Part 1, in depth in `.claude/docs/commands.md`).
 
 ## Part 1 — Docker test-image builds (`code/scripts/test/`)
@@ -221,7 +221,7 @@ suite, clean up, tear down). Already documented in full in `.claude/docs/command
 | `run_robot_with_local_python.sh` | Python (FastAPI) | `code/tests/robot/reports-local-python/` |
 | `run_robot_with_aws_serverless.sh` | AWS (deployed test stack) | `code/tests/robot/reports-aws/` |
 
-All four seed dev data first, run `robot` against `code/tests/robot/tests/`, then call
+All four seed dev data first, run `robot` against `code/tests/robot/tests_v*/ (every version)`, then call
 `POST /api/dev/cleanup` (and, for AWS, `aws/purge_robot_test_data.py --orphans` as a
 second-pass sweep) so `robottest*` rows don't accumulate — win or lose.
 

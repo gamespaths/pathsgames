@@ -193,7 +193,7 @@ across environments.
 - **Owner move (v0.41.6)**: `GET`/`PUT /api/admin/matches/{uuidMatch}/owner` and `GET /api/admin/users/{identifier}` are admin-only on port 8044 and behind the AWS allow-list.
 
 # Version Control
-- **Document Version**: 1.0.0
+- **Document Version**: 1.1.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -201,9 +201,9 @@ across environments.
   | 0.41.0 | API headers, allow-list default, guest limits, dependency scan | September 28, 2026 |
   | 0.41.2 | Production website CSP switched to restricted | September 29, 2026 |
   | 0.41.4 | Admin-only match export and import, no secrets copied; owner move | October 3, 2026 |
-  | 1.0.0 | Smoke test function noted as not public | October 13, 2026 |
+  | 1.1.0 | Smoke test function noted as not public | October 13, 2026 |
 
-- **Last Updated**: October 13, 2026 (v1.0.0)
+- **Last Updated**: October 13, 2026 (v1.1.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

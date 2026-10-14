@@ -154,7 +154,7 @@ echo "Running Robot tests!"
 cd "$PROJECT_ROOT/code/tests/robot" && pip install -r requirements.txt
 ROBOT_EXIT=0
 ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" \
-	robot --variablefile variables/dev.yaml "${ROBOT_SCOPE[@]}" tests/ || ROBOT_EXIT=$?
+	robot --variablefile variables/dev.yaml "${ROBOT_SCOPE[@]}" tests_v*/ || ROBOT_EXIT=$?
 
 # Remove the rows created by this Robot run (guests + matches tagged "robottest"),
 # preserving every other row. Runs whether the tests passed or failed.

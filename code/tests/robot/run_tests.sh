@@ -28,11 +28,11 @@ if [[ -n "$TAG" ]]; then
         --variablefile "$VARS" \
         --include "$TAG" \
         --outputdir "$REPORTS_DIR" \
-        tests/
+        tests_v*/
 else
     echo "Running Robot Framework tests — ALL suites"
     robot \
         --variablefile "$VARS" \
         --outputdir "$REPORTS_DIR" \
-        tests/
+        tests_v*/
 fi

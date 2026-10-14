@@ -39,7 +39,7 @@ Story Lambda (`POST /api/admin/stories/catalog`): no deploy ever touches it.
 | `AWS_ALPHA_BUDGETS_LIMIT` | Monthly budget in USD (template default 10) |
 | `AWS_ALPHA_APIGW_THROTTLE_RATE`, `AWS_ALPHA_APIGW_THROTTLE_BURST` | Public API throttling (50 / 100) |
 | `AWS_ALPHA_APIGW_ADMIN_THROTTLE_RATE`, `AWS_ALPHA_APIGW_ADMIN_THROTTLE_BURST` | Admin API throttling (5 / 10) |
-| `AWS_ALPHA_LAMBDA_SMOKE_TEST_ENABLED`, `AWS_ALPHA_LAMBDA_SMOKE_WEBSITE_URL` | v1.0.0, optional: `false` disables the smoke schedule and the post-deploy run; website checked by the smoke test (empty = samconfig value `https://paths.games`). Add by hand to `.env` (copy from `.env.example`) |
+| `AWS_ALPHA_LAMBDA_SMOKE_TEST_ENABLED`, `AWS_ALPHA_LAMBDA_SMOKE_WEBSITE_URL` | v1.1.0, optional: `false` disables the smoke schedule and the post-deploy run; website checked by the smoke test (empty = samconfig value `https://paths.games`). Add by hand to `.env` (copy from `.env.example`) |
 | `AWS_ALPHA_APIGW_ADMIN_IP_WHITELIST` | Optional, manual deploys only: extra IPs merged with the caller IP |
 
 **`code/frontend/react-game/.env.alpha`** — git-ignored; it must set **every** `VITE_*` key of
@@ -241,7 +241,7 @@ aws dynamodb get-item --region $R --table-name $N --key '{"PK":{"S":"STORY#<uuid
 `deploy_backend.sh` and `deploy_website.sh` from it, or start both workflows with
 `workflow_dispatch` on that tag. Data recovery is the runbook above.
 
-## 10. Daily smoke test and its alarms (v1.0.0)
+## 10. Daily smoke test and its alarms (v1.1.0)
 
 **What it does.** `pathsgames-alpha-SmokeTestFunction` (nested stack `template/smoke.yaml`) runs every day
 at 04:42 UTC (EventBridge Scheduler, schedule group `pathsgames-alpha-smoke-test`) and after every

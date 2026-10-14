@@ -49,7 +49,7 @@ code/scripts/test/aws/aws_backend_deploy.sh [dev|test] [--auto-confirm]  # also 
 code/scripts/test/aws/aws_backend_remove.sh [dev|test]                  # also selects stack pathsgames-<env>
 code/scripts/test/aws/aws_set_admin_ip.sh [dev|test] [--dry-run]       # admin allow-list = caller IP (no redeploy)
 code/scripts/prod/aws_backend_deploy_stage.sh <alpha|beta|prod>         # v0.41.0, stage deploy: caller-IP detection, explicit parameters, refuses a missing/default-secret stage JWT
-code/scripts/lib/smoke_test.sh                                          # v1.0.0, sourced helper: smoke_test_invoke <function> <region>; both deploy scripts above run it after sam deploy (test + stages; AWS_*_LAMBDA_SMOKE_TEST_ENABLED=false skips)
+code/scripts/lib/smoke_test.sh                                          # v1.1.0, sourced helper: smoke_test_invoke <function> <region>; both deploy scripts above run it after sam deploy (test + stages; AWS_*_LAMBDA_SMOKE_TEST_ENABLED=false skips)
 code/scripts/prod/aws_terraform_deploy.sh <test|production> <cmd>   # v0.42.0, terraform wrapper (was terraform-aws/tf.sh)
 code/scripts/prod/aws_create_policy_github_actions.sh [--dry-run] [--account-id ID] [--attach-user U [--detach-full]]  # IAM policy paths-games-deployer
 ```

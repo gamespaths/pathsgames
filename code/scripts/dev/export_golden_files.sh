@@ -12,7 +12,7 @@ set -uo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 RUNNERS="$PROJECT_ROOT/code/scripts/dev/run_robots"
 RESULTS_DIR="$PROJECT_ROOT/code/scripts/dev/run_robot_results"
-GOLDEN_DIR="$PROJECT_ROOT/code/tests/robot/tests/41_alpha_prep/fixtures/golden"
+GOLDEN_DIR="$PROJECT_ROOT/code/tests/robot/tests_v0/41_alpha_prep/fixtures/golden"
 
 ONLY="java,python,aws-local"
 for arg in "$@"; do

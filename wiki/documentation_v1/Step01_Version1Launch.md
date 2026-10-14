@@ -1,8 +1,8 @@
 # Step 1 — Version 1 launch (daily smoke test)
 
-**Status: DEVELOPED (October 13, 2026).** AWS pytest 1475 passed; `lambda/smoke/` 100% lines, 99% branches; Robot not run (no API change).
+**Status: DONE (October 14, 2026).** Developed October 13: AWS pytest 1475 passed; `lambda/smoke/` 100% lines, 99% branches. Owner confirmed Robot suites green on all three backends and the real deploy (test + alpha) with working smoke test.
 Roadmap line: *V1 starts on top of the launched alpha* ([Roadmap](./Roadmap.md) step 1).
-Current version `1.0.0`; the step is released as `1.1.0` (the owner bumps, never an agent).
+Step 1 is released as `1.1.0` (bumped by the owner, never by an agent).
 Touches only the **AWS backend** (`code/backend/aws/`), `code/scripts/` and docs. **No API, OpenAPI,
 schema, Java, Python, react-game, react-admin or Robot change.**
 
@@ -17,9 +17,9 @@ never commit, push or bump the version.
 | 1 | Version bump to `1.0.0` on every component | all | DONE (owner) |
 | 2 | Versioning: plain `X.Y.Z`, `bump-version.sh` with pre-check and `--check` | infra, docs | DONE |
 | 3 | V0 documents frozen; `documentation_v1` current in [INDEX](../INDEX.md) | docs | DONE |
-| 4 | Alpha urgent fixes stay on `0.42.z` (V0 `Hotfixes.md`) | docs | rule only |
-| 5 | Robot green on all three backends with `1.0.0` | tests | owner runs |
-| 6 | **Daily smoke test on AWS** (guest, stories, match, gameplay, Turnstile), failure notified | tests, infra | DONE (developed) |
+| 4 | Alpha urgent fixes stay on `0.42.z` (V0 `Hotfixes.md`) | docs | DONE |
+| 5 | Robot green on all three backends with `1.0.0` | tests | DONE (owner) |
+| 6 | **Daily smoke test on AWS** (guest, stories, match, gameplay, Turnstile), failure notified | tests, infra | DONE |
 
 **In**: one new Lambda `pathsgames-<env>-SmokeTestFunction` in a new nested stack
 `template/smoke.yaml`, scheduled daily by EventBridge Scheduler and invoked after every deploy;
@@ -285,14 +285,14 @@ Unit tests (pytest, `code/backend/aws/tests/`, `PYTHONPATH=lambda`), coverage > 
 No open doubt. Decided (owner flow start → movement → pass → sleep): `pass` only ends the turn, so the clock is checked after `sleep`, which triggers the time-end.
 
 # Version Control
-- **Document Version**: 1.0.0
+- **Document Version**: 1.1.0
 
   | Version | Description | Date |
   |---------|-------------|------|
-  | 1.0.0 | Daily automatic check of the online game developed | October 13, 2026 |
+  | 1.1.0 | Daily automatic check of the online game, developed and verified | October 14, 2026 |
 
-- **Last Updated**: October 13, 2026 (v1.0.0)
-- **Status**: developed; no open doubt
+- **Last Updated**: October 14, 2026 (v1.1.0)
+- **Status**: done (Robot green on all backends, deploy and smoke verified by the owner, October 14, 2026); no open doubt
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

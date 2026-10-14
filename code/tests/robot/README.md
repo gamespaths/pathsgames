@@ -14,7 +14,7 @@ robot/
 │   ├── auth.resource              Auth flow keywords (guest login, token helpers)
 │   ├── stories.resource           Story API keywords (import, list, detail, delete)
 │   └── matches.resource           Match API keywords (Create Match, Create Match With Loadout)
-└── tests/
+└── tests_v0/                       V0 suites (V1 suites in tests_v1/; runners always run every tests_v*/)
     ├── 01_smoke/
     │   └── smoke.robot            Server up, public reachable, admin guard works
     ├── 12_auth/
@@ -73,7 +73,7 @@ There is no `username+password` login endpoint — tokens are:
    ```
 3. Or overridden at run time:
    ```bash
-   ROBOT_VAR_ADMIN_TOKEN="eyJ..." robot --variablefile variables/dev.yaml tests/
+   ROBOT_VAR_ADMIN_TOKEN="eyJ..." robot --variablefile variables/dev.yaml tests_v*/
    ```
 
 ## Running Tests
@@ -92,37 +92,37 @@ Alternatively, start any backend manually on port 8042 (public) + 8044 (admin), 
 ### All tests
 
 ```bash
-robot --variablefile variables/dev.yaml tests/
+robot --variablefile variables/dev.yaml tests_v*/
 ```
 
 ### Only smoke tests
 
 ```bash
-robot --variablefile variables/dev.yaml --include smoke tests/
+robot --variablefile variables/dev.yaml --include smoke tests_v*/
 ```
 
 ### Only public-endpoint tests (no admin token needed)
 
 ```bash
-robot --variablefile variables/dev.yaml --include smoke --include stories tests/
+robot --variablefile variables/dev.yaml --include smoke --include stories tests_v*/
 ```
 
 ### Only auth tests
 
 ```bash
-robot --variablefile variables/dev.yaml --include auth tests/
+robot --variablefile variables/dev.yaml --include auth tests_v*/
 ```
 
 ### Only admin tests
 
 ```bash
-robot --variablefile variables/dev.yaml --include admin tests/
+robot --variablefile variables/dev.yaml --include admin tests_v*/
 ```
 
 ### With output dir
 
 ```bash
-robot --variablefile variables/dev.yaml --outputdir reports/ tests/
+robot --variablefile variables/dev.yaml --outputdir reports/ tests_v*/
 ```
 
 ## Tags Reference
