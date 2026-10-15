@@ -10,7 +10,7 @@ from test_step42_template_hardening import AWS_DIR, ALARMS, TAG_KEYS, _cond, _cr
 
 STAGES = ['test', 'alpha', 'beta', 'prod']
 SMOKE_ONLY_ENV = {'SMOKE_API_BASE_URL', 'SMOKE_WEBSITE_URL', 'SMOKE_TTL_DAYS', 'SMOKE_LATENCY_WARN_MS',
-                  'SMOKE_ALARM_TOPIC_ARN', 'TURNSTILE_ENABLED'}
+                  'SMOKE_ALARM_TOPIC_ARN', 'TURNSTILE_ENABLED', 'SMOKE_SOURCE_IP'}
 SMOKE_ALARMS = ['SmokeTestFailedAlarm', 'SmokeTestMissingAlarm']
 
 
@@ -59,6 +59,7 @@ def test_root_parameters_and_defaults(tpl):
     assert p['SmokeTestSchedule']['Default'] == 'cron(42 4 * * ? *)'
     assert (p['SmokeTestTtlDays']['Default'], p['SmokeTestWebsiteUrl']['Default']) == ('7', '')
     assert p['SmokeTestLatencyWarnMs']['Default'] == '5000'
+    assert p['SmokeTestSourceIp']['Default'] == '42.42.42.42'
 
 
 # Java-style full match, as CloudFormation applies AllowedPattern.
@@ -88,7 +89,7 @@ def test_module_parameters_match_the_nested_stack_and_carry_no_turnstile_secret(
     assert 'TurnstileSecretKey' not in json.dumps(params) and 'TurnstileBypassToken' not in json.dumps(params)
     assert params['JwtSecret'] == {'Ref': 'JwtSecret'}
     for name in ('SmokeTestEnabled', 'SmokeTestSchedule', 'SmokeTestTtlDays', 'SmokeTestWebsiteUrl',
-                 'SmokeTestLatencyWarnMs', 'CsrfEnforced', 'AllowMockAccess', 'RateLimitMatchPerIp'):
+                 'SmokeTestLatencyWarnMs', 'SmokeTestSourceIp', 'CsrfEnforced', 'AllowMockAccess', 'RateLimitMatchPerIp'):
         assert params[name] == {'Ref': name}
 
 
@@ -179,6 +180,7 @@ def test_env_equals_match_function_env_without_turnstile_secrets(smoke):
     assert smoke_env['TURNSTILE_ENABLED'] == {'Ref': 'TurnstileEnabled'}
     assert smoke_env['SMOKE_API_BASE_URL'] == {'Ref': 'ApiBaseUrl'}
     assert smoke_env['SMOKE_ALARM_TOPIC_ARN'] == {'Ref': 'AlarmTopicArn'}
+    assert smoke_env['SMOKE_SOURCE_IP'] == {'Ref': 'SmokeTestSourceIp'}
 
 
 # ── alarms ───────────────────────────────────────────────────────────────

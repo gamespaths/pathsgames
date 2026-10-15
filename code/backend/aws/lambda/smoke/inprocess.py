@@ -1,10 +1,11 @@
 """v1.1.0 — creates the smoke match by calling match.handler in this process (no TURNSTILE_SECRET_KEY here).
 The public MatchFunction is untouched: this module only builds a synthetic HTTP API v2 event."""
 import json
+import os
 import uuid
 from datetime import datetime, timezone
 
-SOURCE_IP = '42.42.42.42'
+SOURCE_IP_FALLBACK = 'smoke-test'  # rate-limit key when SMOKE_SOURCE_IP is unset
 ROUTE = 'POST /api/matches'
 PATH = '/api/matches'
 
@@ -12,6 +13,10 @@ PATH = '/api/matches'
 def match_name(now=None):
     now = now or datetime.now(timezone.utc)
     return 'smoketest-' + now.strftime('%Y%m%d-%H%M')
+
+
+def source_ip():
+    return os.environ.get('SMOKE_SOURCE_IP', '').strip() or SOURCE_IP_FALLBACK
 
 
 def build_event(access_token, csrf_token, body, user_agent):
@@ -26,7 +31,7 @@ def build_event(access_token, csrf_token, body, user_agent):
             'user-agent': user_agent,
         },
         'requestContext': {
-            'http': {'method': 'POST', 'path': PATH, 'sourceIp': SOURCE_IP},
+            'http': {'method': 'POST', 'path': PATH, 'sourceIp': source_ip()},
             'requestId': f'smoke-{uuid.uuid4()}',
         },
         'body': json.dumps(body),

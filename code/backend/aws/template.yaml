@@ -212,6 +212,10 @@ Parameters:
     Type: String
     Default: "5000"
     Description: "v1.1.0 - a smoke call slower than this (ms) logs a WARNING; never a failure."
+  SmokeTestSourceIp:
+    Type: String
+    Default: "42.42.42.42"
+    Description: "v1.1.0 - synthetic sourceIp of the in-process smoke match creation (per-IP rate-limit key)."
 
 Mappings:
   # Environment tag value per deploy environment. The parameter keeps `prod` because resource
@@ -832,6 +836,7 @@ Resources:
         SmokeTestTtlDays: !Ref SmokeTestTtlDays
         SmokeTestWebsiteUrl: !Ref SmokeTestWebsiteUrl
         SmokeTestLatencyWarnMs: !Ref SmokeTestLatencyWarnMs
+        SmokeTestSourceIp: !Ref SmokeTestSourceIp
 
 Outputs:
   ApiUrl:

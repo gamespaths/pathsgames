@@ -1,5 +1,5 @@
 """v1.1.0 — V1 step 1: the in-process match creation through the REAL match.handler on a FakeTable:
-201 without a Turnstile secret, CSRF honoured, sourceIp 42.42.42.42 used by the per-IP limit."""
+201 without a Turnstile secret, CSRF honoured, sourceIp from SMOKE_SOURCE_IP used by the per-IP limit."""
 import json
 from datetime import datetime, timezone
 from unittest.mock import patch
@@ -36,15 +36,23 @@ def table():
         yield fake
 
 
-def test_synthetic_event_has_the_http_api_v2_shape():
+def test_synthetic_event_has_the_http_api_v2_shape(monkeypatch):
+    monkeypatch.setenv('SMOKE_SOURCE_IP', '203.0.113.42')
     event = inprocess.build_event('tok', 'csrf', BODY, 'PathsGamesSmokeTest/1.0.0')
     assert (event['version'], event['routeKey'], event['rawPath']) == ('2.0', 'POST /api/matches', '/api/matches')
     assert event['headers'] == {'authorization': 'Bearer tok', 'x-csrf-token': 'csrf',
                                 'content-type': 'application/json', 'user-agent': 'PathsGamesSmokeTest/1.0.0'}
-    assert event['requestContext']['http'] == {'method': 'POST', 'path': '/api/matches', 'sourceIp': '42.42.42.42'}
+    assert event['requestContext']['http'] == {'method': 'POST', 'path': '/api/matches', 'sourceIp': '203.0.113.42'}
     assert event['requestContext']['requestId'].startswith('smoke-')
     assert json.loads(event['body']) == BODY
     assert inprocess.build_event('tok', None, {}, 'ua')['headers']['x-csrf-token'] == ''
+
+
+def test_source_ip_falls_back_to_a_label_when_unset(monkeypatch):
+    monkeypatch.delenv('SMOKE_SOURCE_IP', raising=False)
+    assert inprocess.source_ip() == 'smoke-test'
+    monkeypatch.setenv('SMOKE_SOURCE_IP', '  ')
+    assert inprocess.build_event('t', 'c', {}, 'ua')['requestContext']['http']['sourceIp'] == 'smoke-test'
 
 
 def test_match_name_never_starts_with_robottest():
@@ -78,6 +86,7 @@ def test_csrf_header_is_honoured(table, monkeypatch):
 
 def test_source_ip_feeds_the_per_ip_limit(table, monkeypatch):
     monkeypatch.setenv('RATE_LIMIT_MATCH_PER_IP', '3')
+    monkeypatch.setenv('SMOKE_SOURCE_IP', '203.0.113.42')
     seen = []
 
     def fake_limit(bucket, ip, limit, now=None, window=None):
@@ -86,7 +95,7 @@ def test_source_ip_feeds_the_per_ip_limit(table, monkeypatch):
 
     with patch.object(security_utils, 'rate_limit', side_effect=fake_limit):
         assert inprocess.create_match(TOKEN, None, BODY, 'ua')[0] == 201
-    assert ('match', '42.42.42.42', 3) in seen
+    assert ('match', '203.0.113.42', 3) in seen
 
 
 def test_non_json_answer_parses_to_none():

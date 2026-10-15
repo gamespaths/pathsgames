@@ -81,6 +81,9 @@ Parameters:
   SmokeTestLatencyWarnMs:
     Type: String
     Default: "5000"
+  SmokeTestSourceIp:
+    Type: String
+    Default: "42.42.42.42"
 
 Conditions:
   IsSmokeEnabled: !Equals [!Ref SmokeTestEnabled, "true"]
@@ -187,6 +190,7 @@ Resources:
           SMOKE_WEBSITE_URL: !Ref SmokeTestWebsiteUrl
           SMOKE_TTL_DAYS: !Ref SmokeTestTtlDays
           SMOKE_LATENCY_WARN_MS: !Ref SmokeTestLatencyWarnMs
+          SMOKE_SOURCE_IP: !Ref SmokeTestSourceIp
           SMOKE_ALARM_TOPIC_ARN: !Ref AlarmTopicArn
           TURNSTILE_ENABLED: !Ref TurnstileEnabled
       Policies:
