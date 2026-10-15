@@ -167,6 +167,11 @@ components:
             `CONDITION_ALL_IN_SAME_LOC_NOT_MET`, `CONDITION_TRAITS_NOT_MET`,
             `CONDITION_STATISTICS_NOT_MET`, `CONDITION_STATISTICS_SUM_NOT_MET`,
             `CONDITIONS_NOT_MET`.
+        registryLock:
+          description: v1.1.0 — set only when a KEYS condition blocks the option; null otherwise.
+          allOf:
+            - $ref: './v0.19.0-match-creation-api.yaml#/components/schemas/RegistryLock'
+          nullable: true
       required:
         - uuid
         - available

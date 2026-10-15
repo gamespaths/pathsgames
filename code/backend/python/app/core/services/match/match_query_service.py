@@ -55,6 +55,12 @@ class _MoveJudge:
                                          n.get("condition_registry_value"),
                                          self.registry.get(key))
 
+    def lock_of(self, n):
+        """V1 step 1 - the raw lock of an edge whose registry condition fails."""
+        key = n.get("condition_registry_key")
+        return registry_service.lock(key, n.get("registry_value_operator_condition"),
+                                     n.get("condition_registry_value"), self.registry.get(key))
+
     def judge(self, n, target):
         if target is None:
             return movement_availability.MovementAvailability.no(
@@ -423,6 +429,7 @@ class MatchQueryService(MatchQueryPort):
 
         neighbors = self.story_read_port.find_location_neighbors_by_story_id(story_id)
         events = self.story_read_port.find_events_by_story_id(story_id)
+        lock_view = registry_service.lock_view_of(self.registry_service, story_id, lang)
 
         for loc_id in active_loc_ids:
             loc = loc_by_id.get(loc_id)
@@ -454,7 +461,11 @@ class MatchQueryService(MatchQueryPort):
                 from_id = n.get("id_location_from")
                 to_id = n.get("id_location_to")
                 # No port call in this loop either: the move context was loaded once.
-                verdict = (move_judge or _MoveJudge.no_character()).judge(n, other)
+                judge = move_judge or _MoveJudge.no_character()
+                verdict = judge.judge(n, other)
+                edge_lock = None
+                if verdict.reason == movement_availability.MovementError.MOVEMENT_CONDITION_NOT_MET:
+                    edge_lock = lock_view.apply(judge.lock_of(n))
                 neighbor_infos.append(LocationNeighborInfo(
                     id_location=other_id,
                     uuid=other["uuid"] if other else None,
@@ -475,6 +486,7 @@ class MatchQueryService(MatchQueryPort):
                     cost_food=n.get("cost_food") or 0,
                     cost_magic=n.get("cost_magic") or 0,
                     cost_coin=n.get("cost_coin") or 0,
+                    registry_lock=edge_lock,
                 ))
 
             event_infos: List[EventInfo] = []
@@ -493,6 +505,7 @@ class MatchQueryService(MatchQueryPort):
                         coin=e.get("cost_coin") or 0,
                         food=e.get("cost_food") or 0,
                         magic=e.get("cost_magic") or 0,
+                        registry_lock=lock_view.apply(verdict.registry_lock),
                     ))
 
             result.append(LocationInfo(

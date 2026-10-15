@@ -38,7 +38,9 @@ from app.core.ports.match.event_ports import (
     ITEM_ACTION_ADD, ITEM_ACTION_REMOVE,
     MSG_CHOICE_SELECTED, MSG_EVENT_EXECUTED, EventPort, EventStorePort,
 )
-from app.core.services.match import choice_availability, edge_state_evaluator, event_availability
+from app.core.services.match import (
+    choice_availability, edge_state_evaluator, event_availability, registry_service,
+)
 from app.core.services.match.card_mapper import resolve_card
 
 ADD = "ADD"
@@ -594,6 +596,8 @@ class EventService(EventPort):
         cctx = self._build_choice_context(x, choices, conditions_by_choice)
         ordered = sorted(choices, key=lambda c: (c.get("priority") or 0, c.get("id") or 0))
         out: List[Dict[str, Any]] = []
+        lock_view = registry_service.lock_view_of(self.registry_service, x.match["id_story"],
+                                                  x.lang)
         for choice in ordered:
             rows = conditions_by_choice.get(choice.get("id"), [])
             availability = choice_availability.check(choice, rows, cctx)
@@ -607,6 +611,7 @@ class EventService(EventPort):
                 "card": x.resolve_card(choice.get("id_card")),
                 "available": availability.available,
                 "reason": availability.reason,
+                "registryLock": lock_view.apply(availability.registry_lock),
             })
         return out
 

@@ -15,6 +15,7 @@ under `code/scripts/test/`: `code/scripts/dev/README.md`.
 mvn clean install -DskipTests           # build without tests
 mvn clean test                          # run all unit tests
 mvn -pl core test -DskipITs             # core domain tests only (fastest)
+mvn -pl adapter-rest test -Dtest=OpenApiSpecsValidTest  # validate every OpenAPI yaml only
 mvn -pl ms-launcher spring-boot:run     # dev server (SQLite, public 8042 + admin 8044)
 mvn -pl ms-launcher spring-boot:run -P prod -Dspring-boot.run.profiles=prod  # prod (PostgreSQL, public 8080, admin 8044)
 curl -s http://localhost:8042/api/echo/status | python3 -m json.tool  # health check (public)

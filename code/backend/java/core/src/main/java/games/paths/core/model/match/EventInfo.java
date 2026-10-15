@@ -29,6 +29,7 @@ public class EventInfo {
     private final int coin;
     private final int food;
     private final int magic;
+    private RegistryLock registryLock;
 
     /** Pre-v0.35.3 shape: an event whose only price is energy. */
     public EventInfo(String uuid, String type, boolean endGame, CardInfo card,
@@ -69,4 +70,7 @@ public class EventInfo {
     public int getFood() { return food; }
     /** v0.35.3 — the magic it costs ({@code cost_magic}). */
     public int getMagic() { return magic; }
+    /** V1 step 1 - why the registry blocks this event; null when it does not. */
+    public RegistryLock getRegistryLock() { return registryLock; }
+    public void setRegistryLock(RegistryLock registryLock) { this.registryLock = registryLock; }
 }

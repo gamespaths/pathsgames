@@ -658,6 +658,12 @@ components:
             - OVERWEIGHT
             - INSUFFICIENT_ENERGY
             - LOCATION_FULL
+        registryLock:
+          description: >
+            v1.1.0 — set only when `reason` is MOVEMENT_CONDITION_NOT_MET; null otherwise.
+          allOf:
+            - $ref: '#/components/schemas/RegistryLock'
+          nullable: true
 
     EventInfo:
       type: object
@@ -707,6 +713,54 @@ components:
           description: v0.35.3 — the magic the event costs (`cost_magic`); 0 when it is free.
           type: integer
           example: 1
+        registryLock:
+          description: >
+            v1.1.0 — set only when `reason` is REGISTRY_CONDITION_NOT_MET; null otherwise.
+          allOf:
+            - $ref: '#/components/schemas/RegistryLock'
+          nullable: true
+
+    RegistryLock:
+      type: object
+      description: |
+        v1.1.0 — why a registry condition blocks an event, a neighbor or a choice option.
+        Additive: every `reason` code is unchanged. Shared by `v0.29.0-events-api.yaml` and
+        `v0.31.0-choices-api.yaml`. `key`, `keyTitle`, `operator` and `value` are null when
+        `hidden` is true (key not PUBLIC or not declared), and also when no single key can be
+        named (choice with logic OR, authoring error such as an unknown operator).
+      properties:
+        mode:
+          type: string
+          enum: [MISSING, FORBIDDEN]
+          description: >
+            FORBIDDEN when the operator is `!=` and the key holds the value; MISSING for `=`,
+            `>`, `<` and authoring errors.
+        hidden:
+          type: boolean
+        key:
+          type: string
+          nullable: true
+          example: gate_state
+        keyTitle:
+          type: string
+          nullable: true
+          description: Title of the key's card in the request language; null when the key has no card.
+          example: Gate key
+        operator:
+          type: string
+          nullable: true
+          enum: ['=', '!=', '>', '<', null]
+          description: The real operator of the condition; a blank operator reads as `=`.
+        value:
+          type: string
+          nullable: true
+          description: >
+            `=`: the expected value; `>` / `<`: the threshold; `!=`: the stored member that
+            matched, in its stored spelling.
+          example: open
+      required:
+        - mode
+        - hidden
 
     LocationInfo:
       type: object

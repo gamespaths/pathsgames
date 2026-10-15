@@ -18,6 +18,7 @@ import games.paths.core.model.match.MatchListFilter;
 import games.paths.core.model.match.MatchMission;
 import games.paths.core.model.match.MatchLocationState;
 import games.paths.core.model.match.MatchRegistryGroup;
+import games.paths.core.model.match.RegistryLock;
 import games.paths.core.model.match.MatchSummary;
 import games.paths.core.model.match.MatchSummaryPage;
 import games.paths.core.model.match.MatchTraitCodec;
@@ -600,6 +601,13 @@ public class MatchQueryService implements MatchQueryPort {
             return RegistryService.evaluate(n.getRegistryValueOperatorCondition(),
                     n.getConditionRegistryValue(), registry.getOrDefault(key, List.of()));
         }
+
+        /** V1 step 1 - the raw lock of an edge whose registry condition fails. */
+        RegistryLock lockOf(LocationNeighborEntity n) {
+            String key = n.getConditionRegistryKey();
+            return RegistryService.lock(key, n.getRegistryValueOperatorCondition(),
+                    n.getConditionRegistryValue(), registry.getOrDefault(key, List.of()));
+        }
     }
 
     /**
@@ -696,6 +704,7 @@ public class MatchQueryService implements MatchQueryPort {
         List<LocationNeighborEntity> neighbors = storyReadPort.findLocationNeighborsByStoryId(storyId);
         List<EventEntity> events = storyReadPort.findEventsByStoryId(storyId);
         Map<Integer, CardInfo> cardCache = new HashMap<>();
+        RegistryService.LockView lockView = RegistryService.lockViewOf(registryService, storyId, lang);
 
         for (Long locId : activeLocIds) {
             LocationEntity loc = locationsById.get(locId);
@@ -732,7 +741,7 @@ public class MatchQueryService implements MatchQueryPort {
                 Long toId = n.getIdLocationTo() != null ? n.getIdLocationTo().longValue() : null;
                 // No port call in this loop either: the move context was loaded once.
                 MovementAvailability move = judgeNeighbor(moveJudge, n, other);
-                neighborInfos.add(new LocationNeighborInfo(
+                LocationNeighborInfo neighborInfo = new LocationNeighborInfo(
                         otherId,
                         other != null ? other.getUuid() : null,
                         n.getDirection(),
@@ -746,7 +755,11 @@ public class MatchQueryService implements MatchQueryPort {
                         resolveLocationCard(storyId, fromId, locationsById, lang, visitedLocIds, cardCache),
                         resolveLocationCard(storyId, toId, locationsById, lang, visitedLocIds, cardCache),
                         move.available(), move.reasonName(),
-                        n.getCostFood(), n.getCostMagic(), n.getCostCoin()));
+                        n.getCostFood(), n.getCostMagic(), n.getCostCoin());
+                if (move.reason() == MovementException.Code.MOVEMENT_CONDITION_NOT_MET) {
+                    neighborInfo.setRegistryLock(lockView.apply(moveJudge.lockOf(n)));
+                }
+                neighborInfos.add(neighborInfo);
             }
 
             List<EventInfo> eventInfos = new ArrayList<>();
@@ -759,12 +772,14 @@ public class MatchQueryService implements MatchQueryPort {
                     EventAvailability av = checkCtx == null
                             ? EventAvailability.no(Code.CHARACTER_CANNOT_ACT)
                             : EventAvailabilityChecker.check(e, checkCtx);
-                    eventInfos.add(new EventInfo(
+                    EventInfo eventInfo = new EventInfo(
                             e.getUuid(), e.getType(), endGame,
                             resolveCard(storyId, e.getIdCard(), lang, cardCache),
                             av.available(), av.reasonName(),
                             nz(e.getCostEnery()), nz(e.getCostCoin()),
-                            nz(e.getCostFood()), nz(e.getCostMagic())));
+                            nz(e.getCostFood()), nz(e.getCostMagic()));
+                    eventInfo.setRegistryLock(lockView.apply(av.registryLock()));
+                    eventInfos.add(eventInfo);
                 }
             }
 

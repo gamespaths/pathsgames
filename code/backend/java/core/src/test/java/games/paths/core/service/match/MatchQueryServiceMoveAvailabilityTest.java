@@ -238,4 +238,45 @@ class MatchQueryServiceMoveAvailabilityTest {
         assertEquals("CHARACTER_CANNOT_ACT", neighbor().getReason());
     }
 
+    // ── V1 step 1: the registry lock rides on the edge ──────────────────────
+
+    private static games.paths.core.entity.story.KeyEntity publicKey(String name) {
+        games.paths.core.entity.story.KeyEntity k = new games.paths.core.entity.story.KeyEntity();
+        k.setName(name);
+        k.setVisibility("PUBLIC");
+        return k;
+    }
+
+    @Test
+    @DisplayName("V1 step 1: a != edge on a held value carries a FORBIDDEN lock with the key")
+    void conditionNotMetCarriesTheLock() {
+        LocationNeighborEntity gated = edge();
+        gated.setConditionRegistryKey("gate");
+        gated.setConditionRegistryValue("open");
+        gated.setRegistryValueOperatorCondition("!=");
+        when(registryService.lockView(org.mockito.ArgumentMatchers.eq(STORY_ID),
+                org.mockito.ArgumentMatchers.any())).thenReturn(new RegistryService.LockView(
+                () -> Map.of("gate", publicKey("gate")), id -> null));
+
+        wire(mover(false, false, 100), location(THERE, "loc-there"), gated,
+                Map.of("gate", List.of("Open")));
+
+        assertEquals(new games.paths.core.model.match.RegistryLock("FORBIDDEN", false, "gate",
+                null, "!=", "Open"), neighbor().getRegistryLock());
+    }
+
+    @Test
+    @DisplayName("V1 step 1: an undeclared key reads hidden; any other reason carries no lock")
+    void lockHiddenOrAbsent() {
+        LocationNeighborEntity gated = edge();
+        gated.setConditionRegistryKey("gate");
+        gated.setConditionRegistryValue("open");
+        wire(mover(false, false, 100), location(THERE, "loc-there"), gated, Map.of());
+        assertTrue(neighbor().getRegistryLock().hidden());
+        assertNull(neighbor().getRegistryLock().key());
+
+        wire(mover(true, false, 100), location(THERE, "loc-there"), gated, Map.of());
+        assertEquals("COMA", neighbor().getReason());
+        assertNull(neighbor().getRegistryLock());
+    }
 }

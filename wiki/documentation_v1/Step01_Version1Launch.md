@@ -1,11 +1,12 @@
 # Step 1 — Version 1 launch (daily smoke test)
 
-**Status: DONE (October 14, 2026); sub-point 7 developed, react-admin vitest green.** Developed October 13: AWS pytest 1475 passed; `lambda/smoke/` 100% lines, 99% branches. Owner confirmed Robot suites green on all three backends and the real deploy (test + alpha) with working smoke test.
+**Status: sub-points 1-8 DONE (October 14, 2026); sub-point 8 Robot suites written, to be run by the owner.** Developed October 13: AWS pytest 1475 passed; `lambda/smoke/` 100% lines, 99% branches. Owner confirmed Robot suites green on all three backends and the real deploy (test + alpha) with working smoke test.
 Roadmap line: *V1 starts on top of the launched alpha* ([Roadmap](./Roadmap.md) step 1).
 Step 1 is released as `1.1.0` (bumped by the owner, never by an agent).
 Touches only the **AWS backend** (`code/backend/aws/`), `code/scripts/` and docs. **No API, OpenAPI,
 schema, Java, Python, react-game or Robot change.** Sub-point 7 (added October 14) touches only
-**react-admin** (§6.7).
+**react-admin** (§6.7). Sub-point 8 (added October 14) changes the API contract additively on
+every backend, OpenAPI, react-game and Robot (§6.8).
 
 Hard rules for the developing agent: change no `.env` / `.env.test` (new keys go in `.env.example`
 only, the owner adds them by hand); never run `sam`, `aws`, `gh`, `terraform` or Robot commands;
@@ -22,6 +23,7 @@ never commit, push or bump the version.
 | 5 | Robot green on all three backends with `1.0.0` | tests | DONE (owner) |
 | 6 | **Daily smoke test on AWS** (guest, stories, match, gameplay, Turnstile), failure notified | tests, infra | DONE |
 | 7 | **Fast New Locations** admin page: many locations + their neighbors in one save | react-admin | DONE |
+| 8 | **Registry lock reason**: "missing" vs "forbidden" message and (i) with the blocking key | all backends, react-game, tests | DONE |
 
 **In**: one new Lambda `pathsgames-<env>-SmokeTestFunction` in a new nested stack
 `template/smoke.yaml`, scheduled daily by EventBridge Scheduler and invoked after every deploy;
@@ -280,7 +282,65 @@ frontend only, existing `createEntity` / `listEntities` / `deleteEntity`, rollba
 - `wiki/Security.md`: one line (smoke Lambda not reachable from the internet, no bypass).
 - `wiki/documentation_v1/Roadmap.md` step 1: the `- p:` sub-point rewritten with these decisions.
 
-## 7. Tests
+### 6.8 Registry lock reason (sub-point 8)
+
+Today an event, choice or neighbor blocked by a registry condition only says `available: false`
+plus one reason code (`REGISTRY_CONDITION_NOT_MET`, `CONDITION_KEYS_NOT_MET`,
+`MOVEMENT_CONDITION_NOT_MET`), the same for `=` and `!=`, so the player reads "not ready" even when
+the registry forbids the action. Key, value and operator never leave the core.
+
+**New optional field `registryLock`** (nullable, additive; every `reason` code unchanged, so the
+`execute-event` / `move` error contract and existing Robot suites stay valid), set only when the
+registry check is the failing one:
+
+```
+registryLock: { mode: "MISSING" | "FORBIDDEN", hidden: boolean,
+                key, keyTitle, operator, value }   // key/keyTitle/operator/value null when hidden
+```
+
+- Carried by: match-info `locations[].events[]` (`EventInfo`), `locations[].neighbors[]`
+  (`LocationNeighborInfo`), and `PendingChoice` (match-info and the `execute-event` response).
+- **mode** (one pure helper per backend, same test table; Java `RegistryService`, Python
+  `registry_service.py`, AWS `registry.py`):
+
+  | Operator | mode | value |
+  |---|---|---|
+  | `=` or blank | MISSING | the expected value of the condition |
+  | `>` / `<` | MISSING | the threshold of the condition |
+  | `!=` | FORBIDDEN | the stored member that matched (display spelling) |
+  | unknown operator, null value, non-numeric operand | MISSING | null (authoring error, `hidden: false`, no key) |
+
+- **hidden**: `true` when the key definition is not `PUBLIC` or the key is not declared (same rule
+  as `RegistryService.VISIBILITY_PUBLIC`); then `key`, `keyTitle`, `operator`, `value` are null.
+  Filtered in the backend, never in the UI (the JSON is readable).
+- **keyTitle**: title of the key's card in the request language, when the key has a card; else null.
+- **operator**: the real operator (`=`, `!=`, `>`, `<`; blank → `=`).
+- Choices: logic AND → the first failing condition (current evaluation order); logic OR → only
+  `{ mode: "MISSING", hidden: false }` with null key fields and no (i).
+- Events: the checker order stays (first failure wins); `registryLock` only when the failing check
+  is the registry one. Other lock reasons keep their current text.
+- Java: core records (`EventAvailability`, `ChoiceAvailability`, movement edge check) carry the lock;
+  DTOs `MatchInfoResponse.EventInfoDto` / `LocationNeighborDto`, `PendingChoice`, core models
+  `EventInfo`, `LocationNeighborInfo`. Python and AWS mirror it. OpenAPI: `EventInfo` and
+  `LocationNeighborInfo` in `v0.19.0-match-creation-api.yaml`, `PendingChoice` in
+  `v0.31.0-choices-api.yaml` and `v0.29.0-events-api.yaml` (one shared `RegistryLock` schema).
+
+**react-game**
+
+- One plain sentence in the preview for every lock mode (key `game.registryLock.blocked`):
+  "You cannot perform this action" / "Non puoi eseguire questa azione".
+  - No `registryLock` (old backend): current reason text, unchanged.
+  - Short badge stays "Locked" / current IT text.
+- (i): in the preview of the locked card (`ActionCard`, `ChoiceCard`, `MovementCard`), under the
+  sentence, an `fa-info-circle` button; **on click the icon is replaced by a detail sentence**
+  built by `RegistryLockInfo` from the lock and the card type (`target` prop: this event /
+  this movement / this choice); `{key}` = `keyTitle` when present, else the key:
+  - FORBIDDEN: "The registry holds the value {value} for the key {key}, which blocks {target}.";
+  - MISSING with `=`: "The registry does not hold the value {value} for the key {key}, which unlocks {target}.";
+    with `>` / `<`: "...does not hold a value greater / less than {value}...";
+  - hidden key: FORBIDDEN "The registry holds a value that blocks {target}."; MISSING "The registry is missing a value to unlock {target}.";
+  - no (i) when `registryLock` is null or has no key and is not hidden (choice OR, authoring error).
+- Lock text stays in `lockInfo` / `lockedReason`, never `label`.
 
 Unit tests (pytest, `code/backend/aws/tests/`, `PYTHONPATH=lambda`), coverage > 96% of the new code:
 
@@ -317,6 +377,13 @@ Unit tests (pytest, `code/backend/aws/tests/`, `PYTHONPATH=lambda`), coverage > 
   page (add/remove rows, selects, save success / failure report); sidebar and StoriesPage entries;
   route in `App.jsx`.
 
+- Sub-point 8: unit tests on every backend (mode helper table, hidden / undeclared key, keyTitle,
+  choice AND first failure and OR, movement, DTO / controller mapping; coverage > 96% of new code);
+  react-game vitest (texts per mode on the three cards, (i) click reveal, hidden text, no (i) cases,
+  EN/IT key parity); Robot: extend `tests_v0/36_registry/registry_gates.robot` and
+  `29_events/events.robot` to assert `registryLock` (MISSING, FORBIDDEN, hidden), with the seed data
+  needed on all three backends. Robot is written, never run by the agent.
+
 ## 8. Deviations from the analysis (development)
 
 - No location with `characterCount > 0` found: the movement check ends in a `WARNING` and the run still passes.
@@ -328,11 +395,24 @@ Unit tests (pytest, `code/backend/aws/tests/`, `PYTHONPATH=lambda`), coverage > 
 - Sub-point 7: neighbors start with no row; the registry key is a free text field (no picker).
 - Sub-point 7: after a green save the page reloads texts, locations and neighbors (new ids in From/To and duplicate check).
 - Sub-point 7: same From + Direction is always blocked, stricter than `R2_NEIGHBOR_DUP` (flags it only when To differs).
+- Sub-point 8: match-info has no `PendingChoice`; the lock rides on execute-event and select-choice `pendingChoices`.
+- Sub-point 8: choice OR gets the generic lock only when a KEYS row is in the set; otherwise `registryLock` is null.
+- Sub-point 8: authoring error for `>` `<` is a non-numeric threshold; a non-numeric stored member stays MISSING.
+- Sub-point 8: `registryLock` is always serialized (null when absent); Java core models carry it through a setter.
+- Sub-point 8: Robot has no choice case (gates story has no KEYS option); gates story gains PRIVATE key `omen` + event 25.
+- Sub-point 8: `events.robot` hidden case uses the undeclared seed key `STEP29_GATE`, so no seed changed.
+- Sub-point 8: the (i) also shows on the map-view movement card, under the same sentence.
 
 ## 9. Doubts
 
 Sub-point 7 decided by the owner (October 14): narrative text = description; From/To list new
 locations and existing ones (descending id); neighbor also has food, magic and coin costs.
+Sub-point 8 decided by the owner (October 14): all three (events, choices, movement); `>` `<` are
+MISSING; AND → first failing condition, OR → generic, no (i); texts aligned; badge stays "Locked";
+hidden key → (i) says the key is secret; card title of the key when present; real operator shown;
+(i) icon replaced by the text on click.
+Revised by the owner (October 15): one sentence "You cannot perform this action" for every mode;
+the (i) names value and key (hidden key: no key nor value), see sub-point 8.
 
 No open doubt. Decided (owner flow start → movement → pass → sleep): `pass` only ends the turn, so the clock is checked after `sleep`, which triggers the time-end.
 
@@ -341,10 +421,10 @@ No open doubt. Decided (owner flow start → movement → pass → sleep): `pass
 
   | Version | Description | Date |
   |---------|-------------|------|
-  | 1.1.0 | Daily online game check, fast location creation page | October 14, 2026 |
+  | 1.1.0 | Daily game check, fast locations, clearer registry lock messages | October 14, 2026 |
 
 - **Last Updated**: October 14, 2026 (v1.1.0)
-- **Status**: done, sub-point 7 included (Robot green on all backends, deploy and smoke verified by the owner, October 14, 2026); no open doubt
+- **Status**: done; sub-point 8 Robot to run by the owner; sub-points 1-7 verified (Robot green on all backends, deploy and smoke verified by the owner, October 14, 2026); no open doubt
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

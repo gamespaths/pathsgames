@@ -46,6 +46,7 @@ public class LocationNeighborInfo {
     private final Integer costFood;
     private final Integer costMagic;
     private final Integer costCoin;
+    private RegistryLock registryLock;
 
     /** Backwards-compatible: a neighbor with no verdict reads as available. */
     public LocationNeighborInfo(Long idLocation, String uuid, String direction,
@@ -128,4 +129,8 @@ public class LocationNeighborInfo {
     public Integer getCostFood() { return costFood; }
     public Integer getCostMagic() { return costMagic; }
     public Integer getCostCoin() { return costCoin; }
+
+    /** V1 step 1 - why the registry blocks this edge; null when it does not. */
+    public RegistryLock getRegistryLock() { return registryLock; }
+    public void setRegistryLock(RegistryLock registryLock) { this.registryLock = registryLock; }
 }

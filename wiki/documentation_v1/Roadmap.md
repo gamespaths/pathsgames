@@ -25,7 +25,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
 
 |  | Step |  | Main goals |
 | ---- | -- | ----- | ---------- |
-| 1 | [Version 1 launch](./Step01_Version1Launch.md) | ✅ | Version 1 launch with daily smoke test. |
+| 1 | [Version 1 launch](./Step01_Version1Launch.md) | ✅ | Version 1 launch with daily smoke test, fast locations page, registry lock reason. |
 
 
 
@@ -283,7 +283,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
   | 0.40.0 | First draft of the beta version plan, with docs alignment step | September 25, 2026 |
   | 0.41.5 | Version launch is now the first step | October 3, 2026 |
   | 0.42.0 | Version launch gains smoke test and versioning model | October 6, 2026 |
-  | 1.1.0 | Version launch step done, daily smoke test added | October 14, 2026 |
+  | 1.1.0 | Launch done: smoke test, fast locations, clearer lock messages | October 14, 2026 |
 
 - **Last Updated**: October 14, 2026 (v1.1.0)
 

@@ -228,6 +228,14 @@ def check(event, ctx):
     return True, None
 
 
+def registry_lock(event, ctx):
+    """V1 step 1 - the raw lock of an event whose registry condition is the failing check."""
+    key = (event or {}).get("registryKeyCondition")
+    return _registry.lock(key, event.get("registryValueOperatorCondition"),
+                          event.get("registryValueCondition"),
+                          ((ctx or {}).get("registry") or {}).get(key))
+
+
 # ── execution ───────────────────────────────────────────────────────────────
 
 def effects_by_event(story):

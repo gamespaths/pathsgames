@@ -7,7 +7,7 @@ documents and the other versions are listed in the global index
 | File | What is in it | Keywords |
 |---|---|---|
 | `Roadmap.md` | Draft plan of the 42 steps of V1 | roadmap, steps, beta, draft |
-| `Step01_Version1Launch.md` | V1 launch: daily AWS smoke test Lambda, schedule, alarms, TTL | smoke test, scheduler, alarms, SNS, TTL, deploy |
+| `Step01_Version1Launch.md` | V1 launch: daily AWS smoke test Lambda, schedule, alarms, TTL | smoke test, alarms, fast locations, registry lock, OpenAPI |
 
 # Version Control
 - **Document Version**: 1.0.0

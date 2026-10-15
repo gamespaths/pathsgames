@@ -138,6 +138,9 @@ tags:
   - name: Gameplay
     description: Automatic location events (Step 33) — no new endpoints
 
+# OpenAPI requires `paths`: this spec only adds response fields, so it is empty.
+paths: {}
+
 components:
   schemas:
 

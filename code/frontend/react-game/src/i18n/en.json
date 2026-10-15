@@ -534,6 +534,17 @@
       "value": "Value",
       "category": "Category"
     },
+    "registryLock": {
+      "blocked": "You cannot perform this action",
+      "forbidden": "The registry holds the value {value} for the key {key}, which blocks {target}.",
+      "missing": "The registry does not hold the value {value} for the key {key}, which unlocks {target}.",
+      "missingGreater": "The registry does not hold a value greater than {value} for the key {key}, which unlocks {target}.",
+      "missingLess": "The registry does not hold a value less than {value} for the key {key}, which unlocks {target}.",
+      "hiddenForbidden": "The registry holds a value that blocks {target}.",
+      "hiddenMissing": "The registry is missing a value to unlock {target}.",
+      "target": { "action": "this event", "movement": "this movement", "choice": "this choice" },
+      "info": "Which registry key blocks this"
+    },
     "map": {
       "title": "Map",
       "here": "Selected",

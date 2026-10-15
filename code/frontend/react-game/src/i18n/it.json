@@ -534,6 +534,17 @@
       "value": "Valore",
       "category": "Categoria"
     },
+    "registryLock": {
+      "blocked": "Non puoi eseguire questa azione",
+      "forbidden": "Il registro contiene il valore {value} per la chiave {key} che blocca {target}.",
+      "missing": "Il registro non contiene il valore {value} per la chiave {key} che sblocca {target}.",
+      "missingGreater": "Il registro non contiene un valore maggiore di {value} per la chiave {key} che sblocca {target}.",
+      "missingLess": "Il registro non contiene un valore minore di {value} per la chiave {key} che sblocca {target}.",
+      "hiddenForbidden": "Nel registro c'è un valore che blocca {target}.",
+      "hiddenMissing": "Nel registro manca un valore per sbloccare {target}.",
+      "target": { "action": "questo evento", "movement": "questo movimento", "choice": "questa scelta" },
+      "info": "Quale chiave del registro lo blocca"
+    },
     "map": {
       "title": "Mappa",
       "here": "Selezionata",

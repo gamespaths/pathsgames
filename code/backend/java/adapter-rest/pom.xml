@@ -38,6 +38,13 @@
             <artifactId>spring-boot-test-autoconfigure</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Validates every OpenAPI spec in src/main/resources/openapi (OpenApiSpecsValidTest). -->
+        <dependency>
+            <groupId>io.swagger.parser.v3</groupId>
+            <artifactId>swagger-parser</artifactId>
+            <version>2.1.22</version>
+            <scope>test</scope>
+        </dependency>
 
     </dependencies>
 </project>

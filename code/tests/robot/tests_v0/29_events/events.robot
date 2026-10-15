@@ -22,6 +22,8 @@
 #   90025 traits + characteristics             90026 food/magic/coin
 #   90027 AUTOMATIC (not player-executable)
 #
+# V1 step 1: STEP29_GATE is not declared by the story, so the `registryLock` of 90014 is hidden.
+#
 # Tags: events, step29, gameplay
 # ---------------------------------------------------------------------------
 Library    RequestsLibrary
@@ -171,6 +173,30 @@ An Event Bound To Another Location Is Not Listed And Is Refused
 
     ${resp}=    Execute Event    ${TOKEN}    ${MATCH_UUID}    ${uuid}    409
     Should Be Equal    ${resp.json()}[error]    WRONG_LOCATION
+
+A Registry-Blocked Event Carries A Hidden Lock For An Undeclared Key
+    [Documentation]    V1 step 1. 90014 waits for STEP29_GATE=OPEN, a key the seeded story
+    ...                never declares: the reason code is unchanged, and the additive
+    ...                `registryLock` says MISSING and hidden, with no key fields at all.
+    ...                Every other event of the location carries no lock. Runs before the
+    ...                case below opens the gate on the shared match.
+    [Tags]    events    registry    v1_step01    registry_lock
+    ${gated}=    Event Uuid By Reason    REGISTRY_CONDITION_NOT_MET
+    ${events}=    Location Events
+    FOR    ${e}    IN    @{events}
+        Dictionary Should Contain Key    ${e}    registryLock
+        IF    $e['uuid'] == $gated
+            Should Be Equal    ${e}[registryLock][mode]    MISSING
+            Should Be True    ${e}[registryLock][hidden]
+            FOR    ${field}    IN    key    keyTitle    operator    value
+                Should Be Equal    ${e}[registryLock][${field}]    ${None}
+                ...    msg=a hidden lock leaked ${field}
+            END
+        ELSE IF    $e['reason'] != 'REGISTRY_CONDITION_NOT_MET'
+            Should Be Equal    ${e}[registryLock]    ${None}
+            ...    msg=event ${e}[uuid] (${e}[reason]) carries a lock it was not blocked by
+        END
+    END
 
 A Registry Condition Blocks The Event Until Another Event Writes The Key
     [Documentation]    90014 needs STEP29_GATE=OPEN; 90020 writes it. The gate opens on `/info`

@@ -255,6 +255,12 @@ A **null expected value is never met**, regardless of operator — a typo must l
 open one. A **blank condition key** means no condition at all, the opposite reading. All four
 condition owners (events, movement edges, weather rules, choices) share this evaluator.
 
+**Lock reason.** When a registry condition blocks an event, neighbor or choice, the API adds an
+optional `registryLock` (`MISSING` or `FORBIDDEN`, plus key, operator and value). A key that is
+not PUBLIC is returned as `hidden` with no key data. react-game shows one sentence on the locked
+card and, behind the (i) button, a detail sentence. Details:
+[Step01 V1](documentation_v1/Step01_Version1Launch.md).
+
 Details: [Step36](documentation_v0/Step36_RegistrySystem.md)
 
 ## 14. Missions

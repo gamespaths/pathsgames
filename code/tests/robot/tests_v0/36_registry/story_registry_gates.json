@@ -301,6 +301,22 @@
       "lang": "en",
       "longText": "mood",
       "shortText": "mood"
+    },
+    {
+      "id": 25,
+      "idCreator": 1,
+      "idText": 25,
+      "lang": "en",
+      "longText": "An omen nobody may name",
+      "shortText": "An omen nobody may name"
+    },
+    {
+      "id": 74,
+      "idCreator": 1,
+      "idText": 74,
+      "lang": "en",
+      "longText": "omen",
+      "shortText": "omen"
     }
   ],
   "cards": [
@@ -499,6 +515,13 @@
       "idTextTitle": 62,
       "idTextDescription": 62,
       "urlImage": "https://example.invalid/card-62.jpg"
+    },
+    {
+      "id": 25,
+      "idCreator": 1,
+      "idTextTitle": 25,
+      "idTextDescription": 25,
+      "urlImage": "https://example.invalid/card-25.jpg"
     }
   ],
   "keys": [
@@ -537,6 +560,15 @@
       "group": "GATES",
       "priority": 4,
       "visibility": "PUBLIC"
+    },
+    {
+      "id": 5,
+      "name": "omen",
+      "idCard": 1,
+      "idTextDescription": 74,
+      "group": "GATES",
+      "priority": 5,
+      "visibility": "HIDDEN"
     }
   ],
   "characterTemplates": [
@@ -825,6 +857,19 @@
       "registryKeyCondition": "door",
       "registryValueCondition": "open",
       "registryValueOperatorCondition": "!="
+    },
+    {
+      "id": 25,
+      "idCard": 25,
+      "idTextName": 25,
+      "idTextDescription": 25,
+      "type": "NORMAL",
+      "costEnery": 0,
+      "costCoin": 0,
+      "idSpecificLocation": 1,
+      "registryKeyCondition": "omen",
+      "registryValueCondition": "seen",
+      "registryValueOperatorCondition": "="
     },
     {
       "id": 30,

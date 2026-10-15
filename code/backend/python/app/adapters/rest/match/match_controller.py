@@ -188,6 +188,7 @@ def _location_info_to_camel(l):
                 # The verdict action/move would give this path, and its code when refused.
                 "available": n.available,
                 "reason": n.reason,
+                "registryLock": n.registry_lock,
             }
             for n in l.neighbors
         ],
@@ -195,7 +196,8 @@ def _location_info_to_camel(l):
             {"uuid": e.uuid, "type": e.type, "endGame": e.end_game, "card": e.card,
              "available": e.available, "reason": e.reason, "energy": e.energy,
              # v0.35.3 — the price beyond energy, so the board can render it up front.
-             "coin": e.coin, "food": e.food, "magic": e.magic}
+             "coin": e.coin, "food": e.food, "magic": e.magic,
+             "registryLock": e.registry_lock}
             for e in l.events
         ],
     }
