@@ -2,6 +2,7 @@ package games.paths.core.service.match;
 
 import games.paths.core.entity.story.ChoiceConditionEntity;
 import games.paths.core.entity.story.ChoiceEntity;
+import games.paths.core.model.match.RegistryLock;
 
 import java.util.List;
 import java.util.Map;
@@ -64,6 +65,8 @@ public final class ChoiceAvailabilityChecker {
     /** The only combiner beside the default AND. Anything else reads as AND. */
     public static final String LOGIC_OR = "OR";
 
+    private static final String TYPE_KEYS = "KEYS";
+
     private ChoiceAvailabilityChecker() {
     }
 
@@ -89,9 +92,13 @@ public final class ChoiceAvailabilityChecker {
     }
 
     /** The per-option verdict: {@code reason} is null exactly when {@code available}. */
-    public record ChoiceAvailability(boolean available, String reason) {
+    public record ChoiceAvailability(boolean available, String reason, RegistryLock registryLock) {
 
         public static final ChoiceAvailability OK = new ChoiceAvailability(true, null);
+
+        public ChoiceAvailability(boolean available, String reason) {
+            this(available, reason, null);
+        }
 
         public static ChoiceAvailability no(String reason) {
             return new ChoiceAvailability(false, reason);
@@ -122,11 +129,14 @@ public final class ChoiceAvailabilityChecker {
                     return ChoiceAvailability.OK;
                 }
             }
-            return ChoiceAvailability.no(CONDITIONS_NOT_MET);
+            // V1 step 1 - no single culprit under OR: a generic lock, only when a KEYS row took part.
+            boolean anyKeys = rows.stream().anyMatch(r -> TYPE_KEYS.equals(type(r)));
+            return new ChoiceAvailability(false, CONDITIONS_NOT_MET,
+                    anyKeys ? RegistryLock.generic() : null);
         }
         for (ChoiceConditionEntity row : rows) {
             if (!conditionMet(row, ctx)) {
-                return ChoiceAvailability.no(reasonFor(row));
+                return new ChoiceAvailability(false, reasonFor(row), lockFor(row, ctx));
             }
         }
         return ChoiceAvailability.OK;
@@ -154,7 +164,7 @@ public final class ChoiceAvailabilityChecker {
 
     private static boolean conditionMet(ChoiceConditionEntity row, ChoiceCheckContext ctx) {
         return switch (type(row)) {
-            case "KEYS" -> keysMet(row, ctx);
+            case TYPE_KEYS -> keysMet(row, ctx);
             case "ITEM" -> membershipMet(row, ctx.ownedItemIds());
             case "CLASS" -> identityMet(row, ctx.idClass());
             case "LOCATION" -> identityMet(row, ctx.idLocation());
@@ -177,6 +187,16 @@ public final class ChoiceAvailabilityChecker {
             return false;
         }
         return RegistryService.evaluate(operator(row), row.getValue(),
+                ctx.registry().getOrDefault(key, List.of()));
+    }
+
+    /** The raw registry lock of a failing KEYS row; null for any other type. */
+    private static RegistryLock lockFor(ChoiceConditionEntity row, ChoiceCheckContext ctx) {
+        if (!TYPE_KEYS.equals(type(row))) {
+            return null;
+        }
+        String key = trim(row.getKey());
+        return RegistryService.lock(key, operator(row), row.getValue(),
                 ctx.registry().getOrDefault(key, List.of()));
     }
 
@@ -245,7 +265,7 @@ public final class ChoiceAvailabilityChecker {
 
     private static String reasonFor(ChoiceConditionEntity row) {
         return switch (type(row)) {
-            case "KEYS" -> CONDITION_KEYS_NOT_MET;
+            case TYPE_KEYS -> CONDITION_KEYS_NOT_MET;
             case "ITEM" -> CONDITION_ITEM_NOT_MET;
             case "CLASS" -> CONDITION_CLASS_NOT_MET;
             case "LOCATION" -> CONDITION_LOCATION_NOT_MET;

@@ -8,7 +8,7 @@ full CI pipeline. This file documents two things:
 2. **Part 2** — every script and folder under `code/scripts/dev/` itself.
 
 `code/scripts/` also has `prod/` (`aws_backend_deploy_stage.sh`, public-stage backend deploy) and
-`alpha/` (v0.42.0 alpha deploy scripts, see `code/scripts/alpha/README.md`) — not covered here — and the rest of `test/` (AWS SAM deploy, EC2 lifecycle — covered
+`alpha/` (v0.42.0 alpha deploy scripts, see `code/scripts/alpha/README.md`; from v1.1.0 `aws_backend_deploy.sh test` and the stage script invoke the smoke test through `code/scripts/lib/smoke_test.sh`) — not covered here — and the rest of `test/` (AWS SAM deploy, EC2 lifecycle — covered
 briefly in Part 1, in depth in `.claude/docs/commands.md`).
 
 ## Part 1 — Docker test-image builds (`code/scripts/test/`)
@@ -122,14 +122,23 @@ Test-data maintenance for the AWS backend — not deployment (that's `code/scrip
 
 ### `bump-version.sh`
 
-Interactive script (prompts for the new version) that rewrites the project version across
-`pom.xml` files, Spring `application*.yml`, `pyproject.toml`, `app/config.py`, the website
-footer `index.html`, the AWS `echo` Lambda handler, and the two frontend footer components.
+Rewrites the project version across the `pom.xml` files (parent and every module's
+`<parent>`), Spring `application.yml`, `pyproject.toml`, `app/config.py`, the AWS `echo`
+Lambda handler, the `Version` default in the SAM `template.yaml`, the two frontend footer
+components, both frontends' `package.json` / `package-lock.json`, and `VERSION` in the root
+`.env` / `.env.example` (`VERSION` is appended if missing; agents never edit `.env` directly).
+Before changing anything it runs the same check as `--check`: a missing file stops it, a
+misaligned one asks for confirmation. Each file is rewritten by pattern, so a file left behind
+is realigned too; at the end the script lists every file's version and fails if one differs.
+Versions are plain `X.Y.Z` (no `-SNAPSHOT`/`-RC`); git tags only label some versions, see
+[VersionTemplate](../../../wiki/VersionTemplate.md) §1.
 Per this repo's hard rule, run it **only when explicitly asked** — never as a side effect of
-another task.
+another task (`--check` changes nothing and is always safe).
 
 ```bash
-code/scripts/dev/bump-version.sh
+code/scripts/dev/bump-version.sh            # prompts for the new version
+code/scripts/dev/bump-version.sh 1.0.0      # new version as argument
+code/scripts/dev/bump-version.sh --check    # only lists the versions, exit 1 on mismatch
 ```
 
 ### `image-finder/`
@@ -212,7 +221,7 @@ suite, clean up, tear down). Already documented in full in `.claude/docs/command
 | `run_robot_with_local_python.sh` | Python (FastAPI) | `code/tests/robot/reports-local-python/` |
 | `run_robot_with_aws_serverless.sh` | AWS (deployed test stack) | `code/tests/robot/reports-aws/` |
 
-All four seed dev data first, run `robot` against `code/tests/robot/tests/`, then call
+All four seed dev data first, run `robot` against `code/tests/robot/tests_v*/ (every version)`, then call
 `POST /api/dev/cleanup` (and, for AWS, `aws/purge_robot_test_data.py --orphans` as a
 second-pass sweep) so `robottest*` rows don't accumulate — win or lose.
 

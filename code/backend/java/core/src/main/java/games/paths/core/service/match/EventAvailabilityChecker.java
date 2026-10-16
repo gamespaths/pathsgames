@@ -90,7 +90,9 @@ public final class EventAvailabilityChecker {
             return EventAvailability.no(Code.NOT_ENOUGH_MAGIC);
         }
         if (!registryMet(event, ctx)) {
-            return EventAvailability.no(Code.REGISTRY_CONDITION_NOT_MET);
+            return EventAvailability.registry(RegistryService.lock(event.getRegistryKeyCondition(),
+                    event.getRegistryValueOperatorCondition(), event.getRegistryValueCondition(),
+                    ctx.registry().getOrDefault(event.getRegistryKeyCondition(), List.of())));
         }
         // On list_events id_weather is a CONDITION; on list_events_effects it is an EFFECT.
         if (event.getIdWeather() != null

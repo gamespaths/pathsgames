@@ -9,6 +9,7 @@ import StoryImportPage from './pages/story/StoryImportPage'
 import StoryEditorPage     from './pages/story/StoryEditorPage'
 import CardsFastEditPage   from './pages/story/CardsFastEditPage'
 import FastNewEventPage    from './pages/story/FastNewEventPage'
+import FastNewLocationsPage from './pages/story/FastNewLocationsPage'
 import MatchesPage         from './pages/MatchesPage'
 import MatchDetailPage from './pages/MatchDetailPage'
 import MatchImportPage from './pages/MatchImportPage'
@@ -28,6 +29,7 @@ function ProtectedRoutes() {
         <Route path="/stories/:uuid/edit"             element={<StoryEditorPage />}   />
         <Route path="/stories/:uuid/cards-fast-edit"  element={<CardsFastEditPage />}  />
         <Route path="/stories/:uuid/fast-new-event"   element={<FastNewEventPage />}   />
+        <Route path="/stories/:uuid/fast-new-locations" element={<FastNewLocationsPage />} />
         <Route path="/matches"        element={<MatchesPage />}     />
         <Route path="/matches/import" element={<MatchImportPage />} />
         <Route path="/matches/:uuid"  element={<MatchDetailPage />} />

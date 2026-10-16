@@ -222,6 +222,8 @@ class EventInfo:
     coin: int = 0
     food: int = 0
     magic: int = 0
+    # V1 step 1 - why the registry blocks this event (wire-shaped dict); None when it does not.
+    registry_lock: Optional[Dict[str, Any]] = None
 
 
 @dataclass
@@ -254,6 +256,8 @@ class LocationNeighborInfo:
     cost_food: Optional[int] = 0
     cost_magic: Optional[int] = 0
     cost_coin: Optional[int] = 0
+    # V1 step 1 - why the registry blocks this edge (wire-shaped dict); None when it does not.
+    registry_lock: Optional[Dict[str, Any]] = None
 
 
 @dataclass

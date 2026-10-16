@@ -4,6 +4,7 @@ import games.paths.core.entity.story.KeyEntity;
 import games.paths.core.entity.story.StoryEntity;
 import games.paths.core.model.match.MatchRegistryEntry;
 import games.paths.core.model.match.MatchRegistryGroup;
+import games.paths.core.model.match.RegistryLock;
 import games.paths.core.port.match.RegistryStorePort;
 import games.paths.core.port.match.RegistryStorePort.RegistryRow;
 import games.paths.core.port.story.ContentQueryPort;
@@ -18,6 +19,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * RegistryService - Step 36. The one place that reads, writes and compares the match registry.
@@ -121,6 +124,81 @@ public class RegistryService {
             case OP_LT -> !values.isEmpty() && values.stream().allMatch(v -> compare(v, expected) < 0);
             default -> false;
         };
+    }
+
+    /** V1 step 1 - why a failed condition blocks (MISSING / FORBIDDEN), unfiltered. */
+    public static RegistryLock lock(String key, String operator, String expected,
+                                    Collection<String> actual) {
+        if (noCondition(key) || expected == null) {
+            return RegistryLock.generic();
+        }
+        String op = operator(operator);
+        Collection<String> values = actual == null ? List.of() : actual;
+        return switch (op) {
+            case OP_EQ -> new RegistryLock(RegistryLock.MODE_MISSING, false, key.trim(), null, op,
+                    expected.trim());
+            case OP_GT, OP_LT -> numeric(expected) == null
+                    ? RegistryLock.generic()
+                    : new RegistryLock(RegistryLock.MODE_MISSING, false, key.trim(), null, op,
+                            expected.trim());
+            case OP_NE -> new RegistryLock(RegistryLock.MODE_FORBIDDEN, false, key.trim(), null, op,
+                    values.stream().filter(v -> eq(v, expected)).findFirst().orElse(expected.trim()));
+            default -> RegistryLock.generic();
+        };
+    }
+
+    /** The visibility filter of {@link #lock} for one request; reads definitions lazily. */
+    public LockView lockView(Long idStory, String lang) {
+        return new LockView(() -> keyDefinitions(idStory), idCard -> {
+            games.paths.core.model.story.CardInfo c = card(idStory, idCard, lang);
+            return c == null ? null : c.title();
+        });
+    }
+
+    /** {@link #lockView} of a possibly unwired service: no service means no key is public. */
+    public static LockView lockViewOf(RegistryService service, Long idStory, String lang) {
+        LockView view = service == null ? null : service.lockView(idStory, lang);
+        return view == null ? LockView.hideAll() : view;
+    }
+
+    /** Hides a non-PUBLIC or undeclared key and fills the card title of a visible one. */
+    public static final class LockView {
+        private final Supplier<Map<String, KeyEntity>> defsLoader;
+        private final Function<Integer, String> titleOf;
+        private final Map<Integer, String> titles = new HashMap<>();
+        private Map<String, KeyEntity> defs;
+
+        public LockView(Supplier<Map<String, KeyEntity>> defsLoader,
+                        Function<Integer, String> titleOf) {
+            this.defsLoader = defsLoader;
+            this.titleOf = titleOf;
+        }
+
+        /** No definitions at all: every named key reads as hidden. */
+        public static LockView hideAll() {
+            return new LockView(Map::of, id -> null);
+        }
+
+        public RegistryLock apply(RegistryLock raw) {
+            if (raw == null || raw.key() == null) {
+                return raw;
+            }
+            if (defs == null) {
+                defs = defsLoader.get();
+            }
+            KeyEntity def = defs.get(raw.key());
+            if (def == null || !VISIBILITY_PUBLIC.equalsIgnoreCase(trim(def.getVisibility()))) {
+                return raw.asHidden();
+            }
+            Integer idCard = def.getIdCard();
+            if (idCard == null) {
+                return raw;
+            }
+            if (!titles.containsKey(idCard)) {
+                titles.put(idCard, titleOf.apply(idCard));
+            }
+            return raw.withKeyTitle(titles.get(idCard));
+        }
     }
 
     /**

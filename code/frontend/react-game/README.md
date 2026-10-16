@@ -155,7 +155,7 @@ All Unsplash images and SVG icons documented in [`src/data/images.json`](src/dat
 
 ---
 
-- **Document Version**: 0.42.0
+- **Document Version**: 1.1.0
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.18.0 | React game frontend initial implementation | May 04, 2026 |
@@ -189,7 +189,8 @@ All Unsplash images and SVG icons documented in [`src/data/images.json`](src/dat
     | 0.37.1 | Mission steps become readable: `MissionStepCard`'s status badge shows only on a closed mission, badges switch to full-size (labelled) via new `.pg-card--mission` CSS; new `useBookView` view `missionSteps` + `openMission` action open the mission on the left page and a new `MissionStepsCards.jsx` (one card per step, only the next open one shown, spoiler-safe) on the right; new i18n key `game.missions.stepsEmpty`. | Sep 09, 2026 |
     | 0.37.3 | Turnstile token bugfix: `StartMatchFlow`'s widget stays mounted (hidden) for the whole flow instead of unmounting on pass, token read via ref, `useAntibot.retry()` drops the stale token; Retry now offered on `TURNSTILE_VALIDATION_FAILED` too. Status card drops its force-sleep/registry shortcuts, remaining ones (Info/Map/Missions/Backpack) are named. `missionStatusBadge` drops its `label` ("Completed" not "Status: Completed"). | Sep 10, 2026 |
     | 0.42.0 | Alpha launch polish: card credits, favicon, tutorial button, terms, start-match phases | October 7, 2026 |
-- **Last Updated**: Oct 7, 2026
+    | 1.1.0 | Locked cards explain which registry rule blocks them | October 14, 2026 |
+- **Last Updated**: October 14, 2026 (v1.1.0)
 - **Status**: Active development
 
 ---

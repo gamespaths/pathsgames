@@ -22,7 +22,7 @@ conferma** modifichi codice esistente di backend o di robot.
   - `code/tests/robot/reports-local-java-postgres/report.html`
   - `code/tests/robot/reports-local-python/report.html`
   - `code/tests/robot/reports-aws/report.html`
-- **Suite e risorse di test**: `code/tests/robot/tests/**` e `code/tests/robot/resources/**`.
+- **Suite e risorse di test**: `code/tests/robot/tests_v*/**` (one folder per version, all always run) e `code/tests/robot/resources/**`.
 - **Script di esecuzione**:
   - tutti i backend: `code/scripts/dev/run_robot_everywhere.sh`
   - singolo backend: `code/scripts/dev/run_robots/run_robot_with_local_java.sh`,

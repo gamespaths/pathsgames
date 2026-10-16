@@ -264,6 +264,8 @@ public class MatchInfoResponse {
         private CardInfoResponse cardLocationTo;
         private boolean available;
         private String reason;
+        /** V1 step 1 - set only when the registry condition is what blocks the edge. */
+        private RegistryLockResponse registryLock;
 
         public static LocationNeighborDto fromModel(LocationNeighborInfo m) {
             LocationNeighborDto d = new LocationNeighborDto();
@@ -284,6 +286,7 @@ public class MatchInfoResponse {
             d.cardLocationTo = CardInfoResponse.fromModel(m.getCardLocationTo());
             d.available = m.isAvailable();
             d.reason = m.getReason();
+            d.registryLock = RegistryLockResponse.fromModel(m.getRegistryLock());
             return d;
         }
 
@@ -321,6 +324,8 @@ public class MatchInfoResponse {
         public void setAvailable(boolean available) { this.available = available; }
         public String getReason() { return reason; }
         public void setReason(String reason) { this.reason = reason; }
+        public RegistryLockResponse getRegistryLock() { return registryLock; }
+        public void setRegistryLock(RegistryLockResponse registryLock) { this.registryLock = registryLock; }
     }
 
     /**
@@ -343,6 +348,8 @@ public class MatchInfoResponse {
         private int coin;
         private int food;
         private int magic;
+        /** V1 step 1 - set only when the registry condition is the failing check. */
+        private RegistryLockResponse registryLock;
 
         public static EventInfoDto fromModel(EventInfo m) {
             EventInfoDto d = new EventInfoDto();
@@ -356,6 +363,7 @@ public class MatchInfoResponse {
             d.coin = m.getCoin();
             d.food = m.getFood();
             d.magic = m.getMagic();
+            d.registryLock = RegistryLockResponse.fromModel(m.getRegistryLock());
             return d;
         }
 
@@ -380,5 +388,7 @@ public class MatchInfoResponse {
         public void setFood(int food) { this.food = food; }
         public int getMagic() { return magic; }
         public void setMagic(int magic) { this.magic = magic; }
+        public RegistryLockResponse getRegistryLock() { return registryLock; }
+        public void setRegistryLock(RegistryLockResponse registryLock) { this.registryLock = registryLock; }
     }
 }

@@ -355,6 +355,8 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                 .comparingInt((ChoiceEntity c) -> nz(c.getPriority()))
                 .thenComparingLong(c -> c.getId() == null ? 0L : c.getId()));
         List<PendingChoice> out = new ArrayList<>();
+        RegistryService.LockView lockView =
+                RegistryService.lockViewOf(registryService, x.match.idStory(), x.lang);
         for (ChoiceEntity choice : ordered) {
             List<ChoiceConditionEntity> rows = choice.getId() == null
                     ? List.of()
@@ -365,7 +367,8 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                     store.resolveShortText(x.match.idStory(), choice.getIdTextName(), x.lang),
                     store.resolveShortText(x.match.idStory(), choice.getIdTextDescription(), x.lang),
                     resolveCard(x, choice.getIdCard()),
-                    availability.available(), availability.reason()));
+                    availability.available(), availability.reason(),
+                    lockView.apply(availability.registryLock())));
         }
         return out;
     }

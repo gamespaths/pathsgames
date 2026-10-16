@@ -2,7 +2,7 @@
 
 Loaded on demand. Read only when working on E2E tests.
 
-## Suite catalog — `code/tests/robot/tests/`
+## Suite catalog — `code/tests/robot/tests_v0/` (V0) and `code/tests/robot/tests_v1/` (V1); runners run `tests_v*/`, every version always
 
 | Suite | Coverage |
 |-------|----------|
@@ -39,6 +39,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `40_alpha_ux` | Step 40 alpha UX: the news of an early time-end (`counterZero[]` + `weather` with `changed`) on execute-event, select-choice and movement answers, and the resource gains in the timeline (new `CHOICE` row, party-run and automatic-event gains) (see breakdown below) |
 | `41_alpha_prep` | Step 41: `guest_cleanup.robot` (v0.41.0 patch 1) — aged guests via `X-Test-Guest-Age-Days`, the `withoutMatches` idle purge, and the `DELETE /expired` PostgreSQL FK regression; **v0.41.1 patch 2** adds `logging_gaps.robot` (11) and `snapshots.robot` (6); **v0.41.2 patch 3** adds `kpi.robot` (6), own `story_alpha_prep.json` + `alpha_prep_common.resource` (see breakdown below) |
 | `41_security` | v0.37.7 Step 41: the `csrfToken` on login/resume/`/me` and the `X-CSRF-TOKEN` refusals on `POST /api/matches`; rate-limit cases that SKIP unless `RATE_LIMIT_GUEST_PER_IP` / `RATE_LIMIT_MATCH_PER_IP` / `RATE_LIMIT_MATCH_PER_GUEST` are passed; **v0.41.0**: API security headers and `Cache-Control: no-store` on every response (see breakdown below) |
+| `tests_v1/01_version_launch` | V1 step 1 (v1.1.0): plain X.Y.Z echo version with major >= 1, admin = public version, smoke flow (stories, guest login); tag `v1_step01` |
 
 ### `19_match` breakdown
 
@@ -92,7 +93,7 @@ Adjacency validation, energy cost formula, visited locations, admin locations. P
 - `match_logs_order.robot` (v0.30.3) — `?order=asc|desc` on both logs endpoints: asc default, desc as the exact reverse of asc, case-insensitive, junk values fall back to asc, desc cursor walking towards the older entries; the desc-cursor case checks entry **positions**, not distinct timestamps (v0.41.1: same-millisecond rows are now common with the new timeline types)
 
 **There is no `29_match_logs` directory.** `match_logs.robot`, `match_logs_order.robot`,
-`neighbor_card_back.robot` and `event_location.robot` all live inside `tests/28_movement/`.
+`neighbor_card_back.robot` and `event_location.robot` all live inside `tests_v0/28_movement/`.
 
 ### `29_events` breakdown
 

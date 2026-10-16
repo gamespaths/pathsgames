@@ -473,5 +473,25 @@ class EventExecutionServiceChoicesTest {
             assertFalse(out.available());
             assertEquals(ChoiceAvailabilityChecker.CONDITION_ALL_IN_SAME_LOC_NOT_MET, out.reason());
         }
+
+        @Test
+        @DisplayName("V1 step 1: a KEYS-blocked option carries the lock filtered by the key view")
+        void registryLock() {
+            givenChoices(choice(11, 1), choice(12, 2));
+            when(store.findChoiceConditionsByChoiceId(STORY_ID)).thenReturn(Map.of(
+                    11L, List.of(cond("KEYS", "gate", "open", "="))));
+            games.paths.core.entity.story.KeyEntity k = new games.paths.core.entity.story.KeyEntity();
+            k.setName("gate");
+            k.setVisibility("PUBLIC");
+            when(registryService.lockView(STORY_ID, "en")).thenReturn(
+                    new RegistryService.LockView(() -> Map.of("gate", k), id -> null));
+
+            List<PendingChoice> out = execute().pendingChoices();
+
+            assertEquals(ChoiceAvailabilityChecker.CONDITION_KEYS_NOT_MET, out.get(0).reason());
+            assertEquals(new games.paths.core.model.match.RegistryLock("MISSING", false, "gate",
+                    null, "=", "open"), out.get(0).registryLock());
+            assertNull(out.get(1).registryLock());
+        }
     }
 }

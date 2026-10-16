@@ -14,7 +14,7 @@ ROBOT_ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_FILE = (ROBOT_ROOT.parents[1] / "backend" / "java" / "adapter-rest" / "src" / "main"
                / "resources" / "openapi" / "match-export-v1.schema.json")
 if not SCHEMA_FILE.exists():  # the robot folder copied elsewhere: the schema next to the suites
-    SCHEMA_FILE = ROBOT_ROOT / "tests" / "41_alpha_prep" / "fixtures" / "match-export-v1.schema.json"
+    SCHEMA_FILE = ROBOT_ROOT / "tests_v0" / "41_alpha_prep" / "fixtures" / "match-export-v1.schema.json"
 _DROPPED = frozenset(("uuid", "tsInsert", "tsUpdate", "idStory"))
 
 

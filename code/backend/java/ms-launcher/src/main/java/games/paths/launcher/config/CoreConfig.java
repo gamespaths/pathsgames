@@ -71,7 +71,7 @@ public class CoreConfig {
     @Value("${game.server.env:unknown}")
     private String serverEnv;
 
-    @Value("${game.server.version:0.0.0-SNAPSHOT}")
+    @Value("${game.server.version:0.0.0}")
     private String serverVersion;
 
     @Value("${spring.application.name:paths-game-backend}")

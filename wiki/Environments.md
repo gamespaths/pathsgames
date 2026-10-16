@@ -17,6 +17,26 @@ production + test setup.
 `code/scripts/test/aws/aws_backend_remove.sh [dev|test]` tears down a non-prod stack;
 `code/scripts/test/aws/aws_check_status.sh` reads the CloudFormation stack outputs.
 
+### Daily smoke test (AWS, V1 step 1)
+
+Nested stack `template/smoke.yaml` (condition `HasSmokeTest`: `test` and public stages, never `dev`)
+creates `pathsgames-<env>-SmokeTestFunction`, a schedule group and an EventBridge Scheduler
+schedule `cron(42 4 * * ? *)` (UTC, no retry). Same behaviour on `test` and `alpha`: website
+(optional), echo, stories, guest, match created in-process (no Turnstile), join, start, info,
+locations, movement, pass, sleep and a clock check (it must advance). Match and guest rows get a DynamoDB `ttl` of 7 days. On failure the
+function ends in error and, on public stages with `AlarmEmail`, publishes to the alarms SNS
+topic; on `test` it only logs. Alarms `pathsgames-<env>-smoke-failed` and `-smoke-missing`.
+It also runs after `aws_backend_deploy.sh test` and `aws_backend_deploy_stage.sh`; a failure
+fails the script and the CI job. Runbook: [code/scripts/alpha/README.md](../code/scripts/alpha/README.md).
+
+| Parameter / key | Meaning |
+|---|---|
+| `SmokeTestEnabled` | `true` (default); `false` disables the schedule and skips the post-deploy run |
+| `SmokeTestSchedule`, `SmokeTestTtlDays`, `SmokeTestLatencyWarnMs` | `cron(42 4 * * ? *)`, `7`, `5000` |
+| `SmokeTestWebsiteUrl` | Site checked first, full URL starting with `https://` (refused at deploy otherwise); empty = check skipped (`https://paths.games` on alpha) |
+| `AWS_TEST_LAMBDA_SMOKE_TEST_ENABLED`, `AWS_TEST_LAMBDA_SMOKE_WEBSITE_URL` | test keys in `.env` |
+| `AWS_<S>_LAMBDA_SMOKE_TEST_ENABLED`, `AWS_<S>_LAMBDA_SMOKE_WEBSITE_URL` | stage keys (`ALPHA`/`BETA`/`PROD`); empty = samconfig/template value |
+
 ## 2. Certificate and shared infrastructure (today)
 
 From [code/website/terraform-aws/README.md](../code/website/terraform-aws/README.md):
@@ -98,7 +118,7 @@ and comments:
 | Test-data lifecycle | `AWS_TEST_DYNAMODB_ROBOT_TEST_DATA_TTL_HOURS` |
 | Docker Hub | `DOCKERHUB_USERNAME_TEST`, `DOCKERHUB_IMAGE_TEST`, `DOCKERHUB_IMAGE_TAG_TEST`, `DOCKERHUB_TOKEN_TEST` |
 | EC2 test servers (Java, Python) | `AWS_TEST_EC2_KEY_NAME`, `AWS_TEST_EC2_DB_NAME`, `AWS_TEST_EC2_DB_PASSWORD`, `AWS_TEST_EC2_PUBLIC_PORT`, `AWS_TEST_EC2_ADMIN_PORT`, `AWS_TEST_EC2_ROUTE53_RECORD_NAME`, `AWS_TEST_EC2_ENABLE_CLOUDFRONT`, …; the Python server overrides with `AWS_TEST_EC2_PY_<X>` (e.g. `AWS_TEST_EC2_PY_INSTANCE_NAME`) |
-| Stage deploy (v0.41.0, alpha/beta/prod) | `AWS_<S>_LAMBDA_JWT_SECRET`, `AWS_<S>_LAMBDA_TURNSTILE_SECRET_KEY`, `AWS_<S>_APIGW_CUSTOM_DOMAIN`, `AWS_<S>_ACM_DOMAIN_CERTIFICATE_ARN`, `AWS_<S>_ROUTE53_DOMAIN_HOSTED_ZONE`, `AWS_<S>_APIGW_CORS_ORIGINS`, `AWS_<S>_APIGW_ADMIN_IP_WHITELIST`; v0.42.0: `AWS_<S>_SNS_ALARM_EMAIL`, `AWS_<S>_BUDGETS_LIMIT`, `AWS_<S>_APIGW_THROTTLE_RATE`, `AWS_<S>_APIGW_THROTTLE_BURST`, `AWS_<S>_APIGW_ADMIN_THROTTLE_RATE`, `AWS_<S>_APIGW_ADMIN_THROTTLE_BURST` — `<S>` = `ALPHA`/`BETA`/`PROD`, read by `aws_backend_deploy_stage.sh` |
+| Stage deploy (v0.41.0, alpha/beta/prod) | `AWS_<S>_LAMBDA_JWT_SECRET`, `AWS_<S>_LAMBDA_TURNSTILE_SECRET_KEY`, `AWS_<S>_APIGW_CUSTOM_DOMAIN`, `AWS_<S>_ACM_DOMAIN_CERTIFICATE_ARN`, `AWS_<S>_ROUTE53_DOMAIN_HOSTED_ZONE`, `AWS_<S>_APIGW_CORS_ORIGINS`, `AWS_<S>_APIGW_ADMIN_IP_WHITELIST`; v0.42.0: `AWS_<S>_SNS_ALARM_EMAIL`, `AWS_<S>_BUDGETS_LIMIT`, `AWS_<S>_APIGW_THROTTLE_RATE`, `AWS_<S>_APIGW_THROTTLE_BURST`, `AWS_<S>_APIGW_ADMIN_THROTTLE_RATE`, `AWS_<S>_APIGW_ADMIN_THROTTLE_BURST`; V1: `AWS_<S>_LAMBDA_SMOKE_TEST_ENABLED`, `AWS_<S>_LAMBDA_SMOKE_WEBSITE_URL` — `<S>` = `ALPHA`/`BETA`/`PROD`, read by `aws_backend_deploy_stage.sh` |
 
 **Rule:** every parameter has a code default (Spring `${VAR:default}` placeholders in
 `application.yml`, equivalent defaults in Python `config.py` and the AWS Lambda `os.environ`
@@ -131,7 +151,7 @@ per-server `_EC2`/`_EC2_PY` suffixes) and are due a naming/structure pass once V
 its own environment needs (SSO credentials, additional backends). Deferred, not scoped yet.
 
 # Version Control
-- **Document Version**: 0.42.0
+- **Document Version**: 1.1.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -140,8 +160,9 @@ its own environment needs (SSO credentials, additional backends). Deferred, not 
   | 0.41.1 | New logging and snapshot size keys | September 29, 2026 |
   | 0.41.4 | Match move between servers, export size key | October 1, 2026 |
   | 0.42.0 | Alpha stage live on the main website | October 6, 2026 |
+  | 1.1.0 | Daily smoke test and its keys added | October 13, 2026 |
 
-- **Last Updated**: October 6, 2026 (v0.42.0)
+- **Last Updated**: October 13, 2026 (v1.1.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

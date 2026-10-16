@@ -4,6 +4,7 @@ import Card from '@/components/layout/Card'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
 import { startMovement } from '@/api/matches'
 import { lockedIconFor } from '@/constants/lockReasons'
+import RegistryLockInfo, { registryLockSentence } from './RegistryLockInfo'
 
 /**
  * MovementCard — Step 28. A move-target card for one neighbor of the active
@@ -55,8 +56,12 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
     : blockedByBackend ? t('game.movement.blocked')
     : t('game.movement.noEnergy')
 
+  // V1 step 1 - only when the registry is what closes the way: missing or forbidden.
+  const registryLock = !canMove && isNeighbor && backendReason === 'MOVEMENT_CONDITION_NOT_MET'
+    ? (location?.registryLock ?? null) : null
   const lockInfoFull = canMove ? undefined
     : !isNeighbor ? t('game.movement.notNeighbor')
+    : registryLock ? registryLockSentence(t, registryLock)
     : backendReason ? t(`game.movement.reasonFull.${backendReason}`)
     : blockedByBackend ? t('game.movement.blockedFull')
     : t('game.movement.reasonFull.INSUFFICIENT_ENERGY')
@@ -130,7 +135,8 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
               actionIcon: location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fa-walking"
               , actionLabelChildren: costBadge
               , /* extraContent: moveInfo, extraContentClassName: '' */ }
-          : { extraContent: (<>{lockInfoFull}<div className='display-inline-flex'>{costBadge}</div></>)
+          : { extraContent: (<>{lockInfoFull}<RegistryLockInfo lock={registryLock} target="movement" />
+              <div className='display-inline-flex'>{costBadge}</div></>)
               , actionLabelChildren: costBadge },
       })} hidePreview={!isNeighbor || (viewFromMap && locked)   }
       story={story}
@@ -146,7 +152,8 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
       infoLabel={t('game.movement.action')}
 
       //from MAP neighbor locked -> no locked but show extraContent
-      extraContent={ viewFromMap && locked ? (<>{lockInfoFull}<div className='display-inline-flex'>{costBadge}</div></>) : null }
+      extraContent={ viewFromMap && locked ? (<>{lockInfoFull}<RegistryLockInfo lock={registryLock} target="movement" />
+        <div className='display-inline-flex'>{costBadge}</div></>) : null }
 
       //flagShowFullStatistics={false}
       //statistics={costItems}

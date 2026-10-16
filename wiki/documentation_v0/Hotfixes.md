@@ -4,18 +4,24 @@ Urgent fixes released after the alpha launch as `0.42.z` (sequential `z`). Hotfi
 planned in the roadmap. This is the only V0 file that may still change after the launch (rules in
 [Version Template](../VersionTemplate.md)).
 
+- V1 (`1.0.0`) is now the current version; alpha urgent fixes stay on the `0.42.z` line and are noted here.
+- The daily smoke test added in V1 also runs on the alpha stack
+  ([Step 1](../documentation_v1/Step01_Version1Launch.md)); alarms `smoke-failed` and `smoke-missing`
+  may fire while a hotfix is deployed.
+
 | Version | Fix | Components | Date |
 |---------|-----|------------|------|
 | — | No hotfix yet | — | — |
 
 # Version Control
-- **Document Version**: 0.40.0
+- **Document Version**: 1.0.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | Empty list prepared for fixes after the alpha launch | September 25, 2026 |
+  | 1.0.0 | Notes on version one and the daily check | October 13, 2026 |
 
-- **Last Updated**: September 25, 2026 (v0.40.0)
+- **Last Updated**: October 13, 2026 (v1.0.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

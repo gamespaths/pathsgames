@@ -32,7 +32,7 @@ def _route(event, context):
             # (injected as the ENV variable on the function).
             "env":     os.environ.get("ENV", "dev"),
             "name":    "Paths Games",
-            "version": "0.42.0"
+            "version": "1.1.0"
         }
     }
 

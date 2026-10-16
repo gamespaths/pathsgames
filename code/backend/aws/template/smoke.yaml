@@ -1,0 +1,294 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: "Paths Games - daily smoke test of the stage (v1.1.0, V1 step 1): Lambda, schedule, two alarms on public stages"
+
+Parameters:
+  Environment:
+    Type: String
+  EnvironmentTag:
+    Type: String
+    Description: "Value of the Environment tag (test / alpha / beta / production), mapped by the root stack."
+  Version:
+    Type: String
+    Description: "Project version, applied as the `version` tag on every resource and checked against /api/echo/status."
+  LambdaSystemLogLevel:
+    Type: String
+    Default: WARN
+  TableName:
+    Type: String
+  StoryCacheTtlSeconds:
+    Type: String
+    Default: "3600"
+  JwtSecret:
+    Type: String
+    NoEcho: true
+    Default: PathsGamesDevSecret2026_MustBeAtLeast32Chars!
+  AllowMockAccess:
+    Type: String
+    Default: "false"
+  AdminIpWhitelist:
+    Type: String
+    Default: ""
+  AdminIpEmptyMeans:
+    Type: String
+    Default: nobody
+    AllowedValues: [nobody, everybody]
+  RateLimitMatchPerIp:
+    Type: String
+    Default: "20"
+  RateLimitWindowSeconds:
+    Type: String
+    Default: "3600"
+  RateLimitMatchPerGuest:
+    Type: String
+    Default: "10"
+  RateLimitMatchPerGuestWindowSeconds:
+    Type: String
+    Default: "86400"
+  CsrfEnforced:
+    Type: String
+    Default: "true"
+  RobotTestDataTtlHours:
+    Type: String
+    Default: "0"
+  ApiBaseUrl:
+    Type: String
+    Description: "Base URL of the public API the smoke test calls (custom domain or execute-api URL with the stage)."
+  AlarmTopicArn:
+    Type: String
+    Default: ""
+    Description: "SNS topic of the stage alarms. Empty (test stage, no AlarmEmail) = log only, no alarm."
+  TurnstileEnabled:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: "Whether the public MatchFunction has a Turnstile secret (a flag, never the secret)."
+  SmokeTestEnabled:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+  SmokeTestSchedule:
+    Type: String
+    Default: "cron(42 4 * * ? *)"
+  SmokeTestTtlDays:
+    Type: String
+    Default: "7"
+  SmokeTestWebsiteUrl:
+    Type: String
+    Default: ""
+    AllowedPattern: '^$|^https://\S+$'
+    ConstraintDescription: "must be empty or a full URL starting with https://"
+  SmokeTestLatencyWarnMs:
+    Type: String
+    Default: "5000"
+  SmokeTestSourceIp:
+    Type: String
+    Default: "42.42.42.42"
+
+Conditions:
+  IsSmokeEnabled: !Equals [!Ref SmokeTestEnabled, "true"]
+  HasAlarmTopic: !Not [!Equals [!Ref AlarmTopicArn, ""]]
+  HasSmokeAlarms: !And
+    - !Condition IsSmokeEnabled
+    - !Condition HasAlarmTopic
+
+Resources:
+  SmokeTestLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-SmokeTestFunction"
+      RetentionInDays: 14
+      Tags:
+        - Key: Name
+          Value: !Sub "/aws/lambda/pathsgames-${Environment}-SmokeTestFunction"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
+
+  # A Scheduler schedule takes no tags; its group does.
+  SmokeTestScheduleGroup:
+    Type: AWS::Scheduler::ScheduleGroup
+    Properties:
+      Name: !Sub "pathsgames-${Environment}-smoke-test"
+      Tags:
+        - Key: Name
+          Value: !Sub "pathsgames-${Environment}-smoke-test"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
+
+  # No API Gateway integration or permission: reachable only by the schedule and by IAM (lambda:InvokeFunction).
+  SmokeTestFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: SmokeTestLogGroup
+    Properties:
+      FunctionName: !Sub "pathsgames-${Environment}-SmokeTestFunction"
+      Runtime: python3.13
+      Architectures: [arm64]
+      LoggingConfig:
+        LogFormat: JSON
+        SystemLogLevel: !Ref LambdaSystemLogLevel
+        ApplicationLogLevel: INFO
+      Handler: smoke.handler.lambda_handler
+      Timeout: 180
+      MemorySize: 512
+      CodeUri: ../lambda/
+      # the Scheduler role SAM generates for the event gets these tags too
+      PropagateTags: true
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-SmokeTestFunction"
+        CostCenter: Paths.games
+        Environment: !Ref EnvironmentTag
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        version: !Ref Version
+      # an async failure must not re-run the smoke test twice more
+      EventInvokeConfig:
+        MaximumRetryAttempts: 0
+      Environment:
+        Variables:
+          # Same values as MatchFunction, without TURNSTILE_SECRET_KEY / TURNSTILE_BYPASS_TOKEN (in-process creation).
+          TABLE_NAME: !Ref TableName
+          ENV: !Ref Environment
+          JWT_SECRET: !Ref JwtSecret
+          STORY_CACHE_TTL_SECONDS: !Ref StoryCacheTtlSeconds
+          ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
+          ADMIN_IP_WHITELIST: !Ref AdminIpWhitelist
+          ADMIN_IP_EMPTY_MEANS: !Ref AdminIpEmptyMeans
+          RATE_LIMIT_MATCH_PER_IP: !Ref RateLimitMatchPerIp
+          RATE_LIMIT_WINDOW_SECONDS: !Ref RateLimitWindowSeconds
+          RATE_LIMIT_MATCH_PER_GUEST: !Ref RateLimitMatchPerGuest
+          RATE_LIMIT_MATCH_PER_GUEST_WINDOW_SECONDS: !Ref RateLimitMatchPerGuestWindowSeconds
+          CSRF_ENFORCED: !Ref CsrfEnforced
+          ROBOT_TEST_DATA_TTL_HOURS: !Ref RobotTestDataTtlHours
+          LOG_WARN_ROWS: "5000"
+          LOG_WARN_METADATA_KB: "300"
+          SNAPSHOT_KEEP_PER_MATCH: "10"
+          MATCH_EXPORT_MAX_BYTES: "5000000"
+          APP_VERSION: !Ref Version
+          SMOKE_API_BASE_URL: !Ref ApiBaseUrl
+          SMOKE_WEBSITE_URL: !Ref SmokeTestWebsiteUrl
+          SMOKE_TTL_DAYS: !Ref SmokeTestTtlDays
+          SMOKE_LATENCY_WARN_MS: !Ref SmokeTestLatencyWarnMs
+          SMOKE_SOURCE_IP: !Ref SmokeTestSourceIp
+          SMOKE_ALARM_TOPIC_ARN: !Ref AlarmTopicArn
+          TURNSTILE_ENABLED: !Ref TurnstileEnabled
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+        - !If
+          - HasAlarmTopic
+          - Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: sns:Publish
+                Resource: !Ref AlarmTopicArn
+          - !Ref AWS::NoValue
+      Events:
+        DailySmokeTest:
+          Type: ScheduleV2
+          Properties:
+            Name: !Sub "pathsgames-${Environment}-smoke-test-daily"
+            GroupName: !Ref SmokeTestScheduleGroup
+            ScheduleExpression: !Ref SmokeTestSchedule
+            ScheduleExpressionTimezone: UTC
+            Description: "Daily smoke test of the stage: website, API, match, gameplay, Turnstile"
+            State: !If [IsSmokeEnabled, ENABLED, DISABLED]
+            FlexibleTimeWindow:
+              Mode: "OFF"
+            RetryPolicy:
+              MaximumRetryAttempts: 0
+            Input: '{"trigger":"schedule"}'
+
+  SmokeTestFailedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasSmokeAlarms
+    Properties:
+      AlarmName: !Sub "pathsgames-${Environment}-smoke-failed"
+      AlarmDescription: "v1.1.0 - the daily smoke test failed at least once in the last day (log: SMOKE_SUMMARY)."
+      Tags:
+        - Key: Name
+          Value: !Sub "pathsgames-${Environment}-smoke-failed"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref SmokeTestFunction
+      Statistic: Sum
+      Period: 86400
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopicArn]
+
+  SmokeTestMissingAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: HasSmokeAlarms
+    Properties:
+      AlarmName: !Sub "pathsgames-${Environment}-smoke-missing"
+      AlarmDescription: "v1.1.0 - the daily smoke test did not run in the last day (schedule disabled or broken)."
+      Tags:
+        - Key: Name
+          Value: !Sub "pathsgames-${Environment}-smoke-missing"
+        - Key: CostCenter
+          Value: Paths.games
+        - Key: Environment
+          Value: !Ref EnvironmentTag
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Owner
+          Value: AlNao
+        - Key: Project
+          Value: !Sub "Paths.games.aws.${EnvironmentTag}.serverless"
+        - Key: version
+          Value: !Ref Version
+      Namespace: AWS/Lambda
+      MetricName: Invocations
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref SmokeTestFunction
+      Statistic: Sum
+      Period: 86400
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+      AlarmActions: [!Ref AlarmTopicArn]
+
+Outputs:
+  SmokeTestFunctionName:
+    Description: "Name of the smoke-test Lambda (invoked by the deploy scripts)"
+    Value: !Ref SmokeTestFunction

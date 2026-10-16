@@ -10,7 +10,7 @@ Parameters:
     Description: "Deploy environment. Suffix of every resource name, API stage and Lambda ENV; the Environment tag is mapped from it (prod -> production)."
   Version:
     Type: String
-    Default: "0.38.1"
+    Default: "1.1.0"
     Description: "Project version, applied as the `version` tag on every resource. Source: VERSION in the root .env; code/scripts/dev/bump-version.sh keeps this default in sync."
   JwtSecret:
     Type: String
@@ -188,6 +188,34 @@ Parameters:
     Type: String
     Default: ""
     Description: "v0.42.0 - email warned at 80% actual and 100% forecast of the budget. Empty = no notification."
+  # v1.1.0 — V1 step 1: daily smoke test (test and public stages only, SmokeModule).
+  SmokeTestEnabled:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: "v1.1.0 - schedule the daily smoke test (false = schedule DISABLED, no alarm; the function stays)."
+  SmokeTestSchedule:
+    Type: String
+    Default: "cron(42 4 * * ? *)"
+    Description: "v1.1.0 - EventBridge Scheduler expression of the smoke test, evaluated in UTC."
+  SmokeTestTtlDays:
+    Type: String
+    Default: "7"
+    Description: "v1.1.0 - days after which the smoke guest and match expire via the table TTL."
+  SmokeTestWebsiteUrl:
+    Type: String
+    Default: ""
+    AllowedPattern: '^$|^https://\S+$'
+    ConstraintDescription: "must be empty or a full URL starting with https:// (e.g. https://test.paths.games)"
+    Description: "v1.1.0 - game website checked by the smoke test (title 'Paths Games'), full URL with https://. Empty = website check skipped."
+  SmokeTestLatencyWarnMs:
+    Type: String
+    Default: "5000"
+    Description: "v1.1.0 - a smoke call slower than this (ms) logs a WARNING; never a failure."
+  SmokeTestSourceIp:
+    Type: String
+    Default: "42.42.42.42"
+    Description: "v1.1.0 - synthetic sourceIp of the in-process smoke match creation (per-IP rate-limit key)."
 
 Mappings:
   # Environment tag value per deploy environment. The parameter keeps `prod` because resource
@@ -221,6 +249,11 @@ Conditions:
     - !Equals [!Ref Environment, alpha]
     - !Equals [!Ref Environment, beta]
     - !Equals [!Ref Environment, prod]
+  # v1.1.0 — the smoke test runs on test and on the public stages, never on dev.
+  HasSmokeTest: !Or
+    - !Equals [!Ref Environment, test]
+    - !Condition IsPublicStage
+  HasTurnstile: !Not [!Equals [!Ref TurnstileSecretKey, ""]]
 
 Resources:
   # DynamoDB Table (Single Table Design)
@@ -375,6 +408,8 @@ Resources:
         AllowHeaders: [Content-Type, Authorization, Cookie, X-CSRF-TOKEN]
         ExposeHeaders: [Retry-After]
         AllowCredentials: true
+        # Browser caches each preflight 10 min: fewer OPTIONS hitting the stage throttle.
+        MaxAge: 600
 
   PathsGamesApiStage:
     Type: AWS::ApiGatewayV2::Stage
@@ -417,6 +452,8 @@ Resources:
         AllowOrigins: !Ref CorsAllowOrigins
         AllowHeaders: [Content-Type, Authorization, Cookie]
         AllowCredentials: true
+        # Browser caches each preflight 10 min: fewer OPTIONS hitting the admin throttle.
+        MaxAge: 600
 
   PathsGamesAdminApiStage:
     Type: AWS::ApiGatewayV2::Stage
@@ -756,6 +793,51 @@ Resources:
         JwtSecret: !Ref JwtSecret
         AllowMockAccess: !Ref AllowMockAccess
 
+  # v1.1.0 — V1 step 1: daily smoke test; never receives the Turnstile secret nor the bypass token.
+  SmokeModule:
+    Type: AWS::Serverless::Application
+    Condition: HasSmokeTest
+    DependsOn: [EchoModule, AuthModule, StoryModule, MatchModule]
+    Properties:
+      Location: template/smoke.yaml
+      Tags:
+        Name: !Sub "pathsgames-${Environment}-SmokeModule"
+        CostCenter: Paths.games
+        Environment: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        ManagedBy: CloudFormation
+        Owner: AlNao
+        Project: !FindInMap [EnvironmentTags, !Ref Environment, Project]
+        version: !Ref Version
+      Parameters:
+        Environment: !Ref Environment
+        EnvironmentTag: !FindInMap [EnvironmentTags, !Ref Environment, Name]
+        Version: !Ref Version
+        LambdaSystemLogLevel: !Ref LambdaSystemLogLevel
+        TableName: !Ref PathsGamesTable
+        StoryCacheTtlSeconds: !Ref StoryCacheTtlSeconds
+        JwtSecret: !Ref JwtSecret
+        AllowMockAccess: !Ref AllowMockAccess
+        AdminIpWhitelist: !Ref AdminIpWhitelist
+        AdminIpEmptyMeans: !Ref AdminIpEmptyMeans
+        RateLimitMatchPerIp: !Ref RateLimitMatchPerIp
+        RateLimitWindowSeconds: !Ref RateLimitWindowSeconds
+        RateLimitMatchPerGuest: !Ref RateLimitMatchPerGuest
+        RateLimitMatchPerGuestWindowSeconds: !Ref RateLimitMatchPerGuestWindowSeconds
+        CsrfEnforced: !Ref CsrfEnforced
+        RobotTestDataTtlHours: !Ref RobotTestDataTtlHours
+        ApiBaseUrl: !If
+          - HasCustomDomain
+          - !Sub "https://${CustomDomainName}"
+          - !Sub "https://${PathsGamesApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}"
+        AlarmTopicArn: !If [IsPublicStage, !GetAtt MonitoringModule.Outputs.AlarmTopicArn, ""]
+        TurnstileEnabled: !If [HasTurnstile, "true", "false"]
+        SmokeTestEnabled: !Ref SmokeTestEnabled
+        SmokeTestSchedule: !Ref SmokeTestSchedule
+        SmokeTestTtlDays: !Ref SmokeTestTtlDays
+        SmokeTestWebsiteUrl: !Ref SmokeTestWebsiteUrl
+        SmokeTestLatencyWarnMs: !Ref SmokeTestLatencyWarnMs
+        SmokeTestSourceIp: !Ref SmokeTestSourceIp
+
 Outputs:
   ApiUrl:
     Description: "API Endpoint URL (public/player surface)"
@@ -770,6 +852,10 @@ Outputs:
     Condition: IsPublicStage
     Description: "v0.42.0 - CloudWatch dashboard of the stage"
     Value: !GetAtt MonitoringModule.Outputs.DashboardUrl
+  SmokeTestFunctionName:
+    Condition: HasSmokeTest
+    Description: "v1.1.0 - smoke-test Lambda of the stage (invoked after every deploy)"
+    Value: !GetAtt SmokeModule.Outputs.SmokeTestFunctionName
   SeedEndpoint:
     Description: "Dev seed endpoint (on the IP-restricted admin API)"
     Value: !Sub "https://${PathsGamesAdminApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/api/dev/seed"

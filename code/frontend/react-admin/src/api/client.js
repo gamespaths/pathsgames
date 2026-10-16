@@ -1,5 +1,44 @@
 import axios from 'axios'
 
+// Max admin requests in flight: keeps page bursts (and their CORS preflights) under the API Gateway admin throttle.
+export const MAX_IN_FLIGHT = 4
+let inFlight = 0
+const waiting = []
+
+/** Resolves when a request slot is free; callers past MAX_IN_FLIGHT wait in FIFO order. */
+export function acquireSlot() {
+  if (inFlight < MAX_IN_FLIGHT) {
+    inFlight++
+    return Promise.resolve()
+  }
+  return new Promise((resolve) => waiting.push(resolve))
+}
+
+/** Frees a slot, handing it straight to the oldest waiting request if any. */
+export function releaseSlot() {
+  const next = waiting.shift()
+  if (next) next()
+  else inFlight = Math.max(0, inFlight - 1)
+}
+
+/** Current limiter state, for tests. */
+export function limiterState() {
+  return { inFlight, waiting: waiting.length }
+}
+
+/** Empties the limiter, for tests. */
+export function resetLimiter() {
+  inFlight = 0
+  waiting.length = 0
+}
+
+function releaseFor(config) {
+  if (config?.pgSlot) {
+    config.pgSlot = false
+    releaseSlot()
+  }
+}
+
 /**
  * Build an axios instance dynamically for each call so we always use
  * the latest server URL and token from localStorage.
@@ -34,9 +73,19 @@ export function apiClient() {
     withCredentials: true,
   })
 
+  instance.interceptors.request.use(async (config) => {
+    await acquireSlot()
+    config.pgSlot = true
+    return config
+  })
+
   instance.interceptors.response.use(
-    (res) => res,
+    (res) => {
+      releaseFor(res.config)
+      return res
+    },
     (err) => {
+      releaseFor(err.config)
       const msg = err.response?.data?.message || err.response?.data?.error || err.message
       return Promise.reject(new Error(msg))
     }

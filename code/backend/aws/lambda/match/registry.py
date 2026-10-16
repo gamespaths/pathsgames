@@ -124,6 +124,60 @@ def evaluate(operator, expected, actual):
     return False
 
 
+#: V1 step 1 - the two lock modes: wait for a value, or the registry forbids the action.
+MODE_MISSING = "MISSING"
+MODE_FORBIDDEN = "FORBIDDEN"
+
+
+def generic_lock():
+    """No key to show: choice OR aggregate or an authoring error."""
+    return {'mode': MODE_MISSING, 'hidden': False, 'key': None, 'keyTitle': None,
+            'operator': None, 'value': None}
+
+
+def lock(key, operator, expected, actual):
+    """V1 step 1 - why a failed condition blocks (MISSING / FORBIDDEN), before visibility."""
+    if no_condition(key) or expected is None:
+        return generic_lock()
+    op = OP_EQ if operator is None or not str(operator).strip() else str(operator).strip()
+    expected_text = str(expected).strip()
+    base = {'hidden': False, 'key': str(key).strip(), 'keyTitle': None, 'operator': op}
+    if op == OP_EQ or (op in (OP_GT, OP_LT) and _numeric(expected) is not None):
+        return {'mode': MODE_MISSING, **base, 'value': expected_text}
+    if op == OP_NE:
+        held = next((v for v in actual or [] if eq(v, expected)), expected_text)
+        return {'mode': MODE_FORBIDDEN, **base, 'value': held}
+    return generic_lock()
+
+
+class LockView:
+    """Hides a non-PUBLIC or undeclared key; fills the card title of a visible one, read once."""
+
+    def __init__(self, story, title_of):
+        self._story = story
+        self._title_of = title_of
+        self._defs = None
+        self._titles = {}
+
+    def apply(self, raw):
+        if raw is None or raw.get('key') is None:
+            return raw
+        if self._defs is None:
+            self._defs = {(k.get('keyName') or k.get('name')): k
+                          for k in (self._story or {}).get('keys') or []}
+        definition = self._defs.get(raw['key'])
+        if definition is None or str(definition.get('visibility') or '').strip().upper() \
+                != VISIBILITY_PUBLIC:
+            return {'mode': raw['mode'], 'hidden': True, 'key': None, 'keyTitle': None,
+                    'operator': None, 'value': None}
+        id_card = definition.get('idCard')
+        if id_card is None:
+            return raw
+        if id_card not in self._titles:
+            self._titles[id_card] = self._title_of(id_card)
+        return {**raw, 'keyTitle': self._titles[id_card]}
+
+
 def _order_key(value):
     """Numbers sort numerically and first; everything else alphabetically behind them."""
     number = _numeric(value)

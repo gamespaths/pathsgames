@@ -89,7 +89,7 @@ cd "$PROJECT_ROOT" && python3 -m venv .venv
 
 cd "$PROJECT_ROOT/code/tests/robot" && "$PROJECT_ROOT/.venv/bin/pip" install -q -r requirements.txt
 ROBOT_EXIT=0
-ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" "$PROJECT_ROOT/.venv/bin/robot" --variablefile variables/dev.yaml "${ROBOT_SCOPE[@]}" tests/ || ROBOT_EXIT=$?
+ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" "$PROJECT_ROOT/.venv/bin/robot" --variablefile variables/dev.yaml "${ROBOT_SCOPE[@]}" tests_v*/ || ROBOT_EXIT=$?
 
 # Remove the rows created by this Robot run (guests + matches tagged "robottest"),
 # preserving every other row. Runs whether the tests passed or failed.

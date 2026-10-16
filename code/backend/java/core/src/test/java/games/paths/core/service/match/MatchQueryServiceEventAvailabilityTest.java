@@ -254,4 +254,36 @@ class MatchQueryServiceEventAvailabilityTest {
         assertTrue(byUuid.isEmpty() || "CHARACTER_CANNOT_ACT".equals(byUuid.get("evt-1")));
         verify(eventStorePort).loadCheckContext(MATCH_ID, null);
     }
+
+    // ── V1 step 1: the registry lock rides on the event ─────────────────────
+
+    @Test
+    @DisplayName("V1 step 1: a registry-blocked event carries the filtered lock, others none")
+    void registryLock() {
+        RegistryService registry = mock(RegistryService.class);
+        games.paths.core.entity.story.KeyEntity k = new games.paths.core.entity.story.KeyEntity();
+        k.setName("gate");
+        k.setVisibility("PUBLIC");
+        k.setIdCard(3);
+        when(registry.lockView(eq(STORY_ID), any())).thenReturn(new RegistryService.LockView(
+                () -> Map.of("gate", k), id -> "Gate key"));
+        MatchQueryService withRegistry = new MatchQueryService(matchReadPort, storyReadPort,
+                mock(UserAccessPort.class), characterReadPort, mock(ContentQueryPort.class),
+                mock(MovementStorePort.class), eventStorePort, registry);
+        EventEntity gated = event(1L, "evt-1");
+        gated.setRegistryKeyCondition("gate");
+        gated.setRegistryValueCondition("open");
+        EventEntity free = event(2L, "evt-2");
+        wire(List.of(gated, free));
+
+        Map<String, EventInfo> byUuid = new HashMap<>();
+        for (LocationInfo li : withRegistry.getMatchInfoForAdmin("match-uuid").getLocationsActive()) {
+            li.getEvents().forEach(e -> byUuid.put(e.getUuid(), e));
+        }
+
+        assertEquals("REGISTRY_CONDITION_NOT_MET", byUuid.get("evt-1").getReason());
+        assertEquals(new games.paths.core.model.match.RegistryLock("MISSING", false, "gate",
+                "Gate key", "=", "open"), byUuid.get("evt-1").getRegistryLock());
+        assertNull(byUuid.get("evt-2").getRegistryLock());
+    }
 }

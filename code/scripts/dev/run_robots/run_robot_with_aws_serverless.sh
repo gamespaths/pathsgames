@@ -116,7 +116,7 @@ robot --variablefile variables/aws.yaml \
     --variable BASE_URL:"$API_URL" \
     --variable ADMIN_BASE_URL:"$ADMIN_API_URL" \
     --variable ADMIN_TOKEN:"$ADMIN_TOKEN_VALUE" \
-    --outputdir reports-aws/ tests/ || ROBOT_EXIT=$?
+    --outputdir reports-aws/ tests_v*/ || ROBOT_EXIT=$?
 
 # Remove the rows created by this Robot run (guests + matches tagged "robottest"),
 # preserving every other row. Runs whether the tests passed or failed.

@@ -24,6 +24,8 @@
 #             weather: Clear (storm!=yes), Storm (storm=yes) — one always qualifies
 #   choices   event 30 owns three options on `mood`: (1) valueToAdd=happy AND
 #             valueToRemove=sad on ONE row, (2) valueToRemove=gloomy, (3) valueToRemove=sad
+#   V1 step 1 key `omen` is HIDDEN (card 1), read by event 25 (omen=seen): the hidden lock.
+#             `registryLock` cases: MISSING / FORBIDDEN / hidden on events and edges.
 #
 # Every case runs on its own guest and its own match: a key latches.
 #
@@ -294,6 +296,70 @@ A Remove On An Empty Key Changes Nothing And Logs Nothing
     ${after}=    Registry Change Count    ${token}    ${match}
     Should Be Equal As Integers    ${after}    ${before}
 
+# ── V1 step 1: the registry lock reason ───────────────────────────────────────
+
+An Event Blocked By A Missing Value Names The Key, Its Card And The Value
+    [Documentation]    Event 20 (door=open), 21 (operator unset) and 22 (steps>3): MISSING,
+    ...                visible, the key's card title, the real operator, the expected value.
+    ...                The reason code stays REGISTRY_CONDITION_NOT_MET (additive contract).
+    [Tags]    registry    gates    events    v1_step01    registry_lock
+    ${token}    ${match}=    Fresh Gates Match
+    Event Should Be Blocked    ${token}    ${match}    20
+    ${ev}=    Info Event    ${token}    ${match}    20
+    Registry Lock Should Be    ${ev}[registryLock]    MISSING    door    =    open
+    ${ev}=    Info Event    ${token}    ${match}    21
+    Registry Lock Should Be    ${ev}[registryLock]    MISSING    door    =    open
+    ${ev}=    Info Event    ${token}    ${match}    22
+    Registry Lock Should Be    ${ev}[registryLock]    MISSING    steps    >    3
+
+An Event Blocked By Not-Equals Says Forbidden With The Held Value
+    [Documentation]    Event 24 reads door!=open; once the door is open the registry forbids
+    ...                it: FORBIDDEN, operator `!=`, value the stored member. execute-event
+    ...                still refuses with the unchanged REGISTRY_CONDITION_NOT_MET.
+    [Tags]    registry    gates    events    v1_step01    registry_lock
+    ${token}    ${match}=    Fresh Gates Match
+    ${ev}=    Info Event    ${token}    ${match}    24
+    Should Be Equal    ${ev}[registryLock]    ${None}    msg=an available event carries no lock
+    Run Event    ${token}    ${match}    10
+    Event Should Be Blocked    ${token}    ${match}    24
+    ${ev}=    Info Event    ${token}    ${match}    24
+    Registry Lock Should Be    ${ev}[registryLock]    FORBIDDEN    door    !=    open
+    ${resp}=    Execute Event    ${token}    ${match}    ${EVENTS}[24]    409
+    Should Be Equal    ${resp.json()}[error]    REGISTRY_CONDITION_NOT_MET
+
+An Edge Lock Says Missing Or Forbidden Like An Event
+    [Documentation]    Vault (door=open) is MISSING on a fresh match; the Cellar (door!=open)
+    ...                is FORBIDDEN after the door opens, and its move refusal is unchanged.
+    [Tags]    registry    gates    movement    v1_step01    registry_lock
+    ${token}    ${match}=    Fresh Gates Match
+    ${vault}=     Location Uuid    2
+    ${cellar}=    Location Uuid    4
+    ${nb}=    Info Neighbor    ${token}    ${match}    ${vault}
+    Registry Lock Should Be    ${nb}[registryLock]    MISSING    door    =    open
+    ${nb}=    Info Neighbor    ${token}    ${match}    ${cellar}
+    Should Be Equal    ${nb}[registryLock]    ${None}    msg=an open edge carries no lock
+
+    Run Event    ${token}    ${match}    10
+    ${nb}=    Info Neighbor    ${token}    ${match}    ${cellar}
+    Registry Lock Should Be    ${nb}[registryLock]    FORBIDDEN    door    !=    open
+    ${move}=    Start Movement    ${token}    ${match}    ${cellar}    409
+    Should Be Equal    ${move.json()}[error]    MOVEMENT_CONDITION_NOT_MET
+
+A Hidden Key Keeps Its Name Out Of The Lock
+    [Documentation]    Event 25 is gated on the HIDDEN key `omen`: the lock says MISSING and
+    ...                hidden, and carries no key, title, operator or value — filtered by the
+    ...                backend, never by the board.
+    [Tags]    registry    gates    events    v1_step01    registry_lock
+    ${token}    ${match}=    Fresh Gates Match
+    Event Should Be Blocked    ${token}    ${match}    25
+    ${ev}=    Info Event    ${token}    ${match}    25
+    ${lock}=    Set Variable    ${ev}[registryLock]
+    Should Be Equal    ${lock}[mode]    MISSING
+    Should Be True    ${lock}[hidden]
+    FOR    ${field}    IN    key    keyTitle    operator    value
+        Should Be Equal    ${lock}[${field}]    ${None}    msg=a hidden lock leaked ${field}
+    END
+
 
 *** Keywords ***
 
@@ -472,3 +538,15 @@ Registry Change Count
     ${count}=    Evaluate
     ...    len([e for e in $logs.json()['logs'] if e.get('type') == 'REGISTRY_CHANGE'])
     RETURN    ${count}
+
+Registry Lock Should Be
+    [Documentation]    V1 step 1: a visible lock with this mode, key, operator and value, and
+    ...                the title of the key's card (card 1 of the fixture, "Registry Gates").
+    [Arguments]    ${lock}    ${mode}    ${key}    ${operator}    ${value}
+    Should Not Be Equal    ${lock}    ${None}    msg=a registry-blocked entry carries no registryLock
+    Should Be Equal    ${lock}[mode]        ${mode}
+    Should Not Be True    ${lock}[hidden]
+    Should Be Equal    ${lock}[key]         ${key}
+    Should Be Equal    ${lock}[keyTitle]    Registry Gates
+    Should Be Equal    ${lock}[operator]    ${operator}
+    Should Be Equal    ${lock}[value]       ${value}

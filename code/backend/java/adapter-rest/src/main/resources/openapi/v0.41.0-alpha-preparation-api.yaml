@@ -1002,7 +1002,7 @@ components:
       properties:
         status: { type: string, enum: [IMPORTED] }
         uuidMatch: { type: string }
-        snapshotClock: { type: integer, description: N, the clock of the imported snapshot. }
+        snapshotClock: { type: integer, description: 'N, the clock of the imported snapshot.' }
         clock: { type: integer, description: N + 1 after the time-start. }
         matchStatus: { type: string, enum: [RUNNING, PAUSED] }
         uuidSnapshot: { type: string, nullable: true, description: The "Imported at clock N" snapshot. }
@@ -1053,7 +1053,7 @@ components:
         expired: { type: boolean }
         tsRegistration: { type: string, nullable: true }
         tsLastAccess: { type: string, nullable: true }
-        matchCount: { type: integer, format: int64, description: Every match the user created, any status. }
+        matchCount: { type: integer, format: int64, description: 'Every match the user created, any status.' }
         eligible: { type: boolean, description: true when the user may receive a match. }
         reason: { type: string, nullable: true, enum: [USER_NOT_ALLOWED, USER_EXPIRED] }
     MatchOwnerMoveRequest:

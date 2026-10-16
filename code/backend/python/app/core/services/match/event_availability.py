@@ -71,7 +71,10 @@ def check(event: Optional[Dict[str, Any]], ctx: Optional[EventCheckContext]) -> 
         return EventAvailability.no(EventError.NOT_ENOUGH_MAGIC)
 
     if not _registry_met(event, ctx):
-        return EventAvailability.no(EventError.REGISTRY_CONDITION_NOT_MET)
+        key = event.get("registry_key_condition")
+        return EventAvailability(False, EventError.REGISTRY_CONDITION_NOT_MET, registry_service.lock(
+            key, event.get("registry_value_operator_condition"),
+            event.get("registry_value_condition"), ctx.registry.get(key)))
 
     # On list_events id_weather is a CONDITION; on list_events_effects it is an EFFECT.
     id_weather = event.get("id_weather")

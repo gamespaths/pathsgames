@@ -65,4 +65,20 @@ describe('StoryEditorPageSidebar', () => {
     await userEvent.click(buttons.at(-1))
     expect(onOpenFastNewEvent).toHaveBeenCalled()
   })
+
+  it('adds Fast new locations after Fast new event as the LAST entry', async () => {
+    const onOpenFastNewLocations = vi.fn()
+    render(<StoryEditorPageSidebar tabs={TABS} activeTab="metadata" onSelectTab={() => {}}
+      onOpenCardsFastEdit={() => {}} onOpenFastNewEvent={() => {}} onOpenFastNewLocations={onOpenFastNewLocations} />)
+    const buttons = screen.getAllByRole('button')
+    expect(buttons.at(-2)).toHaveTextContent('Fast new event')
+    expect(buttons.at(-1)).toHaveTextContent('Fast new locations')
+    await userEvent.click(buttons.at(-1))
+    expect(onOpenFastNewLocations).toHaveBeenCalled()
+  })
+
+  it('has no Fast new locations entry without a handler', () => {
+    render(<StoryEditorPageSidebar tabs={TABS} activeTab="metadata" onSelectTab={() => {}} onOpenFastNewEvent={() => {}} />)
+    expect(screen.queryByText('Fast new locations')).not.toBeInTheDocument()
+  })
 })
