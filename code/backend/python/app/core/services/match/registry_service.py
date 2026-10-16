@@ -124,6 +124,77 @@ def evaluate(operator: Optional[str], expected: Optional[str],
     return False
 
 
+#: V1 step 1 - the two lock modes: wait for a value, or the registry forbids the action.
+MODE_MISSING = "MISSING"
+MODE_FORBIDDEN = "FORBIDDEN"
+
+
+def generic_lock() -> Dict[str, Any]:
+    """No key to show: choice OR aggregate or an authoring error."""
+    return {"mode": MODE_MISSING, "hidden": False, "key": None, "keyTitle": None,
+            "operator": None, "value": None}
+
+
+def lock(key: Optional[str], operator: Optional[str], expected: Optional[str],
+         actual: Optional[Iterable[str]]) -> Dict[str, Any]:
+    """V1 step 1 - why a failed condition blocks (MISSING / FORBIDDEN), before visibility."""
+    if no_condition(key) or expected is None:
+        return generic_lock()
+    op = OP_EQ if operator is None or not str(operator).strip() else str(operator).strip()
+    expected_text = str(expected).strip()
+    base = {"hidden": False, "key": str(key).strip(), "keyTitle": None, "operator": op}
+    if op == OP_EQ or (op in (OP_GT, OP_LT) and _numeric(expected) is not None):
+        return {"mode": MODE_MISSING, **base, "value": expected_text}
+    if op == OP_NE:
+        held = next((v for v in actual or [] if eq(v, expected)), expected_text)
+        return {"mode": MODE_FORBIDDEN, **base, "value": held}
+    return generic_lock()
+
+
+class LockView:
+    """Hides a non-PUBLIC or undeclared key; fills the card title of a visible one, read once."""
+
+    def __init__(self, defs_loader, title_of):
+        self._defs_loader = defs_loader
+        self._title_of = title_of
+        self._defs = None
+        self._titles: Dict[Any, Optional[str]] = {}
+
+    def apply(self, raw: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        if raw is None or raw.get("key") is None:
+            return raw
+        if self._defs is None:
+            self._defs = self._defs_loader() or {}
+        definition = self._defs.get(raw["key"])
+        if definition is None or (definition.get("visibility") or "").strip().upper() \
+                != VISIBILITY_PUBLIC:
+            return {"mode": raw["mode"], "hidden": True, "key": None, "keyTitle": None,
+                    "operator": None, "value": None}
+        id_card = definition.get("id_card")
+        if id_card is None:
+            return raw
+        if id_card not in self._titles:
+            self._titles[id_card] = self._title_of(id_card)
+        return {**raw, "keyTitle": self._titles[id_card]}
+
+
+def hide_all_view() -> LockView:
+    """No definitions at all: every named key reads as hidden."""
+    return LockView(dict, lambda _id: None)
+
+
+def lock_view_of(service, id_story: Optional[int], lang: str) -> LockView:
+    """``service.lock_view`` of a possibly unwired service: no service means no key is public."""
+    view = service.lock_view(id_story, lang) if service is not None else None
+    return view if isinstance(view, LockView) else hide_all_view()
+
+
+def _card_title(card) -> Optional[str]:
+    if card is None:
+        return None
+    return card.get("title") if isinstance(card, dict) else getattr(card, "title", None)
+
+
 def _order_key(value: Optional[str]):
     """Numbers sort numerically and first; everything else alphabetically behind them."""
     number = _numeric(value)
@@ -245,6 +316,11 @@ class RegistryService:
             if name:
                 out[name] = k
         return out
+
+    def lock_view(self, id_story: Optional[int], lang: str = "en") -> LockView:
+        """The visibility filter of :func:`lock` for one request."""
+        return LockView(lambda: self._key_definitions(id_story),
+                        lambda id_card: _card_title(self._card(id_story, id_card, lang)))
 
     def _card(self, id_story: Optional[int], id_card: Optional[int], lang: str):
         # v0.37.2 — the port answers a CardInfo; the API answers JSON, so flatten it here.

@@ -89,6 +89,8 @@ class EventAvailability:
     """The verdict of the check procedure, shared by match-info and execute-event."""
     available: bool
     reason: Optional[str] = None
+    # V1 step 1 - set only when a registry condition is the failing check.
+    registry_lock: Optional[Dict[str, Any]] = None
 
     @staticmethod
     def ok() -> "EventAvailability":
@@ -173,6 +175,8 @@ class ChoiceAvailability:
     """The Step 31 per-option verdict: ``reason`` is None exactly when ``available``."""
     available: bool
     reason: Optional[str] = None
+    # V1 step 1 - set only when a registry condition is the failing check.
+    registry_lock: Optional[Dict[str, Any]] = None
 
     @staticmethod
     def ok() -> "ChoiceAvailability":

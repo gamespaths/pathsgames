@@ -1,6 +1,7 @@
 import { useTranslation } from '@/i18n/context'
 import Card from '@/components/layout/Card'
 import { lockedIconFor } from '@/constants/lockReasons'
+import RegistryLockInfo, { registryLockSentence } from './RegistryLockInfo'
 
 /**
  * Step 31 — ChoiceCard: one option of a choice-event, as a small board card.
@@ -39,10 +40,12 @@ export default function ChoiceCard({
         ? t('game.choices.resolving')
         : choiceReasonLabel(t, choice?.reason))
     : undefined
+  // V1 step 1 - a registry lock shows one plain sentence; the (i) tells the key.
+  const registryLock = choice?.available === true ? null : (choice?.registryLock ?? null)
   const lockInfo = locked
     ? (busy && choice?.available === true
         ? t('game.choices.resolving')
-        : choiceReasonLabel(t, choice?.reason,true))
+        : (registryLockSentence(t, registryLock) ?? choiceReasonLabel(t, choice?.reason, true)))
     : undefined
 
   const cardData = choice?.card ?? {
@@ -75,7 +78,7 @@ export default function ChoiceCard({
         side: previewSide,
         props: available
           ? { onAction: handleDo, actionLabel: t('game.choices.do'), actionIcon: DO_ICON }
-          : { extraContent: lockInfo },
+          : { extraContent: (<>{lockInfo}<RegistryLockInfo lock={registryLock} target="choice" /></>) },
       })}
       
       flagInformationCard={true}

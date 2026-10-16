@@ -1,5 +1,6 @@
 package games.paths.core.port.match;
 
+import games.paths.core.model.match.RegistryLock;
 import games.paths.core.model.story.CardInfo;
 
 import java.util.ArrayList;
@@ -70,12 +71,23 @@ public interface EventExecutionPort {
      * so the flag on {@code /info} and the error of {@code execute-event} can never
      * disagree about why an event is impossible.
      */
-    record EventAvailability(boolean available, EventExecutionException.Code reason) {
+    record EventAvailability(boolean available, EventExecutionException.Code reason,
+                             RegistryLock registryLock) {
 
         public static final EventAvailability OK = new EventAvailability(true, null);
 
+        public EventAvailability(boolean available, EventExecutionException.Code reason) {
+            this(available, reason, null);
+        }
+
         public static EventAvailability no(EventExecutionException.Code reason) {
             return new EventAvailability(false, reason);
+        }
+
+        /** V1 step 1 - blocked by the registry, with the raw (unfiltered) lock. */
+        public static EventAvailability registry(RegistryLock lock) {
+            return new EventAvailability(false,
+                    EventExecutionException.Code.REGISTRY_CONDITION_NOT_MET, lock);
         }
 
         /** The reason as it travels on the wire, or null when the event is available. */
@@ -339,7 +351,15 @@ public interface EventExecutionPort {
                          String description,
                          CardInfo card,
                          boolean available,
-                         String reason) {
+                         String reason,
+                         /** V1 step 1 - set only when a registry condition is the failing one. */
+                         RegistryLock registryLock) {
+
+        @SuppressWarnings("java:S107")
+        public PendingChoice(String uuid, Integer priority, String name, String description,
+                             CardInfo card, boolean available, String reason) {
+            this(uuid, priority, name, description, card, available, reason, null);
+        }
     }
 
     /** Domain exception mapped to HTTP status codes by the controller. */

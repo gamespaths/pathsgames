@@ -3427,3 +3427,7 @@ html, body {
 
 .roadmap-intro A{ color: var(--color-gold); text-decoration: underline; text-decoration-color: rgba(232,184,48,0.35); }
 .roadmap-intro button{ color: var(--color-gold); text-decoration: underline; text-decoration-color: rgba(232,184,48,0.35); }
+/* V1 step 1 — the (i) of a registry-locked card: inline after the sentence, then its text. */
+.registry-lock-info { display: contents; }
+.registry-lock-info-btn { color: var(--color-brown-light); font-size: 0.8em; line-height: inherit; vertical-align: baseline; }
+.registry-lock-info-text { font: inherit; color: inherit; }

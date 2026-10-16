@@ -4,6 +4,7 @@ import Card from '@/components/layout/Card'
 import { executeEvent } from '@/api/matches'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
 import { lockedIconFor } from '@/constants/lockReasons'
+import RegistryLockInfo, { registryLockSentence } from './RegistryLockInfo'
 
 /**
  * ActionCard — Step 29. One card per NORMAL/ONCE event available at the active location.
@@ -32,8 +33,11 @@ export default function ActionCard({
   const lockInfo = locked
     ? (action?.reason ? t(`game.event.reason.${action.reason}`) : t('game.event.blocked'))
     : undefined
+  // V1 step 1 - a registry lock shows one plain sentence; the (i) tells the key.
+  const registryLock = locked ? (action?.registryLock ?? null) : null
   const lockInfoFull = locked
-    ? (action?.reason ? t(`game.event.reasonFull.${action.reason}`) : t('game.event.blockedFull'))
+    ? (registryLockSentence(t, registryLock)
+      ?? (action?.reason ? t(`game.event.reasonFull.${action.reason}`) : t('game.event.blockedFull')))
     : undefined
 
   const cardData = action?.card ?? {
@@ -90,7 +94,8 @@ export default function ActionCard({
         props: available
           ? { onAction: handleExecute, actionLabel: t('game.event.action'), actionIcon,
               actionLabelChildren: costBadge }
-          : { extraContent: (<>{lockInfoFull}<div className='display-inline-flex'>{costBadge}</div></>) },
+          : { extraContent: (<>{lockInfoFull}<RegistryLockInfo lock={registryLock} target="action" />
+              <div className='display-inline-flex'>{costBadge}</div></>) },
       })}
       story={story}
       flagInformationCard={true}

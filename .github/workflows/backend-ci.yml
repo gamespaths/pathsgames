@@ -2,7 +2,7 @@ name: Backend CI
 
 on:
   push:
-    branches: [ main , develop , release/* ] #, develop, 'release/*', 'feature/*' ]
+    branches: [ main , release , release/* ] #removed develop branch to avoid building and pushing docker images for it
     paths:
       - 'code/backend/java/**'
       - 'code/backend/python/**'

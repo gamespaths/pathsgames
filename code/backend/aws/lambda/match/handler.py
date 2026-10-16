@@ -418,6 +418,7 @@ def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=No
     raw_texts = story.get("raw_texts") or []
     end_event_id = story.get("idEventEndGame")
     loc_by_id = {l.get("id"): l for l in locations}
+    lock_view = _lock_view(story, lang)
 
     result = []
     for loc_id in active_loc_ids:
@@ -484,6 +485,9 @@ def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=No
                 # The verdict action/move would give this path, and its code when refused.
                 "available": available,
                 "reason": reason,
+                "registryLock": lock_view.apply(
+                    _edge_lock(n, (move_judge or {}).get('registry')))
+                if reason == 'MOVEMENT_CONDITION_NOT_MET' else None,
             })
 
         event_infos = []
@@ -504,6 +508,8 @@ def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=No
                 "coin": _nz(_events.event_cost_coin(e)),
                 "food": _nz(e.get("costFood")),
                 "magic": _nz(e.get("costMagic")),
+                "registryLock": lock_view.apply(_events.registry_lock(e, check_ctx))
+                if reason == 'REGISTRY_CONDITION_NOT_MET' else None,
             })
 
         result.append({
@@ -2657,6 +2663,22 @@ def _edge_condition_met(edge, registry):
                               _registry.values_in(registry, key))
 
 
+def _edge_lock(edge, registry):
+    """V1 step 1 - the raw lock of an edge whose registry condition fails."""
+    key = edge.get('conditionKey') or edge.get('conditionRegistryKey')
+    expected = edge.get('conditionValue') or edge.get('conditionRegistryValue')
+    return _registry.lock(key, edge.get('registryValueOperatorCondition'), expected,
+                          _registry.values_in(registry, key))
+
+
+def _lock_view(story, lang):
+    """V1 step 1 - the registry lock filter of one request, titles from the story's cards."""
+    raw_cards = (story or {}).get('raw_cards') or []
+    raw_texts = (story or {}).get('raw_texts') or []
+    return _registry.LockView(story, lambda id_card: (_resolve_card_from_raw(
+        raw_cards, raw_texts, id_card, lang) or {}).get('title'))
+
+
 def _registry_value(registry, key):
     """Current registry values for a key, through the one codec Step 36 left standing."""
     return _registry.values_in(registry, key)
@@ -3673,8 +3695,9 @@ def _execute_choice_event(match, match_uuid, story, event, event_choices,
     cctx = _choices.build_choice_context(match, story, caller, characters, ctx,
                                          event_choices, conditions)
     pending = []
+    lock_view = _lock_view(story, lang)
     for choice in event_choices:  # already priority-then-id sorted
-        available, reason = _choices.check_choice(
+        available, reason, lock = _choices.check_choice_with_lock(
             choice, conditions.get(_events._nz(choice.get('id')), []), cctx)
         pending.append({
             "uuid": choice.get('uuid'),
@@ -3686,6 +3709,7 @@ def _execute_choice_event(match, match_uuid, story, event, event_choices,
             # The choice's narrative (idTextNarrative) is deliberately absent — it would
             # leak the outcome of a choice not yet made (Step 32 reveals it).
             "reason": reason,
+            "registryLock": lock_view.apply(lock),
         })
 
     return _ok({
@@ -4244,8 +4268,9 @@ def _run_linked_event(match, match_uuid, story, id_event, caller, characters, ct
         cctx = _choices.build_choice_context(match, story, caller, characters, ctx,
                                              nested, conditions)
         pending = []
+        lock_view = _lock_view(story, lang)
         for opt in nested:  # already priority-then-id sorted
-            ok, why = _choices.check_choice(
+            ok, why, lock = _choices.check_choice_with_lock(
                 opt, conditions.get(_events._nz(opt.get('id')), []), cctx)
             pending.append({
                 "uuid": opt.get('uuid'),
@@ -4255,6 +4280,7 @@ def _run_linked_event(match, match_uuid, story, id_event, caller, characters, ct
                 "card": _resolve_card_from_raw(raw_cards, raw_texts, opt.get('idCard'), lang),
                 "available": ok,
                 "reason": why,
+                "registryLock": lock_view.apply(lock),
             })
         return 'CHOICES_PENDING', pending
 

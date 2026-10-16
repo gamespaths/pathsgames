@@ -173,25 +173,43 @@ def build_choice_context(match, story, caller, characters, ctx, choices, conditi
 
 def check_choice(choice, conditions, cctx):
     """The single verdict: ``(available, reason)``. ``reason`` is None when available."""
+    available, reason, _lock = check_choice_with_lock(choice, conditions, cctx)
+    return available, reason
+
+
+def check_choice_with_lock(choice, conditions, cctx):
+    """V1 step 1 - the verdict plus the raw registry lock: ``(available, reason, lock)``."""
     if not choice or cctx is None:
-        return False, CONDITIONS_NOT_MET
+        return False, CONDITIONS_NOT_MET, None
     if _nz(choice.get("otherwiseFlag")) == 1:
-        return True, None
+        return True, None, None
     reason = _failed_limit(choice, cctx)
     if reason:
-        return False, reason
+        return False, reason, None
     rows = conditions or []
     if not rows:
-        return True, None
+        return True, None, None
     if str(choice.get("logicOperator") or "").strip().upper() == "OR":
         for row in rows:
             if _condition_met(row, cctx):
-                return True, None
-        return False, CONDITIONS_NOT_MET
+                return True, None, None
+        # No single culprit under OR: a generic lock, only when a KEYS row took part.
+        any_keys = any(_type(row) == "KEYS" for row in rows)
+        return False, CONDITIONS_NOT_MET, _registry.generic_lock() if any_keys else None
     for row in rows:
         if not _condition_met(row, cctx):
-            return False, _REASON_BY_TYPE.get(_type(row), CONDITIONS_NOT_MET)
-    return True, None
+            return False, _REASON_BY_TYPE.get(_type(row), CONDITIONS_NOT_MET), \
+                _lock_for(row, cctx)
+    return True, None, None
+
+
+def _lock_for(row, cctx):
+    """The raw registry lock of a failing KEYS row; None for any other type."""
+    if _type(row) != "KEYS":
+        return None
+    key = str(row.get("key") or "").strip()
+    return _registry.lock(key, _operator(row), row.get("value"),
+                          (cctx.get("registry") or {}).get(key))
 
 
 # ── inline limits ───────────────────────────────────────────────────────────

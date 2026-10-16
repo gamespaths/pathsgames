@@ -430,6 +430,11 @@ components:
         reason:
           type: string
           nullable: true
+        registryLock:
+          description: v1.1.0 — set only when a KEYS condition blocks the option; null otherwise.
+          allOf:
+            - $ref: './v0.19.0-match-creation-api.yaml#/components/schemas/RegistryLock'
+          nullable: true
 
     CardInfo:
       type: object

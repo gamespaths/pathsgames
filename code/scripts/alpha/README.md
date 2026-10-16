@@ -39,6 +39,7 @@ Story Lambda (`POST /api/admin/stories/catalog`): no deploy ever touches it.
 | `AWS_ALPHA_BUDGETS_LIMIT` | Monthly budget in USD (template default 10) |
 | `AWS_ALPHA_APIGW_THROTTLE_RATE`, `AWS_ALPHA_APIGW_THROTTLE_BURST` | Public API throttling (50 / 100) |
 | `AWS_ALPHA_APIGW_ADMIN_THROTTLE_RATE`, `AWS_ALPHA_APIGW_ADMIN_THROTTLE_BURST` | Admin API throttling (5 / 10) |
+| `AWS_ALPHA_LAMBDA_SMOKE_TEST_ENABLED`, `AWS_ALPHA_LAMBDA_SMOKE_WEBSITE_URL` | v1.1.0, optional: `false` disables the smoke schedule and the post-deploy run; website checked by the smoke test (empty = samconfig value `https://paths.games`). Add by hand to `.env` (copy from `.env.example`) |
 | `AWS_ALPHA_APIGW_ADMIN_IP_WHITELIST` | Optional, manual deploys only: extra IPs merged with the caller IP |
 
 **`code/frontend/react-game/.env.alpha`** — git-ignored; it must set **every** `VITE_*` key of
@@ -141,7 +142,7 @@ to `.env.alpha` and the deploy script then refuses to build if one is missing.
 | Workflow | Triggers | Gate | Deploy |
 |----------|----------|------|--------|
 | `.github/workflows/alpha-deploy-website.yml` | push on `main` touching `code/frontend/react-game/**`; manual `workflow_dispatch` | `npm ci`, `npx vitest run` | writes `.env.alpha` from the variables, runs `deploy_website.sh` |
-| `.github/workflows/alpha-deploy-backend-aws.yml` | push on `main` touching `code/backend/aws/**`; manual `workflow_dispatch` | Python 3.13, `pytest tests/` | `setup-sam`, runs `deploy_backend.sh --auto-confirm` |
+| `.github/workflows/alpha-deploy-backend-aws.yml` | push on `main` touching `code/backend/aws/**`; manual `workflow_dispatch` | Python 3.13, `pytest tests/` | `setup-sam`, runs `deploy_backend.sh --auto-confirm`; the script then invokes the smoke test (§10) and a failure fails the job |
 
 Both use the Environment `alpha`, one `concurrency` group each (an in-flight deploy is never
 cancelled) and the IAM user's access keys with the single `AWS_REGION` variable. Their order does
@@ -169,7 +170,7 @@ not matter.
 5. `code/scripts/alpha/deploy_website.sh` (removes the landing files, keeps `data/*`).
 6. Complete the GitHub Environment `alpha` (§5), run both workflows once with `workflow_dispatch`,
    then remove the old repository-level `AWS_REGION` secret.
-7. Manual smoke test: guest login, story choice, match creation, a full gameplay cycle;
+7. Check the post-deploy smoke test passed (§10); manual smoke test: guest login, story choice, match creation, a full gameplay cycle;
    `https://paths.games/?policy=privacy`, the redirect from `https://pathsgames.com/x?y=1`,
    the CloudWatch dashboard `pathsgames-alpha` and the alarms in `OK` / `INSUFFICIENT_DATA`.
 8. Announce.
@@ -239,3 +240,38 @@ aws dynamodb get-item --region $R --table-name $N --key '{"PK":{"S":"STORY#<uuid
 **Rollback** of a bad release: check out the previous tag (`git checkout v0.42.<z-1>`) and run
 `deploy_backend.sh` and `deploy_website.sh` from it, or start both workflows with
 `workflow_dispatch` on that tag. Data recovery is the runbook above.
+
+## 10. Daily smoke test and its alarms (v1.1.0)
+
+**What it does.** `pathsgames-alpha-SmokeTestFunction` (nested stack `template/smoke.yaml`) runs every day
+at 04:42 UTC (EventBridge Scheduler, schedule group `pathsgames-alpha-smoke-test`) and after every
+`deploy_backend.sh`. Checks, in order: website (`SmokeTestWebsiteUrl`), echo and version, story list and
+detail, guest login, match created in-process (no Turnstile: the function has no secret), join, start,
+info, locations, one movement, pass, sleep, and a clock check (the clock must advance). Its rows expire after 7 days (DynamoDB `ttl`) and stay visible in the
+admin lists meanwhile. A slow call or a missing movable neighbour is only a `WARNING`. On failure the
+function ends in error and publishes to the alarm topic (the `AWS_ALPHA_SNS_ALARM_EMAIL` subscribers).
+
+**Run it by hand** (region `us-east-1`):
+
+```bash
+aws lambda invoke --region us-east-1 --function-name pathsgames-alpha-SmokeTestFunction \
+  --invocation-type RequestResponse --cli-read-timeout 300 --cli-binary-format raw-in-base64-out \
+  --payload '{"trigger":"deploy"}' /tmp/smoke.json && cat /tmp/smoke.json
+aws logs tail /aws/lambda/pathsgames-alpha-SmokeTestFunction --region us-east-1 --since 1h   # SMOKE_SUMMARY, SMOKE_WARNING lines
+```
+
+**Alarm `pathsgames-alpha-smoke-failed`** (Errors >= 1 in a day): read `SMOKE_SUMMARY` in the log group
+(`failedCheck`, `httpStatus`, `error`, per-step timings), fix the cause (site, API, deploy, data) and
+re-run by hand; the alarm clears at the next good day. **Alarm `pathsgames-alpha-smoke-missing`** (no
+invocation in a day): the schedule did not fire; check the schedule `pathsgames-alpha-smoke-test-daily` is
+`ENABLED` and the stack deploy did not fail. To switch the test off, set `AWS_ALPHA_LAMBDA_SMOKE_TEST_ENABLED=false`
+in `.env` and redeploy (schedule disabled, post-deploy run skipped); the alarms then report missing data.
+
+**One-time setup after the V1 update.**
+1. Re-run `code/scripts/prod/aws_create_policy_github_actions.sh --attach-user <user>`: the policy now has
+   `scheduler:*` on the stack's schedule group and schedules, and `iam:PassRole` for `scheduler.amazonaws.com`.
+2. Add by hand to the root `.env` (never committed; see `.env.example`): `AWS_ALPHA_LAMBDA_SMOKE_TEST_ENABLED`
+   and `AWS_ALPHA_LAMBDA_SMOKE_WEBSITE_URL` (both optional, empty = default). The same keys exist for `BETA`,
+   `PROD` and (`AWS_TEST_...`) for the test stack. The workflow passes neither key: in CI the samconfig/template values apply (enabled, `https://paths.games`).
+3. First deploy: check the monitoring output `AlarmTopicArn` is not empty (it is `""` when
+   `AWS_ALPHA_SNS_ALARM_EMAIL` is empty, and then there are no smoke alarms and no email).

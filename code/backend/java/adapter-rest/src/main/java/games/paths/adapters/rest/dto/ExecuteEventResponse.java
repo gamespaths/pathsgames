@@ -466,6 +466,8 @@ public class ExecuteEventResponse {
         private CardInfoResponse card;
         private boolean available;
         private String reason;
+        /** V1 step 1 - set only when a registry condition blocks the option. */
+        private RegistryLockResponse registryLock;
 
         public static PendingChoiceDto fromModel(PendingChoice m) {
             PendingChoiceDto d = new PendingChoiceDto();
@@ -476,6 +478,7 @@ public class ExecuteEventResponse {
             d.card = CardInfoResponse.fromModel(m.card());
             d.available = m.available();
             d.reason = m.reason();
+            d.registryLock = RegistryLockResponse.fromModel(m.registryLock());
             return d;
         }
 
@@ -493,5 +496,7 @@ public class ExecuteEventResponse {
         public void setAvailable(boolean available) { this.available = available; }
         public String getReason() { return reason; }
         public void setReason(String reason) { this.reason = reason; }
+        public RegistryLockResponse getRegistryLock() { return registryLock; }
+        public void setRegistryLock(RegistryLockResponse registryLock) { this.registryLock = registryLock; }
     }
 }

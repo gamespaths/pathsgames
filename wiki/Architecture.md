@@ -94,6 +94,7 @@ code/backend/aws/lambda/
   echo/          unversioned health check
   match/         match lifecycle, gameplay actions, admin match control
   seed/          dev/test data seeding and cleanup
+  smoke/         daily smoke test (SmokeTestFunction, v1.1.0+), AWS ops tool, not part of the API
   story/         story catalog and admin story CRUD
   common/        shared helpers (db_utils, jwt_utils, security_utils, http_utils, log_utils)
 ```
@@ -116,7 +117,7 @@ Python keep summing them, since their rows have no FK) — see
 
 SAM templates: `code/backend/aws/template.yaml` (root stack) plus one nested template per
 module under `code/backend/aws/template/` (`auth.yaml`, `match.yaml`, `story.yaml`,
-`content.yaml`, `echo.yaml`, `seed.yaml`, and `monitoring.yaml`: dashboard, alarms, budget, created
+`content.yaml`, `echo.yaml`, `seed.yaml`, `smoke.yaml` (daily smoke test, `test` and public stages, see [Environments](./Environments.md)), and `monitoring.yaml`: dashboard, alarms, budget, created
 only on public stages through the `IsPublicStage` condition). Environments are `dev` and `test` (deployed with
 `code/scripts/test/aws/aws_backend_deploy.sh [dev|test]`) and `prod` (`sam deploy
 --config-env prod`) — details in [Environments](./Environments.md).
@@ -174,7 +175,7 @@ Python, AWS) plus the shared OpenAPI spec and the Robot suite that exercises all
 [ApiConventions §5](./ApiConventions.md) and CLAUDE.md's "When you change code" section.
 
 # Version Control
-- **Document Version**: 0.42.0
+- **Document Version**: 1.1.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -183,8 +184,9 @@ Python, AWS) plus the shared OpenAPI spec and the Robot suite that exercises all
   | 0.41.1 | Match log writer and snapshot service added | September 29, 2026 |
   | 0.41.2 | KPI service and AWS KPI accumulator added | September 29, 2026 |
   | 0.42.0 | Two alpha deploy workflows replace the website one | October 6, 2026 |
+  | 1.1.0 | Daily smoke test function added | October 13, 2026 |
 
-- **Last Updated**: October 6, 2026 (v0.42.0)
+- **Last Updated**: October 13, 2026 (v1.1.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

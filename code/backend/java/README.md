@@ -108,7 +108,7 @@ replacing a per-writer `MAX(id)+1` read that could collide under concurrent requ
             "timestamp": 1740049200000,
             "properties": {
                 "env": "development",
-                "version": "X.Y.Z-SNAPSHOT",
+                "version": "X.Y.Z",
                 "applicationName": "paths-game-backend",
                 "port": "8042",
                 "javaVersion": "21.0.x"
@@ -144,6 +144,11 @@ replacing a per-writer `MAX(id)+1` read that could collide under concurrent requ
 
 ### Verification Commands
 
+- OpenAPI specs validation (`OpenApiSpecsValidTest`, swagger-parser; fails on any parser message):
+    ```bash
+    cd code/backend/java
+    mvn -pl adapter-rest test -Dtest=OpenApiSpecsValidTest
+    ```
 - Core tests:
     ```bash
     cd code/backend/java
@@ -185,7 +190,7 @@ replacing a per-writer `MAX(id)+1` read that could collide under concurrent requ
 - Starting from 0.5.0 version, code is created with AI prompt:
     > Paths Games V1 - Step 05: Define backend module structure
 
-- **Document Version**: 0.41.6
+- **Document Version**: 1.1.0
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.5.0 | Step 05: Define backend module structure | Feb 26, 2026 |
@@ -203,7 +208,8 @@ replacing a per-writer `MAX(id)+1` read that could collide under concurrent requ
     | 0.28.6 | Bugfix — fog-of-war leak on neighbor location cards: v0.28.5's card enrichment exposed the card of locations never visited by the match. `MovementService.buildLocations` now nulls a neighbor's `idCard`/`card` when its destination is outside `findVisitedLocationIds`. `MatchQueryService` gained an optional 6th constructor arg `MovementStorePort` (legacy 5-arg constructor preserved, delegates with `null` = no gating); `buildLocationsActive` gained a `visitedLocIds` param and only nulls the **fallback** to the destination location's card, never an authored `idCard` link card set on the neighbor edge itself. `CoreConfig` wires `MovementStorePort` into the `matchQueryPort` bean. OpenAPI `v0.28.0-movement-api.yaml` + `v0.19.0-match-creation-api.yaml` document the nullability. New Robot suite `28_movement/location_fog_of_war.robot` (4 tests). `mvn clean test` BUILD SUCCESS (+1 `MovementServiceTest`, +3 `MatchQueryServiceLocationsActiveTest`) | Jul 11, 2026 |
     | 0.29.0 | (still v0.29.0, no version bump) Movement availability verdict on `/info`: `locationsActive[].neighbors[]` gains `available`/`reason`, the movement twin of the event verdict added in Step 29 (`EventAvailabilityChecker`). New `core/service/match/MovementAvailabilityChecker.java` — pure static function, no ports, no I/O, same 8-code order as `movements/start` (§ Validation Order: `CHARACTER_CANNOT_ACT` → `MATCH_NOT_RUNNING` → `COMA` → `SLEEPING` → `NOT_A_NEIGHBOR` → `MOVEMENT_CONDITION_NOT_MET` → `OVERWEIGHT` → `INSUFFICIENT_ENERGY` → `LOCATION_FULL`). `MovementService.startMovement` refactored to call the checker instead of its own if-chain. `MatchQueryService` loads the check context once per request and loops the checker over neighbors, no port call inside the loop. `LocationNeighborInfo`/`MatchInfoResponse` gain `available`/`reason`. OpenAPI `v0.19.0-match-creation-api.yaml` updated. No Flyway migration | Jul 13, 2026 |
     | 0.41.6 | Admin match owner move (`MatchOwnerService`, owner and user lookup endpoints) and story uuid check (`StoryUuid`) | Oct 3, 2026 |
-- **Last Updated**: Oct 3, 2026
+    | 1.1.0 | API specs checked automatically, clearer reasons for locked actions | October 14, 2026 |
+- **Last Updated**: October 14, 2026 (v1.1.0)
 - **Status**: In progress
 
 

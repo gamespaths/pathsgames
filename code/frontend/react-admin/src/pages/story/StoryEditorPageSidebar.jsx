@@ -8,8 +8,9 @@
  * @param {Function} onSelectTab - called with the tab id on click
  * @param {Function} [onOpenCardsFastEdit] - when given, a last entry opens the Cards Fast Edit page
  * @param {Function} [onOpenFastNewEvent]  - when given, a last entry opens the Fast New Event page
+ * @param {Function} [onOpenFastNewLocations] - when given, a last entry opens the Fast New Locations page
  */
-export default function StoryEditorPageSidebar({ tabs, activeTab, onSelectTab, onOpenCardsFastEdit, onOpenFastNewEvent }) {
+export default function StoryEditorPageSidebar({ tabs, activeTab, onSelectTab, onOpenCardsFastEdit, onOpenFastNewEvent, onOpenFastNewLocations }) {
   return (
     <div className="w-full md:w-[9.6rem] flex-shrink-0">
       <div className="pg-card sticky top-4" style={{ padding: '0.5rem' }}>
@@ -40,6 +41,14 @@ export default function StoryEditorPageSidebar({ tabs, activeTab, onSelectTab, o
               className="flex items-center gap-1 px-1 py-1 rounded transition-all text-sm text-ash hover:bg-white/5"
             >
               <i className="fas fa-bolt w-5 text-center" />Fast new event
+            </button>
+          )}
+          {onOpenFastNewLocations && (
+            <button
+              onClick={onOpenFastNewLocations}
+              className="flex items-center gap-1 px-1 py-1 rounded transition-all text-sm text-ash hover:bg-white/5"
+            >
+              <i className="fas fa-map-marked-alt w-5 text-center" />Fast new locations
             </button>
           )}
         </nav>

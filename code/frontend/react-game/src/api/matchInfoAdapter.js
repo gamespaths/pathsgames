@@ -201,6 +201,8 @@ export function matchInfoToGameData(info, story = null,t) {
       // card fall back to its local energy check.
       available: n.available ?? null,
       reason: n.reason ?? null,
+      // V1 step 1 - why the registry closes the way (missing / forbidden); null otherwise.
+      registryLock: n.registryLock ?? null,
     }
   })
 
@@ -232,6 +234,8 @@ export function matchInfoToGameData(info, story = null,t) {
     // case the action is treated as not executable rather than assumed to work.
     available: e.available === true,
     reason: e.reason ?? null,
+    // V1 step 1 - why the registry blocks the action (missing / forbidden); null otherwise.
+    registryLock: e.registryLock ?? null,
     energy: e?.energy ?? 0,
     // v0.35.3 — an event can cost coins, food and magic on top of energy. Absent on an
     // older backend, where 0 reads as "this action asks for nothing".

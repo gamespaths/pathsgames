@@ -52,7 +52,7 @@ in the [Global Roadmap](../Roadmap.md) §3.
 | 32 | [Choice resolution](./Step32_ChoiceResolution.md) | ✅ | Select choice engine applies choices effects |
 | 33 | [Location entry events](./Step33_LocationEntryEvents.md) | ✅ | Automatic triggers bind on columns; counter-zero finally executed; `flag_visited`  |
 | 34 | [Inventory management](./Step34_InventoryAndResources.md) | ✅ | `use-item` / `drop-item` endpoints, item cards |
-| 35 | [Resource management](./Step34_InventoryAndResources.md) | ✅ | Food/magic/coin on `/info`; carried weight (`Σ item.weight × amount`) |
+| 35 | [Resource management](./Step35_ItemsResolution.md) | ✅ | Food/magic/coin on `/info`; carried weight (`Σ item.weight × amount`) |
 | 36 | [Registry system](./Step36_RegistrySystem.md) | ✅ | RegistryService (render/parse/evaluate) & registry api &  operator column on events/edges/weather; v0.36.1 multi-value keys (SET semantics, ∃/∄/∀ operators); v0.36.2 case-insensitive trimmed value compare, locations write the registry on arrival, admin registry edit API |
 | 37 | [Mission system](./Step37_MissionSystem.md) | ✅ | Missions are a projection of the registry: `condition_value`/`condition_values` (PIPE AND), AVAILABLE→ACTIVE→COMPLETED/FAILED, `/api/match/{uuid}/missions` and `missions[]` on `/info` |
 | 38 | [Experience system](./Step38_ExperienceSystem.md) | ✅ | `use-exp` spends `gaming_character_instance.exp` to raise DEX/INT/COS by one at a difficulty-priced cost; `is_safe`→`secure_param`, `cost_max_characteristics`→`exp_cost_base`/`max_stat_value` |
@@ -73,7 +73,7 @@ in the [Global Roadmap](../Roadmap.md) §3.
     > ciao, read all "documentation_v0" for context, i wanna change my roadmap file, now I've 42 step, 13 already done and i started to work to step 14,  I wanna change my roadmap to be 101 step, 14 step should be stories management, from 14 to 42 should be single-player game system with only guess login, I would 42 step be "launch beta version with guess and single player game". since 43 to 84 "multiplayer game with credential login" with all multiplayer systems and game engine. since 85 to 101 test and launch system. all step with 7 subpoint , subpoint for backend and frontend too, add unit test into frontend and backend. 
 
 
-- **Document Version**: 0.41.6
+- **Document Version**: 0.42.0
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.1.0 | first version of this document | February 3, 2026 |
@@ -84,10 +84,10 @@ in the [Global Roadmap](../Roadmap.md) §3.
     | 0.41.1 | Step 41 patch 2 developed: logging and snapshots | September 29, 2026 |
     | 0.41.2 | Step 41 KPI report and production CSP done | September 29, 2026 |
     | 0.41.4 | Step 41 closed: export, import, uuid check, owner move | October 3, 2026 |
-    | 0.42.0 | Step 42 alpha launch analysed and developed | October 7, 2026 |
+    | 0.42.0 | Step 42 alpha launch analysed, developed and launched | October 8, 2026 |
 
-- **Last Updated**: October 6, 2026 (v0.42.0)
-- **Status**: In progress
+- **Last Updated**: October 8, 2026 (v0.42.0)
+- **Status**: Launched
 
 
 # &lt; Paths Games /&gt;

@@ -72,11 +72,23 @@ def check(choice: Optional[Dict[str, Any]], conditions: Optional[List[Dict[str, 
         for row in rows:
             if _condition_met(row, ctx):
                 return ChoiceAvailability.ok()
-        return ChoiceAvailability.no(CONDITIONS_NOT_MET)
+        # V1 step 1 - no single culprit under OR: a generic lock, only when a KEYS row took part.
+        any_keys = any(_type(row) == "KEYS" for row in rows)
+        return ChoiceAvailability(False, CONDITIONS_NOT_MET,
+                                  registry_service.generic_lock() if any_keys else None)
     for row in rows:
         if not _condition_met(row, ctx):
-            return ChoiceAvailability.no(_REASON_BY_TYPE.get(_type(row), CONDITIONS_NOT_MET))
+            return ChoiceAvailability(False, _REASON_BY_TYPE.get(_type(row), CONDITIONS_NOT_MET),
+                                      _lock_for(row, ctx))
     return ChoiceAvailability.ok()
+
+
+def _lock_for(row: Dict[str, Any], ctx: ChoiceCheckContext) -> Optional[Dict[str, Any]]:
+    """The raw registry lock of a failing KEYS row; None for any other type."""
+    if _type(row) != "KEYS":
+        return None
+    key = (row.get("key") or "").strip()
+    return registry_service.lock(key, _operator(row), row.get("value"), ctx.registry.get(key))
 
 
 # ── inline limits ───────────────────────────────────────────────────────────

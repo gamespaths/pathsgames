@@ -28,6 +28,7 @@ Follows the medieval dark theme (`v0.16.3-prototype-api`):
 | `/stories`         | List all stories (any visibility); delete stories        |
 | `/stories/import`  | Import a complete story from JSON (`POST /api/admin/stories/import`); malformed story `uuid` blocked client-side (v0.41.5) |
 | `/matches`         | List all matches across all players with server-side pagination (Load more / nextCursor), status filter and period filter (7/30/90 days / All); User column (`guest_` + first 8 chars of the creator UUID, full UUID as title; the text filter matches it; Mode and XP Cost columns removed in 0.42.0); open detail modal with match info, location state, registry and missions (read-only) |
+| `/stories/:uuid/fast-new-locations` | Fast New Locations: create many locations and their neighbors in one save, with rollback on failure |
 | `/echo`            | Server health check (`GET /api/echo/status`)             |
 
 ## Admin APIs covered
@@ -84,7 +85,7 @@ npm run test:coverage
     > ciao, into "code/frontend/react-admin" folder create a new project with react con vite e bootstrap e Tailwind e font awesome. Project is a administration frontend of project, read all documents into "wiki/documentation_v0" to understand my project. I wanna you create admin section to all admin APIs "code/backend/java/adapter-rest/src/main/resources/openapi". Let's go! Never change files outside  "code/frontend/react-admin" . for admin i wanna a login interface where user insert jwt token to be used in all api calls , use graphics from "wiki/documentation_v0/website_concepts_v0/v0.16.3-prototype-api"
 
     > mi fai uno script in .github/workflows per il progetto "react-admin" ? poi aggiorna il "wiki/documentation_v0/Step08_ConfigureMinimalCI.md"
-- **Document Version**: 0.42.0
+- **Document Version**: 1.1.0
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.16.4 | Created react-admin project | April 23, 2026 |
@@ -97,7 +98,8 @@ npm run test:coverage
     | 0.28.2 | **Bugfix** Stories export — Weather Rules and Global Random Events were exported empty: `handleExport` in `StoriesPage.jsx` used camelCase apiTypes (`'weatherRules'`, `'globalRandomEvents'`) which the admin API does not recognise, causing `listEntities` to return `[]` for those two collections; reimporting the JSON silently dropped them. Fixed by correcting the two apiType values to `'weather-rules'` and `'global-random-events'` (the jsonKey values `weatherRules` / `globalRandomEvents` are unchanged, matching the importer). All 22 export entity types verified against the admin API and `StoryImportService`; the other 20 were already correct. Regression test added to `StoriesPage.test.jsx` (export calls `'weather-rules'` and `'global-random-events'`, not camelCase, and populates both JSON keys). No backend change. 419 vitest tests pass. | Jun 26, 2026 |
     | 0.29.0 | Story Editor — **Event Effects** form gains `idTextName`/`idTextDescription` fields, ordered `idCard`, `idTextName`, `idTextDescription`, `idEvent`, ... (`storiesEntities.jsx`); the two columns already existed on the entity, this only exposes them in the UI. The generic name→description auto-fill and "new card from name text" rules (shared by all story entities with this field pair) apply unchanged. The Event Effects list gains a `Name` column, shown right after the card column. No backend change. | Jul 13, 2026 |
     | 0.42.0 | Matches page shows creator user, drops mode and cost columns | October 7, 2026 |
-- **Last Updated**: Oct 7, 2026
+    | 1.1.0 | Fast new locations page added | October 14, 2026 |
+- **Last Updated**: October 14, 2026 (v1.1.0)
 - **Status**: In progress
 
 

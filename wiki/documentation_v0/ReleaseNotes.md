@@ -1,6 +1,6 @@
 # Release notes — V0 alpha (0.42)
 
-The first public release of Paths Games: a single-player web gamebook at
+The first public release of Paths Games (launched October 8, 2026): a single-player web gamebook at
 [paths.games](https://paths.games), served by the AWS backend stage `alpha`
 ([Step 42](./Step42_AlphaLaunch.md)). The in-game Devlog book (footer link or header badge)
 points here from its V0 card.
@@ -48,7 +48,7 @@ Send bugs, ideas and impressions on Instagram, [@pathsgames](https://www.instagr
   |---------|-------------|------|
   | 0.42.0 | First release notes of the alpha | October 6, 2026 |
 
-- **Last Updated**: October 6, 2026 (v0.42.0)
+- **Last Updated**: October 8, 2026 (v0.42.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

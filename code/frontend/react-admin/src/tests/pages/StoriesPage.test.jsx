@@ -93,6 +93,14 @@ describe('StoriesPage', () => {
     expect(links[0]).toHaveAttribute('href', '/stories/aaa-111/fast-new-event')
   })
 
+  it('links every story to its Fast New Locations page', async () => {
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    const links = screen.getAllByTitle('Fast New Locations')
+    expect(links).toHaveLength(2)
+    expect(links[0]).toHaveAttribute('href', '/stories/aaa-111/fast-new-locations')
+  })
+
   it('renders visibility badges', async () => {
     renderPage()
     await screen.findByText('The Lost Kingdom')
