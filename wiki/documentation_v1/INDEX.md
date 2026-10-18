@@ -8,16 +8,21 @@ documents and the other versions are listed in the global index
 |---|---|---|
 | `Roadmap.md` | Draft plan of the 42 steps of V1 | roadmap, steps, beta, draft |
 | `Step01_Version1Launch.md` | V1 launch: daily AWS smoke test Lambda, schedule, alarms, TTL | smoke test, alarms, fast locations, registry lock, OpenAPI |
+| `Step02_GoogleSsoIdentityModel.md` | Google SSO identity table, nickname rules, username mapping (analysis) | identities, nickname, users table, migration, DynamoDB |
+| `Step03_GoogleSsoBackendFlow.md` | Google ID token login, hashed sessions, replay, rate limit (analysis) | google login, ID token, nonce, refresh, JWKS |
+| `Step04_GoogleSsoReactGameLogin.md` | react-game Google button, guest linking, logout (analysis) | GIS popup, guest linking, logout, consent |
+| `Step05_GoogleSsoPrivacyE2E.md` | Account deletion, retention, policies, fake provider E2E (analysis) | deletion, retention, policy, Robot, stage transfer |
 
 # Version Control
-- **Document Version**: 1.0.0
+- **Document Version**: 1.1.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First index of this version's documents | September 25, 2026 |
   | 1.0.0 | Version launch step added | October 13, 2026 |
+  | 1.1.0 | Google login analysis added | October 19, 2026 |
 
-- **Last Updated**: October 13, 2026 (v1.0.0)
+- **Last Updated**: October 19, 2026 (v1.1.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

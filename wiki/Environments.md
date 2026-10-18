@@ -80,7 +80,7 @@ Stages are named after the Greek alphabet, one per major version:
 | zeta | V5 |
 | eta | V6 |
 
-Domains: `<stage>.paths.games` (frontend) and `<stage>-api.paths.games` (backend API); exception:
+Domains: `<stage>.paths.games` (frontend) and `api-<stage>.paths.games` (backend API); exception:
 **alpha uses the production website `paths.games`** (there is no `alpha.paths.games`). The
 **admin API never gets a `paths.games` DNS name** — on AWS the admin API is reached through
 its raw API Gateway URL; the other backends expose it however their own infrastructure
@@ -89,6 +89,18 @@ down entirely at the owner's discretion — there is no automatic retirement pol
 
 `alpha` (v0.42.0, V0 launch) is the first stage this model produces: stack `pathsgames-alpha`,
 `api-alpha.paths.games`, react-game at the root of `paths.games`; the static landing is retired.
+`beta` (V1 launch) replaces `alpha` also in the domain: `paths.games` moves to the beta react-game
+and alpha is shut down right after the guest transfer (V1 step 41), so the beta Google OAuth
+client authorises both `beta.paths.games` and `paths.games`.
+
+**One backend per public stage (V1).** Every public stage (alpha, beta, ...) uses a single backend: the
+identity (Google SSO accounts) and the data live in that backend's database. The react-game server
+switch (`VITE_DEFAULT_SERVERS`) is not used across backends on a public stage; it stays a
+dev/test tool.
+
+**JWT secret per stage (V1).** Every stage signs its tokens with its own `JWT_SECRET`, never shared with another stage or backend (the committed dev defaults are for dev only); tokens also carry `iss` (stage + backend) and `aud`, verified by every backend.
+
+**Stage migration (V1).** The real migration is alpha to beta (V1 roadmap step 41), in two parts: Google users move by their provider subject through the match export/import that carries their identities (mechanism developed and tested in V1 Step05); guests move with a one-time transfer code (step 41). Version 1.x runs on alpha (deployed on every push to `main`) and alpha has Google SSO from release 1.2, so the prod Google Cloud project holds a client for alpha (origins `paths.games`, `www.paths.games`) and later for beta. The source stage is shut down right after the transfer.
 The older `dev`/`test`/`prod` AWS environments (§1) predate the model and are not stage-named.
 GitHub secrets of the `alpha` Environment follow the same rule (`AWS_ALPHA_S3_BUCKET_WEBSITE`,
 `AWS_ALPHA_CLOUDFRONT_DISTRIBUTION_ID`). The admin allow-list is replaced with the caller IP by
@@ -160,9 +172,9 @@ its own environment needs (SSO credentials, additional backends). Deferred, not 
   | 0.41.1 | New logging and snapshot size keys | September 29, 2026 |
   | 0.41.4 | Match move between servers, export size key | October 1, 2026 |
   | 0.42.0 | Alpha stage live on the main website | October 6, 2026 |
-  | 1.1.0 | Daily smoke test and its keys added | October 13, 2026 |
+  | 1.1.0 | Daily smoke test and its keys added; beta replaces alpha | October 13, 2026 |
 
-- **Last Updated**: October 13, 2026 (v1.1.0)
+- **Last Updated**: October 19, 2026 (v1.1.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
