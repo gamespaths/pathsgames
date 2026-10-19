@@ -26,6 +26,7 @@ resource "aws_ssm_parameter" "csp_script_domains" {
   value = join(",", [
     "jsdelivr.net",          # Bootstrap JS
     "googletagmanager.com",  # Google Tag Manager
+    "accounts.google.com",   # v1.2.0 Sign in with Google (GIS client)
   ])
 
   tags = {
@@ -44,6 +45,7 @@ resource "aws_ssm_parameter" "csp_style_domains" {
     "googleapis.com",    # Google Fonts CSS
     "jsdelivr.net",      # Bootstrap CSS
     "cloudflare.com",    # Font Awesome
+    "accounts.google.com", # v1.2.0 Sign in with Google (GIS button style)
   ])
 
   tags = {
@@ -78,6 +80,7 @@ resource "aws_ssm_parameter" "csp_img_domains" {
   value = join(",", [
     "googletagmanager.com",  # GTM pixel
     "google-analytics.com",  # GA4 pixel
+    "googleusercontent.com", # v1.2.0 Google profile picture (lh3.googleusercontent.com)
   ])
 
   tags = {
@@ -96,6 +99,7 @@ resource "aws_ssm_parameter" "csp_connect_domains" {
     "google-analytics.com",  # *.google-analytics.com covers region1.google-analytics.com
     "analytics.google.com",  # *.analytics.google.com covers region1.analytics.google.com
     "g.doubleclick.net",     # *.g.doubleclick.net covers stats.g.doubleclick.net
+    "accounts.google.com",   # v1.2.0 Sign in with Google (GIS calls)
   ])
 
   tags = {

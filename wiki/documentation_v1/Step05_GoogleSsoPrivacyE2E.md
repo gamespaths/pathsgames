@@ -13,7 +13,7 @@ whole flow is covered by E2E tests with a fake Google provider.
 
 ## 2. Decisions (owner, October 19, 2026)
 
-- `DELETE /api/auth/me` answers **202**: the user goes to state "deleting"; a job removes user, personal data, all matches and logs (AWS: `USER_MATCHES#`, `LOG#`, `AUDIT#` items). It requires a **fresh Google ID token** (< 5 minutes).
+- `DELETE /api/auth/me` answers **202**: the user goes to state "deleting" (a login meanwhile answers `ACCOUNT_DELETION_IN_PROGRESS`; after the job the same email creates a new user); a job removes user, personal data, all matches and logs (AWS: `USER_MATCHES#`, `LOG#`, `AUDIT#` items). It requires a **fresh Google ID token** (< 5 minutes).
 - Robot **fake Google provider**: a test key/JWKS enabled only when the test endpoints are enabled (like `X-Test-Marker`); a unit test asserts it is off in the prod profile.
 - Retention: Google users are kept until a deletion request or **24 months since `users.ts_last_access`** (updated at Google login and at refresh, see Step 3); the cleanup job is extended to them.
 - Deletion job is **chunked like the guest cleanup, idempotent**, and restarts from the users in state `7` (deleting).
@@ -41,15 +41,14 @@ whole flow is covered by E2E tests with a fake Google provider.
 
 ### 3.5 Privacy, minimum age and cookies (LAST sub-points of the step)
 All the items below are gathered here and nowhere else; they must be online on alpha with release 1.2.
+- Purpose of the email: account identification and support; no commercial communication without a separate consent. The profile picture is loaded from `googleusercontent.com` (the player's IP is sent to Google): cited in the privacy and cookie texts.
+- Ban keeps the HMAC of BOTH `sub` and email in `users_banned_subjects`; login is blocked if either matches (roadmap step 26).
+- Export files with personal data (email, names) are sensitive: downloaded only by the admin, deleted after the import, never in the repository (a `.gitignore` pattern for the export files, added by the `paths-games-dev-feature` agent during steps 2-5).
+- Security cases in Robot and unit tests include `EMAIL_NOT_VERIFIED` and `EMAIL_DOMAIN_NOT_ALLOWED` and `ACCOUNT_DELETION_IN_PROGRESS` (the fake provider can mint unverified and non-Gmail tokens).
+- Personal data received from Google (name, surname, picture URL, locale, email) is listed in the privacy texts, removed by account deletion, carried by the stage-migration export, and never written to logs.
 - Privacy policy and terms EN/IT (texts in `src/i18n/en.json` and `it.json`, `modals.privacy`, `modals.terms`, `modals.cookies`): nickname, provider subject, hash of banned subjects (HMAC-SHA256 with a secret pepper, table `users_banned_subjects`, defined in roadmap step 26), Google as third party; consent update for logged users.
 - Minimum age in the terms: **14 (Italy) / 16 (EU default)**; no checkbox, one visible line near the login button.
-- **Static policy pages, "one source, two outputs"** (code facts: `PolicyBook.jsx` holds only the sections list `sections: [[titleKey, bodyKey], ...]`; deep link `?policy=privacy|cookies|terms|roadmap` in `src/utils/policyDeepLink.js`; build is `vite build`):
-  - The i18n JSON files stay the single source of the texts. The sections list moves out of `PolicyBook.jsx` into a shared data file (e.g. `src/data/policies.json`) read by both outputs.
-  - Output 1: the React PolicyBook stays as it is (book style, EN/IT switch, cookie preferences button), reading the shared file.
-  - Output 2: a small script run before `vite build` (`prebuild`) generates `dist/privacy.html`, `dist/terms.html`, `dist/cookies.html`: EN and IT text, simple style, an "Open in the game" link to `/?policy=<kind>`. Deployed with the existing website deploy (whole `dist` to S3), no extra step.
-  - Only Google points to the HTML pages (Branding: `https://paths.games/privacy.html`, `https://paths.games/terms.html`). The react-game footer and in-game links keep opening the PolicyBook.
-  - Note: the static pages will also serve future clients (V3 Android/Steam app) and other external references.
-  - Tests: unit test of the generator script (all sections present in EN and IT, no missing key); a Robot check that the three pages answer 200 on the deployed site.
+- The texts flow automatically into the static pages `privacy.html`, `terms.html`, `cookies.html` (built by the first point of [Step 2](./Step02_GoogleSsoIdentityModel.md)) at the next build.
 - The GIS script is loaded only on click, classified as necessary in the cookie consent (`src/consent/`) and cited in the cookie policy.
 
 ## 4. Open points

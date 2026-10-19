@@ -23,7 +23,7 @@ Features not yet placed in a step are in the [Backlog](./Backlog.md).
 - Three backends (Java, Python, AWS) stay aligned; the alpha runs on AWS.
 - Android is online only; offline play (Steam, Debian) comes with the V3 sync system, where the
   last played match always wins.
-- Accounts use SSO only (Google in V1, Steam in V3): no email/password, no stored emails.
+- Accounts use SSO only (Google in V1, Steam in V3): no passwords; the Google email and profile data are stored.
 
 
 # Version Control

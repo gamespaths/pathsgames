@@ -10,7 +10,7 @@ csp_extra_domains = {
   connect = ["api-alpha.paths.games", "cdn.jsdelivr.net"]
   script  = ["challenges.cloudflare.com"]
   img     = ["unsplash.com"]
-  frame   = ["challenges.cloudflare.com"]
+  frame   = ["challenges.cloudflare.com", "accounts.google.com"] # v1.2.0 GIS sign-in iframe
 }
 
 # v0.42.0 — pathsgames.com and www.pathsgames.com answer 301 to https://paths.games.

@@ -18,7 +18,7 @@
 ```bash
 npm install
 npm run dev      # http://localhost:5174
-npm run build
+npm run build    # postbuild also writes dist/privacy.html, terms.html, cookies.html
 npm run preview
 ```
 

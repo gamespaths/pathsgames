@@ -25,9 +25,12 @@ no progress is lost.
 ### 3.1 react-game
 - `GuestUserContext.jsx`: session state guest vs Google, `loginWithGoogle()`, `logout()` with guest resume, nonce generation in sessionStorage, client id from `GET /api/echo/status`.
 - New `api/auth.js` call `POST /api/auth/google` `{idToken, nonce}`; the request carries the current guest session so the backend links it (see 3.2).
+- Error messages EN/IT for `EMAIL_NOT_VERIFIED`, `EMAIL_DOMAIN_NOT_ALLOWED` ("we accept only Gmail accounts"), `IDENTITY_MISMATCH` ("contact support"), `SESSION_REVOKED`, `ACCOUNT_DELETION_IN_PROGRESS`.
 - GIS loader (on click), button component, header entry, `GuestUserModal.jsx` shows the nickname and the button; error and cancel flows (popup closed, token refused, provider down).
 - Privacy, age and cookies: see the last point of [Step 5](./Step05_GoogleSsoPrivacyE2E.md).
 - EN/IT strings in the existing i18n files.
+- Navbar: the Google profile picture (`pictureUrl`) top-right instead of the user icon: round 32px, opens the `GuestUserModal` as today; on load error it falls back to the current icon; guests keep the icon. The user card in `GuestUserModal` shows `displayName` instead of the username. CSP for Google (script, frame, img, connect) is in the website Terraform: see the release checklist of [Step 3](./Step03_GoogleSsoBackendFlow.md).
+- Default language of a new Google user: guest preference (localStorage) > Google `locale` > browser language.
 - The Sign in button is hidden when `GET /api/echo/status` reports `google-enabled` false (guests keep playing).
 - **First 401 after the release** (old tokens without `iss`/`aud`): try a refresh, then the guest resume; a Google user is asked to sign in once more.
 - Account deletion has **no UI in steps 2-5**: the button lives only in roadmap step 7; `DELETE /api/auth/me` of step 5 is reachable by API only until then.
