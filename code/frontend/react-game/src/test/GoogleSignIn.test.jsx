@@ -1,11 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import GoogleSignInButton from '@/features/guest-user/GoogleSignInButton'
-import UserAccountPanel, { authErrorText, UserAvatar } from '@/features/guest-user/UserAccountPanel'
+import UserAccountPanel, { authErrorText, UserAvatar, AgeNotice } from '@/features/guest-user/UserAccountPanel'
 
 const ctx = vi.hoisted(() => ({ value: {} }))
 vi.mock('@/features/guest-user/GuestUserContext', () => ({ useGuestUser: () => ctx.value }))
-vi.mock('@/i18n/context', () => ({ useTranslation: () => ({ t: (k) => k }) }))
+const tr = vi.hoisted(() => ({ value: {} }))
+vi.mock('@/i18n/context', () => ({ useTranslation: () => ({ t: (k) => tr.value[k] ?? k }) }))
+const policy = vi.hoisted(() => ({ open: vi.fn() }))
+vi.mock('@/context/PolicyBookContext', () => ({ usePolicyBook: () => ({ openPolicyBook: policy.open }) }))
 
 const gisMock = vi.hoisted(() => ({ load: vi.fn(), nonce: vi.fn(() => 'nonce-x') }))
 vi.mock('@/auth/gisLoader', () => ({ loadGis: gisMock.load, newNonce: gisMock.nonce }))
@@ -86,6 +89,17 @@ describe('UserAccountPanel (v1.2.0)', () => {
     ctx.value = base({ user: { username: 'guest_x' }, isGoogleUser: false, googleEnabled: false })
     render(<UserAccountPanel />)
     expect(screen.queryByText('auth.google.keepProgress', { exact: false })).toBeNull()
+  })
+
+  it('the age notice links the privacy policy and the terms to the policy book', () => {
+    tr.value = { 'auth.google.ageNotice': 'Be 16: read the {privacy} and the {terms}.',
+      'footer.privacy': 'Privacy Policy', 'footer.terms': 'Terms of Service' }
+    const { container } = render(<p><AgeNotice /></p>)
+    expect(container.textContent).toBe('Be 16: read the Privacy Policy and the Terms of Service.')
+    fireEvent.click(screen.getByText('Privacy Policy'))
+    fireEvent.click(screen.getByText('Terms of Service'))
+    expect(policy.open.mock.calls).toEqual([['privacy'], ['terms']])
+    tr.value = {}
   })
 
   it('the avatar shows the picture, and nothing without one or when it fails', () => {

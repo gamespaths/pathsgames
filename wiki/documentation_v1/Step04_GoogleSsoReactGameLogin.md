@@ -18,7 +18,7 @@ no progress is lost.
 - Google logout: resume the previous guest if its cookie exists; otherwise show the home and create a guest only at the first "Play".
 - GIS button in **popup mode**, no One Tap, no callback page. The GIS script is loaded **only when the player clicks "Sign in"**. Privacy, age and cookies: see the last point of [Step 5](./Step05_GoogleSsoPrivacyE2E.md).
 - Button in `GuestUserModal` and in the header; GIS theme `filled_black`, shape `pill`; the nickname replaces `guest_xxx`.
-- Login, error and consent strings in EN and IT with the existing react-game i18n (`src/i18n/context.jsx`); step 10 migrates to react-i18next.
+- Login, error and consent strings in EN and IT with the existing react-game i18n (`src/i18n/context.jsx`); step 15 migrates to react-i18next.
 
 ## 3. Sub-points per component
 

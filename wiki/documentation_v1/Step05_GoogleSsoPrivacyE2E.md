@@ -42,11 +42,11 @@ whole flow is covered by E2E tests with a fake Google provider.
 ### 3.5 Privacy, minimum age and cookies (LAST sub-points of the step)
 All the items below are gathered here and nowhere else; they must be online on alpha with release 1.2.
 - Purpose of the email: account identification and support; no commercial communication without a separate consent. The profile picture is loaded from `googleusercontent.com` (the player's IP is sent to Google): cited in the privacy and cookie texts.
-- Ban keeps the HMAC of BOTH `sub` and email in `users_banned_subjects`; login is blocked if either matches (roadmap step 26).
+- Ban keeps the HMAC of BOTH `sub` and email in `users_banned_subjects`; login is blocked if either matches (roadmap step 11).
 - Export files with personal data (email, names) are sensitive: downloaded only by the admin, deleted after the import, never in the repository (a `.gitignore` pattern for the export files, added by the `paths-games-dev-feature` agent during steps 2-5).
 - Security cases in Robot and unit tests include `EMAIL_NOT_VERIFIED` and `EMAIL_DOMAIN_NOT_ALLOWED` and `ACCOUNT_DELETION_IN_PROGRESS` (the fake provider can mint unverified and non-Gmail tokens).
 - Personal data received from Google (name, surname, picture URL, locale, email) is listed in the privacy texts, removed by account deletion, carried by the stage-migration export, and never written to logs.
-- Privacy policy and terms EN/IT (texts in `src/i18n/en.json` and `it.json`, `modals.privacy`, `modals.terms`, `modals.cookies`): nickname, provider subject, hash of banned subjects (HMAC-SHA256 with a secret pepper, table `users_banned_subjects`, defined in roadmap step 26), Google as third party; consent update for logged users.
+- Privacy policy and terms EN/IT (texts in `src/i18n/en.json` and `it.json`, `modals.privacy`, `modals.terms`, `modals.cookies`): nickname, provider subject, hash of banned subjects (HMAC-SHA256 with a secret pepper, table `users_banned_subjects`, defined in roadmap step 11), Google as third party; consent update for logged users.
 - Minimum age in the terms: **14 (Italy) / 16 (EU default)**; no checkbox, one visible line near the login button.
 - The texts flow automatically into the static pages `privacy.html`, `terms.html`, `cookies.html` (built by the first point of [Step 2](./Step02_GoogleSsoIdentityModel.md)) at the next build.
 - The GIS script is loaded only on click, classified as necessary in the cookie consent (`src/consent/`) and cited in the cookie policy.
@@ -55,7 +55,7 @@ All the items below are gathered here and nowhere else; they must be online on a
 
 1. (decided) Chunked, idempotent job; `ts_last_access` for inactivity.
 2. Fresh token < 5 minutes needs a new Google popup at deletion: UX of the popup in step 7 (profile, the only deletion UI).
-3. The `users_banned_subjects` table and pepper parameter are defined in roadmap step 26; this step only cites them in the policy.
+3. The `users_banned_subjects` table and pepper parameter are defined in roadmap step 11; this step only cites them in the policy.
 4. (decided) Fake ID tokens use the client id of the non-prod Google project as `aud`, accepted only when test endpoints are enabled.
 
 

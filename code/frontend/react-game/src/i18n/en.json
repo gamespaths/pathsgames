@@ -788,7 +788,7 @@
       "signedInAs": "Signed in with Google as",
       "logout": "Log out",
       "keepProgress": "Sign in with Google to keep your progress: the matches of this guest come with you.",
-      "ageNotice": "You must be at least 16 years old to sign in."
+      "ageNotice": "You must be at least 16 years old to sign in: read the {privacy} and the {terms} pages."
     },
     "errors": {
       "EMAIL_NOT_VERIFIED": "Your Google email is not verified: verify it with Google and try again.",

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from '@/i18n/context'
+import { usePolicyBook } from '@/context/PolicyBookContext'
 import { useGuestUser } from './GuestUserContext'
 import GoogleSignInButton from './GoogleSignInButton'
 
@@ -10,11 +11,26 @@ export function authErrorText(t, code) {
   return text === `auth.errors.${code}` ? t('auth.errors.GOOGLE_LOGIN_FAILED') : text
 }
 
-/** The round Google picture before the user's name; a picture that fails to load is dropped. */
-export function UserAvatar({ url }) {
+const POLICY_TOKEN = /(\{privacy\}|\{terms\})/
+
+/** The age notice with its {privacy} and {terms} tokens as links to the policy book. */
+export function AgeNotice() {
+  const { t } = useTranslation()
+  const { openPolicyBook } = usePolicyBook()
+  return String(t('auth.google.ageNotice')).split(POLICY_TOKEN).map((part, i) => {
+    const kind = part === '{privacy}' ? 'privacy' : part === '{terms}' ? 'terms' : null
+    return kind
+      ? <button key={i} type="button" className="user-account-panel__policy" onClick={() => openPolicyBook(kind)}>
+          {t(`footer.${kind}`)}</button>
+      : part
+  })
+}
+
+/** The round Google picture; without one, or when it fails to load, the fallback (none by default). */
+export function UserAvatar({ url, className = 'user-avatar', fallback = null }) {
   const [failed, setFailed] = useState(false)
-  if (!url || failed) return null
-  return <img className="user-avatar" src={url} alt="" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
+  if (!url || failed) return fallback
+  return <img className={className} src={url} alt="" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
 }
 
 /**
@@ -48,7 +64,7 @@ export default function UserAccountPanel() {
       ) : googleEnabled && (
         <>
           <br /><br />
-          <p className="user-account-panel__invite">{t('auth.google.keepProgress')} {t('auth.google.ageNotice')}</p>
+          <p className="user-account-panel__invite">{t('auth.google.keepProgress')} <AgeNotice /></p>
           <GoogleSignInButton />
         </>
       )}

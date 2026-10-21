@@ -41,7 +41,7 @@ version's roadmap; items marked "Not planned" wait for a decision. The original 
 
 | Topic | Version | Notes |
 |-------|---------|-------|
-| Test ACM certificate and environment variables | V1 step 41 (analysis, moved from V0), V1 steps 14-15 (env refactor) | Result goes in [Environments](./Environments.md) |
+| Test ACM certificate and environment variables | V1 step 41 (analysis, moved from V0), V1 steps 19-20 (env refactor) | Result goes in [Environments](./Environments.md) |
 | DynamoDB single-table split (users, stories, matches, logs) | V1 | Logs table first, the rest only analysed |
 | Distributed lock for scheduled jobs on several instances | V6 | e.g. ShedLock for Java |
 

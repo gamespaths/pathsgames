@@ -11,9 +11,10 @@ Shared references for this version: [Game Rules](../GameRules.md),
 [API Conventions](../ApiConventions.md).
 
 - **Step 1**: version 1 launch. **Steps 2-9**: Google SSO first (tables ready for Steam; steps 2-5 developed together, intermediate releases get intermediate versions), profile, guest linking.
-- **Steps 10-15**: EN/IT interface, accessibility, background music (two steps), scripts and certificates (to evaluate).
-- **Steps 16-22**: story frontend data, permadeath and game over, location-forced weather.
-- **Steps 23-31**: admin tool, admin messages, negative conditions (to evaluate).
+- **Steps 10-14**: admin tool — pagination and filters, user management (backend and react-admin pages), navigation and match detail, intervention log.
+- **Steps 15-20**: EN/IT interface, accessibility, background music (two steps), scripts and certificates (to evaluate).
+- **Steps 21-27**: story frontend data, permadeath and game over, location-forced weather.
+- **Steps 28-31**: admin tool parameters, admin messages, negative conditions (to evaluate).
 - **Steps 32-35**: single-table analysis, AWS logs table, crowdfunding, content licenses.
 - **Step 36**: game manual for players. **Step 37**: documentation alignment.
 - **Steps 38-39**: reserved for bug fixes or new features. 
@@ -40,7 +41,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - `GET /api/auth/me` already exists in Java: extend it with statistics (matches played, completed, total play time) and align Python and AWS (backend)
     - Statistics computed on the fly; stored counters only if the cost requires them (backend)
     - Total play time = sum of the match durations, same rule as the KPI average duration (backend)
-    - Preferences storage: language, high contrast (the option of step 12) (backend)
+    - Preferences storage: language, high contrast (the option of step 17) (backend)
     - Update preferences endpoint (backend)
     - OpenAPI spec and unit tests (backend, tests)
     - Robot suite for profile endpoints (tests)
@@ -62,110 +63,13 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Match list "last played" date from the match `tsUpdate`, returned by all backends, AWS included (backend, frontend)
     - Robot suite: guest plays, logs in, finds the merged matches (tests)
     - Unit tests (tests)
-10. **i18n — react-game EN/IT** — interface in English and Italian.
-    - i18n library `react-i18next`, translation keys namespaced per page (frontend)
-    - Extract every react-game string into EN and IT files (frontend)
-    - Language selector and default from the browser or the profile preference; guests keep it in localStorage (frontend)
-    - Story texts in the chosen language through the existing `list_texts.lang`; missing language falls back to the story default, no error (backend, frontend)
-    - Unit tests and a missing-translation check (tests)
-11. **i18n — backend messages** — second half of localisation.
-    - react-admin stays in English only: no translation (frontend)
-    - Backend error messages with stable codes the frontends translate (backend)
-    - Dates and numbers formatted by locale (frontend)
-    - Story import checks: texts present in both languages (warning, not blocking) (backend)
-    - Unit tests (tests)
-12. **Accessibility** — the game usable with keyboard and assistive technologies (no voice).
-    - Keyboard navigation on every page and card (frontend)
-    - ARIA labels and roles on cards, book pages and dialogs (frontend)
-    - Colour contrast check of the medieval palette, high-contrast option saved in the profile, in localStorage for guests (frontend)
-    - Reduced-motion option for animations (frontend)
-    - Automated accessibility checks in unit tests (tests)
-13. **Audio — part 1** — background music in the game.
-    - Analysis of the audio scope, formats and the split with part 2 (docs)
-    - Background music player with volume and mute, off by default (frontend)
-    - Audio files hosting and caching (infra)
-    - Unit tests (tests)
-14. **Audio — part 2** — the rest of the audio work.
-    - Preference saved in the profile (backend, frontend)
-    - Remaining audio features chosen by the analysis of step 13 (backend, frontend)
-    - Music is global in V1; per-story music only if the table of step 16 is ready, otherwise V2 (docs)
-    - Update [Environments](../Environments.md) if audio hosting adds parameters (docs)
-    - Unit tests (tests)
-    - Robot checks (tests)
-15. **Scripts, CI and certificates (to evaluate)** — the tooling after the variables refactor.
-    - Evaluate if still needed: the backend variables refactor is already done; if dropped, the step becomes "Certificates" only (docs)
-    - Certificates: analysis in [Environments](../Environments.md) (who owns the ACM certificates, regions, stages, future-proof) and the chosen change; moved from step 41 to be ready before the beta domains (infra, docs)
-    - Update `.env.example`; `.env` and `.env.test` are changed only by the owner (infra)
-    - Update deploy and test scripts in `code/scripts` (infra)
-    - Update GitHub workflows (infra)
-    - Update component READMEs and [Environments](../Environments.md) (docs)
-    - Robot suites green with the new variables on all backends (tests)
-16. **Story frontend data — analysis and schema** — per-story display and graphic settings.
-    - Dedicated analysis of the fields (docs)
-    - New table `story_frontend_data`, one row per story, with display and graphic info that never changes the game engine (backend)
-    - Display flags for magic, food, coins, sadness and other stats; special cards; other graphic fields chosen by the analysis (backend)
-    - Per-story music belongs to this table: used by audio part 2 (step 14) only if ready, otherwise V2 (docs)
-    - Flags are display-only for now: the engine keeps every mechanic (docs)
-    - Migrations on SQLite and PostgreSQL, DynamoDB layout on AWS (backend)
-    - Unit tests (tests)
-17. **Story frontend data — import, validation and API** — part of the story package.
-    - Story import and export JSON with the new section, no null keys (backend)
-    - Validation rules for the new fields (backend)
-    - Admin CRUD endpoints and public read in the story detail (backend)
-    - OpenAPI spec and [Story Format](../StoryFormat.md) update (backend, docs)
-    - Unit tests and Robot suite (tests)
-18. **Story frontend data — frontends** — use the flags.
-    - react-admin editor for the story frontend data (frontend)
-    - react-game hides the stats the story disables (frontend)
-    - Special cards rendering (frontend)
-    - Unit tests (tests)
-    - Robot checks on a story with hidden stats (tests)
-19. **Permadeath — rules and schema** — individual character death.
-    - Define death rules: when a character dies, what happens to the party (docs)
-    - Extend the match state machine of step 3 in [Game Rules](../GameRules.md) with game over (new status or `ENDED` with a reason) (docs)
-    - Schema: death state and timestamp on the character instance (backend)
-    - Story settings for death (enabled, conditions) in the story table used by the engine, not in `story_frontend_data` (backend)
-    - Unit tests (tests)
-20. **Permadeath and game over — engine** — deaths and endings on all backends.
-    - Death triggers from stats and events (backend)
-    - Game over when no character can continue; match status and timestamp (backend)
-    - Interaction with coma: coma may lead to death when the story allows it (backend)
-    - Logs for death and game over (backend)
-    - Unit tests and Robot suite (tests)
-21. **Permadeath and game over — frontend and KPI** — show the end.
-    - Death and game over pages in the book (frontend)
-    - Death KPI counter in the report (backend, frontend)
-    - Match list shows dead characters and game-over matches (frontend)
-    - Unit tests (tests)
-    - Robot checks for the death flow (tests)
-22. **Location-forced weather** — some places impose their weather.
-    - Schema: location weather rule (backend)
-    - Entering the location triggers its weather; no weather change at sleep while there (backend)
-    - Leaving the location: the weather is recalculated normally at the next sleep (backend)
-    - The location wins: weather events do not change the weather while there (backend)
-    - Multiplayer behaviour postponed to V4 (docs)
-    - Story format, validation and admin CRUD (backend, frontend)
-    - Unit tests and Robot suite (tests)
-23. **Admin tool — pagination and filters** — lists that scale, before the new admin pages.
+10. **Admin tool — pagination and filters** — lists that scale, before the new admin pages.
     - Server-side pagination for matches and stories on all backends (backend)
     - Filters by date, user and story (backend)
     - react-admin tables with the new pagination and filters (frontend)
     - DynamoDB access patterns checked for the new filters (backend)
     - Unit tests and Robot checks (tests)
-24. **Admin tool — navigation and match detail** — one clear admin dashboard.
-    - react-admin sections: Matches, Users, Stories, System, Reports (frontend)
-    - Match detail page: characters, locations, registry, turn queue (frontend)
-    - Reuse existing admin endpoints; add only the missing summary fields (backend)
-    - Role guard on every admin page (frontend)
-    - Unit tests (tests)
-25. **Admin tool — intervention log** — every admin action is traced, before ban and suspend exist.
-    - Log admin actions with admin id, action, target and reason; the target is stored by uuid only, no nickname (backend)
-    - The admin user with SSO (how an account becomes admin) is analysed apart: out of scope for now (docs)
-    - Admin log list with filters (backend)
-    - Admin log page in react-admin (frontend)
-    - Unit tests (tests)
-    - Robot checks (tests)
-26. **Admin tool — user management backend** — control users.
+11. **Admin tool — user management backend** — control users.
     - `GET /api/admin/users` with search, state filter and pagination (backend)
     - Admin action to resolve an `IDENTITY_MISMATCH`: "re-link the Google subject" or "delete the old user", traced in the intervention log (backend)
     - Ban, suspend and unblock endpoints, traced in the intervention log; the state change evicts the user from the 60 s state cache of step 3 (backend)
@@ -175,12 +79,109 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - User detail: profile, identities, match history; the email is visible and searchable only in react-admin (backend)
     - OpenAPI spec (backend)
     - Unit tests and Robot suite (tests)
-27. **Admin tool — user management pages** — the react-admin side.
+12. **Admin tool — user management pages** — the react-admin side.
     - Users list with search, filters and pagination (frontend)
     - User detail page with match history and actions (frontend)
     - Confirmation dialogs with a reason field (frontend)
     - Unit tests (tests)
     - Robot checks (tests)
+13. **Admin tool — navigation and match detail** — one clear admin dashboard.
+    - react-admin sections: Matches, Users, Stories, System, Reports (frontend)
+    - Match detail page: characters, locations, registry, turn queue (frontend)
+    - Reuse existing admin endpoints; add only the missing summary fields (backend)
+    - Role guard on every admin page (frontend)
+    - Unit tests (tests)
+14. **Admin tool — intervention log** — every admin action is traced, before ban and suspend exist.
+    - Log admin actions with admin id, action, target and reason; the target is stored by uuid only, no nickname (backend)
+    - The admin user with SSO (how an account becomes admin) is analysed apart: out of scope for now (docs)
+    - Admin log list with filters (backend)
+    - Admin log page in react-admin (frontend)
+    - Unit tests (tests)
+    - Robot checks (tests)
+15. **i18n — react-game EN/IT** — interface in English and Italian.
+    - i18n library `react-i18next`, translation keys namespaced per page (frontend)
+    - Extract every react-game string into EN and IT files (frontend)
+    - Language selector and default from the browser or the profile preference; guests keep it in localStorage (frontend)
+    - Story texts in the chosen language through the existing `list_texts.lang`; missing language falls back to the story default, no error (backend, frontend)
+    - Unit tests and a missing-translation check (tests)
+16. **i18n — backend messages** — second half of localisation.
+    - react-admin stays in English only: no translation (frontend)
+    - Backend error messages with stable codes the frontends translate (backend)
+    - Dates and numbers formatted by locale (frontend)
+    - Story import checks: texts present in both languages (warning, not blocking) (backend)
+    - Unit tests (tests)
+17. **Accessibility** — the game usable with keyboard and assistive technologies (no voice).
+    - Keyboard navigation on every page and card (frontend)
+    - ARIA labels and roles on cards, book pages and dialogs (frontend)
+    - Colour contrast check of the medieval palette, high-contrast option saved in the profile, in localStorage for guests (frontend)
+    - Reduced-motion option for animations (frontend)
+    - Automated accessibility checks in unit tests (tests)
+18. **Audio — part 1** — background music in the game.
+    - Analysis of the audio scope, formats and the split with part 2 (docs)
+    - Background music player with volume and mute, off by default (frontend)
+    - Audio files hosting and caching (infra)
+    - Unit tests (tests)
+19. **Audio — part 2** — the rest of the audio work.
+    - Preference saved in the profile (backend, frontend)
+    - Remaining audio features chosen by the analysis of step 18 (backend, frontend)
+    - Music is global in V1; per-story music only if the table of step 21 is ready, otherwise V2 (docs)
+    - Update [Environments](../Environments.md) if audio hosting adds parameters (docs)
+    - Unit tests (tests)
+    - Robot checks (tests)
+20. **Scripts, CI and certificates (to evaluate)** — the tooling after the variables refactor.
+    - Evaluate if still needed: the backend variables refactor is already done; if dropped, the step becomes "Certificates" only (docs)
+    - Certificates: analysis in [Environments](../Environments.md) (who owns the ACM certificates, regions, stages, future-proof) and the chosen change; moved from step 41 to be ready before the beta domains (infra, docs)
+    - Update `.env.example`; `.env` and `.env.test` are changed only by the owner (infra)
+    - Update deploy and test scripts in `code/scripts` (infra)
+    - Update GitHub workflows (infra)
+    - Update component READMEs and [Environments](../Environments.md) (docs)
+    - Robot suites green with the new variables on all backends (tests)
+21. **Story frontend data — analysis and schema** — per-story display and graphic settings.
+    - Dedicated analysis of the fields (docs)
+    - New table `story_frontend_data`, one row per story, with display and graphic info that never changes the game engine (backend)
+    - Display flags for magic, food, coins, sadness and other stats; special cards; other graphic fields chosen by the analysis (backend)
+    - Per-story music belongs to this table: used by audio part 2 (step 19) only if ready, otherwise V2 (docs)
+    - Flags are display-only for now: the engine keeps every mechanic (docs)
+    - Migrations on SQLite and PostgreSQL, DynamoDB layout on AWS (backend)
+    - Unit tests (tests)
+22. **Story frontend data — import, validation and API** — part of the story package.
+    - Story import and export JSON with the new section, no null keys (backend)
+    - Validation rules for the new fields (backend)
+    - Admin CRUD endpoints and public read in the story detail (backend)
+    - OpenAPI spec and [Story Format](../StoryFormat.md) update (backend, docs)
+    - Unit tests and Robot suite (tests)
+23. **Story frontend data — frontends** — use the flags.
+    - react-admin editor for the story frontend data (frontend)
+    - react-game hides the stats the story disables (frontend)
+    - Special cards rendering (frontend)
+    - Unit tests (tests)
+    - Robot checks on a story with hidden stats (tests)
+24. **Permadeath — rules and schema** — individual character death.
+    - Define death rules: when a character dies, what happens to the party (docs)
+    - Extend the match state machine of step 3 in [Game Rules](../GameRules.md) with game over (new status or `ENDED` with a reason) (docs)
+    - Schema: death state and timestamp on the character instance (backend)
+    - Story settings for death (enabled, conditions) in the story table used by the engine, not in `story_frontend_data` (backend)
+    - Unit tests (tests)
+25. **Permadeath and game over — engine** — deaths and endings on all backends.
+    - Death triggers from stats and events (backend)
+    - Game over when no character can continue; match status and timestamp (backend)
+    - Interaction with coma: coma may lead to death when the story allows it (backend)
+    - Logs for death and game over (backend)
+    - Unit tests and Robot suite (tests)
+26. **Permadeath and game over — frontend and KPI** — show the end.
+    - Death and game over pages in the book (frontend)
+    - Death KPI counter in the report (backend, frontend)
+    - Match list shows dead characters and game-over matches (frontend)
+    - Unit tests (tests)
+    - Robot checks for the death flow (tests)
+27. **Location-forced weather** — some places impose their weather.
+    - Schema: location weather rule (backend)
+    - Entering the location triggers its weather; no weather change at sleep while there (backend)
+    - Leaving the location: the weather is recalculated normally at the next sleep (backend)
+    - The location wins: weather events do not change the weather while there (backend)
+    - Multiplayer behaviour postponed to V4 (docs)
+    - Story format, validation and admin CRUD (backend, frontend)
+    - Unit tests and Robot suite (tests)
 28. **Admin tool — parameters** — see and manage all runtime parameters.
     - "Get all parameters" admin API from `global_runtime_variables` and code defaults (backend)
     - Update of editable parameters with validation (backend)
@@ -277,7 +278,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Launch and smoke test (all)
 
 # Version Control
-- **Document Version**: 1.2.0
+- **Document Version**: 1.4.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -286,8 +287,9 @@ Shared references for this version: [Game Rules](../GameRules.md),
   | 0.42.0 | Version launch gains smoke test and versioning model | October 6, 2026 |
   | 1.1.0 | Launch done: smoke test, fast locations, clearer lock messages | October 14, 2026 |
   | 1.2.0 | Google login steps two to five done | October 20, 2026 |
+  | 1.4.0 | User management, admin log, navigation, pagination moved before translations | October 21, 2026 |
 
-- **Last Updated**: October 20, 2026 (v1.2.0)
+- **Last Updated**: October 21, 2026 (v1.4.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

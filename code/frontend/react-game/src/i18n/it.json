@@ -788,7 +788,7 @@
       "signedInAs": "Accesso con Google come",
       "logout": "Esci",
       "keepProgress": "Accedi con Google per conservare i tuoi progressi: le partite di questo ospite vengono con te.",
-      "ageNotice": "Per accedere devi avere almeno 16 anni."
+      "ageNotice": "Per accedere devi avere almeno 16 anni: leggi la {privacy} e i {terms}."
     },
     "errors": {
       "EMAIL_NOT_VERIFIED": "La tua email Google non è verificata: verificala con Google e riprova.",

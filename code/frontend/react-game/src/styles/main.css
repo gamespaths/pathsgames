@@ -366,6 +366,8 @@ html, body {
 .user-account-panel__error { color: var(--color-gold-light); font-size: 0.9rem; }
 .user-account-panel__nick { opacity: 0.8; }
 .user-account-panel__who { margin-top : 2rem; }
+.user-account-panel__invite{ margin-bottom: 2rem; }
+.user-account-panel__policy{ color: var(--color-gold-dark); }
 .google-signin { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .google-signin__slot { min-height: 40px; }
 .google-signin__status { font-size: 0.85rem; margin: 0; }
@@ -1213,7 +1215,7 @@ html, body {
 /* Step 40 — a link that opens another book (the Devlog intro → credits) reads like the `a` above. */
 .book-page-desc button:not(.lang-btn) {
   font: inherit;
-  color: var(--color-gold);
+  color: var(--color-gold-dark);
   background: none;
   border: 0;
   padding: 0;
@@ -1221,7 +1223,10 @@ html, body {
   text-decoration: underline;
   text-decoration-color: rgba(232,184,48,0.35);
 }
-.book-page-desc button:not(.lang-btn):hover { color: var(--color-gold-light); text-decoration-color: var(--color-gold); }
+.book-page-desc button:not(.lang-btn):hover { 
+  color: var(--color-gold); 
+  text-decoration-color: var(--color-gold); 
+}
 /* Step 40 — the Devlog intro: its own <br /> pairs make the empty lines, so no extra margin. */
 .roadmap-intro { margin: 0; }
 /* Step 40 — the credits cards: `.story-card-status` pins the badges on the picture and
@@ -3098,6 +3103,18 @@ html, body {
   z-index: 3;
 }
 
+/* v1.4.0 — the Google picture of the player in the marker and in the legend */
+.game-map-avatar {
+  display: block;
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.game-map-avatar--legend {
+  width: 16px; height: 16px;
+  border: 1px solid var(--color-gold-deep);
+}
+
 /* zoom / center controls over the map */
 .game-map-ctrl {
   position: absolute;
@@ -3367,9 +3384,10 @@ html, body {
 .policy-book-text {
   font-size: 0.95rem;
   font-style: normal;
-  line-height: 1.6;
-  color: var(--color-brown-deep);
+  /*line-height: 1.6;*/
+  /*color: var(--color-brown-deep);*/
 }
+.policy-book-text .gold-light { color: var(--color-gold-dark); font-weight: 600; font-size: 2rem; }
 .policy-book-text h6 { color: var(--color-gold-deep); font-weight: 700; margin-top: 1rem; }
 .policy-book-text .policy-book-updated { font-style: italic; font-size: 0.8rem; margin-top: 1rem; }
 

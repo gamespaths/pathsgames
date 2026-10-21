@@ -23,7 +23,7 @@ tokens, on Java, Python and AWS, with a hardened token and session handling.
 - Refresh tokens and guest cookie tokens are stored as **SHA-256 hash** and looked up by hash, on all 3 backends. **Lazy migration**: if the lookup by hash fails, try the clear value and rewrite it as hash; the clear-value fallback is removed after 180 days (guest session length).
 - Login CSRF and replay: the frontend generates a random **nonce** (sessionStorage) sent with the ID token; the backend checks the token `nonce`; the hash of the ID token is kept until its `exp` (DynamoDB `ttl`) to block replay. Checks: `aud`, `iss`, `exp`, `nonce`, replay.
 - **Refresh** revokes only the used refresh token (not all the user's tokens); the cap of 5 sessions per user stays; on 3 backends.
-- **Guest merge at login** (moved here from roadmap step 8): the current guest is linked to the Google user; if that user already had another guest linked, the two are merged from the first to the second. On the same story the STARTED match with the latest `gaming_match.ts_update` wins and the others become `CANCELLED`; ended and completed matches are all kept; the empty guest user is deleted in the same transaction; the guest tokens are invalidated. New match status `CANCELLED` in all backends and OpenAPI; the match state machine is written in [Game Rules](../GameRules.md) (roadmap step 19 extends it with game over).
+- **Guest merge at login** (moved here from roadmap step 8): the current guest is linked to the Google user; if that user already had another guest linked, the two are merged from the first to the second. On the same story the STARTED match with the latest `gaming_match.ts_update` wins and the others become `CANCELLED`; ended and completed matches are all kept; the empty guest user is deleted in the same transaction; the guest tokens are invalidated. New match status `CANCELLED` in all backends and OpenAPI; the match state machine is written in [Game Rules](../GameRules.md) (roadmap step 24 extends it with game over).
 - **Token and session hardening** (verified in code: JWT HS256 with claims `sub/username/role/type/jti/exp`, no `iss`/`aud`; Python and AWS share the same committed dev secret, Java another; AWS `auth/handler.py::_require_auth` and `match/handler.py::_resolve_user` build a "synthetic" user, role from the claims and state 2, when the uuid is not in DynamoDB; Java `JwtAuthenticationFilter` and Python `jwt_middleware.py` only validate the token, no state check):
   - The AWS **synthetic user is removed**: a token is valid only if the user exists in the DB (its reason, Java-only users, is gone with "one backend per public stage").
   - The role is always read from the DB, never trusted from the token.
@@ -78,7 +78,7 @@ Today admin tokens come from `code/scripts/dev/mint_admin_token.sh` and `code/te
   - The Java and Python scripts are not used for now (they have no public stage), kept for completeness.
   - AWS: the alpha stage gets the same admin bootstrap system as beta (manual Lambda + script); the script invokes the manual admin Lambda of the given stage (`aws lambda invoke`) and prints user and token (the console invoke stays possible).
   - Sub-point: list the three scripts in `.claude/docs/commands.md` when developed.
-- Admin with Google SSO stays out of scope (roadmap step 25 note unchanged).
+- Admin with Google SSO stays out of scope (roadmap step 14 note unchanged).
 
 ### 3.7 Release checklist
 
