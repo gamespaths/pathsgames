@@ -63,6 +63,10 @@ the story's end-game event fires, or through the all-in-coma epilogue (§11). An
 also stop, pause or resume a match out-of-band through the admin API; those transitions are an
 operational control, not part of normal play.
 
+**Cancelled (V1.2.0).** At Google login the guest's matches merge into the Google user: on the same
+story the STARTED match with the latest `ts_update` wins and the others become `CANCELLED`
+(terminal); ended and completed matches are all kept. The match list shows a plain "Cancelled" label.
+
 Details: [Step24](documentation_v0/Step24_TurnCycleEngine.md), [Step19_SinglePlayerMatchUtils](documentation_v0/Step19_SinglePlayerMatchUtils.md)
 
 ## 4. Turns and actions
@@ -323,13 +327,14 @@ today:
 Details: [Roadmap](documentation_v0/Roadmap.md)
 
 # Version Control
-- **Document Version**: 0.40.0
+- **Document Version**: 1.2.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First version of the game rules reference | September 25, 2026 |
+  | 1.2.0 | Cancelled matches after guest merge | October 20, 2026 |
 
-- **Last Updated**: September 25, 2026 (v0.40.0)
+- **Last Updated**: October 20, 2026 (v1.2.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

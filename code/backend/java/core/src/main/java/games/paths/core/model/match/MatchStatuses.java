@@ -7,7 +7,7 @@ import java.util.Set;
  * MatchStatuses - the lifecycle statuses of a {@code gaming_match} row.
  *
  * <p>A match is "stopped" (terminal) when it is {@code ENDED} or
- * {@code GAMEOVER}; only stopped matches may be deleted by an admin.</p>
+ * {@code GAMEOVER} or (v1.2.0) {@code CANCELLED}; only stopped matches may be deleted by an admin.</p>
  */
 public final class MatchStatuses {
 
@@ -16,12 +16,14 @@ public final class MatchStatuses {
     public static final String PAUSED   = "PAUSED";
     public static final String ENDED    = "ENDED";
     public static final String GAMEOVER = "GAMEOVER";
+    /** v1.2.0 a STARTED match that lost the guest merge to a newer one of the same story. */
+    public static final String CANCELLED = "CANCELLED";
 
     /** Every valid status, in lifecycle order. */
-    public static final List<String> ALL = List.of(CREATED, RUNNING, PAUSED, ENDED, GAMEOVER);
+    public static final List<String> ALL = List.of(CREATED, RUNNING, PAUSED, ENDED, GAMEOVER, CANCELLED);
 
     /** Terminal statuses — a match in one of these is "stopped" and deletable. */
-    public static final Set<String> TERMINAL = Set.of(ENDED, GAMEOVER);
+    public static final Set<String> TERMINAL = Set.of(ENDED, GAMEOVER, CANCELLED);
 
     /**
      * Active (non-terminal) statuses — a match in one of these still occupies its

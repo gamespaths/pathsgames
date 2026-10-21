@@ -1,6 +1,6 @@
 # Step 2 — Google SSO: identity model
 
-**Status: analysis (October 19, 2026) — §3.0 done in 1.2.0.**
+**Status: developed in 1.2.0 (October 20, 2026) — unit tests green, Robot suites written and not yet run, docs aligned.**
 Roadmap line: *one user with one or more login providers* ([Roadmap](./Roadmap.md) step 2).
 **Steps 2-5 are developed together** (intermediate releases get intermediate versions, bumped by the
 owner): [Step 2 identity model](./Step02_GoogleSsoIdentityModel.md),
@@ -54,7 +54,7 @@ a password. The Google email and profile data are stored (see section 2); the em
 - TO DO: Robot check that the three pages answer 200 on the deployed site.
 
 ### 3.1 Java (`code/backend/java/`)
-- Migrations `adapter-sqlite` and `adapter-postgres`: `db/migration/v1/V1.2.0__user_identities.sql` (first `v1/` folder). Creates `users_identities` (unique `(provider, provider_subject)`, FK to `users`), adds the profile columns and drops `password_hash` and `google_id_sso` (SQLite: table rebuild if the version has no `DROP COLUMN`). Unique index on `users.nickname`.
+- Migrations `adapter-sqlite` and `adapter-postgres`: `db/migration/v1/V1.2.0__user_identities.sql` (first `v1/` folder). Creates `users_identities` (unique index `(provider, email)`, plain non-unique index on `(provider, provider_subject)` because a renamed Gmail gives a new user with the same `sub`; FK to `users`), adds the profile columns and drops `password_hash` and `google_id_sso` (SQLite: table rebuild if the version has no `DROP COLUMN`). Unique index on `users.nickname`.
 - Core: identity entity, repository port and JPA/SQLite adapters; nickname generator (local part, strip `+tag`, suffix `#n`) with retry on unique violation.
 - Match export carries the user's `users_identities` rows (provider + subject); the import recreates them, so an imported Google user can still log in (base of the stage migration, see [Step 5](./Step05_GoogleSsoPrivacyE2E.md)).
 - Match import (`MatchImportService`, today by `emailAddress`) and admin owner move (`MatchOwnerService`, uuid → email → username): mapping as in section 2 (Google users by email with `sub` check, guests by username; owner move uuid → email → username). OpenAPI updated.
@@ -93,13 +93,13 @@ Unit tests (and Robot with the fake provider minting unverified or non-gmail tok
 
 
 # Version Control
-- **Document Version**: 1.1.0
+- **Document Version**: 1.2.0
 
   | Version | Description | Date |
   |---------|-------------|------|
-  | 1.1.0 | Google login analysis, steps two to five | October 19, 2026 |
+  | 1.2.0 | Google login analysis, steps two to five | October 19, 2026 |
 
-- **Last Updated**: October 19, 2026 (v1.1.0)
+- **Last Updated**: October 19, 2026 (v1.2.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

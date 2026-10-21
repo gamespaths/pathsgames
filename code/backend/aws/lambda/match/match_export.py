@@ -6,6 +6,7 @@ import os
 import time
 
 from common import db_utils
+from common import sso
 from common import story_cache
 from common import test_data_ttl
 from match import logbook
@@ -134,7 +135,7 @@ def build(match_uuid, item, payload):
                    'snapshotClock': neutral.nz(item.get('clock'))},
         'story': {'uuid': story_item.get('uuid') or payload.get('storyUuid'), 'title': _title(story_data),
                   'fingerprint': fingerprint(story_data), 'data': story_data},
-        'users': [neutral.user_section(u) for u in users if u],
+        'users': [neutral.user_section(u, sso.identities_of(u.get('uuid'))) for u in users if u],
         'match': neutral.match_section(meta, story_item),
         'characters': [neutral.character_section(c, story_item) for c in characters],
         'state': {
@@ -403,15 +404,32 @@ def _story_entities(a, story):
     a.errors += [_issue('STORY_ENTITY_MISSING', f'{m} is not in the story') for m in sorted(missing)]
 
 
+def _google_identity(u):
+    for identity in neutral.items(u.get('identities')):
+        if identity.get('provider') == 'GOOGLE':
+            return identity
+    return None
+
+
 def _users(a):
-    """Existing uuid → EXISTING; else a known email → MAPPED_BY_EMAIL (Scan); else NEW (no username index)."""
+    """Existing uuid → EXISTING; v1.2.0 a Google user by its EMAIL# item with the subject check (another
+    subject is the error IDENTITY_MISMATCH); else an old export by its email → MAPPED_BY_EMAIL; else NEW."""
     existing = []
     for u in neutral.items(a.doc.get('users')):
         if db_utils.get_item(f"USER#{u.get('uuid')}", consistent=False) is not None:
             a.users.append((u, 'EXISTING', u.get('username'), u.get('uuid')))
             existing.append(u.get('uuid'))
             continue
-        target = db_utils.find_user_by_email(u.get('emailAddress')) if u.get('emailAddress') else None
+        google = _google_identity(u)
+        email = (google or {}).get('email') or u.get('emailAddress')
+        if google is not None and email:
+            pointer = db_utils.get_item(f"EMAIL#{str(email).strip().lower()}", consistent=False)
+            subject = (pointer or {}).get('provider_subject')
+            if subject and subject != google.get('subject'):
+                a.errors.append(_issue('IDENTITY_MISMATCH', f"User {u.get('username')}: the target has this "
+                                                            f"e-mail with another Google subject"))
+                continue
+        target = db_utils.find_user_by_email(email) if email else None
         if target is not None:
             a.users.append((u, MAPPED, target.get('username'), target.get('uuid')))
             existing.append(target.get('uuid'))
@@ -454,7 +472,8 @@ def check_body(a):
             'story': {'uuid': neutral.mapping((a.doc or {}).get('story')).get('uuid'), 'status': a.story_status,
                       'action': a.story_action, 'matchesDeleted': a.matches_deleted},
             'users': [{'uuid': u.get('uuid'), 'username': u.get('username'), 'targetUsername': target,
-                       'targetUuid': target_uuid, 'status': status} for u, status, target, target_uuid in a.users]}
+                       'targetUuid': target_uuid, 'targetNickname': u.get('nickname'), 'status': status}
+                      for u, status, target, target_uuid in a.users]}
 
 
 def refusal(errors):
@@ -512,7 +531,7 @@ def _write(a, story, body, created):
         if status != 'NEW':
             continue
         created.append(u['uuid'])
-        db_utils.put_item(_user_item(u, now_ms))
+        _write_user(u, now_ms)
     created_ms = neutral.epoch_ms(m.get('createdAt')) or now_ms
     location_uuids = neutral.uuid_by_id(story, 'locations')
     ordinal_by_uuid = {c['uuid']: neutral.lng(c.get('ordinal')) for c in neutral.items(doc.get('characters'))}
@@ -622,13 +641,41 @@ class ImportTimeStartFailed(Exception):
 
 def _user_item(u, now_ms):
     guest = bool(u.get('guest'))
+    google = _google_identity(u)
+    email = (google or {}).get('email') or u.get('emailAddress')
     item = {'PK': f"USER#{u['uuid']}", 'SK': 'METADATA', 'uuid': u['uuid'], 'username': u.get('username'),
             'nickname': u.get('nickname'), 'language': u.get('language'), 'role': 'PLAYER',
             'state': neutral.lng(u.get('state')) if u.get('state') is not None else (6 if guest else 1),
-            'email': u.get('emailAddress'), 'is_guest': guest, 'ts_registration': now_ms, 'ts_last_access': now_ms,
-            'token_version': 0}
+            'email': str(email).lower() if email else None, 'is_guest': guest, 'ts_registration': now_ms,
+            'ts_last_access': now_ms}
     if guest:
         item['GSI2_PK'], item['GSI2_SK'] = 'GUEST_LIST', f"USER#{u['uuid']}"
         item['summary'] = {k: item[k] for k in ('uuid', 'username', 'nickname', 'role', 'state', 'language',
                                                 'ts_registration', 'ts_last_access') if item.get(k) is not None}
+    elif google is not None:
+        # v1.2.0 a Google user joins the list the retention job reads
+        item['GSI2_PK'], item['GSI2_SK'] = sso.GOOGLE_USER_LIST, f"USER#{u['uuid']}"
+        item['summary'] = {k: item[k] for k in ('uuid', 'username', 'nickname', 'state', 'ts_registration',
+                                                'ts_last_access') if item.get(k) is not None}
     return {k: v for k, v in item.items() if v is not None}
+
+
+def _write_user(u, now_ms):
+    """v1.2.0 the user, its nickname through the NICK# counter, its EMAIL# pointer and its identities."""
+    item = _user_item(u, now_ms)
+    if item.get('nickname'):
+        item['nickname'] = sso.allocate_nickname(item['nickname'], item['uuid'])
+        if isinstance(item.get('summary'), dict):
+            item['summary']['nickname'] = item['nickname']
+    db_utils.put_item(item)
+    google = _google_identity(u)
+    if item.get('email'):
+        db_utils.put_item({'PK': f"EMAIL#{item['email']}", 'SK': 'METADATA', 'user_uuid': item['uuid'],
+                           'provider_subject': (google or {}).get('subject')} if google else
+                          {'PK': f"EMAIL#{item['email']}", 'SK': 'METADATA', 'user_uuid': item['uuid']})
+    for identity in neutral.items(u.get('identities')):
+        claims = {'sub': identity.get('subject'), 'name': identity.get('profileName'),
+                  'given_name': identity.get('givenName'), 'family_name': identity.get('familyName'),
+                  'picture': identity.get('pictureUrl'), 'locale': identity.get('locale')}
+        if identity.get('provider') == 'GOOGLE' and claims['sub'] and identity.get('email'):
+            db_utils.put_item(sso._identity_item(item['uuid'], claims, str(identity['email']).lower(), now_ms))

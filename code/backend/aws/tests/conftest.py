@@ -77,3 +77,11 @@ def _csrf_off_by_default(monkeypatch):
     monkeypatch.setenv('RATE_LIMIT_MATCH_PER_GUEST', '0')
     # v0.41.0 — an empty allow-list now means nobody; those suites predate it and mean everybody
     monkeypatch.setenv('ADMIN_IP_EMPTY_MEANS', 'everybody')
+
+
+@pytest.fixture(autouse=True)
+def _mock_tokens_for_the_older_suites(monkeypatch):
+    """v1.2.0 — ALLOW_MOCK_ACCESS defaults to false now; the suites written before use MOCK_ACCESS_
+    tokens as the dev stack did, so they run with it on (test_v1_google_sso checks the default)."""
+    from common import jwt_utils
+    monkeypatch.setattr(jwt_utils, 'ALLOW_MOCK_ACCESS', True)

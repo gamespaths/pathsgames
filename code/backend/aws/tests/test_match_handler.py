@@ -127,7 +127,7 @@ def test_mock_user_not_in_db_returns_401(mock_jwt, mock_get):
 @patch('match.handler.db_utils.put_item')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
-def test_jwt_user_not_in_db_uses_synthetic_user(mock_jwt, mock_get, mock_put, mock_query):
+def test_jwt_user_not_in_db_is_refused(mock_jwt, mock_get, mock_put, mock_query):
     # query_gsi is patched because the v0.32.1 duplicate-match guard reads GSI1
     # before creating: unpatched it would reach the real DynamoDB client.
     mock_jwt.return_value = {'uuid': 'jwt-uuid', 'source': 'jwt', 'role': 'PLAYER', 'username': 'j'}
@@ -146,7 +146,8 @@ def test_jwt_user_not_in_db_uses_synthetic_user(mock_jwt, mock_get, mock_put, mo
     event = make_event('POST', '/api/matches', headers={'Authorization': 'Bearer eyJ.x.y'},
                        body={'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1'})
     result = lambda_handler(event, {})
-    assert result['statusCode'] == 201, _body(result)
+    # v1.2.0 the synthetic user is gone: a token is valid only for a user in the DB
+    assert result['statusCode'] == 401, _body(result)
 
 
 def test_options_preflight_short_circuit():

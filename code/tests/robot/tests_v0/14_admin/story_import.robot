@@ -32,7 +32,7 @@ Initialize Admin Suite
     ...                session against ADMIN_BASE_URL (admin port 8044 / admin API), plus
     ...                a dynamic admin JWT. Admin requests pass the token per-request.
     Create Public Session
-    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
+    Create Http Session    admin_session    ${ADMIN_BASE_URL}    verify=false
     ${token}=    Generate Admin Token
     Set Suite Variable    ${ADMIN_TOKEN}    ${token}
 
@@ -43,7 +43,7 @@ Post Story Import Payload
     ...    Authorization=Bearer ${ADMIN_TOKEN}
     ...    Content-Type=application/json
     ${response}=    POST On Session    admin_session    /api/admin/stories/import
-    ...    data=${payload}    headers=${headers}    expected_status=any
+    ...    data=${payload}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Import Payload Should Return 201 And Cleanup
@@ -76,7 +76,7 @@ Import Without Token Returns 401
     [Documentation]    POST /api/admin/stories/import without auth header returns 401.
     [Tags]    admin    step14
     ${response}=    POST On Session    admin_session    /api/admin/stories/import
-    ...    data={}    expected_status=any
+    ...    data={}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal As Integers    ${response.status_code}    401
 
 Admin Stories List Without Token Returns 401
@@ -91,7 +91,7 @@ Delete Story Without Token Returns 401
     [Documentation]    DELETE /api/admin/stories/{uuid} without auth returns 401.
     [Tags]    admin    step14
     ${response}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}
-    ...    expected_status=any
+    ...    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal As Integers    ${response.status_code}    401
 
 Import With Empty Body Returns 400
@@ -101,7 +101,7 @@ Import With Empty Body Returns 400
     ...    Authorization=Bearer ${ADMIN_TOKEN}
     ...    Content-Type=application/json
     ${response}=    POST On Session    admin_session    /api/admin/stories/import
-    ...    data=    headers=${headers}    expected_status=any
+    ...    data=    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal As Integers    ${response.status_code}    400
 
 # ---- import tests -----------------------------------------------------------
@@ -171,13 +171,13 @@ Import With Duplicate Explicit Story Id Returns 400
     ${payload1}=    Catenate    SEPARATOR=
     ...    {"uuid":"11111111-1111-4111-8111-111111111111","id":990001,"author":"dup-id-a"}
     ${r1}=    POST On Session    admin_session    /api/admin/stories/import
-    ...    data=${payload1}    headers=${headers}    expected_status=any
+    ...    data=${payload1}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal As Integers    ${r1.status_code}    201
 
     ${payload2}=    Catenate    SEPARATOR=
     ...    {"uuid":"22222222-2222-4222-8222-222222222222","id":990001,"author":"dup-id-b"}
     ${r2}=    POST On Session    admin_session    /api/admin/stories/import
-    ...    data=${payload2}    headers=${headers}    expected_status=any
+    ...    data=${payload2}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal As Integers    ${r2.status_code}    400
     ${body}=    Set Variable    ${r2.json()}
     Should Be Equal As Strings    ${body}[error]    INVALID_IMPORT_DATA
@@ -195,13 +195,13 @@ Import Same Event Id In Different Stories Returns 201
     ${payload1}=    Catenate    SEPARATOR=
     ...    {"uuid":"33333333-3333-4333-8333-333333333333","author":"scope-a","events":[{"id":1,"type":"NORMAL"}]}
     ${r1}=    POST On Session    admin_session    /api/admin/stories/import
-    ...    data=${payload1}    headers=${headers}    expected_status=any
+    ...    data=${payload1}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal As Integers    ${r1.status_code}    201
 
     ${payload2}=    Catenate    SEPARATOR=
     ...    {"uuid":"44444444-4444-4444-8444-444444444444","author":"scope-b","events":[{"id":1,"type":"NORMAL"}]}
     ${r2}=    POST On Session    admin_session    /api/admin/stories/import
-    ...    data=${payload2}    headers=${headers}    expected_status=any
+    ...    data=${payload2}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal As Integers    ${r2.status_code}    201
 
     Delete Admin Story    33333333-3333-4333-8333-333333333333
@@ -224,7 +224,7 @@ Import Multiple Stories With All Internal IDs Shared
     ...    "weatherRules":[{"id":1,"probability":0.5}],"missions":[{"id":1,"name":"M"}]}
 
     ${r1}=    POST On Session    admin_session    /api/admin/stories/import
-    ...    data=${p1}    headers=${headers}    expected_status=any
+    ...    data=${p1}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal As Integers    ${r1.status_code}    201
 
     ${p2}=    Catenate    SEPARATOR=
@@ -237,7 +237,7 @@ Import Multiple Stories With All Internal IDs Shared
     ...    "weatherRules":[{"id":1,"probability":0.5}],"missions":[{"id":1,"name":"M"}]}
 
     ${r2}=    POST On Session    admin_session    /api/admin/stories/import
-    ...    data=${p2}    headers=${headers}    expected_status=any
+    ...    data=${p2}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal As Integers    ${r2.status_code}    201
 
     Delete Admin Story    eeeeeeee-1111-4444-8888-111111111111
@@ -335,7 +335,7 @@ Import list_character_templates Round-Trips idTextName And idTextDescription
     &{headers}=    Create Dictionary
     ...    Authorization=Bearer ${ADMIN_TOKEN}
     ...    Content-Type=application/json
-    DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
+    DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
 
     ${payload}=    Catenate    SEPARATOR=
     ...    {"uuid":"${uuid}","author":"robot-ct-fk",
@@ -370,7 +370,7 @@ Import list_character_templates Round-Trips idClassPermitted And idClassProhibit
     &{headers}=    Create Dictionary
     ...    Authorization=Bearer ${ADMIN_TOKEN}
     ...    Content-Type=application/json
-    DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
+    DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
 
     ${payload}=    Catenate    SEPARATOR=
     ...    {"uuid":"${uuid}","author":"robot-ct-class",
@@ -505,7 +505,7 @@ Import Texts Reusing Same Surrogate Id Across Languages Returns 201
     &{headers}=    Create Dictionary
     ...    Authorization=Bearer ${ADMIN_TOKEN}
     ...    Content-Type=application/json
-    DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
+    DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
 
     ${payload}=    Catenate    SEPARATOR=
     ...    {"uuid":"${uuid}","author":"robot-dup-textid","texts":[
@@ -534,7 +534,7 @@ Import Card With Long Base64 Image And Link Returns 201
     &{headers}=    Create Dictionary
     ...    Authorization=Bearer ${ADMIN_TOKEN}
     ...    Content-Type=application/json
-    DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
+    DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
 
     # ~2400-char data URI and a ~1200-char copyright link (both > varchar(500)).
     ${image}=    Evaluate    "data:image/svg+xml;base64,IMGMARKER" + ("PHN2Zz48L3N2Zz4=" * 150)
@@ -564,7 +564,7 @@ Import Traits With Empty String In Numeric Fields Returns 201
     &{headers}=    Create Dictionary
     ...    Authorization=Bearer ${ADMIN_TOKEN}
     ...    Content-Type=application/json
-    DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
+    DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
 
     # No idCard here on purpose: list_traits.id_card has a composite FK to
     # list_cards on PostgreSQL, and this test is about empty-string numeric
@@ -672,7 +672,7 @@ Import Story and Verify All Header Fields
     
     # Clean up before import
     ${headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
-    ${resp_del}=   DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
+    ${resp_del}=   DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     
     # Import
     ${resp_imp}=   Post Story Import Payload    ${payload}
@@ -722,8 +722,8 @@ Import Two Stories With Colliding Entity IDs
 
     # Delete existing if any
     ${headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
-    DELETE On Session    admin_session    /api/admin/stories/${u3}    headers=${headers}    expected_status=any
-    DELETE On Session    admin_session    /api/admin/stories/${u4}    headers=${headers}    expected_status=any
+    DELETE On Session    admin_session    /api/admin/stories/${u3}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
+    DELETE On Session    admin_session    /api/admin/stories/${u4}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
 
     # Import both
     ${r3}=    Post Story Import Payload    ${p3}
@@ -743,7 +743,7 @@ Import Story And Verify Sub Entity Collections
     ${headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
 
     # Clean up before
-    DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
+    DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
 
     # Import tutorial_story_dev.json (has idCard on sub-entities)
     ${payload}=    Get File    ${TUTORIAL_DEV_FILE}
@@ -791,7 +791,7 @@ Import Preserves Sub Entity UUIDs
 
     # Import
     ${r}=    POST On Session    admin_session    /api/admin/stories/import
-    ...    data=${payload}    headers=${headers}    expected_status=any
+    ...    data=${payload}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal As Integers    ${r.status_code}    201
 
     # Fetch events and verify UUID preserved

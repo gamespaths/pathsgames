@@ -53,6 +53,10 @@ robot/
         └── events.robot                Step 29 normal events: `available`/`reason` flag on /info, POST .../action/execute-event, id_event_next chain, ONCE per-match consumption, flag_end_time, coma, ?lang= (17 tests)
 ```
 
+## Google SSO suites (V1.2.0)
+
+`tests_v1/02_google_sso/`: `google_sso.robot` (login, errors, replay, merge, deletion, using the dev-only `/api/dev/google-token` fake provider), `google_user_migration.robot` (move a Google user between two backends) and `policy_pages.robot` (`privacy.html`, `terms.html`, `cookies.html` answer 200). The run scripts set `RATE_LIMIT_GOOGLE_PER_IP=0`.
+
 ## Setup
 
 ```bash
@@ -66,7 +70,7 @@ pip install -r requirements.txt
 
 The admin-protected tests require a valid admin JWT.
 There is no `username+password` login endpoint — tokens are:
-1. Obtained by logging in from the admin panel (`/admin.html` → Token field)
+1. Created with the admin bootstrap (`code/scripts/dev/mint_admin_token.sh`, wrapper of `create_admin_{java,python}.sh`) and pasted in the admin panel; Robot (`JwtHelper.Generate Admin Token`) gets one from the dev-only `/api/dev/admin-token`
 2. Passed via `variables/dev.yaml`:
    ```yaml
    ADMIN_TOKEN: "eyJ..."

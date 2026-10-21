@@ -31,6 +31,8 @@ def _index(guests, match_rows):
             return list(guests)
         if pk == 'MATCH':
             return [m for m in match_rows if m.get('SK') == 'METADATA']
+        if pk == 'GOOGLE_USER_LIST':
+            return []  # v1.2.0 the robot Google users: none in these suites
         raise AssertionError(f'unexpected index read {index} {pk}')
     return query
 
@@ -70,6 +72,7 @@ def test_cleanup_deletes_only_robot_data_and_seed_stories():
     assert body == {
         'deletedGuests': 2,
         'deletedMatches': 1,
+        'deletedUsers': 0,
         'deletedStories': len(SEED_STORIES),
         'orphanMatches': 0,
     }
@@ -147,7 +150,7 @@ def test_cleanup_with_no_robot_data_returns_zero():
         result = lambda_handler(make_event('POST', '/api/dev/cleanup'), {})
 
     body = json.loads(result['body'])
-    assert body == {'deletedGuests': 0, 'deletedMatches': 0, 'deletedStories': 0,
+    assert body == {'deletedGuests': 0, 'deletedMatches': 0, 'deletedUsers': 0, 'deletedStories': 0,
                     'orphanMatches': 0}
     # Only the seed stories were attempted, and they held nothing.
     from seed.handler import SEED_STORIES

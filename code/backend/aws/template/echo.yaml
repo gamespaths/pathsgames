@@ -23,6 +23,13 @@ Parameters:
   AdminAuthorizerId:
     Type: String
     Description: "Id of the IP-allow-list Lambda authorizer on the admin HTTP API."
+  # v1.2.0 — exposed by GET /api/echo/status, read by react-game at runtime
+  GoogleClientId:
+    Type: String
+    Default: "paths-games-dev.apps.googleusercontent.com"
+  GoogleEnabled:
+    Type: String
+    Default: "true"
 
 Resources:
   EchoLogGroup:
@@ -74,6 +81,8 @@ Resources:
         Variables:
           TABLE_NAME: !Ref TableName
           ENV: !Ref Environment
+          GOOGLE_CLIENT_ID: !Ref GoogleClientId
+          GOOGLE_ENABLED: !Ref GoogleEnabled
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName

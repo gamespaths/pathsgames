@@ -247,7 +247,7 @@ Suite Setup Logs
     [Documentation]    Guest + admin sessions and story loadout for the logs suite.
     Create Public Session
     Create Admin Session
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    201
     Set Suite Variable    ${TOKEN}    ${response.json()}[accessToken]
     ${story}    ${difficulty}    ${character}    ${class}    ${trait}=    Pick Story Loadout

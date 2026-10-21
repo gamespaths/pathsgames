@@ -134,6 +134,8 @@ def im():
     store.user_by_uuid.return_value = None
     store.username_taken.return_value = False
     store.user_by_email.return_value = None
+    store.identity_by_email.return_value = None
+    store.nickname_taken.return_value = False
     store.match_exists.return_value = False
     store.match_of_character.return_value = None
     store.active_matches_of.return_value = []

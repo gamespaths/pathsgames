@@ -5,11 +5,14 @@ import json
 import time
 
 class JwtMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app, session_service: SessionPort, public_paths: list, admin_path_prefix: str = "/api/admin/"):
+    def __init__(self, app, session_service: SessionPort, public_paths: list, admin_path_prefix: str = "/api/admin/",
+                 user_state=None):
         super().__init__(app)
         self.session_service = session_service
         self.public_paths = public_paths
         self.admin_path_prefix = admin_path_prefix
+        # v1.2.0 the user must exist; role and state from the DB (60 s cache), never from the token
+        self.user_state = user_state
 
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
@@ -35,6 +38,16 @@ class JwtMiddleware(BaseHTTPMiddleware):
             token_info = self.session_service.validate_access_token(token)
         except ValueError as e:
             return self._error_response("INVALID_TOKEN", str(e), 401)
+
+        if self.user_state is not None:
+            user = self.user_state.current(token_info.user_uuid)
+            if user is None:
+                return self._error_response("INVALID_TOKEN", "The user of this token does not exist", 401)
+            if user.state in (3, 4):
+                return self._error_response("ACCOUNT_DISABLED", "The account is disabled", 403)
+            if user.state == 7:
+                return self._error_response("ACCOUNT_DELETION_IN_PROGRESS", "The account is being deleted", 403)
+            token_info = token_info.model_copy(update={"username": user.username, "role": user.role})
 
         # 5. Check Admin Authorization
         if path.startswith(self.admin_path_prefix) and not token_info.is_admin():

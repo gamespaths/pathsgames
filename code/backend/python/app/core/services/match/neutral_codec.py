@@ -201,9 +201,30 @@ def choice_row(c) -> Dict[str, Any]:
 
 def user(u) -> Dict[str, Any]:
     state = lng(u.get("state"))
-    return {"uuid": u.get("uuid"), "username": text(u.get("username")), "nickname": text(u.get("nickname")),
-            "language": text(u.get("language")), "state": state, "guest": state == 6,
-            "role": text(u.get("role")), "emailAddress": text(u.get("email_address"))}
+    out = {"uuid": u.get("uuid"), "username": text(u.get("username")), "nickname": text(u.get("nickname")),
+           "language": text(u.get("language")), "state": state, "guest": state == 6,
+           "role": text(u.get("role")), "emailAddress": text(u.get("email_address"))}
+    identities = [identity(r) for r in (u.get("identities") or [])]
+    if identities:
+        out["identities"] = identities
+    return out
+
+
+def identity(r) -> Dict[str, Any]:
+    """v1.2.0 one users_identities row in the neutral form (the stage migration of Google users)."""
+    return {"provider": text(r.get("provider")), "subject": text(r.get("provider_subject")),
+            "email": text(r.get("email")), "profileName": text(r.get("profile_name")),
+            "givenName": text(r.get("given_name")), "familyName": text(r.get("family_name")),
+            "pictureUrl": text(r.get("picture_url")), "locale": text(r.get("locale"))}
+
+
+def identity_row(n) -> Dict[str, Any]:
+    """v1.2.0 the users_identities columns of a neutral identity, for the import insert."""
+    email = text(n.get("email"))
+    return {"provider": text(n.get("provider")), "provider_subject": text(n.get("subject")),
+            "email": email.lower() if email else None, "profile_name": text(n.get("profileName")),
+            "given_name": text(n.get("givenName")), "family_name": text(n.get("familyName")),
+            "picture_url": text(n.get("pictureUrl")), "locale": text(n.get("locale"))}
 
 
 def _resources(row, suffix) -> Optional[Dict[str, int]]:

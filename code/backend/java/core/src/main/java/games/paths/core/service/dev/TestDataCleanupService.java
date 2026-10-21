@@ -30,6 +30,7 @@ public class TestDataCleanupService implements TestDataCleanupPort {
 
     private final GuestAdminPersistencePort guestPersistencePort;
     private final MatchPersistencePort matchPersistencePort;
+    private games.paths.core.port.auth.IdentityPersistencePort identityPort;
 
     public TestDataCleanupService(GuestAdminPersistencePort guestPersistencePort,
                                   MatchPersistencePort matchPersistencePort) {
@@ -37,12 +38,26 @@ public class TestDataCleanupService implements TestDataCleanupPort {
         this.matchPersistencePort = matchPersistencePort;
     }
 
+    /** v1.2.0 also the Google users of the fake provider (nickname robottest...) with their matches. */
+    public void setIdentityPort(games.paths.core.port.auth.IdentityPersistencePort identityPort) {
+        this.identityPort = identityPort;
+    }
+
     @Override
     public CleanupResult cleanupTestData() {
         // Matches are deleted before guests: a match references its creator
         // (a guest) via a foreign key, so the children must go first.
         int deletedMatches = matchPersistencePort.deleteMatchesByNameLike(MARKER_LIKE_PATTERN);
+        int deletedUsers = 0;
+        if (identityPort != null) {
+            java.util.List<Long> ids = identityPort.findNonGuestUserIdsByNicknameLike(MARKER_LIKE_PATTERN);
+            if (!ids.isEmpty()) {
+                deletedMatches += matchPersistencePort.deleteMatchesByUserCreatorIds(ids);
+                ids.forEach(identityPort::deleteUserFully);
+                deletedUsers = ids.size();
+            }
+        }
         int deletedGuests = guestPersistencePort.deleteGuestsByUsernameLike(MARKER_LIKE_PATTERN);
-        return new CleanupResult(deletedGuests, deletedMatches);
+        return new CleanupResult(deletedGuests, deletedMatches, deletedUsers);
     }
 }

@@ -6,7 +6,7 @@ spring:
 
 game:
   server:
-    version: 1.2.0
+    version: 1.3.0
     # manually change this version if needed >0.13.0
   database:
     # Configurable SQLite path — override with -Dgame.database.path=/your/path
@@ -18,9 +18,23 @@ game:
       secret: ${JWT_SECRET:PathsGamesDevSecret2026_MustBeAtLeast32Chars!}
       access-token-minutes: 30
       refresh-token-days: 7
+      # v1.2.0 iss (stage + backend) and aud on access and refresh tokens, verified on every request
+      issuer: ${JWT_ISSUER:pathsgames-${game.server.env:dev}-java}
+      audience: ${JWT_AUDIENCE:paths-games}
     max-tokens-per-user: 5
     admin-path-prefix: /api/admin/
-    public-paths: /api/echo/**,/api/auth/guest,/api/auth/guest/resume,/api/auth/refresh,/api/versions,/api/stories,/api/stories/**,/api/content/**,/api/dev/**
+    public-paths: /api/echo/**,/api/auth/guest,/api/auth/guest/resume,/api/auth/refresh,/api/auth/google,/api/versions,/api/stories,/api/stories/**,/api/content/**,/api/dev/**
+    google:
+      # v1.2.0 Google sign-in (false only on test for trials); the client id default is for dev only
+      enabled: ${GOOGLE_ENABLED:true}
+      client-id: ${GOOGLE_CLIENT_ID:paths-games-dev.apps.googleusercontent.com}
+    account:
+      # v1.2.0 deletion job of state-7 users (chunked) and the daily 24-month inactivity retirement
+      jobs-enabled: ${ACCOUNT_JOBS_ENABLED:true}
+      deletion-cron: 0 */10 * * * ?
+      retention-cron: 0 52 0 * * ?
+      chunk: ${ACCOUNT_DELETION_CHUNK:100}
+      retention-months: ${ACCOUNT_RETENTION_MONTHS:24}
     cookie: # HttpOnly cookies for refreshToken and guestCookieToken (XSS blast-radius reduction)
       same-site: Lax
   admin:
@@ -28,6 +42,8 @@ game:
     # (and ONLY here); the public connector (server.port) returns 404 for admin paths.
     # Lock this port to the owner IP at the network layer (firewall / security group).
     port: ${ADMIN_PORT:8044}
+    # v1.2.0 lifetime of the admin token issued by --paths.admin.create and POST /api/dev/admin-token
+    token-days: ${ADMIN_TOKEN_DAYS:365}
     auth:
       guest:
         cleanup:
@@ -58,6 +74,8 @@ game:
       window-seconds: ${RATE_LIMIT_WINDOW_SECONDS:3600}
       match-per-guest: ${RATE_LIMIT_MATCH_PER_GUEST:10}
       match-per-guest-window-seconds: ${RATE_LIMIT_MATCH_PER_GUEST_WINDOW_SECONDS:86400}
+      # v1.2.0 POST /api/auth/google attempts per source address and window
+      google-per-ip: ${RATE_LIMIT_GOOGLE_PER_IP:30}
     # The csrfToken issued with every access token must come back as X-CSRF-TOKEN on
     # POST /api/matches. Same secret as the JWT unless CSRF_SECRET says otherwise.
     csrf:

@@ -35,19 +35,19 @@ Create Story Returns 201
     ...                the created story is removed in teardown.
     [Tags]    admin    crud    step17
     &{data}=    Create Dictionary    uuid=${NEW_STORY_UUID}    author=robottest_crud
-    ${response}=    POST On Session    admin_session    /api/admin/stories    json=${data}    expected_status=any
+    ${response}=    POST On Session    admin_session    /api/admin/stories    json=${data}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    201
     Dictionary Should Contain Key    ${response.json()}    uuid
     ${created}=    Set Variable    ${response.json()}[uuid]
     Set Test Variable    ${CREATED_STORY_UUID}    ${created}
     [Teardown]    Run Keyword And Ignore Error
-    ...    DELETE On Session    admin_session    /api/admin/stories/${CREATED_STORY_UUID}
+    ...    DELETE On Session    admin_session    /api/admin/stories/${CREATED_STORY_UUID}    timeout=${HTTP_POST_TIMEOUT}
 
 Create Story With Empty Body Returns 400
     [Documentation]    POST /api/admin/stories with an empty JSON body → 400 EMPTY_IMPORT_DATA.
     [Tags]    admin    crud    step17
     &{empty}=    Create Dictionary
-    ${response}=    POST On Session    admin_session    /api/admin/stories    json=${empty}    expected_status=any
+    ${response}=    POST On Session    admin_session    /api/admin/stories    json=${empty}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    400
     ${error}=    Set Variable    ${response.json()}[error]
     Should Contain Any    ${error}    EMPTY_DATA    EMPTY_IMPORT_DATA
@@ -56,7 +56,7 @@ Update Story Returns 200
     [Documentation]    PUT /api/admin/stories/{uuid} with valid data returns 200.
     [Tags]    admin    crud    step17
     &{data}=    Create Dictionary    author=RobotUpdated
-    ${response}=    PUT On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}    json=${data}
+    ${response}=    PUT On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}    json=${data}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    200
     Response Should Contain Field    ${response}    uuid
 
@@ -64,7 +64,7 @@ Update Story Not Found Returns 404
     [Documentation]    PUT /api/admin/stories/{bad-uuid} returns 404.
     [Tags]    admin    crud    step17
     &{data}=    Create Dictionary    author=Test
-    ${response}=    PUT On Session    admin_session    /api/admin/stories/non-existent-uuid    json=${data}    expected_status=404
+    ${response}=    PUT On Session    admin_session    /api/admin/stories/non-existent-uuid    json=${data}    expected_status=404    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    404
 
 # === Sub-entity listing ===
@@ -111,7 +111,7 @@ Create And Delete Location
     [Tags]    admin    crud    step17
     # Create
     &{data}=    Create Dictionary    idTextName=${101}    secureParam=${1}
-    ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/locations    json=${data}
+    ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/locations    json=${data}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${create_resp}    201
     ${created}=    Set Variable    ${create_resp.json()}
     Dictionary Should Contain Key    ${created}    uuid
@@ -124,14 +124,14 @@ Create And Delete Location
     Dictionary Should Contain Key    ${entity}    id
 
     # Delete
-    ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/locations/${entity_uuid}
+    ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/locations/${entity_uuid}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${del_resp}    200
     Response Field Should Equal    ${del_resp}    status    DELETED
 
 Delete Non Existent Entity Returns 404
     [Documentation]    DELETE /api/admin/stories/{uuid}/locations/{bad-uuid} returns 404.
     [Tags]    admin    crud    step17
-    ${response}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/locations/non-existent    expected_status=404
+    ${response}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/locations/non-existent    expected_status=404    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    404
 
 # === 12 new entity-type listing ===
@@ -210,10 +210,10 @@ Create And Delete Key
     [Documentation]    Full CRUD cycle for keys entity type.
     [Tags]    admin    crud    step17
     &{data}=    Create Dictionary    name=robot_key    value=42
-    ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/keys    json=${data}
+    ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/keys    json=${data}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${create_resp}    201
     ${entity_uuid}=    Set Variable    ${create_resp.json()}[uuid]
-    ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/keys/${entity_uuid}
+    ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/keys/${entity_uuid}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${del_resp}    200
     Response Field Should Equal    ${del_resp}    status    DELETED
 
@@ -221,37 +221,37 @@ Create And Delete Choice
     [Documentation]    Full CRUD cycle for choices entity type.
     [Tags]    admin    crud    step17
     &{data}=    Create Dictionary    priority=${1}
-    ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/choices    json=${data}
+    ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/choices    json=${data}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${create_resp}    201
     ${entity_uuid}=    Set Variable    ${create_resp.json()}[uuid]
-    ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/choices/${entity_uuid}
+    ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/choices/${entity_uuid}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${del_resp}    200
 
 Create And Delete Mission
     [Documentation]    Full CRUD cycle for missions entity type.
     [Tags]    admin    crud    step17
     &{data}=    Create Dictionary    idTextName=${201}
-    ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/missions    json=${data}
+    ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/missions    json=${data}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${create_resp}    201
     ${entity_uuid}=    Set Variable    ${create_resp.json()}[uuid]
-    ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/missions/${entity_uuid}
+    ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/missions/${entity_uuid}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${del_resp}    200
 
 Create And Update Creator With idCard
     [Documentation]    Verifies that idCard is properly mapped and saved for creator sub-entities.
     [Tags]    admin    crud    step17
     &{data}=    Create Dictionary    idCard=${92460}    urlInstagram=https://instagram.com/test
-    ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/creators    json=${data}
+    ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/creators    json=${data}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${create_resp}    201
     ${entity_uuid}=    Set Variable    ${create_resp.json()}[uuid]
     Response Field Should Equal    ${create_resp}    idCard    92460
 
     &{update_data}=    Create Dictionary    idCard=${92461}
-    ${update_resp}=    PUT On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/creators/${entity_uuid}    json=${update_data}
+    ${update_resp}=    PUT On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/creators/${entity_uuid}    json=${update_data}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${update_resp}    200
     Response Field Should Equal    ${update_resp}    idCard    92461
 
-    ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/creators/${entity_uuid}
+    ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/creators/${entity_uuid}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${del_resp}    200
 
 Create And Update Location Neighbor With idCardBack
@@ -260,18 +260,18 @@ Create And Update Location Neighbor With idCardBack
     [Tags]    admin    crud    step28    movement-back
     &{data}=    Create Dictionary    idLocationFrom=${90001}    idLocationTo=${90002}
     ...    direction=NORTH    idCard=${90002}    idCardBack=${90003}
-    ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/location-neighbors    json=${data}
+    ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/location-neighbors    json=${data}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${create_resp}    201
     ${entity_uuid}=    Set Variable    ${create_resp.json()}[uuid]
     Response Field Should Equal    ${create_resp}    idCard        90002
     Response Field Should Equal    ${create_resp}    idCardBack    90003
 
     &{update_data}=    Create Dictionary    idCardBack=${90001}
-    ${update_resp}=    PUT On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/location-neighbors/${entity_uuid}    json=${update_data}
+    ${update_resp}=    PUT On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/location-neighbors/${entity_uuid}    json=${update_data}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${update_resp}    200
     Response Field Should Equal    ${update_resp}    idCardBack    90001
 
-    ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/location-neighbors/${entity_uuid}
+    ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/location-neighbors/${entity_uuid}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${del_resp}    200
 
 Create And Delete Card With Style Fields
@@ -288,7 +288,7 @@ Create And Delete Card With Style Fields
     ...    styleImageLittle=img-little-x
     ...    styleImageMedium=img-medium-x
     ...    styleImageLarge=img-large-x
-    ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/cards    json=${data}
+    ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/cards    json=${data}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${create_resp}    201
     ${entity_uuid}=    Set Variable    ${create_resp.json()}[uuid]
     Response Field Should Equal    ${create_resp}    alternativeImage    alt_card.png
@@ -307,11 +307,11 @@ Create And Delete Card With Style Fields
     Response Field Should Equal    ${get_resp}    styleImageLarge     img-large-x
     # Update one style field
     &{upd}=    Create Dictionary    styleMain=card-style-light
-    ${upd_resp}=    PUT On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/cards/${entity_uuid}    json=${upd}
+    ${upd_resp}=    PUT On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/cards/${entity_uuid}    json=${upd}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${upd_resp}    200
     Response Field Should Equal    ${upd_resp}    styleMain    card-style-light
     # Delete
-    ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/cards/${entity_uuid}
+    ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/cards/${entity_uuid}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${del_resp}    200
     Response Field Should Equal    ${del_resp}    status    DELETED
 
@@ -321,7 +321,7 @@ Update Story With All New Fields Returns 200
     [Documentation]    PUT /api/admin/stories/{uuid} can set all new story-level fields.
     [Tags]    admin    crud    step17
     &{data}=    Create Dictionary    idImage=${2}    idTextClockSingular=${10}    idTextClockPlural=${11}
-    ${response}=    PUT On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}    json=${data}
+    ${response}=    PUT On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}    json=${data}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    200
 
 # === GET single admin story ===
@@ -352,7 +352,7 @@ Update Story ID Fields Are Persisted And Returned
     [Documentation]    PUT idTextTitle on a story and verify GET returns the updated value.
     [Tags]    admin    crud    step17
     &{data}=    Create Dictionary    idTextTitle=${999}
-    ${put_resp}=    PUT On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}    json=${data}
+    ${put_resp}=    PUT On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}    json=${data}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${put_resp}    200
     ${get_resp}=    GET On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}
     Status Should Be    ${get_resp}    200

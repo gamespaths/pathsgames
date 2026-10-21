@@ -17,8 +17,18 @@ public interface MatchExportStorePort {
     /** Rows of one log_* table of the match with id <= mark, in id order (column → plain value). */
     List<Map<String, Object>> logRows(long idMatch, String table, long mark);
 
-    /** users rows by id (uuid, username, nickname, language, state, role, email_address); never a secret. */
+    /** users rows by id (uuid, username, nickname, language, state, role, email_address, v1.2.0 identities). */
     Map<Long, Map<String, Object>> usersByIds(Collection<Long> ids);
+
+    /** v1.2.0 the identity with this provider and (lowercase) email: user_uuid, username, provider_subject. */
+    default Optional<Map<String, Object>> identityByEmail(String provider, String email) {
+        return Optional.empty();
+    }
+
+    /** v1.2.0 users.nickname is unique: a created user takes the first free nickname. */
+    default boolean nicknameTaken(String nickname) {
+        return false;
+    }
 
     Optional<Map<String, Object>> userByUuid(String uuid);
 
@@ -27,7 +37,7 @@ public interface MatchExportStorePort {
     /** v0.41.4 decision 54 - the user with this e-mail, compared case-insensitively. */
     Optional<Map<String, Object>> userByEmail(String email);
 
-    /** A new user without password, token or Google id; answers its id. */
+    /** A new user without token, with its "identities" rows (v1.2.0) when present; answers its id. */
     long insertUser(Map<String, Object> user);
 
     Optional<Long> storyIdByUuid(String storyUuid);

@@ -340,6 +340,36 @@ html, body {
   font-size: 1.25rem;
 }
 
+/* v1.2.0 — Google sign-in: profile picture in the header, the sign-in panel of the user's book */
+.nav-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--color-gold-dark);
+}
+.nav-user-btn--google { padding: 3px 12px; }
+/* hidden for now: the sign-in lives in the user's book */
+.nav-signin-btn { display: none; padding: 5px 12px; border-radius: 20px; }
+.user-avatar {
+  display: inline-block; /* Tailwind preflight makes img a block: keep it on the name's line */
+  width: 1.2em;
+  height: 1.2em;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--color-gold-dark);
+  vertical-align: middle;
+  margin-right: 0.4em;
+}
+.user-account-panel { margin: 12px 0; text-align: center; }
+.user-account-panel .lang-btn { margin-left: 0; font-style: normal; font-size: 1.15rem; padding: 0.45rem 1.2rem; }
+.user-account-panel__error { color: var(--color-gold-light); font-size: 0.9rem; }
+.user-account-panel__nick { opacity: 0.8; }
+.user-account-panel__who { margin-top : 2rem; }
+.google-signin { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.google-signin__slot { min-height: 40px; }
+.google-signin__status { font-size: 0.85rem; margin: 0; }
+
 /* Guest toast notification */
 .navbar-toast {
   position: fixed;
@@ -1181,7 +1211,7 @@ html, body {
   text-decoration-color: var(--color-gold);
 }
 /* Step 40 — a link that opens another book (the Devlog intro → credits) reads like the `a` above. */
-.book-page-desc button {
+.book-page-desc button:not(.lang-btn) {
   font: inherit;
   color: var(--color-gold);
   background: none;
@@ -1191,7 +1221,7 @@ html, body {
   text-decoration: underline;
   text-decoration-color: rgba(232,184,48,0.35);
 }
-.book-page-desc button:hover { color: var(--color-gold-light); text-decoration-color: var(--color-gold); }
+.book-page-desc button:not(.lang-btn):hover { color: var(--color-gold-light); text-decoration-color: var(--color-gold); }
 /* Step 40 — the Devlog intro: its own <br /> pairs make the empty lines, so no extra margin. */
 .roadmap-intro { margin: 0; }
 /* Step 40 — the credits cards: `.story-card-status` pins the badges on the picture and
@@ -1850,6 +1880,8 @@ html, body {
 .pg-card--phase-inProgress .gc-placeholder,
 .pg-card--phase-inProgress .gc-footer__cards-buttons { color: var(--color-gold-shine); opacity: 1; }
 .pg-card--phase-failed { border-color: #e74c3c !important; }
+/* v1.2.0 — the login card of a Google user: green "Logged" check */
+.pg-card--logged .gc-footer__cards-buttons { color: #2ecc71; opacity: 1; }
 .pg-card--phase-failed .gc-placeholder,
 .pg-card--phase-failed .gc-footer__cards-buttons { color: #e74c3c; }
 
@@ -2859,6 +2891,7 @@ html, body {
   color: var(--color-gold-super-deep);
   font-size: 2rem;
   font-style: italic;
+  margin-top: 2rem;
 }
 
 /* MatchCard overlays */

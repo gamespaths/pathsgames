@@ -12,8 +12,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class MatchStatusesTest {
 
     @Test
-    void allContainsTheFiveLifecycleStatuses() {
-        assertEquals(List.of("CREATED", "RUNNING", "PAUSED", "ENDED", "GAMEOVER"),
+    void allContainsTheSixLifecycleStatuses() {
+        assertEquals(List.of("CREATED", "RUNNING", "PAUSED", "ENDED", "GAMEOVER", "CANCELLED"),
                 MatchStatuses.ALL);
     }
 
@@ -47,6 +47,7 @@ class MatchStatusesTest {
     void isTerminal_trueOnlyForEndedAndGameover() {
         assertTrue(MatchStatuses.isTerminal("ENDED"));
         assertTrue(MatchStatuses.isTerminal("GAMEOVER"));
+        assertTrue(MatchStatuses.isTerminal("CANCELLED"));
         assertFalse(MatchStatuses.isTerminal("CREATED"));
         assertFalse(MatchStatuses.isTerminal("RUNNING"));
         assertFalse(MatchStatuses.isTerminal("PAUSED"));

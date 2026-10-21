@@ -26,74 +26,16 @@ Shared references for this version: [Game Rules](../GameRules.md),
 |  | Step |  | Main goals |
 | ---- | -- | ----- | ---------- |
 | 1 | [Version 1 launch](./Step01_Version1Launch.md) | ✅ | Version 1 launch with daily smoke test, fast locations page, registry lock reason. |
+| 2 | [Google SSO — identity model](./Step02_GoogleSsoIdentityModel.md) | ✅ | Identities table, nickname rules, no passwords, static policy pages. |
+| 3 | [Google SSO — backend flow](./Step03_GoogleSsoBackendFlow.md) | ✅ | Google login on 3 backends, hashed sessions, guest merge, admin bootstrap. |
+| 4 | [Google SSO — react-game login](./Step04_GoogleSsoReactGameLogin.md) | ✅ | Google button, session handling across tabs, EN/IT messages. |
+| 5 | [Google SSO — privacy and E2E](./Step05_GoogleSsoPrivacyE2E.md) | ✅ | Account deletion, 24-month retention, policies, fake-provider Robot suite. |
 
 
 
 
 # Next steps
 
-2. **Google SSO — identity model** — one user with one or more login providers.
-    - Static policy pages `privacy.html`, `terms.html`, `cookies.html` generated at `postbuild` from the same i18n texts and a shared `policies.json`, for the Google brand verification — DONE; Robot check of the 200 answers still to do (frontend, tests)
-    - New identity table (user, provider, provider subject, email, timestamps), ready for Steam in V3 (backend)
-    - Identity rules: the email identifies the user and never changes; only verified `gmail.com` emails (`googlemail.com` refused); key = `sub` + email, plain unique index `(provider, email)` with the email lowercased by the code; errors `EMAIL_NOT_VERIFIED`, `EMAIL_DOMAIN_NOT_ALLOWED`, `IDENTITY_MISMATCH` (same email, other `sub`); renamed email = new user; partial unique index on `users.email_address`, DynamoDB item `EMAIL#{email}` (backend)
-    - Flyway `v1/V1.2.0__user_identities.sql` for SQLite and PostgreSQL, Python models and ALTER list, DynamoDB item `IDENTITY#GOOGLE#{sub}` on AWS (backend)
-    - No passwords: the migration drops `password_hash` and `google_id_sso` from `users`; `email_address` is kept and stores the Google email (never written to logs); states 1 and 5 documented as unused (backend)
-    - Profile data per provider in `users_identities` (`profile_name`, `given_name`, `family_name`, `picture_url`, `locale`, `ts_profile_update`), refreshed at every Google login; DynamoDB attributes of `IDENTITY#GOOGLE#{sub}`; `GET /api/auth/me` returns `displayName`, `pictureUrl`, `username` and `nickname` (backend)
-    - `username` = `google_<first 8 chars of the uuid>`; `nickname` = Google email local part without `+tag` (the Steam name in V3), set only at creation; console scopes `openid` + `email` (the GIS ID token carries the profile claims anyway) (backend)
-    - Duplicate nicknames get an incremental suffix (`mario.rossi#2`): DynamoDB counter item `NICK#{base}`, SQL unique index plus retry (backend)
-    - Match import (0.41.4) and admin owner move (0.41.6) Google users mapped by email with a `sub` check (mismatch = conflict in the import plan), guests by username, old `emailAddress` exports by email; owner move uuid → email → username (backend)
-    - Match export carries the user's `users_identities` rows (provider and subject) and the import recreates them (backend)
-    - Rule: a lost provider account is not recoverable (docs)
-    - Update [Data Model](../DataModel.md) and [Security](../Security.md) (docs)
-    - Dev seeds lose only `password_hash`; seed emails and the owner-move Robot suite stay unchanged (backend, tests)
-    - Unit tests for the identity repository on all backends (tests)
-3. **Google SSO — backend flow** — login with Google on all three backends.
-    - One Google OAuth client per stage; client id through a parameter, with a code default only for dev (backend)
-    - Two Google Cloud projects: non-prod (dev, test; published "In production", open to every Google account, only dev/test clients and `localhost`) and prod (alpha, beta and later stages; Production, verified brand and domain), each with a second owner; the prod project and its consent screen are needed already for release 1.2 on alpha, alpha client origins `paths.games` and `www.paths.games` (infra)
-    - No explicit API version in V1: the `/api/{version}/` of V0 Step11 is dropped, confirmed in [API Conventions](../ApiConventions.md) (docs)
-    - `POST /api/auth/google`: verify the Google ID token (Google Identity Services, no client secret), find or create the user (backend)
-    - Issue the existing JWT access and refresh tokens after SSO (backend)
-    - OpenAPI spec for the SSO endpoints (backend)
-    - Error cases: invalid token, disabled user, provider unavailable (backend)
-    - Users copied by a match import (step 0.41, patch 0.41.4) are mapped as in step 2 (Google users by email with `sub` check, guests by username), not by the guest linking (backend)
-    - Java `GoogleIdTokenVerifier`; Python and AWS PyJWT + `PyJWKClient` with cached keys (backend)
-    - AWS synthetic user removed (token valid only if the user is in the DB); role always from the DB; `users.state` checked on every request (AWS free, Java/Python 60 s cache) (backend)
-    - JWT claims `iss` (stage + backend) and `aud` on access and refresh tokens, verified on 3 backends; different JWT secret per stage (backend, docs)
-    - Refresh grace of 30 s for the just-rotated token; dedicated error `SESSION_REVOKED` on a revoked session (backend)
-    - Log sanitizer for `email`, `given_name`, `family_name`, `name`, `picture` on the 3 backends, with unit tests (backend, tests)
-    - Check `users.state` at login and refresh; `users.ts_last_access` also updated at Google login and refresh (backend)
-    - Refresh tokens and guest cookie tokens stored as SHA-256 hash with lazy migration: lookup by hash, else by the clear value rewritten as hash; the clear fallback is removed after 180 days (backend)
-    - Refresh revokes only the used refresh token, the cap of 5 sessions stays (backend)
-    - AWS `ALLOW_MOCK_ACCESS` code default becomes `false` (backend)
-    - Login nonce from the frontend, ID token hash kept until `exp` against replay, rate limit parameter `google-per-ip` (backend)
-    - Google client id and the `google-enabled` flag (code default `true`, false only on test for trials; button hidden when false) exposed in `GET /api/echo/status` (backend, frontend)
-    - Prerequisite: the owner starts the Google brand/domain verification of the prod project at the beginning of steps 2-5, with the current react-game policy link as privacy URL (infra)
-    - Alpha is emptied at release 1.2 (infra)
-    - Merge of the guest at login (old step 8): always merge; on the same story the STARTED match with the latest `gaming_match.ts_update` wins and the others become `CANCELLED`; ended and completed matches are all kept; the empty guest user is deleted in the same transaction; the guest tokens are invalidated; new status `CANCELLED` in all backends and specs; match state machine written in [Game Rules](../GameRules.md) (step 19 extends it with game over) (backend, docs)
-    - Admin bootstrap tool creating a real admin user and a signed token: AWS manual Lambda without route, Java `--paths.admin.create=<nickname>`, Python `python -m app.scripts.create_admin`, one `.sh` script per backend in `code/scripts`, token duration 365 days, 30 days only on AWS `prod`; same system on alpha and beta, Java/Python scripts take `local|ec2`; dev-only endpoint for Robot; release checklist re-creates the admin tokens (backend, infra, tests)
-    - Unit tests with provider mocks, coverage > 96% (tests)
-4. **Google SSO — react-game login** — sign-in button and session handling.
-    - Google sign-in button (GIS popup, no callback page, no One Tap) (frontend)
-    - Session state for guest vs logged user; boot unchanged, the current guest is linked to the Google user at login, merged with a previously linked guest by the merge rules of step 3 (frontend, backend)
-    - Logout resumes the previous guest, else a guest is created at the first "Play" (frontend)
-    - GIS script loaded only on click (privacy, age and cookies: see last points of step 5); button in `GuestUserModal` and header (frontend)
-    - Strings in EN and IT with the existing i18n, including the messages for `EMAIL_NOT_VERIFIED`, `EMAIL_DOMAIN_NOT_ALLOWED`, `IDENTITY_MISMATCH`, `SESSION_REVOKED`, `ACCOUNT_DELETION_IN_PROGRESS` (frontend)
-    - On the first 401 after the release try a refresh, then the guest resume; single tab refreshes the token (`navigator.locks` or `BroadcastChannel`); "session closed from another device" on `SESSION_REVOKED`; line "sign in to keep your progress" in `GuestUserModal`; plain "Cancelled" label in the match list; each device's guest merges at its first login (frontend)
-    - Show the logged user in the header and in the user's book (frontend)
-    - Error and cancel flows (frontend)
-    - Unit tests for login components and token handling (tests)
-5. **Google SSO — privacy and E2E** — privacy check tied to accounts.
-    - `DELETE /api/auth/me` answers 202, state "deleting", a job removes user, personal data, matches and logs; needs a Google ID token fresher than 5 minutes (backend)
-    - Retention: Google users kept until a deletion request or 24 months since `users.ts_last_access`, cleanup job extended (backend)
-    - Deletion job chunked like the guest cleanup, idempotent, restarts from the users in the new state 7 "deleting"; a login meanwhile answers `ACCOUNT_DELETION_IN_PROGRESS`, afterwards the same email creates a new user (backend)
-    - Robot suite for SSO with a fake Google provider, enabled only with the test endpoints, on all backends (tests)
-    - ID token security checks: `aud`, `iss`, `exp`, `nonce` and replay (tests)
-    - Google users migration to the next stage developed and tested now: the Google subject is the key, export/import carries `users_identities`; unit tests and a Robot test moving a Google user between two backends/stages (e.g. test to dev); step 41 only runs it alpha to beta (backend, tests)
-    - LAST: privacy policy and terms EN/IT (nickname, provider subject, banned-subject hash of step 26, Google as third party) and consent update for logged users (docs, frontend)
-    - LAST: purpose of the email (identification and support, no commercial use without consent), profile picture loaded from `googleusercontent.com` cited in privacy and cookie texts; export files with personal data are sensitive (docs, frontend)
-    - LAST: minimum age 14 (Italy) / 16 (EU), one visible line near the login button (docs, frontend)
-    - LAST: GIS script loaded only on click, classified as necessary in the cookie consent and cited in the cookie policy (frontend, docs)
-    - All privacy, age and cookie items online on alpha with release 1.2 (all)
 6. **User profile — backend** — who am I, statistics and preferences.
     - `GET /api/auth/me` already exists in Java: extend it with statistics (matches played, completed, total play time) and align Python and AWS (backend)
     - Statistics computed on the fly; stored counters only if the cost requires them (backend)
@@ -314,6 +256,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Dependency scan and secrets review (all)
     - KPI report updated with the new mechanics (deaths, game over) (backend, frontend)
     - Analyse the export and import of large match snapshots (above the 5 MB cap of step 0.41, e.g. S3 hand-off), needed by the transfer of step 41 (backend, infra)
+    - Run the Google user migration Robot test between two backends (`google_user_migration.robot` with `TARGET_BASE_URL` and `TARGET_ADMIN_BASE_URL`), skipped in the normal runs (tests)
     - Unit tests and Robot suites (tests)
 41. **Migration from alpha and privacy check** — recurring.
     - Run the migration of users and stories from alpha to beta (the Google user mechanism is built and tested in step 5); guests move through the match export and import of step 0.41 plus the Google login merge of step 3 (docs)
@@ -334,7 +277,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Launch and smoke test (all)
 
 # Version Control
-- **Document Version**: 1.1.0
+- **Document Version**: 1.2.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -342,8 +285,9 @@ Shared references for this version: [Game Rules](../GameRules.md),
   | 0.41.5 | Version launch is now the first step | October 3, 2026 |
   | 0.42.0 | Version launch gains smoke test and versioning model | October 6, 2026 |
   | 1.1.0 | Launch done: smoke test, fast locations, clearer lock messages | October 14, 2026 |
+  | 1.2.0 | Google login steps two to five done | October 20, 2026 |
 
-- **Last Updated**: October 19, 2026 (v1.1.0)
+- **Last Updated**: October 20, 2026 (v1.2.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

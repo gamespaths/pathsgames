@@ -61,13 +61,15 @@ export const MATCH_STATUS_BADGE = Object.freeze({
   PAUSED:   { tone: 'paused',    icon: 'fas fa-pause' },
   ENDED:    { tone: 'completed', icon: 'fas fa-check-circle story-card-status__check' },
   GAMEOVER: { tone: 'completed', icon: 'fas fa-skull-crossbones story-card-status__defeat' },
+  // v1.2.0 a STARTED match that lost the guest merge: a plain label (styling in roadmap step 9)
+  CANCELLED: { tone: 'completed', icon: 'fas fa-ban' },
 })
 
 /** Step 40 — list group of a status: active, then paused, then finished, then anything else. */
 export function matchStatusGroup(status) {
   if (ACTIVE_MATCH_STATUSES.has(status)) return 0
   if (status === 'PAUSED') return 1
-  if (FINISHED_MATCH_STATUSES.has(status)) return 2
+  if (FINISHED_MATCH_STATUSES.has(status) || status === 'CANCELLED') return 2
   return 3
 }
 

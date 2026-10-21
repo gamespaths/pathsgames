@@ -4,6 +4,9 @@ import games.paths.adapters.rest.cookie.CookieHelper;
 import games.paths.adapters.rest.dto.RefreshTokenResponse;
 import games.paths.core.model.auth.RefreshedSession;
 import games.paths.core.service.security.CsrfTokenService;
+import games.paths.core.model.auth.AuthException;
+import games.paths.core.model.auth.UserProfile;
+import games.paths.core.port.auth.AccountPort;
 import games.paths.core.port.auth.SessionPort;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * SessionController - REST adapter for session and token management.
@@ -38,16 +42,22 @@ public class SessionController {
 
     private final SessionPort sessionPort;
     private final CsrfTokenService csrfTokenService;
+    private final AccountPort accountPort;
 
     public SessionController(SessionPort sessionPort) {
-        this(sessionPort, null);
+        this(sessionPort, null, null);
     }
 
-    /** v0.37.7 — a refreshed access token comes with the CSRF token that goes with it. */
-    @org.springframework.beans.factory.annotation.Autowired
     public SessionController(SessionPort sessionPort, CsrfTokenService csrfTokenService) {
+        this(sessionPort, csrfTokenService, null);
+    }
+
+    /** v0.37.7 the CSRF token of a refreshed access token; v1.2.0 the profile and the account deletion. */
+    @org.springframework.beans.factory.annotation.Autowired
+    public SessionController(SessionPort sessionPort, CsrfTokenService csrfTokenService, AccountPort accountPort) {
         this.sessionPort = sessionPort;
         this.csrfTokenService = csrfTokenService;
+        this.accountPort = accountPort;
     }
 
     /**
@@ -69,7 +79,14 @@ public class SessionController {
                     "refreshToken cookie is required");
         }
 
-        RefreshedSession session = sessionPort.refreshToken(refreshToken);
+        RefreshedSession session;
+        try {
+            session = sessionPort.refreshToken(refreshToken);
+        } catch (AuthException e) {
+            // v1.2.0 SESSION_REVOKED (closed from another device) or a disabled / deleting account
+            CookieHelper.deleteRefreshTokenCookie(httpResponse);
+            return AuthErrors.of(e);
+        }
 
         if (session == null) {
             // Token is invalid/expired — delete the stale cookie
@@ -180,9 +197,15 @@ public class SessionController {
         }
 
         Map<String, Object> userInfo = new LinkedHashMap<>();
-        userInfo.put("userUuid", userUuid);
-        userInfo.put("username", httpRequest.getAttribute("username"));
-        userInfo.put("role", httpRequest.getAttribute("role"));
+        Optional<UserProfile> profile = accountPort == null ? Optional.empty() : accountPort.profile(userUuid);
+        if (profile.isPresent()) {
+            // v1.2.0 nickname, displayName, pictureUrl and the account type, read from the DB
+            userInfo.putAll(GoogleAuthController.profileBody(profile.get()));
+        } else {
+            userInfo.put("userUuid", userUuid);
+            userInfo.put("username", httpRequest.getAttribute("username"));
+            userInfo.put("role", httpRequest.getAttribute("role"));
+        }
         // v0.37.7 — the CSRF token of this bearer, so a client that lost it need not log in again
         if (csrfTokenService != null) {
             String header = httpRequest.getHeader("Authorization");
@@ -192,6 +215,33 @@ public class SessionController {
         userInfo.put("timestamp", System.currentTimeMillis());
 
         return ResponseEntity.ok(userInfo);
+    }
+
+    /**
+     * DELETE /api/auth/me - v1.2.0 account deletion: needs a Google ID token issued less than 5 minutes
+     * ago ({idToken, nonce}); the user goes to state 7 (deleting), a job removes it. 202 Accepted.
+     */
+    @DeleteMapping("/me")
+    public ResponseEntity<Object> deleteCurrentUser(@RequestBody(required = false) Map<String, Object> body,
+                                                    HttpServletRequest httpRequest,
+                                                    HttpServletResponse httpResponse) {
+        String userUuid = (String) httpRequest.getAttribute("userUuid");
+        if (userUuid == null || userUuid.isBlank() || accountPort == null) {
+            return errorResponse(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Valid access token required");
+        }
+        Map<String, Object> b = body == null ? Map.of() : body;
+        try {
+            accountPort.requestDeletion(userUuid, b.get("idToken") instanceof String t ? t : null,
+                    b.get("nonce") instanceof String n ? n : null);
+        } catch (AuthException e) {
+            return AuthErrors.of(e);
+        }
+        CookieHelper.deleteAllAuthCookies(httpResponse);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("status", "DELETING");
+        result.put("message", "The account and its data are being deleted");
+        result.put("timestamp", System.currentTimeMillis());
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(result);
     }
 
     // === Helper ===

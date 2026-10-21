@@ -42,6 +42,11 @@ def guest_per_ip():
     return _int_env('RATE_LIMIT_GUEST_PER_IP', 20)
 
 
+def google_per_ip():
+    """v1.2.0 POST /api/auth/google attempts per source address and window (0 = off)."""
+    return _int_env('RATE_LIMIT_GOOGLE_PER_IP', 30)
+
+
 def match_per_ip():
     return _int_env('RATE_LIMIT_MATCH_PER_IP', 20)
 

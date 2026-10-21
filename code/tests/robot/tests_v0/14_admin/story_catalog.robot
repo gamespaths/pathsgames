@@ -36,7 +36,7 @@ Initialize Catalog Suite
 Post Catalog
     [Documentation]    POST /api/admin/stories/catalog; returns the response (any status).
     [Arguments]    ${session}=admin_session
-    ${response}=    POST On Session    ${session}    /api/admin/stories/catalog    expected_status=any
+    ${response}=    POST On Session    ${session}    /api/admin/stories/catalog    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Post Catalog Or Skip
@@ -50,7 +50,7 @@ Post Catalog Or Skip
 
 Catalog Export Requires Admin
     [Tags]    admin    catalog    v0.37.6
-    Create Session    anon_catalog    ${ADMIN_BASE_URL}    verify=false
+    Create Http Session    anon_catalog    ${ADMIN_BASE_URL}    verify=false
     ${response}=    Post Catalog    anon_catalog
     Should Be True    ${response.status_code} in (401, 403)
 

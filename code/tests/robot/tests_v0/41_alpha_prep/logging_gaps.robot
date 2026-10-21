@@ -124,10 +124,10 @@ Admin Stats, Status And Stop Write Their ADMIN_ACTION Rows
     ${headers}=    Get Auth Headers    ${ADMIN_TOKEN}
     ${status}=    Create Dictionary    status=PAUSED
     PUT On Session    admin_session    /api/admin/matches/${match}    json=${status}
-    ...    headers=${headers}    expected_status=200
+    ...    headers=${headers}    expected_status=200    timeout=${HTTP_POST_TIMEOUT}
     ${rename}=    Create Dictionary    name=robottest_alpha_prep_renamed
     PUT On Session    admin_session    /api/admin/matches/${match}    json=${rename}
-    ...    headers=${headers}    expected_status=200
+    ...    headers=${headers}    expected_status=200    timeout=${HTTP_POST_TIMEOUT}
     Admin Stop Match    ${ADMIN_TOKEN}    ${match}    200
     ${rows}=    Rows Of Type    ${match}    ADMIN_ACTION
     ${messages}=    Evaluate    [r.get('message') for r in $rows]

@@ -202,22 +202,15 @@ def query_by_pk(pk):
         return []
 
 def find_user_by_email(email):
-    """v0.41.4 — the USER# item whose ``email`` matches (case-insensitive), or None.
-    No email index exists: a paginated Scan, used only by the match import."""
+    """v1.2.0 — the USER# item of this email through the EMAIL#<email> item (point reads, no Scan),
+    or None."""
     wanted = str(email or '').strip().lower()
     if not wanted:
         return None
-    try:
-        items = _paginate(
-            _get_table().scan,
-            FilterExpression=Attr('SK').eq('METADATA') & Attr('PK').begins_with('USER#')
-            & Attr('email').exists(),
-        )
-    except ClientError as e:
-        print(f"Error scanning users by email: {e}")
+    pointer = get_item(f'EMAIL#{wanted}', consistent=False)
+    if not pointer or not pointer.get('user_uuid'):
         return None
-    found = [i for i in items if str(i.get('email') or '').strip().lower() == wanted]
-    return min(found, key=lambda i: str(i.get('PK'))) if found else None
+    return get_item(f"USER#{pointer['user_uuid']}", consistent=False)
 
 def _scan_users(attribute, condition):
     """v0.41.6 — every USER# METADATA item with ``attribute`` whose value passes ``condition`` (paginated Scan)."""
@@ -234,11 +227,10 @@ def _scan_users(attribute, condition):
 
 
 def find_users_by_email(email):
-    """v0.41.6 — every USER# item whose ``email`` matches (case-insensitive); admin owner move only."""
-    wanted = str(email or '').strip().lower()
-    if not wanted:
-        return []
-    return _scan_users('email', lambda v: str(v or '').strip().lower() == wanted)
+    """v1.2.0 — the USER# item of this email (EMAIL#<email> item, unique by construction) as a list;
+    admin owner move only."""
+    user = find_user_by_email(email)
+    return [user] if user else []
 
 
 def find_users_by_username(username):
@@ -459,4 +451,65 @@ def update_ts_last_access(pk, now_ms, sk='METADATA', in_summary=False):
         return True
     except ClientError as e:
         print(f"Error updating ts_last_access for {pk}: {e}")
+        return False
+
+
+# ─── v1.2.0: conditional writes, counters and attribute updates (Google SSO) ────
+
+def put_item_if_absent(item):
+    """True when the item was written, False when an item with its keys already exists."""
+    try:
+        now = int(time.time() * 1000)
+        item.setdefault('ts_insert', now)
+        item['ts_update'] = now
+        _get_table().put_item(Item=_to_dynamodb_value(item), ConditionExpression='attribute_not_exists(PK)')
+        return True
+    except ClientError as e:
+        if e.response.get('Error', {}).get('Code') == 'ConditionalCheckFailedException':
+            return False
+        print(f"Error putting item if absent: {e}")
+        return False
+
+
+def increment_counter(pk, sk='METADATA', attribute='counter'):
+    """Atomic ADD of 1; answers the new value (1 for a new counter), or None on error."""
+    try:
+        response = _get_table().update_item(
+            Key={'PK': pk, 'SK': sk}, UpdateExpression='ADD #c :one',
+            ExpressionAttributeNames={'#c': attribute}, ExpressionAttributeValues={':one': 1},
+            ReturnValues='UPDATED_NEW')
+        return int(response.get('Attributes', {}).get(attribute, 1))
+    except ClientError as e:
+        print(f"Error incrementing {pk}: {e}")
+        return None
+
+
+def update_attributes(pk, sk='METADATA', values=None, remove=()):
+    """SET the given attributes and REMOVE the named ones, without touching ts_update; a dotted
+    name is a nested path (summary.guest_token)."""
+    values = values or {}
+    names, vals = {}, {}
+
+    def path(key, tag):
+        segments = []
+        for j, part in enumerate(str(key).split('.')):
+            names[f'#{tag}_{j}'] = part
+            segments.append(f'#{tag}_{j}')
+        return '.'.join(segments)
+
+    sets = [f'{path(key, f"s{i}")} = :s{i}' for i, key in enumerate(values)]
+    for i, value in enumerate(values.values()):
+        vals[f':s{i}'] = _to_dynamodb_value(value)
+    removes = [path(key, f'r{i}') for i, key in enumerate(remove)]
+    parts = (['SET ' + ', '.join(sets)] if sets else []) + (['REMOVE ' + ', '.join(removes)] if removes else [])
+    if not parts:
+        return True
+    kwargs = {'Key': {'PK': pk, 'SK': sk}, 'UpdateExpression': ' '.join(parts), 'ExpressionAttributeNames': names}
+    if vals:
+        kwargs['ExpressionAttributeValues'] = vals
+    try:
+        _get_table().update_item(**kwargs)
+        return True
+    except ClientError as e:
+        print(f"Error updating {pk}/{sk}: {e}")
         return False

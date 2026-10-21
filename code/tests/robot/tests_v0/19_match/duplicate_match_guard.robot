@@ -146,7 +146,7 @@ Suite Setup Duplicate Match Guard
     ...                difficulty every test creates its matches on. Also resolves a
     ...                second public story when the seed has one.
     Create Public Session
-    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
+    Create Http Session    admin_session    ${ADMIN_BASE_URL}    verify=false
     ${admin_token}=    Generate Admin Token
     Set Suite Variable    ${ADMIN_TOKEN}    ${admin_token}
     ${story_uuid}    ${difficulty_uuid}=    Pick First Public Story With Difficulty

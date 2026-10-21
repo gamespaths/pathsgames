@@ -144,7 +144,7 @@ def test_csrf_matches_and_blanks():
 
 def _guest_app(guest_per_ip, limiter, csrf):
     guest_port, jwt_port, token_port = MagicMock(), MagicMock(), MagicMock()
-    session = GuestSession(user_uuid="u1", username="user1", access_token="a", refresh_token="r",
+    session = GuestSession(user_uuid="u1", username="user1", access_token=ACCESS, refresh_token="r",
                            access_token_expires_at=1, refresh_token_expires_at=2,
                            guest_cookie_token="cookie")
     guest_port.create_guest_session.return_value = session

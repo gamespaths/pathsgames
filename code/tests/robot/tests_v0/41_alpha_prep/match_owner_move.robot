@@ -161,7 +161,7 @@ Suite Teardown Owner Move
 
 New Owner Guest
     [Documentation]    A new guest: {accessToken, userUuid, username}, remembered for the teardown.
-    ${resp}=    POST On Session    public_session    /api/auth/guest
+    ${resp}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${resp}    201
     Append To List    ${CREATED_GUESTS}    ${resp.json()}[userUuid]
     RETURN    ${resp.json()}
@@ -169,7 +169,7 @@ New Owner Guest
 New Aged Owner Guest
     [Documentation]    A guest registered ${AGE_DAYS} days ago (its cookie has expired).
     ${headers}=    Create Dictionary    X-Test-Guest-Age-Days=${AGE_DAYS}
-    ${resp}=    POST On Session    public_session    /api/auth/guest    headers=${headers}
+    ${resp}=    POST On Session    public_session    /api/auth/guest    headers=${headers}    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${resp}    201
     Append To List    ${CREATED_GUESTS}    ${resp.json()}[userUuid]
     RETURN    ${resp.json()}
@@ -196,10 +196,10 @@ Owner Admin Request
     ${headers}=    Get Auth Headers    ${ADMIN_TOKEN}
     IF    $json is None
         ${resp}=    Run Keyword    ${method} On Session    admin_session    ${path}
-        ...    headers=${headers}    expected_status=any
+        ...    headers=${headers}    expected_status=any    timeout=${{ $HTTP_GET_TIMEOUT if $method.upper() == 'GET' else $HTTP_POST_TIMEOUT }}
     ELSE
         ${resp}=    Run Keyword    ${method} On Session    admin_session    ${path}
-        ...    headers=${headers}    json=${json}    expected_status=any
+        ...    headers=${headers}    json=${json}    expected_status=any    timeout=${{ $HTTP_GET_TIMEOUT if $method.upper() == 'GET' else $HTTP_POST_TIMEOUT }}
     END
     RETURN    ${resp}
 

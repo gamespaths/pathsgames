@@ -110,7 +110,7 @@ Move Without Token Returns 401
     [Documentation]    POST /movements/start without Authorization → 401.
     [Tags]    movement    step28
     ${response}=    POST On Session    public_session
-    ...    /api/gameplay/00000000-0000-0000-0000-000000000000/movements/start    expected_status=any
+    ...    /api/gameplay/00000000-0000-0000-0000-000000000000/movements/start    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    401
 
 Locations Without Token Returns 401
@@ -136,7 +136,7 @@ Suite Setup Movement
     [Documentation]    Guest login + admin session + resolve a joinable loadout.
     Create Public Session
     Create Admin Session
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    201
     Set Suite Variable    ${TOKEN}    ${response.json()}[accessToken]
     ${story}    ${difficulty}    ${character}    ${class}    ${trait}=    Pick Story Loadout

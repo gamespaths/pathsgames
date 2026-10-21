@@ -27,7 +27,7 @@ Suite Setup    Initialize Validation Suite
 
 Initialize Validation Suite
     Create Public Session
-    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
+    Create Http Session    admin_session    ${ADMIN_BASE_URL}    verify=false
     ${token}=    Generate Admin Token
     Set Suite Variable    ${ADMIN_TOKEN}    ${token}
 

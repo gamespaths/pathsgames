@@ -46,7 +46,7 @@ if [ "${ROBOT_RATE_LIMITS:-0}" = "1" ]; then
 	ROBOT_SCOPE=(--include rate-limit --variable RATE_LIMIT_GUEST_PER_IP:10 --variable RATE_LIMIT_MATCH_PER_IP:5
 		--variable RATE_LIMIT_MATCH_PER_GUEST:3 --outputdir reports-local-java-postgres-limited/)
 else
-	export RATE_LIMIT_GUEST_PER_IP=0 RATE_LIMIT_MATCH_PER_IP=0 RATE_LIMIT_MATCH_PER_GUEST=0
+	export RATE_LIMIT_GUEST_PER_IP=0 RATE_LIMIT_MATCH_PER_IP=0 RATE_LIMIT_MATCH_PER_GUEST=0 RATE_LIMIT_GOOGLE_PER_IP=0
 	ROBOT_SCOPE=(--outputdir reports-local-java-postgres/)
 fi
 

@@ -38,9 +38,11 @@ import time
 import urllib.parse
 from datetime import datetime, timezone
 
+from common import auth_tokens
 from common import db_utils
 from common import log_utils
 from common import jwt_utils
+from common import sso
 from common import security_utils
 from common import test_data_ttl
 from common import user_lookup
@@ -110,35 +112,15 @@ def _get_cookie(event, name):
     return None
 
 def _require_auth(event):
-    """Return (user_dict, None) or (None, error_response).
+    """Return (user_item, None) or (None, error_response).
 
-    Accepts both real HS256 JWT tokens and MOCK_ACCESS_ tokens.
-    For real JWTs the claims are trusted directly (no DB lookup required).
-    For mock tokens a DynamoDB lookup fills in role/username.
+    v1.2.0 — the user must exist (no synthetic user any more); role and state come from the item:
+    blocked, banned and deleting users are refused (403 ACCOUNT_DISABLED / ACCOUNT_DELETION_IN_PROGRESS).
     """
-    token = _bearer_token(event)
-    claims = jwt_utils.verify_access_token(token)
-    if not claims or not claims.get('uuid'):
-        return None, _err(401, 'UNAUTHORIZED', 'Valid access token required')
-
-    user_uuid = claims['uuid']
-
-    if claims['source'] == 'jwt':
-        # Trust JWT claims; optionally enrich from DB
-        user = db_utils.get_item(f'USER#{user_uuid}')
-        if user:
-            return user, None
-        # User exists only in the Java backend — build a synthetic dict from claims
-        return {
-            'uuid':     user_uuid,
-            'username': claims.get('username'),
-            'role':     claims.get('role', 'PLAYER'),
-        }, None
-
-    # mock token — must exist in DynamoDB
-    user = db_utils.get_item(f'USER#{user_uuid}')
-    if not user:
-        return None, _err(401, 'UNAUTHORIZED', 'User not found')
+    user, refusal = sso.resolve_user(_bearer_token(event))
+    if refusal:
+        status, code, message = refusal
+        return None, _err(status, 'UNAUTHORIZED' if status == 401 else code, message)
     return user, None
 
 def _require_admin(event):
@@ -173,28 +155,19 @@ def _guest_info(user):
         "expired":         expired
     }
 
-def _refresh_cookies(user_uuid, guest_token, token_version=0):
-    """Return two Set-Cookie strings (refresh + guest).
+def _refresh_cookie(refresh_tok):
+    """The HttpOnly refresh cookie (``SameSite=None; Secure`` so it travels cross-origin, e.g. from
+    ``http://localhost:5174`` to ``https://api-dev.paths.games``); v1.2.0 stored as hash server-side."""
+    return f'pathsgames.refreshToken={refresh_tok}; Path=/api/auth; HttpOnly; Secure; SameSite=None; Max-Age={COOKIE_MAX_REFRESH}'
 
-    Uses ``SameSite=None; Secure`` so the browser keeps the cookies on cross-
-    origin requests (e.g. ``http://localhost:5174`` → ``https://api-dev.paths.games``).
-    Chrome rejects Lax cookies on cross-site fetch/XHR and would silently drop
-    them, which would block ``POST /api/auth/guest/resume`` with 400
-    MISSING_GUEST_COOKIE on every reload.
 
-    ``token_version`` is embedded in the refresh token so that logout and
-    refresh-rotation can revoke previously issued tokens (mock tokens carry it as
-    a ``.{ver}`` suffix; real JWTs in the ``ver`` claim).
-    """
-    if jwt_utils.ALLOW_MOCK_ACCESS:
-        refresh_tok = f'MOCK_REFRESH_{user_uuid}.{token_version}'
-    else:
-        refresh_tok = jwt_utils.generate_refresh_token(
-            user_uuid, exp_seconds=COOKIE_MAX_REFRESH, token_version=token_version)
-    return [
-        f'pathsgames.refreshToken={refresh_tok}; Path=/api/auth; HttpOnly; Secure; SameSite=None; Max-Age={COOKIE_MAX_REFRESH}',
-        f'pathsgames.guestcookie={guest_token}; Path=/api/auth; HttpOnly; Secure; SameSite=None; Max-Age={COOKIE_MAX_GUEST}',
-    ]
+def _guest_cookie(guest_token):
+    return f'pathsgames.guestcookie={guest_token}; Path=/api/auth; HttpOnly; Secure; SameSite=None; Max-Age={COOKIE_MAX_GUEST}'
+
+
+def _refresh_cookies(refresh_tok, guest_token):
+    """The refresh and guest cookies of a guest session."""
+    return [_refresh_cookie(refresh_tok), _guest_cookie(guest_token)]
 
 def _clear_cookies():
     return [
@@ -232,6 +205,10 @@ def _route(event, context):
         return logout_all(event)
     if path == '/api/auth/me' and method == 'GET':
         return get_me(event)
+    if path == '/api/auth/me' and method == 'DELETE':
+        return delete_me(event)
+    if path == '/api/auth/google' and method == 'POST':
+        return google_login(event)
 
     # admin guests — static routes before parameterised ones
     if path == '/api/admin/guests' and method == 'GET':
@@ -305,6 +282,8 @@ def create_guest(event):
     now       = _now_ms()
     user_uuid = str(uuid.uuid4())
     guest_tok = str(uuid.uuid4())
+    # v1.2.0 — the cookie travels in clear, the table keeps only its SHA-256
+    guest_hash = auth_tokens.sha256(guest_tok)
     marker    = _test_marker(event)
     username  = (f'{marker}_' if marker else 'guest_') + user_uuid[:8]
     age_days  = _test_age_days(event, marker)
@@ -315,16 +294,16 @@ def create_guest(event):
         'SK':              'METADATA',
         'uuid':            user_uuid,
         'username':        username,
+        'nickname':        username,
         'role':            'PLAYER',
         'state':           6,
         'is_guest':        True,
-        'guest_token':     guest_tok,
+        'guest_token':     guest_hash,
         'guest_expires_at': born + COOKIE_MAX_GUEST * 1000,
         'ts_registration': born,
         'ts_last_access':  born,
-        'token_version':   0,
-        # GSI1: lookup by guest token (resume); GSI2: the guest list (admin, purge, stats)
-        'GSI1_PK':         f'GUEST_TOKEN#{guest_tok}',
+        # GSI1: lookup by guest token hash (resume); GSI2: the guest list (admin, purge, stats)
+        'GSI1_PK':         f'GUEST_TOKEN#{guest_hash}',
         'GSI1_SK':         'METADATA',
         'GSI2_PK':         GUEST_LIST_PK,
         'GSI2_SK':         f'USER#{user_uuid}',
@@ -336,14 +315,7 @@ def create_guest(event):
         guest[test_data_ttl.TTL_ATTRIBUTE] = expires_at
     db_utils.put_item(guest)
 
-    access_exp  = now + COOKIE_MAX_ACCESS  * 1000
-    refresh_exp = now + COOKIE_MAX_REFRESH * 1000
-
-    if jwt_utils.ALLOW_MOCK_ACCESS:
-        access_token = f'MOCK_ACCESS_{user_uuid}'
-    else:
-        access_token = jwt_utils.generate_access_token(user_uuid, username, 'PLAYER', exp_seconds=COOKIE_MAX_ACCESS)
-
+    access_token, refresh_tok, access_exp, refresh_exp = sso.issue_tokens(guest)
     body = {
         'userUuid':            user_uuid,
         'username':            username,
@@ -352,7 +324,7 @@ def create_guest(event):
         'refreshTokenExpiresAt': refresh_exp,
         'csrfToken':             security_utils.csrf_token_for(access_token),
     }
-    return _ok(body, status=201, cookies=_refresh_cookies(user_uuid, guest_tok))
+    return _ok(body, status=201, cookies=_refresh_cookies(refresh_tok, guest_tok))
 
 
 def resume_guest(event):
@@ -361,24 +333,17 @@ def resume_guest(event):
         return _err(400, 'MISSING_GUEST_COOKIE',
                     'Missing required guestToken cookie. Please create a new guest session.')
 
-    items = db_utils.query_gsi('GSI1', f'GUEST_TOKEN#{guest_tok}')
-    if not items:
+    # v1.2.0 — by hash, else (lazy migration) by the clear value of a guest made before 1.2.0
+    row = auth_tokens.guest_by_cookie(guest_tok)
+    if not row:
         return _err(401, 'SESSION_EXPIRED_OR_NOT_FOUND',
                     'Guest session is expired or does not exist. Please create a new guest session.')
 
-    user      = items[0]
+    user      = row
     user_uuid = user['uuid']
     now       = _now_ms()
-    access_exp  = now + COOKIE_MAX_ACCESS  * 1000
-    refresh_exp = now + COOKIE_MAX_REFRESH * 1000
-
     db_utils.update_ts_last_access(f'USER#{user_uuid}', now, in_summary=True)
-
-    if jwt_utils.ALLOW_MOCK_ACCESS:
-        access_token = f'MOCK_ACCESS_{user_uuid}'
-    else:
-        access_token = jwt_utils.generate_access_token(user_uuid, user.get('username'), user.get('role', 'PLAYER'), exp_seconds=COOKIE_MAX_ACCESS)
-
+    access_token, refresh_tok, access_exp, refresh_exp = sso.issue_tokens(user)
     body = {
         'userUuid':            user_uuid,
         'username':            user.get('username'),
@@ -387,8 +352,7 @@ def resume_guest(event):
         'refreshTokenExpiresAt': refresh_exp,
         'csrfToken':             security_utils.csrf_token_for(access_token),
     }
-    cur_ver = int(user.get('token_version', 0) or 0)
-    return _ok(body, cookies=_refresh_cookies(user_uuid, user.get('guest_token', guest_tok), cur_ver))
+    return _ok(body, cookies=_refresh_cookies(refresh_tok, guest_tok))
 
 
 def _invalid_refresh():
@@ -396,73 +360,41 @@ def _invalid_refresh():
                 'Refresh token is invalid, expired, or revoked. Please login again.')
 
 
+def _expired_refresh_cookie():
+    return 'pathsgames.refreshToken=; Path=/api/auth; HttpOnly; Secure; SameSite=None; Max-Age=0'
+
+
 def refresh_token(event):
+    """v1.2.0 — only the used refresh token is revoked (30 s grace for a concurrent tab); a revoked one
+    answers SESSION_REVOKED; blocked, banned and deleting users are refused."""
     refresh_tok = _get_cookie(event, 'pathsgames.refreshToken')
-
-    if jwt_utils.ALLOW_MOCK_ACCESS:
-        if not refresh_tok or not refresh_tok.startswith('MOCK_REFRESH_'):
-            return _invalid_refresh()
-        rest = refresh_tok[len('MOCK_REFRESH_'):]
-        if '.' in rest:
-            user_uuid, ver_str = rest.rsplit('.', 1)
-        else:
-            user_uuid, ver_str = rest, '0'
-        try:
-            token_ver = int(ver_str)
-        except ValueError:
-            return _invalid_refresh()
-    else:
-        payload = jwt_utils.decode_refresh_token(refresh_tok)
-        if not payload or not payload.get('sub'):
-            return _invalid_refresh()
-        user_uuid = payload['sub']
-        token_ver = int(payload.get('ver', 0) or 0)
-
-    user = db_utils.get_item(f'USER#{user_uuid}')
-    if not user:
+    try:
+        result = sso.refresh(refresh_tok)
+    except sso.AuthError as e:
+        response = _err(e.status, e.code, e.message)
+        response['cookies'] = [_expired_refresh_cookie()]
+        return response
+    if result is None:
         return _invalid_refresh()
-
-    # Token rotation / revocation: the token's version must match the user's
-    # current token_version. A successful refresh bumps it, so the just-used
-    # (and any earlier) refresh token is revoked.
-    cur_ver = int(user.get('token_version', 0) or 0)
-    if token_ver != cur_ver:
-        return _invalid_refresh()
-    new_ver = cur_ver + 1
-    user['token_version'] = new_ver
-    db_utils.put_item(user)
-
-    now         = _now_ms()
-    access_exp  = now + COOKIE_MAX_ACCESS  * 1000
-    refresh_exp = now + COOKIE_MAX_REFRESH * 1000
-    guest_tok   = user.get('guest_token', '')
-    role        = user.get('role', 'PLAYER')
-
-    if jwt_utils.ALLOW_MOCK_ACCESS:
-        access_token = f'MOCK_ACCESS_{user_uuid}'
-    else:
-        access_token = jwt_utils.generate_access_token(user_uuid, user.get('username'), role, exp_seconds=COOKIE_MAX_ACCESS)
-
+    user, access_token, new_refresh, access_exp, refresh_exp = result
     body = {
-        'userUuid':            user_uuid,
+        'userUuid':            user['uuid'],
         'username':            user.get('username'),
-        'role':                role,
+        'role':                user.get('role', 'PLAYER'),
         'accessToken':         access_token,
         'accessTokenExpiresAt':  access_exp,
         'refreshTokenExpiresAt': refresh_exp,
         'csrfToken':             security_utils.csrf_token_for(access_token),
     }
-    return _ok(body, cookies=_refresh_cookies(user_uuid, guest_tok, new_ver))
+    return _ok(body, cookies=[_refresh_cookie(new_refresh)])
 
 
 def logout(event):
-    user, err = _require_auth(event)
+    _, err = _require_auth(event)
     if err:
         return err
-    # Revoke the user's refresh tokens by bumping the stored token_version, so a
-    # replayed refresh cookie no longer validates.
-    user['token_version'] = int(user.get('token_version', 0) or 0) + 1
-    db_utils.put_item(user)
+    # v1.2.0 — only the session of this refresh cookie is revoked
+    auth_tokens.revoke(auth_tokens.find_refresh(_get_cookie(event, 'pathsgames.refreshToken')))
     return _ok({'status': 'OK', 'message': 'Token revoked successfully', 'timestamp': _now_ms()},
                cookies=_clear_cookies())
 
@@ -471,6 +403,7 @@ def logout_all(event):
     user, err = _require_auth(event)
     if err:
         return err
+    auth_tokens.revoke_all(user['uuid'])
     return _ok({'status': 'OK', 'message': 'All sessions revoked successfully', 'timestamp': _now_ms()},
                cookies=_clear_cookies())
 
@@ -479,15 +412,73 @@ def get_me(event):
     user, err = _require_auth(event)
     if err:
         return err
-    body = {
-        'userUuid':  user.get('uuid'),
-        'username':  user.get('username'),
-        'role':      user.get('role', 'PLAYER'),
-        # v0.37.7 — the CSRF token of this bearer, so a client that lost it need not log in again
-        'csrfToken': security_utils.csrf_token_for(_bearer_token(event)),
-        'timestamp': _now_ms(),
-    }
+    # v1.2.0 — nickname, displayName, pictureUrl and the account type
+    body = sso.profile(user)
+    # v0.37.7 — the CSRF token of this bearer, so a client that lost it need not log in again
+    body['csrfToken'] = security_utils.csrf_token_for(_bearer_token(event))
+    body['timestamp'] = _now_ms()
     return _ok(body)
+
+
+def _json_body(event):
+    raw = event.get('body')
+    if not raw:
+        return {}
+    if event.get('isBase64Encoded'):
+        raw = base64.b64decode(raw).decode('utf-8')
+    try:
+        body = json.loads(raw)
+    except (ValueError, TypeError):
+        return {}
+    return body if isinstance(body, dict) else {}
+
+
+def delete_me(event):
+    """DELETE /api/auth/me — v1.2.0: a Google ID token issued less than 5 minutes ago; state 7, 202."""
+    user, err = _require_auth(event)
+    if err:
+        return err
+    body = _json_body(event)
+    try:
+        sso.request_deletion(user, body.get('idToken'), body.get('nonce'))
+    except sso.AuthError as e:
+        return _err(e.status, e.code, e.message)
+    return _ok({'status': 'DELETING', 'message': 'The account and its data are being deleted',
+                'timestamp': _now_ms()}, status=202, cookies=_clear_cookies())
+
+
+def google_login(event):
+    """POST /api/auth/google — v1.2.0: a GIS ID token and its nonce for the usual tokens; the current
+    guest (bearer or guest cookie) is merged into the Google user."""
+    limit = security_utils.google_per_ip()
+    if limit > 0:
+        verdict = security_utils.rate_limit('google', _get_source_ip(event), limit)
+        if not verdict.allowed:
+            return security_utils.rate_limited(verdict, 'Too many sign-in attempts from this address')
+    body = _json_body(event)
+    try:
+        session, refresh_tok, merged = sso.login(body.get('idToken'), body.get('nonce'), body.get('language'),
+                                                 _bearer_token(event), _get_cookie(event, 'pathsgames.guestcookie'))
+    except sso.AuthError as e:
+        return _err(e.status, e.code, e.message)
+    session['csrfToken'] = security_utils.csrf_token_for(session['accessToken'])
+    cookies = [_refresh_cookie(refresh_tok)]
+    if merged:
+        cookies.append('pathsgames.guestcookie=; Path=/api/auth; HttpOnly; Secure; SameSite=None; Max-Age=0')
+    return _ok(session, cookies=cookies)
+
+
+def scheduled_account_jobs(event, context):
+    """AccountJobsFunction (Scheduler): {"job": "deletion"} every 10 minutes, {"job": "retention"} daily."""
+    job = (event or {}).get('job', 'deletion')
+    chunk = max(1, _env_int('ACCOUNT_DELETION_CHUNK', sso.DEFAULT_CHUNK))
+    if job == 'retention':
+        retired = sso.retire_inactive_users(max(1, _env_int('ACCOUNT_RETENTION_MONTHS', 24)), chunk)
+        print(_dumps({'event': 'ACCOUNT_RETENTION', 'retired': retired}))
+        return {'status': 'OK', 'retired': retired}
+    deleted = sso.run_deletion_job(chunk)
+    print(_dumps({'event': 'ACCOUNT_DELETION', 'deleted': deleted}))
+    return {'status': 'OK', 'deleted': deleted}
 
 
 # ─── admin / guests ───────────────────────────────────────────────────────────

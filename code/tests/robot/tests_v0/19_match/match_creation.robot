@@ -29,7 +29,7 @@ Create Match Without Token Returns 401
     &{body}=    Create Dictionary    storyUuid=${STORY_UUID}    difficultyUuid=${DIFFICULTY_UUID}
     ${response}=    POST On Session    public_session    /api/matches
     ...    json=${body}
-    ...    expected_status=any
+    ...    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    401
 
 Create Match With Empty Body Returns 400
@@ -40,7 +40,7 @@ Create Match With Empty Body Returns 400
     ${response}=    POST On Session    public_session    /api/matches
     ...    json=${empty}
     ...    headers=${headers}
-    ...    expected_status=any
+    ...    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    400
 
 Create Match With Unknown Story Returns 404
@@ -63,13 +63,13 @@ Create Match For Story Without Locations Returns 400
     ...                imported via the admin API and removed in teardown.
     [Tags]    matches    step19
     ${admin_token}=    Generate Admin Token
-    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
+    Create Http Session    admin_session    ${ADMIN_BASE_URL}    verify=false
     &{ah}=    Create Dictionary    Authorization=Bearer ${admin_token}    Content-Type=application/json
     ${payload}=    Catenate    SEPARATOR=
     ...    {"uuid":"f0000019-0000-4000-8000-000000000019","author":"robottest_nolocs",
     ...    "difficulties":[{"id":1}]}
     ${imp}=    POST On Session    admin_session    /api/admin/stories/import
-    ...    data=${payload}    headers=${ah}    expected_status=any
+    ...    data=${payload}    headers=${ah}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${imp}    201
     ${diffs}=    GET On Session    admin_session
     ...    /api/admin/stories/f0000019-0000-4000-8000-000000000019/difficulties    headers=${ah}
@@ -79,7 +79,7 @@ Create Match For Story Without Locations Returns 400
     Status Should Be    ${response}    400
     Should Be Equal As Strings    ${response.json()}[error]    STORY_HAS_NO_LOCATIONS
     [Teardown]    Run Keyword And Ignore Error    DELETE On Session    admin_session
-    ...    /api/admin/stories/f0000019-0000-4000-8000-000000000019    headers=${ah}
+    ...    /api/admin/stories/f0000019-0000-4000-8000-000000000019    headers=${ah}    timeout=${HTTP_POST_TIMEOUT}
 
 Create Match Happy Path Returns 201
     [Documentation]    Valid story+difficulty creates a match (201) and surfaces a uuid.
@@ -208,7 +208,7 @@ Get Match Info For Unknown Match Returns 404
 Get Match Info From Other User Returns 404
     [Documentation]    A new guest user cannot see the original user's match.
     [Tags]    matches    step19
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    201
     ${other_token}=    Set Variable    ${response.json()}[accessToken]
     ${response}=    Get Match Info    ${other_token}    ${MATCH_UUID}
@@ -254,8 +254,8 @@ Suite Setup Match Creation
     ...                one difficulty and stores them as suite variables. Also opens an
     ...                admin session against ADMIN_BASE_URL for the /api/admin/matches tests.
     Create Public Session
-    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    Create Http Session    admin_session    ${ADMIN_BASE_URL}    verify=false
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    201
     ${body}=    Set Variable    ${response.json()}
     Set Suite Variable    ${TOKEN}    ${body}[accessToken]

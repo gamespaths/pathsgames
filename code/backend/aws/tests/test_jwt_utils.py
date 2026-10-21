@@ -92,6 +92,8 @@ def test_valid_jwt_returns_claims():
         'role': 'PLAYER',
         'type': 'access',
         'exp': int(time.time()) + 3600,
+        'iss': jwt_utils.issuer(),
+        'aud': jwt_utils.audience(),
     }
     token = _make_token(payload)
     result = jwt_utils.verify_access_token(token)
@@ -108,6 +110,8 @@ def test_admin_jwt_role():
         'role': 'ADMIN',
         'type': 'access',
         'exp': int(time.time()) + 3600,
+        'iss': jwt_utils.issuer(),
+        'aud': [jwt_utils.audience()],
     }
     token = _make_token(payload)
     result = jwt_utils.verify_access_token(token)

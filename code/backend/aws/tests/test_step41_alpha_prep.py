@@ -239,7 +239,7 @@ def _created_row(env, headers, now_ms=10_000 * DAY_MS):
         result = handler.lambda_handler(make_event('POST', '/api/auth/guest', headers=headers), {})
     assert result['statusCode'] == 201
     assert result['headers']['Cache-Control'] == 'no-store'
-    return put.call_args[0][0]
+    return put.call_args_list[0][0][0]
 
 
 def test_aged_guest_on_the_test_stack():

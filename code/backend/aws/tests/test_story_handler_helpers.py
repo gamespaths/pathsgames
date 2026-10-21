@@ -45,15 +45,15 @@ def test_require_admin_jwt_branch():
         user, err = handler._require_admin(ev)
     assert err is None and user['uuid'] == 'u-jwt'
 
-    # jwt admin not in DB → synthetic admin dict
+    # v1.2.0 jwt admin not in DB → 401 (no synthetic admin)
     with patch('story.handler.jwt_utils.verify_access_token', return_value=claims), \
          patch('story.handler.db_utils.get_item', return_value=None):
         user2, err2 = handler._require_admin(ev)
-    assert err2 is None and user2['role'] == 'ADMIN'
+    assert user2 is None and err2['statusCode'] == 401
 
-    # jwt non-admin → 403
-    with patch('story.handler.jwt_utils.verify_access_token',
-               return_value={'uuid': 'p', 'source': 'jwt', 'role': 'PLAYER'}):
+    # v1.2.0 the ADMIN claim is not trusted: the DB role is PLAYER → 403
+    with patch('story.handler.jwt_utils.verify_access_token', return_value=claims), \
+         patch('story.handler.db_utils.get_item', return_value={'uuid': 'u-jwt', 'role': 'PLAYER'}):
         _, err3 = handler._require_admin(ev)
     assert err3['statusCode'] == 403
 

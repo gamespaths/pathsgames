@@ -1,6 +1,6 @@
 # Step 4 — Google SSO: react-game login
 
-**Status: analysis (October 19, 2026), not developed.**
+**Status: developed in 1.2.0 (October 20, 2026) — unit tests green, Robot suites written and not yet run, docs aligned.**
 Roadmap line: *sign-in button and session handling* ([Roadmap](./Roadmap.md) step 4).
 **Steps 2-5 are developed together** (intermediate releases get intermediate versions):
 [Step 2](./Step02_GoogleSsoIdentityModel.md) · [Step 3](./Step03_GoogleSsoBackendFlow.md) ·
@@ -58,13 +58,13 @@ Multi-device rule: each device's guest merges into the Google account at the fir
 
 
 # Version Control
-- **Document Version**: 1.1.0
+- **Document Version**: 1.2.0
 
   | Version | Description | Date |
   |---------|-------------|------|
-  | 1.1.0 | Google login analysis, steps two to five | October 19, 2026 |
+  | 1.2.0 | Google login analysis, steps two to five | October 19, 2026 |
 
-- **Last Updated**: October 19, 2026 (v1.1.0)
+- **Last Updated**: October 19, 2026 (v1.2.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

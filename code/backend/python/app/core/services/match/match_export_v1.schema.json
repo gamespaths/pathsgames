@@ -360,6 +360,46 @@
         },
         "emailAddress": {
           "type": "string"
+        },
+        "identities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/identity"
+          }
+        }
+      }
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "subject"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "profileName": {
+          "type": "string"
+        },
+        "givenName": {
+          "type": "string"
+        },
+        "familyName": {
+          "type": "string"
+        },
+        "pictureUrl": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string"
         }
       }
     },

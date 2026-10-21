@@ -18,6 +18,9 @@ public interface JwtPort {
      */
     String generateAccessToken(String userUuid, String username, String role);
 
+    /** v1.2.0 an access token with its own lifetime (the bootstrapped admin token). */
+    String generateAccessToken(String userUuid, String username, String role, java.time.Duration lifetime);
+
     /**
      * Generates a JWT refresh token for the given user.
      *
@@ -50,7 +53,7 @@ public interface JwtPort {
     Map<String, Object> parseToken(String token);
 
     /**
-     * Validates a JWT token's signature and expiration.
+     * Validates a JWT token's signature, expiration and (v1.2.0) issuer and audience.
      *
      * @param token the JWT token string
      * @return true if the token is valid (correct signature and not expired)

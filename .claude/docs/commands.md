@@ -100,7 +100,10 @@ code/scripts/dev/sonar/run_sonar_scanner_java.sh
 ## JWT admin token and dependency scan (v0.41.0) — `code/scripts/dev/`
 
 ```bash
-code/scripts/dev/mint_admin_token.sh [--days 365]     # prints a long-lived admin JWT signed with .env's JWT_SECRET
+code/scripts/dev/create_admin_java.sh <local|ec2> <nick>    # V1.2.0: creates a real admin user (--paths.admin.create) and prints a token
+code/scripts/dev/create_admin_python.sh <local|ec2> <nick>  # same, python -m app.scripts.create_admin
+code/scripts/prod/aws_create_admin.sh <stage> <nick>        # AWS AdminBootstrapFunction (asks first: cloud command)
+code/scripts/dev/mint_admin_token.sh [--days 365]     # wrapper of the create_admin scripts; token 365 days (30 on AWS prod)
 code/scripts/dev/run_dependency_scan.sh [--only java,python,aws,react-admin,react-game]  # OSV-Scanner; exits 2 with install instructions if osv-scanner is missing
 ```
 

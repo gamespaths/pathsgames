@@ -3,53 +3,21 @@ package games.paths.core.port.auth;
 import java.util.Map;
 
 /**
- * GuestPersistencePort - Outbound port for guest user persistence operations.
- * Implemented by a database adapter (SQLite/PostgreSQL) to store and retrieve guest data.
+ * GuestPersistencePort - Outbound port for guest user persistence (users with state=6).
+ * v1.2.0 the guest cookie token and the refresh token are stored as SHA-256 hash.
  */
 public interface GuestPersistencePort {
 
-    /**
-     * Creates a new guest user in the database.
-     *
-     * @param uuid             the unique UUID for the guest user
-     * @param username         the generated guest username (e.g., "guest_abc12345")
-     * @param guestCookieToken the cookie token for session resumption
-     * @param guestExpiresAt   the ISO-8601 timestamp when the guest session expires
-     * @return the database-generated user ID
-     */
-    long createGuestUser(String uuid, String username, String guestCookieToken, String guestExpiresAt);
+    long createGuestUser(String uuid, String username, String guestCookieTokenHash, String guestExpiresAt);
 
-    /**
-     * Finds a guest user by their cookie token.
-     *
-     * @param guestCookieToken the cookie token to search for
-     * @return a map with user fields (id, uuid, username, guest_expires_at), or null if not found
-     */
-    Map<String, Object> findGuestByCookieToken(String guestCookieToken);
+    /** The guest by cookie hash, else (legacyClearToken not null) by clear value, rewritten as hash. */
+    Map<String, Object> findGuestByCookieToken(String guestCookieTokenHash, String legacyClearToken);
 
-    /**
-     * Stores a refresh token for a user.
-     *
-     * @param userId       the user ID
-     * @param refreshToken the refresh token string
-     * @param expiresAt    the ISO-8601 timestamp when the token expires
-     */
-    void storeRefreshToken(long userId, String refreshToken, String expiresAt);
+    void storeRefreshToken(long userId, String refreshTokenHash, String expiresAt);
 
-    /**
-     * Updates the last access timestamp for a user.
-     *
-     * @param userId the user ID
-     */
     void updateLastAccess(long userId);
 
-    /**
-     * Deletes expired guest users and their associated tokens (v0.41.0: referenced guests are kept).
-     *
-     * @return the number of guest users removed
-     */
     int deleteExpiredGuests();
 
-    /** v0.41.0 — dev/test only: registration and last access moved back to this ISO-8601 instant. */
     void backdateGuest(long userId, String instant);
 }

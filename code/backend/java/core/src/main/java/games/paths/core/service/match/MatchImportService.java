@@ -1,6 +1,8 @@
 package games.paths.core.service.match;
 
+import games.paths.core.model.auth.UserIdentity;
 import games.paths.core.model.match.MatchStatuses;
+import games.paths.core.service.auth.NicknameGenerator;
 import games.paths.core.model.match.export.CanonicalJson;
 import games.paths.core.model.match.export.LogTypeMapper;
 import games.paths.core.model.match.export.NeutralColumnCodec;
@@ -101,8 +103,13 @@ public class MatchImportService {
         this.matchCommands = matchCommands;
     }
 
-    /** One planned user: the neutral row, its status on this server, its username and uuid there. */
-    record UserPlan(Map<String, Object> user, String status, String targetUsername, String targetUuid) {
+    /** One planned user: the neutral row, its status on this server, its username, uuid and nickname there. */
+    record UserPlan(Map<String, Object> user, String status, String targetUsername, String targetUuid,
+                    String targetNickname) {
+
+        UserPlan(Map<String, Object> user, String status, String targetUsername, String targetUuid) {
+            this(user, status, targetUsername, targetUuid, str(user.get("nickname")));
+        }
 
         boolean created() {
             return USER_NEW.equals(status) || USER_RENAMED.equals(status);
@@ -371,10 +378,14 @@ public class MatchImportService {
         }
     }
 
-    /** Decision 54 (revised): uuid on the target, else the same e-mail, else a new user (renamed on a clash). */
+    /**
+     * Decision 54 (revised) and v1.2.0: uuid on the target; a Google user by its identity email with the
+     * subject check (another subject is an error); an old export by its e-mail; a guest by its username.
+     */
     private void users(Analysis a, Optional<Long> storyId) {
         List<String> existing = new ArrayList<>();
         Set<String> planned = new HashSet<>();
+        Set<String> plannedNicknames = new HashSet<>();
         for (Object o : list(a.doc.get("users"))) {
             Map<String, Object> u = map(o);
             String uuid = str(u.get("uuid"));
@@ -384,7 +395,26 @@ public class MatchImportService {
                 existing.add(uuid);
                 continue;
             }
-            Optional<Map<String, Object>> byEmail = store.userByEmail(str(u.get("emailAddress")));
+            Map<String, Object> google = googleIdentity(u);
+            String email = google != null ? str(google.get("email")) : str(u.get("emailAddress"));
+            if (google != null && email != null) {
+                Optional<Map<String, Object>> owner = store.identityByEmail(UserIdentity.PROVIDER_GOOGLE,
+                        email.toLowerCase(java.util.Locale.ROOT));
+                if (owner.isPresent() && !Objects.equals(owner.get().get("provider_subject"), google.get("subject"))) {
+                    a.errors.add(new Issue(MatchExportPort.IDENTITY_MISMATCH, "User " + username
+                            + ": the target has this e-mail with another Google subject"));
+                    continue;
+                }
+                if (owner.isPresent()) {
+                    String target = str(owner.get().get("user_uuid"));
+                    a.users.add(new UserPlan(u, USER_MAPPED, str(owner.get().get("username")), target));
+                    existing.add(target);
+                    a.warnings.add(new Issue(MatchExportPort.USER_MAPPED_BY_EMAIL, "User " + username
+                            + " is mapped by e-mail onto the existing user " + owner.get().get("username")));
+                    continue;
+                }
+            }
+            Optional<Map<String, Object>> byEmail = store.userByEmail(email);
             if (byEmail.isPresent()) {
                 String target = str(byEmail.get().get("uuid"));
                 a.users.add(new UserPlan(u, USER_MAPPED, str(byEmail.get().get("username")), target));
@@ -393,15 +423,16 @@ public class MatchImportService {
                         + " is mapped by e-mail onto the existing user " + byEmail.get().get("username")));
                 continue;
             }
+            String nickname = freeNickname(a, u, uuid, plannedNicknames);
             if (store.usernameTaken(username) || planned.contains(username)) {
                 String suffix = Objects.toString(uuid, "");
                 String target = username + "_" + suffix.substring(0, Math.min(6, suffix.length()));
-                a.users.add(new UserPlan(u, USER_RENAMED, target, uuid));
+                a.users.add(new UserPlan(u, USER_RENAMED, target, uuid, nickname));
                 planned.add(target);
                 a.warnings.add(new Issue(MatchExportPort.USERNAME_RENAMED,
                         "User " + username + " is created as " + target));
             } else {
-                a.users.add(new UserPlan(u, USER_NEW, username, uuid));
+                a.users.add(new UserPlan(u, USER_NEW, username, uuid, nickname));
                 planned.add(username);
             }
             if ("ADMIN".equalsIgnoreCase(str(u.get("role")))) {
@@ -419,6 +450,34 @@ public class MatchImportService {
                         "These matches of the same story are set to PAUSED by the import: " + names));
             }
         }
+    }
+
+    /** v1.2.0 the GOOGLE identity of a neutral user, or null. */
+    static Map<String, Object> googleIdentity(Map<String, Object> user) {
+        for (Object o : list(user.get("identities"))) {
+            Map<String, Object> identity = map(o);
+            if (UserIdentity.PROVIDER_GOOGLE.equals(identity.get("provider"))) {
+                return identity;
+            }
+        }
+        return null;
+    }
+
+    /** v1.2.0 users.nickname is unique: the exported nickname, or its first free #n suffix. */
+    private String freeNickname(Analysis a, Map<String, Object> u, String uuid, Set<String> plannedNicknames) {
+        String nickname = str(u.get("nickname"));
+        if (nickname == null) {
+            return null;
+        }
+        java.util.function.Predicate<String> taken = n -> plannedNicknames.contains(n) || store.nicknameTaken(n);
+        String target = taken.test(nickname)
+                ? NicknameGenerator.firstFree(nickname, 2, taken, Objects.toString(uuid, "00000000")) : nickname;
+        if (!target.equals(nickname)) {
+            a.warnings.add(new Issue(MatchExportPort.NICKNAME_RENAMED, "Nickname " + nickname
+                    + " is taken: the user is created as " + target));
+        }
+        plannedNicknames.add(target);
+        return target;
     }
 
     private void matchAndCharacters(Analysis a, boolean replace) {
@@ -486,6 +545,7 @@ public class MatchImportService {
             u.put("username", p.user().get("username"));
             u.put("targetUsername", p.targetUsername());
             u.put("targetUuid", p.targetUuid());
+            u.put("targetNickname", p.targetNickname());
             u.put("status", p.status());
             users.add(u);
         }
@@ -592,10 +652,16 @@ public class MatchImportService {
                 Map<String, Object> u = new LinkedHashMap<>();
                 u.put("uuid", uuid);
                 u.put("username", p.targetUsername());
-                u.put("nickname", p.user().get("nickname"));
+                u.put("nickname", p.targetNickname());
                 u.put("language", p.user().get("language"));
                 u.put("state", lng(p.user().get("state")));
-                u.put("email_address", p.user().get("emailAddress"));
+                Map<String, Object> google = googleIdentity(p.user());
+                Object email = google != null && google.get("email") != null ? google.get("email")
+                        : p.user().get("emailAddress");
+                u.put("email_address", email == null ? null : str(email).toLowerCase(java.util.Locale.ROOT));
+                List<Map<String, Object>> identities = new ArrayList<>();
+                list(p.user().get("identities")).forEach(i -> identities.add(NeutralColumnCodec.identityRow(map(i))));
+                u.put("identities", identities);
                 newUsers.add(u);
             }
         }

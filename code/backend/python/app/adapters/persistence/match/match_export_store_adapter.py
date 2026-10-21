@@ -6,7 +6,7 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from sqlalchemy import delete, func, insert, select, update
 
-from app.adapters.persistence.auth.models import Base, User
+from app.adapters.persistence.auth.models import Base, User, UserIdentity
 from app.adapters.persistence.match.log_ids import next_log_id
 from app.adapters.persistence.match.match_log_writer_adapter import LOG_ENTITIES
 from app.adapters.persistence.match.snapshot_store_adapter import plain
@@ -21,6 +21,8 @@ DELETE_ORDER = ("log_events", "log_movements", "log_item_usage", "log_weather", 
                 "gaming_state_locations", "gaming_character_traits", "gaming_inventory_items",
                 "gaming_backpack_resources", "system_snapshot")
 _USER_COLUMNS = ("id", "uuid", "username", "nickname", "language", "state", "role", "email_address")
+_IDENTITY_COLUMNS = ("provider", "provider_subject", "email", "profile_name", "given_name", "family_name",
+                     "picture_url", "locale")
 _LOG_BY_TABLE = {e.__tablename__: e for e in LOG_ENTITIES}
 
 
@@ -63,7 +65,32 @@ class MatchExportStoreAdapter(MatchExportStorePort):
         ids = [i for i in (ids or []) if i is not None]
         if not ids:
             return {}
-        return {int(u["id"]): u for u in self._users(User.__table__.c.id.in_(ids))}
+        out = {int(u["id"]): u for u in self._users(User.__table__.c.id.in_(ids))}
+        # v1.2.0 the users_identities rows travel with the user (stage migration of Google users)
+        t = UserIdentity.__table__
+        with self.session_factory() as session:
+            rows = session.execute(select(t).where(t.c.id_user.in_(ids)).order_by(t.c.id)).all()
+        for r in rows:
+            row = r._mapping
+            user = out.get(int(row["id_user"]))
+            if user is not None:
+                user.setdefault("identities", []).append({c: row[c] for c in _IDENTITY_COLUMNS})
+        return out
+
+    def identity_by_email(self, provider: str, email: str) -> Optional[Dict[str, Any]]:
+        if not email or not str(email).strip():
+            return None
+        t, users = UserIdentity.__table__, User.__table__
+        with self.session_factory() as session:
+            row = session.execute(select(users.c.uuid, users.c.username, t.c.provider_subject)
+                                  .join(users, users.c.id == t.c.id_user)
+                                  .where(t.c.provider == provider, t.c.email == str(email).strip().lower())).first()
+        if row is None:
+            return None
+        return {"user_uuid": row[0], "username": row[1], "provider_subject": row[2]}
+
+    def nickname_taken(self, nickname: str) -> bool:
+        return bool(self._users(User.__table__.c.nickname == nickname))
 
     def user_by_uuid(self, uuid: str) -> Optional[Dict[str, Any]]:
         rows = self._users(User.__table__.c.uuid == uuid)
@@ -164,6 +191,11 @@ class MatchExportStoreAdapter(MatchExportStorePort):
                         language=user.get("language"), state=user.get("state") if user.get("state") is not None else 1,
                         email_address=user.get("email_address"),
                         role="PLAYER", ts_registration=now, last_access=now))
+                    id_user = self._user_id(session, user["uuid"])
+                    for identity in user.get("identities") or []:
+                        session.execute(insert(UserIdentity.__table__).values(
+                            uuid=str(uuid_lib.uuid4()), id_user=id_user, ts_profile_update=now, ts_insert=now, ts_update=now,
+                            **{c: identity.get(c) for c in _IDENTITY_COLUMNS}))
                 m = _table("gaming_match")
                 match = dict(rows.match)
                 match["id_user_creator"] = self._user_id(session, match.get("id_user_creator"))

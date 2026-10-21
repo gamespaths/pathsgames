@@ -37,7 +37,7 @@ Initialize Admin Suite
     ...                session against ADMIN_BASE_URL (admin port 8044 / admin API), plus
     ...                a dynamic admin JWT. Admin requests pass the token per-request.
     Create Public Session
-    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
+    Create Http Session    admin_session    ${ADMIN_BASE_URL}    verify=false
     ${token}=    Generate Admin Token
     Set Suite Variable    ${ADMIN_TOKEN}    ${token}
 
@@ -59,7 +59,7 @@ Admin DELETE
     [Arguments]    ${path}
     ${headers}=    Get Admin Headers
     ${response}=    DELETE On Session    admin_session    ${path}
-    ...    headers=${headers}    expected_status=any
+    ...    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 

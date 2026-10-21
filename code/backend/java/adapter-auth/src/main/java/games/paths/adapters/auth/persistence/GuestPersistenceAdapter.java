@@ -35,14 +35,14 @@ public class GuestPersistenceAdapter implements GuestPersistencePort {
     }
 
     @Override
-    public long createGuestUser(String uuid, String username, String guestCookieToken, String guestExpiresAt) {
+    public long createGuestUser(String uuid, String username, String guestCookieTokenHash, String guestExpiresAt) {
         UserEntity user = new UserEntity();
         user.setUuid(uuid);
         user.setUsername(username);
         user.setRole(GUEST_ROLE);
         user.setState(GUEST_STATE);
         user.setNickname(username);
-        user.setGuestCookieToken(guestCookieToken);
+        user.setGuestCookieToken(guestCookieTokenHash);
         user.setGuestExpiresAt(guestExpiresAt);
 
         UserEntity saved = userRepository.save(user);
@@ -50,10 +50,19 @@ public class GuestPersistenceAdapter implements GuestPersistencePort {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Map<String, Object> findGuestByCookieToken(String guestCookieToken) {
-        Optional<UserEntity> opt = userRepository.findByGuestCookieTokenAndState(guestCookieToken, GUEST_STATE);
-
+    public Map<String, Object> findGuestByCookieToken(String guestCookieTokenHash, String legacyClearToken) {
+        if (guestCookieTokenHash == null) {
+            return null;
+        }
+        Optional<UserEntity> opt = userRepository.findByGuestCookieTokenAndState(guestCookieTokenHash, GUEST_STATE);
+        if (opt.isEmpty() && legacyClearToken != null) {
+            // v1.2.0 lazy migration: a cookie stored in clear before 1.2.0 is rewritten as hash
+            opt = userRepository.findByGuestCookieTokenAndState(legacyClearToken, GUEST_STATE);
+            opt.ifPresent(user -> {
+                user.setGuestCookieToken(guestCookieTokenHash);
+                userRepository.save(user);
+            });
+        }
         if (opt.isEmpty()) {
             return null;
         }
@@ -68,10 +77,10 @@ public class GuestPersistenceAdapter implements GuestPersistencePort {
     }
 
     @Override
-    public void storeRefreshToken(long userId, String refreshToken, String expiresAt) {
+    public void storeRefreshToken(long userId, String refreshTokenHash, String expiresAt) {
         UserTokenEntity token = new UserTokenEntity();
         token.setIdUser(userId);
-        token.setRefreshToken(refreshToken);
+        token.setRefreshToken(refreshTokenHash);
         token.setExpiresAt(expiresAt);
 
         userTokenRepository.save(token);

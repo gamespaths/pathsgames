@@ -45,6 +45,10 @@ code/backend/java/
 | **dev** (default) | `application-dev.yml` | 8042 | SQLite | Local development |
 | **prod** | `application-prod.yml` | 8080 | PostgreSQL | Production environment |
 
+## Google login (V1.2.0)
+
+`POST /api/auth/google`, `GET`/`DELETE /api/auth/me` (spec `v1.2.0-google-sso-api.yaml`); identities in `users_identities`, no passwords. Env: `GOOGLE_CLIENT_ID`, `GOOGLE_ENABLED`, `RATE_LIMIT_GOOGLE_PER_IP`, `JWT_ISSUER`, `JWT_AUDIENCE`, `ADMIN_TOKEN_DAYS`, `ALLOW_MOCK_ACCESS`. Admin bootstrap: `--paths.admin.create=<nick>` (script `code/scripts/dev/create_admin_java.sh <local|ec2> <nick>`). Dev-only `/api/dev/admin-token`, `/api/dev/google-token`, `/api/dev/jobs/account-deletion`. Details: [Security §1.1](../../../wiki/Security.md).
+
 ## Database & Flyway
 
 Both profiles use **Flyway** for automatic schema migration. Migrations run on every application startup — only new, unapplied versions are executed.

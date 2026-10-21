@@ -63,3 +63,13 @@ def test_delete_guest_by_uuid(adapter):
     adapter.create_guest_user("u1", "g1", "t1", "2025")
     assert adapter.delete_guest_by_uuid("u1") is True
     assert adapter.delete_guest_by_uuid("missing") is False
+
+
+def test_v120_cookie_lookup_by_hash_with_the_lazy_rewrite(adapter):
+    adapter.create_guest_user("u2", "guest2", "clear-cookie", "2999-01-01T00:00:00Z")
+    assert adapter.find_guest_by_cookie_token(None) is None
+    assert adapter.find_guest_by_cookie_token("hash", None) is None
+    assert adapter.find_guest_by_cookie_token("hash", "clear-cookie")["uuid"] == "u2"
+    assert adapter.find_guest_by_cookie_token("hash")["uuid"] == "u2"
+    assert adapter.find_guest_by_cookie_token("other-hash", "missing") is None
+    assert adapter.find_guest_by_uuid("u2")["nickname"] == "guest2"

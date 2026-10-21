@@ -140,7 +140,7 @@ Sleeping In A Safe Location Wakes A Comatose Character
     ${body}=    Create Dictionary    life=${0}    coma=${True}    sleeping=${True}
     ${resp}=    POST On Session    admin_session
     ...    /api/admin/matches/${MATCH_UUID}/player/${CHARACTER_MATCH_UUID}/changeStatistics
-    ...    json=${body}    expected_status=200
+    ...    json=${body}    expected_status=200    timeout=${HTTP_POST_TIMEOUT}
 
     ${down}=    Get Character State
     Should Be True    ${down}[isComa]    msg=setup failed: the character is not comatose
@@ -172,7 +172,7 @@ Suite Setup Edge States
     Create Admin Session
     ${story}    ${difficulty}    ${character}    ${class}    ${trait}=    Pick Story Loadout
     Set Suite Variable    ${STORY_UUID}    ${story}
-    ${guest}=    POST On Session    public_session    /api/auth/guest
+    ${guest}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${guest}    201
     Set Suite Variable    ${TOKEN}    ${guest.json()}[accessToken]
 
@@ -207,7 +207,7 @@ Reset Character
     ...    coma=${False}    sleeping=${False}
     ${resp}=    POST On Session    admin_session
     ...    /api/admin/matches/${MATCH_UUID}/player/${CHARACTER_MATCH_UUID}/changeStatistics
-    ...    json=${body}    expected_status=200
+    ...    json=${body}    expected_status=200    timeout=${HTTP_POST_TIMEOUT}
     Should Be Equal    ${resp.json()}[status]    UPDATED
     ${state}=    Get Character State
     RETURN    ${state}

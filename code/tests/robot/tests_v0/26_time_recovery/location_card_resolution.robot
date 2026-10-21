@@ -117,7 +117,7 @@ Neighbors Expose Return Card And Edge Orientation
 Suite Setup Location Card
     [Documentation]    Guest login + resolve a joinable loadout from a public story.
     Create Public Session
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    201
     Set Suite Variable    ${TOKEN}    ${response.json()}[accessToken]
     ${story}    ${difficulty}    ${character}    ${class}    ${trait}=    Pick Story Loadout

@@ -1,6 +1,7 @@
 package games.paths.core.persistence.match;
 
 import games.paths.core.model.match.LogTable;
+import games.paths.core.model.match.export.NeutralColumnCodec;
 import games.paths.core.port.match.LogIdPort;
 import games.paths.core.port.match.MatchExportStorePort;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -97,7 +98,39 @@ public class MatchExportStoreAdapter implements MatchExportStorePort {
         for (Map<String, Object> row : plainRows(jdbc.queryForList(sql, ids.toArray()))) {
             out.put(((Number) row.get("id")).longValue(), safeUser(row));
         }
+        // v1.2.0 the users_identities rows travel with the user (stage migration of Google users)
+        String identities = "SELECT id_user, provider, provider_subject, email, profile_name, given_name, family_name,"
+                + " picture_url, locale FROM users_identities WHERE id_user IN (" + marks(ids.size()) + ") ORDER BY id";
+        for (Map<String, Object> row : plainRows(jdbc.queryForList(identities, ids.toArray()))) {
+            Map<String, Object> user = out.get(((Number) row.get("id_user")).longValue());
+            if (user != null) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> list = (List<Map<String, Object>>) user.computeIfAbsent("identities",
+                        k -> new java.util.ArrayList<Map<String, Object>>());
+                row.remove("id_user");
+                list.add(row);
+            }
+        }
         return out;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Map<String, Object>> identityByEmail(String provider, String email) {
+        if (email == null || email.isBlank()) {
+            return Optional.empty();
+        }
+        return plainRows(jdbc.queryForList("SELECT u.uuid AS user_uuid, u.username AS username,"
+                + " i.provider_subject AS provider_subject FROM users_identities i JOIN users u ON u.id = i.id_user"
+                + " WHERE i.provider = ? AND i.email = ?", provider, email.trim().toLowerCase(java.util.Locale.ROOT)))
+                .stream().findFirst();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean nicknameTaken(String nickname) {
+        Integer n = jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE nickname = ?", Integer.class, nickname);
+        return n != null && n > 0;
     }
 
     @Override
@@ -151,7 +184,19 @@ public class MatchExportStoreAdapter implements MatchExportStorePort {
         row.put("ts_insert", now);
         row.put("ts_update", now);
         insert("users", row);
-        return jdbc.queryForObject("SELECT id FROM users WHERE uuid = ?", Long.class, user.get("uuid"));
+        long id = jdbc.queryForObject("SELECT id FROM users WHERE uuid = ?", Long.class, user.get("uuid"));
+        if (user.get("identities") instanceof List<?> identities) {
+            for (Object o : identities) {
+                Map<String, Object> identity = new LinkedHashMap<>(NeutralColumnCodec.map(o));
+                identity.put("id_user", id);
+                identity.put("uuid", UUID.randomUUID().toString());
+                identity.put("ts_profile_update", now);
+                identity.put("ts_insert", now);
+                identity.put("ts_update", now);
+                insert("users_identities", identity);
+            }
+        }
+        return id;
     }
 
     @Override

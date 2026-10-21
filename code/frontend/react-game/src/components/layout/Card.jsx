@@ -224,6 +224,7 @@ export default function Card({
       ) : (
         <CardImage
           src={urlImage} placeholderIcon={icon} renderPlaceholder={!isPage}
+          referrerPolicy={card?.referrerPolicy}
           alt={imageAlt || name}
           imgClassName={
             !isPage ? ['gc-img', imageClassName].filter(Boolean).join(' ')

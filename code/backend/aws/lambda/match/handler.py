@@ -41,6 +41,7 @@ from common import kpi as _kpi
 from common import log_utils
 from common import jwt_utils
 from common import security_utils
+from common import sso as _sso
 from common import story_cache
 from common import test_data_ttl
 from common import user_lookup as _user_lookup
@@ -89,8 +90,9 @@ _API_GAMEPLAY_PATH = "/api/gameplay/"
 
 # Lifecycle statuses of a match. A match is "stopped" (terminal) when it is
 # ENDED or GAMEOVER; only stopped matches may be deleted by an admin.
-MATCH_STATUSES = ["CREATED", "RUNNING", "PAUSED", "ENDED", "GAMEOVER"]
-TERMINAL_STATUSES = {"ENDED", "GAMEOVER"}
+MATCH_STATUSES = ["CREATED", "RUNNING", "PAUSED", "ENDED", "GAMEOVER", "CANCELLED"]
+# v1.2.0 CANCELLED: a STARTED match that lost the guest merge to a newer one of the same story
+TERMINAL_STATUSES = {"ENDED", "GAMEOVER", "CANCELLED"}
 # v0.41.1 — Step 41 A timeline types and messages, the same the java/python timelines answer.
 TYPE_PASS = 'PASS'
 TYPE_EDGE_STATE = 'EDGE_STATE'
@@ -126,33 +128,20 @@ def _check_admin_ip(event):
 
 
 def _resolve_user(event):
-    """Return ``(user_dict_or_None, error_response_or_None)``.
+    """Return ``(user_item_or_None, error_response_or_None)``.
 
-    ``user_dict`` always has ``uuid``, ``role`` and ``state``. When the JWT
-    refers to a user that has never been seeded into DynamoDB we still return
-    a synthetic dict so the match flow can run for users that exist only in
-    the Java backend.
+    v1.2.0 — the user must exist in DynamoDB (the synthetic user is gone); role and state come from
+    the item: blocked, banned and deleting users are refused.
     """
     # v0.37.1 — the Java filter's refusal codes: no token, an empty one and a bad one differ.
     token = _bearer_token(event)
     if not token:
         code, message = _bearer_token_error(event)
         return None, _err(401, code, message)
-    claims = jwt_utils.verify_access_token(token)
-    if not claims or not claims.get('uuid'):
-        return None, _err(401, 'INVALID_TOKEN', 'Access token is invalid, expired, or malformed')
-
-    user_uuid = claims['uuid']
-    user = db_utils.get_item(f'USER#{user_uuid}', consistent=False)
-    if user is None:
-        if claims.get('source') == 'jwt':
-            return ({
-                'uuid': user_uuid,
-                'username': claims.get('username'),
-                'role': claims.get('role', 'PLAYER'),
-                'state': 2,
-            }, None)
-        return None, _err(401, 'UNAUTHENTICATED', 'User not found')
+    user, refusal = _sso.resolve_user(token)
+    if refusal:
+        status, code, message = refusal
+        return None, _err(status, code, message)
     return user, None
 
 

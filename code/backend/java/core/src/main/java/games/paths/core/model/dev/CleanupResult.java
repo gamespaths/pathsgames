@@ -6,5 +6,9 @@ package games.paths.core.model.dev;
  * @param deletedGuests  number of guest users removed
  * @param deletedMatches number of matches removed
  */
-public record CleanupResult(int deletedGuests, int deletedMatches) {
+public record CleanupResult(int deletedGuests, int deletedMatches, int deletedUsers) {
+
+    public CleanupResult(int deletedGuests, int deletedMatches) {
+        this(deletedGuests, deletedMatches, 0);
+    }
 }

@@ -110,7 +110,7 @@ Import Story From File
     ...    Authorization=Bearer ${ADMIN_TOKEN}
     ...    Content-Type=application/json
     ${response}=    POST On Session    admin_session    /api/admin/stories/import
-    ...    data=${body}    headers=${headers}    expected_status=any
+    ...    data=${body}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Delete Admin Story
@@ -118,7 +118,7 @@ Delete Admin Story
     [Arguments]    ${uuid}
     &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
     ${response}=    DELETE On Session    admin_session    /api/admin/stories/${uuid}
-    ...    headers=${headers}    expected_status=any
+    ...    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Get Admin Stories
@@ -149,7 +149,7 @@ Post Admin Story Import
     ...    Authorization=Bearer ${ADMIN_TOKEN}
     ...    Content-Type=application/json
     ${response}=    POST On Session    admin_session    /api/admin/stories/import
-    ...    data=${payload}    headers=${headers}    expected_status=any
+    ...    data=${payload}    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Import Payload Should Fail Validation
@@ -180,7 +180,7 @@ Create Admin Entity
     ...    Content-Type=application/json
     ${response}=    POST On Session    admin_session
     ...    /api/admin/stories/${uuid}/${entity_type}    json=${json_body}
-    ...    headers=${headers}    expected_status=any
+    ...    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 List Admin Entities
@@ -201,7 +201,7 @@ Update Admin Entity
     ...    Content-Type=application/json
     ${response}=    PUT On Session    admin_session
     ...    /api/admin/stories/${uuid}/${entity_type}/${entity_uuid}    json=${json_body}
-    ...    headers=${headers}    expected_status=any
+    ...    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Delete Admin Entity
@@ -210,7 +210,7 @@ Delete Admin Entity
     &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
     ${response}=    DELETE On Session    admin_session
     ...    /api/admin/stories/${uuid}/${entity_type}/${entity_uuid}
-    ...    headers=${headers}    expected_status=any
+    ...    headers=${headers}    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 # ── v0.40 — admin rows read once per suite, to cut the calls of a run ──

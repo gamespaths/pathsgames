@@ -72,4 +72,18 @@ class EchoControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("MAINTENANCE"));
     }
+
+    @Test
+    void v120_googleFlagAndClientId() throws Exception {
+        games.paths.core.port.auth.GoogleLoginPort google = mock(games.paths.core.port.auth.GoogleLoginPort.class);
+        when(google.isEnabled()).thenReturn(true);
+        when(google.clientId()).thenReturn("client.apps.googleusercontent.com");
+        when(echoPort.getServerStatus()).thenReturn("OK");
+        when(echoPort.getServerProperties()).thenReturn(Map.of());
+        MockMvcBuilders.standaloneSetup(new EchoController(echoPort, google)).build()
+                .perform(get("/api/echo/status"))
+                .andExpect(jsonPath("$.googleEnabled").value(true))
+                .andExpect(jsonPath("$.googleClientId").value("client.apps.googleusercontent.com"));
+        mockMvc.perform(get("/api/echo/status")).andExpect(jsonPath("$.googleEnabled").doesNotExist());
+    }
 }

@@ -3,13 +3,14 @@
 # Esegue in sequenza gli script di test Robot per tutti gli ambienti
 # Raccoglie log e risultati e stampa un report riassuntivo al termine.
 #
-# Uso: run_robot_everywhere.sh [--aws=local|remote|all|skip] [--no-golden]
+# Uso: run_robot_everywhere.sh [--aws=local|remote|all|skip] [--no-golden] [--website=<url>|skip]
 #   --aws=local   backend AWS in locale: DynamoDB Local + sam local (code/scripts/dev/aws_run_local) (default)
 #   --aws=remote  backend AWS deployato (+ AWS_LIMITED: rate limit accesi per qualche minuto sullo stack test)
 #   --aws=all     entrambi: AWS locale e AWS deployato
 #   --aws=skip    nessun run AWS
 #   --no-golden   salta i giri GOLDEN_* (come export_golden_files.sh: riscrivono fixtures/golden/export_*.json)
-# In alternativa al flag: variabile d'ambiente ROBOT_AWS_MODE.
+#   --website=URL pagine policy statiche del sito deployato (default https://paths.games); skip = nessun controllo
+# In alternativa ai flag: variabili d'ambiente ROBOT_AWS_MODE e ROBOT_WEBSITE_URL.
 
 set -uo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
@@ -18,12 +19,14 @@ RESULTS_DIR="$WORKDIR/code/scripts/dev/run_robot_results"
 
 AWS_MODE="${ROBOT_AWS_MODE:-local}"
 GOLDEN=1
+WEBSITE_URL="${ROBOT_WEBSITE_URL:-https://paths.games}"
 for arg in "$@"; do
     case "$arg" in
         --aws=*) AWS_MODE="${arg#--aws=}" ;;
         --no-golden) GOLDEN=0 ;;
-        -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
-        *) echo "Unknown argument: $arg (use --aws=local|remote|all|skip, --no-golden)" >&2; exit 1 ;;
+        --website=*) WEBSITE_URL="${arg#--website=}" ;;
+        -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
+        *) echo "Unknown argument: $arg (use --aws=local|remote|all|skip, --no-golden, --website=<url>|skip)" >&2; exit 1 ;;
     esac
 done
 
@@ -64,6 +67,10 @@ ENVS+=("LOCAL_PYTHON_LIMITED|$WORKDIR/code/scripts/dev/run_robots/run_robot_with
 case "$AWS_MODE" in
     remote|all) ENVS+=("AWS_LIMITED|$WORKDIR/code/scripts/dev/run_robots/run_robot_with_aws_serverless_special.sh|reports-aws-limited") ;;
 esac
+# v1.2.0 - the static policy pages (privacy/terms/cookies.html) of the deployed website answer 200.
+if [ "$WEBSITE_URL" != "skip" ]; then
+    ENVS+=("WEBSITE_POLICY_PAGES|$WORKDIR/code/scripts/dev/run_robots/run_robot_policy_pages.sh|reports-website|ROBOT_WEBSITE_URL=$WEBSITE_URL")
+fi
 
 # Results arrays
 declare -A STATUS

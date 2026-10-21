@@ -100,6 +100,8 @@ dev/test tool.
 
 **JWT secret per stage (V1).** Every stage signs its tokens with its own `JWT_SECRET`, never shared with another stage or backend (the committed dev defaults are for dev only); tokens also carry `iss` (stage + backend) and `aud`, verified by every backend.
 
+**Google Cloud projects (V1.2.0).** Two projects, each with a second owner: non-prod (dev, test; "In production", open to every Google account, only dev/test clients and `localhost`) and prod (alpha, beta and later; verified brand and domain, policy pages `privacy.html`, `terms.html`, `cookies.html`). One OAuth client per stage; the client id is a parameter with a code default for dev only.
+
 **Stage migration (V1).** The real migration is alpha to beta (V1 roadmap step 41), in two parts: Google users move by their provider subject through the match export/import that carries their identities (mechanism developed and tested in V1 Step05); guests move with a one-time transfer code (step 41). Version 1.x runs on alpha (deployed on every push to `main`) and alpha has Google SSO from release 1.2, so the prod Google Cloud project holds a client for alpha (origins `paths.games`, `www.paths.games`) and later for beta. The source stage is shut down right after the transfer.
 The older `dev`/`test`/`prod` AWS environments (§1) predate the model and are not stage-named.
 GitHub secrets of the `alpha` Environment follow the same rule (`AWS_ALPHA_S3_BUCKET_WEBSITE`,
@@ -117,7 +119,8 @@ and comments:
 |---|---|
 | Project | `VERSION` |
 | Naming rule (v0.42.0) | every AWS/EC2 key is `AWS_<ENV>_<SERVICE>_<DESC>` (e.g. `AWS_ALPHA_APIGW_CORS_ORIGINS`, `AWS_TEST_SAM_STACK_NAME`); EC2 test servers `AWS_TEST_EC2_<X>` / `AWS_TEST_EC2_PY_<X>`; `.env.example` is the reference; `aws_backend_deploy_stage.sh` builds `AWS_<STAGE>_<SERVICE>_<KEY>` |
-| Admin / JWT | `ADMIN_IP_WHITELIST`, `JWT_SECRET`, `ROBOT_VAR_ADMIN_TOKEN` |
+| Admin / JWT | `ADMIN_IP_WHITELIST`, `JWT_SECRET`, `ROBOT_VAR_ADMIN_TOKEN`; V1.2.0: `JWT_ISSUER`, `JWT_AUDIENCE`, `ADMIN_TOKEN_DAYS`, `ALLOW_MOCK_ACCESS` (default false) |
+| Google login (V1.2.0) | local backends `GOOGLE_CLIENT_ID`, `GOOGLE_ENABLED`, `RATE_LIMIT_GOOGLE_PER_IP` (Robot scripts set 0); SAM parameters `GoogleClientId`, `GoogleEnabled`, `RateLimitGooglePerIp`; test stack and EC2 test servers `AWS_TEST_LAMBDA_GOOGLE_CLIENT_ID`, `AWS_TEST_LAMBDA_GOOGLE_ENABLED`, `AWS_TEST_LAMBDA_RATE_LIMIT_GOOGLE_PER_IP` |
 | SonarQube | `SONAR_LOGIN_TOKEN_JAVA`, `SONAR_LOGIN_TOKEN` |
 | Website deploy (AWS) | `AWS_<ENV>_S3_BUCKET_WEBSITE`, `AWS_<ENV>_CLOUDFRONT_DISTRIBUTION_ID` (`<ENV>` = `TEST`, `ALPHA`, `BETA`, `PROD`) |
 | AWS backend stack (test) | `AWS_TEST_SAM_ENVIRONMENT_NAME`, `AWS_TEST_SAM_STACK_NAME`, `AWS_TEST_REGION`, `AWS_PROD_REGION`, `AWS_TEST_APIGW_CUSTOM_DOMAIN`, `AWS_TEST_ACM_DOMAIN_CERTIFICATE_ARN`, `AWS_TEST_ROUTE53_DOMAIN_HOSTED_ZONE`, `AWS_TEST_APIGW_CORS_ORIGINS` |
@@ -130,7 +133,7 @@ and comments:
 | Test-data lifecycle | `AWS_TEST_DYNAMODB_ROBOT_TEST_DATA_TTL_HOURS` |
 | Docker Hub | `DOCKERHUB_USERNAME_TEST`, `DOCKERHUB_IMAGE_TEST`, `DOCKERHUB_IMAGE_TAG_TEST`, `DOCKERHUB_TOKEN_TEST` |
 | EC2 test servers (Java, Python) | `AWS_TEST_EC2_KEY_NAME`, `AWS_TEST_EC2_DB_NAME`, `AWS_TEST_EC2_DB_PASSWORD`, `AWS_TEST_EC2_PUBLIC_PORT`, `AWS_TEST_EC2_ADMIN_PORT`, `AWS_TEST_EC2_ROUTE53_RECORD_NAME`, `AWS_TEST_EC2_ENABLE_CLOUDFRONT`, …; the Python server overrides with `AWS_TEST_EC2_PY_<X>` (e.g. `AWS_TEST_EC2_PY_INSTANCE_NAME`) |
-| Stage deploy (v0.41.0, alpha/beta/prod) | `AWS_<S>_LAMBDA_JWT_SECRET`, `AWS_<S>_LAMBDA_TURNSTILE_SECRET_KEY`, `AWS_<S>_APIGW_CUSTOM_DOMAIN`, `AWS_<S>_ACM_DOMAIN_CERTIFICATE_ARN`, `AWS_<S>_ROUTE53_DOMAIN_HOSTED_ZONE`, `AWS_<S>_APIGW_CORS_ORIGINS`, `AWS_<S>_APIGW_ADMIN_IP_WHITELIST`; v0.42.0: `AWS_<S>_SNS_ALARM_EMAIL`, `AWS_<S>_BUDGETS_LIMIT`, `AWS_<S>_APIGW_THROTTLE_RATE`, `AWS_<S>_APIGW_THROTTLE_BURST`, `AWS_<S>_APIGW_ADMIN_THROTTLE_RATE`, `AWS_<S>_APIGW_ADMIN_THROTTLE_BURST`; V1: `AWS_<S>_LAMBDA_SMOKE_TEST_ENABLED`, `AWS_<S>_LAMBDA_SMOKE_WEBSITE_URL` — `<S>` = `ALPHA`/`BETA`/`PROD`, read by `aws_backend_deploy_stage.sh` |
+| Stage deploy (v0.41.0, alpha/beta/prod) | `AWS_<S>_LAMBDA_JWT_SECRET`, `AWS_<S>_LAMBDA_TURNSTILE_SECRET_KEY`, `AWS_<S>_APIGW_CUSTOM_DOMAIN`, `AWS_<S>_ACM_DOMAIN_CERTIFICATE_ARN`, `AWS_<S>_ROUTE53_DOMAIN_HOSTED_ZONE`, `AWS_<S>_APIGW_CORS_ORIGINS`, `AWS_<S>_APIGW_ADMIN_IP_WHITELIST`; v0.42.0: `AWS_<S>_SNS_ALARM_EMAIL`, `AWS_<S>_BUDGETS_LIMIT`, `AWS_<S>_APIGW_THROTTLE_RATE`, `AWS_<S>_APIGW_THROTTLE_BURST`, `AWS_<S>_APIGW_ADMIN_THROTTLE_RATE`, `AWS_<S>_APIGW_ADMIN_THROTTLE_BURST`; V1: `AWS_<S>_LAMBDA_SMOKE_TEST_ENABLED`, `AWS_<S>_LAMBDA_SMOKE_WEBSITE_URL`; V1.2.0: `AWS_<S>_LAMBDA_GOOGLE_CLIENT_ID` (required: the script refuses empty or the dev placeholder), `AWS_<S>_LAMBDA_RATE_LIMIT_GOOGLE_PER_IP`; the alpha GitHub workflow reads the variable `AWS_ALPHA_LAMBDA_GOOGLE_CLIENT_ID` — `<S>` = `ALPHA`/`BETA`/`PROD`, read by `aws_backend_deploy_stage.sh` |
 
 **Rule:** every parameter has a code default (Spring `${VAR:default}` placeholders in
 `application.yml`, equivalent defaults in Python `config.py` and the AWS Lambda `os.environ`
@@ -163,7 +166,7 @@ per-server `_EC2`/`_EC2_PY` suffixes) and are due a naming/structure pass once V
 its own environment needs (SSO credentials, additional backends). Deferred, not scoped yet.
 
 # Version Control
-- **Document Version**: 1.1.0
+- **Document Version**: 1.2.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -173,8 +176,9 @@ its own environment needs (SSO credentials, additional backends). Deferred, not 
   | 0.41.4 | Match move between servers, export size key | October 1, 2026 |
   | 0.42.0 | Alpha stage live on the main website | October 6, 2026 |
   | 1.1.0 | Daily smoke test and its keys added; beta replaces alpha | October 13, 2026 |
+  | 1.2.0 | Google login keys and cloud projects | October 20, 2026 |
 
-- **Last Updated**: October 19, 2026 (v1.1.0)
+- **Last Updated**: October 20, 2026 (v1.2.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

@@ -41,12 +41,14 @@ is omitted below since it applies uniformly within each tier.
 | `global_runtime_variables` | Feature flags / tunables: `type`, `key`, `string_value`, `int_value`, `min_value`/`max_value`, `min_version`/`max_version`. |
 | `system_kpi_daily` | Daily UTC counter (v0.41.2): `story_uuid`, `day` (`YYYY-MM-DD`), `metric`, `ref_uuid` (default `''`), `value`; `UNIQUE (story_uuid, day, metric, ref_uuid)`, no FK. Written best effort at event time (`MATCH_STARTED`/`_COMPLETED`, `DURATION_MS`/`_CLOCKS`, `COMA`, `CHOICE`, `LOCATION_VISIT`, `MISSION_ACTIVE`/`_COMPLETED`/`_FAILED`); not rolled back by a snapshot restore. |
 
-### 2.2 Identity (2)
+### 2.2 Identity (3)
 
 | Table | Purpose / key columns |
 |---|---|
-| `users` | Account: `username`, `password_hash`, `email_address`, `google_id_sso`, role (`ADMIN`/`PLAYER`), `state` (§6.3), `language`, `guest_cookie_token`, `guest_expires_at`, `theme_selected`; index `(state, ts_last_access)` for the guest-cleanup query (`V0.41.0`; Python's column is `last_access`, same index). |
-| `users_tokens` | Refresh tokens: `id_user`, `refresh_token`, `expires_at`, `revoked`. |
+| `users` | Account: `username`, `nickname` (unique), `email_address` (Google email, partial unique index where not null; guests have none), role (`ADMIN`/`PLAYER`), `state` (§6.3), `language`, `guest_cookie_token`, `guest_expires_at`, `theme_selected`; index `(state, ts_last_access)` for the guest-cleanup query (`V0.41.0`; Python's column is `last_access`, same index). |
+| `users_tokens` | Refresh tokens: `id_user`, `refresh_token` (SHA-256 hash; clear values migrated lazily), `expires_at`, `revoked`, `ts_rotated` (30 s grace after rotation). Guest cookie tokens are hashed too. |
+| `users_identities` | Login identities (V1.2.0): `id_user`, `provider` (`GOOGLE`; Steam in V3), `provider_subject`, `email`, `profile_name`, `given_name`, `family_name`, `picture_url`, `locale`, `ts_profile_update`. Unique index `(provider, email)`, plain index on `(provider, provider_subject)` (a renamed Gmail is a new user with the same `sub`). Profile fields refreshed at each login; email never updated. No passwords are stored. |
+| `auth_id_token_seen` | Google ID-token replay guard: hash of each accepted token kept until its `exp`. |
 
 ### 2.3 Story Content — reference (23)
 
@@ -152,7 +154,7 @@ Every one of the 52 tables carries, in addition to its primary key:
 ## 5. Match and Character Statuses
 
 **Match** (`gaming_match.status`): `CREATED` → `RUNNING` → (`PAUSED` ↔ `RUNNING`) →
-`ENDED` | `GAMEOVER`. `ENDED`/`GAMEOVER` are terminal; no game action is allowed once
+`ENDED` | `GAMEOVER`, or `CANCELLED` (V1.2.0: a STARTED match replaced by the guest-merge rule). `ENDED`/`GAMEOVER`/`CANCELLED` are terminal; no game action is allowed once
 reached.
 
 **Character** (`gaming_character_instance.is_sleeping`/`is_coma`): `ACTIVE`
@@ -161,7 +163,7 @@ reached.
 safe-location rest (v0.30.1) or actively via rescue/item.
 
 **User account** (`users.state`): `1` registration, `2` active, `3` blocked, `4` banned,
-`5` password-reset required, `6` guest.
+`5` password-reset required, `6` guest, `7` deleting (account deletion job). States `1` and `5` are unused since V1.2.0 (no passwords).
 
 **Trade** (`gaming_trades.status`): `PENDING_VALIDATION` → `ACCEPTED` | `REFUSED` |
 `FAILED_INVALID` | `EXPIRED` (all terminal).
@@ -229,6 +231,13 @@ Key (PK) / Sort Key (SK), plus two sparse GSIs. Source: `code/backend/aws/README
 | Snapshot (v0.41.1) | `MATCH#<uuid>` | `SNAPSHOT#{clock:06d}#{ts_ms:013d}` | — | — |
 | KPI day (v0.41.2) | `KPI#<storyUuid>` | `DAY#YYYY-MM-DD` | — | — |
 | Cache stamp | `SYSTEM#cache` | `METADATA` | — | — |
+| Google identity (V1.2.0) | `IDENTITY#GOOGLE#<sub>` | `METADATA` | — | — |
+| Email → user | `EMAIL#<email>` | `METADATA` | — | — |
+| Nickname base counter | `NICK#<base>` | `METADATA` | — | — |
+| Nickname claim (conditional write; released at deletion) | `NICKNAME#<nickname>` | `METADATA` | — | — |
+| Refresh token (hash) | `REFRESH#<hash>` | `METADATA` | — | — |
+| Admin by nickname | `ADMIN#<nickname>` | `METADATA` | — | — |
+| ID-token replay (`jti`) | `GOOGLEJTI#<hash>` | `METADATA` | — | — |
 
 Design notes (v0.28.1 / v0.37.5):
 
@@ -271,7 +280,7 @@ addition — its per-entity column lists (§1.3) still mention the old columns. 
 directly; Step09 remains the source for full rationale and history.
 
 # Version Control
-- **Document Version**: 0.41.4
+- **Document Version**: 1.2.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -280,8 +289,9 @@ directly; Step09 remains the source for full rationale and history.
   | 0.41.1 | Match snapshot columns and new log types added | September 29, 2026 |
   | 0.41.2 | KPI daily counters table and match start timestamp added | September 29, 2026 |
   | 0.41.4 | Match export file described; user email column added | October 1, 2026 |
+  | 1.2.0 | Google login identities, no passwords, deleting state | October 20, 2026 |
 
-- **Last Updated**: October 1, 2026 (v0.41.4)
+- **Last Updated**: October 20, 2026 (v1.2.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

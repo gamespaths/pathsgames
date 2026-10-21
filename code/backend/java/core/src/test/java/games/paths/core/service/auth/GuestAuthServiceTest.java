@@ -76,7 +76,7 @@ class GuestAuthServiceTest {
             
             // Verify persistence interactions
             verify(persistencePort).createGuestUser(eq(session.getUserUuid()), eq(session.getUsername()), anyString(), anyString());
-            verify(persistencePort).storeRefreshToken(eq(mockUserId), eq("refresh-token"), anyString());
+            verify(persistencePort).storeRefreshToken(eq(mockUserId), eq(TokenHasher.sha256("refresh-token")), anyString());
             verify(persistencePort).updateLastAccess(mockUserId);
         }
 
@@ -170,7 +170,7 @@ class GuestAuthServiceTest {
             guestData.put("username", "guest_u1");
             guestData.put("guest_expires_at", Instant.now().plus(1, ChronoUnit.DAYS).toString());
 
-            when(persistencePort.findGuestByCookieToken(cookie)).thenReturn(guestData);
+            when(persistencePort.findGuestByCookieToken(TokenHasher.sha256(cookie), cookie)).thenReturn(guestData);
             when(jwtPort.generateAccessToken(anyString(), anyString(), anyString())).thenReturn("new-access");
             when(jwtPort.generateRefreshToken(anyString())).thenReturn("new-refresh");
 
@@ -181,7 +181,7 @@ class GuestAuthServiceTest {
             assertNotNull(session);
             assertEquals("u1", session.getUserUuid());
             verify(persistencePort).updateLastAccess(100L);
-            verify(persistencePort).storeRefreshToken(eq(100L), eq("new-refresh"), anyString());
+            verify(persistencePort).storeRefreshToken(eq(100L), eq(TokenHasher.sha256("new-refresh")), anyString());
         }
 
         @Test
@@ -193,7 +193,7 @@ class GuestAuthServiceTest {
             Map<String, Object> guestData = Map.of(
                 "id", 100L, "uuid", "u1", "username", "g1", "guest_expires_at", pastDate
             );
-            when(persistencePort.findGuestByCookieToken(cookie)).thenReturn(new HashMap<>(guestData));
+            when(persistencePort.findGuestByCookieToken(TokenHasher.sha256(cookie), cookie)).thenReturn(new HashMap<>(guestData));
 
             // Act
             GuestSession session = guestAuthService.resumeGuestSession(cookie);
@@ -209,15 +209,15 @@ class GuestAuthServiceTest {
             String cookie = "incomplete-data";
             
             // Branch 1: Missing userUuid
-            when(persistencePort.findGuestByCookieToken(cookie)).thenReturn(new HashMap<>(Map.of("username", "g", "id", 1L)));
+            when(persistencePort.findGuestByCookieToken(TokenHasher.sha256(cookie), cookie)).thenReturn(new HashMap<>(Map.of("username", "g", "id", 1L)));
             assertNull(guestAuthService.resumeGuestSession(cookie));
 
             // Branch 2: Missing username
-            when(persistencePort.findGuestByCookieToken(cookie)).thenReturn(new HashMap<>(Map.of("uuid", "u", "id", 1L)));
+            when(persistencePort.findGuestByCookieToken(TokenHasher.sha256(cookie), cookie)).thenReturn(new HashMap<>(Map.of("uuid", "u", "id", 1L)));
             assertNull(guestAuthService.resumeGuestSession(cookie));
 
             // Branch 3: Missing id
-            when(persistencePort.findGuestByCookieToken(cookie)).thenReturn(new HashMap<>(Map.of("uuid", "u", "username", "g")));
+            when(persistencePort.findGuestByCookieToken(TokenHasher.sha256(cookie), cookie)).thenReturn(new HashMap<>(Map.of("uuid", "u", "username", "g")));
             assertNull(guestAuthService.resumeGuestSession(cookie));
         }
 
@@ -227,7 +227,7 @@ class GuestAuthServiceTest {
             String cookie = "no-expiry-token";
             Map<String, Object> guestData = new HashMap<>(Map.of("id", 100L, "uuid", "u1", "username", "g1"));
 
-            when(persistencePort.findGuestByCookieToken(cookie)).thenReturn(guestData);
+            when(persistencePort.findGuestByCookieToken(TokenHasher.sha256(cookie), cookie)).thenReturn(guestData);
             when(jwtPort.generateAccessToken(any(), any(), any())).thenReturn("token");
 
             assertNotNull(guestAuthService.resumeGuestSession(cookie));
@@ -239,7 +239,7 @@ class GuestAuthServiceTest {
             assertNull(guestAuthService.resumeGuestSession(null));
             assertNull(guestAuthService.resumeGuestSession("  "));
             
-            when(persistencePort.findGuestByCookieToken("unknown")).thenReturn(null);
+            when(persistencePort.findGuestByCookieToken(TokenHasher.sha256("unknown"), "unknown")).thenReturn(null);
             assertNull(guestAuthService.resumeGuestSession("unknown"));
         }
     }
@@ -255,5 +255,18 @@ class GuestAuthServiceTest {
         
         assertEquals(15, result);
         verify(persistencePort).deleteExpiredGuests();
+    }
+
+    @Test
+    @DisplayName("v1.2.0 the cap of 5 sessions is applied on guest creation")
+    void createGuestSession_appliesTheSessionCap() {
+        games.paths.core.port.auth.TokenPersistencePort tokens = mock(games.paths.core.port.auth.TokenPersistencePort.class);
+        GuestAuthService service = new GuestAuthService(jwtPort, persistencePort);
+        service.setTokenPersistence(tokens, 5);
+        when(persistencePort.createGuestUser(anyString(), anyString(), anyString(), anyString())).thenReturn(3L);
+        when(jwtPort.generateAccessToken(anyString(), anyString(), anyString())).thenReturn("a");
+        when(jwtPort.generateRefreshToken(anyString())).thenReturn("r");
+        service.createGuestSession();
+        verify(tokens).revokeOldestTokensIfLimitExceeded(3L, 5);
     }
 }

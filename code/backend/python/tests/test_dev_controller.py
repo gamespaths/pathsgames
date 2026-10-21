@@ -23,7 +23,7 @@ def test_cleanup_returns_counts_when_enabled():
     response = client.post("/api/dev/cleanup")
 
     assert response.status_code == 200
-    assert response.json() == {"deletedGuests": 5, "deletedMatches": 2}
+    assert response.json() == {"deletedGuests": 5, "deletedMatches": 2, "deletedUsers": 0}
     cleanup_port.cleanup_test_data.assert_called_once()
 
 

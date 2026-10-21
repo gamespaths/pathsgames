@@ -47,6 +47,16 @@ echo "[1/6] sam build ($ARCH) ..."
 rm -rf "$BUILD_DIR"
 (cd "$AWS_DIR" && sam build --template template.yaml --build-dir "$BUILD_DIR" > "$LOG_DIR/sam-build.log" 2>&1) \
     || { echo "Error: sam build failed, see $LOG_DIR/sam-build.log" >&2; exit 1; }
+# v1.2.0 — sam build packs arm64 wheels (PyJWT[crypto] → cryptography): re-install them for the local arch.
+if [ "$ARCH" != "arm64" ]; then
+    _PIP_PLATFORM="manylinux2014_${ARCH}"
+    find "$BUILD_DIR" -mindepth 2 -maxdepth 3 -type d -name cryptography | while read -r _pkg; do
+        pip install -q -r "$AWS_DIR/lambda/requirements.txt" --target "$(dirname "$_pkg")" --upgrade \
+            --platform "$_PIP_PLATFORM" --implementation cp --python-version 3.13 --only-binary=:all: \
+            >> "$LOG_DIR/sam-build.log" 2>&1 \
+            || { echo "Error: pip could not re-install the $ARCH wheels, see $LOG_DIR/sam-build.log" >&2; exit 1; }
+    done || exit 1
+fi
 python "$HERE/build_local_template.py" "$BUILD_DIR" --arch "$ARCH"
 
 echo "[2/6] DynamoDB Local on :$DDB_PORT ..."

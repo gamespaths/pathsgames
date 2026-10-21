@@ -119,8 +119,12 @@ public class CoreConfig {
     }
 
     @Bean
-    public GuestAuthPort guestAuthPort(JwtPort jwtPort, GuestPersistencePort persistencePort) {
-        return new GuestAuthService(jwtPort, persistencePort);
+    public GuestAuthPort guestAuthPort(JwtPort jwtPort, GuestPersistencePort persistencePort,
+                                       TokenPersistencePort tokenPersistencePort) {
+        GuestAuthService service = new GuestAuthService(jwtPort, persistencePort);
+        // v1.2.0 the cap of active sessions per user also on guest create / resume
+        service.setTokenPersistence(tokenPersistencePort, maxTokensPerUser);
+        return service;
     }
 
     @Bean
@@ -561,7 +565,10 @@ public class CoreConfig {
 
     @Bean
     public TestDataCleanupPort testDataCleanupPort(GuestAdminPersistencePort guestAdminPersistencePort,
-                                                   MatchPersistencePort matchPersistencePort) {
-        return new TestDataCleanupService(guestAdminPersistencePort, matchPersistencePort);
+                                                   MatchPersistencePort matchPersistencePort,
+                                                   games.paths.core.port.auth.IdentityPersistencePort identityPort) {
+        TestDataCleanupService service = new TestDataCleanupService(guestAdminPersistencePort, matchPersistencePort);
+        service.setIdentityPort(identityPort);
+        return service;
     }
 }

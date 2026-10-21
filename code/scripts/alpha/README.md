@@ -109,6 +109,7 @@ Lambda writes the catalog with its own role, so it is unaffected):
 - `VITE_CF_TURNSTILE_KEY`, `VITE_GTM_ID`: a variable **or** a secret with the same name (the workflow reads `vars` first, then `secrets`)
 
 **ADD variables**
+- `AWS_ALPHA_LAMBDA_GOOGLE_CLIENT_ID` (V1.2.0, required: the deploy script refuses an empty value or the dev placeholder; client of the prod Google Cloud project, origins `paths.games` and `www.paths.games`; the workflow `alpha-deploy-backend-aws.yml` passes it to `deploy_backend.sh`; optional `AWS_ALPHA_LAMBDA_RATE_LIMIT_GOOGLE_PER_IP`)
 - `AWS_REGION=us-east-1`
 - `AWS_ALPHA_APIGW_CORS_ORIGINS=https://paths.games,https://www.paths.games`
 - `AWS_ALPHA_APIGW_CUSTOM_DOMAIN=api-alpha.paths.games`

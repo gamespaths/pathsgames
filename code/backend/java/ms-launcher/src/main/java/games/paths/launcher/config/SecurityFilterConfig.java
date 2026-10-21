@@ -57,12 +57,14 @@ public class SecurityFilterConfig {
     @Bean
     public FilterRegistrationBean<JwtAuthenticationFilter> jwtAuthenticationFilterRegistration(
             SessionPort sessionPort,
-            @Value("${game.auth.public-paths:/api/echo/**,/api/auth/guest,/api/auth/guest/resume,/api/auth/refresh,/api/versions}")
+            games.paths.core.port.auth.UserStatePort userStatePort,
+            @Value("${game.auth.public-paths:/api/echo/**,/api/auth/guest,/api/auth/guest/resume,/api/auth/refresh,/api/auth/google,/api/versions}")
             String publicPathsStr) {
 
         List<String> publicPaths = List.of(publicPathsStr.split(","));
 
-        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(sessionPort, publicPaths, adminPathPrefix);
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(sessionPort, publicPaths, adminPathPrefix,
+                userStatePort);
 
         FilterRegistrationBean<JwtAuthenticationFilter> registrationBean = new FilterRegistrationBean<>();
         registrationBean.setFilter(filter);

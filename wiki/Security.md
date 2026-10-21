@@ -5,7 +5,7 @@ identity, admin access, abuse controls, and the frontend/infrastructure hardenin
 
 ## 1. Guest login and JWT (access + refresh, with rotation)
 
-There is no password account in V0 — every player is a **guest**. `POST /api/auth/guest`
+In V0 every player is a **guest**; Google login is added in V1 (§1.1). `POST /api/auth/guest`
 creates one and returns an access token (JWT, 30 min default), a refresh token (JWT, 7 days
 default) and a `guestCookieToken` used to resume the same identity later via
 `POST /api/auth/guest/resume`. Full claim tables and DB columns:
@@ -25,6 +25,35 @@ default) and a `guestCookieToken` used to resume the same identity later via
   hitting `/api/admin/**`).
 - `POST /api/auth/logout` / `POST /api/auth/logout/all` revoke one or all sessions and clear
   both HttpOnly cookies.
+
+### 1.1 Google login (V1.2.0, [Steps 2-5](documentation_v1/Step03_GoogleSsoBackendFlow.md))
+
+Passwords no longer exist: a player is a guest or a Google user (`users_identities`).
+
+- **Login**: `POST /api/auth/google` with a Google Identity Services ID token (no client secret) and a
+  frontend nonce. Checks: signature (JWKS), `aud` = stage client id, `iss`, `exp`, `nonce`, replay
+  (token hash kept until `exp` in `auth_id_token_seen` / `GOOGLEJTI#`), `email_verified`, domain
+  `@gmail.com` only (`googlemail.com` refused). The email identifies the user and is never updated;
+  identity key = `sub` + email (`IDENTITY_MISMATCH` if the email has another `sub`). The email, name
+  and picture are never logged (log sanitizer on the 3 backends).
+- **Tokens**: access and refresh JWTs carry `iss` (stage + backend) and `aud`. Refresh revokes only the
+  token used, with a 30 s grace for the just-rotated one, cap of 5 sessions; a revoked session answers
+  `SESSION_REVOKED`. Refresh and guest cookie tokens are stored as SHA-256 hashes (lazy migration).
+  `users.state` is checked on every request (60 s cache on Java/Python, evicted on state change);
+  the role always comes from the DB; the AWS synthetic user is gone and `ALLOW_MOCK_ACCESS` defaults to
+  `false`.
+- **Switches**: `GOOGLE_ENABLED` (code default true, false only on test; exposed with the client id in
+  `GET /api/echo/status`, button hidden when false) and rate limit `RATE_LIMIT_GOOGLE_PER_IP`.
+- **Deletion and retention**: `DELETE /api/auth/me` needs an ID token fresher than 5 minutes
+  (`FRESH_TOKEN_REQUIRED`), answers 202 and sets state 7; a chunked idempotent job removes the user,
+  personal data, matches and logs (login meanwhile: `ACCOUNT_DELETION_IN_PROGRESS`). A second job
+  deletes Google users idle for 24 months (`ts_last_access`). AWS: `AccountJobsFunction`.
+- **Admin bootstrap**: no admin from the API. AWS `AdminBootstrapFunction` (no route), Java
+  `--paths.admin.create=<nick>`, Python `python -m app.scripts.create_admin`; wrapped by
+  `code/scripts/dev/create_admin_{java,python}.sh <local|ec2> <nick>` and
+  `code/scripts/prod/aws_create_admin.sh <stage> <nick>`. Admin token lasts 365 days, 30 on AWS `prod`.
+- **Policies**: static `privacy.html`, `terms.html`, `cookies.html` (react-game `postbuild`) for the Google
+  brand; CSP allows `accounts.google.com` and `googleusercontent.com` (profile picture).
 
 ## 2. Admin role and the admin port
 
@@ -193,7 +222,7 @@ across environments.
 - **Owner move (v0.41.6)**: `GET`/`PUT /api/admin/matches/{uuidMatch}/owner` and `GET /api/admin/users/{identifier}` are admin-only on port 8044 and behind the AWS allow-list.
 
 # Version Control
-- **Document Version**: 1.1.0
+- **Document Version**: 1.2.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -202,8 +231,9 @@ across environments.
   | 0.41.2 | Production website CSP switched to restricted | September 29, 2026 |
   | 0.41.4 | Admin-only match export and import, no secrets copied; owner move | October 3, 2026 |
   | 1.1.0 | Smoke test function noted as not public | October 13, 2026 |
+  | 1.2.0 | Google login, hashed sessions, account deletion | October 20, 2026 |
 
-- **Last Updated**: October 13, 2026 (v1.1.0)
+- **Last Updated**: October 20, 2026 (v1.2.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

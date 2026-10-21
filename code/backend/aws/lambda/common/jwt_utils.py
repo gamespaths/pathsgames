@@ -4,11 +4,13 @@ common/jwt_utils.py — Paths Games JWT verification
 Verifies and generates HS256 JWT tokens using only the Python standard library
 (no PyJWT dependency required on Lambda).
 
-ALLOW_MOCK_ACCESS env var (code default "true"; the SAM default is "false" since v0.41.0):
+ALLOW_MOCK_ACCESS env var (v1.2.0 code default "false", like the SAM default since v0.41.0):
   "true"  → accept/generate MOCK_ACCESS_{uuid} and MOCK_REFRESH_{uuid} tokens (dev convenience)
   "false" → only real HS256 JWTs accepted and generated (production-safe)
 
-Expected JWT claims (issued by the Java backend or this module):
+Expected JWT claims (issued by this module; v1.2.0 iss and aud required on both tokens):
+  iss      — stage + backend (JWT_ISSUER, default pathsgames-<ENV>-aws)
+  aud      — JWT_AUDIENCE (default paths-games)
   sub      — user UUID
   username — display name
   role     — ADMIN | PLAYER
@@ -22,11 +24,22 @@ import base64
 import json
 import time
 import os
+import uuid
 
 DEV_JWT_SECRET = 'PathsGamesDevSecret2026_MustBeAtLeast32Chars!'
 JWT_SECRET = os.environ.get('JWT_SECRET', DEV_JWT_SECRET)
 
-ALLOW_MOCK_ACCESS = os.environ.get('ALLOW_MOCK_ACCESS', 'true').lower() not in ('false', '0', 'no')
+ALLOW_MOCK_ACCESS = os.environ.get('ALLOW_MOCK_ACCESS', 'false').lower() in ('true', '1', 'yes')
+DEFAULT_AUDIENCE = 'paths-games'
+
+
+def issuer():
+    """v1.2.0 iss of this stack: JWT_ISSUER, else pathsgames-<ENV>-aws."""
+    return (os.environ.get('JWT_ISSUER') or '').strip() or f"pathsgames-{os.environ.get('ENV', 'dev')}-aws"
+
+
+def audience():
+    return (os.environ.get('JWT_AUDIENCE') or '').strip() or DEFAULT_AUDIENCE
 
 
 def misconfigured():
@@ -65,9 +78,12 @@ def _sign_jwt(payload: dict) -> str:
 
 
 def generate_access_token(user_uuid, username, role, exp_seconds=1800):
-    """Generate a signed HS256 access JWT."""
+    """Generate a signed HS256 access JWT (v1.2.0 with iss, aud and jti)."""
     now = int(time.time())
     return _sign_jwt({
+        'iss':      issuer(),
+        'aud':      audience(),
+        'jti':      str(uuid.uuid4()),
         'sub':      user_uuid,
         'username': username,
         'role':     role,
@@ -77,26 +93,31 @@ def generate_access_token(user_uuid, username, role, exp_seconds=1800):
     })
 
 
-def generate_refresh_token(user_uuid, exp_seconds=15_552_000, token_version=0):
-    """Generate a signed HS256 refresh JWT.
-
-    The ``ver`` claim carries the user's current token version so that logout and
-    refresh-rotation can revoke previously issued refresh tokens server-side (the
-    user item stores the authoritative ``token_version``).
-    """
+def generate_refresh_token(user_uuid, exp_seconds=15_552_000):
+    """Generate a signed HS256 refresh JWT; v1.2.0 every refresh token is stored as SHA-256 hash
+    (REFRESH#<hash> item), so the jti makes each one unique."""
     now = int(time.time())
     return _sign_jwt({
+        'iss':  issuer(),
+        'aud':  audience(),
+        'jti':  str(uuid.uuid4()),
         'sub':  user_uuid,
         'type': 'refresh',
-        'ver':  token_version,
         'iat':  now,
         'exp':  now + exp_seconds,
     })
 
 
+def _issued_here(payload):
+    """v1.2.0 a token of another stage or backend, or one issued before 1.2.0, is refused."""
+    aud = payload.get('aud')
+    audiences = aud if isinstance(aud, list) else [aud]
+    return payload.get('iss') == issuer() and audience() in audiences
+
+
 def decode_refresh_token(token):
-    """Verify a refresh token and return its full payload dict (with ``sub`` and
-    ``ver``) or None when invalid/expired."""
+    """Verify a refresh token and return its full payload dict (with ``sub``) or None when
+    invalid, expired or (v1.2.0) of another stage or backend."""
     if not token:
         return None
     try:
@@ -110,7 +131,7 @@ def decode_refresh_token(token):
         if not hmac.compare_digest(expected_sig, _b64url_decode(sig_b64)):
             return None
         payload = json.loads(_b64url_decode(payload_b64))
-        if payload.get('type') != 'refresh':
+        if payload.get('type') != 'refresh' or not _issued_here(payload):
             return None
         exp = payload.get('exp')
         if exp is not None and time.time() > exp:
@@ -166,7 +187,7 @@ def verify_access_token(token):
 
         payload = json.loads(_b64url_decode(payload_b64))
 
-        if payload.get('type') != 'access':
+        if payload.get('type') != 'access' or not _issued_here(payload):
             return None
 
         exp = payload.get('exp')

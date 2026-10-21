@@ -1,32 +1,34 @@
 package games.paths.core.service.auth;
 
+import games.paths.core.model.auth.AuthException;
 import games.paths.core.model.auth.RefreshedSession;
+import games.paths.core.model.auth.StoredRefreshToken;
 import games.paths.core.model.auth.TokenInfo;
+import games.paths.core.model.auth.UserStates;
+import games.paths.core.model.auth.UserStatus;
 import games.paths.core.port.auth.JwtPort;
 import games.paths.core.port.auth.SessionPort;
 import games.paths.core.port.auth.TokenPersistencePort;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 
 /**
- * SessionService - Domain service implementing session and token management.
- * This is pure domain logic with no Spring/framework dependency.
- * Handles token refresh (with rotation), logout, and access token validation.
- *
- * Token rotation policy: every refresh revokes ALL previous tokens for the user
- * and issues a brand-new pair (access + refresh).
- *
- * Max active tokens: enforced at creation time (login/guest). When a new session
- * is created and the user exceeds the limit, the oldest token is revoked.
+ * SessionService - Domain service implementing session and token management (no framework dependency).
+ * v1.2.0 refresh revokes only the used token (30 s grace), hashed tokens, state check, cap of 5 sessions.
  */
 public class SessionService implements SessionPort {
 
     private static final int MAX_TOKENS_PER_USER = 5;
+    /** A just-rotated refresh token is still accepted this long (two tabs refreshing at once). */
+    public static final long GRACE_SECONDS = 30;
 
     private final JwtPort jwtPort;
     private final TokenPersistencePort tokenPersistencePort;
     private final int maxTokensPerUser;
+    private Clock clock = Clock.systemUTC();
 
     public SessionService(JwtPort jwtPort, TokenPersistencePort tokenPersistencePort) {
         this(jwtPort, tokenPersistencePort, MAX_TOKENS_PER_USER);
@@ -38,65 +40,55 @@ public class SessionService implements SessionPort {
         this.maxTokensPerUser = maxTokensPerUser;
     }
 
+    void setClock(Clock clock) {
+        this.clock = clock;
+    }
+
+    /**
+     * Null when the token is unknown, malformed or expired; AuthException SESSION_REVOKED when it was
+     * revoked (logout, another device) and ACCOUNT_DISABLED / ACCOUNT_DELETION_IN_PROGRESS by state.
+     */
     @Override
     public RefreshedSession refreshToken(String refreshToken) {
-        if (refreshToken == null || refreshToken.isBlank()) {
+        if (refreshToken == null || refreshToken.isBlank() || !jwtPort.validateToken(refreshToken)) {
             return null;
         }
-
-        // 1. Validate JWT signature and expiry
-        if (!jwtPort.validateToken(refreshToken)) {
-            return null;
-        }
-
-        // 2. Parse claims from the refresh token
         Map<String, Object> claims = jwtPort.parseToken(refreshToken);
-        if (claims == null) {
+        if (claims == null || !"refresh".equals(claims.get("type"))) {
             return null;
         }
-
-        // 3. Verify it's a refresh token
-        String type = (String) claims.get("type");
-        if (!"refresh".equals(type)) {
+        Instant now = clock.instant();
+        Optional<StoredRefreshToken> found = tokenPersistencePort.findRefreshToken(
+                TokenHasher.sha256(refreshToken), TokenHasher.legacy(refreshToken, now));
+        if (found.isEmpty() || expired(found.get().expiresAt(), now)) {
             return null;
         }
-
-        // 4. Check if the refresh token is not revoked in DB
-        if (!tokenPersistencePort.isRefreshTokenValid(refreshToken)) {
+        StoredRefreshToken stored = found.get();
+        if (stored.revoked() && !inGrace(stored.tsRotated(), now)) {
+            throw new AuthException(AuthException.Code.SESSION_REVOKED, "The session was closed");
+        }
+        Optional<UserStatus> userOpt = tokenPersistencePort.findUserById(stored.userId());
+        if (userOpt.isEmpty() || !userOpt.get().uuid().equals(claims.get("sub"))) {
             return null;
         }
-
-        // 5. Get user info associated with this refresh token
-        Map<String, Object> userData = tokenPersistencePort.findUserByRefreshToken(refreshToken);
-        if (userData == null) {
-            return null;
+        UserStatus user = userOpt.get();
+        UserStates.requireUsable(user.state());
+        if (!stored.revoked()) {
+            tokenPersistencePort.markRotated(stored.id(), now.toString());
         }
 
-        String userUuid = (String) userData.get("uuid");
-        String username = (String) userData.get("username");
-        String role = (String) userData.get("role");
-        Object idObj = userData.get("id");
-        if (userUuid == null || username == null || idObj == null) {
-            return null;
-        }
-        long userId = ((Number) idObj).longValue();
-
-        // 6. Token rotation: revoke ALL previous tokens for this user
-        tokenPersistencePort.revokeAllUserTokens(userId);
-
-        // 7. Generate new token pair
-        String newAccessToken = jwtPort.generateAccessToken(userUuid, username, role != null ? role : "PLAYER");
-        String newRefreshToken = jwtPort.generateRefreshToken(userUuid);
-
-        // 8. Store new refresh token
+        String newAccessToken = jwtPort.generateAccessToken(user.uuid(), user.username(), user.role());
+        String newRefreshToken = jwtPort.generateRefreshToken(user.uuid());
         long refreshExpiresMs = jwtPort.getRefreshTokenExpirationMs();
-        String refreshExpiresAt = Instant.ofEpochMilli(refreshExpiresMs).toString();
-        tokenPersistencePort.storeRefreshToken(userId, newRefreshToken, refreshExpiresAt);
+        tokenPersistencePort.storeRefreshToken(user.id(), TokenHasher.sha256(newRefreshToken),
+                Instant.ofEpochMilli(refreshExpiresMs).toString());
+        tokenPersistencePort.revokeOldestTokensIfLimitExceeded(user.id(), maxTokensPerUser);
+        tokenPersistencePort.updateLastAccess(user.id());
 
         return RefreshedSession.builder()
-                .userUuid(userUuid)
-                .username(username)
-                .role(role != null ? role : "PLAYER")
+                .userUuid(user.uuid())
+                .username(user.username())
+                .role(user.role())
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken)
                 .accessTokenExpiresAt(jwtPort.getAccessTokenExpirationMs())
@@ -109,8 +101,8 @@ public class SessionService implements SessionPort {
         if (refreshToken == null || refreshToken.isBlank()) {
             return false;
         }
-
-        return tokenPersistencePort.revokeRefreshToken(refreshToken);
+        return tokenPersistencePort.revokeRefreshToken(TokenHasher.sha256(refreshToken),
+                TokenHasher.legacy(refreshToken, clock.instant()));
     }
 
     @Override
@@ -118,59 +110,54 @@ public class SessionService implements SessionPort {
         if (userUuid == null || userUuid.isBlank()) {
             return false;
         }
-
         long userId = tokenPersistencePort.findUserIdByUuid(userUuid);
         if (userId < 0) {
             return false;
         }
-
         tokenPersistencePort.revokeAllUserTokens(userId);
         return true;
     }
 
     @Override
     public TokenInfo validateAccessToken(String accessToken) {
-        if (accessToken == null || accessToken.isBlank()) {
+        if (accessToken == null || accessToken.isBlank() || !jwtPort.validateToken(accessToken)) {
             return null;
         }
-
-        // Validate JWT signature and expiry
-        if (!jwtPort.validateToken(accessToken)) {
-            return null;
-        }
-
-        // Parse claims
         Map<String, Object> claims = jwtPort.parseToken(accessToken);
-        if (claims == null) {
+        if (claims == null || !"access".equals(claims.get("type"))) {
             return null;
         }
-
-        // Verify it's an access token
-        String type = (String) claims.get("type");
-        if (!"access".equals(type)) {
-            return null;
-        }
-
         String userUuid = (String) claims.get("sub");
-        String username = (String) claims.get("username");
-        String role = (String) claims.get("role");
-        String tokenId = (String) claims.get("jti");
-
         if (userUuid == null) {
             return null;
         }
+        return new TokenInfo(userUuid, (String) claims.get("username"), (String) claims.get("role"), "access",
+                (String) claims.get("jti"), number(claims.get("iat")), number(claims.get("exp")));
+    }
 
-        long issuedAt = 0;
-        long expiresAt = 0;
-        Object iatObj = claims.get("iat");
-        Object expObj = claims.get("exp");
-        if (iatObj instanceof Number) {
-            issuedAt = ((Number) iatObj).longValue();
-        }
-        if (expObj instanceof Number) {
-            expiresAt = ((Number) expObj).longValue();
-        }
+    private static long number(Object value) {
+        return value instanceof Number n ? n.longValue() : 0;
+    }
 
-        return new TokenInfo(userUuid, username, role, type, tokenId, issuedAt, expiresAt);
+    private static boolean expired(String expiresAt, Instant now) {
+        if (expiresAt == null) {
+            return false;
+        }
+        try {
+            return now.isAfter(Instant.parse(expiresAt));
+        } catch (RuntimeException unreadable) {
+            return true;
+        }
+    }
+
+    private static boolean inGrace(String tsRotated, Instant now) {
+        if (tsRotated == null || tsRotated.isBlank()) {
+            return false;
+        }
+        try {
+            return !now.isAfter(Instant.parse(tsRotated).plusSeconds(GRACE_SECONDS));
+        } catch (RuntimeException unreadable) {
+            return false;
+        }
     }
 }

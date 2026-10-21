@@ -32,53 +32,20 @@ class GuestAuthController:
         self.router.add_api_route("/resume", self.resume_guest, methods=["POST"])
 
     def _process_session_response(self, session):
-        uuid = session.user_uuid
-        username = session.username
-        role = "PLAYER" # Guest default
-
-        # 1. Generate JWT tokens
-        access_token = self.jwt_port.generate_access_token(uuid, username, role)
-        refresh_token = self.jwt_port.generate_refresh_token(uuid)
-
-        # 2. Persist refresh token (Step 13)
-        token_info = self.jwt_port.parse_token(refresh_token)
-        self.token_persistence.save_refresh_token(uuid, refresh_token, token_info)
-
-        # 3. Create JSON Response
+        # v1.2.0 the tokens issued (and stored as hash) by the service, never a second pair
         data = {
-            "userUuid": uuid,
-            "username": username,
-            "role": role,
-            "accessToken": access_token,
-            "accessTokenExpiresAt": self.jwt_port.get_access_token_expiration_ms(),
-            "refreshTokenExpiresAt": self.jwt_port.get_refresh_token_expiration_ms()
+            "userUuid": session.user_uuid,
+            "username": session.username,
+            "role": "PLAYER",
+            "accessToken": session.access_token,
+            "accessTokenExpiresAt": session.access_token_expires_at,
+            "refreshTokenExpiresAt": session.refresh_token_expires_at
         }
         if self.csrf_token_service is not None:
-            data["csrfToken"] = self.csrf_token_service.token_for(access_token)
-        
+            data["csrfToken"] = self.csrf_token_service.token_for(session.access_token)
         response = JSONResponse(content=data)
-
-        # 4. Set HttpOnly cookies with SameSite=None and Secure=True
-        response.set_cookie(
-            key="pathsgames.refreshToken",
-            value=refresh_token,
-            httponly=True,
-            samesite="none",
-            secure=True,
-            path="/",
-            max_age=180 * 24 * 60 * 60  # 6 months
-        )
-
-        response.set_cookie(
-            key="pathsgames.guestcookie",
-            value=session.guest_cookie_token,
-            httponly=True,
-            samesite="none",
-            secure=True,
-            path="/",
-            max_age=180 * 24 * 60 * 60  # 6 months
-        )
-
+        set_auth_cookie(response, "pathsgames.refreshToken", session.refresh_token)
+        set_auth_cookie(response, "pathsgames.guestcookie", session.guest_cookie_token)
         return response
 
     def create_guest(self, request: Request,
@@ -124,6 +91,12 @@ class GuestAuthController:
                 }
             )
         return self._process_session_response(session)
+
+
+def set_auth_cookie(response, key: str, value: str) -> None:
+    """HttpOnly, SameSite=None, Secure, 6 months (refresh and guest cookie)."""
+    response.set_cookie(key=key, value=value, httponly=True, samesite="none", secure=True, path="/",
+                        max_age=180 * 24 * 60 * 60)
 
 
 def _parse_age(raw: Optional[str]) -> Optional[int]:

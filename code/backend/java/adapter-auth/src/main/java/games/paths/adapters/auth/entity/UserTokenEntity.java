@@ -27,6 +27,10 @@ public class UserTokenEntity extends BaseAuthEntity {
     @Column(nullable = false)
     private Boolean revoked = false;
 
+    // v1.2.0 set when a refresh rotated the token: starts the 30-second grace window
+    @Column(name = "ts_rotated")
+    private String tsRotated;
+
     @PrePersist
     protected void onCreate() {
         String now = java.time.Instant.now().toString();
@@ -75,5 +79,13 @@ public class UserTokenEntity extends BaseAuthEntity {
 
     public void setRevoked(Boolean revoked) {
         this.revoked = revoked;
+    }
+
+    public String getTsRotated() {
+        return tsRotated;
+    }
+
+    public void setTsRotated(String tsRotated) {
+        this.tsRotated = tsRotated;
     }
 }

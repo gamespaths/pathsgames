@@ -38,4 +38,16 @@ class PathsGameApplicationTest {
             })
         );
     }
+
+    @Test
+    void adminToolCreatesTheAdminOnAFreshDatabaseAndExits() throws Exception {
+        java.nio.file.Path db = java.nio.file.Files.createTempFile("pathsgames-admin-tool", ".sqlite");
+        db.toFile().deleteOnExit();
+        int code = PathsGameApplication.runAdminTool(new String[]{
+            "--paths.admin.create=cli_admin",
+            "--game.database.path=" + db,
+            "--spring.datasource.url=jdbc:sqlite:" + db
+        });
+        org.junit.jupiter.api.Assertions.assertEquals(0, code);
+    }
 }

@@ -1,7 +1,10 @@
 package games.paths.core.service.auth;
 
+import games.paths.core.model.auth.AuthException;
 import games.paths.core.model.auth.RefreshedSession;
+import games.paths.core.model.auth.StoredRefreshToken;
 import games.paths.core.model.auth.TokenInfo;
+import games.paths.core.model.auth.UserStatus;
 import games.paths.core.port.auth.JwtPort;
 import games.paths.core.port.auth.TokenPersistencePort;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,465 +15,250 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for {@link SessionService}.
- * Covers all branches: refreshToken, logout, revokeAllSessions, validateAccessToken.
+ * Unit tests for {@link SessionService}: v1.2.0 hashed refresh tokens, rotation of the used token only,
+ * the 30-second grace, SESSION_REVOKED, the user state check, logout, revoke-all and access validation.
  */
 @ExtendWith(MockitoExtension.class)
 class SessionServiceTest {
+
+    private static final Instant NOW = Instant.parse("2026-10-19T10:00:00Z");
+    private static final String TOKEN = "refresh-jwt";
+    private static final String HASH = TokenHasher.sha256(TOKEN);
+    private static final String UUID = "user-uuid";
 
     @Mock
     private JwtPort jwtPort;
 
     @Mock
-    private TokenPersistencePort tokenPersistencePort;
+    private TokenPersistencePort tokens;
 
-    private SessionService sessionService;
+    private SessionService service;
 
     @BeforeEach
     void setUp() {
-        sessionService = new SessionService(jwtPort, tokenPersistencePort, 5);
+        service = new SessionService(jwtPort, tokens, 5);
+        service.setClock(Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
-    // === Constructor tests ===
+    private void validRefreshJwt() {
+        when(jwtPort.validateToken(TOKEN)).thenReturn(true);
+        when(jwtPort.parseToken(TOKEN)).thenReturn(new HashMap<>(Map.of("type", "refresh", "sub", UUID)));
+    }
+
+    private static StoredRefreshToken stored(boolean revoked, String rotated) {
+        return new StoredRefreshToken(10L, 1L, revoked, NOW.plusSeconds(3600).toString(), rotated);
+    }
+
+    private static UserStatus user(int state) {
+        return new UserStatus(1L, UUID, "google_abc", "mario", "PLAYER", state, "en");
+    }
+
+    private void issuesTokens() {
+        when(jwtPort.generateAccessToken(UUID, "google_abc", "PLAYER")).thenReturn("access-2");
+        when(jwtPort.generateRefreshToken(UUID)).thenReturn("refresh-2");
+        when(jwtPort.getRefreshTokenExpirationMs()).thenReturn(NOW.plusSeconds(7 * 86400).toEpochMilli());
+        when(jwtPort.getAccessTokenExpirationMs()).thenReturn(NOW.plusSeconds(1800).toEpochMilli());
+    }
 
     @Test
-    @DisplayName("Should use default maxTokensPerUser via 2-arg constructor")
-    void constructor_defaultMaxTokens() {
-        SessionService svc = new SessionService(jwtPort, tokenPersistencePort);
-        // Should not throw, uses default MAX_TOKENS_PER_USER = 5
-        assertNotNull(svc);
+    @DisplayName("The two-argument constructor keeps the default cap")
+    void defaultConstructor() {
+        assertNotNull(new SessionService(jwtPort, tokens));
     }
 
-    // ==========================================================================
-    // refreshToken
-    // ==========================================================================
-
     @Nested
-    @DisplayName("refreshToken Tests")
-    class RefreshTokenTests {
+    @DisplayName("refreshToken")
+    class Refresh {
 
         @Test
-        @DisplayName("Should return null when refreshToken is null")
-        void refreshToken_null() {
-            assertNull(sessionService.refreshToken(null));
-        }
-
-        @Test
-        @DisplayName("Should return null when refreshToken is blank")
-        void refreshToken_blank() {
-            assertNull(sessionService.refreshToken("  "));
-        }
-
-        @Test
-        @DisplayName("Should return null when JWT validation fails")
-        void refreshToken_invalidJwt() {
-            when(jwtPort.validateToken("bad-token")).thenReturn(false);
-            assertNull(sessionService.refreshToken("bad-token"));
-        }
-
-        @Test
-        @DisplayName("Should return null when parseToken returns null")
-        void refreshToken_parseReturnsNull() {
-            when(jwtPort.validateToken("valid")).thenReturn(true);
-            when(jwtPort.parseToken("valid")).thenReturn(null);
-            assertNull(sessionService.refreshToken("valid"));
-        }
-
-        @Test
-        @DisplayName("Should return null when token type is not 'refresh'")
-        void refreshToken_notRefreshType() {
-            when(jwtPort.validateToken("access-tok")).thenReturn(true);
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("type", "access");
-            when(jwtPort.parseToken("access-tok")).thenReturn(claims);
-            assertNull(sessionService.refreshToken("access-tok"));
-        }
-
-        @Test
-        @DisplayName("Should return null when token type is null")
-        void refreshToken_nullType() {
-            when(jwtPort.validateToken("no-type")).thenReturn(true);
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("type", null);
-            when(jwtPort.parseToken("no-type")).thenReturn(claims);
-            assertNull(sessionService.refreshToken("no-type"));
-        }
-
-        @Test
-        @DisplayName("Should return null when refresh token is revoked in DB")
-        void refreshToken_revokedInDb() {
-            when(jwtPort.validateToken("revoked-tok")).thenReturn(true);
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("type", "refresh");
-            when(jwtPort.parseToken("revoked-tok")).thenReturn(claims);
-            when(tokenPersistencePort.isRefreshTokenValid("revoked-tok")).thenReturn(false);
-            assertNull(sessionService.refreshToken("revoked-tok"));
-        }
-
-        @Test
-        @DisplayName("Should return null when userData is null")
-        void refreshToken_userDataNull() {
-            when(jwtPort.validateToken("tok")).thenReturn(true);
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("type", "refresh");
-            when(jwtPort.parseToken("tok")).thenReturn(claims);
-            when(tokenPersistencePort.isRefreshTokenValid("tok")).thenReturn(true);
-            when(tokenPersistencePort.findUserByRefreshToken("tok")).thenReturn(null);
-            assertNull(sessionService.refreshToken("tok"));
-        }
-
-        @Test
-        @DisplayName("Should return null when userData is missing required uuid")
-        void refreshToken_missingUuid() {
-            when(jwtPort.validateToken("tok")).thenReturn(true);
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("type", "refresh");
-            when(jwtPort.parseToken("tok")).thenReturn(claims);
-            when(tokenPersistencePort.isRefreshTokenValid("tok")).thenReturn(true);
-
-            Map<String, Object> userData = new HashMap<>();
-            userData.put("uuid", null);
-            userData.put("username", "guest_1");
-            userData.put("id", 42L);
-            when(tokenPersistencePort.findUserByRefreshToken("tok")).thenReturn(userData);
-
-            assertNull(sessionService.refreshToken("tok"));
-        }
-
-        @Test
-        @DisplayName("Should return null when userData is missing username")
-        void refreshToken_missingUsername() {
-            when(jwtPort.validateToken("tok")).thenReturn(true);
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("type", "refresh");
-            when(jwtPort.parseToken("tok")).thenReturn(claims);
-            when(tokenPersistencePort.isRefreshTokenValid("tok")).thenReturn(true);
-
-            Map<String, Object> userData = new HashMap<>();
-            userData.put("uuid", "u-1");
-            userData.put("username", null);
-            userData.put("id", 42L);
-            when(tokenPersistencePort.findUserByRefreshToken("tok")).thenReturn(userData);
-
-            assertNull(sessionService.refreshToken("tok"));
-        }
-
-        @Test
-        @DisplayName("Should return null when userData is missing id")
-        void refreshToken_missingId() {
-            when(jwtPort.validateToken("tok")).thenReturn(true);
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("type", "refresh");
-            when(jwtPort.parseToken("tok")).thenReturn(claims);
-            when(tokenPersistencePort.isRefreshTokenValid("tok")).thenReturn(true);
-
-            Map<String, Object> userData = new HashMap<>();
-            userData.put("uuid", "u-1");
-            userData.put("username", "guest_1");
-            // no id
-            when(tokenPersistencePort.findUserByRefreshToken("tok")).thenReturn(userData);
-
-            assertNull(sessionService.refreshToken("tok"));
-        }
-
-        @Test
-        @DisplayName("Should successfully refresh token with non-null role")
-        void refreshToken_successWithRole() {
-            String oldRefresh = "valid-refresh";
-            when(jwtPort.validateToken(oldRefresh)).thenReturn(true);
-
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("type", "refresh");
-            when(jwtPort.parseToken(oldRefresh)).thenReturn(claims);
-            when(tokenPersistencePort.isRefreshTokenValid(oldRefresh)).thenReturn(true);
-
-            Map<String, Object> userData = new HashMap<>();
-            userData.put("uuid", "u-42");
-            userData.put("username", "testuser");
-            userData.put("role", "ADMIN");
-            userData.put("id", 100L);
-            when(tokenPersistencePort.findUserByRefreshToken(oldRefresh)).thenReturn(userData);
-
-            when(jwtPort.generateAccessToken("u-42", "testuser", "ADMIN")).thenReturn("new-access");
-            when(jwtPort.generateRefreshToken("u-42")).thenReturn("new-refresh");
-            when(jwtPort.getRefreshTokenExpirationMs()).thenReturn(999999L);
-            when(jwtPort.getAccessTokenExpirationMs()).thenReturn(500000L);
-
-            RefreshedSession session = sessionService.refreshToken(oldRefresh);
-
-            assertNotNull(session);
-            assertAll(
-                () -> assertEquals("u-42", session.getUserUuid()),
-                () -> assertEquals("testuser", session.getUsername()),
-                () -> assertEquals("ADMIN", session.getRole()),
-                () -> assertEquals("new-access", session.getAccessToken()),
-                () -> assertEquals("new-refresh", session.getRefreshToken()),
-                () -> assertEquals(500000L, session.getAccessTokenExpiresAt()),
-                () -> assertEquals(999999L, session.getRefreshTokenExpiresAt())
-            );
-
-            verify(tokenPersistencePort).revokeAllUserTokens(100L);
-            verify(tokenPersistencePort).storeRefreshToken(eq(100L), eq("new-refresh"), anyString());
-        }
-
-        @Test
-        @DisplayName("Should default role to PLAYER when role is null")
-        void refreshToken_nullRoleDefaultsToPlayer() {
-            String oldRefresh = "refresh-null-role";
-            when(jwtPort.validateToken(oldRefresh)).thenReturn(true);
-
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("type", "refresh");
-            when(jwtPort.parseToken(oldRefresh)).thenReturn(claims);
-            when(tokenPersistencePort.isRefreshTokenValid(oldRefresh)).thenReturn(true);
-
-            Map<String, Object> userData = new HashMap<>();
-            userData.put("uuid", "u-1");
-            userData.put("username", "guest_u1");
-            userData.put("role", null); // null role
-            userData.put("id", 50L);
-            when(tokenPersistencePort.findUserByRefreshToken(oldRefresh)).thenReturn(userData);
-
-            when(jwtPort.generateAccessToken("u-1", "guest_u1", "PLAYER")).thenReturn("acc");
-            when(jwtPort.generateRefreshToken("u-1")).thenReturn("ref");
-            when(jwtPort.getRefreshTokenExpirationMs()).thenReturn(1000L);
-            when(jwtPort.getAccessTokenExpirationMs()).thenReturn(500L);
-
-            RefreshedSession session = sessionService.refreshToken(oldRefresh);
-
-            assertNotNull(session);
-            assertEquals("PLAYER", session.getRole());
-            verify(jwtPort).generateAccessToken("u-1", "guest_u1", "PLAYER");
-        }
-    }
-
-    // ==========================================================================
-    // logout
-    // ==========================================================================
-
-    @Nested
-    @DisplayName("logout Tests")
-    class LogoutTests {
-
-        @Test
-        @DisplayName("Should return false when refreshToken is null")
-        void logout_null() {
-            assertFalse(sessionService.logout(null));
-        }
-
-        @Test
-        @DisplayName("Should return false when refreshToken is blank")
-        void logout_blank() {
-            assertFalse(sessionService.logout("  "));
-        }
-
-        @Test
-        @DisplayName("Should delegate to persistence and return true on success")
-        void logout_success() {
-            when(tokenPersistencePort.revokeRefreshToken("tok-1")).thenReturn(true);
-            assertTrue(sessionService.logout("tok-1"));
-            verify(tokenPersistencePort).revokeRefreshToken("tok-1");
-        }
-
-        @Test
-        @DisplayName("Should return false when persistence reports failure")
-        void logout_notFound() {
-            when(tokenPersistencePort.revokeRefreshToken("unknown")).thenReturn(false);
-            assertFalse(sessionService.logout("unknown"));
-        }
-    }
-
-    // ==========================================================================
-    // revokeAllSessions
-    // ==========================================================================
-
-    @Nested
-    @DisplayName("revokeAllSessions Tests")
-    class RevokeAllSessionsTests {
-
-        @Test
-        @DisplayName("Should return false when userUuid is null")
-        void revokeAll_null() {
-            assertFalse(sessionService.revokeAllSessions(null));
-        }
-
-        @Test
-        @DisplayName("Should return false when userUuid is blank")
-        void revokeAll_blank() {
-            assertFalse(sessionService.revokeAllSessions("   "));
-        }
-
-        @Test
-        @DisplayName("Should return false when user is not found (userId < 0)")
-        void revokeAll_userNotFound() {
-            when(tokenPersistencePort.findUserIdByUuid("unknown-uuid")).thenReturn(-1L);
-            assertFalse(sessionService.revokeAllSessions("unknown-uuid"));
-        }
-
-        @Test
-        @DisplayName("Should revoke all tokens and return true on success")
-        void revokeAll_success() {
-            when(tokenPersistencePort.findUserIdByUuid("u-1")).thenReturn(10L);
-            when(tokenPersistencePort.revokeAllUserTokens(10L)).thenReturn(3);
-
-            assertTrue(sessionService.revokeAllSessions("u-1"));
-            verify(tokenPersistencePort).revokeAllUserTokens(10L);
-        }
-    }
-
-    // ==========================================================================
-    // validateAccessToken
-    // ==========================================================================
-
-    @Nested
-    @DisplayName("validateAccessToken Tests")
-    class ValidateAccessTokenTests {
-
-        @Test
-        @DisplayName("Should return null when accessToken is null")
-        void validate_null() {
-            assertNull(sessionService.validateAccessToken(null));
-        }
-
-        @Test
-        @DisplayName("Should return null when accessToken is blank")
-        void validate_blank() {
-            assertNull(sessionService.validateAccessToken("  "));
-        }
-
-        @Test
-        @DisplayName("Should return null when JWT validation fails")
-        void validate_invalidJwt() {
+        void nullBlankOrInvalidJwt() {
+            assertNull(service.refreshToken(null));
+            assertNull(service.refreshToken(" "));
             when(jwtPort.validateToken("bad")).thenReturn(false);
-            assertNull(sessionService.validateAccessToken("bad"));
+            assertNull(service.refreshToken("bad"));
         }
 
         @Test
-        @DisplayName("Should return null when parseToken returns null")
-        void validate_parseNull() {
-            when(jwtPort.validateToken("tok")).thenReturn(true);
-            when(jwtPort.parseToken("tok")).thenReturn(null);
-            assertNull(sessionService.validateAccessToken("tok"));
+        void claimsMissingOrNotRefresh() {
+            when(jwtPort.validateToken(TOKEN)).thenReturn(true);
+            when(jwtPort.parseToken(TOKEN)).thenReturn(null);
+            assertNull(service.refreshToken(TOKEN));
+            when(jwtPort.parseToken(TOKEN)).thenReturn(Map.of("type", "access"));
+            assertNull(service.refreshToken(TOKEN));
         }
 
         @Test
-        @DisplayName("Should return null when token type is not 'access'")
-        void validate_notAccessType() {
-            when(jwtPort.validateToken("tok")).thenReturn(true);
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("type", "refresh");
-            when(jwtPort.parseToken("tok")).thenReturn(claims);
-            assertNull(sessionService.validateAccessToken("tok"));
+        void unknownToken() {
+            validRefreshJwt();
+            when(tokens.findRefreshToken(HASH, TOKEN)).thenReturn(Optional.empty());
+            assertNull(service.refreshToken(TOKEN));
         }
 
         @Test
-        @DisplayName("Should return null when type is null")
-        void validate_nullType() {
-            when(jwtPort.validateToken("tok")).thenReturn(true);
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("type", null);
-            when(jwtPort.parseToken("tok")).thenReturn(claims);
-            assertNull(sessionService.validateAccessToken("tok"));
+        void expiredOrUnreadableExpiry() {
+            validRefreshJwt();
+            when(tokens.findRefreshToken(HASH, TOKEN)).thenReturn(Optional.of(
+                    new StoredRefreshToken(10L, 1L, false, NOW.minusSeconds(1).toString(), null)));
+            assertNull(service.refreshToken(TOKEN));
+            when(tokens.findRefreshToken(HASH, TOKEN)).thenReturn(Optional.of(
+                    new StoredRefreshToken(10L, 1L, false, "not-a-date", null)));
+            assertNull(service.refreshToken(TOKEN));
         }
 
         @Test
-        @DisplayName("Should return null when subject (userUuid) is null")
-        void validate_nullSubject() {
-            when(jwtPort.validateToken("tok")).thenReturn(true);
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("type", "access");
-            claims.put("sub", null);
-            when(jwtPort.parseToken("tok")).thenReturn(claims);
-            assertNull(sessionService.validateAccessToken("tok"));
+        void rotatesOnlyTheUsedToken() {
+            validRefreshJwt();
+            when(tokens.findRefreshToken(HASH, TOKEN)).thenReturn(Optional.of(stored(false, null)));
+            when(tokens.findUserById(1L)).thenReturn(Optional.of(user(2)));
+            issuesTokens();
+
+            RefreshedSession session = service.refreshToken(TOKEN);
+
+            assertEquals("access-2", session.getAccessToken());
+            assertEquals("refresh-2", session.getRefreshToken());
+            assertEquals("PLAYER", session.getRole());
+            verify(tokens).markRotated(10L, NOW.toString());
+            verify(tokens, never()).revokeAllUserTokens(anyLong());
+            verify(tokens).storeRefreshToken(eq(1L), eq(TokenHasher.sha256("refresh-2")), anyString());
+            verify(tokens).revokeOldestTokensIfLimitExceeded(1L, 5);
+            verify(tokens).updateLastAccess(1L);
         }
 
         @Test
-        @DisplayName("Should return valid TokenInfo on success with all claims")
-        void validate_success() {
-            when(jwtPort.validateToken("tok")).thenReturn(true);
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("type", "access");
-            claims.put("sub", "u-1");
-            claims.put("username", "guest_u1");
-            claims.put("role", "PLAYER");
-            claims.put("jti", "jti-123");
-            claims.put("iat", 1000L);
-            claims.put("exp", 2000L);
-            when(jwtPort.parseToken("tok")).thenReturn(claims);
+        void graceWindowAcceptsJustRotatedToken() {
+            validRefreshJwt();
+            when(tokens.findRefreshToken(HASH, TOKEN)).thenReturn(Optional.of(
+                    stored(true, NOW.minusSeconds(29).toString())));
+            when(tokens.findUserById(1L)).thenReturn(Optional.of(user(2)));
+            issuesTokens();
 
-            TokenInfo info = sessionService.validateAccessToken("tok");
-
-            assertNotNull(info);
-            assertAll(
-                () -> assertEquals("u-1", info.userUuid()),
-                () -> assertEquals("guest_u1", info.username()),
-                () -> assertEquals("PLAYER", info.role()),
-                () -> assertEquals("access", info.type()),
-                () -> assertEquals("jti-123", info.tokenId()),
-                () -> assertEquals(1000L, info.issuedAt()),
-                () -> assertEquals(2000L, info.expiresAt())
-            );
+            assertNotNull(service.refreshToken(TOKEN));
+            verify(tokens, never()).markRotated(anyLong(), anyString());
         }
 
         @Test
-        @DisplayName("Should handle iat/exp as Integer instead of Long")
-        void validate_iatExpAsInteger() {
-            when(jwtPort.validateToken("tok")).thenReturn(true);
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("type", "access");
-            claims.put("sub", "u-1");
-            claims.put("iat", 1234);  // Integer, not Long
-            claims.put("exp", 5678);
-            when(jwtPort.parseToken("tok")).thenReturn(claims);
-
-            TokenInfo info = sessionService.validateAccessToken("tok");
-
-            assertNotNull(info);
-            assertEquals(1234L, info.issuedAt());
-            assertEquals(5678L, info.expiresAt());
+        void revokedAfterGraceIsSessionRevoked() {
+            validRefreshJwt();
+            when(tokens.findRefreshToken(HASH, TOKEN)).thenReturn(Optional.of(
+                    stored(true, NOW.minusSeconds(31).toString())));
+            AuthException e = assertThrows(AuthException.class, () -> service.refreshToken(TOKEN));
+            assertEquals(AuthException.Code.SESSION_REVOKED, e.getCode());
         }
 
         @Test
-        @DisplayName("Should handle iat/exp as null (non-Number)")
-        void validate_iatExpNull() {
-            when(jwtPort.validateToken("tok")).thenReturn(true);
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("type", "access");
-            claims.put("sub", "u-1");
-            // iat and exp not in map — so they'll be null
-            when(jwtPort.parseToken("tok")).thenReturn(claims);
-
-            TokenInfo info = sessionService.validateAccessToken("tok");
-
-            assertNotNull(info);
-            assertEquals(0L, info.issuedAt());
-            assertEquals(0L, info.expiresAt());
+        void revokedByLogoutHasNoGrace() {
+            validRefreshJwt();
+            when(tokens.findRefreshToken(HASH, TOKEN)).thenReturn(Optional.of(stored(true, null)));
+            assertThrows(AuthException.class, () -> service.refreshToken(TOKEN));
+            when(tokens.findRefreshToken(HASH, TOKEN)).thenReturn(Optional.of(stored(true, "garbage")));
+            assertThrows(AuthException.class, () -> service.refreshToken(TOKEN));
         }
 
         @Test
-        @DisplayName("Should handle iat/exp as String (non-Number, should default to 0)")
-        void validate_iatExpAsString() {
-            when(jwtPort.validateToken("tok")).thenReturn(true);
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("type", "access");
-            claims.put("sub", "u-1");
-            claims.put("iat", "not-a-number");
-            claims.put("exp", "also-not");
-            when(jwtPort.parseToken("tok")).thenReturn(claims);
+        void missingUserOrOtherSubject() {
+            validRefreshJwt();
+            when(tokens.findRefreshToken(HASH, TOKEN)).thenReturn(Optional.of(stored(false, null)));
+            when(tokens.findUserById(1L)).thenReturn(Optional.empty());
+            assertNull(service.refreshToken(TOKEN));
+            when(tokens.findUserById(1L)).thenReturn(Optional.of(
+                    new UserStatus(1L, "other", "u", "n", "PLAYER", 2, "en")));
+            assertNull(service.refreshToken(TOKEN));
+        }
 
-            TokenInfo info = sessionService.validateAccessToken("tok");
+        @Test
+        void bannedAndDeletingUsersAreRefused() {
+            validRefreshJwt();
+            when(tokens.findRefreshToken(HASH, TOKEN)).thenReturn(Optional.of(stored(false, null)));
+            when(tokens.findUserById(1L)).thenReturn(Optional.of(user(4)));
+            assertEquals(AuthException.Code.ACCOUNT_DISABLED,
+                    assertThrows(AuthException.class, () -> service.refreshToken(TOKEN)).getCode());
+            when(tokens.findUserById(1L)).thenReturn(Optional.of(user(7)));
+            assertEquals(AuthException.Code.ACCOUNT_DELETION_IN_PROGRESS,
+                    assertThrows(AuthException.class, () -> service.refreshToken(TOKEN)).getCode());
+            verify(tokens, never()).markRotated(anyLong(), anyString());
+        }
 
-            assertNotNull(info);
-            assertEquals(0L, info.issuedAt());
-            assertEquals(0L, info.expiresAt());
+        @Test
+        void noLegacyLookupAfterTheFallbackWindow() {
+            service.setClock(Clock.fixed(TokenHasher.LEGACY_FALLBACK_UNTIL.plusSeconds(1), ZoneOffset.UTC));
+            validRefreshJwt();
+            when(tokens.findRefreshToken(HASH, null)).thenReturn(Optional.empty());
+            assertNull(service.refreshToken(TOKEN));
+            verify(tokens).findRefreshToken(HASH, null);
+        }
+    }
+
+    @Nested
+    @DisplayName("logout and revokeAllSessions")
+    class Logout {
+
+        @Test
+        void logoutRevokesByHash() {
+            assertFalse(service.logout(null));
+            assertFalse(service.logout(""));
+            when(tokens.revokeRefreshToken(HASH, TOKEN)).thenReturn(true);
+            assertTrue(service.logout(TOKEN));
+        }
+
+        @Test
+        void revokeAll() {
+            assertFalse(service.revokeAllSessions(null));
+            assertFalse(service.revokeAllSessions(" "));
+            when(tokens.findUserIdByUuid("missing")).thenReturn(-1L);
+            assertFalse(service.revokeAllSessions("missing"));
+            when(tokens.findUserIdByUuid(UUID)).thenReturn(1L);
+            assertTrue(service.revokeAllSessions(UUID));
+            verify(tokens).revokeAllUserTokens(1L);
+        }
+    }
+
+    @Nested
+    @DisplayName("validateAccessToken")
+    class Validate {
+
+        @Test
+        void invalidInputs() {
+            assertNull(service.validateAccessToken(null));
+            assertNull(service.validateAccessToken(" "));
+            when(jwtPort.validateToken("t")).thenReturn(false);
+            assertNull(service.validateAccessToken("t"));
+        }
+
+        @Test
+        void claimsChecks() {
+            when(jwtPort.validateToken("t")).thenReturn(true);
+            when(jwtPort.parseToken("t")).thenReturn(null);
+            assertNull(service.validateAccessToken("t"));
+            when(jwtPort.parseToken("t")).thenReturn(Map.of("type", "refresh"));
+            assertNull(service.validateAccessToken("t"));
+            when(jwtPort.parseToken("t")).thenReturn(Map.of("type", "access"));
+            assertNull(service.validateAccessToken("t"));
+        }
+
+        @Test
+        void validToken() {
+            when(jwtPort.validateToken("t")).thenReturn(true);
+            Map<String, Object> claims = new HashMap<>(Map.of("type", "access", "sub", UUID, "username", "u",
+                    "role", "PLAYER", "jti", "j", "iat", 1L, "exp", 2L));
+            when(jwtPort.parseToken("t")).thenReturn(claims);
+            TokenInfo info = service.validateAccessToken("t");
+            assertEquals(UUID, info.userUuid());
+            assertEquals(1L, info.issuedAt());
+            assertEquals(2L, info.expiresAt());
+            claims.put("iat", "x");
+            assertEquals(0L, service.validateAccessToken("t").issuedAt());
         }
     }
 }

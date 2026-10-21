@@ -1,0 +1,2 @@
+# v1.2.0 Google ID token verification (RS256 with PyJWKClient); sam build packs it with every function
+PyJWT[crypto]==2.15.1

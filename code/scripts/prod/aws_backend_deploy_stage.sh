@@ -55,6 +55,15 @@ if [ "$_JWT" = "${JWT_SECRET:-}" ]; then
 	echo "  WARNING: AWS_${SUFFIX}_LAMBDA_JWT_SECRET equals the test JWT_SECRET — give every stage its own secret." >&2
 fi
 
+# v1.2.0 — one Google OAuth client per public stage (prod Google project): never the dev placeholder.
+_GOOGLE_CLIENT_ID="$(stage_key LAMBDA_GOOGLE_CLIENT_ID)"
+case "$_GOOGLE_CLIENT_ID" in
+	""|"paths-games-dev.apps.googleusercontent.com")
+		echo "Error: AWS_${SUFFIX}_LAMBDA_GOOGLE_CLIENT_ID is missing or the dev placeholder; set the client id of this stage (prod Google project) in .env." >&2
+		exit 1
+		;;
+esac
+
 if [ ! -f "$SAMCONFIG" ]; then
 	echo "Error: $SAMCONFIG not found (it is versioned in the repository: restore it with its [$STAGE.deploy.parameters] section)." >&2
 	exit 1
@@ -135,6 +144,8 @@ _PARAMS_TXT="$(
 	PGSTAGE_OV_BudgetEmail="$(stage_key SNS_ALARM_EMAIL)" \
 	PGSTAGE_OV_SmokeTestEnabled="$(stage_key LAMBDA_SMOKE_TEST_ENABLED)" \
 	PGSTAGE_OV_SmokeTestWebsiteUrl="$(stage_key LAMBDA_SMOKE_WEBSITE_URL)" \
+	PGSTAGE_OV_GoogleClientId="$_GOOGLE_CLIENT_ID" \
+	PGSTAGE_OV_RateLimitGooglePerIp="$(stage_key LAMBDA_RATE_LIMIT_GOOGLE_PER_IP)" \
 	PGSTAGE_FORCE_Environment="$STAGE" \
 	PGSTAGE_FORCE_Version="$_VERSION" \
 	PGSTAGE_FORCE_AllowMockAccess="false" \

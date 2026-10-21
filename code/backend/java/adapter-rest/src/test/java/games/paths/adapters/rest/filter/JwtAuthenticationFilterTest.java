@@ -368,4 +368,78 @@ class JwtAuthenticationFilterTest {
             verify(filterChain).doFilter(request, response);
         }
     }
+
+    @Nested
+    @DisplayName("v1.2.0 the user must exist; role and state from the DB")
+    class UserStateTests {
+
+        private games.paths.core.port.auth.UserStatePort states;
+        private JwtAuthenticationFilter stateFilter;
+
+        @BeforeEach
+        void setUp() {
+            states = mock(games.paths.core.port.auth.UserStatePort.class);
+            stateFilter = new JwtAuthenticationFilter(sessionPort, List.of("/api/echo/**"), "/api/admin/", states);
+            when(request.getMethod()).thenReturn("GET");
+            when(request.getHeader("Authorization")).thenReturn("Bearer tok");
+            when(sessionPort.validateAccessToken("tok")).thenReturn(new games.paths.core.model.auth.TokenInfo(
+                    "u-1", "claimed", "ADMIN", "access", "j", 1L, 2L));
+        }
+
+        private void user(int state, String role) {
+            when(states.current("u-1")).thenReturn(java.util.Optional.of(
+                    new games.paths.core.model.auth.UserStatus(1L, "u-1", "db_name", "n", role, state, "en")));
+        }
+
+        private int refusedWith(String path) throws Exception {
+            when(request.getRequestURI()).thenReturn(path);
+            StringWriter sw = new StringWriter();
+            when(response.getWriter()).thenReturn(new PrintWriter(sw));
+            stateFilter.doFilterInternal(request, response, filterChain);
+            verify(filterChain, never()).doFilter(request, response);
+            org.mockito.ArgumentCaptor<Integer> status = org.mockito.ArgumentCaptor.forClass(Integer.class);
+            verify(response).setStatus(status.capture());
+            return status.getValue();
+        }
+
+        @Test
+        void unknownUserIsRefused() throws Exception {
+            when(states.current("u-1")).thenReturn(java.util.Optional.empty());
+            assertEquals(401, refusedWith("/api/matches"));
+        }
+
+        @Test
+        void bannedBlockedAndDeletingUsersAreRefused() throws Exception {
+            user(4, "PLAYER");
+            assertEquals(403, refusedWith("/api/matches"));
+        }
+
+        @Test
+        void blockedUserIsRefused() throws Exception {
+            user(3, "PLAYER");
+            assertEquals(403, refusedWith("/api/matches"));
+        }
+
+        @Test
+        void deletingUserIsRefused() throws Exception {
+            user(7, "PLAYER");
+            assertEquals(403, refusedWith("/api/matches"));
+        }
+
+        @Test
+        void theRoleClaimIsNotTrusted() throws Exception {
+            user(2, "PLAYER");
+            assertEquals(403, refusedWith("/api/admin/matches"));
+        }
+
+        @Test
+        void activeUserPassesWithTheDatabaseIdentity() throws Exception {
+            user(2, "ADMIN");
+            when(request.getRequestURI()).thenReturn("/api/admin/matches");
+            stateFilter.doFilterInternal(request, response, filterChain);
+            verify(filterChain).doFilter(request, response);
+            verify(request).setAttribute("username", "db_name");
+            verify(request).setAttribute("role", "ADMIN");
+        }
+    }
 }

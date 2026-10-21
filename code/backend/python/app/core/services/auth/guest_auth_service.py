@@ -6,6 +6,7 @@ from app.core.models.auth.guest_session import GuestSession
 from app.core.ports.auth.guest_auth_port import GuestAuthPort
 from app.core.ports.auth.jwt_port import JwtPort
 from app.core.ports.auth.guest_persistence_port import GuestPersistencePort
+from app.core.services.auth import token_hasher
 
 class GuestAuthService(GuestAuthPort):
     GUEST_ROLE = "PLAYER"
@@ -48,8 +49,9 @@ class GuestAuthService(GuestAuthPort):
         expires_at = born_at + timedelta(days=self.GUEST_SESSION_DAYS)
         expires_at_iso = expires_at.isoformat()
 
-        # 3. Persist guest user
-        user_id = self.persistence_port.create_guest_user(user_uuid, username, guest_cookie_token, expires_at_iso)
+        # 3. Persist guest user (v1.2.0 the cookie token as hash)
+        user_id = self.persistence_port.create_guest_user(user_uuid, username,
+                                                          token_hasher.sha256(guest_cookie_token), expires_at_iso)
 
         # 4. Issue JWT tokens
         access_token = self.jwt_port.generate_access_token(user_uuid, username, self.GUEST_ROLE)
@@ -58,7 +60,7 @@ class GuestAuthService(GuestAuthPort):
         # 5. Store refresh token
         refresh_expires_ms = self.jwt_port.get_refresh_token_expiration_ms()
         refresh_expires_at = datetime.fromtimestamp(refresh_expires_ms / 1000, tz=timezone.utc).isoformat()
-        self.persistence_port.store_refresh_token(user_id, refresh_token, refresh_expires_at)
+        self.persistence_port.store_refresh_token(user_id, token_hasher.sha256(refresh_token), refresh_expires_at)
 
         # 6. Update last access
         self.persistence_port.update_last_access(user_id)
@@ -80,7 +82,8 @@ class GuestAuthService(GuestAuthPort):
             return None
 
         # Look up guest user
-        guest_data = self.persistence_port.find_guest_by_cookie_token(guest_cookie_token)
+        guest_data = self.persistence_port.find_guest_by_cookie_token(token_hasher.sha256(guest_cookie_token),
+                                                                      token_hasher.legacy(guest_cookie_token))
         if not guest_data:
             return None
 
@@ -105,7 +108,7 @@ class GuestAuthService(GuestAuthPort):
         # Store new refresh token
         refresh_expires_ms = self.jwt_port.get_refresh_token_expiration_ms()
         refresh_expires_at = datetime.fromtimestamp(refresh_expires_ms / 1000, tz=timezone.utc).isoformat()
-        self.persistence_port.store_refresh_token(user_id, refresh_token, refresh_expires_at)
+        self.persistence_port.store_refresh_token(user_id, token_hasher.sha256(refresh_token), refresh_expires_at)
 
         # Update last access
         self.persistence_port.update_last_access(user_id)

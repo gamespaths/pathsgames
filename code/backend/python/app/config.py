@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     # the public app on `port` does not register the admin routers. Lock this port to the
     # owner IP at the network layer (firewall / security group).
     admin_port: int = 8044
-    version: str = "1.2.0"
+    version: str = "1.3.0"
 
 
     # >0.12.5 change version here
@@ -40,6 +40,19 @@ class Settings(BaseSettings):
     jwt_secret: str = DEV_JWT_SECRET
     access_token_minutes: int = 30
     refresh_token_days: int = 7
+    # v1.2.0 iss (stage + backend) and aud on access and refresh tokens; empty issuer = from env
+    jwt_issuer: str = ""
+    jwt_audience: str = "paths-games"
+    # v1.2.0 Google sign-in (false only on test for trials); the client id default is for dev only
+    google_enabled: bool = True
+    google_client_id: str = "paths-games-dev.apps.googleusercontent.com"
+    rate_limit_google_per_ip: int = 30
+    # v1.2.0 lifetime of the admin token of the bootstrap tool and of POST /api/dev/admin-token
+    admin_token_days: int = 365
+    # v1.2.0 deletion job of state-7 users (chunked) and the daily 24-month inactivity retirement
+    account_jobs_enabled: bool = True
+    account_deletion_chunk: int = 100
+    account_retention_months: int = 24
 
     # Cloudflare Turnstile secret key. Empty = validation disabled (dev bypass).
     turnstile_secret_key: str = ""
@@ -99,6 +112,16 @@ class Settings(BaseSettings):
     @property
     def is_dev_or_test(self) -> bool:
         return is_dev_or_test(self.env)
+
+    @property
+    def jwt_issuer_effective(self) -> str:
+        """v1.2.0 JWT_ISSUER, else pathsgames-<env>-python."""
+        return self.jwt_issuer.strip() or f"pathsgames-{self.env}-python"
+
+    @property
+    def jwt_audience_effective(self) -> str:
+        """v1.2.0 JWT_AUDIENCE, else paths-games (an empty .env key must not empty the audience)."""
+        return (self.jwt_audience or "").strip() or "paths-games"
 
     @property
     def catalog_langs_list(self) -> List[str]:

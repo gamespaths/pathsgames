@@ -131,7 +131,7 @@ Sleep By Non Participant Returns 404
     [Tags]    time-clock    step25
     ${match}=    New Match With Character
     Start Match    ${TOKEN}    ${match}    200
-    ${other}=    POST On Session    public_session    /api/auth/guest
+    ${other}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${other}    201
     ${response}=    Sleep Action    ${other.json()}[accessToken]    ${match}
     Status Should Be    ${response}    404
@@ -142,7 +142,7 @@ Clock For Other User Returns 404
     [Tags]    time-clock    step25
     ${match}=    New Match With Character
     Start Match    ${TOKEN}    ${match}    200
-    ${other}=    POST On Session    public_session    /api/auth/guest
+    ${other}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${other}    201
     ${response}=    Get Clock    ${other.json()}[accessToken]    ${match}
     Status Should Be    ${response}    404
@@ -151,7 +151,7 @@ Sleep Without Token Returns 401
     [Documentation]    POST /action/sleep without Authorization → 401.
     [Tags]    time-clock    step25
     ${response}=    POST On Session    public_session
-    ...    /api/gameplay/00000000-0000-0000-0000-000000000000/action/sleep    expected_status=any
+    ...    /api/gameplay/00000000-0000-0000-0000-000000000000/action/sleep    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    401
 
 Clock Without Token Returns 401
@@ -167,7 +167,7 @@ Clock Without Token Returns 401
 Suite Setup Time Clock
     [Documentation]    Guest login + resolve a joinable loadout from a public story.
     Create Public Session
-    ${response}=    POST On Session    public_session    /api/auth/guest
+    ${response}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${response}    201
     Set Suite Variable    ${TOKEN}    ${response.json()}[accessToken]
     ${story}    ${difficulty}    ${character}    ${class}    ${trait}=    Pick Story Loadout

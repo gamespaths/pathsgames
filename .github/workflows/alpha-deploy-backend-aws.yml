@@ -80,4 +80,7 @@ jobs:
           AWS_ALPHA_APIGW_THROTTLE_BURST: ${{ vars.AWS_ALPHA_APIGW_THROTTLE_BURST }}
           AWS_ALPHA_APIGW_ADMIN_THROTTLE_RATE: ${{ vars.AWS_ALPHA_APIGW_ADMIN_THROTTLE_RATE }}
           AWS_ALPHA_APIGW_ADMIN_THROTTLE_BURST: ${{ vars.AWS_ALPHA_APIGW_ADMIN_THROTTLE_BURST }}
+          # v1.2.0 — Google OAuth client of alpha (prod Google project): required by the deploy script.
+          AWS_ALPHA_LAMBDA_GOOGLE_CLIENT_ID: ${{ vars.AWS_ALPHA_LAMBDA_GOOGLE_CLIENT_ID }}
+          AWS_ALPHA_LAMBDA_RATE_LIMIT_GOOGLE_PER_IP: ${{ vars.AWS_ALPHA_LAMBDA_RATE_LIMIT_GOOGLE_PER_IP }}
         run: code/scripts/alpha/deploy_backend.sh --auto-confirm

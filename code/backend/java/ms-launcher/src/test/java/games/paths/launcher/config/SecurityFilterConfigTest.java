@@ -35,7 +35,7 @@ class SecurityFilterConfigTest {
 
         FilterRegistrationBean<JwtAuthenticationFilter> bean =
                 config.jwtAuthenticationFilterRegistration(
-                        sessionPort,
+                        sessionPort, null,
                         "/api/echo/**,/api/auth/guest,/api/auth/refresh");
 
         assertNotNull(bean);

@@ -116,7 +116,7 @@ Set Story Epilogue
     [Arguments]    ${event_id}
     ${body}=    Create Dictionary    idEventAllPlayerComa=${event_id}
     ${response}=    PUT On Session    admin_session    /api/admin/stories/${STORY_UUID}
-    ...    json=${body}    expected_status=200
+    ...    json=${body}    expected_status=200    timeout=${HTTP_POST_TIMEOUT}
     RETURN    ${response}
 
 Party Brought Down By An Option
@@ -167,7 +167,7 @@ Empty The Life Bar
     ${body}=    Create Dictionary    life=${0}
     ${response}=    POST On Session    admin_session
     ...    /api/admin/matches/${match_uuid}/player/${CHARACTER_MATCH_UUID}/changeStatistics
-    ...    json=${body}    expected_status=200
+    ...    json=${body}    expected_status=200    timeout=${HTTP_POST_TIMEOUT}
     ${state}=    Get Character Detail    ${token}    ${match_uuid}    ${CHARACTER_MATCH_UUID}    200
     Should Not Be True    ${state.json()}[isComa]
     ...    msg=setup failed: the character was already comatose before the option resolved

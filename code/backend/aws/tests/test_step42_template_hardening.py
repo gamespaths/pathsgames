@@ -12,7 +12,10 @@ PUBLIC = ['alpha', 'beta', 'prod']
 PRIVATE = ['dev', 'test']
 FUNCTIONS = ['AdminIpAuthorizer', 'AuthFunction', 'GuestCleanupFunction', 'EchoFunction',
              'ContentFunction', 'MatchFunction', 'StoryFunction', 'SeedFunction',
-             'SmokeTestFunction']  # v1.1.0 — V1 step 1
+             'SmokeTestFunction',  # v1.1.0 — V1 step 1
+             'AccountJobsFunction']  # v1.2.0 — Google SSO
+# v1.2.0 — invoked by hand only, kept off the dashboard so it stays inside the free fifty metrics
+OFF_DASHBOARD = {'AdminBootstrapFunction'}
 
 
 class _CfnLoader(yaml.SafeLoader):
@@ -293,7 +296,7 @@ def test_dashboard_body_is_json_with_lambda_api_and_dynamodb_widgets(mon):
                    'ReadThrottleEvents', 'WriteThrottleEvents', 'SystemErrors']:
         assert f'"{metric}' in text or f'\\"{metric}\\"' in text, metric
     assert '${ApiId}' in body and '${AdminApiId}' in body and '${TableName}' in body
-    assert sorted(_nested_function_names()) == sorted(FUNCTIONS)
+    assert sorted(_nested_function_names() - OFF_DASHBOARD) == sorted(FUNCTIONS)
     for fn in FUNCTIONS:
         assert body.count(f'pathsgames-${{Environment}}-{fn}"') == 3
 

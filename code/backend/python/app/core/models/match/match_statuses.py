@@ -1,6 +1,6 @@
 """Lifecycle statuses of a gaming_match row.
 
-A match is "stopped" (terminal) when it is ENDED or GAMEOVER; only stopped
+A match is "stopped" (terminal) when it is ENDED, GAMEOVER or (v1.2.0) CANCELLED; only stopped
 matches may be deleted by an admin.
 """
 
@@ -9,12 +9,14 @@ RUNNING = "RUNNING"
 PAUSED = "PAUSED"
 ENDED = "ENDED"
 GAMEOVER = "GAMEOVER"
+# v1.2.0 a STARTED match that lost the guest merge to a newer one of the same story.
+CANCELLED = "CANCELLED"
 
 # Every valid status, in lifecycle order.
-ALL = [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER]
+ALL = [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER, CANCELLED]
 
 # Terminal statuses — a match in one of these is "stopped" and deletable.
-TERMINAL = {ENDED, GAMEOVER}
+TERMINAL = {ENDED, GAMEOVER, CANCELLED}
 
 # v0.32.1 — active (non-terminal) statuses. A match in one of these still occupies
 # its creator's slot on the story, so a second one cannot be created. PAUSED counts:

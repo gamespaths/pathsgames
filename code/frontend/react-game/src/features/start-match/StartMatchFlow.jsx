@@ -9,7 +9,7 @@ import TurnstileWidget from '@/components/ui/TurnstileWidget'
 import useAntibot from '@/hooks/useAntibot'
 import { TURNSTILE_APPEARANCE } from '@/utils/turnstile'
 import { isRateLimited, rateLimitMessage, retryAfterSeconds } from '@/utils/rateLimit'
-import { buildCharacterAttributesCard, buildGameTypeCard, buildLoginCard, buildPhaseCard, buildStatisticsCard, buildTermsCard } from '@/utils/loadoutCards'
+import { buildCharacterAttributesCard, buildGameTypeCard, buildGoogleLoginCard, buildLoginCard, buildPhaseCard, buildStatisticsCard, buildTermsCard } from '@/utils/loadoutCards'
 import { createMatch, joinMatch, startMatch } from '@/api/matches'
 import CardPreviewModal from '@/components/modals/CardPreviewModal'
 // import ConfirmStep from './ConfirmStep' — "Start" moved onto the second bonuses card (v0.38.3).
@@ -64,7 +64,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { openPolicyBook } = usePolicyBook()
-  const { user } = useGuestUser()
+  const { user, isGoogleUser, googleEnabled, openGuestModal } = useGuestUser()
   // Always challenge (cookie:false): the backend consumes a fresh single-use
   // token on match creation.
   const gate = useAntibot({ cookie: false })
@@ -230,6 +230,20 @@ export default function StartMatchFlow({ story, config, storyId }) {
     : !termsAccepted ? t('startMatch.acceptTermsFirst')
     : t('startMatch.starting')
 
+  // v1.2.0 — login card: a Google user is "Logged" (its (i) opens the user book); a guest gets a
+  // Login button to that book while Google sign-in is on, else the old locked card.
+  const loginCard = isGoogleUser
+    ? <Card card={buildGoogleLoginCard(t, user)} entityType="login" label={t('book.login')} story={story}
+        onPreview={() => openGuestModal()} locked lockedIcon="fas fa-check"
+        lockInfo={{ kind: 'login', label: t('book.logged') }} additionalCardClasses="pg-card--logged" />
+    : googleEnabled
+      ? <Card card={buildLoginCard(t)} entityType="login" label={t('book.login')} story={story}
+          onPreview={() => handleSelectionPreview(buildLoginCard(t),"login")}
+          onAction={() => openGuestModal()} actionLabel={t('book.login')} actionIcon="fa-sign-in-alt" />
+      : <Card card={buildLoginCard(t)} entityType="login" label={t('book.login')}
+          onPreview={() => handleSelectionPreview(buildLoginCard(t),"login")} story={story} locked
+          lockInfo={{ kind: 'login', label: t('book.guestLock') }} />
+
   // Fixed cards shown in EVERY phase: game type, login mode and the terms
   // (the only interactive one — its toggle gates the Start action).
   const cardsBlock = (
@@ -245,9 +259,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
         flagInformationCard={true}
         statistics={statisticCard1} flagShowFullStatistics={true} 
          />
-      <Card card={buildLoginCard(t)} entityType="login" label={t('book.login')} 
-        onPreview={() => handleSelectionPreview(buildLoginCard(t),"login")} story={story} locked
-        lockInfo={{ kind: 'login', label: t('book.guestLock') }} />
+      {loginCard}
       <Card card={buildTermsCard(t)} entityType="terms" label={t('book.terms')} 
         onPreview={openTermsModal}
         onSelect={() => setTermsAccepted(v => !v)}

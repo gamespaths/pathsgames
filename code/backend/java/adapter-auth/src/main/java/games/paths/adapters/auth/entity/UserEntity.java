@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 
 /**
  * UserEntity - JPA entity mapped to the "users" table.
- * Schema defined by Flyway migration V0.10.1.
+ * Schema defined by Flyway migration V0.10.1 (v1.2.0: no password_hash / google_id_sso).
  * This entity covers the full users table; guest-specific fields are
  * guest_cookie_token, guest_expires_at, and state=6.
  */
@@ -19,14 +19,8 @@ public class UserEntity extends BaseAuthEntity {
     @Column(nullable = false, unique = true)
     private String username;
 
-    @Column(name = "password_hash")
-    private String passwordHash;
-
     @Column(name = "email_address")
     private String emailAddress;
-
-    @Column(name = "google_id_sso")
-    private String googleIdSso;
 
     @Column(nullable = false)
     private String role = "PLAYER";
@@ -79,28 +73,12 @@ public class UserEntity extends BaseAuthEntity {
         this.username = username;
     }
 
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
-    }
-
     public String getEmailAddress() {
         return emailAddress;
     }
 
     public void setEmailAddress(String emailAddress) {
         this.emailAddress = emailAddress;
-    }
-
-    public String getGoogleIdSso() {
-        return googleIdSso;
-    }
-
-    public void setGoogleIdSso(String googleIdSso) {
-        this.googleIdSso = googleIdSso;
     }
 
     public String getRole() {

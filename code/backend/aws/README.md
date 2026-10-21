@@ -98,8 +98,8 @@ No orphaned objects remain in the AWS account.
 
 The Lambdas support two authentication modes:
 
-1. **Real JWTs (HS256)**: Tokens issued by the Java backend, verified with the same secret key. Claims: `sub` (UUID), `username`, `role`, `type`, `exp`.
-2. **Mock tokens**: `MOCK_ACCESS_{uuid}` tokens for local development and testing with users created via seed.
+1. **Real JWTs (HS256)**: issued by the `auth` Lambda (guest and Google login), signed with the stage `JWT_SECRET`. Claims: `sub` (UUID), `username`, `role` (re-read from the DB), `type`, `iss`, `aud`, `exp`. The user must exist and its state is checked on every request (no synthetic user since 1.2.0).
+2. **Mock tokens**: `MOCK_ACCESS_{uuid}` tokens, only when `AllowMockAccess=true` (code default `false`).
 
 Verification is centralized in `lambda/common/jwt_utils.py` (pure Python stdlib, no external dependencies).
 
@@ -264,6 +264,13 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 ---
 
 ## 📝 Changelog
+
+### v1.2.0 — V1 steps 2-5: Google SSO
+
+- **Auth**: `POST /api/auth/google` (GIS ID token via `PyJWKClient`, nonce, replay item `GOOGLEJTI#`), `GET`/`DELETE /api/auth/me` (delete: 202, fresh ID token), `google-enabled` and client id in `GET /api/echo/status`. Refresh/guest tokens stored as SHA-256 (`REFRESH#{hash}`), 30 s grace, cap 5, `SESSION_REVOKED`; log sanitizer in `common/log_utils.py`.
+- **Items**: `IDENTITY#GOOGLE#{sub}`, `EMAIL#{email}`, `NICK#{base}` (suffix counter), `NICKNAME#{nickname}` (conditional claim), `ADMIN#{nickname}`; see `wiki/DataModel.md` §8. Guests merge into the Google user at login (`CANCELLED` match status).
+- **Functions**: `AdminBootstrapFunction` (manual, no API route; `code/scripts/prod/aws_create_admin.sh <stage> <nick>`) and `AccountJobsFunction` (account deletion, 24-month retention). Dev-only `/api/dev/admin-token`, `/api/dev/google-token`, `/api/dev/jobs/account-deletion`.
+- **SAM parameters**: `GoogleClientId`, `GoogleEnabled`, `RateLimitGooglePerIp`; per stage `AWS_<STAGE>_LAMBDA_GOOGLE_CLIENT_ID` is required by `aws_backend_deploy_stage.sh`. Docs: `wiki/documentation_v1/Step03_GoogleSsoBackendFlow.md`.
 
 ### v1.1.0 — V1 step 1: daily smoke test
 

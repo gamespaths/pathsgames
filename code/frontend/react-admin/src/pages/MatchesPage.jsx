@@ -30,6 +30,7 @@ const DEFAULT_STATUSES = [
   { value: 'PAUSED',   terminal: false },
   { value: 'ENDED',    terminal: true },
   { value: 'GAMEOVER', terminal: true },
+  { value: 'CANCELLED', terminal: true }, // v1.2.0 the guest merge
 ]
 
 // v0.28.1 — server-side scope (maps to the ?sinceDays= query param).

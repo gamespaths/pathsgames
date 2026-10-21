@@ -107,7 +107,9 @@ token_persistence = TokenPersistenceAdapter(SessionLocal)
 jwt_adapter = JwtAdapter(
     secret=settings.jwt_secret,
     access_token_minutes=settings.access_token_minutes,
-    refresh_token_days=settings.refresh_token_days
+    refresh_token_days=settings.refresh_token_days,
+    issuer=settings.jwt_issuer_effective,
+    audience=settings.jwt_audience_effective,
 )
 story_read_adapter = StoryReadAdapter(SessionLocal)
 story_persistence_adapter = StoryPersistenceAdapter(SessionLocal)
@@ -206,11 +208,36 @@ match_query_service = MatchQueryService(
 )
 match_query_service.set_mission_service(mission_service)
 
+# v1.2.0 — Google SSO: verifier (and the test-only fake provider), login with guest merge, the 60 s
+# user state cache, account deletion and the admin bootstrap.
+from app.adapters.auth.google_verifier import FakeGoogleTokens, GoogleIdTokenVerifier
+from app.adapters.persistence.auth.identity_persistence_adapter import IdentityPersistenceAdapter
+from app.adapters.persistence.auth.guest_merge_persistence_adapter import GuestMergePersistenceAdapter
+from app.core.services.auth.account_service import AccountService
+from app.core.services.auth.admin_bootstrap_service import AdminBootstrapService
+from app.core.services.auth.google_login_service import GoogleLoginService
+from app.core.services.auth.guest_merge_service import GuestMergeService
+from app.core.services.auth.user_state_service import UserStateService
+from app.adapters.rest.auth.google_auth_controller import GoogleAuthController
+identity_persistence = IdentityPersistenceAdapter(SessionLocal)
+fake_google_tokens = FakeGoogleTokens(bool(settings.dev_test_endpoints_enabled), settings.google_client_id,
+                                      settings.jwt_secret)
+google_verifier = GoogleIdTokenVerifier(settings.google_client_id, fake_google_tokens)
+user_state_service = UserStateService(identity_persistence)
+google_login_service = GoogleLoginService(google_verifier, identity_persistence, jwt_adapter, token_persistence,
+                                          persistence_adapter, GuestMergeService(GuestMergePersistenceAdapter(SessionLocal)),
+                                          enabled=settings.google_enabled, max_tokens_per_user=5,
+                                          user_state=user_state_service)
+account_service = AccountService(identity_persistence, google_verifier, token_persistence, match_persistence_adapter,
+                                 user_state_service, settings.account_deletion_chunk, settings.account_retention_months)
+admin_bootstrap_service = AdminBootstrapService(identity_persistence, jwt_adapter, settings.admin_token_days)
+
 # Dev-only test-data cleanup service
-test_data_cleanup_service = TestDataCleanupService(persistence_adapter, match_persistence_adapter)
+test_data_cleanup_service = TestDataCleanupService(persistence_adapter, match_persistence_adapter,
+                                                   identity_persistence)
 
 # 4. Initialize Controllers
-echo_controller = EchoController(echo_service)
+echo_controller = EchoController(echo_service, google_login_service)
 # v0.37.7 — Step 41 security: the rate limiter and the CSRF token issuer shared by the controllers.
 from app.core.services.security.rate_limit_service import RateLimitService
 from app.core.services.security.csrf_token_service import CsrfTokenService
@@ -222,7 +249,9 @@ guest_auth_controller = GuestAuthController(guest_auth_service, jwt_adapter, tok
                                             rate_limit_service, settings.rate_limit_guest_per_ip,
                                             csrf_token_service)
 guest_admin_controller = GuestAdminController(guest_admin_service)
-session_controller = SessionController(session_service, csrf_token_service)
+session_controller = SessionController(session_service, csrf_token_service, account_service)
+google_auth_controller = GoogleAuthController(google_login_service, rate_limit_service,
+                                              settings.rate_limit_google_per_ip, csrf_token_service)
 story_controller = StoryController(story_query_service)
 story_admin_controller = StoryAdminController(story_query_service, story_import_service, story_validator_service,
                                               story_catalog_export_service)
@@ -353,7 +382,8 @@ experience_controller = ExperienceController(experience_service)
 movement_service.location_entry = event_service
 time_advancement_service.set_automatic_event_runner(event_service)
 
-dev_controller = DevController(test_data_cleanup_service, settings.dev_test_endpoints_enabled)
+dev_controller = DevController(test_data_cleanup_service, settings.dev_test_endpoints_enabled,
+                               admin_bootstrap_service, fake_google_tokens, account_service)
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -392,6 +422,7 @@ public_paths = [
     "/api/auth/guest",
     "/api/auth/guest/resume",
     "/api/auth/refresh",
+    "/api/auth/google",
     "/api/dev/**"
 ]
 # v0.41.0 — decision 34: the FastAPI docs exist only on dev/test, and there they are public.
@@ -432,7 +463,8 @@ def _build_app(routers) -> FastAPI:
     application = FastAPI(title=settings.app_name, version=settings.version, **_docs_params())
     application.add_exception_handler(StarletteHTTPException, _http_exception_handler)
     application.add_exception_handler(RequestValidationError, _validation_exception_handler)
-    application.add_middleware(JwtMiddleware, session_service=session_service, public_paths=public_paths)
+    application.add_middleware(JwtMiddleware, session_service=session_service, public_paths=public_paths,
+                               user_state=user_state_service)
     # v0.41.0 — security headers outside the JWT check, so its refusals carry them too
     application.add_middleware(SecurityHeadersMiddleware)
     # CORS added LAST so it is OUTERMOST (per S8414).
@@ -449,6 +481,7 @@ def _build_app(routers) -> FastAPI:
 app = _build_app([
     echo_controller.router,
     guest_auth_controller.router,
+    google_auth_controller.router,
     (session_controller.router, {"prefix": "/api/auth"}),
     story_controller.router,
     content_controller.router,
@@ -486,7 +519,13 @@ async def _serve():
     import uvicorn
 
     check_secrets()
+    # v1.2.0 personal data (email, names, picture) never reaches a log line
+    from app.core.services.security import log_sanitizer
+    log_sanitizer.install()
+    log_sanitizer.install("uvicorn")
     start_guest_cleanup(guest_admin_service, settings)
+    from app.adapters.scheduler.account_jobs_scheduler import start_account_jobs
+    start_account_jobs(account_service, settings)
     public = uvicorn.Server(uvicorn.Config(app, host=settings.host, port=settings.port))
     admin = uvicorn.Server(uvicorn.Config(app_admin, host=settings.host, port=settings.admin_port))
     await asyncio.gather(public.serve(), admin.serve())

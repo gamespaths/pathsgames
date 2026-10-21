@@ -5,10 +5,12 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from app.core.models.auth.identity import PROVIDER_GOOGLE
 from app.core.models.match import match_statuses
 from app.core.ports.match import log_writer_ports as lw
 from app.core.ports.match import match_export_ports as mp
 from app.core.ports.match.match_export_ports import ImportRows, Issue, MatchExportError
+from app.core.services.auth import nickname_generator
 from app.core.services.match import canonical_json, log_type_mapper as ltm, neutral_codec as nc
 from app.core.services.match.schema_validator import SchemaValidator
 from app.core.services.story import story_fingerprint
@@ -26,12 +28,31 @@ CHILD_TABLES = ("gaming_backpack_resources", "gaming_character_traits", "gaming_
                 "gaming_state_registry", "gaming_state_locations", "gaming_turn_queue", "gaming_story_progress")
 
 
+def google_identity(user) -> Optional[Dict[str, Any]]:
+    """v1.2.0 the GOOGLE identity of a neutral user, or None."""
+    for identity in nc.items(user.get("identities")):
+        if identity.get("provider") == PROVIDER_GOOGLE:
+            return identity
+    return None
+
+
+def _email_of(user) -> Optional[str]:
+    google = google_identity(user)
+    email = google.get("email") if google is not None and google.get("email") else user.get("emailAddress")
+    return str(email).lower() if email else None
+
+
 @dataclass
 class UserPlan:
     user: Dict[str, Any]
     status: str
     target_username: str
     target_uuid: Optional[str] = None
+    target_nickname: Optional[str] = None
+
+    def __post_init__(self):
+        if self.target_nickname is None:
+            self.target_nickname = self.user.get("nickname")
 
     @property
     def created(self) -> bool:
@@ -284,28 +305,44 @@ class MatchImportService:
             a.errors.append(Issue(mp.STORY_ENTITY_MISSING, f"{item} is not in the story"))
 
     def _users(self, a: Analysis, story_id: Optional[int]) -> None:
-        """Decision 54 (revised): uuid on the target, else the same e-mail, else new (renamed on a clash)."""
-        existing, planned = [], set()
+        """Decision 54 (revised) and v1.2.0: uuid on the target; a Google user by its identity email with the
+        subject check (another subject is an error); an old export by its e-mail; a guest by its username."""
+        existing, planned, planned_nicknames = [], set(), set()
         for u in nc.items(a.doc.get("users")):
             uuid, username = u.get("uuid"), u.get("username")
             if self.store.user_by_uuid(uuid) is not None:
                 a.users.append(UserPlan(u, USER_EXISTING, username, uuid))
                 existing.append(uuid)
                 continue
-            by_email = self.store.user_by_email(u.get("emailAddress"))
+            google = google_identity(u)
+            email = google.get("email") if google is not None else u.get("emailAddress")
+            if google is not None and email:
+                owner = self.store.identity_by_email(PROVIDER_GOOGLE, str(email).lower())
+                if owner is not None and owner.get("provider_subject") != google.get("subject"):
+                    a.errors.append(Issue(mp.IDENTITY_MISMATCH, f"User {username}: the target has this e-mail "
+                                                                 f"with another Google subject"))
+                    continue
+                if owner is not None:
+                    a.users.append(UserPlan(u, USER_MAPPED, owner.get("username"), owner.get("user_uuid")))
+                    existing.append(owner.get("user_uuid"))
+                    a.warnings.append(Issue(mp.USER_MAPPED_BY_EMAIL, f"User {username} is mapped by e-mail onto "
+                                                                     f"the existing user {owner.get('username')}"))
+                    continue
+            by_email = self.store.user_by_email(email)
             if by_email is not None:
                 a.users.append(UserPlan(u, USER_MAPPED, by_email.get("username"), by_email.get("uuid")))
                 existing.append(by_email.get("uuid"))
                 a.warnings.append(Issue(mp.USER_MAPPED_BY_EMAIL, f"User {username} is mapped by e-mail onto the "
                                                                  f"existing user {by_email.get('username')}"))
                 continue
+            nickname = self._free_nickname(a, u, uuid, planned_nicknames)
             if self.store.username_taken(username) or username in planned:
                 target = f"{username}_{uuid[:6]}"
-                a.users.append(UserPlan(u, USER_RENAMED, target, uuid))
+                a.users.append(UserPlan(u, USER_RENAMED, target, uuid, nickname))
                 planned.add(target)
                 a.warnings.append(Issue(mp.USERNAME_RENAMED, f"User {username} is created as {target}"))
             else:
-                a.users.append(UserPlan(u, USER_NEW, username, uuid))
+                a.users.append(UserPlan(u, USER_NEW, username, uuid, nickname))
                 planned.add(username)
             if str(u.get("role") or "").upper() == "ADMIN":
                 a.warnings.append(Issue(mp.ROLE_DOWNGRADED, f"User {username} is created as PLAYER"))
@@ -316,6 +353,23 @@ class MatchImportService:
                 names = ", ".join(f"{m['uuid']} ({m['status']})" for m in a.active_matches)
                 a.warnings.append(Issue(mp.USER_HAS_ACTIVE_MATCH,
                                         f"These matches of the same story are set to PAUSED by the import: {names}"))
+
+    def _free_nickname(self, a: Analysis, u, uuid, planned_nicknames) -> Optional[str]:
+        """v1.2.0 users.nickname is unique: the exported nickname, or its first free #n suffix."""
+        nickname = u.get("nickname")
+        if nickname is None:
+            return None
+
+        def taken(n):
+            return n in planned_nicknames or self.store.nickname_taken(n)
+
+        target = nickname_generator.first_free(nickname, 2, taken, str(uuid or "00000000")) if taken(nickname) \
+            else nickname
+        if target != nickname:
+            a.warnings.append(Issue(mp.NICKNAME_RENAMED, f"Nickname {nickname} is taken: the user is created as "
+                                                         f"{target}"))
+        planned_nicknames.add(target)
+        return target
 
     def _match_and_characters(self, a: Analysis, replace: bool) -> None:
         match_uuid = nc.mapping(a.doc.get("match")).get("uuid")
@@ -351,7 +405,8 @@ class MatchImportService:
             "story": {"uuid": nc.mapping((a.doc or {}).get("story")).get("uuid"), "status": a.story_status,
                       "action": a.story_action, "matchesDeleted": a.matches_deleted},
             "users": [{"uuid": p.user.get("uuid"), "username": p.user.get("username"),
-                       "targetUsername": p.target_username, "targetUuid": p.target_uuid, "status": p.status}
+                       "targetUsername": p.target_username, "targetUuid": p.target_uuid,
+                       "targetNickname": p.target_nickname, "status": p.status}
                       for p in a.users],
         }
 
@@ -405,9 +460,11 @@ class MatchImportService:
         now = datetime.now(timezone.utc).isoformat()
         fallback_ts = nc.mapping(doc.get("source")).get("exportedAt") or now
         match = nc.mapping(doc.get("match"))
-        new_users = [{"uuid": p.user.get("uuid"), "username": p.target_username, "nickname": p.user.get("nickname"),
+        new_users = [{"uuid": p.user.get("uuid"), "username": p.target_username, "nickname": p.target_nickname,
                       "language": p.user.get("language"), "state": nc.lng(p.user.get("state")),
-                      "email_address": p.user.get("emailAddress")} for p in a.users if p.created]
+                      "email_address": _email_of(p.user),
+                      "identities": [nc.identity_row(i) for i in nc.items(p.user.get("identities"))]}
+                     for p in a.users if p.created]
         target_of = {p.user.get("uuid"): p.target_uuid or p.user.get("uuid") for p in a.users}
         ordinal_by_uuid = {c.get("uuid"): nc.lng(c.get("ordinal")) for c in nc.items(doc.get("characters"))}
         match_row = nc.match_row(match, id_story, {}, uuid_by_id(story, "characterTemplates"),

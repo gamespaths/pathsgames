@@ -3,10 +3,10 @@
     "ns": "modals.privacy",
     "copyright": "© 2026",
     "sections": [
-      ["controllerTitle", "controllerBody"], ["dataTitle", "dataBody"], ["purposesTitle", "purposesBody"],
-      ["cookiesTitle", "cookiesBody"], ["sharingTitle", "sharingBody"], ["transfersTitle", "transfersBody"],
-      ["retentionTitle", "retentionBody"], ["rightsTitle", "rightsBody"], ["childrenTitle", "childrenBody"],
-      ["securityTitle", "securityBody"], ["changesTitle", "changesBody"]
+      ["controllerTitle", "controllerBody"], ["dataTitle", "dataBody"], ["accountTitle", "accountBody"],
+      ["purposesTitle", "purposesBody"], ["cookiesTitle", "cookiesBody"], ["sharingTitle", "sharingBody"],
+      ["transfersTitle", "transfersBody"], ["retentionTitle", "retentionBody"], ["rightsTitle", "rightsBody"],
+      ["childrenTitle", "childrenBody"], ["securityTitle", "securityBody"], ["changesTitle", "changesBody"]
     ]
   },
   "terms": {
@@ -14,11 +14,10 @@
     "copyright": "© paths.games",
     "sections": [
       ["acceptanceTitle", "acceptanceBody"], ["serviceTitle", "serviceBody"], ["guestTitle", "guestBody"],
-      ["useTitle", "useBody"], ["ipTitle", "ipBody"], ["ipCodeTitle", "ipCodeBody"],
-      ["ipUnsplashTitle", "ipUnsplashBody"], ["disclaimerTitle", "disclaimerBody"],
-      ["liabilityTitle", "liabilityBody"], ["availabilityTitle", "availabilityBody"],
-      ["thirdPartyTitle", "thirdPartyBody"], ["privacyRefTitle", "privacyRefBody"],
-      ["lawTitle", "lawBody"], ["changesTitle", "changesBody"]
+      ["accountTitle", "accountBody"], ["useTitle", "useBody"], ["ipTitle", "ipBody"],
+      ["ipCodeTitle", "ipCodeBody"], ["ipUnsplashTitle", "ipUnsplashBody"], ["disclaimerTitle", "disclaimerBody"],
+      ["liabilityTitle", "liabilityBody"], ["availabilityTitle", "availabilityBody"], ["thirdPartyTitle", "thirdPartyBody"],
+      ["privacyRefTitle", "privacyRefBody"], ["lawTitle", "lawBody"], ["changesTitle", "changesBody"]
     ]
   },
   "cookies": {

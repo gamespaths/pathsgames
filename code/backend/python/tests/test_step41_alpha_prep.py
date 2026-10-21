@@ -244,7 +244,10 @@ def test_align_schema_adds_the_cleanup_index_once():
         c.execute(text("CREATE TABLE users (id INTEGER, state INTEGER, last_access TEXT, email_address TEXT)"))
         c.execute(text("CREATE INDEX idx_users_email ON users (email_address)"))
     applied = database.align_schema(engine)
-    assert applied == ["CREATE INDEX IF NOT EXISTS idx_users_state_last_access ON users (state, last_access)"]
+    assert "CREATE INDEX IF NOT EXISTS idx_users_state_last_access ON users (state, last_access)" in applied
+    # v1.2.0 the unique email index comes with its dedupe of older rows
+    assert applied[-1] == ("CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email ON users (email_address)"
+                           " WHERE email_address IS NOT NULL")
     assert "idx_users_state_last_access" in {i["name"] for i in inspect(engine).get_indexes("users")}
     assert database.align_schema(engine) == []
 
@@ -255,9 +258,10 @@ def test_align_schema_adds_the_email_column_and_index_once():
         c.execute(text("CREATE TABLE users (id INTEGER, state INTEGER, last_access TEXT)"))
     applied = database.align_schema(engine)
     assert "ALTER TABLE users ADD COLUMN email_address TEXT" in applied
-    assert "CREATE INDEX IF NOT EXISTS idx_users_email ON users (email_address)" in applied
+    assert ("CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email ON users (email_address)"
+            " WHERE email_address IS NOT NULL") in applied
     assert "email_address" in {c["name"] for c in inspect(engine).get_columns("users")}
-    assert "idx_users_email" in {i["name"] for i in inspect(engine).get_indexes("users")}
+    assert "uq_users_email" in {i["name"] for i in inspect(engine).get_indexes("users")}
     assert database.align_schema(engine) == []
 
 

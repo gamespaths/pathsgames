@@ -1,102 +1,136 @@
-import pytest
-import time
+"""SessionService: v1.2.0 hashed refresh tokens, rotation of the used token only, the 30-second grace,
+SESSION_REVOKED, the user state check, logout and access validation."""
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
+
+import pytest
+
+from app.core.models.auth.auth_error import AuthError
+from app.core.models.auth.identity import StoredRefreshToken, UserStatus
 from app.core.models.auth.token_info import TokenInfo
+from app.core.services.auth import token_hasher
 from app.core.services.auth.session_service import SessionService
+
+NOW = datetime(2026, 10, 19, 10, 0, tzinfo=timezone.utc)
+TOKEN = "refresh-jwt"
+HASH = token_hasher.sha256(TOKEN)
+
 
 @pytest.fixture
 def jwt_port():
-    return MagicMock()
+    j = MagicMock()
+    j.validate_token.return_value = True
+    j.parse_token.return_value = TokenInfo(sub="u", username="", type="refresh", iat=0, exp=0)
+    j.generate_access_token.return_value = "access-2"
+    j.generate_refresh_token.return_value = "refresh-2"
+    j.get_access_token_expiration_ms.return_value = 1000
+    j.get_refresh_token_expiration_ms.return_value = int((NOW + timedelta(days=7)).timestamp() * 1000)
+    return j
+
 
 @pytest.fixture
-def token_persistence():
-    return MagicMock()
+def tokens():
+    t = MagicMock()
+    t.find_refresh_token.return_value = StoredRefreshToken(10, 1, False, (NOW + timedelta(hours=1)).isoformat(), None)
+    t.find_user_by_id.return_value = UserStatus(1, "u", "google_u", "mario", "PLAYER", 2, "en")
+    return t
+
 
 @pytest.fixture
-def session_service(jwt_port, token_persistence):
-    return SessionService(jwt_port, token_persistence, 5)
+def service(jwt_port, tokens):
+    return SessionService(jwt_port, tokens, 5, clock=lambda: NOW)
 
-def test_refresh_session_success(session_service, jwt_port, token_persistence):
-    old_token = "old-refresh"
-    user_uuid = "u-uuid"
-    username = "u-name"
-    
-    old_info = TokenInfo(sub=user_uuid, username=username, role="PLAYER", type="refresh", iat=int(time.time()), exp=int(time.time())+3600, jti="j1")
-    
-    jwt_port.validate_token.return_value = True
-    jwt_port.parse_token.side_effect = lambda t: {
-        old_token: old_info,
-        "new-refresh": TokenInfo(sub=user_uuid, username=username, role="PLAYER", type="refresh", iat=int(time.time()), exp=int(time.time())+7200, jti="j2")
-    }.get(t)
-    
-    token_persistence.is_refresh_token_valid.return_value = True
-    token_persistence.find_user_id_by_uuid.return_value = 1
-    
-    jwt_port.generate_access_token.return_value = "new-access"
-    jwt_port.generate_refresh_token.return_value = "new-refresh"
-    jwt_port.get_access_token_expiration_ms.return_value = 3600000
-    jwt_port.get_refresh_token_expiration_ms.return_value = 7200000
 
-    result = session_service.refresh_session(old_token)
+def test_rotates_only_the_used_token(service, tokens):
+    result = service.refresh_session(TOKEN)
+    assert result.access_token == "access-2" and result.refresh_token == "refresh-2"
+    assert result.username == "google_u" and result.role == "PLAYER"
+    tokens.find_refresh_token.assert_called_with(HASH, TOKEN)
+    tokens.mark_rotated.assert_called_once_with(10, NOW.isoformat())
+    tokens.revoke_all_by_user_uuid.assert_not_called()
+    tokens.store_refresh_token.assert_called_once()
+    assert tokens.store_refresh_token.call_args[0][1] == token_hasher.sha256("refresh-2")
+    tokens.enforce_token_limit.assert_called_with(1, 5)
+    tokens.update_last_access.assert_called_with(1)
 
-    assert result.access_token == "new-access"
-    assert result.refresh_token == "new-refresh"
-    token_persistence.revoke_all_by_user_uuid.assert_called_with(user_uuid)
-    token_persistence.save_refresh_token.assert_called()
-    token_persistence.enforce_token_limit.assert_called_with(1, 5)
 
-def test_refresh_session_invalid_token(session_service, jwt_port):
+def test_invalid_inputs(service, jwt_port, tokens):
+    with pytest.raises(ValueError):
+        service.refresh_session("")
     jwt_port.validate_token.return_value = False
     with pytest.raises(ValueError, match="INVALID_REFRESH_TOKEN"):
-        session_service.refresh_session("bad")
-
-def test_refresh_session_not_refresh_type(session_service, jwt_port):
-    info = TokenInfo(sub="u", username="n", type="access", iat=0, exp=0)
+        service.refresh_session(TOKEN)
     jwt_port.validate_token.return_value = True
-    jwt_port.parse_token.return_value = info
+    jwt_port.parse_token.return_value = TokenInfo(sub="u", username="", type="access", iat=0, exp=0)
     with pytest.raises(ValueError, match="NOT_A_REFRESH_TOKEN"):
-        session_service.refresh_session("access-token")
+        service.refresh_session(TOKEN)
 
-def test_refresh_session_revoked(session_service, jwt_port, token_persistence):
-    info = TokenInfo(sub="u", username="n", type="refresh", iat=0, exp=3600)
-    jwt_port.validate_token.return_value = True
-    jwt_port.parse_token.return_value = info
-    token_persistence.is_refresh_token_valid.return_value = False
-    with pytest.raises(ValueError, match="REVOKED_REFRESH_TOKEN"):
-        session_service.refresh_session("revoked")
 
-def test_refresh_session_user_not_found(session_service, jwt_port, token_persistence):
-    info = TokenInfo(sub="u", username="n", type="refresh", iat=0, exp=3600)
-    jwt_port.validate_token.return_value = True
-    jwt_port.parse_token.return_value = info
-    token_persistence.is_refresh_token_valid.return_value = True
-    token_persistence.find_user_id_by_uuid.return_value = None
-    with pytest.raises(ValueError, match="USER_NOT_FOUND"):
-        session_service.refresh_session("token")
+def test_unknown_or_expired_token(service, jwt_port, tokens):
+    tokens.find_refresh_token.return_value = None
+    with pytest.raises(ValueError):
+        service.refresh_session(TOKEN)
+    tokens.find_refresh_token.return_value = StoredRefreshToken(10, 1, False, (NOW - timedelta(seconds=1)).isoformat(),
+                                                                None)
+    with pytest.raises(ValueError):
+        service.refresh_session(TOKEN)
+    tokens.find_refresh_token.return_value = StoredRefreshToken(10, 1, False, "garbage", None)
+    with pytest.raises(ValueError):
+        service.refresh_session(TOKEN)
 
-def test_logout(session_service, token_persistence):
-    session_service.logout("t")
-    token_persistence.revoke_token.assert_called_with("t")
 
-def test_logout_all(session_service, token_persistence):
-    session_service.logout_all("u")
-    token_persistence.revoke_all_by_user_uuid.assert_called_with("u")
+def test_grace_window(service, tokens):
+    tokens.find_refresh_token.return_value = StoredRefreshToken(
+        10, 1, True, "2999-01-01T00:00:00", (NOW - timedelta(seconds=29)).isoformat())
+    assert service.refresh_session(TOKEN).access_token == "access-2"
+    tokens.mark_rotated.assert_not_called()
 
-def test_validate_access_token_success(session_service, jwt_port):
-    info = TokenInfo(sub="u", username="n", type="access", iat=0, exp=3600)
-    jwt_port.validate_token.return_value = True
-    jwt_port.parse_token.return_value = info
-    result = session_service.validate_access_token("token")
-    assert result == info
 
-def test_validate_access_token_invalid(session_service, jwt_port):
+def test_revoked_after_grace_or_by_logout_is_session_revoked(service, tokens):
+    tokens.find_refresh_token.return_value = StoredRefreshToken(
+        10, 1, True, None, (NOW - timedelta(seconds=31)).isoformat())
+    with pytest.raises(AuthError) as e:
+        service.refresh_session(TOKEN)
+    assert e.value.code == "SESSION_REVOKED" and e.value.http_status == 401
+    tokens.find_refresh_token.return_value = StoredRefreshToken(10, 1, True, None, None)
+    with pytest.raises(AuthError):
+        service.refresh_session(TOKEN)
+
+
+def test_missing_user_or_other_subject(service, tokens):
+    tokens.find_user_by_id.return_value = None
+    with pytest.raises(ValueError):
+        service.refresh_session(TOKEN)
+    tokens.find_user_by_id.return_value = UserStatus(1, "other", "x", "x", "PLAYER", 2)
+    with pytest.raises(ValueError):
+        service.refresh_session(TOKEN)
+
+
+@pytest.mark.parametrize("state,code", [(3, "ACCOUNT_DISABLED"), (4, "ACCOUNT_DISABLED"),
+                                        (7, "ACCOUNT_DELETION_IN_PROGRESS")])
+def test_disabled_users_are_refused(service, tokens, state, code):
+    tokens.find_user_by_id.return_value = UserStatus(1, "u", "g", "m", "PLAYER", state)
+    with pytest.raises(AuthError) as e:
+        service.refresh_session(TOKEN)
+    assert e.value.code == code
+    tokens.mark_rotated.assert_not_called()
+
+
+def test_logout_and_logout_all(service, tokens):
+    service.logout(TOKEN)
+    tokens.revoke_refresh_token.assert_called_with(HASH, TOKEN)
+    service.logout("")
+    assert tokens.revoke_refresh_token.call_count == 1
+    service.logout_all("u")
+    tokens.revoke_all_by_user_uuid.assert_called_with("u")
+
+
+def test_validate_access_token(service, jwt_port):
+    jwt_port.parse_token.return_value = TokenInfo(sub="u", username="n", type="access", iat=0, exp=0)
+    assert service.validate_access_token("a").user_uuid == "u"
+    jwt_port.parse_token.return_value = TokenInfo(sub="u", username="n", type="refresh", iat=0, exp=0)
+    with pytest.raises(ValueError, match="NOT_AN_ACCESS_TOKEN"):
+        service.validate_access_token("a")
     jwt_port.validate_token.return_value = False
     with pytest.raises(ValueError, match="INVALID_ACCESS_TOKEN"):
-        session_service.validate_access_token("bad")
-
-def test_validate_access_token_wrong_type(session_service, jwt_port):
-    info = TokenInfo(sub="u", username="n", type="refresh", iat=0, exp=3600)
-    jwt_port.validate_token.return_value = True
-    jwt_port.parse_token.return_value = info
-    with pytest.raises(ValueError, match="NOT_AN_ACCESS_TOKEN"):
-        session_service.validate_access_token("refresh-token")
+        service.validate_access_token("a")

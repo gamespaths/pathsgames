@@ -170,6 +170,14 @@ export function buildLoginCard(t) {
   return metaCard('gems', t('book.guest'), t('book.guestDesc'));
 }
 
+/** v1.2.0 — login card of a Google user: name as title, the profile picture (256px) as full-card image. */
+export function buildGoogleLoginCard(t, user) {
+  const card = metaCard('gems', user?.displayName ?? user?.nickname ?? t('book.guest'), t('modals.guestUser.bodyGoogle'))
+  if (!user?.pictureUrl) return card
+  return { ...card, urlImage: user.pictureUrl.replace(/=s\d+-c$/, '=s256-c'), referrerPolicy: 'no-referrer',
+    copyrightText: null, linkCopyright: null }
+}
+
 /** Terms & conditions card shown first in the start-game confirmation. */
 export function buildTermsCard(t) {
   return metaCard('terms', t('book.termsTitle'), t('book.termsDesc'));

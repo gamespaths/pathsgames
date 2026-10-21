@@ -64,7 +64,7 @@ Resuming The Guest Session Issues A Token For The New Bearer
     [Documentation]    Resume mints a fresh access token; its csrfToken must follow it.
     [Tags]    security    step41    csrf
     ${login}=    Guest Login Body
-    ${resume}=    POST On Session    public_session    /api/auth/guest/resume    expected_status=any
+    ${resume}=    POST On Session    public_session    /api/auth/guest/resume    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     IF    ${resume.status_code} != 200    Skip    resume is not cookie-driven on this client
     Should Not Be Empty    ${resume.json()}[csrfToken]
     ${same_bearer}=    Evaluate    $resume.json()['accessToken'] == $login['accessToken']
@@ -83,7 +83,7 @@ Creating A Match Without The Header Is Refused
     Set To Dictionary    ${headers}    Content-Type=application/json
     ${resp}=    POST On Session    public_session    /api/matches    headers=${headers}
     ...    json=${{ {'storyUuid': $STORY_UUID, 'difficultyUuid': $DIFFICULTY_UUID, 'name': 'robottest_csrf'} }}
-    ...    expected_status=any
+    ...    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${resp}    403
     Should Be Equal    ${resp.json()}[error]    CSRF_TOKEN_MISSING
     ${mine}=    List Matches    ${token}    200
@@ -101,7 +101,7 @@ Creating A Match With Another Guest's Token Is Refused
         Set To Dictionary    ${headers}    Content-Type=application/json    X-CSRF-TOKEN=${bad}
         ${resp}=    POST On Session    public_session    /api/matches    headers=${headers}
         ...    json=${{ {'storyUuid': $STORY_UUID, 'difficultyUuid': $DIFFICULTY_UUID, 'name': 'robottest_csrf'} }}
-        ...    expected_status=any
+        ...    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
         Status Should Be    ${resp}    403
         Should Be Equal    ${resp.json()}[error]    CSRF_TOKEN_INVALID
     END
@@ -127,7 +127,7 @@ Auth And Admin Answers Are Never Stored, Story Reads Are
     [Documentation]    v0.41.0 — Cache-Control: no-store on /api/auth/** and /api/admin/**,
     ...                never on the public story list.
     [Tags]    security    step41    headers
-    ${login}=    POST On Session    public_session    /api/auth/guest
+    ${login}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${login}    201
     Should Be Equal    ${login.headers}[Cache-Control]    no-store
     Security Headers Should Be Present    ${login}
@@ -196,7 +196,7 @@ Guest Creation Is Rate Limited Per Source Address
     Skip If    ${RATE_LIMIT_GUEST_PER_IP} <= 0    RATE_LIMIT_GUEST_PER_IP is not set for this run
     ${refused}=    Set Variable    ${None}
     FOR    ${i}    IN RANGE    ${{ int($RATE_LIMIT_GUEST_PER_IP) + 1 }}
-        ${resp}=    POST On Session    public_session    /api/auth/guest    expected_status=any
+        ${resp}=    POST On Session    public_session    /api/auth/guest    expected_status=any    timeout=${HTTP_POST_TIMEOUT}
         IF    ${resp.status_code} == 429
             ${refused}=    Set Variable    ${resp}
             BREAK
@@ -230,7 +230,7 @@ Security Headers Should Be Present
 
 Guest Login Body
     [Documentation]    A fresh guest's whole login body, remembered for the creation keyword.
-    ${resp}=    POST On Session    public_session    /api/auth/guest
+    ${resp}=    POST On Session    public_session    /api/auth/guest    timeout=${HTTP_POST_TIMEOUT}
     Status Should Be    ${resp}    201
     Remember Csrf Token    ${resp.json()}[accessToken]    ${resp.json().get('csrfToken', '')}
     RETURN    ${resp.json()}

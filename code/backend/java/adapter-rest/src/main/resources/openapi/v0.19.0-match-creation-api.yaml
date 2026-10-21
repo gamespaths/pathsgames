@@ -165,7 +165,7 @@ paths:
           description: Exact status filter.
           schema:
             type: string
-            enum: [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER]
+            enum: [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER, CANCELLED]
         - name: userUuid
           in: query
           required: false
@@ -337,7 +337,7 @@ components:
           nullable: true
         status:
           type: string
-          enum: [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER]
+          enum: [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER, CANCELLED]
         currentClock:
           type: integer
           format: int32

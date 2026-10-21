@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { shortUuid } from '../MatchDetailModal'
 
 /** Match statuses that are terminal (deletable, not pausable/resumable). */
-export const TERMINAL = new Set(['ENDED', 'GAMEOVER'])
+export const TERMINAL = new Set(['ENDED', 'GAMEOVER', 'CANCELLED'])
 
 /** Per-status colours for the configuration card's status banner. */
 export const STATUS_COLOR = {
@@ -11,6 +11,7 @@ export const STATUS_COLOR = {
   PAUSED:   { bg: '#3a2e10', border: '#eab308', label: 'var(--color-parchment)' },
   ENDED:    { bg: '#3a1a1a', border: '#ef4444', label: 'var(--color-parchment)' },
   GAMEOVER: { bg: '#2a0a0a', border: '#7f1d1d', label: 'var(--color-ash)'      },
+  CANCELLED: { bg: '#262626', border: '#6b7280', label: 'var(--color-ash)'     },
 }
 
 export function findByUuid(list, uuid) {
