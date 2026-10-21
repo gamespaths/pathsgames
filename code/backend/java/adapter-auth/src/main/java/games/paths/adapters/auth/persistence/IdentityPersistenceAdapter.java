@@ -121,8 +121,7 @@ public class IdentityPersistenceAdapter implements IdentityPersistencePort {
 
     /** SQLite reports a unique clash as a generic JDBC error, PostgreSQL as an integrity violation. */
     static RuntimeException duplicateOr(DataAccessException e) {
-        Throwable cause = e.getMostSpecificCause();
-        String message = String.valueOf(cause == null ? e.getMessage() : cause.getMessage()).toLowerCase(Locale.ROOT);
+        String message = String.valueOf(e.getMostSpecificCause().getMessage()).toLowerCase(Locale.ROOT);
         if (e instanceof DataIntegrityViolationException || message.contains("unique") || message.contains("duplicate")) {
             return new DuplicateUserException(fieldOf(e));
         }
@@ -131,8 +130,7 @@ public class IdentityPersistenceAdapter implements IdentityPersistencePort {
 
     /** Which unique index refused the insert, read from the driver message of SQLite or PostgreSQL. */
     static String fieldOf(DataAccessException clash) {
-        Throwable cause = clash.getMostSpecificCause();
-        String message = String.valueOf(cause == null ? clash.getMessage() : cause.getMessage());
+        String message = String.valueOf(clash.getMostSpecificCause().getMessage());
         if (message.contains("nickname")) {
             return "nickname";
         }
