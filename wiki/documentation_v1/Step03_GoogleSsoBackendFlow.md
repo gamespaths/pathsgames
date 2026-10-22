@@ -15,6 +15,8 @@ tokens, on Java, Python and AWS, with a hardened token and session handling.
 
 ## 2. Decisions (owner, October 19, 2026)
 
+Superseded: the guest merge rule below by [Step 9](./Step09_MatchListCancelledLastPlayed.md); the cap of 5 sessions, the refresh lifetime and the refresh grace (30 seconds becomes 2 minutes) by [Step 12](./Step12_PaginationAndMultiDeviceContinuity.md).
+
 - Verify the Google ID token (Google Identity Services, **no client secret**). Java: `GoogleIdTokenVerifier`. Python and AWS: PyJWT + `PyJWKClient` with cached keys (no `google-auth` dependency).
 - One Google OAuth client per stage. Two Google Cloud projects: **non-prod** (dev, test; published "In production" status, no test-users list, open to every Google account, only the `openid email` scopes so no brand verification: it shows the app name without logo; only dev/test clients and `localhost` origins) and **prod** (alpha, beta and later stages; Production, verified brand and domain; the alpha client has the origins `paths.games` and `www.paths.games`), each with a second owner. Version 1.x runs on alpha (deployed on every push to `main`), so alpha has Google SSO from release 1.2 and the prod project with the verified brand/domain consent screen is needed already for 1.2 (step 41 keeps only the beta client). No Identity Platform / Firebase Auth.
 - No explicit API version in V1 (`/api/{version}/` of V0 Step11 dropped; confirmed in [API Conventions](../ApiConventions.md)).

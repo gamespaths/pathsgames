@@ -12,9 +12,16 @@ documents and the other versions are listed in the global index
 | `Step03_GoogleSsoBackendFlow.md` | Google ID token login, hashed sessions, replay, rate limit, admin bootstrap (developed 1.2.0) | google login, ID token, nonce, refresh, JWKS |
 | `Step04_GoogleSsoReactGameLogin.md` | react-game Google button, guest linking, logout (developed 1.2.0) | GIS popup, guest linking, logout, consent |
 | `Step05_GoogleSsoPrivacyE2E.md` | Account deletion, retention, policies, fake provider E2E (developed 1.2.0) | deletion, retention, policy, Robot, stage transfer |
+| `Step06_UserProfileBackend.md` | Analysis: match stamp on every write, play time, `/me` statistics and preferences | ts_update, play_ms, statistics, preferences, GSI4 |
+| `Step07_UserProfileReactGame.md` | Analysis: profile page, preferences, log out everywhere, account deletion UI | profile page, preferences, logout all, deletion |
+| `Step08_MatchConcurrencyMultiDevice.md` | Analysis: `If-Match` and `STALE_MATCH`, claim first, refetch on return | matchVersion, If-Match, STALE_MATCH, refetch, DynamoDB chunks |
+| `Step09_MatchListCancelledLastPlayed.md` | Analysis: match list (last played, cancelled toggle) and merge rule, Google match wins | tsUpdate, cancelled, merge rule, cancelledMatchUuids |
+| `Step10_AdminUserManagementBackend.md` | Analysis: admin users list, ban with BANNED matches, suspend, unblock, log writer | admin users, ban, BANNED, GSI3, intervention log |
+| `Step11_AdminUserManagementPages.md` | Analysis: react-admin users list, detail and action dialogs | users page, dialogs, reason, suspend date |
+| `Step12_PaginationAndMultiDeviceContinuity.md` | Analysis: admin paging residuals, session cap, logout-all, refresh 30 days, A-B-C Robot | pagination, SESSION_LIMIT, sessions_valid_after, SameSite |
 
 # Version Control
-- **Document Version**: 1.2.0
+- **Document Version**: 1.4.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -22,8 +29,9 @@ documents and the other versions are listed in the global index
   | 1.0.0 | Version launch step added | October 13, 2026 |
   | 1.1.0 | Google login analysis added | October 19, 2026 |
   | 1.2.0 | Google login developed | October 20, 2026 |
+  | 1.4.0 | Profile, many-device and admin user steps analysed | October 21, 2026 |
 
-- **Last Updated**: October 20, 2026 (v1.2.0)
+- **Last Updated**: October 21, 2026 (v1.4.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

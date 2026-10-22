@@ -34,9 +34,9 @@ a password. The Google email and profile data are stored (see section 2); the em
   - Domain other than `gmail.com` (`googlemail.com` included, owner decision; same mailbox; even a verified Google account): refused with `EMAIL_DOMAIN_NOT_ALLOWED`, nothing written.
   - The email is never updated (it is the key); name, surname, picture and locale are refreshed at every login.
   - Uniqueness: SQL partial unique index on `users.email_address` WHERE NOT NULL (guests have none), SQLite and PostgreSQL. DynamoDB: item `EMAIL#{email}` → user uuid written with a condition rejecting duplicates; it also replaces the email Scans.
-  - An `IDENTITY_MISMATCH` is resolved by an admin action in roadmap step 11 ("re-link the Google subject" or "delete the old user", traced in the intervention log).
+  - An `IDENTITY_MISMATCH` is resolved by an admin action in roadmap step 10 ("re-link the Google subject" or "delete the old user", traced in the intervention log).
   - Steam (V3): no email; a Steam user is identified by its Steam id; linking Steam to a Google user is a V3 decision.
-  - The email is visible and searchable only in react-admin (users list of step 11, owner move); the AWS admin search may use the `EMAIL#` item.
+  - The email is visible and searchable only in react-admin (users list of step 10, owner move); the AWS admin search may use the `EMAIL#` item.
 - **Mapping**: match import maps Google users by email with the `sub` check (a mismatch is a conflict in the import plan), guests by username, old 0.41.4 exports with `emailAddress` by email when present. Admin owner move goes back to uuid → email → username. This replaces the earlier username-only mapping.
 - States: new state `7` = deleting (used by the deletion job of [Step 5](./Step05_GoogleSsoPrivacyE2E.md)).
 - A lost provider account is not recoverable (rule already in the roadmap, no more detail).
