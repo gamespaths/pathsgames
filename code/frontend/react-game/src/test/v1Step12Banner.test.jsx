@@ -36,8 +36,13 @@ function versions(...list) {
   })
 }
 
+// v1.8.0 — the return listener is attached by an effect after the board renders: under load a single
+// early event is lost, so it is sent again until the return refetch answers
 async function returnToThePage() {
-  act(() => { window.dispatchEvent(new Event('online')) })
+  await waitFor(() => {
+    act(() => { window.dispatchEvent(new Event('online')) })
+    expect(getMatchInfo.mock.calls.length).toBeGreaterThanOrEqual(2)
+  })
 }
 
 describe('GamePage — match changed on another device', () => {

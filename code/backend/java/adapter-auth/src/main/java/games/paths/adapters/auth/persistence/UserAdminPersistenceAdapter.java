@@ -33,6 +33,11 @@ public class UserAdminPersistenceAdapter implements UserAdminPersistencePort {
             rs.getLong("google") > 0 ? AdminUserItem.TYPE_GOOGLE : AdminUserItem.TYPE_INTERNAL,
             rs.getString("ts_registration"), rs.getString("ts_last_access"), rs.getString("suspended_until"));
 
+    // v1.8.0 — one constant query per column: no SQL text is built at run time
+    private static final String COUNT_BY_HASH_SUB = "SELECT COUNT(*) FROM users_banned_subjects WHERE hash_sub = ?";
+    private static final String COUNT_BY_HASH_EMAIL =
+            "SELECT COUNT(*) FROM users_banned_subjects WHERE hash_email = ?";
+
     private final JdbcTemplate jdbc;
 
     public UserAdminPersistenceAdapter(JdbcTemplate jdbc) {
@@ -128,8 +133,8 @@ public class UserAdminPersistenceAdapter implements UserAdminPersistencePort {
     @Override
     public void storeBannedHashes(String userUuid, String hashSub, String hashEmail) {
         deleteBannedHashes(userUuid);
-        String sub = hashSub != null && countHash("hash_sub", hashSub) == 0 ? hashSub : null;
-        String email = hashEmail != null && countHash("hash_email", hashEmail) == 0 ? hashEmail : null;
+        String sub = hashSub != null && countHash(COUNT_BY_HASH_SUB, hashSub) == 0 ? hashSub : null;
+        String email = hashEmail != null && countHash(COUNT_BY_HASH_EMAIL, hashEmail) == 0 ? hashEmail : null;
         if (sub == null && email == null) {
             return;
         }
@@ -153,13 +158,12 @@ public class UserAdminPersistenceAdapter implements UserAdminPersistencePort {
     @Override
     @Transactional(readOnly = true)
     public boolean isBanned(String hashSub, String hashEmail) {
-        return (hashSub != null && countHash("hash_sub", hashSub) > 0)
-                || (hashEmail != null && countHash("hash_email", hashEmail) > 0);
+        return (hashSub != null && countHash(COUNT_BY_HASH_SUB, hashSub) > 0)
+                || (hashEmail != null && countHash(COUNT_BY_HASH_EMAIL, hashEmail) > 0);
     }
 
-    private int countHash(String column, String hash) {
-        Integer n = jdbc.queryForObject("SELECT COUNT(*) FROM users_banned_subjects WHERE " + column + " = ?",
-                Integer.class, hash);
+    private int countHash(String query, String hash) {
+        Integer n = jdbc.queryForObject(query, Integer.class, hash);
         return n == null ? 0 : n;
     }
 

@@ -82,7 +82,10 @@ describe('GamePage on STALE_MATCH', () => {
   it('a page return refetches the match', async () => {
     wrap()
     await screen.findByTestId('game-book')
-    act(() => { window.dispatchEvent(new Event('online')) })
-    await waitFor(() => expect(getMatchInfo).toHaveBeenCalledTimes(2))
+    // v1.8.0 — the listener comes from an effect after the render: send the event until it answers
+    await waitFor(() => {
+      act(() => { window.dispatchEvent(new Event('online')) })
+      expect(getMatchInfo.mock.calls.length).toBeGreaterThanOrEqual(2)
+    })
   })
 })
