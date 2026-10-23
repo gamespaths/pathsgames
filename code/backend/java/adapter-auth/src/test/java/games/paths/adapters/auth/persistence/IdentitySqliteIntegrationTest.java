@@ -137,6 +137,24 @@ class IdentitySqliteIntegrationTest {
     }
 
     @Test
+    void v170PreferencesAndThePlayTimeColumn() {
+        long id = user("22222222-bbbb", "anna", "anna@gmail.com");
+        assertEquals("default", identities.findThemeSelected(id).orElseThrow());
+        identities.updatePreferences(id, "it", null);
+        assertEquals("it", identities.findUserById(id).orElseThrow().language());
+        assertEquals("default", identities.findThemeSelected(id).orElseThrow());
+        identities.updatePreferences(id, null, "high-contrast");
+        assertEquals("high-contrast", identities.findThemeSelected(id).orElseThrow());
+        assertEquals("it", identities.findUserById(id).orElseThrow().language());
+        jdbc.update("UPDATE users SET theme_selected = NULL WHERE id = ?", id);
+        assertTrue(identities.findThemeSelected(id).isEmpty());
+        assertTrue(identities.findThemeSelected(-1L).isEmpty());
+        identities.updatePreferences(-1L, "en", "default");
+        assertTrue(jdbc.queryForList("SELECT name FROM pragma_table_info('gaming_match')", String.class)
+                .contains("play_ms"));
+    }
+
+    @Test
     void uniqueNicknameAndEmailBecomeDuplicateUserExceptions() {
         user("22222222-aaaa", "mario", "mario@gmail.com");
         assertEquals("nickname", assertThrows(IdentityPersistencePort.DuplicateUserException.class,
@@ -213,6 +231,35 @@ class IdentitySqliteIntegrationTest {
         assertTrue(tokens.findRefreshToken("hash-2", "clear").isPresent());
         assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM users_tokens WHERE refresh_token = 'hash-2'",
                 Integer.class));
+    }
+
+    @Test
+    void v170ReasonsRecentCountPurgeAndValidAfter() {
+        long id = user("99999999-bbbb", "luigi", "luigi@gmail.com");
+        tokens.storeRefreshToken(id, "h-rot", "2999-01-01T00:00:00Z");
+        tokens.storeRefreshToken(id, "h-out", "2999-01-01T00:00:00Z");
+        tokens.storeRefreshToken(id, "h-lim", "2999-01-01T00:00:00Z");
+        tokens.storeRefreshToken(id, "h-new", "2999-01-01T00:00:00Z");
+        tokens.markRotated(tokens.findRefreshToken("h-rot", null).orElseThrow().id(), "2026-10-01T00:00:00Z");
+        assertTrue(tokens.revokeRefreshToken("h-out", null));
+        jdbc.update("UPDATE users_tokens SET ts_insert = '2026-01-01T00:00:00Z' WHERE refresh_token = 'h-lim'");
+        tokens.revokeOldestTokensIfLimitExceeded(id, 1);
+        assertEquals("LIMIT", tokens.findRefreshToken("h-lim", null).orElseThrow().revokedReason());
+        assertEquals("ROTATED", tokens.findRefreshToken("h-rot", null).orElseThrow().revokedReason());
+        assertEquals("LOGOUT", tokens.findRefreshToken("h-out", null).orElseThrow().revokedReason());
+        assertEquals(1, tokens.countActiveTokensIssuedAfter(id, "2026-02-01T00:00:00Z"));
+        jdbc.update("UPDATE users_tokens SET ts_update = '2026-01-01T00:00:00Z' WHERE id_user = ?", id);
+        assertEquals(2, tokens.deleteShortLivedRevokedTokens("2026-06-01T00:00:00Z"));
+        assertTrue(tokens.findRefreshToken("h-rot", null).isEmpty());
+        assertTrue(tokens.findRefreshToken("h-lim", null).isPresent());
+        assertEquals(1, tokens.revokeAllUserTokens(id, "ADMIN"));
+        assertEquals("ADMIN", tokens.findRefreshToken("h-new", null).orElseThrow().revokedReason());
+        tokens.setSessionsValidAfter(id, "2026-10-22T10:00:00Z");
+        assertEquals(java.time.Instant.parse("2026-10-22T10:00:00Z").getEpochSecond(),
+                identities.findUserById(id).orElseThrow().sessionsValidAfter());
+        identities.updateLastAccess(id);
+        assertEquals("2026-10-22T10:00:00Z", jdbc.queryForObject(
+                "SELECT sessions_valid_after FROM users WHERE id = ?", String.class, id));
     }
 
     private static Path tempDatabase() {

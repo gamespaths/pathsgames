@@ -224,6 +224,11 @@ public class MatchQueryService implements MatchQueryPort {
     }
 
     @Override
+    public MatchSummaryPage listUserMatchesPage(String userUuid, Integer limit, String cursor) {
+        return MatchListOrder.page(listUserMatches(userUuid), limit, cursor);
+    }
+
+    @Override
     public List<MatchSummary> listAllMatches() {
         List<GamingMatchEntity> matches = matchReadPort.findAllMatches();
         Map<Long, StoryEntity> storiesById = storiesById();
@@ -866,6 +871,8 @@ public class MatchQueryService implements MatchQueryPort {
         s.setExpCost(match.getExpCost());
         s.setUserCreatorUuid(userUuid);
         s.setTsInsert(match.getTsInsert());
+        s.setMatchVersion(match.getTsUpdate());
+        s.setTsUpdate(MatchStampService.isoUtc(match.getTsUpdate()));
         s.setSinglePlayer(match.getSinglePlayer());
         s.setCharacterTemplateUuid(match.getCharacterTemplateUuid());
         s.setClassUuid(match.getClassUuid());

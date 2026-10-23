@@ -24,6 +24,17 @@ class StoryQueryService(StoryQueryPort):
         raw_stories = self.read_port.find_all_stories()
         return [self._map_to_summary(r, lang) for r in raw_stories]
 
+    def list_all_stories_page(self, lang: str = "en", limit=None, cursor=None) -> dict:
+        """v1.7.0 one page of every story (admin): {items, nextCursor, limit}, cursor = next position."""
+        from app.core.services.match.match_list_order import clamp_limit, offset_of
+        lang = lang or "en"
+        raw_stories = self.read_port.find_all_stories()
+        size = clamp_limit(limit)
+        start = min(offset_of(cursor), len(raw_stories))
+        end = min(start + size, len(raw_stories))
+        return {"items": [self._map_to_summary(r, lang) for r in raw_stories[start:end]],
+                "nextCursor": str(end) if end < len(raw_stories) else None, "limit": size}
+
     def list_categories(self) -> List[str]:
         return self.read_port.find_unique_categories()
 

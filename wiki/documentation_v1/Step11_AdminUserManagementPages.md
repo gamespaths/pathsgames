@@ -1,6 +1,6 @@
 # Step 11 — Admin tool: user management pages
 
-**Status: analysed (October 21, 2026), owner answers recorded, not developed. Steps 6-12 are developed together and released as 1.6.0. Open points in section 4.**
+**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/11_admin_user_pages` written, not yet run. Analysis decisions below are kept; "Implementation notes" lists what shipped.**
 Roadmap line: *the react-admin side* ([Roadmap](./Roadmap.md) step 11). Backend: [Step 10](./Step10_AdminUserManagementBackend.md).
 
 ## 1. Goal
@@ -42,14 +42,21 @@ The admin finds users, reads a user's profile and match history and runs ban, su
 4. (decided) The email appears only in the detail page.
 5. (decided) Standard reasons: spam, abuse, cheating, security, support request, other; the free text is mandatory (10 to 500 characters). The list is a react-admin constant; the backend stores the final text only.
 
+## Implementation notes (1.7.0)
+
+- react-admin: `UsersPage.jsx` (route `/users`, one search box: "@" = exact email, else nickname prefix; state filter; cursor paging; no email column) and `UserDetailPage.jsx` (route `/users/:uuid`: profile with the email, identities, statistics, sessions, match history, actions ban, suspend, unblock, re-link, deletion). Sidebar section "Users".
+- `components/user/ReasonModal.jsx` (standard reason plus free text, 10-500 characters, composed as "<label>: <text>"; suspend adds the `until` date, max 90 days), `UserPicker.jsx`, `UserStateBadge.jsx`; constants in `constants/userAdmin.js`.
+- `api/client.js` now keeps the API error code and HTTP status on the rejected error (`err.code`, `err.status`) so dialogs show the step 10 codes.
+
 # Version Control
-- **Document Version**: 1.4.0
+- **Document Version**: 1.7.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.4.0 | Admin user pages analysed | October 21, 2026 |
+  | 1.7.0 | Developed and released | October 23, 2026 |
 
-- **Last Updated**: October 21, 2026 (v1.4.0)
+- **Last Updated**: October 23, 2026 (v1.7.0)
 
 
 # &lt; Paths Games /&gt;

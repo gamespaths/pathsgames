@@ -16,8 +16,20 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def epoch_seconds(iso: Optional[str]) -> int:
+    """v1.7.0 users.sessions_valid_after as epoch seconds; 0 when absent or unreadable."""
+    if not iso or not str(iso).strip():
+        return 0
+    try:
+        parsed = datetime.fromisoformat(str(iso).strip().replace("Z", "+00:00"))
+    except ValueError:
+        return 0
+    return int((parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)).timestamp())
+
+
 def to_status(u: User) -> UserStatus:
-    return UserStatus(u.id, u.uuid, u.username, u.nickname, u.role or "PLAYER", u.state or 0, u.language)
+    return UserStatus(u.id, u.uuid, u.username, u.nickname, u.role or "PLAYER", u.state or 0, u.language,
+                      epoch_seconds(getattr(u, "sessions_valid_after", None)))
 
 
 def to_identity(r: IdentityRow) -> UserIdentity:
@@ -134,6 +146,20 @@ class IdentityPersistenceAdapter(IdentityPersistencePort):
     def update_state(self, user_id: int, state: int) -> None:
         with self.session_factory() as session:
             session.query(User).filter(User.id == user_id).update({"state": state})
+            session.commit()
+
+    def find_theme_selected(self, user_id: int) -> Optional[str]:
+        with self.session_factory() as session:
+            user = session.get(User, user_id)
+            theme = user.theme_selected if user is not None else None
+            return theme if theme and theme.strip() else None
+
+    def update_preferences(self, user_id: int, language: Optional[str], theme: Optional[str]) -> None:
+        values = {k: v for k, v in (("language", language), ("theme_selected", theme)) if v is not None}
+        if not values:
+            return
+        with self.session_factory() as session:
+            session.query(User).filter(User.id == user_id).update(values)
             session.commit()
 
     def mark_id_token_seen(self, token_hash: str, expires_at: str) -> bool:

@@ -65,6 +65,20 @@ import java.util.Map;
 @EnableScheduling
 public class CoreConfig {
 
+    // v1.7.0 the profile choices, shown by /api/echo/status and checked by PATCH /api/auth/me
+    @Value("${game.profile.supported-languages:en,it}")
+    private String supportedLanguages;
+
+    @Value("${game.profile.supported-themes:default,high-contrast}")
+    private String supportedThemes;
+
+    // v1.7.0 step 8 the page-return refetch of a match, shown by /api/echo/status
+    @Value("${game.match.refetch-browsers:webkit}")
+    private String matchRefetchBrowsers;
+
+    @Value("${game.match.refetch-min-hidden-seconds:30}")
+    private int matchRefetchMinHiddenSeconds;
+
     @Value("${game.server.status:UNKNOWN}")
     private String serverStatus;
 
@@ -80,7 +94,7 @@ public class CoreConfig {
     @Value("${server.port:8080}")
     private String serverPort;
 
-    @Value("${game.auth.max-tokens-per-user:5}")
+    @Value("${game.auth.max-tokens-per-user:12}")
     private int maxTokensPerUser;
 
     // v0.41.0 — cap of one match-less guest purge (the daily job and withoutMatches=true)
@@ -115,7 +129,14 @@ public class CoreConfig {
         properties.put("applicationName", applicationName);
         properties.put("port", serverPort);
         properties.put("javaVersion", System.getProperty("java.version"));
-        return new EchoService(serverStatus, properties);
+        EchoService service = new EchoService(serverStatus, properties);
+        service.setSupported(games.paths.core.model.auth.UserPreferences.parseList(supportedLanguages,
+                        games.paths.core.model.auth.UserPreferences.DEFAULT_LANGUAGES),
+                games.paths.core.model.auth.UserPreferences.parseList(supportedThemes,
+                        games.paths.core.model.auth.UserPreferences.DEFAULT_THEMES));
+        service.setMatchRefetch(games.paths.core.model.auth.UserPreferences.parseList(matchRefetchBrowsers,
+                EchoService.DEFAULT_REFETCH_BROWSERS), matchRefetchMinHiddenSeconds);
+        return service;
     }
 
     @Bean
@@ -137,8 +158,13 @@ public class CoreConfig {
     }
 
     @Bean
-    public SessionPort sessionPort(JwtPort jwtPort, TokenPersistencePort tokenPersistencePort) {
-        return new SessionService(jwtPort, tokenPersistencePort, maxTokensPerUser);
+    public SessionPort sessionPort(JwtPort jwtPort, TokenPersistencePort tokenPersistencePort,
+                                   games.paths.core.port.auth.AccountGuardPort accountGuardPort,
+                                   games.paths.core.port.auth.UserStatePort userStatePort) {
+        SessionService service = new SessionService(jwtPort, tokenPersistencePort, maxTokensPerUser);
+        service.setAccountGuard(accountGuardPort);
+        service.setUserState(userStatePort);
+        return service;
     }
 
     @Bean
@@ -203,15 +229,27 @@ public class CoreConfig {
                 turnstileSecretKey, turnstileBypassToken, serverEnv, restTemplate);
     }
 
+    // ───── v1.7.0: one stamp per request on the match, play time capped per write ─────
+
+    @Bean
+    public games.paths.core.port.match.MatchStampPort matchStampPort(
+            games.paths.core.port.match.MatchStampStorePort matchStampStorePort,
+            @Value("${game.match.play-time-cap-seconds:300}") long capSeconds) {
+        return new games.paths.core.service.match.MatchStampService(matchStampStorePort, capSeconds);
+    }
+
     // ───── Step 36: Registry (reads, writes and comparisons of gaming_state_registry) ─────
 
     @Bean
     public games.paths.core.service.match.RegistryService registryService(
             games.paths.core.port.match.RegistryStorePort registryStorePort,
             StoryReadPort storyReadPort,
-            ContentQueryPort contentQueryPort) {
-        return new games.paths.core.service.match.RegistryService(registryStorePort,
-                storyReadPort, contentQueryPort);
+            ContentQueryPort contentQueryPort,
+            games.paths.core.port.match.MatchStampPort matchStampPort) {
+        games.paths.core.service.match.RegistryService service =
+                new games.paths.core.service.match.RegistryService(registryStorePort, storyReadPort, contentQueryPort);
+        service.setMatchStamp(matchStampPort);
+        return service;
     }
 
     // ───── v0.41.2 Step 41 F: KPI counters (best effort) and the admin report ─────
@@ -252,12 +290,14 @@ public class CoreConfig {
                                              games.paths.core.service.match.RegistryService registryService,
                                              games.paths.core.service.match.MissionService missionService,
                                              games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort,
-                                             games.paths.core.port.match.KpiPort kpiPort) {
+                                             games.paths.core.port.match.KpiPort kpiPort,
+                                             games.paths.core.port.match.MatchStampPort matchStampPort) {
         MatchCommandService service = new MatchCommandService(storyReadPort, matchPersistencePort,
                 userAccessPort, systemModePort, turnstileVerificationPort, registryService);
         service.setMissionService(missionService);
         service.setLogWriter(matchLogWriterPort);
         service.setKpi(kpiPort);
+        service.setMatchStamp(matchStampPort);
         return service;
     }
 
@@ -306,12 +346,14 @@ public class CoreConfig {
             games.paths.core.service.match.WeatherSelectionService weatherSelectionService,
             games.paths.core.service.match.RegistryService registryService,
             games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort,
-            games.paths.core.port.match.KpiPort kpiPort) {
+            games.paths.core.port.match.KpiPort kpiPort,
+            games.paths.core.port.match.MatchStampPort matchStampPort) {
         games.paths.core.service.match.TurnCycleService service =
                 new games.paths.core.service.match.TurnCycleService(
                         turnCycleStorePort, userAccessPort, weatherSelectionService, registryService);
         service.setLogWriter(matchLogWriterPort);
         service.setKpi(kpiPort);
+        service.setMatchStamp(matchStampPort);
         return service;
     }
 
@@ -346,12 +388,14 @@ public class CoreConfig {
             games.paths.core.service.match.TimeStartRecoveryService timeStartRecoveryService,
             games.paths.core.service.match.WeatherSelectionService weatherSelectionService,
             games.paths.core.service.match.RandomEventSelectionService randomEventSelectionService,
-            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort) {
+            games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort,
+            games.paths.core.port.match.MatchStampPort matchStampPort) {
         games.paths.core.service.match.TimeAdvancementService service =
                 new games.paths.core.service.match.TimeAdvancementService(
                         turnCycleStorePort, userAccessPort, domainEventPublisher,
                         timeStartRecoveryService, weatherSelectionService, randomEventSelectionService);
         service.setLogWriter(matchLogWriterPort);
+        service.setMatchStamp(matchStampPort);
         return service;
     }
 
@@ -431,10 +475,13 @@ public class CoreConfig {
             UserAccessPort userAccessPort,
             ContentQueryPort contentQueryPort,
             games.paths.core.port.match.LocationEntryPort locationEntryPort,
-            games.paths.core.service.match.RegistryService registryService) {
-        return new games.paths.core.service.match.MovementService(
+            games.paths.core.service.match.RegistryService registryService,
+            games.paths.core.port.match.MatchStampPort matchStampPort) {
+        games.paths.core.service.match.MovementService service = new games.paths.core.service.match.MovementService(
                 movementStorePort, userAccessPort, contentQueryPort, locationEntryPort,
                 registryService);
+        service.setMatchStamp(matchStampPort);
+        return service;
     }
 
     // ───── Step 29: Normal events (player-triggered actions) ─────
@@ -460,7 +507,8 @@ public class CoreConfig {
             games.paths.core.service.match.RegistryService registryService,
             games.paths.core.service.match.MissionService missionService,
             games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort,
-            games.paths.core.port.match.KpiPort kpiPort) {
+            games.paths.core.port.match.KpiPort kpiPort,
+            games.paths.core.port.match.MatchStampPort matchStampPort) {
         games.paths.core.service.match.EventExecutionService service =
                 new games.paths.core.service.match.EventExecutionService(
                         eventExecutionStorePort, edgeStateStorePort, userAccessPort,
@@ -468,6 +516,7 @@ public class CoreConfig {
                         registryService);
         service.setLogWriter(matchLogWriterPort);
         service.setKpi(kpiPort);
+        service.setMatchStamp(matchStampPort);
         // Closes the one cycle in the graph: the event engine needs the time engine for
         // flag_end_time, and the time engine needs the event engine to run what a time-start
         // set off. Constructor injection either way is impossible; this setter is called once,
@@ -505,9 +554,12 @@ public class CoreConfig {
             UserAccessPort userAccessPort,
             ContentQueryPort contentQueryPort,
             StoryReadPort storyReadPort,
-            games.paths.core.service.match.EventExecutionService eventExecutionService) {
-        return new games.paths.core.service.match.InventoryService(
+            games.paths.core.service.match.EventExecutionService eventExecutionService,
+            games.paths.core.port.match.MatchStampPort matchStampPort) {
+        games.paths.core.service.match.InventoryService service = new games.paths.core.service.match.InventoryService(
                 inventoryStorePort, userAccessPort, contentQueryPort, storyReadPort, eventExecutionService);
+        service.setMatchStamp(matchStampPort);
+        return service;
     }
 
     /** Step 38 — experience spent on a stat; prices with the difficulty row, logs EXP_USE.
@@ -516,9 +568,12 @@ public class CoreConfig {
     public games.paths.core.port.match.ExperiencePort experiencePort(
             games.paths.core.port.match.ExperienceStorePort experienceStorePort,
             UserAccessPort userAccessPort,
-            games.paths.core.service.match.RegistryService registryService) {
-        return new games.paths.core.service.match.ExperienceService(experienceStorePort, userAccessPort,
-                registryService);
+            games.paths.core.service.match.RegistryService registryService,
+            games.paths.core.port.match.MatchStampPort matchStampPort) {
+        games.paths.core.service.match.ExperienceService service =
+                new games.paths.core.service.match.ExperienceService(experienceStorePort, userAccessPort, registryService);
+        service.setMatchStamp(matchStampPort);
+        return service;
     }
 
     // ───── Step 21: Character template & class selection ─────
@@ -529,10 +584,12 @@ public class CoreConfig {
                                                      UserAccessPort userAccessPort,
                                                      CharacterPersistencePort characterPersistencePort,
                                                      CharacterReadPort characterReadPort,
-                                                     games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort) {
+                                                     games.paths.core.port.match.MatchLogWriterPort matchLogWriterPort,
+                                                     games.paths.core.port.match.MatchStampPort matchStampPort) {
         CharacterCommandService service = new CharacterCommandService(storyReadPort, matchReadPort,
                 userAccessPort, characterPersistencePort, characterReadPort);
         service.setLogWriter(matchLogWriterPort);
+        service.setMatchStamp(matchStampPort);
         return service;
     }
 

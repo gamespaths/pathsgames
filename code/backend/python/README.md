@@ -166,6 +166,10 @@ docker rmi pathsgames-backend-python
 
 Env: `GOOGLE_CLIENT_ID`, `GOOGLE_ENABLED`, `RATE_LIMIT_GOOGLE_PER_IP`, `JWT_ISSUER`, `JWT_AUDIENCE`, `ADMIN_TOKEN_DAYS`, `ALLOW_MOCK_ACCESS`. New table `users_identities` and the column drops go through `create_all` plus the ALTER list in `database.py`. Admin: `python -m app.scripts.create_admin <nick>` (script `code/scripts/dev/create_admin_python.sh <local|ec2> <nick>`). Dev-only `/api/dev/admin-token`, `/api/dev/google-token`, `/api/dev/jobs/account-deletion`.
 
+## Profile, sessions and user admin (V1.7.0)
+
+Same contract as the Java backend (spec `v1.7.0-multi-device-api.yaml`): `GET`/`PATCH /api/auth/me`, `matchVersion` / `If-Match` / 409 `STALE_MATCH` (`request_stamp_middleware.py`, `match_stamp.py`), list envelopes for `GET /api/matches` and `GET /api/admin/stories`, admin users endpoints on port 8044. New columns and tables (`play_ms`, `suspended_until`, `relink_pending`, `sessions_valid_after`, `revoked_reason`, `users_banned_subjects`, `admin_intervention_log`) are added by `create_all` plus `align_schema()`. Env: `MAX_TOKENS_PER_USER` (12), `REFRESH_TOKEN_DAYS` (250), `COOKIE_SAME_SITE` (`Lax`; `None` only when the API is on another site than the page), `BANNED_SUBJECT_PEPPER` (startup refused outside dev/test without it), `PLAY_TIME_CAP_SECONDS`, `SUPPORTED_LANGUAGES`, `SUPPORTED_THEMES`, `MATCH_REFETCH_*`.
+
 ## Architecture
 
 Following the **Hexagonal Architecture** pattern:

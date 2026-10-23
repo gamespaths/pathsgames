@@ -97,7 +97,8 @@ List Matches Returns Created Match
     [Tags]    matches    step19
     ${response}=    List Matches    ${TOKEN}
     Status Should Be    ${response}    200
-    ${body}=    Set Variable    ${response.json()}
+    # v1.7.0 step 9 — the envelope {items, nextCursor, limit}
+    ${body}=    Set Variable    ${response.json()}[items]
     Should Not Be Empty    ${body}
     ${found}=    Set Variable    ${False}
     FOR    ${m}    IN    @{body}
@@ -116,7 +117,8 @@ List Matches Resolves Story And Difficulty Uuid
     [Tags]    matches    step19
     ${response}=    List Matches    ${TOKEN}
     Status Should Be    ${response}    200
-    ${body}=    Set Variable    ${response.json()}
+    # v1.7.0 step 9 — the envelope {items, nextCursor, limit}
+    ${body}=    Set Variable    ${response.json()}[items]
     Should Not Be Empty    ${body}
     ${match}=    Set Variable    ${NONE}
     FOR    ${m}    IN    @{body}

@@ -108,6 +108,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 sendForbidden(response, "ACCOUNT_DELETION_IN_PROGRESS", "The account is being deleted");
                 return;
             }
+            // v1.7.0 issued before "log out of all devices", a ban or a suspension (seconds, 60 s cache)
+            if (!user.get().acceptsTokenIssuedAt(tokenInfo.issuedAt() / 1000)) {
+                sendUnauthorized(response, "SESSION_REVOKED", "The session was closed from another device");
+                return;
+            }
             tokenInfo = new TokenInfo(tokenInfo.userUuid(), user.get().username(), user.get().role(),
                     tokenInfo.type(), tokenInfo.tokenId(), tokenInfo.issuedAt(), tokenInfo.expiresAt());
         }

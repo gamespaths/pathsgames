@@ -6,6 +6,9 @@ from typing import Callable, List, Optional
 
 from app.core.models.auth.auth_error import AuthError, UserStates
 from app.core.models.auth.identity import PROVIDER_GOOGLE, UserIdentity, UserProfile
+from app.core.models.auth.profile import (DEFAULT_LANGUAGES, DEFAULT_THEMES, THEME_DEFAULT, UserPreferences,
+                                          UserStats)
+from app.core.models.match import match_statuses
 from app.core.services.auth import token_hasher
 from app.core.services.auth.google_login_service import check_claims, check_email
 
@@ -39,6 +42,13 @@ class AccountService:
         self.chunk = chunk if chunk > 0 else DEFAULT_CHUNK
         self.retention_months = retention_months if retention_months > 0 else DEFAULT_RETENTION_MONTHS
         self.clock = clock
+        self.languages = list(DEFAULT_LANGUAGES)
+        self.themes = list(DEFAULT_THEMES)
+
+    def configure_preferences(self, languages: Optional[List[str]], themes: Optional[List[str]]) -> None:
+        """v1.7.0 the supported-languages and supported-themes lists; None or empty keeps the default."""
+        self.languages = list(languages) if languages else list(DEFAULT_LANGUAGES)
+        self.themes = list(themes) if themes else list(DEFAULT_THEMES)
 
     def _google_identity(self, user_id: int) -> Optional[UserIdentity]:
         for identity in self.identities.find_identities_of_user(user_id):
@@ -51,6 +61,38 @@ class AccountService:
         if user is None:
             return None
         return UserProfile.of(user, self._google_identity(user.id))
+
+    def stats(self, user_uuid: str) -> UserStats:
+        """v1.7.0 the statistics of the matches the user created, computed on the fly."""
+        user = self.identities.find_user_by_uuid(user_uuid)
+        if user is None:
+            return UserStats()
+        return UserStats.of(self.matches.totals_by_status(user.id, match_statuses.PLAYED))
+
+    def preferences(self, user_uuid: str) -> Optional[UserPreferences]:
+        user = self.identities.find_user_by_uuid(user_uuid)
+        if user is None:
+            return None
+        return UserPreferences(user.language, self.identities.find_theme_selected(user.id) or THEME_DEFAULT)
+
+    def update_preferences(self, user_uuid: str, language: Optional[str], theme: Optional[str]) -> UserPreferences:
+        """v1.7.0 PATCH /api/auth/me: a None field is left unchanged; guests are refused."""
+        user = self.identities.find_user_by_uuid(user_uuid)
+        if user is None:
+            raise AuthError("INVALID_TOKEN", "Unknown user")
+        if user.is_guest:
+            raise AuthError("GOOGLE_ACCOUNT_REQUIRED", "Sign in with Google to keep preferences in the profile")
+        if language is None and theme is None:
+            raise AuthError("INVALID_REQUEST", "Nothing to update")
+        if language is not None and language not in self.languages:
+            raise AuthError("INVALID_REQUEST", f"Unsupported language: {language}")
+        if theme is not None and theme not in self.themes:
+            raise AuthError("INVALID_REQUEST", f"Unsupported theme: {theme}")
+        self.identities.update_preferences(user.id, language, theme)
+        self.user_state.evict(user.uuid)
+        current = self.identities.find_theme_selected(user.id) or THEME_DEFAULT
+        return UserPreferences(language if language is not None else user.language,
+                               theme if theme is not None else current)
 
     def request_deletion(self, user_uuid: str, id_token: Optional[str], nonce: Optional[str]) -> None:
         if not id_token or not id_token.strip():

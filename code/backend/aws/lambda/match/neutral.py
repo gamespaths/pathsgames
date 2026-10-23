@@ -238,6 +238,7 @@ def match_section(meta, story):
         'activeCharacterUuid': meta.get('activeCharacterUuid'),
         'partyLocationId': positive(meta.get('currentLocationId')),
         'timestampStart': ts(meta.get('timestampStartMs')), 'createdAt': ts(meta.get('tsInsert')),
+        'playMs': nz(meta.get('playMs')),
     }
 
 

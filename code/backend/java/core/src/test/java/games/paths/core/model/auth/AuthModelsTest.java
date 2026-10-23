@@ -110,4 +110,16 @@ class AuthModelsTest {
         assertTrue(t.revoked());
         assertEquals(1L, new AuthenticatedSession(null, "a", "r", 1L, 2L, false, "g", 3).accessTokenExpiresAt());
     }
+
+    @Test
+    void cancelledMatchUuidsDefaultToEmpty() {
+        assertTrue(MergeResult.none().cancelledMatchUuids().isEmpty());
+        assertTrue(new MergeResult(1, List.of(4L)).cancelledMatchUuids().isEmpty());
+        assertTrue(new MergeResult(1, null, null).cancelledMatchIds().isEmpty());
+        assertEquals(List.of("m"), new MergeResult(1, List.of(4L), List.of("m")).cancelledMatchUuids());
+        assertTrue(new AuthenticatedSession(null, "a", "r", 1L, 2L, false, "g", 3).cancelledMatchUuids().isEmpty());
+        assertTrue(new AuthenticatedSession(null, "a", "r", 1L, 2L, false, "g", 3, null).cancelledMatchUuids().isEmpty());
+        assertEquals(List.of("x"),
+                new AuthenticatedSession(null, "a", "r", 1L, 2L, false, "g", 1, List.of("x")).cancelledMatchUuids());
+    }
 }

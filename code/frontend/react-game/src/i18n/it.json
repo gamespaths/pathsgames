@@ -31,7 +31,8 @@
     "footerBlocked": "Bloccato",
     "footerError": "Errore",
     "playTutorial": "Gioca il tutorial",
-    "resumeTutorial": "Riprendi il tutorial"
+    "resumeTutorial": "Riprendi il tutorial",
+    "knownAccount": "Accedi con Google per ritrovare le tue partite"
   },
   "antibot": {
     "blocked": "Antibot attivato — queste avventure sono solo per umani!",
@@ -161,7 +162,8 @@
       "running": "Avvio",
       "created": "Caricamento"
     },
-    "home": "Torna alla home"
+    "home": "Torna alla home",
+    "accountHint": "Hai un account? Accedi per continuare"
   },
   "matches": {
     "title": "Le tue Partite",
@@ -178,12 +180,16 @@
       "PAUSED": "In pausa",
       "ENDED": "Completata",
       "GAMEOVER": "Sconfitta",
-      "CANCELLED": "Annullata"
+      "CANCELLED": "Annullata",
+      "BANNED": "Bannata"
     },
     "history": "Cronologia Partita",
     "historyDescription": "Ogni passo di questa partita, dal più recente: spostamenti, eventi, riposi e cosa hanno cambiato.",
     "historyOpen": "Cronologia",
-    "logOpen": "Log"
+    "logOpen": "Log",
+    "lastPlayed": "Ultima giocata",
+    "showCancelled": "Mostra annullate",
+    "cancelledKept": "È stata tenuta la partita del tuo account Google per questa storia."
   },
   "matchLog": {
     "title": "Storia della partita",
@@ -250,6 +256,9 @@
     "openLink": "apri link"
   },
   "game": {
+    "matchUpdating": "Partita in aggiornamento",
+    "matchUpdatedLog": "Apri la cronologia della partita",
+    "matchUpdatedDismiss": "Chiudi",
     "currentLocation": "Posizione Attuale",
     "explore": "Esplora",
     "moveTo": "Muoviti verso…",
@@ -642,7 +651,7 @@
       "transfersTitle": "6. Trasferimenti internazionali dei dati",
       "transfersBody": "Alcuni fornitori (come Google) potrebbero trattare i dati al di fuori dello Spazio Economico Europeo, anche negli Stati Uniti. Tali trasferimenti sono protetti dalle Clausole Contrattuali Standard della Commissione Europea o da garanzie equivalenti.",
       "retentionTitle": "7. Conservazione dei dati",
-      "retentionBody": "I cookie di sessione durano fino a 7 giorni (token di refresh) e 30 giorni (identificativo ospite); la tua scelta sui cookie è conservata per 6 mesi; i dati analytics sono conservati fino a 2 anni. Il profilo ospite anonimo che ha giocato almeno una partita viene conservato, così puoi riprendere le tue avventure; il profilo ospite che non ha mai iniziato una partita viene cancellato dopo 60 giorni senza accessi. Un account Google viene conservato finché non ne chiedi la cancellazione o finché non passano 24 mesi senza alcun accesso; poi vengono cancellati l'account, i suoi dati Google (email, nomi, indirizzo dell'immagine, lingua), le sessioni, le partite, i personaggi e i log. Le statistiche giornaliere aggregate non contengono dati personali e vengono conservate. I log dei nostri server sono conservati per 14 giorni e i contatori anti-abuso legati al tuo indirizzo IP vengono cancellati automaticamente dopo breve tempo.",
+      "retentionBody": "I cookie di sessione durano fino a 250 giorni (token di refresh, rinnovato a ogni visita; 180 giorni per un ospite) e 180 giorni (identificativo ospite); la tua scelta sui cookie è conservata per 6 mesi; i dati analytics sono conservati fino a 2 anni. Il profilo ospite anonimo che ha giocato almeno una partita viene conservato, così puoi riprendere le tue avventure; il profilo ospite che non ha mai iniziato una partita viene cancellato dopo 60 giorni senza accessi. Un account Google viene conservato finché non ne chiedi la cancellazione o finché non passano 24 mesi senza alcun accesso; poi vengono cancellati l'account, i suoi dati Google (email, nomi, indirizzo dell'immagine, lingua), le sessioni, le partite, i personaggi e i log. Le statistiche giornaliere aggregate non contengono dati personali e vengono conservate. I log dei nostri server sono conservati per 14 giorni e i contatori anti-abuso legati al tuo indirizzo IP vengono cancellati automaticamente dopo breve tempo.",
       "rightsTitle": "8. I tuoi diritti",
       "rightsBody": "Se ti trovi nell'UE/SEE puoi accedere, rettificare, cancellare, limitare o portare i tuoi dati, opporti al trattamento e revocare il consenso in qualsiasi momento, e puoi presentare reclamo all'autorità di controllo competente. Se sei residente in California hai il diritto di conoscere, cancellare e correggere i tuoi dati e di opporti alla vendita o condivisione (noi non vendiamo né condividiamo), senza discriminazioni per l'esercizio dei tuoi diritti. Puoi chiedere la cancellazione del tuo account Google scrivendo a paths.games@proton.me (un'opzione nel gioco arriverà con la pagina del profilo); la cancellazione rimuove tutti i tuoi dati tranne le statistiche aggregate. Se un account viene bannato per violazione dei Termini, conserviamo solo un hash con chiave (HMAC-SHA256 con un pepper segreto) del suo soggetto Google e della sua email, così che la stessa persona non possa aprire un nuovo account; l'hash non può essere riconvertito nei tuoi dati. Poiché il gioco come ospite è anonimo, potremmo non essere in grado di identificare i dati di un ospite senza ulteriori informazioni da parte tua.",
       "childrenTitle": "9. Minori",
@@ -692,7 +701,7 @@
       "title": "Cookie Policy",
       "intro": "Questa Cookie Policy spiega come Paths Games utilizza i cookie e tecnologie simili in questo gioco. Un cookie è un piccolo file di testo memorizzato sul tuo dispositivo. Raggruppiamo i cookie nelle categorie seguenti; puoi accettare o rifiutare i cookie non essenziali in qualsiasi momento.",
       "necessaryTitle": "1. Cookie strettamente necessari",
-      "necessaryBody": "Mantengono attiva la tua sessione e ricordano le tue scelte sui cookie. Sono essenziali, quindi sempre attivi e non richiedono consenso: pathsgames.guestcookie (30 giorni), pathsgames.refreshToken (7 giorni) e pathsgames.cookiesConsent (6 mesi). Lo script Google Identity Services (accounts.google.com) viene caricato solo quando clicchi 'Accedi con Google', come parte strettamente necessaria dell'accesso che richiedi; Google può impostare i propri cookie nella finestra di accesso, secondo la propria cookie policy.",
+      "necessaryBody": "Mantengono attiva la tua sessione e ricordano le tue scelte sui cookie. Sono essenziali, quindi sempre attivi e non richiedono consenso: pathsgames.guestcookie (180 giorni), pathsgames.refreshToken (250 giorni, rinnovato a ogni visita; 180 giorni per un ospite), pathsgames.cookiesConsent (6 mesi) e pathsgames.turnstilePass (30 minuti, una verifica anti-bot recente). Il gioco conserva anche alcuni valori necessari e non personali nella memoria del browser, mai inviati come cookie: pathsgames.lang e pathsgames.highContrast (la lingua e il contrasto scelti), pg_game_server (il server di gioco), pathsgames.knownAccount (indica solo che questo dispositivo ha fatto l'accesso con Google, così la home ti invita ad accedere di nuovo; resta dopo il logout e viene rimosso quando cancelli l'account) e, fino alla chiusura della scheda, pathsgames.googleNonce (un tentativo di accesso) e pg_story:* (i testi delle storie già caricati). Lo script Google Identity Services (accounts.google.com) viene caricato solo quando clicchi 'Accedi con Google', come parte strettamente necessaria dell'accesso che richiedi; Google può impostare i propri cookie nella finestra di accesso, secondo la propria cookie policy.",
       "analyticsTitle": "2. Cookie analitici (facoltativi)",
       "analyticsBody": "Con il tuo consenso usiamo Google Tag Manager / Google Analytics (_ga, _ga_*, fino a 2 anni) per misurare l'utilizzo in forma anonima e migliorare il gioco. Grazie a Google Consent Mode v2 restano disattivati finché non accetti e nessun cookie analitico viene scritto prima di allora.",
       "legalTitle": "3. Base giuridica",
@@ -788,7 +797,8 @@
       "signedInAs": "Accesso con Google come",
       "logout": "Esci",
       "keepProgress": "Accedi con Google per conservare i tuoi progressi: le partite di questo ospite vengono con te.",
-      "ageNotice": "Per accedere devi avere almeno 16 anni: leggi la {privacy} e i {terms}."
+      "ageNotice": "Per accedere devi avere almeno 16 anni: leggi la {privacy} e i {terms}.",
+      "signInAgain": "Accedi di nuovo"
     },
     "errors": {
       "EMAIL_NOT_VERIFIED": "La tua email Google non è verificata: verificala con Google e riprova.",
@@ -800,7 +810,63 @@
       "PROVIDER_UNAVAILABLE": "L’accesso con Google non è disponibile al momento, riprova più tardi.",
       "GOOGLE_DISABLED": "L’accesso con Google è disattivato su questo server.",
       "RATE_LIMITED": "Troppi tentativi di accesso da questa connessione, riprova più tardi.",
-      "GOOGLE_LOGIN_FAILED": "Accesso con Google non riuscito, riprova."
+      "GOOGLE_LOGIN_FAILED": "Accesso con Google non riuscito, riprova.",
+      "SESSION_LIMIT": "Troppi dispositivi collegati con questo account: accedi di nuovo."
     }
+  },
+  "profile": {
+    "open": "Il mio profilo",
+    "title": "Profilo",
+    "displayName": "Nome",
+    "nickname": "Nickname",
+    "accountType": "Account",
+    "accountTypes": {
+      "GUEST": "Ospite",
+      "GOOGLE": "Google",
+      "INTERNAL": "Interno"
+    },
+    "statsTitle": "Statistiche",
+    "stats": {
+      "matchesPlayed": "Partite giocate",
+      "matchesCompleted": "Completate",
+      "matchesGameOver": "Game over",
+      "playTime": "Tempo di gioco",
+      "clocksPlayed": "Tempo nel mondo di gioco",
+      "playTimeValue": "{h} h {m} min"
+    },
+    "guestInvite": "Accedi con Google per avere queste statistiche su ogni dispositivo e salvare le tue preferenze nel tuo account.",
+    "preferencesTitle": "Preferenze",
+    "accountTitle": "Account",
+    "policiesTitle": "Privacy e termini",
+    "logoutAll": "Esci da tutti i dispositivi",
+    "logoutAllConfirm": "Ogni dispositivo collegato con questo account Google verrà disconnesso, compreso questo.",
+    "confirm": "Conferma",
+    "cancel": "Annulla",
+    "delete": {
+      "button": "Elimina il mio account",
+      "what": "Eliminare l’account cancella il tuo profilo, il collegamento al tuo account Google, le tue preferenze e tutte le partite che hai creato. Non si può annullare.",
+      "confirmHint": "Per confermare, accedi di nuovo con lo stesso account Google.",
+      "confirmWithGoogle": "Conferma con Google",
+      "deleting": "Eliminazione dell’account in corso…",
+      "doneTitle": "Account eliminato",
+      "done": "Il tuo account e i suoi dati sono in fase di cancellazione. Grazie per aver giocato a Paths Games.",
+      "close": "Torna alla home"
+    },
+    "errors": {
+      "PROFILE_SAVE_FAILED": "Non è stato possibile salvare le preferenze, riprova.",
+      "LOGOUT_ALL_FAILED": "Non è stato possibile disconnettere i dispositivi, riprova.",
+      "ACCOUNT_DELETION_FAILED": "Non è stato possibile eliminare l’account, riprova.",
+      "FRESH_TOKEN_REQUIRED": "La conferma Google è troppo vecchia: conferma di nuovo con Google.",
+      "TOKEN_REPLAYED": "Questa conferma Google è già stata usata: conferma di nuovo con Google.",
+      "INVALID_NONCE": "La conferma Google non corrisponde a questa pagina: conferma di nuovo con Google.",
+      "INVALID_TOKEN": "La conferma Google non è valida: conferma di nuovo con Google.",
+      "NOT_A_GOOGLE_ACCOUNT": "Si possono eliminare solo gli account Google.",
+      "GOOGLE_ACCOUNT_REQUIRED": "Accedi con Google per salvare le preferenze nel tuo account.",
+      "INVALID_REQUEST": "Questa scelta non è supportata dal server.",
+      "CSRF_TOKEN_MISSING": "La sessione è cambiata: ricarica la pagina e riprova.",
+      "CSRF_TOKEN_INVALID": "La sessione è cambiata: ricarica la pagina e riprova.",
+      "generic": "Qualcosa è andato storto, riprova."
+    },
+    "activeSessions": "Dispositivi usati negli ultimi 30 giorni: {count}"
   }
 }

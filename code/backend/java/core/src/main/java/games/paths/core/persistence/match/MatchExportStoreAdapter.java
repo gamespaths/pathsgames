@@ -49,6 +49,7 @@ public class MatchExportStoreAdapter implements MatchExportStorePort {
             "state", "role", "email_address");
     private static final Pattern IDENTIFIER = Pattern.compile("[a-z_][a-z0-9_]*");
     private static final String SELECT_MATCH_ID = "SELECT id FROM gaming_match WHERE uuid = ?";
+    private static final String SELECT_PLAY_MS = "SELECT COALESCE(play_ms, 0) FROM gaming_match WHERE uuid = ?";
 
     private final JdbcTemplate jdbc;
     private final LogIdPort logIds;
@@ -84,6 +85,13 @@ public class MatchExportStoreAdapter implements MatchExportStorePort {
     public List<Map<String, Object>> logRows(long idMatch, String table, long mark) {
         String sql = "SELECT * FROM " + identifier(table) + " WHERE id_match = ? AND id <= ? ORDER BY id";
         return plainRows(jdbc.queryForList(sql, idMatch, mark));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long playMs(String uuidMatch) {
+        List<Long> rows = jdbc.queryForList(SELECT_PLAY_MS, Long.class, uuidMatch);
+        return rows.isEmpty() || rows.get(0) == null ? 0L : rows.get(0);
     }
 
     @Override

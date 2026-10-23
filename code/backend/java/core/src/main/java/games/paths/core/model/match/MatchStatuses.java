@@ -18,12 +18,17 @@ public final class MatchStatuses {
     public static final String GAMEOVER = "GAMEOVER";
     /** v1.2.0 a STARTED match that lost the guest merge to a newer one of the same story. */
     public static final String CANCELLED = "CANCELLED";
+    /** v1.7.0 an active match of a banned user: terminal, treated like CANCELLED. */
+    public static final String BANNED = "BANNED";
 
     /** Every valid status, in lifecycle order. */
-    public static final List<String> ALL = List.of(CREATED, RUNNING, PAUSED, ENDED, GAMEOVER, CANCELLED);
+    public static final List<String> ALL = List.of(CREATED, RUNNING, PAUSED, ENDED, GAMEOVER, CANCELLED, BANNED);
 
     /** Terminal statuses — a match in one of these is "stopped" and deletable. */
-    public static final Set<String> TERMINAL = Set.of(ENDED, GAMEOVER, CANCELLED);
+    public static final Set<String> TERMINAL = Set.of(ENDED, GAMEOVER, CANCELLED, BANNED);
+
+    /** v1.7.0 the statuses the profile statistics count (CREATED, CANCELLED, BANNED and new ones excluded). */
+    public static final List<String> PLAYED = List.of(RUNNING, PAUSED, ENDED, GAMEOVER);
 
     /**
      * Active (non-terminal) statuses — a match in one of these still occupies its

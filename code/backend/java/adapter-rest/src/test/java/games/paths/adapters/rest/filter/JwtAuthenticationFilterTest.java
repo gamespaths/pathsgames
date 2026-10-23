@@ -441,5 +441,37 @@ class JwtAuthenticationFilterTest {
             verify(request).setAttribute("username", "db_name");
             verify(request).setAttribute("role", "ADMIN");
         }
+
+        private void userValidAfter(long epochSeconds) {
+            when(states.current("u-1")).thenReturn(java.util.Optional.of(new games.paths.core.model.auth.UserStatus(
+                    1L, "u-1", "db_name", "n", "PLAYER", 2, "en", epochSeconds)));
+        }
+
+        private void tokenIssuedAtMillis(long iatMillis) {
+            when(sessionPort.validateAccessToken("tok")).thenReturn(new games.paths.core.model.auth.TokenInfo(
+                    "u-1", "claimed", "PLAYER", "access", "j", iatMillis, iatMillis + 1_800_000L));
+        }
+
+        @Test
+        void v170TokenIssuedBeforeSessionsValidAfterIsSessionRevoked() throws Exception {
+            userValidAfter(1_792_663_200L);
+            tokenIssuedAtMillis(1_792_663_199_999L);
+            when(request.getRequestURI()).thenReturn("/api/matches");
+            StringWriter sw = new StringWriter();
+            when(response.getWriter()).thenReturn(new PrintWriter(sw));
+            stateFilter.doFilterInternal(request, response, filterChain);
+            verify(response).setStatus(401);
+            assertTrue(sw.toString().contains("SESSION_REVOKED"));
+            verify(filterChain, never()).doFilter(request, response);
+        }
+
+        @Test
+        void v170TokenOfTheBoundarySecondOrLaterPasses() throws Exception {
+            userValidAfter(1_792_663_200L);
+            tokenIssuedAtMillis(1_792_663_200_000L);
+            when(request.getRequestURI()).thenReturn("/api/matches");
+            stateFilter.doFilterInternal(request, response, filterChain);
+            verify(filterChain).doFilter(request, response);
+        }
     }
 }

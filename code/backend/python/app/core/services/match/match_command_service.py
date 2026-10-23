@@ -21,6 +21,7 @@ from app.core.ports.match.match_ports import (
 from app.core.ports.match import kpi_ports
 from app.core.ports.match import log_writer_ports as lw
 from app.core.services.match import trait_selection_validator
+from app.core.services.match.match_stamp import ADMIN, iso_utc, stamp_claim, stamped
 
 
 _BANNED_STATES = {3, 4}
@@ -200,6 +201,8 @@ class MatchCommandService(MatchCommandPort):
             character_template_uuid=saved.get("character_template_uuid"),
             class_uuid=saved.get("class_uuid"),
             trait_uuids=saved.get("trait_uuids") or [],
+            match_version=saved.get("ts_update"),
+            ts_update=iso_utc(saved.get("ts_update")),
         )
 
     def _validate_creator_trait_selection(self, story, difficulty, command) -> None:
@@ -215,6 +218,7 @@ class MatchCommandService(MatchCommandPort):
         except trait_selection_validator.TraitSelectionError as exc:
             raise MatchCreationError(exc.code, exc.message) from exc
 
+    @stamped(ADMIN, ok=lambda r: r == "UPDATED")
     def update_match(self, uuid_match: str, status: Optional[str], name: Optional[str],
                      admin_action: Optional[str] = None) -> str:
         if status is not None and not match_statuses.is_valid(status):
@@ -270,6 +274,7 @@ class MatchCommandService(MatchCommandPort):
         if event is None or event.get("id") != end_event_id:
             return "NOT_ACCEPTABLE"
 
+        stamp_claim(self, uuid_match)
         already_over = match_statuses.is_terminal(match.get("status"))
         self.match_persistence_port.update_match_fields(uuid_match, match_statuses.ENDED, None)
         if not already_over:

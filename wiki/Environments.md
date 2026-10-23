@@ -129,6 +129,10 @@ and comments:
 | Guest idle cleanup (v0.41.0) | `GUEST_CLEANUP_ENABLED`, `GUEST_CLEANUP_AGE_DAYS`, `GUEST_CLEANUP_MAX_PER_RUN`, `GUEST_CLEANUP_HOUR`, `GUEST_CLEANUP_MINUTE` (+ `AWS_*_TEST` mirrors) |
 | Logging & snapshots (v0.41.1) | `LOG_WARN_ROWS` (default 5000), AWS `LOG_WARN_METADATA_KB` (default 300) — WARN-only size check; `SNAPSHOT_KEEP_PER_MATCH` (default 10, 0 = off) |
 | Match export/import (v0.41.4) | `MATCH_EXPORT_MAX_BYTES` (default 5000000; Java `game.match.export.max-bytes`, AWS in `template/match.yaml` with `APP_VERSION`) |
+| Profile and play time (V1.7.0) | `PLAY_TIME_CAP_SECONDS` (300), `SUPPORTED_LANGUAGES` (`en,it`), `SUPPORTED_THEMES` (`default,high-contrast`); the last two are shown by `GET /api/echo/status`. SAM: `PlayTimeCapSeconds`, `SupportedLanguages`, `SupportedThemes` |
+| Match refetch (V1.7.0) | `MATCH_REFETCH_BROWSERS` (`webkit` or `all`), `MATCH_REFETCH_MIN_HIDDEN_SECONDS` (30), shown by `GET /api/echo/status`. SAM: `MatchRefetchBrowsers`, `MatchRefetchMinHiddenSeconds` |
+| Sessions and cookies (V1.7.0) | `MAX_TOKENS_PER_USER` (12), `REFRESH_TOKEN_DAYS` (250), `COOKIE_SAME_SITE` (`Lax`; Java/Python local). AWS: `MaxSessionsPerUser`, `CookieSameSite`; stage keys `AWS_<S>_LAMBDA_MAX_SESSIONS_PER_USER`, `AWS_<S>_LAMBDA_COOKIE_SAME_SITE` (test stack: `None`) |
+| Ban pepper (V1.7.0) | `BANNED_SUBJECT_PEPPER` (local Java/Python), SAM `BannedSubjectPepper`; stage keys `AWS_<S>_LAMBDA_BANNED_SUBJECT_PEPPER` (GitHub secret `AWS_ALPHA_LAMBDA_BANNED_SUBJECT_PEPPER`). Own value per stage (`openssl rand -base64 48`), never rotated; required outside dev/test |
 | AWS admin allow-list (v0.41.0) | `ADMIN_IP_WHITELIST`, `AWS_TEST_APIGW_ADMIN_IP_EMPTY_MEANS`, `AWS_TEST_APIGW_ADMIN_API_URL` |
 | Test-data lifecycle | `AWS_TEST_DYNAMODB_ROBOT_TEST_DATA_TTL_HOURS` |
 | Docker Hub | `DOCKERHUB_USERNAME_TEST`, `DOCKERHUB_IMAGE_TEST`, `DOCKERHUB_IMAGE_TAG_TEST`, `DOCKERHUB_TOKEN_TEST` |
@@ -166,7 +170,7 @@ per-server `_EC2`/`_EC2_PY` suffixes) and are due a naming/structure pass once V
 its own environment needs (SSO credentials, additional backends). Deferred, not scoped yet.
 
 # Version Control
-- **Document Version**: 1.2.0
+- **Document Version**: 1.7.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -177,8 +181,9 @@ its own environment needs (SSO credentials, additional backends). Deferred, not 
   | 0.42.0 | Alpha stage live on the main website | October 6, 2026 |
   | 1.1.0 | Daily smoke test and its keys added; beta replaces alpha | October 13, 2026 |
   | 1.2.0 | Google login keys and cloud projects | October 20, 2026 |
+  | 1.7.0 | New keys for sessions, bans and play time | October 23, 2026 |
 
-- **Last Updated**: October 20, 2026 (v1.2.0)
+- **Last Updated**: October 23, 2026 (v1.7.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

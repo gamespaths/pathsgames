@@ -50,6 +50,25 @@ describe('Navbar v1.2.0 — Google user', () => {
     expect(clearAuthError).toHaveBeenCalled()
   })
 
+  it('v1.7.0 step 12 — SESSION_LIMIT is said and its button opens the sign-in', () => {
+    const clearAuthError = vi.fn()
+    const openGuestModal = vi.fn()
+    ctx.value = { user: { username: 'guest_x' }, isGoogleUser: false, googleEnabled: true, openGuestModal,
+      loading: false, authError: 'SESSION_LIMIT', clearAuthError }
+    renderNavbar()
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('auth.google.signInAgain'))
+    expect(clearAuthError).toHaveBeenCalled()
+    expect(openGuestModal).toHaveBeenCalled()
+  })
+
+  it('SESSION_LIMIT without Google sign-in has only the close button', () => {
+    ctx.value = { user: null, isGoogleUser: false, googleEnabled: false, openGuestModal: vi.fn(), loading: false,
+      authError: 'SESSION_LIMIT', clearAuthError: vi.fn() }
+    renderNavbar()
+    expect(screen.queryByText('auth.google.signInAgain')).toBeNull()
+  })
+
   it('other auth errors stay in the user book, not in the header', () => {
     ctx.value = { user: { username: 'g' }, isGoogleUser: false, googleEnabled: true, openGuestModal: vi.fn(),
       loading: false, authError: 'EMAIL_DOMAIN_NOT_ALLOWED' }

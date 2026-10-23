@@ -6,6 +6,7 @@ import { useHomeStatus } from '@/context/HomeStatusContext'
 import EnvBadge from './EnvBadge'
 import { rateLimitMessage } from '@/utils/rateLimit'
 import { authErrorText } from '@/features/guest-user/UserAccountPanel'
+import { SESSION_ALERT_CODES, SESSION_LIMIT } from '@/auth/sessionAlerts'
 
 export default function Navbar() {
   const { lang, setLang, t } = useTranslation()
@@ -29,8 +30,12 @@ export default function Navbar() {
     ? '…'
     : isGoogleUser ? (guestUser?.nickname ?? guestUser?.username) : t('nav.guest')
   // v1.2.0 — a session closed elsewhere (or a refused account) is said once, here
-  const authAlert = ['SESSION_REVOKED', 'ACCOUNT_DISABLED', 'ACCOUNT_DELETION_IN_PROGRESS'].includes(authError)
-    ? authErrorText(t, authError) : null
+  const authAlert = SESSION_ALERT_CODES.includes(authError) ? authErrorText(t, authError) : null
+  // v1.7.0 step 12 — too many devices: the alert opens the sign-in
+  const signInAgain = () => {
+    clearAuthError()
+    openGuestModal()
+  }
 
   // v0.35.7 — same socials as the landing page; CSS hides them when the bar runs out of room.
   const socials = [
@@ -61,6 +66,9 @@ export default function Navbar() {
         <div className="navbar-error" role="alert">
           <i className="fas fa-user-lock me-1" />
           <span className="navbar-error__text">{authAlert}</span>
+          {authError === SESSION_LIMIT && googleEnabled && (
+            <button className="navbar-error__btn" onClick={signInAgain}>{t('auth.google.signInAgain')}</button>
+          )}
           <button className="navbar-error__btn" onClick={clearAuthError}>{t('modals.close')}</button>
         </div>
       )}

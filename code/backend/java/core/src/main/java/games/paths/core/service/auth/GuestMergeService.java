@@ -9,12 +9,14 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
- * GuestMergeService - v1.2.0 links the current guest to the Google user at login: its matches move to
- * the user; per story the STARTED match with the latest ts_update wins, the others become CANCELLED.
+ * GuestMergeService - v1.2.0 links the current guest to the Google user at login: its matches move to the
+ * user. v1.7.0 step 9: per story the Google user's active match always wins, the guest's become CANCELLED.
  */
 public class GuestMergeService {
 
@@ -29,32 +31,55 @@ public class GuestMergeService {
         if (guestUserId == targetUserId) {
             return MergeResult.none();
         }
-        List<MatchOwnership> all = new ArrayList<>(port.matchesOfUser(targetUserId));
-        all.addAll(port.matchesOfUser(guestUserId));
-        List<Long> cancel = matchesToCancel(all);
-        int moved = port.applyMerge(guestUserId, targetUserId, cancel, Instant.now().toString());
-        return new MergeResult(moved, cancel);
+        List<MatchOwnership> target = port.matchesOfUser(targetUserId);
+        List<MatchOwnership> guest = port.matchesOfUser(guestUserId);
+        List<MatchOwnership> cancel = matchesToCancel(target, guest);
+        List<Long> ids = cancel.stream().map(MatchOwnership::id).toList();
+        int moved = port.applyMerge(guestUserId, targetUserId, ids, Instant.now().toString());
+        return new MergeResult(moved, ids, cancel.stream().map(MatchOwnership::uuid).toList());
     }
 
-    /** Ended and completed matches are kept; of the STARTED ones of one story only the latest survives. */
-    static List<Long> matchesToCancel(List<MatchOwnership> matches) {
+    /**
+     * Ended and completed matches are kept. Per story: when the Google user has an active match every active
+     * guest match of that story is cancelled; otherwise the guest's survives. Inside one side only the latest
+     * ts_update stays (safety net: the duplicate guard already allows one active match per story).
+     */
+    static List<MatchOwnership> matchesToCancel(List<MatchOwnership> target, List<MatchOwnership> guest) {
+        Map<Long, List<MatchOwnership>> targetActive = activeByStory(target);
+        Map<Long, List<MatchOwnership>> guestActive = activeByStory(guest);
+        Set<MatchOwnership> cancel = new LinkedHashSet<>();
+        cancel.addAll(olderOfEachStory(targetActive));
+        for (Map.Entry<Long, List<MatchOwnership>> e : guestActive.entrySet()) {
+            if (targetActive.containsKey(e.getKey())) {
+                cancel.addAll(e.getValue());
+            } else {
+                cancel.addAll(olderOfEachStory(Map.of(e.getKey(), e.getValue())));
+            }
+        }
+        return new ArrayList<>(cancel);
+    }
+
+    private static Map<Long, List<MatchOwnership>> activeByStory(List<MatchOwnership> matches) {
         Map<Long, List<MatchOwnership>> byStory = new LinkedHashMap<>();
-        for (MatchOwnership m : matches) {
+        for (MatchOwnership m : matches != null ? matches : List.<MatchOwnership>of()) {
             if (MatchStatuses.isActive(m.status())) {
                 byStory.computeIfAbsent(m.storyId(), k -> new ArrayList<>()).add(m);
             }
         }
+        return byStory;
+    }
+
+    /** Of the active matches of one story all but the latest (ties: the higher id). */
+    private static List<MatchOwnership> olderOfEachStory(Map<Long, List<MatchOwnership>> byStory) {
         Comparator<MatchOwnership> latest = Comparator
                 .comparingLong((MatchOwnership m) -> epochMillis(m.tsUpdate()))
                 .thenComparingLong(MatchOwnership::id);
-        List<Long> cancel = new ArrayList<>();
+        List<MatchOwnership> older = new ArrayList<>();
         for (List<MatchOwnership> started : byStory.values()) {
-            if (started.size() > 1) {
-                MatchOwnership winner = started.stream().max(latest).orElseThrow();
-                started.stream().filter(m -> m.id() != winner.id()).forEach(m -> cancel.add(m.id()));
-            }
+            MatchOwnership winner = started.stream().max(latest).orElseThrow();
+            started.stream().filter(m -> m.id() != winner.id()).forEach(older::add);
         }
-        return cancel;
+        return older;
     }
 
     /** ISO-8601 or SQLite "yyyy-MM-dd HH:mm:ss" (UTC) to epoch millis; 0 when unreadable. */

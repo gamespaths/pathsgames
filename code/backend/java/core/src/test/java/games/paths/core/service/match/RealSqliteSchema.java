@@ -41,7 +41,8 @@ final class RealSqliteSchema {
 
     private static int[] version(Path p) {
         String v = p.getFileName().toString().substring(1).split("__")[0];
-        return Arrays.stream(v.split("\\.")).mapToInt(Integer::parseInt).toArray();
+        // Flyway reads "_" as a version separator too (V1.7.0_1 = 1.7.0.1)
+        return Arrays.stream(v.split("[._]")).mapToInt(Integer::parseInt).toArray();
     }
 
     private static int compareVersions(int[] a, int[] b) {

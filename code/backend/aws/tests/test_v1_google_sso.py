@@ -54,6 +54,13 @@ class MemDb:
         rows = [copy.deepcopy(v) for v in self.items.values() if v.get(key) == pk]
         return sorted(rows, key=lambda r: str(r.get(sort, '')))
 
+    def query_gsi_range(self, index, pk, op=None, value=None, value2=None, ascending=True):
+        sort = 'GSI1_SK' if index == 'GSI1' else 'GSI2_SK'
+        tests = {None: lambda k: True, 'begins_with': lambda k: k.startswith(value), 'gt': lambda k: k > value,
+                 'lt': lambda k: k < value, 'between': lambda k: value <= k <= value2}
+        rows = [r for r in self.query_gsi(index, pk) if tests[op](str(r.get(sort, '')))]
+        return rows if ascending else rows[::-1]
+
     def query_sk_prefix(self, pk, prefix, consistent=True, filter_expr=None):
         return [copy.deepcopy(v) for (p, s), v in self.items.items() if p == pk and s.startswith(prefix)]
 
@@ -83,7 +90,8 @@ class MemDb:
 def mem(monkeypatch):
     m = MemDb()
     for name in ('get_item', 'put_item', 'put_item_if_absent', 'delete_item', 'delete_all_by_pk', 'query_gsi',
-                 'query_sk_prefix', 'update_attributes', 'increment_counter', 'update_ts_last_access'):
+                 'query_sk_prefix', 'update_attributes', 'increment_counter', 'update_ts_last_access',
+                 'query_gsi_range'):
         monkeypatch.setattr(db_utils, name, getattr(m, name))
     monkeypatch.setenv('ENV', 'dev')
     monkeypatch.setattr(jwt_utils, 'ALLOW_MOCK_ACCESS', False)
@@ -262,8 +270,10 @@ def test_login_merges_the_guest(mem):
                    headers={'Authorization': f"Bearer {guest['accessToken']}"})
     data = body(merged)
     assert data['mergedGuest'] is True and data['cancelledMatches'] == 1
-    assert mem.get_item('MATCH#mg')['userCreatorUuid'] == tid and mem.get_item('MATCH#mg')['ts_update'] == 200
-    assert mem.get_item('MATCH#mt')['status'] == 'CANCELLED'
+    # v1.7.0 step 9 — the Google user's active match wins even over a newer guest match
+    assert data['cancelledMatchUuids'] == ['mg']
+    assert mem.get_item('MATCH#mg')['userCreatorUuid'] == tid and mem.get_item('MATCH#mg')['status'] == 'CANCELLED'
+    assert mem.get_item('MATCH#mt')['status'] == 'RUNNING'
     assert mem.get_item('MATCH#mg', 'CHARACTER#1')['userUuid'] == tid
     assert mem.get_item(f'USER#{gid}') is None
     assert any(c.startswith('pathsgames.guestcookie=;') for c in merged['cookies'])
@@ -318,13 +328,13 @@ def test_refresh_edges(mem, monkeypatch):
 
 def test_session_cap_logout_and_logout_all(mem):
     from auth.handler import lambda_handler
-    sessions = [login(mem, fake()) for _ in range(6)]
+    sessions = [login(mem, fake()) for _ in range(13)]
     uuid = body(sessions[0])['userUuid']
-    assert len(auth_tokens.active_sessions(uuid)) == 5
+    assert len(auth_tokens.active_sessions(uuid)) == 12
     bearer = {'Authorization': f"Bearer {body(sessions[-1])['accessToken']}"}
     out = lambda_handler(make_event('POST', '/api/auth/logout', headers=bearer,
                                     cookies=[_cookie(sessions[-1], 'pathsgames.refreshToken=')]), {})
-    assert out['statusCode'] == 200 and len(auth_tokens.active_sessions(uuid)) == 4
+    assert out['statusCode'] == 200 and len(auth_tokens.active_sessions(uuid)) == 11
     assert auth_tokens.revoke(None) is False
     lambda_handler(make_event('POST', '/api/auth/logout/all', headers=bearer), {})
     assert auth_tokens.active_sessions(uuid) == []
@@ -417,9 +427,14 @@ def test_delete_me_refusals(mem):
 def test_retention_and_scheduled_jobs(mem, monkeypatch):
     data = body(login(mem))
     uuid = data['userUuid']
-    mem.update_attributes(f'USER#{uuid}', 'METADATA', {'summary.ts_last_access': 1})
+    mem.update_attributes(f'USER#{uuid}', 'METADATA', {'ts_last_access': 1, 'ts_registration': 1,
+                                                        'GSI2_SK': f'{1:013d}#{uuid}'})
+    fresh = int(time.time() * 1000)
     mem.put_item({'PK': 'USER#fresh', 'SK': 'METADATA', 'uuid': 'fresh', 'GSI2_PK': 'GOOGLE_USER_LIST',
-                  'summary': {'ts_last_access': int(time.time() * 1000)}})
+                  'GSI2_SK': f'{fresh:013d}#fresh', 'ts_last_access': fresh, 'email': 'f@gmail.com'})
+    # v1.7.0 an ADMIN in the list is never retired
+    mem.put_item({'PK': 'USER#adm', 'SK': 'METADATA', 'uuid': 'adm', 'GSI2_PK': 'GOOGLE_USER_LIST', 'role': 'ADMIN',
+                  'GSI2_SK': f'{2:013d}#adm', 'ts_last_access': 2})
     from auth.handler import scheduled_account_jobs
     assert scheduled_account_jobs({'job': 'retention'}, None) == {'status': 'OK', 'retired': 1}
     assert mem.get_item(f'USER#{uuid}')['state'] == 7
@@ -429,7 +444,7 @@ def test_retention_and_scheduled_jobs(mem, monkeypatch):
 
 def test_matches_to_cancel_keeps_ended():
     rows = [{'uuid': 'a', 'storyUuid': 's', 'status': 'ENDED'}, {'uuid': 'b', 'storyUuid': 's', 'status': 'RUNNING'}]
-    assert sso.matches_to_cancel(rows) == []
+    assert sso.matches_to_cancel([], rows) == []
     assert sso.language('fr', 'it-IT') == 'it' and sso.language(None, 'de') == 'en' and sso.language('EN', None) == 'en'
     assert sso.nickname_base('+x@gmail.com') == 'player'
 

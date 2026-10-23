@@ -4,6 +4,7 @@ import games.paths.adapters.auth.entity.UserEntity;
 import games.paths.adapters.auth.entity.UserTokenEntity;
 import games.paths.adapters.auth.repository.UserRepository;
 import games.paths.adapters.auth.repository.UserTokenRepository;
+import games.paths.core.model.auth.RevokeReasons;
 import games.paths.core.model.auth.StoredRefreshToken;
 import games.paths.core.model.auth.UserStatus;
 import org.junit.jupiter.api.Test;
@@ -88,6 +89,7 @@ class TokenPersistenceAdapterTest {
         adapter.markRotated(1L, "now");
         assertTrue(t.getRevoked());
         assertEquals("now", t.getTsRotated());
+        assertEquals(RevokeReasons.ROTATED, t.getRevokedReason());
         when(userTokenRepository.findById(9L)).thenReturn(Optional.empty());
         adapter.markRotated(9L, "now");
         verify(userTokenRepository, times(1)).save(any());
@@ -95,8 +97,10 @@ class TokenPersistenceAdapterTest {
 
     @Test
     void revokeRefreshToken() {
-        when(userTokenRepository.findByRefreshToken("hash")).thenReturn(Optional.of(token(1L, false, null)));
+        UserTokenEntity active = token(1L, false, null);
+        when(userTokenRepository.findByRefreshToken("hash")).thenReturn(Optional.of(active));
         assertTrue(adapter.revokeRefreshToken("hash", null));
+        assertEquals(RevokeReasons.LOGOUT, active.getRevokedReason());
         when(userTokenRepository.findByRefreshToken("hash")).thenReturn(Optional.of(token(1L, true, null)));
         assertFalse(adapter.revokeRefreshToken("hash", null));
         when(userTokenRepository.findByRefreshToken("hash")).thenReturn(Optional.empty());
@@ -105,8 +109,10 @@ class TokenPersistenceAdapterTest {
 
     @Test
     void revokeAllAndCount() {
-        when(userTokenRepository.revokeAllByUserId(eq(3L), anyString())).thenReturn(2);
+        when(userTokenRepository.revokeAllByUserId(eq(3L), anyString(), eq(RevokeReasons.LOGOUT_ALL))).thenReturn(2);
         assertEquals(2, adapter.revokeAllUserTokens(3L));
+        when(userTokenRepository.revokeAllByUserId(eq(3L), anyString(), eq(RevokeReasons.ADMIN))).thenReturn(1);
+        assertEquals(1, adapter.revokeAllUserTokens(3L, RevokeReasons.ADMIN));
         when(userTokenRepository.countActiveTokensByUserId(eq(3L), anyString())).thenReturn(4);
         assertEquals(4, adapter.countActiveTokensByUserId(3L));
     }
@@ -138,6 +144,8 @@ class TokenPersistenceAdapterTest {
         when(userTokenRepository.findActiveTokensByUserIdOrderByTsInsertAsc(3L)).thenReturn(List.of(a, b, c));
         adapter.revokeOldestTokensIfLimitExceeded(3L, 2);
         assertTrue(a.getRevoked());
+        assertEquals(RevokeReasons.LIMIT, a.getRevokedReason());
+        assertNull(b.getRevokedReason());
         assertFalse(b.getRevoked());
         adapter.revokeOldestTokensIfLimitExceeded(3L, 5);
         verify(userTokenRepository, times(1)).save(any());
@@ -158,5 +166,23 @@ class TokenPersistenceAdapterTest {
         adapter.updateLastAccess(4L);
         assertNotNull(u.getTsLastAccess());
         verify(userRepository).save(u);
+    }
+
+    @Test
+    void v170ReasonIsReadBack() {
+        UserTokenEntity t = token(1L, true, null);
+        t.setRevokedReason(RevokeReasons.LIMIT);
+        when(userTokenRepository.findByRefreshToken("hash")).thenReturn(Optional.of(t));
+        assertEquals(RevokeReasons.LIMIT, adapter.findRefreshToken("hash", null).orElseThrow().revokedReason());
+    }
+
+    @Test
+    void v170RecentCountValidAfterAndPurge() {
+        when(userTokenRepository.countActiveTokensIssuedAfter(eq(3L), anyString(), eq("bound"))).thenReturn(2);
+        assertEquals(2, adapter.countActiveTokensIssuedAfter(3L, "bound"));
+        adapter.setSessionsValidAfter(3L, "2026-10-22T10:00:00Z");
+        verify(userRepository).updateSessionsValidAfter(3L, "2026-10-22T10:00:00Z");
+        when(userTokenRepository.deleteShortLivedRevoked("before")).thenReturn(7);
+        assertEquals(7, adapter.deleteShortLivedRevokedTokens("before"));
     }
 }

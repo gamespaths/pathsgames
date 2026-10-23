@@ -64,6 +64,15 @@ case "$_GOOGLE_CLIENT_ID" in
 		;;
 esac
 
+# v1.7.0 — one banned-subject pepper per stage (HMAC of banned Google subjects and emails), never rotated.
+_PEPPER="$(stage_key LAMBDA_BANNED_SUBJECT_PEPPER)"
+case "$_PEPPER" in
+	""|"PathsGamesDevBannedSubjectPepper2026")
+		echo "Error: AWS_${SUFFIX}_LAMBDA_BANNED_SUBJECT_PEPPER is missing or the committed default; set its own value in .env (openssl rand -base64 48)." >&2
+		exit 1
+		;;
+esac
+
 if [ ! -f "$SAMCONFIG" ]; then
 	echo "Error: $SAMCONFIG not found (it is versioned in the repository: restore it with its [$STAGE.deploy.parameters] section)." >&2
 	exit 1
@@ -128,6 +137,7 @@ fi
 # samconfig parameter_overrides first, then the non-empty stage keys, then the forced values; one Key=Value per line.
 _PARAMS_TXT="$(
 	PGSTAGE_OV_JwtSecret="$_JWT" \
+	PGSTAGE_OV_BannedSubjectPepper="$_PEPPER" \
 	PGSTAGE_OV_TurnstileSecretKey="$(stage_key LAMBDA_TURNSTILE_SECRET_KEY)" \
 	PGSTAGE_OV_CustomDomainName="$(stage_key APIGW_CUSTOM_DOMAIN)" \
 	PGSTAGE_OV_CustomDomainCertificateArn="$(stage_key ACM_DOMAIN_CERTIFICATE_ARN)" \
@@ -146,6 +156,8 @@ _PARAMS_TXT="$(
 	PGSTAGE_OV_SmokeTestWebsiteUrl="$(stage_key LAMBDA_SMOKE_WEBSITE_URL)" \
 	PGSTAGE_OV_GoogleClientId="$_GOOGLE_CLIENT_ID" \
 	PGSTAGE_OV_RateLimitGooglePerIp="$(stage_key LAMBDA_RATE_LIMIT_GOOGLE_PER_IP)" \
+	PGSTAGE_OV_MaxSessionsPerUser="$(stage_key LAMBDA_MAX_SESSIONS_PER_USER)" \
+	PGSTAGE_OV_CookieSameSite="$(stage_key LAMBDA_COOKIE_SAME_SITE)" \
 	PGSTAGE_FORCE_Environment="$STAGE" \
 	PGSTAGE_FORCE_Version="$_VERSION" \
 	PGSTAGE_FORCE_AllowMockAccess="false" \

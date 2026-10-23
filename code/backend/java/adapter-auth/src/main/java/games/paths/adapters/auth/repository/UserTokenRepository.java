@@ -59,12 +59,26 @@ public interface UserTokenRepository extends JpaRepository<UserTokenEntity, Long
      * Revoke all tokens for a specific user (set revoked = true).
      */
     @Modifying
-    @Query("UPDATE UserTokenEntity t SET t.revoked = true, t.tsUpdate = :now WHERE t.idUser = :userId AND t.revoked = false")
-    int revokeAllByUserId(@Param("userId") Long userId, @Param("now") String now);
+    @Query("UPDATE UserTokenEntity t SET t.revoked = true, t.tsUpdate = :now, t.revokedReason = :reason"
+            + " WHERE t.idUser = :userId AND t.revoked = false")
+    int revokeAllByUserId(@Param("userId") Long userId, @Param("now") String now, @Param("reason") String reason);
+
+    /** v1.7.0 active tokens issued at or after the bound (activeSessions of GET /api/auth/me). */
+    @Query("SELECT COUNT(t) FROM UserTokenEntity t WHERE t.idUser = :userId AND t.revoked = false"
+            + " AND t.expiresAt >= :now AND t.tsInsert >= :issuedAfter")
+    int countActiveTokensIssuedAfter(@Param("userId") Long userId, @Param("now") String now,
+                                     @Param("issuedAfter") String issuedAfter);
+
+    /** v1.7.0 the ROTATED and LOGOUT rows revoked (ts_update) before the bound. */
+    @Modifying
+    @Query("DELETE FROM UserTokenEntity t WHERE t.revoked = true AND t.revokedReason IN ('ROTATED', 'LOGOUT')"
+            + " AND t.tsUpdate < :before")
+    int deleteShortLivedRevoked(@Param("before") String before);
 
     /**
-     * Find all active (non-revoked) tokens for a user ordered by creation timestamp ascending (oldest first).
+     * Find all active (non-revoked) tokens for a user, oldest issued first.
+     * v1.7.0 by id (insertion order): ISO strings with a variable number of fraction digits do not sort.
      */
-    @Query("SELECT t FROM UserTokenEntity t WHERE t.idUser = :userId AND t.revoked = false ORDER BY t.tsInsert ASC")
+    @Query("SELECT t FROM UserTokenEntity t WHERE t.idUser = :userId AND t.revoked = false ORDER BY t.id ASC")
     List<UserTokenEntity> findActiveTokensByUserIdOrderByTsInsertAsc(@Param("userId") Long userId);
 }

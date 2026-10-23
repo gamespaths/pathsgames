@@ -34,7 +34,8 @@ class GoogleAuthControllerTest {
     private static AuthenticatedSession session(String mergedGuest) {
         UserProfile profile = new UserProfile("u-1", "google_u1", "mario", "Mario Rossi", "pic", "PLAYER", 2, "it",
                 "GOOGLE");
-        return new AuthenticatedSession(profile, "access", "refresh", 1L, 2L, true, mergedGuest, 1);
+        return new AuthenticatedSession(profile, "access", "refresh", 1L, 2L, true, mergedGuest, 1,
+                java.util.List.of("m-cancelled"));
     }
 
     private static MockMvc mvc(GoogleLoginPort port, RateLimitService limiter, int perIp) {
@@ -57,6 +58,7 @@ class GoogleAuthControllerTest {
                 .andExpect(jsonPath("$.accessToken").value("access"))
                 .andExpect(jsonPath("$.mergedGuest").value(true))
                 .andExpect(jsonPath("$.cancelledMatches").value(1))
+                .andExpect(jsonPath("$.cancelledMatchUuids[0]").value("m-cancelled"))
                 .andExpect(jsonPath("$.csrfToken").isNotEmpty())
                 .andReturn();
         List<String> cookies = result.getResponse().getHeaders("Set-Cookie");

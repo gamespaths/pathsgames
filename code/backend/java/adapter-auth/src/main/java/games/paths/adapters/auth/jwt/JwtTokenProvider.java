@@ -42,7 +42,7 @@ public class JwtTokenProvider implements JwtPort {
     public JwtTokenProvider(
             @Value("${game.auth.jwt.secret:0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF}") String secret,
             @Value("${game.auth.jwt.access-token-minutes:30}") long accessTokenMinutes,
-            @Value("${game.auth.jwt.refresh-token-days:7}") long refreshTokenDays,
+            @Value("${game.auth.jwt.refresh-token-days:250}") long refreshTokenDays,
             @Value("${game.auth.jwt.issuer:" + DEFAULT_ISSUER + "}") String issuer,
             @Value("${game.auth.jwt.audience:" + DEFAULT_AUDIENCE + "}") String audience) {
         this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));

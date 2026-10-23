@@ -10,11 +10,12 @@ import static org.junit.jupiter.api.Assertions.*;
 class StartupSecretsGuardTest {
 
     private static final String PRIVATE = "a-private-random-secret-of-at-least-32-chars!!";
+    private static final String PEPPER = "a-private-pepper-of-the-stage";
 
     @ParameterizedTest
     @ValueSource(strings = {"dev", "development", "test"})
     void devAndTestAcceptTheCommittedDefault(String env) {
-        assertDoesNotThrow(() -> new StartupSecretsGuard(env, StartupSecretsGuard.YAML_DEFAULT));
+        assertDoesNotThrow(() -> new StartupSecretsGuard(env, StartupSecretsGuard.YAML_DEFAULT, PEPPER));
         assertDoesNotThrow(() -> StartupSecretsGuard.check(env, StartupSecretsGuard.PROVIDER_DEFAULT));
     }
 
@@ -22,7 +23,7 @@ class StartupSecretsGuardTest {
     @ValueSource(strings = {"production", "prod", "alpha", "beta", ""})
     void productionRefusesEveryCommittedDefault(String env) {
         IllegalStateException e = assertThrows(IllegalStateException.class,
-                () -> new StartupSecretsGuard(env, StartupSecretsGuard.YAML_DEFAULT));
+                () -> new StartupSecretsGuard(env, StartupSecretsGuard.YAML_DEFAULT, PEPPER));
         assertTrue(e.getMessage().contains("JWT_SECRET"));
         assertThrows(IllegalStateException.class,
                 () -> StartupSecretsGuard.check(env, StartupSecretsGuard.PROVIDER_DEFAULT));
@@ -32,7 +33,24 @@ class StartupSecretsGuardTest {
 
     @Test
     void productionStartsWithAPrivateSecret() {
-        assertDoesNotThrow(() -> new StartupSecretsGuard("production", PRIVATE));
+        assertDoesNotThrow(() -> new StartupSecretsGuard("production", PRIVATE, PEPPER));
         assertThrows(IllegalStateException.class, () -> StartupSecretsGuard.check(null, null));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"production", "alpha", ""})
+    void productionRefusesTheCommittedPepper(String env) {
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> new StartupSecretsGuard(env, PRIVATE, games.paths.core.service.auth.SubjectHasher.DEFAULT_PEPPER));
+        assertTrue(e.getMessage().contains("BANNED_SUBJECT_PEPPER"));
+        assertThrows(IllegalStateException.class, () -> StartupSecretsGuard.checkPepper(env, " "));
+        assertThrows(IllegalStateException.class, () -> StartupSecretsGuard.checkPepper(env, null));
+        assertDoesNotThrow(() -> StartupSecretsGuard.checkPepper(env, PEPPER));
+    }
+
+    @Test
+    void devAcceptsTheCommittedPepper() {
+        assertDoesNotThrow(() -> new StartupSecretsGuard("dev", PRIVATE,
+                games.paths.core.service.auth.SubjectHasher.DEFAULT_PEPPER));
     }
 }

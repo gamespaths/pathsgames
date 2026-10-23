@@ -165,9 +165,10 @@ describe('v1.2.0 session sync between tabs', () => {
 })
 
 describe('v1.2.0 CANCELLED match status', () => {
-  it('has a plain badge and sorts with the finished matches, never as completed', () => {
-    expect(MATCH_STATUS_BADGE.CANCELLED.tone).toBe('completed')
-    expect(matchStatusGroup('CANCELLED')).toBe(2)
+  it('has a muted badge and sorts with the finished matches, never as completed', () => {
+    // v1.7.0 step 9 — its own muted tone
+    expect(MATCH_STATUS_BADGE.CANCELLED.tone).toBe('cancelled')
+    expect(matchStatusGroup('CANCELLED')).toBe(1)
     if (typeof storyBadge === 'function') {
       expect(storyBadge([{ storyUuid: 's', status: 'CANCELLED' }], 's')).not.toBe('completed')
     }

@@ -29,8 +29,10 @@ class MatchEntitiesTest {
         e.onCreate();
         assertEquals(uuid, e.getUuid());
 
-        e.onUpdate();
-        assertNotNull(e.getTsUpdate());
+        // v1.7.0 - no @PreUpdate any more: the play time starts at 0, the stamp is explicit
+        assertEquals(0L, e.getPlayMs());
+        e.setPlayMs(42L);
+        assertEquals(42L, e.getPlayMs());
     }
 
     @Test

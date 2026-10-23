@@ -12,6 +12,7 @@ import MissionStepsCards from '@/features/gameplay/cards/MissionStepsCards'
 import LoadingCard from '@/components/layout/LoadingCard'
 import UserLanguageSelector from './UserLanguageSelector'
 import UserAccountPanel, { UserAvatar } from './UserAccountPanel'
+import UserProfilePage from './UserProfilePage'
 import SafeHtml from '@/components/ui/SafeHtml'
 import TurnstileWidget from '@/components/ui/TurnstileWidget'
 import { CF_KEY, TURNSTILE_APPEARANCE, isTurnstilePassValid, recordTurnstilePass } from '@/utils/turnstile'
@@ -35,6 +36,8 @@ export default function GuestUserModal() {
   const [stepPreview, setStepPreview] = useState(null)
   // Step 40 — History opened straight from the list: its back arrow returns to the list.
   const [historyFromList, setHistoryFromList] = useState(false)
+  // v1.7.0 — the profile page takes the right page in place of the matches list
+  const [profileOpen, setProfileOpen] = useState(false)
   const matchUuid = previewInfo?.match?.uuid ?? null
   const missions = useMatchMissions(matchUuid, user?.accessToken, lang)
   // 'checking' until Turnstile passes, then 'human'; 'bot' on failure. The
@@ -93,9 +96,13 @@ export default function GuestUserModal() {
   }
 
   const story = previewInfo?.story ?? null
+  const userExtra = profileOpen ? null : <>
+    <UserLanguageSelector />
+    <button type="button" className="lang-btn user-profile__open" onClick={() => setProfileOpen(true)}>
+      <i className="fas fa-id-card me-2" />{t('profile.open')}</button>
+  </>
   const leftPage = !previewInfo
-    ? <Card variant="page" card={userCard} loading={loading}
-        extraContent={<UserLanguageSelector />} />
+    ? <Card variant="page" card={userCard} loading={loading} extraContent={userExtra} />
     : matchView === 'missionSteps' && selected
       ? <Card variant="page" card={selected.card} entityType="missions" loading={false}
           story={story} onClose={backToMissions} bonusBadgeShowZeros
@@ -132,6 +139,8 @@ export default function GuestUserModal() {
         {!previewInfo?.missionsOnly && <MatchHistoryCard story={story} onOpen={() => setMatchView('history')} />}
       </MissionCards>
     )
+  } else if (profileOpen) {
+    rightPage = <UserProfilePage onClose={() => setProfileOpen(false)} />
   } else rightPage = <>
 
     {status === 'error' ? (
@@ -163,9 +172,14 @@ export default function GuestUserModal() {
     )}
   </>
 
+  function closeBook() {
+    setProfileOpen(false)
+    closeGuestModal()
+  }
+
   return (
     <Book
-      onClose={closeGuestModal}
+      onClose={closeBook}
       left={leftPage}
       right={rightPage}
       mobile={

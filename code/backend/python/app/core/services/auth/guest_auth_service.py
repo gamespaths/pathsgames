@@ -16,9 +16,24 @@ class GuestAuthService(GuestAuthPort):
     #: v0.41.0 — the accepted range of X-Test-Guest-Age-Days.
     MAX_AGE_DAYS = 3650
 
-    def __init__(self, jwt_port: JwtPort, persistence_port: GuestPersistencePort):
+    def __init__(self, jwt_port: JwtPort, persistence_port: GuestPersistencePort, token_persistence=None,
+                 max_tokens_per_user: int = 12):
         self.jwt_port = jwt_port
         self.persistence_port = persistence_port
+        # v1.7.0 the cap of sessions per user also on guest create and resume (SESSION_LIMIT)
+        self.token_persistence = token_persistence
+        self.max_tokens_per_user = max_tokens_per_user
+
+    def _store_refresh(self, user_id, refresh_token: str) -> int:
+        """Stores the refresh token (v1.7.0 capped at 180 days for a guest) and applies the cap; its expiry."""
+        from app.core.services.auth.session_service import refresh_expiry_ms
+        refresh_expires_ms = refresh_expiry_ms(self.jwt_port.get_refresh_token_expiration_ms(), True,
+                                               datetime.now(timezone.utc))
+        refresh_expires_at = datetime.fromtimestamp(refresh_expires_ms / 1000, tz=timezone.utc).isoformat()
+        self.persistence_port.store_refresh_token(user_id, token_hasher.sha256(refresh_token), refresh_expires_at)
+        if self.token_persistence is not None:
+            self.token_persistence.enforce_token_limit(user_id, self.max_tokens_per_user)
+        return refresh_expires_ms
 
     def _resolve_username_prefix(self, test_marker: Optional[str]) -> str:
         """With a non-blank test marker the sanitized marker becomes the
@@ -58,9 +73,7 @@ class GuestAuthService(GuestAuthPort):
         refresh_token = self.jwt_port.generate_refresh_token(user_uuid)
 
         # 5. Store refresh token
-        refresh_expires_ms = self.jwt_port.get_refresh_token_expiration_ms()
-        refresh_expires_at = datetime.fromtimestamp(refresh_expires_ms / 1000, tz=timezone.utc).isoformat()
-        self.persistence_port.store_refresh_token(user_id, token_hasher.sha256(refresh_token), refresh_expires_at)
+        refresh_expires_ms = self._store_refresh(user_id, refresh_token)
 
         # 6. Update last access
         self.persistence_port.update_last_access(user_id)
@@ -106,9 +119,7 @@ class GuestAuthService(GuestAuthPort):
         refresh_token = self.jwt_port.generate_refresh_token(user_uuid)
 
         # Store new refresh token
-        refresh_expires_ms = self.jwt_port.get_refresh_token_expiration_ms()
-        refresh_expires_at = datetime.fromtimestamp(refresh_expires_ms / 1000, tz=timezone.utc).isoformat()
-        self.persistence_port.store_refresh_token(user_id, token_hasher.sha256(refresh_token), refresh_expires_at)
+        refresh_expires_ms = self._store_refresh(user_id, refresh_token)
 
         # Update last access
         self.persistence_port.update_last_access(user_id)

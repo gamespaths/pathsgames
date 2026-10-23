@@ -12,6 +12,7 @@ from app.core.models.match.turn_models import (
 from app.core.ports.match import kpi_ports
 from app.core.ports.match import log_writer_ports as lw
 from app.core.ports.match.turn_ports import TurnCyclePort, TurnCycleStorePort
+from app.core.services.match.match_stamp import stamp_check, stamp_claim
 
 
 class TurnCycleService(TurnCyclePort):
@@ -41,6 +42,7 @@ class TurnCycleService(TurnCyclePort):
 
         if match["status"] != match_statuses.CREATED:
             raise TurnCycleError(TurnCycleError.MATCH_NOT_STARTABLE, "Match is not in CREATED state")
+        stamp_check(self, match_uuid)
 
         characters = self.store.find_characters_by_match_id(match["id"]) or []
         if not characters:
@@ -58,6 +60,7 @@ class TurnCycleService(TurnCyclePort):
         rows.sort(key=lambda r: r["priority"], reverse=True)
         rows[0]["status"] = tm.ACTIVE
 
+        stamp_claim(self, match_uuid)
         self.store.replace_queue(match["id"], rows)
         top_id = rows[0]["id_character_match"]
         self.store.update_match_status_and_turn(match["id"], match_statuses.RUNNING, top_id)
@@ -89,6 +92,7 @@ class TurnCycleService(TurnCyclePort):
 
         if match["status"] != match_statuses.RUNNING:
             raise TurnCycleError(TurnCycleError.MATCH_NOT_RUNNING, "Match is not RUNNING")
+        stamp_check(self, match_uuid)
 
         characters = self.store.find_characters_by_match_id(match["id"]) or []
         by_id = {c["id"]: c for c in characters}
@@ -104,6 +108,7 @@ class TurnCycleService(TurnCyclePort):
         if active_char is None or active_char["id_user"] != user_id:
             raise TurnCycleError(TurnCycleError.NOT_YOUR_TURN, "It is not your character's turn")
 
+        stamp_claim(self, match_uuid)
         # Complete the current turn.
         active["status"] = tm.COMPLETED
         active["pass_counter"] = active.get("pass_counter", 0) + 1

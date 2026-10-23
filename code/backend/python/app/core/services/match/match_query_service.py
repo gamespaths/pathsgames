@@ -27,6 +27,8 @@ from app.core.services.match import movement_availability
 from app.core.services.match.movement_availability import MoveCheckContext, MoveEdgeCheck
 from app.core.services.match.movement_service import move_check_context
 from app.core.services.match import registry_service
+from app.core.services.match import match_list_order
+from app.core.services.match.match_stamp import iso_utc
 
 
 class _MoveJudge:
@@ -152,6 +154,10 @@ class MatchQueryService(MatchQueryPort):
             return []
         rows = self.match_persistence_port.find_matches_by_user_id(user["id"])
         return [self._summary_with_story(r, user["uuid"]) for r in rows]
+
+    def list_user_matches_page(self, user_uuid: str, limit: Optional[int] = None,
+                               cursor: Optional[str] = None) -> MatchSummaryPage:
+        return match_list_order.page(self.list_user_matches(user_uuid), limit, cursor)
 
     def list_all_matches(self) -> List[MatchSummary]:
         rows = self.match_persistence_port.find_all_matches()
@@ -605,6 +611,8 @@ class MatchQueryService(MatchQueryPort):
             character_template_uuid=row.get("character_template_uuid"),
             class_uuid=row.get("class_uuid"),
             trait_uuids=row.get("trait_uuids") or [],
+            match_version=row.get("ts_update"),
+            ts_update=iso_utc(row.get("ts_update")),
         )
 
 

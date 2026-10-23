@@ -13,6 +13,7 @@ from app.core.models.match.match_models import ItemEffectPreview, ItemInstanceIn
 from app.core.ports.match.event_ports import ITEM_ACTION_DROP, ITEM_ACTION_USE
 from app.core.ports.match.inventory_ports import InventoryError, InventoryPort, InventoryStorePort
 from app.core.services.match.card_mapper import resolve_card
+from app.core.services.match.match_stamp import stamp_check, stamp_claim
 
 _RUNNING = "RUNNING"
 _DEFAULT_LANG = "en"
@@ -134,6 +135,7 @@ class InventoryService(InventoryPort):
 
     def use_item(self, match_uuid: str, user_uuid: str, item_instance_uuid: str, lang: str):
         ctx = self._load(match_uuid, user_uuid, require_action=True)
+        stamp_check(self, match_uuid)
         row = self._find_own_row(ctx, item_instance_uuid)
         item = self._resolve_item(ctx, row)
 
@@ -159,6 +161,7 @@ class InventoryService(InventoryPort):
         # for itself, and what was spent stays spent even if the effect chain ends in a
         # coma. Before v0.35.1 that meant deleting the row; now it means charging the units
         # and deleting the row only when nothing survives them.
+        stamp_claim(self, match_uuid)
         left = held - spend
         if left > 0:
             self.store.update_inventory_amount(ctx["match"]["id"], row["id"], left)
@@ -175,6 +178,7 @@ class InventoryService(InventoryPort):
     def drop_item(self, match_uuid: str, user_uuid: str,
                   item_instance_uuid: str) -> Dict[str, Any]:
         ctx = self._load(match_uuid, user_uuid, require_action=True)
+        stamp_check(self, match_uuid)
         row = self._find_own_row(ctx, item_instance_uuid)
         # No consumable gate and no class gate here: a non-consumable item must be
         # droppable, that is the whole point of carrying one.
@@ -187,6 +191,7 @@ class InventoryService(InventoryPort):
         # it cannot weigh the character down forever.
         dropped = held if item is None else min(held, action_amount(item.get("amount_drop")))
 
+        stamp_claim(self, match_uuid)
         left = held - dropped
         if left > 0:
             self.store.update_inventory_amount(ctx["match"]["id"], row["id"], left)

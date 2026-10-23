@@ -11,6 +11,20 @@ from botocore.exceptions import ClientError
 
 TABLE_NAME = os.environ.get('TABLE_NAME', 'PathsGamesBackend')
 
+# v1.7.0 — one ts_update per request: set by repo.begin(), cleared by repo.flush().
+_REQUEST_STAMP = None
+
+
+def set_request_stamp(stamp_ms):
+    global _REQUEST_STAMP
+    _REQUEST_STAMP = None if stamp_ms is None else int(stamp_ms)
+
+
+def stamp_ms():
+    """The request stamp (epoch ms) while a request runs, else now."""
+    return _REQUEST_STAMP if _REQUEST_STAMP is not None else int(time.time() * 1000)
+
+
 # Lazy initialization: do NOT call boto3.resource at import time.
 # This avoids NoRegionError during test collection when AWS env vars are absent.
 _dynamodb = None
@@ -112,7 +126,7 @@ def get_item(pk, sk='METADATA', consistent=True):
 def put_item(item):
     """Upsert an item into DynamoDB."""
     try:
-        now = int(time.time() * 1000)
+        now = stamp_ms()
         if 'ts_insert' not in item:
             item['ts_insert'] = now
         item['ts_update'] = now
@@ -132,7 +146,7 @@ def batch_put_items(items):
     if not items:
         return True
     try:
-        now = int(time.time() * 1000)
+        now = stamp_ms()
         with _get_table().batch_writer(overwrite_by_pkeys=['PK', 'SK']) as batch:
             for item in items:
                 if 'ts_insert' not in item:
@@ -146,6 +160,100 @@ def batch_put_items(items):
     except Exception as e:
         print(f"Unexpected error batch putting items: {e}")
         return False
+
+# v1.7.0 step 8 — the limits of one TransactWriteItems call and the retries of a chunk.
+TRANSACT_MAX_ITEMS = 100
+TRANSACT_MAX_BYTES = 4_000_000
+TRANSACT_ATTEMPTS = 3
+TRANSACT_BACKOFF_SECONDS = 0.1
+
+
+class TransactWriteFailed(Exception):
+    """A chunk still refused after every retry: the rows before it landed, the rest did not."""
+
+    def __init__(self, chunk, attempts, error):
+        super().__init__(f"chunk {chunk} failed after {attempts} attempts: {error}")
+        self.chunk, self.attempts, self.error = chunk, attempts, error
+
+
+def claim_version(pk, old, new, play_ms_delta=0, sk='METADATA'):
+    """v1.7.0 step 8 — the conditional claim: ts_update old -> new and playMs += delta, only when
+    ts_update still is old (absent when old is None); False when another write won."""
+    names = {'#ts': 'ts_update', '#pm': 'playMs'}
+    values = {':new': int(new), ':d': int(play_ms_delta)}
+    if old is None:
+        condition = 'attribute_exists(PK) AND attribute_not_exists(#ts)'
+    else:
+        condition = 'attribute_exists(PK) AND #ts = :old'
+        values[':old'] = int(old)
+    try:
+        _get_table().update_item(Key={'PK': pk, 'SK': sk}, UpdateExpression='SET #ts = :new ADD #pm :d',
+                                 ConditionExpression=condition, ExpressionAttributeNames=names,
+                                 ExpressionAttributeValues=values)
+        return True
+    except ClientError as e:
+        if e.response.get('Error', {}).get('Code') == 'ConditionalCheckFailedException':
+            return False
+        raise
+
+
+def _item_size(item):
+    """An upper estimate of the item size DynamoDB counts (names plus values, as JSON)."""
+    return len(json.dumps(item, separators=(',', ':'), default=_json_default).encode('utf-8'))
+
+
+def transact_chunks(items, max_items=None, max_bytes=None):
+    """The items split in order into chunks of at most max_items items and max_bytes bytes."""
+    max_items = max_items or TRANSACT_MAX_ITEMS
+    max_bytes = max_bytes or TRANSACT_MAX_BYTES
+    chunks, current, size = [], [], 0
+    for item in items:
+        weight = _item_size(item)
+        if current and (len(current) >= max_items or size + weight > max_bytes):
+            chunks.append(current)
+            current, size = [], 0
+        current.append(item)
+        size += weight
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def transact_put_items(items, conditions=None, sleep=time.sleep):
+    """v1.7.0 step 8 — full-item puts in TransactWriteItems chunks, retried with backoff (TransactWriteFailed);
+    ``conditions`` maps (PK, SK) to the ts_update the stored row must have."""
+    if not items:
+        return True
+    from boto3.dynamodb.types import TypeSerializer
+    serializer = TypeSerializer()
+    now = stamp_ms()
+    conditions = conditions or {}
+    table = _get_table()
+    for item in items:
+        if 'ts_insert' not in item:
+            item['ts_insert'] = now
+        item['ts_update'] = now
+    packed = [_pack(_to_dynamodb_value(item)) for item in items]
+    for index, chunk in enumerate(transact_chunks(packed)):
+        requests = []
+        for item in chunk:
+            put = {'TableName': table.name, 'Item': {k: serializer.serialize(v) for k, v in item.items()}}
+            expected = conditions.get((item.get('PK'), item.get('SK', 'METADATA')))
+            if expected is not None:
+                put['ConditionExpression'] = '#ts = :ts'
+                put['ExpressionAttributeNames'] = {'#ts': 'ts_update'}
+                put['ExpressionAttributeValues'] = {':ts': serializer.serialize(int(expected))}
+            requests.append({'Put': put})
+        for attempt in range(1, TRANSACT_ATTEMPTS + 1):
+            try:
+                table.meta.client.transact_write_items(TransactItems=requests)
+                break
+            except ClientError as e:
+                if attempt == TRANSACT_ATTEMPTS:
+                    raise TransactWriteFailed(index, attempt, e) from e
+                sleep(TRANSACT_BACKOFF_SECONDS * (2 ** (attempt - 1)))
+    return True
+
 
 def delete_item(pk, sk='METADATA'):
     """Delete a single item from DynamoDB."""
@@ -332,6 +440,27 @@ def query_gsi(gsi_name, pk_val, sk_prefix=None):
         print(f"Error querying GSI {gsi_name}: {e}")
         return []
 
+def query_gsi_range(gsi_name, pk_val, op=None, value=None, value2=None, ascending=True):
+    """v1.7.0 step 10 — every row of one GSI partition (paginated) with an optional sort-key condition:
+    op 'begins_with', 'gt', 'lt' or 'between' (value..value2); ascending drives ScanIndexForward."""
+    try:
+        pk_attr, sk_attr = _GSI_KEYS.get(gsi_name, _GSI_KEYS['GSI1'])
+        condition = Key(pk_attr).eq(pk_val)
+        if op == 'begins_with':
+            condition = condition & Key(sk_attr).begins_with(value)
+        elif op == 'gt':
+            condition = condition & Key(sk_attr).gt(value)
+        elif op == 'lt':
+            condition = condition & Key(sk_attr).lt(value)
+        elif op == 'between':
+            condition = condition & Key(sk_attr).between(value, value2)
+        return _paginate(_get_table().query, IndexName=gsi_name, KeyConditionExpression=condition,
+                         ScanIndexForward=ascending)
+    except ClientError as e:
+        print(f"Error querying GSI range {gsi_name}: {e}")
+        return []
+
+
 def query_index_page(index_name, pk_name, pk_val, sk_name=None, sk_from=None,
                      eq_filters=None, limit=50, start_key=None,
                      ascending=False):
@@ -376,6 +505,22 @@ def query_index_page(index_name, pk_name, pk_val, sk_name=None, sk_from=None,
     except ClientError as e:
         print(f"Error querying index page {index_name}/{pk_val}: {e}")
         return [], None
+
+
+def query_index_filled(index_name, pk_name, pk_val, sk_name=None, sk_from=None, eq_filters=None, limit=50,
+                       start_key=None, max_reads=5):
+    """v1.7.0 step 12 — :func:`query_index_page` repeated until ``limit`` items passed the post-read filters,
+    the index ends or ``max_reads`` reads were spent. Each read evaluates at most the items still missing, so
+    the returned key resumes exactly after the last evaluated item (nothing skipped, nothing repeated)."""
+    found, key = [], start_key
+    for _ in range(max(1, int(max_reads))):
+        rows, key = query_index_page(index_name, pk_name, pk_val, sk_name=sk_name, sk_from=sk_from,
+                                     eq_filters=eq_filters, limit=limit - len(found), start_key=key,
+                                     ascending=False)
+        found.extend(rows)
+        if key is None or len(found) >= limit or not any(v is not None for v in (eq_filters or {}).values()):
+            break
+    return found, key
 
 
 def encode_cursor(last_key):
@@ -459,7 +604,7 @@ def update_ts_last_access(pk, now_ms, sk='METADATA', in_summary=False):
 def put_item_if_absent(item):
     """True when the item was written, False when an item with its keys already exists."""
     try:
-        now = int(time.time() * 1000)
+        now = stamp_ms()
         item.setdefault('ts_insert', now)
         item['ts_update'] = now
         _get_table().put_item(Item=_to_dynamodb_value(item), ConditionExpression='attribute_not_exists(PK)')

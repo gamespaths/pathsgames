@@ -6,6 +6,7 @@ import os
 import time
 
 from common import db_utils
+from common import match_summary
 from common import sso
 from common import story_cache
 from common import test_data_ttl
@@ -80,6 +81,10 @@ def export_match(match_uuid):
         match['status'] = original
         return _error(409, 'SNAPSHOT_INTEGRITY_FAILED', 'The snapshot failed its integrity check', errors)
     document = build(match_uuid, latest, snapshots.with_current_owner(match, match_uuid, snapshots.payload_of(latest)))
+    # v1.7.0 the live play time (never in a snapshot); a stopped match keeps its current status
+    document['match']['playMs'] = neutral.nz(match.get('playMs'))
+    if original in h.TERMINAL_STATUSES:
+        document['match']['status'] = original
     text = neutral.canonical(document)
     if len(text.encode('utf-8')) > max_bytes():
         match['status'] = original
@@ -442,7 +447,7 @@ def _users(a):
     story_uuid = neutral.mapping(a.doc.get('story')).get('uuid')
     match_uuid = neutral.mapping(a.doc.get('match')).get('uuid')
     for user_uuid in existing:
-        for m in db_utils.query_gsi('GSI1', f'USER_MATCHES#{user_uuid}') or []:
+        for m in map(match_summary.flatten, db_utils.query_gsi('GSI1', f'USER_MATCHES#{user_uuid}') or []):
             if m.get('storyUuid') == story_uuid and m.get('status') in ('CREATED', 'RUNNING') \
                     and m.get('uuid') != match_uuid:
                 a.active_matches.append({'uuid': m.get('uuid'), 'status': m.get('status')})
@@ -557,6 +562,7 @@ def _write(a, story, body, created):
         'traitUuids': [neutral.uuid_by_id(story, 'traits')[t] for t in neutral.items(loadout.get('traitIds'))
                        if t in neutral.uuid_by_id(story, 'traits')],
         'status': 'PAUSED', 'currentClock': neutral.nz(m.get('clock')), 'rngSeed': neutral.lng(m.get('rngSeed')),
+        'playMs': neutral.nz(m.get('playMs')),
         'currentWeatherId': neutral.lng(m.get('currentWeatherId')), 'logCount': 0, 'logSeq': 0,
         'executedEventIds': executed, 'eventMarkers': markers,
         'visitedLocationIds': [neutral.lng(v) for v in neutral.items(engine.get('visitedLocationIds'))],
@@ -620,13 +626,17 @@ def _write(a, story, body, created):
     server = neutral.mapping(doc.get('source')).get('server')
     logbook.append(match, h.TYPE_ADMIN_ACTION, clock, message=f'IMPORTED {server} clock={clock}')
     snapshot = snapshots.write_at_time_end(match, match_uuid, description=f'Imported at clock {clock}', force=True)
+    # v1.7.0 a stopped match is imported with its own status and no time-start
+    original = m.get('status')
+    stopped = original in h.TERMINAL_STATUSES
     try:
-        h._advance_time(match, match_uuid, snapshot=False)
+        if not stopped:
+            h._advance_time(match, match_uuid, snapshot=False)
     except Exception as exc:  # noqa: BLE001 — the imported match stays, PAUSED
         match['status'] = 'PAUSED'
         logbook.persist(match)
         raise ImportTimeStartFailed(str(exc)) from exc
-    status = 'PAUSED' if body.get('startPaused') is True else 'RUNNING'
+    status = original if stopped else ('PAUSED' if body.get('startPaused') is True else 'RUNNING')
     match['status'] = status
     logbook.persist(match)
     return {'status': 'IMPORTED', 'uuidMatch': match_uuid, 'snapshotClock': clock,
@@ -652,11 +662,6 @@ def _user_item(u, now_ms):
         item['GSI2_PK'], item['GSI2_SK'] = 'GUEST_LIST', f"USER#{u['uuid']}"
         item['summary'] = {k: item[k] for k in ('uuid', 'username', 'nickname', 'role', 'state', 'language',
                                                 'ts_registration', 'ts_last_access') if item.get(k) is not None}
-    elif google is not None:
-        # v1.2.0 a Google user joins the list the retention job reads
-        item['GSI2_PK'], item['GSI2_SK'] = sso.GOOGLE_USER_LIST, f"USER#{u['uuid']}"
-        item['summary'] = {k: item[k] for k in ('uuid', 'username', 'nickname', 'state', 'ts_registration',
-                                                'ts_last_access') if item.get(k) is not None}
     return {k: v for k, v in item.items() if v is not None}
 
 
@@ -667,6 +672,8 @@ def _write_user(u, now_ms):
         item['nickname'] = sso.allocate_nickname(item['nickname'], item['uuid'])
         if isinstance(item.get('summary'), dict):
             item['summary']['nickname'] = item['nickname']
+    # v1.7.0 step 10 — a non-guest user gets the USERSTATE# and GOOGLE_USER_LIST keys (admin list, retention)
+    item.update(sso.index_keys(item))
     db_utils.put_item(item)
     google = _google_identity(u)
     if item.get('email'):

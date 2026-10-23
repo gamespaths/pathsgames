@@ -38,6 +38,7 @@ import time
 from common import db_utils
 from common import google_verifier
 from common import log_utils
+from common import match_summary
 from common import jwt_utils
 from common import sso
 from common import story_cache
@@ -1568,7 +1569,7 @@ def _handle_cleanup():
     # v0.37.5 — every match METADATA row is on GSI2 (PK=MATCH, ``name`` projected): one
     # Query instead of a Scan of every row of every partition. Matches are deleted whole,
     # so a partition without its METADATA row cannot arise any more (orphanMatches = 0).
-    robot_match_pks = [row["PK"] for row in db_utils.query_gsi("GSI2", "MATCH")
+    robot_match_pks = [row["PK"] for row in map(match_summary.flatten, db_utils.query_gsi("GSI2", "MATCH"))
                        if str(row.get("name") or "").startswith(ROBOT_TEST_MARKER)
                        and not _expires_on_its_own(row["PK"])]
 
@@ -1697,6 +1698,8 @@ def _route(event, context):
             "ts_registration": now,
             "ts_last_access":  now,
         }
+        # v1.7.0 step 10 — the admin users list keys (USERSTATE#, GOOGLE_USER_LIST) and the summary
+        item.update(sso.index_keys(item))
         db_utils.put_item(item)
         # v1.2.0 — the EMAIL# pointer of the email lookups (owner move, import mapping)
         db_utils.put_item({"PK": f"EMAIL#{u['email'].lower()}", "SK": "METADATA", "user_uuid": uid})

@@ -87,7 +87,7 @@ Creating A Match Without The Header Is Refused
     Status Should Be    ${resp}    403
     Should Be Equal    ${resp.json()}[error]    CSRF_TOKEN_MISSING
     ${mine}=    List Matches    ${token}    200
-    Should Be Empty    ${mine.json()}    msg=a refused creation still created a match
+    Should Be Empty    ${mine.json()}[items]    msg=a refused creation still created a match
 
 Creating A Match With Another Guest's Token Is Refused
     [Documentation]    The token is bound to the bearer: a valid token of ANOTHER guest is

@@ -3,9 +3,12 @@ package games.paths.core.service.auth;
 import games.paths.core.model.auth.AuthException;
 import games.paths.core.model.auth.GoogleIdentityClaims;
 import games.paths.core.model.auth.UserIdentity;
+import games.paths.core.model.auth.UserPreferences;
 import games.paths.core.model.auth.UserProfile;
 import games.paths.core.model.auth.UserStates;
+import games.paths.core.model.auth.UserStats;
 import games.paths.core.model.auth.UserStatus;
+import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.port.auth.AccountPort;
 import games.paths.core.port.auth.GoogleTokenVerifierPort;
 import games.paths.core.port.auth.IdentityPersistencePort;
@@ -39,6 +42,8 @@ public class AccountService implements AccountPort {
     private int chunk = DEFAULT_CHUNK;
     private int retentionMonths = DEFAULT_RETENTION_MONTHS;
     private Clock clock = Clock.systemUTC();
+    private List<String> languages = UserPreferences.DEFAULT_LANGUAGES;
+    private List<String> themes = UserPreferences.DEFAULT_THEMES;
 
     public AccountService(IdentityPersistencePort identities, GoogleTokenVerifierPort verifier,
                           TokenPersistencePort tokens, MatchPersistencePort matches, UserStatePort userState) {
@@ -55,6 +60,12 @@ public class AccountService implements AccountPort {
         this.retentionMonths = retentionMonths > 0 ? retentionMonths : DEFAULT_RETENTION_MONTHS;
     }
 
+    /** v1.7.0 the supported-languages and supported-themes lists; null or empty keeps the default. */
+    public void configurePreferences(List<String> languages, List<String> themes) {
+        this.languages = languages == null || languages.isEmpty() ? UserPreferences.DEFAULT_LANGUAGES : languages;
+        this.themes = themes == null || themes.isEmpty() ? UserPreferences.DEFAULT_THEMES : themes;
+    }
+
     void setClock(Clock clock) {
         this.clock = clock;
     }
@@ -62,6 +73,52 @@ public class AccountService implements AccountPort {
     @Override
     public Optional<UserProfile> profile(String userUuid) {
         return identities.findUserByUuid(userUuid).map(user -> UserProfile.of(user, googleIdentity(user.id())));
+    }
+
+    @Override
+    public UserStats stats(String userUuid) {
+        return identities.findUserByUuid(userUuid)
+                .map(user -> UserStats.of(matches.totalsByStatus(user.id(), MatchStatuses.PLAYED)))
+                .orElse(UserStats.EMPTY);
+    }
+
+    @Override
+    public Optional<UserPreferences> preferences(String userUuid) {
+        return identities.findUserByUuid(userUuid).map(user -> new UserPreferences(user.language(),
+                identities.findThemeSelected(user.id()).orElse(UserPreferences.THEME_DEFAULT)));
+    }
+
+    @Override
+    public UserPreferences updatePreferences(String userUuid, String language, String theme) {
+        UserStatus user = identities.findUserByUuid(userUuid).orElseThrow(() ->
+                new AuthException(AuthException.Code.INVALID_TOKEN, "Unknown user"));
+        if (user.isGuest()) {
+            throw new AuthException(AuthException.Code.GOOGLE_ACCOUNT_REQUIRED,
+                    "Sign in with Google to keep preferences in the profile");
+        }
+        if (language == null && theme == null) {
+            throw new AuthException(AuthException.Code.INVALID_REQUEST, "Nothing to update");
+        }
+        if (language != null && !languages.contains(language)) {
+            throw new AuthException(AuthException.Code.INVALID_REQUEST, "Unsupported language: " + language);
+        }
+        if (theme != null && !themes.contains(theme)) {
+            throw new AuthException(AuthException.Code.INVALID_REQUEST, "Unsupported theme: " + theme);
+        }
+        identities.updatePreferences(user.id(), language, theme);
+        userState.evict(user.uuid());
+        String current = identities.findThemeSelected(user.id()).orElse(UserPreferences.THEME_DEFAULT);
+        return new UserPreferences(language != null ? language : user.language(), theme != null ? theme : current);
+    }
+
+    @Override
+    public List<String> supportedLanguages() {
+        return languages;
+    }
+
+    @Override
+    public List<String> supportedThemes() {
+        return themes;
     }
 
     @Override

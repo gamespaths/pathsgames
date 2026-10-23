@@ -88,7 +88,7 @@ def test_grace_window(service, tokens):
 
 def test_revoked_after_grace_or_by_logout_is_session_revoked(service, tokens):
     tokens.find_refresh_token.return_value = StoredRefreshToken(
-        10, 1, True, None, (NOW - timedelta(seconds=31)).isoformat())
+        10, 1, True, None, (NOW - timedelta(seconds=121)).isoformat())
     with pytest.raises(AuthError) as e:
         service.refresh_session(TOKEN)
     assert e.value.code == "SESSION_REVOKED" and e.value.http_status == 401
@@ -121,6 +121,7 @@ def test_logout_and_logout_all(service, tokens):
     tokens.revoke_refresh_token.assert_called_with(HASH, TOKEN)
     service.logout("")
     assert tokens.revoke_refresh_token.call_count == 1
+    tokens.find_user_id_by_uuid.return_value = None
     service.logout_all("u")
     tokens.revoke_all_by_user_uuid.assert_called_with("u")
 

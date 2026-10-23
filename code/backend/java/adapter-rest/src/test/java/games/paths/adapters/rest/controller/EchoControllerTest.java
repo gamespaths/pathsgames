@@ -86,4 +86,30 @@ class EchoControllerTest {
                 .andExpect(jsonPath("$.googleClientId").value("client.apps.googleusercontent.com"));
         mockMvc.perform(get("/api/echo/status")).andExpect(jsonPath("$.googleEnabled").doesNotExist());
     }
+
+    @Test
+    void v170_supportedLanguagesAndThemes() throws Exception {
+        when(echoPort.getServerStatus()).thenReturn("OK");
+        when(echoPort.getServerProperties()).thenReturn(Map.of());
+        when(echoPort.getSupportedLanguages()).thenReturn(java.util.List.of("en", "it"));
+        when(echoPort.getSupportedThemes()).thenReturn(java.util.List.of("default", "high-contrast"));
+
+        mockMvc.perform(get("/api/echo/status"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.supportedLanguages[1]").value("it"))
+                .andExpect(jsonPath("$.supportedThemes[1]").value("high-contrast"));
+    }
+
+    @Test
+    void v170_step8_matchRefetchParameters() throws Exception {
+        when(echoPort.getServerStatus()).thenReturn("OK");
+        when(echoPort.getServerProperties()).thenReturn(Map.of());
+        when(echoPort.getMatchRefetchBrowsers()).thenReturn(java.util.List.of("all"));
+        when(echoPort.getMatchRefetchMinHiddenSeconds()).thenReturn(45);
+
+        mockMvc.perform(get("/api/echo/status"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.matchRefetchBrowsers[0]").value("all"))
+                .andExpect(jsonPath("$.matchRefetchMinHiddenSeconds").value(45));
+    }
 }

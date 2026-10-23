@@ -116,8 +116,12 @@ def test_join_success(mock_jwt, mock_get, mock_query, mock_put):
     assert b['idLocation'] == 1
     assert b['traitUuids'] == ['trait-1', 'trait-2']
     assert b['food'] == 0
-    assert len(helpers.SINK.items()) == 1
-    saved = helpers.SINK.items()[0]
+    # v1.7.0 — the join stamps the match too: the METADATA row (playMs, summary) is written with it
+    assert len(helpers.SINK.items()) == 2
+    # v1.7.0 step 8 — after the claim the METADATA goes first
+    saved = helpers.SINK.items('CHARACTER#')[0]
+    meta = helpers.SINK.items()[0]
+    assert meta['SK'] == 'METADATA' and 'playMs' in meta and meta['summary']['uuid'] == meta.get('uuid')
     assert saved['SK'].startswith('CHARACTER#')
     assert saved['userUuid'] == 'player-uuid-001'
     # max values are persisted on the DynamoDB character item

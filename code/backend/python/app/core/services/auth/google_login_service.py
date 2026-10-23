@@ -52,7 +52,7 @@ def language(preferred: Optional[str], locale: Optional[str]) -> str:
 class GoogleLoginService:
     def __init__(self, verifier, identities, jwt_port, tokens, guests, merge_service, enabled: bool = True,
                  max_tokens_per_user: int = 5, user_state=None,
-                 clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc)):
+                 clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc), account_guard=None):
         self.verifier = verifier
         self.identities = identities
         self.jwt_port = jwt_port
@@ -63,6 +63,8 @@ class GoogleLoginService:
         self.max_tokens_per_user = max_tokens_per_user
         self.user_state = user_state
         self.clock = clock
+        # v1.7.0 banned hashes, end of a suspension and the armed re-link (step 10)
+        self.account_guard = account_guard
 
     def client_id(self) -> str:
         return self.verifier.client_id()
@@ -78,6 +80,8 @@ class GoogleLoginService:
         claims = self.verifier.verify(id_token)
         check_claims(claims, self.verifier.client_id(), nonce, now)
         email = check_email(claims)
+        if self.account_guard is not None:
+            self.account_guard.check_not_banned(claims.subject, email)
 
         existing = self.identities.find_identity_by_email(PROVIDER_GOOGLE, email)
         if existing is not None:
@@ -86,7 +90,7 @@ class GoogleLoginService:
             # A user with this email but no identity yet (an old import): the email identifies it.
             known = self.identities.find_user_by_email(email)
             if known is not None:
-                UserStates.require_usable(known.state)
+                known = self._admit(known)
         self._mark_seen(id_token, claims)
 
         now_iso = now.isoformat()
@@ -102,12 +106,13 @@ class GoogleLoginService:
             user = known
         self.identities.update_last_access(user.id)
 
-        merged_guest, cancelled = None, 0
+        merged_guest, cancelled, cancelled_uuids = None, 0, []
         guest = self._resolve_guest(guest_access_token, guest_cookie_token)
         if guest is not None and guest["id"] != user.id:
             result = self.merge_service.merge(guest["id"], user.id)
             merged_guest = guest["uuid"]
             cancelled = len(result.cancelled_match_ids)
+            cancelled_uuids = list(result.cancelled_match_uuids)
             if self.user_state is not None:
                 self.user_state.evict(merged_guest)
 
@@ -119,14 +124,21 @@ class GoogleLoginService:
         self.tokens.enforce_token_limit(user.id, self.max_tokens_per_user)
         return AuthenticatedSession(UserProfile.of(user, profile), access, refresh,
                                     self.jwt_port.get_access_token_expiration_ms(), refresh_ms, created,
-                                    merged_guest, cancelled)
+                                    merged_guest, cancelled, cancelled_uuids)
 
     def _known_user(self, identity: UserIdentity, claims: GoogleIdentityClaims) -> UserStatus:
-        if claims.subject != identity.subject:
+        if claims.subject != identity.subject and (
+                self.account_guard is None or not self.account_guard.relink(identity, claims.subject)):
             raise AuthError("IDENTITY_MISMATCH", "This email belongs to another Google account: contact support")
         user = self.identities.find_user_by_id(identity.user_id)
         if user is None:
             raise AuthError("INVALID_TOKEN", "Identity without user")
+        return self._admit(user)
+
+    def _admit(self, user: UserStatus) -> UserStatus:
+        """The state check; with the guard a suspension that ended unblocks the user."""
+        if self.account_guard is not None:
+            return self.account_guard.admit(user)
         UserStates.require_usable(user.state)
         return user
 

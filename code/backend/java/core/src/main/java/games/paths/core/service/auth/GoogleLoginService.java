@@ -10,6 +10,7 @@ import games.paths.core.model.auth.UserIdentity;
 import games.paths.core.model.auth.UserProfile;
 import games.paths.core.model.auth.UserStates;
 import games.paths.core.model.auth.UserStatus;
+import games.paths.core.port.auth.AccountGuardPort;
 import games.paths.core.port.auth.GoogleLoginPort;
 import games.paths.core.port.auth.GoogleTokenVerifierPort;
 import games.paths.core.port.auth.GuestPersistencePort;
@@ -20,6 +21,7 @@ import games.paths.core.port.auth.UserStatePort;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -46,6 +48,7 @@ public class GoogleLoginService implements GoogleLoginPort {
     private final boolean enabled;
     private final int maxTokensPerUser;
     private UserStatePort userState;
+    private AccountGuardPort guard;
     private Clock clock = Clock.systemUTC();
 
     @SuppressWarnings("java:S107")
@@ -64,6 +67,11 @@ public class GoogleLoginService implements GoogleLoginPort {
 
     public void setUserState(UserStatePort userState) {
         this.userState = userState;
+    }
+
+    /** v1.7.0 banned hashes, end of a suspension and the armed re-link (step 10). */
+    public void setAccountGuard(AccountGuardPort guard) {
+        this.guard = guard;
     }
 
     void setClock(Clock clock) {
@@ -92,6 +100,9 @@ public class GoogleLoginService implements GoogleLoginPort {
         GoogleIdentityClaims claims = verifier.verify(cmd.idToken());
         checkClaims(claims, verifier.clientId(), cmd.nonce(), now);
         String email = checkEmail(claims);
+        if (guard != null) {
+            guard.checkNotBanned(claims.subject(), email);
+        }
 
         Optional<UserIdentity> existing = identities.findIdentityByEmail(UserIdentity.PROVIDER_GOOGLE, email);
         UserStatus known;
@@ -101,7 +112,7 @@ public class GoogleLoginService implements GoogleLoginPort {
             // A user with this email but no identity yet (an old import): the email identifies it.
             known = identities.findUserByEmail(email).orElse(null);
             if (known != null) {
-                UserStates.requireUsable(known.state());
+                known = admit(known);
             }
         }
         markSeen(cmd.idToken(), claims);
@@ -123,11 +134,13 @@ public class GoogleLoginService implements GoogleLoginPort {
 
         String mergedGuest = null;
         int cancelled = 0;
+        List<String> cancelledUuids = List.of();
         Map<String, Object> guest = resolveGuest(cmd);
         if (guest != null && ((Number) guest.get("id")).longValue() != user.id()) {
             MergeResult merge = mergeService.merge(((Number) guest.get("id")).longValue(), user.id());
             mergedGuest = (String) guest.get("uuid");
             cancelled = merge.cancelledMatchIds().size();
+            cancelledUuids = merge.cancelledMatchUuids();
             if (userState != null) {
                 userState.evict(mergedGuest);
             }
@@ -141,7 +154,8 @@ public class GoogleLoginService implements GoogleLoginPort {
         tokens.revokeOldestTokensIfLimitExceeded(user.id(), maxTokensPerUser);
 
         return new AuthenticatedSession(UserProfile.of(user, profile), accessToken, refreshToken,
-                jwtPort.getAccessTokenExpirationMs(), refreshExpiresMs, created, mergedGuest, cancelled);
+                jwtPort.getAccessTokenExpirationMs(), refreshExpiresMs, created, mergedGuest, cancelled,
+                cancelledUuids);
     }
 
     /** aud, iss, exp and (when expected) nonce of a verified token; throws INVALID_TOKEN / INVALID_NONCE. */
@@ -225,12 +239,20 @@ public class GoogleLoginService implements GoogleLoginPort {
 
     /** The user of an identity found by email: same sub, usable state; else IDENTITY_MISMATCH / refusal. */
     private UserStatus knownUser(UserIdentity identity, GoogleIdentityClaims claims) {
-        if (!claims.subject().equals(identity.subject())) {
+        if (!claims.subject().equals(identity.subject()) && (guard == null || !guard.relink(identity, claims.subject()))) {
             throw new AuthException(AuthException.Code.IDENTITY_MISMATCH,
                     "This email belongs to another Google account: contact support");
         }
         UserStatus user = identities.findUserById(identity.userId()).orElseThrow(() ->
                 new AuthException(AuthException.Code.INVALID_TOKEN, "Identity without user"));
+        return admit(user);
+    }
+
+    /** The state check; with the guard a suspension that ended unblocks the user. */
+    private UserStatus admit(UserStatus user) {
+        if (guard != null) {
+            return guard.admit(user);
+        }
         UserStates.requireUsable(user.state());
         return user;
     }

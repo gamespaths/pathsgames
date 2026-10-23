@@ -66,6 +66,7 @@ jobs:
       - name: Deploy stage alpha and run the smoke test
         env:
           AWS_ALPHA_LAMBDA_JWT_SECRET: ${{ secrets.AWS_ALPHA_LAMBDA_JWT_SECRET }}
+          AWS_ALPHA_LAMBDA_BANNED_SUBJECT_PEPPER: ${{ secrets.AWS_ALPHA_LAMBDA_BANNED_SUBJECT_PEPPER }}
           AWS_ALPHA_LAMBDA_TURNSTILE_SECRET_KEY: ${{ secrets.AWS_ALPHA_LAMBDA_TURNSTILE_SECRET_KEY }}
           AWS_ALPHA_SNS_ALARM_EMAIL: ${{ secrets.AWS_ALPHA_SNS_ALARM_EMAIL }}
           AWS_ALPHA_S3_BUCKET_WEBSITE: ${{ secrets.AWS_ALPHA_S3_BUCKET_WEBSITE }}
@@ -83,4 +84,7 @@ jobs:
           # v1.2.0 — Google OAuth client of alpha (prod Google project): required by the deploy script.
           AWS_ALPHA_LAMBDA_GOOGLE_CLIENT_ID: ${{ vars.AWS_ALPHA_LAMBDA_GOOGLE_CLIENT_ID }}
           AWS_ALPHA_LAMBDA_RATE_LIMIT_GOOGLE_PER_IP: ${{ vars.AWS_ALPHA_LAMBDA_RATE_LIMIT_GOOGLE_PER_IP }}
+          # v1.7.0 — sessions per user and cookie SameSite (empty = template defaults 12 and Lax)
+          AWS_ALPHA_LAMBDA_MAX_SESSIONS_PER_USER: ${{ vars.AWS_ALPHA_LAMBDA_MAX_SESSIONS_PER_USER }}
+          AWS_ALPHA_LAMBDA_COOKIE_SAME_SITE: ${{ vars.AWS_ALPHA_LAMBDA_COOKIE_SAME_SITE }}
         run: code/scripts/alpha/deploy_backend.sh --auto-confirm

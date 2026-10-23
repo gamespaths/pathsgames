@@ -150,4 +150,9 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     @Query(value = "SELECT u.id FROM users u WHERE u.state <> 6 AND u.nickname LIKE :pattern ORDER BY u.id",
             nativeQuery = true)
     List<Number> findNonGuestIdsByNicknameLike(@Param("pattern") String pattern);
+
+    /** v1.7.0 access tokens issued before this ISO-8601 second are refused (log out of all devices, ban). */
+    @Modifying
+    @Query(value = "UPDATE users SET sessions_valid_after = :validAfter WHERE id = :id", nativeQuery = true)
+    int updateSessionsValidAfter(@Param("id") Long id, @Param("validAfter") String validAfter);
 }

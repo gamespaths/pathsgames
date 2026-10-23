@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.entity.story.ChoiceConditionEntity;
 import games.paths.core.entity.story.ChoiceEffectEntity;
 import games.paths.core.entity.story.ChoiceEntity;
@@ -73,6 +74,14 @@ import java.util.Set;
  */
 public class EventExecutionService implements EventExecutionPort, LocationEntryPort,
         games.paths.core.port.match.MissionEventPort {
+
+    /** v1.7.0 - stamps the match after a successful write; null in the older tests. */
+    private MatchStampPort stamp;
+
+    public void setMatchStamp(MatchStampPort stamp) {
+        this.stamp = stamp;
+    }
+
 
     private static final String DEFAULT_LANG = "en";
     private static final String ADD = "ADD";
@@ -208,6 +217,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             throw new EventExecutionException(EventExecutionException.Code.MATCH_NOT_RUNNING,
                     "Match is not RUNNING");
         }
+        MatchStampPort.check(stamp, matchUuid);
 
         EventEntity event = store.findEventByStoryAndUuid(match.idStory(), eventUuid)
                 .orElseThrow(() -> new EventExecutionException(
@@ -231,6 +241,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                     "Event cannot be executed: " + verdict.reasonName());
         }
 
+        MatchStampPort.claim(stamp, matchUuid);
         Exec x = new Exec(match, actor, ctx, resolveLang(lang), event);
         deductCosts(x, event);
         runChain(x, event);
@@ -328,6 +339,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                 throw new EventExecutionException(verdict.reason(),
                         "Event cannot be executed: " + verdict.reasonName());
             }
+            MatchStampPort.claim(stamp, match.uuid());
             deductCosts(x, event);
             // The marker slice of applyEvent, without its effects: same message format,
             // so the ONCE accounting and the log timeline cannot tell the flows apart.
@@ -511,6 +523,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
             throw new EventExecutionException(EventExecutionException.Code.MATCH_NOT_RUNNING,
                     "Match is not RUNNING");
         }
+        MatchStampPort.check(stamp, matchUuid);
 
         ChoiceEntity choice = store.findChoiceByStoryAndUuid(match.idStory(), choiceUuid)
                 .orElseThrow(() -> new EventExecutionException(
@@ -545,6 +558,7 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                     "No open choice cycle for this event: open it before resolving it");
         }
 
+        MatchStampPort.claim(stamp, matchUuid);
         Exec x = new Exec(match, actor, ctx, resolveLang(lang), event);
         x.eventsById = eventsById; // already read above — do not pay for the map twice
 

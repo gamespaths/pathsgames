@@ -13,7 +13,7 @@ import ConfirmModal from '../components/common/ConfirmModal'
 import useEscapeKey from '../hooks/useEscapeKey'
 import MatchDetailModal, { fmtDate, shortUuid, StatusBadge, fetchStoryCtx } from '../components/match/MatchDetailModal'
 
-const TERMINAL_STATUSES = new Set(['ENDED', 'GAMEOVER', 'CANCELLED'])
+const TERMINAL_STATUSES = new Set(['ENDED', 'GAMEOVER', 'CANCELLED', 'BANNED'])
 const isTerminal = (s) => TERMINAL_STATUSES.has(s)
 
 // v0.36.2 — the list is server-paginated: asking for every guest at once timed out

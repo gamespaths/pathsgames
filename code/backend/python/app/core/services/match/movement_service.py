@@ -29,6 +29,7 @@ from app.core.ports.match.movement_ports import MovementPort, MovementStorePort
 from app.core.services.match import movement_availability
 from app.core.services.match.movement_availability import MoveCheckContext, MoveEdgeCheck
 from app.core.services.match import registry_service
+from app.core.services.match.match_stamp import stamp_check, stamp_claim
 
 
 def move_check_context(match: Dict[str, Any],
@@ -114,6 +115,7 @@ class MovementService(MovementPort):
         pre = movement_availability.check(ctx, None)
         if not pre.available and pre.reason != MovementError.NOT_A_NEIGHBOR:
             raise MovementError(pre.reason, _reason_message(pre.reason))
+        stamp_check(self, match_uuid)
 
         if caller.get("id_location") is None:
             raise MovementError(MovementError.NOT_A_NEIGHBOR, "Character has no current location")
@@ -144,6 +146,7 @@ class MovementService(MovementPort):
         if not verdict.available:
             raise MovementError(verdict.reason, _reason_message(verdict.reason))
 
+        stamp_claim(self, match_uuid)
         cost_food = edge.get("cost_food") or 0
         cost_magic = edge.get("cost_magic") or 0
         cost_coin = edge.get("cost_coin") or 0

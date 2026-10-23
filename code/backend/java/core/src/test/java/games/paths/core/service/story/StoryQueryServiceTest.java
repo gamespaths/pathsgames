@@ -291,6 +291,38 @@ class StoryQueryServiceTest {
 
             assertEquals(2, result.size());
         }
+
+        @Test
+        @DisplayName("v1.7.0 one page of every story with the position cursor")
+        void listAllStoriesPage_pages() {
+            StoryEntity s1 = createStoryEntity("uuid-1", "Author1", 100, 101, "PUBLIC", 5, 0);
+            StoryEntity s2 = createStoryEntity("uuid-2", "Author2", 102, 103, "PRIVATE", 3, 0);
+            s2.setId(2L);
+            StoryEntity s3 = createStoryEntity("uuid-3", "Author3", 104, 105, "PUBLIC", 1, 0);
+            s3.setId(3L);
+            when(readPort.findAllStories()).thenReturn(List.of(s1, s2, s3));
+            when(readPort.findTextByStoryIdTextAndLang(anyLong(), anyInt(), eq("en"))).thenReturn(Optional.empty());
+            when(readPort.findDifficultiesByStoryId(anyLong())).thenReturn(List.of());
+
+            games.paths.core.model.story.StorySummaryPage first = storyQueryService.listAllStoriesPage("en", 2, null);
+            assertEquals(2, first.items().size());
+            assertEquals("uuid-1", first.items().get(0).uuid());
+            assertEquals("2", first.nextCursor());
+            assertEquals(2, first.limit());
+
+            games.paths.core.model.story.StorySummaryPage last =
+                    storyQueryService.listAllStoriesPage("en", 2, first.nextCursor());
+            assertEquals(1, last.items().size());
+            assertEquals("uuid-3", last.items().get(0).uuid());
+            assertNull(last.nextCursor());
+
+            games.paths.core.model.story.StorySummaryPage defaults =
+                    storyQueryService.listAllStoriesPage("en", null, "garbage");
+            assertEquals(50, defaults.limit());
+            assertEquals(3, defaults.items().size());
+            assertEquals(0, storyQueryService.listAllStoriesPage("en", 500, "99").items().size());
+            assertEquals(200, storyQueryService.listAllStoriesPage("en", 500, "99").limit());
+        }
     }
 
     // === SECTION: GET STORY BY UUID ===

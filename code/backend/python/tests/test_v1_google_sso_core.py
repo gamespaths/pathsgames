@@ -92,7 +92,7 @@ def test_nicknames():
 
 # ── merge ───────────────────────────────────────────────────────────────────
 
-def test_merge_keeps_the_latest_started_match_per_story():
+def test_merge_keeps_the_google_active_match_per_story():
     port = MagicMock()
     port.matches_of_user.side_effect = lambda uid: {
         2: [MatchOwnership(10, "a", 1, "RUNNING", "2026-10-01T10:00:00Z"), MatchOwnership(11, "b", 2, "ENDED", None)],
@@ -100,13 +100,14 @@ def test_merge_keeps_the_latest_started_match_per_story():
     }[uid]
     port.apply_merge.return_value = 2
     result = GuestMergeService(port).merge(5, 2)
-    assert result.moved_matches == 2 and result.cancelled_match_ids == [10]
+    assert result.moved_matches == 2 and result.cancelled_match_ids == [20]
+    assert result.cancelled_match_uuids == ["c"]
     assert GuestMergeService(port).merge(3, 3).moved_matches == 0
 
 
 def test_merge_ties_and_timestamps():
-    assert matches_to_cancel([MatchOwnership(7, "a", 1, "RUNNING", None),
-                              MatchOwnership(9, "b", 1, "CREATED", "garbage")]) == [7]
+    assert [m.id for m in matches_to_cancel([], [MatchOwnership(7, "a", 1, "RUNNING", None),
+                                                 MatchOwnership(9, "b", 1, "CREATED", "garbage")])] == [7]
     assert epoch_millis(None) == 0 and epoch_millis("nope") == 0
     assert epoch_millis("2026-10-01 10:00:00") == epoch_millis("2026-10-01T10:00:00Z")
     assert epoch_millis("2026-10-01T12:00:00+02:00") == epoch_millis("2026-10-01T10:00:00Z")
@@ -286,9 +287,10 @@ def test_login_merges_the_guest_of_the_bearer(deps):
     deps["jwt"].validate_token.return_value = True
     deps["jwt"].parse_token.return_value = TokenInfo(sub="g-uuid", username="g", type="access", iat=0, exp=0)
     deps["identities"].find_user_by_uuid.return_value = UserStatus(5, "g-uuid", "guest_x", "guest_x", "PLAYER", 6)
-    deps["merge"].merge.return_value = MergeResult(2, [10])
+    deps["merge"].merge.return_value = MergeResult(2, [10], ["m-10"])
     session = login_service(deps).login("id-token", "nonce", "en", "guest-access", None)
     assert session.merged_guest_uuid == "g-uuid" and session.cancelled_matches == 1
+    assert session.cancelled_match_uuids == ["m-10"]
     deps["state"].evict.assert_called_with("g-uuid")
 
 

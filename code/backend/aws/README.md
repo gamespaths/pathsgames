@@ -265,6 +265,14 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 ## 📝 Changelog
 
+### v1.7.0 — V1 steps 6-12: profile, multi-device, user admin
+
+- **Recreate every AWS table**: GSI1 and GSI2 are redefined (one `summary` map per row, GSI1 also `ts_update`/`playMs`); existing tables cannot be altered, so each environment is destroyed and recreated (data lost, accepted). `wiki/DataModel.md` §8 has the new keys (`USERSTATE#<n>`, `GOOGLE_USER_LIST`, `BANSUB#`, `BANEMAIL#`, `ADMINLOG#YYYY-MM`).
+- **Match**: one `ts_update` per request (`db_utils.set_request_stamp`), `playMs`, `matchVersion` (epoch ms) with `If-Match` / 409 `STALE_MATCH` (`claim_version`), writes in `TransactWriteItems` chunks (500 `WRITE_FAILED` if a chunk keeps failing); `GET /api/matches` answers `{items, nextCursor, limit}`.
+- **Auth**: `GET`/`PATCH /api/auth/me` (`common/profile.py`), session cap 12 (`SESSION_LIMIT`), `revoked_reason`, grace 120 s, refresh 250 days (guest 180), `sessions_valid_after`, `activeSessions`, cookie `SameSite` parameter.
+- **Admin users** (`common/user_admin.py`, `account_guard.py`, `admin_log.py`): `GET /api/admin/users`, `GET /api/admin/users/{identifier}`, `POST /api/admin/users/{identifier}/ban|suspend|unblock|relink-subject|deletion`; `GET /api/admin/stories` answers the cursor envelope.
+- **SAM parameters**: `MaxSessionsPerUser` (12), `CookieSameSite` (`Lax`; `None` on `test`), `PlayTimeCapSeconds` (300), `SupportedLanguages`, `SupportedThemes`, `MatchRefetchBrowsers`, `MatchRefetchMinHiddenSeconds`, `BannedSubjectPepper` (required outside dev/test; stage key `AWS_<STAGE>_LAMBDA_BANNED_SUBJECT_PEPPER`, GitHub secret `AWS_ALPHA_LAMBDA_BANNED_SUBJECT_PEPPER`). Docs: `wiki/documentation_v1/Step06_UserProfileBackend.md` to `Step12_...`.
+
 ### v1.2.0 — V1 steps 2-5: Google SSO
 
 - **Auth**: `POST /api/auth/google` (GIS ID token via `PyJWKClient`, nonce, replay item `GOOGLEJTI#`), `GET`/`DELETE /api/auth/me` (delete: 202, fresh ID token), `google-enabled` and client id in `GET /api/echo/status`. Refresh/guest tokens stored as SHA-256 (`REFRESH#{hash}`), 30 s grace, cap 5, `SESSION_REVOKED`; log sanitizer in `common/log_utils.py`.

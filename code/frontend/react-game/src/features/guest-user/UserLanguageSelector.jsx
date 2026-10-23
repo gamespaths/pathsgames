@@ -1,34 +1,35 @@
-import { useState, useEffect } from 'react'
 import { useTranslation } from '@/i18n/context'
+import { LANGUAGE_LABELS, bundleLanguages } from '@/i18n/bundles'
+import { useGuestUser } from './GuestUserContext'
 
+/**
+ * UserLanguageSelector — v1.7.0 the language preference: the server languages that have a bundle;
+ * a Google user saves it in the profile (PATCH /api/auth/me), a guest only on this device.
+ */
 export default function UserLanguageSelector() {
-  const { lang, setLang, t } = useTranslation()
-  const [availableLangs, setAvailableLangs] = useState([])
+  const { lang, setLang } = useTranslation()
+  const session = useGuestUser()
+  const languages = bundleLanguages(session?.supportedLanguages)
+  const busy = session?.profileBusy === true
 
-  useEffect(() => {
-    // In a real app, this could fetch available languages from the server or config
-    setAvailableLangs([
-      { code: 'en', label: 'English' },
-      { code: 'it', label: 'Italiano' },
-    ])
-  }, [])
+  function choose(code) {
+    if (code === lang) return
+    if (session?.savePreferences) void session.savePreferences({ language: code })
+    else setLang(code)
+  }
 
   return (
-    <div className="language-list-wrap ">
-      {/*<h3 className="matches-list-title language-list-title">
-        <i className="fas fa-scroll me-2" />{t('modals.guestUser.languageTitle')}
-      </h3>*/}
-        {availableLangs.map(l => (
-            <button key={l.code}
-            className={`lang-btn ${lang === l.code ? 'active' : ''}`}
-            onClick={() => setLang(l.code)}
-            title={l.label}
-            >
-                {lang === l.code && <i className="fas fa-check mr-2" />}
-                {l.label.toUpperCase()}                
-            </button>
-        ))}
-      
+    <div className="language-list-wrap" data-testid="language-selector">
+      {languages.map(code => {
+        const label = LANGUAGE_LABELS[code] ?? code
+        return (
+          <button key={code} type="button" className={`lang-btn ${lang === code ? 'active' : ''}`}
+            onClick={() => choose(code)} title={label} disabled={busy}>
+            {lang === code && <i className="fas fa-check mr-2" />}
+            {label.toUpperCase()}
+          </button>
+        )
+      })}
     </div>
   )
 }

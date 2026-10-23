@@ -7,6 +7,8 @@ from app.core.services.security.env_rule import is_dev_or_test
 
 #: The committed dev secret: refused at startup outside dev/test (v0.41.0, decision 5).
 DEV_JWT_SECRET = "PathsGamesDevSecret2026_MustBeAtLeast32Chars!"
+#: v1.7.0 the committed banned-subject pepper (same as Java SubjectHasher.DEFAULT_PEPPER): dev/test only.
+DEV_BANNED_SUBJECT_PEPPER = "PathsGamesDevBannedSubjectPepper2026"
 #: v0.41.0 — the Java dev-profile CORS list, the default instead of "*" with credentials.
 DEV_CORS_ORIGINS = ",".join([
     "http://localhost:3000", "http://localhost:8042", "http://127.0.0.1:5500",
@@ -31,7 +33,7 @@ class Settings(BaseSettings):
     # the public app on `port` does not register the admin routers. Lock this port to the
     # owner IP at the network layer (firewall / security group).
     admin_port: int = 8044
-    version: str = "1.4.0"
+    version: str = "1.7.0"
 
 
     # >0.12.5 change version here
@@ -39,7 +41,12 @@ class Settings(BaseSettings):
     # Auth
     jwt_secret: str = DEV_JWT_SECRET
     access_token_minutes: int = 30
-    refresh_token_days: int = 7
+    # v1.7.0 sliding 250 days (renewed at each refresh); a guest's is capped at 180 days in the code
+    refresh_token_days: int = 250
+    # v1.7.0 sessions per user (Google and guest); the least recently refreshed answers SESSION_LIMIT
+    max_tokens_per_user: int = 12
+    # v1.7.0 SameSite of the auth cookies: lax by default, none only when the API is on another site
+    cookie_same_site: str = "lax"
     # v1.2.0 iss (stage + backend) and aud on access and refresh tokens; empty issuer = from env
     jwt_issuer: str = ""
     jwt_audience: str = "paths-games"
@@ -53,6 +60,8 @@ class Settings(BaseSettings):
     account_jobs_enabled: bool = True
     account_deletion_chunk: int = 100
     account_retention_months: int = 24
+    # v1.7.0 HMAC pepper of the banned Google subjects and emails; outside dev/test the default is refused
+    banned_subject_pepper: str = DEV_BANNED_SUBJECT_PEPPER
 
     # Cloudflare Turnstile secret key. Empty = validation disabled (dev bypass).
     turnstile_secret_key: str = ""
@@ -79,6 +88,14 @@ class Settings(BaseSettings):
     snapshot_keep_per_match: int = 10
     # v0.41.4 — size cap of a match export / import file in bytes (413 above it).
     match_export_max_bytes: int = 5000000
+    # v1.7.0 — a gameplay write adds at most this gap to the match play time (play_ms).
+    play_time_cap_seconds: int = 300
+    # v1.7.0 step 8 — react-game refetches a match on page return: "webkit" (Safari, iOS) or "all".
+    match_refetch_browsers: str = "webkit"
+    match_refetch_min_hidden_seconds: int = 30
+    # v1.7.0 — choices of PATCH /api/auth/me, shown by /api/echo/status (config only, no schema change).
+    supported_languages: str = "en,it"
+    supported_themes: str = "default,high-contrast"
     # The csrfToken issued with every access token must come back as X-CSRF-TOKEN on
     # POST /api/matches. Same secret as the JWT unless CSRF_SECRET says otherwise.
     csrf_enforced: bool = True
@@ -154,4 +171,10 @@ def check_secrets(current: Optional[Settings] = None) -> None:
         raise RuntimeError(
             f"Refusing to start: env '{current.env}' is not dev/test and JWT_SECRET is missing"
             " or the committed default. Set JWT_SECRET to a private random value"
+            " (openssl rand -base64 48).")
+    pepper = (current.banned_subject_pepper or "").strip()
+    if not pepper or pepper == DEV_BANNED_SUBJECT_PEPPER:
+        raise RuntimeError(
+            f"Refusing to start: env '{current.env}' is not dev/test and BANNED_SUBJECT_PEPPER is missing"
+            " or the committed default. Set BANNED_SUBJECT_PEPPER to a private random value"
             " (openssl rand -base64 48).")

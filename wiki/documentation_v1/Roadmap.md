@@ -11,7 +11,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
 [API Conventions](../ApiConventions.md).
 
 - **Step 1**: version 1 launch. **Steps 2-5**: Google SSO first (tables ready for Steam; developed together, intermediate releases get intermediate versions).
-- **Steps 6-9**: profile and multi-device (the same account on many devices finds the same game state): profile backend and page, match concurrency, match list and merge rule. **Steps 6-12 are developed together and released as 1.6.0**, docs included (like steps 2-5 in 1.2.0).
+- **Steps 6-9**: profile and multi-device (the same account on many devices finds the same game state): profile backend and page, match concurrency, match list and merge rule. **Steps 6-12 were developed together and released as 1.7.0**, docs included (like steps 2-5 in 1.2.0).
 - **Steps 10-14**: admin tool — user management (backend and react-admin pages), pagination residuals plus multi-device continuity (step 12), navigation and match detail, intervention log.
 - **Steps 15-20**: EN/IT interface, accessibility, background music (two steps), scripts and certificates (to evaluate).
 - **Steps 21-27**: story frontend data, permadeath and game over, location-forced weather.
@@ -32,67 +32,19 @@ Shared references for this version: [Game Rules](../GameRules.md),
 | 3 | [Google SSO — backend flow](./Step03_GoogleSsoBackendFlow.md) | ✅ | Google login on 3 backends, hashed sessions, guest merge, admin bootstrap. |
 | 4 | [Google SSO — react-game login](./Step04_GoogleSsoReactGameLogin.md) | ✅ | Google button, session handling across tabs, EN/IT messages. |
 | 5 | [Google SSO — privacy and E2E](./Step05_GoogleSsoPrivacyE2E.md) | ✅ | Account deletion, 24-month retention, policies, fake-provider Robot suite. |
+| 6 | [User profile — backend](./Step06_UserProfileBackend.md) | ✅ | Match stamp and play time, `/me` statistics and preferences, redefined AWS indexes. |
+| 7 | [User profile — react-game page](./Step07_UserProfileReactGame.md) | ✅ | Profile page, preferences, log out everywhere, account deletion. |
+| 8 | [Match concurrency — multi-device](./Step08_MatchConcurrencyMultiDevice.md) | ✅ | `matchVersion`, `If-Match`, `STALE_MATCH`, refetch on page return. |
+| 9 | [Match list — cancelled matches, last played and merge rule](./Step09_MatchListCancelledLastPlayed.md) | ✅ | List envelope, last played, Google match always wins the merge. |
+| 10 | [Admin tool — user management backend](./Step10_AdminUserManagementBackend.md) | ✅ | Users list, ban, suspend, unblock, re-link, deletion, intervention log. |
+| 11 | [Admin tool — user management pages](./Step11_AdminUserManagementPages.md) | ✅ | react-admin Users list and User detail with reason dialogs. |
+| 12 | [Pagination residuals and multi-device continuity](./Step12_PaginationAndMultiDeviceContinuity.md) | ✅ | Session cap 12, 250-day refresh, `SameSite`, stories and matches paging. |
 
 
 
 
 # Next steps
 
-6. **[User profile — backend](./Step06_UserProfileBackend.md)** — who am I, statistics and preferences; also the foundation of the multi-device steps.
-    - Every gameplay write endpoint (the 11 of the step analysis, all backends) updates the match `ts_update`, one timestamp per request; admin writes bump it too (backend)
-    - Match counter `play_ms`: on every gameplay write `+= min(now − previous ts_update, cap)`, cap is a parameter (code default 5 minutes); admin writes never touch it; a snapshot restore never rolls it back, AWS included; exported as `playMs` in the current export schema, missing at import = 0; the export status list gets `CANCELLED` and `BANNED` (backend)
-    - `GET /api/auth/me` extended with statistics computed on the fly on all backends: played (`RUNNING`, `PAUSED`, `ENDED`, `GAMEOVER`), completed (`ENDED`), game over, total play time, total clocks; cancelled and banned matches count nowhere; AWS: still two GSIs per table, both redefined (match `summary` map, `playMs`, `tsUpdate` on GSI1), every environment inside the free tier; every AWS environment destroyed and recreated with 1.6.0 (data lost, accepted), seed fills the new tables, no backfill (backend)
-    - Preferences: `PATCH /api/auth/me` `{language, highContrast}` with CSRF, refused to guests (403 `GOOGLE_ACCOUNT_REQUIRED`); `users.language`, `users.theme_selected`, AWS attributes on `USER#`; values validated against list parameters (languages `en,it`, themes `default,high-contrast`) exposed as `supportedLanguages` and `supportedThemes` in `GET /api/echo/status`, so a new theme or language is a config change (backend)
-    - OpenAPI spec (backend)
-    - Unit tests (tests)
-    - Robot suite for profile endpoints (tests)
-7. **[User profile — react-game page](./Step07_UserProfileReactGame.md)** — profile page in the user's book.
-    - Profile page with user info and statistics (play time and clocks included), for guests too with an invitation to sign in (frontend)
-    - Preferences editor: language (only the supported languages that have a bundle; guests keep it in localStorage only); the high-contrast toggle stays hidden until step 17 (its API and the localStorage key `pathsgames.highContrast` are ready); guest values in localStorage are copied with one `PATCH /me` after the first Google login (`newUser`); when logged in the profile wins and localStorage is only a cache; a language changed elsewhere is applied live when `/me` is re-read (frontend)
-    - "Log out of all devices" button using the existing `POST /api/auth/logout/all`, for Google users only (frontend)
-    - Full account deletion flow for Google users, confirmed with a freshly issued Google token, and links to the privacy pages: the only deletion UI (frontend)
-    - Page-return hook with code constants that re-reads the profile when the page becomes visible again; step 8 adds the backend parameters and reuses it for the match (frontend)
-    - Responsive layout in the book style (frontend)
-    - Unit tests (tests)
-8. **[Match concurrency — multi-device](./Step08_MatchConcurrencyMultiDevice.md)** — the same match opened on two devices (the guest merge moved into steps 2-5, [Step 3](./Step03_GoogleSsoBackendFlow.md)).
-    - `matchVersion` (opaque `ts_update`) in `/info`, in `POST /api/matches` and in every gameplay write response (backend)
-    - `If-Match` on **every gameplay write endpoint**; a different value answers 409 `STALE_MATCH`; without the header the backend still does the compare-and-set against the value read at request start (409 only in a real race); the claim (SQL `UPDATE ... WHERE ts_update = ?` committed first, DynamoDB `ConditionExpression`) is the first write, no request-wide transaction; DynamoDB writes after it go in idempotent chunks within the transaction limits, a failed chunk is an ERROR log and a 5xx caught by the existing public-api-5xx alarm (backend: Java, Python, AWS)
-    - OpenAPI: `If-Match`, `matchVersion` and `STALE_MATCH` on the gameplay write endpoints (backend)
-    - react-game sends `If-Match`; on `STALE_MATCH` it refetches, shows "Match is being updated" (IT "Partita in aggiornamento") and never re-sends the action; a terminal-state error wins (frontend)
-    - Refetch on return (`visibilitychange`, `pageshow`, `online`): `matchRefetchBrowsers` default `["webkit"]` (desktop Safari and every iOS browser; `all` also possible) and `matchRefetchMinHiddenSeconds` default 30, both backend parameters in `GET /api/echo/status`; Chrome Android relies on the 409; no polling, no websocket (backend, frontend)
-    - Open choices are not exposed on other devices; the full version counter stays in V3; the request-wide transaction is a hardening idea in the [Backlog](../Backlog.md) (docs)
-    - Unit tests and Robot suite with two clients on the same match (tests)
-9. **[Match list — cancelled matches, last played and merge rule](./Step09_MatchListCancelledLastPlayed.md)** — match list after the merge.
-    - `tsUpdate` returned by all backends (AWS from the redefined GSI1 of step 6); the list always answers the envelope `{items, nextCursor, limit}`: active matches first, then last played, sorted in memory, page size 50, `nextCursor` null up to 50 (backend)
-    - Merge rule change: the Google user's active match always wins over the guest's match of the same story; the login answer adds `cancelledMatchUuids`; rule in [Game Rules](../GameRules.md) from 1.6.0 (backend, docs)
-    - Match list: "last played", styling of cancelled matches (a plain label comes with steps 2-5), "show cancelled" toggle (cancelled and banned matches hidden, never deleted), just-cancelled matches highlighted once (frontend)
-    - Hint "Have an account? Sign in to continue" before Play for guests (frontend)
-    - Robot suite: guest plays, logs in, finds the merged matches, the Google match wins (tests)
-    - Unit tests (tests)
-10. **[Admin tool — user management backend](./Step10_AdminUserManagementBackend.md)** — control users.
-    - `GET /api/admin/users` with the cursor envelope: email exact match, nickname prefix, state filter in nickname order, default view = active users by last access (guests excluded); AWS uses the redefined GSI1 (`USERSTATE#n` + nickname) and GSI2 (`GOOGLE_USER_LIST` by last access), no new index; same contract on the 3 backends (backend)
-    - User detail: profile, identities, statistics, match history; the email is visible only in the detail page of react-admin (backend)
-    - Ban, suspend and unblock endpoints; suspend needs `until` (max 90 days), unblocks itself at login or refresh after it and keeps its matches; the state change evicts the user from the 60 s state cache and revokes access and refresh tokens; an ADMIN can never be banned or suspended (backend)
-    - Ban: Google users only (guests are handled by the per-IP limits of step 0.41); the active matches get the new terminal status `BANNED` (treated like `CANCELLED`, kept after an unblock; ended matches keep their status); HMAC-SHA256 of BOTH `sub` and email with a secret pepper from a parameter (code default only for dev) kept in `users_banned_subjects`, login blocked if either matches; unblock removes the two hashes (backend)
-    - `IDENTITY_MISMATCH`: the admin arms a one-time re-link (the next login replaces the subject) or deletes the old user with the normal deletion of step 5 (backend)
-    - Intervention log WRITER created here (admin id, action, target uuid only, reason max 500 characters, retention 24 months; AWS monthly partition), used by ban, suspend, unblock and the mismatch actions; list and page stay in step 14 (backend)
-    - OpenAPI spec, including the `BANNED` status (backend)
-    - Unit tests and Robot suite (tests)
-11. **[Admin tool — user management pages](./Step11_AdminUserManagementPages.md)** — the react-admin side.
-    - Users list with one search box ("@" = exact email, else nickname prefix), state filter and cursor paging; no email column (frontend)
-    - User detail page with profile (the email is shown only here), identities, match history and actions (frontend)
-    - Confirmation dialogs with a standard reason (spam, abuse, cheating, security, support request, other) plus mandatory free text (10-500 characters); the suspend dialog has the `until` date (frontend)
-    - Unit tests (tests)
-    - Robot checks (tests)
-12. **[Pagination residuals and multi-device continuity](./Step12_PaginationAndMultiDeviceContinuity.md)** — lists that scale, and the same account on many devices (takes over the old admin pagination step).
-    - Pagination residuals: user (picker) and story filters in the react-admin Matches page, server-side paging of the stories list, DynamoDB access patterns checked (backend, frontend)
-    - Banner "Match is being updated" (same text as the 409 of step 8) with a link to the match log when the refetched `matchVersion` differs from the known one (frontend)
-    - Flag `pathsgames.knownAccount` and the message "Sign in with Google to find your matches"; cookie policy and privacy texts updated for the new key, the other local keys and the real cookie durations (7 days becomes 250 days) (frontend)
-    - Session cap from 5 to 12 on all backends, `SESSION_LIMIT` for a session revoked by the cap, active sessions (used in the last 30 days) shown in the profile; rotated rows deleted after 7 days, reuse of a rotated token revokes all sessions (backend, frontend)
-    - `sessions_valid_after`, set by "Log out of all devices", ban and suspend: access tokens die within 60 seconds (backend)
-    - Refresh token 250 days sliding for all refresh tokens on all backends (cookie follows, guest cookie and guest refresh stay at 180 days, on Java/Python older tokens get 250 days at their next refresh), `SameSite` a parameter with default `Lax`, README of each backend lists where `None` is needed (backend)
-    - Robot scenario A, B, C, B, A with 3 fake-provider sessions of the same Google user (tests)
-    - Unit tests and a manual Safari cookie check on test with a real iPhone (tests)
 13. **Admin tool — navigation and match detail** — one clear admin dashboard.
     - react-admin sections: Matches, Users, Stories, System, Reports (frontend)
     - Match detail page: characters, locations, registry, turn queue (frontend)
@@ -287,7 +239,7 @@ Shared references for this version: [Game Rules](../GameRules.md),
     - Launch and smoke test (all)
 
 # Version Control
-- **Document Version**: 1.4.0
+- **Document Version**: 1.7.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -297,8 +249,9 @@ Shared references for this version: [Game Rules](../GameRules.md),
   | 1.1.0 | Launch done: smoke test, fast locations, clearer lock messages | October 14, 2026 |
   | 1.2.0 | Google login steps two to five done | October 20, 2026 |
   | 1.4.0 | Admin steps moved before translations; profile and multi-device steps detailed | October 21, 2026 |
+  | 1.7.0 | Profile, many-device and admin user steps done | October 23, 2026 |
 
-- **Last Updated**: October 21, 2026 (v1.4.0)
+- **Last Updated**: October 23, 2026 (v1.7.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

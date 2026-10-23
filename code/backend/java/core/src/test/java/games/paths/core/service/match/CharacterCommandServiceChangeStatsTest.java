@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.entity.match.GamingCharacterInstanceEntity;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.port.match.CharacterCommandPort.ChangeStatsCommand;
@@ -30,6 +31,9 @@ import static org.mockito.Mockito.*;
  */
 class CharacterCommandServiceChangeStatsTest {
 
+    /** v1.7.0 the match stamp of a successful write. */
+    private final MatchStampPort stamp = mock(MatchStampPort.class);
+
     private MatchReadPort matchReadPort;
     private CharacterReadPort characterReadPort;
     private CharacterPersistencePort persistencePort;
@@ -44,6 +48,7 @@ class CharacterCommandServiceChangeStatsTest {
         characterReadPort = mock(CharacterReadPort.class);
         service = new CharacterCommandService(storyReadPort, matchReadPort, userAccessPort,
                 persistencePort, characterReadPort);
+        service.setMatchStamp(stamp);
     }
 
     private GamingMatchEntity match() {
@@ -108,6 +113,8 @@ class CharacterCommandServiceChangeStatsTest {
         assertEquals(ChangeStatsOutcome.UPDATED,
                 service.changeStatistics("match-uuid", "player-uuid", cmd));
 
+        verify(stamp).touchAdmin("match-uuid");
+        verify(stamp, never()).claimGameplay(any());
         verify(persistencePort).updateCharacterStats(1L, 2L, null, null, null, null, 1, null);
         verify(persistencePort).updateCharacterFlags(1L, 2L, false, false);
     }

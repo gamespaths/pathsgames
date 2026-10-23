@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
 import { getMatchInfo } from '../api/game'
 import { matchInfoToGameData } from '../api/matchInfoAdapter'
@@ -8,6 +8,17 @@ import { useTranslation } from '../i18n/context'
 import GameBook from '../features/gameplay/GameBook'
 import LoadingCard from '@/components/layout/LoadingCard'
 import ErrorCard from '../components/modals/ErrorCard'
+import { useServer } from '@/context/ServerContext'
+import { STALE_EVENT, getMatchVersion, isStaleMatch } from '@/api/matchVersion'
+import useMatchRefetchOnReturn from '@/hooks/useMatchRefetchOnReturn'
+
+/** v1.7.0 step 8 — how long the "match is being updated" notice stays after a refetch. */
+export const STALE_NOTICE_MS = 4000
+
+/** v1.7.0 step 12 — the match changed elsewhere: this device knew a version and the refetch brought another. */
+export function changedElsewhere(before, after) {
+  return Boolean(before) && Boolean(after) && before !== after
+}
 
 export default function GamePage() {
   const { storyId } = useParams()
@@ -22,6 +33,13 @@ export default function GamePage() {
   const [storyDetail, setStoryDetail] = useState(null)
   const [loading, setLoading] = useState(true)
   const [matchError, setMatchError] = useState(null)
+  // v1.7.0 step 8 — a refetch after STALE_MATCH or a page return: the notice and the chrome reload key
+  const [staleNotice, setStaleNotice] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
+  // v1.7.0 step 12 — the dismissible "match is being updated" banner and the request to open the match log
+  const [updatedBanner, setUpdatedBanner] = useState(false)
+  const [openLogKey, setOpenLogKey] = useState(0)
+  const { matchRefetch } = useServer() ?? {}
 
   // v0.37.6 — the board load in flight and its inputs: StrictMode re-runs the effect on
   // its second mount, which joins this request instead of asking /info again.
@@ -67,6 +85,48 @@ export default function GamePage() {
       // keep existing board state if reload fails
     }
   }
+  const reloadRef = useRef(reloadGameData)
+  reloadRef.current = reloadGameData
+
+  // v1.7.0 step 8 — the board and its chrome again from the server; open choices are not kept
+  const refetchMatch = useCallback(() => {
+    setReloadKey(k => k + 1)
+    return reloadRef.current()
+  }, [])
+
+  useEffect(() => {
+    const onStale = (event) => {
+      const uuid = event?.detail?.matchUuid
+      if (uuid && uuid !== matchUuid) return
+      setStaleNotice(true)
+      void refetchMatch()
+    }
+    window.addEventListener(STALE_EVENT, onStale)
+    return () => window.removeEventListener(STALE_EVENT, onStale)
+  }, [matchUuid, refetchMatch])
+
+  useEffect(() => {
+    if (!staleNotice) return undefined
+    const timer = setTimeout(() => setStaleNotice(false), STALE_NOTICE_MS)
+    return () => clearTimeout(timer)
+  }, [staleNotice])
+
+  // v1.7.0 step 12 — the banner only when the version moved without a write of this device
+  const refetchOnReturn = useCallback(async () => {
+    const before = getMatchVersion(matchUuid)
+    await refetchMatch()
+    if (changedElsewhere(before, getMatchVersion(matchUuid))) setUpdatedBanner(true)
+  }, [matchUuid, refetchMatch])
+
+  const openMatchLog = () => {
+    setUpdatedBanner(false)
+    setOpenLogKey(k => k + 1)
+  }
+
+  useMatchRefetchOnReturn(() => { void refetchOnReturn() }, {
+    browsers: matchRefetch?.browsers, minHiddenSeconds: matchRefetch?.minHiddenSeconds,
+    enabled: Boolean(matchUuid) && !loading,
+  })
 
   // Fetch the full story detail (with content lists) once the story uuid is known.
   useEffect(() => {
@@ -87,6 +147,7 @@ export default function GamePage() {
   // errors are shown over the board and dismissed in place; fatal match-load errors
   // (no transient flag) send the player home on close.
   const handleGameError = (err) => {
+    if (isStaleMatch(err)) return // the notice and the refetch already answer it
     setMatchError({
       status: err?.status ?? err?.response?.status ?? null,
       message: err?.response?.data?.message ?? err?.response?.data?.error ?? err?.message ?? null,
@@ -101,6 +162,19 @@ export default function GamePage() {
 
   return (
     <div className="game-page-wrap">
+      {staleNotice && (
+        <div className="pg-stale-notice" role="status">{t('game.matchUpdating')}</div>
+      )}
+      {updatedBanner && (
+        <div className="pg-update-banner" role="alert" data-testid="match-updated-banner">
+          <span>{t('game.matchUpdating')}</span>
+          <button type="button" className="pg-update-banner-link" onClick={openMatchLog}>
+            {t('game.matchUpdatedLog')}
+          </button>
+          <button type="button" className="pg-update-banner-close" aria-label={t('game.matchUpdatedDismiss')}
+            onClick={() => setUpdatedBanner(false)}>×</button>
+        </div>
+      )}
       {matchError && (
         <ErrorCard status={matchError.status} message={matchError.message} onClose={handleErrorClose} maxWidth="400px" />
       )}
@@ -108,7 +182,8 @@ export default function GamePage() {
         <LoadingCard story={story} maxWidth="400px" />
       ) : (!matchError || matchError.transient) && (
         <GameBook gameData={gameData} matchUuid={matchUuid} story={story} storyDetail={storyDetail}
-          onReload={reloadGameData} onClose={() => gotoHomePage(null)} onError={handleGameError} />
+          onReload={reloadGameData} onClose={() => gotoHomePage(null)} onError={handleGameError}
+          reloadKey={reloadKey} openLogKey={openLogKey} />
       )}
     </div>
   )

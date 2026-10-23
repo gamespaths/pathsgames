@@ -12,6 +12,10 @@ class StoryQueryPort(ABC):
     def list_all_stories(self, lang: str = "en") -> List[StorySummary]:
         pass
 
+    def list_all_stories_page(self, lang: str = "en", limit=None, cursor=None) -> dict:
+        """v1.7.0 one page of every story (admin): {items, nextCursor, limit}."""
+        raise NotImplementedError
+
     @abstractmethod
     def get_story_detail(self, uuid: str, lang: str = "en") -> Optional[StoryDetail]:
         pass

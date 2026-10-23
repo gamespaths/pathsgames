@@ -592,8 +592,11 @@ public class MatchImportService {
         }
         String uuidSnapshot = snapshotService == null ? null
                 : snapshotService.writeNow(idMatch, "Imported at clock " + clock);
+        // v1.7.0 a stopped match is imported with its own status and no time-start
+        String original = str(match.get("status"));
+        boolean stopped = MatchStatuses.isTerminal(original);
         try {
-            if (timeService != null) {
+            if (timeService != null && !stopped) {
                 timeService.startTimeAfterRestore(uuidMatch);
             }
         } catch (RuntimeException e) {
@@ -601,7 +604,8 @@ public class MatchImportService {
             throw new MatchExportException(MatchExportException.Code.IMPORT_TIME_START_FAILED,
                     "The match was imported (PAUSED) but its time-start failed: " + e.getMessage());
         }
-        String status = Boolean.TRUE.equals(request.get("startPaused")) ? MatchStatuses.PAUSED : MatchStatuses.RUNNING;
+        String status = stopped ? original
+                : Boolean.TRUE.equals(request.get("startPaused")) ? MatchStatuses.PAUSED : MatchStatuses.RUNNING;
         snapshotStore.setStatus(idMatch, status);
         int now = snapshotStore.findMatchById(idMatch).map(SnapshotStorePort.MatchRef::currentClock).orElse(clock);
         Map<String, Object> body = new LinkedHashMap<>();

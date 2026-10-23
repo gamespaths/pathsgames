@@ -17,6 +17,7 @@ from app.core.ports.match.match_ports import (
     UserAccessPort,
 )
 from app.core.services.match import trait_selection_validator
+from app.core.services.match.match_stamp import ADMIN, stamp_check, stamp_claim, stamped
 
 
 _BANNED_STATES = {3, 4}
@@ -49,6 +50,7 @@ class CharacterCommandService(CharacterCommandPort):
         if match_statuses.is_terminal(match.get("status")):
             raise CharacterJoinError(CharacterJoinError.MATCH_NOT_JOINABLE,
                                      "Match is in a terminal status and cannot be joined")
+        stamp_check(self, command.match_uuid)
 
         user = self.user_access_port.find_by_uuid(command.user_uuid)
         if user is None:
@@ -92,6 +94,7 @@ class CharacterCommandService(CharacterCommandPort):
         next_id = self.character_persistence_port.count_characters_by_match_id(match["id"]) + 1
         instance = self._build_instance(match, user, story, template, clazz, difficulty,
                                         traits, class_bonuses, next_id)
+        stamp_claim(self, command.match_uuid)
         saved = self.character_persistence_port.save_character(instance)
 
         self.character_persistence_port.save_backpack({
@@ -235,6 +238,7 @@ class CharacterCommandService(CharacterCommandPort):
         )
 
 
+    @stamped(ADMIN, ok=lambda r: r == "UPDATED")
     def change_statistics(self, match_uuid: str, player_uuid: str,
                           dex: Optional[int], intel: Optional[int], con: Optional[int],
                           energy: Optional[int], life: Optional[int], sad: Optional[int],

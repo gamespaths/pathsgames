@@ -6,8 +6,8 @@ identity, admin access, abuse controls, and the frontend/infrastructure hardenin
 ## 1. Guest login and JWT (access + refresh, with rotation)
 
 In V0 every player is a **guest**; Google login is added in V1 (§1.1). `POST /api/auth/guest`
-creates one and returns an access token (JWT, 30 min default), a refresh token (JWT, 7 days
-default) and a `guestCookieToken` used to resume the same identity later via
+creates one and returns an access token (JWT, 30 min default), a refresh token (JWT, 180 days
+for a guest; 250 days for a Google user, see §1.2) and a `guestCookieToken` used to resume the same identity later via
 `POST /api/auth/guest/resume`. Full claim tables and DB columns:
 [Step12](documentation_v0/Step12_GuestLoginMethod.md).
 
@@ -37,8 +37,7 @@ Passwords no longer exist: a player is a guest or a Google user (`users_identiti
   identity key = `sub` + email (`IDENTITY_MISMATCH` if the email has another `sub`). The email, name
   and picture are never logged (log sanitizer on the 3 backends).
 - **Tokens**: access and refresh JWTs carry `iss` (stage + backend) and `aud`. Refresh revokes only the
-  token used, with a 30 s grace for the just-rotated one, cap of 5 sessions; a revoked session answers
-  `SESSION_REVOKED`. Refresh and guest cookie tokens are stored as SHA-256 hashes (lazy migration).
+  token used (lifetime, grace and cap in §1.2); a revoked session answers `SESSION_REVOKED`. Refresh and guest cookie tokens are stored as SHA-256 hashes (lazy migration).
   `users.state` is checked on every request (60 s cache on Java/Python, evicted on state change);
   the role always comes from the DB; the AWS synthetic user is gone and `ALLOW_MOCK_ACCESS` defaults to
   `false`.
@@ -54,6 +53,32 @@ Passwords no longer exist: a player is a guest or a Google user (`users_identiti
   `code/scripts/prod/aws_create_admin.sh <stage> <nick>`. Admin token lasts 365 days, 30 on AWS `prod`.
 - **Policies**: static `privacy.html`, `terms.html`, `cookies.html` (react-game `postbuild`) for the Google
   brand; CSP allows `accounts.google.com` and `googleusercontent.com` (profile picture).
+
+### 1.2 Sessions and account protection (V1.7.0, [Steps 10 and 12](documentation_v1/Step12_PaginationAndMultiDeviceContinuity.md))
+
+- **Lifetimes**: refresh token 250 days, sliding (`REFRESH_TOKEN_DAYS`); a guest's stays capped at 180
+  days. The cookie follows. Rotation grace for the just-rotated token: 120 s.
+- **Cap**: 12 sessions per user (`MAX_TOKENS_PER_USER`; AWS `MaxSessionsPerUser`). The least recently
+  refreshed one is revoked with reason `LIMIT` and answers 401 `SESSION_LIMIT`. `users_tokens.revoked_reason`
+  (`ROTATED`, `LOGOUT`, `LOGOUT_ALL`, `LIMIT`, `ADMIN`); rows `ROTATED`/`LOGOUT` are purged after 7 days
+  (daily job); reusing a rotated token after the grace revokes every session of the user.
+- **`sessions_valid_after`** (`users` column, AWS attribute on `USER#`): set by "log out of all devices", ban and
+  suspend; an access token issued before it answers 401 `SESSION_REVOKED` (within the 60 s state cache).
+  `GET /api/auth/me` returns `activeSessions` (refresh tokens used in the last 30 days).
+- **Cookie `SameSite`**: `COOKIE_SAME_SITE` (AWS `CookieSameSite`), default `Lax`. `None` only when the page
+  and the API are on different sites (AWS `test`, whose pages call `execute-api` URLs).
+- **Ban and suspend** (admin, Google users only, [Step 10](documentation_v1/Step10_AdminUserManagementBackend.md)):
+  ban sets state 4 and stores HMAC-SHA256 hashes of the Google `sub` and of the email in `users_banned_subjects`
+  (AWS `BANSUB#<hash>`, `BANEMAIL#<hash>`), keyed with the stage pepper `BANNED_SUBJECT_PEPPER` (AWS
+  `BannedSubjectPepper`): one value per stage, never rotated, required outside dev/test (startup refused on
+  Java/Python, 500 on AWS). A login with a banned `sub` or email is refused. Suspend sets state 3 with
+  `suspended_until` (max 90 days) and lifts itself at the next login or refresh. Both revoke the sessions and
+  evict the 60 s state cache; an ADMIN can never be banned or suspended; guests are not bannable. Unblock
+  removes the hashes. Every action writes `admin_intervention_log` (admin uuid, action, target uuid, reason
+  required, at most 500 chars; no nickname or email; 24-month retention; AWS `ADMINLOG#YYYY-MM`, ttl).
+- **Admin users API** (admin port only): `GET /api/admin/users`, `GET /api/admin/users/{identifier}`,
+  `POST /api/admin/users/{uuid}/{ban|suspend|unblock|relink-subject|deletion}`. The email is returned by the
+  detail only. `relink-subject` arms a one-time replacement of the Google subject for an `IDENTITY_MISMATCH`.
 
 ## 2. Admin role and the admin port
 
@@ -217,12 +242,13 @@ across environments.
   tokens, so copied guests cannot resume and SSO users log in again. The file carries a SHA-256
   checksum and is validated against a JSON Schema before any write.
 - **Size cap**: `MATCH_EXPORT_MAX_BYTES` (default 5000000), above it the import answers 413.
+- **V1.7.0**: the file adds `match.playMs` (missing = 0) and the statuses `CANCELLED`/`BANNED`; every stopped match (`ENDED`, `GAMEOVER`, `CANCELLED`, `BANNED`) is imported with its own status and no time-start runs for it.
 - A story with the same id but another fingerprint is refused with 409 `STORY_DIFFERS` unless the
   admin chooses `storyMode`. Details: [Step 41 §9](./documentation_v0/Step41_AlphaPreparation.md).
 - **Owner move (v0.41.6)**: `GET`/`PUT /api/admin/matches/{uuidMatch}/owner` and `GET /api/admin/users/{identifier}` are admin-only on port 8044 and behind the AWS allow-list.
 
 # Version Control
-- **Document Version**: 1.2.0
+- **Document Version**: 1.7.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -232,8 +258,9 @@ across environments.
   | 0.41.4 | Admin-only match export and import, no secrets copied; owner move | October 3, 2026 |
   | 1.1.0 | Smoke test function noted as not public | October 13, 2026 |
   | 1.2.0 | Google login, hashed sessions, account deletion | October 20, 2026 |
+  | 1.7.0 | Session limits, bans, suspensions and cookie rules | October 23, 2026 |
 
-- **Last Updated**: October 20, 2026 (v1.2.0)
+- **Last Updated**: October 23, 2026 (v1.7.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

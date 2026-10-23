@@ -27,6 +27,8 @@ Follows the medieval dark theme (`v0.16.3-prototype-api`):
 | `/guests`          | List, inspect and delete guest users; cleanup expired    |
 | `/stories`         | List all stories (any visibility); delete stories        |
 | `/stories/import`  | Import a complete story from JSON (`POST /api/admin/stories/import`); malformed story `uuid` blocked client-side (v0.41.5) |
+| `/users`           | Users list: one search box ("@" = exact email, else nickname prefix), state filter, cursor paging, no email column (V1.7.0) |
+| `/users/:uuid`     | User detail: profile with email, identities, statistics, sessions, match history; ban, suspend, unblock, re-link, deletion, each with a reason dialog (10-500 characters, V1.7.0) |
 | `/matches`         | List all matches across all players with server-side pagination (Load more / nextCursor), status filter and period filter (7/30/90 days / All); User column (`guest_` + first 8 chars of the creator UUID, full UUID as title; the text filter matches it; Mode and XP Cost columns removed in 0.42.0); open detail modal with match info, location state, registry and missions (read-only) |
 | `/stories/:uuid/fast-new-locations` | Fast New Locations: create many locations and their neighbors in one save, with rollback on failure |
 | `/echo`            | Server health check (`GET /api/echo/status`)             |
@@ -42,10 +44,12 @@ From OpenAPI specs in `code/backend/java/adapter-rest/src/main/resources/openapi
 | Get guest by UUID                | `GET /api/admin/guests/:uuid`   |
 | Delete guest                     | `DELETE /api/admin/guests/:uuid`|
 | Cleanup expired guests           | `DELETE /api/admin/guests/expired` |
-| List all stories                 | `GET /api/admin/stories`        |
+| List all stories (V1.7.0 cursor envelope, "Load more") | `GET /api/admin/stories` |
+| Users list / detail (V1.7.0)     | `GET /api/admin/users`, `GET /api/admin/users/:identifier` |
+| User actions (V1.7.0)            | `POST /api/admin/users/:uuid/ban`, `suspend`, `unblock`, `relink-subject`, `deletion` |
 | Import story                     | `POST /api/admin/stories/import`|
 | Delete story                     | `DELETE /api/admin/stories/:uuid`|
-| List all matches (admin-wide, paged) | `GET /api/admin/matches` — envelope `{items, nextCursor, limit}`; query params `limit`, `cursor`, `status`, `sinceDays` |
+| List all matches (admin-wide, paged) | `GET /api/admin/matches` — envelope `{items, nextCursor, limit}`; query params `limit`, `cursor`, `status`, `sinceDays`, `userUuid` (user picker), `storyUuid` |
 | Match detail / state             | `GET /api/admin/matches/:uuid/info` |
 | Export a match (v0.41.4)         | `GET /api/admin/matches/:uuid/export` — Export button in `SnapshotsCard` |
 | Import a match (v0.41.4)         | `POST /api/admin/matches/import` — page `/matches/import` (`MatchImportPage`, Navbar entry, Import button on Matches) |
@@ -85,7 +89,7 @@ npm run test:coverage
     > ciao, into "code/frontend/react-admin" folder create a new project with react con vite e bootstrap e Tailwind e font awesome. Project is a administration frontend of project, read all documents into "wiki/documentation_v0" to understand my project. I wanna you create admin section to all admin APIs "code/backend/java/adapter-rest/src/main/resources/openapi". Let's go! Never change files outside  "code/frontend/react-admin" . for admin i wanna a login interface where user insert jwt token to be used in all api calls , use graphics from "wiki/documentation_v0/website_concepts_v0/v0.16.3-prototype-api"
 
     > mi fai uno script in .github/workflows per il progetto "react-admin" ? poi aggiorna il "wiki/documentation_v0/Step08_ConfigureMinimalCI.md"
-- **Document Version**: 1.1.0
+- **Document Version**: 1.7.0
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.16.4 | Created react-admin project | April 23, 2026 |
@@ -99,7 +103,8 @@ npm run test:coverage
     | 0.29.0 | Story Editor — **Event Effects** form gains `idTextName`/`idTextDescription` fields, ordered `idCard`, `idTextName`, `idTextDescription`, `idEvent`, ... (`storiesEntities.jsx`); the two columns already existed on the entity, this only exposes them in the UI. The generic name→description auto-fill and "new card from name text" rules (shared by all story entities with this field pair) apply unchanged. The Event Effects list gains a `Name` column, shown right after the card column. No backend change. | Jul 13, 2026 |
     | 0.42.0 | Matches page shows creator user, drops mode and cost columns | October 7, 2026 |
     | 1.1.0 | Fast new locations page added | October 14, 2026 |
-- **Last Updated**: October 14, 2026 (v1.1.0)
+    | 1.7.0 | Users list, user detail and action dialogs added | October 23, 2026 |
+- **Last Updated**: October 23, 2026 (v1.7.0)
 - **Status**: In progress
 
 

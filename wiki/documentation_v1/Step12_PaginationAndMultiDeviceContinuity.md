@@ -1,6 +1,6 @@
 # Step 12 — Pagination residuals and multi-device continuity
 
-**Status: analysed (October 21, 2026), owner answers recorded, not developed. Steps 6-12 are developed together and released as 1.6.0. Open points in section 4.**
+**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/12_multi_device` written, not yet run. Analysis decisions below are kept; "Implementation notes" lists what shipped.**
 Roadmap line: *lists that scale for matches and stories, and the same account on many devices* ([Roadmap](./Roadmap.md) step 12). This step takes over the old step 10 (admin pagination) and closes the multi-device chain: [Step 6](./Step06_UserProfileBackend.md) · [Step 7](./Step07_UserProfileReactGame.md) · [Step 8](./Step08_MatchConcurrencyMultiDevice.md) · [Step 9](./Step09_MatchListCancelledLastPlayed.md) (merge rule) · [Step 12](./Step12_PaginationAndMultiDeviceContinuity.md).
 
 ## 1. Goal
@@ -29,7 +29,7 @@ Admin lists page and filter on the server; a player on any device sees that the 
 
 ### 3.2 Sessions and cookies (Java, Python, AWS)
 - Cap: Java `game.auth.max-tokens-per-user` exists (5 in `application.yml`, also defaults of 5 in `SessionService` and `GuestAuthService`); Python has `max_tokens_per_user=5` hardcoded in `launcher.py` (make it a `config.py` field); AWS has the constant `MAX_SESSIONS = 5` in `common/auth_tokens.py` (make it an environment/SAM parameter). Code default 12 everywhere. The cap is enforced at Google login, at guest login and at every refresh and revokes the oldest issued active token, which is the least recently refreshed one.
-- `SESSION_LIMIT`: today a revoked token carries no reason. Add `users_tokens.revoked_reason` (Java migration `V1.6.0_2__sessions.sql`, Python `align_schema()`; AWS attribute on `REFRESH#<hash>`) with values `ROTATED`, `LOGOUT`, `LOGOUT_ALL`, `LIMIT`, `ADMIN`; the refresh of a revoked token outside the 2-minute grace answers `SESSION_LIMIT` for `LIMIT`, `SESSION_REVOKED` otherwise. New code in `AuthException.Code`, Python `auth_error.py`, the AWS `sso.py` error map (401) and OpenAPI. Retention: a `ROTATED` or `LOGOUT` row is deleted after 7 days (AWS: `ttl` = now + 7 days set at the rotation; Java and Python: a daily job); `LIMIT`, `LOGOUT_ALL` and `ADMIN` rows keep their expiry. Reuse detection: a `ROTATED` token presented outside the grace and still stored revokes every session of the user (`SESSION_REVOKED`); once deleted it is simply unknown.
+- `SESSION_LIMIT`: today a revoked token carries no reason. Add `users_tokens.revoked_reason` (Java migration `V1.7.0_2__sessions.sql`, Python `align_schema()`; AWS attribute on `REFRESH#<hash>`) with values `ROTATED`, `LOGOUT`, `LOGOUT_ALL`, `LIMIT`, `ADMIN`; the refresh of a revoked token outside the 2-minute grace answers `SESSION_LIMIT` for `LIMIT`, `SESSION_REVOKED` otherwise. New code in `AuthException.Code`, Python `auth_error.py`, the AWS `sso.py` error map (401) and OpenAPI. Retention: a `ROTATED` or `LOGOUT` row is deleted after 7 days (AWS: `ttl` = now + 7 days set at the rotation; Java and Python: a daily job); `LIMIT`, `LOGOUT_ALL` and `ADMIN` rows keep their expiry. Reuse detection: a `ROTATED` token presented outside the grace and still stored revokes every session of the user (`SESSION_REVOKED`); once deleted it is simply unknown.
 - `activeSessions` in `GET /api/auth/me`: count of refresh tokens not revoked, not expired and issued in the last 30 days (SQL count on `ts_insert`; AWS range on the sort key of `USER_SESSIONS#<uuid>`); the cap of 12 stays on the total.
 - `sessions_valid_after`: `users.sessions_valid_after` (same migration; AWS attribute on `USER#`) set by `POST /api/auth/logout/all`, ban and suspend (seconds precision, token valid when `iat >=` the value). Java `JwtAuthenticationFilter` and Python `jwt_middleware.py` read it from the 60-second `UserStateService` cache (`UserStatus` carries it; the setters evict the user, so the serving instance is immediate and another instance lags at most 60 seconds); AWS `_require_auth` and `_resolve_user` already read the `USER#` item on every request, so it is immediate. A token older than the value answers 401 `SESSION_REVOKED`.
 - Refresh lifetime: Java `refresh-token-days` and Python `refresh_token_days` from 7 to 250; AWS `REFRESH_SECONDS` from 15,552,000 (180 days) to 21,600,000 (250 days). The refresh cookie `Max-Age` becomes 250 days on all three (Java `CookieHelper.REFRESH_MAX_AGE_SECONDS`, Python `set_auth_cookie` which today uses one value for both cookies and is split, AWS `COOKIE_MAX_REFRESH`) and is renewed at each refresh (sliding). The guest cookie stays 180 days and a guest's refresh token is capped at 180 days (`min(lifetime, 180 days)` when the user is a guest). On Java and Python tokens already issued keep their own expiry.
@@ -45,7 +45,7 @@ Admin lists page and filter on the server; a player on any device sees that the 
 - `MatchesPage.jsx`: server-side user (picker) and story filters (together with the existing status and period); the text box stays for the loaded rows and short pages are handled; `StoriesPage.jsx`: cursor paging with a load-more button; selectors that need every story use the paged API.
 
 ### 3.5 OpenAPI
-- The one file `v1.6.0-multi-device-api.yaml`: `SESSION_LIMIT`, `activeSessions`, `GET /api/admin/stories` envelope.
+- The one file `v1.7.0-multi-device-api.yaml`: `SESSION_LIMIT`, `activeSessions`, `GET /api/admin/stories` envelope.
 
 ### 3.6 Tests
 - Unit (coverage > 96%): rotated rows deleted after 7 days and the other reasons kept, reuse of a rotated token revoking all sessions (also at the edge of the grace), guest refresh capped at 180 days, `activeSessions` ignoring a session unused for 30 days while the cap counts it; 13th session revokes the oldest with `SESSION_LIMIT` and the reason is stored for each kind of revocation; `sessions_valid_after` (older token refused, newer accepted, boundary second, cache eviction, set by logout-all, ban and suspend); `activeSessions`; refresh lifetime (250 days) and cookie `Max-Age` per backend, an old token keeping its expiry until its next refresh; `SameSite` parameter (default `Lax`, `None` on request); stories envelope; matches filters; on AWS the key query for `userUuid` and the 5-page loop for `storyUuid`.
@@ -73,14 +73,22 @@ Admin lists page and filter on the server; a player on any device sees that the 
 13. (decided) Single-logout `LOGOUT` rows are deleted after 7 days like `ROTATED`.
 14. (decided) The refresh grace is raised from 30 seconds to 2 minutes (it also softens the lost-answer case); a rotated token presented after the grace, within its 7 days, revokes all the user's sessions.
 
+## Implementation notes (1.7.0)
+
+- Sessions: cap 12 (`MAX_TOKENS_PER_USER`, AWS `MaxSessionsPerUser`) with 401 `SESSION_LIMIT`, `users_tokens.revoked_reason` (Flyway `V1.7.0_2__sessions.sql`; AWS attribute on `REFRESH#<hash>`), refresh grace 120 s, reuse of a rotated token revokes all sessions, `ROTATED`/`LOGOUT` rows purged after 7 days (Java `RevokedTokenCleanupScheduler`), `users.sessions_valid_after` (logout-all, ban, suspend) answering 401 `SESSION_REVOKED`, `activeSessions` (last 30 days) in `GET /api/auth/me`.
+- Lifetimes: refresh token 250 days sliding (`REFRESH_TOKEN_DAYS`; guest stays 180); cookie `SameSite` parameter `COOKIE_SAME_SITE` (default `Lax`; AWS `test` uses `None`). Full list in [Security §1.2](../Security.md) and [Environments](../Environments.md).
+- Pagination: `GET /api/admin/stories` is now the cursor envelope (breaking change; react-admin Stories page loads page by page); admin matches filters `userUuid` (user picker) and `storyUuid` on the server.
+- react-game: banner "Match is being updated" with a link to the log when the refetched `matchVersion` differs, `auth/knownAccount.js` (`pathsgames.knownAccount`) and the message "Sign in with Google to find your matches", `auth/sessionAlerts.js` (`SESSION_LIMIT` opens the sign-in), cookie and privacy texts updated.
+
 # Version Control
-- **Document Version**: 1.4.0
+- **Document Version**: 1.7.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.4.0 | Pagination and many-device continuity analysed | October 21, 2026 |
+  | 1.7.0 | Developed and released | October 23, 2026 |
 
-- **Last Updated**: October 21, 2026 (v1.4.0)
+- **Last Updated**: October 23, 2026 (v1.7.0)
 
 
 # &lt; Paths Games /&gt;

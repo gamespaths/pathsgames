@@ -162,6 +162,45 @@ class GoogleLoginServiceTest {
     }
 
     @Test
+    void guardRefusesABannedSubjectBeforeAnyLookup() {
+        games.paths.core.port.auth.AccountGuardPort guard = mock(games.paths.core.port.auth.AccountGuardPort.class);
+        service.setAccountGuard(guard);
+        doThrow(new AuthException(AuthException.Code.ACCOUNT_DISABLED, "banned"))
+                .when(guard).checkNotBanned("sub-1", "mario.rossi+x@gmail.com");
+        assertEquals(AuthException.Code.ACCOUNT_DISABLED, refused(good()));
+        verify(identities, never()).findIdentityByEmail(anyString(), anyString());
+    }
+
+    @Test
+    void guardRelinksAnArmedMismatchAndAdmitsTheUser() {
+        games.paths.core.port.auth.AccountGuardPort guard = mock(games.paths.core.port.auth.AccountGuardPort.class);
+        service.setAccountGuard(guard);
+        UserIdentity old = new UserIdentity(3L, 8L, "GOOGLE", "old-sub", "e", null, null, null, null, null, null);
+        UserStatus user = new UserStatus(8L, "u8", "google_8", "m", "PLAYER", 3, "en");
+        UserStatus unblocked = new UserStatus(8L, "u8", "google_8", "m", "PLAYER", 2, "en");
+        when(verifier.verify("id-token")).thenReturn(good());
+        when(identities.findIdentityByEmail(anyString(), anyString())).thenReturn(Optional.of(old));
+        when(identities.findUserById(8L)).thenReturn(Optional.of(user));
+        when(guard.relink(old, "sub-1")).thenReturn(true);
+        when(guard.admit(user)).thenReturn(unblocked);
+        assertFalse(service.login(cmd()).newUser());
+        when(guard.relink(old, "sub-1")).thenReturn(false);
+        assertEquals(AuthException.Code.IDENTITY_MISMATCH, refused(good()));
+    }
+
+    @Test
+    void guardAdmitsAUserFoundByEmailOnly() {
+        games.paths.core.port.auth.AccountGuardPort guard = mock(games.paths.core.port.auth.AccountGuardPort.class);
+        service.setAccountGuard(guard);
+        UserStatus user = new UserStatus(8L, "u8", "imported", "m", "PLAYER", 2, "en");
+        when(verifier.verify("id-token")).thenReturn(good());
+        when(identities.findUserByEmail("mario.rossi+x@gmail.com")).thenReturn(Optional.of(user));
+        when(guard.admit(user)).thenReturn(user);
+        service.login(cmd());
+        verify(guard).admit(user);
+    }
+
+    @Test
     void replayIsRefused() {
         when(identities.markIdTokenSeen(anyString(), anyString())).thenReturn(false);
         assertEquals(AuthException.Code.TOKEN_REPLAYED, refused(good()));
@@ -268,12 +307,13 @@ class GoogleLoginServiceTest {
         when(jwt.parseToken("guest-access")).thenReturn(Map.of("type", "access", "sub", "g-uuid"));
         when(identities.findUserByUuid("g-uuid")).thenReturn(Optional.of(
                 new UserStatus(5L, "g-uuid", "guest_x", "guest_x", "PLAYER", 6, "en")));
-        when(merge.merge(5L, 42L)).thenReturn(new MergeResult(2, List.of(10L)));
+        when(merge.merge(5L, 42L)).thenReturn(new MergeResult(2, List.of(10L), List.of("m-10")));
 
         AuthenticatedSession s = service.login(new GoogleLoginCommand("id-token", "nonce", "en", "guest-access", null));
 
         assertEquals("g-uuid", s.mergedGuestUuid());
         assertEquals(1, s.cancelledMatches());
+        assertEquals(List.of("m-10"), s.cancelledMatchUuids());
         verify(userState).evict("g-uuid");
     }
 
@@ -291,6 +331,7 @@ class GoogleLoginServiceTest {
 
         AuthenticatedSession s = service.login(new GoogleLoginCommand("id-token", "nonce", null, "other-access", "cookie"));
         assertEquals("g6", s.mergedGuestUuid());
+        assertTrue(s.cancelledMatchUuids().isEmpty());
     }
 
     @Test

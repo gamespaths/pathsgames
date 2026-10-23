@@ -8,6 +8,8 @@ import { AuthProvider, useAuth } from '../context/AuthContext'
 vi.mock('../pages/LoginPage', () => ({ default: () => <div data-testid="login-page">Login Page</div> }))
 vi.mock('../pages/DashboardPage', () => ({ default: () => <div data-testid="dashboard-page">Dashboard Page</div> }))
 vi.mock('../api/echoApi', () => ({ getServerStatus: vi.fn().mockResolvedValue({}) }))
+vi.mock('../pages/UsersPage', () => ({ default: () => <div data-testid="users-page">Users</div> }))
+vi.mock('../pages/UserDetailPage', () => ({ default: () => <div data-testid="user-detail-page">User</div> }))
 vi.mock('../pages/story/FastNewLocationsPage', () => ({ default: () => <div data-testid="fast-locations-page">Fast Locations</div> }))
 
 describe('App', () => {
@@ -44,5 +46,14 @@ describe('App', () => {
       </MemoryRouter>
     )
     expect(await screen.findByTestId('fast-locations-page')).toBeInTheDocument()
+  })
+
+  it('routes /users and /users/:uuid to the user pages (v1.7.0)', async () => {
+    localStorage.setItem('pg_admin_token', 'mock-token')
+    const { unmount } = render(<MemoryRouter initialEntries={['/users']}><App /></MemoryRouter>)
+    expect(await screen.findByTestId('users-page')).toBeInTheDocument()
+    unmount()
+    render(<MemoryRouter initialEntries={['/users/abc']}><App /></MemoryRouter>)
+    expect(await screen.findByTestId('user-detail-page')).toBeInTheDocument()
   })
 })

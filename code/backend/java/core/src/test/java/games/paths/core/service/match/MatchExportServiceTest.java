@@ -184,4 +184,23 @@ class MatchExportServiceTest {
         verify(store).usersByIds(java.util.Set.of(77L));
         assertTrue(result.canonical().contains("\"creatorUserUuid\":\"u-77\""));
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void v170TheExportCarriesThePlayTimeAndTheStatusOfAStoppedMatch() {
+        for (String status : List.of("CANCELLED", "BANNED")) {
+            setUp();
+            match(status, true);
+            when(store.playMs(UUID)).thenReturn(42_000L);
+            var result = service.exportMatch(UUID);
+            Map<String, Object> m = (Map<String, Object>) result.document().get("match");
+            assertEquals(status, m.get("status"));
+            assertEquals(42_000L, m.get("playMs"));
+            verify(snapshotPort, never()).restore(anyString(), anyString());
+        }
+        setUp();
+        match("RUNNING", true);
+        Map<String, Object> running = (Map<String, Object>) service.exportMatch(UUID).document().get("match");
+        assertEquals(0L, running.get("playMs"));
+    }
 }

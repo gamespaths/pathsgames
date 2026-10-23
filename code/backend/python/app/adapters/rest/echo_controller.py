@@ -13,7 +13,13 @@ class EchoController:
         body = {
             "status": self.echo_port.get_server_status(),
             "timestamp": self.echo_port.get_timestamp(),
-            "properties": self.echo_port.get_server_properties()
+            "properties": self.echo_port.get_server_properties(),
+            # v1.7.0 the profile choices; react-game shows those it also has a bundle for
+            "supportedLanguages": self.echo_port.get_supported_languages(),
+            "supportedThemes": self.echo_port.get_supported_themes(),
+            # v1.7.0 step 8 when react-game refetches a match on page return
+            "matchRefetchBrowsers": self.echo_port.get_match_refetch_browsers(),
+            "matchRefetchMinHiddenSeconds": self.echo_port.get_match_refetch_min_hidden_seconds(),
         }
         if self.google_login_service is not None:
             body["googleEnabled"] = self.google_login_service.enabled

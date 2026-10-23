@@ -17,6 +17,9 @@ public interface MatchExportStorePort {
     /** Rows of one log_* table of the match with id <= mark, in id order (column → plain value). */
     List<Map<String, Object>> logRows(long idMatch, String table, long mark);
 
+    /** v1.7.0 the live play time of the match (never rolled back by a snapshot), 0 when unknown. */
+    long playMs(String uuidMatch);
+
     /** users rows by id (uuid, username, nickname, language, state, role, email_address, v1.2.0 identities). */
     Map<Long, Map<String, Object>> usersByIds(Collection<Long> ids);
 

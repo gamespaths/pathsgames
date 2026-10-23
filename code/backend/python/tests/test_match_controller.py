@@ -179,14 +179,19 @@ def test_list_matches_unauthenticated(env):
     assert response.status_code == 401
 
 
-def test_list_matches_returns_list(env):
+def test_list_matches_returns_envelope(env):
+    from app.core.models.match.match_models import MatchSummaryPage
     client, _, query_port = env
-    query_port.list_user_matches.return_value = [_summary()]
+    query_port.list_user_matches_page.return_value = MatchSummaryPage(items=[_summary()], next_cursor=None, limit=50)
     response = client.get("/api/matches", headers={"x-user": "u"})
     assert response.status_code == 200
     body = response.json()
-    assert len(body) == 1
-    assert body[0]["uuid"] == "match-uuid"
+    assert len(body["items"]) == 1 and body["nextCursor"] is None and body["limit"] == 50
+    assert body["items"][0]["uuid"] == "match-uuid"
+    assert "tsUpdate" in body["items"][0]
+    query_port.list_user_matches_page.assert_called_with("u", None, None)
+    client.get("/api/matches?limit=2&cursor=4", headers={"x-user": "u"})
+    query_port.list_user_matches_page.assert_called_with("u", 2, "4")
 
 
 def test_get_match_info_unauthenticated(env):

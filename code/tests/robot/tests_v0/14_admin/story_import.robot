@@ -4,7 +4,7 @@
 #
 # Endpoints under test:
 #   POST   /api/admin/stories/import     → 201 StoryImportResponse
-#   GET    /api/admin/stories?lang=en    → 200 list (all visibility)
+#   GET    /api/admin/stories?lang=en    → 200 envelope {items, nextCursor, limit} (v1.7.0)
 #   DELETE /api/admin/stories/{uuid}     → 200 {status:"DELETED", uuid} | 404
 #
 # Pre-requisite: ADMIN_TOKEN variable must be a valid admin JWT.
@@ -594,14 +594,12 @@ Admin Stories List Is Not Empty
     [Documentation]    The admin list includes at least the seed Tutorial and Demo 1 stories.
     [Tags]    admin    step14
     ${response}=    Get Admin Stories
-    List Response Should Not Be Empty    ${response}
+    Should Not Be Empty    ${response.json()}[items]
 
 Admin Stories List Contains Seed Stories
     [Documentation]    Tutorial and Demo 1 UUIDs are present in the admin story list.
     [Tags]    admin    step14
-    ${response}=    Get Admin Stories
-    ${body}=    Set Variable    ${response.json()}
-    ${uuids}=    Evaluate    [s['uuid'] for s in ${body}]
+    ${uuids}=    Get All Admin Story Uuids
     Should Contain    ${uuids}    ${DEMO_1_UUID}
     Should Contain    ${uuids}    ${DEMO_2_UUID}
 
@@ -609,9 +607,7 @@ Admin List Contains Demo 3 After Import
     [Documentation]    After import, the Demo 3 UUID appears in the admin list.
     [Tags]    admin    step14
     Import Story From File    ${DEMO_3_FILE}
-    ${response}=    Get Admin Stories
-    ${body}=    Set Variable    ${response.json()}
-    ${uuids}=    Evaluate    [s['uuid'] for s in ${body}]
+    ${uuids}=    Get All Admin Story Uuids
     Should Contain    ${uuids}    ${DEMO_3_UUID}
 
 # ---- delete tests -----------------------------------------------------------
@@ -659,9 +655,7 @@ Deleted Story No Longer In Admin List
     [Tags]    admin    step14
     Import Story From File    ${DEMO_3_FILE}
     Delete Admin Story    ${DEMO_3_UUID}
-    ${response}=    Get Admin Stories
-    ${body}=    Set Variable    ${response.json()}
-    ${uuids}=    Evaluate    [s['uuid'] for s in ${body}]
+    ${uuids}=    Get All Admin Story Uuids
     Should Not Contain    ${uuids}    ${DEMO_3_UUID}
 
 Import Story and Verify All Header Fields

@@ -78,6 +78,8 @@ def _summary_to_camel(summary):
         "characterTemplateUuid": summary.character_template_uuid,
         "classUuid": summary.class_uuid,
         "traitUuids": summary.trait_uuids,
+        "matchVersion": summary.match_version,
+        "tsUpdate": summary.ts_update,
     }
 
 
@@ -234,6 +236,7 @@ def _registry_to_camel(groups):
 def _detail_to_camel(detail):
     return {
         "match": _summary_to_camel(detail.match),
+        "matchVersion": detail.match.match_version if detail.match else None,
         "currentLocationId": detail.current_location_id,
         "currentLocationUuid": detail.current_location_uuid,
         "locations": [
@@ -395,12 +398,17 @@ class MatchController:
             return _error(exc.code, exc.message, _STATUS_BY_CODE.get(exc.code, 400))
         return JSONResponse(status_code=201, content=_summary_to_camel(summary))
 
-    def list_matches(self, request: Request):
+    def list_matches(self, request: Request, limit: Optional[int] = None, cursor: Optional[str] = None):
+        # v1.7.0 step 9 — the envelope {items, nextCursor, limit}: active first, then last played
         user_uuid = getattr(request.state, "user_uuid", None)
         if not user_uuid:
             return _error("UNAUTHENTICATED", "User identity is missing", 401)
-        results = self.query_port.list_user_matches(user_uuid)
-        return JSONResponse(status_code=200, content=[_summary_to_camel(s) for s in results])
+        page = self.query_port.list_user_matches_page(user_uuid, limit, cursor)
+        return JSONResponse(status_code=200, content={
+            "items": [_summary_to_camel(s) for s in page.items],
+            "nextCursor": page.next_cursor,
+            "limit": page.limit,
+        })
 
     def get_match_info(self, uuid_match: str, request: Request, lang: str = "en"):
         user_uuid = getattr(request.state, "user_uuid", None)

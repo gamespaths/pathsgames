@@ -155,7 +155,7 @@ class MatchExportService:
             "story": {"uuid": story_uuid, "title": title(story), "fingerprint": story_fingerprint.of(story),
                       "data": story},
             "users": [nc.user(users[i]) for i in user_ids if i in users],
-            "match": nc.match(match_row, lookup, party, match["id_story"]),
+            "match": self._neutral_match(match, match_row, lookup, party, self.store.play_ms(match.get("uuid"))),
             "characters": [self._character(state, c, lookup) for c in characters],
             "state": self._state(state, lookup, choices, nc.lng(story.get("idLocationStart"))),
             "engine": engine(characters, logs),
@@ -168,6 +168,15 @@ class MatchExportService:
     def _rows_of(state, table, ordinal):
         rows = [r for r in state.get(table, []) if nc.lng(r.get("id_character_match")) == ordinal]
         return sorted(rows, key=lambda r: nc.nz(nc.lng(r.get("id"))))
+
+    @staticmethod
+    def _neutral_match(match, match_row, lookup, party, play_ms):
+        """v1.7.0 the live play time (a restore never rolls it back); a stopped match keeps its status."""
+        neutral = nc.match(match_row, lookup, party, match["id_story"])
+        neutral["playMs"] = int(play_ms or 0)
+        if match_statuses.is_terminal(match.get("status")):
+            neutral["status"] = match.get("status")
+        return neutral
 
     def _character(self, state, c, lookup):
         ordinal = nc.lng(c.get("id"))

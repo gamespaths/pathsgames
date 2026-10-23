@@ -65,7 +65,6 @@ class WeatherStoreAdapter:
             m = session.get(GamingMatchEntity, id_match)
             if m is not None:
                 m.id_current_weather = id_weather
-                m.ts_update = _now_iso()
                 session.commit()
 
     def insert_log_weather(self, id_match: int, clock: int, id_weather: Optional[int]) -> None:

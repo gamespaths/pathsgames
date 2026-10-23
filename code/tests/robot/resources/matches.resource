@@ -6,7 +6,7 @@
 #
 # Authenticated (Bearer access token issued by /api/auth/guest):
 #   POST /api/matches                  → 201, MatchSummary
-#   GET  /api/matches                  → 200, MatchSummary[]
+#   GET  /api/matches                  → 200, {items: MatchSummary[], nextCursor, limit} (v1.7.0 step 9)
 #   GET  /api/match/{uuidMatch}/info   → 200 MatchInfo | 404
 #
 # Admin (Bearer access token with role ADMIN):
@@ -149,11 +149,12 @@ Create Match With Loadout
     RETURN    ${response}
 
 List Matches
-    [Documentation]    GET /api/matches with the given Bearer token.
-    [Arguments]    ${token}    ${expected_status}=any
+    [Documentation]    GET /api/matches with the given Bearer token. v1.7.0 step 9 — answers the
+    ...                envelope {items, nextCursor, limit}; ${params} may carry limit/cursor.
+    [Arguments]    ${token}    ${expected_status}=any    ${params}=${None}
     ${headers}=    Get Auth Headers    ${token}
     ${response}=    GET On Session    public_session    /api/matches
-    ...    headers=${headers}
+    ...    headers=${headers}    params=${params}
     ...    expected_status=${expected_status}
     RETURN    ${response}
 

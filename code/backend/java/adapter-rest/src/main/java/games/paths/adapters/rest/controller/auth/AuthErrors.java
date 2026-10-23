@@ -15,7 +15,14 @@ final class AuthErrors {
     }
 
     static ResponseEntity<Object> of(AuthException e) {
-        return of(e.getCode().httpStatus(), e.getCode().name(), e.getMessage());
+        ResponseEntity<Object> response = of(e.getCode().httpStatus(), e.getCode().name(), e.getMessage());
+        if (e.getSuspendedUntil() != null && response.getBody() instanceof Map<?, ?> body) {
+            // v1.7.0 a suspended login also names the end of the suspension
+            @SuppressWarnings("unchecked")
+            Map<String, Object> map = (Map<String, Object>) body;
+            map.put("suspendedUntil", e.getSuspendedUntil());
+        }
+        return response;
     }
 
     static ResponseEntity<Object> of(int status, String error, String message) {

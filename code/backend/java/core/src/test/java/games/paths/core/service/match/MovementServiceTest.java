@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.port.match.EventExecutionPort;
 import games.paths.core.port.match.LocationEntryPort;
 import games.paths.core.port.match.MovementPort.MovementException;
@@ -35,6 +36,9 @@ import static org.mockito.Mockito.*;
 @DisplayName("MovementService (Step 28)")
 class MovementServiceTest {
 
+    /** v1.7.0 the match stamp of a successful write. */
+    private final MatchStampPort stamp = mock(MatchStampPort.class);
+
     private static final String MATCH = "match-uuid";
     private static final String USER = "user-uuid";
     private static final long USER_ID = 100L;
@@ -54,6 +58,7 @@ class MovementServiceTest {
         userAccessPort = mock(UserAccessPort.class);
         contentQueryPort = mock(ContentQueryPort.class);
         service = new MovementService(store, userAccessPort, contentQueryPort, registryService);
+        service.setMatchStamp(stamp);
         when(userAccessPort.findByUuid(USER))
                 .thenReturn(Optional.of(new UserView(USER_ID, USER, "name", "GUEST", 2)));
     }
@@ -102,6 +107,7 @@ class MovementServiceTest {
             wireHappyPath(10, 2, /*secure*/ 1, 1, 3, 99, 100, 0);
 
             MovementResult r = service.startMovement(MATCH, USER, "loc-2");
+            verify(stamp).claimGameplay(MATCH);
 
             assertEquals(2L, r.toLocationId());
             assertEquals("loc-2", r.toLocationUuid());
@@ -165,6 +171,7 @@ class MovementServiceTest {
                     () -> service.startMovement(MATCH, USER, "loc-2"));
 
             assertEquals(MovementException.Code.NOT_ENOUGH_COINS, ex.getCode());
+            verify(stamp, never()).claimGameplay(any());
             verify(store, never()).updateCharacterLocationAndEnergy(anyLong(), anyLong(),
                     anyLong(), anyInt());
             verify(store, never()).updateBackpackResources(anyLong(), anyLong(),

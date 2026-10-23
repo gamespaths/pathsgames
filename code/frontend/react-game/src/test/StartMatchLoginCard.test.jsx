@@ -16,13 +16,15 @@ vi.mock('@/hooks/useAntibot', () => ({ default: () => ({ phase: 'ready', token: 
 vi.mock('@/components/book/Book', () => ({ default: ({ left, right }) => <div>{left}{right}</div> }))
 vi.mock('@/components/modals/CardPreviewModal', () => ({ default: () => null }))
 vi.mock('@/components/layout/Card', () => ({
-  default: ({ variant, entityType, card, onPreview, onAction, actionLabel, locked, lockedIcon, lockInfo, additionalCardClasses }) =>
+  default: ({ variant, entityType, card, onPreview, onAction, actionLabel, locked, lockedIcon, lockInfo, additionalCardClasses,
+    extraContent }) =>
     variant === 'page' ? <div data-testid="page-card">{card?.title}</div> : (
       <div data-testid={`cc-${entityType}`} data-locked={String(!!locked)} data-lock-info={lockInfo?.label ?? ''}
         data-lock-icon={lockedIcon ?? ''} data-img={card?.urlImage ?? ''} className={additionalCardClasses ?? ''}>
         <span>{card?.title}</span>
         {onPreview && <button data-testid={`preview-${entityType}`} onClick={onPreview}>i</button>}
         {onAction && <button data-testid={`action-${entityType}`} onClick={onAction}>{actionLabel}</button>}
+        {extraContent}
       </div>
     ),
 }))
@@ -53,6 +55,7 @@ describe('StartMatchFlow v1.2.0 — login card', () => {
     expect(login.className).toBe('pg-card--logged')
     fireEvent.click(screen.getByTestId('preview-login'))
     expect(openGuestModal).toHaveBeenCalled()
+    expect(screen.queryByTestId('account-hint')).toBeNull()
   })
 
   it('a guest with Google on: Guest user with a Login button to the user book', () => {
@@ -64,6 +67,8 @@ describe('StartMatchFlow v1.2.0 — login card', () => {
     fireEvent.click(screen.getByTestId('action-login'))
     expect(openGuestModal).toHaveBeenCalled()
     expect(screen.getByTestId('action-login')).toHaveTextContent('book.login')
+    // v1.7.0 step 9 — the hint before Play
+    expect(screen.getByTestId('account-hint')).toHaveTextContent('startMatch.accountHint')
     fireEvent.click(screen.getByTestId('preview-login'))
     expect(screen.getByTestId('page-card')).toHaveTextContent('book.guest')
   })
@@ -73,5 +78,6 @@ describe('StartMatchFlow v1.2.0 — login card', () => {
     renderFlow()
     expect(screen.getByTestId('cc-login').dataset.lockInfo).toBe('book.guestLock')
     expect(screen.queryByTestId('action-login')).toBeNull()
+    expect(screen.queryByTestId('account-hint')).toBeNull()
   })
 })

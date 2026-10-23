@@ -9,6 +9,7 @@ from sqlalchemy import delete, func, insert, select, update
 from app.adapters.persistence.auth.models import Base, User, UserIdentity
 from app.adapters.persistence.match.log_ids import next_log_id
 from app.adapters.persistence.match.match_log_writer_adapter import LOG_ENTITIES
+from app.adapters.persistence.match.models import GamingMatchEntity
 from app.adapters.persistence.match.snapshot_store_adapter import plain
 from app.core.ports.match.match_export_ports import ImportRows, MatchExportStorePort
 
@@ -54,6 +55,11 @@ class MatchExportStoreAdapter(MatchExportStorePort):
             rows = session.execute(select(t).where(t.c.id_match == id_match, t.c.id <= int(mark or 0))
                                    .order_by(t.c.id)).all()
         return [{str(k): plain(v) for k, v in r._mapping.items()} for r in rows]
+
+    def play_ms(self, match_uuid: str) -> int:
+        with self.session_factory() as session:
+            row = session.query(GamingMatchEntity.play_ms).filter(GamingMatchEntity.uuid == match_uuid).first()
+        return int(row[0] or 0) if row is not None else 0
 
     def _users(self, where) -> List[Dict[str, Any]]:
         users = User.__table__

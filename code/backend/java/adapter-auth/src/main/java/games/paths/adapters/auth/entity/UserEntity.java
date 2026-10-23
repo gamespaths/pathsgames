@@ -47,6 +47,10 @@ public class UserEntity extends BaseAuthEntity {
     @Column(name = "ts_last_access")
     private String tsLastAccess;
 
+    // v1.7.0 written only by UserRepository.updateSessionsValidAfter: a user save never overwrites it
+    @Column(name = "sessions_valid_after", insertable = false, updatable = false)
+    private String sessionsValidAfter;
+
     @PrePersist
     protected void onCreate() {
         String now = java.time.Instant.now().toString();
@@ -147,5 +151,13 @@ public class UserEntity extends BaseAuthEntity {
 
     public void setTsLastAccess(String tsLastAccess) {
         this.tsLastAccess = tsLastAccess;
+    }
+
+    public String getSessionsValidAfter() {
+        return sessionsValidAfter;
+    }
+
+    public void setSessionsValidAfter(String sessionsValidAfter) {
+        this.sessionsValidAfter = sessionsValidAfter;
     }
 }

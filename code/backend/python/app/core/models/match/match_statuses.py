@@ -11,12 +11,17 @@ ENDED = "ENDED"
 GAMEOVER = "GAMEOVER"
 # v1.2.0 a STARTED match that lost the guest merge to a newer one of the same story.
 CANCELLED = "CANCELLED"
+# v1.7.0 an active match of a banned user: terminal, treated like CANCELLED.
+BANNED = "BANNED"
 
 # Every valid status, in lifecycle order.
-ALL = [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER, CANCELLED]
+ALL = [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER, CANCELLED, BANNED]
 
 # Terminal statuses — a match in one of these is "stopped" and deletable.
-TERMINAL = {ENDED, GAMEOVER, CANCELLED}
+TERMINAL = {ENDED, GAMEOVER, CANCELLED, BANNED}
+
+# v1.7.0 the statuses the profile statistics count (CREATED, CANCELLED, BANNED and new ones excluded).
+PLAYED = [RUNNING, PAUSED, ENDED, GAMEOVER]
 
 # v0.32.1 — active (non-terminal) statuses. A match in one of these still occupies
 # its creator's slot on the story, so a second one cannot be created. PAUSED counts:

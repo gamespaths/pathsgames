@@ -37,6 +37,8 @@ class GamingMatchEntity(Base):
     trait_uuids = Column(String(512))
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
+    # v1.7.0 — play time in ms, grown only by the gameplay stamp (match_stamp.py).
+    play_ms = Column(BigInteger, default=0, nullable=False, server_default="0")
 
 
 # v0.35.8 — every id_match FK cascades, exactly as the Java migrations declare

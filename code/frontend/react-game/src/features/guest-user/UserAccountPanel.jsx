@@ -36,7 +36,7 @@ export function UserAvatar({ url, className = 'user-avatar', fallback = null }) 
 /**
  * UserAccountPanel — v1.2.0 the account part of the user's book, inside the parchment body: a guest
  * is invited to sign in with Google to keep its progress; a Google user sees its account and the
- * logout. No account deletion here (it comes with the profile page of roadmap step 7).
+ * logout. Logout of all devices and account deletion are on the profile page (v1.7.0).
  */
 export default function UserAccountPanel() {
   const { t } = useTranslation()

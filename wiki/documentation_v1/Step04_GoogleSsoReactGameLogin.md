@@ -13,10 +13,10 @@ no progress is lost.
 
 ## 2. Decisions (owner, October 19, 2026)
 
-Superseded: the merge rule below (latest `ts_update` wins) by [Step 9](./Step09_MatchListCancelledLastPlayed.md): the Google user's active match always wins.
+Superseded in 1.7.0: the merge rule below (1.2.0 design, latest `ts_update` wins) by [Step 9](./Step09_MatchListCancelledLastPlayed.md): the Google user's active match always wins.
 
 - Boot is unchanged: `GuestUserContext` creates or resumes a guest. The player then signs in with Google and the **current guest is LINKED to the Google user at login**.
-- If that Google user already had another guest linked, the two guests are **merged**, from the first to the second, with the merge rules of [Step 3](./Step03_GoogleSsoBackendFlow.md) (moved from roadmap step 8): on the same story the STARTED match with the latest `gaming_match.ts_update` wins and the others become `CANCELLED`; ended and completed matches are all kept.
+- If that Google user already had another guest linked, the two guests are **merged**, from the first to the second, with the merge rules of [Step 3](./Step03_GoogleSsoBackendFlow.md) (moved from roadmap step 8): on the same story (1.2.0 rule, replaced in 1.7.0) the STARTED match with the latest `gaming_match.ts_update` won and the others became `CANCELLED`; ended and completed matches are all kept.
 - Google logout: resume the previous guest if its cookie exists; otherwise show the home and create a guest only at the first "Play".
 - GIS button in **popup mode**, no One Tap, no callback page. The GIS script is loaded **only when the player clicks "Sign in"**. Privacy, age and cookies: see the last point of [Step 5](./Step05_GoogleSsoPrivacyE2E.md).
 - Button in `GuestUserModal` and in the header; GIS theme `filled_black`, shape `pill`; the nickname replaces `guest_xxx`.

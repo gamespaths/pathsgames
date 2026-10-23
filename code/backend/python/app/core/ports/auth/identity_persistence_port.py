@@ -43,6 +43,14 @@ class IdentityPersistencePort(ABC):
     @abstractmethod
     def update_state(self, user_id: int, state: int) -> None: ...
 
+    def find_theme_selected(self, user_id: int) -> Optional[str]:
+        """v1.7.0 users.theme_selected of the user; None when unknown or not set."""
+        raise NotImplementedError
+
+    def update_preferences(self, user_id: int, language: Optional[str], theme: Optional[str]) -> None:
+        """v1.7.0 users.language and users.theme_selected; a None value is left unchanged."""
+        raise NotImplementedError
+
     @abstractmethod
     def mark_id_token_seen(self, token_hash: str, expires_at: str) -> bool:
         """False when the hash is already stored (a replayed ID token)."""

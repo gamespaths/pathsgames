@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.entity.match.GamingBackpackResourcesEntity;
 import games.paths.core.entity.match.GamingCharacterInstanceEntity;
 import games.paths.core.entity.match.GamingCharacterTraitsEntity;
@@ -35,6 +36,9 @@ import static org.mockito.Mockito.*;
 
 class CharacterCommandServiceTest {
 
+    /** v1.7.0 the match stamp of a successful write. */
+    private final MatchStampPort stamp = mock(MatchStampPort.class);
+
     private StoryReadPort storyReadPort;
     private MatchReadPort matchReadPort;
     private UserAccessPort userAccessPort;
@@ -55,6 +59,7 @@ class CharacterCommandServiceTest {
         characterReadPort = mock(CharacterReadPort.class);
         service = new CharacterCommandService(storyReadPort, matchReadPort, userAccessPort,
                 persistencePort, characterReadPort);
+        service.setMatchStamp(stamp);
     }
 
     // ─── builders ───────────────────────────────────────────────────────────
@@ -194,6 +199,7 @@ class CharacterCommandServiceTest {
         @Test
         void nullCommand_invalidInput() {
             CharacterJoinException ex = assertThrows(CharacterJoinException.class, () -> service.join(null));
+            verify(stamp, never()).claimGameplay(any());
             assertEquals(CharacterJoinException.Code.INVALID_INPUT, ex.getCode());
         }
 
@@ -352,6 +358,7 @@ class CharacterCommandServiceTest {
 
             CharacterInstanceInfo info = service.join(cmd());
 
+            verify(stamp).claimGameplay("match-uuid");
             // dex = 3(tpl)+3(class)+12(diff)+1(traits)+0(bonus) = 19
             assertEquals(19, info.getDexterity());
             // int = 3+3+12+0+0 = 18

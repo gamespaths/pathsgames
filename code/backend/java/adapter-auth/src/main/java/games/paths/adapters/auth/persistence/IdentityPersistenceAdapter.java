@@ -179,6 +179,25 @@ public class IdentityPersistenceAdapter implements IdentityPersistencePort {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Optional<String> findThemeSelected(long userId) {
+        return users.findById(userId).map(UserEntity::getThemeSelected).filter(t -> !t.isBlank());
+    }
+
+    @Override
+    public void updatePreferences(long userId, String language, String theme) {
+        users.findById(userId).ifPresent(u -> {
+            if (language != null) {
+                u.setLanguage(language);
+            }
+            if (theme != null) {
+                u.setThemeSelected(theme);
+            }
+            users.save(u);
+        });
+    }
+
+    @Override
     public boolean markIdTokenSeen(String tokenHash, String expiresAt) {
         // ON CONFLICT DO NOTHING (SQLite and PostgreSQL): a replay inserts nothing, atomically
         return jdbc.update("INSERT INTO auth_id_token_seen (token_hash, expires_at, ts_insert) VALUES (?, ?, ?)"
@@ -219,7 +238,19 @@ public class IdentityPersistenceAdapter implements IdentityPersistencePort {
 
     static UserStatus toStatus(UserEntity u) {
         return new UserStatus(u.getId(), u.getUuid(), u.getUsername(), u.getNickname(), u.getRole(),
-                u.getState() == null ? 0 : u.getState(), u.getLanguage());
+                u.getState() == null ? 0 : u.getState(), u.getLanguage(), epochSeconds(u.getSessionsValidAfter()));
+    }
+
+    /** v1.7.0 sessions_valid_after as epoch seconds; 0 when absent or unreadable. */
+    static long epochSeconds(String iso) {
+        if (iso == null || iso.isBlank()) {
+            return 0L;
+        }
+        try {
+            return Instant.parse(iso.trim()).getEpochSecond();
+        } catch (RuntimeException unreadable) {
+            return 0L;
+        }
     }
 
     static UserIdentity toIdentity(UserIdentityEntity e) {

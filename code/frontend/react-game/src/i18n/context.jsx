@@ -1,8 +1,6 @@
 import { createContext, useContext, useState } from 'react'
-import en from './en.json'
-import it from './it.json'
+import { TRANSLATIONS } from './bundles'
 
-const TRANSLATIONS = { en, it }
 const STORAGE_KEY = 'pathsgames.lang'
 const FALLBACK_LANG = 'en'
 

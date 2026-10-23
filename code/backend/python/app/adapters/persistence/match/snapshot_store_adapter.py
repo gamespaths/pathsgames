@@ -15,6 +15,7 @@ from app.adapters.persistence.match.models import (
     GamingStoryProgressEntity, GamingTurnQueueEntity, SystemSnapshotEntity,
 )
 from app.core.ports.match.snapshot_ports import SnapshotStorePort
+from app.core.services.match.match_stamp import request_now
 
 MATCH = GamingMatchEntity.__table__
 CHARACTERS = GamingCharacterInstanceEntity.__table__
@@ -217,11 +218,11 @@ class SnapshotStoreAdapter(SnapshotStorePort):
         if not rows:
             return
         values = {c: rows[0][c] for c in MATCH_COLUMNS if c in rows[0] and c in MATCH.c}
-        values["ts_update"] = _now()
+        values["ts_update"] = request_now()
         session.execute(update(MATCH).where(MATCH.c.id == id_match).values(**values))
 
     def set_status(self, id_match: int, status: str) -> None:
         with self.session_factory() as session:
             session.execute(update(MATCH).where(MATCH.c.id == id_match)
-                            .values(status=status, ts_update=_now()))
+                            .values(status=status, ts_update=request_now()))
             session.commit()

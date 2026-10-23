@@ -8,7 +8,7 @@
 #
 # Admin:
 #   POST   /api/admin/stories/import     → 201, StoryImportResponse
-#   GET    /api/admin/stories?lang={lang}→ 200, list (all visibility)
+#   GET    /api/admin/stories?lang={lang}→ 200, v1.7.0 envelope {items, nextCursor, limit}
 #   DELETE /api/admin/stories/{uuid}     → 200 {status:"DELETED", uuid} | 404
 # ---------------------------------------------------------------------------
 Library    RequestsLibrary
@@ -129,6 +129,24 @@ Get Admin Stories
     ${response}=    GET On Session    admin_session    /api/admin/stories
     ...    params=${params}    headers=${headers}
     RETURN    ${response}
+
+Get All Admin Story Uuids
+    [Documentation]    v1.7.0 — every story uuid of GET /api/admin/stories, following nextCursor (limit 200).
+    [Arguments]    ${lang}=${DEFAULT_LANG}
+    &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
+    ${params}=    Create Dictionary    lang=${lang}    limit=200
+    @{uuids}=    Create List
+    FOR    ${page}    IN RANGE    50
+        ${response}=    GET On Session    admin_session    /api/admin/stories
+        ...    params=${params}    headers=${headers}    expected_status=200
+        FOR    ${story}    IN    @{response.json()}[items]
+            Append To List    ${uuids}    ${story}[uuid]
+        END
+        ${cursor}=    Evaluate    $response.json().get('nextCursor')
+        IF    $cursor is None    BREAK
+        Set To Dictionary    ${params}    cursor=${cursor}
+    END
+    RETURN    ${uuids}
 
 Get Admin Story By UUID
     [Documentation]    Calls GET /api/admin/stories/{uuid}. Returns the response.

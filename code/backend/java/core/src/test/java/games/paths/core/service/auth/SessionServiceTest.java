@@ -28,7 +28,7 @@ import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for {@link SessionService}: v1.2.0 hashed refresh tokens, rotation of the used token only,
- * the 30-second grace, SESSION_REVOKED, the user state check, logout, revoke-all and access validation.
+ * the grace window, SESSION_REVOKED, the user state check, logout, revoke-all and access validation.
  */
 @ExtendWith(MockitoExtension.class)
 class SessionServiceTest {
@@ -140,7 +140,7 @@ class SessionServiceTest {
         void graceWindowAcceptsJustRotatedToken() {
             validRefreshJwt();
             when(tokens.findRefreshToken(HASH, TOKEN)).thenReturn(Optional.of(
-                    stored(true, NOW.minusSeconds(29).toString())));
+                    stored(true, NOW.minusSeconds(119).toString())));
             when(tokens.findUserById(1L)).thenReturn(Optional.of(user(2)));
             issuesTokens();
 
@@ -152,7 +152,7 @@ class SessionServiceTest {
         void revokedAfterGraceIsSessionRevoked() {
             validRefreshJwt();
             when(tokens.findRefreshToken(HASH, TOKEN)).thenReturn(Optional.of(
-                    stored(true, NOW.minusSeconds(31).toString())));
+                    stored(true, NOW.minusSeconds(121).toString())));
             AuthException e = assertThrows(AuthException.class, () -> service.refreshToken(TOKEN));
             assertEquals(AuthException.Code.SESSION_REVOKED, e.getCode());
         }
@@ -188,6 +188,21 @@ class SessionServiceTest {
             assertEquals(AuthException.Code.ACCOUNT_DELETION_IN_PROGRESS,
                     assertThrows(AuthException.class, () -> service.refreshToken(TOKEN)).getCode());
             verify(tokens, never()).markRotated(anyLong(), anyString());
+        }
+
+        @Test
+        void theGuardAdmitsAndMayUnblockTheUser() {
+            games.paths.core.port.auth.AccountGuardPort guard = mock(games.paths.core.port.auth.AccountGuardPort.class);
+            service.setAccountGuard(guard);
+            validRefreshJwt();
+            when(tokens.findRefreshToken(HASH, TOKEN)).thenReturn(Optional.of(stored(false, null)));
+            when(tokens.findUserById(1L)).thenReturn(Optional.of(user(3)));
+            when(guard.admit(user(3))).thenReturn(user(2));
+            issuesTokens();
+            assertEquals("access-2", service.refreshToken(TOKEN).getAccessToken());
+            when(guard.admit(user(3))).thenThrow(new AuthException(AuthException.Code.ACCOUNT_DISABLED, "x", "2026-11-01T00:00:00Z"));
+            assertEquals("2026-11-01T00:00:00Z",
+                    assertThrows(AuthException.class, () -> service.refreshToken(TOKEN)).getSuspendedUntil());
         }
 
         @Test

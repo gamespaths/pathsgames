@@ -74,4 +74,15 @@ class SecurityFilterConfigTest {
         assertEquals(-1, bean.getOrder());
         assertTrue(bean.getUrlPatterns().contains("/*"));
     }
+
+    @Test
+    @DisplayName("v1.7.0 - RequestStampFilter opens one match stamp per request, before every other filter")
+    void requestStampFilterRegistration_createsBean() {
+        FilterRegistrationBean<games.paths.launcher.filter.RequestStampFilter> bean =
+                new SecurityFilterConfig().requestStampFilterRegistration();
+
+        assertNotNull(bean.getFilter());
+        assertEquals(-2, bean.getOrder());
+        assertTrue(bean.getUrlPatterns().contains("/*"));
+    }
 }

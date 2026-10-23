@@ -45,6 +45,18 @@ Parameters:
   CsrfEnforced:
     Type: String
     Default: "true"
+  # v1.7.0 — the choices PATCH /api/auth/me accepts
+  SupportedLanguages:
+    Type: String
+    Default: "en,it"
+  SupportedThemes:
+    Type: String
+    Default: "default,high-contrast"
+  # v1.7.0 step 10 — HMAC pepper of the banned Google subjects and emails
+  BannedSubjectPepper:
+    Type: String
+    Default: ""
+    NoEcho: true
   RobotTestDataTtlHours:
     Type: String
     Default: "0"
@@ -72,6 +84,13 @@ Parameters:
   RateLimitGooglePerIp:
     Type: String
     Default: "30"
+  # v1.7.0 step 12 — sessions per user and the SameSite of the auth cookies
+  MaxSessionsPerUser:
+    Type: String
+    Default: "12"
+  CookieSameSite:
+    Type: String
+    Default: "Lax"
   AdminTokenDays:
     Type: String
     Default: "365"
@@ -141,6 +160,11 @@ Resources:
           GOOGLE_CLIENT_ID: !Ref GoogleClientId
           GOOGLE_ENABLED: !Ref GoogleEnabled
           RATE_LIMIT_GOOGLE_PER_IP: !Ref RateLimitGooglePerIp
+          SUPPORTED_LANGUAGES: !Ref SupportedLanguages
+          SUPPORTED_THEMES: !Ref SupportedThemes
+          BANNED_SUBJECT_PEPPER: !Ref BannedSubjectPepper
+          MAX_SESSIONS_PER_USER: !Ref MaxSessionsPerUser
+          COOKIE_SAME_SITE: !Ref CookieSameSite
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName
@@ -464,6 +488,14 @@ Resources:
       RouteKey: "DELETE /api/auth/me"
       Target: !Sub "integrations/${AuthIntegration}"
 
+  # v1.7.0 — the profile preferences (language, theme)
+  PatchMeRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "PATCH /api/auth/me"
+      Target: !Sub "integrations/${AuthIntegration}"
+
   # ── Admin routes — served on the admin HTTP API, gated by the IP authorizer ──
   ListGuestsRoute:
     Type: AWS::ApiGatewayV2::Route
@@ -526,6 +558,61 @@ Resources:
     Properties:
       ApiId: !Ref AdminApiId
       RouteKey: "GET /api/admin/users/{identifier}"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  # v1.7.0 step 10 — the users list and the user actions (same path variable name as the GET above)
+  ListAdminUsersRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "GET /api/admin/users"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  BanAdminUserRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/admin/users/{identifier}/ban"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  SuspendAdminUserRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/admin/users/{identifier}/suspend"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  UnblockAdminUserRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/admin/users/{identifier}/unblock"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  RelinkAdminUserRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/admin/users/{identifier}/relink-subject"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  DeletionAdminUserRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/admin/users/{identifier}/deletion"
       Target: !Sub "integrations/${AuthAdminIntegration}"
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId

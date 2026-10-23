@@ -13,8 +13,10 @@ class MatchStatusesTest {
 
     @Test
     void allContainsTheSixLifecycleStatuses() {
-        assertEquals(List.of("CREATED", "RUNNING", "PAUSED", "ENDED", "GAMEOVER", "CANCELLED"),
+        assertEquals(List.of("CREATED", "RUNNING", "PAUSED", "ENDED", "GAMEOVER", "CANCELLED", "BANNED"),
                 MatchStatuses.ALL);
+        // v1.7.0 the profile statistics count only these
+        assertEquals(List.of("RUNNING", "PAUSED", "ENDED", "GAMEOVER"), MatchStatuses.PLAYED);
     }
 
     @Test
@@ -48,6 +50,7 @@ class MatchStatusesTest {
         assertTrue(MatchStatuses.isTerminal("ENDED"));
         assertTrue(MatchStatuses.isTerminal("GAMEOVER"));
         assertTrue(MatchStatuses.isTerminal("CANCELLED"));
+        assertTrue(MatchStatuses.isTerminal("BANNED"));
         assertFalse(MatchStatuses.isTerminal("CREATED"));
         assertFalse(MatchStatuses.isTerminal("RUNNING"));
         assertFalse(MatchStatuses.isTerminal("PAUSED"));

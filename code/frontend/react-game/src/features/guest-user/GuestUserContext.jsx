@@ -3,13 +3,20 @@ import { useServer } from '@/context/ServerContext'
 import { useTranslation } from '@/i18n/context'
 import {
   createGuestSession, resumeGuestSession, googleLogin, refreshSession, getMe, logoutSession,
+  updateMe, logoutAll as logoutAllSessions, deleteMe,
 } from '@/api/auth'
 import { getServerStatus } from '@/api/echoApi'
 import { setUnauthorizedHandler } from '@/api/client'
+import { whenIdle } from '@/api/inFlight'
 import { takeNonce } from '@/auth/gisLoader'
+import { deviceLanguage, devicePreferencesBody, setDeviceHighContrast } from '@/auth/devicePreferences'
+import { hasBundle } from '@/i18n/bundles'
+import usePageReturn from '@/hooks/usePageReturn'
 import { openSessionChannel, withRefreshLock } from '@/auth/sessionSync'
 import { reloadHome } from '@/auth/reloadHome'
 import { RATE_LIMITED, isRateLimited, retryAfterSeconds } from '@/utils/rateLimit'
+import { forgetKnownAccount, isKnownAccount, markKnownAccount } from '@/auth/knownAccount'
+import { SESSION_ALERT_CODES } from '@/auth/sessionAlerts'
 
 /**
  * GuestUserContext — owns the session of the player: a guest, or (v1.2.0) a Google user.
@@ -30,7 +37,6 @@ import { RATE_LIMITED, isRateLimited, retryAfterSeconds } from '@/utils/rateLimi
  */
 
 const GuestUserContext = createContext(null)
-const LANG_KEY = 'pathsgames.lang'
 
 // v0.41.0 — a 429 keeps its code and wait (seconds): the navbar turns them into a sentence.
 function failure(e) {
@@ -59,18 +65,15 @@ export function toIdentity(payload, profile = null) {
     pictureUrl: p.pictureUrl ?? null,
     accountType: p.accountType ?? 'GUEST',
     role: p.role ?? 'PLAYER',
+    // v1.7.0 — the preferences and the statistics of GET /api/auth/me
+    language: p.language ?? null,
+    preferences: p.preferences ?? null,
+    stats: p.stats ?? null,
+    // v1.7.0 step 12 — the sessions used in the last 30 days (profile page)
+    activeSessions: Number.isInteger(p.activeSessions) ? p.activeSessions : null,
     accessToken: payload.accessToken ?? null,
     // v0.37.7 — echoed back as X-CSRF-TOKEN when a match is created (Step 41).
     csrfToken: payload.csrfToken ?? p.csrfToken ?? null,
-  }
-}
-
-/** The language the player chose on this device, if any (it wins for a new Google user). */
-function devicePreference() {
-  try {
-    return localStorage.getItem(LANG_KEY) || undefined
-  } catch {
-    return undefined
   }
 }
 
@@ -94,10 +97,22 @@ export function GuestUserProvider({ children }) {
   const [authError, setAuthError] = useState(null)
   const [authBusy, setAuthBusy] = useState(false)
   const [sessionIdle, setSessionIdle] = useState(false)
+  // v1.7.0 — the profile page: server languages, last error, a save in progress, a deleted account
+  const [supportedLanguages, setSupportedLanguages] = useState(null)
+  const [profileError, setProfileError] = useState(null)
+  const [profileBusy, setProfileBusy] = useState(false)
+  const [accountDeleted, setAccountDeleted] = useState(false)
+  // v1.7.0 step 9 — the matches the last login cancelled: the match list highlights them once
+  const [highlightedMatchUuids, setHighlightedMatchUuids] = useState([])
+  // v1.7.0 step 12 — this device signed in with Google before: the home invites to sign in again
+  const [knownAccount, setKnownAccount] = useState(() => isKnownAccount())
   const initRef = useRef(false)
   const userRef = useRef(null)
   const channelRef = useRef(null)
+  const i18nRef = useRef(i18n)
+  const deletedRef = useRef(false)
   userRef.current = user
+  i18nRef.current = i18n
 
   // `openGuestModal(matches?)` — callers that already have the match list (the
   // Home, to decide whether a story has an active match) pass it in so the
@@ -107,17 +122,36 @@ export function GuestUserProvider({ children }) {
     setMatches(Array.isArray(preloaded) ? preloaded : null)
     setGuestModalOpen(true)
   }, [])
-  const closeGuestModal = useCallback(() => { setGuestModalOpen(false); setMatches(null) }, [])
+  const closeGuestModal = useCallback(() => {
+    // v1.7.0 — after the account deletion nothing of the old session stays open
+    if (deletedRef.current) { reloadHome(); return }
+    setGuestModalOpen(false)
+    setMatches(null)
+  }, [])
+
+  /** v1.7.0 — a Google profile wins over the device; a new language waits until no request is in flight. */
+  const applyProfile = useCallback((profile) => {
+    if (profile?.accountType !== 'GOOGLE') return
+    setDeviceHighContrast(profile.preferences?.highContrast)
+    const language = profile.preferences?.language ?? profile.language
+    if (!hasBundle(language)) return
+    void whenIdle().then(() => {
+      const current = i18nRef.current
+      if (current?.setLang && current.lang !== language) current.setLang(language)
+    })
+  }, [])
 
   /** The identity of a refreshed or logged session, completed with GET /api/auth/me. */
   const withProfile = useCallback(async (payload) => {
     if (!payload?.accessToken) return null
     try {
-      return toIdentity(payload, await getMe(server, payload.accessToken))
+      const me = await getMe(server, payload.accessToken)
+      applyProfile(me)
+      return toIdentity(payload, me)
     } catch {
       return toIdentity(payload)
     }
-  }, [server])
+  }, [server, applyProfile])
 
   /** Refresh (one tab at a time), else the guest resume; answers the identity or null. */
   const restoreSession = useCallback(() => withRefreshLock(async () => {
@@ -126,9 +160,7 @@ export function GuestUserProvider({ children }) {
       if (identity) return identity
     } catch (e) {
       const code = authErrorCode(e, null)
-      if (code === 'SESSION_REVOKED' || code === 'ACCOUNT_DELETION_IN_PROGRESS' || code === 'ACCOUNT_DISABLED') {
-        setAuthError(code)
-      }
+      if (SESSION_ALERT_CODES.includes(code)) setAuthError(code)
     }
     try {
       return toIdentity(await resumeGuestSession(server))
@@ -167,7 +199,9 @@ export function GuestUserProvider({ children }) {
     Promise.resolve()
       .then(() => getServerStatus(server))
       .then((status) => {
-        if (!cancelled) setGoogle({ enabled: status?.googleEnabled === true, clientId: status?.googleClientId ?? null })
+        if (cancelled) return
+        setGoogle({ enabled: status?.googleEnabled === true, clientId: status?.googleClientId ?? null })
+        setSupportedLanguages(Array.isArray(status?.supportedLanguages) ? status.supportedLanguages : null)
       })
       .catch(() => { if (!cancelled) setGoogle({ enabled: false, clientId: null }) })
     return () => { cancelled = true }
@@ -190,6 +224,25 @@ export function GuestUserProvider({ children }) {
     setUnauthorizedHandler(handleUnauthorized)
     return () => setUnauthorizedHandler(null)
   }, [handleUnauthorized])
+
+  /** v1.7.0 — re-reads GET /api/auth/me (statistics, preferences of another device); a 401 refreshes. */
+  const refreshProfile = useCallback(async () => {
+    const current = userRef.current
+    if (!current?.accessToken || deletedRef.current) return null
+    try {
+      const me = await getMe(server, current.accessToken)
+      if (userRef.current?.accessToken !== current.accessToken) return null
+      const identity = toIdentity(current, me)
+      setUser(identity)
+      applyProfile(me)
+      return identity
+    } catch (e) {
+      if (e?.response?.status === 401) await handleUnauthorized()
+      return null
+    }
+  }, [server, applyProfile, handleUnauthorized])
+
+  usePageReturn(() => { void refreshProfile() }, { enabled: Boolean(user?.accessToken) })
 
   // v1.2.0 — another tab signed in or out: this one reloads its session.
   useEffect(() => {
@@ -233,17 +286,38 @@ export function GuestUserProvider({ children }) {
     setUser(null)
   }, [])
 
+  /** v1.7.0 — the profile after a login: a new user first gets the device values (one PATCH). */
+  const profileAfterLogin = useCallback(async (data) => {
+    const body = data?.newUser ? devicePreferencesBody() : null
+    if (body) {
+      try {
+        return await updateMe(server, data.accessToken, data.csrfToken, body)
+      } catch {
+        // an unsupported device value: the plain profile is read below
+      }
+    }
+    try {
+      return await getMe(server, data?.accessToken)
+    } catch {
+      return null
+    }
+  }, [server])
+
   /** v1.2.0 — the GIS credential for a session; the current guest is linked by the backend. */
   const loginWithGoogle = useCallback(async (idToken) => {
     setAuthBusy(true)
     setAuthError(null)
     try {
       const data = await googleLogin(server,
-        { idToken, nonce: takeNonce(), language: devicePreference() }, userRef.current?.accessToken)
-      setUser(toIdentity(data))
+        { idToken, nonce: takeNonce(), language: deviceLanguage() }, userRef.current?.accessToken)
+      const profile = await profileAfterLogin(data)
+      setHighlightedMatchUuids(Array.isArray(data?.cancelledMatchUuids) ? data.cancelledMatchUuids : [])
+      setUser(toIdentity(data, profile))
       setSessionIdle(false)
-      // A new device without a chosen language follows the profile (guest choice > Google locale).
-      if (!devicePreference() && data?.language && i18n?.setLang) i18n.setLang(data.language)
+      markKnownAccount()
+      setKnownAccount(true)
+      // v1.7.0 — the profile wins (for a new user it holds the device values just copied)
+      applyProfile({ ...data, ...(profile ?? {}) })
       channelRef.current?.post('login')
       return true
     } catch (e) {
@@ -252,7 +326,7 @@ export function GuestUserProvider({ children }) {
     } finally {
       setAuthBusy(false)
     }
-  }, [server, i18n])
+  }, [server, profileAfterLogin, applyProfile])
 
   /** v1.2.0 — Google logout: closes the session, tells the other tabs, reloads the home. */
   const logout = useCallback(async () => {
@@ -268,12 +342,81 @@ export function GuestUserProvider({ children }) {
 
   const clearAuthError = useCallback(() => setAuthError(null), [])
 
+  /** v1.7.0 — saves preferences: PATCH then the device for a Google user, the device only for a guest. */
+  const savePreferences = useCallback(async (prefs) => {
+    const current = userRef.current
+    const applyDevice = () => {
+      if (hasBundle(prefs?.language)) i18nRef.current?.setLang?.(prefs.language)
+      setDeviceHighContrast(prefs?.highContrast)
+    }
+    setProfileError(null)
+    if (current?.accountType !== 'GOOGLE') {
+      applyDevice()
+      return true
+    }
+    setProfileBusy(true)
+    try {
+      const me = await updateMe(server, current.accessToken, current.csrfToken, prefs)
+      if (userRef.current?.accessToken === current.accessToken) setUser(toIdentity(current, me))
+      applyDevice()
+      return true
+    } catch (e) {
+      setProfileError(authErrorCode(e, 'PROFILE_SAVE_FAILED'))
+      return false
+    } finally {
+      setProfileBusy(false)
+    }
+  }, [server])
+
+  /** v1.7.0 — closes every session of the Google user, then the flow of a normal logout. */
+  const logoutAll = useCallback(async () => {
+    setAuthBusy(true)
+    setProfileError(null)
+    try {
+      await logoutAllSessions(server, userRef.current?.accessToken)
+    } catch (e) {
+      setProfileError(authErrorCode(e, 'LOGOUT_ALL_FAILED'))
+      setAuthBusy(false)
+      return false
+    }
+    channelRef.current?.post('logout')
+    reloadHome()
+    return true
+  }, [server])
+
+  /** v1.7.0 — DELETE /api/auth/me with the fresh Google token of the confirmation popup. */
+  const deleteAccount = useCallback(async (idToken) => {
+    setProfileBusy(true)
+    setProfileError(null)
+    try {
+      await deleteMe(server, userRef.current?.accessToken, { idToken, nonce: takeNonce() })
+      deletedRef.current = true
+      setAccountDeleted(true)
+      forgetKnownAccount()
+      setKnownAccount(false)
+      channelRef.current?.post('logout')
+      return true
+    } catch (e) {
+      setProfileError(authErrorCode(e, 'ACCOUNT_DELETION_FAILED'))
+      return false
+    } finally {
+      setProfileBusy(false)
+    }
+  }, [server])
+
+  const clearProfileError = useCallback(() => setProfileError(null), [])
+  const consumeHighlightedMatches = useCallback(() => setHighlightedMatchUuids([]), [])
+  const knownAccountHint = knownAccount && google.enabled && !loading && user?.accountType !== 'GOOGLE'
+
   return (
     <GuestUserContext.Provider value={{
       user, loading, error, errorRetryAfter, refreshGuest, clearGuest, guestModalOpen, openGuestModal,
       closeGuestModal, matches, setMatches,
       isGoogleUser: user?.accountType === 'GOOGLE', googleEnabled: google.enabled, googleClientId: google.clientId,
       loginWithGoogle, logout, authError, clearAuthError, authBusy, sessionIdle, ensureGuest,
+      supportedLanguages, refreshProfile, savePreferences, logoutAll, deleteAccount, accountDeleted,
+      profileError, clearProfileError, profileBusy, highlightedMatchUuids, consumeHighlightedMatches,
+      knownAccountHint,
     }}>
       {children}
     </GuestUserContext.Provider>

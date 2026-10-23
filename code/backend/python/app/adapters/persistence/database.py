@@ -71,9 +71,11 @@ _ADDED_COLUMNS = {
     # v0.41.1 — the snapshot clock and checksum (a table made before V0.41.1).
     "system_snapshot": ["clock", "checksum"],
     # v0.41.4 — decision 56: the e-mail of a user, copied and matched by the match import.
-    "users": ["email_address"],
-    # v1.2.0 — the rotation time that opens the 30-second refresh grace.
-    "users_tokens": ["ts_rotated"],
+    "users": ["email_address", "theme_selected", "suspended_until", "relink_pending", "sessions_valid_after"],
+    # v1.2.0 — the rotation time that opens the refresh grace; v1.7.0 the revocation reason and time.
+    "users_tokens": ["ts_rotated", "revoked_reason", "ts_update"],
+    # v1.7.0 — the match play time (Java V1.7.0).
+    "gaming_match": ["play_ms"],
 }
 # Step 37 — the from/to pair is gone: a mission has no operator, so a range meant nothing.
 _DROPPED_COLUMNS = {
@@ -103,11 +105,15 @@ _DEDUPE = {
     "uq_users_nickname": ("UPDATE users SET nickname = nickname || '#' || id WHERE nickname IS NOT NULL AND id NOT IN"
                           " (SELECT MIN(id) FROM users WHERE nickname IS NOT NULL GROUP BY nickname)"),
 }
+# v1.7.0 — the column definition of an added column, when it is not a plain nullable one.
+_COLUMN_DEFINITIONS = {"play_ms": "{int} NOT NULL DEFAULT 0", "theme_selected": "TEXT DEFAULT 'default'",
+                       "relink_pending": "INTEGER NOT NULL DEFAULT 0"}
 # Added columns are integers unless named here: the Step 36 operator holds "=", ">", "<", "!=".
 _TEXT_COLUMNS = {"registry_value_operator_condition",
                  "key_to_add", "key_value_to_add",
                  "key_to_add_not_first", "key_value_to_add_not_first",
-                 "condition_value", "condition_values", "uuid", "checksum", "email_address", "ts_rotated"}
+                 "condition_value", "condition_values", "uuid", "checksum", "email_address", "ts_rotated",
+                 "suspended_until", "sessions_valid_after", "revoked_reason", "ts_update"}
 
 
 def align_schema(bind=None):
@@ -131,6 +137,7 @@ def align_schema(bind=None):
         for column in additions:
             if column not in columns:
                 column_type = "TEXT" if column in _TEXT_COLUMNS else int_type
+                column_type = _COLUMN_DEFINITIONS.get(column, column_type).replace("{int}", int_type)
                 statements.append(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
     for table, drops in _DROPPED_COLUMNS.items():
         if not inspector.has_table(table):

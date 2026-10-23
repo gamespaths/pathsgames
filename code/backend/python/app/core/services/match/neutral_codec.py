@@ -135,6 +135,7 @@ def match(m: Dict[str, Any], lookup: Lookup, party_location_id, fallback_seed) -
         "timestampStart": ts(m.get("timestamp_start")), "timestampEnd": ts(m.get("timestamp_end")),
         "timestampGameover": ts(m.get("timestamp_gameover")),
         "timestampLockExpiration": ts(m.get("timestamp_lock_expiration")), "createdAt": ts(m.get("ts_insert")),
+        "playMs": nz(lng(m.get("play_ms"))),
     }
 
 
@@ -397,6 +398,7 @@ def match_row(m, id_story, ordinal_by_uuid, template_uuid_by_id, class_uuid_by_i
         "character_template_uuid": template_uuid_by_id.get(lng(loadout.get("characterTemplateId"))),
         "class_uuid": class_uuid_by_id.get(lng(loadout.get("classId"))), "trait_uuids": join_csv(traits),
         "ts_insert": _first(text(m.get("createdAt")), now), "ts_update": now,
+        "play_ms": nz(lng(m.get("playMs"))),
     }
 
 

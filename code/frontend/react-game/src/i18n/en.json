@@ -31,7 +31,8 @@
     "footerBlocked": "Blocked",
     "footerError": "Error",
     "playTutorial": "Play the tutorial",
-    "resumeTutorial": "Resume the tutorial"
+    "resumeTutorial": "Resume the tutorial",
+    "knownAccount": "Sign in with Google to find your matches"
   },
   "antibot": {
     "blocked": "Antibot activated — these adventures are only for humans!",
@@ -161,7 +162,8 @@
       "running": "Running",
       "created": "Loading"
     },
-    "home": "Back to home"
+    "home": "Back to home",
+    "accountHint": "Have an account? Sign in to continue"
   },
   "matches": {
     "title": "Your Matches",
@@ -178,12 +180,16 @@
       "PAUSED": "Paused",
       "ENDED": "Completed",
       "GAMEOVER": "Defeat",
-      "CANCELLED": "Cancelled"
+      "CANCELLED": "Cancelled",
+      "BANNED": "Banned"
     },
     "history": "Match History",
     "historyDescription": "Every step this match has taken, newest first: moves, events, rests and what they changed.",
     "historyOpen": "History",
-    "logOpen": "Log"
+    "logOpen": "Log",
+    "lastPlayed": "Last played",
+    "showCancelled": "Show cancelled",
+    "cancelledKept": "The match of your Google account for this story was kept."
   },
   "matchLog": {
     "title": "Match history",
@@ -250,6 +256,9 @@
     "openLink": "open link"
   },
   "game": {
+    "matchUpdating": "Match is being updated",
+    "matchUpdatedLog": "Open the match history",
+    "matchUpdatedDismiss": "Close",
     "currentLocation": "Current Location",
     "explore": "Explore",
     "moveTo": "Move to…",
@@ -642,7 +651,7 @@
       "transfersTitle": "6. International data transfers",
       "transfersBody": "Some providers (such as Google) may process data outside the European Economic Area, including in the United States. Such transfers are protected by the European Commission's Standard Contractual Clauses or an equivalent safeguard.",
       "retentionTitle": "7. Data retention",
-      "retentionBody": "Session cookies last up to 7 days (refresh token) and 30 days (guest identifier); your cookie choice is kept for 6 months; analytics data is retained for up to 2 years. An anonymous guest profile that has played at least one match is kept, so you can resume your adventures; a guest profile that never started a match is deleted after 60 days without access. A Google account is kept until you ask for its deletion or until 24 months pass without any access; then the account, its Google data (email, names, picture address, locale), its sessions, matches, characters and logs are deleted. Aggregated daily statistics contain no personal data and are kept. Our server logs are kept for 14 days, and the anti-abuse counters linked to your IP address are deleted automatically after a short time.",
+      "retentionBody": "Session cookies last up to 250 days (refresh token, renewed at every visit; 180 days for a guest) and 180 days (guest identifier); your cookie choice is kept for 6 months; analytics data is retained for up to 2 years. An anonymous guest profile that has played at least one match is kept, so you can resume your adventures; a guest profile that never started a match is deleted after 60 days without access. A Google account is kept until you ask for its deletion or until 24 months pass without any access; then the account, its Google data (email, names, picture address, locale), its sessions, matches, characters and logs are deleted. Aggregated daily statistics contain no personal data and are kept. Our server logs are kept for 14 days, and the anti-abuse counters linked to your IP address are deleted automatically after a short time.",
       "rightsTitle": "8. Your rights",
       "rightsBody": "If you are in the EU/EEA you may access, rectify, erase, restrict or port your data, object to processing, and withdraw consent at any time, and you may lodge a complaint with your local data protection authority. If you are a California resident you have the right to know, delete and correct your data and to opt out of sale or sharing (we do not sell or share), free from discrimination for exercising your rights. You can ask for the deletion of your Google account at paths.games@proton.me (an in-game option will come with the profile page); deletion removes all your data except the aggregated statistics. If an account is banned for breaking the Terms, we keep only a keyed hash (HMAC-SHA256 with a secret pepper) of its Google subject and of its email, so that the same person cannot open a new account; the hash cannot be turned back into your data. Because guest play is anonymous, we may be unable to identify a guest's data without additional information from you.",
       "childrenTitle": "9. Children",
@@ -692,7 +701,7 @@
       "title": "Cookies Policy",
       "intro": "This Cookies Policy explains how Paths Games uses cookies and similar technologies in this game. A cookie is a small text file stored on your device. We group cookies into the categories below; you can accept or reject non-essential cookies at any time.",
       "necessaryTitle": "1. Strictly necessary cookies",
-      "necessaryBody": "These keep your session active and remember your cookie choice. They are essential, so they are always on and do not require consent: pathsgames.guestcookie (30 days), pathsgames.refreshToken (7 days) and pathsgames.cookiesConsent (6 months). The Google Identity Services script (accounts.google.com) is loaded only when you click 'Sign in with Google', as a strictly necessary part of the sign-in you ask for; Google may set its own cookies in the sign-in popup, under Google's cookie policy.",
+      "necessaryBody": "These keep your session active and remember your cookie choice. They are essential, so they are always on and do not require consent: pathsgames.guestcookie (180 days), pathsgames.refreshToken (250 days, renewed at every visit; 180 days for a guest), pathsgames.cookiesConsent (6 months) and pathsgames.turnstilePass (30 minutes, a recent anti-bot check). The game also keeps a few necessary, non-personal values in your browser storage, never sent as cookies: pathsgames.lang and pathsgames.highContrast (your language and contrast choice), pg_game_server (the game server), pathsgames.knownAccount (only says that this device signed in with Google, so the home invites you to sign in again; it stays after a logout and is removed when you delete the account) and, until the tab is closed, pathsgames.googleNonce (one sign-in attempt) and pg_story:* (story texts already loaded). The Google Identity Services script (accounts.google.com) is loaded only when you click 'Sign in with Google', as a strictly necessary part of the sign-in you ask for; Google may set its own cookies in the sign-in popup, under Google's cookie policy.",
       "analyticsTitle": "2. Analytics cookies (optional)",
       "analyticsBody": "With your consent we use Google Tag Manager / Google Analytics (_ga, _ga_*, up to 2 years) to measure usage anonymously and improve the game. Thanks to Google Consent Mode v2 these stay disabled until you accept, and no analytics cookie is written before then.",
       "legalTitle": "3. Legal basis",
@@ -788,7 +797,8 @@
       "signedInAs": "Signed in with Google as",
       "logout": "Log out",
       "keepProgress": "Sign in with Google to keep your progress: the matches of this guest come with you.",
-      "ageNotice": "You must be at least 16 years old to sign in: read the {privacy} and the {terms} pages."
+      "ageNotice": "You must be at least 16 years old to sign in: read the {privacy} and the {terms} pages.",
+      "signInAgain": "Sign in again"
     },
     "errors": {
       "EMAIL_NOT_VERIFIED": "Your Google email is not verified: verify it with Google and try again.",
@@ -800,7 +810,63 @@
       "PROVIDER_UNAVAILABLE": "Google sign-in is not available right now, try again later.",
       "GOOGLE_DISABLED": "Google sign-in is switched off on this server.",
       "RATE_LIMITED": "Too many sign-in attempts from this connection, try again later.",
-      "GOOGLE_LOGIN_FAILED": "Google sign-in failed, please try again."
+      "GOOGLE_LOGIN_FAILED": "Google sign-in failed, please try again.",
+      "SESSION_LIMIT": "Too many devices are signed in with this account: sign in again."
     }
+  },
+  "profile": {
+    "open": "My profile",
+    "title": "Profile",
+    "displayName": "Name",
+    "nickname": "Nickname",
+    "accountType": "Account",
+    "accountTypes": {
+      "GUEST": "Guest",
+      "GOOGLE": "Google",
+      "INTERNAL": "Internal"
+    },
+    "statsTitle": "Statistics",
+    "stats": {
+      "matchesPlayed": "Matches played",
+      "matchesCompleted": "Completed",
+      "matchesGameOver": "Game over",
+      "playTime": "Play time",
+      "clocksPlayed": "Time in the game world",
+      "playTimeValue": "{h} h {m} min"
+    },
+    "guestInvite": "Sign in with Google to keep these statistics on every device and save your preferences in your account.",
+    "preferencesTitle": "Preferences",
+    "accountTitle": "Account",
+    "policiesTitle": "Privacy and terms",
+    "logoutAll": "Log out of all devices",
+    "logoutAllConfirm": "Every device signed in with this Google account will be logged out, this one included.",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "delete": {
+      "button": "Delete my account",
+      "what": "Deleting the account removes your profile, the link to your Google account, your preferences and every match you created. It cannot be undone.",
+      "confirmHint": "To confirm, sign in again with the same Google account.",
+      "confirmWithGoogle": "Confirm with Google",
+      "deleting": "Deleting the account…",
+      "doneTitle": "Account deleted",
+      "done": "Your account and its data are being deleted. Thank you for having played Paths Games.",
+      "close": "Back to the home"
+    },
+    "errors": {
+      "PROFILE_SAVE_FAILED": "The preferences could not be saved, please try again.",
+      "LOGOUT_ALL_FAILED": "The devices could not be logged out, please try again.",
+      "ACCOUNT_DELETION_FAILED": "The account could not be deleted, please try again.",
+      "FRESH_TOKEN_REQUIRED": "The Google confirmation is too old: confirm again with Google.",
+      "TOKEN_REPLAYED": "This Google confirmation was already used: confirm again with Google.",
+      "INVALID_NONCE": "The Google confirmation does not match this page: confirm again with Google.",
+      "INVALID_TOKEN": "The Google confirmation is not valid: confirm again with Google.",
+      "NOT_A_GOOGLE_ACCOUNT": "Only Google accounts can be deleted.",
+      "GOOGLE_ACCOUNT_REQUIRED": "Sign in with Google to save your preferences in your account.",
+      "INVALID_REQUEST": "This choice is not supported by the server.",
+      "CSRF_TOKEN_MISSING": "Your session changed: reload the page and try again.",
+      "CSRF_TOKEN_INVALID": "Your session changed: reload the page and try again.",
+      "generic": "Something went wrong, please try again."
+    },
+    "activeSessions": "Devices used in the last 30 days: {count}"
   }
 }

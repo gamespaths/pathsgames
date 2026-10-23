@@ -1,6 +1,6 @@
 # Step 8 — Match concurrency: multi-device
 
-**Status: analysed (October 21, 2026), owner answers recorded, not developed. Steps 6-12 are developed together and released as 1.6.0. Open points in section 4.**
+**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/08_match_concurrency` written, not yet run. Analysis decisions below are kept; "Implementation notes" lists what shipped.**
 Roadmap line: *the same match opened on two devices* ([Roadmap](./Roadmap.md) step 8; the guest merge is in [Step 3](./Step03_GoogleSsoBackendFlow.md)).
 Multi-device chain: [Step 6](./Step06_UserProfileBackend.md) (stamp on every write, `play_ms`) · [Step 7](./Step07_UserProfileReactGame.md) · [Step 8](./Step08_MatchConcurrencyMultiDevice.md) · [Step 9](./Step09_MatchListCancelledLastPlayed.md) · [Step 12](./Step12_PaginationAndMultiDeviceContinuity.md). This step builds on the reliable `ts_update` of step 6.
 
@@ -46,7 +46,7 @@ Two devices of the same player never overwrite each other's moves: a write made 
 - Pending choices are not restored after a refetch (decided).
 
 ### 3.5 OpenAPI
-- The one file `v1.6.0-multi-device-api.yaml` (see [Step 6](./Step06_UserProfileBackend.md)): header parameter `If-Match`, `matchVersion` in `/info`, in the create answer and in the write responses, 409 `STALE_MATCH` on the 11 endpoints, the two `echo/status` fields.
+- The one file `v1.7.0-multi-device-api.yaml` (see [Step 6](./Step06_UserProfileBackend.md)): header parameter `If-Match`, `matchVersion` in `/info`, in the create answer and in the write responses, 409 `STALE_MATCH` on the 11 endpoints, the two `echo/status` fields.
 
 ### 3.6 Tests
 - Unit (all backends, coverage > 96%): claim success and failure, header absent (internal compare-and-set, one winner in a race), header stale, terminal wins over stale, `ts_update` strictly increasing, no second `@PreUpdate` value, a request refused after the claim leaves the version changed and nothing else (SQL), claim-before-write order and chunking over 100 items and over 4 MB with a retry and a final ERROR log with a 5xx answer (AWS), CORS header (AWS template check), `webkit` detection table.
@@ -72,14 +72,22 @@ Two devices of the same player never overwrite each other's moves: a write made 
 12. (decided) ONE message for the 409 and the banner: EN "Match is being updated", IT "Partita in aggiornamento".
 13. (decided) No new alarm: a failed chunk returns 5xx, caught by the existing `pathsgames-<env>-public-api-5xx` alarm (SNS topic in `template/monitoring.yaml`), plus the ERROR log with the match uuid.
 
+## Implementation notes (1.7.0)
+
+- `matchVersion` (opaque `ts_update`: ISO text on Java and Python, epoch ms on AWS; clients never parse it) in `/info`, in the create answer and in every gameplay write answer; `If-Match` on all 11 write endpoints; a different value answers 409 `STALE_MATCH`, the terminal-state error wins. See the long description in `v1.7.0-multi-device-api.yaml`.
+- Java/Python: `StaleMatchException` mapped to 409 by `MatchVersionAdvice` (Java) / an exception handler in `launcher.py` (Python); the claim is a conditional update of `ts_update` committed first. AWS: `db_utils.claim_version` (condition expression) then the other rows in `TransactWriteItems` chunks (100 items / 4 MB, 3 attempts); a chunk that still fails answers 500 `WRITE_FAILED`. CORS allows `If-Match`.
+- react-game: `api/matchVersion.js` (version per match, `If-Match`), `hooks/useMatchRefetchOnReturn.js` (`visibilitychange`, `pageshow`, `online`), parameters `MATCH_REFETCH_BROWSERS` (`webkit`|`all`, default `webkit`) and `MATCH_REFETCH_MIN_HIDDEN_SECONDS` (30) in `GET /api/echo/status`; on `STALE_MATCH` it refetches and shows "Match is being updated".
+- Robot helper `resources/ParallelWriteHelper.py` sends the same write from two threads at once.
+
 # Version Control
-- **Document Version**: 1.4.0
+- **Document Version**: 1.7.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.4.0 | Same game on several devices analysed | October 21, 2026 |
+  | 1.7.0 | Developed and released | October 23, 2026 |
 
-- **Last Updated**: October 21, 2026 (v1.4.0)
+- **Last Updated**: October 23, 2026 (v1.7.0)
 
 
 # &lt; Paths Games /&gt;

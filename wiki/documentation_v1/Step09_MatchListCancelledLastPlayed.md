@@ -1,6 +1,6 @@
 # Step 9 — Match list: cancelled matches, last played and merge rule
 
-**Status: analysed (October 21, 2026), owner answers recorded, not developed. Steps 6-12 are developed together and released as 1.6.0. Open points in section 4.**
+**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/09_match_list` written, not yet run. Analysis decisions below are kept; "Implementation notes" lists what shipped.**
 Roadmap line: *match list after the merge* ([Roadmap](./Roadmap.md) step 9).
 Multi-device chain: [Step 6](./Step06_UserProfileBackend.md) · [Step 7](./Step07_UserProfileReactGame.md) · [Step 8](./Step08_MatchConcurrencyMultiDevice.md) · [Step 9](./Step09_MatchListCancelledLastPlayed.md) · [Step 12](./Step12_PaginationAndMultiDeviceContinuity.md). "Last played" is reliable thanks to the stamp on every write of step 6.
 
@@ -14,7 +14,7 @@ When a guest signs in, the account's match always survives; the player's match l
 - **Order:** active matches (`CREATED`, `RUNNING`, `PAUSED`) first, then by last played, sorted in memory. The list always uses the envelope `{items, nextCursor, limit}`, page size 50; `nextCursor` is `null` up to 50 matches; beyond 50 the cursor is a position in the in-memory sorted list and a shift between pages is accepted.
 - **Cancelled matches** (and the `BANNED` ones of [Step 10](./Step10_AdminUserManagementBackend.md)) are hidden behind a "show cancelled" toggle and never physically deleted.
 - The Google login answer adds `cancelledMatchUuids`; the list highlights those matches once.
-- **Merge rule moved here from step 12:** the Google user's active match ALWAYS wins over the guest's match of the same story. Before Play a guest sees "Have an account? Sign in to continue". The `pathsgames.knownAccount` flag stays in [Step 12](./Step12_PaginationAndMultiDeviceContinuity.md). [Game Rules](../GameRules.md) carries the rule from 1.6.0.
+- **Merge rule moved here from step 12:** the Google user's active match ALWAYS wins over the guest's match of the same story. Before Play a guest sees "Have an account? Sign in to continue". The `pathsgames.knownAccount` flag stays in [Step 12](./Step12_PaginationAndMultiDeviceContinuity.md). [Game Rules](../GameRules.md) carries the rule from 1.7.0.
 
 ## 3. Sub-points per component
 
@@ -25,7 +25,7 @@ When a guest signs in, the account's match always survives; the player's match l
 - Merge rule: `GuestMergeService.matchesToCancel` (Java), `guest_merge_service.py`, `sso.matches_to_cancel` (AWS) receive the two sides apart (the code already loads the target's and the guest's matches separately). Per story: if the Google user has an active match, every active guest match of that story becomes `CANCELLED`; otherwise the guest's active match survives. Ended and completed matches are all kept. Inside one side the latest `ts_update` stays only as an internal safety net (the duplicate guard of v0.32.1 already allows one active match per story and side).
 - The merge is always one guest into a Google user (the login creates the Google user first, then merges), so there is no guest-to-guest case.
 - The login answer (`POST /api/auth/google`) adds `cancelledMatchUuids`; `mergedGuest` and the count `cancelledMatches` stay.
-- OpenAPI (the one file `v1.6.0-multi-device-api.yaml`): `tsUpdate` in `MatchSummary`, `cancelledMatchUuids`, the list envelope (breaking change of `GET /api/matches`).
+- OpenAPI (the one file `v1.7.0-multi-device-api.yaml`): `tsUpdate` in `MatchSummary`, `cancelledMatchUuids`, the list envelope (breaking change of `GET /api/matches`).
 
 ### 3.2 react-game
 - `api/matches.js` `listMatches` reads `items`. Match list (`features/guest-user/UserMatchesList.jsx`, `features/matches/MatchCard.jsx`, `MatchStatusBadge.jsx`, `utils/matchStatus.js`): active matches first, "last played" line with a relative time ("2 hours ago") from `tsUpdate`; `CANCELLED` (and `BANNED`) matches in a muted style with the existing label, hidden until the "show cancelled" toggle is on, never opened; a cancelled one explains "the match of your Google account for this story was kept".
@@ -38,7 +38,7 @@ When a guest signs in, the account's match always survives; the player's match l
 - Robot `tests_v1/09_match_list/`: a guest plays, signs in with the fake provider, finds the merged matches (kept, cancelled loser, `tsUpdate` set, `cancelledMatchUuids`); a guest match newer than the Google match still loses.
 
 ### 3.4 Docs (when developed)
-- [Game Rules](../GameRules.md) already holds the rule (from 1.6.0). [Step 3](./Step03_GoogleSsoBackendFlow.md) and [Step 4](./Step04_GoogleSsoReactGameLogin.md) still describe the old rule ("latest `ts_update` wins"): aligned when developed.
+- [Game Rules](../GameRules.md) already holds the rule (from 1.7.0). [Step 3](./Step03_GoogleSsoBackendFlow.md) and [Step 4](./Step04_GoogleSsoReactGameLogin.md) keep the 1.2.0 text, marked as superseded.
 
 ## 4. Open points
 
@@ -50,14 +50,21 @@ When a guest signs in, the account's match always survives; the player's match l
 6. (decided) Merge rule and the "Have an account?" hint moved here from step 12.
 7. (decided) The envelope change of `GET /api/matches`: backend, react-game and Robot change in the same release; react-game is deployed right after the backend and CloudFront is invalidated as usual.
 
+## Implementation notes (1.7.0)
+
+- `GET /api/matches` is now the envelope `{items, nextCursor, limit}` (breaking change, page size 50, max 200): active matches first, then `tsUpdate` descending, sorted in memory (`MatchListOrder` / `match_list_order.py`; AWS `common/match_summary.py`). `MatchSummary.tsUpdate` is ISO-8601 UTC on all backends.
+- Merge rule: the Google user's active match always wins, every active guest match of that story becomes `CANCELLED` (even a newer one); with no Google match the guest's survives. The Google login answer adds `cancelledMatchUuids`. [Game Rules](../GameRules.md) holds the rule; Steps 3 and 4 keep the 1.2.0 text marked as superseded.
+- react-game: `MatchCard` last-played time and cancelled styling, "show cancelled" toggle (cancelled and banned hidden by default), just-cancelled matches highlighted once, hint "Have an account? Sign in to continue" before Play for guests.
+
 # Version Control
-- **Document Version**: 1.4.0
+- **Document Version**: 1.7.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.4.0 | Match list and merge rule analysed | October 21, 2026 |
+  | 1.7.0 | Developed and released | October 23, 2026 |
 
-- **Last Updated**: October 21, 2026 (v1.4.0)
+- **Last Updated**: October 23, 2026 (v1.7.0)
 
 
 # &lt; Paths Games /&gt;

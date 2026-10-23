@@ -25,8 +25,10 @@ Deeper detail is linked from the relevant `documentation_vN/StepNN_*.md` file.
 | Hotfix | A `hotfix/{name}` git branch for a critical production fix; post-launch patch releases (`X.42.z`) are logged in a version's `Hotfixes.md`, outside the roadmap. |
 | Location | A story node (`list_locations`) with neighbors, a counter, a safety flag and entry triggers. |
 | Match | One played session of a story (`gaming_match`): players, characters, turn state, clock. |
+| Match version | `matchVersion`: opaque value of a match's last change, sent back as `If-Match`; a stale one answers 409 `STALE_MATCH`. |
 | Mission | A projection of registry condition keys into an `AVAILABLE` → `ACTIVE` → `COMPLETED`/`FAILED` status machine — no separate operator or state table. |
 | Pass | A turn-cycle action that ends a player's turn without taking another action. |
+| Pepper | Secret per stage (`BANNED_SUBJECT_PEPPER`) used to hash banned Google ids and emails. |
 | Random event | One `list_global_random_events` row that may fire at each time-start (after weather), party-wide, by absolute-percentage odds. |
 | Registry | The match's shared key/value state, rendered/parsed/evaluated by one `RegistryService` using `∃`/`∄`/`∀` operators. |
 | Registry key | One named entry in the registry, written by events/choices/items and read by triggers, missions and weather rules. |
@@ -47,13 +49,14 @@ Deeper detail is linked from the relevant `documentation_vN/StepNN_*.md` file.
 | Weather | A per-clock, weighted-random environmental state affecting energy costs, rolled and logged at time-start. |
 
 # Version Control
-- **Document Version**: 0.40.0
+- **Document Version**: 1.7.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First shared list of game and system words | September 25, 2026 |
+  | 1.7.0 | Match version and pepper terms added | October 23, 2026 |
 
-- **Last Updated**: September 25, 2026 (v0.40.0)
+- **Last Updated**: October 23, 2026 (v1.7.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

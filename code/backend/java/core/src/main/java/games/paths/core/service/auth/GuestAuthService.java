@@ -28,7 +28,7 @@ public class GuestAuthService implements GuestAuthPort {
     private final JwtPort jwtPort;
     private final GuestPersistencePort persistencePort;
     private games.paths.core.port.auth.TokenPersistencePort tokenPersistencePort;
-    private int maxTokensPerUser = 5;
+    private int maxTokensPerUser = SessionService.DEFAULT_MAX_TOKENS_PER_USER;
 
     public GuestAuthService(JwtPort jwtPort, GuestPersistencePort persistencePort) {
         this.jwtPort = jwtPort;
@@ -68,7 +68,8 @@ public class GuestAuthService implements GuestAuthPort {
         String refreshToken = jwtPort.generateRefreshToken(userUuid);
 
         // 5. Store refresh token
-        long refreshExpiresMs = jwtPort.getRefreshTokenExpirationMs();
+        // v1.7.0 a guest refresh token never outlives the 180-day guest cookie
+        long refreshExpiresMs = SessionService.refreshExpiry(jwtPort.getRefreshTokenExpirationMs(), true, Instant.now());
         String refreshExpiresAt = Instant.ofEpochMilli(refreshExpiresMs).toString();
         storeRefresh(userId, refreshToken, refreshExpiresAt);
 
@@ -124,7 +125,8 @@ public class GuestAuthService implements GuestAuthPort {
         String refreshToken = jwtPort.generateRefreshToken(userUuid);
 
         // Store new refresh token
-        long refreshExpiresMs = jwtPort.getRefreshTokenExpirationMs();
+        // v1.7.0 a guest refresh token never outlives the 180-day guest cookie
+        long refreshExpiresMs = SessionService.refreshExpiry(jwtPort.getRefreshTokenExpirationMs(), true, Instant.now());
         String refreshExpiresAt = Instant.ofEpochMilli(refreshExpiresMs).toString();
         storeRefresh(userId, refreshToken, refreshExpiresAt);
 

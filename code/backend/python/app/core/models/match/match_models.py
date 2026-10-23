@@ -36,6 +36,10 @@ class MatchSummary:
     character_template_uuid: Optional[str] = None
     class_uuid: Optional[str] = None
     trait_uuids: List[str] = field(default_factory=list)
+    # v1.7.0 step 8 — the opaque match version (ts_update), sent back in If-Match.
+    match_version: Optional[str] = None
+    # v1.7.0 step 9 — last played: ts_update as ISO-8601 UTC.
+    ts_update: Optional[str] = None
 
 
 @dataclass

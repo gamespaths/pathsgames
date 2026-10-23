@@ -22,6 +22,7 @@ vi.mock('../../api/storyApi', () => ({
   getStory:      vi.fn(),
   listEntities:  vi.fn(),
   listAllStories: vi.fn(),
+  listStoriesPage: vi.fn(),
   deleteStory:   vi.fn(),
   importStory:   vi.fn(),
   exportStory:   vi.fn(),
@@ -30,7 +31,7 @@ vi.mock('../../api/storyApi', () => ({
 
 import { listGuests, getGuestStats, deleteGuest } from '../../api/guestApi'
 import { listMatches, getMatchInfo, pauseMatch } from '../../api/matchApi'
-import { getStory, listEntities, listAllStories } from '../../api/storyApi'
+import { getStory, listEntities, listAllStories, listStoriesPage } from '../../api/storyApi'
 
 /**
  * The guests console and the story list against sparse or failing payloads: a
@@ -130,7 +131,7 @@ describe('GuestsPage edge cases', () => {
 describe('StoriesPage with bare stories', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    listAllStories.mockResolvedValue([{ uuid: 'story-1' }])   // no title, author, visibility, counters
+    listStoriesPage.mockResolvedValue({ items: [{ uuid: 'story-1' }], nextCursor: null, limit: 50 })   // no title, author, visibility, counters
   })
 
   it('dashes out every column the story does not carry', async () => {

@@ -13,6 +13,7 @@ from app.core.ports.match.experience_ports import (
 )
 from app.core.ports.match.match_ports import UserAccessPort
 from app.core.services.match.experience_cost import STAT_FIELD, STATS, ExperienceCost
+from app.core.services.match.match_stamp import stamp_check, stamp_claim
 
 # Prefix of the log_events row the timeline classifies as EXP_USE.
 MSG_EXP_USE = "EXP_USE"
@@ -57,6 +58,7 @@ class ExperienceService(ExperiencePort):
 
         if match.get("status") != _RUNNING:
             raise ExperienceError(ExperienceError.MATCH_NOT_RUNNING, "The match is not running")
+        stamp_check(self, match_uuid)
         turn = match.get("id_character_current_turn")
         if turn is not None and turn != actor["id"]:
             raise ExperienceError(ExperienceError.NOT_YOUR_TURN, "It is not your character's turn")
@@ -89,6 +91,7 @@ class ExperienceService(ExperiencePort):
         exp_after = exp_before - cost
         stats = {f: int(actor.get(f) or 0) for f in STAT_FIELD.values()}
         stats[field] = after
+        stamp_claim(self, match_uuid)
         self.store.update_character(match["id"], actor["id"], stats["dexterity"],
                                     stats["intelligence"], stats["constitution"], exp_after)
         self.store.log_exp_use(match["id"], actor["id"], int(match.get("current_clock") or 0),

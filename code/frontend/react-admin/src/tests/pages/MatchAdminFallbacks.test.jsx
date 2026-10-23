@@ -16,7 +16,7 @@ vi.mock('../../api/matchApi', () => ({
   listMatchSnapshots: vi.fn(() => Promise.resolve([])), exportMatch: vi.fn(),
   errorBody: (e) => e?.response?.data ?? {},
 }))
-vi.mock('../../api/storyApi', () => ({ getStory: vi.fn(), listEntities: vi.fn() }))
+vi.mock('../../api/storyApi', () => ({ getStory: vi.fn(), listEntities: vi.fn(), listAllStories: vi.fn(() => Promise.resolve([])) }))
 vi.mock('../../api/guestApi', () => ({
   listGuests: vi.fn(), getGuestStats: vi.fn(), deleteGuest: vi.fn(), deleteExpiredGuests: vi.fn(),
 }))

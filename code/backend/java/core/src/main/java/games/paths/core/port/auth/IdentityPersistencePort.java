@@ -39,6 +39,12 @@ public interface IdentityPersistencePort {
 
     void updateState(long userId, int state);
 
+    /** v1.7.0 users.theme_selected of the user; empty when unknown or not set. */
+    Optional<String> findThemeSelected(long userId);
+
+    /** v1.7.0 users.language and users.theme_selected; a null value is left unchanged. */
+    void updatePreferences(long userId, String language, String theme);
+
     /** False when the hash is already stored (a replayed ID token). */
     boolean markIdTokenSeen(String tokenHash, String expiresAt);
 

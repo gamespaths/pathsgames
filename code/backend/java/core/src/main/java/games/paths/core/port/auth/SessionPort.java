@@ -12,7 +12,7 @@ public interface SessionPort {
 
     /**
      * Refreshes an expired or active access token using a valid refresh token.
-     * Token rotation: revokes ALL previous tokens for the user, generates a new pair.
+     * Token rotation: revokes the used token, generates a new pair.
      *
      * @param refreshToken the current refresh token
      * @return a new session with fresh access and refresh tokens, or null if invalid
@@ -42,4 +42,14 @@ public interface SessionPort {
      * @return parsed TokenInfo if valid, null if expired/invalid/malformed
      */
     TokenInfo validateAccessToken(String accessToken);
+
+    /** v1.7.0 the sessions of the user used in the last 30 days (GET /api/auth/me activeSessions). */
+    default int activeSessions(String userUuid) {
+        return 0;
+    }
+
+    /** v1.7.0 daily job: deletes the ROTATED and LOGOUT rows older than 7 days; the count removed. */
+    default int purgeRevokedTokens() {
+        return 0;
+    }
 }

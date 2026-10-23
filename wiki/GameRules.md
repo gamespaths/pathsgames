@@ -63,18 +63,21 @@ the story's end-game event fires, or through the all-in-coma epilogue (§11). An
 also stop, pause or resume a match out-of-band through the admin API; those transitions are an
 operational control, not part of normal play.
 
-**Cancelled (V1.2.0).** At Google login the guest's matches merge into the Google user: on the same
-story the active match with the latest `ts_update` wins and the others become `CANCELLED`
-(terminal); ended and completed matches are all kept. The match list shows a plain "Cancelled" label.
+**Cancelled (V1.7.0 rule).** At Google login the guest's matches merge into the Google user. On the
+same story the Google user's active match (`CREATED`, `RUNNING`, `PAUSED`) always wins; the guest's match
+becomes `CANCELLED` (terminal) and its uuid is returned in `cancelledMatchUuids` of the login answer.
+Ended and completed matches are all kept. A guest sees "Have an account? Sign in to continue" before
+Play. The match list (envelope, active first, then last played) hides cancelled and banned matches
+behind a "show cancelled" toggle; nothing is deleted. (V1.2.0 to V1.6: the latest `ts_update` won.)
 
-**Merge rule from 1.6.0 (roadmap step 9).** At Google login the Google user's active match
-(`CREATED`, `RUNNING`, `PAUSED`) of a story always wins over the guest's match of the same story,
-which becomes `CANCELLED`. A guest sees "Have an account? Sign in to continue" before Play. Until
-1.6.0 the latest `ts_update` wins whoever owns the match.
+**Banned (V1.7.0).** When an admin bans a Google user, the user's active matches become `BANNED`:
+terminal, treated like `CANCELLED` (not opened, hidden by default, not counted in the statistics) and
+they stay `BANNED` after an unblock.
 
-**Banned (from 1.6.0, roadmap step 10).** When an admin bans a Google user, the user's active matches
-become `BANNED`: terminal, treated like `CANCELLED` (not opened, hidden by default, not counted in the
-statistics) and they stay `BANNED` after an unblock.
+**Play time (V1.7.0).** Every gameplay write adds to the match `play_ms` the gap since the previous
+write, at most 5 minutes (`PLAY_TIME_CAP_SECONDS`); admin writes and snapshot restores never change it.
+`GET /api/auth/me` sums the statistics (played, completed, game over, play time, clocks) on the fly.
+Two devices on the same match: a write made on an out-of-date view answers 409 `STALE_MATCH`.
 
 Details: [Step24](documentation_v0/Step24_TurnCycleEngine.md), [Step19_SinglePlayerMatchUtils](documentation_v0/Step19_SinglePlayerMatchUtils.md)
 
@@ -336,15 +339,16 @@ today:
 Details: [Roadmap](documentation_v0/Roadmap.md)
 
 # Version Control
-- **Document Version**: 1.4.0
+- **Document Version**: 1.7.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.40.0 | First version of the game rules reference | September 25, 2026 |
   | 1.2.0 | Cancelled matches after guest merge | October 20, 2026 |
   | 1.4.0 | Merge rule and banned matches planned | October 21, 2026 |
+  | 1.7.0 | Merge rule, banned matches and play time live | October 23, 2026 |
 
-- **Last Updated**: October 21, 2026 (v1.4.0)
+- **Last Updated**: October 23, 2026 (v1.7.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

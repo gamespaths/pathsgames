@@ -151,15 +151,15 @@ The Guest Is Linked At Login And Its Token Dies
     Status Should Be    ${resp}    200
     Should Be True    ${resp.json()}[mergedGuest]
     ${matches}=    List Matches    ${resp.json()}[accessToken]    200
-    ${uuids}=    Evaluate    [m['uuid'] for m in $matches.json()]
+    ${uuids}=    Evaluate    [m['uuid'] for m in $matches.json()['items']]
     Should Contain    ${uuids}    ${match.json()}[uuid]
     ${me}=    GET On Session    public_session    /api/auth/me    headers=${{ {'Authorization': 'Bearer ' + $guest} }}
     ...    expected_status=any
     Status Should Be    ${me}    401
 
-A Second Guest With A Match On The Same Story Cancels The Older One
-    [Documentation]    Merge rule: per story the STARTED match with the latest update wins, the other
-    ...                becomes CANCELLED (a terminal status); ended matches are all kept.
+A Second Guest With A Match On The Same Story Is Cancelled
+    [Documentation]    Merge rule (v1.7.0 step 9): per story the Google user's active match always wins, the
+    ...                guest's becomes CANCELLED (a terminal status) even when newer; ended matches are kept.
     [Tags]    v1_step04
     ${first_guest}=    New Guest Token
     ${older}=    Create Match    ${first_guest}    ${STORY}    ${DIFFICULTY}    name=robottest_google_older
@@ -175,10 +175,11 @@ A Second Guest With A Match On The Same Story Cancels The Older One
     ${merged}=    Google Login    ${t2}    bearer=${second_guest}
     Status Should Be    ${merged}    200
     Should Be Equal As Integers    ${merged.json()}[cancelledMatches]    1
+    Should Be Equal    ${merged.json()}[cancelledMatchUuids]    ${{ [$newer.json()['uuid']] }}
     ${list}=    List Matches    ${merged.json()}[accessToken]    200
-    ${statuses}=    Evaluate    {m['uuid']: m['status'] for m in $list.json()}
-    Should Be Equal    ${statuses}[${older.json()}[uuid]]    CANCELLED
-    Should Not Be Equal    ${statuses}[${newer.json()}[uuid]]    CANCELLED
+    ${statuses}=    Evaluate    {m['uuid']: m['status'] for m in $list.json()['items']}
+    Should Not Be Equal    ${statuses}[${older.json()}[uuid]]    CANCELLED
+    Should Be Equal    ${statuses}[${newer.json()}[uuid]]    CANCELLED
 
 Account Deletion Needs A Fresh Google Token
     [Documentation]    DELETE /api/auth/me refuses a missing token and one issued more than 5 minutes ago.

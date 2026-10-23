@@ -90,6 +90,10 @@ class MatchExportStorePort(ABC):
     def log_rows(self, id_match: int, table: str, mark: int) -> List[Dict[str, Any]]:
         """Rows of one log_* table of the match with id <= mark, in id order."""
 
+    def play_ms(self, match_uuid: str) -> int:
+        """v1.7.0 the live play time of the match (never rolled back by a snapshot), 0 when unknown."""
+        raise NotImplementedError
+
     @abstractmethod
     def users_by_ids(self, ids: Iterable[int]) -> Dict[int, Dict[str, Any]]:
         """users rows by id, never a secret column."""

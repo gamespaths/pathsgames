@@ -3,8 +3,11 @@ from app.core.models.match import match_statuses
 
 
 def test_all_lists_the_five_lifecycle_statuses():
-    assert match_statuses.ALL == ["CREATED", "RUNNING", "PAUSED", "ENDED", "GAMEOVER", "CANCELLED"]
+    assert match_statuses.ALL == ["CREATED", "RUNNING", "PAUSED", "ENDED", "GAMEOVER", "CANCELLED", "BANNED"]
     assert match_statuses.is_terminal("CANCELLED")
+    # v1.7.0 BANNED is terminal; the statistics count only the played statuses
+    assert match_statuses.is_terminal("BANNED")
+    assert match_statuses.PLAYED == ["RUNNING", "PAUSED", "ENDED", "GAMEOVER"]
 
 
 def test_is_valid():

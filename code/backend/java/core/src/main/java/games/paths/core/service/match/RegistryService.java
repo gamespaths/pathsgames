@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.entity.story.KeyEntity;
 import games.paths.core.entity.story.StoryEntity;
 import games.paths.core.model.match.MatchRegistryEntry;
@@ -28,6 +29,14 @@ import java.util.function.Supplier;
  * string becomes a row; {@link #render} and {@link #parse} are now exact inverses.
  */
 public class RegistryService {
+
+    /** v1.7.0 - stamps the match after a successful write; null in the older tests. */
+    private MatchStampPort stamp;
+
+    public void setMatchStamp(MatchStampPort stamp) {
+        this.stamp = stamp;
+    }
+
 
     /** The operators a registry condition may use. A null or blank column means {@code =}. */
     public static final String OP_EQ = "=";
@@ -637,7 +646,9 @@ public class RegistryService {
         if (ids == null) {
             return null;
         }
-        return upsert(ids[0], ids[1], key, value, null, null, null, null);
+        List<String> values = upsert(ids[0], ids[1], key, value, null, null, null, null);
+        MatchStampPort.admin(stamp, matchUuid);
+        return values;
     }
 
     /**
@@ -649,10 +660,9 @@ public class RegistryService {
         if (ids == null) {
             return null;
         }
-        if (value == null) {
-            return clear(ids[0], key);
-        }
-        return remove(ids[0], key, value, null, null, null, null);
+        List<String> values = value == null ? clear(ids[0], key) : remove(ids[0], key, value, null, null, null, null);
+        MatchStampPort.admin(stamp, matchUuid);
+        return values;
     }
 
     /** Empty a key whatever it holds: every member of a set, or the value of a single key. */

@@ -182,7 +182,13 @@ public class MatchExportService implements MatchExportPort {
             }
         });
         doc.put("users", userRows);
-        doc.put("match", NeutralColumnCodec.match(matchRow, lookup, party, match.idStory()));
+        Map<String, Object> neutralMatch = NeutralColumnCodec.match(matchRow, lookup, party, match.idStory());
+        // v1.7.0 the live play time (a restore never rolls it back); a stopped match keeps its status
+        neutralMatch.put("playMs", store.playMs(match.uuid()));
+        if (MatchStatuses.isTerminal(match.status())) {
+            neutralMatch.put("status", match.status());
+        }
+        doc.put("match", neutralMatch);
         doc.put("characters", characterSection(state, characters, lookup));
         Map<String, List<Map<String, Object>>> logs = new LinkedHashMap<>();
         for (String table : NeutralColumnCodec.TIMELINE_TABLES) {

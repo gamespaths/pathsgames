@@ -20,7 +20,7 @@ PROFILE = UserProfile("u-1", "google_u1", "mario", "Mario Rossi", "pic", "PLAYER
 
 
 def _session(merged=None):
-    return AuthenticatedSession(PROFILE, "access", "refresh", 1, 2, True, merged, 1)
+    return AuthenticatedSession(PROFILE, "access", "refresh", 1, 2, True, merged, 1, ["m-cancelled"])
 
 
 def _google_client(service, limiter=None, per_ip=0, csrf=None):
@@ -39,6 +39,7 @@ def test_google_login_sets_the_refresh_cookie_and_merges():
     body = res.json()
     assert res.status_code == 200 and body["nickname"] == "mario" and body["displayName"] == "Mario Rossi"
     assert body["mergedGuest"] is True and body["cancelledMatches"] == 1 and body["csrfToken"]
+    assert body["cancelledMatchUuids"] == ["m-cancelled"]
     assert "pathsgames.refreshToken=refresh" in res.headers.get("set-cookie")
     service.login.assert_called_with("id", "n", "it", "guest-access", "cookie")
 

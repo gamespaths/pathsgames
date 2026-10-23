@@ -157,7 +157,9 @@
             "RUNNING",
             "PAUSED",
             "ENDED",
-            "GAMEOVER"
+            "GAMEOVER",
+            "CANCELLED",
+            "BANNED"
           ]
         },
         "currentWeatherId": {
@@ -189,6 +191,9 @@
         },
         "createdAt": {
           "$ref": "#/$defs/ts"
+        },
+        "playMs": {
+          "$ref": "#/$defs/int0"
         }
       }
     },

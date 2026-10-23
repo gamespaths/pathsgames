@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.TurnStatuses;
 import games.paths.core.model.match.event.TimeAdvanced;
@@ -34,6 +35,9 @@ import static org.mockito.Mockito.*;
 @DisplayName("TimeAdvancementService")
 class TimeAdvancementServiceTest {
 
+    /** v1.7.0 the match stamp of a successful write. */
+    private final MatchStampPort stamp = mock(MatchStampPort.class);
+
     private TurnCycleStorePort store;
     private UserAccessPort userAccessPort;
     private DomainEventPublisher publisher;
@@ -56,6 +60,7 @@ class TimeAdvancementServiceTest {
         when(recoveryService.applyAtTimeStart(anyLong()))
                 .thenReturn(TimeStartRecoveryService.TimeStartOutcome.none());
         service = new TimeAdvancementService(store, userAccessPort, publisher, recoveryService);
+        service.setMatchStamp(stamp);
         when(userAccessPort.findByUuid(USER)).thenReturn(
                 Optional.of(new UserAccessPort.UserView(USER_ID, USER, "u", "PLAYER", 2)));
     }
@@ -271,6 +276,7 @@ class TimeAdvancementServiceTest {
 
             TimeAdvancementPort.SleepResult r = service.sleep(MATCH, USER);
 
+            verify(stamp).claimGameplay(MATCH);
             assertFalse(r.timeEndTriggered());
             assertEquals(3, r.currentClock());
             assertTrue(r.isSleeping());
@@ -543,5 +549,15 @@ class TimeAdvancementServiceTest {
     private static void assertCode(TurnCycleException.Code expected, Runnable action) {
         TurnCycleException ex = assertThrows(TurnCycleException.class, action::run);
         assertEquals(expected, ex.getCode());
+    }
+
+    @Test
+    @DisplayName("v1.7.0 - a refused sleep leaves the match stamp alone")
+    void refusedSleepDoesNotStamp() {
+        when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match(MatchStatuses.PAUSED, 3)));
+        when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID))
+                .thenReturn(Optional.of(character(CHAR_ID, CHAR_UUID, 50, false)));
+        assertThrows(TurnCycleException.class, () -> service.sleep(MATCH, USER));
+        verify(stamp, never()).claimGameplay(any());
     }
 }

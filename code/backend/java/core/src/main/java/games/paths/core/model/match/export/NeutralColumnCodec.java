@@ -86,6 +86,7 @@ public final class NeutralColumnCodec {
         out.put("timestampGameover", ts(m.get("timestamp_gameover")));
         out.put("timestampLockExpiration", ts(m.get("timestamp_lock_expiration")));
         out.put("createdAt", ts(m.get("ts_insert")));
+        out.put("playMs", nz(lng(m.get("play_ms"))));
         return out;
     }
 
@@ -577,6 +578,7 @@ public final class NeutralColumnCodec {
         c.put("trait_uuids", MatchTraitCodec.join(traits));
         c.put("ts_insert", first(str(m.get("createdAt")), now));
         c.put("ts_update", now);
+        c.put("play_ms", nz(lng(m.get("playMs"))));
         return c;
     }
 

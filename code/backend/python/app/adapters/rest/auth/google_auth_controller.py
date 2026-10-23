@@ -52,6 +52,7 @@ class GoogleAuthController:
             "newUser": session.new_user,
             "mergedGuest": session.merged_guest_uuid is not None,
             "cancelledMatches": session.cancelled_matches,
+            "cancelledMatchUuids": list(session.cancelled_match_uuids),
         })
         response = JSONResponse(content=data)
         set_auth_cookie(response, "pathsgames.refreshToken", session.refresh_token)

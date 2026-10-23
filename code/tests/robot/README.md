@@ -57,6 +57,10 @@ robot/
 
 `tests_v1/02_google_sso/`: `google_sso.robot` (login, errors, replay, merge, deletion, using the dev-only `/api/dev/google-token` fake provider), `google_user_migration.robot` (move a Google user between two backends) and `policy_pages.robot` (`privacy.html`, `terms.html`, `cookies.html` answer 200). The run scripts set `RATE_LIMIT_GOOGLE_PER_IP=0`.
 
+## V1 profile, multi-device and user admin suites (V1.7.0)
+
+`tests_v1/06_user_profile` (`/me` and preferences), `07_user_profile_page` (calls behind the profile page), `08_match_concurrency` (`matchVersion`, `If-Match`, parallel writes via `resources/ParallelWriteHelper.py`), `09_match_list` (list envelope, merge rule), `10_admin_users` (ban, suspend, unblock, re-link, deletion), `11_admin_user_pages` (calls behind the react-admin Users pages), `12_multi_device` (A-B-C-B-A, session cap, logout-all). Tags `v1_step06` ... `v1_step12`. Written, not yet run.
+
 ## Setup
 
 ```bash

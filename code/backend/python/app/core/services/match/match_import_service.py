@@ -438,14 +438,18 @@ class MatchImportService:
             self.log_writer.write(id_match, None, None, clock, lw.imported(server, clock))
         uuid_snapshot = (self.snapshot_service.write_now(id_match, f"Imported at clock {clock}")
                          if self.snapshot_service is not None else None)
+        # v1.7.0 a stopped match is imported with its own status and no time-start
+        original = match.get("status")
+        stopped = match_statuses.is_terminal(original)
         try:
-            if self.time_service is not None:
+            if self.time_service is not None and not stopped:
                 self.time_service.start_time_after_restore(match_uuid)
         except Exception as exc:  # noqa: BLE001 — the imported match stays, PAUSED
             self.snapshot_store.set_status(id_match, match_statuses.PAUSED)
             raise MatchExportError("IMPORT_TIME_START_FAILED",
                                    f"The match was imported (PAUSED) but its time-start failed: {exc}") from exc
-        status = match_statuses.PAUSED if request.get("startPaused") is True else match_statuses.RUNNING
+        status = original if stopped else (
+            match_statuses.PAUSED if request.get("startPaused") is True else match_statuses.RUNNING)
         self.snapshot_store.set_status(id_match, status)
         after = self.snapshot_store.find_match_by_id(id_match) or {}
         return {

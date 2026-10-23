@@ -93,10 +93,25 @@ class GuestAuthController:
         return self._process_session_response(session)
 
 
+REFRESH_COOKIE = "pathsgames.refreshToken"
+#: v1.7.0 the refresh cookie lives 250 days (renewed at each refresh), the guest cookie 180 days
+REFRESH_COOKIE_MAX_AGE = 250 * 24 * 60 * 60
+GUEST_COOKIE_MAX_AGE = 180 * 24 * 60 * 60
+_SAME_SITE_VALUES = ("lax", "strict", "none")
+
+
+def same_site(value: Optional[str] = None) -> str:
+    """v1.7.0 COOKIE_SAME_SITE (default lax; none only when the API is not on the same site as the page)."""
+    from app.config import settings
+    chosen = (value if value is not None else settings.cookie_same_site or "").strip().lower()
+    return chosen if chosen in _SAME_SITE_VALUES else "lax"
+
+
 def set_auth_cookie(response, key: str, value: str) -> None:
-    """HttpOnly, SameSite=None, Secure, 6 months (refresh and guest cookie)."""
-    response.set_cookie(key=key, value=value, httponly=True, samesite="none", secure=True, path="/",
-                        max_age=180 * 24 * 60 * 60)
+    """HttpOnly, Secure, SameSite from the settings; refresh cookie 250 days, guest cookie 180 days."""
+    max_age = REFRESH_COOKIE_MAX_AGE if key == REFRESH_COOKIE else GUEST_COOKIE_MAX_AGE
+    response.set_cookie(key=key, value=value, httponly=True, samesite=same_site(), secure=True, path="/",
+                        max_age=max_age)
 
 
 def _parse_age(raw: Optional[str]) -> Optional[int]:

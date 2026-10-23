@@ -27,8 +27,10 @@ DynamoDB layout:
 """
 
 import json
+import logging
 import os
 import random
+import re
 import secrets
 import time
 import uuid as uuid_lib
@@ -38,6 +40,7 @@ import urllib.error
 
 from common import db_utils
 from common import kpi as _kpi
+from common import match_summary as _match_summary
 from common import log_utils
 from common import jwt_utils
 from common import security_utils
@@ -90,9 +93,9 @@ _API_GAMEPLAY_PATH = "/api/gameplay/"
 
 # Lifecycle statuses of a match. A match is "stopped" (terminal) when it is
 # ENDED or GAMEOVER; only stopped matches may be deleted by an admin.
-MATCH_STATUSES = ["CREATED", "RUNNING", "PAUSED", "ENDED", "GAMEOVER", "CANCELLED"]
-# v1.2.0 CANCELLED: a STARTED match that lost the guest merge to a newer one of the same story
-TERMINAL_STATUSES = {"ENDED", "GAMEOVER", "CANCELLED"}
+MATCH_STATUSES = ["CREATED", "RUNNING", "PAUSED", "ENDED", "GAMEOVER", "CANCELLED", "BANNED"]
+# v1.2.0 CANCELLED: a STARTED match that lost the guest merge; v1.7.0 BANNED: a banned user's match
+TERMINAL_STATUSES = {"ENDED", "GAMEOVER", "CANCELLED", "BANNED"}
 # v0.41.1 — Step 41 A timeline types and messages, the same the java/python timelines answer.
 TYPE_PASS = 'PASS'
 TYPE_EDGE_STATE = 'EDGE_STATE'
@@ -198,6 +201,8 @@ def _ts_ms():
 
 
 def _summary_from_item(item):
+    # v1.7.0 — a GSI row carries the listing fields in its ``summary`` map
+    item = _match_summary.flatten(item)
     return {
         "uuid": item.get("uuid"),
         "storyUuid": item.get("storyUuid"),
@@ -214,6 +219,10 @@ def _summary_from_item(item):
         "characterTemplateUuid": item.get("characterTemplateUuid"),
         "classUuid": item.get("classUuid"),
         "traitUuids": item.get("traitUuids") or [],
+        # v1.7.0 step 8 — the opaque match version (ts_update), sent back in If-Match
+        "matchVersion": None if item.get("ts_update") is None else str(int(item.get("ts_update"))),
+        # v1.7.0 step 9 — last played, ISO-8601 UTC like Java and Python
+        "tsUpdate": _match_summary.iso_ms(item.get("ts_update")),
     }
 
 
@@ -778,7 +787,7 @@ def _has_active_match_for_story(user, story_uuid):
     `storyUuid` is not part of GSI1_SK, so it cannot narrow the key condition."""
     items = db_utils.query_gsi(_USER_MATCHES_INDEX, f'USER_MATCHES#{user["uuid"]}') or []
     return any(i.get('storyUuid') == story_uuid and i.get('status') in ACTIVE_STATUSES
-               for i in items)
+               for i in map(_match_summary.flatten, items))
 
 
 def _create_match(user, body):
@@ -918,18 +927,26 @@ def _create_match(user, body):
     _logbook.append(item, TYPE_MATCH_LIFECYCLE, 0, timestamp_ms=now_ms,
                     message=LIFECYCLE_CREATED)
     _logbook.persist(item)
-    return _ok(_summary_from_item(item), status=201)
+    summary = _summary_from_item(item)
+    # v1.7.0 step 8 — the flush stamps the new match with the request stamp: its first version
+    summary['matchVersion'] = str(db_utils.stamp_ms())
+    summary['tsUpdate'] = _match_summary.iso_ms(db_utils.stamp_ms())
+    return _ok(summary, status=201)
 
 
-def _list_user_matches(user):
+def _list_user_matches(user, event=None):
+    """v1.7.0 step 9 — the envelope {items, nextCursor, limit}: active first, then last played (in memory)."""
+    params = (event or {}).get('queryStringParameters') or {}
     items = db_utils.query_gsi(_USER_MATCHES_INDEX, f'USER_MATCHES#{user["uuid"]}') or []
-    items_sorted = sorted(items, key=lambda i: i.get('tsInsert', 0), reverse=True)
-    return _ok([_summary_from_item(i) for i in items_sorted])
+    rows, next_cursor, limit = _match_summary.page(items, params.get('limit'), params.get('cursor'))
+    return _ok({'items': [_summary_from_item(i) for i in rows], 'nextCursor': next_cursor, 'limit': limit})
 
 
 # Admin-list pagination bounds (v0.28.1).
 _ADMIN_LIST_DEFAULT_LIMIT = 50
 _ADMIN_LIST_MAX_LIMIT = 200
+# v1.7.0 step 12 — index reads one admin page may spend on the post-read filters (status, storyUuid)
+_ADMIN_LIST_MAX_READS = 5
 _MS_PER_DAY = 86_400_000
 
 
@@ -971,24 +988,32 @@ def _list_all_matches(event):
       limit      page size (default 50, max 200)
       cursor     opaque token from a previous nextCursor
       status     exact status filter (CREATED/RUNNING/PAUSED/ENDED/GAMEOVER)
-      userUuid   filter by creator
+      userUuid   filter by creator (v1.7.0: a key query on GSI1 USER_MATCHES#<uuid>)
       storyUuid  filter by story
       sinceDays  only matches created within the last N days (SK range)
 
     Response envelope: {"items": [...], "nextCursor": str|null, "limit": int}.
+    v1.7.0 step 12 — status and storyUuid have no key: they filter after the read, looping over at most
+    _ADMIN_LIST_MAX_READS reads of the remaining page size each (read cost <= 5 x limit items); a page may
+    then hold fewer items than limit while nextCursor is set.
     """
     params = event.get('queryStringParameters') or {}
     limit = _admin_list_limit(params)
     start_key = db_utils.decode_cursor(params.get('cursor'))
-    sk_from = _since_days_sk(params, int(time.time() * 1000))
+    since = _since_days_sk(params, int(time.time() * 1000))
+    user_uuid = (params.get('userUuid') or '').strip()
+    # v1.7.0 — both indexes project the summary map: the post-read filters read inside it
     eq_filters = {
-        'status': (params.get('status') or '').strip() or None,
-        'userCreatorUuid': (params.get('userUuid') or '').strip() or None,
-        'storyUuid': (params.get('storyUuid') or '').strip() or None,
+        'summary.status': (params.get('status') or '').strip() or None,
+        'summary.storyUuid': (params.get('storyUuid') or '').strip() or None,
     }
-    items, last_key = db_utils.query_index_page(
-        'GSI2', 'GSI2_PK', 'MATCH', sk_name='GSI2_SK', sk_from=sk_from,
-        eq_filters=eq_filters, limit=limit, start_key=start_key, ascending=False,
+    if user_uuid:
+        index = ('GSI1', 'GSI1_PK', f'USER_MATCHES#{user_uuid}', 'GSI1_SK', f'MATCH#{since}' if since else None)
+    else:
+        index = ('GSI2', 'GSI2_PK', 'MATCH', 'GSI2_SK', since)
+    items, last_key = db_utils.query_index_filled(
+        index[0], index[1], index[2], sk_name=index[3], sk_from=index[4], eq_filters=eq_filters,
+        limit=limit, start_key=start_key, max_reads=_ADMIN_LIST_MAX_READS,
     )
     return _ok({
         'items': [_summary_from_item(i) for i in items],
@@ -1000,7 +1025,8 @@ def _list_all_matches(event):
 def _get_match_info(user, match_uuid, lang='en'):
     if not match_uuid:
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
-    item = _repo.match(match_uuid, consistent=False)
+    # v1.7.0 step 8 — a strongly consistent METADATA read: its ts_update is the matchVersion
+    item = _repo.match(match_uuid, consistent=True)
     if item is None or item.get('userCreatorUuid') != user['uuid']:
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
     return _ok(_detail_from_item(item, _match_characters(match_uuid, consistent=False), lang,
@@ -4894,17 +4920,133 @@ def lambda_handler(event, context):
     return _finalize(_route(event, context), path)
 
 
+# v1.7.0 step 8 — the ERROR line of a write chunk that failed after the claim (5xx, caught by the 5xx alarm).
+_LOGGER = logging.getLogger('pathsgames.match')
+
+
 def _route(event, context):
-    """Every write of the request is queued on ``repo`` and lands in one batch at the end."""
+    """Every write of the request is queued on ``repo`` and lands at the end (v1.7.0 step 8: after the claim)."""
     story_cache.begin_request()  # v0.37.5 — one stamp read per invocation
     _repo.begin()
     _kpi.begin()
     try:
-        return _dispatch(event)
+        response = _stamp_match(event, _dispatch(event))
+        _repo.flush()
+        return response
+    except _repo.WriteFailed as exc:
+        _kpi.begin()
+        _LOGGER.error('MATCH_WRITE_FAILED match=%s cause=%s', exc.match_uuid, exc.cause)
+        return _err(500, 'WRITE_FAILED', 'The match could not be saved: reload it')
     finally:
         _repo.flush()
         # v0.41.2 — the request's KPI deltas, one UpdateItem ADD, after the state landed.
         _kpi.flush()
+
+
+# v1.7.0 — the writes that stamp the match on success: (method, path pattern, gameplay?).
+_STAMPED_ROUTES = (
+    ('POST', re.compile(r'^/api/matches/([^/]+)/(start|join)$'), True),
+    ('POST', re.compile(r'^/api/gameplay/([^/]+)/action/(pass|sleep|use-exp|execute-event|select-choice)$'), True),
+    ('POST', re.compile(r'^/api/gameplay/([^/]+)/inventory/(use-item|drop-item)$'), True),
+    ('POST', re.compile(r'^/api/gameplay/([^/]+)/movements/start$'), True),
+    ('PATCH', re.compile(r'^/api/match/([^/]+)/end/[^/]+$'), True),
+    ('POST', re.compile(r'^/api/admin/matches/([^/]+)/(stop|pause|resume)$'), False),
+    ('PUT', re.compile(r'^/api/admin/matches/([^/]+)(/owner|/registry)?$'), False),
+    ('DELETE', re.compile(r'^/api/admin/matches/([^/]+)/registry$'), False),
+    ('POST', re.compile(r'^/api/admin/matches/([^/]+)/snapshots/[^/]+/restore$'), False),
+    ('POST', re.compile(r'^/api/admin/matches/([^/]+)/player/[^/]+/changeStatistics$'), False),
+)
+
+
+def play_time_cap_ms():
+    """PLAY_TIME_CAP_SECONDS (default 300): the most one gameplay write adds to ``playMs``."""
+    try:
+        seconds = int(os.environ.get('PLAY_TIME_CAP_SECONDS', '300') or 300)
+    except ValueError:
+        seconds = 300
+    return (seconds if seconds > 0 else 300) * 1000
+
+
+def _stamp_match(event, response):
+    """v1.7.0 — a gameplay write checks If-Match and claims the next version (step 8), an admin write
+    stamps ts_update only; a refused request (non-2xx) leaves both as they were. Answers the response."""
+    path = _normalize_path(event.get('rawPath') or event.get('path') or '')
+    method = (event.get('requestContext', {}).get('http', {}).get('method', event.get('httpMethod', '')))
+    for verb, pattern, gameplay in _STAMPED_ROUTES:
+        found = pattern.match(path) if verb == method else None
+        if not found or found.group(1) in ('import', 'statuses'):
+            continue
+        if gameplay:
+            return _claim_match(event, found.group(1), response)
+        if _is_2xx(response):
+            _repo.touch(found.group(1))
+        return response
+    return response
+
+
+# v1.7.0 step 8 — the refusals that win over STALE_MATCH: the match is over or cannot start / be joined.
+_TERMINAL_CODES = {'MATCH_NOT_RUNNING', 'MATCH_NOT_STARTABLE', 'MATCH_NOT_JOINABLE'}
+
+
+def _is_2xx(response):
+    return 200 <= int((response or {}).get('statusCode') or 0) < 300
+
+
+def _body_of(response):
+    try:
+        body = json.loads((response or {}).get('body') or 'null')
+    except (TypeError, ValueError):
+        return None
+    return body if isinstance(body, dict) else None
+
+
+def _if_match(event):
+    """The If-Match header (any case) without W/ and quotes; None when absent, empty or "*"."""
+    raw = next((v for k, v in (event.get('headers') or {}).items() if str(k).lower() == 'if-match'), None)
+    if raw is None:
+        return None
+    value = str(raw).strip()
+    if value.startswith('W/'):
+        value = value[2:].strip()
+    if len(value) >= 2 and value.startswith('"') and value.endswith('"'):
+        value = value[1:-1]
+    return None if value in ('', '*') else value
+
+
+def _stale(current_version):
+    """409 STALE_MATCH: nothing of the request is written, the client refetches the match."""
+    _repo.abandon()
+    _kpi.begin()
+    return {"statusCode": 409, "headers": HEADERS, "body": _dumps({
+        "error": "STALE_MATCH", "message": "The match was changed by another device: reload it",
+        "matchVersion": current_version, "timestamp": int(time.time() * 1000)})}
+
+
+def _stale_wins(response):
+    """A stale If-Match wins over a success and over a domain conflict, never over 4xx input/404/terminal."""
+    if _is_2xx(response):
+        return True
+    status = int((response or {}).get('statusCode') or 0)
+    return status in (409, 422) and (_body_of(response) or {}).get('error') not in _TERMINAL_CODES
+
+
+def _claim_match(event, match_uuid, response):
+    """v1.7.0 step 8 — stale header first (the logic ran in memory, nothing is written yet), then the claim."""
+    expected = _if_match(event)
+    loaded = _repo.loaded_version(match_uuid)
+    if expected is not None and loaded is not None and expected != loaded and _stale_wins(response):
+        return _stale(loaded)
+    if not _is_2xx(response):
+        return response
+    try:
+        version = _repo.claim(match_uuid, play_time_cap_ms(), expected)
+    except _repo.StaleMatch as exc:
+        return _stale(exc.current_version)
+    body = _body_of(response)
+    if version is None or body is None or 'matchVersion' in body:
+        return response
+    body['matchVersion'] = version
+    return {**response, 'body': _dumps(body)}
 
 
 def _dispatch(event):
@@ -5060,7 +5202,7 @@ def _dispatch(event):
         return _create_match(user, body)
 
     if path == '/api/matches' and method == 'GET':
-        return _list_user_matches(user)
+        return _list_user_matches(user, event)
 
     # Step 27 — GET /api/matches/{uuidMatch}/weather
     if (path.startswith(_API_MATCHES_PATH) and path.endswith('/weather') and method == 'GET'):

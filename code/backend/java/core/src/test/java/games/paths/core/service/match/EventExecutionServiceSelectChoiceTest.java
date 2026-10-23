@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.entity.story.ChoiceConditionEntity;
 import games.paths.core.entity.story.ChoiceEffectEntity;
 import games.paths.core.entity.story.ChoiceEntity;
@@ -53,6 +54,9 @@ import static org.mockito.Mockito.*;
 @DisplayName("EventExecutionService.selectChoice (Step 32)")
 class EventExecutionServiceSelectChoiceTest {
 
+    /** v1.7.0 the match stamp of a successful write. */
+    private final MatchStampPort stamp = mock(MatchStampPort.class);
+
     private static final String MATCH_UUID = "match-uuid";
     private static final String USER_UUID = "user-uuid";
     private static final String EVENT_UUID = "event-uuid";
@@ -86,6 +90,7 @@ class EventExecutionServiceSelectChoiceTest {
         timeAdvancementService = mock(TimeAdvancementService.class);
         service = new EventExecutionService(store, edgeStore, userAccessPort, contentQueryPort,
                 timeAdvancementService, registryService);
+        service.setMatchStamp(stamp);
 
         when(userAccessPort.findByUuid(USER_UUID)).thenReturn(Optional.of(
                 new UserAccessPort.UserView(USER_ID, USER_UUID, "player", "USER", 2)));
@@ -187,11 +192,16 @@ class EventExecutionServiceSelectChoiceTest {
     }
 
     private ChoiceResolutionResult resolve() {
-        return service.selectChoice(MATCH_UUID, USER_UUID, CHOICE_UUID, "en");
+        clearInvocations(stamp);
+        ChoiceResolutionResult result = service.selectChoice(MATCH_UUID, USER_UUID, CHOICE_UUID, "en");
+        verify(stamp).claimGameplay(MATCH_UUID);
+        return result;
     }
 
-    private static Code codeOf(Executable call) {
+    private Code codeOf(Executable call) {
+        clearInvocations(stamp);
         EventExecutionException ex = assertThrows(EventExecutionException.class, call::run);
+        verify(stamp, never()).claimGameplay(any());
         return ex.getCode();
     }
 

@@ -107,7 +107,8 @@ describe('GuestUserContext v1.2.0 — Google sessions', () => {
       { idToken: 'id-token', nonce: 'nonce-1', language: 'it' }, 'guest-tok')
     expect(screen.getByTestId('who')).toHaveTextContent('GOOGLE:mario:g-tok')
     expect(channels[0].posted).toEqual([{ type: 'login' }])
-    expect(setLang).not.toHaveBeenCalled()
+    // v1.7.0 — an existing Google user: the profile language overwrites the device one
+    await waitFor(() => expect(setLang).toHaveBeenCalledWith('it'))
   })
 
   it('a new device follows the profile language; a refusal keeps its code', async () => {

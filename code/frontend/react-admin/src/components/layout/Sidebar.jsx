@@ -3,6 +3,8 @@ import { NavLink } from 'react-router-dom'
 const MENU = [
   { section: 'Overview' },
   { to: '/',          icon: 'fas fa-tachometer-alt', label: 'Dashboard'    },
+  { section: 'Users' },
+  { to: '/users',     icon: 'fas fa-users',          label: 'Users'        },
   { section: 'Guests' },
   { to: '/guests',    icon: 'fas fa-user-secret',    label: 'Guest Users'  },
   { section: 'Stories' },

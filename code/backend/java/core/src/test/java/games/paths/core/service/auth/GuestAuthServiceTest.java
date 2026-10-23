@@ -269,4 +269,21 @@ class GuestAuthServiceTest {
         service.createGuestSession();
         verify(tokens).revokeOldestTokensIfLimitExceeded(3L, 5);
     }
+
+    @Test
+    @DisplayName("v1.7.0 a guest refresh token is capped at 180 days and the default cap is 12")
+    void guestRefreshCappedAt180Days() {
+        games.paths.core.port.auth.TokenPersistencePort tokens = mock(games.paths.core.port.auth.TokenPersistencePort.class);
+        GuestAuthService service = new GuestAuthService(jwtPort, persistencePort);
+        service.setTokenPersistence(tokens, SessionService.DEFAULT_MAX_TOKENS_PER_USER);
+        long jwt250 = System.currentTimeMillis() + 250L * 86_400_000L;
+        when(jwtPort.getRefreshTokenExpirationMs()).thenReturn(jwt250);
+        when(persistencePort.createGuestUser(anyString(), anyString(), anyString(), anyString())).thenReturn(3L);
+        when(jwtPort.generateAccessToken(anyString(), anyString(), anyString())).thenReturn("a");
+        when(jwtPort.generateRefreshToken(anyString())).thenReturn("r");
+        long expires = service.createGuestSession().getRefreshTokenExpiresAt();
+        assertTrue(expires < jwt250);
+        assertTrue(expires <= System.currentTimeMillis() + 180L * 86_400_000L);
+        verify(tokens).revokeOldestTokensIfLimitExceeded(3L, 12);
+    }
 }

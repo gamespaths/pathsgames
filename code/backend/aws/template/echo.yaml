@@ -30,6 +30,20 @@ Parameters:
   GoogleEnabled:
     Type: String
     Default: "true"
+  # v1.7.0 — the profile choices shown by /api/echo/status
+  SupportedLanguages:
+    Type: String
+    Default: "en,it"
+  SupportedThemes:
+    Type: String
+    Default: "default,high-contrast"
+  # v1.7.0 step 8 — the page-return refetch of a match
+  MatchRefetchBrowsers:
+    Type: String
+    Default: "webkit"
+  MatchRefetchMinHiddenSeconds:
+    Type: String
+    Default: "30"
 
 Resources:
   EchoLogGroup:
@@ -83,6 +97,10 @@ Resources:
           ENV: !Ref Environment
           GOOGLE_CLIENT_ID: !Ref GoogleClientId
           GOOGLE_ENABLED: !Ref GoogleEnabled
+          SUPPORTED_LANGUAGES: !Ref SupportedLanguages
+          SUPPORTED_THEMES: !Ref SupportedThemes
+          MATCH_REFETCH_BROWSERS: !Ref MatchRefetchBrowsers
+          MATCH_REFETCH_MIN_HIDDEN_SECONDS: !Ref MatchRefetchMinHiddenSeconds
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName

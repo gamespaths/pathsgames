@@ -38,6 +38,22 @@ describe('cookieConsent config', () => {
     expect(Object.keys(cfg.language.translations)).toEqual(['en', 'it'])
   })
 
+  it('v1.7.0 step 12 — lifetimes of 180 and 250 days and the browser storage keys in the table', async () => {
+    const { initCookieConsent } = await import('../consent/cookieConsent')
+    initCookieConsent('en')
+    const cfg = run.mock.calls[0][0]
+    for (const lang of ['en', 'it']) {
+      const rows = cfg.language.translations[lang].preferencesModal.sections[0].cookieTable.body
+      const byName = Object.fromEntries(rows.map(r => [r.name, r.expiration]))
+      expect(byName['pathsgames.guestcookie']).toMatch(/^180 /)
+      expect(byName['pathsgames.refreshToken']).toMatch(/^250 /)
+      const names = rows.map(r => r.name).join(' ')
+      for (const key of ['pathsgames.lang', 'pg_game_server', 'pathsgames.knownAccount', 'pathsgames.googleNonce']) {
+        expect(names).toContain(key)
+      }
+    }
+  })
+
   it('runs only once (idempotent)', async () => {
     const { initCookieConsent } = await import('../consent/cookieConsent')
     initCookieConsent('en')

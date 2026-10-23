@@ -1,0 +1,1065 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — V1 steps 6-12 profile and multi-device (1.7.0)
+  description: |
+    One file for V1 steps 6-12 (released together). Same contract on Java, Python and AWS.
+
+    **Step 6 — user profile.** `GET /api/auth/me` adds the `preferences` and the `stats` of the user,
+    computed on the fly over the matches the user created: played = `RUNNING`, `PAUSED`, `ENDED`,
+    `GAMEOVER`; completed = `ENDED`; game over = `GAMEOVER`; play time = sum of the match `playMs`;
+    clocks = sum of the match current clock. `CREATED`, `CANCELLED` and `BANNED` matches (and any
+    future status) count nowhere. Guests get the same statistics.
+
+    `PATCH /api/auth/me` changes the preferences: `language` and the theme (`theme`, or the shortcut
+    `highContrast`: true = `high-contrast`, false = `default`; `theme` wins when both are sent). A
+    missing field is left unchanged. Values are checked against the server lists
+    (`supported-languages`, default `en,it`; `supported-themes`, default `default,high-contrast`),
+    shown by `GET /api/echo/status`. The `X-CSRF-TOKEN` header is required like on match creation.
+    Guests are refused (403 `GOOGLE_ACCOUNT_REQUIRED`): their preferences live only in the browser.
+
+    **Match stamp and play time.** Every successful gameplay write (`POST /api/matches/{uuid}/start`
+    and `/join`; `POST /api/gameplay/{uuid}/action/pass`, `/sleep`, `/use-exp`, `/execute-event`,
+    `/select-choice`; `/inventory/use-item`, `/inventory/drop-item`; `/movements/start`;
+    `PATCH /api/match/{uuid}/end/{uuidEvent}`) stamps the match with ONE timestamp per request
+    (`ts_update`) and adds to its play time `min(now - previous ts_update, cap)`; the cap is the
+    parameter `play-time-cap-seconds` (default 300). Admin writes (pause, resume, stop, edit, owner
+    move, registry, statistics, snapshot restore) stamp `ts_update` only. A request refused by its
+    checks (4xx) changes neither. A snapshot restore never rolls the play time back.
+
+    **Match export.** The neutral export (`match-export-v1.schema.json`) carries the optional
+    `match.playMs` (the live play time; missing at import = 0) and the statuses `CANCELLED` and
+    `BANNED`; a stopped match (`ENDED`, `GAMEOVER`, `CANCELLED`, `BANNED`) is exported and imported
+    with its own status and the import runs no time-start for it.
+
+    **Match status `BANNED`.** Terminal, treated like `CANCELLED` (set by the admin ban of V1 step 10).
+
+    **Step 8 — same match on several devices.** `matchVersion` is the opaque version of a match (its
+    `ts_update`): returned by `GET /api/match/{uuid}/info` (top level and in `match`), by the create
+    answer (`POST /api/matches`) and by every answer of the 11 gameplay writes above. The client sends it
+    back in the `If-Match` header (quotes optional); a different value answers **409 `STALE_MATCH`** with
+    the current `matchVersion`, before any write. The terminal-state error (`MATCH_NOT_RUNNING`, ...)
+    wins over `STALE_MATCH`. Without the header the server still does a compare-and-set against the
+    version read at request start: a 409 happens only when two writes race. Each write claims the next
+    version (strictly greater) with one conditional update before its first write; a request refused
+    after the claim only changes the version, and its answer carries the new `matchVersion`.
+    `GET /api/echo/status` adds `matchRefetchBrowsers` (default `["webkit"]`, or `["all"]`) and
+    `matchRefetchMinHiddenSeconds` (default 30): when react-game refetches a match on page return.
+
+    **Step 9 — match list and merge rule.** Every match summary (`GET /api/matches`, the `match` of
+    `/info`, the create answer, the admin list) adds `tsUpdate`, the last played time (`ts_update`) as
+    ISO-8601 UTC on the three backends (AWS converts its epoch milliseconds). `matchVersion` stays
+    opaque and separate. **Breaking:** `GET /api/matches` answers the envelope `{items, nextCursor, limit}`
+    instead of the plain array: active matches (`CREATED`, `RUNNING`, `PAUSED`) first, then by
+    `tsUpdate` descending, sorted in memory; `limit` default 50 (max 200), `nextCursor` is `null` on the
+    last page, otherwise the position of the next page in the sorted list (a shift between pages is
+    accepted). Guest merge at Google login: per story the Google user's active match always wins, every
+    active guest match of that story becomes `CANCELLED` (even a newer one); with no active Google match
+    the guest's survives; ended matches are all kept. The login answer adds `cancelledMatchUuids`.
+
+    **Step 10 — admin user management (admin port 8044 only).** `GET /api/admin/users` answers the cursor
+    envelope `{items, nextCursor, limit}` (`limit` default 50, max 200); an item never carries the email.
+    Filters: `email` exact (lowercase; at most one item), `nickname` prefix (case-insensitive), `state`
+    (1-7; 6 = guests is refused with 400 `INVALID_INPUT`, guests stay in the Guests page). With `nickname`
+    or `state` the order is alphabetical by lowercase nickname; with no filter the list shows ACTIVE (2)
+    users, newest last access first (on AWS the last access of the list may be up to 24 hours old; the
+    detail reads the real one). `GET /api/admin/users/{identifier}` keeps its v0.41.6 fields and adds the
+    detail: `accountType`, `suspendedUntil`, `relinkPending`, `banned`, `sessions`, `stats`, `identities`.
+    The match history of a user is `GET /api/admin/matches?userUuid=`.
+
+    Actions take `{reason}` (mandatory, at most 500 characters, no personal data) and write one row of
+    the admin intervention log (admin uuid, action, target uuid, reason; kept 24 months); a refused
+    action writes nothing. **Ban** (`/ban`): Google users only (a guest answers 400 `GUEST_NOT_BANNABLE`,
+    an ADMIN 400 `ADMIN_NOT_BANNABLE`), state 4, every session revoked, the active matches (`CREATED`,
+    `RUNNING`, `PAUSED`) become `BANNED`, the HMAC-SHA256 (stage pepper `BANNED_SUBJECT_PEPPER`) of the
+    Google subject and of the email is stored: a login matching either answers 403 `ACCOUNT_DISABLED`,
+    also for a new account with the same email. A user already deleting (7) keeps state 7.
+    **Suspend** (`/suspend`, `{until, reason}`): `until` an ISO-8601 instant or date, in the future and at
+    most 90 days away (else 400 `SUSPEND_UNTIL_INVALID`); state 3, sessions revoked, matches untouched; a
+    login before `until` answers 403 `ACCOUNT_DISABLED` with `suspendedUntil`, the first login or refresh
+    after it unblocks the user (logged as `SYSTEM`). **Unblock** (`/unblock`): a suspended or banned user
+    goes back to 2, the ban hashes are removed, `BANNED` matches stay so. **Re-link** (`/relink-subject`)
+    resolves an `IDENTITY_MISMATCH`: the next verified login with the email replaces the Google subject.
+    **Deletion** (`/deletion`): "delete the old user", state 7 and the normal deletion job.
+    A state that does not allow the action answers 409 `INVALID_STATE_TRANSITION`; an unknown uuid 404
+    `USER_NOT_FOUND`.
+
+    **Step 12 — pagination residuals and multi-device continuity.** **Breaking:** `GET /api/admin/stories`
+    answers the envelope `{items, nextCursor, limit}` (`limit` default 50, max 200, `nextCursor` the
+    position of the next page, `null` on the last). `GET /api/admin/matches` keeps `status`, `userUuid`,
+    `storyUuid`, `sinceDays` and the cursor; a page may hold fewer items than `limit` while `nextCursor`
+    is set (on AWS `userUuid` is a key query, `status` and `storyUuid` are read-then-filtered over at most
+    5 index reads of `limit` items each).
+
+    Sessions: at most 12 refresh tokens per user (parameter, Google and guest); a login, a guest login or
+    a refresh above the cap revokes the least recently refreshed one, whose next refresh answers 401
+    **`SESSION_LIMIT`** ("too many devices, sign in again"); every other revoked token answers 401
+    `SESSION_REVOKED`. The refresh grace of a just-rotated token is 2 minutes; a rotated token presented
+    after it (rotated and logged-out tokens are kept 7 days) revokes every session of the user. Refresh
+    tokens last 250 days and slide at each refresh (cookie `Max-Age` 250 days); a guest's is capped at
+    180 days like the guest cookie. `POST /api/auth/logout/all`, the admin ban and suspend also set the
+    user's `sessions_valid_after`: an access token issued before that second answers 401
+    `SESSION_REVOKED` (within 60 seconds on Java and Python, at once on AWS). `GET /api/auth/me` adds
+    `activeSessions`: the sessions refreshed in the last 30 days (the cap counts all of them). The cookie
+    `SameSite` attribute is a parameter, default `Lax`.
+  version: 1.7.0
+
+servers:
+  - url: http://localhost:8042
+    description: Public API (Java/Python dev)
+  - url: http://localhost:8044
+    description: Admin API (/api/admin/** only)
+
+paths:
+  /api/auth/me:
+    get:
+      summary: The current user with preferences and statistics
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile, preferences, statistics and the CSRF token of the bearer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserMe'
+        '401':
+          description: Missing, invalid or foreign token, or unknown user
+    patch:
+      summary: Change the preferences (language, theme)
+      description: |
+        Partial body: a missing field is left unchanged; at least one of `language`, `theme`,
+        `highContrast` is required. Answers the same body as `GET /api/auth/me`.
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: X-CSRF-TOKEN
+          in: header
+          required: true
+          description: The csrfToken issued with the access token (login, refresh, GET /me)
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreferencesRequest'
+      responses:
+        '200':
+          description: Preferences saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserMe'
+        '400':
+          description: INVALID_REQUEST (nothing to change, wrong type, language or theme not supported)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: UNAUTHORIZED (missing or invalid token, unknown user)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: CSRF_TOKEN_MISSING, CSRF_TOKEN_INVALID, GOOGLE_ACCOUNT_REQUIRED (guest)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/refresh:
+    post:
+      summary: Rotate the refresh cookie (step 12 codes)
+      description: |
+        Reads the HttpOnly `pathsgames.refreshToken` cookie and sets the new one (250 days, sliding).
+        A token revoked by the cap of 12 sessions answers `SESSION_LIMIT`, any other revoked token
+        `SESSION_REVOKED`; a rotated token presented after the 2-minute grace also revokes every session.
+      tags: [Auth]
+      responses:
+        '200':
+          description: New access token (the refresh token travels only in the cookie)
+        '401':
+          description: SESSION_LIMIT, SESSION_REVOKED or INVALID_REFRESH_TOKEN
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/logout/all:
+    post:
+      summary: Log out of all devices (step 12)
+      description: |
+        Revokes every refresh token of the user and sets `sessions_valid_after`: the access tokens issued
+        before this second answer 401 `SESSION_REVOKED` on every request.
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All sessions revoked
+        '401':
+          description: UNAUTHORIZED or SESSION_REVOKED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/stories:
+    get:
+      summary: Every story (any visibility), cursor-paged (step 12, breaking)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - {name: lang, in: query, required: false, schema: {type: string, default: en}}
+        - {name: limit, in: query, required: false, schema: {type: integer, default: 50, minimum: 1, maximum: 200}}
+        - {name: cursor, in: query, required: false, schema: {type: string}, description: The nextCursor of the previous page}
+      responses:
+        '200':
+          description: One page of stories
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StorySummaryPage'
+        '401':
+          description: Missing or invalid admin token
+
+  /api/admin/matches:
+    get:
+      summary: Every match, filtered and cursor-paged (step 12 short pages)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - {name: status, in: query, required: false, schema: {type: string}}
+        - {name: userUuid, in: query, required: false, schema: {type: string}, description: Creator of the match}
+        - {name: storyUuid, in: query, required: false, schema: {type: string}}
+        - {name: sinceDays, in: query, required: false, schema: {type: integer, minimum: 1}}
+        - {name: limit, in: query, required: false, schema: {type: integer, default: 50, minimum: 1, maximum: 200}}
+        - {name: cursor, in: query, required: false, schema: {type: string}, description: The nextCursor of the previous page}
+      responses:
+        '200':
+          description: One page of matches; it may hold fewer items than limit while nextCursor is set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchSummaryPage'
+
+  /api/echo/status:
+    get:
+      summary: Health check with the profile choices
+      tags: [Echo]
+      responses:
+        '200':
+          description: Server status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EchoStatus'
+
+  /api/match/{uuidMatch}/info:
+    get:
+      summary: Match info with its version (step 8)
+      description: Same body as v0.19.0, plus the top-level `matchVersion` (also in `match.matchVersion`).
+      tags: [Match]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: Match info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchVersioned'
+        '404':
+          description: MATCH_NOT_FOUND
+
+  /api/auth/google:
+    post:
+      summary: Sign in with Google; the answer names the cancelled matches (step 9)
+      description: Same request and body as v1.2.0, plus `cancelledMatchUuids`.
+      tags: [Auth]
+      responses:
+        '200':
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoogleLoginMerge'
+
+  /api/matches:
+    get:
+      summary: The user's matches, active first then last played (step 9)
+      tags: [Match]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+        - name: cursor
+          in: query
+          required: false
+          description: The nextCursor of the previous page
+          schema:
+            type: string
+      responses:
+        '200':
+          description: One page of the user's matches
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchSummaryPage'
+        '401':
+          description: UNAUTHENTICATED
+    post:
+      summary: Create a match; the answer carries its first matchVersion (step 8)
+      description: Same request and body as v0.19.0, plus `matchVersion` (send it to start and join).
+      tags: [Match]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Match created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchVersioned'
+
+  /api/matches/{uuidMatch}/start:
+    post:
+      summary: Start the match (If-Match, step 8)
+      tags: [Gameplay]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '200':
+          $ref: '#/components/responses/Versioned'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/matches/{uuidMatch}/join:
+    post:
+      summary: Join the match (If-Match, step 8)
+      tags: [Gameplay]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '201':
+          $ref: '#/components/responses/Versioned'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/gameplay/{uuidMatch}/action/pass:
+    post:
+      summary: Pass the turn (If-Match, step 8)
+      tags: [Gameplay]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '200':
+          $ref: '#/components/responses/Versioned'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/gameplay/{uuidMatch}/action/sleep:
+    post:
+      summary: Sleep (If-Match, step 8)
+      tags: [Gameplay]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '200':
+          $ref: '#/components/responses/Versioned'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/gameplay/{uuidMatch}/action/use-exp:
+    post:
+      summary: Spend experience (If-Match, step 8)
+      tags: [Gameplay]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '200':
+          $ref: '#/components/responses/Versioned'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/gameplay/{uuidMatch}/action/execute-event:
+    post:
+      summary: Execute an event (If-Match, step 8)
+      tags: [Gameplay]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '200':
+          $ref: '#/components/responses/Versioned'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/gameplay/{uuidMatch}/action/select-choice:
+    post:
+      summary: Select a choice (If-Match, step 8)
+      tags: [Gameplay]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '200':
+          $ref: '#/components/responses/Versioned'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/gameplay/{uuidMatch}/inventory/use-item:
+    post:
+      summary: Use an item (If-Match, step 8)
+      tags: [Gameplay]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '200':
+          $ref: '#/components/responses/Versioned'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/gameplay/{uuidMatch}/inventory/drop-item:
+    post:
+      summary: Drop an item (If-Match, step 8)
+      tags: [Gameplay]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '200':
+          $ref: '#/components/responses/Versioned'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/gameplay/{uuidMatch}/movements/start:
+    post:
+      summary: Move to a neighbor location (If-Match, step 8)
+      tags: [Gameplay]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '200':
+          $ref: '#/components/responses/Versioned'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/match/{uuidMatch}/end/{uuidEvent}:
+    patch:
+      summary: End the match (If-Match, step 8)
+      tags: [Gameplay]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - name: uuidEvent
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/IfMatch'
+      responses:
+        '200':
+          $ref: '#/components/responses/Versioned'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/admin/users:
+    get:
+      summary: Users list and search, cursor-paged, no email (step 10)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - {name: email, in: query, required: false, schema: {type: string}, description: Exact email (lowercase)}
+        - {name: nickname, in: query, required: false, schema: {type: string}, description: Nickname prefix}
+        - {name: state, in: query, required: false, schema: {type: integer, minimum: 1, maximum: 7},
+           description: 'User state; 6 (guests) is refused'}
+        - {name: limit, in: query, required: false, schema: {type: integer, default: 50, minimum: 1, maximum: 200}}
+        - {name: cursor, in: query, required: false, schema: {type: string}, description: The nextCursor of the previous page}
+      responses:
+        '200':
+          description: One page of users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserPage'
+        '400':
+          $ref: '#/components/responses/AdminUserError'
+
+  /api/admin/users/{identifier}:
+    get:
+      summary: One user by uuid, email or username, with the admin detail (step 10)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - {name: identifier, in: path, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: The v0.41.6 user view plus the detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserDetail'
+        '404':
+          description: USER_NOT_FOUND
+        '409':
+          description: USER_AMBIGUOUS
+
+  /api/admin/users/{uuid}/ban:
+    post:
+      summary: Ban a Google user (step 10)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserUuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUserActionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminUserActionDone'
+        '400':
+          $ref: '#/components/responses/AdminUserError'
+        '404':
+          $ref: '#/components/responses/AdminUserError'
+        '409':
+          $ref: '#/components/responses/AdminUserError'
+
+  /api/admin/users/{uuid}/suspend:
+    post:
+      summary: Suspend a Google user until a date at most 90 days away (step 10)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserUuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUserActionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminUserActionDone'
+        '400':
+          $ref: '#/components/responses/AdminUserError'
+        '404':
+          $ref: '#/components/responses/AdminUserError'
+        '409':
+          $ref: '#/components/responses/AdminUserError'
+
+  /api/admin/users/{uuid}/unblock:
+    post:
+      summary: Unblock a suspended or banned user (step 10)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserUuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUserActionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminUserActionDone'
+        '400':
+          $ref: '#/components/responses/AdminUserError'
+        '404':
+          $ref: '#/components/responses/AdminUserError'
+        '409':
+          $ref: '#/components/responses/AdminUserError'
+
+  /api/admin/users/{uuid}/relink-subject:
+    post:
+      summary: Arm the one-time re-link of the Google subject of an IDENTITY_MISMATCH (step 10)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserUuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUserActionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminUserActionDone'
+        '400':
+          $ref: '#/components/responses/AdminUserError'
+        '404':
+          $ref: '#/components/responses/AdminUserError'
+        '409':
+          $ref: '#/components/responses/AdminUserError'
+
+  /api/admin/users/{uuid}/deletion:
+    post:
+      summary: Delete the old user of an IDENTITY_MISMATCH through the deletion job (step 10)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserUuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUserActionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminUserActionDone'
+        '400':
+          $ref: '#/components/responses/AdminUserError'
+        '404':
+          $ref: '#/components/responses/AdminUserError'
+        '409':
+          $ref: '#/components/responses/AdminUserError'
+
+components:
+  parameters:
+    UserUuid:
+      name: uuid
+      in: path
+      required: true
+      schema:
+        type: string
+    UuidMatch:
+      name: uuidMatch
+      in: path
+      required: true
+      schema:
+        type: string
+    IfMatch:
+      name: If-Match
+      in: header
+      required: false
+      description: |
+        The matchVersion the client is looking at (step 8). A different value answers 409 STALE_MATCH;
+        without it the server compares against the version read at request start.
+      schema:
+        type: string
+        example: '2026-10-22T10:00:00.123456Z'
+
+  responses:
+    AdminUserActionDone:
+      description: The action was applied (and logged)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdminUserActionResult'
+    AdminUserError:
+      description: |
+        400 INVALID_INPUT (reason missing or longer than 500, bad state filter), GUEST_NOT_BANNABLE,
+        ADMIN_NOT_BANNABLE, SUSPEND_UNTIL_INVALID; 404 USER_NOT_FOUND; 409 INVALID_STATE_TRANSITION.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdminUserErrorBody'
+    Versioned:
+      description: Same body as the endpoint's own spec, plus the new matchVersion
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MatchVersioned'
+    Conflict:
+      description: |
+        STALE_MATCH (step 8, the match changed on another device: refetch it, do not re-send), or the
+        endpoint's own 409 codes (MATCH_NOT_RUNNING, NOT_YOUR_TURN, ...), which win over STALE_MATCH.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/StaleMatchError'
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    PreferencesRequest:
+      type: object
+      properties:
+        language:
+          type: string
+          example: it
+          description: One of the supported languages
+        theme:
+          type: string
+          example: high-contrast
+          description: One of the supported themes
+        highContrast:
+          type: boolean
+          description: Shortcut for theme (true = high-contrast, false = default)
+
+    Preferences:
+      type: object
+      properties:
+        language:
+          type: string
+          nullable: true
+        theme:
+          type: string
+          example: default
+        highContrast:
+          type: boolean
+
+    UserStats:
+      type: object
+      properties:
+        matchesPlayed:
+          type: integer
+          format: int64
+          description: Matches created by the user in RUNNING, PAUSED, ENDED or GAMEOVER
+        matchesCompleted:
+          type: integer
+          format: int64
+          description: Matches in ENDED
+        matchesGameOver:
+          type: integer
+          format: int64
+          description: Matches in GAMEOVER
+        playTimeMs:
+          type: integer
+          format: int64
+          description: Sum of the play time of the played matches, in milliseconds
+        clocksPlayed:
+          type: integer
+          format: int64
+          description: Sum of the current clock of the played matches
+
+    UserMe:
+      type: object
+      properties:
+        userUuid:
+          type: string
+        username:
+          type: string
+        nickname:
+          type: string
+        displayName:
+          type: string
+        pictureUrl:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [PLAYER, ADMIN]
+        accountType:
+          type: string
+          enum: [GUEST, GOOGLE, INTERNAL]
+        language:
+          type: string
+        preferences:
+          $ref: '#/components/schemas/Preferences'
+        stats:
+          $ref: '#/components/schemas/UserStats'
+        activeSessions:
+          type: integer
+          description: Sessions refreshed in the last 30 days (step 12); the cap of 12 counts all of them
+          example: 2
+        csrfToken:
+          type: string
+        timestamp:
+          type: integer
+          format: int64
+
+    EchoStatus:
+      type: object
+      properties:
+        status:
+          type: string
+        timestamp:
+          description: Epoch ms (Java, Python) or ISO-8601 (AWS)
+        properties:
+          type: object
+          additionalProperties:
+            type: string
+        googleEnabled:
+          type: boolean
+        googleClientId:
+          type: string
+        supportedLanguages:
+          type: array
+          items:
+            type: string
+          example: [en, it]
+        supportedThemes:
+          type: array
+          items:
+            type: string
+          example: [default, high-contrast]
+        matchRefetchBrowsers:
+          type: array
+          items:
+            type: string
+            enum: [webkit, all]
+          example: [webkit]
+          description: Browsers that refetch a match on page return (webkit = Safari and every iOS browser)
+        matchRefetchMinHiddenSeconds:
+          type: integer
+          example: 30
+          description: Seconds a page must stay hidden before the return refetches the match
+
+    MatchVersioned:
+      type: object
+      additionalProperties: true
+      properties:
+        matchVersion:
+          type: string
+          description: Opaque match version (ts_update); send it back in If-Match
+          example: '2026-10-22T10:00:00.123456Z'
+
+    MatchSummary:
+      type: object
+      additionalProperties: true
+      description: Same fields as v0.19.0, plus matchVersion (step 8) and tsUpdate (step 9)
+      properties:
+        uuid:
+          type: string
+        storyUuid:
+          type: string
+        status:
+          $ref: '#/components/schemas/MatchStatus'
+        tsInsert:
+          description: ISO-8601 (Java, Python) or epoch ms (AWS)
+        tsUpdate:
+          type: string
+          nullable: true
+          description: Last played (ts_update) as ISO-8601 UTC on every backend
+          example: '2026-10-22T10:00:00.123Z'
+        matchVersion:
+          type: string
+          nullable: true
+
+    MatchSummaryPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MatchSummary'
+        nextCursor:
+          type: string
+          nullable: true
+          description: null on the last page (always null up to the page size)
+        limit:
+          type: integer
+          example: 50
+
+    StorySummary:
+      type: object
+      properties:
+        uuid: {type: string}
+        title: {type: string, nullable: true}
+        description: {type: string, nullable: true}
+        author: {type: string, nullable: true}
+        category: {type: string, nullable: true}
+        group: {type: string, nullable: true}
+        visibility: {type: string}
+        priority: {type: integer}
+        peghi: {type: integer}
+        difficultyCount: {type: integer}
+
+    StorySummaryPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StorySummary'
+        nextCursor:
+          type: string
+          nullable: true
+          description: The position of the next page, null on the last one
+        limit:
+          type: integer
+          example: 50
+
+    GoogleLoginMerge:
+      type: object
+      additionalProperties: true
+      properties:
+        mergedGuest:
+          type: boolean
+        cancelledMatches:
+          type: integer
+        cancelledMatchUuids:
+          type: array
+          items:
+            type: string
+          description: The guest matches set to CANCELLED by this login (react-game highlights them once)
+
+    StaleMatchError:
+      type: object
+      properties:
+        error:
+          type: string
+          example: STALE_MATCH
+        message:
+          type: string
+        matchVersion:
+          type: string
+          nullable: true
+          description: The current version of the match
+        timestamp:
+          type: integer
+          format: int64
+
+    MatchStatus:
+      type: string
+      enum: [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER, CANCELLED, BANNED]
+      description: ENDED, GAMEOVER, CANCELLED and BANNED are terminal
+
+    AdminUserItem:
+      type: object
+      properties:
+        uuid: {type: string}
+        nickname: {type: string}
+        state: {type: integer, description: '1 registration, 2 active, 3 suspended, 4 banned, 5 unused, 7 deleting'}
+        role: {type: string, enum: [PLAYER, ADMIN]}
+        accountType: {type: string, enum: [GOOGLE, INTERNAL]}
+        tsRegistration: {type: string, nullable: true, description: 'ISO-8601 (Java, Python) or epoch ms (AWS)'}
+        tsLastAccess: {type: string, nullable: true, description: 'ISO-8601 (Java, Python) or epoch ms (AWS)'}
+        suspendedUntil: {type: string, nullable: true, description: ISO-8601 end of a suspension}
+
+    AdminUserPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUserItem'
+        nextCursor: {type: string, nullable: true}
+        limit: {type: integer, example: 50}
+
+    AdminUserDetail:
+      type: object
+      additionalProperties: true
+      description: The v0.41.6 user view (uuid, username, nickname, email, role, state, eligible, ...) plus
+      properties:
+        accountType: {type: string, enum: [GOOGLE, INTERNAL, GUEST]}
+        suspendedUntil: {type: string, nullable: true}
+        relinkPending: {type: boolean}
+        banned: {type: boolean, description: The banned-subject hashes of this user are stored}
+        sessions: {type: integer, description: Open refresh sessions}
+        stats:
+          $ref: '#/components/schemas/UserStats'
+        identities:
+          type: array
+          items:
+            type: object
+            properties:
+              provider: {type: string}
+              subject: {type: string}
+              email: {type: string}
+              profileName: {type: string, nullable: true}
+              givenName: {type: string, nullable: true}
+              familyName: {type: string, nullable: true}
+              pictureUrl: {type: string, nullable: true}
+              locale: {type: string, nullable: true}
+              tsProfileUpdate: {type: string, nullable: true}
+
+    AdminUserActionRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: {type: string, maxLength: 500, description: Why (no personal data)}
+        until: {type: string, description: 'Suspend only: ISO-8601 instant or date, at most 90 days away'}
+
+    AdminUserActionResult:
+      type: object
+      properties:
+        uuid: {type: string}
+        action: {type: string, enum: [BAN, SUSPEND, UNBLOCK, RELINK_SUBJECT, DELETE_OLD_USER]}
+        state: {type: integer}
+        suspendedUntil: {type: string, nullable: true}
+        relinkPending: {type: boolean}
+        bannedMatchUuids:
+          type: array
+          items: {type: string}
+          description: The active matches set to BANNED by a ban
+
+    AdminUserErrorBody:
+      type: object
+      properties:
+        error:
+          type: string
+          enum: [INVALID_INPUT, GUEST_NOT_BANNABLE, ADMIN_NOT_BANNABLE, SUSPEND_UNTIL_INVALID, USER_NOT_FOUND,
+                 INVALID_STATE_TRANSITION]
+        message: {type: string}
+        timestamp: {type: integer, format: int64}
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          enum: [INVALID_REQUEST, UNAUTHORIZED, CSRF_TOKEN_MISSING, CSRF_TOKEN_INVALID, GOOGLE_ACCOUNT_REQUIRED,
+                 INVALID_TOKEN, ACCOUNT_DISABLED, ACCOUNT_DELETION_IN_PROGRESS, SESSION_REVOKED, SESSION_LIMIT,
+                 INVALID_REFRESH_TOKEN]
+        suspendedUntil:
+          type: string
+          nullable: true
+          description: ACCOUNT_DISABLED of a suspended user only (step 10)
+        message:
+          type: string
+        timestamp:
+          type: integer
+          format: int64

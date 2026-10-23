@@ -27,10 +27,11 @@ MATCH_MISMATCH = 'MATCH_MISMATCH'
 
 # METADATA attributes a snapshot never carries: keys, indexes, ttl, stamps and the log counters.
 _META_SKIP = ('PK', 'SK', 'GSI1_PK', 'GSI1_SK', 'GSI2_PK', 'GSI2_SK', 'ttl', 'ts_insert',
-              'ts_update', 'logSeq', 'logCount', logbook.PENDING_LOGS, logbook.PENDING_AUDIT)
+              'ts_update', 'logSeq', 'logCount', logbook.PENDING_LOGS, logbook.PENDING_AUDIT,
+              'playMs', 'summary')
 # METADATA attributes a restore keeps as they are (the name is not game state; v0.41.6 the owner).
 _META_KEEP = ('PK', 'SK', 'GSI1_PK', 'GSI1_SK', 'GSI2_PK', 'GSI2_SK', 'ttl', 'ts_insert',
-              'logSeq', 'name', 'userCreatorUuid')
+              'logSeq', 'name', 'userCreatorUuid', 'playMs')
 _ROW_SKIP = ('PK', 'ttl', 'ts_insert', 'ts_update')
 
 

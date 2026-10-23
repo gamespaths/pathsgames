@@ -58,7 +58,7 @@ A Google User Moves To Another Stage And Signs In There As Itself
     Should Not Be True    ${login.json()}[newUser]
     ${matches}=    GET On Session    import_public    /api/matches    expected_status=200
     ...    headers=${{ {'Authorization': 'Bearer ' + $login.json()['accessToken']} }}
-    ${uuids}=    Evaluate    [m['uuid'] for m in $matches.json()]
+    ${uuids}=    Evaluate    [m['uuid'] for m in $matches.json()['items']]
     Should Contain    ${uuids}    ${doc}[match][uuid]
 
 

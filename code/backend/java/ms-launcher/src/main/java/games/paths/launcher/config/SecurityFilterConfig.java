@@ -3,6 +3,7 @@ package games.paths.launcher.config;
 import games.paths.adapters.rest.filter.JwtAuthenticationFilter;
 import games.paths.core.port.auth.SessionPort;
 import games.paths.launcher.filter.AdminPortFilter;
+import games.paths.launcher.filter.RequestStampFilter;
 import games.paths.launcher.filter.SecurityHeadersFilter;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -36,6 +37,17 @@ public class SecurityFilterConfig {
         registrationBean.addUrlPatterns("/*");
         registrationBean.setOrder(-1);
         registrationBean.setName("securityHeadersFilter");
+        return registrationBean;
+    }
+
+    /** v1.7.0 — {@link RequestStampFilter}: one match stamp per request, both ports. */
+    @Bean
+    public FilterRegistrationBean<RequestStampFilter> requestStampFilterRegistration() {
+        FilterRegistrationBean<RequestStampFilter> registrationBean = new FilterRegistrationBean<>();
+        registrationBean.setFilter(new RequestStampFilter());
+        registrationBean.addUrlPatterns("/*");
+        registrationBean.setOrder(-2);
+        registrationBean.setName("requestStampFilter");
         return registrationBean;
     }
 

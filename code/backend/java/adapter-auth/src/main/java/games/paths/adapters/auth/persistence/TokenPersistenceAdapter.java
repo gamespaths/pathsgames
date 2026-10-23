@@ -4,6 +4,7 @@ import games.paths.adapters.auth.entity.UserEntity;
 import games.paths.adapters.auth.entity.UserTokenEntity;
 import games.paths.adapters.auth.repository.UserRepository;
 import games.paths.adapters.auth.repository.UserTokenRepository;
+import games.paths.core.model.auth.RevokeReasons;
 import games.paths.core.model.auth.StoredRefreshToken;
 import games.paths.core.model.auth.UserStatus;
 import games.paths.core.port.auth.TokenPersistencePort;
@@ -17,6 +18,7 @@ import java.util.Optional;
 /**
  * TokenPersistenceAdapter - Database adapter for refresh tokens (users_tokens) with Spring Data JPA.
  * v1.2.0 the column holds the SHA-256 hash; a clear value still found is rewritten as hash.
+ * v1.7.0 every revocation stores its reason; ts_update is the revocation time of the 7-day purge.
  */
 @Repository
 @Transactional
@@ -33,7 +35,7 @@ public class TokenPersistenceAdapter implements TokenPersistencePort {
     @Override
     public Optional<StoredRefreshToken> findRefreshToken(String tokenHash, String legacyClearToken) {
         return findEntity(tokenHash, legacyClearToken).map(t -> new StoredRefreshToken(t.getId(), t.getIdUser(),
-                Boolean.TRUE.equals(t.getRevoked()), t.getExpiresAt(), t.getTsRotated()));
+                Boolean.TRUE.equals(t.getRevoked()), t.getExpiresAt(), t.getTsRotated(), t.getRevokedReason()));
     }
 
     /** By hash, else by the clear value of a token stored before v1.2.0 (then rewritten as hash). */
@@ -58,6 +60,7 @@ public class TokenPersistenceAdapter implements TokenPersistencePort {
         userTokenRepository.findById(tokenId).ifPresent(t -> {
             t.setRevoked(true);
             t.setTsRotated(now);
+            t.setRevokedReason(RevokeReasons.ROTATED);
             userTokenRepository.save(t);
         });
     }
@@ -70,13 +73,20 @@ public class TokenPersistenceAdapter implements TokenPersistencePort {
         }
         UserTokenEntity token = opt.get();
         token.setRevoked(true);
+        token.setRevokedReason(RevokeReasons.LOGOUT);
         userTokenRepository.save(token);
         return true;
     }
 
     @Override
-    public int revokeAllUserTokens(long userId) {
-        return userTokenRepository.revokeAllByUserId(userId, Instant.now().toString());
+    public int revokeAllUserTokens(long userId, String reason) {
+        return userTokenRepository.revokeAllByUserId(userId, Instant.now().toString(), reason);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countActiveTokensIssuedAfter(long userId, String issuedAfter) {
+        return userTokenRepository.countActiveTokensIssuedAfter(userId, Instant.now().toString(), issuedAfter);
     }
 
     @Override
@@ -107,6 +117,7 @@ public class TokenPersistenceAdapter implements TokenPersistencePort {
         for (int i = 0; i < excess; i++) {
             UserTokenEntity oldest = activeTokens.get(i);
             oldest.setRevoked(true);
+            oldest.setRevokedReason(RevokeReasons.LIMIT);
             userTokenRepository.save(oldest);
         }
     }
@@ -123,5 +134,15 @@ public class TokenPersistenceAdapter implements TokenPersistencePort {
             user.setTsLastAccess(Instant.now().toString());
             userRepository.save(user);
         });
+    }
+
+    @Override
+    public void setSessionsValidAfter(long userId, String validAfter) {
+        userRepository.updateSessionsValidAfter(userId, validAfter);
+    }
+
+    @Override
+    public int deleteShortLivedRevokedTokens(String revokedBefore) {
+        return userTokenRepository.deleteShortLivedRevoked(revokedBefore);
     }
 }

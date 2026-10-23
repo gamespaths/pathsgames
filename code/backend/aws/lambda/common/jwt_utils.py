@@ -199,6 +199,8 @@ def verify_access_token(token):
             'username': payload.get('username'),
             'role':     payload.get('role'),
             'source':   'jwt',
+            # v1.7.0 step 12 — compared with the user's sessions_valid_after
+            'iat':      payload.get('iat'),
         }
     except Exception:
         return None

@@ -68,3 +68,24 @@ export async function logoutSession(serverUrl, accessToken) {
     { withCredentials: true, timeout: 5000, headers: bearer(accessToken) })
   return res.data
 }
+
+/** v1.7.0 PATCH /api/auth/me: saves the preferences of a Google user; answers the profile. */
+export async function updateMe(serverUrl, accessToken, csrfToken, preferences) {
+  const headers = { ...bearer(accessToken), ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}) }
+  const res = await axios.patch(`${serverUrl}/api/auth/me`, preferences, { timeout: 5000, headers })
+  return res.data
+}
+
+/** v1.7.0 POST /api/auth/logout/all: closes every session of the user, on every device. */
+export async function logoutAll(serverUrl, accessToken) {
+  const res = await axios.post(`${serverUrl}/api/auth/logout/all`, null,
+    { withCredentials: true, timeout: 5000, headers: bearer(accessToken) })
+  return res.data
+}
+
+/** v1.7.0 DELETE /api/auth/me with a fresh Google ID token and its nonce: 202, the deletion starts. */
+export async function deleteMe(serverUrl, accessToken, { idToken, nonce }) {
+  const res = await axios.delete(`${serverUrl}/api/auth/me`,
+    { withCredentials: true, timeout: 10000, headers: bearer(accessToken), data: { idToken, nonce } })
+  return res.data
+}

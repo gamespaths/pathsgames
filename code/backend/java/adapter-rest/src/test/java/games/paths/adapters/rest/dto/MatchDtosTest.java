@@ -102,6 +102,35 @@ class MatchDtosTest {
     }
 
     @Test
+    void v170_step8_matchVersionInSummaryAndInfo() {
+        MatchSummary m = new MatchSummary();
+        m.setMatchVersion("2026-10-22T10:00:00Z");
+        assertEquals("2026-10-22T10:00:00Z", m.getMatchVersion());
+        MatchSummaryResponse r = MatchSummaryResponse.fromModel(m);
+        assertEquals("2026-10-22T10:00:00Z", r.getMatchVersion());
+        r.setMatchVersion("v2");
+        assertEquals("v2", r.getMatchVersion());
+        games.paths.core.model.match.MatchDetail d = new games.paths.core.model.match.MatchDetail();
+        d.setMatch(m);
+        MatchInfoResponse info = MatchInfoResponse.fromModel(d);
+        assertEquals("2026-10-22T10:00:00Z", info.getMatchVersion());
+        info.setMatchVersion("v3");
+        assertEquals("v3", info.getMatchVersion());
+        assertNull(MatchInfoResponse.fromModel(new games.paths.core.model.match.MatchDetail()).getMatchVersion());
+    }
+
+    @Test
+    void v170_step9_tsUpdateInSummary() {
+        MatchSummary m = new MatchSummary();
+        m.setTsUpdate("2026-10-22T10:00:00Z");
+        assertEquals("2026-10-22T10:00:00Z", m.getTsUpdate());
+        MatchSummaryResponse r = MatchSummaryResponse.fromModel(m);
+        assertEquals("2026-10-22T10:00:00Z", r.getTsUpdate());
+        r.setTsUpdate("t2");
+        assertEquals("t2", r.getTsUpdate());
+    }
+
+    @Test
     void matchInfoResponseFromNullReturnsNull() {
         assertNull(MatchInfoResponse.fromModel(null));
     }

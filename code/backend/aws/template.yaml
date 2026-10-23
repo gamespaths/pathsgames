@@ -10,7 +10,7 @@ Parameters:
     Description: "Deploy environment. Suffix of every resource name, API stage and Lambda ENV; the Environment tag is mapped from it (prod -> production)."
   Version:
     Type: String
-    Default: "1.4.0"
+    Default: "1.7.0"
     Description: "Project version, applied as the `version` tag on every resource. Source: VERSION in the root .env; code/scripts/dev/bump-version.sh keeps this default in sync."
   JwtSecret:
     Type: String
@@ -41,6 +41,16 @@ Parameters:
     Type: String
     Default: "30"
     Description: "Max POST /api/auth/google attempts per source IP per window. 0 = disabled."
+  # v1.7.0 step 12 — sessions per user and the SameSite attribute of the auth cookies
+  MaxSessionsPerUser:
+    Type: String
+    Default: "12"
+    Description: "Refresh tokens per user (Google and guest); above it the least recently refreshed answers SESSION_LIMIT."
+  CookieSameSite:
+    Type: String
+    Default: "Lax"
+    AllowedValues: ["Lax", "Strict", "None"]
+    Description: "SameSite of the auth cookies: None only when the page is on another site than the API (execute-api URLs)."
   AllowMockAccess:
     Type: String
     Default: "false"
@@ -96,6 +106,35 @@ Parameters:
     Default: "true"
     AllowedValues: ["true", "false"]
     Description: "Require the csrfToken issued at login back as X-CSRF-TOKEN on POST /api/matches."
+  # v1.7.0 — the match play time and the profile choices (config only, no schema change)
+  PlayTimeCapSeconds:
+    Type: String
+    Default: "300"
+    Description: "Most seconds one gameplay write adds to the match play time (playMs)."
+  SupportedLanguages:
+    Type: String
+    Default: "en,it"
+    Description: "Languages PATCH /api/auth/me accepts, shown by /api/echo/status."
+  SupportedThemes:
+    Type: String
+    Default: "default,high-contrast"
+    Description: "Themes PATCH /api/auth/me accepts, shown by /api/echo/status."
+  # v1.7.0 step 10 — HMAC pepper of the banned Google subjects and emails; one per stage, never rotated
+  BannedSubjectPepper:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: "Empty = code default, accepted only on dev/test (login and admin user routes answer 500 elsewhere)."
+  # v1.7.0 step 8 — when react-game refetches a match on page return, shown by /api/echo/status
+  MatchRefetchBrowsers:
+    Type: String
+    Default: "webkit"
+    AllowedValues: ["webkit", "all"]
+    Description: "Browsers that refetch a match on page return: webkit (Safari, iOS) or all."
+  MatchRefetchMinHiddenSeconds:
+    Type: String
+    Default: "30"
+    Description: "Seconds a page must stay hidden before the return refetches the match."
   SeedBcryptHash:
     Type: String
     NoEcho: true
@@ -328,9 +367,10 @@ Resources:
           WriteCapacityUnits: !Ref TableWriteCapacity
         - !Ref AWS::NoValue
       GlobalSecondaryIndexes:
-        # v0.37.5 — both indexes are INCLUDE projections: a match's state and a story's
-        # 300 KB of texts are never replicated. GSI1 = "by owner" (USER_MATCHES#<uuid>,
-        # GUEST_TOKEN#<token>), GSI2 = "by type" (MATCH, STORY_LIST, GUEST_LIST).
+        # v1.7.0 — both indexes redefined (V1 step 6, tables recreated): each project the ONE
+        # ``summary`` map of their rows, GSI1 also the live match fields and the guest resume.
+        # GSI1 = "by owner" (USER_MATCHES#<uuid>, GUEST_TOKEN#<hash>, USER_IDENTITIES#, USER_SESSIONS#),
+        # GSI2 = "by type" (MATCH, STORY_LIST, GUEST_LIST, GOOGLE_USER_LIST, DELETING_USERS).
         - IndexName: GSI1
           KeySchema:
             - AttributeName: GSI1_PK
@@ -340,21 +380,11 @@ Resources:
           Projection:
             ProjectionType: INCLUDE
             NonKeyAttributes:
-              # match summary (_summary_from_item)
-              - uuid
-              - storyUuid
-              - difficultyUuid
-              - name
-              - status
+              # match listing (common/match_summary.py) + the live fields a move changes
+              - summary
               - currentClock
-              - expCost
-              - rngSeed
-              - userCreatorUuid
-              - tsInsert
-              - singlePlayer
-              - characterTemplateUuid
-              - classUuid
-              - traitUuids
+              - ts_update
+              - playMs
               # guest resume (auth/handler.py resume_guest)
               - username
               - role
@@ -366,8 +396,8 @@ Resources:
               WriteCapacityUnits: !Ref GsiWriteCapacity
             - !Ref AWS::NoValue
         # GSI2_SK="{tsInsert:020d}#{uuid}" on matches: the admin list is one newest-first
-        # Query (sinceDays = SK range). Stories and guests carry ONE ``summary`` map with
-        # everything their list needs — DynamoDB caps NonKeyAttributes at 20 per index.
+        # Query (sinceDays = SK range). Every row carries ONE ``summary`` map with what its
+        # list needs, so a move (clock change only) never writes this index.
         - IndexName: GSI2
           KeySchema:
             - AttributeName: GSI2_PK
@@ -377,20 +407,6 @@ Resources:
           Projection:
             ProjectionType: INCLUDE
             NonKeyAttributes:
-              - uuid
-              - storyUuid
-              - difficultyUuid
-              - name
-              - status
-              - currentClock
-              - expCost
-              - rngSeed
-              - userCreatorUuid
-              - tsInsert
-              - singlePlayer
-              - characterTemplateUuid
-              - classUuid
-              - traitUuids
               - summary
           ProvisionedThroughput: !If
             - IsProvisioned
@@ -421,7 +437,8 @@ Resources:
         AllowOrigins: !Ref CorsAllowOrigins
         # X-CSRF-TOKEN rides on POST /api/matches; without it here the browser's preflight
         # fails and the game never reaches the API. Retry-After is read on a 429.
-        AllowHeaders: [Content-Type, Authorization, Cookie, X-CSRF-TOKEN]
+        # v1.7.0 step 8 — If-Match carries the matchVersion on the gameplay writes.
+        AllowHeaders: [Content-Type, Authorization, Cookie, X-CSRF-TOKEN, If-Match]
         ExposeHeaders: [Retry-After]
         AllowCredentials: true
         # Browser caches each preflight 10 min: fewer OPTIONS hitting the stage throttle.
@@ -657,6 +674,10 @@ Resources:
         AdminAuthorizerId: !Ref AdminIpAuthorizer
         GoogleClientId: !Ref GoogleClientId
         GoogleEnabled: !Ref GoogleEnabled
+        SupportedLanguages: !Ref SupportedLanguages
+        SupportedThemes: !Ref SupportedThemes
+        MatchRefetchBrowsers: !Ref MatchRefetchBrowsers
+        MatchRefetchMinHiddenSeconds: !Ref MatchRefetchMinHiddenSeconds
 
   AuthModule:
     Type: AWS::Serverless::Application
@@ -695,7 +716,12 @@ Resources:
         GoogleClientId: !Ref GoogleClientId
         GoogleEnabled: !Ref GoogleEnabled
         RateLimitGooglePerIp: !Ref RateLimitGooglePerIp
+        MaxSessionsPerUser: !Ref MaxSessionsPerUser
+        CookieSameSite: !Ref CookieSameSite
         AdminTokenDays: !If [IsProd, "30", "365"]
+        SupportedLanguages: !Ref SupportedLanguages
+        SupportedThemes: !Ref SupportedThemes
+        BannedSubjectPepper: !Ref BannedSubjectPepper
 
   StoryModule:
     Type: AWS::Serverless::Application
@@ -763,6 +789,7 @@ Resources:
         RateLimitWindowSeconds: !Ref RateLimitWindowSeconds
         RateLimitMatchPerGuest: !Ref RateLimitMatchPerGuest
         RateLimitMatchPerGuestWindowSeconds: !Ref RateLimitMatchPerGuestWindowSeconds
+        PlayTimeCapSeconds: !Ref PlayTimeCapSeconds
         CsrfEnforced: !Ref CsrfEnforced
         RobotTestDataTtlHours: !Ref RobotTestDataTtlHours
 
@@ -846,6 +873,7 @@ Resources:
         RateLimitWindowSeconds: !Ref RateLimitWindowSeconds
         RateLimitMatchPerGuest: !Ref RateLimitMatchPerGuest
         RateLimitMatchPerGuestWindowSeconds: !Ref RateLimitMatchPerGuestWindowSeconds
+        PlayTimeCapSeconds: !Ref PlayTimeCapSeconds
         CsrfEnforced: !Ref CsrfEnforced
         RobotTestDataTtlHours: !Ref RobotTestDataTtlHours
         ApiBaseUrl: !If

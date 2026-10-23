@@ -61,10 +61,16 @@ class UserStatus:
     role: str
     state: int
     language: Optional[str] = "en"
+    # v1.7.0 step 12 — epoch seconds of users.sessions_valid_after (0 = none)
+    sessions_valid_after: int = 0
 
     @property
     def is_admin(self) -> bool:
         return self.role == "ADMIN"
+
+    def accepts_token_issued_at(self, issued_at_seconds: int) -> bool:
+        """False when the token was issued before the last "log out of all devices", ban or suspension."""
+        return self.sessions_valid_after <= 0 or int(issued_at_seconds) >= self.sessions_valid_after
 
     @property
     def is_guest(self) -> bool:
@@ -92,6 +98,8 @@ class StoredRefreshToken:
     revoked: bool
     expires_at: Optional[str]
     ts_rotated: Optional[str]
+    # v1.7.0 step 12 — why it was revoked (SESSION_LIMIT, reuse detection)
+    revoked_reason: Optional[str] = None
 
 
 def _blank(text: Optional[str]) -> bool:
@@ -148,6 +156,8 @@ class AuthenticatedSession:
     new_user: bool
     merged_guest_uuid: Optional[str]
     cancelled_matches: int
+    # v1.7.0 step 9 — the uuids of the matches the merge set to CANCELLED
+    cancelled_match_uuids: List[str] = field(default_factory=list)
 
     def __repr__(self):
         return f"AuthenticatedSession(profile={self.profile!r}, new_user={self.new_user})"
@@ -166,6 +176,7 @@ class MatchOwnership:
 class MergeResult:
     moved_matches: int = 0
     cancelled_match_ids: List[int] = field(default_factory=list)
+    cancelled_match_uuids: List[str] = field(default_factory=list)
 
 
 @dataclass(repr=False)

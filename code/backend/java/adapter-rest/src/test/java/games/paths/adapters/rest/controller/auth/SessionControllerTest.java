@@ -275,6 +275,15 @@ class SessionControllerTest {
         }
 
         @Test
+        void v170RefreshOfATokenEvictedByTheCapIsSessionLimit() throws Exception {
+            when(sessionPort.refreshToken("old")).thenThrow(new games.paths.core.model.auth.AuthException(
+                    games.paths.core.model.auth.AuthException.Code.SESSION_LIMIT, "too many devices"));
+            mvc.perform(post("/api/auth/refresh").cookie(new Cookie(CookieHelper.REFRESH_TOKEN_COOKIE, "old")))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.error").value("SESSION_LIMIT"));
+        }
+
+        @Test
         void meReturnsTheProfileFromTheDatabase() throws Exception {
             when(account.profile("u-1")).thenReturn(java.util.Optional.of(new games.paths.core.model.auth.UserProfile(
                     "u-1", "google_u1", "mario", "Mario Rossi", "pic", "PLAYER", 2, "it", "GOOGLE")));

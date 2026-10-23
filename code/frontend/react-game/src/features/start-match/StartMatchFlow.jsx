@@ -231,7 +231,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
     : t('startMatch.starting')
 
   // v1.2.0 — login card: a Google user is "Logged" (its (i) opens the user book); a guest gets a
-  // Login button to that book while Google sign-in is on, else the old locked card.
+  // Login button to that book while Google sign-in is on (v1.7.0: with the "Have an account?" hint).
   const loginCard = isGoogleUser
     ? <Card card={buildGoogleLoginCard(t, user)} entityType="login" label={t('book.login')} story={story}
         onPreview={() => openGuestModal()} locked lockedIcon="fas fa-check"
@@ -239,7 +239,9 @@ export default function StartMatchFlow({ story, config, storyId }) {
     : googleEnabled
       ? <Card card={buildLoginCard(t)} entityType="login" label={t('book.login')} story={story}
           onPreview={() => handleSelectionPreview(buildLoginCard(t),"login")}
-          onAction={() => openGuestModal()} actionLabel={t('book.login')} actionIcon="fa-sign-in-alt" />
+          onAction={() => openGuestModal()} actionLabel={t('book.login')} actionIcon="fa-sign-in-alt"
+          extraContent={<p className="start-match-account-hint" data-testid="account-hint">
+            <i className="fas fa-user-check me-1" />{t('startMatch.accountHint')}</p>} />
       : <Card card={buildLoginCard(t)} entityType="login" label={t('book.login')}
           onPreview={() => handleSelectionPreview(buildLoginCard(t),"login")} story={story} locked
           lockInfo={{ kind: 'login', label: t('book.guestLock') }} />

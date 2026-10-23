@@ -46,7 +46,13 @@ def _row_sink(monkeypatch):
     from common import db_utils
     helpers.SINK.rows.clear()
     helpers.REAL_BATCH_PUT = db_utils.batch_put_items
+    helpers.REAL_CLAIM = db_utils.claim_version
+    helpers.REAL_TRANSACT_PUT = db_utils.transact_put_items
     monkeypatch.setattr(db_utils, 'batch_put_items', helpers.SINK.batch_put_items)
+    # v1.7.0 step 8 — the claim wins and the transactional flush lands where the batch would
+    monkeypatch.setattr(db_utils, 'claim_version', lambda *a, **k: True)
+    monkeypatch.setattr(db_utils, 'transact_put_items', lambda items, conditions=None, **k:
+                        db_utils.batch_put_items(items))
 
 
 @pytest.fixture(autouse=True)

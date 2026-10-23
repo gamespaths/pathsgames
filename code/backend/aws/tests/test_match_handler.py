@@ -619,7 +619,9 @@ def test_list_user_matches_returns_summaries(mock_jwt, mock_get, mock_query):
     result = lambda_handler(event, {})
     assert result['statusCode'] == 200
     body = _body(result)
-    assert [m['uuid'] for m in body] == ['m2', 'm1']  # newest first
+    # v1.7.0 step 9 — the envelope; same status, no ts_update: the newest tsInsert first
+    assert [m['uuid'] for m in body['items']] == ['m2', 'm1']
+    assert body['nextCursor'] is None and body['limit'] == 50
     # v0.37.5 — the list reads the summary-only projection, never the full GSI1 items.
     mock_query.assert_called_once_with('GSI1', 'USER_MATCHES#player-uuid-001')
 
@@ -1174,7 +1176,8 @@ def test_list_all_matches_as_admin_returns_envelope(mock_jwt, mock_get, mock_pag
     assert args[0] == 'GSI2' and args[2] == 'MATCH'
     assert kwargs['limit'] == 50 and kwargs['ascending'] is False
     assert kwargs['start_key'] is None and kwargs['sk_from'] is None
-    assert kwargs['eq_filters'] == {'status': None, 'userCreatorUuid': None, 'storyUuid': None}
+    assert kwargs['eq_filters'] == {'summary.status': None, 'summary.storyUuid': None}
+    assert mock_page.call_count == 1
 
 
 @patch('match.handler.db_utils.get_item')
@@ -1237,10 +1240,12 @@ def test_list_all_matches_forwards_filters_and_cursor(mock_jwt, mock_get, mock_p
                            'sinceDays': '7', 'cursor': cursor})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 200
-    kwargs = mock_page.call_args.kwargs
-    assert kwargs['eq_filters'] == {'status': 'RUNNING', 'userCreatorUuid': 'u-9', 'storyUuid': 's-7'}
+    args, kwargs = mock_page.call_args
+    # v1.7.0 step 12 — userUuid is a key query on GSI1, the other filters stay post-read
+    assert args[0] == 'GSI1' and args[2] == 'USER_MATCHES#u-9'
+    assert kwargs['eq_filters'] == {'summary.status': 'RUNNING', 'summary.storyUuid': 's-7'}
     assert kwargs['start_key'] == {'PK': 'MATCH#prev', 'SK': 'METADATA'}
-    assert kwargs['sk_from'] is not None and len(kwargs['sk_from']) == 20  # 020d ts prefix
+    assert kwargs['sk_from'].startswith('MATCH#') and len(kwargs['sk_from']) == 26  # MATCH# + 020d ts
 
 
 @patch('match.handler.db_utils.query_index_page', return_value=([], None))

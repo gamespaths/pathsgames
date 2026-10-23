@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { beginRequest, endRequest } from './inFlight'
 
 const STORAGE_KEY = 'pg_game_server'
 
@@ -59,6 +60,10 @@ export async function retryOn401(instance, error) {
 export function apiClient() {
   const server = getServer()
   const instance = axios.create({ baseURL: server, timeout: 5000 })
+  // v1.7.0 counts the requests in flight (a retried request counts again)
+  instance?.interceptors?.request?.use((config) => { beginRequest(); return config })
+  instance?.interceptors?.response?.use((response) => { endRequest(); return response },
+    (error) => { endRequest(); return Promise.reject(error) })
   instance?.interceptors?.response?.use((response) => response, (error) => retryOn401(instance, error))
   return instance
 }

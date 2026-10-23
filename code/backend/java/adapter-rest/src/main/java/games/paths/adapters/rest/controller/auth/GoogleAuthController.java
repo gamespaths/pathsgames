@@ -81,6 +81,7 @@ public class GoogleAuthController {
         out.put("newUser", session.newUser());
         out.put("mergedGuest", session.mergedGuestUuid() != null);
         out.put("cancelledMatches", session.cancelledMatches());
+        out.put("cancelledMatchUuids", session.cancelledMatchUuids());
         return ResponseEntity.ok(out);
     }
 

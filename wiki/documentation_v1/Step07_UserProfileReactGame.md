@@ -1,6 +1,6 @@
 # Step 7 — User profile: react-game page
 
-**Status: analysed (October 21, 2026), owner answers recorded, not developed. Steps 6-12 are developed together and released as 1.6.0. Open points in section 4.**
+**Status: developed (October 23, 2026) in version 1.7.0, together with steps 6-12. Robot suite `tests_v1/07_user_profile_page` written, not yet run. Analysis decisions below are kept; "Implementation notes" lists what shipped.**
 Roadmap line: *profile page in the user's book* ([Roadmap](./Roadmap.md) step 7).
 Multi-device chain (same Google account, same game state on every device): [Step 6](./Step06_UserProfileBackend.md) · [Step 7](./Step07_UserProfileReactGame.md) · [Step 8](./Step08_MatchConcurrencyMultiDevice.md) · [Step 9](./Step09_MatchListCancelledLastPlayed.md) · [Step 12](./Step12_PaginationAndMultiDeviceContinuity.md).
 
@@ -53,14 +53,22 @@ From the user's book a player sees who they are and their statistics, edits the 
 8. (decided) `PATCH /me` refuses guests with 403 `GOOGLE_ACCOUNT_REQUIRED`; guest preferences live only in localStorage.
 9. (decided) The language list comes from `supportedLanguages` of the echo status, filtered by the bundles react-game really has.
 
+## Implementation notes (1.7.0)
+
+- Page `UserProfilePage.jsx` (statistics, preferences editor, "Log out of all devices", account deletion with a freshly issued Google token, both behind a confirmation); `UserLanguageSelector` lists only languages that have a bundle (`i18n/bundles.js`).
+- `auth/devicePreferences.js` keeps the device values in localStorage; guests use them alone, after the first Google login (`newUser`) one `PATCH /me` copies them; for an existing Google user the profile language overrides the device language.
+- The high-contrast toggle is not shown (its API and the `pathsgames.highContrast` key are ready). `hooks/usePageReturn.js` re-reads the profile when the page becomes visible again (reused by step 8).
+- Texts in `en.json` / `it.json` (`profile.*`).
+
 # Version Control
-- **Document Version**: 1.4.0
+- **Document Version**: 1.7.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.4.0 | Profile page analysed | October 21, 2026 |
+  | 1.7.0 | Developed and released | October 23, 2026 |
 
-- **Last Updated**: October 21, 2026 (v1.4.0)
+- **Last Updated**: October 23, 2026 (v1.7.0)
 
 
 # &lt; Paths Games /&gt;

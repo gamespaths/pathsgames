@@ -6,6 +6,8 @@ the single comparison behind every registry condition — events, edges, weather
 from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, Iterable, List, Optional
 
+from app.core.services.match.match_stamp import ADMIN, stamped
+
 OP_EQ = "="
 OP_NE = "!="
 OP_GT = ">"
@@ -454,6 +456,7 @@ class RegistryService:
         """v0.38.3 — whether the story declares this key in list_keys; False on a None story."""
         return bool(key) and key.strip() in self._key_definitions(id_story)
 
+    @stamped(ADMIN, ok=lambda r: r is not None)
     def upsert_by_match_uuid(self, match_uuid: str, key: Optional[str],
                              value: Optional[str]) -> Optional[List[str]]:
         """The admin console writing a key by match uuid. Nobody in the fiction did this, so
@@ -465,6 +468,7 @@ class RegistryService:
             return None
         return self.upsert(ids[0], ids[1], key, value)
 
+    @stamped(ADMIN, ok=lambda r: r is not None)
     def remove_by_match_uuid(self, match_uuid: str, key: Optional[str],
                              value: Optional[str]) -> Optional[List[str]]:
         """The admin console taking a value away. A None value empties the key outright rather

@@ -77,7 +77,8 @@ def test_new_defaults(monkeypatch):
 
 def test_check_secrets_refuses_the_committed_secret_outside_dev_test():
     check_secrets(Settings(env="development", jwt_secret=DEV_JWT_SECRET))
-    check_secrets(Settings(env="production", jwt_secret="a-private-random-secret-of-32-chars!!"))
+    check_secrets(Settings(env="production", jwt_secret="a-private-random-secret-of-32-chars!!",
+                           banned_subject_pepper="a-private-pepper"))
     for env in ("production", "alpha", "beta"):
         with pytest.raises(RuntimeError, match="JWT_SECRET"):
             check_secrets(Settings(env=env, jwt_secret=DEV_JWT_SECRET))

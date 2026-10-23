@@ -47,6 +47,9 @@ class JwtMiddleware(BaseHTTPMiddleware):
                 return self._error_response("ACCOUNT_DISABLED", "The account is disabled", 403)
             if user.state == 7:
                 return self._error_response("ACCOUNT_DELETION_IN_PROGRESS", "The account is being deleted", 403)
+            # v1.7.0 issued before "log out of all devices", a ban or a suspension (seconds, 60 s cache)
+            if not user.accepts_token_issued_at(token_info.iat):
+                return self._error_response("SESSION_REVOKED", "The session was closed from another device", 401)
             token_info = token_info.model_copy(update={"username": user.username, "role": user.role})
 
         # 5. Check Admin Authorization

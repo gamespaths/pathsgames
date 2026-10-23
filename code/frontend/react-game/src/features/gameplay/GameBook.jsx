@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from '../../i18n/context'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import { endMatch } from '../../api/matches'
+import { isStaleMatch } from '../../api/matchVersion'
 import Book from '../../components/book/Book'
 import CardPreviewModal from '@/components/modals/CardPreviewModal'
 import LoadingCard from '@/components/layout/LoadingCard'
@@ -28,7 +29,8 @@ export { statChangeItems } from '@/utils/statBadges'
  * nothing else. The side payloads live in useMatchChrome, what the pages show in
  * useBookView, and what an API answer narrates in useGameplayResults.
  */
-export default function GameBook({ gameData, matchUuid, story, storyDetail, onReload, onClose, onError }) {
+export default function GameBook({ gameData, matchUuid, story, storyDetail, onReload, onClose, onError, reloadKey = 0,
+  openLogKey = 0 }) {
   const { t, lang } = useTranslation()
   const { user } = useGuestUser()
   const accessToken = user?.accessToken
@@ -53,6 +55,17 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   const { clock, weather, matchLocations, locationCosts, refresh: refreshChrome } =
     useMatchChrome(matchUuid, accessToken, lang)
   const [view, viewActions] = useBookView()
+  // v1.7.0 step 8 — a match refetch (stale or page return) reloads the chrome and closes the pages
+  useEffect(() => {
+    if (!reloadKey) return
+    refreshChrome()
+    viewActions.closeAll()
+  }, [reloadKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  // v1.7.0 step 12 — the "match is being updated" banner opens the match log on the right page
+  useEffect(() => {
+    if (!openLogKey) return
+    viewActions.setPreviewRight({ kind: 'matchlog' })
+  }, [openLogKey]) // eslint-disable-line react-hooks/exhaustive-deps
   // v0.37.1 — whether the missions moved since the player last opened them. Watching the
   // pages keeps the mark up to date on its own, so news read as it lands never lights the tab.
   const missionsAlert = useMissionsAlert(gameData?.info?.missions,
@@ -77,7 +90,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
       await endMatch(matchUuid, action?.uuidEvent ?? action?.uuid, accessToken)
       setGameEnded(true)
     } catch (e) {
-      setEndError(e?.response?.data?.error || e?.message || 'end-game-failed')
+      if (!isStaleMatch(e)) setEndError(e?.response?.data?.error || e?.message || 'end-game-failed')
     } finally {
       setEnding(false)
     }

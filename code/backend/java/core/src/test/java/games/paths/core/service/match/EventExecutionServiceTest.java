@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.MatchStampPort;
 import games.paths.core.entity.story.EventEffectEntity;
 import games.paths.core.entity.story.EventEntity;
 import games.paths.core.port.match.EventExecutionPort.EventExecutionException;
@@ -39,6 +40,9 @@ import static org.mockito.Mockito.*;
 @DisplayName("EventExecutionService (Step 29)")
 class EventExecutionServiceTest {
 
+    /** v1.7.0 the match stamp of a successful write. */
+    private final MatchStampPort stamp = mock(MatchStampPort.class);
+
     private static final String MATCH_UUID = "match-uuid";
     private static final String USER_UUID = "user-uuid";
     private static final String EVENT_UUID = "event-uuid";
@@ -66,6 +70,7 @@ class EventExecutionServiceTest {
         timeAdvancementService = mock(TimeAdvancementService.class);
         service = new EventExecutionService(store, edgeStore, userAccessPort, contentQueryPort,
                 timeAdvancementService, registryService);
+        service.setMatchStamp(stamp);
 
         when(userAccessPort.findByUuid(USER_UUID)).thenReturn(Optional.of(
                 new UserAccessPort.UserView(USER_ID, USER_UUID, "player", "USER", 2)));
@@ -110,11 +115,16 @@ class EventExecutionServiceTest {
     }
 
     private EventExecutionResult execute() {
-        return service.executeEvent(MATCH_UUID, USER_UUID, EVENT_UUID, "en");
+        clearInvocations(stamp);
+        EventExecutionResult result = service.executeEvent(MATCH_UUID, USER_UUID, EVENT_UUID, "en");
+        verify(stamp).claimGameplay(MATCH_UUID);
+        return result;
     }
 
-    private static Code codeOf(Executable body) {
+    private Code codeOf(Executable body) {
+        clearInvocations(stamp);
         EventExecutionException ex = assertThrows(EventExecutionException.class, body::run);
+        verify(stamp, never()).claimGameplay(any());
         return ex.getCode();
     }
 

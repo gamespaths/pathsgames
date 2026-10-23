@@ -141,6 +141,7 @@ sam deploy \
         TurnstileSecretKey="${_TURNSTILE_SAM_KEY}" \
         TurnstileBypassToken="${_TURNSTILE_BYPASS}" \
         JwtSecret="${JWT_SECRET}" \
+        BannedSubjectPepper="${AWS_TEST_LAMBDA_BANNED_SUBJECT_PEPPER:-}" \
         AllowMockAccess=true \
         AdminIpWhitelist="${_ADMIN_IP_WHITELIST}" \
         AdminIpEmptyMeans="${_ADMIN_IP_EMPTY_MEANS}" \
@@ -167,6 +168,8 @@ sam deploy \
         GoogleClientId="${AWS_TEST_LAMBDA_GOOGLE_CLIENT_ID:-paths-games-dev.apps.googleusercontent.com}" \
         GoogleEnabled="${AWS_TEST_LAMBDA_GOOGLE_ENABLED:-true}" \
         RateLimitGooglePerIp="${AWS_TEST_LAMBDA_RATE_LIMIT_GOOGLE_PER_IP:-0}" \
+        MaxSessionsPerUser="${AWS_TEST_LAMBDA_MAX_SESSIONS_PER_USER:-12}" \
+        CookieSameSite="${AWS_TEST_LAMBDA_COOKIE_SAME_SITE:-None}" \
     $CONFIRM \
     --no-fail-on-empty-changeset 2>&1
 
