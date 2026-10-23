@@ -42,6 +42,11 @@ export function buildCardToSleep(story, playerStats, t) {
   return card
 }
 
+/** v1.8.0 — "Refreshing": the board was reloaded because the same account changed the match elsewhere. */
+export function buildUpdateMatchCard(t) {
+  return metaCard('refresh', t('game.updateMatch.title'), t('game.updateMatch.description'))
+}
+
 export function buildEndGameCard(t) {
   return metaCard('endgame', t('game.endGameCard.title'), t('game.endGameCard.description'));
 }

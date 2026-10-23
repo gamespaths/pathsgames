@@ -7,6 +7,7 @@ import Book from '../../components/book/Book'
 import CardPreviewModal from '@/components/modals/CardPreviewModal'
 import LoadingCard from '@/components/layout/LoadingCard'
 import { buildCardCharacteristicsRight } from '@/utils/gamebook'
+import { buildUpdateMatchCard } from '@/utils/loadoutCards'
 import EndGameBook from './EndGameBook'
 import GameBookMobile from './GameBookMobile'
 import PageLeft from './PageLeft'
@@ -30,7 +31,7 @@ export { statChangeItems } from '@/utils/statBadges'
  * useBookView, and what an API answer narrates in useGameplayResults.
  */
 export default function GameBook({ gameData, matchUuid, story, storyDetail, onReload, onClose, onError, reloadKey = 0,
-  openLogKey = 0 }) {
+  openLogKey = 0, staleKey = 0 }) {
   const { t, lang } = useTranslation()
   const { user } = useGuestUser()
   const accessToken = user?.accessToken
@@ -61,6 +62,11 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     refreshChrome()
     viewActions.closeAll()
   }, [reloadKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  // v1.8.0 — after a STALE_MATCH refetch (closeAll above runs first) the right page explains it
+  useEffect(() => {
+    if (!staleKey) return
+    viewActions.setPreviewRight({ kind: 'preview', card: buildUpdateMatchCard(t), type: 'updateMatch' })
+  }, [staleKey]) // eslint-disable-line react-hooks/exhaustive-deps
   // v1.7.0 step 12 — the "match is being updated" banner opens the match log on the right page
   useEffect(() => {
     if (!openLogKey) return

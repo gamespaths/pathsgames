@@ -80,22 +80,23 @@ describe('formatRelative and the list order', () => {
 })
 
 describe('MatchCard', () => {
-  it('shows the last played line and keeps Resume on an active match', () => {
+  it('v1.8.0 — no last played line; Resume stays on an active match', () => {
     const onResume = vi.fn()
     render(<MatchCard match={{ uuid: 'm', status: 'RUNNING', tsUpdate: HOURS_AGO(2) }} onResume={onResume} />)
-    expect(screen.getByTestId('match-last-played')).toHaveTextContent('matches.lastPlayed 2 hours ago')
+    expect(screen.queryByTestId('match-last-played')).toBeNull()
+    expect(screen.queryByText(/matches\.lastPlayed/)).toBeNull()
     fireEvent.click(screen.getByText('matches.resume'))
     expect(onResume).toHaveBeenCalled()
     expect(screen.queryByTestId('match-cancelled-note')).toBeNull()
   })
 
-  it('a cancelled match is muted, explains the kept match and never opens', () => {
+  it('v1.8.0 — a cancelled match is not muted, explains the kept match and never opens', () => {
     const onResume = vi.fn()
     const onHistory = vi.fn()
     const onPreviewCard = vi.fn()
     const { container } = render(<MatchCard match={{ uuid: 'm', status: 'CANCELLED' }} onResume={onResume}
       onHistory={onHistory} onPreviewCard={onPreviewCard} />)
-    expect(container.querySelector('.pg-card--match-muted')).toBeTruthy()
+    expect(container.querySelector('.pg-card--match-muted')).toBeNull()
     expect(screen.getByTestId('match-cancelled-note')).toHaveTextContent('matches.cancelledKept')
     expect(screen.queryByTestId('match-last-played')).toBeNull()
     expect(screen.queryByText('matches.resume')).toBeNull()
@@ -107,9 +108,10 @@ describe('MatchCard', () => {
     expect(onPreviewCard).not.toHaveBeenCalled()
   })
 
-  it('a banned match is muted without the merge note; highlighted marks the card', () => {
+  it('a banned match has no merge note and is not muted; highlighted marks the card', () => {
     const { container } = render(<MatchCard match={{ uuid: 'm', status: 'BANNED', tsUpdate: HOURS_AGO(1) }} highlighted />)
-    expect(container.querySelector('.pg-card--match-muted.pg-card--match-highlight')).toBeTruthy()
+    expect(container.querySelector('.pg-card--match-highlight')).toBeTruthy()
+    expect(container.querySelector('.pg-card--match-muted')).toBeNull()
     expect(screen.queryByTestId('match-cancelled-note')).toBeNull()
     expect(screen.getByTestId('match-card').dataset.highlighted).toBe('true')
   })
@@ -137,14 +139,11 @@ function renderList(props = {}) {
 }
 
 describe('UserMatchesList', () => {
-  it('hides cancelled and banned matches behind the toggle', async () => {
+  it('v1.8.0 — lists cancelled and banned matches too, with no toggle', async () => {
     renderList()
     await screen.findByText('T-s1')
-    expect(screen.getAllByTestId('match-card').map(c => c.dataset.status)).toEqual(['RUNNING'])
-    const toggle = screen.getByTestId('show-cancelled-toggle')
-    expect(toggle).toHaveTextContent('matches.showCancelled (2)')
-    fireEvent.click(toggle.querySelector('input'))
     expect(screen.getAllByTestId('match-card').map(c => c.dataset.status)).toEqual(['RUNNING', 'CANCELLED', 'BANNED'])
+    expect(screen.queryByTestId('show-cancelled-toggle')).toBeNull()
   })
 
   it('Resume closes the book and opens the active match', async () => {
@@ -155,17 +154,13 @@ describe('UserMatchesList', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
-  it('no toggle without hidden matches; only hidden ones show the empty text', async () => {
-    const { unmount } = render(<MemoryRouter><UserMatchesList preloadedMatches={[LIST[0]]} /></MemoryRouter>)
-    await screen.findByText('T-s1')
-    expect(screen.queryByTestId('show-cancelled-toggle')).toBeNull()
-    unmount()
+  it('v1.8.0 — a list of only cancelled matches still shows them', async () => {
     render(<MemoryRouter><UserMatchesList preloadedMatches={[LIST[1]]} /></MemoryRouter>)
-    await waitFor(() => expect(screen.getByText('matches.noMatches')).toBeTruthy())
-    expect(screen.getByTestId('show-cancelled-toggle')).toBeTruthy()
+    await waitFor(() => expect(screen.getByText('T-s2')).toBeTruthy())
+    expect(screen.getAllByTestId('match-card').map(c => c.dataset.status)).toEqual(['CANCELLED'])
   })
 
-  it('highlights the matches cancelled by the last login once, with the toggle on', async () => {
+  it('highlights the matches cancelled by the last login once', async () => {
     const consume = vi.fn()
     guest.value = { highlightedMatchUuids: ['m-can'], consumeHighlightedMatches: consume }
     const { unmount } = renderList()

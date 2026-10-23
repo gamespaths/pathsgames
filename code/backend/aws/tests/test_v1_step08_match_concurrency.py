@@ -104,9 +104,40 @@ def test_transact_put_items_stamps_conditions_and_retries():
     assert calls.call_count == 3 and sleeps == [db_utils.TRANSACT_BACKOFF_SECONDS]
     first = calls.call_args_list[1].kwargs['TransactItems']
     assert len(first) == 100 and first[0]['Put']['ConditionExpression'] == '#ts = :ts'
-    assert first[0]['Put']['Item']['ts_update'] == {'N': '42'} and 'ConditionExpression' not in first[1]['Put']
+    assert first[0]['Put']['Item']['ts_update'] == 42 and 'ConditionExpression' not in first[1]['Put']
+    assert first[0]['Put']['ExpressionAttributeValues'] == {':ts': 42}
     assert len(calls.call_args_list[2].kwargs['TransactItems']) == 1
     assert helpers.REAL_TRANSACT_PUT([]) is True
+
+
+def test_transact_put_items_sends_each_value_serialized_once():
+    """v1.8.0 — the wire body of a real resource client: the resource serializes, the code must not too."""
+    import boto3
+    from botocore.awsrequest import AWSResponse
+
+    class _Raw:
+        def stream(self, **_kwargs):
+            yield b'{}'
+
+    sent = []
+
+    def _capture(request, **_kwargs):
+        sent.append(json.loads(request.body))
+        return AWSResponse(request.url, 200, {}, _Raw())
+
+    table = boto3.resource('dynamodb', region_name='eu-central-1', aws_access_key_id='x',
+                           aws_secret_access_key='x').Table('T')
+    table.meta.client.meta.events.register('before-send.dynamodb.TransactWriteItems', _capture)
+    db_utils.set_request_stamp(42)
+    try:
+        with patch.object(db_utils, '_table', table):
+            assert helpers.REAL_TRANSACT_PUT([{'PK': 'MATCH#m1', 'SK': 'METADATA', 'n': 1.5}],
+                                             {('MATCH#m1', 'METADATA'): 42}) is True
+    finally:
+        db_utils.set_request_stamp(None)
+    put = sent[0]['TransactItems'][0]['Put']
+    assert put['Item']['PK'] == {'S': 'MATCH#m1'} and put['Item']['n'] == {'N': '1.5'}
+    assert put['Item']['ts_update'] == {'N': '42'} and put['ExpressionAttributeValues'] == {':ts': {'N': '42'}}
 
 
 def test_a_chunk_that_keeps_failing_raises():
@@ -210,7 +241,7 @@ def test_the_version_flows_from_start_to_pass():
         version = _body(started)['matchVersion']
         assert started['statusCode'] == 200 and int(version) == _ts(table) > V0
         info = _body(h.lambda_handler(_event('GET', '/api/match/m1/info'), None))
-        assert info['match']['matchVersion'] == version
+        assert info['match']['matchVersion'] == version and info['matchVersion'] == version
         passed = h.lambda_handler(_event('POST', '/api/gameplay/m1/action/pass', if_match=f'"{version}"'), None)
         assert passed['statusCode'] == 200 and int(_body(passed)['matchVersion']) > int(version)
 

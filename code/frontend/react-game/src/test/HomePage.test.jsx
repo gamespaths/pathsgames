@@ -102,16 +102,13 @@ describe('HomePage — story click with active match check', () => {
     getStories.mockResolvedValue([STORY_A, STORY_B])
   })
 
-  it('v1.7.0 step 12 — a known device without a Google session invites to sign in again', async () => {
+  it('v1.8.0 — no "Sign in with Google to find your matches" button, even on a known device', async () => {
     listMatches.mockResolvedValue([])
-    const { unmount } = wrap(<HomePage />)
-    expect(screen.queryByTestId('known-account-hint')).toBeNull()
-    unmount()
     guest.knownAccountHint = true
     wrap(<HomePage />)
-    fireEvent.click(await screen.findByTestId('known-account-hint'))
-    expect(screen.getByTestId('known-account-hint')).toHaveTextContent('home.knownAccount')
-    expect(mockOpenGuestModal).toHaveBeenCalled()
+    await screen.findByText('home.heroTitle')
+    expect(screen.queryByTestId('known-account-hint')).toBeNull()
+    expect(screen.queryByText('home.knownAccount')).toBeNull()
   })
 
   it('opens StartBookModal when no active match for that story', async () => {

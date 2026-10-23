@@ -5,15 +5,16 @@ import { listMatches } from '@/api/matches'
 import { getStory } from '@/api/stories'
 import MatchCard from '@/features/matches/MatchCard'
 import LoadingCard from '@/components/layout/LoadingCard'
-import { HIDDEN_MATCH_STATUSES, sortMatchesForList } from '@/utils/matchStatus'
+import { sortMatchesForList } from '@/utils/matchStatus'
 import { useGuestUser } from './GuestUserContext'
+import UserStatsCard from './UserStatsCard'
 import { toEpochMs } from '@/utils/dates'
 
 /**
  * UserMatchesList — fetches the current user's matches and story cards,
  * then renders a scrollable grid of MatchCard items.
- * v1.7.0 step 9 — active first, then last played; cancelled and banned matches behind a toggle; the
- * matches the last login cancelled are highlighted once (and shown with the toggle on).
+ * v1.7.0 step 9 — active first, then last played; the matches the last login cancelled are highlighted once.
+ * v1.8.0 — the user's statistics card opens the grid; cancelled and banned matches are always listed.
  */
 export default function UserMatchesList({ accessToken, preloadedMatches, onPreviewCard, onOpenHistory, onClose }) {
   const { t, lang } = useTranslation()
@@ -26,7 +27,6 @@ export default function UserMatchesList({ accessToken, preloadedMatches, onPrevi
   // Read once at mount: a later open of the list shows no highlight.
   const highlightRef = useRef(null)
   if (highlightRef.current === null) highlightRef.current = new Set(highlightedMatchUuids ?? [])
-  const [showCancelled, setShowCancelled] = useState(() => highlightRef.current.size > 0)
 
   useEffect(() => {
     if (highlightRef.current.size > 0) consumeHighlightedMatches?.()
@@ -72,8 +72,8 @@ export default function UserMatchesList({ accessToken, preloadedMatches, onPrevi
     </div>
   )
 
-  const hiddenCount = matches.filter(m => HIDDEN_MATCH_STATUSES.has(m?.status)).length
-  const visible = showCancelled ? matches : matches.filter(m => !HIDDEN_MATCH_STATUSES.has(m?.status))
+  // v1.8.0 — cancelled and banned matches always listed, no "show cancelled" toggle
+  const visible = matches
 
   return (
     <div className="matches-list-wrap">
@@ -81,18 +81,9 @@ export default function UserMatchesList({ accessToken, preloadedMatches, onPrevi
         <i className="fas fa-scroll me-2" />{t('matches.title')}
       </h3>
 
-      {hiddenCount > 0 && (
-        <label className="matches-list-toggle" data-testid="show-cancelled-toggle">
-          <input type="checkbox" className="form-check-input me-2" checked={showCancelled}
-            onChange={e => setShowCancelled(e.target.checked)} />
-          {t('matches.showCancelled')} ({hiddenCount})
-        </label>
-      )}
-
-      {visible.length === 0 ? (
-        <p className="matches-list-empty">{t('matches.noMatches')}</p>
-      ) : (
-        <div className=" selection-list">
+      {/* v1.8.0 — the user's small card always opens the grid, so an empty list needs no text */}
+      <div className=" selection-list">
+          <UserStatsCard />
           {visible.map(match => (
             <MatchCard
               key={match.uuid}
@@ -104,8 +95,7 @@ export default function UserMatchesList({ accessToken, preloadedMatches, onPrevi
               onHistory={onOpenHistory}
             />
           ))}
-        </div>
-      )}
+      </div>
     </div>
   )
 }

@@ -9,6 +9,8 @@ Admin lists page and filter on the server; a player on any device sees that the 
 
 ## 2. Decisions (owner, October 21, 2026)
 
+Superseded in 1.8.0: the home button "Sign in with Google to find your matches" was removed and the `STALE_MATCH` notice is now the "Refreshing" card; the page-return banner stays (z-index 1070). See "Fixes (1.8.0)" below.
+
 - **Pagination residuals only:** user and story filters in the react-admin Matches page, server-side paging of the stories list, DynamoDB access-pattern check. The user filter is a picker that uses the users search of [Step 10](./Step10_AdminUserManagementBackend.md). The AWS `storyUuid` filter is a post-read loop with a read budget of 5 pages; react-admin handles short pages.
 - **Banner "Match is being updated"** (IT "Partita in aggiornamento"; the same text as the 409 `STALE_MATCH` message of [Step 8](./Step08_MatchConcurrencyMultiDevice.md); neutral: it covers another tab, an admin edit or a snapshot restore) with a link to the existing match log, when the refetched `matchVersion` differs from the one this device knew ([Step 8](./Step08_MatchConcurrencyMultiDevice.md)).
 - **Flag `pathsgames.knownAccount`:** non-personal localStorage flag written at Google login; with no session on the device react-game shows "Sign in with Google to find your matches". It is kept at logout and removed at account deletion; a necessary non-personal key, so no new consent prompt. The cookie policy and privacy texts (react-game policy data and i18n) are updated for it, list the other local keys missing today (`pathsgames.lang`, the server key, the Google nonce, the Turnstile pass) and fix the guest cookie duration.
@@ -36,6 +38,8 @@ Admin lists page and filter on the server; a player on any device sees that the 
 - `SameSite`: Java already has `game.auth.cookie.same-site` (default `Lax`, `None` in the dev profile); Python (`set_auth_cookie`) and AWS (`_refresh_cookie`, `_guest_cookie`, `_clear_cookies`) hardcode `None` and become a parameter with default `Lax`; `None` is set where the API host is not on the same site as the page (AWS execute-api URLs, Replit, local dev against a remote API); the README of each backend lists those places.
 
 ### 3.3 react-game
+
+Superseded in 1.8.0: the home "Sign in with Google to find your matches" message and the "Match is being updated" notice; see "Fixes (1.8.0)" below.
 - `GamePage`: after a return refetch, if `matchVersion` differs from the known one and this device did not cause it, show the banner "Match is being updated" / "Partita in aggiornamento" with a link to the match log (the log card of the book); dismissible, EN and IT.
 - Flag `pathsgames.knownAccount`: written on Google login success (a constant value, no identifier, no email), read at boot: when no session is restored the home shows "Sign in with Google to find your matches". Kept at logout, removed at account deletion.
 - Policy update: the cookie table in `src/consent/cookieConsent.js` (EN and IT rows), `modals.cookies` and `modals.privacy` in `src/i18n/en.json` and `it.json`; the static pages follow at the next build. Local data to list: localStorage `pathsgames.lang`, `pg_game_server`, `pathsgames.knownAccount` (and `pathsgames.highContrast` of [Step 7](./Step07_UserProfileReactGame.md)); sessionStorage `pathsgames.googleNonce` and the story cache `pg_story:*`; cookies `pathsgames.guestcookie` (180 days, the table says 30), `pathsgames.refreshToken` (250 days from this step, the table says 7), `pathsgames.cookiesConsent`, `pathsgames.turnstilePass`. The consent revision constant is not raised.
@@ -80,15 +84,27 @@ Admin lists page and filter on the server; a player on any device sees that the 
 - Pagination: `GET /api/admin/stories` is now the cursor envelope (breaking change; react-admin Stories page loads page by page); admin matches filters `userUuid` (user picker) and `storyUuid` on the server.
 - react-game: banner "Match is being updated" with a link to the log when the refetched `matchVersion` differs, `auth/knownAccount.js` (`pathsgames.knownAccount`) and the message "Sign in with Google to find your matches", `auth/sessionAlerts.js` (`SESSION_LIMIT` opens the sign-in), cookie and privacy texts updated.
 
+## Fixes (1.8.0)
+
+- Java `TokenPersistenceAdapter` overrides `revokeAllUserTokens(long)`: as a port default method it ran outside the class transaction and the modifying query failed on logout-all and account deletion. SQLite integration test added.
+- Robot `multi_device.robot`: the logout-all test skips the access-token `SESSION_REVOKED` check for `MOCK_ACCESS_` tokens (local AWS with `ALLOW_MOCK_ACCESS=true`, no `iat`); the admin matches filter test accepts a null `userCreatorUuid` (Java and Python leave it null in the admin list by design, AWS fills it).
+- `run_robot_with_local_java_postgres.sh` exports a random `BANNED_SUBJECT_PEPPER` when `.env` has none (`StartupSecretsGuard` refuses the prod profile without it).
+- Home: the button "Sign in with Google to find your matches" and the string `home.knownAccount` are removed (supersedes the `knownAccount` home message above). **TO DO in 1.9.0:** remove the `pathsgames.knownAccount` flag (still written at Google login, no longer read) and its rows in the cookie table (`consent/cookieConsent.js`) and the policy texts.
+- The page-return banner (WebKit) is unchanged but its z-index is 1070, so it shows above the book overlay (it was hidden at 1050). The "Match is being updated" floating notice is replaced by the "Refreshing" card, see [Step 8](./Step08_MatchConcurrencyMultiDevice.md).
+- Logout menu with "Log out of all devices" and account deletion: see [Step 7](./Step07_UserProfileReactGame.md) "Changes (1.8.0)".
+- `aws_backend_deploy.sh`: an empty `AWS_TEST_LAMBDA_BANNED_SUBJECT_PEPPER` is no longer passed (sam rejects `Key=`); the stack keeps its previous value (code default on create, accepted only on dev/test).
+- Cookie `SameSite` and admin IP allow-list notes: [Environments](../Environments.md) section 3 and 4.
+
 # Version Control
-- **Document Version**: 1.7.0
+- **Document Version**: 1.8.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.4.0 | Pagination and many-device continuity analysed | October 21, 2026 |
   | 1.7.0 | Developed and released | October 23, 2026 |
+  | 1.8.0 | Fixes after first full Robot run, home button removed | October 23, 2026 |
 
-- **Last Updated**: October 23, 2026 (v1.7.0)
+- **Last Updated**: October 23, 2026 (v1.8.0)
 
 
 # &lt; Paths Games /&gt;

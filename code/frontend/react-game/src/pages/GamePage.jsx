@@ -12,9 +12,6 @@ import { useServer } from '@/context/ServerContext'
 import { STALE_EVENT, getMatchVersion, isStaleMatch } from '@/api/matchVersion'
 import useMatchRefetchOnReturn from '@/hooks/useMatchRefetchOnReturn'
 
-/** v1.7.0 step 8 — how long the "match is being updated" notice stays after a refetch. */
-export const STALE_NOTICE_MS = 4000
-
 /** v1.7.0 step 12 — the match changed elsewhere: this device knew a version and the refetch brought another. */
 export function changedElsewhere(before, after) {
   return Boolean(before) && Boolean(after) && before !== after
@@ -33,9 +30,10 @@ export default function GamePage() {
   const [storyDetail, setStoryDetail] = useState(null)
   const [loading, setLoading] = useState(true)
   const [matchError, setMatchError] = useState(null)
-  // v1.7.0 step 8 — a refetch after STALE_MATCH or a page return: the notice and the chrome reload key
-  const [staleNotice, setStaleNotice] = useState(false)
+  // v1.7.0 step 8 — a refetch after STALE_MATCH or a page return: the chrome reload key;
+  // v1.8.0 — staleKey asks the board for the "Refreshing" page on the right
   const [reloadKey, setReloadKey] = useState(0)
+  const [staleKey, setStaleKey] = useState(0)
   // v1.7.0 step 12 — the dismissible "match is being updated" banner and the request to open the match log
   const [updatedBanner, setUpdatedBanner] = useState(false)
   const [openLogKey, setOpenLogKey] = useState(0)
@@ -98,18 +96,12 @@ export default function GamePage() {
     const onStale = (event) => {
       const uuid = event?.detail?.matchUuid
       if (uuid && uuid !== matchUuid) return
-      setStaleNotice(true)
+      setStaleKey(k => k + 1)
       void refetchMatch()
     }
     window.addEventListener(STALE_EVENT, onStale)
     return () => window.removeEventListener(STALE_EVENT, onStale)
   }, [matchUuid, refetchMatch])
-
-  useEffect(() => {
-    if (!staleNotice) return undefined
-    const timer = setTimeout(() => setStaleNotice(false), STALE_NOTICE_MS)
-    return () => clearTimeout(timer)
-  }, [staleNotice])
 
   // v1.7.0 step 12 — the banner only when the version moved without a write of this device
   const refetchOnReturn = useCallback(async () => {
@@ -162,9 +154,6 @@ export default function GamePage() {
 
   return (
     <div className="game-page-wrap">
-      {staleNotice && (
-        <div className="pg-stale-notice" role="status">{t('game.matchUpdating')}</div>
-      )}
       {updatedBanner && (
         <div className="pg-update-banner" role="alert" data-testid="match-updated-banner">
           <span>{t('game.matchUpdating')}</span>
@@ -183,7 +172,7 @@ export default function GamePage() {
       ) : (!matchError || matchError.transient) && (
         <GameBook gameData={gameData} matchUuid={matchUuid} story={story} storyDetail={storyDetail}
           onReload={reloadGameData} onClose={() => gotoHomePage(null)} onError={handleGameError}
-          reloadKey={reloadKey} openLogKey={openLogKey} />
+          reloadKey={reloadKey} openLogKey={openLogKey} staleKey={staleKey} />
       )}
     </div>
   )

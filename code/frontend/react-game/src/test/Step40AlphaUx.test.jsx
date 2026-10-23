@@ -283,7 +283,8 @@ describe('match status helpers and list order', () => {
     render(<MemoryRouter><UserMatchesList accessToken="tok" onOpenHistory={onOpenHistory} /></MemoryRouter>)
     await screen.findByText('T-s1')
     const titles = [...document.querySelectorAll('.gc-title__text')].map(e => e.textContent)
-    expect(titles).toEqual(['T-s2', 'T-s1'])
+    // v1.8.0 — the user's statistics card opens the grid
+    expect(titles).toEqual(['modals.guestUser.anonymous', 'T-s2', 'T-s1'])
     fireEvent.click(screen.getByText('matches.logOpen'))
     expect(onOpenHistory).toHaveBeenCalledWith(expect.objectContaining({ match: expect.objectContaining({ uuid: 'm-end' }) }))
   })

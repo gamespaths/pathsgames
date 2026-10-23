@@ -149,7 +149,6 @@ describe('policy texts', () => {
       expect(necessary).toContain('180')
       expect(bundle.modals.privacy.retentionBody).toContain('250')
       expect(bundle.auth.errors.SESSION_LIMIT).toBeTruthy()
-      expect(bundle.home.knownAccount).toBeTruthy()
       expect(bundle.profile.activeSessions).toContain('{count}')
       expect(bundle.game.matchUpdatedLog).toBeTruthy()
     }

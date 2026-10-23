@@ -10,6 +10,8 @@ From the user's book a player sees who they are and their statistics, edits the 
 
 ## 2. Decisions (owner, October 21, 2026)
 
+Superseded in 1.8.0: the "profile page" below was replaced by a stats card in the user book, see "Changes (1.8.0)" below.
+
 - Page content as in the roadmap: user info and statistics (including play time and clocks of [Step 6](./Step06_UserProfileBackend.md)); preferences editor; links to the privacy pages; responsive book layout; unit tests.
 - Guest values kept in localStorage are copied into the profile at the first Google login; when logged in the profile wins and localStorage is only a cache.
 - **Guests** get the same profile page with their statistics and an invitation to sign in. For guests there is NO "Log out of all devices" and NO account deletion. Guest preferences stay in localStorage only (roadmap steps 15 and 17): `PATCH /me` refuses guests with 403 `GOOGLE_ACCOUNT_REQUIRED` ([Step 6](./Step06_UserProfileBackend.md)).
@@ -22,6 +24,8 @@ From the user's book a player sees who they are and their statistics, edits the 
 ## 3. Sub-points per component
 
 ### 3.1 react-game (`code/frontend/react-game/`)
+
+Superseded in 1.8.0: the profile page, its button and the profile-page logout/deletion buttons; see "Changes (1.8.0)" below.
 - `api/auth.js`: add `updateMe` (`PATCH /api/auth/me` with `X-CSRF-TOKEN`), `logoutAll`, `deleteMe` (`DELETE /api/auth/me` with `{idToken, nonce}`); `getMe` exists.
 - Profile in the user's book (beside `features/guest-user/UserAccountPanel.jsx`): nickname, display name, picture, account type; statistics (played, completed, game over, play time as hours and minutes, clocks). A guest sees the same statistics and a "Sign in with Google" invitation.
 - Preferences editor: language (reuse `UserLanguageSelector.jsx`; the options are the `supportedLanguages` of `GET /api/echo/status` that also have a translation bundle; Google user: `PATCH`, then the i18n context and the `pathsgames.lang` cache; guest: localStorage only, no call). The high-contrast control is not rendered; the `PATCH` field and the `pathsgames.highContrast` key are wired and unit tested.
@@ -55,20 +59,29 @@ From the user's book a player sees who they are and their statistics, edits the 
 
 ## Implementation notes (1.7.0)
 
+Superseded in 1.8.0: the profile page and its buttons (see "Changes (1.8.0)" below).
+
 - Page `UserProfilePage.jsx` (statistics, preferences editor, "Log out of all devices", account deletion with a freshly issued Google token, both behind a confirmation); `UserLanguageSelector` lists only languages that have a bundle (`i18n/bundles.js`).
 - `auth/devicePreferences.js` keeps the device values in localStorage; guests use them alone, after the first Google login (`newUser`) one `PATCH /me` copies them; for an existing Google user the profile language overrides the device language.
 - The high-contrast toggle is not shown (its API and the `pathsgames.highContrast` key are ready). `hooks/usePageReturn.js` re-reads the profile when the page becomes visible again (reused by step 8).
 - Texts in `en.json` / `it.json` (`profile.*`).
 
+## Changes (1.8.0)
+
+- **Profile page removed** (supersedes the page of the 1.7.0 notes above): `UserProfilePage.jsx` and the "My profile" button are gone. The right page of the user book opens with `UserStatsCard.jsx`, the first card of the matches grid in `UserMatchesList.jsx`: user name and 4 badges Matches / Complete / Gameover / Time, read from `GET /api/auth/me` at every open. The text "No matches yet. Start an adventure!" is gone; the language selector stays on the left card; the policy links stay in the footer only.
+- **Play time format** (`utils/profileStats.js` `formatPlayTime`): under 1 hour "X mins", under 24 hours "X H", otherwise "Z days" (IT "X min" / "X H" / "Z giorni"); keys `profile.stats.playTimeMinutes/Hours/Days` replace `playTimeValue`.
+- **Logout menu** (`UserAccountPanel.jsx`, `LogoutMenu`): for a Google user the "Log out" button hides and 3 centred buttons appear: log out of this device, log out of all devices (confirmation), delete my account (confirmation with a fresh Google popup). The active-sessions count and profile errors show there; after a deletion the left card shows the closing message.
+
 # Version Control
-- **Document Version**: 1.7.0
+- **Document Version**: 1.8.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.4.0 | Profile page analysed | October 21, 2026 |
   | 1.7.0 | Developed and released | October 23, 2026 |
+  | 1.8.0 | Profile page replaced by a small card | October 23, 2026 |
 
-- **Last Updated**: October 23, 2026 (v1.7.0)
+- **Last Updated**: October 23, 2026 (v1.8.0)
 
 
 # &lt; Paths Games /&gt;

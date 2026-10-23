@@ -20,7 +20,11 @@ vi.mock('../features/gameplay/GameBookMobile', () => ({ default: () => <div /> }
 vi.mock('../features/gameplay/EndGameBook', () => ({ default: () => <div /> }))
 vi.mock('../features/gameplay/cards/PlayerStats', () => ({ default: () => <div /> }))
 vi.mock('../features/matches/MatchLogCard', () => ({ default: () => <div data-testid="match-log" /> }))
-vi.mock('../components/layout/Card', () => ({ default: () => <div /> }))
+vi.mock('../components/layout/Card', () => ({
+  default: ({ variant, card, entityType }) => variant === 'page' && entityType === 'updateMatch'
+    ? <div data-testid="update-match-page" data-img={card?.urlImage ?? ''}>{card?.title}|{card?.description}</div>
+    : <div />,
+}))
 
 import GameBook from '../features/gameplay/GameBook'
 import { getMatchClock } from '../api/matches'
@@ -31,9 +35,9 @@ const GAME_DATA = {
   info: { players: [{ uuid: 'me', idLocation: 1 }], locations: [], locationsActive: [] },
 }
 
-function board(reloadKey, openLogKey = 0) {
+function board(reloadKey, openLogKey = 0, staleKey = 0) {
   return <GameBook gameData={GAME_DATA} matchUuid="m1" story={{ uuid: 's1' }} reloadKey={reloadKey}
-    openLogKey={openLogKey} onReload={vi.fn()} onClose={vi.fn()} onError={vi.fn()} />
+    openLogKey={openLogKey} staleKey={staleKey} onReload={vi.fn()} onClose={vi.fn()} onError={vi.fn()} />
 }
 
 describe('GameBook reload key', () => {
@@ -46,6 +50,19 @@ describe('GameBook reload key', () => {
     rerender(board(1))
     await waitFor(() => expect(getMatchClock).toHaveBeenCalledTimes(2))
     expect(screen.getByTestId('book')).toBeTruthy()
+  })
+
+  it('v1.8.0 — a STALE_MATCH refetch (new reload and stale keys) shows the Refreshing page on the right', async () => {
+    const { rerender } = render(board(0, 0, 0))
+    await waitFor(() => expect(getMatchClock).toHaveBeenCalledTimes(1))
+    expect(screen.queryByTestId('update-match-page')).toBeNull()
+    rerender(board(1, 0, 1))
+    const page = await screen.findByTestId('update-match-page')
+    expect(page).toHaveTextContent('game.updateMatch.title|game.updateMatch.description')
+    expect(page.dataset.img).toContain('unsplash.com')
+    // a plain reload (page return) closes it and does not open it again
+    rerender(board(2, 0, 1))
+    await waitFor(() => expect(screen.queryByTestId('update-match-page')).toBeNull())
   })
 
   it('v1.7.0 step 12 — a new log key opens the match log on the right page', async () => {

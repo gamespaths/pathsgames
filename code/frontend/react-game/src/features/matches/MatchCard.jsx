@@ -1,7 +1,6 @@
 import { useTranslation } from '../../i18n/context'
 import Card from '../../components/layout/Card'
-import { ACTIVE_MATCH_STATUSES, HIDDEN_MATCH_STATUSES, lastPlayedOf } from '../../utils/matchStatus'
-import { formatRelative } from '../../utils/dates'
+import { ACTIVE_MATCH_STATUSES, HIDDEN_MATCH_STATUSES } from '../../utils/matchStatus'
 import MatchStatusBadge from './MatchStatusBadge'
 
 /**
@@ -9,8 +8,8 @@ import MatchStatusBadge from './MatchStatusBadge'
  *
  * Step 40 — every card wears its status badge. Active match (CREATED/RUNNING): (i) + Resume;
  * any other (PAUSED/ENDED/GAMEOVER): a small Missions icon + a wide Log button (the history).
- * v1.7.0 step 9 — a "last played" line; CANCELLED and BANNED are muted and never opened; `highlighted`
- * marks a match the last login cancelled.
+ * v1.7.0 step 9 — CANCELLED and BANNED are never opened (v1.8.0: in full colour); `highlighted` marks a match the last
+ * login cancelled (v1.8.0: no "last played" line, the list order still uses it).
  *
  * onPreviewCard(infoObj) — (i), or Missions with `missionsOnly`; onHistory(infoObj) — Log.
  */
@@ -38,21 +37,12 @@ export default function MatchCard({ match, story, onResume, onPreviewCard, onHis
           infoIconClassName: 'fas fa-clipboard-list', infoLabel: t('game.missions.openAction') }
       : { onSelect: onResume, selectLabel: t('matches.resume'), onPreview: handlePreview }
 
-  // Dates use the browser locale until step 16 formats them by language.
-  const lastPlayed = formatRelative(lastPlayedOf(match))
-  const extra = (lastPlayed || status === 'CANCELLED') ? (
-    <>
-      {lastPlayed && <p className="match-card-last-played" data-testid="match-last-played">
-        <i className="fas fa-clock me-1" />{t('matches.lastPlayed')} {lastPlayed}
-      </p>}
-      {status === 'CANCELLED' && <p className="match-card-cancelled-note" data-testid="match-cancelled-note">
-        {t('matches.cancelledKept')}
-      </p>}
-    </>
+  const extra = status === 'CANCELLED' ? (
+    <p className="match-card-cancelled-note" data-testid="match-cancelled-note">{t('matches.cancelledKept')}</p>
   ) : null
 
-  const classes = [hidden ? 'pg-card--match-muted' : null, highlighted ? 'pg-card--match-highlight' : null]
-    .filter(Boolean).join(' ')
+  // v1.8.0 — cancelled and banned cards keep full colour (no muted style)
+  const classes = highlighted ? 'pg-card--match-highlight' : ''
 
   return (
     <div className="match-card-wrap" data-testid="match-card" data-status={status}

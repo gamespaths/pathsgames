@@ -10,6 +10,8 @@ Two devices of the same player never overwrite each other's moves: a write made 
 
 ## 2. Decisions (owner, October 21, 2026)
 
+Superseded in 1.8.0: the floating "Match is being updated" notice of the 409 UX is now a "Refreshing" card-page, see "Fixes (1.8.0)" below.
+
 - `GET /api/match/{uuid}/info` returns `matchVersion` (opaque, the `ts_update`). Every gameplay write response also returns the new `matchVersion`, so the same device never becomes stale by its own move. `POST /api/matches` (create) returns it too, so `start` and `join` can send `If-Match`.
 - react-game sends it in the header `If-Match`; a different value answers **409 `STALE_MATCH`** (not 412). OpenAPI on every write endpoint (the 11 of [Step 6](./Step06_UserProfileBackend.md)).
 - **Header missing:** the backend still does the internal compare-and-set against the value read at request start; a 409 happens only in a real race. The client-side comparison runs only when `If-Match` is sent. Old clients and the existing Robot suites keep working.
@@ -40,6 +42,8 @@ Two devices of the same player never overwrite each other's moves: a write made 
 - Parameters as SAM parameters with code defaults; `lambda/echo/handler.py` exposes them.
 
 ### 3.4 react-game
+
+Superseded in 1.8.0: the "Match is being updated" message on `STALE_MATCH` is now a "Refreshing" card-page, see "Fixes (1.8.0)" below.
 - Keep `matchVersion` in `GamePage` state (from `/info` and the create answer, replaced by every write response); `api/matches.js` adds `If-Match` to the 11 write calls; the 401 retry in `api/client.js` repeats the same header (a 401 happens before any write).
 - On `STALE_MATCH`: refetch (`/info` plus the hooks that load clock, weather, locations, inventory, missions and logs, for example through a reload counter in `GamePage`), message "Match is being updated" / "Partita in aggiornamento", the action is never re-sent; `MATCH_NOT_RUNNING` keeps the existing end-of-match flow.
 - Refetch on return: the `usePageReturn` hook of [Step 7](./Step07_UserProfileReactGame.md) with the two parameters read from `/api/echo/status` (`ServerContext`). `webkit` detection: iOS (iPhone, iPad, iPod, and iPadOS reporting a Mac with touch) or desktop Safari (Safari in the user agent without Chrome, Chromium, Edg or Android); skipped while a request is in flight.
@@ -79,15 +83,23 @@ Two devices of the same player never overwrite each other's moves: a write made 
 - react-game: `api/matchVersion.js` (version per match, `If-Match`), `hooks/useMatchRefetchOnReturn.js` (`visibilitychange`, `pageshow`, `online`), parameters `MATCH_REFETCH_BROWSERS` (`webkit`|`all`, default `webkit`) and `MATCH_REFETCH_MIN_HIDDEN_SECONDS` (30) in `GET /api/echo/status`; on `STALE_MATCH` it refetches and shows "Match is being updated".
 - Robot helper `resources/ParallelWriteHelper.py` sends the same write from two threads at once.
 
+## Fixes (1.8.0)
+
+- AWS `db_utils.transact_put_items` passes plain values: the boto3 resource client already serializes, and a second `TypeSerializer` pass made every `TransactWriteItems` fail (500 `WRITE_FAILED`). A unit test checks the real wire body.
+- AWS `GET /api/match/{uuid}/info` now returns top-level `matchVersion` too (`_detail_from_item`), as Java and Python do.
+- react-game `STALE_MATCH` UX (`pages/GamePage.jsx`, `GameBook.jsx` prop `staleKey`, `utils/loadoutCards.js` `buildUpdateMatchCard`, image `refresh` in `data/images.json`): the floating "Match is being updated" notice is gone (supersedes the notice above). After the 409 refetch the left page shows the refreshed location and the right page (mobile: below) shows a card-page "Refreshing" (entity `updateMatch`) saying in two sentences that the page refreshed because the same account moved on another device.
+- AWS `match_export.export_match`: the checksum is recomputed after the `playMs` and status overrides, so a live export no longer fails the import with `CHECKSUM_MISMATCH`.
+
 # Version Control
-- **Document Version**: 1.7.0
+- **Document Version**: 1.8.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.4.0 | Same game on several devices analysed | October 21, 2026 |
   | 1.7.0 | Developed and released | October 23, 2026 |
+  | 1.8.0 | Fixes after first full Robot run, new refresh card | October 23, 2026 |
 
-- **Last Updated**: October 23, 2026 (v1.7.0)
+- **Last Updated**: October 23, 2026 (v1.8.0)
 
 
 # &lt; Paths Games /&gt;

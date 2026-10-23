@@ -270,8 +270,11 @@ def _detail_from_item(item, players=None, lang='en', all_locations=False,
         if all_locations or l.get("idLocation") in visited_loc_ids
     ]
 
+    summary = _summary_from_item(item)
     return {
-        "match": _summary_from_item(item),
+        "match": summary,
+        # v1.8.0 also top-level, like Java and Python
+        "matchVersion": summary["matchVersion"],
         "currentLocationId": current_id,
         "currentLocationUuid": current_uuid,
         "locations": location_states,

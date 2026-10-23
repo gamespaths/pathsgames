@@ -85,6 +85,8 @@ def export_match(match_uuid):
     document['match']['playMs'] = neutral.nz(match.get('playMs'))
     if original in h.TERMINAL_STATUSES:
         document['match']['status'] = original
+    # v1.8.0 the checksum of build() predates the two overrides above
+    document['checksum'] = neutral.sha256({k: v for k, v in document.items() if k != 'checksum'})
     text = neutral.canonical(document)
     if len(text.encode('utf-8')) > max_bytes():
         match['status'] = original

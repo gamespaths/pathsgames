@@ -566,6 +566,8 @@ def test_v170_play_time_and_a_stopped_status_travel_through_export_and_import():
     assert res['statusCode'] == 200, res['body']
     doc = json.loads(res['body'])
     assert doc['match']['status'] == 'CANCELLED' and doc['match']['playMs'] == 4200
+    # v1.8.0 the file as exported matches its own checksum (both overrides included)
+    assert doc['checksum'] == neutral.sha256({k: v for k, v in doc.items() if k != 'checksum'})
     assert neutral.SchemaValidator.match_export_v1().validate(doc) == []
     assert all('playMs' not in json.dumps(s.get('payload', '')) for s in snaps if isinstance(s.get('payload'), str))
     new = '0a0a0a0a-0000-4000-8000-0000000000d1'

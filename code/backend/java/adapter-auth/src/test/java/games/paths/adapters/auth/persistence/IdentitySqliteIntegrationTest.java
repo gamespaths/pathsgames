@@ -7,6 +7,7 @@ import games.paths.core.model.auth.NewUser;
 import games.paths.core.model.auth.UserIdentity;
 import games.paths.core.model.auth.UserStatus;
 import games.paths.core.port.auth.IdentityPersistencePort;
+import games.paths.core.port.auth.TokenPersistencePort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -260,6 +261,15 @@ class IdentitySqliteIntegrationTest {
         identities.updateLastAccess(id);
         assertEquals("2026-10-22T10:00:00Z", jdbc.queryForObject(
                 "SELECT sessions_valid_after FROM users WHERE id = ?", String.class, id));
+    }
+
+    @Test
+    void v180LogoutAllRunsInATransactionThroughThePort() {
+        long id = user("99999999-cccc", "peach", "peach@gmail.com");
+        tokens.storeRefreshToken(id, "h-all", "2999-01-01T00:00:00Z");
+        TokenPersistencePort port = tokens;
+        assertEquals(1, port.revokeAllUserTokens(id));
+        assertEquals("LOGOUT_ALL", tokens.findRefreshToken("h-all", null).orElseThrow().revokedReason());
     }
 
     private static Path tempDatabase() {

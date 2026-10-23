@@ -10,6 +10,8 @@ When a guest signs in, the account's match always survives; the player's match l
 
 ## 2. Decisions (owner, October 21, 2026)
 
+Superseded in 1.8.0: the "last played" line and the "show cancelled" toggle below were removed (cancelled and banned matches are always listed), see "Changes (1.8.0)" below.
+
 - As in the roadmap: styling of cancelled matches (a plain label already exists from steps 2-5); "last played" date from the match `ts_update`, returned by all backends, AWS included; Robot suite "guest plays, logs in, finds the merged matches"; unit tests.
 - **Order:** active matches (`CREATED`, `RUNNING`, `PAUSED`) first, then by last played, sorted in memory. The list always uses the envelope `{items, nextCursor, limit}`, page size 50; `nextCursor` is `null` up to 50 matches; beyond 50 the cursor is a position in the in-memory sorted list and a shift between pages is accepted.
 - **Cancelled matches** (and the `BANNED` ones of [Step 10](./Step10_AdminUserManagementBackend.md)) are hidden behind a "show cancelled" toggle and never physically deleted.
@@ -42,6 +44,8 @@ When a guest signs in, the account's match always survives; the player's match l
 
 ## 4. Open points
 
+Superseded in 1.8.0: points 1 and 3 (last-played line, "show cancelled" toggle), see "Changes (1.8.0)" below.
+
 1. (decided) Last played from `ts_update`, cancelled style, Robot suite as in the roadmap.
 2. (decided) Order: active first, then last played, sorted in memory; always the envelope, page size 50, `nextCursor: null` up to 50, a shift between pages beyond 50 accepted.
 3. (decided) Cancelled and banned matches behind a "show cancelled" toggle, never deleted.
@@ -56,15 +60,21 @@ When a guest signs in, the account's match always survives; the player's match l
 - Merge rule: the Google user's active match always wins, every active guest match of that story becomes `CANCELLED` (even a newer one); with no Google match the guest's survives. The Google login answer adds `cancelledMatchUuids`. [Game Rules](../GameRules.md) holds the rule; Steps 3 and 4 keep the 1.2.0 text marked as superseded.
 - react-game: `MatchCard` last-played time and cancelled styling, "show cancelled" toggle (cancelled and banned hidden by default), just-cancelled matches highlighted once, hint "Have an account? Sign in to continue" before Play for guests.
 
+## Changes (1.8.0)
+
+- react-game (`MatchCard.jsx`, `UserMatchesList.jsx`): the "Last played ..." line is removed (the order is unchanged: active first, then last played); the "show cancelled" toggle is removed (supersedes the 1.7.0 notes above): `CANCELLED` and `BANNED` matches are always listed, in full colour, still never opened, with the cancelled note.
+- The list now starts with the user statistics card ([Step 7](./Step07_UserProfileReactGame.md)).
+
 # Version Control
-- **Document Version**: 1.7.0
+- **Document Version**: 1.8.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.4.0 | Match list and merge rule analysed | October 21, 2026 |
   | 1.7.0 | Developed and released | October 23, 2026 |
+  | 1.8.0 | Match list toggle and date line removed | October 23, 2026 |
 
-- **Last Updated**: October 23, 2026 (v1.7.0)
+- **Last Updated**: October 23, 2026 (v1.8.0)
 
 
 # &lt; Paths Games /&gt;

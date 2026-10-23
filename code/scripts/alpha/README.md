@@ -139,11 +139,13 @@ to `.env.alpha` and the deploy script then refuses to build if one is missing.
 | `deploy_backend.sh` | `deploy_backend.sh [--auto-confirm]` | Runs `code/scripts/prod/aws_backend_deploy_stage.sh alpha`: `sam build` + `sam deploy --config-env alpha` with the samconfig overrides, the `.env` stage keys, the throttles, `AlarmEmail`/`BudgetEmail` (= `AWS_ALPHA_SNS_ALARM_EMAIL`), `BudgetLimit`, `CreateBudget=true` (alpha only), `AllowMockAccess=false`, `AdminIpEmptyMeans=nobody`. Locally it detects the caller IP and passes `AdminIpWhitelist` (caller IP + `AWS_ALPHA_APIGW_ADMIN_IP_WHITELIST`); in CI (`CI=true`) it never passes `AdminIpWhitelist` (the stack keeps the previous list) and never prompts. Prints the parameters (secrets masked). |
 | `deploy_website.sh` | `deploy_website.sh [--check-only]` | Checks `.env.alpha` (every `VITE_*` key of `.env.example`, no `CHANGE_ME`; `--check-only` stops here, no build, no cloud), builds with `npm run build -- --mode alpha`, then syncs in two passes: (1) the hashed `assets/` with `Cache-Control: public, max-age=31536000, immutable`; (2) `index.html` and the other root files (`robots.txt`, `favicon.svg`, `consent-defaults.js`) with `no-cache`. Both passes use `--delete` (the first deploy removes the landing files) and never touch `data/*`. Finally it invalidates `/index.html` and `/`. Needs `AWS_ALPHA_S3_BUCKET_WEBSITE` and `AWS_ALPHA_CLOUDFRONT_DISTRIBUTION_ID`. |
 | `set_admin_ip.sh` | `set_admin_ip.sh [--ip A.B.C.D] [--stack pathsgames-alpha] [--region us-east-1] [--dry-run]` | **Replaces** the admin allow-list with this machine's public IP (logic `admin_ip_set_on_stack` in `code/scripts/lib/admin_ip.sh`, shared with `code/scripts/test/aws/aws_set_admin_ip.sh [dev|test]`) (one `/32` host, written as the bare IP because the authorizer compares plain addresses): `aws cloudformation update-stack --use-previous-template` with every other parameter `UsePreviousValue=true`, waits for `stack-update-complete` and prints the IP. The authorizer has no cache: access is immediate. |
+| `backup_data.sh` | `backup_data.sh [--no-local]` | Wrapper of `code/scripts/prod/aws_dynamodb_backup_stage.sh alpha`: raw backup of `PathsGamesBackend-alpha` (strongly consistent scan, `items.jsonl.gz` + `table.json` + `manifest.json`) to S3 (`AWS_ALPHA_S3_BUCKET_BACKUP`, default samconfig `s3_bucket`, prefix `alpha/backup/<UTC timestamp>/`, SSE AES256) plus a local copy in `${PATHS_GAMES_BACKUP_DIR:-~/.paths.games/backups}/alpha/<ts>/` unless `--no-local`. Shared helpers in `code/scripts/lib/dynamo_backup.sh`. Runbook: §10. |
+| `restore_data.sh` | `restore_data.sh --list \| --backup <YYYYMMDDTHHMMSSZ\|latest> [--include P#,..] [--exclude P#,..] [--dry-run] [--yes]` | Wrapper of `code/scripts/prod/aws_dynamodb_restore_stage.sh alpha` (which also accepts `--from-dir <dir>`): `--list` shows the backups with item count and table version; otherwise checks the sha256 and the source table, prints the plan (per PK prefix, ttl-expired rows skipped, version warning) and writes the rows back as they are with `BatchWriteItem`. `--dry-run` writes nothing; confirmation by typing the table name unless `--yes`. Runbook: §10. |
 
 | Workflow | Triggers | Gate | Deploy |
 |----------|----------|------|--------|
 | `.github/workflows/alpha-deploy-website.yml` | push on `main` touching `code/frontend/react-game/**`; manual `workflow_dispatch` | `npm ci`, `npx vitest run` | writes `.env.alpha` from the variables, runs `deploy_website.sh` |
-| `.github/workflows/alpha-deploy-backend-aws.yml` | push on `main` touching `code/backend/aws/**`; manual `workflow_dispatch` | Python 3.13, `pytest tests/` | `setup-sam`, runs `deploy_backend.sh --auto-confirm`; the script then invokes the smoke test (§10) and a failure fails the job |
+| `.github/workflows/alpha-deploy-backend-aws.yml` | push on `main` touching `code/backend/aws/**`; manual `workflow_dispatch` | Python 3.13, `pytest tests/` | `setup-sam`, runs `deploy_backend.sh --auto-confirm`; the script then invokes the smoke test (§11) and a failure fails the job |
 
 Both use the Environment `alpha`, one `concurrency` group each (an in-flight deploy is never
 cancelled) and the IAM user's access keys with the single `AWS_REGION` variable. Their order does
@@ -171,7 +173,7 @@ not matter.
 5. `code/scripts/alpha/deploy_website.sh` (removes the landing files, keeps `data/*`).
 6. Complete the GitHub Environment `alpha` (§5), run both workflows once with `workflow_dispatch`,
    then remove the old repository-level `AWS_REGION` secret.
-7. Check the post-deploy smoke test passed (§10); manual smoke test: guest login, story choice, match creation, a full gameplay cycle;
+7. Check the post-deploy smoke test passed (§11); manual smoke test: guest login, story choice, match creation, a full gameplay cycle;
    `https://paths.games/?policy=privacy`, the redirect from `https://pathsgames.com/x?y=1`,
    the CloudWatch dashboard `pathsgames-alpha` and the alarms in `OK` / `INSUFFICIENT_DATA`.
 8. Announce.
@@ -240,9 +242,94 @@ aws dynamodb get-item --region $R --table-name $N --key '{"PK":{"S":"STORY#<uuid
 
 **Rollback** of a bad release: check out the previous tag (`git checkout v0.42.<z-1>`) and run
 `deploy_backend.sh` and `deploy_website.sh` from it, or start both workflows with
-`workflow_dispatch` on that tag. Data recovery is the runbook above.
+`workflow_dispatch` on that tag. Data recovery is the runbook above. To recreate the whole stack from a backup see §10.
 
-## 10. Daily smoke test and its alarms (v1.1.0)
+## 10. Full recreate of the alpha stack (backup → delete → redeploy → restore)
+
+**Why.** Release 1.7.0 redefined the projections of GSI1/GSI2 (one `summary` map; GSI1 also `ts_update` and
+`playMs`). CloudFormation cannot change the projection of an existing GSI in place and allows only one GSI
+create/delete per update; an out-of-band `update-table` would cause drift. So the stack is deleted and
+recreated (decision 11 of [Step06](../../../wiki/documentation_v1/Step06_UserProfileBackend.md): all data
+lost, accepted, no backfill). For future index changes on live stages the Step06 rule applies: new index
+name, switch the code, drop the old one (3 deploys, only if it fits the free units).
+
+Region `us-east-1`, stack `pathsgames-alpha`, table `PathsGamesBackend-alpha`. Requirements: AWS CLI v2, `jq`, `gzip`, `sha256sum`.
+
+**0. Prerequisites.**
+- `.env` has `AWS_ALPHA_LAMBDA_BANNED_SUBJECT_PEPPER` with its own value (`openssl rand -base64 48`, never
+  rotated; the stage script refuses an empty value or the committed default) and the other `AWS_ALPHA_*` keys.
+- Optional `AWS_ALPHA_S3_BUCKET_BACKUP` (default: samconfig `s3_bucket` = `pathsgames-production-iac`, prefix
+  `alpha/backup/<UTC timestamp>/`).
+- Announce the downtime to the alpha testers: `api-alpha.paths.games` is down from the delete to the end of the deploy (roughly 10–20 min).
+
+**1. Backup.**
+
+```bash
+code/scripts/alpha/backup_data.sh            # add --no-local to skip the local copy
+code/scripts/alpha/restore_data.sh --list    # verify: the new folder shows its item count and table version
+```
+
+Strongly consistent full scan (page size 100, adaptive retries, `AWS_MAX_ATTEMPTS=10`, because alpha is
+PROVISIONED at 10 RCU). It writes `items.jsonl.gz` (DynamoDB JSON Lines, one item per line, binary as
+base64), `table.json` (describe-table) and `manifest.json` (stage, table, region, table `version` tag,
+`createdAt`, item count, sha256). It checks the item count and uploads with SSE AES256, the manifest
+**last**: a folder without it is incomplete. A local copy (mode 700/600) stays in
+`${PATHS_GAMES_BACKUP_DIR:-~/.paths.games/backups}/alpha/<ts>/` unless `--no-local`. The PITR continuous
+backups are deleted together with the table; this backup is not.
+
+**2. Disable deletion protection.**
+
+```bash
+aws dynamodb update-table --region us-east-1 --table-name PathsGamesBackend-alpha --no-deletion-protection-enabled
+```
+
+**3. Delete the stack** (no script on purpose: `aws_backend_remove.sh` accepts only dev/test).
+
+```bash
+aws cloudformation delete-stack --stack-name pathsgames-alpha --region us-east-1
+aws cloudformation wait stack-delete-complete --stack-name pathsgames-alpha --region us-east-1
+```
+
+Goes away: table, Lambdas, API Gateway, custom domain and the Route 53 `api-alpha` record, SNS topic and
+alarms, dashboard. Stays: ACM certificate, CloudFront, S3 buckets (the site `data/*` included), Terraform
+resources, the backup.
+
+**4. Redeploy.** `code/scripts/alpha/deploy_backend.sh` creates the new table with the new GSIs; PITR and
+deletion protection come back from the template.
+
+**5. Post-deploy** (see §8): confirm the new SNS subscription email; `set_admin_ip.sh`; import the alpha
+story and publish the catalog (`POST /api/admin/stories/catalog`), or restore the content from the backup
+(step 6); run the smoke test (§11) and the manual check. `deploy_website.sh` and Terraform are not needed
+unless the site changed.
+
+**6. Restore (optional).** Always `--dry-run` first.
+
+```bash
+code/scripts/alpha/restore_data.sh --backup <ts|latest> --include "STORY#,KPI#" --dry-run
+code/scripts/alpha/restore_data.sh --backup <ts|latest> --include "STORY#,KPI#"      # then for real
+```
+
+- The restore is **raw**: rows are written as they are, no schema upgrade (owner decision). The script prints
+  a plan (counts per PK prefix, rows skipped by prefix, rows skipped because their `ttl` already expired) and
+  **warns** when the backup's major.minor version differs from the table's `version` tag.
+- Across a layout change (e.g. a backup taken on < 1.7.0 restored on >= 1.7.0) old rows miss what the new code
+  needs: matches without the `summary` map, Google users without the `USERSTATE#` / `GOOGLE_USER_LIST` GSI
+  keys, `GUEST_TOKEN#` holding the plain token instead of the hash, refresh tokens without `USER_SESSIONS#`.
+  Admin lists, the player match list, guest resume and sessions break. In that case restore only content
+  prefixes (as above); users, matches and tokens are recreated from scratch, as decided. A full restore (no
+  `--include`) is meant for a recreate on the **same** version.
+- Confirmation: type the table name, or pass `--yes`. Rows with the same PK/SK are overwritten; puts are
+  idempotent, so if it stops, rerun the same command.
+- Writes are `BatchWriteItem` of 25 with `UnprocessedItems` retried with backoff (10 attempts per chunk). On
+  PROVISIONED 10 WCU a big restore is slow and the `dynamodb-throttles` alarm may fire (expected).
+- After restoring: `POST /api/admin/cache/flush`, so warm Lambdas reload the stories.
+
+**Security.** The backup holds personal data (emails, nicknames, `EMAIL#<email>` rows): the bucket must stay
+private (SSE on). Delete the backups once no longer needed, and the local copy too:
+`aws s3 rm --recursive s3://<bucket>/alpha/backup/<ts>/`. The IaC bucket is also reachable by the deploy
+role; a dedicated bucket via `AWS_ALPHA_S3_BUCKET_BACKUP` is preferable.
+
+## 11. Daily smoke test and its alarms (v1.1.0)
 
 **What it does.** `pathsgames-alpha-SmokeTestFunction` (nested stack `template/smoke.yaml`) runs every day
 at 04:42 UTC (EventBridge Scheduler, schedule group `pathsgames-alpha-smoke-test`) and after every

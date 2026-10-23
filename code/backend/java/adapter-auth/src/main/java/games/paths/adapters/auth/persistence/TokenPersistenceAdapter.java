@@ -78,6 +78,12 @@ public class TokenPersistenceAdapter implements TokenPersistencePort {
         return true;
     }
 
+    /** v1.8.0 declared here: the port's default method ran outside the class-level transaction. */
+    @Override
+    public int revokeAllUserTokens(long userId) {
+        return revokeAllUserTokens(userId, RevokeReasons.LOGOUT_ALL);
+    }
+
     @Override
     public int revokeAllUserTokens(long userId, String reason) {
         return userTokenRepository.revokeAllByUserId(userId, Instant.now().toString(), reason);

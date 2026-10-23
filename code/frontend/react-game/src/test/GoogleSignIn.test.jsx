@@ -50,6 +50,22 @@ describe('GoogleSignInButton (v1.2.0)', () => {
     expect(ctx.value.loginWithGoogle).toHaveBeenCalledWith('cred')
   })
 
+  it('v1.8.0 — autoStart loads GIS at mount and shows the Google button with no button of ours', async () => {
+    const gis = { initialize: vi.fn(), renderButton: vi.fn() }
+    gisMock.load.mockResolvedValue(gis)
+    ctx.value = base()
+    await act(async () => { render(<GoogleSignInButton autoStart compact />) })
+    await waitFor(() => expect(gis.renderButton).toHaveBeenCalled())
+    expect(gis.renderButton.mock.calls[0][1]).toMatchObject({ size: 'medium' })
+    expect(screen.queryByText('auth.google.signIn')).toBeNull()
+  })
+
+  it('v1.8.0 — autoStart without a client id loads nothing', () => {
+    ctx.value = base({ googleClientId: null })
+    render(<GoogleSignInButton autoStart />)
+    expect(gisMock.load).not.toHaveBeenCalled()
+  })
+
   it('a compact button and a busy state', async () => {
     const gis = { initialize: vi.fn(), renderButton: vi.fn() }
     gisMock.load.mockResolvedValue(gis)
@@ -122,7 +138,9 @@ describe('UserAccountPanel (v1.2.0)', () => {
     expect(screen.getByText('(mario)', { exact: false })).toBeTruthy()
     // the mocked t answers the key itself: an untranslated code reads as the generic failure
     expect(screen.getByRole('alert').textContent).toContain('auth.errors.GOOGLE_LOGIN_FAILED')
+    // v1.8.0 — Log out opens the menu; its first choice is the logout of this device
     fireEvent.click(screen.getByText('auth.google.logout'))
+    fireEvent.click(screen.getByText('auth.google.logoutThisDevice'))
     fireEvent.click(screen.getByLabelText('modals.close'))
     expect(logout).toHaveBeenCalled()
     expect(clearAuthError).toHaveBeenCalled()

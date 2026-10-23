@@ -28,7 +28,7 @@ export default function HomePage() {
   const { t, lang } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, error: guestError, openGuestModal, sessionIdle, ensureGuest, knownAccountHint } = useGuestUser()
+  const { user, error: guestError, openGuestModal, sessionIdle, ensureGuest } = useGuestUser()
   const [stories, setStories] = useState([])
   const [matches, setMatches] = useState(null) // guest matches, loaded once when human
   // v0.32.1 — 'loading' | 'ready' | 'error': an unreadable list must NOT look like
@@ -215,12 +215,6 @@ export default function HomePage() {
           )}
           <h1 className="hero-title">{t('home.heroTitle')}</h1>
           <p className="hero-sub">{t('home.heroSub')}</p>
-          {knownAccountHint && (
-            <button type="button" className="hero-known-account" data-testid="known-account-hint"
-              onClick={() => openGuestModal()}>
-              <i className="fab fa-google me-2" />{t('home.knownAccount')}
-            </button>
-          )}
         </div>
       </section>
 

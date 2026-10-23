@@ -123,6 +123,12 @@ if [ -z "${AWS_TEST_LAMBDA_GOOGLE_CLIENT_ID:-}" ]; then
     echo "  WARNING: AWS_TEST_LAMBDA_GOOGLE_CLIENT_ID is empty — Google sign-in keeps the dev placeholder client and fails on test." >&2
 fi
 
+# sam rejects an empty Key=: an unset pepper is left out, so the stack keeps its previous value (code default on create).
+_PEPPER_OVERRIDE=()
+if [ -n "${AWS_TEST_LAMBDA_BANNED_SUBJECT_PEPPER:-}" ]; then
+    _PEPPER_OVERRIDE=(BannedSubjectPepper="$AWS_TEST_LAMBDA_BANNED_SUBJECT_PEPPER")
+fi
+
 # deploy with SAM ($_STACK_TAGS is unquoted on purpose: one Key=Value argument per tag)
 # shellcheck disable=SC2086
 sam deploy \
@@ -141,7 +147,7 @@ sam deploy \
         TurnstileSecretKey="${_TURNSTILE_SAM_KEY}" \
         TurnstileBypassToken="${_TURNSTILE_BYPASS}" \
         JwtSecret="${JWT_SECRET}" \
-        BannedSubjectPepper="${AWS_TEST_LAMBDA_BANNED_SUBJECT_PEPPER:-}" \
+        ${_PEPPER_OVERRIDE[@]+"${_PEPPER_OVERRIDE[@]}"} \
         AllowMockAccess=true \
         AdminIpWhitelist="${_ADMIN_IP_WHITELIST}" \
         AdminIpEmptyMeans="${_ADMIN_IP_EMPTY_MEANS}" \

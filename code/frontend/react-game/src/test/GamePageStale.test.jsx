@@ -11,9 +11,10 @@ vi.mock('@/context/ServerContext', () => ({
   useServer: () => ({ matchRefetch: { browsers: ['all'], minHiddenSeconds: 0 } }),
 }))
 vi.mock('../features/gameplay/GameBook', () => ({
-  default: ({ onError, reloadKey }) => (
+  default: ({ onError, reloadKey, staleKey }) => (
     <div data-testid="game-book">
       <span data-testid="reload-key">{reloadKey}</span>
+      <span data-testid="stale-key">{staleKey}</span>
       <button onClick={() => onError?.({ staleMatch: true })}>stale-error</button>
       <button onClick={() => onError?.({ status: 409, response: { data: { error: 'NOT_YOUR_TURN' } } })}>other-error</button>
     </div>
@@ -23,7 +24,7 @@ vi.mock('../components/modals/ErrorCard', () => ({
   default: ({ message }) => <div data-testid="error-card">{message}</div>,
 }))
 
-import GamePage, { STALE_NOTICE_MS } from '../pages/GamePage'
+import GamePage from '../pages/GamePage'
 import { getMatchInfo } from '../api/game'
 import { getStory, getStoryDetail } from '../api/stories'
 import { STALE_EVENT } from '../api/matchVersion'
@@ -48,26 +49,25 @@ describe('GamePage on STALE_MATCH', () => {
   })
   afterEach(() => vi.useRealTimers())
 
-  it('shows the notice, refetches the board and bumps the reload key', async () => {
+  it('v1.8.0 — asks the board for the Refreshing page, refetches it and bumps the reload key; no floating notice', async () => {
     wrap()
     await screen.findByTestId('game-book')
     expect(getMatchInfo).toHaveBeenCalledTimes(1)
+    expect(screen.getByTestId('stale-key').textContent).toBe('0')
     announce('m1')
-    expect(screen.getByRole('status').textContent).toBe('game.matchUpdating')
+    expect(screen.getByTestId('stale-key').textContent).toBe('1')
+    expect(screen.queryByRole('status')).toBeNull()
     await waitFor(() => expect(getMatchInfo).toHaveBeenCalledTimes(2))
     expect(screen.getByTestId('reload-key').textContent).toBe('1')
   })
 
-  it('ignores another match and hides the notice after a while', async () => {
+  it('ignores another match; an event without a match uuid counts', async () => {
     wrap()
     await screen.findByTestId('game-book')
     announce('other')
-    expect(screen.queryByRole('status')).toBeNull()
-    vi.useFakeTimers()
+    expect(screen.getByTestId('stale-key').textContent).toBe('0')
     announce(undefined)
-    expect(screen.getByRole('status')).toBeTruthy()
-    act(() => { vi.advanceTimersByTime(STALE_NOTICE_MS) })
-    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.getByTestId('stale-key').textContent).toBe('1')
   })
 
   it('a stale action error opens no error card, another one does', async () => {

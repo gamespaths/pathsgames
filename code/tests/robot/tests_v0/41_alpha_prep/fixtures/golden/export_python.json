@@ -33,12 +33,12 @@
       "sad": 0,
       "sadMax": 5,
       "traits": [],
-      "userUuid": "9cc03ce9-5d42-43fe-8223-fe185e4e1710",
-      "uuid": "6f423482-224b-4459-9247-6887b5ba169d",
+      "userUuid": "25bca500-dbcc-4fb2-8779-732711334ab9",
+      "uuid": "f45b5ab2-5154-45a9-a441-261246f4b9db",
       "weightMax": 10
     }
   ],
-  "checksum": "10750a785a4e272f2353eb4e8d2c04337a1025a0b06d3800ae6802f2d45245d1",
+  "checksum": "419a2f3f5da5b02c9a131f67c192abc8fc680611a980e951d45a91408942c061",
   "engine": {
     "eventMarkers": [
       {
@@ -91,7 +91,7 @@
       },
       "message": "CREATED",
       "seq": 1,
-      "timestamp": "2026-10-23T12:52:44.781Z",
+      "timestamp": "2026-10-23T13:56:29.176Z",
       "type": "MATCH_LIFECYCLE"
     },
     {
@@ -110,18 +110,18 @@
       },
       "message": "STARTED",
       "seq": 2,
-      "timestamp": "2026-10-23T12:52:44.846Z",
+      "timestamp": "2026-10-23T13:56:29.347Z",
       "type": "MATCH_LIFECYCLE"
     },
     {
       "clock": 0,
       "seq": 3,
-      "timestamp": "2026-10-23T12:52:44.855Z",
+      "timestamp": "2026-10-23T13:56:29.374Z",
       "type": "WEATHER",
       "weatherId": 1
     },
     {
-      "characterUuid": "6f423482-224b-4459-9247-6887b5ba169d",
+      "characterUuid": "f45b5ab2-5154-45a9-a441-261246f4b9db",
       "cost": {
         "coin": 0,
         "energy": 0,
@@ -139,11 +139,11 @@
       "itemAction": "ADD",
       "itemId": 1,
       "seq": 4,
-      "timestamp": "2026-10-23T12:52:44.888Z",
+      "timestamp": "2026-10-23T13:56:29.428Z",
       "type": "ITEM_ADD"
     },
     {
-      "characterUuid": "6f423482-224b-4459-9247-6887b5ba169d",
+      "characterUuid": "f45b5ab2-5154-45a9-a441-261246f4b9db",
       "clock": 0,
       "cost": {
         "coin": 0,
@@ -160,11 +160,11 @@
       },
       "message": "EVENT_EXECUTED 20",
       "seq": 5,
-      "timestamp": "2026-10-23T12:52:44.896Z",
+      "timestamp": "2026-10-23T13:56:29.441Z",
       "type": "EVENT"
     },
     {
-      "characterUuid": "6f423482-224b-4459-9247-6887b5ba169d",
+      "characterUuid": "f45b5ab2-5154-45a9-a441-261246f4b9db",
       "clock": 0,
       "cost": {
         "coin": 0,
@@ -181,7 +181,7 @@
       },
       "message": "REGISTRY_CHANGE quest null -> done",
       "seq": 6,
-      "timestamp": "2026-10-23T12:52:44.923Z",
+      "timestamp": "2026-10-23T13:56:29.491Z",
       "type": "REGISTRY_CHANGE"
     },
     {
@@ -198,13 +198,13 @@
         "food": 0,
         "magic": 0
       },
-      "message": "MISSION_CHANGE 11be98f1-b48f-4334-951d-d8a84132bdad none -> COMPLETED",
+      "message": "MISSION_CHANGE f60c2c87-7dd6-4c06-8dcd-371e30e30abd none -> COMPLETED",
       "seq": 7,
-      "timestamp": "2026-10-23T12:52:44.934Z",
+      "timestamp": "2026-10-23T13:56:29.517Z",
       "type": "MISSION_CHANGE"
     },
     {
-      "characterUuid": "6f423482-224b-4459-9247-6887b5ba169d",
+      "characterUuid": "f45b5ab2-5154-45a9-a441-261246f4b9db",
       "clock": 0,
       "cost": {
         "coin": 0,
@@ -221,7 +221,7 @@
       },
       "message": "EVENT_EXECUTED 14",
       "seq": 8,
-      "timestamp": "2026-10-23T12:52:44.945Z",
+      "timestamp": "2026-10-23T13:56:29.541Z",
       "type": "EVENT"
     },
     {
@@ -241,7 +241,7 @@
       },
       "message": "EVENT_EXECUTED 15",
       "seq": 9,
-      "timestamp": "2026-10-23T12:52:44.954Z",
+      "timestamp": "2026-10-23T13:56:29.558Z",
       "type": "EVENT"
     },
     {
@@ -261,11 +261,11 @@
       },
       "message": "automatic event 15 (mission completed) at location 0",
       "seq": 10,
-      "timestamp": "2026-10-23T12:52:44.965Z",
+      "timestamp": "2026-10-23T13:56:29.592Z",
       "type": "AUTOMATIC_EVENT"
     },
     {
-      "characterUuid": "6f423482-224b-4459-9247-6887b5ba169d",
+      "characterUuid": "f45b5ab2-5154-45a9-a441-261246f4b9db",
       "clock": 0,
       "cost": {
         "coin": 0,
@@ -282,11 +282,11 @@
       },
       "message": "EVENT_EXECUTED 13",
       "seq": 11,
-      "timestamp": "2026-10-23T12:52:44.987Z",
+      "timestamp": "2026-10-23T13:56:29.628Z",
       "type": "EVENT"
     },
     {
-      "characterUuid": "6f423482-224b-4459-9247-6887b5ba169d",
+      "characterUuid": "f45b5ab2-5154-45a9-a441-261246f4b9db",
       "cost": {
         "coin": 0,
         "energy": 0,
@@ -296,11 +296,11 @@
       "locationFromId": 1,
       "locationToId": 2,
       "seq": 12,
-      "timestamp": "2026-10-23T12:52:45.022Z",
+      "timestamp": "2026-10-23T13:56:29.688Z",
       "type": "MOVEMENT"
     },
     {
-      "characterUuid": "6f423482-224b-4459-9247-6887b5ba169d",
+      "characterUuid": "f45b5ab2-5154-45a9-a441-261246f4b9db",
       "clock": 0,
       "cost": {
         "coin": 0,
@@ -317,11 +317,11 @@
       },
       "message": "EVENT_EXECUTED 18",
       "seq": 13,
-      "timestamp": "2026-10-23T12:52:45.057Z",
+      "timestamp": "2026-10-23T13:56:29.750Z",
       "type": "EVENT"
     },
     {
-      "characterUuid": "6f423482-224b-4459-9247-6887b5ba169d",
+      "characterUuid": "f45b5ab2-5154-45a9-a441-261246f4b9db",
       "clock": 0,
       "cost": {
         "coin": 0,
@@ -336,16 +336,16 @@
         "magic": 0
       },
       "seq": 14,
-      "timestamp": "2026-10-23T12:52:45.084Z",
+      "timestamp": "2026-10-23T13:56:29.796Z",
       "type": "SLEEP"
     }
   ],
   "match": {
-    "activeCharacterUuid": "6f423482-224b-4459-9247-6887b5ba169d",
+    "activeCharacterUuid": "f45b5ab2-5154-45a9-a441-261246f4b9db",
     "clock": 0,
     "counterConsecutivePass": 0,
-    "createdAt": "2026-10-23T12:52:44.776Z",
-    "creatorUserUuid": "9cc03ce9-5d42-43fe-8223-fe185e4e1710",
+    "createdAt": "2026-10-23T13:56:29.165Z",
+    "creatorUserUuid": "25bca500-dbcc-4fb2-8779-732711334ab9",
     "currentWeatherId": 1,
     "difficultyId": 1,
     "expCost": 1,
@@ -354,22 +354,22 @@
     },
     "name": "robottest_alpha_prep",
     "partyLocationId": 2,
-    "playMs": 292,
+    "playMs": 602,
     "rngSeed": 42,
     "secureLocationParam": 0,
     "singlePlayer": true,
     "status": "RUNNING",
-    "timestampStart": "2026-10-23T12:52:44.838Z",
-    "uuid": "5f53669c-1e2f-42f3-a1c8-21205e6ac49d"
+    "timestampStart": "2026-10-23T13:56:29.300Z",
+    "uuid": "700a36bd-65fb-47e4-a72f-567dd1088459"
   },
   "source": {
-    "appVersion": "1.7.0",
+    "appVersion": "1.8.0",
     "backend": "python",
     "dialect": "sqlite",
-    "exportedAt": "2026-10-23T12:52:45.181Z",
+    "exportedAt": "2026-10-23T13:56:29.961Z",
     "server": "development",
     "snapshotClock": 0,
-    "snapshotUuid": "17e77b70-b739-4b8a-891b-acc18a03e976"
+    "snapshotUuid": "5b178a9d-ad81-4882-85c6-333f7d038fd3"
   },
   "state": {
     "choiceHistory": [],
@@ -389,7 +389,7 @@
     ],
     "registry": [
       {
-        "characterUuid": "6f423482-224b-4459-9247-6887b5ba169d",
+        "characterUuid": "f45b5ab2-5154-45a9-a441-261246f4b9db",
         "clock": 0,
         "eventId": 14,
         "key": "quest",
@@ -398,7 +398,7 @@
       },
       {
         "clock": 0,
-        "key": "mission:11be98f1-b48f-4334-951d-d8a84132bdad",
+        "key": "mission:f60c2c87-7dd6-4c06-8dcd-371e30e30abd",
         "missionId": 1,
         "multiValue": false,
         "stringValue": "COMPLETED"
@@ -407,7 +407,7 @@
     "storyProgress": [],
     "turns": [
       {
-        "characterUuid": "6f423482-224b-4459-9247-6887b5ba169d",
+        "characterUuid": "f45b5ab2-5154-45a9-a441-261246f4b9db",
         "clock": 0,
         "passCounter": 0,
         "priority": 12101,
@@ -425,7 +425,7 @@
           "idTextDescription": 1,
           "idTextTitle": 1,
           "urlImage": "https://example.invalid/card-1.jpg",
-          "uuid": "13eece16-4e6d-4b21-b66b-30b87a5d18ab"
+          "uuid": "451ebd07-e0cc-4ddf-9a59-bc6eaad67c8a"
         },
         {
           "id": 3,
@@ -433,7 +433,7 @@
           "idTextDescription": 3,
           "idTextTitle": 3,
           "urlImage": "https://example.invalid/card-3.jpg",
-          "uuid": "b890b5ea-4f7e-4875-ae4f-fd7bcc8ef647"
+          "uuid": "7f5ece81-c9b2-4fc3-b92a-120fc125cb80"
         },
         {
           "id": 50,
@@ -441,7 +441,7 @@
           "idTextDescription": 50,
           "idTextTitle": 50,
           "urlImage": "https://example.invalid/card-50.jpg",
-          "uuid": "80a7f0c2-3844-422b-a242-eeaf04937495"
+          "uuid": "34010196-57bb-4682-9701-f57a67a2fa30"
         },
         {
           "id": 51,
@@ -449,7 +449,7 @@
           "idTextDescription": 51,
           "idTextTitle": 51,
           "urlImage": "https://example.invalid/card-51.jpg",
-          "uuid": "6ae0973b-d680-4528-beca-78b2e218775b"
+          "uuid": "12bd00a8-fa36-4fa5-b296-6904dbc0080e"
         },
         {
           "id": 60,
@@ -457,7 +457,7 @@
           "idTextDescription": 60,
           "idTextTitle": 60,
           "urlImage": "https://example.invalid/card-60.jpg",
-          "uuid": "ce1f57ea-d09c-4321-8a73-e2f46bba3af8"
+          "uuid": "b50b5c8c-7f81-4670-9feb-e65a159a97a7"
         },
         {
           "id": 61,
@@ -465,7 +465,7 @@
           "idTextDescription": 61,
           "idTextTitle": 61,
           "urlImage": "https://example.invalid/card-61.jpg",
-          "uuid": "c41bff22-3de0-4737-8d14-9a9863667365"
+          "uuid": "8752f4d1-7a2e-4297-9639-b40f30faa14b"
         },
         {
           "id": 62,
@@ -473,7 +473,7 @@
           "idTextDescription": 62,
           "idTextTitle": 62,
           "urlImage": "https://example.invalid/card-62.jpg",
-          "uuid": "fb475a57-3136-4d93-94cb-169c8cd2bbee"
+          "uuid": "831f3066-c528-46be-8526-2d125c36d252"
         },
         {
           "id": 10,
@@ -481,7 +481,7 @@
           "idTextDescription": 10,
           "idTextTitle": 10,
           "urlImage": "https://example.invalid/card-10.jpg",
-          "uuid": "d3dd567c-6361-47b4-beb0-cbdb072d25e9"
+          "uuid": "88c39bd9-4e66-4b5c-9ce3-a5e4eb3ecead"
         },
         {
           "id": 11,
@@ -489,7 +489,7 @@
           "idTextDescription": 11,
           "idTextTitle": 11,
           "urlImage": "https://example.invalid/card-11.jpg",
-          "uuid": "dcde6cd9-2683-4e7d-b91f-d83c5013814f"
+          "uuid": "a6d2126c-9dee-4d7a-bf1e-75ddac83246d"
         },
         {
           "id": 12,
@@ -497,7 +497,7 @@
           "idTextDescription": 12,
           "idTextTitle": 12,
           "urlImage": "https://example.invalid/card-12.jpg",
-          "uuid": "b4f97227-6a90-4ca0-8785-0e4829e9c696"
+          "uuid": "4a9d8b5a-a05d-4535-8f18-7ac538234446"
         },
         {
           "id": 13,
@@ -505,7 +505,7 @@
           "idTextDescription": 13,
           "idTextTitle": 13,
           "urlImage": "https://example.invalid/card-13.jpg",
-          "uuid": "9c83b05c-9fee-4bf8-8456-01b8fb66735d"
+          "uuid": "5efaf103-85e1-4b3f-a389-1236cd56309c"
         },
         {
           "id": 14,
@@ -513,7 +513,7 @@
           "idTextDescription": 14,
           "idTextTitle": 14,
           "urlImage": "https://example.invalid/card-14.jpg",
-          "uuid": "0b4827cf-4d92-4906-bac0-cab06b3f6c7a"
+          "uuid": "cc654673-4e6f-4fe1-a590-c16097ae6104"
         },
         {
           "id": 15,
@@ -521,7 +521,7 @@
           "idTextDescription": 15,
           "idTextTitle": 15,
           "urlImage": "https://example.invalid/card-15.jpg",
-          "uuid": "c0ac9da8-9d35-4eb7-b02a-b510ec704598"
+          "uuid": "2075d9b2-2b10-49d3-b953-f921571385da"
         },
         {
           "id": 16,
@@ -529,7 +529,7 @@
           "idTextDescription": 16,
           "idTextTitle": 16,
           "urlImage": "https://example.invalid/card-16.jpg",
-          "uuid": "bb8a0e3b-2616-4447-9b93-d4b7b479615c"
+          "uuid": "e873ecf7-e552-4138-9899-dc8cca748d01"
         },
         {
           "id": 17,
@@ -537,7 +537,7 @@
           "idTextDescription": 17,
           "idTextTitle": 17,
           "urlImage": "https://example.invalid/card-17.jpg",
-          "uuid": "44b11958-2a5b-4fc5-90ff-7c04ed0c2602"
+          "uuid": "d33886d9-02cb-4cad-b9fe-f58dbb5c2657"
         },
         {
           "id": 40,
@@ -545,7 +545,7 @@
           "idTextDescription": 40,
           "idTextTitle": 40,
           "urlImage": "https://example.invalid/card-40.jpg",
-          "uuid": "500d83c7-1c1d-4b48-950d-a517583038b4"
+          "uuid": "c83d6de5-3c05-45c4-86ad-fcd01b46dfe9"
         },
         {
           "id": 70,
@@ -553,7 +553,7 @@
           "idTextDescription": 70,
           "idTextTitle": 70,
           "urlImage": "https://example.invalid/card-70.jpg",
-          "uuid": "4f1167d6-4740-40ba-8de1-7c1636a2cd86"
+          "uuid": "32f7e0c7-210d-40d1-8eca-a811a2823db5"
         },
         {
           "id": 92,
@@ -561,7 +561,7 @@
           "idTextDescription": 92,
           "idTextTitle": 92,
           "urlImage": "https://example.invalid/card-92.jpg",
-          "uuid": "2d019957-c3a3-465e-8f56-2c09294c3d33"
+          "uuid": "feecb338-342c-440b-907d-afb1332611ba"
         },
         {
           "id": 18,
@@ -569,7 +569,7 @@
           "idTextDescription": 18,
           "idTextTitle": 18,
           "urlImage": "https://example.invalid/card-18.jpg",
-          "uuid": "f49bec11-f7f9-4d46-9921-da7558090a22"
+          "uuid": "0279c4e4-3629-478d-bb4b-7d4596fd7bf0"
         },
         {
           "id": 93,
@@ -577,7 +577,7 @@
           "idTextDescription": 93,
           "idTextTitle": 93,
           "urlImage": "https://example.invalid/card-93.jpg",
-          "uuid": "811ff7f6-0c3d-412f-8324-07b03625544c"
+          "uuid": "dd9046e8-43d6-4a18-8292-ea8bcc473db1"
         },
         {
           "id": 94,
@@ -585,7 +585,7 @@
           "idTextDescription": 94,
           "idTextTitle": 94,
           "urlImage": "https://example.invalid/card-94.jpg",
-          "uuid": "4574a626-1d47-402c-9d5a-73282cf9bcaa"
+          "uuid": "2f5ba06a-ec7f-45e6-b36a-0109435706b8"
         },
         {
           "id": 95,
@@ -593,7 +593,7 @@
           "idTextDescription": 95,
           "idTextTitle": 95,
           "urlImage": "https://example.invalid/card-95.jpg",
-          "uuid": "85570c2a-d777-4e66-8dcf-a3c35389a2e4"
+          "uuid": "5897b338-0bb9-4375-8549-20090ef1d080"
         }
       ],
       "category": "robottest",
@@ -610,7 +610,7 @@
           "intelligenceStart": 2,
           "lifeMax": 10,
           "sadMax": 5,
-          "uuid": "e1994c81-ff24-44a8-8307-4a8b16f7b2d6"
+          "uuid": "fd76b4dc-2880-4aad-b8fd-76a17f1542aa"
         }
       ],
       "choiceConditions": [],
@@ -621,7 +621,7 @@
           "idCard": 18,
           "idChoice": 1,
           "statistics": "food",
-          "uuid": "fba6dcc0-8965-4f89-b4fb-a4886dc28d91",
+          "uuid": "af2aaf5a-13c7-444e-a0a9-4c7eb08b0010",
           "value": 1
         }
       ],
@@ -639,7 +639,7 @@
           "isProgress": 0,
           "logicOperator": "AND",
           "priority": 1,
-          "uuid": "cc586616-3b05-4406-b9dc-c808f6d1c878"
+          "uuid": "a3ba6a80-8c6e-4268-88e6-e2bf35a01802"
         }
       ],
       "classBonuses": [],
@@ -652,7 +652,7 @@
           "idTextDescription": 61,
           "idTextName": 61,
           "intelligenceBase": 0,
-          "uuid": "8ed04e5e-78fe-42d9-ac3c-bf456cfaa036",
+          "uuid": "40e48db8-b77d-4ce1-90e2-298df128358f",
           "weightMax": 10
         }
       ],
@@ -662,7 +662,7 @@
           "idText": 1,
           "link": "https://example.invalid",
           "url": "https://example.invalid",
-          "uuid": "99e9937d-73b5-42a7-b46a-25a20122135f"
+          "uuid": "beb51a61-fe67-4949-b417-93e30a28604b"
         }
       ],
       "difficulties": [
@@ -684,7 +684,7 @@
           "minCharacter": 0,
           "numberMaxFreeAction": 0,
           "sad": 0,
-          "uuid": "1b11eec1-4ab8-4179-8e5a-cb21f2c0ef37",
+          "uuid": "2b0531a3-8dcb-4036-9c6b-e17161382376",
           "weight": 0
         }
       ],
@@ -696,7 +696,7 @@
           "idTextName": 10,
           "target": "ONLY_ONE",
           "traitsToAdd": "1",
-          "uuid": "8a3dd0cc-dde0-48bf-9ece-0b4943428dad",
+          "uuid": "40ba1c47-c62e-419f-9055-46de3f1f90a8",
           "value": 0
         },
         {
@@ -706,7 +706,7 @@
           "idTextName": 11,
           "target": "ONLY_ONE",
           "traitsToRemove": "1",
-          "uuid": "1cda6989-842e-4f51-97a3-7bbccbeed8a2",
+          "uuid": "4ce8e1ed-2794-4f16-bd75-6ede3324dbdc",
           "value": 0
         },
         {
@@ -716,7 +716,7 @@
           "idTextName": 12,
           "statistics": "life",
           "target": "ONLY_ONE",
-          "uuid": "25101f15-2161-44b1-8bb3-5f4100b3c0c6",
+          "uuid": "a1bf2da4-84fd-4268-a0a7-814bd383786b",
           "value": -99
         },
         {
@@ -726,7 +726,7 @@
           "idTextName": 13,
           "statistics": "exp",
           "target": "ONLY_ONE",
-          "uuid": "7b3b268f-bce0-47d8-adef-294ab397446b",
+          "uuid": "5fdd5b93-f0ce-4581-8797-78281e839439",
           "value": 1
         },
         {
@@ -737,7 +737,7 @@
           "keyToAdd": "quest",
           "keyValueToAdd": "done",
           "target": "ALL",
-          "uuid": "7e67684d-6e63-4289-b014-b7801955373b",
+          "uuid": "75dcda16-7d90-4036-9221-f50df131b1ad",
           "value": 0
         },
         {
@@ -747,7 +747,7 @@
           "idTextName": 15,
           "statistics": "magic",
           "target": "ALL",
-          "uuid": "c5317ad8-9eba-4825-b328-edeb74afb641",
+          "uuid": "e94f34b0-9b5a-46c4-9fa4-1ec0bdae544d",
           "value": 1
         },
         {
@@ -757,7 +757,7 @@
           "idTextName": 16,
           "statistics": "coin",
           "target": "ONLY_ONE",
-          "uuid": "bc0056c6-910a-457a-b351-869f0c12ff11",
+          "uuid": "208dd35a-34f9-4066-a0f0-51d9fa81f852",
           "value": 1
         },
         {
@@ -767,7 +767,7 @@
           "idTextName": 17,
           "statistics": "sad",
           "target": "ONLY_ONE",
-          "uuid": "44b81ed3-6350-48da-a618-aeab79ab3b87",
+          "uuid": "6a70b70d-7e00-424a-95f7-15a70cd3e01e",
           "value": 99
         },
         {
@@ -778,7 +778,7 @@
           "idTextName": 95,
           "itemAction": "ADD",
           "target": "ONLY_ONE",
-          "uuid": "156dd668-49e0-4e50-92df-0f10c44d6333",
+          "uuid": "85edc928-04c7-4f77-b55c-64e5f86727bf",
           "value": 0
         }
       ],
@@ -794,7 +794,7 @@
           "idTextDescription": 10,
           "idTextName": 10,
           "type": "NORMAL",
-          "uuid": "29ac8d5f-37bc-467a-992c-c9575cddf2fa"
+          "uuid": "00f6a3eb-86f2-4ce3-a020-f3e5fc4361ca"
         },
         {
           "costCoin": 0,
@@ -807,7 +807,7 @@
           "idTextDescription": 11,
           "idTextName": 11,
           "type": "NORMAL",
-          "uuid": "9b43fe7c-29ed-423f-9a59-a761ddde9366"
+          "uuid": "79c74b5a-63fd-404a-9059-caa3e63b5a06"
         },
         {
           "costCoin": 0,
@@ -820,7 +820,7 @@
           "idTextDescription": 12,
           "idTextName": 12,
           "type": "NORMAL",
-          "uuid": "3581d8fe-7669-4e97-9a84-71e260dbe4d2"
+          "uuid": "d86efa80-a808-4d57-bd61-7fe7c7f5caf7"
         },
         {
           "costCoin": 0,
@@ -833,7 +833,7 @@
           "idTextDescription": 13,
           "idTextName": 13,
           "type": "ONCE",
-          "uuid": "19ac228a-a529-49b0-8d1b-abb132394919"
+          "uuid": "d52d073d-44ec-4d92-85b9-9b69fe9c7866"
         },
         {
           "costCoin": 0,
@@ -846,7 +846,7 @@
           "idTextDescription": 14,
           "idTextName": 14,
           "type": "NORMAL",
-          "uuid": "b21bd8ca-c286-44c1-9f71-f748444a4056"
+          "uuid": "96414064-ffe7-41f0-8bb3-0cbbcd4af61b"
         },
         {
           "costCoin": 0,
@@ -859,7 +859,7 @@
           "idTextDescription": 15,
           "idTextName": 15,
           "type": "AUTOMATIC",
-          "uuid": "3dc429b3-2b21-4c27-9f6b-af7732f7e6df"
+          "uuid": "519c4e08-b7a3-4e77-9378-5412e06167ce"
         },
         {
           "costCoin": 0,
@@ -872,7 +872,7 @@
           "idTextDescription": 16,
           "idTextName": 16,
           "type": "NORMAL",
-          "uuid": "6cbe6b84-ff8b-4d45-ab64-3d2e10ce176d"
+          "uuid": "37645f52-f354-4f1a-9e68-477f2ac7b0ba"
         },
         {
           "costCoin": 0,
@@ -885,7 +885,7 @@
           "idTextDescription": 17,
           "idTextName": 17,
           "type": "NORMAL",
-          "uuid": "4687bcf6-48a4-48e4-96b0-3aad3e1a17c3"
+          "uuid": "6551d9b4-ef88-46d2-97c9-8f43bd24197f"
         },
         {
           "costCoin": 0,
@@ -898,7 +898,7 @@
           "idTextDescription": 18,
           "idTextName": 18,
           "type": "NORMAL",
-          "uuid": "b28e0b0d-51f5-45cc-b914-7aa26a4c8aa6"
+          "uuid": "b67f7d77-29d5-465d-9074-9eadcea2e776"
         },
         {
           "costCoin": 0,
@@ -911,7 +911,7 @@
           "idTextDescription": 95,
           "idTextName": 95,
           "type": "NORMAL",
-          "uuid": "b4c92e93-0b16-48bc-a4c9-091f895037b8"
+          "uuid": "5cd7aee9-5b3e-4bef-aa19-fe61a6fdd00b"
         },
         {
           "costCoin": 0,
@@ -924,7 +924,7 @@
           "idTextDescription": 40,
           "idTextName": 40,
           "type": "END",
-          "uuid": "a90f75d3-368b-4392-91c6-0179215ae4f4"
+          "uuid": "8a43d2d3-657c-4607-8a5b-357bde66242b"
         }
       ],
       "globalRandomEvents": [],
@@ -946,7 +946,7 @@
           "idTextName": 93,
           "isConsumabile": 0,
           "maxPerCharacter": 1,
-          "uuid": "e3e2fed1-cb8f-4a5b-ae8d-b1d405dc7fcd",
+          "uuid": "e1a3d879-f395-4ef6-8e02-c9960f235c22",
           "weight": 1
         },
         {
@@ -957,7 +957,7 @@
           "idTextName": 94,
           "isConsumabile": 0,
           "maxPerCharacter": 1,
-          "uuid": "f99bf2c8-de71-4dab-bbde-64de2048b69c",
+          "uuid": "18f78468-bd28-492a-87b5-7043dbc3f0e4",
           "weight": 1
         }
       ],
@@ -970,7 +970,7 @@
           "keyName": "quest",
           "multiValue": 0,
           "priority": 1,
-          "uuid": "2393610d-9c2b-4c2a-9123-287e3817afed"
+          "uuid": "3f710b50-6e45-403a-bde6-6d2a2b6fd164"
         }
       ],
       "locationNeighbors": [
@@ -984,7 +984,7 @@
           "id": 1,
           "idLocationFrom": 1,
           "idLocationTo": 2,
-          "uuid": "6933c2c5-b105-4ece-8225-f6476dcce9b7"
+          "uuid": "808b13d7-2104-4674-901e-9389aaef0cc4"
         }
       ],
       "locations": [
@@ -996,7 +996,7 @@
           "maxCharacters": 10,
           "priorityAutomaticEvent": 0,
           "secureParam": 1,
-          "uuid": "555244d0-9e63-4649-a936-23db9da701d8"
+          "uuid": "0e8a7284-f786-4526-8bef-dae9cb6a72ff"
         },
         {
           "id": 2,
@@ -1006,7 +1006,7 @@
           "maxCharacters": 10,
           "priorityAutomaticEvent": 0,
           "secureParam": 0,
-          "uuid": "b756961f-7865-43d6-b468-ccb387b29f5a"
+          "uuid": "46b945d5-ee5b-419b-9eee-1882d7c7813b"
         }
       ],
       "missionSteps": [],
@@ -1019,7 +1019,7 @@
           "idEventCompleted": 15,
           "idTextDescription": 70,
           "idTextName": 70,
-          "uuid": "11be98f1-b48f-4334-951d-d8a84132bdad"
+          "uuid": "f60c2c87-7dd6-4c06-8dcd-371e30e30abd"
         }
       ],
       "peghi": 0,
@@ -1216,7 +1216,7 @@
           "intelligence": 0,
           "life": 0,
           "sad": 0,
-          "uuid": "8e27ddf0-03fd-4391-bf09-869811334603",
+          "uuid": "026978ff-bfa1-4e77-81dc-0be1c4b868af",
           "weight": 0
         }
       ],
@@ -1232,7 +1232,7 @@
           "idCard": 3,
           "idText": 3,
           "probability": 100.0,
-          "uuid": "b77e6e5f-236e-445c-aec8-2740d08d75aa"
+          "uuid": "1b1b5749-1c83-4783-adbf-6ab2702bc692"
         }
       ]
     },
@@ -1244,11 +1244,11 @@
     {
       "guest": true,
       "language": "en",
-      "nickname": "robottest_9cc03ce9",
+      "nickname": "robottest_25bca500",
       "role": "PLAYER",
       "state": 6,
-      "username": "robottest_9cc03ce9",
-      "uuid": "9cc03ce9-5d42-43fe-8223-fe185e4e1710"
+      "username": "robottest_25bca500",
+      "uuid": "25bca500-dbcc-4fb2-8779-732711334ab9"
     }
   ]
 }

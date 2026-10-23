@@ -31,8 +31,7 @@
     "footerBlocked": "Blocked",
     "footerError": "Error",
     "playTutorial": "Play the tutorial",
-    "resumeTutorial": "Resume the tutorial",
-    "knownAccount": "Sign in with Google to find your matches"
+    "resumeTutorial": "Resume the tutorial"
   },
   "antibot": {
     "blocked": "Antibot activated — these adventures are only for humans!",
@@ -40,6 +39,7 @@
     "error": "Verification didn't go through."
   },
   "book": {
+    "updateMatch": "Match update",
     "configureAdventure": "Start your Adventure",
     "character": "Character",
     "class": "Class",
@@ -57,7 +57,7 @@
     "guest": "Guest user",
     "guestLock": "Locked",
     "logged": "Logged",
-    "guestDesc": "Play as a guest and dive into our captivating stories without the need for an account. Experience the thrill of adventure with just a click.<br /><br /> <p align='center'>Sign in with Google to keep your matches on every device.</p>",
+    "guestDesc": "Play as a guest and dive into our captivating stories without the need for an account. Experience the thrill of adventure with just a click.<br /><br /> <p align='center'>Sign in with Google to keep your matches on every device and keep your progress for the future.</p>",
     "register": "Register",
     "comingSoon": "Coming Soon",
     "locked": "Locked",
@@ -163,12 +163,11 @@
       "created": "Loading"
     },
     "home": "Back to home",
-    "accountHint": "Have an account? Sign in to continue"
+    "accountHint": "You can keep playing as a guest, signing in to keep your progress for the future."
   },
   "matches": {
     "title": "Your Matches",
     "loading": "Loading matches…",
-    "noMatches": "No matches yet. Start an adventure!",
     "unknownStory": "Unknown story",
     "resume": "Resume",
     "statusLabel": "Status",
@@ -187,9 +186,7 @@
     "historyDescription": "Every step this match has taken, newest first: moves, events, rests and what they changed.",
     "historyOpen": "History",
     "logOpen": "Log",
-    "lastPlayed": "Last played",
-    "showCancelled": "Show cancelled",
-    "cancelledKept": "The match of your Google account for this story was kept."
+    "cancelledKept": "The match of your account was kept."
   },
   "matchLog": {
     "title": "Match history",
@@ -256,6 +253,10 @@
     "openLink": "open link"
   },
   "game": {
+    "updateMatch": {
+      "title": "Refreshing",
+      "description": "The page was refreshed because your account made a move on another device. You now see the match exactly as it is, so you can continue from there."
+    },
     "matchUpdating": "Match is being updated",
     "matchUpdatedLog": "Open the match history",
     "matchUpdatedDismiss": "Close",
@@ -796,6 +797,7 @@
       "signingIn": "Signing you in…",
       "signedInAs": "Signed in with Google as",
       "logout": "Log out",
+      "logoutThisDevice": "Log out of this device",
       "keepProgress": "Sign in with Google to keep your progress: the matches of this guest come with you.",
       "ageNotice": "You must be at least 16 years old to sign in: read the {privacy} and the {terms} pages.",
       "signInAgain": "Sign in again"
@@ -815,29 +817,15 @@
     }
   },
   "profile": {
-    "open": "My profile",
-    "title": "Profile",
-    "displayName": "Name",
-    "nickname": "Nickname",
-    "accountType": "Account",
-    "accountTypes": {
-      "GUEST": "Guest",
-      "GOOGLE": "Google",
-      "INTERNAL": "Internal"
-    },
-    "statsTitle": "Statistics",
     "stats": {
-      "matchesPlayed": "Matches played",
-      "matchesCompleted": "Completed",
-      "matchesGameOver": "Game over",
-      "playTime": "Play time",
-      "clocksPlayed": "Time in the game world",
-      "playTimeValue": "{h} h {m} min"
+      "matchesPlayed": "Matches",
+      "matchesCompleted": "Complete",
+      "matchesGameOver": "Gameover",
+      "playTime": "Time",
+      "playTimeMinutes": "{m} mins",
+      "playTimeHours": "{h} H",
+      "playTimeDays": "{d} days"
     },
-    "guestInvite": "Sign in with Google to keep these statistics on every device and save your preferences in your account.",
-    "preferencesTitle": "Preferences",
-    "accountTitle": "Account",
-    "policiesTitle": "Privacy and terms",
     "logoutAll": "Log out of all devices",
     "logoutAllConfirm": "Every device signed in with this Google account will be logged out, this one included.",
     "confirm": "Confirm",

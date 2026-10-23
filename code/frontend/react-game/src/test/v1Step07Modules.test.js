@@ -9,11 +9,13 @@ import {
   LANG_KEY, HIGH_CONTRAST_KEY, deviceLanguage, deviceHighContrast, setDeviceHighContrast, devicePreferencesBody,
 } from '../auth/devicePreferences'
 import { beginRequest, endRequest, inFlightCount, whenIdle, resetInFlight } from '../api/inFlight'
-import { playTimeParts, formatPlayTime, profileStatRows, PROFILE_STAT_KEYS } from '../utils/profileStats'
+import { playTimeParts, formatPlayTime, profileStatBadges, PROFILE_STAT_BADGES } from '../utils/profileStats'
 import { updateMe, logoutAll, deleteMe } from '../api/auth'
 import { apiClient } from '../api/client'
 
-const t = (k) => (k === 'profile.stats.playTimeValue' ? '{h} h {m} min' : k)
+const PLAY_TIME = { 'profile.stats.playTimeMinutes': '{m} mins', 'profile.stats.playTimeHours': '{h} H',
+  'profile.stats.playTimeDays': '{d} days' }
+const t = (k) => PLAY_TIME[k] ?? k
 
 describe('i18n bundles', () => {
   it('knows the bundled languages and their names', () => {
@@ -113,16 +115,24 @@ describe('profile statistics', () => {
     expect(playTimeParts(3_725_000)).toEqual({ hours: 1, minutes: 2 })
     expect(playTimeParts(-5)).toEqual({ hours: 0, minutes: 0 })
     expect(playTimeParts('x')).toEqual({ hours: 0, minutes: 0 })
-    expect(formatPlayTime(26 * 3_600_000 + 5 * 60_000, t)).toBe('26 h 5 min')
+    // v1.8.0 — one unit: minutes under an hour, hours under a day, then whole days
+    expect(formatPlayTime(0, t)).toBe('0 mins')
+    expect(formatPlayTime(59 * 60_000, t)).toBe('59 mins')
+    expect(formatPlayTime(60 * 60_000, t)).toBe('1 H')
+    expect(formatPlayTime(23 * 3_600_000 + 59 * 60_000, t)).toBe('23 H')
+    expect(formatPlayTime(24 * 3_600_000, t)).toBe('1 days')
+    expect(formatPlayTime(26 * 3_600_000 + 5 * 60_000, t)).toBe('1 days')
+    expect(formatPlayTime(50 * 3_600_000, t)).toBe('2 days')
   })
 
-  it('answers one row per statistic, zeros when the server sent none', () => {
-    const rows = profileStatRows({ matchesPlayed: 3, matchesCompleted: 1, matchesGameOver: 1, playTimeMs: 7_200_000,
-      clocksPlayed: 42.7 }, t)
-    expect(rows.map(r => r.key)).toEqual(PROFILE_STAT_KEYS)
-    expect(rows.map(r => r.value)).toEqual(['3', '1', '1', '2 h 0 min', '42'])
-    expect(rows[0].label).toBe('profile.stats.matchesPlayed')
-    expect(profileStatRows(null, t).map(r => r.value)).toEqual(['0', '0', '0', '0 h 0 min', '0'])
+  it('v1.8.0 — one badge per statistic with its icon, zeros when the server sent none', () => {
+    const rows = profileStatBadges({ matchesPlayed: 3.6, matchesCompleted: 1, matchesGameOver: 1, playTimeMs: 7_200_000,
+      clocksPlayed: 42 }, t)
+    expect(rows.map(r => r.key)).toEqual(PROFILE_STAT_BADGES.map(b => b.key))
+    expect(rows.map(r => r.key)).toEqual(['matchesPlayed', 'matchesCompleted', 'matchesGameOver', 'playTime'])
+    expect(rows.map(r => r.value)).toEqual(['3', '1', '1', '2 H'])
+    expect(rows[0]).toMatchObject({ label: 'profile.stats.matchesPlayed', icon: 'fas fa-scroll' })
+    expect(profileStatBadges(null, t).map(r => r.value)).toEqual(['0', '0', '0', '0 mins'])
   })
 })
 

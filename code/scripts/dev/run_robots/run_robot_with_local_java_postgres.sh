@@ -39,6 +39,8 @@ case "${JWT_SECRET:-}" in
 		;;
 esac
 export JWT_SECRET
+# v1.8.0 — the prod profile also refuses a missing pepper: a random one per run when .env has none.
+export BANNED_SUBJECT_PEPPER="${BANNED_SUBJECT_PEPPER:-$(openssl rand -base64 48)}"
 # v0.41.4 - ROBOT_RATE_LIMITS=1 (run_robot_everywhere *_LIMITED): limits on, only the rate-limit tests.
 # Per guest < per-IP matches, so that case meets its own bucket; 10 guests leave room for the setups.
 if [ "${ROBOT_RATE_LIMITS:-0}" = "1" ]; then

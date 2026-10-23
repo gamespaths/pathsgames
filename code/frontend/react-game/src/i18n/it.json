@@ -31,8 +31,7 @@
     "footerBlocked": "Bloccato",
     "footerError": "Errore",
     "playTutorial": "Gioca il tutorial",
-    "resumeTutorial": "Riprendi il tutorial",
-    "knownAccount": "Accedi con Google per ritrovare le tue partite"
+    "resumeTutorial": "Riprendi il tutorial"
   },
   "antibot": {
     "blocked": "Antibot attivato — queste avventure sono solo per umani!",
@@ -40,6 +39,7 @@
     "error": "Verifica non riuscita — tocca per riprovare."
   },
   "book": {
+    "updateMatch": "Aggiornamento partita",
     "configureAdventure": "Inizia la tua Avventura",
     "character": "Personaggio",
     "class": "Classe",
@@ -57,7 +57,7 @@
     "guest": "Ospite",
     "guestLock": "Bloccato",
     "logged": "Connesso",
-    "guestDesc": "Gioca come ospite e immergiti nelle nostre storie avvincenti senza bisogno di un account. Vivi l'emozione dell'avventura con un solo clic.<br /><br /><p align='center'>Accedi con Google per avere le tue partite su ogni dispositivo.</p>",
+    "guestDesc": "Gioca come ospite e immergiti nelle nostre storie avvincenti senza bisogno di un account. Vivi l'emozione dell'avventura con un solo clic.<br /><br /><p align='center'>Accedi con Google per avere le tue partite su ogni dispositivo e conservare i tuoi progressi per il futuro.</p>",
     "register": "Registrati",
     "comingSoon": "Prossimamente",
     "locked": "Bloccato",
@@ -163,12 +163,11 @@
       "created": "Caricamento"
     },
     "home": "Torna alla home",
-    "accountHint": "Hai un account? Accedi per continuare"
+    "accountHint": "Puoi continuare a giocare come ospite, ma ti consigliamo di accedere per conservare i tuoi progressi per il futuro."
   },
   "matches": {
     "title": "Le tue Partite",
     "loading": "Caricamento partite…",
-    "noMatches": "Nessuna partita ancora. Inizia un'avventura!",
     "unknownStory": "Storia sconosciuta",
     "resume": "Riprendi",
     "statusLabel": "Stato",
@@ -187,8 +186,6 @@
     "historyDescription": "Ogni passo di questa partita, dal più recente: spostamenti, eventi, riposi e cosa hanno cambiato.",
     "historyOpen": "Cronologia",
     "logOpen": "Log",
-    "lastPlayed": "Ultima giocata",
-    "showCancelled": "Mostra annullate",
     "cancelledKept": "È stata tenuta la partita del tuo account Google per questa storia."
   },
   "matchLog": {
@@ -256,6 +253,10 @@
     "openLink": "apri link"
   },
   "game": {
+    "updateMatch": {
+      "title": "Aggiornamento",
+      "description": "La pagina è stata aggiornata perché il tuo account ha fatto una mossa su un altro dispositivo. Ora vedi la partita esattamente com'è e puoi continuare da lì."
+    },
     "matchUpdating": "Partita in aggiornamento",
     "matchUpdatedLog": "Apri la cronologia della partita",
     "matchUpdatedDismiss": "Chiudi",
@@ -796,6 +797,7 @@
       "signingIn": "Accesso in corso…",
       "signedInAs": "Accesso con Google come",
       "logout": "Esci",
+      "logoutThisDevice": "Esci da questo dispositivo",
       "keepProgress": "Accedi con Google per conservare i tuoi progressi: le partite di questo ospite vengono con te.",
       "ageNotice": "Per accedere devi avere almeno 16 anni: leggi la {privacy} e i {terms}.",
       "signInAgain": "Accedi di nuovo"
@@ -815,29 +817,15 @@
     }
   },
   "profile": {
-    "open": "Il mio profilo",
-    "title": "Profilo",
-    "displayName": "Nome",
-    "nickname": "Nickname",
-    "accountType": "Account",
-    "accountTypes": {
-      "GUEST": "Ospite",
-      "GOOGLE": "Google",
-      "INTERNAL": "Interno"
-    },
-    "statsTitle": "Statistiche",
     "stats": {
-      "matchesPlayed": "Partite giocate",
+      "matchesPlayed": "Partite",
       "matchesCompleted": "Completate",
-      "matchesGameOver": "Game over",
-      "playTime": "Tempo di gioco",
-      "clocksPlayed": "Tempo nel mondo di gioco",
-      "playTimeValue": "{h} h {m} min"
+      "matchesGameOver": "Gameover",
+      "playTime": "Tempo",
+      "playTimeMinutes": "{m} min",
+      "playTimeHours": "{h} H",
+      "playTimeDays": "{d} giorni"
     },
-    "guestInvite": "Accedi con Google per avere queste statistiche su ogni dispositivo e salvare le tue preferenze nel tuo account.",
-    "preferencesTitle": "Preferenze",
-    "accountTitle": "Account",
-    "policiesTitle": "Privacy e termini",
     "logoutAll": "Esci da tutti i dispositivi",
     "logoutAllConfirm": "Ogni dispositivo collegato con questo account Google verrà disconnesso, compreso questo.",
     "confirm": "Conferma",

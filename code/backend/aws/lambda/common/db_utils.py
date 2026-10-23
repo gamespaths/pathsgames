@@ -224,8 +224,6 @@ def transact_put_items(items, conditions=None, sleep=time.sleep):
     ``conditions`` maps (PK, SK) to the ts_update the stored row must have."""
     if not items:
         return True
-    from boto3.dynamodb.types import TypeSerializer
-    serializer = TypeSerializer()
     now = stamp_ms()
     conditions = conditions or {}
     table = _get_table()
@@ -237,12 +235,13 @@ def transact_put_items(items, conditions=None, sleep=time.sleep):
     for index, chunk in enumerate(transact_chunks(packed)):
         requests = []
         for item in chunk:
-            put = {'TableName': table.name, 'Item': {k: serializer.serialize(v) for k, v in item.items()}}
+            # v1.8.0 plain values: the resource's client serializes them (a TypeSerializer here doubled it)
+            put = {'TableName': table.name, 'Item': item}
             expected = conditions.get((item.get('PK'), item.get('SK', 'METADATA')))
             if expected is not None:
                 put['ConditionExpression'] = '#ts = :ts'
                 put['ExpressionAttributeNames'] = {'#ts': 'ts_update'}
-                put['ExpressionAttributeValues'] = {':ts': serializer.serialize(int(expected))}
+                put['ExpressionAttributeValues'] = {':ts': int(expected)}
             requests.append({'Put': put})
         for attempt in range(1, TRANSACT_ATTEMPTS + 1):
             try:

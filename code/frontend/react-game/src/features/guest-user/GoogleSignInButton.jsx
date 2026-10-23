@@ -10,7 +10,7 @@ import { loadGis, newNonce } from '@/auth/gisLoader'
  * Hidden when the server reports google-enabled false; the minimum-age line is in UserAccountPanel.
  */
 export default function GoogleSignInButton({ compact = false, onCredential = null, labelKey = 'auth.google.signIn',
-  gisText = 'signin_with', busy = null }) {
+  gisText = 'signin_with', busy = null, autoStart = false }) {
   const { t } = useTranslation()
   const { googleEnabled, googleClientId, loginWithGoogle, authBusy } = useGuestUser()
   const [phase, setPhase] = useState('idle') // idle | loading | ready | unavailable
@@ -37,6 +37,11 @@ export default function GoogleSignInButton({ compact = false, onCredential = nul
     }).catch(() => { if (!cancelled) setPhase('unavailable') })
     return () => { cancelled = true }
   }, [phase, googleClientId, compact, gisText])
+
+  // v1.8.0 — mounted by a click already (the start-match Login): load GIS at once, no second button
+  useEffect(() => {
+    if (autoStart && googleEnabled && googleClientId) void start()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!googleEnabled || !googleClientId) return null
 

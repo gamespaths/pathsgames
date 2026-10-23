@@ -59,14 +59,21 @@ Multi-device rule: each device's guest merges into the Google account at the fir
 2. Google logout when the previous guest was already merged (its cookie is invalid): falls back to "create at first Play".
 
 
+## Changes (1.8.0)
+
+- **Start-match login card** (`features/start-match/StartMatchFlow.jsx`, `GoogleSignInButton.jsx` prop `autoStart`): a guest with Google enabled sees a small card without artwork, the hint ("You can keep playing as a guest, but we recommend signing in to keep your progress for the future.", `startMatch.accountHint`) fills the card and there is only a Login button (no (i)). Login opens the guest card-page (story artwork) with the official Google button started at once (desktop: left page; mobile: preview modal). On desktop the guest page is also the default left page, with our "Sign in with Google" button; the GIS script is still loaded only on a click (privacy rule unchanged). `book.guestDesc` adds "and keep your progress for the future".
+- After the login the page closes (modal hidden) and the card becomes the Google user card: name, picture and an Info button that opens the user book (the green "Logged" lock is gone).
+- Logout menu: see [Step 7](./Step07_UserProfileReactGame.md) "Changes (1.8.0)".
+
 # Version Control
-- **Document Version**: 1.2.0
+- **Document Version**: 1.8.0
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 1.2.0 | Google login analysis, steps two to five | October 19, 2026 |
+  | 1.8.0 | Start-match login card reworked | October 23, 2026 |
 
-- **Last Updated**: October 19, 2026 (v1.2.0)
+- **Last Updated**: October 23, 2026 (v1.8.0)
 
 # &lt; Paths Games /&gt;
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
