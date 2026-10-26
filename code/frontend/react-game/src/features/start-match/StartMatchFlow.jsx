@@ -18,6 +18,7 @@ import CardPreviewModal from '@/components/modals/CardPreviewModal'
 import MatchStatus from './MatchStatus'
 import { buildConfigStatistics } from '@/utils/bonusStats'
 import { traitBudgetItems } from '@/utils/traitBudget'
+import { isMobileViewport } from '@/features/gameplay/js/mobileView'
 
 /**
  * StartMatchFlow — the single match-setup surface, reached from the start book's
@@ -88,8 +89,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
 
   function handleSelectionPreview(card, entityType , lockedReason , statItemsToPageContent, loginPage = false) {
     // Mobile has no left page → the (i) lens opens the big card in a modal.
-    const inModal = Boolean(card && typeof window !== 'undefined'
-        && window.matchMedia?.('(max-width: 767px)').matches)
+    const inModal = Boolean(card && isMobileViewport())
     setPreview(card ? { card, entityType, lockedReason, statItemsToPageContent, loginPage, inModal } : null)
     if (inModal) {
       const el = document.getElementById('cardPreviewModal')
@@ -294,14 +294,14 @@ export default function StartMatchFlow({ story, config, storyId }) {
         onSelect={() => setTermsAccepted(v => !v)}
         selectLabel={termsAccepted ? t('book.accepted') : t('book.accept')}
         story={story}
-        selected={termsAccepted}
+        selected={termsAccepted} testId="terms"
       />
       <Card card={statisticsCard} entityType="bonuses" 
         onPreview={() => handleSelectionPreview(statisticsCard,"bonuses", null ,statisticCard2)}  
         flagInformationCard={false}  hidePreview={true}
         statistics={statisticCard2} flagShowFullStatistics={true}
         onAction={startReady ? () => setPhase('starting') : undefined}
-        actionLabel={t('book.start')} actionIcon="fa-play"
+        actionLabel={t('book.start')} actionIcon="fa-play" testId="match-start"
         locked={!startReady} lockInfo={{ kind: 'start', label: t('book.start') }}
         lockedReason={startLockReason}
         lockedIcon={gate.phase === 'checking' ? 'fas fa-spinner fa-spin' : 'fas fa-lock'} />

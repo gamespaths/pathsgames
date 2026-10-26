@@ -45,7 +45,7 @@
 
 
 /* ═══════════════════════════════════════════════════════════
-   MOBILE STYLES  — breakpoint ≤ 767px
+   MOBILE STYLES  — breakpoint ≤ 767px, or ≤ 991px in landscape up to 500px high (phone turned sideways)
    Modifica qui font, colori e dimensioni per il layout mobile.
    ═══════════════════════════════════════════════════════════ */
 
@@ -164,14 +164,47 @@
    which would collapse/clip inside the auto-height mobile column). */
 .book-mobile-layout .book-page-content { height: auto; overflow: visible; }
 .book-mobile-layout .book-page-desc    { overflow: visible; }
-.book-mobile-layout .book-page-img     { max-height: 240px; }
+/* Page image = 33% of the screen: every page the same, whatever the image. */
+.book-mobile-layout .book-page-img-wrapper { max-height: none; }
+.book-mobile-layout .book-page-img,
+.book-mobile-layout .book-page-img-wrapper .book-page-img { height: 33svh; max-height: none; }
 .book-mobile-layout .matches-list-wrap { height: auto; overflow: visible; }
+
+/* Phone turned sideways: a page with image and description shows them side by side. */
+@media (orientation: landscape) and (max-height: 500px) and (min-width: 500px) {
+  .book-mobile-layout .book-page-content:has(> .book-page-desc):has(> .book-page-img-wrapper > .book-page-img, > .book-page-img) {
+    display: grid;
+    grid-template-columns: 40% minmax(0, 1fr);
+  }
+  .book-mobile-layout .book-page-content:has(> .book-page-desc):has(> .book-page-img-wrapper > .book-page-img, > .book-page-img) > * {
+    grid-column: 1 / -1;
+  }
+  .book-mobile-layout .book-page-content:has(> .book-page-desc):has(> .book-page-img-wrapper > .book-page-img, > .book-page-img) > :is(.book-page-img-wrapper, .book-page-img) {
+    grid-column: 1;
+    min-height: 60svh;
+  }
+  /* The image follows the row height and never pushes it with its own size. */
+  .book-mobile-layout .book-page-content:has(> .book-page-desc):has(> .book-page-img-wrapper > .book-page-img, > .book-page-img) > .book-page-img-wrapper > .book-page-img {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+  }
+  .book-mobile-layout .book-page-content:has(> .book-page-desc):has(> .book-page-img-wrapper > .book-page-img, > .book-page-img) > .book-page-img {
+    height: 100%;
+    contain: size;
+  }
+  .book-mobile-layout .book-page-content:has(> .book-page-desc):has(> .book-page-img-wrapper > .book-page-img, > .book-page-img) > .book-page-desc {
+    grid-column: 2;
+    border-top: none;
+    border-left: 2px solid var(--color-gold-dark);
+  }
+}
 
 /* ── Home hero on mobile ── */
 /* (overrides hero height defined in main.css) */
 
 /* ── Responsive overrides ── */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
   .config-view-wrap{
     overflow-y: unset !important;
   }

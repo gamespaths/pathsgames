@@ -45,9 +45,9 @@ export default function PageRightMain({
               infoLabelClassName="font-size-medium"
               actionsList={[
                 // v0.37.3 — named shortcuts: the mobile stack has no bookmarks to name them
-                { label: t('game.bookmarks.map'), icon: 'fa-map m-1', onAction: onOpenMap },
-                { label: t('game.bookmarks.missions'), icon: 'fa-clipboard-list m-1', onAction: onOpenMissions },
-                { label: t('game.bookmarks.backpack'), icon: 'fa-suitcase m-1', onAction: onOpenItems },
+                { label: t('game.bookmarks.map'), icon: 'fa-map m-1', onAction: onOpenMap, testId: 'bookmark-map' },
+                { label: t('game.bookmarks.missions'), icon: 'fa-clipboard-list m-1', onAction: onOpenMissions, testId: 'bookmark-missions' },
+                { label: t('game.bookmarks.backpack'), icon: 'fa-suitcase m-1', onAction: onOpenItems, testId: 'bookmark-backpack' },
                 //NEVER REMOVE THIS COMMENTS!
                 //{ label: '', icon: 'fa-people-arrows m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
               ]}

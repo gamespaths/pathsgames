@@ -93,6 +93,23 @@ def test_deploy_scripts_invoke_the_smoke_function():
     assert 'smoke_test_invoke "pathsgames-test-SmokeTestFunction" "$AWS_TEST_REGION"' in test
 
 
+@pytest.mark.parametrize('env, expected', [
+    ({'AWS_TEST_LAMBDA_TURNSTILE_SECRET_KEY': '0xTEST', 'TURNSTILE_SECRET_KEY': '0xSHARED'}, '0xTEST'),
+    ({'AWS_TEST_LAMBDA_TURNSTILE_SECRET_KEY': '', 'TURNSTILE_SECRET_KEY': '0xSHARED'}, ''),
+    ({'TURNSTILE_SECRET_KEY': '0xSHARED'}, '0xSHARED'),
+    ({}, ''),
+], ids=['test-key', 'test-key-empty-turns-off', 'fallback-shared', 'none'])
+def test_test_deploy_turnstile_secret(env, expected):
+    # v1.9.0 — runs the script's own assignment line: AWS_TEST_LAMBDA_* wins even when empty.
+    line = next(l for l in CHANGED[2].read_text().splitlines() if l.startswith('_TURNSTILE_SAM_KEY='))
+    base = {k: v for k, v in os.environ.items()
+            if k not in ('AWS_TEST_LAMBDA_TURNSTILE_SECRET_KEY', 'TURNSTILE_SECRET_KEY')}
+    proc = subprocess.run(['bash', '-c', f'set -u; {line}; printf %s "$_TURNSTILE_SAM_KEY"'],
+                          env={**base, **env}, capture_output=True, text=True, timeout=60)
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stdout == expected
+
+
 def test_policy_dry_run_allows_scheduler_and_pass_role(tmp_path):
     if shutil.which('python3') is None:
         pytest.skip('python3 not available')

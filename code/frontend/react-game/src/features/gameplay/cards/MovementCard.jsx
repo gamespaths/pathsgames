@@ -32,6 +32,7 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
   const [moving, setMoving] = useState(false)
 
   const cost = totalEnergyCost ?? location?.energyCost ?? 0
+  const testId = `movement-${String(location?.direction ?? 'none').toLowerCase()}`   // e.g. movement-north
   const energy = playerStats?.energy ?? 0
   // The backend now ships its own verdict on every neighbor of match-info: `available` is what
   // action/move would answer, and `reason` the code it would refuse with (COMA, SLEEPING,
@@ -114,7 +115,7 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
     <Card variant={variant }
       card={location?.card ?? { title: location?.name, description: location?.description,
         urlImage: location?.urlImage, awesomeIcon: location?.awesomeIcon }}
-      entityType="movement"
+      entityType="movement" testId={testId}
       
       onAction={canMove ? handleMove : undefined}
       actionLabel={t('game.movement.action')}
@@ -131,7 +132,7 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
         stats: null,
         side: previewSide,
         props: canMove
-          ? { onAction: handleMove, actionLabel: t('game.movement.action'),
+          ? { onAction: handleMove, actionLabel: t('game.movement.action'), testId,
               actionIcon: location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fa-walking"
               , actionLabelChildren: costBadge
               , /* extraContent: moveInfo, extraContentClassName: '' */ }

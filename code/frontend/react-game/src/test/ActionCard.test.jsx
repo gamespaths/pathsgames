@@ -52,6 +52,7 @@ describe('ActionCard', () => {
     expect(screen.getByTestId('info-flag').textContent).toBe('true')
     // Convention: never pass `label` to Card; the name comes from card.title.
     expect(capturedProps.label).toBeUndefined()
+    expect(capturedProps.testId).toBe('action')
   })
 
   it('falls back to a card built from action fields when action.card is missing', () => {

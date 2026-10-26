@@ -103,14 +103,14 @@ fi
 
 sam build
 
-# Cloudflare secret: vuoto = validazione disattivata (bypass server-side).
-_TURNSTILE_SAM_KEY="${TURNSTILE_SECRET_KEY:-}"
+# Cloudflare secret: vuoto = validazione disattivata. v1.9.0: AWS_TEST_LAMBDA_* vince anche se vuoto, TURNSTILE_SECRET_KEY solo se assente.
+_TURNSTILE_SAM_KEY="${AWS_TEST_LAMBDA_TURNSTILE_SECRET_KEY-${TURNSTILE_SECRET_KEY:-}}"
 
 # Bypass token: only dev/test reach this point (see the case above), so prod is never bypassable.
 # Robot manda un token fisso; il sito usa il widget vero e non serve qui.
 _TURNSTILE_BYPASS="${TURNSTILE_BYPASS_TOKEN_ROBOT:-${TURNSTILE_BYPASS_TOKEN_TEST:-}}"
 if [ -z "$_TURNSTILE_SAM_KEY" ]; then
-    echo "  WARNING: TURNSTILE_SECRET_KEY is empty — Turnstile validation is OFF on this stack."
+    echo "  WARNING: AWS_TEST_LAMBDA_TURNSTILE_SECRET_KEY is empty — Turnstile validation is OFF on this stack."
 fi
 
 # Admin IP allow-list: ADMIN_IP_WHITELIST from .env plus this machine's public IP (code/scripts/lib/admin_ip.sh).

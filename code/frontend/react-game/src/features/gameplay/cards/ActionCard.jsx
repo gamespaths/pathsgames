@@ -78,7 +78,7 @@ export default function ActionCard({
   return (
     <Card
       card={cardData}
-      entityType="action"
+      entityType="action" testId="action"
       //onAction={available ? handleExecute : undefined}
       //actionLabel={t('game.event.action')}
       actionIcon={actionIcon}
@@ -92,7 +92,7 @@ export default function ActionCard({
         stats: [],
         side: previewSide,
         props: available
-          ? { onAction: handleExecute, actionLabel: t('game.event.action'), actionIcon,
+          ? { onAction: handleExecute, actionLabel: t('game.event.action'), actionIcon, testId: 'action',
               actionLabelChildren: costBadge }
           : { extraContent: (<>{lockInfoFull}<RegistryLockInfo lock={registryLock} target="action" />
               <div className='display-inline-flex'>{costBadge}</div></>) },

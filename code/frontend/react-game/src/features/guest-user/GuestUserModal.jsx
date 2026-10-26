@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from '@/i18n/context'
 import { useGuestUser } from './GuestUserContext'
 import Book from '@/components/book/Book'
+import GameBookMobile from '@/features/gameplay/GameBookMobile'
 import Card from '@/components/layout/Card'
 import UserMatchesList from './UserMatchesList'
 import MatchLogCard from '@/features/matches/MatchLogCard'
@@ -168,14 +169,8 @@ export default function GuestUserModal() {
       onClose={closeGuestModal}
       left={leftPage}
       right={rightPage}
-      mobile={
-        <div className="book-mobile-layout">
-          {/* Big user (or previewed story) card on top, then the matches grid
-              laid out two per row below it. */}
-          {leftPage}
-          {rightPage}
-        </div>
-      }
+      // Same stacked column as the game: user card on top, matches below, with the game's margins.
+      mobile={<GameBookMobile left={leftPage} right={rightPage} />}
     />
   )
 }

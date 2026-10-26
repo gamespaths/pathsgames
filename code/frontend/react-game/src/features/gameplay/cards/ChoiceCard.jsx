@@ -60,8 +60,8 @@ export default function ChoiceCard({
   return (
     <Card story={story} variant="little"
       card={cardData}
-      entityType="choice"
-      
+      entityType="choice" testId="choice"
+
       locked={locked}
       lockInfo={lockInfoShort}
       lockedIcon={lockedIconFor(!busy ? choice?.reason : 'LOADING')}

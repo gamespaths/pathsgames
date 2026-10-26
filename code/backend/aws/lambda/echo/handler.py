@@ -48,7 +48,7 @@ def _route(event, context):
             # (injected as the ENV variable on the function).
             "env":     os.environ.get("ENV", "dev"),
             "name":    "Paths Games",
-            "version": "1.8.0"
+            "version": "1.9.0"
         },
         # v1.2.0 the Google sign-in switch and the client id, read by react-game at runtime
         "googleEnabled": google_verifier.enabled(),

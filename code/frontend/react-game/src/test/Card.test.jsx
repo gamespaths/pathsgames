@@ -150,3 +150,11 @@ describe('Card', () => {
     })
   })
 })
+
+describe('Card — page navigation test ids', () => {
+  it('marks the back and forward arrows of a reading page', () => {
+    render(<Card variant="page" card={{ title: 'T' }} onClose={vi.fn()} onForward={vi.fn()} />)
+    expect(screen.getByTestId('page-back')).toBeInTheDocument()
+    expect(screen.getByTestId('page-forward')).toBeInTheDocument()
+  })
+})

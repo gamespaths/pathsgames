@@ -198,7 +198,7 @@ html, body {
   align-items: center;
   justify-content: space-between;
   padding: 0.8rem 2rem;
-  height: 56px;
+  /*height: 56px;*/
   background: var(--navbar-bg);
   border-bottom: 2px solid var(--color-gold-dark);
   box-shadow: 0 2px 12px rgba(0,0,0,0.5);
@@ -324,7 +324,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: transparent;
+  background: rgba(200, 150, 10, 0.25);
   border: 1px solid var(--color-gold-dark);
   color: var(--color-gold-light);
   border-radius: 20px;
@@ -348,7 +348,7 @@ html, body {
   object-fit: cover;
   border: 1px solid var(--color-gold-dark);
 }
-.nav-user-btn--google { padding: 3px 12px; }
+.nav-user-btn--google { padding: 2px 12px; }
 /* hidden for now: the sign-in lives in the user's book */
 .nav-signin-btn { display: none; padding: 5px 12px; border-radius: 20px; }
 .user-avatar {
@@ -2736,7 +2736,7 @@ html, body {
 /* ═══════════════════════════════════════════
    MOBILE — StartBook vertical layout
    ═══════════════════════════════════════════ */
-/* mobile layout classes and @media (max-width: 767px) → see mobile.css */
+/* mobile layout classes and the mobile @media (≤767px, or ≤991px landscape up to 500px high) → see mobile.css */
 
 /* ═══════════════════════════════════════════
    ANIMATIONS
@@ -2849,7 +2849,7 @@ html, body {
   margin-top: 8px;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
   .start-match-wrapper {
     flex-direction: column;
     height: auto;
@@ -3207,7 +3207,7 @@ html, body {
    collapses the flex:1 map canvas (its children are absolutely positioned) to
    zero — the map was invisible. Pin an explicit height so it shows and stays
    pannable (drag + the +/−/◎ buttons; no wheel on touch). */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
   .book-mobile-layout .game-map-page { height: auto; }
   .book-mobile-layout .game-map-canvas {
     flex: none;
@@ -3502,7 +3502,7 @@ html, body {
 .env-badge__icon { font-size: 0.75em; }
 .env-badge__short { display: none; }
 /* Step 42 — mobile: "Local version" → "Local" (the word "version" goes). */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
   .env-badge__full { display: none; }
   .env-badge__short { display: inline; }
 }
