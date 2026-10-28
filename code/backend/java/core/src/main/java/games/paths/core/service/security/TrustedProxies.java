@@ -3,6 +3,7 @@ package games.paths.core.service.security;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -15,7 +16,31 @@ public final class TrustedProxies {
     private static final Pattern IPV4 = Pattern.compile("\\d{1,3}(\\.\\d{1,3}){3}");
     private static final Pattern IPV6 = Pattern.compile("[0-9a-fA-F:.]*:[0-9a-fA-F:.]*");
 
-    private record Range(byte[] network, int bits) {
+    /** One CIDR; package-private for the tests of equals/hashCode/toString (array content, not reference). */
+    record Range(byte[] network, int bits) {
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            Range other = (Range) o;
+            return bits == other.bits && Arrays.equals(network, other.network);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * Integer.hashCode(bits) + Arrays.hashCode(network);
+        }
+
+        @Override
+        public String toString() {
+            return "Range{network=" + Arrays.toString(network) + ", bits=" + bits + '}';
+        }
+
         boolean contains(byte[] ip) {
             if (ip.length != network.length) {
                 return false;

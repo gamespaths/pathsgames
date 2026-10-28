@@ -111,6 +111,21 @@ class RateLimitServiceTest {
     }
 
     @Test
+    @DisplayName("v1.10.0 a CIDR range compares, hashes and prints the address bytes, not the array reference")
+    void rangeUsesTheArrayContent() {
+        TrustedProxies.Range a = new TrustedProxies.Range(new byte[] {10, 0, 0, 0}, 8);
+        TrustedProxies.Range b = new TrustedProxies.Range(new byte[] {10, 0, 0, 0}, 8);
+        assertEquals(a, a);
+        assertEquals(a, b);
+        assertEquals(a.hashCode(), b.hashCode());
+        assertNotEquals(a, new TrustedProxies.Range(new byte[] {10, 0, 0, 0}, 16));
+        assertNotEquals(a, new TrustedProxies.Range(new byte[] {11, 0, 0, 0}, 8));
+        assertNotEquals(a, null);
+        assertNotEquals(a, "10.0.0.0/8");
+        assertEquals("Range{network=[10, 0, 0, 0], bits=8}", a.toString());
+    }
+
+    @Test
     @DisplayName("v1.10.0 trusted proxies: CIDRs and single addresses, IPv4 and IPv6, junk skipped, no DNS")
     void trustedProxies() {
         TrustedProxies p = TrustedProxies.parse(" 10.0.0.0/8 , 192.168.1.7, fd00::/8, junk, 1.2.3.4/33, 1.2.3.4/x,"
