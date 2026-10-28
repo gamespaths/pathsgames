@@ -115,13 +115,15 @@ class RateLimitServiceTest {
     void rangeUsesTheArrayContent() {
         TrustedProxies.Range a = new TrustedProxies.Range(new byte[] {10, 0, 0, 0}, 8);
         TrustedProxies.Range b = new TrustedProxies.Range(new byte[] {10, 0, 0, 0}, 8);
-        assertEquals(a, a);
+        TrustedProxies.Range same = a;
+        assertEquals(a, same);
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
         assertNotEquals(a, new TrustedProxies.Range(new byte[] {10, 0, 0, 0}, 16));
         assertNotEquals(a, new TrustedProxies.Range(new byte[] {11, 0, 0, 0}, 8));
         assertNotEquals(a, null);
-        assertNotEquals(a, "10.0.0.0/8");
+        Object text = "10.0.0.0/8";
+        assertNotEquals(a, text);
         assertEquals("Range{network=[10, 0, 0, 0], bits=8}", a.toString());
     }
 
